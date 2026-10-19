@@ -26,9 +26,7 @@ use crate::domain::agent::{Agent, Provider};
 use crate::domain::instance::{DaemonSnapshot, InstanceStatus};
 use crate::domain::usage::Freshness;
 use crate::domain::workspace::{Effective, EnvValue, EnvVar, env_key_error, mask};
-use crate::rain::{
-    HANDOFF_LEN, INTRO_END, IntroPhase, IntroState, OutroPhase, OutroState, P1_LEN, PHRASES,
-};
+use crate::rain::{HANDOFF_LEN, INTRO_END, IntroState, OutroState};
 use crate::scenario::{Motion, Scenario};
 use crate::screens::{
     accounts::AccountsState,
@@ -95,6 +93,7 @@ const ABOUT_DIALOG: Id = APP.sub("about");
 const QUIT_DIALOG: Id = APP.sub("quit-dialog");
 const CANCEL_LAUNCH_DIALOG: Id = APP.sub("cancel-dialog");
 const COCKPIT_INFO_DIALOG: Id = APP.sub("cockpit-info");
+const LAUNCH_FAILURE_DIALOG: Id = APP.sub("launch-failure");
 const EDITOR_EXIT_DIALOG: Id = APP.sub("editor-exit");
 const CAPSULE_HELP: Id = APP.sub("capsule-help");
 const QUIT_ACTIONS: [Action<'static>; 2] = [
@@ -481,6 +480,8 @@ pub struct App {
     cancel_state: DialogState,
     cockpit_info_open: bool,
     cockpit_info_state: DialogState,
+    launch_failure_open: bool,
+    launch_failure_state: DialogState,
     cockpit_debug_open: bool,
     editor_exit_open: bool,
     editor_exit_state: DialogState,
@@ -616,8 +617,14 @@ impl App {
                 crate::RunId::new(0x9c41_e2f0),
             )
         });
+        let mut launch_events = Vec::new();
         if let Some(run) = &mut launch {
-            run.seek(frame);
+            for _ in 0..frame {
+                if run.is_terminal() {
+                    break;
+                }
+                launch_events.extend(run.advance());
+            }
             if run.done {
                 route = Route::Handoff;
             }
@@ -659,6 +666,8 @@ impl App {
             cancel_state: DialogState::default(),
             cockpit_info_open: false,
             cockpit_info_state: DialogState::default(),
+            launch_failure_open: false,
+            launch_failure_state: DialogState::default(),
             cockpit_debug_open: false,
             editor_exit_open: false,
             editor_exit_state: DialogState::default(),
@@ -718,6 +727,7 @@ impl App {
             launch_agent: Agent::ClaudeCode,
             launch_account: None,
         };
+        app.handle_launch_events(launch_events);
         if app.launch.as_ref().is_some_and(|run| run.done) {
             app.materialize_launch();
         }
@@ -2632,8 +2642,73 @@ impl App {
         }
     }
 
+    fn launch_failure_dialog() -> Dialog<'static> {
+        Dialog::info(LAUNCH_FAILURE_DIALOG, "Launch failed")
+            .width(70)
+            .body_rows(12)
+    }
+
+    fn launch_failure_lines(&self) -> Vec<String> {
+        let Some(failure) = self
+            .launch
+            .as_ref()
+            .and_then(|launch| launch.failure.clone())
+        else {
+            return Vec::new();
+        };
+        let mut lines = vec![
+            failure.summary,
+            format!("Stage · {}", failure.stage.label()),
+            format!("Next step · {}", failure.next_step),
+        ];
+        lines.extend(failure.detail);
+        lines
+    }
+
+    fn settle_launch_failure(&mut self, cx: &mut Cx<'_>) {
+        if cx.is_open(LAUNCH_FAILURE_DIALOG) {
+            cx.close_layer(LAUNCH_FAILURE_DIALOG, Some(ActionKey::CLOSE));
+        }
+        self.launch_failure_open = false;
+        self.acknowledge_launch_failure();
+    }
+
     fn update_overlays(&mut self, cx: &mut Cx<'_>) -> Response<()> {
         let mut result = Response::ignored();
+
+        if self
+            .launch
+            .as_ref()
+            .is_some_and(|launch| launch.failure.is_some())
+            && !self.launch_failure_open
+        {
+            self.launch_failure_open = true;
+        }
+        if self.launch_failure_open && !cx.is_open(LAUNCH_FAILURE_DIALOG) {
+            self.launch_failure_state = DialogState::default();
+            cx.open_layer(
+                LAUNCH_FAILURE_DIALOG,
+                Self::launch_failure_dialog().layer(cx),
+            );
+            result |= Response::changed();
+        }
+        if self.launch_failure_open {
+            let dialog = Self::launch_failure_dialog();
+            let response = dialog.update(cx, &mut self.launch_failure_state);
+            let action = response.action_ref().copied();
+            result |= response.erase();
+            match action {
+                Some(DialogAction::Dismissed(_) | DialogAction::Action(ActionKey::CLOSE)) => {
+                    self.settle_launch_failure(cx);
+                    result |= Response::changed();
+                }
+                None if !cx.is_open(LAUNCH_FAILURE_DIALOG) => {
+                    self.settle_launch_failure(cx);
+                    result |= Response::changed();
+                }
+                Some(DialogAction::Action(_)) | None => {}
+            }
+        }
 
         if self.capsule_help_open {
             Self::with_capsule_help(|sections| {
@@ -3739,15 +3814,8 @@ impl App {
                 }
                 LaunchEvent::CredentialError { message } => self.status = Some(message),
                 LaunchEvent::Failed(failure) => {
-                    self.status = Some(format!("{} · {}", failure.stage.label(), failure.summary));
-                    if self.world.running_count() > 0 {
-                        self.route = Route::Manager;
-                        self.status = Some(format!(
-                            "Launch failed · {} · {} · another instance is still running",
-                            failure.stage.label(),
-                            failure.summary
-                        ));
-                    }
+                    self.status = Some(format!("{} failed", failure.stage.label()));
+                    self.launch_failure_open = true;
                 }
                 LaunchEvent::Ready => {
                     self.materialize_launch();
@@ -4929,50 +4997,22 @@ impl App {
         }
     }
 
-    fn draw_intro(&self, ui: &mut Ui<'_>, area: Rect) {
-        let style = ui.surface_style();
-        let message = match self.intro.phase() {
-            IntroPhase::Phrases => {
-                let index = self.intro.tick / P1_LEN;
-                PHRASES
-                    .get(usize::try_from(index).unwrap_or(0))
-                    .map_or("Stand up, operator…", |(text, _, _)| *text)
+    fn blit_buffer(ui: &mut Ui<'_>, area: Rect, buf: &termrock::Buffer) {
+        for y in area.y..area.bottom() {
+            for x in area.x..area.right() {
+                let Some(cell) = buf.cell(Position::new(x, y)) else {
+                    continue;
+                };
+                ui.paint_cell(Position::new(x, y), cell.symbol(), cell.style());
             }
-            IntroPhase::Warp => "Knock, knock, operator. · opening the Construct",
-            IntroPhase::Done => "Construct ready. Choose a workspace to continue.",
-        };
-        let brand = format!("jackin❯  {message}");
-        ui.paint_str(
-            Rect {
-                height: area.height.min(1),
-                ..area
-            },
-            &brand,
-            style,
-        );
-        if self.motion == Motion::Reduced {
-            ui.paint_str(
-                Rect::new(area.x, area.y.saturating_add(2), area.width, 1),
-                "Enter Continue",
-                style,
-            );
         }
-        if self.intro.phase() == IntroPhase::Phrases {
-            ui.paint_str(
-                Rect::new(area.x, area.y.saturating_add(1), area.width, 1),
-                "No running instances found. The first launch owns the Construct entry ritual.",
-                style,
-            );
-            Self::enter_button().draw(
-                ui,
-                Rect {
-                    y: area.y.saturating_add(3),
-                    width: area.width.min(24),
-                    height: 1,
-                    ..area
-                },
-            );
-        }
+    }
+
+    fn draw_intro(&self, ui: &mut Ui<'_>, area: Rect) {
+        let theme = ui.theme_ref().clone();
+        let mut buf = termrock::Buffer::empty(area);
+        crate::rain::paint_intro(&mut buf, area, &self.intro, &theme);
+        Self::blit_buffer(ui, area, &buf);
     }
 
     fn draw_prelude(&self, ui: &mut Ui<'_>, area: Rect) {
@@ -5944,21 +5984,10 @@ impl App {
             paint_lines(ui, area, &["Detached from the Construct."]);
             return;
         };
-        let line = match outro.phase() {
-            OutroPhase::Warp => "Leaving the Construct · closing Capsule".to_owned(),
-            OutroPhase::Caption => outro
-                .caption()
-                .unwrap_or_else(|| "Leaving the Construct · goodbye, operator.".to_owned()),
-            OutroPhase::Done => "Detached from the Construct.".to_owned(),
-        };
-        paint_lines(
-            ui,
-            area,
-            &[
-                line,
-                "No host process or wall-clock state is consulted.".to_owned(),
-            ],
-        );
+        let theme = ui.theme_ref().clone();
+        let mut buf = termrock::Buffer::empty(area);
+        crate::rain::paint_outro(&mut buf, area, outro, &theme);
+        Self::blit_buffer(ui, area, &buf);
     }
 
     fn draw_manager(&self, ui: &mut Ui<'_>, area: Rect) {
@@ -6617,6 +6646,18 @@ impl App {
             paint_lines(ui, area, &["No launch run is active."]);
             return;
         };
+        let theme = ui.theme_ref().clone();
+        let mut rain = termrock::Buffer::empty(area);
+        crate::rain::paint_atmosphere(
+            &mut rain,
+            area,
+            &[],
+            launch.tick,
+            !launch.is_terminal(),
+            launch.failure.is_some(),
+            &theme,
+        );
+        Self::blit_buffer(ui, area, &rain);
         let header = format!(
             "{} · run {} · role {}",
             launch.agent.label(),
@@ -7076,6 +7117,13 @@ impl App {
         let _ = ui.layer(CANCEL_LAUNCH_DIALOG, |ui, area| {
             cancel_launch.draw(ui, area, &self.cancel_state, |_, _| {})
         });
+        let launch_failure = Self::launch_failure_dialog();
+        let failure_lines = self.launch_failure_lines();
+        let _ = ui.layer(LAUNCH_FAILURE_DIALOG, |ui, area| {
+            launch_failure.draw(ui, area, &self.launch_failure_state, |ui, body| {
+                paint_lines(ui, body, &failure_lines)
+            })
+        });
         let cockpit_info = Self::cockpit_info_dialog();
         let _ = ui.layer(COCKPIT_INFO_DIALOG, |ui, area| {
             let lines = self.cockpit_info_lines();
@@ -7192,6 +7240,7 @@ impl App {
             || cx.is_open(QUIT_DIALOG)
             || cx.is_open(CANCEL_LAUNCH_DIALOG)
             || cx.is_open(COCKPIT_INFO_DIALOG)
+            || cx.is_open(LAUNCH_FAILURE_DIALOG)
             || cx.is_open(EDITOR_EXIT_DIALOG)
         {
             self.sync_workspace_keymap();
@@ -7256,6 +7305,16 @@ impl TuiApp for App {
                     1,
                 ),
             );
+            return;
+        }
+        if self.route == Route::Intro {
+            self.draw_intro(ui, full);
+            self.draw_layers(ui);
+            return;
+        }
+        if self.route == Route::Outro {
+            self.draw_outro(ui, full);
+            self.draw_layers(ui);
             return;
         }
         if self.route == Route::Capsule {

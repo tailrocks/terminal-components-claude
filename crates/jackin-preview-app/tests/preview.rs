@@ -1,5 +1,5 @@
 use jackin_preview_app::{
-    ACCOUNT_ADD, ACCOUNT_PICKER, APP, App, ENTER, LAUNCH, Motion, Route, RunId, Scenario,
+    ACCOUNT_ADD, ACCOUNT_PICKER, APP, App, LAUNCH, Motion, Route, RunId, Scenario,
 };
 use termrock::{KeyCode, Theme};
 use termrock_test_support::Harness;
@@ -13,8 +13,8 @@ fn first_use_flow_enters_the_manager() {
         30,
     );
     assert_eq!(harness.app().route(), Route::Intro);
-    assert!(harness.text().contains("No running instances found"));
-    assert!(harness.area_of(ENTER).is_some());
+    assert!(harness.text().contains("Enter Skip"), "{}", harness.text());
+    assert!(harness.text().contains("jackin❯"), "{}", harness.text());
 
     let _ = harness.key(KeyCode::Enter);
     assert_eq!(harness.app().route(), Route::Manager);
