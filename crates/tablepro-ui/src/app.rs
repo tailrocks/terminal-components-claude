@@ -2,10 +2,10 @@ use termrock::author::{PaintStyle, StyleDefaults};
 use termrock::{
     Action, ActionKey, App, Chord, Cx, Dialog, DialogAction, DialogState, FgStep, Field,
     Focusability, Form, FormAction, FormState, FrameRead, Grid, GridAction, GridEditor, GridModel,
-    Id, Intent, ItemKey, KeyCode, KeyMap, KeyModifiers, KeyPhase, LayerId, Modifier, NodeKind,
-    Panel, PanelKind, Part, Phase, PickerAction, Response, Role, RowUi, Size, Span, SplitAxis,
-    SplitPane, SplitPaneState, StylePatch, Tabs, TabsAction, TabsState, TextInput, TextInputState,
-    Theme, Tree, TreeAction, TreeNode, TreeState, Ui, UpdateCause, wrap,
+    Id, Intent, ItemKey, KeyCode, KeyMap, KeyModifiers, KeyPhase, LayerId, Modifier, Panel,
+    PanelKind, Part, Phase, PickerAction, Response, Role, RowUi, Size, Span, SplitAxis, SplitPane,
+    SplitPaneState, StylePatch, Tabs, TabsAction, TabsState, TextInput, TextInputState, Theme,
+    Tree, TreeAction, TreeNode, TreeState, Ui, UpdateCause, wrap,
 };
 
 use crate::quick_switcher::{self, QuickSwitcher};
@@ -170,6 +170,9 @@ const CONNECTION_DETAILS_TITLE_PATCH: [(Part, StylePatch); 1] = [(
         .set_fg(Role::Fg(FgStep::Secondary))
         .remove(Modifier::BOLD),
 )];
+// Tag strip muted (#8a8a8a) and card rule (#3a3a3a). Junie steps resolve to #808080 and #4d4d4d.
+const TAG_CHROME_FG: Role = Role::Custom(termrock::Color::from_u32(0x008a_8a8a));
+const TAG_RULE_FG: Role = Role::Custom(termrock::Color::from_u32(0x003a_3a3a));
 const FRAMED_PANEL_PATCH: [(Part, StylePatch); 1] =
     [(Part::DETAIL, StylePatch::new().set_fg(Role::BorderStrong))];
 
@@ -474,6 +477,8 @@ pub struct TableProApp {
     form_fields: Box<[termrock::FieldSpec<'static>]>,
     form_actions: Box<[Action<'static>]>,
     form_open: bool,
+    motion: Motion,
+    tick: u64,
 }
 
 impl core::fmt::Debug for TableProApp {
@@ -514,6 +519,8 @@ impl core::fmt::Debug for TableProApp {
             .field("form_fields", &self.form_fields.len())
             .field("form_actions", &self.form_actions.len())
             .field("form_open", &self.form_open)
+            .field("motion", &self.motion)
+            .field("tick", &self.tick)
             .finish()
     }
 }
@@ -566,6 +573,8 @@ impl TableProApp {
             form_fields: Box::from(connections::form_fields()),
             form_actions: Box::from(connections::form_actions()),
             form_open: false,
+            motion: Motion::Full,
+            tick: 0,
         };
         app.workbench.new_query(
             "SELECT * FROM orders WHERE status = 'pending' ORDER BY total_amount DESC LIMIT 20",
@@ -612,6 +621,13 @@ impl TableProApp {
 
     pub const fn surface(&self) -> Surface {
         self.surface
+    }
+
+    pub(crate) const fn set_motion(&mut self, motion: Motion, frame: u64) {
+        if motion.is_paused() {
+            self.tick = frame;
+        }
+        self.motion = motion;
     }
 
     pub fn set_surface(&mut self, surface: Surface) {
@@ -1643,6 +1659,7 @@ impl TableProApp {
         Self::connection_details_panel(&connection.name).draw(ui, card_area, |ui, area| {
             draw_connection_properties(ui, area, &properties);
         });
+        paint_detail_rule(ui, card_area);
         if !ui.is_inert() {
             ui.register_control(CONNECTION_DETAILS, card_area, Focusability::ClickOnly);
         }
@@ -1685,14 +1702,6 @@ impl TableProApp {
                 tree_area,
                 &self.connection_visual_tree_state,
                 &self.connection_nodes,
-            );
-            paint_legacy_tree_gutters(
-                ui,
-                tree_area,
-                &self.connection_visual_tree_state,
-                &self.connection_nodes,
-                connection_node,
-                connection_node_key,
             );
         });
         let blank = ui
@@ -1768,14 +1777,6 @@ impl TableProApp {
                 tree_area,
                 &self.explorer_tree_state,
                 &self.explorer_nodes,
-            );
-            paint_legacy_tree_gutters(
-                ui,
-                tree_area,
-                &self.explorer_tree_state,
-                &self.explorer_nodes,
-                explorer_node,
-                explorer_node_key,
             );
         });
     }
@@ -2117,7 +2118,7 @@ fn compact_count(rows: usize) -> String {
 fn explorer_row(node: &ExplorerNode, row: &mut RowUi<'_>) {
     match node {
         ExplorerNode::Database { name } => row.label_fmt(format_args!("▣ {name}")),
-        ExplorerNode::Schema { name } => row.label_fmt(format_args!("▾ {name}")),
+        ExplorerNode::Schema { name } => row.label_fmt(format_args!("S {name}")),
         ExplorerNode::Group { name, .. } => row.label(name),
         ExplorerNode::Object {
             item,
@@ -2191,72 +2192,6 @@ fn legacy_tree_body(inner: termrock::Rect) -> termrock::Rect {
     }
 }
 
-fn paint_legacy_tree_gutters<T>(
-    ui: &mut Ui<'_>,
-    area: termrock::Rect,
-    state: &TreeState,
-    nodes: &[T],
-    node: impl Fn(&T) -> TreeNode,
-    key: impl Fn(&T) -> ItemKey,
-) {
-    if area.is_empty() {
-        return;
-    }
-    let mut ancestors_expanded = Vec::new();
-    let mut visible_row = 0usize;
-    let first_visible = state.scroll().offset();
-    let cursor = state.cursor();
-    let gutter_style = ui
-        .surface_style()
-        .patch(ui.paint_patch(&StylePatch::new().set_fg(Role::OnSurfaceInverse)));
-
-    for item in nodes {
-        let descriptor = node(item);
-        let depth = usize::from(descriptor.depth());
-        ancestors_expanded.truncate(depth);
-        let visible = ancestors_expanded.iter().all(|expanded| *expanded);
-        if visible {
-            let row = visible_row.saturating_sub(first_visible);
-            if visible_row >= first_visible
-                && row < usize::from(area.height)
-                && cursor != Some(key(item))
-            {
-                ui.paint_str(
-                    termrock::Rect {
-                        x: area.x,
-                        y: area.y.saturating_add(row as u16),
-                        width: 1,
-                        height: 1,
-                    },
-                    "▎",
-                    gutter_style,
-                );
-            }
-            if matches!(descriptor.kind(), NodeKind::Leaf)
-                && visible_row >= first_visible
-                && row < usize::from(area.height)
-            {
-                ui.fill(
-                    termrock::Rect {
-                        x: area
-                            .x
-                            .saturating_add(1)
-                            .saturating_add(depth.saturating_mul(2) as u16),
-                        y: area.y.saturating_add(row as u16),
-                        width: 1,
-                        height: 1,
-                    },
-                    ui.surface_style(),
-                );
-            }
-            visible_row = visible_row.saturating_add(1);
-        }
-        if matches!(descriptor.kind(), NodeKind::Parent | NodeKind::Lazy) {
-            ancestors_expanded.push(state.is_expanded(key(item)));
-        }
-    }
-}
-
 fn workbench_split() -> SplitPane<'static> {
     SplitPane::new(WORKBENCH_SPLIT, SplitAxis::Horizontal)
         .min_first(28)
@@ -2311,7 +2246,7 @@ fn paint_legacy_filter(ui: &mut Ui<'_>, area: termrock::Rect, text: &str) {
             width: 1.min(area.width),
             ..area
         },
-        "▎",
+        " ",
         gutter,
     );
 
@@ -2371,6 +2306,30 @@ fn paint_frame_title_tail(ui: &mut Ui<'_>, area: termrock::Rect, title: &str) {
     );
 }
 
+fn paint_detail_rule(ui: &mut Ui<'_>, card: termrock::Rect) {
+    let width = card.width.saturating_sub(4);
+    if card.height <= 2 || width == 0 {
+        return;
+    }
+    let style = ui.surface_style().patch(
+        ui.paint_patch(
+            &StylePatch::new()
+                .set_fg(TAG_RULE_FG)
+                .set_bg(Role::Surface(termrock::Surface::Surface)),
+        ),
+    );
+    ui.paint_str(
+        termrock::Rect {
+            x: card.x.saturating_add(2),
+            y: card.y.saturating_add(1),
+            width,
+            height: 1,
+        },
+        &"─".repeat(usize::from(width)),
+        style,
+    );
+}
+
 fn draw_header(ui: &mut Ui<'_>, area: termrock::Rect, app: &TableProApp) {
     let base = ui.surface_style();
     ui.fill(area, base);
@@ -2380,14 +2339,14 @@ fn draw_header(ui: &mut Ui<'_>, area: termrock::Rect, app: &TableProApp) {
             ui.paint_spans(
                 area,
                 &[
-                    Span::new(" "),
+                    Span::new("  "),
                     Span::new("▪").role(Role::Accent),
-                    Span::new("  "),
-                    Span::new("TablePro").bold(),
-                    Span::new("  "),
+                    Span::new(" "),
+                    Span::new(" TablePro ").bold(),
+                    Span::new(" "),
                     Span::new("Connections").role(Role::Fg(FgStep::Secondary)),
                     Span::new("  "),
-                    Span::new(&saved).role(Role::Fg(FgStep::Muted)),
+                    Span::new(&saved).role(TAG_CHROME_FG),
                 ],
                 base,
             );
@@ -2396,15 +2355,15 @@ fn draw_header(ui: &mut Ui<'_>, area: termrock::Rect, app: &TableProApp) {
             ui.paint_spans(
                 area,
                 &[
-                    Span::new(" "),
+                    Span::new("  "),
                     Span::new("▪").role(Role::Accent),
-                    Span::new("  "),
-                    Span::new("TablePro").bold(),
-                    Span::new("  "),
+                    Span::new(" "),
+                    Span::new(" TablePro ").bold(),
+                    Span::new(" "),
                     Span::new("Connections").role(Role::Fg(FgStep::Secondary)),
                     Span::new(&surface).role(Role::Fg(FgStep::Secondary)),
                     Span::new("  "),
-                    Span::new(&saved).role(Role::Fg(FgStep::Muted)),
+                    Span::new(&saved).role(TAG_CHROME_FG),
                 ],
                 base,
             );
@@ -2420,11 +2379,11 @@ fn draw_header(ui: &mut Ui<'_>, area: termrock::Rect, app: &TableProApp) {
         ui.paint_spans(
             area,
             &[
-                Span::new(" "),
+                Span::new("  "),
                 Span::new("▪").role(Role::Accent),
-                Span::new("  "),
-                Span::new("TablePro").bold(),
-                Span::new("  "),
+                Span::new(" "),
+                Span::new(" TablePro ").bold(),
+                Span::new(" "),
                 Span::new(&app.connection.name).bold(),
                 Span::new("  "),
                 Span::new(glyph).bold(),
@@ -2444,8 +2403,8 @@ fn draw_header(ui: &mut Ui<'_>, area: termrock::Rect, app: &TableProApp) {
     let right_width = termrock::width(capability)
         .saturating_add(3)
         .saturating_add(termrock::width(&dimensions))
-        .saturating_add(2)
-        .saturating_add(6);
+        .saturating_add(1)
+        .saturating_add(8);
     let right = termrock::Rect {
         x: area.right().saturating_sub(right_width).saturating_sub(1),
         width: right_width.saturating_add(1),
@@ -2454,11 +2413,11 @@ fn draw_header(ui: &mut Ui<'_>, area: termrock::Rect, app: &TableProApp) {
     ui.paint_spans(
         right,
         &[
-            Span::new(capability).role(Role::BorderStrong),
-            Span::new(" · ").role(Role::BorderStrong),
-            Span::new(&dimensions).role(Role::BorderStrong),
+            Span::new(capability).role(TAG_CHROME_FG),
+            Span::new(" · ").role(TAG_CHROME_FG),
+            Span::new(&dimensions).role(TAG_CHROME_FG),
             Span::new(" "),
-            Span::new(" ? help ").role(Role::Fg(FgStep::Muted)),
+            Span::new(" ? help ").role(TAG_CHROME_FG),
         ],
         base,
     );
@@ -3137,7 +3096,30 @@ impl App for TableProApp {
     }
 }
 
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub(crate) enum Motion {
+    #[default]
+    Full,
+    Reduced,
+    Paused,
+}
+
+impl Motion {
+    pub(crate) const fn is_paused(self) -> bool {
+        matches!(self, Self::Paused)
+    }
+}
+
 pub fn run_with(theme: Theme, connect: Option<&str>) -> std::io::Result<()> {
+    run_session(theme, connect, Motion::Full, 0)
+}
+
+pub(crate) fn run_session(
+    theme: Theme,
+    connect: Option<&str>,
+    motion: Motion,
+    frame: u64,
+) -> std::io::Result<()> {
     let mut app = TableProApp::default();
     if let Some(name) = connect {
         let Some(index) = app
@@ -3152,7 +3134,19 @@ pub fn run_with(theme: Theme, connect: Option<&str>) -> std::io::Result<()> {
         };
         let _ = app.connect(index);
     }
-    termrock::run(app, theme)
+    app.set_motion(motion, frame);
+    // Paused frames keep press flash on a frozen simulation clock. The tag held flash time at zero.
+    termrock::run_with_feedback_clock(app, theme, feedback_clock(motion))
+}
+
+pub(crate) fn feedback_clock(motion: Motion) -> termrock::FeedbackClock {
+    if motion.is_paused() {
+        termrock::FeedbackClock::Simulation {
+            initial: termrock::SimulationMoment::from_millis(0),
+        }
+    } else {
+        termrock::FeedbackClock::Elapsed
+    }
 }
 
 #[cfg(test)]
