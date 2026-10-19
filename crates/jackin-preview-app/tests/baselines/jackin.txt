@@ -28,7 +28,7 @@ hard-cases 100 30 junie truecolor 26b91547137cff79
 hard-cases 100 30 paper mono e346de1bfe923201
 hard-cases 100 30 paper truecolor 2754442543a2629c
 hard-cases 120 40 junie mono a0183190d8abe137
-hard-cases 120 40 junie truecolor aeaf5dc3e365eb3b
+hard-cases 120 40 junie truecolor 15d05f0bd99d15c0
 hard-cases 120 40 paper mono 1cce38b247c13be9
 hard-cases 120 40 paper truecolor f4c12681e8a961c1
 launch-failure 100 30 junie mono 800b3f04f40ea340
