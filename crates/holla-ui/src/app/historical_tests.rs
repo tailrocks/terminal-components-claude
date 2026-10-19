@@ -318,7 +318,10 @@ fn follow_logs_merges_services_with_identity() {
     let _ = h.key(KeyCode::Enter);
     assert!(h.app().route == Route::Activity, "{}", h.text());
     let t = h.text();
-    assert!(t.contains("Activity · container logs"), "{t}");
+    assert!(
+        t.lines().nth(2).unwrap_or("").contains("container logs"),
+        "{t}"
+    );
 
     assert!(t.contains("api"), "{t}");
     assert!(t.contains("redis"), "{t}");
@@ -345,15 +348,27 @@ fn ctrl_a_cycles_activities_from_any_route() {
 
     let _ = h.ctrl('a');
     assert!(h.app().route == Route::Activity, "{}", h.text());
-    assert!(h.text().contains("Activity · dev server"), "{}", h.text());
+    assert!(
+        h.text().lines().nth(2).unwrap_or("").contains("dev server"),
+        "{}",
+        h.text()
+    );
 
     let _ = h.ctrl('a');
-    assert!(h.text().contains("Activity · test watch"), "{}", h.text());
+    assert!(
+        h.text().lines().nth(2).unwrap_or("").contains("test watch"),
+        "{}",
+        h.text()
+    );
 
     let _ = h.ctrl('a');
     let _ = h.ctrl('a');
     let _ = h.ctrl('a');
-    assert!(h.text().contains("Activity · dev server"), "{}", h.text());
+    assert!(
+        h.text().lines().nth(2).unwrap_or("").contains("dev server"),
+        "{}",
+        h.text()
+    );
 }
 
 #[test]
@@ -369,12 +384,16 @@ fn digit_switches_to_activity_page() {
     let _ = h.click(x.saturating_add(1), 1);
     assert!(h.app().route == Route::Activity, "{}", h.text());
     let t = h.text();
-    assert!(t.contains("Activity · seed db"), "{t}");
+    assert!(t.lines().nth(2).unwrap_or("").contains("seed db"), "{t}");
     assert!(t.contains("failed"), "{t}");
     assert!(t.contains("psql: connection to server"), "{t}");
 
     let _ = h.key(KeyCode::Char('1'));
-    assert!(h.text().contains("Activity · dev server"), "{}", h.text());
+    assert!(
+        h.text().lines().nth(2).unwrap_or("").contains("dev server"),
+        "{}",
+        h.text()
+    );
     assert!(h.text().contains("http://localhost:5199/"), "{}", h.text());
 
     let _ = h.key(KeyCode::Char('0'));
