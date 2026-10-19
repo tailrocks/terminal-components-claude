@@ -1,10 +1,9 @@
 use termrock::author::PaintStyle;
 use termrock::{
-    Brand, Chord, DerivedHintBar, Empty, EmptyState, Family, FgStep, FieldSpec, Form, HelpOverlay,
+    Brand, Chord, Color, DerivedHintBar, Empty, EmptyState, FgStep, FieldSpec, Form, HelpOverlay,
     HelpOverlayState, HelpSection, Hint, HintBar, HintLayer, Id, ItemKey, KeyCode, KeyHint, Meter,
-    Panel, PanelKind, Part, Props, PropsList, PropsRow, PropsState, Rect, Role, ScrollRegion,
-    SplitAxis, SplitPane, StateFlags, StylePatch, Surface, TooSmall, Ui, Variant, Wizard, layout,
-    width, wrap,
+    Modifier, Panel, PanelKind, Part, Props, PropsList, PropsRow, PropsState, Rect, Role,
+    ScrollRegion, SplitAxis, SplitPane, StylePatch, TooSmall, Ui, Wizard, width, wrap,
 };
 
 use super::{Page, PageUpdate, author::AuthorBadge, frame};
@@ -49,61 +48,6 @@ fn component_roster() {
     let _ = SplitPane::new(COMPONENT_ROSTER, SplitAxis::Horizontal);
     let _ = Wizard::new(COMPONENT_ROSTER, &[]);
 }
-
-const TOKEN_LABELS: [(&str, &str); 19] = [
-    ("canvas", concat!("#", "000000")),
-    ("surface", concat!("#", "111111")),
-    ("surface.elevated", concat!("#", "18181b")),
-    ("surface.overlay", concat!("#", "27272a")),
-    ("field", concat!("#", "1e1e22")),
-    ("popover", concat!("#", "3f3f46")),
-    ("border.subtle", "white 15%"),
-    ("border.strong", "white 30%"),
-    ("text.primary", concat!("#", "ffffff")),
-    ("text.secondary", "white 70%"),
-    ("text.muted", "white 50%"),
-    ("text.faint", "white 30%"),
-    ("accent", concat!("#", "48e054")),
-    ("accent.hover", concat!("#", "3ab343")),
-    ("accent.pressed", concat!("#", "2b8632")),
-    ("accent.bg", "green 20%"),
-    ("error", concat!("#", "e44545")),
-    ("warning", concat!("#", "f59e09")),
-    ("info", concat!("#", "8787ff")),
-];
-
-const PRINCIPLE_COPY: [(&str, &str); 5] = [
-    (
-        "One hue",
-        "Green means focus, primary action or selection. Everything else is achromatic.",
-    ),
-    (
-        "Alpha ladder",
-        "Text and borders step down in white opacity, never in arbitrary grays.",
-    ),
-    (
-        "State is geometry",
-        "Hover lifts the surface, focus adds a bar, selection adds a marker, editing shows the cursor.",
-    ),
-    (
-        "Three planes",
-        "Canvas, surface, elevated. Depth comes from lightness, not borders.",
-    ),
-    (
-        "Quiet chrome",
-        "Bold is reserved for the focused control. No box around a thing unless the box carries meaning.",
-    ),
-];
-
-const STATE_LEGEND: [(&str, &str); 7] = [
-    ("▎", "focus"),
-    ("░", "hover lifts the surface"),
-    ("›", "current / chosen"),
-    ("✓", "checked"),
-    ("!", "error"),
-    ("▁", "editing: cursor + underline"),
-    ("○", "disabled: faint, no hover"),
-];
 
 fn brand() -> Brand<'static> {
     Brand::new(BRAND, "Junie").tagline("component showcase")
@@ -218,39 +162,16 @@ impl Page for OverviewPage {
         let _ = brand();
         let _ = props_list();
         let _ = props().draw(ui, Rect::ZERO);
-        frame(
-            ui,
-            area,
-            self.title(),
-            "Tokens and principles behind every component",
-            |ui, body| {
-                let (left, right) = if body.width < 68 {
-                    let rows = layout::rows(
-                        body,
-                        &[
-                            termrock::Track::Fixed(body.height / 2),
-                            termrock::Track::Flex(1),
-                        ],
-                    );
-                    (
-                        rows.first().copied().unwrap_or(body),
-                        rows.get(1).copied().unwrap_or(Rect::ZERO),
-                    )
-                } else {
-                    let columns = layout::columns(
-                        body,
-                        &[termrock::Track::Fixed(46), termrock::Track::Flex(1)],
-                        2,
-                    );
-                    (
-                        columns.first().copied().unwrap_or(body),
-                        columns.get(1).copied().unwrap_or(Rect::ZERO),
-                    )
-                };
-                draw_tokens(ui, left);
-                draw_principles(ui, right, &self.author);
-            },
-        );
+        frame(ui, area, self.title(), "", |ui, body| {
+            paint_blurb(ui, area);
+            paint_section_strip(ui, body);
+            let content = Rect {
+                y: body.y.saturating_add(3),
+                height: body.height.saturating_sub(3),
+                ..body
+            };
+            paint_playground(ui, content);
+        });
     }
 
     fn hints(&self, _ui: &Ui<'_>) -> &'static [(&'static str, &'static str)] {
@@ -258,228 +179,492 @@ impl Page for OverviewPage {
     }
 }
 
-fn overview_style(ui: &mut Ui<'_>, part: Part, flags: StateFlags) -> PaintStyle {
-    ui.style(Family::PANEL, Variant::DEFAULT, part, flags)
-        .style
-        .with_bg_from(ui.surface_style())
+const BLURB: &str = "Tokens and principles behind every component";
+const SECTIONS: [&str; 3] = ["Playground", "Options", "States"];
+const SECTION_CAPTION: &str = "the live widget";
+const SECTION_WIDE: u16 = 76;
+const CARD_MIN: u16 = 50;
+const CARD_GAP: u16 = 1;
+const CARD_PAD: u16 = 2;
+const SCROLL_ROOM: u16 = 2;
+
+const CANVAS: u32 = 0x000000;
+const SURFACE: u32 = 0x111111;
+const WHITE: u32 = 0xffffff;
+const SECONDARY: u32 = 0xb3b3b3;
+const MUTED: u32 = 0x8a8a8a;
+const FAINT: u32 = 0x737373;
+const RULE: u32 = 0x3a3a3a;
+const ACCENT: u32 = 0x48e054;
+const TAB_ACTIVE: u32 = 0x27272a;
+const THUMB: u32 = 0x808080;
+const TRACK: u32 = 0x474747;
+
+const PLANES: &[(&str, u32)] = &[
+    ("canvas", 0x000000),
+    ("surface", 0x111111),
+    ("surface.elevated", 0x18181b),
+    ("surface.overlay", 0x27272a),
+    ("field", 0x1e1e22),
+    ("field.hover", 0x2f2f34),
+    ("popover", 0x3f3f46),
+    ("highlight", 0x2f5aa8),
+    ("highlight.danger", 0x7a2a2a),
+    ("selection", 0x1f3460),
+    ("border.subtle", 0x3a3a3a),
+    ("border.strong", 0x4d4d4d),
+    ("scroll.track", 0x474747),
+    ("text.primary", 0xffffff),
+    ("text.secondary", 0xb3b3b3),
+    ("text.muted", 0x8a8a8a),
+    ("text.faint", 0x737373),
+    ("text.ghost", 0x262626),
+    ("text.on_accent", 0x19191c),
+    ("disabled", 0x4d4d4d),
+];
+
+const ACCENTS: &[(&str, u32)] = &[
+    ("accent", 0x48e054),
+    ("accent.hover", 0x3ab343),
+    ("accent.pressed", 0x2e9a38),
+    ("accent.bg", 0x173f1c),
+    ("accent.bg.subtle", 0x0a1c0c),
+    ("accent.bg.hover", 0x1e5024),
+    ("focus", 0x48e054),
+    ("link", 0x79b8ff),
+    ("success", 0x3fb950),
+    ("success.strong", 0x56d364),
+    ("info", 0x79b8ff),
+    ("warning", 0xf59e09),
+    ("error", 0xf05d5d),
+    ("error.bg", 0x2e0f0f),
+    ("error.soft", 0xe8a0a0),
+    ("error.strong", 0xff8a8a),
+    ("danger", 0xff6b6b),
+    ("syntax.keyword", 0x79b8ff),
+    ("syntax.string", 0x8bd5ca),
+    ("syntax.literal", 0xc6a0f6),
+];
+
+const PRINCIPLE_COPY: &[(&str, &str)] = &[
+    (
+        "Colour carries meaning",
+        "One accent hue for focus and primary action; status hues only where they carry meaning; syntax hues only in code.",
+    ),
+    (
+        "Never colour alone",
+        "Every status has its glyph: ✓ done, ✗ failed, ▲ attention, • pending, i info.",
+    ),
+    (
+        "Alpha ladder",
+        "Text and borders step down in white opacity, never in arbitrary grays.",
+    ),
+    (
+        "State is geometry",
+        "Hover lifts the surface, focus adds a bar, selection adds a marker, editing shows the cursor.",
+    ),
+    (
+        "Three planes",
+        "Canvas, surface, elevated. Depth comes from lightness, not borders.",
+    ),
+    (
+        "Quiet chrome",
+        "Bold is reserved for the focused control. No box around a thing unless the box carries meaning.",
+    ),
+];
+
+#[derive(Clone, Copy)]
+enum OverviewCard {
+    Planes,
+    Accents,
+    Glyphs,
+    Ladders,
+    Contrast,
+    Principles,
+    Roles,
+    Explorer,
+    Mods,
+    Settings,
+    Legend,
+    Spacing,
 }
 
-fn draw_tokens(ui: &mut Ui<'_>, area: Rect) {
-    if area.is_empty() {
+const OVERVIEW_CARDS: [OverviewCard; 12] = [
+    OverviewCard::Planes,
+    OverviewCard::Accents,
+    OverviewCard::Glyphs,
+    OverviewCard::Ladders,
+    OverviewCard::Contrast,
+    OverviewCard::Principles,
+    OverviewCard::Roles,
+    OverviewCard::Explorer,
+    OverviewCard::Mods,
+    OverviewCard::Settings,
+    OverviewCard::Legend,
+    OverviewCard::Spacing,
+];
+
+fn rgb(hex: u32) -> Color {
+    Color::Rgb(
+        ((hex >> 16) & 0xff) as u8,
+        ((hex >> 8) & 0xff) as u8,
+        (hex & 0xff) as u8,
+    )
+}
+
+fn ink(fg: u32, bg: u32) -> PaintStyle {
+    PaintStyle::new().fg(rgb(fg)).bg(rgb(bg))
+}
+
+fn paint_blurb(ui: &mut Ui<'_>, area: Rect) {
+    let title_width = width("Overview");
+    if area.width <= title_width.saturating_add(4) {
         return;
     }
-    let token_count = u16::try_from(TOKEN_LABELS.len()).unwrap_or(u16::MAX);
-    let area = Rect {
-        height: if area.width >= 40 && area.height <= 18 {
-            area.height.min(9)
-        } else {
-            area.height.min(token_count.saturating_add(3))
-        },
+    let meta = Rect {
+        x: area.x.saturating_add(title_width).saturating_add(2),
+        width: area.width.saturating_sub(title_width).saturating_sub(3),
+        height: 1,
         ..area
     };
-    tokens_panel().draw(ui, area, |ui, inner| {
-        let primary = ui
-            .surface_style()
-            .patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Primary))));
-        let muted = ui
-            .surface_style()
-            .patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Faint))));
-        let colors = [
-            Role::Surface(Surface::Canvas),
-            Role::Surface(Surface::Surface),
-            Role::Surface(Surface::Elevated),
-            Role::Surface(Surface::Overlay),
-            Role::Surface(Surface::Field),
-            Role::Surface(Surface::Popover),
-            Role::BorderSubtle,
-            Role::BorderStrong,
-            Role::Fg(FgStep::Primary),
-            Role::Fg(FgStep::Secondary),
-            Role::Fg(FgStep::Muted),
-            Role::Fg(FgStep::Faint),
-            Role::Accent,
-            Role::AccentHover,
-            Role::AccentPressed,
-            Role::AccentTint,
-            Role::Danger,
-            Role::Warning,
-            Role::Info,
-        ];
-        let two_columns = inner.height < token_count && inner.width >= 40;
-        let per_column = if two_columns {
-            TOKEN_LABELS.len().div_ceil(2)
-        } else {
-            TOKEN_LABELS.len()
-        };
-        let column_width = if two_columns {
-            inner.width / 2
-        } else {
-            inner.width
-        };
-        for (column, (labels, color_column)) in TOKEN_LABELS
-            .chunks(per_column)
-            .zip(colors.chunks(per_column))
-            .enumerate()
-        {
-            let Ok(column) = u16::try_from(column) else {
-                break;
-            };
-            for (row, ((name, note), color)) in labels.iter().zip(color_column).enumerate() {
-                let Ok(row) = u16::try_from(row) else {
-                    break;
-                };
-                let Some(y) = inner.y.checked_add(row) else {
-                    break;
-                };
-                if y >= inner.bottom() {
-                    continue;
-                }
-                let x = inner.x.saturating_add(column.saturating_mul(column_width));
-                let mut swatch = ui.surface_style();
-                swatch = swatch.patch(ui.paint_patch(&StylePatch::new().set_bg(*color)));
-                ui.fill(Rect::new(x, y, 4, 1), swatch);
-                ui.paint_str(Rect::new(x.saturating_add(4), y, 1, 1), "▏", muted);
-                ui.paint_str(
-                    Rect::new(x.saturating_add(6), y, column_width.saturating_sub(6), 1),
-                    name,
-                    primary,
-                );
-                if column_width > 30 {
-                    let note_width = width(note);
-                    ui.paint_str(
-                        Rect::new(
-                            x.saturating_add(
-                                column_width.saturating_sub(note_width.saturating_add(1)),
-                            ),
-                            y,
-                            note_width,
-                            1,
-                        ),
-                        note,
-                        muted,
-                    );
-                }
-            }
-        }
-    });
+    ui.paint_str(meta, BLURB, ink(MUTED, CANVAS));
 }
 
-fn draw_principles(ui: &mut Ui<'_>, area: Rect, author: &AuthorBadge) {
+fn tab_width(label: &str) -> u16 {
+    width(label).saturating_add(3)
+}
+
+fn paint_section_strip(ui: &mut Ui<'_>, area: Rect) {
     if area.is_empty() {
         return;
     }
-    if area.height <= 10 {
-        let state_area = Rect {
-            y: area.y.saturating_add(1),
-            height: area.height.saturating_sub(1),
+    let mut x = area.x;
+    let mut tab_end = area.x;
+    for (index, label) in SECTIONS.iter().enumerate() {
+        let w = tab_width(label);
+        if x.saturating_add(w) > area.right() {
+            break;
+        }
+        let style = if index == 0 {
+            ink(WHITE, TAB_ACTIVE).add_modifier(Modifier::BOLD)
+        } else {
+            ink(SECONDARY, CANVAS)
+        };
+        ui.fill(Rect::new(x, area.y, w, 1), style);
+        ui.paint_str(
+            Rect::new(x.saturating_add(1), area.y, w.saturating_sub(1), 1),
+            label,
+            style,
+        );
+        tab_end = x.saturating_add(w);
+        x = tab_end.saturating_add(1);
+    }
+    if area.width >= SECTION_WIDE {
+        let caption_width = width(SECTION_CAPTION);
+        let caption_x = area.right().saturating_sub(caption_width.saturating_add(1));
+        if caption_x > tab_end.saturating_add(2) {
+            ui.paint_str(
+                Rect::new(caption_x, area.y, caption_width, 1),
+                SECTION_CAPTION,
+                ink(FAINT, CANVAS),
+            );
+        }
+    }
+    if area.height < 2 {
+        return;
+    }
+    let rule_y = area.y.saturating_add(1);
+    ui.paint_str(
+        Rect {
+            y: rule_y,
+            height: 1,
             ..area
-        };
-        if !state_area.is_empty() {
-            draw_state_language(ui, state_area);
-        }
-        return;
-    }
-    let inner_width = area.width.saturating_sub(4);
-    let wrapped: Vec<(&str, Vec<String>)> = PRINCIPLE_COPY
-        .iter()
-        .map(|(title, text)| (*title, wrap(text, inner_width)))
-        .collect();
-    let needed = wrapped
-        .iter()
-        .map(|(_, lines)| {
-            u16::try_from(lines.len())
-                .unwrap_or(u16::MAX)
-                .saturating_add(2)
-        })
-        .sum::<u16>()
-        .saturating_add(2);
-    let principles_height = needed.min(area.height.saturating_sub(10));
-    let principles_area = Rect {
-        height: principles_height,
-        ..area
-    };
-    principles_panel().draw(ui, principles_area, |ui, inner| {
-        let title_style = overview_style(ui, Part::TITLE, StateFlags::empty());
-        let detail_style = overview_style(ui, Part::DETAIL, StateFlags::empty());
-        let mut y = inner.y;
-        for (title, lines) in &wrapped {
-            if y.saturating_add(1) >= inner.bottom() {
-                break;
-            }
-            ui.paint_str(Rect::new(inner.x, y, inner.width, 1), title, title_style);
-            y = y.saturating_add(1);
-            for line in lines {
-                if y >= inner.bottom() {
-                    break;
-                }
-                ui.paint_str(Rect::new(inner.x, y, inner.width, 1), line, detail_style);
-                y = y.saturating_add(1);
-            }
-            y = y.saturating_add(1);
-        }
-    });
-
-    let legend_y = principles_area.bottom().saturating_add(1);
-    let legend_area = Rect::new(
-        area.x,
-        legend_y,
-        area.width,
-        area.bottom().saturating_sub(legend_y),
+        },
+        &"─".repeat(usize::from(area.width)),
+        ink(RULE, CANVAS),
     );
-    if legend_area.is_empty() {
-        return;
-    }
-    let author_y = legend_area.bottom().saturating_sub(1);
-    let state_area = Rect {
-        height: legend_area.height.saturating_sub(1),
-        ..legend_area
-    };
-    draw_state_language(ui, state_area);
-    let author_area = Rect::new(
-        area.x,
-        author_y,
-        area.width,
-        area.bottom().saturating_sub(author_y).min(1),
+    let active = tab_width(SECTIONS[0]).min(area.width);
+    ui.paint_str(
+        Rect::new(area.x, rule_y, active, 1),
+        &"━".repeat(usize::from(active)),
+        ink(ACCENT, CANVAS),
     );
-    author.draw(ui, author_area);
 }
 
-fn draw_state_language(ui: &mut Ui<'_>, state_area: Rect) {
-    state_language_panel().draw(ui, state_area, |ui, inner| {
-        for (index, (glyph, label)) in STATE_LEGEND.iter().enumerate() {
-            let Ok(offset) = u16::try_from(index) else {
+fn card_title(card: OverviewCard) -> &'static str {
+    match card {
+        OverviewCard::Planes => "Tokens · planes and text",
+        OverviewCard::Accents => "Tokens · accent and status",
+        OverviewCard::Glyphs => "Glyphs and strings",
+        OverviewCard::Ladders => "Ladders · theme.ladders",
+        OverviewCard::Contrast => "Contrast on the card, per level",
+        OverviewCard::Principles => "Principles",
+        OverviewCard::Roles => "Roles",
+        OverviewCard::Explorer => "Explorer",
+        OverviewCard::Mods => "State modifiers · theme.mods",
+        OverviewCard::Settings => "Theme settings",
+        OverviewCard::Legend => "State language",
+        OverviewCard::Spacing => "Spacing · buttons · badges",
+    }
+}
+
+fn card_height(card: OverviewCard, card_w: u16) -> u16 {
+    let body = match card {
+        OverviewCard::Planes | OverviewCard::Accents => 20,
+        OverviewCard::Glyphs => 14,
+        OverviewCard::Ladders => 13,
+        OverviewCard::Contrast => 12,
+        OverviewCard::Principles => {
+            principles_rows(card_w.saturating_sub(CARD_PAD.saturating_mul(2)))
+        }
+        OverviewCard::Roles => return 12,
+        OverviewCard::Explorer => 10,
+        OverviewCard::Mods => 10,
+        OverviewCard::Settings => 8,
+        OverviewCard::Legend => 7,
+        OverviewCard::Spacing => 9,
+    };
+    body.saturating_add(3)
+}
+
+fn principles_rows(inner: u16) -> u16 {
+    PRINCIPLE_COPY
+        .iter()
+        .map(|(title, text)| {
+            let line = format!("{title}. {text}");
+            u16::try_from(wrap(&line, inner.max(1)).len()).unwrap_or(u16::MAX)
+        })
+        .fold(0u16, u16::saturating_add)
+}
+
+fn bands(width: u16) -> (u16, u16, Vec<Vec<OverviewCard>>) {
+    let cols = (width.saturating_add(1) / (CARD_MIN + 1)).clamp(1, 3);
+    let card_w =
+        width.saturating_sub(CARD_GAP.saturating_mul(cols.saturating_sub(1))) / cols.max(1);
+    let groups = OVERVIEW_CARDS
+        .chunks(usize::from(cols))
+        .map(<[OverviewCard]>::to_vec)
+        .collect();
+    (cols, card_w, groups)
+}
+
+fn playground_height(width: u16) -> u16 {
+    if width == 0 {
+        return 0;
+    }
+    let (_, card_w, groups) = bands(width);
+    let mut total = 0u16;
+    for (index, group) in groups.iter().enumerate() {
+        let height = group
+            .iter()
+            .map(|card| card_height(*card, card_w))
+            .max()
+            .unwrap_or(0);
+        total = total.saturating_add(height);
+        if index + 1 != groups.len() {
+            total = total.saturating_add(CARD_GAP);
+        }
+    }
+    total
+}
+
+fn paint_playground(ui: &mut Ui<'_>, area: Rect) {
+    if area.is_empty() {
+        return;
+    }
+    let (view, bar) = scroll_split(area);
+    paint_visible_cards(ui, view);
+    if let Some(bar) = bar {
+        paint_scrollbar(ui, bar, playground_height(view.width));
+    }
+}
+
+fn scroll_split(area: Rect) -> (Rect, Option<Rect>) {
+    let overflows = area.width > SCROLL_ROOM && playground_height(area.width) > area.height;
+    if !overflows {
+        return (area, None);
+    }
+    let view = Rect {
+        width: area.width.saturating_sub(SCROLL_ROOM),
+        ..area
+    };
+    let bar = Rect::new(area.right().saturating_sub(1), area.y, 1, view.height);
+    (view, Some(bar))
+}
+
+fn paint_visible_cards(ui: &mut Ui<'_>, view: Rect) {
+    let (cols, card_w, groups) = bands(view.width);
+    let mut y = view.y;
+    for group in groups {
+        let band_h = group
+            .iter()
+            .map(|card| card_height(*card, card_w))
+            .max()
+            .unwrap_or(0);
+        if y >= view.bottom() {
+            break;
+        }
+        for (index, card) in group.iter().enumerate() {
+            let Ok(index) = u16::try_from(index) else {
                 break;
             };
-            let Some(y) = inner.y.checked_add(offset) else {
-                break;
+            let x = view
+                .x
+                .saturating_add(index.saturating_mul(card_w.saturating_add(CARD_GAP)));
+            let w = if index + 1 == cols {
+                view.right().saturating_sub(x)
+            } else {
+                card_w
             };
-            if y >= inner.bottom() {
-                break;
-            }
-            let marker_color = match index {
-                0 | 2 | 3 => Role::Accent,
-                1 => Role::Fg(FgStep::Secondary),
-                4 => Role::Danger,
-                5 => Role::Fg(FgStep::Primary),
-                _ => Role::Fg(FgStep::Faint),
-            };
-            ui.paint_str(
-                Rect::new(inner.x, y, 1, 1),
-                glyph,
-                ui.surface_style()
-                    .patch(ui.paint_patch(&StylePatch::new().set_fg(marker_color))),
-            );
-            ui.paint_str(
-                Rect::new(
-                    inner.x.saturating_add(3),
-                    y,
-                    inner.width.saturating_sub(3),
-                    1,
-                ),
-                label,
-                ui.surface_style()
-                    .patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Secondary)))),
+            paint_card(
+                ui,
+                Rect::new(x, y, w, card_height(*card, card_w)),
+                view,
+                *card,
             );
         }
-    });
+        y = y.saturating_add(band_h).saturating_add(CARD_GAP);
+    }
+}
+
+fn paint_card(ui: &mut Ui<'_>, card: Rect, view: Rect, kind: OverviewCard) {
+    let visible = card.intersection(view);
+    if visible.is_empty() {
+        return;
+    }
+    ui.fill(visible, ink(WHITE, SURFACE));
+    if card.y >= view.y && card.y < view.bottom() {
+        ui.paint_str(
+            Rect::new(
+                card.x.saturating_add(CARD_PAD),
+                card.y,
+                card.width.saturating_sub(CARD_PAD),
+                1,
+            ),
+            card_title(kind),
+            ink(SECONDARY, SURFACE),
+        );
+    }
+    let rule_y = card.y.saturating_add(1);
+    let rule_w = card.width.saturating_sub(CARD_PAD.saturating_mul(2));
+    if rule_w > 0 && rule_y >= view.y && rule_y < view.bottom() && rule_y < card.bottom() {
+        ui.paint_str(
+            Rect::new(card.x.saturating_add(CARD_PAD), rule_y, rule_w, 1),
+            &"─".repeat(usize::from(rule_w)),
+            ink(RULE, SURFACE),
+        );
+    }
+    let rows: &[(&str, u32)] = match kind {
+        OverviewCard::Planes => PLANES,
+        OverviewCard::Accents => ACCENTS,
+        _ => return,
+    };
+    let inner_x = card.x.saturating_add(CARD_PAD);
+    let inner_w = card.width.saturating_sub(CARD_PAD.saturating_mul(2));
+    for (index, (name, color)) in rows.iter().enumerate() {
+        let Ok(index) = u16::try_from(index) else {
+            break;
+        };
+        let y = card.y.saturating_add(2).saturating_add(index);
+        if y >= view.bottom() || y >= card.bottom() {
+            break;
+        }
+        if y < view.y || inner_w == 0 {
+            continue;
+        }
+        let swatch = 4.min(inner_w);
+        ui.fill(Rect::new(inner_x, y, swatch, 1), ink(WHITE, *color));
+        if inner_w > 4 {
+            ui.paint_str(
+                Rect::new(inner_x.saturating_add(4), y, 1, 1),
+                "▏",
+                ink(FAINT, SURFACE),
+            );
+        }
+        if inner_w > 6 {
+            ui.paint_str(
+                Rect::new(inner_x.saturating_add(6), y, inner_w.saturating_sub(6), 1),
+                name,
+                ink(WHITE, SURFACE),
+            );
+        }
+        let note = format!("#{color:06x}");
+        let note_w = width(&note);
+        let note_at = inner_w.saturating_sub(note_w);
+        if note_at > width(name).saturating_add(6) {
+            ui.paint_str(
+                Rect::new(inner_x.saturating_add(note_at), y, note_w, 1),
+                &note,
+                ink(MUTED, SURFACE),
+            );
+        }
+    }
+}
+
+fn paint_scrollbar(ui: &mut Ui<'_>, bar: Rect, content_h: u16) {
+    let track_len = usize::from(bar.height);
+    let viewport = track_len;
+    let content = usize::from(content_h);
+    let thumb = if content <= viewport || track_len == 0 {
+        track_len
+    } else {
+        viewport
+            .saturating_mul(track_len)
+            .checked_div(content)
+            .unwrap_or(0)
+            .max(1)
+            .min(track_len)
+    };
+    for row in 0..bar.height {
+        let on_thumb = usize::from(row) < thumb;
+        ui.paint_str(
+            Rect::new(bar.x, bar.y.saturating_add(row), 1, 1),
+            if on_thumb { "┃" } else { "┆" },
+            if on_thumb {
+                ink(THUMB, CANVAS)
+            } else {
+                ink(TRACK, CANVAS)
+            },
+        );
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{OverviewPage, Page};
+    use termrock::{App, Color, Cx, Modifier, Response, Theme, Ui};
+    use termrock_test_support::Harness;
+
+    struct Host;
+
+    impl App for Host {
+        fn update(&mut self, _cx: &mut Cx<'_>) -> Response<()> {
+            Response::ignored()
+        }
+
+        fn draw(&self, ui: &mut Ui<'_>) {
+            OverviewPage::new().draw(ui, ui.full());
+        }
+    }
+
+    #[test]
+    fn playground_matches_the_tag_section_strip_and_token_cards() {
+        let h = Harness::new(Host, Theme::junie(), 94, 36);
+        let text = h.text();
+        assert!(text.contains("Playground"), "{text}");
+        assert!(text.contains(" Options"));
+        assert!(text.contains(" States"));
+        assert!(text.contains("the live widget"));
+        assert!(text.contains("Tokens · planes and text"));
+        assert!(text.contains("Tokens · accent and status"));
+        assert!(text.contains("accent.bg.subtle"));
+        assert!(text.contains("#0a1c0c"));
+        let (x, y) = h.find("Playground").expect("playground tab");
+        let tab = h.cell(x, y);
+        assert_eq!(tab.bg, Color::Rgb(0x27, 0x27, 0x2a));
+        assert!(tab.modifier.contains(Modifier::BOLD));
+        assert_eq!(h.cell(x, y + 1).symbol(), "━");
+        let (sx, sy) = h.find("canvas").expect("canvas swatch");
+        assert_eq!(h.cell(sx.saturating_sub(6), sy).bg, Color::Rgb(0, 0, 0));
+    }
 }
