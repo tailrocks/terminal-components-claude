@@ -18,30 +18,24 @@ pub(super) struct HistoricalPalette {
     pub(super) elevated_on_elevated: PaintStyle,
     pub(super) field_on_field: PaintStyle,
     pub(super) muted_on_canvas: PaintStyle,
-    pub(super) muted_on_elevated: PaintStyle,
     pub(super) muted_on_surface: PaintStyle,
-    pub(super) on_accent_on_accent_bold: PaintStyle,
     pub(super) primary_on_accent_tint_bold: PaintStyle,
     pub(super) primary_on_button: PaintStyle,
     pub(super) primary_on_canvas: PaintStyle,
     pub(super) primary_on_canvas_bold: PaintStyle,
-    pub(super) primary_on_elevated: PaintStyle,
     pub(super) primary_on_elevated_bold: PaintStyle,
     pub(super) primary_on_field: PaintStyle,
     pub(super) primary_on_surface: PaintStyle,
     pub(super) seam_on_canvas: PaintStyle,
-    pub(super) seam_on_elevated: PaintStyle,
     pub(super) secondary_on_canvas: PaintStyle,
     pub(super) secondary_on_canvas_bold: PaintStyle,
-    pub(super) secondary_on_elevated: PaintStyle,
     pub(super) secondary_on_field: PaintStyle,
     pub(super) secondary_on_surface: PaintStyle,
     pub(super) secondary_on_surface_bold: PaintStyle,
     pub(super) warning_on_canvas: PaintStyle,
-    pub(super) warning_on_elevated: PaintStyle,
 }
 
-const SPECS: [(Part, StylePatch); 32] = [
+const SPECS: [(Part, StylePatch); 26] = [
     (
         Part::custom("jackin.historical.accent_on_accent_tint_bold"),
         StylePatch::new()
@@ -120,25 +114,11 @@ const SPECS: [(Part, StylePatch); 32] = [
             .remove(Modifier::BOLD),
     ),
     (
-        Part::custom("jackin.historical.muted_on_elevated"),
-        StylePatch::new()
-            .set_fg(Role::Fg(FgStep::Muted))
-            .set_bg(Role::Surface(Surface::Elevated))
-            .remove(Modifier::BOLD),
-    ),
-    (
         Part::custom("jackin.historical.muted_on_surface"),
         StylePatch::new()
             .set_fg(Role::Fg(FgStep::Muted))
             .set_bg(Role::Surface(Surface::Surface))
             .remove(Modifier::BOLD),
-    ),
-    (
-        Part::custom("jackin.historical.on_accent_on_accent_bold"),
-        StylePatch::new()
-            .set_fg(Role::OnAccent)
-            .set_bg(Role::Accent)
-            .add(Modifier::BOLD),
     ),
     (
         Part::custom("jackin.historical.primary_on_accent_tint_bold"),
@@ -169,13 +149,6 @@ const SPECS: [(Part, StylePatch); 32] = [
             .add(Modifier::BOLD),
     ),
     (
-        Part::custom("jackin.historical.primary_on_elevated"),
-        StylePatch::new()
-            .set_fg(Role::Fg(FgStep::Primary))
-            .set_bg(Role::Surface(Surface::Elevated))
-            .remove(Modifier::BOLD),
-    ),
-    (
         Part::custom("jackin.historical.primary_on_elevated_bold"),
         StylePatch::new()
             .set_fg(Role::Fg(FgStep::Primary))
@@ -204,13 +177,6 @@ const SPECS: [(Part, StylePatch); 32] = [
             .remove(Modifier::BOLD),
     ),
     (
-        Part::custom("jackin.historical.seam_on_elevated"),
-        StylePatch::new()
-            .set_fg(Role::BorderSubtle)
-            .set_bg(Role::Surface(Surface::Elevated))
-            .remove(Modifier::BOLD),
-    ),
-    (
         Part::custom("jackin.historical.secondary_on_canvas"),
         StylePatch::new()
             .set_fg(Role::Fg(FgStep::Secondary))
@@ -223,13 +189,6 @@ const SPECS: [(Part, StylePatch); 32] = [
             .set_fg(Role::Fg(FgStep::Secondary))
             .set_bg(Role::Surface(Surface::Canvas))
             .add(Modifier::BOLD),
-    ),
-    (
-        Part::custom("jackin.historical.secondary_on_elevated"),
-        StylePatch::new()
-            .set_fg(Role::Fg(FgStep::Secondary))
-            .set_bg(Role::Surface(Surface::Elevated))
-            .remove(Modifier::BOLD),
     ),
     (
         Part::custom("jackin.historical.secondary_on_field"),
@@ -257,13 +216,6 @@ const SPECS: [(Part, StylePatch); 32] = [
         StylePatch::new()
             .set_fg(Role::Warning)
             .set_bg(Role::Surface(Surface::Canvas))
-            .remove(Modifier::BOLD),
-    ),
-    (
-        Part::custom("jackin.historical.warning_on_elevated"),
-        StylePatch::new()
-            .set_fg(Role::Warning)
-            .set_bg(Role::Surface(Surface::Elevated))
             .remove(Modifier::BOLD),
     ),
 ];
@@ -305,21 +257,9 @@ const MONO_RULES: &[MonoRule] = &[
         StylePatch::new().set_fg(Role::Fg(FgStep::Primary)),
     ),
     (
-        Part::custom("jackin.historical.muted_on_elevated"),
-        StateFlags::empty(),
-        StylePatch::new().set_fg(Role::Fg(FgStep::Primary)),
-    ),
-    (
         Part::custom("jackin.historical.muted_on_surface"),
         StateFlags::empty(),
         StylePatch::new().set_fg(Role::Fg(FgStep::Primary)),
-    ),
-    (
-        Part::custom("jackin.historical.on_accent_on_accent_bold"),
-        StateFlags::empty(),
-        StylePatch::new()
-            .set_fg(Role::Surface(Surface::Canvas))
-            .set_bg(Role::Fg(FgStep::Primary)),
     ),
     (
         Part::custom("jackin.historical.primary_on_accent_tint_bold"),
@@ -338,11 +278,6 @@ const MONO_RULES: &[MonoRule] = &[
     ),
     (
         Part::custom("jackin.historical.primary_on_canvas_bold"),
-        StateFlags::empty(),
-        StylePatch::new().set_fg(Role::Fg(FgStep::Primary)),
-    ),
-    (
-        Part::custom("jackin.historical.primary_on_elevated"),
         StateFlags::empty(),
         StylePatch::new().set_fg(Role::Fg(FgStep::Primary)),
     ),
@@ -367,22 +302,12 @@ const MONO_RULES: &[MonoRule] = &[
         StylePatch::new().set_fg(Role::Fg(FgStep::Primary)),
     ),
     (
-        Part::custom("jackin.historical.seam_on_elevated"),
-        StateFlags::empty(),
-        StylePatch::new().set_fg(Role::Fg(FgStep::Primary)),
-    ),
-    (
         Part::custom("jackin.historical.secondary_on_canvas"),
         StateFlags::empty(),
         StylePatch::new().set_fg(Role::Fg(FgStep::Primary)),
     ),
     (
         Part::custom("jackin.historical.secondary_on_canvas_bold"),
-        StateFlags::empty(),
-        StylePatch::new().set_fg(Role::Fg(FgStep::Primary)),
-    ),
-    (
-        Part::custom("jackin.historical.secondary_on_elevated"),
         StateFlags::empty(),
         StylePatch::new().set_fg(Role::Fg(FgStep::Primary)),
     ),
@@ -406,14 +331,9 @@ const MONO_RULES: &[MonoRule] = &[
         StateFlags::empty(),
         StylePatch::new().set_fg(Role::Fg(FgStep::Primary)),
     ),
-    (
-        Part::custom("jackin.historical.warning_on_elevated"),
-        StateFlags::empty(),
-        StylePatch::new().set_fg(Role::Fg(FgStep::Primary)),
-    ),
 ];
 
-fn resolve_pairs(ui: &Ui<'_>) -> [PaintStyle; 32] {
+fn resolve_pairs(ui: &Ui<'_>) -> [PaintStyle; 26] {
     SPECS.map(|(part, base)| {
         ui.style_defaults(
             FAMILY,
@@ -441,27 +361,21 @@ impl HistoricalPalette {
             elevated_on_elevated,
             field_on_field,
             muted_on_canvas,
-            muted_on_elevated,
             muted_on_surface,
-            on_accent_on_accent_bold,
             primary_on_accent_tint_bold,
             primary_on_button,
             primary_on_canvas,
             primary_on_canvas_bold,
-            primary_on_elevated,
             primary_on_elevated_bold,
             primary_on_field,
             primary_on_surface,
             seam_on_canvas,
-            seam_on_elevated,
             secondary_on_canvas,
             secondary_on_canvas_bold,
-            secondary_on_elevated,
             secondary_on_field,
             secondary_on_surface,
             secondary_on_surface_bold,
             warning_on_canvas,
-            warning_on_elevated,
         ] = resolve_pairs(ui);
         Self {
             accent_on_accent_tint_bold,
@@ -475,27 +389,21 @@ impl HistoricalPalette {
             elevated_on_elevated,
             field_on_field,
             muted_on_canvas,
-            muted_on_elevated,
             muted_on_surface,
-            on_accent_on_accent_bold,
             primary_on_accent_tint_bold,
             primary_on_button,
             primary_on_canvas,
             primary_on_canvas_bold,
-            primary_on_elevated,
             primary_on_elevated_bold,
             primary_on_field,
             primary_on_surface,
             seam_on_canvas,
-            seam_on_elevated,
             secondary_on_canvas,
             secondary_on_canvas_bold,
-            secondary_on_elevated,
             secondary_on_field,
             secondary_on_surface,
             secondary_on_surface_bold,
             warning_on_canvas,
-            warning_on_elevated,
         }
     }
 }
