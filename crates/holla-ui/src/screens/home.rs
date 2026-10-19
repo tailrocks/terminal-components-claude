@@ -53,9 +53,16 @@ impl HomeState {
     }
 
     pub(crate) fn rows(&self, world: &World) -> Vec<HomeRow> {
+        let recent_first =
+            self.query().trim().is_empty() && world.scenario.boot_title() == super::finder::RECENT;
         catalogue::sections(world)
             .into_iter()
             .flat_map(|section| {
+                let name = if recent_first && section.name == "Suggested here" {
+                    "Explore"
+                } else {
+                    section.name
+                };
                 catalogue::visible(
                     &section.actions,
                     self.scope,
@@ -65,7 +72,7 @@ impl HomeState {
                 )
                 .into_iter()
                 .map(move |action| HomeRow {
-                    section: section.name,
+                    section: name,
                     action,
                 })
             })
@@ -221,12 +228,17 @@ impl HomeState {
             );
         }
         let rows = self.rows(world);
-        let rows_area = Rect::new(
+        let mut rows_area = Rect::new(
             area.x,
             area.y.saturating_add(2),
             area.width,
             area.height.saturating_sub(2),
         );
+        if self.query().trim().is_empty() && world.scenario.boot_title() == super::finder::RECENT {
+            let used = super::finder::paint_recent_lead(ui, rows_area);
+            rows_area.y = rows_area.y.saturating_add(used);
+            rows_area.height = rows_area.height.saturating_sub(used);
+        }
         if rows.is_empty() {
             let note = if self.query().trim().is_empty() {
                 self.scope.map_or_else(
@@ -455,7 +467,16 @@ mod tests {
             assert_eq!(catalogue::catalogue(&harness.app().world), before);
             assert_eq!(harness.app().world.now_ms(), time);
             assert_eq!(harness.app().home.query(), query);
-            assert!(harness.text().contains("Suggested here"));
+            let heading = if scenario.boot_title() == crate::screens::finder::RECENT {
+                crate::screens::finder::RECENT
+            } else {
+                "Suggested here"
+            };
+            assert!(
+                harness.text().contains(heading),
+                "{} missing {heading}",
+                scenario.name()
+            );
         }
     }
 
