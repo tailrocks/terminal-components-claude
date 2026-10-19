@@ -1,6 +1,6 @@
 use termrock::{
-    Buffer, Color, Family, Modifier, Part, Rect, Role, StateFlags, Style, StylePatch, Surface,
-    Theme, Variant,
+    Buffer, Color, Family, FgStep, Modifier, Part, Rect, Role, StateFlags, Style, StylePatch,
+    Surface, Theme, Variant,
 };
 
 use jackin_preview_domain::scenario::Motion;
@@ -104,7 +104,9 @@ pub fn fill_canvas(buf: &mut Buffer, area: Rect, theme: &Theme) {
         area,
         role_style(
             theme,
-            StylePatch::new().set_bg(Role::Surface(Surface::Canvas)),
+            StylePatch::new()
+                .set_fg(Role::Fg(FgStep::Primary))
+                .set_bg(Role::Surface(Surface::Canvas)),
         ),
     );
 }
@@ -828,6 +830,17 @@ pub fn paint_atmosphere(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn fill_canvas_paints_primary_foreground_on_the_canvas() {
+        let theme = Theme::junie();
+        let area = Rect::new(0, 0, 2, 1);
+        let mut buf = Buffer::empty(area);
+        fill_canvas(&mut buf, area, &theme);
+        let cell = buf.cell((0, 0)).expect("filled cell");
+        assert_eq!(cell.fg, theme.color.fg[FgStep::Primary.index()]);
+        assert_eq!(cell.bg, theme.bg(Surface::Canvas));
+    }
 
     #[test]
     fn intro_timeline_follows_original_pacing() {
