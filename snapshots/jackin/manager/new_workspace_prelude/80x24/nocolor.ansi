@@ -1,0 +1,25 @@
+[0m[2m  jackin❯    File   Go   Help                    …  Workspaces › new workspace  [0m
+[0m[2m                                                                                [0m
+[0m[2m   ╭─[0m[1;2m New workspace · step 1 of 5 · Source [0m[2m───────────────────────────── × ─╮   [0m
+[0m[2m   │  Source · Destination · Edit · Working dir · Name                      │   [0m
+[0m[2m   │                                                                        │   [0m
+[0m[2m   │   Path                                                                 │   [0m
+[0m[2m   │   ~/src/payments-platform                                              │   [0m
+[0m[2m   │                                                                        │   [0m
+[0m[2m   │ [0m[1;2m▎  ..                                                         parent [0m[2m  │   [0m
+[0m[2m   │    crates/                                                   6 items   │   [0m
+[0m[2m   │    docs/                                                         adr   │   [0m
+[0m[2m   │    scripts/                                                  3 items   │   [0m
+[0m[2m   │    Cargo.toml                                                    1 h   │   [0m
+[0m[2m   │    README.md                                                     3 d   │   [0m
+[0m[2m   │                                                                        │   [0m
+[0m[2m   │                                                                        │   [0m
+[0m[2m   │                                                                        │   [0m
+[0m[2m   │  [ ] Mount read-only                                                   │   [0m
+[0m[2m   │                                                                        │   [0m
+[0m[2m   │                                                                        │   [0m
+[0m[2m   │                                           Git URL…   Cancel   [0m[1;2;7mChoose [0m[2m  │   [0m
+[0m[2m   ╰────────────────────────────────────────────────────────────────────────╯   [0m
+[0m[2m                                                                                [0m
+ [0m[1mEnter[0m Open  [0m[1mSpace Cho[0mose  [0m[1mg Git[0m URL  [0m[1mTab [0mNext  [0m[1mEsc[0m [0m[1mCan[0mcel    [0m[1m   [0m               [0m
+[?25l

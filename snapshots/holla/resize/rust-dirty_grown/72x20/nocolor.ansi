@@ -1,0 +1,21 @@
+ [0m[1;7m holla❯ [0m   File   Go   Help         holla · Rust project  [0m[1mmbp · local[0m  [0m
+                                                                        [0m
+ [0m[1m Here  [0m                                                                [0m
+ ━━━━━━━─────────────────────────────────────────────────────────────── [0m
+ ▎ Search actions and resources…                        scope ‹ here ›  [0m
+                                                                        [0m
+    Suggested here                                                    ┃ [0m
+ [0m[1;7m › Inspect 12 GB of gener…  [0m[7mdisk    [0m[1;7m  [0m[7mhere[0m[1;7m  [0m[7m12 GB generated artifac…[0m[1;7m [0m┃ [0m
+    Pull                     git       here  branch is 3 commits beh… ┃ [0m
+    Review 5 modified files  git       here  4 modified · 1 untracked ┃ [0m
+    Run tests                task      here  5 files changed since t… ┃ [0m
+    Who is blocking the da…  postgres  here  2 sessions blocked for … ┃ [0m
+                                                                      ┆ [0m
+    Recent here                                                       ┆ [0m
+ [0m[2m   nothing used here yet                                             [0m┆ [0m
+                                                                        [0m
+    → 'holla disk analyze --artifacts' · here · read-only               [0m
+                                                                        [0m
+ [0m[1m~/work/holla[0m   main   ↓3   • 5                        no color · 72×20 [0m
+ [0m[1mType[0m Search  [0m[1m↑↓[0m Move  [0m[1mEnter[0m Open  [0m[1mAlt+Enter[0m Alternatives…  …           [0m
+[?25h[5;4H[6 q

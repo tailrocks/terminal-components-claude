@@ -1,0 +1,31 @@
+ ▪ [0m[1mJunie[0m Design system  Tables › [0m[1mSelection[0m                no color · 100×30   i Inspector   ? Help  [0m
+                                                                                                    [0m
+ [0m[1mComponents[0m      54  [0m[1mSelectable table[0m  Select rows, edit one or many together, delete with a confi… [0m
+ ──────────────────                                                                                 [0m
+    Overview         [0m[1m Playground  [0m  Options    States                               the live widget [0m
+  ▸ App shell        ━━━━━━━━━━━━━──────────────────────────────────────────────────────────────────[0m
+  ▸ Inputs & forms                                                                                  [0m
+  ▾ Tables             Members                                                        1–10 of 12   ┃[0m
+      Basic table      ─────────────────────────────────────────────────────────────────────────   ┃[0m
+      Editable            [ ] Name                         Role    Status     Region  On call …    ┃[0m
+      Data grid           [0m[2m[ ][0m Dana Whitfield               Owner   Active     EU      Yes      ┃   ┃[0m
+ [0m[1m▎  › Selection    [0m       [ ] Ari Moreno                   Admin   Active     US      Yes      ┃   ┃[0m
+      Cell editors        [ ] Cleo Barnes                  Editor  Active     EU      —        ┃   ┃[0m
+      Columns             [ ] Bo Lindqvist                 Editor  Invited    EU      —        ┃   ┃[0m
+  ▸ Navigation            [ ] Eli Nakamura                 Viewer  Active     APAC    —        ┃   ┃[0m
+  ▸ Overlays              [ ] Fay Okafor                   Editor  Active     US      Yes      ┃   ┃[0m
+  ▸ Feedback              [ ] Gus Petrov                   Viewer  Suspended  EU      —        ┃   ┃[0m
+  ▸ Layout                [ ] Hana Sato                    Editor  Active     APAC    —        ┃   ┃[0m
+  ▸ Text & code           [ ] Ivo Brandt                   Admin   Active     EU      Yes      ┆   ┃[0m
+  ▸ Screens            [0m[2m   [ ] June Park                    Viewer  Invited    US      —        [0m┆   ┃[0m
+                              ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄    ┆[0m
+                                                                                                   ┆[0m
+                                                                                                   ┆[0m
+                       Details                                                                     ┆[0m
+                       ─────────────────────────────────────────────────────────────────────────   ┆[0m
+                                                                                                   ┆[0m
+                                                                                                   ┆[0m
+                                                                                                   ┆[0m
+                                                                                                    [0m
+ [0m[1m↑↓[0m Move  [0m[1mEnter[0m Open  [0m[1m/[0m Filter  [0m[1mTab[0m Into page  [0m[1mq[0m Quit                                               [0m
+[?25l

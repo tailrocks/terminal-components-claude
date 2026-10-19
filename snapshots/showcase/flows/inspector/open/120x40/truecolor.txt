@@ -1,0 +1,40 @@
+ ▪ Junie Design system / Foundations / Overview                         truecolor · 120×40   i Inspector · on   ? Help
+
+   Foundations            Overview  Tokens and principles behind every component            State
+▎› Overview
+                            Tokens                                                          mode        NAV
+   Components                                                                               focus       0·2 24×36
+   Buttons                      ▏ canvas                     ▏ text.muted                   hover       suppressed
+   Inputs                       ▏ surface                    ▏ text.faint                   pressed     —
+   Text areas                   ▏ surface.elevated           ▏ accent                       mouse       —
+   Forms                        ▏ surface.overlay            ▏ accent.hover                 last key    i
+   Lists                        ▏ field                      ▏ accent.pressed               focus ring  1 stops
+   Trees                        ▏ popover                    ▏ accent.bg                    hit regions 26
+   Tables                       ▏ border.subtle              ▏ error                        tick        0
+   Editable tables              ▏ border.strong              ▏ warning                      colors      truecolor
+   Panels                       ▏ text.primary               ▏ info
+   Sidebars                     ▏ text.secondary
+   Dialogs
+   Progress
+   Scrolling
+   Terminal
+   Code editor
+   Diff                     Principles
+   Data grid
+   Chips & selects          One hue
+   Pickers                  Green means focus, primary action or selection. Everything
+   Chrome                   else is achromatic.
+
+   Screens
+   Settings
+   Task runner              State language
+
+                            ▎  focus
+                            ░  hover lifts the surface
+                            ›  current / chosen
+                            ✓  checked
+                            !  error
+                            ▁  editing: cursor + underline
+
+
+ ↑ ↓ Move  Enter Open  Tab Into page  q Quit

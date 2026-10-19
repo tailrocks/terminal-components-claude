@@ -1,0 +1,25 @@
+ ▪ [0m[1mJunie[0m Design system  Text & code › [0m[1mCode editor[0m         i Inspector   ? Help  [0m
+                                                                                [0m
+ [0m[1mComponents[0m      54  [0m[1mCode editor[0m  Blocks, tones, diagnostics and completion; t… [0m
+ ──────────────────                                                             [0m
+    Overview         [0m[1m Playground  [0m  Options    States                           [0m
+  ▸ App shell        ━━━━━━━━━━━━━──────────────────────────────────────────────[0m
+  ▸ Inputs & forms                                                              [0m
+  ▸ Tables             retry.rs                                     3 blocks   ┃[0m
+  ▸ Navigation         ─────────────────────────────────────────────────────   ┃[0m
+  ▸ Overlays            ›  1 [0m[3m// Retry a request with exponential backoff.[0m  ┃   ┃[0m
+  ▸ Feedback               2 [0m[1mpub[0m [0m[1masync[0m [0m[1mfn[0m fetch(url: &str) -> Result<Body… ┃   ┃[0m
+  ▸ Layout                 3     [0m[1mlet[0m [0m[1mmut[0m delay = [0m[3m200[0m;                      ┃   ┆[0m
+  ▾ Text & code            4     [0m[1mfor[0m attempt [0m[1min[0m [0m[3m1..[0m=[0m[3m5[0m {                    ┃   ┆[0m
+ [0m[1m▎  › Code editor  [0m        5         [0m[1mmatch[0m client().get(url).[0m[1mawait[0m {       ┃   ┆[0m
+      Diff                 6             Ok(body) => [0m[1mreturn[0m Ok(body),      ┃   ┆[0m
+      Terminal             7             Err(e) [0m[1mif[0m e.is_transient() => {   ┃   ┆[0m
+      Text utilit…         8                 log::warn!("attempt {attempt… ┃   ┆[0m
+  ▸ Screens                9                 sleep(delay).[0m[1mawait[0m;           ┃   ┆[0m
+                          10                 delay *= [0m[3m2[0m;                   ┃   ┆[0m
+                          11             }                                 ┃   ┆[0m
+                          12             Err(e) => [0m[1mreturn[0m Err(e),          ┃   ┆[0m
+                          13         }                                     ┃   ┆[0m
+                                                                                [0m
+ [0m[1m↑↓[0m Move  [0m[1mEnter[0m Open  [0m[1m/[0m Filter  [0m[1mTab[0m Into page  [0m[1mq[0m Quit                           [0m
+[?25l

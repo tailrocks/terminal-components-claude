@@ -1,0 +1,73 @@
+# cargo-nextest config. Process-per-test isolation is the default and is
+# required for PTY captures (libtest --test-threads shares one process).
+#
+# Default: `cargo nextest run`
+# Visual baseline (one test per scenario, named
+# `<app>::<group>::<leaf>…::<cols>x<rows>::<color>`):
+#   `cargo nextest run --run-ignored only -E 'binary(visual_baseline)'`
+#   (groups pending tuiscotti re-approval also need `VISUAL_FULL=1`)
+# Approve reviewed actuals (local only, refuses under CI):
+#   `tuiscotti accept --store snapshots --actual target/tuiscotti/actual '<pattern>'`
+#   (docs/visual-testing/README.md)
+
+[test-groups]
+# Real TUI binaries in PTYs; cap concurrency so boot does not starve.
+pty = { max-threads = 8 }
+
+[profile.default]
+fail-fast = false
+slow-timeout = { period = "60s" }
+
+[[profile.default.overrides]]
+filter = "binary(visual_baseline)"
+test-group = "pty"
+# One capture per test: boot, steps (timeouts up to 60 s for the streaming
+# terminal page) and, on a mismatch, the review PNG/HTML render.
+slow-timeout = { period = "60s", terminate-after = 3 }
+
+[[profile.default.overrides]]
+# Boot-streaming screens: give them a second slot so they do not starve.
+filter = '''
+  binary(visual_baseline) & (
+    test(/::scrolling::/)
+    or test(/^showcase::pages::terminal::/)
+    or test(/^holla::flows::docker::done::/)
+  )
+'''
+threads-required = 2
+
+[profile.ci]
+fail-fast = false
+slow-timeout = { period = "60s", terminate-after = 10 }
+
+# Visual tiers (docs/visual-testing/plan.md §C1). Each scenario is one test
+# named `<app>::<group>::<leaf>…::<cols>x<rows>::<color>`; a tier is a filter
+# on that suffix. Run with `--run-ignored only` (captures are ignored by
+# default) and shard with `--partition hash:<k>/<n>`:
+#   cargo nextest run --profile smoke  --run-ignored only [--partition hash:1/2]
+#   cargo nextest run --profile full   --run-ignored only [--partition hash:1/12]
+#   cargo nextest run --profile narrow --run-ignored only [--partition hash:1/2]
+# Pending scenarios (new coverage, the narrow tier) are listed but skip until
+# re-approved; VISUAL_FULL=1 runs them. `-E` narrows a tier further.
+
+[profile.smoke]
+# Every PR: 120x40/truecolor + 72x20/nocolor of every scenario.
+default-filter = 'binary(visual_baseline) & (test(/::120x40::truecolor$/) | test(/::72x20::nocolor$/))'
+
+[profile.full]
+# Nightly: the canonical 5 sizes x 5 colours of every scenario.
+default-filter = 'binary(visual_baseline) & test(/::(72x20|80x24|100x30|120x40|160x50)::(truecolor|256|16|none|nocolor)$/)'
+
+[profile.narrow]
+# Nightly: 40x12 and 60x18 (truecolor, nocolor) of surfaces and overlays.
+default-filter = 'binary(visual_baseline) & test(/::(40x12|60x18)::(truecolor|nocolor)$/)'
+
+[profile.capture]
+# Oracle candidate (plan §D, E2): full + narrow in one run. Use with
+# VISUAL_FULL=1 so pending captures are included; failures are expected.
+default-filter = '''
+  binary(visual_baseline) & (
+    test(/::(72x20|80x24|100x30|120x40|160x50)::(truecolor|256|16|none|nocolor)$/)
+    | test(/::(40x12|60x18)::(truecolor|nocolor)$/)
+  )
+'''

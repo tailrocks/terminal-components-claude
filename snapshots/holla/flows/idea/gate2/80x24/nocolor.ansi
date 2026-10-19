@@ -1,0 +1,25 @@
+[0m[2m  holla❯    File   Go   Help                           no project  mbp · local  [0m
+[0m[2m  Here › Cleanup › idea.clean › Review                                          [0m
+[0m[2m  H╭──────────────────────────────────────────────────────────────────── × ─╮   [0m
+[0m[2m ━━│                                                                        │── [0m
+[0m[2m  R│  [0m[1;2mTrash 4 items · gate 2 of 2[0m[2m                                           │…  [0m
+[0m[2m   │                                                                        │   [0m
+[0m[2m  A│  [0mAction        move to Trash 4 items under ~/work/ide                [0m[2m ┃│┃  [0m
+[0m[2m  H│  [0mHost          mbp · local                                           [0m[2m ┃│┃  [0m
+[0m[2m  M│  [0mMode          Trash · native macOS Trash · space returns after the  [0m[2m ┃│┆  [0m
+[0m[2m   │  [0m              Trash is emptied                                      [0m[2m ┆│┆  [0m
+[0m[2m  E│  [0mEstimate      44.0 KiB allocated · APFS clones may overcount ·      [0m[2m ┆│┆  [0m
+[0m[2m   │  [0m              purgeable space excluded · not a free-space guarantee [0m[2m ┆│┆  [0m
+[0m[2m  D│  [0mDenied        none · every path passed the lexical, protected-root, [0m[2m ┆│┆  [0m
+[0m[2m   │  [0m              user-data and symlink rules                           [0m[2m ┆│   [0m
+[0m[2m ╭─│  ↓ 12 more                                                             │─╮ [0m
+[0m[2m │ │  [0m[1;2mType TRASH 4 UNDER /Users/alex/work/ide ON mbp to confirm           [0m[2m  │ │ [0m
+[0m[2m │ │[0m[1;2;7m▎                                                                     [0m[2m  │ │ [0m
+[0m[2m │ │                                                                        │ │ [0m
+[0m[2m ╰─│                                                    Cancel    Execute   │─╯ [0m
+[0m[2m   │                                                                        │   [0m
+[0m[2m   ╰─────────────────────────────────────────────────────[0m─[0m[2m─────────[0m─[0m[2m────────╯   [0m
+[0m[2m                                                                                [0m
+[0m[2m ~/work/ide                review · gate 1 of 2                no color · 80×24 [0m
+ [0m[1m EDIT [0m  [0m[1mEsc[0m Cancel [0m[1m …   [0m           [0m[1m   [0m       [0m[1m [0m                [0m[1m   [0m              [0m
+[?25h[17;7H[6 q

@@ -1,0 +1,25 @@
+[0m[2m  ▪  TablePro  Production  ◆ production  acme_prod › public  ✓ safe  …  ? help  [0m
+[0m[2m                                                                                [0m
+[0m[2m  ≡ Query 1 ×                                                               +   [0m
+[0m[2m ━━╭──────────────────────────────────────────────────────────────────── × ─╮── [0m
+[0m[2m › │                                                                        │─╮ [0m
+[0m[2m   │  [0m▲[0m[2m [0m[1;2mExec[0m[1mu[0m[1;2mte write [0m[1mq[0m[1;2muery?[0m[2m                                                │ │ [0m
+[0m[2m E │  [0m [0m[2m                                                                     │ │ [0m
+[0m[2m x │  [0mAction      UPDATE                                                  [0m[2m  │ │ [0m
+[0m[2m p │  [0mTarget      Production · production · acme_prod · orders            [0m[2m  │ │ [0m
+[0m[2m l │  [0mScope       matching rows in orders                                 [0m[2m  │ │ [0m
+[0m[2m o │  [0mReversible  Reversible by a compensating UPDATE                     [0m[2m  │ │ [0m
+[0m[2m r │  [0mSafe Mode   Safe Mode · type to confirm                             [0m[2m  │ │ [0m
+[0m[2m e │  [0m                                                                    [0m[2m  │ │ [0m
+[0m[2m r │  [0mUPDATE orders SET status = 'paid' WHERE id = 'x'                    [0m[2m  │ │ [0m
+[0m[2m   │                                                                        │ │ [0m
+[0m[2m   │  [0m[1;2mType orders to confirm                                              [0m[2m  │ │ [0m
+[0m[2m   │▎                                                                       │ │ [0m
+[0m[2m   │                                                                        │ │ [0m
+[0m[2m   │                                                    Cancel    Execute   │ │ [0m
+[0m[2m   │                                                                        │ │ [0m
+[0m[2m   ╰────────────────────────────────────────────────────────────────────────╯ │ [0m
+[0m[2m   ╰──────────────────────────────────────────────────────────────────────────╯ [0m
+[0m[2m                                                                                [0m
+ [0m[1mType[0m "orders" to confirm  [0m[1mEsc[0m Cancel                 ✓ Connected to Production [0m
+[?25h[17;7H[6 q
