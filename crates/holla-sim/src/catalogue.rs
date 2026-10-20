@@ -886,6 +886,11 @@ pub fn launch_failure_tag_frame(w: &World) -> bool {
     w.scenario == Scenario::LaunchFailure && w.now_ms() == 80
 }
 
+/// Tag `hard-cases` at fixture tick 40. Later seeks keep the concept home.
+pub fn hard_cases_tag_frame(w: &World) -> bool {
+    w.scenario == Scenario::HardCases && w.now_ms() == 80
+}
+
 /// Tag `parity-discovery` at fixture tick 40.
 ///
 /// `--frame 40` seeks 80 ms. Every tag source for this fixture is done by tick 40,
@@ -2462,6 +2467,180 @@ pub fn remote_host_tag(w: &World) -> Option<ParityDiscovery> {
     })
 }
 
+/// No-history `hard-cases` plate. Only tick 40.
+pub fn hard_cases_tag(w: &World) -> Option<ParityDiscovery> {
+    if !hard_cases_tag_frame(w) {
+        return None;
+    }
+    let suggested = vec![
+        tag_row(
+            "Analyze disk usage",
+            "disk",
+            "here",
+            true,
+            "/ is 91% full",
+            None,
+            true,
+        ),
+        tag_row(
+            "Resolve the rebase in lazygit",
+            "git",
+            "here",
+            true,
+            "rebase in progress · 2 conflicts",
+            None,
+            false,
+        ),
+        tag_row(
+            "Review 7 modified files",
+            "git",
+            "here",
+            true,
+            "7 modified · 0 untracked",
+            None,
+            false,
+        ),
+        tag_row(
+            "Open btm",
+            "system",
+            "host",
+            false,
+            "sustained pressure · continuous view fits",
+            None,
+            false,
+        ),
+        tag_row(
+            "Review cleanup candidates",
+            "cleanup",
+            "host",
+            false,
+            "8.0 GiB across 4 categories",
+            None,
+            false,
+        ),
+    ];
+    let explore = vec![
+        tag_row(
+            "Children · 14 projects",
+            "explore",
+            "child",
+            false,
+            "14 child projects discovered",
+            None,
+            false,
+        ),
+        tag_row(
+            "Parent · northwind-traders-platform-migration",
+            "explore",
+            "parent",
+            false,
+            "workspace root above this folder",
+            None,
+            false,
+        ),
+        tag_row(
+            "System · mbp",
+            "explore",
+            "host",
+            false,
+            "available on this host",
+            None,
+            false,
+        ),
+    ];
+    let mut lines = Vec::new();
+    lines.push(FinderLine::Heading("Suggested here"));
+    for row in &suggested {
+        lines.push(FinderLine::Row(row.clone()));
+    }
+    lines.push(FinderLine::Blank);
+    lines.push(FinderLine::Heading("Recent here"));
+    lines.push(FinderLine::Heading("nothing used here yet"));
+    lines.push(FinderLine::Blank);
+    lines.push(FinderLine::Heading("Explore"));
+    lines.push(FinderLine::Chips(&[
+        "Tasks", "Git", "Files", "Disk", "Services", "System",
+    ]));
+    for row in &explore {
+        lines.push(FinderLine::Row(row.clone()));
+    }
+    let preview = vec![
+        PreviewLine {
+            label: "Does",
+            value: "largest-first tree of this folder that deepens as the scan streams; select any entry or rebuildable artifacts for cleanup".into(),
+            tone: PreviewTone::Text,
+            wraps: true,
+        },
+        PreviewLine {
+            label: "Runs",
+            value: "'holla disk analyze'".into(),
+            tone: PreviewTone::Secondary,
+            wraps: false,
+        },
+        PreviewLine {
+            label: "In",
+            value: "~/work/clients/n…service".into(),
+            tone: PreviewTone::Text,
+            wraps: false,
+        },
+        PreviewLine {
+            label: "Host",
+            value: "mbp · local".into(),
+            tone: PreviewTone::Text,
+            wraps: false,
+        },
+        PreviewLine {
+            label: "Scope",
+            value: "here".into(),
+            tone: PreviewTone::Text,
+            wraps: false,
+        },
+        PreviewLine {
+            label: "Why",
+            value: "/ is 91% full".into(),
+            tone: PreviewTone::Text,
+            wraps: false,
+        },
+        PreviewLine {
+            label: "Changes",
+            value: "none · read-only".into(),
+            tone: PreviewTone::Text,
+            wraps: false,
+        },
+        PreviewLine {
+            label: "Risk",
+            value: "read-only".into(),
+            tone: PreviewTone::Meta,
+            wraps: false,
+        },
+        PreviewLine {
+            label: "Data",
+            value: "live · 3 s ago".into(),
+            tone: PreviewTone::Muted,
+            wraps: false,
+        },
+        PreviewLine {
+            label: "Gate",
+            value: "opens a review · the deletion is gated there (typed phrase)".into(),
+            tone: PreviewTone::Muted,
+            wraps: true,
+        },
+        PreviewLine {
+            label: "Alt+Enter",
+            value: "Disk overview (home folders) · Analyze a custom path… · Top files on this Mac · Pin · Alias · Why here?".into(),
+            tone: PreviewTone::Muted,
+            wraps: true,
+        },
+    ];
+    Some(ParityDiscovery {
+        lines,
+        preview,
+        preview_meta: "disk · here".into(),
+        actions: Vec::new(),
+        suggested_len: suggested.len(),
+    })
+}
+
 pub fn docker_cleanup_tag(w: &World) -> Option<ParityDiscovery> {
     if !docker_cleanup_tag_frame(w) {
         return None;
@@ -3065,10 +3244,51 @@ mod tests {
             Scenario::FirstUse,
             Scenario::DockerCleanup,
             Scenario::DiskCleanup,
+            Scenario::HardCases,
         ] {
             let mut other = fixtures::world_for(scenario);
             other.seek(40);
             assert!(!launch_failure_tag_frame(&other), "{}", scenario.name());
+        }
+    }
+
+    #[test]
+    fn hard_cases_tag_exists_only_at_tick_40() {
+        let mut world = fixtures::world_for(Scenario::HardCases);
+        assert!(hard_cases_tag(&world).is_none());
+        assert!(!hard_cases_tag_frame(&world));
+        world.seek(40);
+        assert!(hard_cases_tag_frame(&world));
+        assert_eq!(world.now_ms(), 80);
+        let view = hard_cases_tag(&world).expect("tick 40 tag");
+        assert_eq!(view.preview_meta, "disk · here");
+        assert!(view.lines.iter().any(|line| matches!(
+            line,
+            FinderLine::Row(row) if row.selected && row.title == "Analyze disk usage" && row.here
+        )));
+        assert!(view.lines.iter().any(|line| matches!(
+            line,
+            FinderLine::Row(row) if row.title == "Open btm" && !row.here && row.scope_word == "host"
+        )));
+        assert!(view.preview.iter().any(|line| line.label == "Runs"
+            && line.value == "'holla disk analyze'"
+            && !line.wraps));
+        world.seek(4_000);
+        assert!(hard_cases_tag(&world).is_none());
+        assert!(!hard_cases_tag_frame(&world));
+        for scenario in [
+            Scenario::LaunchFailure,
+            Scenario::RemoteHost,
+            Scenario::ActivitiesMulti,
+            Scenario::MonorepoRoot,
+            Scenario::FirstUse,
+            Scenario::DockerCleanup,
+            Scenario::DiskCleanup,
+        ] {
+            let mut other = fixtures::world_for(scenario);
+            other.seek(40);
+            assert!(hard_cases_tag(&other).is_none(), "{}", scenario.name());
+            assert!(!hard_cases_tag_frame(&other), "{}", scenario.name());
         }
     }
 
