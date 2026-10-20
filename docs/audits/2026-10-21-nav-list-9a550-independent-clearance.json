@@ -1,0 +1,141 @@
+{
+  "reviewed_commit": "9a550edecc55ee99b170ff31ee51957895aeb1ee",
+  "pinned_pre_fill_commit": "fa5891532c8d32d182f83e299436d467bdc0df20",
+  "previous_rejected_commit": "0333cde2c6176e2c9e4639ce7f222d70bb90bbcb",
+  "disposition": "Cleared for the bounded NavList content-gap/Fill and shared RowUi author-part/default-gutter repair. No new actionable findings within this scope. The separate pre-existing ItemRow fixture failure remains unresolved.",
+  "findings": [],
+  "resolved_regression": {
+    "source": "crates/termrock-runtime/src/rowui.rs:76-130",
+    "result": "The exact unchanged existing public RowUi consumer now matches actual pinned fa589 output in all40 Bar/Fill cases. This includes the previously differing20 Fill cases across4 profiles and empty,FOCUSED,FOCUSED|FOCUS_VISIBLE,SELECTED,DISABLED states. Full foreground/background/modifiers on blank gutter cells are compared, not only visible symbols.",
+    "base_and_candidate_sha256": "d63dc46b4d7e9b7bd3d4873751533ead9abbf85c45b4d16da4a856f22151f9a7"
+  },
+  "pinned_cross_version_evidence": [
+    {
+      "scope": "Default NavList Bar",
+      "result": "Byte-identical against actual fa589 captures preserved in the prior review packet, using the same unchanged public test.",
+      "scenes": 432,
+      "ordered_checkpoints": 816,
+      "compared": "Complete cells/styles,all registry regions,focus owner/visibility,cursor position/bar,component state and typed action.",
+      "bytes": 21522682,
+      "base_and_candidate_sha256": "46cbfeca3ab902ed5f4280fe2138fbb3a42771473ab4a7b7122e7715285ab9cc"
+    },
+    {
+      "scope": "Custom NavList Bar parts and gap policy",
+      "result": "All288 scenes byte-identical against actual fa589 captures, including ICON/BADGE fallback styling,partial slots,named patches,caller-owned metadata,Unicode,narrow/zero widths and content_gap0/2 across4 profiles.",
+      "bytes": 6293521,
+      "base_and_candidate_sha256": "68a9842ccb837f28bb321409e8688ff96c3b529dc583d502f838c500e7e5eeae"
+    }
+  ],
+  "additional_independent_tests": [
+    "Three author-API tests passed with zero skipped tests. They verify inherited leading/trailing part fills before empty fallback; explicit Clear suppresses fallback; a named slot wins over Clear; actual FOCUSED remains intact.",
+    "The additional precedence test covers24 combinations:4 profiles \u00d72 focus states \u00d73 authored configurations. Explicit theme gutter FG/BG/UNDERLINED/glyph Set override Fill defaults; overlay FG/BG/BOLD override theme; instance FG/BG/remove-BOLD/glyph Clear override both. Expected semantic channels are resolved separately, then actual terminal cells and glyphs are checked.",
+    "The original direct-versus-composed public comparison still passes:432 scene matrix and separate4-profile keyboard/Enter/hover/press/release/reorder/resize/empty-data flows, including identical complete cells,all regions,focus,cursor,state/actions and diagnostics. Its measurement assertions verify callbacks/state remain unchanged."
+  ],
+  "source_review": [
+    "The repair centralizes focused/unfocused gutter defaults in a pure StylePatch helper and combines them with canonical explicit-channel metadata. Theme,overlay and instance channels remain above inherited Fill defaults. No RGB,viewport,scenario or application inference is introduced.",
+    "Actual StateFlags::FOCUSED is retained. Only an inherited gutter glyph is suppressed; authored Set/Clear and component-author slots preserve their precedence. Existing row constructor APIs remain callable unchanged.",
+    "There is one shared RowUi rendering path and one canonical theme resolver. The repair does not add a NavList-only painter,application after-paint patch,second input system or local focus registration workaround.",
+    "NavList measurement,typed input/actions,IDs/keys,scrolling and registration code are unchanged by the gutter repair. Default content_gap remains1; explicit gap policy and supported custom author parts preserve the earlier pinned evidence.",
+    "No unsafe code,threading or ownership mechanism is added by the focused repair. Measurement does not invoke painters or mutate component state."
+  ],
+  "checks": [
+    {
+      "command": "cargo nextest run --manifest-path /private/tmp/nav-list-1f4-independent/Cargo.toml --test nav -E test(pinned_default_bar_corpus)",
+      "result": "Exit0;1 passed,2 filtered/skipped;capture compared with pinned fa589 independently.",
+      "run_id": "6e0adb15-2bac-4e26-b711-834103f9ace1"
+    },
+    {
+      "command": "cargo nextest run --manifest-path /private/tmp/nav-list-1f4-independent/Cargo.toml --test pinned_parts",
+      "result": "Exit0;2 passed,0 skipped;includes the old RowUi40-case capture and custom NavList288-case capture.",
+      "run_id": "8d0300cf-8236-4b9e-9208-825711407f75"
+    },
+    {
+      "command": "cargo nextest run --manifest-path /private/tmp/nav-list-1f4-independent/Cargo.toml --test author_parts --status-level all --final-status-level all",
+      "result": "Exit0;3 passed,0 skipped.",
+      "run_id": "eb1b6e6f-d5a9-4259-8f72-acfdebfd3e8f"
+    },
+    {
+      "command": "cargo nextest run --manifest-path /private/tmp/nav-list-1f4-independent/Cargo.toml --test nav -E test(direct_and_composed)",
+      "result": "Exit0;2 passed,1 filtered/skipped.",
+      "run_id": "bb3203ba-d34d-4bdf-9d7c-a8ca6321edbe"
+    },
+    {
+      "command": "cargo nextest run -p termrock-runtime -p termrock-navigation --all-targets --features termrock-runtime/testing --no-fail-fast --status-level fail --final-status-level fail",
+      "result": "Exit100;566 run,565 passed,1 failed,3 skipped. The sole failure remains constructor_defaults_match_the_pre_policy_full_cell_fixture,actual17020103994864682368 versus expected12184706452759668872. No fixture was edited or waived.",
+      "run_id": "ec943cee-8b62-4aaa-8f49-ae6a03fd5335"
+    },
+    {
+      "command": "cargo clippy -p termrock-runtime -p termrock-navigation -p termrock --all-targets --features termrock/testing -- -D warnings",
+      "result": "Exit0."
+    },
+    {
+      "command": "cargo fmt --check -p termrock-runtime -p termrock-navigation -p termrock",
+      "result": "Exit0."
+    },
+    {
+      "command": "git diff --check 0333cde2c6176e2c9e4639ce7f222d70bb90bbcb 9a550edecc55ee99b170ff31ee51957895aeb1ee",
+      "result": "Exit0."
+    }
+  ],
+  "pinned_base_artifacts": "/Users/donbeave/Projects/termrock-cli-evidence-20261020/branch-consolidation/nav-list-0333cde2-review",
+  "environment_note": "Reviewer-owned checkout pinned exactly9a550ede. Build-storage cleanup again removed1301 tracked conformance/target artifact files; only those exact files were restored from HEAD after validation. Final checkout is clean. No product source edits or helpers were used.",
+  "limits": "This is a component/API clearance, not a green broad runtime/navigation gate because the separate ItemRow fixture still fails. Holla adoption,prefix/data semantics,application reference frames and complete application acceptance remain unverified. No reference artifact or fixture was changed.",
+  "artifacts": [
+    {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261020/branch-consolidation/nav-list-9a550ede-review/author_parts.rs",
+      "sha256": "3fe935e2a25bc1cc03064ef2287e5ad8e956902975460b7cd4b083c219f1b1dc"
+    },
+    {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261020/branch-consolidation/nav-list-9a550ede-review/nav-9a55-author-expanded.log",
+      "sha256": "887e0cd9452671e9c5206c6604461f2072e5677d8c693b92915a38b856cf4e96"
+    },
+    {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261020/branch-consolidation/nav-list-9a550ede-review/nav-9a55-input.log",
+      "sha256": "bf02258fb8adbb8817db888fcfa242d893538d41b315bb0a00bd70458865149b"
+    },
+    {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261020/branch-consolidation/nav-list-9a550ede-review/nav-9a55-native-0.log",
+      "sha256": "77f3fcbdfbe4469d9ecfdfc3da6a39b7f4e96b8602260ff164e720a4ed840978"
+    },
+    {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261020/branch-consolidation/nav-list-9a550ede-review/nav-9a55-native-1.log",
+      "sha256": "2b34bee85867a0032c87885c647859aed768251ebe7c30ed363b838a0c169e25"
+    },
+    {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261020/branch-consolidation/nav-list-9a550ede-review/nav-9a55-native-2.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261020/branch-consolidation/nav-list-9a550ede-review/nav-9a55-parts.txt",
+      "sha256": "68a9842ccb837f28bb321409e8688ff96c3b529dc583d502f838c500e7e5eeae"
+    },
+    {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261020/branch-consolidation/nav-list-9a550ede-review/nav-9a55-pinned.txt",
+      "sha256": "46cbfeca3ab902ed5f4280fe2138fbb3a42771473ab4a7b7122e7715285ab9cc"
+    },
+    {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261020/branch-consolidation/nav-list-9a550ede-review/nav-9a55-public-0.log",
+      "sha256": "41a847bb785aa44d18d58326d1161b631f326b36d1317ebe217d23685ad9702f"
+    },
+    {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261020/branch-consolidation/nav-list-9a550ede-review/nav-9a55-public-1.log",
+      "sha256": "3b7c20aa76349b4c3b2c33459fd01af42fa79188b7d24819f99bd8566c45b281"
+    },
+    {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261020/branch-consolidation/nav-list-9a550ede-review/nav-9a55-public-2.log",
+      "sha256": "0ac88f90d81d511896f0a26167447b5920e1c446cb5fd9c448a9c3b03d7d499a"
+    },
+    {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261020/branch-consolidation/nav-list-9a550ede-review/nav.rs",
+      "sha256": "e68be8dd0b07433470956a27430387ed8c50ed0b75e3bf5d89821658a8bd9241"
+    },
+    {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261020/branch-consolidation/nav-list-9a550ede-review/pinned_parts.rs",
+      "sha256": "710b04ba5f67a486d096cbcb9bf3c095ff2f715cba9f02b82745de67c57647d2"
+    },
+    {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261020/branch-consolidation/nav-list-9a550ede-review/rowui-9a55.txt",
+      "sha256": "d63dc46b4d7e9b7bd3d4873751533ead9abbf85c45b4d16da4a856f22151f9a7"
+    }
+  ]
+}
