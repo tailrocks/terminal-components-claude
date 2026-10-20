@@ -324,6 +324,12 @@ fn pointer_focus_visibility_obeys_always_and_keyboard_only_policies() {
     );
     let _ = keyboard_only.mouse(termrock_core::event::MouseKind::Up, 10, 0);
     assert_eq!(keyboard_only.app().activations, 1);
+    // Keyboard visibility is presentation policy, not input focus ownership:
+    // keyboard activation must work immediately without a Tab round trip.
+    let _ = keyboard_only.key(termrock_core::keys::KeyCode::Enter);
+    assert_eq!(keyboard_only.app().activations, 2);
+    let _ = keyboard_only.key(termrock_core::keys::KeyCode::Char(' '));
+    assert_eq!(keyboard_only.app().activations, 3);
     let _ = keyboard_only.key(termrock_core::keys::KeyCode::Tab);
     assert!(keyboard_only.focus_visible());
     assert_eq!(
