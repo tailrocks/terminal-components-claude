@@ -23,8 +23,8 @@ use crate::id::{Id, Part, PartRef};
 use crate::intent::{FocusVia, IntentQueue, Phase};
 use crate::keymap::{BindingTableId, KeyMap, KeyPhase};
 use crate::layer::{
-    Backdrop, DismissReason, FocusContinuationOutcome, LayerCompletion, LayerEvent, LayerId,
-    OpenLayer, backdrop_area, resolve_layer_area,
+    Backdrop, DismissReason, FocusContinuationOutcome, LayerCompletion, LayerEvent,
+    LayerEventReceipt, LayerId, OpenLayer, PendingLayerEvent, backdrop_area, resolve_layer_area,
 };
 use crate::measure::Size;
 #[cfg(any(test, feature = "testing"))]
@@ -366,7 +366,7 @@ pub struct Runtime<A: App> {
     keymap_conflict_typing: Vec<crate::keymap::BindingDescriptor>,
     keymap_conflicts: Vec<Diagnostic>,
     staged_focus: Option<(Option<Id>, FocusVia)>,
-    layer_events_pending: Vec<(Id, LayerEvent)>,
+    layer_events_pending: Vec<PendingLayerEvent>,
     focus_out_closed: Vec<Id>,
     completion_waiting: Vec<OpenLayer>,
     continuation_cancels_waiting: Vec<(crate::layer::LayerOpening, Id)>,
@@ -1147,10 +1147,10 @@ impl<A: App> Runtime<A> {
         let Some(top) = self.services.layers.top_layer().copied() else {
             return false;
         };
-        let closed = self
-            .services
-            .layers
-            .close(top.id, LayerEvent::Dismissed(reason));
+        let closed =
+            self.services
+                .layers
+                .close_with_update(top.id, LayerEvent::Dismissed(reason), None);
         let changed = !closed.is_empty();
         if let Some(root) = closed.first() {
             self.services.direct_closed_layers.push(*root);
@@ -1282,9 +1282,11 @@ impl<A: App> Runtime<A> {
     }
 
     fn pump_layer_events(&mut self) {
-        for (id, ev) in self.services.layers.take_pending() {
-            self.layer_events_pending.push((id, ev));
-            let owner = self.services.layers.get(id).map_or(id, |l| l.spec.owner);
+        for pending in self.services.layers.take_pending_receipts() {
+            let id = pending.opening.id();
+            let ev = pending.event;
+            let owner = pending.opening.owner();
+            self.layer_events_pending.push(pending);
             self.intents.layer(owner, ev);
             if owner != id {
                 self.intents.layer(id, ev);
@@ -1314,7 +1316,13 @@ impl<A: App> Runtime<A> {
             self.pump_layer_events();
             self.services.focus_request = None;
             let events = core::mem::take(&mut self.layer_events_pending);
-            self.services.events.extend(events);
+            self.services
+                .events
+                .extend(events.into_iter().map(|pending| LayerEventReceipt {
+                    opening: pending.opening,
+                    event: pending.event,
+                    update: pending.update,
+                }));
             let r = {
                 let mut cx = Cx::new_with_cause(
                     &self.intents,
@@ -1340,7 +1348,14 @@ impl<A: App> Runtime<A> {
                 }
             }
 
-            self.layer_events_pending = core::mem::take(&mut self.services.events);
+            self.layer_events_pending = core::mem::take(&mut self.services.events)
+                .into_iter()
+                .map(|receipt| PendingLayerEvent {
+                    opening: receipt.opening,
+                    event: receipt.event,
+                    update: receipt.update,
+                })
+                .collect();
 
             for l in self.services.layers.layers() {
                 if let Some(id) = l.restore_to
@@ -2644,6 +2659,42 @@ mod tests {
     const MULTI_PARENT: Id = Id::root("multi-parent");
     const MULTI_CHILD: Id = Id::root("multi-child");
     const MULTI_GRANDCHILD: Id = Id::root("multi-grandchild");
+
+    #[derive(Default)]
+    struct UpdateTokenProbe {
+        tokens: Vec<crate::layer::UpdateToken>,
+    }
+
+    impl App for UpdateTokenProbe {
+        fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+            self.tokens.push(cx.update_token());
+            Response::ignored()
+        }
+
+        fn draw(&self, _ui: &mut Ui<'_>) {}
+
+        fn on_esc(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+            self.tokens.push(cx.update_token());
+            Response::ignored()
+        }
+    }
+
+    #[test]
+    fn update_tokens_are_unique_per_callback_and_runtime() {
+        let mut first = Runtime::new(UpdateTokenProbe::default(), Theme::junie());
+        let _ = first.initialize();
+        let first_boot = first.app().tokens[0];
+        let _ = deliver(&mut first, Input::Tick);
+        let first_tick = *first.app().tokens.last().expect("tick update token");
+        let _ = deliver(&mut first, key(KeyCode::Esc));
+        let first_esc = *first.app().tokens.last().expect("Esc callback token");
+        assert_ne!(first_boot, first_tick);
+        assert_ne!(first_tick, first_esc);
+
+        let mut second = Runtime::new(UpdateTokenProbe::default(), Theme::junie());
+        let _ = second.initialize();
+        assert_ne!(first_boot, second.app().tokens[0]);
+    }
 
     #[derive(Default)]
     struct MultiCloseProbe {
