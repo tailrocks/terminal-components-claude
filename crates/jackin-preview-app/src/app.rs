@@ -7161,6 +7161,14 @@ impl App {
         self.launch_cockpit_scene() && !(area.width == 120 && area.height == 40)
     }
 
+    /// Info or cancel is painted on the page, so the live modal layer must not
+    /// dim that page a second time.
+    fn launch_dialog_on_page(&self, area: Rect) -> bool {
+        self.launch_cockpit_scene()
+            && (self.cockpit_info_open || self.cancel_open)
+            && (self.responsive_launch_cockpit(area) || (area.width == 120 && area.height == 40))
+    }
+
     fn paint_cockpit_trace(&self, ui: &mut Ui<'_>, screen: Rect) {
         let Some(label) = self
             .launch
@@ -8789,7 +8797,7 @@ impl App {
         // The approved cancel frame is painted on the page. Drawing the live
         // modal would dim that page after this function returns.
         if !self.historical_cockpit_cancel(ui.theme_ref(), ui.full())
-            && !(self.responsive_launch_cockpit(ui.full()) && self.cancel_open)
+            && !(self.launch_dialog_on_page(ui.full()) && self.cancel_open)
         {
             let cancel_launch = Self::cockpit_cancel_dialog();
             let _ = ui.layer(CANCEL_LAUNCH_DIALOG, |ui, area| {
@@ -8806,7 +8814,7 @@ impl App {
         // The approved info frame is painted on the page. Drawing the live
         // modal would dim that page after this function returns.
         if !self.historical_cockpit_info(ui.theme_ref(), ui.full())
-            && !(self.responsive_launch_cockpit(ui.full()) && self.cockpit_info_open)
+            && !(self.launch_dialog_on_page(ui.full()) && self.cockpit_info_open)
         {
             let cockpit_info = Self::cockpit_info_dialog();
             let _ = ui.layer(COCKPIT_INFO_DIALOG, |ui, area| {
@@ -9574,6 +9582,22 @@ impl TuiApp for App {
             } else if self.cancel_open {
                 launch_dialog_plate::paint_cancel(ui);
             }
+        } else if full.width == 120
+            && full.height == 40
+            && self.launch_cockpit_scene()
+            && ui.theme_ref().capability.color != termrock::ColorLevel::TrueColor
+            && (self.cockpit_info_open || self.cancel_open)
+        {
+            // Truecolor 120×40 still uses the historical stamp below. Other
+            // levels start from the same presentation frame as launch-running,
+            // then the dialog dims and paints on top.
+            self.draw_historical_launch_running(ui);
+            if self.cockpit_info_open {
+                launch_dialog_plate::paint_info(ui);
+            } else {
+                launch_dialog_plate::paint_cancel(ui);
+            }
+            launch_cockpit::paint_open_footer(ui, self.cancel_open);
         }
         if self.cockpit_trace_open {
             self.paint_cockpit_trace(ui, full);
