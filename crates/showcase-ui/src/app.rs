@@ -1981,11 +1981,7 @@ impl TuiApp for App {
                 });
             }
         } else if label == "Selection" {
-            showcase_demos::pages::selectable::paint(
-                ui,
-                shell.main,
-                self.selectable.selected_count(),
-            );
+            showcase_demos::pages::selectable::paint(ui, shell.main, &self.selectable);
         } else {
             paint_placeholder(ui, shell.main, label);
         }
@@ -1996,6 +1992,8 @@ impl TuiApp for App {
             self.active()
                 .map(|page| (page.hints(ui), page.editing(ui)))
                 .unwrap_or_default()
+        } else if label == "Selection" {
+            (self.selectable.hints(), false)
         } else {
             (&[][..], false)
         };
@@ -2016,7 +2014,7 @@ impl TuiApp for App {
             });
         });
         if label == "Selection" {
-            self.selectable.stamp(ui);
+            showcase_demos::pages::selectable::Model::draw_dialog(ui, &self.selectable);
         }
     }
 
