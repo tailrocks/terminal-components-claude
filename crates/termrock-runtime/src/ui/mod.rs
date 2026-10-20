@@ -1334,56 +1334,40 @@ impl<'f> Ui<'f> {
     }
 
     /// Map truecolor inks. Indexed and named colors stay.
+    ///
+    /// A channel that maps to its existing color keeps its semantic paint
+    /// role. Changed channels lose only their own role; the other channel and
+    /// all non-color cell attributes remain intact.
     pub fn recolor_rgb(
         &mut self,
         area: Rect,
         mut map: impl FnMut(ratatui_core::style::Color) -> ratatui_core::style::Color,
     ) {
-        let area = area.intersection(self.clip);
-        if area.is_empty() {
-            return;
-        }
-        {
-            let buf = self.buffer();
-            for pos in area.positions() {
-                if let Some(cell) = buf.cell_mut(pos) {
-                    if matches!(cell.fg, ratatui_core::style::Color::Rgb(..)) {
-                        cell.set_fg(map(cell.fg));
-                    }
-                    if matches!(cell.bg, ratatui_core::style::Color::Rgb(..)) {
-                        cell.set_bg(map(cell.bg));
-                    }
-                }
-            }
-        }
-        self.mark_area(area, None);
+        self.recolor_cells(area, |fg, bg| {
+            let fg = if matches!(fg, ratatui_core::style::Color::Rgb(..)) {
+                map(fg)
+            } else {
+                fg
+            };
+            let bg = if matches!(bg, ratatui_core::style::Color::Rgb(..)) {
+                map(bg)
+            } else {
+                bg
+            };
+            (fg, bg)
+        });
     }
 
     /// Map a cell's foreground and background together.
     pub fn recolor_pair(
         &mut self,
         area: Rect,
-        mut map: impl FnMut(
+        map: impl FnMut(
             ratatui_core::style::Color,
             ratatui_core::style::Color,
         ) -> (ratatui_core::style::Color, ratatui_core::style::Color),
     ) {
-        let area = area.intersection(self.clip);
-        if area.is_empty() {
-            return;
-        }
-        {
-            let buf = self.buffer();
-            for pos in area.positions() {
-                let Some(cell) = buf.cell_mut(pos) else {
-                    continue;
-                };
-                let (fg, bg) = map(cell.fg, cell.bg);
-                cell.set_fg(fg);
-                cell.set_bg(bg);
-            }
-        }
-        self.mark_area(area, None);
+        self.recolor_cells(area, map);
     }
 
     /// Replace a cell's foreground. `map` returns the new ink, or `None` to keep it.
@@ -1395,24 +1379,51 @@ impl<'f> Ui<'f> {
             ratatui_core::style::Color,
         ) -> Option<ratatui_core::style::Color>,
     ) {
+        self.recolor_cells(area, |fg, bg| (map(fg, bg).unwrap_or(fg), bg));
+    }
+
+    fn recolor_cells(
+        &mut self,
+        area: Rect,
+        mut map: impl FnMut(
+            ratatui_core::style::Color,
+            ratatui_core::style::Color,
+        ) -> (ratatui_core::style::Color, ratatui_core::style::Color),
+    ) {
         let area = area.intersection(self.clip);
-        if area.is_empty() {
-            return;
-        }
-        {
-            let buf = self.buffer();
-            for pos in area.positions() {
-                let Some(cell) = buf.cell_mut(pos) else {
+        for pos in area.positions() {
+            let Some((old_fg, old_bg)) = self.buffer().cell(pos).map(|cell| (cell.fg, cell.bg))
+            else {
+                continue;
+            };
+            let (fg, bg) = map(old_fg, old_bg);
+            let fg_changed = fg != old_fg;
+            let bg_changed = bg != old_bg;
+            if !fg_changed && !bg_changed {
+                continue;
+            }
+
+            {
+                let Some(cell) = self.buffer().cell_mut(pos) else {
                     continue;
                 };
-                let fg = cell.fg;
-                let bg = cell.bg;
-                if let Some(fg) = map(fg, bg) {
+                if fg_changed {
                     cell.set_fg(fg);
                 }
+                if bg_changed {
+                    cell.set_bg(bg);
+                }
             }
+
+            let mut patch = crate::theme::PaintStyle::new();
+            if fg_changed {
+                patch = patch.fg(fg);
+            }
+            if bg_changed {
+                patch = patch.bg(bg);
+            }
+            self.mark(pos, Some(patch));
         }
-        self.mark_area(area, None);
     }
 
     pub(crate) fn layer_count(&self) -> usize {
