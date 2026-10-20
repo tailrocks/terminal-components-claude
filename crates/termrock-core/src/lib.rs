@@ -1,5 +1,6 @@
 pub mod action;
 pub mod diagnostics;
+pub mod edit_entry;
 pub mod event;
 pub mod geometry;
 pub mod id;
@@ -13,6 +14,7 @@ pub mod variant;
 
 pub use action::*;
 pub use diagnostics::*;
+pub use edit_entry::*;
 pub use event::*;
 pub use geometry::*;
 pub use id::*;

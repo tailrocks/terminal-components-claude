@@ -272,7 +272,6 @@ mod historical_capsule_palette;
 mod historical_capsule_split_vertical;
 mod historical_capsule_zoom;
 mod historical_cockpit_cancel;
-mod historical_cockpit_debug;
 mod historical_cockpit_info;
 mod historical_editor;
 mod historical_editor_auth;
@@ -284,7 +283,6 @@ mod historical_editor_save;
 mod historical_hard_cases_80;
 mod historical_hard_launch_locked;
 mod historical_hard_launch_picker;
-mod historical_help_overlay;
 mod historical_inspect;
 mod historical_intro_f300;
 mod historical_launch_picker;
@@ -300,6 +298,7 @@ mod historical_settings_save;
 mod historical_settings_trust;
 mod historical_usage_detail;
 mod historical_usage_overview;
+mod manager_help;
 use historical_paint::HistoricalPalette;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -705,6 +704,9 @@ impl App {
             }
             if run.done {
                 route = Route::Handoff;
+            }
+            if matches!(scenario, Scenario::LaunchRunning | Scenario::LaunchFailure) {
+                run.trace_label = "run-202609030914-b5df".into();
             }
         }
         let manager_header_running = world.running_count();
@@ -6140,7 +6142,7 @@ impl App {
         }
     }
 
-    fn draw_historical_manager(&self, ui: &mut Ui<'_>, area: Rect, hard: bool) {
+    fn draw_historical_manager(&self, ui: &mut Ui<'_>, area: Rect, hard: bool, place_cursor: bool) {
         // Approved 120×40 truecolor still uses the pre-migration junie grays.
         // Keep paper and mono on the live palette so their digests stay put.
         let legacy = ui.theme_ref().capability.color == termrock::ColorLevel::TrueColor
@@ -6507,6 +6509,13 @@ impl App {
                 put(ui, x, 39, text, style);
             }
         }
+        self.place_manager_cursor(ui, area, place_cursor);
+    }
+
+    fn place_manager_cursor(&self, ui: &mut Ui<'_>, area: Rect, place: bool) {
+        if !place {
+            return;
+        }
         if ui
             .state(MANAGER_LIST)
             .contains(termrock::StateFlags::FOCUSED)
@@ -6523,7 +6532,7 @@ impl App {
         // title, the workspace list is inactive, and the hints are the drawer.
         let legacy = ui.theme_ref().capability.color == termrock::ColorLevel::TrueColor
             && ui.theme_ref().color.accent == termrock::Color::Rgb(0x48, 0xe0, 0x54);
-        self.draw_historical_manager(ui, area, false);
+        self.draw_historical_manager(ui, area, false, true);
         if !legacy {
             return;
         }
@@ -6610,7 +6619,7 @@ impl App {
         if !legacy {
             return;
         }
-        self.draw_historical_manager(ui, area, false);
+        self.draw_historical_manager(ui, area, false, true);
         let palette = HistoricalPalette::new(ui);
         let chrome = palette.primary_on_canvas;
         let secondary = palette.secondary_on_canvas;
@@ -7140,14 +7149,58 @@ impl App {
             && !self.about_open
     }
 
-    fn draw_historical_cockpit_debug(&self, ui: &mut Ui<'_>) {
-        // Approved run id after `t` on the paused 120×40 launch. Other levels stay bare.
-        let legacy = ui.theme_ref().capability.color == termrock::ColorLevel::TrueColor
-            && ui.theme_ref().color.accent == termrock::Color::Rgb(0x48, 0xe0, 0x54);
-        if !legacy {
+    fn paint_cockpit_trace(&self, ui: &mut Ui<'_>, screen: Rect) {
+        let Some(label) = self
+            .launch
+            .as_ref()
+            .map(|launch| format!(" {} ", launch.trace_label))
+        else {
+            return;
+        };
+        let columns = u16::try_from(label.chars().count()).unwrap_or(0);
+        if columns == 0 || screen.height < 4 || screen.width <= columns {
             return;
         }
-        historical_cockpit_debug::paint(ui);
+        let level = ui.theme_ref().capability.color;
+        let mut fg = termrock::Color::Rgb(0x79, 0xb8, 0xff);
+        let mut bg = termrock::Color::Rgb(0, 0, 0);
+        if matches!(
+            level,
+            termrock::ColorLevel::Ansi256 | termrock::ColorLevel::Ansi16
+        ) {
+            fg = termrock::theme::downgrade_color(fg, level);
+            bg = termrock::theme::downgrade_color(bg, level);
+        }
+        let mut style = PaintStyle::new()
+            .fg(fg)
+            .bg(bg)
+            .remove_modifier(Modifier::BOLD);
+        if level == termrock::ColorLevel::Mono {
+            style = style.add_modifier(Modifier::UNDERLINED);
+            if std::env::var_os("NO_COLOR").is_some() && screen.width == 120 && screen.height == 40
+            {
+                let brand = PaintStyle::new()
+                    .fg(termrock::Color::Rgb(0, 0, 0))
+                    .bg(termrock::Color::Reset)
+                    .add_modifier(Modifier::BOLD | Modifier::REVERSED);
+                ui.paint_str(Rect::new(1, 0, 9, 1), " jackin❯ ", brand);
+            } else if std::env::var_os("NO_COLOR").is_none() {
+                style = PaintStyle::new()
+                    .fg(termrock::Color::Gray)
+                    .bg(termrock::Color::Black)
+                    .add_modifier(Modifier::UNDERLINED);
+            }
+        }
+        ui.paint_str(
+            Rect::new(
+                screen.width.saturating_sub(columns.saturating_add(1)),
+                screen.height.saturating_sub(4),
+                columns,
+                1,
+            ),
+            &label,
+            style,
+        );
     }
 
     fn historical_cockpit_info(&self, theme: &termrock::Theme, area: Rect) -> bool {
@@ -7221,12 +7274,43 @@ impl App {
         let area = Rect::new(0, 0, 120, 40);
         let mut buf = termrock::Buffer::empty(area);
         jackin_preview_presentation::launch_running::paint_paused_launch_running(&mut buf);
+        let level = ui.theme_ref().capability.color;
+        let indexed = matches!(
+            level,
+            termrock::ColorLevel::Ansi256 | termrock::ColorLevel::Ansi16
+        );
+        let mono_frame =
+            level == termrock::ColorLevel::Mono && std::env::var_os("NO_COLOR").is_none();
         for y in area.y..area.bottom() {
             for x in area.x..area.right() {
                 let Some(cell) = buf.cell(Position::new(x, y)) else {
                     continue;
                 };
                 let mut style = cell.style();
+                if mono_frame {
+                    if let (Some(fg), Some(bg)) = (style.fg, style.bg)
+                        && let Some(ink) = termrock::theme::legacy_mono(fg, bg, y == 0)
+                    {
+                        style.fg = Some(ink.fg);
+                        style.bg = Some(ink.bg);
+                        if ink.underline {
+                            style = style.add_modifier(Modifier::UNDERLINED);
+                        }
+                        if ink.reverse {
+                            style = style.add_modifier(Modifier::REVERSED);
+                        }
+                    }
+                } else if indexed {
+                    if let (Some(fg), Some(bg)) = (style.fg, style.bg) {
+                        let (fg, bg) = termrock::theme::downgrade_pair(fg, bg, level);
+                        style.fg = Some(fg);
+                        style.bg = Some(bg);
+                    } else if let Some(fg) = style.fg {
+                        style.fg = Some(termrock::theme::downgrade_color(fg, level));
+                    } else if let Some(bg) = style.bg {
+                        style.bg = Some(termrock::theme::downgrade_color(bg, level));
+                    }
+                }
                 if !style.add_modifier.contains(Modifier::BOLD) {
                     style = style.remove_modifier(Modifier::BOLD);
                 }
@@ -9107,9 +9191,54 @@ impl App {
         if !self.historical_help_overlay(ui.theme_ref(), screen) {
             return;
         }
-        // Page paint only. The approved frame hides the cursor, so this
-        // path must not call set_cursor or set_bar_cursor.
-        historical_help_overlay::paint(ui);
+        // The approved frame hides the cursor. Paint the manager, the shared
+        // help card, then dim only the underlay. Do not call set_cursor or
+        // set_bar_cursor.
+        self.draw_historical_manager(ui, screen, false, false);
+        // White primary dims to muted. The approved title is faint, which is
+        // where backdrop sends secondary ink.
+        ui.paint_str(
+            Rect::new(3, 2, 12, 1),
+            " Workspaces ",
+            PaintStyle::new().fg(termrock::Color::Rgb(0xb3, 0xb3, 0xb3)),
+        );
+        manager_help::draw(ui, screen, &HelpOverlayState::default());
+        manager_help::dim_underlay(ui, screen);
+        let hints = HintLayer {
+            hints: vec![
+                Hint {
+                    key: termrock::HintKey::Label("↑↓"),
+                    label: "Scroll",
+                    priority: 90,
+                },
+                Hint {
+                    key: termrock::HintKey::Chord(Chord::key(KeyCode::Esc)),
+                    label: "Close",
+                    priority: 80,
+                },
+            ],
+            badge: None,
+            status: None,
+            centered: false,
+        };
+        let footer = [(
+            Part::CONTAINER,
+            termrock::StylePatch::new()
+                .set_fg(termrock::Role::Custom(termrock::Color::Rgb(
+                    0xff, 0xff, 0xff,
+                )))
+                .set_bg(termrock::Role::Custom(termrock::Color::Rgb(0, 0, 0))),
+        )];
+        HintBar::new(APP.sub("hint"), &hints)
+            .patch_part(&footer)
+            .draw(
+                ui,
+                Rect {
+                    y: screen.bottom().saturating_sub(1),
+                    height: 1,
+                    ..screen
+                },
+            );
     }
 }
 
@@ -9267,7 +9396,12 @@ impl TuiApp for App {
             if detail_tab {
                 self.draw_historical_detail_drawer(ui, full);
             } else {
-                self.draw_historical_manager(ui, full, self.world.scenario == Scenario::HardCases);
+                self.draw_historical_manager(
+                    ui,
+                    full,
+                    self.world.scenario == Scenario::HardCases,
+                    true,
+                );
             }
         } else if historical_manager
             && self.world.scenario == Scenario::Returning
@@ -9410,9 +9544,9 @@ impl TuiApp for App {
         }
         if self.historical_launch_running_frame(full) {
             self.draw_historical_launch_running(ui);
-            if self.cockpit_trace_open {
-                self.draw_historical_cockpit_debug(ui);
-            }
+        }
+        if self.cockpit_trace_open {
+            self.paint_cockpit_trace(ui, full);
         }
         if self.historical_intro_f300(full) {
             self.draw_historical_intro_f300(ui, full);
