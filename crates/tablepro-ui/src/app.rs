@@ -112,6 +112,8 @@ impl CompletionProvider for SqlCompletionProvider<'_> {
                 .into_iter()
                 .map(|item| {
                     CompletionValue::new(ItemKey::text(&item.text), item.label, item.text)
+                        .glyph(item.kind.glyph())
+                        .matched(item.matched)
                         .detail(item.detail)
                 })
                 .collect(),
@@ -3185,9 +3187,6 @@ impl TableProApp {
                     if let Some(id) = self.query_id() {
                         self.draw_query_editor(ui, id, editor_area, &query.editor_state);
                     }
-                    if !query.query.is_empty() {
-                        paint_draft_query_line(ui, area, inner, &query.query);
-                    }
                 }
             }
             Some(Tab::Table(table)) => {
@@ -4311,60 +4310,6 @@ fn extend_idle_query_edge(ui: &mut Ui<'_>, area: termrock::Rect, inner: termrock
         },
         "─",
         seam,
-    );
-}
-
-fn paint_draft_query_line(
-    ui: &mut Ui<'_>,
-    area: termrock::Rect,
-    inner: termrock::Rect,
-    text: &str,
-) {
-    let Some(editor) = idle_editor_rect(ui, area, inner) else {
-        return;
-    };
-    let field = ui.surface_style().patch(
-        ui.paint_patch(
-            &StylePatch::new()
-                .set_fg(Role::Fg(FgStep::Primary))
-                .set_bg(TAG_FIELD_BG),
-        ),
-    );
-    let line = termrock::Rect {
-        height: 1,
-        ..editor
-    };
-    ui.fill(line, field);
-    let blank = field.patch(ui.paint_patch(&StylePatch::new().set_fg(TAG_FIELD_BG)));
-    ui.paint_str(termrock::Rect { width: 1, ..line }, " ", blank);
-    let gutter =
-        field.patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Secondary))));
-    ui.paint_str(
-        termrock::Rect {
-            x: line.x.saturating_add(1),
-            width: 1,
-            ..line
-        },
-        "›",
-        gutter,
-    );
-    ui.paint_str(
-        termrock::Rect {
-            x: line.x.saturating_add(3),
-            width: 2,
-            ..line
-        },
-        " 1",
-        gutter,
-    );
-    ui.paint_str(
-        termrock::Rect {
-            x: line.x.saturating_add(6),
-            width: width(text),
-            ..line
-        },
-        text,
-        field,
     );
 }
 
