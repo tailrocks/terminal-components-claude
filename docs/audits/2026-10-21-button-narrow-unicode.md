@@ -4,7 +4,7 @@ This is a Button-only rendering correction. It does not approve application pari
 
 ## Frozen source contract
 
-The frozen `visual-baseline` source commit is `4169783ae883788186d161af09ba9c481bd84e5e` (tag object `2718a6b8127a522a3d351d0b4bdb7542fc8da542`). In `src/widgets/button.rs`, the Button renderer calls `crate::ui::text::fit(&text, (w as usize).saturating_sub(2))`. `src/ui/text.rs::fit` calls the shared `truncate` function and pads the fitted content to the requested cell width. `truncate` iterates Unicode grapheme clusters, budgets terminal-cell width for an ellipsis, and never writes a partial wide grapheme. Therefore a 5-cell Button with label `世界` has a 3-cell label slot and paints `世…`.
+The frozen `visual-baseline` source commit is `4169783ae883788186d161af09ba9c481bd84e5c` (tag object `2718a6b8127a522a3d351d0b4bdb7542fc8da542`). In `src/widgets/button.rs`, the Button renderer calls `crate::ui::text::fit(&text, (w as usize).saturating_sub(2))`. `src/ui/text.rs::fit` calls the shared `truncate` function and pads the fitted content to the requested cell width. `truncate` iterates Unicode grapheme clusters, budgets terminal-cell width for an ellipsis, and never writes a partial wide grapheme. Therefore a 5-cell Button with label `世界` has a 3-cell label slot and paints `世…`.
 
 ## Change and regressions
 
