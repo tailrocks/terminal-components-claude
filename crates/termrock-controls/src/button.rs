@@ -313,11 +313,6 @@ impl<'a> Button<'a> {
             && style_flags.contains(StateFlags::FOCUSED)
         {
             style_flags |= StateFlags::FOCUS_VISIBLE;
-        } else if self.focus_visibility == ButtonFocusVisibility::KeyboardOnly
-            && style_flags.contains(StateFlags::FOCUSED)
-            && !style_flags.contains(StateFlags::FOCUS_VISIBLE)
-        {
-            style_flags.remove(StateFlags::FOCUSED);
         }
         let ov = self.ov;
         let style = |ui: &mut Ui<'_>, part: Part| {
@@ -391,8 +386,9 @@ impl<'a> Button<'a> {
                 let ms = style(ui, Part::MARKER);
                 let glyph = match ms.glyph {
                     Slot::Set(g) => Some(g),
-                    Slot::Inherit if on => Some(GlyphRole::SwitchKnob),
-                    Slot::Inherit | Slot::Clear => None,
+                    Slot::Inherit if on => Some(GlyphRole::DotOn),
+                    Slot::Inherit => Some(GlyphRole::DotOff),
+                    Slot::Clear => None,
                 };
                 match glyph {
                     Some(g) => {
