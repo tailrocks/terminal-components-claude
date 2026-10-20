@@ -1,5 +1,30 @@
 # Termrock migration and acceptance matrix
 
+## TablePro shared Grid row-to-cell styling — 2026-10-21
+
+Frozen Grid behavior resolves ordinary cells over their row style and replaces
+that style only for the ACTIVE cursor cell. The reusable Grid now resolves
+row recipes with explicit provenance, passes the resolved row channels into
+cell defaults, and preserves per-cell recipe overrides and modifier removal.
+Existing caller `part_defaults` are included for both ROW and CELL. No
+TablePro-specific style or inset API was added.
+
+TablePro had been painting BOLD across the selected data row after Grid drew
+it, and repainted five cells at the beginning of the second visible column
+with the surface style. Both caller-side corrections are removed; Grid owns
+row/cell styling and its existing column geometry. The real-app regression
+`unfocused_grid_cursor_does_not_style_the_cursor_row` failed before removal
+(on the exact `9b4aae59b5c006e64b3791fa15804f6411633e4d` source) and passes
+after. Grid-focused styling, ACTIVE precedence, cell channel overrides and
+modifier removal pass in all four color levels.
+
+Validation on the worker source: `cargo nextest run -p termrock-grid
+--all-targets` passes 127/127; the TablePro regression passes. Scoped format
+check passes. Strict Clippy for Grid and TablePro is blocked by the existing
+`tablepro-domain::Tab` large-enum-variant lint at `tabs.rs:315` (the worker
+changed no domain source). Full product parity remains incomplete; no paired
+visual approval is claimed for this focused change.
+
 Updated: 2026-10-20. Status: **in progress; all four applications incomplete**. This is the current migration record. Older audit reports remain evidence, not a complete inventory or acceptance declaration.
 
 ## TablePro query results 120×40 truecolor — 2026-10-21
