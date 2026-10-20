@@ -802,6 +802,16 @@ impl GridState {
         self.col_offset
     }
 
+    pub fn visible_rows(&self, total: usize) -> core::ops::Range<usize> {
+        let scroll = self.core.scroll();
+        let start = scroll.offset().min(total);
+        start..start.saturating_add(scroll.viewport_len()).min(total)
+    }
+
+    pub const fn rows_overflow(&self) -> bool {
+        self.core.scroll().overflows()
+    }
+
     fn set_cursor(&mut self, row: usize, key: ItemKey, col_index: usize, col: ColumnKey) {
         self.fetch_row = None;
         self.core.set_cursor(row, key);
