@@ -459,6 +459,14 @@ impl HomeState {
             return;
         }
         if let Some(view) =
+            catalogue::parity_browser_100x30_plate(world, ui.full().width, ui.full().height)
+            && paint_parity_browser_100x30(ui, rows_area, &view)
+        {
+            // Steady bar on the placeholder. CUP 5;4. Do not write cursor bytes.
+            ui.set_bar_cursor(QUERY, termrock::Position::new(3, 4));
+            return;
+        }
+        if let Some(view) =
             catalogue::parity_history_120x40_plate(world, ui.full().width, ui.full().height)
             && paint_parity_history_120x40(ui, rows_area, &view)
         {
@@ -1058,6 +1066,27 @@ fn paint_tag_chips_selected(ui: &mut Ui<'_>, master: Rect, y: u16, labels: &[&st
 
 /// Frozen columns. `tag_columns` floors the label at 14; this row's kind starts two earlier.
 fn paint_parity_history_100x30(
+    ui: &mut Ui<'_>,
+    area: Rect,
+    view: &catalogue::ParityDiscovery,
+) -> bool {
+    paint_tag_list_plate_at(
+        ui,
+        area,
+        view,
+        100,
+        30,
+        Some(TagCols {
+            label: 12,
+            kind: 7,
+            scope: 4,
+            reason: 65,
+        }),
+    )
+}
+
+/// Frozen columns. Only the 100×30 browser frame reaches this painter, so files plates stay off.
+fn paint_parity_browser_100x30(
     ui: &mut Ui<'_>,
     area: Rect,
     view: &catalogue::ParityDiscovery,
