@@ -1,4 +1,6 @@
 use std::io::{self, Stdout, Write, stdout};
+use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::{Duration, Instant};
 
 use ratatui_core::terminal::Terminal;
@@ -8,11 +10,11 @@ use ratatui_crossterm::crossterm::event::{
     DisableBracketedPaste, DisableMouseCapture, EnableBracketedPaste, EnableMouseCapture, poll,
     read,
 };
-use ratatui_crossterm::crossterm::execute;
 use ratatui_crossterm::crossterm::style::Colored;
 use ratatui_crossterm::crossterm::terminal::{
     EnableLineWrap, EnterAlternateScreen, LeaveAlternateScreen, disable_raw_mode, enable_raw_mode,
 };
+use ratatui_crossterm::crossterm::{execute, queue};
 
 use termrock_core::event::Input;
 use termrock_runtime::{App, FeedbackClock, Moment, PreparedFrameError, Runtime};
@@ -167,21 +169,20 @@ fn enter_terminal_modes(
     out: &mut impl Write,
     cursor_shape: SessionCursorShape,
     caret_supported: bool,
-) -> io::Result<bool> {
+    mark_cursor_shape_changed: impl FnOnce(),
+) -> io::Result<()> {
     execute!(
         out,
         EnterAlternateScreen,
         EnableMouseCapture,
         EnableBracketedPaste
     )?;
-    let changed_cursor_shape = if let Some(command) = cursor_shape.command(caret_supported) {
-        execute!(out, command)?;
-        true
-    } else {
-        false
-    };
-    execute!(out, Hide)?;
-    Ok(changed_cursor_shape)
+    if let Some(command) = cursor_shape.command(caret_supported) {
+        queue!(out, command)?;
+        mark_cursor_shape_changed();
+        out.flush()?;
+    }
+    execute!(out, Hide)
 }
 
 const fn rendered_cursor_command(
@@ -255,23 +256,28 @@ impl TerminalSession {
         cursor_shape: SessionCursorShape,
         caret_supported: bool,
     ) -> io::Result<Self> {
-        let reset_cursor_shape = cursor_shape.command(caret_supported).is_some();
+        let cursor_shape_changed = Arc::new(AtomicBool::new(false));
+        let panic_shape_changed = Arc::clone(&cursor_shape_changed);
         chain_panic_hook(move || {
-            let _ = restore_modes(reset_cursor_shape);
+            let _ = restore_modes(panic_shape_changed.load(Ordering::Relaxed));
         });
+        let cleanup_shape_changed = Arc::clone(&cursor_shape_changed);
+        let enter_shape_changed = Arc::clone(&cursor_shape_changed);
         let terminal = enter_guarded(
             || {
                 enable_raw_mode()?;
                 let mut out = stdout();
-                enter_terminal_modes(&mut out, cursor_shape, caret_supported)?;
+                enter_terminal_modes(&mut out, cursor_shape, caret_supported, || {
+                    enter_shape_changed.store(true, Ordering::Relaxed);
+                })?;
                 Terminal::new(CrosstermBackend::new(out))
             },
-            || restore_modes(reset_cursor_shape),
+            || restore_modes(cleanup_shape_changed.load(Ordering::Relaxed)),
         )?;
         Ok(TerminalSession {
             terminal,
             left: false,
-            reset_cursor_shape,
+            reset_cursor_shape: cursor_shape_changed.load(Ordering::Relaxed),
         })
     }
 
@@ -557,6 +563,28 @@ mod tests {
         assert!(!restored.get());
     }
 
+    struct FailOnSequence<'a> {
+        sequence: &'a [u8],
+        bytes: Vec<u8>,
+    }
+
+    impl Write for FailOnSequence<'_> {
+        fn write(&mut self, bytes: &[u8]) -> io::Result<usize> {
+            if bytes
+                .windows(self.sequence.len())
+                .any(|window| window == self.sequence)
+            {
+                return Err(io::Error::from(io::ErrorKind::BrokenPipe));
+            }
+            self.bytes.extend_from_slice(bytes);
+            Ok(bytes.len())
+        }
+
+        fn flush(&mut self) -> io::Result<()> {
+            Ok(())
+        }
+    }
+
     #[derive(Default)]
     struct BrokenOutput {
         calls: usize,
@@ -619,10 +647,127 @@ mod tests {
         assert_eq!(out.flushes, 7);
     }
 
+    struct FailShapeFlush {
+        bytes: Vec<u8>,
+        failed: bool,
+    }
+
+    impl Write for FailShapeFlush {
+        fn write(&mut self, bytes: &[u8]) -> io::Result<usize> {
+            self.bytes.extend_from_slice(bytes);
+            Ok(bytes.len())
+        }
+
+        fn flush(&mut self) -> io::Result<()> {
+            if !self.failed && self.bytes.windows(5).any(|window| window == b"\x1b[6 q") {
+                self.failed = true;
+                return Err(io::Error::from(io::ErrorKind::BrokenPipe));
+            }
+            Ok(())
+        }
+    }
+
+    #[test]
+    fn entry_cleanup_resets_shape_after_emitted_command_flush_fails() {
+        let shape_changed = Cell::new(false);
+        let mut out = FailShapeFlush {
+            bytes: Vec::new(),
+            failed: false,
+        };
+        let mut cleanup = Vec::new();
+        let result = enter_guarded(
+            || {
+                enter_terminal_modes(&mut out, SessionCursorShape::Auto, true, || {
+                    shape_changed.set(true);
+                })
+            },
+            || restore_modes_with(&mut cleanup, || Ok(()), shape_changed.get()),
+        );
+        assert_eq!(
+            result.err().map(|error| error.kind()),
+            Some(io::ErrorKind::BrokenPipe)
+        );
+        assert!(out.bytes.windows(5).any(|window| window == b"\x1b[6 q"));
+        assert!(shape_changed.get());
+        let cleanup = String::from_utf8_lossy(&cleanup);
+        assert!(
+            cleanup.contains("\x1b[0 q"),
+            "shape reset after flush failure"
+        );
+        assert!(cleanup.contains("\x1b[?25h"), "cursor shown after failure");
+    }
+
+    #[test]
+    fn entry_cleanup_does_not_reset_shape_when_command_write_fails() {
+        let shape_changed = Cell::new(false);
+        let mut out = FailOnSequence {
+            sequence: b"\x1b[6 q",
+            bytes: Vec::new(),
+        };
+        let mut cleanup = Vec::new();
+        let result = enter_guarded(
+            || {
+                enter_terminal_modes(&mut out, SessionCursorShape::Auto, true, || {
+                    shape_changed.set(true);
+                })
+            },
+            || restore_modes_with(&mut cleanup, || Ok(()), shape_changed.get()),
+        );
+        assert_eq!(
+            result.err().map(|error| error.kind()),
+            Some(io::ErrorKind::BrokenPipe)
+        );
+        assert!(!shape_changed.get());
+        let cleanup = String::from_utf8_lossy(&cleanup);
+        assert!(
+            !cleanup.contains("\x1b[0 q"),
+            "shape command was not emitted"
+        );
+        assert!(cleanup.contains("\x1b[?25h"), "cursor shown after failure");
+    }
+
+    #[test]
+    fn partial_entry_resets_cursor_shape_only_after_shape_command_succeeds() {
+        for (failed_sequence, expected_shape_change) in [
+            (b"\x1b[?1049h".as_slice(), false),
+            (b"\x1b[?25l".as_slice(), true),
+        ] {
+            let shape_changed = Cell::new(false);
+            let mut out = FailOnSequence {
+                sequence: failed_sequence,
+                bytes: Vec::new(),
+            };
+            let result =
+                enter_terminal_modes(&mut out, SessionCursorShape::default(), true, || {
+                    shape_changed.set(true)
+                });
+            assert_eq!(
+                result.err().map(|error| error.kind()),
+                Some(io::ErrorKind::BrokenPipe)
+            );
+            assert_eq!(shape_changed.get(), expected_shape_change);
+
+            let mut cleanup = Vec::new();
+            assert!(restore_modes_with(&mut cleanup, || Ok(()), shape_changed.get()).is_ok());
+            let cleanup = String::from_utf8_lossy(&cleanup);
+            assert_eq!(cleanup.contains("\x1b[0 q"), expected_shape_change);
+            assert!(cleanup.contains("\x1b[?25h"));
+            assert!(cleanup.contains("\x1b[?7h"));
+            assert!(cleanup.contains("\x1b[?1049l"));
+        }
+    }
+
     #[test]
     fn session_starts_with_bar_shape_even_while_cursor_is_hidden() {
         let mut out = Vec::new();
-        assert!(enter_terminal_modes(&mut out, SessionCursorShape::default(), true).is_ok());
+        let shape_changed = Cell::new(false);
+        assert!(
+            enter_terminal_modes(&mut out, SessionCursorShape::default(), true, || {
+                shape_changed.set(true)
+            },)
+            .is_ok()
+        );
+        assert!(shape_changed.get());
         let bytes = String::from_utf8_lossy(&out);
         let steady_bar = bytes.find("\x1b[6 q").expect("steady bar sequence");
         let hide = bytes.find("\x1b[?25l").expect("hidden cursor sequence");
@@ -641,7 +786,11 @@ mod tests {
             (SessionCursorShape::Bar, "\x1b[6 q"),
         ] {
             let mut out = Vec::new();
-            assert!(enter_terminal_modes(&mut out, shape, false).is_ok());
+            let shape_changed = Cell::new(false);
+            assert!(
+                enter_terminal_modes(&mut out, shape, false, || shape_changed.set(true)).is_ok()
+            );
+            assert!(shape_changed.get());
             assert!(String::from_utf8_lossy(&out).contains(sequence));
         }
         assert_eq!(SessionCursorShape::default(), SessionCursorShape::Auto);
@@ -677,10 +826,14 @@ mod tests {
     #[test]
     fn unsupported_automatic_shape_preserves_terminal_default_and_cleanup() {
         let mut enter = Vec::new();
-        assert!(matches!(
-            enter_terminal_modes(&mut enter, SessionCursorShape::Auto, false),
-            Ok(false)
-        ));
+        let shape_changed = Cell::new(false);
+        assert!(
+            enter_terminal_modes(&mut enter, SessionCursorShape::Auto, false, || {
+                shape_changed.set(true);
+            })
+            .is_ok()
+        );
+        assert!(!shape_changed.get());
         assert!(!String::from_utf8_lossy(&enter).contains("\x1b[6 q"));
 
         let mut cleanup = Vec::new();
