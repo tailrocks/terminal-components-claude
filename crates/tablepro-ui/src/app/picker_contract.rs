@@ -67,6 +67,7 @@ fn ctrl_g_shows_the_approved_tab_cell() {
 }
 
 #[test]
+#[allow(clippy::expect_used)]
 fn ctrl_g_opens_tabs_for_another_connection_and_size() {
     let mut app = TableProApp::default();
     let index = app
