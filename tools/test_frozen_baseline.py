@@ -17,6 +17,17 @@ import frozen_baseline as runner
 
 
 class RunnerGuards(unittest.TestCase):
+    def extension_manifest(self) -> dict[str, object]:
+        journey = {"id": "sort", "title": "Sort table", "checkpoints": ["initial", "sorted"]}
+        sizes = [{"cols": cols, "rows": rows, "allow_narrow_fallback": (cols, rows) in {(40, 12), (60, 18)}} for cols, rows in runner.EXTENSION_SIZES]
+        cases = []
+        for cols, rows in runner.EXTENSION_SIZES:
+            modes = ("truecolor", "nocolor") if (cols, rows) in {(40, 12), (60, 18)} else runner.EXTENSION_COLORS
+            checkpoints = ["initial", "narrow_revealed_80x24", "sorted"] if (cols, rows) in {(40, 12), (60, 18)} else ["initial", "sorted"]
+            for color in modes:
+                cases.append({"id": f"{runner.EXTENSION_CASE_PREFIX}sort::{cols}x{rows}::{color}", "journey_id": "sort", "cols": cols, "rows": rows, "color_mode": color, "checkpoints": checkpoints})
+        return {"schema_version": 1, "extension_id_prefix": runner.EXTENSION_CASE_PREFIX, "journeys": [journey], "sizes": sizes, "color_modes": list(runner.EXTENSION_COLORS), "generated_cases": cases}
+
     def test_archive_rejects_path_escape(self) -> None:
         payload = io.BytesIO()
         with tarfile.open(fileobj=payload, mode="w") as archive:
@@ -193,6 +204,59 @@ class RunnerGuards(unittest.TestCase):
         runner.require_inventory_matches(inventory, runner.inventory_digest(inventory))
         with self.assertRaisesRegex(runner.RunnerError, "Nextest inventory hash mismatch"):
             runner.require_inventory_matches(inventory, "0" * 64)
+
+    def test_extension_manifest_binds_exact_disjoint_cases_and_checkpoint_order(self) -> None:
+        manifest = self.extension_manifest()
+        with tempfile.TemporaryDirectory() as temp:
+            path = Path(temp) / "extensions.json"
+            path.write_text(json.dumps(manifest))
+            validated = runner.load_extension_manifest(path)
+        base = {f"base::{index}": True for index in range(runner.EXPECTED_SCENARIOS)}
+        base.update({f"ordinary::{index}": False for index in range(runner.EXPECTED_ORDINARY_TESTS)})
+        extension_ids = [case["id"] for case in manifest["generated_cases"]]
+        inventory = {**base, **{name: True for name in extension_ids}}
+        original, extension_ids = runner.validate_extension_inventory(inventory, validated)
+        self.assertEqual(original, base)
+        self.assertEqual(extension_ids, sorted(extension_ids))
+        for invalid in (
+            {**base, **{name: True for name in extension_ids[:-1]}, extension_ids[-1]: False},
+            {**base, "unexpected::extra": True, **{name: True for name in extension_ids}},
+            {**{key: value for key, value in base.items() if key != "base::0"}, **{name: True for name in extension_ids}},
+        ):
+            with self.subTest(inventory_size=len(invalid)), self.assertRaises(runner.RunnerError):
+                runner.validate_extension_inventory(invalid, validated)
+        manifest["generated_cases"] = manifest["generated_cases"][:-1]
+        with tempfile.TemporaryDirectory() as temp:
+            path = Path(temp) / "extensions.json"
+            path.write_text(json.dumps(manifest))
+            with self.assertRaisesRegex(runner.RunnerError, "matrix incomplete"):
+                runner.load_extension_manifest(path)
+
+    def test_extension_manifest_rejects_duplicate_ids_and_unordered_obligations(self) -> None:
+        manifest = self.extension_manifest()
+        with tempfile.TemporaryDirectory() as temp:
+            path = Path(temp) / "extensions.json"
+            path.write_text(json.dumps(manifest))
+            with self.assertRaisesRegex(runner.RunnerError, "duplicate extension case"):
+                duplicate = dict(manifest)
+                duplicate["generated_cases"] = [*manifest["generated_cases"], dict(manifest["generated_cases"][0])]
+                path.write_text(json.dumps(duplicate))
+                runner.load_extension_manifest(path)
+            cases = list(manifest["generated_cases"])
+            cases[0] = {**cases[0], "checkpoints": ["sorted", "initial"]}
+            manifest["generated_cases"] = cases
+            path.write_text(json.dumps(manifest))
+            with self.assertRaisesRegex(runner.RunnerError, "checkpoint obligations"):
+                runner.load_extension_manifest(path)
+
+    def test_extension_receipts_must_match_ordered_manifest_checkpoints(self) -> None:
+        name = runner.EXTENSION_CASE_PREFIX + "sort::80x24::truecolor"
+        case = runner.scenario_case_id(name)
+        manifest = {"generated_case_ids": [name], "checkpoint_obligations": {name: ["before", "sorted"]}}
+        receipts = {(case, 0, "before"): "1" * 64, (case, 1, "sorted"): "2" * 64}
+        self.assertEqual(runner.validate_extension_checkpoint_receipts([name], receipts, manifest), [])
+        with self.assertRaisesRegex(runner.RunnerError, "checkpoint obligations differ"):
+            runner.validate_extension_checkpoint_receipts([name], {(case, 0, "sorted"): "1" * 64}, manifest)
 
     def test_ordinary_inventory_separates_cli_cases_from_source_checks(self) -> None:
         cli = sorted(runner.EXPECTED_CLI_ORDINARY_TESTS)
