@@ -92,3 +92,16 @@ fn non_rust_markdown_and_ordinary_rust_strings_do_not_trigger() {
 }"###;
     assert!(inspect_fixture("src/lib.rs", cooked).is_empty());
 }
+
+#[test]
+fn cfg_attr_doc_assignment_ignores_trivia_bypass() {
+    for source in [
+        "#[cfg_attr(feature = \"docs\", doc\n = include_str!(\"examples.md\"))]",
+        "#[cfg_attr(feature = \"docs\", doc /* gap */ = include_str!(\"examples.md\"))]",
+    ] {
+        assert!(
+            !inspect_fixture("src/lib.rs", source).is_empty(),
+            "accepted {source:?}"
+        );
+    }
+}

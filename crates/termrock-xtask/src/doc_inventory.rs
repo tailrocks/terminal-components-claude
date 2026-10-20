@@ -103,16 +103,6 @@ pub fn scan_workspace(root: &Path) -> Report {
     report.rust_files = rust_paths.len();
     report.markdown_files = markdown_paths.len();
 
-    for relative in &rust_paths {
-        match std::fs::read_to_string(root.join(relative)) {
-            Ok(source) => scan_rust_source(relative, &source, &mut report),
-            Err(error) => report.issues.push(issue(
-                relative,
-                1,
-                format!("tracked Rust source cannot be read: {error}"),
-            )),
-        }
-    }
     for relative in &markdown_paths {
         match std::fs::read_to_string(root.join(relative)) {
             Ok(source) => scan_markdown(relative, &source, &mut report),
@@ -124,7 +114,9 @@ pub fn scan_workspace(root: &Path) -> Report {
         }
     }
 
-    scan_cargo_inventory(root, &tracked, &mut report);
+    let mut rust_inputs = rust_paths.into_iter().collect::<BTreeSet<_>>();
+    rust_inputs.extend(scan_cargo_inventory(root, &tracked, &mut report));
+    scan_rust_inputs(root, rust_inputs, &tracked, &mut report);
     if report.ignored_examples != 1 {
         report.issues.push(issue(
             EXPECTED_IGNORED_PATH,
@@ -161,7 +153,12 @@ fn tracked_files(root: &Path) -> Result<BTreeSet<String>, String> {
     Ok(paths)
 }
 
-fn scan_cargo_inventory(root: &Path, tracked: &BTreeSet<String>, report: &mut Report) {
+fn scan_cargo_inventory(
+    root: &Path,
+    tracked: &BTreeSet<String>,
+    report: &mut Report,
+) -> BTreeSet<String> {
+    let mut source_paths = BTreeSet::new();
     let output = Command::new("cargo")
         .arg("metadata")
         .args([
@@ -181,7 +178,7 @@ fn scan_cargo_inventory(root: &Path, tracked: &BTreeSet<String>, report: &mut Re
                 1,
                 format!("cargo metadata failed: {}", output.status),
             ));
-            return;
+            return source_paths;
         }
         Err(error) => {
             report.issues.push(issue(
@@ -189,7 +186,7 @@ fn scan_cargo_inventory(root: &Path, tracked: &BTreeSet<String>, report: &mut Re
                 1,
                 format!("cannot execute cargo metadata: {error}"),
             ));
-            return;
+            return source_paths;
         }
     };
     let metadata: serde_json::Value = match serde_json::from_slice(&output.stdout) {
@@ -200,7 +197,7 @@ fn scan_cargo_inventory(root: &Path, tracked: &BTreeSet<String>, report: &mut Re
                 1,
                 format!("cargo metadata returned invalid JSON: {error}"),
             ));
-            return;
+            return source_paths;
         }
     };
     let Some(packages) = metadata
@@ -212,7 +209,7 @@ fn scan_cargo_inventory(root: &Path, tracked: &BTreeSet<String>, report: &mut Re
             1,
             "cargo metadata omitted workspace package inventory",
         ));
-        return;
+        return source_paths;
     };
     report.package_count = packages.len();
     for package in packages {
@@ -256,9 +253,10 @@ fn scan_cargo_inventory(root: &Path, tracked: &BTreeSet<String>, report: &mut Re
                     report.issues.push(issue(
                         &target_path,
                         1,
-                        "Cargo target source is absent from the tracked Rust inventory",
+                        "Cargo target source is absent from the tracked source inventory",
                     ));
                 }
+                source_paths.insert(target_path);
             }
         }
         match package.get("readme") {
@@ -314,6 +312,270 @@ fn scan_cargo_inventory(root: &Path, tracked: &BTreeSet<String>, report: &mut Re
             "Cargo metadata returned an empty workspace source inventory",
         ));
     }
+    source_paths
+}
+
+/// Scan tracked Rust files, Cargo target roots, and every statically resolvable `include!`
+/// source reachable from them. An unresolved or untracked include fails closed.
+fn scan_rust_inputs(
+    root: &Path,
+    roots: BTreeSet<String>,
+    tracked: &BTreeSet<String>,
+    report: &mut Report,
+) {
+    let canonical_root = match root.canonicalize() {
+        Ok(root) => root,
+        Err(error) => {
+            report.issues.push(issue(
+                ".",
+                1,
+                format!("workspace root cannot be resolved: {error}"),
+            ));
+            return;
+        }
+    };
+    let mut pending = roots.into_iter().collect::<Vec<_>>();
+    let mut scanned = BTreeSet::new();
+    while let Some(relative) = pending.pop() {
+        if !scanned.insert(relative.clone()) {
+            continue;
+        }
+        if !tracked.contains(&relative) {
+            report.issues.push(issue(
+                &relative,
+                1,
+                "Rust source or include input is not tracked",
+            ));
+            continue;
+        }
+        let source = match std::fs::read_to_string(root.join(&relative)) {
+            Ok(source) => source,
+            Err(error) => {
+                report.issues.push(issue(
+                    &relative,
+                    1,
+                    format!("tracked Rust source cannot be read: {error}"),
+                ));
+                continue;
+            }
+        };
+        scan_rust_source(&relative, &source, report);
+        for include in include_literals(&source) {
+            let (line, included) = match include {
+                Ok(include) => include,
+                Err((line, detail)) => {
+                    report.issues.push(issue(&relative, line, detail));
+                    continue;
+                }
+            };
+            let parent = Path::new(&relative)
+                .parent()
+                .unwrap_or_else(|| Path::new(""));
+            let joined = root.join(parent).join(&included);
+            let canonical = match joined.canonicalize() {
+                Ok(path) => path,
+                Err(error) => {
+                    report.issues.push(issue(
+                        &relative,
+                        line,
+                        format!("include! input {included:?} cannot be resolved: {error}"),
+                    ));
+                    continue;
+                }
+            };
+            let Ok(canonical_relative) = canonical.strip_prefix(&canonical_root) else {
+                report.issues.push(issue(
+                    &relative,
+                    line,
+                    format!("include! input {included:?} resolves outside the workspace"),
+                ));
+                continue;
+            };
+            let canonical_relative = slash_path(canonical_relative);
+            if !tracked.contains(&canonical_relative) {
+                report.issues.push(issue(
+                    &canonical_relative,
+                    1,
+                    "include! input is not tracked",
+                ));
+                continue;
+            }
+            pending.push(canonical_relative);
+        }
+    }
+}
+
+fn include_literals(source: &str) -> Vec<Result<(usize, String), (usize, String)>> {
+    let tokens = rust_tokens(source);
+    let mut includes = Vec::new();
+    let mut index = 0;
+    while index + 2 < tokens.len() {
+        if tokens[index].text != "include" || tokens[index + 1].text != "!" {
+            index += 1;
+            continue;
+        }
+        let line = tokens[index].line;
+        if tokens[index + 2].text != "(" {
+            includes.push(Err((line, "malformed include! invocation".to_string())));
+            index += 2;
+            continue;
+        }
+        match tokens.get(index + 3..index + 5) {
+            Some([path, close]) if path.string && close.text == ")" => {
+                if path.text.contains('\\') {
+                    includes.push(Err((
+                        line,
+                        "escaped include! paths require explicit inventory review".to_string(),
+                    )));
+                } else {
+                    includes.push(Ok((line, path.text.clone())));
+                }
+            }
+            _ => includes.push(Err((
+                line,
+                "include! path must be a direct string literal so its source can be inventoried"
+                    .to_string(),
+            ))),
+        }
+        index += 3;
+    }
+    includes
+}
+
+#[derive(Debug)]
+struct RustToken {
+    text: String,
+    line: usize,
+    string: bool,
+}
+
+/// A small lexer sufficient to distinguish include! invocations from comments and strings.
+/// Unsupported include! expressions fail closed in `include_literals`.
+fn rust_tokens(source: &str) -> Vec<RustToken> {
+    let bytes = source.as_bytes();
+    let mut tokens = Vec::new();
+    let (mut index, mut line) = (0, 1);
+    while index < bytes.len() {
+        let byte = bytes[index];
+        if byte == b'\n' {
+            line += 1;
+            index += 1;
+            continue;
+        }
+        if byte.is_ascii_whitespace() {
+            index += 1;
+            continue;
+        }
+        if bytes.get(index..index + 2) == Some(b"//") {
+            while index < bytes.len() && bytes[index] != b'\n' {
+                index += 1;
+            }
+            continue;
+        }
+        if bytes.get(index..index + 2) == Some(b"/*") {
+            index += 2;
+            let mut depth = 1usize;
+            while index < bytes.len() && depth > 0 {
+                if bytes.get(index..index + 2) == Some(b"/*") {
+                    depth += 1;
+                    index += 2;
+                } else if bytes.get(index..index + 2) == Some(b"*/") {
+                    depth -= 1;
+                    index += 2;
+                } else {
+                    if bytes[index] == b'\n' {
+                        line += 1;
+                    }
+                    index += 1;
+                }
+            }
+            continue;
+        }
+        let token_line = line;
+        if byte == b'r' {
+            let mut quote = index + 1;
+            while bytes.get(quote) == Some(&b'#') {
+                quote += 1;
+            }
+            if bytes.get(quote) == Some(&b'"') {
+                let hashes = quote - index - 1;
+                let mut closing = vec![b'"'];
+                closing.extend(std::iter::repeat_n(b'#', hashes));
+                let start = quote + 1;
+                let mut end = start;
+                while end + closing.len() <= bytes.len()
+                    && bytes.get(end..end + closing.len()) != Some(closing.as_slice())
+                {
+                    if bytes[end] == b'\n' {
+                        line += 1;
+                    }
+                    end += 1;
+                }
+                let value = String::from_utf8_lossy(&bytes[start..end]).into_owned();
+                index = (end + closing.len()).min(bytes.len());
+                tokens.push(RustToken {
+                    text: value,
+                    line: token_line,
+                    string: true,
+                });
+                continue;
+            }
+        }
+        if byte == b'"' {
+            index += 1;
+            let start = index;
+            let mut valid = true;
+            while index < bytes.len() && bytes[index] != b'"' {
+                if bytes[index] == b'\\' {
+                    valid = false;
+                    index = (index + 2).min(bytes.len());
+                } else {
+                    if bytes[index] == b'\n' {
+                        line += 1;
+                    }
+                    index += 1;
+                }
+            }
+            let end = index;
+            if index < bytes.len() {
+                index += 1;
+            }
+            let value = if valid {
+                String::from_utf8_lossy(&bytes[start..end]).into_owned()
+            } else {
+                "\\\\".into()
+            };
+            tokens.push(RustToken {
+                text: value,
+                line: token_line,
+                string: true,
+            });
+            continue;
+        }
+        if byte.is_ascii_alphabetic() || byte == b'_' {
+            let start = index;
+            index += 1;
+            while bytes
+                .get(index)
+                .is_some_and(|b| b.is_ascii_alphanumeric() || *b == b'_')
+            {
+                index += 1;
+            }
+            tokens.push(RustToken {
+                text: String::from_utf8_lossy(&bytes[start..index]).into_owned(),
+                line: token_line,
+                string: false,
+            });
+            continue;
+        }
+        tokens.push(RustToken {
+            text: char::from(byte).to_string(),
+            line: token_line,
+            string: false,
+        });
+        index += 1;
+    }
+    tokens
 }
 
 fn scan_rust_source(path: &str, source: &str, report: &mut Report) {
@@ -511,13 +773,10 @@ fn cooked_string_closes(line: &str) -> bool {
 }
 
 fn looks_like_doc_attribute(line: &str) -> bool {
-    let code = mask_literals(line)
-        .replace("#[doc(hidden)]", "")
-        .replace("#![doc(hidden)]", "");
-    code.contains("#[doc")
-        || code.contains("#![doc")
-        || (code.contains("#[cfg_attr") || code.contains("#![cfg_attr"))
-            && (code.contains("doc =") || code.contains("doc="))
+    let tokens = rust_tokens(line);
+    tokens.windows(2).any(|pair| {
+        !pair[0].string && !pair[1].string && pair[0].text == "doc" && pair[1].text == "="
+    })
 }
 
 fn attribute_start(line: &str) -> Option<usize> {
@@ -815,4 +1074,79 @@ pub fn inspect_fixture(path: &str, source: &str) -> Vec<Issue> {
         scan_markdown(path, source, &mut report);
     }
     report.issues
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{Issue, Report, scan_rust_inputs};
+    use std::collections::BTreeSet;
+    use std::fs;
+
+    #[test]
+    fn cfg_attr_doc_assignment_trivia_is_detected() {
+        for source in [
+            "#[cfg_attr(feature = \"docs\", doc\n = include_str!(\"examples.md\"))]",
+            "#[cfg_attr(feature = \"docs\", doc /* gap */ = include_str!(\"examples.md\"))]",
+            "#[cfg_attr(feature = \"docs\", doc /* nested /* gap */ comment */\n= include_str!(\"examples.md\"))]",
+        ] {
+            let mut report = Report::default();
+            super::scan_rust_source("src/lib.rs", source, &mut report);
+            assert!(!report.issues.is_empty(), "accepted {source:?}");
+        }
+    }
+
+    #[test]
+    fn included_non_rs_tracked_rust_is_scanned_but_unreferenced_text_is_not() {
+        let root = tempfile::tempdir().expect("temporary workspace");
+        fs::create_dir_all(root.path().join("src")).expect("src directory");
+        fs::write(root.path().join("src/lib.rs"), "include!(\"docs.inc\");\n")
+            .expect("Rust target");
+        fs::write(
+            root.path().join("src/docs.inc"),
+            "/// ```rust\n/// fn included() {}\n/// ```\n",
+        )
+        .expect("included source");
+        fs::write(root.path().join("notes.txt"), "fn ordinary_text() {}").expect("ordinary text");
+        let tracked = BTreeSet::from([
+            "src/lib.rs".to_string(),
+            "src/docs.inc".to_string(),
+            "notes.txt".to_string(),
+        ]);
+        let mut report = Report::default();
+        scan_rust_inputs(
+            root.path(),
+            BTreeSet::from(["src/lib.rs".to_string()]),
+            &tracked,
+            &mut report,
+        );
+        assert!(report.issues.iter().any(|issue: &Issue| {
+            issue.path == "src/docs.inc" && issue.detail.contains("unregistered Rust documentation")
+        }));
+        assert!(!report.issues.iter().any(|issue| issue.path == "notes.txt"));
+    }
+
+    #[test]
+    fn unresolved_include_expressions_fail_closed() {
+        let root = tempfile::tempdir().expect("temporary workspace");
+        fs::create_dir_all(root.path().join("src")).expect("src directory");
+        fs::write(
+            root.path().join("src/lib.rs"),
+            "include!(concat!(env!(\"OUT_DIR\"), \"x.rs\"));",
+        )
+        .expect("Rust target");
+        let tracked = BTreeSet::from(["src/lib.rs".to_string()]);
+        let mut report = Report::default();
+        scan_rust_inputs(
+            root.path(),
+            BTreeSet::from(["src/lib.rs".to_string()]),
+            &tracked,
+            &mut report,
+        );
+        assert!(
+            report
+                .issues
+                .iter()
+                .any(|issue| issue.detail.contains("direct string literal"))
+        );
+    }
 }
