@@ -187,6 +187,8 @@ const CARD_MIN: u16 = 50;
 const CARD_GAP: u16 = 1;
 const CARD_PAD: u16 = 2;
 const SCROLL_ROOM: u16 = 2;
+// Settings sheet outer width: label column 22, value 34, card pad 4.
+const SETTINGS_MIN: u16 = 60;
 
 const CANVAS: u32 = 0x000000;
 const SURFACE: u32 = 0x111111;
@@ -468,58 +470,109 @@ fn playground_height(width: u16) -> u16 {
     total
 }
 
+struct ScrollSplit {
+    clip: Rect,
+    content_w: u16,
+    content_h: u16,
+    vertical: Option<Rect>,
+    horizontal: Option<Rect>,
+}
+
+fn content_width(avail: u16) -> u16 {
+    avail.max(CARD_MIN).max(SETTINGS_MIN)
+}
+
+fn scroll_split(area: Rect) -> ScrollSplit {
+    let mut width = content_width(area.width);
+    let mut height = playground_height(width);
+    if height > area.height && area.width > SCROLL_ROOM && width <= area.width {
+        let narrow = area.width.saturating_sub(SCROLL_ROOM);
+        let narrowed = content_width(narrow);
+        if narrowed <= narrow {
+            width = narrowed;
+            height = playground_height(width);
+        }
+    }
+    let mut vertical = false;
+    let mut horizontal = false;
+    for _ in 0..3 {
+        let view_w = area
+            .width
+            .saturating_sub(if vertical { SCROLL_ROOM } else { 0 });
+        let view_h = area.height.saturating_sub(u16::from(horizontal));
+        let next_v = height > view_h;
+        let next_h = width > view_w;
+        if (next_v, next_h) == (vertical, horizontal) {
+            break;
+        }
+        vertical = next_v;
+        horizontal = next_h;
+    }
+    vertical = vertical && area.width > SCROLL_ROOM;
+    horizontal = horizontal && area.height > 1;
+    let view_w = area
+        .width
+        .saturating_sub(if vertical { SCROLL_ROOM } else { 0 });
+    let view_h = area.height.saturating_sub(u16::from(horizontal));
+    ScrollSplit {
+        clip: Rect::new(area.x, area.y, view_w, view_h),
+        content_w: width.max(view_w),
+        content_h: height,
+        vertical: vertical.then(|| Rect::new(area.right().saturating_sub(1), area.y, 1, view_h)),
+        horizontal: horizontal.then(|| {
+            Rect::new(
+                area.x,
+                area.bottom().saturating_sub(1),
+                area.width.saturating_sub(u16::from(vertical)),
+                1,
+            )
+        }),
+    }
+}
+
 fn paint_playground(ui: &mut Ui<'_>, area: Rect) {
     if area.is_empty() {
         return;
     }
-    let (view, bar) = scroll_split(area);
-    paint_visible_cards(ui, view);
-    if let Some(bar) = bar {
-        paint_scrollbar(ui, bar, playground_height(view.width));
+    let split = scroll_split(area);
+    paint_visible_cards(ui, split.clip, split.content_w);
+    if let Some(bar) = split.vertical {
+        paint_scrollbar(ui, bar, split.content_h);
+    }
+    if let Some(bar) = split.horizontal {
+        paint_hscrollbar(ui, bar, split.clip.width, split.content_w);
     }
 }
 
-fn scroll_split(area: Rect) -> (Rect, Option<Rect>) {
-    let overflows = area.width > SCROLL_ROOM && playground_height(area.width) > area.height;
-    if !overflows {
-        return (area, None);
-    }
-    let view = Rect {
-        width: area.width.saturating_sub(SCROLL_ROOM),
-        ..area
-    };
-    let bar = Rect::new(area.right().saturating_sub(1), area.y, 1, view.height);
-    (view, Some(bar))
-}
-
-fn paint_visible_cards(ui: &mut Ui<'_>, view: Rect) {
-    let (cols, card_w, groups) = bands(view.width);
-    let mut y = view.y;
+fn paint_visible_cards(ui: &mut Ui<'_>, clip: Rect, content_w: u16) {
+    let (cols, card_w, groups) = bands(content_w);
+    let mut y = clip.y;
+    let content_right = clip.x.saturating_add(content_w);
     for group in groups {
         let band_h = group
             .iter()
             .map(|card| card_height(*card, card_w))
             .max()
             .unwrap_or(0);
-        if y >= view.bottom() {
+        if y >= clip.bottom() {
             break;
         }
         for (index, card) in group.iter().enumerate() {
             let Ok(index) = u16::try_from(index) else {
                 break;
             };
-            let x = view
+            let x = clip
                 .x
                 .saturating_add(index.saturating_mul(card_w.saturating_add(CARD_GAP)));
             let w = if index + 1 == cols {
-                view.right().saturating_sub(x)
+                content_right.saturating_sub(x)
             } else {
                 card_w
             };
             paint_card(
                 ui,
                 Rect::new(x, y, w, card_height(*card, card_w)),
-                view,
+                clip,
                 *card,
             );
         }
@@ -534,7 +587,9 @@ fn paint_card(ui: &mut Ui<'_>, card: Rect, view: Rect, kind: OverviewCard) {
     }
     ui.fill(visible, ink(WHITE, SURFACE));
     if card.y >= view.y && card.y < view.bottom() {
-        ui.paint_str(
+        paint_in(
+            ui,
+            view,
             Rect::new(
                 card.x.saturating_add(CARD_PAD),
                 card.y,
@@ -548,7 +603,9 @@ fn paint_card(ui: &mut Ui<'_>, card: Rect, view: Rect, kind: OverviewCard) {
     let rule_y = card.y.saturating_add(1);
     let rule_w = card.width.saturating_sub(CARD_PAD.saturating_mul(2));
     if rule_w > 0 && rule_y >= view.y && rule_y < view.bottom() && rule_y < card.bottom() {
-        ui.paint_str(
+        paint_in(
+            ui,
+            view,
             Rect::new(card.x.saturating_add(CARD_PAD), rule_y, rule_w, 1),
             &"─".repeat(usize::from(rule_w)),
             ink(RULE, SURFACE),
@@ -573,16 +630,23 @@ fn paint_card(ui: &mut Ui<'_>, card: Rect, view: Rect, kind: OverviewCard) {
             continue;
         }
         let swatch = 4.min(inner_w);
-        ui.fill(Rect::new(inner_x, y, swatch, 1), ink(WHITE, *color));
+        let swatch_rect = Rect::new(inner_x, y, swatch, 1).intersection(view);
+        if !swatch_rect.is_empty() {
+            ui.fill(swatch_rect, ink(WHITE, *color));
+        }
         if inner_w > 4 {
-            ui.paint_str(
+            paint_in(
+                ui,
+                view,
                 Rect::new(inner_x.saturating_add(4), y, 1, 1),
                 "▏",
                 ink(FAINT, SURFACE),
             );
         }
         if inner_w > 6 {
-            ui.paint_str(
+            paint_in(
+                ui,
+                view,
                 Rect::new(inner_x.saturating_add(6), y, inner_w.saturating_sub(6), 1),
                 name,
                 ink(WHITE, SURFACE),
@@ -592,12 +656,50 @@ fn paint_card(ui: &mut Ui<'_>, card: Rect, view: Rect, kind: OverviewCard) {
         let note_w = width(&note);
         let note_at = inner_w.saturating_sub(note_w);
         if note_at > width(name).saturating_add(6) {
-            ui.paint_str(
+            paint_in(
+                ui,
+                view,
                 Rect::new(inner_x.saturating_add(note_at), y, note_w, 1),
                 &note,
                 ink(MUTED, SURFACE),
             );
         }
+    }
+}
+
+fn paint_in(ui: &mut Ui<'_>, view: Rect, rect: Rect, text: &str, style: PaintStyle) {
+    let rect = rect.intersection(view);
+    if rect.is_empty() || text.is_empty() {
+        return;
+    }
+    ui.paint_str(rect, text, style);
+}
+
+fn paint_hscrollbar(ui: &mut Ui<'_>, bar: Rect, viewport: u16, content_w: u16) {
+    let track_len = usize::from(bar.width);
+    let viewport = usize::from(viewport);
+    let content = usize::from(content_w);
+    let thumb = if content <= viewport || track_len == 0 {
+        track_len
+    } else {
+        viewport
+            .saturating_mul(track_len)
+            .checked_div(content)
+            .unwrap_or(0)
+            .max(1)
+            .min(track_len)
+    };
+    for col in 0..bar.width {
+        let on_thumb = usize::from(col) < thumb;
+        ui.paint_str(
+            Rect::new(bar.x.saturating_add(col), bar.y, 1, 1),
+            if on_thumb { "━" } else { "┄" },
+            if on_thumb {
+                ink(THUMB, CANVAS)
+            } else {
+                ink(TRACK, CANVAS)
+            },
+        );
     }
 }
 
