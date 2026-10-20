@@ -1,6 +1,6 @@
 use core::marker::PhantomData;
 
-use ratatui_core::layout::{Position, Rect};
+use ratatui_core::layout::Rect;
 
 use super::{Acc, PartStyle, SlotFn, overlay_chrome};
 use crate::id::{Id, ItemKey, Part};
@@ -78,6 +78,7 @@ pub struct Picker<'a, T, R = ItemRow> {
     title: &'a str,
     scope_label: Option<&'a str>,
     width: Option<u16>,
+    max_rows: u16,
     searchable: bool,
     filter: FilterPolicy,
     placeholder: &'a str,
@@ -116,6 +117,7 @@ impl<T> Picker<'_, T, ItemRow> {
             title: "Choose",
             scope_label: None,
             width: None,
+            max_rows: 12,
             searchable: true,
             filter: FilterPolicy::Label,
             placeholder: "Type to search…",
@@ -193,6 +195,11 @@ impl<'a, T, R> Picker<'a, T, R> {
         self
     }
     #[must_use]
+    pub const fn max_rows(mut self, rows: u16) -> Self {
+        self.max_rows = if rows == 0 { 1 } else { rows };
+        self
+    }
+    #[must_use]
     pub const fn filter(mut self, policy: FilterPolicy) -> Self {
         self.filter = policy;
         self
@@ -233,6 +240,7 @@ impl<'a, T, R> Picker<'a, T, R> {
             title: self.title,
             scope_label: self.scope_label,
             width: self.width,
+            max_rows: self.max_rows,
             searchable: self.searchable,
             filter: self.filter,
             placeholder: self.placeholder,
@@ -283,6 +291,7 @@ impl<T: AsItem, R: RowFn<T>> Picker<'_, T, R> {
     fn list(&self) -> FilterList<'_, T, BorrowedRow<'_, R>> {
         let mut list = FilterList::new(self.id)
             .searchable(self.searchable)
+            .register_owner(!self.searchable)
             .filter(self.filter)
             .row(BorrowedRow(&self.row))
             .with_item_layout(self.item_layout)
@@ -309,7 +318,7 @@ impl<T: AsItem, R: RowFn<T>> Picker<'_, T, R> {
         });
         let rows = items
             .len()
-            .min(usize::from(d.size.popup_max_rows))
+            .min(usize::from(self.max_rows))
             .max(1)
             .min(usize::from(u16::MAX)) as u16;
 
@@ -397,9 +406,20 @@ impl<T: AsItem, R: RowFn<T>> Picker<'_, T, R> {
                         acc.action(PickerAction::Scope(scope));
                     }
                 }
+                FilterListAction::PrevScope if !self.scopes.is_empty() => {
+                    st.active_scope = if st.active_scope == 0 {
+                        self.scopes.len().saturating_sub(1)
+                    } else {
+                        st.active_scope.saturating_sub(1)
+                    };
+                    if let Some(scope) = self.scopes.get(st.active_scope).copied() {
+                        acc.action(PickerAction::Scope(scope));
+                    }
+                }
                 FilterListAction::Moved | FilterListAction::NextScope => {
                     acc.repaint();
                 }
+                FilterListAction::PrevScope => acc.repaint(),
             }
         }
         acc.finish(self.id)
@@ -478,36 +498,8 @@ impl<T: AsItem, R: RowFn<T>> Picker<'_, T, R> {
                         height: 1,
                         ..content
                     };
-                    let query_style = self.ov.style(
-                        ui,
-                        self.id,
-                        Family::PICKER,
-                        Variant::DEFAULT,
-                        Part::QUERY,
-                        live | StateFlags::EDITING,
-                    );
-                    ui.fill(query, query_style.style);
-                    let text = if st.query().is_empty() {
-                        self.placeholder
-                    } else {
-                        st.query()
-                    };
-                    ui.paint_str(
-                        Rect {
-                            x: query.x.saturating_add(2),
-                            width: query.width.saturating_sub(2),
-                            ..query
-                        },
-                        text,
-                        query_style.style,
-                    );
-                    ui.set_cursor(
-                        self.id,
-                        Position::new(
-                            query.x.saturating_add(2).saturating_add(width(st.query())),
-                            query.y,
-                        ),
-                    );
+                    self.list()
+                        .draw_query(ui, query, &st.list, self.placeholder);
                 }
 
                 let list = Rect {
@@ -616,5 +608,100 @@ mod tests {
         assert_eq!(measured_at(requested, 0), LayerSize::Fixed(84, 9));
         assert_eq!(measured_at(requested, 4), LayerSize::Fixed(84, 9));
         assert_eq!(measured_at(LayerSize::Fill, 72), LayerSize::Fill);
+    }
+
+    #[test]
+    fn max_rows_overrides_the_design_popup_row_limit() {
+        struct MeasureApp {
+            max_rows: u16,
+            items: Vec<Item<'static>>,
+            measured: Option<LayerSize>,
+        }
+        impl termrock_runtime::runtime::App for MeasureApp {
+            fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+                self.measured = Some(
+                    Picker::<Item<'static>>::new(Id::root("picker.max-rows"))
+                        .max_rows(self.max_rows)
+                        .measured_size(cx, &self.items),
+                );
+                Response::ignored()
+            }
+
+            fn draw(&self, _ui: &mut Ui<'_>) {}
+        }
+
+        let items = (0..20)
+            .map(|index| Item::new(ItemKey::num(index), "row"))
+            .collect();
+        let mut runtime = termrock_runtime::runtime::Runtime::new(
+            MeasureApp {
+                max_rows: 12,
+                items,
+                measured: None,
+            },
+            Theme::junie(),
+        );
+        let _ = runtime.initialize();
+        let area = Rect::new(0, 0, 120, 40);
+        let mut buffer = ratatui_core::buffer::Buffer::empty(area);
+        runtime.draw_buffer(area, &mut buffer).commit_presented();
+        let _ = termrock_runtime::runtime::stub::deliver(
+            &mut runtime,
+            termrock_runtime::event::Input::Tick,
+        );
+        assert!(matches!(
+            runtime.app().measured,
+            Some(LayerSize::Fixed(_, 17))
+        ));
+    }
+
+    #[test]
+    fn tab_and_backtab_advance_and_reverse_picker_scope() {
+        const ID: Id = Id::root("picker.scope-navigation");
+        const SCOPES: &[ScopeKey] = &[ScopeKey::new(1), ScopeKey::new(2)];
+
+        #[derive(Default)]
+        struct ScopeApp {
+            state: PickerState,
+        }
+
+        impl termrock_runtime::runtime::App for ScopeApp {
+            fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+                let picker = Picker::<Item<'static>>::new(ID).scopes(SCOPES);
+                if cx.update_cause() == termrock_runtime::runtime::UpdateCause::Bootstrap {
+                    cx.open_layer(ID, picker.layer(cx, &[]));
+                }
+                picker.update(cx, &mut self.state, &[]).erase()
+            }
+
+            fn draw(&self, ui: &mut Ui<'_>) {
+                let picker = Picker::<Item<'static>>::new(ID).scopes(SCOPES);
+                ui.layer(ID, |ui, area| picker.draw(ui, area, &self.state, &[]));
+            }
+        }
+
+        let mut runtime =
+            termrock_runtime::runtime::Runtime::new(ScopeApp::default(), Theme::junie());
+        let _ = runtime.initialize();
+        let area = Rect::new(0, 0, 80, 24);
+        let mut buffer = ratatui_core::buffer::Buffer::empty(area);
+        runtime.draw_buffer(area, &mut buffer).commit_presented();
+        let _ = termrock_runtime::runtime::stub::deliver(
+            &mut runtime,
+            termrock_runtime::runtime::stub::key(termrock_runtime::event::KeyCode::Tab),
+        );
+        runtime.draw_buffer(area, &mut buffer).commit_presented();
+        assert_eq!(runtime.app().state.scope(SCOPES), Some(SCOPES[1]));
+        let _ = termrock_runtime::runtime::stub::deliver(
+            &mut runtime,
+            termrock_runtime::runtime::stub::key(termrock_runtime::event::KeyCode::BackTab),
+        );
+        runtime.draw_buffer(area, &mut buffer).commit_presented();
+        assert_eq!(runtime.app().state.scope(SCOPES), Some(SCOPES[0]));
+        assert!(
+            runtime.diagnostics().is_empty(),
+            "{:?}",
+            runtime.diagnostics()
+        );
     }
 }
