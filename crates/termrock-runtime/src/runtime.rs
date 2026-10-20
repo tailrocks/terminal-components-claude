@@ -915,7 +915,9 @@ impl<A: App> Runtime<A> {
         if !same {
             return;
         }
-        let double = p.click_count.is_multiple_of(2);
+        let click_count = self.valid_click_count(p.owner, p.part, m.pos);
+        self.services.pointer_press_count = Some((p.owner, p.part, click_count));
+        let double = click_count.is_multiple_of(2);
         let phase = if double {
             Phase::DoubleClick
         } else {
@@ -926,7 +928,7 @@ impl<A: App> Runtime<A> {
             part: p.part,
             at: self.now(),
             pos: p.pos,
-            count: p.click_count,
+            count: click_count,
         });
         self.intents
             .pointer(p.owner, phase, p.part, m.pos, local, m.mods);
@@ -957,15 +959,16 @@ impl<A: App> Runtime<A> {
                     .pointer(cap.owner, Phase::DragEnd, cap.part, m.pos, local, m.mods);
                 if cap.contains(m.pos) {
                     if let Some(press) = press {
+                        let click_count = self.valid_click_count(press.owner, press.part, m.pos);
                         self.inter.last_click = Some(LastClick {
                             owner: press.owner,
                             part: press.part,
                             at: self.now(),
                             pos: press.pos,
-                            count: press.click_count,
+                            count: click_count,
                         });
                         self.services.pointer_press_count =
-                            Some((press.owner, press.part, press.click_count));
+                            Some((press.owner, press.part, click_count));
                     }
                     self.intents
                         .pointer(cap.owner, Phase::Click, cap.part, m.pos, local, m.mods);
@@ -983,6 +986,24 @@ impl<A: App> Runtime<A> {
             }
             MouseKind::Secondary | MouseKind::SecondaryUp | MouseKind::Wheel(..) => {}
         }
+    }
+
+    /// Re-evaluate a potential multi-click at activation time. A long-held press
+    /// keeps its down-time count for selection, but must not become a double-click
+    /// after the configured interval has elapsed.
+    fn valid_click_count(&self, owner: Id, part: PartRef, pos: Position) -> u8 {
+        let window = self.theme.design.motion.double_click_ms;
+        self.inter
+            .last_click
+            .filter(|last| {
+                last.owner == owner
+                    && last.part == part
+                    && self.now().saturating_duration_since(last.at)
+                        <= core::time::Duration::from_millis(window)
+                    && last.pos.x.abs_diff(pos.x) <= self.pointer_click_slop
+                    && last.pos.y.abs_diff(pos.y) <= self.pointer_click_slop
+            })
+            .map_or(1, |last| last.count.saturating_add(1))
     }
 
     fn outside_click(&mut self) {
@@ -2590,6 +2611,79 @@ mod tests {
                 .collect::<Vec<_>>(),
             [1, 2, 3]
         );
+    }
+
+    #[test]
+    fn a_long_second_press_expires_double_click_at_uncaptured_release() {
+        let mut rt = Runtime::new(PressCountProbe::default(), Theme::junie());
+        let _ = rt.initialize();
+        let mut buf = Buffer::empty(SCREEN);
+        for _ in 0..8 {
+            rt.draw_buffer(SCREEN, &mut buf).commit_presented();
+            if !rt.needs_settle() {
+                break;
+            }
+            let _ = rt.settle();
+        }
+        let _ = deliver(&mut rt, super::stub::mouse(MouseKind::Down, 2, 0));
+        rt.draw_buffer(SCREEN, &mut buf).commit_presented();
+        let _ = deliver(&mut rt, super::stub::mouse(MouseKind::Up, 2, 0));
+        rt.draw_buffer(SCREEN, &mut buf).commit_presented();
+
+        let _ = rt.advance_to(
+            rt.now()
+                .saturating_add(core::time::Duration::from_millis(100)),
+        );
+        let _ = deliver(&mut rt, super::stub::mouse(MouseKind::Down, 2, 0));
+        rt.draw_buffer(SCREEN, &mut buf).commit_presented();
+        assert_eq!(rt.app().counts.last(), Some(&(Phase::Press, 2)));
+        let _ = rt.advance_to(
+            rt.now()
+                .saturating_add(core::time::Duration::from_millis(600)),
+        );
+        let _ = deliver(&mut rt, super::stub::mouse(MouseKind::Up, 2, 0));
+        rt.draw_buffer(SCREEN, &mut buf).commit_presented();
+
+        assert_eq!(rt.app().counts.last(), Some(&(Phase::Click, 1)));
+        assert!(!rt.app().phases.contains(&Phase::DoubleClick));
+    }
+
+    #[test]
+    fn a_long_second_press_expires_double_click_at_captured_release() {
+        let mut rt = Runtime::new(PressCountProbe::default(), Theme::junie());
+        let _ = rt.initialize();
+        let mut buf = Buffer::empty(SCREEN);
+        for _ in 0..8 {
+            rt.draw_buffer(SCREEN, &mut buf).commit_presented();
+            if !rt.needs_settle() {
+                break;
+            }
+            let _ = rt.settle();
+        }
+        let click = |rt: &mut Runtime<PressCountProbe>, buf: &mut Buffer| {
+            let _ = deliver(rt, super::stub::mouse(MouseKind::Down, 2, 0));
+            rt.draw_buffer(SCREEN, buf).commit_presented();
+            let _ = deliver(rt, super::stub::mouse(MouseKind::Up, 2, 0));
+            rt.draw_buffer(SCREEN, buf).commit_presented();
+        };
+        click(&mut rt, &mut buf);
+        let _ = rt.advance_to(
+            rt.now()
+                .saturating_add(core::time::Duration::from_millis(100)),
+        );
+        rt.app_mut().capture_on_press = true;
+        let _ = deliver(&mut rt, super::stub::mouse(MouseKind::Down, 2, 0));
+        rt.draw_buffer(SCREEN, &mut buf).commit_presented();
+        assert_eq!(rt.app().counts.last(), Some(&(Phase::Press, 2)));
+        let _ = rt.advance_to(
+            rt.now()
+                .saturating_add(core::time::Duration::from_millis(600)),
+        );
+        let _ = deliver(&mut rt, super::stub::mouse(MouseKind::Up, 2, 0));
+        rt.draw_buffer(SCREEN, &mut buf).commit_presented();
+
+        assert_eq!(rt.app().counts.last(), Some(&(Phase::Click, 1)));
+        assert!(!rt.app().phases.contains(&Phase::DoubleClick));
     }
 
     #[test]
