@@ -39,11 +39,7 @@
 +}
 --- a/tests/visual_baseline/support.rs
 +++ b/tests/visual_baseline/support.rs
-@@ -501,4 +501,9 @@
-         };
-         self.sending();
-         self.inner.mouse_wheel(wheel, col, row, MouseMods::NONE)
-     }
+@@ -504,0 +505,5 @@
 +
 +    pub fn scroll_right(&mut self, col: u16, row: u16) -> Result<(), tuiscotti::TuiError> {
 +        self.sending();
