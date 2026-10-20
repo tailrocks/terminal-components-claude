@@ -1359,6 +1359,8 @@ impl<'f> Ui<'f> {
     }
 
     /// Map a cell's foreground and background together.
+    ///
+    /// Unchanged output channels keep their semantic paint roles.
     pub fn recolor_pair(
         &mut self,
         area: Rect,
@@ -1371,6 +1373,9 @@ impl<'f> Ui<'f> {
     }
 
     /// Replace a cell's foreground. `map` returns the new ink, or `None` to keep it.
+    ///
+    /// Returning the existing foreground also keeps its semantic paint role;
+    /// background provenance is preserved in either case.
     pub fn recolor_fg(
         &mut self,
         area: Rect,
