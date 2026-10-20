@@ -2933,6 +2933,17 @@ impl TableProApp {
             Some(Tab::Query(query)) if query.error.is_some() && query.plan.is_none() => {
                 (format!(" {} ", query.name), Some("2 ms ".to_owned()))
             }
+            Some(Tab::Query(query))
+                if query.result.is_some() && query.plan.is_none() && query.error.is_none() =>
+            {
+                let total = query
+                    .result
+                    .as_ref()
+                    .map(|grid| grid.model.total())
+                    .unwrap_or(0);
+                let ms = result_duration_ms(query.query.as_str(), total);
+                (format!(" {} ", query.name), Some(format!("{ms} ms ")))
+            }
             Some(Tab::Query(query)) if query.plan.is_some() && query.result.is_none() => {
                 let meta = if let Some(actual) = query.plan.as_ref().and_then(|plan| plan.actual_ms)
                 {
@@ -3862,6 +3873,8 @@ fn sql_keyword(word: &str) -> bool {
             | "AS"
             | "EXPLAIN"
             | "ANALYZE"
+            | "DESC"
+            | "ASC"
     )
 }
 
@@ -8566,7 +8579,10 @@ fn with_footer_spans(
                 // An active sort uses the shorter hint row so the sort label fits.
                 paint_data_footer(filtered && sort_footer(app).is_none(), pending, paint);
             }
-            Some(Tab::Query(query)) if query.error.is_some() => paint(&[
+            Some(Tab::Query(query))
+                if query.error.is_some() || (query.result.is_some() && query.plan.is_none()) =>
+            {
+                paint(&[
                 Span::new(" "),
                 Span::new("Enter").bold(),
                 Span::new(" "),
@@ -9401,7 +9417,8 @@ fn draw_footer(ui: &mut Ui<'_>, area: termrock::Rect, app: &TableProApp) {
             || app.surface == Surface::FilterEditor
             || matches!(
                 app.workbench.active(),
-                Some(Tab::Query(query)) if query.error.is_some() || query.plan.is_some()
+                Some(Tab::Query(query))
+                    if query.error.is_some() || query.plan.is_some() || query.result.is_some()
             );
         let prefix = if checked {
             "✓ Connected to "
@@ -10682,7 +10699,6 @@ impl App for TableProApp {
     }
     fn draw(&self, ui: &mut Ui<'_>) {
         if self.paint_historical_query_completion(ui)
-            || self.paint_historical_query_results(ui)
             || self.paint_historical_workbench_maximized(ui)
             || self.paint_historical_workbench_explorer_hidden(ui)
             || self.paint_historical_table_scrolled_right(ui)
