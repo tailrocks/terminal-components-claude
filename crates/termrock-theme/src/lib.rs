@@ -560,7 +560,7 @@ mod tests {
                 Color::Indexed(245),
             ),
             (ColorLevel::Ansi16, Color::DarkGray, Color::Gray),
-            (ColorLevel::Mono, Color::Black, Color::White),
+            (ColorLevel::Mono, Color::DarkGray, Color::Gray),
         ];
         for (level, rest, hover) in cases {
             let mut theme = Theme::junie();
@@ -657,6 +657,46 @@ mod tests {
             .base
             .fg = Slot::Clear;
         assert_eq!(seam_fg(&cleared, StateFlags::empty()), None);
+    }
+
+    #[test]
+    fn authored_mono_profile_survives_downgrade_without_changing_custom_colors() {
+        let profile = Theme::junie()
+            .define_family_for_level(ColorLevel::Mono, Family::SPLIT, |recipe| {
+                recipe
+                    .part(Part::SEAM)
+                    .base(StylePatch::new().set_fg(Role::Custom(Color::DarkGray)))
+                    .when(
+                        StateFlags::HOVERED,
+                        StylePatch::new().set_fg(Role::Custom(Color::Gray)),
+                    )
+                    .when(
+                        StateFlags::PRESSED,
+                        StylePatch::new().set_fg(Role::Custom(Color::White)),
+                    );
+            })
+            .downgrade(ColorLevel::Mono);
+        assert_eq!(
+            seam_fg(&profile, StateFlags::empty()),
+            Some(Color::DarkGray)
+        );
+        assert_eq!(seam_fg(&profile, StateFlags::HOVERED), Some(Color::Gray));
+        assert_eq!(seam_fg(&profile, StateFlags::PRESSED), Some(Color::White));
+
+        let custom = Theme::junie()
+            .define_family(Family::SPLIT, |recipe| {
+                recipe
+                    .part(Part::SEAM)
+                    .base(StylePatch::new().set_fg(Role::Custom(Color::Rgb(128, 128, 128))));
+            })
+            .downgrade(ColorLevel::Mono);
+        assert_eq!(
+            seam_fg(&custom, StateFlags::empty()),
+            Some(crate::downgrade::downgrade_color(
+                Color::Rgb(128, 128, 128),
+                ColorLevel::Mono
+            ))
+        );
     }
 
     #[test]
