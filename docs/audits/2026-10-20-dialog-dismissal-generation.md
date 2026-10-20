@@ -33,3 +33,38 @@ passed on the changed source; the runtime library suite passed 197 tests.
 Broader application validation is outside this focused fix. Independent
 external review of the final published source is pending. This audit does not
 claim application visual parity or full repository acceptance.
+
+## TablePro app call-site regression (follow-up)
+
+`crates/tablepro-ui/tests/delete_dialog_dismissal.rs` drives the real
+`TableProApp` through `Harness`: it opens the Delete connection dialog with
+the actual `d` key while the Connections screen is active, then dismisses by
+Escape and by clicking outside. It checks the connection data remains intact,
+focus returns to the Connections list, the rendered buffer and cursor return
+to the pre-dialog state, and the dialog can be reopened and cancelled again.
+The focused `cargo nextest run --locked -p tablepro-ui --test
+delete_dialog_dismissal` run passes (1 passed, 0 skipped) on this source.
+
+As a negative control, the same test was copied into an isolated worktree at
+`bb502a37^`, where `update_delete_dialog` still gated updates on
+`!cx.is_open(DELETE_DIALOG)`. The test failed at the complete-buffer equality
+check after dismissal, confirming that the test detects the guard's stale
+dialog state rather than only checking for absence of dialog text.
+
+An exploratory assertion that diagnostics were empty immediately after
+dismissal did not pass: it observed
+`UndeliveredIntent { owner: tablepro.delete-connection ▸ #0 }`; diagnostics
+were empty immediately after opening. That assertion is not part of the
+passing regression, and this observation is not classified as pre-existing or
+unrelated. Attribution against the pre-receipt/runtime bases remains pending
+independent review; do not treat this follow-up as clearing the diagnostic
+finding or as full TablePro acceptance.
+
+For this follow-up, `rustfmt --edition 2024
+crates/tablepro-ui/tests/delete_dialog_dismissal.rs`, the focused nextest command
+above, and `git diff --check` pass. Repository-wide `cargo fmt --check --all`
+remains red on pre-existing formatting differences including
+`crates/tablepro-ui/src/app.rs` and `crates/showcase-demos/src/pages/chrome.rs`;
+the test file was formatted independently. Focused Clippy did not reach the
+test target because the existing `tablepro-domain::Tab` large-enum-variant
+lint is denied at `crates/tablepro-domain/src/tabs.rs:315`.
