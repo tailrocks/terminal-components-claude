@@ -1,4 +1,4 @@
-use ratatui_core::style::{Color, Style};
+use ratatui_core::style::{Color, Modifier, Style};
 
 use super::Theme;
 use super::downgrade::downgrade_color;
@@ -229,11 +229,161 @@ fn accumulate_defaults(
     let recipes = &theme.recipes;
 
     let (mut acc, variant) = apply_recipe(recipes.get_or_neutral(f), v, p, live, StylePatch::new());
+    acc = apply_level_family(theme, f, v, variant, p, live, acc);
 
     if theme.capability.color == super::ColorLevel::Mono {
         acc = super::downgrade::apply_mono_fallback(acc, recipes, f, p, live);
     }
     (acc, variant)
+}
+
+fn apply_level_family(
+    theme: &Theme,
+    family: Family,
+    requested_variant: Variant,
+    variant: Variant,
+    part: Part,
+    live: StateFlags,
+    mut acc: StylePatch,
+) -> StylePatch {
+    let Some(profile) = theme.recipes.level_family(theme.capability.color, family) else {
+        return acc;
+    };
+    let Some(level_part) = profile.parts.get(part) else {
+        return acc;
+    };
+    let current_recipe = theme.recipes.get_or_neutral(family);
+    let (_, seed_variant) = apply_recipe(
+        &profile.seed,
+        requested_variant,
+        part,
+        StateFlags::empty(),
+        StylePatch::new(),
+    );
+    if seed_variant != variant {
+        return acc;
+    }
+
+    let seed_family = profile.seed.parts.get(part);
+    let current_family = current_recipe.parts.get(part);
+    let seed_delta = profile.seed.variant(variant).and_then(|map| map.get(part));
+    let current_delta = current_recipe
+        .variant(variant)
+        .and_then(|map| map.get(part));
+    let eligible = |channel| {
+        part_channel_unchanged(current_family, seed_family, live, channel)
+            && part_channel_unchanged(current_delta, seed_delta, live, channel)
+            && profile_covers_active_states(current_family, seed_family, level_part, live, channel)
+            && profile_covers_active_states(current_delta, seed_delta, level_part, live, channel)
+    };
+
+    let mut profile_patch = level_part.apply(StylePatch::new(), live);
+    if !eligible(PatchChannel::Fg) {
+        profile_patch.fg = Slot::Inherit;
+    }
+    if !eligible(PatchChannel::Bg) {
+        profile_patch.bg = Slot::Inherit;
+    }
+    if !eligible(PatchChannel::Underline) {
+        profile_patch.underline = Slot::Inherit;
+    }
+    if !eligible(PatchChannel::Modifiers) {
+        profile_patch.add = Modifier::empty();
+        profile_patch.remove = Modifier::empty();
+    }
+    if !eligible(PatchChannel::Glyph) {
+        profile_patch.glyph = Slot::Inherit;
+    }
+    if !eligible(PatchChannel::Size) {
+        profile_patch.size = Slot::Inherit;
+    }
+    if !eligible(PatchChannel::Align) {
+        profile_patch.align = Slot::Inherit;
+    }
+    acc = acc.merge(profile_patch);
+    acc
+}
+
+#[derive(Clone, Copy)]
+enum PatchChannel {
+    Fg,
+    Bg,
+    Underline,
+    Modifiers,
+    Glyph,
+    Size,
+    Align,
+}
+
+fn same_patch_channel(a: StylePatch, b: StylePatch, channel: PatchChannel) -> bool {
+    match channel {
+        PatchChannel::Fg => a.fg == b.fg,
+        PatchChannel::Bg => a.bg == b.bg,
+        PatchChannel::Underline => a.underline == b.underline,
+        PatchChannel::Modifiers => a.add == b.add && a.remove == b.remove,
+        PatchChannel::Glyph => a.glyph == b.glyph,
+        PatchChannel::Size => a.size == b.size,
+        PatchChannel::Align => a.align == b.align,
+    }
+}
+
+fn patch_channel_speaks(patch: StylePatch, channel: PatchChannel) -> bool {
+    match channel {
+        PatchChannel::Fg => patch.fg.speaks(),
+        PatchChannel::Bg => patch.bg.speaks(),
+        PatchChannel::Underline => patch.underline.speaks(),
+        PatchChannel::Modifiers => !patch.add.is_empty() || !patch.remove.is_empty(),
+        PatchChannel::Glyph => patch.glyph.speaks(),
+        PatchChannel::Size => patch.size.speaks(),
+        PatchChannel::Align => patch.align.speaks(),
+    }
+}
+
+fn profile_covers_active_states(
+    current: Option<&super::PartRecipe>,
+    seed: Option<&super::PartRecipe>,
+    profile: &super::PartRecipe,
+    live: StateFlags,
+    channel: PatchChannel,
+) -> bool {
+    let Some(current) = current else {
+        return true;
+    };
+    current
+        .states
+        .iter()
+        .filter(|rule| rule.matches(live) && patch_channel_speaks(rule.patch, channel))
+        .all(|rule| {
+            let baseline = seed.and_then(|seed| {
+                seed.states
+                    .iter()
+                    .find(|candidate| candidate.when == rule.when)
+            });
+            baseline.is_some_and(|baseline| same_patch_channel(rule.patch, baseline.patch, channel))
+                && profile.states.iter().any(|candidate| {
+                    candidate.when == rule.when && patch_channel_speaks(candidate.patch, channel)
+                })
+        })
+}
+
+fn part_channel_unchanged(
+    current: Option<&super::PartRecipe>,
+    seed: Option<&super::PartRecipe>,
+    live: StateFlags,
+    channel: PatchChannel,
+) -> bool {
+    let current_base = current.map_or(StylePatch::new(), |recipe| recipe.base);
+    let seed_base = seed.map_or(StylePatch::new(), |recipe| recipe.base);
+    if !same_patch_channel(current_base, seed_base, channel) {
+        return false;
+    }
+    let current_applied = current.map_or(StylePatch::new(), |recipe| {
+        recipe.apply(StylePatch::new(), live)
+    });
+    let seed_applied = seed.map_or(StylePatch::new(), |recipe| {
+        recipe.apply(StylePatch::new(), live)
+    });
+    same_patch_channel(current_applied, seed_applied, channel)
 }
 
 fn apply_recipe(
@@ -274,10 +424,12 @@ pub fn bind_defaults(
     defaults: StyleDefaults<'_>,
     local: Option<&StylePatch>,
 ) -> Resolved {
+    let requested_variant = variant;
     let (mut acc, variant) = match theme.recipes.get(family) {
-        Some(recipe) => apply_recipe(recipe, variant, part, flags, defaults.base),
-        None => (defaults.base, variant),
+        Some(recipe) => apply_recipe(recipe, requested_variant, part, flags, defaults.base),
+        None => (defaults.base, requested_variant),
     };
+    acc = apply_level_family(theme, family, requested_variant, variant, part, flags, acc);
     if theme.capability.color == super::ColorLevel::Mono {
         acc = super::downgrade::apply_mono_with_defaults(
             acc,
@@ -301,10 +453,12 @@ pub fn bind_defaults_with_explicit(
     defaults: StyleDefaults<'_>,
     local: Option<&StylePatch>,
 ) -> ResolvedStyle {
+    let requested_variant = variant;
     let (mut acc, variant) = match theme.recipes.get(family) {
-        Some(recipe) => apply_recipe(recipe, variant, part, flags, defaults.base),
-        None => (defaults.base, variant),
+        Some(recipe) => apply_recipe(recipe, requested_variant, part, flags, defaults.base),
+        None => (defaults.base, requested_variant),
     };
+    acc = apply_level_family(theme, family, requested_variant, variant, part, flags, acc);
     if theme.capability.color == super::ColorLevel::Mono {
         acc = super::downgrade::apply_mono_with_defaults(
             acc,
@@ -593,12 +747,29 @@ impl StyleCache {
         (self.hits, self.misses)
     }
 
-    fn key(f: Family, v: Variant, p: Part, live: StateFlags, stack_hash: u64) -> u64 {
+    fn key(
+        theme: &Theme,
+        f: Family,
+        v: Variant,
+        p: Part,
+        live: StateFlags,
+        stack_hash: u64,
+    ) -> u64 {
         let mut h = fnv1a(0xcbf2_9ce4_8422_2325, &f.raw().to_le_bytes());
         h = fnv1a(h, &v.raw().to_le_bytes());
         h = fnv1a(h, &p.raw().to_le_bytes());
         h = fnv1a(h, &live.bits().to_le_bytes());
-        fnv1a(h, &stack_hash.to_le_bytes())
+        h = fnv1a(h, &stack_hash.to_le_bytes());
+        h = fnv1a(
+            h,
+            &[match theme.capability.color {
+                super::ColorLevel::TrueColor => 0,
+                super::ColorLevel::Ansi256 => 1,
+                super::ColorLevel::Ansi16 => 2,
+                super::ColorLevel::Mono => 3,
+            }],
+        );
+        fnv1a(h, &theme.recipes.revision().to_le_bytes())
     }
 
     #[expect(
@@ -615,7 +786,7 @@ impl StyleCache {
         overlays: &[Overlay],
         stack_hash: u64,
     ) -> StylePatch {
-        let key = Self::key(f, v, p, live, stack_hash) | 1;
+        let key = Self::key(theme, f, v, p, live, stack_hash) | 1;
 
         let set = ((key >> 1) as usize) % CACHE_SETS;
         let base = set.saturating_mul(WAYS);
