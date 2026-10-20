@@ -7,12 +7,12 @@ Updated: 2026-10-20. Status: **in progress; all four applications incomplete**. 
 | Source | Identity recorded before this work | Use |
 | --- | --- | --- |
 | `parity/termrock-visual-baseline` | `0b8f4e32b24a137987307600b10d892bec0619c3` (remote observation 2026-10-20 10:52:50 UTC) | PR #38 candidate branch |
-| `design/interaction-polish` | `f4867e9b5f8a08a3bb61ce80d644198a29f51984` (same observation) | Recover useful contracts; comparison branch |
+| PR #26 fixed source | `f4867e9b5f8a08a3bb61ce80d644198a29f51984` | Product/contract reference; do not substitute a moving branch |
 | `visual-baseline` tag object | `2718a6b8127a522a3d351d0b4bdb7542fc8da542` | Frozen oracle; never move |
 | Frozen source commit | `4169783ae883788186d161af09ba9c481bd84e5c`, tree `ad0f7cf8899df8c5fea3ced3f60adf0ac9a2d297` | Isolated baseline archive and CLI binaries |
 | Tuiscotti | `a1ea27f757d75d07b05499276cd932e9f8e067ad` | Fixed PTY and frame-comparison tool |
 
-The branch tips are observations, not immutable acceptance targets; record exact tested source commits in every run. Both branches must carry byte-identical paired-test sources and manifests. Do not update frozen snapshots to make a candidate green.
+Record exact tested source commits in every run. The latest instruction freezes PR #26 at the revision above and requires all further delivery through PR #38; do not push further changes to the design branch or directly to `main`. Earlier dual-branch test publications remain historical evidence. The current PR #38 runner can test separate builds of each fixed reference without modifying those references. Do not update frozen snapshots to make a candidate green.
 
 ## Application migration matrix
 
@@ -72,7 +72,7 @@ The new `MasterDetail` owns layout geometry/state. Frozen narrow detail replaces
 ## Decisions and next evidence
 
 1. Keep frozen source/tag/Tuiscotti IDs fixed. Record commit, tree, binary hashes, environment, size, mode, scenario inventory, receipts and result for every candidate run.
-2. Keep runner code, test helper and manifests identical on both branches. A shared file diff or a test inventory mismatch blocks branch comparison.
+2. Use the same PR #38 runner, test helper and manifests when testing each fixed reference and candidate. Earlier byte-identical dual-branch publication is historical; the latest instruction prohibits further PR #26 changes. A test inventory mismatch still blocks comparison.
 3. Keep each app INCOMPLETE until original plus extension inventory and all required ordinary checks pass on the exact same candidate commit, with no skipped or missing case and a reviewed reference-data decision.
 4. Keep library gate separate: remove replay from production, prove public shared APIs own mechanics, compile an external consumer, and complete source/dependency/build/generated-code review.
 5. Resolve red behavior in shared components or domain model; retain baseline flows. Never select a renderer by test label, exact viewport/clock, terminal detector or captured accent. Never repaint a widget in app code or register absent controls to move focus/cursor.
@@ -105,3 +105,15 @@ The staged contract work above is not all present in the candidate branch. Sourc
 
 - Deliberate candidate defect: isolated frozen source changed only the default caret from `Bar` to `Block`; the runner recorded its dirty source fingerprint and separate candidate binary hashes. Frozen capture/replay passed and candidate comparison failed solely on hidden cursor shape, with zero differing cells. Evidence: `/Users/donbeave/Projects/termrock-live-hidden-cursor-proof-20261020/live-paired/1792496903298882000-d4f64b7e5c12`. The immutable baseline and approvals were unchanged.
 - Shared publication checkpoint: PR `0168ccc15246343e6a1f846a30bf7964991b439c` and design `46ff0ebbf457ed46da301706229d941ee985a102` were pushed and remote IDs verified. Thirteen shared test/helper/manifest/documentation files were byte-identical; the identity manifest is `/Users/donbeave/Projects/termrock-cli-evidence-20261020/shared-semantic-branch-identity.json`. These remain partial test-system checks, not application acceptance.
+
+## Latest instruction checkpoint and delivery boundary
+
+The current PR #38 remote commit was recorded as `78ccc2cb5737ea7934ca90dca880b5a688bf070f` before the latest work increment (verified 2026-10-20). The baseline tag remains `2718a6b8127a522a3d351d0b4bdb7542fc8da542`; baseline source and Tuiscotti pins above are unchanged.
+
+The latest instruction supersedes the earlier authorization to publish test changes on both branches. No further PR #26/design-branch pushes are authorized. Its observed branch tip is `8681124d2cbbc75ef8ed998b5918883039a022c5`, produced under the prior instruction; the fixed reference remains `f4867e9b5f8a08a3bb61ce80d644198a29f51984`. Their diff contains only test tooling and migration documentation, with no application source changes. Do not retarget or rewrite the branch to conceal this history.
+
+All final changes must remain on `parity/termrock-visual-baseline`. Temporary worker branches protect isolated work; they are not replacement delivery PRs. Integrate to `main` only through PR #38 after acceptance and required repository reviews. Full application comparison must pass twice on the same integrated commit; no complete passing run has been established.
+
+The newly requested replay-origin audit starts from `6923311119e060176ee3cf07c585416556416024`, `f067d3f088621ec2a0fe4e7eaf7ae2c3a7c5957c`, `fd3991049709f08c8434d567c45e1b55583a5a4f`, and `51046a780fafe61bf10ed2dc9d2df4c1eeffa734`. Focused independent source tracing is assigned; presence of these commits is verified, but that audit is not yet complete. Any conflict between fixed reference behavior requires recorded evidence and independent review rather than an implicit reference substitution.
+
+Runtime viewport-margin implementation `f3e06913376d3820acf5a9597597aec91f2a576b` passed 162 runtime tests and independent exact-source review. Picker integration remains pending. Edit-menu focus continuation is still a design gate: opening tokens must prevent stale delivery, and focus restoration/command execution must settle before output without an extra visible frame or handlers during pure rendering. No stage2 implementation or full edit-menu parity is accepted.
