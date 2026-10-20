@@ -65,8 +65,8 @@ const fn junie_256() -> ColorTokens {
         fg: [
             Color::Indexed(231),
             Color::Indexed(249),
-            Color::Indexed(244),
-            Color::Indexed(238),
+            Color::Indexed(245),
+            Color::Indexed(242),
             Color::Indexed(235),
         ],
         on_accent: Color::Indexed(233),
