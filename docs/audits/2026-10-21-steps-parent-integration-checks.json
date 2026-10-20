@@ -1,0 +1,88 @@
+{
+  "source_commit": "04a37e1bb63583a34948620897655dd057d7dd86",
+  "merge_commit": "9ce228c1b952697aa9250eb43535bf16d1c9934d",
+  "checks": [
+    {
+      "command": [
+        "cargo",
+        "nextest",
+        "run",
+        "-p",
+        "termrock",
+        "-p",
+        "termrock-navigation",
+        "-p",
+        "termrock-runtime",
+        "--all-targets",
+        "--features",
+        "termrock/testing",
+        "--status-level",
+        "fail",
+        "--final-status-level",
+        "fail"
+      ],
+      "exit_code": 100,
+      "log": "/private/tmp/termrock-parent-steps-04a-0.log",
+      "sha256": "dfb19814bb81195695c0aa2c6b4e8f4627e2d43f9b57eb0b10cf2853bf49426d"
+    },
+    {
+      "command": [
+        "cargo",
+        "clippy",
+        "-p",
+        "termrock",
+        "-p",
+        "termrock-navigation",
+        "-p",
+        "termrock-runtime",
+        "--all-targets",
+        "--features",
+        "termrock/testing",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "exit_code": 0,
+      "log": "/private/tmp/termrock-parent-steps-04a-1.log",
+      "sha256": "dc0c7792a243de336000f6924c7e5f149eb94cde550444d9c6aa24f154e20392"
+    },
+    {
+      "command": [
+        "cargo",
+        "fmt",
+        "-p",
+        "termrock",
+        "-p",
+        "termrock-navigation",
+        "-p",
+        "termrock-runtime",
+        "--check"
+      ],
+      "exit_code": 0,
+      "log": "/private/tmp/termrock-parent-steps-04a-2.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "command": [
+        "git",
+        "diff",
+        "--check"
+      ],
+      "exit_code": 0,
+      "log": "/private/tmp/termrock-parent-steps-04a-3.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "nextest": {
+    "run": 579,
+    "passed": 578,
+    "failed": 1,
+    "skipped": 3,
+    "failure": "constructor_defaults_match_the_pre_policy_full_cell_fixture",
+    "actual_fingerprint": 17020103994864682368,
+    "expected_fingerprint": 12184706452759668872,
+    "attribution": "Same independently recorded pre-existing ItemRow failure; not waived."
+  },
+  "merge_resolution": "Runtime RowUi merges automatically; only the source-compatible trait hook and DefaultRow implementation are added; existing Grid padding remains.",
+  "acceptance": false
+}
