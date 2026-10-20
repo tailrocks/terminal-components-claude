@@ -5,6 +5,7 @@ use ratatui_core::layout::Rect;
 use termrock_core::action::ActionKey;
 use termrock_core::id::{Id, ItemKey};
 use termrock_core::response::Response;
+use termrock_layout::{Constraints, Size};
 use termrock_overlays::completion::{
     AsItem, Completion, CompletionAction, CompletionController, CompletionState, Item,
 };
@@ -185,6 +186,11 @@ impl<'a> CompletingCodeEditor<'a> {
 
     fn completion(&self) -> Completion<'_, CompletionValue> {
         Completion::new(self.popup_id)
+    }
+
+    /// Measure the editor using its existing intrinsic sizing contract.
+    pub fn measure(&self, ui: &Ui<'_>, constraints: Constraints) -> Size {
+        self.editor.measure(ui, constraints)
     }
 
     fn request(
