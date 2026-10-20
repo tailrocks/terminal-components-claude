@@ -8,6 +8,9 @@ use core::fmt;
 
 use termrock_collections::KeyFn;
 use termrock_controls::Button;
+use termrock_editors::{
+    CodeEditor, CodeEditorState, CompletingCodeEditor, CompletingCodeEditorState,
+};
 use termrock_layout::{ChildPolicy, Composition as LayoutComposition, Constraints, Size};
 use termrock_navigation::{Tabs, TabsState};
 pub use termrock_runtime::CompositionError;
@@ -17,7 +20,8 @@ use termrock_runtime::{CompositionSlots, ContentSlot, MAX_COMPOSITION_DEPTH, Mea
 
 /// A borrowed component configured for placement in a composition group.
 ///
-/// Create children with [`button`] or [`tabs`], then place them in a [`Group`].
+/// Create children with [`button`], [`tabs`], [`code_editor`], or
+/// [`completing_code_editor`], then place them in a [`Group`].
 /// The component and its state remain owned by the application.
 pub struct Child<'a> {
     content: ChildContent<'a>,
@@ -89,6 +93,68 @@ impl Measure for ButtonLeaf<'_, '_> {
 impl CompositionLeaf for ButtonLeaf<'_, '_> {
     fn draw(&self, ui: &mut Ui<'_>, logical: ratatui_core::layout::Rect) {
         self.0.draw(ui, logical);
+    }
+}
+
+/// Adapt a code editor with its caller-owned editing state.
+pub fn code_editor<'a, 'config>(
+    component: &'a CodeEditor<'config>,
+    state: &'a CodeEditorState,
+) -> Child<'a>
+where
+    'config: 'a,
+{
+    Child {
+        content: ChildContent::Leaf(Box::new(CodeEditorLeaf { component, state })),
+        policy: ChildPolicy::default(),
+    }
+}
+
+struct CodeEditorLeaf<'a, 'config> {
+    component: &'a CodeEditor<'config>,
+    state: &'a CodeEditorState,
+}
+
+impl Measure for CodeEditorLeaf<'_, '_> {
+    fn measure(&self, ui: &Ui<'_>, constraints: Constraints) -> Size {
+        self.component.measure(ui, constraints)
+    }
+}
+
+impl CompositionLeaf for CodeEditorLeaf<'_, '_> {
+    fn draw(&self, ui: &mut Ui<'_>, logical: ratatui_core::layout::Rect) {
+        self.component.draw(ui, logical, self.state);
+    }
+}
+
+/// Adapt a completing code editor with its caller-owned editor and completion state.
+pub fn completing_code_editor<'a, 'config>(
+    component: &'a CompletingCodeEditor<'config>,
+    state: &'a CompletingCodeEditorState,
+) -> Child<'a>
+where
+    'config: 'a,
+{
+    Child {
+        content: ChildContent::Leaf(Box::new(CompletingCodeEditorLeaf { component, state })),
+        policy: ChildPolicy::default(),
+    }
+}
+
+struct CompletingCodeEditorLeaf<'a, 'config> {
+    component: &'a CompletingCodeEditor<'config>,
+    state: &'a CompletingCodeEditorState,
+}
+
+impl Measure for CompletingCodeEditorLeaf<'_, '_> {
+    fn measure(&self, ui: &Ui<'_>, constraints: Constraints) -> Size {
+        self.component.measure(ui, constraints)
+    }
+}
+
+impl CompositionLeaf for CompletingCodeEditorLeaf<'_, '_> {
+    fn draw(&self, ui: &mut Ui<'_>, logical: ratatui_core::layout::Rect) {
+        self.component.draw(ui, logical, self.state);
     }
 }
 

@@ -3,9 +3,11 @@ use core::fmt;
 use ratatui::Terminal;
 use ratatui::backend::TestBackend;
 use ratatui_core::layout::{Position, Rect};
+use termrock::editors::{CompletionBatch, CompletionTrigger};
 use termrock::{
-    App, Button, Cx, Id, Input, ItemKey, Key, KeyCode, KeyModifiers, Mouse, MouseKind, Response,
-    Runtime, Tabs, TabsAction, TabsState, Theme, composition,
+    App, Button, CodeEditor, CodeEditorState, CompletingCodeEditor, CompletingCodeEditorState, Cx,
+    Id, Input, ItemKey, Key, KeyCode, KeyModifiers, Mouse, MouseKind, Response, Runtime, Tabs,
+    TabsAction, TabsState, Theme, composition,
     layout::{Composition, Insets},
 };
 
@@ -210,6 +212,119 @@ fn composition_honors_intrinsic_gap_padding_and_child_maximum() {
     assert!(button.width <= 8);
     assert!(tabs.x > button.x + button.width);
     assert!(tabs.width <= 8, "explicit child max is applied");
+}
+
+const CODE: Id = Id::root("external.code");
+const COMPLETING_CODE: Id = Id::root("external.completing_code");
+const COMPLETION: Id = Id::root("external.completion");
+
+fn no_completions(_: &str, _: usize, _: CompletionTrigger) -> Option<CompletionBatch> {
+    None
+}
+
+struct EditorConsumer {
+    editor: CodeEditor<'static>,
+    editor_state: CodeEditorState,
+    completing: CompletingCodeEditor<'static>,
+    completing_state: CompletingCodeEditorState,
+}
+
+impl EditorConsumer {
+    fn new() -> Self {
+        let editor = CodeEditor::new(CODE, 4).fill_height(true);
+        let completing = CodeEditor::new(COMPLETING_CODE, 4)
+            .fill_height(true)
+            .with_completion(COMPLETION, &no_completions);
+        let mut editor_state = CodeEditorState::new("SELECT 👩🏽‍💻\nλ");
+        editor_state.begin_edit();
+        let mut completing_state = CompletingCodeEditorState::new("");
+        completing_state.editor_mut().begin_edit();
+        Self {
+            editor,
+            editor_state,
+            completing,
+            completing_state,
+        }
+    }
+}
+
+impl App for EditorConsumer {
+    fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+        self.editor.update(cx, &mut self.editor_state).erase()
+            | self
+                .completing
+                .update(cx, &mut self.completing_state)
+                .erase()
+    }
+
+    fn draw(&self, ui: &mut termrock::Ui<'_>) {
+        composition::Group::column([composition::Group::row([
+            composition::code_editor(&self.editor, &self.editor_state).flex(1),
+            composition::completing_code_editor(&self.completing, &self.completing_state).flex(1),
+        ])
+        .into_child()
+        .flex(1)])
+        .show(ui)
+        .expect("editor composition is within the supported depth");
+    }
+}
+
+#[test]
+fn public_facade_composes_editors_with_unicode_empty_state_and_resolved_bounds() {
+    let root = Rect::new(0, 0, 56, 5);
+    let mut runtime = Runtime::new(EditorConsumer::new(), Theme::junie());
+    let mut terminal = Terminal::new(TestBackend::new(root.width, root.height)).unwrap();
+    render(&mut runtime, &mut terminal, root);
+
+    let editor_area = runtime.area_of(CODE).expect("code editor hit area");
+    let completing_area = runtime
+        .area_of(COMPLETING_CODE)
+        .expect("completing editor hit area");
+    assert!(within(root, editor_area));
+    assert!(within(root, completing_area));
+    assert!(editor_area.width > 0 && editor_area.height > 0);
+    assert!(completing_area.width > 0 && completing_area.height > 0);
+    assert_eq!(editor_area.height.saturating_add(1), root.height);
+    assert_eq!(completing_area.height.saturating_add(1), root.height);
+    assert!(editor_area.x < completing_area.x);
+
+    let point = Position::new(editor_area.x, editor_area.y);
+    let _ = runtime
+        .handle(Input::Mouse(Mouse {
+            kind: MouseKind::Down,
+            pos: point,
+            mods: KeyModifiers::NONE,
+        }))
+        .expect("pointer focus is dispatched through the editor hit region");
+    render(&mut runtime, &mut terminal, root);
+    let _ = runtime
+        .handle(Input::Key(Key {
+            code: KeyCode::Char('界'),
+            mods: KeyModifiers::NONE,
+        }))
+        .expect("Unicode text input is dispatched through the focused editor");
+
+    assert!(runtime.app().editor_state.text().contains('界'));
+    assert_eq!(runtime.app().completing_state.editor().text(), "");
+    assert!(
+        runtime
+            .cursor()
+            .is_some_and(|cursor| within(root, Rect::new(cursor.x, cursor.y, 1, 1)))
+    );
+
+    let resized = Rect::new(0, 0, 36, 3);
+    let mut resized_terminal =
+        Terminal::new(TestBackend::new(resized.width, resized.height)).unwrap();
+    render(&mut runtime, &mut resized_terminal, resized);
+    let resized_editor_area = runtime
+        .area_of(CODE)
+        .expect("editor layout refreshes after resize");
+    assert!(within(resized, resized_editor_area));
+    assert!(
+        runtime
+            .cursor()
+            .is_some_and(|cursor| within(resized, Rect::new(cursor.x, cursor.y, 1, 1)))
+    );
 }
 
 struct DepthGuardConsumer;
