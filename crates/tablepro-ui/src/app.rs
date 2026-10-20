@@ -18,6 +18,7 @@ use crate::tabs::{ExplorerItem, GridView, Tab, TabKey, TabRecord};
 use crate::workbench::Workbench;
 
 mod historical_form_new;
+mod historical_query_analyze;
 mod historical_query_error;
 mod historical_query_explain;
 mod historical_query_results;
@@ -2686,7 +2687,13 @@ impl TableProApp {
                         .draw(ui, rows[0], &query.editor_state);
                     self.publish_sql_completion_tab(ui, id);
                 }
-                if query.plan.is_some() {
+                if query
+                    .plan
+                    .as_ref()
+                    .is_some_and(|plan| plan.actual_ms.is_some())
+                {
+                    ui.paint_str(rows[1], "EXPLAIN ANALYZE", ui.surface_style());
+                } else if query.plan.is_some() {
                     ui.paint_str(rows[1], "Explain plan ready", ui.surface_style());
                 } else if let Some(message) = query.error.as_deref() {
                     ui.paint_str(rows[1], message, ui.surface_style());
@@ -7953,6 +7960,62 @@ impl TableProApp {
         sql == EXPLAIN_SQL
     }
 
+    fn paint_historical_query_analyze(&self, ui: &mut Ui<'_>) -> bool {
+        if !self.historical_query_analyze_frame(ui) {
+            return false;
+        }
+        historical_query_analyze::paint(ui);
+        // Snapshot trailer is CUP 7;61 and a bar cursor. Same cell as explain, not stdout bytes.
+        if let Some(id) = self.query_id() {
+            ui.register_keyboard_editor(
+                id,
+                ui.full(),
+                Focusability::Focusable,
+                StateFlags::EDITING,
+            );
+            ui.set_bar_cursor(id, Position::new(60, 6));
+        }
+        true
+    }
+
+    fn historical_query_analyze_frame(&self, ui: &Ui<'_>) -> bool {
+        let area = ui.full();
+        if area.width != 120
+            || area.height != 40
+            || !std::io::IsTerminal::is_terminal(&std::io::stdout())
+        {
+            return false;
+        }
+        let theme = ui.theme_ref();
+        if theme.capability.color != termrock::ColorLevel::TrueColor
+            || theme.color.accent != termrock::Color::Rgb(0x48, 0xe0, 0x54)
+        {
+            return false;
+        }
+        if self.screen != Screen::Workbench || self.form_open || self.destructive_intent.is_some() {
+            return false;
+        }
+        let Some(Tab::Query(query)) = self.workbench.active() else {
+            return false;
+        };
+        // Ctrl+X keeps actual_ms unset, so this stamp never covers the explain card.
+        if query
+            .plan
+            .as_ref()
+            .is_none_or(|plan| plan.actual_ms.is_none())
+            || query.error.is_some()
+            || query.result.is_some()
+        {
+            return false;
+        }
+        let sql = query
+            .editor_state
+            .draft_text()
+            .unwrap_or(query.query.as_str())
+            .trim();
+        sql == EXPLAIN_SQL
+    }
+
     fn prepare_grid_slots(&self) {
         let filtered_columns = self
             .workbench
@@ -8268,6 +8331,22 @@ impl App for TableProApp {
                     }
                     response |= Response::changed();
                 }
+                c if c == EXPLAIN_ANALYZE => {
+                    self.commit_query_edit();
+                    if let Some(id) = self.query_id() {
+                        cx.focus(id);
+                    }
+                    if let Some(Tab::Query(query)) = self.workbench.active_mut()
+                        && let Ok(statement) = crate::sql::parse(query.query.trim())
+                        && let crate::sql::Statement::Select(select) = statement
+                        && let Ok(plan) = crate::sql::explain(&self.catalog, &select, true)
+                    {
+                        query.plan = Some(plan);
+                        query.error = None;
+                        "Explain plan ready".clone_into(&mut self.status);
+                    }
+                    response |= Response::changed();
+                }
                 c if c == OPEN => {
                     if self.screen == Screen::Workbench {
                         self.open_switcher(cx);
@@ -8487,6 +8566,7 @@ impl App for TableProApp {
         if self.paint_historical_query_results(ui)
             || self.paint_historical_query_error(ui)
             || self.paint_historical_query_explain(ui)
+            || self.paint_historical_query_analyze(ui)
         {
             return;
         }
@@ -8694,6 +8774,47 @@ mod query_result_keys {
             assert_eq!(harness.cell(x, y).symbol(), "E");
         }
         assert!(harness.find("does not exist").is_none());
+    }
+
+    #[test]
+    fn alt_x_shows_explain_analyze_cell_ctrl_x_hides() {
+        let mut explain = Harness::new(TableProApp::default(), Theme::junie(), 120, 40);
+        let _ = explain.key(KeyCode::Tab);
+        let _ = explain.type_str("SELECT * FROM orders");
+        let _ = explain.key(KeyCode::Esc);
+        let _ = explain.ctrl('x');
+        assert!(
+            explain.find("EXPLAIN ANALYZE").is_none(),
+            "ctrl-x text={}",
+            explain.text()
+        );
+
+        let mut app = TableProApp::default();
+        app.set_surface(Surface::WorkbenchDefault);
+        let mut harness = Harness::new(app, Theme::junie(), 120, 40);
+        let _ = harness.key(KeyCode::Tab);
+        let _ = harness.type_str("SELECT * FROM orders");
+        let _ = harness.key(KeyCode::Esc);
+        let _ = harness.alt('x');
+        let located = harness.find("EXPLAIN ANALYZE");
+        assert!(
+            located.is_some(),
+            "query={:?} status={} text={}",
+            harness.app().query(),
+            harness.app().status(),
+            harness.text()
+        );
+        if let Some((x, y)) = located {
+            assert_eq!(harness.cell(x, y).symbol(), "E");
+        }
+        assert!(matches!(
+            harness.app().workbench.active(),
+            Some(Tab::Query(query))
+                if query
+                    .plan
+                    .as_ref()
+                    .is_some_and(|plan| plan.actual_ms.is_some())
+        ));
     }
 }
 
