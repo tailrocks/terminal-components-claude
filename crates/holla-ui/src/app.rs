@@ -1252,7 +1252,11 @@ impl App {
         } else if crate::sim::catalogue::first_use_tag_frame(&self.world) {
             Some(("Open", None))
         } else if crate::sim::catalogue::monorepo_root_tag_frame(&self.world) {
-            Some(("Open", Some("Inspect 1…")))
+            if self.home.history {
+                Some(("Trust…", Some("Deploy …")))
+            } else {
+                Some(("Open", Some("Inspect 1…")))
+            }
         } else if crate::sim::catalogue::monorepo_child_tag_frame(&self.world) {
             Some(("Open", Some("Inspect 3…")))
         } else {
@@ -1856,6 +1860,58 @@ mod tests {
             "{:?}",
             harness.diagnostics()
         );
+    }
+    #[test]
+    fn monorepo_root_history_frame_40_paints_the_deploy_tag_and_later_seeks_keep_home() {
+        let mut app = App::for_scenario(Scenario::MonorepoRoot, Motion::Paused, 40);
+        app.home.history = true;
+        let screen = harness(app, Theme::junie(), 120, 40);
+        let text = screen.text();
+        let lines: Vec<&str> = text.lines().collect();
+        assert!(lines[7].contains("› Deploy preview"), "{}", lines[7]);
+        assert!(lines[7].contains("Current folder…"), "{}", lines[7]);
+        assert!(lines[8].contains("Follow acme-api-1 logs"), "{}", lines[8]);
+        assert!(lines[8].contains("push the current branch"), "{}", lines[8]);
+        assert!(
+            lines[10].contains("tools/deploy-pre…preview"),
+            "{}",
+            lines[10]
+        );
+        assert!(lines[14].contains("Pull"), "{}", lines[14]);
+        assert!(lines[14].contains("used 20 times on mbp"), "{}", lines[14]);
+        assert!(lines[18].contains("mutating"), "{}", lines[18]);
+        assert!(lines[20].contains("trust required"), "{}", lines[20]);
+        assert!(lines[39].contains("Enter Trust…"), "{}", lines[39]);
+        assert!(lines[39].contains("Deploy …"), "{}", lines[39]);
+        assert!(!text.contains("nothing used here yet"), "{text}");
+        assert!(!text.contains("holla disk anal"), "{text}");
+        let selected = screen.cell(2, 7);
+        assert_eq!(selected.symbol(), "›");
+        assert_eq!(selected.bg, Color::Rgb(0x2f, 0x5a, 0xa8));
+        assert!(selected.modifier.contains(termrock::Modifier::BOLD));
+        let runs = screen.cell(92, 10);
+        assert_eq!(runs.symbol(), "t");
+        assert_eq!(runs.fg, Color::Rgb(0xb3, 0xb3, 0xb3));
+        let risk = screen.cell(92, 18);
+        assert_eq!(risk.symbol(), "m");
+        assert_eq!(risk.fg, Color::Rgb(0x8a, 0x8a, 0x8a));
+        assert!(
+            screen.diagnostics().is_empty(),
+            "{:?}",
+            screen.diagnostics()
+        );
+        let mut later_app = App::for_scenario(Scenario::MonorepoRoot, Motion::Paused, 4_000);
+        later_app.home.history = true;
+        let later = harness(later_app, Theme::junie(), 120, 40);
+        assert!(!later.text().contains("tools/deploy-pre"));
+        assert!(!later.text().contains("used 20 times on mbp"));
+        assert!(later.text().contains("Search actions"), "{}", later.text());
+        let mut stepped = App::for_scenario(Scenario::MonorepoRoot, Motion::Paused, 40);
+        stepped.home.history = true;
+        assert!(catalogue::monorepo_root_history_tag(&stepped.world).is_some());
+        assert!(termrock::App::accept_paused_clock_step(&mut stepped, 1_100));
+        assert!(catalogue::monorepo_root_history_tag(&stepped.world).is_none());
+        assert!(!catalogue::monorepo_root_tag_frame(&stepped.world));
     }
     #[test]
     fn monorepo_child_frame_40_paints_the_tag_plate_and_later_seeks_keep_home() {
