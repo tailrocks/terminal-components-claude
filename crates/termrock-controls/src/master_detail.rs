@@ -34,6 +34,34 @@ const CLOSE_DETAIL: &[Binding<MasterDetailCmd>] = &[Binding {
     visible: true,
 }];
 
+const CLOSE_DETAIL_LEFT: &[Binding<MasterDetailCmd>] = &[Binding {
+    action: ActionKey::custom("master_detail.close_detail_left"),
+    chord: Some(Chord::key(KeyCode::Left)),
+    cmd: MasterDetailCmd::CloseDetail,
+    label: "Back",
+    priority: 40,
+    visible: true,
+}];
+
+const CLOSE_DETAIL_BACKTAB: &[Binding<MasterDetailCmd>] = &[Binding {
+    action: ActionKey::custom("master_detail.close_detail_backtab"),
+    chord: Some(Chord::key(KeyCode::BackTab)),
+    cmd: MasterDetailCmd::CloseDetail,
+    label: "Back",
+    priority: 40,
+    visible: true,
+}];
+
+fn is_open_detail(action: ActionKey) -> bool {
+    Binding::command(OPEN_DETAIL, action) == Some(MasterDetailCmd::OpenDetail)
+}
+
+fn is_close_detail(action: ActionKey) -> bool {
+    [CLOSE_DETAIL, CLOSE_DETAIL_LEFT, CLOSE_DETAIL_BACKTAB]
+        .into_iter()
+        .any(|table| Binding::command(table, action) == Some(MasterDetailCmd::CloseDetail))
+}
+
 /// Responsive presentation chosen for a master/detail container.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub enum MasterDetailMode {
@@ -222,19 +250,12 @@ impl MasterDetail {
         self.esc_returns
     }
 
-    /// Route split resizing and the narrow drawer's Escape focus return.
+    /// Route split resizing and master/detail focus transitions at every width.
     pub fn update(&self, cx: &mut Cx<'_>, state: &mut MasterDetailState) -> Response<SplitAction> {
-        let narrow = cx
-            .layout(self.id)
-            .and_then(|facts| facts.logical_area)
-            .is_some_and(|area| area.width < self.collapse_below);
-        if narrow {
-            for intent in cx.intents(self.master) {
-                if matches!(intent, Intent::Binding(action) if Binding::command(OPEN_DETAIL, action) == Some(MasterDetailCmd::OpenDetail))
-                {
-                    self.open_drawer(state, cx);
-                    return Response::changed().for_id(self.id);
-                }
+        for intent in cx.intents(self.master) {
+            if matches!(intent, Intent::Binding(action) if is_open_detail(action)) {
+                self.open_drawer(state, cx);
+                return Response::changed().for_id(self.id);
             }
         }
         let detail_focused = self
@@ -243,11 +264,10 @@ impl MasterDetail {
             .copied()
             .chain([self.detail])
             .any(|id| cx.state(id).contains(crate::response::StateFlags::FOCUSED));
-        if (state.drawer_open.get() || (narrow && detail_focused)) && self.esc_returns {
+        if detail_focused && self.esc_returns {
             for owner in self.detail_owners.iter().copied().chain([self.detail]) {
                 for intent in cx.intents(owner) {
-                    if matches!(intent, Intent::Binding(action) if Binding::command(CLOSE_DETAIL, action) == Some(MasterDetailCmd::CloseDetail))
-                    {
+                    if matches!(intent, Intent::Binding(action) if is_close_detail(action)) {
                         self.close_drawer(state, cx);
                         return Response::changed().for_id(self.id);
                     }
@@ -336,7 +356,11 @@ impl MasterDetail {
             let split_state = state
                 .split
                 .unwrap_or_else(|| SplitPaneState::new(self.master_share));
-            return split.draw(ui, area, &split_state, |ui, _, _| body(ui, layout));
+            return split.draw(ui, area, &split_state, |ui, _, _| {
+                let result = body(ui, layout);
+                self.publish_navigation_bindings(ui);
+                result
+            });
         }
         ui.report_layout(
             self.id,
@@ -344,17 +368,34 @@ impl MasterDetail {
         );
         ui.with_area(area, |ui| {
             let result = body(ui, layout);
-            if layout.mode == MasterDetailMode::Master {
-                let live = ui.state(self.master);
-                ui.publish_bindings(self.master, live, OPEN_DETAIL);
-            } else if layout.mode == MasterDetailMode::Drawer && self.esc_returns {
-                for owner in self.detail_owners.iter().copied().chain([self.detail]) {
-                    let live = ui.state(owner);
-                    ui.publish_bindings(owner, live, CLOSE_DETAIL);
-                }
-            }
+            self.publish_navigation_bindings(ui);
             result
         })
+    }
+
+    fn publish_navigation_bindings(&self, ui: &mut Ui<'_>) {
+        let master = ui.state(self.master);
+        ui.publish_dynamic_bindings(
+            self.master,
+            master,
+            OPEN_DETAIL
+                .iter()
+                .map(|binding| (binding.action, binding.chord)),
+        );
+        if self.esc_returns {
+            for owner in self.detail_owners.iter().copied().chain([self.detail]) {
+                let live = ui.state(owner);
+                ui.publish_dynamic_bindings(
+                    owner,
+                    live,
+                    CLOSE_DETAIL
+                        .iter()
+                        .chain(CLOSE_DETAIL_LEFT)
+                        .chain(CLOSE_DETAIL_BACKTAB)
+                        .map(|binding| (binding.action, binding.chord)),
+                );
+            }
+        }
     }
 
     fn split_pane(&self) -> SplitPane<'static> {
@@ -532,6 +573,46 @@ mod tests {
     const DETAIL_CHILD: Id = Id::root("master-detail.detail.child");
     const MODAL: Id = Id::root("master-detail.modal");
     const MODAL_FOCUS: Id = Id::root("master-detail.modal.focus");
+    const MASTER_TAB_ACTION: ActionKey = ActionKey::custom("master_detail.test.master_tab");
+    const MASTER_CHILD_BINDINGS: &[Binding<MasterDetailCmd>] = &[Binding {
+        action: MASTER_TAB_ACTION,
+        chord: Some(Chord::key(KeyCode::Tab)),
+        cmd: MasterDetailCmd::OpenDetail,
+        label: "Next master control",
+        priority: 50,
+        visible: true,
+    }];
+
+    struct WideNavigationApp {
+        state: MasterDetailState,
+        area: Rect,
+        child_tab_seen: bool,
+        child_tab_binding: bool,
+        keymap: KeyMap,
+    }
+
+    impl App for WideNavigationApp {
+        fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+            self.child_tab_seen |= cx.intents(MD.master).any(
+                |intent| matches!(intent, Intent::Binding(action) if action == MASTER_TAB_ACTION),
+            );
+            MD.update(cx, &mut self.state).erase()
+        }
+
+        fn draw(&self, ui: &mut Ui<'_>) {
+            MD.draw(ui, self.area, &self.state, |ui, layout| {
+                ui.register_focus_only(MD.master, Focusability::Focusable);
+                ui.register_focus_only(MD.detail, Focusability::Focusable);
+                if layout.mode == MasterDetailMode::Split && self.child_tab_binding {
+                    ui.publish_bindings(MD.master, ui.state(MD.master), MASTER_CHILD_BINDINGS);
+                }
+            });
+        }
+
+        fn keymap(&self) -> &KeyMap {
+            &self.keymap
+        }
+    }
 
     impl App for ResizeApp {
         fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
@@ -584,6 +665,104 @@ mod tests {
 
         let _ = deliver(&mut runtime, key(KeyCode::Esc));
         assert!(!runtime.app().state.drawer_open());
+        assert_eq!(runtime.focus(), Some(MD.master));
+    }
+
+    #[test]
+    fn split_navigation_tab_and_close_controls_work_at_wide_width() {
+        let area = Rect::new(0, 0, 120, 40);
+        let mut runtime = Runtime::new(
+            WideNavigationApp {
+                state: MasterDetailState::default(),
+                area,
+                child_tab_seen: false,
+                child_tab_binding: false,
+                keymap: KeyMap::new(),
+            },
+            Theme::junie(),
+        );
+        let _ = runtime.initialize();
+        let mut buffer = ratatui_core::buffer::Buffer::empty(area);
+        runtime.draw_buffer(area, &mut buffer).commit_presented();
+        runtime.set_focus(Some(MD.master));
+        buffer = ratatui_core::buffer::Buffer::empty(area);
+        runtime.draw_buffer(area, &mut buffer).commit_presented();
+        assert_eq!(runtime.focus(), Some(MD.master));
+
+        let _ = deliver(&mut runtime, key(KeyCode::Tab));
+        assert_eq!(runtime.focus(), Some(MD.detail));
+        assert!(runtime.app().state.drawer_open());
+        assert!(!runtime.is_open(MODAL));
+
+        for close in [KeyCode::BackTab, KeyCode::Left, KeyCode::Esc] {
+            buffer = ratatui_core::buffer::Buffer::empty(area);
+            runtime.draw_buffer(area, &mut buffer).commit_presented();
+            let _ = deliver(&mut runtime, key(close));
+            assert_eq!(runtime.focus(), Some(MD.master), "close key {close:?}");
+            assert!(!runtime.app().state.drawer_open(), "close key {close:?}");
+            runtime.set_focus(Some(MD.detail));
+            buffer = ratatui_core::buffer::Buffer::empty(area);
+            runtime.draw_buffer(area, &mut buffer).commit_presented();
+        }
+    }
+
+    #[test]
+    fn child_binding_precedes_container_tab_binding_without_being_replaced() {
+        let area = Rect::new(0, 0, 120, 40);
+        let mut runtime = Runtime::new(
+            WideNavigationApp {
+                state: MasterDetailState::default(),
+                area,
+                child_tab_seen: false,
+                child_tab_binding: true,
+                keymap: KeyMap::new(),
+            },
+            Theme::junie(),
+        );
+        let _ = runtime.initialize();
+        let mut buffer = ratatui_core::buffer::Buffer::empty(area);
+        runtime.draw_buffer(area, &mut buffer).commit_presented();
+        runtime.set_focus(Some(MD.master));
+        buffer = ratatui_core::buffer::Buffer::empty(area);
+        runtime.draw_buffer(area, &mut buffer).commit_presented();
+
+        let _ = deliver(&mut runtime, key(KeyCode::Tab));
+        assert!(runtime.app().child_tab_seen);
+        assert_eq!(runtime.focus(), Some(MD.master));
+        assert!(!runtime.app().state.drawer_open());
+    }
+
+    #[test]
+    fn wide_close_action_remains_remappable() {
+        let area = Rect::new(0, 0, 120, 40);
+        let mut keymap = KeyMap::new();
+        keymap.remap_component(
+            MD.detail,
+            ActionKey::custom("master_detail.close_detail"),
+            Chord::key(KeyCode::Backspace),
+        );
+        let mut runtime = Runtime::new(
+            WideNavigationApp {
+                state: MasterDetailState::default(),
+                area,
+                child_tab_seen: false,
+                child_tab_binding: false,
+                keymap,
+            },
+            Theme::junie(),
+        );
+        let _ = runtime.initialize();
+        let mut buffer = ratatui_core::buffer::Buffer::empty(area);
+        runtime.draw_buffer(area, &mut buffer).commit_presented();
+        runtime.set_focus(Some(MD.master));
+        buffer = ratatui_core::buffer::Buffer::empty(area);
+        runtime.draw_buffer(area, &mut buffer).commit_presented();
+        let _ = deliver(&mut runtime, key(KeyCode::Tab));
+        assert_eq!(runtime.focus(), Some(MD.detail));
+
+        let _ = deliver(&mut runtime, key(KeyCode::Esc));
+        assert_eq!(runtime.focus(), Some(MD.detail));
+        let _ = deliver(&mut runtime, key(KeyCode::Backspace));
         assert_eq!(runtime.focus(), Some(MD.master));
     }
 
