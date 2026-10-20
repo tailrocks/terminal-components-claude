@@ -1109,7 +1109,11 @@ mod tests {
                 chord: Chord::key(KeyCode::Esc),
             })
         );
-        assert_eq!(registry.tables.len(), 1, "a rejected extension published a table");
+        assert_eq!(
+            registry.tables.len(),
+            1,
+            "a rejected extension published a table"
+        );
         assert_eq!(
             registry.descriptors.len(),
             1,
