@@ -75,6 +75,15 @@ has 182 tests (171 pass, 11 fail); the 11 failing names are identical. The new
 single passing test is `unfocused_grid_cursor_does_not_style_the_cursor_row`.
 This remains a focused regression comparison, not application acceptance.
 
+Superseding the `1dbf3b2c` attribution above, PR source
+`d371d8f4460d940c2fc460bc3b0a1e79924e9265` removes the historical scrolled
+TablePro grid module. With the four Grid-owned source/test files restored,
+`cargo nextest run -p tablepro-ui --all-targets` runs 180 tests (169 pass, 11
+fail). The merged candidate runs 181 tests (170 pass, 11 fail); both runs have
+the exact same 11 failure names above. The added passing test is
+`unfocused_grid_cursor_does_not_style_the_cursor_row`. Grid/theme remains 263/263
+on this merged source. No product parity acceptance is implied.
+
 Updated: 2026-10-21. Status: **in progress; all four applications incomplete**. This is the current migration record. Older audit reports remain evidence, not a complete inventory or acceptance declaration.
 
 ## CI feature-gate increment — 2026-10-21
