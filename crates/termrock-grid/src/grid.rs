@@ -1636,6 +1636,11 @@ fn active_cell_style(
                 .add_modifier
                 .difference(cell.resolved.style.as_style().add_modifier),
         );
+    if row_style.as_style().underline_color.is_some()
+        && cell.resolved.style.as_style().underline_color.is_none()
+    {
+        active_style = active_style.underline_color(ratatui_core::style::Color::Reset);
+    }
     if strike && !cell.explicit.remove.contains(Modifier::CROSSED_OUT) {
         active_style = active_style.add_modifier(Modifier::CROSSED_OUT);
     }
@@ -1659,7 +1664,9 @@ fn inherited_style_defaults(style: PaintStyle, explicit: StylePatch) -> StyleDef
     } else if matches!(explicit.bg, Slot::Clear) {
         base = base.clear_bg();
     }
-    if let Some(color) = raw.underline_color {
+    if let Some((role, _)) = style.underline_role() {
+        base = base.set_underline(role);
+    } else if let Some(color) = raw.underline_color {
         base = base.set_underline(Role::Custom(color));
     } else if matches!(explicit.underline, Slot::Clear) {
         base.underline = Slot::Clear;
@@ -4228,18 +4235,26 @@ mod tests {
         ] {
             let theme = Theme::junie()
                 .override_family(Family::GRID, |recipe| {
-                    recipe
-                        .part(Part::ROW)
-                        .when(StateFlags::FOCUSED, StylePatch::new().add(Modifier::ITALIC));
+                    recipe.part(Part::ROW).when(
+                        StateFlags::FOCUSED,
+                        StylePatch::new()
+                            .add(Modifier::ITALIC)
+                            .set_underline(Role::Fg(FgStep::Faint)),
+                    );
                 })
                 .for_level(level);
-            let buffer = focused_grid_buffer(theme);
+            let mut model = Model::two();
+            model.hole = Some((0, 1));
+            let buffer = focused_grid_buffer_with_model(theme, model);
             let cursor = buffer
                 .cell(Position::new(2, 1))
                 .expect("cursor cell exists");
             let non_cursor = buffer
                 .cell(Position::new(11, 1))
                 .expect("non-cursor cell exists");
+            let row_gutter = buffer
+                .cell(Position::new(1, 1))
+                .expect("row gutter cell exists");
 
             assert!(
                 non_cursor.modifier.contains(Modifier::ITALIC),
@@ -4248,6 +4263,15 @@ mod tests {
             assert!(
                 !cursor.modifier.contains(Modifier::ITALIC),
                 "the ACTIVE cursor cell replaces its inherited row style at {level:?}"
+            );
+            assert_eq!(
+                non_cursor.underline_color, row_gutter.underline_color,
+                "semantic row underline provenance survives CELL binding at {level:?}"
+            );
+            assert_eq!(
+                cursor.underline_color,
+                ratatui_core::style::Color::Reset,
+                "the ACTIVE cursor cell keeps its independent underline style at {level:?}"
             );
         }
     }
