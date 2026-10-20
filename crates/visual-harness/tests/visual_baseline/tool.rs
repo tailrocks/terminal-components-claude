@@ -1,20 +1,3 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 use crate::scenarios;
 use crate::support;
 
@@ -74,7 +57,6 @@ fn list() {
         );
     }
 }
-
 
 pub const ENV_PROBE_END: &str = "END-OF-ENV";
 
