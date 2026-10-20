@@ -177,6 +177,10 @@ fn switcher_query_is_absent_from_app_debug() {
     assert!(h.diagnostics().is_empty(), "{:?}", h.diagnostics());
 }
 
+#[expect(
+    clippy::expect_used,
+    reason = "the interaction fixture's required tab identities must fail clearly"
+)]
 #[test]
 fn tab_list_picker_uses_stable_tab_keys_for_filter_activation_and_delete() {
     use termrock::{ItemKey, Part, PartRef};
@@ -197,6 +201,12 @@ fn tab_list_picker_uses_stable_tab_keys_for_filter_activation_and_delete() {
 
     let _ = h.ctrl('g');
     assert!(h.layer_area(TAB_LIST).is_some());
+    let area = h.layer_area(TAB_LIST).expect("tab picker layer");
+    assert_eq!(
+        (area.x, area.y, area.width, area.height),
+        (28, 15, 64, 10),
+        "three searchable tabs center the full picker in 120x40"
+    );
     assert!(h.text().contains("Open tabs"));
     assert!(h.text().contains("Query 1"));
     let _ = h.type_str("Query 1");
@@ -242,9 +252,20 @@ fn tab_list_picker_uses_stable_tab_keys_for_filter_activation_and_delete() {
     assert!(h.diagnostics().is_empty(), "{:?}", h.diagnostics());
 }
 
+#[expect(
+    clippy::expect_used,
+    reason = "the geometry regression requires a rendered query and picker layer"
+)]
 #[test]
 fn tab_list_picker_keeps_the_frozen_single_tab_geometry() {
     let mut h = connected();
+    while h.app().workbench.tabs().len() > 1 {
+        let last = h.app().workbench.tabs().len() - 1;
+        assert!(h.app_mut().workbench.close_tab(last));
+    }
+    let query = h.app().query_id().expect("initial query tab");
+    assert!(h.tab_to(query));
+    h.draw();
     let _ = h.ctrl('g');
     let area = h.layer_area(TAB_LIST).expect("open tab picker");
     assert_eq!((area.x, area.y, area.width, area.height), (28, 16, 64, 8));
