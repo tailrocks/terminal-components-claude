@@ -1221,6 +1221,7 @@ mod tests {
         let _ = termrock_runtime::runtime::stub::deliver(&mut runtime, Input::Tick);
         runtime.draw_buffer(area, &mut buffer).commit_presented();
         assert_eq!(runtime.focus(), Some(ID));
+        assert_eq!(runtime.area_of(ID), Some(area));
 
         let _ = termrock_runtime::runtime::stub::deliver(
             &mut runtime,
