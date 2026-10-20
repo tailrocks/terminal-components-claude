@@ -17,38 +17,15 @@ const FORBIDDEN: [&str; 13] = [
     "fastrand",
 ];
 
-const INSTANT_ALLOWED: [(&str, usize, &str); 3] = [
-    (
-        "src/runtime.rs",
-        5,
-        "tick timer, input-burst coalescing, the redraw when delayed hover content is due, and the window-activating click guard (a real terminal's focus report; captures send none): when a frame is drawn or which real input arrives, not what a frame shows",
-    ),
-    (
-        "src/core/typeahead.rs",
-        1,
-        "type-ahead buffer reset after a pause between keys",
-    ),
-    (
-        "src/clock.rs",
-        1,
-        "WallClock origin: apps read it for press-flash and status expiry, which only happen on a tick (stopped by --motion paused); SimClock never reads it",
-    ),
-];
+const INSTANT_ALLOWED: [(&str, usize, &str); 1] = [(
+    "crates/termrock-session/src/session.rs",
+    1,
+    "session loop scheduling; controls when another frame is drawn, not frame content",
+)];
 
 const REVIEWED_PATTERNS: [&str; 2] = ["Instant::now", "target_os"];
 
-const TARGET_OS_ALLOWED: [(&str, usize, &str); 2] = [
-    (
-        "src/runtime.rs",
-        8,
-        "job-control suspend (SIGTSTP) support per OS; never drawn",
-    ),
-    (
-        "src/core/event.rs",
-        1,
-        "ClientPlatform::build_target fallback; captures pin JUNIE_TUI_CLIENT_PLATFORM (support::PINNED_ENV)",
-    ),
-];
+const TARGET_OS_ALLOWED: [(&str, usize, &str); 0] = [];
 
 pub fn code_only(text: &str) -> String {
     let c: Vec<char> = text.chars().collect();
@@ -142,15 +119,33 @@ fn contains_word(line: &str, pat: &str) -> bool {
 }
 
 pub fn non_test(text: &str) -> &str {
+    let lines: Vec<_> = text.split_inclusive('\n').collect();
     let mut offset = 0;
-    let mut lines = text.split_inclusive('\n').peekable();
-    while let Some(line) = lines.next() {
-        if line.trim() == "#[cfg(test)]"
-            && lines
-                .peek()
-                .is_some_and(|next| next.trim_start().starts_with("mod "))
-        {
-            return &text[..offset];
+    for (index, line) in lines.iter().enumerate() {
+        if line.trim() == "#[cfg(test)]" {
+            let mut depth = 0isize;
+            let mut found_item = false;
+            for candidate in lines.iter().skip(index + 1) {
+                let trimmed = candidate.trim();
+                if depth > 0 {
+                    depth += trimmed.matches('(').count() as isize;
+                    depth -= trimmed.matches(')').count() as isize;
+                    continue;
+                }
+                if trimmed.is_empty() || trimmed.starts_with("//") {
+                    continue;
+                }
+                if trimmed.starts_with("#[") {
+                    depth += trimmed.matches('(').count() as isize;
+                    depth -= trimmed.matches(')').count() as isize;
+                    continue;
+                }
+                found_item = trimmed.starts_with("mod ");
+                break;
+            }
+            if found_item {
+                return &text[..offset];
+            }
         }
         offset += line.len();
     }
@@ -173,15 +168,62 @@ fn sources(dir: &Path, out: &mut Vec<std::path::PathBuf>) {
     }
 }
 
-fn scan(root: &Path) -> (Vec<String>, BTreeMap<(String, String), usize>) {
+pub(super) fn source_roots(workspace: &Path) -> Vec<std::path::PathBuf> {
+    let crates = workspace.join("crates");
+    let entries =
+        std::fs::read_dir(&crates).unwrap_or_else(|e| panic!("list {}: {e}", crates.display()));
+    // Scan every production crate by default. Test and repository-tool crates are listed here;
+    // docs/audits/2026-10-20-harness-paths.md records why each is outside render-source scope.
+    let excluded = [
+        "termrock-conformance",
+        "termrock-e2e",
+        "termrock-test-support",
+        "termrock-visibility-publisher",
+        "termrock-visibility-tests",
+        "termrock-xtask",
+        "visual-harness",
+    ];
+    let mut roots = Vec::new();
+    for entry in entries {
+        let path = entry.expect("crate entry").path();
+        if !path.is_dir() || !path.join("Cargo.toml").is_file() {
+            continue;
+        }
+        let Some(name) = path.file_name().and_then(|n| n.to_str()) else {
+            continue;
+        };
+        if excluded.contains(&name) {
+            continue;
+        }
+        let src = path.join("src");
+        if src.is_dir() {
+            roots.push(src);
+        }
+    }
+    roots.sort();
+    roots
+}
+
+fn scan_roots(
+    workspace: &Path,
+    roots: &[std::path::PathBuf],
+) -> (Vec<String>, BTreeMap<(String, String), usize>, usize) {
+    assert!(
+        !roots.is_empty(),
+        "no application or termrock source roots found under {}",
+        workspace.display()
+    );
     let mut files = Vec::new();
-    sources(&root.join("src"), &mut files);
+    for root in roots {
+        sources(root, &mut files);
+    }
     files.sort();
+    let source_count = files.len();
     let mut hits = Vec::new();
     let mut instants = BTreeMap::new();
     for file in files {
         let rel = file
-            .strip_prefix(root)
+            .strip_prefix(workspace)
             .expect("under root")
             .to_string_lossy()
             .replace('\\', "/");
@@ -201,11 +243,36 @@ fn scan(root: &Path) -> (Vec<String>, BTreeMap<(String, String), usize>) {
             }
         }
     }
-    (hits, instants)
+    (hits, instants, source_count)
+}
+
+fn scan(workspace: &Path) -> (Vec<String>, BTreeMap<(String, String), usize>, usize) {
+    let roots = source_roots(workspace);
+    scan_roots(workspace, &roots)
 }
 
 pub fn sources_are_deterministic() {
-    let (hits, instants) = scan(Path::new(env!("CARGO_MANIFEST_DIR")));
+    let workspace = crate::support::manifest_path("");
+    let roots = source_roots(&workspace);
+    for required in [
+        "crates/termrock/src",
+        "crates/jackin-preview-presentation/src",
+        "crates/jackin-preview-host-ui/src",
+        "crates/jackin-preview-capsule-ui/src",
+    ] {
+        assert!(
+            roots.iter().any(|root| root
+                .strip_prefix(&workspace)
+                .is_ok_and(|path| path == required)),
+            "production source root `{required}` is missing from deterministic scan"
+        );
+    }
+    let (hits, instants, source_count) = scan(&workspace);
+    assert!(
+        source_count > 0,
+        "no production Rust source files scanned under {}",
+        workspace.display()
+    );
     assert!(
         hits.is_empty(),
         "wall-clock or random sources in rendering code (derive from ticks, --frame or a fixture clock instead):\n  {}",
@@ -251,4 +318,28 @@ pub fn scanner_ignores_strings_comments_and_tests() {
         1,
         "code outside literals is kept"
     );
+    scanner_detects_forbidden_source_injected_under_root();
+}
+
+pub fn scanner_detects_forbidden_source_injected_under_root() {
+    let root =
+        std::env::temp_dir().join(format!("visual-harness-determinism-{}", std::process::id()));
+    let package = root.join("crates/example");
+    let source = package.join("src");
+    std::fs::create_dir_all(&source).expect("create source root");
+    std::fs::write(
+        package.join("Cargo.toml"),
+        "[package]\nname = \"example\"\nversion = \"0.1.0\"\n",
+    )
+    .expect("write package manifest");
+    std::fs::write(
+        source.join("lib.rs"),
+        "fn render() { SystemTime::now(); }\n",
+    )
+    .expect("write source fixture");
+    let (hits, _, count) = scan(&root);
+    std::fs::remove_dir_all(&root).expect("remove source fixture");
+    assert_eq!(count, 1, "injected source was scanned");
+    assert_eq!(hits.len(), 1, "forbidden source injection is detected");
+    assert!(hits[0].contains("SystemTime"));
 }
