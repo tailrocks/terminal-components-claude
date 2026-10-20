@@ -1682,33 +1682,14 @@ impl<'a> TextInput<'a> {
                 }));
             let decoration =
                 ui.style_defaults_with_explicit(family, variant, target_part, live, defaults, None);
-            let probe_role = match base_underline {
-                Some(Role::Warning) => Role::Accent,
-                _ => Role::Warning,
-            };
-            let probe = ui.style_defaults_with_explicit(
-                family,
-                variant,
-                target_part,
-                live,
-                StyleDefaults::new(StylePatch::new().set_underline(probe_role)),
-                None,
-            );
             let mut decoration_style = Style::new();
             let explicit_underline = local_patch.is_some_and(|patch| patch.underline.speaks());
             if !explicit_underline {
-                // A target channel that is authored (Set or Clear) is
-                // independent of the supplied default. Inherit follows the
-                // changed default and therefore resolves differently.
-                let authored = decoration.explicit.underline.speaks()
-                    || same_underline_binding(decoration.resolved.style, probe.resolved.style);
-                if authored {
-                    decoration_style.underline_color = decoration
-                        .resolved
-                        .style
-                        .as_style()
-                        .underline_color
-                        .or(Some(ratatui_core::style::Color::Reset));
+                let target_style = decoration.resolved.style;
+                if target_style.underline_cleared() {
+                    decoration_style.underline_color = Some(ratatui_core::style::Color::Reset);
+                } else if target_style.underline_role().is_some() {
+                    decoration_style.underline_color = target_style.as_style().underline_color;
                 }
             }
             let explicit_underline_modifier = local_patch.is_some_and(|patch| {
@@ -2045,13 +2026,6 @@ impl FieldControl for TextInput<'_> {
 
     fn measure(&self, ui: &Ui<'_>, c: Constraints) -> Size {
         TextInput::measure(self, ui, c)
-    }
-}
-
-fn same_underline_binding(left: PaintStyle, right: PaintStyle) -> bool {
-    match (left.underline_role(), right.underline_role()) {
-        (Some(left), Some(right)) => left == right,
-        _ => left.as_style().underline_color == right.as_style().underline_color,
     }
 }
 
