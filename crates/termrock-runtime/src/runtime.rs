@@ -1704,13 +1704,26 @@ impl<A: App> Runtime<A> {
                 }
             }
         }
+        // A key event belongs to the input scope that was active when it
+        // arrived. An update may open/close a layer or move focus; bubble
+        // fallback for the same physical key must not then act on that new
+        // scope.
+        let input_top_layer = self.services.layers.top();
+        let input_focus = self.focus.current();
         let mut r = self.run_update(None, update_cause, activation_key);
 
         if let Some(k) = key_input
             && !r.is_consumed()
         {
             let scoped_bindings = self.scoped_bubble_bindings(&k);
+            let mut input_scope_changed = false;
             for (owner, action, chord) in scoped_bindings {
+                if self.services.layers.top() != input_top_layer
+                    || self.focus.current() != input_focus
+                {
+                    input_scope_changed = true;
+                    break;
+                }
                 if !self.scoped_bubble_binding_is_current(&k, owner, action, chord) {
                     continue;
                 }
@@ -1720,13 +1733,20 @@ impl<A: App> Runtime<A> {
                 if r.is_consumed() {
                     break;
                 }
+                if self.services.layers.top() != input_top_layer
+                    || self.focus.current() != input_focus
+                {
+                    input_scope_changed = true;
+                    break;
+                }
             }
             self.intents.clear();
-            if !r.is_consumed()
+            if !input_scope_changed
+                && !r.is_consumed()
                 && let Some(cmd) = self.core.keymap.lookup(KeyPhase::Bubble, &k, false)
             {
                 r |= self.run_update(Some(cmd), UpdateCause::Event, activation_key);
-            } else if !r.is_consumed() && k.code == KeyCode::Esc {
+            } else if !input_scope_changed && !r.is_consumed() && k.code == KeyCode::Esc {
                 let dismissable = self
                     .services
                     .layers
@@ -4671,7 +4691,8 @@ mod tests {
         let _ = deliver(&mut rt, key(KeyCode::Esc));
         assert_eq!(rt.app().inner_calls, 1);
         assert_eq!(rt.app().outer_calls, 0);
-        assert_eq!(rt.app().esc_calls, 1);
+        assert_eq!(rt.app().esc_calls, 0);
+        assert!(rt.is_open(BUBBLE_MODAL));
     }
 
     #[test]
@@ -4682,6 +4703,6 @@ mod tests {
         assert_eq!(rt.app().inner_calls, 1);
         assert_eq!(rt.focus(), Some(BUBBLE_SIBLING_CHILD));
         assert_eq!(rt.app().outer_calls, 0);
-        assert_eq!(rt.app().esc_calls, 1);
+        assert_eq!(rt.app().esc_calls, 0);
     }
 }
