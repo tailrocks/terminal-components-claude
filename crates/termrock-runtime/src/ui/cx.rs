@@ -3,6 +3,7 @@ use core::time::Duration;
 use ratatui_core::layout::{Position, Rect};
 
 use crate::action::ActionKey;
+use crate::author::VerticalWindow;
 use crate::capture::{Capture, CaptureSlot};
 use crate::diagnostics::Diagnostics;
 use crate::event::Chord;
@@ -30,6 +31,8 @@ pub struct LayoutFacts {
     pub rows: u16,
     pub cols: u16,
     pub logical_area: Option<Rect>,
+    /// The prepared, physically visible rows of a logically taller component body.
+    pub vertical_window: Option<VerticalWindow>,
 }
 
 impl LayoutFacts {
@@ -40,12 +43,20 @@ impl LayoutFacts {
             rows,
             cols,
             logical_area: None,
+            vertical_window: None,
         }
     }
 
     #[must_use]
     pub const fn with_logical_area(mut self, area: Rect) -> Self {
         self.logical_area = Some(area);
+        self
+    }
+
+    /// Attach parent-clipped vertical geometry to the prepared layout facts.
+    #[must_use]
+    pub const fn with_vertical_window(mut self, window: VerticalWindow) -> Self {
+        self.vertical_window = Some(window);
         self
     }
 }
