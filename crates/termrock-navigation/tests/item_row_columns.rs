@@ -207,6 +207,34 @@ fn row(h: &Harness<Page>, key: u64) -> Rect {
     assert!(area.is_some(), "visible semantic row {key}");
     area.unwrap_or_default()
 }
+
+#[test]
+fn unselected_rows_render_matched_unicode_graphemes_only() {
+    let mut h = page(ItemRowLayout::Compact, 64, 4, false, ColorLevel::TrueColor);
+    h.app_mut().state.set_cursor(1, ItemKey::num(2));
+    h.draw();
+
+    let area = row(&h, 1);
+    assert_eq!(h.app().state.cursor(), Some(ItemKey::num(2)));
+    let (label_x, label_y) = h.find("e\u{301}界x").expect("unselected label is rendered");
+    assert_eq!(label_y, area.y);
+    assert_eq!(h.cell(label_x, label_y).symbol(), "e\u{301}");
+    assert!(h.cell(label_x, label_y).modifier.contains(Modifier::BOLD));
+    assert_eq!(h.cell(label_x.saturating_add(1), label_y).symbol(), "界");
+    assert!(
+        !h.cell(label_x.saturating_add(1), label_y)
+            .modifier
+            .contains(Modifier::BOLD)
+    );
+    assert_eq!(h.cell(label_x.saturating_add(2), label_y).symbol(), " ");
+    assert_eq!(h.cell(label_x.saturating_add(3), label_y).symbol(), "x");
+    assert!(
+        h.cell(label_x.saturating_add(3), label_y)
+            .modifier
+            .contains(Modifier::BOLD)
+    );
+}
+
 fn at(h: &Harness<Page>, area: Rect, offset: u16, text: &str) {
     let mut x = area.x.saturating_add(offset);
     for grapheme in text.graphemes(true) {

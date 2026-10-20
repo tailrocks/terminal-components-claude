@@ -1,3 +1,6 @@
+#[path = "common/tab_navigation.rs"]
+mod tab_navigation;
+
 use tablepro_ui::{TableProApp, form_fields};
 use termrock::{GlyphRole, Id, KeyCode, Modifier, Theme};
 use termrock_test_support::Harness;
@@ -38,14 +41,20 @@ fn production_index(app: &TableProApp) -> Option<usize> {
 fn form_radio_commit_changes_draft() -> Result<(), &'static str> {
     let mut t = open_new_form(120, 40);
     assert_eq!(drafts(&t)?, (0, 0), "fresh draft must start at index 0");
-    assert!(t.tab_to(ENVIRONMENT), "ENVIRONMENT must be Tab-reachable");
+    assert!(
+        tab_navigation::tab_to(&mut t, ENVIRONMENT),
+        "ENVIRONMENT must be Tab-reachable"
+    );
     let _ = t.key(KeyCode::Down);
     let _ = t.key(KeyCode::Down);
     assert_eq!(drafts(&t)?.0, 0, "arrows must not write the draft");
     let _ = t.key(KeyCode::Char(' '));
     assert_eq!(drafts(&t)?.0, 2, "Space must commit the cursor");
 
-    assert!(t.tab_to(SAFE_MODE), "SAFE_MODE must be Tab-reachable");
+    assert!(
+        tab_navigation::tab_to(&mut t, SAFE_MODE),
+        "SAFE_MODE must be Tab-reachable"
+    );
     let _ = t.key(KeyCode::Down);
     assert_eq!(drafts(&t)?.1, 0, "arrows must not write the draft");
     let _ = t.key(KeyCode::Char(' '));
@@ -78,7 +87,10 @@ fn form_radio_enter_submits() -> Result<(), &'static str> {
         "ctrl-n must open the connection form"
     );
     assert!(t.find("Name").is_some(), "the form must show Name");
-    assert!(t.tab_to(NAME), "NAME must be Tab-reachable");
+    assert!(
+        tab_navigation::tab_to(&mut t, NAME),
+        "NAME must be Tab-reachable"
+    );
 
     let entries = t.ring().entries();
     let env = entries.iter().position(|entry| entry.id == ENVIRONMENT);
@@ -107,7 +119,10 @@ fn form_radio_enter_submits() -> Result<(), &'static str> {
         (3, 3),
         "the corpus pick starts Production/Safe"
     );
-    assert!(t.tab_to(ENVIRONMENT), "ENVIRONMENT must be Tab-reachable");
+    assert!(
+        tab_navigation::tab_to(&mut t, ENVIRONMENT),
+        "ENVIRONMENT must be Tab-reachable"
+    );
     assert_eq!(
         t.focus(),
         Some(ENVIRONMENT),
@@ -159,7 +174,7 @@ fn fresh_form_reaches_database_field() -> Result<(), &'static str> {
         "DATABASE must stay declared as tablepro.connections.form.database"
     );
     assert!(
-        t.tab_to(DATABASE),
+        tab_navigation::tab_to(&mut t, DATABASE),
         "a fresh form must reach the DATABASE field"
     );
     assert_eq!(t.focus(), Some(DATABASE), "focus must sit on DATABASE");
@@ -244,7 +259,7 @@ fn form_radio_right_card_pins_miss_the_stock_form() -> Result<(), &'static str> 
         "the card description is absent"
     );
     assert!(
-        t.tab_to(SAFE_MODE),
+        tab_navigation::tab_to(&mut t, SAFE_MODE),
         "SAFE_MODE must be reachable below the environment options"
     );
     let safe = t.find("Safe Mode").ok_or("Safe Mode caption missing")?;
@@ -317,7 +332,10 @@ fn form_radio_off_marker_uses_the_hollow_circle() -> Result<(), &'static str> {
     assert_eq!(theme.design.glyphs.get(GlyphRole::RadioOff), "(○)");
     assert_eq!(theme.design.glyphs.get(GlyphRole::RadioOn), "(●)");
     let mut t = open_new_form(120, 40);
-    assert!(t.tab_to(ENVIRONMENT), "ENVIRONMENT must be Tab-reachable");
+    assert!(
+        tab_navigation::tab_to(&mut t, ENVIRONMENT),
+        "ENVIRONMENT must be Tab-reachable"
+    );
     let _ = t.key(KeyCode::Down);
     let _ = t.key(KeyCode::Down);
     let _ = t.key(KeyCode::Char(' '));
@@ -363,7 +381,10 @@ fn form_radio_focus_bolds_the_painted_row() -> Result<(), &'static str> {
         !t.cell(marker, row).modifier.contains(Modifier::BOLD),
         "an unfocused marker is not bold"
     );
-    assert!(t.tab_to(ENVIRONMENT), "ENVIRONMENT must be Tab-reachable");
+    assert!(
+        tab_navigation::tab_to(&mut t, ENVIRONMENT),
+        "ENVIRONMENT must be Tab-reachable"
+    );
     for x in marker..marker.saturating_add(3) {
         assert!(
             t.cell(x, row).modifier.contains(Modifier::BOLD),

@@ -1,0 +1,63 @@
+{
+  "source": "759d0d411ed9148e3d04f700bcc81d7b90b97a4a",
+  "base": "85b19ebbbca341d36effdcaea9abfcd951c99c7b",
+  "resolved_index_tree_before_evidence": "0aefb43e00d78469e7faef056a72eb6e443d2f72",
+  "native": {
+    "run": 744,
+    "passed": 743,
+    "failed": 1,
+    "skipped": 3,
+    "failure": "constructor_defaults_match_the_pre_policy_full_cell_fixture",
+    "known_base_failure": true
+  },
+  "tablepro_and_domain": {
+    "run": 194,
+    "passed": 180,
+    "failed": 14,
+    "skipped": 0,
+    "candidate_only_failures": [],
+    "cleared_base_failure_names": [
+      "tablepro-ui::close_contract query_and_inline_drafts_survive_cancel_without_commit",
+      "tablepro-ui::destructive_generation close_only_binds_target_but_quit_binds_every_tab",
+      "tablepro-ui::replacement_contract result_confirmation_cancel_preserves_inline_draft_and_confirm_targets_captured_tab",
+      "tablepro-ui::replacement_contract result_confirmation_rejects_changed_sql_and_vanished_target_is_noop",
+      "tablepro-ui::row_actions_contract uppercase_u_requires_confirmation_and_preserves_sql_and_other_tab",
+      "tablepro-ui::tab_ownership focused_query_identity_and_draft_survive_earlier_insert_close_and_reorder",
+      "tablepro-ui::undo_contract plain_u_in_sql_editor_is_text_and_leaves_inactive_table_pending"
+    ]
+  },
+  "shared_strict_clippy_passed": true,
+  "affected_package_formatting_passed": true,
+  "expanded_clippy_blocker": {
+    "path": "crates/tablepro-domain/src/model.rs",
+    "function": "History::seeded",
+    "diagnostic": "this function has too many lines (169/100)",
+    "source_byte_identical_to_base": true,
+    "function_sha256": "1b4cc0ba246c9e4f023a8576a97afca6cf9a45420bd8008652bc934b5e606388",
+    "attribution_correction": "The earlier record incorrectly named ResultGrid::seeded. The emitted model.rs path, exact function byte hash and unchanged-source attribution remain correct; the containing type is History."
+  },
+  "logs": {
+    "tablepro": {
+      "path": "/private/tmp/termrock-parent-editor-merge-tablepro-20261021.log",
+      "sha256": "1fabcc216195655922a1eac7fd36bfc2536c5fdeb02334838776458402fef980"
+    },
+    "native": {
+      "path": "/private/tmp/termrock-parent-editor-merge-native-20261021.log",
+      "sha256": "ad3e3cc1732d590cffc66f2c98197eca4610eb7c798c6e647d7bcb09a9712951"
+    },
+    "clippy": {
+      "path": "/private/tmp/termrock-parent-editor-merge-clippy-20261021.log",
+      "sha256": "262b80c216bc11177bc88766742ce2f9a9bddc4a613fe2db6a3ebca527a23d39"
+    },
+    "shared-clippy": {
+      "path": "/private/tmp/termrock-parent-editor-merge-shared-clippy-20261021.log",
+      "sha256": "550a30a3444c86dae02b655137d4bb06e220818e63fbac148fd2ba7041c544c1"
+    },
+    "format": {
+      "path": "/private/tmp/termrock-parent-editor-merge-format-20261021.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  },
+  "integration_review_pending": true,
+  "full_product_parity": false
+}

@@ -1,3 +1,6 @@
+#[path = "common/tab_navigation.rs"]
+mod tab_navigation;
+
 use tablepro_ui::{Surface, Tab, TableProApp};
 use termrock::{App, Id, ItemKey, KeyCode, Part, PartRef, Theme};
 use termrock_test_support::Harness;
@@ -18,7 +21,7 @@ fn public_close_refuses_dirty_tab_and_keyboard_cancel_preserves_it() {
     let index = app.workbench.active_index().unwrap_or(0);
     assert!(!app.workbench.close_tab(index));
     let mut h = Harness::new(app, Theme::junie(), 120, 40);
-    assert!(h.tab_to(STRIP));
+    assert!(tab_navigation::tab_to(&mut h, STRIP));
     let _ = h.key(KeyCode::Char('x'));
     assert!(h.find("Close tab with unsaved work?").is_some());
     assert_eq!(h.app().workbench.active_key(), key);
@@ -69,13 +72,13 @@ fn query_and_inline_drafts_survive_cancel_without_commit() {
             let Some(id) = h.app().query_id() else {
                 unreachable!("query")
             };
-            assert!(h.tab_to(id));
+            assert!(tab_navigation::tab_to(&mut h, id));
             let _ = h.type_str("SELECT private_draft");
         } else {
             let Some(id) = h.app().result_id() else {
                 unreachable!("grid")
             };
-            assert!(h.tab_to(id));
+            assert!(tab_navigation::tab_to(&mut h, id));
             for _ in 0..6 {
                 let _ = h.key(KeyCode::Right);
             }
@@ -84,7 +87,7 @@ fn query_and_inline_drafts_survive_cancel_without_commit() {
             let _ = h.type_str(" draft");
         }
         let key = h.app().workbench.active_key();
-        assert!(h.tab_to(STRIP));
+        assert!(tab_navigation::tab_to(&mut h, STRIP));
         let _ = h.key(KeyCode::Delete);
         assert!(h.find("Close tab with unsaved work?").is_some());
         let _ = h.key(KeyCode::Esc);
@@ -93,7 +96,10 @@ fn query_and_inline_drafts_survive_cancel_without_commit() {
             let Some(Tab::Query(tab)) = h.app().workbench.active() else {
                 unreachable!("query")
             };
-            assert_eq!(tab.editor_state.draft_text(), Some("SELECT private_draft"));
+            assert!(tab.dirty(), "cancel must retain the unsaved query");
+            assert!(!tab.editor_state.editor().is_editing());
+            assert_eq!(tab.query, "SELECT private_draft");
+            assert_eq!(tab.editor_state.editor().text(), "SELECT private_draft");
         } else {
             let Some((_, view)) = h.app().workbench.active_grid() else {
                 unreachable!("grid")
@@ -108,7 +114,7 @@ fn query_and_inline_drafts_survive_cancel_without_commit() {
 fn vanished_confirmation_target_cannot_close_replacement() {
     let app = dirty_table();
     let mut h = Harness::new(app, Theme::junie(), 120, 40);
-    assert!(h.tab_to(STRIP));
+    assert!(tab_navigation::tab_to(&mut h, STRIP));
     let _ = h.key(KeyCode::Char('x'));
     let Some(key) = h.app().workbench.active_key() else {
         unreachable!("key")
