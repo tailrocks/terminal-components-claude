@@ -1128,7 +1128,10 @@ impl TablesPage {
 
 #[cfg(test)]
 mod tests {
-    use super::{CARD_GAP, Page, TablesPage, TaskTableModel, content_height, table_geom};
+    use super::{
+        CARD_GAP, Page, TASKS, TablesPage, TaskStatus, TaskTableModel, content_height, status_text,
+        table_geom,
+    };
     use crate::pages::tables::{REVIEWER_SPECS, TASK_SPECS};
     use termrock::{
         App, Color, Cx, FgStep, GridModel, ItemKey, Modifier, Rect, Response, Role, Theme, Ui,
@@ -1202,6 +1205,18 @@ mod tests {
             model.cell(3, 5).expect("zero changes").tone,
             Some(Role::Fg(FgStep::Muted))
         );
+        for (index, task) in TASKS.iter().enumerate() {
+            let expected_tone = match task.status {
+                TaskStatus::Running => Role::Fg(FgStep::Primary),
+                TaskStatus::Failed => Role::Danger,
+                TaskStatus::Paused => Role::Warning,
+                TaskStatus::Queued => Role::Fg(FgStep::Muted),
+                TaskStatus::Done => Role::Fg(FgStep::Secondary),
+            };
+            let status = model.cell(index, 3).expect("status");
+            assert_eq!(status.text, status_text(task.status));
+            assert_eq!(status.tone, Some(expected_tone));
+        }
     }
 
     #[test]
