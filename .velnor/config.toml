@@ -5,6 +5,9 @@ policy = "consumer-v1"
 default_branch = "main"
 runner_label = "ubuntu-26.04"
 
+[agents]
+claude_md = "symlink"
+
 [stacks.rust]
 compile_driver = "cargo"
 test_runner = "cargo_nextest"
