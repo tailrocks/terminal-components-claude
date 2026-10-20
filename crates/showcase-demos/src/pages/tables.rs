@@ -1,4 +1,7 @@
-use termrock::{Color, Cx, Modifier, PaintStyle, Rect, Response, Ui, width};
+use termrock::{
+    CellRef, Color, Cx, FgStep, GridModel, ItemKey, Modifier, PaintStyle, Rect, Response, Role, Ui,
+    width,
+};
 
 use showcase_data::{TASKS, TaskStatus};
 
@@ -700,6 +703,86 @@ fn task_id(id: u32) -> &'static str {
         .unwrap_or("#0000")
 }
 
+#[derive(Debug)]
+struct TaskTableRow {
+    id: u32,
+    cells: [String; 7],
+    tones: [Option<Role>; 7],
+}
+
+#[derive(Debug)]
+struct TaskTableModel {
+    rows: Vec<TaskTableRow>,
+}
+
+impl TaskTableModel {
+    fn new() -> Self {
+        let rows = TASKS
+            .iter()
+            .map(|task| {
+                let status = status_text(task.status);
+                let status_tone = match task.status {
+                    TaskStatus::Running => Role::Fg(FgStep::Primary),
+                    TaskStatus::Failed => Role::Danger,
+                    TaskStatus::Paused => Role::Warning,
+                    TaskStatus::Queued => Role::Fg(FgStep::Muted),
+                    TaskStatus::Done => Role::Fg(FgStep::Secondary),
+                };
+                TaskTableRow {
+                    id: task.id,
+                    cells: [
+                        task_id(task.id).to_owned(),
+                        task.name.to_owned(),
+                        task.owner.to_owned(),
+                        status.to_owned(),
+                        task.branch.to_owned(),
+                        changes_text(task.changes),
+                        duration_text(task.duration_s),
+                    ],
+                    tones: [
+                        Some(Role::Fg(FgStep::Muted)),
+                        None,
+                        None,
+                        Some(status_tone),
+                        Some(Role::Fg(FgStep::Muted)),
+                        (task.changes == 0).then_some(Role::Fg(FgStep::Muted)),
+                        None,
+                    ],
+                }
+            })
+            .collect();
+        Self { rows }
+    }
+}
+
+impl Default for TaskTableModel {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl GridModel for TaskTableModel {
+    fn row_count(&self) -> usize {
+        self.rows.len()
+    }
+
+    fn row_key(&self, row: usize) -> ItemKey {
+        self.rows
+            .get(row)
+            .map_or(ItemKey::num(0), |task| ItemKey::num(u64::from(task.id)))
+    }
+
+    fn cell(&self, row: usize, col: usize) -> Option<CellRef<'_>> {
+        let task = self.rows.get(row)?;
+        let text = task.cells.get(col)?;
+        let cell = CellRef::new(text);
+        Some(match task.tones.get(col).copied().flatten() {
+            Some(tone) => cell.tone(tone),
+            None => cell,
+        })
+    }
+}
+
 const TASK_IDS: [(u32, &str); 24] = [
     (1040, "#1040"),
     (1041, "#1041"),
@@ -1045,9 +1128,11 @@ impl TablesPage {
 
 #[cfg(test)]
 mod tests {
-    use super::{CARD_GAP, Page, TablesPage, content_height, table_geom};
+    use super::{CARD_GAP, Page, TablesPage, TaskTableModel, content_height, table_geom};
     use crate::pages::tables::{REVIEWER_SPECS, TASK_SPECS};
-    use termrock::{App, Color, Cx, Modifier, Rect, Response, Theme, Ui};
+    use termrock::{
+        App, Color, Cx, FgStep, GridModel, ItemKey, Modifier, Rect, Response, Role, Theme, Ui,
+    };
     use termrock_test_support::Harness;
 
     struct Host;
@@ -1097,6 +1182,26 @@ mod tests {
         assert!(!geom.has_bar);
         assert_eq!(geom.body, 4);
         assert_eq!(geom.widths, vec![53, 10, 12]);
+    }
+
+    #[test]
+    fn task_table_model_exposes_source_order_keys_and_formatted_cells() {
+        let model = TaskTableModel::new();
+        assert_eq!(model.row_count(), 24);
+        assert_eq!(model.row_key(0), ItemKey::num(1040));
+        assert_eq!(model.row_key(23), ItemKey::num(1063));
+        assert_eq!(model.cell(0, 0).expect("ID").text, "#1040");
+        assert_eq!(
+            model.cell(0, 1).expect("task").text,
+            "Add rate limiting to auth endpoints"
+        );
+        assert_eq!(model.cell(0, 3).expect("status").text, "Done");
+        assert_eq!(model.cell(0, 6).expect("duration").text, "6m 52s");
+        assert_eq!(model.cell(2, 3).expect("failed").tone, Some(Role::Danger));
+        assert_eq!(
+            model.cell(3, 5).expect("zero changes").tone,
+            Some(Role::Fg(FgStep::Muted))
+        );
     }
 
     #[test]
