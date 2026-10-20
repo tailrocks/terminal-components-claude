@@ -727,7 +727,19 @@ impl<A: App> Runtime<A> {
             return false;
         }
         if let Some(old) = from {
-            self.intents.focus_out(old, to);
+            // A closure can retire the focused layer before this staged transition settles.
+            let focus_left_retired_layer = self.last.ring.entry(old).is_some_and(|entry| {
+                entry.layer != LayerId::PAGE
+                    && !self
+                        .services
+                        .layers
+                        .layers()
+                        .iter()
+                        .any(|layer| layer.layer == entry.layer)
+            });
+            if !focus_left_retired_layer {
+                self.intents.focus_out(old, to);
+            }
         }
         if let Some(new) = to {
             self.intents.focus_in(new, via);
@@ -2616,6 +2628,9 @@ mod tests {
     const A: Id = Id::root("a");
     const B: Id = Id::root("b");
     const CLICK_MODAL: Id = Id::root("click-modal");
+    const RETIRED_FOCUS_LAYER: Id = Id::root("retired-focus-layer");
+    const RETIRED_FOCUS_CONTROL: Id = Id::root("retired-focus-control");
+    const RETIRED_FOCUS_NEXT: Id = Id::root("retired-focus-next");
 
     fn present<A: App>(rt: &mut Runtime<A>, token: PreparedFrame) {
         let mut terminal = Terminal::new(TestBackend::new(SCREEN.width, SCREEN.height))
@@ -3633,6 +3648,172 @@ mod tests {
             undelivered.iter().all(|o| *o == dlg),
             "{:?}",
             rt.diagnostics()
+        );
+    }
+
+    #[derive(Default)]
+    struct RetiredLayerFocusProbe {
+        open_on_enter: bool,
+        move_focus_on_key: bool,
+        page_focus_outs: usize,
+        layer_focus_outs: usize,
+        layer_focus_ins: usize,
+    }
+
+    impl App for RetiredLayerFocusProbe {
+        fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+            if cx.update_cause() == UpdateCause::Bootstrap {
+                return Response::ignored();
+            }
+
+            for intent in cx.intents(A) {
+                if matches!(intent, Intent::FocusOut { .. }) {
+                    self.page_focus_outs += 1;
+                }
+                if matches!(intent, Intent::Key(key) if key.code == KeyCode::Enter)
+                    && self.open_on_enter
+                {
+                    self.open_on_enter = false;
+                    cx.open_layer(
+                        RETIRED_FOCUS_LAYER,
+                        LayerSpec::popover(
+                            RETIRED_FOCUS_LAYER,
+                            Anchor::Point(Position::new(20, 8)),
+                        )
+                        .size(LayerSize::Fixed(8, 3))
+                        .initial_focus(RETIRED_FOCUS_CONTROL),
+                    );
+                }
+            }
+
+            for _ in cx.intents(RETIRED_FOCUS_LAYER) {}
+
+            if cx.is_open(RETIRED_FOCUS_LAYER) {
+                for intent in cx.intents(RETIRED_FOCUS_CONTROL) {
+                    match intent {
+                        Intent::FocusIn { .. } => self.layer_focus_ins += 1,
+                        Intent::FocusOut { .. } => self.layer_focus_outs += 1,
+                        Intent::Key(_) if self.move_focus_on_key => {
+                            self.move_focus_on_key = false;
+                            cx.focus(RETIRED_FOCUS_NEXT);
+                        }
+                        _ => {}
+                    }
+                }
+                for _ in cx.intents(RETIRED_FOCUS_NEXT) {}
+            }
+
+            Response::ignored()
+        }
+
+        fn draw(&self, ui: &mut Ui<'_>) {
+            ui.register_control(A, Rect::new(0, 0, 10, 1), Focusability::Focusable);
+            let _ = ui.layer(RETIRED_FOCUS_LAYER, |ui, area| {
+                ui.register_control(
+                    RETIRED_FOCUS_CONTROL,
+                    Rect::new(area.x, area.y, 4, 1),
+                    Focusability::Focusable,
+                );
+                ui.register_control(
+                    RETIRED_FOCUS_NEXT,
+                    Rect::new(area.x, area.y.saturating_add(1), 4, 1),
+                    Focusability::Focusable,
+                );
+            });
+        }
+    }
+
+    fn step_retired_layer_probe(
+        rt: &mut Runtime<RetiredLayerFocusProbe>,
+        buf: &mut Buffer,
+        input: Input,
+    ) -> Response<()> {
+        let response = deliver(rt, input);
+        rt.draw_buffer(SCREEN, buf).commit_presented();
+        response
+    }
+
+    #[test]
+    fn focus_out_is_delivered_once_while_live_and_skipped_after_layer_close() {
+        let mut rt = Runtime::new(RetiredLayerFocusProbe::default(), Theme::junie());
+        let _ = rt.initialize();
+        let mut buf = Buffer::empty(SCREEN);
+        for _ in 0..8 {
+            rt.draw_buffer(SCREEN, &mut buf).commit_presented();
+            if !rt.needs_settle() {
+                break;
+            }
+            let _ = rt.settle();
+        }
+        assert_eq!(rt.focus(), Some(A));
+
+        rt.app_mut().open_on_enter = true;
+        let _ = step_retired_layer_probe(&mut rt, &mut buf, key(KeyCode::Enter));
+        assert!(rt.is_open(RETIRED_FOCUS_LAYER), "popover opens on Enter");
+        assert!(
+            rt.last.ring.entry(RETIRED_FOCUS_CONTROL).is_some(),
+            "focus {:?}, probe {:?}, entries {:?}, diagnostics {:?}",
+            rt.focus(),
+            (rt.app().open_on_enter, rt.app().move_focus_on_key),
+            rt.last.ring.entries(),
+            rt.diagnostics()
+        );
+        let first_layer = rt
+            .last
+            .ring
+            .entry(RETIRED_FOCUS_CONTROL)
+            .expect("popover control is registered")
+            .layer;
+        assert_eq!(rt.app().page_focus_outs, 1, "page blur remains delivered");
+        assert_eq!(rt.focus(), Some(RETIRED_FOCUS_CONTROL));
+
+        rt.app_mut().move_focus_on_key = true;
+        let _ = step_retired_layer_probe(&mut rt, &mut buf, key(KeyCode::Char('m')));
+        assert_eq!(
+            rt.app().layer_focus_outs,
+            1,
+            "live layer blur is delivered once"
+        );
+        assert_eq!(rt.focus(), Some(RETIRED_FOCUS_NEXT));
+
+        let _ = step_retired_layer_probe(&mut rt, &mut buf, mouse(MouseKind::Down, 2, 0));
+        assert!(!rt.is_open(RETIRED_FOCUS_LAYER));
+        assert_eq!(rt.focus(), Some(A));
+        assert_eq!(
+            rt.app().layer_focus_outs,
+            1,
+            "closed layer gets no stale blur"
+        );
+        assert!(
+            !rt.diagnostics().iter().any(
+                |diagnostic| matches!(diagnostic, Diagnostic::UndeliveredIntent { owner } if *owner == RETIRED_FOCUS_CONTROL || *owner == RETIRED_FOCUS_NEXT)
+            ),
+            "closed-layer focus-out must not become an undelivered intent: {:?}",
+            rt.diagnostics()
+        );
+
+        rt.app_mut().open_on_enter = true;
+        let _ = step_retired_layer_probe(&mut rt, &mut buf, key(KeyCode::Enter));
+        let reopened_layer = rt
+            .last
+            .ring
+            .entry(RETIRED_FOCUS_CONTROL)
+            .expect("reopened popover control is registered")
+            .layer;
+        assert_ne!(
+            first_layer, reopened_layer,
+            "each opening gets a new LayerId"
+        );
+        assert_eq!(rt.focus(), Some(RETIRED_FOCUS_CONTROL));
+        assert_eq!(
+            rt.app().page_focus_outs,
+            2,
+            "page blur remains delivered on reopen"
+        );
+        assert_eq!(
+            rt.app().layer_focus_ins,
+            2,
+            "reopened control receives focus-in"
         );
     }
 
