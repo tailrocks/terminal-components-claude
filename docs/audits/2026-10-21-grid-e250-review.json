@@ -29,6 +29,7 @@
     ]
   },
   "verification": {
+    "rerun_commit": "7eb9f800afa0a998b305dc6dea66d5d8f7f4f5e5",
     "tablepro": {
       "command": "cargo nextest run --locked -p tablepro-ui --all-targets --no-fail-fast",
       "run": 181,
@@ -40,7 +41,9 @@
       "comparison_base": "124a61a035eeff34767edc8d9aa7e61f3007ebf8",
       "base_inventory": {"run": 180, "passed": 159, "failed": 21, "skipped": 0},
       "candidate_only_failures": [],
-      "base_only_failures": ["app_tests unfocused_grid_cursor_does_not_style_the_cursor_row"]
+      "base_only_failures": ["app_tests unfocused_grid_cursor_does_not_style_the_cursor_row"],
+      "exact_tip_rerun_log": "/tmp/termrock-tablepro-grid-7eb9-all-targets.log",
+      "exact_tip_rerun_sha256": "6ae45aa3ceec492fe9956910760977797b8101ecdd4e4c4302058c7faf7c4453"
     },
     "grid_theme_fields": {
       "command": "cargo nextest run --locked -p termrock-grid -p termrock-theme -p termrock-fields --all-targets --no-fail-fast",
@@ -49,7 +52,9 @@
       "failed": 0,
       "skipped": 0,
       "log": "/tmp/termrock-grid-review-e250-nextest.log",
-      "sha256": "e3a7108977a0457a24be9369003c95e6cce6c383b2e36afb99e2b12de2f7ebb7"
+      "sha256": "e3a7108977a0457a24be9369003c95e6cce6c383b2e36afb99e2b12de2f7ebb7",
+      "exact_tip_rerun_log": "/tmp/termrock-grid-review-7eb9-nextest.log",
+      "exact_tip_rerun_sha256": "b0a37c1fdeaef1c3c808f3332ea1df45a0526621a13b99579d558c2c8c3350fd"
     },
     "clippy": "cargo clippy --locked -p termrock-grid -p termrock-theme -p termrock-fields --all-targets -- -D warnings (passed)",
     "format": "rustfmt --check --edition 2024 on app.rs, grid.rs, and builtin/mod.rs plus git diff --check (passed)"
