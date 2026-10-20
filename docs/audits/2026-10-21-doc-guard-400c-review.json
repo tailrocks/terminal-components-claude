@@ -1,0 +1,106 @@
+{
+  "artifact_logs": {
+    "ownership-base": "/Users/donbeave/Projects/termrock-cli-evidence-20261020/branch-consolidation/ownership-base.log",
+    "ownership-base-issues": "/Users/donbeave/Projects/termrock-cli-evidence-20261020/branch-consolidation/ownership-base-issues.txt",
+    "ownership-current": "/Users/donbeave/Projects/termrock-cli-evidence-20261020/branch-consolidation/ownership-guard.log",
+    "ownership-current-issues": "/Users/donbeave/Projects/termrock-cli-evidence-20261020/branch-consolidation/ownership-guard-issues.txt"
+  },
+  "changed_paths": [
+    "crates/termrock-xtask/src/doc_inventory.rs",
+    "crates/termrock-xtask/tests/doc_inventory.rs",
+    "docs/audits/2026-10-21-nextest-doc-inventory-guard.md"
+  ],
+  "ci_wiring": {
+    "argv": "cargo nextest run --profile ci --locked --offline --manifest-path crates/termrock-xtask/Cargo.toml --package termrock-xtask --no-tests fail",
+    "conclusion": "Guard is automatically part of both required generated package nextest tasks; no cargo doctest flags or CI workflow/manifest changes in reviewed commit.",
+    "generator": "Velnor 0.1.30",
+    "nextest_tasks": [
+      "stack/rust/crates/termrock-xtask/nextest/default",
+      "stack/rust/crates/termrock-xtask/nextest/testing"
+    ]
+  },
+  "commands": [
+    {
+      "cmd": "cargo nextest run --locked --offline --manifest-path crates/termrock-xtask/Cargo.toml --package termrock-xtask --test doc_inventory --no-tests fail",
+      "exit": 0,
+      "result": "5 passed, 0 skipped"
+    },
+    {
+      "cmd": "cargo clippy --locked --offline --manifest-path crates/termrock-xtask/Cargo.toml --package termrock-xtask --all-targets -- -D warnings",
+      "exit": 0,
+      "result": "pass"
+    },
+    {
+      "cmd": "cargo fmt --all --check",
+      "exit": 1,
+      "result": "fails on untouched pre-existing formatting in crates/showcase-demos/src/pages/chrome.rs; this commit does not change that path"
+    },
+    {
+      "cmd": "cargo nextest run --locked --offline --manifest-path crates/termrock-xtask/Cargo.toml --package termrock-xtask --test ownership --no-tests fail at 400c6332",
+      "exit": 100,
+      "result": "6 pass, ownership_check_passes_on_workspace fails: 378 files scanned, 2796 findings, 300 wrappers, 160 problem lines"
+    },
+    {
+      "cmd": "same ownership nextest test at 1a34e019c0666780cec58ab8c187477569e68242",
+      "exit": 100,
+      "result": "6 pass, ownership_check_passes_on_workspace fails: 377 files scanned, 2796 findings, 300 wrappers, 160 problem lines"
+    }
+  ],
+  "coverage_gaps": [
+    "No full generated GitHub Actions run.",
+    "No Velnor regeneration was run, so generated workflow effect is unverified.",
+    "The inventory parser is hand-written rather than Rust/Markdown parser; additional syntax forms may remain.",
+    "No full CI Rust matrix run; focused guard and ownership attribution only.",
+    "Cargo nextest commands at initial shared target path briefly hit a concurrent/stale target lock and unresolved module; rerunning guard test using isolated target completed successfully."
+  ],
+  "files": {
+    ".github/velnor/task-execution-manifest-v1.json": "e5bc3d8d304c1ed6af5a1883db90ad600009433c7924152e40ef2f83c183c6c9",
+    ".github/workflows/ci.yml": "a1ef03148ee058f3e255054503b2b5fd71f7092271b99749923301f4feecea83",
+    "crates/termrock-xtask/src/doc_inventory.rs": "09a7cb489926509891ca95b5843fe9c0897cca77ce19e9ffe1b597da17fa6c30",
+    "crates/termrock-xtask/src/lib.rs": "7e6ffe193372791f3e84d77734d0d9c1ff1556d189363685303ee24c2bf46c1d",
+    "crates/termrock-xtask/tests/doc_inventory.rs": "e7b75698952c9fe74c8374e23298dac863adb01c1e65802701ea173967a764fa",
+    "docs/audits/2026-10-21-nextest-doc-inventory-guard.md": "d875786e8c2d91673161ea23a503c27979140c48caabc6daae56ebf28f0de57d"
+  },
+  "guard_review": {
+    "blocking_findings": [
+      {
+        "detail": "cfg_attr doc attributes with trivia between doc and equals evade detection, e.g. #[cfg_attr(feature = \"docs\", doc\n = include_str!(\"examples.md\"))] or a block comment between tokens. Detection uses literal `doc =`/`doc=` substring; code has no token normalization/parser. Rust accepts whitespace/newlines/comments between these tokens, so compiled rustdoc input can be missed. Add an adversarial fixture; normalize tokens or fail closed on any cfg_attr containing a doc meta item. This means current guard is not yet sufficient basis for disabling doctests.",
+        "location": "crates/termrock-xtask/src/doc_inventory.rs: looks_like_doc_attribute",
+        "severity": "medium"
+      },
+      {
+        "detail": "The scanner reads only tracked .rs files (plus Markdown) while checking Cargo target src_path only for tracked existence. Non-.rs files used through include! or an explicitly configured target source are not scanned as Rust docs. Consider tracking all Cargo source paths regardless extension and resolving tracked include! paths, or fail closed on source inclusion forms that point outside scanned .rs files.",
+        "location": "crates/termrock-xtask/src/doc_inventory.rs: scan_workspace tracked Rust and Cargo target inventory",
+        "severity": "low"
+      }
+    ],
+    "decision": "GUARD NOT READY to authorize per-library doctest=false until cfg_attr whitespace/comment bypass is fixed and a regression test proves rejection. Ownership policy failure is pre-existing and unchanged by guard commit; format failure is on untouched file. Once guard bypass is fixed and validation is rerun, only then proceed to pinned Velnor regeneration/diff.",
+    "no_metadata_workflow_changes": true,
+    "strengths": [
+      "Uses git ls-files as tracked source inventory and fails on empty/invalid tracked inventory.",
+      "Reads every tracked .rs/.md/.markdown and reports unreadable inputs.",
+      "Cargo metadata validates every workspace package manifest and target source exists in tracked inventory.",
+      "Explicit package README paths are validated as tracked Markdown; common implicit README variants are discovered.",
+      "One ignore exception is bound to exact path and normalized snippet; extra ignore examples fail.",
+      "Fixtures cover Rust/edition/no_run/compile_fail/should_panic, unlabeled snippets, indented code, block docs, direct/cfg_attr doc attributes/includes, macro-authored doc attrs, non-Rust fences, prose, raw and continued ordinary string false positives."
+    ]
+  },
+  "ownership_attribution": {
+    "baseline_commit": "1a34e019c0666780cec58ab8c187477569e68242",
+    "baseline_only": 0,
+    "baseline_problem_lines": 160,
+    "current_problem_lines": 160,
+    "evidence": [
+      "ownership-base.log",
+      "ownership-base-issues.txt",
+      "ownership-guard.log",
+      "ownership-guard-issues.txt"
+    ],
+    "guard_only": 0,
+    "ordered_issue_lines_identical": true
+  },
+  "source_commit": "400c6332beca5028eab7839ae09ee32b410554a0",
+  "source_tree": "205578769ee9319aa1ba0f5f1b5f33c2ae725687",
+  "working_copy": "/private/tmp/termrock-nextest-doc-guard-review-400c",
+  "working_copy_status": "clean; read-only review; no tracked/source files changed"
+}
