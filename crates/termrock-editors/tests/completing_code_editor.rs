@@ -3,7 +3,7 @@ use std::cell::RefCell;
 use ratatui_core::buffer::Buffer;
 use ratatui_core::layout::{Position, Rect};
 use termrock_core::id::{Id, ItemKey};
-use termrock_editors::code::CodeEditor;
+use termrock_editors::code::{CodeAction, CodeEditor};
 use termrock_editors::completion::{
     CompletionBatch, CompletionProvider, CompletionTrigger, CompletionValue, FOCUS_NEXT_ACTION,
     MANUAL_COMPLETION_ACTION,
@@ -75,18 +75,22 @@ struct EditorApp {
     state: termrock_editors::CompletingCodeEditorState,
     provider: Provider,
     keymap: KeyMap,
+    actions: Vec<CodeAction>,
     read_only: bool,
     disabled: bool,
 }
 
 impl App for EditorApp {
     fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
-        CodeEditor::new(EDITOR, 6)
+        let response = CodeEditor::new(EDITOR, 6)
             .read_only(self.read_only)
             .disabled(self.disabled)
             .with_completion(POPUP, &self.provider)
-            .update(cx, &mut self.state)
-            .erase()
+            .update(cx, &mut self.state);
+        if let Some(action) = response.action_ref() {
+            self.actions.push(action.clone());
+        }
+        response.erase()
     }
 
     fn draw(&self, ui: &mut Ui<'_>) {
@@ -119,6 +123,7 @@ fn runtime_with(text: &str, mode: ProviderMode) -> Runtime<EditorApp> {
                 mode,
             },
             keymap: KeyMap::new(),
+            actions: Vec::new(),
             read_only: false,
             disabled: false,
         },
@@ -167,10 +172,12 @@ fn typing_opens_completion_tab_accepts_then_next_tab_indents_two_spaces() {
         runtime.app().provider.triggers.borrow().as_slice(),
         &[CompletionTrigger::TextChanged]
     );
+    assert_eq!(runtime.app().actions.last(), Some(&CodeAction::Changed));
 
     send(&mut runtime, KeyCode::Tab, KeyModifiers::NONE);
     assert_eq!(runtime.app().state.editor().text(), "SELECT count");
     assert!(!runtime.app().state.is_completion_open());
+    assert_eq!(runtime.app().actions.last(), Some(&CodeAction::Changed));
     assert_eq!(
         runtime.app().provider.triggers.borrow().as_slice(),
         &[CompletionTrigger::TextChanged]
@@ -194,6 +201,7 @@ fn escape_dismisses_first_then_commits_editor() {
 
     send(&mut runtime, KeyCode::Esc, KeyModifiers::NONE);
     assert!(!runtime.app().state.editor().is_editing());
+    assert_eq!(runtime.app().actions.last(), Some(&CodeAction::Committed));
 }
 
 #[test]
@@ -259,6 +267,10 @@ fn remapped_focus_binding_works_while_completion_is_open() {
     send(&mut runtime, KeyCode::F(5), KeyModifiers::NONE);
     assert!(!runtime.app().state.is_completion_open());
     assert_eq!(runtime.focus(), Some(NEXT));
+    assert_eq!(
+        runtime.app().actions.last(),
+        Some(&CodeAction::Leave { backward: false })
+    );
 }
 
 #[test]
@@ -269,6 +281,10 @@ fn f6_commits_and_moves_focus_in_both_directions() {
     assert!(!runtime.app().state.is_completion_open());
     assert!(!runtime.app().state.editor().is_editing());
     assert_eq!(runtime.focus(), Some(NEXT));
+    assert_eq!(
+        runtime.app().actions.last(),
+        Some(&CodeAction::Leave { backward: false })
+    );
 
     runtime.set_focus(Some(EDITOR));
     runtime.app_mut().state.editor_mut().begin_edit();
@@ -279,6 +295,10 @@ fn f6_commits_and_moves_focus_in_both_directions() {
     assert!(!runtime.app().state.is_completion_open());
     assert!(!runtime.app().state.editor().is_editing());
     assert_eq!(runtime.focus(), Some(NEXT));
+    assert_eq!(
+        runtime.app().actions.last(),
+        Some(&CodeAction::Leave { backward: true })
+    );
 }
 
 #[test]
