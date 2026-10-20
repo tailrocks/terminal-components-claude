@@ -1408,6 +1408,8 @@ impl FieldControl for TextArea<'_> {
 mod tests {
     use core::cell::Cell;
 
+    use ratatui::Terminal;
+    use ratatui::backend::TestBackend;
     use ratatui_core::buffer::Buffer;
 
     use super::*;
@@ -1471,19 +1473,21 @@ mod tests {
     }
 
     fn publish<A: App>(runtime: &mut Runtime<A>) {
-        let mut buffer = Buffer::empty(SCREEN);
-        for _ in 0..24 {
-            if runtime.needs_settle() {
-                let _ = runtime.settle();
-                continue;
-            }
-            if runtime.needs_present() {
-                runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
-                continue;
-            }
-            return;
-        }
-        panic!("textarea continuation runtime did not settle");
+        let prepared = runtime
+            .prepare(SCREEN)
+            .expect("textarea continuation frame prepares");
+        let mut terminal = Terminal::new(TestBackend::new(SCREEN.width, SCREEN.height))
+            .expect("test terminal initializes");
+        terminal
+            .draw(|frame| {
+                runtime
+                    .draw_prepared(prepared, frame)
+                    .expect("prepared textarea continuation frame draws");
+            })
+            .expect("test backend draws");
+        runtime
+            .acknowledge_presented(prepared)
+            .expect("test backend acknowledges textarea continuation frame");
     }
 
     #[test]
