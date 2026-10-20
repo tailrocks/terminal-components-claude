@@ -759,6 +759,23 @@ impl<'a> RadioGroup<'a, &'a str, ByIndex, DefaultRow> {
         self.with_form_value(value, inherited.disabled)
             .draw(ui, area, st, items)
     }
+
+    /// Draws a clipped window while keeping original option indices as keys.
+    /// Update and input handling must continue to receive the full `items`.
+    #[allow(clippy::too_many_arguments)]
+    pub fn draw_in_form_window(
+        &self,
+        ui: &mut Ui<'_>,
+        area: Rect,
+        st: &RadioGroupState,
+        value: usize,
+        items: &[&'a str],
+        inherited: InheritedFormState,
+        first_row: usize,
+    ) -> Rect {
+        self.with_form_value(value, inherited.disabled)
+            .draw_window(ui, area, st, items, first_row)
+    }
 }
 
 impl<'a, T, K, R> RadioGroup<'a, T, K, R> {
@@ -1102,10 +1119,24 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> RadioGroup<'_, T, K, R> {
     }
 
     pub fn draw(&self, ui: &mut Ui<'_>, area: Rect, st: &RadioGroupState, items: &[T]) -> Rect {
+        self.draw_window(ui, area, st, items, 0)
+    }
+
+    /// Draws a visible row window from the original option collection.
+    /// Keys and state continue to use the original collection indexes.
+    pub fn draw_window(
+        &self,
+        ui: &mut Ui<'_>,
+        area: Rect,
+        st: &RadioGroupState,
+        items: &[T],
+        first_row: usize,
+    ) -> Rect {
         if area.is_empty() {
             return area;
         }
-        let used = Self::used_rect(area, items.len());
+        let first_row = first_row.min(items.len());
+        let used = Self::used_rect(area, items.len().saturating_sub(first_row));
         if used.is_empty() {
             return used;
         }
@@ -1119,12 +1150,18 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> RadioGroup<'_, T, K, R> {
             ui.publish_bindings(self.id, live, RADIO);
         }
         let cursor = st.core.cursor();
-        let rows = usize::from(used.height);
-        for (i, item) in items.iter().enumerate().take(rows) {
+        for (i, item) in items
+            .iter()
+            .enumerate()
+            .skip(first_row)
+            .take(usize::from(used.height))
+        {
             let key = self.key.key(item, i);
             let row = Rect {
                 x: used.x,
-                y: used.y.saturating_add(i.min(usize::from(u16::MAX)) as u16),
+                y: used
+                    .y
+                    .saturating_add(i.saturating_sub(first_row).min(usize::from(u16::MAX)) as u16),
                 width: used.width,
                 height: 1,
             };
@@ -1226,6 +1263,30 @@ mod tests {
             })
             .commit_presented();
         buffer
+    }
+
+    #[test]
+    fn a_zero_offset_row_window_matches_the_legacy_radio_draw() {
+        let items = ["alpha", "beta", "gamma"];
+        let state = RadioGroupState::default();
+        let area = Rect::new(0, 0, 30, 8);
+        let draw = |window: bool| {
+            let mut runtime = Runtime::new(Stub::default(), Theme::junie());
+            let mut buffer = Buffer::empty(area);
+            runtime
+                .draw_scene(area, &mut buffer, |ui, area| {
+                    let radio = RadioGroup::new(RG);
+                    if window {
+                        radio.draw_window(ui, area, &state, &items, 0);
+                    } else {
+                        radio.draw(ui, area, &state, &items);
+                    }
+                })
+                .commit_presented();
+            (buffer, runtime.registry().regions().to_vec())
+        };
+
+        assert_eq!(draw(false), draw(true));
     }
 
     #[test]
