@@ -2,7 +2,7 @@
 
 This increment moves query editing for `FilterList` and `Picker` onto the shared `TextInput`/`TextInputState` editor core, adds case-insensitive contiguous substring filtering without changing the existing fuzzy `Label` policy, makes the picker row cap explicit (`max_rows`, default 12), and supports reverse scope navigation with BackTab. An external consumer test exercises stable domain item keys through the public API.
 
-The query field now uses the shared text editing path for grapheme-aware insertion/deletion, caret movement, paste, selection state/rendering, and horizontal scroll. Query layout and drawing continue through the existing Picker/FilterList render path. Focus-owner registration is singular for searchable pickers.
+The query field now uses the shared text editing path for grapheme-aware insertion/deletion, caret movement, paste, selection state/rendering, and horizontal scroll. Its editor response is folded into the list response so caret-only motion and selection repaint correctly. A hidden `TextInput::style_target` adapter maps the shared field renderer through Picker's `Family::PICKER` / `Part::QUERY`; global, part-specific, theme, placeholder, focus, and disabled styles continue through the shared resolver. Query layout and drawing continue through the existing Picker/FilterList render path. Focus-owner registration is singular for searchable pickers.
 
 ## Remaining contract gap
 
@@ -12,4 +12,4 @@ Next, add reusable field-owned pointer gesture and edit-menu routing to the shar
 
 ## Verification scope
 
-Focused crate tests cover TextInput-backed query editing and filtering, picker row measurement, scope forward/reverse navigation, and an external public consumer. These tests do not replace paired CLI captures, the full scenario inventory, or the four-application baseline parity gate. Exact commands and outcomes are recorded with the commit report.
+Focused crate tests cover TextInput-backed query editing and filtering, repaint on caret and selection changes, Picker theme/global/part style resolution, disabled placeholder styling, picker row measurement, scope forward/reverse navigation, and an external public consumer. A workspace `cargo nextest run --workspace --all-targets --no-run` compiled all application targets after the sparse checkout included tracked `snapshots/`. The full workspace formatting check still reports unrelated drift in `showcase-demos/src/pages/chrome.rs`; owned files are rustfmt-clean. These checks do not replace paired CLI captures, the full scenario inventory, or the four-application baseline parity gate. Exact commands and outcomes are recorded with the commit report.
