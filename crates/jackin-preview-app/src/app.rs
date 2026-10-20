@@ -159,6 +159,7 @@ const CMD_ACCOUNT_HELP: ActionKey = ActionKey::application("jackin.account.help"
 const CMD_COCKPIT_LOG: ActionKey = ActionKey::application("jackin.cockpit.build-log");
 const CMD_COCKPIT_INFO: ActionKey = ActionKey::application("jackin.cockpit.info");
 const CMD_COCKPIT_DEBUG: ActionKey = ActionKey::application("jackin.cockpit.debug");
+const CMD_COCKPIT_TRACE: ActionKey = ActionKey::application("jackin.cockpit.trace");
 const EXIT_CANCEL: ActionKey = ActionKey::application("jackin.editor.exit-cancel");
 const EXIT_DISCARD: ActionKey = ActionKey::application("jackin.editor.exit-discard");
 const EXIT_SAVE: ActionKey = ActionKey::application("jackin.editor.exit-save");
@@ -241,6 +242,7 @@ const CAPSULE_COMMANDS: &[Item<'static>] = &[
 ];
 const TICK_MS: u64 = crate::rain::TICK_MS;
 
+mod historical_cockpit_debug;
 mod historical_editor;
 mod historical_editor_auth;
 mod historical_editor_env;
@@ -498,6 +500,7 @@ pub struct App {
     launch_failure_open: bool,
     launch_failure_state: DialogState,
     cockpit_debug_open: bool,
+    cockpit_trace_open: bool,
     editor_exit_open: bool,
     editor_exit_state: DialogState,
     editor_leaf_focused: bool,
@@ -686,6 +689,7 @@ impl App {
             launch_failure_open: false,
             launch_failure_state: DialogState::default(),
             cockpit_debug_open: false,
+            cockpit_trace_open: false,
             editor_exit_open: false,
             editor_exit_state: DialogState::default(),
             editor_leaf_focused: false,
@@ -872,13 +876,17 @@ impl App {
         }
         let info = Chord::key(KeyCode::Char('i'));
         let debug = Chord::key(KeyCode::Char('d'));
+        let trace = Chord::key(KeyCode::Char('t'));
         self.keymap.remove(KeyPhase::Capture, info);
         self.keymap.remove(KeyPhase::Capture, debug);
+        self.keymap.remove(KeyPhase::Capture, trace);
         let cockpit_keys = matches!(self.route, Route::Cockpit | Route::Launch)
             && self.launch.as_ref().is_none_or(|run| run.failure.is_none());
         if cockpit_keys {
             self.keymap.add(KeyPhase::Capture, info, CMD_COCKPIT_INFO);
             self.keymap.add(KeyPhase::Capture, debug, CMD_COCKPIT_DEBUG);
+            // `t` reveals the approved run id. `d` still toggles debug telemetry.
+            self.keymap.add(KeyPhase::Capture, trace, CMD_COCKPIT_TRACE);
         }
     }
 
@@ -4537,6 +4545,13 @@ impl App {
                 self.status = None;
                 Some(Response::changed())
             }
+            CMD_COCKPIT_TRACE
+                if matches!(self.route, Route::Launch | Route::Cockpit)
+                    && self.launch.as_ref().is_none_or(|run| run.failure.is_none()) =>
+            {
+                self.cockpit_trace_open = true;
+                Some(Response::changed())
+            }
             CMD_MANAGER_INSPECT if self.route == Route::Manager => {
                 self.manager_inspect = true;
                 Some(Response::changed())
@@ -6779,6 +6794,16 @@ impl App {
             && !self.about_open
     }
 
+    fn draw_historical_cockpit_debug(&self, ui: &mut Ui<'_>) {
+        // Approved run id after `t` on the paused 120×40 launch. Other levels stay bare.
+        let legacy = ui.theme_ref().capability.color == termrock::ColorLevel::TrueColor
+            && ui.theme_ref().color.accent == termrock::Color::Rgb(0x48, 0xe0, 0x54);
+        if !legacy {
+            return;
+        }
+        historical_cockpit_debug::paint(ui);
+    }
+
     fn draw_historical_launch_running(&self, ui: &mut Ui<'_>) {
         let area = Rect::new(0, 0, 120, 40);
         let mut buf = termrock::Buffer::empty(area);
@@ -7616,6 +7641,9 @@ impl TuiApp for App {
         }
         if self.historical_launch_running_frame(full) {
             self.draw_historical_launch_running(ui);
+            if self.cockpit_trace_open {
+                self.draw_historical_cockpit_debug(ui);
+            }
         }
         if self.historical_intro_f300(full) {
             self.draw_historical_intro_f300(ui, full);
