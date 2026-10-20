@@ -38,7 +38,11 @@ fn connections_screen_lists_and_connects_with_keyboard() {
     let _ = harness.key(KeyCode::Enter);
     assert_eq!(harness.app().screen(), Screen::Workbench);
     assert_eq!(harness.app().surface(), Surface::WorkbenchDefault);
-    assert!(harness.diagnostics().is_empty());
+    assert!(
+        harness.diagnostics().is_empty(),
+        "{:?}",
+        harness.diagnostics()
+    );
 }
 #[test]
 fn failed_connection_shows_error_and_retry() {
@@ -370,7 +374,45 @@ fn keyboard_flow_full_journey() {
     let _ = harness.ctrl('r');
     assert!(harness.app().query().contains("customers"));
     assert!(harness.app().status().contains("Loaded 3 rows"));
-    assert!(harness.diagnostics().is_empty());
+    assert!(
+        harness.diagnostics().is_empty(),
+        "{:?}",
+        harness.diagnostics()
+    );
+}
+
+#[test]
+fn query_editor_keeps_multiline_unicode_and_cursor_through_resize() {
+    let mut harness = Harness::new(TableProApp::default(), Theme::junie(), 120, 40);
+    let _ = harness.key(KeyCode::Enter);
+    let _ = harness.ctrl('t');
+    let query_id = harness.app().query_id().expect("new query editor");
+    assert!(harness.tab_to(query_id));
+
+    let _ = harness.type_str("SELECT '界🙂'");
+    let _ = harness.key(KeyCode::Enter);
+    let _ = harness.type_str("FROM customers");
+    assert_eq!(harness.app().query(), "SELECT '界🙂'\nFROM customers");
+    assert!(harness.text().contains("界🙂"));
+    if harness.is_open(query_id.sub("completion")) {
+        let _ = harness.key(KeyCode::Esc);
+    }
+    assert!(
+        harness.cursor().is_some(),
+        "the rendered editor owns its cursor"
+    );
+
+    let _ = harness.resize(96, 28);
+    assert_eq!(harness.app().query(), "SELECT '界🙂'\nFROM customers");
+    assert!(
+        harness.cursor().is_some(),
+        "resize preserves the visible editor cursor"
+    );
+    assert!(
+        harness.diagnostics().is_empty(),
+        "{:?}",
+        harness.diagnostics()
+    );
 }
 #[test]
 fn mouse_flow_full_journey() {
