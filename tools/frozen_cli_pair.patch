@@ -1,0 +1,36 @@
+--- a/tests/visual_baseline/main.rs
++++ b/tests/visual_baseline/main.rs
+@@ -41,6 +41,8 @@
+ mod startup_input;
+ mod startup_resize;
+ mod support;
++#[path = "frozen_cli_pair.rs"]
++mod frozen_cli_pair;
+ mod tool;
+ 
+ use std::collections::{BTreeMap, BTreeSet};
+--- a/tests/visual_baseline/support.rs
++++ b/tests/visual_baseline/support.rs
+@@ -314,6 +314,11 @@
+ pub fn assert_gated(name: &str, frame: &Frame) {
+ 
+ 
++    if crate::frozen_cli_pair::handle_frame(name, frame, &approved_root())
++        .unwrap_or_else(|error| panic!("paired baseline gate failed for `{name}`: {error}"))
++    {
++        return;
++    }
+     let outcome = RENDERER
+         .with(|r| store().check_with(&mut r.borrow_mut(), name, frame, 1.0))
+         .unwrap_or_else(|e| panic!("baseline `{name}` could not be checked: {e}"));
+--- a/tests/visual_baseline/scenarios/mod.rs
++++ b/tests/visual_baseline/scenarios/mod.rs
+@@ -458,6 +458,8 @@
+ 
+     pub fn run(&self) {
+ 
++        crate::frozen_cli_pair::begin_case(&self.name)
++            .unwrap_or_else(|error| panic!("paired scenario start failed for `{}`: {error}", self.name));
+         support::clear_actual(&self.name);
+         if !support::capture_enabled(&self.name) {
+             return;
