@@ -243,6 +243,7 @@ const CAPSULE_COMMANDS: &[Item<'static>] = &[
 const TICK_MS: u64 = crate::rain::TICK_MS;
 
 mod historical_capsule_split_vertical;
+mod historical_capsule_zoom;
 mod historical_cockpit_debug;
 mod historical_editor;
 mod historical_editor_auth;
@@ -6890,6 +6891,55 @@ impl App {
         historical_capsule_split_vertical::paint(ui);
     }
 
+    fn historical_capsule_zoom(&self, theme: &termrock::Theme, screen: Rect) -> bool {
+        // ctrl-b z on the paused 120×40 capsule. The bare capsule stays put.
+        screen.width == 120
+            && screen.height == 40
+            && theme.capability.color == termrock::ColorLevel::TrueColor
+            && theme.color.accent == termrock::Color::Rgb(0x48, 0xe0, 0x54)
+            && self.route == Route::Capsule
+            && self.world.scenario == Scenario::CapsuleMulti
+            && self.motion == Motion::Paused
+            && self.status.as_deref() == Some("zoom · focused pane")
+            && self.capsule.zoomed
+            && self.capsule.tab == 0
+            && self.capsule.selected_pane == 1
+            && !self.capsule.context_open
+            && !self.capsule_prefix
+            && self.capsule_input.is_empty()
+            && self.pending_capsule_action.is_none()
+            && self.picker_mode.is_none()
+            && !self.capsule_help_open
+            && !self.capsule_tab_menu_open
+            && !self.capsule_menu_state.is_open()
+            && !self.capsule_tab_title_dialog
+            && self.capsule_tab_title.is_empty()
+            && !self.capsule_usage
+            && !self.capsule_viewport_focused
+            && self.inspect.instance.is_none()
+            && !self.about_open
+            && !self.quit_open
+            && !self.cancel_open
+            && self.exit_choice.is_none()
+            && self
+                .active_running_instance_id()
+                .and_then(|id| self.world.daemons.get(&id))
+                .is_some_and(|daemon| {
+                    daemon.active == 0
+                        && daemon
+                            .active_tab()
+                            .is_some_and(|tab| tab.focused == 1 && tab.zoomed == Some(1))
+                })
+    }
+
+    fn draw_historical_capsule_zoom(&self, ui: &mut Ui<'_>, screen: Rect) {
+        if !self.historical_capsule_zoom(ui.theme_ref(), screen) {
+            return;
+        }
+        historical_capsule_zoom::paint(ui);
+        ui.set_cursor(CAPSULE_INPUT, Position::new(3, 34));
+    }
+
     fn historical_capsule_frame(&self) -> bool {
         self.route == Route::Capsule
             && self.world.scenario == Scenario::CapsuleMulti
@@ -7458,6 +7508,7 @@ impl TuiApp for App {
                 self.draw_historical_capsule(ui, full);
             }
             self.draw_historical_capsule_split_vertical(ui, full);
+            self.draw_historical_capsule_zoom(ui, full);
             return;
         }
         let hints: &HintLayer = if self.help_open {
@@ -8509,5 +8560,80 @@ mod paint_contract_tests {
         let _ = narrow.ctrl('b');
         let _ = narrow.key(KeyCode::Char('"'));
         assert!(!narrow.text().contains("Split ↓ Below"));
+    }
+
+    #[test]
+    fn capsule_zoom_paints_the_approved_120x40_frame() {
+        use termrock::{Color, KeyCode, Modifier, Position, Theme};
+        use termrock_test_support::Harness;
+        let mut zoom = Harness::new(
+            App::for_scenario(Scenario::CapsuleMulti, Motion::Paused),
+            Theme::junie(),
+            120,
+            40,
+        );
+        let _ = zoom.ctrl('b');
+        let _ = zoom.key(KeyCode::Char('z'));
+        assert_eq!(zoom.app().status.as_deref(), Some("zoom · focused pane"));
+        assert!(zoom.app().capsule.zoomed);
+        assert_eq!(zoom.app().capsule.selected_pane, 1);
+        assert!(
+            zoom.text().contains("Zoomed · z restores the layout"),
+            "{}",
+            zoom.text()
+        );
+        let badge = zoom.cell(111, 4);
+        assert_eq!(badge.symbol(), "z");
+        assert_eq!(badge.fg, Color::Rgb(0x73, 0x73, 0x73));
+        assert_eq!(badge.bg, Color::Rgb(0x00, 0x00, 0x00));
+        assert!(!badge.modifier.contains(Modifier::BOLD));
+        let title = zoom.cell(3, 4);
+        assert_eq!(title.symbol(), "C");
+        assert_eq!(title.fg, Color::Rgb(0xff, 0xff, 0xff));
+        assert_eq!(title.bg, Color::Rgb(0x00, 0x00, 0x00));
+        assert!(title.modifier.contains(Modifier::BOLD));
+        let usage = zoom.cell(114, 38);
+        assert_eq!(usage.symbol(), "7");
+        assert_eq!(usage.fg, Color::Rgb(0x8a, 0x8a, 0x8a));
+        assert_eq!(usage.bg, Color::Rgb(0x18, 0x18, 0x1b));
+        assert!(usage.modifier.contains(Modifier::ITALIC));
+        assert!(!usage.modifier.contains(Modifier::BOLD));
+        assert_eq!(zoom.cursor(), Some(Position::new(3, 34)));
+
+        let bare = Harness::new(
+            App::for_scenario(Scenario::CapsuleMulti, Motion::Paused),
+            Theme::junie(),
+            120,
+            40,
+        );
+        assert!(
+            !bare.text().contains("Zoomed · z restores the layout"),
+            "{}",
+            bare.text()
+        );
+        assert_ne!(bare.cell(111, 4).symbol(), "z");
+
+        let mut paper = Harness::new(
+            App::for_scenario(Scenario::CapsuleMulti, Motion::Paused),
+            Theme::paper(),
+            120,
+            40,
+        );
+        let _ = paper.ctrl('b');
+        let _ = paper.key(KeyCode::Char('z'));
+        assert!(
+            !paper.text().contains("Zoomed · z restores the layout"),
+            "paper must keep the live zoom"
+        );
+
+        let mut narrow = Harness::new(
+            App::for_scenario(Scenario::CapsuleMulti, Motion::Paused),
+            Theme::junie(),
+            80,
+            24,
+        );
+        let _ = narrow.ctrl('b');
+        let _ = narrow.key(KeyCode::Char('z'));
+        assert!(!narrow.text().contains("Zoomed · z restores the layout"));
     }
 }
