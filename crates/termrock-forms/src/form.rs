@@ -26,6 +26,7 @@ use termrock_fields::input::{ErrorState, TextAction, TextInput, TextInputState, 
 use termrock_fields::textarea::{TextArea, TextAreaState};
 use termrock_navigation::chip::{ChipBarState, LabelChips};
 use termrock_overlays::select::{LabelSelect, SelectAction, SelectState};
+use termrock_runtime::diagnostics::Diagnostic;
 use termrock_runtime::scroll_region::ScrollRegion;
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -1308,7 +1309,11 @@ impl<'a> Form<'a> {
         st: &mut FormState,
         data: &mut D,
     ) -> Response<FormAction> {
-        if self.validate_layout(data).is_err() {
+        if let Err(error) = self.validate_layout(data) {
+            cx.diagnostic(Diagnostic::InvalidComponentLayout {
+                owner: self.id,
+                field: error.field_id(),
+            });
             return Response::ignored().for_id(self.id);
         }
         if self.layout.is_some() {
@@ -1562,7 +1567,14 @@ impl<'a> Form<'a> {
         st: &FormState,
         data: &D,
     ) -> Rect {
-        if area.is_empty() || self.validate_layout(data).is_err() {
+        if let Err(error) = self.validate_layout(data) {
+            ui.diagnostic(Diagnostic::InvalidComponentLayout {
+                owner: self.id,
+                field: error.field_id(),
+            });
+            return area;
+        }
+        if area.is_empty() {
             return area;
         }
         if self.layout.is_some() {
