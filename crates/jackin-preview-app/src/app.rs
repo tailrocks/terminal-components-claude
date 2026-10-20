@@ -9597,6 +9597,9 @@ impl TuiApp for App {
             } else {
                 launch_dialog_plate::paint_cancel(ui);
             }
+            if let Some(column) = launch_cockpit::stage_rail_left(full) {
+                ui.clear_dim(column);
+            }
             launch_cockpit::paint_open_footer(ui, self.cancel_open);
         }
         if self.cockpit_trace_open {
