@@ -48,6 +48,28 @@ fn explorer_opens_table_and_grid_navigates() {
 }
 
 #[test]
+fn slash_filters_connections_and_keeps_the_open_detail() {
+    let mut harness = Harness::new(TableProApp::default(), Theme::junie(), 120, 40);
+    let _ = harness.key(KeyCode::Char('/'));
+    for ch in ['s', 't', 'a', 'g'] {
+        let _ = harness.key(KeyCode::Char(ch));
+    }
+    let text = harness.text();
+    assert!(text.contains("stag"), "{text}");
+    assert!(text.contains("Staging"), "{text}");
+    assert!(text.contains("Acme"), "{text}");
+    assert!(!text.contains("Production"), "{text}");
+    assert!(text.contains("Local PostgreSQL"), "{text}");
+    assert!(text.contains("Type Filter"), "{text}");
+    assert!(text.contains("6 saved"), "{text}");
+    assert!(
+        harness.diagnostics().is_empty(),
+        "{:?}",
+        harness.diagnostics()
+    );
+}
+
+#[test]
 fn alt_d_duplicates_the_selected_connection_and_keeps_the_cursor() {
     let mut harness = Harness::new(TableProApp::default(), Theme::junie(), 120, 40);
     for _ in 0..7 {
