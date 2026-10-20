@@ -1,3 +1,4 @@
+mod command_scope;
 pub mod composition;
 pub mod cx;
 pub mod derived;
