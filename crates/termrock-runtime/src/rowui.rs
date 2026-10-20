@@ -9,7 +9,9 @@ use crate::id::{Id, ItemKey, Part};
 use crate::layout::{Track, distribute_into};
 use crate::response::StateFlags;
 use crate::text::{Span, width};
-use crate::theme::{Align, Family, GlyphRole, Role, Slot, StylePatch, Variant};
+use crate::theme::{
+    Align, CursorStyle, Family, FgStep, GlyphRole, Role, Slot, StylePatch, Variant,
+};
 use crate::ui::{FrameRead, Ui};
 
 pub trait RowFn<T> {
@@ -30,6 +32,65 @@ impl<T: core::fmt::Display> RowFn<T> for termrock_collections::DefaultRow {
 
 pub const MAX_COLUMNS: usize = 16;
 
+const fn selected_row_patch() -> StylePatch {
+    StylePatch::new()
+        .set_bg(Role::HighlightBg)
+        .set_fg(Role::HighlightFg)
+        .add(Modifier::BOLD)
+        .remove(Modifier::UNDERLINED)
+}
+
+fn selected_part_patch(part: Part) -> StylePatch {
+    let patch = StylePatch::new()
+        .set_bg(Role::HighlightBg)
+        .set_fg(Role::HighlightFg)
+        .remove(Modifier::UNDERLINED);
+    if part == Part::LABEL || part == Part::ROW {
+        patch.add(Modifier::BOLD)
+    } else {
+        patch.remove(Modifier::BOLD)
+    }
+}
+
+fn resolve_row_part(
+    ui: &mut Ui<'_>,
+    family: Family,
+    variant: Variant,
+    flags: StateFlags,
+    part: Part,
+    patch: Option<StylePatch>,
+    cursor_style: CursorStyle,
+) -> crate::theme::Resolved {
+    if cursor_style == CursorStyle::Fill && flags.contains(StateFlags::FOCUSED) {
+        let natural = match patch {
+            Some(patch) => ui.style_patched(family, variant, part, flags, &patch),
+            None => ui.style(family, variant, part, flags),
+        };
+        let owner_ink = |role: Option<(Role, crate::theme::Surface)>| {
+            role.is_some_and(|(role, _)| matches!(role, Role::Custom(_)))
+        };
+        // Built-in fill ink is highlight. An explicit owner role still wins.
+        if !owner_ink(natural.style.fg_role) && !owner_ink(natural.style.bg_role) {
+            // Cursor-fill styling is a default. Theme overrides and overlays
+            // must still resolve above it; only the row's explicit instance
+            // patch belongs at the top of the precedence stack.
+            return ui.style_defaults(
+                family,
+                variant,
+                part,
+                flags,
+                crate::theme::StyleDefaults::new(selected_part_patch(part)),
+                patch.as_ref(),
+            );
+        }
+        return natural;
+    }
+    match patch {
+        Some(patch) => ui.style_patched(family, variant, part, flags, &patch),
+        None => ui.style(family, variant, part, flags),
+    }
+}
+
 pub struct RowUi<'u> {
     ui: Ui<'u>,
     owner: Id,
@@ -38,6 +99,7 @@ pub struct RowUi<'u> {
     flags: StateFlags,
     key: ItemKey,
     row: Rect,
+    cursor_style: CursorStyle,
     label_patch: Option<StylePatch>,
     left: u16,
     right: u16,
@@ -100,6 +162,7 @@ impl<'u> RowUi<'u> {
             flags,
             key,
             row,
+            cursor_style: CursorStyle::Bar,
             label_patch,
             left: 0,
             right: 0,
@@ -122,6 +185,39 @@ impl<'u> RowUi<'u> {
         self.row
     }
 
+    /// Apply the active-row cursor policy before painting row contents.
+    pub fn with_cursor_style(mut self, style: CursorStyle) -> Self {
+        self.cursor_style = style;
+        if style == CursorStyle::Fill && self.flags.contains(StateFlags::FOCUSED) {
+            let resolved = self.ui.style_defaults(
+                self.family,
+                self.variant,
+                Part::ROW,
+                self.flags,
+                crate::theme::StyleDefaults::new(selected_row_patch()),
+                None,
+            );
+            self.ui.fill(self.row, resolved.style);
+        } else if style == CursorStyle::Fill {
+            // Baseline fills every row before the gutter. Unfocused fill is
+            // primary ink on the card, so label padding stays white.
+            let patch = StylePatch::new()
+                .set_fg(Role::Fg(FgStep::Primary))
+                .set_bg(Role::CurrentSurface)
+                .remove(Modifier::BOLD);
+            let resolved = self.ui.style_defaults(
+                self.family,
+                self.variant,
+                Part::ROW,
+                self.flags,
+                crate::theme::StyleDefaults::new(patch),
+                None,
+            );
+            self.ui.fill(self.row, resolved.style);
+        }
+        self
+    }
+
     fn remaining(&self) -> Rect {
         let used = self.left.saturating_add(self.right);
         Rect {
@@ -133,13 +229,16 @@ impl<'u> RowUi<'u> {
     }
 
     fn style_of(&mut self, part: Part) -> PaintStyle {
-        let r = match (part, self.label_patch) {
-            (Part::LABEL, Some(patch)) => {
-                self.ui
-                    .style_patched(self.family, self.variant, part, self.flags, &patch)
-            }
-            _ => self.ui.style(self.family, self.variant, part, self.flags),
-        };
+        let patch = (part == Part::LABEL).then_some(self.label_patch).flatten();
+        let r = resolve_row_part(
+            &mut self.ui,
+            self.family,
+            self.variant,
+            self.flags,
+            part,
+            patch,
+            self.cursor_style,
+        );
         #[cfg(feature = "testing")]
         self.ui
             .note_styled(self.owner, self.family, self.variant, part, r);
@@ -147,9 +246,15 @@ impl<'u> RowUi<'u> {
     }
 
     pub fn marker(&mut self, g: GlyphRole) {
-        let r = self
-            .ui
-            .style(self.family, self.variant, Part::MARKER, self.flags);
+        let r = resolve_row_part(
+            &mut self.ui,
+            self.family,
+            self.variant,
+            self.flags,
+            Part::MARKER,
+            None,
+            self.cursor_style,
+        );
         #[cfg(feature = "testing")]
         self.ui
             .note_styled(self.owner, self.family, self.variant, Part::MARKER, r);
@@ -175,6 +280,39 @@ impl<'u> RowUi<'u> {
     }
 
     pub fn gutter(&mut self) {
+        if self.cursor_style == CursorStyle::Fill && self.flags.contains(StateFlags::FOCUSED) {
+            let mark = self.ui.paint_patch(
+                &StylePatch::new()
+                    .set_fg(Role::HighlightBg)
+                    .set_bg(Role::HighlightBg)
+                    .add(Modifier::BOLD),
+            );
+            let area = self.remaining();
+            let cell = Rect {
+                width: area.width.min(1),
+                ..area
+            };
+            self.ui.fill(cell, mark);
+            self.left = self.left.saturating_add(1);
+            return;
+        }
+        if self.cursor_style == CursorStyle::Fill {
+            // Baseline unfocused gutter is a space whose ink matches the row.
+            let mark = self.ui.paint_patch(
+                &StylePatch::new()
+                    .set_fg(Role::CurrentSurface)
+                    .set_bg(Role::CurrentSurface)
+                    .remove(Modifier::BOLD),
+            );
+            let area = self.remaining();
+            let cell = Rect {
+                width: area.width.min(1),
+                ..area
+            };
+            self.ui.fill(cell, mark);
+            self.left = self.left.saturating_add(1);
+            return;
+        }
         let r = self
             .ui
             .style(self.family, self.variant, Part::GUTTER, self.flags);
@@ -204,10 +342,16 @@ impl<'u> RowUi<'u> {
 
     pub fn label_patched(&mut self, s: &str, p: &StylePatch) {
         let patch = self.label_patch.map_or(*p, |forwarded| forwarded.merge(*p));
-        let st = self
-            .ui
-            .style_patched(self.family, self.variant, Part::LABEL, self.flags, &patch)
-            .style;
+        let st = resolve_row_part(
+            &mut self.ui,
+            self.family,
+            self.variant,
+            self.flags,
+            Part::LABEL,
+            Some(patch),
+            self.cursor_style,
+        )
+        .style;
         self.label_in(s, st);
     }
 
@@ -275,10 +419,16 @@ impl<'u> RowUi<'u> {
         if need == 0 || need > area.width {
             return;
         }
-        let st = self
-            .ui
-            .style_patched(self.family, self.variant, Part::META, self.flags, p)
-            .style;
+        let st = resolve_row_part(
+            &mut self.ui,
+            self.family,
+            self.variant,
+            self.flags,
+            Part::META,
+            Some(*p),
+            self.cursor_style,
+        )
+        .style;
         let cell = Rect {
             x: area.right().saturating_sub(need),
             y: area.y,
@@ -299,7 +449,15 @@ impl<'u> RowUi<'u> {
             height: 1,
         };
         self.right = self.right.saturating_add(w).saturating_add(1);
-        let r = self.ui.style(self.family, self.variant, p, self.flags);
+        let r = resolve_row_part(
+            &mut self.ui,
+            self.family,
+            self.variant,
+            self.flags,
+            p,
+            None,
+            self.cursor_style,
+        );
         #[cfg(feature = "testing")]
         self.ui
             .note_styled(self.owner, self.family, self.variant, p, r);
@@ -330,6 +488,7 @@ impl<'u> RowUi<'u> {
             n,
             gap,
             style,
+            cursor_style: self.cursor_style,
         }
     }
 
@@ -614,6 +773,7 @@ pub struct ColumnsUi<'u> {
     n: usize,
     gap: u16,
     style: PaintStyle,
+    cursor_style: CursorStyle,
 }
 
 impl fmt::Debug for ColumnsUi<'_> {
@@ -655,13 +815,16 @@ impl ColumnsUi<'_> {
 
     pub fn cell_part(&mut self, i: usize, part: Part) -> CellUi<'_> {
         let rect = self.rect(i);
-        let resolved = match (part, self.label_patch) {
-            (Part::LABEL, Some(patch)) => {
-                self.ui
-                    .style_patched(self.family, self.variant, part, self.flags, &patch)
-            }
-            _ => self.ui.style(self.family, self.variant, part, self.flags),
-        };
+        let patch = (part == Part::LABEL).then_some(self.label_patch).flatten();
+        let resolved = resolve_row_part(
+            &mut self.ui,
+            self.family,
+            self.variant,
+            self.flags,
+            part,
+            patch,
+            self.cursor_style,
+        );
         #[cfg(feature = "testing")]
         self.ui
             .note_styled(self.owner, self.family, self.variant, part, resolved);
@@ -899,6 +1062,73 @@ mod tests {
             page.cell((0, 0))
                 .is_some_and(|cell| !cell.modifier.contains(Modifier::BOLD))
         );
+    }
+
+    #[test]
+    fn focused_fill_keeps_explicit_builtin_role_and_modifier() {
+        let theme = Theme::junie();
+        let mut frame = FrameState::default();
+        frame.reset(1, SCREEN);
+        let mut page = Buffer::empty(SCREEN);
+        let mut core = UiCore::default();
+        let last = LastFrame::default();
+        let patch = StylePatch::new()
+            .set_bg(Role::Danger)
+            .add(Modifier::UNDERLINED);
+        {
+            let mut ui = Ui::new(&mut frame, &mut page, &mut core, &theme, &last);
+            let mut row = RowUi::new_with_patches(
+                &mut ui,
+                OWNER,
+                Family::LIST,
+                Variant::DEFAULT,
+                StateFlags::FOCUSED,
+                ItemKey::index(0),
+                Rect::new(0, 0, 20, 1),
+                None,
+                Some(patch),
+            )
+            .with_cursor_style(CursorStyle::Fill);
+            row.label("danger");
+        }
+        let label = page.cell((0, 0)).expect("focused label");
+        assert_eq!(label.bg, theme.color.danger);
+        assert!(label.modifier.contains(Modifier::UNDERLINED));
+    }
+
+    #[test]
+    fn focused_fill_keeps_theme_family_override_above_fill_defaults() {
+        let theme = Theme::junie().override_family(Family::LIST, |recipe| {
+            recipe.part(Part::LABEL).base(
+                StylePatch::new()
+                    .set_bg(Role::Danger)
+                    .add(Modifier::UNDERLINED),
+            );
+        });
+        let mut frame = FrameState::default();
+        frame.reset(1, SCREEN);
+        let mut page = Buffer::empty(SCREEN);
+        let mut core = UiCore::default();
+        let last = LastFrame::default();
+        {
+            let mut ui = Ui::new(&mut frame, &mut page, &mut core, &theme, &last);
+            let mut row = RowUi::new_with_patches(
+                &mut ui,
+                OWNER,
+                Family::LIST,
+                Variant::DEFAULT,
+                StateFlags::FOCUSED,
+                ItemKey::index(0),
+                Rect::new(0, 0, 20, 1),
+                None,
+                None,
+            )
+            .with_cursor_style(CursorStyle::Fill);
+            row.label("danger");
+        }
+        let label = page.cell((0, 0)).expect("focused label");
+        assert_eq!(label.bg, theme.color.danger);
+        assert!(label.modifier.contains(Modifier::UNDERLINED));
     }
 
     #[test]

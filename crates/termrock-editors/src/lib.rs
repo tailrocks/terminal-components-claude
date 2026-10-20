@@ -19,10 +19,17 @@ pub use termrock_text::{Secret, SecretPolicy};
 pub(crate) use termrock_runtime::{Acc, PartStyle, SlotFn, cell_at, first_row};
 
 pub mod code;
+pub mod completion;
 pub mod diff;
 
 pub use code::{
     CodeAction, CodeCmd, CodeDiagnostic, CodeEditor, CodeEditorState, CodeSeverity, Highlighter,
     Segmenter, TabBehavior,
+};
+pub use completion::{
+    COMPLETION_MANUAL_CHORD, COMPLETION_NEXT_FOCUS_CHORD, COMPLETION_PREV_FOCUS_CHORD,
+    CompletingCodeEditor, CompletingCodeEditorState, CompletionBatch, CompletionProvider,
+    CompletionTrigger, CompletionValue, FOCUS_NEXT_ACTION, FOCUS_PREVIOUS_ACTION,
+    MANUAL_COMPLETION_ACTION,
 };
 pub use diff::{DiffLineKind, DiffMode, DiffRow, DiffSource, DiffView, DiffViewState};

@@ -213,16 +213,33 @@ impl CompletionController {
         buffer: &mut TextBuffer,
         item: Item<'_>,
     ) -> bool {
-        let inserted = Self::splice(buffer, state.replace_len, item);
+        self.accept_with(cx, state, item, |replace_len, insertion| {
+            Self::splice(buffer, replace_len, insertion)
+        })
+    }
+
+    /// Accept an item through a caller-owned editor splice operation.
+    ///
+    /// The completion controller still owns dismissal; the adapter owns how the
+    /// editor applies the byte range and insertion. This keeps editor state and
+    /// selection lifecycle in the editor crate without adding a dependency here.
+    pub fn accept_with(
+        &self,
+        cx: &mut Cx<'_>,
+        state: &mut CompletionState,
+        item: Item<'_>,
+        splice: impl FnOnce(usize, &str) -> bool,
+    ) -> bool {
+        let inserted = splice(state.replace_len, item.insertion());
         self.dismiss(cx, state);
         inserted
     }
 
-    fn splice(buffer: &mut TextBuffer, replace_len: usize, item: Item<'_>) -> bool {
+    fn splice(buffer: &mut TextBuffer, replace_len: usize, insertion: &str) -> bool {
         let end = buffer.cursor_offset();
         let start = end.saturating_sub(replace_len);
         buffer.select_range(start, end);
-        buffer.insert_str(item.insertion())
+        buffer.insert_str(insertion)
     }
 }
 
