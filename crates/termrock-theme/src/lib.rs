@@ -690,4 +690,72 @@ mod tests {
         assert_eq!(customized.fg, Slot::Set(Role::Danger));
         assert_eq!(cache.stats(), (0, 3));
     }
+
+    #[test]
+    fn style_cache_key_tracks_iter_mut_recipe_edits() {
+        let mut theme = Theme::junie();
+        theme.capability.color = ColorLevel::Ansi256;
+        let mut cache = resolve::StyleCache::new();
+        let query = |cache: &mut resolve::StyleCache, theme: &Theme| {
+            cache.accumulate(
+                theme,
+                Family::SPLIT,
+                Variant::DEFAULT,
+                Part::SEAM,
+                StateFlags::empty(),
+                &[],
+                0,
+            )
+        };
+
+        let before = query(&mut cache, &theme);
+        for (family, recipe) in theme.recipes.iter_mut() {
+            if family == Family::SPLIT {
+                recipe.parts.entry(Part::SEAM).base.fg = Slot::Set(Role::Danger);
+            }
+        }
+        let after = query(&mut cache, &theme);
+
+        assert_ne!(before.fg, after.fg);
+        assert_eq!(after.fg, Slot::Set(Role::Danger));
+        assert_eq!(cache.stats(), (0, 2));
+    }
+
+    #[test]
+    fn style_cache_separates_divergent_cloned_theme_profiles() {
+        let base = Theme::junie();
+        let mut left = base.clone();
+        left.capability.color = ColorLevel::Ansi256;
+        let left = left.define_family_for_level(ColorLevel::Ansi256, Family::SPLIT, |recipe| {
+            recipe
+                .part(Part::SEAM)
+                .base(StylePatch::new().set_fg(Role::Custom(Color::Indexed(38))));
+        });
+        let mut right = base;
+        right.capability.color = ColorLevel::Ansi256;
+        let right = right.define_family_for_level(ColorLevel::Ansi256, Family::SPLIT, |recipe| {
+            recipe
+                .part(Part::SEAM)
+                .base(StylePatch::new().set_fg(Role::Custom(Color::Indexed(39))));
+        });
+        let mut cache = resolve::StyleCache::new();
+        let query = |cache: &mut resolve::StyleCache, theme: &Theme| {
+            cache.accumulate(
+                theme,
+                Family::SPLIT,
+                Variant::DEFAULT,
+                Part::SEAM,
+                StateFlags::empty(),
+                &[],
+                0,
+            )
+        };
+
+        let left_style = query(&mut cache, &left);
+        let right_style = query(&mut cache, &right);
+
+        assert_eq!(left_style.fg, Slot::Set(Role::Custom(Color::Indexed(38))));
+        assert_eq!(right_style.fg, Slot::Set(Role::Custom(Color::Indexed(39))));
+        assert_eq!(cache.stats(), (0, 2));
+    }
 }
