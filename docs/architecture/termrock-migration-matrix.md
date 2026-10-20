@@ -904,3 +904,10 @@ Frozen-behavior deviations (deliberate): `ScrollState::context` defaults to 0 (P
 Handoffs for other owners: `MouseKind::SecondaryDrag` is missing in `termrock-core` `event.rs` `from_crossterm` (right-button drag maps to `None`), needed before `SecondaryTracker::on_secondary_drag` can be driven from real input; the full PR #26 `tests/mouse_targets.rs` port needs the widget-crate owners (it exercises per-widget targets); in parity the bar thumb region is owned by the bar id (PR #26 answered hits with the owner), recorded as the registry's documented adaptation.
 
 Gate on pushed HEAD: `cargo nextest run` for core, text, collections, viewport, runtime (573 passed), `cargo nextest run -p termrock-conformance` failure set byte-identical to the parent commit (288 pre-existing failures from other sessions' landings, zero added), strict clippy `--all-targets` clean and `cargo fmt --check` clean on all touched crates.
+
+
+## 2026-10-21: reviewed navigation row integration
+
+Integrated NavList/RowUi source `9a550edecc55ee99b170ff31ee51957895aeb1ee` and historical test-fixture repair `eb82d6e1526cd55f21cdc66590b9ff36d7606deb`. Independent reviews are preserved under `docs/audits/evidence/2026-10-21-nav-row-integration/`. The row API preserves default rendering and exposes shared composition parts, cursor style, and configurable content gaps. The historical fixture explicitly reconstructs its original disabled palette; production colors and existing checksum literals remain unchanged. Its negative guard now isolates the intended muted-color defect. These changes do not establish Holla or other application parity.
+
+The preceding modal/field/form integration was pushed and remotely verified at `913a74b879039fcf115318edee303c02d395869f`: scoped Fields/Forms/Runtime nextest passed 520 tests with three skipped; scoped strict Clippy and formatting passed. Incoming source from concurrent authors remains subject to independent architecture and product review. All four application acceptance gates remain incomplete.
