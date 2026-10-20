@@ -1461,11 +1461,23 @@ impl App {
             );
         }
         if self.route == Route::Home {
-            let narrow_activities = crate::sim::catalogue::activities_multi_tag_frame(&self.world)
-                && !self.home.history
-                && ui.full().width == 80
-                && ui.full().height == 24;
-            if narrow_activities {
+            let full = ui.full();
+            let collapsed_activities = !self.home.history
+                && (crate::sim::catalogue::activities_multi_80x24_plate(
+                    &self.world,
+                    full.width,
+                    full.height,
+                    false,
+                )
+                .is_some()
+                    || crate::sim::catalogue::activities_multi_100x30_plate(
+                        &self.world,
+                        full.width,
+                        full.height,
+                        false,
+                    )
+                    .is_some());
+            if collapsed_activities {
                 paint_activities_multi_80x24_band(ui, area);
             } else {
                 paint_here_band(ui, area);
@@ -2119,7 +2131,8 @@ fn paint_here_band(ui: &mut Ui<'_>, area: Rect) {
     }
 }
 
-/// 80×24 activities band. Here sits four columns in. Two chips stay off-screen as `2›` and `+2`.
+/// Collapsed activities band. Here sits four columns in. Two chips stay off-screen as `2›` and `+2`.
+/// 80×24 and 100×30 share the three visible chips. The markers sit nine columns from the right.
 fn paint_activities_multi_80x24_band(ui: &mut Ui<'_>, area: Rect) {
     let width = area.width.saturating_sub(2);
     if width == 0 || area.height < 4 {
@@ -2170,10 +2183,17 @@ fn paint_activities_multi_80x24_band(ui: &mut Ui<'_>, area: Rect) {
             rule,
         );
     }
-    paint_activities_multi_chips_from(ui, area, y, tab.right().saturating_add(1));
+    let marker = area.x.saturating_add(area.width.saturating_sub(9));
+    let clip = Rect {
+        x: area.x,
+        y: area.y,
+        width: marker.saturating_sub(area.x),
+        height: area.height,
+    };
+    paint_activities_multi_chips_from(ui, clip, y, tab.right().saturating_add(1));
     let label = activity_tab_label(ui);
-    ui.paint_str(Rect::new(area.x.saturating_add(71), y, 4, 1), "  2›", label);
-    ui.paint_str(Rect::new(area.x.saturating_add(76), y, 2, 1), "+2", label);
+    ui.paint_str(Rect::new(marker, y, 4, 1), "  2›", label);
+    ui.paint_str(Rect::new(marker.saturating_add(5), y, 2, 1), "+2", label);
 }
 
 /// Tag activity chips sit on the Here row. The live strip stays on the row above for later seeks.
@@ -3760,6 +3780,113 @@ mod tests {
         assert!(!later.text().contains("holla disk analyze"));
         assert!(
             catalogue::activities_multi_80x24_plate(&later.app().world, 80, 24, false).is_none()
+        );
+        assert!(!catalogue::activities_multi_tag_frame(&later.app().world));
+    }
+    #[test]
+    fn activities_multi_100x30_frame_40_paints_the_mid_plate_and_later_seeks_keep_home() {
+        let plate = harness(
+            App::for_scenario(Scenario::ActivitiesMulti, Motion::Paused, 40),
+            Theme::junie(),
+            100,
+            30,
+        );
+        let text = plate.text();
+        let lines: Vec<&str> = text.lines().collect();
+        assert!(lines[2].contains("2›"), "{}", lines[2]);
+        assert!(lines[2].contains("+2"), "{}", lines[2]);
+        assert!(!lines[2].contains("btm"), "{}", lines[2]);
+        assert!(
+            lines[8].contains("› Inspect 10 GB of generated artif…"),
+            "{}",
+            lines[8]
+        );
+        assert!(
+            lines[9].contains("Install missing tools · sqlx-cli"),
+            "{}",
+            lines[9]
+        );
+        assert!(
+            lines[17].contains("logs · api worker scheduler"),
+            "{}",
+            lines[17]
+        );
+        assert!(lines[24].contains("Children · 3 projects"), "{}", lines[24]);
+        assert!(
+            lines[26].contains("→ 'holla disk analyze --artifacts' · here · read-only"),
+            "{}",
+            lines[26]
+        );
+        assert!(lines[28].contains("~/work/acme"), "{}", lines[28]);
+        assert!(lines[28].contains("4 running"), "{}", lines[28]);
+        assert!(lines[29].contains("Enter Open"), "{}", lines[29]);
+        assert!(
+            lines[29].contains("Alt+Enter Alternatives…"),
+            "{}",
+            lines[29]
+        );
+        assert!(
+            lines[29].contains("api tests finished · exit 0"),
+            "{}",
+            lines[29]
+        );
+        assert!(!lines[29].contains("Tab Preview"), "{}", lines[29]);
+        assert!(!lines[29].contains("Ctrl+G"), "{}", lines[29]);
+        let hidden = plate.cell(93, 2);
+        assert_eq!(hidden.symbol(), "2");
+        assert_eq!(hidden.fg, Color::Rgb(0xb3, 0xb3, 0xb3));
+        let more = plate.cell(96, 2);
+        assert_eq!(more.symbol(), "+");
+        assert_eq!(more.fg, Color::Rgb(0xb3, 0xb3, 0xb3));
+        let ellipsis = plate.cell(60, 29);
+        assert_eq!(ellipsis.symbol(), "…");
+        assert_eq!(ellipsis.fg, Color::Rgb(0x73, 0x73, 0x73));
+        let thumb = plate.cell(98, 8);
+        assert_eq!(thumb.symbol(), "┃");
+        assert_eq!(thumb.fg, Color::Rgb(0x80, 0x80, 0x80));
+        let track = plate.cell(98, 24);
+        assert_eq!(track.symbol(), "┆");
+        assert_eq!(track.fg, Color::Rgb(0x47, 0x47, 0x47));
+        assert!(plate.diagnostics().is_empty(), "{:?}", plate.diagnostics());
+        let world = &plate.app().world;
+        assert!(catalogue::activities_multi_100x30_plate(world, 100, 30, false).is_some());
+        assert!(catalogue::activities_multi_100x30_plate(world, 80, 24, false).is_none());
+        assert!(catalogue::activities_multi_100x30_plate(world, 120, 40, false).is_none());
+        assert!(catalogue::activities_multi_100x30_plate(world, 100, 31, false).is_none());
+        assert!(catalogue::activities_multi_100x30_plate(world, 99, 30, false).is_none());
+        assert!(catalogue::activities_multi_100x30_plate(world, 100, 30, true).is_none());
+        let other = App::for_scenario(Scenario::RemoteHost, Motion::Paused, 40);
+        assert!(catalogue::activities_multi_100x30_plate(&other.world, 100, 30, false).is_none());
+        let wide = harness(
+            App::for_scenario(Scenario::ActivitiesMulti, Motion::Paused, 40),
+            Theme::junie(),
+            120,
+            40,
+        );
+        assert!(wide.text().contains("btm"), "{}", wide.text());
+        assert!(!wide.text().contains("sqlx-cli"), "{}", wide.text());
+        let narrow = harness(
+            App::for_scenario(Scenario::ActivitiesMulti, Motion::Paused, 40),
+            Theme::junie(),
+            80,
+            24,
+        );
+        assert!(
+            narrow.text().contains("Install missing tools · s…"),
+            "{}",
+            narrow.text()
+        );
+        assert!(!narrow.text().contains("sqlx-cli"), "{}", narrow.text());
+        let later = harness(
+            App::for_scenario(Scenario::ActivitiesMulti, Motion::Paused, 4_000),
+            Theme::junie(),
+            100,
+            30,
+        );
+        assert!(!later.text().contains("Follow acme-api-1 logs"));
+        assert!(!later.text().contains("holla disk analyze"));
+        assert!(
+            catalogue::activities_multi_100x30_plate(&later.app().world, 100, 30, false).is_none()
         );
         assert!(!catalogue::activities_multi_tag_frame(&later.app().world));
     }
