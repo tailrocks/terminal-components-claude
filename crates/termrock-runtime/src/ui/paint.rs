@@ -8,9 +8,43 @@ use crate::text::Span;
 use crate::text::clusters::ClusterFeed;
 use crate::text::measure::graphemes;
 use crate::theme::builder::{FadeOutcome, fade_mix};
-use crate::theme::{FgStep, GlyphRole, PaintStyle, Role, Surface, Theme};
+use crate::theme::{FgStep, GlyphRole, PaintStyle, Role, Slot, StylePatch, Surface, Theme};
 
 impl Ui<'_> {
+    pub(crate) fn patch_style(&mut self, area: Rect, style: PaintStyle, explicit: StylePatch) {
+        let area = area.intersection(self.clip);
+        if area.is_empty() {
+            return;
+        }
+        let style = style.into_style();
+        for pos in area.positions() {
+            let Some(cell) = self.buffer().cell_mut(pos) else {
+                continue;
+            };
+            match explicit.fg {
+                Slot::Inherit => {}
+                Slot::Set(_) => cell.fg = style.fg.unwrap_or(Color::Reset),
+                Slot::Clear => cell.fg = Color::Reset,
+            }
+            match explicit.bg {
+                Slot::Inherit => {}
+                Slot::Set(_) => cell.bg = style.bg.unwrap_or(Color::Reset),
+                Slot::Clear => cell.bg = Color::Reset,
+            }
+            match explicit.underline {
+                Slot::Inherit => {}
+                Slot::Set(_) => {
+                    cell.underline_color = style.underline_color.unwrap_or(Color::Reset)
+                }
+                Slot::Clear => cell.underline_color = Color::Reset,
+            }
+            cell.modifier = cell
+                .modifier
+                .difference(explicit.remove)
+                .union(explicit.add);
+        }
+    }
+
     pub fn paint_cell(&mut self, pos: Position, symbol: &str, s: impl Into<PaintStyle>) {
         if self.clip.contains(pos) {
             self.paint_str(
@@ -429,15 +463,14 @@ impl Ui<'_> {
     /// Faint glyphs stay. Bold does not survive the dim.
     pub fn modal_backdrop(&mut self, area: Rect) {
         let area = area.intersection(self.frame.screen);
-        let theme = self.theme_ref().clone();
+        let theme = self.theme;
         let focus_bar = theme.design.glyphs.get(crate::theme::GlyphRole::FocusBar);
+        let page = &mut *self.page;
         for pos in area.positions() {
-            let page = self.page_mut();
             let Some(cell) = page.cell_mut(pos) else {
                 continue;
             };
-            let symbol = cell.symbol().to_owned();
-            let clear_bar = symbol == focus_bar
+            let clear_bar = cell.symbol() == focus_bar
                 && (cell.fg == theme.color.focus || cell.fg == theme.color.on_accent);
             // Baseline `Theme::backdrop` ignores bold. Primary dims to muted.
             let (mut fg, bg) = theme.backdrop_colors(cell.fg, cell.bg);

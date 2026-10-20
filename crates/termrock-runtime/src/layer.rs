@@ -7,6 +7,183 @@ use crate::action::ActionKey;
 use crate::focus::ScopeId;
 use crate::id::Id;
 
+#[derive(Clone, Copy, PartialEq, Eq, Hash)]
+pub struct LayerOpening {
+    runtime: u64,
+    generation: u64,
+    id: Id,
+    owner: Id,
+    layer: LayerId,
+    parent: Option<LayerParent>,
+}
+
+impl LayerOpening {
+    const fn new(
+        runtime: u64,
+        generation: u64,
+        id: Id,
+        owner: Id,
+        layer: LayerId,
+        parent: Option<LayerParent>,
+    ) -> Self {
+        Self {
+            runtime,
+            generation,
+            id,
+            owner,
+            layer,
+            parent,
+        }
+    }
+
+    pub const fn owner(self) -> Id {
+        self.owner
+    }
+
+    pub const fn layer_id(self) -> LayerId {
+        self.layer
+    }
+
+    pub(crate) const fn runtime(self) -> u64 {
+        self.runtime
+    }
+
+    pub(crate) const fn generation(self) -> u64 {
+        self.generation
+    }
+
+    pub(crate) const fn id(self) -> Id {
+        self.id
+    }
+
+    pub(crate) const fn parent(self) -> Option<LayerParent> {
+        self.parent
+    }
+}
+
+impl core::fmt::Debug for LayerOpening {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.debug_struct("LayerOpening")
+            .field("id", &self.id)
+            .field("owner", &self.owner)
+            .field("layer", &self.layer)
+            .finish_non_exhaustive()
+    }
+}
+
+/// Receipt for a closed opening after replacement layout and focus have settled.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct LayerCompletion {
+    opening: LayerOpening,
+    event: LayerEvent,
+    restored_focus: Option<Id>,
+    continuation_owner: Option<Id>,
+    continuation_acknowledged: bool,
+}
+
+/// Settled outcome for a field that continued focus through one exact layer opening.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct FocusContinuationOutcome {
+    opening: LayerOpening,
+    owner: Id,
+    restored_focus: Option<Id>,
+    continued: bool,
+}
+
+impl FocusContinuationOutcome {
+    pub(crate) const fn new(
+        opening: LayerOpening,
+        owner: Id,
+        restored_focus: Option<Id>,
+        continued: bool,
+    ) -> Self {
+        Self {
+            opening,
+            owner,
+            restored_focus,
+            continued,
+        }
+    }
+
+    pub const fn opening(self) -> LayerOpening {
+        self.opening
+    }
+    pub const fn owner(self) -> Id {
+        self.owner
+    }
+    pub const fn restored_focus(self) -> Option<Id> {
+        self.restored_focus
+    }
+    pub const fn continued(self) -> bool {
+        self.continued
+    }
+
+    pub(crate) const fn with_continued(mut self, continued: bool) -> Self {
+        self.continued = continued;
+        self
+    }
+}
+
+impl LayerCompletion {
+    pub(crate) const fn new(
+        opening: LayerOpening,
+        event: LayerEvent,
+        restored_focus: Option<Id>,
+        continuation_owner: Option<Id>,
+        continuation_acknowledged: bool,
+    ) -> Self {
+        Self {
+            opening,
+            event,
+            restored_focus,
+            continuation_owner,
+            continuation_acknowledged,
+        }
+    }
+
+    pub const fn opening(self) -> LayerOpening {
+        self.opening
+    }
+
+    pub const fn event(self) -> LayerEvent {
+        self.event
+    }
+
+    pub const fn restored_focus(self) -> Option<Id> {
+        self.restored_focus
+    }
+
+    pub const fn continuation_owner(self) -> Option<Id> {
+        self.continuation_owner
+    }
+
+    pub const fn continuation_acknowledged(self) -> bool {
+        self.continuation_acknowledged
+    }
+
+    pub(crate) const fn with_continuation_acknowledged(mut self, acknowledged: bool) -> Self {
+        self.continuation_acknowledged = acknowledged;
+        self
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub(crate) struct LayerParent {
+    pub(crate) generation: u64,
+    pub(crate) id: Id,
+    pub(crate) layer: LayerId,
+}
+
+impl From<LayerOpening> for LayerParent {
+    fn from(opening: LayerOpening) -> Self {
+        Self {
+            generation: opening.generation,
+            id: opening.id,
+            layer: opening.layer,
+        }
+    }
+}
+
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum LayerKind {
     Modal,
@@ -129,6 +306,12 @@ pub struct LayerSpec {
 
     pub size: LayerSize,
 
+    /// Total horizontal and vertical viewport space reserved outside this layer.
+    pub viewport_margin: (u16, u16),
+
+    /// Keep this live underlying control logically active while this layer owns input.
+    pub continues_focus_owner: Option<Id>,
+
     pub backdrop: Backdrop,
 
     pub inert_below: bool,
@@ -144,6 +327,8 @@ impl LayerSpec {
             restore_focus: true,
             initial_focus: None,
             size: LayerSize::Fill,
+            viewport_margin: (0, 0),
+            continues_focus_owner: None,
             backdrop: Backdrop::Dim {
                 exclude_footer: true,
             },
@@ -160,6 +345,8 @@ impl LayerSpec {
             restore_focus: true,
             initial_focus: None,
             size: LayerSize::Fill,
+            viewport_margin: (0, 0),
+            continues_focus_owner: None,
             backdrop: Backdrop::None,
             inert_below: false,
         }
@@ -174,6 +361,8 @@ impl LayerSpec {
             restore_focus: false,
             initial_focus: None,
             size: LayerSize::Fill,
+            viewport_margin: (0, 0),
+            continues_focus_owner: None,
             backdrop: Backdrop::None,
             inert_below: false,
         }
@@ -182,6 +371,12 @@ impl LayerSpec {
     #[must_use]
     pub const fn anchor(mut self, a: Anchor) -> Self {
         self.anchor = a;
+        self
+    }
+
+    #[must_use]
+    pub const fn continues_focus(mut self, owner: Id) -> Self {
+        self.continues_focus_owner = Some(owner);
         self
     }
 
@@ -210,6 +405,12 @@ impl LayerSpec {
     }
 
     #[must_use]
+    pub const fn viewport_margin(mut self, horizontal_total: u16, vertical_total: u16) -> Self {
+        self.viewport_margin = (horizontal_total, vertical_total);
+        self
+    }
+
+    #[must_use]
     pub const fn inert_below(mut self, yes: bool) -> Self {
         self.inert_below = yes;
         self
@@ -224,6 +425,23 @@ impl LayerSpec {
     pub const fn dismisses_on_focus_out(&self) -> bool {
         self.dismiss.focus_out && !matches!(self.kind, LayerKind::Modal)
     }
+}
+
+pub(crate) fn resolve_layer_area(viewport: Rect, spec: LayerSpec) -> Rect {
+    let LayerSize::Fixed(desired_width, desired_height) = spec.size else {
+        return resolve_anchor(viewport, spec.anchor, spec.size);
+    };
+    if viewport.width == 0 || viewport.height == 0 {
+        return Rect::ZERO;
+    }
+    let max_width = viewport.width.saturating_sub(spec.viewport_margin.0).max(1);
+    let max_height = viewport
+        .height
+        .saturating_sub(spec.viewport_margin.1)
+        .max(1);
+    let width = desired_width.min(max_width).min(viewport.width);
+    let height = desired_height.min(max_height).min(viewport.height);
+    resolve_anchor(viewport, spec.anchor, LayerSize::Fixed(width, height))
 }
 
 #[expect(
@@ -346,6 +564,8 @@ pub(crate) struct OpenLayer {
     pub(crate) id: Id,
     pub(crate) layer: LayerId,
     pub(crate) spec: LayerSpec,
+    pub(crate) opening: LayerOpening,
+    pub(crate) closed_event: Option<LayerEvent>,
 
     pub(crate) restore_to: Option<Id>,
 }
@@ -363,6 +583,8 @@ pub(crate) struct LayerStack {
     pending: Vec<(Id, LayerEvent)>,
 
     next: u32,
+
+    next_generation: u64,
 }
 
 impl Default for LayerStack {
@@ -371,6 +593,7 @@ impl Default for LayerStack {
             open: Vec::new(),
             pending: Vec::new(),
             next: 1,
+            next_generation: 1,
         }
     }
 }
@@ -411,38 +634,57 @@ impl LayerStack {
             .map_or(LayerId::PAGE, |l| l.layer)
     }
 
+    #[cfg(test)]
     pub(crate) fn open(
         &mut self,
         id: Id,
         spec: LayerSpec,
         restore_to: Option<Id>,
     ) -> Option<LayerId> {
+        self.open_with_runtime(id, spec, restore_to, 0)
+            .map(LayerOpening::layer_id)
+    }
+
+    pub(crate) fn open_with_runtime(
+        &mut self,
+        id: Id,
+        spec: LayerSpec,
+        restore_to: Option<Id>,
+        runtime: u64,
+    ) -> Option<LayerOpening> {
         if self.is_open(id) {
             return None;
         }
         let layer = LayerId(u16::try_from(self.next).ok()?);
         self.next = self.next.saturating_add(1);
+        let generation = self.next_generation;
+        self.next_generation = self.next_generation.checked_add(1)?;
+        let parent = self.open.last().map(|open| LayerParent::from(open.opening));
+        let opening = LayerOpening::new(runtime, generation, id, spec.owner, layer, parent);
         self.open.push(OpenLayer {
             id,
             layer,
             spec,
+            opening,
+            closed_event: None,
             restore_to,
         });
         self.pending.push((id, LayerEvent::Opened));
-        Some(layer)
+        Some(opening)
     }
 
     pub(crate) fn close(&mut self, id: Id, event: LayerEvent) -> Vec<OpenLayer> {
         let Some(pos) = self.open.iter().position(|l| l.id == id) else {
             return Vec::new();
         };
-        let closed: Vec<OpenLayer> = self.open.drain(pos..).collect();
-        for (i, l) in closed.iter().enumerate() {
+        let mut closed: Vec<OpenLayer> = self.open.drain(pos..).collect();
+        for (i, l) in closed.iter_mut().enumerate() {
             let ev = if i == 0 {
                 event
             } else {
                 LayerEvent::Dismissed(DismissReason::Programmatic)
             };
+            l.closed_event = Some(ev);
             self.pending.push((l.id, ev));
         }
         closed
@@ -497,6 +739,39 @@ mod tests {
         assert_eq!(s.open(DLG, LayerSpec::modal(DLG), None), Some(LayerId(1)));
         assert_eq!(s.close(DLG, LayerEvent::Closed(ActionKey::CANCEL)).len(), 1);
         assert_eq!(s.open(PICK, LayerSpec::modal(PICK), None), Some(LayerId(2)));
+    }
+
+    #[test]
+    fn opening_tokens_identify_runtime_generation_and_concrete_parent() {
+        let mut stack = LayerStack::default();
+        let parent = stack
+            .open_with_runtime(DLG, LayerSpec::modal(DLG), None, 17)
+            .expect("parent layer opens");
+        let child = stack
+            .open_with_runtime(
+                PICK,
+                LayerSpec::popover(PICK, Anchor::Screen(ScreenAlign::Center)),
+                None,
+                17,
+            )
+            .expect("child layer opens");
+        assert_eq!(parent.runtime(), 17);
+        assert_eq!(parent.generation(), 1);
+        assert_eq!(parent.id(), DLG);
+        assert_eq!(child.parent(), Some(parent.into()));
+
+        let _ = stack.close(DLG, LayerEvent::Dismissed(DismissReason::Esc));
+        let reopened = stack
+            .open_with_runtime(DLG, LayerSpec::modal(DLG), None, 17)
+            .expect("same layer id can open again");
+        assert_ne!(reopened, parent);
+        assert_eq!(reopened.generation(), 3);
+
+        let mut other_runtime = LayerStack::default();
+        let other = other_runtime
+            .open_with_runtime(DLG, LayerSpec::modal(DLG), None, 18)
+            .expect("same layer identity in another runtime");
+        assert_ne!(other, parent);
     }
 
     #[test]
@@ -701,6 +976,40 @@ mod tests {
     }
 
     #[test]
+    fn viewport_margin_limits_fixed_size_without_changing_anchor_viewport() {
+        let viewport = Rect::new(7, 5, 120, 12);
+        let spec = LayerSpec::popover(DLG, Anchor::Screen(ScreenAlign::GeometricCenter))
+            .size(LayerSize::Fixed(88, 19))
+            .viewport_margin(4, 2);
+        assert_eq!(spec.size, LayerSize::Fixed(88, 19));
+        assert_eq!(resolve_layer_area(viewport, spec), Rect::new(23, 6, 88, 10));
+        assert_eq!(
+            resolve_layer_area(Rect::new(7, 5, 120, 40), spec),
+            Rect::new(23, 15, 88, 19)
+        );
+    }
+
+    #[test]
+    fn viewport_margin_handles_tiny_and_empty_viewports() {
+        let spec = LayerSpec::popover(DLG, Anchor::Screen(ScreenAlign::GeometricCenter))
+            .size(LayerSize::Fixed(88, 19))
+            .viewport_margin(4, 2);
+        assert_eq!(
+            resolve_layer_area(Rect::new(9, 13, 1, 1), spec),
+            Rect::new(9, 13, 1, 1)
+        );
+        assert_eq!(resolve_layer_area(Rect::new(9, 13, 0, 5), spec), Rect::ZERO);
+        assert_eq!(resolve_layer_area(Rect::new(9, 13, 5, 0), spec), Rect::ZERO);
+    }
+
+    #[test]
+    fn viewport_margin_does_not_change_fill_layer_semantics() {
+        let viewport = Rect::new(7, 5, 120, 40);
+        let spec = LayerSpec::modal(DLG).viewport_margin(4, 2);
+        assert_eq!(resolve_layer_area(viewport, spec), viewport);
+    }
+
+    #[test]
     fn popover_flips_above_when_the_content_does_not_fit_below() {
         let screen = Rect::new(0, 0, 40, 20);
         let below = Anchor::Rect {
@@ -810,6 +1119,32 @@ mod runtime_tests {
     const PICK: Id = Id::root("pick");
     const ROW: Id = Id::root("pick.row");
 
+    #[derive(Default)]
+    struct BootstrapLayer {
+        opened: bool,
+        bootstrap_viewport: Option<Rect>,
+    }
+
+    impl crate::runtime::App for BootstrapLayer {
+        fn update(&mut self, cx: &mut crate::ui::Cx<'_>) -> crate::response::Response<()> {
+            if !self.opened {
+                self.bootstrap_viewport = Some(cx.viewport());
+                self.opened = true;
+                cx.open_layer(
+                    PICK,
+                    LayerSpec::popover(PICK, Anchor::Screen(ScreenAlign::GeometricCenter))
+                        .size(LayerSize::Fixed(88, 19))
+                        .viewport_margin(4, 2),
+                );
+            }
+            crate::response::Response::ignored()
+        }
+
+        fn draw(&self, ui: &mut crate::ui::Ui<'_>) {
+            let _ = ui.layer(PICK, |_, _| ());
+        }
+    }
+
     fn dialog_stub() -> Stub {
         Stub {
             page: vec![Control::new(PAGE_A, Rect::new(0, 0, 10, 1))],
@@ -865,6 +1200,30 @@ mod runtime_tests {
         rt.app_mut().resize_request = Some((DLG, LayerSize::Fixed(40, 10)));
         let _ = step(&mut rt, &mut buf, key(KeyCode::Char('x')));
         assert_eq!(rt.layer_area(DLG), Some(grown));
+    }
+
+    #[test]
+    fn bootstrap_layer_resolves_against_actual_viewport_and_restores_desired_size() {
+        use ratatui_core::buffer::Buffer;
+
+        let mut rt =
+            crate::runtime::Runtime::new(BootstrapLayer::default(), crate::theme::Theme::junie());
+        let _ = rt.initialize();
+        assert_eq!(rt.app().bootstrap_viewport, Some(Rect::ZERO));
+
+        let mut short = Buffer::empty(Rect::new(0, 0, 120, 12));
+        rt.draw_buffer(Rect::new(0, 0, 120, 12), &mut short)
+            .commit_presented();
+        assert_eq!(rt.layer_area(PICK), Some(Rect::new(16, 1, 88, 10)));
+
+        let mut tall = Buffer::empty(Rect::new(0, 0, 120, 40));
+        rt.draw_buffer(Rect::new(0, 0, 120, 40), &mut tall)
+            .commit_presented();
+        assert_eq!(rt.layer_area(PICK), Some(Rect::new(16, 10, 88, 19)));
+        assert_eq!(
+            rt.open_spec(PICK).map(|spec| spec.size),
+            Some(LayerSize::Fixed(88, 19))
+        );
     }
 
     #[test]
