@@ -2,7 +2,7 @@
 
 ## Current acceptance status — 2026-10-21
 
-This section is the current decision summary. Detailed chronological checkpoints below remain evidence; their intermediate candidate statuses and branch tips are superseded by later exact-commit records. Parent delivery was remotely verified at `f2d66896f3341b115a217a1bdad6379badebccbb`; the subsequently observed shared PR #38 tip is `42fb861c07228db39f40228b5ecaa2e3521d6239`. The protected Grid integration remains pending exact merged checks and recorded findings. The frozen source, tag object, Tuiscotti revision and read-only design reference are unchanged.
+This section is the current decision summary. Detailed chronological checkpoints below remain evidence; their intermediate candidate statuses and branch tips are superseded by later exact-commit records. Parent delivery was remotely verified at `f2d66896f3341b115a217a1bdad6379badebccbb`; the subsequently observed shared PR #38 tip is `42fb861c07228db39f40228b5ecaa2e3521d6239`. Reviewed Grid and runtime-fixture integration was subsequently pushed and remote-verified at `71124871981c1138002b05bb9e7c2083cdd03836`, with the recorded semantic palette failure retained. The frozen source, tag object, Tuiscotti revision and read-only design reference are unchanged.
 
 | Application | Product gate | Library gate and next dependency |
 | --- | --- | --- |
@@ -809,3 +809,8 @@ The [final documentation guard review](../audits/2026-10-21-docguard-fcb0-cleara
 [Dedicated-target integration checks](../audits/2026-10-21-grid-focus-integration-checks.json) run all 834 affected shared tests after reviewed fixture source 067a: 833 pass, the retained semantic all-73 palette test fails, and three existing fixtures are ignored. Strict affected Clippy and formatting pass. A prior build using a target directory reused across two worktrees failed to see a method present in unchanged source; its logs are preserved. A fresh dedicated target builds that exact source successfully. No product source or assertion was changed to hide the build failure.
 
 A corrected read-only Holla source map at exact shared tip 42fb861 confirms existing MasterDetail policy already expresses the frozen 34%/34–48-cell/gap-two/108-column constraints. The next identified consumer gap is a NavList composition adapter delegating to its existing measure/draw contracts, not another master-detail engine. AppShell availability was not established by that source investigation and is not claimed here. Holla application adoption, source-index data and actual paired behavior remain required.
+
+
+## Shared background-fill provenance repair integrated (2026-10-21)
+
+Integrated independently cleared source 79667 at `1fac27d0fc44387eb8fe78236693f1286417e198`. `Ui::fill_keep_fg` delegates to the existing canonical background-only fill, preserving retained foreground semantic roles under subsequent dimming. Parent [checks](../audits/2026-10-21-fill-parent-integration-checks.json) pass 358 runtime tests, retain three existing ignored fixtures, and pass strict runtime Clippy, formatting and whitespace checks. No application plate is approved by this helper repair; independently reproduced no-op recolor provenance loss and all application parity work remain unresolved.
