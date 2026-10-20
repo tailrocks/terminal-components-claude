@@ -1,5 +1,44 @@
 # Termrock migration and acceptance matrix
 
+## TablePro shared Grid row-to-cell styling — 2026-10-21
+
+Frozen Grid behavior resolves ordinary cells over their row style and replaces
+that style only for the ACTIVE cursor cell. The reusable Grid now resolves
+row recipes with explicit provenance, passes the resolved row channels into
+cell defaults, and preserves per-cell recipe overrides and modifier removal.
+Existing caller `part_defaults` are included for both ROW and CELL. No
+TablePro-specific style or inset API was added.
+
+TablePro had been painting BOLD across the selected data row after Grid drew
+it, and repainted five cells at the beginning of the second visible column
+with the surface style. Both caller-side corrections are removed; Grid owns
+row/cell styling and its existing column geometry. The real-app regression
+`unfocused_grid_cursor_does_not_style_the_cursor_row` failed before removal
+(on the exact `9b4aae59b5c006e64b3791fa15804f6411633e4d` source) and passes
+after. Grid-focused styling, ACTIVE precedence, cell channel overrides and
+modifier removal pass in all four color levels.
+
+Validation on merged source `df30dc0`: `cargo nextest run -p termrock-grid
+--all-targets` passes 130/130. Real TablePro regressions for the unfocused
+cursor row and deleted-row strike-through pass; the latter initially failed
+with inherited styling, was corrected to preserve the row's deletion strike
+unless CELL explicitly removes it, and now passes. `cargo nextest run -p
+tablepro-ui --all-targets` runs 184 tests: 173 pass and 11 fail. Remaining
+failures are `explain_orders_shows_a_plan_cell_the_error_frame_hides`,
+`close_only_binds_target_but_quit_binds_every_tab`,
+`frame_tablepro_grid_500x14_120x40`, `query_and_inline_drafts_survive_cancel_without_commit`,
+`result_confirmation_rejects_changed_sql_and_vanished_target_is_noop`,
+`inserting_after_five_hundred_rows_reveals_the_new_owned_record`,
+`result_confirmation_cancel_preserves_inline_draft_and_confirm_targets_captured_tab`,
+`uppercase_u_requires_confirmation_and_preserves_sql_and_other_tab`,
+`plain_u_in_sql_editor_is_text_and_leaves_inactive_table_pending`,
+`tablepro_visual_baseline`, and
+`focused_query_identity_and_draft_survive_earlier_insert_close_and_reorder`.
+The Grid/TablePro package Clippy check is blocked by
+`tablepro-domain::Tab` large-enum-variant lint at `tabs.rs:315` (this task
+changed no domain source). Scoped formatting is checked separately. Full
+product parity remains incomplete; no paired visual approval is claimed.
+
 Updated: 2026-10-20. Status: **in progress; all four applications incomplete**. This is the current migration record. Older audit reports remain evidence, not a complete inventory or acceptance declaration.
 
 ## TablePro query results 120×40 truecolor — 2026-10-21
