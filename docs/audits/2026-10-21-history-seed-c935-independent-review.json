@@ -1,0 +1,41 @@
+{
+  "reviewed_commit": "c9357a9efbaaf995eee00390183d3c82631caa03",
+  "exact_base": "7efe824fefeab1b26794b2fec9f749214d81041a",
+  "decision": "Cleared for bounded domain lint cleanup integration. No source finding in this scope.",
+  "scope": "Private extraction of current candidate History::seeded data only; no frozen baseline parity claim.",
+  "preservation_proof": {
+    "method": "Extract the old local rows array and the new private constant array, tokenize Rust string literals without modifying their contents, and compare every non-whitespace token in order.",
+    "equal_tokens": 402,
+    "equal": true,
+    "canonical_token_json_sha256": "8a1d1d3abb86e36a8142e9e817b528d846962fd3b2e532d75cb22a7f7e4181bc",
+    "author_reported_sha256": "8da7f557b9a930d52d688e753f71eb25fe1b6132e956d780d6eb1e5fcff9c05b",
+    "author_hash_note": "The author audit records a different canonicalization digest without its exact algorithm. This review does not claim to reproduce that digest; independent token equality proves the preserved source data directly.",
+    "constructor": "All source from out.next_id allocation through the HistoryEntry constructor and return is byte-identical. SQL, connection/database labels, timestamps, durations, row counts, optional errors, HistorySource, schema public, ID order and allocation are unchanged.",
+    "types": "The private HistorySeedRow tuple exactly matches existing HistoryEntry field types: static strings, u32 minutes, Option<u32> duration, Option<usize> count, optional error string and HistorySource. The 15-row constant iteration retains the same oldest-first order."
+  },
+  "architecture": "The new constant is ordinary domain seed data outside Termrock, not a frame/cell/ANSI table or screen selector. History::seeded remains the public constructor; the alias and constant are private. No API, rendering, navigation, clock or widget mechanics changed.",
+  "verification": [
+    {
+      "command": "cargo nextest run --locked -p tablepro-domain --all-targets",
+      "result": "12 passed, zero skipped.",
+      "log": "/tmp/history-seed-independent-c935-native.log"
+    },
+    {
+      "command": "cargo clippy --locked -p tablepro-domain --all-targets -- -D warnings",
+      "result": "Exit zero.",
+      "log": "/tmp/history-seed-independent-c935-clippy.log"
+    },
+    {
+      "command": "cargo fmt --check -p tablepro-domain; git diff --check 7efe824f HEAD",
+      "result": "Both exit zero.",
+      "log": "/tmp/history-seed-independent-c935-fmt.log"
+    }
+  ],
+  "audit_review": "docs/audits/2026-10-21-history-seeded-lint-cleanup.json correctly identifies History::seeded rather than the originally misnamed ResultGrid target, records no product parity claim, and labels the expanded UI33 lint errors as observed rather than asserting unproven baseline attribution.",
+  "limits": [
+    "Earlier current-candidate history data differences from frozen baseline remain independently unresolved. This extraction neither fixes nor approves those differences.",
+    "Expanded tablepro-ui strict Clippy33 errors are outside this source change and are not cleared or attributed by this review.",
+    "No four-application parity, full workspace acceptance or CI success is claimed.",
+    "No product source edits or helpers were used."
+  ]
+}
