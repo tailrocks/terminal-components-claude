@@ -5497,7 +5497,8 @@ fn paint_chosen_explorer_row(
                 .remove(Modifier::BOLD),
         ),
     );
-    let name_style = if accent_name {
+    let name_style = if accent_name && ui.theme().capability.color == termrock::ColorLevel::TrueColor
+    {
         fill.patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Accent)))
     } else {
         fill
@@ -5552,14 +5553,21 @@ fn paint_result_cell(cell: GridCell<'_>, ui: &mut CellUi<'_>) {
     };
     ui.text(&shown);
     if cell.flags.contains(StateFlags::ACTIVE) {
-        ui.patch(
-            &StylePatch::new()
-                .set_bg(LEGACY_CELL_BG)
-                .set_fg(Role::Fg(FgStep::Primary))
-                .add(Modifier::BOLD),
-        );
+        let mut patch = StylePatch::new()
+            .set_bg(LEGACY_CELL_BG)
+            .set_fg(Role::Fg(FgStep::Primary))
+            .add(Modifier::BOLD);
+        if ui.color_level() == termrock::ColorLevel::Mono {
+            patch = patch.add(Modifier::REVERSED);
+        }
+        ui.patch(&patch);
     } else if budget.kind == KIND_PRIMARY {
-        ui.patch(&StylePatch::new().set_fg(TAG_PATH_FG));
+        let mut patch = StylePatch::new().set_fg(TAG_PATH_FG);
+        if cell.flags.contains(StateFlags::FOCUSED) && ui.color_level() == termrock::ColorLevel::Mono
+        {
+            patch = patch.add(Modifier::REVERSED);
+        }
+        ui.patch(&patch);
     } else if cell.flags.contains(StateFlags::FOCUSED) {
         ui.patch(&StylePatch::new().add(Modifier::BOLD));
     }
@@ -5640,7 +5648,14 @@ fn paint_grid_scrollbar(ui: &mut Ui<'_>, area: termrock::Rect, rows: usize, orig
         let y = area.y.saturating_add(1).saturating_add(offset as u16);
         let from_end = track_len.saturating_sub(offset).saturating_sub(1);
         let from_start = origin > 0 && (offset == 0 || offset == 1);
-        let cover = if from_end == 0 || (from_start && offset == 0) {
+        let truecolor = ui.theme().capability.color == termrock::ColorLevel::TrueColor;
+        let cover = if !truecolor {
+            if from_end == 0 || (from_start && offset == 0) {
+                plain.add_modifier(Modifier::DIM)
+            } else {
+                plain
+            }
+        } else if from_end == 0 || (from_start && offset == 0) {
             plain.patch(ui.paint_patch(
                 &StylePatch::new().set_fg(Role::Custom(termrock::Color::from_u32(0x008c_8c8c))),
             ))
@@ -6605,7 +6620,14 @@ fn paint_row_numbers(
             );
         }
         let fade = visible.saturating_sub(row);
-        let role = if origin > 0 && row == 0 {
+        let truecolor = ui.theme().capability.color == termrock::ColorLevel::TrueColor;
+        let role = if !truecolor {
+            if cursor == Some(model_row) {
+                TAG_PATH_FG
+            } else {
+                LEGACY_FAINT
+            }
+        } else if origin > 0 && row == 0 {
             Role::Custom(termrock::Color::from_u32(0x003f_3f3f))
         } else if origin > 0 && row == 1 {
             Role::Custom(termrock::Color::from_u32(0x005c_5c5c))
@@ -6648,12 +6670,46 @@ fn paint_row_numbers(
     }
 }
 
+fn paint_indexed_edge_dim(
+    ui: &mut Ui<'_>,
+    area: termrock::Rect,
+    chrome: &GridChrome,
+    visible: usize,
+    origin: usize,
+) {
+    let mut rows = vec![visible.saturating_sub(1)];
+    if origin > 0 {
+        rows.push(0);
+    }
+    let dim = PaintStyle::new().add_modifier(Modifier::DIM);
+    let content_x = area.x.saturating_add(chrome.gutter);
+    for row in rows {
+        let y = area.y.saturating_add(1).saturating_add(row as u16);
+        ui.paint_style(
+            termrock::Rect {
+                x: area.x,
+                y,
+                width: content_x
+                    .saturating_add(chrome.content_width)
+                    .saturating_add(4)
+                    .saturating_sub(area.x),
+                height: 1,
+            },
+            dim,
+        );
+    }
+}
+
 fn paint_bottom_fade(ui: &mut Ui<'_>, area: termrock::Rect, model: &ResultGrid, origin: usize) {
     let Some(chrome) = GRID_CHROME.with(|chrome| chrome.borrow().clone()) else {
         return;
     };
     let visible = usize::from(area.height.saturating_sub(1)).min(model.row_count());
     if visible < 2 {
+        return;
+    }
+    if ui.theme().capability.color != termrock::ColorLevel::TrueColor {
+        paint_indexed_edge_dim(ui, area, &chrome, visible, origin);
         return;
     }
     let steps = [
@@ -8132,9 +8188,11 @@ fn paint_content_seam(ui: &mut Ui<'_>, area: termrock::Rect, panel_border: Role)
     if area.height < 3 {
         return;
     }
+    // Baseline seam rest is the same truecolor gray as a strong border, and
+    // index 239 at 256 colors. DisabledFg carries that pair.
     let seam = ui
         .surface_style()
-        .patch(ui.paint_patch(&StylePatch::new().set_fg(Role::BorderStrong)));
+        .patch(ui.paint_patch(&StylePatch::new().set_fg(Role::DisabledFg)));
     let edge = ui
         .surface_style()
         .patch(ui.paint_patch(&StylePatch::new().set_fg(panel_border)));
