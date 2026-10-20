@@ -1601,6 +1601,40 @@ fn apply_style_delta(ui: &Ui<'_>, base: PaintStyle, delta: StylePatch) -> PaintS
     base.patch(top)
 }
 
+fn preserve_default_clears(defaults: StylePatch, mut explicit: StylePatch) -> StylePatch {
+    if defaults.fg == Slot::Clear && explicit.fg == Slot::Inherit {
+        explicit.fg = Slot::Clear;
+    }
+    if defaults.bg == Slot::Clear && explicit.bg == Slot::Inherit {
+        explicit.bg = Slot::Clear;
+    }
+    if defaults.underline == Slot::Clear && explicit.underline == Slot::Inherit {
+        explicit.underline = Slot::Clear;
+    }
+    explicit
+}
+
+fn active_cell_style(
+    ui: &Ui<'_>,
+    row_style: PaintStyle,
+    cell: crate::theme::ResolvedStyle,
+    strike: bool,
+) -> PaintStyle {
+    let mut active_style = ui
+        .surface_style()
+        .patch(cell.resolved.style)
+        .remove_modifier(
+            row_style
+                .as_style()
+                .add_modifier
+                .difference(cell.resolved.style.as_style().add_modifier),
+        );
+    if strike && !cell.explicit.remove.contains(Modifier::CROSSED_OUT) {
+        active_style = active_style.add_modifier(Modifier::CROSSED_OUT);
+    }
+    active_style
+}
+
 fn inherited_style_defaults(style: PaintStyle, explicit: StylePatch) -> StyleDefaults<'static> {
     let raw = style.as_style();
     let mut base = StylePatch::new();
@@ -2840,7 +2874,7 @@ impl Grid<'_> {
         }
         let defaults = StyleDefaults { base, ..defaults };
         let local = self.ov.part_patch(Part::CELL);
-        let resolved = ui.style_defaults_with_explicit(
+        let mut resolved = ui.style_defaults_with_explicit(
             Family::GRID,
             Variant::DEFAULT,
             Part::CELL,
@@ -2848,6 +2882,7 @@ impl Grid<'_> {
             defaults,
             local.as_ref(),
         );
+        resolved.explicit = preserve_default_clears(base, resolved.explicit);
         self.ov.note(
             ui,
             self.id,
@@ -3014,7 +3049,7 @@ impl Grid<'_> {
             .fold(StylePatch::new(), |base, (_, patch)| base.merge(*patch));
         let row_defaults = StyleDefaults::new(row_defaults);
         let row_local = self.ov.part_patch(Part::ROW);
-        let row_resolved = ui.style_defaults_with_explicit(
+        let mut row_resolved = ui.style_defaults_with_explicit(
             Family::GRID,
             Variant::DEFAULT,
             Part::ROW,
@@ -3022,6 +3057,7 @@ impl Grid<'_> {
             row_defaults,
             row_local.as_ref(),
         );
+        row_resolved.explicit = preserve_default_clears(row_defaults.base, row_resolved.explicit);
         self.ov.note(
             ui,
             self.id,
@@ -3040,6 +3076,9 @@ impl Grid<'_> {
         let row_style = apply_style_delta(ui, row_resolved.resolved.style, row_delta);
         let cell_defaults = inherited_style_defaults(row_style, row_resolved.explicit);
         ui.fill(band, row_style);
+        if !row_resolved.explicit.is_empty() {
+            termrock_runtime::author::patch_style(ui, band, row_style, row_resolved.explicit);
+        }
         if self.gutter == GridGutter::Compact {
             if is_cursor && live.contains(StateFlags::FOCUSED) {
                 ui.glyph(super::cell_at(band, band.x), GlyphRole::FocusBar, row_style);
@@ -3103,7 +3142,12 @@ impl Grid<'_> {
             };
             let Some(cell) = cell else {
                 let cs = self.cell_style(ui, cflags, cell_defaults);
-                ui.fill(rect, cs.resolved.style);
+                let style = if cflags.contains(StateFlags::ACTIVE) {
+                    active_cell_style(ui, row_style, cs, decor.strike)
+                } else {
+                    cs.resolved.style
+                };
+                ui.fill(rect, style);
                 if !cs.explicit.is_empty() {
                     termrock_runtime::author::patch_style(ui, rect, cs.resolved.style, cs.explicit);
                 }
@@ -3126,16 +3170,7 @@ impl Grid<'_> {
                 // The cursor cell owns its complete style. Start from the
                 // component surface and remove row modifiers that are absent
                 // from the active-cell style before repainting the cell.
-                let mut active_style = ui.surface_style().patch(cs.resolved.style).remove_modifier(
-                    row_style
-                        .as_style()
-                        .add_modifier
-                        .difference(cs.resolved.style.as_style().add_modifier),
-                );
-                if decor.strike && !cs.explicit.remove.contains(Modifier::CROSSED_OUT) {
-                    active_style = active_style.add_modifier(Modifier::CROSSED_OUT);
-                }
-                ui.fill(rect, active_style);
+                ui.fill(rect, active_cell_style(ui, row_style, cs, decor.strike));
             }
             if !cs.explicit.is_empty() {
                 termrock_runtime::author::patch_style(ui, rect, cs.resolved.style, cs.explicit);
@@ -3855,6 +3890,7 @@ mod tests {
         model: Model,
         editable: bool,
         actions: Vec<GridAction>,
+        part_defaults: Vec<(Part, StylePatch)>,
     }
 
     impl GridApp {
@@ -3864,6 +3900,7 @@ mod tests {
                 model,
                 editable,
                 actions: Vec::new(),
+                part_defaults: Vec::new(),
             }
         }
     }
@@ -3871,7 +3908,9 @@ mod tests {
     impl App for GridApp {
         fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
             let columns = columns();
-            let grid = Grid::new(ID, &columns).select_mode(SelectMode::Multi);
+            let grid = Grid::new(ID, &columns)
+                .part_defaults(&self.part_defaults)
+                .select_mode(SelectMode::Multi);
             let mut response = if self.editable {
                 grid.update_editable(cx, &mut self.state, &mut self.model)
             } else {
@@ -3885,6 +3924,7 @@ mod tests {
 
         fn draw(&self, ui: &mut Ui<'_>) {
             Grid::new(ID, &columns())
+                .part_defaults(&self.part_defaults)
                 .select_mode(SelectMode::Multi)
                 .draw(ui, AREA, &self.state, &self.model);
         }
@@ -4147,7 +4187,17 @@ mod tests {
     }
 
     fn focused_grid_buffer_with_model(theme: Theme, model: Model) -> Buffer {
-        let mut runtime = Runtime::new(GridApp::new(model, false), theme);
+        focused_grid_buffer_with_defaults(theme, model, Vec::new())
+    }
+
+    fn focused_grid_buffer_with_defaults(
+        theme: Theme,
+        model: Model,
+        part_defaults: Vec<(Part, StylePatch)>,
+    ) -> Buffer {
+        let mut app = GridApp::new(model, false);
+        app.part_defaults = part_defaults;
+        let mut runtime = Runtime::new(app, theme);
         let _ = runtime.initialize();
         runtime.set_focus(Some(ID));
         let _ = runtime.settle();
@@ -4187,6 +4237,64 @@ mod tests {
                 !cursor.modifier.contains(Modifier::ITALIC),
                 "the ACTIVE cursor cell replaces its inherited row style at {level:?}"
             );
+        }
+    }
+
+    #[test]
+    fn active_empty_cell_replaces_focused_row_style() {
+        let theme = Theme::junie().override_family(Family::GRID, |recipe| {
+            recipe.part(Part::ROW).when(
+                StateFlags::FOCUSED,
+                StylePatch::new()
+                    .set_fg(Role::Custom(ratatui_core::style::Color::Red))
+                    .add(Modifier::ITALIC),
+            );
+        });
+        let mut model = Model::two();
+        model.hole = Some((0, 0));
+        let buffer = focused_grid_buffer_with_model(theme, model);
+        let active = buffer
+            .cell(Position::new(2, 1))
+            .expect("empty active cell exists");
+        assert!(!active.modifier.contains(Modifier::ITALIC));
+        assert_ne!(active.fg, ratatui_core::style::Color::Red);
+    }
+
+    #[test]
+    fn caller_part_default_clears_reach_cells_and_empty_cells() {
+        let cell_clear_theme = Theme::junie().override_family(Family::GRID, |recipe| {
+            recipe.part(Part::ROW).when(
+                StateFlags::FOCUSED,
+                StylePatch::new()
+                    .set_fg(Role::Custom(ratatui_core::style::Color::Red))
+                    .set_bg(Role::Custom(ratatui_core::style::Color::Blue)),
+            );
+        });
+        let row_clear_theme = Theme::junie().override_family(Family::GRID, |recipe| {
+            recipe.part(Part::CONTAINER).base(
+                StylePatch::new()
+                    .set_fg(Role::Custom(ratatui_core::style::Color::Red))
+                    .set_bg(Role::Custom(ratatui_core::style::Color::Blue)),
+            );
+        });
+        for (theme, defaults) in [
+            (
+                cell_clear_theme,
+                vec![(Part::CELL, StylePatch::new().clear_fg().clear_bg())],
+            ),
+            (
+                row_clear_theme,
+                vec![(Part::ROW, StylePatch::new().clear_fg().clear_bg())],
+            ),
+        ] {
+            let mut model = Model::two();
+            model.hole = Some((0, 1));
+            let buffer = focused_grid_buffer_with_defaults(theme, model, defaults);
+            let cell = buffer
+                .cell(Position::new(11, 1))
+                .expect("non-cursor cell exists");
+            assert_eq!(cell.fg, ratatui_core::style::Color::Reset);
+            assert_eq!(cell.bg, ratatui_core::style::Color::Reset);
         }
     }
 
