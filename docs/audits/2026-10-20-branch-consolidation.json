@@ -92,7 +92,19 @@
       "observed_remote_sha": "a6929aeba7479d0b3a746f69d412a1ab701b5242",
       "assignment": "E-ci-reference-catchall",
       "status": "blocked-separate-main-delivery",
-      "reason": "Main-only Velnor 0.1.16 to 0.1.29 upgrade. PR38 already uses 0.1.29, so generated main files are inapplicable. PR39 remains open/blocked: run 39436987238 Actionlint passed, Plan exceeded 5m0s, Rust jobs skipped, Required failed."
+      "reason": "Main-only Velnor 0.1.16 to 0.1.29 upgrade. PR38 already uses 0.1.29, so generated main files are inapplicable. PR39 remains open/blocked: run 39436987238 Actionlint passed, Plan exceeded 5m0s, Rust jobs skipped, Required failed.",
+      "superseding_decision_2026_10_21": {
+        "status": "superseded-pr-closed-branch-deleted",
+        "pr": 39,
+        "tip": "a6929aeba7479d0b3a746f69d412a1ab701b5242",
+        "integration_head": "7cd88891d978287ab775cf9e7b33746e3fe2b34c",
+        "reason": "The Velnor pin, tool locks, release manifest and generated shared helpers are identical in PR38. The older main-only configuration and generated task graph are incompatible with PR38 schema2 testing matrix and are excluded. Required CI delivery continues only through PR38; no main push occurred.",
+        "protected": false,
+        "dependent_open_prs": false,
+        "remote_absence_verified": true,
+        "review": "docs/audits/2026-10-21-velnor-upstream-review.md",
+        "closing_comment": "https://github.com/tailrocks/terminal-components-claude/pull/39#issuecomment-6298771279"
+      }
     },
     {
       "branch": "ci/zizmor-design-20261020",
@@ -503,7 +515,7 @@
       "observed_remote_sha": "2289a4f4768a787af767da5fcf0819fe01cade66",
       "assignment": "D-tests-proof",
       "status": "selective-merge-candidate",
-      "reason": "Four commits include pinned, independently diagnosed frozen approval conflict; strict exception is limited to one frozen baseline-capture checkpoint and preserves old approval bytes, decision digest, repeated-output hashes; candidate and replay remain exact. Branch also records candidate button and TablePro dialog failures, not passes. Independent reports show actual candidates remain red; do not bless candidate or modify frozen snapshots. Port only tool/tests/docs changes after checking against target’s later runner, as target support file is older/different; do not merge branch wholesale.",
+      "reason": "Four commits include pinned, independently diagnosed frozen approval conflict; strict exception is limited to one frozen baseline-capture checkpoint and preserves old approval bytes, decision digest, repeated-output hashes; candidate and replay remain exact. Branch also records candidate button and TablePro dialog failures, not passes. Independent reports show actual candidates remain red; do not bless candidate or modify frozen snapshots. Port only tool/tests/docs changes after checking against target\u2019s later runner, as target support file is older/different; do not merge branch wholesale.",
       "review_source": "D-tests-proof.json",
       "review_evidence_scope": "Read-only source/history review; no branch checkout edits, no candidate expected-data update, no product acceptance claim.",
       "commits_not_in_pr38_ancestry_at_observation": 4,
@@ -1326,13 +1338,13 @@
       "observed_remote_sha": "86226a2442f37621bbef91dd50b9b7bc3104659b",
       "assignment": "B-components-layout",
       "status": "integrate-after-independent-probes",
-      "reason": "Take23f→9c64→862 coherent stack.9c64 restores frozen padded metrics and tiny action/title bounds;862 uses effective keymap shortcuts in measure. No target dialog.rs production overlap. Dismissal/mnemonic/focus/resize lifecycle remains separate streamA.102native/8external are historical; current merged pairedCLI still required.",
+      "reason": "Take23f\u21929c64\u2192862 coherent stack.9c64 restores frozen padded metrics and tiny action/title bounds;862 uses effective keymap shortcuts in measure. No target dialog.rs production overlap. Dismissal/mnemonic/focus/resize lifecycle remains separate streamA.102native/8external are historical; current merged pairedCLI still required.",
       "review_source": "B-components-layout.json",
       "review": {
         "branch": "parity/dialog-layout-contract-20261020",
         "head": "86226a2442f37621bbef91dd50b9b7bc3104659b",
         "status": "integrate-after-independent-probes",
-        "reason": "Take23f→9c64→862 coherent stack.9c64 restores frozen padded metrics and tiny action/title bounds;862 uses effective keymap shortcuts in measure. No target dialog.rs production overlap. Dismissal/mnemonic/focus/resize lifecycle remains separate streamA.102native/8external are historical; current merged pairedCLI still required.",
+        "reason": "Take23f\u21929c64\u2192862 coherent stack.9c64 restores frozen padded metrics and tiny action/title bounds;862 uses effective keymap shortcuts in measure. No target dialog.rs production overlap. Dismissal/mnemonic/focus/resize lifecycle remains separate streamA.102native/8external are historical; current merged pairedCLI still required.",
         "merge_base": "39aaf8d5e1dab5cf1c613c0bb7e76638d89d57af",
         "ancestral_to_snapshot": false,
         "unique_commit_history": [
@@ -4561,9 +4573,9 @@
           "Record already delivered shared styles; no replay.",
           "Parent636028fa1 palette/reference cohort: verify four Rust/test blobs and independent decisions, run gates, push before marking integrated.",
           "Land streamA prepared runtime/field/binding/query prerequisites preserving current styles.",
-          "Dialog23f→9c64→862 plus independent lifecycle repairs: overlay nextest,8external probes, paired TablePro open/resize/dismiss/confirm.",
+          "Dialog23f\u21929c64\u2192862 plus independent lifecycle repairs: overlay nextest,8external probes, paired TablePro open/resize/dismiss/confirm.",
           "Composition801..d4 only: layout/runtime/facade nextest, nonzero origin/clip cursor/zeroarea/resize/deepdrop/public example. Add distinct be674 Picker adapter after merge.",
-          "Buttons673936193→b0f8f3a01→2d65740b7→60138: preserve builtin changes, real state tests, pairedCLI; keep2982cell gap open.",
+          "Buttons673936193\u2192b0f8f3a01\u21922d65740b7\u219260138: preserve builtin changes, real state tests, pairedCLI; keep2982cell gap open.",
           "MasterDetail711..1ca after binding merge: metadata/cacheidentity/shadowing, modal return, resize, seam, remaps, shared consumer proof.",
           "Tablecaf..f089 preserving current Grid: ordered model/axisdrag/resize/empty/reorder/large-data tests and paired consumer."
         ],
