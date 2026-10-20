@@ -44,10 +44,11 @@ pub enum GlyphRole {
     SelectClosed,
     SelectOpen,
     PrimaryKey,
+    SwitchOff,
 }
 
 impl GlyphRole {
-    pub const ALL: [GlyphRole; 42] = [
+    pub const ALL: [GlyphRole; 43] = [
         GlyphRole::FocusBar,
         GlyphRole::Chosen,
         GlyphRole::Checked,
@@ -90,6 +91,7 @@ impl GlyphRole {
         GlyphRole::SelectClosed,
         GlyphRole::SelectOpen,
         GlyphRole::PrimaryKey,
+        GlyphRole::SwitchOff,
     ];
 
     const fn index(self) -> usize {
@@ -101,6 +103,7 @@ impl GlyphRole {
 pub struct GlyphSet {
     glyphs: [&'static str; 41],
     primary_key: &'static str,
+    switch_off: &'static str,
     scroll: scrollbar::Set<'static>,
     rule_quiet: line::Set<'static>,
     rule_active: line::Set<'static>,
@@ -116,6 +119,7 @@ impl GlyphSet {
         GlyphSet {
             glyphs,
             primary_key: "⚷",
+            switch_off: "○",
             scroll,
             rule_quiet,
             rule_active,
@@ -129,6 +133,7 @@ impl GlyphSet {
     pub const fn get(&self, r: GlyphRole) -> &'static str {
         match r {
             GlyphRole::PrimaryKey => self.primary_key,
+            GlyphRole::SwitchOff => self.switch_off,
             GlyphRole::ScrollTrack => self.scroll.track,
             GlyphRole::ScrollThumb => self.scroll.thumb,
             GlyphRole::RuleQuiet => self.rule_quiet.horizontal,
@@ -144,6 +149,7 @@ impl GlyphSet {
     pub const fn set(&mut self, r: GlyphRole, s: &'static str) {
         match r {
             GlyphRole::PrimaryKey => self.primary_key = s,
+            GlyphRole::SwitchOff => self.switch_off = s,
             GlyphRole::ScrollTrack => self.scroll.track = s,
             GlyphRole::ScrollThumb => self.scroll.thumb = s,
             GlyphRole::RuleQuiet => self.rule_quiet.horizontal = s,
@@ -228,11 +234,12 @@ mod tests {
 
     #[test]
     fn select_roles_are_appended_without_shifting_existing_discriminants() {
-        assert_eq!(GlyphRole::ALL.len(), 42);
+        assert_eq!(GlyphRole::ALL.len(), 43);
         assert_eq!(GlyphRole::PrimaryKey as usize, 41);
         assert_eq!(GlyphRole::SecretMask as usize, 38);
         assert_eq!(GlyphRole::SelectClosed as usize, 39);
         assert_eq!(GlyphRole::SelectOpen as usize, 40);
+        assert_eq!(GlyphRole::SwitchOff as usize, 42);
     }
 
     #[test]
