@@ -1689,7 +1689,7 @@ impl App {
             && !self.menu.is_open()
         {
             let layer = tag_hints(confirm, status);
-            // 80×24 first-use, monorepo-root, monorepo-child, remote-host, hard-cases, and parity-discovery clip the last hint to a meta `…`. The 100×30 first-use, monorepo-root, monorepo-child, remote-host, and hard-cases plates do the same. Wider plates keep the theme overflow.
+            // 80×24 first-use, monorepo-root, monorepo-child, remote-host, hard-cases, and parity-discovery clip the last hint to a meta `…`. The 100×30 first-use, monorepo-root, monorepo-child, remote-host, hard-cases, and parity-discovery plates do the same. Wider plates keep the theme overflow.
             let narrow = ui.full().width == 80 && ui.full().height == 24;
             let mid = ui.full().width == 100 && ui.full().height == 30;
             let monorepo_child_mid =
@@ -1715,11 +1715,18 @@ impl App {
                 ui.full().height,
             )
             .is_some();
+            let discovery_mid = crate::sim::catalogue::parity_discovery_100x30_plate(
+                &self.world,
+                ui.full().width,
+                ui.full().height,
+            )
+            .is_some();
             let parts = if monorepo_child_mid
                 || remote_host_mid
                 || first_use_mid
                 || monorepo_root_mid
                 || hard_cases_mid
+                || discovery_mid
                 || (narrow
                     && (crate::sim::catalogue::first_use_tag_frame(&self.world)
                         || crate::sim::catalogue::monorepo_root_tag_frame(&self.world)
