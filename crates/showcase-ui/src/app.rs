@@ -1091,7 +1091,7 @@ fn paint_header(
 
     let styles = header_styles(ui);
     let (title, secondary, muted, faint, marker) = styles;
-    let left = paint_header_breadcrumb(ui, area, section, label, (title, secondary, faint, marker));
+    let left = paint_header_breadcrumb(ui, area, section, label, (title, secondary, marker));
     paint_header_actions(
         ui,
         area,
@@ -1131,14 +1131,35 @@ fn header_styles(ui: &mut Ui<'_>) -> (PaintStyle, PaintStyle, PaintStyle, PaintS
     (title, secondary, muted, faint, marker)
 }
 
+fn header_crumb_group(section: &str) -> Option<&'static str> {
+    if section.is_empty() {
+        None
+    } else if section == "Screens" {
+        Some("Screens")
+    } else {
+        Some("Components")
+    }
+}
+
+fn header_crumb_ink(ui: &Ui<'_>) -> PaintStyle {
+    // Raw muted is #808080. `tag_ink` remaps that step to #8a8a8a.
+    shell_text_style(ui, termrock::FgStep::Muted)
+}
+
+fn paint_fitted(ui: &mut Ui<'_>, x: u16, y: u16, text: &str, style: PaintStyle) -> u16 {
+    let span = width(text);
+    ui.paint_str(Rect::new(x, y, span, 1), text, style);
+    x.saturating_add(span)
+}
+
 fn paint_header_breadcrumb(
     ui: &mut Ui<'_>,
     area: Rect,
     section: &str,
     label: &str,
-    styles: (PaintStyle, PaintStyle, PaintStyle, PaintStyle),
+    styles: (PaintStyle, PaintStyle, PaintStyle),
 ) -> u16 {
-    let (title, secondary, faint, marker) = styles;
+    let (title, secondary, marker) = styles;
     let mut x = area.x.saturating_add(1);
     ui.paint_str(Rect::new(x, area.y, 1, 1), "▪", marker);
     x = x.saturating_add(2);
@@ -1154,29 +1175,23 @@ fn paint_header_breadcrumb(
         secondary,
     );
     x = x.saturating_add(14);
-    // The brand advance already leaves one space. The baseline crumb starts one cell later.
-    x = x.saturating_add(1);
-    if !section.is_empty() {
+    if let Some(group) = header_crumb_group(section) {
+        let ink = header_crumb_ink(ui);
+        x = paint_fitted(ui, x, area.y, "/ ", ink);
+        x = paint_fitted(ui, x, area.y, group, ink);
+        x = paint_fitted(ui, x, area.y, " / ", ink);
+        // Snapshot page names in the crumb use the same muted ink, not the title style.
+        paint_fitted(ui, x, area.y, label, ink)
+    } else {
+        // The brand advance already leaves one space. Overview starts one cell later.
+        x = x.saturating_add(1);
         ui.paint_str(
             Rect::new(x, area.y, area.right().saturating_sub(x), 1),
-            section,
-            secondary,
+            label,
+            title,
         );
-        x = x.saturating_add(width(section));
-        let separator = " › ";
-        ui.paint_str(
-            Rect::new(x, area.y, area.right().saturating_sub(x), 1),
-            separator,
-            faint,
-        );
-        x = x.saturating_add(width(separator));
+        x.saturating_add(width(label))
     }
-    ui.paint_str(
-        Rect::new(x, area.y, area.right().saturating_sub(x), 1),
-        label,
-        title,
-    );
-    x.saturating_add(width(label))
 }
 
 fn paint_header_actions(
