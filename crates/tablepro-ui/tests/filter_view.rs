@@ -1,6 +1,52 @@
 use tablepro_ui::TableProApp;
-use termrock::{KeyCode, Theme};
+use termrock::{KeyCode, Modifier, Theme};
 use termrock_test_support::Harness;
+
+#[test]
+fn enter_on_status_shows_the_inline_editor() {
+    let mut app = TableProApp::default();
+    assert!(app.connect(0));
+    let mut harness = Harness::new(app, Theme::junie(), 120, 40);
+    for _ in 0..5 {
+        let _ = harness.key(KeyCode::Down);
+    }
+    let _ = harness.key(KeyCode::Enter);
+    let _ = harness.key(KeyCode::Home);
+    for _ in 0..4 {
+        let _ = harness.key(KeyCode::Right);
+    }
+    let _ = harness.key(KeyCode::Enter);
+    assert!(
+        harness
+            .app()
+            .workbench
+            .active_grid()
+            .is_some_and(|(_, grid)| grid.state.is_editing())
+    );
+    assert!(harness.row(8).contains("curre…"), "{}", harness.row(8));
+    assert!(harness.row(9).contains("…ivered"), "{}", harness.row(9));
+    assert!(harness.row(9).contains("25.90"), "{}", harness.row(9));
+    assert!(harness.row(39).contains("EDIT"), "{}", harness.row(39));
+    assert!(harness.row(39).contains("Next cell"), "{}", harness.row(39));
+    assert!(
+        !harness.row(39).contains("Enter Edit"),
+        "{}",
+        harness.row(39)
+    );
+    let draft = &harness.buffer()[(79, 9)];
+    assert_eq!(draft.symbol(), "…");
+    assert!(draft.modifier.contains(Modifier::UNDERLINED));
+    assert_eq!(
+        harness.cursor(),
+        Some(termrock::Position::new(86, 9)),
+        "editor bar"
+    );
+    assert!(
+        harness.diagnostics().is_empty(),
+        "{:?}",
+        harness.diagnostics()
+    );
+}
 
 #[test]
 fn keyboard_filter_keeps_status_pending_window() {
