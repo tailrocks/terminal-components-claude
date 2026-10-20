@@ -1477,6 +1477,50 @@ fn settings_env_three_enter_paints_the_approved_env_frame() {
 }
 
 #[test]
+fn settings_agents_four_enter_paints_the_approved_agents_frame() {
+    let closed = H::new(Scenario::AccountsMixed, Motion::Paused, 40, 120, 40);
+    assert!(
+        !closed.text().contains("Agent runtime mode"),
+        "closed settings must stay off the agents frame: {}",
+        closed.text()
+    );
+
+    let mut env = H::new(Scenario::AccountsMixed, Motion::Paused, 40, 120, 40);
+    env.key(KeyCode::Char('s'));
+    env.key(KeyCode::Char('3'));
+    env.key(KeyCode::Enter);
+    assert_eq!(env.app().settings.tab, 2);
+    assert!(
+        !env.text().contains("Agent runtime mode"),
+        "Environments must stay off the agents frame: {}",
+        env.text()
+    );
+
+    let mut h = H::new(Scenario::AccountsMixed, Motion::Paused, 40, 120, 40);
+    h.key(KeyCode::Char('s'));
+    assert_eq!(h.app().settings.tab, 0);
+    let general = h.buffer().cell((4, 6)).expect("general body");
+    assert_ne!(
+        general.symbol(),
+        "A",
+        "General must not show Agent runtime mode"
+    );
+    h.key(KeyCode::Char('4'));
+    assert_eq!(h.app().settings.tab, 0);
+    let armed = h.buffer().cell((4, 6)).expect("armed general body");
+    assert_ne!(armed.symbol(), "A", "`4` alone must stay on General");
+    h.key(KeyCode::Enter);
+    assert_eq!(h.app().settings.tab, 3);
+    let mode = h.buffer().cell((4, 6)).expect("agent runtime mode");
+    assert_eq!(mode.symbol(), "A");
+    assert_eq!(mode.fg, termrock::Color::from_u32(0xb3_b3_b3));
+    assert_eq!(mode.bg, termrock::Color::from_u32(0x00_00_00));
+    assert!(mode.modifier.contains(termrock::Modifier::BOLD));
+    assert!(h.text().contains("Agent runtime mode"), "{}", h.text());
+    assert_eq!(h.harness.cursor(), None);
+}
+
+#[test]
 fn settings_mounts_two_enter_paints_the_approved_mounts_frame() {
     let mut h = H::new(Scenario::AccountsMixed, Motion::Paused, 40, 120, 40);
     h.key(KeyCode::Char('s'));
