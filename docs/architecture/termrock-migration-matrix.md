@@ -1,3 +1,16 @@
+## Current blocker update: runtime and capture integrity (2026-10-21)
+
+Fields integration passed 504 scoped tests before incoming shared changes. Publication is now blocked by incoming `adf334b` introducing a deterministic modal snapshot allocation under inherited `NO_COLOR` (503/504 passed). The unchanged isolated test also fails; removing the variable passes only as diagnosis. No environment workaround is accepted. [Evidence](../audits/2026-10-21-fields-publication-incoming-runtime-blocker.json).
+
+Frozen captures have six verified contiguous chunks, ordinals 0–5, totaling 192 cases/checkpoints/process receipts. Hash verification passed and final directories exactly match receipts. Capture is paused because independent review found that a post-rename verification/journal failure can leave an unreceipted directory with no failure marker, blocking retry. The missing injected-failure test is a coverage defect. A separate shared runner repair is underway; no replay, candidate comparison or product approval is authorized by these receipts. [Progress](../audits/2026-10-21-fresh-capture-paused-progress.json), [finding](../audits/2026-10-21-fresh-advance-failure-review.json).
+
+
+## Current integration checkpoint: Fields window repair (2026-10-21)
+
+Adopted source `332f40d07e38512f91cfb038eb9174c413755686` after independent review and parent verification: 504 scoped native tests passed, three existing tests skipped; strict scoped Clippy and formatting passed. This supersedes the earlier rejected horizontal-origin, captured-drag, and placeholder projections only within the reviewed contract. Forms adapter, caret-follow, edit-menu, clipped thumb policy, and all application parity remain incomplete. Evidence: [parent integration](../audits/2026-10-21-textarea-332f-parent-integration.json), [independent clearance](../audits/2026-10-21-textarea-332f-clearance.json).
+
+The 1,301 missing tracked conformance artifacts were restored from exact Git HEAD, with their identities preserved. Cause remains unknown; controlled independent checkout did not reproduce loss. This is recovery, not a product fix or a diagnosed cleaner defect. [Diagnosis](../audits/2026-10-21-artifact-absence-independent-diagnosis.json).
+
 # Termrock migration and acceptance matrix
 
 ## Current acceptance status — 2026-10-21
@@ -7,7 +20,7 @@ This section is the current decision summary. Detailed chronological checkpoints
 | Application | Product gate | Library gate and next dependency |
 | --- | --- | --- |
 | Showcase | Incomplete; complete paired comparison has not passed twice. | Remaining replay/correction paths and capability coverage require verification. Shared Button focus, dot glyph and narrow-label contracts are integrated; real state-matrix adoption remains required. |
-| TablePro | Incomplete; protected Grid integration runs 195 TablePro/domain tests with 183 passing, twelve failing, zero skipped and no new failure names. Full paired coverage and reference conflicts remain outstanding. | Real shared editor and completion lifecycle are integrated. Grid/embedded-input painter removal is independently reviewed and protected pending integration. Form lanes and Radio windows are integrated; TextArea window adoption is blocked by three independent regressions. History and application form painting still require shared replacement. |
+| TablePro | Incomplete; protected Grid integration runs 195 TablePro/domain tests with 183 passing, twelve failing, zero skipped and no new failure names. Full paired coverage and reference conflicts remain outstanding. | Real shared editor and completion lifecycle are integrated. Grid/embedded-input painter removal is integrated and independently reviewed. Form lanes and Radio windows are integrated; Fields TextArea window regressions are repaired and independently cleared at `332f40d`; the separate Form adapter, caret-follow and edit-menu adoption remain pending. History and application form painting still require shared replacement. |
 | Jackin (`jackin-preview`) | Incomplete; replay-backed frames are not acceptable parity proof. | Read-only inventory at `adc6d0e3f668818f6f8321310452db6806c123cc` found 41 fixed-cell historical replay modules, a separate historical palette helper, and two presentation RUNS frames. Replace them by shared components; preserve legitimate brand-specific animations and domain transitions. |
 | Holla | Incomplete; fixed-size/time plate output is not acceptable parity proof. | Same inventory found 46 plate builders, private Finder painting and scenario/time/viewport selectors. Shared searchable sectioned results and responsive master-detail composition must replace them while preserving domain scenarios/actions. |
 
