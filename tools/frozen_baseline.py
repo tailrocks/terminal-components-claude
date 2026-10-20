@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import fcntl
 from datetime import datetime, timezone
 import gzip
 import hashlib
@@ -65,6 +66,9 @@ FRESH_PLAN_SCHEMA = "termrock.frozen-cli-fresh-capture-plan"
 FRESH_PLAN_VERSION = 1
 FRESH_PLAN_FILE = "fresh-capture-plan.json"
 FRESH_PLAN_MAX_TIMEOUT = 225
+FRESH_RUN_MANIFEST_SCHEMA = "termrock.frozen-cli-fresh-run-manifest"
+FRESH_RUN_MANIFEST_VERSION = 1
+FRESH_RUN_MANIFEST_FILE = "run-manifest.json"
 FRESH_RUNTIME_ENV_KEYS = tuple(sorted({
     "PATH", "HOME", "CARGO_HOME", "RUSTUP_HOME", "RUSTUP_TOOLCHAIN", "RUSTC", "RUSTDOC", "CARGO_TARGET_DIR",
     "NEXTEST_EXPERIMENTAL_LIBTEST_JSON",
@@ -2715,6 +2719,670 @@ def verify_fresh_plan(repo: Path, root: Path, cohort_id: str, baseline_bin_dir: 
     return plan
 
 
+def _open_directory_chain(path: Path) -> tuple[int, os.stat_result]:
+    """Open a canonical directory path component-by-component without following links."""
+    canonical = path.resolve(strict=True)
+    fd = os.open(os.sep, os.O_RDONLY | getattr(os, "O_DIRECTORY", 0))
+    try:
+        for component in canonical.parts[1:]:
+            child = os.open(component, os.O_RDONLY | getattr(os, "O_DIRECTORY", 0) | getattr(os, "O_NOFOLLOW", 0), dir_fd=fd)
+            os.close(fd)
+            fd = child
+        return fd, os.fstat(fd)
+    except OSError:
+        os.close(fd)
+        raise
+
+
+def _private_custody_directory(path: Path, *, create: bool) -> tuple[int, os.stat_result, Path]:
+    """Open an owned 0700 custody directory; existing unsafe directories are never chmodded."""
+    path = path.absolute()
+    parent = path.parent
+    try:
+        canonical_parent = parent.resolve(strict=True)
+        if canonical_parent != parent:
+            raise RunnerError("fresh run custody path contains a symlinked ancestor")
+        parent_fd, _parent_info = _open_directory_chain(canonical_parent)
+    except OSError as error:
+        raise RunnerError(f"fresh run custody parent is unsafe or missing: {error}") from error
+    try:
+        if create:
+            created = False
+            try:
+                os.mkdir(path.name, mode=0o700, dir_fd=parent_fd)
+                created = True
+            except FileExistsError:
+                pass
+            except OSError as error:
+                raise RunnerError(f"fresh run custody directory cannot be created: {error}") from error
+            if created:
+                created_fd = os.open(path.name, os.O_RDONLY | getattr(os, "O_DIRECTORY", 0) | getattr(os, "O_NOFOLLOW", 0), dir_fd=parent_fd)
+                try:
+                    os.fchmod(created_fd, 0o700)
+                finally:
+                    os.close(created_fd)
+    finally:
+        os.close(parent_fd)
+    try:
+        canonical = path.resolve(strict=True)
+        if canonical != path:
+            raise RunnerError("fresh run custody path contains a symlinked ancestor")
+        fd, info = _open_directory_chain(canonical)
+        if create and created:
+            os.fchmod(fd, 0o700)
+            info = os.fstat(fd)
+        if not stat.S_ISDIR(info.st_mode) or info.st_uid != os.geteuid() or stat.S_IMODE(info.st_mode) != 0o700:
+            os.close(fd)
+            raise RunnerError("fresh run custody directory must be owned by this user and mode 0700")
+        return fd, info, canonical
+    except OSError as error:
+        raise RunnerError(f"fresh run custody directory is unsafe: {error}") from error
+
+
+def _stable_secret_key(path: Path, *, create: bool = False) -> tuple[bytes, tuple[int, int, int, int], Path]:
+    """Read or exclusively create a private per-run HMAC key relative to a stable 0700 dirfd."""
+    dir_fd, dir_info, custody_path = _private_custody_directory(path.parent, create=create)
+    name = path.name
+    try:
+        if create:
+            flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, "O_NOFOLLOW", 0)
+            try:
+                fd = os.open(name, flags, 0o600, dir_fd=dir_fd)
+            except FileExistsError as error:
+                raise RunnerError("fresh run key already exists") from error
+            key = secrets.token_bytes(32)
+            try:
+                view = memoryview(key)
+                while view:
+                    view = view[os.write(fd, view):]
+                os.fsync(fd)
+            finally:
+                os.close(fd)
+        try:
+            before = os.stat(name, dir_fd=dir_fd, follow_symlinks=False)
+            if stat.S_ISLNK(before.st_mode) or not stat.S_ISREG(before.st_mode) or before.st_nlink != 1 or stat.S_IMODE(before.st_mode) != 0o600 or before.st_uid != os.geteuid():
+                raise RunnerError("fresh run key must be an owned private 0600 regular file")
+            fd = os.open(name, os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0), dir_fd=dir_fd)
+            try:
+                opened = os.fstat(fd)
+                chunks: list[bytes] = []
+                while chunk := os.read(fd, 4096):
+                    chunks.append(chunk)
+                after_fd = os.fstat(fd)
+            finally:
+                os.close(fd)
+            after = os.stat(name, dir_fd=dir_fd, follow_symlinks=False)
+            path_fd, path_info = _open_directory_chain(custody_path)
+            os.close(path_fd)
+        except OSError as error:
+            raise RunnerError(f"fresh run key cannot be safely read: {error}") from error
+        identity = lambda item: (item.st_dev, item.st_ino, item.st_mode, item.st_size, item.st_mtime_ns, item.st_ctime_ns, item.st_nlink, item.st_uid)
+        dir_identity = lambda item: (item.st_dev, item.st_ino, item.st_mode, item.st_uid)
+        if identity(before) != identity(opened) or identity(opened) != identity(after_fd) or identity(after_fd) != identity(after) or dir_identity(dir_info) != dir_identity(path_info):
+            raise RunnerError("fresh run key or custody directory changed during read")
+        key = b"".join(chunks)
+        if len(key) != 32:
+            raise RunnerError("fresh run key must contain exactly 32 bytes")
+        return key, (after.st_dev, after.st_ino, after.st_size, stat.S_IMODE(after.st_mode)), custody_path / name
+    finally:
+        os.close(dir_fd)
+
+
+def _git_metadata_paths(repo: Path) -> set[Path]:
+    """Return resolved worktree and common Git metadata roots, including linked worktrees."""
+    paths: set[Path] = set()
+    for option in ("--absolute-git-dir", "--git-common-dir"):
+        try:
+            result = subprocess.run(["git", "-C", str(repo), "rev-parse", "--path-format=absolute", option], check=True, capture_output=True, text=True, timeout=10)
+        except (OSError, subprocess.SubprocessError) as error:
+            raise RunnerError(f"cannot identify Git metadata path for key-custody check: {error}") from error
+        value = result.stdout.strip()
+        if not value:
+            raise RunnerError("Git returned an empty metadata path")
+        paths.add(Path(value).resolve())
+    return paths
+
+
+def _atomic_create_bytes(path: Path, payload: bytes, mode: int = 0o400) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    fd, temporary_name = tempfile.mkstemp(prefix=f".{path.name}.", dir=path.parent)
+    temporary = Path(temporary_name)
+    try:
+        os.fchmod(fd, mode)
+        with os.fdopen(fd, "wb") as stream:
+            stream.write(payload)
+            stream.flush()
+            os.fsync(stream.fileno())
+        try:
+            os.link(temporary, path, follow_symlinks=False)
+        except FileExistsError as error:
+            raise RunnerError(f"refusing to replace immutable fresh run metadata: {path}") from error
+        dir_fd = os.open(path.parent, os.O_RDONLY)
+        try:
+            os.fsync(dir_fd)
+        finally:
+            os.close(dir_fd)
+    finally:
+        temporary.unlink(missing_ok=True)
+
+
+def _read_stable_json(path: Path, label: str) -> tuple[dict[str, object], bytes]:
+    try:
+        before = path.lstat()
+        if stat.S_ISLNK(before.st_mode) or not stat.S_ISREG(before.st_mode) or before.st_nlink != 1:
+            raise RunnerError(f"{label} must be an unaliased regular file")
+        fd = os.open(path, os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0))
+        try:
+            opened = os.fstat(fd)
+            chunks: list[bytes] = []
+            while chunk := os.read(fd, 1024 * 1024):
+                chunks.append(chunk)
+            after_fd = os.fstat(fd)
+        finally:
+            os.close(fd)
+        after = path.lstat()
+    except OSError as error:
+        raise RunnerError(f"{label} cannot be safely read: {error}") from error
+    identity = lambda item: (item.st_dev, item.st_ino, item.st_mode, item.st_size, item.st_mtime_ns, item.st_ctime_ns, item.st_nlink)
+    if identity(before) != identity(opened) or identity(opened) != identity(after_fd) or identity(after_fd) != identity(after):
+        raise RunnerError(f"{label} changed during read")
+    raw = b"".join(chunks)
+    def strict_object(pairs: list[tuple[str, object]]) -> dict[str, object]:
+        result: dict[str, object] = {}
+        for key, value in pairs:
+            if key in result:
+                raise RunnerError(f"duplicate {label} JSON field: {key}")
+            result[key] = value
+        return result
+    try:
+        value = json.loads(raw, object_pairs_hook=strict_object)
+    except json.JSONDecodeError as error:
+        raise RunnerError(f"{label} is not valid JSON") from error
+    if not isinstance(value, dict):
+        raise RunnerError(f"{label} must be a JSON object")
+    return value, raw
+
+
+def _authenticate_fresh_run_manifest(envelope: object, key: bytes) -> dict[str, object]:
+    if not isinstance(envelope, dict) or set(envelope) != {"manifest", "hmac_sha256"} or not isinstance(envelope["manifest"], dict) or not isinstance(envelope["hmac_sha256"], str):
+        raise RunnerError("fresh run manifest envelope is invalid")
+    manifest = envelope["manifest"]
+    fields = {"schema", "schema_version", "status", "run_id", "plan_id", "plan_creation_sha256", "plan_self_sha256", "cohort_id", "binary_hashes", "source", "runner_inputs", "runtime", "inventory_sha256", "visual_count", "ordinary_count", "candidate_comparison_eligible", "checkpoint_reference_approval", "product_acceptance", "executed", "key_custody"}
+    if set(manifest) != fields or manifest.get("schema") != FRESH_RUN_MANIFEST_SCHEMA or type(manifest.get("schema_version")) is not int or manifest["schema_version"] != FRESH_RUN_MANIFEST_VERSION:
+        raise RunnerError("fresh run manifest schema is invalid")
+    expected_signature = hmac.new(key, canonical_receipt_json(manifest), hashlib.sha256).hexdigest()
+    if not hmac.compare_digest(expected_signature, envelope["hmac_sha256"]):
+        raise RunnerError("fresh run manifest authentication failed")
+    if manifest.get("status") != "prepared-metadata-only" or any(type(manifest.get(field)) is not bool or manifest[field] is not False for field in ("candidate_comparison_eligible", "product_acceptance", "executed")) or manifest.get("checkpoint_reference_approval") != "none":
+        raise RunnerError("fresh run manifest is stale or grants forbidden privileges")
+    return manifest
+
+
+def create_fresh_run(repo: Path, root: Path, cohort_id: str, baseline_bin_dir: Path, timeout: int, expected_plan_sha256: str, key_path: Path) -> dict[str, object]:
+    """Create authenticated PREPARED metadata only; this command never launches an application."""
+    plan = verify_fresh_plan(repo, root, cohort_id, baseline_bin_dir, timeout, expected_plan_sha256)
+    repo, root, _source = paths(repo, root)
+    key_path = key_path.absolute()
+    run_root = (root / "fresh-runs" / str(plan["plan_id"])).absolute()
+    protected = [repo.resolve(), root.resolve(), Path(plan["source"]["source_path"]).resolve(), Path(plan["source"]["live_source_path"]).resolve(), Path(plan["execution"]["artifact_roots"]["run_root"]).resolve(), Path(plan["cohort"]["binaries"][APPS[0]]["path"]).resolve().parent]
+    if any(key_path == item or item in key_path.parents for item in protected):
+        raise RunnerError("fresh run key custody must be outside Git, source, binaries, and artifact roots")
+    git_paths = _git_metadata_paths(repo)
+    protected.extend(git_paths)
+    if any(key_path == item or item in key_path.parents for item in protected):
+        raise RunnerError("fresh run key custody must be outside Git, source, binaries, and artifact roots")
+    custody_fd, _custody_info, key_path_parent = _private_custody_directory(key_path.parent, create=True)
+    os.close(custody_fd)
+    key_path = key_path_parent / key_path.name
+    if any(key_path == item or item in key_path.parents for item in protected):
+        raise RunnerError("fresh run key custody must be outside Git, source, binaries, and artifact roots")
+    try:
+        run_root.mkdir(parents=True, exist_ok=False, mode=0o700)
+    except FileExistsError as error:
+        raise RunnerError("fresh run directory already exists; refusing to reuse or clean evidence") from error
+    key, key_identity, key_path = _stable_secret_key(key_path, create=True)
+    manifest: dict[str, object] = {
+        "schema": FRESH_RUN_MANIFEST_SCHEMA,
+        "schema_version": FRESH_RUN_MANIFEST_VERSION,
+        "status": "prepared-metadata-only",
+        "run_id": secrets.token_hex(16),
+        "plan_id": plan["plan_id"],
+        "plan_creation_sha256": expected_plan_sha256,
+        "plan_self_sha256": plan["plan_sha256"],
+        "cohort_id": plan["cohort"]["cohort_id"],
+        "binary_hashes": {app: plan["cohort"]["binaries"][app]["sha256"] for app in APPS},
+        "source": plan["source"],
+        "runner_inputs": plan["runner_inputs"],
+        "runtime": plan["runtime"],
+        "inventory_sha256": plan["inventory"]["sha256"],
+        "visual_count": plan["inventory"]["visual_count"],
+        "ordinary_count": plan["inventory"]["ordinary_count"],
+        "candidate_comparison_eligible": False,
+        "checkpoint_reference_approval": "none",
+        "product_acceptance": False,
+        "executed": False,
+        "key_custody": {"path": str(key_path), "device": key_identity[0], "inode": key_identity[1], "bytes": key_identity[2], "mode": key_identity[3]},
+    }
+    body = canonical_receipt_json(manifest)
+    envelope = {"manifest": manifest, "hmac_sha256": hmac.new(key, body, hashlib.sha256).hexdigest()}
+    _atomic_create_bytes(run_root / FRESH_RUN_MANIFEST_FILE, canonical_receipt_json(envelope))
+    print(json.dumps({"run_root": str(run_root), "run_id": manifest["run_id"], "status": manifest["status"], "executed": False}, indent=2))
+    return manifest
+
+
+def verify_fresh_run(repo: Path, root: Path, cohort_id: str, baseline_bin_dir: Path, timeout: int, expected_plan_sha256: str, key_path: Path) -> dict[str, object]:
+    """Revalidate current plan/source/tool inputs and authenticate PREPARED metadata."""
+    plan = verify_fresh_plan(repo, root, cohort_id, baseline_bin_dir, timeout, expected_plan_sha256)
+    _repo, root, _source = paths(repo, root)
+    run_root = (root / "fresh-runs" / str(plan["plan_id"])).absolute()
+    key_path = key_path.absolute()
+    git_paths = _git_metadata_paths(repo)
+    protected = [repo.resolve(), root.resolve(), Path(plan["source"]["source_path"]).resolve(), Path(plan["source"]["live_source_path"]).resolve(), Path(plan["execution"]["artifact_roots"]["run_root"]).resolve(), Path(plan["cohort"]["binaries"][APPS[0]]["path"]).resolve().parent, *git_paths]
+    if any(key_path == item or item in key_path.parents for item in protected):
+        raise RunnerError("fresh run key custody must be outside Git, source, binaries, and artifact roots")
+    key, key_identity, key_path = _stable_secret_key(key_path)
+    if any(key_path == item or item in key_path.parents for item in protected):
+        raise RunnerError("fresh run key custody must be outside Git, source, binaries, and artifact roots")
+    envelope, _raw = _read_stable_json(run_root / FRESH_RUN_MANIFEST_FILE, "fresh run manifest")
+    manifest = _authenticate_fresh_run_manifest(envelope, key)
+    expected_manifest = {
+        "schema": FRESH_RUN_MANIFEST_SCHEMA, "schema_version": FRESH_RUN_MANIFEST_VERSION,
+        "status": "prepared-metadata-only", "plan_id": plan["plan_id"],
+        "plan_creation_sha256": expected_plan_sha256, "plan_self_sha256": plan["plan_sha256"],
+        "cohort_id": plan["cohort"]["cohort_id"], "source": plan["source"], "runner_inputs": plan["runner_inputs"],
+        "binary_hashes": {app: plan["cohort"]["binaries"][app]["sha256"] for app in APPS},
+        "runtime": plan["runtime"], "inventory_sha256": plan["inventory"]["sha256"],
+        "visual_count": plan["inventory"]["visual_count"], "ordinary_count": plan["inventory"]["ordinary_count"],
+        "candidate_comparison_eligible": False, "checkpoint_reference_approval": "none",
+        "product_acceptance": False, "executed": False,
+    }
+    if any(type(manifest.get(field)) is not type(value) or manifest.get(field) != value for field, value in expected_manifest.items()):
+        raise RunnerError("fresh run manifest is stale or grants forbidden privileges")
+    custody = manifest["key_custody"]
+    if custody != {"path": str(key_path.absolute()), "device": key_identity[0], "inode": key_identity[1], "bytes": key_identity[2], "mode": key_identity[3]}:
+        raise RunnerError("fresh run key custody identity changed")
+    envelopes = _fresh_journal_envelopes(run_root)
+    progress = validate_fresh_run_journal(envelopes, key, envelope, root / FRESH_PLAN_FILE, expected_plan_sha256)
+    _verify_fresh_journal_artifacts(plan, envelopes)
+    print(json.dumps({"run_id": manifest["run_id"], "status": manifest["status"], "verified": True, "executed": False, "completed_steps": progress["completed_steps"], "visual_capture_replay_complete": progress["visual_capture_replay_complete"], "complete": False, "candidate_comparison_eligible": False, "product_acceptance": False}, indent=2))
+    return manifest
+
+
+def _fresh_run_receipt_body(envelope: object, key: bytes) -> dict[str, object]:
+    if not isinstance(envelope, dict) or set(envelope) != {"receipt", "hmac_sha256"}:
+        raise RunnerError("fresh run receipt envelope is malformed")
+    receipt = envelope["receipt"]
+    if not isinstance(receipt, dict) or not isinstance(envelope["hmac_sha256"], str):
+        raise RunnerError("fresh run receipt is malformed")
+    expected = hmac.new(key, canonical_receipt_json(receipt), hashlib.sha256).hexdigest()
+    if not hmac.compare_digest(expected, envelope["hmac_sha256"]):
+        raise RunnerError("fresh run receipt authentication failed")
+    fields = {"schema", "ordinal", "phase", "chunk", "selected_cases", "status", "checkpoint_count", "ordinary_check_count", "process_receipt_count", "process_receipt_inventory_sha256", "process_pid_count", "checkpoint_inventory_sha256", "artifacts_sha256", "committed_chunk_sha256", "expected_chunk_sha256", "run_id", "plan_creation_sha256", "plan_self_sha256", "cohort_id", "binary_hashes", "source_sha256", "runtime_sha256", "previous_receipt_sha256"}
+    if set(receipt) != fields or receipt.get("schema") != "termrock.frozen-cli-fresh-run-receipt-v2":
+        raise RunnerError("fresh run receipt schema is invalid")
+    if receipt.get("status") != "passed":
+        raise RunnerError("fresh run journal cannot trust failed, skipped, or unfinished work")
+    if type(receipt.get("ordinal")) is not int or receipt["ordinal"] < 0 or type(receipt.get("chunk")) is not int or receipt["chunk"] < 0:
+        raise RunnerError("fresh run receipt ordinal or chunk is invalid")
+    if receipt.get("phase") not in {"baseline-capture", "baseline-replay", "baseline-ordinary-checks"}:
+        raise RunnerError("fresh run receipt phase is invalid")
+    cases = receipt.get("selected_cases")
+    if not isinstance(cases, list) or not cases or any(not isinstance(case, str) for case in cases) or len(cases) != len(set(cases)):
+        raise RunnerError("fresh run receipt case set is empty or duplicated")
+    for field in ("checkpoint_count", "ordinary_check_count", "process_receipt_count", "process_pid_count"):
+        if type(receipt.get(field)) is not int or receipt[field] < 0:
+            raise RunnerError(f"fresh run receipt {field} is invalid")
+    if receipt["phase"] == "baseline-ordinary-checks":
+        if receipt["ordinary_check_count"] == 0 or receipt["checkpoint_count"] != 0:
+            raise RunnerError("ordinary-check receipt must prove checks and cannot claim visual checkpoints")
+    elif receipt["checkpoint_count"] < len(cases) or receipt["ordinary_check_count"] != 0 or receipt["process_receipt_count"] == 0 or receipt["process_pid_count"] == 0:
+        raise RunnerError("visual receipt must have nonzero checkpoints and cannot claim ordinary checks")
+    for field in ("plan_creation_sha256", "plan_self_sha256", "source_sha256", "runtime_sha256", "expected_chunk_sha256", "process_receipt_inventory_sha256", "checkpoint_inventory_sha256", "artifacts_sha256", "committed_chunk_sha256"):
+        if not isinstance(receipt.get(field), str) or not re.fullmatch(r"[0-9a-f]{64}", receipt[field]):
+            raise RunnerError(f"fresh run receipt {field} is invalid")
+    if not isinstance(receipt.get("binary_hashes"), dict) or set(receipt["binary_hashes"]) != set(APPS) or any(not isinstance(value, str) or not re.fullmatch(r"[0-9a-f]{64}", value) for value in receipt["binary_hashes"].values()):
+        raise RunnerError("fresh run receipt binary inventory is invalid")
+    previous = receipt.get("previous_receipt_sha256")
+    if previous is not None and (not isinstance(previous, str) or not re.fullmatch(r"[0-9a-f]{64}", previous)):
+        raise RunnerError("fresh run receipt chain link is invalid")
+    return receipt
+
+
+def _fresh_plan_steps(plan: dict[str, object]) -> list[dict[str, object]]:
+    phases = plan["execution"]["phases"]
+    steps: list[dict[str, object]] = []
+    for phase in phases:
+        if phase["name"] in {"baseline-capture", "baseline-replay"}:
+            for chunk in phase["chunks"]:
+                steps.append({"phase": phase["name"], "chunk": chunk["index"], "selected_cases": chunk["selected_cases"]})
+        elif phase["name"] == "baseline-ordinary-checks":
+            for group in phase["groups"]:
+                for chunk in group["chunks"]:
+                    steps.append({"phase": phase["name"], "chunk": chunk["index"], "selected_cases": chunk["selected_cases"]})
+    if not steps or not any(step["phase"] == "baseline-capture" for step in steps) or not any(step["phase"] == "baseline-replay" for step in steps) or not any(step["phase"] == "baseline-ordinary-checks" for step in steps):
+        raise RunnerError("fresh run plan has an empty required phase inventory")
+    return steps
+
+
+def validate_fresh_run_journal(envelopes: list[object], key: bytes, manifest_envelope: object, plan_path: Path, expected_plan_sha256: str) -> dict[str, object]:
+    """Validate an authenticated completed prefix against the externally anchored immutable plan."""
+    manifest = _authenticate_fresh_run_manifest(manifest_envelope, key)
+    plan = _read_self_sealed_plan(plan_path, expected_plan_sha256)
+    if plan["plan_id"] != manifest.get("plan_id") or plan["plan_sha256"] != manifest.get("plan_self_sha256") or plan["inventory"]["sha256"] != manifest.get("inventory_sha256"):
+        raise RunnerError("fresh run plan or inventory differs from the authenticated manifest")
+    planned_steps = _fresh_plan_steps(plan)
+    if not isinstance(envelopes, list) or len(envelopes) > len(planned_steps):
+        raise RunnerError("fresh run journal has extra receipts")
+    prior_digest: str | None = None
+    captured_chunks: dict[int, str] = {}
+    for ordinal, (envelope, expected_step) in enumerate(zip(envelopes, planned_steps, strict=False)):
+        receipt = _fresh_run_receipt_body(envelope, key)
+        if receipt["ordinal"] != ordinal or expected_step != {"phase": receipt["phase"], "chunk": receipt["chunk"], "selected_cases": receipt["selected_cases"]}:
+            raise RunnerError("fresh run receipt order or planned chunk differs")
+        expected_previous = prior_digest
+        if receipt["previous_receipt_sha256"] != expected_previous:
+            raise RunnerError("fresh run receipt chain is stale, missing, or reordered")
+        expected_claims = {
+            "run_id": manifest["run_id"], "plan_creation_sha256": manifest["plan_creation_sha256"],
+            "plan_self_sha256": manifest["plan_self_sha256"], "cohort_id": manifest["cohort_id"],
+            "binary_hashes": manifest["binary_hashes"], "source_sha256": manifest["source"]["source_sha256"],
+            "runtime_sha256": canonical_json_digest(manifest["runtime"]),
+        }
+        if any(receipt.get(field) != value for field, value in expected_claims.items()):
+            raise RunnerError("fresh run receipt is stale or bound to different source, binary, environment, or plan")
+        if receipt["phase"] == "baseline-capture":
+            if receipt["chunk"] in captured_chunks:
+                raise RunnerError("fresh run journal duplicates a baseline capture chunk")
+            captured_chunks[receipt["chunk"]] = receipt["expected_chunk_sha256"]
+        elif receipt["phase"] == "baseline-replay":
+            if captured_chunks.get(receipt["chunk"]) != receipt["expected_chunk_sha256"]:
+                raise RunnerError("baseline replay does not bind its immutable captured expected chunk")
+        else:
+            raise RunnerError("fresh run journal contains an unsupported phase; ordinary checks are not implemented")
+        prior_digest = hashlib.sha256(canonical_receipt_json(envelope)).hexdigest()
+    visual_steps = sum(step["phase"] in {"baseline-capture", "baseline-replay"} for step in planned_steps)
+    visual_complete = len(envelopes) >= visual_steps and all(step["phase"] in {"baseline-capture", "baseline-replay"} for step in planned_steps[:len(envelopes)])
+    return {"completed_steps": len(envelopes), "planned_steps": len(planned_steps), "visual_capture_replay_complete": visual_complete, "complete": False, "executed": bool(envelopes), "candidate_comparison_eligible": False, "product_acceptance": False}
+
+
+def _fresh_run_lock(run_root: Path):
+    """Take a nonblocking advisory lock without exposing secrets to child processes."""
+    try:
+        root_info = run_root.lstat()
+    except OSError as error:
+        raise RunnerError(f"fresh run root is missing or unsafe: {error}") from error
+    if stat.S_ISLNK(root_info.st_mode) or not stat.S_ISDIR(root_info.st_mode) or root_info.st_uid != os.geteuid() or stat.S_IMODE(root_info.st_mode) != 0o700:
+        raise RunnerError("fresh run root must be an owned mode-0700 directory")
+    path = run_root / ".advance.lock"
+    flags = os.O_RDWR | os.O_CREAT | getattr(os, "O_NOFOLLOW", 0)
+    fd: int | None = None
+    try:
+        fd = os.open(path, flags, 0o600)
+        info = os.fstat(fd)
+        if not stat.S_ISREG(info.st_mode) or info.st_nlink != 1 or info.st_uid != os.geteuid() or stat.S_IMODE(info.st_mode) != 0o600:
+            raise RunnerError("fresh run lock is unsafe")
+        fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except BlockingIOError as error:
+        if fd is not None:
+            os.close(fd)
+        raise RunnerError("another fresh run chunk advance is active") from error
+    except OSError as error:
+        if fd is not None:
+            os.close(fd)
+        raise RunnerError(f"fresh run lock cannot be safely acquired: {error}") from error
+    except RunnerError:
+        if fd is not None:
+            os.close(fd)
+        raise
+    return fd
+
+
+def _fresh_journal_envelopes(run_root: Path) -> list[object]:
+    journal = run_root / "journal"
+    if not journal.exists() and not journal.is_symlink():
+        return []
+    info = journal.lstat()
+    if stat.S_ISLNK(info.st_mode) or not stat.S_ISDIR(info.st_mode) or info.st_uid != os.geteuid() or stat.S_IMODE(info.st_mode) != 0o700:
+        raise RunnerError("fresh run journal directory is unsafe")
+    paths = sorted(journal.iterdir(), key=lambda item: item.name)
+    expected_names = [f"step-{index:08}.json" for index in range(len(paths))]
+    if [path.name for path in paths] != expected_names:
+        raise RunnerError("fresh run journal contains a missing, duplicate, reordered, or unrecognized receipt")
+    return [_read_stable_json(path, "fresh run journal receipt")[0] for path in paths]
+
+
+def _fresh_expected_tree_sha256(path: Path) -> str:
+    """Hash every expected frame plus type and permission mode; reject aliases and links."""
+    if path.is_symlink() or not path.is_dir():
+        raise RunnerError(f"expected chunk root is missing or unsafe: {path}")
+    digest = hashlib.sha256()
+    for current, directories, files in os.walk(path, followlinks=False):
+        current_path = Path(current)
+        for name in sorted(directories):
+            item = current_path / name
+            info = item.lstat()
+            if stat.S_ISLNK(info.st_mode) or not stat.S_ISDIR(info.st_mode):
+                raise RunnerError(f"expected chunk contains a non-directory or symlink: {item}")
+            relative = item.relative_to(path).as_posix() + "/"
+            digest.update(b"directory\0" + relative.encode() + b"\0" + f"{stat.S_IMODE(info.st_mode):04o}".encode() + b"\0")
+        for name in sorted(files):
+            item = current_path / name
+            before = item.lstat()
+            if stat.S_ISLNK(before.st_mode) or not stat.S_ISREG(before.st_mode) or before.st_nlink != 1:
+                raise RunnerError(f"expected chunk contains an aliased or non-regular file: {item}")
+            fd = os.open(item, os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0))
+            try:
+                opened = os.fstat(fd)
+                content = b""
+                chunks = []
+                while chunk := os.read(fd, 1024 * 1024):
+                    chunks.append(chunk)
+                after = os.fstat(fd)
+            finally:
+                os.close(fd)
+            final = item.lstat()
+            identity = lambda value: (value.st_dev, value.st_ino, value.st_mode, value.st_size, value.st_mtime_ns, value.st_ctime_ns, value.st_nlink)
+            if identity(before) != identity(opened) or identity(opened) != identity(after) or identity(after) != identity(final):
+                raise RunnerError(f"expected chunk file changed while hashing: {item}")
+            content = b"".join(chunks)
+            relative = item.relative_to(path).as_posix()
+            digest.update(b"file\0" + relative.encode() + b"\0" + f"{stat.S_IMODE(before.st_mode):04o}".encode() + b"\0" + hashlib.sha256(content).digest() + b"\0")
+    return digest.hexdigest()
+
+
+def _verify_fresh_journal_artifacts(plan: dict[str, object], envelopes: list[object]) -> None:
+    roots = plan["execution"]["artifact_roots"]
+    capture_root = Path(roots["baseline_capture"])
+    for envelope in envelopes:
+        receipt = envelope["receipt"]
+        phase = receipt["phase"]
+        chunk = receipt["chunk"]
+        committed = Path(roots[phase.replace("-", "_")]) / f"chunk-{chunk:05}"
+        if committed.is_symlink() or not committed.is_dir() or _fresh_expected_tree_sha256(committed) != receipt["committed_chunk_sha256"]:
+            raise RunnerError("fresh run committed chunk is missing, changed, or not immutable")
+        captured_expected = capture_root / f"chunk-{chunk:05}" / "expected"
+        if _fresh_expected_tree_sha256(captured_expected) != receipt["expected_chunk_sha256"]:
+            raise RunnerError("fresh run immutable expected frame chunk changed")
+
+
+def _fresh_journal_append(run_root: Path, envelope: dict[str, object], ordinal: int) -> Path:
+    journal = run_root / "journal"
+    try:
+        journal.mkdir(mode=0o700)
+    except FileExistsError:
+        pass
+    info = journal.lstat()
+    if stat.S_ISLNK(info.st_mode) or not stat.S_ISDIR(info.st_mode) or info.st_uid != os.geteuid() or stat.S_IMODE(info.st_mode) != 0o700:
+        raise RunnerError("fresh run journal directory is unsafe")
+    dir_fd, opened = _open_directory_chain(journal)
+    try:
+        if (opened.st_dev, opened.st_ino, opened.st_mode) != (info.st_dev, info.st_ino, info.st_mode):
+            raise RunnerError("fresh run journal directory changed while opening")
+        name = f"step-{ordinal:08}.json"
+        temporary = f".{name}.{secrets.token_hex(8)}"
+        fd = os.open(temporary, os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, "O_NOFOLLOW", 0), 0o400, dir_fd=dir_fd)
+        try:
+            os.fchmod(fd, 0o400)
+            payload = canonical_receipt_json(envelope)
+            view = memoryview(payload)
+            while view:
+                written = os.write(fd, view)
+                view = view[written:]
+            os.fsync(fd)
+        finally:
+            os.close(fd)
+        try:
+            os.link(temporary, name, src_dir_fd=dir_fd, dst_dir_fd=dir_fd, follow_symlinks=False)
+        except FileExistsError as error:
+            raise RunnerError(f"refusing to replace immutable fresh run journal receipt: {name}") from error
+        finally:
+            os.unlink(temporary, dir_fd=dir_fd)
+        os.fsync(dir_fd)
+    except OSError as error:
+        raise RunnerError(f"fresh run receipt cannot be atomically published: {error}") from error
+    finally:
+        os.close(dir_fd)
+    return journal / name
+
+
+def advance_fresh_run(repo: Path, root: Path, cohort_id: str, baseline_bin_dir: Path, timeout: int, expected_plan_sha256: str, key_path: Path) -> dict[str, object]:
+    """Run exactly the next planned baseline capture or replay chunk; never candidate-check or finalize."""
+    if not 1 <= timeout <= FRESH_PLAN_MAX_TIMEOUT:
+        raise RunnerError(f"fresh run advance timeout must be 1..{FRESH_PLAN_MAX_TIMEOUT} seconds")
+    repo, root, _source = paths(repo, root)
+    plan_path = root / FRESH_PLAN_FILE
+    plan = _read_self_sealed_plan(plan_path, expected_plan_sha256)
+    run_root = root / "fresh-runs" / str(plan["plan_id"])
+    lock_fd = _fresh_run_lock(run_root)
+    stage: Path | None = None
+    deadline = time.monotonic() + timeout
+
+    def remaining() -> int:
+        seconds = int(deadline - time.monotonic())
+        if seconds < 1:
+            raise RunnerError("fresh run advance exceeded its single-chunk time budget")
+        return seconds
+
+    try:
+        manifest = verify_fresh_run(repo, root, cohort_id, baseline_bin_dir, remaining(), expected_plan_sha256, key_path)
+        manifest_envelope, _ = _read_stable_json(run_root / FRESH_RUN_MANIFEST_FILE, "fresh run manifest")
+        key, _key_identity, _key_path = _stable_secret_key(key_path.absolute())
+        envelopes = _fresh_journal_envelopes(run_root)
+        prefix = validate_fresh_run_journal(envelopes, key, manifest_envelope, plan_path, expected_plan_sha256)
+        planned = _fresh_plan_steps(plan)
+        ordinal = prefix["completed_steps"]
+        if ordinal >= len(planned):
+            raise RunnerError("fresh run has no remaining planned chunks; finalization is not implemented")
+        step = planned[ordinal]
+        phase = step["phase"]
+        if phase not in {"baseline-capture", "baseline-replay"}:
+            raise RunnerError("ordinary-check advancement is not implemented; no phase was skipped")
+        chunk_index = step["chunk"]
+        selected = list(step["selected_cases"])
+        if not selected:
+            raise RunnerError("fresh run planned an empty visual chunk")
+        expected_capture_root = Path(plan["execution"]["artifact_roots"][phase.replace("-", "_")]).resolve()
+        root_artifacts = Path(plan["execution"]["artifact_roots"]["run_root"]).resolve()
+        if expected_capture_root != root_artifacts / phase or root_artifacts != root / "fresh-capture" / str(plan["plan_id"]):
+            raise RunnerError("fresh run artifact paths differ from the anchored plan")
+        phase_root = expected_capture_root
+        if phase_root.is_symlink():
+            raise RunnerError("fresh run phase artifact root is symlinked")
+        phase_root.mkdir(parents=True, exist_ok=True, mode=0o700)
+        phase_info = phase_root.lstat()
+        if not stat.S_ISDIR(phase_info.st_mode) or phase_info.st_uid != os.geteuid() or stat.S_IMODE(phase_info.st_mode) != 0o700:
+            raise RunnerError("fresh run phase artifact root must be an owned mode-0700 directory")
+        final_chunk = phase_root / f"chunk-{chunk_index:05}"
+        if final_chunk.exists() or final_chunk.is_symlink():
+            raise RunnerError("fresh run chunk output already exists without a matching journal receipt")
+        stage = phase_root / f".attempt-{ordinal:08}-{secrets.token_hex(8)}"
+        stage.mkdir(mode=0o700, exist_ok=False)
+        live, _live_record = verify_live_source(repo, root, root / "source", remaining(), fresh_cohort_id=cohort_id, baseline_bin_dir=baseline_bin_dir)
+        binary_hashes = phase_binary_hashes(baseline_bin_dir)
+        expected_hashes = {app: manifest["binary_hashes"][app] for app in APPS}
+        if binary_hashes != expected_hashes:
+            raise RunnerError("fresh run baseline binaries differ from the authenticated manifest")
+        expected_root = stage / "expected" if phase == "baseline-capture" else root_artifacts / "baseline-capture" / f"chunk-{chunk_index:05}" / "expected"
+        expected_chunk_hash = None
+        if phase == "baseline-replay":
+            capture_step = next((envelopes[index]["receipt"] for index, prior in enumerate(planned[:len(envelopes)]) if prior["phase"] == "baseline-capture" and prior["chunk"] == chunk_index), None)
+            if not isinstance(capture_step, dict):
+                raise RunnerError("baseline replay has no authenticated completed capture chunk")
+            expected_chunk_hash = capture_step["expected_chunk_sha256"]
+            if _fresh_expected_tree_sha256(expected_root) != expected_chunk_hash:
+                raise RunnerError("captured expected chunk changed before replay")
+        extension_manifest = load_extension_manifest(repo / EXTENSION_MANIFEST)
+        result = run_live_chunk(
+            live, root, stage / "runner", phase, baseline_bin_dir, expected_root, selected, chunk_index,
+            remaining(), expected_hashes, extension_manifest,
+            term_profile=None if plan["runtime"]["terminal_profile"]["profile"] == "harness-default" else plan["runtime"]["terminal_profile"]["profile"],
+        )
+        if result["status"] != "passed" or result["checkpoint_count"] < len(selected) or result["successful_test_events"] != len(selected):
+            raise RunnerError("Tuiscotti chunk did not produce successful tests and nonzero checkpoints for every selected case")
+        if result["process_receipt_count"] == 0 or result["process_pid_count"] == 0:
+            raise RunnerError("Tuiscotti chunk has no verified child launch and close receipts")
+        if phase == "baseline-capture":
+            if Path(expected_root).is_symlink() or not Path(expected_root).is_dir():
+                raise RunnerError("baseline capture did not create an expected frame store")
+            expected_chunk_hash = _fresh_expected_tree_sha256(expected_root)
+            freeze_tree_readonly(expected_root)
+            expected_chunk_hash = _fresh_expected_tree_sha256(expected_root)
+        elif _fresh_expected_tree_sha256(expected_root) != expected_chunk_hash:
+            raise RunnerError("baseline replay changed its immutable expected chunk")
+        verify_fresh_run(repo, root, cohort_id, baseline_bin_dir, remaining(), expected_plan_sha256, key_path)
+        after_hashes = phase_binary_hashes(baseline_bin_dir)
+        if after_hashes != expected_hashes:
+            raise RunnerError("baseline binaries changed during fresh chunk execution")
+        source_digest = verify_source(root, root / "source")
+        if source_digest != manifest["source"]["source_sha256"]:
+            raise RunnerError("frozen baseline source changed during fresh chunk execution")
+        remaining()
+        runner_chunk = stage / "runner" / phase / f"chunk-{chunk_index:05}" / "report.json"
+        chunk_report = json.loads(runner_chunk.read_text())
+        chunk_report["receipt_root"] = f"runner/{phase}/chunk-{chunk_index:05}/receipts"
+        chunk_report["artifact_dir"] = f"runner/{phase}/chunk-{chunk_index:05}/artifacts"
+        runner_chunk.write_text(json.dumps(chunk_report, indent=2) + "\n")
+        previous = hashlib.sha256(canonical_receipt_json(envelopes[-1])).hexdigest() if envelopes else None
+        receipt = {
+            "schema": "termrock.frozen-cli-fresh-run-receipt-v2", "ordinal": ordinal,
+            **step, "status": "passed", "checkpoint_count": result["checkpoint_count"],
+            "ordinary_check_count": 0, "process_receipt_count": result["process_receipt_count"],
+            "process_receipt_inventory_sha256": result["process_receipt_inventory_sha256"],
+            "process_pid_count": result["process_pid_count"],
+            "checkpoint_inventory_sha256": result["checkpoint_inventory_sha256"],
+            "artifacts_sha256": result["artifacts_sha256"],
+            "expected_chunk_sha256": expected_chunk_hash,
+            "run_id": manifest["run_id"], "plan_creation_sha256": manifest["plan_creation_sha256"],
+            "plan_self_sha256": manifest["plan_self_sha256"], "cohort_id": manifest["cohort_id"],
+            "binary_hashes": manifest["binary_hashes"], "source_sha256": source_digest,
+            "runtime_sha256": canonical_json_digest(manifest["runtime"]), "previous_receipt_sha256": previous,
+        }
+        freeze_tree_readonly(stage)
+        receipt["committed_chunk_sha256"] = _fresh_expected_tree_sha256(stage)
+        remaining()
+        envelope = {"receipt": receipt, "hmac_sha256": hmac.new(key, canonical_receipt_json(receipt), hashlib.sha256).hexdigest()}
+        summary = validate_fresh_run_journal([*envelopes, envelope], key, manifest_envelope, plan_path, expected_plan_sha256)
+        os.rename(stage, final_chunk)
+        stage = None
+        _verify_fresh_journal_artifacts(plan, [*envelopes, envelope])
+        remaining()
+        _fresh_journal_append(run_root, envelope, ordinal)
+        output = {"run_id": manifest["run_id"], "phase": phase, "chunk": chunk_index, "selected_cases": selected, "checkpoint_count": result["checkpoint_count"], "expected_chunk_sha256": expected_chunk_hash, "journal_ordinal": ordinal, "visual_capture_replay_complete": summary["visual_capture_replay_complete"], "complete": False, "candidate_comparison_eligible": False, "checkpoint_reference_approval": "none", "product_acceptance": False}
+        print(json.dumps(output, indent=2))
+        return output
+    except Exception as error:
+        if stage is not None and stage.exists():
+            failure_path = stage / "untrusted-failure.json"
+            try:
+                _atomic_create_bytes(failure_path, canonical_receipt_json({"status": "untrusted-failed-attempt", "error": str(error), "timestamp_utc": datetime.now(timezone.utc).isoformat()}))
+            except (OSError, RunnerError):
+                pass
+        raise
+    finally:
+        fcntl.flock(lock_fd, fcntl.LOCK_UN)
+        os.close(lock_fd)
+
+
 def validate_chunk_coverage(selected: list[str], records: list[dict[str, object]], size: int) -> None:
     expected = scenario_chunks(selected, size)
     actual_ids = [record.get("chunk") for record in records]
@@ -3182,6 +3850,24 @@ def parser() -> argparse.ArgumentParser:
     verify_plan.add_argument("--cohort", required=True)
     verify_plan.add_argument("--baseline-bin-dir", type=Path, required=True)
     verify_plan.add_argument("--expected-plan-sha256", required=True, help="digest retained from fresh-plan creation; self-digest alone is not an approval anchor")
+    fresh_run_init = sub.add_parser("fresh-run-init", help="create authenticated PREPARED metadata only; launches no application")
+    fresh_run_init.add_argument("--cohort", required=True)
+    fresh_run_init.add_argument("--baseline-bin-dir", type=Path, required=True)
+    fresh_run_init.add_argument("--expected-plan-sha256", required=True)
+    fresh_run_init.add_argument("--key-path", type=Path, required=True, help="private 0600 key path outside Git, source, binaries, and artifacts")
+    fresh_run_verify = sub.add_parser("fresh-run-verify", help="verify authenticated PREPARED metadata only; launches no application")
+    fresh_run_verify.add_argument("--cohort", required=True)
+    fresh_run_verify.add_argument("--baseline-bin-dir", type=Path, required=True)
+    fresh_run_verify.add_argument("--expected-plan-sha256", required=True)
+    fresh_run_verify.add_argument("--key-path", type=Path, required=True)
+    for command_parser in (fresh_run_init, fresh_run_verify):
+        command_parser.set_defaults(timeout=min(MAX_TIMEOUT, FRESH_PLAN_MAX_TIMEOUT))
+    fresh_run_advance = sub.add_parser("fresh-run-advance", help="run exactly the next planned baseline capture or replay chunk; no candidate comparison or finalization")
+    fresh_run_advance.set_defaults(timeout=min(MAX_TIMEOUT, FRESH_PLAN_MAX_TIMEOUT))
+    fresh_run_advance.add_argument("--cohort", required=True)
+    fresh_run_advance.add_argument("--baseline-bin-dir", type=Path, required=True)
+    fresh_run_advance.add_argument("--expected-plan-sha256", required=True)
+    fresh_run_advance.add_argument("--key-path", type=Path, required=True)
     plan.set_defaults(timeout=min(MAX_TIMEOUT, FRESH_PLAN_MAX_TIMEOUT))
     sub.add_parser("build")
     candidate_build = sub.add_parser("build-candidate")
@@ -3226,6 +3912,12 @@ def main() -> int:
             create_fresh_plan(args.repo, args.root, args.cohort, args.baseline_bin_dir, args.timeout, args.chunk_size, args.term_profile)
         elif args.command == "verify-fresh-plan":
             verify_fresh_plan(args.repo, args.root, args.cohort, args.baseline_bin_dir, args.timeout, args.expected_plan_sha256)
+        elif args.command == "fresh-run-init":
+            create_fresh_run(args.repo, args.root, args.cohort, args.baseline_bin_dir, args.timeout, args.expected_plan_sha256, args.key_path)
+        elif args.command == "fresh-run-verify":
+            verify_fresh_run(args.repo, args.root, args.cohort, args.baseline_bin_dir, args.timeout, args.expected_plan_sha256, args.key_path)
+        elif args.command == "fresh-run-advance":
+            advance_fresh_run(args.repo, args.root, args.cohort, args.baseline_bin_dir, args.timeout, args.expected_plan_sha256, args.key_path)
         elif args.command == "build":
             build(args.repo, args.root, args.timeout)
         elif args.command == "build-candidate":
