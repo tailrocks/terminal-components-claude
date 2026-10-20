@@ -177,3 +177,31 @@ CI-only delivery review: source `4d0df7704dcb284d0c9726e78ea68bcca30838fc` indep
 - Main remains at `a97e351df736b576904bc450619ca347ea64d65b`; CI upgrade PR #39 is still separate at `a6929aeba7479d0b3a746f69d412a1ab701b5242` and has not been bypassed or merged. Latest run [39436987238](https://github.com/tailrocks/terminal-components-claude/actions/runs/39436987238) had Plan cancelled, Actionlint successful, all 43 Rust jobs skipped, and the required verdict failed. The same five-minute Plan cancellation is confirmed by three runs; no supported config override for Plan is recorded. These are workflow blockers, not successful Rust validation.
 - The fixed baseline remains tag object `2718a6b8127a522a3d351d0b4bdb7542fc8da542`, source `4169783ae883788186d161af09ba9c481bd84e5c`; tuiscotti remains pinned to `a1ea27f757d75d07b05499276cd932e9f8e067ad`. No baseline or test-tool reference moved. The design-range diff is CI configuration/generated workflow and audit documentation only; it contains no product, test, or reference-data edits.
 - The earlier optional-DCO note is superseded: DCO is not the protected required blocker on these runs. The former “pending” language is superseded by the concrete run states above. Showcase, Jackin, TablePro, and Holla remain incomplete for product parity and library architecture acceptance; these CI results do not establish either gate.
+
+## Branch consolidation (2026-10-20)
+
+Delivery stays on `parity/termrock-visual-baseline` (PR #38). `design/interaction-polish` (PR #26) is reference-only: not merged, not modified, not closed. Its pinned review commit remains `f4867e9b5f8a08a3bb61ce80d644198a29f51984`. The remote branch tip is `f2f6eb716c4a512be3dc9423742fa06e86879b32` from other CI work; this record does not move it. `origin/main` remains `a97e351df736b576904bc450619ca347ea64d65b`. Tag object `2718a6b8127a522a3d351d0b4bdb7542fc8da542` and source `4169783ae883788186d161af09ba9c481bd84e5c` are unchanged.
+
+Integrated: `be674ef8799c55bc3700cdd36f519cafebc95bed` from `parity/composition-slots-20261020` as `0cd5edb8856396bde1bbd2f8a5377940a3d50447`. It adds the typed picker layer slot. `termrock::slots` passed. Docs conflict kept the frozen-cli note and the new slot section.
+
+Already patch-equivalent on PR #38 (`git cherry` minus): `db31adf1e` session startup, `cf1ff9153` completion splicing.
+
+Excluded, not merged:
+
+- Design-history branches (`wip/shared-design-working-tree-20261020`, `wip/reach-pages-a`, `wip/reach-pages-a-2`, `wip/rapps-3-7-14`, `wip/s14-followups`, `wip/plan-s16`, `wip/v1-showcase`, `docs/interaction-reference-cleanup`, `ci/design-rust-timeout-20261020`, `ci/zizmor-design-20261020`, `parity/velnor-design-upgrade-20261020`). Each is 700+ commits ahead of a pre-termrock base. A merge would restore the monolith.
+- `wip/termrock-reviewed-contract-integration-20261020` and `chore/rust-comment-cleanup`. Open parity or a 492-file comment strip, not a behavior fix.
+- Preservation and rescue archives (`preservation/*`, `codex/rescue-*`, `codex/termrock-*`). They keep old snapshots and local history. They are not the delivery tree.
+
+Not yet integrated. `git cherry` marks these `+` against `6bcdc4217`. They stay on their branches until a focused visual check shows they do not move baseline cells:
+
+- `1ac6dfced` tablepro footer focus
+- `7dab012ee` shared button state
+- `94a1215e2` shared style regressions
+- `d4832fe73`, `c1335e19c`, `f8e08fc29`, `56a8547a4` picker query editing
+- `7e38a850a`, `bcb51e8c4`, `4ab81ae47` tablepro live picker contracts
+- `17ad7f673`, `5b6a23121` session cursor policy
+- dialog dismissal series `23f911902` through `1be6567ae`
+- `8e9a7f59e`, `737ecc836`, `95cdc7bdb` theme palette
+- `0638339b7`, `28cc24880`, `6b72d77a6` picker geometry
+
+No other branch was deleted or closed. Product parity for showcase, jackin, tablepro, and holla remains incomplete.
