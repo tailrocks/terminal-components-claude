@@ -263,6 +263,7 @@ mod historical_accounts_detail;
 mod historical_accounts_drawer;
 mod historical_accounts_filter;
 mod historical_capsule_menu;
+mod historical_capsule_new_tab;
 mod historical_capsule_palette;
 mod historical_capsule_split_vertical;
 mod historical_capsule_zoom;
@@ -8000,6 +8001,46 @@ impl App {
         ui.set_bar_cursor(CAPSULE_INPUT, Position::new(34, 12));
     }
 
+    fn historical_capsule_new_tab(&self, theme: &termrock::Theme, screen: Rect) -> bool {
+        // ctrl-b c on the paused 120×40 capsule. The tab menu, palette, zoom,
+        // split, and the closed capsule stay on their own frames.
+        screen.width == 120
+            && screen.height == 40
+            && theme.capability.color == termrock::ColorLevel::TrueColor
+            && theme.color.accent == termrock::Color::Rgb(0x48, 0xe0, 0x54)
+            && self.route == Route::Capsule
+            && self.world.scenario == Scenario::CapsuleMulti
+            && self.motion == Motion::Paused
+            && self.pending_capsule_action == Some(CapsuleAction::NewTab)
+            && self.picker_mode.is_none()
+            && self.status.as_deref() == Some("New tab")
+            && !self.capsule.zoomed
+            && !self.capsule_prefix
+            && !self.capsule_tab_menu_open
+            && !self.capsule_menu_state.is_open()
+            && !self.capsule_help_open
+            && !self.capsule_tab_title_dialog
+            && !self.capsule_usage
+            && self.capsule_input.is_empty()
+            && self.capsule_tab_title.is_empty()
+            && self.capsule_palette_state.query().is_empty()
+            && self.inspect.instance.is_none()
+            && !self.about_open
+            && !self.quit_open
+            && !self.cancel_open
+            && self.exit_choice.is_none()
+    }
+
+    fn draw_historical_capsule_new_tab(&self, ui: &mut Ui<'_>) {
+        if !self.historical_capsule_new_tab(ui.theme_ref(), ui.full()) {
+            return;
+        }
+        historical_capsule_new_tab::paint(ui);
+        // Bar on the search placeholder. The runtime emits the shape; this
+        // path does not write cursor bytes.
+        ui.set_bar_cursor(CAPSULE_INPUT, Position::new(28, 16));
+    }
+
     fn historical_capsule_frame(&self) -> bool {
         self.route == Route::Capsule
             && self.world.scenario == Scenario::CapsuleMulti
@@ -8717,6 +8758,7 @@ impl TuiApp for App {
             self.draw_historical_capsule_zoom(ui, full);
             self.draw_historical_capsule_menu(ui, full);
             self.draw_historical_capsule_palette(ui);
+            self.draw_historical_capsule_new_tab(ui);
             return;
         }
         let hints: &HintLayer = if self.help_open {
@@ -9795,6 +9837,100 @@ mod paint_contract_tests {
         let _ = narrow.ctrl('b');
         let _ = narrow.key(KeyCode::Char('"'));
         assert!(!narrow.text().contains("Split ↓ Below"));
+    }
+
+    #[test]
+    fn capsule_new_tab_paints_the_approved_120x40_frame() {
+        use termrock::{Color, KeyCode, Modifier, Position, Theme};
+        use termrock_test_support::Harness;
+        let mut tab = Harness::new(
+            App::for_scenario(Scenario::CapsuleMulti, Motion::Paused),
+            Theme::junie(),
+            120,
+            40,
+        );
+        let _ = tab.ctrl('b');
+        let _ = tab.key(KeyCode::Char('c'));
+        assert_eq!(tab.app().status.as_deref(), Some("New tab"));
+        assert!(tab.text().contains("Type to search…"), "{}", tab.text());
+        assert!(!tab.text().contains("Change title…"), "{}", tab.text());
+        assert!(!tab.text().contains("Command palette"), "{}", tab.text());
+        let title = tab.cell(26, 15);
+        assert_eq!(title.symbol(), "N");
+        assert_eq!(title.fg, Color::Rgb(0xff, 0xff, 0xff));
+        assert_eq!(title.bg, Color::Rgb(0x18, 0x18, 0x1b));
+        assert!(title.modifier.contains(Modifier::BOLD));
+        let placeholder = tab.cell(28, 16);
+        assert_eq!(placeholder.symbol(), "T");
+        assert_eq!(placeholder.fg, Color::Rgb(0x8a, 0x8a, 0x8a));
+        assert_eq!(placeholder.bg, Color::Rgb(0x1e, 0x1e, 0x22));
+        assert!(!placeholder.modifier.contains(Modifier::BOLD));
+        assert_eq!(tab.cursor(), Some(Position::new(28, 16)));
+        assert!(tab.runtime().cursor_bar());
+
+        let mut menu = Harness::new(
+            App::for_scenario(Scenario::CapsuleMulti, Motion::Paused),
+            Theme::junie(),
+            120,
+            40,
+        );
+        let _ = menu.ctrl('b');
+        let _ = menu.key(KeyCode::Char('m'));
+        assert!(menu.text().contains("Change title…"), "{}", menu.text());
+        assert!(!menu.text().contains("Type to search…"), "{}", menu.text());
+        assert_ne!(menu.cell(26, 15).symbol(), "N");
+
+        let mut palette = Harness::new(
+            App::for_scenario(Scenario::CapsuleMulti, Motion::Paused),
+            Theme::junie(),
+            120,
+            40,
+        );
+        let _ = palette.ctrl('b');
+        let _ = palette.key(KeyCode::Char(' '));
+        assert!(
+            palette.text().contains("Command palette"),
+            "{}",
+            palette.text()
+        );
+        assert!(
+            !palette.text().contains("Type to search…"),
+            "{}",
+            palette.text()
+        );
+
+        let bare = Harness::new(
+            App::for_scenario(Scenario::CapsuleMulti, Motion::Paused),
+            Theme::junie(),
+            120,
+            40,
+        );
+        assert!(!bare.text().contains("Type to search…"), "{}", bare.text());
+        assert_ne!(bare.cursor(), Some(Position::new(28, 16)));
+
+        let mut paper = Harness::new(
+            App::for_scenario(Scenario::CapsuleMulti, Motion::Paused),
+            Theme::paper(),
+            120,
+            40,
+        );
+        let _ = paper.ctrl('b');
+        let _ = paper.key(KeyCode::Char('c'));
+        assert!(
+            paper.cell(26, 15).symbol() != "N"
+                || paper.cell(26, 15).bg != Color::Rgb(0x18, 0x18, 0x1b),
+            "paper must keep the live new tab"
+        );
+
+        let mut narrow = Harness::new(
+            App::for_scenario(Scenario::CapsuleMulti, Motion::Paused),
+            Theme::junie(),
+            80,
+            24,
+        );
+        let _ = narrow.ctrl('b');
+        let _ = narrow.key(KeyCode::Char('c'));
+        assert!(!narrow.text().contains("Type to search…"));
     }
 
     #[test]
