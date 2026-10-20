@@ -22,7 +22,7 @@ const REFERENCE_ANSI_SHA256_ENV: &str = "TERMROCK_PAIR_REFERENCE_ANSI_SHA256";
 const REFERENCE_SEMANTIC_SHA256_ENV: &str = "TERMROCK_PAIR_REFERENCE_SEMANTIC_FRAME_SHA256";
 const REFERENCE_DECISION_SHA256_ENV: &str = "TERMROCK_PAIR_REFERENCE_DECISION_SHA256";
 
-const REFERENCE_CASE: &str = "showcase::resize::overview_grown::120x40::truecolor";
+const REFERENCE_CASE: &str = "showcase/resize/overview_grown/120x40/truecolor";
 const REFERENCE_ORDINAL: u64 = 0;
 const REFERENCE_LOGICAL: &str = "showcase/resize/overview_grown/120x40/truecolor";
 const REFERENCE_APPROVAL_ANSI_SHA256: &str =
@@ -285,6 +285,8 @@ impl Recorder {
         let store_name = checkpoint_name(&self.case_name, ordinal, name);
         let ansi = tuiscotti::render::ansi_dump_with_cursor(frame);
         let semantic_frame = semantic_frame_json(frame);
+        let semantic_actual = artifact_root(&self.config.receipt_root, "semantic-actual")
+            .join(format!("{store_name}.frame.json"));
         let receipt_path = self.receipt_path(ordinal, name);
         validate_concrete_path(&self.config.receipt_root, &receipt_path, "receipt", true)?;
         if receipt_path.exists() {
@@ -293,6 +295,19 @@ impl Recorder {
                 receipt_path.display()
             )));
         }
+        validate_concrete_path(
+            &artifact_root(&self.config.receipt_root, "semantic-actual"),
+            &semantic_actual,
+            "semantic actual frame",
+            true,
+        )?;
+        if semantic_actual.exists() {
+            return Err(Error::new(format!(
+                "paired semantic actual frame already exists: {}",
+                semantic_actual.display()
+            )));
+        }
+        create_new_bytes(&semantic_actual, semantic_frame.as_bytes())?;
 
         let mut reference_decision_sha256 = None;
         match self.config.phase {
@@ -734,6 +749,10 @@ fn validate_roots(original: &Path, expected: &Path, receipts: &Path) -> Result<(
         ("runtime expectations", expected.to_path_buf()),
         ("receipts", receipts.to_path_buf()),
         (
+            "semantic actual frames",
+            artifact_root(receipts, "semantic-actual"),
+        ),
+        (
             "runtime expected artifacts",
             artifact_root(receipts, "runtime-expected"),
         ),
@@ -1083,6 +1102,70 @@ mod tests {
     }
 
     #[test]
+    fn begin_case_accepts_the_slash_scenario_identity_from_the_frozen_harness() {
+        struct RestoreEnv(Vec<(&'static str, Option<std::ffi::OsString>)>);
+
+        impl Drop for RestoreEnv {
+            fn drop(&mut self) {
+                for (key, value) in &self.0 {
+                    // SAFETY: this test serializes the only paired-env reader in this process.
+                    unsafe {
+                        match value {
+                            Some(value) => std::env::set_var(key, value),
+                            None => std::env::remove_var(key),
+                        }
+                    }
+                }
+            }
+        }
+
+        let scratch = Scratch::new("slash-reference-case");
+        let values = [
+            (PHASE_ENV, Some("baseline-capture".to_string())),
+            (
+                EXPECTED_ROOT_ENV,
+                Some(scratch.path("expected").to_string_lossy().into_owned()),
+            ),
+            (
+                RECEIPT_ROOT_ENV,
+                Some(scratch.path("receipts").to_string_lossy().into_owned()),
+            ),
+            (REFERENCE_CASE_ENV, Some(REFERENCE_CASE.to_string())),
+            (REFERENCE_ORDINAL_ENV, Some(REFERENCE_ORDINAL.to_string())),
+            (REFERENCE_LOGICAL_ENV, Some(REFERENCE_LOGICAL.to_string())),
+            (
+                REFERENCE_ANSI_SHA256_ENV,
+                Some(REFERENCE_ACTUAL_ANSI_SHA256.to_string()),
+            ),
+            (
+                REFERENCE_SEMANTIC_SHA256_ENV,
+                Some(REFERENCE_ACTUAL_SEMANTIC_SHA256.to_string()),
+            ),
+            (
+                REFERENCE_DECISION_SHA256_ENV,
+                Some(REFERENCE_DECISION_SHA256.to_string()),
+            ),
+        ];
+        let restore = RestoreEnv(
+            values
+                .iter()
+                .map(|(key, _)| (*key, std::env::var_os(key)))
+                .collect(),
+        );
+        for (key, value) in values {
+            // SAFETY: this test is the only one that reads paired env variables.
+            unsafe { std::env::set_var(key, value.unwrap()) };
+        }
+
+        assert!(begin_case(REFERENCE_CASE).unwrap());
+        ACTIVE.with(|active| {
+            assert_eq!(active.borrow().as_ref().unwrap().case_name, REFERENCE_CASE);
+            *active.borrow_mut() = None;
+        });
+        drop(restore);
+    }
+
+    #[test]
     fn capture_creates_runtime_expectation_and_receipt_without_touching_original() {
         let scratch = Scratch::new("capture");
         let original = scratch.path("original");
@@ -1185,6 +1268,11 @@ mod tests {
         let mut expected = frame();
         expected.cursor.visible = false;
         capture(&scratch, "scenario", "home", &expected).unwrap();
+        let checkpoint = checkpoint_name("scenario", 0, "home");
+        let expected_path = scratch
+            .path("expected")
+            .join(format!("{checkpoint}.frame.json"));
+        let expected_bytes = fs::read(&expected_path).unwrap();
         let expected_ansi = tuiscotti::render::ansi_dump_with_cursor(&expected);
 
         let changes: [NamedFrameMutation<'_>; 4] = [
@@ -1216,8 +1304,62 @@ mod tests {
                     .is_err(),
                 "semantic comparison must reject {label}"
             );
+            let actual_path = artifact_root(&candidate_config.receipt_root, "semantic-actual")
+                .join(format!("{checkpoint}.frame.json"));
+            let actual_bytes = fs::read(&actual_path).unwrap();
+            assert_eq!(
+                actual_bytes,
+                semantic_frame_json(&changed).as_bytes(),
+                "full actual semantic frame should be retained for {label}"
+            );
+            let actual_frame =
+                Frame::from_json(std::str::from_utf8(&actual_bytes).unwrap()).unwrap();
+            assert_eq!(actual_frame.cursor, changed.cursor, "{label}");
+            assert_eq!(actual_frame.cells, changed.cells, "{label}");
+            assert_eq!(fs::read(&expected_path).unwrap(), expected_bytes, "{label}");
             assert!(!candidate_config.receipt_root.exists(), "{label}");
+            let receipt = candidate.receipt_path(0, "home");
+            assert!(
+                !receipt.exists(),
+                "failed {label} must not have a success receipt"
+            );
         }
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn semantic_actual_destination_rejects_hardlink_before_comparison() {
+        use std::os::unix::fs::MetadataExt as _;
+
+        let scratch = Scratch::new("hardlinked-semantic-actual");
+        let source = frame();
+        capture(&scratch, "scenario", "home", &source).unwrap();
+        let expected_frame = scratch.path("expected").join(format!(
+            "{}.frame.json",
+            checkpoint_name("scenario", 0, "home")
+        ));
+        let expected_bytes = fs::read(&expected_frame).unwrap();
+        let receipt = Recorder::new(config(Phase::BaselineCapture, &scratch), "scenario")
+            .unwrap()
+            .receipt_path(0, "home");
+        let receipt_bytes = fs::read(&receipt).unwrap();
+        let candidate_config = config(Phase::CandidateCheck, &scratch);
+        let diagnostic = artifact_root(&candidate_config.receipt_root, "semantic-actual").join(
+            format!("{}.frame.json", checkpoint_name("scenario", 0, "home")),
+        );
+        fs::create_dir_all(diagnostic.parent().unwrap()).unwrap();
+        fs::remove_file(&diagnostic).unwrap();
+        fs::hard_link(&expected_frame, &diagnostic).unwrap();
+
+        let mut candidate = Recorder::new(candidate_config.clone(), "scenario").unwrap();
+        assert!(
+            candidate
+                .handle_frame("home", &source, &scratch.path("original"))
+                .is_err()
+        );
+        assert_eq!(fs::metadata(&expected_frame).unwrap().nlink(), 2);
+        assert_eq!(fs::read(&expected_frame).unwrap(), expected_bytes);
+        assert_eq!(fs::read(receipt).unwrap(), receipt_bytes);
     }
 
     #[test]
