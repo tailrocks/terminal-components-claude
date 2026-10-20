@@ -761,3 +761,10 @@ The [independent documentation guard review](../audits/2026-10-21-doc-guard-400c
 Integrated protected source `57ca512b3796b04e518a73b5fdfe7391f312c6f3`: actual focused state remains observable, keyboard-only focus display is a shared Button policy, one-cell DotOn/DotOff roles preserve existing glyph constructors, and explicit marker parts retain precedence. The [independent clearance](../audits/2026-10-21-button-57ca-clearance.json) confirms sixteen public probes and the repaired authored Scrollbar-container rule filter; no application repaint implements these mechanics.
 
 Parent [checks](../audits/2026-10-21-button-parent-integration-checks.json) run all 259 scoped tests without exclusions: 258 pass and the independently reproduced existing all-73 palette test fails at Indexed(78) versus Indexed(77). Strict scoped Clippy, formatting and whitespace checks pass. The palette failure is retained and remains required, not waived. Narrow Unicode ellipsis, actual Showcase state-matrix migration, application parity and complete library acceptance remain incomplete.
+
+
+## Steps intrinsic-size repair requires API compatibility follow-up (2026-10-21)
+
+The [exact 17841 review](../audits/2026-10-21-steps-17841-review.json) confirms four original measurement probes now pass, including live metadata and expanded ordinals. It also proves a new public API regression: an unchanged non-Display custom-row consumer compiles on c040 and fails with E0277 on 17841 because composition now adds a Display bound. This source remains protected on its WIP and is not adopted. Keep custom row rendering generic, and add pure intrinsic measurement through an optional row contract or explicit measured-row adapter without invoking painting or state projection. The author must repair this before adoption.
+
+The Button integration is remote-verified at `e4c3a79d5f17469787b520388deceeda153e2459`; its complete scoped run retains the single known palette failure without exclusions. All four application parity gates remain incomplete.
