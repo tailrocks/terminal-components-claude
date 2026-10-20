@@ -34,10 +34,11 @@ isolation remain unchanged.
 ## Independent aggregate reference decision
 
 The aggregate test hashes `Debug` bytes for all 32 complete cells frames; it
-does not include cursor state. Its source was introduced at
-`a4a702c6d12cff7d776285e87b32d09caa5ba33f`, whose independently reproduced
-original hash is `10_278_960_817_768_212_803`. The later test-only expectation
-`385_672_878_558_749_177` was added at
+does not include cursor state. The test was introduced at
+`ae317b61552f7d3a2919d4faacda682be5976932`. Its executed pre-inheritance
+parent is `a4a702c6d12cff7d776285e87b32d09caa5ba33f`, where the independently
+reproduced original hash is `10_278_960_817_768_212_803`. The later test-only
+expectation `385_672_878_558_749_177` was added at
 `2f1e4088033474e0daba5d2776568f04f75b0547` and conflicts with palette
 semantics in the immutable frozen source. The historical `db53` artifact was
 unavailable; it is not claimed as recovered.
@@ -64,7 +65,8 @@ Preserved evidence at
   `2335ea426e9f77e1d4150a59f5514fc0a467776ebd8b415b23fab499f6422e46`
 - `evidence-manifest.json` SHA-256:
   `edba9d25598f00a55dd0db9540470bf7cb65b5dc9ee34aa335a42d96b5a7b22a`
-- Probe log SHA-256: `d80c08f9b043b00587a21edd45cead5716d37506e3497f77e2e219a7bf87358b`
+- Probe source (`src/lib.rs`) SHA-256:
+  `d80c08f9b043b00587a21edd45cead5716d37506e3497f77e2e219a7bf87358b`
 
 The old expectation and original source hash remain recorded above so the
 reference correction is auditable; no frame or full-cell comparison was
