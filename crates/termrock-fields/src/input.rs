@@ -4,6 +4,7 @@ use ratatui_core::layout::{Position, Rect};
 
 use super::{PartStyle, SlotFn, cell_at, first_row, shift};
 use crate::action::ActionKey;
+pub use crate::edit::{EditCapabilities, EditMenuRequest, TextEditCommand};
 use crate::event::{Chord, KeyCode, KeyModifiers};
 use crate::field_control::FieldControl;
 use crate::focus::Focusability;
@@ -32,32 +33,6 @@ pub trait TextTarget: text_target::Sealed {
     fn expose(&self) -> &str;
     fn set(&mut self, value: &str, sensitive: bool);
     fn is_sensitive(&self) -> bool;
-}
-
-/// Editing operation offered by a field's contextual edit menu.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum TextEditCommand {
-    Cut,
-    Copy,
-    Paste,
-    SelectAll,
-}
-
-/// Commands currently available for a field's selection and editability.
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
-pub struct EditCapabilities {
-    pub can_cut: bool,
-    pub can_copy: bool,
-    pub can_paste: bool,
-    pub can_select_all: bool,
-}
-
-/// A request to open the shared edit menu at a field-local terminal position.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub struct EditMenuRequest {
-    pub owner: Id,
-    pub part: PartRef,
-    pub anchor: Position,
 }
 
 impl TextTarget for String {
@@ -1250,8 +1225,7 @@ impl<'a> TextInput<'a> {
                     ..
                 } if st.is_editing() && self.pointer_enabled => {
                     if let (Some(anchor), Some(area)) = (st.pointer_anchor, cx.area(self.id)) {
-                        let col = usize::from(local.x.saturating_sub(2))
-                            .saturating_add(usize::from(st.draft.hscroll()));
+                        let col = usize::from(local.x.saturating_sub(2));
                         let _ = st.select_pointer_range(anchor, col, Self::inner_width(area.width));
                         acc.changed();
                     } else {
@@ -1301,25 +1275,14 @@ impl<'a> TextInput<'a> {
         st: &TextInputState,
         value: &T,
     ) -> EditCapabilities {
-        let selected = st.selection().is_some();
-        let all_selected = st
-            .selection()
-            .is_some_and(|range| range == (0..st.draft.text().len()));
-        let editable = self.editable();
-        let can_copy = selected
-            && !self.disabled
-            && self.secret.is_none()
-            && !value.is_sensitive()
-            && !st.is_sensitive();
-        EditCapabilities {
-            can_cut: can_copy && editable,
-            can_copy,
-            can_paste: editable,
-            can_select_all: !self.disabled
-                && st.is_editing()
-                && !st.draft.text().is_empty()
-                && !all_selected,
-        }
+        crate::edit::capabilities(
+            &st.draft,
+            st.is_editing(),
+            self.disabled,
+            self.editable(),
+            self.secret.is_some() || st.is_sensitive(),
+            value.is_sensitive(),
+        )
     }
 
     /// Execute one contextual edit command through the field's shared editor.
@@ -1330,44 +1293,23 @@ impl<'a> TextInput<'a> {
         value: &mut T,
         command: TextEditCommand,
     ) -> bool {
-        let capabilities = self.edit_capabilities(st, value);
-        let selection = st.selection();
-        match command {
-            TextEditCommand::Copy if capabilities.can_copy => {
-                if let Some(range) = selection {
-                    cx.clipboard_copy(&st.draft.text()[range]);
-                    true
-                } else {
-                    false
-                }
-            }
-            TextEditCommand::Cut if capabilities.can_cut => {
-                if let Some(range) = selection {
-                    cx.clipboard_copy(&st.draft.text()[range]);
-                    let changed = st.apply(EditAction::Paste("")).changed();
-                    if changed {
-                        self.live_validate(st);
-                    }
-                    changed
-                } else {
-                    false
-                }
-            }
-            TextEditCommand::Paste if capabilities.can_paste => {
-                let Some(text) = cx.clipboard_text().map(str::to_owned) else {
-                    return false;
-                };
-                let changed = st.apply(EditAction::Paste(&text)).changed();
-                if changed {
-                    self.live_validate(st);
-                }
-                changed
-            }
-            TextEditCommand::SelectAll if capabilities.can_select_all => {
-                st.apply(EditAction::SelectAll).changed()
-            }
-            _ => false,
+        st.set_sensitive(self.secret.is_some() || value.is_sensitive());
+        if command == TextEditCommand::Paste
+            && self.editable()
+            && !st.is_editing()
+            && cx.clipboard_text().is_some()
+        {
+            st.begin(value.expose());
         }
+        let capabilities = self.edit_capabilities(st, value);
+        let applied = crate::edit::execute(cx, &mut st.draft, capabilities, command);
+        if applied && matches!(command, TextEditCommand::Cut | TextEditCommand::Paste) {
+            self.live_validate(st);
+        }
+        if applied && let Some(area) = cx.area(self.id) {
+            st.ensure_cursor_visible(Self::inner_width(area.width));
+        }
+        applied
     }
 
     fn live_validate(&self, st: &mut TextInputState) {
@@ -1839,6 +1781,113 @@ mod tests {
     struct PointerSelectApp {
         state: TextInputState,
         value: String,
+        area: Rect,
+    }
+
+    struct EditCommandApp {
+        state: TextInputState,
+        value: String,
+        command: TextEditCommand,
+        result: bool,
+        observed_clipboard: Option<String>,
+        done: bool,
+        disabled: bool,
+        secret: bool,
+    }
+
+    struct EditMenuRequestApp {
+        state: TextInputState,
+        value: String,
+        request: Option<EditMenuRequest>,
+    }
+
+    struct IdlePasteApp {
+        state: TextInputState,
+        value: String,
+        result: bool,
+        done: bool,
+        secret: bool,
+    }
+
+    impl App for IdlePasteApp {
+        fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+            let mut input = TextInput::new(ID);
+            if self.secret {
+                input = input.secret(SecretPolicy::default());
+            }
+            if !self.done {
+                cx.clipboard_copy("X");
+                self.result = input.execute_edit_command(
+                    cx,
+                    &mut self.state,
+                    &mut self.value,
+                    TextEditCommand::Paste,
+                );
+                self.done = true;
+            }
+            input.update(cx, &mut self.state, &mut self.value).erase()
+        }
+
+        fn draw(&self, ui: &mut Ui<'_>) {
+            let mut input = TextInput::new(ID).value(&self.value);
+            if self.secret {
+                input = input.secret(SecretPolicy::default());
+            }
+            input.draw(ui, SCREEN, &self.state);
+        }
+    }
+
+    impl App for EditMenuRequestApp {
+        fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+            let response = TextInput::new(ID).update(cx, &mut self.state, &mut self.value);
+            self.request = self.state.take_edit_menu_request();
+            response.erase()
+        }
+
+        fn draw(&self, ui: &mut Ui<'_>) {
+            TextInput::new(ID)
+                .value(&self.value)
+                .draw(ui, SCREEN, &self.state);
+        }
+    }
+
+    impl App for EditCommandApp {
+        fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+            let mut input = TextInput::new(ID);
+            if self.disabled {
+                input = input.disabled(true);
+            }
+            if self.secret {
+                input = input.secret(SecretPolicy::default());
+            }
+            let response = input.update(cx, &mut self.state, &mut self.value);
+            if !self.done {
+                self.state.begin(&self.value);
+                if self.command != TextEditCommand::SelectAll {
+                    if self.secret {
+                        let _ = self.state.apply(EditAction::SelectAll);
+                    } else {
+                        self.state.select_all();
+                    }
+                }
+                cx.clipboard_copy("pasted");
+                self.result =
+                    input.execute_edit_command(cx, &mut self.state, &mut self.value, self.command);
+                self.observed_clipboard = cx.clipboard_text().map(str::to_owned);
+                self.done = true;
+            }
+            response.erase()
+        }
+
+        fn draw(&self, ui: &mut Ui<'_>) {
+            let mut input = TextInput::new(ID)
+                .disabled(self.disabled)
+                .value(&self.value);
+            if self.secret {
+                input = input.secret(SecretPolicy::default());
+            }
+            input.draw(ui, SCREEN, &self.state);
+        }
     }
 
     impl App for PointerSelectApp {
@@ -1853,7 +1902,7 @@ mod tests {
             TextInput::new(ID)
                 .read_only(true)
                 .value(&self.value)
-                .draw(ui, SCREEN, &self.state);
+                .draw(ui, self.area, &self.state);
         }
     }
 
@@ -1978,6 +2027,20 @@ mod tests {
         let secret_caps = TextInput::new(ID).edit_capabilities(&secret_state, &value);
         assert!(!secret_caps.can_copy);
         assert!(!secret_caps.can_cut);
+        let control_secret = TextInput::new(ID).secret(SecretPolicy::default());
+        let mut plain_selected = TextInputState::default();
+        plain_selected.begin("secret");
+        plain_selected.select_all();
+        let control_secret_caps = control_secret.edit_capabilities(&plain_selected, &value);
+        assert!(!control_secret_caps.can_copy);
+        assert!(!control_secret_caps.can_cut);
+
+        let disabled_caps = TextInput::new(ID)
+            .disabled(true)
+            .edit_capabilities(&state, &value);
+        assert!(!disabled_caps.can_copy);
+        assert!(!disabled_caps.can_cut);
+        assert!(!disabled_caps.can_paste);
     }
 
     #[test]
@@ -1986,6 +2049,7 @@ mod tests {
             PointerSelectApp {
                 state: TextInputState::default(),
                 value: "alpha beta".to_owned(),
+                area: SCREEN,
             },
             Theme::junie(),
         );
@@ -2039,6 +2103,188 @@ mod tests {
             );
         }
         assert_eq!(runtime.app().state.selection(), Some(6..10));
+    }
+
+    #[test]
+    fn scrolled_drag_uses_the_shared_viewport_offset_once() {
+        let value = "abcdefghijklmnopqrstuvwxyz".to_owned();
+        let mut state = TextInputState::default();
+        state.begin(&value);
+        let _ = state.apply(EditAction::Move(Motion::End, Extend::No));
+        state.ensure_cursor_visible(5);
+        assert!(state.draft.hscroll() > 0);
+        let mut runtime = Runtime::new(
+            PointerSelectApp {
+                state,
+                value,
+                area: Rect::new(0, 0, 8, 1),
+            },
+            Theme::junie(),
+        );
+        let _ = runtime.initialize();
+        let mut buffer = Buffer::empty(SCREEN);
+        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
+        let _ = deliver(
+            &mut runtime,
+            Input::Mouse(crate::event::Mouse {
+                kind: crate::event::MouseKind::Down,
+                pos: Position::new(3, 0),
+                mods: KeyModifiers::NONE,
+            }),
+        );
+        let hscroll = usize::from(runtime.app().state.draft.hscroll());
+        let expected = runtime.app().state.draft.offset_at(0, 2 + hscroll);
+        let _ = deliver(
+            &mut runtime,
+            Input::Mouse(crate::event::Mouse {
+                kind: crate::event::MouseKind::Drag,
+                pos: Position::new(4, 0),
+                mods: KeyModifiers::NONE,
+            }),
+        );
+        assert_eq!(runtime.app().state.cursor_offset(), Some(expected));
+    }
+
+    #[test]
+    fn runtime_edit_commands_copy_cut_and_paste_selected_graphemes() {
+        for (command, expected_draft, expected_clipboard) in [
+            (TextEditCommand::Copy, "alpha", "alpha"),
+            (TextEditCommand::Cut, "", "alpha"),
+            (TextEditCommand::Paste, "pasted", "pasted"),
+            (TextEditCommand::SelectAll, "alpha", "pasted"),
+        ] {
+            let mut runtime = Runtime::new(
+                EditCommandApp {
+                    state: TextInputState::default(),
+                    value: "alpha".to_owned(),
+                    command,
+                    result: false,
+                    observed_clipboard: None,
+                    done: false,
+                    disabled: false,
+                    secret: false,
+                },
+                Theme::junie(),
+            );
+            let _ = runtime.initialize();
+            assert!(runtime.app().result, "{command:?} should apply");
+            assert_eq!(runtime.app().state.draft_text(), Some(expected_draft));
+            assert_eq!(
+                runtime.app().observed_clipboard.as_deref(),
+                Some(expected_clipboard)
+            );
+            if command == TextEditCommand::SelectAll {
+                let mut buffer = Buffer::empty(SCREEN);
+                runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
+                assert_ne!(buffer[(2, 0)].bg, buffer[(7, 0)].bg);
+            }
+        }
+    }
+
+    #[test]
+    fn idle_paste_starts_the_draft_and_survives_focus_and_secret_setup() {
+        for secret in [false, true] {
+            let mut runtime = Runtime::new(
+                IdlePasteApp {
+                    state: TextInputState::default(),
+                    value: "existing".to_owned(),
+                    result: false,
+                    done: false,
+                    secret,
+                },
+                Theme::junie(),
+            );
+            let _ = runtime.initialize();
+            assert!(runtime.app().result);
+            assert!(runtime.app().state.is_editing());
+            assert_eq!(runtime.app().state.draft.text(), "existingX");
+            if secret {
+                assert!(runtime.app().state.is_sensitive());
+                assert_eq!(runtime.app().state.draft_text(), None);
+            } else {
+                assert!(!runtime.app().state.is_sensitive());
+                assert_eq!(runtime.app().state.draft_text(), Some("existingX"));
+            }
+        }
+    }
+
+    #[test]
+    fn disabled_and_secret_commands_are_rejected_without_copying_text() {
+        for (disabled, secret) in [(true, false), (false, true)] {
+            let mut runtime = Runtime::new(
+                EditCommandApp {
+                    state: TextInputState::default(),
+                    value: "sensitive text".to_owned(),
+                    command: TextEditCommand::Copy,
+                    result: true,
+                    observed_clipboard: None,
+                    done: false,
+                    disabled,
+                    secret,
+                },
+                Theme::junie(),
+            );
+            let _ = runtime.initialize();
+            assert!(!runtime.app().result);
+            assert_eq!(
+                runtime.app().observed_clipboard.as_deref(),
+                Some("pasted"),
+                "only the preexisting clipboard contents must remain"
+            );
+        }
+    }
+
+    #[test]
+    fn secondary_pointer_emits_a_screen_anchored_edit_menu_request() {
+        let mut runtime = Runtime::new(
+            EditMenuRequestApp {
+                state: TextInputState::default(),
+                value: "menu".to_owned(),
+                request: None,
+            },
+            Theme::junie(),
+        );
+        let _ = runtime.initialize();
+        let mut buffer = Buffer::empty(SCREEN);
+        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
+        let _ = deliver(
+            &mut runtime,
+            Input::Mouse(crate::event::Mouse {
+                kind: crate::event::MouseKind::Secondary,
+                pos: Position::new(4, 0),
+                mods: KeyModifiers::NONE,
+            }),
+        );
+        let request = runtime.app().request.expect("menu request emitted");
+        assert_eq!(request.owner, ID);
+        assert_eq!(request.anchor, Position::new(4, 0));
+
+        let mut keyboard_runtime = Runtime::new(
+            EditMenuRequestApp {
+                state: TextInputState::default(),
+                value: "menu".to_owned(),
+                request: None,
+            },
+            Theme::junie(),
+        );
+        let _ = keyboard_runtime.initialize();
+        let mut buffer = Buffer::empty(SCREEN);
+        keyboard_runtime
+            .draw_buffer(SCREEN, &mut buffer)
+            .commit_presented();
+        let _ = deliver(
+            &mut keyboard_runtime,
+            Input::Key(Key {
+                code: KeyCode::F(10),
+                mods: KeyModifiers::SHIFT,
+            }),
+        );
+        let keyboard_request = keyboard_runtime
+            .app()
+            .request
+            .expect("Shift+F10 menu request emitted");
+        assert_eq!(keyboard_request.owner, ID);
+        assert_eq!(keyboard_request.anchor, Position::new(6, 0));
     }
 
     #[test]
