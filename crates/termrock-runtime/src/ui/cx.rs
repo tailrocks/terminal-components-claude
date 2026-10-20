@@ -12,7 +12,8 @@ use crate::id::{Id, PartRef};
 use crate::intent::{IntentIter, IntentQueue};
 use crate::keymap::{BindingRegistry, KeyMap};
 use crate::layer::{
-    Anchor, DismissReason, LayerEvent, LayerId, LayerOpening, LayerSize, LayerSpec, LayerStack,
+    Anchor, DismissReason, LayerCompletion, LayerEvent, LayerId, LayerOpening, LayerSize,
+    LayerSpec, LayerStack,
 };
 use crate::response::StateFlags;
 use crate::runtime::UpdateCause;
@@ -167,6 +168,8 @@ pub struct FrameServices {
     pub(crate) records: Vec<&'static str>,
     pub(crate) diagnostics: Diagnostics,
     pub(crate) closed_layers: Vec<crate::layer::OpenLayer>,
+    pub(crate) completions: Vec<LayerCompletion>,
+    pub(crate) focus_continuation_acks: Vec<(LayerOpening, Id, Id)>,
     pub(crate) registry_gen: u32,
     pub(crate) press_pos: Option<Position>,
     pub(crate) clipboard: crate::runtime::clipboard::Clipboard,
@@ -484,6 +487,81 @@ impl<'f> Cx<'f> {
             .get(id)
             .map(|layer| layer.opening)
             .filter(|opening| opening.id() == id && opening.runtime() == self.services.runtime_id)
+    }
+
+    /// Consume a completion receipt for this exact layer opening, if focus restoration settled.
+    pub fn take_layer_completion(&mut self, opening: LayerOpening) -> Option<LayerCompletion> {
+        let position = self
+            .services
+            .completions
+            .iter()
+            .position(|completion| completion.opening() == opening)?;
+        Some(self.services.completions.remove(position))
+    }
+
+    /// Whether the exact focus-out transition is owned by the active child layer.
+    pub fn focus_is_continued(&self, owner: Id, to: Id) -> bool {
+        if !self.intents(owner).any(|intent| {
+            matches!(intent, crate::intent::Intent::FocusOut { to: Some(target) } if target == to)
+        }) {
+            return false;
+        }
+        let Some(top) = self.services.layers.top_layer() else {
+            return false;
+        };
+        if top.spec.continues_focus_owner != Some(owner) {
+            return false;
+        }
+        let parent_layer = match top.opening.parent() {
+            None => Some(LayerId::PAGE),
+            Some(parent) => self
+                .services
+                .layers
+                .layers()
+                .iter()
+                .find(|layer| {
+                    layer.layer == parent.layer
+                        && layer.id == parent.id
+                        && layer.opening.generation() == parent.generation
+                })
+                .map(|layer| layer.layer),
+        };
+        let Some(parent_layer) = parent_layer else {
+            return false;
+        };
+        if !self
+            .last
+            .ring
+            .entry(owner)
+            .is_some_and(|entry| !entry.disabled && entry.layer == parent_layer)
+        {
+            return false;
+        }
+        self.last
+            .ring
+            .entry(to)
+            .is_some_and(|entry| !entry.disabled && entry.layer == top.layer)
+            || (top.spec.initial_focus == Some(to) && self.last.snapshot.focus == Some(to))
+    }
+
+    /// Acknowledge that the owning component reconciled state for this exact continuation.
+    pub fn acknowledge_focus_continuation(&mut self, owner: Id, to: Id) -> bool {
+        if !self.focus_is_continued(owner, to) {
+            return false;
+        }
+        let Some(opening) = self.services.layers.top_layer().map(|layer| layer.opening) else {
+            return false;
+        };
+        if !self
+            .services
+            .focus_continuation_acks
+            .contains(&(opening, owner, to))
+        {
+            self.services
+                .focus_continuation_acks
+                .push((opening, owner, to));
+        }
+        true
     }
 
     pub fn resize_layer(&mut self, id: Id, size: LayerSize) {
