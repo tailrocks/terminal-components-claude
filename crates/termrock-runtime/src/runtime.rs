@@ -23,8 +23,8 @@ use crate::id::{Id, Part, PartRef};
 use crate::intent::{FocusVia, IntentQueue, Phase};
 use crate::keymap::{BindingTableId, KeyMap, KeyPhase};
 use crate::layer::{
-    Backdrop, DismissReason, LayerCompletion, LayerEvent, LayerId, OpenLayer, backdrop_area,
-    resolve_layer_area,
+    Backdrop, DismissReason, FocusContinuationOutcome, LayerCompletion, LayerEvent, LayerId,
+    OpenLayer, backdrop_area, resolve_layer_area,
 };
 use crate::measure::Size;
 #[cfg(any(test, feature = "testing"))]
@@ -1099,6 +1099,9 @@ impl<A: App> Runtime<A> {
             .layers
             .close(top.id, LayerEvent::Dismissed(reason));
         let changed = !closed.is_empty();
+        if let Some(root) = closed.first() {
+            self.services.direct_closed_layers.push(*root);
+        }
         self.services.closed_layers.extend(closed);
         if changed {
             self.services.reset_pointer_clicks = true;
@@ -1115,10 +1118,7 @@ impl<A: App> Runtime<A> {
         if closed.is_empty() {
             return;
         }
-        // Only the directly dismissed opening receives a receipt. Descendant layers removed
-        // with an ancestor are canceled so they cannot run stale completion commands.
-        self.completion_waiting.push(closed[0]);
-        let focus_out = core::mem::take(&mut self.focus_out_closed);
+        let direct = core::mem::take(&mut self.services.direct_closed_layers);
         let still_open: Vec<_> = self
             .services
             .layers
@@ -1126,11 +1126,59 @@ impl<A: App> Runtime<A> {
             .iter()
             .map(|layer| layer.opening)
             .collect();
+        let closed_openings: Vec<_> = closed.iter().map(|layer| layer.opening).collect();
+        let is_descendant = |child: &OpenLayer, ancestor: &OpenLayer| {
+            let mut parent = child.opening.parent();
+            while let Some(current) = parent {
+                if current.id == ancestor.id
+                    && current.layer == ancestor.layer
+                    && current.generation == ancestor.opening.generation()
+                {
+                    return true;
+                }
+                parent = closed
+                    .iter()
+                    .find(|layer| {
+                        layer.id == current.id
+                            && layer.layer == current.layer
+                            && layer.opening.generation() == current.generation
+                    })
+                    .and_then(|layer| layer.opening.parent());
+            }
+            false
+        };
+        self.completion_waiting.retain(|waiting| {
+            !waiting.opening.parent().is_some_and(|parent| {
+                closed_openings.iter().any(|opening| {
+                    opening.id() == parent.id
+                        && opening.layer_id() == parent.layer
+                        && opening.generation() == parent.generation
+                })
+            })
+        });
+        // Completion is opt-in, and only direct closes can trigger it. A later direct close of
+        // an ancestor supersedes a child receipt created earlier in the same update.
+        for layer in &direct {
+            if layer.spec.continues_focus_owner.is_none() {
+                continue;
+            }
+            let superseded = direct.iter().any(|ancestor| {
+                ancestor.opening != layer.opening && is_descendant(layer, ancestor)
+            });
+            if !superseded {
+                self.completion_waiting.push(*layer);
+            }
+        }
         self.services
             .focus_continuation_acks
             .retain(|(opening, _, _)| {
-                still_open.contains(opening) || closed.iter().any(|layer| layer.opening == *opening)
+                still_open.contains(opening)
+                    || self
+                        .completion_waiting
+                        .iter()
+                        .any(|waiting| waiting.opening == *opening)
             });
+        let focus_out = core::mem::take(&mut self.focus_out_closed);
         for l in &closed {
             if let Some(c) = self.services.capture.get()
                 && self.last.registry.layer_of(c.owner) == Some(l.layer)
@@ -1140,13 +1188,13 @@ impl<A: App> Runtime<A> {
             }
         }
 
-        if let Some(first) = closed.first()
-            && first.spec.restore_focus
-            && !focus_out.contains(&first.id)
+        if let Some(last) = direct.last()
+            && last.spec.restore_focus
+            && !focus_out.contains(&last.id)
         {
-            let target = first
+            let target = last
                 .restore_to
-                .or_else(|| self.focus.take_restore(first.scope()));
+                .or_else(|| self.focus.take_restore(last.scope()));
             self.restore_after_publication = Some(FocusRestore { target });
 
             if self.focus.current().is_some_and(|owner| {
@@ -1379,6 +1427,38 @@ impl<A: App> Runtime<A> {
         }
         let _ = self.prepared.take();
         self.presented = true;
+        for (_, age) in &mut self.services.completions {
+            *age = age.saturating_add(1);
+        }
+        self.services.completions.retain(|(completion, age)| {
+            if *age < 32 {
+                true
+            } else {
+                self.services
+                    .diagnostics
+                    .push(Diagnostic::FocusContinuationUnacknowledged {
+                        owner: completion.opening().owner(),
+                    });
+                false
+            }
+        });
+        for (_, age) in &mut self.services.focus_continuation_outcomes {
+            *age = age.saturating_add(1);
+        }
+        self.services
+            .focus_continuation_outcomes
+            .retain(|(outcome, age)| {
+                if *age < 32 {
+                    true
+                } else {
+                    self.services
+                        .diagnostics
+                        .push(Diagnostic::FocusContinuationUnacknowledged {
+                            owner: outcome.owner(),
+                        });
+                    false
+                }
+            });
         Ok(())
     }
 
@@ -1735,29 +1815,80 @@ impl<A: App> Runtime<A> {
         self.last.snapshot.focus = self.focus.current();
         if self.pending_focus.is_none() && !self.completion_waiting.is_empty() {
             let restored_focus = self.focus.current();
+            let mut dispatch_completion = false;
             for layer in self.completion_waiting.drain(..) {
                 let Some(event) = layer.closed_event else {
                     continue;
                 };
                 let continuation_acknowledged =
-                    layer.spec.continues_focus_owner.is_none_or(|owner| {
-                        self.services.focus_continuation_acks.iter().any(
-                            |(opening, ack_owner, _)| {
-                                *opening == layer.opening && *ack_owner == owner
-                            },
-                        )
+                    layer.spec.continues_focus_owner.is_some_and(|owner| {
+                        let parent = layer.opening.parent();
+                        let parent_layer = parent.map_or(LayerId::PAGE, |parent| parent.layer);
+                        let parent_is_current = match parent {
+                            None => self.services.layers.top() == LayerId::PAGE,
+                            Some(parent) => self.services.layers.layers().iter().any(|open| {
+                                open.id == parent.id
+                                    && open.layer == parent.layer
+                                    && open.opening.generation() == parent.generation
+                                    && self.services.layers.top() == open.layer
+                            }),
+                        };
+                        let owner_is_live =
+                            self.last.ring.entry(owner).is_some_and(|entry| {
+                                entry.layer == parent_layer && !entry.disabled
+                            });
+                        let opening_not_replaced = self.services.layers.get(layer.id).is_none();
+                        restored_focus == Some(owner)
+                            && parent_is_current
+                            && owner_is_live
+                            && opening_not_replaced
+                            && self.services.focus_continuation_acks.iter().any(
+                                |(opening, ack_owner, _)| {
+                                    *opening == layer.opening && *ack_owner == owner
+                                },
+                            )
                     });
-                self.services.completions.push(LayerCompletion::new(
-                    layer.opening,
-                    event,
-                    restored_focus,
-                    continuation_acknowledged,
+                if let Some(owner) = layer.spec.continues_focus_owner {
+                    let outcome = FocusContinuationOutcome::new(
+                        layer.opening,
+                        owner,
+                        restored_focus,
+                        continuation_acknowledged,
+                    );
+                    if self.services.focus_continuation_outcomes.len() == 64 {
+                        let oldest = self.services.focus_continuation_outcomes.remove(0).0;
+                        self.services.diagnostics.push(
+                            Diagnostic::FocusContinuationUnacknowledged {
+                                owner: oldest.owner(),
+                            },
+                        );
+                    }
+                    self.services.focus_continuation_outcomes.push((outcome, 0));
+                }
+                if self.services.completions.len() == 64 {
+                    let oldest = self.services.completions.remove(0).0;
+                    self.services
+                        .diagnostics
+                        .push(Diagnostic::FocusContinuationUnacknowledged {
+                            owner: oldest.opening().owner(),
+                        });
+                }
+                self.services.completions.push((
+                    LayerCompletion::new(
+                        layer.opening,
+                        event,
+                        restored_focus,
+                        layer.spec.continues_focus_owner,
+                        continuation_acknowledged,
+                    ),
+                    0,
                 ));
+                dispatch_completion = true;
                 self.services
                     .focus_continuation_acks
                     .retain(|(opening, _, _)| *opening != layer.opening);
             }
-            self.completion_dispatch_pending = !self.services.completions.is_empty();
+            self.completion_dispatch_pending |= dispatch_completion;
         }
         self.last.snapshot.focus_visible = self.focus.visible();
         self.reconcile_held_pointer();
@@ -2386,15 +2517,137 @@ mod tests {
     const HOVER_OWNER: Id = Id::root("hover-owner");
     const FOCUS_A: Id = Id::root("focus-a");
     const FOCUS_B: Id = Id::root("focus-b");
+    const MULTI_PARENT: Id = Id::root("multi-parent");
+    const MULTI_CHILD: Id = Id::root("multi-child");
+
+    #[derive(Default)]
+    struct MultiCloseProbe {
+        parent: Option<crate::layer::LayerOpening>,
+        child: Option<crate::layer::LayerOpening>,
+        completed: Vec<crate::layer::LayerOpening>,
+    }
+
+    impl App for MultiCloseProbe {
+        fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+            if cx
+                .intents(A)
+                .any(|intent| matches!(intent, Intent::Key(key) if key.code == KeyCode::Char('m')))
+            {
+                self.parent = cx.open_layer_with_token(
+                    MULTI_PARENT,
+                    LayerSpec::modal(MULTI_PARENT).continues_focus(A),
+                );
+                self.child = cx.open_layer_with_token(
+                    MULTI_CHILD,
+                    LayerSpec::modal(MULTI_CHILD).continues_focus(A),
+                );
+                cx.close_layer(MULTI_CHILD, None);
+                cx.close_layer(MULTI_PARENT, None);
+            }
+            for opening in [self.parent, self.child].into_iter().flatten() {
+                if cx.take_layer_completion(opening).is_some() {
+                    self.completed.push(opening);
+                }
+            }
+            Response::ignored()
+        }
+
+        fn draw(&self, ui: &mut Ui<'_>) {
+            ui.register_control(A, Rect::new(0, 0, 8, 1), Focusability::Focusable);
+            let _ = ui.layer(MULTI_PARENT, |ui, area| {
+                let _ = ui.layer(MULTI_CHILD, |ui, child_area| {
+                    ui.register_control(B, child_area, Focusability::Focusable);
+                });
+                ui.register_control(A, area, Focusability::Focusable);
+            });
+        }
+    }
+
+    #[test]
+    fn direct_nested_closes_cancel_child_receipt_and_keep_parent_receipt() {
+        let mut rt = Runtime::new(MultiCloseProbe::default(), Theme::junie());
+        let _ = rt.initialize();
+        let token = rt.prepare(SCREEN).expect("initial frame prepares");
+        present(&mut rt, token);
+        let _ = rt.handle(key(KeyCode::Char('m'))).expect("layers close");
+        let token = rt.prepare(SCREEN).expect("direct close receipts settle");
+        assert_eq!(rt.app().completed.len(), 1);
+        assert_eq!(
+            rt.app().completed[0],
+            rt.app().parent.expect("parent opening")
+        );
+        assert!(
+            !rt.app()
+                .completed
+                .contains(&rt.app().child.expect("child opening"))
+        );
+        present(&mut rt, token);
+    }
+
+    struct OrdinaryLayerProbe;
+
+    impl App for OrdinaryLayerProbe {
+        fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+            if cx
+                .intents(A)
+                .any(|intent| matches!(intent, Intent::Key(key) if key.code == KeyCode::Char('m')))
+            {
+                cx.open_layer(CLICK_MODAL, LayerSpec::modal(CLICK_MODAL).initial_focus(B));
+            }
+            if cx
+                .intents(B)
+                .any(|intent| matches!(intent, Intent::Key(key) if key.code == KeyCode::Char('x')))
+            {
+                cx.close_layer(CLICK_MODAL, None);
+            }
+            Response::ignored()
+        }
+
+        fn draw(&self, ui: &mut Ui<'_>) {
+            ui.register_control(A, Rect::new(0, 0, 8, 1), Focusability::Focusable);
+            let _ = ui.layer(CLICK_MODAL, |ui, area| {
+                ui.register_control(B, area, Focusability::Focusable);
+            });
+        }
+    }
+
+    #[test]
+    fn ordinary_layer_close_does_not_enqueue_completion_or_extra_update() {
+        let mut rt = Runtime::new(OrdinaryLayerProbe, Theme::junie());
+        let _ = rt.initialize();
+        let token = rt.prepare(SCREEN).expect("initial frame prepares");
+        present(&mut rt, token);
+        rt.set_focus(Some(A));
+        let token = rt.prepare(SCREEN).expect("owner focus prepares");
+        present(&mut rt, token);
+        let _ = rt.handle(key(KeyCode::Char('m'))).expect("modal opens");
+        let token = rt.prepare(SCREEN).expect("modal opens");
+        present(&mut rt, token);
+        let _ = rt.handle(key(KeyCode::Char('x'))).expect("modal closes");
+        let token = rt.prepare(SCREEN).expect("modal closes");
+        assert!(rt.services.completions.is_empty());
+        assert!(!rt.completion_dispatch_pending);
+        assert!(!rt.needs_settle());
+        present(&mut rt, token);
+    }
 
     #[derive(Debug, Default)]
     struct ContinuationProbe {
         opening: Option<crate::layer::LayerOpening>,
+        continuation_opening: Option<crate::layer::LayerOpening>,
         continued: bool,
-        saw_focus_out: bool,
-        focus_out_to: Vec<Option<Id>>,
         acknowledgements: usize,
         acknowledge_owner: bool,
+        observe_outcome: bool,
+        owner_hidden: bool,
+        owner_disabled: bool,
+        consume_completion: bool,
+        reopen_after_close: bool,
+        replacement: Option<crate::layer::LayerOpening>,
+        duplicate_result_ack: bool,
+        duplicate_ack_succeeded: bool,
+        outcome: Option<(Option<Id>, bool)>,
+        outcome_acknowledgements: usize,
         completion: Option<(Option<Id>, LayerEvent, bool)>,
     }
 
@@ -2402,9 +2655,9 @@ mod tests {
         fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
             let owner_intents: Vec<_> = cx.intents(CONTINUED_OWNER).collect();
             for intent in &owner_intents {
-                if let Intent::FocusOut { to } = intent {
-                    self.saw_focus_out = true;
-                    self.focus_out_to.push(*to);
+                if let Intent::FocusOut { to: Some(target) } = intent {
+                    self.continuation_opening =
+                        cx.focus_continuation_opening(CONTINUED_OWNER, *target);
                 }
                 if matches!(intent, Intent::FocusOut { to: Some(target) } if *target == CONTINUED_TARGET)
                 {
@@ -2429,9 +2682,22 @@ mod tests {
             for intent in cx.intents(CONTINUED_TARGET) {
                 if matches!(intent, Intent::Key(key) if key.code == KeyCode::Char('x')) {
                     cx.close_layer(CONTINUED_LAYER, None);
+                    if self.reopen_after_close {
+                        self.replacement = cx.open_layer_with_token(
+                            CONTINUED_LAYER,
+                            LayerSpec::popover(
+                                CONTINUED_LAYER,
+                                Anchor::Screen(ScreenAlign::Center),
+                            )
+                            .size(LayerSize::Fixed(10, 3))
+                            .initial_focus(CONTINUED_TARGET)
+                            .continues_focus(CONTINUED_OWNER),
+                        );
+                    }
                 }
             }
             if let Some(opening) = self.opening
+                && self.consume_completion
                 && let Some(completion) = cx.take_layer_completion(opening)
             {
                 self.completion = Some((
@@ -2440,15 +2706,34 @@ mod tests {
                     completion.continuation_acknowledged(),
                 ));
             }
+            if self.observe_outcome
+                && let Some(opening) = self.continuation_opening
+                && let Some(outcome) = cx.focus_continuation_result(opening, CONTINUED_OWNER)
+            {
+                self.outcome = Some((outcome.restored_focus(), outcome.continued()));
+                if cx.acknowledge_focus_continuation_result(opening, CONTINUED_OWNER) {
+                    self.outcome_acknowledgements += 1;
+                }
+                if self.duplicate_result_ack {
+                    self.duplicate_ack_succeeded =
+                        cx.acknowledge_focus_continuation_result(opening, CONTINUED_OWNER);
+                }
+            }
             Response::ignored()
         }
 
         fn draw(&self, ui: &mut Ui<'_>) {
-            ui.register_control(
-                CONTINUED_OWNER,
-                Rect::new(0, 0, 10, 1),
-                Focusability::Focusable,
-            );
+            if !self.owner_hidden {
+                ui.register_control(
+                    CONTINUED_OWNER,
+                    Rect::new(0, 0, 10, 1),
+                    if self.owner_disabled {
+                        Focusability::Disabled
+                    } else {
+                        Focusability::Focusable
+                    },
+                );
+            }
             let _ = ui.layer(CONTINUED_LAYER, |ui, area| {
                 ui.register_control(CONTINUED_TARGET, area, Focusability::Focusable);
             });
@@ -2602,6 +2887,9 @@ mod tests {
         let mut rt = Runtime::new(
             ContinuationProbe {
                 acknowledge_owner: true,
+                observe_outcome: true,
+                consume_completion: true,
+                duplicate_result_ack: true,
                 ..ContinuationProbe::default()
             },
             Theme::junie(),
@@ -2618,6 +2906,7 @@ mod tests {
         assert_eq!(rt.focus(), Some(CONTINUED_TARGET));
         assert!(rt.app().continued, "probe: {:?}", rt.app());
         assert_eq!(rt.app().acknowledgements, 1);
+        assert!(rt.app().continuation_opening.is_some());
         present(&mut rt, token);
 
         let _ = rt.handle(key(KeyCode::Char('x'))).expect("menu closes");
@@ -2631,12 +2920,191 @@ mod tests {
                 true
             ))
         );
+        assert_eq!(rt.app().outcome, Some((Some(CONTINUED_OWNER), true)));
+        assert_eq!(rt.app().outcome_acknowledgements, 1);
+        assert!(!rt.app().duplicate_ack_succeeded);
+        present(&mut rt, token);
+        assert!(rt.services.focus_continuation_outcomes.is_empty());
+    }
+
+    #[test]
+    fn removed_continuation_owner_receives_cancellation_not_success() {
+        let mut rt = Runtime::new(
+            ContinuationProbe {
+                acknowledge_owner: true,
+                observe_outcome: true,
+                consume_completion: true,
+                ..ContinuationProbe::default()
+            },
+            Theme::junie(),
+        );
+        let _ = rt.initialize();
+        let token = rt.prepare(SCREEN).expect("initial frame prepares");
+        present(&mut rt, token);
+        rt.set_focus(Some(CONTINUED_OWNER));
+        let token = rt.prepare(SCREEN).expect("owner focus prepares");
+        present(&mut rt, token);
+        let _ = rt.handle(key(KeyCode::Char('m'))).expect("menu opens");
+        let token = rt.prepare(SCREEN).expect("menu opens");
+        present(&mut rt, token);
+        rt.app_mut().owner_hidden = true;
+        let token = rt.prepare(SCREEN).expect("owner removal publishes");
+        present(&mut rt, token);
+        let _ = rt.handle(key(KeyCode::Char('x'))).expect("menu closes");
+        let token = rt.prepare(SCREEN).expect("removed owner settles");
+        assert_eq!(rt.app().outcome, Some((rt.focus(), false)));
+        assert_eq!(rt.app().completion.map(|(_, _, ack)| ack), Some(false));
         present(&mut rt, token);
     }
 
     #[test]
+    fn disabled_continuation_owner_receives_cancellation_not_success() {
+        let mut rt = Runtime::new(
+            ContinuationProbe {
+                acknowledge_owner: true,
+                observe_outcome: true,
+                consume_completion: true,
+                ..ContinuationProbe::default()
+            },
+            Theme::junie(),
+        );
+        let _ = rt.initialize();
+        let token = rt.prepare(SCREEN).expect("initial frame prepares");
+        present(&mut rt, token);
+        rt.set_focus(Some(CONTINUED_OWNER));
+        let token = rt.prepare(SCREEN).expect("owner focus prepares");
+        present(&mut rt, token);
+        let _ = rt.handle(key(KeyCode::Char('m'))).expect("menu opens");
+        let token = rt.prepare(SCREEN).expect("menu opens");
+        present(&mut rt, token);
+        rt.app_mut().owner_disabled = true;
+        let token = rt.prepare(SCREEN).expect("disabled owner publishes");
+        present(&mut rt, token);
+        let _ = rt.handle(key(KeyCode::Char('x'))).expect("menu closes");
+        let token = rt.prepare(SCREEN).expect("disabled owner settles");
+        assert_eq!(rt.app().outcome, Some((rt.focus(), false)));
+        assert_eq!(rt.app().completion.map(|(_, _, ack)| ack), Some(false));
+        present(&mut rt, token);
+    }
+
+    #[test]
+    fn same_id_reopen_cannot_reuse_closed_opening_success() {
+        let mut rt = Runtime::new(
+            ContinuationProbe {
+                acknowledge_owner: true,
+                observe_outcome: true,
+                consume_completion: true,
+                reopen_after_close: true,
+                ..ContinuationProbe::default()
+            },
+            Theme::junie(),
+        );
+        let _ = rt.initialize();
+        let token = rt.prepare(SCREEN).expect("initial frame prepares");
+        present(&mut rt, token);
+        rt.set_focus(Some(CONTINUED_OWNER));
+        let token = rt.prepare(SCREEN).expect("owner focus prepares");
+        present(&mut rt, token);
+        let _ = rt.handle(key(KeyCode::Char('m'))).expect("menu opens");
+        let token = rt.prepare(SCREEN).expect("menu opens");
+        present(&mut rt, token);
+        let old_opening = rt.app().opening.expect("old opening token");
+        let _ = rt
+            .handle(key(KeyCode::Char('x')))
+            .expect("menu closes and reopens");
+        let token = rt.prepare(SCREEN).expect("replacement opening settles");
+        assert_ne!(rt.app().replacement, Some(old_opening));
+        assert_eq!(rt.app().completion.map(|(_, _, ack)| ack), Some(false));
+        assert_eq!(
+            rt.app().outcome.map(|(_, continued)| continued),
+            Some(false)
+        );
+        present(&mut rt, token);
+    }
+
+    #[test]
+    fn continuation_outcome_survives_owner_delay_until_exact_ack() {
+        let mut rt = Runtime::new(
+            ContinuationProbe {
+                acknowledge_owner: true,
+                observe_outcome: false,
+                ..ContinuationProbe::default()
+            },
+            Theme::junie(),
+        );
+        let _ = rt.initialize();
+        let token = rt.prepare(SCREEN).expect("initial frame prepares");
+        present(&mut rt, token);
+        rt.set_focus(Some(CONTINUED_OWNER));
+        let token = rt.prepare(SCREEN).expect("owner focus prepares");
+        present(&mut rt, token);
+        let _ = rt.handle(key(KeyCode::Char('m'))).expect("menu opens");
+        let token = rt.prepare(SCREEN).expect("menu opens");
+        present(&mut rt, token);
+        let _ = rt.handle(key(KeyCode::Char('x'))).expect("menu closes");
+        let token = rt.prepare(SCREEN).expect("outcome publishes");
+        present(&mut rt, token);
+        assert_eq!(rt.app().outcome_acknowledgements, 0);
+        assert_eq!(rt.services.focus_continuation_outcomes.len(), 1);
+
+        rt.app_mut().observe_outcome = true;
+        let token = rt.prepare(SCREEN).expect("owner becomes observable");
+        present(&mut rt, token);
+        let _ = rt.handle(Input::Tick).expect("delayed owner updates");
+        let token = rt.prepare(SCREEN).expect("delayed owner frame prepares");
+        assert_eq!(rt.app().outcome, Some((Some(CONTINUED_OWNER), true)));
+        assert_eq!(rt.app().outcome_acknowledgements, 1);
+        present(&mut rt, token);
+        assert!(rt.services.focus_continuation_outcomes.is_empty());
+    }
+
+    #[test]
+    fn unacknowledged_continuation_receipts_expire_with_diagnostic() {
+        let mut rt = Runtime::new(
+            ContinuationProbe {
+                acknowledge_owner: true,
+                ..ContinuationProbe::default()
+            },
+            Theme::junie(),
+        );
+        let _ = rt.initialize();
+        let token = rt.prepare(SCREEN).expect("initial frame prepares");
+        present(&mut rt, token);
+        rt.set_focus(Some(CONTINUED_OWNER));
+        let token = rt.prepare(SCREEN).expect("owner focus prepares");
+        present(&mut rt, token);
+        let _ = rt.handle(key(KeyCode::Char('m'))).expect("menu opens");
+        let token = rt.prepare(SCREEN).expect("menu opens");
+        present(&mut rt, token);
+        let _ = rt.handle(key(KeyCode::Char('x'))).expect("menu closes");
+        let token = rt.prepare(SCREEN).expect("completion is queued");
+        present(&mut rt, token);
+        assert_eq!(rt.services.completions.len(), 1);
+        assert_eq!(rt.services.focus_continuation_outcomes.len(), 1);
+
+        for _ in 0..31 {
+            let token = rt.prepare(SCREEN).expect("idle frame prepares");
+            present(&mut rt, token);
+        }
+        assert!(rt.services.completions.is_empty());
+        assert!(rt.services.focus_continuation_outcomes.is_empty());
+        assert!(rt.diagnostics().iter().any(|diagnostic| matches!(
+            diagnostic,
+            Diagnostic::FocusContinuationUnacknowledged {
+                owner: CONTINUED_OWNER
+            }
+        )));
+    }
+
+    #[test]
     fn missing_continuation_ack_cancels_receipt_without_blocking_prepare() {
-        let mut rt = Runtime::new(ContinuationProbe::default(), Theme::junie());
+        let mut rt = Runtime::new(
+            ContinuationProbe {
+                consume_completion: true,
+                ..ContinuationProbe::default()
+            },
+            Theme::junie(),
+        );
         let _ = rt.initialize();
         let token = rt.prepare(SCREEN).expect("initial frame prepares");
         present(&mut rt, token);
