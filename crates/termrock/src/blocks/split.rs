@@ -66,15 +66,28 @@ impl<'a> SplitBlock<'a> {
         let second = self.second.ok_or(SplitBlockError::MissingSecond)?;
         first.validate_depth()?;
         second.validate_depth()?;
-        let first_size = first.measure(ui, constraints)?;
-        let second_size = second.measure(ui, constraints)?;
+        let first_natural = first.measure(ui, constraints)?;
+        let second_natural = second.measure(ui, constraints)?;
+        let (first_constraints, second_constraints) =
+            self.pane.pane_constraints(state, constraints);
+        let first_allocated = if first_constraints == constraints {
+            first_natural
+        } else {
+            first.measure(ui, first_constraints)?
+        };
+        let second_allocated = if second_constraints == constraints {
+            second_natural
+        } else {
+            second.measure(ui, second_constraints)?
+        };
         let maximized = state.maximized();
         let visible_first = maximized != Maximized::Second;
         let visible_second = maximized != Maximized::First;
-        let first_min = axis_extent(first_size.min, self.pane_axis());
-        let second_min = axis_extent(second_size.min, self.pane_axis());
-        let first_preferred = axis_extent(first_size.preferred, self.pane_axis()).max(first_min);
-        let second_preferred = axis_extent(second_size.preferred, self.pane_axis()).max(second_min);
+        let first_min = axis_extent(first_natural.min, self.pane_axis());
+        let second_min = axis_extent(second_natural.min, self.pane_axis());
+        let first_preferred = axis_extent(first_natural.preferred, self.pane_axis()).max(first_min);
+        let second_preferred =
+            axis_extent(second_natural.preferred, self.pane_axis()).max(second_min);
         let along_min = self.pane.required_extent(
             state,
             if visible_first { first_min } else { 0 },
@@ -86,24 +99,28 @@ impl<'a> SplitBlock<'a> {
             if visible_second { second_preferred } else { 0 },
         );
         let other_axis = match (self.pane_axis(), maximized) {
-            (SplitAxis::Horizontal, Maximized::None) => (first_size.min.1, second_size.min.1),
-            (SplitAxis::Horizontal, Maximized::First) => (first_size.min.1, 0),
-            (SplitAxis::Horizontal, Maximized::Second) => (0, second_size.min.1),
-            (SplitAxis::Vertical, Maximized::None) => (first_size.min.0, second_size.min.0),
-            (SplitAxis::Vertical, Maximized::First) => (first_size.min.0, 0),
-            (SplitAxis::Vertical, Maximized::Second) => (0, second_size.min.0),
+            (SplitAxis::Horizontal, Maximized::None) => {
+                (first_allocated.min.1, second_allocated.min.1)
+            }
+            (SplitAxis::Horizontal, Maximized::First) => (first_allocated.min.1, 0),
+            (SplitAxis::Horizontal, Maximized::Second) => (0, second_allocated.min.1),
+            (SplitAxis::Vertical, Maximized::None) => {
+                (first_allocated.min.0, second_allocated.min.0)
+            }
+            (SplitAxis::Vertical, Maximized::First) => (first_allocated.min.0, 0),
+            (SplitAxis::Vertical, Maximized::Second) => (0, second_allocated.min.0),
         };
         let other_preferred = match (self.pane_axis(), maximized) {
             (SplitAxis::Horizontal, Maximized::None) => {
-                (first_size.preferred.1, second_size.preferred.1)
+                (first_allocated.preferred.1, second_allocated.preferred.1)
             }
-            (SplitAxis::Horizontal, Maximized::First) => (first_size.preferred.1, 0),
-            (SplitAxis::Horizontal, Maximized::Second) => (0, second_size.preferred.1),
+            (SplitAxis::Horizontal, Maximized::First) => (first_allocated.preferred.1, 0),
+            (SplitAxis::Horizontal, Maximized::Second) => (0, second_allocated.preferred.1),
             (SplitAxis::Vertical, Maximized::None) => {
-                (first_size.preferred.0, second_size.preferred.0)
+                (first_allocated.preferred.0, second_allocated.preferred.0)
             }
-            (SplitAxis::Vertical, Maximized::First) => (first_size.preferred.0, 0),
-            (SplitAxis::Vertical, Maximized::Second) => (0, second_size.preferred.0),
+            (SplitAxis::Vertical, Maximized::First) => (first_allocated.preferred.0, 0),
+            (SplitAxis::Vertical, Maximized::Second) => (0, second_allocated.preferred.0),
         };
         let other_min = other_axis.0.max(other_axis.1).max(1);
         let other_preferred = other_preferred.0.max(other_preferred.1).max(other_min);
