@@ -28,7 +28,7 @@ use crate::hit::{Axes, Headroom, Registry};
 use crate::id::{Id, Part, PartRef};
 use crate::keymap::{
     Binding, BindingExtensionError, BindingRegistry, DynamicBindingRegistry, FocusedHintKey,
-    FocusedHints, HintLayer, KeyMap,
+    FocusedHints, HintLayer, KeyMap, ScopedBubbleBinding,
 };
 use crate::layer::{LayerId, LayerKind};
 use crate::response::StateFlags;
@@ -73,6 +73,7 @@ pub struct FrameState {
     pub(crate) layout: Vec<(Id, LayoutFacts)>,
     pub(crate) declared: Vec<(Id, StateFlags)>,
     pub(crate) bindings: BindingRegistry,
+    pub(crate) scoped_bubble_bindings: Vec<ScopedBubbleBinding>,
     pub(crate) diagnostics: Vec<Diagnostic>,
     pub(crate) roles: Vec<CellRoles>,
     pub(crate) screen: Rect,
@@ -175,6 +176,7 @@ impl FrameState {
         self.layout.clear();
         self.declared.clear();
         self.bindings.reset();
+        self.scoped_bubble_bindings.clear();
         self.diagnostics.clear();
         self.roles.clear();
         self.roles
@@ -720,6 +722,34 @@ impl<'f> Ui<'f> {
         table: &'static [Binding<C>],
     ) {
         self.publish_bindings_filtered(owner, flags, table, |_| true);
+    }
+
+    pub(crate) fn publish_scope_bindings<C: Copy + 'static>(
+        &mut self,
+        scope: ScopeId,
+        owner: Id,
+        flags: StateFlags,
+        table: &'static [Binding<C>],
+    ) {
+        if self.registrations_suppressed() || self.frame.ring.scope_layer(scope) != Some(self.layer)
+        {
+            return;
+        }
+        if let Some(action) =
+            self.frame
+                .bindings
+                .publish_filtered(owner, flags, self.layer, table, |_| true)
+        {
+            self.frame
+                .diagnostics
+                .push(Diagnostic::DuplicateBindingAction { owner, action });
+            return;
+        }
+        self.frame.scoped_bubble_bindings.push(ScopedBubbleBinding {
+            scope,
+            owner,
+            layer: self.layer,
+        });
     }
 
     pub(crate) fn publish_bindings_filtered<C: Copy + 'static>(
