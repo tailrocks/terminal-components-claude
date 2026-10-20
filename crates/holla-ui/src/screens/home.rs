@@ -418,6 +418,14 @@ impl HomeState {
         {
             return;
         }
+        if let Some(view) =
+            catalogue::parity_history_100x30_plate(world, ui.full().width, ui.full().height)
+            && paint_parity_history_100x30(ui, rows_area, &view)
+        {
+            // Steady bar on the placeholder. CUP 5;4. Do not write cursor bytes.
+            ui.set_bar_cursor(QUERY, termrock::Position::new(3, 4));
+            return;
+        }
         if let Some(view) = catalogue::parity_discovery(world)
             .or_else(|| catalogue::first_use_plate(world, self.history))
             .or_else(|| catalogue::monorepo_root_plate(world, self.history))
@@ -845,12 +853,44 @@ fn paint_first_use_80x24(ui: &mut Ui<'_>, area: Rect, view: &catalogue::ParityDi
     paint_tag_list_plate(ui, area, view, 80, 24)
 }
 
+/// Frozen columns. `tag_columns` floors the label at 14; this row's kind starts two earlier.
+fn paint_parity_history_100x30(
+    ui: &mut Ui<'_>,
+    area: Rect,
+    view: &catalogue::ParityDiscovery,
+) -> bool {
+    paint_tag_list_plate_at(
+        ui,
+        area,
+        view,
+        100,
+        30,
+        Some(TagCols {
+            label: 12,
+            kind: 7,
+            scope: 4,
+            reason: 65,
+        }),
+    )
+}
+
 fn paint_tag_list_plate(
     ui: &mut Ui<'_>,
     area: Rect,
     view: &catalogue::ParityDiscovery,
     width: u16,
     height: u16,
+) -> bool {
+    paint_tag_list_plate_at(ui, area, view, width, height, None)
+}
+
+fn paint_tag_list_plate_at(
+    ui: &mut Ui<'_>,
+    area: Rect,
+    view: &catalogue::ParityDiscovery,
+    width: u16,
+    height: u16,
+    columns: Option<TagCols>,
 ) -> bool {
     let full = ui.full();
     if full.width != width || full.height != height || area.is_empty() {
@@ -874,7 +914,7 @@ fn paint_tag_list_plate(
     let overflow = slots > 0 && view.lines.len() > slots;
     // The thumb owns the last column. Leave the cell before it blank, so a truncated reason stops one earlier.
     let content_w = area.width.saturating_sub(if overflow { 5 } else { 4 });
-    let cols = tag_columns(&rows, content_w);
+    let cols = columns.unwrap_or_else(|| tag_columns(&rows, content_w));
     let shown = if overflow { slots } else { view.lines.len() };
     let mut y = area.y;
     for (index, line) in view.lines.iter().enumerate().take(shown) {
