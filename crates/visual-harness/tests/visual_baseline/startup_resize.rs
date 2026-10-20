@@ -1,32 +1,7 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 use std::time::Duration;
 
 use crate::scenarios::Bin;
 use crate::support::{self, Case, Color};
-
-
-
-
-
-
-
-
-
 
 pub fn a_resize_queued_with_a_key_still_reaches_the_app() {
     let case = Case::new(
