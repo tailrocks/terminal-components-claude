@@ -4,11 +4,13 @@
 from __future__ import annotations
 
 import argparse
+from datetime import datetime, timezone
 import gzip
 import hashlib
 import json
 import os
 from pathlib import Path, PurePosixPath
+import platform
 import re
 import shutil
 import signal
@@ -41,6 +43,17 @@ REFERENCE_DECISIONS = Path("tools/frozen_cli_references.json")
 REFERENCE_DECISIONS_SHA256 = "2a43fb118c268300c8bbd6439ea11bb9a24ffff03dc3c9f4601893eee26a096b"
 REFERENCE_CASE = "showcase::resize::overview_grown::120x40::truecolor"
 REFERENCE_TUPLE = ("showcase/resize/overview_grown/120x40/truecolor", 0, "showcase/resize/overview_grown/120x40/truecolor")
+BUILD_PROVENANCE_FILE = "build-provenance.json"
+BUILD_PROVENANCE_SCHEMA = "termrock.frozen-build-provenance"
+BUILD_PROVENANCE_VERSION = 1
+PROVENANCE_ENV_KEYS = (
+    "PATH", "HOME", "CARGO_HOME", "RUSTUP_HOME", "RUSTUP_TOOLCHAIN", "RUSTC",
+    "RUSTC_WRAPPER", "RUSTC_WORKSPACE_WRAPPER", "CARGO_TARGET_DIR", "CARGO_BUILD_TARGET",
+    "RUSTFLAGS", "RUSTDOCFLAGS", "CARGO_ENCODED_RUSTFLAGS", "CC", "CXX", "AR",
+    "CFLAGS", "CXXFLAGS", "LDFLAGS", "LIBRARY_PATH", "CPATH", "PKG_CONFIG_PATH",
+    "SDKROOT", "DEVELOPER_DIR", "MACOSX_DEPLOYMENT_TARGET", "DYLD_LIBRARY_PATH",
+    "VISUAL_BIN_DIR", "VISUAL_FULL", "VISUAL_REVIEW",
+)
 EXTENSION_SIZES = ((72, 20), (80, 24), (100, 30), (120, 40), (160, 50), (40, 12), (60, 18))
 EXTENSION_COLORS = ("truecolor", "256", "16", "none", "nocolor")
 EXPECTED_CLI_ORDINARY_TESTS = frozenset({
@@ -299,6 +312,9 @@ def prepare_live_source(repo: Path, root: Path, source: Path, timeout: int) -> d
     if live.exists():
         raise RunnerError(f"refusing to replace prepared live source: {live}")
     patch_path = repo / "tools" / "frozen_cli_pair.patch"
+    runner_path = Path(__file__).resolve()
+    helper_manifest = repo / "tools" / "frozen-cli-frame-support" / "Cargo.toml"
+    helper_lock = repo / "tools" / "frozen-cli-frame-support" / "Cargo.lock"
     helper_path = repo / "tools" / "frozen-cli-frame-support" / "src" / "lib.rs"
     extension_manifest_path = repo / EXTENSION_MANIFEST
     extension_source_path = repo / EXTENSION_SOURCE
@@ -418,26 +434,296 @@ def git_state(repo: Path, timeout: int) -> tuple[str, str, list[str]]:
     return revision, digest.hexdigest(), files
 
 
+def canonical_json_digest(value: object) -> str:
+    encoded = json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode()
+    return hashlib.sha256(encoded).hexdigest()
+
+
+def build_environment_fingerprint(env: dict[str, str]) -> dict[str, object]:
+    observed = {
+        key: {"present": key in env, "value_sha256": hashlib.sha256(env[key].encode()).hexdigest() if key in env else None}
+        for key in PROVENANCE_ENV_KEYS
+    }
+    return {
+        "policy": "hash-only-explicit-build-environment-allowlist",
+        "allowlisted_values": observed,
+        "fingerprint_sha256": canonical_json_digest(observed),
+        "unknown_environment_values_recorded": False,
+        "effective_env_was_runner_cleaned": True,
+        "hermetic": False,
+        "hermeticity_note": "clean_env inherits unreviewed host variables and PATH; this is observation, not a hermetic build claim",
+    }
+
+
+def _captured_output(command: list[str], *, cwd: Path, env: dict[str, str], timeout: int = 12) -> str | None:
+    try:
+        result = subprocess.run(command, cwd=cwd, env=env, capture_output=True, text=True, timeout=timeout, check=False)
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+    if result.returncode != 0:
+        return None
+    return result.stdout.strip()
+
+
+def _executable_metadata(path: str | None, *, env: dict[str, str], version_args: list[str], cwd: Path) -> dict[str, object]:
+    if not path:
+        return {"available": False, "path": None, "sha256": None, "version": None}
+    entry = Path(path)
+    if not entry.is_absolute():
+        entry = Path(shutil.which(path, path=env.get("PATH")) or path)
+    try:
+        resolved = entry.resolve(strict=True)
+    except OSError:
+        return {"available": False, "path": str(entry), "sha256": None, "version": None}
+    if not resolved.is_file():
+        return {"available": False, "path": str(resolved), "sha256": None, "version": None}
+    return {
+        "available": True,
+        "path": str(resolved),
+        "sha256": sha256(resolved),
+        "version": _captured_output([str(resolved), *version_args], cwd=cwd, env=env),
+    }
+
+
+def toolchain_provenance(source: Path, env: dict[str, str]) -> dict[str, object]:
+    cargo_entry = shutil.which("cargo", path=env.get("PATH"))
+    rustup_entry = shutil.which("rustup", path=env.get("PATH"))
+    rustc_entry = env.get("RUSTC") or shutil.which("rustc", path=env.get("PATH"))
+    if rustup_entry:
+        selected_rustc = _captured_output([rustup_entry, "which", "rustc"], cwd=source, env=env)
+        selected_cargo = _captured_output([rustup_entry, "which", "cargo"], cwd=source, env=env)
+        if selected_rustc:
+            rustc_entry = selected_rustc
+    else:
+        selected_cargo = None
+    cargo_selected = selected_cargo or cargo_entry
+    compiler = shutil.which("cc", path=env.get("PATH"))
+    clang = shutil.which("clang", path=env.get("PATH"))
+    linker = shutil.which("ld", path=env.get("PATH"))
+    xcrun = shutil.which("xcrun", path=env.get("PATH"))
+    xcode_select = shutil.which("xcode-select", path=env.get("PATH"))
+    sdk_path = _captured_output([xcrun, "--show-sdk-path"], cwd=source, env=env) if xcrun else None
+    sdk_version = _captured_output([xcrun, "--show-sdk-version"], cwd=source, env=env) if xcrun else None
+    selected_xcode = _captured_output([xcode_select, "-p"], cwd=source, env=env) if xcode_select else None
+    active_toolchain = _captured_output([rustup_entry, "show", "active-toolchain"], cwd=source, env=env) if rustup_entry else None
+    rustc_metadata = _executable_metadata(rustc_entry, env=env, version_args=["-vV"], cwd=source)
+    rustc_version = rustc_metadata.get("version")
+    host_triple = None
+    llvm_version = None
+    if isinstance(rustc_version, str):
+        for line in rustc_version.splitlines():
+            if line.startswith("host: "):
+                host_triple = line.partition(": ")[2]
+            elif line.startswith("LLVM version: "):
+                llvm_version = line.partition(": ")[2]
+    sysroot = _captured_output([rustc_entry, "--print", "sysroot"], cwd=source, env=env) if rustc_entry else None
+    sysroot_files = []
+    if sysroot:
+        for relative in ("lib/rustlib/components", "lib/rustlib/manifest-rustc", "lib/rustlib/multirust-channel-manifest.toml"):
+            path = Path(sysroot) / relative
+            if path.is_file() and not path.is_symlink():
+                sysroot_files.append({"path": str(path), "sha256": sha256(path)})
+    return {
+        "cargo_path_entry": _executable_metadata(cargo_entry, env=env, version_args=["--version", "--verbose"], cwd=source),
+        "cargo_selected_toolchain": _executable_metadata(cargo_selected, env=env, version_args=["--version", "--verbose"], cwd=source),
+        "cargo_selection_method": "rustup which from frozen-source cwd" if selected_cargo else "PATH entry only; toolchain selection unresolved",
+        "rustup": _executable_metadata(rustup_entry, env=env, version_args=["--version"], cwd=source),
+        "active_toolchain": active_toolchain,
+        "rustc_selected_toolchain": rustc_metadata,
+        "rustc_selection_method": "RUSTC environment path" if env.get("RUSTC") else "rustup which from frozen-source cwd" if rustup_entry else "PATH entry only; toolchain selection unresolved",
+        "rustc_host_triple": host_triple,
+        "llvm_version": llvm_version,
+        "rustc_sysroot": sysroot,
+        "rustc_sysroot_identity_files": sysroot_files,
+        "cc": _executable_metadata(compiler, env=env, version_args=["--version"], cwd=source),
+        "clang": _executable_metadata(clang, env=env, version_args=["--version"], cwd=source),
+        "linker": _executable_metadata(linker, env=env, version_args=["-v"], cwd=source),
+        "xcrun": _executable_metadata(xcrun, env=env, version_args=["--version"], cwd=source),
+        "xcode_select": _executable_metadata(xcode_select, env=env, version_args=["-version"], cwd=source),
+        "sdk_path": sdk_path,
+        "sdk_version": sdk_version,
+        "xcode_developer_directory": selected_xcode,
+        "link_invocation": "not captured; cargo config and available linker identities are recorded as observations",
+    }
+
+
+def _cargo_config_inputs(source: Path, env: dict[str, str]) -> list[dict[str, str]]:
+    candidates = []
+    for directory in (source, *source.parents):
+        candidates.extend((directory / ".cargo" / "config", directory / ".cargo" / "config.toml"))
+    cargo_home = Path(env.get("CARGO_HOME", str(Path(env.get("HOME", str(Path.home()))) / ".cargo")))
+    candidates.extend((cargo_home / "config", cargo_home / "config.toml"))
+    result = []
+    for path in candidates:
+        if path.is_file() and not path.is_symlink():
+            result.append({"path": str(path.resolve()), "sha256": sha256(path)})
+    return result
+
+
+def _application_binary_hashes(bin_dir: Path) -> dict[str, str]:
+    hashes = {}
+    for app in APPS:
+        binary = bin_dir / app
+        if not binary.is_file():
+            raise RunnerError(f"missing frozen binary: {binary}")
+        hashes[app] = sha256(binary)
+    return hashes
+
+
+def build_provenance_payload(repo: Path, source: Path, source_hash: str, target: Path, binaries: dict[str, str], stages: list[dict[str, object]], env: dict[str, str], timeout: int) -> dict[str, object]:
+    archive = subprocess.run(
+        ["git", "-C", str(repo), "archive", "--format=tar", BASELINE_COMMIT],
+        cwd=repo,
+        env=env,
+        capture_output=True,
+        timeout=min(timeout, 225),
+        check=False,
+    )
+    if archive.returncode != 0:
+        raise RunnerError("could not fingerprint the fixed frozen-source git archive")
+    patch_path = repo / "tools" / "frozen_cli_pair.patch"
+    helper_path = repo / "tools" / "frozen-cli-frame-support" / "src" / "lib.rs"
+    extension_manifest = repo / EXTENSION_MANIFEST
+    extension_source = repo / EXTENSION_SOURCE
+    reference_path = repo / REFERENCE_DECISIONS
+    tool_inputs = {}
+    for name, path in (("runner", runner_path), ("harness_patch", patch_path), ("frame_helper_manifest", helper_manifest), ("frame_helper_lock", helper_lock), ("frame_helper", helper_path), ("extension_manifest", extension_manifest), ("extension_source", extension_source), ("reference_decisions", reference_path)):
+        tool_inputs[name] = sha256(path) if path.is_file() and not path.is_symlink() else None
+    rust_toolchain = source / "rust-toolchain.toml"
+    now = datetime.now(timezone.utc).isoformat()
+    stages_with_env = []
+    for stage in stages:
+        stages_with_env.append({**stage, "effective_environment": build_environment_fingerprint(stage["env"])})
+    toolchain = toolchain_provenance(source, env)
+    payload = {
+        "schema": BUILD_PROVENANCE_SCHEMA,
+        "schema_version": BUILD_PROVENANCE_VERSION,
+        "status": "observed-not-hermetic",
+        "observed_at_utc": now,
+        "reference": {
+            "tag": BASELINE_TAG,
+            "tag_object": BASELINE_TAG_OBJECT,
+            "commit": BASELINE_COMMIT,
+            "tree": BASELINE_TREE,
+            "source_digest": source_hash,
+            "archive_sha256": hashlib.sha256(archive.stdout).hexdigest(),
+            "archive_argv": ["git", "-C", str(repo), "archive", "--format=tar", BASELINE_COMMIT],
+            "cargo_lock_sha256": sha256(source / "Cargo.lock"),
+            "rust_toolchain_toml_sha256": sha256(rust_toolchain) if rust_toolchain.is_file() else None,
+            "tuiscotti_rev": TUISCOTTI_REV,
+        },
+        "runner_inputs": tool_inputs,
+        "host": {"system": platform.system(), "release": platform.release(), "machine": platform.machine(), "python": platform.python_version()},
+        "target_dir": str(target.resolve()),
+        "config_inputs": _cargo_config_inputs(source, env),
+        "toolchain": toolchain,
+        "build": {
+            "stage_order": [stage["name"] for stage in stages_with_env],
+            "stages": [{key: value for key, value in stage.items() if key != "env"} for stage in stages_with_env],
+            "environment_policy": "per-stage hash-only explicit allowlist of the actual env mapping passed to the runner; clean_env strips RUSTFLAGS, wrappers and profile overrides; unknown values are omitted and host inheritance remains uncontrolled",
+            "profile": "Cargo default dev profile",
+            "features": "default features; no explicit --features or --no-default-features",
+            "target_triple": toolchain.get("rustc_host_triple"),
+            "target_selection": "observed rustc host triple; Cargo config inputs are hash-recorded but not interpreted, so config target overrides remain unresolved",
+            "final_application_binary_sha256": binaries,
+            "final_hash_point": "after cargo build --bins and cargo nextest --no-run stages",
+        },
+        "admission": {"eligible": False, "reason": "provenance observation only; no reference decision or binary admission is performed"},
+    }
+    return payload
+
+
+def seal_build_provenance(payload: dict[str, object]) -> dict[str, object]:
+    sealed = dict(payload)
+    cohort = {key: value for key, value in sealed.items() if key not in {"observed_at_utc", "cohort_fingerprint_sha256", "provenance_sha256"}}
+    sealed["cohort_fingerprint_sha256"] = canonical_json_digest(cohort)
+    sealed["provenance_sha256"] = canonical_json_digest(sealed)
+    return sealed
+
+
+def validate_build_provenance(manifest: dict[str, object]) -> None:
+    required = {"schema", "schema_version", "status", "observed_at_utc", "reference", "runner_inputs", "host", "target_dir", "config_inputs", "toolchain", "build", "admission", "cohort_fingerprint_sha256", "provenance_sha256"}
+    if set(manifest) != required or manifest.get("schema") != BUILD_PROVENANCE_SCHEMA or manifest.get("schema_version") != BUILD_PROVENANCE_VERSION:
+        raise RunnerError("frozen build provenance schema or required fields are invalid")
+    if manifest.get("status") != "observed-not-hermetic" or manifest.get("admission") != {"eligible": False, "reason": "provenance observation only; no reference decision or binary admission is performed"}:
+        raise RunnerError("frozen build provenance must remain diagnostic-only and not hermetic")
+    reference = manifest.get("reference")
+    reference_required = {"tag", "tag_object", "commit", "tree", "source_digest", "archive_sha256", "archive_argv", "cargo_lock_sha256", "rust_toolchain_toml_sha256", "tuiscotti_rev"}
+    if not isinstance(reference, dict) or set(reference) != reference_required or reference.get("tag") != BASELINE_TAG or reference.get("tag_object") != BASELINE_TAG_OBJECT or reference.get("commit") != BASELINE_COMMIT or reference.get("tree") != BASELINE_TREE or reference.get("tuiscotti_rev") != TUISCOTTI_REV:
+        raise RunnerError("frozen build provenance reference identity is invalid")
+    if any(not isinstance(reference.get(key), str) or not re.fullmatch(r"[0-9a-f]{64}", reference[key]) for key in ("source_digest", "archive_sha256", "cargo_lock_sha256")):
+        raise RunnerError("frozen build provenance source or archive digest is invalid")
+    archive_argv = reference.get("archive_argv")
+    if not isinstance(archive_argv, list) or len(archive_argv) != 6 or archive_argv[:2] != ["git", "-C"] or archive_argv[2] == "" or archive_argv[3:] != ["archive", "--format=tar", BASELINE_COMMIT]:
+        raise RunnerError("frozen build provenance archive command is invalid")
+    runner_inputs = manifest.get("runner_inputs")
+    runner_input_names = {"runner", "harness_patch", "frame_helper_manifest", "frame_helper_lock", "frame_helper", "extension_manifest", "extension_source", "reference_decisions"}
+    if not isinstance(runner_inputs, dict) or set(runner_inputs) != runner_input_names or any(value is not None and (not isinstance(value, str) or not re.fullmatch(r"[0-9a-f]{64}", value)) for value in runner_inputs.values()):
+        raise RunnerError("frozen build provenance runner input hashes are invalid")
+    build = manifest.get("build")
+    build_required = {"stage_order", "stages", "environment_policy", "profile", "features", "target_triple", "target_selection", "final_application_binary_sha256", "final_hash_point"}
+    if not isinstance(build, dict) or set(build) != build_required or not isinstance(build.get("final_application_binary_sha256"), dict) or set(build["final_application_binary_sha256"]) != set(APPS):
+        raise RunnerError("frozen build provenance application binary inventory is invalid")
+    final_hashes = build["final_application_binary_sha256"]
+    if any(not isinstance(value, str) or not re.fullmatch(r"[0-9a-f]{64}", value) for value in final_hashes.values()):
+        raise RunnerError("frozen build provenance final application binary hash is invalid")
+    toolchain = manifest.get("toolchain")
+    toolchain_required = {"cargo_path_entry", "cargo_selected_toolchain", "cargo_selection_method", "rustup", "active_toolchain", "rustc_selected_toolchain", "rustc_selection_method", "rustc_host_triple", "llvm_version", "rustc_sysroot", "rustc_sysroot_identity_files", "cc", "clang", "linker", "xcrun", "xcode_select", "sdk_path", "sdk_version", "xcode_developer_directory", "link_invocation"}
+    if not isinstance(toolchain, dict) or set(toolchain) != toolchain_required:
+        raise RunnerError("frozen build provenance toolchain metadata is incomplete")
+    stages = build.get("stages")
+    if not isinstance(stages, list) or build.get("stage_order") != ["build-frozen-binaries", "build-frozen-nextest-harness"] or build.get("stage_order") != [stage.get("name") for stage in stages if isinstance(stage, dict)]:
+        raise RunnerError("frozen build provenance stage order is invalid")
+    for stage in stages:
+        stage_fields = {"name", "argv", "effective_environment", "output_application_binary_sha256"}
+        if not isinstance(stage, dict) or set(stage) != stage_fields or not isinstance(stage.get("argv"), list):
+            raise RunnerError("frozen build provenance stage record is incomplete")
+        output_hashes = stage.get("output_application_binary_sha256")
+        if not isinstance(output_hashes, dict) or set(output_hashes) != set(APPS) or any(not isinstance(value, str) or not re.fullmatch(r"[0-9a-f]{64}", value) for value in output_hashes.values()):
+            raise RunnerError("frozen build provenance stage binary inventory is invalid")
+        environment = stage.get("effective_environment")
+        if not isinstance(environment, dict) or not isinstance(environment.get("allowlisted_values"), dict) or set(environment["allowlisted_values"]) != set(PROVENANCE_ENV_KEYS) or environment.get("fingerprint_sha256") != canonical_json_digest(environment["allowlisted_values"]):
+            raise RunnerError("frozen build provenance environment fingerprint is invalid")
+        if environment.get("unknown_environment_values_recorded") is not False or environment.get("hermetic") is not False:
+            raise RunnerError("frozen build provenance must omit unknown environment values and remain non-hermetic")
+    if stages[-1]["output_application_binary_sha256"] != final_hashes:
+        raise RunnerError("frozen build provenance final binaries differ from the last recorded build stage")
+    unsigned = {key: value for key, value in manifest.items() if key != "provenance_sha256"}
+    if manifest.get("provenance_sha256") != canonical_json_digest(unsigned):
+        raise RunnerError("frozen build provenance content digest mismatch")
+    cohort = {key: value for key, value in manifest.items() if key not in {"observed_at_utc", "cohort_fingerprint_sha256", "provenance_sha256"}}
+    if manifest.get("cohort_fingerprint_sha256") != canonical_json_digest(cohort):
+        raise RunnerError("frozen build provenance cohort fingerprint mismatch")
+
+
 def build(repo: Path, root: Path, timeout: int) -> None:
     repo, root, source = paths(repo, root)
     source_hash = verify_source(root, source)
     target = root / "cargo-target"
     env = clean_env()
     env["CARGO_TARGET_DIR"] = str(target)
-    run(["cargo", "build", "--locked", "--bins", "--manifest-path", str(source / "Cargo.toml")], cwd=source, timeout=timeout, env=env)
+    build_command = ["cargo", "build", "--locked", "--bins", "--manifest-path", str(source / "Cargo.toml")]
+    build_env = dict(env)
+    run(build_command, cwd=source, timeout=timeout, env=build_env)
+    initial_hashes = _application_binary_hashes(target / "debug")
     env["VISUAL_BIN_DIR"] = str(target / "debug")
     env["VISUAL_FULL"] = "1"
     env["VISUAL_REVIEW"] = "0"
-    run(["cargo", "nextest", "run", "--no-run", "--locked", "--manifest-path", str(source / "Cargo.toml"), "-p", TEST_PACKAGE, "--test", TEST_TARGET], cwd=source, timeout=timeout, env=env)
-    hashes = {}
-    for app in APPS:
-        binary = target / "debug" / app
-        if not binary.is_file():
-            raise RunnerError(f"missing frozen binary: {binary}")
-        hashes[app] = sha256(binary)
-    record = {"source_sha256": source_hash, "binaries": hashes}
+    nextest_command = ["cargo", "nextest", "run", "--no-run", "--locked", "--manifest-path", str(source / "Cargo.toml"), "-p", TEST_PACKAGE, "--test", TEST_TARGET]
+    nextest_env = dict(env)
+    run(nextest_command, cwd=source, timeout=timeout, env=nextest_env)
+    hashes = _application_binary_hashes(target / "debug")
+    stages = [
+        {"name": "build-frozen-binaries", "argv": build_command, "env": build_env, "output_application_binary_sha256": initial_hashes},
+        {"name": "build-frozen-nextest-harness", "argv": nextest_command, "env": nextest_env, "output_application_binary_sha256": hashes},
+    ]
+    provenance = seal_build_provenance(build_provenance_payload(repo, source, source_hash, target, hashes, stages, nextest_env, timeout))
+    validate_build_provenance(provenance)
+    provenance_path = root / BUILD_PROVENANCE_FILE
+    provenance_path.write_text(json.dumps(provenance, indent=2) + "\n")
+    record = {"source_sha256": source_hash, "binaries": hashes, "build_provenance_sha256": provenance["provenance_sha256"]}
     (root / "build.json").write_text(json.dumps(record, indent=2) + "\n")
-    print(json.dumps(record, indent=2))
+    print(json.dumps({"build": record, "build_provenance": provenance}, indent=2))
 
 
 def build_candidate(repo: Path, root: Path, target: Path, timeout: int) -> None:
