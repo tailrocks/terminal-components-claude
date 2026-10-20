@@ -311,6 +311,41 @@ const PARITY_HINT_PARTS: &[(Part, StylePatch)] = &[
     ),
 ];
 
+/// Activities footer clips `Ctrl+G` to `…` in meta ink. Other plates keep the theme overflow.
+const ACTIVITIES_HINT_PARTS: &[(Part, StylePatch)] = &[
+    (
+        Part::CONTAINER,
+        StylePatch::new()
+            .set_fg(Role::Custom(STATUS_FG))
+            .set_bg(Role::Custom(PARITY_HINT_BG)),
+    ),
+    (
+        Part::KEY,
+        StylePatch::new()
+            .set_fg(Role::Custom(STATUS_FG))
+            .set_bg(Role::Custom(PARITY_HINT_BG))
+            .add(termrock::Modifier::BOLD),
+    ),
+    (
+        Part::ACTION,
+        StylePatch::new()
+            .set_fg(Role::Custom(STATUS_GREY))
+            .set_bg(Role::Custom(PARITY_HINT_BG)),
+    ),
+    (
+        Part::LABEL,
+        StylePatch::new()
+            .set_fg(Role::Custom(Color::Rgb(0xb3, 0xb3, 0xb3)))
+            .set_bg(Role::Custom(PARITY_HINT_BG)),
+    ),
+    (
+        Part::OVERFLOW,
+        StylePatch::new()
+            .set_fg(Role::Custom(Color::Rgb(0x73, 0x73, 0x73)))
+            .set_bg(Role::Custom(PARITY_HINT_BG)),
+    ),
+];
+
 fn status_ink(ui: &Ui<'_>, fg: Color, bold: bool) -> termrock::PaintStyle {
     let patch = StylePatch::new()
         .set_fg(Role::Custom(fg))
@@ -508,6 +543,39 @@ fn paint_monorepo_status(ui: &mut Ui<'_>, area: Rect) {
     let _ = paint_size_label(ui, area);
 }
 
+/// Tag activities-multi status: the monorepo cluster, then `⠋` and `4 running` chips.
+fn paint_activities_multi_status(ui: &mut Ui<'_>, area: Rect) {
+    if area.is_empty() {
+        return;
+    }
+    paint_monorepo_status(ui, area);
+    let size_x = paint_size_label(ui, area);
+    let spin = " ⠋";
+    let running = "4 running ";
+    let group = termrock::width(spin)
+        .saturating_add(1)
+        .saturating_add(termrock::width(running));
+    let x = size_x.saturating_sub(STATUS_GAP).saturating_sub(group);
+    let label = activity_chip_style(ui, Color::Rgb(0xb3, 0xb3, 0xb3));
+    let mark = activity_chip_style(ui, Color::Rgb(0x48, 0xe0, 0x54));
+    ui.paint_str(Rect::new(x, area.y, 1, 1), " ", label);
+    ui.paint_str(Rect::new(x.saturating_add(1), area.y, 1, 1), "⠋", mark);
+    ui.paint_str(
+        Rect::new(x.saturating_add(3), area.y, termrock::width(running), 1),
+        running,
+        label,
+    );
+}
+
+fn activity_chip_style(ui: &Ui<'_>, fg: Color) -> termrock::PaintStyle {
+    ui.paint_patch(
+        &StylePatch::new()
+            .set_fg(Role::Custom(fg))
+            .set_bg(Role::Custom(Color::Rgb(0x27, 0x27, 0x2a)))
+            .remove(termrock::Modifier::BOLD),
+    )
+}
+
 /// Tag monorepo-child status: child cwd, branch, ahead count, dirty mark, then the size label.
 fn paint_monorepo_child_status(ui: &mut Ui<'_>, area: Rect) {
     if area.is_empty() {
@@ -604,6 +672,9 @@ fn menu_project(world: &World) -> String {
             "no project".to_owned()
         }
         Scenario::MonorepoRoot if crate::sim::catalogue::monorepo_root_tag_frame(world) => {
+            "acme · mise monorepo".to_owned()
+        }
+        Scenario::ActivitiesMulti if crate::sim::catalogue::activities_multi_tag_frame(world) => {
             "acme · mise monorepo".to_owned()
         }
         Scenario::MonorepoChild if crate::sim::catalogue::monorepo_child_tag_frame(world) => {
@@ -1096,6 +1167,7 @@ impl App {
         let host = if crate::sim::catalogue::first_use_tag_frame(&self.world)
             || crate::sim::catalogue::monorepo_root_tag_frame(&self.world)
             || crate::sim::catalogue::monorepo_child_tag_frame(&self.world)
+            || crate::sim::catalogue::activities_multi_tag_frame(&self.world)
         {
             "mbp · local".to_owned()
         } else if crate::sim::catalogue::docker_cleanup_tag_frame(&self.world) {
@@ -1113,12 +1185,17 @@ impl App {
             &menu_project(&self.world),
             &host,
         );
-        self.strip_draw(
-            ui,
-            Rect::new(area.x, area.y.saturating_add(1), area.width, 1),
-        );
+        if !crate::sim::catalogue::activities_multi_tag_frame(&self.world) {
+            self.strip_draw(
+                ui,
+                Rect::new(area.x, area.y.saturating_add(1), area.width, 1),
+            );
+        }
         if self.route == Route::Home {
             paint_here_band(ui, area);
+            if crate::sim::catalogue::activities_multi_tag_frame(&self.world) {
+                paint_activities_multi_chips(ui, area);
+            }
         }
         let status = Rect::new(area.x, area.bottom().saturating_sub(2), area.width, 1);
         if self.world.scenario == Scenario::ParityDiscovery {
@@ -1127,6 +1204,8 @@ impl App {
             paint_first_use_status(ui, status);
         } else if crate::sim::catalogue::monorepo_root_tag_frame(&self.world) {
             paint_monorepo_status(ui, status);
+        } else if crate::sim::catalogue::activities_multi_tag_frame(&self.world) {
+            paint_activities_multi_status(ui, status);
         } else if crate::sim::catalogue::monorepo_child_tag_frame(&self.world) {
             paint_monorepo_child_status(ui, status);
         } else if crate::sim::catalogue::docker_cleanup_tag_frame(&self.world) {
@@ -1178,6 +1257,17 @@ impl App {
         } else {
             None
         };
+        if crate::sim::catalogue::activities_multi_tag_frame(&self.world)
+            && self.route == Route::Home
+            && self.overlay.is_none()
+            && !self.menu.is_open()
+        {
+            let layer = tag_hints("Open", Some("api tests finished · exit 0"));
+            HintBar::new(FOOTER, &layer)
+                .patch_part(ACTIVITIES_HINT_PARTS)
+                .draw(ui, footer);
+            return;
+        }
         if crate::sim::catalogue::docker_cleanup_tag_frame(&self.world)
             && self.route == Route::Home
             && self.overlay.is_none()
@@ -1637,6 +1727,63 @@ fn paint_here_band(ui: &mut Ui<'_>, area: Rect) {
     }
 }
 
+/// Tag activity chips sit on the Here row. The live strip stays on the row above for later seeks.
+fn paint_activities_multi_chips(ui: &mut Ui<'_>, area: Rect) {
+    let width = area.width.saturating_sub(2);
+    if width == 0 || area.height < 4 {
+        return;
+    }
+    let y = area.y.saturating_add(2);
+    let tab_w = 1u16
+        .saturating_add(termrock::width("Here"))
+        .saturating_add(2)
+        .min(width);
+    let mut x = area
+        .x
+        .saturating_add(1)
+        .saturating_add(tab_w)
+        .saturating_add(1);
+    let label = ui.paint_patch(
+        &StylePatch::new()
+            .set_fg(Role::Custom(Color::Rgb(0xb3, 0xb3, 0xb3)))
+            .set_bg(Role::Custom(Color::Rgb(0, 0, 0)))
+            .remove(termrock::Modifier::BOLD),
+    );
+    let chips = [
+        ("frontend dev", "⠋", Color::Rgb(0x48, 0xe0, 0x54)),
+        ("api dev", "⠋", Color::Rgb(0x48, 0xe0, 0x54)),
+        ("api tests", "✓", Color::Rgb(0x3f, 0xb9, 0x50)),
+        (
+            "logs · api worker sched…",
+            "⠋",
+            Color::Rgb(0x48, 0xe0, 0x54),
+        ),
+        ("btm", "○", Color::Rgb(0x8a, 0x8a, 0x8a)),
+    ];
+    for (name, mark, mark_fg) in chips {
+        let text = format!(" {name} ");
+        let text_w = termrock::width(&text);
+        let mark_w = termrock::width(mark);
+        let close_w = termrock::width(" ×  ");
+        let need = text_w.saturating_add(mark_w).saturating_add(close_w);
+        if x.saturating_add(need) > area.right() {
+            break;
+        }
+        ui.paint_str(Rect::new(x, y, text_w, 1), &text, label);
+        x = x.saturating_add(text_w);
+        let mark_style = ui.paint_patch(
+            &StylePatch::new()
+                .set_fg(Role::Custom(mark_fg))
+                .set_bg(Role::Custom(Color::Rgb(0, 0, 0)))
+                .remove(termrock::Modifier::BOLD),
+        );
+        ui.paint_str(Rect::new(x, y, mark_w, 1), mark, mark_style);
+        x = x.saturating_add(mark_w);
+        ui.paint_str(Rect::new(x, y, close_w, 1), " ×  ", label);
+        x = x.saturating_add(close_w).saturating_add(1);
+    }
+}
+
 #[cfg(test)]
 #[expect(
     clippy::unwrap_used,
@@ -1860,6 +2007,86 @@ mod tests {
         let mut stepped = App::for_scenario(Scenario::DiskCleanup, Motion::Paused, 40);
         assert!(termrock::App::accept_paused_clock_step(&mut stepped, 1_100));
         assert!(!crate::sim::catalogue::disk_cleanup_tag_frame(
+            &stepped.world
+        ));
+    }
+    #[test]
+    fn activities_multi_frame_40_paints_the_tag_plate_and_later_seeks_keep_home() {
+        let plate = harness(
+            App::for_scenario(Scenario::ActivitiesMulti, Motion::Paused, 40),
+            Theme::junie(),
+            120,
+            40,
+        );
+        let text = plate.text();
+        let lines: Vec<&str> = text.lines().collect();
+        assert!(lines[0].contains("acme · mise monorepo"), "{}", lines[0]);
+        assert!(lines[0].contains("mbp · local"), "{}", lines[0]);
+        assert!(lines[1].trim().is_empty(), "{}", lines[1]);
+        assert!(lines[2].contains("frontend dev"), "{}", lines[2]);
+        assert!(lines[2].contains("api tests"), "{}", lines[2]);
+        assert!(lines[2].contains("btm"), "{}", lines[2]);
+        assert!(
+            lines[8].contains("Inspect 10 GB of generat"),
+            "{}",
+            lines[8]
+        );
+        assert!(lines[11].contains("Current folder…"), "{}", lines[11]);
+        assert!(lines[16].contains("Running"), "{}", lines[16]);
+        assert!(
+            lines[17].contains("logs · api worker schedu…"),
+            "{}",
+            lines[17]
+        );
+        assert!(lines[19].contains("⠋ detached · 3 s"), "{}", lines[19]);
+        assert!(lines[22].contains("Explore"), "{}", lines[22]);
+        assert!(lines[38].contains("~/work/acme"), "{}", lines[38]);
+        assert!(lines[38].contains("↑1"), "{}", lines[38]);
+        assert!(lines[38].contains("4 running"), "{}", lines[38]);
+        assert!(lines[39].contains("Enter Open"), "{}", lines[39]);
+        assert!(
+            lines[39].contains("api tests finished · exit 0"),
+            "{}",
+            lines[39]
+        );
+        assert!(!lines[39].contains("Ctrl+G"), "{}", lines[39]);
+        let spin = plate.cell(23, 2);
+        assert_eq!(spin.symbol(), "⠋");
+        assert_eq!(spin.fg, Color::Rgb(0x48, 0xe0, 0x54));
+        let done = plate.cell(55, 2);
+        assert_eq!(done.symbol(), "✓");
+        assert_eq!(done.fg, Color::Rgb(0x3f, 0xb9, 0x50));
+        let idle = plate.cell(98, 2);
+        assert_eq!(idle.symbol(), "○");
+        assert_eq!(idle.fg, Color::Rgb(0x8a, 0x8a, 0x8a));
+        let badge = plate.cell(86, 38);
+        assert_eq!(badge.symbol(), "⠋");
+        assert_eq!(badge.fg, Color::Rgb(0x48, 0xe0, 0x54));
+        assert_eq!(badge.bg, Color::Rgb(0x27, 0x27, 0x2a));
+        let gap = plate.cell(87, 38);
+        assert_eq!(gap.symbol(), " ");
+        assert_eq!(gap.bg, Color::Rgb(0x18, 0x18, 0x1b));
+        let count = plate.cell(88, 38);
+        assert_eq!(count.symbol(), "4");
+        assert_eq!(count.fg, Color::Rgb(0xb3, 0xb3, 0xb3));
+        assert_eq!(count.bg, Color::Rgb(0x27, 0x27, 0x2a));
+        let ellipsis = plate.cell(88, 39);
+        assert_eq!(ellipsis.symbol(), "…");
+        assert_eq!(ellipsis.fg, Color::Rgb(0x73, 0x73, 0x73));
+        assert!(plate.diagnostics().is_empty(), "{:?}", plate.diagnostics());
+        let later = harness(
+            App::for_scenario(Scenario::ActivitiesMulti, Motion::Paused, 4_000),
+            Theme::junie(),
+            120,
+            40,
+        );
+        assert!(!later.text().contains("Follow acme-api-1 logs"));
+        assert!(!later.text().contains("api tests finished"));
+        assert!(later.text().contains("dev server"), "{}", later.text());
+        assert!(later.app().route == Route::Home);
+        let mut stepped = App::for_scenario(Scenario::ActivitiesMulti, Motion::Paused, 40);
+        assert!(termrock::App::accept_paused_clock_step(&mut stepped, 1_100));
+        assert!(!crate::sim::catalogue::activities_multi_tag_frame(
             &stepped.world
         ));
     }

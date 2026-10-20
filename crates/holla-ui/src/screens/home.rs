@@ -263,6 +263,7 @@ impl HomeState {
             .or_else(|| catalogue::first_use_tag(world))
             .or_else(|| catalogue::monorepo_root_tag(world))
             .or_else(|| catalogue::monorepo_child_tag(world))
+            .or_else(|| catalogue::activities_multi_tag(world))
             .or_else(|| catalogue::docker_cleanup_tag(world))
             && paint_parity_discovery(ui, rows_area, &view)
         {
