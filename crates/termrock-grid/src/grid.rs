@@ -29,13 +29,6 @@ use termrock_runtime::scroll_region::ScrollRegion;
 
 const CTRL: KeyModifiers = KeyModifiers::CONTROL;
 const SHIFT: KeyModifiers = KeyModifiers::SHIFT;
-const INLINE_EDITOR_STYLE: [(Part, StylePatch); 1] = [(
-    Part::TEXT,
-    StylePatch::new()
-        .add(Modifier::UNDERLINED)
-        .set_underline(Role::Accent),
-)];
-
 #[derive(Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct ColumnKey(u16);
 
@@ -986,6 +979,7 @@ impl<'a> Grid<'a> {
         Part::HEADER,
         Part::ROW,
         Part::CELL,
+        Part::TEXT,
         Part::TRACK,
         Part::THUMB,
         Part::OVERFLOW,
@@ -2617,7 +2611,7 @@ impl Grid<'_> {
             });
         let mut r = TextInput::new(self.editor_id())
             .embedded_cell()
-            .patch_part(&INLINE_EDITOR_STYLE)
+            .text_style_target(Family::GRID, Variant::DEFAULT, Part::TEXT)
             .blur(self.blur)
             .pointer_enabled(pointer_enabled)
             .update(cx, &mut st.editor, &mut value);
@@ -3320,7 +3314,7 @@ impl Grid<'_> {
             if editing {
                 TextInput::new(self.id.part(Part::TEXT))
                     .embedded_cell()
-                    .patch_part(&INLINE_EDITOR_STYLE)
+                    .text_style_target(Family::GRID, Variant::DEFAULT, Part::TEXT)
                     .pointer_enabled(geometry.complete.get(i).copied().unwrap_or(false))
                     .disabled(self.disabled)
                     .value(cell.text)
@@ -4159,6 +4153,7 @@ mod tests {
                 Part::HEADER,
                 Part::ROW,
                 Part::CELL,
+                Part::TEXT,
                 Part::TRACK,
                 Part::THUMB,
                 Part::OVERFLOW,
@@ -4186,7 +4181,7 @@ mod tests {
         let columns = columns();
         let debug = format!("{:?}", Grid::new(ID, &columns));
         assert!(!debug.contains("status"));
-        assert_eq!(Grid::PARTS.len(), 14);
+        assert_eq!(Grid::PARTS.len(), 15);
         assert!(Grid::new(ID, &columns).header_prefixes.is_empty());
     }
 
@@ -5361,6 +5356,118 @@ mod tests {
         let _ = crate::runtime::stub::deliver(&mut runtime, key(KeyCode::Esc));
         assert!(!runtime.app().state.is_editing());
         assert!(runtime.app().state.edit_error().is_none());
+    }
+
+    #[test]
+    fn rejected_inline_edit_uses_the_grid_error_underline() {
+        let levels = [
+            crate::theme::ColorLevel::TrueColor,
+            crate::theme::ColorLevel::Ansi256,
+            crate::theme::ColorLevel::Ansi16,
+            crate::theme::ColorLevel::Mono,
+        ];
+        for level in levels {
+            let theme = Theme::junie().for_level(level);
+            let (valid, error, recovered) = inline_edit_underline_samples(theme.clone());
+            let valid_expected = theme
+                .resolve(
+                    Family::GRID,
+                    Variant::DEFAULT,
+                    Part::TEXT,
+                    StateFlags::FOCUSED | StateFlags::EDITING,
+                    crate::theme::Surface::Canvas,
+                )
+                .style
+                .as_style()
+                .underline_color;
+            let error_expected = theme
+                .resolve(
+                    Family::GRID,
+                    Variant::DEFAULT,
+                    Part::TEXT,
+                    StateFlags::FOCUSED | StateFlags::EDITING | StateFlags::ERROR,
+                    crate::theme::Surface::Canvas,
+                )
+                .style
+                .as_style()
+                .underline_color;
+            assert_eq!(Some(valid), valid_expected, "valid draft at {level:?}");
+            assert_eq!(Some(error), error_expected, "rejected draft at {level:?}");
+            assert_eq!(
+                Some(recovered),
+                valid_expected,
+                "corrected draft at {level:?}"
+            );
+        }
+    }
+
+    #[test]
+    fn inline_editor_error_underline_respects_theme_override() {
+        let theme = Theme::junie().define_family(Family::GRID, |recipe| {
+            recipe.part(Part::TEXT).when(
+                StateFlags::ERROR,
+                StylePatch::new().set_underline(Role::Warning),
+            );
+        });
+        let (_, error, _) = inline_edit_underline_samples(theme.clone());
+        let expected = theme
+            .resolve(
+                Family::GRID,
+                Variant::DEFAULT,
+                Part::TEXT,
+                StateFlags::FOCUSED | StateFlags::EDITING | StateFlags::ERROR,
+                crate::theme::Surface::Canvas,
+            )
+            .style
+            .as_style()
+            .underline_color;
+        assert_eq!(Some(error), expected);
+    }
+
+    fn inline_edit_underline_samples(
+        theme: Theme,
+    ) -> (
+        ratatui_core::style::Color,
+        ratatui_core::style::Color,
+        ratatui_core::style::Color,
+    ) {
+        let mut model = Model::two();
+        model.fail_commit = true;
+        let (mut runtime, _) = runtime(model, true);
+        runtime.set_theme(theme);
+        let _ = crate::runtime::stub::deliver(&mut runtime, key(KeyCode::Enter));
+        let mut valid_buffer = Buffer::empty(AREA);
+        runtime
+            .draw_buffer(AREA, &mut valid_buffer)
+            .commit_presented();
+        let valid = inline_underline(&valid_buffer);
+
+        let _ = crate::runtime::stub::deliver(&mut runtime, key(KeyCode::Char('x')));
+        let _ = crate::runtime::stub::deliver(&mut runtime, key(KeyCode::Enter));
+        assert!(runtime.app().state.edit_error().is_some());
+        let mut error_buffer = Buffer::empty(AREA);
+        runtime
+            .draw_buffer(AREA, &mut error_buffer)
+            .commit_presented();
+        let error = inline_underline(&error_buffer);
+
+        let _ = crate::runtime::stub::deliver(&mut runtime, key(KeyCode::Char('y')));
+        assert!(runtime.app().state.edit_error().is_none());
+        let mut recovered_buffer = Buffer::empty(AREA);
+        runtime
+            .draw_buffer(AREA, &mut recovered_buffer)
+            .commit_presented();
+        let recovered = inline_underline(&recovered_buffer);
+        (valid, error, recovered)
+    }
+
+    fn inline_underline(buffer: &Buffer) -> ratatui_core::style::Color {
+        buffer
+            .content()
+            .iter()
+            .find(|cell| cell.modifier.contains(Modifier::UNDERLINED))
+            .expect("inline draft remains visibly underlined")
+            .underline_color
     }
 
     #[test]

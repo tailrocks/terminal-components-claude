@@ -1,6 +1,7 @@
 use core::fmt;
 
 use ratatui_core::layout::{Position, Rect};
+use ratatui_core::style::{Modifier, Style};
 
 use super::{PartStyle, SlotFn, cell_at, first_row, shift};
 use crate::action::ActionKey;
@@ -16,7 +17,7 @@ use crate::response::{Response, StateFlags};
 use crate::secret::{Secret, SecretPolicy, wipe_string};
 use crate::text::measure::graphemes;
 use crate::text::{EditAction, EditOutcome, Extend, Motion, TextEditorCore, width};
-use crate::theme::{Family, GlyphRole, Slot, StylePatch, Variant};
+use crate::theme::{Family, GlyphRole, PaintStyle, Slot, StylePatch, Variant};
 use crate::ui::{Cx, FrameRead, Ui};
 use crate::validate::{FieldError, NoValidate, Validate};
 use termrock_runtime::Status;
@@ -940,6 +941,7 @@ pub struct TextInput<'a> {
     status: Status,
     ov: PartStyle<'a>,
     style_target: Option<(Family, Variant, Part)>,
+    text_style_target: Option<(Family, Variant, Part)>,
     auxiliary_style_target: Option<(Family, Variant)>,
     embedded_cell: bool,
     excluded_commands: &'a [TextCmd],
@@ -964,6 +966,7 @@ impl fmt::Debug for TextInput<'_> {
             .field("read_only", &self.read_only)
             .field("disabled", &self.disabled)
             .field("pointer_enabled", &self.pointer_enabled)
+            .field("text_style_target", &self.text_style_target)
             .field("status", &self.status)
             .finish_non_exhaustive()
     }
@@ -995,6 +998,7 @@ impl<'a> TextInput<'a> {
             status: Status::Ready,
             ov: PartStyle::new(),
             style_target: None,
+            text_style_target: None,
             auxiliary_style_target: None,
             embedded_cell: false,
             excluded_commands: &[],
@@ -1103,6 +1107,19 @@ impl<'a> TextInput<'a> {
         self
     }
 
+    /// Resolve text decoration through another component's presentation.
+    ///
+    /// The input keeps its text foreground and field surface. The host owns
+    /// the underline and underline modifier, while all auxiliary parts retain
+    /// their normal input theme. This is useful when the host owns a semantic
+    /// text state such as an inline editor's error underline.
+    #[doc(hidden)]
+    #[must_use]
+    pub const fn text_style_target(mut self, family: Family, variant: Variant, part: Part) -> Self {
+        self.text_style_target = Some((family, variant, part));
+        self
+    }
+
     /// Resolve the gutter and placeholder through the host component's family.
     /// Their part identities remain independent theme and overlay targets.
     #[must_use]
@@ -1152,6 +1169,7 @@ impl<'a> TextInput<'a> {
             status: self.status,
             ov: self.ov,
             style_target: self.style_target,
+            text_style_target: self.text_style_target,
             auxiliary_style_target: self.auxiliary_style_target,
             embedded_cell: self.embedded_cell,
             excluded_commands: self.excluded_commands,
@@ -1625,17 +1643,59 @@ impl<'a> TextInput<'a> {
         let ov = self.ov;
         let id = self.id;
         let style_target = self.style_target;
+        let text_style_target = self.text_style_target;
         let auxiliary_style_target = self.auxiliary_style_target;
         let style = |ui: &mut Ui<'_>, part: Part| {
-            let mapped_part = style_target.filter(|_| matches!(part, Part::FIELD | Part::TEXT));
-            let (family, variant, part) = mapped_part
+            let base_target = style_target
+                .filter(|_| matches!(part, Part::FIELD | Part::TEXT))
                 .or_else(|| {
                     auxiliary_style_target
                         .filter(|_| matches!(part, Part::GUTTER | Part::PLACEHOLDER))
                         .map(|(family, variant)| (family, variant, part))
                 })
                 .unwrap_or((Family::INPUT, Variant::DEFAULT, part));
-            ov.style(ui, id, family, variant, part, live)
+            let Some((family, variant, target_part)) =
+                text_style_target.filter(|_| part == Part::TEXT)
+            else {
+                return ov.style(ui, id, base_target.0, base_target.1, base_target.2, live);
+            };
+
+            // A host may supply only the text decoration while the input
+            // keeps its own foreground and field surface. Resolve both
+            // recipes normally so theme/profile and overlay precedence stay
+            // shared; then transfer the target's underline channels only.
+            let local_patch = ov.part_patch(part);
+            let mut resolved = match local_patch {
+                Some(patch) => {
+                    ui.style_patched(base_target.0, base_target.1, base_target.2, live, &patch)
+                }
+                None => ui.style(base_target.0, base_target.1, base_target.2, live),
+            };
+            let decoration = ui.style(family, variant, target_part, live);
+            let mut decoration_style = Style::new();
+            let explicit_underline = local_patch.is_some_and(|patch| patch.underline.speaks());
+            if !explicit_underline {
+                decoration_style.underline_color = decoration.style.as_style().underline_color;
+            }
+            let explicit_underline_modifier = local_patch.is_some_and(|patch| {
+                patch.add.contains(Modifier::UNDERLINED)
+                    || patch.remove.contains(Modifier::UNDERLINED)
+            });
+            if !explicit_underline_modifier {
+                decoration_style.add_modifier = decoration
+                    .style
+                    .as_style()
+                    .add_modifier
+                    .intersection(Modifier::UNDERLINED);
+                decoration_style.sub_modifier = decoration
+                    .style
+                    .as_style()
+                    .sub_modifier
+                    .intersection(Modifier::UNDERLINED);
+            }
+            resolved.style = resolved.style.patch(PaintStyle::from(decoration_style));
+            ov.note(ui, id, family, variant, target_part, resolved);
+            resolved
         };
         let field = style(ui, Part::FIELD);
         ui.fill(area, field.style);
