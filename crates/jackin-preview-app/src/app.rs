@@ -126,6 +126,7 @@ const CMD_EDITOR_PREVIOUS: ActionKey = ActionKey::application("jackin.editor.pre
 const CMD_EDITOR_ENV: ActionKey = ActionKey::application("jackin.editor.environments");
 const CMD_SAVE: ActionKey = ActionKey::application("jackin.save");
 const CMD_MANAGER_EXPAND: ActionKey = ActionKey::application("jackin.manager.expand");
+const CMD_MANAGER_INSPECT: ActionKey = ActionKey::application("jackin.manager.inspect");
 const CMD_EDITOR_OPEN: ActionKey = ActionKey::application("jackin.editor.open");
 const CMD_EDITOR_ROLES: ActionKey = ActionKey::application("jackin.editor.roles");
 const CMD_EDITOR_PREFER: ActionKey = ActionKey::application("jackin.editor.prefer");
@@ -236,6 +237,7 @@ const CAPSULE_COMMANDS: &[Item<'static>] = &[
 ];
 const TICK_MS: u64 = crate::rain::TICK_MS;
 
+mod historical_inspect;
 mod historical_intro_f300;
 mod historical_paint;
 use historical_paint::HistoricalPalette;
@@ -538,6 +540,7 @@ pub struct App {
     capsule_help_state: HelpOverlayState,
     inspect_detail: bool,
     inspect_files: bool,
+    manager_inspect: bool,
     active_instance: Option<String>,
     launch_agent: Agent,
     launch_account: Option<String>,
@@ -725,6 +728,7 @@ impl App {
             capsule_help_state: HelpOverlayState::default(),
             inspect_detail: false,
             inspect_files: false,
+            manager_inspect: false,
             active_instance: None,
             launch_agent: Agent::ClaudeCode,
             launch_account: None,
@@ -820,6 +824,9 @@ impl App {
         {
             self.keymap
                 .add(KeyPhase::Bubble, drawer, CMD_ACCOUNT_DRAWER);
+        } else if self.route == Route::Manager {
+            self.keymap
+                .add(KeyPhase::Bubble, drawer, CMD_MANAGER_INSPECT);
         }
         let left = Chord::key(KeyCode::Left);
         self.keymap.remove(KeyPhase::Bubble, left);
@@ -4463,6 +4470,10 @@ impl App {
                 self.status = None;
                 Some(Response::changed())
             }
+            CMD_MANAGER_INSPECT if self.route == Route::Manager => {
+                self.manager_inspect = true;
+                Some(Response::changed())
+            }
             CMD_MANAGER_EXPAND if self.route == Route::Manager => {
                 if let ManagerRowKey::Workspace(workspace) = *self.manager.selected_row() {
                     if self.manager.is_expanded(workspace) {
@@ -7507,6 +7518,17 @@ impl TuiApp for App {
         if self.historical_intro_f300(full) {
             self.draw_historical_intro_f300(ui, full);
         }
+        if self.manager_inspect
+            && self.route == Route::Manager
+            && full.width == 120
+            && full.height == 40
+            && self.world.scenario == Scenario::Returning
+            && self.motion == Motion::Paused
+            && ui.theme_ref().capability.color == termrock::ColorLevel::TrueColor
+            && ui.theme_ref().color.accent == termrock::Color::Rgb(0x48, 0xe0, 0x54)
+        {
+            historical_inspect::paint(ui);
+        }
     }
 
     fn should_quit(&self) -> bool {
@@ -7717,6 +7739,11 @@ impl TuiApp for App {
             return self.route_changed();
         }
         if self.route == Route::Manager {
+            if self.manager_inspect {
+                self.manager_inspect = false;
+                cx.focus(MANAGER_LIST);
+                return self.route_changed();
+            }
             if self.manager.detail_open() {
                 self.manager.set_detail_open(false);
                 cx.focus(MANAGER_LIST);
