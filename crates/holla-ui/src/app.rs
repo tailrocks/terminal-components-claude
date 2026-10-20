@@ -278,6 +278,12 @@ const PARITY_HINT_PARTS: &[(Part, StylePatch)] = &[
             .set_fg(Role::Custom(STATUS_GREY))
             .set_bg(Role::Custom(PARITY_HINT_BG)),
     ),
+    (
+        Part::LABEL,
+        StylePatch::new()
+            .set_fg(Role::Custom(Color::Rgb(0xb3, 0xb3, 0xb3)))
+            .set_bg(Role::Custom(PARITY_HINT_BG)),
+    ),
 ];
 
 fn status_ink(ui: &Ui<'_>, fg: Color, bold: bool) -> termrock::PaintStyle {
@@ -360,7 +366,24 @@ fn paint_first_use_status(ui: &mut Ui<'_>, area: Rect) {
     let _ = paint_status_text(ui, area, x, mark, STATUS_AMBER, false);
 }
 
-fn tag_hints(confirm: &'static str) -> HintLayer {
+/// Tag monorepo-root status: cwd, branch, ahead count, then the size label.
+fn paint_monorepo_status(ui: &mut Ui<'_>, area: Rect) {
+    if area.is_empty() {
+        return;
+    }
+    ui.fill(area, status_ink(ui, STATUS_FG, false));
+    let mut x = area.x.saturating_add(STATUS_EDGE);
+    for (text, fg, bold) in [
+        ("~/work/acme", STATUS_FG, true),
+        ("main", STATUS_GREY, false),
+        ("↑1", STATUS_LINK, false),
+    ] {
+        x = paint_status_text(ui, area, x, text, fg, bold).saturating_add(STATUS_GAP);
+    }
+    let _ = paint_size_label(ui, area);
+}
+
+fn tag_hints(confirm: &'static str, status: Option<&'static str>) -> HintLayer {
     fn hint(key: &'static str, label: &'static str) -> Hint {
         Hint {
             key: HintKey::Label(key),
@@ -378,6 +401,7 @@ fn tag_hints(confirm: &'static str) -> HintLayer {
             hint("Ctrl+↑↓", "Scope"),
             hint("Ctrl+G", "Activities"),
         ],
+        status: status.map(std::borrow::Cow::Borrowed),
         ..HintLayer::empty()
     }
 }
@@ -412,6 +436,9 @@ fn menu_project(world: &World) -> String {
         | Scenario::ParityPlatformsLinux => "no project".to_owned(),
         Scenario::FirstUse if crate::sim::catalogue::first_use_tag_frame(world) => {
             "no project".to_owned()
+        }
+        Scenario::MonorepoRoot if crate::sim::catalogue::monorepo_root_tag_frame(world) => {
+            "acme · mise monorepo".to_owned()
         }
         _ => world.cwd.clone(),
     }
@@ -883,7 +910,9 @@ impl App {
         let brand_right = lockup_x.saturating_add(brand_width);
         let used = menu_right.max(brand_right);
         let tail_x = used.saturating_add(2);
-        let host = if crate::sim::catalogue::first_use_tag_frame(&self.world) {
+        let host = if crate::sim::catalogue::first_use_tag_frame(&self.world)
+            || crate::sim::catalogue::monorepo_root_tag_frame(&self.world)
+        {
             "mbp · local".to_owned()
         } else {
             self.world.host.identity()
@@ -906,6 +935,8 @@ impl App {
             self.paint_parity_status(ui, status);
         } else if crate::sim::catalogue::first_use_tag_frame(&self.world) {
             paint_first_use_status(ui, status);
+        } else if crate::sim::catalogue::monorepo_root_tag_frame(&self.world) {
+            paint_monorepo_status(ui, status);
         }
         let footer = Rect::new(area.x, area.bottom().saturating_sub(1), area.width, 1);
         self.footer_draw(ui, footer);
@@ -939,18 +970,20 @@ impl App {
     }
     fn footer_draw(&self, ui: &mut Ui<'_>, footer: Rect) {
         let tag_confirm = if self.world.scenario == Scenario::ParityDiscovery {
-            Some("Confirm…")
+            Some(("Confirm…", None))
         } else if crate::sim::catalogue::first_use_tag_frame(&self.world) {
-            Some("Open")
+            Some(("Open", None))
+        } else if crate::sim::catalogue::monorepo_root_tag_frame(&self.world) {
+            Some(("Open", Some("Inspect 1…")))
         } else {
             None
         };
-        if let Some(confirm) = tag_confirm
+        if let Some((confirm, status)) = tag_confirm
             && self.route == Route::Home
             && self.overlay.is_none()
             && !self.menu.is_open()
         {
-            let layer = tag_hints(confirm);
+            let layer = tag_hints(confirm, status);
             HintBar::new(FOOTER, &layer)
                 .patch_part(PARITY_HINT_PARTS)
                 .draw(ui, footer);
@@ -1422,6 +1455,28 @@ mod tests {
         assert!(!lines[2].contains('▎'), "{}", lines[2]);
         assert!(lines[3].contains('━'), "{}", lines[3]);
         assert!(lines[4].contains("Search actions"), "{}", lines[4]);
+        assert!(
+            harness.diagnostics().is_empty(),
+            "{:?}",
+            harness.diagnostics()
+        );
+    }
+    #[test]
+    fn monorepo_root_frame_40_paints_the_tag_plate() {
+        let harness = harness(
+            App::for_scenario(Scenario::MonorepoRoot, Motion::Paused, 40),
+            Theme::junie(),
+            120,
+            40,
+        );
+        let text = harness.text();
+        assert!(text.contains("acme · mise monorepo"), "{text}");
+        assert!(text.contains("Follow acme-api-1 logs"), "{text}");
+        assert!(text.contains("Inspect 10 GB of generat"), "{text}");
+        assert!(text.contains("~/work/acme"), "{text}");
+        assert!(text.contains("↑1"), "{text}");
+        assert!(text.contains("Inspect 1…"), "{text}");
+        assert!(text.contains("2 rebuildable candidates"), "{text}");
         assert!(
             harness.diagnostics().is_empty(),
             "{:?}",
