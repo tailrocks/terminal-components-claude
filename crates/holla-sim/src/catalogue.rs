@@ -876,6 +876,16 @@ pub fn disk_cleanup_tag_frame(w: &World) -> bool {
     w.scenario == Scenario::DiskCleanup && w.now_ms() == 80
 }
 
+/// 100×30 `disk-cleanup` plate. Not the 80×24 plate and not the 120×40 card.
+/// Later seeks and other sizes stay off it.
+pub fn disk_cleanup_100x30_plate(w: &World, width: u16, height: u16) -> Option<()> {
+    if width == 100 && height == 30 && disk_cleanup_tag_frame(w) {
+        Some(())
+    } else {
+        None
+    }
+}
+
 /// Tag `remote-host` at fixture tick 40. Later seeks keep the concept home.
 pub fn remote_host_tag_frame(w: &World) -> bool {
     w.scenario == Scenario::RemoteHost && w.now_ms() == 80

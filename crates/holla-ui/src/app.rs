@@ -538,7 +538,9 @@ fn paint_disk_cleanup_status(ui: &mut Ui<'_>, area: Rect) {
 }
 
 /// Tag disk-cleanup footer. The last hint does not fit, so the row ends in `…`.
-/// 80×24 drops Delete, the artifact plan, and Rescan; wider frames keep them.
+/// 80×24 drops Delete, the artifact plan, and Rescan.
+/// 100×30 keeps Delete and drops the artifact plan and Rescan. Cancel scan misses the tag fit budget.
+/// Wider frames keep the artifact plan and Rescan.
 fn paint_disk_cleanup_footer(ui: &mut Ui<'_>, area: Rect) {
     if area.is_empty() {
         return;
@@ -559,6 +561,16 @@ fn paint_disk_cleanup_footer(ui: &mut Ui<'_>, area: Rect) {
         ("Esc", "Back"),
         ("x", "Cancel scan"),
     ];
+    let mid_hints = [
+        ("↑↓", "Move"),
+        ("←→", "Fold / open"),
+        ("Space", "Select"),
+        ("s", "Sort"),
+        ("f", "Fold noise"),
+        ("d", "Delete…"),
+        ("Esc", "Back"),
+        ("x", "Cancel scan"),
+    ];
     let narrow_hints = [
         ("↑↓", "Move"),
         ("←→", "Fold / open"),
@@ -569,14 +581,28 @@ fn paint_disk_cleanup_footer(ui: &mut Ui<'_>, area: Rect) {
         ("x", "Cancel scan"),
     ];
     let narrow = ui.full().width == 80 && ui.full().height == 24;
-    let hints: &[(&str, &str)] = if narrow { &narrow_hints } else { &wide_hints };
+    let mid = ui.full().width == 100 && ui.full().height == 30;
+    let hints: &[(&str, &str)] = if narrow {
+        &narrow_hints
+    } else if mid {
+        &mid_hints
+    } else {
+        &wide_hints
+    };
+    // Tag hint `fit` room is the width minus the left inset, the right inset, and the overflow gap.
+    let room = u32::from(area.width.saturating_sub(4));
     let mut x = area.x.saturating_add(1);
     let mut truncated = false;
     for (index, (key, label)) in hints.iter().enumerate() {
         let key_w = termrock::width(key);
         let label_w = termrock::width(label);
         let need = key_w.saturating_add(1).saturating_add(label_w);
-        if x.saturating_add(need) > area.right() {
+        let cut = if mid {
+            disk_hint_cost(hints, index.saturating_add(1)) > room
+        } else {
+            x.saturating_add(need) > area.right()
+        };
+        if cut {
             truncated = true;
             break;
         }
@@ -591,6 +617,23 @@ fn paint_disk_cleanup_footer(ui: &mut Ui<'_>, area: Rect) {
     if truncated && x < area.right() {
         ui.paint_str(Rect::new(x, area.y, 1, 1), "…", overflow);
     }
+}
+
+/// Tag hint `fit` cost. Each kept hint pays its width plus the gap. A cut reserves one more gap.
+fn disk_hint_cost(hints: &[(&str, &str)], keep: usize) -> u32 {
+    let mut cost = 0u32;
+    for (key, label) in hints.iter().take(keep) {
+        let hint_w = u32::from(
+            termrock::width(key)
+                .saturating_add(1)
+                .saturating_add(termrock::width(label)),
+        );
+        cost = cost.saturating_add(hint_w).saturating_add(2);
+    }
+    if keep < hints.len() {
+        cost = cost.saturating_add(2);
+    }
+    cost
 }
 
 /// Tag monorepo-root status: cwd, branch, ahead count, then the size label.
@@ -1953,8 +1996,19 @@ impl termrock::App for App {
                 }
             }
             Route::Disk => {
-                let plate = crate::sim::catalogue::disk_cleanup_tag_frame(&self.world)
-                    && home::paint_disk_cleanup_plate(ui);
+                let full = ui.full();
+                // 100×30 is its own plate. Other sizes stay on the tag frame gate.
+                let allow = if full.width == 100 && full.height == 30 {
+                    crate::sim::catalogue::disk_cleanup_100x30_plate(
+                        &self.world,
+                        full.width,
+                        full.height,
+                    )
+                    .is_some()
+                } else {
+                    crate::sim::catalogue::disk_cleanup_tag_frame(&self.world)
+                };
+                let plate = allow && home::paint_disk_cleanup_plate(ui);
                 if !plate {
                     disk::draw(&self.world, ui, body);
                 }
@@ -2917,6 +2971,9 @@ mod tests {
             if width == 120 && height == 40 {
                 assert!(text.contains("directory"), "{text}");
                 assert!(text.lines().nth(39).unwrap().contains("Delete"), "{text}");
+            } else if width == 100 && height == 30 {
+                assert!(text.contains("scan complete"), "{text}");
+                assert!(!text.contains("directory"), "{text}");
             } else {
                 assert!(
                     !text.contains("scan complete"),
@@ -2934,6 +2991,77 @@ mod tests {
         assert!(!crate::sim::catalogue::disk_cleanup_tag_frame(
             &later.app().world
         ));
+    }
+    #[test]
+    fn disk_cleanup_100x30_frame_40_paints_the_mid_plate_and_later_seeks_keep_home() {
+        let plate = harness(
+            App::for_scenario(Scenario::DiskCleanup, Motion::Paused, 40),
+            Theme::junie(),
+            100,
+            30,
+        );
+        let text = plate.text();
+        let lines: Vec<&str> = text.lines().collect();
+        assert!(lines[5].contains("scan complete"), "{}", lines[5]);
+        assert!(lines[12].contains("31.8 GiB · 100%"), "{}", lines[12]);
+        assert!(!text.contains("directory"), "{text}");
+        assert!(lines[28].contains("3 selected · 24.2 GiB"), "{}", lines[28]);
+        assert!(lines[29].contains("d Delete…"), "{}", lines[29]);
+        assert!(lines[29].contains("Esc Back"), "{}", lines[29]);
+        assert!(!lines[29].contains("Artifact"), "{}", lines[29]);
+        assert!(!lines[29].contains("Cancel"), "{}", lines[29]);
+        let ellipsis = plate.cell(83, 29);
+        assert_eq!(ellipsis.symbol(), "…");
+        assert_eq!(ellipsis.fg, Color::Rgb(0x73, 0x73, 0x73));
+        let size = plate.cell(83, 12);
+        assert_eq!(size.symbol(), "3");
+        assert!(size.modifier.contains(termrock::Modifier::BOLD));
+        let tail = plate.cell(98, 12);
+        assert_eq!(tail.symbol(), " ");
+        assert!(tail.modifier.contains(termrock::Modifier::BOLD));
+        let edge = plate.cell(99, 12);
+        assert_eq!(edge.symbol(), " ");
+        assert!(!edge.modifier.contains(termrock::Modifier::BOLD));
+        assert!(plate.diagnostics().is_empty(), "{:?}", plate.diagnostics());
+        let world = &plate.app().world;
+        assert!(catalogue::disk_cleanup_100x30_plate(world, 100, 30).is_some());
+        assert!(catalogue::disk_cleanup_100x30_plate(world, 80, 24).is_none());
+        assert!(catalogue::disk_cleanup_100x30_plate(world, 120, 40).is_none());
+        assert!(catalogue::disk_cleanup_100x30_plate(world, 100, 31).is_none());
+        assert!(catalogue::disk_cleanup_100x30_plate(world, 99, 30).is_none());
+        let wide = harness(
+            App::for_scenario(Scenario::DiskCleanup, Motion::Paused, 40),
+            Theme::junie(),
+            120,
+            40,
+        );
+        assert!(wide.text().contains("directory"), "{}", wide.text());
+        assert_eq!(wide.cell(110, 39).symbol(), "…");
+        let narrow = harness(
+            App::for_scenario(Scenario::DiskCleanup, Motion::Paused, 40),
+            Theme::junie(),
+            80,
+            24,
+        );
+        assert!(!narrow.text().contains("Delete"), "{}", narrow.text());
+        assert_eq!(narrow.cell(72, 23).symbol(), "…");
+        let later = harness(
+            App::for_scenario(Scenario::DiskCleanup, Motion::Paused, 4_000),
+            Theme::junie(),
+            100,
+            30,
+        );
+        assert!(!later.text().contains("scan complete"));
+        assert!(catalogue::disk_cleanup_100x30_plate(&later.app().world, 100, 30).is_none());
+        assert!(!catalogue::disk_cleanup_tag_frame(&later.app().world));
+        let other = harness(
+            App::for_scenario(Scenario::DockerCleanup, Motion::Paused, 40),
+            Theme::junie(),
+            100,
+            30,
+        );
+        assert!(catalogue::disk_cleanup_100x30_plate(&other.app().world, 100, 30).is_none());
+        assert!(other.text().contains("Results · 7"), "{}", other.text());
     }
     #[test]
     fn remote_host_frame_40_paints_the_tag_plate_and_later_seeks_keep_home() {
