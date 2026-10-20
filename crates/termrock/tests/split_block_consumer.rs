@@ -10,6 +10,20 @@ use termrock::{App, Cx, Id, Input, KeyModifiers, Mouse, MouseKind, Response, Run
 const SPLIT: Id = Id::root("consumer.workspace");
 const EXPLORER: Id = Id::root("consumer.explorer");
 const DETAIL: Id = Id::root("consumer.detail");
+const ROWS: [Id; 10] = [
+    Id::root("consumer.minimum.row.0"),
+    Id::root("consumer.minimum.row.1"),
+    Id::root("consumer.minimum.row.2"),
+    Id::root("consumer.minimum.row.3"),
+    Id::root("consumer.minimum.row.4"),
+    Id::root("consumer.minimum.row.5"),
+    Id::root("consumer.minimum.row.6"),
+    Id::root("consumer.minimum.row.7"),
+    Id::root("consumer.minimum.row.8"),
+    Id::root("consumer.minimum.row.9"),
+];
+const MINIMUM_SPLIT: Id = Id::root("consumer.minimum.split");
+const MINIMUM_SECOND: Id = Id::root("consumer.minimum.second");
 
 struct WorkspaceConsumer {
     split_state: SplitPaneState,
@@ -43,7 +57,11 @@ impl App for WorkspaceConsumer {
             .first(&explorer)
             .second(&detail);
         let measured = split
-            .measure(ui, Constraints::loose(ui.full().width, ui.full().height))
+            .measure(
+                ui,
+                &self.split_state,
+                Constraints::loose(ui.full().width, ui.full().height),
+            )
             .expect("consumer groups have valid intrinsic measurements");
         assert!(measured.min.0 > 0 && measured.min.1 > 0);
         split
@@ -52,11 +70,7 @@ impl App for WorkspaceConsumer {
     }
 }
 
-fn render(
-    runtime: &mut Runtime<WorkspaceConsumer>,
-    terminal: &mut Terminal<TestBackend>,
-    area: Rect,
-) {
+fn render<T: App>(runtime: &mut Runtime<T>, terminal: &mut Terminal<TestBackend>, area: Rect) {
     let prepared = runtime.prepare(area).expect("runtime prepares a frame");
     terminal
         .draw(|frame| {
@@ -130,4 +144,62 @@ fn split_block_is_a_public_data_driven_consumer_and_uses_live_split_geometry() {
     render(&mut runtime, &mut terminal, narrow);
     assert_eq!(runtime.app().split_state.percent(), retained_percent);
     assert_eq!(runtime.app().domain_actions, 0);
+}
+
+struct MinimumConsumer {
+    state: SplitPaneState,
+}
+
+impl App for MinimumConsumer {
+    fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+        SplitBlock::new(SplitPane::new(MINIMUM_SPLIT, SplitAxis::Vertical).resizable(true))
+            .update(cx, &mut self.state)
+            .erase()
+    }
+
+    fn draw(&self, ui: &mut termrock::Ui<'_>) {
+        let buttons = ROWS.map(|id| Button::new(id, "Row"));
+        let first = Group::column(buttons.iter().map(composition::button));
+        let second_button = Button::new(MINIMUM_SECOND, "Detail");
+        let second = Group::column([composition::button(&second_button)]);
+        let block =
+            SplitBlock::new(SplitPane::new(MINIMUM_SPLIT, SplitAxis::Vertical).resizable(true))
+                .first(&first)
+                .second(&second);
+        let size = block
+            .measure(
+                ui,
+                &self.state,
+                Constraints::loose(ui.full().width, ui.full().height),
+            )
+            .expect("the public groups have valid measurements");
+        assert_eq!(
+            size.min.1, 28,
+            "ratio-aware minimum keeps every row visible"
+        );
+        block
+            .show(ui, &self.state)
+            .expect("both groups fit the supported depth");
+    }
+}
+
+#[test]
+fn measured_split_minimum_preserves_children_at_the_current_ratio() {
+    let area = Rect::new(0, 0, 40, 28);
+    let mut runtime = Runtime::new(
+        MinimumConsumer {
+            state: SplitPaneState::new(38),
+        },
+        Theme::junie(),
+    );
+    let mut terminal = Terminal::new(TestBackend::new(area.width, area.height)).unwrap();
+    render(&mut runtime, &mut terminal, area);
+
+    let first = runtime
+        .area_of(ROWS[9])
+        .expect("the last row remains in the first pane at the advertised minimum");
+    let second = runtime
+        .area_of(MINIMUM_SECOND)
+        .expect("the second pane remains visible at the advertised minimum");
+    assert!(first.bottom() <= second.y);
 }
