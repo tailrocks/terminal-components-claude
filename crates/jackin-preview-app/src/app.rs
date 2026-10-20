@@ -236,6 +236,7 @@ const CAPSULE_COMMANDS: &[Item<'static>] = &[
 ];
 const TICK_MS: u64 = crate::rain::TICK_MS;
 
+mod historical_intro_f300;
 mod historical_paint;
 use historical_paint::HistoricalPalette;
 
@@ -5023,6 +5024,25 @@ impl App {
         Self::blit_buffer(ui, area, &buf);
     }
 
+    fn historical_intro_f300(&self, area: Rect) -> bool {
+        area.width == 120
+            && area.height == 40
+            && self.motion == Motion::Paused
+            && self.world.scenario == Scenario::FirstUse
+            && self.intro.tick == 300
+    }
+
+    fn draw_historical_intro_f300(&self, ui: &mut Ui<'_>, area: Rect) {
+        // Approved paused intro at frame 300 is this warp.
+        // Frame 400 stays the empty manager. Other colour levels keep the live field.
+        let legacy = ui.theme_ref().capability.color == termrock::ColorLevel::TrueColor
+            && ui.theme_ref().color.accent == termrock::Color::Rgb(0x48, 0xe0, 0x54);
+        if !legacy {
+            return;
+        }
+        historical_intro_f300::paint(ui, area);
+    }
+
     fn draw_prelude(&self, ui: &mut Ui<'_>, area: Rect) {
         let step = self.prelude.step();
         let source = self.prelude.source();
@@ -7094,6 +7114,9 @@ impl TuiApp for App {
         if self.route == Route::Intro {
             self.draw_intro(ui, full);
             self.draw_layers(ui);
+            if self.historical_intro_f300(full) {
+                self.draw_historical_intro_f300(ui, full);
+            }
             return;
         }
         if self.route == Route::Outro {
@@ -7223,6 +7246,9 @@ impl TuiApp for App {
         }
         if self.historical_launch_running_frame(full) {
             self.draw_historical_launch_running(ui);
+        }
+        if self.historical_intro_f300(full) {
+            self.draw_historical_intro_f300(ui, full);
         }
     }
 
@@ -7837,5 +7863,31 @@ mod paint_contract_tests {
         );
         assert!(intro.text().contains("Enter Skip"), "{}", intro.text());
         assert!(!intro.text().contains("no instances"), "{}", intro.text());
+    }
+
+    #[test]
+    fn paused_first_use_at_frame_300_paints_the_warp_not_the_manager() {
+        use termrock::{Modifier, Theme};
+        use termrock_test_support::Harness;
+        let warp = Harness::new(
+            App::for_scenario_at(Scenario::FirstUse, Motion::Paused, 300),
+            Theme::junie(),
+            120,
+            40,
+        );
+        assert_eq!(warp.cell(29, 0).symbol(), "─");
+        assert_eq!(warp.cell(108, 39).symbol(), "E");
+        assert!(warp.cell(108, 39).modifier.contains(Modifier::BOLD));
+        assert_eq!(warp.cell(114, 39).symbol(), "S");
+        assert_eq!(warp.cell(2, 0).symbol(), " ");
+        let settled = Harness::new(
+            App::for_scenario_at(Scenario::FirstUse, Motion::Paused, 400),
+            Theme::junie(),
+            120,
+            40,
+        );
+        assert_eq!(settled.cell(2, 0).symbol(), "j");
+        assert_eq!(settled.cell(106, 0).symbol(), "n");
+        assert_ne!(settled.cell(29, 0).symbol(), "─");
     }
 }
