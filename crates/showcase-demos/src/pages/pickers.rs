@@ -269,6 +269,7 @@ const LAST_ACTION: &str = "none yet · QueryChanged · Chosen(i) · ChosenAlt(i)
 const OPEN_TAB_LINE: &str = "Query 1 · orders · order_items · History";
 const CARD_GAP: u16 = 1;
 const VALUE_MIN: u16 = 12;
+const SCROLL_ROOM: u16 = 2;
 
 const CANVAS: u32 = 0x00_00_00;
 const SURFACE: u32 = 0x11_11_11;
@@ -280,6 +281,8 @@ const RULE: u32 = 0x3a_3a_3a;
 const ACCENT: u32 = 0x48_e0_54;
 const TAB_ACTIVE: u32 = 0x27_27_2a;
 const ON_ACCENT: u32 = 0x19_19_1c;
+const THUMB: u32 = 0x80_80_80;
+const TRACK: u32 = 0x47_47_47;
 
 const LAUNCHERS: &[(&str, bool)] = &[
     ("Open quickly", true),
@@ -385,15 +388,29 @@ fn paint_blurb(ui: &mut Ui<'_>, body: Rect) {
     if body.width <= title_w.saturating_add(4) {
         return;
     }
+    let meta = Rect::new(
+        body.x.saturating_add(title_w).saturating_add(2),
+        body.y.saturating_sub(2),
+        body.width.saturating_sub(title_w).saturating_sub(3),
+        1,
+    );
+    let style = ink(MUTED, CANVAS);
+    if width(BLURB) <= meta.width {
+        ui.paint_str(meta, BLURB, style);
+        return;
+    }
+    if meta.width == 0 {
+        return;
+    }
+    let budget = Rect {
+        width: meta.width.saturating_sub(1),
+        ..meta
+    };
+    let used = ui.paint_str(budget, BLURB, style);
     ui.paint_str(
-        Rect::new(
-            body.x.saturating_add(title_w).saturating_add(2),
-            body.y.saturating_sub(2),
-            body.width.saturating_sub(title_w).saturating_sub(3),
-            1,
-        ),
-        BLURB,
-        ink(MUTED, CANVAS),
+        Rect::new(meta.x.saturating_add(used), meta.y, 1, 1),
+        "…",
+        style,
     );
 }
 
@@ -697,6 +714,86 @@ fn applied_height(width: u16) -> u16 {
     let inner = width.saturating_sub(4).max(1);
     let rows = u16::try_from(layout_props(APPLIED, inner).len()).unwrap_or(u16::MAX);
     rows.saturating_add(3)
+}
+
+fn result_lines<'a>(
+    result: &'a str,
+    detail: &'a str,
+    level: &'a str,
+    opened: &'a str,
+) -> [(&'a str, &'a str); 6] {
+    let chosen = if result == "none" {
+        "nothing yet"
+    } else {
+        result
+    };
+    let detail = if detail.is_empty() { "—" } else { detail };
+    [
+        ("Chosen", chosen),
+        ("Detail", detail),
+        ("Level", level),
+        ("Open tabs", OPEN_TAB_LINE),
+        ("Last action", LAST_ACTION),
+        ("Pickers opened", opened),
+    ]
+}
+
+fn results_height(width: u16, rows: &[(&str, &str)]) -> u16 {
+    let inner = width.saturating_sub(4).max(1);
+    let count = u16::try_from(layout_props(rows, inner).len()).unwrap_or(u16::MAX);
+    count.saturating_add(3)
+}
+
+fn playground_height(width: u16, rows: &[(&str, &str)]) -> u16 {
+    open_height(width)
+        .saturating_add(CARD_GAP)
+        .saturating_add(applied_height(width))
+        .saturating_add(CARD_GAP)
+        .saturating_add(results_height(width, rows))
+}
+
+fn scroll_view(area: Rect, rows: &[(&str, &str)]) -> (Rect, bool, u16) {
+    let mut vertical = false;
+    let mut content_h = playground_height(area.width, rows);
+    for _ in 0..3 {
+        let view_w = area
+            .width
+            .saturating_sub(if vertical { SCROLL_ROOM } else { 0 });
+        content_h = playground_height(view_w, rows);
+        let next = area.width > SCROLL_ROOM && content_h > area.height;
+        if next == vertical {
+            break;
+        }
+        vertical = next;
+    }
+    let view = Rect {
+        width: area
+            .width
+            .saturating_sub(if vertical { SCROLL_ROOM } else { 0 }),
+        ..area
+    };
+    (view, vertical, content_h)
+}
+
+fn thumb_len(viewport: u16, track: u16, content: u16) -> u16 {
+    if content <= viewport || track == 0 {
+        return track;
+    }
+    let len = u32::from(viewport).saturating_mul(u32::from(track)) / u32::from(content);
+    u16::try_from(len).unwrap_or(u16::MAX).max(1).min(track)
+}
+
+fn paint_page_scrollbar(ui: &mut Ui<'_>, area: Rect, content_h: u16) {
+    let thumb = thumb_len(area.height, area.height, content_h);
+    let x = area.right().saturating_sub(1);
+    for row in 0..area.height {
+        let on = row < thumb;
+        ui.paint_str(
+            Rect::new(x, area.y.saturating_add(row), 1, 1),
+            if on { "┃" } else { "┆" },
+            ink(if on { THUMB } else { TRACK }, CANVAS),
+        );
+    }
 }
 
 fn style(
@@ -1117,20 +1214,7 @@ fn paint_results(
     opened: &str,
 ) {
     paint_card_chrome(ui, card, "Result", "PickerAction");
-    let chosen = if result == "none" {
-        "nothing yet"
-    } else {
-        result
-    };
-    let detail = if detail.is_empty() { "—" } else { detail };
-    let rows = [
-        ("Chosen", chosen),
-        ("Detail", detail),
-        ("Level", level),
-        ("Open tabs", OPEN_TAB_LINE),
-        ("Last action", LAST_ACTION),
-        ("Pickers opened", opened),
-    ];
+    let rows = result_lines(result, detail, level, opened);
     paint_props(ui, card_inner(card), &rows);
 }
 
@@ -1145,33 +1229,40 @@ fn paint_playground(
     if area.is_empty() {
         return;
     }
-    let open_h = open_height(area.width);
-    let applied_h = applied_height(area.width);
-    let mut y = area.y;
-    let open_shown = open_h.min(area.bottom().saturating_sub(y));
-    if open_shown > 0 {
-        paint_open(ui, Rect::new(area.x, y, area.width, open_shown));
+    let rows = result_lines(result, detail, level, opened);
+    let (view, vertical, content_h) = scroll_view(area, &rows);
+    let content = Rect::new(view.x, view.y, view.width, content_h);
+    ui.with_area(view, |ui| {
+        let open_h = open_height(content.width);
+        let applied_h = applied_height(content.width);
+        let mut y = content.y;
+        if open_h > 0 {
+            paint_open(ui, Rect::new(content.x, y, content.width, open_h));
+        }
+        y = y.saturating_add(open_h).saturating_add(CARD_GAP);
+        if applied_h > 0 {
+            paint_applied(ui, Rect::new(content.x, y, content.width, applied_h));
+        }
+        y = y.saturating_add(applied_h).saturating_add(CARD_GAP);
+        // The last card fills the viewport when the stack is shorter than the view.
+        let mut results_h = results_height(content.width, &rows);
+        if !vertical {
+            results_h = results_h.max(view.bottom().saturating_sub(y));
+        }
+        if results_h > 0 {
+            paint_results(
+                ui,
+                Rect::new(content.x, y, content.width, results_h),
+                result,
+                detail,
+                level,
+                opened,
+            );
+        }
+    });
+    if vertical {
+        paint_page_scrollbar(ui, area, content_h);
     }
-    y = y.saturating_add(open_h).saturating_add(CARD_GAP);
-    if y >= area.bottom() {
-        return;
-    }
-    let applied_shown = applied_h.min(area.bottom().saturating_sub(y));
-    if applied_shown > 0 {
-        paint_applied(ui, Rect::new(area.x, y, area.width, applied_shown));
-    }
-    y = y.saturating_add(applied_h).saturating_add(CARD_GAP);
-    if y >= area.bottom() {
-        return;
-    }
-    paint_results(
-        ui,
-        Rect::new(area.x, y, area.width, area.bottom().saturating_sub(y)),
-        result,
-        detail,
-        level,
-        opened,
-    );
 }
 
 #[derive(Debug, Default)]
@@ -1446,5 +1537,20 @@ mod tests {
         let (sx, sy) = h.find("Size").expect("prop");
         assert_eq!(h.cell(sx, sy).fg, Color::Rgb(0x8a, 0x8a, 0x8a));
         assert_eq!(h.cell(sx + 10, sy).symbol(), "w");
+    }
+
+    #[test]
+    fn narrow_playground_scrolls_and_ends_the_blurb_on_ellipsis() {
+        let h = Harness::new(Host, Theme::junie(), 51, 16);
+        assert_eq!(h.cell(49, 0).symbol(), "…");
+        assert_eq!(h.cell(49, 0).fg, Color::Rgb(0x8a, 0x8a, 0x8a));
+        assert_eq!(h.cell(50, 5).symbol(), "┃");
+        assert_eq!(h.cell(50, 5).fg, Color::Rgb(0x80, 0x80, 0x80));
+        assert_eq!(h.cell(50, 5).bg, Color::Rgb(0, 0, 0));
+        assert_eq!(h.cell(50, 7).symbol(), "┆");
+        assert_eq!(h.cell(50, 7).fg, Color::Rgb(0x47, 0x47, 0x47));
+        assert_eq!(h.cell(49, 5).symbol(), " ");
+        assert_eq!(h.cell(49, 5).bg, Color::Rgb(0, 0, 0));
+        assert!(h.text().contains("retries"), "{}", h.text());
     }
 }
