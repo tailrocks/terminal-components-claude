@@ -33,3 +33,8 @@ termrock --features testing --all-targets` passed 28/28, including the new
 consumer's three tests; `cargo clippy --locked -p termrock --all-targets
 --features testing -- -D warnings`, `cargo check --locked -p termrock
 --all-targets`, `cargo fmt --check -p termrock`, and `git diff --check` passed.
+
+The same gates passed after merging the then-current PR #38 tip into WIP
+commit `637a7e9b0d5498b151392fce203adfc0356c00f6`: testing-enabled facade
+nextest 28/28, strict Clippy, default-feature all-target check, package
+formatting, and diff check.
