@@ -509,9 +509,15 @@ impl<'a> Dialog<'a> {
     pub fn update(&self, cx: &mut Cx<'_>, st: &mut DialogState) -> Response<DialogAction> {
         let d = cx.design();
         let action_widths = self.action_widths(cx);
+        let viewport_width = cx.viewport().width;
+        let width = if viewport_width == 0 {
+            self.measured_width(d)
+        } else {
+            self.measured_width(d).min(viewport_width)
+        };
         let size = LayerSize::Fixed(
-            self.measured_width(d),
-            self.measured_height_with_action_widths(d, &action_widths),
+            width,
+            self.measured_height_for_width(d, width, &action_widths),
         );
         cx.resize_layer(self.id, size);
         let mut acc = Acc::<DialogAction>::new();
@@ -621,12 +627,6 @@ impl<'a> Dialog<'a> {
         }
     }
 
-    #[cfg(test)]
-    fn inner_width(&self, d: &DesignTokens) -> u16 {
-        // Baseline pad is 2 columns inside the border: width - 2 * (1 + 2).
-        self.measured_width(d).saturating_sub(2 * (1 + 2))
-    }
-
     fn paint_close(&self, ui: &mut Ui<'_>, outer: Rect) {
         if outer.width < 8 || outer.height < 3 {
             return;
@@ -686,8 +686,7 @@ impl<'a> Dialog<'a> {
     }
 
     fn body_block(&self, d: &DesignTokens) -> u16 {
-        let rows = self.body_rows.unwrap_or(d.size.code_preview_lines);
-        if rows == 0 { 0 } else { rows.saturating_add(1) }
+        self.body_rows.unwrap_or(d.size.code_preview_lines)
     }
 
     fn configured_action_widths(&self) -> Vec<u16> {
@@ -722,30 +721,40 @@ impl<'a> Dialog<'a> {
     }
 
     fn layout(&self, outer: Rect, d: &DesignTokens, action_widths: &[u16]) -> DialogLayout {
+        let vertical_pad = u16::from(outer.height >= 8);
         let content = crate::layout::inset(
             outer,
             crate::layout::Insets {
                 l: 3,
-                t: 1,
+                t: 1 + vertical_pad,
                 r: 3,
-                b: 1,
+                b: 1 + vertical_pad,
             },
         );
         let lines = action_lines(action_widths, content.width, 2);
-        let requested_action_height = u16::try_from(lines.len()).unwrap_or(u16::MAX);
-        let action_height = requested_action_height.min(content.height);
+        let requested_action_height = u16::try_from(lines.len().max(1)).unwrap_or(u16::MAX);
+        let title_rows = u16::from(self.title.is_some());
+        let title_gap = title_rows.min(vertical_pad);
+        let action_height = requested_action_height.min(
+            content
+                .height
+                .saturating_sub(title_rows)
+                .saturating_sub(title_gap),
+        );
         let action_gap = u16::from(action_height > 0 && content.height > action_height);
         let body_block = self.body_block(d);
         let natural_description_rows = self
             .description
             .map_or(0, |text| wrapped_rows(text, content.width));
         let height = 2u16
-            .saturating_add(u16::from(self.title.is_some()))
+            .saturating_add(vertical_pad.saturating_mul(2))
+            .saturating_add(title_rows)
+            .saturating_add(title_gap)
             .saturating_add(natural_description_rows)
             .saturating_add(self.input_rows(d))
             .saturating_add(body_block)
             .saturating_add(requested_action_height)
-            .saturating_add(u16::from(requested_action_height > 0));
+            .saturating_add(1);
         let mut y = content.y;
         let mut remaining = content.height;
         let title = self.title.map(|_| {
@@ -758,6 +767,8 @@ impl<'a> Dialog<'a> {
             remaining = remaining.saturating_sub(rect.height);
             rect
         });
+        y = y.saturating_add(title_gap);
+        remaining = remaining.saturating_sub(title_gap);
         let fixed_after_description = self
             .input_rows(d)
             .saturating_add(action_height)
@@ -797,16 +808,9 @@ impl<'a> Dialog<'a> {
             height: action_height,
         };
         let actions = action_rects(action_area, action_widths, &lines, 2);
-        let mut body_top = y;
+        let body_top = y;
         let body_bottom = action_y.saturating_sub(action_gap);
-        if self.body_block(d) > 0 && body_top < body_bottom {
-            let spare = body_bottom.saturating_sub(body_top);
-            if spare > 1 {
-                body_top = body_top.saturating_add(1);
-            }
-        }
-        let requested_body = body_block.saturating_sub(u16::from(body_block > 0));
-        let body_height = body_bottom.saturating_sub(body_top).min(requested_body);
+        let body_height = body_bottom.saturating_sub(body_top).min(body_block);
         let body = Rect {
             x: content.x,
             y: body_top,
@@ -830,15 +834,20 @@ impl<'a> Dialog<'a> {
     }
 
     pub fn measured_height(&self, d: &DesignTokens) -> u16 {
-        self.measured_height_with_action_widths(d, &self.configured_action_widths())
+        self.measured_height_for_width(d, self.measured_width(d), &self.configured_action_widths())
     }
 
-    fn measured_height_with_action_widths(&self, d: &DesignTokens, action_widths: &[u16]) -> u16 {
+    fn measured_height_for_width(
+        &self,
+        d: &DesignTokens,
+        width: u16,
+        action_widths: &[u16],
+    ) -> u16 {
         self.layout(
             Rect {
                 x: 0,
                 y: 0,
-                width: self.measured_width(d),
+                width,
                 height: u16::MAX,
             },
             d,
@@ -850,9 +859,15 @@ impl<'a> Dialog<'a> {
     pub fn layer(&self, cx: &Cx<'_>) -> LayerSpec {
         let d = cx.design();
         let action_widths = self.action_widths(cx);
+        let viewport_width = cx.viewport().width;
+        let width = if viewport_width == 0 {
+            self.measured_width(d)
+        } else {
+            self.measured_width(d).min(viewport_width)
+        };
         LayerSpec::modal(self.id).size(LayerSize::Fixed(
-            self.measured_width(d),
-            self.measured_height_with_action_widths(d, &action_widths),
+            width,
+            self.measured_height_for_width(d, width, &action_widths),
         ))
     }
 
@@ -863,7 +878,7 @@ impl<'a> Dialog<'a> {
             y: area.y,
             width: self.measured_width(d).min(area.width),
             height: self
-                .measured_height_with_action_widths(d, action_widths)
+                .measured_height_for_width(d, self.measured_width(d).min(area.width), action_widths)
                 .min(area.height),
         }
     }
@@ -1070,9 +1085,13 @@ impl<'a> Dialog<'a> {
 
     pub fn measure(&self, ui: &Ui<'_>, c: Constraints) -> Size {
         let d = ui.design();
+        let width = self.measured_width(d).min(c.max.0);
         Size {
             min: (20, 6),
-            preferred: (self.measured_width(d), self.measured_height(d)),
+            preferred: (
+                width,
+                self.measured_height_for_width(d, width, &self.configured_action_widths()),
+            ),
         }
         .fit(c)
     }
@@ -1347,6 +1366,133 @@ mod tests {
     }
 
     #[test]
+    fn actions_reflow_to_a_narrow_live_viewport_before_the_layer_is_measured() {
+        const ACTIONS: [Action<'static>; 8] = [
+            Action::new(ActionKey::custom("a"), "First"),
+            Action::new(ActionKey::custom("b"), "Second"),
+            Action::new(ActionKey::custom("c"), "Third"),
+            Action::new(ActionKey::custom("d"), "Fourth"),
+            Action::new(ActionKey::custom("e"), "Fifth"),
+            Action::new(ActionKey::custom("f"), "Sixth"),
+            Action::new(ActionKey::custom("g"), "Seventh"),
+            Action::new(ActionKey::custom("h"), "Eighth"),
+        ];
+        let dialog = Dialog::new(DLG)
+            .title("Title")
+            .width(60)
+            .body_rows(0)
+            .actions(&ACTIONS);
+        let viewport = Rect::new(0, 0, 20, 40);
+        let mut runtime = Runtime::new(Stub::default(), Theme::junie());
+        let mut buffer = Buffer::empty(viewport);
+        runtime
+            .draw_scene(viewport, &mut buffer, |ui, _| {
+                dialog.draw(ui, viewport, &DialogState::default(), |_, _| {});
+            })
+            .commit_presented();
+        for index in 0..ACTIONS.len() {
+            let button = runtime
+                .area_of(dialog.action_id(index))
+                .expect("each action must receive a visible row after width reflow");
+            assert!(viewport.contains(Position::new(button.x, button.y)));
+            assert!(button.right() <= viewport.right());
+            assert!(button.bottom() <= viewport.bottom());
+        }
+    }
+
+    #[test]
+    fn narrow_viewport_keeps_the_action_cap_and_omits_only_excess_actions() {
+        const ACTIONS: [Action<'static>; 9] = [
+            Action::new(ActionKey::custom("a"), "First"),
+            Action::new(ActionKey::custom("b"), "Second"),
+            Action::new(ActionKey::custom("c"), "Third"),
+            Action::new(ActionKey::custom("d"), "Fourth"),
+            Action::new(ActionKey::custom("e"), "Fifth"),
+            Action::new(ActionKey::custom("f"), "Sixth"),
+            Action::new(ActionKey::custom("g"), "Seventh"),
+            Action::new(ActionKey::custom("h"), "Eighth"),
+            Action::new(ActionKey::custom("i"), "Ninth"),
+        ];
+        let dialog = Dialog::new(DLG)
+            .title("Title")
+            .width(60)
+            .body_rows(0)
+            .actions(&ACTIONS);
+        let viewport = Rect::new(0, 0, 20, 40);
+        let mut runtime = Runtime::new(Stub::default(), Theme::junie());
+        let mut buffer = Buffer::empty(viewport);
+        runtime
+            .draw_scene(viewport, &mut buffer, |ui, _| {
+                dialog.draw(ui, viewport, &DialogState::default(), |_, _| {});
+            })
+            .commit_presented();
+        for index in 0..Dialog::MAX_ACTIONS {
+            assert!(runtime.area_of(dialog.action_id(index)).is_some());
+        }
+        assert!(
+            runtime
+                .area_of(dialog.action_id(Dialog::MAX_ACTIONS))
+                .is_none()
+        );
+    }
+
+    #[test]
+    fn title_survives_when_a_short_view_cannot_fit_all_action_rows() {
+        const ACTIONS: [Action<'static>; 2] = [
+            Action::new(ActionKey::custom("a"), "First"),
+            Action::new(ActionKey::custom("b"), "Second"),
+        ];
+        let dialog = Dialog::new(DLG)
+            .title("TITLE")
+            .width(16)
+            .body_rows(0)
+            .actions(&ACTIONS);
+        let viewport = Rect::new(0, 0, 16, 4);
+        let mut runtime = Runtime::new(Stub::default(), Theme::junie());
+        let mut buffer = Buffer::empty(viewport);
+        runtime
+            .draw_scene(viewport, &mut buffer, |ui, _| {
+                dialog.draw(ui, viewport, &DialogState::default(), |_, _| {});
+            })
+            .commit_presented();
+        let rendered: String = buffer.content().iter().map(|cell| cell.symbol()).collect();
+        assert!(rendered.contains("TITLE"), "title overwritten: {rendered}");
+        let title = runtime
+            .area_of_part(DLG, PartRef::of(Part::TITLE))
+            .expect("the visible title owns its measured bounds");
+        let mut visible_actions = 0;
+        for index in 0..ACTIONS.len() {
+            if let Some(button) = runtime.area_of(dialog.action_id(index)) {
+                visible_actions += 1;
+                assert!(
+                    button.y >= title.bottom(),
+                    "overlap: {title:?} / {button:?}"
+                );
+            }
+        }
+        assert_eq!(visible_actions, 1, "one action row fits below the title");
+    }
+
+    #[test]
+    fn title_only_measured_height_contains_the_drawn_title() {
+        let dialog = Dialog::new(DLG).title("TITLE").width(30).body_rows(0);
+        let viewport = Rect::new(0, 0, 40, dialog.measured_height(&Theme::junie().design));
+        let mut runtime = Runtime::new(Stub::default(), Theme::junie());
+        let mut buffer = Buffer::empty(viewport);
+        runtime
+            .draw_scene(viewport, &mut buffer, |ui, _| {
+                dialog.draw(ui, viewport, &DialogState::default(), |_, _| {});
+            })
+            .commit_presented();
+        let rendered: String = buffer.content().iter().map(|cell| cell.symbol()).collect();
+        assert!(
+            rendered.contains("TITLE"),
+            "measured height {} hid title: {rendered}",
+            dialog.measured_height(&Theme::junie().design)
+        );
+    }
+
+    #[test]
     fn zero_width_dialog_keeps_body_callback_total() {
         let (mut runtime, mut buffer) = scene();
         let calls = Cell::new(0);
@@ -1379,7 +1525,7 @@ mod tests {
             }
 
             let bare = Dialog::new(DLG).title("Rename").body_rows(0);
-            let bare_h = bare.measured_height(d).saturating_add(2);
+            let bare_h = bare.measured_height(d);
             assert_eq!(
                 prompt().measured_height(d),
                 bare_h.saturating_add(d.size.field_height),
@@ -1403,8 +1549,10 @@ mod tests {
             assert_eq!(prompt().measured_width(d), d.size.dialog_width);
             assert_eq!(
                 prompt().measured_height(d),
-                3u16.saturating_add(d.size.field_height).saturating_add(2),
-                "title + border, the prompt's field, the action block"
+                5u16.saturating_add(2)
+                    .saturating_add(d.size.field_height)
+                    .saturating_add(1),
+                "frozen Dialog::height charges chrome_rows (5 + 2*pad.y), field rows, and action rows"
             );
         }
     }
@@ -1508,16 +1656,19 @@ mod tests {
         }
         let mut rt = Runtime::new(Growing::default(), Theme::junie());
         let _ = rt.initialize();
-        let mut buf = Buffer::empty(SCREEN);
-        rt.draw_buffer(SCREEN, &mut buf).commit_presented();
+        let screen = Rect::new(0, 0, 40, 24);
+        let mut buf = Buffer::empty(screen);
+        rt.draw_buffer(screen, &mut buf).commit_presented();
         let _ = crate::runtime::stub::deliver(&mut rt, Input::Tick);
-        rt.draw_buffer(SCREEN, &mut buf).commit_presented();
+        rt.draw_buffer(screen, &mut buf).commit_presented();
         let before = rt.layer_area(DLG).expect("open layer");
         rt.app_mut().rows = 5;
         let _ = crate::runtime::stub::deliver(&mut rt, Input::Tick);
-        rt.draw_buffer(SCREEN, &mut buf).commit_presented();
+        rt.draw_buffer(screen, &mut buf).commit_presented();
         let after = rt.layer_area(DLG).expect("resized layer");
-        assert_eq!(after.height, before.height.saturating_add(6));
+        // Frozen Dialog::height adds visible body rows directly; the old
+        // candidate-only extra row was not part of the reference measure.
+        assert_eq!(after.height, before.height.saturating_add(5));
     }
 
     #[test]
@@ -1621,15 +1772,16 @@ mod tests {
             "the drawn field row is not the row `input_rows` charged for"
         );
 
-        let desc = d
-            .description
-            .map_or(0, |s| wrapped_rows(s, d.inner_width(dt)));
-        let actions: u16 = if d.actions.is_empty() { 0 } else { 2 };
-        let rest = 3u16
-            .saturating_add(desc)
-            .saturating_add(d.body_block(dt))
-            .saturating_add(actions);
-        assert_eq!(d.measured_height(dt).saturating_sub(rest), d.input_rows(dt));
+        let no_input = Dialog::new(DLG)
+            .title("Rename")
+            .actions(&CONFIRM_ACTIONS)
+            .body_rows(0);
+        assert_eq!(
+            d.measured_height(dt)
+                .saturating_sub(no_input.measured_height(dt)),
+            d.input_rows(dt),
+            "the prompt adds exactly the field rows to the frozen dialog chrome"
+        );
     }
 
     #[test]
