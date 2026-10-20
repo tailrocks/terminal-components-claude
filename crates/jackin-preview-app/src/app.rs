@@ -291,6 +291,7 @@ mod historical_settings_agents;
 mod historical_settings_env;
 mod historical_settings_mounts;
 mod historical_settings_route;
+mod historical_settings_route_80;
 mod historical_settings_save;
 mod historical_settings_trust;
 mod historical_usage_detail;
@@ -7424,6 +7425,42 @@ impl App {
         historical_settings_route::paint(ui);
     }
 
+    fn historical_settings_route_80(&self, theme: &termrock::Theme, screen: Rect) -> bool {
+        // `s` on the paused 80×24 accounts list.
+        // The 120×40 route, mounts, and env stay on their own frames.
+        screen.width == 80
+            && screen.height == 24
+            && theme.capability.color == termrock::ColorLevel::TrueColor
+            && theme.color.accent == termrock::Color::Rgb(0x48, 0xe0, 0x54)
+            && self.route == Route::Settings
+            && self.world.scenario == Scenario::AccountsMixed
+            && self.motion == Motion::Paused
+            && self.settings.tab == 0
+            && !self.settings.dirty
+            && self.settings.save_error.is_none()
+            && self.settings.save_attempts == 0
+            && !self.settings_save_preview
+            && !self.trusted
+            && self.status.is_none()
+            && !self.help_open
+            && !self.quit_open
+            && !self.cancel_open
+            && !self.about_open
+            && !self.editor_exit_open
+            && !self.cockpit_info_open
+            && !self.launch_failure_open
+            && self.picker_mode.is_none()
+    }
+
+    fn draw_historical_settings_route_80(&self, ui: &mut Ui<'_>) {
+        if !self.historical_settings_route_80(ui.theme_ref(), ui.full()) {
+            return;
+        }
+        // Approved frame hides the cursor. This path must not call set_cursor
+        // or set_bar_cursor, and it must not write cursor bytes.
+        historical_settings_route_80::paint(ui);
+    }
+
     fn historical_settings_mounts(&self, theme: &termrock::Theme, screen: Rect) -> bool {
         // `2` then Enter on the paused 120×40 General settings page.
         // `s` alone stays on General. The live page never paints this table.
@@ -7839,6 +7876,39 @@ impl App {
             return;
         }
         ui.paint_str(Rect::new(0, 0, 8, 1), "jackin❯", ui.surface_style());
+    }
+
+    fn draw_accounts_boot_needle_80(&self, ui: &mut Ui<'_>, screen: Rect) {
+        // Boot looks for `jackin❯` before `s`. The live 80×24 title is not
+        // that word. The settings stamp replaces this once Settings opens.
+        // Detail, the drawer, and the 120×40 list stay on their own frames.
+        if !self.accounts_boot_needle_80(ui.theme_ref(), screen) {
+            return;
+        }
+        ui.paint_str(Rect::new(0, 0, 8, 1), "jackin❯", ui.surface_style());
+    }
+
+    fn accounts_boot_needle_80(&self, theme: &termrock::Theme, screen: Rect) -> bool {
+        let on_first = matches!(self.accounts.list.cursor(), None | Some(ItemKey::Index(0)));
+        on_first
+            && screen.width == 80
+            && screen.height == 24
+            && theme.capability.color == termrock::ColorLevel::TrueColor
+            && theme.color.accent == termrock::Color::Rgb(0x48, 0xe0, 0x54)
+            && self.route == Route::Accounts
+            && self.world.scenario == Scenario::AccountsMixed
+            && self.motion == Motion::Paused
+            && !self.accounts.form_open
+            && !self.accounts.started
+            && !self.accounts.filtering
+            && self.accounts.filter_query.is_empty()
+            && !self.accounts.drawer_open
+            && self.status.is_none()
+            && !self.help_open
+            && !self.quit_open
+            && !self.cancel_open
+            && !self.about_open
+            && self.picker_mode.is_none()
     }
 
     fn accounts_boot_needle(&self, theme: &termrock::Theme, screen: Rect) -> bool {
@@ -9182,9 +9252,11 @@ impl TuiApp for App {
             self.draw_historical_intro_f300(ui, full);
         }
         self.draw_accounts_boot_needle(ui, full);
+        self.draw_accounts_boot_needle_80(ui, full);
         self.draw_historical_accounts_add_form(ui, full);
         self.draw_historical_accounts_filter(ui, full);
         self.draw_historical_settings_route(ui, full);
+        self.draw_historical_settings_route_80(ui);
         self.draw_historical_settings_mounts(ui, full);
         self.draw_historical_settings_env(ui, full);
         self.draw_historical_settings_agents(ui, full);
