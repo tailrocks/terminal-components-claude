@@ -694,6 +694,229 @@ class RunnerGuards(unittest.TestCase):
         with self.assertRaisesRegex(runner.RunnerError, "chunk size"):
             runner.scenario_chunks(names, 513)
 
+    def _fresh_plan_fixture(self, root: Path) -> dict[str, object]:
+        repo = root / "repo"
+        source = root / "source"
+        live = root / "live-source"
+        for directory in (repo / "tools" / "frozen-cli-frame-support" / "src", source / "snapshots", source / "tests" / "visual_baseline", live / "tests" / "visual_baseline"):
+            directory.mkdir(parents=True, exist_ok=True)
+        for relative, contents in (
+            (Path("tools/frozen_cli_extensions.json"), "{}"),
+            (Path("tools/frozen_cli_extensions.rs"), "extension"),
+            (Path("tools/frozen_cli_pair.patch"), "patch"),
+            (Path("tools/frozen-cli-frame-support/src/lib.rs"), "helper"),
+        ):
+            target = repo / relative
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_text(contents)
+        for relative, contents in ((Path("Cargo.lock"), "lock"), (Path("rust-toolchain.toml"), "toolchain")):
+            (source / relative).write_text(contents)
+        (source / "tests" / "visual_baseline" / "main.rs").write_text("harness")
+        (live / "tests" / "visual_baseline" / "main.rs").write_text("patched harness")
+        (root / "provenance.json").write_text("{}")
+        (root / "live-source.json").write_text("{}")
+        extension = "termrock_extensions::showcase::table_sort::fixture::80x24::truecolor"
+        inventory = {
+            "showcase::pages::fixture::80x24::truecolor": True,
+            extension: True,
+            "source_only::fixture": False,
+            "modes::showcase_boot_sets_terminal_modes": False,
+        }
+        live_record = {"test_inventory_sha256": runner.inventory_digest(inventory), "module_sha256": "a" * 64}
+        cohort = {
+            "cohort_id": "fixture-cohort",
+            "cohort_registry_sha256": "b" * 64,
+            "review_registry_sha256": "c" * 64,
+            "decision_sha256": "d" * 64,
+            "evidence_index_sha256": "e" * 64,
+            "status": runner.CAPTURE_ELIGIBLE_COHORT_STATUS,
+            "source": {"commit": runner.BASELINE_COMMIT},
+            "tools": {},
+            "fresh_baseline_capture_eligible": True,
+            "baseline_replay_eligible": True,
+            "candidate_comparison_eligible": False,
+            "checkpoint_reference_approval": "none",
+            "product_acceptance_eligible": False,
+            "acceptance_complete": False,
+            "binaries": {app: {"path": str(root / "bins" / app), "sha256": "f" * 64} for app in runner.APPS},
+        }
+        manifest = {"generated_case_ids": [extension], "checkpoint_obligations": {extension: ["initial", "done"]}}
+        original_inventory = {name: ignored for name, ignored in inventory.items() if name != extension}
+        with patch.object(runner, "EXPECTED_SCENARIOS", 1), patch.object(runner, "EXPECTED_ORDINARY_TESTS", 2), patch.object(runner, "validate_extension_inventory", return_value=(original_inventory, [extension])), patch.object(runner, "ordinary_test_groups", return_value=( ["source_only::fixture"], ["modes::showcase_boot_sets_terminal_modes"] )):
+            plan = runner.build_fresh_plan_payload(
+                repo=repo, root=root, cohort=cohort, live_record=live_record, inventory=inventory,
+                extension_manifest=manifest, chunk_size=1, term_profile=None, plan_id="1" * 32,
+                created_at="2026-10-21T00:00:00+00:00",
+            )
+        return plan
+
+    def test_fresh_plan_is_complete_capture_only_inventory_and_verifiable(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            plan = self._fresh_plan_fixture(root)
+            self.assertEqual(plan["inventory"]["visual_count"], 2)
+            self.assertEqual(plan["inventory"]["ordinary_count"], 2)
+            self.assertEqual([phase["name"] for phase in plan["execution"]["phases"]], ["baseline-capture", "baseline-replay", "baseline-ordinary-checks"])
+            self.assertFalse(plan["execution"]["candidate_comparison_eligible"])
+            self.assertIsNone(plan["execution"]["candidate_phase"])
+            self.assertEqual(plan["cohort"]["checkpoint_reference_approval"], "none")
+            self.assertEqual(plan["inventory"]["checkpoint_obligations"][plan["inventory"]["visual_extensions"][0]]["checkpoints"], ["initial", "done"])
+            path = root / runner.FRESH_PLAN_FILE
+            runner._atomic_create_plan(path, plan)
+            with patch.object(runner, "EXPECTED_SCENARIOS", 1), patch.object(runner, "EXPECTED_ORDINARY_TESTS", 2), patch.object(runner, "ordinary_test_groups", return_value=(["source_only::fixture"], ["modes::showcase_boot_sets_terminal_modes"])):
+                self.assertEqual(runner._read_self_sealed_plan(path), plan)
+            with self.assertRaisesRegex(runner.RunnerError, "refusing to replace"):
+                runner._atomic_create_plan(path, plan)
+
+    def test_fresh_plan_rejects_duplicate_zero_chunk_privilege_and_digest_tampering(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            plan = self._fresh_plan_fixture(Path(temp))
+            mutations = []
+            duplicate = json.loads(json.dumps(plan))
+            duplicate["inventory"]["full_sorted"].append(duplicate["inventory"]["full_sorted"][0])
+            mutations.append(duplicate)
+            zero_chunk = json.loads(json.dumps(plan))
+            zero_chunk["execution"]["phases"][0]["chunks"] = []
+            mutations.append(zero_chunk)
+            privilege = json.loads(json.dumps(plan))
+            privilege["execution"]["candidate_comparison_eligible"] = True
+            mutations.append(privilege)
+            old_tuple = json.loads(json.dumps(plan))
+            old_tuple["legacy_reference_decision"] = {"sha256": runner.REFERENCE_DECISIONS_SHA256}
+            mutations.append(old_tuple)
+            digest = json.loads(json.dumps(plan))
+            digest["plan_sha256"] = "0" * 64
+            mutations.append(digest)
+            for altered in mutations:
+                with self.subTest(mutation=altered), self.assertRaises(runner.RunnerError):
+                    runner.validate_fresh_plan_document(altered)
+
+    def test_fresh_plan_reader_rejects_symlink_and_duplicate_json_keys(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            plan = self._fresh_plan_fixture(root)
+            path = root / runner.FRESH_PLAN_FILE
+            runner._atomic_create_plan(path, plan)
+            alias = root / "plan-link.json"
+            alias.symlink_to(path)
+            with self.assertRaisesRegex(runner.RunnerError, "symlinked or non-regular"):
+                runner._read_self_sealed_plan(alias)
+            duplicate = root / "plan-duplicate.json"
+            duplicate.write_text('{"schema":"x","schema":"y"}')
+            with self.assertRaisesRegex(runner.RunnerError, "duplicate fresh plan JSON field"):
+                runner._read_self_sealed_plan(duplicate)
+
+    def test_fresh_prepare_mode_does_not_consult_legacy_build_or_tuple_approval(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            repo = root / "repo"
+            source = root / "source"
+            for directory in (repo / "tools" / "frozen-cli-frame-support" / "src", source / "snapshots", source / "tests" / "visual_baseline" / "scenarios"):
+                directory.mkdir(parents=True)
+            patch_path = repo / "tools" / "frozen_cli_pair.patch"
+            helper_path = repo / "tools" / "frozen-cli-frame-support" / "src" / "lib.rs"
+            extension_manifest_path = repo / runner.EXTENSION_MANIFEST
+            extension_source_path = repo / runner.EXTENSION_SOURCE
+            for path in (patch_path, helper_path, extension_manifest_path, extension_source_path):
+                path.write_text("fixture")
+            expected_changes = {
+                "tests/visual_baseline/main.rs", "tests/visual_baseline/support.rs",
+                "tests/visual_baseline/scenarios/mod.rs", "tests/visual_baseline/scenarios/interact.rs",
+                "tests/visual_baseline/frozen_cli_pair.rs", "tests/visual_baseline/frozen_cli_extensions.rs",
+                "tests/visual_baseline/frozen_cli_extensions.json",
+            }
+            initial_manifest = {}
+            final_manifest = {name: "fixture" for name in expected_changes}
+            extension_case = "termrock_extensions::showcase::table_sort::fixture::80x24::truecolor"
+            inventory = {"showcase::pages::fixture::80x24::truecolor": True, extension_case: True}
+            capture = {"cohort_id": "fixture-cohort", "fresh_baseline_capture_eligible": True}
+
+            def fake_digest(path: Path) -> str:
+                if path == patch_path:
+                    return runner.EXTENSION_PATCH_SHA256
+                if path == extension_manifest_path:
+                    return runner.EXTENSION_MANIFEST_SHA256
+                if path == extension_source_path:
+                    return runner.EXTENSION_SOURCE_SHA256
+                if path == helper_path:
+                    return "a" * 64
+                return "b" * 64
+
+            with (
+                patch.object(runner, "load_reference_decisions", side_effect=AssertionError("legacy tuple/build loader must not be called")) as legacy,
+                patch.object(runner, "_fresh_cohort_source_record", return_value=capture),
+                patch.object(runner, "load_extension_manifest", return_value={"generated_case_ids": [extension_case], "checkpoint_obligations": {extension_case: ["initial"]}}),
+                patch.object(runner, "file_manifest", side_effect=[initial_manifest, final_manifest]),
+                patch.object(runner, "digest_tree", return_value="c" * 64),
+                patch.object(runner, "digest_source", return_value="d" * 64),
+                patch.object(runner, "freeze_tree_readonly"),
+                patch.object(runner, "run"),
+                patch.object(runner, "nextest_inventory", return_value=inventory),
+                patch.object(runner, "validate_extension_inventory", return_value=(inventory, [extension_case])),
+                patch.object(runner, "sha256", side_effect=fake_digest),
+            ):
+                result = runner.prepare_live_source(repo, root, source, 10, fresh_cohort_id="fixture-cohort", baseline_bin_dir=root / "sealed")
+            legacy.assert_not_called()
+            self.assertEqual(result["fresh_capture_cohort"], capture)
+            self.assertIsNone(result["reference_decisions_sha256"])
+
+    def test_fresh_live_verification_does_not_load_legacy_tuple_decision(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            repo = root / "repo"
+            source = root / "source"
+            live = root / "live-source"
+            for directory in (source / "snapshots", live / "snapshots", live / "tests" / "visual_baseline"):
+                directory.mkdir(parents=True, exist_ok=True)
+            helper = repo / "tools" / "frozen-cli-frame-support" / "src" / "lib.rs"
+            patch_file = repo / "tools" / "frozen_cli_pair.patch"
+            extension_manifest = repo / runner.EXTENSION_MANIFEST
+            extension_source = repo / runner.EXTENSION_SOURCE
+            for path in (helper, patch_file, extension_manifest, extension_source):
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_text("fixture")
+            live_module = live / "tests" / "visual_baseline" / "frozen_cli_pair.rs"
+            live_extension_module = live / "tests" / "visual_baseline" / "frozen_cli_extensions.rs"
+            live_manifest_copy = live / "tests" / "visual_baseline" / "frozen_cli_extensions.json"
+            for path in (live_module, live_extension_module, live_manifest_copy):
+                path.write_text("fixture")
+            capture = {"cohort_id": "fixture-cohort", "binary_sha256": {app: "a" * 64 for app in runner.APPS}}
+            record = {
+                "frozen_source_sha256": "frozen", "live_source_sha256": "live",
+                "patch_sha256": runner.EXTENSION_PATCH_SHA256, "helper_sha256": "helper",
+                "module_sha256": "module", "extension_manifest_sha256": runner.EXTENSION_MANIFEST_SHA256,
+                "extension_source_sha256": runner.EXTENSION_SOURCE_SHA256,
+                "extension_module_sha256": "extension-module", "extension_manifest_copy_sha256": "manifest-copy",
+                "reference_decisions_sha256": None, "fresh_capture_cohort": capture,
+                "frozen_snapshots_sha256": "snapshots", "live_snapshots_sha256": "snapshots",
+            }
+            (root / "live-source.json").write_text(json.dumps(record))
+
+            def fake_sha(path: Path) -> str:
+                return {
+                    patch_file: runner.EXTENSION_PATCH_SHA256,
+                    helper: "helper",
+                    live_module: "module",
+                    extension_manifest: runner.EXTENSION_MANIFEST_SHA256,
+                    extension_source: runner.EXTENSION_SOURCE_SHA256,
+                    live_extension_module: "extension-module",
+                    live_manifest_copy: "manifest-copy",
+                }.get(path, "unused")
+
+            with (
+                patch.object(runner, "load_reference_decisions", side_effect=AssertionError("fresh source must not consult old tuple/build provenance")) as legacy,
+                patch.object(runner, "_fresh_cohort_source_record", return_value=capture),
+                patch.object(runner, "digest_source", side_effect=lambda path: "frozen" if path == source else "live"),
+                patch.object(runner, "digest_tree", return_value="snapshots"),
+                patch.object(runner, "sha256", side_effect=fake_sha),
+            ):
+                verified_live, verified_record = runner.verify_live_source(
+                    repo, root, source, 10, fresh_cohort_id="fixture-cohort", baseline_bin_dir=root / "sealed",
+                )
+            legacy.assert_not_called()
+            self.assertEqual(verified_live, live)
+            self.assertEqual(verified_record["fresh_capture_cohort"], capture)
+
     def test_chunk_coverage_rejects_missing_duplicate_skipped_and_repartitioned(self) -> None:
         selected = [f"case::{index}" for index in range(5)]
         good = [
