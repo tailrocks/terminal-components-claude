@@ -2744,23 +2744,24 @@ def _private_custody_directory(path: Path, *, create: bool) -> tuple[int, os.sta
         parent_fd, _parent_info = _open_directory_chain(canonical_parent)
     except OSError as error:
         raise RunnerError(f"fresh run custody parent is unsafe or missing: {error}") from error
-    if create:
-        created = False
-        try:
-            os.mkdir(path.name, mode=0o700, dir_fd=parent_fd)
-            created = True
-        except FileExistsError:
-            pass
-        except OSError as error:
-            os.close(parent_fd)
-            raise RunnerError(f"fresh run custody directory cannot be created: {error}") from error
-        if created:
-            created_fd = os.open(path.name, os.O_RDONLY | getattr(os, "O_DIRECTORY", 0) | getattr(os, "O_NOFOLLOW", 0), dir_fd=parent_fd)
+    try:
+        if create:
+            created = False
             try:
-                os.fchmod(created_fd, 0o700)
-            finally:
-                os.close(created_fd)
-    os.close(parent_fd)
+                os.mkdir(path.name, mode=0o700, dir_fd=parent_fd)
+                created = True
+            except FileExistsError:
+                pass
+            except OSError as error:
+                raise RunnerError(f"fresh run custody directory cannot be created: {error}") from error
+            if created:
+                created_fd = os.open(path.name, os.O_RDONLY | getattr(os, "O_DIRECTORY", 0) | getattr(os, "O_NOFOLLOW", 0), dir_fd=parent_fd)
+                try:
+                    os.fchmod(created_fd, 0o700)
+                finally:
+                    os.close(created_fd)
+    finally:
+        os.close(parent_fd)
     try:
         canonical = path.resolve(strict=True)
         if canonical != path:
@@ -2901,6 +2902,21 @@ def _read_stable_json(path: Path, label: str) -> tuple[dict[str, object], bytes]
     return value, raw
 
 
+def _authenticate_fresh_run_manifest(envelope: object, key: bytes) -> dict[str, object]:
+    if not isinstance(envelope, dict) or set(envelope) != {"manifest", "hmac_sha256"} or not isinstance(envelope["manifest"], dict) or not isinstance(envelope["hmac_sha256"], str):
+        raise RunnerError("fresh run manifest envelope is invalid")
+    manifest = envelope["manifest"]
+    fields = {"schema", "schema_version", "status", "run_id", "plan_id", "plan_creation_sha256", "plan_self_sha256", "cohort_id", "binary_hashes", "source", "runner_inputs", "runtime", "inventory_sha256", "visual_count", "ordinary_count", "candidate_comparison_eligible", "checkpoint_reference_approval", "product_acceptance", "executed", "key_custody"}
+    if set(manifest) != fields or manifest.get("schema") != FRESH_RUN_MANIFEST_SCHEMA or type(manifest.get("schema_version")) is not int or manifest["schema_version"] != FRESH_RUN_MANIFEST_VERSION:
+        raise RunnerError("fresh run manifest schema is invalid")
+    expected_signature = hmac.new(key, canonical_receipt_json(manifest), hashlib.sha256).hexdigest()
+    if not hmac.compare_digest(expected_signature, envelope["hmac_sha256"]):
+        raise RunnerError("fresh run manifest authentication failed")
+    if manifest.get("status") != "prepared-metadata-only" or any(type(manifest.get(field)) is not bool or manifest[field] is not False for field in ("candidate_comparison_eligible", "product_acceptance", "executed")) or manifest.get("checkpoint_reference_approval") != "none":
+        raise RunnerError("fresh run manifest is stale or grants forbidden privileges")
+    return manifest
+
+
 def create_fresh_run(repo: Path, root: Path, cohort_id: str, baseline_bin_dir: Path, timeout: int, expected_plan_sha256: str, key_path: Path) -> dict[str, object]:
     """Create authenticated PREPARED metadata only; this command never launches an application."""
     plan = verify_fresh_plan(repo, root, cohort_id, baseline_bin_dir, timeout, expected_plan_sha256)
@@ -2967,15 +2983,7 @@ def verify_fresh_run(repo: Path, root: Path, cohort_id: str, baseline_bin_dir: P
     if any(key_path == item or item in key_path.parents for item in protected):
         raise RunnerError("fresh run key custody must be outside Git, source, binaries, and artifact roots")
     envelope, _raw = _read_stable_json(run_root / FRESH_RUN_MANIFEST_FILE, "fresh run manifest")
-    if set(envelope) != {"manifest", "hmac_sha256"} or not isinstance(envelope["manifest"], dict) or not isinstance(envelope["hmac_sha256"], str):
-        raise RunnerError("fresh run manifest envelope is invalid")
-    manifest = envelope["manifest"]
-    expected_fields = {"schema", "schema_version", "status", "run_id", "plan_id", "plan_creation_sha256", "plan_self_sha256", "cohort_id", "binary_hashes", "source", "runner_inputs", "runtime", "inventory_sha256", "visual_count", "ordinary_count", "candidate_comparison_eligible", "checkpoint_reference_approval", "product_acceptance", "executed", "key_custody"}
-    if set(manifest) != expected_fields or manifest.get("schema") != FRESH_RUN_MANIFEST_SCHEMA or type(manifest.get("schema_version")) is not int or manifest["schema_version"] != FRESH_RUN_MANIFEST_VERSION:
-        raise RunnerError("fresh run manifest schema is invalid")
-    signature = hmac.new(key, canonical_receipt_json(manifest), hashlib.sha256).hexdigest()
-    if not hmac.compare_digest(signature, envelope["hmac_sha256"]):
-        raise RunnerError("fresh run manifest authentication failed")
+    manifest = _authenticate_fresh_run_manifest(envelope, key)
     expected_manifest = {
         "schema": FRESH_RUN_MANIFEST_SCHEMA, "schema_version": FRESH_RUN_MANIFEST_VERSION,
         "status": "prepared-metadata-only", "plan_id": plan["plan_id"],
@@ -3052,8 +3060,9 @@ def _fresh_plan_steps(plan: dict[str, object]) -> list[dict[str, object]]:
     return steps
 
 
-def validate_fresh_run_journal(envelopes: list[object], key: bytes, manifest: dict[str, object], plan_path: Path, expected_plan_sha256: str) -> dict[str, object]:
+def validate_fresh_run_journal(envelopes: list[object], key: bytes, manifest_envelope: object, plan_path: Path, expected_plan_sha256: str) -> dict[str, object]:
     """Validate an authenticated completed prefix against the externally anchored immutable plan."""
+    manifest = _authenticate_fresh_run_manifest(manifest_envelope, key)
     plan = _read_self_sealed_plan(plan_path, expected_plan_sha256)
     if plan["plan_id"] != manifest.get("plan_id") or plan["plan_sha256"] != manifest.get("plan_self_sha256") or plan["inventory"]["sha256"] != manifest.get("inventory_sha256"):
         raise RunnerError("fresh run plan or inventory differs from the authenticated manifest")
