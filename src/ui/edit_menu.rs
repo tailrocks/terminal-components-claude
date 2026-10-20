@@ -1,50 +1,3 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 use ratatui::buffer::Buffer;
 use ratatui::layout::{Position, Rect};
 
@@ -59,10 +12,8 @@ use crate::ui::ctx::RenderCtx;
 use crate::widgets::edit::{EditField, Editable};
 use crate::widgets::menu::{ContextMenu, MenuAction, MenuItem};
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct EditCaps {
-
     pub editable: bool,
 
     pub selection: bool,
@@ -73,7 +24,6 @@ pub struct EditCaps {
 }
 
 impl EditCaps {
-
     pub fn of(field: &EditField) -> Self {
         Self {
             editable: !field.read_only,
@@ -82,7 +32,6 @@ impl EditCaps {
             secret: false,
         }
     }
-
 
     pub fn read_only(selection: bool, text: bool) -> Self {
         Self {
@@ -93,15 +42,11 @@ impl EditCaps {
         }
     }
 
-
     pub fn secret(mut self, on: bool) -> Self {
         self.secret = on;
         self
     }
 }
-
-
-
 
 pub fn edit_items(
     caps: EditCaps,
@@ -141,24 +86,15 @@ pub fn edit_items(
         .collect()
 }
 
-
-
 #[derive(Debug, Clone)]
 pub struct EditMenu {
-
-
-
     pub enabled: bool,
-
-
 
     pub keys: ContextKeys,
 
     open: Option<Box<(ContextMenu, Vec<TextCmd>)>>,
 
-
     edited: bool,
-
 
     area: Rect,
     caret: Option<Position>,
@@ -178,7 +114,6 @@ impl Default for EditMenu {
 }
 
 impl EditMenu {
-
     pub fn id_for(owner: WidgetId) -> WidgetId {
         owner.sub("edit-menu")
     }
@@ -187,11 +122,9 @@ impl EditMenu {
         self.open.is_some()
     }
 
-
     pub fn menu(&self) -> Option<&ContextMenu> {
         self.open.as_ref().map(|o| &o.0)
     }
-
 
     pub fn close(&mut self) -> Outcome {
         if self.open.take().is_some() {
@@ -201,19 +134,13 @@ impl EditMenu {
         }
     }
 
-
-
-
-
     pub fn take_edited(&mut self) -> bool {
         std::mem::take(&mut self.edited)
     }
 
-
     pub fn owns(&self, ev: &PointerEvent) -> bool {
         self.open.as_ref().is_some_and(|o| ev.on(o.0.id))
     }
-
 
     pub fn open(
         &mut self,
@@ -226,8 +153,6 @@ impl EditMenu {
         self.open = Some(Box::new((menu, cmds)));
     }
 
-
-
     pub fn key_anchor(&self, owner: WidgetId) -> ContextAnchor {
         match self.caret {
             Some(c) => ContextAnchor::Pointer(c),
@@ -237,9 +162,6 @@ impl EditMenu {
             },
         }
     }
-
-
-
 
     pub fn on_key(&mut self, key: &Key) -> Option<(Outcome, Option<TextCmd>)> {
         let menu = &mut self.open.as_mut()?.0;
@@ -252,8 +174,6 @@ impl EditMenu {
             other => Some(self.settle(out.or(Outcome::Consumed), other)),
         }
     }
-
-
 
     pub fn on_pointer(&mut self, ev: &PointerEvent) -> Option<(Outcome, Option<TextCmd>)> {
         if !self.owns(ev) {
@@ -279,9 +199,6 @@ impl EditMenu {
         }
     }
 
-
-
-
     pub fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         self.area = area;
         self.caret = ctx.cursor.filter(|c| area.contains(*c));
@@ -294,25 +211,18 @@ impl EditMenu {
     }
 }
 
-
-
-
 pub trait EditMenuHost {
-
     fn edit_menu(&mut self) -> &mut EditMenu;
 
     fn edit_owner(&self) -> WidgetId;
 
     fn edit_caps(&self) -> EditCaps;
 
-
     fn edit_shortcut(&self, cmd: TextCmd) -> Option<String>;
-
 
     fn edit_target(&self, _ev: &PointerEvent) -> bool {
         true
     }
-
 
     fn edit_point(&mut self, _pos: Position) {}
 
@@ -335,9 +245,6 @@ fn open_for<H: EditMenuHost + ?Sized>(h: &mut H, anchor: ContextAnchor) {
     h.edit_menu().open(owner, anchor, items);
 }
 
-
-
-
 pub fn edit_menu_key<H: EditMenuHost + ?Sized>(h: &mut H, key: &Key) -> Option<Outcome> {
     if let Some((out, cmd)) = h.edit_menu().on_key(key) {
         return Some(run(h, out, cmd));
@@ -351,9 +258,6 @@ pub fn edit_menu_key<H: EditMenuHost + ?Sized>(h: &mut H, key: &Key) -> Option<O
     open_for(h, anchor);
     Some(Outcome::Changed)
 }
-
-
-
 
 pub fn edit_menu_pointer<H: EditMenuHost + ?Sized>(
     h: &mut H,
@@ -374,8 +278,6 @@ pub fn edit_menu_pointer<H: EditMenuHost + ?Sized>(
     Some(Outcome::Changed)
 }
 
-
-
 pub fn edit_menu_route<H>(
     h: &mut H,
     ev: &PointerEvent,
@@ -388,10 +290,6 @@ where
     (mine || menu).then(|| h.pointer(ev))
 }
 
-
-
-
-
 pub fn point_editable<T: Editable + ?Sized>(t: &mut T, pos: Position) {
     t.pointer_focus();
     t.pointer_begin();
@@ -400,13 +298,9 @@ pub fn point_editable<T: Editable + ?Sized>(t: &mut T, pos: Position) {
     t.pointer_after();
 }
 
-
-
 pub fn editable_target<T: Editable + ?Sized>(t: &T, ev: &PointerEvent) -> bool {
     t.pointer_enabled() && !t.on_label(ev.pos())
 }
-
-
 
 pub fn point_field(field: &mut EditField, offset: usize) {
     if field

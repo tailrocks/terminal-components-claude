@@ -1,20 +1,5 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 use crate::core::event::{ClientPlatform, Key};
 use ratatui::crossterm::event::{KeyCode, KeyModifiers};
-
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Nav {
@@ -28,24 +13,8 @@ pub enum Nav {
     End,
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct NavKeys {
-
     pub arrows: bool,
 
     pub vim: bool,
@@ -56,9 +25,6 @@ pub struct NavKeys {
 }
 
 impl NavKeys {
-
-
-
     pub const DESKTOP: Self = Self {
         arrows: true,
         vim: false,
@@ -66,47 +32,34 @@ impl NavKeys {
         home_end: true,
     };
 
-
-
     pub const VIM: Self = Self {
         vim: true,
         ..Self::DESKTOP
     };
 
-
-
-
     pub const DEFAULT: Self = Self::DESKTOP;
 
-
-
     pub const NO_VIM: Self = Self::DESKTOP;
-
 
     pub const fn vim(mut self, on: bool) -> Self {
         self.vim = on;
         self
     }
 
-
     pub const fn page(mut self, on: bool) -> Self {
         self.page = on;
         self
     }
-
 
     pub const fn home_end(mut self, on: bool) -> Self {
         self.home_end = on;
         self
     }
 
-
     pub const fn arrows(mut self, on: bool) -> Self {
         self.arrows = on;
         self
     }
-
-
 
     pub fn action(&self, key: &Key) -> Option<Nav> {
         let nav = match key.code {
@@ -132,11 +85,6 @@ impl NavKeys {
         Some(nav)
     }
 
-
-
-
-
-
     pub const fn move_hint(&self, type_ahead: bool) -> Option<&'static str> {
         if self.arrows {
             Some("↑↓")
@@ -147,14 +95,9 @@ impl NavKeys {
         }
     }
 
-
     pub const fn page_hint(&self) -> Option<&'static str> {
         if self.page { Some("PgUp PgDn") } else { None }
     }
-
-
-
-
 
     pub const fn ends_hint(&self, type_ahead: bool) -> Option<&'static str> {
         if self.vim && !type_ahead {
@@ -166,9 +109,6 @@ impl NavKeys {
         }
     }
 
-
-
-
     pub fn is_vim_letter(key: &Key) -> bool {
         matches!(
             key.code,
@@ -178,30 +118,15 @@ impl NavKeys {
 }
 
 impl Default for NavKeys {
-
-
-
-
     fn default() -> Self {
         crate::core::list::NavProfile::current().nav()
     }
 }
 
-
-
-
-
-
-
-
-
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct KeyBinding {
     pub code: KeyCode,
     pub mods: KeyModifiers,
-
-
 
     pub alt_stand_in: bool,
 }
@@ -215,52 +140,34 @@ impl KeyBinding {
         }
     }
 
-
-
-
-
-
     pub const fn alt_stand_in(mut self) -> Self {
         self.alt_stand_in = true;
         self
     }
 
-
     pub const fn key(code: KeyCode) -> Self {
         Self::new(code, KeyModifiers::NONE)
     }
-
 
     pub const fn char(c: char) -> Self {
         Self::key(KeyCode::Char(c))
     }
 
-
     pub const fn ctrl(c: char) -> Self {
         Self::new(KeyCode::Char(c), KeyModifiers::CONTROL)
     }
-
 
     pub const fn alt(c: char) -> Self {
         Self::new(KeyCode::Char(c), KeyModifiers::ALT)
     }
 
-
-
     pub const fn cmd(c: char) -> Self {
         Self::new(KeyCode::Char(c), KeyModifiers::SUPER)
     }
 
-
-
     pub const fn shift(self) -> Self {
         Self::new(self.code, self.mods.union(KeyModifiers::SHIFT))
     }
-
-
-
-
-
 
     pub fn deliverable(&self) -> bool {
         use crate::core::keyboard::{alt_delivered, super_delivered};
@@ -268,8 +175,6 @@ impl KeyBinding {
             && (!self.mods.contains(KeyModifiers::ALT) || alt_delivered())
             && (!self.alt_stand_in || !alt_delivered())
     }
-
-
 
     pub fn matches(&self, key: &Key) -> bool {
         if self.code != key.code {
@@ -287,13 +192,9 @@ impl KeyBinding {
         }
     }
 
-
-
     pub fn label(&self) -> String {
         self.label_on(ClientPlatform::current())
     }
-
-
 
     pub fn label_on(&self, platform: ClientPlatform) -> String {
         let mut out = String::new();
@@ -367,39 +268,25 @@ impl From<char> for KeyBinding {
     }
 }
 
-
-
 pub type KeyMap<A> = Vec<(KeyBinding, A)>;
 
-
 pub trait Actions: Copy + PartialEq + Sized + 'static {
-
     fn default_keymap() -> KeyMap<Self>;
-
-
 
     fn label(self) -> &'static str;
 }
-
 
 pub fn lookup<A: Copy>(map: &[(KeyBinding, A)], key: &Key) -> Option<A> {
     map.iter().find(|(b, _)| b.matches(key)).map(|&(_, a)| a)
 }
 
-
-
-
-
 pub fn unassigned_chord<A: Copy>(key: &Key, map: &[(KeyBinding, A)]) -> bool {
     matches!(key.code, KeyCode::Char(_)) && key.chord() && lookup(map, key).is_none()
 }
 
-
 pub fn binding_for<A: PartialEq>(map: &[(KeyBinding, A)], action: A) -> Option<KeyBinding> {
     map.iter().find(|(_, a)| *a == action).map(|&(b, _)| b)
 }
-
-
 
 pub fn deliverable_binding_for<A: PartialEq>(
     map: &[(KeyBinding, A)],
@@ -410,28 +297,15 @@ pub fn deliverable_binding_for<A: PartialEq>(
         .map(|&(b, _)| b)
 }
 
-
 pub fn label_for<A: PartialEq>(map: &[(KeyBinding, A)], action: A) -> Option<String> {
     deliverable_binding_for(map, action).map(|b| b.label())
 }
 
-
-
-
-
-
 pub const SELECT_ALL: [KeyBinding; 2] = [KeyBinding::cmd('a'), KeyBinding::ctrl('a')];
-
-
 
 pub fn select_all_bindings<A: Copy>(action: A) -> impl Iterator<Item = (KeyBinding, A)> {
     SELECT_ALL.into_iter().map(move |b| (b, action))
 }
-
-
-
-
-
 
 pub fn hint_key<A: PartialEq>(map: &[(KeyBinding, A)], action: A) -> Option<&'static str> {
     use std::collections::HashMap;
@@ -444,9 +318,6 @@ pub fn hint_key<A: PartialEq>(map: &[(KeyBinding, A)], action: A) -> Option<&'st
         .unwrap_or_else(|e| e.into_inner());
     Some(labels.entry(b).or_insert_with(|| intern(b.label())))
 }
-
-
-
 
 pub fn intern(label: String) -> &'static str {
     use std::collections::HashSet;
@@ -478,8 +349,6 @@ mod tests {
     fn with(code: KeyCode, mods: KeyModifiers) -> Key {
         Key { code, mods }
     }
-
-
 
     #[test]
     fn nav_hints_name_only_keys_that_navigate() {
@@ -712,10 +581,6 @@ mod tests {
         assert_eq!(binding_for(&remapped, TestCmd::Add), None);
     }
 }
-
-
-
-
 
 #[cfg(test)]
 mod widget_tests {

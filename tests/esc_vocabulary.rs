@@ -1,13 +1,4 @@
-
-
-
-
-
-
 use std::path::{Path, PathBuf};
-
-
-
 
 const VERBS: [&str; 9] = [
     "cancel", "close", "back", "clear", "done", "discard", "exit", "release", "restore",
@@ -24,8 +15,6 @@ fn sources(dir: &Path, out: &mut Vec<PathBuf>) {
     }
 }
 
-
-
 fn esc_labels(text: &str) -> Vec<(usize, String)> {
     let mut found = vec![];
     let mut rest = text;
@@ -33,7 +22,6 @@ fn esc_labels(text: &str) -> Vec<(usize, String)> {
     while let Some(i) = rest.find("\"Esc\",") {
         let after = &rest[i + 6..];
         let trimmed = after.trim_start();
-
 
         let opens_pair = rest[..i].trim_end().ends_with('(');
         if opens_pair

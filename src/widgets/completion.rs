@@ -1,8 +1,3 @@
-
-
-
-
-
 use ratatui::buffer::Buffer;
 use ratatui::crossterm::event::KeyCode;
 use ratatui::layout::Rect;
@@ -18,8 +13,6 @@ use crate::ui::popup::{Dismiss, Placement, backdrop_id, place_with, surface_for}
 use crate::ui::text::{truncate, width};
 use crate::widgets::option_list::{Item, OptionList};
 
-
-
 pub const TEXT_INSET: u16 = 4;
 
 #[derive(Debug, Clone)]
@@ -27,7 +20,6 @@ pub struct Completion {
     pub id: WidgetId,
 
     pub items: Vec<Item>,
-
 
     pub list: OptionList,
     pub anchor: Rect,
@@ -43,23 +35,17 @@ pub enum CompletionAction {
 }
 
 impl Completion {
-
-
-
     pub const NAV: NavKeys = NavKeys::NO_VIM.home_end(false);
-
 
     pub fn nav(mut self, nav: NavKeys) -> Self {
         self.list.nav = nav;
         self
     }
 
-
     pub fn max_rows(mut self, rows: u16) -> Self {
         self.list.max_rows = rows;
         self
     }
-
 
     pub fn popup_width(mut self, min: u16, max: u16) -> Self {
         self.list = self.list.width(min, max);
@@ -69,17 +55,10 @@ impl Completion {
     pub fn new(id: WidgetId) -> Self {
         let list = OptionList::new(id)
             .width(24, 48)
-
-
             .fit(crate::ui::popup::Place::DEFAULT.text_inset(TEXT_INSET))
-
-
             .dismiss(Dismiss::LIGHT.pass_through(true))
             .nav(Self::NAV)
-
             .type_ahead(false)
-
-
             .hover_moves_cursor(false);
         Self {
             id,
@@ -91,29 +70,20 @@ impl Completion {
         }
     }
 
-
-
     pub fn placement(mut self, placement: Placement) -> Self {
         self.list.placement = placement;
         self
     }
-
-
-
 
     pub fn fit(mut self, fit: crate::ui::popup::Place) -> Self {
         self.list.fit = fit;
         self
     }
 
-
-
     pub fn cursor_style(mut self, cursor_style: CursorStyle) -> Self {
         self.list.look = cursor_style;
         self
     }
-
-
 
     pub fn dismiss(mut self, dismiss: Dismiss) -> Self {
         self.list.dismiss = dismiss;
@@ -138,11 +108,6 @@ impl Completion {
     pub fn current(&self) -> Option<&Item> {
         self.items.get(self.list.cursor.index)
     }
-
-
-
-
-
 
     pub fn apply(&self, i: usize, buffer: &mut crate::core::text::TextBuffer) {
         let Some(item) = self.items.get(i) else {
@@ -238,7 +203,6 @@ impl Completion {
             .intersection(*buf.area())
             .inner(ratatui::layout::Margin::new(1, 1));
 
-
         self.list.layout(inner, &self.items[..], ctx);
 
         let me = self.clone();
@@ -305,8 +269,6 @@ impl Completion {
     }
 }
 
-
-
 impl RowSource for Completion {
     fn len(&self) -> usize {
         self.items.len()
@@ -322,18 +284,11 @@ impl RowSource for Completion {
     }
 }
 
-
 impl Navigable for Completion {
     fn cursor(&self) -> Cursor {
         self.list.cursor
     }
 }
-
-
-
-
-
-
 
 impl crate::core::pointer::MouseTarget for Completion {
     type Action = CompletionAction;
@@ -468,9 +423,6 @@ mod tests {
         let buf = draw(&mut barred, 24);
         assert_eq!(bars(&buf), 1);
     }
-
-
-
 
     fn wheel(c: &mut Completion, delta: i32) -> Outcome {
         use crate::core::pointer::{MouseTarget, PointerEvent};

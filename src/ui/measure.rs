@@ -1,49 +1,22 @@
-
-
-
-
-
-
-
-
-
 use ratatui::layout::Size;
 
 use crate::ui::ctx::RenderCtx;
 
-
 pub trait Measure {
-
-
-
     fn measure(&self, avail: Size, ctx: &RenderCtx) -> Size;
-
-
-
-
-
-
-
-
 
     fn min_width(&self, avail: Size, ctx: &RenderCtx) -> u16 {
         self.measure(avail, ctx).width
     }
 }
 
-
-
 pub fn at_least(size: Size, min: Size) -> Size {
     Size::new(size.width.max(min.width), size.height.max(min.height))
 }
 
-
-
-
 pub struct Tile<'a> {
     pub min_width: u16,
     pub height: &'a dyn Fn(u16) -> u16,
-
 
     pub grow: bool,
 }
@@ -57,38 +30,25 @@ impl<'a> Tile<'a> {
         }
     }
 
-
     pub fn fixed(mut self) -> Self {
         self.grow = false;
         self
     }
 }
 
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Tiled {
-
     pub rects: Vec<ratatui::layout::Rect>,
 
     pub size: Size,
 }
 
 impl Tiled {
-
     pub fn at(&self, i: usize, origin: ratatui::layout::Rect) -> ratatui::layout::Rect {
         let r = self.rects.get(i).copied().unwrap_or_default();
         ratatui::layout::Rect::new(origin.x + r.x, origin.y + r.y, r.width, r.height)
     }
 }
-
-
-
-
-
-
-
-
-
 
 pub fn tiles(width: u16, rows: &[&[Tile]], gap: (u16, u16)) -> Tiled {
     use ratatui::layout::Rect;
@@ -107,8 +67,6 @@ pub fn tiles(width: u16, rows: &[&[Tile]], gap: (u16, u16)) -> Tiled {
         let gaps = gap.0.saturating_mul(n - 1);
         let mins: u16 = row.iter().map(|t| t.min_width).sum();
         if mins.saturating_add(gaps) <= width {
-
-
             let mut widths: Vec<u16> = row.iter().map(|t| t.min_width).collect();
             let mut spare = width - gaps - mins;
             let fixed: u16 = row.iter().filter(|t| !t.grow).map(|t| t.min_width).sum();
@@ -160,8 +118,6 @@ pub fn tiles(width: u16, rows: &[&[Tile]], gap: (u16, u16)) -> Tiled {
 mod tests {
     use super::*;
     use ratatui::layout::Rect;
-
-
 
     #[test]
     fn tiles_share_a_row_or_stack() {

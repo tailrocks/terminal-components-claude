@@ -1,23 +1,3 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 use crate::clock::Moment;
 use crate::core::event::{Input, MouseKind};
 use crate::theme::Tone;
@@ -32,11 +12,6 @@ struct Message<P> {
     job: Option<JobKey>,
 }
 
-
-
-
-
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct JobKey(&'static str);
 
@@ -45,19 +20,15 @@ impl JobKey {
         Self(name)
     }
 
-
     pub const fn name(self) -> &'static str {
         self.0
     }
 }
 
-
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct StatusLine<P = ()> {
     message: Option<Message<P>>,
     ttl_ms: u64,
-
 
     now: Moment,
 }
@@ -69,7 +40,6 @@ impl<P> Default for StatusLine<P> {
 }
 
 impl<P> StatusLine<P> {
-
     pub const DEFAULT_TTL_MS: u64 = 5_000;
 
     pub const fn new() -> Self {
@@ -80,21 +50,14 @@ impl<P> StatusLine<P> {
         }
     }
 
-
-
     pub const fn ttl_ms(mut self, ms: u64) -> Self {
         self.ttl_ms = ms;
         self
     }
 
-
-
     pub fn observe(&mut self, now: Moment) {
         self.now = self.now.max(now);
     }
-
-
-
 
     pub fn set_with(&mut self, text: impl Into<String>, tone: Tone, payload: P) {
         self.message = Some(Message {
@@ -106,11 +69,6 @@ impl<P> StatusLine<P> {
         });
     }
 
-
-
-
-
-
     pub fn end_job(&mut self, job: JobKey) -> bool {
         let showing = self.message.as_ref().is_some_and(|m| m.job == Some(job));
         if showing {
@@ -119,27 +77,22 @@ impl<P> StatusLine<P> {
         showing
     }
 
-
     pub fn job(&self) -> Option<JobKey> {
         self.message.as_ref().and_then(|m| m.job)
     }
-
 
     pub fn set_with_at(&mut self, text: impl Into<String>, tone: Tone, payload: P, now: Moment) {
         self.observe(now);
         self.set_with(text, tone, payload)
     }
 
-
     pub fn clear(&mut self) -> bool {
         self.message.take().is_some()
     }
 
-
     pub fn get(&self) -> Option<(&str, Tone)> {
         self.message.as_ref().map(|m| (m.text.as_str(), m.tone))
     }
-
 
     pub fn entry(&self) -> Option<(&str, Tone, &P)> {
         self.message
@@ -147,11 +100,9 @@ impl<P> StatusLine<P> {
             .map(|m| (m.text.as_str(), m.tone, &m.payload))
     }
 
-
     pub fn payload(&self) -> Option<&P> {
         self.message.as_ref().map(|m| &m.payload)
     }
-
 
     pub fn text(&self) -> Option<&str> {
         self.get().map(|(text, _)| text)
@@ -165,12 +116,9 @@ impl<P> StatusLine<P> {
         self.message.is_none()
     }
 
-
     pub fn is_error(&self) -> bool {
         self.message.as_ref().is_some_and(|m| m.tone == Tone::Error)
     }
-
-
 
     pub fn expire(&mut self, now: Moment) -> bool {
         self.observe(now);
@@ -183,10 +131,6 @@ impl<P> StatusLine<P> {
         }
         due
     }
-
-
-
-
 
     pub fn on_input(&mut self, input: &Input) -> bool {
         let acts = match input {
@@ -206,24 +150,18 @@ impl<P> StatusLine<P> {
 }
 
 impl<P: Default> StatusLine<P> {
-
     pub fn set(&mut self, text: impl Into<String>, tone: Tone) {
         self.set_with(text, tone, P::default())
     }
-
 
     pub fn set_at(&mut self, text: impl Into<String>, tone: Tone, now: Moment) {
         self.observe(now);
         self.set(text, tone)
     }
 
-
     pub fn error(&mut self, text: impl Into<String>) {
         self.set(text, Tone::Error)
     }
-
-
-
 
     pub fn progress(&mut self, job: JobKey, text: impl Into<String>) {
         self.set(text, Tone::Secondary);
@@ -231,7 +169,6 @@ impl<P: Default> StatusLine<P> {
             m.job = Some(job);
         }
     }
-
 
     pub fn progress_at(&mut self, job: JobKey, text: impl Into<String>, now: Moment) {
         self.observe(now);
@@ -294,7 +231,6 @@ mod tests {
         assert!(s.is_none());
         assert!(!s.on_input(&Input::Key(key)), "nothing left to clear");
     }
-
 
     #[test]
     fn a_progress_status_ends_with_its_job() {

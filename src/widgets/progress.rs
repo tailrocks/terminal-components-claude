@@ -5,11 +5,7 @@ use ratatui::style::Color;
 use crate::ui::ctx::RenderCtx;
 use crate::ui::text::width;
 
-
-
 pub const SPINNER: [&str; 10] = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
-
-
 
 pub fn spinner_frame(tick: u64) -> &'static str {
     SPINNER[(tick % SPINNER.len() as u64) as usize]
@@ -23,21 +19,11 @@ pub enum ProgressStatus {
     Paused,
 }
 
-
-
 pub const VALUE_W: u16 = 7;
-
-
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct BarLayout {
-
-
-
     pub label_width: Option<u16>,
-
-
-
 
     pub reserve_value: bool,
 }
@@ -61,7 +47,6 @@ impl BarLayout {
         self
     }
 
-
     fn label(&self, area: Rect, buf: &mut Buffer, ctx: &RenderCtx, label: &str, bg: Color) -> u16 {
         let label_w = self.label_width.unwrap_or(width(label) as u16);
         let has_label = label_w > 0 && !label.is_empty() && area.width > label_w + 8;
@@ -73,7 +58,6 @@ impl BarLayout {
         area.x + label_w + 2
     }
 }
-
 
 pub fn render_bar(
     area: Rect,
@@ -95,7 +79,6 @@ pub fn render_bar(
         BarLayout::default(),
     );
 }
-
 
 #[allow(clippy::too_many_arguments)]
 pub fn render_bar_with(
@@ -126,14 +109,10 @@ pub fn render_bar_with(
     };
     let track_w = area.right().saturating_sub(x).saturating_sub(VALUE_W);
     if track_w < 6 {
-
         buf.set_string(x, area.y, pct.trim_start(), t.secondary().bg(bg));
         return;
     }
     let filled = ((track_w as f64) * ratio).round() as u16;
-
-
-
 
     let fill_color = match status {
         ProgressStatus::Active => t.tone(crate::theme::Tone::Active),
@@ -161,10 +140,6 @@ pub fn render_bar_with(
     buf.set_string(x + pct_w, area.y, &suffix, st);
 }
 
-
-
-
-
 pub const METER_LOW_MAX: u8 = 59;
 pub const METER_MEDIUM_MAX: u8 = 84;
 
@@ -180,8 +155,6 @@ impl MeterLevel {
         Self::with_thresholds(pct, METER_LOW_MAX + 1, METER_MEDIUM_MAX + 1)
     }
 
-
-
     pub fn with_thresholds(pct: u8, warn: u8, crit: u8) -> Self {
         if pct >= crit {
             MeterLevel::High
@@ -193,38 +166,29 @@ impl MeterLevel {
     }
 }
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum MeterVisual {
-
     #[default]
     Line,
-
 
     Block,
 }
 
-
-
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum MeterTone {
-
-
     #[default]
     Normal,
 
-
-
-    Level { warn: u8, crit: u8 },
+    Level {
+        warn: u8,
+        crit: u8,
+    },
 
     Fixed(MeterLevel),
 
     Warning,
 
     Exhausted,
-
-
 
     Stale,
 
@@ -236,7 +200,6 @@ pub enum MeterTone {
 }
 
 impl MeterTone {
-
     pub fn level(self, used_pct: Option<u8>) -> Option<MeterLevel> {
         match self {
             MeterTone::Normal | MeterTone::Stale => used_pct.map(MeterLevel::of),
@@ -251,28 +214,13 @@ impl MeterTone {
     }
 }
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum StaleStyle {
-
-
-
-
     #[default]
     Dashed,
 
-
     Faint,
 }
-
-
-
-
-
-
-
-
-
 
 #[derive(Debug, Clone)]
 pub struct Meter {
@@ -286,13 +234,11 @@ pub struct Meter {
     pub stale_style: StaleStyle,
 }
 
-
 struct MeterPaint {
     run: Color,
     text: ratatui::style::Style,
     suffix: String,
     has_run: bool,
-
 
     fill: &'static str,
 
@@ -325,8 +271,6 @@ impl Meter {
         self
     }
 
-
-
     pub fn stale(mut self, on: bool) -> Self {
         self.stale = on;
         self
@@ -336,8 +280,6 @@ impl Meter {
         self.stale_style = style;
         self
     }
-
-
 
     pub fn is_stale(&self) -> bool {
         (self.stale || self.tone == MeterTone::Stale)
@@ -396,8 +338,6 @@ impl Meter {
         if self.is_stale() {
             match self.stale_style {
                 StaleStyle::Dashed => {
-
-
                     paint.fill = t.glyphs.bar_stale;
                     paint.text = Style::new()
                         .fg(t.legible(t.text_muted, bg))
@@ -442,7 +382,6 @@ impl Meter {
             suffix_style = suffix_style.add_modifier(ratatui::style::Modifier::BOLD);
         }
         if !has_run {
-
             let text = crate::ui::text::truncate(&value, area.width.saturating_sub(2) as usize);
             buf.set_string(area.x, area.y, &text, text_style);
             let sx = area.x + width(&text) as u16;
@@ -453,7 +392,6 @@ impl Meter {
         }
         match self.visual {
             MeterVisual::Line => {
-
                 let track_w = area.width.saturating_sub(vw + 3);
                 if track_w < MIN_TRACK {
                     buf.set_string(
@@ -484,8 +422,6 @@ impl Meter {
                 buf.set_string(x + vw, area.y, suffix, suffix_style);
             }
             MeterVisual::Block => {
-
-
                 let bar_w = area.width.saturating_sub(2);
                 if bar_w < 4 {
                     buf.set_string(
@@ -504,7 +440,6 @@ impl Meter {
                     t.canvas
                 };
                 let on_rest = if paint.faint || paint.dashed || self.tone == MeterTone::Refreshing {
-
                     t.legible(t.text_muted, rest_bg)
                 } else {
                     t.text_primary
@@ -520,7 +455,6 @@ impl Meter {
                         st = st.add_modifier(ratatui::style::Modifier::BOLD);
                     }
                     if paint.dashed {
-
                         st = st.add_modifier(ratatui::style::Modifier::ITALIC);
                     }
 
@@ -537,13 +471,7 @@ impl Meter {
     }
 }
 
-
-
 const MIN_TRACK: u16 = 6;
-
-
-
-
 
 impl crate::ui::measure::Measure for Meter {
     fn measure(&self, _avail: Size, ctx: &RenderCtx) -> Size {
@@ -566,8 +494,6 @@ impl crate::ui::measure::Measure for Meter {
     }
 }
 
-
-
 pub fn render_meter(
     area: Rect,
     buf: &mut Buffer,
@@ -583,7 +509,6 @@ pub fn render_meter(
         .render(area, buf, ctx, bg);
 }
 
-
 pub fn render_indeterminate(
     area: Rect,
     buf: &mut Buffer,
@@ -593,7 +518,6 @@ pub fn render_indeterminate(
 ) {
     render_indeterminate_with(area, buf, ctx, label, bg, BarLayout::default());
 }
-
 
 pub fn render_indeterminate_with(
     area: Rect,
@@ -634,7 +558,6 @@ pub fn render_indeterminate_with(
     }
 }
 
-
 pub fn render_spinner(area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, label: &str, bg: Color) {
     let area = area.intersection(*buf.area());
     if area.is_empty() {
@@ -659,14 +582,9 @@ pub fn render_spinner(area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, label: 
     );
 }
 
-
-
-
-
 #[derive(Debug, Clone, PartialEq)]
 pub struct ProgressBar {
     pub label: String,
-
 
     pub ratio: Option<f64>,
     pub status: ProgressStatus,
@@ -674,7 +592,6 @@ pub struct ProgressBar {
 }
 
 impl ProgressBar {
-
     pub fn new(label: &str, ratio: f64) -> Self {
         Self {
             label: label.to_owned(),
@@ -709,10 +626,6 @@ impl ProgressBar {
     }
 }
 
-
-
-
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct Tally {
     pub done: usize,
@@ -723,8 +636,6 @@ pub struct Tally {
 }
 
 impl Tally {
-
-
     pub fn of(statuses: impl IntoIterator<Item = ProgressStatus>) -> Self {
         let mut t = Self::default();
         for s in statuses {
@@ -738,7 +649,6 @@ impl Tally {
         }
         t
     }
-
 
     fn clauses(&self) -> Vec<(String, bool)> {
         let mut out = vec![(format!("{} of {} done", self.done, self.total), false)];
@@ -754,7 +664,6 @@ impl Tally {
         out
     }
 
-
     pub fn text(&self) -> String {
         self.clauses()
             .into_iter()
@@ -762,8 +671,6 @@ impl Tally {
             .collect::<Vec<_>>()
             .join(" · ")
     }
-
-
 
     pub fn render(&self, area: Rect, buf: &mut Buffer, ctx: &RenderCtx, bg: Color) -> u16 {
         let area = area.intersection(*buf.area());
@@ -789,15 +696,12 @@ impl Tally {
     }
 }
 
-
 const SAMPLE_ID: crate::core::id::WidgetId = crate::core::id::WidgetId::of("progress-sample");
 
 impl crate::ui::specimen::Specimen for ProgressBar {
     fn specimen_id(&self) -> crate::core::id::WidgetId {
         SAMPLE_ID
     }
-
-
 
     fn supports(&self, state: crate::ui::specimen::SpecimenState) -> bool {
         use crate::ui::specimen::SpecimenState::*;
@@ -834,8 +738,6 @@ impl crate::ui::specimen::Specimen for Meter {
     fn specimen_id(&self) -> crate::core::id::WidgetId {
         SAMPLE_ID
     }
-
-
 
     fn supports(&self, state: crate::ui::specimen::SpecimenState) -> bool {
         use crate::ui::specimen::SpecimenState::*;
@@ -877,10 +779,6 @@ mod tests {
     use crate::core::hit::HitRegistry;
     use crate::theme::Theme;
     use crate::ui::ctx::Interaction;
-
-
-
-
 
     #[test]
     fn the_activity_spinner_and_label_read_on_every_plane_at_every_level() {
@@ -1012,7 +910,6 @@ mod tests {
             .collect()
     }
 
-
     fn track_ends(layout: BarLayout, labels: [&str; 2]) -> (u16, u16, u16, u16) {
         let theme = Theme::junie();
         let mut hits = HitRegistry::default();
@@ -1044,8 +941,6 @@ mod tests {
         (a0, a1, b0, b1)
     }
 
-
-
     #[test]
     fn determinate_and_indeterminate_tracks_line_up() {
         let (a0, a1, b0, b1) = track_ends(BarLayout::default(), ["Build", "Build"]);
@@ -1072,7 +967,6 @@ mod tests {
         assert_eq!(MeterLevel::of(85), MeterLevel::High);
         assert_eq!(MeterLevel::of(100), MeterLevel::High);
         assert_eq!(MeterTone::Normal.level(Some(70)), Some(MeterLevel::Medium));
-
 
         assert_eq!(MeterTone::Stale.level(Some(70)), Some(MeterLevel::Medium));
         assert_eq!(MeterTone::Refreshing.level(Some(70)), None);
@@ -1177,10 +1071,6 @@ mod tests {
         assert!(text(&buf).contains("refreshing"));
     }
 
-
-
-
-
     #[test]
     fn stale_meter_keeps_its_level_with_a_cue_that_survives_mono() {
         use crate::theme::{ColorLevel, contrast_ratio};
@@ -1205,7 +1095,6 @@ mod tests {
                     assert!(c >= 4.5, "{level:?}: stale value {c:.2}:1");
                 }
 
-
                 let fresh = render_at(&Meter::new(Some(76)).value("76%"), 30, &t, bg);
                 assert_ne!(fresh[(0, 0)].symbol(), buf[(0, 0)].symbol());
                 assert!(!fresh[(25, 0)].modifier.contains(Modifier::ITALIC));
@@ -1223,9 +1112,6 @@ mod tests {
         assert_eq!(buf[(0, 0)].symbol(), "~");
         assert_ne!(t.glyphs.bar_stale, t.glyphs.bar_fill);
     }
-
-
-
 
     #[test]
     fn stale_composes_with_tones_and_the_faint_style_is_an_override() {
@@ -1281,10 +1167,6 @@ mod tests {
                 .contains(ratatui::style::Modifier::ITALIC)
         );
     }
-
-
-
-
 
     #[test]
     fn active_bar_runs_in_the_active_tone_apart_from_done() {

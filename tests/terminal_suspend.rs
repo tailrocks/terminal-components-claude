@@ -1,36 +1,3 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #![cfg(any(target_os = "macos", target_os = "linux"))]
 
 use std::ffi::{CStr, c_int};
@@ -71,7 +38,6 @@ fn exit_code(status: c_int) -> i32 {
     }
 }
 
-
 fn mark(path: &Path, line: &str) {
     let mut f = OpenOptions::new()
         .create(true)
@@ -82,17 +48,9 @@ fn mark(path: &Path, line: &str) {
     f.flush().expect("flush a marker");
 }
 
-
-
-
-
-
 fn helper_main() -> ! {
     let bin = std::env::var(HELPER_BIN).expect("application path");
     let markers = PathBuf::from(std::env::var(HELPER_MARKERS).expect("marker file"));
-
-
-
 
     unsafe {
         libc::setsid();
@@ -143,7 +101,6 @@ fn helper_main() -> ! {
             std::process::exit(1);
         }
         if stopped(status) {
-
             unsafe {
                 libc::tcsetpgrp(0, libc::getpgrp());
             }
@@ -166,7 +123,6 @@ fn helper_main() -> ! {
     }
 }
 
-
 fn marker_path() -> PathBuf {
     let nanos = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
@@ -176,8 +132,6 @@ fn marker_path() -> PathBuf {
         std::process::id()
     ))
 }
-
-
 
 struct Job {
     session: Session,
@@ -237,8 +191,6 @@ impl Job {
         self.session.observe_now().ok()
     }
 
-
-
     fn termios(&self) -> libc::termios {
         let tty = self.marker("TTY=").expect("the helper reported its tty");
         let dev: File = OpenOptions::new()
@@ -273,7 +225,6 @@ impl Drop for Job {
 }
 
 fn termios_bytes(t: &libc::termios) -> Vec<u8> {
-
     unsafe {
         std::slice::from_raw_parts(
             (t as *const libc::termios).cast::<u8>(),
@@ -305,8 +256,6 @@ fn has_mouse(m: &[u16]) -> bool {
     m.iter().any(|n| [1000, 1002, 1003, 1006].contains(n))
 }
 
-
-
 fn fresh_frame(cols: u16, rows: u16) -> String {
     let session = Tui::new([env!("CARGO_BIN_EXE_holla")])
         .args(APP_ARGS)
@@ -333,7 +282,6 @@ fn fresh_frame(cols: u16, rows: u16) -> String {
     let _ = session.close();
     text(&obs)
 }
-
 
 #[test]
 fn helper_entry() {
@@ -362,9 +310,6 @@ fn external_sigtstp_restores_the_shell_and_fg_reenters_at_the_new_geometry() {
     let drawn = first.revision;
 
     for cycle in 1..=2 {
-
-
-
         assert_eq!(
             unsafe { libc::kill(pid, libc::SIGTSTP) },
             0,
@@ -383,7 +328,6 @@ fn external_sigtstp_restores_the_shell_and_fg_reenters_at_the_new_geometry() {
             "cycle {cycle}: exact launch termios while stopped"
         );
 
-
         let obs = job.observe().expect("an observation while stopped");
         let m = modes(&obs);
         assert!(
@@ -395,7 +339,6 @@ fn external_sigtstp_restores_the_shell_and_fg_reenters_at_the_new_geometry() {
         assert!(!m.contains(&1004), "focus reporting released (SIg1): {m:?}");
         assert!(m.contains(&7), "line wrap re-enabled for the shell: {m:?}");
 
-
         let (cols, rows) = if cycle == 1 { (100, 30) } else { (80, 24) };
         let expected = fresh_frame(cols, rows);
         job.session
@@ -403,7 +346,6 @@ fn external_sigtstp_restores_the_shell_and_fg_reenters_at_the_new_geometry() {
             .expect("resize while stopped");
         job.session.send_text("fg\n").expect("fg");
         job.wait_until("raw mode after fg", Job::is_raw);
-
 
         let resumed = job.session.wait_predicate(
             |o| modes(o).contains(&1049) && text(o) == expected,
@@ -444,8 +386,6 @@ fn external_sigtstp_restores_the_shell_and_fg_reenters_at_the_new_geometry() {
         job.session.revision() > drawn,
         "frames were drawn after the first"
     );
-
-
 
     job.session.send_bytes(b"\x11").expect("Ctrl+Q");
     job.wait_until("exit", |j| j.marker("EXIT=").is_some());

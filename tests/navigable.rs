@@ -1,9 +1,3 @@
-
-
-
-
-
-
 use junie_tui::core::event::Key;
 use junie_tui::core::hit::Axis;
 use junie_tui::core::id::WidgetId;
@@ -35,7 +29,6 @@ fn key(code: KeyCode) -> Key {
         mods: KeyModifiers::NONE,
     }
 }
-
 
 trait Probe {
     fn press(&mut self, k: &Key);
@@ -76,11 +69,8 @@ fn id(s: &str) -> WidgetId {
     WidgetId::of(s)
 }
 
-
-
 fn widgets() -> Vec<(&'static str, bool, bool, Box<dyn Probe>)> {
     let d = |i: usize| DISABLED.contains(&i);
-
 
     let mut completion = Completion::new(id("c")).nav(NavKeys::DESKTOP);
     completion.open(
@@ -173,8 +163,6 @@ fn widgets() -> Vec<(&'static str, bool, bool, Box<dyn Probe>)> {
                         .map(|(i, l)| MenuItem::new(*l).disabled(d(i)))
                         .collect(),
                 )
-
-
                 .skip_disabled(true),
                 |w, k| {
                     w.on_key(k);
@@ -251,8 +239,6 @@ fn widgets() -> Vec<(&'static str, bool, bool, Box<dyn Probe>)> {
             "DataGrid",
             false,
             true,
-
-
             probe(grid, |w, k| {
                 let mods = match k.code {
                     KeyCode::Home | KeyCode::End => KeyModifiers::CONTROL,
@@ -301,7 +287,6 @@ fn widgets() -> Vec<(&'static str, bool, bool, Box<dyn Probe>)> {
 fn every_navigable_walks_the_same_rows() {
     NavProfile::Desktop.install();
 
-
     let walk = |fwd: KeyCode, back: KeyCode, wrap: bool| {
         let (last, plain_last) = if wrap { (3, 4) } else { (0, 0) };
         let (first, plain_first) = if wrap { (0, 0) } else { (3, 4) };
@@ -341,7 +326,6 @@ fn every_navigable_ignores_the_vim_letters_by_default_and_takes_them_under_vim()
         profile.install();
         for (name, _, letters, mut w) in widgets() {
             if !letters {
-
                 continue;
             }
             let letter = match w.axis() {

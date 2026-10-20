@@ -1,9 +1,3 @@
-
-
-
-
-
-
 use ratatui::buffer::Buffer;
 use ratatui::crossterm::event::KeyCode;
 use ratatui::layout::Rect;
@@ -15,8 +9,6 @@ use crate::core::keymap::{Nav, NavKeys};
 use crate::core::list::{Cursor, Navigable, RowSource};
 use crate::ui::ctx::RenderCtx;
 use crate::ui::row::{RowLook, RowUi};
-
-
 
 fn row_part(buf: &mut Buffer, row: Rect, offset: u16, text: &str, style: Style) {
     if offset < row.width {
@@ -30,11 +22,8 @@ fn row_part(buf: &mut Buffer, row: Rect, offset: u16, text: &str, style: Style) 
     }
 }
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum CheckHit {
-
-
     #[default]
     Label,
 
@@ -47,8 +36,6 @@ pub struct Checkbox {
     pub label: String,
     pub checked: bool,
     pub disabled: bool,
-
-
 
     pub mixed: bool,
 
@@ -69,12 +56,10 @@ impl Checkbox {
         }
     }
 
-
     pub fn hit(mut self, hit: CheckHit) -> Self {
         self.hit = hit;
         self
     }
-
 
     pub fn mixed(mut self, mixed: bool) -> Self {
         self.mixed = mixed;
@@ -105,8 +90,6 @@ impl Checkbox {
         self.toggle();
         Outcome::Changed
     }
-
-
 
     pub fn width(&self) -> u16 {
         crate::ui::text::width(&self.label) as u16 + 6
@@ -139,8 +122,6 @@ impl Checkbox {
         let mark_style = if self.disabled {
             st
         } else if self.checked || self.mixed {
-
-
             st.fg(t.chosen_in(s))
         } else {
             st.fg(t.text_muted)
@@ -170,12 +151,10 @@ pub struct RadioGroup {
     pub disabled: bool,
     pub areas: Vec<Rect>,
 
-
     pub nav: NavKeys,
 }
 
 impl RadioGroup {
-
     pub fn nav(mut self, nav: NavKeys) -> Self {
         self.nav = nav;
         self
@@ -231,18 +210,13 @@ impl RadioGroup {
         Outcome::Changed
     }
 
-
     pub fn option_id(&self, i: usize) -> WidgetId {
         self.id.part(Self::option_part(i))
     }
 
-
     pub fn option_part(i: usize) -> PartRef {
         PartRef::item(Part::ROW, ItemKey::index(i))
     }
-
-
-
 
     pub fn width(&self) -> u16 {
         let w = |t: &str| crate::ui::text::width(t) as u16;
@@ -359,8 +333,6 @@ impl Toggle {
         Outcome::Changed
     }
 
-
-
     pub fn width(&self) -> u16 {
         crate::ui::text::width(&self.label) as u16 + 10
     }
@@ -434,7 +406,6 @@ impl Navigable for RadioGroup {
     }
 }
 
-
 impl crate::ui::specimen::Specimen for Checkbox {
     fn specimen_id(&self) -> WidgetId {
         self.id
@@ -465,7 +436,6 @@ impl crate::ui::specimen::Specimen for Checkbox {
     }
 }
 
-
 impl crate::ui::specimen::Specimen for Toggle {
     fn specimen_id(&self) -> WidgetId {
         self.id
@@ -495,7 +465,6 @@ impl crate::ui::specimen::Specimen for Toggle {
         t.render(area, buf, ctx, bg);
     }
 }
-
 
 impl crate::ui::specimen::Specimen for RadioGroup {
     fn specimen_id(&self) -> WidgetId {
@@ -530,8 +499,6 @@ impl crate::ui::specimen::Specimen for RadioGroup {
     }
 }
 
-
-
 impl crate::core::pointer::MouseTarget for Checkbox {
     type Action = ();
 
@@ -550,8 +517,6 @@ impl crate::core::pointer::MouseTarget for Checkbox {
     }
 }
 
-
-
 impl crate::core::pointer::MouseTarget for RadioGroup {
     type Action = ();
 
@@ -569,8 +534,6 @@ impl crate::core::pointer::MouseTarget for RadioGroup {
         }
     }
 }
-
-
 
 impl crate::core::pointer::MouseTarget for Toggle {
     type Action = ();
@@ -597,7 +560,6 @@ mod tests {
     use crate::theme::Theme;
     use crate::ui::ctx::Interaction;
 
-
     #[test]
     fn a_toggle_at_its_width_shows_its_label_and_state() {
         let theme = Theme::junie();
@@ -614,8 +576,6 @@ mod tests {
             "{row:?}"
         );
     }
-
-
 
     #[test]
     fn a_checkbox_and_a_radio_group_at_their_widths_show_every_label() {
@@ -676,8 +636,6 @@ mod tests {
         cb.on_key(&space);
         assert!(!cb.checked);
     }
-
-
 
     #[test]
     fn only_the_box_and_label_take_clicks_by_default() {

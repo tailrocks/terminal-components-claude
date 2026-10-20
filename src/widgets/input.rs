@@ -16,10 +16,6 @@ use crate::ui::text::width;
 use crate::widgets::edit::{EditField, Editable, FieldError, LineLook, ValidateWhen, Validator};
 use crate::widgets::field_common::{EditAction, PointerField, PointerSelect, paste_clipboard};
 
-
-
-
-
 impl crate::ui::measure::Measure for TextInput {
     fn measure(
         &self,
@@ -41,7 +37,6 @@ impl crate::ui::measure::Measure for TextInput {
             width(&self.label) + suffix
         };
 
-
         let value = width(self.field.buffer.text()).max(width(&self.placeholder)) + 3 + 1 + 4;
         let message = self
             .field
@@ -56,30 +51,15 @@ impl crate::ui::measure::Measure for TextInput {
     }
 }
 
-
-
-
-
-
-
-
-
-
-
-
 #[derive(Debug, Clone)]
 pub struct TextInput {
     pub id: WidgetId,
     pub label: String,
     pub placeholder: String,
 
-
-
-
     pub field: EditField,
     pub disabled: bool,
     pub required: bool,
-
 
     pub required_message: Option<String>,
 
@@ -89,7 +69,6 @@ pub struct TextInput {
 
     snapshot: String,
 
-
     snapshot_error: Option<FieldError>,
     pub area: Rect,
 
@@ -97,72 +76,41 @@ pub struct TextInput {
 
     pub plain_label: bool,
 
-
     pub masked: bool,
-
 
     pub reveal_tail: u8,
 
-
-
-
     pub wrap_label: bool,
 
-
     pub blur_action: BlurAction,
-
 
     pub edit_entry: Option<EditEntry>,
 
     entry: EditEntry,
 
-
     pub focus_select: FocusSelect,
-
 
     pub field_keys: Option<FieldKeys>,
 
-
     focus_seen: bool,
 
-
     focus_edit: bool,
-
 
     pub label_hit: bool,
 
     pub validate_on: ValidateOn,
 
-
-
-
     pub readout: String,
-
-
-
 
     pub readout_link: Option<WidgetId>,
 
     pub readout_area: Rect,
 
-
-
     pub edit_menu: EditMenu,
 }
 
-
-
-
-
-
-
-
-
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub enum ValidateOn {
-
-
-
     #[default]
     Change,
 
@@ -174,9 +122,7 @@ pub enum InputAction {
     Committed,
     Cancelled,
 
-    CommittedTab {
-        backward: bool,
-    },
+    CommittedTab { backward: bool },
     Changed,
 }
 
@@ -217,19 +163,16 @@ impl TextInput {
         }
     }
 
-
     pub fn readout(mut self, text: &str) -> Self {
         self.readout = text.to_owned();
         self
     }
-
 
     pub fn set_readout(&mut self, text: &str) {
         if self.readout != text {
             self.readout = text.to_owned();
         }
     }
-
 
     pub fn readout_link(mut self, id: WidgetId) -> Self {
         self.readout_link = Some(id);
@@ -240,7 +183,6 @@ impl TextInput {
         self.placeholder = p.to_owned();
         self
     }
-
 
     pub fn required_message(mut self, message: &str) -> Self {
         self.required_message = Some(message.to_owned());
@@ -267,14 +209,10 @@ impl TextInput {
         self
     }
 
-
-
     pub fn validator(mut self, v: impl Fn(&str) -> Option<String> + 'static) -> Self {
         self.field.validator = Some(Validator::check(v));
         self
     }
-
-
 
     pub fn validate_when(mut self, when: ValidateWhen) -> Self {
         self.field.validate_when = when;
@@ -285,7 +223,6 @@ impl TextInput {
         self.field.error_message()
     }
 
-
     pub fn set_error(&mut self, error: Option<String>) {
         self.field.set_error(error.map(FieldError::from));
     }
@@ -293,7 +230,6 @@ impl TextInput {
         self.masked = true;
         self
     }
-
 
     pub fn context_menu(mut self, on: bool) -> Self {
         self.edit_menu.enabled = on;
@@ -329,7 +265,6 @@ impl TextInput {
         self.entry = entry;
     }
 
-
     #[deprecated(note = "use `edit_entry(EditEntry::TypeToEdit)` or `EditEntry::Explicit`")]
     pub fn type_to_edit(self, on: bool) -> Self {
         self.edit_entry(if on {
@@ -362,13 +297,9 @@ impl TextInput {
         self
     }
 
-
     pub fn entry(&self) -> EditEntry {
         self.edit_entry.unwrap_or(self.entry)
     }
-
-
-
 
     pub fn wants_text_input(&self) -> bool {
         !self.disabled && (self.editing || self.entry() != EditEntry::Explicit)
@@ -381,8 +312,6 @@ impl TextInput {
     pub fn can_undo(&self) -> bool {
         self.field.can_undo()
     }
-
-
 
     pub fn hints(&self) -> Vec<crate::widgets::keyhint::Hint> {
         use crate::widgets::keyhint::EDIT_FIELD;
@@ -404,15 +333,10 @@ impl TextInput {
         self
     }
 
-
-
-
-
     pub fn on_blur(&mut self) -> Option<InputAction> {
         if !self.editing {
             return None;
         }
-
 
         if self.entry() == EditEntry::Immediate && !self.is_dirty() {
             self.editing = false;
@@ -432,7 +356,6 @@ impl TextInput {
         }
     }
 
-
     pub fn clear(&mut self) {
         self.field.buffer.set_text("");
         self.snapshot.clear();
@@ -440,9 +363,6 @@ impl TextInput {
         self.field.error = None;
         self.field.clear_history();
     }
-
-
-
 
     fn display_graphemes(&self, editing: bool, mask: &str) -> Vec<(usize, String, usize)> {
         let text = self.field.buffer.text();
@@ -490,25 +410,20 @@ impl TextInput {
     pub fn cancel(&mut self) {
         self.editing = false;
         if self.field.buffer.text() != self.snapshot {
-
             self.field.record(EditKind::Other);
         }
         let snap = self.snapshot.clone();
         self.field.buffer.set_text(snap);
 
-
         let marked = self.snapshot_error.is_some() || self.field.error.is_some();
         self.validate_ended_edit(marked);
     }
-
 
     fn validate_ended_edit(&mut self, changed: bool) {
         if changed || self.field.error.is_some() || self.validate_on == ValidateOn::EveryCommit {
             self.validate();
         }
     }
-
-
 
     fn begin_focus_edit(&mut self) {
         if self.disabled || self.editing {
@@ -519,24 +434,16 @@ impl TextInput {
         self.focus_edit = true;
     }
 
-
-
-
-
     pub fn resume(&mut self) {
         if self.entry() == EditEntry::Immediate {
             self.begin_edit();
         }
     }
 
-
-
     pub fn validate(&mut self) -> bool {
         self.sync_required();
         self.field.validate()
     }
-
-
 
     fn sync_required(&mut self) {
         self.field.required = self.required.then(|| {
@@ -546,23 +453,13 @@ impl TextInput {
         });
     }
 
-
-
-
     pub const HEIGHT: u16 = 3;
 
-
-
-
     pub const GUTTER: u16 = 2;
-
-
 
     pub fn height(&self) -> u16 {
         2 + self.message_rows()
     }
-
-
 
     pub fn height_for(&self, cols: u16) -> u16 {
         self.label_lines(cols).len().max(1) as u16 + 1 + self.message_rows()
@@ -572,8 +469,6 @@ impl TextInput {
         u16::from(self.field.error.is_some() || !self.help.is_empty())
     }
 
-
-
     fn label_lines(&self, cols: u16) -> Vec<String> {
         let room = cols.saturating_sub(Self::GUTTER) as usize;
         if self.wrap_label && room > 0 && width(&self.label) > room {
@@ -582,8 +477,6 @@ impl TextInput {
             vec![self.label.clone()]
         }
     }
-
-
 
     pub fn on_key(&mut self, key: &Key) -> (Outcome, Option<InputAction>) {
         if self.disabled {
@@ -597,16 +490,12 @@ impl TextInput {
             );
         }
 
-
         if key.ctrl_char('c') && (self.masked || self.field.buffer.selected_text().is_none()) {
             return (Outcome::Ignored, None);
         }
         let entry = self.entry();
         if !self.editing {
             match entry {
-
-
-
                 EditEntry::Immediate if self.focus_seen => self.begin_edit(),
                 EditEntry::Immediate => self.begin_focus_edit(),
                 EditEntry::TypeToEdit | EditEntry::Explicit => {
@@ -615,13 +504,11 @@ impl TextInput {
                         return (Outcome::Changed, None);
                     }
 
-
                     if matches!(self.edit_action(key), EditAction::SelectAll) {
                         self.begin_edit();
                         self.field.buffer.select_all();
                         return (Outcome::Changed, None);
                     }
-
 
                     if matches!(self.edit_action(key), EditAction::Paste) {
                         let o = paste_clipboard(|t| self.on_paste(t));
@@ -652,8 +539,6 @@ impl TextInput {
             }
             EditAction::Cancel => {
                 if entry == EditEntry::Immediate && !self.is_dirty() {
-
-
                     return (Outcome::Ignored, None);
                 }
                 self.cancel();
@@ -670,8 +555,6 @@ impl TextInput {
                 )
             }
 
-
-
             EditAction::None if entry == EditEntry::Immediate => (Outcome::Ignored, None),
 
             EditAction::None => (crate::widgets::field_common::unbound_key(key), None),
@@ -685,11 +568,6 @@ impl TextInput {
             }
         }
     }
-
-
-
-
-
 
     pub fn on_paste(&mut self, text: &str) -> Outcome {
         if self.disabled {
@@ -707,61 +585,35 @@ impl TextInput {
         Outcome::Changed
     }
 
-
-
-
     fn offset_at(&self, pos: Position) -> usize {
-
-
         let glyphs = self.display_graphemes(true, crate::theme::Glyphs::UNICODE.mask);
         self.field.glyph_offset_at(pos, &glyphs)
     }
-
 
     pub fn label_hit(mut self, on: bool) -> Self {
         self.label_hit = on;
         self
     }
 
-
     fn on_label(&self, pos: Position) -> bool {
         self.label_hit && pos.y < self.area.y
     }
-
-
-
 
     pub fn on_click(&mut self, pos: Position) -> Outcome {
         self.on_click_count(pos, 1)
     }
 
-
-
-
-
-
     pub fn on_click_count(&mut self, pos: Position, count: u8) -> Outcome {
         PointerField::on_click_count(self, pos, count)
     }
-
-
-
 
     pub fn on_press(&mut self, pos: Position) -> Outcome {
         self.on_press_count(pos, 1)
     }
 
-
-
-
-
     pub fn on_press_count(&mut self, pos: Position, count: u8) -> Outcome {
         PointerField::on_press_count(self, pos, count)
     }
-
-
-
-
 
     pub fn on_drag(&mut self, pos: Position) -> Outcome {
         PointerField::on_drag(self, pos)
@@ -798,7 +650,6 @@ impl TextInput {
         self.entry = self.edit_entry.unwrap_or(ctx.theme.edit_entry);
         self.field.keys = self.field_keys.or(ctx.theme.field_keys).unwrap_or_default();
 
-
         let has_focus = ctx.interaction.has_focus(self.id) && !ctx.inert;
         if has_focus && !self.focus_seen && self.entry == EditEntry::Immediate {
             self.begin_focus_edit();
@@ -808,8 +659,6 @@ impl TextInput {
             && self.focus_edit
             && !self.is_dirty()
         {
-
-
             self.editing = false;
             self.field.buffer.clear_selection();
         }
@@ -823,7 +672,6 @@ impl TextInput {
         let t = ctx.theme;
         let mut s = ctx.state(self.id);
 
-
         let menu_open = self.edit_menu.is_open();
         s.focused = ctx.interaction.focused_under(self.id, menu_open);
         s.disabled = self.disabled;
@@ -832,10 +680,6 @@ impl TextInput {
         if self.disabled {
             s.hovered = false;
         }
-
-
-
-
 
         let wrapped = self.label_lines(area.width);
         let label_rows = wrapped.len().max(1) as u16;
@@ -861,7 +705,6 @@ impl TextInput {
         let mut label = self.label.clone();
         let name_w = width(&self.label);
 
-
         let show_optional = !self.required
             && !self.label.is_empty()
             && !self.plain_label
@@ -882,10 +725,7 @@ impl TextInput {
             );
         }
         if label_rows > 1 {
-
         } else if self.required && !self.disabled && name_w + 4 <= area.width as usize {
-
-
             let ink = if self.field.error.is_some() {
                 t.tone_on(crate::theme::Tone::Error, bg)
             } else {
@@ -906,15 +746,12 @@ impl TextInput {
             );
         }
 
-
         if area.height < label_rows + 1 {
             return;
         }
         let field = Rect::new(area.x, area.y + label_rows, area.width, 1);
         self.area = field;
         if self.label_hit && !self.label.is_empty() {
-
-
             let lw = if label_rows > 1 {
                 wrapped.iter().map(|l| width(l)).max().unwrap_or(0)
             } else {
@@ -929,7 +766,6 @@ impl TextInput {
         let gutter = t.gutter(s, fs.bg.unwrap_or(bg), false);
         buf.set_string(field.x, field.y, t.gutter_symbol(s), gutter);
         let trailing = if s.error { 2 } else { 0 };
-
 
         let readout_w = if self.readout.is_empty() {
             0
@@ -954,16 +790,12 @@ impl TextInput {
         }
         let text = self.field.buffer.text();
         if text.is_empty() {
-
-
             let p = crate::ui::reveal::fit(ctx, inner, &self.placeholder, s.focused);
             buf.set_string(inner.x, inner.y, &p, t.placeholder(s));
             if s.editing && inner.width > 0 {
                 ctx.set_cursor(Position::new(inner.x, inner.y));
             }
         } else {
-
-
             let glyphs = self.display_graphemes(s.editing, t.glyphs.mask);
             let look = LineLook {
                 text: fs,
@@ -1008,11 +840,9 @@ impl TextInput {
             if let Some(id) = self.readout_link
                 && !self.disabled
             {
-
                 ctx.clickable(id, r);
             }
         }
-
 
         if area.height >= label_rows + 2 {
             let msg_y = field.y + 1;
@@ -1048,10 +878,6 @@ impl crate::core::focus::BlurTarget for TextInput {
     }
 }
 
-
-
-
-
 impl Editable for TextInput {
     fn field(&mut self) -> &mut EditField {
         &mut self.field
@@ -1072,7 +898,6 @@ impl Editable for TextInput {
         TextInput::on_label(self, pos)
     }
     fn label_click(&mut self) {
-
         if !self.editing {
             self.begin_focus_edit();
         }
@@ -1085,11 +910,6 @@ impl Editable for TextInput {
         self.focus_edit = false;
     }
 }
-
-
-
-
-
 
 impl crate::core::pointer::MouseTarget for TextInput {
     type Action = ();
@@ -1122,8 +942,6 @@ impl crate::core::pointer::MouseTarget for TextInput {
         edit_menu_route(self, ev)
     }
 }
-
-
 
 impl EditMenuHost for TextInput {
     fn edit_menu(&mut self) -> &mut EditMenu {
@@ -1162,9 +980,6 @@ impl EditMenuHost for TextInput {
 mod tests {
     use super::*;
 
-
-
-
     #[test]
     fn a_cut_help_line_reveals_on_hover_and_on_the_peek_line() {
         use crate::core::focus::FocusRing;
@@ -1193,8 +1008,6 @@ mod tests {
             "the cut help hovers"
         );
     }
-
-
 
     #[test]
     fn measure_shows_label_value_and_help_whole() {
@@ -1371,8 +1184,6 @@ mod tests {
         key(code, ratatui::crossterm::event::KeyModifiers::NONE)
     }
 
-
-
     fn render_unfocused(input: &mut TextInput, area: Rect, buf: &mut Buffer) {
         let theme = Theme::for_level(ColorLevel::TrueColor);
         let mut hits = HitRegistry::default();
@@ -1406,10 +1217,6 @@ mod tests {
             "a selection is the field's"
         );
     }
-
-
-
-
 
     #[test]
     fn ctrl_c_copies_a_selection_under_every_preset_but_never_a_secret() {
@@ -1554,7 +1361,6 @@ mod tests {
 
     #[test]
     fn each_entry_mode_starts_the_edit_its_own_way() {
-
         let mut off = TextInput::new(WidgetId::of("off"), "Name")
             .value("ab")
             .edit_entry(EditEntry::Explicit);
@@ -1602,10 +1408,6 @@ mod tests {
         assert_eq!(locked.on_key(&plain('x')).0, Outcome::Ignored);
     }
 
-
-
-
-
     #[test]
     fn an_editing_field_passes_unbound_chords_on() {
         use ratatui::crossterm::event::KeyModifiers as M;
@@ -1634,7 +1436,6 @@ mod tests {
                     assert!(i.editing, "the edit stays open");
                 }
                 assert_eq!(i.text(), "abc");
-
 
                 assert_eq!(
                     i.on_key(&key(KeyCode::Char('a'), M::SUPER)).0,
@@ -1678,7 +1479,6 @@ mod tests {
         i.on_key(&key(KeyCode::Char('z'), M::CONTROL | M::SHIFT));
         assert_eq!(i.text(), "ab cd", "Ctrl+Shift+Z redoes it");
 
-
         i.on_key(&key(KeyCode::Char('a'), M::CONTROL));
         assert_eq!(i.field.buffer.cursor_offset(), 0);
         i.on_key(&key(KeyCode::Char('l'), M::CONTROL));
@@ -1716,7 +1516,6 @@ mod tests {
 
     #[test]
     fn drag_double_and_triple_click_select_text() {
-
         let mut i = TextInput::new(WidgetId::of("s"), "Name")
             .value("hello big world")
             .edit_entry(EditEntry::Explicit);
@@ -1952,10 +1751,6 @@ mod tests {
         input.commit();
         assert!(input.field.error.is_some());
     }
-
-
-
-
 
     #[test]
     fn validate_when_decides_whether_typing_rechecks_the_value() {

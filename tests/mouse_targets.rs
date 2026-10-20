@@ -1,9 +1,3 @@
-
-
-
-
-
-
 use junie_tui::core::focus::FocusRing;
 use junie_tui::core::hit::{Axis, HitRegistry};
 use junie_tui::core::id::WidgetId;
@@ -42,7 +36,6 @@ use ratatui::layout::{Constraint, Position, Rect};
 const SCREEN: Rect = Rect::new(0, 0, 60, 20);
 const NONE: KeyModifiers = KeyModifiers::NONE;
 
-
 fn hits_of(draw: impl FnOnce(&mut Buffer, &mut RenderCtx)) -> HitRegistry {
     let theme = Theme::for_level(ColorLevel::TrueColor);
     let mut hits = HitRegistry::default();
@@ -54,8 +47,6 @@ fn hits_of(draw: impl FnOnce(&mut Buffer, &mut RenderCtx)) -> HitRegistry {
     drop(ctx);
     hits
 }
-
-
 
 fn check<T: MouseTarget>(name: &str, w: &mut T, hits: &HitRegistry, wheel: Option<Position>) {
     let me = w.mouse_id();

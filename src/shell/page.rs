@@ -1,7 +1,3 @@
-
-
-
-
 use ratatui::buffer::Buffer;
 use ratatui::crossterm::event::{KeyCode, KeyModifiers};
 use ratatui::layout::Rect;
@@ -19,12 +15,8 @@ use crate::ui::leave::Stakes;
 use crate::widgets::keyhint::Hint;
 use crate::widgets::menu::{ContextMenu, MenuItem};
 
-
-
 pub trait PageTypes {
-
     type State: ?Sized;
-
 
     type Msg;
 
@@ -35,21 +27,11 @@ pub trait PageTypes {
     type Go;
 }
 
-
 pub type PageCx<'a, A> =
     Cx<'a, <A as PageTypes>::Result, <A as PageTypes>::LayerState, <A as PageTypes>::Go>;
 
-
-
 pub trait Page<A: PageTypes> {
     fn on_key(&mut self, key: &Key, s: &mut A::State, cx: &mut PageCx<A>) -> Outcome;
-
-
-
-
-
-
-
 
     fn pointer(&mut self, _ev: &PointerEvent, _s: &mut A::State, _cx: &mut PageCx<A>) -> Outcome {
         Outcome::Ignored
@@ -57,8 +39,6 @@ pub trait Page<A: PageTypes> {
     fn on_paste(&mut self, _text: &str, _s: &mut A::State, _cx: &mut PageCx<A>) -> Outcome {
         Outcome::Ignored
     }
-
-
 
     fn on_blur(&mut self, _ch: FocusChange, _s: &mut A::State, _cx: &mut PageCx<A>) -> Outcome {
         Outcome::Ignored
@@ -86,7 +66,6 @@ pub trait Page<A: PageTypes> {
 
     fn primary_focus(&self) -> Option<WidgetId>;
 
-
     fn is_editing(&self) -> bool {
         false
     }
@@ -97,15 +76,10 @@ pub trait Page<A: PageTypes> {
 
     fn enter(&mut self, _s: &mut A::State, _cx: &mut PageCx<A>) {}
 
-
-
     fn on_esc_top(&mut self, _s: &mut A::State, cx: &mut PageCx<A>) -> Outcome {
         cx.back();
         Outcome::Changed
     }
-
-
-
 
     fn on_interrupt(&mut self, _s: &mut A::State, _cx: &mut PageCx<A>) -> Outcome {
         Outcome::Ignored
@@ -116,9 +90,6 @@ pub trait Page<A: PageTypes> {
     }
 }
 
-
-
-
 pub fn row_anchor(list: WidgetId, i: usize, area: Rect, offset: usize) -> ContextAnchor {
     let dy = i
         .saturating_sub(offset)
@@ -128,8 +99,6 @@ pub fn row_anchor(list: WidgetId, i: usize, area: Rect, offset: usize) -> Contex
         fallback: Rect::new(area.x, area.y + dy, area.width.max(1), 1),
     }
 }
-
-
 
 pub fn open_context<R, W, G>(
     cx: &mut Cx<R, W, G>,
@@ -148,9 +117,6 @@ where
     Outcome::Changed
 }
 
-
-
-
 pub fn replay_key(c: char) -> Key {
     let code = match c {
         '\n' => KeyCode::Enter,
@@ -165,9 +131,6 @@ pub fn replay_key(c: char) -> Key {
     }
 }
 
-
-
-
 pub fn row_choice(
     tag: &LayerTag,
     kind: &str,
@@ -181,9 +144,6 @@ pub fn row_choice(
     let row = row.parse::<usize>().ok()?;
     Some((row, keys.chars().nth(k).map(replay_key), k))
 }
-
-
-
 
 pub fn rebuild_on_tick<P, V: PartialEq>(
     page: &mut P,

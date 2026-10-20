@@ -32,7 +32,6 @@ fn button_focus_remains_unambiguous_without_colour() {
             ButtonKind::Danger,
             ButtonKind::Toggle,
         ] {
-
             let area = Rect::new(0, 0, 12, 1);
             let mut buf = Buffer::empty(area);
             for (focused, disabled, expected) in
@@ -57,13 +56,11 @@ fn button_focus_remains_unambiguous_without_colour() {
                     theme.canvas,
                 );
 
-
                 assert_eq!(
                     buf[(0, 0)].symbol(),
                     expected,
                     "{level:?} {kind:?}: focused={focused}, disabled={disabled}"
                 );
-
 
                 let dim = buf[(1, 0)].modifier.contains(Modifier::DIM);
                 assert!(!dim || disabled, "{level:?} {kind:?}: dim while enabled");
@@ -110,8 +107,6 @@ fn list_focus_and_selection_have_distinct_symbols_without_colour() {
         }
     }
 }
-
-
 
 #[test]
 fn text_selection_uses_reverse_video_only_without_a_selection_hue() {

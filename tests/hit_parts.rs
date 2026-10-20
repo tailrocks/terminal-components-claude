@@ -1,8 +1,3 @@
-
-
-
-
-
 use junie_tui::core::hit::{Hit, HitRegistry};
 use junie_tui::core::id::{Part, PartRef, WidgetId};
 use junie_tui::core::{focus::FocusRing, id::ItemKey};
@@ -21,7 +16,6 @@ use junie_tui::widgets::tree::{TreeNode, TreeView};
 use ratatui::buffer::Buffer;
 use ratatui::layout::{Constraint, Position, Rect};
 
-
 fn hits_of(area: Rect, draw: impl FnOnce(&mut Buffer, &mut RenderCtx)) -> HitRegistry {
     let theme = Theme::for_level(ColorLevel::TrueColor);
     let mut hits = HitRegistry::default();
@@ -33,7 +27,6 @@ fn hits_of(area: Rect, draw: impl FnOnce(&mut Buffer, &mut RenderCtx)) -> HitReg
     drop(ctx);
     hits
 }
-
 
 fn assert_parts(name: &str, hits: &HitRegistry, owner: WidgetId, parts: &[PartRef]) {
     let mut seen = vec![];

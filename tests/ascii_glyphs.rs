@@ -1,6 +1,3 @@
-
-
-
 use junie_tui::core::selection::SelectionMode;
 use junie_tui::core::{focus::FocusRing, hit::HitRegistry, id::WidgetId};
 use junie_tui::theme::{ColorLevel, Glyphs, LevelOverrides, Strings, Theme};
@@ -30,7 +27,6 @@ fn ascii() -> Theme {
         .with_strings(Strings::ASCII)
 }
 
-
 fn draw(
     theme: &Theme,
     size: (u16, u16),
@@ -53,7 +49,6 @@ fn draw(
     ctx.flush_overlays(&mut buf);
     buf
 }
-
 
 fn non_ascii(buf: &Buffer) -> Vec<(u16, u16, String)> {
     let a = buf.area;
@@ -80,8 +75,6 @@ fn rows(buf: &Buffer) -> String {
         .collect::<Vec<_>>()
         .join("\n")
 }
-
-
 
 fn check(
     name: &str,

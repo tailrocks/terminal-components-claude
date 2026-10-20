@@ -1,7 +1,3 @@
-
-
-
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Host {
     pub name: String,
@@ -48,8 +44,6 @@ impl Os {
     }
 }
 
-
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Hash)]
 pub enum Scope {
     #[default]
@@ -60,7 +54,6 @@ pub enum Scope {
 }
 
 impl Scope {
-
     pub fn outward(self) -> Scope {
         match self {
             Scope::Children => Scope::Here,
@@ -68,7 +61,6 @@ impl Scope {
             Scope::Parent | Scope::System => Scope::System,
         }
     }
-
 
     pub fn inward(self) -> Scope {
         match self {
@@ -79,17 +71,13 @@ impl Scope {
     }
 }
 
-
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ScopeTag {
-
     pub direction: Scope,
 
     pub defined_at: String,
 
     pub runs_in: String,
-
 
     pub word: String,
 }
@@ -136,7 +124,6 @@ impl ScopeTag {
         }
     }
 
-
     pub fn remote(host: &str) -> Self {
         Self {
             direction: Scope::System,
@@ -147,7 +134,6 @@ impl ScopeTag {
     }
 }
 
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Project {
     pub name: String,
@@ -157,14 +143,14 @@ pub struct Project {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ProjectKind {
-
-
     Rust {
         workspace: bool,
         member: Option<String>,
     },
 
-    Node { manager: &'static str },
+    Node {
+        manager: &'static str,
+    },
 
     MiseMonorepo,
 
@@ -195,9 +181,6 @@ impl ProjectKind {
     }
 }
 
-
-
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Location {
     pub cwd: String,
@@ -211,7 +194,6 @@ pub struct Location {
 }
 
 impl Location {
-
     pub fn short(&self, path: &str) -> String {
         match path.strip_prefix(&self.home) {
             Some(rest) => format!("~{rest}"),

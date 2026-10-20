@@ -1,20 +1,3 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 use std::ops::Range;
 use std::rc::Rc;
 
@@ -29,8 +12,6 @@ use crate::widgets::field_common::{
     Applied, EditAction, PointerField, PointerSelect, apply_edit, edit_key_in, unbound_key,
 };
 
-
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FieldError {
     message: String,
@@ -43,11 +24,9 @@ impl FieldError {
         }
     }
 
-
     pub fn message(&self) -> &str {
         &self.message
     }
-
 
     pub fn into_message(self) -> String {
         self.message
@@ -62,8 +41,6 @@ impl std::ops::Deref for FieldError {
 }
 
 impl FieldError {
-
-
     pub fn message_mut(&mut self) -> &mut String {
         &mut self.message
     }
@@ -87,19 +64,12 @@ impl From<&str> for FieldError {
     }
 }
 
-
 pub trait Validate {
-
     type Value;
     fn validate(&self, text: &str) -> Result<Self::Value, FieldError>;
 }
 
-
 pub type ValidateFn<V, C> = dyn Fn(&C, &str) -> Result<V, FieldError>;
-
-
-
-
 
 pub struct Validator<V = (), C = ()>(Rc<ValidateFn<V, C>>);
 
@@ -116,30 +86,25 @@ impl<V, C> std::fmt::Debug for Validator<V, C> {
 }
 
 impl<V: 'static> Validator<V> {
-
     pub fn new(f: impl Fn(&str) -> Result<V, FieldError> + 'static) -> Self {
         Self(Rc::new(move |_: &(), text: &str| f(text)))
     }
 }
 
 impl Validator {
-
     pub fn check(f: impl Fn(&str) -> Option<String> + 'static) -> Self {
         Self::new(move |text| f(text).map_or(Ok(()), |m| Err(FieldError::from(m))))
     }
 }
 
 impl<V: 'static, C: 'static> Validator<V, C> {
-
     pub fn with_context(f: impl Fn(&C, &str) -> Result<V, FieldError> + 'static) -> Self {
         Self(Rc::new(f))
     }
 
-
     pub fn validate_in(&self, cx: &C, text: &str) -> Result<V, FieldError> {
         (self.0)(cx, text)
     }
-
 
     pub fn bind(&self, cx: C) -> Validator<V> {
         let f = self.0.clone();
@@ -154,20 +119,9 @@ impl<V> Validate for Validator<V> {
     }
 }
 
-
-
-
-
-
-
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum ValidateWhen {
-
-
     Commit,
-
-
 
     #[default]
     AfterError,
@@ -175,11 +129,8 @@ pub enum ValidateWhen {
     Live,
 }
 
-
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum EditExit {
-
     Commit,
 
     Cancel,
@@ -187,19 +138,13 @@ pub enum EditExit {
     Tab { backward: bool },
 }
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct EditResult {
-
-
-
-
     pub outcome: Outcome,
 
     pub edited: bool,
 
     pub exit: Option<EditExit>,
-
 
     pub unused: bool,
 }
@@ -215,31 +160,23 @@ impl EditResult {
     }
 }
 
-
-
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 struct PressState {
     at: Option<usize>,
     dragged: bool,
 
-
     word: Option<Range<usize>>,
 }
-
-
 
 #[derive(Debug, Clone)]
 pub struct EditField {
     pub buffer: TextBuffer,
 
-
     pub sel: PointerSelect,
     press: PressState,
     undo: UndoStack,
 
-
     pub keys: FieldKeys,
-
 
     pub text_keymap: Option<KeyMap<TextCmd>>,
 
@@ -253,11 +190,7 @@ pub struct EditField {
 
     pub read_only: bool,
 
-
-
     pub undo_runs: bool,
-
-
 
     pub required: Option<String>,
 
@@ -267,11 +200,9 @@ pub struct EditField {
 }
 
 impl EditField {
-
     pub fn single(text: impl Into<String>) -> Self {
         Self::with_buffer(TextBuffer::single(text), false)
     }
-
 
     pub fn multi(text: impl Into<String>) -> Self {
         Self::with_buffer(TextBuffer::multi(text), true)
@@ -297,18 +228,15 @@ impl EditField {
         }
     }
 
-
     pub fn validator(mut self, v: Validator) -> Self {
         self.validator = Some(v);
         self
     }
 
-
     pub fn validate_when(mut self, when: ValidateWhen) -> Self {
         self.validate_when = when;
         self
     }
-
 
     pub fn keys(mut self, keys: FieldKeys) -> Self {
         self.keys = keys;
@@ -319,17 +247,10 @@ impl EditField {
         self.buffer.text()
     }
 
-
-
     pub fn set_text(&mut self, text: impl Into<String>) {
         self.buffer.set_text(text);
         self.undo.clear();
     }
-
-
-
-
-
 
     pub fn action(&self, key: &Key) -> EditAction {
         if self.copy_first(key) {
@@ -340,8 +261,6 @@ impl EditField {
             None => edit_key_in(key, self.multiline, self.keys, &self.keys.text_keymap()),
         }
     }
-
-
 
     pub fn text_cmd(&self, key: &Key) -> Option<TextCmd> {
         if self.copy_first(key) {
@@ -357,26 +276,18 @@ impl EditField {
         }
     }
 
-
-
     fn copy_first(&self, key: &Key) -> bool {
         key.ctrl_char('c') && self.buffer.has_selection() && self.bound_cmd(key).is_none()
     }
-
-
-
 
     pub fn on_key(&mut self, key: &Key) -> EditResult {
         let action = self.action(key);
         self.apply(action, key)
     }
 
-
     pub fn apply(&mut self, action: EditAction, key: &Key) -> EditResult {
         self.apply_as(action, key, self.read_only)
     }
-
-
 
     pub fn apply_as(&mut self, action: EditAction, key: &Key, read_only: bool) -> EditResult {
         let exit = match action {
@@ -417,17 +328,9 @@ impl EditField {
         EditResult::changed(edited)
     }
 
-
-
-
-
-
     pub fn run(&mut self, cmd: TextCmd) -> EditResult {
         self.run_as(cmd, self.read_only)
     }
-
-
-
 
     pub fn run_as(&mut self, cmd: TextCmd, read_only: bool) -> EditResult {
         if cmd == TextCmd::Paste {
@@ -442,18 +345,12 @@ impl EditField {
         self.apply_as(action, &key, read_only)
     }
 
-
-
     pub fn shortcut(&self, cmd: TextCmd) -> Option<String> {
         match &self.text_keymap {
             Some(map) => crate::core::keymap::label_for(map, cmd),
             None => crate::core::keymap::label_for(&self.keys.text_keymap(), cmd),
         }
     }
-
-
-
-
 
     pub fn paste(&mut self, text: &str) -> bool {
         if self.read_only || text.is_empty() {
@@ -472,17 +369,13 @@ impl EditField {
         true
     }
 
-
-
     pub fn record(&mut self, kind: EditKind) {
         self.undo.record(&self.buffer, kind);
     }
 
-
     pub fn seal(&mut self) {
         self.undo.seal();
     }
-
 
     pub fn clear_history(&mut self) {
         self.undo.clear();
@@ -496,8 +389,6 @@ impl EditField {
         self.undo.can_redo()
     }
 
-
-
     pub fn after_edit(&mut self) {
         match self.validate_when {
             ValidateWhen::Live => {
@@ -509,10 +400,6 @@ impl EditField {
             _ => {}
         }
     }
-
-
-
-
 
     pub fn validate(&mut self) -> bool {
         self.error = match &self.validator {
@@ -526,22 +413,13 @@ impl EditField {
         self.error.is_none()
     }
 
-
     pub fn set_error(&mut self, error: Option<FieldError>) {
         self.error = error;
     }
 
-
     pub fn error_message(&self) -> Option<&str> {
         self.error.as_ref().map(FieldError::message)
     }
-
-
-
-
-
-
-
 
     pub fn press(&mut self, offset: usize, count: u8, whole_word: bool) -> bool {
         self.press = PressState {
@@ -557,9 +435,6 @@ impl EditField {
         }
         false
     }
-
-
-
 
     pub fn drag(&mut self, offset: usize) -> bool {
         if !self.sel.drag {
@@ -580,9 +455,6 @@ impl EditField {
         self.buffer.select_range(anchor, offset);
         true
     }
-
-
-
 
     pub fn click(&mut self, offset: usize, count: u8, whole_word: bool) {
         let dragged = std::mem::take(&mut self.press.dragged);
@@ -606,17 +478,9 @@ impl EditField {
         self.undo.seal();
     }
 
-
     pub fn pressed(&self) -> bool {
         self.press.at.is_some()
     }
-
-
-
-
-
-
-
 
     pub fn draw_line(
         &mut self,
@@ -628,14 +492,11 @@ impl EditField {
         self.draw_glyphs(buf, area, look, &glyphs)
     }
 
-
     pub fn graphemes(text: &str) -> Vec<(usize, String, usize)> {
         unicode_segmentation::UnicodeSegmentation::grapheme_indices(text, true)
             .map(|(bi, g)| (bi, g.to_owned(), crate::ui::text::width(g)))
             .collect()
     }
-
-
 
     pub fn draw_glyphs(
         &mut self,
@@ -714,16 +575,11 @@ impl EditField {
         Position::new(cx.min(area.right().saturating_sub(1)), area.y)
     }
 
-
-
-
     pub fn line_offset_at(&self, pos: Position) -> usize {
         let col =
             (self.line_off as isize + (pos.x as isize - self.line_area.x as isize)).max(0) as usize;
         self.buffer.offset_at(0, col)
     }
-
-
 
     pub fn glyph_offset_at(&self, pos: Position, glyphs: &[(usize, String, usize)]) -> usize {
         let col =
@@ -738,17 +594,14 @@ impl EditField {
         self.buffer.text().len()
     }
 
-
     pub fn line_area(&self) -> ratatui::layout::Rect {
         self.line_area
     }
-
 
     pub fn line_scroll(&self) -> usize {
         self.line_off
     }
 }
-
 
 #[derive(Debug, Clone, Copy)]
 pub struct LineLook {
@@ -759,7 +612,6 @@ pub struct LineLook {
 
     pub underline: Option<ratatui::style::Color>,
 
-
     pub follow_caret: bool,
 }
 
@@ -769,17 +621,10 @@ impl Default for EditField {
     }
 }
 
-
-
-
-
 pub trait Editable {
-
     fn field(&mut self) -> &mut EditField;
 
     fn edit_id(&self) -> WidgetId;
-
-
 
     fn offset_at(&self, pos: Position) -> usize;
 
@@ -798,7 +643,6 @@ pub trait Editable {
     fn label_click(&mut self) {}
 
     fn pointer_begin(&mut self);
-
 
     fn pointer_focus(&mut self) {}
 

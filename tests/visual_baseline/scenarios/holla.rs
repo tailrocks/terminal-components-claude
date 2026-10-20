@@ -1,24 +1,5 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 use super::{Bin, Root, Variant, interact};
 use crate::support::Color;
-
-
 
 const HISTORY_ON: &[(&str, &str)] = &[("HOLLA_NO_HISTORY", "0")];
 

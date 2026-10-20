@@ -1,57 +1,21 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 use std::collections::BTreeSet;
 
 use ratatui::crossterm::event::{KeyCode, KeyModifiers};
 
 use crate::core::event::{ClientPlatform, Key};
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum SelectionMode {
-
     None,
 
     #[default]
     Single,
 
-
     Multi,
 }
 
-
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum TriState {
-
     None,
 
     Mixed,
@@ -60,13 +24,9 @@ pub enum TriState {
 }
 
 impl TriState {
-
     pub fn glyph(self) -> &'static str {
         self.glyph_in(&crate::theme::Glyphs::UNICODE)
     }
-
-
-
 
     pub fn glyph_in(self, g: &crate::theme::Glyphs) -> &'static str {
         match self {
@@ -77,21 +37,11 @@ impl TriState {
     }
 }
 
-
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SelectGesture {
-
-
     Only,
 
-
-
     Toggle,
-
-
-
-
 
     Extend { from: usize },
 
@@ -99,20 +49,11 @@ pub enum SelectGesture {
 }
 
 impl SelectGesture {
-
     pub const TOGGLE_CTRL_CMD: KeyModifiers = KeyModifiers::CONTROL.union(KeyModifiers::SUPER);
-
-
-
-
-
 
     pub const TOGGLE_OPTION_CMD: KeyModifiers = KeyModifiers::ALT.union(KeyModifiers::SUPER);
 
     pub const TOGGLE_WITH_ALT: KeyModifiers = Self::TOGGLE_CTRL_CMD.union(KeyModifiers::ALT);
-
-
-
 
     pub const fn toggle_mods_for(platform: ClientPlatform) -> KeyModifiers {
         match platform {
@@ -121,15 +62,9 @@ impl SelectGesture {
         }
     }
 
-
-
     pub fn toggle_mods() -> KeyModifiers {
         Self::toggle_mods_for(ClientPlatform::current())
     }
-
-
-
-
 
     pub fn from_mods(mods: KeyModifiers, toggle: KeyModifiers, from: usize) -> Self {
         if mods.contains(KeyModifiers::SHIFT) {
@@ -140,11 +75,6 @@ impl SelectGesture {
             Self::Only
         }
     }
-
-
-
-
-
 
     pub fn from_key(key: &Key, from: usize) -> Option<Self> {
         let other = key.ctrl() || key.cmd() || key.alt();
@@ -157,19 +87,12 @@ impl SelectGesture {
     }
 }
 
-
-
-
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum Activate {
-
     Single,
-
 
     #[default]
     Double,
-
 
     ClickAgain,
 
@@ -177,8 +100,6 @@ pub enum Activate {
 }
 
 impl Activate {
-
-
     pub fn fires(self, count: u8, again: bool) -> bool {
         match self {
             Self::Single => true,
@@ -189,27 +110,17 @@ impl Activate {
     }
 }
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum CheckClick {
-
-
-
     #[default]
     BoxOnly,
-
 
     Row,
 }
 
-
-
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct ClickPolicy {
-
     pub activate: Activate,
-
 
     pub edit_on: Activate,
 
@@ -217,9 +128,6 @@ pub struct ClickPolicy {
 }
 
 impl ClickPolicy {
-
-
-
     pub const DATA: Self = Self {
         activate: Activate::Double,
         edit_on: Activate::Double,
@@ -232,37 +140,28 @@ impl ClickPolicy {
         check: CheckClick::BoxOnly,
     };
 
-
     pub const fn activate(mut self, activate: Activate) -> Self {
         self.activate = activate;
         self
     }
-
 
     pub const fn edit_on(mut self, edit_on: Activate) -> Self {
         self.edit_on = edit_on;
         self
     }
 
-
     pub const fn check(mut self, check: CheckClick) -> Self {
         self.check = check;
         self
     }
 
-
-
     pub fn activates(&self, count: u8, again: bool) -> bool {
         self.activate.fires(count, again)
     }
 
-
-
     pub fn edits(&self, count: u8, again: bool) -> bool {
         self.edit_on.fires(count, again)
     }
-
-
 
     pub fn toggles(&self, on_box: bool) -> bool {
         on_box || self.check == CheckClick::Row
@@ -275,14 +174,11 @@ impl Default for ClickPolicy {
     }
 }
 
-
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct RowSelection {
     rows: BTreeSet<usize>,
 
     anchor: Option<usize>,
-
-
 
     base: BTreeSet<usize>,
 }
@@ -322,15 +218,12 @@ impl RowSelection {
         }
     }
 
-
     pub fn clear(&mut self) -> bool {
         let changed = !self.rows.is_empty();
         self.rows.clear();
         self.set_anchor(None);
         changed
     }
-
-
 
     pub fn select_only(&mut self, src: usize, selectable: impl Fn(usize) -> bool) -> bool {
         let before = self.rows.clone();
@@ -344,8 +237,6 @@ impl RowSelection {
         self.rows != before
     }
 
-
-
     pub fn toggle(&mut self, src: usize, selectable: impl Fn(usize) -> bool) -> bool {
         if !selectable(src) {
             return false;
@@ -356,11 +247,6 @@ impl RowSelection {
         self.set_anchor(Some(src));
         true
     }
-
-
-
-
-
 
     pub fn extend(
         &mut self,
@@ -393,7 +279,6 @@ impl RowSelection {
         changed
     }
 
-
     pub fn select_all(
         &mut self,
         rows: impl IntoIterator<Item = usize>,
@@ -406,8 +291,6 @@ impl RowSelection {
         self.rows.len() != before
     }
 
-
-
     pub fn toggle_all(
         &mut self,
         rows: impl IntoIterator<Item = usize> + Clone,
@@ -418,7 +301,6 @@ impl RowSelection {
             _ => self.select_all(rows, selectable),
         }
     }
-
 
     pub fn tri_state(
         &self,
@@ -442,10 +324,6 @@ impl RowSelection {
         }
     }
 
-
-
-
-
     pub fn apply(
         &mut self,
         g: SelectGesture,
@@ -467,11 +345,6 @@ impl RowSelection {
         }
     }
 
-
-
-
-
-
     pub fn context_select(
         &mut self,
         to: usize,
@@ -486,8 +359,6 @@ impl RowSelection {
         }
     }
 
-
-
     pub fn set(&mut self, src: usize, on: bool) -> bool {
         if on {
             self.rows.insert(src)
@@ -496,7 +367,6 @@ impl RowSelection {
         }
     }
 
-
     pub fn retain(&mut self, keep: impl Fn(usize) -> bool) {
         self.rows.retain(|&s| keep(s));
         self.base.retain(|&s| keep(s));
@@ -504,8 +374,6 @@ impl RowSelection {
             self.anchor = None;
         }
     }
-
-
 
     pub fn remap(&mut self, map: impl Fn(usize) -> Option<usize>) {
         self.rows = self.rows.iter().filter_map(|&s| map(s)).collect();
@@ -550,7 +418,6 @@ mod tests {
 
     #[test]
     fn extend_selects_the_display_range_from_the_anchor() {
-
         let order = [4, 2, 0, 3, 1];
         let mut s = RowSelection::new();
         s.select_only(2, any);
@@ -609,10 +476,6 @@ mod tests {
         assert_eq!(TriState::All.glyph(), "[✓]");
     }
 
-
-
-
-
     #[test]
     fn apply_follows_the_selection_model_table() {
         use SelectGesture::*;
@@ -628,31 +491,18 @@ mod tests {
         );
 
         let table: &[Row] = &[
-
             (&[], None, Only, 1, &[2], Some(2)),
             (&[0, 1, 4], Some(4), Only, 3, &[0], Some(0)),
-
             (&[0, 1], Some(0), Only, 2, &[], None),
-
             (&[0], Some(0), Toggle, 0, &[0, 4], Some(4)),
             (&[0, 4], Some(4), Toggle, 0, &[0], Some(4)),
-
             (&[0], Some(0), Toggle, 2, &[0], Some(0)),
-
-
             (&[2], Some(2), Extend { from: 1 }, 4, &[0, 1, 2], Some(2)),
-
-
             (&[2], Some(2), Extend { from: 4 }, 3, &[0, 2], Some(2)),
-
             (&[2], Some(2), Extend { from: 3 }, 0, &[2, 4], Some(2)),
-
             (&[1, 2], Some(2), Extend { from: 1 }, 0, &[1, 2, 4], Some(2)),
-
             (&[], None, Extend { from: 0 }, 1, &[2, 4], Some(4)),
-
             (&[2], Some(2), All, 0, &[0, 1, 2, 4], Some(2)),
-
             (&[2], Some(2), Only, 9, &[2], Some(2)),
         ];
         for (k, &(rows, anchor, g, to, want, want_anchor)) in table.iter().enumerate() {
@@ -666,8 +516,6 @@ mod tests {
             assert_eq!(s.anchor(), want_anchor, "row {k}: anchor");
         }
     }
-
-
 
     #[test]
     fn context_select_keeps_a_selection_it_lands_in() {
@@ -726,7 +574,6 @@ mod tests {
 
     #[test]
     fn click_policies_fire_on_their_click() {
-
         let table = [
             (Activate::Single, 1, false, true),
             (Activate::Double, 1, true, false),

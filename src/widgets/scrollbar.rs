@@ -8,37 +8,23 @@ use crate::core::scroll::{ScrollPane, ScrollState, ScrollbarVisibility, TrackCli
 use crate::theme::{Glyphs, Kind, Plane};
 use crate::ui::ctx::{RenderCtx, VisualState};
 
-
-
-
-
-
-
-
 pub const TRACK: &str = Glyphs::UNICODE.scroll_track;
 pub const THUMB: &str = Glyphs::UNICODE.scroll_thumb;
 
 pub const H_TRACK: &str = Glyphs::UNICODE.scroll_h_track;
 pub const H_THUMB: &str = Glyphs::UNICODE.scroll_h_thumb;
 
-
 pub fn id_for(container: WidgetId) -> WidgetId {
     container.sub("scrollbar")
 }
-
-
 
 pub fn h_id_for(container: WidgetId) -> WidgetId {
     container.sub("hscrollbar")
 }
 
-
 pub fn is_bar_of(id: WidgetId, container: WidgetId) -> bool {
     id == id_for(container) || id == h_id_for(container)
 }
-
-
-
 
 fn thumb_style(ctx: &RenderCtx, sb_id: WidgetId) -> Style {
     let s = VisualState {
@@ -48,12 +34,6 @@ fn thumb_style(ctx: &RenderCtx, sb_id: WidgetId) -> Style {
     };
     ctx.theme.interactive(Kind::Handle, s, Plane::Canvas).style
 }
-
-
-
-
-
-
 
 pub fn render_divider(
     area: Rect,
@@ -77,10 +57,6 @@ pub fn render_divider(
         buf.set_string(area.x, y, g.divider, line);
     }
 }
-
-
-
-
 
 pub fn render_vertical(
     area: Rect,
@@ -113,9 +89,6 @@ pub fn render_vertical(
     ctx.scrollbar_thumb(sb_id, thumb_rect, container);
 }
 
-
-
-
 pub fn render_horizontal(
     area: Rect,
     buf: &mut Buffer,
@@ -126,9 +99,6 @@ pub fn render_horizontal(
 ) {
     render_horizontal_with(area, buf, ctx, container, scroll, focused, false);
 }
-
-
-
 
 pub fn render_horizontal_with(
     area: Rect,
@@ -164,9 +134,6 @@ pub fn render_horizontal_with(
     }
 }
 
-
-
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Bars {
     pub content: Rect,
@@ -187,32 +154,20 @@ impl Bars {
     }
 }
 
-
-
-
 pub const GAP: u16 = 1;
-
 
 pub const fn reserve(gap: u16) -> u16 {
     1 + gap
 }
 
-
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct VSplit {
-
-
     pub body: Rect,
-
 
     pub content: Rect,
 
     pub track: Option<Rect>,
 }
-
-
-
 
 pub fn split(area: Rect, overflows: bool, gap: u16) -> VSplit {
     if !overflows || area.width < 2 {
@@ -231,13 +186,10 @@ pub fn split(area: Rect, overflows: bool, gap: u16) -> VSplit {
     }
 }
 
-
 pub fn offset_for_click(track: Rect, pos: Position, scroll: &ScrollState) -> usize {
     let rel = pos.y.saturating_sub(track.y) as usize;
     scroll.offset_for_track_pos(rel, track.height as usize)
 }
-
-
 
 fn track_row(track: Rect, pos: Position) -> usize {
     pos.y
@@ -245,48 +197,31 @@ fn track_row(track: Rect, pos: Position) -> usize {
         .min(track.height.saturating_sub(1)) as usize
 }
 
-
 fn track_col(track: Rect, pos: Position) -> usize {
     pos.x
         .saturating_sub(track.x)
         .min(track.width.saturating_sub(1)) as usize
 }
 
-
-
-
-
 pub fn press(track: Rect, pos: Position, scroll: &mut ScrollState) -> bool {
     press_with(track, pos, scroll, TrackClick::default())
 }
-
-
-
 
 pub fn press_with(track: Rect, pos: Position, scroll: &mut ScrollState, click: TrackClick) -> bool {
     scroll.press_track_with(track_row(track, pos), track.height as usize, click)
 }
 
-
-
-
 pub fn drag(track: Rect, pos: Position, scroll: &mut ScrollState) -> bool {
     scroll.drag_track(track_row(track, pos), track.height as usize)
 }
-
-
 
 pub fn press_h(track: Rect, pos: Position, scroll: &mut ScrollState, click: TrackClick) -> bool {
     scroll.press_track_with(track_col(track, pos), track.width as usize, click)
 }
 
-
 pub fn drag_h(track: Rect, pos: Position, scroll: &mut ScrollState) -> bool {
     scroll.drag_track(track_col(track, pos), track.width as usize)
 }
-
-
-
 
 pub fn apply(
     bar: &crate::core::hit::Bar,
@@ -296,8 +231,6 @@ pub fn apply(
 ) -> bool {
     apply_with(bar, pos, pressed, scroll, TrackClick::default())
 }
-
-
 
 pub fn apply_with(
     bar: &crate::core::hit::Bar,
@@ -315,13 +248,6 @@ pub fn apply_with(
     }
 }
 
-
-
-
-
-
-
-
 pub fn render_with_fade(
     area: Rect,
     buf: &mut Buffer,
@@ -332,9 +258,6 @@ pub fn render_with_fade(
 ) -> Rect {
     render_with_fade_except(area, buf, ctx, container, scroll, focused, &[])
 }
-
-
-
 
 pub fn render_with_fade_except(
     area: Rect,
@@ -362,9 +285,6 @@ pub fn render_with_fade_except(
 }
 
 impl ScrollPane {
-
-
-
     pub fn draw_v(
         &mut self,
         area: Rect,
@@ -377,8 +297,6 @@ impl ScrollPane {
         self.remember(Axis::Vertical, owner, area, buf);
     }
 
-
-
     pub fn draw_divider(
         &mut self,
         area: Rect,
@@ -390,9 +308,6 @@ impl ScrollPane {
         render_divider(area, buf, ctx, owner, &self.v, focused);
         self.remember(Axis::Vertical, owner, area, buf);
     }
-
-
-
 
     pub fn draw_h(
         &mut self,
@@ -407,7 +322,6 @@ impl ScrollPane {
         self.remember(Axis::Horizontal, owner, area, buf);
     }
 
-
     pub fn draw_with_fade(
         &mut self,
         area: Rect,
@@ -421,8 +335,6 @@ impl ScrollPane {
         if content != area {
             let track = Rect::new(area.right() - 1, area.y, 1, area.height);
             self.remember(Axis::Vertical, owner, track, buf);
-
-
 
             ctx.scrollable_under(owner, area.intersection(*buf.area()));
         }
@@ -442,7 +354,6 @@ impl ScrollPane {
         }
     }
 }
-
 
 pub fn position_label(scroll: &ScrollState) -> String {
     if !scroll.overflows() {
@@ -623,8 +534,6 @@ mod tests {
         );
     }
 
-
-
     fn thumb_cells(
         level: crate::theme::ColorLevel,
     ) -> Vec<
@@ -692,7 +601,6 @@ mod tests {
                     assert_eq!(cell.0, glyph, "{name} keeps the thumb glyph: {ctx}");
                 }
                 if level == ColorLevel::Mono {
-
                     assert_ne!(rest.2, hover.2, "{ctx}");
                     assert_ne!(hover.2, pressed.2, "{ctx}");
                     assert_ne!(rest.2, pressed.2, "{ctx}");
@@ -751,12 +659,9 @@ mod tests {
         assert_eq!(s.offset, 0);
     }
 
-
     fn ink(s: Style) -> (Option<ratatui::style::Color>, ratatui::style::Modifier) {
         (s.fg, s.add_modifier)
     }
-
-
 
     fn grey(c: ratatui::style::Color) -> u16 {
         use ratatui::style::Color::*;
@@ -773,8 +678,6 @@ mod tests {
             other => panic!("not a grey: {other:?}"),
         }
     }
-
-
 
     fn both_bars(theme: &Theme) -> [Vec<(String, Style)>; 2] {
         let mut s = ScrollState::new(40);
@@ -833,7 +736,6 @@ mod tests {
                         assert_eq!(sym, track_glyph, "{ctx}");
                         assert_eq!(ink(*style), ink(track), "{ctx}: the track style");
                     }
-
 
                     assert_ne!(track_glyph, line, "{ctx}");
                     assert_ne!(track_glyph, edge, "{ctx}");

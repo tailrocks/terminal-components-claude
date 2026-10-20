@@ -5,8 +5,6 @@ use ratatui::Terminal;
 use ratatui::backend::TestBackend;
 use ratatui::crossterm::event::{KeyCode, KeyModifiers};
 
-
-
 struct Demo {
     shell: Shell,
     page: u64,
@@ -106,7 +104,6 @@ fn without_a_primary_control_a_new_page_focuses_its_first() {
 
 #[test]
 fn a_control_that_vanishes_hands_focus_to_its_nearest_neighbour() {
-
     let mut app = Demo::new(&["a", "b", "c", "d"]);
     app.primary = Some("a");
     draw(&mut app);
@@ -168,8 +165,6 @@ fn the_too_small_screen_draws_no_page_and_keeps_focus() {
     assert!(app.shell.too_small);
     assert_eq!(app.focused(), Some(WidgetId::of("b")));
 }
-
-
 
 struct Clocked {
     shell: Shell,

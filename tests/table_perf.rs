@@ -1,12 +1,3 @@
-
-
-
-
-
-
-
-
-
 use std::time::{Duration, Instant};
 
 use junie_tui::core::event::{Key, Outcome};
@@ -25,8 +16,6 @@ use ratatui::crossterm::event::{KeyCode, KeyModifiers};
 use ratatui::layout::{Constraint, Rect};
 
 const COLS: usize = 11;
-
-
 
 fn grid_rows_with(n: usize, blob: usize) -> Vec<Vec<CellValue>> {
     let json = format!("{{\"k\": [{}]}}", "1, ".repeat(blob / 3));
@@ -106,7 +95,6 @@ fn list(n: usize) -> ListBox {
 }
 
 fn tree(n: usize) -> TreeView {
-
     let dirs = (0..n.div_ceil(100))
         .map(|d| {
             TreeNode::dir(
@@ -190,7 +178,6 @@ impl Surface for TreeView {
         Scrollable::wheel(self, Axis::Vertical, delta).outcome()
     }
 }
-
 
 fn frame(s: &mut impl Surface, area: Rect, theme: &Theme) -> HitRegistry {
     let mut buf = Buffer::empty(area);
@@ -319,7 +306,6 @@ fn measure_widgets() {
     }
 
     for blob in [4_096, 65_536] {
-
         let theme = Theme::junie();
         let area = Rect::new(0, 0, 200, 55);
         let mut g = grid_with(200, blob);
@@ -365,10 +351,6 @@ fn measure_widgets() {
     }
 }
 
-
-
-
-
 #[test]
 fn hit_regions_per_frame_do_not_grow_with_the_row_count() {
     let theme = Theme::junie();
@@ -389,16 +371,12 @@ fn hit_regions_per_frame_do_not_grow_with_the_row_count() {
     assert_eq!(small, large, "TreeView");
 }
 
-
-
-
 #[test]
 fn the_wheel_over_rows_routes_to_the_widget_for_the_whole_burst() {
     let theme = Theme::junie();
     let area = Rect::new(0, 0, 120, 40);
     let pos = ratatui::layout::Position::new(20, 10);
     fn burst(s: &mut impl Surface, hits: &HitRegistry, pos: ratatui::layout::Position) -> usize {
-
         (0..30)
             .filter(|_| hits.hit_scroll(pos) == Some(s.id()) && s.wheel(1) == Outcome::Changed)
             .count()
@@ -416,13 +394,6 @@ fn the_wheel_over_rows_routes_to_the_widget_for_the_whole_burst() {
     let hits = frame(&mut tr, area, &theme);
     assert_eq!(burst(&mut tr, &hits, pos), 30, "TreeView");
 }
-
-
-
-
-
-
-
 
 #[test]
 fn long_cut_values_cost_what_their_visible_part_costs() {

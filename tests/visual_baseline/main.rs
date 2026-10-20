@@ -1,35 +1,3 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #![cfg(any(target_os = "macos", target_os = "linux"))]
 
 mod determinism;
@@ -139,8 +107,6 @@ fn check(name: &str, body: fn()) -> Trial {
     Trial::test(name, move || catch(body))
 }
 
-
-
 fn catch(body: impl FnOnce()) -> Result<(), Failed> {
     std::panic::catch_unwind(std::panic::AssertUnwindSafe(body)).map_err(|e| {
         e.downcast_ref::<String>()
@@ -154,12 +120,6 @@ fn catch(body: impl FnOnce()) -> Result<(), Failed> {
 fn known_ext(ext: &str) -> bool {
     LEGACY_EXTS.contains(&ext) || COMMITTED.contains(&ext)
 }
-
-
-
-
-
-
 
 fn store_ansi_round_trips() {
     let root = support::approved_root();
@@ -190,12 +150,6 @@ fn store_ansi_round_trips() {
     );
     eprintln!("{checked} re-approved .ansi file(s) round-trip");
 }
-
-
-
-
-
-
 
 fn store_integrity() {
     let approved = support::snapshots_root();

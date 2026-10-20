@@ -1,13 +1,9 @@
-
-
 use std::ops::Range;
 
 use unicode_segmentation::UnicodeSegmentation;
 use unicode_width::UnicodeWidthStr;
 
-
 pub(crate) const TAB_SPACES: &str = "    ";
-
 
 pub(crate) fn expand_tabs(text: &str) -> std::borrow::Cow<'_, str> {
     if text.contains('\t') {
@@ -20,17 +16,6 @@ pub(crate) fn expand_tabs(text: &str) -> std::borrow::Cow<'_, str> {
 pub fn width(s: &str) -> usize {
     UnicodeWidthStr::width(s)
 }
-
-
-
-
-
-
-
-
-
-
-
 
 pub fn wider_than(s: &str, max: usize) -> bool {
     if s.len() <= max {
@@ -52,8 +37,6 @@ pub fn wider_than(s: &str, max: usize) -> bool {
     }
 }
 
-
-
 pub fn width_capped(s: &str, cap: usize) -> usize {
     if wider_than(s, cap) {
         cap.saturating_add(1)
@@ -61,17 +44,6 @@ pub fn width_capped(s: &str, cap: usize) -> usize {
         width(s)
     }
 }
-
-
-
-
-
-
-
-
-
-
-
 
 pub fn clip(s: &str, max: usize) -> String {
     let mut out = String::new();
@@ -86,8 +58,6 @@ pub fn clip(s: &str, max: usize) -> String {
     }
     out
 }
-
-
 
 pub fn truncate(s: &str, max: usize) -> String {
     if !wider_than(s, max) {
@@ -109,17 +79,6 @@ pub fn truncate(s: &str, max: usize) -> String {
     out.push('…');
     out
 }
-
-
-
-
-
-
-
-
-
-
-
 
 pub fn slice_cells(s: &str, offset: usize, max: usize) -> String {
     if max == 0 {
@@ -162,7 +121,6 @@ pub fn slice_cells(s: &str, offset: usize, max: usize) -> String {
     out
 }
 
-
 pub fn truncate_middle(s: &str, max: usize) -> String {
     if !wider_than(s, max) {
         return s.to_owned();
@@ -197,7 +155,6 @@ pub fn truncate_middle(s: &str, max: usize) -> String {
     format!("{head}…{tail}")
 }
 
-
 pub fn thousands(n: usize) -> String {
     let s = n.to_string();
     let mut out = String::new();
@@ -210,13 +167,11 @@ pub fn thousands(n: usize) -> String {
     out
 }
 
-
 pub fn fit(s: &str, w: usize) -> String {
     let t = truncate(s, w);
     let pad = w.saturating_sub(width(&t));
     format!("{t}{}", " ".repeat(pad))
 }
-
 
 pub fn fit_right(s: &str, w: usize) -> String {
     let t = truncate(s, w);
@@ -224,14 +179,10 @@ pub fn fit_right(s: &str, w: usize) -> String {
     format!("{}{t}", " ".repeat(pad))
 }
 
-
-
 pub fn center_x(area: ratatui::layout::Rect, text: &str) -> u16 {
     let w = width_capped(text, usize::from(u16::MAX)) as u16;
     area.x + area.width.saturating_sub(w) / 2
 }
-
-
 
 pub fn plural(n: usize, one: &str, many: &str) -> String {
     if n == 1 {
@@ -240,9 +191,6 @@ pub fn plural(n: usize, one: &str, many: &str) -> String {
         format!("{n} {many}")
     }
 }
-
-
-
 
 pub fn truncate_sep(s: &str, max: usize) -> String {
     if width(s) <= max {
@@ -270,8 +218,6 @@ pub fn truncate_sep(s: &str, max: usize) -> String {
     }
 }
 
-
-
 pub fn crumb_fit(label: &str, max: usize) -> String {
     if width(label) <= max {
         return label.to_owned();
@@ -290,19 +236,13 @@ pub fn crumb_fit(label: &str, max: usize) -> String {
     truncate_middle(label, max)
 }
 
-
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub enum DurationStyle {
-
-
     Compact,
-
 
     #[default]
     Spoken,
 }
-
-
 
 pub fn duration(elapsed: std::time::Duration, style: DurationStyle) -> String {
     match style {
@@ -345,7 +285,6 @@ fn duration_spoken(secs: u64) -> String {
     }
 }
 
-
 pub fn bytes(n: u64) -> String {
     const UNITS: [&str; 5] = ["B", "KiB", "MiB", "GiB", "TiB"];
     let mut v = n as f64;
@@ -361,17 +300,9 @@ pub fn bytes(n: u64) -> String {
     }
 }
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct WrapOpts {
-
-
-
     pub keep_indent: bool,
-
-
-
-
 
     pub hang_at_gap: Option<u8>,
 }
@@ -386,22 +317,15 @@ impl Default for WrapOpts {
 }
 
 impl WrapOpts {
-
     pub const PLAIN: Self = Self {
         keep_indent: false,
         hang_at_gap: None,
     };
 }
 
-
-
-
-
-
 pub fn wrap(s: &str, w: usize) -> Vec<String> {
     wrap_with(s, w, WrapOpts::default())
 }
-
 
 pub fn wrap_with(s: &str, w: usize, opts: WrapOpts) -> Vec<String> {
     let w = w.max(1);
@@ -424,7 +348,6 @@ pub fn wrap_with(s: &str, w: usize, opts: WrapOpts) -> Vec<String> {
     lines
 }
 
-
 fn hang_column(s: &str, gap: usize) -> Option<usize> {
     let at = s.find(&" ".repeat(gap))?;
     let rest = s[at..].trim_start_matches(' ');
@@ -433,8 +356,6 @@ fn hang_column(s: &str, gap: usize) -> Option<usize> {
     }
     Some(width(&s[..s.len() - rest.len()]))
 }
-
-
 
 struct Para<'a> {
     lines: &'a mut Vec<String>,
@@ -506,7 +427,6 @@ fn wrap_para(body: &str, w: usize, first: usize, cont: usize, lines: &mut Vec<St
     p.lines.push(last);
 }
 
-
 struct SearchText {
     text: String,
     origins: Vec<(Range<usize>, Range<usize>)>,
@@ -514,9 +434,6 @@ struct SearchText {
 
 impl SearchText {
     fn new(source: &str, lowercase: bool) -> Self {
-
-
-
         let text = if lowercase {
             source.to_lowercase()
         } else {
@@ -559,7 +476,6 @@ impl SearchText {
     }
 }
 
-
 pub fn find_ranges(text: &str, needle: &str, case_sensitive: bool) -> Vec<Range<usize>> {
     if needle.is_empty() {
         return Vec::new();
@@ -579,11 +495,6 @@ pub fn find_ranges(text: &str, needle: &str, case_sensitive: bool) -> Vec<Range<
     ranges.dedup();
     ranges
 }
-
-
-
-
-
 
 pub fn fuzzy(label: &str, word: &str) -> Option<(u32, Vec<usize>)> {
     if word.is_empty() {
@@ -721,8 +632,6 @@ mod tests {
         assert!(find_ranges("", "a", false).is_empty());
     }
 
-
-
     fn width_corpus() -> Vec<String> {
         let seeds = [
             "",
@@ -752,7 +661,6 @@ mod tests {
         out.push("\u{200B}".repeat(5_000) + "end");
         out
     }
-
 
     fn truncate_reference(s: &str, max: usize) -> String {
         if width(s) <= max {

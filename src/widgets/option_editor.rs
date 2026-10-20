@@ -1,26 +1,3 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 use ratatui::buffer::Buffer;
 use ratatui::crossterm::event::KeyCode;
 use ratatui::layout::Rect;
@@ -40,10 +17,8 @@ use crate::ui::text::{truncate, width};
 use crate::widgets::edit::EditField;
 use crate::widgets::option_list::{OptionList, WheelMode};
 
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct OptionItem {
-
     pub value: String,
 
     pub label: String,
@@ -51,7 +26,6 @@ pub struct OptionItem {
     pub tone: Option<Tone>,
 
     pub description: Option<String>,
-
 
     pub disabled: Option<String>,
 }
@@ -87,7 +61,6 @@ impl OptionItem {
     }
 }
 
-
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct Options(pub Vec<OptionItem>);
 
@@ -114,32 +87,25 @@ impl Options {
     }
 }
 
-
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub enum ColumnEditor {
-
     #[default]
     Text,
 
     Select(Options),
 
-
     Combo(Options),
 
     Radio(Options),
-
-
 
     Checkbox(Options),
 
     Segmented(Options),
 
-
     Tags(Options),
 }
 
 impl ColumnEditor {
-
     pub fn options(&self) -> Option<&Options> {
         match self {
             Self::Text => None,
@@ -152,19 +118,13 @@ impl ColumnEditor {
         }
     }
 
-
     pub fn is_constrained(&self) -> bool {
         self.options().is_some()
     }
 
-
     pub fn has_popup(&self) -> bool {
         self.is_constrained() && !matches!(self, Self::Checkbox(_))
     }
-
-
-
-
 
     pub fn for_options(options: Options) -> Self {
         match options.len() {
@@ -174,8 +134,6 @@ impl ColumnEditor {
             _ => Self::Combo(options),
         }
     }
-
-
 
     pub fn checked(&self, raw: &str) -> Option<bool> {
         let Self::Checkbox(opts) = self else {
@@ -199,8 +157,6 @@ impl ColumnEditor {
         }
     }
 
-
-
     pub fn display(&self, raw: &str, cfg: &EditorConfig) -> String {
         let Some(opts) = self.options() else {
             return raw.to_owned();
@@ -213,8 +169,6 @@ impl ColumnEditor {
         labels.join(cfg.tag_separator)
     }
 
-
-
     pub fn out_of_set(&self, raw: &str, cfg: &EditorConfig) -> bool {
         let Some(opts) = self.options() else {
             return false;
@@ -225,7 +179,6 @@ impl ColumnEditor {
         self.parts(raw, cfg).iter().any(|p| opts.find(p).is_none())
     }
 
-
     pub fn tone(&self, raw: &str) -> Option<Tone> {
         let opts = self.options()?;
         if matches!(self, Self::Tags(_)) {
@@ -233,8 +186,6 @@ impl ColumnEditor {
         }
         opts.find(raw).and_then(|i| opts.0[i].tone)
     }
-
-
 
     pub fn toggled(&self, raw: &str) -> Option<String> {
         let Self::Checkbox(opts) = self else {
@@ -251,14 +202,9 @@ impl ColumnEditor {
     }
 }
 
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct EditorConfig {
-
-
     pub dismiss: Dismiss,
-
-
 
     pub blur: BlurAction,
 
@@ -268,29 +214,19 @@ pub struct EditorConfig {
 
     pub cursor_style: CursorStyle,
 
-
     pub type_ahead: bool,
-
 
     pub type_ahead_timeout: std::time::Duration,
 
-
-
     pub nav: NavKeys,
 
-
     pub affordance: Affordance,
-
 
     pub flag_out_of_set: bool,
 
     pub tag_separator: &'static str,
 
-
     pub placement: Placement,
-
-
-
 
     pub wheel: WheelMode,
 }
@@ -315,11 +251,8 @@ impl Default for EditorConfig {
     }
 }
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum Affordance {
-
-
     #[default]
     Focused,
 
@@ -328,10 +261,8 @@ pub enum Affordance {
     Never,
 }
 
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ChoiceResult {
-
     Commit(String),
 
     Cancel,
@@ -348,40 +279,27 @@ enum Kind {
     Tags,
 }
 
-
 #[derive(Debug, Clone)]
 pub struct ChoiceEditor {
-
-
     pub id: WidgetId,
     kind: Kind,
     pub options: Options,
 
     pub cursor: usize,
 
-
     pub current: Option<usize>,
 
-
-
     pub selection: RowSelection,
-
 
     pub query: EditField,
 
     pub error: Option<String>,
-
-
-
-
 
     pub list: OptionList,
     typeahead: crate::core::typeahead::TypeAhead,
 }
 
 impl ChoiceEditor {
-
-
     pub fn open(
         id: WidgetId,
         editor: &ColumnEditor,
@@ -430,7 +348,6 @@ impl ChoiceEditor {
         })
     }
 
-
     fn list(id: WidgetId, cfg: &EditorConfig) -> OptionList {
         let mut list = OptionList::new(id)
             .dismiss(cfg.dismiss)
@@ -455,20 +372,13 @@ impl ChoiceEditor {
         PartRef::item(Part::ROW, ItemKey::index(i))
     }
 
-
-
     fn option_of(&self, id: WidgetId) -> Option<usize> {
         self.id.item_of(id, Part::ROW, 0..self.options.len())
     }
 
-
-
-
     pub(crate) fn contains_id(&self, id: WidgetId) -> bool {
         id == self.id || id == backdrop_id(self.id) || self.option_of(id).is_some()
     }
-
-
 
     pub fn shown(&self) -> Vec<usize> {
         let q = self.query.text().trim().to_lowercase();
@@ -485,16 +395,12 @@ impl ChoiceEditor {
         self.options.get(i).is_some_and(|o| !o.is_disabled())
     }
 
-
     fn shown_rows(&self) -> Shown<'_> {
         Shown {
             ed: self,
             rows: self.shown(),
         }
     }
-
-
-
 
     fn value(&self, cfg: &EditorConfig) -> Option<String> {
         if self.kind == Kind::Tags {
@@ -512,7 +418,6 @@ impl ChoiceEditor {
         Some(self.options.0[self.cursor].value.clone())
     }
 
-
     pub fn blur_value(&self, cfg: &EditorConfig) -> Option<String> {
         self.value(cfg)
     }
@@ -526,9 +431,6 @@ impl ChoiceEditor {
     }
 
     pub fn on_key(&mut self, key: &Key, cfg: &EditorConfig) -> (Outcome, Option<ChoiceResult>) {
-
-
-
         if self.kind == Kind::Combo {
             use crate::widgets::field_common::EditAction;
             let action = self.query.action(key);
@@ -543,7 +445,6 @@ impl ChoiceEditor {
             }
         }
         if unassigned_chord::<()>(key, &[]) {
-
             return (Outcome::Consumed, None);
         }
         let combo = self.kind == Kind::Combo;
@@ -600,7 +501,6 @@ impl ChoiceEditor {
                     n => n,
                 };
                 match (at, nav) {
-
                     (None, Nav::Up | Nav::Down | Nav::Left | Nav::Right) => cursor.first(&shown),
                     _ => cursor.apply(nav, &shown, self.list.scroll.viewport_len),
                 }
@@ -619,7 +519,6 @@ impl ChoiceEditor {
         }
     }
 
-
     fn after_query(&mut self) {
         self.error = None;
         if let Some(&i) = self.shown().iter().find(|&&i| self.enabled(i)) {
@@ -627,7 +526,6 @@ impl ChoiceEditor {
         }
         self.list.scroll.offset = 0;
     }
-
 
     pub fn on_paste(&mut self, text: &str) -> Outcome {
         if self.kind != Kind::Combo {
@@ -638,7 +536,6 @@ impl ChoiceEditor {
         }
         Outcome::Changed
     }
-
 
     pub fn on_click(&mut self, id: WidgetId) -> (Outcome, Option<ChoiceResult>) {
         if id == backdrop_id(self.id) {
@@ -665,7 +562,6 @@ impl ChoiceEditor {
         )
     }
 
-
     fn step(&mut self, delta: isize) {
         let shown = self.shown_rows();
         let at = shown.rows.iter().position(|&i| i == self.cursor);
@@ -683,11 +579,6 @@ impl ChoiceEditor {
             self.cursor = shown.rows[k];
         }
     }
-
-
-
-
-
 
     pub fn wheel(&mut self, axis: Axis, delta: i32) -> crate::core::response::Response<()> {
         use crate::core::response::Response;
@@ -707,8 +598,6 @@ impl ChoiceEditor {
         }
     }
 
-
-
     pub fn render(&mut self, cell: Rect, buf: &Buffer, ctx: &mut RenderCtx, cfg: &EditorConfig) {
         if self.kind == Kind::Segmented {
             self.render_strip(cell, buf, ctx, cfg);
@@ -716,7 +605,6 @@ impl ChoiceEditor {
             self.render_list(cell, buf, ctx, cfg);
         }
     }
-
 
     fn prefix(&self) -> u16 {
         match self.kind {
@@ -744,7 +632,6 @@ impl ChoiceEditor {
             })
             .max()
             .unwrap_or(0) as u16
-
             + self.prefix()
             + 7;
         let (min_w, max_w) = cfg.popup_width;
@@ -760,13 +647,10 @@ impl ChoiceEditor {
         let visible = pa.height.saturating_sub(2 + search).max(1) as usize;
         let at = shown.iter().position(|&i| i == self.cursor).unwrap_or(0);
 
-
         self.list.scroll.set_content(shown.len());
         self.list.scroll.set_viewport(visible);
         self.list.scroll.follow(at);
         if search > 0 {
-
-
             let inner = pa
                 .intersection(screen)
                 .inner(ratatui::layout::Margin::new(1, 1));
@@ -812,8 +696,6 @@ impl ChoiceEditor {
                 );
                 line.as_position()
             } else {
-
-
                 self.query
                     .clone()
                     .draw_line(buf, line, &Self::query_look(t))
@@ -886,7 +768,6 @@ impl ChoiceEditor {
                 }
                 _ => {
                     if self.current == Some(i) {
-
                         buf.set_string(x, y, t.glyphs.current, st.fg(ink));
                     }
                     x += 2;
@@ -934,7 +815,6 @@ impl ChoiceEditor {
             buf.set_string(x, pa.bottom().saturating_sub(1), t.glyphs.more_below, edge);
         }
     }
-
 
     fn query_look(t: &crate::theme::Theme) -> crate::widgets::edit::LineLook {
         let fs = t.field_style(crate::ui::ctx::VisualState {
@@ -1023,13 +903,6 @@ impl ChoiceEditor {
     }
 }
 
-
-
-
-
-
-
-
 impl crate::core::pointer::MouseTarget for ChoiceEditor {
     type Action = ChoiceResult;
 
@@ -1044,7 +917,6 @@ impl crate::core::pointer::MouseTarget for ChoiceEditor {
         use crate::core::intent::Phase;
         use crate::core::response::Response;
         if let Some((axis, delta)) = ev.wheel() {
-
             if ev.part().part == Part::BACKDROP {
                 return Response::ignored();
             }
@@ -1065,7 +937,6 @@ impl crate::core::pointer::MouseTarget for ChoiceEditor {
         }
     }
 }
-
 
 struct Shown<'a> {
     ed: &'a ChoiceEditor,
@@ -1150,8 +1021,6 @@ mod tests {
 
     #[test]
     fn the_popup_moves_with_nav_keys_not_raw_key_codes() {
-
-
         let vim = EditorConfig {
             nav: crate::core::keymap::NavKeys::VIM,
             type_ahead: false,
@@ -1254,10 +1123,6 @@ mod tests {
         assert_eq!(c.on_paste(" "), Outcome::Changed);
     }
 
-
-
-
-
     #[test]
     fn the_combo_search_edits_at_the_caret_selects_all_and_undoes() {
         use ratatui::crossterm::event::KeyModifiers as M;
@@ -1327,11 +1192,6 @@ mod tests {
             Some(ChoiceResult::Cancel)
         );
     }
-
-
-
-
-
 
     #[test]
     fn the_wheel_over_the_popup_follows_its_wheel_mode() {

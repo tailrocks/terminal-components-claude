@@ -1,7 +1,3 @@
-
-
-
-
 use junie_tui::widgets::steps::StepState;
 
 use crate::domain::agent::Agent;
@@ -56,7 +52,6 @@ impl Stage {
         Stage::ALL.iter().position(|s| *s == self).unwrap_or(0)
     }
 
-
     pub fn activity(self, agent: Agent) -> String {
         match self {
             Stage::Identity => "Resolving launch identity…".into(),
@@ -74,10 +69,8 @@ impl Stage {
     }
 }
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum LaunchPlan {
-
     Clean,
 
     FailNetwork,
@@ -101,14 +94,9 @@ pub enum LaunchEvent {
     Activity(String),
     BuildLine(String),
     ContainerReady(String),
-    CredentialsResolved {
-        origin: String,
-        validation: String,
-    },
+    CredentialsResolved { origin: String, validation: String },
 
-    CredentialError {
-        message: String,
-    },
+    CredentialError { message: String },
     Failed(LaunchFailure),
     Ready,
 }
@@ -133,7 +121,6 @@ pub struct LaunchRun {
     pub build_lines_emitted: usize,
     pub cancelled: bool,
 }
-
 
 pub const BUILD_LOG: [&str; 44] = [
     "#1 [internal] load build definition from Dockerfile.derived",
@@ -184,7 +171,6 @@ pub const BUILD_LOG: [&str; 44] = [
 
 impl LaunchRun {
     pub fn new(plan: LaunchPlan, agent: Agent, container: &str, run_id: &str) -> Self {
-
         let durations = [14, 18, 26, 30, 8, 92, 22, 20, 18, 34, 16];
         Self {
             plan,
@@ -223,7 +209,6 @@ impl LaunchRun {
         self.done || self.failure.is_some() || self.blocked_at.is_some() || self.cancelled
     }
 
-
     pub fn retry_credentials(&mut self) {
         self.credential_hold = false;
         self.credential_retried = true;
@@ -236,7 +221,6 @@ impl LaunchRun {
             self.states[i] = StepState::Failed;
         }
     }
-
 
     pub fn advance(&mut self) -> Vec<LaunchEvent> {
         let mut ev = vec![];

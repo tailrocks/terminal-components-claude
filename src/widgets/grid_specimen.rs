@@ -1,12 +1,3 @@
-
-
-
-
-
-
-
-
-
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
 use ratatui::style::Color;
@@ -16,15 +7,12 @@ use crate::ui::ctx::RenderCtx;
 use crate::ui::specimen::{Specimen, SpecimenState};
 use crate::widgets::grid::{CellValue, DataGrid, GridRows, RowTotal};
 
-
 const SAMPLE_ROWS: usize = 3;
 
 impl DataGrid {
-
     fn sample_edit_col(&self) -> Option<usize> {
         self.columns.iter().position(|c| !c.read_only && !c.primary)
     }
-
 
     fn sample_text_col(&self) -> Option<usize> {
         (0..self.columns.len()).find(|&c| {
@@ -51,11 +39,8 @@ impl Specimen for DataGrid {
         }
     }
 
-
-
     fn specimen_height(&self, state: SpecimenState) -> u16 {
         let rows = if state == SpecimenState::Empty {
-
             2
         } else if self.pending.is_empty() {
             SAMPLE_ROWS.min(self.rows().len().max(1)) as u16
@@ -75,7 +60,6 @@ impl Specimen for DataGrid {
         bg: Color,
     ) {
         let mut g = self.clone();
-
 
         if g.rows().len() > SAMPLE_ROWS && g.pending.is_empty() {
             let rows = g.rows()[..SAMPLE_ROWS].to_vec();

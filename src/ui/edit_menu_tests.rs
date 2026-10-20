@@ -1,7 +1,3 @@
-
-
-
-
 use super::*;
 use crate::core::edit::clipboard;
 use crate::core::focus::FocusRing;
@@ -13,8 +9,6 @@ use crate::ui::ctx::Interaction;
 use ratatui::crossterm::event::{KeyCode, KeyModifiers};
 
 const SCREEN: Rect = Rect::new(0, 0, 60, 16);
-
-
 
 fn frame(
     focus: Option<WidgetId>,
@@ -51,7 +45,6 @@ fn row(buf: &Buffer, y: u16) -> String {
         .collect()
 }
 
-
 fn find(buf: &Buffer, label: &str) -> Option<Position> {
     (0..buf.area.height).find_map(|y| {
         let r = row(buf, y);
@@ -61,7 +54,6 @@ fn find(buf: &Buffer, label: &str) -> Option<Position> {
         })
     })
 }
-
 
 fn menu_rows(buf: &Buffer) -> Vec<&'static str> {
     ["Cut", "Copy", "Paste", "Select all"]
@@ -73,8 +65,6 @@ fn menu_rows(buf: &Buffer) -> Vec<&'static str> {
 fn key(code: KeyCode, mods: KeyModifiers) -> Key {
     Key { code, mods }
 }
-
-
 
 fn right_click_then_choose<W: MouseTarget>(
     w: &mut W,
@@ -116,13 +106,11 @@ fn a_right_click_on_a_text_input_opens_cut_copy_paste_select_all() {
     assert_eq!(i.field.buffer.selected_text(), Some("hello world"));
     assert!(!i.edit_menu.is_open(), "choosing closes the menu");
 
-
     right_click_then_choose(&mut i, &mut draw, id, Position::new(4, 1), "Copy");
     assert_eq!(clipboard::text().as_deref(), Some("hello world"));
     clipboard::copy("bye");
     right_click_then_choose(&mut i, &mut draw, id, Position::new(4, 1), "Paste");
     assert_eq!(i.text(), "bye");
-
 
     let (_, _) = frame(Some(id), |b, c| draw(&mut i, b, c));
     let (o, _) = i.on_key(&key(KeyCode::F(10), KeyModifiers::SHIFT));
@@ -134,7 +122,6 @@ fn a_right_click_on_a_text_input_opens_cut_copy_paste_select_all() {
     assert_eq!(o, Outcome::Changed);
     assert!(!i.edit_menu.is_open(), "Esc closes the menu");
     assert_eq!(i.text(), "bye", "Esc closed only the menu");
-
 
     let mut off = TextInput::new(id, "Name").value("x").context_menu(false);
     let (_, hits) = frame(Some(id), |b, c| draw(&mut off, b, c));

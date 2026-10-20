@@ -1,18 +1,6 @@
-
-
-
-
-
-
-
-
-
-
-
 use super::{Bin, Root, interact};
 
 const BOOT: &str = "Junie Design system";
-
 
 const GRID_EDITS: &[&str] = &[
     "tab",

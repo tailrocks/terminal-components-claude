@@ -1,12 +1,3 @@
-
-
-
-
-
-
-
-
-
 use ratatui::buffer::Buffer;
 use ratatui::layout::{Margin, Rect};
 use ratatui::style::Style;
@@ -19,29 +10,13 @@ use crate::ui::text::{truncate, width};
 use crate::ui::tooltip::Tip;
 use crate::widgets::icon_button::IconButton;
 
-
-
-
-
 pub const CLOSE: WidgetId = WidgetId::of("modal.close");
-
-
 
 pub const SURFACE: WidgetId = WidgetId::of("modal.surface");
 
-
-
-
-
-
 pub const BACKDROP: WidgetId = WidgetId::of("modal.backdrop");
 
-
-
 pub const CLOSE_WIDTH: u16 = 3;
-
-
-
 
 pub fn refuse_outside_click(
     pointer: &mut crate::core::pointer::PointerState,
@@ -55,8 +30,6 @@ pub fn refuse_outside_click(
     true
 }
 
-
-
 pub fn border_style(ctx: &RenderCtx, bg: ratatui::style::Color) -> Style {
     let t = ctx.theme;
     if ctx.interaction.flash == Some(SURFACE) {
@@ -69,10 +42,6 @@ pub fn border_style(ctx: &RenderCtx, bg: ratatui::style::Color) -> Style {
     }
 }
 
-
-
-
-
 pub fn close_button(
     area: Rect,
     buf: &mut Buffer,
@@ -81,13 +50,6 @@ pub fn close_button(
 ) -> Rect {
     close_button_with(&IconButton::close(CLOSE), area, buf, ctx, bg)
 }
-
-
-
-
-
-
-
 
 pub fn close_button_with(
     button: &IconButton,
@@ -108,13 +70,9 @@ pub fn close_button_with(
         .render(area.right() - 2 - w, area.y, buf, ctx, host, Some(tip))
 }
 
-
 pub trait Modal {
-
     fn dismiss(&self) -> Dismiss;
 }
-
-
 
 impl<O: crate::ui::layer::Overlay> Modal for O {
     fn dismiss(&self) -> Dismiss {
@@ -122,10 +80,8 @@ impl<O: crate::ui::layer::Overlay> Modal for O {
     }
 }
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Dismissal {
-
     None,
 
     Close,
@@ -137,9 +93,6 @@ struct Entry<M> {
     modal: M,
     saved_focus: Option<WidgetId>,
 }
-
-
-
 
 pub struct ModalStack<M> {
     entries: Vec<Entry<M>>,
@@ -158,8 +111,6 @@ impl<M> ModalStack<M> {
         Self::default()
     }
 
-
-
     pub fn push(&mut self, modal: M, focus: &mut Focus, initial: Option<WidgetId>) {
         self.entries.push(Entry {
             modal,
@@ -168,13 +119,11 @@ impl<M> ModalStack<M> {
         focus.set(initial);
     }
 
-
     pub fn pop(&mut self, focus: &mut Focus) -> Option<M> {
         let e = self.entries.pop()?;
         focus.set(e.saved_focus);
         Some(e.modal)
     }
-
 
     pub fn clear(&mut self, focus: &mut Focus) {
         if let Some(e) = self.entries.first() {
@@ -204,14 +153,12 @@ impl<M> ModalStack<M> {
         self.entries.iter_mut().map(|e| &mut e.modal)
     }
 
-
     pub fn retain(&mut self, mut pred: impl FnMut(&M) -> bool) {
         self.entries.retain(|e| pred(&e.modal));
     }
 }
 
 impl<M: Modal> ModalStack<M> {
-
     pub fn outside_click(&self) -> Dismissal {
         match self.top() {
             None => Dismissal::None,
@@ -219,7 +166,6 @@ impl<M: Modal> ModalStack<M> {
             Some(_) => Dismissal::Keep,
         }
     }
-
 
     pub fn escape(&self) -> Dismissal {
         match self.top() {
@@ -230,20 +176,13 @@ impl<M: Modal> ModalStack<M> {
     }
 }
 
-
-
-
 pub fn ensure_focus(focus: &mut Focus, ring: &FocusRing, fallback: FocusFallback) {
     focus.ensure_valid_with(ring, fallback);
 }
 
-
-
-
 #[deprecated(note = "use `popup::Placement` (`Placement::Center`) with `Frame::placement`")]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum FramePlacement {
-
     Upper,
 
     Middle,
@@ -263,10 +202,6 @@ impl From<FramePlacement> for Placement {
     }
 }
 
-
-
-
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Frame<'a> {
     pub width: u16,
@@ -276,12 +211,9 @@ pub struct Frame<'a> {
     pub title: Option<&'a str>,
     pub meta: Option<&'a str>,
 
-
     pub placement: Placement,
 
-
     pub anchor: Rect,
-
 
     pub fit: Place,
 
@@ -291,17 +223,11 @@ pub struct Frame<'a> {
 
     pub bottom: u16,
 
-
     pub backdrop: bool,
-
 
     pub dim: Backdrop,
 
-
-
     pub dismiss: Option<Dismiss>,
-
-
 
     pub close_button: IconButton,
 }
@@ -328,22 +254,15 @@ impl<'a> Frame<'a> {
         }
     }
 
-
     pub fn close_button(mut self, button: IconButton) -> Self {
         self.close_button = button;
         self
     }
 
-
     pub fn dismiss(mut self, dismiss: Dismiss) -> Self {
         self.dismiss = Some(dismiss);
         self
     }
-
-
-
-
-
 
     pub fn overlay<O: crate::ui::layer::Overlay + ?Sized>(mut self, overlay: &O) -> Self {
         self.dismiss = Some(overlay.dismiss());
@@ -360,7 +279,6 @@ impl<'a> Frame<'a> {
         self.meta = meta;
         self
     }
-
 
     pub fn placement(mut self, placement: impl Into<Placement>) -> Self {
         self.placement = placement.into();
@@ -401,7 +319,6 @@ impl<'a> Frame<'a> {
         self
     }
 
-
     pub fn area(&self, screen: Rect) -> Rect {
         let bounds = crate::widgets::dialog::body_bounds(screen, self.top, self.bottom);
         let m = crate::widgets::dialog::OUTER_MARGIN;
@@ -418,12 +335,10 @@ impl<'a> Frame<'a> {
         place_with(bounds, self.anchor, w, h, self.placement, self.fit)
     }
 
-
     pub fn render(&self, screen: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) -> (Rect, Rect) {
         let t = ctx.theme;
         if self.backdrop {
             ctx.modal_backdrop_with(buf, screen, self.dim);
-
 
             if self.dismiss.is_some() && !ctx.inert {
                 ctx.hits.register_part_as(
@@ -551,7 +466,6 @@ mod tests {
         assert_eq!((r.x, r.y), (10, 5));
     }
 
-
     fn framed(
         t: &crate::theme::Theme,
         title: &str,
@@ -576,9 +490,6 @@ mod tests {
         };
         (buf, hits, area)
     }
-
-
-
 
     #[test]
     fn the_frame_close_plate_keeps_the_corner_and_lights_whole() {

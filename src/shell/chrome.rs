@@ -1,25 +1,11 @@
-
-
-
-
-
-
-
-
-
-
-
-
 use ratatui::layout::Rect;
 
 use crate::core::id::WidgetId;
 use crate::widgets::dialog::Dialog;
 use crate::widgets::menu::{MenuBar, MenuBarAction, MenuItem};
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct Regions {
-
     pub header: Rect,
 
     pub body: Rect,
@@ -27,13 +13,9 @@ pub struct Regions {
     pub footer: Rect,
 }
 
-
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Chrome {
-
     pub header: u16,
-
 
     pub gap: u16,
 
@@ -49,8 +31,6 @@ impl Default for Chrome {
 }
 
 impl Chrome {
-
-
     pub const fn new() -> Self {
         Self {
             header: 1,
@@ -60,32 +40,25 @@ impl Chrome {
         }
     }
 
-
     pub const fn header(mut self, rows: u16) -> Self {
         self.header = rows;
         self
     }
-
 
     pub const fn gap(mut self, rows: u16) -> Self {
         self.gap = rows;
         self
     }
 
-
     pub const fn footer(mut self, rows: u16) -> Self {
         self.footer = rows;
         self
     }
 
-
     pub const fn inset(mut self, cols: u16) -> Self {
         self.inset = cols;
         self
     }
-
-
-
 
     pub fn regions(&self, area: Rect) -> Regions {
         let header_h = self.header.min(area.height);
@@ -109,22 +82,15 @@ impl Chrome {
         }
     }
 
-
-
     pub fn rows(&self) -> (u16, u16) {
         (self.header, self.footer)
     }
-
-
 
     pub fn fit(&self, d: &mut Dialog) {
         let (top, bottom) = self.rows();
         d.chrome = (d.chrome.0.max(top), d.chrome.1.max(bottom));
     }
 }
-
-
-
 
 #[derive(Debug, Clone)]
 pub struct Menus<C> {
@@ -142,17 +108,14 @@ impl<C: Clone> Menus<C> {
         Self::default()
     }
 
-
     pub fn menu(mut self, title: impl Into<String>, items: Vec<(MenuItem, C)>) -> Self {
         self.menus.push((title.into(), items));
         self
     }
 
-
     pub fn titles(&self) -> impl Iterator<Item = &str> {
         self.menus.iter().map(|(t, _)| t.as_str())
     }
-
 
     pub fn items(&self, m: usize) -> Vec<MenuItem> {
         self.menus
@@ -160,7 +123,6 @@ impl<C: Clone> Menus<C> {
             .map(|(_, v)| v.iter().map(|(i, _)| i.clone()).collect())
             .unwrap_or_default()
     }
-
 
     pub fn bar(&self, id: WidgetId) -> MenuBar {
         MenuBar::new(
@@ -173,12 +135,9 @@ impl<C: Clone> Menus<C> {
         )
     }
 
-
     pub fn get(&self, m: usize, i: usize) -> Option<C> {
         self.menus.get(m)?.1.get(i).map(|(_, c)| c.clone())
     }
-
-
 
     pub fn command(&self, action: MenuBarAction) -> Option<C> {
         match action {

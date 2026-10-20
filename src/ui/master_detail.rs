@@ -1,23 +1,3 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 use ratatui::buffer::Buffer;
 use ratatui::crossterm::event::KeyCode;
 use ratatui::layout::Rect;
@@ -34,33 +14,19 @@ use crate::widgets::keyhint::{Hint, hint};
 use crate::widgets::menu::MenuItem;
 use crate::widgets::splitter::Splitter;
 
-
-
-
 pub const SPLIT_MIN: u16 = 108;
-
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum DetailSize {
-
-
     Share { pct: u16, min: u16, max: u16 },
 
-
-
-
-
     MasterShare { pct: u16, min: u16, max: u16 },
-
-
 
     Resizable,
 }
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum Mode {
-
     #[default]
     Split,
 
@@ -68,8 +34,6 @@ pub enum Mode {
 
     Drawer,
 }
-
-
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct MdLayout {
@@ -82,14 +46,11 @@ pub struct MdLayout {
     pub seam: Rect,
 }
 
-
 #[derive(Debug, Clone)]
 pub struct MasterDetail {
-
     pub master: WidgetId,
 
     pub detail: WidgetId,
-
 
     pub detail_owns: Vec<WidgetId>,
 
@@ -101,15 +62,11 @@ pub struct MasterDetail {
 
     pub keys: SplitKeys,
 
-
     pub gap: u16,
-
 
     pub collapse_below: u16,
 
-
     pub summary_rows: u16,
-
 
     pub esc_returns: bool,
     drawer: bool,
@@ -119,8 +76,6 @@ pub struct MasterDetail {
 }
 
 impl MasterDetail {
-
-
     pub fn new(master: WidgetId, detail: WidgetId) -> Self {
         Self {
             master,
@@ -140,28 +95,14 @@ impl MasterDetail {
         }
     }
 
-
-
-
-
-
-
-
     pub fn natural_width(&self, master: u16, detail: u16) -> u16 {
         self.panes_width(master, detail).max(self.collapse_below)
     }
-
-
-
-
-
-
 
     pub fn panes_width(&self, master: u16, detail: u16) -> u16 {
         match self.size {
             DetailSize::Resizable => self.split.natural_extent(master, detail, self.gap),
             DetailSize::Share { pct, min, max } => {
-
                 let detail = detail.min(max.max(min));
                 let fits = |w: u16| {
                     let dw = ((w as u32 * pct as u32 / 100) as u16).clamp(min, max.max(min));
@@ -174,7 +115,6 @@ impl MasterDetail {
                 w
             }
             DetailSize::MasterShare { pct, min, max } => {
-
                 let master = master.min(max.max(min));
                 let fits = |w: u16| {
                     let mw = (((w as u32 * pct as u32 + 50) / 100) as u16).clamp(min, max.max(min));
@@ -188,11 +128,6 @@ impl MasterDetail {
             }
         }
     }
-
-
-
-
-
 
     pub fn split_rects(&self, area: Rect) -> Option<(Rect, Rect)> {
         if area.width < self.collapse_below {
@@ -226,12 +161,7 @@ impl MasterDetail {
         })
     }
 
-
-
-
-
     pub fn collapsed_mode(&self, focus: &crate::ui::ctx::Interaction) -> Mode {
-
         let open = self.drawer && !focus.focused(self.master);
         let detail_focused = focus.focus.is_some_and(|f| self.in_detail(f)) && !focus.focus_hidden;
         if detail_focused || open {
@@ -241,27 +171,20 @@ impl MasterDetail {
         }
     }
 
-
     pub fn collapse_below(mut self, width: u16) -> Self {
         self.collapse_below = width;
         self
     }
-
-
 
     pub fn detail_share(mut self, pct: u16, min: u16, max: u16) -> Self {
         self.size = DetailSize::Share { pct, min, max };
         self
     }
 
-
-
-
     pub fn master_share(mut self, pct: u16, min: u16, max: u16) -> Self {
         self.size = DetailSize::MasterShare { pct, min, max };
         self
     }
-
 
     pub fn resizable(mut self, split: Split) -> Self {
         self.size = DetailSize::Resizable;
@@ -269,60 +192,47 @@ impl MasterDetail {
         self
     }
 
-
     pub fn seam(mut self, seam: Splitter) -> Self {
         self.seam = seam;
         self
     }
-
 
     pub fn keys(mut self, keys: SplitKeys) -> Self {
         self.keys = keys;
         self
     }
 
-
     pub fn gap(mut self, cols: u16) -> Self {
         self.gap = cols;
         self
     }
-
 
     pub fn summary_rows(mut self, rows: u16) -> Self {
         self.summary_rows = rows;
         self
     }
 
-
     pub fn esc_returns(mut self, on: bool) -> Self {
         self.esc_returns = on;
         self
     }
-
 
     pub fn detail_owns(mut self, ids: &[WidgetId]) -> Self {
         self.detail_owns = ids.to_vec();
         self
     }
 
-
     pub fn in_detail(&self, id: WidgetId) -> bool {
         id == self.detail || self.detail_owns.contains(&id)
     }
-
-
 
     pub fn drawer_open(&self) -> bool {
         self.drawer
     }
 
-
     pub fn last(&self) -> MdLayout {
         self.last
     }
-
-
-
 
     pub fn toggle_drawer(&mut self, focus: &mut Focus) {
         self.drawer = !self.drawer;
@@ -333,20 +243,15 @@ impl MasterDetail {
         });
     }
 
-
-
     pub fn open_drawer(&mut self, focus: &mut Focus) {
         self.drawer = true;
         focus.focus(self.detail);
     }
 
-
     pub fn close_drawer(&mut self, focus: &mut Focus) {
         self.drawer = false;
         focus.focus(self.master);
     }
-
-
 
     pub fn menu_item(&self) -> MenuItem {
         MenuItem::new(if self.drawer {
@@ -355,10 +260,6 @@ impl MasterDetail {
             "Show details"
         })
     }
-
-
-
-
 
     pub fn layout(
         &mut self,
@@ -408,18 +309,11 @@ impl MasterDetail {
         l
     }
 
-
-
-
     pub fn finish(&self, ctx: &mut RenderCtx) {
         if self.last.mode == Mode::Master {
             ctx.control(self.detail, Rect::ZERO, false);
         }
     }
-
-
-
-
 
     pub fn on_key(&mut self, key: &Key, focus: &mut Focus) -> Option<Outcome> {
         let f = focus.current()?;
@@ -444,9 +338,6 @@ impl MasterDetail {
         None
     }
 
-
-
-
     pub fn on_pointer(&mut self, ev: &PointerEvent) -> Option<Outcome> {
         if ev.id != self.seam.id || self.size != DetailSize::Resizable {
             return None;
@@ -462,8 +353,6 @@ impl MasterDetail {
             _ => None,
         }
     }
-
-
 
     pub fn hints(&self, focus: Option<WidgetId>) -> Vec<Hint> {
         let Some(f) = focus else { return Vec::new() };
@@ -484,8 +373,6 @@ impl MasterDetail {
         v
     }
 }
-
-
 
 impl crate::ui::specimen::Specimen for MasterDetail {
     fn specimen_id(&self) -> WidgetId {
@@ -608,8 +495,6 @@ mod tests {
         Key { code, mods }
     }
 
-
-
     #[test]
     fn at_its_natural_width_both_panes_get_their_columns() {
         for mut md in [
@@ -640,8 +525,6 @@ mod tests {
         }
     }
 
-
-
     #[test]
     fn split_rects_are_the_panes_the_layout_draws() {
         for mut md in [
@@ -662,9 +545,6 @@ mod tests {
         }
     }
 
-
-
-
     #[test]
     fn collapsed_mode_is_the_mode_the_narrow_layout_draws() {
         let mut md = MasterDetail::new(M, D);
@@ -678,8 +558,6 @@ mod tests {
             assert_eq!(before, l.mode, "{focus:?}");
         }
     }
-
-
 
     #[test]
     fn panes_width_leaves_a_higher_collapse_threshold_in_force() {
@@ -696,8 +574,6 @@ mod tests {
         assert_eq!(l.mode, Mode::Split);
         assert!(l.master.width >= 50 && l.detail.width >= 30, "{l:?}");
     }
-
-
 
     #[test]
     fn a_moved_seam_leaves_the_natural_width_as_it_was() {
@@ -763,8 +639,6 @@ mod tests {
 
     #[test]
     fn the_resize_chords_move_the_seam_from_either_pane() {
-
-
         crate::core::keyboard::set_alt_keys(crate::core::keyboard::AltKeys::Delivered);
         let mut md = MasterDetail::new(M, D);
         let (l, _) = frame(&mut md, 120, None);

@@ -1,32 +1,3 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 mod app;
 mod chrome;
 pub mod clipboard;
@@ -54,9 +25,6 @@ pub use status::{JobKey, StatusLine};
 
 use crate::runtime::Application;
 
-
-
-
 pub fn run(app: &mut impl Application) -> std::io::Result<()> {
     if let Some(delay) = start_delay() {
         std::thread::sleep(delay);
@@ -64,10 +32,6 @@ pub fn run(app: &mut impl Application) -> std::io::Result<()> {
     let _ = crate::runtime::drain_pending_input();
     crate::runtime::run(app)
 }
-
-
-
-
 
 fn start_delay() -> Option<std::time::Duration> {
     std::env::var("JUNIE_TUI_START_DELAY_MS")

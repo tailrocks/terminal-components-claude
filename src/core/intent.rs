@@ -1,16 +1,3 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
 use ratatui::crossterm::event::KeyModifiers;
 use ratatui::layout::Position;
 
@@ -18,15 +5,9 @@ use super::event::Key;
 use super::hit::Axis;
 use super::id::{PartRef, WidgetId};
 
-
-
-
-
-
 #[non_exhaustive]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Intent<'a> {
-
     Key(Key),
 
     Binding(ActionKey),
@@ -34,13 +15,11 @@ pub enum Intent<'a> {
     Paste(&'a str),
 
     Pointer {
-
         phase: Phase,
 
         part: PartRef,
 
         pos: Position,
-
 
         count: u8,
 
@@ -48,9 +27,7 @@ pub enum Intent<'a> {
     },
 
     Wheel {
-
         axis: Axis,
-
 
         delta: i16,
 
@@ -71,8 +48,6 @@ pub enum Intent<'a> {
 }
 
 impl Intent<'_> {
-
-
     pub const fn pointer(phase: Phase, part: PartRef, pos: Position) -> Self {
         Intent::Pointer {
             phase,
@@ -83,14 +58,12 @@ impl Intent<'_> {
         }
     }
 
-
     pub const fn part(&self) -> Option<PartRef> {
         match self {
             Intent::Pointer { part, .. } | Intent::Wheel { part, .. } => Some(*part),
             _ => None,
         }
     }
-
 
     pub const fn pos(&self) -> Option<Position> {
         match self {
@@ -100,15 +73,9 @@ impl Intent<'_> {
     }
 }
 
-
-
-
-
-
 #[non_exhaustive]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Phase {
-
     Move,
 
     Press,
@@ -130,11 +97,9 @@ pub enum Phase {
     DragEnd,
 }
 
-
 #[non_exhaustive]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum FocusVia {
-
     Keyboard,
 
     Pointer,
@@ -144,42 +109,29 @@ pub enum FocusVia {
     Restore,
 }
 
-
-
-
-
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, PartialOrd, Ord)]
 pub struct ActionKey(u16);
 
 impl ActionKey {
-
     pub const CONFIRM: ActionKey = ActionKey(0);
 
     pub const CANCEL: ActionKey = ActionKey(1);
 
     pub const CLOSE: ActionKey = ActionKey(2);
 
-
     pub const fn custom(name: &str) -> ActionKey {
         ActionKey(super::id::custom_hash16(name))
     }
-
 
     pub const fn raw(self) -> u16 {
         self.0
     }
 }
 
-
-
 #[non_exhaustive]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum DismissReason {
-
     Esc,
-
-
-
 
     CloseButton,
 
@@ -190,11 +142,9 @@ pub enum DismissReason {
     Programmatic,
 }
 
-
 #[non_exhaustive]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum LayerEvent {
-
     Opened,
 
     Dismissed(DismissReason),

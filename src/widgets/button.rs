@@ -8,8 +8,6 @@ use crate::ui::ctx::RenderCtx;
 use crate::ui::text::width;
 use ratatui::crossterm::event::KeyCode;
 
-
-
 #[derive(Debug, Clone)]
 pub struct Button {
     pub id: WidgetId,
@@ -21,17 +19,11 @@ pub struct Button {
     pub busy: bool,
     pub area: Rect,
 
-
     pub focus_visible: crate::ui::ctx::FocusVisible,
-
-
 
     pub mnemonic: Option<usize>,
 
-
     pub tip: Option<crate::ui::tooltip::Tip>,
-
-
 
     pub focusable: bool,
 }
@@ -53,13 +45,10 @@ impl Button {
         }
     }
 
-
     pub fn focusable(mut self, on: bool) -> Self {
         self.focusable = on;
         self
     }
-
-
 
     pub fn tooltip(mut self, text: &str) -> Self {
         let key = self.tip.take().and_then(|t| t.shortcut);
@@ -69,8 +58,6 @@ impl Button {
         });
         self
     }
-
-
 
     pub fn shortcut(mut self, key: &str) -> Self {
         let mut tip = self.tip.take().unwrap_or_default();
@@ -106,15 +93,10 @@ impl Button {
         self
     }
 
-
     pub fn width(&self) -> u16 {
         let marker = if self.on.is_some() || self.busy { 2 } else { 0 };
         (width(&self.label) + 2 + marker) as u16
     }
-
-
-
-
 
     pub fn hint(&self) -> crate::widgets::keyhint::Hint {
         if self.busy {
@@ -128,7 +110,6 @@ impl Button {
         !self.disabled && !self.busy
     }
 
-
     pub fn on_key(&mut self, key: &Key) -> (Outcome, bool) {
         if key.is(KeyCode::Enter) || key.is_char(' ') {
             if self.can_activate() {
@@ -141,7 +122,6 @@ impl Button {
             (Outcome::Ignored, false)
         }
     }
-
 
     pub fn on_click(&mut self) -> bool {
         if self.can_activate() {
@@ -185,7 +165,6 @@ impl Button {
             s.pressed = false;
         }
         let t = ctx.theme;
-
 
         let it = t.interactive(Kind::Button(self.kind), s, t.plane_of(bg));
         let style = it.style;
@@ -258,10 +237,6 @@ impl Button {
     }
 }
 
-
-
-
-
 fn wrap_lines(width: u16, widths: &[u16], gap: u16) -> Vec<Vec<usize>> {
     let mut lines: Vec<Vec<usize>> = vec![vec![]];
     let mut used = 0u16;
@@ -283,8 +258,6 @@ fn wrap_lines(width: u16, widths: &[u16], gap: u16) -> Vec<Vec<usize>> {
     lines
 }
 
-
-
 pub fn row_lines(width: u16, widths: &[u16], gap: u16) -> u16 {
     if widths.is_empty() {
         return 1;
@@ -292,18 +265,9 @@ pub fn row_lines(width: u16, widths: &[u16], gap: u16) -> u16 {
     wrap_lines(width, widths, gap).len() as u16
 }
 
-
-
-
-
-
-
-
 pub fn row_layout(area: Rect, widths: &[u16], gap: u16) -> Vec<Rect> {
     place_lines(area, widths, gap, false)
 }
-
-
 
 pub fn row_layout_right(area: Rect, widths: &[u16], gap: u16) -> Vec<Rect> {
     place_lines(area, widths, gap, true)
@@ -329,66 +293,41 @@ fn place_lines(area: Rect, widths: &[u16], gap: u16, right: bool) -> Vec<Rect> {
     out
 }
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum RowAlign {
-
     #[default]
     Start,
 
     End,
 }
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum RowOverflow {
-
-
-
     #[default]
     More,
-
 
     Wrap,
 }
 
-
-
-
-
-
-
-
-
-
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct ButtonRow {
-
     pub align: RowAlign,
-
 
     pub gap: Option<u16>,
 
     pub overflow: RowOverflow,
 
-
     pub wrap: bool,
 }
 
-
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct RowLayout {
-
-
     pub rects: Vec<Option<Rect>>,
 
     pub more: Option<Rect>,
 
     pub hidden: Vec<usize>,
 }
-
-
 
 pub const MORE_LABEL: &str = "…";
 
@@ -413,11 +352,6 @@ impl ButtonRow {
         self.wrap = on;
         self
     }
-
-
-
-
-
 
     pub fn step<'a>(
         &self,
@@ -444,7 +378,6 @@ impl ButtonRow {
         }
     }
 
-
     pub fn more_id(owner: WidgetId) -> WidgetId {
         owner.sub("more")
     }
@@ -453,7 +386,6 @@ impl ButtonRow {
         self.gap.unwrap_or(theme.spacing.button_gap)
     }
 
-
     fn primary(buttons: &[Button]) -> Option<usize> {
         buttons
             .iter()
@@ -461,18 +393,14 @@ impl ButtonRow {
             .or_else(|| buttons.len().checked_sub(1))
     }
 
-
     fn lines(&self, width: u16, widths: &[u16], gap: u16) -> Vec<Vec<usize>> {
         wrap_lines(width, widths, gap)
     }
-
-
 
     pub fn width(&self, buttons: &[Button], theme: &crate::theme::Theme) -> u16 {
         let n = buttons.len() as u16;
         buttons.iter().map(Button::width).sum::<u16>() + self.gap_for(theme) * n.saturating_sub(1)
     }
-
 
     pub fn rows(&self, width: u16, buttons: &[Button], theme: &crate::theme::Theme) -> u16 {
         match self.overflow {
@@ -484,8 +412,6 @@ impl ButtonRow {
         }
     }
 
-
-
     pub fn rows_at_gap(&self, width: u16, buttons: &[Button], gap: u16) -> u16 {
         match self.overflow {
             RowOverflow::More => 1,
@@ -495,8 +421,6 @@ impl ButtonRow {
             }
         }
     }
-
-
 
     pub fn layout(&self, area: Rect, buttons: &[Button], theme: &crate::theme::Theme) -> RowLayout {
         let gap = self.gap_for(theme);
@@ -515,7 +439,6 @@ impl ButtonRow {
                 RowAlign::Start => area.x,
                 RowAlign::End => area.right().saturating_sub(total).max(area.x),
             };
-
 
             let mut cx = x;
             let rects: Vec<Rect> = line
@@ -553,7 +476,6 @@ impl ButtonRow {
                     return out;
                 }
 
-
                 let primary = Self::primary(buttons).unwrap_or(0);
                 let more_w = (width(theme.glyphs.ellipsis) + 2) as u16;
                 let mut budget = area.width.saturating_sub(widths[primary] + gap + more_w);
@@ -567,12 +489,10 @@ impl ButtonRow {
                         budget -= w + gap;
                         keep[i] = true;
                     } else {
-
                         break;
                     }
                 }
                 out.hidden = (0..buttons.len()).filter(|i| !keep[*i]).collect();
-
 
                 let mut line: Vec<(usize, u16)> = Vec::new();
                 for (i, &w) in widths.iter().enumerate() {
@@ -605,9 +525,6 @@ impl ButtonRow {
         out
     }
 
-
-
-
     pub fn render(
         &self,
         owner: WidgetId,
@@ -631,9 +548,6 @@ impl ButtonRow {
         layout
     }
 }
-
-
-
 
 impl crate::core::pointer::MouseTarget for Button {
     type Action = ();
@@ -676,8 +590,6 @@ mod tests {
         ]
     }
 
-
-
     #[test]
     fn a_narrow_row_folds_buttons_and_keeps_the_primary_whole() {
         let t = Theme::junie();
@@ -698,9 +610,6 @@ mod tests {
             assert!(pair[0].right() + 2 <= pair[1].x, "{drawn:?}");
         }
     }
-
-
-
 
     #[test]
     fn row_layout_wraps_the_buttons_that_do_not_fit_instead_of_dropping_them() {
@@ -739,7 +648,6 @@ mod tests {
             assert_eq!(r.unwrap().width, b.width());
         }
     }
-
 
     #[test]
     fn width_is_the_row_that_folds_nothing() {
@@ -809,9 +717,6 @@ mod tests {
             }
         }
     }
-
-
-
 
     #[test]
     fn the_focus_bar_reads_on_a_focused_button_at_every_level() {

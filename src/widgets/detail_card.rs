@@ -1,25 +1,3 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
 use ratatui::style::Color;
@@ -30,7 +8,6 @@ use crate::widgets::button::Button;
 use crate::widgets::empty::{self, EmptyState};
 use crate::widgets::panel::Panel;
 use crate::widgets::props::{self, Prop};
-
 
 #[derive(Debug, Clone)]
 pub struct DetailCard {
@@ -46,29 +23,22 @@ pub struct DetailCard {
 
     pub max_height: Option<u16>,
 
-
     pub reserve: u16,
 
     pub empty: Option<EmptyState>,
 
     pub focused: bool,
 
-
-
-
     pub fit: bool,
 }
 
-
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct DetailLayout {
-
     pub card: Rect,
 
     pub bg: Color,
 
     pub props_h: u16,
-
 
     pub slot: Rect,
 
@@ -91,12 +61,10 @@ impl DetailCard {
         }
     }
 
-
     pub fn fit(mut self, on: bool) -> Self {
         self.fit = on;
         self
     }
-
 
     pub fn empty(state: EmptyState) -> Self {
         Self {
@@ -105,24 +73,20 @@ impl DetailCard {
         }
     }
 
-
     pub fn meta(mut self, meta: &str) -> Self {
         self.meta = Some(meta.to_owned());
         self
     }
-
 
     pub fn props(mut self, props: Vec<Prop>) -> Self {
         self.props = props;
         self
     }
 
-
     pub fn actions(mut self, row: ActionRow) -> Self {
         self.actions = row;
         self
     }
-
 
     pub fn max_size(mut self, width: Option<u16>, height: Option<u16>) -> Self {
         self.max_width = width;
@@ -130,19 +94,15 @@ impl DetailCard {
         self
     }
 
-
     pub fn reserve(mut self, rows: u16) -> Self {
         self.reserve = rows;
         self
     }
 
-
     pub fn focused(mut self, on: bool) -> Self {
         self.focused = on;
         self
     }
-
-
 
     pub fn render(
         &self,
@@ -171,7 +131,6 @@ impl DetailCard {
             panel = panel.meta(m);
         }
         if self.fit {
-
             let mut scratch = Buffer::empty(card);
             let probe = panel.render(card, &mut scratch, t);
             let chrome = card.height.saturating_sub(probe.height);

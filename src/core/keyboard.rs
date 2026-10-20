@@ -1,58 +1,22 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 use std::sync::atomic::{AtomicBool, AtomicU8, Ordering};
 
 use ratatui::crossterm::event::{KeyCode, KeyModifiers};
 
 use crate::core::event::{Input, Key};
 
-
-
 pub const DISAMBIGUATE: u8 = 0b1;
 
 pub const REPORT_ALTERNATE_KEYS: u8 = 0b100;
 
-
-
 pub const FLAGS: u8 = DISAMBIGUATE | REPORT_ALTERNATE_KEYS;
-
-
 
 pub const QUERY: &str = "\x1b[?u";
 
 pub const POP: &str = "\x1b[<u";
 
-
 pub fn push(flags: u8) -> String {
     format!("\x1b[>{flags}u")
 }
-
-
-
 
 pub fn parse_flags_reply(reply: &[u8]) -> Option<u8> {
     let body = reply.strip_prefix(b"\x1b[?")?.strip_suffix(b"u")?;
@@ -61,9 +25,6 @@ pub fn parse_flags_reply(reply: &[u8]) -> Option<u8> {
     }
     std::str::from_utf8(body).ok()?.parse().ok()
 }
-
-
-
 
 pub fn modifiers(param: u16) -> KeyModifiers {
     let bits = param.saturating_sub(1);
@@ -81,7 +42,6 @@ pub fn modifiers(param: u16) -> KeyModifiers {
     m
 }
 
-
 pub fn modifier_param(mods: KeyModifiers) -> u16 {
     let mut bits = 0;
     for (bit, flag) in [
@@ -97,9 +57,6 @@ pub fn modifier_param(mods: KeyModifiers) -> u16 {
     bits + 1
 }
 
-
-
-
 pub fn encode(key: &Key) -> Option<String> {
     let KeyCode::Char(c) = key.code else {
         return None;
@@ -112,8 +69,6 @@ pub fn encode(key: &Key) -> Option<String> {
         format!("\x1b[{};{param}u", lower as u32)
     })
 }
-
-
 
 pub fn decode(seq: &[u8]) -> Option<Key> {
     let body = std::str::from_utf8(seq.strip_prefix(b"\x1b[")?.strip_suffix(b"u")?).ok()?;
@@ -139,11 +94,8 @@ pub fn decode(seq: &[u8]) -> Option<Key> {
     })
 }
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum KeyboardProtocol {
-
-
     #[default]
     Auto,
 
@@ -153,10 +105,7 @@ pub enum KeyboardProtocol {
 }
 
 impl KeyboardProtocol {
-
-
     pub const ENV: &'static str = "JUNIE_TUI_KEYBOARD_PROTOCOL";
-
 
     pub fn from_env(get: impl Fn(&str) -> Option<String>) -> Self {
         match get(Self::ENV)
@@ -169,26 +118,19 @@ impl KeyboardProtocol {
         }
     }
 
-
     pub fn current() -> Self {
         Self::from_env(|k| std::env::var(k).ok())
     }
 }
 
-
-
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct ProtocolState {
-
     pub enabled: bool,
 
     pub pushed: bool,
 }
 
 impl ProtocolState {
-
-
     pub fn enter(
         &mut self,
         policy: KeyboardProtocol,
@@ -202,11 +144,9 @@ impl ProtocolState {
         self.resume()
     }
 
-
     pub fn leave(&mut self) -> Option<&'static str> {
         std::mem::take(&mut self.pushed).then_some(POP)
     }
-
 
     pub fn resume(&mut self) -> Option<String> {
         (self.enabled && !self.pushed).then(|| {
@@ -225,8 +165,6 @@ static ALT: AtomicU8 = AtomicU8::new(0);
 
 static ALT_KEYS: AtomicU8 = AtomicU8::new(0);
 
-
-
 pub mod session {
     use super::*;
 
@@ -242,7 +180,6 @@ pub mod session {
         PUSHED.store(s.pushed, Ordering::SeqCst);
     }
 
-
     pub fn enter(policy: KeyboardProtocol, detect: impl FnOnce() -> bool) -> Option<String> {
         let mut s = load();
         let out = s.enter(policy, detect);
@@ -250,14 +187,12 @@ pub mod session {
         out
     }
 
-
     pub fn leave() -> Option<&'static str> {
         let mut s = load();
         let out = s.leave();
         store(s);
         out
     }
-
 
     pub fn resume() -> Option<String> {
         let mut s = load();
@@ -267,32 +202,17 @@ pub mod session {
     }
 }
 
-
-
 pub fn active() -> bool {
     PUSHED.load(Ordering::SeqCst)
 }
-
-
-
 
 pub fn super_delivered() -> bool {
     matches!(SUPER.load(Ordering::SeqCst), 1 | 3)
 }
 
-
-
 pub fn set_super_delivered(on: bool) {
     SUPER.store(if on { 1 } else { 2 }, Ordering::SeqCst);
 }
-
-
-
-
-
-
-
-
 
 pub fn observe(input: &Input) {
     let Input::Key(k) = input else { return };
@@ -316,55 +236,23 @@ pub fn observe(input: &Input) {
     }
 }
 
-
-
-
-
-
-
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum AltKeys {
-
-
-
     Delivered,
 
     Refused,
 
-
-
     UntilSeen,
-
-
-
-
-
 
     WithProtocol,
 }
 
 impl AltKeys {
-
-
-
-
     pub const ENV: &'static str = "JUNIE_TUI_ALT_KEYS";
-
-
 
     pub const OPTION_TYPES_TERM_PROGRAMS: [&'static str; 2] = ["Apple_Terminal", "iTerm.app"];
 
-
-
     pub const OPTION_IS_ALT_TERM_PROGRAMS: [&'static str; 1] = ["wezterm"];
-
-
-
-
-
-
-
 
     pub fn from_env(
         platform: crate::core::event::ClientPlatform,
@@ -393,9 +281,6 @@ impl AltKeys {
         Self::WithProtocol
     }
 
-
-
-
     pub fn current() -> Self {
         match ALT_KEYS.load(Ordering::SeqCst) {
             1 => Self::Delivered,
@@ -413,8 +298,6 @@ impl AltKeys {
     }
 }
 
-
-
 pub fn set_alt_keys(keys: AltKeys) {
     let v = match keys {
         AltKeys::Delivered => 1,
@@ -424,12 +307,6 @@ pub fn set_alt_keys(keys: AltKeys) {
     };
     ALT_KEYS.store(v, Ordering::SeqCst);
 }
-
-
-
-
-
-
 
 pub fn alt_delivered() -> bool {
     match ALT.load(Ordering::SeqCst) {
@@ -445,12 +322,6 @@ pub fn alt_delivered() -> bool {
     }
 }
 
-
-
-
-
-
-
 pub fn label_deliverable(key: &str) -> bool {
     let cmd = key.starts_with('⌘') || key.starts_with("Cmd+") || key.starts_with("Super+");
     let pointer = |rest: &str| rest.starts_with("click") || rest.starts_with("drag");
@@ -464,8 +335,6 @@ pub fn label_deliverable(key: &str) -> bool {
         || key.starts_with("⇧click");
     !shift_pointer && (!cmd || super_delivered()) && (!alt || alt_delivered())
 }
-
-
 
 pub fn set_alt_delivered(on: bool) {
     ALT.store(if on { 1 } else { 2 }, Ordering::SeqCst);

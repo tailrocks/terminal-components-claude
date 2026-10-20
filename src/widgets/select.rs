@@ -1,14 +1,3 @@
-
-
-
-
-
-
-
-
-
-
-
 use ratatui::buffer::Buffer;
 use ratatui::crossterm::event::KeyCode;
 use ratatui::layout::{Margin, Position, Rect};
@@ -29,11 +18,8 @@ use crate::widgets::scrollbar;
 
 pub use crate::widgets::option_list::{SelectArrows, WheelMode};
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum TabInOpen {
-
-
     #[default]
     Choose,
 
@@ -42,10 +28,8 @@ pub enum TabInOpen {
     Swallow,
 }
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 struct Press {
-
     opened: bool,
 
     label: bool,
@@ -65,38 +49,19 @@ pub struct Select {
     pub help: String,
     pub area: Rect,
 
-
-
-
-
     pub list: OptionList,
-
 
     pub reveal: Option<crate::ui::reveal::Reveal>,
 
-
-
-
     pub arrows: SelectArrows,
-
-
 
     pub tab_in_open: TabInOpen,
 
-
-
     pub mixed: Option<String>,
-
-
 
     pub type_ahead_precedence: Option<crate::core::list::TypeAheadPrecedence>,
 
-
-
-
-
     pub press_drag: bool,
-
 
     pub label_hit: bool,
 
@@ -120,12 +85,9 @@ impl Select {
         let mut list = OptionList::new(id)
             .max_rows(Self::MAX_ROWS)
             .width(Self::POPUP_WIDTH.0, Self::POPUP_WIDTH.1)
-
-
             .clear_on_leave(false)
             .fade_edges(false);
         list.cursor = Cursor::new(selected);
-
 
         list.scroll.v.context = 0;
         list.scroll.v.viewport_len = Self::MAX_ROWS as usize;
@@ -151,47 +113,34 @@ impl Select {
         }
     }
 
-
-
     pub fn wheel(mut self, mode: WheelMode) -> Self {
         self.list.wheel = mode;
         self
     }
-
-
-
 
     pub fn hover_moves_cursor(mut self, on: bool) -> Self {
         self.list.hover_moves_cursor = on;
         self
     }
 
-
     pub fn press_drag(mut self, on: bool) -> Self {
         self.press_drag = on;
         self
     }
-
 
     pub fn label_hit(mut self, on: bool) -> Self {
         self.label_hit = on;
         self
     }
 
-
-
     pub fn track_click(mut self, click: TrackClick) -> Self {
         self.list.scroll.track_click = Some(click);
         self
     }
 
-
     pub fn bar_id(&self) -> WidgetId {
         scrollbar::id_for(self.id)
     }
-
-
-
 
     pub fn nav(mut self, nav: NavKeys) -> Self {
         self.list.nav = nav;
@@ -208,28 +157,21 @@ impl Select {
         self
     }
 
-
     pub fn placement(mut self, placement: Placement) -> Self {
         self.list.placement = placement;
         self
     }
-
-
 
     pub fn popup_fit(mut self, fit: crate::ui::popup::Place) -> Self {
         self.list.fit = fit;
         self
     }
 
-
-
     pub fn popup_width(mut self, min: u16, max: u16) -> Self {
         let min = min.max(1);
         self.list.width = (min, max.max(min));
         self
     }
-
-
 
     pub fn cursor_style(mut self, cursor_style: CursorStyle) -> Self {
         self.list.look = cursor_style;
@@ -249,12 +191,9 @@ impl Select {
         self
     }
 
-
     pub fn set_mixed(&mut self, placeholder: Option<&str>) {
         self.mixed = placeholder.map(str::to_owned);
     }
-
-
 
     fn choose(&mut self, i: usize) -> Option<SelectAction> {
         let changed = i != self.selected || self.mixed.is_some();
@@ -273,13 +212,9 @@ impl Select {
         self.list.row_id(i)
     }
 
-
     fn option_of(&self, id: WidgetId) -> Option<usize> {
         self.list.row_of(id, self.options.len())
     }
-
-
-
 
     pub(crate) fn contains_id(&self, id: WidgetId) -> bool {
         id == self.id
@@ -287,7 +222,6 @@ impl Select {
             || id == self.bar_id()
             || self.option_of(id).is_some()
     }
-
 
     fn value_cursor(&self) -> Cursor {
         Cursor::new(self.selected).wrap(self.list.cursor.wrap)
@@ -301,7 +235,6 @@ impl Select {
         self.list.scroll.offset = self.selected.saturating_sub(visible - 1);
     }
 
-
     fn shut(&mut self) {
         self.open = false;
         self.list.cursor.index = self.selected;
@@ -312,10 +245,8 @@ impl Select {
             return (Outcome::Ignored, None);
         }
         if unassigned_chord::<()>(key, &[]) {
-
             return (Outcome::Ignored, None);
         }
-
 
         let precedence = if self.open {
             crate::core::list::TypeAheadPrecedence::TypeAhead
@@ -325,7 +256,6 @@ impl Select {
         };
         let step = KeyStep::ordered(key, &self.list.nav, self.list.type_ahead, precedence);
         if let Some(KeyStep::Type(c)) = step {
-
             if !self.open {
                 self.list.cursor.index = self.selected;
             }
@@ -355,7 +285,6 @@ impl Select {
                     (Outcome::Changed, None)
                 }
 
-
                 KeyCode::Tab | KeyCode::BackTab => match self.tab_in_open {
                     TabInOpen::Choose => {
                         self.open = false;
@@ -367,7 +296,6 @@ impl Select {
                     }
                     TabInOpen::Swallow => (Outcome::Consumed, None),
                 },
-
 
                 KeyCode::Char('?') | KeyCode::F(_) => {
                     self.shut();
@@ -412,30 +340,20 @@ impl Select {
         }
     }
 
-
-
     pub fn wrap(mut self, on: bool) -> Self {
         self.list.cursor.wrap = on;
         self
     }
-
-
-
 
     pub fn type_ahead_timeout(mut self, timeout: std::time::Duration) -> Self {
         self.list = self.list.type_ahead_timeout(timeout);
         self
     }
 
-
-
-
-
     pub fn type_ahead(mut self, on: bool) -> Self {
         self.list.type_ahead = on;
         self
     }
-
 
     pub fn type_ahead_precedence(
         mut self,
@@ -445,12 +363,10 @@ impl Select {
         self
     }
 
-
     pub fn tab_in_open(mut self, tab: TabInOpen) -> Self {
         self.tab_in_open = tab;
         self
     }
-
 
     pub fn arrows(mut self, arrows: SelectArrows) -> Self {
         self.arrows = arrows;
@@ -462,13 +378,10 @@ impl Select {
             return (Outcome::Consumed, None);
         }
         if id == self.bar_id() {
-
             self.list.scroll.release();
             return (Outcome::Consumed, None);
         }
         if id == self.id {
-
-
             if let Some(p) = self.press.take()
                 && (p.opened || p.label)
             {
@@ -492,8 +405,6 @@ impl Select {
         (Outcome::Ignored, None)
     }
 
-
-
     pub fn close(&mut self) -> Outcome {
         if self.open {
             self.shut();
@@ -503,17 +414,10 @@ impl Select {
         }
     }
 
-
-
-
-
     pub fn close_on_blur(mut self, on: bool) -> Self {
         self.list.dismiss.focus_out = on;
         self
     }
-
-
-
 
     pub fn on_blur(&mut self) -> Outcome {
         if self.list.dismiss.focus_out {
@@ -522,8 +426,6 @@ impl Select {
             Outcome::Ignored
         }
     }
-
-
 
     pub fn on_click_outside(&mut self) -> Outcome {
         if !self.open {
@@ -535,11 +437,6 @@ impl Select {
             Outcome::Consumed
         }
     }
-
-
-
-
-
 
     pub fn on_press(&mut self, id: WidgetId, pos: Position) -> Outcome {
         if self.disabled {
@@ -572,9 +469,6 @@ impl Select {
         }
     }
 
-
-
-
     pub fn on_drag(&mut self, pressed: WidgetId, pos: Position) -> Outcome {
         if self.disabled || !self.open {
             return Outcome::Ignored;
@@ -598,11 +492,6 @@ impl Select {
         }
         Outcome::Changed
     }
-
-
-
-
-
 
     pub fn on_release(&mut self, pos: Position) -> (Outcome, Option<SelectAction>) {
         self.list.scroll.release();
@@ -664,7 +553,6 @@ impl Select {
         let shown = self.mixed.as_deref().unwrap_or(self.value());
         let value = crate::ui::text::truncate(shown, field.width.saturating_sub(5) as usize);
         let vs = if self.mixed.is_some() {
-
             fs.patch(t.placeholder(s))
         } else {
             fs
@@ -702,9 +590,6 @@ impl Select {
         }
     }
 
-
-
-
     fn queue_list(&mut self, field: Rect, buf: &Buffer, ctx: &mut RenderCtx) {
         let screen = *buf.area();
         let rows = (self.options.len() as u16).clamp(1, self.list.max_rows);
@@ -719,9 +604,6 @@ impl Select {
             self.list.fit,
         );
         let inner = pa.intersection(screen).inner(Margin::new(1, 1));
-
-
-
 
         self.list.layout(inner, &self.options[..], ctx);
 
@@ -749,7 +631,6 @@ impl Select {
                     let area = row.area;
                     let st = row.style();
                     if row.state.selected {
-
                         let ink = st.fg(row.ink(ctx, t.text_secondary));
                         buf.set_string(area.x + 1, area.y, t.glyphs.current, ink);
                     }
@@ -805,7 +686,6 @@ impl RowSource for Select {
 }
 
 impl Navigable for Select {
-
     fn cursor(&self) -> Cursor {
         if self.open {
             self.list.cursor
@@ -814,8 +694,6 @@ impl Navigable for Select {
         }
     }
 }
-
-
 
 impl crate::ui::specimen::Specimen for Select {
     fn specimen_id(&self) -> WidgetId {
@@ -861,16 +739,6 @@ impl crate::ui::specimen::Specimen for Select {
     }
 }
 
-
-
-
-
-
-
-
-
-
-
 impl crate::core::pointer::MouseTarget for Select {
     type Action = SelectAction;
 
@@ -885,8 +753,6 @@ impl crate::core::pointer::MouseTarget for Select {
         use crate::core::intent::Phase;
         use crate::core::response::Response;
         if let Some((axis, delta)) = ev.wheel() {
-
-
             if ev.part().part == Part::BACKDROP || !self.open || self.disabled {
                 return Response::ignored();
             }
@@ -1117,8 +983,6 @@ mod tests {
         "o14", "o15", "o16", "o17", "o18", "o19",
     ];
 
-
-
     fn draw_with(sel: &mut Select, hover: Option<WidgetId>) -> (Buffer, HitRegistry) {
         let t = Theme::junie();
         let mut hits = HitRegistry::default();
@@ -1136,8 +1000,6 @@ mod tests {
         }
         (buf, hits)
     }
-
-
 
     fn wheel(sel: &mut Select, delta: i32) -> Outcome {
         use crate::core::hit::Axis;
@@ -1293,7 +1155,6 @@ mod tests {
         assert!(!sel.open);
         assert_eq!(sel.selected, 2);
 
-
         sel.on_press(sel.id, field);
         draw_with(&mut sel, None);
         assert_eq!(sel.on_release(field).1, None);
@@ -1308,7 +1169,6 @@ mod tests {
         c.on_click(c.id);
         assert!(!c.open, "a second click on the field closes it");
 
-
         let mut d = Select::new(WidgetId::of("d"), "Mode", &["One", "Two"], 1);
         draw_with(&mut d, None);
         d.on_press(d.id, Position::new(d.area.x + 3, d.area.y));
@@ -1317,7 +1177,6 @@ mod tests {
         assert_eq!(d.on_release(Position::new(39, 23)).1, None);
         assert!(!d.open);
         assert_eq!(d.selected, 1);
-
 
         let mut off = Select::new(WidgetId::of("x"), "Mode", &["One", "Two"], 0).press_drag(false);
         draw_with(&mut off, None);
@@ -1343,11 +1202,6 @@ mod tests {
         let (_, hits) = draw_with(&mut off, None);
         assert_eq!(hits.hit(label), None);
     }
-
-
-
-
-
 
     #[test]
     fn tab_in_an_open_list_chooses_and_moves_on() {

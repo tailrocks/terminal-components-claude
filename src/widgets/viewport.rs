@@ -1,27 +1,3 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 use std::ops::Range;
 
 use ratatui::buffer::Buffer;
@@ -46,8 +22,6 @@ use crate::ui::text::width;
 use crate::widgets::field_common::PointerSelect;
 use crate::widgets::scrollbar;
 use crate::widgets::text_select::{self, TextSelect};
-
-
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Span {
@@ -101,12 +75,6 @@ pub fn line_text(line: &[Span]) -> String {
     line.iter().map(|s| s.text.as_str()).collect()
 }
 
-
-
-
-
-
-
 pub fn render_spans(
     buf: &mut ratatui::buffer::Buffer,
     x: u16,
@@ -153,11 +121,6 @@ pub fn render_spans(
     w
 }
 
-
-
-
-
-
 pub fn wrap_spans(line: &[Span], w: usize) -> Vec<Line> {
     let full: Vec<(char, usize)> = line
         .iter()
@@ -170,7 +133,6 @@ pub fn wrap_spans(line: &[Span], w: usize) -> Vec<Line> {
     for part in crate::ui::text::wrap_with(&text, w, crate::ui::text::WrapOpts::PLAIN) {
         let mut pieces: Line = Vec::new();
         for pc in part.chars() {
-
             let found = full[at..].iter().position(|(c, _)| *c == pc);
             let si = match found {
                 Some(k) => {
@@ -202,13 +164,11 @@ fn same_style(a: &Span, b: &Span) -> bool {
         && a.reversed == b.reversed
 }
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct CellPos {
     pub line: usize,
     pub col: usize,
 }
-
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Mark {
@@ -219,26 +179,20 @@ pub struct Mark {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ViewportAction {
-
     Copy(String),
     SelectionChanged,
     FollowChanged(bool),
 }
 
-
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub struct WorkCounters {
-
     pub segmented_lines: usize,
 
     pub reflowed_lines: usize,
 
-
     pub index_rebuilds: usize,
 
-
     pub index_extends: usize,
-
 
     pub index_shifts: usize,
 }
@@ -263,7 +217,6 @@ enum CellKind {
 
 #[derive(Debug, Clone)]
 struct Cell {
-
     g: String,
     w: usize,
 
@@ -271,7 +224,6 @@ struct Cell {
     style: CellStyle,
     kind: CellKind,
 }
-
 
 type RowCache = ((u16, bool), Vec<(usize, usize)>);
 
@@ -286,7 +238,6 @@ struct Logical {
     width: usize,
 
     segmented: bool,
-
 
     rows: Vec<RowCache>,
 }
@@ -389,7 +340,6 @@ impl Logical {
             }
             let w = width(g);
             if w == 0 {
-
                 if let Some(prev) = cells.last_mut() {
                     prev.g.push_str(g);
                     prev.src.end = src.end;
@@ -469,9 +419,6 @@ struct VisualRow {
     end: usize,
 }
 
-
-
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 struct Anchor {
     id: u64,
@@ -482,12 +429,9 @@ struct Anchor {
 pub struct TextViewport {
     pub id: WidgetId,
 
-
     pub scroll: ScrollPane,
     pub follow: bool,
     pub wrap: bool,
-
-
 
     pub caret: Option<CellPos>,
     pub caret_visible: bool,
@@ -496,7 +440,6 @@ pub struct TextViewport {
     max_lines: Option<usize>,
     next_id: u64,
     revision: u64,
-
 
     select: TextSelect<Anchor>,
 
@@ -507,48 +450,33 @@ pub struct TextViewport {
     layout_wrap: bool,
     index_valid: bool,
 
-
     indexed_lines: usize,
 
     layout_size: Option<(u16, u16, bool, bool)>,
 
     rows_h: u16,
 
-
     reading: Option<(u64, usize)>,
     work: WorkCounters,
-
 
     pub scrollbar_gap: u16,
 
     pub horizontal: Option<HScroll>,
 
-
     pub nav: NavKeys,
-
 
     pub keymap: KeyMap<ViewportCmd>,
 
-
-
-
     pub pointer_select: PointerSelect,
-
-
 
     pub edit_menu: EditMenu,
 }
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ViewportCmd {
-
     ToggleFollow,
 
-
-
     Copy,
-
 
     SelectAll,
 }
@@ -576,12 +504,10 @@ impl Actions for ViewportCmd {
 }
 
 impl TextViewport {
-
     pub fn nav(mut self, nav: NavKeys) -> Self {
         self.nav = nav;
         self
     }
-
 
     pub fn keymap(mut self, keymap: KeyMap<ViewportCmd>) -> Self {
         self.keymap = keymap;
@@ -622,31 +548,24 @@ impl TextViewport {
         }
     }
 
-
     pub fn horizontal(mut self, policy: HScroll) -> Self {
         self.horizontal = Some(policy);
         self
     }
-
 
     pub fn pointer_select(mut self, policy: PointerSelect) -> Self {
         self.pointer_select = policy;
         self
     }
 
-
     pub fn track_click(mut self, click: TrackClick) -> Self {
         self.scroll.track_click = Some(click);
         self
     }
 
-
-
     pub fn h_enabled(&self) -> bool {
         !self.wrap && self.scroll.h_cfg.enabled
     }
-
-
 
     fn hoff(&self) -> usize {
         if self.h_enabled() {
@@ -656,11 +575,9 @@ impl TextViewport {
         }
     }
 
-
     fn text_w(&self) -> usize {
         self.layout_width as usize
     }
-
 
     fn text_rect(&self) -> Rect {
         let h = if self.rows_h == 0 {
@@ -670,8 +587,6 @@ impl TextViewport {
         };
         Rect::new(self.area.x, self.area.y, self.area.width, h)
     }
-
-
 
     pub fn reveal_cols(&mut self, cols: Range<usize>) -> bool {
         if !self.h_enabled() {
@@ -684,7 +599,6 @@ impl TextViewport {
         self.scroll.h.ensure_visible(cols.start);
         self.scroll.h.offset != before
     }
-
 
     fn cols_of_bytes(&self, line: usize, range: &Range<usize>) -> Option<Range<usize>> {
         let l = self.lines.get(line)?;
@@ -701,7 +615,6 @@ impl TextViewport {
         start.map(|s| s..end)
     }
 
-
     pub fn reveal_mark(&mut self, line: usize, range: Range<usize>) {
         self.reveal_line(line);
         if let Some(cols) = self.cols_of_bytes(line, &range) {
@@ -709,13 +622,9 @@ impl TextViewport {
         }
     }
 
-
-
-
     fn scroll_h(&mut self, delta: isize) -> Outcome {
         self.wheel(Axis::Horizontal, delta as i32).outcome()
     }
-
 
     pub fn scrollbar_gap(mut self, gap: u16) -> Self {
         self.scrollbar_gap = gap;
@@ -737,9 +646,6 @@ impl TextViewport {
         self.set_max_lines(Some(n));
         self
     }
-
-
-
 
     pub fn revision(&self) -> u64 {
         self.revision
@@ -769,7 +675,6 @@ impl TextViewport {
         self.lines.get(i).map(|l| &l.spans)
     }
 
-
     pub fn line_text(&self, i: usize) -> Option<&str> {
         self.lines.get(i).map(|l| l.text.as_str())
     }
@@ -784,18 +689,14 @@ impl TextViewport {
         Logical::new(id, spans)
     }
 
-
     fn touched(&mut self) {
         self.revision += 1;
         self.index_valid = false;
     }
 
-
     fn appended(&mut self) {
         self.revision += 1;
     }
-
-
 
     fn shift_index(&mut self, drop: usize) {
         if !self.index_valid {
@@ -810,12 +711,9 @@ impl TextViewport {
         self.work.index_shifts += 1;
         self.scroll.set_content(self.visual.len());
         if !self.follow {
-
             self.scroll.offset = self.scroll.offset.saturating_sub(gone);
         }
     }
-
-
 
     fn enforce_cap(&mut self) -> usize {
         let Some(max) = self.max_lines else {
@@ -831,10 +729,8 @@ impl TextViewport {
         drop
     }
 
-
     fn reconcile(&mut self, drop: usize, evicted: &[u64]) {
         let gone = |id: u64| evicted.contains(&id);
-
 
         if let Some((a, b)) = self.select.sel {
             let (lo, hi) = if (a.id, a.col) <= (b.id, b.col) {
@@ -865,8 +761,6 @@ impl TextViewport {
             self.select.word = None;
         }
         if self.select.press.is_some_and(|d| gone(d.id)) {
-
-
             self.select.press = self.lines.first().map(|l| Anchor { id: l.id, col: 0 });
         }
         if self.browse.is_some_and(|b| gone(b.id)) {
@@ -892,7 +786,6 @@ impl TextViewport {
     }
 
     pub fn set_lines(&mut self, lines: Vec<Line>) {
-
         let mut fresh = Vec::with_capacity(lines.len());
         for l in lines {
             let lg = self.alloc(l);
@@ -928,9 +821,6 @@ impl TextViewport {
         self.appended();
         self.enforce_cap();
     }
-
-
-
 
     pub fn replace_last(&mut self, line: Line) {
         match self.lines.last_mut() {
@@ -1003,8 +893,6 @@ impl TextViewport {
         }
     }
 
-
-
     pub fn set_marks(&mut self, marks: Vec<Mark>) {
         self.marks = marks;
     }
@@ -1016,9 +904,6 @@ impl TextViewport {
     pub fn marks(&self) -> &[Mark] {
         &self.marks
     }
-
-
-
 
     pub fn reveal_line(&mut self, line: usize) {
         self.ensure_index();
@@ -1037,13 +922,10 @@ impl TextViewport {
         }
     }
 
-
-
     fn ensure_layout(&mut self, text_w: u16) {
         let wrap = self.wrap;
         let same_key = self.layout_width == text_w && self.layout_wrap == wrap;
         if self.index_valid && same_key {
-
             let from = self.indexed_lines.min(self.lines.len());
             let key = (text_w, wrap);
             let mut extended = false;
@@ -1110,7 +992,6 @@ impl TextViewport {
     }
 
     fn clip_selection(&mut self) {
-
         if let Some((a, b)) = self.select.sel {
             let clip = |x: Anchor, lines: &[Logical]| -> Anchor {
                 match lines.iter().find(|l| l.id == x.id) {
@@ -1143,7 +1024,6 @@ impl TextViewport {
 
     fn remember_reading(&mut self) {
         if self.follow || !self.index_valid {
-
             self.reading = None;
             return;
         }
@@ -1184,9 +1064,6 @@ impl TextViewport {
         self.scroll.scroll_to(target);
     }
 
-
-
-
     pub fn set_area(&mut self, area: Rect) {
         self.area = area;
         let h_on = self.h_enabled();
@@ -1198,9 +1075,6 @@ impl TextViewport {
             if h_on {
                 self.sync_h();
                 if area.height > 1 && self.scroll.h_cfg.shows_bar(&self.scroll.h) {
-
-
-
                     rows = area.height - 1;
                     self.lay_out(area.width, rows);
                     self.sync_h();
@@ -1210,7 +1084,6 @@ impl TextViewport {
             }
             self.rows_h = rows;
             self.layout_size = Some(size);
-
 
             if rows < area.height && h_on {
                 let w = area
@@ -1229,21 +1102,13 @@ impl TextViewport {
         }
     }
 
-
     fn sync_h(&mut self) {
         let widest = self.lines.iter().map(|l| l.width).max().unwrap_or(0);
         self.scroll.h.set_content(widest);
         self.scroll.h.set_viewport(self.text_w());
     }
 
-
-
     fn lay_out(&mut self, width: u16, rows: u16) {
-
-
-
-
-
         let narrow = width.saturating_sub(scrollbar::reserve(self.scrollbar_gap));
         let preferred = if self.layout_width == narrow && self.wrap == self.layout_wrap {
             narrow
@@ -1263,8 +1128,6 @@ impl TextViewport {
         }
     }
 
-
-
     fn index_of(&self, id: u64) -> Option<usize> {
         self.lines.iter().position(|l| l.id == id)
     }
@@ -1281,7 +1144,6 @@ impl TextViewport {
             col: p.col,
         })
     }
-
 
     pub fn has_anchor(&self) -> bool {
         self.select.press.is_some()
@@ -1300,8 +1162,6 @@ impl TextViewport {
         }
         Some((a.min(b), a.max(b)))
     }
-
-
 
     pub fn select_all(&mut self) -> Outcome {
         self.ensure_index();
@@ -1335,7 +1195,6 @@ impl TextViewport {
         self.scroll.offset >= self.scroll.max_offset()
     }
 
-
     pub fn scrollback_depth(&self) -> usize {
         self.scroll.max_offset().saturating_sub(self.scroll.offset)
     }
@@ -1358,9 +1217,6 @@ impl TextViewport {
         self.lines.get(line).map(|l| l.cell_at(col)).unwrap_or(0)
     }
 
-
-
-
     pub fn pos_at(&self, pos: Position) -> Option<CellPos> {
         if self.area.is_empty() || self.visual.is_empty() {
             return None;
@@ -1379,7 +1235,6 @@ impl TextViewport {
         })
     }
 
-
     fn source_slice(&self, line: usize, from: usize, to: usize) -> String {
         let Some(l) = self.lines.get(line) else {
             return String::new();
@@ -1393,8 +1248,6 @@ impl TextViewport {
         let end = l.cells[to - 1].src.end;
         l.text[start..end].to_owned()
     }
-
-
 
     pub fn selected_text(&self) -> Option<String> {
         let (a, b) = self.selection()?;
@@ -1420,7 +1273,6 @@ impl TextViewport {
         Some(out)
     }
 
-
     fn is_word(c: &Cell) -> bool {
         c.kind == CellKind::Text && text_select::is_word(&c.g)
     }
@@ -1428,7 +1280,6 @@ impl TextViewport {
     fn word_bounds(&self, line: usize, ci: usize) -> Option<(usize, usize)> {
         text_select::word_bounds(&self.lines.get(line)?.cells, ci, Self::is_word)
     }
-
 
     fn word_at(&self, p: CellPos) -> Option<(Anchor, Anchor)> {
         let ci = self.cell_at(p.line, p.col);
@@ -1444,8 +1295,6 @@ impl TextViewport {
         self.anchor_at(a).zip(self.anchor_at(b))
     }
 
-
-
     fn line_at(&self, p: CellPos) -> Option<(Anchor, Anchor)> {
         let l = self.lines.get(p.line)?;
         (!l.cells.is_empty()).then_some((
@@ -1457,13 +1306,11 @@ impl TextViewport {
         ))
     }
 
-
     fn follow_head(&mut self) {
         if let Some((_, head)) = self.select.sel {
             self.browse = Some(head);
         }
     }
-
 
     pub fn select_word_at(&mut self, pos: Position) -> Outcome {
         let Some(p) = self.pos_at(pos) else {
@@ -1481,22 +1328,12 @@ impl TextViewport {
         Outcome::Changed
     }
 
-
-
-
     pub fn on_click(&mut self, pos: Position) -> Outcome {
-
-
         if self.select.dragged.take() == Some(pos) && self.select.sel.is_some() {
             return Outcome::Consumed;
         }
         self.on_press_with(pos, 1, ratatui::crossterm::event::KeyModifiers::NONE)
     }
-
-
-
-
-
 
     pub fn on_press_with(
         &mut self,
@@ -1516,10 +1353,6 @@ impl TextViewport {
         o
     }
 
-
-
-
-
     pub fn on_click_with(&mut self, pos: Position, count: u8) -> Outcome {
         let p = self.pos_at(pos);
         let word = p.and_then(|p| self.word_at(p));
@@ -1531,15 +1364,11 @@ impl TextViewport {
         o
     }
 
-
-
     pub fn on_drag(&mut self, pos: Position) -> Outcome {
         if self.select.press.is_none() {
             return Outcome::Ignored;
         }
         let text = self.text_rect();
-
-
 
         if pos.y < text.y {
             self.scroll.scroll_by(-((text.y - pos.y) as isize));
@@ -1577,10 +1406,6 @@ impl TextViewport {
         self.follow_head();
         o
     }
-
-
-
-
 
     fn browse_caret(&self) -> Option<CellPos> {
         if let Some(b) = self.browse.and_then(|b| self.resolve(b)) {
@@ -1749,13 +1574,7 @@ impl TextViewport {
         Outcome::Changed
     }
 
-
-
-
-
-
     pub fn on_key(&mut self, key: &Key) -> (Outcome, Option<ViewportAction>) {
-
         if let Some(o) = edit_menu_key(self, key) {
             return (o, None);
         }
@@ -1774,7 +1593,6 @@ impl TextViewport {
             let o = self.extend_selection(key.code, word);
             return (o, Some(ViewportAction::SelectionChanged));
         }
-
 
         let cmd = lookup(&self.keymap, key)
             .or_else(|| (key.ctrl_char('c') && self.has_selection()).then_some(ViewportCmd::Copy));
@@ -1802,7 +1620,6 @@ impl TextViewport {
         }
         let nav = self.nav.action(key).filter(|_| key.plain());
         let moved = match (nav, key.code) {
-
             (Some(Nav::Left), _) if self.caret.is_none() => {
                 return (self.scroll_h(-1), None);
             }
@@ -1837,8 +1654,6 @@ impl TextViewport {
         let ev = (was != self.follow).then_some(ViewportAction::FollowChanged(self.follow));
         (Outcome::Changed, ev)
     }
-
-
 
     pub fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, bg: Color) {
         self.render_view(area, buf, ctx, bg);
@@ -1887,13 +1702,11 @@ impl TextViewport {
             let l = &self.lines[vr.line];
             let line_marks: Vec<&Mark> = self.marks.iter().filter(|m| m.line == vr.line).collect();
 
-
             let left = l.col_of(vr.start) + hoff;
             let mut col = l.col_of(vr.start);
             for c in &l.cells[vr.start..vr.end] {
                 let at = col;
                 col += c.w;
-
 
                 if at < left {
                     continue;
@@ -1960,13 +1773,10 @@ impl TextViewport {
                 .draw_with_fade(body, buf, ctx, self.id, focused, &[]);
         }
         if text.height < area.height && self.h_enabled() {
-
-
             let w = area.width.saturating_sub(u16::from(has_sb));
             let hb = Rect::new(area.x, text.bottom(), w, 1);
             self.scroll.draw_h(hb, buf, ctx, self.id, focused);
         }
-
 
         let cursor_pos = if focused {
             match self.browse.and_then(|b| self.resolve(b)) {
@@ -1981,10 +1791,6 @@ impl TextViewport {
             ctx.set_cursor(p);
         }
     }
-
-
-
-
 
     pub fn screen_pos(&self, c: CellPos) -> Option<Position> {
         let vi = self.visual.iter().position(|v| {
@@ -2010,11 +1816,6 @@ impl TextViewport {
         Some(Position::new(cx, cy))
     }
 
-
-
-
-
-
     pub fn context_point(&self) -> Position {
         if let Some((_, end)) = self.selection()
             && let Some(p) = self.screen_pos(end)
@@ -2037,15 +1838,10 @@ impl TextViewport {
         top
     }
 
-
-
     pub fn hbar(&self) -> Rect {
         self.scroll.h_track()
     }
 }
-
-
-
 
 impl crate::ui::measure::Measure for TextViewport {
     fn measure(&self, _avail: ratatui::layout::Size, _ctx: &RenderCtx) -> ratatui::layout::Size {
@@ -2057,14 +1853,10 @@ impl crate::ui::measure::Measure for TextViewport {
         )
     }
 
-
-
     fn min_width(&self, avail: ratatui::layout::Size, ctx: &RenderCtx) -> u16 {
         self.measure(avail, ctx).width.min(MIN_W)
     }
 }
-
-
 
 const MIN_W: u16 = 24;
 
@@ -2073,13 +1865,9 @@ impl Scrollable for TextViewport {
         &mut self.scroll
     }
 
-
     fn wheel_first(&mut self, axis: Axis, _delta: i32) -> Option<Response<()>> {
         (axis == Axis::Horizontal && !self.h_enabled()).then(Response::ignored)
     }
-
-
-
 
     fn after_scroll(&mut self, axis: Axis, moved: bool) -> bool {
         if axis == Axis::Vertical && moved {
@@ -2089,12 +1877,6 @@ impl Scrollable for TextViewport {
         false
     }
 }
-
-
-
-
-
-
 
 impl crate::core::pointer::MouseTarget for TextViewport {
     type Action = ();
@@ -2119,7 +1901,6 @@ impl crate::core::pointer::MouseTarget for TextViewport {
             Some(Phase::Press) => self.on_press_with(ev.pos(), ev.count(), ev.mods()).into(),
             Some(Phase::Drag) => self.on_drag(ev.pos()).into(),
 
-
             Some(Phase::Click) => self.on_click_with(ev.pos(), ev.count()).into(),
             _ => Response::ignored(),
         }
@@ -2129,9 +1910,6 @@ impl crate::core::pointer::MouseTarget for TextViewport {
         edit_menu_route(self, ev)
     }
 }
-
-
-
 
 impl EditMenuHost for TextViewport {
     fn edit_menu(&mut self) -> &mut EditMenu {
@@ -2152,7 +1930,6 @@ impl EditMenuHost for TextViewport {
         crate::core::keymap::label_for(&self.keymap, cmd)
     }
     fn edit_target(&self, ev: &crate::core::pointer::PointerEvent) -> bool {
-
         ev.id == self.id
     }
     fn edit_run(&mut self, cmd: TextCmd) -> bool {
@@ -2223,8 +2000,6 @@ mod tests {
         v.render(Rect::new(0, 0, w, h), &mut buf, &mut ctx, t.canvas);
         buf
     }
-
-
 
     #[test]
     fn at_its_measured_width_no_line_wraps() {
@@ -2338,7 +2113,6 @@ mod tests {
         v.on_drag(Position::new(4, 10));
         assert_eq!(v.scroll.offset, 1);
 
-
         v.on_drag(Position::new(4, 12));
         v.on_drag(Position::new(4, 12));
         assert_eq!(v.scroll.offset, 7);
@@ -2400,11 +2174,8 @@ mod tests {
         assert_eq!(render(&mut v, 40, 10), render(&mut fresh, 40, 10));
     }
 
-
-
     #[test]
     fn split_styles_never_split_a_grapheme_cluster() {
-
         let mut one =
             TextViewport::with_lines(WidgetId::of("v"), vec![vec![Span::plain("👩\u{200d}💻X")]]);
         one.follow = false;
@@ -2476,8 +2247,6 @@ mod tests {
         );
     }
 
-
-
     #[test]
     fn tabs_and_controls_display_visibly_and_copy_as_source() {
         let mut v = TextViewport::with_lines(
@@ -2502,8 +2271,6 @@ mod tests {
         v.select.sel = Some((Anchor { id: 1, col: 2 }, Anchor { id: 1, col: 4 }));
         assert_eq!(v.selected_text().as_deref(), Some("\t"));
     }
-
-
 
     #[test]
     fn retention_is_enforced_on_every_ingestion_path() {
@@ -2532,11 +2299,8 @@ mod tests {
         assert!(v.revision() > 0);
     }
 
-
-
     #[test]
     fn eviction_never_retargets_a_selection() {
-
         let mut v = TextViewport::new(WidgetId::of("v")).max_lines(3);
         v.follow = false;
         for s in ["A", "B", "C"] {
@@ -2666,8 +2430,6 @@ mod tests {
         );
     }
 
-
-
     #[test]
     fn every_mutation_is_visible_next_frame() {
         let mut v = TextViewport::with_lines(WidgetId::of("v"), vec![vec![Span::plain("OLD")]]);
@@ -2688,8 +2450,6 @@ mod tests {
         assert_eq!(row(&d, 1), "");
     }
 
-
-
     #[test]
     fn tail_update_reparses_only_the_changed_line() {
         let mut v = TextViewport::with_lines(WidgetId::of("v"), lines(1000)).wrap(true);
@@ -2701,7 +2461,6 @@ mod tests {
         }
         let w1 = v.work_counters();
         assert_eq!(w1.segmented_lines - w0.segmented_lines, 20);
-
 
         assert!(w1.reflowed_lines - w0.reflowed_lines <= 40);
         for i in 0..20 {
@@ -2722,8 +2481,6 @@ mod tests {
         assert!(w4.reflowed_lines - w3.reflowed_lines <= 2 * v.len());
         assert!(w4.reflowed_lines - w3.reflowed_lines >= v.len());
     }
-
-
 
     #[test]
     fn keyboard_selection_matches_mouse_selection() {
@@ -2813,8 +2570,6 @@ mod tests {
         let _ = buf;
     }
 
-
-
     #[test]
     fn marks_paint_and_survive_eviction() {
         let mut v = TextViewport::new(WidgetId::of("v")).max_lines(3);
@@ -2836,7 +2591,6 @@ mod tests {
         ]);
         let buf = render(&mut v, 10, 3);
 
-
         let t = crate::theme::Theme::junie();
         assert_eq!(buf[(0, 1)].bg, t.accent);
         assert_eq!(buf[(0, 1)].fg, t.text_on_accent);
@@ -2848,9 +2602,6 @@ mod tests {
         v.reveal_line(2);
         assert!(!v.follow);
     }
-
-
-
 
     fn wide() -> TextViewport {
         let mut ls = lines(10);
@@ -3037,7 +2788,6 @@ mod tests {
 
     #[test]
     fn the_horizontal_bar_clicks_and_drags() {
-
         let mut v = wide().horizontal(HScroll::default().track_click(TrackClick::Jump));
         render(&mut v, 30, 6);
 
@@ -3069,7 +2819,6 @@ mod tests {
 
     #[test]
     fn the_vertical_bar_can_page_on_a_track_click() {
-
         let mut v = TextViewport::with_lines(WidgetId::of("v"), lines(50));
         v.follow = false;
         render(&mut v, 30, 10);
@@ -3091,7 +2840,6 @@ mod tests {
         assert_eq!(v.scroll.offset, 40);
     }
 }
-
 
 #[cfg(test)]
 mod select_all_tests {
@@ -3142,8 +2890,6 @@ mod select_all_tests {
     }
 }
 
-
-
 #[cfg(test)]
 mod cmd_copy_tests {
     use super::*;
@@ -3182,9 +2928,6 @@ mod cmd_copy_tests {
         let label = KeyBinding::cmd('c').label();
         assert_eq!(hint_key(&v.keymap, ViewportCmd::Copy), Some(label.as_str()));
     }
-
-
-
 
     #[test]
     fn shift_click_extends_and_a_triple_click_selects_the_line() {
@@ -3249,7 +2992,6 @@ mod cmd_copy_tests {
         send(&mut v, Phase::Press, 1, 1, 1, none);
         send(&mut v, Phase::Click, 1, 1, 1, none);
         assert_eq!(v.selected_text(), None);
-
 
         let mut v = TextViewport::with_lines(id, lines(3))
             .pointer_select(crate::widgets::field_common::PointerSelect::DEFAULT.line(false));

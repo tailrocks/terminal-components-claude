@@ -1,16 +1,3 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
 use std::ops::Range;
 
 use ratatui::buffer::Buffer;
@@ -50,9 +37,7 @@ const RUN_TICKS: u8 = 6;
 
 const WORK_MIN: u16 = 15;
 
-
 const TOOLBAR_MIN: u16 = 20;
-
 
 const TABLES: &[(&str, &str)] = &[
     ("organizations", "1.2k"),
@@ -78,9 +63,6 @@ const KEYWORDS: &[&str] = &[
     "join", "left", "inner", "on", "group", "having", "as", "desc", "asc", "explain", "analyze",
     "insert", "update", "delete", "set", "values", "into", "count", "distinct",
 ];
-
-
-
 
 fn highlight(src: &str) -> Vec<(Range<usize>, SyntaxTone)> {
     let b = src.as_bytes();
@@ -118,31 +100,31 @@ fn highlight(src: &str) -> Vec<(Range<usize>, SyntaxTone)> {
     out
 }
 
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 enum Outcome2 {
-
     Rows {
         table: String,
         count: usize,
         ms: u32,
     },
 
-    Plan { ms: u32 },
+    Plan {
+        ms: u32,
+    },
 
-    Error { message: String, detail: String },
+    Error {
+        message: String,
+        detail: String,
+    },
 
     None,
 }
-
 
 struct Doc {
     title: String,
     sql: String,
     result: Outcome2,
 }
-
-
 
 fn explorer_nodes() -> Vec<TreeNode> {
     let tables = TABLES
@@ -170,7 +152,6 @@ fn explorer_nodes() -> Vec<TreeNode> {
     ]
 }
 
-
 fn lazy_children(label: &str) -> Vec<TreeNode> {
     match label {
         "Views" => vec![
@@ -193,7 +174,6 @@ const CUSTOMERS: &[&str] = &[
     "Acme Retail",
     "Hooli",
 ];
-
 
 fn result_table(table: &str, count: usize) -> DataTable {
     let id = ID.sub("results");
@@ -255,7 +235,6 @@ fn result_table(table: &str, count: usize) -> DataTable {
         .empty(EmptyState::new("0 rows").hint("The query ran; nothing matched"))
 }
 
-
 fn plan_table() -> DataTable {
     let rows = [
         ("Limit", "0.42..2.10", "25"),
@@ -281,8 +260,6 @@ fn plan_table() -> DataTable {
             .collect(),
     )
 }
-
-
 
 fn from_table(sql: &str) -> Option<(String, Range<usize>)> {
     let lower = sql.to_ascii_lowercase();
@@ -408,8 +385,6 @@ impl QueryWorkbenchPage {
         }
     }
 
-
-
     fn rebuild(&mut self) {
         let o = &self.opts;
         let active = self.tabs.active;
@@ -437,8 +412,6 @@ impl QueryWorkbenchPage {
             self.sync_results();
         }
     }
-
-
 
     fn result_option(&self) -> Option<Outcome2> {
         Some(match self.opts.value("queryworkbench.result") {
@@ -475,7 +448,6 @@ impl QueryWorkbenchPage {
             .collect()
     }
 
-
     fn sync_tabs(&mut self) {
         let items = self.tab_items();
         for (t, it) in self.tabs.items.iter_mut().zip(items) {
@@ -483,7 +455,6 @@ impl QueryWorkbenchPage {
             t.error = it.error;
         }
     }
-
 
     fn load_editor(&mut self) {
         let sql = self
@@ -497,14 +468,12 @@ impl QueryWorkbenchPage {
         self.sync_results();
     }
 
-
     fn store_editor(&mut self) {
         let text = self.editor.text().to_owned();
         if let Some(d) = self.docs.get_mut(self.tabs.active) {
             d.sql = text;
         }
     }
-
 
     fn sync_results(&mut self) {
         self.editor.diagnostics.clear();
@@ -561,7 +530,6 @@ impl QueryWorkbenchPage {
         cx.status(format!("Closed {title}"));
     }
 
-
     fn run(&mut self, explain: bool, cx: &mut Cx) {
         if self.running.is_some() || self.docs.is_empty() {
             return;
@@ -588,8 +556,6 @@ impl QueryWorkbenchPage {
             cx.status("Query cancelled");
         }
     }
-
-
 
     fn finish(&mut self, tab: usize, explain: bool, cx: &mut Cx) {
         self.toolbar.items = toolbar_items(false);
@@ -720,7 +686,6 @@ impl QueryWorkbenchPage {
 
     fn render_playground(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         let t = ctx.theme;
-
 
         let l = self.sections.layout(
             area,
@@ -907,7 +872,6 @@ impl QueryWorkbenchPage {
     }
 
     fn pointer(&mut self, ev: &PointerEvent, cx: &mut Cx) -> Outcome {
-
         let (id, pos) = (ev.id, ev.pos());
         let seam = if id == OUTER {
             Some((&mut self.outer_seam, &mut self.outer, self.outer_area))
@@ -979,7 +943,6 @@ impl QueryWorkbenchPage {
     }
 
     fn key(&mut self, key: &Key, cx: &mut Cx) -> Outcome {
-
         if key.ctrl_char('r') {
             self.run(false, cx);
             return Outcome::Changed;
@@ -1047,8 +1010,6 @@ impl QueryWorkbenchPage {
         Outcome::Ignored
     }
 }
-
-
 
 fn states_grid() -> StateGrid {
     use SpecimenState::*;

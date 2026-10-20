@@ -1,18 +1,7 @@
-
-
-
-
-
-
-
-
-
-
 use std::time::{Duration, Instant};
 
 use crate::core::event::Key;
 use ratatui::crossterm::event::KeyCode;
-
 
 #[derive(Debug, Clone)]
 pub struct TypeAhead {
@@ -33,9 +22,7 @@ impl Default for TypeAhead {
 }
 
 impl TypeAhead {
-
     pub const DEFAULT_TIMEOUT: Duration = Duration::from_millis(1000);
-
 
     pub fn with_timeout(timeout: Duration) -> Self {
         Self {
@@ -44,11 +31,6 @@ impl TypeAhead {
         }
     }
 
-
-
-
-
-
     pub fn char_of(key: &Key) -> Option<char> {
         match key.code {
             KeyCode::Char(c) if !key.chord() && c.is_alphanumeric() => Some(c),
@@ -56,11 +38,9 @@ impl TypeAhead {
         }
     }
 
-
     pub fn feed(&mut self, c: char) -> &str {
         self.feed_at(c, Instant::now())
     }
-
 
     pub fn feed_at(&mut self, c: char, now: Instant) -> &str {
         if self
@@ -74,14 +54,10 @@ impl TypeAhead {
         &self.buf
     }
 
-
     pub fn reset(&mut self) {
         self.buf.clear();
         self.last = None;
     }
-
-
-
 
     pub fn find<'a>(
         prefix: &str,
@@ -97,7 +73,6 @@ impl TypeAhead {
         let first = chars.next()?;
         let repeated = chars.all(|c| c == first);
         let (needle, start) = if repeated && prefix.chars().count() > 1 {
-
             (first.to_string(), from + 1)
         } else {
             (prefix.to_owned(), from)

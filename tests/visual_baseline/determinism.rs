@@ -1,24 +1,5 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 use std::collections::BTreeMap;
 use std::path::Path;
-
 
 const FORBIDDEN: [&str; 13] = [
     "SystemTime",
@@ -35,8 +16,6 @@ const FORBIDDEN: [&str; 13] = [
     "new_v4",
     "fastrand",
 ];
-
-
 
 const INSTANT_ALLOWED: [(&str, usize, &str); 3] = [
     (
@@ -56,10 +35,7 @@ const INSTANT_ALLOWED: [(&str, usize, &str); 3] = [
     ),
 ];
 
-
 const REVIEWED_PATTERNS: [&str; 2] = ["Instant::now", "target_os"];
-
-
 
 const TARGET_OS_ALLOWED: [(&str, usize, &str); 2] = [
     (
@@ -73,7 +49,6 @@ const TARGET_OS_ALLOWED: [(&str, usize, &str); 2] = [
         "ClientPlatform::build_target fallback; captures pin JUNIE_TUI_CLIENT_PLATFORM (support::PINNED_ENV)",
     ),
 ];
-
 
 pub fn code_only(text: &str) -> String {
     let c: Vec<char> = text.chars().collect();
@@ -133,7 +108,6 @@ pub fn code_only(text: &str) -> String {
                 out.push_str("\"\"");
             }
             '\'' => {
-
                 if c.get(i + 1) == Some(&'\\') {
                     let mut j = i + 2;
                     while j < c.len() && c[j] != '\'' {
@@ -158,8 +132,6 @@ pub fn code_only(text: &str) -> String {
     out
 }
 
-
-
 fn contains_word(line: &str, pat: &str) -> bool {
     line.match_indices(pat).any(|(at, _)| {
         !line[..at]
@@ -168,8 +140,6 @@ fn contains_word(line: &str, pat: &str) -> bool {
             .is_some_and(|c| c.is_alphanumeric() || c == '_')
     })
 }
-
-
 
 pub fn non_test(text: &str) -> &str {
     let mut offset = 0;
@@ -203,7 +173,6 @@ fn sources(dir: &Path, out: &mut Vec<std::path::PathBuf>) {
     }
 }
 
-
 fn scan(root: &Path) -> (Vec<String>, BTreeMap<(String, String), usize>) {
     let mut files = Vec::new();
     sources(&root.join("src"), &mut files);
@@ -235,7 +204,6 @@ fn scan(root: &Path) -> (Vec<String>, BTreeMap<(String, String), usize>) {
     (hits, instants)
 }
 
-
 pub fn sources_are_deterministic() {
     let (hits, instants) = scan(Path::new(env!("CARGO_MANIFEST_DIR")));
     assert!(
@@ -257,7 +225,6 @@ pub fn sources_are_deterministic() {
         "Instant::now / target_os uses changed: review that the new use cannot change a frame's content (or differ between macOS and the ubuntu CI runner), then update determinism::INSTANT_ALLOWED / TARGET_OS_ALLOWED"
     );
 }
-
 
 pub fn scanner_ignores_strings_comments_and_tests() {
     let src = concat!(

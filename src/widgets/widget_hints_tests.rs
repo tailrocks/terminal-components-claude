@@ -1,8 +1,3 @@
-
-
-
-
-
 use crate::core::hints::{HasHints, HintCx};
 use crate::core::id::WidgetId;
 use crate::core::list::NavProfile;
@@ -27,7 +22,6 @@ fn line(h: &dyn HasHints) -> String {
         .collect::<Vec<_>>()
         .join(" · ")
 }
-
 
 fn under<W: HasHints>(profile: NavProfile, build: impl FnOnce() -> W) -> String {
     profile.install();
@@ -56,10 +50,7 @@ fn list_hints_under_desktop_and_vim() {
     };
     assert_eq!(
         both(single),
-        (
-            "↑↓ Move · Type to jump".into(),
-            "↑↓ Move".into()
-        )
+        ("↑↓ Move · Type to jump".into(), "↑↓ Move".into())
     );
     let multi = || {
         ListBox::new(
@@ -172,9 +163,6 @@ fn a_text_field_waiting_for_enter_hints_edit() {
     let h = line(&i);
     assert!(h == "Enter Edit" || h.starts_with("Enter "), "{h}");
 }
-
-
-
 
 #[test]
 fn completion_hints_read_its_own_keys() {
