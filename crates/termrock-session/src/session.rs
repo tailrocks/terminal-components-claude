@@ -10,11 +10,11 @@ use ratatui_crossterm::crossterm::event::{
     DisableBracketedPaste, DisableMouseCapture, EnableBracketedPaste, EnableMouseCapture, poll,
     read,
 };
-use ratatui_crossterm::crossterm::execute;
 use ratatui_crossterm::crossterm::style::Colored;
 use ratatui_crossterm::crossterm::terminal::{
     EnableLineWrap, EnterAlternateScreen, LeaveAlternateScreen, disable_raw_mode, enable_raw_mode,
 };
+use ratatui_crossterm::crossterm::{execute, queue};
 
 use termrock_core::event::Input;
 use termrock_runtime::{App, FeedbackClock, Moment, Runtime};
@@ -178,8 +178,9 @@ fn enter_terminal_modes(
         EnableBracketedPaste
     )?;
     if let Some(command) = cursor_shape.command(caret_supported) {
-        execute!(out, command)?;
+        queue!(out, command)?;
         mark_cursor_shape_changed();
+        out.flush()?;
     }
     execute!(out, Hide)
 }
@@ -629,6 +630,85 @@ mod tests {
             Some(io::ErrorKind::PermissionDenied)
         );
         assert_eq!(out.flushes, 7);
+    }
+
+    struct FailShapeFlush {
+        bytes: Vec<u8>,
+        failed: bool,
+    }
+
+    impl Write for FailShapeFlush {
+        fn write(&mut self, bytes: &[u8]) -> io::Result<usize> {
+            self.bytes.extend_from_slice(bytes);
+            Ok(bytes.len())
+        }
+
+        fn flush(&mut self) -> io::Result<()> {
+            if !self.failed && self.bytes.windows(5).any(|window| window == b"\x1b[6 q") {
+                self.failed = true;
+                return Err(io::Error::from(io::ErrorKind::BrokenPipe));
+            }
+            Ok(())
+        }
+    }
+
+    #[test]
+    fn entry_cleanup_resets_shape_after_emitted_command_flush_fails() {
+        let shape_changed = Cell::new(false);
+        let mut out = FailShapeFlush {
+            bytes: Vec::new(),
+            failed: false,
+        };
+        let mut cleanup = Vec::new();
+        let result = enter_guarded(
+            || {
+                enter_terminal_modes(&mut out, SessionCursorShape::Auto, true, || {
+                    shape_changed.set(true);
+                })
+            },
+            || restore_modes_with(&mut cleanup, || Ok(()), shape_changed.get()),
+        );
+        assert_eq!(
+            result.err().map(|error| error.kind()),
+            Some(io::ErrorKind::BrokenPipe)
+        );
+        assert!(out.bytes.windows(5).any(|window| window == b"\x1b[6 q"));
+        assert!(shape_changed.get());
+        let cleanup = String::from_utf8_lossy(&cleanup);
+        assert!(
+            cleanup.contains("\x1b[0 q"),
+            "shape reset after flush failure"
+        );
+        assert!(cleanup.contains("\x1b[?25h"), "cursor shown after failure");
+    }
+
+    #[test]
+    fn entry_cleanup_does_not_reset_shape_when_command_write_fails() {
+        let shape_changed = Cell::new(false);
+        let mut out = FailOnSequence {
+            sequence: b"\x1b[6 q",
+            bytes: Vec::new(),
+        };
+        let mut cleanup = Vec::new();
+        let result = enter_guarded(
+            || {
+                enter_terminal_modes(&mut out, SessionCursorShape::Auto, true, || {
+                    shape_changed.set(true);
+                })
+            },
+            || restore_modes_with(&mut cleanup, || Ok(()), shape_changed.get()),
+        );
+        assert_eq!(
+            result.err().map(|error| error.kind()),
+            Some(io::ErrorKind::BrokenPipe)
+        );
+        assert!(!shape_changed.get());
+        let cleanup = String::from_utf8_lossy(&cleanup);
+        assert!(
+            !cleanup.contains("\x1b[0 q"),
+            "no shape command reached output"
+        );
+        assert!(cleanup.contains("\x1b[?25h"), "cursor shown after failure");
     }
 
     #[test]
