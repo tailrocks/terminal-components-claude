@@ -151,9 +151,39 @@ pub use termrock_collections::collection::{
 
 pub use crate::action::{Action, ActionKey};
 pub use crate::keymap::{
-    Binding, BindingState, BindingTableId, Bindings, Hint, HintLayer, KeyMap, KeyPhase,
-    binding_conflicts,
+    Binding, BindingExtensionError, BindingState, BindingTableId, Bindings, Hint, HintLayer,
+    KeyMap, KeyPhase, binding_conflicts,
 };
+
+/// Explicitly extends an existing same-owner component binding table for this frame.
+///
+/// Unlike [`Ui::publish_bindings`], this does not replace the prior table. Only bindings
+/// selected by `include` are added. Duplicate actions and ambiguous default chords are
+/// rejected and diagnosed; key-map remapping conflicts remain visible through runtime
+/// binding-conflict diagnostics.
+pub fn extend_bindings<C: Copy + 'static>(
+    ui: &mut Ui<'_>,
+    owner: Id,
+    flags: StateFlags,
+    table: &'static [Binding<C>],
+    include: impl Fn(C) -> bool,
+) -> Result<(), BindingExtensionError> {
+    ui.extend_bindings(owner, flags, table, include)
+}
+
+/// Publishes an explicitly selected subset of a static component binding table.
+///
+/// This keeps the replacement semantics of [`Ui::publish_bindings`]; use
+/// [`extend_bindings`] when multiple controls intentionally share one owner.
+pub fn publish_bindings_filtered<C: Copy + 'static>(
+    ui: &mut Ui<'_>,
+    owner: Id,
+    flags: StateFlags,
+    table: &'static [Binding<C>],
+    include: impl Fn(C) -> bool,
+) {
+    ui.publish_bindings_filtered(owner, flags, table, include);
+}
 
 pub use crate::diagnostics::Diagnostic;
 pub use crate::field_control::FieldControl;
