@@ -1731,6 +1731,30 @@ fn accounts_detail_downs_paint_the_approved_work_frame() {
 }
 
 #[test]
+fn accounts_detail_downs_paint_the_approved_80_work_cell() {
+    let mut h = H::new(Scenario::AccountsMixed, Motion::Paused, 40, 80, 24);
+    let closed = h.buffer().cell((38, 0)).expect("overview crumb");
+    assert_ne!(
+        closed.symbol(),
+        "A",
+        "overview must stay off the detail crumb"
+    );
+    for _ in 0..4 {
+        h.key(KeyCode::Down);
+    }
+    assert_eq!(
+        h.app().accounts.selected_id.as_deref(),
+        Some("acct-claude-work")
+    );
+    let crumb = h.buffer().cell((38, 0)).expect("work breadcrumb");
+    assert_eq!(crumb.symbol(), "A");
+    assert_eq!(crumb.fg, termrock::Color::from_u32(0xb3_b3_b3));
+    assert_eq!(crumb.bg, termrock::Color::from_u32(0x00_00_00));
+    assert!(!crumb.modifier.contains(termrock::Modifier::BOLD));
+    assert_eq!(h.harness.cursor(), None);
+}
+
+#[test]
 fn accounts_drawer_enter_paints_the_approved_work_drawer() {
     let mut h = H::new(Scenario::AccountsMixed, Motion::Paused, 40, 120, 40);
     for _ in 0..4 {
