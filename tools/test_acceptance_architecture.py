@@ -94,6 +94,37 @@ class ArchitectureGateTests(unittest.TestCase):
         self.assertTrue(any("out-of-root production input" in error for error in report["errors"]))
         outside.unlink()
 
+    def test_out_of_root_directory_symlink_fails_closed(self) -> None:
+        outside = self.root.parent / f"{self.root.name}-outside-dir"
+        (outside / "external").mkdir(parents=True)
+        (outside / "external/mod.rs").write_text("// captured terminal frame\n", encoding="utf-8")
+        link = self.root / "crates/termrock-core/src/external"
+        link.symlink_to(outside / "external", target_is_directory=True)
+        report = self.run_gate()
+        self.assertFalse(report["architecture_checks_passed"])
+        self.assertTrue(any("out-of-root production input" in error and "src/external" in error for error in report["errors"]))
+        self.assertFalse(any(row["path"].endswith("src/external/mod.rs") for row in report["source_inputs"]))
+        import shutil
+
+        shutil.rmtree(outside)
+
+    def test_in_root_directory_symlink_contents_are_scanned(self) -> None:
+        write(self.root / "crates/termrock-core/external/mod.rs", "pub fn included() {}\n")
+        link = self.root / "crates/termrock-core/src/external"
+        link.symlink_to(self.root / "crates/termrock-core/external", target_is_directory=True)
+        write(self.root / "crates/termrock-core/src/lib.rs", '#[path = "external/mod.rs"]\nmod external;\n')
+        report = self.run_gate()
+        self.assertTrue(report["architecture_checks_passed"], report["errors"])
+        self.assertFalse(report["errors"])
+        self.assertTrue(any(row["path"] == "crates/termrock-core/src/external/mod.rs" for row in report["source_inputs"]))
+
+    def test_in_root_directory_symlink_cycle_fails_closed(self) -> None:
+        link = self.root / "crates/termrock-core/src/cycle"
+        link.symlink_to(self.root / "crates/termrock-core/src", target_is_directory=True)
+        report = self.run_gate()
+        self.assertFalse(report["architecture_checks_passed"])
+        self.assertTrue(any("recursive production source directory symlink cycle" in error for error in report["errors"]))
+
     def test_renamed_static_stamp_in_library_fails(self) -> None:
         write(self.root / "crates/termrock-controls/src/moved.rs", """\
 struct CellRecord { x: u16, y: u16, text: &'static str, fg: u32, bg: u32 }
