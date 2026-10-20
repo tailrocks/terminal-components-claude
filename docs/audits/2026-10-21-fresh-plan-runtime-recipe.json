@@ -1,0 +1,202 @@
+{
+  "cohort_id": "frozen-20261021-serial-nonincr-r1-r2",
+  "effective_environment": {
+    "absent_allowlisted_keys": [
+      "AR",
+      "CARGO_BUILD_JOBS",
+      "CARGO_HTTP_MULTIPLEXING",
+      "CARGO_NET_OFFLINE",
+      "CC",
+      "CFLAGS",
+      "CLICOLOR",
+      "CLICOLOR_FORCE",
+      "CPATH",
+      "CXX",
+      "CXXFLAGS",
+      "DEVELOPER_DIR",
+      "DYLD_LIBRARY_PATH",
+      "LDFLAGS",
+      "LIBRARY_PATH",
+      "MACOSX_DEPLOYMENT_TARGET",
+      "PKG_CONFIG_PATH",
+      "RUSTC",
+      "RUSTC_BOOTSTRAP",
+      "RUSTDOC",
+      "SDKROOT",
+      "TEMP",
+      "TERMINFO_DIRS",
+      "TMP",
+      "TZ",
+      "XDG_CACHE_HOME",
+      "XDG_CONFIG_HOME",
+      "XDG_DATA_HOME"
+    ],
+    "fingerprint_sha256": "a7d5bf4241aa2b00d8556d50ec06be243bc3575ec3540731c5f9b8b3f859e372",
+    "policy": "Only FRESH_RUNTIME_ENV_KEYS are passed. All nonallowlisted inherited variables are removed. Values are recorded only for this noncredential allowlist; this is not a full environment dump.",
+    "present_nonsecret_values": {
+      "CARGO_HOME": "/Users/donbeave/.cargo",
+      "CARGO_TARGET_DIR": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/fresh-plan-step2c-20261021/live-target",
+      "COLORTERM": "",
+      "HOME": "/Users/donbeave",
+      "LANG": "C.UTF-8",
+      "LC_ALL": "C.UTF-8",
+      "LC_CTYPE": "C.UTF-8",
+      "NEXTEST_EXPERIMENTAL_LIBTEST_JSON": "1",
+      "NO_COLOR": "1",
+      "PATH": "/Users/donbeave/.local/bin:/opt/homebrew/bin:/opt/homebrew/sbin:/usr/local/bin:/System/Cryptexes/App/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/local/bin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/bin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/appleinternal/bin:/pkg/env/global/bin:/Library/Apple/usr/bin:/Applications/Little Snitch.app/Contents/Components:/opt/homebrew/bin:/Users/donbeave/.nanocodex/bin:/Users/donbeave/Library/Application Support/mbx/bin:/opt/homebrew/Caskroom/codex/0.163.0/codex-path:/Users/donbeave/.codex-chainargos/tmp/arg0-macos/codex-arg0FkFNck:/Users/donbeave/.minimax-code/bin:/Users/donbeave/.minimax/bin:/Users/donbeave/.local/share/mise/command-wrappers/bin:/Users/donbeave/.local/share/mise/installs/aqua-nextest-rs-nextest-cargo-nextest/0.9.148:/Users/donbeave/.local/share/mise/installs/actionlint/1.7.12:/Users/donbeave/.local/share/mise/installs/shellcheck/0.11.0/shellcheck-v0.11.0:/Users/donbeave/.local/share/mise/installs/zizmor/1.30.1:/Users/donbeave/.local/share/mise/installs/gh/2.102.0/gh_2.102.0_macOS_arm64/bin:/Users/donbeave/.local/share/mise/installs/github-tailrocks-velnor-new/0.1.12:/Users/donbeave/.local/share/mise/installs/cargo-https-github-com-tailrocks-tuiscotti/rev-a1ea27f757d75d07b05499276cd932e9f8e067ad/bin:/Users/donbeave/.cargo/bin:/Users/donbeave/.local/share/mise/installs/mr-boxington/1.24.1/.mise-bins:/Users/donbeave/.local/share/mise/installs/bun/1.4.3/bin:/Users/donbeave/.local/share/mise/installs/python/3.15.0/bin:/Users/donbeave/.local/share/mise/installs/hk/2.7.0/.mise-bins:/Users/donbeave/.local/share/mise/installs/npm-caveman-ai-cli/4.0.1/node_modules/.bin:/Users/donbeave/.local/share/mise/installs/npm-npm/12.2.0/node_modules/.bin:/Users/donbeave/.local/share/mise/installs/node/26.12.0/bin:/Users/donbeave/.local/share/mise/installs/uv/0.13.1/uv-aarch64-apple-darwin:/Users/donbeave/.local/share/mise/installs/java/temurin-27.0.0+35/bin:/Users/donbeave/.local/share/mise/installs/github-asamarts-alint/0.19.0:/Users/donbeave/.local/share/mise/shims:/Users/donbeave/.local/bin:/opt/homebrew/sbin:/Applications/Ghostty.app/Contents/MacOS:/Users/donbeave/Library/Application Support/JetBrains/Toolbox/scripts:/Users/donbeave/.orbstack/bin:/Users/donbeave/.mimocode/bin:/Users/donbeave/Library/Application Support/JetBrains/Toolbox/scripts:/Users/donbeave/.orbstack/bin",
+      "RUSTUP_HOME": "/Users/donbeave/.rustup",
+      "RUSTUP_TOOLCHAIN": "1.99.1",
+      "TERM": "dumb",
+      "TERMINFO": "/Applications/Ghostty.app/Contents/Resources/terminfo",
+      "TMPDIR": "/var/folders/8p/h376l_nn3375kyj72czdq2x80000gn/T/"
+    },
+    "unknown_parent_environment_values_recorded": false
+  },
+  "frozen_source_commit": "4169783ae883788186d161af09ba9c481bd84e5c",
+  "live_source_manifest_sha256": "3106ad1136af4b82be01636489c14a34c4db2545c1723d30fedabd876f31871a",
+  "note": "Paths, locale, terminal flags and tool observations are exact inputs for reproducing plan verification. This record grants no app launch or baseline approval.",
+  "plan_creation_file_sha256": "b35afd9e68d54741afb8b67651aa82ec021e201e9db7ed076a33ac1165666a4f",
+  "plan_root": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/fresh-plan-step2c-20261021",
+  "plan_self_sha256": "9544a48a2f338991c6a4c6d08b8f29dcc4299cd8c2bc874428fa074337036a0d",
+  "schema": "termrock.frozen-cli-fresh-plan-runtime-recipe",
+  "schema_version": 1,
+  "selected_tools": {
+    "host": {
+      "machine": "arm64",
+      "release": "27.0.0",
+      "system": "Darwin"
+    },
+    "invocation_tools": {
+      "cargo": {
+        "file_identity": {
+          "ctime_ns": 1792296936645087580,
+          "device": 16777229,
+          "inode": 1244953794,
+          "mode": 33133,
+          "mtime_ns": 1792296935924820419,
+          "size": 25039168
+        },
+        "path": "/opt/homebrew/Cellar/rust/1.99.1/bin/cargo",
+        "sha256": "f6f1ae30e327d6ee1df89485871ec7a971d7c3bc34616fc8cd17ddded0489fbc",
+        "version": "cargo 1.99.1 (5f94df478 2026-08-27) (Homebrew)\nrelease: 1.99.1\ncommit-hash: 5f94df4789f005f9a352888e8355ffc645b7ed0e\ncommit-date: 2026-08-27\nhost: aarch64-apple-darwin\nlibgit2: 1.9.7 (sys:0.21.0 system)\nlibcurl: 8.7.1 (sys:0.4.90+curl-8.21.0 system ssl:(SecureTransport) LibreSSL/3.3.6)\nos: Mac OS 27.0.1 [64-bit]"
+      },
+      "cargo_nextest": {
+        "file_identity": {
+          "ctime_ns": 1791575294702455350,
+          "device": 16777229,
+          "inode": 1094882598,
+          "mode": 33261,
+          "mtime_ns": 1791430322000000000,
+          "size": 43038544
+        },
+        "path": "/Users/donbeave/.local/share/mise/installs/aqua-nextest-rs-nextest-cargo-nextest/0.9.148/cargo-nextest",
+        "sha256": "aac4a0d9109efcfb4d83ec729c6e3204d5c15bf16ff554b5ee4476f6c5f60b37",
+        "version": "cargo-nextest 0.9.148 (cd1d6d546 2026-10-07)\nrelease: 0.9.148\ncommit-hash: cd1d6d5467322dbc0d39a80cb671d000ac302798\ncommit-date: 2026-10-07\nhost: aarch64-apple-darwin"
+      },
+      "python": {
+        "file_identity": {
+          "ctime_ns": 1791910268352213683,
+          "device": 16777229,
+          "inode": 1141840218,
+          "mode": 33261,
+          "mtime_ns": 1791910268352213683,
+          "size": 34640
+        },
+        "path": "/opt/homebrew/Cellar/python@3.15/3.15.0/Frameworks/Python.framework/Versions/3.15/bin/python3.15",
+        "sha256": "15c72833c1ffc09bc4e05d1e1866784d126721ad548d9c4d8f943641262535cb",
+        "version": "Python 3.15.0"
+      },
+      "rustc_path_entry": {
+        "file_identity": {
+          "ctime_ns": 1792296936645480958,
+          "device": 16777229,
+          "inode": 1244953801,
+          "mode": 33133,
+          "mtime_ns": 1792296935835970332,
+          "size": 323008
+        },
+        "path": "/opt/homebrew/Cellar/rust/1.99.1/bin/rustc",
+        "sha256": "302dacde7af194bebcdd7d45c821fefed52e5b96eacc00de80e4b32863def01b",
+        "version": "rustc 1.99.1 (58cf8f9c3 2026-10-13) (Homebrew)\nbinary: rustc\ncommit-hash: 58cf8f9c35b355199727627d07ae34a4e2846d67\ncommit-date: 2026-10-13\nhost: aarch64-apple-darwin\nrelease: 1.99.1\nLLVM version: 23.1.3"
+      }
+    },
+    "selected_toolchain": {
+      "active_toolchain": "1.99.1-aarch64-apple-darwin (overridden by environment variable RUSTUP_TOOLCHAIN)",
+      "cargo_path_entry": {
+        "available": true,
+        "path": "/opt/homebrew/Cellar/rust/1.99.1/bin/cargo",
+        "sha256": "f6f1ae30e327d6ee1df89485871ec7a971d7c3bc34616fc8cd17ddded0489fbc",
+        "version": "cargo 1.99.1 (5f94df478 2026-08-27) (Homebrew)\nrelease: 1.99.1\ncommit-hash: 5f94df4789f005f9a352888e8355ffc645b7ed0e\ncommit-date: 2026-08-27\nhost: aarch64-apple-darwin\nlibgit2: 1.9.7 (sys:0.21.0 system)\nlibcurl: 8.7.1 (sys:0.4.90+curl-8.21.0 system ssl:(SecureTransport) LibreSSL/3.3.6)\nos: Mac OS 27.0.1 [64-bit]"
+      },
+      "cargo_selected_toolchain": {
+        "available": true,
+        "path": "/Users/donbeave/.rustup/toolchains/1.99.1-aarch64-apple-darwin/bin/cargo",
+        "sha256": "6d576d8058f8ca643e8fce55b64ee3c614ba64c9da2e536bae843e6a2e1f3951",
+        "version": "cargo 1.99.1 (5f94df478 2026-08-27)\nrelease: 1.99.1\ncommit-hash: 5f94df4789f005f9a352888e8355ffc645b7ed0e\ncommit-date: 2026-08-27\nhost: aarch64-apple-darwin\nlibgit2: 1.9.6 (sys:0.21.0 vendored)\nlibcurl: 8.7.1 (sys:0.4.90+curl-8.21.0 system ssl:(SecureTransport) LibreSSL/3.3.6)\nssl: OpenSSL 3.6.3 9 Jun 2026\nos: Mac OS 27.0.1 [64-bit]"
+      },
+      "cargo_selection_method": "rustup which from frozen-source cwd",
+      "cc": {
+        "available": true,
+        "path": "/usr/bin/cc",
+        "sha256": "34129c71a01a74f7f3b2443521519b2e5447553fa187f5fcafaaf8c42cc192e2",
+        "version": "Apple clang version 21.0.0 (clang-2100.3.34.2)\nTarget: arm64-apple-darwin27.0.0\nThread model: posix\nInstalledDir: /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin"
+      },
+      "clang": {
+        "available": true,
+        "path": "/usr/bin/clang",
+        "sha256": "34129c71a01a74f7f3b2443521519b2e5447553fa187f5fcafaaf8c42cc192e2",
+        "version": "Apple clang version 21.0.0 (clang-2100.3.34.2)\nTarget: arm64-apple-darwin27.0.0\nThread model: posix\nInstalledDir: /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin"
+      },
+      "link_invocation": "not captured; cargo config and available linker identities are recorded as observations",
+      "linker": {
+        "available": true,
+        "path": "/usr/bin/ld",
+        "sha256": "34129c71a01a74f7f3b2443521519b2e5447553fa187f5fcafaaf8c42cc192e2",
+        "version": ""
+      },
+      "llvm_version": "23.1.1",
+      "rustc_host_triple": "aarch64-apple-darwin",
+      "rustc_selected_toolchain": {
+        "available": true,
+        "path": "/Users/donbeave/.rustup/toolchains/1.99.1-aarch64-apple-darwin/bin/rustc",
+        "sha256": "1ba7bb8e273bd64125f4048d2ecce530e0a6470e565ab1b3aecf0b82b532f7b1",
+        "version": "rustc 1.99.1 (58cf8f9c3 2026-10-13)\nbinary: rustc\ncommit-hash: 58cf8f9c35b355199727627d07ae34a4e2846d67\ncommit-date: 2026-10-13\nhost: aarch64-apple-darwin\nrelease: 1.99.1\nLLVM version: 23.1.1"
+      },
+      "rustc_selection_method": "rustup which from frozen-source cwd",
+      "rustc_sysroot": "/Users/donbeave/.rustup/toolchains/1.99.1-aarch64-apple-darwin",
+      "rustc_sysroot_identity_files": [
+        {
+          "path": "/Users/donbeave/.rustup/toolchains/1.99.1-aarch64-apple-darwin/lib/rustlib/components",
+          "sha256": "1d4d24a7194aea5e759695758088efb81cff49b963edd683df64638a467e08aa"
+        },
+        {
+          "path": "/Users/donbeave/.rustup/toolchains/1.99.1-aarch64-apple-darwin/lib/rustlib/multirust-channel-manifest.toml",
+          "sha256": "48419307eb32e389a25ac360b6bccd4d196f3c4f35ce9d67a223319eff017c6c"
+        }
+      ],
+      "rustup": {
+        "available": true,
+        "path": "/Users/donbeave/.cargo/bin/rustup",
+        "sha256": "ec1b9233e7f72990ecd8e62063fa7f6c3dfc2bec8e97f88bff165f9100ac696a",
+        "version": "rustup 1.29.1 (d95a37b6a 2026-08-13)"
+      },
+      "sdk_path": "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk",
+      "sdk_version": "27.0",
+      "xcode_developer_directory": "/Applications/Xcode.app/Contents/Developer",
+      "xcode_select": {
+        "available": true,
+        "path": "/usr/bin/xcode-select",
+        "sha256": "49cf1e59551a8a401d86ac444aa6b2a9ab7ec6d3882c98c004dab02a0e484e53",
+        "version": "xcode-select version 2418."
+      },
+      "xcrun": {
+        "available": true,
+        "path": "/usr/bin/xcrun",
+        "sha256": "bbe7671518a3905f9d3fce54312fbc77c2876b0d62aca74a0688fa869d31a8a9",
+        "version": "xcrun version 72."
+      }
+    }
+  },
+  "status": "observed-safe-allowlist-recipe-for-plan-smoke-only",
+  "tuiscotti_commit": "a1ea27f757d75d07b05499276cd932e9f8e067ad"
+}
