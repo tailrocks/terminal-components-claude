@@ -245,6 +245,12 @@ const CLEAR_QUERY: ActionKey = ActionKey::application("tablepro.clear-query");
 const PALETTE: ActionKey = ActionKey::application("tablepro.palette");
 const ZOOM: ActionKey = ActionKey::application("tablepro.zoom");
 const TOGGLE_EXPLORER: ActionKey = ActionKey::application("tablepro.toggle-explorer");
+const FOCUS_EXPLORER: ActionKey = ActionKey::application("tablepro.focus-explorer");
+const RESULT_SQL: &str =
+    "SELECT * FROM orders WHERE status = 'pending' ORDER BY created_at DESC LIMIT 25";
+const ERROR_SQL: &str = "SELECT * FROM missing_table";
+const EXPLAIN_SQL: &str = "SELECT * FROM orders";
+const COMPLETION_SQL: &str = "SELECT * FROM ord";
 
 const CONNECTION_DETAILS: Id = Id::root("tablepro.connections.details");
 const CONTENT_FRAME: Id = Id::root("tablepro.workbench.content.frame");
@@ -474,6 +480,11 @@ fn quit_keymap() -> KeyMap {
 fn keymap() -> KeyMap {
     query_keymap(
         quit_keymap()
+            .bind(
+                KeyPhase::Capture,
+                Chord::key(KeyCode::Char('0')),
+                FOCUS_EXPLORER,
+            )
             .bind(KeyPhase::Bubble, Chord::key(KeyCode::Char('u')), UNDO)
             .bind(KeyPhase::Bubble, Chord::key(KeyCode::Char('+')), INSERT_ROW)
             .bind(
@@ -10319,6 +10330,11 @@ fn draw_footer(ui: &mut Ui<'_>, area: termrock::Rect, app: &TableProApp) {
     }
 }
 
+fn query_editor_focused(ui: &Ui<'_>, app: &TableProApp) -> bool {
+    app.query_id()
+        .is_some_and(|id| ui.state(id).contains(StateFlags::FOCUSED))
+}
+
 fn draw_too_small(ui: &mut Ui<'_>, area: termrock::Rect) {
     let style = ui.surface_style();
     let lines = [
@@ -10882,6 +10898,18 @@ impl App for TableProApp {
                     && self.destructive_intent.is_none() =>
                 {
                     self.split_state.toggle_max(Maximized::Second);
+                    response |= Response::changed();
+                }
+                c if c == FOCUS_EXPLORER
+                    && self.screen == Screen::Workbench
+                    && !self.form_open
+                    && self.destructive_intent.is_none() =>
+                {
+                    if self.split_state.maximized() == Maximized::Second {
+                        self.split_state.toggle_max(Maximized::Second);
+                    }
+                    self.workbench.maximized = false;
+                    cx.focus(EXPLORER);
                     response |= Response::changed();
                 }
                 _ => {}
