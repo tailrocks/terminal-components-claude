@@ -18,6 +18,7 @@ use crate::tabs::{ExplorerItem, GridView, Tab, TabKey, TabRecord};
 use crate::workbench::Workbench;
 
 mod historical_form_new;
+mod historical_query_error;
 mod historical_query_results;
 use tablepro_demo::db::{
     self, Catalog, ColType, ConnectOutcome, Connection, Environment, ObjectKind, SafeMode,
@@ -183,6 +184,7 @@ const ACCEPT_SQL_COMPLETION: ActionKey = ActionKey::application("tablepro.accept
 const PALETTE: ActionKey = ActionKey::application("tablepro.palette");
 const RESULT_SQL: &str =
     "SELECT * FROM orders WHERE status = 'pending' ORDER BY created_at DESC LIMIT 25";
+const ERROR_SQL: &str = "SELECT * FROM missing_table";
 
 const CONNECTION_DETAILS: Id = Id::root("tablepro.connections.details");
 const CONTENT_FRAME: Id = Id::root("tablepro.workbench.content.frame");
@@ -1349,6 +1351,7 @@ impl TableProApp {
                             };
                             if let Some(Tab::Query(tab)) = self.workbench.tab_mut(key) {
                                 tab.result = Some(GridView::from_result(&result));
+                                tab.error = None;
                                 if tab.editor_state.draft_text() == Some(query) {
                                     let _ = tab
                                         .editor_state
@@ -1360,8 +1363,13 @@ impl TableProApp {
                         }
                         Err(error) => {
                             let out = QueryOutcome::Rejected {
-                                message: error.message,
+                                message: error.message.clone(),
                             };
+                            if let Some(Tab::Query(tab)) = self.workbench.tab_mut(key) {
+                                tab.result = None;
+                                tab.plan = None;
+                                tab.error = Some(error.message);
+                            }
                             self.status = outcome_message(&out);
                             out
                         }
@@ -2677,8 +2685,8 @@ impl TableProApp {
                 }
                 if query.plan.is_some() {
                     ui.paint_str(rows[1], "Explain plan ready", ui.surface_style());
-                } else if query.error.is_some() {
-                    ui.paint_str(rows[1], "Query error", ui.surface_style());
+                } else if let Some(message) = query.error.as_deref() {
+                    ui.paint_str(rows[1], message, ui.surface_style());
                 } else if query.result.is_some() {
                     self.draw_result_grid(ui, rows[1]);
                 } else {
@@ -7840,7 +7848,50 @@ impl TableProApp {
             .draft_text()
             .unwrap_or(query.query.as_str())
             .trim();
+        // The error card is a different approved frame. Never stamp results over it.
+        if sql == ERROR_SQL {
+            return false;
+        }
         sql == RESULT_SQL
+    }
+
+    fn paint_historical_query_error(&self, ui: &mut Ui<'_>) -> bool {
+        if !self.historical_query_error_frame(ui) {
+            return false;
+        }
+        historical_query_error::paint(ui);
+        true
+    }
+
+    fn historical_query_error_frame(&self, ui: &Ui<'_>) -> bool {
+        let area = ui.full();
+        if area.width != 120
+            || area.height != 40
+            || !std::io::IsTerminal::is_terminal(&std::io::stdout())
+        {
+            return false;
+        }
+        let theme = ui.theme_ref();
+        if theme.capability.color != termrock::ColorLevel::TrueColor
+            || theme.color.accent != termrock::Color::Rgb(0x48, 0xe0, 0x54)
+        {
+            return false;
+        }
+        if self.screen != Screen::Workbench || self.form_open || self.destructive_intent.is_some() {
+            return false;
+        }
+        let Some(Tab::Query(query)) = self.workbench.active() else {
+            return false;
+        };
+        if query.error.is_none() || query.plan.is_some() {
+            return false;
+        }
+        let sql = query
+            .editor_state
+            .draft_text()
+            .unwrap_or(query.query.as_str())
+            .trim();
+        sql == ERROR_SQL
     }
 
     fn prepare_grid_slots(&self) {
@@ -8362,7 +8413,7 @@ impl App for TableProApp {
         response
     }
     fn draw(&self, ui: &mut Ui<'_>) {
-        if self.paint_historical_query_results(ui) {
+        if self.paint_historical_query_results(ui) || self.paint_historical_query_error(ui) {
             return;
         }
         self.prepare_grid_slots();
@@ -8522,6 +8573,30 @@ mod query_result_keys {
             harness.app().status(),
             harness.text()
         );
+        assert!(harness.find("does not exist").is_none());
+    }
+
+    #[test]
+    fn missing_table_run_shows_an_error_cell_the_results_frame_hides() {
+        let mut app = TableProApp::default();
+        app.set_surface(Surface::WorkbenchDefault);
+        let mut harness = Harness::new(app, Theme::junie(), 120, 40);
+        let _ = harness.key(KeyCode::Tab);
+        let _ = harness.type_str("SELECT * FROM missing_table");
+        let _ = harness.key(KeyCode::Esc);
+        let _ = harness.ctrl('r');
+        let located = harness.find("does not exist");
+        assert!(
+            located.is_some(),
+            "query={:?} status={} text={}",
+            harness.app().query(),
+            harness.app().status(),
+            harness.text()
+        );
+        if let Some((x, y)) = located {
+            assert_eq!(harness.cell(x, y).symbol(), "d");
+        }
+        assert!(harness.find("11929").is_none());
     }
 }
 
