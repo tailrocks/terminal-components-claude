@@ -1465,3 +1465,19 @@ fn accounts_filter_and_inspector_open_without_writing_a_credential() {
     assert_eq!(h.app().world.accounts.accounts.len(), before);
     assert!(h.app().world.clipboard.is_none());
 }
+
+#[test]
+fn paused_returning_down_paints_the_expanded_payments_tree() {
+    let mut h = H::new(Scenario::Returning, Motion::Paused, 40, 120, 40);
+    assert!(h.text().contains("▸ payments-platform"), "{}", h.text());
+    assert!(!h.text().contains("Prewarm"), "{}", h.text());
+    h.key(KeyCode::Down);
+    h.key(KeyCode::Char(' '));
+    let text = h.text();
+    assert!(text.contains("▾"), "{text}");
+    assert!(text.contains("the-archite…ude Code"), "{text}");
+    assert!(text.contains("saved workspace · 1 running"), "{text}");
+    assert!(text.contains("Prewarm"), "{text}");
+    assert!(text.contains("→"), "{text}");
+    assert!(text.contains("Workspaces › payments-platform"), "{text}");
+}
