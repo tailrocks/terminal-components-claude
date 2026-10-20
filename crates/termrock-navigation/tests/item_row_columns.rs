@@ -1,4 +1,5 @@
 use ratatui_core::layout::Rect;
+use ratatui_core::style::Color;
 use termrock_navigation::{
     FilterList, FilterListAction, FilterListState, FilterPolicy, Item, ItemRowLayout,
 };
@@ -6,9 +7,14 @@ use termrock_runtime::{
     App, Cx, Id, ItemKey, KeyCode, Part, PartRef, Response, RowUi, Ui, UpdateCause,
 };
 use termrock_test_support::Harness;
-use termrock_theme::{ColorLevel, CursorStyle, Modifier, Theme};
+use termrock_theme::{ColorLevel, CursorStyle, Modifier, Role, StylePatch, Theme};
 use unicode_segmentation::UnicodeSegmentation;
 const ID: Id = Id::root("columns.list");
+const OWNER_FG: Color = Color::Rgb(17, 83, 149);
+const OWNER_BG: Color = Color::Rgb(61, 21, 97);
+const LABEL_PATCH: StylePatch = StylePatch::new()
+    .set_fg(Role::Custom(OWNER_FG))
+    .set_bg(Role::Custom(OWNER_BG));
 const ITEMS: &[Item<'static>] = &[
     Item::new(ItemKey::num(1), "e\u{301}界x")
         .glyph("T")
@@ -40,20 +46,29 @@ struct Page {
     custom: bool,
     searchable: bool,
     policy: FilterPolicy,
-    cursor_style: CursorStyle,
-    metadata_gap: u16,
+    cursor_style: Option<CursorStyle>,
+    metadata_gap: Option<u16>,
 }
 fn custom_row(_: &Item<'_>, row: &mut RowUi<'_>) {
-    row.label("CUSTOM");
+    row.gutter();
+    row.label_patched("CUSTOM", &LABEL_PATCH);
 }
 impl Page {
     fn list(&self) -> FilterList<'static, Item<'static>> {
-        FilterList::new(ID)
+        let list = FilterList::new(ID)
             .searchable(self.searchable)
             .filter(self.policy)
-            .item_layout(self.layout)
-            .cursor_style(self.cursor_style)
-            .metadata_gap(self.metadata_gap)
+            .item_layout(self.layout);
+        let list = if let Some(style) = self.cursor_style {
+            list.cursor_style(style)
+        } else {
+            list
+        };
+        if let Some(gap) = self.metadata_gap {
+            list.metadata_gap(gap)
+        } else {
+            list
+        }
     }
 }
 impl App for Page {
@@ -91,14 +106,14 @@ fn page(
     custom: bool,
     level: ColorLevel,
 ) -> Harness<Page> {
-    page_with_policy(
+    page_with_options(
         layout,
         width,
         height,
         custom,
         level,
-        CursorStyle::Bar,
-        1,
+        None,
+        None,
         ITEMS.to_vec(),
     )
 }
@@ -114,6 +129,32 @@ fn page_with_policy(
     level: ColorLevel,
     cursor_style: CursorStyle,
     metadata_gap: u16,
+    items: Vec<Item<'static>>,
+) -> Harness<Page> {
+    page_with_options(
+        layout,
+        width,
+        height,
+        custom,
+        level,
+        Some(cursor_style),
+        Some(metadata_gap),
+        items,
+    )
+}
+
+#[expect(
+    clippy::too_many_arguments,
+    reason = "the test fixture keeps each render setting explicit"
+)]
+fn page_with_options(
+    layout: ItemRowLayout,
+    width: u16,
+    height: u16,
+    custom: bool,
+    level: ColorLevel,
+    cursor_style: Option<CursorStyle>,
+    metadata_gap: Option<u16>,
     items: Vec<Item<'static>>,
 ) -> Harness<Page> {
     Harness::new(
@@ -146,6 +187,29 @@ fn at(h: &Harness<Page>, area: Rect, offset: u16, text: &str) {
         assert_eq!(h.cell(x, area.y).symbol(), grapheme);
         x = x.saturating_add(termrock_text::width(grapheme));
     }
+}
+
+fn full_cell_fingerprint(h: &Harness<Page>) -> u64 {
+    const OFFSET: u64 = 0xcbf2_9ce4_8422_2325;
+    const PRIME: u64 = 0x0100_0000_01b3;
+    let mut hash = OFFSET;
+    let mut add = |bytes: &[u8]| {
+        for byte in bytes.iter().copied().chain([0xff]) {
+            hash ^= u64::from(byte);
+            hash = hash.wrapping_mul(PRIME);
+        }
+    };
+    let buffer = h.buffer();
+    add(&buffer.area.width.to_le_bytes());
+    add(&buffer.area.height.to_le_bytes());
+    for cell in buffer.content() {
+        add(cell.symbol().as_bytes());
+        add(format!("{:?}", cell.fg).as_bytes());
+        add(format!("{:?}", cell.bg).as_bytes());
+        add(&cell.modifier.bits().to_le_bytes());
+    }
+    add(format!("{:?}", h.cursor()).as_bytes());
+    hash
 }
 #[test]
 fn columns_align_complete_projection_and_emphasize_original_graphemes() {
@@ -196,13 +260,21 @@ fn columns_align_complete_projection_and_emphasize_original_graphemes() {
 }
 
 #[test]
-fn explicit_default_policies_preserve_full_frame_and_cursor_at_each_color_level() {
-    for level in [
+fn constructor_defaults_match_the_pre_policy_full_cell_fixture() {
+    const PRE_POLICY: [u64; 4] = [
+        5_728_204_432_014_350_890,
+        6_842_955_007_043_294_094,
+        15_412_407_820_699_366_892,
+        4_817_494_051_685_866_056,
+    ];
+    let levels = [
         ColorLevel::TrueColor,
         ColorLevel::Ansi256,
         ColorLevel::Ansi16,
         ColorLevel::Mono,
-    ] {
+    ];
+    let mut actual = [0; 4];
+    for (index, level) in levels.into_iter().enumerate() {
         let default = page(ItemRowLayout::Columns, 64, 4, false, level);
         let explicit = page_with_policy(
             ItemRowLayout::Columns,
@@ -216,7 +288,12 @@ fn explicit_default_policies_preserve_full_frame_and_cursor_at_each_color_level(
         );
         assert_eq!(default.buffer(), explicit.buffer(), "{level:?}");
         assert_eq!(default.cursor(), explicit.cursor(), "{level:?}");
+        actual[index] = full_cell_fingerprint(&default);
     }
+    assert_eq!(
+        actual, PRE_POLICY,
+        "full-cell fixture captured before picker policy change at 7c5714871f3a41666231f9bc5a920ac554cf17eb"
+    );
 }
 
 #[test]
@@ -243,7 +320,18 @@ fn fill_cursor_uses_selection_colors_and_keeps_the_reserved_gutter_blank() {
         let theme = Theme::junie().for_level(level);
         assert_eq!(gutter.symbol(), " ", "{level:?}");
         assert_eq!(label.bg, theme.color.selection_bg, "{level:?}");
-        assert_eq!(label.fg, theme.color.selection_fg, "{level:?}");
+        let expected_label_fg = theme
+            .resolve(
+                termrock_theme::Family::PICKER,
+                termrock_theme::Variant::DEFAULT,
+                Part::LABEL,
+                termrock_runtime::StateFlags::FOCUSED,
+                termrock_theme::Surface::Canvas,
+            )
+            .style
+            .fg
+            .unwrap_or(theme.color.selection_fg);
+        assert_eq!(label.fg, expected_label_fg, "{level:?}");
         assert!(h.app().state.cursor().is_some());
         assert!(h.diagnostics().is_empty(), "{:?}", h.diagnostics());
 
@@ -257,6 +345,21 @@ fn fill_cursor_uses_selection_colors_and_keeps_the_reserved_gutter_blank() {
         assert_ne!(bar.buffer(), h.buffer(), "{level:?}");
         assert_ne!(bar.cell(row.x, row.y).symbol(), " ", "{level:?}");
     }
+
+    let owner_row = page_with_policy(
+        ItemRowLayout::Columns,
+        64,
+        4,
+        true,
+        ColorLevel::TrueColor,
+        CursorStyle::Fill,
+        1,
+        ITEMS.to_vec(),
+    );
+    let owner = row(&owner_row, 1);
+    let custom_label = owner_row.cell(owner.x.saturating_add(1), owner.y);
+    assert_eq!(custom_label.fg, OWNER_FG);
+    assert_eq!(custom_label.bg, OWNER_BG);
 }
 
 #[test]
@@ -283,10 +386,21 @@ fn metadata_gap_only_changes_rows_with_metadata_columns() {
         plain,
     );
     assert_eq!(plain_default.buffer(), plain_wide_gap.buffer());
+    let plain_zero_gap = page_with_policy(
+        ItemRowLayout::Columns,
+        64,
+        2,
+        false,
+        ColorLevel::TrueColor,
+        CursorStyle::Bar,
+        0,
+        vec![Item::new(ItemKey::num(10), "界 label")],
+    );
+    assert_eq!(plain_default.buffer(), plain_zero_gap.buffer());
 
     let rich = vec![
         Item::new(ItemKey::num(11), "e\u{301}界 label")
-            .detail("public.alpha")
+            .detail("public.alpha.long-value-that-forces-a-cut")
             .tag("open")
             .group("Tables"),
     ];
@@ -314,6 +428,25 @@ fn metadata_gap_only_changes_rows_with_metadata_columns() {
     assert!(baseline_gap.text().contains("public.alpha"));
     assert!(baseline_gap.text().contains("open"));
     assert!(baseline_gap.text().contains("Tables"));
+
+    let zero_gap = page_with_policy(
+        ItemRowLayout::Columns,
+        64,
+        2,
+        false,
+        ColorLevel::TrueColor,
+        CursorStyle::Bar,
+        0,
+        vec![
+            Item::new(ItemKey::num(12), "glyph")
+                .glyph("T")
+                .detail("public.alpha.long-value-that-forces-a-cut")
+                .tag("open")
+                .group("Tables"),
+        ],
+    );
+    let zero_row = row(&zero_gap, 12);
+    at(&zero_gap, zero_row, 1, "T");
 }
 #[test]
 fn scroll_top_repeats_group_without_shifting_columns_or_mutating_on_draw() {
@@ -476,8 +609,8 @@ fn measurement_uses_filtered_projection_not_hidden_source_items() {
             custom: false,
             searchable: true,
             policy: FilterPolicy::Label,
-            cursor_style: CursorStyle::Bar,
-            metadata_gap: 1,
+            cursor_style: Some(CursorStyle::Bar),
+            metadata_gap: Some(1),
         },
         Theme::junie(),
         84,
@@ -516,8 +649,8 @@ fn independent_ancestor_top_clip_repeats_first_visible_group() {
             custom: false,
             searchable: false,
             policy: FilterPolicy::Caller,
-            cursor_style: CursorStyle::Bar,
-            metadata_gap: 1,
+            cursor_style: Some(CursorStyle::Bar),
+            metadata_gap: Some(1),
         }),
         Theme::junie(),
         84,
@@ -532,30 +665,37 @@ fn independent_ancestor_top_clip_repeats_first_visible_group() {
 
 #[test]
 fn owner_part_styles_win_over_painter_defaults_in_columns_mode() {
-    use ratatui_core::style::Color;
     use termrock_theme::{Family, Overlay, OverlayRule, Role, StylePatch, Variant};
-    const FG: Color = Color::Rgb(17, 83, 149);
+    const FG: Color = OWNER_FG;
+    const BG: Color = OWNER_BG;
     const RULES: &[OverlayRule] = &[
         (
             Family::PICKER,
             Variant::DEFAULT,
             Part::ICON,
             termrock_runtime::StateFlags::empty(),
-            StylePatch::new().set_fg(Role::Custom(FG)),
+            StylePatch::new()
+                .set_fg(Role::Custom(FG))
+                .set_bg(Role::Custom(BG)),
         ),
         (
             Family::PICKER,
             Variant::DEFAULT,
             Part::META,
             termrock_runtime::StateFlags::empty(),
-            StylePatch::new().set_fg(Role::Custom(FG)),
+            StylePatch::new()
+                .set_fg(Role::Custom(FG))
+                .set_bg(Role::Custom(BG)),
         ),
         (
             Family::PICKER,
             Variant::DEFAULT,
             Part::LABEL,
-            termrock_runtime::StateFlags::empty(),
-            StylePatch::new().add(Modifier::BOLD),
+            termrock_runtime::StateFlags::FOCUSED,
+            StylePatch::new()
+                .set_fg(Role::Custom(FG))
+                .set_bg(Role::Custom(BG))
+                .add(Modifier::BOLD),
         ),
     ];
     struct Styled {
@@ -587,12 +727,25 @@ fn owner_part_styles_win_over_painter_defaults_in_columns_mode() {
         let mut theme = Theme::junie();
         if !overlay {
             theme = theme.define_family(Family::PICKER, |f| {
-                f.part(Part::ICON)
-                    .base(StylePatch::new().set_fg(Role::Custom(FG)));
-                f.part(Part::META)
-                    .base(StylePatch::new().set_fg(Role::Custom(FG)));
+                f.part(Part::ICON).base(
+                    StylePatch::new()
+                        .set_fg(Role::Custom(FG))
+                        .set_bg(Role::Custom(BG)),
+                );
+                f.part(Part::META).base(
+                    StylePatch::new()
+                        .set_fg(Role::Custom(FG))
+                        .set_bg(Role::Custom(BG)),
+                );
                 f.part(Part::LABEL)
-                    .base(StylePatch::new().add(Modifier::BOLD));
+                    .base(StylePatch::new().add(Modifier::BOLD))
+                    .when(
+                        termrock_runtime::StateFlags::FOCUSED,
+                        StylePatch::new()
+                            .set_fg(Role::Custom(FG))
+                            .set_bg(Role::Custom(BG))
+                            .add(Modifier::BOLD),
+                    );
             });
         }
         let mut h = Harness::new(
@@ -608,8 +761,8 @@ fn owner_part_styles_win_over_painter_defaults_in_columns_mode() {
                     custom: false,
                     searchable: false,
                     policy: FilterPolicy::Caller,
-                    cursor_style: CursorStyle::Bar,
-                    metadata_gap: 1,
+                    cursor_style: Some(CursorStyle::Fill),
+                    metadata_gap: Some(1),
                 },
             },
             theme,
@@ -617,12 +770,16 @@ fn owner_part_styles_win_over_painter_defaults_in_columns_mode() {
             8,
         );
         let _ = h.key(KeyCode::Down);
-        for (name, x) in [("ICON", 2), ("META", 21)] {
-            if h.cell(x, 1).fg != FG {
-                failures.push(format!("{tier} {name}: {:?}", h.cell(x, 1).fg));
+        for (name, x) in [("ICON", 2), ("META", 21), ("LABEL", 5)] {
+            if h.cell(x, 2).fg != FG || h.cell(x, 2).bg != BG {
+                failures.push(format!(
+                    "{tier} {name}: fg={:?}, bg={:?}",
+                    h.cell(x, 2).fg,
+                    h.cell(x, 2).bg
+                ));
             }
         }
-        if !h.cell(5, 1).modifier.contains(Modifier::BOLD) {
+        if !h.cell(5, 2).modifier.contains(Modifier::BOLD) {
             failures.push(format!("{tier} LABEL BOLD erased"));
         }
     }
