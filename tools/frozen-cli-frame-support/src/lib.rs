@@ -152,6 +152,7 @@ impl Recorder {
         let store_name = checkpoint_name(&self.case_name, ordinal, name);
         let ansi = tuiscotti::render::ansi_dump_with_cursor(frame);
         let receipt_path = self.receipt_path(ordinal, name);
+        validate_concrete_path(&self.config.receipt_root, &receipt_path, "receipt", true)?;
         if receipt_path.exists() {
             return Err(Error::new(format!(
                 "paired capture receipt already exists: {}",
@@ -162,6 +163,12 @@ impl Recorder {
         match self.config.phase {
             Phase::BaselineCapture => {
                 let expected = self.config.expected_root.join(format!("{store_name}.ansi"));
+                validate_concrete_path(
+                    &self.config.expected_root,
+                    &expected,
+                    "runtime expectation",
+                    true,
+                )?;
                 if expected.exists() {
                     return Err(Error::new(format!(
                         "paired capture expectation already exists: {}",
@@ -186,18 +193,25 @@ impl Recorder {
     }
 
     fn check_runtime(&self, name: &str, frame: &Frame) -> Result<(), Error> {
+        let sidecar_root = artifact_root(&self.config.receipt_root, "runtime-expected");
+        let actual_root = artifact_root(&self.config.receipt_root, "actual");
+        let diff_root = artifact_root(&self.config.receipt_root, "diff");
+        validate_grouped_paths(
+            &self.config.expected_root,
+            &sidecar_root,
+            &actual_root,
+            &diff_root,
+            name,
+        )?;
         let profile = Profile::default_profile();
         let mut renderer = profile
             .renderer(&VENDORED_FACES)
             .map_err(|error| Error::new(error.to_string()))?;
         let store = GroupedStore::new(&self.config.expected_root)
             .with_artifacts(ArtifactSet::AnsiCursor)
-            .with_expected_root(&artifact_root(
-                &self.config.receipt_root,
-                "runtime-expected",
-            ))
-            .with_actual_root(&artifact_root(&self.config.receipt_root, "actual"))
-            .with_diff_root(&artifact_root(&self.config.receipt_root, "diff"))
+            .with_expected_root(&sidecar_root)
+            .with_actual_root(&actual_root)
+            .with_diff_root(&diff_root)
             .with_review_evidence(false);
         store
             .check_with(&mut renderer, name, frame, 1.0)
@@ -208,6 +222,7 @@ impl Recorder {
 
     fn write_receipt(&self, ordinal: u64, name: &str, ansi: &str) -> Result<(), Error> {
         let path = self.receipt_path(ordinal, name);
+        validate_concrete_path(&self.config.receipt_root, &path, "receipt", true)?;
         let hash = Sha256::digest(ansi.as_bytes());
         let record = format!(
             "{{\n  \"case_id\": {},\n  \"ordinal\": {ordinal},\n  \"logical_name\": {},\n  \"sha256\": \"{}\"\n}}\n",
@@ -272,23 +287,179 @@ fn check_original_if_present(
     receipt_root: &Path,
 ) -> Result<(), Error> {
     let original = root.join(format!("{name}.ansi"));
-    if !original.is_file() {
+    validate_concrete_path(root, &original, "original approval", false)?;
+    if !original_approval_present(&original)? {
         return Ok(());
     }
+    let expected_root = artifact_root(receipt_root, "original-expected");
+    let actual_root = artifact_root(receipt_root, "original-actual");
+    let diff_root = artifact_root(receipt_root, "original-diff");
+    validate_grouped_paths(root, &expected_root, &actual_root, &diff_root, name)?;
     let profile = Profile::default_profile();
     let mut renderer = profile
         .renderer(&VENDORED_FACES)
         .map_err(|error| Error::new(error.to_string()))?;
     GroupedStore::new(root)
         .with_artifacts(ArtifactSet::AnsiCursor)
-        .with_expected_root(&artifact_root(receipt_root, "original-expected"))
-        .with_actual_root(&artifact_root(receipt_root, "original-actual"))
-        .with_diff_root(&artifact_root(receipt_root, "original-diff"))
+        .with_expected_root(&expected_root)
+        .with_actual_root(&actual_root)
+        .with_diff_root(&diff_root)
         .with_review_evidence(false)
         .check_with(&mut renderer, name, frame, 1.0)
         .map_err(|error| Error::new(error.to_string()))?
         .ensure_matched()
         .map_err(|error| Error::new(error.to_string()))
+}
+
+fn original_approval_present(path: &Path) -> Result<bool, Error> {
+    match fs::symlink_metadata(path) {
+        Ok(metadata) if metadata.file_type().is_file() => Ok(true),
+        Ok(metadata) => Err(Error::new(format!(
+            "original approval is not a regular file: {} ({})",
+            path.display(),
+            if metadata.file_type().is_symlink() {
+                "symlink"
+            } else if metadata.is_dir() {
+                "directory"
+            } else {
+                "non-file"
+            }
+        ))),
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(false),
+        Err(error) => Err(Error::new(format!(
+            "cannot inspect original approval {}: {error}",
+            path.display()
+        ))),
+    }
+}
+
+fn validate_grouped_paths(
+    approved_root: &Path,
+    expected_root: &Path,
+    actual_root: &Path,
+    diff_root: &Path,
+    name: &str,
+) -> Result<(), Error> {
+    for extension in ["ansi"] {
+        validate_concrete_path(
+            approved_root,
+            &named_artifact(approved_root, name, extension),
+            "approved artifact",
+            false,
+        )?;
+    }
+    for extension in ["png", "html", "png.fidelity.json"] {
+        validate_concrete_path(
+            expected_root,
+            &named_artifact(expected_root, name, extension),
+            "expected sidecar",
+            true,
+        )?;
+    }
+    for extension in [
+        "ansi",
+        "txt",
+        "png",
+        "html",
+        "frame.json",
+        "png.fidelity.json",
+        "manifest.json",
+        "verdict.json",
+    ] {
+        validate_concrete_path(
+            actual_root,
+            &named_artifact(actual_root, name, extension),
+            "actual artifact",
+            true,
+        )?;
+    }
+    validate_concrete_path(
+        diff_root,
+        &named_artifact(diff_root, name, "png"),
+        "diff artifact",
+        true,
+    )
+}
+
+fn named_artifact(root: &Path, name: &str, extension: &str) -> PathBuf {
+    root.join(format!("{name}.{extension}"))
+}
+
+fn validate_concrete_path(
+    root: &Path,
+    path: &Path,
+    label: &str,
+    write_destination: bool,
+) -> Result<(), Error> {
+    let relative = path.strip_prefix(root).map_err(|error| {
+        Error::new(format!(
+            "{label} path {} is outside {}: {error}",
+            path.display(),
+            root.display()
+        ))
+    })?;
+    let canonical_root = canonical_future_path(root)?;
+    let expected = canonical_root.join(relative);
+    let resolved = canonical_future_path(path)?;
+    if resolved != expected {
+        return Err(Error::new(format!(
+            "{label} path resolves through a symlink: {} -> {}",
+            path.display(),
+            resolved.display()
+        )));
+    }
+
+    let mut current = root.to_path_buf();
+    for component in relative.components() {
+        current.push(component.as_os_str());
+        match fs::symlink_metadata(&current) {
+            Ok(metadata) if metadata.file_type().is_symlink() => {
+                return Err(Error::new(format!(
+                    "{label} path contains a symlink: {}",
+                    current.display()
+                )));
+            }
+            Ok(_) => {}
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => break,
+            Err(error) => {
+                return Err(Error::new(format!(
+                    "cannot inspect {label} path {}: {error}",
+                    current.display()
+                )));
+            }
+        }
+    }
+    if write_destination {
+        match fs::symlink_metadata(path) {
+            Ok(metadata) if metadata.is_file() => reject_hardlink(path, &metadata, label)?,
+            Ok(_) => {}
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
+            Err(error) => {
+                return Err(Error::new(format!(
+                    "cannot inspect {label} destination {}: {error}",
+                    path.display()
+                )));
+            }
+        }
+    }
+    Ok(())
+}
+
+#[cfg(unix)]
+fn reject_hardlink(path: &Path, metadata: &fs::Metadata, label: &str) -> Result<(), Error> {
+    use std::os::unix::fs::MetadataExt as _;
+    if metadata.nlink() > 1 {
+        return Err(Error::new(format!(
+            "{label} destination has multiple hard links: {}",
+            path.display()
+        )));
+    }
+    Ok(())
+}
+
+#[cfg(not(unix))]
+fn reject_hardlink(_path: &Path, _metadata: &fs::Metadata, _label: &str) -> Result<(), Error> {
+    Ok(())
 }
 
 fn artifact_root(receipt_root: &Path, suffix: &str) -> PathBuf {
@@ -348,20 +519,31 @@ fn canonical_future_path(path: &Path) -> Result<PathBuf, Error> {
     };
     let mut suffix = Vec::new();
     let mut existing = absolute.as_path();
-    while !existing.exists() {
-        let name = existing.file_name().ok_or_else(|| {
-            Error::new(format!(
-                "cannot resolve paired capture root {}",
-                path.display()
-            ))
-        })?;
-        suffix.push(name.to_os_string());
-        existing = existing.parent().ok_or_else(|| {
-            Error::new(format!(
-                "cannot resolve paired capture root {}",
-                path.display()
-            ))
-        })?;
+    loop {
+        match fs::symlink_metadata(existing) {
+            Ok(_) => break,
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
+                let name = existing.file_name().ok_or_else(|| {
+                    Error::new(format!(
+                        "cannot resolve paired capture root {}",
+                        path.display()
+                    ))
+                })?;
+                suffix.push(name.to_os_string());
+                existing = existing.parent().ok_or_else(|| {
+                    Error::new(format!(
+                        "cannot resolve paired capture root {}",
+                        path.display()
+                    ))
+                })?;
+            }
+            Err(error) => {
+                return Err(Error::new(format!(
+                    "cannot inspect paired capture root {}: {error}",
+                    existing.display()
+                )));
+            }
+        }
     }
     let mut result = fs::canonicalize(existing).map_err(|error| {
         Error::new(format!(
@@ -705,6 +887,114 @@ mod tests {
         let mut recorder = Recorder::new(config, "scenario").unwrap();
         assert!(recorder.handle_frame("home", &frame(), &original).is_err());
         assert_eq!(fs::read_dir(&original).unwrap().count(), 0);
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn runtime_approval_symlink_to_actual_cannot_self_compare() {
+        use std::os::unix::fs::symlink;
+
+        let scratch = Scratch::new("approval-actual-alias");
+        let source = frame();
+        capture(&scratch, "scenario", "home", &source).unwrap();
+        let name = checkpoint_name("scenario", 0, "home");
+        let expected = scratch.path("expected").join(format!("{name}.ansi"));
+        fs::remove_file(&expected).unwrap();
+
+        let mut candidate_config = config(Phase::CandidateCheck, &scratch);
+        candidate_config.receipt_root = scratch.path("candidate-receipts");
+        let candidate_actual =
+            artifact_root(&candidate_config.receipt_root, "actual").join(format!("{name}.ansi"));
+        fs::create_dir_all(candidate_actual.parent().unwrap()).unwrap();
+        fs::write(&candidate_actual, "stale actual before gate").unwrap();
+        symlink(&candidate_actual, &expected).unwrap();
+
+        let mut candidate = Recorder::new(candidate_config, "scenario").unwrap();
+        assert!(
+            candidate
+                .handle_frame("home", &source, &scratch.path("original"))
+                .is_err()
+        );
+        assert_eq!(
+            fs::read(candidate_actual).unwrap(),
+            b"stale actual before gate"
+        );
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn original_check_rejects_nested_scratch_symlink_before_touching_approval() {
+        use std::os::unix::fs::symlink;
+
+        let scratch = Scratch::new("nested-original-alias");
+        let original = scratch.path("original");
+        let original_subdir = original.join("sub");
+        fs::create_dir_all(&original_subdir).unwrap();
+        let original_file = original_subdir.join("home.ansi");
+        let approved = tuiscotti::render::ansi_dump_with_cursor(&frame());
+        fs::write(&original_file, &approved).unwrap();
+
+        let actual_root = artifact_root(&scratch.path("receipts"), "original-actual");
+        fs::create_dir_all(&actual_root).unwrap();
+        symlink(&original_subdir, actual_root.join("sub")).unwrap();
+
+        let mut recorder =
+            Recorder::new(config(Phase::BaselineCapture, &scratch), "scenario").unwrap();
+        assert!(
+            recorder
+                .handle_frame("sub/home", &frame(), &original)
+                .is_err()
+        );
+        assert_eq!(fs::read(original_file).unwrap(), approved.as_bytes());
+        assert!(!scratch.path("expected").exists());
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn actual_destination_hardlinked_to_original_is_rejected_before_store_write() {
+        use std::os::unix::fs::MetadataExt as _;
+
+        let scratch = Scratch::new("hardlinked-actual");
+        let original = scratch.path("original");
+        fs::create_dir_all(&original).unwrap();
+        let original_file = original.join("protected.ansi");
+        fs::write(&original_file, b"frozen approval").unwrap();
+        capture(&scratch, "scenario", "home", &frame()).unwrap();
+
+        let mut candidate_config = config(Phase::CandidateCheck, &scratch);
+        candidate_config.receipt_root = scratch.path("hardlink-receipts");
+        let store_name = checkpoint_name("scenario", 0, "home");
+        let actual_file = artifact_root(&candidate_config.receipt_root, "actual")
+            .join(format!("{store_name}.ansi"));
+        fs::create_dir_all(actual_file.parent().unwrap()).unwrap();
+        fs::hard_link(&original_file, &actual_file).unwrap();
+
+        let mut candidate = Recorder::new(candidate_config, "scenario").unwrap();
+        assert!(candidate.handle_frame("home", &frame(), &original).is_err());
+        assert_eq!(fs::read(&original_file).unwrap(), b"frozen approval");
+        assert_eq!(fs::metadata(original_file).unwrap().nlink(), 2);
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn original_approval_metadata_rejects_directories_and_dangling_symlinks() {
+        use std::os::unix::fs::symlink;
+
+        let scratch = Scratch::new("approval-metadata");
+        let missing = scratch.path("missing.ansi");
+        assert!(!original_approval_present(&missing).unwrap());
+
+        let directory = scratch.path("directory.ansi");
+        fs::create_dir_all(&directory).unwrap();
+        assert!(original_approval_present(&directory).is_err());
+
+        let dangling = scratch.path("dangling.ansi");
+        symlink(scratch.path("absent-target"), &dangling).unwrap();
+        assert!(original_approval_present(&dangling).is_err());
+
+        let regular = scratch.path("regular.ansi");
+        fs::write(&regular, b"ansi").unwrap();
+        assert!(original_approval_present(&regular).unwrap());
     }
 
     #[test]
