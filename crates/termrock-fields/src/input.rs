@@ -380,6 +380,26 @@ impl EditorDraft {
         }
     }
 
+    pub(crate) fn cursor_offset(&self) -> usize {
+        match self {
+            EditorDraft::Plain(editor) | EditorDraft::Secret(editor) => editor.cursor_offset(),
+        }
+    }
+
+    pub(crate) fn offset_at(&self, line: usize, col: usize) -> usize {
+        match self {
+            EditorDraft::Plain(editor) | EditorDraft::Secret(editor) => editor.offset_at(line, col),
+        }
+    }
+
+    pub(crate) fn select_range(&mut self, start: usize, end: usize) {
+        match self {
+            EditorDraft::Plain(editor) | EditorDraft::Secret(editor) => {
+                editor.select_range(start, end);
+            }
+        }
+    }
+
     pub(crate) fn scroll_into_view(&mut self, width: u16) -> u16 {
         match self {
             EditorDraft::Plain(editor) | EditorDraft::Secret(editor) => {
@@ -581,6 +601,14 @@ impl TextInputState {
         }
     }
 
+    pub fn selection(&self) -> Option<core::ops::Range<usize>> {
+        self.is_editing().then(|| self.draft.selection()).flatten()
+    }
+
+    pub fn cursor_offset(&self) -> Option<usize> {
+        self.is_editing().then(|| self.draft.cursor_offset())
+    }
+
     pub fn select_all(&mut self) {
         let editing = self.draft_text().is_some();
         if editing {
@@ -676,6 +704,47 @@ impl TextInputState {
         self.redacted_snapshot = false;
         self.draft.begin_single(current);
         self.phase = EditPhase::Editing;
+    }
+
+    /// Place the active single-line editor cursor and keep it visible.
+    pub fn place_cursor(&mut self, col: usize, visible_width: u16) -> bool {
+        if !self.is_editing() {
+            return false;
+        }
+        let before = self.draft.cursor_offset();
+        let col = col.saturating_add(usize::from(self.draft.hscroll()));
+        self.draft.set_cursor_line_col(0, col);
+        self.draft.scroll_into_view(visible_width);
+        before != self.draft.cursor_offset()
+    }
+
+    /// Extend a pointer selection from a byte offset to a visible cell column.
+    pub fn select_pointer_range(
+        &mut self,
+        anchor: usize,
+        col: usize,
+        visible_width: u16,
+    ) -> Option<usize> {
+        if !self.is_editing() {
+            return None;
+        }
+        let col = col.saturating_add(usize::from(self.draft.hscroll()));
+        let cursor = self.draft.offset_at(0, col);
+        self.draft.select_range(anchor, cursor);
+        self.draft.scroll_into_view(visible_width);
+        Some(cursor)
+    }
+
+    /// Delete the grapheme before the active draft cursor.
+    pub fn backspace(&mut self) -> bool {
+        self.is_editing() && self.apply(EditAction::Backspace).changed()
+    }
+
+    /// Keep the active draft cursor within the available single-line width.
+    pub fn ensure_cursor_visible(&mut self, visible_width: u16) {
+        if self.is_editing() {
+            self.draft.scroll_into_view(visible_width);
+        }
     }
 
     pub fn commit(&mut self, value: &mut String, v: &impl Validate) -> Result<(), FieldError> {
@@ -1285,6 +1354,46 @@ impl<'a> TextInput<'a> {
                 } else {
                     let start = byte_at_col(shown, skip);
                     ui.paint_str(run, shown.get(start..).unwrap_or(""), ts.style);
+                    if let Some(selection) = st.selection() {
+                        let start_col =
+                            usize::from(width(shown.get(..selection.start).unwrap_or("")));
+                        let end_col = usize::from(width(shown.get(..selection.end).unwrap_or("")));
+                        let visible_start = start_col.max(skip);
+                        let visible_limit = usize::from(inner.width)
+                            .saturating_add(hs)
+                            .saturating_sub(usize::from(overflow_right));
+                        let visible_end = end_col.min(visible_limit);
+                        if visible_start < visible_end {
+                            let selected_area = Rect {
+                                x: inner.x.saturating_add(
+                                    visible_start.saturating_sub(hs).min(usize::from(u16::MAX))
+                                        as u16,
+                                ),
+                                y: inner.y,
+                                width: visible_end
+                                    .saturating_sub(visible_start)
+                                    .min(usize::from(u16::MAX))
+                                    as u16,
+                                height: 1,
+                            };
+                            let selected = ov.style(
+                                ui,
+                                id,
+                                Family::INPUT,
+                                Variant::DEFAULT,
+                                Part::ROW,
+                                live | StateFlags::SELECTED,
+                            );
+                            ui.fill(selected_area, selected.style);
+                            let selection_start = byte_at_col(shown, visible_start);
+                            let selection_end = byte_at_col(shown, visible_end);
+                            ui.paint_str(
+                                selected_area,
+                                shown.get(selection_start..selection_end).unwrap_or(""),
+                                selected.style,
+                            );
+                        }
+                    }
                 }
                 if overflow_right {
                     let last = cell_at(inner, inner.right().saturating_sub(1));
