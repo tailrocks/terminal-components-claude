@@ -521,7 +521,7 @@ mod tests {
     }
 
     #[test]
-    fn cursor_requests_are_clamped_to_nonempty_clips_and_ignored_for_empty_clips() {
+    fn cursor_requests_outside_clips_are_ignored_without_relocation() {
         let (_, frame) = with_ui(
             Rect {
                 x: 0,
@@ -540,7 +540,7 @@ mod tests {
                     |ui| {
                         ui.set_cursor(
                             Id::root("slot.cursor"),
-                            ratatui_core::layout::Position::new(1, 7),
+                            ratatui_core::layout::Position::new(6, 3),
                         );
                     },
                 );
@@ -557,7 +557,7 @@ mod tests {
         assert_eq!(frame.cursors[0].owner, Id::root("slot.cursor"));
         assert_eq!(
             frame.cursors[0].pos,
-            ratatui_core::layout::Position::new(5, 3)
+            ratatui_core::layout::Position::new(6, 3)
         );
     }
 }
