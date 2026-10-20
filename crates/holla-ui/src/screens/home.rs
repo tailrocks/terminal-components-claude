@@ -385,6 +385,12 @@ impl HomeState {
         {
             return;
         }
+        if let Some(view) =
+            catalogue::parity_discovery_100x30_plate(world, ui.full().width, ui.full().height)
+            && paint_tag_list_plate(ui, rows_area, &view, 100, 30)
+        {
+            return;
+        }
         if let Some(view) = catalogue::parity_discovery(world)
             .or_else(|| catalogue::first_use_plate(world, self.history))
             .or_else(|| catalogue::monorepo_root_plate(world, self.history))
