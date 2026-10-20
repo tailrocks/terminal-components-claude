@@ -1333,7 +1333,10 @@ impl<'a> TextInput<'a> {
                     part,
                     local,
                     ..
-                } if (editable || (self.read_only && !self.disabled)) && self.pointer_enabled => {
+                } if part.item.is_none()
+                    && (editable || (self.read_only && !self.disabled))
+                    && self.pointer_enabled =>
+                {
                     if !st.is_editing() {
                         st.begin(value.expose());
                     }
@@ -1348,9 +1351,10 @@ impl<'a> TextInput<'a> {
                 }
                 Intent::Pointer {
                     phase: Phase::DragStart | Phase::Drag,
+                    part,
                     local,
                     ..
-                } if st.is_editing() && self.pointer_enabled => {
+                } if part.item.is_none() && st.is_editing() && self.pointer_enabled => {
                     if let (Some(anchor), Some(area)) = (st.pointer_anchor, cx.area(self.id)) {
                         let col = usize::from(local.x.saturating_sub(2));
                         let _ = st.select_pointer_range(anchor, col, Self::inner_width(area.width));
@@ -1361,8 +1365,9 @@ impl<'a> TextInput<'a> {
                 }
                 Intent::Pointer {
                     phase: Phase::Release | Phase::DragEnd,
+                    part,
                     ..
-                } => {
+                } if part.item.is_none() => {
                     st.pointer_anchor = None;
                     acc.consumed();
                 }
@@ -1372,7 +1377,7 @@ impl<'a> TextInput<'a> {
                     pos,
                     local,
                     ..
-                } if !self.disabled => {
+                } if part.item.is_none() && !self.disabled => {
                     if !st.is_editing() {
                         st.begin(value.expose());
                     }
