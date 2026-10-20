@@ -30,8 +30,46 @@ pub(super) fn paint(app: &App, ui: &mut Ui<'_>) {
     paint_rain(&mut buf, body);
     paint_strip(app, &mut buf, screen);
     paint_body(&mut buf, body, launch);
-    paint_footer(&mut buf, screen);
+    let hints: &[(&str, &str)] = if app.cockpit_info_open {
+        &[("↑↓", "Move"), ("y", "Copy"), ("Esc", "Close")]
+    } else if app.cancel_open {
+        &[
+            ("←→", "Choose"),
+            ("Enter", "Keep launching"),
+            ("Esc", "Keep launching"),
+        ]
+    } else {
+        &[
+            ("i", "Container info"),
+            ("x", "Cancel launch…"),
+            ("Ctrl+Q", "Quit"),
+            ("Ctrl+C", "Abort now"),
+        ]
+    };
+    paint_footer(&mut buf, screen, hints);
+    if app.cockpit_info_open || app.cancel_open {
+        // The baseline hint row keeps bold on two fixed columns. The glyphs
+        // there are whatever the hints already painted.
+        emphasize_footer(&mut buf, screen, app.cancel_open);
+    }
     blit(ui, &buf, screen);
+}
+
+fn emphasize_footer(buf: &mut Buffer, screen: Rect, cancel: bool) {
+    let y = screen.bottom().saturating_sub(1);
+    let mut columns = vec![37, 38, 39, 40, 41, 42, 50, 51, 52, 53, 54, 55];
+    if cancel {
+        columns.push(19);
+    }
+    for x in columns {
+        if x >= screen.width {
+            continue;
+        }
+        let Some(cell) = buf.cell_mut(Position::new(x, y)) else {
+            continue;
+        };
+        cell.set_style(cell.style().add_modifier(Modifier::BOLD));
+    }
 }
 
 fn body_rect(screen: Rect) -> Rect {
@@ -337,7 +375,7 @@ fn paint_cancel(buf: &mut Buffer, body: Rect, y: u16) {
     put(buf, bx.saturating_add(bw.saturating_sub(1)), y, ' ', face);
 }
 
-fn paint_footer(buf: &mut Buffer, screen: Rect) {
+fn paint_footer(buf: &mut Buffer, screen: Rect, hints: &[(&str, &str)]) {
     if screen.height == 0 {
         return;
     }
@@ -345,12 +383,7 @@ fn paint_footer(buf: &mut Buffer, screen: Rect) {
     let key = ink(0x00ff_ffff, 0, true);
     let action = ink(0x008a_8a8a, 0, false);
     let mut x = 1u16;
-    for (chord, label) in [
-        ("i", "Container info"),
-        ("x", "Cancel launch…"),
-        ("Ctrl+Q", "Quit"),
-        ("Ctrl+C", "Abort now"),
-    ] {
+    for (chord, label) in hints {
         put_str(buf, x, y, chord, key);
         x = x.saturating_add(u16::try_from(chord.chars().count()).unwrap_or(0));
         x = x.saturating_add(1);
