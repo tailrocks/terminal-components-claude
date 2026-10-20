@@ -9,6 +9,8 @@ use crate::scroll::ScrollState;
 use termrock_collections::collection::{CollectionCore, Reconcile, Reconciliation};
 use termrock_core::id::{Id, ItemKey, Part, PartRef};
 use termrock_core::response::{Response, StateFlags};
+use termrock_fields::input::{BlurPolicy, TextAction, TextCmd, TextInput, TextInputState};
+use termrock_runtime::author;
 use termrock_runtime::empty::{EmptyState, Status};
 use termrock_runtime::event::{Chord, KeyCode, KeyModifiers};
 use termrock_runtime::focus::Focusability;
@@ -136,34 +138,45 @@ const BINDINGS: &[Binding<FilterListCmd>] = &[
         false,
     ),
     binding(
-        ActionKey::custom("filter-list.secondary"),
-        Chord::key(KeyCode::Delete),
-        FilterListCmd::Secondary,
-        "Secondary",
-        false,
-    ),
-    binding(
-        ActionKey::custom("filter-list.back"),
-        Chord::key(KeyCode::Backspace),
-        FilterListCmd::Back,
-        "Back",
-        false,
-    ),
-    binding(
         ActionKey::custom("filter-list.scope"),
         Chord::key(KeyCode::Tab),
         FilterListCmd::NextScope,
         "Next scope",
         false,
     ),
-    binding(
-        ActionKey::custom("filter-list.cancel"),
-        Chord::key(KeyCode::Esc),
-        FilterListCmd::Cancel,
-        "Cancel",
-        false,
-    ),
 ];
+
+const BACK_BINDING: &[Binding<FilterListCmd>] = &[Binding {
+    action: ActionKey::custom("filter-list.back"),
+    chord: Some(Chord::key(KeyCode::Backspace)),
+    cmd: FilterListCmd::Back,
+    label: "Back",
+    priority: 60,
+    visible: false,
+}];
+
+const SECONDARY_BINDING: &[Binding<FilterListCmd>] = &[Binding {
+    action: ActionKey::custom("filter-list.secondary"),
+    chord: Some(Chord::key(KeyCode::Delete)),
+    cmd: FilterListCmd::Secondary,
+    label: "Secondary",
+    priority: 70,
+    visible: false,
+}];
+
+const CANCEL_BINDING: &[Binding<FilterListCmd>] = &[Binding {
+    action: ActionKey::custom("filter-list.cancel"),
+    chord: Some(Chord::key(KeyCode::Esc)),
+    cmd: FilterListCmd::Cancel,
+    label: "Cancel",
+    priority: 60,
+    visible: false,
+}];
+
+const QUERY_EXCLUDE_NONE: &[TextCmd] = &[];
+const QUERY_EXCLUDE_DELETE: &[TextCmd] = &[TextCmd::Delete];
+const QUERY_EXCLUDE_EMPTY: &[TextCmd] = &[TextCmd::Backspace, TextCmd::Delete, TextCmd::Cancel];
+const QUERY_EXCLUDE_EMPTY_NO_DELETE: &[TextCmd] = &[TextCmd::Backspace, TextCmd::Cancel];
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
 pub enum FilterPolicy {
@@ -175,6 +188,8 @@ pub enum FilterPolicy {
 #[derive(Clone, PartialEq, Eq, Debug, Default)]
 pub struct FilterListState {
     query: String,
+    query_input: TextInputState,
+    query_edit_menu: Option<termrock_fields::input::EditMenuRequest>,
     core: CollectionCore,
     matches: Vec<usize>,
     initialized: bool,
@@ -182,11 +197,20 @@ pub struct FilterListState {
 
 impl FilterListState {
     pub fn query(&self) -> &str {
-        &self.query
+        self.query_input.draft_text().unwrap_or(&self.query)
+    }
+    pub const fn is_query_editing(&self) -> bool {
+        self.query_input.is_editing()
     }
     pub fn set_query(&mut self, query: impl Into<String>) {
         self.query = query.into();
+        self.query_input.cancel();
         self.core.invalidate();
+    }
+    pub fn take_query_edit_menu_request(
+        &mut self,
+    ) -> Option<termrock_fields::input::EditMenuRequest> {
+        self.query_edit_menu.take()
     }
     pub const fn cursor(&self) -> Option<ItemKey> {
         self.core.cursor()
@@ -199,12 +223,6 @@ impl FilterListState {
     }
     pub const fn matched_len(&self) -> usize {
         self.matches.len()
-    }
-
-    pub(crate) fn push_query_char(&mut self, c: char) -> FilterListAction {
-        self.query.push(c);
-        self.core.invalidate();
-        FilterListAction::QueryChanged
     }
 }
 
@@ -219,6 +237,7 @@ impl Reconcile for FilterListState {
 
 pub struct FilterList<'a, T, R = crate::item::ItemRow> {
     id: Id,
+    results_id: Id,
     row: R,
     item_layout: crate::item::ItemRowLayout,
     cursor_style: CursorStyle,
@@ -227,6 +246,8 @@ pub struct FilterList<'a, T, R = crate::item::ItemRow> {
     status: Status,
     frame: usize,
     searchable: bool,
+    placeholder: &'a str,
+    delete_is_secondary: bool,
     filter: FilterPolicy,
     patch: Option<&'a StylePatch>,
     parts: &'a [(Part, StylePatch)],
@@ -249,6 +270,7 @@ impl<T> FilterList<'_, T, crate::item::ItemRow> {
     pub const fn new(id: Id) -> Self {
         Self {
             id,
+            results_id: id.sub("results"),
             row: crate::item::ItemRow,
             item_layout: crate::item::ItemRowLayout::Compact,
             cursor_style: CursorStyle::Bar,
@@ -257,6 +279,8 @@ impl<T> FilterList<'_, T, crate::item::ItemRow> {
             status: Status::Ready,
             frame: 0,
             searchable: true,
+            placeholder: "Type to search…",
+            delete_is_secondary: true,
             filter: FilterPolicy::Label,
             patch: None,
             parts: &[],
@@ -317,6 +341,7 @@ impl<'a, T, R> FilterList<'a, T, R> {
     pub fn row<R2: RowFn<T>>(self, row: R2) -> FilterList<'a, T, R2> {
         FilterList {
             id: self.id,
+            results_id: self.results_id,
             row,
             item_layout: crate::item::ItemRowLayout::Compact,
             cursor_style: self.cursor_style,
@@ -325,6 +350,8 @@ impl<'a, T, R> FilterList<'a, T, R> {
             status: self.status,
             frame: self.frame,
             searchable: self.searchable,
+            placeholder: self.placeholder,
+            delete_is_secondary: self.delete_is_secondary,
             filter: self.filter,
             patch: self.patch,
             parts: self.parts,
@@ -359,6 +386,16 @@ impl<'a, T, R> FilterList<'a, T, R> {
         self
     }
     #[must_use]
+    pub const fn placeholder(mut self, placeholder: &'a str) -> Self {
+        self.placeholder = placeholder;
+        self
+    }
+    #[must_use]
+    pub const fn delete_is_secondary(mut self, enabled: bool) -> Self {
+        self.delete_is_secondary = enabled;
+        self
+    }
+    #[must_use]
     pub const fn patch(mut self, patch: &'a StylePatch) -> Self {
         self.patch = Some(patch);
         self.ov = self.ov.global(patch);
@@ -376,7 +413,7 @@ impl<'a, T, R> FilterList<'a, T, R> {
         self
     }
     fn scrollbar(&self) -> ScrollRegion<'a> {
-        let mut bar = ScrollRegion::new(self.id)
+        let mut bar = ScrollRegion::new(self.results_id)
             .patch_part(self.parts)
             .preserve_underlay(self.preserve_surface);
         if let Some(p) = self.patch {
@@ -388,6 +425,21 @@ impl<'a, T, R> FilterList<'a, T, R> {
             bar = bar.slot(Part::THUMB, slot);
         }
         bar
+    }
+
+    fn query_input(&self, query_empty: bool) -> TextInput<'a> {
+        let excluded = match (query_empty, self.delete_is_secondary) {
+            (true, true) => QUERY_EXCLUDE_EMPTY,
+            (true, false) => QUERY_EXCLUDE_EMPTY_NO_DELETE,
+            (false, true) => QUERY_EXCLUDE_DELETE,
+            (false, false) => QUERY_EXCLUDE_NONE,
+        };
+        TextInput::new(self.id)
+            .placeholder(self.placeholder)
+            .placeholder_while_editing(true)
+            .blur(BlurPolicy::Keep)
+            .exclude_commands(excluded)
+            .style_target(Family::PICKER, Variant::DEFAULT, Part::QUERY)
     }
 
     fn readiness_area(&self, ui: &mut Ui<'_>, area: Rect, live: StateFlags) -> Rect {
@@ -487,10 +539,11 @@ impl<T: AsItem, R: RowFn<T>> FilterList<'_, T, R> {
 
     pub fn reconcile(&self, st: &mut FilterListState, items: &[T]) {
         st.matches.clear();
+        let query = st.query().to_owned();
         st.matches
             .extend(items.iter().enumerate().filter_map(|(i, item)| {
                 (self.filter == FilterPolicy::Caller
-                    || contains_folded(item.as_item().label, &st.query))
+                    || contains_folded(item.as_item().label, &query))
                 .then_some(i)
             }));
         st.initialized = true;
@@ -602,7 +655,7 @@ impl<T: AsItem, R: RowFn<T>> FilterList<'_, T, R> {
     }
 
     fn row_is_pressed(&self, ui: &Ui<'_>, key: ItemKey) -> bool {
-        FrameRead::pressed_part(ui, self.id) == Some(PartRef::item(Part::ROW, key))
+        FrameRead::pressed_part(ui, self.results_id) == Some(PartRef::item(Part::ROW, key))
     }
 
     fn handle_cmd(
@@ -636,26 +689,17 @@ impl<T: AsItem, R: RowFn<T>> FilterList<'_, T, R> {
             cmd @ (FilterListCmd::Choose | FilterListCmd::ChooseAlt | FilterListCmd::Secondary) => {
                 self.item_action(st, items, cmd, acc);
             }
-            FilterListCmd::Back if st.query.is_empty() => {
+            FilterListCmd::Back if st.query().is_empty() => {
                 acc.action(FilterListAction::Back);
             }
-            FilterListCmd::Back if self.searchable => {
-                st.query.pop();
-                st.core.invalidate();
-                acc.action(FilterListAction::QueryChanged);
-            }
+            FilterListCmd::Back => acc.consumed(),
             FilterListCmd::NextScope => {
                 acc.action(FilterListAction::NextScope);
             }
-            FilterListCmd::Cancel if st.query.is_empty() => {
+            FilterListCmd::Cancel if st.query().is_empty() => {
                 acc.action(FilterListAction::Cancel);
             }
-            FilterListCmd::Cancel if self.searchable => {
-                st.query.clear();
-                st.core.invalidate();
-                acc.action(FilterListAction::QueryChanged);
-            }
-            _ => {}
+            FilterListCmd::Cancel => acc.consumed(),
         }
     }
 
@@ -665,8 +709,58 @@ impl<T: AsItem, R: RowFn<T>> FilterList<'_, T, R> {
         st: &mut FilterListState,
         items: &[T],
     ) -> Response<FilterListAction> {
-        self.reconcile(st, items);
         let mut acc = Acc::new();
+
+        if self.searchable {
+            let previous = st.query().to_owned();
+            let backspace = cx.effective_chord(
+                self.id,
+                ActionKey::custom("Backspace"),
+                Some(Chord::key(KeyCode::Backspace)),
+            );
+            let delete = cx.effective_chord(
+                self.id,
+                ActionKey::custom("Delete"),
+                Some(Chord::key(KeyCode::Delete)),
+            );
+            let back_to_owner = st.query().is_empty()
+                && backspace.is_some_and(|chord| cx.claim_binding_chord(self.id, chord).is_some());
+            let delete_secondary = self.delete_is_secondary
+                && delete.is_some_and(|chord| cx.claim_binding_chord(self.id, chord).is_some());
+            if back_to_owner {
+                acc.action(FilterListAction::Back);
+            } else if delete_secondary {
+                self.item_action(st, items, FilterListCmd::Secondary, &mut acc);
+            } else {
+                let committed = st.query.clone();
+                let input = self
+                    .query_input(previous.is_empty())
+                    .value(&committed)
+                    .update(cx, &mut st.query_input, &mut st.query);
+                match input.action_ref().copied() {
+                    Some(TextAction::Changed) => {
+                        st.core.invalidate();
+                        acc.action(FilterListAction::QueryChanged);
+                    }
+                    Some(TextAction::Cancelled) => {
+                        st.set_query("");
+                        if previous.is_empty() {
+                            acc.action(FilterListAction::Cancel);
+                        } else {
+                            acc.action(FilterListAction::QueryChanged);
+                        }
+                    }
+                    Some(TextAction::Committed) => {
+                        self.item_action(st, items, FilterListCmd::Choose, &mut acc);
+                    }
+                    _ => {}
+                }
+                st.query_edit_menu = st.query_input.take_edit_menu_request();
+                acc.fold(&input.erase());
+            }
+        }
+
+        self.reconcile(st, items);
         let bar = self
             .scrollbar()
             .update(cx, st.core.scroll_mut(), st.matches.len());
@@ -675,20 +769,20 @@ impl<T: AsItem, R: RowFn<T>> FilterList<'_, T, R> {
         for intent in cx.intents(self.id) {
             match intent {
                 Intent::Binding(action) => {
-                    if let Some(cmd) = Binding::command(BINDINGS, action) {
+                    let cmd = Binding::command(BINDINGS, action)
+                        .or_else(|| Binding::command(BACK_BINDING, action))
+                        .or_else(|| Binding::command(SECONDARY_BINDING, action))
+                        .or_else(|| Binding::command(CANCEL_BINDING, action));
+                    if let Some(cmd) = cmd {
                         self.handle_cmd(cmd, st, items, page, &mut acc);
                     }
                 }
-                Intent::Paste(s) if self.searchable => {
-                    st.query.push_str(s);
-                    st.core.invalidate();
-                    acc.action(FilterListAction::QueryChanged);
-                }
-                Intent::Key(key) if self.searchable => {
-                    if let Some(c) = key.bare_char() {
-                        acc.action(st.push_query_char(c));
-                    }
-                }
+                Intent::Paste(_) | Intent::Key(_) if self.searchable => {}
+                _ => {}
+            }
+        }
+        for intent in cx.intents(self.results_id) {
+            match intent {
                 Intent::Pointer {
                     phase,
                     part:
@@ -731,6 +825,37 @@ impl<T: AsItem, R: RowFn<T>> FilterList<'_, T, R> {
         acc.finish(self.id)
     }
 
+    pub fn draw_query(&self, ui: &mut Ui<'_>, area: Rect, st: &FilterListState) {
+        if self.searchable {
+            let mut parts = Vec::new();
+            for &(part, patch) in self.parts {
+                match part {
+                    Part::QUERY => {
+                        parts.push((Part::FIELD, patch));
+                        parts.push((Part::TEXT, patch));
+                    }
+                    Part::GUTTER => parts.push((Part::GUTTER, patch)),
+                    Part::PLACEHOLDER => parts.push((Part::PLACEHOLDER, patch)),
+                    _ => {}
+                }
+            }
+            let mut input = self.query_input(st.query().is_empty()).value(st.query());
+            if let Some(patch) = self.patch {
+                input = input.patch(patch);
+            }
+            input = input.patch_part(&parts);
+            for (part, target) in [
+                (Part::GUTTER, Part::GUTTER),
+                (Part::PLACEHOLDER, Part::PLACEHOLDER),
+            ] {
+                if let Some(slot) = self.ov.slot_for(part) {
+                    input = input.slot(target, slot);
+                }
+            }
+            input.draw(ui, area, &st.query_input);
+        }
+    }
+
     fn draw_rows(
         &self,
         ui: &mut Ui<'_>,
@@ -739,7 +864,7 @@ impl<T: AsItem, R: RowFn<T>> FilterList<'_, T, R> {
         items: &[T],
         live: StateFlags,
     ) {
-        let identity = !st.initialized && st.query.is_empty();
+        let identity = !st.initialized && st.query().is_empty();
         let visible_len = if identity {
             items.len()
         } else {
@@ -795,7 +920,7 @@ impl<T: AsItem, R: RowFn<T>> FilterList<'_, T, R> {
             let visible = !row.intersection(ui.full()).is_empty();
             let mut row_ui = RowUi::new(
                 ui,
-                self.id,
+                self.results_id,
                 Family::PICKER,
                 Variant::DEFAULT,
                 flags,
@@ -816,21 +941,61 @@ impl<T: AsItem, R: RowFn<T>> FilterList<'_, T, R> {
             } else {
                 self.row.row(item, &mut row_ui);
             }
-            ui.register_part(self.id, PartRef::item(Part::ROW, semantic.key), row);
+            ui.register_part(self.results_id, PartRef::item(Part::ROW, semantic.key), row);
         }
     }
 
     pub fn draw(&self, ui: &mut Ui<'_>, area: Rect, st: &FilterListState, items: &[T]) -> Rect {
+        if self.searchable && !area.is_empty() {
+            self.draw_query(ui, Rect { height: 1, ..area }, st);
+            let results = Rect {
+                y: area.y.saturating_add(1),
+                height: area.height.saturating_sub(1),
+                ..area
+            };
+            self.draw_results(ui, results, st, items)
+        } else {
+            self.draw_results(ui, area, st, items)
+        }
+    }
+
+    #[doc(hidden)]
+    pub fn draw_results(
+        &self,
+        ui: &mut Ui<'_>,
+        area: Rect,
+        st: &FilterListState,
+        items: &[T],
+    ) -> Rect {
         if area.is_empty() {
             return area;
         }
-        if self.searchable {
-            ui.register_editor(self.id, area, Focusability::Focusable, StateFlags::EDITING);
-        } else {
+        if !self.searchable {
             ui.register_control(self.id, area, Focusability::Focusable);
         }
         let live = ui.state(self.id);
-        ui.publish_bindings(self.id, live, self.bindings(BindingState { flags: live }));
+        let _ = author::extend_bindings(
+            ui,
+            self.id,
+            live,
+            self.bindings(BindingState { flags: live }),
+            |cmd| {
+                !self.searchable
+                    || !matches!(
+                        cmd,
+                        FilterListCmd::Home | FilterListCmd::End | FilterListCmd::Choose
+                    )
+            },
+        );
+        if !self.searchable || st.query().is_empty() {
+            let _ = author::extend_bindings(ui, self.id, live, BACK_BINDING, |_| true);
+        }
+        if self.delete_is_secondary || !self.searchable {
+            let _ = author::extend_bindings(ui, self.id, live, SECONDARY_BINDING, |_| true);
+        }
+        if !self.searchable || st.query().is_empty() {
+            let _ = author::extend_bindings(ui, self.id, live, CANCEL_BINDING, |_| true);
+        }
         let mut live = PartStyle::flags(ui.state(self.id), self.status.flags());
         live.remove(StateFlags::PRESSED);
         let container_patch = self.ov.part_patch(Part::CONTAINER);
@@ -860,7 +1025,7 @@ impl<T: AsItem, R: RowFn<T>> FilterList<'_, T, R> {
                 detailed.explicit,
             );
         }
-        let identity = !st.initialized && st.query.is_empty();
+        let identity = !st.initialized && st.query().is_empty();
         let visible_len = if identity {
             items.len()
         } else {
@@ -911,7 +1076,10 @@ impl<T, R> Bindings for FilterList<'_, T, R> {
 
 #[cfg(test)]
 mod tests {
-    use super::{FilterList, FilterListAction, FilterListState, contains_folded};
+    use super::{
+        BACK_BINDING, BINDINGS, FilterList, FilterListAction, FilterListState, SECONDARY_BINDING,
+        contains_folded,
+    };
     use crate::Acc;
     use termrock_core::id::{Id, ItemKey, Part};
     use termrock_core::response::StateFlags;
@@ -921,6 +1089,7 @@ mod tests {
     use ratatui_core::buffer::Buffer;
     use ratatui_core::layout::Rect;
     use termrock_runtime::Status;
+    use termrock_runtime::keymap::Binding;
     use termrock_runtime::ui::cx::LastFrame;
     use termrock_runtime::ui::{FrameState, Ui, UiCore};
 
@@ -974,6 +1143,40 @@ mod tests {
         state.set_query("a");
         FilterList::<Domain, ItemRow>::new(Id::root("test")).reconcile(&mut state, &items);
         assert_eq!(state.matches.capacity(), capacity);
+    }
+
+    #[test]
+    fn live_query_uses_the_shared_editor_draft_and_external_set_resets_it() {
+        let items = [
+            Item::new(ItemKey::num(1), "prefix"),
+            Item::new(ItemKey::num(2), "other"),
+        ];
+        let mut state = FilterListState::default();
+        state.query_input.begin("pre");
+        assert!(state.query_input.splice_completion(0, "fix"));
+        assert_eq!(state.query(), "prefix");
+
+        let list = FilterList::<Item<'_>, ItemRow>::new(Id::root("picker"));
+        list.reconcile(&mut state, &items);
+        assert_eq!(state.matched_len(), 1);
+
+        state.set_query("other");
+        assert_eq!(state.query(), "other");
+        assert!(!state.query_input.is_editing());
+        list.reconcile(&mut state, &items);
+        assert_eq!(state.matched_len(), 1);
+        assert_eq!(state.cursor(), Some(ItemKey::num(2)));
+    }
+
+    #[test]
+    fn results_have_stable_child_identity_and_arbitrate_query_keys() {
+        let list = FilterList::<Item<'static>, ItemRow>::new(Id::root("picker"));
+        assert_eq!(list.results_id, Id::root("picker").sub("results"));
+        assert_ne!(list.results_id, list.id);
+        assert_eq!(BACK_BINDING[0].priority, 60);
+        assert_eq!(SECONDARY_BINDING[0].priority, 70);
+        assert!(Binding::command(BINDINGS, BACK_BINDING[0].action).is_none());
+        assert!(Binding::command(BINDINGS, SECONDARY_BINDING[0].action).is_none());
     }
 
     #[test]
