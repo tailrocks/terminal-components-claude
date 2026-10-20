@@ -234,8 +234,8 @@ impl Recorder {
     }
 
     fn receipt_path(&self, ordinal: u64, name: &str) -> PathBuf {
-        let case_id = hex(self.case_name.as_bytes());
-        let checkpoint = format!("{ordinal:08}-{}.json", hex(name.as_bytes()));
+        let case_id = case_directory(&self.case_name);
+        let checkpoint = format!("{}.json", checkpoint_name(&self.case_name, ordinal, name));
         self.config.receipt_root.join(case_id).join(checkpoint)
     }
 }
@@ -578,10 +578,24 @@ fn validate_logical_name(name: &str) -> Result<(), Error> {
 
 fn checkpoint_name(case_name: &str, ordinal: u64, logical_name: &str) -> String {
     format!(
-        "case-{}-{ordinal:08}-{}",
-        hex(case_name.as_bytes()),
-        hex(logical_name.as_bytes())
+        "checkpoint-{ordinal:08}-{}",
+        checkpoint_identity(case_name, ordinal, logical_name)
     )
+}
+
+fn checkpoint_identity(case_name: &str, ordinal: u64, logical_name: &str) -> String {
+    let mut identity = Sha256::new();
+    identity.update(b"termrock-paired-checkpoint-v1\0");
+    identity.update(case_name.as_bytes());
+    identity.update([0]);
+    identity.update(ordinal.to_be_bytes());
+    identity.update([0]);
+    identity.update(logical_name.as_bytes());
+    hex(&identity.finalize())
+}
+
+fn case_directory(case_name: &str) -> String {
+    hex(&Sha256::digest(case_name.as_bytes()))
 }
 
 fn hex(bytes: &[u8]) -> String {
@@ -689,7 +703,13 @@ mod tests {
 
         assert!(!original.join("home.ansi").exists());
         assert_eq!(fs::read_dir(scratch.path("expected")).unwrap().count(), 1);
-        let receipt = scratch.path("receipts/64617368626f6172642f686f6d65/00000000-686f6d65.json");
+        let receipt = scratch
+            .path("receipts")
+            .join(case_directory("dashboard/home"))
+            .join(format!(
+                "{}.json",
+                checkpoint_name("dashboard/home", 0, "home")
+            ));
         let receipt_text = fs::read_to_string(receipt).unwrap();
         assert!(receipt_text.contains("\"case_id\": \"dashboard/home\""));
         assert!(receipt_text.contains("\"ordinal\": 0"));
@@ -859,15 +879,21 @@ mod tests {
             .join(format!("{}.ansi", checkpoint_name("scenario", 1, "detail")));
         assert!(first_file.is_file());
         assert!(second_file.is_file());
-        let case = hex(b"scenario");
+        let case = case_directory("scenario");
         assert!(
             scratch
-                .path(&format!("receipts/{case}/00000000-686f6d65.json"))
+                .path(&format!(
+                    "receipts/{case}/{}.json",
+                    checkpoint_name("scenario", 0, "home")
+                ))
                 .is_file()
         );
         assert!(
             scratch
-                .path(&format!("receipts/{case}/00000001-64657461696c.json"))
+                .path(&format!(
+                    "receipts/{case}/{}.json",
+                    checkpoint_name("scenario", 1, "detail")
+                ))
                 .is_file()
         );
     }
@@ -1007,5 +1033,28 @@ mod tests {
         assert_ne!(first, other);
         assert_ne!(first, other_gate);
         assert!(!first.contains('/'));
+    }
+
+    #[test]
+    fn long_case_and_gate_names_use_filesystem_safe_checkpoint_paths() {
+        let scratch = Scratch::new("long-checkpoint-name");
+        let case = "holla/concept/activities-multi-with-history/120x40/truecolor";
+        let logical = "holla/concept/activities-multi-with-history/120x40/truecolor";
+        let mut recorder = Recorder::new(config(Phase::BaselineCapture, &scratch), case).unwrap();
+        recorder
+            .handle_frame(logical, &frame(), &scratch.path("original"))
+            .unwrap();
+
+        let expected_name = format!("{}.ansi", checkpoint_name(case, 0, logical));
+        let receipt_name = format!("{}.json", checkpoint_name(case, 0, logical));
+        assert!(expected_name.len() < 255);
+        assert!(receipt_name.len() < 255);
+        assert!(scratch.path(&format!("expected/{expected_name}")).is_file());
+        assert!(
+            scratch
+                .path(&format!("receipts/{}/{receipt_name}", case_directory(case)))
+                .is_file()
+        );
+        assert_eq!(checkpoint_identity(case, 0, logical).len(), 64);
     }
 }
