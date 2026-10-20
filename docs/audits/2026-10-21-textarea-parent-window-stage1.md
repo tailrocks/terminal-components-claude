@@ -23,6 +23,14 @@ Focused evidence on this commit:
 - cargo clippy -p termrock-runtime --all-targets -- --deny warnings passed.
 - cargo clippy -p termrock-runtime --all-targets --features testing -- --deny warnings passed.
 
+Index recovery note: an unpublished local commit attempt (`f761e8092`,
+subsequently reset before any push) accidentally included absent paths from the
+initial sparse checkout as deletions. That commit was discarded. The corrected
+change contains only the four paths listed above; `git diff --cached --check`
+and the staged path audit passed. A fresh sparse specification restored a clean
+tracked worktree before rebasing this WIP on the current PR branch. No remote
+reference was changed by the discarded attempt.
+
 This is only the typed prepared-geometry prerequisite. It does not implement
 window-aware ScrollRegion painting/input, TextArea clipping, Form parent reveal,
 context-menu routing, or frozen application parity. Those remain separate
