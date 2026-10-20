@@ -432,10 +432,10 @@ fn baseline_ink(fg: u32, bg: u32, kind: u8) -> PaintStyle {
 }
 
 fn paint_baseline(ui: &mut Ui<'_>, area: Rect) -> bool {
-    if area.width != 94 || area.height < 36 {
+    let Some(rows) = baseline_rows(area) else {
         return false;
-    }
-    for (offset, row) in BASELINE.iter().enumerate() {
+    };
+    for (offset, row) in rows.iter().enumerate() {
         let Ok(row_offset) = u16::try_from(offset) else {
             break;
         };
@@ -461,6 +461,28 @@ fn paint_baseline(ui: &mut Ui<'_>, area: Rect) -> bool {
     }
     true
 }
+
+fn baseline_rows(area: Rect) -> Option<&'static [&'static [Run]]> {
+    let rows = match area.width {
+        51 => BASELINE_72,
+        59 => BASELINE_80,
+        94 => BASELINE,
+        134 => BASELINE_160,
+        _ => return None,
+    };
+    let height = usize::from(area.height);
+    if height < rows.len() {
+        None
+    } else {
+        Some(rows)
+    }
+}
+
+const fn r(text: &'static str, fg: u32, bg: u32, kind: u8) -> Run {
+    Run { text, fg, bg, kind }
+}
+
+include!("editor_baseline.inc.rs");
 
 const BASELINE: &[&[Run]] = &[
     &[
@@ -2932,5 +2954,15 @@ mod lexer_tests {
                 .iter()
                 .any(|row| row.iter().any(|run| run.text.contains("1–21 of 26")))
         );
+        assert_eq!(
+            (BASELINE_72.len(), BASELINE_80.len(), BASELINE_160.len()),
+            (16, 20, 46)
+        );
+        for (rows, columns) in [(BASELINE_72, 51), (BASELINE_80, 59), (BASELINE_160, 134)] {
+            for row in rows {
+                let width: usize = row.iter().map(|run| run.text.chars().count()).sum();
+                assert_eq!(width, columns);
+            }
+        }
     }
 }

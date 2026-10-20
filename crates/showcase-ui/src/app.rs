@@ -1113,6 +1113,7 @@ fn paint_header(
     } else {
         (muted, faint)
     };
+    let (_, inspector_x) = header_action_origins(area, inspector);
     let left = paint_header_breadcrumb(
         ui,
         area,
@@ -1120,6 +1121,7 @@ fn paint_header(
         label,
         (title, secondary, faint, marker),
         audit,
+        inspector_x,
     );
     paint_header_actions(
         ui,
@@ -1167,6 +1169,7 @@ fn paint_header_breadcrumb(
     label: &str,
     styles: (PaintStyle, PaintStyle, PaintStyle, PaintStyle),
     audit: bool,
+    inspector_x: u16,
 ) -> u16 {
     let (title, secondary, faint, marker) = styles;
     let mut x = area.x.saturating_add(1);
@@ -1195,20 +1198,58 @@ fn paint_header_breadcrumb(
     }
     // The brand advance already leaves one space. The baseline crumb starts one cell later.
     x = x.saturating_add(1);
+    // The inspector pad owns its leading cell. One more cell stays clear of that pad.
+    let budget = inspector_x.saturating_sub(x).saturating_sub(2);
     if !section.is_empty() {
+        let separator = " › ";
+        let section_width = width(section);
+        let separator_width = width(separator);
+        let label_width = width(label);
+        let full = section_width
+            .saturating_add(separator_width)
+            .saturating_add(label_width);
+        if full > budget {
+            let marker_text = "…";
+            let marker_width = width(marker_text);
+            ui.paint_str(Rect::new(x, area.y, marker_width, 1), marker_text, faint);
+            x = x.saturating_add(marker_width);
+            ui.paint_str(Rect::new(x, area.y, separator_width, 1), separator, faint);
+            x = x.saturating_add(separator_width);
+            let shown = clip_label(
+                label,
+                budget
+                    .saturating_sub(marker_width)
+                    .saturating_sub(separator_width),
+            );
+            let shown_width = width(&shown);
+            ui.paint_str(
+                Rect::new(x, area.y, area.right().saturating_sub(x), 1),
+                &shown,
+                title,
+            );
+            return x.saturating_add(shown_width);
+        }
         ui.paint_str(
             Rect::new(x, area.y, area.right().saturating_sub(x), 1),
             section,
             secondary,
         );
-        x = x.saturating_add(width(section));
-        let separator = " › ";
+        x = x.saturating_add(section_width);
         ui.paint_str(
             Rect::new(x, area.y, area.right().saturating_sub(x), 1),
             separator,
             faint,
         );
-        x = x.saturating_add(width(separator));
+        x = x.saturating_add(separator_width);
+    }
+    if section.is_empty() {
+        let shown = clip_label(label, budget);
+        ui.paint_str(
+            Rect::new(x, area.y, area.right().saturating_sub(x), 1),
+            &shown,
+            title,
+        );
+        return x.saturating_add(width(&shown));
     }
     ui.paint_str(
         Rect::new(x, area.y, area.right().saturating_sub(x), 1),
@@ -1216,6 +1257,19 @@ fn paint_header_breadcrumb(
         title,
     );
     x.saturating_add(width(label))
+}
+
+fn header_action_origins(area: Rect, inspector: bool) -> (u16, u16) {
+    let help_width = width(" ? Help ");
+    let inspector_width = width(if inspector {
+        " i Inspector · on "
+    } else {
+        " i Inspector "
+    });
+    let right = area.right().saturating_sub(1);
+    let help_x = right.saturating_sub(help_width);
+    let inspector_x = help_x.saturating_sub(1).saturating_sub(inspector_width);
+    (help_x, inspector_x)
 }
 
 fn paint_header_actions(
@@ -1245,8 +1299,7 @@ fn paint_header_actions(
     };
     let help_width = width(help_text);
     let inspector_width = width(inspector_text);
-    let mut right = area.right().saturating_sub(1);
-    let help_x = right.saturating_sub(help_width);
+    let (help_x, _) = header_action_origins(area, inspector);
     let help_style = header_action_style(ui, HEADER_HELP, muted);
     ui.paint_str(
         Rect::new(help_x, area.y, help_width, 1),
@@ -1258,7 +1311,7 @@ fn paint_header_actions(
         PartRef::of(Part::LABEL),
         Rect::new(help_x, area.y, help_width, 1),
     );
-    right = help_x.saturating_sub(1);
+    let mut right = help_x.saturating_sub(1);
 
     let inspector_x = right.saturating_sub(inspector_width);
     let inspector_style = header_action_style(ui, HEADER_INSPECT, muted);
