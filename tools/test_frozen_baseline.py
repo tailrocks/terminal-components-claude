@@ -88,8 +88,129 @@ class RunnerGuards(unittest.TestCase):
                 runner.nextest_selection(Path("."), Path("."), "store_integrity", False, 30, {})
 
     def test_host_tool_mode_is_removed(self) -> None:
-        with patch.dict("os.environ", {"VISUAL_TOOL": "capture", "VISUAL_PARTIAL_ORACLE_OK": "1", "MIDTEST_BUILD": "1", "COMBO_FILTER": "x", "UPDATE_BASELINE": "1", "NEXTTEST_FILTER": "x", "INSTA_UPDATE": "always", "PATH": "/bin"}, clear=True):
+        with patch.dict("os.environ", {"VISUAL_TOOL": "capture", "VISUAL_PARTIAL_ORACLE_OK": "1", "TERMROCK_PAIR_PHASE": "candidate-check", "TERMROCK_PAIR_EXPECTED_ROOT": "x", "TERMROCK_PAIR_RECEIPT_ROOT": "y", "MIDTEST_BUILD": "1", "COMBO_FILTER": "x", "UPDATE_BASELINE": "1", "NEXTTEST_FILTER": "x", "INSTA_UPDATE": "always", "PATH": "/bin"}, clear=True):
             self.assertEqual(runner.clean_env(), {"PATH": "/bin"})
+
+    def test_live_nextest_events_require_each_exact_selection_to_pass(self) -> None:
+        selected = ["holla::files::120x40::truecolor", "tablepro::files::120x40::truecolor"]
+        prefix = "junie-tui::visual_baseline$"
+        output = "\n".join(
+            [json.dumps({"type": "test", "event": "ignored", "name": prefix + "unselected::scenario"})]
+            + [json.dumps({"type": "test", "event": "ok", "name": prefix + name}) for name in selected]
+        )
+        self.assertEqual(len(runner.nextest_events(output, selected)), 2)
+        with self.assertRaisesRegex(runner.RunnerError, "coverage mismatch"):
+            runner.nextest_events(output.splitlines()[0], selected)
+        failed = json.dumps({"type": "test", "event": "failed", "name": prefix + selected[0]})
+        with self.assertRaisesRegex(runner.RunnerError, "did not all pass"):
+            runner.nextest_events(failed, [selected[0]])
+
+    def test_live_receipts_bind_case_order_name_and_frame_bytes(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            case = "holla/files/120x40/truecolor"
+            logical = "holla/files/120x40/truecolor"
+            expected = root / "expected"
+            receipt_root = root / "receipts"
+            expected.mkdir()
+            ansi = b"frame\x1b[?25h"
+            frame_name = f"case-{case.encode().hex()}-00000000-{logical.encode().hex()}.ansi"
+            (expected / frame_name).write_bytes(ansi)
+            receipt_dir = receipt_root / case.encode().hex()
+            receipt_dir.mkdir(parents=True)
+            receipt = {
+                "case_id": case,
+                "ordinal": 0,
+                "logical_name": logical,
+                "sha256": runner.hashlib.sha256(ansi).hexdigest(),
+            }
+            (receipt_dir / f"00000000-{logical.encode().hex()}.json").write_text(json.dumps(receipt))
+            found = runner.read_receipts(receipt_root, [case], expected)
+            self.assertEqual(found, {(case, 0, logical): receipt["sha256"]})
+            (expected / frame_name).write_bytes(b"changed")
+            with self.assertRaisesRegex(runner.RunnerError, "hash mismatch"):
+                runner.read_receipts(receipt_root, [case], expected)
+
+    def test_sealed_runtime_store_rejects_symlinks_and_nested_entries(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp) / "store"
+            root.mkdir()
+            target = Path(temp) / "outside.ansi"
+            target.write_bytes(b"outside")
+            (root / "case.ansi").symlink_to(target)
+            with self.assertRaisesRegex(runner.RunnerError, "symlink"):
+                runner.sealed_tree(root)
+            (root / "case.ansi").unlink()
+            (root / "nested").mkdir()
+            with self.assertRaisesRegex(runner.RunnerError, "unexpected directory"):
+                runner.flat_sealed_store(root, "runtime expected")
+
+    def test_live_chunks_are_deterministic_and_bounded(self) -> None:
+        names = [f"case::{index}" for index in range(5)]
+        self.assertEqual(runner.scenario_chunks(names, 2), [names[:2], names[2:4], names[4:]])
+        with self.assertRaisesRegex(runner.RunnerError, "chunk size"):
+            runner.scenario_chunks(names, 513)
+
+    def test_chunk_coverage_rejects_missing_duplicate_skipped_and_repartitioned(self) -> None:
+        selected = [f"case::{index}" for index in range(5)]
+        good = [
+            {"chunk": 0, "selected_cases": selected[:2], "status": "passed"},
+            {"chunk": 1, "selected_cases": selected[2:4], "status": "passed"},
+            {"chunk": 2, "selected_cases": selected[4:], "status": "passed"},
+        ]
+        runner.validate_chunk_coverage(selected, good, 2)
+        for records in (
+            good[:-1],
+            [good[0], good[0], good[2]],
+            [good[0], {**good[1], "status": "skipped"}, good[2]],
+            [good[0], {**good[1], "status": "unfinished"}, good[2]],
+            [good[0], {**good[1], "selected_cases": [selected[2]]}, good[2]],
+        ):
+            with self.subTest(records=records), self.assertRaises(runner.RunnerError):
+                runner.validate_chunk_coverage(selected, records, 2)
+
+    def test_empty_receipts_fail_closed_for_selected_case(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            receipts = root / "receipts"
+            expected = root / "expected"
+            receipts.mkdir()
+            expected.mkdir()
+            with self.assertRaisesRegex(runner.RunnerError, "missing checkpoint receipts"):
+                runner.read_receipts(receipts, ["showcase/pages/overview"], expected)
+
+    def test_registered_inventory_digest_must_match_prepared_source(self) -> None:
+        inventory = {"scenario": True, "ordinary_check": False}
+        runner.require_inventory_matches(inventory, runner.inventory_digest(inventory))
+        with self.assertRaisesRegex(runner.RunnerError, "Nextest inventory hash mismatch"):
+            runner.require_inventory_matches(inventory, "0" * 64)
+
+    def test_live_source_provenance_rejects_binary_harness_drift(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            live = root / "live-source"
+            module = live / "tests" / "visual_baseline" / "frozen_cli_pair.rs"
+            module.parent.mkdir(parents=True)
+            module.write_text("module")
+            (root / "live-source.json").write_text(json.dumps({
+                "frozen_source_sha256": "a",
+                "live_source_sha256": "b",
+                "patch_sha256": "b",
+                "helper_sha256": "different-helper",
+                "module_sha256": "module-hash",
+                "frozen_snapshots_sha256": "d",
+                "live_snapshots_sha256": "d",
+            }))
+            repo = root / "repo"
+            (repo / "tools" / "frozen-cli-frame-support" / "src").mkdir(parents=True)
+            (repo / "tools" / "frozen-cli-frame-support" / "src" / "lib.rs").write_text("different helper")
+            patch_file = repo / "tools" / "frozen_cli_pair.patch"
+            patch_file.write_text("patch")
+            source = root / "frozen"
+            (source / "snapshots").mkdir(parents=True)
+            with patch.object(runner, "digest_source", side_effect=lambda path: "a" if path == source else "b" if path == live else "unexpected"), patch.object(runner, "digest_tree", return_value="d"), patch.object(runner, "sha256", side_effect=lambda path: "b" if path == patch_file else "c" if path.name == "lib.rs" else "module-hash"):
+                with self.assertRaisesRegex(runner.RunnerError, "live source provenance changed: helper_sha256"):
+                    runner.verify_live_source(repo, root, source, 10)
 
     def test_phase_artifacts_are_separate_and_never_overwritten(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
