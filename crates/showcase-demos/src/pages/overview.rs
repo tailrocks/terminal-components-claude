@@ -248,6 +248,45 @@ const ACCENTS: &[(&str, u32)] = &[
     ("syntax.literal", 0xc6a0f6),
 ];
 
+const GLYPH_SAMPLES: &[(&str, &str, &str)] = &[
+    ("checks", "[✓] [ ] [–]", "[x] [ ] [-]"),
+    ("radio, toggle", "(●) ( ) ──● ○──", "(*) ( ) --* o--"),
+    ("chevrons", "▴ ▾ ▾ ▸", "^ v v >"),
+    ("status", "✓ ✗ ▲ i", "+ X ! i"),
+    ("scrollbar", "┆┃┆", ":#:"),
+    ("meter", "━━─", "==-"),
+    ("more, close", "… ▾ ×", "~ v x"),
+];
+
+const STRING_SAMPLES: &[(&str, &str, &str)] = &[
+    ("more_cut", "… {} more", "... {} more"),
+    ("search", "Type to search…", "Type to search..."),
+    ("empty_list", "Nothing here yet", "Nothing here yet"),
+    ("loading", "Loading rows…", "Loading rows..."),
+];
+
+const LADDER_PLANES: &[(&str, [u32; 3], &str)] = &[
+    ("Canvas", [0x000000, 0x1c1c1f, 0x303036], "Raised"),
+    ("Surface", [0x111111, 0x26262a, 0x38383e], "Raised"),
+    ("Card", [0x18181b, 0x2a2a2f, 0x3c3c43], "Raised"),
+    ("Field", [0x1e1e22, 0x2f2f34, 0x3a3a40], "Raised"),
+    ("Raised", [0x27272a, 0x37373d, 0x4a4a52], "Popover"),
+    ("Popover", [0x3f3f46, 0x4f4f58, 0x63636d], "Popover"),
+    ("Highlight", [0x2f5aa8, 0x3a6bc4, 0x244a8c], "Highlight"),
+    (
+        "HighlightDanger",
+        [0x7a2a2a, 0x8c3030, 0x5a1f1f],
+        "HighlightDanger",
+    ),
+    ("Accent", [0x48e054, 0x3ab343, 0x2e9a38], "Accent"),
+    ("Danger", [0xd93636, 0xc22e2e, 0x9e2424], "Danger"),
+];
+
+const LADDER_INKS: &[(&str, [u32; 3], &str)] = &[
+    ("handle", [0x808080, 0xb3b3b3, 0x48e054], "┃"),
+    ("seam", [0x4d4d4d, 0x808080, 0x48e054], "│"),
+];
+
 const PRINCIPLE_COPY: &[(&str, &str)] = &[
     (
         "Colour carries meaning",
@@ -329,7 +368,21 @@ fn paint_blurb(ui: &mut Ui<'_>, area: Rect) {
         height: 1,
         ..area
     };
-    ui.paint_str(meta, BLURB, ink(MUTED, CANVAS));
+    let style = ink(MUTED, CANVAS);
+    if width(BLURB) <= meta.width {
+        ui.paint_str(meta, BLURB, style);
+        return;
+    }
+    let budget = Rect {
+        width: meta.width.saturating_sub(1),
+        ..meta
+    };
+    let used = ui.paint_str(budget, BLURB, style);
+    ui.paint_str(
+        Rect::new(meta.x.saturating_add(used), meta.y, 1, 1),
+        "…",
+        style,
+    );
 }
 
 fn tab_width(label: &str) -> u16 {
@@ -611,11 +664,16 @@ fn paint_card(ui: &mut Ui<'_>, card: Rect, view: Rect, kind: OverviewCard) {
             ink(RULE, SURFACE),
         );
     }
-    let rows: &[(&str, u32)] = match kind {
-        OverviewCard::Planes => PLANES,
-        OverviewCard::Accents => ACCENTS,
-        _ => return,
-    };
+    match kind {
+        OverviewCard::Planes => paint_swatches(ui, view, card, PLANES),
+        OverviewCard::Accents => paint_swatches(ui, view, card, ACCENTS),
+        OverviewCard::Glyphs => paint_glyphs(ui, view, card),
+        OverviewCard::Ladders => paint_ladders(ui, view, card),
+        _ => {}
+    }
+}
+
+fn paint_swatches(ui: &mut Ui<'_>, view: Rect, card: Rect, rows: &[(&str, u32)]) {
     let inner_x = card.x.saturating_add(CARD_PAD);
     let inner_w = card.width.saturating_sub(CARD_PAD.saturating_mul(2));
     for (index, (name, color)) in rows.iter().enumerate() {
@@ -662,6 +720,136 @@ fn paint_card(ui: &mut Ui<'_>, card: Rect, view: Rect, kind: OverviewCard) {
                 Rect::new(inner_x.saturating_add(note_at), y, note_w, 1),
                 &note,
                 ink(MUTED, SURFACE),
+            );
+        }
+    }
+}
+
+fn card_body(card: Rect) -> Rect {
+    Rect::new(
+        card.x.saturating_add(CARD_PAD),
+        card.y.saturating_add(2),
+        card.width.saturating_sub(CARD_PAD.saturating_mul(2)),
+        card.height.saturating_sub(2),
+    )
+}
+
+fn paint_body(
+    ui: &mut Ui<'_>,
+    view: Rect,
+    body: Rect,
+    row: u16,
+    col: u16,
+    text: &str,
+    style: PaintStyle,
+) {
+    if row >= body.height || col >= body.width || text.is_empty() {
+        return;
+    }
+    paint_in(
+        ui,
+        view,
+        Rect::new(
+            body.x.saturating_add(col),
+            body.y.saturating_add(row),
+            body.width.saturating_sub(col),
+            1,
+        ),
+        text,
+        style,
+    );
+}
+
+fn paint_glyphs(ui: &mut Ui<'_>, view: Rect, card: Rect) {
+    let body = card_body(card);
+    if body.is_empty() {
+        return;
+    }
+    let muted = ink(MUTED, SURFACE);
+    let name = ink(WHITE, SURFACE);
+    let value = ink(SECONDARY, SURFACE);
+    paint_body(ui, view, body, 0, 0, "Glyphs", muted);
+    paint_body(ui, view, body, 0, 15, "UNICODE", muted);
+    paint_body(ui, view, body, 0, 33, "ASCII", muted);
+    for (index, (label, unicode, ascii)) in GLYPH_SAMPLES.iter().enumerate() {
+        let Ok(index) = u16::try_from(index) else {
+            break;
+        };
+        let row = index.saturating_add(1);
+        paint_body(ui, view, body, row, 0, label, name);
+        paint_body(ui, view, body, row, 15, unicode, value);
+        paint_body(ui, view, body, row, 33, ascii, value);
+    }
+    paint_body(ui, view, body, 9, 0, "Strings", muted);
+    paint_body(ui, view, body, 9, 15, "DEFAULT", muted);
+    paint_body(ui, view, body, 9, 33, "override", muted);
+    for (index, (label, unicode, ascii)) in STRING_SAMPLES.iter().enumerate() {
+        let Ok(index) = u16::try_from(index) else {
+            break;
+        };
+        let row = index.saturating_add(10);
+        paint_body(ui, view, body, row, 0, label, name);
+        paint_body(ui, view, body, row, 15, unicode, value);
+        paint_body(ui, view, body, row, 33, ascii, value);
+    }
+}
+
+fn paint_ladders(ui: &mut Ui<'_>, view: Rect, card: Rect) {
+    let body = card_body(card);
+    if body.is_empty() {
+        return;
+    }
+    let muted = ink(MUTED, SURFACE);
+    let name = ink(WHITE, SURFACE);
+    paint_body(
+        ui,
+        view,
+        body,
+        0,
+        0,
+        "Ladder: rest hover pressed · Plane::up",
+        muted,
+    );
+    for (index, (label, colors, up)) in LADDER_PLANES.iter().enumerate() {
+        let Ok(index) = u16::try_from(index) else {
+            break;
+        };
+        let row = index.saturating_add(1);
+        paint_body(ui, view, body, row, 0, label, name);
+        for (step, color) in colors.iter().enumerate() {
+            let Ok(step) = u16::try_from(step) else {
+                break;
+            };
+            let x = 16u16.saturating_add(step.saturating_mul(5));
+            if row >= body.height || x.saturating_add(4) > body.width {
+                continue;
+            }
+            let swatch = Rect::new(body.x.saturating_add(x), body.y.saturating_add(row), 4, 1)
+                .intersection(view);
+            if !swatch.is_empty() {
+                ui.fill(swatch, ink(WHITE, *color));
+            }
+        }
+        paint_body(ui, view, body, row, 32, &format!("→ {up}"), muted);
+    }
+    for (index, (label, colors, glyph)) in LADDER_INKS.iter().enumerate() {
+        let Ok(index) = u16::try_from(index) else {
+            break;
+        };
+        let row = 11u16.saturating_add(index);
+        paint_body(ui, view, body, row, 0, label, name);
+        for (step, color) in colors.iter().enumerate() {
+            let Ok(step) = u16::try_from(step) else {
+                break;
+            };
+            paint_body(
+                ui,
+                view,
+                body,
+                row,
+                17u16.saturating_add(step.saturating_mul(5)),
+                glyph,
+                ink(*color, SURFACE),
             );
         }
     }
@@ -768,5 +956,35 @@ mod tests {
         assert_eq!(h.cell(x, y + 1).symbol(), "━");
         let (sx, sy) = h.find("canvas").expect("canvas swatch");
         assert_eq!(h.cell(sx.saturating_sub(6), sy).bg, Color::Rgb(0, 0, 0));
+    }
+
+    #[test]
+    fn narrow_overview_blurb_ends_on_the_ellipsis() {
+        let h = Harness::new(Host, Theme::junie(), 51, 6);
+        assert_eq!(h.cell(48, 0).symbol(), "p");
+        assert_eq!(h.cell(49, 0).symbol(), "…");
+        assert_eq!(h.cell(49, 0).fg, Color::Rgb(0x8a, 0x8a, 0x8a));
+        assert_eq!(h.cell(49, 0).bg, Color::Rgb(0, 0, 0));
+    }
+
+    #[test]
+    fn wide_overview_paints_glyph_samples_and_ladder_swatches() {
+        let h = Harness::new(Host, Theme::junie(), 132, 50);
+        let text = h.text();
+        assert!(text.contains("[✓] [ ] [–]"), "{text}");
+        assert!(text.contains("Type to search…"), "{text}");
+        assert!(
+            text.contains("Ladder: rest hover pressed · Plane::up"),
+            "{text}"
+        );
+        assert!(text.contains("→ HighlightDanger"), "{text}");
+        let (x, y) = h.find("Canvas").expect("canvas ladder");
+        assert_eq!(h.cell(x + 16, y).bg, Color::Rgb(0, 0, 0));
+        assert_eq!(h.cell(x + 21, y).bg, Color::Rgb(0x1c, 0x1c, 0x1f));
+        assert_eq!(h.cell(x + 26, y).bg, Color::Rgb(0x30, 0x30, 0x36));
+        let (hx, hy) = h.find("handle").expect("handle ladder");
+        assert_eq!(h.cell(hx + 17, hy).symbol(), "┃");
+        assert_eq!(h.cell(hx + 17, hy).fg, Color::Rgb(0x80, 0x80, 0x80));
+        assert_eq!(h.cell(hx + 27, hy).fg, Color::Rgb(0x48, 0xe0, 0x54));
     }
 }
