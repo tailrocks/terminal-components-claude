@@ -694,7 +694,10 @@ pub(crate) fn apply_mono_with_defaults(
         }
     }
     for (rule_part, when, patch) in targeted {
-        if *rule_part == part && live.contains(*when) {
+        let applies = family != Family::SCROLLBAR
+            || *rule_part != Part::CONTAINER
+            || *when != StateFlags::PRESSED;
+        if applies && *rule_part == part && live.contains(*when) {
             acc = acc.merge(*patch);
         }
     }
@@ -1439,6 +1442,29 @@ mod tests {
             Surface::Canvas,
         );
         assert_eq!(keyboard.glyph, Slot::Set(GlyphRole::RuleQuiet));
+    }
+
+    #[test]
+    fn authored_scrollbar_container_press_rule_keeps_the_legacy_filter() {
+        let authored = [(
+            Part::CONTAINER,
+            StateFlags::PRESSED,
+            StylePatch::new().set_glyph(GlyphRole::WarningMark),
+        )];
+        let theme = Theme::junie()
+            .builder()
+            .mono_rules(Family::SCROLLBAR, &authored)
+            .build()
+            .downgrade(ColorLevel::Mono);
+        let pressed = theme.resolve(
+            Family::SCROLLBAR,
+            Variant::DEFAULT,
+            Part::CONTAINER,
+            StateFlags::PRESSED,
+            Surface::Canvas,
+        );
+
+        assert_ne!(pressed.glyph, Slot::Set(GlyphRole::WarningMark));
     }
 
     #[test]
