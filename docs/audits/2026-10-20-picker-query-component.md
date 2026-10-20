@@ -44,6 +44,11 @@ Independent review found and the follow-up fixes cover these regressions:
   consumers do not lose a result row or shift result coordinates. Standalone
   searchable FilterList registers the visible results viewport as its focus
   owner; Picker uses `draw_results` beside its separately rendered query field.
+- A follow-up geometry probe caught the shared field registration helper
+  reducing the host region to one row. `TextInput::register_editor` now retains
+  the entire supplied visible host region; ordinary `TextInput::draw` keeps its
+  existing one-row behavior. A runtime regression checks standalone searchable
+  FilterList focus, full viewport bounds, and typing.
 - TextInput has an opt-in auxiliary style target for GUTTER and PLACEHOLDER,
   preserving those part identities while allowing hosted controls to resolve
   through their host theme family. Picker opts in; ordinary TextInput defaults
