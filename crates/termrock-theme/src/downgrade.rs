@@ -83,50 +83,36 @@ pub(crate) fn rgb_of(c: Color) -> Option<(u8, u8, u8)> {
     }
 }
 
-fn sq_dist(a: (u8, u8, u8), b: (u8, u8, u8)) -> u32 {
-    let d = |x: u8, y: u8| {
-        let v = i32::from(x).saturating_sub(i32::from(y));
-        v.saturating_mul(v) as u32
-    };
-    d(a.0, b.0)
-        .saturating_add(d(a.1, b.1))
-        .saturating_add(d(a.2, b.2))
-}
-
-/// Legacy inks whose baseline 256 index is not the nearest ramp step.
-/// `#3a3a3a` is ramp 237, and the frozen frames use 238 (`#444444`).
-/// `#48e054` is cube 77, and the frozen frames use 78 (`#5fd787`).
-fn frozen_ansi256(rgb: (u8, u8, u8)) -> Option<u8> {
-    match rgb {
-        (0x3a, 0x3a, 0x3a) | (0x26, 0x26, 0x26) => Some(238),
-        (0x47, 0x47, 0x47) => Some(239),
-        (0x73, 0x73, 0x73) => Some(242),
-        (0x80, 0x80, 0x80) => Some(245),
-        (0x17, 0x3f, 0x1c) => Some(22),
-        (0x48, 0xe0, 0x54) => Some(78),
-        (0x19, 0x19, 0x1c) => Some(232),
-        _ => None,
-    }
-}
-
-/// Legacy inks whose baseline 16-color name is not the nearest hue.
-fn frozen_ansi16(rgb: (u8, u8, u8)) -> Option<Color> {
-    match rgb {
-        (0x3f, 0xb9, 0x50) => Some(Color::Green),
-        (0x79, 0xb8, 0xff) => Some(Color::White),
-        _ => None,
-    }
-}
-
 fn nearest_256(rgb: (u8, u8, u8)) -> u8 {
-    let mut best = (16u8, u32::MAX);
-    for i in 16..=255u8 {
-        let d = sq_dist(rgb, rgb_of_index(i));
-        if d < best.1 {
-            best = (i, d);
+    let (r, g, b) = rgb;
+    let step = |value: u8| ((u32::from(value) * 5 + 127) / 255) as u8;
+    let (red, green, blue) = (step(r), step(g), step(b));
+    let cube = 16 + 36 * red + 6 * green + blue;
+    let cube_value = |index: u8| -> i32 {
+        if index == 0 {
+            0
+        } else {
+            55 + i32::from(index) * 40
         }
+    };
+    let distance = |candidate: (i32, i32, i32)| {
+        (candidate.0 - i32::from(r)).pow(2)
+            + (candidate.1 - i32::from(g)).pow(2)
+            + (candidate.2 - i32::from(b)).pow(2)
+    };
+    let cube_error = distance((cube_value(red), cube_value(green), cube_value(blue)));
+
+    let average = (i32::from(r) + i32::from(g) + i32::from(b)) / 3;
+    let gray_step = ((average - 8).max(0) / 10).min(23);
+    let gray_value = 8 + gray_step * 10;
+    let gray_error = distance((gray_value, gray_value, gray_value));
+    let chroma = i32::from(r.max(g).max(b)) - i32::from(r.min(g).min(b));
+
+    if gray_error < cube_error && chroma <= 30 {
+        232 + gray_step as u8
+    } else {
+        cube
     }
-    best.0
 }
 
 fn to_lin(c: u8) -> f64 {
@@ -274,15 +260,11 @@ pub fn downgrade_color(c: Color, level: ColorLevel) -> Color {
     match level {
         ColorLevel::TrueColor => c,
         ColorLevel::Ansi256 => match c {
-            Color::Rgb(..) => {
-                Color::Indexed(frozen_ansi256(rgb).unwrap_or_else(|| nearest_256(rgb)))
-            }
+            Color::Rgb(..) => Color::Indexed(nearest_256(rgb)),
             other => other,
         },
         ColorLevel::Ansi16 => match c {
-            Color::Rgb(..) | Color::Indexed(_) => {
-                frozen_ansi16(rgb).unwrap_or_else(|| nearest_16(rgb))
-            }
+            Color::Rgb(..) | Color::Indexed(_) => nearest_16(rgb),
             other => other,
         },
         ColorLevel::Mono => mono(rgb),
@@ -753,12 +735,9 @@ mod tests {
             downgrade_color(Color::Rgb(0x48, 0xe0, 0x54), ColorLevel::Ansi256),
             Color::Indexed(78)
         );
-        // These legacy inks keep the baseline 256 indexes. Nearest-gray is one
-        // ramp step off. Other custom RGB values still use nearest-color.
-        // Semantic Junie roles keep `CapabilityPalettes`.
         assert_eq!(
             downgrade_color(Color::Rgb(0x3a, 0x3a, 0x3a), ColorLevel::Ansi256),
-            Color::Indexed(238)
+            Color::Indexed(237)
         );
         assert_eq!(
             downgrade_color(Color::Rgb(0x73, 0x73, 0x73), ColorLevel::Ansi256),
@@ -766,15 +745,15 @@ mod tests {
         );
         assert_eq!(
             downgrade_color(Color::Rgb(0x47, 0x47, 0x47), ColorLevel::Ansi256),
-            Color::Indexed(239)
+            Color::Indexed(238)
         );
         assert_eq!(
             downgrade_color(Color::Rgb(0x80, 0x80, 0x80), ColorLevel::Ansi256),
-            Color::Indexed(245)
+            Color::Indexed(244)
         );
         assert_eq!(
             downgrade_color(Color::Rgb(0x17, 0x3f, 0x1c), ColorLevel::Ansi256),
-            Color::Indexed(22)
+            Color::Indexed(23)
         );
 
         assert_eq!(
@@ -830,6 +809,27 @@ mod tests {
         assert_eq!(rgb_of_index(232), (8, 8, 8));
         assert_eq!(rgb_of_index(16), (0, 0, 0));
         assert_eq!(rgb_of_index(231), (255, 255, 255));
+    }
+
+    #[test]
+    fn ansi256_raw_rgb_uses_the_frozen_general_cube_and_gray_rule() {
+        // These samples exercise the cube path, the low-chroma gray path, and
+        // the chroma cutoff. The rule is the frozen baseline's general
+        // nearest_256 algorithm, not a lookup table for selected theme colors.
+        for (rgb, expected) in [
+            ((0x3a, 0x3a, 0x3a), 237),
+            ((0x47, 0x47, 0x47), 238),
+            ((0x80, 0x80, 0x80), 244),
+            ((0x48, 0xe0, 0x54), 78),
+            ((0x17, 0x3f, 0x1c), 23),
+            ((0x23, 0x4b, 0x64), 60),
+        ] {
+            assert_eq!(
+                downgrade_color(Color::Rgb(rgb.0, rgb.1, rgb.2), ColorLevel::Ansi256),
+                Color::Indexed(expected),
+                "raw RGB {rgb:?}"
+            );
+        }
     }
 
     #[test]

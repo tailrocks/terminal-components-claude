@@ -15,6 +15,7 @@ pub struct PaintStyle {
     pub fg_role: Option<(Role, Surface)>,
     pub bg_role: Option<(Role, Surface)>,
     underline_role: Option<(Role, Surface)>,
+    underline_cleared: bool,
 }
 
 impl PaintStyle {
@@ -25,6 +26,7 @@ impl PaintStyle {
             fg_role: None,
             bg_role: None,
             underline_role: None,
+            underline_cleared: false,
         }
     }
 
@@ -34,6 +36,7 @@ impl PaintStyle {
             fg_role: fg.filter(|_| style.fg.is_some()).map(|r| (r, surface)),
             bg_role: bg.filter(|_| style.bg.is_some()).map(|r| (r, surface)),
             underline_role: None,
+            underline_cleared: false,
         }
     }
 
@@ -42,9 +45,22 @@ impl PaintStyle {
         self.underline_role
     }
 
+    /// Whether the final canonical underline channel explicitly clears its
+    /// inherited value.
+    #[must_use]
+    pub const fn underline_cleared(&self) -> bool {
+        self.underline_cleared
+    }
+
     #[must_use]
     pub(crate) const fn with_underline_role(mut self, role: Option<(Role, Surface)>) -> Self {
         self.underline_role = role;
+        self
+    }
+
+    #[must_use]
+    const fn with_underline_cleared(mut self, cleared: bool) -> Self {
+        self.underline_cleared = cleared;
         self
     }
 
@@ -104,6 +120,7 @@ impl PaintStyle {
     pub fn underline_color(mut self, color: Color) -> Self {
         self.style = self.style.underline_color(color);
         self.underline_role = None;
+        self.underline_cleared = false;
         self
     }
 
@@ -128,8 +145,9 @@ impl PaintStyle {
         if other.style.bg.is_some() {
             self.bg_role = other.bg_role;
         }
-        if other.style.underline_color.is_some() {
+        if other.style.underline_color.is_some() || other.underline_cleared {
             self.underline_role = other.underline_role;
+            self.underline_cleared = other.underline_cleared;
         }
         self.style = self.style.patch(other.style);
         self
@@ -143,6 +161,7 @@ impl From<Style> for PaintStyle {
             fg_role: None,
             bg_role: None,
             underline_role: None,
+            underline_cleared: false,
         }
     }
 }
@@ -823,7 +842,8 @@ fn bind_with_profile(
                 .map(|role| canonical_role(theme, role))
                 .filter(|_| style.underline_color.is_some())
                 .map(|role| (role, surface)),
-        ),
+        )
+        .with_underline_cleared(matches!(acc.underline, Slot::Clear)),
         glyph: acc.glyph,
         size: m.size,
         align: m.align,
@@ -1164,6 +1184,110 @@ mod tests {
 
         let inherited = bound.patch(Style::new().add_modifier(Modifier::ITALIC));
         assert_eq!(inherited.underline_role(), Some((role, Surface::Canvas)));
+    }
+
+    #[test]
+    fn underline_clear_provenance_tracks_the_final_canonical_channel() {
+        for level in [
+            super::super::ColorLevel::TrueColor,
+            super::super::ColorLevel::Ansi256,
+            super::super::ColorLevel::Ansi16,
+            super::super::ColorLevel::Mono,
+        ] {
+            let theme = Theme::junie().for_level(level);
+            let clear = bind(
+                &theme,
+                StylePatch {
+                    underline: Slot::Clear,
+                    ..StylePatch::new()
+                },
+                None,
+                Surface::Canvas,
+            )
+            .style;
+            assert!(clear.underline_cleared(), "at {level:?}");
+            assert_eq!(clear.underline_role(), None, "at {level:?}");
+
+            let inherited = bind(&theme, StylePatch::new(), None, Surface::Canvas).style;
+            assert!(!inherited.underline_cleared(), "at {level:?}");
+
+            let set = bind(
+                &theme,
+                StylePatch::new().set_underline(Role::Warning),
+                None,
+                Surface::Canvas,
+            )
+            .style;
+            assert!(!set.underline_cleared(), "at {level:?}");
+            assert!(set.underline_role().is_some(), "at {level:?}");
+            let local_set = bind(
+                &theme,
+                StylePatch {
+                    underline: Slot::Clear,
+                    ..StylePatch::new()
+                },
+                Some(&StylePatch::new().set_underline(Role::Warning)),
+                Surface::Canvas,
+            )
+            .style;
+            assert!(
+                !local_set.underline_cleared(),
+                "local Set wins at {level:?}"
+            );
+            assert_eq!(
+                local_set.underline_role().map(|(role, _)| role),
+                Some(Role::Warning),
+                "local Set retains its semantic binding at {level:?}"
+            );
+            let local_clear = bind(
+                &theme,
+                StylePatch::new().set_underline(Role::Warning),
+                Some(&StylePatch {
+                    underline: Slot::Clear,
+                    ..StylePatch::new()
+                }),
+                Surface::Canvas,
+            )
+            .style;
+            assert!(
+                local_clear.underline_cleared(),
+                "local Clear wins at {level:?}"
+            );
+
+            assert!(
+                clear
+                    .underline_color(Color::Yellow)
+                    .underline_role()
+                    .is_none()
+                    && !clear.underline_color(Color::Yellow).underline_cleared(),
+                "raw replacement drops bound Clear provenance at {level:?}"
+            );
+            assert!(
+                clear
+                    .patch(Style::new().underline_color(Color::Blue))
+                    .underline_role()
+                    .is_none()
+                    && !clear
+                        .patch(Style::new().underline_color(Color::Blue))
+                        .underline_cleared(),
+                "raw patch replacement drops bound Clear provenance at {level:?}"
+            );
+            assert!(
+                clear
+                    .patch(Style::new().add_modifier(Modifier::ITALIC))
+                    .underline_cleared(),
+                "unrelated patch preserves bound Clear provenance at {level:?}"
+            );
+            assert!(
+                clear.patch(clear).underline_cleared(),
+                "a resolved Clear patch replaces the channel with Clear at {level:?}"
+            );
+            assert!(
+                clear.patch(set).underline_role().is_some()
+                    && !clear.patch(set).underline_cleared(),
+                "a bound Set patch replaces Clear at {level:?}"
+            );
+        }
     }
 
     fn label_fg(
