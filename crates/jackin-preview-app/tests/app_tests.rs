@@ -1529,6 +1529,56 @@ fn settings_trust_five_enter_paints_the_approved_trust_frame() {
 }
 
 #[test]
+fn settings_save_preview_keys_paint_the_approved_dialog() {
+    let apply_save = |h: &H| {
+        let cell = h.buffer().cell((85, 24)).expect("apply save");
+        cell.symbol() == "S"
+            && cell.fg == termrock::Color::from_u32(0x19_19_1c)
+            && cell.bg == termrock::Color::from_u32(0x48_e0_54)
+            && cell.modifier.contains(termrock::Modifier::BOLD)
+            && cell.modifier.contains(termrock::Modifier::UNDERLINED)
+    };
+
+    let closed = H::new(Scenario::AccountsMixed, Motion::Paused, 40, 120, 40);
+    assert!(
+        !apply_save(&closed),
+        "closed settings must stay off the save preview: {}",
+        closed.text()
+    );
+
+    let mut trust = H::new(Scenario::AccountsMixed, Motion::Paused, 40, 120, 40);
+    trust.key(KeyCode::Char('s'));
+    trust.key(KeyCode::Char('5'));
+    trust.key(KeyCode::Enter);
+    assert_eq!(trust.app().settings.tab, 4);
+    assert!(
+        !apply_save(&trust),
+        "clean Trust must stay off the save preview: {}",
+        trust.text()
+    );
+
+    let mut h = H::new(Scenario::AccountsMixed, Motion::Paused, 40, 120, 40);
+    h.key(KeyCode::Char('s'));
+    h.key(KeyCode::Char('5'));
+    assert_eq!(h.app().settings.tab, 0);
+    h.key(KeyCode::Enter);
+    h.key(KeyCode::Char(' '));
+    h.key(KeyCode::Down);
+    h.key(KeyCode::Char(' '));
+    h.ctrl('s');
+    assert_eq!(h.app().settings.tab, 4);
+    let cell = h.buffer().cell((85, 24)).expect("apply save");
+    assert_eq!(cell.symbol(), "S");
+    assert_eq!(cell.fg, termrock::Color::from_u32(0x19_19_1c));
+    assert_eq!(cell.bg, termrock::Color::from_u32(0x48_e0_54));
+    assert!(cell.modifier.contains(termrock::Modifier::BOLD));
+    assert!(cell.modifier.contains(termrock::Modifier::UNDERLINED));
+    assert!(apply_save(&h));
+    assert!(h.text().contains("Save settings"), "{}", h.text());
+    assert_eq!(h.harness.cursor(), None);
+}
+
+#[test]
 fn settings_agents_four_enter_paints_the_approved_agents_frame() {
     let closed = H::new(Scenario::AccountsMixed, Motion::Paused, 40, 120, 40);
     assert!(
