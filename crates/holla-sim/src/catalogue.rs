@@ -2644,6 +2644,41 @@ pub fn remote_host_tag(w: &World) -> Option<ParityDiscovery> {
     })
 }
 
+/// 80×24 `remote-host` plate. Not the 120×40 plate. Later seeks and other sizes stay off it.
+pub fn remote_host_80x24_plate(w: &World, width: u16, height: u16) -> Option<ParityDiscovery> {
+    if width != 80 || height != 24 {
+        return None;
+    }
+    let wide = remote_host_tag(w)?;
+    let preview = vec![
+        PreviewLine {
+            label: "Runs",
+            value: "journalctl -u payments-worker -f -n 200".into(),
+            tone: PreviewTone::Secondary,
+            wraps: false,
+        },
+        PreviewLine {
+            label: "Scope",
+            value: "on prod-eu-1".into(),
+            tone: PreviewTone::Text,
+            wraps: false,
+        },
+        PreviewLine {
+            label: "Risk",
+            value: "read-only".into(),
+            tone: PreviewTone::Meta,
+            wraps: false,
+        },
+    ];
+    Some(ParityDiscovery {
+        lines: wide.lines,
+        preview,
+        preview_meta: String::new(),
+        actions: Vec::new(),
+        suggested_len: wide.suggested_len,
+    })
+}
+
 /// No-history `hard-cases` plate. Only tick 40.
 pub fn hard_cases_tag(w: &World) -> Option<ParityDiscovery> {
     if !hard_cases_tag_frame(w) {
@@ -3554,6 +3589,7 @@ mod tests {
             && !line.wraps));
         world.seek(4_000);
         assert!(remote_host_tag(&world).is_none());
+        assert!(remote_host_80x24_plate(&world, 80, 24).is_none());
         assert!(!remote_host_tag_frame(&world));
         for scenario in [
             Scenario::ActivitiesMulti,
@@ -3566,6 +3602,34 @@ mod tests {
             other.seek(40);
             assert!(remote_host_tag(&other).is_none(), "{}", scenario.name());
         }
+    }
+
+    #[test]
+    fn remote_host_80x24_plate_is_only_the_narrow_tick_40_frame() {
+        let mut world = fixtures::world_for(Scenario::RemoteHost);
+        assert!(remote_host_80x24_plate(&world, 80, 24).is_none());
+        world.seek(40);
+        assert!(remote_host_80x24_plate(&world, 120, 40).is_none());
+        assert!(remote_host_80x24_plate(&world, 80, 40).is_none());
+        assert!(remote_host_80x24_plate(&world, 81, 24).is_none());
+        assert!(remote_host_80x24_plate(&world, 100, 30).is_none());
+        let view = remote_host_80x24_plate(&world, 80, 24).expect("80x24 plate");
+        assert!(view.lines.iter().any(|line| matches!(
+            line,
+            FinderLine::Row(row) if row.selected && row.title == "Follow payments-worker journal"
+        )));
+        let runs = view
+            .preview
+            .iter()
+            .find(|line| line.label == "Runs")
+            .unwrap();
+        assert_eq!(runs.value, "journalctl -u payments-worker -f -n 200");
+        assert_ne!(remote_host_tag(&world).as_ref(), Some(&view));
+        world.seek(4_000);
+        assert!(remote_host_80x24_plate(&world, 80, 24).is_none());
+        let mut other = fixtures::world_for(Scenario::HardCases);
+        other.seek(40);
+        assert!(remote_host_80x24_plate(&other, 80, 24).is_none());
     }
 
     #[test]
