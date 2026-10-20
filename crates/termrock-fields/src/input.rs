@@ -874,6 +874,7 @@ pub struct TextInput<'a> {
     pointer_enabled: bool,
     status: Status,
     ov: PartStyle<'a>,
+    style_target: Option<(Family, Variant, Part)>,
 }
 
 impl fmt::Debug for TextInput<'_> {
@@ -918,6 +919,7 @@ impl<'a> TextInput<'a> {
             pointer_enabled: true,
             status: Status::Ready,
             ov: PartStyle::new(),
+            style_target: None,
         }
     }
 
@@ -1003,6 +1005,14 @@ impl<'a> TextInput<'a> {
         self
     }
 
+    /// Resolve this field's parts through another component's presentation contract.
+    #[doc(hidden)]
+    #[must_use]
+    pub const fn style_target(mut self, family: Family, variant: Variant, part: Part) -> Self {
+        self.style_target = Some((family, variant, part));
+        self
+    }
+
     #[must_use]
     pub const fn slot(mut self, p: Part, f: SlotFn<'a>) -> Self {
         self.ov = self.ov.slot(p, f);
@@ -1028,6 +1038,7 @@ impl<'a> TextInput<'a> {
             pointer_enabled: self.pointer_enabled,
             status: self.status,
             ov: self.ov,
+            style_target: self.style_target,
         }
     }
 
@@ -1289,8 +1300,11 @@ impl<'a> TextInput<'a> {
                 ));
         let ov = self.ov;
         let id = self.id;
+        let style_target = self.style_target;
         let style = |ui: &mut Ui<'_>, part: Part| {
-            ov.style(ui, id, Family::INPUT, Variant::DEFAULT, part, live)
+            let (family, variant, part) =
+                style_target.unwrap_or((Family::INPUT, Variant::DEFAULT, part));
+            ov.style(ui, id, family, variant, part, live)
         };
         let field = style(ui, Part::FIELD);
         ui.fill(area, field.style);
@@ -1376,12 +1390,17 @@ impl<'a> TextInput<'a> {
                                     as u16,
                                 height: 1,
                             };
-                            let selected = ov.style(
-                                ui,
-                                id,
+                            let (family, variant, part) = style_target.unwrap_or((
                                 Family::INPUT,
                                 Variant::DEFAULT,
                                 Part::ROW,
+                            ));
+                            let selected = ov.style(
+                                ui,
+                                id,
+                                family,
+                                variant,
+                                part,
                                 live | StateFlags::SELECTED,
                             );
                             ui.fill(selected_area, selected.style);
@@ -1946,6 +1965,38 @@ mod tests {
         let idle = render(false, false);
         assert_eq!(render(true, false), idle, "stale runtime EDITING leaked");
         assert_ne!(render(false, true), idle, "real edit state was not styled");
+    }
+
+    #[test]
+    fn hosted_query_presentation_keeps_placeholder_and_disabled_state_styles() {
+        let render = |disabled| {
+            let theme = Theme::junie().override_family(Family::PICKER, |recipe| {
+                recipe
+                    .part(Part::QUERY)
+                    .base(StylePatch::new().set_fg(crate::theme::Role::Warning));
+                recipe.part(Part::QUERY).when(
+                    StateFlags::DISABLED,
+                    StylePatch::new().set_fg(crate::theme::Role::Danger),
+                );
+            });
+            let mut runtime = Runtime::new(Stub::default(), theme);
+            let mut buffer = Buffer::empty(SCREEN);
+            runtime
+                .draw_scene(SCREEN, &mut buffer, |ui, area| {
+                    TextInput::new(ID)
+                        .disabled(disabled)
+                        .placeholder("Filter…")
+                        .style_target(Family::PICKER, Variant::DEFAULT, Part::QUERY)
+                        .draw(ui, area, &TextInputState::default());
+                })
+                .commit_presented();
+            buffer
+        };
+
+        let enabled = render(false);
+        let disabled = render(true);
+        assert_eq!(enabled[(2, SCREEN.y)].symbol(), "F");
+        assert_ne!(enabled[(2, SCREEN.y)].fg, disabled[(2, SCREEN.y)].fg);
     }
 
     #[test]

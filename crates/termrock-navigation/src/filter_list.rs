@@ -502,13 +502,17 @@ fn contains_substring_folded(label: &str, query: &str) -> bool {
 impl<T: AsItem, R: RowFn<T>> FilterList<'_, T, R> {
     pub fn draw_query(&self, ui: &mut Ui<'_>, area: Rect, st: &FilterListState, placeholder: &str) {
         ui.register_part(self.id, PartRef::of(Part::QUERY), area);
-        TextInput::new(self.id)
+        let mut input = TextInput::new(self.id)
             .value(&st.query_value)
             .placeholder(placeholder)
             .placeholder_while_editing(true)
             .pointer_enabled(false)
-            .patch_part(self.parts)
-            .draw(ui, area, &st.query_editor);
+            .style_target(Family::PICKER, Variant::DEFAULT, Part::QUERY)
+            .patch_part(self.parts);
+        if let Some(patch) = self.patch {
+            input = input.patch(patch);
+        }
+        input.draw(ui, area, &st.query_editor);
     }
 
     pub fn semantic_width(items: &[T]) -> u16 {
