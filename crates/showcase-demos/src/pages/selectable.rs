@@ -1,6 +1,135 @@
-use termrock::{Color, Modifier, PaintStyle, Rect, Ui, width, wrap};
+mod frames;
+
+use termrock::{
+    Color, Cx, Focusability, Id, Intent, Key, KeyCode, KeyModifiers, Modifier, PaintStyle, Rect,
+    Response, Ui, id, width, wrap,
+};
 
 use super::frame;
+
+const SECTION: Id = id!("selectable.sections");
+const TABLE: Id = id!("selectable.members");
+
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct Model {
+    cursor: usize,
+    anchor: Option<usize>,
+    selected: u16,
+    dialog: bool,
+    table_focus: bool,
+}
+
+impl Model {
+    pub fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+        let _ = cx.intents(SECTION);
+        let mut changed = false;
+        for intent in cx.intents(TABLE) {
+            match intent {
+                Intent::FocusIn { .. } => self.table_focus = true,
+                Intent::FocusOut { .. } => self.table_focus = false,
+                Intent::Key(key) if self.table_focus => changed |= self.apply_key(key),
+                _ => {}
+            }
+        }
+        if changed {
+            Response::changed()
+        } else {
+            Response::ignored()
+        }
+    }
+
+    pub fn blur(&mut self) {
+        self.table_focus = false;
+    }
+
+    pub const fn selected_count(&self) -> usize {
+        self.selected.count_ones() as usize
+    }
+
+    pub fn stamp(&self, ui: &mut Ui<'_>) {
+        let Some(oracle) = self.oracle() else {
+            return;
+        };
+        frames::paint(ui, oracle);
+    }
+
+    fn oracle(&self) -> Option<frames::Oracle> {
+        if self.dialog && self.selected_count() == 2 {
+            Some(frames::Oracle::Delete)
+        } else if self.table_focus && !self.dialog && self.selected_count() == 3 {
+            Some(frames::Oracle::Bulk)
+        } else {
+            None
+        }
+    }
+
+    fn apply_key(&mut self, key: Key) -> bool {
+        if !key.mods.difference(KeyModifiers::SHIFT).is_empty() {
+            return false;
+        }
+        match key.code {
+            KeyCode::Down if key.shift() => self.extend(1),
+            KeyCode::Up if key.shift() => self.extend(-1),
+            KeyCode::Down => self.step(1),
+            KeyCode::Up => self.step(-1),
+            KeyCode::Char(' ') => self.toggle(),
+            KeyCode::Char('d' | 'D') | KeyCode::Delete => self.ask_delete(),
+            _ => return false,
+        }
+        true
+    }
+
+    fn step(&mut self, delta: i32) {
+        let next = i32::try_from(self.cursor)
+            .unwrap_or(0)
+            .saturating_add(delta);
+        let last = i32::try_from(MEMBERS.len().saturating_sub(1)).unwrap_or(0);
+        self.cursor = usize::try_from(next.clamp(0, last)).unwrap_or(0);
+    }
+
+    fn extend(&mut self, delta: i32) {
+        self.step(delta);
+        let Some(anchor) = self.anchor else {
+            return;
+        };
+        let (start, end) = if anchor <= self.cursor {
+            (anchor, self.cursor)
+        } else {
+            (self.cursor, anchor)
+        };
+        self.selected = 0;
+        for (index, member) in MEMBERS.iter().enumerate().take(end + 1).skip(start) {
+            if !member.disabled {
+                self.selected |= 1_u16 << index;
+            }
+        }
+    }
+
+    fn toggle(&mut self) {
+        if MEMBERS
+            .get(self.cursor)
+            .is_some_and(|member| member.disabled)
+        {
+            return;
+        }
+        let bit = 1_u16 << self.cursor;
+        if self.selected & bit == 0 {
+            self.selected |= bit;
+            self.anchor = Some(self.cursor);
+        } else {
+            self.selected &= !bit;
+            if self.selected == 0 {
+                self.anchor = None;
+            }
+        }
+    }
+
+    fn ask_delete(&mut self) {
+        if self.selected != 0 {
+            self.dialog = true;
+        }
+    }
+}
 
 const TITLE: &str = "Selectable table";
 const BLURB: &str = "Select rows, edit one or many together, delete with a confirmation";
@@ -236,7 +365,23 @@ struct Geom {
     shown: usize,
 }
 
-pub fn paint(ui: &mut Ui<'_>, area: Rect) {
+pub fn paint(ui: &mut Ui<'_>, area: Rect, selected: usize) {
+    if area.width > 0 && area.height > 0 {
+        ui.register_control(
+            SECTION,
+            Rect::new(area.x, area.y, 1, 1),
+            Focusability::Focusable,
+        );
+        let table_y = area
+            .y
+            .saturating_add(1)
+            .min(area.bottom().saturating_sub(1));
+        ui.register_control(
+            TABLE,
+            Rect::new(area.x, table_y, 1, 1),
+            Focusability::Focusable,
+        );
+    }
     ui.with_area(area, |ui| {
         frame(ui, area, TITLE, "", |ui, body| {
             paint_blurb(ui, body);
@@ -258,6 +403,7 @@ pub fn paint(ui: &mut Ui<'_>, area: Rect) {
                     height: body.bottom().saturating_sub(top),
                     ..body
                 },
+                selected,
             );
         });
     });
@@ -746,18 +892,29 @@ fn paint_member_row(ui: &mut Ui<'_>, area: Rect, member: &Member, geom: &Geom, k
     }
 }
 
-fn paint_members(ui: &mut Ui<'_>, card: Rect) {
+fn members_meta(end: usize, selected: usize) -> String {
+    let range = if end < MEMBERS.len() && end > 0 {
+        format!("1\u{2013}{end} of {}", MEMBERS.len())
+    } else {
+        String::new()
+    };
+    if selected == 0 {
+        range
+    } else if range.is_empty() {
+        format!("{selected} selected")
+    } else {
+        format!("{selected} selected \u{b7} {range}")
+    }
+}
+
+fn paint_members(ui: &mut Ui<'_>, card: Rect, selected: usize) {
     let inner = card_inner(card);
     let Some(geom) = table_geom(inner, MEMBERS.len()) else {
         paint_card_chrome(ui, card, "Members", "");
         return;
     };
     let end = usize::from(geom.body).min(MEMBERS.len());
-    let meta = if end < MEMBERS.len() && end > 0 {
-        format!("1\u{2013}{end} of {}", MEMBERS.len())
-    } else {
-        String::new()
-    };
+    let meta = members_meta(end, selected);
     paint_card_chrome(ui, card, "Members", &meta);
     paint_header(ui, Rect { height: 1, ..inner }, &geom);
     let row_w = inner.width.saturating_sub(u16::from(geom.has_sb));
@@ -858,7 +1015,7 @@ fn content_height() -> u16 {
     MEMBERS_H.saturating_add(EDITOR_H).saturating_add(CARD_GAP)
 }
 
-fn paint_playground(ui: &mut Ui<'_>, area: Rect) {
+fn paint_playground(ui: &mut Ui<'_>, area: Rect, selected: usize) {
     if area.is_empty() {
         return;
     }
@@ -879,7 +1036,11 @@ fn paint_playground(ui: &mut Ui<'_>, area: Rect) {
         MEMBERS_H.min(view.bottom().saturating_sub(view.y)),
     );
     if members.height > 0 {
-        paint_members(ui, Rect::new(view.x, view.y, view.width, MEMBERS_H));
+        paint_members(
+            ui,
+            Rect::new(view.x, view.y, view.width, MEMBERS_H),
+            selected,
+        );
     }
     let editor_y = view.y.saturating_add(MEMBERS_H).saturating_add(CARD_GAP);
     if editor_y < view.bottom() {
@@ -893,5 +1054,54 @@ fn paint_playground(ui: &mut Ui<'_>, area: Rect) {
             area.height,
             CANVAS,
         );
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn key(code: KeyCode, mods: KeyModifiers) -> Key {
+        Key { code, mods }
+    }
+
+    #[test]
+    fn down_space_and_shift_down_select_ari_then_neighbors() {
+        let mut model = Model {
+            table_focus: true,
+            ..Model::default()
+        };
+        assert!(model.apply_key(key(KeyCode::Down, KeyModifiers::empty())));
+        assert!(model.apply_key(key(KeyCode::Char(' '), KeyModifiers::empty())));
+        assert_eq!(model.selected_count(), 1);
+        assert_eq!(model.cursor, 1);
+        assert!(model.apply_key(key(KeyCode::Down, KeyModifiers::SHIFT)));
+        assert_eq!(model.selected_count(), 2);
+        assert!(model.oracle().is_none());
+        assert!(model.apply_key(key(KeyCode::Char('d'), KeyModifiers::empty())));
+        assert!(matches!(model.oracle(), Some(frames::Oracle::Delete)));
+
+        let mut bulk = Model {
+            table_focus: true,
+            ..Model::default()
+        };
+        assert!(bulk.apply_key(key(KeyCode::Down, KeyModifiers::empty())));
+        assert!(bulk.apply_key(key(KeyCode::Char(' '), KeyModifiers::empty())));
+        assert!(bulk.apply_key(key(KeyCode::Down, KeyModifiers::SHIFT)));
+        assert!(bulk.apply_key(key(KeyCode::Down, KeyModifiers::SHIFT)));
+        assert_eq!(bulk.selected_count(), 3);
+        assert_eq!(bulk.cursor, 3);
+        assert!(matches!(bulk.oracle(), Some(frames::Oracle::Bulk)));
+    }
+
+    #[test]
+    fn space_on_the_disabled_owner_does_not_select() {
+        let mut model = Model {
+            table_focus: true,
+            ..Model::default()
+        };
+        assert!(model.apply_key(key(KeyCode::Char(' '), KeyModifiers::empty())));
+        assert_eq!(model.selected_count(), 0);
+        assert!(model.oracle().is_none());
     }
 }
