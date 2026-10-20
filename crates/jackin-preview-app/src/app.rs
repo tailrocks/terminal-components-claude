@@ -284,7 +284,6 @@ mod historical_editor_save;
 mod historical_hard_cases_80;
 mod historical_hard_launch_locked;
 mod historical_hard_launch_picker;
-mod historical_help_overlay;
 mod historical_inspect;
 mod historical_intro_f300;
 mod historical_launch_picker;
@@ -300,6 +299,7 @@ mod historical_settings_save;
 mod historical_settings_trust;
 mod historical_usage_detail;
 mod historical_usage_overview;
+mod manager_help;
 use historical_paint::HistoricalPalette;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -6140,7 +6140,7 @@ impl App {
         }
     }
 
-    fn draw_historical_manager(&self, ui: &mut Ui<'_>, area: Rect, hard: bool) {
+    fn draw_historical_manager(&self, ui: &mut Ui<'_>, area: Rect, hard: bool, place_cursor: bool) {
         // Approved 120×40 truecolor still uses the pre-migration junie grays.
         // Keep paper and mono on the live palette so their digests stay put.
         let legacy = ui.theme_ref().capability.color == termrock::ColorLevel::TrueColor
@@ -6507,6 +6507,13 @@ impl App {
                 put(ui, x, 39, text, style);
             }
         }
+        self.place_manager_cursor(ui, area, place_cursor);
+    }
+
+    fn place_manager_cursor(&self, ui: &mut Ui<'_>, area: Rect, place: bool) {
+        if !place {
+            return;
+        }
         if ui
             .state(MANAGER_LIST)
             .contains(termrock::StateFlags::FOCUSED)
@@ -6523,7 +6530,7 @@ impl App {
         // title, the workspace list is inactive, and the hints are the drawer.
         let legacy = ui.theme_ref().capability.color == termrock::ColorLevel::TrueColor
             && ui.theme_ref().color.accent == termrock::Color::Rgb(0x48, 0xe0, 0x54);
-        self.draw_historical_manager(ui, area, false);
+        self.draw_historical_manager(ui, area, false, true);
         if !legacy {
             return;
         }
@@ -6610,7 +6617,7 @@ impl App {
         if !legacy {
             return;
         }
-        self.draw_historical_manager(ui, area, false);
+        self.draw_historical_manager(ui, area, false, true);
         let palette = HistoricalPalette::new(ui);
         let chrome = palette.primary_on_canvas;
         let secondary = palette.secondary_on_canvas;
@@ -9107,9 +9114,54 @@ impl App {
         if !self.historical_help_overlay(ui.theme_ref(), screen) {
             return;
         }
-        // Page paint only. The approved frame hides the cursor, so this
-        // path must not call set_cursor or set_bar_cursor.
-        historical_help_overlay::paint(ui);
+        // The approved frame hides the cursor. Paint the manager, the shared
+        // help card, then dim only the underlay. Do not call set_cursor or
+        // set_bar_cursor.
+        self.draw_historical_manager(ui, screen, false, false);
+        // White primary dims to muted. The approved title is faint, which is
+        // where backdrop sends secondary ink.
+        ui.paint_str(
+            Rect::new(3, 2, 12, 1),
+            " Workspaces ",
+            PaintStyle::new().fg(termrock::Color::Rgb(0xb3, 0xb3, 0xb3)),
+        );
+        manager_help::draw(ui, screen, &HelpOverlayState::default());
+        manager_help::dim_underlay(ui, screen);
+        let hints = HintLayer {
+            hints: vec![
+                Hint {
+                    key: termrock::HintKey::Label("↑↓"),
+                    label: "Scroll",
+                    priority: 90,
+                },
+                Hint {
+                    key: termrock::HintKey::Chord(Chord::key(KeyCode::Esc)),
+                    label: "Close",
+                    priority: 80,
+                },
+            ],
+            badge: None,
+            status: None,
+            centered: false,
+        };
+        let footer = [(
+            Part::CONTAINER,
+            termrock::StylePatch::new()
+                .set_fg(termrock::Role::Custom(termrock::Color::Rgb(
+                    0xff, 0xff, 0xff,
+                )))
+                .set_bg(termrock::Role::Custom(termrock::Color::Rgb(0, 0, 0))),
+        )];
+        HintBar::new(APP.sub("hint"), &hints)
+            .patch_part(&footer)
+            .draw(
+                ui,
+                Rect {
+                    y: screen.bottom().saturating_sub(1),
+                    height: 1,
+                    ..screen
+                },
+            );
     }
 }
 
@@ -9267,7 +9319,12 @@ impl TuiApp for App {
             if detail_tab {
                 self.draw_historical_detail_drawer(ui, full);
             } else {
-                self.draw_historical_manager(ui, full, self.world.scenario == Scenario::HardCases);
+                self.draw_historical_manager(
+                    ui,
+                    full,
+                    self.world.scenario == Scenario::HardCases,
+                    true,
+                );
             }
         } else if historical_manager
             && self.world.scenario == Scenario::Returning
