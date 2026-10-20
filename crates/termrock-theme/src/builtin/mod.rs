@@ -581,7 +581,7 @@ fn grid(m: &mut PartMap<PartRecipe>) {
     row_like(m);
 
     m.entry(Part::ICON).base = p();
-    part(m, Part::ROW, p());
+    part(m, Part::ROW, p()).when(StateFlags::FOCUSED, p().add(Modifier::BOLD));
     part(m, Part::CELL, p())
         .when(
             StateFlags::ACTIVE,
