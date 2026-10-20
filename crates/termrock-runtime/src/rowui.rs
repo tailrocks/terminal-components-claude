@@ -69,9 +69,14 @@ fn resolve_row_part(
         let owner_ink = |role: Option<(Role, crate::theme::Surface)>| {
             role.is_some_and(|(role, _)| matches!(role, Role::Custom(_)))
         };
-        // Built-in fill ink is highlight. An owner Custom role still wins.
+        // Built-in fill ink is highlight. An explicit owner role still wins.
         if !owner_ink(natural.style.fg_role) && !owner_ink(natural.style.bg_role) {
-            let force = selected_part_patch(part);
+            // The cursor fill supplies defaults. Explicit row-part styling stays
+            // above that fill for every style channel, including built-in roles.
+            let force = patch.map_or_else(
+                || selected_part_patch(part),
+                |patch| selected_part_patch(part).merge(patch),
+            );
             return ui.style_defaults(
                 family,
                 variant,
@@ -1060,6 +1065,38 @@ mod tests {
             page.cell((0, 0))
                 .is_some_and(|cell| !cell.modifier.contains(Modifier::BOLD))
         );
+    }
+
+    #[test]
+    fn focused_fill_keeps_explicit_builtin_role_and_modifier() {
+        let theme = Theme::junie();
+        let mut frame = FrameState::default();
+        frame.reset(1, SCREEN);
+        let mut page = Buffer::empty(SCREEN);
+        let mut core = UiCore::default();
+        let last = LastFrame::default();
+        let patch = StylePatch::new()
+            .set_bg(Role::Danger)
+            .add(Modifier::UNDERLINED);
+        {
+            let mut ui = Ui::new(&mut frame, &mut page, &mut core, &theme, &last);
+            let mut row = RowUi::new_with_patches(
+                &mut ui,
+                OWNER,
+                Family::LIST,
+                Variant::DEFAULT,
+                StateFlags::FOCUSED,
+                ItemKey::index(0),
+                Rect::new(0, 0, 20, 1),
+                None,
+                Some(patch),
+            )
+            .with_cursor_style(CursorStyle::Fill);
+            row.label("danger");
+        }
+        let label = page.cell((0, 0)).expect("focused label");
+        assert_eq!(label.bg, theme.color.danger);
+        assert!(label.modifier.contains(Modifier::UNDERLINED));
     }
 
     #[test]
