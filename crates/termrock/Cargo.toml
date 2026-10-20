@@ -52,3 +52,7 @@ required-features = ["testing"]
 [[test]]
 name = "master_detail_consumer"
 required-features = ["testing"]
+
+[[test]]
+name = "nav_list_composition_consumer"
+required-features = ["testing"]

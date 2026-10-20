@@ -3,7 +3,7 @@ use core::marker::PhantomData;
 
 use ratatui_core::layout::Rect;
 
-use super::{Acc, PartStyle, SlotFn, cell_at};
+use super::{Acc, PartStyle, SlotFn};
 use crate::measure::{Constraints, Size};
 use crate::scroll::ScrollState;
 use termrock_collections::collection::{
@@ -19,7 +19,7 @@ use termrock_runtime::rowui::{RowFn, RowUi};
 use termrock_runtime::scroll_region::ScrollRegion;
 use termrock_runtime::ui::{Cx, FrameRead, Ui};
 use termrock_text::width;
-use termrock_theme::{Family, Slot, StylePatch, Variant};
+use termrock_theme::{CursorStyle, Family, StylePatch, Variant};
 
 pub type BadgeFn<'a, T> = &'a dyn Fn(&T) -> Option<&str>;
 
@@ -236,6 +236,8 @@ pub struct NavList<'a, T, K = ByIndex, R = DefaultRow> {
     mode: NavMode,
     compact: Option<bool>,
     header_indent: u16,
+    content_gap: u16,
+    cursor_style: CursorStyle,
     render_row: Option<NavRowRenderer<'a, T>>,
     section: Option<&'a dyn Fn(&T) -> &str>,
     icon: Option<&'a dyn Fn(&T) -> &str>,
@@ -270,6 +272,8 @@ impl<T> NavList<'_, T, ByIndex, DefaultRow> {
             mode: NavMode::Full,
             compact: Some(false),
             header_indent: 1,
+            content_gap: 1,
+            cursor_style: CursorStyle::Bar,
             render_row: None,
             section: None,
             icon: None,
@@ -293,6 +297,7 @@ impl<'a, T, K, R> NavList<'a, T, K, R> {
     }
     pub const PARTS: &'static [Part] = &[
         Part::CONTAINER,
+        Part::ROW,
         Part::GUTTER,
         Part::MARKER,
         Part::ICON,
@@ -356,6 +361,25 @@ impl<'a, T, K, R> NavList<'a, T, K, R> {
         self
     }
 
+    /// Set the number of cells between the fixed leading slots and row content.
+    ///
+    /// The default of one preserves the existing content origin at `x + 4`.
+    /// A gap of zero starts content at `x + 3`; gutter, marker and icon slots
+    /// keep their existing positions.
+    #[must_use]
+    pub const fn content_gap(mut self, cells: u16) -> Self {
+        self.content_gap = cells;
+        self
+    }
+
+    /// Choose how the active row is presented. The default shows the theme's
+    /// focus gutter; `Fill` uses the shared row-fill treatment.
+    #[must_use]
+    pub const fn cursor_style(mut self, style: CursorStyle) -> Self {
+        self.cursor_style = style;
+        self
+    }
+
     #[must_use]
     pub fn render_row(mut self, renderer: NavRowRenderer<'a, T>) -> Self {
         self.render_row = Some(renderer);
@@ -400,6 +424,8 @@ impl<'a, T, K, R> NavList<'a, T, K, R> {
             mode: self.mode,
             compact: self.compact,
             header_indent: self.header_indent,
+            content_gap: self.content_gap,
+            cursor_style: self.cursor_style,
             render_row: self.render_row,
             section: self.section,
             icon: self.icon,
@@ -422,6 +448,8 @@ impl<'a, T, K, R> NavList<'a, T, K, R> {
             mode: self.mode,
             compact: self.compact,
             header_indent: self.header_indent,
+            content_gap: self.content_gap,
+            cursor_style: self.cursor_style,
             render_row: self.render_row,
             section: self.section,
             icon: self.icon,
@@ -920,104 +948,41 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> NavList<'_, T, K, R> {
     }
 
     fn paint_row(&self, ui: &mut Ui<'_>, rect: Rect, flags: StateFlags, key: ItemKey, item: &T) {
-        let rs = self.ov.style(
+        let mut row = RowUi::new_with_author_style(
             ui,
             self.id,
             Family::LIST,
             Variant::DEFAULT,
-            Part::CONTAINER,
             flags,
-        );
-        ui.fill(rect, rs.style);
-        self.paint_cell_part(ui, cell_at(rect, rect.x), Part::GUTTER, flags, None);
-        self.paint_cell_part(
-            ui,
-            cell_at(rect, rect.x.saturating_add(1)),
-            Part::MARKER,
-            flags,
-            None,
-        );
+            key,
+            rect,
+            self.ov,
+        )
+        .with_author_parts(Self::PARTS)
+        .with_cursor_style(self.cursor_style);
+        row.leading_part(Part::GUTTER, 1, 0, |_| {});
+        row.leading_part(Part::MARKER, 1, 0, |_| {});
         let icon = self.icon.map(|f| f(item));
-        self.paint_cell_part(
-            ui,
-            cell_at(rect, rect.x.saturating_add(2)),
-            Part::ICON,
-            flags,
-            icon,
-        );
+        row.leading_part(Part::ICON, 1, self.content_gap, |cell| {
+            if let Some(icon) = icon {
+                cell.text(icon);
+            }
+        });
         if self.mode == NavMode::Collapsed {
             return;
         }
-        let body = Rect {
-            x: rect.x.saturating_add(4),
-            width: rect.width.saturating_sub(4),
-            ..rect
-        };
-        if body.is_empty() {
-            return;
-        }
         let badge = self.badge.and_then(|f| f(item)).filter(|s| !s.is_empty());
-        let (row_body, badge_area) = badge.map_or((body, Rect::ZERO), |text| {
-            let badge_width = width(text).min(body.width);
-            let gap = u16::from(badge_width < body.width);
-            (
-                Rect {
-                    width: body.width.saturating_sub(badge_width).saturating_sub(gap),
-                    ..body
-                },
-                Rect {
-                    x: body.right().saturating_sub(badge_width),
-                    width: badge_width,
-                    ..body
-                },
-            )
-        });
-        if !row_body.is_empty() {
-            let mut r = RowUi::new_with_patches(
-                ui,
-                self.id,
-                Family::LIST,
-                Variant::DEFAULT,
-                flags,
-                key,
-                row_body,
-                self.ov.part_patch(Part::CONTAINER),
-                self.ov.part_patch(Part::LABEL),
-            );
-            self.row.row(item, &mut r);
-        }
         if let Some(text) = badge {
-            self.paint_cell_part(ui, badge_area, Part::BADGE, flags, Some(text));
+            let available = row.remaining_width();
+            let badge_width = width(text).min(available);
+            let gap = u16::from(badge_width < available);
+            row.trailing_part(Part::BADGE, badge_width, gap, |cell| {
+                cell.text(text);
+            });
         }
-    }
-
-    fn paint_cell_part(
-        &self,
-        ui: &mut Ui<'_>,
-        cell: Rect,
-        part: Part,
-        flags: StateFlags,
-        text: Option<&str>,
-    ) {
-        if let Some(f) = self.ov.slot_for(part) {
-            f(ui, cell);
-            return;
-        }
-        let r = self
-            .ov
-            .style(ui, self.id, Family::LIST, Variant::DEFAULT, part, flags);
-        match r.glyph {
-            Slot::Set(g) => {
-                ui.glyph(cell, g, r.style);
-            }
-            Slot::Inherit => match text {
-                Some(t) if !t.is_empty() => {
-                    ui.fill(cell, r.style);
-                    ui.paint_str(cell, t, r.style);
-                }
-                _ => ui.fill(cell, r.style),
-            },
-            Slot::Clear => ui.fill(cell, r.style),
+        if row.has_space() {
+            row.begin_content();
+            self.row.row(item, &mut row);
         }
     }
 
@@ -1025,7 +990,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> NavList<'_, T, K, R> {
         Size {
             min: (
                 match self.mode {
-                    NavMode::Full => 12,
+                    NavMode::Full => 11_u16.saturating_add(self.content_gap),
                     NavMode::Collapsed => 4,
                 },
                 1,
