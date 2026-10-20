@@ -21,10 +21,22 @@ scenario's explicit styles yields these full cells:
 | top modal paint | `U` | `#ffffff` | terminal default | default | none |
 
 The regression asserts those cell properties for both layer orders and both
-paint paths, plus absence of a cursor. It makes the former compositor behavior
-fail: before correction, focused `cargo nextest` failed at the `X` assertion
-with actual `"X"` and the obsolete expected `" "`. No production code,
-snapshot, stored approval, or aggregate fingerprint changed.
+paint paths, plus absence of a cursor. Evidence separates two different
+results:
+
+- Before the oracle correction, the current candidate failed the old assertion:
+  actual `"X"`, expected the obsolete `" "`. This showed the assertion was
+  stale; by itself, it did not demonstrate the old compositor's behavior.
+- Reviewer replayed the new assertions against the genuine old `dim_layer`
+  compositor at commit `1a947a251ab9b045610b47729bf481419b9fca8d`. It failed
+  with actual `(" ", Rgb(0, 0, 0), Rgb(39, 39, 42), Reset, NONE)` and expected
+  `("X", Rgb(38, 38, 38), Rgb(39, 39, 42), Reset, NONE)`. This is the negative
+  regression proof. Receipt: `/private/tmp/termrock-nested-modal-probes-before-1a947/before.log`.
+- On corrected commit `27de89d3af887b200dc813514fc1680d68aa78f1`, reviewer ran
+  the same external assertions successfully. Native focused nextest also
+  passed 1/1, and the complete `theme_holla_states` target passed 16/16.
+
+No production code, snapshot, stored approval, or aggregate fingerprint changed.
 
 Independent corroboration: reviewer `section_review` diagnosed this stale
 expectation from the frozen `ctx.rs:658-688` and `theme.rs:1243-1302` behavior.
