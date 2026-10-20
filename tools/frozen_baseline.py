@@ -32,6 +32,7 @@ MAX_TIMEOUT = 230
 EXPECTED_SCENARIOS = 28_895
 EXPECTED_ORDINARY_TESTS = 20
 EXPECTED_CLI_ORDINARY_TESTS = frozenset({
+    "isolation::env_isolation",
     "modes::showcase_boot_sets_terminal_modes",
     "modes::tablepro_boot_sets_terminal_modes",
     "modes::holla_boot_sets_terminal_modes",
@@ -944,7 +945,7 @@ def ordinary_test_groups(inventory: dict[str, bool]) -> tuple[list[str], list[st
     selected = sorted(name for name, ignored in inventory.items() if not ignored)
     if len(selected) != EXPECTED_ORDINARY_TESTS:
         raise RunnerError(f"ordinary test inventory changed: {len(selected)}; expected {EXPECTED_ORDINARY_TESTS}")
-    cli = sorted(name for name in selected if name.startswith(("modes::", "startup_input::", "startup_resize::")))
+    cli = sorted(name for name in selected if name == "isolation::env_isolation" or name.startswith(("modes::", "startup_input::", "startup_resize::")))
     if set(cli) != EXPECTED_CLI_ORDINARY_TESTS:
         raise RunnerError(f"CLI ordinary-check inventory changed: expected {sorted(EXPECTED_CLI_ORDINARY_TESTS)}, got {cli}")
     return [name for name in selected if name not in EXPECTED_CLI_ORDINARY_TESTS], cli
