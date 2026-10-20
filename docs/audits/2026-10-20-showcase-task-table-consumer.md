@@ -17,20 +17,28 @@ data: IDs use `#` plus four digits; duration uses seconds below one minute and
 mapping: Running is `▸ Running`, Failed is error red, Paused is warning amber,
 Queued is muted, and Done is secondary. Zero changes is muted.
 
-The public `termrock-grid::Table` and `TableColumn` API is available in
-component commit `caf8eb20ff0dd706debc1c7f1681440eea36960a`. The consumer model
-now keeps task data in source order, uses task IDs as stable keys, formats all
-seven cells, and maps baseline tones. A focused nextest verifies source order,
-IDs, cell text, and all status tones. Component stage two is adding visible-row
-range and status metadata accessors needed by the frozen task card. The consumer
-must delegate layout, sorting, scrolling, focus, hit testing, and activation to
-`Table`. Activation must map the selected task's domain ID into the existing
-page status response. Existing private geometry and painting remain in place
-until paired real-CLI frames prove the public component renders the same cells
-and cursor state.
+The public `termrock-grid::Table` and `TableColumn` APIs are available through
+the shared component commits through `a1b55a5eff2f3fde7b63e478379f76151f525532`.
+The task consumer now keeps task data in source order, uses task IDs as stable
+keys, formats all seven cells, declares baseline column sizing/alignment and
+numeric display sorting, and delegates task rendering, input, focus, hit
+testing, sorting, scrolling and activation to `Table`. Activation maps the
+selected task ID to the existing page status response. The former private task
+row painter and task horizontal scrollbar were removed. Reviewer and Checks
+cards still use their existing private rendering and are outside this bounded
+consumer change.
 
-Current gap: `TablesPage::update` ignores input, and its task table paints
-coordinates and row order privately. Existing in-process tests cover static
-content and private geometry only. They do not prove header sorting, keyboard
-navigation, pointer hit regions, scrolling, or baseline frame parity. No parity
-claim is made by this audit.
+`cargo nextest run -p showcase-demos tables::tests --no-fail-fast` currently
+passes 5 of 6 focused tests. Source order, IDs, cell values/tones, table column
+configuration, and Enter activation pass. The remaining test correctly fails:
+the shared theme paints `Role::Danger` as RGB `(228,69,69)` while the frozen
+task status is `(240,93,93)`. Do not change the expectation or paint around the
+component; the shared style/theme API needs an exact-color solution.
+
+The pinned paired extension runner captured and replayed all six frozen
+120x40 truecolor workflows (24 ordered receipts per workflow), but its candidate
+pilot used the earlier candidate before this consumer integration. That
+candidate differed in all six workflows; evidence is recorded in
+`/Users/donbeave/Projects/termrock-live-extension-pair-20261020/live-paired/1792492720783767000-c06708be5d1e/report.json`.
+It is not proof of the current integration. Current consumer parity remains
+unverified and incomplete until a fresh candidate build passes paired frames.
