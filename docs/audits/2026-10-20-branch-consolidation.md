@@ -1,8 +1,8 @@
 # Branch consolidation audit (in progress)
 
-Inventory snapshot: **96 remote branches**, observed 2026-10-20 16:07:32 UTC. The JSON companion records each exact starting SHA and audit assignment. Validation found 96 rows, 96 unique branch names, and 12 E-assigned branches. Fresh `git ls-remote` checks at 16:10 UTC matched all 12 E heads. The remote PR #38 head advanced during review from inventory snapshot `6bcdc42173232b53ed48b221ae8d099791283e39` to `0cd5edb8856396bde1bbd2f8a5377940a3d50447`; latest run 39455126168 was still in progress when recorded.
+Inventory snapshot: **96 remote branches**, observed 2026-10-20 16:07:32 UTC. The JSON companion records each exact starting SHA and audit assignment. A–E reports now cover all 96 starting branches exactly once. A fresh remote inventory found one additional branch, `wip/pr38-palette-reviewed-20261020` at `636028fa130b2a0f841badb3ba93aa2330b907d6`, protected after the original inventory; its attribution remains pending. PR #38 advanced from `6bcdc421` to `abfff94e`; run 39455259301 was in progress when recorded.
 
-E (CI, reference, and catchall) and D (tests and proof) reports are recorded. A–C rows remain explicitly pending; this record makes no approval claims for them. The external copy at `E-ci-reference-catchall.json` includes all 96 branch rows and both completed reports. Detailed D evidence remains linked from that JSON to the captured evidence directory.
+The external companion at `E-ci-reference-catchall.json` contains all 97 live branch rows, the exact 96-branch starting inventory, and the A–E reports. It preserves each reviewer’s branch-level status and evidence. Reviewed sources can still be blocked, red, superseded, or pending integration; review does not equal merge or acceptance.
 
 ## E findings
 
@@ -27,6 +27,14 @@ PR #38 already pins Velnor Actions **0.1.29** at source commit `e7b2f088715379c2
 
 D reviewed 15 branches. No wholesale merge was recommended. Architecture checker revisions are superseded by exact final files already in PR #38; frozen-table workflow revisions are stale and their candidate comparisons remain red; docs and working-tree snapshots are excluded or require manual reconciliation. `parity/buttons-reference-decision-20261020` and `parity/ordinary-cli-partition-20261020` are selective tool-port candidates only. `wip/style-conformance-20261020` requires component/runtime review. Preserve all red candidate evidence; no D finding establishes app acceptance. Branch-by-branch hashes, ancestry counts, findings, and scopes are in the JSON companion.
 
+## A, B, and C findings
+
+A reviewed 23 branches. Four are bounded integration candidates, four are already integrated, 14 are superseded, and the dialog dismissal stack is blocked by a reproduced P1: a second close of a reopened layer generation loses its `CANCEL` action. Keep the dismissal integration blocked until the generation-specific fix passes independent probes.
+
+B reviewed 23 branches. It staged selective widget/runtime integrations and recorded architecture gaps. The Button source has known paired visual differences; composition and master-detail contracts still need proof in real application flows. The newly protected palette commit has unresolved attribution across 19 partitions, including seven failures needing base comparison; preserve it pending diagnosis.
+
+C reviewed 23 branches. TablePro picker and live-contract work, Showcase table work, and selected shared component migrations are staged behind dependencies and paired app proof. Archived monoliths, stale copies, and test-tool-only changes are excluded from app integration. `wip/termrock-reviewed-contract-integration-20261020` is routed to B for selective Button source review; its useful work is not blanket-rejected, and its whole branch is not approved.
+
 ## Verification limits
 
-E branch heads were checked directly with `git ls-remote`. PR #39's Plan timeout and Required failure were checked through GitHub run 39436987238 and check-run annotations. D performed a separate read-only history/source review; it did not run full checked-out builds. No generated files were hand-edited. PR #38's latest CI run was still running at observation time, so no result is claimed. This audit does not establish product parity, the reusable-library gate, or A–C branch disposition.
+E heads were checked directly with `git ls-remote`; all initial rows matched the inventory capture. The refreshed inventory records one added palette WIP and the moved PR #38 head. PR #39's Plan timeout and Required failure were checked through GitHub run 39436987238 and check-run annotations. A–D performed read-only reviews and focused probes as recorded in their source reports; those reports do not constitute full application acceptance. No generated files were hand-edited. PR #38's latest CI run was still running at observation time, so no result is claimed. Product parity and the reusable-library gate remain incomplete.
