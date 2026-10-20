@@ -10,6 +10,21 @@ use crate::text::measure::graphemes;
 use crate::theme::builder::{FadeOutcome, fade_mix};
 use crate::theme::{FgStep, GlyphRole, PaintStyle, Role, Slot, StylePatch, Surface, Theme};
 
+fn keeps_canvas(color: Color) -> bool {
+    matches!(
+        color,
+        Color::Black | Color::Indexed(0) | Color::Indexed(16) | Color::Reset
+    )
+}
+
+fn dark_gray(color: Color) -> bool {
+    matches!(color, Color::DarkGray | Color::Indexed(8))
+}
+
+fn blank_black(fg: Color, bg: Color) -> bool {
+    keeps_canvas(fg) && keeps_canvas(bg)
+}
+
 impl Ui<'_> {
     pub(crate) fn patch_style(&mut self, area: Rect, style: PaintStyle, explicit: StylePatch) {
         let area = area.intersection(self.clip);
@@ -461,10 +476,19 @@ impl Ui<'_> {
 
     /// Dim a modal underlay the way the baseline backdrop does.
     /// Faint glyphs stay. Bold does not survive the dim.
+    ///
+    /// Ansi16 and mono replace every ink with gray on black, or gray on
+    /// dark gray when the cell was not already on the canvas, and set `dim`.
+    /// `NO_COLOR` only sets `dim`.
     pub fn modal_backdrop(&mut self, area: Rect) {
         let area = area.intersection(self.frame.screen);
         let theme = self.theme;
         let focus_bar = theme.design.glyphs.get(crate::theme::GlyphRole::FocusBar);
+        let reduced = matches!(
+            theme.capability.color,
+            crate::theme::ColorLevel::Ansi16 | crate::theme::ColorLevel::Mono
+        );
+        let nocolor = std::env::var_os("NO_COLOR").is_some();
         let page = &mut *self.page;
         for pos in area.positions() {
             let Some(cell) = page.cell_mut(pos) else {
@@ -472,6 +496,32 @@ impl Ui<'_> {
             };
             let clear_bar = cell.symbol() == focus_bar
                 && (cell.fg == theme.color.focus || cell.fg == theme.color.on_accent);
+            if reduced || nocolor {
+                if !nocolor {
+                    if blank_black(cell.fg, cell.bg) {
+                        continue;
+                    }
+                    let bg = if keeps_canvas(cell.bg) {
+                        Color::Black
+                    } else if dark_gray(cell.bg) {
+                        // A filled button loses its face under the dim.
+                        Color::Black
+                    } else {
+                        Color::DarkGray
+                    };
+                    let mut style = Style::new();
+                    style.fg = Some(Color::Gray);
+                    style.bg = Some(bg);
+                    cell.set_style(style);
+                } else if blank_black(cell.fg, cell.bg) {
+                    continue;
+                }
+                cell.modifier = Modifier::DIM;
+                if clear_bar {
+                    cell.set_symbol(" ");
+                }
+                continue;
+            }
             // Baseline `Theme::backdrop` ignores bold. Primary dims to muted.
             let (mut fg, bg) = theme.backdrop_colors(cell.fg, cell.bg);
             if clear_bar {
@@ -484,6 +534,17 @@ impl Ui<'_> {
             cell.modifier = Modifier::empty();
             if clear_bar {
                 cell.set_symbol(" ");
+            }
+        }
+    }
+
+    /// Set `dim` without clearing bold or other modifiers.
+    pub fn add_dim(&mut self, area: Rect) {
+        let area = area.intersection(self.frame.screen);
+        let page = &mut *self.page;
+        for pos in area.positions() {
+            if let Some(cell) = page.cell_mut(pos) {
+                cell.modifier.insert(Modifier::DIM);
             }
         }
     }
