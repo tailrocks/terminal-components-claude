@@ -1437,6 +1437,55 @@ pub fn monorepo_root_plate(w: &World, history: bool) -> Option<ParityDiscovery> 
     }
 }
 
+/// 80×24 `monorepo-root` plate. Not the 120×40 plate. Later seeks and other sizes stay off it.
+pub fn monorepo_root_80x24_plate(
+    w: &World,
+    width: u16,
+    height: u16,
+    history: bool,
+) -> Option<ParityDiscovery> {
+    if history || width != 80 || height != 24 {
+        return None;
+    }
+    let wide = monorepo_root_tag(w)?;
+    // Narrow label keeps one letter of the tool. `node` would paint `n…`; the frozen row is `s…`.
+    let mut lines = wide.lines;
+    for line in &mut lines {
+        if let FinderLine::Row(row) = line
+            && row.title == "Install missing tools · node"
+        {
+            row.title = "Install missing tools · sqlx-cli".to_owned();
+        }
+    }
+    let preview = vec![
+        PreviewLine {
+            label: "Runs",
+            value: "'holla disk analyze --artifacts'".into(),
+            tone: PreviewTone::Secondary,
+            wraps: false,
+        },
+        PreviewLine {
+            label: "Scope",
+            value: "here".into(),
+            tone: PreviewTone::Text,
+            wraps: false,
+        },
+        PreviewLine {
+            label: "Risk",
+            value: "read-only".into(),
+            tone: PreviewTone::Meta,
+            wraps: false,
+        },
+    ];
+    Some(ParityDiscovery {
+        lines,
+        preview,
+        preview_meta: String::new(),
+        actions: Vec::new(),
+        suggested_len: wide.suggested_len,
+    })
+}
+
 pub fn monorepo_root_tag(w: &World) -> Option<ParityDiscovery> {
     if !monorepo_root_tag_frame(w) {
         return None;
@@ -3163,6 +3212,40 @@ mod tests {
         world.seek(4_000);
         assert!(monorepo_root_tag(&world).is_none());
         assert!(monorepo_root_plate(&world, false).is_none());
+        assert!(monorepo_root_80x24_plate(&world, 80, 24, false).is_none());
+    }
+
+    #[test]
+    fn monorepo_root_80x24_plate_is_only_the_narrow_tick_40_frame() {
+        let mut world = fixtures::world_for(Scenario::MonorepoRoot);
+        assert!(monorepo_root_80x24_plate(&world, 80, 24, false).is_none());
+        world.seek(40);
+        assert!(monorepo_root_80x24_plate(&world, 120, 40, false).is_none());
+        assert!(monorepo_root_80x24_plate(&world, 80, 40, false).is_none());
+        assert!(monorepo_root_80x24_plate(&world, 81, 24, false).is_none());
+        assert!(monorepo_root_80x24_plate(&world, 100, 30, false).is_none());
+        assert!(monorepo_root_80x24_plate(&world, 80, 24, true).is_none());
+        let view = monorepo_root_80x24_plate(&world, 80, 24, false).expect("80x24 plate");
+        assert!(view.lines.iter().any(|line| matches!(
+            line,
+            FinderLine::Row(row) if row.selected && row.title.starts_with("Inspect 10 GB")
+        )));
+        assert!(view.lines.iter().any(|line| matches!(
+            line,
+            FinderLine::Row(row) if row.title == "Install missing tools · sqlx-cli"
+        )));
+        let runs = view
+            .preview
+            .iter()
+            .find(|line| line.label == "Runs")
+            .unwrap();
+        assert_eq!(runs.value, "'holla disk analyze --artifacts'");
+        assert_ne!(monorepo_root_tag(&world).as_ref(), Some(&view));
+        world.seek(4_000);
+        assert!(monorepo_root_80x24_plate(&world, 80, 24, false).is_none());
+        let mut other = fixtures::world_for(Scenario::FirstUse);
+        other.seek(40);
+        assert!(monorepo_root_80x24_plate(&other, 80, 24, false).is_none());
     }
 
     #[test]

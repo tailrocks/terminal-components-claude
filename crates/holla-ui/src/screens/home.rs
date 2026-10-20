@@ -268,6 +268,15 @@ impl HomeState {
         {
             return;
         }
+        if let Some(view) = catalogue::monorepo_root_80x24_plate(
+            world,
+            ui.full().width,
+            ui.full().height,
+            self.history,
+        ) && paint_first_use_80x24(ui, rows_area, &view)
+        {
+            return;
+        }
         if let Some(view) =
             catalogue::docker_cleanup_80x24_plate(world, ui.full().width, ui.full().height)
             && paint_first_use_80x24(ui, rows_area, &view)
@@ -695,7 +704,8 @@ fn split_detail(area: Rect) -> Option<(Rect, Rect)> {
     ))
 }
 
-/// Single-column `first-use` body. The 120×40 plate keeps its preview card.
+/// Single-column body. The 120×40 plate keeps its preview card.
+/// One blank row stays above the action line. Overflow gets a black thumb and the preview fade.
 fn paint_first_use_80x24(ui: &mut Ui<'_>, area: Rect, view: &catalogue::ParityDiscovery) -> bool {
     let full = ui.full();
     if full.width != 80 || full.height != 24 || area.is_empty() {
@@ -714,18 +724,46 @@ fn paint_first_use_80x24(ui: &mut Ui<'_>, area: Rect, view: &catalogue::ParityDi
         .collect();
     let cols = tag_columns(&rows, area.width.saturating_sub(4));
     let footer_y = area.bottom().saturating_sub(1);
+    // Short lists never reach this row. A longer list clips here instead of covering it.
+    let gap_y = footer_y.saturating_sub(1);
+    let slots = usize::from(gap_y.saturating_sub(area.y));
+    let overflow = slots > 0 && view.lines.len() > slots;
+    let shown = if overflow { slots } else { view.lines.len() };
     let mut y = area.y;
-    for line in &view.lines {
-        if y >= footer_y {
+    for (index, line) in view.lines.iter().enumerate().take(shown) {
+        if y >= gap_y {
             break;
         }
+        let fade = if overflow {
+            preview_fade(index, shown)
+        } else {
+            None
+        };
+        if let Some((num, den)) = fade {
+            ui.fill(
+                Rect::new(area.x, y, area.width.saturating_sub(1), 1),
+                ink(ui, mix_on(WHITE, BLACK, num, den), BLACK, false),
+            );
+        }
         match line {
-            catalogue::FinderLine::Heading(text) => paint_tag_heading(ui, area, y, text),
+            catalogue::FinderLine::Heading(text) => paint_tag_heading(ui, area, y, text, fade),
             catalogue::FinderLine::Blank => {}
-            catalogue::FinderLine::Chips(labels) => paint_tag_chips(ui, area, y, labels),
-            catalogue::FinderLine::Row(row) => paint_tag_row(ui, area, y, row, &cols),
+            catalogue::FinderLine::Chips(labels) => paint_tag_chips(ui, area, y, labels, fade),
+            catalogue::FinderLine::Row(row) => paint_tag_row(ui, area, y, row, &cols, fade),
         }
         y = y.saturating_add(1);
+    }
+    if overflow {
+        paint_narrow_scrollbar(
+            ui,
+            Rect::new(
+                area.right().saturating_sub(1),
+                area.y,
+                1,
+                u16::try_from(shown).unwrap_or(u16::MAX),
+            ),
+            view.lines.len(),
+        );
     }
     ui.paint_str(
         Rect::new(
@@ -774,10 +812,10 @@ fn paint_parity_discovery(ui: &mut Ui<'_>, area: Rect, view: &catalogue::ParityD
             break;
         }
         match line {
-            catalogue::FinderLine::Heading(text) => paint_tag_heading(ui, master, y, text),
+            catalogue::FinderLine::Heading(text) => paint_tag_heading(ui, master, y, text, None),
             catalogue::FinderLine::Blank => {}
-            catalogue::FinderLine::Chips(labels) => paint_tag_chips(ui, master, y, labels),
-            catalogue::FinderLine::Row(row) => paint_tag_row(ui, master, y, row, &cols),
+            catalogue::FinderLine::Chips(labels) => paint_tag_chips(ui, master, y, labels, None),
+            catalogue::FinderLine::Row(row) => paint_tag_row(ui, master, y, row, &cols, None),
         }
         y = y.saturating_add(1);
     }
@@ -785,8 +823,8 @@ fn paint_parity_discovery(ui: &mut Ui<'_>, area: Rect, view: &catalogue::ParityD
     true
 }
 
-fn paint_tag_heading(ui: &mut Ui<'_>, master: Rect, y: u16, text: &str) {
-    let style = ink(ui, TAG_GREY_FG, BLACK, false);
+fn paint_tag_heading(ui: &mut Ui<'_>, master: Rect, y: u16, text: &str, fade: Option<(u32, u32)>) {
+    let style = ink(ui, faded(TAG_GREY_FG, fade), BLACK, false);
     ui.paint_str(
         Rect::new(master.x.saturating_add(3), y, termrock::width(text), 1),
         text,
@@ -794,14 +832,20 @@ fn paint_tag_heading(ui: &mut Ui<'_>, master: Rect, y: u16, text: &str) {
     );
 }
 
-fn paint_tag_chips(ui: &mut Ui<'_>, master: Rect, y: u16, labels: &[&str]) {
+fn paint_tag_chips(
+    ui: &mut Ui<'_>,
+    master: Rect,
+    y: u16,
+    labels: &[&str],
+    fade: Option<(u32, u32)>,
+) {
     // Unfocused explore gutter is ink-on-ink, so the cell reads as an empty black column.
     ui.paint_str(
         Rect::new(master.x, y, 1, 1),
         " ",
         ink(ui, BLACK, BLACK, false),
     );
-    let style = ink(ui, WHITE, BLACK, false);
+    let style = ink(ui, faded(WHITE, fade), BLACK, false);
     let mut x = master.x.saturating_add(3);
     for label in labels {
         let label_w = termrock::width(label);
@@ -813,9 +857,18 @@ fn paint_tag_chips(ui: &mut Ui<'_>, master: Rect, y: u16, labels: &[&str]) {
     }
 }
 
-fn paint_tag_row(ui: &mut Ui<'_>, master: Rect, y: u16, row: &catalogue::TagRow, cols: &TagCols) {
+fn paint_tag_row(
+    ui: &mut Ui<'_>,
+    master: Rect,
+    y: u16,
+    row: &catalogue::TagRow,
+    cols: &TagCols,
+    fade: Option<(u32, u32)>,
+) {
+    // A selected row keeps the solid accent. Fade is only the unselected tail.
+    let fade = if row.selected { None } else { fade };
     let bg = if row.selected { SELECT_BG } else { BLACK };
-    let title_style = ink(ui, WHITE, bg, row.selected);
+    let title_style = ink(ui, faded(WHITE, fade), bg, row.selected);
     if row.selected {
         ui.fill(Rect::new(master.x, y, master.width, 1), title_style);
         ui.paint_str(
@@ -833,11 +886,11 @@ fn paint_tag_row(ui: &mut Ui<'_>, master: Rect, y: u16, row: &catalogue::TagRow,
     );
     x = x.saturating_add(cols.label).saturating_add(2);
     // Tag row chrome bolds only the label. Kind, scope, reason, and risk stay plain.
-    let plain = ink(ui, WHITE, bg, false);
+    let plain = ink(ui, faded(WHITE, fade), bg, false);
     let kind_style = if row.selected {
         plain
     } else {
-        ink(ui, TAG_GREY_FG, BLACK, false)
+        ink(ui, faded(TAG_GREY_FG, fade), BLACK, false)
     };
     ui.paint_str(
         Rect::new(x, y, cols.kind, 1),
@@ -855,7 +908,7 @@ fn paint_tag_row(ui: &mut Ui<'_>, master: Rect, y: u16, row: &catalogue::TagRow,
     let scope_style = if row.selected {
         plain
     } else {
-        ink(ui, scope_fg, BLACK, false)
+        ink(ui, faded(scope_fg, fade), BLACK, false)
     };
     ui.paint_str(
         Rect::new(x, y, cols.scope, 1),
@@ -868,7 +921,7 @@ fn paint_tag_row(ui: &mut Ui<'_>, master: Rect, y: u16, row: &catalogue::TagRow,
         let reason_style = if row.selected {
             plain
         } else {
-            ink(ui, TAG_GREY_FG, BLACK, false)
+            ink(ui, faded(TAG_GREY_FG, fade), BLACK, false)
         };
         ui.paint_str(
             Rect::new(x, y, termrock::width(&reason).max(1), 1),
@@ -882,7 +935,7 @@ fn paint_tag_row(ui: &mut Ui<'_>, master: Rect, y: u16, row: &catalogue::TagRow,
         let risk_style = if row.selected {
             plain
         } else {
-            ink(ui, SECONDARY_FG, BLACK, false)
+            ink(ui, faded(SECONDARY_FG, fade), BLACK, false)
         };
         ui.paint_str(Rect::new(risk_x, y, risk_w, 1), risk, risk_style);
     }
@@ -1041,13 +1094,17 @@ fn preview_fade(index: usize, shown: usize) -> Option<(u32, u32)> {
 }
 
 fn mix_color(fg: Color, num: u32, den: u32) -> Color {
+    mix_on(fg, PREVIEW_BG, num, den)
+}
+
+fn mix_on(fg: Color, back: Color, num: u32, den: u32) -> Color {
     if num == den {
         return fg;
     }
     let Color::Rgb(red, green, blue) = fg else {
         return fg;
     };
-    let Color::Rgb(back_r, back_g, back_b) = PREVIEW_BG else {
+    let Color::Rgb(back_r, back_g, back_b) = back else {
         return fg;
     };
     Color::Rgb(
@@ -1055,6 +1112,13 @@ fn mix_color(fg: Color, num: u32, den: u32) -> Color {
         mix_channel(green, back_g, num, den),
         mix_channel(blue, back_b, num, den),
     )
+}
+
+fn faded(color: Color, fade: Option<(u32, u32)>) -> Color {
+    match fade {
+        Some((num, den)) => mix_on(color, BLACK, num, den),
+        None => color,
+    }
 }
 
 fn mix_channel(fg: u8, bg: u8, num: u32, den: u32) -> u8 {
@@ -1088,6 +1152,30 @@ fn paint_preview_scrollbar(ui: &mut Ui<'_>, area: Rect, content_len: usize) {
             Rect::new(area.x, area.y.saturating_add(row), 1, 1),
             glyph,
             ink(ui, color, PREVIEW_BG, false),
+        );
+    }
+}
+
+/// List thumb on the narrow plate. Same geometry as the preview thumb, on black not `#111111`.
+fn paint_narrow_scrollbar(ui: &mut Ui<'_>, area: Rect, content_len: usize) {
+    if area.is_empty() {
+        return;
+    }
+    let mut scroll = termrock::ScrollState::new(content_len);
+    scroll.set_viewport(usize::from(area.height));
+    let (start, len) = scroll.thumb(usize::from(area.height));
+    let thumb_end = start.saturating_add(len);
+    for row in 0..area.height {
+        let on_thumb = (start..thumb_end).contains(&usize::from(row));
+        let (glyph, color) = if on_thumb {
+            ("┃", SCROLL_THUMB)
+        } else {
+            ("┆", SCROLL_TRACK)
+        };
+        ui.paint_str(
+            Rect::new(area.x, area.y.saturating_add(row), 1, 1),
+            glyph,
+            ink(ui, color, BLACK, false),
         );
     }
 }
