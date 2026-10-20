@@ -157,6 +157,7 @@ struct DeviceInfo {
     rows: std::sync::Arc<std::sync::Mutex<Vec<DeviceProperty>>>,
     copied: Option<ItemKey>,
     use_typed_slots: bool,
+    clip_parent: bool,
 }
 
 impl DeviceInfo {
@@ -193,20 +194,27 @@ impl App for DeviceInfo {
 
     fn draw(&self, ui: &mut Ui<'_>) {
         let rows = self.rows();
-        ui.layer_slot(INFO, |slot| {
-            if self.use_typed_slots {
-                slot.dialog(&self.dialog, &self.dialog_state, |body| {
-                    body.props_list(&self.props, &self.props_state, &rows);
-                });
-            } else {
-                slot.render_component(|ui, area| {
-                    self.dialog
-                        .draw(ui, area, &self.dialog_state, |ui, body_area| {
-                            self.props.draw(ui, body_area, &self.props_state, &rows);
-                        });
-                });
-            }
-        });
+        let render = |ui: &mut Ui<'_>| {
+            ui.layer_slot(INFO, |slot| {
+                if self.use_typed_slots {
+                    slot.dialog(&self.dialog, &self.dialog_state, |body| {
+                        body.props_list(&self.props, &self.props_state, &rows);
+                    });
+                } else {
+                    slot.render_component(|ui, area| {
+                        self.dialog
+                            .draw(ui, area, &self.dialog_state, |ui, body_area| {
+                                self.props.draw(ui, body_area, &self.props_state, &rows);
+                            });
+                    });
+                }
+            });
+        };
+        if self.clip_parent {
+            ui.with_area(Rect::new(20, 7, 12, 4), render);
+        } else {
+            render(ui);
+        }
     }
 }
 
@@ -246,6 +254,7 @@ fn device_info(
         rows: rows.clone(),
         copied: None,
         use_typed_slots,
+        clip_parent: false,
     };
     (app, rows)
 }
@@ -364,6 +373,48 @@ fn typed_dialog_and_props_slots_match_existing_component_renderers() {
             assert_eq!(typed.focus(), author.focus());
             assert_eq!(typed.cursor(), author.cursor());
         }
+    }
+}
+
+#[test]
+fn clipped_dialog_slot_preserves_logical_body_geometry_and_regions() {
+    let screen = Rect::new(0, 0, 60, 20);
+    for level in [
+        ColorLevel::TrueColor,
+        ColorLevel::Ansi256,
+        ColorLevel::Ansi16,
+        ColorLevel::Mono,
+    ] {
+        let (mut typed_app, _) = device_info(true);
+        typed_app.clip_parent = true;
+        let (mut direct_app, _) = device_info(false);
+        direct_app.clip_parent = true;
+        let theme = Theme::junie().for_level(level);
+        let mut typed = Runtime::new(typed_app, theme.clone());
+        let mut direct = Runtime::new(direct_app, theme);
+        let _ = typed.initialize();
+        let _ = direct.initialize();
+        let mut typed_buffer = Buffer::empty(screen);
+        let mut direct_buffer = Buffer::empty(screen);
+        typed
+            .draw_buffer(screen, &mut typed_buffer)
+            .commit_presented();
+        direct
+            .draw_buffer(screen, &mut direct_buffer)
+            .commit_presented();
+
+        assert_eq!(
+            frame_cells(&typed_buffer, screen),
+            frame_cells(&direct_buffer, screen),
+            "cell output must match with parent clipping at {level:?}"
+        );
+        assert_eq!(
+            typed.registry().regions(),
+            direct.registry().regions(),
+            "registered regions must match with parent clipping at {level:?}"
+        );
+        assert_eq!(typed.focus(), direct.focus());
+        assert_eq!(typed.cursor(), direct.cursor());
     }
 }
 
