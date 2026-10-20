@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "record_status": "branch inventory and authorized cleanup recorded; source and product acceptance gates remain incomplete",
+  "record_status": "branch review, selective deliveries, and authorized cleanup recorded; product and full library acceptance remain incomplete",
   "captured_utc": "2026-10-20T16:07:32.696460+00:00",
   "fresh_E_refs_verified_utc": "2026-10-20T16:10:45Z",
   "inventory_source": "/Users/donbeave/Projects/termrock-cli-evidence-20261020/branch-consolidation/assigned-inventory.json",
@@ -2283,7 +2283,24 @@
       "review_source": "D-tests-proof.json",
       "review_evidence_scope": "Read-only source/history review; no branch checkout edits, no candidate expected-data update, no product acceptance claim.",
       "commits_not_in_pr38_ancestry_at_observation": 27,
-      "changed_paths_vs_pr38_snapshot_6bcdc": 96
+      "changed_paths_vs_pr38_snapshot_6bcdc": 96,
+      "current_status_override": {
+        "effective_status": "selective TERM profile/partition guard port integrated at PR38 f86c17d; source branch pruned",
+        "source_tip_before_cleanup": "8207fbd009a3ced805e07ac734572cbd65078de7",
+        "integrated_ancestor_of": "f86c17d0c686d9c2547d96dfad1264280dea2974",
+        "review": "independent terminal_profile_port_review clear",
+        "verification": "31 Python profile/dry-run checks passed; guard spin unchanged",
+        "frozen_inputs": {
+          "baseline_tag_object": "2718a6b8127a522a3d351d0b4bdb7542fc8da542",
+          "baseline_commit": "4169783ae883788186d161af09ba9c481bd84e5c",
+          "tuiscotti_commit": "a1ea27f757d75d07b05499276cd932e9f8e067ad"
+        },
+        "provenance": "/Users/donbeave/Projects/termrock-cli-evidence-20261020/branch-consolidation/ordinary-cli-profile-port/provenance.json",
+        "patch_check": "/Users/donbeave/Projects/termrock-cli-evidence-20261020/branch-consolidation/ordinary-cli-profile-port/term-patch-check.json",
+        "remote_absent_verified": true,
+        "deletion": "expected-old-SHA lease",
+        "ordinary_cli_acceptance": "not claimed; full paired real-CLI comparison remains required"
+      }
     },
     {
       "branch": "parity/picker-family-contracts-20261020",
@@ -3215,6 +3232,25 @@
         "replacement_source": "7c1a092ab7cfa37002f06e505cd4577f133750f4",
         "source_review_scope": "Actual commit diffs, ancestry, stable patch equivalence, relevant implementation and tests; not branch-name inference.",
         "acceptance_complete": false
+      },
+      "current_status_override": {
+        "effective_status": "integrated-at-PR38-f86c17d; keep source branch active",
+        "integrated_delivery_commit": "f86c17d0c686d9c2547d96dfad1264280dea2974",
+        "reviewed_source_tip": "ce81e0adee987812788effd39d70acd242b0e95b",
+        "independent_review": "CLEAR bounded merge-source review; no material merge correctness findings",
+        "review_evidence": "/Users/donbeave/Projects/termrock-cli-evidence-20261020/branch-consolidation/A-runtime-ce81-review.json",
+        "focused_checks": {
+          "termrock_session_nextest": "17 passed; 0 skipped",
+          "public_query_consumer_nextest": "16 passed; 0 skipped",
+          "PR38_push_gate_nextest": "592 passed; 4 ignored subprocess-driver fixtures; no additional skips",
+          "python_profile_checks": "31 passed",
+          "strict_clippy_fmt": "passed"
+        },
+        "full_19_crate_partition": "1457 registered; 1453 executed; 1445 passed; 8 failed; 4 ignored subprocess-driver fixtures",
+        "remaining": "strict performance timing unproven; paired application CLI acceptance pending; dialog layout failures and other existing failures remain",
+        "source_branch": "parity/runtime-picker-allocation-20261020",
+        "remote_branch_tip": "ce81e0adee987812788effd39d70acd242b0e95b",
+        "branch_disposition": "retain; Dialog author depends on it"
       }
     },
     {
@@ -4648,12 +4684,12 @@
     "post_inventory_branches": 2,
     "post_inventory_review_pending": 0,
     "palette_source_integrated_at": "072fc24d6dd4f53dbd544485174e39aff2c92f43",
-    "current_live_branches_before_cleanup": 94
+    "current_live_branches_before_cleanup": 93
   },
   "live_inventory_after_review": {
     "observed_from": "fresh git ls-remote after two task-owned WIP deletions; 2026-10-20T16:25:11Z",
     "branch_count_before_cleanup": 98,
-    "branch_count_after_cleanup": 94,
+    "branch_count_after_cleanup": 93,
     "original_inventory_branches": 96,
     "new_after_start": [
       "wip/branch-consolidation-E-20261020",
@@ -4700,8 +4736,38 @@
         "protection_api": "404 unprotected",
         "deletion": "expected-old-SHA lease",
         "parent_reviewed_and_delivered": true
+      },
+      {
+        "branch": "parity/ordinary-cli-partition-20261020",
+        "expected_old_sha": "8207fbd009a3ced805e07ac734572cbd65078de7",
+        "remote_absent_verified": true,
+        "integrated_ancestor_of": "f86c17d0c686d9c2547d96dfad1264280dea2974",
+        "open_prs": [],
+        "protection_api": "404 unprotected",
+        "deletion": "expected-old-SHA lease",
+        "parent_reviewed_and_delivered": true
       }
-    ]
+    ],
+    "latest_cleanup": {
+      "observed_utc": "2026-10-20T16:33:45Z",
+      "before_count": 94,
+      "after_count": 93,
+      "target": "f86c17d0c686d9c2547d96dfad1264280dea2974",
+      "deleted": [
+        {
+          "branch": "parity/ordinary-cli-partition-20261020",
+          "expected_old_sha": "8207fbd009a3ced805e07ac734572cbd65078de7",
+          "remote_absent_verified": true,
+          "ancestor_of_target": true,
+          "open_prs": [],
+          "protection_api": "404 unprotected",
+          "deletion": "expected-old-SHA lease"
+        }
+      ],
+      "retained": [
+        "parity/runtime-picker-allocation-20261020; Dialog author depends on it"
+      ]
+    }
   },
   "integration_followups": [
     {
@@ -4735,6 +4801,12 @@
       "at_utc": "2026-10-20T16:25:11Z",
       "source": "parent authorization plus exact remote tip/ancestry/PR/protection verification",
       "finding": "Also deleted exactly two independently reviewed and delivered original-inventory branches: parity/runtime-crate-timeout-15-20261020 at 4d0df770 and parity/shared-style-integration-current-20261020 at 2863bf6e. Each remote tip matched the recorded SHA, was an ancestor of PR38 fe0b8ad0, had no PR and was unprotected. Both expected-old-SHA lease deletions were verified absent. No other branch was deleted. This second cleanup changed the live count from 96 to the final 94."
+    },
+    {
+      "at_utc": "2026-10-20T16:33:45Z",
+      "source": "parent delivery report, independent review reports, exact remote checks",
+      "delivery_commit": "f86c17d0c686d9c2547d96dfad1264280dea2974",
+      "finding": "Integrated runtime ce81 and the validated TERM profile/ordinary CLI guard port. Runtime independent review is clear for bounded source; session17/17, public query16/16, focused PR38 592 passed plus four ignored subprocess-driver fixtures, Python31/31, strict clippy/fmt passed. Full 19-crate inventory has 1457 registered, 1453 executed, 1445 passed, 8 failed, 4 ignored driver fixtures; performance timing and paired application CLI gate remain unproven. Deleted only ordinary-cli-partition at exact expected tip after ancestor/no-PR/unprotected checks; kept runtime-picker-allocation active because Dialog author depends on it."
     }
   ],
   "interpretation_policy": "This 98-row historical branch ledger (94 live branches after four authorized branch cleanups) supersedes coarse branch classifications in the migration matrix. A branch may contain a bounded reusable contract worth integration while its whole branch or product gate remains unaccepted. Shared-style 94a/8e9/e72 lineage is represented by already-integrated 2863/e597 equivalents; early Button 7dab is superseded by reviewed 673936/b0f8/2d stack. Do not reject useful component contracts solely because full application parity remains red."
