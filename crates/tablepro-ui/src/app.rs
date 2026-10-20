@@ -3106,6 +3106,7 @@ thread_local! {
     static GRID_SCROLL: RefCell<Option<(termrock::Rect, usize)>> = const { RefCell::new(None) };
     static GRID_SORT: RefCell<Option<(usize, SortDir)>> = const { RefCell::new(None) };
     static GRID_FILTER: RefCell<Vec<String>> = const { RefCell::new(Vec::new()) };
+    static GRID_EDIT: RefCell<Option<usize>> = const { RefCell::new(None) };
 }
 
 fn install_grid_budgets(area_width: u16, columns: &[(String, ColType)], model: &ResultGrid) {
@@ -3881,10 +3882,21 @@ fn install_scrolled_budgets(
     let row_count = model.row_count().max(1).to_string();
     let gutter = width(&row_count).saturating_add(4);
     let avail = column_budget_avail(area_width, gutter);
+    let editing = state
+        .edit_cell()
+        .and_then(|(_, column)| usize::from(column.raw()).checked_sub(1));
     let widths: Vec<u16> = columns
         .iter()
         .enumerate()
-        .map(|(index, (name, ty))| column_natural_width(name, *ty, model, index))
+        .map(|(index, (name, ty))| {
+            let natural = column_natural_width(name, *ty, model, index);
+            // The inline editor keeps two cells of field chrome past the sample.
+            if editing == Some(index) && !matches!(ty, ColType::Int | ColType::Numeric) {
+                natural.saturating_add(2)
+            } else {
+                natural
+            }
+        })
         .collect();
     let start = window_start(&widths, focus, avail);
     if start == 0 {
@@ -3968,7 +3980,8 @@ fn paint_scrolled_title(ui: &mut Ui<'_>, area: termrock::Rect, column: &Scrolled
     } = column;
     let filtered = column_is_filtered(name);
     let sorted = sort_at.is_some_and(|(column, _)| column == index);
-    let style = if sorted || filtered {
+    let editing = GRID_EDIT.with(|slot| slot.borrow().is_some_and(|column| column == index));
+    let style = if sorted || filtered || editing {
         sorted_style
     } else {
         muted
@@ -4014,7 +4027,30 @@ fn paint_scrolled_title(ui: &mut Ui<'_>, area: termrock::Rect, column: &Scrolled
                 muted,
             );
         }
-        ui.fill(cell, style);
+        // Editor chrome is wider than the header mark. The extra cells stay the header surface.
+        let fill_width = if editing {
+            place.width.saturating_sub(2)
+        } else {
+            place.width
+        };
+        ui.fill(
+            termrock::Rect {
+                width: fill_width,
+                ..cell
+            },
+            style,
+        );
+        if editing {
+            // The two-cell gap after the editor header is muted, unlike other gaps.
+            ui.fill(
+                termrock::Rect {
+                    x: cell.x.saturating_add(place.width),
+                    width: 2,
+                    ..cell
+                },
+                muted,
+            );
+        }
     }
     ui.paint_str(cell, &title, style);
 }
@@ -4212,23 +4248,28 @@ fn paint_scrolled_cells(
             let foreign = columns
                 .get(col)
                 .is_some_and(|(name, ty)| *ty == ColType::Uuid && name != "id" && place.width >= 2);
-            let shown = if foreign {
-                truncate_middle(&text, place.width.saturating_sub(2))
+            let owned;
+            let shown: &str = if foreign {
+                owned = truncate_middle(&text, place.width.saturating_sub(2));
+                &owned
             } else if width(&text) > place.width {
-                truncate(&text, place.width)
+                owned = truncate(&text, place.width);
+                &owned
             } else {
-                text
+                &text
             };
             let numeric = columns
                 .get(col)
                 .is_some_and(|(_, ty)| matches!(ty, ColType::Int | ColType::Numeric));
-            let text_width = width(&shown).min(place.width);
+            let text_width = width(shown).min(place.width);
             let indent = if numeric {
                 place.width.saturating_sub(text_width)
             } else {
                 0
             };
-            if active && !numeric {
+            if active && state.is_editing() && !numeric {
+                paint_inline_editor(ui, origin, *place, y, state.edit_draft().unwrap_or(&text));
+            } else if active && !numeric {
                 let mut pad = text_width.saturating_add(2);
                 if let Some((name, _)) = columns.get(col)
                     && column_is_filtered(name)
@@ -4251,16 +4292,18 @@ fn paint_scrolled_cells(
                     style,
                 );
             }
-            ui.paint_str(
-                termrock::Rect {
-                    x: origin.saturating_add(place.x).saturating_add(indent),
-                    y,
-                    width: text_width,
-                    height: 1,
-                },
-                &shown,
-                style,
-            );
+            if !(active && state.is_editing() && !numeric) {
+                ui.paint_str(
+                    termrock::Rect {
+                        x: origin.saturating_add(place.x).saturating_add(indent),
+                        y,
+                        width: text_width,
+                        height: 1,
+                    },
+                    shown,
+                    style,
+                );
+            }
             if foreign {
                 let slot = origin
                     .saturating_add(place.x)
@@ -4640,7 +4683,10 @@ fn draw_painted_grid(
 ) {
     install_grid_budgets(area.width, columns, model);
     let scrolled = install_scrolled_budgets(area.width, columns, model, state);
-    let grid = result_grid(id, specs);
+    // The editor's own cell must be 11 wide so its bar sits on the field tail.
+    let mut editor_columns = Vec::new();
+    let draw_specs = editor_column_specs(specs, columns, state, model, &mut editor_columns);
+    let grid = result_grid(id, draw_specs);
     grid.draw(ui, area, state, &PaintedGrid { inner: model });
     paint_grid_focus_bar(ui, area, state, model);
     if let Some((key, _)) = state.cursor()
@@ -4679,6 +4725,107 @@ fn draw_painted_grid(
     if scrolled {
         paint_scrolled_cells(ui, area, columns, state, model);
     }
+}
+
+fn editor_column_specs<'a>(
+    specs: &'a [termrock::Column<'a>],
+    columns: &[(String, ColType)],
+    state: &termrock::GridState,
+    model: &ResultGrid,
+    owned: &'a mut Vec<termrock::Column<'a>>,
+) -> &'a [termrock::Column<'a>] {
+    let Some(index) = state
+        .edit_cell()
+        .and_then(|(_, column)| usize::from(column.raw()).checked_sub(1))
+    else {
+        return specs;
+    };
+    let Some((name, ty)) = columns.get(index) else {
+        return specs;
+    };
+    if matches!(ty, ColType::Int | ColType::Numeric) {
+        return specs;
+    }
+    let place = column_natural_width(name, *ty, model, index).saturating_add(2);
+    let draft = state.edit_draft().unwrap_or("");
+    // The grid parks the hardware cursor on the cell's right edge.
+    let slot_width = width(&editing_window(draft, place.saturating_sub(3))).max(1);
+    owned.extend_from_slice(specs);
+    if let Some(column) = owned.get_mut(index) {
+        column.min_width = slot_width;
+        column.max_width = slot_width;
+    }
+    owned.as_slice()
+}
+
+fn editing_window(text: &str, inner: u16) -> String {
+    let cursor = width(text);
+    let hs = if inner == 0 || cursor < inner {
+        0
+    } else {
+        cursor.saturating_add(1).saturating_sub(inner)
+    };
+    let mut shown = String::new();
+    let skip = if hs > 0 {
+        shown.push('…');
+        hs.saturating_add(1)
+    } else {
+        0
+    };
+    let mut col = 0u16;
+    let mut buf = [0u8; 4];
+    for ch in text.chars() {
+        let piece = ch.encode_utf8(&mut buf);
+        let gw = width(piece);
+        if col >= skip && width(&shown).saturating_add(gw) <= inner {
+            shown.push(ch);
+        }
+        col = col.saturating_add(gw);
+    }
+    shown
+}
+
+fn paint_inline_editor(ui: &mut Ui<'_>, origin: u16, place: ColPlace, y: u16, text: &str) {
+    let field_width = place.width.saturating_sub(2);
+    let inner = place.width.saturating_sub(3);
+    let shown = editing_window(text, inner);
+    let field = ui.surface_style().patch(
+        ui.paint_patch(
+            &StylePatch::new()
+                .set_fg(Role::Fg(FgStep::Primary))
+                .set_bg(TAG_FIELD_BG)
+                .add(Modifier::BOLD),
+        ),
+    );
+    let underlined = field.patch(
+        ui.paint_patch(
+            &StylePatch::new()
+                .set_underline(TAG_BUTTON_BG)
+                .add(Modifier::UNDERLINED)
+                .add(Modifier::BOLD),
+        ),
+    );
+    let x = origin.saturating_add(place.x);
+    ui.fill(
+        termrock::Rect {
+            x,
+            y,
+            width: field_width,
+            height: 1,
+        },
+        field,
+    );
+    let text_width = width(&shown).min(field_width);
+    ui.paint_str(
+        termrock::Rect {
+            x,
+            y,
+            width: text_width,
+            height: 1,
+        },
+        &shown,
+        underlined,
+    );
 }
 fn result_grid<'a>(id: Id, columns: &'a [termrock::Column<'a>]) -> Grid<'a> {
     let grid = Grid::new(id, columns)
@@ -6051,13 +6198,65 @@ fn with_footer_spans(
     }
 }
 
+fn grid_is_editing(app: &TableProApp) -> bool {
+    app.workbench
+        .active_grid()
+        .is_some_and(|(_, grid)| grid.state.is_editing())
+}
+
+fn paint_cell_edit_footer(ui: &mut Ui<'_>, area: termrock::Rect) {
+    let base = ui.surface_style();
+    let badge = ui.surface_style().patch(
+        ui.paint_patch(
+            &StylePatch::new()
+                .set_fg(TAG_BUTTON_FG)
+                .set_bg(TAG_BUTTON_BG)
+                .add(Modifier::BOLD),
+        ),
+    );
+    ui.paint_str(
+        termrock::Rect {
+            x: area.x.saturating_add(1),
+            width: 6.min(area.width.saturating_sub(1)),
+            ..area
+        },
+        " EDIT ",
+        badge,
+    );
+    ui.paint_spans(
+        termrock::Rect {
+            x: area.x.saturating_add(9),
+            width: area.width.saturating_sub(9),
+            ..area
+        },
+        &[
+            Span::new("Enter").bold(),
+            Span::new(" "),
+            Span::new("Apply").role(TAG_CHROME_FG),
+            Span::new("  "),
+            Span::new("Esc").bold(),
+            Span::new(" "),
+            Span::new("Cancel").role(TAG_CHROME_FG),
+            Span::new("  "),
+            Span::new("Tab").bold(),
+            Span::new(" "),
+            Span::new("Next cell").role(TAG_CHROME_FG),
+        ],
+        base,
+    );
+}
+
 fn draw_footer(ui: &mut Ui<'_>, area: termrock::Rect, app: &TableProApp) {
     let base = ui.surface_style();
     let explorer_focused = ui.state(EXPLORER).contains(StateFlags::FOCUSED);
     ui.fill(area, base);
-    with_footer_spans(app, explorer_focused, |spans| {
-        ui.paint_spans(area, spans, base);
-    });
+    if !explorer_focused && grid_is_editing(app) {
+        paint_cell_edit_footer(ui, area);
+    } else {
+        with_footer_spans(app, explorer_focused, |spans| {
+            ui.paint_spans(area, spans, base);
+        });
+    }
     if let Some(notice) = app.destructive_notice {
         let width = width(notice).min(area.width);
         let right = termrock::Rect {
@@ -6633,6 +6832,17 @@ impl App for TableProApp {
                 .map(|index| (index, direction))
         });
         GRID_SORT.with(|slot| *slot.borrow_mut() = shown_sort);
+        let edit_col = self.workbench.active_grid().and_then(|(_, grid)| {
+            grid.state
+                .edit_cell()
+                .and_then(|(_, column)| usize::from(column.raw()).checked_sub(1))
+        });
+        GRID_EDIT.with(|slot| *slot.borrow_mut() = edit_col);
+        if edit_col.is_some() && std::io::IsTerminal::is_terminal(&std::io::stdout()) {
+            let mut out = std::io::stdout().lock();
+            let _ = std::io::Write::write_all(&mut out, b"\x1b[6 q");
+            let _ = std::io::Write::flush(&mut out);
+        }
         let full = ui.full();
         if full.width < MIN_WIDTH || full.height < MIN_HEIGHT {
             draw_too_small(ui, full);
