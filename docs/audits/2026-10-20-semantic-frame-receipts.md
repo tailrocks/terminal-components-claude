@@ -12,8 +12,9 @@ expectation. It also writes each attempted frame, before comparison, to the
 sealed diagnostic root `receipts.semantic-actual/` using the same checkpoint
 filename. This normalized canonical JSON preserves actual frames when a
 semantic mismatch fails before the grouped ANSI store can emit its artifacts.
-Semantic JSON is produced by cloning `Frame`, setting provenance
-to `Provenance::default()`, and calling the pinned `Frame::to_json()`. This
+Semantic JSON is produced by cloning `Frame`, setting provenance to the pinned
+tool's default metadata with stable `source: "screen"`, and calling
+`Frame::to_json()`. This
 preserves dimensions, all cell symbols, widths, continuation flags, colors,
 modifiers, and cursor position, visibility, shape, and blink intent while
 removing host-specific capture metadata. The file is created only by baseline
