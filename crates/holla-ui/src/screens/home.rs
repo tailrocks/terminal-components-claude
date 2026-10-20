@@ -286,6 +286,15 @@ impl HomeState {
         {
             return;
         }
+        if let Some(view) = catalogue::monorepo_root_history_80x24_plate(
+            world,
+            ui.full().width,
+            ui.full().height,
+            self.history,
+        ) && paint_first_use_80x24(ui, rows_area, &view)
+        {
+            return;
+        }
         if let Some(view) =
             catalogue::monorepo_child_80x24_plate(world, ui.full().width, ui.full().height)
             && paint_first_use_80x24(ui, rows_area, &view)
