@@ -641,6 +641,14 @@ fn select_mono_rules() -> [MonoRule; 3] {
     ]
 }
 
+fn button_mono_rules() -> [MonoRule; 1] {
+    [(
+        Part::GUTTER,
+        StateFlags::FOCUS_VISIBLE,
+        StylePatch::new().set_glyph(GlyphRole::FocusBar),
+    )]
+}
+
 pub(crate) fn apply_mono_fallback(
     acc: StylePatch,
     recipes: &Recipes,
@@ -661,7 +669,9 @@ pub(crate) fn apply_mono_with_defaults(
 ) -> StylePatch {
     let rules = mono_rules();
     let extra = mono_rules_extra();
+    let button = button_mono_rules();
     let builtin: &[MonoRule] = match family {
+        Family::BUTTON => &button,
         Family::VIEWPORT => &viewport_mono_rules(),
         Family::GRID => &grid_mono_rules(),
         Family::MENU => &menu_mono_rules(),
@@ -672,7 +682,18 @@ pub(crate) fn apply_mono_with_defaults(
     };
 
     let targeted: &[MonoRule] = recipes.mono_rules(family).or(authored).unwrap_or(builtin);
-    for (rule_part, when, patch) in rules.iter().chain(extra.iter()).chain(targeted) {
+    for (rule_part, when, patch) in rules.iter().chain(extra.iter()) {
+        if family == Family::BUTTON && *rule_part == Part::GUTTER && *when == StateFlags::FOCUSED {
+            continue;
+        }
+        let applies = family != Family::SCROLLBAR
+            || *rule_part != Part::CONTAINER
+            || *when != StateFlags::PRESSED;
+        if applies && *rule_part == part && live.contains(*when) {
+            acc = acc.merge(*patch);
+        }
+    }
+    for (rule_part, when, patch) in targeted {
         let applies = family != Family::SCROLLBAR
             || *rule_part != Part::CONTAINER
             || *when != StateFlags::PRESSED;
@@ -1274,6 +1295,7 @@ mod tests {
         let mut pairs: Vec<(Part, StateFlags)> = mono_rules()
             .iter()
             .chain(mono_rules_extra().iter())
+            .chain(button_mono_rules().iter())
             .chain(viewport_mono_rules().iter())
             .chain(grid_mono_rules().iter())
             .chain(menu_mono_rules().iter())
@@ -1321,6 +1343,143 @@ mod tests {
         ] {
             assert_eq!(responding_pairs(&r, f), pairs, "{f:?}");
         }
+    }
+
+    #[test]
+    fn button_focus_indicator_is_scoped_to_focus_visible_in_every_profile() {
+        let variants = [
+            Variant::DEFAULT,
+            Variant::PRIMARY,
+            Variant::SECONDARY,
+            Variant::SUBTLE,
+            Variant::DANGER,
+            Variant::TOGGLE,
+            Variant::QUIET,
+            Variant::GHOST,
+        ];
+        for level in [
+            ColorLevel::TrueColor,
+            ColorLevel::Ansi256,
+            ColorLevel::Ansi16,
+            ColorLevel::Mono,
+        ] {
+            let theme = Theme::junie().downgrade(level);
+            for variant in variants {
+                let pointer = theme.resolve(
+                    Family::BUTTON,
+                    variant,
+                    Part::GUTTER,
+                    StateFlags::FOCUSED,
+                    Surface::Canvas,
+                );
+                assert_ne!(
+                    pointer.glyph,
+                    Slot::Set(GlyphRole::FocusBar),
+                    "{level:?}/{variant:?} made pointer focus visible"
+                );
+                let keyboard = theme.resolve(
+                    Family::BUTTON,
+                    variant,
+                    Part::GUTTER,
+                    StateFlags::FOCUS_VISIBLE,
+                    Surface::Canvas,
+                );
+                assert_eq!(
+                    keyboard.glyph,
+                    Slot::Set(GlyphRole::FocusBar),
+                    "{level:?}/{variant:?} omitted keyboard focus"
+                );
+            }
+            let list = theme.resolve(
+                Family::LIST,
+                Variant::DEFAULT,
+                Part::GUTTER,
+                StateFlags::FOCUSED,
+                Surface::Canvas,
+            );
+            assert_eq!(
+                list.glyph,
+                Slot::Set(GlyphRole::FocusBar),
+                "Button policy leaked into list gutter at {level:?}"
+            );
+        }
+    }
+
+    #[test]
+    fn authored_button_mono_focus_override_keeps_precedence() {
+        let theme = Theme::junie()
+            .builder()
+            .mono_rules(
+                Family::BUTTON,
+                &[
+                    (
+                        Part::GUTTER,
+                        StateFlags::FOCUSED,
+                        StylePatch::new().set_glyph(GlyphRole::RuleQuiet),
+                    ),
+                    (
+                        Part::GUTTER,
+                        StateFlags::FOCUS_VISIBLE,
+                        StylePatch::new().set_glyph(GlyphRole::RuleQuiet),
+                    ),
+                ],
+            )
+            .build()
+            .downgrade(ColorLevel::Mono);
+        let focused = theme.resolve(
+            Family::BUTTON,
+            Variant::DEFAULT,
+            Part::GUTTER,
+            StateFlags::FOCUSED,
+            Surface::Canvas,
+        );
+        assert_eq!(focused.glyph, Slot::Set(GlyphRole::RuleQuiet));
+        let keyboard = theme.resolve(
+            Family::BUTTON,
+            Variant::DEFAULT,
+            Part::GUTTER,
+            StateFlags::FOCUS_VISIBLE,
+            Surface::Canvas,
+        );
+        assert_eq!(keyboard.glyph, Slot::Set(GlyphRole::RuleQuiet));
+    }
+
+    #[test]
+    fn authored_scrollbar_container_press_rule_keeps_the_legacy_filter() {
+        let authored = [
+            (
+                Part::CONTAINER,
+                StateFlags::PRESSED,
+                StylePatch::new().set_glyph(GlyphRole::WarningMark),
+            ),
+            (
+                Part::THUMB,
+                StateFlags::PRESSED,
+                StylePatch::new().set_glyph(GlyphRole::WarningMark),
+            ),
+        ];
+        let theme = Theme::junie()
+            .builder()
+            .mono_rules(Family::SCROLLBAR, &authored)
+            .build()
+            .downgrade(ColorLevel::Mono);
+        let pressed = theme.resolve(
+            Family::SCROLLBAR,
+            Variant::DEFAULT,
+            Part::CONTAINER,
+            StateFlags::PRESSED,
+            Surface::Canvas,
+        );
+
+        assert_ne!(pressed.glyph, Slot::Set(GlyphRole::WarningMark));
+        let thumb = theme.resolve(
+            Family::SCROLLBAR,
+            Variant::DEFAULT,
+            Part::THUMB,
+            StateFlags::PRESSED,
+            Surface::Canvas,
+        );
+        assert_eq!(thumb.glyph, Slot::Set(GlyphRole::WarningMark));
     }
 
     #[test]
