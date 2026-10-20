@@ -9,8 +9,8 @@ frames. 256 borders use the baseline palette indexes (subtle 238, strong 242,
 seam and scroll track 239, faint 242, thumb 245, accent background 22,
 on-accent 232), not nearest-gray of the truecolor RGB. Outer grid edges dim
 when the cells are not truecolor RGB. The focused primary cell reverses in
-mono. Connections default 120×40 truecolor and 256 also match.
-`connections/default` nocolor still misses reverse on the Connect label.
+mono. `connections/default` 120×40 truecolor, 256, and nocolor match. The
+Connect label is bold reverse with no explicit ink in mono.
 Full visual runs and `origin/main` are not done.
 
 ## Palette and independently diagnosed reference corrections — 2026-10-20
