@@ -2897,6 +2897,28 @@ pub fn remote_host_80x24_plate(w: &World, width: u16, height: u16) -> Option<Par
         return None;
     }
     let wide = remote_host_tag(w)?;
+    Some(remote_host_list_plate(wide))
+}
+
+/// 100×30 `remote-host` plate. Not the 80×24 plate and not the 120×40 card.
+/// Later seeks and other sizes stay off it. The blocker age is 4 min, not the wide card's 41.
+pub fn remote_host_100x30_plate(w: &World, width: u16, height: u16) -> Option<ParityDiscovery> {
+    if width != 100 || height != 30 {
+        return None;
+    }
+    let wide = remote_host_tag(w)?;
+    let mut plate = remote_host_list_plate(wide);
+    for line in &mut plate.lines {
+        if let FinderLine::Row(row) = line
+            && row.title == "Who is blocking the database?"
+        {
+            row.reason = "2 sessions blocked for 4 min".to_owned();
+        }
+    }
+    Some(plate)
+}
+
+fn remote_host_list_plate(wide: ParityDiscovery) -> ParityDiscovery {
     let preview = vec![
         PreviewLine {
             label: "Runs",
@@ -2917,13 +2939,13 @@ pub fn remote_host_80x24_plate(w: &World, width: u16, height: u16) -> Option<Par
             wraps: false,
         },
     ];
-    Some(ParityDiscovery {
+    ParityDiscovery {
         lines: wide.lines,
         preview,
         preview_meta: String::new(),
         actions: Vec::new(),
         suggested_len: wide.suggested_len,
-    })
+    }
 }
 
 /// 80×24 `hard-cases` plate. Not the 120×40 plate. Later seeks and other sizes stay off it.
@@ -4109,6 +4131,7 @@ mod tests {
         assert!(remote_host_80x24_plate(&world, 80, 40).is_none());
         assert!(remote_host_80x24_plate(&world, 81, 24).is_none());
         assert!(remote_host_80x24_plate(&world, 100, 30).is_none());
+        assert!(remote_host_100x30_plate(&world, 80, 24).is_none());
         let view = remote_host_80x24_plate(&world, 80, 24).expect("80x24 plate");
         assert!(view.lines.iter().any(|line| matches!(
             line,
@@ -4126,6 +4149,49 @@ mod tests {
         let mut other = fixtures::world_for(Scenario::HardCases);
         other.seek(40);
         assert!(remote_host_80x24_plate(&other, 80, 24).is_none());
+    }
+
+    #[test]
+    fn remote_host_100x30_plate_is_only_the_mid_tick_40_frame() {
+        let mut world = fixtures::world_for(Scenario::RemoteHost);
+        assert!(remote_host_100x30_plate(&world, 100, 30).is_none());
+        world.seek(40);
+        assert!(remote_host_100x30_plate(&world, 80, 24).is_none());
+        assert!(remote_host_100x30_plate(&world, 120, 40).is_none());
+        assert!(remote_host_100x30_plate(&world, 80, 40).is_none());
+        assert!(remote_host_100x30_plate(&world, 100, 31).is_none());
+        assert!(remote_host_100x30_plate(&world, 99, 30).is_none());
+        let view = remote_host_100x30_plate(&world, 100, 30).expect("100x30 plate");
+        assert!(view.lines.iter().any(|line| matches!(
+            line,
+            FinderLine::Row(row) if row.title == "Who is blocking the database?"
+                && row.reason == "2 sessions blocked for 4 min"
+        )));
+        assert!(remote_host_tag(&world).is_some_and(|wide| {
+            wide.lines.iter().any(|line| {
+                matches!(
+                    line,
+                    FinderLine::Row(row) if row.reason == "2 sessions blocked for 41 min"
+                )
+            })
+        }));
+        let runs = view
+            .preview
+            .iter()
+            .find(|line| line.label == "Runs")
+            .expect("runs line");
+        assert_eq!(runs.value, "journalctl -u payments-worker -f -n 200");
+        assert!(view.preview_meta.is_empty());
+        assert_ne!(remote_host_tag(&world).as_ref(), Some(&view));
+        assert_ne!(
+            remote_host_80x24_plate(&world, 80, 24).as_ref(),
+            Some(&view)
+        );
+        world.seek(4_000);
+        assert!(remote_host_100x30_plate(&world, 100, 30).is_none());
+        let mut other = fixtures::world_for(Scenario::HardCases);
+        other.seek(40);
+        assert!(remote_host_100x30_plate(&other, 100, 30).is_none());
     }
 
     #[test]
