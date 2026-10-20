@@ -24,7 +24,7 @@ STAMP_RULES = (
 INCLUDE_RE = re.compile(r"\binclude(?:_str|_bytes)?!\s*\(\s*\"([^\"]+)\"\s*\)")
 DYNAMIC_INCLUDE_RE = re.compile(r"\binclude(?:_str|_bytes)?!\s*\(")
 PATH_MODULE_RE = re.compile(r"#\s*\[\s*path\s*=\s*\"([^\"]+)\"\s*\]")
-DECLARED_MODULE_RE = re.compile(r"\bmod\s+([A-Za-z_][A-Za-z0-9_]*)\s*;")
+DECLARED_MODULE_RE = re.compile(r"\bmod\s+(?:r#)?([A-Za-z_][A-Za-z0-9_]*)\s*;")
 
 
 def sha(data: bytes) -> str:
@@ -139,35 +139,47 @@ def read_source(root: Path, rel: str) -> bytes:
     return path.read_bytes()
 
 
-def target_directory_module_aliases(package_root: Path, target_directory: Path) -> set[str]:
+def target_directory_module_aliases(source_roots: list[Path], target_directory: Path) -> set[str]:
     """Find source-tree symlink names that point into Cargo build output.
 
     Do not follow directory symlinks while walking: target directories can be
-    large. Matching module names anywhere in a package is deliberately
-    conservative because lexical scanning does not model nested inline-module
-    scopes or custom Cargo target roots.
+    large. Matching module names anywhere beneath package or actual Cargo
+    target roots is deliberately conservative because lexical scanning does
+    not model nested inline-module scopes.
     """
     aliases: set[str] = set()
     target_directory = target_directory.resolve(strict=False)
-    for current, directories, _files in os.walk(package_root, followlinks=False):
-        current_path = Path(current)
+    seen_roots: set[Path] = set()
+    for source_root in source_roots:
+        source_root = source_root.resolve(strict=False)
+        if source_root in seen_roots or not source_root.is_dir():
+            continue
         try:
-            current_path.resolve(strict=True).relative_to(target_directory)
-        except (OSError, ValueError):
+            source_root.relative_to(target_directory)
+        except ValueError:
             pass
         else:
-            directories[:] = []
             continue
-        for name in directories:
-            candidate = current_path / name
-            if not candidate.is_symlink():
-                continue
+        seen_roots.add(source_root)
+        for current, directories, _files in os.walk(source_root, followlinks=False):
+            current_path = Path(current)
             try:
-                resolved = candidate.resolve(strict=True)
-                resolved.relative_to(target_directory)
+                current_path.resolve(strict=True).relative_to(target_directory)
             except (OSError, ValueError):
+                pass
+            else:
+                directories[:] = []
                 continue
-            aliases.add(name)
+            for name in directories:
+                candidate = current_path / name
+                if not candidate.is_symlink():
+                    continue
+                try:
+                    resolved = candidate.resolve(strict=True)
+                    resolved.relative_to(target_directory)
+                except (OSError, ValueError):
+                    continue
+                aliases.add(name)
     return aliases
 
 
@@ -344,11 +356,8 @@ def check(root: Path) -> dict[str, Any]:
             continue
         pkg_root = manifest.parent
         pkg_rel_root = pkg_root.relative_to(root).as_posix()
-        target_module_aliases_by_package[str(pkg.get("id", pkg.get("name", "")))] = target_directory_module_aliases(
-            pkg_root,
-            Path(str(metadata.get("target_directory", root / "target"))),
-        )
         target_paths: list[str] = []
+        target_source_roots = [pkg_root]
         for target in pkg.get("targets", []):
             if not set(target.get("kind", [])) & {"lib", "bin", "proc-macro", "custom-build"}:
                 continue
@@ -359,8 +368,13 @@ def check(root: Path) -> dict[str, Any]:
                 report["errors"].append(f"production target source is outside workspace: {pkg.get('name')}:{target.get('name')} {target_source}")
                 continue
             target_paths.append(target_rel)
+            target_source_roots.append(target_source.parent)
             if "custom-build" in target.get("kind", []):
                 report["unaccounted_inputs"].append(f"build-generated production inputs require independent accounting: {target_rel}")
+        target_module_aliases_by_package[str(pkg.get("id", pkg.get("name", "")))] = target_directory_module_aliases(
+            target_source_roots,
+            Path(str(metadata.get("target_directory", root / "target"))),
+        )
         files, scan_errors = production_files(
             root,
             pkg_rel_root,
@@ -432,6 +446,16 @@ def check(root: Path) -> dict[str, Any]:
                 continue
             referenced = (root / rel).parent / literal
             resolved = referenced.resolve(strict=False)
+            target_root = Path(str(metadata.get("target_directory", root / "target"))).resolve(strict=False)
+            if kind == "path-module":
+                try:
+                    resolved.relative_to(target_root)
+                except ValueError:
+                    pass
+                else:
+                    report["unaccounted_inputs"].append(
+                        f"path module resolves inside Cargo target directory: {rel}:{line} -> {literal}"
+                    )
             try:
                 referenced_rel = resolved.relative_to(root).as_posix()
                 ref_data = read_source(root, referenced_rel)

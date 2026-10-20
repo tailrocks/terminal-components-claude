@@ -228,6 +228,25 @@ fn render(ui: &mut Ui) { for cell in FRAME_PIECES { ui.paint(cell.x, cell.y, cel
         self.assertFalse(report["architecture_checks_passed"])
         self.assertTrue(any("production module may resolve through a Cargo target-directory alias" in item and "other.rs:1" in item for item in report["unaccounted_inputs"]))
 
+    def test_out_of_package_cargo_root_and_raw_identifier_alias_are_unaccounted(self) -> None:
+        crate = self.root / "crates/termrock-core"
+        write(crate / "Cargo.toml", '[package]\nname="termrock-core"\nversion="0.1.0"\nedition="2024"\n[lib]\npath="../../shared/other.rs"\n')
+        write(self.root / "shared/other.rs", "pub mod r#target;\n")
+        write(self.root / "target/mod.rs", "pub fn generated() {}\n")
+        (self.root / "shared/target").symlink_to(self.root / "target", target_is_directory=True)
+        report = self.run_gate()
+        self.assertFalse(report["architecture_checks_passed"])
+        self.assertTrue(any("production module may resolve through a Cargo target-directory alias" in item and "shared/other.rs:1" in item for item in report["unaccounted_inputs"]))
+
+    def test_path_attribute_file_alias_into_target_is_unaccounted(self) -> None:
+        crate = self.root / "crates/termrock-core"
+        write(crate / "src/lib.rs", '#[path = "generated.rs"]\npub mod generated;\n')
+        write(self.root / "target/generated.rs", "pub fn generated() {}\n")
+        (crate / "src/generated.rs").symlink_to(self.root / "target/generated.rs")
+        report = self.run_gate()
+        self.assertFalse(report["architecture_checks_passed"])
+        self.assertTrue(any("path module resolves inside Cargo target directory" in item and "src/lib.rs:1" in item for item in report["unaccounted_inputs"]))
+
     def test_nested_inline_module_alias_into_target_is_unaccounted(self) -> None:
         crate = self.root / "crates/termrock-core"
         write(crate / "src/lib.rs", "pub mod inner {\n    pub mod target;\n}\n")
