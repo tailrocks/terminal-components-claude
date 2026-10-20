@@ -4,8 +4,8 @@ use core::ops::Range;
 use ratatui_core::layout::Rect;
 
 use crate::grid::{
-    CellAction, CellRef, Column, ColumnKey, Grid, GridAction, GridGutter, GridModel, GridState,
-    NavUnit, SortDir,
+    CellAction, CellRef, Column, ColumnKey, Grid, GridAction, GridGutter, GridModel,
+    GridSortIndicator, GridState, NavUnit, SortDir,
 };
 use crate::id::{Id, ItemKey, Part, PartRef};
 use crate::intent::{Intent, Phase};
@@ -16,7 +16,7 @@ use termrock_collections::ScrollState;
 use termrock_collections::collection::KeySet;
 use termrock_runtime::decor::{CellDecor, RowDecor};
 use termrock_runtime::empty::RowTotal;
-use termrock_theme::{Family, GlyphRole, Variant};
+use termrock_theme::{Family, GlyphRole, Role, StylePatch, Variant};
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub enum TableSort {
@@ -122,11 +122,30 @@ impl TableState {
 pub struct Table<'a> {
     id: Id,
     columns: &'a [TableColumn<'a>],
+    sort_indicator: GridSortIndicator,
+    tone_styles: &'a [(Role, StylePatch)],
 }
 
 impl<'a> Table<'a> {
     pub const fn new(id: Id, columns: &'a [TableColumn<'a>]) -> Self {
-        Self { id, columns }
+        Self {
+            id,
+            columns,
+            sort_indicator: GridSortIndicator::ActiveOnly,
+            tone_styles: &[],
+        }
+    }
+
+    #[must_use]
+    pub const fn sort_indicator(mut self, policy: GridSortIndicator) -> Self {
+        self.sort_indicator = policy;
+        self
+    }
+
+    #[must_use]
+    pub const fn tone_styles(mut self, styles: &'a [(Role, StylePatch)]) -> Self {
+        self.tone_styles = styles;
+        self
     }
 
     pub fn position_label(&self, state: &TableState, total: usize) -> String {
@@ -260,7 +279,10 @@ impl<'a> Table<'a> {
         (Vec::new(), horizontal, vertical, 0, 0)
     }
 
-    fn grid<'b>(&self, columns: &'b [Column<'a>], max_offset: usize) -> Grid<'b> {
+    fn grid<'b>(&'b self, columns: &'b [Column<'a>], max_offset: usize) -> Grid<'b>
+    where
+        'a: 'b,
+    {
         Grid::new(self.id, columns)
             .nav(NavUnit::Row)
             .gutter(GridGutter::Detailed {
@@ -272,6 +294,8 @@ impl<'a> Table<'a> {
             .row_nav_scrolls_columns(true)
             .row_nav_scroll_limit(max_offset)
             .sort_current_column(true)
+            .sort_indicator(self.sort_indicator)
+            .cell_tone_styles(self.tone_styles)
     }
 
     fn ordered_rows<M: GridModel + ?Sized>(
@@ -694,6 +718,99 @@ mod tests {
         assert!(!horizontal);
         assert_eq!(visible, 7);
         assert_eq!(offset, 0);
+    }
+
+    #[test]
+    fn table_sort_indicator_is_active_only_by_default_and_overridable() {
+        use termrock_test_support::Scene;
+        use termrock_theme::{ColorLevel, Theme};
+
+        let mut columns = [TableColumn::new(Column::new(ColumnKey::num(1), "Status"))];
+        columns[0].column.sortable = true;
+        let state = TableState::default();
+        let default = Table::new(Id::root("table.sort-default"), &columns);
+        let mut scene = Scene::new(
+            "table_sort_default",
+            Theme::junie(),
+            ColorLevel::TrueColor,
+            40,
+            8,
+        );
+        scene.draw(|ui, _| {
+            default.draw(ui, Rect::new(0, 0, 40, 8), &state, &Rows);
+        });
+        let contains = |scene: &Scene, needle: &str| {
+            (0..8)
+                .flat_map(|y| (0..40).map(move |x| (x, y)))
+                .any(|point| {
+                    scene
+                        .buffer()
+                        .cell(point)
+                        .is_some_and(|cell| cell.symbol() == needle)
+                })
+        };
+        assert!(!contains(&scene, "▴"));
+        assert!(!contains(&scene, "▾"));
+
+        let always = default.sort_indicator(GridSortIndicator::Always);
+        let mut scene = Scene::new(
+            "table_sort_always",
+            Theme::junie(),
+            ColorLevel::TrueColor,
+            40,
+            8,
+        );
+        scene.draw(|ui, _| {
+            always.draw(ui, Rect::new(0, 0, 40, 8), &state, &Rows);
+        });
+        assert!(contains(&scene, "▴"));
+    }
+
+    #[test]
+    fn table_tone_patch_overrides_only_the_semantic_tone_foreground() {
+        use ratatui_core::style::Color;
+        use termrock_test_support::Scene;
+        use termrock_theme::{ColorLevel, Theme};
+
+        struct Failed;
+        impl GridModel for Failed {
+            fn row_count(&self) -> usize {
+                1
+            }
+            fn row_key(&self, _: usize) -> ItemKey {
+                ItemKey::num(0)
+            }
+            fn cell(&self, _: usize, column: usize) -> Option<CellRef<'_>> {
+                (column == 0).then(|| CellRef::new("Failed").tone(Role::Danger))
+            }
+        }
+
+        let columns = [TableColumn::new(Column::new(ColumnKey::num(1), "Status"))];
+        let styles = [(
+            Role::Danger,
+            StylePatch::new().set_fg(Role::Custom(Color::Rgb(240, 93, 93))),
+        )];
+        let table = Table::new(Id::root("table.tone"), &columns).tone_styles(&styles);
+        let mut scene = Scene::new(
+            "table_tone_patch",
+            Theme::junie(),
+            ColorLevel::TrueColor,
+            30,
+            5,
+        );
+        scene.draw(|ui, _| {
+            table.draw(ui, Rect::new(0, 0, 30, 5), &TableState::default(), &Failed);
+        });
+        let failed = (0..30)
+            .flat_map(|x| (0..5).map(move |y| (x, y)))
+            .find_map(|point| {
+                scene
+                    .buffer()
+                    .cell(point)
+                    .filter(|cell| cell.symbol() == "F")
+                    .map(|cell| cell.fg)
+            });
+        assert_eq!(failed, Some(Color::Rgb(240, 93, 93)));
     }
 
     #[test]
