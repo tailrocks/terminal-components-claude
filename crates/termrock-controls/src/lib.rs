@@ -39,7 +39,7 @@ pub mod split;
 pub mod too_small;
 
 pub use brand::Brand;
-pub use button::{Button, ButtonCmd};
+pub use button::{Button, ButtonCmd, ButtonFocusVisibility};
 pub use choice::{
     Checkbox, ChoiceCmd, LabelRadio, RadioGroup, RadioGroupAction, RadioGroupState, Toggle,
 };
