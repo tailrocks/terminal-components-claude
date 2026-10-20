@@ -479,6 +479,34 @@ fn empty_and_noop_acceptance_close_without_reopening() {
 }
 
 #[test]
+fn completion_controller_closes_and_reopens_the_same_popup_owner() {
+    let mut runtime = runtime("SELECT co");
+    runtime.app_mut().state.editor_mut().commit();
+    let mut buffer = Buffer::empty(AREA);
+    runtime.draw_buffer(AREA, &mut buffer).commit_presented();
+    assert!(!runtime.app().state.editor().is_editing());
+
+    send(&mut runtime, KeyCode::Char(' '), KeyModifiers::CONTROL);
+    assert!(runtime.app().state.editor().is_editing());
+    assert!(runtime.app().state.is_completion_open());
+    assert!(runtime.is_open(POPUP));
+
+    send(&mut runtime, KeyCode::Esc, KeyModifiers::NONE);
+    assert!(!runtime.app().state.is_completion_open());
+    assert!(!runtime.is_open(POPUP));
+
+    send(&mut runtime, KeyCode::Char(' '), KeyModifiers::CONTROL);
+    assert!(runtime.app().state.is_completion_open());
+    assert!(runtime.is_open(POPUP));
+    assert_eq!(runtime.focus(), Some(EDITOR));
+    assert!(
+        runtime.diagnostics().is_empty(),
+        "{:?}",
+        runtime.diagnostics()
+    );
+}
+
+#[test]
 fn disabled_suggestion_cannot_be_accepted() {
     let mut runtime = runtime_with("SELECT co", ProviderMode::Disabled);
     send(&mut runtime, KeyCode::Char(' '), KeyModifiers::CONTROL);
@@ -501,9 +529,17 @@ fn outside_pointer_and_focus_loss_dismiss_and_commit() {
     send(&mut runtime, KeyCode::Char(' '), KeyModifiers::CONTROL);
     assert!(runtime.app().state.is_completion_open());
     runtime.set_focus(Some(NEXT));
+    assert_eq!(runtime.focus(), Some(NEXT), "focus request before settling");
     let mut buffer = Buffer::empty(AREA);
     runtime.draw_buffer(AREA, &mut buffer).commit_presented();
+    assert_eq!(
+        runtime.focus(),
+        Some(NEXT),
+        "focus after settling the popup close"
+    );
     let _ = termrock_runtime::stub::deliver(&mut runtime, Input::Tick);
     assert!(!runtime.app().state.is_completion_open());
+    assert_eq!(runtime.app().actions.last(), Some(&CodeAction::Committed));
+    assert_eq!(runtime.focus(), Some(NEXT));
     assert!(!runtime.app().state.editor().is_editing());
 }

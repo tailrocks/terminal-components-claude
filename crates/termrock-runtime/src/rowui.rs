@@ -340,6 +340,47 @@ impl<'u> RowUi<'u> {
         self.label_in(s, st);
     }
 
+    pub fn label_matched(&mut self, s: &str, matched: &[usize]) {
+        let patch = self.label_patch;
+        let resolved = self.ui.style_defaults_with_explicit(
+            self.family,
+            self.variant,
+            Part::LABEL,
+            self.flags,
+            crate::theme::StyleDefaults::new(StylePatch::new().remove(Modifier::BOLD)),
+            patch.as_ref(),
+        );
+        // Unfocused labels use match emphasis for BOLD by default. Supplying
+        // that default to the canonical resolver leaves theme and consumer
+        // patches authoritative without replaying recipe resolution here.
+        let style = resolved.resolved.style;
+        #[cfg(feature = "testing")]
+        self.ui.note_styled(
+            self.owner,
+            self.family,
+            self.variant,
+            Part::LABEL,
+            resolved.resolved,
+        );
+        let area = self.remaining();
+        let used = if width(s) <= area.width {
+            self.ui.paint_matched(area, s, matched, style)
+        } else {
+            let head = Rect {
+                width: area.width.saturating_sub(1),
+                ..area
+            };
+            let used = self.ui.paint_matched(head, s, matched, style);
+            let tail = Rect {
+                x: area.x.saturating_add(used),
+                width: area.width.saturating_sub(used),
+                ..area
+            };
+            used.saturating_add(self.ui.glyph(tail, GlyphRole::Ellipsis, style))
+        };
+        self.left = self.left.saturating_add(used);
+    }
+
     pub fn label_patched(&mut self, s: &str, p: &StylePatch) {
         let patch = self.label_patch.map_or(*p, |forwarded| forwarded.merge(*p));
         let st = resolve_row_part(
@@ -967,13 +1008,22 @@ mod tests {
         f: impl FnOnce(&mut RowUi<'_>),
     ) -> Buffer {
         let theme = Theme::junie();
+        paint_with_theme_patches(&theme, container_patch, label_patch, f)
+    }
+
+    fn paint_with_theme_patches(
+        theme: &Theme,
+        container_patch: Option<StylePatch>,
+        label_patch: Option<StylePatch>,
+        f: impl FnOnce(&mut RowUi<'_>),
+    ) -> Buffer {
         let mut frame = FrameState::default();
         frame.reset(1, SCREEN);
         let mut page = Buffer::empty(SCREEN);
         let mut core = UiCore::default();
         let last = LastFrame::default();
         {
-            let mut ui = Ui::new(&mut frame, &mut page, &mut core, &theme, &last);
+            let mut ui = Ui::new(&mut frame, &mut page, &mut core, theme, &last);
             let mut row = RowUi::new_with_patches(
                 &mut ui,
                 OWNER,
@@ -1065,6 +1115,57 @@ mod tests {
         assert!(
             page.cell((0, 0))
                 .is_some_and(|cell| !cell.modifier.contains(Modifier::BOLD))
+        );
+    }
+
+    #[test]
+    fn matched_labels_preserve_explicit_bold_and_only_emphasize_matches() {
+        let explicit = StylePatch::new().add(Modifier::BOLD);
+        let page = paint_with_patches(None, Some(explicit), |row| {
+            row.label_matched("label", &[]);
+        });
+        assert!(
+            (0..5).all(|x| page
+                .cell((x, 0))
+                .is_some_and(|cell| cell.modifier.contains(Modifier::BOLD))),
+            "an empty match must preserve the consumer's bold label style"
+        );
+
+        let mut theme = Theme::junie();
+        theme
+            .recipes
+            .get_mut(Family::LIST)
+            .parts
+            .entry(Part::LABEL)
+            .base = StylePatch::new().add(Modifier::BOLD);
+        let page = paint_with_theme_patches(&theme, None, None, |row| {
+            row.label_matched("label", &[1]);
+        });
+        assert!(
+            (0..5).all(|x| page
+                .cell((x, 0))
+                .is_some_and(|cell| cell.modifier.contains(Modifier::BOLD))),
+            "matching must preserve theme-authored bold across the label"
+        );
+
+        let page = paint_with_patches(None, None, |row| {
+            row.label_matched("label", &[1, 4]);
+        });
+        assert!(
+            page.cell((0, 0))
+                .is_some_and(|cell| !cell.modifier.contains(Modifier::BOLD))
+        );
+        assert!(
+            page.cell((1, 0))
+                .is_some_and(|cell| cell.modifier.contains(Modifier::BOLD))
+        );
+        assert!(
+            page.cell((2, 0))
+                .is_some_and(|cell| !cell.modifier.contains(Modifier::BOLD))
+        );
+        assert!(
+            page.cell((4, 0))
+                .is_some_and(|cell| cell.modifier.contains(Modifier::BOLD))
         );
     }
 

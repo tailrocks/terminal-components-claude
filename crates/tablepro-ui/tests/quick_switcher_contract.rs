@@ -1,3 +1,6 @@
+#[path = "common/tab_navigation.rs"]
+mod tab_navigation;
+
 use tablepro_ui::{Surface, Tab, TableProApp};
 use termrock::{App, Id, KeyCode, Theme};
 use termrock_test_support::Harness;
@@ -40,7 +43,7 @@ fn schema_target_changes_context_and_preserves_tab_identity_and_draft() {
     let Some(editor) = h.app().query_id() else {
         unreachable!("query fixture")
     };
-    assert!(h.tab_to(editor));
+    assert!(tab_navigation::tab_to(&mut h, editor));
     let _ = h.type_str("SELECT secret_schema_draft");
     let query = h.app().query().to_owned();
     let count = h.app().workbench.tabs().len();
@@ -56,7 +59,7 @@ fn schema_target_changes_context_and_preserves_tab_identity_and_draft() {
     assert_eq!(h.app().workbench.tabs().len(), count);
     assert_eq!(h.app().query(), query);
     assert!(matches!(h.app().workbench.active(), Some(Tab::Query(tab))
-        if tab.editor_state.draft_text() == Some("SELECT secret_schema_draft")));
+        if tab.editor_state.editor().text() == "SELECT secret_schema_draft"));
     assert_eq!(h.focus(), Some(EXPLORER));
     assert!(h.text().contains("events"), "{}", h.text());
     assert!(!h.app_mut().select_schema("missing"));
@@ -90,7 +93,7 @@ fn reopening_existing_relation_preserves_the_owned_tab() {
     let Some(grid) = h.app().result_id() else {
         unreachable!("table fixture")
     };
-    assert!(h.tab_to(grid));
+    assert!(tab_navigation::tab_to(&mut h, grid));
     let _ = h.key(KeyCode::Right);
     let _ = h.key(KeyCode::F(2));
     let _ = h.key(KeyCode::End);
