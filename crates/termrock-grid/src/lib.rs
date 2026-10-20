@@ -21,6 +21,7 @@ pub use termrock_text::{Secret, SecretPolicy};
 pub(crate) use termrock_runtime::{Acc, PartStyle, SlotFn, cell_at};
 
 pub mod grid;
+pub mod table;
 
 pub use grid::{
     CellAction, CellRef, Column, ColumnKey, EditIntent, GRID_MAX_COLUMNS, Grid, GridAction,
@@ -28,3 +29,5 @@ pub use grid::{
     GridModel, GridOverflowIndicator, GridSortIndicator, GridState, NavUnit, SortDir, WidthSample,
     WidthSampleError,
 };
+
+pub use table::{Table, TableColumn, TableSort, TableState};
