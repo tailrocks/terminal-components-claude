@@ -848,6 +848,11 @@ pub fn monorepo_root_tag_frame(w: &World) -> bool {
     w.scenario == Scenario::MonorepoRoot && w.now_ms() == 80
 }
 
+/// Tag `monorepo-child` at fixture tick 40. Later seeks keep the concept home.
+pub fn monorepo_child_tag_frame(w: &World) -> bool {
+    w.scenario == Scenario::MonorepoChild && w.now_ms() == 80
+}
+
 /// Tag `parity-discovery` at fixture tick 40.
 ///
 /// `--frame 40` seeks 80 ms. Every tag source for this fixture is done by tick 40,
@@ -1309,6 +1314,196 @@ pub fn monorepo_root_tag(w: &World) -> Option<ParityDiscovery> {
     })
 }
 
+pub fn monorepo_child_tag(w: &World) -> Option<ParityDiscovery> {
+    if !monorepo_child_tag_frame(w) {
+        return None;
+    }
+    let suggested = vec![
+        tag_row(
+            "Inspect 3 GB of generated artifacts",
+            "disk",
+            "here",
+            true,
+            "3 GB generated artifacts",
+            None,
+            true,
+        ),
+        tag_row(
+            "Install missing tools · sqlx-cli",
+            "task",
+            "here",
+            true,
+            "1 tool missing",
+            None,
+            false,
+        ),
+        tag_row(
+            "Run tests",
+            "task",
+            "here",
+            true,
+            "2 files changed since the last run",
+            None,
+            false,
+        ),
+        tag_row(
+            "Follow acme-api-1 logs",
+            "docker",
+            "parent",
+            false,
+            "service is unhealthy",
+            None,
+            false,
+        ),
+        tag_row(
+            "Review 2 modified files",
+            "git",
+            "parent",
+            false,
+            "2 modified · 0 untracked",
+            None,
+            false,
+        ),
+    ];
+    let parent = vec![
+        tag_row(
+            "Start development ecosystem",
+            "task",
+            "parent",
+            false,
+            "defined by ~/work/acme/mise.toml",
+            None,
+            false,
+        ),
+        tag_row(
+            "Start required containers",
+            "task",
+            "parent",
+            false,
+            "defined by ~/work/acme/mise.toml",
+            None,
+            false,
+        ),
+    ];
+    let explore = vec![
+        tag_row(
+            "Parent · acme (mise monorepo)",
+            "explore",
+            "parent",
+            false,
+            "workspace root above this folder",
+            None,
+            false,
+        ),
+        tag_row(
+            "System · mbp",
+            "explore",
+            "host",
+            false,
+            "available on this host",
+            None,
+            false,
+        ),
+    ];
+    let mut lines = Vec::new();
+    lines.push(FinderLine::Heading("Suggested here"));
+    for row in &suggested {
+        lines.push(FinderLine::Row(row.clone()));
+    }
+    lines.push(FinderLine::Blank);
+    lines.push(FinderLine::Heading("Recent here"));
+    lines.push(FinderLine::Heading("nothing used here yet"));
+    lines.push(FinderLine::Blank);
+    lines.push(FinderLine::Heading("From acme · the parent root"));
+    for row in &parent {
+        lines.push(FinderLine::Row(row.clone()));
+    }
+    lines.push(FinderLine::Blank);
+    lines.push(FinderLine::Heading("Explore"));
+    lines.push(FinderLine::Chips(&[
+        "Tasks", "Git", "Files", "Disk", "Services", "System",
+    ]));
+    for row in &explore {
+        lines.push(FinderLine::Row(row.clone()));
+    }
+    let preview = vec![
+        PreviewLine {
+            label: "Does",
+            value: "1 rebuildable candidate below this folder · 0 stale enough to start selected"
+                .into(),
+            tone: PreviewTone::Text,
+            wraps: true,
+        },
+        PreviewLine {
+            label: "Runs",
+            value: "'holla disk anal…ifacts'".into(),
+            tone: PreviewTone::Secondary,
+            wraps: true,
+        },
+        PreviewLine {
+            label: "In",
+            value: "~/work/acme/apps…rontend".into(),
+            tone: PreviewTone::Text,
+            wraps: false,
+        },
+        PreviewLine {
+            label: "Host",
+            value: "mbp · local".into(),
+            tone: PreviewTone::Text,
+            wraps: true,
+        },
+        PreviewLine {
+            label: "Scope",
+            value: "here".into(),
+            tone: PreviewTone::Text,
+            wraps: false,
+        },
+        PreviewLine {
+            label: "Why",
+            value: "3 GB generated artifacts".into(),
+            tone: PreviewTone::Text,
+            wraps: true,
+        },
+        PreviewLine {
+            label: "Changes",
+            value: "none · read-only".into(),
+            tone: PreviewTone::Text,
+            wraps: true,
+        },
+        PreviewLine {
+            label: "Risk",
+            value: "read-only".into(),
+            tone: PreviewTone::Meta,
+            wraps: true,
+        },
+        PreviewLine {
+            label: "Data",
+            value: "live · 3 s ago".into(),
+            tone: PreviewTone::Muted,
+            wraps: true,
+        },
+        PreviewLine {
+            label: "Gate",
+            value: "opens a review · the deletion is gated there (typed phrase)".into(),
+            tone: PreviewTone::Muted,
+            wraps: true,
+        },
+        PreviewLine {
+            label: "Alt+Enter",
+            value: "Pin · Alias · Why here?".into(),
+            tone: PreviewTone::Muted,
+            wraps: true,
+        },
+    ];
+    Some(ParityDiscovery {
+        lines,
+        preview,
+        preview_meta: "disk · here".into(),
+        actions: Vec::new(),
+        suggested_len: suggested.len(),
+    })
+}
+
 fn tag_row(
     title: impl Into<String>,
     kind: &'static str,
@@ -1468,6 +1663,42 @@ mod tests {
         );
         world.seek(4_000);
         assert!(monorepo_root_tag(&world).is_none());
+    }
+
+    #[test]
+    fn monorepo_child_tag_exists_only_at_tick_40() {
+        let mut world = fixtures::world_for(Scenario::MonorepoChild);
+        assert!(monorepo_child_tag(&world).is_none());
+        world.seek(40);
+        let view = monorepo_child_tag(&world).expect("tick 40 tag");
+        assert_eq!(view.preview_meta, "disk · here");
+        assert!(
+            view.lines
+                .iter()
+                .any(|line| matches!(line, FinderLine::Heading("From acme · the parent root")))
+        );
+        assert!(view.lines.iter().any(|line| matches!(
+            line,
+            FinderLine::Row(row) if row.selected && row.title.starts_with("Inspect 3 GB")
+        )));
+        assert!(view.lines.iter().any(|line| matches!(
+            line,
+            FinderLine::Row(row) if row.title.contains("sqlx-cli") && row.scope_word == "here"
+        )));
+        assert!(view.lines.iter().any(|line| matches!(
+            line,
+            FinderLine::Row(row) if row.title == "Follow acme-api-1 logs" && !row.here
+        )));
+        assert!(view.preview.iter().any(|line| line.label == "In"
+            && line.value == "~/work/acme/apps…rontend"
+            && !line.wraps));
+        assert!(
+            view.preview
+                .iter()
+                .any(|line| line.label == "Runs" && line.value.contains("ifacts"))
+        );
+        world.seek(4_000);
+        assert!(monorepo_child_tag(&world).is_none());
     }
 
     fn settled(scenario: Scenario) -> World {
