@@ -453,6 +453,20 @@ impl FormState {
         self.dirty
     }
 
+    pub fn editing_text(&self, id: Id) -> Option<&str> {
+        self.slots
+            .iter()
+            .find(|slot| slot.id == id)?
+            .input
+            .draft_text()
+    }
+
+    pub fn select_editing_text(&mut self, id: Id) {
+        if let Some(slot) = self.slots.iter_mut().find(|slot| slot.id == id) {
+            slot.input.select_all();
+        }
+    }
+
     pub fn mark_clean(&mut self) {
         self.dirty = false;
     }
