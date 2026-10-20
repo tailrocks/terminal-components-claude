@@ -19,7 +19,7 @@ use termrock_runtime::rowui::{RowFn, RowUi};
 use termrock_runtime::scroll_region::ScrollRegion;
 use termrock_runtime::ui::{Cx, FrameRead, Ui};
 use termrock_text::width;
-use termrock_theme::{Family, Slot, StylePatch, Variant};
+use termrock_theme::{CursorStyle, Family, Slot, StylePatch, Variant};
 
 pub type BadgeFn<'a, T> = &'a dyn Fn(&T) -> Option<&str>;
 
@@ -236,6 +236,8 @@ pub struct NavList<'a, T, K = ByIndex, R = DefaultRow> {
     mode: NavMode,
     compact: Option<bool>,
     header_indent: u16,
+    content_gap: u16,
+    cursor_style: CursorStyle,
     render_row: Option<NavRowRenderer<'a, T>>,
     section: Option<&'a dyn Fn(&T) -> &str>,
     icon: Option<&'a dyn Fn(&T) -> &str>,
@@ -270,6 +272,8 @@ impl<T> NavList<'_, T, ByIndex, DefaultRow> {
             mode: NavMode::Full,
             compact: Some(false),
             header_indent: 1,
+            content_gap: 1,
+            cursor_style: CursorStyle::Bar,
             render_row: None,
             section: None,
             icon: None,
@@ -356,6 +360,25 @@ impl<'a, T, K, R> NavList<'a, T, K, R> {
         self
     }
 
+    /// Set the number of cells between the fixed leading slots and row content.
+    ///
+    /// The default of one preserves the existing content origin at `x + 4`.
+    /// A gap of zero starts content at `x + 3`; gutter, marker and icon slots
+    /// keep their existing positions.
+    #[must_use]
+    pub const fn content_gap(mut self, cells: u16) -> Self {
+        self.content_gap = cells;
+        self
+    }
+
+    /// Choose how the active row is presented. The default shows the theme's
+    /// focus gutter; `Fill` uses the shared row-fill treatment.
+    #[must_use]
+    pub const fn cursor_style(mut self, style: CursorStyle) -> Self {
+        self.cursor_style = style;
+        self
+    }
+
     #[must_use]
     pub fn render_row(mut self, renderer: NavRowRenderer<'a, T>) -> Self {
         self.render_row = Some(renderer);
@@ -400,6 +423,8 @@ impl<'a, T, K, R> NavList<'a, T, K, R> {
             mode: self.mode,
             compact: self.compact,
             header_indent: self.header_indent,
+            content_gap: self.content_gap,
+            cursor_style: self.cursor_style,
             render_row: self.render_row,
             section: self.section,
             icon: self.icon,
@@ -422,6 +447,8 @@ impl<'a, T, K, R> NavList<'a, T, K, R> {
             mode: self.mode,
             compact: self.compact,
             header_indent: self.header_indent,
+            content_gap: self.content_gap,
+            cursor_style: self.cursor_style,
             render_row: self.render_row,
             section: self.section,
             icon: self.icon,
@@ -948,9 +975,10 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> NavList<'_, T, K, R> {
         if self.mode == NavMode::Collapsed {
             return;
         }
+        let content_offset = 3_u16.saturating_add(self.content_gap);
         let body = Rect {
-            x: rect.x.saturating_add(4),
-            width: rect.width.saturating_sub(4),
+            x: rect.x.saturating_add(content_offset),
+            width: rect.width.saturating_sub(content_offset),
             ..rect
         };
         if body.is_empty() {
@@ -983,7 +1011,8 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> NavList<'_, T, K, R> {
                 row_body,
                 self.ov.part_patch(Part::CONTAINER),
                 self.ov.part_patch(Part::LABEL),
-            );
+            )
+            .with_cursor_style(self.cursor_style);
             self.row.row(item, &mut r);
         }
         if let Some(text) = badge {
@@ -1025,7 +1054,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> NavList<'_, T, K, R> {
         Size {
             min: (
                 match self.mode {
-                    NavMode::Full => 12,
+                    NavMode::Full => 11_u16.saturating_add(self.content_gap),
                     NavMode::Collapsed => 4,
                 },
                 1,
