@@ -238,6 +238,24 @@ fn render(ui: &mut Ui) { for cell in FRAME_PIECES { ui.paint(cell.x, cell.y, cel
         self.assertFalse(report["architecture_checks_passed"])
         self.assertTrue(any("production module may resolve through a Cargo target-directory alias" in item and "shared/other.rs:1" in item for item in report["unaccounted_inputs"]))
 
+    def test_out_of_package_cargo_root_with_ordinary_module_tree_fails_closed(self) -> None:
+        crate = self.root / "crates/termrock-core"
+        write(crate / "Cargo.toml", '[package]\nname="termrock-core"\nversion="0.1.0"\nedition="2024"\n[lib]\npath="../../shared/lib.rs"\n')
+        write(self.root / "shared/lib.rs", 'pub mod hidden;\ninclude!("support.inc");\n')
+        write(self.root / "shared/hidden.rs", 'pub mod nested;\ninclude!("hidden.inc");\n')
+        write(self.root / "shared/hidden/nested.rs", "// captured terminal frame in module child\n")
+        write(self.root / "shared/hidden.inc", "// captured terminal frame in nested module include\n")
+        write(self.root / "shared/support.inc", 'include!("nested.inc");\n')
+        write(self.root / "shared/nested.inc", "// captured terminal frame in included source\n")
+        report = self.run_gate()
+        self.assertFalse(report["architecture_checks_passed"])
+        self.assertTrue(any("production Cargo target source is outside its package; module tree is not fully accounted" in item and "shared/lib.rs" in item for item in report["unaccounted_inputs"]))
+        self.assertTrue(any(row["path"] == "shared/lib.rs" for row in report["source_inputs"]))
+        self.assertTrue(any(row["path"] == "shared/support.inc" for row in report["source_inputs"]))
+        self.assertTrue(any(row["path"] == "shared/nested.inc" for row in report["source_inputs"]))
+        self.assertFalse(any(row["path"] == "shared/hidden.rs" for row in report["source_inputs"]))
+        self.assertTrue(any(item["file"] == "shared/nested.inc" for item in report["findings"]))
+
     def test_path_attribute_file_alias_into_target_is_unaccounted(self) -> None:
         crate = self.root / "crates/termrock-core"
         write(crate / "src/lib.rs", '#[path = "generated.rs"]\npub mod generated;\n')
