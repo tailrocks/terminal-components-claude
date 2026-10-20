@@ -43,11 +43,12 @@
          };
          self.sending();
          self.inner.mouse_wheel(wheel, col, row, MouseMods::NONE)
-+    }
+     }
 +
 +    pub fn scroll_right(&mut self, col: u16, row: u16) -> Result<(), tuiscotti::TuiError> {
 +        self.sending();
 +        self.inner.mouse_wheel(Wheel::Right, col, row, MouseMods::NONE)
++    }
 --- a/tests/visual_baseline/scenarios/interact.rs
 +++ b/tests/visual_baseline/scenarios/interact.rs
 @@ -130,8 +130,8 @@
