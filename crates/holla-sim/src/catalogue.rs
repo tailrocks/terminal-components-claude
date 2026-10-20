@@ -861,6 +861,11 @@ pub fn docker_cleanup_tag_frame(w: &World) -> bool {
     w.scenario == Scenario::DockerCleanup && w.now_ms() == 80
 }
 
+/// Tag `disk-cleanup` at fixture tick 40. Later seeks keep the concept disk page.
+pub fn disk_cleanup_tag_frame(w: &World) -> bool {
+    w.scenario == Scenario::DiskCleanup && w.now_ms() == 80
+}
+
 /// Tag `parity-discovery` at fixture tick 40.
 ///
 /// `--frame 40` seeks 80 ms. Every tag source for this fixture is done by tick 40,
@@ -1899,6 +1904,17 @@ mod tests {
         assert!(view.preview.iter().any(|line| line.label == "Alt+Enter"));
         world.seek(4_000);
         assert!(docker_cleanup_tag(&world).is_none());
+    }
+
+    #[test]
+    fn disk_cleanup_tag_exists_only_at_tick_40() {
+        let mut world = fixtures::world_for(Scenario::DiskCleanup);
+        assert!(!disk_cleanup_tag_frame(&world));
+        world.seek(40);
+        assert!(disk_cleanup_tag_frame(&world));
+        assert_eq!(world.now_ms(), 80);
+        world.seek(4_000);
+        assert!(!disk_cleanup_tag_frame(&world));
     }
 
     fn settled(scenario: Scenario) -> World {
