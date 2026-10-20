@@ -11,6 +11,25 @@ Install the checked-out workspace's pinned developer tools with `mise install`, 
 
 The commands above are starting points verified against the package manifests. Format, check, lint, and test the affected workspace using its configured commands. Run focused tests first, then required integration and visual gates. Record exact command, branch, revision, and result. A passing local command is evidence only for that command and revision; old visual and nextest results are not current verification.
 
+## Frozen CLI parity captures
+
+`tools/frozen_baseline.py` extracts the signed `visual-baseline` tag into an isolated directory, builds its four CLI binaries, then runs the frozen `visual_baseline` Nextest target against both frozen and candidate binary directories. The frozen target uses real `tuiscotti::Tui` processes (`tests/visual_baseline/scenarios/mod.rs`, `tests/visual_baseline/support.rs`) and `GroupedStore::check_with(..., 1.0)` with `ArtifactSet::AnsiCursor`; it checks the full frame, including cursor and attributes. It pins `tuiscotti` to `a1ea27f757d75d07b05499276cd932e9f8e067ad`.
+
+Run from either candidate checkout. Keep the evidence root outside the checkout if comparing multiple branches:
+
+```sh
+python3 tools/frozen_baseline.py --repo "$PWD" --root /tmp/termrock-frozen-pair prepare
+python3 tools/frozen_baseline.py --repo "$PWD" --root /tmp/termrock-frozen-pair build
+python3 tools/frozen_baseline.py --repo "$PWD" --root /tmp/termrock-frozen-pair build-candidate
+python3 tools/frozen_baseline.py --repo "$PWD" --root /tmp/termrock-frozen-pair compare \
+  --candidate-bin-dir /tmp/termrock-frozen-pair/candidate-target/debug \
+  --case holla::parity::files::120x40::truecolor
+```
+
+Repeat `build-candidate` and `compare` in the other checkout with its own evidence root. `--case` requires one exact ignored test name. Runner sets `VISUAL_FULL=1`, strips `VISUAL_TOOL` and update controls, requires that selected frozen `.ansi` snapshot, and refuses empty selection. Same frozen test executable and case run first against isolated frozen binaries, then candidate binaries. Each phase gets separate `actual/` and `diff/` artifacts under `<root>/paired/<run-id>/`; failed phases save artifacts and `report.json` before returning nonzero. The report records tag object, source commit/tree, tool pin, selected expected snapshot hash, harness/source hashes, candidate commit and dirty source fingerprint, and all binary hashes. Existing phase evidence cannot be overwritten.
+
+This is a bounded single-case paired runner, not full acceptance tooling. `--all` fails closed while the frozen store has pending scenarios without approved snapshots. A `--case` result covers that one scenario only. Full acceptance also requires the 20 non-ignored integrity and startup tests and the complete scenario inventory, including pending and narrow-size rows, paired against the frozen CLI. No frozen snapshots are updated by this runner. Run its guard tests with `python3 tools/test_frozen_baseline.py`.
+
 ## Rust comments
 
 Keep Rust comments only for a safety invariant, legally required notice, or non-obvious behavior constraint that cannot be recovered from code or tests and is necessary to maintain correctness. Do not replace removed prose with `#[doc = "..."]`. Preserve structural compiler attributes such as `#[doc(hidden)]` and actual runtime metadata such as `#[arg(help = "...")]`. Existing Clap derive documentation consumed as CLI help metadata is retained where removing it would change user-visible help; that narrow use does not make general API documentation in source the policy. Frozen Rust fixtures whose exact bytes are validation inputs remain unchanged. Put contracts, API guidance, examples, and design rationale in maintained Markdown.
