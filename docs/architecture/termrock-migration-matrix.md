@@ -157,15 +157,22 @@ add an invented config field or patch generated workflows by hand.
 
 | Branch / delivery | Exact observed tip | Workflow status | Gate status / next action |
 | --- | --- | --- | --- |
-| `parity/termrock-visual-baseline` (PR #38) | `669cee180d70a29619f98eb328bc607d29981584` | Generated workflow uses Velnor `0.1.29` with a 15-minute Rust job timeout. | Fresh verifier result pending. Keep all product refactoring on PR #38 and do not count a planned or skipped job as green. |
-| `design/interaction-polish` (PR #26 source remains frozen separately) | `f2f6eb716c4a512be3dc9423742fa06e86879b32` | Generated workflow uses Velnor `0.1.29` with a 15-minute Rust job timeout. | Fresh verifier result pending. Keep scope to generated CI and its evidence; do not alter fixed PR #26 source `f4867e9b5f8a08a3bb61ce80d644198a29f51984`. |
-| `main` | `a97e351df736b576904bc450619ca347ea64d65b` | Not upgraded to the current generated workflow. | Deliver the CI-only change through PR #39 at `a6929aeba7479d0b3a746f69d412a1ab701b5242`. Required Plan planning remains blocked by the generator's fixed five-minute limit; latest main has no override. Do not push directly to `main`. |
+| `parity/termrock-visual-baseline` (PR #38) | `1d7b8eb291e37cb4806ce1369a8a0abab08a81ac` | Velnor `0.1.29`; fresh generation, plan, and Actionlint checks pass. Plan: 47 crates, 44 jobs, 259 tasks. | Latest run [39445641197](https://github.com/tailrocks/terminal-components-claude/actions/runs/39445641197) was `in_progress` at observation; it is not green evidence. Keep product refactoring on PR #38. |
+| `design/interaction-polish` (PR #26 source remains frozen separately) | `f2f6eb716c4a512be3dc9423742fa06e86879b32` | Velnor `0.1.29`; local generated-file, plan, and Actionlint checks pass. | Latest run [39438273472](https://github.com/tailrocks/terminal-components-claude/actions/runs/39438273472) failed Plan at five minutes and skipped two Rust jobs. CI upgrade is not remotely green. Do not alter fixed PR #26 source `f4867e9b5f8a08a3bb61ce80d644198a29f51984`. |
+| `main` | `a97e351df736b576904bc450619ca347ea64d65b` | Not upgraded to the current generated workflow. PR #39 local checks pass with 43 Rust jobs. | Deliver only through CI-only PR #39 at `a6929aeba7479d0b3a746f69d412a1ab701b5242`. Run [39436987238](https://github.com/tailrocks/terminal-components-claude/actions/runs/39436987238) left Required blocked/failed; Plan is limited by the generator's fixed five-minute timeout and main has no supported override. Do not push directly to `main`. |
 
 No latest complete green required run was supplied for these exact current
-tips at this handoff. The PR #39 Plan blocker is unresolved, and the CI-only
+tips at this handoff. Parity's latest remote run was still in progress; design's
+Plan failed with downstream Rust jobs skipped; the PR #39 Plan blocker is unresolved, and the CI-only
 upgrade is therefore incomplete for `main`. Workflow status does not establish
 the product or library acceptance gates: Showcase, Jackin, TablePro, and Holla
 remain incomplete against baseline tag object
 `2718a6b8127a522a3d351d0b4bdb7542fc8da542`, source
 `4169783ae883788186d161af09ba9c481bd84e5c`, with Tuiscotti pinned at
 `a1ea27f757d75d07b05499276cd932e9f8e067ad`.
+
+Local CI evidence for this comparison is retained under
+`/Users/donbeave/Projects/termrock-cli-evidence-20261020/ci-final-20261020/`:
+the parity run is in `parity/1d7b8eb291e37cb4806ce1369a8a0abab08a81ac` and
+design evidence is in `design/`. No evidence path represents a full green
+remote CI run.
