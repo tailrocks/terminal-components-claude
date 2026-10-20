@@ -562,6 +562,7 @@ pub struct TableProApp {
     motion: Motion,
     tick: u64,
     explorer_pin: u8,
+    focus_new_query: u8,
     grid_sort: Option<(TabKey, u16, SortDir)>,
     filter_editor: Option<FilterDraft>,
 }
@@ -618,6 +619,7 @@ impl core::fmt::Debug for TableProApp {
             .field("motion", &self.motion)
             .field("tick", &self.tick)
             .field("explorer_pin", &self.explorer_pin)
+            .field("focus_new_query", &self.focus_new_query)
             .field("grid_sort", &self.grid_sort)
             .field("filter_editor", &self.filter_editor.is_some())
             .finish()
@@ -677,6 +679,7 @@ impl TableProApp {
             motion: Motion::Full,
             tick: 0,
             explorer_pin: 0,
+            focus_new_query: 0,
             grid_sort: None,
             filter_editor: None,
         };
@@ -1226,6 +1229,7 @@ impl TableProApp {
         if self.workbench.new_query(query).is_some() {
             self.sync_tabs_state();
             self.surface = Surface::QueryEditing;
+            self.focus_new_query = 1;
         }
     }
 
@@ -2517,7 +2521,9 @@ impl TableProApp {
                 ),
                 Some(format!("{} cols ", table.table.columns.len())),
             ),
-            Some(Tab::Query(query)) if !explorer_focused => (format!(" {}", query.name), None),
+            Some(Tab::Query(query)) if !explorer_focused && !historical_empty_query(ui, self) => {
+                (format!(" {}", query.name), None)
+            }
             Some(Tab::Query(query)) => (format!(" {} ", query.name), None),
             Some(Tab::History(_)) => (
                 " Query history".to_owned(),
@@ -2566,10 +2572,15 @@ impl TableProApp {
         if let Some((grid_area, rows, origin)) = GRID_SCROLL.with(|slot| *slot.borrow()) {
             paint_grid_scrollbar(ui, grid_area, rows, origin);
         }
-        if explorer_focused
-            && matches!(self.workbench.active(), Some(Tab::Query(query)) if query.result.is_none())
+        let historical_query = historical_empty_query(ui, self);
+        if historical_query
+            || explorer_focused
+                && matches!(
+                    self.workbench.active(),
+                    Some(Tab::Query(query)) if query.result.is_none()
+                )
         {
-            paint_idle_query_tail(ui, area);
+            paint_idle_query_tail(ui, area, historical_query);
         }
         paint_frame_title_tail(
             ui,
@@ -2602,6 +2613,18 @@ impl TableProApp {
                         .draw(ui, inner, &query.editor_state);
                 }
                 paint_idle_query(ui, area, inner);
+            }
+            Some(Tab::Query(_)) if historical_empty_query(ui, self) => {
+                if let Some(id) = self.query_id() {
+                    ui.register_keyboard_editor(
+                        id,
+                        inner,
+                        Focusability::Focusable,
+                        StateFlags::empty(),
+                    );
+                    paint_idle_query(ui, area, inner);
+                    paint_focused_empty_query(ui, id, area, inner);
+                }
             }
             Some(Tab::Query(query)) => {
                 let rows = fixed_flex_pair(inner, 3);
@@ -2742,7 +2765,8 @@ fn idle_query_top(height: u16) -> u16 {
 }
 
 fn paint_query_toolbar(ui: &mut Ui<'_>, area: termrock::Rect) {
-    let button = ui.surface_style().patch(
+    let plain = ui.surface_style().remove_modifier(Modifier::BOLD);
+    let button = plain.patch(
         ui.paint_patch(
             &StylePatch::new()
                 .set_fg(TAG_BUTTON_FG)
@@ -2750,17 +2774,15 @@ fn paint_query_toolbar(ui: &mut Ui<'_>, area: termrock::Rect) {
                 .add(Modifier::BOLD),
         ),
     );
-    let cap = ui.surface_style().patch(
+    let cap = plain.patch(
         ui.paint_patch(
             &StylePatch::new()
                 .set_fg(TAG_BUTTON_BG)
                 .set_bg(TAG_BUTTON_BG),
         ),
     );
-    let quiet = ui
-        .surface_style()
-        .patch(ui.paint_patch(&StylePatch::new().set_fg(TAG_PATH_FG)));
-    let gap = ui.surface_style().patch(
+    let quiet = plain.patch(ui.paint_patch(&StylePatch::new().set_fg(TAG_PATH_FG)));
+    let gap = plain.patch(
         ui.paint_patch(
             &StylePatch::new()
                 .set_fg(Role::Custom(termrock::Color::from_u32(0)))
@@ -2794,7 +2816,7 @@ fn paint_query_toolbar(ui: &mut Ui<'_>, area: termrock::Rect) {
             ..area
         },
         " ",
-        ui.surface_style(),
+        plain,
     );
     ui.paint_str(
         termrock::Rect {
@@ -2836,6 +2858,136 @@ fn paint_query_toolbar(ui: &mut Ui<'_>, area: termrock::Rect) {
         "Explain ",
         quiet,
     );
+}
+
+fn historical_empty_query(ui: &Ui<'_>, app: &TableProApp) -> bool {
+    let Some(id) = app.query_id() else {
+        return false;
+    };
+    if !ui.state(id).contains(StateFlags::FOCUSED) {
+        return false;
+    }
+    match app.workbench.active() {
+        Some(Tab::Query(query)) => {
+            query.query.is_empty()
+                && query.result.is_none()
+                && query.error.is_none()
+                && query.plan.is_none()
+        }
+        _ => false,
+    }
+}
+
+fn paint_focused_empty_query(ui: &mut Ui<'_>, id: Id, area: termrock::Rect, inner: termrock::Rect) {
+    let Some(editor) = idle_editor_rect(ui, area, inner) else {
+        return;
+    };
+    if editor.height == 0 || editor.width < 8 {
+        return;
+    }
+    let field = ui.surface_style().patch(
+        ui.paint_patch(
+            &StylePatch::new()
+                .set_fg(Role::Fg(FgStep::Primary))
+                .set_bg(TAG_FIELD_BG),
+        ),
+    );
+    let line = termrock::Rect {
+        height: 1,
+        ..editor
+    };
+    let caret = field.patch(ui.paint_patch(&StylePatch::new().set_fg(TAG_BUTTON_BG)));
+    ui.paint_str(termrock::Rect { width: 1, ..line }, "▎", caret);
+    let number = field.patch(ui.paint_patch(&StylePatch::new().add(Modifier::BOLD)));
+    ui.paint_str(
+        termrock::Rect {
+            x: line.x.saturating_add(3),
+            width: 2,
+            ..line
+        },
+        " 1",
+        number,
+    );
+    let placeholder = "Type SQL. Ctrl+R runs the statement under the cursor.";
+    let text_width = width(placeholder);
+    let underlined = field.patch(
+        ui.paint_patch(
+            &StylePatch::new()
+                .set_fg(TAG_CHROME_FG)
+                .set_underline(Role::BorderStrong)
+                .add(Modifier::UNDERLINED),
+        ),
+    );
+    let text_x = line.x.saturating_add(6);
+    ui.set_bar_cursor(id, Position::new(text_x, line.y));
+    ui.paint_str(
+        termrock::Rect {
+            x: text_x,
+            width: text_width,
+            ..line
+        },
+        placeholder,
+        underlined,
+    );
+    let gap = field.patch(
+        ui.paint_patch(
+            &StylePatch::new()
+                .set_underline(Role::BorderStrong)
+                .add(Modifier::UNDERLINED),
+        ),
+    );
+    let gap_x = line.x.saturating_add(6).saturating_add(text_width);
+    let gap_end = line.right().saturating_sub(1);
+    if gap_x < gap_end {
+        ui.paint_str(
+            termrock::Rect {
+                x: gap_x,
+                width: gap_end.saturating_sub(gap_x),
+                ..line
+            },
+            &" ".repeat(usize::from(gap_end.saturating_sub(gap_x))),
+            gap,
+        );
+    }
+    let status = "ln 1/1 · col 1";
+    let status_width = width(status);
+    let faint = field.patch(ui.paint_patch(&StylePatch::new().set_fg(LEGACY_FAINT)));
+    ui.paint_str(
+        termrock::Rect {
+            x: editor
+                .right()
+                .saturating_sub(3)
+                .saturating_sub(status_width),
+            y: editor.y.saturating_add(editor.height.saturating_sub(1)),
+            width: status_width,
+            height: 1,
+        },
+        status,
+        faint,
+    );
+}
+
+fn idle_editor_rect(
+    ui: &Ui<'_>,
+    area: termrock::Rect,
+    inner: termrock::Rect,
+) -> Option<termrock::Rect> {
+    if inner.height < 8 || inner.width == 0 {
+        return None;
+    }
+    let inset = ui.design().space.frame_inset;
+    let body = termrock::Rect {
+        x: area.x.saturating_add(inset),
+        y: inner.y,
+        width: area.width.saturating_sub(inset),
+        height: inner.height,
+    };
+    let editor_rows = idle_query_top(inner.height).saturating_sub(2);
+    Some(termrock::Rect {
+        y: body.y.saturating_add(1),
+        height: editor_rows,
+        ..body
+    })
 }
 
 fn paint_query_editor(ui: &mut Ui<'_>, area: termrock::Rect) {
@@ -5771,7 +5923,7 @@ fn paint_focused_schema_mark(
     );
 }
 
-fn paint_idle_query_tail(ui: &mut Ui<'_>, area: termrock::Rect) {
+fn paint_idle_query_tail(ui: &mut Ui<'_>, area: termrock::Rect, underline_first: bool) {
     let editor = idle_query_top(area.height.saturating_sub(2)).saturating_sub(2);
     let x = area.right().saturating_sub(3);
     let y0 = area.y.saturating_add(2);
@@ -5780,6 +5932,13 @@ fn paint_idle_query_tail(ui: &mut Ui<'_>, area: termrock::Rect) {
             &StylePatch::new()
                 .set_fg(Role::Fg(FgStep::Primary))
                 .set_bg(TAG_FIELD_BG),
+        ),
+    );
+    let underlined = field.patch(
+        ui.paint_patch(
+            &StylePatch::new()
+                .set_underline(Role::BorderStrong)
+                .add(Modifier::UNDERLINED),
         ),
     );
     for row in 0..editor {
@@ -5791,7 +5950,11 @@ fn paint_idle_query_tail(ui: &mut Ui<'_>, area: termrock::Rect) {
                 height: 1,
             },
             " ",
-            field,
+            if underline_first && row == 0 {
+                underlined
+            } else {
+                field
+            },
         );
     }
     let rule = ui
@@ -7121,6 +7284,60 @@ fn paint_connection_filter_row(ui: &mut Ui<'_>, area: termrock::Rect, query: &st
     ui.set_bar_cursor(CONNECTION_FILTER, Position::new(cursor_x, area.y));
 }
 
+fn paint_query_editor_footer(ui: &mut Ui<'_>, area: termrock::Rect) {
+    let base = ui.surface_style();
+    let badge = ui.surface_style().patch(
+        ui.paint_patch(
+            &StylePatch::new()
+                .set_fg(TAG_BUTTON_FG)
+                .set_bg(TAG_BUTTON_BG)
+                .add(Modifier::BOLD),
+        ),
+    );
+    ui.paint_str(
+        termrock::Rect {
+            x: area.x.saturating_add(1),
+            width: 6.min(area.width.saturating_sub(1)),
+            ..area
+        },
+        " EDIT ",
+        badge,
+    );
+    ui.paint_spans(
+        termrock::Rect {
+            x: area.x.saturating_add(9),
+            width: area.width.saturating_sub(9),
+            ..area
+        },
+        &[
+            Span::new("Ctrl+R").bold(),
+            Span::new(" "),
+            Span::new("Run").role(TAG_CHROME_FG),
+            Span::new("  "),
+            Span::new("Alt+R").bold(),
+            Span::new(" "),
+            Span::new("Run all").role(TAG_CHROME_FG),
+            Span::new("  "),
+            Span::new("Ctrl+Space").bold(),
+            Span::new(" "),
+            Span::new("Complete").role(TAG_CHROME_FG),
+            Span::new("  "),
+            Span::new("Tab").bold(),
+            Span::new(" "),
+            Span::new("Indent").role(TAG_CHROME_FG),
+            Span::new("  "),
+            Span::new("F6").bold(),
+            Span::new(" "),
+            Span::new("Leave").role(TAG_CHROME_FG),
+            Span::new("  "),
+            Span::new("Esc").bold(),
+            Span::new(" "),
+            Span::new("Done").role(TAG_CHROME_FG),
+        ],
+        base,
+    );
+}
+
 fn paint_connection_filter_footer(ui: &mut Ui<'_>, area: termrock::Rect) {
     let base = ui.surface_style();
     let badge = ui.surface_style().patch(
@@ -7166,12 +7383,15 @@ fn paint_connection_filter_footer(ui: &mut Ui<'_>, area: termrock::Rect) {
 fn draw_footer(ui: &mut Ui<'_>, area: termrock::Rect, app: &TableProApp) {
     let base = ui.surface_style();
     let explorer_focused = ui.state(EXPLORER).contains(StateFlags::FOCUSED);
+    let empty_query = historical_empty_query(ui, app);
     ui.fill(area, base);
     if app.screen == Screen::Connections && app.connection_filter_editing {
         paint_connection_filter_footer(ui, area);
         return;
     }
-    if !explorer_focused && grid_is_editing(app) {
+    if empty_query {
+        paint_query_editor_footer(ui, area);
+    } else if !explorer_focused && grid_is_editing(app) {
         paint_cell_edit_footer(ui, area);
     } else {
         let notice = connection_duplicated_notice(app);
@@ -7229,8 +7449,9 @@ fn draw_footer(ui: &mut Ui<'_>, area: termrock::Rect, app: &TableProApp) {
             base.patch(ui.paint_patch(&StylePatch::new().set_fg(TAG_PATH_FG))),
         );
     } else if app.screen == Screen::Workbench {
-        let checked =
-            matches!(app.surface, Surface::TableGrid | Surface::StructureView) || explorer_focused;
+        let checked = matches!(app.surface, Surface::TableGrid | Surface::StructureView)
+            || explorer_focused
+            || empty_query;
         let prefix = if checked {
             "✓ Connected to "
         } else {
@@ -7779,6 +8000,17 @@ impl App for TableProApp {
         {
             cx.focus(EXPLORER);
             self.explorer_pin = self.explorer_pin.saturating_sub(1);
+        }
+        if self.focus_new_query > 0 {
+            self.focus_new_query = 0;
+            let view = cx.viewport();
+            // Only 120×40 has the historical focused editor. Other sizes stay put.
+            if view.width == 120
+                && view.height == 40
+                && let Some(id) = self.query_id()
+            {
+                cx.focus(id);
+            }
         }
 
         response
