@@ -484,7 +484,7 @@ impl Recorder {
             observed_file_identity,
             process_start_identity,
             image_hash_source,
-        ) = process_image(pid)?;
+        ) = process_image_for_expected(pid, &intent.expected_path)?;
         let expected_sha256_after = sha256_file(&intent.expected_path)?;
         if observed_path != intent.expected_path
             || observed_sha256 != intent.expected_sha256
@@ -831,6 +831,38 @@ fn process_image(pid: u32) -> Result<(PathBuf, String, String, String, &'static 
         before_start,
         "linux-proc-exe-open-fd",
     ))
+}
+
+#[cfg(target_os = "macos")]
+fn process_image_for_expected(
+    pid: u32,
+    expected_path: &Path,
+) -> Result<(PathBuf, String, String, String, &'static str), Error> {
+    let deadline = std::time::Instant::now() + std::time::Duration::from_secs(2);
+    loop {
+        if let Ok(observed) = process_image(pid) {
+            if observed.0 == expected_path {
+                return Ok(observed);
+            }
+        }
+        if std::time::Instant::now() >= deadline {
+            return Err(Error::new(
+                "paired child executable did not match the phase binary before the deadline",
+            ));
+        }
+        std::thread::sleep(std::time::Duration::from_millis(10));
+    }
+}
+
+#[cfg(any(
+    target_os = "linux",
+    not(any(target_os = "macos", target_os = "linux"))
+))]
+fn process_image_for_expected(
+    pid: u32,
+    _expected_path: &Path,
+) -> Result<(PathBuf, String, String, String, &'static str), Error> {
+    process_image(pid)
 }
 
 #[cfg(target_os = "linux")]
