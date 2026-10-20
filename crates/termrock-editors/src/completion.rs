@@ -291,6 +291,11 @@ impl<'a> CompletingCodeEditor<'a> {
         }
 
         let editor_response = self.editor.update(cx, &mut state.editor);
+        if was_open && state.editor.is_find_typing() {
+            CompletionController::new(self.id, self.popup_id).dismiss(cx, &mut state.completion);
+            state.items.clear();
+            return Self::combine_response(&completion_response, editor_response);
+        }
         let action = editor_response.action_ref().cloned();
         let editor_response = match action {
             Some(CodeAction::CompletionManual) => {
