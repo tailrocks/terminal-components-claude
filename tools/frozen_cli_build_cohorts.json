@@ -1,0 +1,106 @@
+{
+  "schema": "termrock.frozen-cli-build-cohorts",
+  "schema_version": 1,
+  "cohorts": [
+    {
+      "id": "frozen-20261021-serial-nonincr-r1-r2",
+      "status": "reproduced-diagnostic-not-reference-approved",
+      "source": {
+        "tag": "visual-baseline",
+        "tag_object": "2718a6b8127a522a3d351d0b4bdb7542fc8da542",
+        "commit": "4169783ae883788186d161af09ba9c481bd84e5c",
+        "tree": "ad0f7cf8899df8c5fea3ced3f60adf0ac9a2d297",
+        "tuiscotti_rev": "a1ea27f757d75d07b05499276cd932e9f8e067ad",
+        "cargo_lock_sha256": "46c1c71d85de829b277feffc959e6e8feab99deb171b1e48521c12d5cf14c2ed",
+        "rust_toolchain_sha256": "007a7e2abbd4afe192a3ef190dfa54914800621e221196747cff9e172735dc00"
+      },
+      "tools": {
+        "recipe_sha256": "849900e9c848d892824bd2b6636a17ba35d57c9be57859abf136c42f7f314bac",
+        "run1_archive_sha256": "ef4b805a35667e0f1c41018dac78564ba6332489024b19638f4c8d114eaaf5a9",
+        "run2_archive_sha256": "89d6d0c03eaa0911b51af32b1cced55b93d405ec43876b55bae1d19055b540e2",
+        "run2_comparison_sha256": "f2bc6d30b2a528432781e12c318d6e0a6684c38caa5e392dca2c251a59c1ecbc",
+        "run1_provenance_sha256": "4eb758b86e148fc0688704ffbd66b3d6589300dd59ffc3ee67b78a26806ad098",
+        "run2_provenance_sha256": "4eb758b86e148fc0688704ffbd66b3d6589300dd59ffc3ee67b78a26806ad098",
+        "run1_live_source_sha256": "ea29844bfb384c3bb995c1d9594ffd9b58a1e7bfdf19b001eb0b45d9d6eec94c",
+        "run2_live_source_sha256": "ea29844bfb384c3bb995c1d9594ffd9b58a1e7bfdf19b001eb0b45d9d6eec94c",
+        "run1_stage1_receipt_sha256": "e62c9f13660211dde530a81d5d840ee97dc32f31d5d3fc31d1303a7f27547ae3",
+        "run1_stage2_receipt_sha256": "0f3bf5677d69e578ec9a93e5eeecb74bc9a7570deb73070a98cec61a61efaaaf",
+        "run2_stage1_receipt_sha256": "684d9bc6c181d087ad023d37b95187d01b1a1897e36a0674f18d0ccc5322b4a5",
+        "run2_stage2_receipt_sha256": "08b573ed200e1c32ff3627cc5845c744fa12d27d5fc00e87fc02e53240a46f16",
+        "run2_sealed_manifest_sha256": "2ca05dc3d79dabbc49e28f97a9cad0b4241925d482eec2e9257024418743e8b2"
+      },
+      "build": {
+        "target": "aarch64-apple-darwin",
+        "incremental": false,
+        "profile": "frozen manifest profiles with targeted root-package codegen-units=256",
+        "stage_hashes_match": true,
+        "build_admitted": false,
+        "reference_frames_approved": false
+      },
+      "binaries": {
+        "showcase": {
+          "path": "showcase",
+          "sha256": "d54a104c1c3b20eab2aa48cf981c0f163586663a39ab90e54bcd7b8c3527db55"
+        },
+        "tablepro": {
+          "path": "tablepro",
+          "sha256": "212cc16c3a50ea7aca6b474964ad492c4cc3c731812491bb06284abe1b9cc5d0"
+        },
+        "jackin-preview": {
+          "path": "jackin-preview",
+          "sha256": "60b2c311a3d6e75b58e93a6f4c6d507d43a0e331d84ea966938a8eec52fb9cf2"
+        },
+        "holla": {
+          "path": "holla",
+          "sha256": "62d5f4c71a1927a5f9e20d60b9f79ff4a392eb1c7390076dc1eaddee06dfe9bf"
+        }
+      },
+      "runs": [
+        {
+          "id": "serial-run-1",
+          "archive_sha256": "ef4b805a35667e0f1c41018dac78564ba6332489024b19638f4c8d114eaaf5a9",
+          "complete_target_archive": false,
+          "operational_retry": true,
+          "stage1_hashes": {
+            "showcase": "f894221c45026f5af3608d76a3abe54072864c7fb7b4bbc881d3e9d053035f5e",
+            "tablepro": "14aa31279bbf528403afbd51785299f882c441e61c3bca5eb503cf8b2879f9b9",
+            "jackin-preview": "1082dd4c71b4a5f36666b3bd13c4c531e3c68112b1f94c6a8aaa1fedd2d756db",
+            "holla": "20d8404adf3a1c2916be749df1472a1cda7b3c2dd8766f9eef4d387d18c997bd"
+          },
+          "final_hashes": {
+            "showcase": "d54a104c1c3b20eab2aa48cf981c0f163586663a39ab90e54bcd7b8c3527db55",
+            "tablepro": "212cc16c3a50ea7aca6b474964ad492c4cc3c731812491bb06284abe1b9cc5d0",
+            "jackin-preview": "60b2c311a3d6e75b58e93a6f4c6d507d43a0e331d84ea966938a8eec52fb9cf2",
+            "holla": "62d5f4c71a1927a5f9e20d60b9f79ff4a392eb1c7390076dc1eaddee06dfe9bf"
+          }
+        },
+        {
+          "id": "serial-run-2",
+          "archive_sha256": "89d6d0c03eaa0911b51af32b1cced55b93d405ec43876b55bae1d19055b540e2",
+          "complete_target_archive": true,
+          "operational_retry": false,
+          "stage1_hashes": {
+            "showcase": "f894221c45026f5af3608d76a3abe54072864c7fb7b4bbc881d3e9d053035f5e",
+            "tablepro": "14aa31279bbf528403afbd51785299f882c441e61c3bca5eb503cf8b2879f9b9",
+            "jackin-preview": "1082dd4c71b4a5f36666b3bd13c4c531e3c68112b1f94c6a8aaa1fedd2d756db",
+            "holla": "20d8404adf3a1c2916be749df1472a1cda7b3c2dd8766f9eef4d387d18c997bd"
+          },
+          "final_hashes": {
+            "showcase": "d54a104c1c3b20eab2aa48cf981c0f163586663a39ab90e54bcd7b8c3527db55",
+            "tablepro": "212cc16c3a50ea7aca6b474964ad492c4cc3c731812491bb06284abe1b9cc5d0",
+            "jackin-preview": "60b2c311a3d6e75b58e93a6f4c6d507d43a0e331d84ea966938a8eec52fb9cf2",
+            "holla": "62d5f4c71a1927a5f9e20d60b9f79ff4a392eb1c7390076dc1eaddee06dfe9bf"
+          }
+        }
+      ],
+      "limitations": [
+        "This cohort is diagnostic and is not admitted for paired capture.",
+        "Run 1 archive omits the complete controlled target tree; sealed application binaries and receipts are preserved.",
+        "Run 1 required an operational prepare-live retry after an initial missing historical loader manifest; both attempts are preserved.",
+        "The historical build.json loader copy is not fresh provenance and is excluded as cohort evidence.",
+        "The result reproduces at one fixed physical build path on this host; it is not a hermetic or path-independent build claim.",
+        "No new frozen baseline frames or checkpoint reference decisions have been approved."
+      ]
+    }
+  ]
+}
