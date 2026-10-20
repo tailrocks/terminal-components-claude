@@ -2,7 +2,7 @@
 
 ## Scope and fixed evidence
 
-This audit isolates five shared rendering regressions found while reviewing
+This audit isolates shared rendering regressions found while reviewing
 TablePro's live picker consumer. The frozen product reference remains
 `visual-baseline` source `4169783ae883788186d161af09ba9c481bd84e5c` (tag object
 `2718a6b8127a522a3d351d0b4bdb7542fc8da542`); Tuiscotti remains pinned to
@@ -14,7 +14,9 @@ Reviewed source points:
   the introduced shared-style changes.
 - `1a947a251ab9b045610b47729bf481419b9fca8d`: shared paired-runner base used
   for integration.
-- `99b719d85a0714c88484240dbc9184f110b518d`: isolated fix branch base.
+- `99b719d85a0714c88484240dbc9184f110b518d`: initial isolated fix branch base.
+- `94a1215e27e67bfad76f9edb8ca5b00fa9810c80`: first committed repair, later
+  reviewed and found incomplete for family-level theme and overlay precedence.
 - Read-only suite records: `/tmp/termrock-current-source-review-a848-nextest.log`
   and `/tmp/termrock-current-source-review-1a-nextest.log`.
 
@@ -27,11 +29,11 @@ remaining explicit-style and opaque-surface contracts.
 
 | Finding | Evidence before fix | Disposition | Evidence after fix |
 |---|---|---|---|
-| `ScrollRegion` removed explicit scrollbar `BOLD` together with its default bold. | `cargo nextest run -p termrock-navigation every_override_channel_is_forwarded_to_scrollbar` failed at `steps.rs:1402`: track cell lacked `BOLD`. | Fixed in `scroll_region.rs`: strip theme/default bold, then restore bold only when the merged explicit part patch adds it. | The existing Steps regression passes; part-specific explicit style stays distinct from default styling. |
+| `ScrollRegion` removed explicit scrollbar `BOLD` together with its default bold. | `cargo nextest run -p termrock-navigation every_override_channel_is_forwarded_to_scrollbar` failed at `steps.rs:1402`: track cell lacked `BOLD`. | Follow-up fix checks the fully resolved track/thumb style. It clears underlay-only bold while retaining bold added by a family override, overlay, or instance patch. | Existing Steps regression plus a new `Theme::override_family` track test pass. |
 | Modal backdrop allocated a `String` for every cell, and cloned the theme while projecting each modal. | `cargo nextest run -p termrock-runtime warmed_modal_snapshot_projection_performs_zero_allocations` failed at `a848` with 548 allocations. | Fixed in `ui/paint.rs`: compare the borrowed cell symbol and borrow the UI theme/page fields directly. | The warmed modal projection test passes with zero allocations. |
-| `FilterList::draw` skipped its container fill whenever incoming cells happened to have non-reset backgrounds, even when `preserve_surface` was false. Explicit container patches were also skipped under an intentionally preserved opaque surface. | Source branch `99b` checked opacity without consulting the preserve policy or the explicit `CONTAINER` patch. | Fixed in `filter_list.rs`: fill non-preserved areas regardless of incoming opacity; preserve an opaque surface by default; apply an explicit container patch even when that preserved surface is opaque. | New tests cover opaque non-preserved cells and explicit danger background on an opaque preserved surface; both pass. |
-| Focused `RowUi` selection fill replaced built-in owner role/modifier patches with the selected-row defaults. | Source branch `99b`, `resolve_row_part`, forced the selected patch after resolving the owner patch; existing owner-ink exception only covered `Role::Custom`. | Fixed in `rowui.rs`: merge explicit row-part patch over selection defaults for all style channels. | New focused-fill test verifies built-in `Role::Danger` and underline modifier survive. |
-| Picker overlay chrome discarded explicit `CONTAINER` foreground and modifiers while backdrop-mapping the inherited foreground. | Source branch `99b`, `overlay_chrome`, always used mapped backdrop foreground and cleared all modifiers. | Fixed in `support.rs`: map inherited foreground as before, but preserve explicit foreground/clear and modifiers from the resolved container patch. | New picker-chrome test checks resolved overlay foreground and underline modifier on an interior cell. |
+| `FilterList::draw` skipped its container fill whenever incoming cells happened to have non-reset backgrounds, even when `preserve_surface` was false. It also could not honor theme/overlay container styles on preserved opaque surfaces. | Source branch `99b` checked opacity without consulting preserve policy or explicit `CONTAINER` channels. Instance-only follow-up missed `Theme::override_family` and overlays. | Added allocation-free `ResolvedStyle` explicit-channel metadata without changing public `Resolved`; component-author `patch_style` applies only explicit channels to preserved cells. FilterList obtains resolved theme/overlay/instance provenance and patches opaque surfaces without repainting symbols or inherited channels. | Tests cover opaque non-preserved fill, instance danger background, and themed danger background plus underline modifier on an opaque surface. |
+| Focused `RowUi` selection fill replaced owner family overrides with selection defaults. | Source branch `99b`, `resolve_row_part`, forced selection after resolving owner style; initial `94a` repair preserved only instance patches. | Put selection style in `StyleDefaults`; family/overlay rules resolve above it and instance patches remain topmost. | New focused-fill test verifies themed built-in `Role::Danger` and underline modifier survive. |
+| Picker overlay chrome discarded explicit `CONTAINER` foreground, underline color, and modifiers while backdrop-mapping inherited foreground. | Source branch `99b`, `overlay_chrome`, always used mapped backdrop foreground and cleared all modifiers. Initial `94a` repair preserved instance foreground/add only. | Resolve full explicit provenance and preserve inherited backdrop fg when no explicit fg is set; apply theme, overlay, and instance fg/bg/underline/modifier channels in precedence order. | Picker-chrome tests verify instance fg/modifier and themed fg/underline-color/modifier. Author patch test verifies clear/reset, removals, inherited channels, and symbols. |
 
 No app-level paint workaround or test-specific visual path was added. Picker
 title/query geometry and TablePro composition remain outside this change.
@@ -49,9 +51,18 @@ Before-fix red checks:
 After-fix checks on the isolated branch:
 
 - Focused set: `cargo nextest run -p termrock-runtime -p termrock-navigation -p termrock-overlays -E 'test(every_override_channel_is_forwarded_to_scrollbar) | test(explicit_container_patch_reaches_an_opaque_preserved_surface) | test(container_fill_is_not_skipped_for_an_opaque_unpreserved_area) | test(focused_fill_keeps_explicit_builtin_role_and_modifier) | test(picker_chrome_keeps_explicit_container_foreground_and_modifier) | test(warmed_modal_snapshot_projection_performs_zero_allocations)'` — 6 passed, 0 failed.
-- Package suites: `cargo nextest run -p termrock-runtime -p termrock-navigation -p termrock-overlays --status-level fail` — 544 passed, 3 skipped.
-- Clippy: `cargo clippy -p termrock-runtime -p termrock-navigation -p termrock-overlays --all-targets -- -D warnings` — passed.
-- Formatting: `rustfmt --check --edition 2024` on the five changed Rust files — passed. Workspace `cargo fmt --all --check` remains blocked by existing formatting differences in untouched `crates/showcase-demos/src/pages/chrome.rs`; that file was left unchanged.
+- Original package suites (first commit): `cargo nextest run -p termrock-runtime -p termrock-navigation -p termrock-overlays --status-level fail` — 544 passed, 3 skipped.
+- Follow-up focused theme/style suite: 11 passed, 0 failed.
+- Follow-up package suites: `cargo nextest run -p termrock-runtime -p termrock-navigation -p termrock-overlays --status-level fail` — 549 passed, 3 skipped.
+- `cargo nextest run -p termrock-theme --status-level fail` on the follow-up
+  reports 8 failures (664 passed, 8 failed, 3 skipped). The same eight failed
+  on pre-follow-up commit `94a1215e27e67bfad76f9edb8ca5b00fa9810c80`
+  (114 passed, 8 failed, 0 skipped): `all_73_junie_slots_match_reference_capability_output`,
+  six `*_empty_inherits_owner` checks, `nested_public_layers_dim_the_composited_origin_and_preserve_unwritten_cells`,
+  and `standalone_empty_cells_match_pre_inheritance_reference`. They are
+  confirmed pre-existing at that source commit and remain unresolved here.
+- Clippy: `cargo clippy -p termrock-theme -p termrock-runtime -p termrock-navigation -p termrock-overlays --all-targets -- -D warnings` — passed after the final ScrollRegion metadata edit.
+- Formatting: `rustfmt --check --edition 2024` on the nine changed Rust files — passed. Workspace `cargo fmt --all --check` remains blocked by existing formatting differences in untouched `crates/showcase-demos/src/pages/chrome.rs`; that file was left unchanged.
 - `git diff --check` — passed.
 - Independent code review: pending exact-commit review.
 - Full application parity and library acceptance: pending; this audit is not an acceptance claim.
