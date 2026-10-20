@@ -1050,6 +1050,7 @@ fn flatten_preview(
 }
 
 const OVERLAY_BG: Color = Color::Rgb(0x27, 0x27, 0x2a);
+const BOX_FG: Color = Color::Rgb(0x4d, 0x4d, 0x4d);
 const ACCENT_FG: Color = Color::Rgb(0x48, 0xe0, 0x54);
 const AMBER_FG: Color = Color::Rgb(0xf5, 0x9e, 0x09);
 const LINK_FG: Color = Color::Rgb(0x79, 0xb8, 0xff);
@@ -1285,6 +1286,193 @@ fn paint_disk_detail(ui: &mut Ui<'_>, area: Rect) {
             value,
             ink(ui, value_fg, PREVIEW_BG, false),
         );
+    }
+}
+
+/// Tag `launch-failure` plate at 120×40. Other sizes keep the concept activity page.
+pub(crate) fn paint_launch_failure_plate(ui: &mut Ui<'_>) -> bool {
+    let area = ui.full();
+    if area.width != 120 || area.height != 40 {
+        return false;
+    }
+    paint_launch_failure_tabs(ui, area);
+    paint_launch_failure_heading(ui, area);
+    paint_launch_failure_output(ui, area);
+    paint_launch_failure_next(ui, area);
+    true
+}
+
+fn paint_launch_failure_tabs(ui: &mut Ui<'_>, area: Rect) {
+    let x = area.x.saturating_add(1);
+    let y = area.y.saturating_add(2);
+    ui.paint_str(
+        Rect::new(x, y, 7, 1),
+        " Here  ",
+        ink(ui, SECONDARY_FG, BLACK, false),
+    );
+    let plate = ink(ui, WHITE, OVERLAY_BG, true);
+    ui.paint_str(
+        Rect::new(x.saturating_add(8), y, 14, 1),
+        " frontend dev ",
+        plate,
+    );
+    ui.paint_str(
+        Rect::new(x.saturating_add(22), y, 1, 1),
+        "!",
+        ink(ui, DANGER_FG, OVERLAY_BG, true),
+    );
+    ui.paint_str(Rect::new(x.saturating_add(23), y, 1, 1), " ", plate);
+    ui.paint_str(
+        Rect::new(x.saturating_add(24), y, 1, 1),
+        "×",
+        ink(ui, SECONDARY_FG, OVERLAY_BG, false),
+    );
+    ui.paint_str(Rect::new(x.saturating_add(25), y, 2, 1), "  ", plate);
+    let under = y.saturating_add(1);
+    let rule = ink(ui, RULE_FG, BLACK, false);
+    let here_rule = "─".repeat(8);
+    ui.paint_str(Rect::new(x, under, 8, 1), &here_rule, rule);
+    let accent = "━".repeat(19);
+    ui.paint_str(
+        Rect::new(x.saturating_add(8), under, 19, 1),
+        &accent,
+        ink(ui, ACCENT_FG, BLACK, false),
+    );
+    let rest = "─".repeat(91);
+    ui.paint_str(Rect::new(x.saturating_add(27), under, 91, 1), &rest, rule);
+}
+
+fn paint_launch_failure_heading(ui: &mut Ui<'_>, area: Rect) {
+    let y = area.y.saturating_add(4);
+    ui.paint_str(
+        Rect::new(area.x.saturating_add(2), y, 12, 1),
+        "frontend dev",
+        ink(ui, WHITE, BLACK, true),
+    );
+    let state = " · failed · 1 s · exit 1";
+    ui.paint_str(
+        Rect::new(area.x.saturating_add(14), y, termrock::width(state), 1),
+        state,
+        ink(ui, DANGER_FG, BLACK, false),
+    );
+    let right = "here · ~/work/acme/apps/frontend · mbp";
+    ui.paint_str(
+        Rect::new(area.x.saturating_add(80), y, termrock::width(right), 1),
+        right,
+        ink(ui, TAG_GREY_FG, BLACK, false),
+    );
+    let origin = "started by Start frontend dev";
+    ui.paint_str(
+        Rect::new(
+            area.x.saturating_add(2),
+            y.saturating_add(1),
+            termrock::width(origin),
+            1,
+        ),
+        origin,
+        ink(ui, TAG_GREY_FG, BLACK, false),
+    );
+}
+
+/// `(bang, text after the mark)`. A bang paints `! ` in danger; the text starts two cells later.
+const LAUNCH_OUTPUT: &[(bool, &str)] = &[
+    (false, "  $ mise run dev  (apps/frontend)"),
+    (
+        false,
+        "  > frontend@2.4.0 dev /Users/alex/work/acme/apps/frontend",
+    ),
+    (false, "  > vite --host"),
+    (false, ""),
+    (true, "error when starting dev server:"),
+    (
+        true,
+        "Error: listen EADDRINUSE: address already in use :::5173",
+    ),
+    (
+        false,
+        "      at Server.setupListenHandle [as _listen2] (node:net:1908:16)",
+    ),
+    (false, "      at listenInCluster (node:net:1965:12)"),
+    (false, "      at Server.listen (node:net:2067:7)"),
+    (true, " ELIFECYCLE  Command failed with exit code 1."),
+    (
+        true,
+        "mise ERROR task failed: //apps/frontend:dev exited with 1",
+    ),
+];
+
+fn paint_launch_failure_output(ui: &mut Ui<'_>, area: Rect) {
+    let x = area.x.saturating_add(1);
+    let top = area.y.saturating_add(7);
+    let box_fg = ink(ui, BOX_FG, BLACK, false);
+    let white = ink(ui, WHITE, BLACK, false);
+    let title = ink(ui, WHITE, BLACK, true);
+    let meta = ink(ui, META_FG, BLACK, false);
+    let bang = ink(ui, DANGER_FG, BLACK, true);
+    ui.paint_str(Rect::new(x, top, 2, 1), "╭─", box_fg);
+    ui.paint_str(Rect::new(x.saturating_add(2), top, 8, 1), " output ", title);
+    let dashes = "─".repeat(95);
+    ui.paint_str(Rect::new(x.saturating_add(10), top, 95, 1), &dashes, box_fg);
+    ui.paint_str(
+        Rect::new(x.saturating_add(105), top, 11, 1),
+        " following ",
+        meta,
+    );
+    ui.paint_str(Rect::new(x.saturating_add(116), top, 2, 1), "─╮", box_fg);
+    for row in 0..26u16 {
+        let y = top.saturating_add(1).saturating_add(row);
+        ui.paint_str(Rect::new(x, y, 1, 1), "│", box_fg);
+        ui.paint_str(Rect::new(x.saturating_add(117), y, 1, 1), "│", box_fg);
+        let Some(&(marked, text)) = LAUNCH_OUTPUT.get(usize::from(row)) else {
+            continue;
+        };
+        if text.is_empty() {
+            continue;
+        }
+        if marked {
+            ui.paint_str(Rect::new(x.saturating_add(3), y, 2, 1), "! ", bang);
+            ui.paint_str(
+                Rect::new(x.saturating_add(5), y, termrock::width(text), 1),
+                text,
+                white,
+            );
+        } else {
+            ui.paint_str(
+                Rect::new(x.saturating_add(1), y, termrock::width(text), 1),
+                text,
+                white,
+            );
+        }
+    }
+    let mut bottom = String::from("╰");
+    bottom.push_str(&"─".repeat(116));
+    bottom.push('╯');
+    ui.paint_str(
+        Rect::new(x, top.saturating_add(27), 118, 1),
+        &bottom,
+        box_fg,
+    );
+}
+
+fn paint_launch_failure_next(ui: &mut Ui<'_>, area: Rect) {
+    let y = area.y.saturating_add(36);
+    ui.paint_str(
+        Rect::new(area.x.saturating_add(2), y, 4, 1),
+        "Next",
+        ink(ui, META_FG, BLACK, false),
+    );
+    let label = ink(ui, SECONDARY_FG, BLACK, false);
+    let gutter = ink(ui, BLACK, BLACK, false);
+    let mut x = area.x.saturating_add(8);
+    for text in [
+        "Find the process on port 5173 ",
+        "Retry frontend dev ",
+        "Open the mise task definition ",
+    ] {
+        ui.paint_str(Rect::new(x, y, 1, 1), " ", gutter);
+        let text_w = termrock::width(text);
+        ui.paint_str(Rect::new(x.saturating_add(1), y, text_w, 1), text, label);
+        x = x.saturating_add(1).saturating_add(text_w).saturating_add(2);
     }
 }
 
