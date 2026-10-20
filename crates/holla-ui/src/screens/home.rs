@@ -273,6 +273,14 @@ impl HomeState {
             ui.set_bar_cursor(QUERY, termrock::Position::new(3, 4));
             return;
         }
+        if let Some(view) =
+            catalogue::parity_files_120x40_plate(world, ui.full().width, ui.full().height)
+            && paint_parity_files_120x40(ui, rows_area, &view)
+        {
+            // Steady bar on the placeholder. CUP 5;4. Do not write cursor bytes.
+            ui.set_bar_cursor(QUERY, termrock::Position::new(3, 4));
+            return;
+        }
         if self.query().trim().is_empty() && world.scenario.boot_title() == super::finder::RECENT {
             let used = super::finder::paint_recent_lead(ui, rows_area);
             rows_area.y = rows_area.y.saturating_add(used);
@@ -926,6 +934,59 @@ fn paint_parity_files_100x30(
     paint_parity_files_plate(ui, area, view, 100, 30)
 }
 
+/// Wide card. Explore chips keep the accent fill. The system row does not.
+/// Only the 120×40 frame reaches this painter, so the 80 and 100 plates stay single-column.
+fn paint_parity_files_120x40(
+    ui: &mut Ui<'_>,
+    area: Rect,
+    view: &catalogue::ParityDiscovery,
+) -> bool {
+    let full = ui.full();
+    if full.width != 120 || full.height != 40 || area.is_empty() {
+        return false;
+    }
+    let Some((master, detail)) = split_detail(area) else {
+        return false;
+    };
+    let rows: Vec<&catalogue::TagRow> = view
+        .lines
+        .iter()
+        .filter_map(|line| match line {
+            catalogue::FinderLine::Row(row) => Some(row),
+            _ => None,
+        })
+        .collect();
+    let cols = TagCols {
+        label: 12,
+        kind: 7,
+        scope: 4,
+        reason: 65,
+    };
+    let mut y = master.y;
+    for line in &view.lines {
+        if y >= master.bottom() {
+            break;
+        }
+        match line {
+            catalogue::FinderLine::Heading(text) => paint_tag_heading(ui, master, y, text, None),
+            catalogue::FinderLine::Blank => {}
+            catalogue::FinderLine::Chips(labels) => paint_tag_chips_selected(ui, master, y, labels),
+            catalogue::FinderLine::Row(row) => paint_tag_row(ui, master, y, row, &cols, None),
+        }
+        y = y.saturating_add(1);
+    }
+    let title = view
+        .lines
+        .iter()
+        .find_map(|line| match line {
+            catalogue::FinderLine::Chips(labels) => labels.first().copied(),
+            _ => None,
+        })
+        .unwrap_or("");
+    paint_tag_preview(ui, detail, view, &rows, Some(title));
+    true
+}
+
 fn paint_parity_files_plate(
     ui: &mut Ui<'_>,
     area: Rect,
@@ -1196,7 +1257,7 @@ fn paint_parity_card(
         }
         y = y.saturating_add(1);
     }
-    paint_tag_preview(ui, detail, view, &rows);
+    paint_tag_preview(ui, detail, view, &rows, None);
     true
 }
 
@@ -1323,6 +1384,7 @@ fn paint_tag_preview(
     detail: Rect,
     view: &catalogue::ParityDiscovery,
     rows: &[&catalogue::TagRow],
+    title_override: Option<&str>,
 ) {
     if detail.width < 8 || detail.height == 0 {
         return;
@@ -1348,11 +1410,12 @@ fn paint_tag_preview(
     let canvas = ink(ui, WHITE, PREVIEW_BG, false);
     ui.fill(card, canvas);
     let inner_x = detail.x.saturating_add(2);
-    let title = rows
-        .iter()
-        .find(|row| row.selected)
-        .map(|row| row.title.as_str())
-        .unwrap_or("");
+    let title = title_override.unwrap_or_else(|| {
+        rows.iter()
+            .find(|row| row.selected)
+            .map(|row| row.title.as_str())
+            .unwrap_or("")
+    });
     let meta_w = termrock::width(&view.preview_meta);
     let title_w = inner_w.saturating_sub(meta_w).saturating_sub(1);
     let title = termrock::truncate(title, title_w);
