@@ -940,6 +940,8 @@ pub struct TextInput<'a> {
     status: Status,
     ov: PartStyle<'a>,
     style_target: Option<(Family, Variant, Part)>,
+    auxiliary_style_target: Option<(Family, Variant)>,
+    excluded_commands: &'a [TextCmd],
 }
 
 impl fmt::Debug for TextInput<'_> {
@@ -985,6 +987,8 @@ impl<'a> TextInput<'a> {
             status: Status::Ready,
             ov: PartStyle::new(),
             style_target: None,
+            auxiliary_style_target: None,
+            excluded_commands: &[],
         }
     }
 
@@ -1021,6 +1025,16 @@ impl<'a> TextInput<'a> {
     #[must_use]
     pub const fn typing_policy(mut self, policy: crate::TypingPolicy) -> Self {
         self.typing_policy = policy;
+        self
+    }
+
+    /// Leave selected editing commands available to a containing component.
+    ///
+    /// The editor still owns rendering and state; excluded commands are simply
+    /// omitted from this input's binding table so the owner can route them.
+    #[must_use]
+    pub const fn exclude_commands(mut self, commands: &'a [TextCmd]) -> Self {
+        self.excluded_commands = commands;
         self
     }
 
@@ -1080,6 +1094,14 @@ impl<'a> TextInput<'a> {
         self
     }
 
+    /// Resolve the gutter and placeholder through the host component's family.
+    /// Their part identities remain independent theme and overlay targets.
+    #[must_use]
+    pub const fn auxiliary_style_target(mut self, family: Family, variant: Variant) -> Self {
+        self.auxiliary_style_target = Some((family, variant));
+        self
+    }
+
     #[must_use]
     pub const fn slot(mut self, p: Part, f: SlotFn<'a>) -> Self {
         self.ov = self.ov.slot(p, f);
@@ -1088,6 +1110,10 @@ impl<'a> TextInput<'a> {
 
     const fn editable(&self) -> bool {
         !self.disabled && !self.read_only
+    }
+
+    fn includes_command(&self, command: TextCmd) -> bool {
+        !self.excluded_commands.contains(&command)
     }
 
     const fn with_inherited_disabled(&self, inherited: bool) -> Self {
@@ -1106,6 +1132,8 @@ impl<'a> TextInput<'a> {
             status: self.status,
             ov: self.ov,
             style_target: self.style_target,
+            auxiliary_style_target: self.auxiliary_style_target,
+            excluded_commands: self.excluded_commands,
         }
     }
 
@@ -1115,6 +1143,73 @@ impl<'a> TextInput<'a> {
 
     const fn inner_width(area_width: u16) -> u16 {
         area_width.saturating_sub(3)
+    }
+
+    /// Register this input's focus, pointer, and key-binding contract when a
+    /// host draws its own visible surface for the input state. The supplied
+    /// area must belong to the visible host control (for example, a searchable
+    /// list), not to an off-screen or hidden input. Unlike `draw`, this method
+    /// keeps the entire supplied host region for focus and pointer routing.
+    pub fn register_editor(&self, ui: &mut Ui<'_>, area: Rect, st: &TextInputState) {
+        self.register_editor_area(ui, area, st);
+    }
+
+    fn register_editor_area(&self, ui: &mut Ui<'_>, area: Rect, st: &TextInputState) {
+        if area.is_empty() {
+            return;
+        }
+        let editing = st.is_editing();
+        let focusability = if self.disabled {
+            Focusability::Disabled
+        } else if self.read_only {
+            Focusability::FocusableReadOnly
+        } else {
+            Focusability::Focusable
+        };
+        let declared = if editing {
+            StateFlags::EDITING
+        } else {
+            StateFlags::empty()
+        };
+        let mut derived = self.status.flags();
+        if editing {
+            derived |= StateFlags::EDITING;
+        }
+        if st.error.is_some() || matches!(self.status, Status::Error) {
+            derived |= StateFlags::ERROR;
+        }
+        if self.read_only {
+            derived |= StateFlags::READ_ONLY;
+        }
+        if self.disabled {
+            derived |= StateFlags::DISABLED;
+        }
+        let runtime = ui
+            .state(self.id)
+            .difference(StateFlags::EDITING | StateFlags::SELECTED);
+        let mut live = PartStyle::flags(runtime, derived);
+        if self.disabled {
+            live = live.difference(StateFlags::HOVERED);
+        }
+
+        if self.pointer_enabled {
+            ui.register_editor(self.id, area, focusability, declared);
+        } else {
+            ui.register_keyboard_editor(self.id, area, focusability, declared);
+        }
+        termrock_runtime::author::publish_bindings_filtered(ui, self.id, live, BINDINGS, |cmd| {
+            self.includes_command(cmd)
+        });
+        if let crate::TypingPolicy::Fallback { cursor } = self.typing_policy {
+            ui.publish_typing_target(
+                self.id,
+                BINDINGS,
+                |cmd| {
+                    self.includes_command(cmd) && !matches!(cmd, TextCmd::Commit | TextCmd::Cancel)
+                },
+                cursor,
+            );
+        }
     }
 
     pub fn update(
@@ -1238,7 +1333,10 @@ impl<'a> TextInput<'a> {
                     part,
                     local,
                     ..
-                } if (editable || (self.read_only && !self.disabled)) && self.pointer_enabled => {
+                } if part.item.is_none()
+                    && (editable || (self.read_only && !self.disabled))
+                    && self.pointer_enabled =>
+                {
                     if !st.is_editing() {
                         st.begin(value.expose());
                     }
@@ -1253,9 +1351,10 @@ impl<'a> TextInput<'a> {
                 }
                 Intent::Pointer {
                     phase: Phase::DragStart | Phase::Drag,
+                    part,
                     local,
                     ..
-                } if st.is_editing() && self.pointer_enabled => {
+                } if part.item.is_none() && st.is_editing() && self.pointer_enabled => {
                     if let (Some(anchor), Some(area)) = (st.pointer_anchor, cx.area(self.id)) {
                         let col = usize::from(local.x.saturating_sub(2));
                         let _ = st.select_pointer_range(anchor, col, Self::inner_width(area.width));
@@ -1266,8 +1365,9 @@ impl<'a> TextInput<'a> {
                 }
                 Intent::Pointer {
                     phase: Phase::Release | Phase::DragEnd,
+                    part,
                     ..
-                } => {
+                } if part.item.is_none() => {
                     st.pointer_anchor = None;
                     acc.consumed();
                 }
@@ -1277,7 +1377,7 @@ impl<'a> TextInput<'a> {
                     pos,
                     local,
                     ..
-                } if !self.disabled => {
+                } if part.item.is_none() && !self.disabled => {
                     if !st.is_editing() {
                         st.begin(value.expose());
                     }
@@ -1453,19 +1553,6 @@ impl<'a> TextInput<'a> {
         let validation_error = st.error.is_some();
         let status_error = matches!(self.status, Status::Error);
         let error = validation_error || status_error;
-        let focusability = if self.disabled {
-            Focusability::Disabled
-        } else if self.read_only {
-            Focusability::FocusableReadOnly
-        } else {
-            Focusability::Focusable
-        };
-        let declared = if editing {
-            StateFlags::EDITING
-        } else {
-            StateFlags::empty()
-        };
-
         let mut derived = self.status.flags();
         if editing {
             derived |= StateFlags::EDITING;
@@ -1495,20 +1582,7 @@ impl<'a> TextInput<'a> {
             height: 1,
         };
         ui.register_decor(self.id, PartRef::of(Part::TEXT), inner);
-        if self.pointer_enabled {
-            ui.register_editor(self.id, area, focusability, declared);
-        } else {
-            ui.register_keyboard_editor(self.id, area, focusability, declared);
-        }
-        ui.publish_bindings(self.id, live, BINDINGS);
-        if let crate::TypingPolicy::Fallback { cursor } = self.typing_policy {
-            ui.publish_typing_target(
-                self.id,
-                BINDINGS,
-                |cmd| !matches!(cmd, TextCmd::Commit | TextCmd::Cancel),
-                cursor,
-            );
-        }
+        self.register_editor_area(ui, area, st);
         let owns_cursor = live.contains(StateFlags::FOCUSED)
             || (editing
                 && matches!(
@@ -1518,10 +1592,16 @@ impl<'a> TextInput<'a> {
         let ov = self.ov;
         let id = self.id;
         let style_target = self.style_target;
+        let auxiliary_style_target = self.auxiliary_style_target;
         let style = |ui: &mut Ui<'_>, part: Part| {
             let mapped_part = style_target.filter(|_| matches!(part, Part::FIELD | Part::TEXT));
-            let (family, variant, part) =
-                mapped_part.unwrap_or((Family::INPUT, Variant::DEFAULT, part));
+            let (family, variant, part) = mapped_part
+                .or_else(|| {
+                    auxiliary_style_target
+                        .filter(|_| matches!(part, Part::GUTTER | Part::PLACEHOLDER))
+                        .map(|(family, variant)| (family, variant, part))
+                })
+                .unwrap_or((Family::INPUT, Variant::DEFAULT, part));
             ov.style(ui, id, family, variant, part, live)
         };
         let field = style(ui, Part::FIELD);
@@ -1850,6 +1930,25 @@ mod tests {
     const CONTEXT_LAYER: Id = Id::root("input.context-layer");
     const CONTEXT_TARGET: Id = Id::root("input.context-target");
     const REDIRECT_TARGET: Id = Id::root("input.redirect-target");
+
+    #[test]
+    fn excluded_commands_are_opt_in_and_preserve_other_editor_bindings() {
+        let defaults = TextInput::new(ID);
+        assert!(defaults.includes_command(TextCmd::Backspace));
+        assert!(defaults.includes_command(TextCmd::Delete));
+        assert!(defaults.includes_command(TextCmd::Cancel));
+
+        let query = TextInput::new(ID).exclude_commands(&[
+            TextCmd::Backspace,
+            TextCmd::Delete,
+            TextCmd::Cancel,
+        ]);
+        assert!(!query.includes_command(TextCmd::Backspace));
+        assert!(!query.includes_command(TextCmd::Delete));
+        assert!(!query.includes_command(TextCmd::Cancel));
+        assert!(query.includes_command(TextCmd::Commit));
+        assert!(query.includes_command(TextCmd::Move(Motion::Left, Extend::No)));
+    }
 
     struct ContinuationInputApp {
         state: TextInputState,
@@ -2973,6 +3072,64 @@ mod tests {
         assert_ne!(placeholder[(2, 0)].fg, value[(2, 0)].fg);
         assert_ne!(value[(2, 0)].fg, selected[(2, 0)].fg);
         assert_ne!(value[(0, 0)].fg, value[(2, 0)].fg);
+    }
+
+    #[test]
+    fn hosted_query_auxiliary_parts_can_resolve_through_host_family() {
+        let theme = Theme::junie().override_family(Family::PICKER, |recipe| {
+            recipe
+                .part(Part::GUTTER)
+                .base(StylePatch::new().set_fg(crate::theme::Role::Warning));
+            recipe
+                .part(Part::PLACEHOLDER)
+                .base(StylePatch::new().set_fg(crate::theme::Role::Danger));
+        });
+        let mut runtime = Runtime::new(Stub::default(), theme);
+        let mut buffer = Buffer::empty(SCREEN);
+        runtime
+            .draw_scene(SCREEN, &mut buffer, |ui, area| {
+                TextInput::new(ID)
+                    .placeholder("Filter")
+                    .style_target(Family::PICKER, Variant::DEFAULT, Part::QUERY)
+                    .auxiliary_style_target(Family::PICKER, Variant::DEFAULT)
+                    .draw(ui, area, &TextInputState::default());
+            })
+            .commit_presented();
+
+        let theme = Theme::junie().override_family(Family::PICKER, |recipe| {
+            recipe
+                .part(Part::GUTTER)
+                .base(StylePatch::new().set_fg(crate::theme::Role::Warning));
+            recipe
+                .part(Part::PLACEHOLDER)
+                .base(StylePatch::new().set_fg(crate::theme::Role::Danger));
+        });
+        let warning = theme
+            .resolve(
+                Family::PICKER,
+                Variant::DEFAULT,
+                Part::GUTTER,
+                StateFlags::empty(),
+                crate::theme::Surface::Field,
+            )
+            .style
+            .as_style()
+            .fg
+            .expect("picker gutter theme has a foreground");
+        let danger = theme
+            .resolve(
+                Family::PICKER,
+                Variant::DEFAULT,
+                Part::PLACEHOLDER,
+                StateFlags::empty(),
+                crate::theme::Surface::Field,
+            )
+            .style
+            .as_style()
+            .fg
+            .expect("picker placeholder theme has a foreground");
+        assert_eq!(buffer[(0, 0)].fg, warning);
+        assert_eq!(buffer[(2, 0)].fg, danger);
     }
 
     #[test]
