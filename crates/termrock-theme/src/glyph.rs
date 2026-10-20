@@ -50,7 +50,8 @@ pub enum GlyphRole {
 }
 
 impl GlyphRole {
-pub const ALL: [GlyphRole; 45] = [        GlyphRole::FocusBar,
+    pub const ALL: [GlyphRole; 45] = [
+        GlyphRole::FocusBar,
         GlyphRole::Chosen,
         GlyphRole::Checked,
         GlyphRole::CheckboxOn,
@@ -245,7 +246,8 @@ mod tests {
 
     #[test]
     fn select_roles_are_appended_without_shifting_existing_discriminants() {
-assert_eq!(GlyphRole::ALL.len(), 45);        assert_eq!(GlyphRole::PrimaryKey as usize, 41);
+        assert_eq!(GlyphRole::ALL.len(), 45);
+        assert_eq!(GlyphRole::PrimaryKey as usize, 41);
         assert_eq!(GlyphRole::SecretMask as usize, 38);
         assert_eq!(GlyphRole::SelectClosed as usize, 39);
         assert_eq!(GlyphRole::SelectOpen as usize, 40);

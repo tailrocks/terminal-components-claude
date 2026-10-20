@@ -38,8 +38,9 @@ pub enum ButtonFocusVisibility {
 /// frozen application contract, where the spinner temporarily owns that lane.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub enum BusyMarkerPolicy {
-    #[default]
     Keep,
+    /// Frozen-contract default: the spinner lane takes over from the marker.
+    #[default]
     Replace,
 }
 
@@ -122,7 +123,7 @@ impl<'a> Button<'a> {
             autofocus: false,
             status: Status::Ready,
             checked: None,
-            busy_marker: BusyMarkerPolicy::Keep,
+            busy_marker: BusyMarkerPolicy::Replace,
             ov: PartStyle::new(),
         }
     }
