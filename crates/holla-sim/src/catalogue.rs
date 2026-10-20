@@ -1794,6 +1794,166 @@ pub fn parity_browser_80x24_plate(w: &World, width: u16, height: u16) -> Option<
     parity_browser_rows()
 }
 
+/// 120×40 `parity-browser` plate. Only a paused tick-40 frame.
+/// The 80×24 and 100×30 plates, files, history, discovery, other sizes, later seeks, and every other scenario stay off it.
+pub fn parity_browser_120x40_plate(w: &World, width: u16, height: u16) -> Option<ParityDiscovery> {
+    if w.scenario != Scenario::ParityBrowser
+        || w.clock.running
+        || width != 120
+        || height != 40
+        || w.now_ms() != 80
+    {
+        return None;
+    }
+    let suggested = vec![
+        tag_row(
+            "pnpm a",
+            "script",
+            "here",
+            true,
+            "package.json here",
+            None,
+            true,
+        ),
+        tag_row(
+            "pnpm b",
+            "script",
+            "here",
+            true,
+            "package.json here",
+            None,
+            false,
+        ),
+        tag_row(
+            "pnpm c",
+            "script",
+            "here",
+            true,
+            "package.json here",
+            None,
+            false,
+        ),
+        tag_row(
+            "pnpm d",
+            "script",
+            "here",
+            true,
+            "package.json here",
+            None,
+            false,
+        ),
+        tag_row(
+            "pnpm e",
+            "script",
+            "here",
+            true,
+            "package.json here",
+            None,
+            false,
+        ),
+    ];
+    let explore = vec![tag_row(
+        "System · mbp",
+        "explore",
+        "host",
+        false,
+        "available on this host",
+        None,
+        false,
+    )];
+    let mut lines = Vec::new();
+    lines.push(FinderLine::Heading("Suggested here"));
+    for row in &suggested {
+        lines.push(FinderLine::Row(row.clone()));
+    }
+    lines.push(FinderLine::Blank);
+    lines.push(FinderLine::Heading("Recent here"));
+    lines.push(FinderLine::Heading("nothing used here yet"));
+    lines.push(FinderLine::Blank);
+    lines.push(FinderLine::Heading("Explore"));
+    lines.push(FinderLine::Chips(&[
+        "Tasks", "Git", "Files", "Disk", "Services", "System",
+    ]));
+    for row in &explore {
+        lines.push(FinderLine::Row(row.clone()));
+    }
+    let preview = vec![
+        PreviewLine {
+            label: "Does",
+            value: "1 · package.json".into(),
+            tone: PreviewTone::Text,
+            wraps: false,
+        },
+        PreviewLine {
+            label: "Runs",
+            value: "pnpm run a".into(),
+            tone: PreviewTone::Secondary,
+            wraps: false,
+        },
+        PreviewLine {
+            label: "In",
+            value: "~/work/site".into(),
+            tone: PreviewTone::Text,
+            wraps: false,
+        },
+        PreviewLine {
+            label: "Host",
+            value: "mbp · local".into(),
+            tone: PreviewTone::Text,
+            wraps: false,
+        },
+        PreviewLine {
+            label: "Scope",
+            value: "here".into(),
+            tone: PreviewTone::Text,
+            wraps: false,
+        },
+        PreviewLine {
+            label: "Why",
+            value: "package.json here".into(),
+            tone: PreviewTone::Text,
+            wraps: false,
+        },
+        PreviewLine {
+            label: "Changes",
+            value: "see the command".into(),
+            tone: PreviewTone::Text,
+            wraps: false,
+        },
+        PreviewLine {
+            label: "Risk",
+            value: "mutating".into(),
+            tone: PreviewTone::Muted,
+            wraps: false,
+        },
+        PreviewLine {
+            label: "Data",
+            value: "live · 0 s ago".into(),
+            tone: PreviewTone::Muted,
+            wraps: false,
+        },
+        PreviewLine {
+            label: "Gate",
+            value: "runs directly".into(),
+            tone: PreviewTone::Muted,
+            wraps: false,
+        },
+        PreviewLine {
+            label: "Alt+Enter",
+            value: "Pin · Alias · Why here?".into(),
+            tone: PreviewTone::Muted,
+            wraps: false,
+        },
+    ];
+    Some(ParityDiscovery {
+        lines,
+        preview,
+        preview_meta: "script · here".into(),
+        actions: Vec::new(),
+        suggested_len: suggested.len(),
+    })
+}
+
 /// 100×30 `parity-browser` plate. Only a paused tick-40 frame.
 /// The 80×24 plate, files, history, discovery, other sizes, later seeks, and every other scenario stay off it.
 pub fn parity_browser_100x30_plate(w: &World, width: u16, height: u16) -> Option<ParityDiscovery> {
@@ -4887,6 +5047,84 @@ mod tests {
             other.seek(40);
             other.clock.running = false;
             assert!(parity_browser_100x30_plate(&other, 100, 30).is_none());
+        }
+    }
+
+    #[test]
+    fn parity_browser_120x40_plate_is_only_the_mid_tick_40_frame() {
+        let mut world = fixtures::world_for(Scenario::ParityBrowser);
+        assert!(parity_browser_120x40_plate(&world, 120, 40).is_none());
+        world.seek(40);
+        assert!(world.clock.running);
+        assert!(parity_browser_120x40_plate(&world, 120, 40).is_none());
+        world.clock.running = false;
+        assert_eq!(world.now_ms(), 80);
+        assert!(parity_browser_80x24_plate(&world, 120, 40).is_none());
+        assert!(parity_browser_100x30_plate(&world, 120, 40).is_none());
+        assert!(parity_browser_120x40_plate(&world, 80, 24).is_none());
+        assert!(parity_browser_120x40_plate(&world, 100, 30).is_none());
+        assert!(parity_browser_120x40_plate(&world, 160, 50).is_none());
+        assert!(parity_browser_120x40_plate(&world, 120, 39).is_none());
+        assert!(parity_browser_120x40_plate(&world, 119, 40).is_none());
+        assert!(parity_files_80x24_plate(&world, 120, 40).is_none());
+        assert!(parity_files_100x30_plate(&world, 120, 40).is_none());
+        assert!(parity_files_120x40_plate(&world, 120, 40).is_none());
+        assert!(parity_history_80x24_plate(&world, 120, 40).is_none());
+        assert!(parity_history_100x30_plate(&world, 120, 40).is_none());
+        assert!(parity_history_120x40_plate(&world, 120, 40).is_none());
+        assert!(parity_discovery_80x24_plate(&world, 120, 40).is_none());
+        assert!(parity_discovery_100x30_plate(&world, 120, 40).is_none());
+        let view = parity_browser_120x40_plate(&world, 120, 40).expect("120x40 plate");
+        assert!(view.lines.iter().any(|line| matches!(
+            line,
+            FinderLine::Row(row) if row.selected && row.title == "pnpm a" && row.kind == "script"
+        )));
+        assert!(view.lines.iter().any(|line| matches!(
+            line,
+            FinderLine::Row(row) if row.title == "pnpm e" && !row.selected
+        )));
+        assert!(view.lines.iter().any(|line| matches!(
+            line,
+            FinderLine::Row(row) if row.title == "System · mbp" && !row.selected && row.scope_word == "host"
+        )));
+        assert_eq!(view.preview_meta, "script · here");
+        let does = view
+            .preview
+            .iter()
+            .find(|line| line.label == "Does")
+            .expect("does line");
+        assert_eq!(does.value, "1 · package.json");
+        assert!(!does.wraps);
+        let runs = view
+            .preview
+            .iter()
+            .find(|line| line.label == "Runs")
+            .expect("runs line");
+        assert_eq!(runs.value, "pnpm run a");
+        assert_eq!(runs.tone, PreviewTone::Secondary);
+        let risk = view
+            .preview
+            .iter()
+            .find(|line| line.label == "Risk")
+            .expect("risk line");
+        assert_eq!(risk.value, "mutating");
+        assert_eq!(risk.tone, PreviewTone::Muted);
+        world.seek(4_000);
+        world.clock.running = false;
+        assert!(parity_browser_120x40_plate(&world, 120, 40).is_none());
+        for scenario in [
+            Scenario::ParityFiles,
+            Scenario::ParityHistory,
+            Scenario::ParityDiscovery,
+            Scenario::FirstUse,
+            Scenario::ActivitiesMulti,
+        ] {
+            let mut other = fixtures::world_for(scenario);
+            other.seek(40);
+            other.clock.running = false;
+            assert!(parity_browser_120x40_plate(&other, 120, 40).is_none());
+            assert!(parity_browser_80x24_plate(&other, 120, 40).is_none());
+            assert!(parity_browser_100x30_plate(&other, 120, 40).is_none());
         }
     }
 
