@@ -234,6 +234,7 @@ impl<'a> CompletingCodeEditor<'a> {
         let completing = self.completion();
         let completion_response =
             completing.update_for(self.id, cx, &mut state.completion, &state.items);
+        let mut dismissed_outside = false;
         match completion_response.action_ref() {
             Some(CompletionAction::Accepted(key)) => {
                 let Some(item) = state
@@ -271,17 +272,20 @@ impl<'a> CompletingCodeEditor<'a> {
                     Intent::Binding(action) => action == DISMISS_COMPLETION_ACTION,
                     _ => false,
                 });
-                if escape
-                    || !cx
-                        .intents(self.id)
-                        .any(|intent| matches!(intent, Intent::Binding(_)))
-                {
+                let owner_pointer = cx
+                    .intents(self.id)
+                    .any(|intent| matches!(intent, Intent::Pointer { .. }));
+                let owner_binding = cx
+                    .intents(self.id)
+                    .any(|intent| matches!(intent, Intent::Binding(_)));
+                if escape || (!owner_binding && !owner_pointer) {
                     return if completion_response.is_changed() {
                         Response::changed()
                     } else {
                         Response::consumed()
                     };
                 }
+                dismissed_outside = owner_pointer && !owner_binding;
             }
             Some(CompletionAction::Moved) | None => {}
         }
@@ -304,7 +308,7 @@ impl<'a> CompletingCodeEditor<'a> {
                 self.request(cx, state, CompletionTrigger::TextChanged);
                 editor_response.repaint()
             }
-            Some(CodeAction::CursorMoved) if was_open => {
+            Some(CodeAction::CursorMoved) if was_open && !dismissed_outside => {
                 self.request(cx, state, CompletionTrigger::CursorMoved);
                 editor_response.repaint()
             }
