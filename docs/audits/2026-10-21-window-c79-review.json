@@ -1,0 +1,28 @@
+{
+  "reviewed_commit": "c79dc196378d4eabf1549bc3c334d8507c97fade",
+  "implementation_commit": "cf78967c3",
+  "disposition": "Not cleared: one empty-geometry invariant defect.",
+  "source_scope": [
+    "crates/termrock-runtime/src/author.rs",
+    "crates/termrock-runtime/src/author/window.rs",
+    "crates/termrock-runtime/src/ui/cx.rs",
+    "docs/audits/2026-10-21-textarea-parent-window-stage1.md"
+  ],
+  "finding": {
+    "severity": "P2",
+    "path": "crates/termrock-runtime/src/author/window.rs:64-113",
+    "problem": "full(Rect::new(0,7,0,3)) describes an empty visible area, but all three helpers expose visible rows. visible_source_range returns 0..3, source_row_for_physical(7) returns Some(0), and physical_row_for_source(0) returns Some(7). This contradicts full documentation and new rejecting zero width.",
+    "test_gap": "The native empty test covers width0 and height0 together, so it does not exercise width0 with positive height.",
+    "fix": "Treat empty visible geometry consistently in all row mapping helpers; preserve full logical_rows metadata if required, but expose no visible range or mapping. Add width0/positiveheight and positivewidth/height0 regression cases.",
+    "public_probe": "/private/tmp/vertical-window-c79-independent/src/lib.rs",
+    "log": "/tmp/vertical-window-c79-independent.log",
+    "result": "Two public-consumer tests run: one checked-window round-trip passed, one zero-width range test failed, zero skipped. Nextest run eac0e0f7-d7b6-4960-83ce-3698b2052234."
+  },
+  "bounded_positive_review": [
+    "Private descriptor fields protect validated clipped construction; checked source-end and physical last-row arithmetic reject overflowing inputs.",
+    "LayoutFacts is already non_exhaustive. Its additive optional field defaults to None through Default and new; existing logical_area, registry, layer scope, input dispatch and layout lifecycle are unchanged.",
+    "This increment adds no scroll ownership, global coordinate transform, off-screen rendering engine, effects during measurement/drawing or fake control.",
+    "git diff --check against bb52a5995 passed and the staged source diff has only the four stated paths."
+  ],
+  "limits": "Author native runtime results are not independently rerun in this review because the public regression already blocks adoption. Stage2 ScrollRegion, TextArea and Form clipping, cursor/selection/input/scrollbar and menus remain required and unimplemented; no application acceptance claim."
+}
