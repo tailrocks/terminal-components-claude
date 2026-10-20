@@ -21,8 +21,8 @@ use crate::{
 use termrock::{
     ActionKey, Binding, Brand, Chord, Color, Constraints, Cx, Dialog, FgStep, Focusability,
     FrameRead, Hint, HintBar, HintKey, HintLayer, Id, Intent, ItemKey, KeyCode, KeyMap, KeyPhase,
-    Menu, MenuAction, MenuBar, MenuItem, MenuState, Part, PartRef, Phase, Rect, Response, Role,
-    StylePatch, Surface, TooSmall, Ui,
+    Menu, MenuAction, MenuBar, MenuBarHoverScope, MenuItem, MenuState, Part, PartRef, Phase, Rect,
+    Response, Role, StylePatch, Surface, TooSmall, Ui,
 };
 
 const BRAND: Id = Id::root("holla.brand");
@@ -210,7 +210,9 @@ fn menu_bar() -> MenuBar<'static> {
         Menu::new(BAR_LABELS[2], HELP_MENU),
     ];
     // MenuBar styles the label and the tag's " {title} " pads as one title.
-    MenuBar::new(MENU, MENUS).chord_case(termrock::ChordCase::UppercaseAscii)
+    MenuBar::new(MENU, MENUS)
+        .chord_case(termrock::ChordCase::UppercaseAscii)
+        .hover_scope(MenuBarHoverScope::Title)
 }
 
 fn brand() -> Brand<'static> {
