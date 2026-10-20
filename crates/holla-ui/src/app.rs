@@ -432,10 +432,16 @@ fn parity_browser_tag_plate(world: &World, width: u16, height: u16) -> bool {
         || crate::sim::catalogue::parity_browser_120x40_plate(world, width, height).is_some()
 }
 
-/// 80×24 and 100×30 `parity-git-current`. Browser, files, history, and every other size stay off.
-fn parity_git_current_tag_plate(world: &World, width: u16, height: u16) -> bool {
+/// 80×24 and 100×30 clip the last hint. 120×40 fits every hint, so it keeps the wide parts.
+fn parity_git_current_clipped_plate(world: &World, width: u16, height: u16) -> bool {
     crate::sim::catalogue::parity_git_current_80x24_plate(world, width, height).is_some()
         || crate::sim::catalogue::parity_git_current_100x30_plate(world, width, height).is_some()
+}
+
+/// 80×24, 100×30, and 120×40 `parity-git-current`. Browser, files, history, discovery, and every other size stay off.
+fn parity_git_current_tag_plate(world: &World, width: u16, height: u16) -> bool {
+    parity_git_current_clipped_plate(world, width, height)
+        || crate::sim::catalogue::parity_git_current_120x40_plate(world, width, height).is_some()
 }
 
 /// Tag parity-browser status at 80×24, 100×30, and 120×40: cwd, then the size label. No branch.
@@ -455,7 +461,7 @@ fn paint_parity_browser_status(ui: &mut Ui<'_>, area: Rect) {
     let _ = paint_size_label(ui, area);
 }
 
-/// Tag parity-git-current status at 80×24 and 100×30: cwd, branch, behind/ahead, dirty mark, then the size label.
+/// Tag parity-git-current status at 80×24, 100×30, and 120×40: cwd, branch, behind/ahead, dirty mark, then the size label.
 fn paint_parity_git_current_status(ui: &mut Ui<'_>, area: Rect) {
     if area.is_empty() {
         return;
@@ -1891,7 +1897,7 @@ impl App {
             let browser_plate =
                 parity_browser_clipped_plate(&self.world, ui.full().width, ui.full().height);
             let git_current_plate =
-                parity_git_current_tag_plate(&self.world, ui.full().width, ui.full().height);
+                parity_git_current_clipped_plate(&self.world, ui.full().width, ui.full().height);
             let parts = if monorepo_child_mid
                 || remote_host_mid
                 || first_use_mid
