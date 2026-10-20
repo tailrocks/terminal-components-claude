@@ -948,16 +948,31 @@ impl<A: App> Runtime<A> {
                     .pointer(cap.owner, Phase::Drag, cap.part, m.pos, local, m.mods);
             }
             MouseKind::Up => {
+                let press = self.inter.press.take();
+                self.services.pointer_press_count =
+                    press.map(|press| (press.owner, press.part, press.click_count));
                 self.intents
                     .pointer(cap.owner, Phase::Release, cap.part, m.pos, local, m.mods);
                 self.intents
                     .pointer(cap.owner, Phase::DragEnd, cap.part, m.pos, local, m.mods);
                 if cap.contains(m.pos) {
+                    if let Some(press) = press {
+                        self.inter.last_click = Some(LastClick {
+                            owner: press.owner,
+                            part: press.part,
+                            at: self.now(),
+                            pos: press.pos,
+                            count: press.click_count,
+                        });
+                        self.services.pointer_press_count =
+                            Some((press.owner, press.part, press.click_count));
+                    }
                     self.intents
                         .pointer(cap.owner, Phase::Click, cap.part, m.pos, local, m.mods);
+                } else {
+                    self.inter.last_click = None;
                 }
                 self.services.capture.release();
-                self.inter.press = None;
                 self.last.snapshot.pressed = None;
                 self.last.snapshot.capture = None;
             }
@@ -987,7 +1002,11 @@ impl<A: App> Runtime<A> {
             .services
             .layers
             .close(top.id, LayerEvent::Dismissed(reason));
+        let changed = !closed.is_empty();
         self.services.closed_layers.extend(closed);
+        if changed {
+            self.services.reset_pointer_clicks = true;
+        }
 
         if reason == DismissReason::Esc {
             self.intents.cancel(top.spec.owner);
@@ -1292,6 +1311,10 @@ impl<A: App> Runtime<A> {
 
     fn finish(&mut self, mut r: Response<()>) -> Response<()> {
         self.reconcile_held_pointer();
+        if core::mem::take(&mut self.services.reset_pointer_clicks) {
+            self.inter.last_click = None;
+            self.services.pointer_press_count = None;
+        }
         if self.services.repaint {
             r = r.repaint();
         }
@@ -1528,6 +1551,7 @@ impl<A: App> Runtime<A> {
             .is_some_and(|press| !eligible(press.owner, press.part));
         if capture_invalid {
             self.services.capture.release();
+            self.services.reset_pointer_clicks = true;
         }
         if capture_invalid || press_invalid {
             self.inter.press = None;
@@ -2096,6 +2120,7 @@ mod tests {
 
     const A: Id = Id::root("a");
     const B: Id = Id::root("b");
+    const CLICK_MODAL: Id = Id::root("click-modal");
 
     #[derive(Default)]
     struct BootstrapProbe {
@@ -2370,6 +2395,8 @@ mod tests {
     struct PressCountProbe {
         counts: Vec<(Phase, u8)>,
         phases: Vec<Phase>,
+        capture_on_press: bool,
+        open_modal_on_click: bool,
     }
 
     impl App for PressCountProbe {
@@ -2381,12 +2408,15 @@ mod tests {
                         if matches!(
                             phase,
                             Phase::Press | Phase::Release | Phase::Click | Phase::DoubleClick
-                        ) {
-                            self.counts.push((
-                                phase,
-                                cx.pointer_click_count(owner, part)
-                                    .expect("click count belongs to this pointer intent"),
-                            ));
+                        ) && let Some(count) = cx.pointer_click_count(owner, part)
+                        {
+                            self.counts.push((phase, count));
+                        }
+                        if phase == Phase::Press && self.capture_on_press {
+                            assert!(cx.capture(owner, part));
+                        }
+                        if phase == Phase::Click && self.open_modal_on_click {
+                            cx.open_layer(CLICK_MODAL, LayerSpec::modal(CLICK_MODAL));
                         }
                     }
                 }
@@ -2401,6 +2431,9 @@ mod tests {
             let other = Rect::new(10, 0, 8, 2);
             ui.register_control(B, other, Focusability::Focusable);
             ui.register_part(B, PartRef::of(Part::LABEL), other);
+            ui.layer(CLICK_MODAL, |ui, area| {
+                ui.register_control(CLICK_MODAL, area, Focusability::Focusable);
+            });
         }
     }
 
@@ -2484,6 +2517,118 @@ mod tests {
                 .filter_map(|(phase, count)| (*phase == Phase::Press).then_some(*count))
                 .collect::<Vec<_>>(),
             [1, 1, 1, 1, 2]
+        );
+    }
+
+    #[test]
+    fn capture_interruption_resets_the_pointer_click_sequence() {
+        let mut rt = Runtime::new(PressCountProbe::default(), Theme::junie());
+        let _ = rt.initialize();
+        let mut buf = Buffer::empty(SCREEN);
+        for _ in 0..8 {
+            rt.draw_buffer(SCREEN, &mut buf).commit_presented();
+            if !rt.needs_settle() {
+                break;
+            }
+            let _ = rt.settle();
+        }
+        let click = |rt: &mut Runtime<PressCountProbe>, buf: &mut Buffer| {
+            let _ = deliver(rt, super::stub::mouse(MouseKind::Down, 2, 0));
+            rt.draw_buffer(SCREEN, buf).commit_presented();
+            let _ = deliver(rt, super::stub::mouse(MouseKind::Up, 2, 0));
+            rt.draw_buffer(SCREEN, buf).commit_presented();
+        };
+
+        click(&mut rt, &mut buf);
+        rt.app_mut().capture_on_press = true;
+        let _ = deliver(&mut rt, super::stub::mouse(MouseKind::Down, 2, 0));
+        rt.draw_buffer(SCREEN, &mut buf).commit_presented();
+        let _ = deliver(&mut rt, super::stub::mouse(MouseKind::Up, 20, 0));
+        rt.draw_buffer(SCREEN, &mut buf).commit_presented();
+        rt.app_mut().capture_on_press = false;
+        click(&mut rt, &mut buf);
+
+        assert_eq!(
+            rt.app()
+                .counts
+                .iter()
+                .filter_map(|(phase, count)| (*phase == Phase::Press).then_some(*count))
+                .collect::<Vec<_>>(),
+            [1, 2, 1]
+        );
+    }
+
+    #[test]
+    fn successful_captured_clicks_keep_the_sequence_count() {
+        let mut rt = Runtime::new(
+            PressCountProbe {
+                capture_on_press: true,
+                ..PressCountProbe::default()
+            },
+            Theme::junie(),
+        );
+        let _ = rt.initialize();
+        let mut buf = Buffer::empty(SCREEN);
+        for _ in 0..8 {
+            rt.draw_buffer(SCREEN, &mut buf).commit_presented();
+            if !rt.needs_settle() {
+                break;
+            }
+            let _ = rt.settle();
+        }
+        for _ in 0..3 {
+            let _ = deliver(&mut rt, super::stub::mouse(MouseKind::Down, 2, 0));
+            rt.draw_buffer(SCREEN, &mut buf).commit_presented();
+            let _ = deliver(&mut rt, super::stub::mouse(MouseKind::Up, 2, 0));
+            rt.draw_buffer(SCREEN, &mut buf).commit_presented();
+        }
+        assert_eq!(
+            rt.app()
+                .counts
+                .iter()
+                .filter_map(|(phase, count)| (*phase == Phase::Press).then_some(*count))
+                .collect::<Vec<_>>(),
+            [1, 2, 3]
+        );
+    }
+
+    #[test]
+    fn opening_and_dismissing_a_layer_resets_the_pointer_click_sequence() {
+        let mut rt = Runtime::new(
+            PressCountProbe {
+                open_modal_on_click: true,
+                ..PressCountProbe::default()
+            },
+            Theme::junie(),
+        );
+        let _ = rt.initialize();
+        let mut buf = Buffer::empty(SCREEN);
+        for _ in 0..8 {
+            rt.draw_buffer(SCREEN, &mut buf).commit_presented();
+            if !rt.needs_settle() {
+                break;
+            }
+            let _ = rt.settle();
+        }
+        let _ = deliver(&mut rt, super::stub::mouse(MouseKind::Down, 2, 0));
+        rt.draw_buffer(SCREEN, &mut buf).commit_presented();
+        let _ = deliver(&mut rt, super::stub::mouse(MouseKind::Up, 2, 0));
+        rt.draw_buffer(SCREEN, &mut buf).commit_presented();
+        assert!(rt.is_open(CLICK_MODAL));
+
+        let _ = deliver(&mut rt, super::stub::key(KeyCode::Esc));
+        rt.draw_buffer(SCREEN, &mut buf).commit_presented();
+        rt.app_mut().open_modal_on_click = false;
+        let _ = deliver(&mut rt, super::stub::mouse(MouseKind::Down, 2, 0));
+        rt.draw_buffer(SCREEN, &mut buf).commit_presented();
+
+        assert_eq!(
+            rt.app()
+                .counts
+                .iter()
+                .filter_map(|(phase, count)| (*phase == Phase::Press).then_some(*count))
+                .collect::<Vec<_>>(),
+            [1, 1]
         );
     }
 }
