@@ -75,6 +75,53 @@ class RunnerGuards(unittest.TestCase):
         (process_root / "closed-00000000.json").write_bytes(runner.canonical_receipt_json(sign(close_payload)))
         return receipt_root, bins, expected_hashes, payload, key, run_id, launch_digest
 
+    def test_candidate_build_refuses_populated_cache_without_removing_outputs(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            repo = root / "candidate-source"
+            repo.mkdir()
+            (repo / "Cargo.toml").write_text("[workspace]\n")
+            for variant in ("top-level-only", "cached-dependency-and-top-level"):
+                target = root / variant
+                debug = target / "debug"
+                debug.mkdir(parents=True)
+                (debug / "showcase").write_bytes(b"preexisting-baseline-copy")
+                if variant == "cached-dependency-and-top-level":
+                    deps = debug / "deps"
+                    deps.mkdir()
+                    (deps / "libjunie_tui-cached.rlib").write_bytes(b"preexisting-cached-reference-artifact")
+                before = {path.relative_to(target).as_posix(): path.read_bytes() for path in target.rglob("*") if path.is_file()}
+                with patch.object(runner, "run", side_effect=AssertionError("Cargo must not run against an existing target")) as cargo:
+                    with self.assertRaisesRegex(runner.RunnerError, "must be absent"):
+                        runner.build_candidate(repo, root / f"record-{variant}", target, 30)
+                cargo.assert_not_called()
+                after = {path.relative_to(target).as_posix(): path.read_bytes() for path in target.rglob("*") if path.is_file()}
+                self.assertEqual(after, before)
+
+    def test_candidate_build_claims_fresh_target_and_records_binary_identity(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            repo = root / "candidate-source"
+            repo.mkdir()
+            (repo / "Cargo.toml").write_text("[workspace]\n")
+            target = root / "fresh-target"
+
+            def fake_cargo(_command, *, env, **_kwargs):
+                bin_dir = Path(env["CARGO_TARGET_DIR"]) / "debug"
+                bin_dir.mkdir(parents=True)
+                for app in runner.APPS:
+                    binary = bin_dir / app
+                    binary.write_bytes(f"newly-built-{app}".encode())
+                    binary.chmod(0o755)
+
+            with patch.object(runner, "git_state", return_value=("candidate-revision", "c" * 64, [])), patch.object(runner, "run", side_effect=fake_cargo):
+                with patch.object(sys, "stdout", io.StringIO()):
+                    runner.build_candidate(repo, root / "evidence", target, 30)
+            record = json.loads((root / "evidence" / "candidate-build.json").read_text())
+            self.assertEqual(set(record["binary_files"]), set(runner.APPS))
+            for app in runner.APPS:
+                self.assertEqual(record["binary_files"][app], runner.stable_private_binary(target / "debug" / app, f"candidate binary {app}")[1])
+
     def provenance_payload(self) -> dict[str, object]:
         env_values = {key: {"present": False, "value_sha256": None} for key in runner.PROVENANCE_ENV_KEYS}
         env_record = {
@@ -958,8 +1005,8 @@ class RunnerGuards(unittest.TestCase):
         self.assertEqual(cohort["status"], runner.DIAGNOSTIC_COHORT_STATUS)
         self.assertFalse(cohort["build"]["build_admitted"])
         self.assertFalse(cohort["build"]["reference_frames_approved"])
-        with self.assertRaisesRegex(runner.RunnerError, "not eligible for baseline capture"):
-            runner.require_capture_eligible_cohort(cohort, Path("unused"))
+        with self.assertRaisesRegex(runner.RunnerError, "no separately reviewed"):
+            runner.require_capture_eligible_cohort(repo, cohort["id"], Path("unused"))
 
     def test_executable_cohort_schema_rejects_duplicate_unknown_and_bool_version(self) -> None:
         repo = Path(runner.__file__).resolve().parent.parent
@@ -991,7 +1038,7 @@ class RunnerGuards(unittest.TestCase):
         repo = Path(runner.__file__).resolve().parent.parent
         document = runner.load_executable_cohorts(repo)
         for mutate, error in (
-            (lambda c: c["binaries"]["holla"].update({"sha256": "0" * 64}), "hashes differ"),
+            (lambda c: c["binaries"]["holla"].update({"sha256": "0" * 64}), "stage binary inventory is invalid"),
             (lambda c: c["runs"][0].update({"complete_target_archive": True}), "archive/retry limitations"),
             (lambda c: c["runs"].pop(), "exactly two complete run records"),
             (lambda c: c["source"].update({"tag": "moving-tag"}), "source/tool pins changed"),
@@ -1007,16 +1054,18 @@ class RunnerGuards(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
             for name in runner.APPS:
-                (root / name).write_bytes(b"not-the-sealed-reference-binary")
+                path = root / name
+                path.write_bytes(b"not-the-sealed-reference-binary")
+                path.chmod(0o755)
             with self.assertRaisesRegex(runner.RunnerError, "hash mismatch"):
-                runner.verify_diagnostic_cohort_binaries(cohort, root)
+                runner.verify_diagnostic_cohort_binaries(repo, cohort["id"], root)
             (root / "showcase").unlink()
             (root / "showcase").symlink_to(root / "tablepro")
-            with self.assertRaisesRegex(runner.RunnerError, "private regular file"):
-                runner.verify_diagnostic_cohort_binaries(cohort, root)
+            with self.assertRaisesRegex(runner.RunnerError, "private regular executable"):
+                runner.verify_diagnostic_cohort_binaries(repo, cohort["id"], root)
             altered = json.loads(json.dumps(cohort))
             altered["binaries"]["showcase"]["path"] = "../showcase"
-            with self.assertRaisesRegex(runner.RunnerError, "hashes differ from the independently reproduced cohort"):
+            with self.assertRaises(TypeError):
                 runner.verify_diagnostic_cohort_binaries(altered, root)
 
     def test_diagnostic_binary_check_rejects_forged_hash_inventory(self) -> None:
@@ -1029,8 +1078,122 @@ class RunnerGuards(unittest.TestCase):
                 data = f"unrelated-{app}".encode()
                 (root / app).write_bytes(data)
                 altered["binaries"][app]["sha256"] = runner.hashlib.sha256(data).hexdigest()
-            with self.assertRaisesRegex(runner.RunnerError, "hashes differ from the independently reproduced cohort"):
+            with self.assertRaises(TypeError):
                 runner.verify_diagnostic_cohort_binaries(altered, root)
+
+    def test_capture_eligibility_is_separate_pinned_review_and_never_approves_frames(self) -> None:
+        repo = Path(runner.__file__).resolve().parent.parent
+        document = runner.load_executable_cohorts(repo)
+        cohort = json.loads(json.dumps(document["cohorts"][0]))
+        cohort["id"] = "test-cohort-fixture"
+        binary_bytes = {app: f"fixture-binary-{app}".encode() for app in runner.APPS}
+        binary_hashes = {app: runner.hashlib.sha256(data).hexdigest() for app, data in binary_bytes.items()}
+        cohort["binaries"] = {app: {"path": app, "sha256": binary_hashes[app]} for app in runner.APPS}
+        for run in cohort["runs"]:
+            run["stage1_hashes"] = binary_hashes.copy()
+            run["final_hashes"] = binary_hashes.copy()
+        fixture_registry = {"schema": runner.EXECUTABLE_COHORT_SCHEMA, "schema_version": runner.EXECUTABLE_COHORT_VERSION, "cohorts": [cohort]}
+        registry_bytes = (json.dumps(fixture_registry, indent=2) + "\n").encode()
+        registry_digest = runner.hashlib.sha256(registry_bytes).hexdigest()
+        review = {
+            "cohort_id": cohort["id"],
+            "status": runner.CAPTURE_ELIGIBLE_COHORT_STATUS,
+            "cohort_registry_sha256": registry_digest,
+            "binary_sha256": binary_hashes,
+            "source": cohort["source"],
+            "evidence": [{"reviewer": "independent-review-fixture", "scope": "executable-cohort-capture-eligibility", "report_sha256": "a" * 64}],
+            "candidate_comparison_eligible": False,
+            "checkpoint_reference_approval": "none",
+        }
+        review_bytes = (json.dumps({"schema": runner.COHORT_REVIEWS_SCHEMA, "schema_version": 1, "reviews": [review]}, indent=2) + "\n").encode()
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            (root / runner.EXECUTABLE_COHORTS).parent.mkdir(parents=True)
+            (root / runner.EXECUTABLE_COHORTS).write_bytes(registry_bytes)
+            (root / runner.COHORT_REVIEWS).write_bytes(review_bytes)
+            bins = root / "sealed-bin"
+            bins.mkdir()
+            for app, data in binary_bytes.items():
+                path = bins / app
+                path.write_bytes(data)
+                path.chmod(0o755)
+            with patch.object(runner, "EXECUTABLE_COHORTS_SHA256", registry_digest), patch.object(runner, "COHORT_REVIEWS_SHA256", runner.hashlib.sha256(review_bytes).hexdigest()):
+                admitted = runner.require_capture_eligible_cohort(root, cohort["id"], bins)
+                self.assertEqual(admitted["status"], runner.CAPTURE_ELIGIBLE_COHORT_STATUS)
+                self.assertFalse(admitted["candidate_comparison_eligible"])
+                self.assertEqual(admitted["checkpoint_reference_approval"], "none")
+                self.assertFalse(admitted["acceptance_complete"])
+                source = root / "source"
+                source.mkdir()
+                (source / "Cargo.lock").write_text("fixture lock")
+                (source / "rust-toolchain.toml").write_text("fixture toolchain")
+                candidate_repo = root / "candidate-repo"
+                candidate_repo.mkdir()
+                candidate_bins = root / "candidate-bin"
+                candidate_bins.mkdir()
+                candidate_hashes = {}
+                candidate_files = {}
+                for app in runner.APPS:
+                    path = candidate_bins / app
+                    path.write_bytes(f"candidate-{app}".encode())
+                    path.chmod(0o755)
+                    candidate_hashes[app], candidate_files[app] = runner.stable_private_binary(path, f"candidate binary {app}")
+                candidate_record = {
+                    "repo": str(candidate_repo), "revision": "candidate-revision",
+                    "dirty_fingerprint": "b" * 64, "dirty_files": [],
+                    "target_dir": str(root / "candidate-target"), "bin_dir": str(candidate_bins),
+                    "binaries": candidate_hashes, "binary_files": candidate_files,
+                }
+                (root / "candidate-build.json").write_text(json.dumps(candidate_record))
+                real_sha256 = runner.sha256
+                def fixture_sha256(path: Path) -> str:
+                    if path == source / "Cargo.lock":
+                        return cohort["source"]["cargo_lock_sha256"]
+                    if path == source / "rust-toolchain.toml":
+                        return cohort["source"]["rust_toolchain_sha256"]
+                    return real_sha256(path)
+                def read_records():
+                    with patch.object(runner, "verify_source", return_value="frozen-source-sha"), patch.object(runner, "git_state", return_value=("candidate-revision", "b" * 64, [])), patch.object(runner, "run", return_value="candidate-tree"), patch.object(runner, "sha256", side_effect=fixture_sha256):
+                        return runner.baseline_and_candidate_records(
+                            candidate_repo, root, bins, candidate_bins, 30, baseline_cohort_id=cohort["id"], cohort_repo=root
+                        )
+                baseline_record, checked_candidate = read_records()
+                self.assertEqual(baseline_record["executable_cohort"]["cohort_id"], cohort["id"])
+                self.assertEqual(baseline_record["binaries"], binary_hashes)
+                self.assertNotIn("build_provenance_sha256", baseline_record)
+                self.assertFalse(baseline_record["candidate_comparison_eligible"])
+                self.assertFalse(baseline_record["acceptance_complete"])
+                app = runner.APPS[0]
+                candidate_path = candidate_bins / app
+                baseline_path = bins / app
+                with self.assertRaisesRegex(runner.RunnerError, "private regular executable"):
+                    candidate_path.unlink()
+                    candidate_path.symlink_to(baseline_path)
+                    read_records()
+                candidate_path.unlink()
+                candidate_path.write_bytes(f"candidate-{app}".encode())
+                candidate_path.chmod(0o755)
+                with self.assertRaisesRegex(runner.RunnerError, "private regular executable"):
+                    candidate_path.unlink()
+                    runner.os.link(baseline_path, candidate_path)
+                    read_records()
+                candidate_path.unlink()
+                candidate_path.write_bytes(baseline_path.read_bytes())
+                candidate_path.chmod(0o755)
+                with self.assertRaisesRegex(runner.RunnerError, "identity changed"):
+                    read_records()
+                for alteration in (
+                    {**review, "candidate_comparison_eligible": True},
+                    {**review, "checkpoint_reference_approval": "approved"},
+                    {**review, "cohort_registry_sha256": "0" * 64},
+                    {**review, "binary_sha256": {**binary_hashes, "holla": "0" * 64}},
+                    {**review, "evidence": []},
+                ):
+                    altered = (json.dumps({"schema": runner.COHORT_REVIEWS_SCHEMA, "schema_version": 1, "reviews": [alteration]}, indent=2) + "\n").encode()
+                    (root / runner.COHORT_REVIEWS).write_bytes(altered)
+                    with patch.object(runner, "COHORT_REVIEWS_SHA256", runner.hashlib.sha256(altered).hexdigest()):
+                        with self.assertRaises(runner.RunnerError):
+                            runner.require_capture_eligible_cohort(root, cohort["id"], bins)
 
     def test_registry_hash_and_parse_use_one_pinned_file_read(self) -> None:
         actual_path = Path(runner.__file__).resolve().parent.parent / runner.EXECUTABLE_COHORTS
