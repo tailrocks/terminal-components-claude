@@ -267,6 +267,18 @@ pub enum CompletionKind {
     Alias,
 }
 impl CompletionKind {
+    pub const fn glyph(self) -> &'static str {
+        match self {
+            Self::Keyword => "K",
+            Self::Table => "T",
+            Self::View => "V",
+            Self::Column => "C",
+            Self::Function => "F",
+            Self::Schema => "S",
+            Self::Alias => "A",
+        }
+    }
+
     const fn priority(self) -> u32 {
         match self {
             Self::Column => 100,

@@ -26,6 +26,8 @@ pub enum CompletionTrigger {
 pub struct CompletionValue {
     key: ItemKey,
     label: String,
+    glyph: String,
+    matched: Vec<usize>,
     insertion: String,
     detail: String,
     disabled: bool,
@@ -36,10 +38,24 @@ impl CompletionValue {
         Self {
             key,
             label: label.into(),
+            glyph: String::new(),
+            matched: Vec::new(),
             insertion: insertion.into(),
             detail: String::new(),
             disabled: false,
         }
+    }
+
+    #[must_use]
+    pub fn glyph(mut self, glyph: impl Into<String>) -> Self {
+        self.glyph = glyph.into();
+        self
+    }
+
+    #[must_use]
+    pub fn matched(mut self, indices: impl Into<Vec<usize>>) -> Self {
+        self.matched = indices.into();
+        self
     }
 
     #[must_use]
@@ -60,6 +76,8 @@ impl fmt::Debug for CompletionValue {
         f.debug_struct("CompletionValue")
             .field("key", &self.key)
             .field("label", &"[redacted]")
+            .field("glyph", &self.glyph)
+            .field("matched_count", &self.matched.len())
             .field("insertion", &"[redacted]")
             .field("detail", &"[redacted]")
             .field("disabled", &self.disabled)
@@ -70,6 +88,8 @@ impl fmt::Debug for CompletionValue {
 impl AsItem for CompletionValue {
     fn as_item(&self) -> Item<'_> {
         Item::new(self.key, &self.label)
+            .glyph(&self.glyph)
+            .matched(&self.matched)
             .insert(&self.insertion)
             .detail(&self.detail)
             .disabled(self.disabled)

@@ -1583,7 +1583,7 @@ impl<'a> CodeEditor<'a> {
             if find.typing && live.contains(StateFlags::FOCUSED) {
                 let x = at.saturating_add(width(&find.needle));
                 if x < footer.right() {
-                    ui.set_cursor(self.id, Position::new(x, footer.y));
+                    ui.set_bar_cursor(self.id, Position::new(x, footer.y));
                 }
             }
         } else if let Some(diagnostic) = nearest_diagnostic(&st.diagnostics, st.cursor_offset()) {
@@ -1601,7 +1601,7 @@ impl<'a> CodeEditor<'a> {
                 usize::from(st.editor.hscroll()),
             )
         {
-            ui.set_cursor(self.id, position);
+            ui.set_bar_cursor(self.id, position);
         }
         used
     }
