@@ -4,6 +4,7 @@ schema = 1
 policy = "consumer-v1"
 default_branch = "main"
 runner_label = "ubuntu-26.04"
+crate_timeout_minutes = 15
 
 [agents]
 claude_md = "symlink"
