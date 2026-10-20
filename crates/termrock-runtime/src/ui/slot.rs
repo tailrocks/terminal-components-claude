@@ -27,7 +27,6 @@ impl crate::author::NestedLayerSlotAuthor for Ui<'_> {
         area: Rect,
         render: impl FnOnce(&mut LayerSlot<'_, '_>) -> R,
     ) -> R {
-        let area = self.clip.intersection(area);
         self.with_area(area, |ui| {
             let mut slot = LayerSlot::new(ui, area);
             render(&mut slot)
