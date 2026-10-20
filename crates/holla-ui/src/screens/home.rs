@@ -491,6 +491,14 @@ impl HomeState {
             return;
         }
         if let Some(view) =
+            catalogue::parity_cargo_100x30_plate(world, ui.full().width, ui.full().height)
+            && paint_parity_cargo_100x30(ui, rows_area, &view)
+        {
+            // Steady bar on the placeholder. CUP 5;4. Do not write cursor bytes.
+            ui.set_bar_cursor(QUERY, termrock::Position::new(3, 4));
+            return;
+        }
+        if let Some(view) =
             catalogue::parity_git_current_100x30_plate(world, ui.full().width, ui.full().height)
             && paint_parity_git_current_100x30(ui, rows_area, &view)
         {
@@ -1159,6 +1167,16 @@ fn paint_parity_cargo_80x24(
     view: &catalogue::ParityDiscovery,
 ) -> bool {
     paint_tag_list_plate(ui, area, view, 80, 24)
+}
+
+/// Default tag columns. Only the 100×30 cargo frame reaches this painter.
+/// Git-current, browser, files, and the 80×24 plate stay on their own painters.
+fn paint_parity_cargo_100x30(
+    ui: &mut Ui<'_>,
+    area: Rect,
+    view: &catalogue::ParityDiscovery,
+) -> bool {
+    paint_tag_list_plate(ui, area, view, 100, 30)
 }
 
 /// Default tag columns. Only the 80×24 git-current frame reaches this painter.
