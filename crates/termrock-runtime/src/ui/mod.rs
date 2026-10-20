@@ -3,6 +3,7 @@ pub mod derived;
 pub mod layer_buf;
 pub mod measure;
 pub mod paint;
+pub mod slot;
 
 use ratatui_core::buffer::Buffer;
 use ratatui_core::layout::{Position, Rect};
@@ -15,6 +16,7 @@ use cx::LastFrame;
 pub use cx::{Cx, FrameRead, LayoutFacts};
 use derived::{DerivedCache, ReferenceCacheKey};
 use layer_buf::LayerPool;
+pub use slot::{CompositionSlots, ContentSlot};
 
 use crate::action::ActionKey;
 use crate::cursor::CursorRequest;
