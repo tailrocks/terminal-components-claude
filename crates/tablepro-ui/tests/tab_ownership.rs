@@ -136,7 +136,10 @@ fn query_headers_results_and_uncommitted_draft_survive_switch() {
     let _ = h.key(KeyCode::End);
     let _ = h.type_str(" -- draft");
     let draft = match h.app().workbench.active() {
-        Some(Tab::Query(tab)) => tab.editor_state.draft_text().map(str::to_owned),
+        Some(Tab::Query(tab)) if tab.editor_state.editor().is_editing() => {
+            Some(tab.editor_state.editor().text().to_owned())
+        }
+        Some(Tab::Query(_)) => None,
         _ => None,
     };
     assert!(
@@ -154,7 +157,14 @@ fn query_headers_results_and_uncommitted_draft_survive_switch() {
     let Some(Tab::Query(query)) = h.app().workbench.active() else {
         unreachable!("query")
     };
-    assert_eq!(query.editor_state.draft_text(), draft.as_deref());
+    assert_eq!(
+        query
+            .editor_state
+            .editor()
+            .is_editing()
+            .then(|| query.editor_state.editor().text()),
+        draft.as_deref()
+    );
     let Some(result) = &query.result else {
         unreachable!("result")
     };
@@ -228,7 +238,7 @@ fn reconnect_never_reuses_old_editor_focus_or_pointer_capture() {
     let Some(Tab::Query(query)) = h.app().workbench.active() else {
         unreachable!("replacement")
     };
-    assert!(query.editor_state.draft_text().is_none());
+    assert_eq!(query.editor_state.editor().text(), "");
     assert_ne!(h.focus(), Some(old));
     assert_ne!(h.focus(), Some(new));
     assert!(h.diagnostics().is_empty(), "{:?}", h.diagnostics());
@@ -278,8 +288,8 @@ fn focused_query_identity_and_draft_survive_earlier_insert_close_and_reorder() {
         unreachable!("query")
     };
     assert_eq!(
-        query.editor_state.draft_text(),
-        Some("draft survives identity changes")
+        query.editor_state.editor().text(),
+        "draft survives identity changes"
     );
     assert!(h.diagnostics().is_empty(), "{:?}", h.diagnostics());
 }

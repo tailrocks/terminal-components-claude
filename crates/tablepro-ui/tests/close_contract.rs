@@ -93,7 +93,8 @@ fn query_and_inline_drafts_survive_cancel_without_commit() {
             let Some(Tab::Query(tab)) = h.app().workbench.active() else {
                 unreachable!("query")
             };
-            assert_eq!(tab.editor_state.draft_text(), Some("SELECT private_draft"));
+            assert!(tab.editor_state.editor().is_editing());
+            assert_eq!(tab.editor_state.editor().text(), "SELECT private_draft");
         } else {
             let Some((_, view)) = h.app().workbench.active_grid() else {
                 unreachable!("grid")
