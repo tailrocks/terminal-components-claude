@@ -1,0 +1,78 @@
+{
+  "reviewed_commit": "768b2f893c077be023e91bc606ecd8d23142e803",
+  "parents": [
+    "c5a4a3210230c887a3e4d4512741e33a1c9486d2",
+    "c346aff507351d1490f55caa3a6de7c8347a6853"
+  ],
+  "disposition": "No actionable findings in this bounded Form/Radio integration and diagnostic-test conflict resolution.",
+  "acceptance_complete": false,
+  "source_equality": [
+    {
+      "path": "crates/termrock-forms",
+      "reference": "c346aff507351d1490f55caa3a6de7c8347a6853",
+      "merge_object": "6d884ef8f0664a68f48c290f9a1203b090a534d0",
+      "reference_object": "6d884ef8f0664a68f48c290f9a1203b090a534d0",
+      "equal": true
+    },
+    {
+      "path": "crates/termrock-controls/src/choice.rs",
+      "reference": "c346aff507351d1490f55caa3a6de7c8347a6853",
+      "merge_object": "a75fcf754192a0424879d250f08576446e2577c9",
+      "reference_object": "a75fcf754192a0424879d250f08576446e2577c9",
+      "equal": true
+    },
+    {
+      "path": "crates/termrock-controls/tests/radio_window.rs",
+      "reference": "c346aff507351d1490f55caa3a6de7c8347a6853",
+      "merge_object": "3735125f2ad1f98975be67f96e56d21c11ebb6f6",
+      "reference_object": "3735125f2ad1f98975be67f96e56d21c11ebb6f6",
+      "equal": true
+    },
+    {
+      "path": "crates/termrock-controls/src/split.rs",
+      "reference": "c5a4a3210230c887a3e4d4512741e33a1c9486d2",
+      "merge_object": "40ffd62036b3f3aab01ef0b47fd7b85435d1a85b",
+      "reference_object": "40ffd62036b3f3aab01ef0b47fd7b85435d1a85b",
+      "equal": true
+    },
+    {
+      "path": "crates/termrock-runtime",
+      "reference": "c5a4a3210230c887a3e4d4512741e33a1c9486d2",
+      "merge_object": "658858b1c0a56cc49dad027d072991fc214638af",
+      "reference_object": "658858b1c0a56cc49dad027d072991fc214638af",
+      "equal": true
+    }
+  ],
+  "conflict_review": [
+    "The merged runtime tree is byte-for-byte identical to the current first parent, c5a4a321. The merge does not alter scoped binding or lifecycle tests.",
+    "UiDiagnosticsProbe retains one preexisting UnaddressableId diagnostic plus69 InvalidComponentLayout diagnostics. It still requires64 retained,6 dropped, original diagnostic first, and63 retained invalid-layout entries.",
+    "The incoming stale70-invalid-only version is not restored.",
+    "Forms and the changed Controls choice/radio sources match the independently cleared c346 exactly. Whole Controls differs from c346 only because split.rs correctly retains existing first-parent MasterDetail work; this is not a whole-crate equality claim."
+  ],
+  "independent_verification": {
+    "command": "cargo nextest run --manifest-path /private/tmp/termrock-form-768b-probes/Cargo.toml --no-fail-fast",
+    "run": 5,
+    "passed": 5,
+    "failed": 0,
+    "skipped": 0,
+    "log": "/private/tmp/termrock-form-768b-public-probes.log",
+    "log_sha256": "2f6e6634520dd829da16e7d279b498b6e580a36516795a9b91c1a3868c0d6a84",
+    "source": "/private/tmp/termrock-form-768b-probes",
+    "original_source": "/private/tmp/form-lanes-public-probes",
+    "test_bodies_unchanged": true,
+    "coverage": [
+      "Fill allocation reserves following fixed spacer",
+      "Partially scrolled field does not repeat hidden header",
+      "Clipped radio pointer selection and keyboard End preserve original keys",
+      "Keyboard End/Space reveals and chooses last original option",
+      "Wheel routing retains lane identity across reorder and resize while actions remain fixed"
+    ],
+    "source_checks": "git diff --check passed; separate sparse reviewer source worktree remains clean."
+  },
+  "limits": [
+    "The parent-reported176 native tests, strict Clippy and formatting were not independently rerun in this follow-up. Broader parent runtime/application gates remain separately tracked.",
+    "External fixture crate emits unused fixture/import warnings; no product-source warning gate result is inferred from them.",
+    "TextArea source-window/menu and application presentation gaps remain incomplete.",
+    "No source edits, expected-artifact changes, helper agents, full paired parity run, or combined product acceptance."
+  ]
+}
