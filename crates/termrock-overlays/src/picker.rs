@@ -76,6 +76,7 @@ impl PickerState {
 pub struct Picker<'a, T, R = ItemRow> {
     id: Id,
     title: &'a str,
+    scope_label: Option<&'a str>,
     width: Option<u16>,
     searchable: bool,
     filter: FilterPolicy,
@@ -110,6 +111,7 @@ impl<T> Picker<'_, T, ItemRow> {
         Self {
             id,
             title: "Choose",
+            scope_label: None,
             width: None,
             searchable: true,
             filter: FilterPolicy::Label,
@@ -160,6 +162,11 @@ impl<'a, T, R> Picker<'a, T, R> {
         self
     }
     #[must_use]
+    pub const fn scope_label(mut self, label: &'a str) -> Self {
+        self.scope_label = Some(label);
+        self
+    }
+    #[must_use]
     pub const fn width(mut self, width: u16) -> Self {
         self.width = Some(width);
         self
@@ -203,6 +210,7 @@ impl<'a, T, R> Picker<'a, T, R> {
         Picker {
             id: self.id,
             title: self.title,
+            scope_label: self.scope_label,
             width: self.width,
             searchable: self.searchable,
             filter: self.filter,
@@ -413,6 +421,31 @@ impl<T: AsItem, R: RowFn<T>> Picker<'_, T, R> {
                     live,
                 );
                 ui.paint_str(title, self.title, title_style.style);
+                if let Some(label) = self.scope_label {
+                    let available = content
+                        .width
+                        .saturating_sub(width(self.title))
+                        .saturating_sub(3);
+                    if available >= 6 {
+                        let label = crate::text::truncate(label, available);
+                        let label_width = width(&label);
+                        let label_area = Rect {
+                            x: content.right().saturating_sub(label_width),
+                            width: label_width,
+                            y: content.y,
+                            height: 1,
+                        };
+                        let meta_style = self.ov.style(
+                            ui,
+                            self.id,
+                            Family::PICKER,
+                            Variant::DEFAULT,
+                            Part::META,
+                            live,
+                        );
+                        ui.paint_str(label_area, &label, meta_style.style);
+                    }
+                }
                 if self.searchable {
                     let query = Rect {
                         y: content.y.saturating_add(1),
