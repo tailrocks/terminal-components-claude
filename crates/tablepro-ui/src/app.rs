@@ -24,7 +24,6 @@ mod historical_delete_dialog;
 mod historical_filter_editor;
 mod historical_form_advanced;
 mod historical_form_new;
-mod historical_help_overlay;
 mod historical_history_tab;
 mod historical_query_analyze;
 mod historical_query_completion;
@@ -587,6 +586,7 @@ pub struct TableProApp {
     switcher: QuickSwitcher,
     tab_list: TabList,
     safe_mode_picker: SafeModePicker,
+    help_state: termrock::HelpOverlayState,
 
     pub screen: Screen,
 
@@ -647,6 +647,7 @@ impl core::fmt::Debug for TableProApp {
             .field("switcher", &"<query and target snapshot>")
             .field("tab_list", &self.tab_list.rows.len())
             .field("safe_mode_picker", &self.safe_mode_picker.rows.len())
+            .field("help", &self.help_state.scroll().offset())
             .field("connections_screen", &self.connections_screen)
             .field("workbench", &self.workbench)
             .field("connection_nodes", &self.connection_nodes.len())
@@ -714,6 +715,7 @@ impl TableProApp {
             switcher: QuickSwitcher::default(),
             tab_list: TabList::default(),
             safe_mode_picker: SafeModePicker::default(),
+            help_state: termrock::HelpOverlayState::default(),
             screen: Screen::Connections,
             surface: Surface::Connections,
             connections_screen: ConnectionsScreen::new(connections),
@@ -1829,33 +1831,23 @@ impl TableProApp {
         true
     }
 
-    fn idle_production_query(&self) -> bool {
-        if self.screen != Screen::Workbench
-            || self.form_open
-            || self.destructive_intent.is_some()
-            || self.workbench.maximized
-            || self.split_state.maximized() != Maximized::None
-            || self.surface == Surface::QuickSwitcher
-            || self.connection.name != "Production"
-            || self.workbench.tabs().len() != 1
-        {
+    fn open_help(&mut self, cx: &mut Cx<'_>) -> bool {
+        if cx.is_open(crate::help_keys::ID) {
             return false;
         }
-        // History, table data, a new tab, and a typed query are other cards.
-        match self.workbench.active() {
-            Some(Tab::Query(query)) => {
-                query.plan.is_none()
-                    && query.error.is_none()
-                    && query.result.is_none()
-                    && query
-                        .editor_state
-                        .draft_text()
-                        .unwrap_or(query.query.as_str())
-                        .trim()
-                        .is_empty()
-            }
-            _ => false,
+        self.help_state = termrock::HelpOverlayState::default();
+        cx.open_layer(crate::help_keys::ID, crate::help_keys::layer(cx));
+        self.surface = Surface::HelpDialog;
+        true
+    }
+
+    fn update_help(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+        let was_open = cx.is_open(crate::help_keys::ID);
+        let response = crate::help_keys::update(cx, &mut self.help_state);
+        if was_open && !cx.is_open(crate::help_keys::ID) && self.surface == Surface::HelpDialog {
+            self.sync_active_tab();
         }
+        response.erase()
     }
 
     fn update_switcher(&mut self, cx: &mut Cx<'_>) -> Response<()> {
@@ -7680,6 +7672,24 @@ fn paint_connection_filter_footer(ui: &mut Ui<'_>, area: termrock::Rect) {
     );
 }
 
+fn paint_help_footer(ui: &mut Ui<'_>, area: termrock::Rect) {
+    let base = ui.surface_style();
+    ui.paint_spans(
+        area,
+        &[
+            Span::new(" "),
+            Span::new("↑↓").bold(),
+            Span::new(" "),
+            Span::new("Scroll").role(TAG_CHROME_FG),
+            Span::new("  "),
+            Span::new("Esc").bold(),
+            Span::new(" "),
+            Span::new("Close").role(TAG_CHROME_FG),
+        ],
+        base,
+    );
+}
+
 fn paint_picker_move_footer(ui: &mut Ui<'_>, area: termrock::Rect) {
     let base = ui.surface_style();
     ui.paint_spans(
@@ -7737,6 +7747,8 @@ fn draw_footer(ui: &mut Ui<'_>, area: termrock::Rect, app: &TableProApp) {
         paint_picker_layer_footer(ui, area);
     } else if app.surface == Surface::SafeModePicker {
         paint_picker_move_footer(ui, area);
+    } else if app.surface == Surface::HelpDialog {
+        paint_help_footer(ui, area);
     } else if app.screen == Screen::Connections && app.connection_filter_editing {
         paint_connection_filter_footer(ui, area);
         return;
@@ -8191,15 +8203,6 @@ impl TableProApp {
         true
     }
 
-    fn paint_historical_help_overlay(&self, ui: &mut Ui<'_>) -> bool {
-        if !self.historical_help_overlay_frame(ui) {
-            return false;
-        }
-        // Trailer is ESC[?25l. Do not set a bar cursor and do not write cursor bytes.
-        historical_help_overlay::paint(ui);
-        true
-    }
-
     fn paint_historical_delete_dialog(&self, ui: &mut Ui<'_>) -> bool {
         if !self.historical_delete_dialog_frame(ui) {
             return false;
@@ -8349,24 +8352,6 @@ impl TableProApp {
                 && !table.result.state.is_editing()
                 && table.result.pending_total() == 0
         })
-    }
-
-    fn historical_help_overlay_frame(&self, ui: &Ui<'_>) -> bool {
-        let area = ui.full();
-        // The approved card is the PTY frame. Unit tests have no tty, but
-        // `?` still has to land on the approved cell or its check fails.
-        let on_terminal = std::io::IsTerminal::is_terminal(&std::io::stdout());
-        if area.width != 120 || area.height != 40 || !(on_terminal || cfg!(test)) {
-            return false;
-        }
-        let theme = ui.theme_ref();
-        if theme.capability.color != termrock::ColorLevel::TrueColor
-            || theme.color.accent != termrock::Color::Rgb(0x48, 0xe0, 0x54)
-        {
-            return false;
-        }
-        // ctrl-l, ctrl-g, ctrl-o, history, table data, and connections are other cards.
-        self.surface == Surface::HelpDialog && self.idle_production_query()
     }
 
     fn historical_history_tab_frame(&self, ui: &Ui<'_>) -> bool {
@@ -9042,6 +9027,7 @@ impl App for TableProApp {
         response |= self.update_switcher(cx);
         response |= self.update_tab_list(cx);
         response |= self.update_safe_mode(cx);
+        response |= self.update_help(cx);
         if switcher_was_open {
             return response;
         }
@@ -9185,8 +9171,7 @@ impl App for TableProApp {
                     self.begin_connection_form();
                     response |= Response::changed();
                 }
-                c if c == HELP => {
-                    self.surface = Surface::HelpDialog;
+                c if c == HELP && self.open_help(cx) => {
                     response |= Response::changed();
                 }
                 c if c == SORT && self.sort_focused_column(cx) => {
@@ -9425,7 +9410,6 @@ impl App for TableProApp {
             || self.paint_historical_workbench_explorer_hidden(ui)
             || self.paint_historical_table_scrolled_right(ui)
             || self.paint_historical_history_tab(ui)
-            || self.paint_historical_help_overlay(ui)
             || self.paint_historical_filter_editor(ui)
             || self.paint_historical_delete_dialog(ui)
             || self.paint_historical_close_confirm(ui)
@@ -9504,6 +9488,9 @@ impl App for TableProApp {
                 &self.safe_mode_picker.state,
                 &self.safe_mode_picker.rows,
             );
+        });
+        ui.layer(crate::help_keys::ID, |ui, area| {
+            crate::help_keys::draw(ui, area, &self.help_state);
         });
         if let Some(intent) = self.destructive_intent.as_ref() {
             ui.layer(QUIT_DIALOG, |ui, area| {
