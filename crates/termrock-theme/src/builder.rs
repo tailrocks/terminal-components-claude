@@ -196,6 +196,8 @@ impl ThemeBuilder {
         g.set_rule_quiet(ASCII_RULE_QUIET);
         g.set_rule_active(ASCII_RULE_ACTIVE);
         g.set_scrollbar(ASCII_SCROLLBAR);
+        g.set(GlyphRole::DotOn, "*");
+        g.set(GlyphRole::DotOff, "o");
         self
     }
 
@@ -591,6 +593,15 @@ mod tests {
 
         assert_eq!(overridden.design.glyphs.get(GlyphRole::RuleActive), "=");
         assert_eq!(overridden.design.glyphs.scrollbar().begin, "|");
+
+        let dot_override = Theme::junie()
+            .builder()
+            .ascii_glyphs()
+            .glyph(GlyphRole::DotOn, "on")
+            .glyph(GlyphRole::DotOff, "off")
+            .build();
+        assert_eq!(dot_override.design.glyphs.get(GlyphRole::DotOn), "on");
+        assert_eq!(dot_override.design.glyphs.get(GlyphRole::DotOff), "off");
     }
 
     #[test]
