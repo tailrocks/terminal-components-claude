@@ -11,6 +11,9 @@ const SECTIONS: [&str; 3] = ["Playground", "Options", "States"];
 const SECTION_CAPTION: &str = "the live widget";
 const SECTION_WIDE: u16 = 76;
 const BLURB: &str = "Determinate, indeterminate, an aggregate tally, capacity meters";
+const NARROW_PAGE_W: u16 = 59;
+const NARROW_PAGE_H: u16 = 20;
+const NARROW_CONTENT_W: u16 = 94;
 
 const CANVAS: u32 = 0x000000;
 const SURFACE: u32 = 0x111111;
@@ -110,8 +113,23 @@ fn ink(fg: u32, bg: u32) -> PaintStyle {
     PaintStyle::new().fg(rgb(fg)).bg(rgb(bg))
 }
 
+fn settled(fg: u32, bg: u32, bold: bool) -> PaintStyle {
+    let style = ink(fg, bg);
+    if bold {
+        style
+            .add_modifier(Modifier::BOLD)
+            .remove_modifier(Modifier::all().difference(Modifier::BOLD))
+    } else {
+        style.remove_modifier(Modifier::all())
+    }
+}
+
 fn tab_width(label: &str) -> u16 {
     width(label).saturating_add(3)
+}
+
+fn narrow_page(area: Rect) -> bool {
+    area.width == NARROW_PAGE_W && area.height == NARROW_PAGE_H
 }
 
 fn paint_blurb(ui: &mut Ui<'_>, body: Rect) {
@@ -646,6 +664,282 @@ fn paint_meters(ui: &mut Ui<'_>, clip: Rect, card: Rect) {
     }
 }
 
+fn paint_narrow_blurb(ui: &mut Ui<'_>, body: Rect) {
+    let title_w = width("Progress");
+    let cols = body.width.saturating_sub(title_w).saturating_sub(3);
+    if cols == 0 {
+        return;
+    }
+    let _ = ui.paint_str(
+        Rect::new(
+            body.x.saturating_add(title_w).saturating_add(2),
+            body.y.saturating_sub(2),
+            cols,
+            1,
+        ),
+        &termrock::truncate(BLURB, cols),
+        settled(MUTED, CANVAS, false),
+    );
+}
+
+fn paint_narrow_card(ui: &mut Ui<'_>, card: Rect, title: &str) {
+    if card.is_empty() {
+        return;
+    }
+    ui.fill(card, settled(WHITE, SURFACE, false));
+    let span = card.width.saturating_sub(2);
+    if span == 0 {
+        return;
+    }
+    let x = card.x.saturating_add(2);
+    let _ = ui.paint_str(
+        Rect::new(x, card.y, span, 1),
+        title,
+        settled(SECONDARY, SURFACE, false),
+    );
+    if card.height < 2 {
+        return;
+    }
+    let _ = ui.paint_str(
+        Rect::new(x, card.y.saturating_add(1), span, 1),
+        &"─".repeat(usize::from(span)),
+        settled(RULE, SURFACE, false),
+    );
+}
+
+fn paint_narrow_bar(
+    ui: &mut Ui<'_>,
+    x: u16,
+    y: u16,
+    track_w: u16,
+    ratio: Option<f64>,
+    kind: BarKind,
+    frame: usize,
+) {
+    if track_w == 0 {
+        return;
+    }
+    let _ = ui.paint_str(
+        Rect::new(x, y, track_w, 1),
+        &"─".repeat(usize::from(track_w)),
+        settled(RULE, SURFACE, false),
+    );
+    let (from, to, color) = if let Some(ratio) = ratio {
+        let filled = (f64::from(track_w) * ratio.clamp(0.0, 1.0)).round() as u16;
+        (0, filled.min(track_w), fill_color(kind))
+    } else {
+        let track_i = i32::from(track_w);
+        let seg = (track_i / 5).clamp(2, 8);
+        let period = usize::try_from(track_i.saturating_add(seg))
+            .unwrap_or(1)
+            .max(1);
+        let pos = i32::try_from(frame % period)
+            .unwrap_or(0)
+            .saturating_sub(seg);
+        let mut from = 0u16;
+        let mut to = 0u16;
+        let mut started = false;
+        for i in 0..track_i {
+            let on = i >= pos && i < pos.saturating_add(seg);
+            if on && !started {
+                from = u16::try_from(i).unwrap_or(track_w);
+                started = true;
+            }
+            if on {
+                to = u16::try_from(i.saturating_add(1)).unwrap_or(track_w);
+            }
+        }
+        (from, to, ACCENT)
+    };
+    if to > from {
+        let len = to.saturating_sub(from);
+        let _ = ui.paint_str(
+            Rect::new(x.saturating_add(from), y, len, 1),
+            &"━".repeat(usize::from(len)),
+            settled(color, SURFACE, false),
+        );
+    }
+}
+
+fn paint_narrow_label_bar(
+    ui: &mut Ui<'_>,
+    card: Rect,
+    dy: u16,
+    label: &str,
+    ratio: Option<f64>,
+    kind: BarKind,
+    frame: usize,
+) {
+    let y = card.y.saturating_add(dy);
+    let x = card.x.saturating_add(2);
+    let field = LABEL_W.saturating_add(2);
+    let _ = ui.paint_str(
+        Rect::new(x, y, LABEL_W, 1),
+        label,
+        settled(WHITE, SURFACE, false),
+    );
+    let track_x = x.saturating_add(field);
+    paint_narrow_bar(
+        ui,
+        track_x,
+        y,
+        card.right().saturating_sub(track_x),
+        ratio,
+        kind,
+        frame,
+    );
+}
+
+fn paint_narrow_button(ui: &mut Ui<'_>, button: Button<'_>, area: Rect, label: &str) -> Rect {
+    let drawn = button.draw(ui, area);
+    if drawn.is_empty() {
+        return drawn;
+    }
+    let _ = ui.paint_str(
+        drawn,
+        &" ".repeat(usize::from(drawn.width)),
+        settled(WHITE, BUTTON_BG, false),
+    );
+    let _ = ui.paint_str(
+        Rect::new(drawn.x, drawn.y, 1, 1),
+        " ",
+        settled(BUTTON_BG, BUTTON_BG, false),
+    );
+    let _ = ui.paint_str(
+        Rect::new(
+            drawn.x.saturating_add(1),
+            drawn.y,
+            drawn.width.saturating_sub(1),
+            1,
+        ),
+        label,
+        settled(WHITE, BUTTON_BG, false),
+    );
+    drawn
+}
+
+fn paint_narrow_scroll(ui: &mut Ui<'_>, view: Rect) {
+    let bar_h = view.height.saturating_sub(1);
+    let thumb = thumb_len(bar_h, CONTENT_H);
+    let x = view.right().saturating_sub(1);
+    for row in 0..bar_h {
+        let on = row < thumb;
+        let _ = ui.paint_str(
+            Rect::new(x, view.y.saturating_add(row), 1, 1),
+            if on { "┃" } else { "┆" },
+            settled(if on { THUMB } else { TRACK }, CANVAS, false),
+        );
+    }
+    let track = view.width.saturating_sub(1);
+    let filled = thumb_len(track, NARROW_CONTENT_W).min(track);
+    let y = view.bottom().saturating_sub(1);
+    if filled > 0 {
+        let _ = ui.paint_str(
+            Rect::new(view.x, y, filled, 1),
+            &"━".repeat(usize::from(filled)),
+            settled(THUMB, CANVAS, false),
+        );
+    }
+    let rest = track.saturating_sub(filled);
+    if rest > 0 {
+        let _ = ui.paint_str(
+            Rect::new(view.x.saturating_add(filled), y, rest, 1),
+            &"┄".repeat(usize::from(rest)),
+            settled(TRACK, CANVAS, false),
+        );
+    }
+}
+
+fn paint_narrow(ui: &mut Ui<'_>, body: Rect, build: f64, paused: bool, frame: usize) {
+    paint_narrow_blurb(ui, body);
+    paint_section_strip(
+        ui,
+        Rect {
+            height: 2.min(body.height),
+            ..body
+        },
+    );
+    let top = body.y.saturating_add(3);
+    if top >= body.bottom() {
+        return;
+    }
+    let view = Rect {
+        y: top,
+        height: body.bottom().saturating_sub(top),
+        ..body
+    };
+    if view.height < 2 || view.width < 3 {
+        return;
+    }
+    let cards = Rect {
+        width: view.width.saturating_sub(2),
+        ..view
+    };
+    let live = Rect {
+        height: LIVE_H.min(view.height.saturating_sub(1)),
+        ..cards
+    };
+    paint_narrow_card(ui, live, "Live");
+    let kind = if build >= 1.0 {
+        BarKind::Done
+    } else if paused {
+        BarKind::Paused
+    } else {
+        BarKind::Active
+    };
+    paint_narrow_label_bar(ui, live, 2, "Building", Some(build), kind, frame);
+    paint_narrow_label_bar(ui, live, 4, "Resolving", None, BarKind::Sweep, frame);
+    let spin_y = live.y.saturating_add(6);
+    if spin_y < live.bottom() {
+        let x = live.x.saturating_add(2);
+        let _ = ui.paint_str(
+            Rect::new(x, spin_y, 1, 1),
+            SPINNER[frame % SPINNER.len()],
+            settled(ACCENT, SURFACE, false),
+        );
+        let _ = ui.paint_str(
+            Rect::new(
+                x.saturating_add(2),
+                spin_y,
+                live.right().saturating_sub(x).saturating_sub(2),
+                1,
+            ),
+            "Waiting for the test runner",
+            settled(SECONDARY, SURFACE, false),
+        );
+    }
+    let button_y = live.y.saturating_add(8);
+    if button_y < live.bottom() {
+        let pause_label = if paused { "Resume" } else { "Pause" };
+        let row = Rect::new(
+            live.x.saturating_add(2),
+            button_y,
+            live.width.saturating_sub(2),
+            1,
+        );
+        let first = paint_narrow_button(ui, restart_button(), row, "Restart");
+        let next_x = first.right().saturating_add(2);
+        if next_x < row.right() {
+            paint_narrow_button(
+                ui,
+                pause_button(paused),
+                Rect::new(next_x, button_y, row.right().saturating_sub(next_x), 1),
+                pause_label,
+            );
+        }
+    }
+    let jobs_y = cards.y.saturating_add(LIVE_H).saturating_add(1);
+    let jobs_h = view.bottom().saturating_sub(1).saturating_sub(jobs_y);
+    if jobs_y < view.bottom().saturating_sub(1) && jobs_h > 0 {
+        paint_narrow_card(
+            ui,
+            Rect::new(cards.x, jobs_y, cards.width, jobs_h.min(2)),
+            "Deploy checkout-service",
+        );
+    }
+    paint_narrow_scroll(ui, view);
+}
+
 fn restart_button() -> Button<'static> {
     Button::new(RESTART, "Restart").variant(Variant::SECONDARY)
 }
@@ -730,6 +1024,10 @@ impl Page for ProgressPage {
 
     fn draw(&self, ui: &mut Ui<'_>, area: Rect) {
         frame(ui, area, self.title(), "", |ui, body| {
+            if narrow_page(area) {
+                paint_narrow(ui, body, self.build, self.paused, self.frame);
+                return;
+            }
             paint_blurb(ui, body);
             paint_section_strip(
                 ui,
@@ -878,5 +1176,42 @@ mod tests {
         assert_eq!(gutter.symbol(), " ");
         assert_eq!(gutter.fg, rgb(BUTTON_BG));
         assert_eq!(gutter.bg, rgb(BUTTON_BG));
+    }
+
+    #[test]
+    fn narrow_page_matches_the_80x24_progress_strip() {
+        let h =
+            termrock_test_support::Harness::new(Host, Theme::junie(), NARROW_PAGE_W, NARROW_PAGE_H);
+        let text = h.text();
+        assert!(
+            text.contains("Determinate, indeterminate, an aggregate tally,…"),
+            "{text}"
+        );
+        assert!(!text.contains("ticks at 80 ms"), "{text}");
+        assert!(!text.contains("one BarLayout"), "{text}");
+        assert!(!text.contains("38% used"), "{text}");
+        let track = h.cell(20, 7);
+        assert_eq!(track.symbol(), "─");
+        assert_eq!(track.fg, rgb(RULE));
+        assert_eq!(track.bg, rgb(SURFACE));
+        assert!(!track.modifier.contains(Modifier::BOLD));
+        let thumb = h.cell(58, 5);
+        assert_eq!(thumb.symbol(), "┃");
+        assert_eq!(thumb.fg, rgb(THUMB));
+        assert_eq!(thumb.bg, rgb(CANVAS));
+        let track_bar = h.cell(58, 9);
+        assert_eq!(track_bar.symbol(), "┆");
+        assert_eq!(track_bar.fg, rgb(TRACK));
+        assert_eq!(track_bar.bg, rgb(CANVAS));
+        let hbar = h.cell(0, 19);
+        assert_eq!(hbar.symbol(), "━");
+        assert_eq!(hbar.fg, rgb(THUMB));
+        assert_eq!(hbar.bg, rgb(CANVAS));
+        let htrack = h.cell(35, 19);
+        assert_eq!(htrack.symbol(), "┄");
+        assert_eq!(htrack.fg, rgb(TRACK));
+        let corner = h.cell(58, 19);
+        assert_eq!(corner.symbol(), " ");
+        assert_eq!(corner.bg, rgb(CANVAS));
     }
 }
