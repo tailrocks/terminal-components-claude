@@ -368,14 +368,17 @@ fn run_with_cursor_shape_startup<A: App>(
                 let area = session.terminal().get_frame().area();
                 let prepared = rt.prepare(area).map_err(io::Error::other)?;
                 let mut bar = false;
+                let mut area_changed = false;
                 let result = session.terminal().try_draw(|frame| {
                     bar = rt
                         .draw_prepared(prepared, frame)
                         .map_err(|error| match error {
                             PreparedFrameError::AreaChanged { .. } => {
-                                io::Error::new(io::ErrorKind::Interrupted, error)
+                                area_changed = true;
+                                io::Error::other(error)
                             }
                             PreparedFrameError::Stale => io::Error::other(error),
+                            PreparedFrameError::DidNotSettle => io::Error::other(error),
                         })?;
                     if suppress_colors {
                         reset_frame_colors(frame.buffer_mut());
@@ -383,7 +386,7 @@ fn run_with_cursor_shape_startup<A: App>(
                     Ok::<(), io::Error>(())
                 });
                 if let Err(error) = result {
-                    if error.kind() == io::ErrorKind::Interrupted {
+                    if area_changed {
                         continue;
                     }
                     return Err(error);
