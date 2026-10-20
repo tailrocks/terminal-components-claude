@@ -48,6 +48,18 @@ Clippy is blocked by `tablepro-domain::Tab` large-enum-variant lint at
 checked separately. Full
 product parity remains incomplete; no paired visual approval is claimed.
 
+An independent Grid review then found semantic underline provenance was lost
+when the resolved row underline was converted to a raw Custom color for CELL
+defaults. `PaintStyle` now retains the bound underline role and surface through
+canonical resolution; Grid reuses that role for ordinary cell inheritance,
+while raw underline replacement clears the provenance. ACTIVE cells explicitly
+reset an inherited underline only when their own resolved style has none. No
+global downgrade behavior changed. The regression covers populated and empty
+cells at TrueColor, ANSI-256, ANSI-16, and Mono. With provenance propagation
+disabled, the test fails in Mono (White cell underline vs Gray row underline);
+with the fix, focused Grid tests pass. `cargo nextest run -p termrock-theme -p
+termrock-grid --all-targets` passes 263/263; strict scoped Clippy and fmt pass.
+
 Updated: 2026-10-20. Status: **in progress; all four applications incomplete**. This is the current migration record. Older audit reports remain evidence, not a complete inventory or acceptance declaration.
 
 ## TablePro query results 120×40 truecolor — 2026-10-21
