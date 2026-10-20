@@ -102,7 +102,7 @@ const QUIT_ACTIONS: [Action<'static>; 2] = [
     Action::new(ActionKey::CONFIRM, "Quit"),
 ];
 const CANCEL_LAUNCH_ACTIONS: [Action<'static>; 2] = [
-    Action::new(ActionKey::CANCEL, "Cancel"),
+    Action::new(ActionKey::CANCEL, "Keep launching"),
     Action::danger(ActionKey::CONFIRM, "Cancel launch"),
 ];
 const EDITOR_MOUNT_EDIT: Id = crate::screens::editor::ROOT.sub("mount-edit");
@@ -299,6 +299,7 @@ mod historical_settings_trust;
 mod historical_usage_detail;
 mod historical_usage_overview;
 mod launch_cockpit;
+mod launch_dialog_plate;
 mod manager_help;
 use historical_paint::HistoricalPalette;
 
@@ -1464,7 +1465,9 @@ impl App {
     }
 
     fn cockpit_info_dialog() -> Dialog<'static> {
-        Dialog::info(COCKPIT_INFO_DIALOG, "Debug info").body_rows(8)
+        Dialog::info(COCKPIT_INFO_DIALOG, "Debug info")
+            .width(66)
+            .body_rows(8)
     }
 
     fn cockpit_info_lines(&self) -> Vec<String> {
@@ -7129,7 +7132,7 @@ impl App {
         }
     }
 
-    fn paused_launch_scene(&self) -> bool {
+    fn launch_cockpit_scene(&self) -> bool {
         self.route == Route::Cockpit
             && self.motion == Motion::Paused
             && self.world.scenario == Scenario::LaunchRunning
@@ -7139,17 +7142,23 @@ impl App {
                 .as_ref()
                 .is_some_and(|launch| launch.failure.is_none())
             && !self.cockpit.log_open
-            && !self.cockpit_info_open
             && !self.cockpit_debug_open
-            && !self.cancel_open
             && !self.quit_open
             && !self.help_open
             && !self.launch_failure_open
             && !self.about_open
     }
 
+    fn paused_launch_scene(&self) -> bool {
+        self.launch_cockpit_scene() && !self.cockpit_info_open && !self.cancel_open
+    }
+
     fn historical_launch_running_frame(&self, area: Rect) -> bool {
         area.width == 120 && area.height == 40 && self.paused_launch_scene()
+    }
+
+    fn responsive_launch_cockpit(&self, area: Rect) -> bool {
+        self.launch_cockpit_scene() && !(area.width == 120 && area.height == 40)
     }
 
     fn paint_cockpit_trace(&self, ui: &mut Ui<'_>, screen: Rect) {
@@ -8779,7 +8788,9 @@ impl App {
         });
         // The approved cancel frame is painted on the page. Drawing the live
         // modal would dim that page after this function returns.
-        if !self.historical_cockpit_cancel(ui.theme_ref(), ui.full()) {
+        if !self.historical_cockpit_cancel(ui.theme_ref(), ui.full())
+            && !(self.responsive_launch_cockpit(ui.full()) && self.cancel_open)
+        {
             let cancel_launch = Self::cockpit_cancel_dialog();
             let _ = ui.layer(CANCEL_LAUNCH_DIALOG, |ui, area| {
                 cancel_launch.draw(ui, area, &self.cancel_state, |_, _| {})
@@ -8794,7 +8805,9 @@ impl App {
         });
         // The approved info frame is painted on the page. Drawing the live
         // modal would dim that page after this function returns.
-        if !self.historical_cockpit_info(ui.theme_ref(), ui.full()) {
+        if !self.historical_cockpit_info(ui.theme_ref(), ui.full())
+            && !(self.responsive_launch_cockpit(ui.full()) && self.cockpit_info_open)
+        {
             let cockpit_info = Self::cockpit_info_dialog();
             let _ = ui.layer(COCKPIT_INFO_DIALOG, |ui, area| {
                 let lines = self.cockpit_info_lines();
@@ -9554,8 +9567,13 @@ impl TuiApp for App {
         }
         if self.historical_launch_running_frame(full) {
             self.draw_historical_launch_running(ui);
-        } else if self.paused_launch_scene() {
+        } else if self.responsive_launch_cockpit(full) {
             launch_cockpit::paint(self, ui);
+            if self.cockpit_info_open {
+                launch_dialog_plate::paint_info(ui);
+            } else if self.cancel_open {
+                launch_dialog_plate::paint_cancel(ui);
+            }
         }
         if self.cockpit_trace_open {
             self.paint_cockpit_trace(ui, full);
