@@ -362,6 +362,7 @@ pub struct Runtime<A: App> {
     pending_focus: Option<(Option<Id>, Option<Id>, FocusVia)>,
     restore_after_publication: Option<FocusRestore>,
     keymap_conflict_key: Option<ConflictCacheKey>,
+    keymap_conflict_component: Vec<crate::keymap::BindingDescriptor>,
     keymap_conflict_typing: Vec<crate::keymap::BindingDescriptor>,
     keymap_conflicts: Vec<Diagnostic>,
     staged_focus: Option<(Option<Id>, FocusVia)>,
@@ -476,6 +477,7 @@ impl<A: App> Runtime<A> {
             pending_focus: None,
             restore_after_publication: None,
             keymap_conflict_key: None,
+            keymap_conflict_component: Vec::new(),
             keymap_conflict_typing: Vec::new(),
             keymap_conflicts: Vec::new(),
             staged_focus: None,
@@ -646,6 +648,7 @@ impl<A: App> Runtime<A> {
                 .get(owner)
                 .map(|(_, table)| (owner, table))
         });
+        let component_table = component.map_or(&[][..], |(_, _, table)| table);
         let typing_table = typing.map_or(&[][..], |(_, table)| table);
         let key = ConflictCacheKey {
             focused: component.map(|(owner, table, _)| (owner, table)),
@@ -653,10 +656,16 @@ impl<A: App> Runtime<A> {
             revision: self.core.keymap_revision,
         };
 
-        if self.keymap_conflict_key == Some(key) && self.keymap_conflict_typing == typing_table {
+        if self.keymap_conflict_key == Some(key)
+            && self.keymap_conflict_component == component_table
+            && self.keymap_conflict_typing == typing_table
+        {
             return;
         }
         self.keymap_conflict_key = Some(key);
+        self.keymap_conflict_component.clear();
+        self.keymap_conflict_component
+            .extend_from_slice(component_table);
         self.keymap_conflict_typing.clear();
         self.keymap_conflict_typing.extend_from_slice(typing_table);
         self.keymap_conflicts.clear();

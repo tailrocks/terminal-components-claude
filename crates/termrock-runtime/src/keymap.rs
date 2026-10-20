@@ -574,6 +574,7 @@ pub(crate) struct DynamicBindingRegistry {
 struct DynamicBindingSet {
     owner: Id,
     base: Option<BindingTableId>,
+    base_descriptors: Vec<BindingDescriptor>,
     descriptors: Vec<BindingDescriptor>,
     revision: u64,
 }
@@ -583,6 +584,7 @@ impl DynamicBindingRegistry {
         &mut self,
         owner: Id,
         base: Option<BindingTableId>,
+        base_descriptors: &[BindingDescriptor],
         bindings: I,
     ) -> (&[BindingDescriptor], u64)
     where
@@ -600,6 +602,7 @@ impl DynamicBindingRegistry {
             self.current = Some(DynamicBindingSet {
                 owner,
                 base: None,
+                base_descriptors: Vec::new(),
                 descriptors: Vec::new(),
                 revision: 0,
             });
@@ -610,6 +613,7 @@ impl DynamicBindingRegistry {
         let unchanged =
             !owner_changed
                 && set.base == base
+                && set.base_descriptors == base_descriptors
                 && set.descriptors.iter().zip(bindings.clone()).all(
                     |(descriptor, (action, chord))| {
                         descriptor.action == action && descriptor.chord == chord
@@ -618,6 +622,8 @@ impl DynamicBindingRegistry {
                 && set.descriptors.len() == bindings.clone().count();
         if !unchanged {
             set.base = base;
+            set.base_descriptors.clear();
+            set.base_descriptors.extend_from_slice(base_descriptors);
             set.descriptors.clear();
             set.descriptors
                 .extend(bindings.map(|(action, chord)| BindingDescriptor {
@@ -647,6 +653,7 @@ pub(crate) struct FocusedHintKey {
 pub(crate) struct FocusedHints {
     key: Option<FocusedHintKey>,
     pub(crate) layer: HintLayer,
+    descriptors: Vec<BindingDescriptor>,
 }
 
 impl FocusedHints {
@@ -668,10 +675,12 @@ impl FocusedHints {
         table: &[BindingDescriptor],
         keymap: &KeyMap,
     ) {
-        if self.key == Some(key) {
+        if self.key == Some(key) && self.descriptors == table {
             return;
         }
         self.key = Some(key);
+        self.descriptors.clear();
+        self.descriptors.extend_from_slice(table);
         self.layer.hints.clear();
         self.layer.badge = None;
         self.layer.status = None;
@@ -1221,11 +1230,13 @@ mod tests {
         let (_, first) = snapshots.update(
             Id::root("first"),
             None,
+            &[],
             core::iter::once((action, Some(Chord::key(KeyCode::F(1))))),
         );
         let (_, unchanged) = snapshots.update(
             Id::root("first"),
             None,
+            &[],
             core::iter::once((action, Some(Chord::key(KeyCode::F(1))))),
         );
         assert_eq!(first, unchanged);
@@ -1237,6 +1248,7 @@ mod tests {
             let _ = snapshots.update(
                 Id::root("owner").index(index),
                 None,
+                &[],
                 core::iter::once((action, Some(Chord::key(KeyCode::F(2))))),
             );
         }
@@ -1255,11 +1267,13 @@ mod tests {
         let (_, max) = snapshots.update(
             Id::root("wrap"),
             None,
+            &[],
             core::iter::once((action, Some(Chord::key(KeyCode::F(3))))),
         );
         let (_, wrapped) = snapshots.update(
             Id::root("wrap"),
             None,
+            &[],
             core::iter::once((action, Some(Chord::key(KeyCode::F(4))))),
         );
         assert_eq!(max, u64::MAX);
@@ -1267,6 +1281,133 @@ mod tests {
         assert_ne!(
             BindingTableId::dynamic(Id::root("wrap"), 1, max),
             BindingTableId::dynamic(Id::root("wrap"), 1, wrapped)
+        );
+    }
+
+    #[test]
+    fn dynamic_snapshot_invalidates_when_selected_base_descriptors_change() {
+        let owner = Id::root("selected-base");
+        let dynamic = ActionKey::custom("selected-base.dynamic");
+        let first = [BindingDescriptor {
+            action: ActionKey::custom("selected-base.first"),
+            chord: Some(Chord::key(KeyCode::Up)),
+            label: "First",
+            priority: 1,
+            visible: true,
+        }];
+        let second = [BindingDescriptor {
+            action: ActionKey::custom("selected-base.second"),
+            chord: Some(Chord::key(KeyCode::Down)),
+            label: "Second",
+            priority: 1,
+            visible: true,
+        }];
+        let binding = core::iter::once((dynamic, Some(Chord::key(KeyCode::Char('x')))));
+        let mut snapshots = DynamicBindingRegistry::default();
+        let (_, first_revision) = snapshots.update(
+            owner,
+            Some(BindingTableId::Static {
+                command_type: TypeId::of::<()>(),
+                address: 1,
+                len: 2,
+            }),
+            &first,
+            binding.clone(),
+        );
+        let (_, second_revision) = snapshots.update(
+            owner,
+            Some(BindingTableId::Static {
+                command_type: TypeId::of::<()>(),
+                address: 1,
+                len: 2,
+            }),
+            &second,
+            binding.clone(),
+        );
+        let (_, unchanged_revision) = snapshots.update(
+            owner,
+            Some(BindingTableId::Static {
+                command_type: TypeId::of::<()>(),
+                address: 1,
+                len: 2,
+            }),
+            &second,
+            binding,
+        );
+
+        assert_ne!(first_revision, second_revision);
+        assert_eq!(second_revision, unchanged_revision);
+    }
+
+    #[test]
+    fn focused_hints_refresh_when_selected_descriptors_change_under_same_table_id() {
+        let owner = Id::root("filtered-hints");
+        let key = FocusedHintKey {
+            focus: owner,
+            flags: StateFlags::FOCUSED,
+            layer: crate::layer::LayerId::PAGE,
+            table: BindingTableId::Static {
+                command_type: TypeId::of::<()>(),
+                address: 1,
+                len: 2,
+            },
+            keymap_revision: 0,
+        };
+        let first = [BindingDescriptor {
+            action: ActionKey::custom("filtered.first"),
+            chord: Some(Chord::key(KeyCode::Up)),
+            label: "First",
+            priority: 1,
+            visible: true,
+        }];
+        let second = [BindingDescriptor {
+            action: ActionKey::custom("filtered.second"),
+            chord: Some(Chord::key(KeyCode::Down)),
+            label: "Second",
+            priority: 1,
+            visible: true,
+        }];
+        let mut focused = FocusedHints::default();
+        focused.derive(key, &first, &KeyMap::new());
+        assert_eq!(focused.layer.hints[0].label, "First");
+        focused.derive(key, &second, &KeyMap::new());
+        assert_eq!(focused.layer.hints[0].label, "Second");
+    }
+
+    #[test]
+    fn focused_hints_refresh_when_keymap_remaps_a_stable_descriptor() {
+        let owner = Id::root("remapped-hints");
+        let action = ActionKey::custom("remapped-hints.action");
+        let table = [BindingDescriptor {
+            action,
+            chord: Some(Chord::key(KeyCode::Up)),
+            label: "Move",
+            priority: 1,
+            visible: true,
+        }];
+        let mut focused = FocusedHints::default();
+        let key = |keymap_revision| FocusedHintKey {
+            focus: owner,
+            flags: StateFlags::FOCUSED,
+            layer: crate::layer::LayerId::PAGE,
+            table: BindingTableId::Static {
+                command_type: TypeId::of::<()>(),
+                address: 1,
+                len: 1,
+            },
+            keymap_revision,
+        };
+
+        focused.derive(key(0), &table, &KeyMap::new());
+        assert_eq!(
+            focused.layer.hints[0].key,
+            HintKey::Chord(Chord::key(KeyCode::Up))
+        );
+        let remapped = KeyMap::new().bind_component(owner, action, Chord::key(KeyCode::Down));
+        focused.derive(key(1), &table, &remapped);
+        assert_eq!(
+            focused.layer.hints[0].key,
+            HintKey::Chord(Chord::key(KeyCode::Down))
         );
     }
     #[test]
