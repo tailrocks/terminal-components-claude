@@ -4724,7 +4724,7 @@
     {
       "at_utc": "2026-10-20T16:25:11Z",
       "source": "live remote head, protected-ref, PR, ancestry, and lease-delete verification",
-      "finding": "Deleted exactly the two task-owned integrated WIP branches using expected-old-SHA leases. Both exact tips were ancestors of PR38, had no PRs, were unprotected, and were absent from remote heads after deletion. Live branch count returned from 98 to 96."
+      "finding": "Deleted exactly the two task-owned integrated WIP branches using expected-old-SHA leases. Both exact tips were ancestors of PR38, had no PRs, were unprotected, and were absent from remote heads after deletion. This first WIP-only cleanup was the intermediate count change from 98 to 96, before the two original-inventory branches were removed."
     },
     {
       "at_utc": "2026-10-20",
@@ -4734,7 +4734,7 @@
     {
       "at_utc": "2026-10-20T16:25:11Z",
       "source": "parent authorization plus exact remote tip/ancestry/PR/protection verification",
-      "finding": "Also deleted exactly two independently reviewed and delivered original-inventory branches: parity/runtime-crate-timeout-15-20261020 at 4d0df770 and parity/shared-style-integration-current-20261020 at 2863bf6e. Each remote tip matched the recorded SHA, was an ancestor of PR38 fe0b8ad0, had no PR and was unprotected. Both expected-old-SHA lease deletions were verified absent. No other branch was deleted."
+      "finding": "Also deleted exactly two independently reviewed and delivered original-inventory branches: parity/runtime-crate-timeout-15-20261020 at 4d0df770 and parity/shared-style-integration-current-20261020 at 2863bf6e. Each remote tip matched the recorded SHA, was an ancestor of PR38 fe0b8ad0, had no PR and was unprotected. Both expected-old-SHA lease deletions were verified absent. No other branch was deleted. This second cleanup changed the live count from 96 to the final 94."
     }
   ],
   "interpretation_policy": "This 98-row historical branch ledger (94 live branches after four authorized branch cleanups) supersedes coarse branch classifications in the migration matrix. A branch may contain a bounded reusable contract worth integration while its whole branch or product gate remains unaccepted. Shared-style 94a/8e9/e72 lineage is represented by already-integrated 2863/e597 equivalents; early Button 7dab is superseded by reviewed 673936/b0f8/2d stack. Do not reject useful component contracts solely because full application parity remains red."
