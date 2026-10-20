@@ -39,6 +39,18 @@ Recorded before the uncommitted picker series: local `HEAD` `b0504717c280a4bb141
 
 Latest harness: `picker_open`, `tablist_open`, and `safemode_picker` at 120×40 truecolor match the baseline, cell for cell, including the cursor. Supersedes the 1089 / 198 and 253 / 136 counts. The card samples backdrop ink, rows use the shared column solver, the overflowing list fades through `Ui::scroll_edges`, and a searchable picker footer is `Type Filter`. Safe Mode is the same picker with search off, size `Fixed(112, rows + 5)`, footer `↑↓ Move  Enter Choose  Esc Cancel`, and a hidden cursor. `historical_safemode_picker` is removed. Opening it does not depend on the connection name, one empty tab, or one terminal size. Other `historical_*` and `*_plate` paints are still in the tree. Do not treat the rest of the apps as parity.
 
+## Review of `a848219fd` (picker frames)
+
+Disposition against the passing 120×40 truecolor frames `picker_open`, `tablist_open`, and `safemode_picker`. Snapshot footers include `✓ Connected to Production`. Do not revert a green cell to chase a misread oracle.
+
+- Footer suffix after `Type Filter`: kept. The oracle row is that hint plus the connection notice.
+- Selected Fill row uses highlight `#2f5aa8`: kept. That is the oracle cursor row.
+- Picker card samples backdrop ink: kept. Empty overlay cells otherwise drop ghost `#262626`.
+- Muted `#8a8a8a`, thumb `#808080`, track `┆` / `#474747`: kept for these frames.
+- `without_bold` on the scrollbar: kept for truecolor. A mono pressed thumb that must stay bold is still open. Strip only bold inherited from the cell underneath, and keep bold the style itself set, when a mono frame shows the loss.
+- `surface_already_opaque` skips any non-reset background, and `scroll_edges` fades every overflowing `FilterList`. Both are open. Narrow them when a `Select` frame shows the extra fade or a skipped fill. Do not change them while the three picker frames are the proof.
+- The item-row hash is a fixture, not the oracle. The visual frames are.
+
 ## Still incomplete
 
 - 1650 showcase ANSI files under flows, fade, audit, hover, and resize have no `ESC[?25` trailer. The pinned AnsiCursor dump always writes one. Matching those bytes means editing snapshots or the harness. Both stay forbidden.
