@@ -68,6 +68,13 @@ The candidate had 184 tests (173 pass, 11 fail); the source base had 183
 above. The TablePro Grid-cursor regression is the one added passing test. This
 comparison is limited to TablePro nextest and does not establish product parity.
 
+Superseding the 25f attribution above, PR source `1dbf3b2caa429a49ec1a38fba641735a3890b918`
+removes the historical completion-popup case and has 181 TablePro tests (170
+pass, 11 fail) with this Grid change's four files restored. The merged candidate
+has 182 tests (171 pass, 11 fail); the 11 failing names are identical. The new
+single passing test is `unfocused_grid_cursor_does_not_style_the_cursor_row`.
+This remains a focused regression comparison, not application acceptance.
+
 Updated: 2026-10-21. Status: **in progress; all four applications incomplete**. This is the current migration record. Older audit reports remain evidence, not a complete inventory or acceptance declaration.
 
 ## CI feature-gate increment — 2026-10-21
