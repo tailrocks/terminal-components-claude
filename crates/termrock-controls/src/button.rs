@@ -1,4 +1,5 @@
 use core::fmt;
+use core::time::Duration;
 
 use ratatui_core::layout::Rect;
 
@@ -31,6 +32,18 @@ pub enum ButtonFocusVisibility {
     KeyboardOnly,
 }
 
+/// Controls whether a checked marker remains visible beside a busy spinner.
+///
+/// `Keep` preserves the extended Termrock presentation. `Replace` matches the
+/// frozen application contract, where the spinner temporarily owns that lane.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub enum BusyMarkerPolicy {
+    Keep,
+    /// Frozen-contract default: the spinner lane takes over from the marker.
+    #[default]
+    Replace,
+}
+
 const BINDINGS: &[Binding<ButtonCmd>] = &[
     Binding {
         action: ActionKey::custom("button.activate.enter"),
@@ -55,6 +68,11 @@ struct Autofocus {
     spent: bool,
 }
 
+#[derive(Default)]
+struct SpinnerPhase {
+    frame: usize,
+}
+
 pub struct Button<'a> {
     id: Id,
     label: &'a str,
@@ -65,6 +83,7 @@ pub struct Button<'a> {
     autofocus: bool,
     status: Status,
     checked: Option<bool>,
+    busy_marker: BusyMarkerPolicy,
     ov: PartStyle<'a>,
 }
 
@@ -78,6 +97,7 @@ impl fmt::Debug for Button<'_> {
             .field("disabled", &self.disabled)
             .field("status", &self.status)
             .field("checked", &self.checked)
+            .field("busy_marker", &self.busy_marker)
             .field("overrides", &self.ov)
             .finish_non_exhaustive()
     }
@@ -103,6 +123,7 @@ impl<'a> Button<'a> {
             autofocus: false,
             status: Status::Ready,
             checked: None,
+            busy_marker: BusyMarkerPolicy::Replace,
             ov: PartStyle::new(),
         }
     }
@@ -154,6 +175,12 @@ impl<'a> Button<'a> {
     }
 
     #[must_use]
+    pub const fn busy_marker_policy(mut self, policy: BusyMarkerPolicy) -> Self {
+        self.busy_marker = policy;
+        self
+    }
+
+    #[must_use]
     pub const fn patch(mut self, p: &'a StylePatch) -> Self {
         self.ov = self.ov.global(p);
         self
@@ -190,6 +217,7 @@ impl<'a> Button<'a> {
             autofocus: self.autofocus,
             status: self.status,
             checked: self.checked,
+            busy_marker: self.busy_marker,
             ov: self.ov,
         }
     }
@@ -216,6 +244,30 @@ impl<'a> Button<'a> {
                 Intent::Pointer { .. } if can && !r.activated() => r = Response::changed(),
                 _ => {}
             }
+        }
+
+        let tick_ms = cx.design().motion.tick_ms.max(1);
+        if self.busy() {
+            let frames = cx.design().motion.spinner_frames;
+            if !frames.is_empty() {
+                let phase = cx.now().as_duration().as_millis() / u128::from(tick_ms);
+                let frame = usize::try_from(phase % frames.len() as u128).unwrap_or(0);
+                let spinner = cx.cache::<SpinnerPhase>(self.id);
+                if spinner.frame != frame {
+                    spinner.frame = frame;
+                    if !r.activated() {
+                        r = Response::changed();
+                    }
+                }
+                let elapsed = cx.now().as_duration().as_millis() % u128::from(tick_ms);
+                cx.request_repaint_after(Duration::from_millis(
+                    tick_ms.saturating_sub(u64::try_from(elapsed).unwrap_or(0)),
+                ));
+            }
+        } else if r.activated() {
+            // An activation can synchronously move application data into Busy
+            // state; request one tick so the next update observes that state.
+            cx.request_repaint_after(Duration::from_millis(tick_ms));
         }
         r.for_id(self.id)
     }
@@ -247,7 +299,8 @@ impl<'a> Button<'a> {
     }
 
     fn marker_width(&self) -> u16 {
-        if self.checked.is_some() && !self.busy() {
+        if self.checked.is_some() && !(self.busy() && self.busy_marker == BusyMarkerPolicy::Replace)
+        {
             2
         } else {
             0
@@ -284,6 +337,9 @@ impl<'a> Button<'a> {
         }
 
         let mut derived = self.status.flags();
+        if self.busy() {
+            derived |= StateFlags::BUSY;
+        }
         if self.disabled {
             derived |= StateFlags::DISABLED;
         }
@@ -352,7 +408,11 @@ impl<'a> Button<'a> {
                 match self.status {
                     Status::Busy | Status::Loading => {
                         let frames = ui.design().motion.spinner_frames;
-                        let frame = frames.first().copied().unwrap_or("");
+                        let frame_index = ui.cache::<SpinnerPhase>(self.id).frame;
+                        let frame = frames
+                            .get(frame_index % frames.len().max(1))
+                            .copied()
+                            .unwrap_or("");
                         ui.paint_str(icon_cell, frame, is.style);
                     }
                     Status::Error => match is.glyph {
@@ -375,7 +435,9 @@ impl<'a> Button<'a> {
             }
             text = shift(text, 2);
         }
-        if let Some(on) = self.checked.filter(|_| !self.busy()) {
+        if let Some(on) = self.checked
+            && !(self.busy() && self.busy_marker == BusyMarkerPolicy::Replace)
+        {
             let marker_cell = Rect {
                 width: text.width.min(1),
                 ..text
@@ -390,11 +452,12 @@ impl<'a> Button<'a> {
                     Slot::Inherit => Some(GlyphRole::DotOff),
                     Slot::Clear => None,
                 };
+                let marker_style = ms.over(container.style);
                 match glyph {
                     Some(g) => {
-                        ui.glyph(marker_cell, g, ms.style);
+                        ui.glyph(marker_cell, g, marker_style);
                     }
-                    None => ui.fill(marker_cell, ms.style),
+                    None => ui.fill(marker_cell, marker_style),
                 }
             }
             text = shift(text, 2);
@@ -405,18 +468,19 @@ impl<'a> Button<'a> {
             let ls = style(ui, Part::LABEL);
             let label = crate::text::truncate(self.label, text.width);
             ui.fill(text, ls.style);
+            let label_style = ls.over(container.style);
             if matches!(ls.glyph, Slot::Set(GlyphRole::PressLeft)) {
-                ui.paint_str(text, &label, ls.style);
+                ui.paint_str(text, &label, label_style);
                 if area.width >= 2 {
                     paint_pressed_bracket(
                         ui,
                         gutter_cell,
                         cell_at(area, area.right().saturating_sub(1)),
-                        ls.style,
+                        label_style,
                     );
                 }
             } else {
-                ui.paint_str(text, &label, ls.style);
+                ui.paint_str(text, &label, label_style);
             }
         }
         area
@@ -446,7 +510,7 @@ mod tests {
 
     use ratatui_core::buffer::Buffer;
     use ratatui_core::layout::{Position, Rect};
-    use ratatui_core::style::Modifier;
+    use ratatui_core::style::{Color, Modifier};
 
     use super::*;
     use crate::event::{Input, MouseKind};
@@ -499,6 +563,28 @@ mod tests {
         buffer
     }
 
+    fn draw_toggle(checked: bool, status: Status, policy: BusyMarkerPolicy) -> (Buffer, u16) {
+        let mut runtime = Runtime::new(Stub::default(), Theme::junie());
+        let mut buffer = Buffer::empty(AREA);
+        let width = Cell::new(0);
+        runtime
+            .draw_scene(AREA, &mut buffer, |ui, area| {
+                let button = Button::new(BUTTON, "Go")
+                    .checked(checked)
+                    .status(status)
+                    .busy_marker_policy(policy);
+                width.set(
+                    button
+                        .measure(ui, Constraints::loose(AREA.width, 1))
+                        .preferred
+                        .0,
+                );
+                button.draw(ui, area);
+            })
+            .commit_presented();
+        (buffer, width.get())
+    }
+
     #[test]
     fn checked_painting_comes_only_from_the_controlled_prop() {
         assert_ne!(draw_checked(true), draw_checked(false));
@@ -522,6 +608,101 @@ mod tests {
             .commit_presented();
 
         assert_eq!(row_text(&buffer, AREA.width), "[Full width]");
+    }
+
+    #[test]
+    fn button_focus_gutter_uses_focus_visible_state_and_container_surface() {
+        let theme = Theme::junie();
+        let mut runtime = Runtime::new(Stub::default(), theme);
+        let mut buffer = Buffer::empty(AREA);
+        runtime
+            .draw_scene(AREA, &mut buffer, |ui, area| {
+                ui.reference(
+                    Some(crate::ReferenceTarget::new(
+                        BUTTON,
+                        crate::ReferenceState::FOCUSED | crate::ReferenceState::FOCUS_VISIBLE,
+                    )),
+                    |ui| Button::new(BUTTON, "Go").draw(ui, area),
+                );
+            })
+            .commit_presented();
+
+        let gutter = buffer.cell(Position::new(0, 0)).unwrap();
+        let label = buffer.cell(Position::new(1, 0)).unwrap();
+        assert_eq!(
+            gutter.symbol(),
+            Theme::junie().design.glyphs.get(GlyphRole::FocusBar)
+        );
+        assert_eq!(gutter.bg, label.bg);
+    }
+
+    #[test]
+    fn pressed_checked_marker_uses_its_variant_on_fill_foreground() {
+        for variant in [Variant::PRIMARY, Variant::DANGER] {
+            let mut runtime = Runtime::new(Stub::default(), Theme::junie());
+            let mut buffer = Buffer::empty(AREA);
+            runtime
+                .draw_scene(AREA, &mut buffer, |ui, area| {
+                    ui.reference(
+                        Some(crate::ReferenceTarget::new(
+                            BUTTON,
+                            crate::ReferenceState::PRESSED,
+                        )),
+                        |ui| {
+                            Button::new(BUTTON, "Go")
+                                .variant(variant)
+                                .checked(true)
+                                .draw(ui, area);
+                        },
+                    );
+                })
+                .commit_presented();
+
+            let marker = buffer.cell(Position::new(1, 0)).unwrap();
+            let label = buffer.cell(Position::new(3, 0)).unwrap();
+            assert_eq!(marker.symbol(), "●");
+            assert_eq!(
+                marker.fg,
+                label.fg,
+                "pressed marker mismatch for {variant:?}: symbols {} / {}, row {}",
+                marker.symbol(),
+                label.symbol(),
+                row_text(&buffer, AREA.width),
+            );
+        }
+    }
+
+    #[test]
+    fn pressed_checked_marker_keeps_explicit_style_overrides() {
+        let patch = [(
+            Part::MARKER,
+            StylePatch::new()
+                .set_fg(crate::theme::Role::Custom(Color::Red))
+                .add(Modifier::UNDERLINED),
+        )];
+        let mut runtime = Runtime::new(Stub::default(), Theme::junie());
+        let mut buffer = Buffer::empty(AREA);
+        runtime
+            .draw_scene(AREA, &mut buffer, |ui, area| {
+                ui.reference(
+                    Some(crate::ReferenceTarget::new(
+                        BUTTON,
+                        crate::ReferenceState::PRESSED,
+                    )),
+                    |ui| {
+                        Button::new(BUTTON, "Go")
+                            .checked(true)
+                            .patch_part(&patch)
+                            .draw(ui, area);
+                    },
+                );
+            })
+            .commit_presented();
+
+        let marker = buffer.cell(Position::new(1, 0)).unwrap();
+        assert_eq!(marker.symbol(), "●");
+        assert_eq!(marker.fg, Color::Red);
+        assert!(marker.modifier.contains(Modifier::UNDERLINED));
     }
 
     #[test]
@@ -608,6 +789,87 @@ mod tests {
             patched
                 .cell(Position::new(1, 0))
                 .is_some_and(|cell| cell.modifier.contains(Modifier::UNDERLINED))
+        );
+    }
+
+    #[test]
+    fn busy_marker_policy_preserves_extended_default_and_supports_baseline_replacement() {
+        let (extended, extended_width) = draw_toggle(true, Status::Busy, BusyMarkerPolicy::Keep);
+        let (baseline, baseline_width) = draw_toggle(true, Status::Busy, BusyMarkerPolicy::Replace);
+        let (ready, _) = draw_toggle(true, Status::Ready, BusyMarkerPolicy::Replace);
+        let (off, _) = draw_toggle(false, Status::Ready, BusyMarkerPolicy::Replace);
+
+        assert_eq!(extended.cell(Position::new(3, 0)).unwrap().symbol(), "●");
+        assert_eq!(baseline.cell(Position::new(1, 0)).unwrap().symbol(), "⠋");
+        assert_eq!(baseline.cell(Position::new(3, 0)).unwrap().symbol(), "G");
+        assert_eq!(ready.cell(Position::new(1, 0)).unwrap().symbol(), "●");
+        assert_eq!(off.cell(Position::new(1, 0)).unwrap().symbol(), "○");
+        assert_eq!(
+            ready.cell(Position::new(1, 0)).unwrap().fg,
+            Theme::junie().color.accent
+        );
+        assert_eq!(
+            off.cell(Position::new(1, 0)).unwrap().fg,
+            Theme::junie().color.fg[2]
+        );
+        assert_eq!(
+            ready.cell(Position::new(0, 0)).unwrap().bg,
+            ready.cell(Position::new(1, 0)).unwrap().bg,
+            "the gutter lane keeps the button surface"
+        );
+        assert_eq!(extended_width, 8);
+        assert_eq!(baseline_width, 6);
+    }
+
+    struct BusySpinnerApp;
+
+    impl App for BusySpinnerApp {
+        fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+            Button::new(BUTTON, "Go")
+                .status(Status::Busy)
+                .update(cx)
+                .erase()
+        }
+
+        fn draw(&self, ui: &mut Ui<'_>) {
+            Button::new(BUTTON, "Go")
+                .status(Status::Busy)
+                .draw(ui, AREA);
+        }
+    }
+
+    #[test]
+    fn busy_spinner_advances_on_shared_controlled_tick_deadlines() {
+        let theme = Theme::junie();
+        let expected = theme.design.motion.spinner_frames;
+        assert!(expected.len() > 1);
+        let mut runtime = Runtime::new(BusySpinnerApp, theme);
+        let _ = runtime.initialize();
+        let mut buffer = Buffer::empty(AREA);
+        runtime.draw_buffer(AREA, &mut buffer).commit_presented();
+        assert_eq!(
+            buffer.cell(Position::new(1, 0)).unwrap().symbol(),
+            expected[0]
+        );
+        assert_eq!(
+            runtime.next_deadline(),
+            Some(crate::runtime::Moment::from_millis(80))
+        );
+
+        runtime
+            .advance_to(crate::runtime::Moment::from_millis(80))
+            .unwrap();
+        while runtime.needs_settle() {
+            let _ = runtime.settle();
+        }
+        runtime.draw_buffer(AREA, &mut buffer).commit_presented();
+        assert_eq!(
+            buffer.cell(Position::new(1, 0)).unwrap().symbol(),
+            expected[1]
+        );
+        assert_eq!(
+            runtime.next_deadline(),
+            Some(crate::runtime::Moment::from_millis(160))
         );
     }
 

@@ -1,0 +1,120 @@
+{
+  "status": "Independent bounded runtime review completed: no actionable findings. The recolor primitive is cleared for parent integration; full runtime suite and product acceptance are not green.",
+  "candidate": "dfb54cfc5dd9511b214a68677eb213492df897fd",
+  "before": "7b073316c089c494e84db801d6bfb861db75224c",
+  "source_fix": "bd9f88b7d00de0104611d09b631f0aae5e9f4461",
+  "review_copy": "/private/tmp/termrock-button-before-review",
+  "product_acceptance": false,
+  "source_findings": [],
+  "source_conclusions": [
+    "The three public signatures are source-compatible; mut is a local parameter binding, not a signature change. RGB callback eligibility remains RGB-only, in cell iteration order with foreground before background.",
+    "One private recolor_cells helper intersects the existing clip, captures both original channels, evaluates the pair transform once, compares each channel, and skips pixel and metadata writes when both outputs are unchanged.",
+    "Changed channels use raw PaintStyle fg/bg setters only. Existing Ui::mark dispatches to page or active layer; CellRoles::patch preserves unspecified channels and clears only an explicitly raw changed channel. No semantic role is inferred from matching RGB values.",
+    "No unsafe code, allocation, cache, focus/cursor/registry, terminal, or application renderer changes were introduced. Cell::set_fg/set_bg leave glyph, underline, modifiers, skip/continuation and non-color attributes intact.",
+    "Existing layer composite copies the layer role metadata with each written cell. Identity recolor no longer marks an unwritten layer cell opaque. Actual color changes to unwritten cells retain the prior public painting behavior."
+  ],
+  "source_locations": [
+    "crates/termrock-runtime/src/ui/mod.rs:1336",
+    "crates/termrock-runtime/src/ui/mod.rs:1390",
+    "crates/termrock-runtime/src/ui/mod.rs:1236",
+    "crates/termrock-runtime/src/ui/layer_buf.rs:71",
+    "crates/termrock-runtime/src/ui/layer_buf.rs:111"
+  ],
+  "native_runtime": {
+    "command": "cargo nextest run -p termrock-runtime --all-targets --features termrock-runtime/testing --no-fail-fast",
+    "exit": 100,
+    "run": 362,
+    "passed": 361,
+    "failed": 1,
+    "skipped": 3,
+    "failure": "scene_snapshot::warmed_modal_snapshot_projection_performs_zero_allocations",
+    "actual_allocations": 1,
+    "expected_allocations": 0,
+    "before_confirmation": "The same exact allocation assertion fails at the pre-fix commit when selected alone; 1 run, 1 failed, 9 other tests filtered out. This review does not waive that failure."
+  },
+  "coverage": [
+    "Byte-identical original three public probes and four submitted regressions.",
+    "Four profiles; no-op RGB, FG None, FG Some(old), identity pair; full cells after dimming.",
+    "Partial FG/BG changes, clipped wide/combining cells and nonzero root origin.",
+    "Mixed RGB/indexed/named/Reset eligibility; foreground-before-background callback order; zero-area and fully clipped regions.",
+    "Two nested unwritten layers remain transparent for all four no-op variants.",
+    "Distinct semantic roles with identical resolved RGB remain distinct after dimming; raw matching RGB does not acquire a role.",
+    "Actual FG changes through both foreground wrappers preserve semantic background.",
+    "A real drawn TextInput checks focus, hit bounds, visible cursor and complete cells under no-op recolor."
+  ],
+  "gaps": [
+    "This is bounded runtime primitive clearance, not application call-site or product parity acceptance.",
+    "No dedicated warmed recolor allocation instrumentation was added; source introduces no allocation, and the separate pre-existing modal snapshot allocation failure remains open.",
+    "Partial-channel metadata after layer composition is verified by source mechanism and existing native composite coverage, rather than a new public post-composite/dim assertion.",
+    "Application replay paths and the complete four-application acceptance suite remain outside this review."
+  ],
+  "toolchain": "rustc 1.99.1 (58cf8f9c3 2026-10-13) (Homebrew)",
+  "artifact_absence_recovery": {
+    "count": 1301,
+    "scope": "Only pre-existing missing tracked crates/termrock-conformance/target/tuiscotti-* files were restored from that copy HEAD before checkout; no product modifications.",
+    "evidence": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/recolor-provenance-review-dfb54/missing-before.json",
+    "cause": "Not diagnosed or attributed by this review."
+  },
+  "findings": [],
+  "public_consumer": {
+    "command": "cargo nextest run --manifest-path /private/tmp/recolor-independent-review/consumer/Cargo.toml --all-targets --no-fail-fast",
+    "before": {
+      "exit": 100,
+      "run": 14,
+      "passed": 4,
+      "failed": 10,
+      "skipped": 0
+    },
+    "candidate": {
+      "exit": 0,
+      "run": 14,
+      "passed": 14,
+      "failed": 0,
+      "skipped": 0
+    },
+    "candidate_repeat": {
+      "exit": 0,
+      "run": 14,
+      "passed": 14,
+      "failed": 0,
+      "skipped": 0
+    },
+    "same_source_before_and_after": true,
+    "submitted_tests_byte_identical_to_candidate": true
+  },
+  "checks": {
+    "strict_clippy": {
+      "command": "cargo clippy -p termrock-runtime --all-targets --features termrock-runtime/testing -- -D warnings",
+      "exit": 0
+    },
+    "fmt": {
+      "command": "cargo fmt -p termrock-runtime -- --check",
+      "exit": 0
+    },
+    "diff_check": {
+      "exit": 0
+    },
+    "review_worktree_final_head": "dfb54cfc5dd9511b214a68677eb213492df897fd",
+    "review_worktree_final_tracked_differences": 0
+  },
+  "evidence_root": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/recolor-provenance-review-dfb54",
+  "source_sha256": {
+    "crates/termrock-runtime/src/ui/mod.rs": "a2f30c090958dbd1aa39d41a089439237bd4d5a10ee5962e0c5b2a2e9b3e333d"
+  },
+  "evidence_sha256": {
+    "before-consumer-14.log": "ca932926bbb3cfe252ab0feead946ebb553e12dc44cc01c359ea6e83eaf3438f",
+    "before-modal-allocation.log": "800ee25c4aaeb7d3cb7c4b83019b1f4cfa85b8d4065a487ee26dbeae02daa3c2",
+    "candidate-clippy.log": "a5905e423724ea08fa153566edcc9c604895a8277243590c9105ac0fca621538",
+    "candidate-consumer-14-repeat.log": "9f6a77f41064d7830ccf20c71455ddbdbd9b1f6ad4a13f8ee1f55f51c1fde715",
+    "candidate-consumer-14.log": "5e737bea28221ed5a088fb311cdeb4458ae3b98300191d7b8c09f59fbd67551e",
+    "candidate-fmt.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "candidate-native-runtime.log": "4a8c220acf68f2cbb27878b2786e1c1a5c11e5c393fc8895103b9329d496f1f7",
+    "consumer/Cargo.lock": "6c76d7182edbb56a9a13cbbbfe643e3884c3e27895e36bc687b1a58109c394fb",
+    "consumer/Cargo.toml": "82678b5d6a5096f31613ade88ae6e332fcd0d4ed65fc72756d86ba3c6f1bc5f3",
+    "consumer/src/lib.rs": "6d872ee8ee3d08d01ef8d572dc1cbe6a9cf298c935247fa43469647596316824",
+    "consumer/tests/expanded.rs": "4ad9dd06739e5de9ccb493f7155e4943cc4faa2e3be33cd6a89a046b68bbbc38",
+    "consumer/tests/submitted.rs": "d9e3deb30c60dddfa08995f9e244c1d371b7f5895e589e5213277883a1dbb0f3",
+    "fourteen-results.json": "4e8642d07efba93f40b9922b99e8de9cdc36e92e29bcd95dfa65edbca4e4ef17",
+    "missing-before.json": "00a7728ed5d6297e521480a45c3b34bcbf50f1426804ec3bbb6bac8ca4bfda46"
+  }
+}
