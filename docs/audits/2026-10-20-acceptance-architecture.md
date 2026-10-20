@@ -32,9 +32,10 @@ This is a lexical and Cargo-graph guard, not proof that a screen is composed fro
 
 ## Follow-up: fail-closed source accounting
 
-Independent review found two source-inventory false greens after the evidence above was recorded. Supersede the earlier 21-test count: the updated suite passes all 23 tests.
+Independent review found source-inventory false greens after the evidence above was recorded. The first repair passed 23 tests, then review found two missed module layouts. The current suite passes all 25 tests.
 
 - A normal `mod name;` declaration could resolve through a source-directory symlink into Cargo's pruned target directory without entering the scan. The checker now marks such declarations as explicitly unaccounted. It does not traverse the target directory, which may contain large build output. Regression test: `test_declared_module_into_pruned_target_directory_is_unaccounted`.
+- The declaration check must also handle custom Cargo crate roots and inline module scopes without a full Rust parser. The checker now finds directory-symlink names into Cargo's target directory without following those links, then conservatively marks matching declared module names anywhere in that package as unaccounted. This can produce false positives when the alias and declaration occupy unrelated module scopes. Regression tests: `test_custom_cargo_root_module_alias_into_target_is_unaccounted` and `test_nested_inline_module_alias_into_target_is_unaccounted`.
 - Missing live include files could be read from Git's index, even though Cargo compiles from the live filesystem. Source reads now require a readable live file; the index is used only for tracked-file inventory. Regression test: `test_missing_live_include_does_not_fall_back_to_git_index`.
 
 These repairs improve fail-closed lexical accounting. They do not change the checker’s documented limits: it does not parse Rust module semantics fully and never attests overall acceptance.
