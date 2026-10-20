@@ -1727,6 +1727,11 @@ impl TableProApp {
             .workbench
             .active_table()
             .map(|table| table.table.clone());
+        // A filtered page is already the scan. Sorting the raw table would drop the filter.
+        let filtered_page = self
+            .workbench
+            .active_table()
+            .is_some_and(|table| table.filters.iter().any(|filter| filter.enabled));
         let direction = {
             let Some((id, grid)) = self.workbench.active_grid_mut() else {
                 return false;
@@ -1755,7 +1760,8 @@ impl TableProApp {
                 }
                 _ => SortDir::Asc,
             };
-            if grid.model.pending_total() == 0
+            if !filtered_page
+                && grid.model.pending_total() == 0
                 && let Some(table) = table.as_ref()
             {
                 grid.model = sorted_scan(table, grid, index, direction);
@@ -1975,6 +1981,13 @@ impl TableProApp {
             height: 1,
             ..inner
         };
+        let paint_width = status_area.width.saturating_sub(1);
+        if width(&status) > paint_width
+            && let Some((head, _)) = status.rsplit_once(" · ")
+        {
+            // The column window is the clause that drops once a sort prefix lands.
+            status = head.to_owned();
+        }
         paint_horizontal_bar(
             ui,
             termrock::Rect {
@@ -3584,14 +3597,14 @@ fn paint_grid_scrollbar(ui: &mut Ui<'_>, area: termrock::Rect, rows: usize) {
     let Some(chrome) = GRID_CHROME.with(|chrome| chrome.borrow().clone()) else {
         return;
     };
-    let Some(last) = chrome.places.last() else {
+    if chrome.places.is_empty() {
         return;
-    };
+    }
+    // Stay on the content edge. A dropped preview must not pull the thumb left.
     let x = area
         .x
         .saturating_add(chrome.gutter)
-        .saturating_add(last.x)
-        .saturating_add(last.width)
+        .saturating_add(chrome.content_width)
         .saturating_add(4);
     let covered = x.saturating_sub(1);
     let plain = ui.surface_style();
@@ -3680,6 +3693,10 @@ fn column_is_filtered(name: &str) -> bool {
             .iter()
             .any(|column| column.eq_ignore_ascii_case(name))
     })
+}
+
+fn column_is_sorted(index: usize) -> bool {
+    GRID_SORT.with(|slot| slot.borrow().is_some_and(|(column, _)| column == index))
 }
 
 fn table_query(table: &db::Table, filters: &[Filter]) -> String {
@@ -3771,6 +3788,10 @@ fn column_natural_width(name: &str, ty: ColType, model: &ResultGrid, col: usize)
     if column_is_filtered(name) {
         // " ∇" plus the gap the header keeps after the mark.
         natural = natural.saturating_add(3);
+        if column_is_sorted(col) {
+            // " ▴" / " ▾" follows the filter mark. Unfiltered sorts already fit in the sample.
+            natural = natural.saturating_add(2);
+        }
     }
     natural.clamp(3, 40)
 }
@@ -3800,7 +3821,8 @@ fn layout_window(widths: &[u16], start: usize, avail: u16) -> WindowFit {
         let needed = used.saturating_add(gap).saturating_add(width);
         if !places.is_empty() && needed > avail {
             let room = avail.saturating_sub(used).saturating_sub(gap);
-            if room >= 4 {
+            // Four cells sit on the overflow count. The filtered sort frame leaves them blank.
+            if room >= 5 {
                 places.push(ColPlace {
                     x: used.saturating_add(gap),
                     width: room,
@@ -3971,7 +3993,8 @@ fn paint_scrolled_title(ui: &mut Ui<'_>, area: termrock::Rect, column: &Scrolled
         width: place.width,
         height: 1,
     };
-    if filtered && !sorted {
+    if filtered {
+        // The mark is accent. The gap after it stays the header surface, sort included.
         ui.fill(cell, base);
         ui.fill(
             termrock::Rect {
@@ -4206,7 +4229,18 @@ fn paint_scrolled_cells(
                 0
             };
             if active && !numeric {
-                let pad = text_width.saturating_add(2).min(place.width);
+                let mut pad = text_width.saturating_add(2);
+                if let Some((name, _)) = columns.get(col)
+                    && column_is_filtered(name)
+                {
+                    // Follow the header mark, including " ▴" / " ▾" when this column is sorted.
+                    let mut marked = width(name).saturating_add(2);
+                    if column_is_sorted(col) {
+                        marked = marked.saturating_add(2);
+                    }
+                    pad = pad.max(marked.saturating_add(1));
+                }
+                let pad = pad.min(place.width);
                 ui.fill(
                     termrock::Rect {
                         x: origin.saturating_add(place.x),
@@ -5964,7 +5998,9 @@ fn with_footer_spans(
                 Span::new("Next").role(TAG_CHROME_FG),
             ]),
             Some(Tab::Table(table)) => {
-                paint_data_footer(table.filters.iter().any(|filter| filter.enabled), paint);
+                let filtered = table.filters.iter().any(|filter| filter.enabled);
+                // An active sort uses the shorter hint row so the sort label fits.
+                paint_data_footer(filtered && sort_footer(app).is_none(), paint);
             }
             Some(Tab::Query(_)) => paint(&[
                 Span::new(" "),
