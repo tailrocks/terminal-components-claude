@@ -951,6 +951,109 @@ class RunnerGuards(unittest.TestCase):
             (candidate / "actual" / "holla" / "scenario" / "frame.frame.json").write_bytes(b"cells-and-cursor-different")
             self.assertEqual(runner.exact_frame_differences(baseline, candidate), ["frame-bytes-differ:holla/scenario/frame.frame.json"])
 
+    def test_executable_cohort_registry_is_pinned_and_diagnostic_only(self) -> None:
+        repo = Path(runner.__file__).resolve().parent.parent
+        document = runner.load_executable_cohorts(repo)
+        cohort = document["cohorts"][0]
+        self.assertEqual(cohort["status"], runner.DIAGNOSTIC_COHORT_STATUS)
+        self.assertFalse(cohort["build"]["build_admitted"])
+        self.assertFalse(cohort["build"]["reference_frames_approved"])
+        with self.assertRaisesRegex(runner.RunnerError, "not eligible for baseline capture"):
+            runner.require_capture_eligible_cohort(cohort, Path("unused"))
+
+    def test_executable_cohort_schema_rejects_duplicate_unknown_and_bool_version(self) -> None:
+        repo = Path(runner.__file__).resolve().parent.parent
+        original = (repo / runner.EXECUTABLE_COHORTS).read_bytes()
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            path = root / runner.EXECUTABLE_COHORTS
+            path.parent.mkdir(parents=True)
+            for payload, error in (
+                (b'{"schema":"termrock.frozen-cli-build-cohorts","schema":"bad","schema_version":1,"cohorts":[]}', "duplicate executable cohort JSON field"),
+                (json.dumps({**json.loads(original), "unknown": True}).encode(), "fields differ from schema"),
+                (json.dumps({**json.loads(original), "schema_version": True}).encode(), "unsupported executable cohort registry schema"),
+            ):
+                path.write_bytes(payload)
+                with patch.object(runner, "EXECUTABLE_COHORTS_SHA256", runner.hashlib.sha256(payload).hexdigest()):
+                    with self.assertRaisesRegex(runner.RunnerError, error):
+                        runner.load_executable_cohorts(root)
+
+    def test_executable_cohort_boolean_claims_reject_integer_aliases(self) -> None:
+        repo = Path(runner.__file__).resolve().parent.parent
+        document = runner.load_executable_cohorts(repo)
+        for field, replacement in (("incremental", 0), ("stage_hashes_match", 1), ("build_admitted", 0), ("reference_frames_approved", 0)):
+            altered = json.loads(json.dumps(document))
+            altered["cohorts"][0]["build"][field] = replacement
+            with self.assertRaisesRegex(runner.RunnerError, "boolean type"):
+                runner.validate_executable_cohorts(altered)
+
+    def test_executable_cohort_rejects_mixed_hashes_and_invented_run_evidence(self) -> None:
+        repo = Path(runner.__file__).resolve().parent.parent
+        document = runner.load_executable_cohorts(repo)
+        for mutate, error in (
+            (lambda c: c["binaries"]["holla"].update({"sha256": "0" * 64}), "hashes differ"),
+            (lambda c: c["runs"][0].update({"complete_target_archive": True}), "archive/retry limitations"),
+            (lambda c: c["runs"].pop(), "exactly two complete run records"),
+            (lambda c: c["source"].update({"tag": "moving-tag"}), "source/tool pins changed"),
+        ):
+            altered = json.loads(json.dumps(document))
+            mutate(altered["cohorts"][0])
+            with self.assertRaisesRegex(runner.RunnerError, error):
+                runner.validate_executable_cohorts(altered)
+
+    def test_diagnostic_binary_check_rejects_symlinks_mismatch_and_path_escape(self) -> None:
+        repo = Path(runner.__file__).resolve().parent.parent
+        cohort = runner.load_executable_cohorts(repo)["cohorts"][0]
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            for name in runner.APPS:
+                (root / name).write_bytes(b"not-the-sealed-reference-binary")
+            with self.assertRaisesRegex(runner.RunnerError, "hash mismatch"):
+                runner.verify_diagnostic_cohort_binaries(cohort, root)
+            (root / "showcase").unlink()
+            (root / "showcase").symlink_to(root / "tablepro")
+            with self.assertRaisesRegex(runner.RunnerError, "private regular file"):
+                runner.verify_diagnostic_cohort_binaries(cohort, root)
+            altered = json.loads(json.dumps(cohort))
+            altered["binaries"]["showcase"]["path"] = "../showcase"
+            with self.assertRaisesRegex(runner.RunnerError, "hashes differ from the independently reproduced cohort"):
+                runner.verify_diagnostic_cohort_binaries(altered, root)
+
+    def test_diagnostic_binary_check_rejects_forged_hash_inventory(self) -> None:
+        repo = Path(runner.__file__).resolve().parent.parent
+        cohort = runner.load_executable_cohorts(repo)["cohorts"][0]
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            altered = json.loads(json.dumps(cohort))
+            for app in runner.APPS:
+                data = f"unrelated-{app}".encode()
+                (root / app).write_bytes(data)
+                altered["binaries"][app]["sha256"] = runner.hashlib.sha256(data).hexdigest()
+            with self.assertRaisesRegex(runner.RunnerError, "hashes differ from the independently reproduced cohort"):
+                runner.verify_diagnostic_cohort_binaries(altered, root)
+
+    def test_registry_hash_and_parse_use_one_pinned_file_read(self) -> None:
+        actual_path = Path(runner.__file__).resolve().parent.parent / runner.EXECUTABLE_COHORTS
+        original = actual_path.read_bytes()
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            path = root / runner.EXECUTABLE_COHORTS
+            path.parent.mkdir(parents=True)
+            path.write_bytes(original)
+
+            def replace_after_hash(target: Path) -> str:
+                digest = runner.hashlib.sha256(target.read_bytes()).hexdigest()
+                altered = json.loads(target.read_text())
+                altered["cohorts"][0]["status"] = "forged-status"
+                target.write_text(json.dumps(altered))
+                return digest
+
+            with patch.object(runner, "EXECUTABLE_COHORTS_SHA256", runner.hashlib.sha256(original).hexdigest()), patch.object(runner, "sha256", side_effect=replace_after_hash) as separate_hash:
+                loaded = runner.load_executable_cohorts(root)
+                separate_hash.assert_not_called()
+            self.assertEqual(loaded["cohorts"][0]["status"], runner.DIAGNOSTIC_COHORT_STATUS)
+            self.assertEqual(path.read_bytes(), original)
+
 
 if __name__ == "__main__":
     unittest.main()
