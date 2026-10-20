@@ -339,6 +339,33 @@ fn render(ui: &mut Ui) { for cell in FRAME_PIECES { ui.paint(cell.x, cell.y, cel
         self.assertTrue(any(":4 " in item for item in unsupported))
         self.assertTrue(any(":5 " in item for item in unsupported))
 
+    def test_valid_rust_literals_do_not_hide_following_include(self) -> None:
+        source = '''\
+const MULTILINE: &str = "first line
+second line";
+const ESCAPED_NEWLINE: &str = "first line\\
+    second line";
+const QUOTE: char = '"';
+const BYTE_QUOTE: u8 = b'"';
+const RAW: &str = r#"include!("not-real.inc")"#;
+fn borrow<'a>(value: &'a str) -> &'a str { value }
+include!("after_literals.inc");
+'''
+        write(self.root / "crates/termrock-core/src/lib.rs", source)
+        write(self.root / "crates/termrock-core/src/after_literals.inc", "// captured terminal frame after literals\n")
+        report = self.run_gate()
+        self.assertFalse(report["architecture_checks_passed"])
+        self.assertTrue(any(row["path"] == "crates/termrock-core/src/after_literals.inc" for row in report["source_inputs"]))
+        self.assertTrue(any(item["file"] == "crates/termrock-core/src/after_literals.inc" for item in report["findings"]))
+        self.assertFalse(any("Rust lexical uncertainty" in item for item in report["unaccounted_inputs"]))
+        self.assertFalse(any("not-real.inc" in item for item in report["errors"]))
+
+    def test_unterminated_string_reports_lexical_uncertainty(self) -> None:
+        write(self.root / "crates/termrock-core/src/lib.rs", 'const BROKEN: &str = "unterminated\ninclude!(hidden.inc);\n')
+        report = self.run_gate()
+        self.assertFalse(report["architecture_checks_passed"])
+        self.assertTrue(any("Rust lexical uncertainty prevents complete source scan" in item for item in report["unaccounted_inputs"]))
+
     def test_path_attribute_file_alias_into_target_is_unaccounted(self) -> None:
         crate = self.root / "crates/termrock-core"
         write(crate / "src/lib.rs", '#[path = "generated.rs"]\npub mod generated;\n')

@@ -59,8 +59,37 @@ def skip_rust_trivia(text: str, index: int) -> int | None:
     return index
 
 
-def rust_literal_end(text: str, index: int) -> int | None:
-    """Skip a Rust string or byte-string literal while searching macro heads."""
+def rust_char_literal_end(text: str, index: int) -> int | None:
+    """Return the end of a char/byte-char literal, leaving lifetimes untouched."""
+    quote = index + 1 if text.startswith("b'", index) else index
+    if quote >= len(text) or text[quote] != "'" or quote + 1 >= len(text):
+        return None
+    cursor = quote + 1
+    if text[cursor] in "\r\n":
+        return None
+    if text[cursor] == "\\":
+        cursor += 1
+        if cursor >= len(text):
+            return None
+        if text[cursor] == "u" and cursor + 1 < len(text) and text[cursor + 1] == "{":
+            close = text.find("}", cursor + 2)
+            if close < 0:
+                return None
+            cursor = close + 1
+        elif text[cursor] == "x":
+            cursor += 3
+        else:
+            cursor += 1
+    else:
+        cursor += 1
+    return cursor + 1 if cursor < len(text) and text[cursor] == "'" else None
+
+
+def rust_literal_end(text: str, index: int) -> tuple[int | None, bool]:
+    """Skip Rust string literals; flag malformed forms instead of hiding suffixes."""
+    char_end = rust_char_literal_end(text, index)
+    if char_end is not None:
+        return char_end, False
     raw_start = index
     if text.startswith("br", index):
         raw_start += 2
@@ -76,7 +105,7 @@ def rust_literal_end(text: str, index: int) -> int | None:
             hashes = marker - raw_start
             terminator = '"' + "#" * hashes
             end = text.find(terminator, marker + 1)
-            return len(text) if end < 0 else end + len(terminator)
+            return (None, True) if end < 0 else (end + len(terminator), False)
     quote_start = index + 1 if text.startswith("b\"", index) else index
     if quote_start < len(text) and text[quote_start] == '"':
         cursor = quote_start + 1
@@ -84,13 +113,11 @@ def rust_literal_end(text: str, index: int) -> int | None:
             if text[cursor] == "\\":
                 cursor += 2
             elif text[cursor] == '"':
-                return cursor + 1
-            elif text[cursor] in "\r\n":
-                return len(text)
+                return cursor + 1, False
             else:
                 cursor += 1
-        return len(text)
-    return None
+        return None, True
+    return None, False
 
 
 def include_invocations(text: str) -> list[tuple[str, int, str | None]]:
@@ -101,9 +128,15 @@ def include_invocations(text: str) -> list[tuple[str, int, str | None]]:
     while index < len(text):
         if text.startswith("//", index) or text.startswith("/*", index):
             next_index = skip_rust_trivia(text, index)
-            index = len(text) if next_index is None else next_index
+            if next_index is None:
+                found.append(("lexer", index, None))
+                break
+            index = next_index
             continue
-        literal_end = rust_literal_end(text, index)
+        literal_end, lexical_uncertainty = rust_literal_end(text, index)
+        if lexical_uncertainty:
+            found.append(("lexer", index, None))
+            break
         if literal_end is not None:
             index = literal_end
             continue
@@ -570,9 +603,12 @@ def check(root: Path) -> dict[str, Any]:
         for kind, offset, literal in references:
             line = text.count("\n", 0, offset) + 1
             if literal is None:
-                report["unaccounted_inputs"].append(
-                    f"dynamic include path cannot be enumerated or invocation syntax is unsupported: {rel}:{line} ({kind})"
-                )
+                if kind == "lexer":
+                    report["unaccounted_inputs"].append(f"Rust lexical uncertainty prevents complete source scan: {rel}:{line}")
+                else:
+                    report["unaccounted_inputs"].append(
+                        f"dynamic include path cannot be enumerated or invocation syntax is unsupported: {rel}:{line} ({kind})"
+                    )
                 continue
             referenced = (root / rel).parent / literal
             resolved = referenced.resolve(strict=False)
