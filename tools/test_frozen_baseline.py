@@ -904,6 +904,122 @@ class RunnerGuards(unittest.TestCase):
             with self.assertRaisesRegex(runner.RunnerError, "externally retained creation digest"):
                 original_reader(path, report["creation_file_sha256"])
 
+    def test_fresh_run_prepared_manifest_is_authenticated_and_nonaccepting(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp) / "runner-root"
+            root.mkdir()
+            plan = self._fresh_plan_fixture(root)
+            plan_path = root / runner.FRESH_PLAN_FILE
+            creation_digest = runner._atomic_create_plan(plan_path, plan)
+            key_path = Path(temp) / "private-custody" / "run.key"
+            with patch.object(runner, "verify_fresh_plan", return_value=plan), patch.object(runner, "paths", return_value=(Path(temp) / "repo", root, root / "source")):
+                manifest = runner.create_fresh_run(Path(temp) / "repo", root, "fixture-cohort", root / "bins", 30, creation_digest, key_path)
+                self.assertFalse(manifest["executed"])
+                self.assertFalse(manifest["candidate_comparison_eligible"])
+                self.assertFalse(manifest["product_acceptance"])
+                self.assertEqual(manifest["checkpoint_reference_approval"], "none")
+                self.assertEqual(key_path.stat().st_mode & 0o777, 0o600)
+                key = key_path.read_bytes()
+                self.assertEqual(len(key), 32)
+                self.assertNotIn(key.hex(), (root / "fresh-runs" / plan["plan_id"] / runner.FRESH_RUN_MANIFEST_FILE).read_text())
+                verified = runner.verify_fresh_run(Path(temp) / "repo", root, "fixture-cohort", root / "bins", 30, creation_digest, key_path)
+                self.assertEqual(verified, manifest)
+                with self.assertRaisesRegex(runner.RunnerError, "already exists"):
+                    runner.create_fresh_run(Path(temp) / "repo", root, "fixture-cohort", root / "bins", 30, creation_digest, key_path)
+
+    def test_fresh_run_rejects_tampered_stale_or_untrusted_metadata(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp) / "runner-root"
+            root.mkdir()
+            plan = self._fresh_plan_fixture(root)
+            creation_digest = runner._atomic_create_plan(root / runner.FRESH_PLAN_FILE, plan)
+            key_path = Path(temp) / "custody" / "run.key"
+            with patch.object(runner, "verify_fresh_plan", return_value=plan), patch.object(runner, "paths", return_value=(Path(temp) / "repo", root, root / "source")):
+                runner.create_fresh_run(Path(temp) / "repo", root, "fixture-cohort", root / "bins", 30, creation_digest, key_path)
+                manifest_path = root / "fresh-runs" / plan["plan_id"] / runner.FRESH_RUN_MANIFEST_FILE
+                original = manifest_path.read_bytes()
+                envelope = json.loads(original)
+                envelope["manifest"]["executed"] = True
+                manifest_path.chmod(0o600)
+                manifest_path.write_bytes(runner.canonical_receipt_json(envelope))
+                with self.assertRaisesRegex(runner.RunnerError, "authentication failed"):
+                    runner.verify_fresh_run(Path(temp) / "repo", root, "fixture-cohort", root / "bins", 30, creation_digest, key_path)
+                manifest_path.write_bytes(original)
+                with self.assertRaisesRegex(runner.RunnerError, "externally retained creation digest"):
+                    with patch.object(runner, "verify_fresh_plan", side_effect=runner.RunnerError("fresh plan does not match externally retained creation digest")):
+                        runner.verify_fresh_run(Path(temp) / "repo", root, "fixture-cohort", root / "bins", 30, "0" * 64, key_path)
+                wrong_key = Path(temp) / "custody" / "wrong.key"
+                wrong_key.write_bytes(b"x" * 32)
+                wrong_key.chmod(0o600)
+                with self.assertRaisesRegex(runner.RunnerError, "authentication failed"):
+                    runner.verify_fresh_run(Path(temp) / "repo", root, "fixture-cohort", root / "bins", 30, creation_digest, wrong_key)
+                alias = Path(temp) / "custody" / "key-link"
+                alias.symlink_to(key_path)
+                with self.assertRaisesRegex(runner.RunnerError, "private 0600 regular file"):
+                    runner.verify_fresh_run(Path(temp) / "repo", root, "fixture-cohort", root / "bins", 30, creation_digest, alias)
+
+    def test_fresh_run_key_cannot_live_inside_source_or_artifact_roots(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp) / "runner-root"
+            root.mkdir()
+            plan = self._fresh_plan_fixture(root)
+            digest = runner._atomic_create_plan(root / runner.FRESH_PLAN_FILE, plan)
+            with patch.object(runner, "verify_fresh_plan", return_value=plan), patch.object(runner, "paths", return_value=(Path(temp) / "repo", root, root / "source")):
+                for key_path in (root / "private.key", Path(plan["source"]["source_path"]) / "private.key", Path(plan["execution"]["artifact_roots"]["run_root"]) / "private.key"):
+                    with self.subTest(key_path=key_path), self.assertRaisesRegex(runner.RunnerError, "outside Git, source, binaries"):
+                        runner.create_fresh_run(Path(temp) / "repo", root, "fixture-cohort", root / "bins", 30, digest, key_path)
+
+    def test_fresh_run_journal_requires_ordered_authenticated_nonzero_complete_prefix(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp) / "runner-root"
+            root.mkdir()
+            plan = self._fresh_plan_fixture(root)
+            creation_digest = runner._atomic_create_plan(root / runner.FRESH_PLAN_FILE, plan)
+            key_path = Path(temp) / "custody" / "run.key"
+            with patch.object(runner, "verify_fresh_plan", return_value=plan), patch.object(runner, "paths", return_value=(Path(temp) / "repo", root, root / "source")):
+                manifest = runner.create_fresh_run(Path(temp) / "repo", root, "fixture-cohort", root / "bins", 30, creation_digest, key_path)
+            key = key_path.read_bytes()
+            planned = [
+                {"phase": "baseline-capture", "chunk": 0, "selected_cases": ["showcase::pages::fixture::80x24::truecolor"]},
+                {"phase": "baseline-replay", "chunk": 0, "selected_cases": ["showcase::pages::fixture::80x24::truecolor"]},
+                {"phase": "baseline-ordinary-checks", "chunk": 0, "selected_cases": ["source_only::fixture"]},
+            ]
+            def signed(step: dict[str, object], ordinal: int, previous: str | None, **changes: object) -> dict[str, object]:
+                receipt = {
+                    "schema": "termrock.frozen-cli-fresh-run-receipt-v1", "ordinal": ordinal,
+                    **step, "status": "passed", "checkpoint_count": 1 if step["phase"] != "baseline-ordinary-checks" else 0,
+                    "ordinary_check_count": 1 if step["phase"] == "baseline-ordinary-checks" else 0,
+                    "run_id": manifest["run_id"], "plan_creation_sha256": creation_digest,
+                    "plan_self_sha256": plan["plan_sha256"], "cohort_id": manifest["cohort_id"],
+                    "binary_hashes": manifest["binary_hashes"], "source_sha256": manifest["source"]["source_sha256"],
+                    "runtime_sha256": runner.canonical_json_digest(manifest["runtime"]), "previous_receipt_sha256": previous,
+                }
+                receipt.update(changes)
+                return {"receipt": receipt, "hmac_sha256": runner.hmac.new(key, runner.canonical_receipt_json(receipt), runner.hashlib.sha256).hexdigest()}
+            first = signed(planned[0], 0, None)
+            first_digest = runner.hashlib.sha256(runner.canonical_receipt_json(first)).hexdigest()
+            second = signed(planned[1], 1, first_digest)
+            second_digest = runner.hashlib.sha256(runner.canonical_receipt_json(second)).hexdigest()
+            third = signed(planned[2], 2, second_digest)
+            prefix = runner.validate_fresh_run_journal([first], key, manifest, planned)
+            self.assertFalse(prefix["complete"])
+            self.assertFalse(prefix["candidate_comparison_eligible"])
+            complete = runner.validate_fresh_run_journal([first, second, third], key, manifest, planned)
+            self.assertTrue(complete["complete"])
+            for bad in (
+                [second, first, third],
+                [first, first, third],
+                [first, third],
+                [first, second, third, third],
+                [{"receipt": first["receipt"], "hmac_sha256": "0" * 64}],
+                [signed(planned[0], 0, None, status="skipped")],
+                [signed(planned[0], 0, None, checkpoint_count=0)],
+                [signed(planned[0], 0, None, run_id="stale-run")],
+                [signed(planned[0], 1, None)],
+            ):
+                with self.subTest(bad=bad), self.assertRaises(runner.RunnerError):
+                    runner.validate_fresh_run_journal(bad, key, manifest, planned)
+
     def test_fresh_prepare_mode_does_not_consult_legacy_build_or_tuple_approval(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
