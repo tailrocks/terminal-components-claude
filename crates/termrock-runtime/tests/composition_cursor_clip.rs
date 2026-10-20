@@ -46,7 +46,7 @@ impl App for Page {
                 })
                 .overflow(OverflowPolicy::PreserveMinimum),
         );
-        ui.compose(&slots);
+        ui.compose(&slots).expect("valid composition");
     }
 }
 

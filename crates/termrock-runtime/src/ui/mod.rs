@@ -16,7 +16,7 @@ use cx::LastFrame;
 pub use cx::{Cx, FrameRead, LayoutFacts};
 use derived::{DerivedCache, ReferenceCacheKey};
 use layer_buf::LayerPool;
-pub use slot::{CompositionSlots, ContentSlot};
+pub use slot::{CompositionError, CompositionSlots, ContentSlot, MAX_COMPOSITION_DEPTH};
 
 use crate::action::ActionKey;
 use crate::cursor::CursorRequest;
