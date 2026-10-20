@@ -611,7 +611,7 @@ mod tests {
     }
 
     #[test]
-    fn button_focus_gutter_uses_focused_state_and_container_surface() {
+    fn button_focus_gutter_uses_focus_visible_state_and_container_surface() {
         let theme = Theme::junie();
         let mut runtime = Runtime::new(Stub::default(), theme);
         let mut buffer = Buffer::empty(AREA);
@@ -620,7 +620,7 @@ mod tests {
                 ui.reference(
                     Some(crate::ReferenceTarget::new(
                         BUTTON,
-                        crate::ReferenceState::FOCUSED,
+                        crate::ReferenceState::FOCUSED | crate::ReferenceState::FOCUS_VISIBLE,
                     )),
                     |ui| Button::new(BUTTON, "Go").draw(ui, area),
                 );
