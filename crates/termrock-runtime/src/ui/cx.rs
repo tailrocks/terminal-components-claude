@@ -12,8 +12,8 @@ use crate::id::{Id, PartRef};
 use crate::intent::{IntentIter, IntentQueue};
 use crate::keymap::{BindingRegistry, KeyMap};
 use crate::layer::{
-    Anchor, DismissReason, FocusContinuationOutcome, LayerCompletion, LayerEvent, LayerId,
-    LayerOpening, LayerSize, LayerSpec, LayerStack,
+    Anchor, DismissReason, FocusContinuationOutcome, LayerCompletion, LayerEvent,
+    LayerEventReceipt, LayerId, LayerOpening, LayerSize, LayerSpec, LayerStack, UpdateToken,
 };
 use crate::response::StateFlags;
 use crate::runtime::UpdateCause;
@@ -152,7 +152,8 @@ pub struct FrameServices {
     pub(crate) viewport: Rect,
     pub(crate) layers: LayerStack,
     pub(crate) capture: CaptureSlot,
-    pub(crate) events: Vec<(Id, LayerEvent)>,
+    pub(crate) events: Vec<LayerEventReceipt>,
+    pub(crate) callback_serial: u64,
     pub(crate) focus_request: Option<Id>,
     pub(crate) initial_focus_layer: Option<LayerId>,
     pub(crate) deferred_focus: Option<DeferredFocus>,
@@ -192,6 +193,7 @@ pub struct Cx<'f> {
     command: Option<ActionKey>,
     update_cause: UpdateCause,
     activation_key: Option<crate::runtime::ActivationKey>,
+    update_token: UpdateToken,
 }
 
 impl core::fmt::Debug for Cx<'_> {
@@ -244,6 +246,11 @@ impl<'f> Cx<'f> {
         command: Option<ActionKey>,
         update_cause: UpdateCause,
     ) -> Self {
+        services.callback_serial = services
+            .callback_serial
+            .checked_add(1)
+            .expect("runtime callback token exhausted");
+        let update_token = UpdateToken::new(services.runtime_id, services.callback_serial);
         let cache = &mut core.cache;
         let keymap = &core.keymap;
         Cx {
@@ -256,6 +263,7 @@ impl<'f> Cx<'f> {
             command,
             update_cause,
             activation_key: None,
+            update_token,
         }
     }
 
@@ -726,7 +734,10 @@ impl<'f> Cx<'f> {
             Some(k) => LayerEvent::Closed(k),
             None => LayerEvent::Dismissed(DismissReason::Programmatic),
         };
-        let closed = self.services.layers.close(id, ev);
+        let closed = self
+            .services
+            .layers
+            .close_with_update(id, ev, Some(self.update_token));
         if !closed.is_empty() {
             self.services.reset_pointer_clicks = true;
             self.services.direct_closed_layers.push(closed[0]);
@@ -742,8 +753,27 @@ impl<'f> Cx<'f> {
     }
 
     pub fn layer_event(&mut self, id: Id) -> Option<LayerEvent> {
-        let pos = self.services.events.iter().position(|(i, _)| *i == id)?;
-        Some(self.services.events.remove(pos).1)
+        let pos = self
+            .services
+            .events
+            .iter()
+            .position(|receipt| receipt.opening().id() == id)?;
+        Some(self.services.events.remove(pos).event())
+    }
+
+    /// Takes the next pending event receipt for this component's exact layer id.
+    pub fn layer_event_receipt(&mut self, id: Id) -> Option<LayerEventReceipt> {
+        let pos = self
+            .services
+            .events
+            .iter()
+            .position(|receipt| receipt.opening().id() == id)?;
+        Some(self.services.events.remove(pos))
+    }
+
+    /// Returns the opaque identity of this application update callback.
+    pub const fn update_token(&self) -> UpdateToken {
+        self.update_token
     }
 
     pub fn top_layer(&self) -> LayerId {

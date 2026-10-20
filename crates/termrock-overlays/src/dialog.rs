@@ -8,7 +8,7 @@ use crate::event::{Chord, KeyCode};
 use crate::id::{Id, Part, PartRef};
 use crate::intent::Intent;
 use crate::keymap::{Binding, BindingState, Bindings};
-use crate::layer::{DismissReason, LayerEvent, LayerSize, LayerSpec};
+use crate::layer::{DismissReason, LayerEvent, LayerOpening, LayerSize, LayerSpec, UpdateToken};
 use crate::layout::RowAlign;
 use crate::measure::{Constraints, Size};
 use crate::response::{Response, StateFlags};
@@ -94,7 +94,7 @@ pub struct DialogState {
     input: TextInputState,
     draft: String,
     ack_draft: Secret,
-    action_close_pending: bool,
+    action_close: Option<(LayerOpening, UpdateToken)>,
 }
 
 impl Clone for DialogState {
@@ -107,7 +107,7 @@ impl Clone for DialogState {
                 self.draft.clone()
             },
             ack_draft: Secret::new(redacted_text(self.ack_draft.expose())),
-            action_close_pending: self.action_close_pending,
+            action_close: self.action_close,
         }
     }
 }
@@ -120,7 +120,7 @@ impl PartialEq for DialogState {
             } else {
                 self.draft == other.draft
             }
-            && self.action_close_pending == other.action_close_pending
+            && self.action_close == other.action_close
     }
 }
 
@@ -132,7 +132,7 @@ impl fmt::Debug for DialogState {
             .field("input", &self.input)
             .field("draft", &"[redacted]")
             .field("ack_draft", &"[redacted]")
-            .field("action_close_pending", &self.action_close_pending)
+            .field("action_close", &self.action_close)
             .finish()
     }
 }
@@ -154,7 +154,7 @@ impl DialogState {
         self.input.zeroize();
         zeroize_string(&mut self.draft);
         self.ack_draft.zeroize();
-        self.action_close_pending = false;
+        self.action_close = None;
     }
 
     fn set_secret_mode(&mut self, secret: bool) {
@@ -524,10 +524,7 @@ impl<'a> Dialog<'a> {
 
     pub fn update(&self, cx: &mut Cx<'_>, st: &mut DialogState) -> Response<DialogAction> {
         let layer_open = cx.is_open(self.id);
-        // An action may close and reopen this same id before its queued close
-        // event is delivered. Keep the one-update receipt until that event is
-        // classified; if no close arrived, it expires at this update boundary.
-        let action_close_pending = core::mem::take(&mut st.action_close_pending);
+        let action_close = st.action_close.take();
         let d = cx.design();
         let action_widths = self.action_widths(cx);
         let viewport_width = cx.viewport().width;
@@ -549,14 +546,25 @@ impl<'a> Dialog<'a> {
         for it in cx.intents(self.id) {
             match it {
                 Intent::Layer(LayerEvent::Dismissed(r)) => {
-                    if r == DismissReason::Programmatic && action_close_pending {
+                    let receipt = cx.layer_event_receipt(self.id);
+                    if r == DismissReason::Programmatic
+                        && action_close.is_some_and(|action_close| {
+                            receipt.is_some_and(|receipt| {
+                                receipt.update().map(|update| (receipt.opening(), update))
+                                    == Some(action_close)
+                            })
+                        })
+                    {
                         dismissed_after_action = true;
                     } else {
                         dismissal.get_or_insert(r);
                     }
                 }
 
-                Intent::Layer(_) => acc.repaint(),
+                Intent::Layer(_) => {
+                    let _ = cx.layer_event_receipt(self.id);
+                    acc.repaint();
+                }
                 Intent::Cancel => cancelled = true,
                 _ => {}
             }
@@ -651,7 +659,11 @@ impl<'a> Dialog<'a> {
         if action_fired && self.ack.is_some() {
             st.zeroize();
         }
-        st.action_close_pending |= action_fired;
+        if action_fired {
+            st.action_close = cx
+                .layer_opening(self.id)
+                .map(|opening| (opening, cx.update_token()));
+        }
         acc.finish(self.id)
     }
 
@@ -1145,6 +1157,7 @@ mod tests {
     use termrock_test_support::Harness;
 
     const DLG: Id = Id::root("dialog.tests");
+    const PARENT: Id = Id::root("dialog.tests.parent");
     const BODY: Id = Id::root("dialog.tests.body");
     const TOKEN: &str = "delete";
     const REMAPPED_ACTIONS: [Action<'static>; 2] = [
@@ -2067,6 +2080,9 @@ mod tests {
             close_programmatically: bool,
             close_after_action: bool,
             reopen_after_action: bool,
+            close_reopened_after_action: bool,
+            close_parent: bool,
+            parented: bool,
             dismiss: Dismiss,
             actions: Vec<DialogAction>,
         }
@@ -2091,6 +2107,9 @@ mod tests {
             fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
                 if !self.opened {
                     self.opened = true;
+                    if self.parented {
+                        cx.open_layer(PARENT, LayerSpec::modal(PARENT));
+                    }
                     let dialog = self.dialog();
                     cx.open_layer(DLG, dialog.layer(cx).dismiss(self.dismiss));
                     if self.acknowledgement {
@@ -2102,6 +2121,11 @@ mod tests {
                     self.close_programmatically = false;
                     cx.close_layer(DLG, None);
                 }
+                if self.close_parent {
+                    self.close_parent = false;
+                    cx.close_layer(PARENT, None);
+                }
+                for _ in cx.intents(PARENT) {}
                 let response = self.dialog().update(cx, &mut self.state);
                 if let Some(action) = response.action_ref() {
                     self.actions.push(*action);
@@ -2112,6 +2136,10 @@ mod tests {
                             self.reopen_after_action = false;
                             let dialog = self.dialog();
                             cx.open_layer(DLG, dialog.layer(cx).dismiss(self.dismiss));
+                            if self.close_reopened_after_action {
+                                self.close_reopened_after_action = false;
+                                cx.close_layer(DLG, None);
+                            }
                         }
                     }
                 }
@@ -2168,6 +2196,26 @@ mod tests {
         let _ = harness.key(KeyCode::Esc);
         assert!(harness.runtime().is_open(DLG));
         assert!(harness.app().actions.is_empty());
+
+        let app = DialogApp {
+            parented: true,
+            acknowledgement: true,
+            ..DialogApp::default()
+        };
+        let mut harness = Harness::new(app, Theme::junie(), 80, 24);
+        let _ = harness.handle(Input::Tick);
+        assert!(harness.runtime().is_open(PARENT));
+        assert!(harness.runtime().is_open(DLG));
+        harness.app_mut().close_parent = true;
+        let _ = harness.handle(Input::Tick);
+        let _ = harness.handle(Input::Tick);
+        assert!(!harness.runtime().is_open(DLG));
+        assert_eq!(
+            harness.app().actions,
+            vec![DialogAction::Action(ActionKey::CANCEL)],
+            "a cascaded close without an action receipt still resolves to Cancel"
+        );
+        assert!(harness.app().state.ack_draft.expose().is_empty());
 
         let app = DialogApp {
             race: true,
@@ -2227,6 +2275,49 @@ mod tests {
             "the previous generation's queued programmatic close is not a new cancel"
         );
         assert!(harness.runtime().is_open(DLG));
+
+        let app = DialogApp {
+            close_after_action: true,
+            reopen_after_action: true,
+            close_reopened_after_action: true,
+            ..DialogApp::default()
+        };
+        let mut harness = Harness::new(app, Theme::junie(), 80, 24);
+        let _ = harness.handle(Input::Tick);
+        let confirm_id = harness.app().dialog().action_id(1);
+        harness.runtime_mut().set_focus(Some(confirm_id));
+        harness.draw();
+        let _ = harness.key(KeyCode::Enter);
+        let _ = harness.handle(Input::Tick);
+        let reopened_actions = harness.app().actions.clone();
+        let reopened_is_open = harness.runtime().is_open(DLG);
+
+        let app = DialogApp::default();
+        let mut harness = Harness::new(app, Theme::junie(), 80, 24);
+        let _ = harness.handle(Input::Tick);
+        let confirm_id = harness.app().dialog().action_id(1);
+        harness.runtime_mut().set_focus(Some(confirm_id));
+        harness.draw();
+        let _ = harness.key(KeyCode::Enter);
+        harness.app_mut().close_programmatically = true;
+        let _ = harness.handle(Input::Tick);
+        let later_close_actions = harness.app().actions.clone();
+
+        assert_eq!(
+            (reopened_actions, reopened_is_open, later_close_actions,),
+            (
+                vec![
+                    DialogAction::Action(ActionKey::CONFIRM),
+                    DialogAction::Action(ActionKey::CANCEL),
+                ],
+                false,
+                vec![
+                    DialogAction::Action(ActionKey::CONFIRM),
+                    DialogAction::Action(ActionKey::CANCEL),
+                ],
+            ),
+            "only a close of the action's exact opening during that update is suppressed"
+        );
 
         // An action that leaves its layer open only suppresses the immediate
         // close receipt window. A later programmatic dismissal remains real.
