@@ -90,3 +90,22 @@ fn ctrl_g_opens_tabs_for_another_connection_and_size() {
         harness.text()
     );
 }
+
+#[test]
+fn ctrl_l_renders_the_safe_mode_picker_through_its_layer_slot() {
+    let mut harness = Harness::new(production(), Theme::junie(), 120, 40);
+    let _ = harness.ctrl('l');
+    assert!(harness.is_open(crate::safe_mode::ID));
+    assert!(
+        harness.text().contains("Safe Mode · this connection"),
+        "text={}",
+        harness.text()
+    );
+    assert!(
+        harness
+            .text()
+            .contains("↑↓ Move · Enter Set level · Esc Keep"),
+        "text={}",
+        harness.text()
+    );
+}
