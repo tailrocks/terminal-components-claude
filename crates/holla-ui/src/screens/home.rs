@@ -278,6 +278,12 @@ impl HomeState {
             return;
         }
         if let Some(view) =
+            catalogue::monorepo_child_80x24_plate(world, ui.full().width, ui.full().height)
+            && paint_first_use_80x24(ui, rows_area, &view)
+        {
+            return;
+        }
+        if let Some(view) =
             catalogue::docker_cleanup_80x24_plate(world, ui.full().width, ui.full().height)
             && paint_first_use_80x24(ui, rows_area, &view)
         {
@@ -722,12 +728,14 @@ fn paint_first_use_80x24(ui: &mut Ui<'_>, area: Rect, view: &catalogue::ParityDi
             _ => None,
         })
         .collect();
-    let cols = tag_columns(&rows, area.width.saturating_sub(4));
     let footer_y = area.bottom().saturating_sub(1);
     // Short lists never reach this row. A longer list clips here instead of covering it.
     let gap_y = footer_y.saturating_sub(1);
     let slots = usize::from(gap_y.saturating_sub(area.y));
     let overflow = slots > 0 && view.lines.len() > slots;
+    // The thumb owns the last column. Leave the cell before it blank, so a truncated reason stops one earlier.
+    let content_w = area.width.saturating_sub(if overflow { 5 } else { 4 });
+    let cols = tag_columns(&rows, content_w);
     let shown = if overflow { slots } else { view.lines.len() };
     let mut y = area.y;
     for (index, line) in view.lines.iter().enumerate().take(shown) {
