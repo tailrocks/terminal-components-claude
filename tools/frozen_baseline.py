@@ -3205,6 +3205,26 @@ def _verify_fresh_journal_artifacts(plan: dict[str, object], envelopes: list[obj
             raise RunnerError("fresh run immutable expected frame chunk changed")
 
 
+def _verify_fresh_staged_chunk(plan: dict[str, object], envelope: dict[str, object], stage: Path) -> None:
+    """Validate a frozen attempt before publishing its directory under the final chunk name."""
+    receipt = envelope["receipt"]
+    if stage.is_symlink() or not stage.is_dir():
+        raise RunnerError("fresh run staged chunk is missing or unsafe")
+    if _fresh_expected_tree_sha256(stage) != receipt["committed_chunk_sha256"]:
+        raise RunnerError("fresh run staged chunk changed before publication")
+    phase = receipt["phase"]
+    chunk = receipt["chunk"]
+    if phase == "baseline-capture":
+        expected_root = stage / "expected"
+    elif phase == "baseline-replay":
+        capture_root = Path(plan["execution"]["artifact_roots"]["baseline_capture"])
+        expected_root = capture_root / f"chunk-{chunk:05}" / "expected"
+    else:
+        raise RunnerError("fresh run staged chunk has an unsupported phase")
+    if _fresh_expected_tree_sha256(expected_root) != receipt["expected_chunk_sha256"]:
+        raise RunnerError("fresh run staged chunk expected frames changed before publication")
+
+
 def _fresh_journal_append(run_root: Path, envelope: dict[str, object], ordinal: int) -> Path:
     journal = run_root / "journal"
     try:
@@ -3255,6 +3275,9 @@ def advance_fresh_run(repo: Path, root: Path, cohort_id: str, baseline_bin_dir: 
     run_root = root / "fresh-runs" / str(plan["plan_id"])
     lock_fd = _fresh_run_lock(run_root)
     stage: Path | None = None
+    attempt_path: Path | None = None
+    final_chunk: Path | None = None
+    chunk_published = False
     deadline = time.monotonic() + timeout
 
     def remaining() -> int:
@@ -3264,11 +3287,18 @@ def advance_fresh_run(repo: Path, root: Path, cohort_id: str, baseline_bin_dir: 
         return seconds
 
     try:
+        failed_publications = run_root / "failed-attempts"
+        if failed_publications.exists() or failed_publications.is_symlink():
+            if failed_publications.is_symlink() or not failed_publications.is_dir():
+                raise RunnerError("fresh run failed-publication evidence path is unsafe")
+            if any(failed_publications.iterdir()):
+                raise RunnerError("fresh run has an unresolved post-publication failure; verify the committed ordinal before resuming")
         manifest = verify_fresh_run(repo, root, cohort_id, baseline_bin_dir, remaining(), expected_plan_sha256, key_path)
         manifest_envelope, _ = _read_stable_json(run_root / FRESH_RUN_MANIFEST_FILE, "fresh run manifest")
         key, _key_identity, _key_path = _stable_secret_key(key_path.absolute())
         envelopes = _fresh_journal_envelopes(run_root)
         prefix = validate_fresh_run_journal(envelopes, key, manifest_envelope, plan_path, expected_plan_sha256)
+        _verify_fresh_journal_artifacts(plan, envelopes)
         planned = _fresh_plan_steps(plan)
         ordinal = prefix["completed_steps"]
         if ordinal >= len(planned):
@@ -3296,6 +3326,7 @@ def advance_fresh_run(repo: Path, root: Path, cohort_id: str, baseline_bin_dir: 
         if final_chunk.exists() or final_chunk.is_symlink():
             raise RunnerError("fresh run chunk output already exists without a matching journal receipt")
         stage = phase_root / f".attempt-{ordinal:08}-{secrets.token_hex(8)}"
+        attempt_path = stage
         stage.mkdir(mode=0o700, exist_ok=False)
         live, _live_record = verify_live_source(repo, root, root / "source", remaining(), fresh_cohort_id=cohort_id, baseline_bin_dir=baseline_bin_dir)
         binary_hashes = phase_binary_hashes(baseline_bin_dir)
@@ -3362,21 +3393,60 @@ def advance_fresh_run(repo: Path, root: Path, cohort_id: str, baseline_bin_dir: 
         remaining()
         envelope = {"receipt": receipt, "hmac_sha256": hmac.new(key, canonical_receipt_json(receipt), hashlib.sha256).hexdigest()}
         summary = validate_fresh_run_journal([*envelopes, envelope], key, manifest_envelope, plan_path, expected_plan_sha256)
+        _verify_fresh_staged_chunk(plan, envelope, stage)
+        chunk_published = True
         os.rename(stage, final_chunk)
-        stage = None
         _verify_fresh_journal_artifacts(plan, [*envelopes, envelope])
         remaining()
-        _fresh_journal_append(run_root, envelope, ordinal)
+        try:
+            _fresh_journal_append(run_root, envelope, ordinal)
+        except Exception as append_error:
+            receipt_path = run_root / "journal" / f"step-{ordinal:08}.json"
+            if not receipt_path.exists() and not receipt_path.is_symlink():
+                raise
+            published_envelope, _raw = _read_stable_json(receipt_path, "fresh run journal receipt")
+            if published_envelope != envelope:
+                raise RunnerError("fresh run append failed after a different immutable receipt was published")
+            summary = validate_fresh_run_journal([*envelopes, published_envelope], key, manifest_envelope, plan_path, expected_plan_sha256)
+            _verify_fresh_journal_artifacts(plan, [*envelopes, published_envelope])
+            raise RunnerError(f"journal append raised after immutable ordinal {ordinal} was published; its evidence is preserved and requires verified resume: {append_error}") from append_error
+        stage = None
+        chunk_published = False
         output = {"run_id": manifest["run_id"], "phase": phase, "chunk": chunk_index, "selected_cases": selected, "checkpoint_count": result["checkpoint_count"], "expected_chunk_sha256": expected_chunk_hash, "journal_ordinal": ordinal, "visual_capture_replay_complete": summary["visual_capture_replay_complete"], "complete": False, "candidate_comparison_eligible": False, "checkpoint_reference_approval": "none", "product_acceptance": False}
         print(json.dumps(output, indent=2))
         return output
     except Exception as error:
-        if stage is not None and stage.exists():
-            failure_path = stage / "untrusted-failure.json"
+        if chunk_published and final_chunk is not None and final_chunk.exists() and final_chunk.is_dir():
+            receipt_path = run_root / "journal" / f"step-{ordinal:08}.json"
+            if not receipt_path.exists() and not receipt_path.is_symlink() and attempt_path is not None and not attempt_path.exists():
+                try:
+                    os.rename(final_chunk, attempt_path)
+                    stage = attempt_path
+                    chunk_published = False
+                except OSError as rollback_error:
+                    error = RunnerError(f"{error}; failed to restore unreceipted chunk to its attempt directory: {rollback_error}")
+        if stage is not None and stage.exists() and stage.is_dir() and not stage.is_symlink():
             try:
-                _atomic_create_bytes(failure_path, canonical_receipt_json({"status": "untrusted-failed-attempt", "error": str(error), "timestamp_utc": datetime.now(timezone.utc).isoformat()}))
-            except (OSError, RunnerError):
-                pass
+                stage_info = stage.lstat()
+                if stage_info.st_uid != os.geteuid():
+                    raise RunnerError("fresh run failed attempt is not owned by this user")
+                original_mode = stat.S_IMODE(stage_info.st_mode)
+                if not (stage_info.st_mode & 0o200):
+                    stage.chmod(0o700)
+                failure = {"status": "untrusted-failed-attempt", "error": str(error), "timestamp_utc": datetime.now(timezone.utc).isoformat(), "attempt_root_original_mode": f"{original_mode:04o}", "attempt_root_mode_for_marker": f"{stat.S_IMODE(stage.lstat().st_mode):04o}"}
+                _atomic_create_bytes(stage / "untrusted-failure.json", canonical_receipt_json(failure))
+            except (OSError, RunnerError) as marker_error:
+                raise RunnerError(f"{error}; failed to preserve untrusted attempt evidence: {marker_error}") from error
+        elif chunk_published:
+            failure_root = run_root / "failed-attempts"
+            try:
+                failure_root.mkdir(mode=0o700, exist_ok=True)
+                failure_info = failure_root.lstat()
+                if stat.S_ISLNK(failure_info.st_mode) or not stat.S_ISDIR(failure_info.st_mode) or failure_info.st_uid != os.geteuid() or stat.S_IMODE(failure_info.st_mode) != 0o700:
+                    raise RunnerError("fresh run failure evidence directory is unsafe")
+                _atomic_create_bytes(failure_root / f"ordinal-{ordinal:08}-{secrets.token_hex(8)}.json", canonical_receipt_json({"status": "untrusted-failed-publication", "error": str(error), "timestamp_utc": datetime.now(timezone.utc).isoformat()}))
+            except (OSError, RunnerError) as marker_error:
+                raise RunnerError(f"{error}; failed to preserve publication failure evidence: {marker_error}") from error
         raise
     finally:
         fcntl.flock(lock_fd, fcntl.LOCK_UN)
