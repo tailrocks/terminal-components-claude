@@ -243,6 +243,7 @@ const CAPSULE_COMMANDS: &[Item<'static>] = &[
 const TICK_MS: u64 = crate::rain::TICK_MS;
 
 mod historical_accounts_add_form;
+mod historical_accounts_filter;
 mod historical_capsule_split_vertical;
 mod historical_capsule_zoom;
 mod historical_cockpit_debug;
@@ -3283,6 +3284,9 @@ impl App {
             let cancelled = filter
                 .action_ref()
                 .is_some_and(|action| *action == TextAction::Cancelled);
+            let committed = filter
+                .action_ref()
+                .is_some_and(|action| *action == TextAction::Committed);
             let mut result = filter.erase();
 
             if let Some(draft) = self.accounts.filter_input.draft_text()
@@ -3290,6 +3294,12 @@ impl App {
             {
                 self.accounts.filter_query = draft.to_owned();
                 self.reconcile_filtered_account();
+                result |= Response::changed();
+            }
+            if committed {
+                // Enter leaves the query. The approved filter frame has no caret,
+                // so focus must leave the field before draw.
+                cx.focus(ACCOUNTS_LIST);
                 result |= Response::changed();
             }
             if cancelled {
@@ -6932,6 +6942,46 @@ impl App {
         ui.set_bar_cursor(crate::screens::accounts::START, Position::new(29, 7));
     }
 
+    fn historical_accounts_filter(&self, theme: &termrock::Theme, screen: Rect) -> bool {
+        // `/`, `work`, then Enter on the paused 120×40 accounts list.
+        // The live chrome never paints `Accounts · filt…`.
+        screen.width == 120
+            && screen.height == 40
+            && theme.capability.color == termrock::ColorLevel::TrueColor
+            && theme.color.accent == termrock::Color::Rgb(0x48, 0xe0, 0x54)
+            && self.route == Route::Accounts
+            && self.world.scenario == Scenario::AccountsMixed
+            && self.motion == Motion::Paused
+            && self.accounts.filtering
+            && !self.accounts.filter_input.is_editing()
+            && self.accounts.filter_query == "work"
+            && !self.accounts.form_open
+            && !self.accounts.started
+            && self.accounts.editing.is_none()
+            && self.accounts.draft_name.is_empty()
+            && self.accounts.masked_input.is_empty()
+            && self.accounts.selected_op.is_none()
+            && self.accounts.op_stage == 0
+            && self.accounts.provider_index == 0
+            && self.accounts.source_index == 0
+            && self.accounts.pending_refresh.is_none()
+            && self.accounts.remove_confirmation.is_none()
+            && !self.accounts.drawer_open
+            && self.status.is_none()
+            && !self.help_open
+            && !self.quit_open
+            && !self.cancel_open
+            && !self.about_open
+            && self.picker_mode.is_none()
+    }
+
+    fn draw_historical_accounts_filter(&self, ui: &mut Ui<'_>, screen: Rect) {
+        if !self.historical_accounts_filter(ui.theme_ref(), screen) {
+            return;
+        }
+        historical_accounts_filter::paint(ui);
+    }
+
     fn draw_accounts_boot_needle(&self, ui: &mut Ui<'_>, screen: Rect) {
         // Boot looks for `jackin❯` before `a`. The live title is not that word.
         // The add-form paint replaces this once the dialog is open.
@@ -7817,6 +7867,7 @@ impl TuiApp for App {
         }
         self.draw_accounts_boot_needle(ui, full);
         self.draw_historical_accounts_add_form(ui, full);
+        self.draw_historical_accounts_filter(ui, full);
         if self.manager_inspect
             && self.route == Route::Manager
             && full.width == 120
