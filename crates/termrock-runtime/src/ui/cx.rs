@@ -168,6 +168,7 @@ pub struct FrameServices {
     pub(crate) press_pos: Option<Position>,
     pub(crate) clipboard: crate::runtime::clipboard::Clipboard,
     pub(crate) pointer_press_count: Option<(Id, PartRef, u8)>,
+    pub(crate) reset_pointer_clicks: bool,
 }
 
 pub struct Cx<'f> {
@@ -456,6 +457,7 @@ impl<'f> Cx<'f> {
             None
         };
         if let Some(layer) = self.services.layers.open(id, spec, restore) {
+            self.services.reset_pointer_clicks = true;
             self.services.initial_focus_layer = None;
             if let Some(target) = spec.initial_focus {
                 self.focus(target);
@@ -488,6 +490,9 @@ impl<'f> Cx<'f> {
             None => LayerEvent::Dismissed(DismissReason::Programmatic),
         };
         let closed = self.services.layers.close(id, ev);
+        if !closed.is_empty() {
+            self.services.reset_pointer_clicks = true;
+        }
         if self
             .services
             .initial_focus_layer
