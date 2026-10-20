@@ -8,7 +8,11 @@ The test captures the omitted-token cell diff: 56 foreground-only changes, all o
 
 The recorded passing ancestor `80b50e4c5fb993ad29b9edf5868391d1499e1764` uses the pre-correction palette and is the source of the retained checksum; current focused tests verify that checksum and compare every buffer cell, cursor, and region for the reconstructed and frozen renderings. This run did not execute the whole test binary at `80b50e4`, so cross-commit registry equality remains unclaimed. The exact cell-level comparison and 80b50e4 evidence are recorded in the diagnosis packet at `/Users/donbeave/Projects/termrock-cli-evidence-20261021/branch-consolidation/itemrow-fingerprint-diagnosis-20261021.json` (SHA-256 `c9858e1ad1db08711cf0a627b0fa6f4a3a12ab4af23efcb005bf68f6fe3193b8`).
 
+An independent review of candidate `b5f09170d8d49266848e66df29266ef9e5c5f49d` found that its negative muted-color guard cloned the legacy buffer before normalizing the separate disabled-row color. The guard could therefore pass because of the 56 disabled-row differences. The repair now clones the fully normalized buffer, then changes only the 174 cells recorded when `Indexed(244)` was corrected to `Indexed(245)`. It checks those cells' symbols, backgrounds, and modifiers stay fixed. Reviewer packet: `/Users/donbeave/Projects/termrock-cli-evidence-20261021/branch-consolidation/itemrow-fixture-independent-review-b5f09170.json` (SHA-256 `3720eaba6c6426f9387d55302ab77b44592699f1ed49faca590328f3de8b9d74`).
+
+Negative-control evidence: changing the fixture mutation from `Indexed(246)` back to the correct `Indexed(245)` makes the focused test fail at the intended whole-buffer `assert_ne`; restoring the deliberately wrong `Indexed(246)` makes the historical positive test pass. The failed mutant run is expected test-integrity evidence, not an acceptance failure. The first attempted mutant edit also tripped the disabled-row exclusion before reaching `assert_ne`; that discarded attempt did not validate the guard.
+
 Validation on this change:
 
 - `rustup run 1.99.1 cargo nextest run -p termrock-navigation --test item_row_columns constructor_defaults_match_the_pre_policy_full_cell_fixture --features termrock-runtime/testing --no-capture` — 1 passed.
-- Full `item_row_columns` target, strict Clippy, and formatting checks remain to run before publication.
+- Earlier candidate `b5f09170`: full navigation nextest 196/196, strict Clippy, package formatting passed. The negative-control repair requires rerunning these checks on its own commit before publication.
