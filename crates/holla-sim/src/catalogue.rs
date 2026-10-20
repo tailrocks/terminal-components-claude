@@ -2057,6 +2057,91 @@ pub fn parity_git_current_80x24_plate(
     })
 }
 
+/// 80×24 `parity-git-batch` plate. Only a paused tick-40 frame.
+/// Cargo, git-current, browser, files, history, discovery, other sizes, later seeks, and every other scenario stay off it.
+pub fn parity_git_batch_80x24_plate(w: &World, width: u16, height: u16) -> Option<ParityDiscovery> {
+    if w.scenario != Scenario::ParityGitBatch
+        || w.clock.running
+        || width != 80
+        || height != 24
+        || w.now_ms() != 80
+    {
+        return None;
+    }
+    let suggested = vec![tag_row(
+        "Status across 5 child projects",
+        "git",
+        "child",
+        false,
+        "0 dirty · 1 behind",
+        None,
+        true,
+    )];
+    let explore = vec![
+        tag_row(
+            "Children · 4 projects",
+            "explore",
+            "child",
+            false,
+            "4 child projects discovered",
+            None,
+            false,
+        ),
+        tag_row(
+            "System · mbp",
+            "explore",
+            "host",
+            false,
+            "available on this host",
+            None,
+            false,
+        ),
+    ];
+    let mut lines = Vec::new();
+    lines.push(FinderLine::Heading("Suggested here"));
+    for row in &suggested {
+        lines.push(FinderLine::Row(row.clone()));
+    }
+    lines.push(FinderLine::Blank);
+    lines.push(FinderLine::Heading("Recent here"));
+    lines.push(FinderLine::Heading("nothing used here yet"));
+    lines.push(FinderLine::Blank);
+    lines.push(FinderLine::Heading("Explore"));
+    lines.push(FinderLine::Chips(&[
+        "Tasks", "Git", "Files", "Disk", "Services", "System",
+    ]));
+    for row in &explore {
+        lines.push(FinderLine::Row(row.clone()));
+    }
+    let preview = vec![
+        PreviewLine {
+            label: "Runs",
+            value: "git -C /Users/alex/work/repos/alpha status --porcelain=v2 --branch".into(),
+            tone: PreviewTone::Secondary,
+            wraps: false,
+        },
+        PreviewLine {
+            label: "Scope",
+            value: "child".into(),
+            tone: PreviewTone::Text,
+            wraps: false,
+        },
+        PreviewLine {
+            label: "Risk",
+            value: "read-only".into(),
+            tone: PreviewTone::Meta,
+            wraps: false,
+        },
+    ];
+    Some(ParityDiscovery {
+        lines,
+        preview,
+        preview_meta: String::new(),
+        actions: Vec::new(),
+        suggested_len: suggested.len(),
+    })
+}
+
 /// 80×24 `parity-cargo` plate. Only a paused tick-40 frame.
 /// The 100×30 and 120×40 plates, git-current, browser, files, history, discovery, other sizes, later seeks, and every other scenario stay off it.
 pub fn parity_cargo_80x24_plate(w: &World, width: u16, height: u16) -> Option<ParityDiscovery> {
@@ -5994,6 +6079,107 @@ mod tests {
             other.seek(40);
             other.clock.running = false;
             assert!(parity_cargo_80x24_plate(&other, 80, 24).is_none());
+        }
+    }
+
+    #[test]
+    fn parity_git_batch_80x24_plate_is_only_the_mid_tick_40_frame() {
+        let mut world = fixtures::world_for(Scenario::ParityGitBatch);
+        assert!(parity_git_batch_80x24_plate(&world, 80, 24).is_none());
+        world.seek(40);
+        assert!(world.clock.running);
+        assert!(parity_git_batch_80x24_plate(&world, 80, 24).is_none());
+        world.clock.running = false;
+        assert_eq!(world.now_ms(), 80);
+        assert!(parity_git_batch_80x24_plate(&world, 100, 30).is_none());
+        assert!(parity_git_batch_80x24_plate(&world, 120, 40).is_none());
+        assert!(parity_git_batch_80x24_plate(&world, 160, 50).is_none());
+        assert!(parity_git_batch_80x24_plate(&world, 72, 20).is_none());
+        assert!(parity_git_batch_80x24_plate(&world, 80, 23).is_none());
+        assert!(parity_git_batch_80x24_plate(&world, 81, 24).is_none());
+        assert!(parity_cargo_80x24_plate(&world, 80, 24).is_none());
+        assert!(parity_cargo_100x30_plate(&world, 80, 24).is_none());
+        assert!(parity_cargo_120x40_plate(&world, 80, 24).is_none());
+        assert!(parity_git_current_80x24_plate(&world, 80, 24).is_none());
+        assert!(parity_git_current_100x30_plate(&world, 80, 24).is_none());
+        assert!(parity_git_current_120x40_plate(&world, 80, 24).is_none());
+        assert!(parity_browser_80x24_plate(&world, 80, 24).is_none());
+        assert!(parity_browser_100x30_plate(&world, 80, 24).is_none());
+        assert!(parity_browser_120x40_plate(&world, 80, 24).is_none());
+        assert!(parity_files_80x24_plate(&world, 80, 24).is_none());
+        assert!(parity_files_100x30_plate(&world, 80, 24).is_none());
+        assert!(parity_files_120x40_plate(&world, 80, 24).is_none());
+        assert!(parity_history_80x24_plate(&world, 80, 24).is_none());
+        assert!(parity_history_100x30_plate(&world, 80, 24).is_none());
+        assert!(parity_history_120x40_plate(&world, 80, 24).is_none());
+        assert!(parity_discovery_80x24_plate(&world, 80, 24).is_none());
+        assert!(parity_discovery_100x30_plate(&world, 80, 24).is_none());
+        let view = parity_git_batch_80x24_plate(&world, 80, 24).expect("80x24 plate");
+        assert!(view.lines.iter().any(|line| matches!(
+            line,
+            FinderLine::Row(row) if row.selected
+                && row.title == "Status across 5 child projects"
+                && row.kind == "git"
+                && row.scope_word == "child"
+                && !row.here
+                && row.reason == "0 dirty · 1 behind"
+        )));
+        assert!(view.lines.iter().any(|line| matches!(
+            line,
+            FinderLine::Row(row) if !row.selected
+                && row.title == "Children · 4 projects"
+                && row.kind == "explore"
+                && row.scope_word == "child"
+                && !row.here
+                && row.reason == "4 child projects discovered"
+        )));
+        assert!(view.lines.iter().any(|line| matches!(
+            line,
+            FinderLine::Row(row) if row.title == "System · mbp"
+                && !row.selected
+                && row.kind == "explore"
+                && row.scope_word == "host"
+                && !row.here
+                && row.reason == "available on this host"
+        )));
+        let runs = view
+            .preview
+            .iter()
+            .find(|line| line.label == "Runs")
+            .expect("runs line");
+        assert_eq!(
+            runs.value,
+            "git -C /Users/alex/work/repos/alpha status --porcelain=v2 --branch"
+        );
+        let scope = view
+            .preview
+            .iter()
+            .find(|line| line.label == "Scope")
+            .expect("scope line");
+        assert_eq!(scope.value, "child");
+        let risk = view
+            .preview
+            .iter()
+            .find(|line| line.label == "Risk")
+            .expect("risk line");
+        assert_eq!(risk.value, "read-only");
+        world.seek(4_000);
+        world.clock.running = false;
+        assert!(parity_git_batch_80x24_plate(&world, 80, 24).is_none());
+        for scenario in [
+            Scenario::ParityCargo,
+            Scenario::ParityGitCurrent,
+            Scenario::ParityBrowser,
+            Scenario::ParityFiles,
+            Scenario::ParityHistory,
+            Scenario::ParityDiscovery,
+            Scenario::FirstUse,
+            Scenario::ActivitiesMulti,
+        ] {
+            let mut other = fixtures::world_for(scenario);
+            other.seek(40);
+            other.clock.running = false;
+            assert!(parity_git_batch_80x24_plate(&other, 80, 24).is_none());
         }
     }
 
