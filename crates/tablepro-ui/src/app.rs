@@ -3174,6 +3174,7 @@ struct GridChrome {
     complete: usize,
     columns: usize,
     hidden_left: usize,
+    focus: Option<usize>,
     places: Vec<ColPlace>,
 }
 
@@ -3276,6 +3277,7 @@ fn install_grid_budgets(area_width: u16, columns: &[(String, ColType)], model: &
         complete,
         columns: columns.len(),
         hidden_left: 0,
+        focus: None,
         places,
     };
     COL_BUDGETS.with(|budgets_cell| *budgets_cell.borrow_mut() = budgets);
@@ -4029,6 +4031,7 @@ fn install_scrolled_budgets(
         complete: fit.complete,
         columns: columns.len(),
         hidden_left: start,
+        focus: Some(focus),
         places: fit.places,
     };
     COL_BUDGETS.with(|budgets_cell| *budgets_cell.borrow_mut() = budgets);
@@ -4060,6 +4063,7 @@ struct ScrolledTitle<'a> {
     offset: usize,
     names: &'a [String],
     sort_at: Option<(usize, SortDir)>,
+    focused: bool,
     base: PaintStyle,
     muted: PaintStyle,
     sorted_style: PaintStyle,
@@ -4074,6 +4078,7 @@ fn paint_scrolled_title(ui: &mut Ui<'_>, area: termrock::Rect, column: &Scrolled
         offset,
         names,
         sort_at,
+        focused,
         base,
         muted,
         sorted_style,
@@ -4081,7 +4086,8 @@ fn paint_scrolled_title(ui: &mut Ui<'_>, area: termrock::Rect, column: &Scrolled
     let filtered = column_is_filtered(name);
     let sorted = sort_at.is_some_and(|(column, _)| column == index);
     let editing = GRID_EDIT.with(|slot| slot.borrow().is_some_and(|column| column == index));
-    let style = if sorted || filtered || editing {
+    // End keeps the cursor column primary even when that column is not sorted or wide.
+    let style = if sorted || filtered || editing || focused {
         sorted_style
     } else {
         muted
@@ -4211,6 +4217,7 @@ fn paint_scrolled_header(
                 offset,
                 names,
                 sort_at,
+                focused: chrome.focus.is_some_and(|column| column == index),
                 base,
                 muted,
                 sorted_style,
@@ -4390,7 +4397,14 @@ fn paint_scrolled_cells(
             if active && state.is_editing() && !numeric {
                 paint_inline_editor(ui, origin, *place, y, state.edit_draft().unwrap_or(&text));
             } else if active && !numeric {
-                let mut pad = text_width.saturating_add(2);
+                let wide = GRID_EDIT.with(|slot| slot.borrow().is_some_and(|column| column == col));
+                // Wide columns keep two cells of field slack outside the selection.
+                // A short value otherwise selects the whole column. Filter marks keep their pad.
+                let mut pad = if wide {
+                    text_width.saturating_add(2)
+                } else {
+                    place.width
+                };
                 if let Some((name, _)) = columns.get(col)
                     && column_is_filtered(name)
                 {
@@ -4399,7 +4413,7 @@ fn paint_scrolled_cells(
                     if column_is_sorted(col) {
                         marked = marked.saturating_add(2);
                     }
-                    pad = pad.max(marked.saturating_add(1));
+                    pad = text_width.saturating_add(2).max(marked.saturating_add(1));
                 }
                 let pad = pad.min(place.width);
                 ui.fill(
