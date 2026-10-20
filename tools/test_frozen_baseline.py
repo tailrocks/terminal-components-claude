@@ -1035,6 +1035,8 @@ class RunnerGuards(unittest.TestCase):
             key_path = Path(temp).resolve() / "custody" / "run.key"
             with patch.object(runner, "verify_fresh_plan", return_value=plan), patch.object(runner, "paths", return_value=(Path(temp) / "repo", root, root / "source")), patch.object(runner, "_git_metadata_paths", return_value=set()):
                 manifest = runner.create_fresh_run(Path(temp) / "repo", root, "fixture-cohort", root / "bins", 30, creation_digest, key_path)
+                manifest_path = root / "fresh-runs" / plan["plan_id"] / runner.FRESH_RUN_MANIFEST_FILE
+                manifest_envelope = json.loads(manifest_path.read_text())
             key = key_path.read_bytes()
             with patch.object(runner, "EXPECTED_SCENARIOS", 1), patch.object(runner, "EXPECTED_ORDINARY_TESTS", 2), patch.object(runner, "ordinary_test_groups", return_value=(["source_only::fixture"], ["modes::showcase_boot_sets_terminal_modes"])):
                 plan_path = root / runner.FRESH_PLAN_FILE
@@ -1060,19 +1062,30 @@ class RunnerGuards(unittest.TestCase):
                 previous = runner.hashlib.sha256(runner.canonical_receipt_json(envelope)).hexdigest()
             first, second, third = chain[:3]
             with patch.object(runner, "EXPECTED_SCENARIOS", 1), patch.object(runner, "EXPECTED_ORDINARY_TESTS", 2), patch.object(runner, "ordinary_test_groups", return_value=(["source_only::fixture"], ["modes::showcase_boot_sets_terminal_modes"])):
-                empty = runner.validate_fresh_run_journal([], key, manifest, plan_path, creation_digest)
+                empty = runner.validate_fresh_run_journal([], key, manifest_envelope, plan_path, creation_digest)
                 self.assertFalse(empty["complete"])
                 with self.assertRaises(TypeError):
-                    runner.validate_fresh_run_journal([], key, manifest, plan_path, creation_digest, [])
-                prefix = runner.validate_fresh_run_journal([first], key, manifest, plan_path, creation_digest)
-                complete = runner.validate_fresh_run_journal(chain, key, manifest, plan_path, creation_digest)
+                    runner.validate_fresh_run_journal([], key, manifest_envelope, plan_path, creation_digest, [])
+                forged_manifest = json.loads(json.dumps(manifest_envelope))
+                forged_manifest["manifest"]["inventory_sha256"] = "0" * 64
+                with self.assertRaisesRegex(runner.RunnerError, "manifest authentication failed"):
+                    runner.validate_fresh_run_journal([], key, forged_manifest, plan_path, creation_digest)
+                prefix = runner.validate_fresh_run_journal([first], key, manifest_envelope, plan_path, creation_digest)
+                complete = runner.validate_fresh_run_journal(chain, key, manifest_envelope, plan_path, creation_digest)
                 forged = json.loads(json.dumps(loaded_plan))
                 forged["execution"]["phases"][0]["chunks"][0]["selected_cases"] = ["arbitrary::not-in-inventory"]
                 forged["plan_sha256"] = runner.canonical_json_digest({field: value for field, value in forged.items() if field != "plan_sha256"})
                 forged_path = root / "forged-plan.json"
                 forged_digest = runner._atomic_create_plan(forged_path, forged)
                 with self.assertRaisesRegex(runner.RunnerError, "chunk membership differs"):
-                    runner.validate_fresh_run_journal([first], key, manifest, forged_path, forged_digest)
+                    runner.validate_fresh_run_journal([first], key, manifest_envelope, forged_path, forged_digest)
+                other_plan = json.loads(json.dumps(loaded_plan))
+                other_plan["plan_id"] = "2" * 32
+                other_plan["plan_sha256"] = runner.canonical_json_digest({field: value for field, value in other_plan.items() if field != "plan_sha256"})
+                other_path = root / "different-plan.json"
+                other_digest = runner._atomic_create_plan(other_path, other_plan)
+                with self.assertRaisesRegex(runner.RunnerError, "differs from the authenticated manifest"):
+                    runner.validate_fresh_run_journal([first], key, manifest_envelope, other_path, other_digest)
             self.assertFalse(prefix["complete"])
             self.assertFalse(prefix["candidate_comparison_eligible"])
             self.assertTrue(complete["complete"])
@@ -1089,7 +1102,7 @@ class RunnerGuards(unittest.TestCase):
             ):
                 with self.subTest(bad=bad), self.assertRaises(runner.RunnerError):
                     with patch.object(runner, "EXPECTED_SCENARIOS", 1), patch.object(runner, "EXPECTED_ORDINARY_TESTS", 2), patch.object(runner, "ordinary_test_groups", return_value=(["source_only::fixture"], ["modes::showcase_boot_sets_terminal_modes"])):
-                        runner.validate_fresh_run_journal(bad, key, manifest, plan_path, creation_digest)
+                        runner.validate_fresh_run_journal(bad, key, manifest_envelope, plan_path, creation_digest)
 
     def test_fresh_prepare_mode_does_not_consult_legacy_build_or_tuple_approval(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
