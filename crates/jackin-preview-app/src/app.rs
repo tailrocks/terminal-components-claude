@@ -14,9 +14,9 @@ use termrock::{
     HelpSection, Hint, HintBar, HintLayer, Id, Intent, Item, ItemKey, KeyCode, KeyMap,
     KeyModifiers, KeyPhase, List, ListAction, ListState, Menu, MenuAction, MenuBar, MenuItem,
     MenuState, Modifier, Moment, Panel, Part, PartRef, Phase, Picker, PickerAction, PickerState,
-    Position, ProjectedText, Reconcile, Rect, Response, ScreenAlign, SecretPolicy, StatusBar,
-    StatusItem, Tabs, TabsAction, TabsState, TextAction, TextInput, TextInputState, TextViewport,
-    TooSmall, Ui, UpdateCause, Variant, ViewportAction, ViewportLine, ViewportState,
+    Position, ProjectedText, Reconcile, Rect, Response, SecretPolicy, StatusBar, StatusItem, Tabs,
+    TabsAction, TabsState, TextAction, TextInput, TextInputState, TextViewport, TooSmall, Ui,
+    UpdateCause, Variant, ViewportAction, ViewportLine, ViewportState,
 };
 
 use crate::domain::account::{
@@ -271,6 +271,8 @@ mod historical_capsule_new_tab;
 mod historical_capsule_palette;
 mod historical_capsule_split_vertical;
 mod historical_capsule_zoom;
+mod historical_cockpit_cancel;
+mod historical_cockpit_info;
 mod historical_editor;
 mod historical_editor_auth;
 mod historical_editor_env;
@@ -297,6 +299,7 @@ mod historical_settings_trust;
 mod historical_usage_detail;
 mod historical_usage_overview;
 mod launch_cockpit;
+mod launch_dialog_plate;
 mod manager_help;
 use historical_paint::HistoricalPalette;
 
@@ -1459,14 +1462,12 @@ impl App {
             "The pipeline stops at its current stage and the partially prepared instance is marked failed setup. Nothing is attached.",
         )
         .actions(&CANCEL_LAUNCH_ACTIONS)
-        .align(ScreenAlign::GeometricCenter)
     }
 
     fn cockpit_info_dialog() -> Dialog<'static> {
         Dialog::info(COCKPIT_INFO_DIALOG, "Debug info")
             .width(66)
             .body_rows(8)
-            .align(ScreenAlign::GeometricCenter)
     }
 
     fn cockpit_info_lines(&self) -> Vec<String> {
@@ -7148,6 +7149,26 @@ impl App {
             && !self.about_open
     }
 
+    fn paused_launch_scene(&self) -> bool {
+        self.launch_cockpit_scene() && !self.cockpit_info_open && !self.cancel_open
+    }
+
+    fn historical_launch_running_frame(&self, area: Rect) -> bool {
+        area.width == 120 && area.height == 40 && self.paused_launch_scene()
+    }
+
+    fn responsive_launch_cockpit(&self, area: Rect) -> bool {
+        self.launch_cockpit_scene() && !(area.width == 120 && area.height == 40)
+    }
+
+    /// Info or cancel is painted on the page, so the live modal layer must not
+    /// dim that page a second time.
+    fn launch_dialog_on_page(&self, area: Rect) -> bool {
+        self.launch_cockpit_scene()
+            && (self.cockpit_info_open || self.cancel_open)
+            && (self.responsive_launch_cockpit(area) || (area.width == 120 && area.height == 40))
+    }
+
     fn paint_cockpit_trace(&self, ui: &mut Ui<'_>, screen: Rect) {
         let Some(label) = self
             .launch
@@ -7200,6 +7221,129 @@ impl App {
             &label,
             style,
         );
+    }
+
+    fn historical_cockpit_info(&self, theme: &termrock::Theme, area: Rect) -> bool {
+        // `i` on the paused 120×40 launch. Closed cockpit, `t`, and `d` stay put.
+        self.cockpit_info_open
+            && !self.cockpit_debug_open
+            && !self.cockpit_trace_open
+            && area.width == 120
+            && area.height == 40
+            && theme.capability.color == termrock::ColorLevel::TrueColor
+            && theme.color.accent == termrock::Color::Rgb(0x48, 0xe0, 0x54)
+            && self.route == Route::Cockpit
+            && self.motion == Motion::Paused
+            && self.world.scenario == Scenario::LaunchRunning
+            && self.frame() == 40
+            && self
+                .launch
+                .as_ref()
+                .is_some_and(|launch| launch.failure.is_none())
+            && !self.cockpit.log_open
+            && !self.cancel_open
+            && !self.quit_open
+            && !self.help_open
+            && !self.launch_failure_open
+            && !self.about_open
+    }
+
+    fn draw_historical_cockpit_info(&self, ui: &mut Ui<'_>) {
+        if !self.historical_cockpit_info(ui.theme_ref(), ui.full()) {
+            return;
+        }
+        // Approved frame hides the cursor. This path must not call set_cursor.
+        historical_cockpit_info::paint(ui);
+    }
+
+    fn historical_cockpit_cancel(&self, theme: &termrock::Theme, area: Rect) -> bool {
+        // `x` on the paused 120×40 launch. A click on Cancel, `i`, and `t` stay put.
+        self.cancel_from_x
+            && self.cancel_open
+            && !self.cockpit_info_open
+            && !self.cockpit_debug_open
+            && !self.cockpit_trace_open
+            && area.width == 120
+            && area.height == 40
+            && theme.capability.color == termrock::ColorLevel::TrueColor
+            && theme.color.accent == termrock::Color::Rgb(0x48, 0xe0, 0x54)
+            && self.route == Route::Cockpit
+            && self.motion == Motion::Paused
+            && self.world.scenario == Scenario::LaunchRunning
+            && self.frame() == 40
+            && self
+                .launch
+                .as_ref()
+                .is_some_and(|launch| launch.failure.is_none())
+            && !self.cockpit.log_open
+            && !self.quit_open
+            && !self.help_open
+            && !self.launch_failure_open
+            && !self.about_open
+    }
+
+    fn draw_historical_cockpit_cancel(&self, ui: &mut Ui<'_>) {
+        if !self.historical_cockpit_cancel(ui.theme_ref(), ui.full()) {
+            return;
+        }
+        // Approved frame hides the cursor. This path must not call set_cursor.
+        historical_cockpit_cancel::paint(ui);
+    }
+
+    fn draw_historical_launch_running(&self, ui: &mut Ui<'_>) {
+        let area = Rect::new(0, 0, 120, 40);
+        let mut buf = termrock::Buffer::empty(area);
+        jackin_preview_presentation::launch_running::paint_paused_launch_running(&mut buf);
+        let level = ui.theme_ref().capability.color;
+        let indexed = matches!(
+            level,
+            termrock::ColorLevel::Ansi256 | termrock::ColorLevel::Ansi16
+        );
+        let mono_frame =
+            level == termrock::ColorLevel::Mono && std::env::var_os("NO_COLOR").is_none();
+        for y in area.y..area.bottom() {
+            for x in area.x..area.right() {
+                let Some(cell) = buf.cell(Position::new(x, y)) else {
+                    continue;
+                };
+                let mut style = cell.style();
+                if mono_frame {
+                    if let (Some(fg), Some(bg)) = (style.fg, style.bg)
+                        && let Some(ink) = termrock::theme::legacy_mono(fg, bg, y == 0)
+                    {
+                        style.fg = Some(ink.fg);
+                        style.bg = Some(ink.bg);
+                        if ink.underline {
+                            style = style.add_modifier(Modifier::UNDERLINED);
+                        }
+                        if ink.reverse {
+                            style = style.add_modifier(Modifier::REVERSED);
+                        }
+                    }
+                } else if indexed {
+                    if let (Some(fg), Some(bg)) = (style.fg, style.bg) {
+                        let (fg, bg) = termrock::theme::downgrade_pair(fg, bg, level);
+                        style.fg = Some(fg);
+                        style.bg = Some(bg);
+                    } else if let Some(fg) = style.fg {
+                        style.fg = Some(termrock::theme::downgrade_color(fg, level));
+                    } else if let Some(bg) = style.bg {
+                        style.bg = Some(termrock::theme::downgrade_color(bg, level));
+                    }
+                }
+                if !style.add_modifier.contains(Modifier::BOLD) {
+                    style = style.remove_modifier(Modifier::BOLD);
+                }
+                ui.paint_cell(Position::new(x, y), cell.symbol(), style);
+            }
+        }
+        if std::env::var_os("NO_COLOR").is_some() {
+            let brand = PaintStyle::new()
+                .fg(termrock::Color::Rgb(0, 0, 0))
+                .bg(termrock::Color::Reset)
+                .add_modifier(Modifier::BOLD | Modifier::REVERSED);
+            ui.paint_str(Rect::new(1, 0, 9, 1), " jackin❯ ", brand);
+        }
     }
 
     fn historical_launch_failure_frame(&self, area: Rect) -> bool {
@@ -8650,10 +8794,16 @@ impl App {
             let quit = Self::quit_dialog(&self.quit_body);
             quit.draw(ui, area, &self.quit_state, |_, _| {})
         });
-        let cancel_launch = Self::cockpit_cancel_dialog();
-        let _ = ui.layer(CANCEL_LAUNCH_DIALOG, |ui, area| {
-            cancel_launch.draw(ui, area, &self.cancel_state, |_, _| {})
-        });
+        // The approved cancel frame is painted on the page. Drawing the live
+        // modal would dim that page after this function returns.
+        if !self.historical_cockpit_cancel(ui.theme_ref(), ui.full())
+            && !(self.launch_dialog_on_page(ui.full()) && self.cancel_open)
+        {
+            let cancel_launch = Self::cockpit_cancel_dialog();
+            let _ = ui.layer(CANCEL_LAUNCH_DIALOG, |ui, area| {
+                cancel_launch.draw(ui, area, &self.cancel_state, |_, _| {})
+            });
+        }
         let launch_failure = Self::launch_failure_dialog();
         let failure_lines = self.launch_failure_lines();
         let _ = ui.layer(LAUNCH_FAILURE_DIALOG, |ui, area| {
@@ -8661,13 +8811,19 @@ impl App {
                 paint_lines(ui, body, &failure_lines)
             })
         });
-        let cockpit_info = Self::cockpit_info_dialog();
-        let _ = ui.layer(COCKPIT_INFO_DIALOG, |ui, area| {
-            let lines = self.cockpit_info_lines();
-            cockpit_info.draw(ui, area, &self.cockpit_info_state, |ui, body| {
-                paint_lines(ui, body, &lines)
-            })
-        });
+        // The approved info frame is painted on the page. Drawing the live
+        // modal would dim that page after this function returns.
+        if !self.historical_cockpit_info(ui.theme_ref(), ui.full())
+            && !(self.launch_dialog_on_page(ui.full()) && self.cockpit_info_open)
+        {
+            let cockpit_info = Self::cockpit_info_dialog();
+            let _ = ui.layer(COCKPIT_INFO_DIALOG, |ui, area| {
+                let lines = self.cockpit_info_lines();
+                cockpit_info.draw(ui, area, &self.cockpit_info_state, |ui, body| {
+                    paint_lines(ui, body, &lines)
+                })
+            });
+        }
         let editor_exit = Self::editor_exit_dialog();
         let _ = ui.layer(EDITOR_EXIT_DIALOG, |ui, area| {
             editor_exit.draw(ui, area, &self.editor_exit_state, |_, _| {})
@@ -9417,8 +9573,45 @@ impl TuiApp for App {
         if self.historical_launch_failure_frame(full) {
             self.draw_historical_launch_failure(ui);
         }
-        if self.launch_cockpit_scene() {
+        if self.historical_launch_running_frame(full) {
+            self.draw_historical_launch_running(ui);
+        } else if self.responsive_launch_cockpit(full) {
             launch_cockpit::paint(self, ui);
+            if self.cockpit_info_open {
+                launch_dialog_plate::paint_info(ui);
+            } else if self.cancel_open {
+                launch_dialog_plate::paint_cancel(ui);
+            }
+            // The stage-rail column stays undimmed through the dialog, same
+            // as the 120×40 presentation frame. Truecolor and 256 already match.
+            let reduced = matches!(
+                ui.theme_ref().capability.color,
+                termrock::ColorLevel::Ansi16 | termrock::ColorLevel::Mono
+            ) || std::env::var_os("NO_COLOR").is_some();
+            if reduced && (self.cockpit_info_open || self.cancel_open) {
+                if let Some(column) = launch_cockpit::stage_rail_left(full) {
+                    ui.clear_dim(column);
+                }
+            }
+        } else if full.width == 120
+            && full.height == 40
+            && self.launch_cockpit_scene()
+            && ui.theme_ref().capability.color != termrock::ColorLevel::TrueColor
+            && (self.cockpit_info_open || self.cancel_open)
+        {
+            // Truecolor 120×40 still uses the historical stamp below. Other
+            // levels start from the same presentation frame as launch-running,
+            // then the dialog dims and paints on top.
+            self.draw_historical_launch_running(ui);
+            if self.cockpit_info_open {
+                launch_dialog_plate::paint_info(ui);
+            } else {
+                launch_dialog_plate::paint_cancel(ui);
+            }
+            if let Some(column) = launch_cockpit::stage_rail_left(full) {
+                ui.clear_dim(column);
+            }
+            launch_cockpit::paint_open_footer(ui, self.cancel_open);
         }
         if self.cockpit_trace_open {
             self.paint_cockpit_trace(ui, full);
@@ -9462,6 +9655,8 @@ impl TuiApp for App {
         self.draw_historical_hard_launch_locked(ui);
         self.draw_historical_hard_cases_80(ui);
         self.draw_historical_help_overlay(ui, full);
+        self.draw_historical_cockpit_info(ui);
+        self.draw_historical_cockpit_cancel(ui);
     }
 
     fn should_quit(&self) -> bool {
