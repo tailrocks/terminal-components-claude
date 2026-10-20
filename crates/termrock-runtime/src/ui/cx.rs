@@ -12,8 +12,8 @@ use crate::id::{Id, PartRef};
 use crate::intent::{IntentIter, IntentQueue};
 use crate::keymap::{BindingRegistry, KeyMap};
 use crate::layer::{
-    Anchor, DismissReason, LayerCompletion, LayerEvent, LayerId, LayerOpening, LayerSize,
-    LayerSpec, LayerStack,
+    Anchor, DismissReason, FocusContinuationOutcome, LayerCompletion, LayerEvent, LayerId,
+    LayerOpening, LayerSize, LayerSpec, LayerStack,
 };
 use crate::response::StateFlags;
 use crate::runtime::UpdateCause;
@@ -168,7 +168,9 @@ pub struct FrameServices {
     pub(crate) records: Vec<&'static str>,
     pub(crate) diagnostics: Diagnostics,
     pub(crate) closed_layers: Vec<crate::layer::OpenLayer>,
-    pub(crate) completions: Vec<LayerCompletion>,
+    pub(crate) direct_closed_layers: Vec<crate::layer::OpenLayer>,
+    pub(crate) completions: Vec<(LayerCompletion, u8)>,
+    pub(crate) focus_continuation_outcomes: Vec<(FocusContinuationOutcome, u8)>,
     pub(crate) focus_continuation_acks: Vec<(LayerOpening, Id, Id)>,
     pub(crate) registry_gen: u32,
     pub(crate) press_pos: Option<Position>,
@@ -495,8 +497,86 @@ impl<'f> Cx<'f> {
             .services
             .completions
             .iter()
-            .position(|completion| completion.opening() == opening)?;
-        Some(self.services.completions.remove(position))
+            .position(|(completion, _)| completion.opening() == opening)?;
+        let completion = self.services.completions.remove(position).0;
+        let still_continued = completion.continuation_owner().is_some_and(|owner| {
+            completion.continuation_acknowledged()
+                && completion.restored_focus() == Some(owner)
+                && self.continuation_owner_is_current(opening, owner)
+        });
+        Some(completion.with_continuation_acknowledged(still_continued))
+    }
+
+    fn continuation_owner_is_current(&self, opening: LayerOpening, owner: Id) -> bool {
+        if opening.runtime() != self.services.runtime_id
+            || self.services.layers.get(opening.id()).is_some()
+            || self.last.snapshot.focus != Some(owner)
+        {
+            return false;
+        }
+        let (parent_layer, parent_is_current) = match opening.parent() {
+            None => (LayerId::PAGE, self.services.layers.top() == LayerId::PAGE),
+            Some(parent) => {
+                let current = self.services.layers.layers().iter().any(|layer| {
+                    layer.id == parent.id
+                        && layer.layer == parent.layer
+                        && layer.opening.generation() == parent.generation
+                        && self.services.layers.top() == layer.layer
+                });
+                (parent.layer, current)
+            }
+        };
+        parent_is_current
+            && self
+                .last
+                .ring
+                .entry(owner)
+                .is_some_and(|entry| entry.layer == parent_layer && !entry.disabled)
+    }
+
+    /// Return the exact child-layer opening that owns this pending focus continuation.
+    pub fn focus_continuation_opening(&self, owner: Id, to: Id) -> Option<LayerOpening> {
+        self.focus_is_continued(owner, to)
+            .then(|| self.services.layers.top_layer().map(|layer| layer.opening))
+            .flatten()
+    }
+
+    /// Observe the settled result for an exact continuation without consuming it.
+    pub fn focus_continuation_result(
+        &self,
+        opening: LayerOpening,
+        owner: Id,
+    ) -> Option<FocusContinuationOutcome> {
+        self.services
+            .focus_continuation_outcomes
+            .iter()
+            .map(|(outcome, _)| *outcome)
+            .find(|outcome| outcome.opening() == opening && outcome.owner() == owner)
+            .map(|outcome| {
+                outcome.with_continued(
+                    outcome.continued()
+                        && outcome.restored_focus() == Some(owner)
+                        && self.continuation_owner_is_current(opening, owner),
+                )
+            })
+    }
+
+    /// Acknowledge the exact continuation result after the owner applies its resume or blur.
+    pub fn acknowledge_focus_continuation_result(
+        &mut self,
+        opening: LayerOpening,
+        owner: Id,
+    ) -> bool {
+        let Some(position) = self
+            .services
+            .focus_continuation_outcomes
+            .iter()
+            .position(|(outcome, _)| outcome.opening() == opening && outcome.owner() == owner)
+        else {
+            return false;
+        };
+        self.services.focus_continuation_outcomes.remove(position);
+        true
     }
 
     /// Whether the exact focus-out transition is owned by the active child layer.
@@ -590,6 +670,7 @@ impl<'f> Cx<'f> {
         let closed = self.services.layers.close(id, ev);
         if !closed.is_empty() {
             self.services.reset_pointer_clicks = true;
+            self.services.direct_closed_layers.push(closed[0]);
         }
         if self
             .services
