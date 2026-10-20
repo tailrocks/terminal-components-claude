@@ -15,4 +15,4 @@ Negative-control evidence: changing the fixture mutation from `Indexed(246)` bac
 Validation on this change:
 
 - `rustup run 1.99.1 cargo nextest run -p termrock-navigation --test item_row_columns constructor_defaults_match_the_pre_policy_full_cell_fixture --features termrock-runtime/testing --no-capture` — 1 passed.
-- Earlier candidate `b5f09170`: full navigation nextest 196/196, strict Clippy, package formatting passed. The negative-control repair requires rerunning these checks on its own commit before publication.
+- Candidate `4fb359b8e7239118a04d0cf6d81304c2d3a5d6e0`: full navigation nextest 196/196, strict Clippy, package formatting, and `git diff --check` passed after the exact source changes were in place.
