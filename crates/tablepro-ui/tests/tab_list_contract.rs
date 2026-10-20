@@ -145,7 +145,7 @@ fn delete_discards_dirty_query_tab_from_picker() {
     else {
         unreachable!("created tab is a query")
     };
-    query.query.push_str(" -- unsaved");
+    query.saved_text = String::new();
     assert!(query.dirty());
     harness.draw();
 
