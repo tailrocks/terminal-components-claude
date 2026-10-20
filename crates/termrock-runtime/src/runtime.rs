@@ -4386,4 +4386,37 @@ mod tests {
         ), "settle must not deliver blur to a closed nonrestoring layer: {:?}", rt.diagnostics());
         assert_eq!(rt.focus(), Some(A));
     }
+
+    struct UiDiagnosticsProbe;
+
+    impl App for UiDiagnosticsProbe {
+        fn update(&mut self, _cx: &mut Cx<'_>) -> Response<()> {
+            Response::ignored()
+        }
+
+        fn draw(&self, ui: &mut Ui<'_>) {
+            for _ in 0..70 {
+                ui.diagnostic(Diagnostic::InvalidComponentLayout {
+                    owner: Id::root("form"),
+                    field: None,
+                });
+            }
+        }
+    }
+
+    #[test]
+    fn component_author_ui_diagnostics_commit_to_the_bounded_runtime_store() {
+        let mut rt = Runtime::new(UiDiagnosticsProbe, Theme::junie());
+        let _ = rt.initialize();
+        let mut buffer = Buffer::empty(SCREEN);
+        rt.draw_buffer(SCREEN, &mut buffer).commit_presented();
+
+        assert_eq!(rt.diagnostics().len(), 64);
+        assert_eq!(rt.diagnostics_dropped(), 6);
+        assert!(matches!(
+            rt.diagnostics().first(),
+            Some(Diagnostic::InvalidComponentLayout { owner, field: None })
+                if *owner == Id::root("form")
+        ));
+    }
 }
