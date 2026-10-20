@@ -234,7 +234,8 @@ impl HomeState {
             rows_area.y = rows_area.y.saturating_add(used);
             rows_area.height = rows_area.height.saturating_sub(used);
         }
-        if let Some(view) = catalogue::parity_discovery(world)
+        if let Some(view) =
+            catalogue::parity_discovery(world).or_else(|| catalogue::first_use_tag(world))
             && paint_parity_discovery(ui, rows_area, &view)
         {
             return;
@@ -856,6 +857,8 @@ fn paint_tag_preview(
         let fg = match tone {
             catalogue::PreviewTone::Text => WHITE,
             catalogue::PreviewTone::Muted => TAG_GREY_FG,
+            catalogue::PreviewTone::Secondary => SECONDARY_FG,
+            catalogue::PreviewTone::Meta => META_FG,
             catalogue::PreviewTone::Danger => DANGER_FG,
         };
         ui.paint_str(
