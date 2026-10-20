@@ -1,3 +1,5 @@
+use std::io::Write;
+
 use crate::{
     dispatch::{self, Destination},
     domain::{action::Scope, fixtures, ranking::Pin},
@@ -18,8 +20,8 @@ use crate::{
 };
 use termrock::{
     ActionKey, Binding, Brand, Chord, Color, Constraints, Cx, Dialog, FgStep, Focusability,
-    FrameRead, HintBar, HintLayer, Id, Intent, ItemKey, KeyCode, KeyMap, KeyPhase, Menu,
-    MenuAction, MenuBar, MenuItem, MenuState, Part, PartRef, Phase, Rect, Response, Role,
+    FrameRead, Hint, HintBar, HintKey, HintLayer, Id, Intent, ItemKey, KeyCode, KeyMap, KeyPhase,
+    Menu, MenuAction, MenuBar, MenuItem, MenuState, Part, PartRef, Phase, Rect, Response, Role,
     StylePatch, Surface, TooSmall, Ui,
 };
 
@@ -243,6 +245,95 @@ fn paint_menu_title_pads(ui: &mut Ui<'_>, menu_x: u16, y: u16, menu_right: u16) 
 /// Tag `segments::render` inset. Not the status-bar gutter: that bar fills `#111111`.
 const MENU_CHROME_EDGE: u16 = 2;
 const MENU_SEGMENT_GAP: u16 = 2;
+
+/// Tag status row. Gaps are the container ink, so item text does not include them.
+const STATUS_EDGE: u16 = 1;
+const STATUS_GAP: u16 = 3;
+const STATUS_BG: Color = Color::Rgb(0x18, 0x18, 0x1b);
+const STATUS_FG: Color = Color::Rgb(0xff, 0xff, 0xff);
+const STATUS_GREY: Color = Color::Rgb(0x8a, 0x8a, 0x8a);
+const STATUS_LINK: Color = Color::Rgb(0x79, 0xb8, 0xff);
+const STATUS_DANGER: Color = Color::Rgb(0xf0, 0x5d, 0x5d);
+const STATUS_AMBER: Color = Color::Rgb(0xf5, 0x9e, 0x09);
+const STATUS_CENTER: &str = "! docker, github unavailable";
+const STATUS_WARN: &str = "▲ 4 config warnings";
+const PARITY_HINT_BG: Color = Color::Rgb(0, 0, 0);
+const PARITY_HINT_PARTS: &[(Part, StylePatch)] = &[
+    (
+        Part::CONTAINER,
+        StylePatch::new()
+            .set_fg(Role::Custom(STATUS_FG))
+            .set_bg(Role::Custom(PARITY_HINT_BG)),
+    ),
+    (
+        Part::KEY,
+        StylePatch::new()
+            .set_fg(Role::Custom(STATUS_FG))
+            .set_bg(Role::Custom(PARITY_HINT_BG))
+            .add(termrock::Modifier::BOLD),
+    ),
+    (
+        Part::ACTION,
+        StylePatch::new()
+            .set_fg(Role::Custom(STATUS_GREY))
+            .set_bg(Role::Custom(PARITY_HINT_BG)),
+    ),
+];
+
+fn status_ink(ui: &Ui<'_>, fg: Color, bold: bool) -> termrock::PaintStyle {
+    let patch = StylePatch::new()
+        .set_fg(Role::Custom(fg))
+        .set_bg(Role::Custom(STATUS_BG));
+    let patch = if bold {
+        patch.add(termrock::Modifier::BOLD)
+    } else {
+        patch.remove(termrock::Modifier::BOLD)
+    };
+    ui.paint_patch(&patch)
+}
+
+fn paint_status_text(
+    ui: &mut Ui<'_>,
+    area: Rect,
+    x: u16,
+    text: &str,
+    fg: Color,
+    bold: bool,
+) -> u16 {
+    let width = termrock::width(text);
+    let room = area.right().saturating_sub(x);
+    if width == 0 || room == 0 {
+        return x;
+    }
+    ui.paint_str(
+        Rect::new(x, area.y, width.min(room), 1),
+        text,
+        status_ink(ui, fg, bold),
+    );
+    x.saturating_add(width.min(room))
+}
+
+fn parity_hints() -> HintLayer {
+    fn hint(key: &'static str, label: &'static str) -> Hint {
+        Hint {
+            key: HintKey::Label(key),
+            label,
+            priority: 50,
+        }
+    }
+    HintLayer {
+        hints: vec![
+            hint("Type", "Search"),
+            hint("↑↓", "Move"),
+            hint("Enter", "Confirm…"),
+            hint("Alt+Enter", "Alternatives…"),
+            hint("Tab", "Preview"),
+            hint("Ctrl+↑↓", "Scope"),
+            hint("Ctrl+G", "Activities"),
+        ],
+        ..HintLayer::empty()
+    }
+}
 
 fn menu_project(world: &World) -> String {
     // Parity worlds have no `location.project`. These strings are the tag `draw_menu` labels.
@@ -755,10 +846,64 @@ impl App {
         if self.route == Route::Home {
             paint_here_band(ui, area);
         }
+        if self.world.scenario == Scenario::ParityDiscovery {
+            self.paint_parity_status(
+                ui,
+                Rect::new(area.x, area.bottom().saturating_sub(2), area.width, 1),
+            );
+        }
         let footer = Rect::new(area.x, area.bottom().saturating_sub(1), area.width, 1);
         self.footer_draw(ui, footer);
     }
+    fn paint_parity_status(&self, ui: &mut Ui<'_>, area: Rect) {
+        if area.is_empty() {
+            return;
+        }
+        ui.fill(area, status_ink(ui, STATUS_FG, false));
+        let mut x = area.x.saturating_add(STATUS_EDGE);
+        for (text, fg, bold) in [
+            (self.world.cwd.as_str(), STATUS_FG, true),
+            ("main", STATUS_GREY, false),
+            ("↓1", STATUS_LINK, false),
+        ] {
+            x = paint_status_text(ui, area, x, text, fg, bold).saturating_add(STATUS_GAP);
+        }
+        let left_end = x.saturating_sub(STATUS_GAP);
+        let screen = ui.full();
+        let size = format!(
+            "{} · {}×{}",
+            ui.theme_ref().capability.color.label(),
+            screen.width,
+            screen.height
+        );
+        let warn_w = termrock::width(STATUS_WARN);
+        let size_w = termrock::width(&size);
+        let inner_right = area.right().saturating_sub(STATUS_EDGE);
+        let size_x = inner_right.saturating_sub(size_w);
+        let warn_x = size_x.saturating_sub(STATUS_GAP).saturating_sub(warn_w);
+        paint_status_text(ui, area, warn_x, STATUS_WARN, STATUS_AMBER, false);
+        paint_status_text(ui, area, size_x, &size, STATUS_GREY, false);
+        let center_w = termrock::width(STATUS_CENTER);
+        let lo = left_end.saturating_add(STATUS_GAP);
+        let hi = warn_x.saturating_sub(STATUS_GAP);
+        let free = hi.saturating_sub(lo);
+        if free >= center_w {
+            let cx = lo.saturating_add(free.saturating_sub(center_w) / 2);
+            paint_status_text(ui, area, cx, STATUS_CENTER, STATUS_DANGER, false);
+        }
+    }
     fn footer_draw(&self, ui: &mut Ui<'_>, footer: Rect) {
+        if self.world.scenario == Scenario::ParityDiscovery
+            && self.route == Route::Home
+            && self.overlay.is_none()
+            && !self.menu.is_open()
+        {
+            let layer = parity_hints();
+            HintBar::new(FOOTER, &layer)
+                .patch_part(PARITY_HINT_PARTS)
+                .draw(ui, footer);
+            return;
+        }
         let hints = HintLayer::from_bindings(GLOBAL);
         let editing = match &self.overlay {
             Some(Overlay::Dialog(dialog)) => dialog.is_editing(),
@@ -1043,6 +1188,14 @@ impl termrock::App for App {
         clock_response | response
     }
     fn draw(&self, ui: &mut Ui<'_>) {
+        if self.route == Route::Home
+            && self.overlay.is_none()
+            && std::io::IsTerminal::is_terminal(&std::io::stdout())
+        {
+            let mut out = std::io::stdout().lock();
+            let _ = out.write_all(b"\x1b[6 q");
+            let _ = out.flush();
+        }
         let area = ui.full();
         let base = ui.surface_style();
         ui.fill(area, base);
@@ -1263,6 +1416,17 @@ mod tests {
         let plate = harness.cell(79, 6);
         assert_eq!(plate.bg, Color::Rgb(0x11, 0x11, 0x11));
         assert_eq!(plate.symbol(), " ");
+        let lines: Vec<&str> = text.lines().collect();
+        assert_eq!(
+            lines[38].trim(),
+            "~/work/probe   main   ↓1             ! docker, github unavailable             ▲ 4 config warnings   truecolor · 120×40"
+        );
+        assert!(lines[39].contains("Type Search"));
+        assert!(lines[39].contains("Ctrl+G Activities"));
+        let origin = harness.cell(0, 38);
+        assert_eq!(origin.symbol(), " ");
+        assert_eq!(origin.fg, Color::Rgb(0xff, 0xff, 0xff));
+        assert_eq!(origin.bg, Color::Rgb(0x18, 0x18, 0x1b));
         assert!(
             harness.diagnostics().is_empty(),
             "{:?}",
