@@ -22,7 +22,7 @@ pub use slot::LayerSlot;
 
 use crate::action::ActionKey;
 use crate::cursor::CursorRequest;
-use crate::diagnostics::Diagnostic;
+use crate::diagnostics::{Diagnostic, Diagnostics};
 use crate::focus::{FocusEntry, FocusRing, Focusability, ScopeId, ScopeMode};
 use crate::hit::{Axes, Headroom, Registry};
 use crate::id::{Id, Part, PartRef};
@@ -74,7 +74,7 @@ pub struct FrameState {
     pub(crate) declared: Vec<(Id, StateFlags)>,
     pub(crate) bindings: BindingRegistry,
     pub(crate) scoped_bubble_bindings: Vec<ScopedBubbleBinding>,
-    pub(crate) diagnostics: Vec<Diagnostic>,
+    pub(crate) diagnostics: Diagnostics,
     pub(crate) roles: Vec<CellRoles>,
     pub(crate) screen: Rect,
     pub(crate) inert_floor: LayerId,
@@ -1612,7 +1612,7 @@ mod tests {
         assert!(frame.layout.is_empty());
         assert!(frame.cursors.is_empty());
         assert!(frame.bindings.get(OWNER).is_none());
-        assert!(frame.diagnostics.is_empty());
+        assert!(frame.diagnostics.items().is_empty());
         assert!(
             frame
                 .layers
