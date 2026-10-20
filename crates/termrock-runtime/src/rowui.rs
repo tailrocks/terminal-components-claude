@@ -9,7 +9,7 @@ use crate::id::{Id, ItemKey, Part};
 use crate::layout::{Track, distribute_into};
 use crate::response::StateFlags;
 use crate::text::{Span, width};
-use crate::theme::{Align, Family, GlyphRole, Role, Slot, StylePatch, Variant};
+use crate::theme::{Align, CursorStyle, Family, GlyphRole, Role, Slot, StylePatch, Variant};
 use crate::ui::{FrameRead, Ui};
 
 pub trait RowFn<T> {
@@ -30,6 +30,32 @@ impl<T: core::fmt::Display> RowFn<T> for termrock_collections::DefaultRow {
 
 pub const MAX_COLUMNS: usize = 16;
 
+const fn selected_row_patch() -> StylePatch {
+    StylePatch::new()
+        .set_bg(Role::SelectionBg)
+        .set_fg(Role::SelectionFg)
+}
+
+fn resolve_row_part(
+    ui: &mut Ui<'_>,
+    family: Family,
+    variant: Variant,
+    flags: StateFlags,
+    part: Part,
+    patch: Option<StylePatch>,
+    cursor_style: CursorStyle,
+) -> crate::theme::Resolved {
+    let patch = if cursor_style == CursorStyle::Fill && flags.contains(StateFlags::FOCUSED) {
+        Some(patch.unwrap_or_default().merge(selected_row_patch()))
+    } else {
+        patch
+    };
+    match patch {
+        Some(patch) => ui.style_patched(family, variant, part, flags, &patch),
+        None => ui.style(family, variant, part, flags),
+    }
+}
+
 pub struct RowUi<'u> {
     ui: Ui<'u>,
     owner: Id,
@@ -38,6 +64,7 @@ pub struct RowUi<'u> {
     flags: StateFlags,
     key: ItemKey,
     row: Rect,
+    cursor_style: CursorStyle,
     label_patch: Option<StylePatch>,
     left: u16,
     right: u16,
@@ -100,6 +127,7 @@ impl<'u> RowUi<'u> {
             flags,
             key,
             row,
+            cursor_style: CursorStyle::Bar,
             label_patch,
             left: 0,
             right: 0,
@@ -122,6 +150,22 @@ impl<'u> RowUi<'u> {
         self.row
     }
 
+    /// Apply the active-row cursor policy before painting row contents.
+    pub fn with_cursor_style(mut self, style: CursorStyle) -> Self {
+        self.cursor_style = style;
+        if style == CursorStyle::Fill && self.flags.contains(StateFlags::FOCUSED) {
+            let resolved = self.ui.style_patched(
+                self.family,
+                self.variant,
+                Part::ROW,
+                self.flags,
+                &selected_row_patch(),
+            );
+            self.ui.fill(self.row, resolved.style);
+        }
+        self
+    }
+
     fn remaining(&self) -> Rect {
         let used = self.left.saturating_add(self.right);
         Rect {
@@ -133,13 +177,16 @@ impl<'u> RowUi<'u> {
     }
 
     fn style_of(&mut self, part: Part) -> PaintStyle {
-        let r = match (part, self.label_patch) {
-            (Part::LABEL, Some(patch)) => {
-                self.ui
-                    .style_patched(self.family, self.variant, part, self.flags, &patch)
-            }
-            _ => self.ui.style(self.family, self.variant, part, self.flags),
-        };
+        let patch = (part == Part::LABEL).then_some(self.label_patch).flatten();
+        let r = resolve_row_part(
+            &mut self.ui,
+            self.family,
+            self.variant,
+            self.flags,
+            part,
+            patch,
+            self.cursor_style,
+        );
         #[cfg(feature = "testing")]
         self.ui
             .note_styled(self.owner, self.family, self.variant, part, r);
@@ -147,9 +194,15 @@ impl<'u> RowUi<'u> {
     }
 
     pub fn marker(&mut self, g: GlyphRole) {
-        let r = self
-            .ui
-            .style(self.family, self.variant, Part::MARKER, self.flags);
+        let r = resolve_row_part(
+            &mut self.ui,
+            self.family,
+            self.variant,
+            self.flags,
+            Part::MARKER,
+            None,
+            self.cursor_style,
+        );
         #[cfg(feature = "testing")]
         self.ui
             .note_styled(self.owner, self.family, self.variant, Part::MARKER, r);
@@ -175,6 +228,10 @@ impl<'u> RowUi<'u> {
     }
 
     pub fn gutter(&mut self) {
+        if self.cursor_style == CursorStyle::Fill && self.flags.contains(StateFlags::FOCUSED) {
+            self.left = self.left.saturating_add(1);
+            return;
+        }
         let r = self
             .ui
             .style(self.family, self.variant, Part::GUTTER, self.flags);
@@ -204,10 +261,16 @@ impl<'u> RowUi<'u> {
 
     pub fn label_patched(&mut self, s: &str, p: &StylePatch) {
         let patch = self.label_patch.map_or(*p, |forwarded| forwarded.merge(*p));
-        let st = self
-            .ui
-            .style_patched(self.family, self.variant, Part::LABEL, self.flags, &patch)
-            .style;
+        let st = resolve_row_part(
+            &mut self.ui,
+            self.family,
+            self.variant,
+            self.flags,
+            Part::LABEL,
+            Some(patch),
+            self.cursor_style,
+        )
+        .style;
         self.label_in(s, st);
     }
 
@@ -275,10 +338,16 @@ impl<'u> RowUi<'u> {
         if need == 0 || need > area.width {
             return;
         }
-        let st = self
-            .ui
-            .style_patched(self.family, self.variant, Part::META, self.flags, p)
-            .style;
+        let st = resolve_row_part(
+            &mut self.ui,
+            self.family,
+            self.variant,
+            self.flags,
+            Part::META,
+            Some(*p),
+            self.cursor_style,
+        )
+        .style;
         let cell = Rect {
             x: area.right().saturating_sub(need),
             y: area.y,
@@ -299,7 +368,15 @@ impl<'u> RowUi<'u> {
             height: 1,
         };
         self.right = self.right.saturating_add(w).saturating_add(1);
-        let r = self.ui.style(self.family, self.variant, p, self.flags);
+        let r = resolve_row_part(
+            &mut self.ui,
+            self.family,
+            self.variant,
+            self.flags,
+            p,
+            None,
+            self.cursor_style,
+        );
         #[cfg(feature = "testing")]
         self.ui
             .note_styled(self.owner, self.family, self.variant, p, r);
@@ -330,6 +407,7 @@ impl<'u> RowUi<'u> {
             n,
             gap,
             style,
+            cursor_style: self.cursor_style,
         }
     }
 
@@ -614,6 +692,7 @@ pub struct ColumnsUi<'u> {
     n: usize,
     gap: u16,
     style: PaintStyle,
+    cursor_style: CursorStyle,
 }
 
 impl fmt::Debug for ColumnsUi<'_> {
@@ -655,13 +734,16 @@ impl ColumnsUi<'_> {
 
     pub fn cell_part(&mut self, i: usize, part: Part) -> CellUi<'_> {
         let rect = self.rect(i);
-        let resolved = match (part, self.label_patch) {
-            (Part::LABEL, Some(patch)) => {
-                self.ui
-                    .style_patched(self.family, self.variant, part, self.flags, &patch)
-            }
-            _ => self.ui.style(self.family, self.variant, part, self.flags),
-        };
+        let patch = (part == Part::LABEL).then_some(self.label_patch).flatten();
+        let resolved = resolve_row_part(
+            &mut self.ui,
+            self.family,
+            self.variant,
+            self.flags,
+            part,
+            patch,
+            self.cursor_style,
+        );
         #[cfg(feature = "testing")]
         self.ui
             .note_styled(self.owner, self.family, self.variant, part, resolved);
