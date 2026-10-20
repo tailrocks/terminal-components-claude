@@ -979,6 +979,64 @@ mod tests {
     }
 
     #[test]
+    fn authored_split_seam_colors_reach_cells_at_each_capability_level() {
+        let cases = [
+            (
+                ColorLevel::TrueColor,
+                ratatui_core::style::Color::Rgb(77, 77, 77),
+            ),
+            (
+                ColorLevel::Ansi256,
+                ratatui_core::style::Color::Indexed(239),
+            ),
+            (ColorLevel::Ansi16, ratatui_core::style::Color::DarkGray),
+            (ColorLevel::Mono, ratatui_core::style::Color::DarkGray),
+        ];
+        for (level, expected) in cases {
+            let mut theme = Theme::junie();
+            theme.capability.color = level;
+            let mut rt = Runtime::new(Stub::default(), theme);
+            let mut buf = Buffer::empty(SCREEN);
+            let split = SplitPane::new(ID, SplitAxis::Horizontal).resizable(true);
+            let seam = split.seam(SplitPaneState::default(), AREA);
+            rt.draw_scene(SCREEN, &mut buf, |ui, _| {
+                split.draw(ui, AREA, &SplitPaneState::default(), |_, _, _| ());
+            })
+            .commit_presented();
+
+            assert_eq!(
+                buf.cell((seam.x, seam.y)).unwrap().fg,
+                expected,
+                "{level:?}"
+            );
+        }
+    }
+
+    #[test]
+    fn explicit_same_value_custom_split_seam_still_uses_generic_downgrade() {
+        let theme = Theme::junie()
+            .override_family(Family::SPLIT, |recipe| {
+                recipe.part(Part::SEAM).base(
+                    StylePatch::new().set_fg(Role::Custom(ratatui_core::style::Color::DarkGray)),
+                );
+            })
+            .downgrade(ColorLevel::Mono);
+        let mut rt = Runtime::new(Stub::default(), theme);
+        let mut buf = Buffer::empty(SCREEN);
+        let split = SplitPane::new(ID, SplitAxis::Horizontal).resizable(true);
+        let seam = split.seam(SplitPaneState::default(), AREA);
+        rt.draw_scene(SCREEN, &mut buf, |ui, _| {
+            split.draw(ui, AREA, &SplitPaneState::default(), |_, _, _| ());
+        })
+        .commit_presented();
+
+        assert_eq!(
+            buf.cell((seam.x, seam.y)).unwrap().fg,
+            ratatui_core::style::Color::Black
+        );
+    }
+
+    #[test]
     fn body_paint_is_clipped_to_the_split_area() {
         let mut rt = Runtime::new(Stub::default(), Theme::junie());
         let mut buf = Buffer::empty(SCREEN);
