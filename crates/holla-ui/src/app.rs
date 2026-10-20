@@ -442,6 +442,38 @@ fn paint_remote_host_status(ui: &mut Ui<'_>, area: Rect) {
     let _ = paint_size_label(ui, area);
 }
 
+/// Tag hard-cases status. The size label does not fit, so the row ends in `…`.
+fn paint_hard_cases_status(ui: &mut Ui<'_>, area: Rect) {
+    if area.is_empty() {
+        return;
+    }
+    ui.fill(area, status_ink(ui, STATUS_FG, false));
+    let path = termrock::truncate_middle(
+        "~/work/clients/northwind-traders-platform-migration/services/inventory-reconciliation-service",
+        44,
+    );
+    let mut x = area.x.saturating_add(STATUS_EDGE);
+    for (text, fg, bold) in [
+        (path.as_str(), STATUS_FG, true),
+        ("↓14 ↑3", STATUS_LINK, false),
+        ("• 7", STATUS_AMBER, false),
+        ("2 conflicts", STATUS_DANGER, false),
+        ("rebase", STATUS_AMBER, false),
+    ] {
+        x = paint_status_text(ui, area, x, text, fg, bold).saturating_add(STATUS_GAP);
+    }
+    paint_status_text(
+        ui,
+        area,
+        x,
+        "! docker, github unavailable",
+        STATUS_DANGER,
+        false,
+    );
+    let mark_x = area.right().saturating_sub(STATUS_EDGE).saturating_sub(1);
+    paint_status_text(ui, area, mark_x, "…", STATUS_GREY, false);
+}
+
 /// Tag docker-cleanup status: cwd without the tilde, then the size label.
 fn paint_docker_cleanup_status(ui: &mut Ui<'_>, area: Rect) {
     if area.is_empty() {
@@ -787,6 +819,9 @@ fn menu_project(world: &World) -> String {
         }
         Scenario::RemoteHost if crate::sim::catalogue::remote_host_tag_frame(world) => {
             "payments · service checkout".to_owned()
+        }
+        Scenario::HardCases if crate::sim::catalogue::hard_cases_tag_frame(world) => {
+            "northwind-traders-platform-migration › inventory-reconciliation-service · Rust workspace · member inventory-reconciliation-core".to_owned()
         }
         Scenario::DiskCleanup if crate::sim::catalogue::disk_cleanup_tag_frame(world) => {
             "work · project collection".to_owned()
@@ -1282,6 +1317,7 @@ impl App {
             || crate::sim::catalogue::monorepo_root_tag_frame(&self.world)
             || crate::sim::catalogue::monorepo_child_tag_frame(&self.world)
             || crate::sim::catalogue::activities_multi_tag_frame(&self.world)
+            || crate::sim::catalogue::hard_cases_tag_frame(&self.world)
         {
             "mbp · local".to_owned()
         } else if crate::sim::catalogue::docker_cleanup_tag_frame(&self.world) {
@@ -1330,6 +1366,8 @@ impl App {
             paint_docker_cleanup_status(ui, status);
         } else if crate::sim::catalogue::remote_host_tag_frame(&self.world) {
             paint_remote_host_status(ui, status);
+        } else if crate::sim::catalogue::hard_cases_tag_frame(&self.world) {
+            paint_hard_cases_status(ui, status);
         } else if launch_failure_plate_open(&self.world, ui) {
             paint_launch_failure_status(ui, status);
         } else if self.route == Route::Disk
@@ -1390,6 +1428,8 @@ impl App {
             Some(("Open", Some("Inspect 3…")))
         } else if crate::sim::catalogue::remote_host_tag_frame(&self.world) {
             Some(("Run", Some("Follow pay…")))
+        } else if crate::sim::catalogue::hard_cases_tag_frame(&self.world) {
+            Some(("Open", None))
         } else {
             None
         };
@@ -2376,6 +2416,105 @@ mod tests {
             );
             assert!(!other.text().contains("EADDRINUSE"), "{}", scenario.name());
             assert!(!crate::sim::catalogue::launch_failure_tag_frame(
+                &other.app().world
+            ));
+        }
+    }
+    #[test]
+    fn hard_cases_frame_40_paints_the_tag_plate_and_later_seeks_keep_home() {
+        let plate = harness(
+            App::for_scenario(Scenario::HardCases, Motion::Paused, 40),
+            Theme::junie(),
+            120,
+            40,
+        );
+        let text = plate.text();
+        let lines: Vec<&str> = text.lines().collect();
+        assert!(plate.app().route == Route::Home);
+        assert!(
+            lines[0].contains("northwind-traders-platform-migration › inventory"),
+            "{}",
+            lines[0]
+        );
+        assert!(lines[0].contains("mbp · local"), "{}", lines[0]);
+        assert!(lines[0].contains("ory-reconciliation-core"), "{}", lines[0]);
+        assert!(lines[7].contains("Analyze disk usage"), "{}", lines[7]);
+        assert!(lines[7].contains("/ is 91% full"), "{}", lines[7]);
+        assert!(
+            lines[8].contains("Resolve the rebase in la…"),
+            "{}",
+            lines[8]
+        );
+        assert!(lines[14].contains("nothing used here yet"), "{}", lines[14]);
+        assert!(lines[14].contains("'holla disk analyze'"), "{}", lines[14]);
+        assert!(
+            lines[18].contains("Children · 14 projects"),
+            "{}",
+            lines[18]
+        );
+        assert!(
+            lines[38].contains("~/work/clients/northwind-trad…iation-service"),
+            "{}",
+            lines[38]
+        );
+        assert!(lines[38].contains("↓14 ↑3"), "{}", lines[38]);
+        assert!(lines[38].contains("2 conflicts"), "{}", lines[38]);
+        assert!(
+            lines[38].contains("! docker, github unavailable"),
+            "{}",
+            lines[38]
+        );
+        assert!(lines[39].contains("Enter Open"), "{}", lines[39]);
+        assert!(!lines[39].contains("Follow"), "{}", lines[39]);
+        let selected = plate.cell(4, 7);
+        assert_eq!(selected.symbol(), "A");
+        assert_eq!(selected.bg, Color::Rgb(0x2f, 0x5a, 0xa8));
+        assert!(selected.modifier.contains(termrock::Modifier::BOLD));
+        let risk = plate.cell(92, 20);
+        assert_eq!(risk.symbol(), "r");
+        assert_eq!(risk.fg, Color::Rgb(0x73, 0x73, 0x73));
+        assert_eq!(risk.bg, Color::Rgb(0x11, 0x11, 0x11));
+        let overflow = plate.cell(118, 38);
+        assert_eq!(overflow.symbol(), "…");
+        assert_eq!(overflow.fg, Color::Rgb(0x8a, 0x8a, 0x8a));
+        assert!(plate.diagnostics().is_empty(), "{:?}", plate.diagnostics());
+        let later = harness(
+            App::for_scenario(Scenario::HardCases, Motion::Paused, 4_000),
+            Theme::junie(),
+            120,
+            40,
+        );
+        assert!(!later.text().contains("northwind"));
+        assert!(!later.text().contains("! docker, github unavailable"));
+        assert!(
+            later.text().contains("docker: discovery failed"),
+            "{}",
+            later.text()
+        );
+        assert!(later.app().route == Route::Home);
+        assert!(!crate::sim::catalogue::hard_cases_tag_frame(
+            &later.app().world
+        ));
+        let mut stepped = App::for_scenario(Scenario::HardCases, Motion::Paused, 40);
+        assert!(termrock::App::accept_paused_clock_step(&mut stepped, 1_100));
+        assert!(!crate::sim::catalogue::hard_cases_tag_frame(&stepped.world));
+        for scenario in [
+            Scenario::LaunchFailure,
+            Scenario::RemoteHost,
+            Scenario::ActivitiesMulti,
+            Scenario::MonorepoRoot,
+            Scenario::FirstUse,
+            Scenario::DockerCleanup,
+            Scenario::DiskCleanup,
+        ] {
+            let other = harness(
+                App::for_scenario(scenario, Motion::Paused, 40),
+                Theme::junie(),
+                120,
+                40,
+            );
+            assert!(!other.text().contains("northwind"), "{}", scenario.name());
+            assert!(!crate::sim::catalogue::hard_cases_tag_frame(
                 &other.app().world
             ));
         }
