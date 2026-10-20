@@ -12,3 +12,7 @@ termrock-theme.workspace = true
 termrock-text.workspace = true
 ratatui.workspace = true
 ratatui-core.workspace = true
+
+# Rust documentation examples are guarded by the workspace doc inventory test.
+[lib]
+doctest = false
