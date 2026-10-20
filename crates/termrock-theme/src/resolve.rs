@@ -162,6 +162,14 @@ pub struct Resolved {
     pub align: Option<Align>,
 }
 
+/// A resolved style together with the explicit theme, overlay, and instance
+/// channels that overrode its defaults.
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
+pub struct ResolvedStyle {
+    pub resolved: Resolved,
+    pub explicit: StylePatch,
+}
+
 impl Resolved {
     #[must_use]
     pub fn over(self, inherited: impl Into<PaintStyle>) -> PaintStyle {
@@ -282,6 +290,44 @@ pub fn bind_defaults(
     }
     acc = apply_explicit(theme, (family, variant, part), flags, overlays, acc);
     bind(theme, acc, local, surface)
+}
+
+pub fn bind_defaults_with_explicit(
+    theme: &Theme,
+    (family, variant, part): (Family, Variant, Part),
+    flags: StateFlags,
+    overlays: &[Overlay],
+    surface: Surface,
+    defaults: StyleDefaults<'_>,
+    local: Option<&StylePatch>,
+) -> ResolvedStyle {
+    let (mut acc, variant) = match theme.recipes.get(family) {
+        Some(recipe) => apply_recipe(recipe, variant, part, flags, defaults.base),
+        None => (defaults.base, variant),
+    };
+    if theme.capability.color == super::ColorLevel::Mono {
+        acc = super::downgrade::apply_mono_with_defaults(
+            acc,
+            &theme.recipes,
+            family,
+            part,
+            flags,
+            Some(defaults.mono),
+        );
+    }
+    let explicit = apply_explicit(
+        theme,
+        (family, variant, part),
+        flags,
+        overlays,
+        StylePatch::new(),
+    );
+    acc = acc.merge(explicit);
+    let resolved = bind(theme, acc, local, surface);
+    ResolvedStyle {
+        resolved,
+        explicit: local.map_or(explicit, |local| explicit.merge(*local)),
+    }
 }
 
 fn apply_explicit(
@@ -665,6 +711,50 @@ mod tests {
 
     fn theme() -> Theme {
         theme_over(Theme::junie())
+    }
+
+    #[test]
+    fn explicit_style_channels_report_theme_overlay_and_instance_precedence() {
+        static RULES: [OverlayRule; 1] = [(
+            Family::LIST,
+            Variant::DEFAULT,
+            Part::CONTAINER,
+            StateFlags::empty(),
+            StylePatch::new()
+                .clear_fg()
+                .set_underline(Role::Warning)
+                .add(Modifier::UNDERLINED),
+        )];
+        let theme = Theme::junie().override_family(Family::LIST, |recipe| {
+            recipe.part(Part::CONTAINER).base(
+                StylePatch::new()
+                    .set_fg(Role::Danger)
+                    .set_bg(Role::Danger)
+                    .set_underline(Role::Accent)
+                    .add(Modifier::BOLD),
+            );
+        });
+        let overlay = Overlay::new(&RULES);
+        let mut local = StylePatch::new()
+            .set_fg(Role::Info)
+            .clear_bg()
+            .remove(Modifier::UNDERLINED);
+        local.underline = Slot::Clear;
+        let channels = bind_defaults_with_explicit(
+            &theme,
+            (Family::LIST, Variant::DEFAULT, Part::CONTAINER),
+            StateFlags::empty(),
+            &[overlay],
+            Surface::Canvas,
+            StyleDefaults::default(),
+            Some(&local),
+        );
+        assert_eq!(channels.explicit.fg, Slot::Set(Role::Info));
+        assert_eq!(channels.explicit.bg, Slot::Clear);
+        assert_eq!(channels.explicit.underline, Slot::Clear);
+        assert!(channels.explicit.add.contains(Modifier::BOLD));
+        assert!(!channels.explicit.add.contains(Modifier::UNDERLINED));
+        assert!(channels.explicit.remove.contains(Modifier::UNDERLINED));
     }
 
     fn label_fg(

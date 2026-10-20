@@ -8,9 +8,43 @@ use crate::text::Span;
 use crate::text::clusters::ClusterFeed;
 use crate::text::measure::graphemes;
 use crate::theme::builder::{FadeOutcome, fade_mix};
-use crate::theme::{FgStep, GlyphRole, PaintStyle, Role, Surface, Theme};
+use crate::theme::{FgStep, GlyphRole, PaintStyle, Role, Slot, StylePatch, Surface, Theme};
 
 impl Ui<'_> {
+    pub(crate) fn patch_style(&mut self, area: Rect, style: PaintStyle, explicit: StylePatch) {
+        let area = area.intersection(self.clip);
+        if area.is_empty() {
+            return;
+        }
+        let style = style.into_style();
+        for pos in area.positions() {
+            let Some(cell) = self.buffer().cell_mut(pos) else {
+                continue;
+            };
+            match explicit.fg {
+                Slot::Inherit => {}
+                Slot::Set(_) => cell.fg = style.fg.unwrap_or(Color::Reset),
+                Slot::Clear => cell.fg = Color::Reset,
+            }
+            match explicit.bg {
+                Slot::Inherit => {}
+                Slot::Set(_) => cell.bg = style.bg.unwrap_or(Color::Reset),
+                Slot::Clear => cell.bg = Color::Reset,
+            }
+            match explicit.underline {
+                Slot::Inherit => {}
+                Slot::Set(_) => {
+                    cell.underline_color = style.underline_color.unwrap_or(Color::Reset)
+                }
+                Slot::Clear => cell.underline_color = Color::Reset,
+            }
+            cell.modifier = cell
+                .modifier
+                .difference(explicit.remove)
+                .union(explicit.add);
+        }
+    }
+
     pub fn paint_cell(&mut self, pos: Position, symbol: &str, s: impl Into<PaintStyle>) {
         if self.clip.contains(pos) {
             self.paint_str(

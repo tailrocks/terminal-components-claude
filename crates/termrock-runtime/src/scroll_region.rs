@@ -263,27 +263,47 @@ impl<'a> ScrollRegion<'a> {
         let (start, len) = view.thumb(track_len);
         let ov = self.ov;
         let part_live = StateFlags::empty();
-        let track = ov.style(
+        let track_patch = ov.part_patch(Part::TRACK);
+        let track_resolved = ui.style_defaults_with_explicit(
+            self.family,
+            Variant::DEFAULT,
+            Part::TRACK,
+            part_live,
+            crate::theme::StyleDefaults::default(),
+            track_patch.as_ref(),
+        );
+        ov.note(
             ui,
             self.id,
             self.family,
             Variant::DEFAULT,
             Part::TRACK,
-            part_live,
+            track_resolved.resolved,
         );
+        let track = track_resolved.resolved;
         let thumb_live = if ui.pressed_part(self.id) == Some(PartRef::of(Part::THUMB)) {
             part_live | StateFlags::PRESSED
         } else {
             part_live
         };
-        let thumb = ov.style(
+        let thumb_patch = ov.part_patch(Part::THUMB);
+        let thumb_resolved = ui.style_defaults_with_explicit(
+            self.family,
+            Variant::DEFAULT,
+            Part::THUMB,
+            thumb_live,
+            crate::theme::StyleDefaults::default(),
+            thumb_patch.as_ref(),
+        );
+        ov.note(
             ui,
             self.id,
             self.family,
             Variant::DEFAULT,
             Part::THUMB,
-            thumb_live,
+            thumb_resolved.resolved,
         );
+        let thumb = thumb_resolved.resolved;
         let thumb_rect = Rect {
             y: track_rect
                 .y
@@ -292,8 +312,8 @@ impl<'a> ScrollRegion<'a> {
             ..track_rect
         };
         // `set_style` unions modifiers, so a bold cell under the bar stays bold unless subtracted.
-        let track_style = without_bold(track.style, ov.part_patch(Part::TRACK));
-        let thumb_style = without_bold(thumb.style, ov.part_patch(Part::THUMB));
+        let track_style = without_inherited_bold(track.style, track_resolved.explicit);
+        let thumb_style = without_inherited_bold(thumb.style, thumb_resolved.explicit);
         if let Some(f) = ov.slot_for(Part::TRACK) {
             f(ui, bar);
         } else {
@@ -349,15 +369,16 @@ impl<'a> ScrollRegion<'a> {
     }
 }
 
-fn without_bold(
+fn without_inherited_bold(
     style: crate::theme::PaintStyle,
-    patch: Option<StylePatch>,
+    explicit: StylePatch,
 ) -> crate::theme::PaintStyle {
-    let style = style.remove_modifier(Modifier::BOLD);
-    if patch.is_some_and(|patch| patch.add.contains(Modifier::BOLD)) {
-        style.add_modifier(Modifier::BOLD)
-    } else {
+    // Ratatui's set_style unions modifiers with the underlay. Clear underlay
+    // bold unless a theme, overlay, or instance style explicitly supplies it.
+    if explicit.add.contains(Modifier::BOLD) {
         style
+    } else {
+        style.remove_modifier(Modifier::BOLD)
     }
 }
 
@@ -564,5 +585,29 @@ mod tests {
                 "bar wiped italic at y={y}"
             );
         }
+    }
+
+    #[test]
+    fn scrollbar_preserves_resolved_theme_bold() {
+        let theme = Theme::junie().override_family(Family::SCROLLBAR, |recipe| {
+            recipe
+                .part(Part::TRACK)
+                .base(StylePatch::new().add(Modifier::BOLD));
+        });
+        let mut rt = Runtime::new(Stub::default(), theme);
+        let mut buf = Buffer::empty(SCREEN);
+        let area = Rect::new(0, 0, 5, 6);
+        let mut st = ScrollState::new(100);
+        st.set_viewport(6);
+        st.scroll_to(47);
+        rt.draw_scene(SCREEN, &mut buf, |ui, _| {
+            ScrollRegion::new(ID).draw(ui, area, &st, 100);
+        })
+        .commit_presented();
+        assert!(
+            buf.cell(Position::new(area.right() - 1, area.y))
+                .is_some_and(|cell| cell.modifier.contains(Modifier::BOLD)),
+            "theme-level track bold is part of the resolved scrollbar style"
+        );
     }
 }
