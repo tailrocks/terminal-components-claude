@@ -136,13 +136,17 @@ class RunnerGuards(unittest.TestCase):
             expected.mkdir()
             actual_root = root / "receipts.actual"
             actual_root.mkdir()
+            semantic_actual_root = root / "receipts.semantic-actual"
+            semantic_actual_root.mkdir()
             ansi = b"frame\x1b[?25h"
             semantic = self.semantic_frame()
             identity = runner.checkpoint_identity(case, 0, logical)
             stem = f"checkpoint-00000000-{identity}"
             (expected / f"{stem}.ansi").write_bytes(ansi)
             (expected / f"{stem}.frame.json").write_bytes(semantic)
+            (actual_root / f"{stem}.ansi").write_bytes(ansi)
             (actual_root / f"{stem}.frame.json").write_bytes(semantic)
+            (semantic_actual_root / f"{stem}.frame.json").write_bytes(semantic)
             receipt_dir = receipt_root / runner.hashlib.sha256(case.encode()).hexdigest()
             receipt_dir.mkdir(parents=True)
             receipt = {
@@ -156,6 +160,7 @@ class RunnerGuards(unittest.TestCase):
             actual_with_host_provenance = json.loads(semantic)
             actual_with_host_provenance["provenance"]["created_unix"] = 123
             (actual_root / f"{stem}.frame.json").write_text(json.dumps(actual_with_host_provenance, separators=(",", ":")))
+            (semantic_actual_root / f"{stem}.frame.json").write_bytes(semantic)
             found = runner.read_receipts(receipt_root, [case], expected)
             self.assertEqual(found, {(case, 0, logical): (receipt["sha256"], receipt["semantic_frame_sha256"], None)})
             (expected / f"{stem}.ansi").write_bytes(b"changed")
@@ -170,8 +175,16 @@ class RunnerGuards(unittest.TestCase):
             with self.assertRaisesRegex(runner.RunnerError, "actual semantic frame hash mismatch"):
                 runner.read_receipts(receipt_root, [case], expected)
             (actual_root / f"{stem}.frame.json").write_bytes(semantic)
+            (actual_root / f"{stem}.ansi").write_bytes(b"bad actual bytes")
+            with self.assertRaisesRegex(runner.RunnerError, "actual ANSI frame missing or hash mismatch"):
+                runner.read_receipts(receipt_root, [case], expected)
+            (actual_root / f"{stem}.ansi").write_bytes(ansi)
             (actual_root / f"{stem}.extra.frame.json").write_bytes(semantic)
-            with self.assertRaisesRegex(runner.RunnerError, "runtime actual frame inventory mismatch"):
+            with self.assertRaisesRegex(runner.RunnerError, "runtime actual Frame inventory mismatch"):
+                runner.read_receipts(receipt_root, [case], expected)
+            (actual_root / f"{stem}.extra.frame.json").unlink()
+            (semantic_actual_root / f"{stem}.extra.frame.json").write_bytes(semantic)
+            with self.assertRaisesRegex(runner.RunnerError, "runtime semantic actual inventory mismatch"):
                 runner.read_receipts(receipt_root, [case], expected)
 
     def test_reference_decision_is_pinned_to_exact_tuple_and_two_frames(self) -> None:
@@ -262,6 +275,7 @@ class RunnerGuards(unittest.TestCase):
             receipts.mkdir()
             expected.mkdir()
             (root / "receipts.actual").mkdir()
+            (root / "receipts.semantic-actual").mkdir()
             with self.assertRaisesRegex(runner.RunnerError, "missing checkpoint receipts"):
                 runner.read_receipts(receipts, ["showcase/pages/overview"], expected)
 
