@@ -139,7 +139,7 @@ mod tests {
     use crate::theme::Theme;
 
     const NOTE: Id = Id::root("note.tests");
-    const MUTED: Color = Color::Rgb(128, 128, 128);
+    const MUTED: Color = Color::Rgb(138, 138, 138);
 
     fn scene() -> (Runtime<Stub>, Buffer) {
         (
