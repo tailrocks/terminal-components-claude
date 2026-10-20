@@ -1346,6 +1346,61 @@ impl<'f> Ui<'f> {
         self.mark_area(area, None);
     }
 
+    /// Map truecolor inks. Indexed and named colors stay.
+    pub fn recolor_rgb(
+        &mut self,
+        area: Rect,
+        mut map: impl FnMut(ratatui_core::style::Color) -> ratatui_core::style::Color,
+    ) {
+        let area = area.intersection(self.clip);
+        if area.is_empty() {
+            return;
+        }
+        {
+            let buf = self.buffer();
+            for pos in area.positions() {
+                if let Some(cell) = buf.cell_mut(pos) {
+                    if matches!(cell.fg, ratatui_core::style::Color::Rgb(..)) {
+                        cell.set_fg(map(cell.fg));
+                    }
+                    if matches!(cell.bg, ratatui_core::style::Color::Rgb(..)) {
+                        cell.set_bg(map(cell.bg));
+                    }
+                }
+            }
+        }
+        self.mark_area(area, None);
+    }
+
+    /// Replace a cell's foreground. `map` returns the new ink, or `None` to keep it.
+    pub fn recolor_fg(
+        &mut self,
+        area: Rect,
+        mut map: impl FnMut(
+            ratatui_core::style::Color,
+            ratatui_core::style::Color,
+        ) -> Option<ratatui_core::style::Color>,
+    ) {
+        let area = area.intersection(self.clip);
+        if area.is_empty() {
+            return;
+        }
+        {
+            let buf = self.buffer();
+            for pos in area.positions() {
+                let Some(cell) = buf.cell_mut(pos) else {
+                    continue;
+                };
+                let fg = cell.fg;
+                let bg = cell.bg;
+                if let Some(fg) = map(fg, bg) {
+                    cell.set_fg(fg);
+                }
+            }
+        }
+        self.mark_area(area, None);
+    }
+
     pub(crate) fn layer_count(&self) -> usize {
         self.frame.layers.active().len()
     }

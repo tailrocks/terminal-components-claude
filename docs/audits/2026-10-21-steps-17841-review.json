@@ -1,0 +1,42 @@
+{
+  "reviewed_commit": "17841c8228c81250d8e457422b12f7c1233283ec",
+  "parent_source": "c0408f34f",
+  "disposition": "Not cleared: intrinsic width repair works for DefaultRow/Display data but adds an incompatible Display bound to the generic composition adapter.",
+  "finding": {
+    "severity": "P2",
+    "path": "crates/termrock/src/composition.rs:202-244",
+    "issue": "composition::steps now requires T: Display even when Steps uses a valid custom RowFn<T>. Previously accepted non-Display view data no longer compile. Rendering custom content does not require Display, and the new measure_with_items documentation forces custom rows to fit an unrelated Display representation, creating a second label contract.",
+    "independent_reproduction": "The exact same separate consumer with a non-Display Data model and .row(|item,row| row.label(item.0)) compiles/renders Archive objects on c040, then fails solely E0277 at composition::steps on17841.",
+    "source": "/private/tmp/steps-nondisplay-api-review/tests/custom.rs",
+    "base_log": "/tmp/steps-c040-nondisplay.log",
+    "base_result": "One public consumer passed,0 skipped; Nextest aaaf115f-ec63-4401-92e3-afc0fdb0f662.",
+    "candidate_log": "/tmp/steps-17841-nondisplay.log",
+    "candidate_result": "Compilation fails because Data does not implement Display; no candidate tests executed."
+  },
+  "positive_checks": {
+    "unchanged_original_probes": "Copied original c040 tests into a separate reviewer-owned consumer, unchanged test bodies, dependency paths redirected only to the reviewer-owned exact source. All4 passed,0 skipped at17841.",
+    "consumer": "/private/tmp/steps-17841-independent/tests/contract.rs",
+    "log": "/tmp/steps-17841-independent-original.log",
+    "nextest_run": "7717b683-59bf-4796-bd1d-c0f12b0472de",
+    "coverage": [
+      "Intrinsic row with long live metadata now remains visible at an adequately wide root.",
+      "Explicit absent metadata hides queued fallback, while default metadata remains visible.",
+      "Widths0 through64, empty data,105 ordinals and combining/wide Unicode remain bounded.",
+      "Metadata cell widths and three-digit ordinal lanes render correctly across all four profiles."
+    ]
+  },
+  "source_review": [
+    "measure_with_items borrows items and metadata and uses shared terminal-cell width; it does not mutate StepsState, route input, draw or invoke the supplied StepState projection. It uses a worst-case fallback state-label width instead.",
+    "Legacy Steps::measure remains unchanged by this commit. The composition leaf delegates to the widget measure function and invokes the existing draw with the same borrowed component/state/data.",
+    "No second layout/input system or app-coordinate geometry is added. Metadata and Display callbacks remain caller code; their documented contract must require pure presentation projection during measurement.",
+    "git diff --check c040..17841 passed. No broad native/Clippy clearance is claimed after finding the public compile regression."
+  ],
+  "required_repair_plan": [
+    "Preserve composition::steps generic support for non-Display custom rows; keep DefaultRow label formatting as a renderer-specific implementation detail.",
+    "Prefer an additive optional pure intrinsic measurement method on the existing RowFn contract, with a source-compatible default for existing custom implementations and an actual Display-based implementation only for DefaultRow. If an explicit measured-row wrapper is used instead, retain the prior generic adapter and provide a documented fallback/override without mandatory dummy Display.",
+    "Do not run RowUi painting or the StepState projection during measure. Do not require the app to mirror a rendered label in a fake Display implementation merely to compile.",
+    "Any shared RowFn change requires agreement and serialized ownership with the runtime/component author. Avoid a new generic measurement framework.",
+    "Add the unchanged public non-Display consumer as a compile/runtime regression. Include a custom rendered label that differs from Display and verify its documented measurement policy, alongside the original four probes."
+  ],
+  "limits": "This is a bounded intrinsic width and public API review, not complete Steps style/interaction acceptance, Jackin adoption, Showcase reference approval or full CLI parity. No product source edits or helpers used."
+}
