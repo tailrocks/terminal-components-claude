@@ -3,8 +3,9 @@ use std::cell::RefCell;
 use termrock::author::{PaintStyle, StyleDefaults};
 use termrock::{
     Action, ActionKey, Align, Anchor, App, CellAction, CellUi, Chord, ColumnKey, Cx, Dialog,
-    DialogAction, DialogState, FgStep, Field, Focusability, Form, FormAction, FormState, FrameRead,
-    GlyphRole, Grid, GridAction, GridCell, GridColumnFit, GridEditor, GridGutter, GridModel,
+    DialogAction, DialogState, FgStep, Field, Focusability, Form, FormAction, FormState,
+    FrameRead, GlyphRole, Grid, GridAction, GridCell, GridColumnFit, GridEditor, GridGutter,
+    GridModel,
     GridSortIndicator, Id, Intent, ItemKey, KeyCode, KeyMap, KeyModifiers, KeyPhase, LayerId,
     LayerSize, LayerSpec, Maximized, Modifier, Panel, PanelKind, Part, Phase, PickerAction,
     Position, Response, Role, RowDecor, RowTotal, RowUi, ScreenAlign, Size, SortDir, Span,
@@ -8675,11 +8676,15 @@ fn paint_content_seam(ui: &mut Ui<'_>, area: termrock::Rect, panel_border: Role)
     if area.height < 3 {
         return;
     }
-    // Baseline seam rest is the same truecolor gray as a strong border, and
-    // index 239 at 256 colors. DisabledFg carries that pair.
-    let seam = ui
-        .surface_style()
-        .patch(ui.paint_patch(&StylePatch::new().set_fg(Role::DisabledFg)));
+    let seam = ui.surface_style().patch(
+        ui.style(
+            termrock::Family::SPLIT,
+            termrock::Variant::DEFAULT,
+            Part::SEAM,
+            StateFlags::empty(),
+        )
+        .style,
+    );
     let edge = ui
         .surface_style()
         .patch(ui.paint_patch(&StylePatch::new().set_fg(panel_border)));
