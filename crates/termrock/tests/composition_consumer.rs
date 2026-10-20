@@ -82,7 +82,8 @@ impl App for ExternalConsumer {
                 .max(Some(8), None),
         ])
         .spec(Composition::new().gap(1).padding(Insets::all(1)))
-        .show(ui);
+        .show(ui)
+        .expect("composition is within the supported depth");
     }
 }
 
@@ -200,4 +201,40 @@ fn composition_honors_intrinsic_gap_padding_and_child_maximum() {
     assert!(button.width <= 8);
     assert!(tabs.x > button.x + button.width);
     assert!(tabs.width <= 8, "explicit child max is applied");
+}
+
+#[test]
+fn zero_area_prepare_then_resize_keeps_composed_input_live() {
+    let initial = Rect::new(0, 0, 40, 8);
+    let resized = Rect::new(0, 0, 24, 6);
+    let mut runtime = Runtime::new(ExternalConsumer::new(), Theme::junie());
+    let mut terminal = Terminal::new(TestBackend::new(initial.width, initial.height)).unwrap();
+    render(&mut runtime, &mut terminal, initial);
+
+    runtime
+        .prepare(Rect::new(0, 0, 0, 0))
+        .expect("zero-area preparation is valid");
+    let mut terminal = Terminal::new(TestBackend::new(resized.width, resized.height)).unwrap();
+    render(&mut runtime, &mut terminal, resized);
+
+    let tabs_area = runtime.area_of(WORKSPACES).expect("resized tabs hit area");
+    assert!(within(resized, tabs_area));
+    let point = Position::new(tabs_area.x, tabs_area.y);
+    let _ = runtime
+        .handle(Input::Mouse(Mouse {
+            kind: MouseKind::Down,
+            pos: point,
+            mods: KeyModifiers::NONE,
+        }))
+        .expect("resized tabs pointer input is dispatched");
+    render(&mut runtime, &mut terminal, resized);
+    let _ = runtime
+        .handle(Input::Mouse(Mouse {
+            kind: MouseKind::Up,
+            pos: point,
+            mods: KeyModifiers::NONE,
+        }))
+        .expect("resized tabs pointer release is dispatched");
+    render(&mut runtime, &mut terminal, resized);
+    assert_eq!(runtime.focus(), Some(WORKSPACES));
 }
