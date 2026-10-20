@@ -174,6 +174,7 @@ enum SeamAlign {
     Start,
     Center,
     End,
+    Offset(u16),
 }
 
 pub struct SplitPane<'a> {
@@ -295,6 +296,12 @@ impl<'a> SplitPane<'a> {
     #[must_use]
     pub const fn seam_end(mut self, width: u16) -> Self {
         self.seam = Some((width, SeamAlign::End));
+        self
+    }
+
+    #[must_use]
+    pub const fn seam_at_offset(mut self, width: u16, offset: u16) -> Self {
+        self.seam = Some((width, SeamAlign::Offset(offset)));
         self
     }
 
@@ -425,6 +432,7 @@ impl<'a> SplitPane<'a> {
                 SeamAlign::Start => 0,
                 SeamAlign::Center => spare / 2,
                 SeamAlign::End => spare,
+                SeamAlign::Offset(offset) => offset.min(spare),
             };
             match self.axis {
                 SplitAxis::Horizontal => {
@@ -1145,6 +1153,29 @@ mod tests {
         assert_eq!(
             drag_target(SplitAxis::Horizontal, Position::new(18, 6), -1),
             Position::new(19, 6)
+        );
+    }
+
+    #[test]
+    fn explicit_seam_offset_matches_master_detail_odd_and_even_gaps() {
+        let area = Rect::new(5, 3, 120, 40);
+        for (gap, expected_x) in [(2, 43), (3, 43), (4, 44), (5, 43)] {
+            let split = SplitPane::new(ID, SplitAxis::Horizontal)
+                .gap(gap)
+                .seam_at_offset(1, gap / 2);
+            assert_eq!(
+                split.seam(SplitPaneState::new(32), area),
+                Rect::new(expected_x, area.y, 1, area.height),
+                "gap {gap}"
+            );
+        }
+        let centered = SplitPane::new(ID, SplitAxis::Horizontal)
+            .gap(2)
+            .seam_center(1);
+        assert_eq!(
+            centered.seam(SplitPaneState::new(32), area),
+            Rect::new(42, area.y, 1, area.height),
+            "existing centered seam contract remains unchanged"
         );
     }
 
