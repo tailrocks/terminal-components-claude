@@ -886,6 +886,14 @@ pub fn launch_failure_tag_frame(w: &World) -> bool {
     w.scenario == Scenario::LaunchFailure && w.now_ms() == 80
 }
 
+/// 80×24 `launch-failure` plate. Not the 120×40 plate. Later seeks and other sizes stay off it.
+pub fn launch_failure_80x24_plate(w: &World, width: u16, height: u16) -> Option<()> {
+    if width != 80 || height != 24 || !launch_failure_tag_frame(w) {
+        return None;
+    }
+    Some(())
+}
+
 /// Tag `hard-cases` at fixture tick 40. Later seeks keep the concept home.
 pub fn hard_cases_tag_frame(w: &World) -> bool {
     w.scenario == Scenario::HardCases && w.now_ms() == 80
@@ -3729,6 +3737,23 @@ mod tests {
         let mut other = fixtures::world_for(Scenario::HardCases);
         other.seek(40);
         assert!(remote_host_80x24_plate(&other, 80, 24).is_none());
+    }
+
+    #[test]
+    fn launch_failure_80x24_plate_is_only_the_narrow_tick_40_frame() {
+        let mut world = fixtures::world_for(Scenario::LaunchFailure);
+        assert!(launch_failure_80x24_plate(&world, 80, 24).is_none());
+        world.seek(40);
+        assert!(launch_failure_80x24_plate(&world, 120, 40).is_none());
+        assert!(launch_failure_80x24_plate(&world, 80, 40).is_none());
+        assert!(launch_failure_80x24_plate(&world, 81, 24).is_none());
+        assert!(launch_failure_80x24_plate(&world, 100, 30).is_none());
+        assert!(launch_failure_80x24_plate(&world, 80, 24).is_some());
+        world.seek(4_000);
+        assert!(launch_failure_80x24_plate(&world, 80, 24).is_none());
+        let mut other = fixtures::world_for(Scenario::HardCases);
+        other.seek(40);
+        assert!(launch_failure_80x24_plate(&other, 80, 24).is_none());
     }
 
     #[test]
