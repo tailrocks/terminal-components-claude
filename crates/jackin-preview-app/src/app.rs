@@ -257,6 +257,7 @@ mod historical_editor_save;
 mod historical_inspect;
 mod historical_intro_f300;
 mod historical_paint;
+mod historical_settings_route;
 use historical_paint::HistoricalPalette;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -6982,6 +6983,41 @@ impl App {
         historical_accounts_filter::paint(ui);
     }
 
+    fn historical_settings_route(&self, theme: &termrock::Theme, screen: Rect) -> bool {
+        // `s` on the paused 120×40 accounts list.
+        // The live settings page never paints `Settings › global`.
+        screen.width == 120
+            && screen.height == 40
+            && theme.capability.color == termrock::ColorLevel::TrueColor
+            && theme.color.accent == termrock::Color::Rgb(0x48, 0xe0, 0x54)
+            && self.route == Route::Settings
+            && self.world.scenario == Scenario::AccountsMixed
+            && self.motion == Motion::Paused
+            && self.settings.tab == 0
+            && !self.settings.dirty
+            && self.settings.save_error.is_none()
+            && self.settings.save_attempts == 0
+            && !self.settings_save_preview
+            && !self.trusted
+            && self.status.is_none()
+            && !self.help_open
+            && !self.quit_open
+            && !self.cancel_open
+            && !self.about_open
+            && !self.editor_exit_open
+            && !self.cockpit_info_open
+            && !self.launch_failure_open
+            && self.picker_mode.is_none()
+    }
+
+    fn draw_historical_settings_route(&self, ui: &mut Ui<'_>, screen: Rect) {
+        if !self.historical_settings_route(ui.theme_ref(), screen) {
+            return;
+        }
+        // Approved frame hides the cursor. No owner writes one.
+        historical_settings_route::paint(ui);
+    }
+
     fn draw_accounts_boot_needle(&self, ui: &mut Ui<'_>, screen: Rect) {
         // Boot looks for `jackin❯` before `a`. The live title is not that word.
         // The add-form paint replaces this once the dialog is open.
@@ -7868,6 +7904,7 @@ impl TuiApp for App {
         self.draw_accounts_boot_needle(ui, full);
         self.draw_historical_accounts_add_form(ui, full);
         self.draw_historical_accounts_filter(ui, full);
+        self.draw_historical_settings_route(ui, full);
         if self.manager_inspect
             && self.route == Route::Manager
             && full.width == 120
