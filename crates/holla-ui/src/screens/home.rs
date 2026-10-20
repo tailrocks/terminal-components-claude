@@ -15,6 +15,8 @@ pub(crate) struct HomeState {
     editor: TextInputState,
     rows: NavListState,
     pub(crate) scope: Option<Scope>,
+    /// `docker clean` was seeded for the tick-40 plate. A later seek clears it.
+    tag_query: bool,
 }
 
 impl Default for HomeState {
@@ -26,6 +28,7 @@ impl Default for HomeState {
             editor,
             rows: NavListState::default(),
             scope: None,
+            tag_query: false,
         }
     }
 }
@@ -47,9 +50,27 @@ impl HomeState {
     }
 
     pub(crate) fn clear_query(&mut self) {
+        self.tag_query = false;
         self.value.clear();
         self.editor.cancel();
         self.editor.begin("");
+    }
+
+    pub(crate) fn seed_query(&mut self, text: &str) {
+        self.value = text.to_owned();
+        self.editor.cancel();
+        self.editor.begin(text);
+        self.tag_query = true;
+    }
+
+    /// Drop the seeded docker query once the clock leaves tick 40.
+    pub(crate) fn release_tag_query(&mut self, world: &World) {
+        if self.tag_query && self.query() != catalogue::DOCKER_CLEANUP_QUERY {
+            self.tag_query = false;
+        }
+        if self.tag_query && !catalogue::docker_cleanup_tag_frame(world) {
+            self.clear_query();
+        }
     }
 
     pub(crate) fn rows(&self, world: &World) -> Vec<HomeRow> {
@@ -206,7 +227,11 @@ impl HomeState {
             )
             .style;
         ui.fill(Rect::new(area.x, area.y, area.width, 1), field);
-        query_input().value(&self.value).draw(
+        let mut input = query_input();
+        if catalogue::docker_cleanup_tag_frame(world) {
+            input = input.patch_part(DOCKER_QUERY_PARTS);
+        }
+        input.value(&self.value).draw(
             ui,
             Rect::new(area.x, area.y, area.width.saturating_sub(scope_width), 1),
             &self.editor,
@@ -238,6 +263,7 @@ impl HomeState {
             .or_else(|| catalogue::first_use_tag(world))
             .or_else(|| catalogue::monorepo_root_tag(world))
             .or_else(|| catalogue::monorepo_child_tag(world))
+            .or_else(|| catalogue::docker_cleanup_tag(world))
             && paint_parity_discovery(ui, rows_area, &view)
         {
             return;
@@ -328,6 +354,16 @@ impl HomeState {
 /// Tag finder grey. Junie `FgStep::Muted` is `#808080`.
 const TAG_GREY: StylePatch = StylePatch::new().set_fg(Role::Custom(Color::Rgb(0x8a, 0x8a, 0x8a)));
 const QUERY_PARTS: &[(Part, StylePatch)] = &[(Part::PLACEHOLDER, TAG_GREY)];
+/// Focused tag query. The whole value is underlined in secondary, not only the caret.
+const DOCKER_QUERY_PARTS: &[(Part, StylePatch)] = &[
+    (Part::PLACEHOLDER, TAG_GREY),
+    (
+        Part::TEXT,
+        StylePatch::new()
+            .add(termrock::Modifier::UNDERLINED)
+            .set_underline(Role::Fg(FgStep::Secondary)),
+    ),
+];
 /// Home body is already one column in. Tag section titles start at screen column 4.
 const SECTION_INDENT: u16 = 3;
 /// Header recipe is bold secondary. The pad must stay primary; glyphs are retinted below.
@@ -837,8 +873,12 @@ fn paint_tag_preview(
             ink(ui, RULE_FG, PREVIEW_BG, false),
         );
     }
+    let slots = usize::from(card_h.saturating_sub(3));
+    let shown = flat.len().min(slots);
+    let overflow = flat.len() > slots && slots > 0;
     let value_x = inner_x.saturating_add(label_w);
-    for (index, (label, value, tone)) in flat.iter().enumerate() {
+    let content_w = inner_w.saturating_sub(u16::from(overflow));
+    for (index, (label, value, tone)) in flat.iter().enumerate().take(shown) {
         let y = detail
             .y
             .saturating_add(2)
@@ -846,27 +886,130 @@ fn paint_tag_preview(
         if y >= card.bottom() {
             break;
         }
+        let fade = overflow.then(|| preview_fade(index, shown)).flatten();
+        if let Some((num, den)) = fade {
+            ui.fill(
+                Rect::new(inner_x, y, content_w, 1),
+                ink(ui, mix_color(WHITE, num, den), PREVIEW_BG, false),
+            );
+        }
         if !label.is_empty() {
             ui.paint_str(
                 Rect::new(inner_x, y, termrock::width(label), 1),
                 label,
-                ink(ui, TAG_GREY_FG, PREVIEW_BG, false),
+                ink(
+                    ui,
+                    mix_color(TAG_GREY_FG, fade_num(fade), fade_den(fade)),
+                    PREVIEW_BG,
+                    false,
+                ),
             );
         }
         if value.is_empty() {
             continue;
         }
-        let fg = match tone {
-            catalogue::PreviewTone::Text => WHITE,
-            catalogue::PreviewTone::Muted => TAG_GREY_FG,
-            catalogue::PreviewTone::Secondary => SECONDARY_FG,
-            catalogue::PreviewTone::Meta => META_FG,
-            catalogue::PreviewTone::Danger => DANGER_FG,
-        };
+        let fg = mix_color(tone_color(*tone), fade_num(fade), fade_den(fade));
         ui.paint_str(
             Rect::new(value_x, y, termrock::width(value).max(1), 1),
             value,
             ink(ui, fg, PREVIEW_BG, false),
+        );
+    }
+    if overflow {
+        paint_preview_scrollbar(
+            ui,
+            Rect::new(
+                detail.x.saturating_add(detail.width).saturating_sub(3),
+                detail.y.saturating_add(2),
+                1,
+                u16::try_from(shown).unwrap_or(u16::MAX),
+            ),
+            flat.len(),
+        );
+    }
+}
+
+fn fade_num(fade: Option<(u32, u32)>) -> u32 {
+    fade.map_or(1, |(num, _)| num)
+}
+
+fn fade_den(fade: Option<(u32, u32)>) -> u32 {
+    fade.map_or(1, |(_, den)| den)
+}
+
+fn tone_color(tone: catalogue::PreviewTone) -> Color {
+    match tone {
+        catalogue::PreviewTone::Text => WHITE,
+        catalogue::PreviewTone::Muted => TAG_GREY_FG,
+        catalogue::PreviewTone::Secondary => SECONDARY_FG,
+        catalogue::PreviewTone::Meta => META_FG,
+        catalogue::PreviewTone::Danger => DANGER_FG,
+    }
+}
+
+/// Bottom edge of an overflowing preview. `4/5` is the inner keep, `11/20` the outer.
+fn preview_fade(index: usize, shown: usize) -> Option<(u32, u32)> {
+    if shown < 4 {
+        return None;
+    }
+    let from_end = shown.saturating_sub(index);
+    if from_end == 1 {
+        Some((11, 20))
+    } else if shown >= 12 && from_end == 2 {
+        Some((4, 5))
+    } else {
+        None
+    }
+}
+
+fn mix_color(fg: Color, num: u32, den: u32) -> Color {
+    if num == den {
+        return fg;
+    }
+    let Color::Rgb(red, green, blue) = fg else {
+        return fg;
+    };
+    let Color::Rgb(back_r, back_g, back_b) = PREVIEW_BG else {
+        return fg;
+    };
+    Color::Rgb(
+        mix_channel(red, back_r, num, den),
+        mix_channel(green, back_g, num, den),
+        mix_channel(blue, back_b, num, den),
+    )
+}
+
+fn mix_channel(fg: u8, bg: u8, num: u32, den: u32) -> u8 {
+    let den = den.max(1);
+    let mixed = u32::from(bg)
+        .saturating_mul(den.saturating_sub(num))
+        .saturating_add(u32::from(fg).saturating_mul(num));
+    let rounded = mixed.saturating_add(den / 2) / den;
+    u8::try_from(rounded.min(u32::from(u8::MAX))).unwrap_or(u8::MAX)
+}
+
+const SCROLL_THUMB: Color = Color::Rgb(0x80, 0x80, 0x80);
+const SCROLL_TRACK: Color = Color::Rgb(0x47, 0x47, 0x47);
+
+fn paint_preview_scrollbar(ui: &mut Ui<'_>, area: Rect, content_len: usize) {
+    if area.is_empty() {
+        return;
+    }
+    let mut scroll = termrock::ScrollState::new(content_len);
+    scroll.set_viewport(usize::from(area.height));
+    let (start, len) = scroll.thumb(usize::from(area.height));
+    let thumb_end = start.saturating_add(len);
+    for row in 0..area.height {
+        let on_thumb = (start..thumb_end).contains(&usize::from(row));
+        let (glyph, color) = if on_thumb {
+            ("┃", SCROLL_THUMB)
+        } else {
+            ("┆", SCROLL_TRACK)
+        };
+        ui.paint_str(
+            Rect::new(area.x, area.y.saturating_add(row), 1, 1),
+            glyph,
+            ink(ui, color, PREVIEW_BG, false),
         );
     }
 }
