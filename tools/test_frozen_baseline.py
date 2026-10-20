@@ -159,6 +159,7 @@ class RunnerGuards(unittest.TestCase):
             (receipt_dir / f"{stem}.json").write_text(json.dumps(receipt))
             actual_with_host_provenance = json.loads(semantic)
             actual_with_host_provenance["provenance"]["created_unix"] = 123
+            actual_with_host_provenance["provenance"]["source"] = "ansi"
             (actual_root / f"{stem}.frame.json").write_text(json.dumps(actual_with_host_provenance, separators=(",", ":")))
             (semantic_actual_root / f"{stem}.frame.json").write_bytes(semantic)
             found = runner.read_receipts(receipt_root, [case], expected)
