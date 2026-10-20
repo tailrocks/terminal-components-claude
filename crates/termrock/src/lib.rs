@@ -149,8 +149,9 @@ pub use termrock_controls::{
 };
 
 pub use termrock_fields::{
-    BlurPolicy, EditPhase, ErrorState, Field, NoValidate, Note, TextAction, TextArea,
-    TextAreaState, TextCmd, TextInput, TextInputState, Validate, discard_error, redacted_text,
+    BlurPolicy, EditCapabilities, EditMenuRequest, EditPhase, ErrorState, Field, NoValidate, Note,
+    TextAction, TextArea, TextAreaState, TextCmd, TextEditCommand, TextInput, TextInputState,
+    Validate, discard_error, redacted_text,
 };
 pub use termrock_runtime::field_control::FieldControl;
 
@@ -177,11 +178,11 @@ pub use termrock_viewport::{ViewportWorkProbe, ViewportWorkSnapshot};
 
 pub use termrock_overlays::{
     CommandPalette, Completion, CompletionAction, CompletionCmd, CompletionController,
-    CompletionState, ContextMenu, Dialog, DialogAction, DialogCmd, DialogState, HelpAction,
-    HelpCmd, HelpOverlay, HelpOverlayState, HelpSection, LabelSelect, Menu, MenuAction, MenuBar,
-    MenuBarHoverScope, MenuCmd, MenuItem, MenuState, Picker, PickerAction, PickerChain,
-    PickerChainAction, PickerChainCmd, PickerChainState, PickerStage, PickerState, ScopeKey,
-    Select, SelectAction, SelectCmd, SelectField, SelectState,
+    CompletionState, ContextMenu, Dialog, DialogAction, DialogCmd, DialogState, EditMenu,
+    EditMenuAction, EditMenuState, HelpAction, HelpCmd, HelpOverlay, HelpOverlayState, HelpSection,
+    LabelSelect, Menu, MenuAction, MenuBar, MenuBarHoverScope, MenuCmd, MenuItem, MenuState,
+    Picker, PickerAction, PickerChain, PickerChainAction, PickerChainCmd, PickerChainState,
+    PickerStage, PickerState, ScopeKey, Select, SelectAction, SelectCmd, SelectField, SelectState,
 };
 
 pub use termrock_grid::{

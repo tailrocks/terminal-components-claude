@@ -31,6 +31,7 @@ pub(crate) use termrock_runtime::{
 
 pub mod completion;
 pub mod dialog;
+pub mod edit_menu;
 pub mod help;
 pub mod menu;
 pub mod picker;
@@ -42,6 +43,7 @@ pub use completion::{
     Completion, CompletionAction, CompletionCmd, CompletionController, CompletionState,
 };
 pub use dialog::{Dialog, DialogAction, DialogCmd, DialogState};
+pub use edit_menu::{EditMenu, EditMenuAction, EditMenuState};
 pub use help::{HelpAction, HelpCmd, HelpOverlay, HelpOverlayState, HelpSection};
 pub use menu::{
     ContextMenu, Menu, MenuAction, MenuBar, MenuBarHoverScope, MenuCmd, MenuItem, MenuState,
