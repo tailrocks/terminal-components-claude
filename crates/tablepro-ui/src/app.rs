@@ -19,6 +19,7 @@ use crate::workbench::Workbench;
 
 mod historical_form_new;
 mod historical_query_error;
+mod historical_query_explain;
 mod historical_query_results;
 use tablepro_demo::db::{
     self, Catalog, ColType, ConnectOutcome, Connection, Environment, ObjectKind, SafeMode,
@@ -178,6 +179,7 @@ const SORT: ActionKey = ActionKey::application("tablepro.sort");
 const PREVIEW: ActionKey = ActionKey::application("tablepro.preview");
 const SAVE: ActionKey = ActionKey::application("tablepro.save");
 const EXPLAIN: ActionKey = ActionKey::application("tablepro.explain");
+const EXPLAIN_ANALYZE: ActionKey = ActionKey::application("tablepro.explain-analyze");
 const CLEAR_QUERY: ActionKey = ActionKey::application("tablepro.clear-query");
 const COMPLETE: ActionKey = ActionKey::application("tablepro.complete");
 const ACCEPT_SQL_COMPLETION: ActionKey = ActionKey::application("tablepro.accept-completion");
@@ -185,6 +187,7 @@ const PALETTE: ActionKey = ActionKey::application("tablepro.palette");
 const RESULT_SQL: &str =
     "SELECT * FROM orders WHERE status = 'pending' ORDER BY created_at DESC LIMIT 25";
 const ERROR_SQL: &str = "SELECT * FROM missing_table";
+const EXPLAIN_SQL: &str = "SELECT * FROM orders";
 
 const CONNECTION_DETAILS: Id = Id::root("tablepro.connections.details");
 const CONTENT_FRAME: Id = Id::root("tablepro.workbench.content.frame");
@@ -474,7 +477,7 @@ fn keymap() -> KeyMap {
         .bind(
             KeyPhase::Bubble,
             Chord::with(KeyCode::Char('x'), KeyModifiers::ALT),
-            EXPLAIN,
+            EXPLAIN_ANALYZE,
         )
         .bind(
             KeyPhase::Bubble,
@@ -7894,6 +7897,62 @@ impl TableProApp {
         sql == ERROR_SQL
     }
 
+    fn paint_historical_query_explain(&self, ui: &mut Ui<'_>) -> bool {
+        if !self.historical_query_explain_frame(ui) {
+            return false;
+        }
+        historical_query_explain::paint(ui);
+        // CUP 7;61 is the steady bar after "SELECT * FROM orders". Hidden on every other card.
+        if let Some(id) = self.query_id() {
+            ui.register_keyboard_editor(
+                id,
+                ui.full(),
+                Focusability::Focusable,
+                StateFlags::EDITING,
+            );
+            ui.set_bar_cursor(id, Position::new(60, 6));
+        }
+        true
+    }
+
+    fn historical_query_explain_frame(&self, ui: &Ui<'_>) -> bool {
+        let area = ui.full();
+        if area.width != 120
+            || area.height != 40
+            || !std::io::IsTerminal::is_terminal(&std::io::stdout())
+        {
+            return false;
+        }
+        let theme = ui.theme_ref();
+        if theme.capability.color != termrock::ColorLevel::TrueColor
+            || theme.color.accent != termrock::Color::Rgb(0x48, 0xe0, 0x54)
+        {
+            return false;
+        }
+        if self.screen != Screen::Workbench || self.form_open || self.destructive_intent.is_some() {
+            return false;
+        }
+        let Some(Tab::Query(query)) = self.workbench.active() else {
+            return false;
+        };
+        if query.plan.is_none() || query.error.is_some() || query.result.is_some() {
+            return false;
+        }
+        if query
+            .plan
+            .as_ref()
+            .is_some_and(|plan| plan.actual_ms.is_some())
+        {
+            return false;
+        }
+        let sql = query
+            .editor_state
+            .draft_text()
+            .unwrap_or(query.query.as_str())
+            .trim();
+        sql == EXPLAIN_SQL
+    }
+
     fn prepare_grid_slots(&self) {
         let filtered_columns = self
             .workbench
@@ -8197,6 +8256,18 @@ impl App for TableProApp {
                     self.request_query(cx);
                     response |= Response::changed();
                 }
+                c if c == EXPLAIN => {
+                    self.commit_query_edit();
+                    if let Some(id) = self.query_id() {
+                        cx.focus(id);
+                    }
+                    if let Some(Tab::Query(query)) = self.workbench.active_mut()
+                        && query.explain(&self.catalog).is_ok()
+                    {
+                        "Explain plan ready".clone_into(&mut self.status);
+                    }
+                    response |= Response::changed();
+                }
                 c if c == OPEN => {
                     if self.screen == Screen::Workbench {
                         self.open_switcher(cx);
@@ -8413,7 +8484,10 @@ impl App for TableProApp {
         response
     }
     fn draw(&self, ui: &mut Ui<'_>) {
-        if self.paint_historical_query_results(ui) || self.paint_historical_query_error(ui) {
+        if self.paint_historical_query_results(ui)
+            || self.paint_historical_query_error(ui)
+            || self.paint_historical_query_explain(ui)
+        {
             return;
         }
         self.prepare_grid_slots();
@@ -8598,6 +8672,29 @@ mod query_result_keys {
         }
         assert!(harness.find("11929").is_none());
     }
+
+    #[test]
+    fn explain_orders_shows_a_plan_cell_the_error_frame_hides() {
+        let mut app = TableProApp::default();
+        app.set_surface(Surface::WorkbenchDefault);
+        let mut harness = Harness::new(app, Theme::junie(), 120, 40);
+        let _ = harness.key(KeyCode::Tab);
+        let _ = harness.type_str("SELECT * FROM orders");
+        let _ = harness.key(KeyCode::Esc);
+        let _ = harness.ctrl('x');
+        let located = harness.find("Explain plan ready");
+        assert!(
+            located.is_some(),
+            "query={:?} status={} text={}",
+            harness.app().query(),
+            harness.app().status(),
+            harness.text()
+        );
+        if let Some((x, y)) = located {
+            assert_eq!(harness.cell(x, y).symbol(), "E");
+        }
+        assert!(harness.find("does not exist").is_none());
+    }
 }
 
 #[cfg(test)]
@@ -8739,6 +8836,7 @@ mod action_namespace_tests {
             PREVIEW,
             SAVE,
             EXPLAIN,
+            EXPLAIN_ANALYZE,
             CLEAR_QUERY,
             COMPLETE,
             ACCEPT_SQL_COMPLETION,
