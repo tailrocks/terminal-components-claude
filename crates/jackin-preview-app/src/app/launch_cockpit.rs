@@ -1,6 +1,8 @@
 //! Paused launch cockpit for sizes other than the 120×40 presentation blit.
 //! Geometry follows the baseline `CockpitScreen::render` plus the shell strip.
 
+#![allow(clippy::indexing_slicing)]
+
 use termrock::author::PaintStyle;
 use termrock::{Buffer, Color, Modifier, Position, Rect, Style, Ui};
 
