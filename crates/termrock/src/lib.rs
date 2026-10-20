@@ -85,8 +85,8 @@ pub use slots::PickerSlotExt;
 pub use termrock_runtime::ui::LayerSlot;
 pub use termrock_runtime::{
     Acc, ActivationFeedback, ActivationKey, App, ClockError, FeedbackClock, FeedbackClockError,
-    Moment, PaintedFrame, PendingInput, RenderSnapshot, RenderSnapshotError, Runtime,
-    SimulationMoment, TypingPolicy, UpdateCause,
+    Moment, PaintedFrame, PendingInput, PreparedFrame, PreparedFrameError, RenderSnapshot,
+    RenderSnapshotError, Runtime, SimulationMoment, TypingPolicy, UpdateCause,
 };
 pub use termrock_runtime::{Cx, FrameRead, LayoutFacts, ReferenceState, ReferenceTarget, Ui};
 #[cfg(feature = "testing")]
@@ -114,8 +114,9 @@ pub use termrock_runtime::{
 };
 
 pub use termrock_runtime::layer::{
-    Anchor, Backdrop, CrossAlign, Dismiss, DismissReason, LayerEvent, LayerId, LayerKind,
-    LayerSize, LayerSpec, ScreenAlign, Side, backdrop_area, resolve_anchor,
+    Anchor, Backdrop, CrossAlign, Dismiss, DismissReason, FocusContinuationOutcome,
+    LayerCompletion, LayerEvent, LayerId, LayerKind, LayerOpening, LayerSize, LayerSpec,
+    ScreenAlign, Side, backdrop_area, resolve_anchor,
 };
 
 pub use termrock_theme::{
