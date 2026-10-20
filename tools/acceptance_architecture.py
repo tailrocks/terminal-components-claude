@@ -74,34 +74,37 @@ def dependency_location(root: Path, pkg: dict[str, Any], dep: dict[str, Any]) ->
     return None
 
 
-def production_files(root: Path, package_root: str, tracked: list[str], target_paths: list[str]) -> tuple[list[str], list[str]]:
+def production_files(
+    root: Path,
+    package_root: str,
+    tracked: list[str],
+    target_paths: list[str],
+    target_directory: Path,
+) -> tuple[list[str], list[str]]:
     prefix = package_root.rstrip("/") + "/"
     out = list(target_paths)
     errors: list[str] = []
     for path in tracked:
         if path == prefix + "Cargo.toml" or path == prefix + "build.rs":
             out.append(path)
-        elif path.startswith(prefix) and Path(path).suffix == ".rs" and not any(
-            part in {"tests", "examples", "benches", "target", ".git"}
-            for part in Path(path).relative_to(package_root).parts[:-1]
-        ):
+        elif path.startswith(prefix) and Path(path).suffix == ".rs":
             out.append(path)
         elif path.startswith(prefix + "src/") and Path(path).suffix in SOURCE_SUFFIXES:
             out.append(path)
     source_dir = root / package_root
     if source_dir.exists():
-        excluded = {"tests", "examples", "benches", "target", ".git"}
+        excluded_dirs = {target_directory.resolve(strict=False), (root / ".git").resolve(strict=False)}
         pending = [(source_dir, source_dir.resolve(strict=True), (source_dir.resolve(strict=True),))]
         while pending:
             logical_dir, actual_dir, ancestors = pending.pop()
+            if actual_dir in excluded_dirs:
+                continue
             try:
                 entries = sorted(actual_dir.iterdir(), key=lambda item: item.name)
             except OSError as exc:
                 errors.append(f"unreadable production source directory {logical_dir}: {exc}")
                 continue
             for entry in entries:
-                if entry.name in excluded:
-                    continue
                 logical_path = logical_dir / entry.name
                 try:
                     resolved = logical_path.resolve(strict=True)
@@ -324,7 +327,13 @@ def check(root: Path) -> dict[str, Any]:
             target_paths.append(target_rel)
             if "custom-build" in target.get("kind", []):
                 report["unaccounted_inputs"].append(f"build-generated production inputs require independent accounting: {target_rel}")
-        files, scan_errors = production_files(root, pkg_rel_root, tracked, target_paths)
+        files, scan_errors = production_files(
+            root,
+            pkg_rel_root,
+            tracked,
+            target_paths,
+            Path(str(metadata.get("target_directory", root / "target"))),
+        )
         report["errors"].extend(scan_errors)
         if rel_manifest not in files:
             files.append(rel_manifest)
