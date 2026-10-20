@@ -1,0 +1,268 @@
+{
+  "schema": 1,
+  "recipe_sha256": "2409404d35f3d92424c9a416436a91fe1578045ecc45110dd9c509b97ae09f62",
+  "diagnostic_only": true,
+  "build_admitted": false,
+  "strict_reproducibility_accepted": false,
+  "roots": {
+    "a": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/controlled-baseline-a2",
+    "b": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/controlled-baseline-b2"
+  },
+  "command_comparisons": {
+    "prepare": {
+      "a_receipt_sha256": "a09dddfceb42ef0729cf8303ce73354e4a50f4439277a42876f92dd37e9ff9c3",
+      "b_receipt_sha256": "2fc75b37efccf8bdf7f955daba85a88ac4ef31024c8f01efe21cb1bf3aa31a70",
+      "normalized_argv_equal": false,
+      "normalized_cwd_equal": true,
+      "a_env_recipe_fingerprints_verified": true,
+      "normalized_environments_equal": true,
+      "a_exit": 0,
+      "b_exit": 0
+    },
+    "prepare-live": {
+      "a_receipt_sha256": "50dc4517aafe7d0028fbbf6eb12a37a3f8fb4ed70476818eaf879d5e2496ed4c",
+      "b_receipt_sha256": "950c556d44913f78a926859ab412190fe7c07b226afda0b1df74a7fe4c5909e4",
+      "normalized_argv_equal": false,
+      "normalized_cwd_equal": true,
+      "a_env_recipe_fingerprints_verified": true,
+      "normalized_environments_equal": true,
+      "a_exit": 0,
+      "b_exit": 0
+    },
+    "metadata": {
+      "a_receipt_sha256": "c71120c5bca8fbb544486a278e08b75f7cbbf5a870f746a81b6f048fb6f67f60",
+      "b_receipt_sha256": "b666f7fdfbd9aabb30cc69fe28850c133d4261f295c2cf746c5342487c843cc4",
+      "normalized_argv_equal": true,
+      "normalized_cwd_equal": true,
+      "a_env_recipe_fingerprints_verified": true,
+      "normalized_environments_equal": true,
+      "a_exit": 0,
+      "b_exit": 0
+    },
+    "stage-1-build": {
+      "a_receipt_sha256": "6ecd968236aed904f32eb76d7d4f9f18308a89ac779d8d654c7ada1508582b1a",
+      "b_receipt_sha256": "d3291c65647559702ae060526629e4ffbc310693ec316b3dde438713eb0f87d7",
+      "normalized_argv_equal": true,
+      "normalized_cwd_equal": true,
+      "a_env_recipe_fingerprints_verified": true,
+      "normalized_environments_equal": true,
+      "a_exit": 0,
+      "b_exit": 0
+    },
+    "stage-2-nextest": {
+      "a_receipt_sha256": "f713f844e0f7a0366b216d3d8eadabdd531ef3f7a8de6d00d865c5a4804553d0",
+      "b_receipt_sha256": "2e241f5b8aebeadc9121778d9b47beda21052397aee452e0b9753f857e80a795",
+      "normalized_argv_equal": true,
+      "normalized_cwd_equal": true,
+      "a_env_recipe_fingerprints_verified": true,
+      "normalized_environments_equal": true,
+      "a_exit": 0,
+      "b_exit": 0
+    }
+  },
+  "source_comparisons": {
+    "provenance.json": {
+      "equal": true,
+      "a_sha256": "4eb758b86e148fc0688704ffbd66b3d6589300dd59ffc3ee67b78a26806ad098",
+      "b_sha256": "4eb758b86e148fc0688704ffbd66b3d6589300dd59ffc3ee67b78a26806ad098"
+    },
+    "live-source.json": {
+      "equal": true,
+      "a_sha256": "ea29844bfb384c3bb995c1d9594ffd9b58a1e7bfdf19b001eb0b45d9d6eec94c",
+      "b_sha256": "ea29844bfb384c3bb995c1d9594ffd9b58a1e7bfdf19b001eb0b45d9d6eec94c"
+    },
+    "dependency_metadata": {
+      "equal": true,
+      "raw_root_only_bytes_equal": true,
+      "raw_root_only_sha256": "36824d48483e1bae4a0fa8f1ac4399263c8048f6beff0e5887fcaff999e07db8",
+      "raw_algorithm": "Replace only exact A2/B2 root UTF-8 bytes with <ROOT>; preserve every other byte",
+      "b_sorted_compact_json_sha256": "6a29b8c854a6900ff335fa5ac2b95b624d225c64964fa54a8733396e42649a80",
+      "b_sorted_compact_algorithm": "Root-only string substitution, then json.dumps(sort_keys=True,separators=(comma,colon)) plus newline; auxiliary representation, not raw-byte normalization"
+    }
+  },
+  "stage_binaries": {
+    "stage-1-build": {
+      "showcase": {
+        "a": "e5b3ee4cefeeb16e08824b5e61f36ebaea2660d3614e6d0bec4b9f253ce94b0f",
+        "b": "43cdbb4716004b5ec5c3e6c5bba7742044236206657f1b1b8236f98a47e173a1",
+        "equal": false
+      },
+      "tablepro": {
+        "a": "9d82836ee722a9b78efd0260c3b097fca71a431b8546959ff929e2c5d6f7b60a",
+        "b": "5d458c026d7b05c6eca6dcaa88a9ce707ca8e353df59c9990552e090901dee75",
+        "equal": false
+      },
+      "jackin-preview": {
+        "a": "16929b9d6d176dd6c71da5c2c10a282ee081283dbbe2d7951baae7777e09cf90",
+        "b": "5dbfc5173e9405ca45c2d9cb5c5b663d7ae99a4b56b4348fbd1e91543215ef43",
+        "equal": false
+      },
+      "holla": {
+        "a": "7c96575a6006d3429da4912c3c76c7d003e262edddd69df13ab63afcf201e345",
+        "b": "62a54cebf329d55d66a20d1a2c9933800fbeef40742d3a6e7e2216a1a21c9e2a",
+        "equal": false
+      }
+    },
+    "stage-2-nextest": {
+      "showcase": {
+        "a": "69c92499d8e1fba72b63e4165f583d88c72d8887b1e977b5db7c5ecdc9811d46",
+        "b": "ff2555435ab270275aaed26d1313d24aa76825480ec0b8fd6b39edc2227fc427",
+        "equal": false
+      },
+      "tablepro": {
+        "a": "792cee62054c81841b17b578acc4d665461b8defd249650e98fa8d8298407bf1",
+        "b": "df68deb19f4142c2b7e0d41de44e29731aed621c8b0fd888b343182eadf138f2",
+        "equal": false
+      },
+      "jackin-preview": {
+        "a": "afc5df6b307e4d3fb3be91a3e0867354dfa552aefa0c4b8b79e566d0c82e0cd5",
+        "b": "8efb6ee8ccd38c3885c48429153d7cb0baf67035226b5369e5224933f95f05ad",
+        "equal": false
+      },
+      "holla": {
+        "a": "36455f9ea00a9c9e2bc3ec9c7a541193ee39fae0fe9a992c498e64bf56be29e2",
+        "b": "c9744b85d55b3b9e724b602d6e770ceb7841502d3361cfa721dc424cebbef0d3",
+        "equal": false
+      }
+    }
+  },
+  "warning_inventory": {
+    "a/stage-1-build": {
+      "warning_lines": [],
+      "log_sha256": "e117ecc5936ea35a4558faadb89bcfd805fc6ede4bd9ed30cec40bf09f623106"
+    },
+    "a/stage-2-nextest": {
+      "warning_lines": [
+        "warning: unused imports: `Duration` and `Instant`",
+        "warning: unused imports: `CancelToken` and `Tui`",
+        "warning: associated function `new` is never used",
+        "warning: type alias `FrameMutation` is never used",
+        "warning: type alias `NamedFrameMutation` is never used",
+        "warning: struct `Scratch` is never constructed",
+        "warning: associated items `new` and `path` are never used",
+        "warning: function `frame` is never used",
+        "warning: function `config` is never used",
+        "warning: function `capture` is never used",
+        "warning: `junie-tui` (test \"visual_baseline\") generated 10 warnings (run `cargo fix --test \"visual_baseline\" -p junie-tui` to apply 2 suggestions)"
+      ],
+      "log_sha256": "f41f36dd6315e0b141ad2125c0300528a2679b2c4dbc2d0a22d375e73e98c5fe"
+    },
+    "b/stage-1-build": {
+      "warning_lines": [],
+      "log_sha256": "5fbd5f5c4761f0e4ffb045afa1e16887f73fecbc80f2e9ab38f3832f7a236416"
+    },
+    "b/stage-2-nextest": {
+      "warning_lines": [
+        "warning: unused imports: `Duration` and `Instant`",
+        "warning: unused imports: `CancelToken` and `Tui`",
+        "warning: associated function `new` is never used",
+        "warning: type alias `FrameMutation` is never used",
+        "warning: type alias `NamedFrameMutation` is never used",
+        "warning: struct `Scratch` is never constructed",
+        "warning: associated items `new` and `path` are never used",
+        "warning: function `frame` is never used",
+        "warning: function `config` is never used",
+        "warning: function `capture` is never used",
+        "warning: `junie-tui` (test \"visual_baseline\") generated 10 warnings (run `cargo fix --test \"visual_baseline\" -p junie-tui` to apply 2 suggestions)"
+      ],
+      "log_sha256": "17a5f2f3e9ad2bc0307215aaa408e0eb0ddabd0f27fdcf11f522674e50fb85d2"
+    }
+  },
+  "differences": [
+    {
+      "stage": "prepare",
+      "field": "normalized_argv_equal",
+      "a": [
+        "/opt/homebrew/bin/python3",
+        "/Users/donbeave/Projects/termrock-worktrees/receipt-delivery-20261021/tools/frozen_baseline.py",
+        "--repo",
+        "/Users/donbeave/Projects/termrock-worktrees/receipt-delivery-20261021",
+        "--root",
+        "/Users/donbeave/Projects/termrock-cli-evidence-20261021/controlled-baseline-a2",
+        "--timeout",
+        "220",
+        "prepare"
+      ],
+      "b": [
+        "/opt/homebrew/bin/python3",
+        "/Users/donbeave/Projects/termrock-worktrees/receipt-delivery-20261021/tools/frozen_baseline.py",
+        "--repo",
+        "/Users/donbeave/Projects/termrock-worktrees/receipt-delivery-20261021",
+        "--root",
+        "/Users/donbeave/Projects/termrock-cli-evidence-20261021/controlled-baseline-b2",
+        "--timeout",
+        "225",
+        "prepare"
+      ]
+    },
+    {
+      "stage": "prepare-live",
+      "field": "normalized_argv_equal",
+      "a": [
+        "/opt/homebrew/bin/python3",
+        "/Users/donbeave/Projects/termrock-worktrees/receipt-delivery-20261021/tools/frozen_baseline.py",
+        "--repo",
+        "/Users/donbeave/Projects/termrock-worktrees/receipt-delivery-20261021",
+        "--root",
+        "/Users/donbeave/Projects/termrock-cli-evidence-20261021/controlled-baseline-a2",
+        "--timeout",
+        "220",
+        "prepare-live"
+      ],
+      "b": [
+        "/opt/homebrew/bin/python3",
+        "/Users/donbeave/Projects/termrock-worktrees/receipt-delivery-20261021/tools/frozen_baseline.py",
+        "--repo",
+        "/Users/donbeave/Projects/termrock-worktrees/receipt-delivery-20261021",
+        "--root",
+        "/Users/donbeave/Projects/termrock-cli-evidence-20261021/controlled-baseline-b2",
+        "--timeout",
+        "225",
+        "prepare-live"
+      ]
+    },
+    {
+      "stage": "stage-1-build",
+      "app": "showcase",
+      "field": "raw_executable_sha256"
+    },
+    {
+      "stage": "stage-1-build",
+      "app": "tablepro",
+      "field": "raw_executable_sha256"
+    },
+    {
+      "stage": "stage-1-build",
+      "app": "jackin-preview",
+      "field": "raw_executable_sha256"
+    },
+    {
+      "stage": "stage-1-build",
+      "app": "holla",
+      "field": "raw_executable_sha256"
+    },
+    {
+      "stage": "stage-2-nextest",
+      "app": "showcase",
+      "field": "raw_executable_sha256"
+    },
+    {
+      "stage": "stage-2-nextest",
+      "app": "tablepro",
+      "field": "raw_executable_sha256"
+    },
+    {
+      "stage": "stage-2-nextest",
+      "app": "jackin-preview",
+      "field": "raw_executable_sha256"
+    },
+    {
+      "stage": "stage-2-nextest",
+      "app": "holla",
+      "field": "raw_executable_sha256"
+    }
+  ],
+  "all_final_raw_executables_equal": false,
+  "all_stage_raw_executables_equal": false,
+  "status": "NONCONFORMING DIAGNOSTIC; preserve all differences; no baseline admission"
+}
