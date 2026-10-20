@@ -886,6 +886,83 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Steps<'_, T, K, R> {
         }
         .fit(c)
     }
+
+    /// Measure this rail from its borrowed items without updating component state.
+    ///
+    /// Labels are measured using their [`fmt::Display`] representation, matching
+    /// the default row renderer. Custom row renderers that display a different
+    /// label should keep their content within that intrinsic width.
+    pub fn measure_with_items(&self, _ui: &Ui<'_>, c: Constraints, items: &[T]) -> Size
+    where
+        T: fmt::Display,
+    {
+        let number_lane = if self.numbered {
+            items
+                .len()
+                .max(1)
+                .to_string()
+                .len()
+                .max(2)
+                .saturating_add(1)
+        } else {
+            0
+        };
+        let prefix = 3usize.saturating_add(number_lane);
+        let mut preferred = usize::from(Self::PREFERRED_WIDTH);
+        let mut label = std::string::String::new();
+
+        for (ordinal, item) in items.iter().enumerate() {
+            label.clear();
+            let _ = fmt::write(&mut label, format_args!("{item}"));
+            let label_width = crate::text::width(&label);
+            let metadata = self.metadata.and_then(|metadata| metadata(item));
+            let metadata_width = if self.metadata.is_some() {
+                metadata.map_or(0, crate::text::width)
+            } else if self.numbered || self.step.is_some() {
+                // Keep the fallback state label visible without invoking the
+                // application-supplied state projection during measurement.
+                crate::text::width("skipped").max(crate::text::width("blocked"))
+            } else {
+                crate::text::width(StepState::Queued.label())
+            };
+            let row_prefix = if self.numbered {
+                ordinal
+                    .saturating_add(1)
+                    .to_string()
+                    .len()
+                    .max(2)
+                    .saturating_add(1)
+            } else {
+                0
+            };
+            let item_prefix = 3usize.saturating_add(row_prefix);
+            let label_and_meta = if metadata_width == 0 {
+                item_prefix.saturating_add(usize::from(label_width))
+            } else if self.numbered || self.metadata.is_some() {
+                item_prefix
+                    .saturating_add(usize::from(label_width.max(12)))
+                    .saturating_add(usize::from(metadata_width))
+                    .saturating_add(3)
+            } else {
+                item_prefix
+                    .saturating_add(usize::from(label_width))
+                    .saturating_add(usize::from(metadata_width))
+                    .saturating_add(1)
+            };
+            preferred = preferred.max(label_and_meta);
+        }
+
+        let minimum = if self.numbered || self.metadata.is_some() {
+            prefix.saturating_add(12)
+        } else {
+            12
+        };
+        Size {
+            min: (minimum.min(usize::from(u16::MAX)) as u16, 1),
+            preferred: (preferred.min(usize::from(u16::MAX)) as u16, c.max.1),
+        }
+        .fit(c)
+    }
 }
 
 impl<T, K, R> Bindings for Steps<'_, T, K, R> {
