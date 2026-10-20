@@ -17,7 +17,7 @@ use crate::response::{Response, StateFlags};
 use crate::secret::{Secret, SecretPolicy, wipe_string};
 use crate::text::measure::graphemes;
 use crate::text::{EditAction, EditOutcome, Extend, Motion, TextEditorCore, width};
-use crate::theme::{Family, GlyphRole, PaintStyle, Slot, StylePatch, Variant};
+use crate::theme::{Family, GlyphRole, PaintStyle, Role, Slot, StyleDefaults, StylePatch, Variant};
 use crate::ui::{Cx, FrameRead, Ui};
 use crate::validate::{FieldError, NoValidate, Validate};
 use termrock_runtime::Status;
@@ -1671,11 +1671,26 @@ impl<'a> TextInput<'a> {
                 }
                 None => ui.style(base_target.0, base_target.1, base_target.2, live),
             };
-            let decoration = ui.style(family, variant, target_part, live);
+            let base_underline = resolved
+                .style
+                .underline_role()
+                .map(|(role, _)| role)
+                .or_else(|| resolved.style.as_style().underline_color.map(Role::Custom));
+            let defaults =
+                StyleDefaults::new(base_underline.map_or_else(StylePatch::new, |role| {
+                    StylePatch::new().set_underline(role)
+                }));
+            let decoration =
+                ui.style_defaults_with_explicit(family, variant, target_part, live, defaults, None);
             let mut decoration_style = Style::new();
             let explicit_underline = local_patch.is_some_and(|patch| patch.underline.speaks());
             if !explicit_underline {
-                decoration_style.underline_color = decoration.style.as_style().underline_color;
+                decoration_style.underline_color = decoration
+                    .resolved
+                    .style
+                    .as_style()
+                    .underline_color
+                    .or_else(|| base_underline.map(|_| ratatui_core::style::Color::Reset));
             }
             let explicit_underline_modifier = local_patch.is_some_and(|patch| {
                 patch.add.contains(Modifier::UNDERLINED)
@@ -1683,18 +1698,23 @@ impl<'a> TextInput<'a> {
             });
             if !explicit_underline_modifier {
                 decoration_style.add_modifier = decoration
+                    .resolved
                     .style
                     .as_style()
                     .add_modifier
                     .intersection(Modifier::UNDERLINED);
                 decoration_style.sub_modifier = decoration
+                    .resolved
                     .style
                     .as_style()
                     .sub_modifier
                     .intersection(Modifier::UNDERLINED);
             }
             resolved.style = resolved.style.patch(PaintStyle::from(decoration_style));
-            ov.note(ui, id, family, variant, target_part, resolved);
+            let mut styled = decoration.resolved;
+            styled.style = resolved.style;
+            ov.note(ui, id, family, variant, target_part, styled);
+            resolved = styled;
             resolved
         };
         let field = style(ui, Part::FIELD);

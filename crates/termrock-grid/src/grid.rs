@@ -5424,6 +5424,31 @@ mod tests {
         assert_eq!(Some(error), expected);
     }
 
+    #[test]
+    fn inline_editor_theme_clear_resets_the_input_underline() {
+        for level in [
+            crate::theme::ColorLevel::TrueColor,
+            crate::theme::ColorLevel::Ansi256,
+            crate::theme::ColorLevel::Ansi16,
+            crate::theme::ColorLevel::Mono,
+        ] {
+            let theme = Theme::junie()
+                .for_level(level)
+                .define_family(Family::INPUT, |recipe| {
+                    recipe
+                        .part(Part::TEXT)
+                        .base(StylePatch::new().set_underline(Role::Warning));
+                })
+                .define_family(Family::GRID, |recipe| {
+                    let mut clear = StylePatch::new();
+                    clear.underline = crate::theme::Slot::Clear;
+                    recipe.part(Part::TEXT).when(StateFlags::ERROR, clear);
+                });
+            let (_, error, _) = inline_edit_underline_samples(theme);
+            assert_eq!(error, ratatui_core::style::Color::Reset, "at {level:?}");
+        }
+    }
+
     fn inline_edit_underline_samples(
         theme: Theme,
     ) -> (
