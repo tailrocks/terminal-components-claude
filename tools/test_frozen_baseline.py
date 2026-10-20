@@ -17,6 +17,63 @@ import frozen_baseline as runner
 
 
 class RunnerGuards(unittest.TestCase):
+    def make_process_bundle(self, root: Path, *, phase: str = "candidate-check", app: str = "showcase") -> tuple[Path, Path, dict[str, str], dict[str, object], bytes, str, str]:
+        bins = root / "bins"
+        bins.mkdir(parents=True, exist_ok=True)
+        for name in runner.APPS:
+            executable = bins / name
+            if not executable.exists():
+                executable.write_bytes(f"binary-{name}".encode())
+        case = "showcase::fixture::live"
+        case_id = runner.scenario_receipt_id(case)
+        expected_hashes = {name: runner.sha256(bins / name) for name in runner.APPS}
+        receipt_root = root / "receipts"
+        process_root = receipt_root / "process" / runner.hashlib.sha256(case_id.encode()).hexdigest()
+        process_root.mkdir(parents=True)
+        key = bytes(range(32))
+        run_id = "smoke-run:chunk-00000"
+        path = str((bins / app).resolve())
+        payload: dict[str, object] = {
+            "app": app,
+            "argv_provenance": "tuiscotti-builder-input",
+            "case_id": case_id,
+            "constructed_argv_hmac_sha256": "a" * 64,
+            "constructed_env_hmac_sha256": "b" * 64,
+            "constructed_env_keys": ["HOME", "TERM"],
+            "expected_file_identity": "1:2:3:4:5",
+            "expected_path": path,
+            "expected_sha256": expected_hashes[app],
+            "image_hash_source": "linux-proc-exe-open-fd" if sys.platform.startswith("linux") else "macos-proc-pidpath-file",
+            "observed_file_identity": "1:2:3:4:5",
+            "observed_path": path,
+            "observed_sha256": expected_hashes[app],
+            "previous_receipt_sha256": None,
+            "run_id": run_id,
+            "phase": phase,
+            "pid": 12345,
+            "ordinal": 0,
+            "schema": 1,
+        }
+
+        def sign(record: dict[str, object]) -> dict[str, object]:
+            signed = dict(record)
+            signed["hmac_sha256"] = runner.hmac.new(key, runner.canonical_receipt_json(record), runner.hashlib.sha256).hexdigest()
+            return signed
+
+        launch_path = process_root / "launch-00000000.json"
+        launch_path.write_bytes(runner.canonical_receipt_json(sign(payload)))
+        launch_digest = runner.sha256(launch_path)
+        close_payload: dict[str, object] = {
+            "case_id": case_id,
+            "launch_receipt_sha256": launch_digest,
+            "ordinal": 0,
+            "phase": phase,
+            "run_id": run_id,
+            "schema": 1,
+        }
+        (process_root / "closed-00000000.json").write_bytes(runner.canonical_receipt_json(sign(close_payload)))
+        return receipt_root, bins, expected_hashes, payload, key, run_id, launch_digest
+
     def provenance_payload(self) -> dict[str, object]:
         env_values = {key: {"present": False, "value_sha256": None} for key in runner.PROVENANCE_ENV_KEYS}
         env_record = {
@@ -167,8 +224,10 @@ class RunnerGuards(unittest.TestCase):
         self.assertEqual(runner.sha256(patch), runner.EXTENSION_PATCH_SHA256)
         source = patch.read_text()
         self.assertIn('std::env::var("TERMROCK_PAIR_TERM_PROFILE")', source)
-        self.assertIn('Some("unset") => {}', source)
+        self.assertIn('Some("unset") => { child_env.remove("TERM"); }', source)
         self.assertIn('tui = tui.env("TERM", profile)', source)
+        self.assertIn('env_remove("TERMROCK_PAIR_PROCESS_RECEIPT_KEY")', source)
+        self.assertIn('prepare_process_launch(&case.name, &argv, &child_env)', source)
 
     def semantic_frame(self, *, cursor_style: str = "Bar") -> bytes:
         cell = {"x": 0, "y": 0, "symbol": "x", "width": 1, "continuation": False, "fg": {"Rgb": {"r": 255, "g": 255, "b": 255}}, "bg": {"Rgb": {"r": 0, "g": 0, "b": 0}}, "mods": {"hidden": False, "blink": False, "bold": False, "dim": False, "italic": False, "underline": False, "strikethrough": False, "reverse": False}}
@@ -308,6 +367,7 @@ class RunnerGuards(unittest.TestCase):
                 "logical_name": logical,
                 "sha256": runner.hashlib.sha256(ansi).hexdigest(),
                 "semantic_frame_sha256": runner.hashlib.sha256(semantic).hexdigest(),
+                "process_receipt_sha256": "f" * 64,
             }
             (receipt_dir / f"{stem}.json").write_text(json.dumps(receipt))
             actual_with_host_provenance = json.loads(semantic)
@@ -340,6 +400,117 @@ class RunnerGuards(unittest.TestCase):
             (semantic_actual_root / f"{stem}.extra.frame.json").write_bytes(semantic)
             with self.assertRaisesRegex(runner.RunnerError, "runtime semantic actual inventory mismatch"):
                 runner.read_receipts(receipt_root, [case], expected)
+
+    def test_process_receipts_bind_real_phase_path_hash_and_complete_spawn_inventory(self) -> None:
+        if not (sys.platform.startswith("linux") or sys.platform == "darwin"):
+            self.skipTest("paired process image probing is unsupported on this platform")
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            receipt_root, bins, hashes, _, key, run_id, _ = self.make_process_bundle(root)
+            case_id = "showcase/fixture/live"
+            checkpoint = {"case_id": case_id, "ordinal": 0, "logical_name": "fixture/screen", "process_receipt_sha256": runner.sha256(next((receipt_root / "process").rglob("launch-*.json")))}
+            checkpoint_dir = receipt_root / runner.hashlib.sha256(case_id.encode()).hexdigest()
+            checkpoint_dir.mkdir()
+            (checkpoint_dir / "checkpoint.json").write_text(json.dumps(checkpoint))
+            links, report = runner.verify_process_receipts(
+                receipt_root, ["showcase::fixture::live"], "candidate-check", bins, hashes,
+                None, run_id, key.hex(), {(case_id, 0, "fixture/screen"): ("1" * 64, "2" * 64, None)},
+            )
+            self.assertEqual(len(links[case_id]), 1)
+            self.assertEqual(report["receipt_count"], 1)
+            self.assertEqual(report["pid_count"], 1)
+
+    def test_process_receipts_reject_baseline_substitution_wrong_app_and_wrong_phase(self) -> None:
+        if not (sys.platform.startswith("linux") or sys.platform == "darwin"):
+            self.skipTest("paired process image probing is unsupported on this platform")
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            receipt_root, bins, hashes, _, key, run_id, _ = self.make_process_bundle(root, phase="candidate-check")
+            process = next((receipt_root / "process").rglob("launch-*.json"))
+            baseline_bins = root / "baseline-bins"
+            baseline_bins.mkdir()
+            (baseline_bins / "showcase").write_bytes(b"baseline-showcase")
+            record = json.loads(process.read_text())
+            record["expected_path"] = str((baseline_bins / "showcase").resolve())
+            record["observed_path"] = record["expected_path"]
+            record["expected_sha256"] = runner.sha256(baseline_bins / "showcase")
+            record["observed_sha256"] = record["expected_sha256"]
+            record.pop("hmac_sha256")
+            record["hmac_sha256"] = runner.hmac.new(key, runner.canonical_receipt_json(record), runner.hashlib.sha256).hexdigest()
+            process.write_bytes(runner.canonical_receipt_json(record))
+            with self.assertRaisesRegex(runner.RunnerError, "path does not match"):
+                runner.verify_process_receipts(receipt_root, ["showcase::fixture::live"], "candidate-check", bins, hashes, None, run_id, key.hex(), {})
+
+            record = json.loads(process.read_text())
+            record["app"] = "tablepro"
+            record.pop("hmac_sha256")
+            record["hmac_sha256"] = runner.hmac.new(key, runner.canonical_receipt_json(record), runner.hashlib.sha256).hexdigest()
+            process.write_bytes(runner.canonical_receipt_json(record))
+            with self.assertRaisesRegex(runner.RunnerError, "path does not match"):
+                runner.verify_process_receipts(receipt_root, ["showcase::fixture::live"], "candidate-check", bins, hashes, None, run_id, key.hex(), {})
+
+            record = json.loads(process.read_text())
+            record["phase"] = "baseline-check"
+            record.pop("hmac_sha256")
+            record["hmac_sha256"] = runner.hmac.new(key, runner.canonical_receipt_json(record), runner.hashlib.sha256).hexdigest()
+            process.write_bytes(runner.canonical_receipt_json(record))
+            with self.assertRaisesRegex(runner.RunnerError, "identity or ordering"):
+                runner.verify_process_receipts(receipt_root, ["showcase::fixture::live"], "candidate-check", bins, hashes, None, run_id, key.hex(), {})
+
+            receipt_root, bins, hashes, _, key, run_id, _ = self.make_process_bundle(root / "wrong-hash")
+            hashes["showcase"] = "0" * 64
+            with self.assertRaisesRegex(runner.RunnerError, "hash does not match"):
+                runner.verify_process_receipts(receipt_root, ["showcase::fixture::live"], "candidate-check", bins, hashes, None, run_id, key.hex(), {})
+
+    def test_process_receipts_reject_missing_duplicate_tampered_and_reordered_launches(self) -> None:
+        if not (sys.platform.startswith("linux") or sys.platform == "darwin"):
+            self.skipTest("paired process image probing is unsupported on this platform")
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            receipt_root, bins, hashes, _, key, run_id, _ = self.make_process_bundle(root)
+            process_dir = next((receipt_root / "process").iterdir())
+            (process_dir / "closed-00000000.json").unlink()
+            with self.assertRaisesRegex(runner.RunnerError, "missing closed record"):
+                runner.verify_process_receipts(receipt_root, ["showcase::fixture::live"], "candidate-check", bins, hashes, None, run_id, key.hex(), {})
+
+            receipt_root, bins, hashes, _, key, run_id, _ = self.make_process_bundle(root / "duplicate")
+            process_dir = next((receipt_root / "process").iterdir())
+            duplicate = json.loads((process_dir / "launch-00000000.json").read_text())
+            duplicate["ordinal"] = 1
+            duplicate["previous_receipt_sha256"] = runner.sha256(process_dir / "launch-00000000.json")
+            duplicate.pop("hmac_sha256")
+            duplicate["hmac_sha256"] = runner.hmac.new(key, runner.canonical_receipt_json(duplicate), runner.hashlib.sha256).hexdigest()
+            (process_dir / "launch-00000001.json").write_bytes(runner.canonical_receipt_json(duplicate))
+            with self.assertRaisesRegex(runner.RunnerError, "completion sequence"):
+                runner.verify_process_receipts(receipt_root, ["showcase::fixture::live"], "candidate-check", bins, hashes, None, run_id, key.hex(), {})
+
+            receipt_root, bins, hashes, _, key, run_id, _ = self.make_process_bundle(root / "tampered")
+            process = next((receipt_root / "process").rglob("launch-*.json"))
+            changed = json.loads(process.read_text())
+            changed["constructed_env_hmac_sha256"] = "c" * 64
+            process.write_bytes(runner.canonical_receipt_json(changed))
+            with self.assertRaisesRegex(runner.RunnerError, "authentication failed"):
+                runner.verify_process_receipts(receipt_root, ["showcase::fixture::live"], "candidate-check", bins, hashes, None, run_id, key.hex(), {})
+
+            receipt_root, bins, hashes, _, key, run_id, _ = self.make_process_bundle(root / "missing")
+            next((receipt_root / "process").rglob("launch-*.json")).unlink()
+            with self.assertRaisesRegex(runner.RunnerError, "missing launch record"):
+                runner.verify_process_receipts(receipt_root, ["showcase::fixture::live"], "candidate-check", bins, hashes, None, run_id, key.hex(), {})
+
+    def test_phase_binary_inventory_rejects_symlinks_and_postbuild_replacement(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            bins = Path(temp) / "bins"
+            bins.mkdir()
+            for app in runner.APPS:
+                (bins / app).write_text(app)
+            original = runner.phase_binary_hashes(bins)
+            (bins / "showcase").unlink()
+            (bins / "showcase").symlink_to(bins / "tablepro")
+            with self.assertRaisesRegex(runner.RunnerError, "unsafe"):
+                runner.phase_binary_hashes(bins)
+            (bins / "showcase").unlink()
+            (bins / "showcase").write_text("replacement")
+            self.assertNotEqual(original, runner.phase_binary_hashes(bins))
 
     def test_semantic_frame_accepts_optional_underline_color(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
@@ -485,7 +656,7 @@ class RunnerGuards(unittest.TestCase):
                 semantic_actual = receipts.with_name(receipts.name + ".semantic-actual")
                 semantic_actual.mkdir()
                 (semantic_actual / f"{stem}.frame.json").write_bytes(semantic)
-                record = {"case_id": case_id, "ordinal": 0, "logical_name": case_id, "sha256": runner.hashlib.sha256(ansi).hexdigest(), "semantic_frame_sha256": runner.hashlib.sha256(semantic).hexdigest()}
+                record = {"case_id": case_id, "ordinal": 0, "logical_name": case_id, "sha256": runner.hashlib.sha256(ansi).hexdigest(), "semantic_frame_sha256": runner.hashlib.sha256(semantic).hexdigest(), "process_receipt_sha256": "f" * 64}
                 (receipt_dir / f"{stem}.json").write_text(json.dumps(record))
                 (chunk / "report.json").write_text(json.dumps({"selected_cases": [test_id]}))
                 self.assertEqual(len(runner.read_receipts(receipts, [case_id], expected)), 1)
