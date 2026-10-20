@@ -1,0 +1,103 @@
+use ratatui_core::layout::Position;
+
+use crate::Secret;
+use crate::id::{Id, PartRef};
+use crate::input::EditorDraft;
+use crate::text::EditAction;
+use crate::ui::Cx;
+
+/// Editing operation offered by a field's contextual edit menu.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum TextEditCommand {
+    Cut,
+    Copy,
+    Paste,
+    SelectAll,
+}
+
+/// Commands currently available for a field's selection and editability.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct EditCapabilities {
+    pub can_cut: bool,
+    pub can_copy: bool,
+    pub can_paste: bool,
+    pub can_select_all: bool,
+}
+
+/// A request to open the shared edit menu at a terminal position.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct EditMenuRequest {
+    pub owner: Id,
+    pub part: PartRef,
+    pub anchor: Position,
+}
+
+pub(crate) fn capabilities(
+    draft: &EditorDraft,
+    is_editing: bool,
+    disabled: bool,
+    editable: bool,
+    secret: bool,
+    value_sensitive: bool,
+) -> EditCapabilities {
+    let selection = draft.selection();
+    let selected = selection.is_some();
+    let all_selected = selection.is_some_and(|range| range == (0..draft.text().len()));
+    let can_copy = selected && !disabled && !secret && !value_sensitive && !draft.is_sensitive();
+    EditCapabilities {
+        can_cut: can_copy && editable,
+        can_copy,
+        can_paste: editable,
+        can_select_all: !disabled && is_editing && !draft.text().is_empty() && !all_selected,
+    }
+}
+
+pub(crate) fn execute(
+    cx: &mut Cx<'_>,
+    draft: &mut EditorDraft,
+    capabilities: EditCapabilities,
+    command: TextEditCommand,
+) -> bool {
+    match command {
+        TextEditCommand::Copy if capabilities.can_copy => {
+            if let Some(range) = draft.selection() {
+                cx.clipboard_copy(&draft.text()[range]);
+                true
+            } else {
+                false
+            }
+        }
+        TextEditCommand::Cut if capabilities.can_cut => {
+            if let Some(range) = draft.selection() {
+                cx.clipboard_copy(&draft.text()[range]);
+                let changed = draft.apply(EditAction::Paste("")).changed();
+                if changed {
+                    cx.request_repaint();
+                }
+                changed
+            } else {
+                false
+            }
+        }
+        TextEditCommand::Paste if capabilities.can_paste => {
+            let Some(text) = cx.clipboard_text().map(|text| Secret::new(text.to_owned())) else {
+                return false;
+            };
+            let changed = draft.apply(EditAction::Paste(text.expose())).changed();
+            if changed {
+                cx.request_repaint();
+            }
+            changed
+        }
+        TextEditCommand::SelectAll if capabilities.can_select_all => {
+            let before = draft.selection();
+            let _ = draft.apply(EditAction::SelectAll);
+            let changed = before != draft.selection();
+            if changed {
+                cx.request_repaint();
+            }
+            changed
+        }
+        _ => false,
+    }
+}

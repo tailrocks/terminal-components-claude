@@ -910,26 +910,14 @@ impl<'a> TextArea<'a> {
         st: &TextAreaState,
         value: &T,
     ) -> EditCapabilities {
-        let selected = st.draft.selection().is_some();
-        let all_selected = st
-            .draft
-            .selection()
-            .is_some_and(|range| range == (0..st.draft.text().len()));
-        let editable = self.editable();
-        let can_copy = selected
-            && !self.disabled
-            && self.secret.is_none()
-            && !value.is_sensitive()
-            && !st.is_sensitive();
-        EditCapabilities {
-            can_cut: can_copy && editable,
-            can_copy,
-            can_paste: editable,
-            can_select_all: !self.disabled
-                && st.is_editing()
-                && !st.draft.text().is_empty()
-                && !all_selected,
-        }
+        crate::edit::capabilities(
+            &st.draft,
+            st.is_editing(),
+            self.disabled,
+            self.editable(),
+            self.secret.is_some() || st.is_sensitive(),
+            value.is_sensitive(),
+        )
     }
 
     /// Execute one contextual edit command through the field's shared editor.
@@ -940,44 +928,28 @@ impl<'a> TextArea<'a> {
         value: &mut T,
         command: TextEditCommand,
     ) -> bool {
-        let capabilities = self.edit_capabilities(st, value);
-        let selection = st.draft.selection();
-        match command {
-            TextEditCommand::Copy if capabilities.can_copy => {
-                if let Some(range) = selection {
-                    cx.clipboard_copy(&st.draft.text()[range]);
-                    true
-                } else {
-                    false
-                }
-            }
-            TextEditCommand::Cut if capabilities.can_cut => {
-                if let Some(range) = selection {
-                    cx.clipboard_copy(&st.draft.text()[range]);
-                    let changed = st.apply(EditAction::Paste("")).changed();
-                    if changed {
-                        self.live_validate(st);
-                    }
-                    changed
-                } else {
-                    false
-                }
-            }
-            TextEditCommand::Paste if capabilities.can_paste => {
-                let Some(text) = cx.clipboard_text().map(str::to_owned) else {
-                    return false;
-                };
-                let changed = st.apply(EditAction::Paste(&text)).changed();
-                if changed {
-                    self.live_validate(st);
-                }
-                changed
-            }
-            TextEditCommand::SelectAll if capabilities.can_select_all => {
-                st.apply(EditAction::SelectAll).changed()
-            }
-            _ => false,
+        st.set_sensitive(self.secret.is_some() || value.is_sensitive());
+        if command == TextEditCommand::Paste
+            && self.editable()
+            && !st.is_editing()
+            && cx.clipboard_text().is_some()
+        {
+            st.begin(value.expose());
         }
+        let capabilities = self.edit_capabilities(st, value);
+        let applied = crate::edit::execute(cx, &mut st.draft, capabilities, command);
+        if applied && matches!(command, TextEditCommand::Cut | TextEditCommand::Paste) {
+            self.live_validate(st);
+        }
+        if applied {
+            let cursor = st.draft.cursor_pos();
+            st.scroll.set_content(st.draft.line_count());
+            st.scroll.ensure_visible(cursor.line);
+            if let Some(area) = cx.area(self.id) {
+                st.draft.scroll_into_view(Self::inner_width(area.width));
+            }
+        }
+        applied
     }
 
     fn live_validate(&self, st: &mut TextAreaState) {

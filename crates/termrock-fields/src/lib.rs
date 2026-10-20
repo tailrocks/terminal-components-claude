@@ -24,15 +24,17 @@ pub use termrock_text::{Secret, SecretPolicy, wipe_string};
 
 pub(crate) use termrock_runtime::{Acc, PartStyle, SlotFn, cell_at, first_row, shift};
 
+pub mod edit;
 pub mod field;
 pub mod input;
 pub mod note;
 pub mod textarea;
 
+pub use edit::{EditCapabilities, EditMenuRequest, TextEditCommand};
 pub use field::Field;
 pub use input::{
-    BlurPolicy, EditCapabilities, EditMenuRequest, EditPhase, ErrorState, TextAction, TextCmd,
-    TextEditCommand, TextInput, TextInputState, discard_error, redacted_text,
+    BlurPolicy, EditPhase, ErrorState, TextAction, TextCmd, TextInput, TextInputState,
+    discard_error, redacted_text,
 };
 pub use note::Note;
 pub use textarea::{TextArea, TextAreaState};
