@@ -260,28 +260,47 @@ impl<'a> CompositionSlots<'a> {
         }
     }
 
-    fn draw_tree(&self, ui: &mut Ui<'_>, group: &MeasuredGroup, area: Rect) {
-        let plan = self.resolve(area, &group.children);
-        for resolved in &plan.children {
-            let Some(slot) = self.children.get(resolved.index) else {
+    fn resolve_final(&self, measured: &MeasuredGroup, area: Rect, clip: Rect) -> ResolvedGroup {
+        let plan = self.resolve(area, &measured.children);
+        let children = plan
+            .children
+            .iter()
+            .map(|resolved| {
+                let visible = resolved.visible.intersection(clip);
+                let nested = match self.children.get(resolved.index).map(|slot| &slot.content) {
+                    Some(Content::Group(group)) if !visible.is_empty() => measured
+                        .children
+                        .get(resolved.index)
+                        .and_then(|node| node.children.as_deref())
+                        .map(|child| {
+                            Box::new(group.resolve_final(child, resolved.logical, visible))
+                        }),
+                    _ => None,
+                };
+                ResolvedNode {
+                    index: resolved.index,
+                    logical: resolved.logical,
+                    visible,
+                    nested,
+                }
+            })
+            .collect();
+        ResolvedGroup { children }
+    }
+
+    fn draw_resolved(&self, ui: &mut Ui<'_>, resolved: &ResolvedGroup) {
+        for node in &resolved.children {
+            let Some(slot) = self.children.get(node.index) else {
                 continue;
             };
-            if resolved.visible.is_empty() {
+            if node.visible.is_empty() {
                 continue;
             }
             match &slot.content {
-                Content::Leaf(leaf) => {
-                    ui.with_area(resolved.visible, |ui| leaf.draw(ui, resolved.logical))
-                }
-                Content::Group(nested) => {
-                    if let Some(child) = group
-                        .children
-                        .get(resolved.index)
-                        .and_then(|n| n.children.as_deref())
-                    {
-                        ui.with_area(resolved.visible, |ui| {
-                            nested.draw_tree(ui, child, resolved.logical)
-                        });
+                Content::Leaf(leaf) => ui.with_area(node.visible, |ui| leaf.draw(ui, node.logical)),
+                Content::Group(group) => {
+                    if let Some(nested) = node.nested.as_deref() {
+                        ui.with_area(node.visible, |ui| group.draw_resolved(ui, nested));
                     }
                 }
             }
@@ -300,7 +319,8 @@ impl<'a> CompositionSlots<'a> {
         let mut measured = self.measure_tree(ui, Constraints::loose(root.width, root.height));
         let first = self.resolve(root, &measured.children);
         self.remeasure_resolved(ui, &mut measured, &first, first.content.height);
-        self.draw_tree(ui, &measured, root);
+        let resolved = self.resolve_final(&measured, root, root);
+        self.draw_resolved(ui, &resolved);
         Ok(())
     }
 }
@@ -315,6 +335,17 @@ struct MeasuredNode {
 struct MeasuredGroup {
     size: Size,
     children: Vec<MeasuredNode>,
+}
+
+struct ResolvedGroup {
+    children: Vec<ResolvedNode>,
+}
+
+struct ResolvedNode {
+    index: usize,
+    logical: Rect,
+    visible: Rect,
+    nested: Option<Box<ResolvedGroup>>,
 }
 
 impl Ui<'_> {

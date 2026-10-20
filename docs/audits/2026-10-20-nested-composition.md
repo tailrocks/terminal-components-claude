@@ -27,3 +27,13 @@ resize recomputation. External-consumer regressions cover width reflow into a
 This is only the nested-group foundation. Named content adapters, shells,
 panels, overlays, and application migrations remain outstanding. Product
 parity is not established by this audit.
+
+## Geometry consolidation follow-up
+
+At `8cecb53b26470f7de6edfe6bbc95b25711cf1570`, before structural edits,
+`cargo nextest run -p termrock-runtime --test composition_consumer --test
+composition_cursor_clip` passed all 8 tests. After consolidation, the same
+command passed the same 8 tests, including resolved bounds, cursor clipping,
+width-sensitive 3-row reflow, wide leaf counts, zero-size behavior, and
+bounded-depth error/drop behavior. The final draw path now consumes retained
+logical and visible bounds; it does not invoke the layout resolver.
