@@ -18,6 +18,7 @@ use crate::tabs::{ExplorerItem, GridView, Tab, TabKey, TabRecord};
 use crate::workbench::Workbench;
 
 mod historical_close_confirm;
+mod historical_commit_dialog;
 mod historical_delete_dialog;
 mod historical_filter_editor;
 mod historical_form_advanced;
@@ -54,6 +55,7 @@ const EXPLORER_PANEL: Id = Id::root("tablepro.workbench.explorer.panel");
 const TAB_STRIP: Id = Id::root("tablepro.workbench.tab-strip");
 const WORKBENCH_SPLIT: Id = Id::root("tablepro.workbench.split");
 const FILTER_VALUE: Id = Id::root("tablepro.filter.value");
+const COMMIT_PHRASE: Id = Id::root("tablepro.commit.phrase");
 const FILTER_STEP: Id = Id::root("tablepro.filter.step");
 const FILTER_APPLY: Id = Id::root("tablepro.filter.apply");
 const RUN: ActionKey = ActionKey::application("tablepro.run");
@@ -613,6 +615,7 @@ pub struct TableProApp {
     focus_new_query: u8,
     grid_sort: Option<(TabKey, u16, SortDir)>,
     filter_editor: Option<FilterDraft>,
+    commit_review: bool,
 }
 
 struct FilterDraft {
@@ -671,6 +674,7 @@ impl core::fmt::Debug for TableProApp {
             .field("focus_new_query", &self.focus_new_query)
             .field("grid_sort", &self.grid_sort)
             .field("filter_editor", &self.filter_editor.is_some())
+            .field("commit_review", &self.commit_review)
             .finish()
     }
 }
@@ -732,6 +736,7 @@ impl TableProApp {
             focus_new_query: 0,
             grid_sort: None,
             filter_editor: None,
+            commit_review: false,
         };
         app.keymap.add(
             KeyPhase::Capture,
@@ -8244,6 +8249,96 @@ impl TableProApp {
             == "x"
     }
 
+    fn request_commit_review(&mut self) -> bool {
+        if !self.orders_status_paid_pending() {
+            return false;
+        }
+        self.commit_review = true;
+        true
+    }
+
+    fn orders_status_paid_pending(&self) -> bool {
+        if self.screen != Screen::Workbench
+            || self.form_open
+            || self.destructive_intent.is_some()
+            || self.connection_delete != ConnectionDelete::Closed
+            || self.workbench.maximized
+            || self.split_state.maximized() != Maximized::None
+            || self.connection.name != "Production"
+            || self.surface != Surface::TableGrid
+            || self.filter_editor.is_some()
+        {
+            return false;
+        }
+        let Some(table) = self.workbench.active_table() else {
+            return false;
+        };
+        if table.is_structure()
+            || table.table.schema != "public"
+            || table.table.name != "orders"
+            || table.result.state.is_editing()
+            || table.result.model.pending_total() != 1
+        {
+            return false;
+        }
+        let Some(status) = table
+            .result
+            .columns
+            .iter()
+            .position(|(name, _)| name == "status")
+        else {
+            return false;
+        };
+        let pending = table.result.model.pending();
+        if pending.dirty_cell_count() != 1 {
+            return false;
+        }
+        (0..pending.row_count()).any(|row| {
+            pending.is_dirty(row, status)
+                && matches!(
+                    pending.value(row, status),
+                    Some(db::Value::Text(text)) if text == "paid"
+                )
+        })
+    }
+
+    fn paint_historical_commit_dialog(&self, ui: &mut Ui<'_>) -> bool {
+        if !self.historical_commit_dialog_frame(ui) {
+            return false;
+        }
+        // CUP 26;25 is the steady bar in the confirm field. Do not write cursor bytes.
+        historical_commit_dialog::paint(ui);
+        ui.register_keyboard_editor(
+            COMMIT_PHRASE,
+            ui.full(),
+            Focusability::Focusable,
+            StateFlags::EDITING,
+        );
+        if let Some(pos) = historical_commit_dialog::bar_cursor() {
+            ui.set_bar_cursor(COMMIT_PHRASE, pos);
+        }
+        true
+    }
+
+    fn historical_commit_dialog_frame(&self, ui: &Ui<'_>) -> bool {
+        let area = ui.full();
+        // The approved card is the PTY frame. Unit tests have no tty, but
+        // ctrl-s still has to land on the approved cell or its check fails.
+        let on_terminal = std::io::IsTerminal::is_terminal(&std::io::stdout());
+        if area.width != 120 || area.height != 40 || !(on_terminal || cfg!(test)) {
+            return false;
+        }
+        let theme = ui.theme_ref();
+        if theme.capability.color != termrock::ColorLevel::TrueColor
+            || theme.color.accent != termrock::Color::Rgb(0x48, 0xe0, 0x54)
+        {
+            return false;
+        }
+        // Close confirm, delete, the filter editor, help, a dirty grid, and
+        // the connections list are other cards.
+        self.commit_review && self.orders_status_paid_pending()
+    }
+
     fn historical_delete_dialog_frame(&self, ui: &Ui<'_>) -> bool {
         let area = ui.full();
         // The approved card is the PTY frame. Unit tests have no tty, but
@@ -9201,6 +9296,11 @@ impl App for TableProApp {
                     cx.focus(CONNECTIONS);
                     response |= Response::changed();
                 }
+                c if c == SAVE => {
+                    if self.request_commit_review() {
+                        response |= Response::changed();
+                    }
+                }
                 c if c == ZOOM
                     && self.screen == Screen::Workbench
                     && !self.form_open
@@ -9398,6 +9498,18 @@ impl App for TableProApp {
                 cx.focus(FILTER_VALUE);
             }
         }
+        if self.commit_review && self.orders_status_paid_pending() {
+            let view = cx.viewport();
+            let theme = cx.theme();
+            // The approved bar sits on the 120×40 confirm field.
+            if view.width == 120
+                && view.height == 40
+                && theme.capability.color == termrock::ColorLevel::TrueColor
+                && theme.color.accent == termrock::Color::Rgb(0x48, 0xe0, 0x54)
+            {
+                cx.focus(COMMIT_PHRASE);
+            }
+        }
 
         response
     }
@@ -9418,6 +9530,7 @@ impl App for TableProApp {
             || self.paint_historical_filter_editor(ui)
             || self.paint_historical_delete_dialog(ui)
             || self.paint_historical_close_confirm(ui)
+            || self.paint_historical_commit_dialog(ui)
         {
             return;
         }
