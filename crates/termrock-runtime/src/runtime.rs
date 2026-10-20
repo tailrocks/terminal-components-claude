@@ -21,7 +21,7 @@ use crate::id::{Id, Part, PartRef};
 use crate::intent::{FocusVia, IntentQueue, Phase};
 use crate::keymap::{BindingTableId, KeyMap, KeyPhase};
 use crate::layer::{
-    Backdrop, DismissReason, LayerEvent, LayerId, OpenLayer, backdrop_area, resolve_anchor,
+    Backdrop, DismissReason, LayerEvent, LayerId, OpenLayer, backdrop_area, resolve_layer_area,
 };
 use crate::measure::Size;
 #[cfg(any(test, feature = "testing"))]
@@ -1320,7 +1320,7 @@ impl<A: App> Runtime<A> {
             |value| value.layers.as_slice(),
         );
         for l in layers {
-            let rect = resolve_anchor(area, l.spec.anchor, l.spec.size);
+            let rect = resolve_layer_area(area, l.spec);
             self.frame.layers.push(l.id, l.layer, l.spec, rect, area);
         }
 
