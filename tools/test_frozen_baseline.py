@@ -188,6 +188,19 @@ class RunnerGuards(unittest.TestCase):
             with self.assertRaisesRegex(runner.RunnerError, "runtime semantic actual inventory mismatch"):
                 runner.read_receipts(receipt_root, [case], expected)
 
+    def test_semantic_frame_accepts_optional_underline_color(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            path = Path(temp) / "frame.json"
+            frame = json.loads(self.semantic_frame())
+            frame["cells"][0]["underline_color"] = {"Rgb": {"r": 1, "g": 2, "b": 3}}
+            payload = json.dumps(frame, separators=(",", ":")).encode()
+            path.write_bytes(payload)
+            runner.validate_semantic_frame_file(path, runner.hashlib.sha256(payload).hexdigest())
+            frame["cells"][0]["underline_color"] = "invalid"
+            path.write_text(json.dumps(frame, separators=(",", ":")))
+            with self.assertRaisesRegex(runner.RunnerError, "invalid semantic frame cell"):
+                runner.validate_semantic_frame_file(path, "")
+
     def test_reference_decision_is_pinned_to_exact_tuple_and_two_frames(self) -> None:
         document = json.loads((Path(runner.__file__).resolve().parent / "frozen_cli_references.json").read_text())
         decision = runner.validate_reference_decision_document(document)
@@ -279,6 +292,39 @@ class RunnerGuards(unittest.TestCase):
             (root / "receipts.semantic-actual").mkdir()
             with self.assertRaisesRegex(runner.RunnerError, "missing checkpoint receipts"):
                 runner.read_receipts(receipts, ["showcase/pages/overview"], expected)
+
+    def test_chunk_receipts_validate_global_expected_store_as_union(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            expected = root / "runtime-expected"
+            expected.mkdir()
+            pairs = [("holla::files::120x40::truecolor", "holla/files/120x40/truecolor"), ("tablepro::files::120x40::truecolor", "tablepro/files/120x40/truecolor")]
+            semantic = self.semantic_frame()
+            ansi = b"frame\x1b[?25h"
+            for index, (test_id, case_id) in enumerate(pairs):
+                phase = root / "baseline-capture"
+                chunk = phase / f"chunk-{index:05}"
+                receipts = chunk / "receipts"
+                receipt_dir = receipts / runner.hashlib.sha256(case_id.encode()).hexdigest()
+                receipt_dir.mkdir(parents=True)
+                stem = f"checkpoint-00000000-{runner.checkpoint_identity(case_id, 0, case_id)}"
+                for suffix, content in ((".ansi", ansi), (".frame.json", semantic)):
+                    (expected / f"{stem}{suffix}").write_bytes(content)
+                (receipts.with_name(receipts.name + ".actual")).mkdir()
+                actual = receipts.with_name(receipts.name + ".actual")
+                (actual / f"{stem}.ansi").write_bytes(ansi)
+                semantic_actual = receipts.with_name(receipts.name + ".semantic-actual")
+                semantic_actual.mkdir()
+                (semantic_actual / f"{stem}.frame.json").write_bytes(semantic)
+                record = {"case_id": case_id, "ordinal": 0, "logical_name": case_id, "sha256": runner.hashlib.sha256(ansi).hexdigest(), "semantic_frame_sha256": runner.hashlib.sha256(semantic).hexdigest()}
+                (receipt_dir / f"{stem}.json").write_text(json.dumps(record))
+                (chunk / "report.json").write_text(json.dumps({"selected_cases": [test_id]}))
+                self.assertEqual(len(runner.read_receipts(receipts, [case_id], expected)), 1)
+            combined = runner.phase_receipts(root, "baseline-capture", [test_id for test_id, _ in pairs], expected)
+            self.assertEqual(len(combined), 2)
+            (expected / "unregistered.ansi").write_bytes(ansi)
+            with self.assertRaisesRegex(runner.RunnerError, "runtime expected frame inventory mismatch"):
+                runner.phase_receipts(root, "baseline-capture", [test_id for test_id, _ in pairs], expected)
 
     def test_registered_inventory_digest_must_match_prepared_source(self) -> None:
         inventory = {"scenario": True, "ordinary_check": False}
