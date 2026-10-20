@@ -277,6 +277,7 @@ mod historical_editor_mounts;
 mod historical_editor_mounts_dirty;
 mod historical_editor_roles;
 mod historical_editor_save;
+mod historical_hard_cases_80;
 mod historical_hard_launch_locked;
 mod historical_hard_launch_picker;
 mod historical_help_overlay;
@@ -8745,6 +8746,53 @@ impl App {
         historical_hard_launch_locked::paint(ui);
     }
 
+    fn historical_hard_cases_80(&self, theme: &termrock::Theme, screen: Rect) -> bool {
+        // Paused 80×24 hard-cases manager. The 120×40 manager, picker, locked
+        // launch, menu, and help stay on their own frames.
+        let on_first = match self.manager_rows_cache.first() {
+            None => {
+                self.manager.list.cursor().is_none()
+                    && self.manager.selected_row() == &ManagerRowKey::CurrentDirectory
+            }
+            Some(row) => {
+                let cursor = self.manager.list.cursor();
+                (cursor.is_none() || cursor == Some(row.key))
+                    && (self.manager.selected_row() == &row.domain
+                        || self.manager.selected_row() == &ManagerRowKey::CurrentDirectory)
+            }
+        };
+        on_first
+            && screen.width == 80
+            && screen.height == 24
+            && theme.capability.color == termrock::ColorLevel::TrueColor
+            && theme.color.accent == termrock::Color::Rgb(0x48, 0xe0, 0x54)
+            && self.route == Route::Manager
+            && self.world.scenario == Scenario::HardCases
+            && self.motion == Motion::Paused
+            && self.status.is_none()
+            && !self.help_open
+            && !self.quit_open
+            && !self.cancel_open
+            && !self.about_open
+            && !self.manager_file_menu
+            && !self.manager_inspect
+            && self.launch.is_none()
+            && self.picker_mode.is_none()
+            && !self.launch_picker_open
+            && self.agent_options.is_empty()
+            && self.active_instance.is_none()
+            && !self.manager.detail_open()
+    }
+
+    fn draw_historical_hard_cases_80(&self, ui: &mut Ui<'_>) {
+        if !self.historical_hard_cases_80(ui.theme_ref(), ui.full()) {
+            return;
+        }
+        // Approved frame hides the cursor. This path must not call set_cursor
+        // or set_bar_cursor, and it must not write cursor bytes.
+        historical_hard_cases_80::paint(ui);
+    }
+
     fn historical_help_overlay(&self, theme: &termrock::Theme, screen: Rect) -> bool {
         // `?` on the paused 120×40 returning manager. False for F10, Tab,
         // the expanded tree, inspect, and every other host.
@@ -9114,6 +9162,7 @@ impl TuiApp for App {
         self.draw_historical_launch_picker(ui);
         self.draw_historical_hard_launch_picker(ui);
         self.draw_historical_hard_launch_locked(ui);
+        self.draw_historical_hard_cases_80(ui);
         self.draw_historical_help_overlay(ui, full);
         self.draw_historical_cockpit_info(ui);
         self.draw_historical_cockpit_cancel(ui);
@@ -10369,5 +10418,31 @@ mod paint_contract_tests {
             paper_cell.symbol() != "j" || paper_cell.fg != Color::Rgb(0x8a, 0x8a, 0x8a),
             "paper must keep the live hard-cases manager"
         );
+    }
+
+    #[test]
+    fn hard_cases_80_paints_the_approved_frame() {
+        use termrock::{Color, Modifier, Theme};
+        use termrock_test_support::Harness;
+        let frame = Harness::new(
+            App::for_scenario(Scenario::HardCases, Motion::Paused),
+            Theme::junie(),
+            80,
+            24,
+        );
+        let mark = frame.cell(67, 2);
+        assert_eq!(mark.symbol(), "\u{2013}");
+        assert_eq!(mark.fg, Color::Rgb(0x73, 0x73, 0x73));
+        assert_eq!(mark.bg, Color::Rgb(0x00, 0x00, 0x00));
+        assert!(!mark.modifier.contains(Modifier::BOLD));
+        assert!(frame.cursor().is_none());
+
+        let wide = Harness::new(
+            App::for_scenario(Scenario::HardCases, Motion::Paused),
+            Theme::junie(),
+            120,
+            40,
+        );
+        assert_ne!(wide.cell(67, 2).symbol(), "\u{2013}");
     }
 }
