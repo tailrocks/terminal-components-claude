@@ -784,3 +784,10 @@ Local integration `57e803cf7` combines independently reviewed Grid source 5cd wi
 
 
 The protected Grid integration also runs all 195 TablePro/domain tests: 183 pass, twelve fail, none are skipped. [Exact failure comparison](../audits/2026-10-21-grid-parent-tablepro-checks.json) finds no new failure names against the recorded Form integration run; the unfocused Grid cursor failure is no longer observed. This is a regression observation only. Existing functional, visual, performance and form failures remain acceptance blockers.
+
+
+## Authenticated-run foundation cleared; documentation guard still incomplete (2026-10-21)
+
+The [independent fa57 review](../audits/2026-10-21-fresh-run-fa57-clearance.json) clears the bounded Stage 3A custody/journal foundation on its protected WIP: three focused tests pass, anchored inventory remains 29,069 visual and twenty ordinary cases, and manifest HMAC plus 0700/0600 custody protections are independently verified without printing secrets. Empty/noninventory journals cannot claim execution. No applications were launched; baseline capture/replay, candidate comparison, finalization and product approval remain unperformed. Parent source adoption remains a separate increment.
+
+The [7c397 documentation guard review](../audits/2026-10-21-doc-guard-7c397-review.json) confirms repaired cfg_attr trivia and tracked non-Rust-extension include scanning with six passing tests. It finds a remaining bypass for inner Rustdoc block comments (`/*! ... */`), currently absent from this repository but required for a durable guard. The author is assigned a regression and repair. No doctest task metadata is disabled or accepted by this record.
