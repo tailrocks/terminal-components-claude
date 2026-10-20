@@ -206,7 +206,7 @@ pub fn steps<'a, 'config, T, K, R>(
 ) -> Child<'a>
 where
     'config: 'a,
-    T: 'a,
+    T: core::fmt::Display + 'a,
     K: KeyFn<T> + 'a,
     R: RowFn<T> + 'a,
 {
@@ -226,13 +226,16 @@ struct StepsLeaf<'a, 'config, T, K, R> {
     items: &'a [T],
 }
 
-impl<T, K: KeyFn<T>, R: RowFn<T>> Measure for StepsLeaf<'_, '_, T, K, R> {
+impl<T: core::fmt::Display, K: KeyFn<T>, R: RowFn<T>> Measure for StepsLeaf<'_, '_, T, K, R> {
     fn measure(&self, ui: &Ui<'_>, constraints: Constraints) -> Size {
-        self.component.measure(ui, constraints)
+        self.component
+            .measure_with_items(ui, constraints, self.items)
     }
 }
 
-impl<T, K: KeyFn<T>, R: RowFn<T>> CompositionLeaf for StepsLeaf<'_, '_, T, K, R> {
+impl<T: core::fmt::Display, K: KeyFn<T>, R: RowFn<T>> CompositionLeaf
+    for StepsLeaf<'_, '_, T, K, R>
+{
     fn draw(&self, ui: &mut Ui<'_>, logical: ratatui_core::layout::Rect) {
         self.component.draw(ui, logical, self.state, self.items);
     }
