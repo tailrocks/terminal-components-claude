@@ -19,7 +19,7 @@ pub mod nav;
 // pub mod page;
 pub mod quit;
 // pub mod reach;
-// pub mod router;
+pub mod router;
 // pub mod shell;
 pub mod status;
 
@@ -28,4 +28,5 @@ pub use nav::{Crumb, Nav, PageKey, Router};
 pub use quit::{
     KeyContext, Leave, LeaveDialog, LeaveDialogKind, LeaveGuard, LeaveKey, Resolved, Stakes,
 };
+pub use router::{KeyBinding, KeyHost, KeyRouter, ShellAction, ShellKeys, Tier, chord, lookup};
 pub use status::{JobKey, StatusLine};
