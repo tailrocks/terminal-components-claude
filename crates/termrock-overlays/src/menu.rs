@@ -20,6 +20,18 @@ use termrock_feedback::keyhint::ChordText;
 
 const MENU_BAR_TITLE_VARIANT: Variant = Variant::custom("termrock.menu-bar-title");
 
+/// Controls whether pointer hover styles the whole menu bar or only its titles.
+///
+/// `Bar` preserves the standard menu component behavior. `Title` resolves
+/// title styling through the theme's `termrock.menu-bar-title` variant and
+/// keeps the surrounding bar unchanged during hover.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub enum MenuBarHoverScope {
+    #[default]
+    Bar,
+    Title,
+}
+
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct MenuItem<'a> {
     action: ActionKey,
@@ -815,6 +827,7 @@ pub struct MenuBar<'a> {
     menus: &'a [Menu<'a>],
     ov: PartStyle<'a>,
     chord_case: ChordCase,
+    hover_scope: MenuBarHoverScope,
 }
 
 impl fmt::Debug for MenuBar<'_> {
@@ -822,6 +835,7 @@ impl fmt::Debug for MenuBar<'_> {
         f.debug_struct("MenuBar")
             .field("id", &self.id)
             .field("menus", &self.menus.len())
+            .field("hover_scope", &self.hover_scope)
             .finish_non_exhaustive()
     }
 }
@@ -835,7 +849,15 @@ impl<'a> MenuBar<'a> {
             menus,
             ov: PartStyle::new(),
             chord_case: ChordCase::Preserve,
+            hover_scope: MenuBarHoverScope::Bar,
         }
+    }
+
+    /// Sets whether pointer hover styling applies to the whole bar or each title.
+    #[must_use]
+    pub const fn hover_scope(mut self, scope: MenuBarHoverScope) -> Self {
+        self.hover_scope = scope;
+        self
     }
 
     #[must_use]
@@ -1013,7 +1035,9 @@ impl<'a> MenuBar<'a> {
         }
         let mut live = PartStyle::flags(ui.state(self.id), StateFlags::empty());
         live.remove(StateFlags::PRESSED);
-        live.remove(StateFlags::HOVERED);
+        if self.hover_scope == MenuBarHoverScope::Title {
+            live.remove(StateFlags::HOVERED);
+        }
         let container = self.ov.style(
             ui,
             self.id,
@@ -1056,33 +1080,46 @@ impl<'a> MenuBar<'a> {
             } else {
                 flags.remove(StateFlags::PRESSED);
             }
-            let mut defaults = StylePatch::default();
-            if let Some(recipe) = ui
-                .theme_ref()
-                .recipes
-                .get(Family::MENU)
-                .and_then(|recipe| recipe.variant(MENU_BAR_TITLE_VARIANT))
-                .and_then(|parts| parts.get(Part::TITLE))
-            {
-                defaults = recipe.apply(defaults, flags);
-            }
-            let local = self.ov.part_patch(Part::TITLE);
-            let style = ui.style_defaults(
-                Family::MENU,
-                Variant::DEFAULT,
-                Part::TITLE,
-                flags,
-                crate::theme::StyleDefaults::new(defaults),
-                local.as_ref(),
-            );
-            self.ov.note(
-                ui,
-                self.id,
-                Family::MENU,
-                Variant::DEFAULT,
-                Part::TITLE,
-                style,
-            );
+            let style = match self.hover_scope {
+                MenuBarHoverScope::Bar => self.ov.style(
+                    ui,
+                    self.id,
+                    Family::MENU,
+                    Variant::DEFAULT,
+                    Part::TITLE,
+                    flags,
+                ),
+                MenuBarHoverScope::Title => {
+                    let mut defaults = StylePatch::default();
+                    if let Some(recipe) = ui
+                        .theme_ref()
+                        .recipes
+                        .get(Family::MENU)
+                        .and_then(|recipe| recipe.variant(MENU_BAR_TITLE_VARIANT))
+                        .and_then(|parts| parts.get(Part::TITLE))
+                    {
+                        defaults = recipe.apply(defaults, flags);
+                    }
+                    let local = self.ov.part_patch(Part::TITLE);
+                    let style = ui.style_defaults(
+                        Family::MENU,
+                        Variant::DEFAULT,
+                        Part::TITLE,
+                        flags,
+                        crate::theme::StyleDefaults::new(defaults),
+                        local.as_ref(),
+                    );
+                    self.ov.note(
+                        ui,
+                        self.id,
+                        Family::MENU,
+                        Variant::DEFAULT,
+                        Part::TITLE,
+                        style,
+                    );
+                    style
+                }
+            };
             ui.fill(rect, style.style);
             let label = shift(rect, 1);
             if let Some(slot) = self.ov.slot_for(Part::TITLE) {
