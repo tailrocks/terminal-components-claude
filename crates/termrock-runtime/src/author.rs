@@ -1,5 +1,16 @@
 use core::fmt;
 
+/// Apply only explicit style channels to an existing component-author surface.
+/// Symbols, inherited channels, hit regions, and cursor state are preserved.
+pub fn patch_style(
+    ui: &mut crate::ui::Ui<'_>,
+    area: ratatui_core::layout::Rect,
+    style: crate::theme::PaintStyle,
+    explicit: crate::theme::StylePatch,
+) {
+    ui.patch_style(area, style, explicit);
+}
+
 pub type PartPainter<'a> = dyn Fn(&mut Ui<'_>, Rect) + 'a;
 
 #[derive(Clone, Copy)]
