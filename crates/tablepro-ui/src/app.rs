@@ -205,6 +205,7 @@ const ACCEPT_SQL_COMPLETION: ActionKey = ActionKey::application("tablepro.accept
 const PALETTE: ActionKey = ActionKey::application("tablepro.palette");
 const ZOOM: ActionKey = ActionKey::application("tablepro.zoom");
 const TOGGLE_EXPLORER: ActionKey = ActionKey::application("tablepro.toggle-explorer");
+const FOCUS_EXPLORER: ActionKey = ActionKey::application("tablepro.focus-explorer");
 const RESULT_SQL: &str =
     "SELECT * FROM orders WHERE status = 'pending' ORDER BY created_at DESC LIMIT 25";
 const ERROR_SQL: &str = "SELECT * FROM missing_table";
@@ -439,6 +440,11 @@ fn quit_keymap() -> KeyMap {
 fn keymap() -> KeyMap {
     query_keymap(
         quit_keymap()
+            .bind(
+                KeyPhase::Capture,
+                Chord::key(KeyCode::Char('0')),
+                FOCUS_EXPLORER,
+            )
             .bind(KeyPhase::Bubble, Chord::key(KeyCode::Char('u')), UNDO)
             .bind(KeyPhase::Bubble, Chord::key(KeyCode::Char('+')), INSERT_ROW)
             .bind(
@@ -7774,7 +7780,7 @@ fn paint_picker_layer_footer(ui: &mut Ui<'_>, area: termrock::Rect) {
 fn draw_footer(ui: &mut Ui<'_>, area: termrock::Rect, app: &TableProApp) {
     let base = ui.surface_style();
     let explorer_focused = ui.state(EXPLORER).contains(StateFlags::FOCUSED);
-    let empty_query = historical_empty_query(ui, app);
+    let query_editor_focused = query_editor_focused(ui, app);
     ui.fill(area, base);
     if matches!(app.surface, Surface::QuickSwitcher | Surface::TabListPicker) {
         paint_picker_layer_footer(ui, area);
@@ -7783,7 +7789,7 @@ fn draw_footer(ui: &mut Ui<'_>, area: termrock::Rect, app: &TableProApp) {
     } else if app.screen == Screen::Connections && app.connection_filter_editing {
         paint_connection_filter_footer(ui, area);
         return;
-    } else if empty_query {
+    } else if query_editor_focused {
         paint_query_editor_footer(ui, area);
     } else if !explorer_focused && grid_is_editing(app) {
         paint_cell_edit_footer(ui, area);
@@ -7845,7 +7851,7 @@ fn draw_footer(ui: &mut Ui<'_>, area: termrock::Rect, app: &TableProApp) {
     } else if app.screen == Screen::Workbench {
         let checked = matches!(app.surface, Surface::TableGrid | Surface::StructureView)
             || explorer_focused
-            || empty_query;
+            || query_editor_focused;
         let prefix = if checked {
             "✓ Connected to "
         } else {
@@ -7871,6 +7877,11 @@ fn draw_footer(ui: &mut Ui<'_>, area: termrock::Rect, app: &TableProApp) {
             base,
         );
     }
+}
+
+fn query_editor_focused(ui: &Ui<'_>, app: &TableProApp) -> bool {
+    app.query_id()
+        .is_some_and(|id| ui.state(id).contains(StateFlags::FOCUSED))
 }
 
 fn draw_too_small(ui: &mut Ui<'_>, area: termrock::Rect) {
@@ -9283,6 +9294,18 @@ impl App for TableProApp {
                     && self.destructive_intent.is_none() =>
                 {
                     self.split_state.toggle_max(Maximized::Second);
+                    response |= Response::changed();
+                }
+                c if c == FOCUS_EXPLORER
+                    && self.screen == Screen::Workbench
+                    && !self.form_open
+                    && self.destructive_intent.is_none() =>
+                {
+                    if self.split_state.maximized() == Maximized::Second {
+                        self.split_state.toggle_max(Maximized::Second);
+                    }
+                    self.workbench.maximized = false;
+                    cx.focus(EXPLORER);
                     response |= Response::changed();
                 }
                 _ => {}
