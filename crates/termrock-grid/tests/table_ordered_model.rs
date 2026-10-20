@@ -1,7 +1,7 @@
 use ratatui_core::layout::Rect;
 use termrock_grid::{
-    CellRef, Column, ColumnKey, Grid, GridAction, GridModel, GridState, Table, TableColumn,
-    TableSort, TableState,
+    CellRef, Column, ColumnKey, Grid, GridAction, GridModel, GridState, Table, TableAction,
+    TableColumn, TableSort, TableState,
 };
 use termrock_runtime::{App, Cx, Id, ItemKey, KeyCode, Response, Ui};
 use termrock_test_support::Harness;
@@ -25,6 +25,7 @@ const COLUMNS: [TableColumn<'static>; 2] = [
 #[derive(Clone)]
 struct Model {
     rows: Vec<(u64, &'static str, &'static str)>,
+    revision: Option<u64>,
 }
 
 impl GridModel for Model {
@@ -44,12 +45,16 @@ impl GridModel for Model {
             _ => None,
         }
     }
+
+    fn revision(&self) -> Option<u64> {
+        self.revision
+    }
 }
 
 struct TableApp {
     model: Model,
     state: TableState,
-    actions: Vec<GridAction>,
+    actions: Vec<TableAction>,
 }
 
 impl App for TableApp {
@@ -77,10 +82,72 @@ fn app() -> TableApp {
                 (50, "éclair", "3"),
                 (60, "zeta", "1"),
             ],
+            revision: None,
         },
         state: TableState::default(),
         actions: Vec::new(),
     }
+}
+
+#[test]
+fn same_extent_interior_key_replacement_drops_removed_selection_without_revision() {
+    let mut harness = Harness::new(app(), Theme::junie(), 42, 7);
+    let _ = harness.key(KeyCode::Down);
+    let _ = harness.key(KeyCode::Char(' '));
+    let _ = harness.key(KeyCode::Up);
+    assert!(
+        harness
+            .app()
+            .state
+            .selected_rows()
+            .contains(ItemKey::num(20))
+    );
+    assert_eq!(
+        harness.app().state.cursor().map(|(key, _)| key),
+        Some(ItemKey::num(10))
+    );
+
+    harness.app_mut().model.rows[1].0 = 70;
+    let _ = harness.tick();
+
+    assert_eq!(harness.app().model.rows.len(), 6);
+    assert_eq!(harness.app().model.rows[0].0, 10);
+    assert_eq!(harness.app().model.rows[5].0, 60);
+    assert!(
+        !harness
+            .app()
+            .state
+            .selected_rows()
+            .contains(ItemKey::num(20))
+    );
+    assert!(
+        !harness
+            .app()
+            .state
+            .selected_rows()
+            .contains(ItemKey::num(70))
+    );
+}
+
+#[test]
+fn same_extent_interior_key_replacement_drops_removed_selection_with_revision() {
+    let mut app = app();
+    app.model.revision = Some(1);
+    let mut harness = Harness::new(app, Theme::junie(), 42, 7);
+    let _ = harness.key(KeyCode::Down);
+    let _ = harness.key(KeyCode::Char(' '));
+    let _ = harness.key(KeyCode::Up);
+    harness.app_mut().model.rows[1].0 = 70;
+    harness.app_mut().model.revision = Some(2);
+    let _ = harness.tick();
+
+    assert!(
+        !harness
+            .app()
+            .state
+            .selected_rows()
+            .contains(ItemKey::num(20))
+    );
 }
 
 #[test]
@@ -129,6 +196,14 @@ fn sortable_header_cycles_ascending_descending_then_source_order() {
     assert!(harness.row(1).contains("éclair"));
     let _ = harness.click(4, 0);
     assert_eq!(harness.app().state.sort(), None);
+    assert_eq!(
+        harness.app().actions,
+        [
+            TableAction::SortChanged(Some((ColumnKey::num(1), termrock_grid::SortDir::Asc))),
+            TableAction::SortChanged(Some((ColumnKey::num(1), termrock_grid::SortDir::Desc))),
+            TableAction::SortChanged(None),
+        ]
+    );
     assert!(harness.row(1).contains("beta"));
     assert!(harness.row(2).contains("Éclair"));
     assert!(harness.row(5).contains("éclair"));

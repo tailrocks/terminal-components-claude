@@ -30,4 +30,4 @@ pub use grid::{
     WidthSampleError,
 };
 
-pub use table::{Table, TableColumn, TableSort, TableState};
+pub use table::{Table, TableAction, TableColumn, TableSort, TableState};
