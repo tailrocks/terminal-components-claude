@@ -2,6 +2,43 @@
 
 Updated: 2026-10-20. Status: **in progress; all four applications incomplete**. This is the current migration record. Older audit reports remain evidence, not a complete inventory or acceptance declaration.
 
+## Palette and independently diagnosed reference corrections — 2026-10-20
+
+This increment follows style delivery `e597618d6576a725538a70d71250fd81c6599c28`.
+The only production changes are the three Junie palette entries independently
+reviewed at `95cdc7bdb111dc1b683a638b421dae718bb29643`: ANSI-256 muted/faint
+245/242 and Mono faint `Gray`, all explicitly assigned by frozen `4169783`.
+No application painter, captured frame, baseline tag, or test-tool pin changed.
+
+Reference corrections were independently diagnosed and reviewed before merging:
+
+- Empty title isolation: frozen widget execution proves muted RGB 138 rather
+  than 128. All ownership and override assertions remain.
+- Empty aggregate: immutable historical executions reproduced both old
+  fingerprints. Projecting their 32 cases/5,376 cells through frozen palette
+  assignments changes only 32 foreground channels; every other cell field is
+  identical. Historical values and artifact hashes remain in the audit. This
+  proves palette correction plus pre-inheritance compatibility, not that new
+  Loading/Partial APIs reproduce frozen application screens or cursor state.
+- Nested modal cells: frozen backdrop semantics retain ordinary text and dim
+  its style. Full X/R/P/U cell and cursor assertions preserve both paint paths
+  and draw orders. Independent execution against the genuine old compositor
+  fails the corrected test, as recorded in the audit.
+- Item-row fixture: its original hash remains asserted under an explicit
+  historical palette. The independently established 174 muted foreground
+  corrections produce the expected complete buffer; a wrong-color negative
+  control fails. The candidate hash was not copied into the fixture.
+
+Reviewed worker sources are `45b4ca679272b4b3c8948139cd87c1473d652bbf`,
+`d3e5647c87aeb33cab03b378fe0f7111718ff3a0`, and
+`23a3fac940f24a499b532b0ef580f19355715043`. Their detailed decisions remain
+in the corresponding Empty, nested-layer, item-row and palette audits.
+The integrated repeat runs 675 tests: 669 pass, the same six pre-existing
+Dialog layout tests fail, and three remain skipped. Those failures are not
+reported as green. Logs are retained under
+`/Users/donbeave/Projects/termrock-cli-evidence-20261020/pr38-palette-reviewed/`.
+Full library, application, format, CI and paired acceptance gates remain open.
+
 ## Reviewed shared-style delivery — 2026-10-20
 
 The source series reviewed at `2863bf6e7f011c321088263cce12d423b16d73d3`
@@ -205,3 +242,11 @@ Not yet integrated. `git cherry` marks these `+` against `6bcdc4217`. They stay 
 - `0638339b7`, `28cc24880`, `6b72d77a6` picker geometry
 
 No other branch was deleted or closed. Product parity for showcase, jackin, tablepro, and holla remains incomplete.
+## Latest theme reference-test diagnosis (2026-10-20)
+
+- The isolated shared-theme palette branch `parity/theme-palette-baseline-20261020` is remotely verified at `95cdc7bdb111dc1b683a638b421dae718bb29643`. Its capability palette suite passes 9/9 after Junie ANSI-256 and Mono semantic corrections; see [palette audit](../audits/2026-10-20-junie-ansi256-palette.md).
+- A separate test-reference correction branch updates the stale empty-title owner expectation from `Rgb(128, 128, 128)` to frozen `Rgb(138, 138, 138)`, then updates the aggregate hash only after independent projection of frozen palette rules across all 32 complete frames (5,376 cells). The old expected hash, original source hash, independent source revisions, projection artifacts, and limits are preserved in the [empty title reference audit](../audits/2026-10-20-empty-title-test-reference.md). Full-cell comparisons remain intact. This is a test-reference repair, not frozen Empty UX parity proof.
+- The test-reference branch is not integrated into PR #38. This focused file result does not establish full application acceptance; remaining architecture, behavior, and paired application verification are unresolved.
+
+
+Expanded independent-library check for palette cohort `636028fa130b2a0f841badb3ba93aa2330b907d6`: both nextest hash partitions across 19 Termrock crates ran 1,361 tests, with 1,352 passing and nine failing. Six failures are the existing Dialog layout assertions; the meter semantic-token, Note wrapping, and full-track scrollbar failures were independently reproduced on base `e597618d6576a725538a70d71250fd81c6599c28`. Partition exclusions are not additional skipped cases. Logs are under `/Users/donbeave/Projects/termrock-cli-evidence-20261020/pr38-palette-reviewed/library-partition-{1,2}.log`; base attribution is in `branch-consolidation/palette-failure-base-e597.log`. This is not a passing full-library gate or application parity proof.
