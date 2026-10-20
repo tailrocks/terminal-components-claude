@@ -1,4 +1,5 @@
 use std::cell::RefCell;
+use std::time::Instant;
 
 use termrock::author::{PaintStyle, StyleDefaults};
 use termrock::editors::{
@@ -244,6 +245,7 @@ const CLEAR_QUERY: ActionKey = ActionKey::application("tablepro.clear-query");
 const PALETTE: ActionKey = ActionKey::application("tablepro.palette");
 const ZOOM: ActionKey = ActionKey::application("tablepro.zoom");
 const TOGGLE_EXPLORER: ActionKey = ActionKey::application("tablepro.toggle-explorer");
+const FOCUS_EXPLORER: ActionKey = ActionKey::application("tablepro.focus-explorer");
 
 const CONNECTION_DETAILS: Id = Id::root("tablepro.connections.details");
 const CONTENT_FRAME: Id = Id::root("tablepro.workbench.content.frame");
@@ -473,6 +475,11 @@ fn quit_keymap() -> KeyMap {
 fn keymap() -> KeyMap {
     query_keymap(
         quit_keymap()
+            .bind(
+                KeyPhase::Capture,
+                Chord::key(KeyCode::Char('0')),
+                FOCUS_EXPLORER,
+            )
             .bind(KeyPhase::Bubble, Chord::key(KeyCode::Char('u')), UNDO)
             .bind(KeyPhase::Bubble, Chord::key(KeyCode::Char('+')), INSERT_ROW)
             .bind(
@@ -1426,6 +1433,7 @@ impl TableProApp {
                 message: "Query tab is no longer available".to_owned(),
             };
         }
+        let started = Instant::now();
         let statement = match tablepro_sql::sql::parse(query.trim()) {
             Ok(statement) => statement,
             Err(error) => {
@@ -1433,6 +1441,7 @@ impl TableProApp {
                     message: error.message,
                 };
                 self.status = outcome_message(&out);
+                self.record_query_status(key, &out, started.elapsed());
                 return out;
             }
         };
@@ -1476,6 +1485,7 @@ impl TableProApp {
                                 }
                             }
                             self.status = outcome_message(&out);
+                            self.record_query_status(key, &out, started.elapsed());
                             out
                         }
                         Err(error) => {
@@ -1488,6 +1498,7 @@ impl TableProApp {
                                 tab.error = Some(error.message);
                             }
                             self.status = outcome_message(&out);
+                            self.record_query_status(key, &out, started.elapsed());
                             out
                         }
                     }
@@ -1496,9 +1507,26 @@ impl TableProApp {
                         message: "The demo executor only runs SELECT statements".to_owned(),
                     };
                     self.status = outcome_message(&out);
+                    self.record_query_status(key, &out, started.elapsed());
                     out
                 }
             }
+        }
+    }
+
+    fn record_query_status(
+        &mut self,
+        key: TabKey,
+        outcome: &QueryOutcome,
+        elapsed: std::time::Duration,
+    ) {
+        let succeeded = match outcome {
+            QueryOutcome::Executed { .. } => true,
+            QueryOutcome::Rejected { .. } => false,
+            QueryOutcome::ConfirmationRequired { .. } | QueryOutcome::Denied { .. } => return,
+        };
+        if let Some(Tab::Query(tab)) = self.workbench.tab_mut(key) {
+            tab.record_execution_status(succeeded, elapsed);
         }
     }
     fn column_specs(
@@ -2063,6 +2091,7 @@ impl TableProApp {
                 if let Some(tab_key) = tab_key {
                     let _ = self.workbench.activate(tab_key);
                     self.sync_active_tab();
+                    self.focus_active_tab_primary(cx);
                 }
             }
             Some(PickerAction::Secondary(key)) if was_open => {
@@ -2073,10 +2102,14 @@ impl TableProApp {
                     .find(|row| ItemKey::num(row.key.get()) == key)
                     .map(|row| row.key);
                 if let Some(tab_key) = tab_key {
-                    self.request_close_tab(cx, tab_key);
-                    self.tab_list.rows = tab_list::rows(&self.workbench);
-                    tab_list::picker(self.tab_list.rows.len())
-                        .reconcile(&mut self.tab_list.state, &self.tab_list.rows);
+                    if self.workbench.close_tab_from_picker(tab_key) {
+                        self.sync_active_tab();
+                    }
+                    // The reference closes and reopens the picker after Delete.
+                    // Reopening clears its query and places its cursor on the
+                    // active tab while preserving the picker flow.
+                    cx.close_layer(tab_list::ID, None);
+                    let _ = self.open_tab_list(cx);
                 }
             }
             _ => {}
@@ -2085,6 +2118,25 @@ impl TableProApp {
             self.sync_active_tab();
         }
         response.erase()
+    }
+
+    fn focus_active_tab_primary(&self, cx: &mut Cx<'_>) {
+        match self.workbench.active() {
+            Some(Tab::Query(_)) => {
+                if let Some(id) = self.query_id() {
+                    cx.focus(id);
+                }
+            }
+            Some(Tab::Table(table)) if !table.is_structure() => {
+                if let Some(id) = self.result_id() {
+                    cx.focus(id);
+                }
+            }
+            // Structure and history currently use application-painted bodies,
+            // not a focusable shared widget. Leave focus restoration to the
+            // layer runtime until those views have real shared controls.
+            Some(Tab::Table(_) | Tab::History(_)) | None => {}
+        }
     }
 
     fn update_safe_mode(&mut self, cx: &mut Cx<'_>) -> Response<()> {
@@ -3374,9 +3426,6 @@ impl TableProApp {
             }
             Some(Tab::Table(table)) => {
                 if table.is_structure() {
-                    if let Some(key) = self.workbench.active_key() {
-                        ui.register_control(key.control("data"), inner, Focusability::Focusable);
-                    }
                     paint_structure_view(ui, inner, &table.table);
                 } else {
                     self.draw_table_data(ui, inner);
@@ -10154,7 +10203,7 @@ fn paint_picker_layer_footer(ui: &mut Ui<'_>, area: termrock::Rect) {
 fn draw_footer(ui: &mut Ui<'_>, area: termrock::Rect, app: &TableProApp) {
     let base = ui.surface_style();
     let explorer_focused = ui.state(EXPLORER).contains(StateFlags::FOCUSED);
-    let empty_query = app.blank_sql();
+    let empty_query = app.blank_sql() && query_editor_focused(ui, app);
     ui.fill(area, base);
     if matches!(app.surface, Surface::QuickSwitcher | Surface::TabListPicker) {
         paint_picker_layer_footer(ui, area);
@@ -10274,6 +10323,11 @@ fn draw_footer(ui: &mut Ui<'_>, area: termrock::Rect, app: &TableProApp) {
             base,
         );
     }
+}
+
+fn query_editor_focused(ui: &Ui<'_>, app: &TableProApp) -> bool {
+    app.query_id()
+        .is_some_and(|id| ui.state(id).contains(StateFlags::FOCUSED))
 }
 
 fn draw_too_small(ui: &mut Ui<'_>, area: termrock::Rect) {
@@ -10675,6 +10729,7 @@ impl App for TableProApp {
                         && query.running
                     {
                         query.running = false;
+                        query.record_status("cancelled", false, 0);
                         "Query cancelled".clone_into(&mut self.status);
                         return Response::changed();
                     }
@@ -10838,6 +10893,18 @@ impl App for TableProApp {
                     && self.destructive_intent.is_none() =>
                 {
                     self.split_state.toggle_max(Maximized::Second);
+                    response |= Response::changed();
+                }
+                c if c == FOCUS_EXPLORER
+                    && self.screen == Screen::Workbench
+                    && !self.form_open
+                    && self.destructive_intent.is_none() =>
+                {
+                    if self.split_state.maximized() == Maximized::Second {
+                        self.split_state.toggle_max(Maximized::Second);
+                    }
+                    self.workbench.maximized = false;
+                    cx.focus(EXPLORER);
                     response |= Response::changed();
                 }
                 _ => {}
