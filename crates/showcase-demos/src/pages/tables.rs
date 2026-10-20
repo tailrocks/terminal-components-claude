@@ -1,11 +1,12 @@
+use termrock::grid::{Column, ColumnKey, Table, TableAction, TableColumn, TableSort, TableState};
 use termrock::{
-    CellRef, Color, Cx, FgStep, GridModel, ItemKey, Modifier, PaintStyle, Rect, Response, Role, Ui,
-    width,
+    CellRef, Color, Cx, FgStep, GridAction, GridModel, ItemKey, Modifier, PaintStyle, Rect, Role,
+    Ui, width,
 };
 
 use showcase_data::{TASKS, TaskStatus};
 
-use super::{Page, PageUpdate, frame};
+use super::{Page, PageStatus, PageUpdate, frame};
 
 const SECTIONS: [&str; 3] = ["Playground", "Options", "States"];
 const SECTION_CAPTION: &str = "the live widget";
@@ -20,6 +21,7 @@ const SCROLL_ROOM: u16 = 2;
 const COL_GAP: u16 = 2;
 const TABLE_INSET: u16 = 3;
 const TABLE_CHROME: u16 = 5;
+const TASK_TABLE_ID: termrock::Id = termrock::id!("tables.tasks");
 
 const CANVAS: u32 = 0x000000;
 const SURFACE: u32 = 0x111111;
@@ -33,8 +35,6 @@ const ACCENT_BG: u32 = 0x173f1c;
 const TAB_ACTIVE: u32 = 0x27272a;
 const THUMB: u32 = 0x808080;
 const TRACK: u32 = 0x474747;
-const FAILED: u32 = 0xf05d5d;
-const PAUSED: u32 = 0xf59e09;
 
 const FADE_OUTER: f32 = 0.55;
 const FADE_INNER: f32 = 0.8;
@@ -84,49 +84,54 @@ struct Spec {
     right: bool,
 }
 
-const TASK_SPECS: [Spec; 7] = [
-    Spec {
-        title: "ID",
-        min: 5,
-        flex: false,
-        right: false,
-    },
-    Spec {
-        title: "Task",
-        min: 24,
-        flex: true,
-        right: false,
-    },
-    Spec {
-        title: "Owner",
-        min: 7,
-        flex: false,
-        right: false,
-    },
-    Spec {
-        title: "Status",
-        min: 9,
-        flex: false,
-        right: false,
-    },
-    Spec {
-        title: "Branch",
-        min: 20,
-        flex: false,
-        right: false,
-    },
-    Spec {
-        title: "Changes",
-        min: 9,
-        flex: false,
-        right: true,
-    },
-    Spec {
-        title: "Duration",
-        min: 9,
-        flex: false,
-        right: true,
-    },
+const TASK_COLUMNS: [TableColumn<'static>; 7] = [
+    TableColumn::new(Column {
+        min_width: 5,
+        max_width: 5,
+        sortable: true,
+        ..Column::new(ColumnKey::num(0), "ID")
+    })
+    .sort(TableSort::NumericDisplay),
+    TableColumn::new(Column {
+        min_width: 24,
+        max_width: 80,
+        ..Column::new(ColumnKey::num(1), "Task")
+    })
+    .flexible(),
+    TableColumn::new(Column {
+        min_width: 7,
+        max_width: 7,
+        sortable: true,
+        ..Column::new(ColumnKey::num(2), "Owner")
+    }),
+    TableColumn::new(Column {
+        min_width: 9,
+        max_width: 9,
+        sortable: true,
+        ..Column::new(ColumnKey::num(3), "Status")
+    }),
+    TableColumn::new(Column {
+        min_width: 20,
+        max_width: 20,
+        sortable: true,
+        ..Column::new(ColumnKey::num(4), "Branch")
+    }),
+    TableColumn::new(Column {
+        min_width: 9,
+        max_width: 9,
+        sortable: true,
+        align: termrock::Align::Right,
+        ..Column::new(ColumnKey::num(5), "Changes")
+    })
+    .sort(TableSort::NumericDisplay),
+    TableColumn::new(Column {
+        min_width: 9,
+        max_width: 9,
+        sortable: true,
+        align: termrock::Align::Right,
+        ..Column::new(ColumnKey::num(6), "Duration")
+    })
+    .sort(TableSort::NumericDisplay),
 ];
 
 const REVIEWER_SPECS: [Spec; 3] = [
@@ -226,7 +231,6 @@ fn grow(specs: &[Spec], avail: u16) -> Vec<u16> {
 struct TableGeom {
     cols_w: u16,
     has_sb: bool,
-    has_bar: bool,
     body: u16,
     widths: Vec<u16>,
     shown: usize,
@@ -263,7 +267,6 @@ fn table_geom(area: Rect, specs: &[Spec], rows: usize, check_w: u16) -> Option<T
     Some(TableGeom {
         cols_w,
         has_sb,
-        has_bar,
         body,
         widths: grow(&specs[..shown], cols_w),
         shown,
@@ -477,28 +480,6 @@ fn paint_vertical_bar(ui: &mut Ui<'_>, area: Rect, rows: usize, viewport: u16) {
     }
 }
 
-fn paint_horizontal_bar(ui: &mut Ui<'_>, area: Rect, shown: usize, columns: usize) {
-    if area.is_empty() {
-        return;
-    }
-    let (start, len) = thumb(0, shown, columns, usize::from(area.width));
-    for col in 0..area.width {
-        let on = usize::from(col) >= start && usize::from(col) < start.saturating_add(len);
-        paint_at(
-            ui,
-            area.x.saturating_add(col),
-            area.y,
-            1,
-            if on { "━" } else { "┄" },
-            if on {
-                ink(THUMB, SURFACE)
-            } else {
-                ink(TRACK, SURFACE)
-            },
-        );
-    }
-}
-
 fn paint_page_scrollbar(ui: &mut Ui<'_>, bar: Rect, content_h: u16) {
     let (start, len) = thumb(
         0,
@@ -631,48 +612,6 @@ fn paint_header(
     }
 }
 
-fn paint_scrollbars(ui: &mut Ui<'_>, area: Rect, geom: &TableGeom, rows: usize) {
-    if geom.has_sb && geom.body > 0 {
-        paint_vertical_bar(
-            ui,
-            Rect::new(
-                area.right().saturating_sub(1),
-                area.y.saturating_add(1),
-                1,
-                geom.body,
-            ),
-            rows,
-            geom.body,
-        );
-    }
-    if geom.has_bar {
-        let check_w = 0;
-        let x = area.x.saturating_add(TABLE_INSET).saturating_add(check_w);
-        let right = area.right().saturating_sub(u16::from(geom.has_sb));
-        paint_horizontal_bar(
-            ui,
-            Rect::new(
-                x,
-                area.y.saturating_add(1).saturating_add(geom.body),
-                right.saturating_sub(x),
-                1,
-            ),
-            geom.shown,
-            TASK_SPECS.len(),
-        );
-    }
-}
-
-fn status_fg(status: TaskStatus) -> u32 {
-    match status {
-        TaskStatus::Running => WHITE,
-        TaskStatus::Failed => FAILED,
-        TaskStatus::Paused => PAUSED,
-        TaskStatus::Queued => MUTED,
-        TaskStatus::Done => SECONDARY,
-    }
-}
-
 fn status_text(status: TaskStatus) -> &'static str {
     match status {
         TaskStatus::Running => "▸ Running",
@@ -693,14 +632,6 @@ fn duration_text(seconds: u32) -> String {
     } else {
         format!("{seconds}s")
     }
-}
-
-fn task_id(id: u32) -> &'static str {
-    TASK_IDS
-        .iter()
-        .find(|(task_id, _)| *task_id == id)
-        .map(|(_, label)| *label)
-        .unwrap_or("#0000")
 }
 
 #[derive(Debug)]
@@ -731,7 +662,7 @@ impl TaskTableModel {
                 TaskTableRow {
                     id: task.id,
                     cells: [
-                        task_id(task.id).to_owned(),
+                        format!("#{:04}", task.id),
                         task.name.to_owned(),
                         task.owner.to_owned(),
                         status.to_owned(),
@@ -783,99 +714,16 @@ impl GridModel for TaskTableModel {
     }
 }
 
-const TASK_IDS: [(u32, &str); 24] = [
-    (1040, "#1040"),
-    (1041, "#1041"),
-    (1042, "#1042"),
-    (1043, "#1043"),
-    (1044, "#1044"),
-    (1045, "#1045"),
-    (1046, "#1046"),
-    (1047, "#1047"),
-    (1048, "#1048"),
-    (1049, "#1049"),
-    (1050, "#1050"),
-    (1051, "#1051"),
-    (1052, "#1052"),
-    (1053, "#1053"),
-    (1054, "#1054"),
-    (1055, "#1055"),
-    (1056, "#1056"),
-    (1057, "#1057"),
-    (1058, "#1058"),
-    (1059, "#1059"),
-    (1060, "#1060"),
-    (1061, "#1061"),
-    (1062, "#1062"),
-    (1063, "#1063"),
-];
+fn task_table() -> Table<'static> {
+    Table::new(TASK_TABLE_ID, &TASK_COLUMNS)
+}
 
-fn paint_tasks(ui: &mut Ui<'_>, card: Rect) {
+fn draw_tasks(ui: &mut Ui<'_>, card: Rect, state: &TableState, model: &TaskTableModel) {
     let inner = card_inner(card);
-    let Some(geom) = table_geom(inner, &TASK_SPECS, TASKS.len(), 0) else {
-        paint_card_chrome(ui, card, "Tasks", "");
-        return;
-    };
-    let shown = usize::from(geom.body).min(TASKS.len());
-    let meta = format!("unsorted · 1–{shown} of {}", TASKS.len());
+    let table = task_table();
+    let meta = table.position_label(state, model.row_count());
     paint_card_chrome(ui, card, "Tasks", &meta);
-    paint_header(ui, Rect { height: 1, ..inner }, &TASK_SPECS, &geom, None);
-    for (index, task) in TASKS.iter().enumerate().take(usize::from(geom.body)) {
-        let changes = changes_text(task.changes);
-        let duration = duration_text(task.duration_s);
-        let cells = [
-            PaintedCell {
-                text: task_id(task.id),
-                fg: MUTED,
-            },
-            PaintedCell {
-                text: task.name,
-                fg: WHITE,
-            },
-            PaintedCell {
-                text: task.owner,
-                fg: WHITE,
-            },
-            PaintedCell {
-                text: status_text(task.status),
-                fg: status_fg(task.status),
-            },
-            PaintedCell {
-                text: task.branch,
-                fg: MUTED,
-            },
-            PaintedCell {
-                text: &changes,
-                fg: if task.changes == 0 { MUTED } else { WHITE },
-            },
-            PaintedCell {
-                text: &duration,
-                fg: WHITE,
-            },
-        ];
-        paint_table_row(
-            ui,
-            Rect::new(
-                inner.x,
-                inner
-                    .y
-                    .saturating_add(1)
-                    .saturating_add(u16::try_from(index).unwrap_or(u16::MAX)),
-                inner.width.saturating_sub(u16::from(geom.has_sb)),
-                1,
-            ),
-            RowLook {
-                specs: &TASK_SPECS,
-                widths: &geom.widths,
-                cells: &cells,
-                check: None,
-                bg: SURFACE,
-                bold: false,
-                keep: row_fade(index, usize::from(geom.body), TASKS.len(), 0),
-            },
-        );
-    }
-    paint_scrollbars(ui, inner, &geom, TASKS.len());
+    table.draw(ui, inner, state, model);
 }
 
 fn selection_meta() -> String {
@@ -1026,7 +874,12 @@ fn content_height() -> u16 {
         .saturating_add(CARD_GAP.saturating_mul(2))
 }
 
-fn paint_playground(ui: &mut Ui<'_>, area: Rect) {
+fn paint_playground(
+    ui: &mut Ui<'_>,
+    area: Rect,
+    task_state: &TableState,
+    task_model: &TaskTableModel,
+) {
     if area.is_empty() {
         return;
     }
@@ -1048,7 +901,12 @@ fn paint_playground(ui: &mut Ui<'_>, area: Rect) {
         TASKS_H.min(view.bottom().saturating_sub(y)),
     );
     if tasks.height > 0 && y < view.bottom() {
-        paint_tasks(ui, Rect::new(view.x, y, view.width, TASKS_H));
+        draw_tasks(
+            ui,
+            Rect::new(view.x, y, view.width, TASKS_H),
+            task_state,
+            task_model,
+        );
     }
     y = y.saturating_add(TASKS_H).saturating_add(CARD_GAP);
     if y < view.bottom() {
@@ -1068,11 +926,14 @@ fn paint_playground(ui: &mut Ui<'_>, area: Rect) {
 }
 
 #[derive(Debug, Default)]
-pub struct TablesPage;
+pub struct TablesPage {
+    task_model: TaskTableModel,
+    task_state: TableState,
+}
 
 impl TablesPage {
     pub fn new() -> Self {
-        Self
+        Self::default()
     }
 }
 
@@ -1081,8 +942,18 @@ impl Page for TablesPage {
         "Tables"
     }
 
-    fn update(&mut self, _cx: &mut Cx<'_>) -> PageUpdate {
-        Response::ignored().into()
+    fn update(&mut self, cx: &mut Cx<'_>) -> PageUpdate {
+        let response = task_table().update(cx, &mut self.task_state, &self.task_model);
+        let status = match response.action_ref() {
+            Some(TableAction::Grid(GridAction::Activated(ItemKey::Num(id)))) => TASKS
+                .iter()
+                .find(|task| u64::from(task.id) == *id)
+                .map(|task| PageStatus(format!("Selected {}", task.name))),
+            _ => None,
+        };
+        let mut update = PageUpdate::from(response.erase());
+        update.status = status;
+        update
     }
 
     fn draw(&self, ui: &mut Ui<'_>, area: Rect) {
@@ -1121,6 +992,8 @@ impl TablesPage {
                     height: body.bottom().saturating_sub(top),
                     ..body
                 },
+                &self.task_state,
+                &self.task_model,
             );
         });
     }
@@ -1129,49 +1002,63 @@ impl TablesPage {
 #[cfg(test)]
 mod tests {
     use super::{
-        CARD_GAP, Page, TASKS, TablesPage, TaskStatus, TaskTableModel, content_height, status_text,
-        table_geom,
+        CARD_GAP, Page, TASK_COLUMNS, TASK_TABLE_ID, TASKS, TableSort, TablesPage, TaskStatus,
+        TaskTableModel, content_height, status_text, table_geom,
     };
-    use crate::pages::tables::{REVIEWER_SPECS, TASK_SPECS};
+    use crate::pages::tables::REVIEWER_SPECS;
     use termrock::{
-        App, Color, Cx, FgStep, GridModel, ItemKey, Modifier, Rect, Response, Role, Theme, Ui,
+        App, Color, Cx, FgStep, GridModel, ItemKey, KeyCode, Modifier, Rect, Response, Role, Theme,
+        Ui, UpdateCause,
     };
     use termrock_test_support::Harness;
 
-    struct Host;
+    #[derive(Default)]
+    struct Host {
+        page: TablesPage,
+        status: Option<String>,
+    }
 
     impl App for Host {
-        fn update(&mut self, _cx: &mut Cx<'_>) -> Response<()> {
-            Response::ignored()
+        fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+            if cx.update_cause() == UpdateCause::Bootstrap {
+                cx.focus(TASK_TABLE_ID);
+            }
+            let update = self.page.update(cx);
+            if let Some(status) = update.status {
+                self.status = Some(status.0);
+            }
+            update.response
         }
 
         fn draw(&self, ui: &mut Ui<'_>) {
-            TablesPage::new().draw(ui, ui.full());
+            self.page.draw(ui, ui.full());
         }
     }
 
     #[test]
-    fn task_columns_match_the_120_column_card() {
-        let area = Rect::new(0, 0, 88, 22);
-        let geom = table_geom(area, &TASK_SPECS, 24, 0).expect("geom");
-        assert!(geom.has_sb);
-        assert!(geom.has_bar);
-        assert_eq!(geom.body, 20);
-        assert_eq!(geom.shown, 5);
-        assert_eq!(geom.cols_w, 82);
-        assert_eq!(geom.widths, vec![5, 33, 7, 9, 20]);
+    fn task_columns_declare_baseline_minimums_and_numeric_sort_types() {
+        assert_eq!(TASK_COLUMNS.len(), 7);
+        assert_eq!(
+            TASK_COLUMNS.map(|column| column.column.title),
+            [
+                "ID", "Task", "Owner", "Status", "Branch", "Changes", "Duration"
+            ]
+        );
+        assert_eq!(
+            TASK_COLUMNS.map(|column| column.column.min_width),
+            [5, 24, 7, 9, 20, 9, 9]
+        );
+        assert!(TASK_COLUMNS[1].flexible);
+        assert_eq!(TASK_COLUMNS[0].sort, TableSort::NumericDisplay);
+        assert_eq!(TASK_COLUMNS[5].sort, TableSort::NumericDisplay);
+        assert_eq!(TASK_COLUMNS[6].sort, TableSort::NumericDisplay);
+        assert_eq!(TASK_COLUMNS[5].column.align, termrock::Align::Right);
+        assert_eq!(TASK_COLUMNS[6].column.align, termrock::Align::Right);
         assert_eq!(content_height(), 25 + 8 + 6 + CARD_GAP * 2);
     }
 
     #[test]
     fn wide_task_columns_keep_branch_and_numeric_widths() {
-        let area = Rect::new(0, 0, 130, 22);
-        let geom = table_geom(area, &TASK_SPECS, 24, 0).expect("geom");
-        assert!(geom.has_sb);
-        assert!(!geom.has_bar);
-        assert_eq!(geom.body, 21);
-        assert_eq!(geom.shown, 7);
-        assert_eq!(geom.widths, vec![5, 53, 7, 9, 20, 9, 9]);
         assert_eq!(super::duration_text(412), "6m 52s");
         assert_eq!(super::duration_text(0), "0s");
         assert_eq!(super::changes_text(14), "14");
@@ -1182,7 +1069,6 @@ mod tests {
         let area = Rect::new(0, 0, 88, 5);
         let geom = table_geom(area, &REVIEWER_SPECS, 4, 4).expect("geom");
         assert!(!geom.has_sb);
-        assert!(!geom.has_bar);
         assert_eq!(geom.body, 4);
         assert_eq!(geom.widths, vec![53, 10, 12]);
     }
@@ -1221,7 +1107,8 @@ mod tests {
 
     #[test]
     fn stacked_playground_matches_the_120_column_body() {
-        let h = Harness::new(Host, Theme::junie(), 94, 36);
+        let mut h = Harness::new(Host::default(), Theme::junie(), 94, 36);
+        let _ = h.tick();
         let text = h.text();
         assert!(text.contains("Tables"), "{text}");
         assert!(
@@ -1253,5 +1140,16 @@ mod tests {
         assert_eq!(h.cell(mx, my).bg, Color::Rgb(0x17, 0x3f, 0x1c));
         assert!(h.cell(mx, my).modifier.contains(Modifier::BOLD));
         assert_eq!(h.cell(mx, my).fg, Color::Rgb(0x48, 0xe0, 0x54));
+    }
+
+    #[test]
+    fn activating_task_returns_its_domain_result() {
+        let mut h = Harness::new(Host::default(), Theme::junie(), 120, 40);
+        let _ = h.tick();
+        let _ = h.key(KeyCode::Enter);
+        assert_eq!(
+            h.app().status.as_deref(),
+            Some("Selected Add rate limiting to auth endpoints")
+        );
     }
 }
