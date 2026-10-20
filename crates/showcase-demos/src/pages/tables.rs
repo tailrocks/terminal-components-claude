@@ -1007,8 +1007,8 @@ mod tests {
     };
     use crate::pages::tables::REVIEWER_SPECS;
     use termrock::{
-        App, Color, Cx, FgStep, GridModel, ItemKey, KeyCode, Modifier, Rect, Response, Role, Theme,
-        Ui, UpdateCause,
+        App, Color, Cx, FgStep, GridModel, ItemKey, KeyCode, Modifier, Rect, Response, Role,
+        SortDir, Theme, Ui, UpdateCause,
     };
     use termrock_test_support::Harness;
 
@@ -1151,5 +1151,24 @@ mod tests {
             h.app().status.as_deref(),
             Some("Selected Add rate limiting to auth endpoints")
         );
+    }
+
+    #[test]
+    fn clicking_owner_header_sorts_the_task_model() {
+        let mut h = Harness::new(Host::default(), Theme::junie(), 120, 40);
+        let _ = h.tick();
+        let initial_row = h
+            .find("Add rate limiting to auth endpoints")
+            .expect("initial task row");
+        let (x, y) = h.find("Owner").expect("owner header");
+        let _ = h.click(x, y);
+        assert_eq!(
+            h.app().page.task_state.sort(),
+            Some((termrock::grid::ColumnKey::num(2), SortDir::Asc))
+        );
+        let sorted_row = h
+            .find("Add rate limiting to auth endpoints")
+            .expect("sorted task row");
+        assert_ne!(initial_row.1, sorted_row.1);
     }
 }

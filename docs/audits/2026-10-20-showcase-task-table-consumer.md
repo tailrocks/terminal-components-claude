@@ -28,6 +28,11 @@ row painter and task horizontal scrollbar were removed. Reviewer and Checks
 cards still use their existing private rendering and are outside this bounded
 consumer change.
 
+Focused integration tests now verify a real click on the Owner header changes
+the shared table sort state and moves a task row, and Enter activation emits
+the expected domain result. These are widget-harness checks; the pinned real
+CLI paired workflows are still required for acceptance.
+
 `cargo nextest run -p showcase-demos tables::tests --no-fail-fast` currently
 passes 5 of 6 focused tests. Source order, IDs, cell values/tones, table column
 configuration, and Enter activation pass. The remaining test correctly fails:
