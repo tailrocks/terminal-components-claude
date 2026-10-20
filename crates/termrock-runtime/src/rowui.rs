@@ -553,31 +553,16 @@ impl<'u> CellUi<'u> {
     }
 
     fn with_resolved_glyph(
-        mut ui: Ui<'u>,
+        ui: Ui<'u>,
         area: Rect,
         style: PaintStyle,
         resolved_glyph: Slot<GlyphRole>,
     ) -> Self {
-        // Alignment moves the callback's painted text and clears its old
-        // cells. Keep the style already underneath this cell so those cleared
-        // cells restore the row/cell padding instead of inheriting the text
-        // style (which can be different for an active Grid cell).
-        let reset_style = if area.width == 0 || area.height == 0 {
-            style
-        } else {
-            let position = Position::new(area.x, area.y);
-            let roles = ui.roles_at(position);
-            let surface = ui.surface();
-            ui.buffer()
-                .cell(position)
-                .map(|cell| PaintStyle::bound(cell.style(), roles.fg, roles.bg, surface))
-                .unwrap_or(style)
-        };
         CellUi {
             ui,
             area,
             style,
-            reset_style,
+            reset_style: style,
             used: 0,
             align: Align::Left,
             tone: None,
@@ -700,6 +685,13 @@ impl<'u> CellUi<'u> {
 
     pub const fn align(&mut self, a: Align) -> &mut Self {
         self.align = a;
+        self
+    }
+
+    /// Choose the style used for vacated cells when alignment moves the
+    /// rendered text. By default these cells use the style passed to `new`.
+    pub const fn padding_style(&mut self, style: PaintStyle) -> &mut Self {
+        self.reset_style = style;
         self
     }
 
@@ -1005,6 +997,46 @@ mod tests {
             f(&mut row);
         }
         page
+    }
+
+    fn paint_aligned_cell(style: impl FnOnce(&mut Ui<'_>) -> PaintStyle) -> Buffer {
+        let theme = Theme::junie();
+        let mut frame = FrameState::default();
+        frame.reset(1, SCREEN);
+        let mut page = Buffer::empty(SCREEN);
+        let mut core = UiCore::default();
+        let last = LastFrame::default();
+        {
+            let mut ui = Ui::new(&mut frame, &mut page, &mut core, &theme, &last);
+            let area = Rect::new(0, 0, 6, 1);
+            let underlay = ui.paint_patch(
+                &StylePatch::new()
+                    .set_fg(Role::Accent)
+                    .set_bg(Role::Surface(crate::theme::Surface::Overlay)),
+            );
+            ui.fill(area, underlay);
+            let style = style(&mut ui);
+            let mut cell = CellUi::new(ui.reborrow(), area, style);
+            cell.align(Align::Right).text("1");
+        }
+        page
+    }
+
+    #[test]
+    fn aligned_cell_padding_uses_explicit_constructor_set_and_reset_styles() {
+        let theme = Theme::junie();
+        let danger =
+            paint_aligned_cell(|ui| ui.paint_patch(&StylePatch::new().set_fg(Role::Danger)));
+        assert_eq!(
+            danger.cell(Position::new(0, 0)).unwrap().fg,
+            theme.color.danger
+        );
+
+        let reset = paint_aligned_cell(|_| PaintStyle::new().fg(ratatui_core::style::Color::Reset));
+        assert_eq!(
+            reset.cell(Position::new(0, 0)).unwrap().fg,
+            ratatui_core::style::Color::Reset
+        );
     }
 
     fn theme_with_part_glyph(part: Part, glyph: Slot<GlyphRole>) -> Theme {

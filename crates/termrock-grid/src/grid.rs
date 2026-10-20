@@ -3274,6 +3274,13 @@ impl Grid<'_> {
                 .zip(self.col_key(i))
             {
                 let mut painter = CellUi::new(ui.reborrow(), text_rect, style);
+                if cflags.contains(StateFlags::ACTIVE) && actions.is_empty() {
+                    // Ordinary cursor text is styled independently from its
+                    // focused row. Alignment padding restores the canonical
+                    // row surface underneath that text. Action cells keep
+                    // their full-cell active style as the padding instead.
+                    painter.padding_style(row_style);
+                }
                 painter.align(align);
                 render(
                     GridCell {
