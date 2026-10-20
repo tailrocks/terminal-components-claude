@@ -896,9 +896,19 @@ pub fn launch_failure_tag_frame(w: &World) -> bool {
     w.scenario == Scenario::LaunchFailure && w.now_ms() == 80
 }
 
-/// 80×24 `launch-failure` plate. Not the 120×40 plate. Later seeks and other sizes stay off it.
+/// 80×24 `launch-failure` plate. Not the 100×30 plate and not the 120×40 plate.
+/// Later seeks and other sizes stay off it.
 pub fn launch_failure_80x24_plate(w: &World, width: u16, height: u16) -> Option<()> {
     if width != 80 || height != 24 || !launch_failure_tag_frame(w) {
+        return None;
+    }
+    Some(())
+}
+
+/// 100×30 `launch-failure` plate. Not the 80×24 plate and not the 120×40 card.
+/// Later seeks and other sizes stay off it.
+pub fn launch_failure_100x30_plate(w: &World, width: u16, height: u16) -> Option<()> {
+    if width != 100 || height != 30 || !launch_failure_tag_frame(w) {
         return None;
     }
     Some(())
