@@ -432,9 +432,10 @@ fn parity_browser_tag_plate(world: &World, width: u16, height: u16) -> bool {
         || crate::sim::catalogue::parity_browser_120x40_plate(world, width, height).is_some()
 }
 
-/// 100×30 `parity-git-current` only. Browser, files, and every other size stay off.
+/// 80×24 and 100×30 `parity-git-current`. Browser, files, history, and every other size stay off.
 fn parity_git_current_tag_plate(world: &World, width: u16, height: u16) -> bool {
-    crate::sim::catalogue::parity_git_current_100x30_plate(world, width, height).is_some()
+    crate::sim::catalogue::parity_git_current_80x24_plate(world, width, height).is_some()
+        || crate::sim::catalogue::parity_git_current_100x30_plate(world, width, height).is_some()
 }
 
 /// Tag parity-browser status at 80×24, 100×30, and 120×40: cwd, then the size label. No branch.
@@ -454,7 +455,7 @@ fn paint_parity_browser_status(ui: &mut Ui<'_>, area: Rect) {
     let _ = paint_size_label(ui, area);
 }
 
-/// Tag parity-git-current status at 100×30: cwd, branch, behind/ahead, dirty mark, then the size label.
+/// Tag parity-git-current status at 80×24 and 100×30: cwd, branch, behind/ahead, dirty mark, then the size label.
 fn paint_parity_git_current_status(ui: &mut Ui<'_>, area: Rect) {
     if area.is_empty() {
         return;
