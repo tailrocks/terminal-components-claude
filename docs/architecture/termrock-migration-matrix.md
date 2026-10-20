@@ -6,7 +6,7 @@ This section is the current decision summary. Detailed chronological checkpoints
 
 | Application | Product gate | Library gate and next dependency |
 | --- | --- | --- |
-| Showcase | Incomplete; complete paired comparison has not passed twice. | Remaining replay/correction paths and capability coverage require verification. Shared button/state-matrix adoption remains required. |
+| Showcase | Incomplete; complete paired comparison has not passed twice. | Remaining replay/correction paths and capability coverage require verification. Shared Button focus, dot glyph and narrow-label contracts are integrated; real state-matrix adoption remains required. |
 | TablePro | Incomplete; protected Grid integration runs 195 TablePro/domain tests with 183 passing, twelve failing, zero skipped and no new failure names. Full paired coverage and reference conflicts remain outstanding. | Real shared editor and completion lifecycle are integrated. Grid/embedded-input painter removal is independently reviewed and protected pending integration. Form lanes and Radio windows are integrated; TextArea window adoption is blocked by three independent regressions. History and application form painting still require shared replacement. |
 | Jackin (`jackin-preview`) | Incomplete; replay-backed frames are not acceptable parity proof. | Read-only inventory at `adc6d0e3f668818f6f8321310452db6806c123cc` found 41 fixed-cell historical replay modules, a separate historical palette helper, and two presentation RUNS frames. Replace them by shared components; preserve legitimate brand-specific animations and domain transitions. |
 | Holla | Incomplete; fixed-size/time plate output is not acceptable parity proof. | Same inventory found 46 plate builders, private Finder painting and scenario/time/viewport selectors. Shared searchable sectioned results and responsive master-detail composition must replace them while preserving domain scenarios/actions. |
@@ -814,3 +814,8 @@ A corrected read-only Holla source map at exact shared tip 42fb861 confirms exis
 ## Shared background-fill provenance repair integrated (2026-10-21)
 
 Integrated independently cleared source 79667 at `1fac27d0fc44387eb8fe78236693f1286417e198`. `Ui::fill_keep_fg` delegates to the existing canonical background-only fill, preserving retained foreground semantic roles under subsequent dimming. Parent [checks](../audits/2026-10-21-fill-parent-integration-checks.json) pass 358 runtime tests, retain three existing ignored fixtures, and pass strict runtime Clippy, formatting and whitespace checks. No application plate is approved by this helper repair; independently reproduced no-op recolor provenance loss and all application parity work remain unresolved.
+
+
+## Narrow Unicode Button label contract integrated (2026-10-21)
+
+Integrated reviewed source 38a375, including the independently corrected frozen-source audit identity, at `759858e6f46dee746fe202a988e9716777db2fdd`. Button labels use existing shared grapheme/cell truncation and retain explicit label-slot ownership; five-cell `世界` renders `世…` as the frozen contract requires. Parent [exact integration checks](../audits/2026-10-21-button-narrow-parent-checks.json) run 482 Controls/Runtime tests successfully, retain three existing ignored fixtures, and pass strict scoped Clippy, formatting and whitespace checks. Actual Showcase state-matrix migration and complete application parity remain required. The separate all-73 semantic palette test remains failing and is not part of this bounded green scope.
