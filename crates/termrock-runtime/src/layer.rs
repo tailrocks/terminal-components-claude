@@ -35,6 +35,8 @@ pub enum Anchor {
 pub enum ScreenAlign {
     Center,
 
+    GeometricCenter,
+
     UpperThird,
 
     Bottom,
@@ -240,6 +242,7 @@ pub fn resolve_anchor(screen: Rect, anchor: Anchor, size: LayerSize) -> Rect {
             let free = screen.height.saturating_sub(h);
             let y = match align {
                 ScreenAlign::Center => screen.y.saturating_add(free / 3),
+                ScreenAlign::GeometricCenter => screen.y.saturating_add(free / 2),
                 ScreenAlign::UpperThird => screen.y.saturating_add(free / 6),
                 ScreenAlign::Bottom => screen.y.saturating_add(free),
             };
@@ -604,6 +607,38 @@ mod tests {
             LayerSize::Fixed(60, 12),
         );
         assert!(u.y < r.y);
+    }
+
+    #[test]
+    fn anchor_screen_geometric_center_centers_inside_offset_viewport() {
+        let screen = Rect::new(7, 11, 120, 40);
+        let r = resolve_anchor(
+            screen,
+            Anchor::Screen(ScreenAlign::GeometricCenter),
+            LayerSize::Fixed(60, 12),
+        );
+        assert_eq!(r, Rect::new(37, 25, 60, 12));
+    }
+
+    #[test]
+    fn anchor_screen_geometric_center_clamps_oversize_and_handles_tiny_viewports() {
+        let screen = Rect::new(9, 13, 3, 2);
+        assert_eq!(
+            resolve_anchor(
+                screen,
+                Anchor::Screen(ScreenAlign::GeometricCenter),
+                LayerSize::Fixed(20, 8),
+            ),
+            screen
+        );
+        assert_eq!(
+            resolve_anchor(
+                screen,
+                Anchor::Screen(ScreenAlign::GeometricCenter),
+                LayerSize::Fixed(1, 1),
+            ),
+            Rect::new(10, 13, 1, 1)
+        );
     }
 
     #[test]
