@@ -188,6 +188,7 @@ pub struct SplitPane<'a> {
     focusability: Focusability,
     keyboard_navigation: bool,
     hit_padding: u16,
+    fixed_second_share: Option<(u8, u16, u16)>,
     reset_policy: ResetPolicy,
     ov: PartStyle<'a>,
 }
@@ -206,6 +207,7 @@ impl fmt::Debug for SplitPane<'_> {
             .field("focusability", &self.focusability)
             .field("keyboard_navigation", &self.keyboard_navigation)
             .field("hit_padding", &self.hit_padding)
+            .field("fixed_second_share", &self.fixed_second_share)
             .field("reset_policy", &self.reset_policy)
             .field("overrides", &self.ov)
             .finish()
@@ -228,6 +230,7 @@ impl<'a> SplitPane<'a> {
             focusability: Focusability::Focusable,
             keyboard_navigation: true,
             hit_padding: 0,
+            fixed_second_share: None,
             reset_policy: ResetPolicy::Balanced,
             ov: PartStyle::new(),
         }
@@ -248,6 +251,10 @@ impl<'a> SplitPane<'a> {
         let model = self.model(*state);
         let first = first.max(model.min_first);
         let second = second.max(model.min_second);
+        if let Some((percent, min, max)) = self.fixed_second_share {
+            return model
+                .required_extent_with_second_share(self.gap, percent, min, max, first, second);
+        }
         model.required_extent_with_basis_points(self.gap, state.basis_points, first, second)
     }
 
@@ -333,6 +340,19 @@ impl<'a> SplitPane<'a> {
         self
     }
 
+    /// Set a fixed share for the second pane. Intended for reusable blocks
+    /// with a documented responsive policy; interactive splits keep using
+    /// their stateful ratio by default.
+    #[doc(hidden)]
+    #[must_use]
+    pub const fn fixed_second_share(mut self, percent: u8, min: u16, max: u16) -> Self {
+        let percent = if percent > 100 { 100 } else { percent };
+        let low = if min < max { min } else { max };
+        let high = if min > max { min } else { max };
+        self.fixed_second_share = Some((percent, low, high));
+        self
+    }
+
     #[must_use]
     pub const fn reset_policy(mut self, policy: ResetPolicy) -> Self {
         self.reset_policy = policy;
@@ -364,8 +384,13 @@ impl<'a> SplitPane<'a> {
     }
 
     pub(crate) fn panes(&self, st: SplitPaneState, area: Rect) -> (Rect, Rect) {
-        self.model(st)
-            .layout_with_basis_points(area, self.gap, st.basis_points)
+        let model = self.model(st);
+        match self.fixed_second_share {
+            Some((percent, min, max)) => {
+                model.layout_with_second_share(area, self.gap, percent, min, max)
+            }
+            None => model.layout_with_basis_points(area, self.gap, st.basis_points),
+        }
     }
 
     pub(crate) fn seam(&self, st: SplitPaneState, area: Rect) -> Rect {

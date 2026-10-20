@@ -231,6 +231,10 @@ impl<A: App> ProjectedFrame<'_, A> {
         core::mem::swap(&mut output.last.registry, &mut frame.registry);
         core::mem::swap(&mut output.last.ring, &mut frame.ring);
         core::mem::swap(&mut output.last.bindings, &mut frame.bindings);
+        core::mem::swap(
+            &mut output.last.scoped_bubble_bindings,
+            &mut frame.scoped_bubble_bindings,
+        );
         core::mem::swap(&mut output.last.typing_bindings, &mut frame.typing_bindings);
         output.last.typing = frame.typing_resolved;
         output.last.layout.clear();
@@ -1707,15 +1711,50 @@ impl<A: App> Runtime<A> {
                 }
             }
         }
+        // A key event belongs to the input scope that was active when it
+        // arrived. An update may open/close a layer or move focus; bubble
+        // fallback for the same physical key must not then act on that new
+        // scope.
+        let input_top_layer = self.services.layers.top();
+        let input_focus = self.focus.current();
         let mut r = self.run_update(None, update_cause, activation_key);
+        let mut input_scope_changed =
+            self.services.layers.top() != input_top_layer || self.focus.current() != input_focus;
 
         if let Some(k) = key_input
             && !r.is_consumed()
         {
+            let scoped_bindings = self.scoped_bubble_bindings(&k);
+            for (owner, action, chord) in scoped_bindings {
+                if self.services.layers.top() != input_top_layer
+                    || self.focus.current() != input_focus
+                {
+                    input_scope_changed = true;
+                    break;
+                }
+                if !self.scoped_bubble_binding_is_current(&k, owner, action, chord) {
+                    continue;
+                }
+                self.intents.clear();
+                self.intents.binding(owner, action, chord);
+                r |= self.run_update(None, UpdateCause::Event, activation_key);
+                if r.is_consumed() {
+                    break;
+                }
+                if self.services.layers.top() != input_top_layer
+                    || self.focus.current() != input_focus
+                {
+                    input_scope_changed = true;
+                    break;
+                }
+            }
             self.intents.clear();
-            if let Some(cmd) = self.core.keymap.lookup(KeyPhase::Bubble, &k, false) {
+            if !input_scope_changed
+                && !r.is_consumed()
+                && let Some(cmd) = self.core.keymap.lookup(KeyPhase::Bubble, &k, false)
+            {
                 r |= self.run_update(Some(cmd), UpdateCause::Event, activation_key);
-            } else if k.code == KeyCode::Esc {
+            } else if !input_scope_changed && !r.is_consumed() && k.code == KeyCode::Esc {
                 let dismissable = self
                     .services
                     .layers
@@ -1752,6 +1791,84 @@ impl<A: App> Runtime<A> {
         }
         drop(input);
         Ok(self.finish(r))
+    }
+
+    fn scoped_bubble_bindings(
+        &self,
+        key: &crate::event::Key,
+    ) -> Vec<(crate::Id, crate::ActionKey, crate::event::Chord)> {
+        let Some(focus) = self.last.snapshot.focus else {
+            return Vec::new();
+        };
+        let Some(entry) = self.last.ring.entry(focus) else {
+            return Vec::new();
+        };
+        if !self.last.ring.contains(focus) || entry.layer != self.services.layers.top() {
+            return Vec::new();
+        }
+        let mut bindings: Vec<_> = self
+            .last
+            .scoped_bubble_bindings
+            .iter()
+            .filter(|published| {
+                published.layer == entry.layer
+                    && self.last.ring.scope_layer(published.scope) == Some(entry.layer)
+                    && self.last.ring.within(entry.scope, published.scope)
+            })
+            .filter_map(|published| {
+                let (_, descriptors) = self.last.bindings.get(published.owner)?;
+                let (action, chord) =
+                    self.core
+                        .keymap
+                        .component_binding(published.owner, descriptors, key)?;
+                Some((
+                    self.last.ring.scope_depth(published.scope)?,
+                    published.owner,
+                    action,
+                    chord,
+                ))
+            })
+            .collect();
+        bindings.sort_by_key(|(depth, _, _, _)| core::cmp::Reverse(*depth));
+        bindings
+            .into_iter()
+            .map(|(_, owner, action, chord)| (owner, action, chord))
+            .collect()
+    }
+
+    fn scoped_bubble_binding_is_current(
+        &self,
+        key: &crate::event::Key,
+        owner: crate::Id,
+        action: crate::ActionKey,
+        chord: crate::event::Chord,
+    ) -> bool {
+        let Some(focus) = self.focus.current() else {
+            return false;
+        };
+        let Some(entry) = self.last.ring.entry(focus) else {
+            return false;
+        };
+        let top = self.services.layers.top();
+        if self.last.snapshot.focus != Some(focus)
+            || !self.last.ring.contains(focus)
+            || entry.layer != top
+        {
+            return false;
+        }
+        let scope_is_current = self.last.scoped_bubble_bindings.iter().any(|published| {
+            published.owner == owner
+                && published.layer == top
+                && self.last.ring.scope_layer(published.scope) == Some(top)
+                && self.last.ring.within(entry.scope, published.scope)
+        });
+        if !scope_is_current {
+            return false;
+        }
+        let Some((_, descriptors)) = self.last.bindings.get(owner) else {
+            return false;
+        };
+        self.core.keymap.component_binding(owner, descriptors, key) == Some((action, chord))
     }
 
     fn finish(&mut self, mut r: Response<()>) -> Response<()> {
@@ -1886,14 +2003,17 @@ impl<A: App> Runtime<A> {
     fn commit_geometry(&mut self) {
         self.services.viewport = self.frame.screen;
 
-        let mut diags = core::mem::take(&mut self.frame.diagnostics);
-        self.services.diagnostics.extend(diags.drain(..));
+        self.services.diagnostics.append(&self.frame.diagnostics);
         core::mem::swap(&mut self.last.registry, &mut self.frame.registry);
         self.last.layout.clear();
         self.last.layout.append(&mut self.frame.layout);
         self.last.declared.clear();
         self.last.declared.append(&mut self.frame.declared);
         core::mem::swap(&mut self.last.bindings, &mut self.frame.bindings);
+        core::mem::swap(
+            &mut self.last.scoped_bubble_bindings,
+            &mut self.frame.scoped_bubble_bindings,
+        );
         core::mem::swap(
             &mut self.last.typing_bindings,
             &mut self.frame.typing_bindings,
@@ -2713,6 +2833,7 @@ mod tests {
     use super::*;
     use crate::event::MouseKind;
     use crate::focus::Focusability;
+    use crate::focus::{ScopeId, ScopeMode};
     use crate::intent::Intent;
     use crate::layer::{Anchor, LayerSize, LayerSpec, ScreenAlign};
     use crate::ui::FrameRead;
@@ -4581,5 +4702,242 @@ mod tests {
             |diagnostic| matches!(diagnostic, Diagnostic::UndeliveredIntent { owner } if *owner == RETIRED_FOCUS_CONTROL)
         ), "settle must not deliver blur to a closed nonrestoring layer: {:?}", rt.diagnostics());
         assert_eq!(rt.focus(), Some(A));
+    }
+
+    struct UiDiagnosticsProbe;
+
+    impl App for UiDiagnosticsProbe {
+        fn update(&mut self, _cx: &mut Cx<'_>) -> Response<()> {
+            Response::ignored()
+        }
+
+        fn draw(&self, ui: &mut Ui<'_>) {
+            ui.diagnostic(Diagnostic::UnaddressableId {
+                id: Id::root("preexisting-author-diagnostic"),
+            });
+            for _ in 0..69 {
+                ui.diagnostic(Diagnostic::InvalidComponentLayout {
+                    owner: Id::root("form"),
+                    field: None,
+                });
+            }
+        }
+    }
+
+    #[test]
+    fn component_author_ui_diagnostics_commit_to_the_bounded_runtime_store() {
+        let mut rt = Runtime::new(UiDiagnosticsProbe, Theme::junie());
+        let _ = rt.initialize();
+        let mut buffer = Buffer::empty(SCREEN);
+        rt.draw_buffer(SCREEN, &mut buffer).commit_presented();
+
+        assert_eq!(rt.diagnostics().len(), 64);
+        assert_eq!(rt.diagnostics_dropped(), 6);
+        assert!(matches!(
+            rt.diagnostics().first(),
+            Some(Diagnostic::UnaddressableId { id })
+                if *id == Id::root("preexisting-author-diagnostic")
+        ));
+        assert_eq!(
+            rt.diagnostics()
+                .iter()
+                .filter(|diagnostic| matches!(diagnostic, Diagnostic::InvalidComponentLayout { owner, field: None } if *owner == Id::root("form")))
+                .count(),
+            63
+        );
+    }
+
+    const BUBBLE_OUTER_SCOPE: Id = Id::root("bubble-outer-scope");
+    const BUBBLE_INNER_SCOPE: Id = Id::root("bubble-inner-scope");
+    const BUBBLE_CHILD: Id = Id::root("bubble-child");
+    const BUBBLE_SIBLING_CHILD: Id = Id::root("bubble-sibling-child");
+    const BUBBLE_MODAL: Id = Id::root("bubble-modal");
+    const BUBBLE_MODAL_CHILD: Id = Id::root("bubble-modal-child");
+    const BUBBLE_OUTER_OWNER: Id = Id::root("bubble-outer-owner");
+    const BUBBLE_INNER_OWNER: Id = Id::root("bubble-inner-owner");
+    const BUBBLE_ACTION: ActionKey = ActionKey::custom("test.scope.dismiss");
+    const BUBBLE_BINDINGS: &[crate::keymap::Binding<()>] = &[crate::keymap::Binding {
+        action: BUBBLE_ACTION,
+        chord: Some(crate::event::Chord::key(KeyCode::Esc)),
+        cmd: (),
+        label: "Dismiss",
+        priority: 1,
+        visible: false,
+    }];
+
+    #[derive(Default)]
+    struct ScopedDeclineProbe {
+        publish_outer: bool,
+        open_modal_on_inner: bool,
+        open_modal_on_leaf: bool,
+        move_focus_to_sibling_on_inner: bool,
+        move_focus_to_sibling_on_leaf: bool,
+        inner_calls: usize,
+        outer_calls: usize,
+        esc_calls: usize,
+    }
+
+    impl App for ScopedDeclineProbe {
+        fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+            if cx.update_cause() == UpdateCause::Bootstrap {
+                cx.focus(BUBBLE_CHILD);
+            }
+            if cx
+                .intents(BUBBLE_CHILD)
+                .any(|intent| matches!(intent, Intent::Key(key) if key.code == KeyCode::Esc))
+            {
+                if self.open_modal_on_leaf {
+                    cx.open_layer(
+                        BUBBLE_MODAL,
+                        LayerSpec::modal(BUBBLE_MODAL).dismiss(crate::layer::Dismiss::NONE),
+                    );
+                }
+                if self.move_focus_to_sibling_on_leaf {
+                    cx.focus(BUBBLE_SIBLING_CHILD);
+                }
+            }
+            if cx
+                .intents(BUBBLE_INNER_OWNER)
+                .any(|intent| matches!(intent, Intent::Binding(BUBBLE_ACTION)))
+            {
+                self.inner_calls += 1;
+                if self.open_modal_on_inner {
+                    cx.open_layer(
+                        BUBBLE_MODAL,
+                        LayerSpec::modal(BUBBLE_MODAL).dismiss(crate::layer::Dismiss::NONE),
+                    );
+                }
+                if self.move_focus_to_sibling_on_inner {
+                    cx.focus(BUBBLE_SIBLING_CHILD);
+                }
+                return Response::ignored();
+            }
+            if cx
+                .intents(BUBBLE_OUTER_OWNER)
+                .any(|intent| matches!(intent, Intent::Binding(BUBBLE_ACTION)))
+            {
+                self.outer_calls += 1;
+                return Response::consumed();
+            }
+            Response::ignored()
+        }
+
+        fn draw(&self, ui: &mut Ui<'_>) {
+            ui.focus_scope(BUBBLE_OUTER_SCOPE, ScopeMode::Normal, |ui| {
+                if self.publish_outer {
+                    ui.publish_scope_bindings(
+                        ScopeId::new(BUBBLE_OUTER_SCOPE),
+                        BUBBLE_OUTER_OWNER,
+                        StateFlags::empty(),
+                        BUBBLE_BINDINGS,
+                    );
+                }
+                ui.focus_scope(BUBBLE_INNER_SCOPE, ScopeMode::Normal, |ui| {
+                    ui.publish_scope_bindings(
+                        ScopeId::new(BUBBLE_INNER_SCOPE),
+                        BUBBLE_INNER_OWNER,
+                        StateFlags::empty(),
+                        BUBBLE_BINDINGS,
+                    );
+                    ui.register_control(BUBBLE_CHILD, SCREEN, Focusability::Focusable);
+                });
+            });
+            ui.register_control(
+                BUBBLE_SIBLING_CHILD,
+                Rect::new(0, 0, 1, 1),
+                Focusability::Focusable,
+            );
+            let _ = ui.layer(BUBBLE_MODAL, |ui, area| {
+                ui.register_control(BUBBLE_MODAL_CHILD, area, Focusability::Focusable);
+            });
+        }
+
+        fn on_esc(&mut self, _cx: &mut Cx<'_>) -> Response<()> {
+            self.esc_calls += 1;
+            Response::consumed()
+        }
+    }
+
+    fn ready_scoped_decline_probe(publish_outer: bool) -> (Runtime<ScopedDeclineProbe>, Buffer) {
+        let mut rt = Runtime::new(
+            ScopedDeclineProbe {
+                publish_outer,
+                ..ScopedDeclineProbe::default()
+            },
+            Theme::junie(),
+        );
+        let _ = rt.initialize();
+        let mut buffer = Buffer::empty(SCREEN);
+        for _ in 0..8 {
+            rt.draw_buffer(SCREEN, &mut buffer).commit_presented();
+            if !rt.needs_settle() {
+                break;
+            }
+            let _ = rt.settle();
+        }
+        assert_eq!(rt.focus(), Some(BUBBLE_CHILD));
+        (rt, buffer)
+    }
+
+    #[test]
+    fn declining_scoped_bubble_falls_through_to_application_escape() {
+        let (mut rt, _) = ready_scoped_decline_probe(false);
+        let _ = deliver(&mut rt, key(KeyCode::Esc));
+        assert_eq!(rt.app().inner_calls, 1);
+        assert_eq!(rt.app().outer_calls, 0);
+        assert_eq!(rt.app().esc_calls, 1);
+    }
+
+    #[test]
+    fn declining_inner_scope_continues_to_outer_scoped_bubble() {
+        let (mut rt, _) = ready_scoped_decline_probe(true);
+        let _ = deliver(&mut rt, key(KeyCode::Esc));
+        assert_eq!(rt.app().inner_calls, 1);
+        assert_eq!(rt.app().outer_calls, 1);
+        assert_eq!(rt.app().esc_calls, 0);
+    }
+
+    #[test]
+    fn opening_modal_from_inner_scope_skips_stale_outer_binding() {
+        let (mut rt, _) = ready_scoped_decline_probe(true);
+        rt.app_mut().open_modal_on_inner = true;
+        let _ = deliver(&mut rt, key(KeyCode::Esc));
+        assert_eq!(rt.app().inner_calls, 1);
+        assert_eq!(rt.app().outer_calls, 0);
+        assert_eq!(rt.app().esc_calls, 0);
+        assert!(rt.is_open(BUBBLE_MODAL));
+    }
+
+    #[test]
+    fn opening_modal_from_leaf_skips_stale_global_escape_fallback() {
+        let (mut rt, _) = ready_scoped_decline_probe(true);
+        rt.app_mut().open_modal_on_leaf = true;
+        let _ = deliver(&mut rt, key(KeyCode::Esc));
+        assert!(rt.is_open(BUBBLE_MODAL));
+        assert_eq!(rt.app().inner_calls, 0);
+        assert_eq!(rt.app().outer_calls, 0);
+        assert_eq!(rt.app().esc_calls, 0);
+    }
+
+    #[test]
+    fn moving_focus_from_leaf_skips_stale_scope_and_global_fallbacks() {
+        let (mut rt, _) = ready_scoped_decline_probe(true);
+        rt.app_mut().move_focus_to_sibling_on_leaf = true;
+        let _ = deliver(&mut rt, key(KeyCode::Esc));
+        assert_eq!(rt.focus(), Some(BUBBLE_SIBLING_CHILD));
+        assert_eq!(rt.app().inner_calls, 0);
+        assert_eq!(rt.app().outer_calls, 0);
+        assert_eq!(rt.app().esc_calls, 0);
+    }
+
+    #[test]
+    fn focus_moving_out_of_inner_scope_skips_stale_scope_candidates() {
+        let (mut rt, _) = ready_scoped_decline_probe(true);
+        rt.app_mut().move_focus_to_sibling_on_inner = true;
+        let _ = deliver(&mut rt, key(KeyCode::Esc));
+        assert_eq!(rt.app().inner_calls, 1);
+        assert_eq!(rt.focus(), Some(BUBBLE_SIBLING_CHILD));
+        assert_eq!(rt.app().outer_calls, 0);
+        assert_eq!(rt.app().esc_calls, 0);
     }
 }

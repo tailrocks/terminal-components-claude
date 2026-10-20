@@ -308,7 +308,7 @@ fn public_facade_composes_editors_with_unicode_empty_state_and_resolved_bounds()
     assert_eq!(runtime.app().completing_state.editor().text(), "");
     assert!(
         runtime
-            .cursor()
+            .cursor_position()
             .is_some_and(|cursor| within(root, Rect::new(cursor.x, cursor.y, 1, 1)))
     );
 
@@ -322,7 +322,7 @@ fn public_facade_composes_editors_with_unicode_empty_state_and_resolved_bounds()
     assert!(within(resized, resized_editor_area));
     assert!(
         runtime
-            .cursor()
+            .cursor_position()
             .is_some_and(|cursor| within(resized, Rect::new(cursor.x, cursor.y, 1, 1)))
     );
 }
