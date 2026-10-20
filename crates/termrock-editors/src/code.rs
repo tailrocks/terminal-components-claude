@@ -344,6 +344,12 @@ const EDIT_BINDINGS: &[Binding<CodeCmd>] = &[
         "focus.next",
         false,
     ),
+    b(
+        Chord::with(KeyCode::Char('f'), CTRL),
+        CodeCmd::Find,
+        "Find",
+        true,
+    ),
     b(Chord::key(KeyCode::Esc), CodeCmd::Commit, "Done", true),
     b(
         Chord::key(KeyCode::Enter),
@@ -593,6 +599,11 @@ impl CodeEditorState {
 
     pub const fn is_editing(&self) -> bool {
         self.editing
+    }
+
+    /// Whether the Find bar is currently accepting query text.
+    pub fn is_find_typing(&self) -> bool {
+        self.find.as_ref().is_some_and(|find| find.typing)
     }
 
     pub const fn scroll(&self) -> &ScrollState {
@@ -1002,7 +1013,22 @@ impl<'a> CodeEditor<'a> {
                 Intent::Key(key)
                     if st.editing || st.find.as_ref().is_some_and(|find| find.typing) =>
                 {
-                    if let Some(c) = key.bare_char() {
+                    let command = Self::active_bindings(st).iter().find(|binding| {
+                        cx.effective_chord(self.id, binding.action, binding.chord)
+                            .is_some_and(|chord| chord.matches(&key))
+                    });
+                    if let Some(binding) = command {
+                        let already_dispatched = cx.intents(self.id).any(|intent| {
+                            matches!(intent, Intent::Binding(action) if action == binding.action)
+                        });
+                        if !already_dispatched {
+                            if st.find.as_ref().is_some_and(|find| find.typing) {
+                                Self::find_command(st, binding.cmd, &mut acc);
+                            } else {
+                                self.dispatch_command(cx, st, binding.cmd, page, &mut acc);
+                            }
+                        }
+                    } else if let Some(c) = key.bare_char() {
                         if let Some(find) = st.find.as_mut().filter(|find| find.typing) {
                             find.needle.push(c);
                             st.refind();
@@ -1017,15 +1043,6 @@ impl<'a> CodeEditor<'a> {
                             }
                         } else {
                             acc.consumed();
-                        }
-                    } else if !st.find.as_ref().is_some_and(|find| find.typing) {
-                        let command = Self::active_bindings(st).iter().find_map(|binding| {
-                            cx.effective_chord(self.id, binding.action, binding.chord)
-                                .filter(|chord| chord.matches(&key))
-                                .map(|_| binding.cmd)
-                        });
-                        if let Some(command) = command {
-                            self.dispatch_command(cx, st, command, page, &mut acc);
                         }
                     }
                 }
