@@ -4,8 +4,8 @@ use termrock::{
     ActionKey, App as TuiApp, Brand, ByIndex, Chord, ColorLevel, Cx, Dialog, DialogAction,
     DialogState, FrameRead, GlyphRole, Id, Intent, ItemKey, KeyCode, KeyMap, KeyPhase, Moment,
     Panel, PanelKind, Part, PartRef, Phase, Props, Rect, Response, RowFn, Size, StateFlags, Status,
-    StatusBar, StatusItem, Theme, TooSmall, Tree, TreeAction, TreeNode, TreeState, Ui, Variant, id,
-    width,
+    StatusBar, StatusItem, TextSection, Theme, TooSmall, Tree, TreeAction, TreeNode, TreeState, Ui,
+    Variant, id, width,
 };
 
 use showcase_demos::pages::forms::SUBMIT as FORM_SUBMIT;
@@ -1491,7 +1491,10 @@ fn paint_sidebar(ui: &mut Ui<'_>, area: Rect, state: &TreeState, label: &str) {
     let faint = tag_ink(ui, shell_text_style(ui, termrock::FgStep::Faint)).bg(plane_bg);
     let span_x = area.x.saturating_add(1);
     let span_w = area.width.saturating_sub(2);
-    ui.paint_str(Rect::new(span_x, area.y, span_w, 1), "Components", title);
+    TextSection::new("Components")
+        .inset(0)
+        .title_style(title)
+        .render(ui, Rect::new(span_x, area.y, span_w, 1));
     let count = NAV_ENTRIES.len().to_string();
     let count_w = width(&count);
     if span_w > count_w {
