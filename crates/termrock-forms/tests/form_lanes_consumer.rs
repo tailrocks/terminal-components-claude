@@ -4,6 +4,7 @@ use ratatui_core::buffer::Buffer;
 use ratatui_core::layout::Rect;
 use termrock_controls::choice::LabelRadio;
 use termrock_core::id::{Id, Part, PartRef};
+use termrock_core::validate::FieldError;
 use termrock_fields::input::TextInput;
 use termrock_fields::textarea::TextArea;
 use termrock_forms::{
@@ -12,6 +13,7 @@ use termrock_forms::{
 };
 use termrock_layout::{Constraints, Size, SplitAxis, SplitModel};
 use termrock_overlays::select::LabelSelect;
+use termrock_runtime::diagnostics::Diagnostic;
 use termrock_runtime::{App, Cx, Response, Runtime, Ui};
 use termrock_theme::Theme;
 
@@ -178,6 +180,21 @@ impl App for EmptyApp {
     fn draw(&self, _ui: &mut Ui<'_>) {}
 }
 
+struct InvalidLayoutUpdateApp<'a> {
+    form: Form<'a>,
+    state: FormState,
+    data: Notifications,
+}
+
+impl App for InvalidLayoutUpdateApp<'_> {
+    fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+        let _ = self.form.update(cx, &mut self.state, &mut self.data);
+        Response::ignored()
+    }
+
+    fn draw(&self, _ui: &mut Ui<'_>) {}
+}
+
 #[test]
 fn borrowed_lanes_resolve_live_data_into_the_drawn_field_bounds() {
     let fields = fields();
@@ -199,7 +216,6 @@ fn borrowed_lanes_resolve_live_data_into_the_drawn_field_bounds() {
             form.draw(ui, area, &state, &data);
         })
         .commit_presented();
-
     let destination = runtime
         .area_of_part(DESTINATION, PartRef::of(Part::LABEL))
         .expect("left lane field was drawn");
@@ -390,6 +406,47 @@ fn visibility_and_final_group_are_revalidated_before_any_registration() {
             .area_of_part(DESTINATION, PartRef::of(Part::LABEL))
             .is_none(),
         "invalid layout aborts before registering even included fields"
+    );
+    assert_eq!(runtime.diagnostics().len(), 1, "measurement is pure");
+    assert!(matches!(
+        runtime.diagnostics(),
+        [Diagnostic::InvalidComponentLayout {
+            owner: FORM,
+            field: Some(ENDPOINT),
+        }]
+    ));
+
+    let mut state = FormState::default();
+    state.set_error(DESTINATION, Some(FieldError::new("sentinel")));
+    let expected_state = state.clone();
+    let invalid_update_form = invalid_form;
+    let data = Notifications {
+        show_endpoint: true,
+        ..Notifications::default()
+    };
+    let app = InvalidLayoutUpdateApp {
+        form: invalid_update_form,
+        state,
+        data,
+    };
+    let mut runtime = Runtime::new(app, Theme::junie());
+    let _ = runtime.initialize();
+    assert!(matches!(
+        runtime.diagnostics(),
+        [Diagnostic::InvalidComponentLayout {
+            owner: FORM,
+            field: Some(ENDPOINT),
+        }]
+    ));
+    assert_eq!(
+        runtime.app().state,
+        expected_state,
+        "invalid update leaves existing form state unchanged"
+    );
+    assert_eq!(
+        runtime.app().data.reads.get(),
+        0,
+        "invalid update has no domain effects"
     );
 
     let mut data = Notifications::default();
