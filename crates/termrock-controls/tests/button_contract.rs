@@ -16,7 +16,9 @@ use termrock_core::id::{Id, Part};
 use termrock_core::response::Response;
 use termrock_runtime::{App, Cx, Status, Ui};
 use termrock_test_support::Harness;
-use termrock_theme::{ColorLevel, Family, GlyphRole, Role, StateFlags, StylePatch, Theme, Variant};
+use termrock_theme::{
+    ColorLevel, Family, GlyphRole, Role, Slot, StateFlags, StylePatch, Theme, Variant,
+};
 
 const BUTTON: Id = Id::root("button.contract.main");
 const AREA: Rect = Rect {
@@ -539,6 +541,191 @@ impl App for UnicodeButton {
     fn draw(&self, ui: &mut Ui<'_>) {
         Button::new(BUTTON, "👩‍💻e\u{301}界").draw(ui, ui.full());
     }
+}
+
+struct FittedButton {
+    label: &'static str,
+    checked: Option<bool>,
+}
+
+impl App for FittedButton {
+    fn update(&mut self, _: &mut Cx<'_>) -> Response<()> {
+        Response::ignored()
+    }
+
+    fn draw(&self, ui: &mut Ui<'_>) {
+        let button = Button::new(BUTTON, self.label);
+        match self.checked {
+            Some(value) => button.checked(value).draw(ui, ui.full()),
+            None => button.draw(ui, ui.full()),
+        };
+    }
+}
+
+#[test]
+fn narrow_wide_label_uses_the_shared_cell_safe_ellipsis_in_all_profiles() {
+    for level in [
+        ColorLevel::TrueColor,
+        ColorLevel::Ansi256,
+        ColorLevel::Ansi16,
+        ColorLevel::Mono,
+    ] {
+        let theme = Theme::junie().downgrade(level);
+        let h = Harness::new(
+            FittedButton {
+                label: "世界",
+                checked: None,
+            },
+            theme.clone(),
+            5,
+            1,
+        );
+
+        assert_eq!(
+            h.cell(0, 0).symbol(),
+            theme.design.glyphs.get(GlyphRole::FocusBar),
+            "leading focus gutter at {level:?}"
+        );
+        assert_eq!(h.cell(1, 0).symbol(), "世", "{level:?}");
+        assert_eq!(
+            h.cell(2, 0).symbol(),
+            " ",
+            "wide-grapheme continuation at {level:?}"
+        );
+        assert_eq!(h.cell(3, 0).symbol(), "…", "{level:?}");
+        assert_eq!(h.cell(4, 0).symbol(), " ", "trailing padding at {level:?}");
+        assert_eq!(h.area_of(BUTTON).expect("button is registered").width, 5);
+    }
+}
+
+#[test]
+fn narrow_labels_preserve_markers_empty_text_combining_graphemes_and_emoji() {
+    for level in [
+        ColorLevel::TrueColor,
+        ColorLevel::Ansi256,
+        ColorLevel::Ansi16,
+        ColorLevel::Mono,
+    ] {
+        let theme = Theme::junie().downgrade(level);
+
+        let checked = Harness::new(
+            FittedButton {
+                label: "世界",
+                checked: Some(true),
+            },
+            theme.clone(),
+            6,
+            1,
+        );
+        let marker = theme
+            .resolve(
+                Family::BUTTON,
+                Variant::DEFAULT,
+                Part::MARKER,
+                StateFlags::CHECKED | StateFlags::SELECTED,
+                termrock_theme::Surface::Canvas,
+            )
+            .glyph;
+        let expected_marker = match marker {
+            Slot::Set(role) => theme.design.glyphs.get(role),
+            Slot::Inherit => theme.design.glyphs.get(GlyphRole::DotOn),
+            Slot::Clear => " ",
+        };
+        assert_eq!(
+            checked.cell(1, 0).symbol(),
+            expected_marker,
+            "checked marker at {level:?}"
+        );
+        assert_eq!(
+            checked.cell(3, 0).symbol(),
+            "…",
+            "checked label at {level:?}"
+        );
+
+        let combining = Harness::new(
+            FittedButton {
+                label: "e\u{301}界",
+                checked: None,
+            },
+            theme.clone(),
+            4,
+            1,
+        );
+        assert_eq!(combining.cell(1, 0).symbol(), "e\u{301}", "{level:?}");
+        assert_eq!(combining.cell(2, 0).symbol(), "…", "{level:?}");
+
+        let emoji = Harness::new(
+            FittedButton {
+                label: "👩‍💻x",
+                checked: None,
+            },
+            theme.clone(),
+            4,
+            1,
+        );
+        assert_eq!(
+            emoji.cell(1, 0).symbol(),
+            "…",
+            "emoji grapheme at {level:?}"
+        );
+
+        let empty = Harness::new(
+            FittedButton {
+                label: "",
+                checked: None,
+            },
+            theme.clone(),
+            2,
+            1,
+        );
+        assert_eq!(
+            empty
+                .area_of(BUTTON)
+                .expect("empty button is registered")
+                .width,
+            2
+        );
+
+        for width in [0, 1, 2, 3] {
+            let narrow = Harness::new(UnicodeButton, theme.clone(), width, 1);
+            let _ = narrow.snapshot();
+            if width == 0 {
+                assert_eq!(narrow.area_of(BUTTON), None, "zero width at {level:?}");
+            } else {
+                assert_eq!(
+                    narrow.area_of(BUTTON).expect("visible narrow button").width,
+                    width,
+                    "{level:?} width {width}"
+                );
+            }
+        }
+    }
+}
+
+fn custom_label_slot(ui: &mut Ui<'_>, area: Rect) {
+    ui.paint_str(area, "custom", ui.surface_style());
+}
+
+struct SlottedWideButton;
+
+impl App for SlottedWideButton {
+    fn update(&mut self, _: &mut Cx<'_>) -> Response<()> {
+        Response::ignored()
+    }
+
+    fn draw(&self, ui: &mut Ui<'_>) {
+        Button::new(BUTTON, "世界")
+            .slot(Part::LABEL, &custom_label_slot)
+            .draw(ui, ui.full());
+    }
+}
+
+#[test]
+fn narrow_custom_label_slot_keeps_ownership_of_its_content() {
+    let h = Harness::new(SlottedWideButton, Theme::junie(), 5, 1);
+    assert_eq!(h.cell(1, 0).symbol(), "c");
+    assert_eq!(h.cell(2, 0).symbol(), "u");
+    assert_eq!(h.cell(3, 0).symbol(), "s");
 }
 
 #[test]
