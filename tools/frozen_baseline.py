@@ -312,27 +312,7 @@ def _verify_cohort_binaries(cohort: dict[str, object], binary_root: Path, contex
         if record["path"] != app:
             raise RunnerError(f"{context} binary path is invalid: {app}")
         path = binary_root / relative.parts[0]
-        try:
-            before = path.lstat()
-            if stat.S_ISLNK(before.st_mode) or not stat.S_ISREG(before.st_mode) or before.st_nlink != 1:
-                raise RunnerError(f"{context} binary is not a private regular file: {app}")
-            flags = os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0)
-            fd = os.open(path, flags)
-            try:
-                opened = os.fstat(fd)
-                digest = hashlib.sha256()
-                while chunk := os.read(fd, 1024 * 1024):
-                    digest.update(chunk)
-                after_fd = os.fstat(fd)
-            finally:
-                os.close(fd)
-            after = path.lstat()
-        except OSError as error:
-            raise RunnerError(f"{context} binary cannot be safely opened: {app}: {error}") from error
-        identity = lambda value: (value.st_dev, value.st_ino, value.st_mode, value.st_size, value.st_mtime_ns, value.st_ctime_ns, value.st_nlink)
-        if identity(before) != identity(opened) or identity(opened) != identity(after_fd) or identity(after_fd) != identity(after):
-            raise RunnerError(f"{context} binary changed during verification: {app}")
-        actual = digest.hexdigest()
+        actual, _identity = stable_private_binary(path, f"{context} binary {app}")
         if actual != record["sha256"]:
             raise RunnerError(f"{context} binary hash mismatch: {app}")
         verified[app] = path
@@ -428,6 +408,37 @@ def sha256(path: Path) -> str:
         for chunk in iter(lambda: stream.read(1024 * 1024), b""):
             h.update(chunk)
     return h.hexdigest()
+
+
+def stable_private_binary(path: Path, label: str) -> tuple[str, dict[str, int]]:
+    """Hash one unchanged, unaliased executable through a no-follow file descriptor."""
+    try:
+        before = path.lstat()
+        if stat.S_ISLNK(before.st_mode) or not stat.S_ISREG(before.st_mode) or before.st_nlink != 1 or not before.st_mode & (stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH):
+            raise RunnerError(f"{label} must be a private regular executable file")
+        fd = os.open(path, os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0))
+        try:
+            opened = os.fstat(fd)
+            digest = hashlib.sha256()
+            while chunk := os.read(fd, 1024 * 1024):
+                digest.update(chunk)
+            after_fd = os.fstat(fd)
+        finally:
+            os.close(fd)
+        after = path.lstat()
+    except OSError as error:
+        raise RunnerError(f"{label} cannot be safely opened: {error}") from error
+    identity = lambda value: (value.st_dev, value.st_ino, value.st_mode, value.st_size, value.st_mtime_ns, value.st_ctime_ns, value.st_nlink)
+    if identity(before) != identity(opened) or identity(opened) != identity(after_fd) or identity(after_fd) != identity(after):
+        raise RunnerError(f"{label} changed during verification")
+    return digest.hexdigest(), {
+        "device": opened.st_dev,
+        "inode": opened.st_ino,
+        "mode": opened.st_mode,
+        "size": opened.st_size,
+        "mtime_ns": opened.st_mtime_ns,
+        "ctime_ns": opened.st_ctime_ns,
+    }
 
 
 def phase_binary_hashes(bins: Path) -> dict[str, str]:
@@ -1053,12 +1064,11 @@ def build_candidate(repo: Path, root: Path, target: Path, timeout: int) -> None:
     if (after_revision, after_fingerprint, after_files) != (revision, dirty_fingerprint, dirty_files):
         raise RunnerError("candidate source changed while binaries were building")
     hashes = {}
+    binary_files = {}
     for app in APPS:
         binary = target / "debug" / app
-        if not binary.is_file():
-            raise RunnerError(f"missing candidate binary: {binary}")
-        hashes[app] = sha256(binary)
-    record = {"repo": str(repo), "revision": revision, "dirty_fingerprint": dirty_fingerprint, "dirty_files": dirty_files, "target_dir": str(target), "bin_dir": str(target / "debug"), "binaries": hashes}
+        hashes[app], binary_files[app] = stable_private_binary(binary, f"candidate binary {app}")
+    record = {"repo": str(repo), "revision": revision, "dirty_fingerprint": dirty_fingerprint, "dirty_files": dirty_files, "target_dir": str(target), "bin_dir": str(target / "debug"), "binaries": hashes, "binary_files": binary_files}
     root.mkdir(parents=True, exist_ok=True)
     (root / "candidate-build.json").write_text(json.dumps(record, indent=2) + "\n")
     print(json.dumps(record, indent=2))
@@ -1932,17 +1942,23 @@ def compare(repo: Path, root: Path, baseline_bins: Path, candidate_bins: Path, s
 def baseline_and_candidate_records(repo: Path, root: Path, baseline_bins: Path, candidate_bins: Path, timeout: int, *, baseline_cohort_id: str | None = None, cohort_repo: Path | None = None) -> tuple[dict[str, object], dict[str, object]]:
     source = root / "source"
     source_hash = verify_source(root, source)
+    baseline_hashes: dict[str, str] = {}
+    baseline_files: dict[str, dict[str, int]] = {}
     if baseline_cohort_id is None:
         build_record = json.loads((root / "build.json").read_text())
         if build_record.get("source_sha256") != source_hash:
             raise RunnerError("frozen build provenance does not match extracted source")
         if baseline_bins.resolve() != (root / "cargo-target" / "debug").resolve():
             raise RunnerError("baseline binaries must be the isolated binaries built by this runner")
-        if build_record.get("binaries") != {app: sha256(baseline_bins / app) for app in APPS}:
+        for app in APPS:
+            baseline_hashes[app], baseline_files[app] = stable_private_binary(baseline_bins / app, f"frozen baseline binary {app}")
+        if build_record.get("binaries") != baseline_hashes:
             raise RunnerError("frozen baseline binaries changed after the recorded build")
     else:
         capture = require_capture_eligible_cohort(cohort_repo or repo, baseline_cohort_id, baseline_bins)
-        actual = {app: sha256(baseline_bins / app) for app in APPS}
+        for app in APPS:
+            baseline_hashes[app], baseline_files[app] = stable_private_binary(baseline_bins / app, f"capture-eligible frozen baseline binary {app}")
+        actual = baseline_hashes
         expected_source = capture["source"]
         if expected_source != {
             "tag": BASELINE_TAG, "tag_object": BASELINE_TAG_OBJECT, "commit": BASELINE_COMMIT,
@@ -1969,15 +1985,20 @@ def baseline_and_candidate_records(repo: Path, root: Path, baseline_bins: Path, 
     revision, dirty_hash, dirty_files = git_state(repo, timeout)
     if (revision, dirty_hash, dirty_files) != (candidate.get("revision"), candidate.get("dirty_fingerprint"), candidate.get("dirty_files")):
         raise RunnerError("candidate source changed after its recorded build")
-    if candidate.get("binaries") != {app: sha256(candidate_bins / app) for app in APPS}:
+    candidate_hashes: dict[str, str] = {}
+    candidate_files: dict[str, dict[str, int]] = {}
+    for app in APPS:
+        candidate_hashes[app], candidate_files[app] = stable_private_binary(candidate_bins / app, f"candidate binary {app}")
+    if candidate.get("binary_files") != candidate_files:
+        raise RunnerError("candidate binary file identity changed after its recorded build")
+    if candidate.get("binaries") != candidate_hashes:
         raise RunnerError("candidate binaries changed after their recorded build")
+    for app in APPS:
+        if (baseline_files[app]["device"], baseline_files[app]["inode"]) == (candidate_files[app]["device"], candidate_files[app]["inode"]):
+            raise RunnerError(f"candidate binary aliases the frozen baseline executable: {app}")
     candidate["source_tree"] = run(["git", "-C", str(repo), "rev-parse", "HEAD^{tree}"], cwd=repo, timeout=timeout).strip()
     if baseline_bins.resolve() == candidate_bins.resolve() or not candidate_bins.is_dir():
         raise RunnerError("baseline and candidate binary directories must be distinct existing directories")
-    for app in APPS:
-        for directory in (baseline_bins, candidate_bins):
-            if not (directory / app).is_file():
-                raise RunnerError(f"missing binary: {directory / app}")
     return build_record, candidate
 
 
