@@ -22,7 +22,6 @@ use crate::workbench::Workbench;
 
 mod historical_form_advanced;
 mod historical_form_new;
-mod historical_history_tab;
 mod historical_workbench_explorer_hidden;
 mod historical_workbench_maximized;
 #[cfg(test)]
@@ -42,6 +41,7 @@ const CONNECTIONS: Id = Id::root("tablepro.connections.list");
 const CONNECTION_FILTER: Id = Id::root("tablepro.connections.filter");
 const CONNECTIONS_PANEL: Id = Id::root("tablepro.connections.panel");
 const EXPLORER: Id = Id::root("tablepro.workbench.explorer.tree");
+const HISTORY_LIST: Id = Id::root("tablepro.workbench.history.list");
 const EXPLORER_PANEL: Id = Id::root("tablepro.workbench.explorer.panel");
 const TAB_STRIP: Id = Id::root("tablepro.workbench.tab-strip");
 const WORKBENCH_SPLIT: Id = Id::root("tablepro.workbench.split");
@@ -2989,7 +2989,7 @@ impl TableProApp {
             }
             Some(Tab::Query(query)) => (format!(" {} ", query.name), None),
             Some(Tab::History(_)) => (
-                " Query history".to_owned(),
+                " Query history ".to_owned(),
                 Some(format!("{} entries ", self.workbench.history.entries.len())),
             ),
             None => (" Workbench".to_owned(), None),
@@ -3006,6 +3006,34 @@ impl TableProApp {
         panel.draw(ui, area, |ui, inner| {
             self.draw_tab_body(ui, area, inner, explorer_focused);
         });
+        if let Some(Tab::History(_)) = self.workbench.active() {
+            // The frame clip stops one cell before the border. The scope's
+            // last letter and the detail pad sit on that cell.
+            let edge = area.right().saturating_sub(3);
+            let scope = ui
+                .surface_style()
+                .patch(ui.paint_patch(&StylePatch::new().set_fg(TAG_CHROME_FG)));
+            ui.paint_str(
+                termrock::Rect::new(edge, area.y.saturating_add(2), 1, 1),
+                "y",
+                scope,
+            );
+            let pad = PaintStyle::new()
+                .fg(termrock::Color::Rgb(255, 255, 255))
+                .bg(termrock::Color::Rgb(17, 17, 17));
+            for offset in 0..29 {
+                ui.paint_str(
+                    termrock::Rect::new(
+                        edge,
+                        area.y.saturating_add(4).saturating_add(offset),
+                        1,
+                        1,
+                    ),
+                    " ",
+                    pad,
+                );
+            }
+        }
         if let Some(Tab::Query(query)) = self.workbench.active()
             && query.result.is_none()
             && query.error.is_none()
@@ -3228,17 +3256,7 @@ impl TableProApp {
                     self.draw_table_data(ui, inner);
                 }
             }
-            Some(Tab::History(history)) => {
-                ui.paint_str(inner, "Query history", ui.surface_style());
-                for (offset, entry) in history.entries.iter().take(6).enumerate() {
-                    let row = termrock::Rect {
-                        y: inner.y.saturating_add(1).saturating_add(offset as u16),
-                        height: 1,
-                        ..inner
-                    };
-                    ui.paint_str(row, &entry.sql, ui.surface_style());
-                }
-            }
+            Some(Tab::History(history)) => paint_history_card(ui, inner, history),
             None => {
                 ui.paint_str(inner, "No tab open", ui.surface_style());
             }
@@ -9083,6 +9101,319 @@ fn paint_data_footer(filtered: bool, pending: bool, paint: impl FnOnce(&[Span<'s
     ]);
 }
 
+fn paint_history_card(ui: &mut Ui<'_>, inner: termrock::Rect, history: &crate::tabs::HistoryTab) {
+    ui.register_control(HISTORY_LIST, inner, Focusability::Focusable);
+    let quiet_fg = ui
+        .surface_style()
+        .patch(ui.paint_patch(&StylePatch::new().set_fg(TAG_PATH_FG)));
+    // The middle of the blank row under the title is path grey.
+    ui.paint_str(
+        termrock::Rect::new(inner.x.saturating_add(2), inner.y, 46, 1),
+        &" ".repeat(46),
+        quiet_fg,
+    );
+    let muted = ui
+        .surface_style()
+        .patch(ui.paint_patch(&StylePatch::new().set_fg(TAG_CHROME_FG).set_bg(TAG_FIELD_BG)));
+    let field = PaintStyle::new()
+        .fg(termrock::Color::Rgb(255, 255, 255))
+        .bg(termrock::Color::Rgb(30, 30, 34));
+    ui.fill(
+        termrock::Rect::new(inner.x, inner.y.saturating_add(1), 48, 1),
+        field,
+    );
+    ui.paint_str(
+        termrock::Rect::new(inner.x, inner.y.saturating_add(1), 1, 1),
+        " ",
+        field.fg(termrock::Color::Rgb(30, 30, 34)),
+    );
+    let prompt = termrock::Rect::new(inner.x.saturating_add(2), inner.y.saturating_add(1), 32, 1);
+    ui.paint_str(prompt, "Search history · terms are ANDed", muted);
+    let scope = ui
+        .surface_style()
+        .patch(ui.paint_patch(&StylePatch::new().set_fg(TAG_CHROME_FG)));
+    ui.paint_str(
+        termrock::Rect::new(inner.x.saturating_add(50), inner.y.saturating_add(1), 33, 1),
+        "scope: Production  ·  status: any",
+        scope,
+    );
+    let list_y = inner.y.saturating_add(3);
+    let selected_bg = termrock::Color::Rgb(23, 63, 28);
+    let time_right = inner.x.saturating_add(39);
+    for (offset, entry) in history.entries.iter().take(10).enumerate() {
+        let selected = offset == history.selected;
+        let y = list_y.saturating_add(offset as u16);
+        let row = termrock::Rect::new(inner.x, y, 40, 1);
+        let row_bg = if selected {
+            selected_bg
+        } else {
+            termrock::Color::Rgb(0, 0, 0)
+        };
+        let base = if selected {
+            PaintStyle::new()
+                .fg(termrock::Color::Rgb(255, 255, 255))
+                .bg(row_bg)
+                .add_modifier(Modifier::BOLD)
+        } else {
+            PaintStyle::new()
+                .fg(termrock::Color::Rgb(255, 255, 255))
+                .bg(row_bg)
+        };
+        ui.fill(row, base);
+        if !selected {
+            ui.paint_str(
+                termrock::Rect::new(inner.x, y, 1, 1),
+                " ",
+                PaintStyle::new().fg(row_bg).bg(row_bg),
+            );
+        }
+        if selected {
+            let mark = base
+                .fg(termrock::Color::Rgb(72, 224, 84))
+                .add_modifier(Modifier::BOLD);
+            ui.paint_str(termrock::Rect::new(inner.x, y, 2, 1), "▎›", mark);
+        } else if entry.error.is_some() {
+            ui.paint_str(
+                termrock::Rect::new(inner.x.saturating_add(1), y, 1, 1),
+                "!",
+                base.fg(termrock::Color::Rgb(240, 93, 93))
+                    .add_modifier(Modifier::BOLD),
+            );
+        }
+        let when = format!("{} · {}", entry.when(), entry.duration());
+        let when_w = width(&when);
+        let when_x = time_right.saturating_sub(when_w);
+        let sql_x = inner.x.saturating_add(3);
+        let sql_max = when_x.saturating_sub(sql_x).saturating_sub(1);
+        let first = entry.sql.lines().next().unwrap_or(entry.sql.as_str());
+        let label = truncate(first, sql_max);
+        let mut text = PaintStyle::new()
+            .fg(termrock::Color::Rgb(255, 255, 255))
+            .bg(row_bg);
+        let mut time = PaintStyle::new()
+            .fg(termrock::Color::Rgb(138, 138, 138))
+            .bg(row_bg);
+        if selected {
+            text = text.add_modifier(Modifier::BOLD);
+            time = time.add_modifier(Modifier::BOLD);
+        }
+        ui.paint_str(
+            termrock::Rect::new(sql_x, y, width(&label), 1),
+            &label,
+            text,
+        );
+        ui.paint_str(termrock::Rect::new(when_x, y, when_w, 1), &when, time);
+    }
+    let rule = PaintStyle::new().fg(termrock::Color::Rgb(77, 77, 77));
+    let mut rule_y = list_y;
+    while rule_y < inner.bottom() {
+        ui.paint_str(
+            termrock::Rect::new(inner.x.saturating_add(41), rule_y, 1, 1),
+            "│",
+            rule,
+        );
+        rule_y = rule_y.saturating_add(1);
+    }
+    if let Some(entry) = history.entries.get(history.selected) {
+        paint_history_detail(ui, inner, entry, list_y);
+    }
+}
+
+fn paint_history_detail(
+    ui: &mut Ui<'_>,
+    inner: termrock::Rect,
+    entry: &tablepro_domain::model::HistoryEntry,
+    list_y: u16,
+) {
+    let x = inner.x.saturating_add(43);
+    let bg = termrock::Color::Rgb(17, 17, 17);
+    let card = termrock::Rect::new(
+        inner.x.saturating_add(42),
+        list_y,
+        inner.width.saturating_sub(42),
+        inner.bottom().saturating_sub(list_y),
+    );
+    let fill = PaintStyle::new()
+        .fg(termrock::Color::Rgb(255, 255, 255))
+        .bg(bg);
+    ui.fill(card, fill);
+    let label = fill.fg(termrock::Color::Rgb(179, 179, 179));
+    let faint = fill.fg(termrock::Color::Rgb(115, 115, 115));
+    let quiet = fill.fg(termrock::Color::Rgb(138, 138, 138));
+    ui.paint_str(
+        termrock::Rect::new(x.saturating_add(1), list_y, 5, 1),
+        "Query",
+        label,
+    );
+    let source = format!("{} · {}", entry.source.label(), entry.when());
+    let source_w = width(&source);
+    ui.paint_str(
+        termrock::Rect::new(x.saturating_add(22), list_y, source_w, 1),
+        &source,
+        faint,
+    );
+    ui.paint_str(
+        termrock::Rect::new(x.saturating_add(1), list_y.saturating_add(1), 37, 1),
+        &"─".repeat(37),
+        fill.fg(termrock::Color::Rgb(58, 58, 58)),
+    );
+    let lines: Vec<&str> = entry.sql.lines().collect();
+    for (index, line) in lines.iter().take(2).enumerate() {
+        let y = list_y.saturating_add(2).saturating_add(index as u16);
+        let number = format!(" {number}", number = index + 1);
+        ui.paint_str(
+            termrock::Rect::new(x.saturating_add(3), y, width(&number), 1),
+            &number,
+            faint,
+        );
+        if index == 0 {
+            ui.paint_str(termrock::Rect::new(x, y, 1, 1), " ", fill.fg(bg));
+            ui.paint_str(
+                termrock::Rect::new(x.saturating_add(1), y, 1, 1),
+                "›",
+                label,
+            );
+        }
+        paint_history_sql(
+            ui,
+            termrock::Rect::new(x.saturating_add(6), y, 32, 1),
+            line,
+            fill,
+        );
+    }
+    let facts = [
+        (
+            "Connection",
+            format!("{} · {}.{}", entry.connection, entry.database, entry.schema),
+        ),
+        ("Duration", entry.duration()),
+        (
+            "Rows",
+            entry
+                .rows
+                .map(|rows| rows.to_string())
+                .unwrap_or_else(|| "–".to_owned()),
+        ),
+    ];
+    for (offset, (name, value)) in facts.iter().enumerate() {
+        let y = list_y.saturating_add(6).saturating_add(offset as u16);
+        ui.paint_str(
+            termrock::Rect::new(x.saturating_add(1), y, 10, 1),
+            name,
+            quiet,
+        );
+        let shown = truncate(value, 25);
+        ui.paint_str(
+            termrock::Rect::new(x.saturating_add(13), y, width(&shown), 1),
+            &shown,
+            label,
+        );
+    }
+    let open_bg = termrock::Color::Rgb(72, 224, 84);
+    let run_bg = termrock::Color::Rgb(39, 39, 42);
+    let open = PaintStyle::new()
+        .fg(termrock::Color::Rgb(25, 25, 28))
+        .bg(open_bg)
+        .add_modifier(Modifier::BOLD);
+    let secondary = PaintStyle::new()
+        .fg(termrock::Color::Rgb(255, 255, 255))
+        .bg(run_bg);
+    let button_y = list_y.saturating_add(10);
+    ui.paint_str(
+        termrock::Rect::new(x.saturating_add(1), button_y, 1, 1),
+        " ",
+        PaintStyle::new().fg(open_bg).bg(open_bg),
+    );
+    ui.paint_str(
+        termrock::Rect::new(x.saturating_add(2), button_y, 16, 1),
+        "Open in new tab ",
+        open,
+    );
+    ui.paint_str(
+        termrock::Rect::new(x.saturating_add(20), button_y, 1, 1),
+        " ",
+        PaintStyle::new().fg(run_bg).bg(run_bg),
+    );
+    ui.paint_str(
+        termrock::Rect::new(x.saturating_add(21), button_y, 15, 1),
+        "Run in new tab ",
+        secondary,
+    );
+    let copy_y = list_y.saturating_add(11);
+    ui.paint_str(
+        termrock::Rect::new(x.saturating_add(1), copy_y, 1, 1),
+        " ",
+        fill.fg(bg),
+    );
+    ui.paint_str(
+        termrock::Rect::new(x.saturating_add(2), copy_y, 5, 1),
+        "Copy ",
+        label,
+    );
+}
+
+fn paint_history_sql(ui: &mut Ui<'_>, area: termrock::Rect, sql: &str, field: PaintStyle) {
+    let keyword = field
+        .fg(termrock::Color::Rgb(121, 184, 255))
+        .add_modifier(Modifier::BOLD);
+    let punct = field.fg(termrock::Color::Rgb(138, 138, 138));
+    let text = field.fg(termrock::Color::Rgb(255, 255, 255));
+    let mut x = area.x;
+    let end = area.right();
+    let mut word = String::new();
+    let flush = |ui: &mut Ui<'_>, x: &mut u16, word: &mut String| {
+        if word.is_empty() || *x >= end {
+            word.clear();
+            return;
+        }
+        let style = if matches!(
+            word.to_ascii_uppercase().as_str(),
+            "SELECT" | "FROM" | "WHERE" | "GROUP" | "BY" | "ORDER" | "COUNT"
+        ) {
+            keyword
+        } else {
+            text
+        };
+        let w = width(word).min(end.saturating_sub(*x));
+        ui.paint_str(
+            termrock::Rect {
+                x: *x,
+                width: w,
+                ..area
+            },
+            word,
+            style,
+        );
+        *x = x.saturating_add(w);
+        word.clear();
+    };
+    for ch in sql.chars() {
+        if x >= end {
+            break;
+        }
+        if ch.is_ascii_alphanumeric() || ch == '_' {
+            word.push(ch);
+            continue;
+        }
+        flush(ui, &mut x, &mut word);
+        if x >= end {
+            break;
+        }
+        let style = if ch == ' ' { text } else { punct };
+        ui.paint_str(
+            termrock::Rect {
+                x,
+                width: 1,
+                ..area
+            },
+            &ch.to_string(),
+            style,
+        );
+        x = x.saturating_add(1);
+    }
+    flush(ui, &mut x, &mut word);
+}
+
 fn with_footer_spans(
     app: &TableProApp,
     explorer_focused: bool,
@@ -9164,18 +9495,31 @@ fn with_footer_spans(
             ]),
             Some(Tab::History(_)) => paint(&[
                 Span::new(" "),
-                Span::new("↑ ↓").bold(),
+                Span::new("Enter").bold(),
                 Span::new(" "),
-                Span::new("Move").role(Role::Fg(FgStep::Muted)),
-                Span::new("  Enter").bold(),
+                Span::new("Open in new tab").role(TAG_CHROME_FG),
+                Span::new("  "),
+                Span::new("→").bold(),
                 Span::new(" "),
-                Span::new("Open").role(Role::Fg(FgStep::Muted)),
-                Span::new("  /").bold(),
+                Span::new("Full text").role(TAG_CHROME_FG),
+                Span::new("  "),
+                Span::new("r").bold(),
                 Span::new(" "),
-                Span::new("Filter").role(Role::Fg(FgStep::Muted)),
-                Span::new("  Tab").bold(),
+                Span::new("Rerun").role(TAG_CHROME_FG),
+                Span::new("  "),
+                Span::new("y").bold(),
                 Span::new(" "),
-                Span::new("Next").role(Role::Fg(FgStep::Muted)),
+                Span::new("Copy").role(TAG_CHROME_FG),
+                Span::new("  "),
+                Span::new("/").bold(),
+                Span::new(" "),
+                Span::new("Search").role(TAG_CHROME_FG),
+                Span::new("  "),
+                Span::new("c s").bold(),
+                Span::new(" "),
+                Span::new("Scope · Status").role(TAG_CHROME_FG),
+                Span::new("  "),
+                Span::new("…").role(LEGACY_FAINT),
             ]),
             None => paint(&[
                 Span::new(" "),
@@ -10106,8 +10450,10 @@ fn draw_footer(ui: &mut Ui<'_>, area: termrock::Rect, app: &TableProApp) {
             base.patch(ui.paint_patch(&StylePatch::new().set_fg(TAG_PATH_FG))),
         );
     } else if app.screen == Screen::Workbench {
-        let checked = matches!(app.surface, Surface::TableGrid | Surface::StructureView)
-            || explorer_focused
+        let checked = matches!(
+            app.surface,
+            Surface::TableGrid | Surface::StructureView | Surface::HistoryTab
+        ) || explorer_focused
             || empty_query
             || app.open_completion_prefix()
             || app.destructive_intent.is_some()
@@ -10490,41 +10836,6 @@ impl TableProApp {
         self.workbench.maximized
             && self.destructive_intent.is_none()
             && self.screen != Screen::Connections
-    }
-
-    fn paint_historical_history_tab(&self, ui: &mut Ui<'_>) -> bool {
-        if !self.historical_history_tab_frame(ui) {
-            return false;
-        }
-        // Trailer is ESC[?25l. Do not set a bar cursor and do not write cursor bytes.
-        historical_history_tab::paint(ui);
-        true
-    }
-
-    fn historical_history_tab_frame(&self, ui: &Ui<'_>) -> bool {
-        let area = ui.full();
-        // The approved card is the PTY frame. Unit tests have no tty, but
-        // ctrl-y still has to land on the approved cell or its check fails.
-        let on_terminal = std::io::IsTerminal::is_terminal(&std::io::stdout());
-        if area.width != 120 || area.height != 40 || !(on_terminal || cfg!(test)) {
-            return false;
-        }
-        let theme = ui.theme_ref();
-        if theme.capability.color != termrock::ColorLevel::TrueColor
-            || theme.color.accent != termrock::Color::Rgb(0x48, 0xe0, 0x54)
-        {
-            return false;
-        }
-        if self.screen != Screen::Workbench
-            || self.form_open
-            || self.destructive_intent.is_some()
-            || self.workbench.maximized
-            || self.split_state.maximized() != Maximized::None
-        {
-            return false;
-        }
-        // Query results, a new tab, table data, and the closed workbench are not this card.
-        matches!(self.workbench.active(), Some(Tab::History(_)))
     }
 
     fn open_completion_prefix(&self) -> bool {
@@ -11242,6 +11553,9 @@ impl App for TableProApp {
         if cx.update_cause() == UpdateCause::Bootstrap && self.screen == Screen::Workbench {
             cx.focus(EXPLORER);
         }
+        if self.surface == Surface::HistoryTab && self.screen == Screen::Workbench {
+            cx.focus(HISTORY_LIST);
+        }
         if self.explorer_pin > 0
             && self.screen == Screen::Workbench
             && self.surface == Surface::WorkbenchDefault
@@ -11286,7 +11600,6 @@ impl App for TableProApp {
     fn draw(&self, ui: &mut Ui<'_>) {
         if self.paint_historical_workbench_maximized(ui)
             || self.paint_historical_workbench_explorer_hidden(ui)
-            || self.paint_historical_history_tab(ui)
         {
             return;
         }
@@ -11791,6 +12104,31 @@ mod replacement_tests {
         let text = format!("{app:?}");
         assert!(!text.contains("secret-captured-sql"));
         assert!(!text.contains("secret-result-value"));
+    }
+
+    #[test]
+    fn ctrl_y_shows_the_approved_history_cell() {
+        let mut app = TableProApp::default();
+        let index = app
+            .connections
+            .iter()
+            .position(|connection| connection.name == "Production")
+            .unwrap_or(usize::MAX);
+        assert!(app.connect(index), "production connection");
+        let mut harness = Harness::new(app, Theme::junie(), 120, 40);
+        assert_eq!(harness.app().screen(), Screen::Workbench);
+        assert_ne!(harness.app().surface(), Surface::HistoryTab);
+        assert_ne!(harness.cell(36, 6).symbol(), "S");
+        let _ = harness.ctrl('y');
+        assert_eq!(harness.app().surface(), Surface::HistoryTab);
+        assert!(!harness.app().workbench.maximized);
+        let search = harness.cell(36, 6);
+        assert_eq!(search.symbol(), "S", "text={}", harness.text());
+        assert_eq!(search.fg, termrock::Color::Rgb(138, 138, 138));
+        assert_eq!(search.bg, termrock::Color::Rgb(30, 30, 34));
+        assert!(search.modifier.is_empty());
+        assert_eq!(harness.cursor(), None);
+        assert!(!harness.runtime().cursor_bar());
     }
 }
 
