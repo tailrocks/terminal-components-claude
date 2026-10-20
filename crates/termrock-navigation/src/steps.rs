@@ -197,6 +197,7 @@ pub struct StepsState {
 }
 
 type MetadataFn<'a, T> = dyn for<'item> Fn(&'item T) -> Option<&'item str> + 'a;
+type LabelWidthFn<'a, T> = dyn Fn(&T) -> u16 + 'a;
 
 impl StepsState {
     #[must_use]
@@ -243,6 +244,7 @@ pub struct Steps<'a, T, K = ByIndex, R = DefaultRow> {
     row: R,
     step: Option<&'a dyn Fn(&T) -> StepState>,
     metadata: Option<&'a MetadataFn<'a, T>>,
+    label_width: Option<&'a LabelWidthFn<'a, T>>,
     numbered: bool,
     navigable: bool,
     disabled: bool,
@@ -273,6 +275,7 @@ impl<T> Steps<'_, T, ByIndex, DefaultRow> {
             row: DefaultRow,
             step: None,
             metadata: None,
+            label_width: None,
             numbered: false,
             navigable: false,
             disabled: false,
@@ -343,6 +346,20 @@ impl<'a, T, K, R> Steps<'a, T, K, R> {
         self
     }
 
+    /// Supply the terminal-cell width of the label produced by a custom row.
+    ///
+    /// Measurement cannot invoke the row renderer because it paints into the
+    /// terminal. Custom rows that need intrinsic sizing beyond the 12-cell
+    /// label minimum can provide a pure data projection here. The projection
+    /// must describe the label actually rendered by the row callback.
+    pub fn measure_label_width<F>(mut self, f: &'a F) -> Self
+    where
+        F: Fn(&T) -> u16 + 'a,
+    {
+        self.label_width = Some(f);
+        self
+    }
+
     pub fn key<K2: Fn(&T) -> ItemKey>(self, k: K2) -> Steps<'a, T, K2, R> {
         Steps {
             id: self.id,
@@ -350,6 +367,7 @@ impl<'a, T, K, R> Steps<'a, T, K, R> {
             row: self.row,
             step: self.step,
             metadata: self.metadata,
+            label_width: self.label_width,
             numbered: self.numbered,
             navigable: self.navigable,
             disabled: self.disabled,
@@ -368,6 +386,7 @@ impl<'a, T, K, R> Steps<'a, T, K, R> {
             row: r,
             step: self.step,
             metadata: self.metadata,
+            label_width: self.label_width,
             numbered: self.numbered,
             navigable: self.navigable,
             disabled: self.disabled,
@@ -889,13 +908,10 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Steps<'_, T, K, R> {
 
     /// Measure this rail from its borrowed items without updating component state.
     ///
-    /// Labels are measured using their [`fmt::Display`] representation, matching
-    /// the default row renderer. Custom row renderers that display a different
-    /// label should keep their content within that intrinsic width.
-    pub fn measure_with_items(&self, _ui: &Ui<'_>, c: Constraints, items: &[T]) -> Size
-    where
-        T: fmt::Display,
-    {
+    /// Labels use the optional pure width projection, or a 12-cell minimum.
+    /// The projection does not call the row painter or the application-supplied
+    /// state projection.
+    pub fn measure_with_items(&self, _ui: &Ui<'_>, c: Constraints, items: &[T]) -> Size {
         let number_lane = if self.numbered {
             items
                 .len()
@@ -909,12 +925,8 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Steps<'_, T, K, R> {
         };
         let prefix = 3usize.saturating_add(number_lane);
         let mut preferred = usize::from(Self::PREFERRED_WIDTH);
-        let mut label = std::string::String::new();
-
         for (ordinal, item) in items.iter().enumerate() {
-            label.clear();
-            let _ = fmt::write(&mut label, format_args!("{item}"));
-            let label_width = crate::text::width(&label);
+            let label_width = self.label_width.map_or(12, |measure| measure(item));
             let metadata = self.metadata.and_then(|metadata| metadata(item));
             let metadata_width = if self.metadata.is_some() {
                 metadata.map_or(0, crate::text::width)
