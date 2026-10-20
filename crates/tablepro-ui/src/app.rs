@@ -1462,12 +1462,20 @@ impl TableProApp {
             );
             col.sortable = true;
             col.editable = editable;
-            col.sticky = index == 0;
+            col.sticky = false;
+            let (min_width, max_width) = match ty {
+                ColType::Uuid => (9, 36),
+                ColType::Text => (6, 40),
+                ColType::Int | ColType::Numeric => (4, 22),
+                ColType::Bool => (5, 5),
+                ColType::Timestamp | ColType::Date => (10, 29),
+                ColType::Json => (8, 40),
+                ColType::Enum => (6, 16),
+            };
+            col.min_width = min_width;
+            col.max_width = max_width;
             if matches!(ty, ColType::Int | ColType::Numeric) {
                 col.align = Align::Right;
-            }
-            if name == "id" {
-                col.min_width = 38;
             }
             if let Some(slot) = specs.get_mut(index) {
                 *slot = col;
@@ -2271,6 +2279,15 @@ impl TableProApp {
     fn update_grid_view(cx: &mut Cx<'_>, id: Id, view: &mut GridView) -> Response<GridAction> {
         let (columns, count) = Self::column_specs(&view.columns, view.model.is_editable());
         let grid = result_grid(id, columns.get(..count).unwrap_or(&[]));
+        if columns
+            .iter()
+            .take(count)
+            .any(|column| view.state.sampled_column_width(column.key).is_none())
+        {
+            let sample = termrock::WidthSample::new(200, 95)
+                .expect("the frozen grid sample uses 200 rows at the 95th percentile");
+            grid.sample_column_widths(&mut view.state, &view.model, sample);
+        }
         let response = if view.model.is_editable() {
             grid.update_editable(cx, &mut view.state, &mut view.model)
         } else {
@@ -7579,9 +7596,7 @@ fn draw_painted_grid(
         covered,
         calm_header,
     );
-    if scrolled {
-        paint_scrolled_cells(ui, area, columns, state, model);
-    }
+    let _ = scrolled;
 }
 
 fn editor_column_specs<'a>(
@@ -7694,6 +7709,10 @@ fn result_grid<'a>(id: Id, columns: &'a [termrock::Column<'a>]) -> Grid<'a> {
             min_digits: 1,
         })
         .column_fit(GridColumnFit::CompleteWithPreview { min_width: 4 })
+        .header_sizing(termrock::GridHeaderSizing::Minimum {
+            padding: 2,
+            cap: 24,
+        })
         .column_gap(2)
         .right_reserve(3)
         .sort_indicator(GridSortIndicator::ActiveOnly)

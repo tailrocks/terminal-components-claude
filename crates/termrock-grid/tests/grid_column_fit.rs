@@ -179,6 +179,29 @@ fn resize_keeps_reference_offset_and_cursor_even_when_target_becomes_preview() {
 }
 
 #[test]
+fn resize_expands_column_window_left_when_every_remaining_column_fits() {
+    let mut h = Harness::new(Page::new(), Theme::junie(), 32, 5);
+    let _ = h.key(KeyCode::Right);
+    let _ = h.key(KeyCode::Right);
+    assert_eq!(h.app().state.col_offset(), 1);
+
+    h.app_mut().area.width = 44;
+    let _ = h.resize(44, 5);
+    h.draw();
+    let _ = h.key(KeyCode::Left);
+    let _ = h.key(KeyCode::Right);
+
+    assert_eq!(h.app().state.col_offset(), 0);
+    assert_eq!(h.cell(2, 1).symbol(), "a");
+    assert_eq!(h.cell(12, 1).symbol(), "b");
+    assert_eq!(h.cell(26, 1).symbol(), "c");
+    assert_eq!(
+        h.app().state.cursor(),
+        Some((ItemKey::num(0), ColumnKey::num(2)))
+    );
+}
+
+#[test]
 fn wider_target_uses_prior_complete_count_and_can_remain_preview() {
     let mut page = Page::new();
     for (col, width) in page.columns.iter_mut().zip([8, 8, 24]) {
