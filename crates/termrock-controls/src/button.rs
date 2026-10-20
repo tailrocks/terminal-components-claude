@@ -300,25 +300,28 @@ impl<'a> Button<'a> {
         if self.busy() {
             live = live.difference(StateFlags::PRESSED);
         }
+        // Bindings consume the actual runtime focus state. The focus-visibility
+        // policy below only adapts state for style resolution.
+        if !ui.is_inert() {
+            ui.publish_bindings(self.id, live, BINDINGS);
+        }
+        let mut style_flags = live;
         if self.focus_visibility == ButtonFocusVisibility::Always
             && !ui.is_inert()
             && !self.disabled
             && !self.busy()
-            && live.contains(StateFlags::FOCUSED)
+            && style_flags.contains(StateFlags::FOCUSED)
         {
-            live |= StateFlags::FOCUS_VISIBLE;
+            style_flags |= StateFlags::FOCUS_VISIBLE;
         } else if self.focus_visibility == ButtonFocusVisibility::KeyboardOnly
-            && live.contains(StateFlags::FOCUSED)
-            && !live.contains(StateFlags::FOCUS_VISIBLE)
+            && style_flags.contains(StateFlags::FOCUSED)
+            && !style_flags.contains(StateFlags::FOCUS_VISIBLE)
         {
-            live.remove(StateFlags::FOCUSED);
-        }
-        if !ui.is_inert() {
-            ui.publish_bindings(self.id, live, BINDINGS);
+            style_flags.remove(StateFlags::FOCUSED);
         }
         let ov = self.ov;
         let style = |ui: &mut Ui<'_>, part: Part| {
-            ov.style(ui, self.id, Family::BUTTON, self.variant, part, live)
+            ov.style(ui, self.id, Family::BUTTON, self.variant, part, style_flags)
         };
         let container = style(ui, Part::CONTAINER);
         ui.fill(area, container.style);
