@@ -720,12 +720,13 @@ impl<T: AsItem, R: RowFn<T>> FilterList<'_, T, R> {
         items: &[T],
     ) -> Response<FilterListAction> {
         self.reconcile(st, items);
+        let mut acc = Acc::new();
         let query_before = st.query().to_owned();
         if self.searchable {
             let input = TextInput::new(self.id);
-            let _ = input.update(cx, &mut st.query_editor, &mut st.query_value);
+            let input_response = input.update(cx, &mut st.query_editor, &mut st.query_value);
+            acc.fold(&input_response.erase());
         }
-        let mut acc = Acc::new();
         let bar = self
             .scrollbar()
             .update(cx, st.core.scroll_mut(), st.matches.len());
@@ -1110,9 +1111,15 @@ mod tests {
             }
 
             fn draw(&self, ui: &mut Ui<'_>) {
-                FilterList::<Item<'static>>::new(ID)
-                    .filter(super::FilterPolicy::Substring)
-                    .draw(ui, SCREEN, &self.state, &self.items);
+                let list =
+                    FilterList::<Item<'static>>::new(ID).filter(super::FilterPolicy::Substring);
+                list.draw_query(ui, Rect::new(0, 0, SCREEN.width, 1), &self.state, "Filter…");
+                list.draw(
+                    ui,
+                    Rect::new(0, 1, SCREEN.width, SCREEN.height.saturating_sub(1)),
+                    &self.state,
+                    &self.items,
+                );
             }
         }
 
@@ -1129,7 +1136,9 @@ mod tests {
         let mut buffer = Buffer::empty(SCREEN);
         runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
 
-        let _ = crate::runtime::stub::deliver(&mut runtime, Input::Paste("console".into()));
+        let paste = crate::runtime::stub::deliver(&mut runtime, Input::Paste("console".into()));
+        assert!(paste.is_consumed());
+        assert!(paste.is_changed());
         runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
         assert_eq!(runtime.app().state.query(), "console");
         assert_eq!(runtime.app().state.matched_len(), 2);
@@ -1153,12 +1162,33 @@ mod tests {
         runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
         assert_eq!(runtime.app().state.cursor(), Some(ItemKey::num(1)));
 
-        let _ = crate::runtime::stub::deliver(&mut runtime, key(KeyCode::Left));
+        let left = crate::runtime::stub::deliver(&mut runtime, key(KeyCode::Left));
+        assert!(left.is_consumed());
+        assert!(left.is_changed(), "caret movement requests a repaint");
+        assert!(runtime.needs_present());
         runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
-        let _ = crate::runtime::stub::deliver(&mut runtime, Input::Paste("x".into()));
+        assert_eq!(
+            runtime.cursor_position().map(|position| position.x),
+            Some(8)
+        );
+        let paste = crate::runtime::stub::deliver(&mut runtime, Input::Paste("x".into()));
+        assert!(paste.is_consumed());
+        assert!(paste.is_changed());
         runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
         assert_eq!(runtime.app().state.query(), "consolxe");
         assert_eq!(runtime.app().state.matched_len(), 0);
+
+        let select = crate::runtime::stub::deliver(
+            &mut runtime,
+            Input::Key(Key {
+                code: KeyCode::Left,
+                mods: KeyModifiers::SHIFT,
+            }),
+        );
+        assert!(select.is_consumed());
+        assert!(select.is_changed());
+        assert_eq!(runtime.app().state.query_editor.selection(), Some(6..7));
+        assert!(runtime.needs_present());
     }
 
     #[test]
