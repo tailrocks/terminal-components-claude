@@ -1949,13 +1949,7 @@ impl TableProApp {
                     .find(|row| ItemKey::num(row.key.get()) == key)
                     .map(|row| row.key);
                 if let Some(tab_key) = tab_key {
-                    if let Some(index) = self
-                        .workbench
-                        .tabs()
-                        .iter()
-                        .position(|tab| tab.key() == tab_key)
-                    {
-                        let _ = self.workbench.close_tab(index);
+                    if self.workbench.close_tab_from_picker(tab_key) {
                         self.sync_active_tab();
                     }
                     // The reference closes and reopens the picker after Delete.
@@ -1974,8 +1968,21 @@ impl TableProApp {
     }
 
     fn focus_active_tab_primary(&self, cx: &mut Cx<'_>) {
-        if let Some(id) = self.query_id().or_else(|| self.result_id()) {
-            cx.focus(id);
+        match self.workbench.active() {
+            Some(Tab::Query(_)) => {
+                if let Some(id) = self.query_id() {
+                    cx.focus(id);
+                }
+            }
+            Some(Tab::Table(table)) if !table.is_structure() => {
+                if let Some(id) = self.result_id() {
+                    cx.focus(id);
+                }
+            }
+            // Structure and history currently use application-painted bodies,
+            // not a focusable shared widget. Leave focus restoration to the
+            // layer runtime until those views have real shared controls.
+            Some(Tab::Table(_) | Tab::History(_)) | None => {}
         }
     }
 
@@ -2993,9 +3000,6 @@ impl TableProApp {
             }
             Some(Tab::Table(table)) => {
                 if table.is_structure() {
-                    if let Some(key) = self.workbench.active_key() {
-                        ui.register_control(key.control("data"), inner, Focusability::Focusable);
-                    }
                     paint_structure_view(ui, inner, &table.table);
                 } else {
                     self.draw_table_data(ui, inner);
