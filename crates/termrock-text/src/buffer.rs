@@ -275,6 +275,71 @@ impl TextBuffer {
             .map_or(self.text.len(), |i| from.saturating_add(i))
     }
 
+    /// Return the baseline word, whitespace, or punctuation-grapheme range at `offset`.
+    pub fn word_range_at(&self, offset: usize) -> Range<usize> {
+        let offset = Self::floor_boundary(&self.text, offset);
+        let (start, end) = (self.line_start(offset), self.line_end(offset));
+        let line = &self.text[start..end];
+        let clusters: Vec<(usize, &str)> = graphemes(line)
+            .map(|(index, grapheme)| (start.saturating_add(index), grapheme))
+            .collect();
+        let Some(at) = clusters
+            .iter()
+            .position(|(index, grapheme)| offset < index.saturating_add(grapheme.len()))
+            .or_else(|| clusters.len().checked_sub(1))
+        else {
+            return offset..offset;
+        };
+
+        #[derive(Clone, Copy, PartialEq, Eq)]
+        enum Class {
+            Word,
+            Space,
+            Other,
+        }
+
+        let class = |grapheme: &str| {
+            if grapheme.chars().any(|ch| ch.is_alphanumeric() || ch == '_') {
+                Class::Word
+            } else if grapheme.chars().all(char::is_whitespace) {
+                Class::Space
+            } else {
+                Class::Other
+            }
+        };
+        let selected_class = class(clusters[at].1);
+        if selected_class == Class::Other {
+            let (index, grapheme) = clusters[at];
+            return index..index.saturating_add(grapheme.len());
+        }
+
+        let mut first = at;
+        while first > 0 && class(clusters[first - 1].1) == selected_class {
+            first -= 1;
+        }
+        let mut last = at;
+        while last + 1 < clusters.len() && class(clusters[last + 1].1) == selected_class {
+            last += 1;
+        }
+        let start = clusters[first].0;
+        let (last_start, last_grapheme) = clusters[last];
+        start..last_start.saturating_add(last_grapheme.len())
+    }
+
+    /// Select the word or punctuation grapheme at `offset`.
+    pub fn select_word_at(&mut self, offset: usize) {
+        let range = self.word_range_at(offset);
+        self.select_range(range.start, range.end);
+    }
+
+    /// Select the current line, excluding its newline, like the baseline text fields.
+    pub fn select_line_at(&mut self, offset: usize) {
+        let offset = Self::floor_boundary(&self.text, offset);
+        let start = self.line_start(offset);
+        let end = self.line_end(offset);
+        self.select_range(start, end);
+    }
+
     fn prev_word(&self, from: usize) -> usize {
         let end = Self::floor_boundary(&self.text, from);
         let mut clusters = graphemes(&self.text[..end]).rev().peekable();
