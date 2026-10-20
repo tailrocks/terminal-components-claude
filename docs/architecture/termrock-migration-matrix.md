@@ -745,3 +745,12 @@ The [all-73 theme contract map](../audits/2026-10-21-junie-token-contract-map.js
 Integrated protected source `67377aad3c3ab9b36acac47cb48f6c594172907a`. The [independent clearance](../audits/2026-10-21-scroll-window-67377-clearance.json) supersedes the 65,535-row truncation finding: rendering and input now use the same usize logical viewport, with checked source clipping and existing resize cancellation. Sixty legacy scenes preserve complete cells, styles and registered regions exactly. Unsupported partially clipped legacy custom slots report a bounded diagnostic instead of registering invisible controls.
 
 Parent [integration checks](../audits/2026-10-21-scroll-window-parent-integration-checks.json) pass 406 Core/Runtime tests, retain three existing ignored fixtures, and pass strict scoped Clippy, formatting and whitespace checks. TextArea and Form adoption remain separate required increments. No application parity or complete library acceptance is claimed.
+
+
+## Latest independent findings and synchronized runtime delivery (2026-10-21)
+
+Windowed ScrollRegion integration is pushed and remote-verified at `dc3584eca42cd1a8ef961b44e831039c02bab944`. After synchronizing incoming source `d591748ac`, the exact merged HEAD again passes 406 Core/Runtime tests with three existing ignored fixtures, strict scoped Clippy, formatting and whitespace checks. Incoming Jackin changes were preserved as shared history, not accepted as parity or architecture proof.
+
+The [independent dialog/fill review](../audits/2026-10-21-jackin-dialog-fill-review.json) rejects the scenario/size-selected dialog cell tables and suppressed live controls. Its public buffer probe also reproduces lost semantic foreground provenance in `Ui::fill_keep_fg` after dimming; a narrow shared-helper repair is assigned. Incoming `d591748ac` adds application recoloring and public raw recolor helpers, which remain unreviewed and do not resolve the prohibited mechanism.
+
+The [independent documentation guard review](../audits/2026-10-21-doc-guard-400c-review.json) finds a concrete fail-open for cfg_attr doc attributes separated by newlines or comments. Its five focused tests and strict Clippy pass, but this guard must be repaired before it can justify any empty doctest-task metadata change. Exact base/current ownership findings are identical; untouched Showcase chrome formatting remains failing. The guard repair and authenticated-run foundation rereview are assigned separately. All four application parity gates remain incomplete.
