@@ -21,8 +21,6 @@ STAMP_RULES = (
     ("ansi-frame-replay", re.compile(r"(?i)(include_(?:str|bytes)!.*(?:snapshots?|baselines?)/.*\.(?:ansi|ans)|from_ansi|parse_ansi_frame)")),
     ("frame-stamp-type", re.compile(r"(?is)\b(?:struct|enum)\s+\w+\s*\{[^}]{0,800}\bx\s*:\s*u(?:16|32|size)\b[^}]{0,400}\by\s*:\s*u(?:16|32|size)\b[^}]{0,600}\btext\s*:\s*&?\s*'static\s+str")),
 )
-INCLUDE_RE = re.compile(r"\b(include|include_str|include_bytes)!\s*\(\s*\"([^\"]+)\"\s*\)")
-DYNAMIC_INCLUDE_RE = re.compile(r"\binclude(?:_str|_bytes)?!\s*\(")
 PATH_MODULE_RE = re.compile(r"#\s*\[\s*path\s*=\s*\"([^\"]+)\"\s*\]")
 DECLARED_MODULE_RE = re.compile(r"\bmod\s+(?:r#)?([A-Za-z_][A-Za-z0-9_]*)\s*;")
 
@@ -33,6 +31,131 @@ def sha(data: bytes) -> str:
 
 def run(args: list[str], cwd: Path) -> subprocess.CompletedProcess[bytes]:
     return subprocess.run(args, cwd=cwd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=False, timeout=90)
+
+
+def skip_rust_trivia(text: str, index: int) -> int | None:
+    while index < len(text):
+        if text[index].isspace():
+            index += 1
+        elif text.startswith("//", index):
+            end = text.find("\n", index + 2)
+            index = len(text) if end < 0 else end + 1
+        elif text.startswith("/*", index):
+            depth = 1
+            index += 2
+            while index < len(text) and depth:
+                if text.startswith("/*", index):
+                    depth += 1
+                    index += 2
+                elif text.startswith("*/", index):
+                    depth -= 1
+                    index += 2
+                else:
+                    index += 1
+            if depth:
+                return None
+        else:
+            break
+    return index
+
+
+def rust_literal_end(text: str, index: int) -> int | None:
+    """Skip a Rust string or byte-string literal while searching macro heads."""
+    raw_start = index
+    if text.startswith("br", index):
+        raw_start += 2
+    elif text.startswith("r", index):
+        raw_start += 1
+    else:
+        raw_start = -1
+    if raw_start >= 0:
+        marker = raw_start
+        while marker < len(text) and text[marker] == "#":
+            marker += 1
+        if marker < len(text) and text[marker] == '"':
+            hashes = marker - raw_start
+            terminator = '"' + "#" * hashes
+            end = text.find(terminator, marker + 1)
+            return len(text) if end < 0 else end + len(terminator)
+    quote_start = index + 1 if text.startswith("b\"", index) else index
+    if quote_start < len(text) and text[quote_start] == '"':
+        cursor = quote_start + 1
+        while cursor < len(text):
+            if text[cursor] == "\\":
+                cursor += 2
+            elif text[cursor] == '"':
+                return cursor + 1
+            elif text[cursor] in "\r\n":
+                return len(text)
+            else:
+                cursor += 1
+        return len(text)
+    return None
+
+
+def include_invocations(text: str) -> list[tuple[str, int, str | None]]:
+    """Extract simple literal include calls; report unsupported calls to caller."""
+    found: list[tuple[str, int, str | None]] = []
+    index = 0
+    pairs = {"(": ")", "{": "}", "[": "]"}
+    while index < len(text):
+        if text.startswith("//", index) or text.startswith("/*", index):
+            next_index = skip_rust_trivia(text, index)
+            index = len(text) if next_index is None else next_index
+            continue
+        literal_end = rust_literal_end(text, index)
+        if literal_end is not None:
+            index = literal_end
+            continue
+        char = text[index]
+        if char.isalpha() or char == "_":
+            end = index + 1
+            while end < len(text) and (text[end].isalnum() or text[end] == "_"):
+                end += 1
+            name = text[index:end]
+            if name not in {"include", "include_str", "include_bytes"}:
+                index = end
+                continue
+            bang = skip_rust_trivia(text, end)
+            if bang is None:
+                found.append((name, index, None))
+                index = end
+                continue
+            if bang >= len(text) or text[bang] != "!":
+                index = end
+                continue
+            opening = skip_rust_trivia(text, bang + 1)
+            if opening is None or opening >= len(text) or text[opening] not in pairs:
+                found.append((name, index, None))
+                index = bang + 1
+                continue
+            cursor = skip_rust_trivia(text, opening + 1)
+            literal: str | None = None
+            escaped = False
+            if cursor is not None and cursor < len(text) and text[cursor] == '"':
+                cursor += 1
+                chars: list[str] = []
+                while cursor < len(text) and text[cursor] != '"':
+                    if text[cursor] in "\r\n":
+                        break
+                    if text[cursor] == "\\":
+                        escaped = True
+                        if cursor + 1 >= len(text):
+                            break
+                        chars.append(text[cursor + 1])
+                        cursor += 2
+                    else:
+                        chars.append(text[cursor])
+                        cursor += 1
+                if cursor < len(text) and text[cursor] == '"':
+                    after = skip_rust_trivia(text, cursor + 1)
+                    if after is not None and after < len(text) and text[after] == pairs[text[opening]] and not escaped:
+                        literal = "".join(chars)
+            found.append((name, index, literal))
+            index = end
+            continue
+        index += 1
+    return found
 
 
 def git_files(root: Path) -> tuple[list[str] | None, str | None]:
@@ -413,9 +536,8 @@ def check(root: Path) -> dict[str, Any]:
             continue
         visited_sources.add(key)
         text = data.decode("utf-8", "replace")
-        references = [(match.group(1), match, match.group(2)) for match in INCLUDE_RE.finditer(text)]
-        references.extend(("include", match, None) for match in DYNAMIC_INCLUDE_RE.finditer(text) if not INCLUDE_RE.match(text, match.start()))
-        references.extend(("path-module", match, match.group(1)) for match in PATH_MODULE_RE.finditer(text))
+        references = include_invocations(text)
+        references.extend(("path-module", match.start(), match.group(1)) for match in PATH_MODULE_RE.finditer(text))
         module_aliases = target_module_aliases_by_package.get(str(pkg.get("id", pkg.get("name", ""))), set())
         # Ordinary `mod name;` declarations also select production inputs.
         # Do not traverse Cargo's potentially huge build directory through a
@@ -445,10 +567,12 @@ def check(root: Path) -> dict[str, Any]:
                     f"production module resolves inside Cargo target directory: {rel}:{line} -> {candidate.relative_to(root)}"
                 )
                 break
-        for kind, match, literal in references:
-            line = text.count("\n", 0, match.start()) + 1
+        for kind, offset, literal in references:
+            line = text.count("\n", 0, offset) + 1
             if literal is None:
-                report["unaccounted_inputs"].append(f"dynamic include path cannot be enumerated: {rel}:{line}")
+                report["unaccounted_inputs"].append(
+                    f"dynamic include path cannot be enumerated or invocation syntax is unsupported: {rel}:{line} ({kind})"
+                )
                 continue
             referenced = (root / rel).parent / literal
             resolved = referenced.resolve(strict=False)

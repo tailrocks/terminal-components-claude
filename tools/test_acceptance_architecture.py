@@ -298,6 +298,47 @@ fn render(ui: &mut Ui) { for cell in FRAME_PIECES { ui.paint(cell.x, cell.y, cel
         self.assertTrue(report["architecture_checks_passed"], report["errors"])
         self.assertTrue(any(row["path"] == "shared/data.txt" for row in report["source_inputs"]))
 
+    def test_include_macro_families_comments_and_all_delimiters(self) -> None:
+        crate = self.root / "crates/termrock-core"
+        delimiters = (("(", ")"), ("{", "}"), ("[", "]"))
+        lines = []
+        for macro in ("include", "include_str", "include_bytes"):
+            for opening, closing in delimiters:
+                path = "../../../shared/source.rs" if macro == "include" else "../../../shared/data.txt"
+                if macro == "include_str" and opening == "{":
+                    lines.append(f'{macro} // head comment\n! // delimiter comment\n {opening}"{path}"{closing};')
+                else:
+                    lines.append(f'{macro} /* head */ ! /* before delimiter */ {opening}"{path}"{closing};')
+        write(crate / "src/lib.rs", "\n".join(lines) + "\n")
+        write(self.root / "shared/source.rs", "pub fn included() {}\n")
+        write(self.root / "shared/data.txt", "static text payload\n")
+        report = self.run_gate()
+        self.assertFalse(report["architecture_checks_passed"])
+        outside_rust_refs = [item for item in report["unaccounted_inputs"] if "Rust source input is outside its package" in item]
+        self.assertEqual(len(outside_rust_refs), 3)
+        self.assertFalse(any("invocation syntax is unsupported" in item for item in report["unaccounted_inputs"]))
+        self.assertTrue(any(row["path"] == "shared/source.rs" for row in report["source_inputs"]))
+        self.assertTrue(any(row["path"] == "shared/data.txt" for row in report["source_inputs"]))
+
+    def test_unsupported_include_literals_and_delimiters_fail_closed(self) -> None:
+        write(self.root / "crates/termrock-core/src/lib.rs", '\n'.join((
+            'include!(concat!("nested.inc"));',
+            'include!(r#"raw.inc"#);',
+            'include!("escaped\\\\path.inc");',
+            'include!{"unterminated.inc"',
+            'include /* unterminated comment',
+            '',
+        )))
+        report = self.run_gate()
+        self.assertFalse(report["architecture_checks_passed"])
+        unsupported = [item for item in report["unaccounted_inputs"] if "invocation syntax is unsupported" in item]
+        self.assertEqual(len(unsupported), 5)
+        self.assertTrue(any(":1 " in item for item in unsupported))
+        self.assertTrue(any(":2 " in item for item in unsupported))
+        self.assertTrue(any(":3 " in item for item in unsupported))
+        self.assertTrue(any(":4 " in item for item in unsupported))
+        self.assertTrue(any(":5 " in item for item in unsupported))
+
     def test_path_attribute_file_alias_into_target_is_unaccounted(self) -> None:
         crate = self.root / "crates/termrock-core"
         write(crate / "src/lib.rs", '#[path = "generated.rs"]\npub mod generated;\n')
