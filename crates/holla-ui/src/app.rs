@@ -209,14 +209,8 @@ fn menu_bar() -> MenuBar<'static> {
         Menu::new(BAR_LABELS[1], GO),
         Menu::new(BAR_LABELS[2], HELP_MENU),
     ];
-    // Tag Kind::Title at rest is text_secondary (#b3b3b3), not primary.
-    const TITLE_TONE: &[(Part, StylePatch)] = &[(
-        Part::TITLE,
-        StylePatch::new().set_fg(Role::Fg(FgStep::Secondary)),
-    )];
-    MenuBar::new(MENU, MENUS)
-        .chord_case(termrock::ChordCase::UppercaseAscii)
-        .patch_part(TITLE_TONE)
+    // MenuBar styles the label and the tag's " {title} " pads as one title.
+    MenuBar::new(MENU, MENUS).chord_case(termrock::ChordCase::UppercaseAscii)
 }
 
 fn brand() -> Brand<'static> {
@@ -245,25 +239,6 @@ fn paint_disk_menu_titles(ui: &mut Ui<'_>, menu_x: u16, y: u16) {
         x = x.saturating_add(width);
         ui.paint_str(Rect::new(x, y, 1, 1), " ", gap);
         x = x.saturating_add(1);
-    }
-}
-
-fn paint_menu_title_pads(ui: &mut Ui<'_>, menu_x: u16, y: u16, menu_right: u16) {
-    // MenuBar paints the label only. The tag's " {title} " pads use the same secondary ink.
-    let style = ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Secondary)));
-    let mut x = menu_x.saturating_add(1);
-    for label in BAR_LABELS {
-        let w = termrock::width(label).saturating_add(2);
-        if x.saturating_add(w) > menu_right {
-            break;
-        }
-        ui.paint_str(Rect::new(x, y, 1, 1), " ", style);
-        ui.paint_str(
-            Rect::new(x.saturating_add(w).saturating_sub(1), y, 1, 1),
-            " ",
-            style,
-        );
-        x = x.saturating_add(w).saturating_add(1);
     }
 }
 
@@ -1583,7 +1558,6 @@ impl App {
             .0
             .min(menu_room);
         menu.draw(ui, Rect::new(menu_x, header.y, menu_width, 1), &self.menu);
-        paint_menu_title_pads(ui, menu_x, header.y, menu_x.saturating_add(menu_width));
         // A disk plate has no query, so the bar would keep focus and bold its titles.
         if (self.route == Route::Disk && crate::sim::catalogue::disk_cleanup_tag_frame(&self.world))
             || launch_failure_plate_open(&self.world, ui)
@@ -2567,6 +2541,33 @@ mod tests {
             120,
             40,
         )
+    }
+    #[test]
+    fn menu_bar_pointer_hover_changes_only_the_file_title_and_clears_on_exit() {
+        let mut scene = app(Scenario::FirstUse);
+        let before = scene.snapshot();
+        let (file_x, file_y) = scene.find("File").expect("menu bar File title");
+        assert_eq!(file_y, 0);
+        assert!(file_x > 0);
+        let x = file_x - 1;
+        let _ = scene.mouse(termrock::MouseKind::Move, file_x, file_y);
+
+        for column in x..x + 6 {
+            let cell = scene.cell(column, file_y);
+            assert_eq!(cell.bg, Color::Rgb(0x1c, 0x1c, 0x1f), "column {column}");
+            assert_eq!(cell.fg, Color::Rgb(255, 255, 255), "column {column}");
+        }
+        for column in 0..120 {
+            if !(x..x + 6).contains(&column) {
+                let expected = before.buffer().cell((column, file_y)).unwrap();
+                assert_eq!(scene.cell(column, file_y), expected, "column {column}");
+            }
+        }
+
+        let cursor = scene.cursor();
+        let _ = scene.mouse(termrock::MouseKind::Move, 119, 39);
+        assert_eq!(scene.snapshot().buffer(), before.buffer());
+        assert_eq!(scene.cursor(), cursor);
     }
     #[test]
     fn discovery_boot_paints_the_here_band_above_the_filter() {
