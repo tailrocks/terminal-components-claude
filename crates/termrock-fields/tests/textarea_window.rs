@@ -324,3 +324,28 @@ fn captured_drag_outside_window_extends_in_original_unicode_row() {
         "zero\none\ntwo\nfour\nfive\nX\nsix\nseven"
     );
 }
+
+#[test]
+fn captured_vertical_drag_outside_parent_window_reaches_document_edge() {
+    let window = VerticalWindow::new(Rect::new(2, 2, 14, 5), 5, 0).unwrap();
+    let mut harness = Harness::new(
+        Consumer {
+            state: TextAreaState::default(),
+            value: "a\nb\nc\nd\ne\nf\ng\nh\ni\nj".to_owned(),
+            window,
+            focus_on_bootstrap: true,
+        },
+        Theme::junie(),
+        24,
+        12,
+    );
+    let _ = harness.click(4, 2);
+    let _ = harness.handle(Input::Key(Key {
+        code: KeyCode::Home,
+        mods: KeyModifiers::CONTROL,
+    }));
+    let _ = harness.drag((4, 2), (4, 11));
+    let _ = harness.key(KeyCode::Char('X'));
+    let _ = harness.key(KeyCode::Esc);
+    assert_eq!(harness.app().value, "Xj");
+}

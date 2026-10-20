@@ -68,8 +68,9 @@ impl TextAreaGeometry {
     /// Project an active captured drag through the parent window. Unlike a
     /// press, a captured drag remains meaningful after leaving `TEXT`; the
     /// old logical child behavior extended to the document edge from the
-    /// captured origin. Clamp above the visible window to its first row and
-    /// below it to the last logical row.
+    /// captured origin. Clamp above the visible window to its first row, but
+    /// preserve vertical extrapolation below it so the caller can clamp to the
+    /// document edge rather than the parent's logical viewport.
     fn captured_document_point(
         self,
         pos: Position,
@@ -85,8 +86,7 @@ impl TextAreaGeometry {
         let source_row = self
             .window
             .first_source_row()
-            .saturating_add(physical_delta)
-            .min(logical_rows.saturating_sub(1));
+            .saturating_add(physical_delta);
         let line = child_scroll.checked_add(source_row)?;
         let col = usize::from(pos.x.saturating_sub(self.text.x))
             .saturating_add(usize::from(horizontal_scroll));
