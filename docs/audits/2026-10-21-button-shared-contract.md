@@ -23,6 +23,10 @@ The checked Button fallback is intentionally not changed to `GlyphRole::RadioOn/
 - `cargo clippy -p termrock-controls --all-targets -- -D warnings` passed.
 - Targeted `rustfmt --edition 2024 --check` is recorded with this change. Workspace formatting was not applied because it would modify unrelated files.
 
+## Independent review correction
+
+Independent review found that `KeyboardOnly` removed `FOCUSED` from the same local flags used to publish keyboard bindings. The added no-Tab regression reproduces the failure: after pointer down/up focuses the button, Enter left activation count at 1 instead of 2 (`nextest` run `7bf46007-e0fd-4e7c-871e-51ab2bd09c3c`, red before the fix). Binding publication now receives the runtime focus flags before a separate `style_flags` view applies the focus-visibility policy. The same regression checks both Enter and Space without a Tab round trip. The focused suite is green after the fix (`0c939a68-1e6a-4e14-9b34-d232961a434c`).
+
 ## Limits
 
 These tests establish the changed Button contract within the controls package only. They do not establish full Showcase behavior, CLI parity for any application, visual-baseline inventory coverage, or acceptance of stored expected artifacts. The marker-role design remains unresolved as described above.
