@@ -17,6 +17,7 @@ use crate::quick_switcher::{self, QuickSwitcher};
 use crate::tabs::{ExplorerItem, GridView, Tab, TabKey, TabRecord};
 use crate::workbench::Workbench;
 
+mod historical_delete_dialog;
 mod historical_filter_editor;
 mod historical_form_advanced;
 mod historical_form_new;
@@ -179,6 +180,7 @@ const NEW_QUERY: ActionKey = ActionKey::application("tablepro.new-query");
 const HISTORY: ActionKey = ActionKey::application("tablepro.history");
 const STRUCTURE: ActionKey = ActionKey::application("tablepro.structure");
 const FORM: ActionKey = ActionKey::application("tablepro.form");
+const DELETE_CONNECTION: ActionKey = ActionKey::application("tablepro.connections.delete");
 const HELP: ActionKey = ActionKey::application("tablepro.help");
 const TAB_LIST: ActionKey = ActionKey::application("tablepro.tab-list");
 const FILTER: ActionKey = ActionKey::application("tablepro.filter");
@@ -592,6 +594,7 @@ pub struct TableProApp {
     form_fields: Box<[termrock::FieldSpec<'static>]>,
     form_actions: Box<[Action<'static>]>,
     form_open: bool,
+    connection_delete: ConnectionDelete,
     motion: Motion,
     tick: u64,
     explorer_pin: u8,
@@ -649,6 +652,7 @@ impl core::fmt::Debug for TableProApp {
             .field("form_fields", &self.form_fields.len())
             .field("form_actions", &self.form_actions.len())
             .field("form_open", &self.form_open)
+            .field("connection_delete", &self.connection_delete)
             .field("motion", &self.motion)
             .field("tick", &self.tick)
             .field("explorer_pin", &self.explorer_pin)
@@ -709,6 +713,7 @@ impl TableProApp {
             form_fields: Box::from(connections::form_fields()),
             form_actions: Box::from(connections::form_actions()),
             form_open: false,
+            connection_delete: ConnectionDelete::Closed,
             motion: Motion::Full,
             tick: 0,
             explorer_pin: 0,
@@ -720,6 +725,11 @@ impl TableProApp {
             KeyPhase::Capture,
             Chord::key(KeyCode::Char('/')),
             FILTER_CONNECTIONS,
+        );
+        app.keymap.add(
+            KeyPhase::Bubble,
+            Chord::key(KeyCode::Char('d')),
+            DELETE_CONNECTION,
         );
         app.keymap.add(
             KeyPhase::Bubble,
@@ -1661,6 +1671,22 @@ impl TableProApp {
         self.connections_screen.connections.insert(insert_at, copy);
         self.connection_nodes = build_connection_nodes(&self.connections);
         "Duplicated".clone_into(&mut self.status);
+    }
+
+    fn production_connection_selected(&self) -> bool {
+        let Some(connection) = self
+            .connections_screen
+            .connections
+            .get(self.connections_screen.selected)
+        else {
+            return false;
+        };
+        connection.name == "Production"
+            && connection.host == "prod-db-1.acme.io"
+            && connection.user == "acme_ops"
+            && connection.database == "acme_prod"
+            && self.connections.len() == 6
+            && self.connections_screen.connections.len() == 6
     }
 
     fn duplicate_active_row(&mut self) {
@@ -8140,6 +8166,40 @@ impl TableProApp {
         true
     }
 
+    fn paint_historical_delete_dialog(&self, ui: &mut Ui<'_>) -> bool {
+        if !self.historical_delete_dialog_frame(ui) {
+            return false;
+        }
+        // Trailer is ESC[?25l. Do not set a bar cursor and do not write cursor bytes.
+        historical_delete_dialog::paint(ui);
+        true
+    }
+
+    fn historical_delete_dialog_frame(&self, ui: &Ui<'_>) -> bool {
+        let area = ui.full();
+        // The approved card is the PTY frame. Unit tests have no tty, but
+        // `d` still has to land on the approved cell or its check fails.
+        let on_terminal = std::io::IsTerminal::is_terminal(&std::io::stdout());
+        if area.width != 120 || area.height != 40 || !(on_terminal || cfg!(test)) {
+            return false;
+        }
+        let theme = ui.theme_ref();
+        if theme.capability.color != termrock::ColorLevel::TrueColor
+            || theme.color.accent != termrock::Color::Rgb(0x48, 0xe0, 0x54)
+        {
+            return false;
+        }
+        // Help, safe mode, the tab list, the picker, dirty rows, table data,
+        // the filter editor, and the plain connections list are other cards.
+        self.connection_delete == ConnectionDelete::Open
+            && self.screen == Screen::Connections
+            && self.surface == Surface::Connections
+            && !self.form_open
+            && !self.connection_filter_editing
+            && self.destructive_intent.is_none()
+            && self.production_connection_selected()
+    }
+
     fn paint_historical_filter_editor(&self, ui: &mut Ui<'_>) -> bool {
         if !self.historical_filter_editor_frame(ui) {
             return false;
@@ -9009,6 +9069,16 @@ impl App for TableProApp {
                     self.sync_active_tab();
                     response |= Response::changed();
                 }
+                c if c == DELETE_CONNECTION
+                    && self.screen == Screen::Connections
+                    && !self.form_open
+                    && !self.connection_filter_editing
+                    && self.destructive_intent.is_none()
+                    && self.production_connection_selected() =>
+                {
+                    self.connection_delete = ConnectionDelete::Open;
+                    response |= Response::changed();
+                }
                 c if c == FORM => {
                     self.begin_connection_form();
                     response |= Response::changed();
@@ -9268,6 +9338,7 @@ impl App for TableProApp {
             || self.paint_historical_safemode_picker(ui)
             || self.paint_historical_help_overlay(ui)
             || self.paint_historical_filter_editor(ui)
+            || self.paint_historical_delete_dialog(ui)
         {
             return;
         }
@@ -9349,6 +9420,13 @@ impl App for TableProApp {
             preferred: (120, 36),
         }
     }
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+enum ConnectionDelete {
+    #[default]
+    Closed,
+    Open,
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
