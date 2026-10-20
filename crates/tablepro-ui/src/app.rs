@@ -1437,6 +1437,22 @@ impl TableProApp {
         }
     }
 
+    fn duplicate_selected_connection(&mut self) {
+        let index = self.connections_screen.selected;
+        let Some(mut copy) = self.connections.get(index).cloned() else {
+            return;
+        };
+        if self.connections_screen.connections.get(index) != Some(&copy) {
+            return;
+        }
+        copy.name.push_str(" (Copy)");
+        let insert_at = index.saturating_add(1);
+        self.connections.insert(insert_at, copy.clone());
+        self.connections_screen.connections.insert(insert_at, copy);
+        self.connection_nodes = build_connection_nodes(&self.connections);
+        "Duplicated".clone_into(&mut self.status);
+    }
+
     fn duplicate_active_row(&mut self) {
         if self
             .workbench
@@ -2116,8 +2132,16 @@ impl TableProApp {
             || connection.host.clone(),
             |port| format!("{}:{port}", connection.host),
         );
-        let ssl = if connection.ssl { "on" } else { "off" };
+        let (ssl, ssl_role) = if connection.ssl {
+            ("✓ on", TAG_OK_FG)
+        } else {
+            ("off", Role::Fg(FgStep::Secondary))
+        };
         let ssh = connection.ssh.clone().unwrap_or_else(|| "off".to_owned());
+        let safe_role = match connection.safe_mode {
+            SafeMode::Safe | SafeMode::SafeFull => Role::Fg(FgStep::Primary),
+            _ => Role::Fg(FgStep::Secondary),
+        };
         let properties = [
             (
                 "Engine",
@@ -2151,9 +2175,9 @@ impl TableProApp {
                     connection.safe_mode.label(),
                     connection.safe_mode.description()
                 ),
-                Role::Fg(FgStep::Secondary),
+                safe_role,
             ),
-            ("SSL", ssl.to_owned(), Role::Fg(FgStep::Secondary)),
+            ("SSL", ssl.to_owned(), ssl_role),
             ("SSH", ssh, Role::Fg(FgStep::Secondary)),
             ("Last used", connection.last_used.clone(), TAG_CHROME_FG),
         ];
@@ -2215,6 +2239,12 @@ impl TableProApp {
                 &self.connection_visual_tree_state,
                 &self.connection_nodes,
             );
+            paint_connection_mark_plain(
+                ui,
+                tree_area,
+                &self.connection_visual_tree_state,
+                &self.connection_nodes,
+            );
         });
         let blank = ui
             .surface_style()
@@ -2240,13 +2270,13 @@ impl TableProApp {
             },
             field,
         );
-        if self.connection_visual_tree_state.cursor()
-            == self.connection_nodes.first().map(connection_node_key)
+        if let Some(row) =
+            connection_cursor_offset(&self.connection_visual_tree_state, &self.connection_nodes)
         {
             ui.fill(
                 termrock::Rect {
                     x: body.right(),
-                    y: body.y.saturating_add(2),
+                    y: body.y.saturating_add(2).saturating_add(row),
                     width: 1,
                     height: 1,
                 },
@@ -3057,6 +3087,65 @@ fn tab_row(tab: &TabRecord, row: &mut RowUi<'_>) {
         }
         Tab::History(_) => row.label("H History"),
     }
+}
+
+fn connection_cursor_offset(state: &TreeState, nodes: &[ConnectionNode]) -> Option<u16> {
+    let cursor = state.cursor()?;
+    let index = nodes
+        .iter()
+        .position(|node| connection_node_key(node) == cursor)?;
+    let row = index.checked_sub(state.scroll().offset())?;
+    u16::try_from(row).ok()
+}
+
+fn paint_connection_mark_plain(
+    ui: &mut Ui<'_>,
+    area: termrock::Rect,
+    state: &TreeState,
+    nodes: &[ConnectionNode],
+) {
+    let Some(cursor) = state.cursor() else {
+        return;
+    };
+    let Some(ConnectionNode::Connection { connection, .. }) = nodes
+        .iter()
+        .find(|node| connection_node_key(node) == cursor)
+    else {
+        return;
+    };
+    let mark = connection_mark(connection);
+    if mark.text == " " {
+        return;
+    }
+    let Some(row) = connection_cursor_offset(state, nodes) else {
+        return;
+    };
+    let y = area.y.saturating_add(row);
+    if y >= area.bottom() {
+        return;
+    }
+    // Depth-1 label starts two cells after the disclosure column.
+    let x = area
+        .x
+        .saturating_add(1)
+        .saturating_add(ui.design().space.tree_indent)
+        .saturating_add(2);
+    let mut style = ui.surface_style();
+    if let Some(role) = mark.role {
+        style = style.patch(ui.paint_patch(&StylePatch::new().set_fg(role)));
+    }
+    // Cell styles only clear a modifier that is subtracted.
+    style = style.remove_modifier(Modifier::BOLD);
+    ui.paint_str(
+        termrock::Rect {
+            x,
+            y,
+            width: 1,
+            height: 1,
+        },
+        mark.text,
+        style,
+    );
 }
 
 fn paint_connection_focus_bar(
@@ -6717,6 +6806,89 @@ fn paint_cell_edit_footer(ui: &mut Ui<'_>, area: termrock::Rect) {
     );
 }
 
+fn connection_duplicated_notice(app: &TableProApp) -> Option<&str> {
+    if app.screen == Screen::Connections && app.status == "Duplicated" {
+        Some(app.status.as_str())
+    } else {
+        None
+    }
+}
+
+fn span_paint(ui: &Ui<'_>, base: PaintStyle, span: &Span<'_>) -> PaintStyle {
+    let mut style = base.add_modifier(span.add);
+    if let Some(role) = span.role {
+        style = style.patch(ui.paint_patch(&StylePatch::new().set_fg(role)));
+    }
+    style
+}
+
+/// Eight columns stay clear of the right edge, plus the status when one is set.
+fn connection_hint_limit(area_width: u16, notice: Option<&str>) -> u16 {
+    let reserve = 8u16.saturating_add(notice.map_or(0, width));
+    area_width.saturating_sub(reserve)
+}
+
+fn footer_spans_fit(spans: &[Span<'_>], limit: u16) -> bool {
+    let mut used = 0u16;
+    for span in spans {
+        let span_width = width(span.text);
+        if used.saturating_add(span_width) > limit {
+            return false;
+        }
+        used = used.saturating_add(span_width);
+    }
+    true
+}
+
+fn paint_connection_hints(
+    ui: &mut Ui<'_>,
+    area: termrock::Rect,
+    spans: &[Span<'_>],
+    notice: Option<&str>,
+    base: PaintStyle,
+) {
+    let limit = connection_hint_limit(area.width, notice);
+    if footer_spans_fit(spans, limit) {
+        ui.paint_spans(area, spans, base);
+        return;
+    }
+    // A group separator still paints so the ellipsis sits after the last hint.
+    let mut x = area.x;
+    let mut used = 0u16;
+    for span in spans {
+        let span_width = width(span.text);
+        let overflows = used.saturating_add(span_width) > limit;
+        if overflows && span.text != "  " {
+            break;
+        }
+        ui.paint_str(
+            termrock::Rect {
+                x,
+                width: span_width,
+                height: 1,
+                ..area
+            },
+            span.text,
+            span_paint(ui, base, span),
+        );
+        x = x.saturating_add(span_width);
+        used = used.saturating_add(span_width);
+        if overflows {
+            break;
+        }
+    }
+    ui.paint_str(
+        termrock::Rect {
+            x,
+            width: 1,
+            height: 1,
+            ..area
+        },
+        "…",
+        base.patch(ui.paint_patch(&StylePatch::new().set_fg(LEGACY_FAINT))),
+    );
+}
+
 fn draw_footer(ui: &mut Ui<'_>, area: termrock::Rect, app: &TableProApp) {
     let base = ui.surface_style();
     let explorer_focused = ui.state(EXPLORER).contains(StateFlags::FOCUSED);
@@ -6724,8 +6896,13 @@ fn draw_footer(ui: &mut Ui<'_>, area: termrock::Rect, app: &TableProApp) {
     if !explorer_focused && grid_is_editing(app) {
         paint_cell_edit_footer(ui, area);
     } else {
+        let notice = connection_duplicated_notice(app);
         with_footer_spans(app, explorer_focused, |spans| {
-            ui.paint_spans(area, spans, base);
+            if app.screen == Screen::Connections {
+                paint_connection_hints(ui, area, spans, notice, base);
+            } else {
+                ui.paint_spans(area, spans, base);
+            }
         });
     }
     if let Some(notice) = app.destructive_notice {
@@ -6759,6 +6936,18 @@ fn draw_footer(ui: &mut Ui<'_>, area: termrock::Rect, app: &TableProApp) {
         ui.paint_str(
             right,
             &filtered,
+            base.patch(ui.paint_patch(&StylePatch::new().set_fg(TAG_PATH_FG))),
+        );
+    } else if let Some(notice) = connection_duplicated_notice(app) {
+        let text_width = width(notice);
+        let right = termrock::Rect {
+            x: area.right().saturating_sub(text_width).saturating_sub(1),
+            width: text_width,
+            ..area
+        };
+        ui.paint_str(
+            right,
+            notice,
             base.patch(ui.paint_patch(&StylePatch::new().set_fg(TAG_PATH_FG))),
         );
     } else if app.screen == Screen::Workbench {
@@ -7080,16 +7269,19 @@ impl App for TableProApp {
                     }
                     return self.request_quit(cx);
                 }
-                c if c == INSERT_ROW
-                    || c == DUPLICATE_ROW
-                    || c == DELETE_ROW
-                    || c == DISCARD_ROWS =>
-                {
+                c if c == DUPLICATE_ROW => {
+                    if self.screen == Screen::Connections && !self.form_open {
+                        self.duplicate_selected_connection();
+                        response |= Response::changed();
+                    } else if self.active_row_action(cx) {
+                        self.duplicate_active_row();
+                        response |= Response::changed();
+                    }
+                }
+                c if c == INSERT_ROW || c == DELETE_ROW || c == DISCARD_ROWS => {
                     if self.active_row_action(cx) {
                         if c == INSERT_ROW {
                             self.insert_active_row();
-                        } else if c == DUPLICATE_ROW {
-                            self.duplicate_active_row();
                         } else if c == DELETE_ROW {
                             self.toggle_active_row();
                         } else {
