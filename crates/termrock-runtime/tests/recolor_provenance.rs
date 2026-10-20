@@ -19,6 +19,7 @@ const AREA: Rect = Rect::new(0, 0, 12, 2);
 struct View {
     identity: bool,
     layer_probe: bool,
+    changed_channel: Option<bool>,
 }
 
 impl App for View {
@@ -43,6 +44,15 @@ impl App for View {
         } else if self.identity {
             ui.recolor_fg(AREA, |fg, _| Some(fg));
             ui.dim_layer(AREA, 1);
+        } else if let Some(change_fg) = self.changed_channel {
+            ui.recolor_pair(AREA, |fg, bg| {
+                if change_fg {
+                    (Color::Rgb(1, 2, 3), bg)
+                } else {
+                    (fg, Color::Rgb(4, 5, 6))
+                }
+            });
+            ui.dim_layer(AREA, 1);
         } else {
             ui.dim_layer(AREA, 1);
         }
@@ -55,6 +65,7 @@ fn no_op_foreground_recolor_keeps_semantic_role_and_full_cell() {
         View {
             identity: false,
             layer_probe: false,
+            changed_channel: None,
         },
         Theme::junie(),
         12,
@@ -64,6 +75,7 @@ fn no_op_foreground_recolor_keeps_semantic_role_and_full_cell() {
         View {
             identity: true,
             layer_probe: false,
+            changed_channel: None,
         },
         Theme::junie(),
         12,
@@ -79,6 +91,7 @@ fn identity_pair_recolor_keeps_unpainted_overlay_transparent() {
         View {
             identity: false,
             layer_probe: true,
+            changed_channel: None,
         },
         Theme::junie(),
         12,
@@ -86,6 +99,44 @@ fn identity_pair_recolor_keeps_unpainted_overlay_transparent() {
     );
 
     assert_eq!(harness.cell(1, 0).symbol(), "R");
+}
+
+#[test]
+fn changing_one_pair_channel_keeps_other_semantic_role_through_dimming() {
+    let baseline = Harness::new(
+        View {
+            identity: false,
+            layer_probe: false,
+            changed_channel: None,
+        },
+        Theme::junie(),
+        12,
+        2,
+    );
+
+    for change_fg in [true, false] {
+        let changed = Harness::new(
+            View {
+                identity: false,
+                layer_probe: false,
+                changed_channel: Some(change_fg),
+            },
+            Theme::junie(),
+            12,
+            2,
+        );
+        let expected = baseline.cell(1, 0);
+        let actual = changed.cell(1, 0);
+        assert_eq!(actual.symbol(), expected.symbol());
+        assert_eq!(actual.modifier, expected.modifier);
+        if change_fg {
+            assert_ne!(actual.fg, expected.fg);
+            assert_eq!(actual.bg, expected.bg);
+        } else {
+            assert_eq!(actual.fg, expected.fg);
+            assert_ne!(actual.bg, expected.bg);
+        }
+    }
 }
 
 #[test]
