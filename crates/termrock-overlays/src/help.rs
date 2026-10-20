@@ -460,7 +460,7 @@ impl<'a> HelpOverlay<'a> {
         }
         let end = offset.saturating_add(viewport).min(total);
         let label = format!(" {}–{} of {} ", offset.saturating_add(1), end, total);
-        let pw = u16::try_from(width(&label)).unwrap_or(u16::MAX);
+        let pw = width(&label);
         // Close cluster plus the corner rule sit in the last five cells.
         let x = area.right().saturating_sub(pw.saturating_add(6));
         ui.paint_str(
@@ -483,7 +483,7 @@ impl<'a> HelpOverlay<'a> {
             .iter()
             .flat_map(|section| section.entries().into_iter().map(|(key, _)| width(&key)))
             .max()
-            .unwrap_or(0) as u16;
+            .unwrap_or(0);
         let key_w = widest.clamp(4, col_w.saturating_mul(2) / 5);
         let action_w = col_w.saturating_sub(key_w.saturating_add(3)).max(8);
         let mut blocks = Vec::new();
@@ -544,9 +544,7 @@ impl<'a> HelpOverlay<'a> {
             })
             .max()
             .unwrap_or(0);
-        let key_w = u16::try_from(widest)
-            .unwrap_or(u16::MAX)
-            .clamp(4, col_w.saturating_mul(2) / 5);
+        let key_w = widest.clamp(4, col_w.saturating_mul(2) / 5);
         let head = ink(ui, 0x00b3_b3b3, 0x0018_181b, true);
         let key_style = ink(ui, 0x00ff_ffff, 0x0018_181b, true);
         let action_style = ink(ui, 0x00b3_b3b3, 0x0018_181b, false);
