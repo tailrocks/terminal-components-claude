@@ -5,8 +5,11 @@
 
 use sha2::{Digest, Sha256};
 use std::cell::RefCell;
+use std::collections::BTreeMap;
 use std::fmt;
 use std::fs::{self, OpenOptions};
+#[cfg(target_os = "linux")]
+use std::io::Read;
 use std::io::Write;
 use std::path::{Path, PathBuf};
 use tuiscotti::grouped::{ArtifactSet, GroupedStore};
@@ -15,6 +18,7 @@ use tuiscotti::{Frame, Profile, Provenance, VENDORED_FACES};
 const PHASE_ENV: &str = "TERMROCK_PAIR_PHASE";
 const EXPECTED_ROOT_ENV: &str = "TERMROCK_PAIR_EXPECTED_ROOT";
 const RECEIPT_ROOT_ENV: &str = "TERMROCK_PAIR_RECEIPT_ROOT";
+const PROCESS_RECEIPT_KEY_ENV: &str = "TERMROCK_PAIR_PROCESS_RECEIPT_KEY";
 const REFERENCE_CASE_ENV: &str = "TERMROCK_PAIR_REFERENCE_CASE";
 const REFERENCE_ORDINAL_ENV: &str = "TERMROCK_PAIR_REFERENCE_ORDINAL";
 const REFERENCE_LOGICAL_ENV: &str = "TERMROCK_PAIR_REFERENCE_LOGICAL";
@@ -237,6 +241,9 @@ struct Recorder {
     case_name: String,
     reference_decision: Option<ReferenceDecision>,
     next_ordinal: u64,
+    next_process_ordinal: u64,
+    latest_process_receipt_sha256: Option<String>,
+    process_receipts: BTreeMap<String, (String, String, u64)>,
 }
 
 impl Recorder {
@@ -263,6 +270,9 @@ impl Recorder {
             case_name: case_name.to_string(),
             reference_decision,
             next_ordinal: 0,
+            next_process_ordinal: 0,
+            latest_process_receipt_sha256: None,
+            process_receipts: BTreeMap::new(),
         })
     }
 
@@ -435,6 +445,15 @@ impl Recorder {
             hex(&hash),
             hex(&semantic_hash),
         );
+        if let Some(process_digest) = self.latest_process_receipt_sha256.as_deref() {
+            use std::fmt::Write as _;
+            write!(
+                record,
+                ",\n  \"process_receipt_sha256\": {}",
+                json_string(process_digest)
+            )
+            .map_err(|error| Error::new(format!("cannot format process receipt link: {error}")))?;
+        }
         if let Some(decision_sha256) = reference_decision_sha256 {
             use std::fmt::Write as _;
             write!(
@@ -453,6 +472,179 @@ impl Recorder {
         let checkpoint = format!("{}.json", checkpoint_name(&self.case_name, ordinal, name));
         self.config.receipt_root.join(case_id).join(checkpoint)
     }
+
+    fn record_process_launch(
+        &mut self,
+        intent: ProcessLaunchIntent,
+        pid: u32,
+    ) -> Result<ProcessLaunchReceipt, Error> {
+        let (observed_path, observed_sha256, observed_file_identity, image_hash_source) =
+            process_image(pid)?;
+        let expected_sha256_after = sha256_file(&intent.expected_path)?;
+        if observed_path != intent.expected_path
+            || observed_sha256 != intent.expected_sha256
+            || expected_sha256_after != intent.expected_sha256
+            || observed_file_identity != intent.expected_file_identity
+            || file_identity(&intent.expected_path)? != intent.expected_file_identity
+        {
+            return Err(Error::new(
+                "running process image differs from the phase binary",
+            ));
+        }
+        let ordinal = self.next_process_ordinal;
+        self.next_process_ordinal = ordinal
+            .checked_add(1)
+            .ok_or_else(|| Error::new("paired process ordinal overflow"))?;
+        let mut fields = BTreeMap::<String, String>::new();
+        fields.insert("app".into(), json_string(&intent.app));
+        fields.insert(
+            "argv_provenance".into(),
+            json_string("tuiscotti-builder-input"),
+        );
+        fields.insert(
+            "constructed_argv_hmac_sha256".into(),
+            json_string(&intent.argv_sha256),
+        );
+        fields.insert("case_id".into(), json_string(&self.case_name));
+        fields.insert(
+            "constructed_env_keys".into(),
+            json_string_array(&intent.env_keys),
+        );
+        fields.insert(
+            "constructed_env_hmac_sha256".into(),
+            json_string(&intent.env_sha256),
+        );
+        fields.insert(
+            "expected_path".into(),
+            json_string(&intent.expected_path.to_string_lossy()),
+        );
+        fields.insert(
+            "expected_file_identity".into(),
+            json_string(&intent.expected_file_identity),
+        );
+        fields.insert(
+            "expected_sha256".into(),
+            json_string(&intent.expected_sha256),
+        );
+        fields.insert("image_hash_source".into(), json_string(image_hash_source));
+        fields.insert(
+            "observed_file_identity".into(),
+            json_string(&observed_file_identity),
+        );
+        fields.insert(
+            "observed_path".into(),
+            json_string(&observed_path.to_string_lossy()),
+        );
+        fields.insert("observed_sha256".into(), json_string(&observed_sha256));
+        fields.insert(
+            "previous_receipt_sha256".into(),
+            self.latest_process_receipt_sha256
+                .as_ref()
+                .map_or_else(|| "null".to_string(), |hash| json_string(hash)),
+        );
+        fields.insert("run_id".into(), json_string(&intent.run_id));
+        fields.insert("phase".into(), json_string(&intent.phase));
+        fields.insert("pid".into(), pid.to_string());
+        fields.insert("ordinal".into(), ordinal.to_string());
+        fields.insert("schema".into(), "1".into());
+        let payload = json_object(&fields);
+        let signature = hex(&hmac_sha256(&intent.hmac_key, payload.as_bytes()));
+        fields.insert("hmac_sha256".into(), json_string(&signature));
+        let record = json_object(&fields);
+        let case_dir = case_directory(&self.case_name);
+        let path = self
+            .config
+            .receipt_root
+            .join("process")
+            .join(case_dir)
+            .join(format!("launch-{ordinal:08}.json"));
+        if let Some(parent) = path.parent() {
+            fs::create_dir_all(parent).map_err(|error| {
+                Error::new(format!("cannot create process receipt directory: {error}"))
+            })?;
+        }
+        validate_concrete_path(&self.config.receipt_root, &path, "process receipt", true)?;
+        create_new_bytes(&path, record.as_bytes())?;
+        let receipt_sha256 = hex(&Sha256::digest(record.as_bytes()));
+        self.process_receipts.insert(
+            receipt_sha256.clone(),
+            (intent.phase, intent.case_name, ordinal),
+        );
+        self.latest_process_receipt_sha256 = Some(receipt_sha256.clone());
+        Ok(ProcessLaunchReceipt {
+            sha256: receipt_sha256,
+            case_name: self.case_name.clone(),
+            ordinal,
+        })
+    }
+
+    fn complete_process_launch(&mut self, receipt: ProcessLaunchReceipt) -> Result<(), Error> {
+        let Some((phase, case_name, ordinal)) = self.process_receipts.get(&receipt.sha256) else {
+            return Err(Error::new(
+                "process completion does not match a launch receipt",
+            ));
+        };
+        if case_name != &receipt.case_name || ordinal != &receipt.ordinal {
+            return Err(Error::new(
+                "process completion identity differs from its launch receipt",
+            ));
+        }
+        let mut fields = BTreeMap::<String, String>::new();
+        fields.insert("case_id".into(), json_string(case_name));
+        fields.insert("launch_receipt_sha256".into(), json_string(&receipt.sha256));
+        fields.insert("ordinal".into(), ordinal.to_string());
+        fields.insert("phase".into(), json_string(phase));
+        fields.insert(
+            "run_id".into(),
+            json_string(
+                &std::env::var("TERMROCK_PAIR_PROCESS_RECEIPT_RUN_ID")
+                    .map_err(|_| Error::new("paired process receipt run id is missing"))?,
+            ),
+        );
+        fields.insert("schema".into(), "1".into());
+        let payload = json_object(&fields);
+        let key = receipt_key()?;
+        let signature = hex(&hmac_sha256(&key, payload.as_bytes()));
+        fields.insert("hmac_sha256".into(), json_string(&signature));
+        let record = json_object(&fields);
+        let path = self
+            .config
+            .receipt_root
+            .join("process")
+            .join(case_directory(&receipt.case_name))
+            .join(format!("closed-{:08}.json", receipt.ordinal));
+        validate_concrete_path(
+            &self.config.receipt_root,
+            &path,
+            "process completion receipt",
+            true,
+        )?;
+        create_new_bytes(&path, record.as_bytes())
+    }
+}
+
+/// The child launch receipt created by the shared frozen test-support adapter.
+#[derive(Debug, Clone)]
+pub struct ProcessLaunchReceipt {
+    sha256: String,
+    case_name: String,
+    ordinal: u64,
+}
+
+/// Immutable launch inputs captured before calling pinned `Tui::spawn`.
+#[derive(Debug, Clone)]
+pub struct ProcessLaunchIntent {
+    app: String,
+    case_name: String,
+    phase: String,
+    run_id: String,
+    expected_path: PathBuf,
+    expected_sha256: String,
+    expected_file_identity: String,
+    argv_sha256: String,
+    env_sha256: String,
+    env_keys: Vec<String>,
+    hmac_key: Vec<u8>,
 }
 
 /// Canonical observable frame, excluding capture provenance and retaining all
@@ -464,6 +656,236 @@ fn semantic_frame_json(frame: &Frame) -> String {
         ..Provenance::default()
     };
     frame.to_json()
+}
+
+fn receipt_key() -> Result<Vec<u8>, Error> {
+    let value = std::env::var(PROCESS_RECEIPT_KEY_ENV)
+        .map_err(|_| Error::new("paired process receipt authentication key is missing"))?;
+    let key = decode_hex(&value)?;
+    if key.len() != 32 {
+        return Err(Error::new(
+            "paired process receipt authentication key must be 32 bytes",
+        ));
+    }
+    Ok(key)
+}
+
+fn decode_hex(value: &str) -> Result<Vec<u8>, Error> {
+    if value.len() % 2 != 0 {
+        return Err(Error::new("paired receipt key has invalid hex length"));
+    }
+    value
+        .as_bytes()
+        .chunks_exact(2)
+        .map(|pair| {
+            let digit = |value: u8| match value {
+                b'0'..=b'9' => Ok(value - b'0'),
+                b'a'..=b'f' => Ok(value - b'a' + 10),
+                b'A'..=b'F' => Ok(value - b'A' + 10),
+                _ => Err(Error::new("paired receipt key contains non-hex data")),
+            };
+            Ok((digit(pair[0])? << 4) | digit(pair[1])?)
+        })
+        .collect()
+}
+
+fn hmac_sha256(key: &[u8], message: &[u8]) -> [u8; 32] {
+    const BLOCK: usize = 64;
+    let mut normalized = [0_u8; BLOCK];
+    if key.len() > BLOCK {
+        normalized[..32].copy_from_slice(&Sha256::digest(key));
+    } else {
+        normalized[..key.len()].copy_from_slice(key);
+    }
+    let mut inner = Vec::with_capacity(BLOCK + message.len());
+    let mut outer = Vec::with_capacity(BLOCK + 32);
+    for byte in normalized {
+        inner.push(byte ^ 0x36);
+        outer.push(byte ^ 0x5c);
+    }
+    inner.extend_from_slice(message);
+    outer.extend_from_slice(&Sha256::digest(&inner));
+    Sha256::digest(&outer).into()
+}
+
+fn json_object(fields: &BTreeMap<String, String>) -> String {
+    let entries = fields
+        .iter()
+        .map(|(key, value)| format!("{}:{value}", json_string(key)))
+        .collect::<Vec<_>>();
+    format!("{{{}}}", entries.join(","))
+}
+
+fn json_string_array(values: &[String]) -> String {
+    format!(
+        "[{}]",
+        values
+            .iter()
+            .map(|value| json_string(value))
+            .collect::<Vec<_>>()
+            .join(",")
+    )
+}
+
+fn json_environment(values: &BTreeMap<String, String>) -> String {
+    format!(
+        "[{}]",
+        values
+            .iter()
+            .map(|(key, value)| format!("[{},{}]", json_string(key), json_string(value)))
+            .collect::<Vec<_>>()
+            .join(",")
+    )
+}
+
+fn file_identity(path: &Path) -> Result<String, Error> {
+    let metadata = fs::metadata(path).map_err(|error| {
+        Error::new(format!(
+            "cannot stat process image {}: {error}",
+            path.display()
+        ))
+    })?;
+    metadata_identity(&metadata)
+}
+
+#[cfg(unix)]
+fn metadata_identity(metadata: &fs::Metadata) -> Result<String, Error> {
+    use std::os::unix::fs::MetadataExt as _;
+    Ok(format!(
+        "{}:{}:{}:{}:{}",
+        metadata.dev(),
+        metadata.ino(),
+        metadata.len(),
+        metadata.mtime(),
+        metadata.mtime_nsec()
+    ))
+}
+
+#[cfg(not(unix))]
+fn metadata_identity(_metadata: &fs::Metadata) -> Result<String, Error> {
+    Err(Error::new(
+        "paired process identity probe is unsupported on this platform",
+    ))
+}
+
+#[cfg(target_os = "linux")]
+fn process_image(pid: u32) -> Result<(PathBuf, String, String, &'static str), Error> {
+    use std::os::unix::fs::MetadataExt as _;
+    let proc_exe = PathBuf::from(format!("/proc/{pid}/exe"));
+    let before_start = process_start_time(pid)?;
+    let before_path = fs::read_link(&proc_exe)
+        .map_err(|error| Error::new(format!("cannot resolve /proc child image: {error}")))?;
+    if before_path.to_string_lossy().ends_with(" (deleted)") {
+        return Err(Error::new(
+            "paired child executable was replaced or deleted after spawn",
+        ));
+    }
+    let mut image = fs::File::open(&proc_exe)
+        .map_err(|error| Error::new(format!("cannot open /proc child image: {error}")))?;
+    let metadata = image
+        .metadata()
+        .map_err(|error| Error::new(format!("cannot stat /proc child image: {error}")))?;
+    let identity = metadata_identity(&metadata)?;
+    let mut digest = Sha256::new();
+    let mut buffer = [0_u8; 64 * 1024];
+    loop {
+        let count = image
+            .read(&mut buffer)
+            .map_err(|error| Error::new(format!("cannot hash /proc child image: {error}")))?;
+        if count == 0 {
+            break;
+        }
+        digest.update(&buffer[..count]);
+    }
+    let after_path = fs::read_link(&proc_exe)
+        .map_err(|error| Error::new(format!("child exited during image verification: {error}")))?;
+    let after_start = process_start_time(pid)?;
+    if before_path != after_path || before_start != after_start {
+        return Err(Error::new(
+            "paired child process identity changed during image verification",
+        ));
+    }
+    let path = before_path.canonicalize().map_err(|error| {
+        Error::new(format!("cannot canonicalize observed child image: {error}"))
+    })?;
+    let expected_metadata = fs::metadata(&path)
+        .map_err(|error| Error::new(format!("cannot stat observed child image: {error}")))?;
+    if metadata.dev() != expected_metadata.dev() || metadata.ino() != expected_metadata.ino() {
+        return Err(Error::new(
+            "observed process image inode differs from resolved path",
+        ));
+    }
+    Ok((
+        path,
+        hex(&digest.finalize()),
+        identity,
+        "linux-proc-exe-open-fd",
+    ))
+}
+
+#[cfg(target_os = "linux")]
+fn process_start_time(pid: u32) -> Result<String, Error> {
+    let stat = fs::read_to_string(format!("/proc/{pid}/stat"))
+        .map_err(|error| Error::new(format!("cannot read child process identity: {error}")))?;
+    let fields = stat
+        .rsplit_once(')')
+        .ok_or_else(|| Error::new("invalid child process stat"))?
+        .1;
+    fields
+        .split_whitespace()
+        .nth(19)
+        .map(str::to_string)
+        .ok_or_else(|| Error::new("child process stat has no start time"))
+}
+
+#[cfg(target_os = "macos")]
+fn process_image(pid: u32) -> Result<(PathBuf, String, String, &'static str), Error> {
+    let first_path = macos_process_path(pid)?;
+    let first_identity = file_identity(&first_path)?;
+    let hash = sha256_file(&first_path)?;
+    let second_path = macos_process_path(pid)?;
+    let second_identity = file_identity(&second_path)?;
+    if first_path != second_path || first_identity != second_identity {
+        return Err(Error::new(
+            "paired macOS child path or file identity changed during verification",
+        ));
+    }
+    Ok((first_path, hash, first_identity, "macos-proc-pidpath-file"))
+}
+
+#[cfg(target_os = "macos")]
+fn macos_process_path(pid: u32) -> Result<PathBuf, Error> {
+    use std::ffi::c_void;
+    const MAX: usize = 4096;
+    #[link(name = "proc")]
+    unsafe extern "C" {
+        fn proc_pidpath(pid: i32, buffer: *mut c_void, buffersize: u32) -> i32;
+    }
+    let mut buffer = [0_u8; MAX];
+    // SAFETY: `buffer` is writable for MAX bytes and remains alive through the call.
+    let length = unsafe { proc_pidpath(pid as i32, buffer.as_mut_ptr().cast(), MAX as u32) };
+    if length <= 0 || length as usize >= MAX {
+        return Err(Error::new(
+            "macOS proc_pidpath could not identify the paired child image",
+        ));
+    }
+    let written = &buffer[..length as usize];
+    let path_end = written
+        .iter()
+        .position(|byte| *byte == 0)
+        .unwrap_or(written.len());
+    let path = std::str::from_utf8(&written[..path_end])
+        .map_err(|_| Error::new("macOS process image path is not UTF-8"))?;
+    PathBuf::from(path)
+        .canonicalize()
+        .map_err(|error| Error::new(format!("cannot canonicalize macOS process image: {error}")))
+}
+
+#[cfg(not(any(target_os = "linux", target_os = "macos")))]
+fn process_image(_pid: u32) -> Result<(PathBuf, String, String, &'static str), Error> {
+    Err(Error::new(
+        "paired process image probe is unsupported on this platform",
+    ))
 }
 
 thread_local! {
@@ -496,6 +918,128 @@ pub fn begin_case(name: &str) -> Result<bool, Error> {
     })
 }
 
+/// Capture the exact argv and allowlisted constructed child environment before spawn.
+/// Values are hashed and never written to the receipt.
+pub fn prepare_process_launch(
+    case_name: &str,
+    argv: &[String],
+    environment: &BTreeMap<String, String>,
+) -> Result<Option<ProcessLaunchIntent>, Error> {
+    ACTIVE.with(|active| {
+        let active = active.borrow();
+        let Some(recorder) = active.as_ref() else {
+            if Config::from_env()?.is_some() {
+                return Err(Error::new("paired child spawn occurred without begin_case"));
+            }
+            return Ok(None);
+        };
+        if recorder.case_name != case_name {
+            return Err(Error::new("spawn case differs from active paired scenario"));
+        }
+        if argv.is_empty() || environment.contains_key(PROCESS_RECEIPT_KEY_ENV) {
+            return Err(Error::new(
+                "invalid paired argv or receipt key leaked into constructed child environment",
+            ));
+        }
+        let phase = std::env::var(PHASE_ENV)
+            .map_err(|_| Error::new("paired process receipt has no phase"))?;
+        let run_id = std::env::var("TERMROCK_PAIR_PROCESS_RECEIPT_RUN_ID")
+            .map_err(|_| Error::new("paired process receipt run id is missing"))?;
+        let bin_root = PathBuf::from(
+            std::env::var("VISUAL_BIN_DIR")
+                .map_err(|_| Error::new("paired process receipt has no VISUAL_BIN_DIR"))?,
+        )
+        .canonicalize()
+        .map_err(|error| Error::new(format!("cannot resolve paired binary directory: {error}")))?;
+        let app = PathBuf::from(&argv[0])
+            .file_name()
+            .and_then(|name| name.to_str())
+            .ok_or_else(|| Error::new("paired argv executable has no UTF-8 filename"))?
+            .to_string();
+        if !["showcase", "tablepro", "jackin-preview", "holla"].contains(&app.as_str()) {
+            return Err(Error::new("paired argv names an unregistered application"));
+        }
+        let binary = bin_root.join(&app);
+        let metadata = fs::symlink_metadata(&binary)
+            .map_err(|error| Error::new(format!("cannot inspect paired binary: {error}")))?;
+        if metadata.file_type().is_symlink() || !metadata.is_file() {
+            return Err(Error::new(
+                "paired binary is not a regular non-symlink file",
+            ));
+        }
+        let expected_path = binary
+            .canonicalize()
+            .map_err(|error| Error::new(format!("cannot canonicalize paired binary: {error}")))?;
+        if PathBuf::from(&argv[0]).canonicalize().ok().as_deref() != Some(expected_path.as_path()) {
+            return Err(Error::new(
+                "paired argv executable differs from the phase binary",
+            ));
+        }
+        let expected_sha256 = sha256_file(&expected_path)?;
+        let expected_file_identity = file_identity(&expected_path)?;
+        let hmac_key = receipt_key()?;
+        let argv_sha256 = hex(&hmac_sha256(
+            &hmac_key,
+            format!("termrock-tui-argv-v1\0{}", json_string_array(argv)).as_bytes(),
+        ));
+        let env_sha256 = hex(&hmac_sha256(
+            &hmac_key,
+            format!("termrock-child-env-v1\0{}", json_environment(environment)).as_bytes(),
+        ));
+        let env_keys = environment.keys().cloned().collect();
+        Ok(Some(ProcessLaunchIntent {
+            app,
+            case_name: case_name.to_string(),
+            phase,
+            run_id,
+            expected_path,
+            expected_sha256,
+            expected_file_identity,
+            argv_sha256,
+            env_sha256,
+            env_keys,
+            hmac_key,
+        }))
+    })
+}
+
+/// Record and verify the OS-observed image after the pinned Tuiscotti spawn.
+pub fn record_process_launch(
+    intent: Option<ProcessLaunchIntent>,
+    pid: Option<u32>,
+) -> Result<Option<ProcessLaunchReceipt>, Error> {
+    let Some(intent) = intent else {
+        return Ok(None);
+    };
+    let pid = pid.ok_or_else(|| Error::new("paired Tuiscotti session has no child PID"))?;
+    ACTIVE.with(|active| {
+        let mut active = active.borrow_mut();
+        let recorder = active
+            .as_mut()
+            .ok_or_else(|| Error::new("paired process launch has no active recorder"))?;
+        if recorder.case_name != intent.case_name {
+            return Err(Error::new(
+                "paired process launch no longer matches active case",
+            ));
+        }
+        recorder.record_process_launch(intent, pid).map(Some)
+    })
+}
+
+/// Record that the support wrapper for a Tuiscotti session was dropped.
+pub fn complete_process_launch(receipt: Option<ProcessLaunchReceipt>) -> Result<(), Error> {
+    let Some(receipt) = receipt else {
+        return Ok(());
+    };
+    ACTIVE.with(|active| {
+        let mut active = active.borrow_mut();
+        let recorder = active
+            .as_mut()
+            .ok_or_else(|| Error::new("paired process completion has no active recorder"))?;
+        recorder.complete_process_launch(receipt)
+    })
+}
+
 /// Handle one central frozen-harness visual gate.
 ///
 /// Returns `false` when runtime pairing is disabled, preserving the frozen
@@ -511,6 +1055,11 @@ pub fn handle_frame(
         let Some(recorder) = active.as_mut() else {
             return Ok(false);
         };
+        if recorder.latest_process_receipt_sha256.is_none() {
+            return Err(Error::new(
+                "paired visual checkpoint has no process launch receipt",
+            ));
+        }
         recorder.handle_frame(name, frame, original_expected_root)?;
         Ok(true)
     })
@@ -917,6 +1466,45 @@ mod tests {
 
     type FrameMutation = Box<dyn Fn(&mut Frame)>;
     type NamedFrameMutation<'a> = (&'a str, FrameMutation);
+
+    #[test]
+    fn hmac_sha256_matches_the_rfc_4231_sha256_vector() {
+        let key = [0x0b; 20];
+        assert_eq!(
+            hex(&hmac_sha256(&key, b"Hi There")),
+            "b0344c61d8db38535ca8afceaf0bf12b881dc200c9833da726e9376c2e32cff7"
+        );
+        assert_eq!(decode_hex("00aF").unwrap(), [0x00, 0xaf]);
+        assert!(decode_hex("0xz1").is_err());
+    }
+
+    #[test]
+    fn process_probe_reports_the_running_test_binary_and_hash() {
+        let expected = std::env::current_exe().unwrap().canonicalize().unwrap();
+        let (observed, digest, _identity, method) = process_image(std::process::id()).unwrap();
+        assert_eq!(observed, expected);
+        assert_eq!(digest, sha256_file(&expected).unwrap());
+        #[cfg(target_os = "linux")]
+        assert_eq!(method, "linux-proc-exe-open-fd");
+        #[cfg(target_os = "macos")]
+        assert_eq!(method, "macos-proc-pidpath-file");
+    }
+
+    #[test]
+    fn paired_gate_rejects_a_checkpoint_without_a_process_launch_receipt() {
+        let scratch = Scratch::new("missing-process-receipt");
+        let recorder = Recorder::new(config(Phase::BaselineCapture, &scratch), "scenario").unwrap();
+        ACTIVE.with(|active| *active.borrow_mut() = Some(recorder));
+        let result = handle_frame("home", &frame(), &scratch.path("original"));
+        ACTIVE.with(|active| *active.borrow_mut() = None);
+        assert!(
+            result
+                .unwrap_err()
+                .to_string()
+                .contains("no process launch receipt")
+        );
+        assert!(!scratch.path("expected").exists());
+    }
 
     struct Scratch(PathBuf);
 

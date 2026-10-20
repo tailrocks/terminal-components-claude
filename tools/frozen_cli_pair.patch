@@ -11,40 +11,6 @@
  mod tool;
  
  use std::collections::{BTreeMap, BTreeSet};
---- a/tests/visual_baseline/support.rs
-+++ b/tests/visual_baseline/support.rs
-@@ -504,0 +505,5 @@
-+
-+    pub fn scroll_right(&mut self, col: u16, row: u16) -> Result<(), tuiscotti::TuiError> {
-+        self.sending();
-+        self.inner.mouse_wheel(Wheel::Right, col, row, MouseMods::NONE)
-+    }
---- a/tests/visual_baseline/support.rs
-+++ b/tests/visual_baseline/support.rs
-@@ -314,6 +314,11 @@
- pub fn assert_gated(name: &str, frame: &Frame) {
- 
- 
-+    if crate::frozen_cli_pair::handle_frame(name, frame, &approved_root())
-+        .unwrap_or_else(|error| panic!("paired baseline gate failed for `{name}`: {error}"))
-+    {
-+        return;
-+    }
-     let outcome = RENDERER
-         .with(|r| store().check_with(&mut r.borrow_mut(), name, frame, 1.0))
-         .unwrap_or_else(|e| panic!("baseline `{name}` could not be checked: {e}"));
---- a/tests/visual_baseline/support.rs
-+++ b/tests/visual_baseline/support.rs
-@@ -719,2 +719,9 @@ pub fn settle_and_gate(session: &mut Session, name: &str) {
-     assert_gated(name, &frame);
- }
-+
-+pub fn settle_quiet_and_gate(session: &mut Session, name: &str) {
-+    let obs = session.inner.wait_stable_quiet(Instant::now() + session.timeout, Duration::from_millis(400), &CancelToken::new())
-+        .unwrap_or_else(|e| panic!("`{name}` never settled: {}", wait_failure("settle", &e)));
-+    let frame = render::frame_from_screen(&obs.screen, &profile_name());
-+    assert_gated(name, &frame);
-+}
 --- a/tests/visual_baseline/scenarios/interact.rs
 +++ b/tests/visual_baseline/scenarios/interact.rs
 @@ -130,8 +130,8 @@
@@ -81,22 +47,119 @@
      libtest_mimic::run(&args, trials).exit();
 --- a/tests/visual_baseline/support.rs
 +++ b/tests/visual_baseline/support.rs
-@@ -613,8 +613,18 @@
+@@ -314,6 +314,11 @@ fn profile_name() -> String {
+ pub fn assert_gated(name: &str, frame: &Frame) {
+ 
+ 
++    if crate::frozen_cli_pair::handle_frame(name, frame, &approved_root())
++        .unwrap_or_else(|error| panic!("paired baseline gate failed for `{name}`: {error}"))
++    {
++        return;
++    }
+     let outcome = RENDERER
+         .with(|r| store().check_with(&mut r.borrow_mut(), name, frame, 1.0))
+         .unwrap_or_else(|e| panic!("baseline `{name}` could not be checked: {e}"));
+@@ -355,12 +360,20 @@ impl Screen<'_> {
+ 
+ pub struct Session {
+     inner: tuiscotti::Session,
++    paired_process_receipt: Option<crate::frozen_cli_pair::ProcessLaunchReceipt>,
+     timeout: Duration,
+ 
+ 
+     sent_at: Option<u64>,
+ }
+ 
++impl Drop for Session {
++    fn drop(&mut self) {
++        if let Err(error) = crate::frozen_cli_pair::complete_process_launch(self.paired_process_receipt.take()) {
++            eprintln!("paired process completion receipt failed: {error}");
++        }
++    }
++}
+ 
+ fn wait_failure(what: &str, err: &WaitError) -> String {
+     format!("{what}: {err}")
+@@ -494,6 +507,11 @@ impl Session {
+         self.inner.mouse_move(col, row, MouseMods::NONE)
+     }
+ 
++    pub fn scroll_right(&mut self, col: u16, row: u16) -> Result<(), tuiscotti::TuiError> {
++        self.sending();
++        self.inner.mouse_wheel(Wheel::Right, col, row, MouseMods::NONE)
++    }
++
+     pub fn scroll(&mut self, col: u16, row: u16, dir: Scroll) -> Result<(), tuiscotti::TuiError> {
+         let wheel = match dir {
+             Scroll::Up => Wheel::Up,
+@@ -608,37 +626,65 @@ pub fn spawn_with_env(case: &Case, extra: &[(&str, &str)]) -> Session {
+         Err(e) => panic!("empty {}: {e}", home.display()),
+     }
+     std::fs::create_dir_all(&home).unwrap_or_else(|e| panic!("mkdir {}: {e}", home.display()));
+-    let mut tui = Tui::new(argv_for(case))
++    let argv = argv_for(case);
++    let mut child_env = std::collections::BTreeMap::new();
++    let mut tui = Tui::new(argv.clone())
+         .size(case.cols, case.rows)
          .env_clear(true)
          .env("HOME", &home)
++        .env_remove("TERMROCK_PAIR_PROCESS_RECEIPT_KEY")
          .cwd(home.clone());
++    child_env.insert("HOME".to_string(), home.to_string_lossy().into_owned());
 +    let term_profile = std::env::var("TERMROCK_PAIR_TERM_PROFILE").ok();
      for (key, value) in PINNED_ENV {
 +        if key == "TERM" && term_profile.is_some() {
 +            continue;
 +        }
          tui = tui.env(key, value);
++        child_env.insert(key.to_string(), value.to_string());
 +    }
 +    match term_profile.as_deref() {
-+        Some("unset") => {}
-+        Some(profile @ ("xterm-256color" | "linux" | "dumb")) => tui = tui.env("TERM", profile),
++        Some("unset") => { child_env.remove("TERM"); }
++        Some(profile @ ("xterm-256color" | "linux" | "dumb")) => {
++            tui = tui.env("TERM", profile);
++            child_env.insert("TERM".to_string(), profile.to_string());
++        }
 +        Some(other) => panic!("unsupported paired TERM profile `{other}`"),
 +        None => {}
      }
      if matches!(case.color, Color::NoColorEnv) {
          tui = tui.env("NO_COLOR", "1");
++        child_env.insert("NO_COLOR".to_string(), "1".to_string());
+     }
+-
+-
+     if case.sends.iter().any(|s| s.starts_with("advance:")) {
+         tui = tui.env(junie_tui::clock::ClockStep::ENV, "1");
++        child_env.insert(junie_tui::clock::ClockStep::ENV.to_string(), "1".to_string());
+     }
+     for (key, value) in case.env.iter().chain(extra) {
+         tui = tui.env(key, value);
++        child_env.insert((*key).to_string(), (*value).to_string());
+     }
+-    let inner = tui
++    let launch_intent = crate::frozen_cli_pair::prepare_process_launch(&case.name, &argv, &child_env)
++        .unwrap_or_else(|error| panic!("paired process preflight failed for `{}`: {error}", case.name));
++    let mut inner = tui
+         .spawn()
+         .unwrap_or_else(|e| panic!("spawn `{}` failed: {e:#}", case.name));
++    let paired_process_receipt = match crate::frozen_cli_pair::record_process_launch(launch_intent, inner.pid()) {
++        Ok(receipt) => receipt,
++        Err(error) => {
++            let _ = inner.close();
++            panic!("paired process launch receipt failed for `{}`: {error}", case.name);
++        }
++    };
+     Session {
+         inner,
++        paired_process_receipt,
+         timeout: Duration::from_millis(case.timeout_ms),
+         sent_at: None,
+     }
+ }
+ 
+ 
+-
+ pub fn capture_enabled(name: &str) -> bool {
+     if is_reapproved(name) || visual_full() {
+         return true;
