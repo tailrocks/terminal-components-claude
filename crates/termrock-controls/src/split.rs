@@ -527,26 +527,21 @@ impl<'a> SplitPane<'a> {
                 acc.consumed();
             }
             Phase::DoubleClick => {
-                let before = *st;
-                st.reset(self.reset_policy);
-                if *st == before {
+                if cx
+                    .pointer_click_count(self.id, PartRef::of(Part::SEAM))
+                    .is_some_and(|count| count != 2)
+                {
                     acc.consumed();
                 } else {
-                    acc.action(SplitAction::Resized(st.percent));
+                    self.reset_for_double_click(st, acc);
                 }
             }
             Phase::Click => {
                 if cx
                     .pointer_click_count(self.id, PartRef::of(Part::SEAM))
-                    .is_some_and(|count| count >= 2 && count.is_multiple_of(2))
+                    .is_some_and(|count| count == 2)
                 {
-                    let before = *st;
-                    st.reset(self.reset_policy);
-                    if *st == before {
-                        acc.consumed();
-                    } else {
-                        acc.action(SplitAction::Resized(st.percent));
-                    }
+                    self.reset_for_double_click(st, acc);
                 } else {
                     acc.consumed();
                 }
@@ -555,6 +550,16 @@ impl<'a> SplitPane<'a> {
             Phase::Move => {}
 
             _ => {}
+        }
+    }
+
+    fn reset_for_double_click(&self, st: &mut SplitPaneState, acc: &mut Acc<SplitAction>) {
+        let before = *st;
+        st.reset(self.reset_policy);
+        if *st == before {
+            acc.consumed();
+        } else {
+            acc.action(SplitAction::Resized(st.percent));
         }
     }
 
@@ -868,6 +873,26 @@ mod tests {
                 .contains(&SplitAction::Resized(38))
         );
         assert_eq!(reset_runtime.focus(), Some(EDITOR_ID));
+
+        reset_runtime.app_mut().state.set_percent(45);
+        reset_runtime
+            .draw_buffer(area, &mut reset_buffer)
+            .commit_presented();
+        let seam_y = DragProbe::first_height(&reset_runtime.app().state, area);
+        for _ in 0..2 {
+            let _ = crate::runtime::stub::deliver(
+                &mut reset_runtime,
+                crate::runtime::stub::mouse(MouseKind::Down, 8, seam_y),
+            );
+            let _ = crate::runtime::stub::deliver(
+                &mut reset_runtime,
+                crate::runtime::stub::mouse(MouseKind::Up, 8, seam_y),
+            );
+            reset_runtime
+                .draw_buffer(area, &mut reset_buffer)
+                .commit_presented();
+        }
+        assert_eq!(reset_runtime.app().state.percent(), 45);
     }
 
     impl DragProbe {
