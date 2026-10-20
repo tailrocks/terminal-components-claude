@@ -136,6 +136,9 @@ const BLURB: &str = "Select rows, edit one or many together, delete with a confi
 const SECTIONS: [&str; 3] = ["Playground", "Options", "States"];
 const SECTION_CAPTION: &str = "the live widget";
 const SECTION_WIDE: u16 = 76;
+// Page rect inside the 160×50 shell. Narrower shells stay stacked.
+const WIDE_PAGE_W: u16 = 134;
+const WIDE_PAGE_H: u16 = 46;
 
 const MEMBERS_H: u16 = 15;
 const EDITOR_H: u16 = 17;
@@ -396,15 +399,16 @@ pub fn paint(ui: &mut Ui<'_>, area: Rect, selected: usize) {
             if top >= body.bottom() {
                 return;
             }
-            paint_playground(
-                ui,
-                Rect {
-                    y: top,
-                    height: body.bottom().saturating_sub(top),
-                    ..body
-                },
-                selected,
-            );
+            let playground = Rect {
+                y: top,
+                height: body.bottom().saturating_sub(top),
+                ..body
+            };
+            if wide_page(area) {
+                paint_wide_playground(ui, playground, selected);
+            } else {
+                paint_playground(ui, playground, selected);
+            }
         });
     });
 }
@@ -1025,8 +1029,35 @@ fn paint_editor(ui: &mut Ui<'_>, card: Rect) {
     }
 }
 
+fn wide_page(area: Rect) -> bool {
+    area.width == WIDE_PAGE_W && area.height == WIDE_PAGE_H
+}
+
 fn content_height() -> u16 {
     MEMBERS_H.saturating_add(EDITOR_H).saturating_add(CARD_GAP)
+}
+
+fn paint_wide_playground(ui: &mut Ui<'_>, area: Rect, selected: usize) {
+    if area.width <= CARD_GAP {
+        return;
+    }
+    // Details keeps the right third. Members take the rest of the row.
+    let right_w = area.width / 3;
+    let left_w = area.width.saturating_sub(CARD_GAP).saturating_sub(right_w);
+    if left_w == 0 || right_w == 0 {
+        paint_playground(ui, area, selected);
+        return;
+    }
+    paint_members(ui, Rect::new(area.x, area.y, left_w, area.height), selected);
+    paint_editor(
+        ui,
+        Rect::new(
+            area.x.saturating_add(left_w).saturating_add(CARD_GAP),
+            area.y,
+            right_w,
+            EDITOR_H.min(area.height),
+        ),
+    );
 }
 
 fn paint_playground(ui: &mut Ui<'_>, area: Rect, selected: usize) {
