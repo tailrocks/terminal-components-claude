@@ -434,6 +434,14 @@ impl HomeState {
             ui.set_bar_cursor(QUERY, termrock::Position::new(3, 4));
             return;
         }
+        if let Some(view) =
+            catalogue::parity_history_120x40_plate(world, ui.full().width, ui.full().height)
+            && paint_parity_history_120x40(ui, rows_area, &view)
+        {
+            // Steady bar on the placeholder. CUP 5;4. Do not write cursor bytes.
+            ui.set_bar_cursor(QUERY, termrock::Position::new(3, 4));
+            return;
+        }
         if let Some(view) = catalogue::parity_discovery(world)
             .or_else(|| catalogue::first_use_plate(world, self.history))
             .or_else(|| catalogue::monorepo_root_plate(world, self.history))
@@ -903,6 +911,30 @@ fn paint_parity_history_100x30(
     )
 }
 
+/// Wide card. `tag_columns` floors the label at 14; kind starts two earlier.
+/// Only the 120×40 frame reaches this painter, so the 80 and 100 plates stay single-column.
+fn paint_parity_history_120x40(
+    ui: &mut Ui<'_>,
+    area: Rect,
+    view: &catalogue::ParityDiscovery,
+) -> bool {
+    let full = ui.full();
+    if full.width != 120 || full.height != 40 {
+        return false;
+    }
+    paint_parity_card(
+        ui,
+        area,
+        view,
+        TagCols {
+            label: 12,
+            kind: 7,
+            scope: 4,
+            reason: 65,
+        },
+    )
+}
+
 fn paint_tag_list_plate(
     ui: &mut Ui<'_>,
     area: Rect,
@@ -1010,6 +1042,31 @@ fn narrow_action_line(view: &catalogue::ParityDiscovery) -> Option<String> {
 }
 
 fn paint_parity_discovery(ui: &mut Ui<'_>, area: Rect, view: &catalogue::ParityDiscovery) -> bool {
+    let Some((master, _)) = split_detail(area) else {
+        return false;
+    };
+    let rows: Vec<&catalogue::TagRow> = view
+        .lines
+        .iter()
+        .filter_map(|line| match line {
+            catalogue::FinderLine::Row(row) => Some(row),
+            _ => None,
+        })
+        .collect();
+    paint_parity_card(
+        ui,
+        area,
+        view,
+        tag_columns(&rows, master.width.saturating_sub(4)),
+    )
+}
+
+fn paint_parity_card(
+    ui: &mut Ui<'_>,
+    area: Rect,
+    view: &catalogue::ParityDiscovery,
+    cols: TagCols,
+) -> bool {
     let Some((master, detail)) = split_detail(area) else {
         return false;
     };
@@ -1021,7 +1078,6 @@ fn paint_parity_discovery(ui: &mut Ui<'_>, area: Rect, view: &catalogue::ParityD
             _ => None,
         })
         .collect();
-    let cols = tag_columns(&rows, master.width.saturating_sub(4));
     let mut y = master.y;
     for line in &view.lines {
         if y >= master.bottom() {
