@@ -420,6 +420,28 @@ fn parity_files_tag_plate(world: &World, width: u16, height: u16) -> bool {
         || crate::sim::catalogue::parity_files_120x40_plate(world, width, height).is_some()
 }
 
+/// 100×30 `parity-browser` plate. Files plates and every other size stay off.
+fn parity_browser_tag_plate(world: &World, width: u16, height: u16) -> bool {
+    crate::sim::catalogue::parity_browser_100x30_plate(world, width, height).is_some()
+}
+
+/// Tag parity-browser status at 100×30: cwd, then the size label. No branch.
+fn paint_parity_browser_status(ui: &mut Ui<'_>, area: Rect) {
+    if area.is_empty() {
+        return;
+    }
+    ui.fill(area, status_ink(ui, STATUS_FG, false));
+    let _ = paint_status_text(
+        ui,
+        area,
+        area.x.saturating_add(STATUS_EDGE),
+        "~/work/site",
+        STATUS_FG,
+        true,
+    );
+    let _ = paint_size_label(ui, area);
+}
+
 /// Tag parity-files status at 80×24, 100×30, and 120×40: cwd, then the size label. No branch.
 fn paint_parity_files_status(ui: &mut Ui<'_>, area: Rect) {
     if area.is_empty() {
@@ -1595,6 +1617,8 @@ impl App {
             paint_parity_history_status(ui, status);
         } else if parity_files_tag_plate(&self.world, ui.full().width, ui.full().height) {
             paint_parity_files_status(ui, status);
+        } else if parity_browser_tag_plate(&self.world, ui.full().width, ui.full().height) {
+            paint_parity_browser_status(ui, status);
         } else if launch_failure_plate_open(&self.world, ui) {
             paint_launch_failure_status(ui, status);
         } else if self.route == Route::Disk
@@ -1710,6 +1734,8 @@ impl App {
             Some(("Run", None))
         } else if parity_files_tag_plate(&self.world, ui.full().width, ui.full().height) {
             Some(("Open", None))
+        } else if parity_browser_tag_plate(&self.world, ui.full().width, ui.full().height) {
+            Some(("Run", None))
         } else {
             None
         };
@@ -1826,6 +1852,8 @@ impl App {
                 parity_history_clipped_plate(&self.world, ui.full().width, ui.full().height);
             let files_plate =
                 parity_files_clipped_plate(&self.world, ui.full().width, ui.full().height);
+            let browser_plate =
+                parity_browser_tag_plate(&self.world, ui.full().width, ui.full().height);
             let parts = if monorepo_child_mid
                 || remote_host_mid
                 || first_use_mid
@@ -1834,6 +1862,7 @@ impl App {
                 || discovery_mid
                 || history_plate
                 || files_plate
+                || browser_plate
                 || (narrow
                     && (crate::sim::catalogue::first_use_tag_frame(&self.world)
                         || crate::sim::catalogue::monorepo_root_tag_frame(&self.world)
