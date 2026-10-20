@@ -30,5 +30,5 @@
     "changed_file_rustfmt": "passed: rustfmt --check --edition 2024 on three changed Rust files"
   },
   "working_tree_note": "Nextest exposed approximately 1303 deleted tracked files under crates/termrock-conformance/target/tuiscotti-actuals. They were left untouched and unstaged as unrelated existing/worktree artifacts.",
-  "coverage_gap": "This shared runtime change has no claim of full application visual/functional acceptance."
+  "coverage_gap": "This shared runtime change has no claim of full application visual/functional acceptance. Theme::backdrop_style is public and requires catalog/showcase coverage review; catalog and showcase files were outside this bounded ownership assignment, so the required catalogue/demo follow-up remains open."
 }
