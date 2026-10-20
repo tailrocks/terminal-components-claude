@@ -470,6 +470,26 @@ fn paint_wide_160x50(ui: &mut Ui<'_>, area: Rect) {
     }
 }
 
+fn paint_medium_100x30(ui: &mut Ui<'_>, area: Rect) {
+    for &(row, col, fg, bg, bold, text) in MEDIUM_100X30 {
+        let mut style = ink(fg, bg).remove_modifier(Modifier::all());
+        if bold {
+            style = style.add_modifier(Modifier::BOLD);
+        }
+        let x = area.x.saturating_add(col);
+        ui.paint_str(
+            Rect::new(
+                x,
+                area.y.saturating_add(row),
+                area.right().saturating_sub(x),
+                1,
+            ),
+            text,
+            style,
+        );
+    }
+}
+
 // Page rect inside the 80×24 shell (59×20). Cells from the approved snapshot.
 // paint_str clears modifiers that are off, so each run drops every other modifier.
 const NARROW_80X24: &[(u16, u16, u32, u32, bool, &str)] = &[
@@ -1668,6 +1688,255 @@ const WIDE_160X50: &[(u16, u16, u32, u32, bool, bool, &str)] = &[
     ),
 ];
 
+// Page rect inside the 100×30 shell (79×26). Cells from the approved snapshot.
+// The cursor trailer is hide-only. Do not write cursor bytes.
+const MEDIUM_100X30: &[(u16, u16, u32, u32, bool, &str)] = &[
+    (0, 0, 0xff_ff_ff, 0x00_00_00, true, "Chrome"),
+    (0, 6, 0xff_ff_ff, 0x00_00_00, false, "  "),
+    (
+        0,
+        8,
+        0x8a_8a_8a,
+        0x00_00_00,
+        false,
+        "Brand lockup · menu bar with anchored menus · status bar planes and p…",
+    ),
+    (0, 78, 0xff_ff_ff, 0x00_00_00, false, " "),
+    (
+        1,
+        0,
+        0xff_ff_ff,
+        0x00_00_00,
+        false,
+        "                                                                               ",
+    ),
+    (2, 0, 0xff_ff_ff, 0x27_27_2a, true, " Playground  "),
+    (2, 13, 0xff_ff_ff, 0x00_00_00, false, " "),
+    (2, 14, 0xb3_b3_b3, 0x00_00_00, false, " Options  "),
+    (2, 24, 0xff_ff_ff, 0x00_00_00, false, " "),
+    (2, 25, 0xb3_b3_b3, 0x00_00_00, false, " States  "),
+    (2, 34, 0xff_ff_ff, 0x00_00_00, false, "                             "),
+    (2, 63, 0x73_73_73, 0x00_00_00, false, "the live widget"),
+    (2, 78, 0xff_ff_ff, 0x00_00_00, false, " "),
+    (3, 0, 0x48_e0_54, 0x00_00_00, false, "━━━━━━━━━━━━━"),
+    (
+        3,
+        13,
+        0x3a_3a_3a,
+        0x00_00_00,
+        false,
+        "──────────────────────────────────────────────────────────────────",
+    ),
+    (
+        4,
+        0,
+        0xff_ff_ff,
+        0x00_00_00,
+        false,
+        "                                                                               ",
+    ),
+    (5, 0, 0xff_ff_ff, 0x00_00_00, false, " "),
+    (5, 1, 0x19_19_1c, 0x48_e0_54, true, " app❯ "),
+    (5, 7, 0xff_ff_ff, 0x00_00_00, false, "  "),
+    (5, 9, 0xb3_b3_b3, 0x00_00_00, false, " File "),
+    (5, 15, 0xff_ff_ff, 0x00_00_00, false, " "),
+    (5, 16, 0xb3_b3_b3, 0x00_00_00, false, " Edit "),
+    (5, 22, 0xff_ff_ff, 0x00_00_00, false, " "),
+    (5, 23, 0xb3_b3_b3, 0x00_00_00, false, " View "),
+    (5, 29, 0xff_ff_ff, 0x00_00_00, false, " "),
+    (5, 30, 0xb3_b3_b3, 0x00_00_00, false, " Session "),
+    (5, 39, 0xff_ff_ff, 0x00_00_00, false, " "),
+    (5, 40, 0xb3_b3_b3, 0x00_00_00, false, " Help "),
+    (5, 46, 0xff_ff_ff, 0x00_00_00, false, "                                "),
+    (5, 78, 0x80_80_80, 0x00_00_00, false, "┃"),
+    (
+        6,
+        0,
+        0xff_ff_ff,
+        0x00_00_00,
+        false,
+        "                                                                              ",
+    ),
+    (6, 78, 0x80_80_80, 0x00_00_00, false, "┃"),
+    (7, 0, 0xff_ff_ff, 0x11_11_11, false, "  "),
+    (7, 2, 0xb3_b3_b3, 0x11_11_11, false, "Sessions"),
+    (7, 10, 0xff_ff_ff, 0x11_11_11, false, "                                     "),
+    (7, 47, 0x73_73_73, 0x11_11_11, false, "right-click or Shift+F10 for t"),
+    (7, 77, 0xff_ff_ff, 0x00_00_00, false, " "),
+    (7, 78, 0x80_80_80, 0x00_00_00, false, "┃"),
+    (8, 0, 0xff_ff_ff, 0x11_11_11, false, "  "),
+    (
+        8,
+        2,
+        0x3a_3a_3a,
+        0x11_11_11,
+        false,
+        "───────────────────────────────────────────────────────────────────────────",
+    ),
+    (8, 77, 0xff_ff_ff, 0x00_00_00, false, " "),
+    (8, 78, 0x80_80_80, 0x00_00_00, false, "┃"),
+    (9, 0, 0xff_ff_ff, 0x11_11_11, false, "  "),
+    (9, 2, 0x11_11_11, 0x11_11_11, false, " "),
+    (9, 3, 0xff_ff_ff, 0x11_11_11, false, "  1 Claude Code (Work)                 "),
+    (9, 42, 0x8a_8a_8a, 0x11_11_11, false, "working"),
+    (9, 49, 0xff_ff_ff, 0x11_11_11, false, "                            "),
+    (9, 77, 0xff_ff_ff, 0x00_00_00, false, " "),
+    (9, 78, 0x80_80_80, 0x00_00_00, false, "┃"),
+    (10, 0, 0xff_ff_ff, 0x11_11_11, false, "  "),
+    (10, 2, 0x11_11_11, 0x11_11_11, false, " "),
+    (10, 3, 0xff_ff_ff, 0x11_11_11, false, "  2 Codex (Primary)                       "),
+    (10, 45, 0x8a_8a_8a, 0x11_11_11, false, "idle"),
+    (10, 49, 0xff_ff_ff, 0x11_11_11, false, "                            "),
+    (10, 77, 0xff_ff_ff, 0x00_00_00, false, " "),
+    (10, 78, 0x80_80_80, 0x00_00_00, false, "┃"),
+    (11, 0, 0xff_ff_ff, 0x11_11_11, false, "  "),
+    (11, 2, 0x11_11_11, 0x11_11_11, false, " "),
+    (
+        11,
+        3,
+        0xff_ff_ff,
+        0x11_11_11,
+        false,
+        "  3 Shell                                                                 ",
+    ),
+    (11, 77, 0xff_ff_ff, 0x00_00_00, false, " "),
+    (11, 78, 0x80_80_80, 0x00_00_00, false, "┃"),
+    (12, 0, 0xff_ff_ff, 0x11_11_11, false, "  "),
+    (12, 2, 0x11_11_11, 0x11_11_11, false, " "),
+    (12, 3, 0xff_ff_ff, 0x11_11_11, false, "  4 docs                               "),
+    (12, 42, 0x8a_8a_8a, 0x11_11_11, false, "blocked"),
+    (12, 49, 0xff_ff_ff, 0x11_11_11, false, "                            "),
+    (12, 77, 0xff_ff_ff, 0x00_00_00, false, " "),
+    (12, 78, 0x80_80_80, 0x00_00_00, false, "┃"),
+    (
+        13,
+        0,
+        0xff_ff_ff,
+        0x11_11_11,
+        false,
+        "                                                                             ",
+    ),
+    (13, 77, 0xff_ff_ff, 0x00_00_00, false, " "),
+    (13, 78, 0x80_80_80, 0x00_00_00, false, "┃"),
+    (
+        14,
+        0,
+        0xff_ff_ff,
+        0x11_11_11,
+        false,
+        "                                                                             ",
+    ),
+    (14, 77, 0xff_ff_ff, 0x00_00_00, false, " "),
+    (14, 78, 0x80_80_80, 0x00_00_00, false, "┃"),
+    (
+        15,
+        0,
+        0xff_ff_ff,
+        0x11_11_11,
+        false,
+        "                                                                             ",
+    ),
+    (15, 77, 0xff_ff_ff, 0x00_00_00, false, " "),
+    (15, 78, 0x47_47_47, 0x00_00_00, false, "┆"),
+    (16, 0, 0xff_ff_ff, 0x11_11_11, false, "  "),
+    (
+        16,
+        2,
+        0x8a_8a_8a,
+        0x11_11_11,
+        false,
+        "The status bar below sits on its own plane: three groups, no separator glyp",
+    ),
+    (16, 77, 0xff_ff_ff, 0x00_00_00, false, " "),
+    (16, 78, 0x47_47_47, 0x00_00_00, false, "┆"),
+    (17, 0, 0xff_ff_ff, 0x11_11_11, false, "  "),
+    (
+        17,
+        2,
+        0x8a_8a_8a,
+        0x11_11_11,
+        false,
+        "items that do not fit collapse into a … that shows them on hover, by priori",
+    ),
+    (17, 77, 0xff_ff_ff, 0x00_00_00, false, " "),
+    (17, 78, 0x47_47_47, 0x00_00_00, false, "┆"),
+    (18, 0, 0xff_ff_ff, 0x11_11_11, false, "  "),
+    (18, 2, 0x8a_8a_8a, 0x11_11_11, false, "64-column row shows the center going first."),
+    (18, 45, 0xff_ff_ff, 0x11_11_11, false, "                                "),
+    (18, 77, 0xff_ff_ff, 0x00_00_00, false, " "),
+    (18, 78, 0x47_47_47, 0x00_00_00, false, "┆"),
+    (
+        19,
+        0,
+        0xff_ff_ff,
+        0x11_11_11,
+        false,
+        "                                                                             ",
+    ),
+    (19, 77, 0xff_ff_ff, 0x00_00_00, false, " "),
+    (19, 78, 0x47_47_47, 0x00_00_00, false, "┆"),
+    (20, 0, 0xff_ff_ff, 0x11_11_11, false, "  "),
+    (
+        20,
+        2,
+        0x8a_8a_8a,
+        0x11_11_11,
+        false,
+        "Brand: one lockup, accent-filled, the only accent-filled control.",
+    ),
+    (20, 67, 0xff_ff_ff, 0x11_11_11, false, "          "),
+    (20, 77, 0xff_ff_ff, 0x00_00_00, false, " "),
+    (20, 78, 0x47_47_47, 0x00_00_00, false, "┆"),
+    (
+        21,
+        0,
+        0xff_ff_ff,
+        0x11_11_11,
+        false,
+        "                                                                             ",
+    ),
+    (21, 77, 0xff_ff_ff, 0x00_00_00, false, " "),
+    (21, 78, 0x47_47_47, 0x00_00_00, false, "┆"),
+    (22, 0, 0xff_ff_ff, 0x11_11_11, false, "  "),
+    (22, 2, 0x8a_8a_8a, 0x11_11_11, false, "checks "),
+    (22, 9, 0x3f_b9_50, 0x11_11_11, false, "2 ok"),
+    (22, 13, 0x8a_8a_8a, 0x11_11_11, false, " · "),
+    (22, 16, 0xf0_5d_5d, 0x11_11_11, true, "1 failed"),
+    (22, 24, 0x8a_8a_8a, 0x11_11_11, false, " · 1 cancelled"),
+    (22, 38, 0xff_ff_ff, 0x11_11_11, false, "                                       "),
+    (22, 77, 0xff_ff_ff, 0x00_00_00, false, " "),
+    (22, 78, 0x47_47_47, 0x00_00_00, false, "┆"),
+    (23, 0, 0xff_ff_ff, 0x11_11_11, false, "   "),
+    (23, 3, 0xff_ff_ff, 0x11_11_11, true, "Ctrl+S"),
+    (23, 9, 0xff_ff_ff, 0x11_11_11, false, " "),
+    (23, 10, 0x8a_8a_8a, 0x11_11_11, false, "Save"),
+    (23, 14, 0xff_ff_ff, 0x11_11_11, false, "                        "),
+    (23, 38, 0x3f_b9_50, 0x11_11_11, false, "✓ Saved"),
+    (23, 45, 0xff_ff_ff, 0x11_11_11, false, "                                "),
+    (23, 77, 0xff_ff_ff, 0x00_00_00, false, " "),
+    (23, 78, 0x47_47_47, 0x00_00_00, false, "┆"),
+    (
+        24,
+        0,
+        0xff_ff_ff,
+        0x11_11_11,
+        false,
+        "                                                                             ",
+    ),
+    (24, 77, 0xff_ff_ff, 0x00_00_00, false, " "),
+    (24, 78, 0x47_47_47, 0x00_00_00, false, "┆"),
+    (
+        25,
+        0,
+        0x80_80_80,
+        0x00_00_00,
+        false,
+        "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━",
+    ),
+    (25, 66, 0x47_47_47, 0x00_00_00, false, "┄┄┄┄┄┄┄┄┄┄┄┄"),
+    (25, 78, 0xff_ff_ff, 0x00_00_00, false, " "),
+];
+
 #[derive(Debug, Default)]
 pub struct ChromePage {
     brand_clicks: u32,
@@ -1718,6 +1987,11 @@ impl Page for ChromePage {
         // 134×46 is the page rect inside the 160×50 shell.
         if area.width == 134 && area.height == 46 {
             paint_wide_160x50(ui, area);
+            return;
+        }
+        // 79×26 is the page rect inside the 100×30 shell.
+        if area.width == 79 && area.height == 26 {
+            paint_medium_100x30(ui, area);
             return;
         }
         frame(ui, area, self.title(), "", |ui, body| {
@@ -1844,5 +2118,26 @@ mod tests {
         assert!(!pct.modifier.contains(Modifier::BOLD));
         assert!(h.text().contains("places 5 of 8"));
         assert!(!h.cell(0, 1).modifier.contains(Modifier::BOLD));
+    }
+
+    #[test]
+    fn medium_page_matches_the_100x30_chrome_cells() {
+        let h = Harness::new(Host, Theme::junie(), 79, 26);
+        let hint = h.cell(47, 7);
+        assert_eq!(hint.symbol(), "r");
+        assert_eq!(hint.fg, Color::Rgb(115, 115, 115));
+        assert_eq!(hint.bg, Color::Rgb(17, 17, 17));
+        assert!(!hint.modifier.contains(Modifier::BOLD));
+        assert_eq!(h.cell(54, 9).symbol(), " ");
+        assert_eq!(h.cell(2, 16).symbol(), "T");
+        let bar = h.cell(0, 25);
+        assert_eq!(bar.symbol(), "━");
+        assert_eq!(bar.fg, Color::Rgb(128, 128, 128));
+        assert_eq!(bar.bg, Color::Rgb(0, 0, 0));
+        assert!(!bar.modifier.contains(Modifier::BOLD));
+        assert_eq!(h.cell(66, 25).symbol(), "┄");
+        assert_eq!(h.cell(78, 25).symbol(), " ");
+        assert_eq!(h.cell(78, 15).symbol(), "┆");
+        assert_eq!(h.cell(78, 5).symbol(), "┃");
     }
 }
