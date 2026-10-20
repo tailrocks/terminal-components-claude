@@ -1446,7 +1446,14 @@ impl<'a> Form<'a> {
         data: &mut D,
     ) -> Response<FormAction> {
         st.reconcile_fields_with_data(self.fields, data);
-        let area = cx.area(self.id).unwrap_or_default();
+        // A Form is a logical owner, not a covering hit region. Its composed
+        // bounds are published with the preceding draw and remain available
+        // here even when every hit-test region belongs to a child control.
+        let area = cx
+            .layout(self.id)
+            .and_then(|facts| facts.logical_area)
+            .or_else(|| cx.area(self.id))
+            .unwrap_or_default();
         let body = Rect {
             height: area
                 .height
@@ -1764,10 +1771,8 @@ impl<'a> Form<'a> {
             }
         }
         self.draw_actions(ui, area);
-        // Expose the actual composed form bounds to the next update pass. This
-        // is a decorative owner region, not a focusable or hit-test control.
-        ui.register_decor(self.id, PartRef::of(Part::BODY), body);
-        ui.register_decor(self.id, PartRef::of(Part::CONTAINER), area);
+        // Publish logical bounds for the next update pass without placing a
+        // parent hit region over the child fields and action buttons.
         ui.report_layout(
             self.id,
             LayoutFacts::new(usize::from(body.height), max_rows, area.height, area.width)
