@@ -196,6 +196,9 @@ pub struct StepsState {
     frontier_revision: u64,
 }
 
+type MetadataFn<'a, T> = dyn for<'item> Fn(&'item T) -> Option<&'item str> + 'a;
+type LabelWidthFn<'a, T> = dyn Fn(&T) -> u16 + 'a;
+
 impl StepsState {
     #[must_use]
     pub const fn new() -> Self {
@@ -240,6 +243,9 @@ pub struct Steps<'a, T, K = ByIndex, R = DefaultRow> {
     key: K,
     row: R,
     step: Option<&'a dyn Fn(&T) -> StepState>,
+    metadata: Option<&'a MetadataFn<'a, T>>,
+    label_width: Option<&'a LabelWidthFn<'a, T>>,
+    numbered: bool,
     navigable: bool,
     disabled: bool,
     ov: PartStyle<'a>,
@@ -268,6 +274,9 @@ impl<T> Steps<'_, T, ByIndex, DefaultRow> {
             key: ByIndex,
             row: DefaultRow,
             step: None,
+            metadata: None,
+            label_width: None,
+            numbered: false,
             navigable: false,
             disabled: false,
             ov: PartStyle::new(),
@@ -315,12 +324,51 @@ impl<'a, T, K, R> Steps<'a, T, K, R> {
         self
     }
 
+    /// Show a one-based ordinal before each label.
+    ///
+    /// The default leaves the existing row layout unchanged. Numbered rows
+    /// reserve a three-cell number lane, including its following gap.
+    #[must_use]
+    pub const fn numbered(mut self, yes: bool) -> Self {
+        self.numbered = yes;
+        self
+    }
+
+    /// Read optional trailing metadata from borrowed item data.
+    ///
+    /// Without this accessor, the current state label remains the trailing
+    /// metadata. When configured, `None` hides metadata for that item.
+    pub fn metadata<F>(mut self, f: &'a F) -> Self
+    where
+        F: for<'item> Fn(&'item T) -> Option<&'item str> + 'a,
+    {
+        self.metadata = Some(f);
+        self
+    }
+
+    /// Supply the terminal-cell width of the label produced by a custom row.
+    ///
+    /// Measurement cannot invoke the row renderer because it paints into the
+    /// terminal. Custom rows that need intrinsic sizing beyond the 12-cell
+    /// label minimum can provide a pure data projection here. The projection
+    /// must describe the label actually rendered by the row callback.
+    pub fn measure_label_width<F>(mut self, f: &'a F) -> Self
+    where
+        F: Fn(&T) -> u16 + 'a,
+    {
+        self.label_width = Some(f);
+        self
+    }
+
     pub fn key<K2: Fn(&T) -> ItemKey>(self, k: K2) -> Steps<'a, T, K2, R> {
         Steps {
             id: self.id,
             key: k,
             row: self.row,
             step: self.step,
+            metadata: self.metadata,
+            label_width: self.label_width,
+            numbered: self.numbered,
             navigable: self.navigable,
             disabled: self.disabled,
             ov: self.ov,
@@ -337,6 +385,9 @@ impl<'a, T, K, R> Steps<'a, T, K, R> {
             key: self.key,
             row: r,
             step: self.step,
+            metadata: self.metadata,
+            label_width: self.label_width,
+            numbered: self.numbered,
             navigable: self.navigable,
             disabled: self.disabled,
             ov: self.ov,
@@ -696,11 +747,15 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Steps<'_, T, K, R> {
                 width: content.width,
                 height: 1,
             };
-            self.paint_row(ui, rect, flags, key, step, item);
+            self.paint_row(ui, rect, flags, key, step, i, item);
         }
         area
     }
 
+    #[expect(
+        clippy::too_many_arguments,
+        reason = "one row uses its resolved state, stable identity, ordinal, and borrowed item"
+    )]
     fn paint_row(
         &self,
         ui: &mut Ui<'_>,
@@ -708,6 +763,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Steps<'_, T, K, R> {
         flags: StateFlags,
         key: ItemKey,
         step: StepState,
+        ordinal: usize,
         item: &T,
     ) {
         let row_style = self.ov.style(
@@ -767,10 +823,46 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Steps<'_, T, K, R> {
             width: rect.width.saturating_sub(3),
             ..rect
         };
-        let meta_width = crate::text::width(step.label());
-        if meta_width > 0 && meta_width.saturating_add(2) <= body.width {
+        if self.numbered {
+            let number = format!("{:02}", ordinal.saturating_add(1));
+            let number_width = number.len().max(2);
+            let number_rect = Rect {
+                x: body.x,
+                width: number_width.min(usize::from(body.width)) as u16,
+                ..body
+            };
+            let number_style = self.ov.style(
+                ui,
+                self.id,
+                Family::STEPS,
+                Variant::DEFAULT,
+                Part::META,
+                flags,
+            );
+            ui.paint_str(number_rect, &number, number_style.style);
+            let advance = number_width.saturating_add(1).min(usize::from(u16::MAX)) as u16;
+            body.x = body.x.saturating_add(advance);
+            body.width = body.width.saturating_sub(advance);
+        }
+        let metadata = self
+            .metadata
+            .and_then(|metadata| metadata(item))
+            .or_else(|| self.metadata.is_none().then(|| step.label()));
+        let meta_width = metadata.map_or(0, crate::text::width);
+        let configured_layout = self.numbered || self.metadata.is_some();
+        let metadata_fits = metadata.is_some()
+            && meta_width > 0
+            && if configured_layout {
+                meta_width.saturating_add(15) <= body.width
+            } else {
+                meta_width.saturating_add(2) <= body.width
+            };
+        if metadata_fits {
             let meta = Rect {
-                x: body.right().saturating_sub(meta_width),
+                x: body
+                    .right()
+                    .saturating_sub(meta_width)
+                    .saturating_sub(u16::from(configured_layout)),
                 width: meta_width,
                 ..body
             };
@@ -782,8 +874,10 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Steps<'_, T, K, R> {
                 Part::META,
                 flags,
             );
-            ui.paint_str(meta, step.label(), style.style);
-            body.width = body.width.saturating_sub(meta_width.saturating_add(1));
+            ui.paint_str(meta, metadata.unwrap_or_default(), style.style);
+            body.width = body
+                .width
+                .saturating_sub(meta_width.saturating_add(if configured_layout { 3 } else { 1 }));
         }
         if !body.is_empty() {
             let mut r = RowUi::new_with_patches(
@@ -806,8 +900,82 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Steps<'_, T, K, R> {
 
     pub fn measure(&self, _ui: &Ui<'_>, c: Constraints) -> Size {
         Size {
-            min: (12, 1),
+            min: (12 + if self.numbered { 6 } else { 0 }, 1),
             preferred: (Self::PREFERRED_WIDTH, c.max.1),
+        }
+        .fit(c)
+    }
+
+    /// Measure this rail from its borrowed items without updating component state.
+    ///
+    /// Labels use the optional pure width projection first, then the row's
+    /// intrinsic label width when available, and otherwise a 12-cell minimum.
+    /// Measurement does not call the row painter or application state
+    /// projection.
+    pub fn measure_with_items(&self, _ui: &Ui<'_>, c: Constraints, items: &[T]) -> Size {
+        let number_lane = if self.numbered {
+            items
+                .len()
+                .max(1)
+                .to_string()
+                .len()
+                .max(2)
+                .saturating_add(1)
+        } else {
+            0
+        };
+        let prefix = 3usize.saturating_add(number_lane);
+        let mut preferred = usize::from(Self::PREFERRED_WIDTH);
+        for (ordinal, item) in items.iter().enumerate() {
+            let label_width = self.label_width.map_or_else(
+                || self.row.intrinsic_label_width(item).unwrap_or(12),
+                |measure| measure(item),
+            );
+            let metadata = self.metadata.and_then(|metadata| metadata(item));
+            let metadata_width = if self.metadata.is_some() {
+                metadata.map_or(0, crate::text::width)
+            } else if self.numbered || self.step.is_some() {
+                // Keep the fallback state label visible without invoking the
+                // application-supplied state projection during measurement.
+                crate::text::width("skipped").max(crate::text::width("blocked"))
+            } else {
+                crate::text::width(StepState::Queued.label())
+            };
+            let row_prefix = if self.numbered {
+                ordinal
+                    .saturating_add(1)
+                    .to_string()
+                    .len()
+                    .max(2)
+                    .saturating_add(1)
+            } else {
+                0
+            };
+            let item_prefix = 3usize.saturating_add(row_prefix);
+            let label_and_meta = if metadata_width == 0 {
+                item_prefix.saturating_add(usize::from(label_width))
+            } else if self.numbered || self.metadata.is_some() {
+                item_prefix
+                    .saturating_add(usize::from(label_width.max(12)))
+                    .saturating_add(usize::from(metadata_width))
+                    .saturating_add(3)
+            } else {
+                item_prefix
+                    .saturating_add(usize::from(label_width))
+                    .saturating_add(usize::from(metadata_width))
+                    .saturating_add(1)
+            };
+            preferred = preferred.max(label_and_meta);
+        }
+
+        let minimum = if self.numbered || self.metadata.is_some() {
+            prefix.saturating_add(12)
+        } else {
+            12
+        };
+        Size {
+            min: (minimum.min(usize::from(u16::MAX)) as u16, 1),
+            preferred: (preferred.min(usize::from(u16::MAX)) as u16, c.max.1),
         }
         .fit(c)
     }
