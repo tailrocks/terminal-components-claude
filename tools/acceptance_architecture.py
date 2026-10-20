@@ -74,9 +74,10 @@ def dependency_location(root: Path, pkg: dict[str, Any], dep: dict[str, Any]) ->
     return None
 
 
-def production_files(root: Path, package_root: str, tracked: list[str], target_paths: list[str]) -> list[str]:
+def production_files(root: Path, package_root: str, tracked: list[str], target_paths: list[str]) -> tuple[list[str], list[str]]:
     prefix = package_root.rstrip("/") + "/"
     out = list(target_paths)
+    errors: list[str] = []
     for path in tracked:
         if path == prefix + "Cargo.toml" or path == prefix + "build.rs":
             out.append(path)
@@ -89,15 +90,37 @@ def production_files(root: Path, package_root: str, tracked: list[str], target_p
             out.append(path)
     source_dir = root / package_root
     if source_dir.exists():
-        for path in source_dir.rglob("*"):
-            rel_parts = path.relative_to(source_dir).parts
-            if any(part in {"tests", "examples", "benches", "target", ".git"} for part in rel_parts[:-1]):
+        excluded = {"tests", "examples", "benches", "target", ".git"}
+        pending = [(source_dir, source_dir.resolve(strict=True), (source_dir.resolve(strict=True),))]
+        while pending:
+            logical_dir, actual_dir, ancestors = pending.pop()
+            try:
+                entries = sorted(actual_dir.iterdir(), key=lambda item: item.name)
+            except OSError as exc:
+                errors.append(f"unreadable production source directory {logical_dir}: {exc}")
                 continue
-            if path.is_file() or path.is_symlink():
-                rel = path.relative_to(root).as_posix()
-                if path.suffix == ".rs" or (path.parts and "src" in rel_parts and path.suffix in SOURCE_SUFFIXES):
-                    out.append(rel)
-    return sorted(set(out))
+            for entry in entries:
+                if entry.name in excluded:
+                    continue
+                logical_path = logical_dir / entry.name
+                try:
+                    resolved = logical_path.resolve(strict=True)
+                    resolved.relative_to(root)
+                    is_dir = logical_path.is_dir()
+                except (OSError, ValueError) as exc:
+                    errors.append(f"unreadable or out-of-root production input {logical_path.relative_to(root)}: {exc}")
+                    continue
+                if is_dir:
+                    if resolved in ancestors:
+                        errors.append(f"recursive production source directory symlink cycle: {logical_path.relative_to(root)}")
+                        continue
+                    pending.append((logical_path, resolved, (*ancestors, resolved)))
+                else:
+                    rel_parts = logical_path.relative_to(source_dir).parts
+                    rel = logical_path.relative_to(root).as_posix()
+                    if logical_path.suffix == ".rs" or ("src" in rel_parts and logical_path.suffix in SOURCE_SUFFIXES):
+                        out.append(rel)
+    return sorted(set(out)), errors
 
 
 def read_source(root: Path, rel: str, tracked: set[str]) -> bytes:
@@ -301,7 +324,8 @@ def check(root: Path) -> dict[str, Any]:
             target_paths.append(target_rel)
             if "custom-build" in target.get("kind", []):
                 report["unaccounted_inputs"].append(f"build-generated production inputs require independent accounting: {target_rel}")
-        files = production_files(root, pkg_rel_root, tracked, target_paths)
+        files, scan_errors = production_files(root, pkg_rel_root, tracked, target_paths)
+        report["errors"].extend(scan_errors)
         if rel_manifest not in files:
             files.append(rel_manifest)
         for rel in sorted(set(files)):
