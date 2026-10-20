@@ -18,32 +18,8 @@ const CREDENTIALS: &str = "credentials  5 accounts · Claude · Work (1Password)
 const CREDENTIAL_VALUE: &str = "quota readable · session choice";
 const SPINNER: &str = "⠋";
 
-/// Footer for the 120×40 info and cancel frames. The presentation blit still
-/// shows the closed-cockpit hints, and the dim leaves the last row alone.
-pub(super) fn paint_open_footer(ui: &mut Ui<'_>, cancel: bool) {
-    let screen = ui.full();
-    if screen.height == 0 {
-        return;
-    }
-    let mut buf = Buffer::empty(screen);
-    let y = screen.bottom().saturating_sub(1);
-    for x in 0..screen.width {
-        put(&mut buf, x, y, ' ', ink(0x00ff_ffff, 0, false));
-    }
-    let hints: &[(&str, &str)] = if cancel {
-        &[
-            ("←→", "Choose"),
-            ("Enter", "Keep launching"),
-            ("Esc", "Keep launching"),
-        ]
-    } else {
-        &[("↑↓", "Move"), ("y", "Copy"), ("Esc", "Close")]
-    };
-    paint_footer(&mut buf, screen, hints);
-    emphasize_footer(&mut buf, screen, cancel);
-    blit(ui, &buf, Rect::new(screen.x, y, screen.width, 1));
-}
-
+/// Paused launch cockpit for the launch scene. Geometry follows the baseline
+/// `CockpitScreen::render` plus the shell strip.
 pub(super) fn paint(app: &App, ui: &mut Ui<'_>) {
     let screen = ui.full();
     let Some(launch) = app.launch() else {
