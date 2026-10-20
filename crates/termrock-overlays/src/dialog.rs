@@ -689,13 +689,19 @@ impl<'a> Dialog<'a> {
         self.body_rows.unwrap_or(d.size.code_preview_lines)
     }
 
-    fn configured_action_widths(&self) -> Vec<u16> {
+    fn action_widths_with(
+        &self,
+        mut effective_chord: impl FnMut(Id, ActionKey, Option<Chord>) -> Option<Chord>,
+    ) -> Vec<u16> {
         self.effective_actions()
             .iter()
-            .map(|action| {
-                let chord = action.chord_ref().map_or(0, |chord| {
-                    width(ChordText::of(chord).as_str()).saturating_add(1)
-                });
+            .enumerate()
+            .map(|(index, action)| {
+                let chord =
+                    effective_chord(self.action_id(index), action.key(), action.chord_ref())
+                        .map_or(0, |chord| {
+                            width(ChordText::of(chord).as_str()).saturating_add(1)
+                        });
                 width(action.label())
                     .saturating_add(2)
                     .saturating_add(chord)
@@ -704,20 +710,11 @@ impl<'a> Dialog<'a> {
     }
 
     fn action_widths(&self, cx: &Cx<'_>) -> Vec<u16> {
-        self.effective_actions()
-            .iter()
-            .enumerate()
-            .map(|(index, action)| {
-                let chord = cx
-                    .effective_chord(self.action_id(index), action.key(), action.chord_ref())
-                    .map_or(0, |chord| {
-                        width(ChordText::of(chord).as_str()).saturating_add(1)
-                    });
-                width(action.label())
-                    .saturating_add(2)
-                    .saturating_add(chord)
-            })
-            .collect()
+        self.action_widths_with(|owner, action, default| cx.effective_chord(owner, action, default))
+    }
+
+    fn action_widths_ui(&self, ui: &Ui<'_>) -> Vec<u16> {
+        self.action_widths_with(|owner, action, default| ui.effective_chord(owner, action, default))
     }
 
     fn layout(&self, outer: Rect, d: &DesignTokens, action_widths: &[u16]) -> DialogLayout {
@@ -834,7 +831,8 @@ impl<'a> Dialog<'a> {
     }
 
     pub fn measured_height(&self, d: &DesignTokens) -> u16 {
-        self.measured_height_for_width(d, self.measured_width(d), &self.configured_action_widths())
+        let action_widths = self.action_widths_with(|_, _, default| default);
+        self.measured_height_for_width(d, self.measured_width(d), &action_widths)
     }
 
     fn measured_height_for_width(
@@ -894,20 +892,7 @@ impl<'a> Dialog<'a> {
         st: &DialogState,
         body: impl FnOnce(&mut Ui<'_>, Rect) -> R,
     ) -> R {
-        let mut action_widths = Vec::with_capacity(self.action_count());
-        for action in self.effective_actions() {
-            let action_id = self.action_id(action_widths.len());
-            let chord_width = ui
-                .effective_chord(action_id, action.key(), action.chord_ref())
-                .map_or(0, |chord| {
-                    width(ChordText::of(chord).as_str()).saturating_add(1)
-                });
-            let button_width = Button::new(action_id, action.label())
-                .measure(ui, Constraints::loose(area.width.saturating_sub(6), 1))
-                .preferred
-                .0;
-            action_widths.push(button_width.saturating_add(chord_width));
-        }
+        let action_widths = self.action_widths_ui(ui);
         let rect = self.frame_rect(ui, area, &action_widths);
         let chrome = if rect.width < 4 || rect.height < 4 {
             Rect {
@@ -1090,7 +1075,7 @@ impl<'a> Dialog<'a> {
             min: (20, 6),
             preferred: (
                 width,
-                self.measured_height_for_width(d, width, &self.configured_action_widths()),
+                self.measured_height_for_width(d, width, &self.action_widths_ui(ui)),
             ),
         }
         .fit(c)
@@ -1122,6 +1107,19 @@ mod tests {
     const DLG: Id = Id::root("dialog.tests");
     const BODY: Id = Id::root("dialog.tests.body");
     const TOKEN: &str = "delete";
+    const REMAPPED_ACTIONS: [Action<'static>; 2] = [
+        Action::new(ActionKey::custom("go"), "Go"),
+        Action::new(ActionKey::custom("do"), "Do"),
+    ];
+
+    fn remapped_dialog() -> Dialog<'static> {
+        Dialog::new(DLG)
+            .title("Title")
+            .description("Keep")
+            .width(20)
+            .body_rows(0)
+            .actions(&REMAPPED_ACTIONS)
+    }
 
     fn confirm() -> Dialog<'static> {
         Dialog::confirm(DLG, "Remove person", "Remove this person from the roster?")
@@ -1490,6 +1488,159 @@ mod tests {
             "measured height {} hid title: {rendered}",
             dialog.measured_height(&Theme::junie().design)
         );
+    }
+
+    #[test]
+    fn remapped_shortcuts_are_shared_by_measure_layer_and_draw() {
+        struct ShortcutApp {
+            keymap: KeyMap,
+            state: DialogState,
+            opened: bool,
+            measured_height: Cell<u16>,
+        }
+
+        impl App for ShortcutApp {
+            fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+                if !self.opened {
+                    self.opened = true;
+                    cx.open_layer(DLG, remapped_dialog().layer(cx));
+                }
+                remapped_dialog().update(cx, &mut self.state).erase()
+            }
+
+            fn draw(&self, ui: &mut Ui<'_>) {
+                ui.layer(DLG, |ui, area| {
+                    let size = remapped_dialog()
+                        .measure(ui, Constraints::loose(ui.full().width, ui.full().height))
+                        .preferred;
+                    self.measured_height.set(size.1);
+                    remapped_dialog().draw(
+                        ui,
+                        Rect {
+                            height: size.1,
+                            ..area
+                        },
+                        &self.state,
+                        |_, _| {},
+                    );
+                });
+            }
+
+            fn keymap(&self) -> &KeyMap {
+                &self.keymap
+            }
+        }
+
+        let dialog = remapped_dialog();
+        let mut keymap = KeyMap::default();
+        keymap.remap_component(
+            dialog.action_id(0),
+            REMAPPED_ACTIONS[0].key(),
+            Chord::key(KeyCode::F(1)),
+        );
+        keymap.remap_component(
+            dialog.action_id(1),
+            REMAPPED_ACTIONS[1].key(),
+            Chord::key(KeyCode::F(12)),
+        );
+        let app = ShortcutApp {
+            keymap,
+            state: DialogState::default(),
+            opened: false,
+            measured_height: Cell::new(0),
+        };
+        let mut runtime = Runtime::new(app, Theme::junie());
+        let viewport = Rect::new(0, 0, 20, 30);
+        let mut buffer = Buffer::empty(viewport);
+        let _ = runtime.initialize();
+        runtime
+            .draw_buffer(viewport, &mut buffer)
+            .commit_presented();
+        let _ = crate::runtime::stub::deliver(&mut runtime, Input::Tick);
+        runtime
+            .draw_buffer(viewport, &mut buffer)
+            .commit_presented();
+        let measured = runtime.app().measured_height.get();
+        let rendered: String = buffer.content().iter().map(|cell| cell.symbol()).collect();
+        assert!(
+            rendered.contains("Keep"),
+            "description clipped at measured height {measured}: {rendered}"
+        );
+        let container = runtime
+            .area_of_part(DLG, PartRef::of(Part::CONTAINER))
+            .expect("measured dialog container was drawn");
+        assert_eq!(container.height, measured);
+        assert_eq!(
+            runtime.open_spec(DLG).expect("dialog layer").size,
+            LayerSize::Fixed(20, measured)
+        );
+    }
+
+    #[test]
+    fn disabled_action_shortcuts_still_participate_in_shared_measurement() {
+        struct ShortcutApp {
+            keymap: KeyMap,
+        }
+
+        impl App for ShortcutApp {
+            fn update(&mut self, _cx: &mut Cx<'_>) -> Response<()> {
+                Response::ignored()
+            }
+
+            fn draw(&self, _ui: &mut Ui<'_>) {}
+
+            fn keymap(&self) -> &KeyMap {
+                &self.keymap
+            }
+        }
+
+        const ACTIONS: [Action<'static>; 2] = [
+            Action::new(ActionKey::custom("go"), "Go"),
+            Action::new(ActionKey::custom("disabled"), "Do").enabled(false),
+        ];
+        let dialog = Dialog::new(DLG)
+            .title("Title")
+            .width(20)
+            .body_rows(0)
+            .actions(&ACTIONS);
+        let mut keymap = KeyMap::default();
+        keymap.remap_component(
+            dialog.action_id(0),
+            ACTIONS[0].key(),
+            Chord::key(KeyCode::F(1)),
+        );
+        keymap.remap_component(
+            dialog.action_id(1),
+            ACTIONS[1].key(),
+            Chord::key(KeyCode::F(12)),
+        );
+        let mut runtime = Runtime::new(ShortcutApp { keymap }, Theme::junie());
+        let viewport = Rect::new(0, 0, 20, 30);
+        let mut buffer = Buffer::empty(viewport);
+        let mut measured = 0;
+        runtime
+            .draw_scene(viewport, &mut buffer, |ui, area| {
+                measured = dialog
+                    .measure(ui, Constraints::loose(viewport.width, viewport.height))
+                    .preferred
+                    .1;
+                dialog.draw(
+                    ui,
+                    Rect {
+                        height: measured,
+                        ..area
+                    },
+                    &DialogState::default(),
+                    |_, _| {},
+                );
+            })
+            .commit_presented();
+        assert!(runtime.area_of(dialog.action_id(0)).is_some());
+        assert!(runtime.area_of(dialog.action_id(1)).is_some());
+        let container = runtime
+            .area_of_part(DLG, PartRef::of(Part::CONTAINER))
+            .expect("measured dialog container was drawn");
+        assert_eq!(container.height, measured);
     }
 
     #[test]
