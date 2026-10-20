@@ -258,12 +258,12 @@ class RunnerGuards(unittest.TestCase):
         name = runner.EXTENSION_CASE_PREFIX + "sort::80x24::truecolor"
         case = name
         manifest = {"generated_case_ids": [name], "checkpoint_obligations": {name: ["before", "sorted"]}}
-        receipts = {(case, 0, "before"): "1" * 64, (case, 1, "sorted"): "2" * 64}
+        receipts = {(case, 0, name + "/before"): "1" * 64, (case, 1, name + "/sorted"): "2" * 64}
         self.assertEqual(runner.scenario_receipt_id(name, manifest), name)
         self.assertEqual(runner.scenario_receipt_id("showcase::overview::120x40::truecolor", manifest), "showcase/overview/120x40/truecolor")
         self.assertEqual(runner.validate_extension_checkpoint_receipts([name], receipts, manifest), [])
         with self.assertRaisesRegex(runner.RunnerError, "checkpoint obligations differ"):
-            runner.validate_extension_checkpoint_receipts([name], {(case, 0, "sorted"): "1" * 64}, manifest)
+            runner.validate_extension_checkpoint_receipts([name], {(case, 0, name + "/sorted"): "1" * 64}, manifest)
 
     def test_registered_cli_green_does_not_claim_overall_acceptance(self) -> None:
         report = runner.cli_coverage_report_fields(True)
