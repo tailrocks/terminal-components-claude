@@ -21,6 +21,16 @@ pub enum ButtonCmd {
     Activate,
 }
 
+/// Controls whether pointer focus receives the button's visible focus treatment.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub enum ButtonFocusVisibility {
+    /// Show the focus treatment whenever this button is focused.
+    #[default]
+    Always,
+    /// Show the focus treatment only when the runtime marks focus as keyboard-visible.
+    KeyboardOnly,
+}
+
 const BINDINGS: &[Binding<ButtonCmd>] = &[
     Binding {
         action: ActionKey::custom("button.activate.enter"),
@@ -49,6 +59,7 @@ pub struct Button<'a> {
     id: Id,
     label: &'a str,
     variant: Variant,
+    focus_visibility: ButtonFocusVisibility,
     disabled: bool,
     icon: Option<GlyphRole>,
     autofocus: bool,
@@ -63,6 +74,7 @@ impl fmt::Debug for Button<'_> {
             .field("id", &self.id)
             .field("label", &self.label)
             .field("variant", &self.variant)
+            .field("focus_visibility", &self.focus_visibility)
             .field("disabled", &self.disabled)
             .field("status", &self.status)
             .field("checked", &self.checked)
@@ -85,6 +97,7 @@ impl<'a> Button<'a> {
             id,
             label,
             variant: Variant::DEFAULT,
+            focus_visibility: ButtonFocusVisibility::Always,
             disabled: false,
             icon: None,
             autofocus: false,
@@ -101,6 +114,12 @@ impl<'a> Button<'a> {
     #[must_use]
     pub const fn variant(mut self, v: Variant) -> Self {
         self.variant = v;
+        self
+    }
+
+    #[must_use]
+    pub const fn focus_visible(mut self, visibility: ButtonFocusVisibility) -> Self {
+        self.focus_visibility = visibility;
         self
     }
 
@@ -165,6 +184,7 @@ impl<'a> Button<'a> {
             id: self.id,
             label: self.label,
             variant: self.variant,
+            focus_visibility: self.focus_visibility,
             disabled: self.disabled || inherited,
             icon: self.icon,
             autofocus: self.autofocus,
@@ -227,7 +247,11 @@ impl<'a> Button<'a> {
     }
 
     fn marker_width(&self) -> u16 {
-        if self.checked.is_some() { 2 } else { 0 }
+        if self.checked.is_some() && !self.busy() {
+            2
+        } else {
+            0
+        }
     }
 
     fn natural_width(&self, _ui: &Ui<'_>) -> u16 {
@@ -275,6 +299,19 @@ impl<'a> Button<'a> {
         }
         if self.busy() {
             live = live.difference(StateFlags::PRESSED);
+        }
+        if self.focus_visibility == ButtonFocusVisibility::Always
+            && !ui.is_inert()
+            && !self.disabled
+            && !self.busy()
+            && live.contains(StateFlags::FOCUSED)
+        {
+            live |= StateFlags::FOCUS_VISIBLE;
+        } else if self.focus_visibility == ButtonFocusVisibility::KeyboardOnly
+            && live.contains(StateFlags::FOCUSED)
+            && !live.contains(StateFlags::FOCUS_VISIBLE)
+        {
+            live.remove(StateFlags::FOCUSED);
         }
         if !ui.is_inert() {
             ui.publish_bindings(self.id, live, BINDINGS);
@@ -340,7 +377,7 @@ impl<'a> Button<'a> {
             }
             text = shift(text, 2);
         }
-        if let Some(on) = self.checked {
+        if let Some(on) = self.checked.filter(|_| !self.busy()) {
             let marker_cell = Rect {
                 width: text.width.min(1),
                 ..text
