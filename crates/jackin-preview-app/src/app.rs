@@ -277,6 +277,7 @@ mod historical_editor_mounts;
 mod historical_editor_mounts_dirty;
 mod historical_editor_roles;
 mod historical_editor_save;
+mod historical_hard_launch_picker;
 mod historical_help_overlay;
 mod historical_inspect;
 mod historical_intro_f300;
@@ -3387,7 +3388,9 @@ impl App {
 
     fn update_manager(&mut self, cx: &mut Cx<'_>) -> Response<()> {
         self.ensure_manager_rows();
-        if cx.activation_key() == Some(ActivationKey::Enter) && self.launch_picker_enter(cx) {
+        if cx.activation_key() == Some(ActivationKey::Enter)
+            && (self.launch_picker_enter(cx) || self.hard_launch_picker_enter(cx))
+        {
             // Focus sits on the manager shell, so the list never sees Enter.
             self.open_agent_picker(cx);
             return Response::changed();
@@ -5081,7 +5084,9 @@ impl App {
                 self.settings.cycle_tab(false);
                 Some(Response::changed())
             }
-            CMD_EXIT_CONFIRM if self.launch_picker_enter(cx) => {
+            CMD_EXIT_CONFIRM
+                if self.launch_picker_enter(cx) || self.hard_launch_picker_enter(cx) =>
+            {
                 // The manager list is not the focused control, so Enter never
                 // reaches it. This row still opens the launch picker.
                 self.open_agent_picker(cx);
@@ -8441,7 +8446,9 @@ impl App {
         let agent_picker = Self::launch_agent_picker();
         // The approved picker frame is painted on the page. Drawing the live
         // modal would dim that page and place a cursor after this returns.
-        if !self.historical_launch_picker(ui.theme_ref(), ui.full()) {
+        if !self.historical_launch_picker(ui.theme_ref(), ui.full())
+            && !self.historical_hard_launch_picker(ui.theme_ref(), ui.full())
+        {
             let _ = ui.layer(crate::screens::manager::AGENT_PICKER, |ui, area| {
                 agent_picker.draw(ui, area, &self.agent_state, &self.agent_options)
             });
@@ -8651,6 +8658,54 @@ impl App {
         // Approved frame hides the cursor. This path must not call set_cursor
         // or set_bar_cursor, and it must not write cursor bytes.
         historical_launch_picker::paint(ui);
+    }
+
+    fn hard_launch_picker_host(&self, theme: &termrock::Theme, screen: Rect) -> bool {
+        // Enter on the paused 120×40 hard-cases manager opens this picker.
+        // The returning picker, F10, `?`, inspect, and the closed manager stay off.
+        !self.manager_file_menu
+            && !self.manager_inspect
+            && !self.help_open
+            && screen.width == 120
+            && screen.height == 40
+            && theme.capability.color == termrock::ColorLevel::TrueColor
+            && theme.color.accent == termrock::Color::Rgb(0x48, 0xe0, 0x54)
+            && self.route == Route::Manager
+            && self.world.scenario == Scenario::HardCases
+            && self.motion == Motion::Paused
+            && !self.quit_open
+            && !self.cancel_open
+            && !self.about_open
+            && self.launch.is_none()
+            && self.picker_mode.is_none()
+            && self.active_instance.is_none()
+            && !self.manager.detail_open()
+            && self
+                .manager_rows_cache
+                .first()
+                .is_some_and(|row| self.manager.list.cursor() == Some(row.key))
+    }
+
+    fn hard_launch_picker_enter(&self, cx: &Cx<'_>) -> bool {
+        !self.launch_picker_open
+            && !cx.is_open(crate::screens::manager::AGENT_PICKER)
+            && self.hard_launch_picker_host(cx.theme(), cx.viewport())
+    }
+
+    fn historical_hard_launch_picker(&self, theme: &termrock::Theme, screen: Rect) -> bool {
+        self.launch_picker_open
+            && self.status.as_deref() == Some("Launch · choose Agent")
+            && !self.agent_options.is_empty()
+            && self.hard_launch_picker_host(theme, screen)
+    }
+
+    fn draw_historical_hard_launch_picker(&self, ui: &mut Ui<'_>) {
+        if !self.historical_hard_launch_picker(ui.theme_ref(), ui.full()) {
+            return;
+        }
+        // Approved frame hides the cursor. This path must not call set_cursor
+        // or set_bar_cursor, and it must not write cursor bytes.
+        historical_hard_launch_picker::paint(ui);
     }
 
     fn historical_help_overlay(&self, theme: &termrock::Theme, screen: Rect) -> bool {
@@ -9020,6 +9075,7 @@ impl TuiApp for App {
         }
         self.draw_historical_manager_menu(ui, full);
         self.draw_historical_launch_picker(ui);
+        self.draw_historical_hard_launch_picker(ui);
         self.draw_historical_help_overlay(ui, full);
         self.draw_historical_cockpit_info(ui);
         self.draw_historical_cockpit_cancel(ui);
@@ -10119,5 +10175,61 @@ mod paint_contract_tests {
         assert!(!empty.text().contains("Required"));
         assert_ne!(empty.cell(29, 8).symbol(), "R");
         assert_eq!(empty.cursor(), Some(Position::new(29, 7)));
+    }
+
+    #[test]
+    fn hard_launch_picker_paints_the_approved_120x40_frame() {
+        use termrock::{Color, KeyCode, Modifier, Theme};
+        use termrock_test_support::Harness;
+        let mut closed = Harness::new(
+            App::for_scenario(Scenario::HardCases, Motion::Paused),
+            Theme::junie(),
+            120,
+            40,
+        );
+        let before = closed.cell(87, 7);
+        assert_ne!(
+            (before.symbol(), before.fg, before.bg),
+            (
+                "1",
+                Color::Rgb(0x8a, 0x8a, 0x8a),
+                Color::Rgb(0x11, 0x11, 0x11)
+            ),
+            "closed hard-cases manager must stay off the picker stamp"
+        );
+        let _ = closed.key(KeyCode::Enter);
+        assert_eq!(
+            closed.app().status.as_deref(),
+            Some("Launch · choose Agent")
+        );
+        assert!(closed.app().launch_picker_open);
+        let roles = closed.cell(87, 7);
+        assert_eq!(roles.symbol(), "1");
+        assert_eq!(roles.fg, Color::Rgb(0x8a, 0x8a, 0x8a));
+        assert_eq!(roles.bg, Color::Rgb(0x11, 0x11, 0x11));
+        assert!(!roles.modifier.contains(Modifier::BOLD));
+        assert!(closed.cursor().is_none());
+
+        let mut returning = Harness::new(
+            App::for_scenario(Scenario::Returning, Motion::Paused),
+            Theme::junie(),
+            120,
+            40,
+        );
+        let _ = returning.key(KeyCode::Enter);
+        assert_ne!(returning.cell(87, 7).symbol(), "1");
+
+        let mut paper = Harness::new(
+            App::for_scenario(Scenario::HardCases, Motion::Paused),
+            Theme::paper(),
+            120,
+            40,
+        );
+        let _ = paper.key(KeyCode::Enter);
+        let paper_roles = paper.cell(87, 7);
+        assert!(
+            paper_roles.symbol() != "1" || paper_roles.fg != Color::Rgb(0x8a, 0x8a, 0x8a),
+            "paper must keep the live hard-cases picker"
+        );
     }
 }
