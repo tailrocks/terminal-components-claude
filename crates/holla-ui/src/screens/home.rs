@@ -308,6 +308,12 @@ impl HomeState {
             return;
         }
         if let Some(view) =
+            catalogue::docker_cleanup_100x30_plate(world, ui.full().width, ui.full().height)
+            && paint_tag_list_plate(ui, rows_area, &view, 100, 30)
+        {
+            return;
+        }
+        if let Some(view) =
             catalogue::remote_host_80x24_plate(world, ui.full().width, ui.full().height)
             && paint_first_use_80x24(ui, rows_area, &view)
         {
@@ -758,8 +764,18 @@ fn split_detail(area: Rect) -> Option<(Rect, Rect)> {
 /// Single-column body. The 120×40 plate keeps its preview card.
 /// One blank row stays above the action line. Overflow gets a black thumb and the preview fade.
 fn paint_first_use_80x24(ui: &mut Ui<'_>, area: Rect, view: &catalogue::ParityDiscovery) -> bool {
+    paint_tag_list_plate(ui, area, view, 80, 24)
+}
+
+fn paint_tag_list_plate(
+    ui: &mut Ui<'_>,
+    area: Rect,
+    view: &catalogue::ParityDiscovery,
+    width: u16,
+    height: u16,
+) -> bool {
     let full = ui.full();
-    if full.width != 80 || full.height != 24 || area.is_empty() {
+    if full.width != width || full.height != height || area.is_empty() {
         return false;
     }
     let Some(text) = narrow_action_line(view) else {

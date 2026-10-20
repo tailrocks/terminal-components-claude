@@ -789,6 +789,23 @@ fn docker_cleanup_hints() -> HintLayer {
     }
 }
 
+/// 100×30 docker footer. `Esc Clear` stays. `Ctrl+↑↓ Scope` misses by one column, so the meta `…` paints.
+/// No status. The wide plate keeps `Clean Docker c…`.
+fn docker_cleanup_100x30_hints() -> HintLayer {
+    HintLayer {
+        hints: vec![
+            docker_hint("Type", "Search"),
+            docker_hint("↑↓", "Move"),
+            docker_hint("Enter", "Review…"),
+            docker_hint("Alt+Enter", "Alternatives…"),
+            docker_hint("Tab", "Preview"),
+            docker_hint("Esc", "Clear"),
+            docker_hint("Ctrl+↑↓", "Scope "),
+        ],
+        ..HintLayer::empty()
+    }
+}
+
 /// 80×24 docker footer. `Esc Clear` stays and `Tab Preview` becomes the meta `…`.
 /// The wide plate keeps list order and the `Clean Docker c…` status.
 fn docker_cleanup_80x24_hints() -> HintLayer {
@@ -1555,12 +1572,15 @@ impl App {
             && !self.menu.is_open()
         {
             let narrow = ui.full().width == 80 && ui.full().height == 24;
+            let mid = ui.full().width == 100 && ui.full().height == 30;
             let layer = if narrow {
                 docker_cleanup_80x24_hints()
+            } else if mid {
+                docker_cleanup_100x30_hints()
             } else {
                 docker_cleanup_hints()
             };
-            let parts = if narrow {
+            let parts = if narrow || mid {
                 ACTIVITIES_HINT_PARTS
             } else {
                 PARITY_HINT_PARTS
@@ -2624,6 +2644,79 @@ mod tests {
         assert!(!crate::sim::catalogue::docker_cleanup_tag_frame(
             &later.app().world
         ));
+    }
+    #[test]
+    fn docker_cleanup_100x30_frame_40_paints_the_mid_plate_and_later_seeks_keep_home() {
+        let plate = harness(
+            App::for_scenario(Scenario::DockerCleanup, Motion::Paused, 40),
+            Theme::junie(),
+            100,
+            30,
+        );
+        let text = plate.text();
+        let lines: Vec<&str> = text.lines().collect();
+        assert!(lines[6].contains("Results · 7"), "{}", lines[6]);
+        assert!(
+            lines[7].contains("› Clean Docker completely"),
+            "{}",
+            lines[7]
+        );
+        assert!(
+            lines[7].contains("18.4 GB reclaimable on devbox"),
+            "{}",
+            lines[7]
+        );
+        assert!(
+            lines[13].contains("Stop and remove all containers"),
+            "{}",
+            lines[13]
+        );
+        assert!(
+            lines[26].contains(
+                "→ docker stop acme-api-1 acme-worker-1 acme-sc…acme-db-1 acme-redis-1 · on devbox · destructive"
+            ),
+            "{}",
+            lines[26]
+        );
+        assert!(!lines[26].contains("Clean Docker"), "{}", lines[26]);
+        let ellipsis = plate.cell(87, 29);
+        assert_eq!(ellipsis.symbol(), "…");
+        assert_eq!(ellipsis.fg, Color::Rgb(0x73, 0x73, 0x73));
+        assert!(plate.diagnostics().is_empty(), "{:?}", plate.diagnostics());
+        assert!(catalogue::docker_cleanup_100x30_plate(&plate.app().world, 80, 24).is_none());
+        assert!(catalogue::docker_cleanup_100x30_plate(&plate.app().world, 120, 40).is_none());
+        let wide = harness(
+            App::for_scenario(Scenario::DockerCleanup, Motion::Paused, 40),
+            Theme::junie(),
+            120,
+            40,
+        );
+        assert!(
+            wide.text()
+                .lines()
+                .nth(15)
+                .unwrap()
+                .contains("docker stop acme…redis-1"),
+            "{}",
+            wide.text()
+        );
+        assert!(!wide.text().contains("acme-worker-1 acme-sc…acme-db-1"));
+        let narrow = harness(
+            App::for_scenario(Scenario::DockerCleanup, Motion::Paused, 40),
+            Theme::junie(),
+            80,
+            24,
+        );
+        assert!(!narrow.text().contains("acme-worker-1 acme-sc…acme-db-1"));
+        let later = harness(
+            App::for_scenario(Scenario::DockerCleanup, Motion::Paused, 4_000),
+            Theme::junie(),
+            100,
+            30,
+        );
+        assert!(!later.text().contains("Results · 7"));
+        assert!(later.text().contains("Suggested here"), "{}", later.text());
+        assert!(catalogue::docker_cleanup_100x30_plate(&later.app().world, 100, 30).is_none());
     }
     #[test]
     fn disk_cleanup_frame_40_paints_the_tag_plate_and_later_seeks_keep_home() {
