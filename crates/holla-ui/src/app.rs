@@ -420,9 +420,10 @@ fn parity_files_tag_plate(world: &World, width: u16, height: u16) -> bool {
         || crate::sim::catalogue::parity_files_120x40_plate(world, width, height).is_some()
 }
 
-/// 100×30 `parity-browser` plate. Files plates and every other size stay off.
+/// 80×24 and 100×30 `parity-browser` plates. Files plates and every other size stay off.
 fn parity_browser_tag_plate(world: &World, width: u16, height: u16) -> bool {
-    crate::sim::catalogue::parity_browser_100x30_plate(world, width, height).is_some()
+    crate::sim::catalogue::parity_browser_80x24_plate(world, width, height).is_some()
+        || crate::sim::catalogue::parity_browser_100x30_plate(world, width, height).is_some()
 }
 
 /// Tag parity-browser status at 100×30: cwd, then the size label. No branch.
