@@ -23,3 +23,15 @@ Preservation branch: `wip/parent-fields-runtime-blocker-20261021`. The exact Fie
 The unchanged isolated allocation test fails with inherited `NO_COLOR` present (one allocation versus zero expected), and passes when that variable is absent. Incoming `modal_backdrop` now reads `std::env::var_os("NO_COLOR")` on each paint. Independent diagnosis and a shared-layer repair are required; removing the variable is diagnostic evidence, not a gate workaround. Preserve incoming history and all reference artifacts. See [exact blocker evidence](../audits/2026-10-21-fields-publication-incoming-runtime-blocker.json).
 
 Next: independently review the incoming runtime change, fix the per-paint environment dependency without changing the test or hiding failures, rerun the complete scoped gate under the original environment, normally synchronize/push PR #38, and verify its remote SHA. All four applications remain incomplete.
+## Showcase Selection bypass removal (2026-10-21)
+
+Landed on `parity/termrock-visual-baseline`: the Selection page's ANSI
+frame-replay bypass (`selectable/frames.rs` + two `.ansi` fixtures) is
+replaced by the shared overlay `Dialog` and real selection rendering; the
+shell no longer calls `selectable.stamp(ui)`. Evidence, the two
+fixture-masked 120x40 captures that now fail on out-of-scope shell/nav/
+footer drift, and the remaining lower-tier backdrop question are recorded
+in `docs/audits/2026-10-21-selectable-bypass-removal.md`. Next steps:
+have the shell owners reconcile nav/sidebar/footer painting with the
+frozen captures (then re-approve on purpose), and hand the tier-dependent
+modal-backdrop mapping to the runtime owners.
