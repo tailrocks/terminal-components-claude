@@ -18,6 +18,20 @@ use crate::theme::{Family, GlyphRole, Slot, StylePatch, Surface, Variant};
 use crate::ui::{Cx, FrameRead, Ui};
 use termrock_feedback::keyhint::ChordText;
 
+const MENU_BAR_TITLE_VARIANT: Variant = Variant::custom("termrock.menu-bar-title");
+
+/// Controls whether pointer hover styles the whole menu bar or only its titles.
+///
+/// `Bar` preserves the standard menu component behavior. `Title` resolves
+/// title styling through the theme's `termrock.menu-bar-title` variant and
+/// keeps the surrounding bar unchanged during hover.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub enum MenuBarHoverScope {
+    #[default]
+    Bar,
+    Title,
+}
+
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct MenuItem<'a> {
     action: ActionKey,
@@ -813,6 +827,7 @@ pub struct MenuBar<'a> {
     menus: &'a [Menu<'a>],
     ov: PartStyle<'a>,
     chord_case: ChordCase,
+    hover_scope: MenuBarHoverScope,
 }
 
 impl fmt::Debug for MenuBar<'_> {
@@ -820,6 +835,7 @@ impl fmt::Debug for MenuBar<'_> {
         f.debug_struct("MenuBar")
             .field("id", &self.id)
             .field("menus", &self.menus.len())
+            .field("hover_scope", &self.hover_scope)
             .finish_non_exhaustive()
     }
 }
@@ -833,7 +849,15 @@ impl<'a> MenuBar<'a> {
             menus,
             ov: PartStyle::new(),
             chord_case: ChordCase::Preserve,
+            hover_scope: MenuBarHoverScope::Bar,
         }
+    }
+
+    /// Sets whether pointer hover styling applies to the whole bar or each title.
+    #[must_use]
+    pub const fn hover_scope(mut self, scope: MenuBarHoverScope) -> Self {
+        self.hover_scope = scope;
+        self
     }
 
     #[must_use]
@@ -1011,6 +1035,9 @@ impl<'a> MenuBar<'a> {
         }
         let mut live = PartStyle::flags(ui.state(self.id), StateFlags::empty());
         live.remove(StateFlags::PRESSED);
+        if self.hover_scope == MenuBarHoverScope::Title {
+            live.remove(StateFlags::HOVERED);
+        }
         let container = self.ov.style(
             ui,
             self.id,
@@ -1053,14 +1080,49 @@ impl<'a> MenuBar<'a> {
             } else {
                 flags.remove(StateFlags::PRESSED);
             }
-            let style = self.ov.style(
-                ui,
-                self.id,
-                Family::MENU,
-                Variant::DEFAULT,
-                Part::TITLE,
-                flags,
-            );
+            let style = match self.hover_scope {
+                MenuBarHoverScope::Bar => self.ov.style(
+                    ui,
+                    self.id,
+                    Family::MENU,
+                    Variant::DEFAULT,
+                    Part::TITLE,
+                    flags,
+                ),
+                MenuBarHoverScope::Title => {
+                    let mut defaults = StylePatch::default();
+                    if let Some(recipe) = ui
+                        .theme_ref()
+                        .recipes
+                        .get(Family::MENU)
+                        .and_then(|recipe| recipe.variant(MENU_BAR_TITLE_VARIANT))
+                        .and_then(|parts| parts.get(Part::TITLE))
+                    {
+                        defaults = recipe.apply(defaults, flags);
+                    }
+                    let local = self.ov.part_patch(Part::TITLE);
+                    let style = ui.style_defaults(
+                        Family::MENU,
+                        Variant::DEFAULT,
+                        Part::TITLE,
+                        flags,
+                        crate::theme::StyleDefaults::new(defaults),
+                        local.as_ref(),
+                    );
+                    self.ov.note(
+                        ui,
+                        self.id,
+                        Family::MENU,
+                        Variant::DEFAULT,
+                        Part::TITLE,
+                        style,
+                    );
+                    style
+                }
+            };
+            if self.hover_scope == MenuBarHoverScope::Title {
+                ui.fill(rect, style.style);
+            }
             let label = shift(rect, 1);
             if let Some(slot) = self.ov.slot_for(Part::TITLE) {
                 slot(ui, label);
@@ -1163,7 +1225,7 @@ mod tests {
     use ratatui_core::layout::Position;
 
     use super::*;
-    use crate::event::{Input, Key, KeyModifiers};
+    use crate::event::{Input, Key, KeyModifiers, Mouse, MouseKind};
     use crate::keymap::KeyMap;
     use crate::runtime::{App, Runtime};
     use crate::theme::Theme;
@@ -1186,6 +1248,180 @@ mod tests {
             code,
             mods: KeyModifiers::NONE,
         }
+    }
+
+    #[test]
+    fn context_menu_title_does_not_inherit_owner_hover() {
+        const ID: Id = Id::root("menu.tests.context-title-hover");
+        let area = Rect::new(0, 0, 24, 8);
+        let render = |hovered: bool| {
+            let mut runtime = Runtime::new(crate::runtime::stub::Stub::default(), Theme::junie());
+            let mut buffer = Buffer::empty(area);
+            runtime
+                .draw_scene(area, &mut buffer, |ui, area| {
+                    ui.reference(
+                        hovered.then_some(crate::ReferenceTarget::new(
+                            ID,
+                            crate::ReferenceState::HOVERED,
+                        )),
+                        |ui| {
+                            ContextMenu::at(ID, &ITEMS, Position::new(0, 0))
+                                .title("Heading")
+                                .draw(ui, area, &MenuState::default());
+                        },
+                    );
+                })
+                .commit_presented();
+            buffer
+        };
+        let resting = render(false);
+        let hovered = render(true);
+        for x in 1..23 {
+            assert_eq!(
+                resting.cell(Position::new(x, 1)),
+                hovered.cell(Position::new(x, 1)),
+                "context-menu heading cell at x={x} changed when its owner was hovered"
+            );
+        }
+    }
+
+    #[test]
+    fn menu_bar_keeps_public_default_variant_overlay_and_local_patch_precedence() {
+        const ID: Id = Id::root("menu.tests.public-title-resolution");
+        const VARIANT: Variant = Variant::custom("menu.tests.public-title-variant");
+        const OVERLAY_RULES: [crate::theme::OverlayRule; 1] = [(
+            Family::MENU,
+            VARIANT,
+            Part::TITLE,
+            StateFlags::HOVERED,
+            StylePatch::new().set_bg(crate::theme::Role::Custom(ratatui_core::style::Color::Rgb(
+                7, 8, 9,
+            ))),
+        )];
+        const OVERLAY: crate::theme::Overlay = crate::theme::Overlay::new(&OVERLAY_RULES);
+        const LOCAL: [(Part, StylePatch); 1] = [(
+            Part::TITLE,
+            StylePatch::new().set_fg(crate::theme::Role::Custom(ratatui_core::style::Color::Rgb(
+                10, 11, 12,
+            ))),
+        )];
+        const MENUS: [Menu<'static>; 1] = [Menu::new("File", &ITEMS)];
+
+        let theme = Theme::junie().define_variant(Family::MENU, VARIANT, |recipe| {
+            recipe.default_variant(VARIANT);
+            recipe.part(Part::TITLE).when(
+                StateFlags::HOVERED,
+                StylePatch::new().add(crate::theme::Modifier::ITALIC),
+            );
+        });
+        let area = Rect::new(0, 0, 20, 2);
+        for scope in [MenuBarHoverScope::Bar, MenuBarHoverScope::Title] {
+            let mut runtime = Runtime::new(crate::runtime::stub::Stub::default(), theme.clone());
+            let mut buffer = Buffer::empty(area);
+            runtime
+                .draw_scene(area, &mut buffer, |ui, area| {
+                    ui.with_overlay(&OVERLAY, |ui| {
+                        ui.reference(
+                            Some(
+                                crate::ReferenceTarget::new(ID, crate::ReferenceState::HOVERED)
+                                    .part(PartRef::item(Part::TITLE, ItemKey::index(0))),
+                            ),
+                            |ui| {
+                                MenuBar::new(ID, &MENUS)
+                                    .hover_scope(scope)
+                                    .patch_part(&LOCAL)
+                                    .draw(ui, area, &MenuState::default());
+                            },
+                        );
+                    });
+                })
+                .commit_presented();
+
+            let title = buffer.cell(Position::new(2, 0)).expect("File title cell");
+            assert_eq!(
+                title.fg,
+                ratatui_core::style::Color::Rgb(10, 11, 12),
+                "foreground with {scope:?}"
+            );
+            assert_eq!(
+                title.bg,
+                ratatui_core::style::Color::Rgb(7, 8, 9),
+                "overlay background with {scope:?}"
+            );
+            assert!(
+                title.modifier.contains(crate::theme::Modifier::ITALIC),
+                "family default variant with {scope:?}"
+            );
+        }
+    }
+
+    #[test]
+    fn default_menu_bar_scope_keeps_title_patches_off_the_padding_cells() {
+        const ID: Id = Id::root("menu.tests.default-title-padding");
+        const MENUS: [Menu<'static>; 1] = [Menu::new("File", &ITEMS)];
+        const PATCH: [(Part, StylePatch); 1] = [(
+            Part::TITLE,
+            StylePatch::new().set_bg(crate::theme::Role::Custom(ratatui_core::style::Color::Rgb(
+                7, 8, 9,
+            ))),
+        )];
+        let area = Rect::new(0, 0, 20, 1);
+        let mut runtime = Runtime::new(crate::runtime::stub::Stub::default(), Theme::junie());
+        let mut buffer = Buffer::empty(area);
+        runtime
+            .draw_scene(area, &mut buffer, |ui, area| {
+                MenuBar::new(ID, &MENUS)
+                    .patch_part(&PATCH)
+                    .draw(ui, area, &MenuState::default());
+            })
+            .commit_presented();
+
+        let title_bg = ratatui_core::style::Color::Rgb(7, 8, 9);
+        assert_eq!(buffer.cell(Position::new(2, 0)).unwrap().bg, title_bg);
+        assert_ne!(buffer.cell(Position::new(1, 0)).unwrap().bg, title_bg);
+        assert_ne!(buffer.cell(Position::new(6, 0)).unwrap().bg, title_bg);
+    }
+
+    #[test]
+    fn context_menu_heading_honors_explicit_owner_hover_overlay() {
+        const ID: Id = Id::root("menu.tests.context-title-overlay");
+        const RULES: [crate::theme::OverlayRule; 1] = [(
+            Family::MENU,
+            Variant::DEFAULT,
+            Part::TITLE,
+            StateFlags::HOVERED,
+            StylePatch::new()
+                .set_fg(crate::theme::Role::Custom(ratatui_core::style::Color::Rgb(
+                    21, 22, 23,
+                )))
+                .set_bg(crate::theme::Role::Custom(ratatui_core::style::Color::Rgb(
+                    24, 25, 26,
+                ))),
+        )];
+        const OVERLAY: crate::theme::Overlay = crate::theme::Overlay::new(&RULES);
+        let area = Rect::new(0, 0, 24, 8);
+        let mut runtime = Runtime::new(crate::runtime::stub::Stub::default(), Theme::junie());
+        let mut buffer = Buffer::empty(area);
+        runtime
+            .draw_scene(area, &mut buffer, |ui, area| {
+                ui.with_overlay(&OVERLAY, |ui| {
+                    ui.reference(
+                        Some(crate::ReferenceTarget::new(
+                            ID,
+                            crate::ReferenceState::HOVERED,
+                        )),
+                        |ui| {
+                            ContextMenu::at(ID, &ITEMS, Position::new(0, 0))
+                                .title("Heading")
+                                .draw(ui, area, &MenuState::default());
+                        },
+                    );
+                });
+            })
+            .commit_presented();
+        let heading = buffer.cell(Position::new(1, 1)).expect("heading cell");
+        assert_eq!(heading.fg, ratatui_core::style::Color::Rgb(21, 22, 23));
+        assert_eq!(heading.bg, ratatui_core::style::Color::Rgb(24, 25, 26));
     }
 
     #[test]
@@ -1445,6 +1681,62 @@ mod tests {
             )),
             "the strip and dropdown both registered as the owner control"
         );
+    }
+
+    #[test]
+    fn menu_bar_keyboard_and_pointer_activation_survive_all_color_levels() {
+        let area = Rect::new(0, 0, 40, 10);
+        for color in [
+            crate::ColorLevel::TrueColor,
+            crate::ColorLevel::Ansi256,
+            crate::ColorLevel::Ansi16,
+            crate::ColorLevel::Mono,
+        ] {
+            let mut buffer = Buffer::empty(area);
+            let mut runtime = Runtime::new(
+                MenuBarApp {
+                    state: MenuState::default(),
+                },
+                Theme::junie().downgrade(color),
+            );
+            let _ = runtime.initialize();
+            runtime.draw_buffer(area, &mut buffer).commit_presented();
+            runtime.draw_buffer(area, &mut buffer).commit_presented();
+
+            let _ = crate::runtime::stub::deliver(&mut runtime, Input::Key(key(KeyCode::Right)));
+            let _ = crate::runtime::stub::deliver(&mut runtime, Input::Key(key(KeyCode::Enter)));
+            assert_eq!(runtime.app().state.open, Some(0), "keyboard at {color:?}");
+            let _ = crate::runtime::stub::deliver(&mut runtime, Input::Key(key(KeyCode::Esc)));
+            assert_eq!(runtime.app().state.open, None, "escape at {color:?}");
+
+            let mouse = |kind, x, y| {
+                Input::Mouse(Mouse {
+                    kind,
+                    pos: Position::new(x, y),
+                    mods: KeyModifiers::NONE,
+                })
+            };
+            let _ = crate::runtime::stub::deliver(&mut runtime, mouse(MouseKind::Move, 2, 0));
+            runtime.draw_buffer(area, &mut buffer).commit_presented();
+            let _ = crate::runtime::stub::deliver(&mut runtime, mouse(MouseKind::Down, 2, 0));
+            runtime.draw_buffer(area, &mut buffer).commit_presented();
+            assert_eq!(
+                buffer
+                    .cell(Position::new(1, 0))
+                    .map(ratatui_core::buffer::Cell::symbol),
+                Some("["),
+                "pressed left pad at {color:?}"
+            );
+            assert_eq!(
+                buffer
+                    .cell(Position::new(6, 0))
+                    .map(ratatui_core::buffer::Cell::symbol),
+                Some("]"),
+                "pressed right pad at {color:?}"
+            );
+            let _ = crate::runtime::stub::deliver(&mut runtime, mouse(MouseKind::Up, 2, 0));
+            assert_eq!(runtime.app().state.open, Some(0), "pointer at {color:?}");
+        }
     }
 
     #[test]

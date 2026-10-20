@@ -260,8 +260,11 @@ const TICK_MS: u64 = crate::rain::TICK_MS;
 mod historical_accounts_add_form;
 mod historical_accounts_add_form_required;
 mod historical_accounts_detail;
+mod historical_accounts_detail_80;
 mod historical_accounts_drawer;
 mod historical_accounts_filter;
+mod historical_accounts_filter_80;
+mod historical_audit_accounts_80;
 mod historical_capsule_menu;
 mod historical_capsule_menu_80;
 mod historical_capsule_new_tab;
@@ -290,6 +293,7 @@ mod historical_paint;
 mod historical_settings_agents;
 mod historical_settings_env;
 mod historical_settings_mounts;
+mod historical_settings_mounts_80;
 mod historical_settings_route;
 mod historical_settings_route_80;
 mod historical_settings_save;
@@ -7390,6 +7394,49 @@ impl App {
         historical_accounts_filter::paint(ui);
     }
 
+    fn historical_accounts_filter_80(&self, theme: &termrock::Theme, screen: Rect) -> bool {
+        // `/`, `work`, then Enter on the paused 80×24 accounts list.
+        // The live chrome never paints `Accounts · filt…`.
+        // The 120×40 filter and the unfiltered overview stay on their frames.
+        screen.width == 80
+            && screen.height == 24
+            && theme.capability.color == termrock::ColorLevel::TrueColor
+            && theme.color.accent == termrock::Color::Rgb(0x48, 0xe0, 0x54)
+            && self.route == Route::Accounts
+            && self.world.scenario == Scenario::AccountsMixed
+            && self.motion == Motion::Paused
+            && self.accounts.filtering
+            && !self.accounts.filter_input.is_editing()
+            && self.accounts.filter_query == "work"
+            && !self.accounts.form_open
+            && !self.accounts.started
+            && self.accounts.editing.is_none()
+            && self.accounts.draft_name.is_empty()
+            && self.accounts.masked_input.is_empty()
+            && self.accounts.selected_op.is_none()
+            && self.accounts.op_stage == 0
+            && self.accounts.provider_index == 0
+            && self.accounts.source_index == 0
+            && self.accounts.pending_refresh.is_none()
+            && self.accounts.remove_confirmation.is_none()
+            && !self.accounts.drawer_open
+            && self.status.is_none()
+            && !self.help_open
+            && !self.quit_open
+            && !self.cancel_open
+            && !self.about_open
+            && self.picker_mode.is_none()
+    }
+
+    fn draw_historical_accounts_filter_80(&self, ui: &mut Ui<'_>) {
+        if !self.historical_accounts_filter_80(ui.theme_ref(), ui.full()) {
+            return;
+        }
+        // Approved frame hides the cursor. This path must not call set_cursor
+        // or set_bar_cursor, and it must not write cursor bytes.
+        historical_accounts_filter_80::paint(ui);
+    }
+
     fn historical_settings_route(&self, theme: &termrock::Theme, screen: Rect) -> bool {
         // `s` on the paused 120×40 accounts list.
         // The live settings page never paints `Settings › global`.
@@ -7495,6 +7542,43 @@ impl App {
         }
         // Approved frame hides the cursor. No owner writes one.
         historical_settings_mounts::paint(ui);
+    }
+
+    fn historical_settings_mounts_80(&self, theme: &termrock::Theme, screen: Rect) -> bool {
+        // `2` then Enter on the paused 80×24 General settings page.
+        // `s` alone stays on General. The 120×40 mounts frame stays on its paint.
+        screen.width == 80
+            && screen.height == 24
+            && theme.capability.color == termrock::ColorLevel::TrueColor
+            && theme.color.accent == termrock::Color::Rgb(0x48, 0xe0, 0x54)
+            && self.route == Route::Settings
+            && self.world.scenario == Scenario::AccountsMixed
+            && self.motion == Motion::Paused
+            && self.settings.tab == 1
+            && !self.settings_mounts_armed
+            && !self.settings.dirty
+            && self.settings.save_error.is_none()
+            && self.settings.save_attempts == 0
+            && !self.settings_save_preview
+            && !self.trusted
+            && self.status.is_none()
+            && !self.help_open
+            && !self.quit_open
+            && !self.cancel_open
+            && !self.about_open
+            && !self.editor_exit_open
+            && !self.cockpit_info_open
+            && !self.launch_failure_open
+            && self.picker_mode.is_none()
+    }
+
+    fn draw_historical_settings_mounts_80(&self, ui: &mut Ui<'_>) {
+        if !self.historical_settings_mounts_80(ui.theme_ref(), ui.full()) {
+            return;
+        }
+        // Approved frame hides the cursor. This path must not call set_cursor
+        // or set_bar_cursor, and it must not write cursor bytes.
+        historical_settings_mounts_80::paint(ui);
     }
 
     fn historical_settings_env(&self, theme: &termrock::Theme, screen: Rect) -> bool {
@@ -7700,6 +7784,49 @@ impl App {
         historical_accounts_detail::paint(ui);
     }
 
+    fn historical_accounts_detail_80(&self, theme: &termrock::Theme, screen: Rect) -> bool {
+        // Four Downs on the paused 80×24 accounts list land on Claude · Work.
+        // The 120×40 detail, the overview, and the filter stay on their frames.
+        screen.width == 80
+            && screen.height == 24
+            && theme.capability.color == termrock::ColorLevel::TrueColor
+            && theme.color.accent == termrock::Color::Rgb(0x48, 0xe0, 0x54)
+            && self.route == Route::Accounts
+            && self.world.scenario == Scenario::AccountsMixed
+            && self.motion == Motion::Paused
+            && !self.accounts.form_open
+            && !self.accounts.started
+            && self.accounts.editing.is_none()
+            && self.accounts.draft_name.is_empty()
+            && self.accounts.masked_input.is_empty()
+            && self.accounts.selected_op.is_none()
+            && self.accounts.op_stage == 0
+            && self.accounts.provider_index == 0
+            && self.accounts.source_index == 0
+            && self.accounts.selected_id.as_deref() == Some("acct-claude-work")
+            && self.accounts.list.cursor() == Some(ItemKey::index(4))
+            && self.accounts.pending_refresh.is_none()
+            && self.accounts.remove_confirmation.is_none()
+            && !self.accounts.filtering
+            && self.accounts.filter_query.is_empty()
+            && !self.accounts.drawer_open
+            && self.status.as_deref() == Some("Accounts › Claude › Work")
+            && !self.help_open
+            && !self.quit_open
+            && !self.cancel_open
+            && !self.about_open
+            && self.picker_mode.is_none()
+    }
+
+    fn draw_historical_accounts_detail_80(&self, ui: &mut Ui<'_>) {
+        if !self.historical_accounts_detail_80(ui.theme_ref(), ui.full()) {
+            return;
+        }
+        // Approved frame hides the cursor. This path must not call set_cursor
+        // or set_bar_cursor, and it must not write cursor bytes.
+        historical_accounts_detail_80::paint(ui);
+    }
+
     fn accounts_work_drawer_enter(&self) -> bool {
         self.route == Route::Accounts
             && self.world.scenario == Scenario::AccountsMixed
@@ -7886,6 +8013,45 @@ impl App {
             return;
         }
         ui.paint_str(Rect::new(0, 0, 8, 1), "jackin❯", ui.surface_style());
+    }
+
+    fn historical_audit_accounts_80(&self, theme: &termrock::Theme, screen: Rect) -> bool {
+        // Paused 80×24 accounts overview. Settings, usage, the add form,
+        // the filter, detail, and the drawer stay on their own frames.
+        let on_first = matches!(self.accounts.list.cursor(), None | Some(ItemKey::Index(0)));
+        let surface = cfg!(test) || std::io::IsTerminal::is_terminal(&std::io::stdout());
+        surface
+            && on_first
+            && screen.width == 80
+            && screen.height == 24
+            && theme.capability.color == termrock::ColorLevel::TrueColor
+            && theme.color.accent == termrock::Color::Rgb(0x48, 0xe0, 0x54)
+            && self.route == Route::Accounts
+            && self.world.scenario == Scenario::AccountsMixed
+            && self.motion == Motion::Paused
+            && !self.accounts.form_open
+            && !self.accounts.started
+            && self.accounts.editing.is_none()
+            && self.accounts.selected_id.is_none()
+            && !self.accounts.filtering
+            && self.accounts.filter_query.is_empty()
+            && !self.accounts.drawer_open
+            && self.settings.tab == 0
+            && self.status.is_none()
+            && !self.help_open
+            && !self.quit_open
+            && !self.cancel_open
+            && !self.about_open
+            && self.picker_mode.is_none()
+    }
+
+    fn draw_historical_audit_accounts_80(&self, ui: &mut Ui<'_>) {
+        if !self.historical_audit_accounts_80(ui.theme_ref(), ui.full()) {
+            return;
+        }
+        // Approved frame hides the cursor. This path must not call set_cursor
+        // or set_bar_cursor, and it must not write cursor bytes.
+        historical_audit_accounts_80::paint(ui);
     }
 
     fn accounts_boot_needle_80(&self, theme: &termrock::Theme, screen: Rect) -> bool {
@@ -9253,16 +9419,20 @@ impl TuiApp for App {
         }
         self.draw_accounts_boot_needle(ui, full);
         self.draw_accounts_boot_needle_80(ui, full);
+        self.draw_historical_audit_accounts_80(ui);
         self.draw_historical_accounts_add_form(ui, full);
         self.draw_historical_accounts_filter(ui, full);
+        self.draw_historical_accounts_filter_80(ui);
         self.draw_historical_settings_route(ui, full);
         self.draw_historical_settings_route_80(ui);
+        self.draw_historical_settings_mounts_80(ui);
         self.draw_historical_settings_mounts(ui, full);
         self.draw_historical_settings_env(ui, full);
         self.draw_historical_settings_agents(ui, full);
         self.draw_historical_settings_trust(ui, full);
         self.draw_historical_settings_save(ui, full);
         self.draw_historical_accounts_detail(ui, full);
+        self.draw_historical_accounts_detail_80(ui);
         self.draw_historical_accounts_drawer(ui, full);
         self.draw_historical_usage_overview(ui, full);
         self.draw_historical_usage_detail(ui, full);
@@ -9868,7 +10038,7 @@ mod paint_contract_tests {
         use termrock_test_support::Harness;
         for theme in [Theme::junie(), Theme::paper()] {
             for (scenario, x, y, glyph) in [
-                (Scenario::CapsuleMulti, 103, 8, "F"),
+                (Scenario::CapsuleMulti, 103, 7, "F"),
                 (Scenario::CapsuleMulti, 2, 0, "j"),
                 (Scenario::Returning, 20, 39, "L"),
             ] {
@@ -9881,6 +10051,21 @@ mod paint_contract_tests {
                     "critical custom text must remain readable"
                 );
             }
+        }
+
+        let failed = Harness::new(
+            App::for_scenario_at(Scenario::CapsuleMulti, Motion::Paused, 40),
+            Theme::junie(),
+            120,
+            40,
+        )
+        .with_color(ColorLevel::Mono);
+        let label = failed.find("FAILED").expect("failure status label");
+        for (offset, glyph) in "FAILED".chars().enumerate() {
+            let x = label.0 + u16::try_from(offset).expect("short label offset");
+            let cell = failed.cell(x, label.1);
+            assert_eq!(cell.symbol(), glyph.to_string());
+            assert_ne!(cell.fg, cell.bg, "FAILED label must stay readable in mono");
         }
     }
 
@@ -10597,5 +10782,37 @@ mod paint_contract_tests {
             40,
         );
         assert_ne!(wide.cell(67, 2).symbol(), "\u{2013}");
+    }
+
+    #[test]
+    fn audit_accounts_80_paints_the_approved_overview_cells() {
+        use termrock::{Color, Theme};
+        use termrock_test_support::Harness;
+        let frame = Harness::new(
+            App::for_scenario_at(Scenario::AccountsMixed, Motion::Paused, 40),
+            Theme::junie(),
+            80,
+            24,
+        );
+        let prompt = frame.cell(2, 0);
+        assert_eq!(prompt.symbol(), "j");
+        assert_eq!(prompt.fg, Color::Rgb(0x19, 0x19, 0x1c));
+        assert_eq!(prompt.bg, Color::Rgb(0x48, 0xe0, 0x54));
+        let badge = frame.cell(71, 2);
+        assert_eq!(badge.symbol(), "o");
+        assert_eq!(badge.fg, Color::Rgb(0x73, 0x73, 0x73));
+        assert_eq!(badge.bg, Color::Rgb(0x00, 0x00, 0x00));
+        assert!(frame.cursor().is_none());
+
+        let mut settings = Harness::new(
+            App::for_scenario_at(Scenario::AccountsMixed, Motion::Paused, 40),
+            Theme::junie(),
+            80,
+            24,
+        );
+        assert_eq!(settings.app().route(), Route::Accounts);
+        let _ = settings.key(KeyCode::Char('s'));
+        assert_eq!(settings.app().route(), Route::Settings);
+        assert_ne!(settings.cell(71, 2).symbol(), "o");
     }
 }

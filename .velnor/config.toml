@@ -1,9 +1,13 @@
 schema = 1
 
+[agents]
+claude_md = "symlink"
+
 [workflow]
 policy = "consumer-v1"
 default_branch = "main"
 runner_label = "ubuntu-26.04"
+crate_timeout_minutes = 15
 
 [stacks.rust]
 compile_driver = "cargo"
@@ -14,7 +18,7 @@ test_runner = "cargo_nextest"
 run_ignored = "default"
 
 [discovery]
-exclude = ["xtask/fixtures/**", "tools/termrock-visibility-publisher/**", "crates/termrock-e2e/**", "crates/termrock-visibility-tests/**", "crates/showcase-data/**", "crates/holla-catalog/**", "crates/holla-plan/**"]
+exclude = ["xtask/fixtures/**", "tools/termrock-visibility-publisher/**", "tools/frozen-cli-frame-support/**", "crates/termrock-e2e/**", "crates/termrock-visibility-tests/**", "crates/showcase-data/**", "crates/holla-catalog/**", "crates/holla-plan/**"]
 
 [tools]
 mr-boxington = "1.24.1"

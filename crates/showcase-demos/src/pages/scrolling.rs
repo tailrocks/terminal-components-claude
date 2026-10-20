@@ -968,12 +968,7 @@ fn narrow_columns(area: Rect) -> [Rect; 3] {
     let step = card_w.saturating_add(gap);
     [
         Rect::new(area.x, area.y, card_w, area.height),
-        Rect::new(
-            area.x.saturating_add(step),
-            area.y,
-            card_w,
-            area.height,
-        ),
+        Rect::new(area.x.saturating_add(step), area.y, card_w, area.height),
         Rect::new(
             area.x.saturating_add(step.saturating_mul(2)),
             area.y,
