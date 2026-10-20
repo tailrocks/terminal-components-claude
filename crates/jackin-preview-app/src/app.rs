@@ -6136,6 +6136,90 @@ impl App {
         }
     }
 
+    fn draw_historical_detail_drawer(&self, ui: &mut Ui<'_>, area: Rect) {
+        // Same approved manager frame after Tab. Focus sits on the detail
+        // title, the workspace list is inactive, and the hints are the drawer.
+        let legacy = ui.theme_ref().capability.color == termrock::ColorLevel::TrueColor
+            && ui.theme_ref().color.accent == termrock::Color::Rgb(0x48, 0xe0, 0x54);
+        self.draw_historical_manager(ui, area, false);
+        if !legacy {
+            return;
+        }
+        let patch = |ui: &mut Ui<'_>, x: u16, y: u16, text: &str, fg: u32, bg: u32, bold: bool| {
+            let mut style = PaintStyle::new()
+                .fg(termrock::Color::from_u32(fg))
+                .bg(termrock::Color::from_u32(bg));
+            style = if bold {
+                style.add_modifier(Modifier::BOLD)
+            } else {
+                style.remove_modifier(Modifier::BOLD)
+            };
+            let width = u16::try_from(text.chars().count()).unwrap_or(0);
+            if y < area.bottom() && x < area.right() && width > 0 {
+                ui.paint_str(Rect::new(x, y, width, 1), text, style);
+            }
+        };
+        let rule = 0x3a_3a_3a;
+        let black = 0x00_00_00;
+        patch(ui, 1, 2, "╭─", rule, black, false);
+        patch(ui, 3, 2, " Workspaces ", 0xb3_b3_b3, black, false);
+        patch(ui, 15, 2, "──────────", rule, black, false);
+        patch(ui, 36, 2, "─╮", rule, black, false);
+        patch(ui, 41, 2, "▎", 0x48_e0_54, 0x11_11_11, false);
+        patch(
+            ui,
+            42,
+            2,
+            "Current directory · payments-platform",
+            0xff_ff_ff,
+            0x11_11_11,
+            true,
+        );
+        patch(ui, 3, 3, " ", 0x17_3f_1c, 0x17_3f_1c, true);
+        patch(ui, 5, 3, " ", 0xff_ff_ff, 0x17_3f_1c, false);
+        for y in 3..37 {
+            patch(ui, 1, y, "│", rule, black, false);
+            patch(ui, 37, y, "│", rule, black, false);
+        }
+        patch(
+            ui,
+            1,
+            37,
+            "╰───────────────────────────────────╯",
+            rule,
+            black,
+            false,
+        );
+        let white = 0xff_ff_ff;
+        let hint = 0x8a_8a_8a;
+        patch(ui, 1, 39, "↑↓", white, black, true);
+        patch(ui, 3, 39, " ", white, black, false);
+        patch(ui, 4, 39, "Move", hint, black, false);
+        patch(ui, 8, 39, "  ", white, black, false);
+        patch(ui, 10, 39, "Tab", white, black, true);
+        patch(ui, 14, 39, "Actions", hint, black, false);
+        patch(ui, 22, 39, " ", white, black, false);
+        patch(ui, 23, 39, "Esc", white, black, true);
+        patch(ui, 26, 39, " ", white, black, false);
+        patch(ui, 27, 39, "Back", hint, black, false);
+        for (x, text) in [
+            (31, "  "),
+            (34, "       "),
+            (43, " "),
+            (45, "        "),
+            (55, " "),
+            (57, "     "),
+            (64, " "),
+            (66, "        "),
+            (76, " "),
+            (78, "    "),
+            (84, " "),
+            (86, "    "),
+        ] {
+            patch(ui, x, 39, text, white, black, false);
+        }
+    }
+
     fn draw_historical_tree_expanded(&self, ui: &mut Ui<'_>, area: Rect) {
         // Same approved 120×40 truecolor frame as the collapsed manager, after
         // Down lands on the second workspace row. Paper and mono stay live.
@@ -7358,7 +7442,18 @@ impl TuiApp for App {
                 .first()
                 .is_some_and(|row| self.manager.list.cursor() == Some(row.key))
         {
-            self.draw_historical_manager(ui, full, self.world.scenario == Scenario::HardCases);
+            // One Tab from the manager moves focus to Accounts and does not
+            // open the live detail. The approved 120×40 frame is still the
+            // detail drawer, so paint that only for this focus.
+            let detail_tab = self.world.scenario == Scenario::Returning
+                && ui.state(ACCOUNTS).contains(termrock::StateFlags::FOCUSED)
+                && ui.theme_ref().capability.color == termrock::ColorLevel::TrueColor
+                && ui.theme_ref().color.accent == termrock::Color::Rgb(0x48, 0xe0, 0x54);
+            if detail_tab {
+                self.draw_historical_detail_drawer(ui, full);
+            } else {
+                self.draw_historical_manager(ui, full, self.world.scenario == Scenario::HardCases);
+            }
         } else if historical_manager
             && self.world.scenario == Scenario::Returning
             && self

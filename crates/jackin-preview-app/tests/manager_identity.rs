@@ -1,6 +1,23 @@
-use jackin_preview_app::{App, MANAGER_LIST, Motion, Scenario};
+use jackin_preview_app::{ACCOUNTS, App, MANAGER_LIST, Motion, Scenario};
 use termrock::{KeyCode, Theme};
 use termrock_test_support::Harness;
+
+#[test]
+fn tab_from_the_manager_paints_the_detail_drawer_hints() {
+    let mut h = Harness::new(
+        App::for_scenario_at(Scenario::Returning, Motion::Paused, 40),
+        Theme::junie(),
+        120,
+        40,
+    );
+    assert!(h.text().contains("Tab Details"), "{}", h.text());
+    let _ = h.key(KeyCode::Tab);
+    assert_eq!(h.focus(), Some(ACCOUNTS));
+    let text = h.text();
+    assert!(text.contains("Tab Actions"), "{text}");
+    assert!(text.contains("Esc Back"), "{text}");
+    assert!(!text.contains("Tab Details"), "{text}");
+}
 
 #[test]
 fn selected_workspace_survives_world_reordering() {
