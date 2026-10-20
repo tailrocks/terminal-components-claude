@@ -18,6 +18,8 @@ use crate::theme::{Family, GlyphRole, Slot, StylePatch, Surface, Variant};
 use crate::ui::{Cx, FrameRead, Ui};
 use termrock_feedback::keyhint::ChordText;
 
+const MENU_BAR_TITLE_VARIANT: Variant = Variant::custom("termrock.menu-bar-title");
+
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct MenuItem<'a> {
     action: ActionKey,
@@ -650,13 +652,15 @@ impl<'a> ContextMenu<'a> {
             let mut y = inner.y;
             if let Some(title) = self.title {
                 let row = first_row(Rect { y, ..inner });
+                let mut title_state = live;
+                title_state.remove(StateFlags::HOVERED);
                 let style = self.ov.style(
                     ui,
                     self.id,
                     Family::MENU,
                     Variant::DEFAULT,
                     Part::TITLE,
-                    live,
+                    title_state,
                 );
                 paint_or_slot(ui, &self.ov, Part::TITLE, row, title, style.style);
                 ui.register_decor(self.id, PartRef::of(Part::TITLE), row);
@@ -1058,7 +1062,7 @@ impl<'a> MenuBar<'a> {
                 ui,
                 self.id,
                 Family::MENU,
-                Variant::DEFAULT,
+                MENU_BAR_TITLE_VARIANT,
                 Part::TITLE,
                 flags,
             );
@@ -1187,6 +1191,41 @@ mod tests {
         Key {
             code,
             mods: KeyModifiers::NONE,
+        }
+    }
+
+    #[test]
+    fn context_menu_title_does_not_inherit_owner_hover() {
+        const ID: Id = Id::root("menu.tests.context-title-hover");
+        let area = Rect::new(0, 0, 24, 8);
+        let render = |hovered: bool| {
+            let mut runtime = Runtime::new(crate::runtime::stub::Stub::default(), Theme::junie());
+            let mut buffer = Buffer::empty(area);
+            runtime
+                .draw_scene(area, &mut buffer, |ui, area| {
+                    ui.reference(
+                        hovered.then_some(crate::ReferenceTarget::new(
+                            ID,
+                            crate::ReferenceState::HOVERED,
+                        )),
+                        |ui| {
+                            ContextMenu::at(ID, &ITEMS, Position::new(0, 0))
+                                .title("Heading")
+                                .draw(ui, area, &MenuState::default());
+                        },
+                    );
+                })
+                .commit_presented();
+            buffer
+        };
+        let resting = render(false);
+        let hovered = render(true);
+        for x in 1..23 {
+            assert_eq!(
+                resting.cell(Position::new(x, 1)),
+                hovered.cell(Position::new(x, 1)),
+                "context-menu heading cell at x={x} changed when its owner was hovered"
+            );
         }
     }
 
