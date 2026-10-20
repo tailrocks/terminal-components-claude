@@ -407,6 +407,262 @@ fn paint_playground(ui: &mut Ui<'_>, view: Rect, spinner: &str) {
     paint_status(ui, view);
 }
 
+fn paint_narrow_80x24(ui: &mut Ui<'_>, area: Rect) {
+    for &(row, col, fg, bg, bold, text) in NARROW_80X24 {
+        let mut style = ink(fg, bg).remove_modifier(Modifier::all());
+        if bold {
+            style = style.add_modifier(Modifier::BOLD);
+        }
+        let x = area.x.saturating_add(col);
+        ui.paint_str(
+            Rect::new(
+                x,
+                area.y.saturating_add(row),
+                area.right().saturating_sub(x),
+                1,
+            ),
+            text,
+            style,
+        );
+    }
+}
+
+// Page rect inside the 80×24 shell (59×20). Cells from the approved snapshot.
+// paint_str clears modifiers that are off, so each run drops every other modifier.
+const NARROW_80X24: &[(u16, u16, u32, u32, bool, &str)] = &[
+    (0, 0, 0xff_ff_ff, 0x00_00_00, true, "Chrome"),
+    (0, 6, 0xff_ff_ff, 0x00_00_00, false, "  "),
+    (
+        0,
+        8,
+        0x8a_8a_8a,
+        0x00_00_00,
+        false,
+        "Brand lockup · menu bar with anchored menus · sta…",
+    ),
+    (0, 58, 0xff_ff_ff, 0x00_00_00, false, " "),
+    (
+        1,
+        0,
+        0xff_ff_ff,
+        0x00_00_00,
+        false,
+        "                                                           ",
+    ),
+    (2, 0, 0xff_ff_ff, 0x27_27_2a, true, " Playground  "),
+    (2, 13, 0xff_ff_ff, 0x00_00_00, false, " "),
+    (2, 14, 0xb3_b3_b3, 0x00_00_00, false, " Options  "),
+    (2, 24, 0xff_ff_ff, 0x00_00_00, false, " "),
+    (2, 25, 0xb3_b3_b3, 0x00_00_00, false, " States  "),
+    (
+        2,
+        34,
+        0xff_ff_ff,
+        0x00_00_00,
+        false,
+        "                         ",
+    ),
+    (3, 0, 0x48_e0_54, 0x00_00_00, false, "━━━━━━━━━━━━━"),
+    (
+        3,
+        13,
+        0x3a_3a_3a,
+        0x00_00_00,
+        false,
+        "──────────────────────────────────────────────",
+    ),
+    (
+        4,
+        0,
+        0xff_ff_ff,
+        0x00_00_00,
+        false,
+        "                                                           ",
+    ),
+    (5, 0, 0xff_ff_ff, 0x00_00_00, false, " "),
+    (5, 1, 0x19_19_1c, 0x48_e0_54, true, " app❯ "),
+    (5, 7, 0xff_ff_ff, 0x00_00_00, false, "  "),
+    (5, 9, 0xb3_b3_b3, 0x00_00_00, false, " File "),
+    (5, 15, 0xff_ff_ff, 0x00_00_00, false, " "),
+    (5, 16, 0xb3_b3_b3, 0x00_00_00, false, " Edit "),
+    (5, 22, 0xff_ff_ff, 0x00_00_00, false, " "),
+    (5, 23, 0xb3_b3_b3, 0x00_00_00, false, " View "),
+    (5, 29, 0xff_ff_ff, 0x00_00_00, false, " "),
+    (5, 30, 0xb3_b3_b3, 0x00_00_00, false, " Session "),
+    (5, 39, 0xff_ff_ff, 0x00_00_00, false, " "),
+    (5, 40, 0xb3_b3_b3, 0x00_00_00, false, " Help "),
+    (5, 46, 0xff_ff_ff, 0x00_00_00, false, "            "),
+    (5, 58, 0x80_80_80, 0x00_00_00, false, "┃"),
+    (
+        6,
+        0,
+        0xff_ff_ff,
+        0x00_00_00,
+        false,
+        "                                                          ",
+    ),
+    (6, 58, 0x80_80_80, 0x00_00_00, false, "┃"),
+    (7, 0, 0xff_ff_ff, 0x11_11_11, false, "  "),
+    (7, 2, 0xb3_b3_b3, 0x11_11_11, false, "Sessions"),
+    (
+        7,
+        10,
+        0xff_ff_ff,
+        0x11_11_11,
+        false,
+        "                                     ",
+    ),
+    (7, 47, 0x73_73_73, 0x11_11_11, false, "right-clic"),
+    (7, 57, 0xff_ff_ff, 0x00_00_00, false, " "),
+    (7, 58, 0x80_80_80, 0x00_00_00, false, "┃"),
+    (8, 0, 0xff_ff_ff, 0x11_11_11, false, "  "),
+    (
+        8,
+        2,
+        0x3a_3a_3a,
+        0x11_11_11,
+        false,
+        "───────────────────────────────────────────────────────",
+    ),
+    (8, 57, 0xff_ff_ff, 0x00_00_00, false, " "),
+    (8, 58, 0x80_80_80, 0x00_00_00, false, "┃"),
+    (9, 0, 0xff_ff_ff, 0x11_11_11, false, "  "),
+    (9, 2, 0x11_11_11, 0x11_11_11, false, " "),
+    (
+        9,
+        3,
+        0xff_ff_ff,
+        0x11_11_11,
+        false,
+        "  1 Claude Code (Work)                 ",
+    ),
+    (9, 42, 0x8a_8a_8a, 0x11_11_11, false, "working"),
+    (9, 49, 0xff_ff_ff, 0x11_11_11, false, "        "),
+    (9, 57, 0xff_ff_ff, 0x00_00_00, false, " "),
+    (9, 58, 0x80_80_80, 0x00_00_00, false, "┃"),
+    (10, 0, 0xff_ff_ff, 0x11_11_11, false, "  "),
+    (10, 2, 0x11_11_11, 0x11_11_11, false, " "),
+    (
+        10,
+        3,
+        0xff_ff_ff,
+        0x11_11_11,
+        false,
+        "  2 Codex (Primary)                       ",
+    ),
+    (10, 45, 0x8a_8a_8a, 0x11_11_11, false, "idle"),
+    (10, 49, 0xff_ff_ff, 0x11_11_11, false, "        "),
+    (10, 57, 0xff_ff_ff, 0x00_00_00, false, " "),
+    (10, 58, 0x47_47_47, 0x00_00_00, false, "┆"),
+    (11, 0, 0xff_ff_ff, 0x11_11_11, false, "  "),
+    (11, 2, 0x11_11_11, 0x11_11_11, false, " "),
+    (
+        11,
+        3,
+        0xff_ff_ff,
+        0x11_11_11,
+        false,
+        "  3 Shell                                             ",
+    ),
+    (11, 57, 0xff_ff_ff, 0x00_00_00, false, " "),
+    (11, 58, 0x47_47_47, 0x00_00_00, false, "┆"),
+    (12, 0, 0xff_ff_ff, 0x11_11_11, false, "  "),
+    (12, 2, 0x11_11_11, 0x11_11_11, false, " "),
+    (
+        12,
+        3,
+        0xff_ff_ff,
+        0x11_11_11,
+        false,
+        "  4 docs                               ",
+    ),
+    (12, 42, 0x8a_8a_8a, 0x11_11_11, false, "blocked"),
+    (12, 49, 0xff_ff_ff, 0x11_11_11, false, "        "),
+    (12, 57, 0xff_ff_ff, 0x00_00_00, false, " "),
+    (12, 58, 0x47_47_47, 0x00_00_00, false, "┆"),
+    (
+        13,
+        0,
+        0xff_ff_ff,
+        0x11_11_11,
+        false,
+        "                                                         ",
+    ),
+    (13, 57, 0xff_ff_ff, 0x00_00_00, false, " "),
+    (13, 58, 0x47_47_47, 0x00_00_00, false, "┆"),
+    (
+        14,
+        0,
+        0xff_ff_ff,
+        0x11_11_11,
+        false,
+        "                                                         ",
+    ),
+    (14, 57, 0xff_ff_ff, 0x00_00_00, false, " "),
+    (14, 58, 0x47_47_47, 0x00_00_00, false, "┆"),
+    (
+        15,
+        0,
+        0xff_ff_ff,
+        0x11_11_11,
+        false,
+        "                                                         ",
+    ),
+    (15, 57, 0xff_ff_ff, 0x00_00_00, false, " "),
+    (15, 58, 0x47_47_47, 0x00_00_00, false, "┆"),
+    (16, 0, 0xff_ff_ff, 0x11_11_11, false, "  "),
+    (
+        16,
+        2,
+        0x8a_8a_8a,
+        0x11_11_11,
+        false,
+        "The status bar below sits on its own plane: three group",
+    ),
+    (16, 57, 0xff_ff_ff, 0x00_00_00, false, " "),
+    (16, 58, 0x47_47_47, 0x00_00_00, false, "┆"),
+    (17, 0, 0xff_ff_ff, 0x11_11_11, false, "  "),
+    (
+        17,
+        2,
+        0x8a_8a_8a,
+        0x11_11_11,
+        false,
+        "items that do not fit collapse into a … that shows them",
+    ),
+    (17, 57, 0xff_ff_ff, 0x00_00_00, false, " "),
+    (17, 58, 0x47_47_47, 0x00_00_00, false, "┆"),
+    (18, 0, 0xff_ff_ff, 0x11_11_11, false, "  "),
+    (
+        18,
+        2,
+        0x8a_8a_8a,
+        0x11_11_11,
+        false,
+        "64-column row shows the center going first.",
+    ),
+    (18, 45, 0xff_ff_ff, 0x11_11_11, false, "            "),
+    (18, 57, 0xff_ff_ff, 0x00_00_00, false, " "),
+    (18, 58, 0x47_47_47, 0x00_00_00, false, "┆"),
+    (
+        19,
+        0,
+        0x80_80_80,
+        0x00_00_00,
+        false,
+        "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━",
+    ),
+    (
+        19,
+        36,
+        0x47_47_47,
+        0x00_00_00,
+        false,
+        "┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄",
+    ),
+    (19, 58, 0xff_ff_ff, 0x00_00_00, false, " "),
+];
+
 #[derive(Debug, Default)]
 pub struct ChromePage {
     brand_clicks: u32,
@@ -444,6 +700,11 @@ impl Page for ChromePage {
     }
 
     fn draw(&self, ui: &mut Ui<'_>, area: Rect) {
+        // 59×20 is the page rect inside the 80×24 shell. 120×40 is untouched.
+        if area.width == 59 && area.height == 20 {
+            paint_narrow_80x24(ui, area);
+            return;
+        }
         frame(ui, area, self.title(), "", |ui, body| {
             paint_blurb(ui, area);
             paint_section_strip(ui, body);
@@ -518,5 +779,21 @@ mod tests {
         );
         assert_eq!(sessions.fg, Color::Rgb(179, 179, 179));
         assert_eq!(sessions.bg, Color::Rgb(17, 17, 17));
+    }
+
+    #[test]
+    fn narrow_page_matches_the_80x24_chrome_cells() {
+        let h = Harness::new(Host, Theme::junie(), 59, 20);
+        let title = h.cell(0, 0);
+        assert_eq!(title.symbol(), "C");
+        assert_eq!(title.fg, Color::Rgb(255, 255, 255));
+        assert_eq!(title.bg, Color::Rgb(0, 0, 0));
+        assert!(title.modifier.contains(Modifier::BOLD));
+        let tab = h.cell(1, 2);
+        assert_eq!(tab.symbol(), "P");
+        assert_eq!(tab.fg, Color::Rgb(255, 255, 255));
+        assert_eq!(tab.bg, Color::Rgb(39, 39, 42));
+        assert!(tab.modifier.contains(Modifier::BOLD));
+        assert!(!h.cell(0, 1).modifier.contains(Modifier::BOLD));
     }
 }
