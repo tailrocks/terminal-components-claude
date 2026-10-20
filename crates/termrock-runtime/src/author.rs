@@ -150,6 +150,18 @@ pub trait LayerSlotAuthor {
     fn render_component<R>(&mut self, render: impl FnOnce(&mut Ui<'_>, Rect) -> R) -> R;
 }
 
+/// Low-level adapter for a nested component slot clipped to its parent area.
+///
+/// This belongs to the component-author API: ordinary consumers should obtain
+/// slots from [`Ui::layer_slot`](crate::ui::Ui::layer_slot).
+pub trait NestedLayerSlotAuthor {
+    fn with_nested_layer_slot<R>(
+        &mut self,
+        area: Rect,
+        render: impl FnOnce(&mut crate::ui::LayerSlot<'_, '_>) -> R,
+    ) -> R;
+}
+
 pub use crate::capture::Capture;
 pub use crate::focus::{FocusVis, Focusability, ScopeId, ScopeMode};
 pub use crate::hit::{Axes, Headroom, Hit, RegionKind};
