@@ -1483,8 +1483,17 @@ impl App {
             && !self.menu.is_open()
         {
             let layer = tag_hints(confirm, status);
+            // 80×24 first-use clips `Ctrl+G` to a meta `…`. Wider plates keep the theme overflow.
+            let parts = if crate::sim::catalogue::first_use_tag_frame(&self.world)
+                && ui.full().width == 80
+                && ui.full().height == 24
+            {
+                ACTIVITIES_HINT_PARTS
+            } else {
+                PARITY_HINT_PARTS
+            };
             HintBar::new(FOOTER, &layer)
-                .patch_part(PARITY_HINT_PARTS)
+                .patch_part(parts)
                 .draw(ui, footer);
             return;
         }
@@ -2771,6 +2780,66 @@ mod tests {
             "{:?}",
             screen.diagnostics()
         );
+    }
+    #[test]
+    fn first_use_80x24_frame_40_paints_the_narrow_plate_and_later_seeks_keep_home() {
+        let plate = harness(
+            App::for_scenario(Scenario::FirstUse, Motion::Paused, 40),
+            Theme::junie(),
+            80,
+            24,
+        );
+        let text = plate.text();
+        let lines: Vec<&str> = text.lines().collect();
+        assert!(lines[7].contains("› Analyze disk usage"), "{}", lines[7]);
+        assert!(lines[7].contains("/ is 91% full"), "{}", lines[7]);
+        assert!(lines[8].contains("sustained pressure…"), "{}", lines[8]);
+        assert!(
+            lines[20].contains("→ 'holla disk analyze' · here · read-only"),
+            "{}",
+            lines[20]
+        );
+        assert!(!text.contains("Monitor this host"), "{text}");
+        let selected = plate.cell(4, 7);
+        assert_eq!(selected.symbol(), "A");
+        assert_eq!(selected.bg, Color::Rgb(0x2f, 0x5a, 0xa8));
+        assert!(selected.modifier.contains(termrock::Modifier::BOLD));
+        let kind = plate.cell(27, 7);
+        assert_eq!(kind.symbol(), "d");
+        assert!(!kind.modifier.contains(termrock::Modifier::BOLD));
+        assert_eq!(kind.bg, Color::Rgb(0x2f, 0x5a, 0xa8));
+        let ellipsis = plate.cell(73, 23);
+        assert_eq!(ellipsis.symbol(), "…");
+        assert_eq!(ellipsis.fg, Color::Rgb(0x73, 0x73, 0x73));
+        assert!(plate.diagnostics().is_empty(), "{:?}", plate.diagnostics());
+        let wide = harness(
+            App::for_scenario(Scenario::FirstUse, Motion::Paused, 40),
+            Theme::junie(),
+            120,
+            40,
+        );
+        assert!(
+            wide.text()
+                .lines()
+                .nth(14)
+                .unwrap()
+                .contains("'holla disk analyze'")
+        );
+        let runs = wide.cell(92, 14);
+        assert_eq!(runs.fg, Color::Rgb(0xb3, 0xb3, 0xb3));
+        let later = harness(
+            App::for_scenario(Scenario::FirstUse, Motion::Paused, 4_000),
+            Theme::junie(),
+            80,
+            24,
+        );
+        assert!(!later.text().contains("holla disk analyze"));
+        assert!(
+            later.text().contains("Monitor this host"),
+            "{}",
+            later.text()
+        );
+        assert!(!catalogue::first_use_tag_frame(&later.app().world));
     }
     #[test]
     fn first_use_history_frame_40_paints_the_system_tag_and_later_seeks_keep_home() {
