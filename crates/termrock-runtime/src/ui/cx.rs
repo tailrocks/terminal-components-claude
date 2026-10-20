@@ -172,6 +172,9 @@ pub struct FrameServices {
     pub(crate) completions: Vec<(LayerCompletion, u8)>,
     pub(crate) focus_continuation_outcomes: Vec<(FocusContinuationOutcome, u8)>,
     pub(crate) focus_continuation_acks: Vec<(LayerOpening, Id, Id)>,
+    pub(crate) focus_continuation_result_acks: Vec<(LayerOpening, Id)>,
+    pub(crate) focus_result_ack_dispatch_pending: bool,
+    pub(crate) continuation_command_pending_present: Option<Id>,
     pub(crate) registry_gen: u32,
     pub(crate) press_pos: Option<Position>,
     pub(crate) clipboard: crate::runtime::clipboard::Clipboard,
@@ -498,7 +501,25 @@ impl<'f> Cx<'f> {
             .completions
             .iter()
             .position(|(completion, _)| completion.opening() == opening)?;
+        let candidate = self.services.completions[position].0;
+        if candidate.continuation_acknowledged()
+            && let Some(owner) = candidate.continuation_owner()
+            && !self
+                .services
+                .focus_continuation_result_acks
+                .contains(&(opening, owner))
+        {
+            return None;
+        }
         let completion = self.services.completions.remove(position).0;
+        if let Some(owner) = completion.continuation_owner() {
+            self.services
+                .focus_continuation_result_acks
+                .retain(|ack| *ack != (opening, owner));
+            if completion.continuation_acknowledged() {
+                self.services.continuation_command_pending_present = Some(owner);
+            }
+        }
         let still_continued = completion.continuation_owner().is_some_and(|owner| {
             completion.continuation_acknowledged()
                 && completion.restored_focus() == Some(owner)
@@ -576,6 +597,10 @@ impl<'f> Cx<'f> {
             return false;
         };
         self.services.focus_continuation_outcomes.remove(position);
+        self.services
+            .focus_continuation_result_acks
+            .push((opening, owner));
+        self.services.focus_result_ack_dispatch_pending = true;
         true
     }
 
