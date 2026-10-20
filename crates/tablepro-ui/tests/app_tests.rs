@@ -12,7 +12,7 @@ use tablepro_ui::{
     QueryOutcome, ResultGrid, SafeMode, Screen, Surface, Tab, TableProApp, Value, complete,
     form_fields, gate, parse, preview_for,
 };
-use termrock::{Axis, GridEditor, KeyCode, Theme};
+use termrock::{Axis, GridEditor, KeyCode, MouseKind, Part, PartRef, Theme};
 use termrock_test_support::Harness;
 
 fn connected() -> TableProApp {
@@ -72,6 +72,88 @@ fn unfocused_grid_cursor_does_not_style_the_cursor_row() {
             .modifier
             .contains(termrock::Modifier::BOLD),
         "unfocused result cells must not be presented as the cursor row"
+    );
+}
+
+#[test]
+fn vertically_scrolled_grid_does_not_repaint_top_rows_after_horizontal_scroll() {
+    let mut harness = Harness::new(connected(), Theme::junie(), 120, 40);
+    for _ in 0..5 {
+        let _ = harness.key(KeyCode::Down);
+    }
+    let _ = harness.key(KeyCode::Enter);
+    assert!(harness.text().contains("public › orders"));
+
+    let _ = harness.key(KeyCode::PageDown);
+    let _ = harness.key(KeyCode::End);
+
+    let (grid_id, cursor_row, row_one_key, created_at, row_zero_prefix, row_one_prefix) = {
+        let (grid_id, view) = harness
+            .app()
+            .workbench
+            .active_grid()
+            .expect("active orders grid");
+        let (cursor_key, _) = view.state.cursor().expect("grid cursor");
+        let cursor_row = (0..view.model.row_count())
+            .find(|&row| termrock::GridModel::row_key(&view.model, row) == cursor_key)
+            .expect("cursor row is in the model");
+        assert!(cursor_row > 0, "PageDown moved to row {cursor_row}");
+        assert!(view.state.col_offset() > 0, "End scrolled horizontally");
+
+        let created_at = view
+            .columns
+            .iter()
+            .position(|(name, _)| name == "created_at")
+            .expect("created_at column");
+        let row_zero = termrock::GridModel::cell(&view.model, 0, created_at)
+            .expect("first row timestamp")
+            .text;
+        let row_one = termrock::GridModel::cell(&view.model, 1, created_at)
+            .expect("second row timestamp")
+            .text;
+        (
+            grid_id,
+            cursor_row,
+            termrock::GridModel::row_key(&view.model, 1),
+            created_at,
+            row_zero.chars().take(10).collect::<String>(),
+            row_one.chars().take(10).collect::<String>(),
+        )
+    };
+    let column_key = created_at.saturating_add(1);
+    let header = harness
+        .area_of_part(
+            grid_id,
+            PartRef::item(Part::HEADER, termrock::ItemKey::num(column_key as u64)),
+        )
+        .expect("visible created_at header hit region");
+    let top_data_y = header.y.saturating_add(1);
+    assert!(
+        harness.find(&row_zero_prefix).is_none(),
+        "row zero value {row_zero_prefix:?} was painted into a viewport whose cursor is row {cursor_row}:\n{}",
+        harness.text()
+    );
+    assert_eq!(
+        harness.find(&row_one_prefix).map(|(_, y)| y),
+        Some(top_data_y),
+        "the top cell's contents must come from the resolved first visible row:\n{}",
+        harness.text()
+    );
+
+    let _ = harness.mouse(MouseKind::Down, header.x.saturating_add(1), top_data_y);
+    let _ = harness.mouse(MouseKind::Up, header.x.saturating_add(1), top_data_y);
+    let (_, view) = harness
+        .app()
+        .workbench
+        .active_grid()
+        .expect("active orders grid after pointer input");
+    assert_eq!(
+        view.state.cursor(),
+        Some((
+            row_one_key,
+            termrock::ColumnKey::num((created_at as u16).saturating_add(1)),
+        )),
+        "the top cell hit region must stay on its real model row and column"
     );
 }
 
@@ -466,7 +548,7 @@ fn focus_is_restored_after_every_overlay_closes() {
         "first Esc cancels the focused field, matching reference794b095"
     );
     let cancel = termrock::Id::root("tablepro.connections.form")
-        .part(termrock::Part::ACTIONS)
+        .part(Part::ACTIONS)
         .index(1);
 
     for _ in 0..64 {
