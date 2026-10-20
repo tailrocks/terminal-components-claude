@@ -678,6 +678,9 @@ fn settings_trust_toggle_and_failed_save_keep_edits() {
     h.key(KeyCode::Enter);
     h.key(KeyCode::Char(' '));
     assert!(h.text().contains("• 1 change"), "{}", h.text());
+    // `5` then Enter only selects Trust. Space toggles. Toggle back off
+    // so the saved draft stays untrusted.
+    h.key(KeyCode::Char(' '));
     h.ctrl('s');
     assert!(h.text().contains("Save settings"));
     h.key(KeyCode::Right);
@@ -1433,10 +1436,14 @@ fn settings_route_s_paints_the_approved_settings_frame() {
     assert!(tab.modifier.contains(termrock::Modifier::BOLD));
     assert_eq!(h.harness.cursor(), None);
     h.key(KeyCode::Char('5'));
-    assert_ne!(h.app().settings.tab, 0);
-    assert!(
-        !h.text().contains("Settings › global"),
-        "another settings tab must keep the live page: {}",
+    assert_eq!(h.app().settings.tab, 0);
+    h.key(KeyCode::Enter);
+    assert_eq!(h.app().settings.tab, 4);
+    let general = h.buffer().cell((2, 3)).expect("left of general");
+    assert_ne!(
+        general.symbol(),
+        "▎",
+        "Trust must not keep the General gutter: {}",
         h.text()
     );
 }
@@ -1474,6 +1481,51 @@ fn settings_env_three_enter_paints_the_approved_env_frame() {
         "Mounts must stay off the environment table: {}",
         mounts.text()
     );
+}
+
+#[test]
+fn settings_trust_five_enter_paints_the_approved_trust_frame() {
+    let closed = H::new(Scenario::AccountsMixed, Motion::Paused, 40, 120, 40);
+    assert!(
+        !closed.text().contains("github.com/chainargos/roles"),
+        "closed settings must stay off the trust frame: {}",
+        closed.text()
+    );
+
+    let mut agents = H::new(Scenario::AccountsMixed, Motion::Paused, 40, 120, 40);
+    agents.key(KeyCode::Char('s'));
+    agents.key(KeyCode::Char('4'));
+    agents.key(KeyCode::Enter);
+    assert_eq!(agents.app().settings.tab, 3);
+    assert!(
+        !agents.text().contains("github.com/chainargos/roles"),
+        "Agents must stay off the trust frame: {}",
+        agents.text()
+    );
+
+    let mut h = H::new(Scenario::AccountsMixed, Motion::Paused, 40, 120, 40);
+    h.key(KeyCode::Char('s'));
+    assert_eq!(h.app().settings.tab, 0);
+    h.key(KeyCode::Char('5'));
+    assert_eq!(h.app().settings.tab, 0);
+    assert!(
+        !h.text().contains("github.com/chainargos/roles"),
+        "`5` alone must stay on General: {}",
+        h.text()
+    );
+    h.key(KeyCode::Enter);
+    assert_eq!(h.app().settings.tab, 4);
+    let role = h.buffer().cell((7, 7)).expect("chainargos role");
+    assert_eq!(role.symbol(), "g");
+    assert_eq!(role.fg, termrock::Color::from_u32(0xff_ff_ff));
+    assert_eq!(role.bg, termrock::Color::from_u32(0x17_3f_1c));
+    assert!(role.modifier.contains(termrock::Modifier::BOLD));
+    assert!(
+        h.text().contains("github.com/chainargos/roles"),
+        "{}",
+        h.text()
+    );
+    assert_eq!(h.harness.cursor(), None);
 }
 
 #[test]
@@ -1747,10 +1799,10 @@ fn settings_tabs_and_save_preview_stay_on_the_settings_route() {
     assert_eq!(h.app().settings.tab, 0);
     assert!(h.text().contains("▸ General"), "{}", h.text());
     h.key(KeyCode::Char('5'));
+    h.key(KeyCode::Enter);
     assert_eq!(h.app().settings.tab, 4);
     assert!(h.text().contains("▸ Trust"), "{}", h.text());
     assert!(!h.text().contains("▸ General"), "{}", h.text());
-    h.key(KeyCode::Enter);
     h.key(KeyCode::Char(' '));
     h.ctrl('s');
     let preview = h.text();
