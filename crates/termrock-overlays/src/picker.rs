@@ -7,7 +7,7 @@ use crate::id::{Id, ItemKey, Part};
 use crate::layer::{Anchor, LayerSize, LayerSpec, ScreenAlign};
 use crate::response::{Response, StateFlags};
 use crate::text::width;
-use crate::theme::{Family, StylePatch, Surface, Variant};
+use crate::theme::{CursorStyle, Family, StylePatch, Surface, Variant};
 use crate::ui::{Cx, FrameRead, Ui};
 use termrock_navigation::filter_list::{
     FilterList, FilterListAction, FilterListState, FilterPolicy,
@@ -87,6 +87,9 @@ pub struct Picker<'a, T, R = ItemRow> {
     empty: Option<EmptyState<'a>>,
     row: R,
     item_layout: ItemRowLayout,
+    surface: Surface,
+    cursor_style: CursorStyle,
+    metadata_gap: u16,
     patch: Option<&'a StylePatch>,
     parts: &'a [(Part, StylePatch)],
     ov: PartStyle<'a>,
@@ -122,6 +125,9 @@ impl<T> Picker<'_, T, ItemRow> {
             empty: None,
             row: ItemRow,
             item_layout: ItemRowLayout::Compact,
+            surface: Surface::Overlay,
+            cursor_style: CursorStyle::Bar,
+            metadata_gap: 1,
             patch: None,
             parts: &[],
             ov: PartStyle::new(),
@@ -155,6 +161,21 @@ impl<'a, T, R> Picker<'a, T, R> {
     ];
     pub const fn id(&self) -> Id {
         self.id
+    }
+    #[must_use]
+    pub const fn surface(mut self, surface: Surface) -> Self {
+        self.surface = surface;
+        self
+    }
+    #[must_use]
+    pub const fn cursor_style(mut self, style: CursorStyle) -> Self {
+        self.cursor_style = style;
+        self
+    }
+    #[must_use]
+    pub const fn metadata_gap(mut self, gap: u16) -> Self {
+        self.metadata_gap = gap;
+        self
     }
     #[must_use]
     pub const fn title(mut self, title: &'a str) -> Self {
@@ -221,6 +242,9 @@ impl<'a, T, R> Picker<'a, T, R> {
             empty: self.empty,
             row,
             item_layout: ItemRowLayout::Compact,
+            surface: self.surface,
+            cursor_style: self.cursor_style,
+            metadata_gap: self.metadata_gap,
             patch: self.patch,
             parts: self.parts,
             ov: self.ov,
@@ -261,7 +285,9 @@ impl<T: AsItem, R: RowFn<T>> Picker<'_, T, R> {
             .searchable(self.searchable)
             .filter(self.filter)
             .row(BorrowedRow(&self.row))
-            .with_item_layout(self.item_layout);
+            .with_item_layout(self.item_layout)
+            .cursor_style(self.cursor_style)
+            .metadata_gap(self.metadata_gap);
         if let Some(empty) = self.empty {
             list = list.empty(empty);
         }
@@ -387,7 +413,7 @@ impl<T: AsItem, R: RowFn<T>> Picker<'_, T, R> {
             self.id,
             area,
             Family::PICKER,
-            Surface::Overlay,
+            self.surface,
             self.ov,
             live,
             live,
