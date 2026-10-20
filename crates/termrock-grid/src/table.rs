@@ -382,14 +382,18 @@ impl<'a> Table<'a> {
                             usize::from(area.width.saturating_sub(5 + u16::from(vertical))),
                         );
                     }
-                    Phase::Press => state.horizontal_scroll.press_track(
-                        track_pos,
-                        usize::from(area.width.saturating_sub(5 + u16::from(vertical))),
-                    ),
-                    Phase::Drag => state.horizontal_scroll.drag_track(
-                        track_pos,
-                        usize::from(area.width.saturating_sub(5 + u16::from(vertical))),
-                    ),
+                    Phase::Press => {
+                        let _ = state.horizontal_scroll.press_track(
+                            track_pos,
+                            usize::from(area.width.saturating_sub(5 + u16::from(vertical))),
+                        );
+                    }
+                    Phase::Drag => {
+                        let _ = state.horizontal_scroll.drag_track(
+                            track_pos,
+                            usize::from(area.width.saturating_sub(5 + u16::from(vertical))),
+                        );
+                    }
                     Phase::Release | Phase::DragEnd => {
                         state.horizontal_scroll.release_track();
                         if cx.capture_owner() == Some(bar_id) {
