@@ -39,6 +39,7 @@ fn rust_and_edition_fences_fail_closed() {
 fn unlabeled_and_indented_rust_fail_closed() {
     for source in [
         "```\nfn main() {}\n```",
+        "```\nui.button(&button);\n```",
         "    fn main() {}\n    println!(\"example\");",
     ] {
         assert!(
@@ -81,4 +82,13 @@ fn non_rust_markdown_and_ordinary_rust_strings_do_not_trigger() {
     let _ = text;
 }"###;
     assert!(inspect_fixture("src/lib.rs", rust).is_empty());
+
+    let cooked = r###"fn example_text() {
+    let text = "continued\
+    /// ```rust
+    /// fn main() {}
+    /// ```";
+    let _ = text;
+}"###;
+    assert!(inspect_fixture("src/lib.rs", cooked).is_empty());
 }
