@@ -1,0 +1,73 @@
+{
+  "author_actual_prepare_proof": {
+    "command_results": [
+      {
+        "exit": 0,
+        "phase": "prepare"
+      },
+      {
+        "exit": 0,
+        "log_sha256": "79ac283d373f08b289aeb9af5bb7daadb2fb9a5be6dfe7ac812c410ca84860f9",
+        "phase": "prepare-live --fresh-cohort frozen-20261021-serial-nonincr-r1-r2"
+      },
+      {
+        "exit": 0,
+        "log_sha256": "aebce859c92957395060db605d17ac1b179ae9a7adcb98afd56f0c21336b5243",
+        "phase": "fresh-plan --cohort frozen-20261021-serial-nonincr-r1-r2"
+      },
+      {
+        "exit": 0,
+        "phase": "fresh-run-init"
+      },
+      {
+        "exit": 0,
+        "log_sha256": "66cc99e33951434a505962d4582980f12f8a48983cf551fdacf341a7ab10f01e",
+        "phase": "fresh-run-verify"
+      }
+    ],
+    "manifest_sha256": "df4f84f0edff220d69f0e023300b16e7306f5836a145ee3a29267fc5a20198c2",
+    "ordinary_checks": 20,
+    "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/stage3a-custody-fix-7ecf70/actual-prepare-proof.json",
+    "plan_creation_sha256": "e572938fe1f9d9545d42fa6250bcbab6b75752bdbc7ee259cd2246f73abec908",
+    "plan_sha256": "c51fb157f5bb29e68c1ae1f7abbd149fa3ee9cb135bdf417b827b7a441272f6a",
+    "runner_commit": "7ecf708de7652306adaaaa6fbe05e7724876b208",
+    "sha256": "d39dd5a7daad225acdca56773c1f77bf8a06eb73a5c5f099d943fa419ac9cb20",
+    "visual_cases": 29069
+  },
+  "coverage_gaps": [
+    "The prepare-only proof does not establish any capture/replay/checkpoint or application parity gate, and grants no such privilege.",
+    "No Stage 3B phase advancement, application launch, or full product acceptance was reviewed or performed.",
+    "A standalone prepare.log/fresh-run-init.log is not retained; public outputs are corroborated by fixed provenance, immutable plan/manifest bytes, independent seals/HMAC validation, and the retained prepare-live/fresh-plan/verify logs."
+  ],
+  "decision": "Bounded Stage 3A custody and journal foundation is independently supported for this exact commit. This is not approval for Stage 3B advancement, candidate comparison, reference approval, or product parity.",
+  "findings": [],
+  "independent_artifact_validation": {
+    "custody": "actual key is owned, single-link 32-byte regular file mode 0600; directory owned mode 0700; path is outside actual run root, source/live-source, binaries and both repo worktree Git directory and common Git directory; no key bytes emitted",
+    "key_disclosure_check": "raw-key/hex/base64 absence checked in public proof and retained logs; key value never printed or persisted in reviewer evidence",
+    "plan_creation_digest_and_self_seal": "verified against actual 19,613,347-byte immutable 0400 one-link regular plan; runner _read_self_sealed_plan accepted exact retained creation digest",
+    "privileges": "plan and HMAC-authenticated manifest both explicitly keep executed=false, candidate comparison=false, reference approval=none, product acceptance=false; no capture artifacts/journal receipts exist",
+    "public_flow": "retained prepare-live, fresh-plan and fresh-run-verify logs show public commands and successful verification; run manifest and plan are outputs of public fresh-run-init/fresh-plan; prepare output provenance is present; no application binary launch, candidate compare, capture, replay or checkpoint approval occurred",
+    "run_manifest": "actual manifest bytes SHA-256 matches proof; HMAC verified in memory against actual 32-byte key; schema/status/plan/inventory bindings valid",
+    "source_pins": "actual provenance and plan carry baseline tag object 2718a6b8127a522a3d351d0b4bdb7542fc8da542, commit 4169783ae883788186d161af09ba9c481bd84e5c, tree ad0f7cf8899df8c5fea3ced3f60adf0ac9a2d297, tuiscotti a1ea27f757d75d07b05499276cd932e9f8e067ad",
+    "structural_plan_validation": "passed; 29,069 visual cases, 20 ordinary checks, 1,822 planned steps: 910 baseline-capture, 910 baseline-replay, 2 ordinary-check chunks"
+  },
+  "regression_tests": [
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -m unittest tools.test_frozen_baseline.RunnerGuards.test_fresh_run_key_requires_owned_private_custody_directory_without_chmod tools.test_frozen_baseline.RunnerGuards.test_fresh_run_key_rejects_linked_worktree_and_git_common_metadata tools.test_frozen_baseline.RunnerGuards.test_fresh_run_journal_requires_ordered_authenticated_nonzero_complete_prefix",
+      "exit": 0,
+      "result": "3 passed; verifies pre-existing 0755 directory is rejected without chmod, symlinked custody rejected, both linked worktree and Git common directories rejected, empty journal remains incomplete and non-inventory/invalid authenticated journal claims fail."
+    }
+  ],
+  "review": "Independent bounded Stage 3A frozen-run metadata foundation review; not product acceptance or Stage 3B authorization",
+  "reviewed_commit": "fa57d1a6d1984bd3b484b0de38488a73150d3b2b",
+  "reviewed_tree": "5dcecaf49b661d066ec571346f3bb3e4aa8db824",
+  "runner_source_commit": "7ecf708de7652306adaaaa6fbe05e7724876b208",
+  "runner_source_hashes": {
+    "tools/frozen-cli-frame-support/src/lib.rs": "d656a3aea96f17ed6e31b237fabdc138d4732a209d3cc4944b08cfcb4681571c",
+    "tools/frozen_baseline.py": "2ee985d267d2ccd169d10536feeeb9f9c72488dd1e52e04f059af491f371b0a4",
+    "tools/frozen_cli_pair.patch": "17de30ad69fea9c7f514cd6530727283637d090958020ebe13a311aad4506ff4",
+    "tools/test_frozen_baseline.py": "c8fbf95a9d776b7b716fffd3efada447fda62ab489a509f3815fc2eed2ddf16a"
+  },
+  "working_copy": "/private/tmp/termrock-stage3a-final-review-fa57",
+  "working_copy_status": "clean detached full tracked checkout; no source changes made"
+}
