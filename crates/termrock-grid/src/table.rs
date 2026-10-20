@@ -298,7 +298,13 @@ impl<'a> Table<'a> {
         model: &M,
     ) -> Response<TableAction> {
         state.sync_model(model);
-        let area = cx.area(self.id).unwrap_or_default();
+        let mut area = cx.area(self.id).unwrap_or_default();
+        if cx
+            .area_of_part(self.id, PartRef::of(Part::TRACK))
+            .is_some_and(|track| track.height == 1 && track.width > 1)
+        {
+            area.height = area.height.saturating_add(1);
+        }
         let (columns, _horizontal, _vertical, _) = self.grid_columns(area, state, model);
         let grid = self.grid(&columns);
         state.order = self.ordered_rows(model, state.sort);
