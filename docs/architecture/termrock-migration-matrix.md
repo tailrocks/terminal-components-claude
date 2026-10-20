@@ -146,3 +146,26 @@ CI-only delivery review: source `4d0df7704dcb284d0c9726e78ea68bcca30838fc` indep
 - Main remains at `a97e351df736b576904bc450619ca347ea64d65b`; CI upgrade PR #39 is still separate at `a6929aeba7479d0b3a746f69d412a1ab701b5242` and has not been bypassed or merged. Latest run [39436987238](https://github.com/tailrocks/terminal-components-claude/actions/runs/39436987238) had Plan cancelled, Actionlint successful, all 43 Rust jobs skipped, and the required verdict failed. The same five-minute Plan cancellation is confirmed by three runs; no supported config override for Plan is recorded. These are workflow blockers, not successful Rust validation.
 - The fixed baseline remains tag object `2718a6b8127a522a3d351d0b4bdb7542fc8da542`, source `4169783ae883788186d161af09ba9c481bd84e5c`; tuiscotti remains pinned to `a1ea27f757d75d07b05499276cd932e9f8e067ad`. No baseline or test-tool reference moved. The design-range diff is CI configuration/generated workflow and audit documentation only; it contains no product, test, or reference-data edits.
 - The earlier optional-DCO note is superseded: DCO is not the protected required blocker on these runs. The former “pending” language is superseded by the concrete run states above. Showcase, Jackin, TablePro, and Holla remain incomplete for product parity and library architecture acceptance; these CI results do not establish either gate.
+
+## Latest CI branch comparison — 2026-10-20
+
+This section supersedes earlier workflow upgrade status paragraphs above. The
+current stable Velnor Actions release is `0.1.29`, source
+`e7b2f088715379c22be473fab896a43d50cc16fc`. A separate observation of Velnor
+`main` at prefix `16c` also exposes no supported Plan timeout override; do not
+add an invented config field or patch generated workflows by hand.
+
+| Branch / delivery | Exact observed tip | Workflow status | Gate status / next action |
+| --- | --- | --- | --- |
+| `parity/termrock-visual-baseline` (PR #38) | `669cee180d70a29619f98eb328bc607d29981584` | Generated workflow uses Velnor `0.1.29` with a 15-minute Rust job timeout. | Fresh verifier result pending. Keep all product refactoring on PR #38 and do not count a planned or skipped job as green. |
+| `design/interaction-polish` (PR #26 source remains frozen separately) | `f2f6eb716c4a512be3dc9423742fa06e86879b32` | Generated workflow uses Velnor `0.1.29` with a 15-minute Rust job timeout. | Fresh verifier result pending. Keep scope to generated CI and its evidence; do not alter fixed PR #26 source `f4867e9b5f8a08a3bb61ce80d644198a29f51984`. |
+| `main` | `a97e351df736b576904bc450619ca347ea64d65b` | Not upgraded to the current generated workflow. | Deliver the CI-only change through PR #39 at `a6929aeba7479d0b3a746f69d412a1ab701b5242`. Required Plan planning remains blocked by the generator's fixed five-minute limit; latest main has no override. Do not push directly to `main`. |
+
+No latest complete green required run was supplied for these exact current
+tips at this handoff. The PR #39 Plan blocker is unresolved, and the CI-only
+upgrade is therefore incomplete for `main`. Workflow status does not establish
+the product or library acceptance gates: Showcase, Jackin, TablePro, and Holla
+remain incomplete against baseline tag object
+`2718a6b8127a522a3d351d0b4bdb7542fc8da542`, source
+`4169783ae883788186d161af09ba9c481bd84e5c`, with Tuiscotti pinned at
+`a1ea27f757d75d07b05499276cd932e9f8e067ad`.
