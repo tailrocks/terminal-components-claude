@@ -3215,6 +3215,7 @@ impl Grid<'_> {
         let (header, note, body, bar) = self.chrome(area, reason);
         let scroll = Self::scroll_for_view(st, usize::from(body.height));
         let content = self.bar().draw(ui, body, &scroll, total);
+        let scroll_view = ScrollRegion::view(&scroll, content, total);
         let rows = Self::window(st, content, total);
         let g = self.geometry(content, st, model, rows.clone());
         let head = Rect {
@@ -3376,6 +3377,12 @@ impl Grid<'_> {
                 continue;
             }
             self.draw_row(ui, y, row, &row_paint);
+        }
+        if !inert {
+            // Keep the reference grid's edge fade in the shared component.
+            // The scroll helper checks for real overflow, skips cursor/reversed
+            // cells, and blends only cells on the container background.
+            ui.scroll_edges(content, &scroll_view);
         }
         self.draw_actions(ui, bar, live);
         area
@@ -3811,6 +3818,66 @@ mod tests {
         runtime.draw_buffer(AREA, &mut buffer).commit_presented();
         runtime.draw_buffer(AREA, &mut buffer).commit_presented();
         (runtime, buffer)
+    }
+
+    #[test]
+    fn overflowing_grid_fades_only_real_scroll_edges() {
+        let area = Rect::new(0, 0, 30, 8);
+        let mut model = Model::two();
+        model
+            .rows
+            .extend((2..12).map(|row| (ItemKey::num(10 + row), ["alpha", "1"])));
+        let mut state = GridState::default();
+        state.core.scroll_mut().set_content(model.row_count());
+        state.core.scroll_mut().set_viewport(4);
+        state.core.scroll_mut().scroll_to(4);
+        let app = AreaGridApp { state, model, area };
+        let mut runtime = Runtime::new(app, Theme::junie());
+        let _ = runtime.initialize();
+        let mut buffer = Buffer::empty(area);
+        runtime.draw_buffer(area, &mut buffer).commit_presented();
+
+        let alpha_foreground = |y: u16| {
+            buffer
+                .content()
+                .iter()
+                .enumerate()
+                .find(|(index, cell)| {
+                    index / usize::from(area.width) == usize::from(y) && cell.symbol() == "a"
+                })
+                .map(|(_, cell)| cell.fg)
+                .expect("visible alpha cell")
+        };
+        assert_eq!(
+            alpha_foreground(6),
+            ratatui_core::style::Color::Rgb(255, 255, 255)
+        );
+        assert_eq!(
+            alpha_foreground(7),
+            ratatui_core::style::Color::Rgb(140, 140, 140)
+        );
+
+        let fit_app = AreaGridApp {
+            state: GridState::default(),
+            model: Model::two(),
+            area,
+        };
+        let mut fit_runtime = Runtime::new(fit_app, Theme::junie());
+        let _ = fit_runtime.initialize();
+        let mut fit_buffer = Buffer::empty(area);
+        fit_runtime
+            .draw_buffer(area, &mut fit_buffer)
+            .commit_presented();
+        assert!(
+            fit_buffer
+                .content()
+                .iter()
+                .enumerate()
+                .filter(|(index, cell)| {
+                    index / usize::from(area.width) > 0 && cell.symbol() == "a"
+                })
+                .all(|(_, cell)| cell.fg == ratatui_core::style::Color::Rgb(255, 255, 255))
+        );
     }
 
     #[cfg(debug_assertions)]
