@@ -290,15 +290,29 @@ fn paint_blurb(ui: &mut Ui<'_>, body: Rect) {
     if body.width <= title_w.saturating_add(4) {
         return;
     }
+    let meta = Rect::new(
+        body.x.saturating_add(title_w).saturating_add(2),
+        body.y.saturating_sub(2),
+        body.width.saturating_sub(title_w).saturating_sub(3),
+        1,
+    );
+    let style = ink(MUTED, CANVAS);
+    if width(BLURB) <= meta.width {
+        ui.paint_str(meta, BLURB, style);
+        return;
+    }
+    if meta.width == 0 {
+        return;
+    }
+    let budget = Rect {
+        width: meta.width.saturating_sub(1),
+        ..meta
+    };
+    let used = ui.paint_str(budget, BLURB, style);
     ui.paint_str(
-        Rect::new(
-            body.x.saturating_add(title_w).saturating_add(2),
-            body.y.saturating_sub(2),
-            body.width.saturating_sub(title_w).saturating_sub(3),
-            1,
-        ),
-        BLURB,
-        ink(MUTED, CANVAS),
+        Rect::new(meta.x.saturating_add(used), meta.y, 1, 1),
+        "…",
+        style,
     );
 }
 
@@ -448,30 +462,6 @@ fn paint_horizontal_bar(ui: &mut Ui<'_>, area: Rect, shown: usize, columns: usiz
     }
 }
 
-fn paint_page_scrollbar(ui: &mut Ui<'_>, bar: Rect, content_h: u16) {
-    let (start, len) = thumb(
-        0,
-        usize::from(bar.height),
-        usize::from(content_h),
-        usize::from(bar.height),
-    );
-    for row in 0..bar.height {
-        let on = usize::from(row) >= start && usize::from(row) < start.saturating_add(len);
-        paint_at(
-            ui,
-            bar.x,
-            bar.y.saturating_add(row),
-            1,
-            if on { "┃" } else { "┆" },
-            if on {
-                ink(THUMB, CANVAS)
-            } else {
-                ink(TRACK, CANVAS)
-            },
-        );
-    }
-}
-
 struct PaintedCell<'a> {
     text: &'a str,
     fg: u32,
@@ -517,7 +507,7 @@ fn paint_header(ui: &mut Ui<'_>, area: Rect, specs: &[Spec], geom: &TableGeom) {
             x,
             area.y,
             col_w,
-            &fit(spec.title, col_w, false),
+            &fit(spec.title, col_w, spec.right),
             ink(MUTED, SURFACE),
         );
         x = x.saturating_add(col_w).saturating_add(COL_GAP);
@@ -627,6 +617,157 @@ fn content_height() -> u16 {
         .saturating_add(CARD_GAP.saturating_mul(3))
 }
 
+fn lines_for(text: &str, columns: u16) -> u16 {
+    let columns = columns.max(1);
+    let text_w = width(text);
+    if text_w == 0 {
+        return 1;
+    }
+    text_w.saturating_add(columns.saturating_sub(1)) / columns
+}
+
+fn fact_lines(facts: &[(&str, &str)], area_w: u16) -> u16 {
+    let value_w = area_w.saturating_sub(label_column(facts)).max(1);
+    facts.iter().fold(0u16, |total, (_, value)| {
+        total.saturating_add(lines_for(value, value_w))
+    })
+}
+
+fn content_height_for(content_w: u16) -> u16 {
+    let legend = fact_lines(&LEGEND, content_w).max(LEGEND_H);
+    let inner = content_w.saturating_sub(4);
+    let columns = fact_lines(&COLUMN_FACTS, inner)
+        .saturating_add(3)
+        .max(COLUMNS_H);
+    let events = fact_lines(&EVENT_FACTS, inner)
+        .saturating_add(3)
+        .max(EVENTS_H);
+    TASKS_H
+        .saturating_add(legend)
+        .saturating_add(columns)
+        .saturating_add(events)
+        .saturating_add(CARD_GAP.saturating_mul(3))
+        .max(content_height())
+}
+
+fn columns_shown(card_w: u16) -> usize {
+    table_geom(
+        card_inner(Rect::new(0, 0, card_w, TASKS_H)),
+        &TASK_SPECS,
+        ROW_COUNT,
+    )
+    .map(|geom| geom.shown)
+    .unwrap_or(0)
+}
+
+fn layout_width(area: Rect) -> u16 {
+    let full = area.width;
+    let shrunk = full.saturating_sub(SCROLL_ROOM);
+    if full <= SCROLL_ROOM || content_height_for(full) <= area.height {
+        return full;
+    }
+    if columns_shown(shrunk) == columns_shown(full) {
+        shrunk
+    } else {
+        full
+    }
+}
+
+struct ScrollSplit {
+    view: Rect,
+    vertical: bool,
+    horizontal: bool,
+}
+
+fn scroll_split(area: Rect, content_w: u16, content_h: u16) -> ScrollSplit {
+    let (mut vertical, mut horizontal) = (false, false);
+    for _ in 0..3 {
+        let view_w = area
+            .width
+            .saturating_sub(if vertical { SCROLL_ROOM } else { 0 });
+        let view_h = area.height.saturating_sub(u16::from(horizontal));
+        let next_v = content_h > view_h;
+        let next_h = content_w > view_w;
+        if (next_v, next_h) == (vertical, horizontal) {
+            break;
+        }
+        vertical = next_v;
+        horizontal = next_h;
+    }
+    let vertical = vertical && area.width > SCROLL_ROOM;
+    let horizontal = horizontal && area.height > 1;
+    let view = Rect {
+        width: area
+            .width
+            .saturating_sub(if vertical { SCROLL_ROOM } else { 0 }),
+        height: area.height.saturating_sub(u16::from(horizontal)),
+        ..area
+    };
+    ScrollSplit {
+        view,
+        vertical,
+        horizontal,
+    }
+}
+
+fn paint_page_scrollbars(
+    ui: &mut Ui<'_>,
+    area: Rect,
+    split: &ScrollSplit,
+    content_w: u16,
+    content_h: u16,
+) {
+    if split.vertical {
+        let bar = Rect::new(area.right().saturating_sub(1), area.y, 1, split.view.height);
+        let (start, len) = thumb(
+            0,
+            usize::from(split.view.height),
+            usize::from(content_h),
+            usize::from(bar.height),
+        );
+        for row in 0..bar.height {
+            let on = usize::from(row) >= start && usize::from(row) < start.saturating_add(len);
+            paint_at(
+                ui,
+                bar.x,
+                bar.y.saturating_add(row),
+                1,
+                if on { "┃" } else { "┆" },
+                if on {
+                    ink(THUMB, CANVAS)
+                } else {
+                    ink(TRACK, CANVAS)
+                },
+            );
+        }
+    }
+    if split.horizontal {
+        let width = area.width.saturating_sub(u16::from(split.vertical));
+        let bar = Rect::new(area.x, area.bottom().saturating_sub(1), width, 1);
+        let (start, len) = thumb(
+            0,
+            usize::from(split.view.width),
+            usize::from(content_w),
+            usize::from(bar.width),
+        );
+        for col in 0..bar.width {
+            let on = usize::from(col) >= start && usize::from(col) < start.saturating_add(len);
+            paint_at(
+                ui,
+                bar.x.saturating_add(col),
+                bar.y,
+                1,
+                if on { "━" } else { "┄" },
+                if on {
+                    ink(THUMB, CANVAS)
+                } else {
+                    ink(TRACK, CANVAS)
+                },
+            );
+        }
+    }
+}
+
 fn paint_tasks(ui: &mut Ui<'_>, card: Rect) {
     let rows: Vec<&TaskRow> = TASKS.iter().take(ROW_COUNT).collect();
     let inner = card_inner(card);
@@ -718,47 +859,42 @@ fn paint_playground(ui: &mut Ui<'_>, area: Rect) {
     if area.is_empty() {
         return;
     }
-    let content_h = content_height();
-    let overflows = area.width > SCROLL_ROOM && content_h > area.height;
-    let view = if overflows {
-        Rect {
-            width: area.width.saturating_sub(SCROLL_ROOM),
-            ..area
-        }
-    } else {
-        area
-    };
-    let mut y = view.y;
-    if y < view.bottom() {
-        paint_tasks(ui, Rect::new(view.x, y, view.width, TASKS_H));
+    let content_w = layout_width(area);
+    let content_h = content_height_for(content_w);
+    let split = scroll_split(area, content_w, content_h);
+    let content = Rect::new(area.x, area.y, content_w, content_h);
+    ui.with_area(split.view, |ui| paint_playground_body(ui, content));
+    paint_page_scrollbars(ui, area, &split, content_w, content_h);
+}
+
+fn paint_playground_body(ui: &mut Ui<'_>, area: Rect) {
+    if area.is_empty() {
+        return;
+    }
+    let mut y = area.y;
+    if y < area.bottom() {
+        paint_tasks(ui, Rect::new(area.x, y, area.width, TASKS_H));
     }
     y = y.saturating_add(TASKS_H).saturating_add(CARD_GAP);
-    if y < view.bottom() {
+    if y < area.bottom() {
         paint_facts(
             ui,
-            Rect::new(view.x, y, view.width, LEGEND_H),
+            Rect::new(area.x, y, area.width, LEGEND_H),
             &LEGEND,
             CANVAS,
         );
     }
     y = y.saturating_add(LEGEND_H).saturating_add(CARD_GAP);
-    if y < view.bottom() {
-        let card = Rect::new(view.x, y, view.width, COLUMNS_H);
+    if y < area.bottom() {
+        let card = Rect::new(area.x, y, area.width, COLUMNS_H);
         paint_card_chrome(ui, card, "Columns", "");
         paint_facts(ui, card_inner(card), &COLUMN_FACTS, SURFACE);
     }
     y = y.saturating_add(COLUMNS_H).saturating_add(CARD_GAP);
-    if y < view.bottom() {
-        let card = Rect::new(view.x, y, view.width, EVENTS_H);
+    if y < area.bottom() {
+        let card = Rect::new(area.x, y, area.width, EVENTS_H);
         paint_card_chrome(ui, card, "Events", "");
         paint_facts(ui, card_inner(card), &EVENT_FACTS, SURFACE);
-    }
-    if overflows {
-        paint_page_scrollbar(
-            ui,
-            Rect::new(area.right().saturating_sub(1), area.y, 1, view.height),
-            content_h,
-        );
     }
 }
 
