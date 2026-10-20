@@ -24,22 +24,21 @@
     ]
   },
   "checks": {
-    "runtime_all_targets": "363 tests run, 363 passed, 3 skipped after latest PR38 merge and reviewer fixes",
+    "runtime_all_targets": "364 tests run, 364 passed, 3 skipped after latest PR38 merge and reviewer fixes",
     "theme_all_targets": "139 passed, 1 failed: termrock-theme::capability_palettes::all_73_junie_slots_match_reference_capability_output; mismatch remains unresolved and was not modified/approved",
-    "theme_and_runtime_scoped_clippy": "passed on latest merged PR38 source plus reviewer fixes",
-    "changed_file_rustfmt": "passed on the three owned Rust files after formatting"
+    "theme_and_runtime_scoped_clippy": "passed after R3 fix on latest merged PR38 source",
+    "changed_file_rustfmt": "passed on the three owned Rust files"
   },
   "working_tree_note": "Nextest exposed approximately 1303 deleted tracked files under crates/termrock-conformance/target/tuiscotti-actuals. They were left untouched and unstaged as unrelated existing/worktree artifacts.",
   "coverage_gap": "This shared runtime change has no claim of full application visual/functional acceptance. Theme::backdrop_style is public and requires catalog/showcase coverage review; catalog and showcase files were outside this bounded ownership assignment, so the required catalogue/demo follow-up remains open.",
   "independent_review_followup": {
-    "reviewed_commit": "95d21da73f0a826e31114cffd2c5b4131de6d0e2",
-    "decision": "Fixes are in the author WIP and request re-review; no approval yet",
-    "packet_sha256": "9c066cdc6d42da749f0c4ac35212efc7d29a0ca6bcf5148bcebf5bb315c0bfcc",
+    "reviewed_commit": "65092d97e6443019aa9ade83d064c134985bd4a0",
+    "decision": "R1/R2 remain fixed; R3 explicit Some(Color::Reset) versus None is fixed in author WIP; independent re-review pending",
+    "packet_sha256": "7e9b1757b57ac13ef507f59e083f0c84e959bb43de09c7fb7ec7b0e10379c410",
     "findings": [
-      "Ansi16/Mono had retained faint ink instead of frozen muted ink plus DIM",
-      "Collision fallback erased the original mapped foreground/background collision before the DIM decision"
+      "Frozen Style mapping uses surface_overlay for Some(Color::Reset), canvas only for None; dark/contrast planes preserve the Option distinction."
     ],
-    "red": "Pinned independent public consumer run against pre-fix commit: 4 tests, 1 passed, 3 failed (both defects and actual Harness reduced modal cell).",
-    "green": "Independent public consumer, unchanged after adding repo regressions: 4 passed, 0 failed. Repo Harness tests: 3 passed (all color profiles/custom tokens, mapped collision, blank cells, modifier replacement, plus unchanged zero-allocation test)."
+    "red": "Unchanged reviewer consumer before R3: 8 tests, 6 passed, 2 failed (pure and actual Harness explicit Reset background). Pair API matrix passed.",
+    "green": "Unchanged reviewer consumer after R3: 11 tests run, 11 passed, including exact 10092 concrete-pair output comparison and actual Reset Harness cell. Native 3-test Harness suite passed under four separate processes: NO_COLOR absent, empty, present, and present with CLICOLOR_FORCE override; original zero-allocation test included unchanged."
   }
 }
