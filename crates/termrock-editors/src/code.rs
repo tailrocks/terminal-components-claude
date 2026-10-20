@@ -5,6 +5,10 @@ use ratatui_core::layout::{Position, Rect};
 use ratatui_core::style::Modifier;
 
 use super::{Acc, PartStyle, SlotFn, cell_at, first_row};
+use crate::completion::{
+    COMPLETION_MANUAL_CHORD, COMPLETION_NEXT_FOCUS_CHORD, COMPLETION_PREV_FOCUS_CHORD,
+    CompletingCodeEditor, CompletionProvider,
+};
 use crate::event::{Chord, KeyCode, KeyModifiers};
 use crate::focus::Focusability;
 use crate::id::{Id, Part, PartRef};
@@ -113,6 +117,8 @@ pub enum CodeAction {
     Committed,
 
     Leave { backward: bool },
+
+    CompletionManual,
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -152,6 +158,12 @@ pub enum CodeCmd {
     FindNext(bool),
 
     Block(bool),
+
+    CompletionManual,
+
+    FocusNext,
+
+    FocusPrevious,
 }
 
 const fn b(chord: Chord, cmd: CodeCmd, label: &'static str, visible: bool) -> Binding<CodeCmd> {
@@ -166,6 +178,24 @@ const fn b(chord: Chord, cmd: CodeCmd, label: &'static str, visible: bool) -> Bi
 }
 
 const NAV_BINDINGS: &[Binding<CodeCmd>] = &[
+    b(
+        COMPLETION_MANUAL_CHORD,
+        CodeCmd::CompletionManual,
+        "completion.manual",
+        false,
+    ),
+    b(
+        COMPLETION_NEXT_FOCUS_CHORD,
+        CodeCmd::FocusNext,
+        "focus.next",
+        false,
+    ),
+    b(
+        COMPLETION_PREV_FOCUS_CHORD,
+        CodeCmd::FocusPrevious,
+        "focus.previous",
+        false,
+    ),
     b(
         Chord::key(KeyCode::Enter),
         CodeCmd::InsertMode,
@@ -296,6 +326,24 @@ const NAV_BINDINGS: &[Binding<CodeCmd>] = &[
 ];
 
 const EDIT_BINDINGS: &[Binding<CodeCmd>] = &[
+    b(
+        COMPLETION_MANUAL_CHORD,
+        CodeCmd::CompletionManual,
+        "completion.manual",
+        false,
+    ),
+    b(
+        COMPLETION_NEXT_FOCUS_CHORD,
+        CodeCmd::FocusNext,
+        "focus.next",
+        false,
+    ),
+    b(
+        COMPLETION_PREV_FOCUS_CHORD,
+        CodeCmd::FocusPrevious,
+        "focus.previous",
+        false,
+    ),
     b(Chord::key(KeyCode::Esc), CodeCmd::Commit, "Done", true),
     b(
         Chord::key(KeyCode::Enter),
@@ -770,6 +818,23 @@ impl<'a> CodeEditor<'a> {
         }
     }
 
+    pub fn with_completion(
+        self,
+        popup_id: Id,
+        provider: &'a dyn CompletionProvider,
+    ) -> CompletingCodeEditor<'a> {
+        let id = self.id;
+        CompletingCodeEditor::new(self, id, popup_id, provider)
+    }
+
+    pub(crate) const fn is_read_only(&self) -> bool {
+        self.read_only
+    }
+
+    pub(crate) const fn is_disabled(&self) -> bool {
+        self.disabled
+    }
+
     #[must_use]
     pub const fn highlighter(mut self, highlighter: &'a dyn Highlighter) -> Self {
         self.highlighter = Some(highlighter);
@@ -930,7 +995,7 @@ impl<'a> CodeEditor<'a> {
                         if st.find.as_ref().is_some_and(|find| find.typing) {
                             Self::find_command(st, command, &mut acc);
                         } else {
-                            self.command(st, command, page, &mut acc);
+                            self.dispatch_command(cx, st, command, page, &mut acc);
                         }
                     }
                 }
@@ -952,6 +1017,15 @@ impl<'a> CodeEditor<'a> {
                             }
                         } else {
                             acc.consumed();
+                        }
+                    } else if !st.find.as_ref().is_some_and(|find| find.typing) {
+                        let command = Self::active_bindings(st).iter().find_map(|binding| {
+                            cx.effective_chord(self.id, binding.action, binding.chord)
+                                .filter(|chord| chord.matches(&key))
+                                .map(|_| binding.cmd)
+                        });
+                        if let Some(command) = command {
+                            self.dispatch_command(cx, st, command, page, &mut acc);
                         }
                     }
                 }
@@ -1001,6 +1075,30 @@ impl<'a> CodeEditor<'a> {
             }
         }
         acc.finish(self.id)
+    }
+
+    fn dispatch_command(
+        &self,
+        cx: &mut Cx<'_>,
+        st: &mut CodeEditorState,
+        command: CodeCmd,
+        page: usize,
+        acc: &mut Acc<CodeAction>,
+    ) {
+        match command {
+            CodeCmd::CompletionManual => acc.action(CodeAction::CompletionManual),
+            CodeCmd::FocusNext => {
+                st.commit();
+                cx.focus_next();
+                acc.action(CodeAction::Leave { backward: false });
+            }
+            CodeCmd::FocusPrevious => {
+                st.commit();
+                cx.focus_prev();
+                acc.action(CodeAction::Leave { backward: true });
+            }
+            command => self.command(st, command, page, acc),
+        }
     }
 
     fn command(
