@@ -176,7 +176,7 @@ fn button_variant(m: &mut PartMap<PartRecipe>, v: Variant) {
         Role::Focus
     };
     part(m, Part::GUTTER, p()).when(
-        StateFlags::FOCUS_VISIBLE,
+        StateFlags::FOCUSED,
         p().set_glyph(GlyphRole::FocusBar).set_fg(gutter_fg),
     );
     part(m, Part::LABEL, p())
@@ -202,6 +202,10 @@ fn button_variant(m: &mut PartMap<PartRecipe>, v: Variant) {
         .when(StateFlags::DISABLED, p().set_fg(Role::DisabledFg));
     part(m, Part::MARKER, p().set_fg(Role::Fg(FgStep::Muted)))
         .when(StateFlags::CHECKED, p().set_fg(Role::Accent))
+        .when(
+            StateFlags::PRESSED,
+            p().set_fg(Role::Surface(Surface::Canvas)),
+        )
         .when(StateFlags::DISABLED, p().set_fg(Role::DisabledFg));
 }
 
