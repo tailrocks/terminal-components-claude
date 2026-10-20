@@ -39,6 +39,7 @@ const FILTER_APPLY: Id = Id::root("tablepro.filter.apply");
 const RUN: ActionKey = ActionKey::application("tablepro.run");
 const UNDO: ActionKey = ActionKey::application("tablepro.undo");
 const INSERT_ROW: ActionKey = ActionKey::application("tablepro.insert-row");
+const DUPLICATE_ROW: ActionKey = ActionKey::application("tablepro.duplicate-row");
 const DELETE_ROW: ActionKey = ActionKey::application("tablepro.delete-row");
 const DISCARD_ROWS: ActionKey = ActionKey::application("tablepro.discard-rows");
 const QUIT: ActionKey = ActionKey::application("tablepro.quit");
@@ -400,6 +401,11 @@ fn keymap() -> KeyMap {
     quit_keymap()
         .bind(KeyPhase::Bubble, Chord::key(KeyCode::Char('u')), UNDO)
         .bind(KeyPhase::Bubble, Chord::key(KeyCode::Char('+')), INSERT_ROW)
+        .bind(
+            KeyPhase::Bubble,
+            Chord::with(KeyCode::Char('d'), KeyModifiers::ALT),
+            DUPLICATE_ROW,
+        )
         .bind(KeyPhase::Bubble, Chord::key(KeyCode::Char('-')), DELETE_ROW)
         .bind(
             KeyPhase::Bubble,
@@ -1431,6 +1437,41 @@ impl TableProApp {
         }
     }
 
+    fn duplicate_active_row(&mut self) {
+        if self
+            .workbench
+            .active_table()
+            .is_some_and(crate::tabs::TableTab::is_structure)
+        {
+            return;
+        }
+        let Some(defaults) = self.insert_defaults() else {
+            return;
+        };
+        let Some((id, grid)) = self.workbench.active_grid_mut() else {
+            return;
+        };
+        let Some((source_key, column)) = grid.state.cursor() else {
+            return;
+        };
+        let Some(source) = (0..grid.model.row_count())
+            .find(|row| GridModel::row_key(&grid.model, *row) == source_key)
+        else {
+            return;
+        };
+        let Some(row) = grid.model.duplicate_row(source, &defaults) else {
+            return;
+        };
+        let key = grid.model.row_key(row);
+        let (columns, count) = Self::column_specs(&grid.columns, grid.model.is_editable());
+        if result_grid(id, columns.get(..count).unwrap_or(&[]))
+            .move_cursor_to(&mut grid.state, &grid.model, key, column)
+            .is_err()
+        {
+            let _ = grid.model.undo();
+        }
+    }
+
     fn toggle_active_row(&mut self) {
         let Some((_, grid)) = self.workbench.active_grid_mut() else {
             return;
@@ -1980,7 +2021,13 @@ impl TableProApp {
         pending_gap: u16,
     ) {
         let loaded = grid_view.model.row_count();
-        let last = shown.min(loaded);
+        let origin = GRID_SCROLL.with(|slot| slot.borrow().map_or(0, |(_, _, origin)| origin));
+        let last = origin.saturating_add(shown).min(loaded);
+        let first = if loaded == 0 {
+            1
+        } else {
+            origin.saturating_add(1).min(loaded)
+        };
         let cols = grid_column_status(grid_view.columns.len());
         let total = if enabled == 0 {
             grouped(grid_view.model.total())
@@ -1988,7 +2035,8 @@ impl TableProApp {
             format!("~{}", grouped(grid_view.model.total()))
         };
         let mut status = format!(
-            "rows 1–{} of {} loaded · {total} total · {cols}",
+            "rows {}–{} of {} loaded · {total} total · {cols}",
+            grouped(first),
             grouped(last),
             grouped(loaded),
         );
@@ -2349,8 +2397,8 @@ impl TableProApp {
                 );
             }
         }
-        if let Some((grid_area, rows)) = GRID_SCROLL.with(|slot| *slot.borrow()) {
-            paint_grid_scrollbar(ui, grid_area, rows);
+        if let Some((grid_area, rows, origin)) = GRID_SCROLL.with(|slot| *slot.borrow()) {
+            paint_grid_scrollbar(ui, grid_area, rows, origin);
         }
         if explorer_focused
             && matches!(self.workbench.active(), Some(Tab::Query(query)) if query.result.is_none())
@@ -3136,7 +3184,9 @@ const KIND_FOREIGN: u8 = 2;
 thread_local! {
     static COL_BUDGETS: RefCell<Vec<ColBudget>> = const { RefCell::new(Vec::new()) };
     static GRID_CHROME: RefCell<Option<GridChrome>> = const { RefCell::new(None) };
-    static GRID_SCROLL: RefCell<Option<(termrock::Rect, usize)>> = const { RefCell::new(None) };
+    static GRID_SCROLL: RefCell<Option<(termrock::Rect, usize, usize)>> =
+        const { RefCell::new(None) };
+    static GRID_SEEN_ROW: RefCell<Option<usize>> = const { RefCell::new(None) };
     static GRID_SORT: RefCell<Option<(usize, SortDir)>> = const { RefCell::new(None) };
     static GRID_FILTER: RefCell<Vec<String>> = const { RefCell::new(Vec::new()) };
     static GRID_EDIT: RefCell<Option<usize>> = const { RefCell::new(None) };
@@ -3555,6 +3605,10 @@ fn paint_quiet_gutter(ui: &mut Ui<'_>, area: termrock::Rect) {
 }
 
 fn paint_result_cell(cell: GridCell<'_>, ui: &mut CellUi<'_>) {
+    GRID_SEEN_ROW.with(|slot| {
+        let mut seen = slot.borrow_mut();
+        *seen = Some(seen.map_or(cell.row, |current| current.min(cell.row)));
+    });
     let budget = COL_BUDGETS.with(|budgets| budgets.borrow().get(cell.column).copied());
     let Some(budget) = budget else {
         ui.text(cell.value.text);
@@ -3617,7 +3671,7 @@ fn paint_grid_focus_bar(
     );
 }
 
-fn paint_grid_scrollbar(ui: &mut Ui<'_>, area: termrock::Rect, rows: usize) {
+fn paint_grid_scrollbar(ui: &mut Ui<'_>, area: termrock::Rect, rows: usize, origin: usize) {
     if area.height < 2 || area.width == 0 {
         return;
     }
@@ -3628,6 +3682,18 @@ fn paint_grid_scrollbar(ui: &mut Ui<'_>, area: termrock::Rect, rows: usize) {
         .unwrap_or(1)
         .max(1)
         .min(track_len);
+    let max_off = rows.saturating_sub(track_len);
+    let usable = track_len.saturating_sub(thumb_len);
+    let thumb_at = if max_off == 0 {
+        0
+    } else {
+        origin
+            .saturating_mul(usable)
+            .saturating_add(max_off / 2)
+            .checked_div(max_off)
+            .unwrap_or(0)
+            .min(usable)
+    };
     let Some(chrome) = GRID_CHROME.with(|chrome| chrome.borrow().clone()) else {
         return;
     };
@@ -3647,11 +3713,12 @@ fn paint_grid_scrollbar(ui: &mut Ui<'_>, area: termrock::Rect, rows: usize) {
     for offset in 0..track_len {
         let y = area.y.saturating_add(1).saturating_add(offset as u16);
         let from_end = track_len.saturating_sub(offset).saturating_sub(1);
-        let cover = if from_end == 0 {
+        let from_start = origin > 0 && (offset == 0 || offset == 1);
+        let cover = if from_end == 0 || (from_start && offset == 0) {
             plain.patch(ui.paint_patch(
                 &StylePatch::new().set_fg(Role::Custom(termrock::Color::from_u32(0x008c_8c8c))),
             ))
-        } else if from_end == 1 {
+        } else if from_end == 1 || (from_start && offset == 1) {
             plain.patch(ui.paint_patch(
                 &StylePatch::new().set_fg(Role::Custom(termrock::Color::from_u32(0x00cc_cccc))),
             ))
@@ -3668,8 +3735,9 @@ fn paint_grid_scrollbar(ui: &mut Ui<'_>, area: termrock::Rect, rows: usize) {
             " ",
             cover,
         );
-        let glyph = if offset < thumb_len { "┃" } else { "┆" };
-        let style = if offset < thumb_len { thumb } else { track };
+        let on_thumb = offset >= thumb_at && offset < thumb_at.saturating_add(thumb_len);
+        let glyph = if on_thumb { "┃" } else { "┆" };
+        let style = if on_thumb { thumb } else { track };
         ui.paint_str(
             termrock::Rect {
                 x,
@@ -4565,6 +4633,7 @@ fn paint_row_numbers(
     area: termrock::Rect,
     model: &ResultGrid,
     cursor: Option<usize>,
+    origin: usize,
 ) {
     let rows = model.row_count();
     let Some(chrome) = GRID_CHROME.with(|chrome| chrome.borrow().clone()) else {
@@ -4575,7 +4644,8 @@ fn paint_row_numbers(
     let plain = ui.surface_style().remove_modifier(Modifier::BOLD);
     for row in 0..visible {
         let y = area.y.saturating_add(1).saturating_add(row as u16);
-        let gutter = if cursor == Some(row) {
+        let model_row = origin.saturating_add(row);
+        let gutter = if cursor == Some(model_row) {
             plain.add_modifier(Modifier::BOLD)
         } else {
             plain
@@ -4593,16 +4663,20 @@ fn paint_row_numbers(
             );
         }
         let fade = visible.saturating_sub(row);
-        let role = if fade == 1 {
+        let role = if origin > 0 && row == 0 {
+            Role::Custom(termrock::Color::from_u32(0x003f_3f3f))
+        } else if origin > 0 && row == 1 {
+            Role::Custom(termrock::Color::from_u32(0x005c_5c5c))
+        } else if fade == 1 {
             Role::Custom(termrock::Color::from_u32(0x003f_3f3f))
         } else if fade == 2 {
             Role::Custom(termrock::Color::from_u32(0x005c_5c5c))
-        } else if cursor == Some(row) {
+        } else if cursor == Some(model_row) {
             TAG_PATH_FG
         } else {
             LEGACY_FAINT
         };
-        let text = format!("{:>width$}", row.saturating_add(1), width = digits);
+        let text = format!("{:>width$}", model_row.saturating_add(1), width = digits);
         ui.paint_str(
             termrock::Rect {
                 x: area.x.saturating_add(3),
@@ -4613,9 +4687,9 @@ fn paint_row_numbers(
             &text,
             plain.patch(ui.paint_patch(&StylePatch::new().set_fg(role))),
         );
-        if model.pending().is_dirty_row(row) {
+        if model.pending().is_dirty_row(model_row) {
             let mut mark = plain.patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Warning)));
-            if cursor == Some(row) {
+            if cursor == Some(model_row) {
                 mark = mark.add_modifier(Modifier::BOLD);
             }
             ui.paint_str(
@@ -4632,7 +4706,7 @@ fn paint_row_numbers(
     }
 }
 
-fn paint_bottom_fade(ui: &mut Ui<'_>, area: termrock::Rect, model: &ResultGrid) {
+fn paint_bottom_fade(ui: &mut Ui<'_>, area: termrock::Rect, model: &ResultGrid, origin: usize) {
     let Some(chrome) = GRID_CHROME.with(|chrome| chrome.borrow().clone()) else {
         return;
     };
@@ -4652,10 +4726,16 @@ fn paint_bottom_fade(ui: &mut Ui<'_>, area: termrock::Rect, model: &ResultGrid) 
             Role::Custom(termrock::Color::from_u32(0x004c_4c4c)),
         ),
     ];
-    for (step, (white, secondary, arrow)) in steps.into_iter().enumerate() {
-        let row = visible.saturating_sub(2).saturating_add(step);
+    let mut edges = vec![
+        (visible.saturating_sub(2), steps[0]),
+        (visible.saturating_sub(1), steps[1]),
+    ];
+    if origin > 0 {
+        edges.splice(0..0, [(0, steps[1]), (1, steps[0])]);
+    }
+    for (row, (white, secondary, arrow)) in edges {
         let y = area.y.saturating_add(1).saturating_add(row as u16);
-        let origin = area.x.saturating_add(chrome.gutter);
+        let content_x = area.x.saturating_add(chrome.gutter);
         let restyle = |ui: &mut Ui<'_>, x, width, role| {
             if width == 0 {
                 return;
@@ -4674,7 +4754,7 @@ fn paint_bottom_fade(ui: &mut Ui<'_>, area: termrock::Rect, model: &ResultGrid) 
             );
         };
         if chrome.hidden_left == 0 {
-            restyle(ui, origin, chrome.content_width.saturating_add(4), white);
+            restyle(ui, content_x, chrome.content_width.saturating_add(4), white);
         }
         restyle(ui, area.x.saturating_add(1), 2, white);
         if chrome.gutter > 0 {
@@ -4690,7 +4770,7 @@ fn paint_bottom_fade(ui: &mut Ui<'_>, area: termrock::Rect, model: &ResultGrid) 
                 if place.primary {
                     restyle(
                         ui,
-                        origin.saturating_add(place.x),
+                        content_x.saturating_add(place.x),
                         place.width.saturating_sub(2),
                         secondary,
                     );
@@ -4701,7 +4781,7 @@ fn paint_bottom_fade(ui: &mut Ui<'_>, area: termrock::Rect, model: &ResultGrid) 
             && let Some(place) = chrome.places.last()
             && chrome.places.len() < chrome.columns
         {
-            let arrow_x = origin
+            let arrow_x = content_x
                 .saturating_add(place.x)
                 .saturating_add(place.width)
                 .saturating_sub(1);
@@ -4857,6 +4937,125 @@ fn paint_horizontal_bar(ui: &mut Ui<'_>, row: termrock::Rect) {
     );
 }
 
+fn presented_row_origin(
+    model: &ResultGrid,
+    state: &termrock::GridState,
+    visible: usize,
+    observed: usize,
+) -> usize {
+    let Some((key, _)) = state.cursor() else {
+        return observed;
+    };
+    let Some(cursor) = (0..model.row_count()).find(|row| GridModel::row_key(model, *row) == key)
+    else {
+        return observed;
+    };
+    if visible == 0
+        || cursor.saturating_add(1) != model.row_count()
+        || !model.pending().is_inserted(cursor)
+    {
+        return observed;
+    }
+    // One context row on the pre-pending viewport leaves the insert below the paint.
+    cursor.saturating_sub(visible)
+}
+
+fn repaint_presented_rows(
+    ui: &mut Ui<'_>,
+    area: termrock::Rect,
+    columns: &[(String, ColType)],
+    model: &ResultGrid,
+    origin: usize,
+    visible: usize,
+) {
+    let Some(chrome) = GRID_CHROME.with(|chrome| chrome.borrow().clone()) else {
+        return;
+    };
+    let plain = ui.surface_style().remove_modifier(Modifier::BOLD);
+    let primary = plain.patch(ui.paint_patch(&StylePatch::new().set_fg(TAG_PATH_FG)));
+    let arrow_style = plain.patch(ui.paint_patch(&StylePatch::new().set_fg(arrow_role(None))));
+    let x0 = area.x.saturating_add(chrome.gutter);
+    for local in 0..visible {
+        let Some(row) = origin.checked_add(local) else {
+            continue;
+        };
+        if row >= model.row_count() {
+            break;
+        }
+        let y = area.y.saturating_add(1).saturating_add(local as u16);
+        ui.fill(
+            termrock::Rect {
+                x: x0,
+                y,
+                width: chrome.content_width.saturating_add(4),
+                height: 1,
+            },
+            plain,
+        );
+        for (index, place) in chrome.places.iter().enumerate() {
+            let Some(text) = GridModel::cell(model, row, index).map(|cell| cell.text.to_owned())
+            else {
+                continue;
+            };
+            let foreign = columns
+                .get(index)
+                .is_some_and(|(name, ty)| *ty == ColType::Uuid && name != "id");
+            let numeric = columns
+                .get(index)
+                .is_some_and(|(_, ty)| matches!(ty, ColType::Int | ColType::Numeric));
+            let budget_arrow =
+                COL_BUDGETS.with(|budgets| budgets.borrow().get(index).is_some_and(|b| b.arrow));
+            let text_budget = if budget_arrow {
+                place.width.saturating_sub(2)
+            } else {
+                place.width
+            };
+            let owned;
+            let shown: &str = if foreign {
+                owned = truncate_middle(&text, text_budget);
+                &owned
+            } else if width(&text) > text_budget {
+                owned = truncate(&text, text_budget);
+                &owned
+            } else {
+                &text
+            };
+            let style = if place.primary { primary } else { plain };
+            let text_width = width(shown).min(text_budget);
+            let indent = if numeric {
+                text_budget.saturating_sub(text_width)
+            } else {
+                0
+            };
+            ui.paint_str(
+                termrock::Rect {
+                    x: x0.saturating_add(place.x).saturating_add(indent),
+                    y,
+                    width: text_width,
+                    height: 1,
+                },
+                shown,
+                style,
+            );
+            if budget_arrow {
+                ui.paint_str(
+                    termrock::Rect {
+                        x: x0
+                            .saturating_add(place.x)
+                            .saturating_add(place.width)
+                            .saturating_sub(1),
+                        y,
+                        width: 1,
+                        height: 1,
+                    },
+                    "→",
+                    arrow_style,
+                );
+            }
+        }
+    }
+}
+
 fn draw_painted_grid(
     ui: &mut Ui<'_>,
     area: termrock::Rect,
@@ -4866,6 +5065,7 @@ fn draw_painted_grid(
     state: &termrock::GridState,
     model: &ResultGrid,
 ) {
+    GRID_SEEN_ROW.with(|slot| *slot.borrow_mut() = None);
     install_grid_budgets(area.width, columns, model);
     let scrolled = install_scrolled_budgets(area.width, columns, model, state);
     // The editor's own cell must be 11 wide so its bar sits on the field tail.
@@ -4888,17 +5088,19 @@ fn draw_painted_grid(
             bold,
         );
     }
-    GRID_SCROLL.with(|slot| *slot.borrow_mut() = Some((area, model.row_count())));
-    paint_row_numbers(
-        ui,
-        area,
-        model,
-        state.cursor().and_then(|(key, _)| {
-            (0..model.row_count()).find(|row| GridModel::row_key(model, *row) == key)
-        }),
-    );
+    let visible = usize::from(area.height.saturating_sub(1)).min(model.row_count());
+    let observed = GRID_SEEN_ROW.with(|slot| slot.borrow().unwrap_or(0));
+    let origin = presented_row_origin(model, state, visible, observed);
+    if origin != observed {
+        repaint_presented_rows(ui, area, columns, model, origin, visible);
+    }
+    let cursor = state.cursor().and_then(|(key, _)| {
+        (0..model.row_count()).find(|row| GridModel::row_key(model, *row) == key)
+    });
+    GRID_SCROLL.with(|slot| *slot.borrow_mut() = Some((area, model.row_count(), origin)));
+    paint_row_numbers(ui, area, model, cursor, origin);
     paint_column_gap(ui, area);
-    paint_bottom_fade(ui, area, model);
+    paint_bottom_fade(ui, area, model, origin);
     paint_grid_header(
         ui,
         area,
@@ -6864,10 +7066,16 @@ impl App for TableProApp {
                     }
                     return self.request_quit(cx);
                 }
-                c if c == INSERT_ROW || c == DELETE_ROW || c == DISCARD_ROWS => {
+                c if c == INSERT_ROW
+                    || c == DUPLICATE_ROW
+                    || c == DELETE_ROW
+                    || c == DISCARD_ROWS =>
+                {
                     if self.active_row_action(cx) {
                         if c == INSERT_ROW {
                             self.insert_active_row();
+                        } else if c == DUPLICATE_ROW {
+                            self.duplicate_active_row();
                         } else if c == DELETE_ROW {
                             self.toggle_active_row();
                         } else {
@@ -7331,6 +7539,7 @@ mod action_namespace_tests {
             RUN,
             UNDO,
             INSERT_ROW,
+            DUPLICATE_ROW,
             DELETE_ROW,
             DISCARD_ROWS,
             QUIT,
