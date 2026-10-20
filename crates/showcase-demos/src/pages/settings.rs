@@ -108,6 +108,10 @@ const NARROW_W: u16 = 59;
 const NARROW_H: u16 = 18;
 const NARROW_GUTTER: u16 = 2;
 const NARROW_SCROLL_CONTENT: u16 = 25;
+const COMPACT_W: u16 = 51;
+const COMPACT_H: u16 = 14;
+// 11×11/24 = 5 thumb rows on the 72×20 bar.
+const COMPACT_SCROLL_CONTENT: u16 = 24;
 const SCROLL_THUMB: u32 = 0x0080_8080;
 const SCROLL_TRACK: u32 = 0x0047_4747;
 
@@ -183,6 +187,10 @@ fn narrow_frame(body: Rect) -> bool {
     body.width == NARROW_W && body.height == NARROW_H
 }
 
+fn compact_frame(body: Rect) -> bool {
+    body.width == COMPACT_W && body.height == COMPACT_H
+}
+
 fn paint_clip(
     ui: &mut Ui<'_>,
     area: Rect,
@@ -214,6 +222,19 @@ fn paint_heading(ui: &mut Ui<'_>, body: Rect) {
     let meta_x = width(title).saturating_add(2);
     let row = Rect { y, ..body };
     if narrow_frame(body) {
+        let room = body.width.saturating_sub(meta_x).saturating_sub(1);
+        if room > 0 {
+            paint_clip(ui, row, meta_x, y, meta, plain(MUTED, CANVAS), room);
+        }
+        paint_at(
+            ui,
+            row,
+            body.width.saturating_sub(1),
+            y,
+            " ",
+            plain(WHITE, CANVAS),
+        );
+    } else if compact_frame(body) {
         let room = body.width.saturating_sub(meta_x).saturating_sub(1);
         if room > 0 {
             paint_clip(ui, row, meta_x, y, meta, plain(MUTED, CANVAS), room);
@@ -336,10 +357,11 @@ fn paint_tab_strip(ui: &mut Ui<'_>, area: Rect, labels: &[&str], active: usize, 
 
 fn paint_general(ui: &mut Ui<'_>, body: Rect, active: usize) {
     let narrow = narrow_frame(body);
+    let compact = compact_frame(body);
     if let Some(strip) = row_band(body, 0, 2) {
         paint_tab_strip(ui, strip, &SECTIONS, 0, true);
     }
-    let content = if narrow {
+    let content = if narrow || compact {
         Rect {
             width: body.width.saturating_sub(NARROW_GUTTER),
             ..body
@@ -353,15 +375,21 @@ fn paint_general(ui: &mut Ui<'_>, body: Rect, active: usize) {
     let Some(card) = row_band(content, 6, CARD_H.min(content.height.saturating_sub(6))) else {
         return;
     };
-    paint_card(ui, card, narrow);
+    paint_card(ui, card, narrow, compact);
     if narrow {
         paint_narrow_bar(ui, body);
+    } else if compact {
+        paint_scroll_gutter(ui, body, COMPACT_SCROLL_CONTENT);
     }
 }
 
 fn paint_narrow_bar(ui: &mut Ui<'_>, body: Rect) {
+    paint_scroll_gutter(ui, body, NARROW_SCROLL_CONTENT);
+}
+
+fn paint_scroll_gutter(ui: &mut Ui<'_>, body: Rect, content_rows: u16) {
     let height = body.height.saturating_sub(3);
-    let thumb = thumb_len(height, NARROW_SCROLL_CONTENT);
+    let thumb = thumb_len(height, content_rows);
     let x = body.right().saturating_sub(1);
     let y0 = body.y.saturating_add(3);
     for row in 0..height {
@@ -393,7 +421,7 @@ fn row_band(body: Rect, row: u16, height: u16) -> Option<Rect> {
     })
 }
 
-fn paint_card(ui: &mut Ui<'_>, card: Rect, narrow: bool) {
+fn paint_card(ui: &mut Ui<'_>, card: Rect, narrow: bool, compact: bool) {
     if card.width < 8 || card.height < 4 {
         return;
     }
@@ -424,7 +452,7 @@ fn paint_card(ui: &mut Ui<'_>, card: Rect, narrow: bool) {
     if let Some(left_w) = left_width(content.width) {
         paint_columns(ui, content, left_w);
     } else {
-        paint_stacked(ui, content, !narrow);
+        paint_stacked(ui, content, !narrow && !compact);
         if narrow {
             paint_at(
                 ui,
@@ -433,6 +461,18 @@ fn paint_card(ui: &mut Ui<'_>, card: Rect, narrow: bool) {
                 card.bottom().saturating_sub(1),
                 "Visibility",
                 plain(SECONDARY, SURFACE),
+            );
+        } else if compact {
+            paint_field(
+                ui,
+                Rect {
+                    x: card.x.saturating_add(2),
+                    y: card.bottom().saturating_sub(1),
+                    width: card.width.saturating_sub(4),
+                    height: 1,
+                },
+                "",
+                false,
             );
         }
     }
