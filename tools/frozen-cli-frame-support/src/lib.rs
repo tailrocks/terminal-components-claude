@@ -15,6 +15,24 @@ use tuiscotti::{Frame, Profile, Provenance, VENDORED_FACES};
 const PHASE_ENV: &str = "TERMROCK_PAIR_PHASE";
 const EXPECTED_ROOT_ENV: &str = "TERMROCK_PAIR_EXPECTED_ROOT";
 const RECEIPT_ROOT_ENV: &str = "TERMROCK_PAIR_RECEIPT_ROOT";
+const REFERENCE_CASE_ENV: &str = "TERMROCK_PAIR_REFERENCE_CASE";
+const REFERENCE_ORDINAL_ENV: &str = "TERMROCK_PAIR_REFERENCE_ORDINAL";
+const REFERENCE_LOGICAL_ENV: &str = "TERMROCK_PAIR_REFERENCE_LOGICAL";
+const REFERENCE_ANSI_SHA256_ENV: &str = "TERMROCK_PAIR_REFERENCE_ANSI_SHA256";
+const REFERENCE_SEMANTIC_SHA256_ENV: &str = "TERMROCK_PAIR_REFERENCE_SEMANTIC_FRAME_SHA256";
+const REFERENCE_DECISION_SHA256_ENV: &str = "TERMROCK_PAIR_REFERENCE_DECISION_SHA256";
+
+const REFERENCE_CASE: &str = "showcase::resize::overview_grown::120x40::truecolor";
+const REFERENCE_ORDINAL: u64 = 0;
+const REFERENCE_LOGICAL: &str = "showcase/resize/overview_grown/120x40/truecolor";
+const REFERENCE_APPROVAL_ANSI_SHA256: &str =
+    "7769a6686dfc5cb5c69facb03f54a0fa57e963b35fcf315b1c4625745e2b7708";
+const REFERENCE_ACTUAL_ANSI_SHA256: &str =
+    "f2e07ed284673b1d543441767460193e987034e163ca7ea7d3d4496473a0d442";
+const REFERENCE_ACTUAL_SEMANTIC_SHA256: &str =
+    "01e9f7d349fc8075df7b64188db97a05705792aac8c781184db14a6d1ecc253a";
+const REFERENCE_DECISION_SHA256: &str =
+    "2a43fb118c268300c8bbd6439ea11bb9a24ffff03dc3c9f4601893eee26a096b";
 
 /// Runtime pairing errors. Display text carries the underlying failure.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -116,19 +134,134 @@ fn env_value(name: &str) -> Result<Option<String>, Error> {
         .transpose()
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct ReferenceDecision {
+    decision_sha256: String,
+}
+
+#[derive(Debug, Clone, Copy)]
+struct OriginalApprovalMismatch<'a> {
+    case_name: &'a str,
+    ordinal: u64,
+    logical_name: &'a str,
+    approval_sha256: &'a str,
+    actual_ansi_sha256: &'a str,
+    actual_semantic_sha256: &'a str,
+    status: tuiscotti::snapshot::Status,
+    ansi_match: Option<bool>,
+}
+
+impl ReferenceDecision {
+    fn from_env() -> Result<Option<Self>, Error> {
+        Self::from_values(
+            env_value(REFERENCE_CASE_ENV)?.as_deref(),
+            env_value(REFERENCE_ORDINAL_ENV)?.as_deref(),
+            env_value(REFERENCE_LOGICAL_ENV)?.as_deref(),
+            env_value(REFERENCE_ANSI_SHA256_ENV)?.as_deref(),
+            env_value(REFERENCE_SEMANTIC_SHA256_ENV)?.as_deref(),
+            env_value(REFERENCE_DECISION_SHA256_ENV)?.as_deref(),
+        )
+    }
+
+    fn from_values(
+        case_name: Option<&str>,
+        ordinal: Option<&str>,
+        logical_name: Option<&str>,
+        ansi_sha256: Option<&str>,
+        semantic_sha256: Option<&str>,
+        decision_sha256: Option<&str>,
+    ) -> Result<Option<Self>, Error> {
+        let values = [
+            case_name,
+            ordinal,
+            logical_name,
+            ansi_sha256,
+            semantic_sha256,
+            decision_sha256,
+        ];
+        if values.iter().all(Option::is_none) {
+            return Ok(None);
+        }
+        let [
+            Some(case_name),
+            Some(ordinal),
+            Some(logical_name),
+            Some(ansi_sha256),
+            Some(semantic_sha256),
+            Some(decision_sha256),
+        ] = values
+        else {
+            return Err(Error::new(
+                "all six TERMROCK_PAIR_REFERENCE_* values must be set together",
+            ));
+        };
+        let ordinal = ordinal
+            .parse::<u64>()
+            .map_err(|_| Error::new("invalid paired reference ordinal"))?;
+        if case_name != REFERENCE_CASE
+            || ordinal != REFERENCE_ORDINAL
+            || logical_name != REFERENCE_LOGICAL
+            || ansi_sha256 != REFERENCE_ACTUAL_ANSI_SHA256
+            || semantic_sha256 != REFERENCE_ACTUAL_SEMANTIC_SHA256
+            || decision_sha256 != REFERENCE_DECISION_SHA256
+        {
+            return Err(Error::new(
+                "paired reference decision does not match the pinned frozen reference",
+            ));
+        }
+        Ok(Some(Self {
+            decision_sha256: decision_sha256.to_string(),
+        }))
+    }
+
+    fn applies_to(&self, case_name: &str, ordinal: u64, logical_name: &str) -> bool {
+        case_name == REFERENCE_CASE
+            && ordinal == REFERENCE_ORDINAL
+            && logical_name == REFERENCE_LOGICAL
+    }
+
+    fn authorizes_legacy_mismatch(&self, observed: &OriginalApprovalMismatch<'_>) -> bool {
+        self.applies_to(observed.case_name, observed.ordinal, observed.logical_name)
+            && self.decision_sha256 == REFERENCE_DECISION_SHA256
+            && observed.approval_sha256 == REFERENCE_APPROVAL_ANSI_SHA256
+            && observed.actual_ansi_sha256 == REFERENCE_ACTUAL_ANSI_SHA256
+            && observed.actual_semantic_sha256 == REFERENCE_ACTUAL_SEMANTIC_SHA256
+            && observed.status == tuiscotti::snapshot::Status::CellsDiffer
+            && observed.ansi_match == Some(false)
+    }
+}
+
 #[derive(Debug)]
 struct Recorder {
     config: Config,
     case_name: String,
+    reference_decision: Option<ReferenceDecision>,
     next_ordinal: u64,
 }
 
 impl Recorder {
+    #[cfg(test)]
     fn new(config: Config, case_name: &str) -> Result<Self, Error> {
+        Self::new_with_reference(config, case_name, None)
+    }
+
+    fn new_with_reference(
+        config: Config,
+        case_name: &str,
+        reference_decision: Option<ReferenceDecision>,
+    ) -> Result<Self, Error> {
         validate_logical_name(case_name)?;
+        if reference_decision.is_some()
+            && (config.phase != Phase::BaselineCapture || case_name != REFERENCE_CASE)
+        {
+            return Err(Error::new(
+                "paired reference decision is valid only for its pinned baseline-capture case",
+            ));
+        }
         Ok(Self {
             config,
             case_name: case_name.to_string(),
+            reference_decision,
             next_ordinal: 0,
         })
     }
@@ -161,6 +294,7 @@ impl Recorder {
             )));
         }
 
+        let mut reference_decision_sha256 = None;
         match self.config.phase {
             Phase::BaselineCapture => {
                 let expected = self.config.expected_root.join(format!("{store_name}.ansi"));
@@ -192,11 +326,14 @@ impl Recorder {
                         expected_frame.display()
                     )));
                 }
-                check_original_if_present(
+                reference_decision_sha256 = check_original_if_present(
                     original_expected_root,
                     name,
                     frame,
                     &self.config.receipt_root,
+                    &self.case_name,
+                    ordinal,
+                    self.reference_decision.as_ref(),
                 )?;
                 create_new_bytes(&expected, ansi.as_bytes())?;
                 create_new_bytes(&expected_frame, semantic_frame.as_bytes())?;
@@ -207,7 +344,13 @@ impl Recorder {
             }
         }
 
-        self.write_receipt(ordinal, name, &ansi, &semantic_frame)
+        self.write_receipt(
+            ordinal,
+            name,
+            &ansi,
+            &semantic_frame,
+            reference_decision_sha256.as_deref(),
+        )
     }
 
     fn check_runtime(&self, name: &str, frame: &Frame) -> Result<(), Error> {
@@ -264,18 +407,29 @@ impl Recorder {
         name: &str,
         ansi: &str,
         semantic_frame: &str,
+        reference_decision_sha256: Option<&str>,
     ) -> Result<(), Error> {
         let path = self.receipt_path(ordinal, name);
         validate_concrete_path(&self.config.receipt_root, &path, "receipt", true)?;
         let hash = Sha256::digest(ansi.as_bytes());
         let semantic_hash = Sha256::digest(semantic_frame.as_bytes());
-        let record = format!(
-            "{{\n  \"case_id\": {},\n  \"ordinal\": {ordinal},\n  \"logical_name\": {},\n  \"sha256\": \"{}\",\n  \"semantic_frame_sha256\": \"{}\"\n}}\n",
+        let mut record = format!(
+            "{{\n  \"case_id\": {},\n  \"ordinal\": {ordinal},\n  \"logical_name\": {},\n  \"sha256\": \"{}\",\n  \"semantic_frame_sha256\": \"{}\"",
             json_string(&self.case_name),
             json_string(name),
             hex(&hash),
             hex(&semantic_hash),
         );
+        if let Some(decision_sha256) = reference_decision_sha256 {
+            use std::fmt::Write as _;
+            write!(
+                record,
+                ",\n  \"reference_decision_sha256\": {}",
+                json_string(decision_sha256)
+            )
+            .map_err(|error| Error::new(format!("cannot format receipt: {error}")))?;
+        }
+        record.push_str("\n}\n");
         create_new_bytes(&path, record.as_bytes())
     }
 
@@ -304,10 +458,20 @@ thread_local! {
 /// gate is triggered by resize.
 pub fn begin_case(name: &str) -> Result<bool, Error> {
     let config = Config::from_env()?;
+    let reference_decision = ReferenceDecision::from_env()?;
+    if config.is_none() && reference_decision.is_some() {
+        return Err(Error::new(
+            "paired reference decision requires paired capture to be enabled",
+        ));
+    }
     ACTIVE.with(|active| {
         let mut active = active.borrow_mut();
         *active = match config {
-            Some(config) => Some(Recorder::new(config, name)?),
+            Some(config) => Some(Recorder::new_with_reference(
+                config,
+                name,
+                reference_decision,
+            )?),
             None => None,
         };
         Ok(active.is_some())
@@ -339,12 +503,20 @@ fn check_original_if_present(
     name: &str,
     frame: &Frame,
     receipt_root: &Path,
-) -> Result<(), Error> {
+    case_name: &str,
+    ordinal: u64,
+    reference_decision: Option<&ReferenceDecision>,
+) -> Result<Option<String>, Error> {
     let original = root.join(format!("{name}.ansi"));
     validate_concrete_path(root, &original, "original approval", false)?;
     if !original_approval_present(&original)? {
-        return Ok(());
+        if reference_decision.is_some_and(|decision| decision.applies_to(case_name, ordinal, name))
+        {
+            return Err(Error::new("pinned stale original approval is missing"));
+        }
+        return Ok(None);
     }
+    let original_sha256 = sha256_file(&original)?;
     let expected_root = artifact_root(receipt_root, "original-expected");
     let actual_root = artifact_root(receipt_root, "original-actual");
     let diff_root = artifact_root(receipt_root, "original-diff");
@@ -353,16 +525,50 @@ fn check_original_if_present(
     let mut renderer = profile
         .renderer(&VENDORED_FACES)
         .map_err(|error| Error::new(error.to_string()))?;
-    GroupedStore::new(root)
+    let outcome = GroupedStore::new(root)
         .with_artifacts(ArtifactSet::AnsiCursor)
         .with_expected_root(&expected_root)
         .with_actual_root(&actual_root)
         .with_diff_root(&diff_root)
         .with_review_evidence(false)
         .check_with(&mut renderer, name, frame, 1.0)
-        .map_err(|error| Error::new(error.to_string()))?
+        .map_err(|error| Error::new(error.to_string()))?;
+    if let Some(decision) =
+        reference_decision.filter(|decision| decision.applies_to(case_name, ordinal, name))
+    {
+        let ansi = tuiscotti::render::ansi_dump_with_cursor(frame);
+        let ansi_sha256 = sha256_hex(ansi.as_bytes());
+        let semantic_sha256 = sha256_hex(semantic_frame_json(frame).as_bytes());
+        if decision.authorizes_legacy_mismatch(&OriginalApprovalMismatch {
+            case_name,
+            ordinal,
+            logical_name: name,
+            approval_sha256: &original_sha256,
+            actual_ansi_sha256: &ansi_sha256,
+            actual_semantic_sha256: &semantic_sha256,
+            status: outcome.status(),
+            ansi_match: outcome.ansi_match,
+        }) {
+            return Ok(Some(decision.decision_sha256.clone()));
+        }
+        return Err(Error::new(
+            "pinned reference exception did not match the diagnosed original approval mismatch",
+        ));
+    }
+    outcome
         .ensure_matched()
-        .map_err(|error| Error::new(error.to_string()))
+        .map_err(|error| Error::new(error.to_string()))?;
+    Ok(None)
+}
+
+fn sha256_file(path: &Path) -> Result<String, Error> {
+    let bytes = fs::read(path)
+        .map_err(|error| Error::new(format!("cannot read {}: {error}", path.display())))?;
+    Ok(sha256_hex(&bytes))
+}
+
+fn sha256_hex(bytes: &[u8]) -> String {
+    hex(&Sha256::digest(bytes))
 }
 
 fn original_approval_present(path: &Path) -> Result<bool, Error> {
@@ -747,6 +953,133 @@ mod tests {
         assert!(Config::from_values(Some("baseline-capture"), None, None).is_err());
         assert!(Config::from_values(None, Some("expected"), Some("receipts")).is_err());
         assert!(Config::from_values(Some("capture"), Some("expected"), Some("receipts")).is_err());
+    }
+
+    #[test]
+    fn reference_decision_is_all_or_none_and_every_value_is_pinned() {
+        assert_eq!(
+            ReferenceDecision::from_values(None, None, None, None, None, None).unwrap(),
+            None
+        );
+        assert!(
+            ReferenceDecision::from_values(
+                Some(REFERENCE_CASE),
+                Some("0"),
+                Some(REFERENCE_LOGICAL),
+                Some(REFERENCE_ACTUAL_ANSI_SHA256),
+                Some(REFERENCE_ACTUAL_SEMANTIC_SHA256),
+                None,
+            )
+            .is_err()
+        );
+
+        let decision = ReferenceDecision::from_values(
+            Some(REFERENCE_CASE),
+            Some("0"),
+            Some(REFERENCE_LOGICAL),
+            Some(REFERENCE_ACTUAL_ANSI_SHA256),
+            Some(REFERENCE_ACTUAL_SEMANTIC_SHA256),
+            Some(REFERENCE_DECISION_SHA256),
+        )
+        .unwrap()
+        .unwrap();
+        assert_eq!(decision.decision_sha256, REFERENCE_DECISION_SHA256);
+        assert!(
+            ReferenceDecision::from_values(
+                Some(REFERENCE_CASE),
+                Some("1"),
+                Some(REFERENCE_LOGICAL),
+                Some(REFERENCE_ACTUAL_ANSI_SHA256),
+                Some(REFERENCE_ACTUAL_SEMANTIC_SHA256),
+                Some(REFERENCE_DECISION_SHA256),
+            )
+            .is_err()
+        );
+        assert!(
+            ReferenceDecision::from_values(
+                Some(REFERENCE_CASE),
+                Some("0"),
+                Some(REFERENCE_LOGICAL),
+                Some("0".repeat(64).as_str()),
+                Some(REFERENCE_ACTUAL_SEMANTIC_SHA256),
+                Some(REFERENCE_DECISION_SHA256),
+            )
+            .is_err()
+        );
+    }
+
+    #[test]
+    fn reference_exception_authorizes_only_the_pinned_mismatch() {
+        let decision = ReferenceDecision {
+            decision_sha256: REFERENCE_DECISION_SHA256.to_string(),
+        };
+        let expected = OriginalApprovalMismatch {
+            case_name: REFERENCE_CASE,
+            ordinal: REFERENCE_ORDINAL,
+            logical_name: REFERENCE_LOGICAL,
+            approval_sha256: REFERENCE_APPROVAL_ANSI_SHA256,
+            actual_ansi_sha256: REFERENCE_ACTUAL_ANSI_SHA256,
+            actual_semantic_sha256: REFERENCE_ACTUAL_SEMANTIC_SHA256,
+            status: tuiscotti::snapshot::Status::CellsDiffer,
+            ansi_match: Some(false),
+        };
+        assert!(decision.authorizes_legacy_mismatch(&expected));
+
+        let mut changed = expected;
+        changed.ordinal += 1;
+        assert!(!decision.authorizes_legacy_mismatch(&changed));
+        let mut changed = expected;
+        changed.actual_ansi_sha256 = "0";
+        assert!(!decision.authorizes_legacy_mismatch(&changed));
+        let mut changed = expected;
+        changed.actual_semantic_sha256 = "0";
+        assert!(!decision.authorizes_legacy_mismatch(&changed));
+        let mut changed = expected;
+        changed.status = tuiscotti::snapshot::Status::PixelsDiffer;
+        assert!(!decision.authorizes_legacy_mismatch(&changed));
+        let mut changed = expected;
+        changed.ansi_match = Some(true);
+        assert!(!decision.authorizes_legacy_mismatch(&changed));
+    }
+
+    #[test]
+    fn reference_decision_is_rejected_outside_its_capture_case_and_phase() {
+        let scratch = Scratch::new("reference-scope");
+        let decision = ReferenceDecision {
+            decision_sha256: REFERENCE_DECISION_SHA256.to_string(),
+        };
+        assert!(
+            Recorder::new_with_reference(
+                config(Phase::BaselineCheck, &scratch),
+                REFERENCE_CASE,
+                Some(decision.clone()),
+            )
+            .is_err()
+        );
+        assert!(
+            Recorder::new_with_reference(
+                config(Phase::CandidateCheck, &scratch),
+                REFERENCE_CASE,
+                Some(decision.clone()),
+            )
+            .is_err()
+        );
+        assert!(
+            Recorder::new_with_reference(
+                config(Phase::BaselineCapture, &scratch),
+                "showcase::pages::overview::120x40::truecolor",
+                Some(decision.clone()),
+            )
+            .is_err()
+        );
+        assert!(
+            Recorder::new_with_reference(
+                config(Phase::BaselineCapture, &scratch),
+                REFERENCE_CASE,
+                Some(decision),
+            )
+            .is_ok()
+        );
     }
 
     #[test]
