@@ -2089,7 +2089,7 @@ impl App {
 
     fn set_op_stage(&mut self, stage: u8) {
         self.accounts.op_stage = stage;
-        self.account_state = PickerState::default();
+        self.account_state.set_query("");
         self.op_options = match stage {
             1 => vec![AccountOption {
                 key: "engineering".into(),
