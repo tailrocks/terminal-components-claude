@@ -1,4 +1,5 @@
 use core::fmt;
+use std::sync::atomic::{AtomicU64, Ordering};
 
 use super::downgrade::MonoRule;
 use super::glyph::GlyphRole;
@@ -297,6 +298,12 @@ pub struct Recipes {
     revision: u64,
 }
 
+static NEXT_RECIPE_REVISION: AtomicU64 = AtomicU64::new(1);
+
+fn next_recipe_revision() -> u64 {
+    NEXT_RECIPE_REVISION.fetch_add(1, Ordering::Relaxed)
+}
+
 impl PartialEq for Recipes {
     fn eq(&self, other: &Self) -> bool {
         self.by_family == other.by_family
@@ -353,7 +360,7 @@ impl Recipes {
                   filled, so it is in range by construction"
     )]
     pub fn get_mut(&mut self, f: Family) -> &mut Recipe {
-        self.revision = self.revision.wrapping_add(1);
+        self.revision = next_recipe_revision();
         let i = match self.by_family.binary_search_by_key(&f, |(k, _)| *k) {
             Ok(i) => i,
             Err(i) => {
@@ -369,6 +376,7 @@ impl Recipes {
     }
 
     pub fn iter_mut(&mut self) -> impl Iterator<Item = (Family, &mut Recipe)> + '_ {
+        self.revision = next_recipe_revision();
         self.by_family.iter_mut().map(|(k, r)| (*k, r))
     }
 
@@ -397,7 +405,7 @@ impl Recipes {
                   filled, so it is in range by construction"
     )]
     pub(crate) fn set_mono_rules(&mut self, f: Family, rules: Vec<MonoRule>) {
-        self.revision = self.revision.wrapping_add(1);
+        self.revision = next_recipe_revision();
         let i = match self.mono.binary_search_by_key(&f, |(k, _)| *k) {
             Ok(i) => i,
             Err(i) => {
@@ -413,7 +421,7 @@ impl Recipes {
     }
 
     pub(crate) fn push_override(&mut self, o: GlobalOverride) {
-        self.revision = self.revision.wrapping_add(1);
+        self.revision = next_recipe_revision();
         self.overrides.push(o);
     }
 
@@ -433,7 +441,7 @@ impl Recipes {
         family: Family,
         parts: PartMap<PartRecipe>,
     ) {
-        self.revision = self.revision.wrapping_add(1);
+        self.revision = next_recipe_revision();
         if let Some(existing) = self
             .level_families
             .iter_mut()
