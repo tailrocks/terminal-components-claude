@@ -13,13 +13,11 @@ const COLUMNS: [TableColumn<'static>; 2] = [
         sortable: true,
         ..Column::new(ColumnKey::num(1), "Name")
     }),
-    TableColumn {
-        column: Column {
-            sortable: true,
-            ..Column::new(ColumnKey::num(2), "Duration")
-        },
-        sort: TableSort::NumericDisplay,
-    },
+    TableColumn::new(Column {
+        sortable: true,
+        ..Column::new(ColumnKey::num(2), "Duration")
+    })
+    .sort(TableSort::NumericDisplay),
 ];
 
 #[derive(Clone)]
@@ -55,6 +53,7 @@ struct TableApp {
     model: Model,
     state: TableState,
     actions: Vec<TableAction>,
+    area: Rect,
 }
 
 impl App for TableApp {
@@ -67,7 +66,7 @@ impl App for TableApp {
     }
 
     fn draw(&self, ui: &mut Ui<'_>) {
-        Table::new(ID, &COLUMNS).draw(ui, Rect::new(0, 0, 42, 7), &self.state, &self.model);
+        Table::new(ID, &COLUMNS).draw(ui, self.area, &self.state, &self.model);
     }
 }
 
@@ -86,7 +85,26 @@ fn app() -> TableApp {
         },
         state: TableState::default(),
         actions: Vec::new(),
+        area: Rect::new(0, 0, 42, 7),
     }
+}
+
+#[test]
+fn visible_range_and_position_label_come_from_table_scroll_state() {
+    let mut app = app();
+    app.model
+        .rows
+        .extend([(70, "eta", "7"), (80, "theta", "8"), (90, "iota", "9")]);
+    app.area = Rect::new(0, 0, 42, 5);
+    let mut harness = Harness::new(app, Theme::junie(), 42, 5);
+    let _ = harness.tick();
+
+    let table = Table::new(ID, &COLUMNS);
+    assert_eq!(harness.app().state.visible_rows(9), 0..4);
+    assert_eq!(
+        table.position_label(&harness.app().state, 9),
+        "unsorted · 1–4 of 9"
+    );
 }
 
 #[test]
