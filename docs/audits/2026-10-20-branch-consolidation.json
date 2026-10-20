@@ -4327,8 +4327,16 @@
       "inventory_sha": null,
       "observed_remote_sha": "636028fa130b2a0f841badb3ba93aa2330b907d6",
       "assignment": "post-inventory:B-components-layout",
-      "status": "protected-source-pending-attribution",
-      "reason": "Created after the 96-branch inventory to protect unique palette/reference commit 636028fa130b2a0f841badb3ba93aa2330b907d6. Parent is attributing 19 crate partitions; five Dialog failures plus meter_semantic_tokens and scrollbar_full_track require base comparison. Preserve exact source; do not overwrite or treat current failures as accepted. Parent reports 19-crate partition evidence of 1,687 run entries, 680 passed, 7 failed, and 678 partition-skips; failures to attribute: five Dialog cases, `meter_semantic_tokens`, and `scrollbar_full_track`."
+      "status": "source-reviewed-clear; PR38 integration pending",
+      "reason": "Created after the 96-branch inventory to protect unique palette/reference commit 636028fa130b2a0f841badb3ba93aa2330b907d6. Parent is attributing 19 crate partitions; five Dialog failures plus meter_semantic_tokens and scrollbar_full_track require base comparison. Preserve exact source; do not overwrite or treat current failures as accepted. Parent reports 19-crate partition evidence of 1,687 run entries, 680 passed, 7 failed, and 678 partition-skips; failures to attribute: five Dialog cases, `meter_semantic_tokens`, and `scrollbar_full_track`.",
+      "inventory_review_status": "protected-source-pending-attribution at initial review; superseded by parent follow-up below",
+      "source_review_followup": {
+        "commit": "082ad5d3ab3b4b29e790f7b3e4ea21205a5719a0",
+        "branch": "parity/pr38-palette-final-20261020",
+        "remote_published": false,
+        "review_status": "independently cleared by parent report",
+        "evidence": "Four production/test source blobs unchanged from protected 636028fa; full 19-crate partition failure set attributed to base; focused strict clippy and fmt pass. This is source review, not PR38 integration or product acceptance."
+      }
     }
   ],
   "stream_reports": {
@@ -4573,5 +4581,13 @@
       "parity/termrock-visual-baseline": "abfff94e4a71c80d790bb6291eefbb882aa65788"
     },
     "deleted_since_start": []
-  }
+  },
+  "integration_followups": [
+    {
+      "at_utc": "2026-10-20T16:17:00Z",
+      "source": "parent report",
+      "finding": "Palette cohort commit 082ad5d3ab3b4b29e790f7b3e4ea21205a5719a0 independently clears source after full partition attribution; PR38 integration still pending. Supersedes initial pending-attribution note for source review only."
+    }
+  ],
+  "interpretation_policy": "This 97-row exact branch ledger supersedes coarse branch classifications in the migration matrix. A branch may contain a bounded reusable contract worth integration while its whole branch or product gate remains unaccepted. Shared-style 94a/8e9/e72 lineage is represented by already-integrated 2863/e597 equivalents; early Button 7dab is superseded by reviewed 673936/b0f8/2d stack. Do not reject useful component contracts solely because full application parity remains red."
 }
