@@ -9,6 +9,7 @@ use crate::scroll::ScrollState;
 use termrock_collections::collection::{CollectionCore, Reconcile, Reconciliation};
 use termrock_core::id::{Id, ItemKey, Part, PartRef};
 use termrock_core::response::{Response, StateFlags};
+use termrock_fields::{TextCmd, TextInput, TextInputState};
 use termrock_runtime::empty::{EmptyState, Status};
 use termrock_runtime::event::{Chord, KeyCode, KeyModifiers};
 use termrock_runtime::focus::Focusability;
@@ -29,6 +30,7 @@ pub enum FilterListAction {
     Back,
     Cancel,
     NextScope,
+    PrevScope,
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -44,6 +46,7 @@ pub enum FilterListCmd {
     Secondary,
     Back,
     NextScope,
+    PrevScope,
     Cancel,
 }
 
@@ -91,6 +94,27 @@ const BINDINGS: &[Binding<FilterListCmd>] = &[
         Chord::with(KeyCode::Char('n'), KeyModifiers::CONTROL),
         FilterListCmd::Down,
         "Down",
+        false,
+    ),
+    binding(
+        ActionKey::custom("filter-list.ctrl-k"),
+        Chord::with(KeyCode::Char('k'), KeyModifiers::CONTROL),
+        FilterListCmd::Up,
+        "Up",
+        false,
+    ),
+    binding(
+        ActionKey::custom("filter-list.ctrl-j"),
+        Chord::with(KeyCode::Char('j'), KeyModifiers::CONTROL),
+        FilterListCmd::Down,
+        "Down",
+        false,
+    ),
+    binding(
+        ActionKey::custom("filter-list.prev-scope"),
+        Chord::key(KeyCode::BackTab),
+        FilterListCmd::PrevScope,
+        "Previous scope",
         false,
     ),
     binding(
@@ -165,16 +189,38 @@ const BINDINGS: &[Binding<FilterListCmd>] = &[
     ),
 ];
 
+// The query field owns Home and End; all other list actions keep their baseline chords.
+const SEARCHABLE_BINDINGS: &[Binding<FilterListCmd>] = &[
+    BINDINGS[0],
+    BINDINGS[1],
+    BINDINGS[2],
+    BINDINGS[3],
+    BINDINGS[4],
+    BINDINGS[5],
+    BINDINGS[6],
+    BINDINGS[7],
+    BINDINGS[8],
+    BINDINGS[11],
+    BINDINGS[12],
+    BINDINGS[13],
+    BINDINGS[14],
+    BINDINGS[15],
+    BINDINGS[16],
+];
+
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
 pub enum FilterPolicy {
     #[default]
     Label,
     Caller,
+    /// Case-insensitive contiguous substring matching.
+    Substring,
 }
 
 #[derive(Clone, PartialEq, Eq, Debug, Default)]
 pub struct FilterListState {
-    query: String,
+    query_value: String,
+    query_editor: TextInputState,
     core: CollectionCore,
     matches: Vec<usize>,
     initialized: bool,
@@ -182,10 +228,12 @@ pub struct FilterListState {
 
 impl FilterListState {
     pub fn query(&self) -> &str {
-        &self.query
+        self.query_editor.draft_text().unwrap_or(&self.query_value)
     }
     pub fn set_query(&mut self, query: impl Into<String>) {
-        self.query = query.into();
+        self.query_value = query.into();
+        self.query_editor.cancel();
+        self.query_editor.begin(&self.query_value);
         self.core.invalidate();
     }
     pub const fn cursor(&self) -> Option<ItemKey> {
@@ -199,12 +247,6 @@ impl FilterListState {
     }
     pub const fn matched_len(&self) -> usize {
         self.matches.len()
-    }
-
-    pub(crate) fn push_query_char(&mut self, c: char) -> FilterListAction {
-        self.query.push(c);
-        self.core.invalidate();
-        FilterListAction::QueryChanged
     }
 }
 
@@ -227,6 +269,7 @@ pub struct FilterList<'a, T, R = crate::item::ItemRow> {
     status: Status,
     frame: usize,
     searchable: bool,
+    register_owner: bool,
     filter: FilterPolicy,
     patch: Option<&'a StylePatch>,
     parts: &'a [(Part, StylePatch)],
@@ -256,6 +299,7 @@ impl<T> FilterList<'_, T, crate::item::ItemRow> {
             status: Status::Ready,
             frame: 0,
             searchable: true,
+            register_owner: true,
             filter: FilterPolicy::Label,
             patch: None,
             parts: &[],
@@ -316,6 +360,7 @@ impl<'a, T, R> FilterList<'a, T, R> {
             status: self.status,
             frame: self.frame,
             searchable: self.searchable,
+            register_owner: self.register_owner,
             filter: self.filter,
             patch: self.patch,
             parts: self.parts,
@@ -346,6 +391,11 @@ impl<'a, T, R> FilterList<'a, T, R> {
     #[must_use]
     pub const fn searchable(mut self, yes: bool) -> Self {
         self.searchable = yes;
+        self
+    }
+    #[doc(hidden)]
+    pub const fn register_owner(mut self, yes: bool) -> Self {
+        self.register_owner = yes;
         self
     }
     #[must_use]
@@ -445,7 +495,22 @@ fn contains_folded(label: &str, query: &str) -> bool {
     false
 }
 
+fn contains_substring_folded(label: &str, query: &str) -> bool {
+    query.is_empty() || label.to_lowercase().contains(&query.to_lowercase())
+}
+
 impl<T: AsItem, R: RowFn<T>> FilterList<'_, T, R> {
+    pub fn draw_query(&self, ui: &mut Ui<'_>, area: Rect, st: &FilterListState, placeholder: &str) {
+        ui.register_part(self.id, PartRef::of(Part::QUERY), area);
+        TextInput::new(self.id)
+            .value(&st.query_value)
+            .placeholder(placeholder)
+            .placeholder_while_editing(true)
+            .pointer_enabled(false)
+            .patch_part(self.parts)
+            .draw(ui, area, &st.query_editor);
+    }
+
     pub fn semantic_width(items: &[T]) -> u16 {
         items
             .iter()
@@ -463,11 +528,17 @@ impl<T: AsItem, R: RowFn<T>> FilterList<'_, T, R> {
     }
 
     pub fn reconcile(&self, st: &mut FilterListState, items: &[T]) {
+        let query = st.query_editor.draft_text().unwrap_or(&st.query_value);
         st.matches.clear();
         st.matches
             .extend(items.iter().enumerate().filter_map(|(i, item)| {
-                (self.filter == FilterPolicy::Caller
-                    || contains_folded(item.as_item().label, &st.query))
+                (match self.filter {
+                    FilterPolicy::Label => contains_folded(item.as_item().label, query),
+                    FilterPolicy::Caller => true,
+                    FilterPolicy::Substring => {
+                        contains_substring_folded(item.as_item().label, query)
+                    }
+                })
                 .then_some(i)
             }));
         st.initialized = true;
@@ -613,22 +684,28 @@ impl<T: AsItem, R: RowFn<T>> FilterList<'_, T, R> {
             cmd @ (FilterListCmd::Choose | FilterListCmd::ChooseAlt | FilterListCmd::Secondary) => {
                 self.item_action(st, items, cmd, acc);
             }
-            FilterListCmd::Back if st.query.is_empty() => {
+            FilterListCmd::Back if st.query().is_empty() => {
                 acc.action(FilterListAction::Back);
             }
             FilterListCmd::Back if self.searchable => {
-                st.query.pop();
-                st.core.invalidate();
-                acc.action(FilterListAction::QueryChanged);
+                if st.query_editor.backspace() {
+                    st.core.invalidate();
+                    acc.action(FilterListAction::QueryChanged);
+                } else {
+                    acc.consumed();
+                }
             }
             FilterListCmd::NextScope => {
                 acc.action(FilterListAction::NextScope);
             }
-            FilterListCmd::Cancel if st.query.is_empty() => {
+            FilterListCmd::PrevScope => {
+                acc.action(FilterListAction::PrevScope);
+            }
+            FilterListCmd::Cancel if st.query().is_empty() => {
                 acc.action(FilterListAction::Cancel);
             }
             FilterListCmd::Cancel if self.searchable => {
-                st.query.clear();
+                st.set_query("");
                 st.core.invalidate();
                 acc.action(FilterListAction::QueryChanged);
             }
@@ -643,6 +720,11 @@ impl<T: AsItem, R: RowFn<T>> FilterList<'_, T, R> {
         items: &[T],
     ) -> Response<FilterListAction> {
         self.reconcile(st, items);
+        let query_before = st.query().to_owned();
+        if self.searchable {
+            let input = TextInput::new(self.id);
+            let _ = input.update(cx, &mut st.query_editor, &mut st.query_value);
+        }
         let mut acc = Acc::new();
         let bar = self
             .scrollbar()
@@ -654,18 +736,15 @@ impl<T: AsItem, R: RowFn<T>> FilterList<'_, T, R> {
                 Intent::Binding(action) => {
                     if let Some(cmd) = Binding::command(BINDINGS, action) {
                         self.handle_cmd(cmd, st, items, page, &mut acc);
+                    } else if Binding::command(
+                        TextInput::new(self.id).bindings(BindingState::default()),
+                        action,
+                    ) == Some(TextCmd::Cancel)
+                    {
+                        self.handle_cmd(FilterListCmd::Cancel, st, items, page, &mut acc);
                     }
                 }
-                Intent::Paste(s) if self.searchable => {
-                    st.query.push_str(s);
-                    st.core.invalidate();
-                    acc.action(FilterListAction::QueryChanged);
-                }
-                Intent::Key(key) if self.searchable => {
-                    if let Some(c) = key.bare_char() {
-                        acc.action(st.push_query_char(c));
-                    }
-                }
+                Intent::Paste(_) | Intent::Key(_) if self.searchable => {}
                 Intent::Pointer {
                     phase,
                     part:
@@ -699,12 +778,41 @@ impl<T: AsItem, R: RowFn<T>> FilterList<'_, T, R> {
                         }
                     }
                 }
+                Intent::Pointer {
+                    phase: Phase::Press | Phase::Click | Phase::DragStart | Phase::Drag,
+                    local,
+                    part:
+                        PartRef {
+                            part: Part::QUERY,
+                            item: None,
+                        },
+                    ..
+                } if self.searchable => {
+                    let area = cx.area(self.id).unwrap_or_default();
+                    if st.query_editor.place_cursor(
+                        usize::from(local.x.saturating_sub(2)),
+                        area.width.saturating_sub(3),
+                    ) {
+                        acc.changed();
+                    } else {
+                        acc.consumed();
+                    }
+                }
                 Intent::Pointer { .. } => {
                     acc.consumed();
                 }
                 _ => {}
             }
         }
+        if st.query() != query_before {
+            st.core.invalidate();
+            acc.action(FilterListAction::QueryChanged);
+        }
+        let query_width = cx
+            .area(self.id)
+            .map_or(0, |area| area.width.saturating_sub(3));
+        st.query_editor.ensure_cursor_visible(query_width);
+        self.reconcile(st, items);
         acc.finish(self.id)
     }
 
@@ -716,7 +824,7 @@ impl<T: AsItem, R: RowFn<T>> FilterList<'_, T, R> {
         items: &[T],
         live: StateFlags,
     ) {
-        let identity = !st.initialized && st.query.is_empty();
+        let identity = !st.initialized && st.query().is_empty();
         let visible_len = if identity {
             items.len()
         } else {
@@ -801,13 +909,35 @@ impl<T: AsItem, R: RowFn<T>> FilterList<'_, T, R> {
         if area.is_empty() {
             return area;
         }
-        if self.searchable {
-            ui.register_editor(self.id, area, Focusability::Focusable, StateFlags::EDITING);
-        } else {
-            ui.register_control(self.id, area, Focusability::Focusable);
+        if self.register_owner {
+            if self.searchable {
+                ui.register_editor(self.id, area, Focusability::Focusable, StateFlags::EDITING);
+            } else {
+                ui.register_control(self.id, area, Focusability::Focusable);
+            }
         }
         let live = ui.state(self.id);
         ui.publish_bindings(self.id, live, self.bindings(BindingState { flags: live }));
+        if self.searchable {
+            let query_bindings = TextInput::new(self.id).bindings(BindingState { flags: live });
+            ui.publish_dynamic_bindings(
+                self.id,
+                live,
+                query_bindings
+                    .iter()
+                    .filter(|binding| {
+                        !matches!(
+                            binding.cmd,
+                            TextCmd::Commit
+                                | TextCmd::Cancel
+                                | TextCmd::Backspace
+                                | TextCmd::Delete
+                                | TextCmd::DeleteToLineEnd
+                        )
+                    })
+                    .map(|binding| (binding.action, binding.chord)),
+            );
+        }
         let mut live = PartStyle::flags(ui.state(self.id), self.status.flags());
         live.remove(StateFlags::PRESSED);
         let container = self.ov.style(
@@ -819,7 +949,7 @@ impl<T: AsItem, R: RowFn<T>> FilterList<'_, T, R> {
             live,
         );
         ui.fill(area, container.style);
-        let identity = !st.initialized && st.query.is_empty();
+        let identity = !st.initialized && st.query().is_empty();
         let visible_len = if identity {
             items.len()
         } else {
@@ -860,7 +990,11 @@ impl<T: AsItem, R: RowFn<T>> FilterList<'_, T, R> {
 impl<T, R> Bindings for FilterList<'_, T, R> {
     type Cmd = FilterListCmd;
     fn bindings(&self, _st: BindingState) -> &'static [Binding<Self::Cmd>] {
-        BINDINGS
+        if self.searchable {
+            SEARCHABLE_BINDINGS
+        } else {
+            BINDINGS
+        }
     }
 }
 
@@ -872,10 +1006,16 @@ mod tests {
     use termrock_core::response::StateFlags;
     use termrock_theme::Theme;
 
+    use crate::event::{Key, KeyCode, KeyModifiers};
     use crate::item::{AsItem, Item, ItemRow};
+    use crate::response::Response;
+    use crate::runtime::stub::key;
+    use crate::runtime::{App, Runtime};
+    use crate::ui::Cx;
     use ratatui_core::buffer::Buffer;
     use ratatui_core::layout::Rect;
     use termrock_runtime::Status;
+    use termrock_runtime::event::Input;
     use termrock_runtime::ui::cx::LastFrame;
     use termrock_runtime::ui::{FrameState, Ui, UiCore};
 
@@ -925,6 +1065,100 @@ mod tests {
         state.set_query("a");
         FilterList::<Domain, ItemRow>::new(Id::root("test")).reconcile(&mut state, &items);
         assert_eq!(state.matches.capacity(), capacity);
+    }
+
+    #[test]
+    fn substring_policy_is_contiguous_and_distinct_from_label_fuzzy_matching() {
+        let items = [Item::new(ItemKey::num(4), "CommandPalette")];
+        let mut fuzzy = FilterListState::default();
+        fuzzy.set_query("cpa");
+        FilterList::<Item<'_>>::new(Id::root("filter-list.fuzzy"))
+            .filter(super::FilterPolicy::Label)
+            .reconcile(&mut fuzzy, &items);
+        assert_eq!(fuzzy.matched_len(), 1);
+
+        let mut substring = FilterListState::default();
+        substring.set_query("cpa");
+        FilterList::<Item<'_>>::new(Id::root("filter-list.substring"))
+            .filter(super::FilterPolicy::Substring)
+            .reconcile(&mut substring, &items);
+        assert_eq!(substring.matched_len(), 0);
+
+        substring.set_query("palette");
+        FilterList::<Item<'_>>::new(Id::root("filter-list.substring"))
+            .filter(super::FilterPolicy::Substring)
+            .reconcile(&mut substring, &items);
+        assert_eq!(substring.matched_len(), 1);
+    }
+
+    #[test]
+    fn substring_filter_uses_typed_field_caret_and_paste() {
+        const ID: Id = Id::root("filter-list.query-editor-contract");
+        const SCREEN: Rect = Rect::new(0, 0, 40, 8);
+
+        struct FilterApp {
+            state: FilterListState,
+            items: [Item<'static>; 3],
+        }
+
+        impl App for FilterApp {
+            fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+                FilterList::<Item<'static>>::new(ID)
+                    .filter(super::FilterPolicy::Substring)
+                    .update(cx, &mut self.state, &self.items)
+                    .erase()
+            }
+
+            fn draw(&self, ui: &mut Ui<'_>) {
+                FilterList::<Item<'static>>::new(ID)
+                    .filter(super::FilterPolicy::Substring)
+                    .draw(ui, SCREEN, &self.state, &self.items);
+            }
+        }
+
+        let app = FilterApp {
+            state: FilterListState::default(),
+            items: [
+                Item::new(ItemKey::num(1), "Orders Console"),
+                Item::new(ItemKey::num(2), "Customer Notes"),
+                Item::new(ItemKey::num(3), "CONSOLE Logs"),
+            ],
+        };
+        let mut runtime = Runtime::new(app, Theme::junie());
+        let _ = runtime.initialize();
+        let mut buffer = Buffer::empty(SCREEN);
+        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
+
+        let _ = crate::runtime::stub::deliver(&mut runtime, Input::Paste("console".into()));
+        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
+        assert_eq!(runtime.app().state.query(), "console");
+        assert_eq!(runtime.app().state.matched_len(), 2);
+
+        let _ = crate::runtime::stub::deliver(
+            &mut runtime,
+            Input::Key(Key {
+                code: KeyCode::Char('j'),
+                mods: KeyModifiers::CONTROL,
+            }),
+        );
+        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
+        assert_eq!(runtime.app().state.cursor(), Some(ItemKey::num(3)));
+        let _ = crate::runtime::stub::deliver(
+            &mut runtime,
+            Input::Key(Key {
+                code: KeyCode::Char('k'),
+                mods: KeyModifiers::CONTROL,
+            }),
+        );
+        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
+        assert_eq!(runtime.app().state.cursor(), Some(ItemKey::num(1)));
+
+        let _ = crate::runtime::stub::deliver(&mut runtime, key(KeyCode::Left));
+        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
+        let _ = crate::runtime::stub::deliver(&mut runtime, Input::Paste("x".into()));
+        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
+        assert_eq!(runtime.app().state.query(), "consolxe");
+        assert_eq!(runtime.app().state.matched_len(), 0);
     }
 
     #[test]
