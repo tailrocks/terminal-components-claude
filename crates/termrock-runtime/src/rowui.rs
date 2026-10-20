@@ -45,11 +45,16 @@ fn resolve_row_part(
     patch: Option<StylePatch>,
     cursor_style: CursorStyle,
 ) -> crate::theme::Resolved {
-    let patch = if cursor_style == CursorStyle::Fill && flags.contains(StateFlags::FOCUSED) {
-        Some(patch.unwrap_or_default().merge(selected_row_patch()))
-    } else {
-        patch
-    };
+    if cursor_style == CursorStyle::Fill && flags.contains(StateFlags::FOCUSED) {
+        return ui.style_defaults(
+            family,
+            variant,
+            part,
+            flags,
+            crate::theme::StyleDefaults::new(selected_row_patch()),
+            patch.as_ref(),
+        );
+    }
     match patch {
         Some(patch) => ui.style_patched(family, variant, part, flags, &patch),
         None => ui.style(family, variant, part, flags),
@@ -154,12 +159,13 @@ impl<'u> RowUi<'u> {
     pub fn with_cursor_style(mut self, style: CursorStyle) -> Self {
         self.cursor_style = style;
         if style == CursorStyle::Fill && self.flags.contains(StateFlags::FOCUSED) {
-            let resolved = self.ui.style_patched(
+            let resolved = self.ui.style_defaults(
                 self.family,
                 self.variant,
                 Part::ROW,
                 self.flags,
-                &selected_row_patch(),
+                crate::theme::StyleDefaults::new(selected_row_patch()),
+                None,
             );
             self.ui.fill(self.row, resolved.style);
         }
