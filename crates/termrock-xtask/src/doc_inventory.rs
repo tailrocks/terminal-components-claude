@@ -580,8 +580,8 @@ fn rust_tokens(source: &str) -> Vec<RustToken> {
 
 fn scan_rust_source(path: &str, source: &str, report: &mut Report) {
     let mut doc_lines = Vec::new();
-    let mut in_block = false;
-    let mut in_regular_block = false;
+    let mut doc_block_depth = 0usize;
+    let mut regular_block_depth = 0usize;
     let mut raw_string_hashes = None;
     let mut in_cooked_string = false;
     let mut attribute: Option<(usize, String, i32)> = None;
@@ -604,26 +604,24 @@ fn scan_rust_source(path: &str, source: &str, report: &mut Report) {
             }
             continue;
         }
-        if in_regular_block {
-            if trimmed.contains("*/") {
-                in_regular_block = false;
-            }
+        if regular_block_depth > 0 {
+            regular_block_depth = advance_block_depth(trimmed, regular_block_depth);
             continue;
         }
-        if trimmed.starts_with("/*") && !trimmed.starts_with("/**") {
-            in_regular_block = !trimmed.contains("*/");
-            continue;
-        }
-        if in_block {
+        if doc_block_depth > 0 {
             let content = trimmed
                 .strip_prefix('*')
                 .map(str::trim_start)
                 .unwrap_or(trimmed);
             doc_lines.push((line_number, content.to_string()));
-            if trimmed.contains("*/") {
-                in_block = false;
+            doc_block_depth = advance_block_depth(trimmed, doc_block_depth);
+            if doc_block_depth == 0 {
                 doc_lines.push((line_number, String::new()));
             }
+            continue;
+        }
+        if trimmed.starts_with("/*") && !trimmed.starts_with("/**") && !trimmed.starts_with("/*!") {
+            regular_block_depth = advance_block_depth(trimmed, 0);
             continue;
         }
         if trimmed.starts_with("///") && !trimmed.starts_with("////") {
@@ -648,17 +646,27 @@ fn scan_rust_source(path: &str, source: &str, report: &mut Report) {
             ));
             continue;
         }
-        if trimmed.starts_with("/**") && !trimmed.starts_with("/***") {
-            in_block = !trimmed.contains("*/");
-            let content = trimmed
-                .strip_prefix("/**")
+        let doc_prefix = if trimmed.starts_with("/**") && !trimmed.starts_with("/***") {
+            Some("/**")
+        } else if trimmed.starts_with("/*!") {
+            Some("/*!")
+        } else {
+            None
+        };
+        if let Some(prefix) = doc_prefix {
+            doc_block_depth = advance_block_depth(trimmed, 0);
+            let mut content = trimmed
+                .strip_prefix(prefix)
                 .unwrap_or_default()
                 .trim_start_matches('*')
                 .trim();
+            if doc_block_depth == 0 {
+                content = content.strip_suffix("*/").unwrap_or(content).trim_end();
+            }
             if !content.is_empty() {
                 doc_lines.push((line_number, content.to_string()));
             }
-            if !in_block {
+            if doc_block_depth == 0 {
                 doc_lines.push((line_number, String::new()));
             }
             continue;
@@ -717,6 +725,25 @@ fn scan_rust_source(path: &str, source: &str, report: &mut Report) {
     if !doc_lines.is_empty() {
         inspect_doc_lines(path, &doc_lines, report);
     }
+}
+
+fn advance_block_depth(source: &str, mut depth: usize) -> usize {
+    let bytes = source.as_bytes();
+    let mut index = 0;
+    while index + 1 < bytes.len() {
+        match &bytes[index..index + 2] {
+            b"/*" => {
+                depth += 1;
+                index += 2;
+            }
+            b"*/" => {
+                depth = depth.saturating_sub(1);
+                index += 2;
+            }
+            _ => index += 1,
+        }
+    }
+    depth
 }
 
 fn raw_string_start(line: &str) -> Option<(usize, usize)> {

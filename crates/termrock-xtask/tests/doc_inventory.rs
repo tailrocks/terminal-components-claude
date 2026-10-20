@@ -105,3 +105,19 @@ fn cfg_attr_doc_assignment_ignores_trivia_bypass() {
         );
     }
 }
+
+#[test]
+fn inner_and_outer_block_doc_examples_survive_nested_comments() {
+    for doc in ["/*!", "/**"] {
+        let source = format!(
+            "{doc}\n * Examples:\n * /* a nested comment */\n * ```rust\n * fn hidden_example() {{}}\n * ```\n */"
+        );
+        assert!(
+            !inspect_fixture("src/lib.rs", &source).is_empty(),
+            "accepted block doc {source:?}"
+        );
+    }
+
+    let ordinary = "/*\n * ```rust\n * fn ordinary_comment() {}\n * ```\n */";
+    assert!(inspect_fixture("src/lib.rs", ordinary).is_empty());
+}
