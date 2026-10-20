@@ -15,7 +15,6 @@ from typing import Any
 HERE = Path(__file__).resolve().parent
 POLICY_PATH = HERE / "acceptance_policy.json"
 SOURCE_SUFFIXES = {".rs", ".inc", ".in", ".txt", ".ansi", ".ans", ".json", ".toml"}
-SOURCE_ROOTS = ("src/",)
 STAMP_RULES = (
     ("frame-marker", re.compile(r"(?i)(frame stamp|captured (?:terminal )?frame|approved (?:frame )?cells|snapshot trailer|captured screen)")),
     ("ansi-frame-replay", re.compile(r"(?i)(include_(?:str|bytes)!.*(?:snapshots?|baselines?)/.*\.(?:ansi|ans)|from_ansi|parse_ansi_frame)")),
@@ -75,20 +74,45 @@ def dependency_location(root: Path, pkg: dict[str, Any], dep: dict[str, Any]) ->
     return None
 
 
-def production_files(root: Path, package_root: str, tracked: list[str]) -> list[str]:
+def production_files(root: Path, package_root: str, tracked: list[str], target_paths: list[str]) -> list[str]:
     prefix = package_root.rstrip("/") + "/"
-    out = []
+    out = list(target_paths)
     for path in tracked:
         if path == prefix + "Cargo.toml" or path == prefix + "build.rs":
             out.append(path)
+        elif path.startswith(prefix) and Path(path).suffix == ".rs" and not any(
+            part in {"tests", "examples", "benches", "target", ".git"}
+            for part in Path(path).relative_to(package_root).parts[:-1]
+        ):
+            out.append(path)
         elif path.startswith(prefix + "src/") and Path(path).suffix in SOURCE_SUFFIXES:
             out.append(path)
-    source_dir = root / package_root / "src"
+    source_dir = root / package_root
     if source_dir.exists():
         for path in source_dir.rglob("*"):
+            rel_parts = path.relative_to(source_dir).parts
+            if any(part in {"tests", "examples", "benches", "target", ".git"} for part in rel_parts[:-1]):
+                continue
             if path.is_file() or path.is_symlink():
-                out.append(path.relative_to(root).as_posix())
+                rel = path.relative_to(root).as_posix()
+                if path.suffix == ".rs" or (path.parts and "src" in rel_parts and path.suffix in SOURCE_SUFFIXES):
+                    out.append(rel)
     return sorted(set(out))
+
+
+def read_source(root: Path, rel: str, tracked: set[str]) -> bytes:
+    path = root / rel
+    resolved = path.resolve(strict=False)
+    resolved.relative_to(root)
+    try:
+        return path.read_bytes()
+    except FileNotFoundError:
+        if rel not in tracked:
+            raise
+        blob = run(["git", "show", f":{rel}"], root)
+        if blob.returncode:
+            raise OSError(blob.stderr.decode("utf-8", "replace").strip())
+        return blob.stdout
 
 
 def finding(rule: str, rel: str, line: int, content: bytes, detail: str) -> dict[str, Any]:
@@ -107,7 +131,7 @@ def check(root: Path) -> dict[str, Any]:
         "source_manifest_sha256": None,
         "architecture_checks_passed": False,
         "acceptance_complete": False,
-        "packages": {"production_expected": policy["production_library_packages"], "production_observed": [], "missing_production": [], "applications_missing": []},
+        "packages": {"production_expected": policy["production_library_packages"], "production_observed": [], "missing_production": [], "production_nonlibrary": [], "applications_missing": [], "duplicate_workspace_names": []},
         "application_shared_closure_missing": [],
         "dependency_violations": [],
         "source_inputs": [],
@@ -137,15 +161,20 @@ def check(root: Path) -> dict[str, Any]:
         report["errors"].append(f"cargo workspace root escapes or differs from requested root: {workspace_root}")
     packages = metadata["packages"]
     by_name: dict[str, list[dict[str, Any]]] = {}
-    by_id = {}
     for pkg in packages:
         by_name.setdefault(str(pkg.get("name", "")), []).append(pkg)
-        by_id[str(pkg.get("id", ""))] = pkg
+    report["packages"]["duplicate_workspace_names"] = sorted(name for name, members in by_name.items() if len(members) > 1)
+    if report["packages"]["duplicate_workspace_names"]:
+        report["errors"].append("workspace package names are ambiguous for locked graph resolution: " + ", ".join(report["packages"]["duplicate_workspace_names"]))
     expected = set(policy["production_library_packages"])
     observed = expected & set(by_name)
     report["packages"]["production_observed"] = sorted(observed)
     report["packages"]["missing_production"] = sorted(expected - observed)
     report["packages"]["duplicate_production"] = sorted(name for name in expected if len(by_name.get(name, [])) != 1 and name in by_name)
+    report["packages"]["production_nonlibrary"] = sorted(
+        name for name in expected & set(by_name)
+        if not any(set(target.get("kind", [])) & {"lib", "proc-macro"} for pkg in by_name[name] for target in pkg.get("targets", []))
+    )
 
     found_bins: set[str] = set()
     for pkg in packages:
@@ -162,7 +191,6 @@ def check(root: Path) -> dict[str, Any]:
     forbidden_exact = set(policy["forbidden_production_dependency_names"])
     forbidden_exact.update(policy["application_binary_targets"])
     forbidden_prefixes = tuple(policy["forbidden_application_dependency_prefixes"])
-    production_pkgs: list[dict[str, Any]] = []
     application_pkgs: list[dict[str, Any]] = []
     target_to_pkg: dict[str, dict[str, Any]] = {}
     for pkg in packages:
@@ -232,17 +260,25 @@ def check(root: Path) -> dict[str, Any]:
         if not seen.intersection(expected):
             report["application_shared_closure_missing"].append(target_name)
 
-    for name in sorted(expected & set(by_name)):
-        for pkg in by_name[name]:
-            production_pkgs.append(pkg)
+    production_closure = set(expected & set(by_name))
+    production_closure.update(str(pkg.get("name", "")) for pkg in application_pkgs)
+    pending_closure = list(production_closure)
+    while pending_closure:
+        node = pending_closure.pop()
+        for dependency in dependency_graph.get(node, []):
+            if dependency not in production_closure:
+                production_closure.add(dependency)
+                pending_closure.append(dependency)
 
     source_records: list[dict[str, Any]] = []
     file_bytes: dict[str, bytes] = {}
-    scan_pkgs = (
-        [(pkg, "library") for pkg in production_pkgs]
-        + [(pkg, "application") for pkg in application_pkgs]
-        + [(pkg, "application_component") for pkg in application_component_pkgs]
-    )
+    pending_sources: list[tuple[dict[str, Any], str, str, bytes, tuple[str, ...]]] = []
+    tracked_set = set(tracked)
+    scan_names = production_closure | {str(pkg.get("name", "")) for pkg in application_component_pkgs}
+    scan_pkgs = []
+    for name in sorted(scan_names):
+        role = "library" if name in expected else "application_component" if name.startswith(app_prefixes) else "production_dependency"
+        scan_pkgs.extend((pkg, role) for pkg in by_name.get(name, []))
     for pkg, package_role in sorted(scan_pkgs, key=lambda pair: (str(pair[0].get("name", "")), pair[1])):
         manifest = Path(str(pkg.get("manifest_path", ""))).resolve()
         try:
@@ -252,71 +288,65 @@ def check(root: Path) -> dict[str, Any]:
             continue
         pkg_root = manifest.parent
         pkg_rel_root = pkg_root.relative_to(root).as_posix()
-        files = production_files(root, pkg_rel_root, tracked)
+        target_paths: list[str] = []
+        for target in pkg.get("targets", []):
+            if not set(target.get("kind", [])) & {"lib", "bin", "proc-macro", "custom-build"}:
+                continue
+            target_source = Path(str(target.get("src_path", ""))).resolve(strict=False)
+            try:
+                target_rel = target_source.relative_to(root).as_posix()
+            except ValueError:
+                report["errors"].append(f"production target source is outside workspace: {pkg.get('name')}:{target.get('name')} {target_source}")
+                continue
+            target_paths.append(target_rel)
+            if "custom-build" in target.get("kind", []):
+                report["unaccounted_inputs"].append(f"build-generated production inputs require independent accounting: {target_rel}")
+        files = production_files(root, pkg_rel_root, tracked, target_paths)
         if rel_manifest not in files:
             files.append(rel_manifest)
         for rel in sorted(set(files)):
             path = root / rel
             try:
-                resolved = path.resolve(strict=True)
-                resolved.relative_to(root)
-                data = path.read_bytes()
+                data = read_source(root, rel, set(tracked))
             except (OSError, ValueError) as exc:
                 report["errors"].append(f"unreadable or out-of-root production input {rel}: {exc}")
                 continue
             file_bytes[rel] = data
             source_records.append({"path": rel, "sha256": sha(data), "bytes": len(data), "package": pkg["name"], "role": package_role})
-            if rel.endswith("build.rs"):
-                report["unaccounted_inputs"].append(f"build-generated production inputs require independent accounting: {rel}")
+            pending_sources.append((pkg, package_role, rel, data, ()))
 
-            text = data.decode("utf-8", "replace")
-            lines = text.splitlines()
-            for match in DYNAMIC_INCLUDE_RE.finditer(text):
-                if not INCLUDE_RE.match(text, match.start()):
-                    line = text.count("\n", 0, match.start()) + 1
-                    report["unaccounted_inputs"].append(f"dynamic include path cannot be enumerated: {rel}:{line}")
-            for match in INCLUDE_RE.finditer(text):
-                included = (path.parent / match.group(1)).resolve()
-                try:
-                    included_rel = included.relative_to(root).as_posix()
-                    try:
-                        inc_data = included.read_bytes()
-                    except FileNotFoundError:
-                        if included_rel not in tracked:
-                            raise
-                        # Sparse checkouts may omit a tracked include. Read its
-                        # index object, preserving the exact checked-out input.
-                        blob = run(["git", "show", f":{included_rel}"], root)
-                        if blob.returncode:
-                            raise OSError(blob.stderr.decode("utf-8", "replace").strip())
-                        inc_data = blob.stdout
-                    source_records.append({"path": included_rel, "sha256": sha(inc_data), "bytes": len(inc_data), "package": pkg["name"], "included_by": rel})
-                    file_bytes[included_rel] = inc_data
-                    if re.search(r"(?i)(?:snapshots?|baselines?)/.*\.(?:ansi|ans)$", match.group(1)):
-                        line = text.count("\n", 0, match.start()) + 1
-                        report["findings"].append(finding("ansi-frame-replay", rel, line, data, f"includes captured terminal asset {included_rel}"))
-                except (OSError, ValueError) as exc:
-                    line = text.count("\n", 0, match.start()) + 1
-                    report["errors"].append(f"unreadable or out-of-root include from {rel}:{line}: {match.group(1)} ({exc})")
-
-            for match in PATH_MODULE_RE.finditer(text):
-                referenced = (path.parent / match.group(1)).resolve()
-                try:
-                    referenced_rel = referenced.relative_to(root).as_posix()
-                    try:
-                        ref_data = referenced.read_bytes()
-                    except FileNotFoundError:
-                        if referenced_rel not in tracked:
-                            raise
-                        blob = run(["git", "show", f":{referenced_rel}"], root)
-                        if blob.returncode:
-                            raise OSError(blob.stderr.decode("utf-8", "replace").strip())
-                        ref_data = blob.stdout
-                    source_records.append({"path": referenced_rel, "sha256": sha(ref_data), "bytes": len(ref_data), "package": pkg["name"], "included_by": rel})
-                    file_bytes[referenced_rel] = ref_data
-                except (OSError, ValueError) as exc:
-                    line = text.count("\n", 0, match.start()) + 1
-                    report["errors"].append(f"unreadable or out-of-root path module from {rel}:{line}: {match.group(1)} ({exc})")
+    visited_sources: set[tuple[str, str]] = set()
+    while pending_sources:
+        pkg, package_role, rel, data, ancestors = pending_sources.pop()
+        key = (str(pkg.get("id", pkg.get("name", ""))), rel)
+        if rel in ancestors:
+            report["errors"].append(f"recursive production source include cycle: {' -> '.join((*ancestors, rel))}")
+            continue
+        if key in visited_sources:
+            continue
+        visited_sources.add(key)
+        text = data.decode("utf-8", "replace")
+        references = [("include", match, match.group(1)) for match in INCLUDE_RE.finditer(text)]
+        references.extend(("include", match, None) for match in DYNAMIC_INCLUDE_RE.finditer(text) if not INCLUDE_RE.match(text, match.start()))
+        references.extend(("path-module", match, match.group(1)) for match in PATH_MODULE_RE.finditer(text))
+        for kind, match, literal in references:
+            line = text.count("\n", 0, match.start()) + 1
+            if literal is None:
+                report["unaccounted_inputs"].append(f"dynamic include path cannot be enumerated: {rel}:{line}")
+                continue
+            referenced = (root / rel).parent / literal
+            resolved = referenced.resolve(strict=False)
+            try:
+                referenced_rel = resolved.relative_to(root).as_posix()
+                ref_data = read_source(root, referenced_rel, tracked_set)
+            except (OSError, ValueError) as exc:
+                report["errors"].append(f"unreadable or out-of-root {kind} from {rel}:{line}: {literal} ({exc})")
+                continue
+            source_records.append({"path": referenced_rel, "sha256": sha(ref_data), "bytes": len(ref_data), "package": pkg["name"], "role": package_role, "included_by": rel})
+            file_bytes[referenced_rel] = ref_data
+            if kind == "include" and re.search(r"(?i)(?:snapshots?|baselines?)/.*\.(?:ansi|ans)$", literal):
+                report["findings"].append(finding("ansi-frame-replay", rel, line, data, f"includes captured terminal asset {referenced_rel}"))
+            pending_sources.append((pkg, package_role, referenced_rel, ref_data, (*ancestors, rel)))
 
     for rel, data in sorted(file_bytes.items()):
         text = data.decode("utf-8", "replace")
@@ -353,7 +383,7 @@ def check(root: Path) -> dict[str, Any]:
     report["unaccounted_inputs"] = sorted(set(report["unaccounted_inputs"]))
     report["errors"] = sorted(set(report["errors"]))
     report["architecture_checks_passed"] = not any((
-        report["errors"], report["packages"]["missing_production"], report["packages"]["duplicate_production"],
+        report["errors"], report["packages"]["missing_production"], report["packages"]["duplicate_production"], report["packages"]["production_nonlibrary"],
         report["packages"]["applications_missing"], report["packages"]["duplicate_application_targets"],
         report["application_shared_closure_missing"], report["dependency_violations"], report["findings"],
         report["unaccounted_inputs"],
