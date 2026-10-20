@@ -1,0 +1,55 @@
+{
+  "schema": "termrock.frozen-cli-fresh-capture-plan-implementation",
+  "schema_version": 1,
+  "status": "prepared-plan-only-not-executed",
+  "implementation_base": "de156136f9e8e642809c99a35e7cee4259e0b047",
+  "fixed_references": {
+    "baseline_tag_object": "2718a6b8127a522a3d351d0b4bdb7542fc8da542",
+    "baseline_commit": "4169783ae883788186d161af09ba9c481bd84e5c",
+    "tuiscotti_commit": "a1ea27f757d75d07b05499276cd932e9f8e067ad",
+    "capture_eligibility_decision_sha256": "446273ce18d3caaea939263b37687be5aec770cf1ab54c62110f6c945ec9c2f6",
+    "resumable_runner_contract_sha256": "81df800e4b16a8240acf7c569a9c5c9472fa1678c96aa78947928ca7a082ebfb"
+  },
+  "implementation": {
+    "files": [
+      "tools/frozen_baseline.py",
+      "tools/test_frozen_baseline.py"
+    ],
+    "commands": [
+      "prepare-live --fresh-cohort <id> --baseline-bin-dir <sealed-bin-dir>",
+      "verify-live --fresh-cohort <id> --baseline-bin-dir <sealed-bin-dir>",
+      "fresh-plan --cohort <id> --baseline-bin-dir <sealed-bin-dir>",
+      "verify-fresh-plan --cohort <id> --baseline-bin-dir <sealed-bin-dir>"
+    ],
+    "plan": {
+      "inventory_visual_original": 28895,
+      "inventory_visual_extensions": 174,
+      "inventory_visual_total": 29069,
+      "inventory_ordinary_checks": 20,
+      "per_step_timeout_seconds": 225,
+      "phases": ["baseline-capture", "baseline-replay", "baseline-ordinary-checks"],
+      "candidate_phase": null,
+      "candidate_comparison_eligible": false,
+      "checkpoint_reference_approval": "none",
+      "product_acceptance": false
+    }
+  },
+  "preserved_guards": [
+    "Legacy prepare-live and verify-live continue to require the unchanged frozen v1 tuple decision and historical build.json pair.",
+    "Fresh mode requires the exact separately reviewed cohort, frozen source, pinned tool and harness inputs, and all four sealed binary hashes; it does not load historical build.json or transfer the v1 tuple exception.",
+    "The plan is exclusive-create, read-only, self-digested canonical JSON; verification regenerates all source, cohort, review, harness, environment, inventory, and phase bindings before future execution.",
+    "Plans contain only allowlisted environment value hashes, never secret values or runner receipt key bytes.",
+    "The fresh-capture review grants no candidate comparison, checkpoint reference approval, or product acceptance."
+  ],
+  "validation": {
+    "python_unittest_frozen_baseline": "58 passed",
+    "py_compile": "passed",
+    "cli_help_smokes": "passed",
+    "diff_check": "passed"
+  },
+  "not_executed": [
+    "No baseline application was launched or captured.",
+    "No baseline replay, chunk advancement, finalization, ordinary CLI application execution, or candidate comparison was performed.",
+    "The resumable lifecycle remains unimplemented and requires independent review of this preparation/plan step first."
+  ]
+}
