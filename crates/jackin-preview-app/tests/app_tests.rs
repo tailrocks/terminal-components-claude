@@ -1925,6 +1925,28 @@ fn accounts_filter_enter_paints_the_approved_filter_frame() {
 }
 
 #[test]
+fn accounts_filter_enter_paints_the_approved_80_filter_cell() {
+    let mut h = H::new(Scenario::AccountsMixed, Motion::Paused, 40, 80, 24);
+    assert!(
+        !h.text().contains("Accounts · filt"),
+        "closed list must stay off the filter frame: {}",
+        h.text()
+    );
+    h.key(KeyCode::Char('/'));
+    h.type_str("work");
+    h.key(KeyCode::Enter);
+    assert!(h.app().accounts.filtering);
+    assert!(!h.app().accounts.filter_input.is_editing());
+    assert_eq!(h.app().accounts.filter_query, "work");
+    let title = h.buffer().cell((4, 2)).expect("filter title");
+    assert_eq!(title.symbol(), "A");
+    assert_eq!(title.fg, termrock::Color::from_u32(0xff_ff_ff));
+    assert_eq!(title.bg, termrock::Color::from_u32(0x00_00_00));
+    assert!(title.modifier.contains(termrock::Modifier::BOLD));
+    assert_eq!(h.harness.cursor(), None);
+}
+
+#[test]
 fn accounts_filter_and_inspector_open_without_writing_a_credential() {
     let mut h = H::new(Scenario::Returning, Motion::Reduced, 0, 120, 40);
     h.key(KeyCode::Char('a'));
