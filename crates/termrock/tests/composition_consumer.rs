@@ -682,3 +682,85 @@ fn numbered_steps_format_ordinals_above_two_digits() {
     assert!(terminal_text(&terminal).contains("100"));
     assert!(terminal_text(&terminal).contains("104"));
 }
+
+const DEFAULT_DISPLAY_STEPS: Id = Id::root("external.default_display_steps");
+
+struct DefaultDisplayItem {
+    label: String,
+    metadata: &'static str,
+}
+
+impl core::fmt::Display for DefaultDisplayItem {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.write_str(&self.label)
+    }
+}
+
+fn default_display_step_state(_: &DefaultDisplayItem) -> StepState {
+    StepState::Queued
+}
+
+fn default_display_metadata(item: &DefaultDisplayItem) -> Option<&str> {
+    Some(item.metadata)
+}
+
+struct DefaultDisplaySteps {
+    state: StepsState,
+    items: Vec<DefaultDisplayItem>,
+    measured: Cell<Size>,
+}
+
+impl App for DefaultDisplaySteps {
+    fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+        Steps::new(DEFAULT_DISPLAY_STEPS)
+            .step(&default_display_step_state)
+            .numbered(true)
+            .update(cx, &mut self.state, &self.items)
+            .erase()
+    }
+
+    fn draw(&self, ui: &mut termrock::Ui<'_>) {
+        let steps = Steps::new(DEFAULT_DISPLAY_STEPS)
+            .step(&default_display_step_state)
+            .numbered(true)
+            .metadata(&default_display_metadata);
+        let composition =
+            composition::Group::row([composition::steps(&steps, &self.state, &self.items)]);
+        self.measured.set(
+            composition
+                .measure(ui, Constraints::loose(200, 120))
+                .expect("default Display steps fit the composition depth"),
+        );
+        composition
+            .show(ui)
+            .expect("default Display steps fit the composition depth");
+    }
+}
+
+#[test]
+fn public_default_display_steps_measure_the_actual_label_without_custom_projection() {
+    let label = "Archive historical package objects";
+    let root = Rect::new(0, 0, 100, 4);
+    let mut runtime = Runtime::new(
+        DefaultDisplaySteps {
+            state: StepsState::new(),
+            items: vec![DefaultDisplayItem {
+                label: label.to_owned(),
+                metadata: "copied from storage archive",
+            }],
+            measured: Cell::new(Size::default()),
+        },
+        Theme::junie(),
+    );
+    let mut terminal = Terminal::new(TestBackend::new(root.width, root.height)).unwrap();
+    render(&mut runtime, &mut terminal, root);
+
+    let expected = 6usize
+        + usize::from(termrock::text::width(label))
+        + usize::from(termrock::text::width("copied from storage archive"))
+        + 3;
+    assert_eq!(runtime.app().measured.get().preferred.0, expected as u16);
+    let text = terminal_text(&terminal);
+    assert!(text.contains(label), "default Display row clipped:\n{text}");
+    assert!(text.contains("copied from storage archive"));
+}
