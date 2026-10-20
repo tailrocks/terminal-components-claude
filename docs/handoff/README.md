@@ -23,3 +23,26 @@ Preservation branch: `wip/parent-fields-runtime-blocker-20261021`. The exact Fie
 The unchanged isolated allocation test fails with inherited `NO_COLOR` present (one allocation versus zero expected), and passes when that variable is absent. Incoming `modal_backdrop` now reads `std::env::var_os("NO_COLOR")` on each paint. Independent diagnosis and a shared-layer repair are required; removing the variable is diagnostic evidence, not a gate workaround. Preserve incoming history and all reference artifacts. See [exact blocker evidence](../audits/2026-10-21-fields-publication-incoming-runtime-blocker.json).
 
 Next: independently review the incoming runtime change, fix the per-paint environment dependency without changing the test or hiding failures, rerun the complete scoped gate under the original environment, normally synchronize/push PR #38, and verify its remote SHA. All four applications remain incomplete.
+## Showcase Selection bypass removal (2026-10-21)
+
+Landed on `parity/termrock-visual-baseline`: the Selection page's ANSI
+frame-replay bypass (`selectable/frames.rs` + two `.ansi` fixtures) is
+replaced by the shared overlay `Dialog` and real selection rendering; the
+shell no longer calls `selectable.stamp(ui)`. Evidence, the two
+fixture-masked 120x40 captures that now fail on out-of-scope shell/nav/
+footer drift, and the remaining lower-tier backdrop question are recorded
+in `docs/audits/2026-10-21-selectable-bypass-removal.md`. Next steps:
+have the shell owners reconcile nav/sidebar/footer painting with the
+frozen captures (then re-approve on purpose), and hand the tier-dependent
+modal-backdrop mapping to the runtime owners.
+||||||| parent of 7201b3497 (docs: record PR #38 landing-queue integration state)
+
+## Landing-queue integration state (2026-10-21)
+
+Queue integration onto `parity/termrock-visual-baseline` is complete through step 7; pushed tip `bfbb72516` (sequence `8a8e28300` → `499cec504` → `efda9593a` → `2d66ea9be` → `bfbb72516`, all gated and pushed under the push lock). Full landing/skip/hold record: [migration matrix, PR #38 landing-queue section](../architecture/termrock-migration-matrix.md).
+
+Resume points:
+
+1. `parity/buttons-reference-decision-20261020` executable pins: re-advance the Buttons reference decision through the cohort-review machinery (six reviewed audit docs pin `frozen_cli_references.json` at `2a43fb11…`; branch pins `d5d8d648…`). Docs commits already landed.
+2. `parity/tablepro-picker-live-20261020`: re-port 10 commits from the old `query_editor` model onto the landed `query_input` filter-list design, then run its frozen tab-picker geometry assertions; land only if green.
+3. Still held per queue: `wip/textarea-fields-stage3-20261021`, `wip/steps-shared-contract-20261021`.
