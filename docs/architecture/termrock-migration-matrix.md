@@ -156,10 +156,10 @@ and the detail card. The ANSI stamp is removed. Other sizes are not claimed.
 clear its pad to Default; the vacated cells keep the row fill. The cursor row
 is bold through the gutter tail, the gaps, the preview arrow, and the slack
 past the active value. `tablepro/table/scrolled_right/120x40` truecolor matches,
-including that gutter tail. `tablepro/table/data/120x40` nocolor matches.
-256 still differs: tab rules paint `#3a3a3a` where the baseline is `#444444`
-(504 cells on this run). Other sizes are not claimed. Full visual runs and
-`origin/main` are not done.
+including that gutter tail. `tablepro/table/data/120x40` nocolor and 256 match. Legacy inks use the
+frozen 256 indexes (`#3a3a3a` → 238, `#474747` → 239, `#737373` → 242,
+`#808080` → 245, `#173f1c` → 22), not the nearest gray ramp step. Other sizes
+are not claimed. Full visual runs and `origin/main` are not done.
 
 ## Palette and independently diagnosed reference corrections — 2026-10-20
 
