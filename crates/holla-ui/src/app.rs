@@ -456,6 +456,11 @@ fn parity_cargo_tag_plate(world: &World, width: u16, height: u16) -> bool {
         || crate::sim::catalogue::parity_cargo_120x40_plate(world, width, height).is_some()
 }
 
+/// 80×24 `parity-git-batch` clips the last hint. Cargo, git-current, and every other size stay off.
+fn parity_git_batch_clipped_plate(world: &World, width: u16, height: u16) -> bool {
+    crate::sim::catalogue::parity_git_batch_80x24_plate(world, width, height).is_some()
+}
+
 /// Tag parity-browser status at 80×24, 100×30, and 120×40: cwd, then the size label. No branch.
 fn paint_parity_browser_status(ui: &mut Ui<'_>, area: Rect) {
     if area.is_empty() {
@@ -513,6 +518,23 @@ fn paint_parity_cargo_status(ui: &mut Ui<'_>, area: Rect) {
         "main",
         STATUS_GREY,
         false,
+    );
+    let _ = paint_size_label(ui, area);
+}
+
+/// Tag parity-git-batch status at 80×24: cwd, then the size label. No branch.
+fn paint_parity_git_batch_status(ui: &mut Ui<'_>, area: Rect) {
+    if area.is_empty() {
+        return;
+    }
+    ui.fill(area, status_ink(ui, STATUS_FG, false));
+    let _ = paint_status_text(
+        ui,
+        area,
+        area.x.saturating_add(STATUS_EDGE),
+        "~/work/repos",
+        STATUS_FG,
+        true,
     );
     let _ = paint_size_label(ui, area);
 }
@@ -1698,6 +1720,8 @@ impl App {
             paint_parity_git_current_status(ui, status);
         } else if parity_cargo_tag_plate(&self.world, ui.full().width, ui.full().height) {
             paint_parity_cargo_status(ui, status);
+        } else if parity_git_batch_clipped_plate(&self.world, ui.full().width, ui.full().height) {
+            paint_parity_git_batch_status(ui, status);
         } else if launch_failure_plate_open(&self.world, ui) {
             paint_launch_failure_status(ui, status);
         } else if self.route == Route::Disk
@@ -1819,6 +1843,8 @@ impl App {
             Some(("Open", None))
         } else if parity_cargo_tag_plate(&self.world, ui.full().width, ui.full().height) {
             Some(("Run", None))
+        } else if parity_git_batch_clipped_plate(&self.world, ui.full().width, ui.full().height) {
+            Some(("Open", None))
         } else {
             None
         };
@@ -1941,6 +1967,8 @@ impl App {
                 parity_git_current_clipped_plate(&self.world, ui.full().width, ui.full().height);
             let cargo_plate =
                 parity_cargo_clipped_plate(&self.world, ui.full().width, ui.full().height);
+            let git_batch_plate =
+                parity_git_batch_clipped_plate(&self.world, ui.full().width, ui.full().height);
             let parts = if monorepo_child_mid
                 || remote_host_mid
                 || first_use_mid
@@ -1952,6 +1980,7 @@ impl App {
                 || browser_plate
                 || git_current_plate
                 || cargo_plate
+                || git_batch_plate
                 || (narrow
                     && (crate::sim::catalogue::first_use_tag_frame(&self.world)
                         || crate::sim::catalogue::monorepo_root_tag_frame(&self.world)
