@@ -40,6 +40,13 @@ const ACCENT: u32 = 0x48e054;
 const TAB_ACTIVE: u32 = 0x27272a;
 const ON_ACCENT: u32 = 0x19191c;
 const DANGER_FG: u32 = 0xff6b6b;
+const THUMB: u32 = 0x808080;
+const TRACK: u32 = 0x474747;
+
+// 72- and 80-column shells keep the 120-column playground and scroll.
+const CONTENT_MIN_W: u16 = 94;
+const RESULTS_H: u16 = 8;
+const SCROLL_ROOM: u16 = 2;
 
 const TASK_LINE: &str = "Task: Migrate sessions table · Action(i) or Cancelled";
 
@@ -175,15 +182,29 @@ fn paint_blurb(ui: &mut Ui<'_>, body: Rect) {
     if body.width <= title_w.saturating_add(4) {
         return;
     }
+    let meta = Rect::new(
+        body.x.saturating_add(title_w).saturating_add(2),
+        body.y.saturating_sub(2),
+        body.width.saturating_sub(title_w).saturating_sub(3),
+        1,
+    );
+    let style = ink(MUTED, CANVAS);
+    if width(BLURB) <= meta.width {
+        ui.paint_str(meta, BLURB, style);
+        return;
+    }
+    if meta.width == 0 {
+        return;
+    }
+    let budget = Rect {
+        width: meta.width.saturating_sub(1),
+        ..meta
+    };
+    let used = ui.paint_str(budget, BLURB, style);
     ui.paint_str(
-        Rect::new(
-            body.x.saturating_add(title_w).saturating_add(2),
-            body.y.saturating_sub(2),
-            body.width.saturating_sub(title_w).saturating_sub(3),
-            1,
-        ),
-        BLURB,
-        ink(MUTED, CANVAS),
+        Rect::new(meta.x.saturating_add(used), meta.y, 1, 1),
+        "…",
+        style,
     );
 }
 
@@ -458,7 +479,115 @@ fn paint_results(ui: &mut Ui<'_>, card: Rect, result: &str) {
     }
 }
 
+fn content_height(area_h: u16) -> u16 {
+    let min = OPEN_H
+        .saturating_add(CARD_GAP)
+        .saturating_add(APPLIED_H)
+        .saturating_add(CARD_GAP)
+        .saturating_add(RESULTS_H);
+    area_h.max(min)
+}
+
+struct ScrollSplit {
+    view: Rect,
+    vertical: bool,
+    horizontal: bool,
+}
+
+fn scroll_split(area: Rect, content_w: u16, content_h: u16) -> ScrollSplit {
+    let (mut vertical, mut horizontal) = (false, false);
+    for _ in 0..3 {
+        let view_w = area
+            .width
+            .saturating_sub(if vertical { SCROLL_ROOM } else { 0 });
+        let view_h = area.height.saturating_sub(u16::from(horizontal));
+        let next_v = content_h > view_h;
+        let next_h = content_w > view_w;
+        if (next_v, next_h) == (vertical, horizontal) {
+            break;
+        }
+        vertical = next_v;
+        horizontal = next_h;
+    }
+    let vertical = vertical && area.width > SCROLL_ROOM;
+    let horizontal = horizontal && area.height > 1;
+    let view = Rect {
+        width: area
+            .width
+            .saturating_sub(if vertical { SCROLL_ROOM } else { 0 }),
+        height: area.height.saturating_sub(u16::from(horizontal)),
+        ..area
+    };
+    ScrollSplit {
+        view,
+        vertical,
+        horizontal,
+    }
+}
+
+fn track_thumb(viewport: u16, track: u16, content: u16) -> u16 {
+    if content <= viewport || track == 0 {
+        return track;
+    }
+    let len = u32::from(viewport).saturating_mul(u32::from(track)) / u32::from(content);
+    u16::try_from(len).unwrap_or(u16::MAX).max(1).min(track)
+}
+
+fn paint_page_scrollbars(
+    ui: &mut Ui<'_>,
+    area: Rect,
+    split: &ScrollSplit,
+    content_w: u16,
+    content_h: u16,
+) {
+    if split.vertical {
+        let bar = Rect::new(area.right().saturating_sub(1), area.y, 1, split.view.height);
+        let thumb = track_thumb(split.view.height, bar.height, content_h);
+        for row in 0..bar.height {
+            let on = row < thumb;
+            ui.paint_str(
+                Rect::new(bar.x, bar.y.saturating_add(row), 1, 1),
+                if on { "┃" } else { "┆" },
+                if on {
+                    ink(THUMB, CANVAS)
+                } else {
+                    ink(TRACK, CANVAS)
+                },
+            );
+        }
+    }
+    if split.horizontal {
+        let width = area.width.saturating_sub(u16::from(split.vertical));
+        let bar = Rect::new(area.x, area.bottom().saturating_sub(1), width, 1);
+        let thumb = track_thumb(split.view.width, bar.width, content_w);
+        for col in 0..bar.width {
+            let on = col < thumb;
+            ui.paint_str(
+                Rect::new(bar.x.saturating_add(col), bar.y, 1, 1),
+                if on { "━" } else { "┄" },
+                if on {
+                    ink(THUMB, CANVAS)
+                } else {
+                    ink(TRACK, CANVAS)
+                },
+            );
+        }
+    }
+}
+
 fn paint_playground(ui: &mut Ui<'_>, area: Rect, result: &str) {
+    if area.is_empty() {
+        return;
+    }
+    let content_w = area.width.max(CONTENT_MIN_W);
+    let content_h = content_height(area.height);
+    let split = scroll_split(area, content_w, content_h);
+    let content = Rect::new(area.x, area.y, content_w, content_h);
+    ui.with_area(split.view, |ui| paint_playground_body(ui, content, result));
+    paint_page_scrollbars(ui, area, &split, content_w, content_h);
+}
+
+fn paint_playground_body(ui: &mut Ui<'_>, area: Rect, result: &str) {
     if area.is_empty() {
         return;
     }
@@ -726,5 +855,24 @@ mod tests {
         let (sx, sy) = h.find("Size").expect("prop");
         assert_eq!(h.cell(sx, sy).fg, Color::Rgb(0x8a, 0x8a, 0x8a));
         assert_eq!(h.cell(sx + 12, sy).symbol(), "w");
+    }
+
+    #[test]
+    fn narrow_shell_scrolls_the_wide_card_and_ends_the_blurb_on_ellipsis() {
+        let h = Harness::new(Host, Theme::junie(), 51, 16);
+        let text = h.text();
+        assert!(text.contains("Esc alw…"), "{text}");
+        assert!(!text.contains("Enter · click"), "{text}");
+        assert!(text.contains("Confirm run"), "{text}");
+        assert_eq!(h.cell(47, 7).symbol(), "U");
+        assert_eq!(h.cell(48, 7).symbol(), "n");
+        assert_eq!(h.cell(49, 7).bg, Color::Rgb(0, 0, 0));
+        assert_eq!(h.cell(50, 5).symbol(), "┃");
+        assert_eq!(h.cell(50, 5).fg, Color::Rgb(0x80, 0x80, 0x80));
+        assert_eq!(h.cell(50, 8).symbol(), "┆");
+        assert_eq!(h.cell(50, 8).fg, Color::Rgb(0x47, 0x47, 0x47));
+        assert_eq!(h.cell(0, 15).symbol(), "━");
+        assert_eq!(h.cell(26, 15).symbol(), "┄");
+        assert_eq!(h.cell(50, 15).symbol(), " ");
     }
 }
