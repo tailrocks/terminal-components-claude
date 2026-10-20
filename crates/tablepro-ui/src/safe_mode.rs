@@ -26,18 +26,10 @@ impl AsItem for SafeRow {
     }
 }
 
+#[derive(Default)]
 pub(crate) struct SafeModePicker {
     pub(crate) state: PickerState,
     pub(crate) rows: Vec<SafeRow>,
-}
-
-impl Default for SafeModePicker {
-    fn default() -> Self {
-        Self {
-            state: PickerState::default(),
-            rows: Vec::new(),
-        }
-    }
 }
 
 impl SafeModePicker {

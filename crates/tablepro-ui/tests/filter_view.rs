@@ -1,3 +1,5 @@
+#![allow(clippy::expect_used)]
+
 use tablepro_ui::TableProApp;
 use termrock::{KeyCode, Modifier, Theme};
 use termrock_test_support::Harness;
