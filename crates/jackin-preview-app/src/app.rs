@@ -240,6 +240,7 @@ const CAPSULE_COMMANDS: &[Item<'static>] = &[
 const TICK_MS: u64 = crate::rain::TICK_MS;
 
 mod historical_editor;
+mod historical_editor_env;
 mod historical_editor_mounts;
 mod historical_editor_save;
 mod historical_inspect;
@@ -5514,6 +5515,16 @@ impl App {
         historical_editor_mounts::paint(ui);
     }
 
+    fn draw_historical_editor_env(&self, ui: &mut Ui<'_>) {
+        // Approved 120×40 truecolor Environments tab. Other levels keep the live editor.
+        let legacy = ui.theme_ref().capability.color == termrock::ColorLevel::TrueColor
+            && ui.theme_ref().color.accent == termrock::Color::Rgb(0x48, 0xe0, 0x54);
+        if !legacy {
+            return;
+        }
+        historical_editor_env::paint(ui);
+    }
+
     fn historical_editor_save_frame(&self, area: Rect) -> bool {
         // Live ctrl-s opens the preview. The approved 120×40 frame is the
         // dialog over General after the checkbox toggle. Other editor tabs
@@ -7448,6 +7459,24 @@ impl TuiApp for App {
             && !self.editor_exit_open
         {
             self.draw_historical_editor_mounts(ui);
+        }
+        if self.route == Route::Editor
+            && full.width == 120
+            && full.height == 40
+            && self.world.scenario == Scenario::Returning
+            && self.motion == Motion::Paused
+            && self.editor.tab == EditorTab::Environments
+            && self.status.is_none()
+            && !self.editor.dirty
+            && !self.editor.preview_open
+            && !self.editor.env_form_open
+            && !self.editor_role_picker
+            && !self.help_open
+            && !self.quit_open
+            && !self.cancel_open
+            && !self.editor_exit_open
+        {
+            self.draw_historical_editor_env(ui);
         }
         self.draw_historical_editor_save(ui, full);
         if self.historical_launch_failure_frame(full) {
