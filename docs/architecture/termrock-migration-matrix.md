@@ -15,6 +15,39 @@ The Holla/Jackin inventory found their application source subtrees identical bet
 
 Baseline rebuilding remains diagnostic and unadmitted. The reviewed nonincremental fixed-path recipe is being independently repeated; neither a successful build nor executable-byte reproducibility establishes product parity. Ordered real-process receipts, immutable reference decisions, complete frozen capture/replay, candidate comparisons, functional outcomes, cursor/mode/cleanup checks and deliberate-defect controls remain required. Full workspace nextest, Clippy, formatting, CI, executable public consumer examples and independent final reviews are not complete. No application or library acceptance is claimed.
 
+## Form data-aware measurement — 2026-10-21
+
+`Form::measure_with_data` measures from the same `Placements` iterator consumed
+by Form update and draw. It observes field visibility and option counts, then
+applies the same group filtering, radio height, text-area height and paired
+`Half` row rules. It does not invoke validation or control update handlers. The
+existing `Form::measure` signature remains source compatible and is documented
+as a data-independent estimate.
+
+The public `termrock-forms` integration test uses notification-preferences data
+with unrelated field IDs, three and ten transport choices, a hidden endpoint,
+disabled locale, paired fields, a four-row text area, long help, and wide Unicode
+labels and values. It verifies live measurement against registered rendered
+field bounds and option rows, visibility, pairing, narrow and zero-width
+constraints, and a narrow draw. The regression first ran against the legacy
+method and failed with estimated height 24 versus rendered height 27. The
+data-aware method passes with height 27; three-option and empty-option data
+measure 20 and 18 rows. Measurement invoked no validators. On this worktree,
+`cargo nextest run -p termrock-forms --all-targets` passed 52/52; the affected
+layout/runtime/control/field/overlay packages passed 644 tests with three
+existing skips. Strict `termrock-forms` Clippy and scoped rustfmt passed.
+
+**Showcase capability coverage allowlist:** `Form::measure_with_data` is covered
+by the executable public consumer test
+`crates/termrock-forms/tests/form_measurement.rs`. Reason: this pure sizing API
+adds no rendered control or Showcase screen, and adding a screen would change
+the frozen Showcase flow. The refactor branch has no machine-checked Showcase
+catalog/coverage gate; this records the disposition for gate restoration, not
+catalog acceptance.
+
+This increment proves the library API only. It does not migrate TablePro's
+connection form or establish application parity.
+
 
 ## TablePro shared Grid row-to-cell styling — 2026-10-21
 
@@ -156,10 +189,10 @@ and the detail card. The ANSI stamp is removed. Other sizes are not claimed.
 clear its pad to Default; the vacated cells keep the row fill. The cursor row
 is bold through the gutter tail, the gaps, the preview arrow, and the slack
 past the active value. `tablepro/table/scrolled_right/120x40` truecolor matches,
-including that gutter tail. `tablepro/table/data/120x40` nocolor matches.
-256 still differs: tab rules paint `#3a3a3a` where the baseline is `#444444`
-(504 cells on this run). Other sizes are not claimed. Full visual runs and
-`origin/main` are not done.
+including that gutter tail. `tablepro/table/data/120x40` nocolor and 256 match. Legacy inks use the
+frozen 256 indexes (`#3a3a3a` → 238, `#474747` → 239, `#737373` → 242,
+`#808080` → 245, `#173f1c` → 22), not the nearest gray ramp step. Other sizes
+are not claimed. Full visual runs and `origin/main` are not done.
 
 ## Palette and independently diagnosed reference corrections — 2026-10-20
 
@@ -568,3 +601,15 @@ Upstream [Velnor draft PR #249](https://github.com/tailrocks/velnor-new/pull/249
 ## Push-lock incident and recovery (2026-10-21)
 
 The Form worker successfully acquired the shared push lock. A MasterDetail worker failed to acquire it but, because its shell did not stop on that failure, overwrote the owner metadata and proceeded with a separate WIP push. Both completed remote tips were verified: Form `eca0aee9f119be3ac238dbdc0d6f6a75594c5e35` and MasterDetail `856059ad5950cc6f266beb3c4273bbf6f5afa93d`. Neither push forced a shared ref. The original Form lock owner independently traced its successful acquisition, verified the known overwritten metadata and both completed tips, recorded the timestamp limitation, and released its own original lock at 2026-10-20T19:27:30Z. The coordinator did not remove an unknown other owner's recent lock. Future acquisition failures must abort the push cycle; ownership must be checked before release. This scheduling failure is recorded rather than hidden and does not provide any product or review acceptance.
+
+
+## Pure data-aware Form measurement (2026-10-21)
+
+Integrated independently reviewed Form source `eca0aee9f119be3ac238dbdc0d6f6a75594c5e35` by normal merge at `cf46299272a992c7aeb445152d9b7eec7beadd12`. The additive `measure_with_data` uses the existing placement planner; legacy measurement remains unchanged. The real regression measured 24 rows before the fix against 27 drawn rows. The independent public consumer covers dynamic radio choices, visibility, groups, constraints, empty data and effect-free measurement. [Independent evidence](../audits/2026-10-21-form-data-measure-review.json) records limitations. Parent verification on the merge passed all 52 Form tests, strict all-target Form Clippy, scoped formatting and whitespace validation. Sections, lane composition, actual application migration and full parity remain incomplete.
+
+
+## Independently reviewed cohort adapter and fresh candidate builds (2026-10-21)
+
+Integrated protected tool source `979acbe0f3b7125d51f8f5cae2c25e786adbd544`. The adapter accepts only pinned registry paths and rejects aliasing, replacement and cached-target executable substitution. Candidate compilation now requires a fresh exclusively created target; existing files and directories are rejected before Cargo without cleanup. [Independent review](../audits/2026-10-21-baseline-cohort-adapter-review.json) reproduces actual cached-dependency substitution rejection and fresh pinned-Cargo compilation, plus all 51 Python tests and prior identity/race controls. No compiler hermeticity is claimed. The production cohort review registry remains empty: no capture approval, historical-exception transfer or application parity acceptance follows. Resumable full-inventory lifecycle adoption remains required.
+
+Parent Form measurement delivery was verified remotely at `ee6a65743c532b3ae0cbe57265f503dff5f61e2e` after fetching and merging concurrent commits and rerunning 52 Form tests, strict Clippy, formatting and whitespace checks on the exact pushed head. New external commits `009bbd98a7a42250760aa4ce29b309e8beb0fe5c` and `9268b190e` still need independent ownership and theme-contract review; their presence is not acceptance.
