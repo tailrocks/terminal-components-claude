@@ -368,6 +368,12 @@ def check(root: Path) -> dict[str, Any]:
                 report["errors"].append(f"production target source is outside workspace: {pkg.get('name')}:{target.get('name')} {target_source}")
                 continue
             target_paths.append(target_rel)
+            try:
+                target_source.relative_to(pkg_root)
+            except ValueError:
+                report["unaccounted_inputs"].append(
+                    f"production Cargo target source is outside its package; module tree is not fully accounted: {target_rel}"
+                )
             target_source_roots.append(target_source.parent)
             if "custom-build" in target.get("kind", []):
                 report["unaccounted_inputs"].append(f"build-generated production inputs require independent accounting: {target_rel}")
