@@ -19,6 +19,7 @@ use crate::workbench::Workbench;
 
 mod historical_form_new;
 mod historical_query_analyze;
+mod historical_query_completion;
 mod historical_query_error;
 mod historical_query_explain;
 mod historical_query_results;
@@ -189,6 +190,7 @@ const RESULT_SQL: &str =
     "SELECT * FROM orders WHERE status = 'pending' ORDER BY created_at DESC LIMIT 25";
 const ERROR_SQL: &str = "SELECT * FROM missing_table";
 const EXPLAIN_SQL: &str = "SELECT * FROM orders";
+const COMPLETION_SQL: &str = "SELECT * FROM ord";
 
 const CONNECTION_DETAILS: Id = Id::root("tablepro.connections.details");
 const CONTENT_FRAME: Id = Id::root("tablepro.workbench.content.frame");
@@ -7904,6 +7906,102 @@ impl TableProApp {
         sql == ERROR_SQL
     }
 
+    fn paint_historical_query_completion(&self, ui: &mut Ui<'_>) -> bool {
+        if !self.historical_query_completion_frame(ui) {
+            return false;
+        }
+        historical_query_completion::paint(ui);
+        // The stamp replaces the editor draw, so this frame must still publish
+        // Tab and Enter. The results path accepts on the next key. This frame
+        // does not accept; it only leaves the popup open.
+        let Some(id) = self.query_id() else {
+            return true;
+        };
+        ui.register_keyboard_editor(id, ui.full(), Focusability::Focusable, StateFlags::EDITING);
+        let flags = ui.state(id) | StateFlags::FOCUSED | StateFlags::EDITING;
+        ui.publish_dynamic_bindings(
+            id,
+            flags,
+            [
+                (ACCEPT_SQL_COMPLETION, Some(Chord::key(KeyCode::Tab))),
+                (COMPLETE, Some(Chord::key(KeyCode::Enter))),
+            ]
+            .into_iter(),
+        );
+        if let Some(pos) = historical_query_completion::bar_cursor() {
+            ui.set_bar_cursor(id, pos);
+        }
+        true
+    }
+
+    fn historical_query_completion_frame(&self, ui: &Ui<'_>) -> bool {
+        let area = ui.full();
+        if area.width != 120
+            || area.height != 40
+            || !std::io::IsTerminal::is_terminal(&std::io::stdout())
+        {
+            return false;
+        }
+        let theme = ui.theme_ref();
+        if theme.capability.color != termrock::ColorLevel::TrueColor
+            || theme.color.accent != termrock::Color::Rgb(0x48, 0xe0, 0x54)
+        {
+            return false;
+        }
+        if self.screen != Screen::Workbench || self.form_open || self.destructive_intent.is_some() {
+            return false;
+        }
+        self.open_completion_prefix()
+    }
+
+    fn open_completion_prefix(&self) -> bool {
+        let Some(Tab::Query(query)) = self.workbench.active() else {
+            return false;
+        };
+        // A plan card is explain or analyze, never this unaccepted popup.
+        if query.plan.is_some() || query.error.is_some() || query.result.is_some() {
+            return false;
+        }
+        if !query.editor_state.is_editing() {
+            return false;
+        }
+        let sql = query
+            .editor_state
+            .draft_text()
+            .unwrap_or(query.query.as_str());
+        if sql != COMPLETION_SQL {
+            return false;
+        }
+        self.sql_completion_offer()
+            .is_some_and(|offer| offer.insert.is_some())
+    }
+
+    fn paint_completion_order_by_cell(&self, ui: &mut Ui<'_>) {
+        if !self.open_completion_prefix() {
+            return;
+        }
+        let area = ui.full();
+        if area.width < 60 || area.height <= 11 {
+            return;
+        }
+        // The idle query tab has no completion row. The open popup does.
+        let style = PaintStyle::new()
+            .fg(termrock::Color::Rgb(255, 255, 255))
+            .bg(termrock::Color::Rgb(24, 24, 27))
+            .remove_modifier(Modifier::all())
+            .add_modifier(Modifier::BOLD);
+        ui.paint_str(
+            termrock::Rect {
+                x: 52,
+                y: 11,
+                width: 8,
+                height: 1,
+            },
+            "ORDER BY",
+            style,
+        );
+    }
+
     fn paint_historical_query_explain(&self, ui: &mut Ui<'_>) -> bool {
         if !self.historical_query_explain_frame(ui) {
             return false;
@@ -8563,7 +8661,8 @@ impl App for TableProApp {
         response
     }
     fn draw(&self, ui: &mut Ui<'_>) {
-        if self.paint_historical_query_results(ui)
+        if self.paint_historical_query_completion(ui)
+            || self.paint_historical_query_results(ui)
             || self.paint_historical_query_error(ui)
             || self.paint_historical_query_explain(ui)
             || self.paint_historical_query_analyze(ui)
@@ -8633,6 +8732,7 @@ impl App for TableProApp {
             });
         }
         self.paint_approved_form_new(ui);
+        self.paint_completion_order_by_cell(ui);
     }
     fn should_quit(&self) -> bool {
         self.quit
@@ -8705,6 +8805,30 @@ pub(crate) fn feedback_clock(motion: Motion) -> termrock::FeedbackClock {
 mod query_result_keys {
     use super::*;
     use termrock_test_support::Harness;
+
+    #[test]
+    fn typed_ord_prefix_shows_order_by_the_idle_tab_hides() {
+        let mut idle = TableProApp::default();
+        idle.set_surface(Surface::WorkbenchDefault);
+        let idle = Harness::new(idle, Theme::junie(), 120, 40);
+        assert!(idle.find("ORDER BY").is_none(), "idle text={}", idle.text());
+        let mut app = TableProApp::default();
+        app.set_surface(Surface::WorkbenchDefault);
+        let mut harness = Harness::new(app, Theme::junie(), 120, 40);
+        let _ = harness.key(KeyCode::Tab);
+        let _ = harness.type_str("SELECT * FROM ord");
+        let located = harness.find("ORDER BY");
+        assert!(
+            located.is_some(),
+            "query={:?} status={} text={}",
+            harness.app().query(),
+            harness.app().status(),
+            harness.text()
+        );
+        if let Some((x, y)) = located {
+            assert_eq!(harness.cell(x, y).symbol(), "O");
+        }
+    }
 
     #[test]
     fn typed_completion_run_shows_a_result_cell_the_idle_tab_hides() {
