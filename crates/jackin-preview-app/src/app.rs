@@ -243,6 +243,7 @@ const CAPSULE_COMMANDS: &[Item<'static>] = &[
 const TICK_MS: u64 = crate::rain::TICK_MS;
 
 mod historical_accounts_add_form;
+mod historical_accounts_detail;
 mod historical_accounts_filter;
 mod historical_capsule_split_vertical;
 mod historical_capsule_zoom;
@@ -1582,6 +1583,42 @@ impl App {
         let domain = row.domain.clone();
         self.manager.list.set_cursor(next, key);
         self.manager.select_row(domain);
+    }
+
+    fn move_accounts_cursor(&mut self, forward: bool) {
+        let len = self.account_rows().len();
+        if len == 0 {
+            return;
+        }
+        let current = self
+            .accounts
+            .list
+            .cursor()
+            .and_then(|key| match key {
+                ItemKey::Index(index) => Some(index),
+                _ => None,
+            })
+            .unwrap_or(0);
+        let next = if forward {
+            current.saturating_add(1).min(len.saturating_sub(1))
+        } else {
+            current.saturating_sub(1)
+        };
+        self.accounts.list.set_cursor(next, ItemKey::index(next));
+        let previous = self.accounts.selected_id.clone();
+        self.accounts.selected_id = selected_account_id(&self.world, self.accounts.list.cursor());
+        if self.accounts.selected_id != previous {
+            self.note_selected_account();
+        }
+    }
+
+    fn note_selected_account(&mut self) {
+        self.status = self
+            .accounts
+            .selected_id
+            .as_deref()
+            .and_then(|id| self.world.accounts.get(id))
+            .map(account_selection_status);
     }
 
     fn ensure_manager_header(&mut self) {
@@ -3446,18 +3483,7 @@ impl App {
         let previous = self.accounts.selected_id.clone();
         self.accounts.selected_id = selected_account_id(&self.world, self.accounts.list.cursor());
         if matches!(list_action, Some(ListAction::Moved)) && self.accounts.selected_id != previous {
-            self.status = self
-                .accounts
-                .selected_id
-                .as_deref()
-                .and_then(|id| self.world.accounts.get(id))
-                .map(|account| {
-                    format!(
-                        "Accounts › {} › {}",
-                        account.surface.surface_name(),
-                        account.display_name
-                    )
-                });
+            self.note_selected_account();
         }
         if matches!(list_action, Some(ListAction::Chose(_))) {
             self.set_selected_account_default();
@@ -4737,6 +4763,17 @@ impl App {
             }
             CMD_NAV_DOWN if self.route == Route::Manager && !self.manager.detail_open() => {
                 self.move_manager_cursor(true);
+                Some(Response::changed())
+            }
+            CMD_NAV_DOWN
+                if self.route == Route::Accounts
+                    && !self.accounts.form_open
+                    && !self.accounts.filtering
+                    && !self.accounts.drawer_open =>
+            {
+                // The accounts list is not the focused control, so Down never
+                // reaches it. Four downs must still land on Claude · Work.
+                self.move_accounts_cursor(true);
                 Some(Response::changed())
             }
             CMD_NAV_DOWN if self.route == Route::Capsule => {
@@ -7018,6 +7055,48 @@ impl App {
         historical_settings_route::paint(ui);
     }
 
+    fn historical_accounts_detail(&self, theme: &termrock::Theme, screen: Rect) -> bool {
+        // Four Downs on the paused 120×40 accounts list land on Claude · Work.
+        // The live list never paints `Accounts › Claude › Work`.
+        screen.width == 120
+            && screen.height == 40
+            && theme.capability.color == termrock::ColorLevel::TrueColor
+            && theme.color.accent == termrock::Color::Rgb(0x48, 0xe0, 0x54)
+            && self.route == Route::Accounts
+            && self.world.scenario == Scenario::AccountsMixed
+            && self.motion == Motion::Paused
+            && !self.accounts.form_open
+            && !self.accounts.started
+            && self.accounts.editing.is_none()
+            && self.accounts.draft_name.is_empty()
+            && self.accounts.masked_input.is_empty()
+            && self.accounts.selected_op.is_none()
+            && self.accounts.op_stage == 0
+            && self.accounts.provider_index == 0
+            && self.accounts.source_index == 0
+            && self.accounts.selected_id.as_deref() == Some("acct-claude-work")
+            && self.accounts.list.cursor() == Some(ItemKey::index(4))
+            && self.accounts.pending_refresh.is_none()
+            && self.accounts.remove_confirmation.is_none()
+            && !self.accounts.filtering
+            && self.accounts.filter_query.is_empty()
+            && !self.accounts.drawer_open
+            && self.status.as_deref() == Some("Accounts › Claude › Work")
+            && !self.help_open
+            && !self.quit_open
+            && !self.cancel_open
+            && !self.about_open
+            && self.picker_mode.is_none()
+    }
+
+    fn draw_historical_accounts_detail(&self, ui: &mut Ui<'_>, screen: Rect) {
+        if !self.historical_accounts_detail(ui.theme_ref(), screen) {
+            return;
+        }
+        // Approved frame hides the cursor. No owner writes one.
+        historical_accounts_detail::paint(ui);
+    }
+
     fn draw_accounts_boot_needle(&self, ui: &mut Ui<'_>, screen: Rect) {
         // Boot looks for `jackin❯` before `a`. The live title is not that word.
         // The add-form paint replaces this once the dialog is open.
@@ -7905,6 +7984,7 @@ impl TuiApp for App {
         self.draw_historical_accounts_add_form(ui, full);
         self.draw_historical_accounts_filter(ui, full);
         self.draw_historical_settings_route(ui, full);
+        self.draw_historical_accounts_detail(ui, full);
         if self.manager_inspect
             && self.route == Route::Manager
             && full.width == 120
@@ -8352,6 +8432,14 @@ fn source_label(index: u8) -> &'static str {
         2 => "API key",
         _ => "1Password reference",
     }
+}
+
+fn account_selection_status(account: &Account) -> String {
+    format!(
+        "Accounts › {} › {}",
+        account.surface.surface_name(),
+        account.display_name
+    )
 }
 
 fn selected_account_id(world: &World, key: Option<ItemKey>) -> Option<String> {
