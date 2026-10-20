@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "record_status": "branch_review_complete_integration_and_product_gates_pending",
+  "record_status": "all_branch_reviews_and_palette_source_integration_recorded; product_and_remaining_component_integration_gates_pending",
   "captured_utc": "2026-10-20T16:07:32.696460+00:00",
   "fresh_E_refs_verified_utc": "2026-10-20T16:10:45Z",
   "inventory_source": "/Users/donbeave/Projects/termrock-cli-evidence-20261020/branch-consolidation/assigned-inventory.json",
@@ -28,7 +28,7 @@
   "integration_target": {
     "branch": "parity/termrock-visual-baseline",
     "snapshot_sha": "6bcdc42173232b53ed48b221ae8d099791283e39",
-    "current_sha_when_recorded": "abfff94e4a71c80d790bb6291eefbb882aa65788",
+    "current_sha_when_recorded": "072fc24d6dd4f53dbd544485174e39aff2c92f43",
     "pr": 38
   },
   "workflow_reference": {
@@ -4327,8 +4327,8 @@
       "inventory_sha": null,
       "observed_remote_sha": "636028fa130b2a0f841badb3ba93aa2330b907d6",
       "assignment": "post-inventory:B-components-layout",
-      "status": "source-reviewed-clear; PR38 integration pending",
-      "reason": "Created after the 96-branch inventory to protect palette/reference commit 636028fa130b2a0f841badb3ba93aa2330b907d6. Both 19-crate nextest partitions ran 1,361 tests: 1,352 passed and nine failed (six Dialog layout assertions, meter semantic tokens, Note wrapping, and full-track scrollbar). All failures were independently reproduced on base e597618d6576a725538a70d71250fd81c6599c28. Source review is clear; integration remains pending until the exact remote delivery is recorded. Partition exclusions are not additional skipped cases.",
+      "status": "integrated-into-PR38",
+      "reason": "Palette source independently reviewed and integrated into PR38 at 072fc24. Four source/test blobs remain exact from protected 636028fa; docs restore the frozen fixture projection and record attributed base failures. Product parity is not claimed.",
       "inventory_review_status": "protected-source-pending-attribution at initial review; superseded by parent follow-up below",
       "source_review_followup": {
         "commit": "082ad5d3ab3b4b29e790f7b3e4ea21205a5719a0",
@@ -4336,6 +4336,40 @@
         "remote_published": false,
         "review_status": "independently cleared by parent report",
         "evidence": "Four production/test source blobs unchanged from protected 636028fa; full 19-crate partition failure set attributed to base; focused strict clippy and fmt pass. This is source review, not PR38 integration or product acceptance."
+      },
+      "initial_status_at_review": "protected-source-pending-attribution at initial B review; independently cleared by parent source follow-up before integration",
+      "current_status_override": {
+        "effective_status": "integrated-into-PR38",
+        "delivery_commit": "072fc24d6dd4f53dbd544485174e39aff2c92f43",
+        "source_review_commit": "082ad5d3ab3b4b29e790f7b3e4ea21205a5719a0",
+        "source_branch": "parity/pr38-palette-final-20261020",
+        "source_tip_at_inventory": "636028fa130b2a0f841badb3ba93aa2330b907d6",
+        "remote_source_branch": "wip/pr38-palette-reviewed-20261020",
+        "remote_source_branch_tip_before_cleanup": "636028fa130b2a0f841badb3ba93aa2330b907d6",
+        "checks": {
+          "focused_nextest": "314/314 passed; 0 skipped",
+          "strict_clippy": "passed",
+          "fmt": "passed",
+          "diff_check": "passed",
+          "full_19_crate_partition": "1352/1361 passed; 9 failures attributed to baseline"
+        },
+        "branch_tip_before_cleanup": "636028fa130b2a0f841badb3ba93aa2330b907d6",
+        "integrated": true,
+        "remote_cleanup_status": "pending deletion after final exact-ref checks"
+      }
+    },
+    {
+      "branch": "wip/branch-consolidation-E-20261020",
+      "inventory_sha": null,
+      "observed_remote_sha": "98aa14d2d79322294b9f7b699b19999c838b823c",
+      "assignment": "task-created-after-inventory",
+      "status": "integrated-into-PR38",
+      "reason": "This ledger branch carried the A-E branch inventory and evidence. It was integrated into PR38 at 072fc24. Delete only after exact-tip, no-open-PR, unprotected, and ancestry checks.",
+      "current_status_override": {
+        "delivery_commit": "072fc24d6dd4f53dbd544485174e39aff2c92f43",
+        "branch_tip_before_cleanup": "98aa14d2d79322294b9f7b699b19999c838b823c",
+        "integrated": true,
+        "remote_cleanup_status": "pending deletion after final exact-ref checks"
       }
     }
   ],
@@ -4431,7 +4465,18 @@
           "Dialog layout23f/9c/862 separate B review; BLOCK bb502/018/1be dismissal until P1 fixed and independently retested."
         ],
         "deletion_policy": "No branch deleted by reviewer. Parent may delete already-integrated/superseded task-owned branches only after exact remote identity and replacement reachability/evidence recorded; no design/reference/protected deletion."
-      }
+      },
+      "follow_up_reviews": [
+        {
+          "commit": "dd91ff5a8ccf61ac4a95d753fdfc6bbdff96ec5f",
+          "verdict": "No new material regression; bounded source review only, no app parity claim.",
+          "independent_nextest": "cargo nextest run --locked -p termrock-session --lib: 14 passed, 0 skipped",
+          "retained_P2": "session.rs:258 may reset cursor shape after early terminal-entry failure despite no successful command write; predecessor unconditionally reset, so not introduced here. Prepared session 7c1a retains successful queued-write tracking.",
+          "action": "Preserve prepare/draw_prepared/ack barrier and 7c1a successful-write tracking; do not restore whole dd91 session file.",
+          "evidence_json": "/Users/donbeave/Projects/termrock-cli-evidence-20261020/branch-consolidation/A-session-dd91-review.json",
+          "evidence_log": "/Users/donbeave/Projects/termrock-cli-evidence-20261020/branch-consolidation/A-session-dd91-nextest.log"
+        }
+      ]
     },
     "B-components-layout": {
       "status": "reviewed",
@@ -4568,26 +4613,42 @@
     "D-tests-proof": 15,
     "E-ci-reference-catchall": 12,
     "reviewed_initial_total": 96,
-    "post_inventory_branches": 1,
-    "post_inventory_review_pending": 0
+    "post_inventory_branches": 2,
+    "post_inventory_review_pending": 0,
+    "palette_source_integrated_at": "072fc24d6dd4f53dbd544485174e39aff2c92f43",
+    "current_live_branches_before_cleanup": 98
   },
   "live_inventory_after_review": {
-    "observed_from": "remote-heads-after-review.tsv",
-    "branch_count": 97,
+    "observed_from": "fresh ls-remote before prune",
+    "branch_count_before_cleanup": 98,
+    "original_inventory_branches": 96,
     "new_after_start": [
+      "wip/branch-consolidation-E-20261020",
       "wip/pr38-palette-reviewed-20261020"
     ],
     "advanced_since_start": {
-      "parity/termrock-visual-baseline": "abfff94e4a71c80d790bb6291eefbb882aa65788"
+      "parity/termrock-visual-baseline": "072fc24d6dd4f53dbd544485174e39aff2c92f43"
     },
-    "deleted_since_start": []
+    "deletions_at_recording": []
   },
   "integration_followups": [
     {
       "at_utc": "2026-10-20T16:17:00Z",
       "source": "parent report",
       "finding": "Palette cohort commit 082ad5d3ab3b4b29e790f7b3e4ea21205a5719a0 independently clears source after full partition attribution; PR38 integration still pending. Supersedes initial pending-attribution note for source review only."
+    },
+    {
+      "at_utc": "2026-10-20",
+      "source": "parent integration report and remote PR38 head verification",
+      "delivery_commit": "072fc24d6dd4f53dbd544485174e39aff2c92f43",
+      "finding": "Palette source 636028fa is integrated. Source review commit 082ad5d3ab3b4b29e790f7b3e4ea21205a5719a0 cleared four exact source/test blobs; focused nextest 314/314 passed with zero skips, strict clippy/fmt/diff checks passed. The full 19-crate partition passed 1352/1361; nine failures were attributed to baseline. This supersedes the earlier palette pending-integration note. No application parity acceptance."
+    },
+    {
+      "at_utc": "2026-10-20",
+      "source": "parent integration report and remote PR38 head verification",
+      "delivery_commit": "072fc24d6dd4f53dbd544485174e39aff2c92f43",
+      "finding": "Palette source 636028fa integrated. Source review commit 082ad5d3ab3b4b29e790f7b3e4ea21205a5719a0 cleared four exact source/test blobs; focused nextest 314/314 passed with zero skips, strict clippy/fmt/diff checks passed. The full 19-crate partition passed 1352/1361; nine failures were attributed to baseline. Supersedes earlier pending-attribution note. No application parity acceptance."
     }
   ],
-  "interpretation_policy": "This 97-row exact branch ledger supersedes coarse branch classifications in the migration matrix. A branch may contain a bounded reusable contract worth integration while its whole branch or product gate remains unaccepted. Shared-style 94a/8e9/e72 lineage is represented by already-integrated 2863/e597 equivalents; early Button 7dab is superseded by reviewed 673936/b0f8/2d stack. Do not reject useful component contracts solely because full application parity remains red."
+  "interpretation_policy": "This 98-row exact branch ledger supersedes coarse branch classifications in the migration matrix. A branch may contain a bounded reusable contract worth integration while its whole branch or product gate remains unaccepted. Shared-style 94a/8e9/e72 lineage is represented by already-integrated 2863/e597 equivalents; early Button 7dab is superseded by reviewed 673936/b0f8/2d stack. Do not reject useful component contracts solely because full application parity remains red."
 }
