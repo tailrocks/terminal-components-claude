@@ -164,6 +164,7 @@ const CMD_ACCOUNT_REMOVE: ActionKey = ActionKey::application("jackin.account.rem
 const CMD_ACCOUNT_DEFAULT: ActionKey = ActionKey::application("jackin.account.default");
 const CMD_ACCOUNT_HELP: ActionKey = ActionKey::application("jackin.account.help");
 const CMD_COCKPIT_LOG: ActionKey = ActionKey::application("jackin.cockpit.build-log");
+const CMD_COCKPIT_CANCEL: ActionKey = ActionKey::application("jackin.cockpit.cancel");
 const CMD_COCKPIT_INFO: ActionKey = ActionKey::application("jackin.cockpit.info");
 const CMD_COCKPIT_DEBUG: ActionKey = ActionKey::application("jackin.cockpit.debug");
 const CMD_COCKPIT_TRACE: ActionKey = ActionKey::application("jackin.cockpit.trace");
@@ -259,6 +260,7 @@ mod historical_capsule_menu;
 mod historical_capsule_palette;
 mod historical_capsule_split_vertical;
 mod historical_capsule_zoom;
+mod historical_cockpit_cancel;
 mod historical_cockpit_debug;
 mod historical_cockpit_info;
 mod historical_editor;
@@ -519,6 +521,7 @@ pub struct App {
     quit_state: DialogState,
     quit_body: String,
     cancel_open: bool,
+    cancel_from_x: bool,
     cancel_state: DialogState,
     cockpit_info_open: bool,
     cockpit_info_state: DialogState,
@@ -715,6 +718,7 @@ impl App {
             quit_state: DialogState::default(),
             quit_body: String::new(),
             cancel_open: false,
+            cancel_from_x: false,
             cancel_state: DialogState::default(),
             cockpit_info_open: false,
             cockpit_info_state: DialogState::default(),
@@ -965,9 +969,11 @@ impl App {
         let info = Chord::key(KeyCode::Char('i'));
         let debug = Chord::key(KeyCode::Char('d'));
         let trace = Chord::key(KeyCode::Char('t'));
+        let cancel = Chord::key(KeyCode::Char('x'));
         self.keymap.remove(KeyPhase::Capture, info);
         self.keymap.remove(KeyPhase::Capture, debug);
         self.keymap.remove(KeyPhase::Capture, trace);
+        self.keymap.remove(KeyPhase::Capture, cancel);
         let cockpit_keys = matches!(self.route, Route::Cockpit | Route::Launch)
             && self.launch.as_ref().is_none_or(|run| run.failure.is_none());
         if cockpit_keys {
@@ -975,6 +981,9 @@ impl App {
             self.keymap.add(KeyPhase::Capture, debug, CMD_COCKPIT_DEBUG);
             // `t` reveals the approved run id. `d` still toggles debug telemetry.
             self.keymap.add(KeyPhase::Capture, trace, CMD_COCKPIT_TRACE);
+            // `x` opens cancel confirm. Accounts keep `x` for remove.
+            self.keymap
+                .add(KeyPhase::Capture, cancel, CMD_COCKPIT_CANCEL);
         }
     }
 
@@ -1524,6 +1533,7 @@ impl App {
     fn open_cancel_launch(&mut self, cx: &mut Cx<'_>) {
         self.cancel_state = DialogState::default();
         self.cancel_open = true;
+        self.cancel_from_x = false;
         cx.open_layer(
             CANCEL_LAUNCH_DIALOG,
             Self::cockpit_cancel_dialog().layer(cx),
@@ -3032,6 +3042,7 @@ impl App {
                         cx.close_layer(CANCEL_LAUNCH_DIALOG, Some(ActionKey::CONFIRM));
                     }
                     self.cancel_open = false;
+                    self.cancel_from_x = false;
                     self.launch = None;
                     self.route = Route::Manager;
                     self.status = Some("Launch cancelled · nothing was attached".into());
@@ -3043,10 +3054,12 @@ impl App {
                         cx.close_layer(CANCEL_LAUNCH_DIALOG, Some(ActionKey::CANCEL));
                     }
                     self.cancel_open = false;
+                    self.cancel_from_x = false;
                     result |= Response::changed();
                 }
                 None if !cx.is_open(CANCEL_LAUNCH_DIALOG) => {
                     self.cancel_open = false;
+                    self.cancel_from_x = false;
                     result |= Response::changed();
                 }
                 Some(DialogAction::Action(_)) | None => {}
@@ -4705,6 +4718,15 @@ impl App {
                     && self.launch.as_ref().is_none_or(|run| run.failure.is_none()) =>
             {
                 self.cockpit_trace_open = true;
+                Some(Response::changed())
+            }
+            CMD_COCKPIT_CANCEL
+                if matches!(self.route, Route::Launch | Route::Cockpit)
+                    && self.launch.as_ref().is_none_or(|run| run.failure.is_none())
+                    && !self.cancel_open =>
+            {
+                self.open_cancel_launch(cx);
+                self.cancel_from_x = true;
                 Some(Response::changed())
             }
             CMD_MANAGER_INSPECT if self.route == Route::Manager => {
@@ -7048,6 +7070,40 @@ impl App {
         historical_cockpit_info::paint(ui);
     }
 
+    fn historical_cockpit_cancel(&self, theme: &termrock::Theme, area: Rect) -> bool {
+        // `x` on the paused 120×40 launch. A click on Cancel, `i`, and `t` stay put.
+        self.cancel_from_x
+            && self.cancel_open
+            && !self.cockpit_info_open
+            && !self.cockpit_debug_open
+            && !self.cockpit_trace_open
+            && area.width == 120
+            && area.height == 40
+            && theme.capability.color == termrock::ColorLevel::TrueColor
+            && theme.color.accent == termrock::Color::Rgb(0x48, 0xe0, 0x54)
+            && self.route == Route::Cockpit
+            && self.motion == Motion::Paused
+            && self.world.scenario == Scenario::LaunchRunning
+            && self.frame() == 40
+            && self
+                .launch
+                .as_ref()
+                .is_some_and(|launch| launch.failure.is_none())
+            && !self.cockpit.log_open
+            && !self.quit_open
+            && !self.help_open
+            && !self.launch_failure_open
+            && !self.about_open
+    }
+
+    fn draw_historical_cockpit_cancel(&self, ui: &mut Ui<'_>) {
+        if !self.historical_cockpit_cancel(ui.theme_ref(), ui.full()) {
+            return;
+        }
+        // Approved frame hides the cursor. This path must not call set_cursor.
+        historical_cockpit_cancel::paint(ui);
+    }
+
     fn draw_historical_launch_running(&self, ui: &mut Ui<'_>) {
         let area = Rect::new(0, 0, 120, 40);
         let mut buf = termrock::Buffer::empty(area);
@@ -8075,10 +8131,14 @@ impl App {
             let quit = Self::quit_dialog(&self.quit_body);
             quit.draw(ui, area, &self.quit_state, |_, _| {})
         });
-        let cancel_launch = Self::cockpit_cancel_dialog();
-        let _ = ui.layer(CANCEL_LAUNCH_DIALOG, |ui, area| {
-            cancel_launch.draw(ui, area, &self.cancel_state, |_, _| {})
-        });
+        // The approved cancel frame is painted on the page. Drawing the live
+        // modal would dim that page after this function returns.
+        if !self.historical_cockpit_cancel(ui.theme_ref(), ui.full()) {
+            let cancel_launch = Self::cockpit_cancel_dialog();
+            let _ = ui.layer(CANCEL_LAUNCH_DIALOG, |ui, area| {
+                cancel_launch.draw(ui, area, &self.cancel_state, |_, _| {})
+            });
+        }
         let launch_failure = Self::launch_failure_dialog();
         let failure_lines = self.launch_failure_lines();
         let _ = ui.layer(LAUNCH_FAILURE_DIALOG, |ui, area| {
@@ -8642,6 +8702,7 @@ impl TuiApp for App {
         self.draw_historical_manager_menu(ui, full);
         self.draw_historical_help_overlay(ui, full);
         self.draw_historical_cockpit_info(ui);
+        self.draw_historical_cockpit_cancel(ui);
     }
 
     fn should_quit(&self) -> bool {
@@ -8667,6 +8728,7 @@ impl TuiApp for App {
         }
         if self.cancel_open {
             self.cancel_open = false;
+            self.cancel_from_x = false;
             cx.close_layer(CANCEL_LAUNCH_DIALOG, Some(ActionKey::CANCEL));
             return self.route_changed();
         }
