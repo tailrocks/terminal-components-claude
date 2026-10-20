@@ -4334,7 +4334,9 @@ mod tests {
                 ratatui_core::style::Color::Red,
             ),
         ] {
-            let buffer = focused_grid_buffer_with_defaults(theme, Model::two(), defaults);
+            let mut model = Model::two();
+            model.hole = Some((0, 1));
+            let buffer = focused_grid_buffer_with_defaults(theme, model, defaults);
             assert_eq!(
                 buffer
                     .cell(Position::new(11, 1))
