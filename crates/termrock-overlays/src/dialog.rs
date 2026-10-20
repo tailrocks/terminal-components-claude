@@ -20,6 +20,8 @@ use termrock_controls::button::Button;
 use termrock_feedback::keyhint::ChordText;
 use termrock_fields::field::Field;
 use termrock_fields::input::{TextAction, TextInput, TextInputState, redacted_text};
+use termrock_runtime::author::NestedLayerSlotAuthor;
+use termrock_runtime::ui::LayerSlot;
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum DialogAction {
@@ -1116,6 +1118,24 @@ impl<'a> Dialog<'a> {
         );
         self.paint_close(ui, chrome);
         painted
+    }
+
+    /// Draw this dialog through its existing body layout and expose the body
+    /// as a typed component slot.
+    ///
+    /// The body closure runs once, including when the resolved body has zero
+    /// area. Dialog chrome, focus registration, clipping, and hit regions
+    /// remain owned by [`Dialog::draw`].
+    pub fn draw_body_slot(
+        &self,
+        ui: &mut Ui<'_>,
+        area: Rect,
+        st: &DialogState,
+        body: impl FnOnce(&mut LayerSlot<'_, '_>),
+    ) {
+        self.draw(ui, area, st, |ui, body_area| {
+            ui.with_nested_layer_slot(body_area, body);
+        });
     }
 
     pub fn measure(&self, ui: &Ui<'_>, c: Constraints) -> Size {
