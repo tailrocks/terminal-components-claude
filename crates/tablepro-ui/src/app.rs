@@ -6,14 +6,14 @@ use termrock::{
     DialogState, FgStep, Field, Focusability, Form, FormAction, FormState, FrameRead, GlyphRole,
     Grid, GridAction, GridCell, GridColumnFit, GridEditor, GridGutter, GridModel,
     GridSortIndicator, Id, Intent, ItemKey, KeyCode, KeyMap, KeyModifiers, KeyPhase, LayerId,
-    Maximized, Modifier, Panel, PanelKind, Part, Phase, PickerAction, Position, Response, Role,
-    RowDecor, RowTotal, RowUi, Size, SortDir, Span, SplitAxis, SplitPane, SplitPaneState,
-    StateFlags, StylePatch, Tabs, TabsAction, TabsState, TextAction, TextInput, TextInputState,
-    Theme, Tree, TreeAction, TreeBranchActivation, TreeNode, TreeState, Ui, UpdateCause, truncate,
-    truncate_middle, width, wrap,
+    Maximized, Modifier, Panel, PanelKind, Part, Phase, PickerAction, PickerSlotExt, Position,
+    Response, Role, RowDecor, RowTotal, RowUi, Size, SortDir, Span, SplitAxis, SplitPane,
+    SplitPaneState, StateFlags, StylePatch, Tabs, TabsAction, TabsState, TextAction, TextInput,
+    TextInputState, Theme, Tree, TreeAction, TreeBranchActivation, TreeNode, TreeState, Ui,
+    UpdateCause, truncate, truncate_middle, width, wrap,
 };
 
-use crate::quick_switcher::{self, QuickSwitcher};
+use crate::quick_switcher::{self, QuickSwitcher, TabListPicker};
 use crate::tabs::{ExplorerItem, GridView, Tab, TabKey, TabRecord};
 use crate::workbench::Workbench;
 
@@ -24,7 +24,6 @@ mod historical_form_advanced;
 mod historical_form_new;
 mod historical_help_overlay;
 mod historical_history_tab;
-mod historical_picker_open;
 mod historical_query_analyze;
 mod historical_query_completion;
 mod historical_query_error;
@@ -32,7 +31,6 @@ mod historical_query_explain;
 mod historical_query_results;
 mod historical_safemode_picker;
 mod historical_table_scrolled_right;
-mod historical_tablist_open;
 mod historical_workbench_explorer_hidden;
 mod historical_workbench_maximized;
 use tablepro_demo::db::{
@@ -584,6 +582,7 @@ pub struct TableProApp {
     destructive_notice: Option<&'static str>,
     quit_state: DialogState,
     switcher: QuickSwitcher,
+    tab_list: TabListPicker,
 
     pub screen: Screen,
 
@@ -642,6 +641,7 @@ impl core::fmt::Debug for TableProApp {
             .field("has_destructive_notice", &self.destructive_notice.is_some())
             .field("quit_state", &self.quit_state)
             .field("switcher", &"<query and target snapshot>")
+            .field("tab_list", &"<picker state and tab summaries>")
             .field("connections_screen", &self.connections_screen)
             .field("workbench", &self.workbench)
             .field("connection_nodes", &self.connection_nodes.len())
@@ -707,6 +707,7 @@ impl TableProApp {
             destructive_notice: None,
             quit_state: DialogState::default(),
             switcher: QuickSwitcher::default(),
+            tab_list: TabListPicker::default(),
             screen: Screen::Connections,
             surface: Surface::Connections,
             connections_screen: ConnectionsScreen::new(connections),
@@ -1787,12 +1788,69 @@ impl TableProApp {
         self.surface = Surface::QuickSwitcher;
     }
 
-    fn open_tab_list(&mut self) -> bool {
-        if self.surface == Surface::TabListPicker || !self.idle_production_query() {
+    fn open_tab_list(&mut self, cx: &mut Cx<'_>) -> bool {
+        if self.screen != Screen::Workbench
+            || self.form_open
+            || self.destructive_intent.is_some()
+            || cx.is_open(quick_switcher::TAB_LIST_ID)
+        {
             return false;
         }
+        self.tab_list.open(&self.workbench);
+        cx.open_layer(
+            quick_switcher::TAB_LIST_ID,
+            TabListPicker::component().layer(cx, &self.tab_list.items),
+        );
         self.surface = Surface::TabListPicker;
         true
+    }
+
+    fn update_tab_list(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+        let was_open = cx.is_open(quick_switcher::TAB_LIST_ID);
+        let mut response =
+            TabListPicker::component().update(cx, &mut self.tab_list.state, &self.tab_list.items);
+        match response.take_action() {
+            Some(PickerAction::Chosen(key) | PickerAction::ChosenAlt(key)) if was_open => {
+                let target = self
+                    .tab_list
+                    .items
+                    .iter()
+                    .find(|item| ItemKey::num(item.key.get()) == key)
+                    .map(|item| item.key);
+                cx.close_layer(quick_switcher::TAB_LIST_ID, None);
+                if self.workbench.matches_owner(&self.tab_list.owner) {
+                    if let Some(target) = target {
+                        self.workbench.activate(target);
+                        self.sync_active_tab();
+                    }
+                } else {
+                    "Workbench changed; reopen tab list".clone_into(&mut self.status);
+                }
+            }
+            Some(PickerAction::Secondary(key)) if was_open => {
+                let target = self
+                    .tab_list
+                    .items
+                    .iter()
+                    .find(|item| ItemKey::num(item.key.get()) == key)
+                    .map(|item| item.key);
+                if self.workbench.matches_owner(&self.tab_list.owner)
+                    && let Some(target) = target
+                    && self.workbench.close_tab_confirmed(target)
+                {
+                    cx.close_layer(quick_switcher::TAB_LIST_ID, None);
+                    self.open_tab_list(cx);
+                }
+            }
+            _ => {}
+        }
+        if was_open
+            && !cx.is_open(quick_switcher::TAB_LIST_ID)
+            && self.surface == Surface::TabListPicker
+        {
+            self.sync_active_tab();
+        }
+        response.erase()
     }
 
     fn open_safe_mode_picker(&mut self) -> bool {
@@ -8040,106 +8098,6 @@ impl TableProApp {
         true
     }
 
-    fn paint_historical_picker_open(&self, ui: &mut Ui<'_>) -> bool {
-        if !self.historical_picker_open_frame(ui) {
-            return false;
-        }
-        // Trailer is ESC[?25h ESC[13;21H ESC[6 q. Set the steady bar. Do not write cursor bytes.
-        historical_picker_open::paint(ui);
-        ui.set_undrawn_top_bar_cursor(
-            quick_switcher::ID,
-            termrock::Rect {
-                x: 20,
-                y: 12,
-                width: 1,
-                height: 1,
-            },
-            Position::new(20, 12),
-        );
-        true
-    }
-
-    fn historical_picker_open_frame(&self, ui: &Ui<'_>) -> bool {
-        let area = ui.full();
-        // The approved card is the PTY frame. Unit tests have no tty, but
-        // ctrl-o still has to land on the approved cell or its check fails.
-        let on_terminal = std::io::IsTerminal::is_terminal(&std::io::stdout());
-        if area.width != 120 || area.height != 40 || !(on_terminal || cfg!(test)) {
-            return false;
-        }
-        let theme = ui.theme_ref();
-        if theme.capability.color != termrock::ColorLevel::TrueColor
-            || theme.color.accent != termrock::Color::Rgb(0x48, 0xe0, 0x54)
-        {
-            return false;
-        }
-        if self.screen != Screen::Workbench
-            || self.form_open
-            || self.destructive_intent.is_some()
-            || self.workbench.maximized
-            || self.split_state.maximized() != Maximized::None
-            || self.surface != Surface::QuickSwitcher
-            || self.connection.name != "Production"
-            || self.workbench.tabs().len() != 1
-            || !self.switcher.state.query().is_empty()
-            || self
-                .switcher
-                .state
-                .scope(&[termrock::ScopeKey::new(0)])
-                .is_none()
-        {
-            return false;
-        }
-        // History, table data, explorer hidden, maximized, a new tab, and connections are other cards.
-        let Some(Tab::Query(query)) = self.workbench.active() else {
-            return false;
-        };
-        if query.plan.is_some() || query.error.is_some() || query.result.is_some() {
-            return false;
-        }
-        let sql = query
-            .editor_state
-            .draft_text()
-            .unwrap_or(query.query.as_str())
-            .trim();
-        sql.is_empty()
-    }
-
-    fn paint_historical_tablist_open(&self, ui: &mut Ui<'_>) -> bool {
-        if !self.historical_tablist_open_frame(ui) {
-            return false;
-        }
-        // CUP 19;33 is the steady bar in the filter. Do not write cursor bytes.
-        historical_tablist_open::paint(ui);
-        if let Some(id) = self.query_id() {
-            ui.register_keyboard_editor(
-                id,
-                ui.full(),
-                Focusability::Focusable,
-                StateFlags::EDITING,
-            );
-            ui.set_bar_cursor(id, Position::new(32, 18));
-        }
-        true
-    }
-
-    fn historical_tablist_open_frame(&self, ui: &Ui<'_>) -> bool {
-        let area = ui.full();
-        // The approved card is the PTY frame. Unit tests have no tty, but
-        // ctrl-g still has to land on the approved cell or its check fails.
-        let on_terminal = std::io::IsTerminal::is_terminal(&std::io::stdout());
-        if area.width != 120 || area.height != 40 || !(on_terminal || cfg!(test)) {
-            return false;
-        }
-        let theme = ui.theme_ref();
-        if theme.capability.color != termrock::ColorLevel::TrueColor
-            || theme.color.accent != termrock::Color::Rgb(0x48, 0xe0, 0x54)
-        {
-            return false;
-        }
-        self.surface == Surface::TabListPicker && self.idle_production_query()
-    }
-
     fn paint_historical_safemode_picker(&self, ui: &mut Ui<'_>) -> bool {
         if !self.historical_safemode_picker_frame(ui) {
             return false;
@@ -8999,6 +8957,7 @@ impl App for TableProApp {
             self.open_switcher(cx);
         }
         let switcher_was_open = cx.is_open(quick_switcher::ID);
+        let tab_list_was_open = cx.is_open(quick_switcher::TAB_LIST_ID);
         let modal_was_open = self.destructive_intent.is_some();
         response |= self.update_destructive_dialog(cx);
         response |= self.update_tab_controls(cx);
@@ -9018,7 +8977,8 @@ impl App for TableProApp {
                 .erase();
         }
         response |= self.update_switcher(cx);
-        if switcher_was_open {
+        response |= self.update_tab_list(cx);
+        if switcher_was_open || tab_list_was_open {
             return response;
         }
 
@@ -9118,7 +9078,7 @@ impl App for TableProApp {
                         response |= Response::changed();
                     }
                 }
-                c if c == TAB_LIST && self.open_tab_list() => {
+                c if c == TAB_LIST && self.open_tab_list(cx) => {
                     response |= Response::changed();
                 }
                 c if c == CLEAR_QUERY && self.open_safe_mode_picker() => {
@@ -9376,16 +9336,6 @@ impl App for TableProApp {
                 cx.focus(id);
             }
         }
-        if self.surface == Surface::TabListPicker && self.idle_production_query() {
-            let view = cx.viewport();
-            // The approved bar sits on the 120×40 card. Other sizes keep focus.
-            if view.width == 120
-                && view.height == 40
-                && let Some(id) = self.query_id()
-            {
-                cx.focus(id);
-            }
-        }
         if self.surface == Surface::FilterEditor
             && self
                 .filter_editor
@@ -9411,8 +9361,6 @@ impl App for TableProApp {
             || self.paint_historical_workbench_explorer_hidden(ui)
             || self.paint_historical_table_scrolled_right(ui)
             || self.paint_historical_history_tab(ui)
-            || self.paint_historical_picker_open(ui)
-            || self.paint_historical_tablist_open(ui)
             || self.paint_historical_safemode_picker(ui)
             || self.paint_historical_help_overlay(ui)
             || self.paint_historical_filter_editor(ui)
@@ -9473,10 +9421,19 @@ impl App for TableProApp {
         }
         draw_footer(ui, rows[2], self);
         self.draw_filter_editor(ui);
-        ui.layer(quick_switcher::ID, |ui, area| {
-            self.switcher
-                .component()
-                .draw(ui, area, &self.switcher.state, &self.switcher.items);
+        ui.layer_slot(quick_switcher::ID, |slot| {
+            slot.picker(
+                self.switcher.component(),
+                &self.switcher.state,
+                &self.switcher.items,
+            );
+        });
+        ui.layer_slot(quick_switcher::TAB_LIST_ID, |slot| {
+            slot.picker(
+                TabListPicker::component(),
+                &self.tab_list.state,
+                &self.tab_list.items,
+            );
         });
         if let Some(intent) = self.destructive_intent.as_ref() {
             ui.layer(QUIT_DIALOG, |ui, area| {
