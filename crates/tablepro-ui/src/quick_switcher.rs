@@ -1,4 +1,5 @@
 use crate::workbench::Workbench;
+use tablepro_domain::model::History;
 use tablepro_domain::model::{SwitchItem, SwitchTarget, SwitcherIndex};
 use tablepro_domain::tabs::{Tab, TabKey, TabRecord, TableMode};
 use termrock::{
@@ -33,15 +34,17 @@ impl QuickSwitcher {
         self.refresh();
     }
     pub(crate) fn component(&self) -> Picker<'static, SwitchItem> {
-        let title = match self.state.scope(SCOPES).map(ScopeKey::get) {
-            Some(1) => "Open Quickly · Tables · Tab scope",
-            Some(2) => "Open Quickly · Schemas · Tab scope",
-            Some(3) => "Open Quickly · Queries · Tab scope",
-            _ => "Open Quickly · All · Tab scope",
+        let scope = match self.state.scope(SCOPES).map(ScopeKey::get) {
+            Some(1) => "Tables · Tab scope",
+            Some(2) => "Schemas · Tab scope",
+            Some(3) => "Queries · Tab scope",
+            _ => "All · Tab scope",
         };
         Picker::new(ID)
-            .title(title)
+            .title("Open Quickly")
+            .scope_label(scope)
             .placeholder("Search tables, views, schemas, tabs, queries…")
+            .hints("↑ ↓ Move  Enter Open  Esc Cancel")
             .width(88)
             .align(termrock::ScreenAlign::GeometricCenter)
             .scopes(SCOPES)
@@ -80,7 +83,7 @@ pub(crate) struct TabSummary {
 }
 
 impl TabSummary {
-    pub(crate) fn from_record(record: &TabRecord, active: bool) -> Self {
+    pub(crate) fn from_record(record: &TabRecord, active: bool, history: &History) -> Self {
         let tab = record.payload();
         let (detail, glyph) = match tab {
             Tab::Table(table) => (
@@ -95,19 +98,34 @@ impl TabSummary {
                 ),
                 "T",
             ),
-            Tab::Query(query) => (
-                if query.running {
-                    "running".to_owned()
-                } else {
-                    query
-                        .error
-                        .as_ref()
-                        .map(|error| error.lines().next().unwrap_or("query error").to_owned())
-                        .or_else(|| query.result.as_ref().map(|_| "complete".to_owned()))
-                        .unwrap_or_else(|| "query".to_owned())
-                },
-                "≡",
-            ),
+            Tab::Query(query) => {
+                let status = history
+                    .entries
+                    .iter()
+                    .find(|entry| entry.sql == query.query)
+                    .map_or_else(
+                        || {
+                            if query.running {
+                                "running".to_owned()
+                            } else {
+                                "query".to_owned()
+                            }
+                        },
+                        |entry| match entry.error.as_deref() {
+                            None => format!("ok · {}", entry.duration()),
+                            Some(error) if error.to_ascii_lowercase().contains("cancel") => {
+                                "cancelled".to_owned()
+                            }
+                            Some(error)
+                                if error.to_ascii_lowercase().contains("multiple statement") =>
+                            {
+                                "multiple statements".to_owned()
+                            }
+                            Some(_) => "error".to_owned(),
+                        },
+                    );
+                (status, "≡")
+            }
             Tab::History(_) => ("history".to_owned(), "H"),
         };
         Self {
@@ -152,7 +170,11 @@ impl TabListPicker {
             .tabs()
             .iter()
             .map(|record| {
-                TabSummary::from_record(record, Some(record.key()) == workbench.active_key())
+                TabSummary::from_record(
+                    record,
+                    Some(record.key()) == workbench.active_key(),
+                    &workbench.history,
+                )
             })
             .collect();
         if let Some(active) = workbench.active_key()
@@ -168,6 +190,7 @@ impl TabListPicker {
         Picker::new(TAB_LIST_ID)
             .title("Open tabs")
             .placeholder("Filter tabs…")
+            .hints("↑ ↓ Move  Enter Open  Delete Close  Esc Cancel")
             .width(64)
             .align(termrock::ScreenAlign::GeometricCenter)
             .max_rows(12)

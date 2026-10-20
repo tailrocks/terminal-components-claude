@@ -17,22 +17,6 @@ use crate::quick_switcher::{self, QuickSwitcher, TabListPicker};
 use crate::tabs::{ExplorerItem, GridView, Tab, TabKey, TabRecord};
 use crate::workbench::Workbench;
 
-mod historical_close_confirm;
-mod historical_delete_dialog;
-mod historical_filter_editor;
-mod historical_form_advanced;
-mod historical_form_new;
-mod historical_help_overlay;
-mod historical_history_tab;
-mod historical_query_analyze;
-mod historical_query_completion;
-mod historical_query_error;
-mod historical_query_explain;
-mod historical_query_results;
-mod historical_safemode_picker;
-mod historical_table_scrolled_right;
-mod historical_workbench_explorer_hidden;
-mod historical_workbench_maximized;
 use tablepro_demo::db::{
     self, Catalog, ColType, ConnectOutcome, Connection, Environment, ObjectKind, SafeMode,
 };
@@ -201,12 +185,6 @@ const ACCEPT_SQL_COMPLETION: ActionKey = ActionKey::application("tablepro.accept
 const PALETTE: ActionKey = ActionKey::application("tablepro.palette");
 const ZOOM: ActionKey = ActionKey::application("tablepro.zoom");
 const TOGGLE_EXPLORER: ActionKey = ActionKey::application("tablepro.toggle-explorer");
-const RESULT_SQL: &str =
-    "SELECT * FROM orders WHERE status = 'pending' ORDER BY created_at DESC LIMIT 25";
-const ERROR_SQL: &str = "SELECT * FROM missing_table";
-const EXPLAIN_SQL: &str = "SELECT * FROM orders";
-const COMPLETION_SQL: &str = "SELECT * FROM ord";
-
 const CONNECTION_DETAILS: Id = Id::root("tablepro.connections.details");
 const CONTENT_FRAME: Id = Id::root("tablepro.workbench.content.frame");
 
@@ -1822,6 +1800,7 @@ impl TableProApp {
                     if let Some(target) = target {
                         self.workbench.activate(target);
                         self.sync_active_tab();
+                        self.focus_active_tab_primary(cx);
                     }
                 } else {
                     "Workbench changed; reopen tab list".clone_into(&mut self.status);
@@ -1836,10 +1815,11 @@ impl TableProApp {
                     .map(|item| item.key);
                 if self.workbench.matches_owner(&self.tab_list.owner)
                     && let Some(target) = target
-                    && self.workbench.close_tab_confirmed(target)
                 {
-                    cx.close_layer(quick_switcher::TAB_LIST_ID, None);
-                    self.open_tab_list(cx);
+                    self.request_close_tab(cx, target);
+                    if cx.is_open(quick_switcher::TAB_LIST_ID) {
+                        self.tab_list.open(&self.workbench);
+                    }
                 }
             }
             _ => {}
@@ -1851,6 +1831,16 @@ impl TableProApp {
             self.sync_active_tab();
         }
         response.erase()
+    }
+
+    fn focus_active_tab_primary(&self, cx: &mut Cx<'_>) {
+        if let Some(id) = self.query_id().or_else(|| self.result_id()) {
+            cx.focus(id);
+        } else if matches!(self.workbench.active(), Some(Tab::Table(table)) if table.is_structure())
+            && let Some(key) = self.workbench.active_key()
+        {
+            cx.focus(key.control("data"));
+        }
     }
 
     fn open_safe_mode_picker(&mut self) -> bool {
@@ -2015,6 +2005,9 @@ impl TableProApp {
                             self.stale_destructive();
                         } else if self.workbench.close_tab_confirmed(key) {
                             self.sync_active_tab();
+                            if cx.is_open(quick_switcher::TAB_LIST_ID) {
+                                self.tab_list.open(&self.workbench);
+                            }
                             let focus = self
                                 .query_id()
                                 .or_else(|| self.result_id())
@@ -2772,7 +2765,7 @@ impl TableProApp {
                 ),
                 Some(format!("{} cols ", table.table.columns.len())),
             ),
-            Some(Tab::Query(query)) if !explorer_focused && !historical_empty_query(ui, self) => {
+            Some(Tab::Query(query)) if !explorer_focused && !empty_query_state(ui, self) => {
                 (format!(" {}", query.name), None)
             }
             Some(Tab::Query(query)) => (format!(" {} ", query.name), None),
@@ -2823,15 +2816,15 @@ impl TableProApp {
         if let Some((grid_area, rows, origin)) = GRID_SCROLL.with(|slot| *slot.borrow()) {
             paint_grid_scrollbar(ui, grid_area, rows, origin);
         }
-        let historical_query = historical_empty_query(ui, self);
-        if historical_query
+        let empty_query = empty_query_state(ui, self);
+        if empty_query
             || explorer_focused
                 && matches!(
                     self.workbench.active(),
                     Some(Tab::Query(query)) if query.result.is_none()
                 )
         {
-            paint_idle_query_tail(ui, area, historical_query);
+            paint_idle_query_tail(ui, area, empty_query);
         }
         paint_frame_title_tail(
             ui,
@@ -2865,7 +2858,7 @@ impl TableProApp {
                 }
                 paint_idle_query(ui, area, inner);
             }
-            Some(Tab::Query(_)) if historical_empty_query(ui, self) => {
+            Some(Tab::Query(_)) if empty_query_state(ui, self) => {
                 if let Some(id) = self.query_id() {
                     ui.register_keyboard_editor(
                         id,
@@ -3118,7 +3111,7 @@ fn paint_query_toolbar(ui: &mut Ui<'_>, area: termrock::Rect) {
     );
 }
 
-fn historical_empty_query(ui: &Ui<'_>, app: &TableProApp) -> bool {
+fn empty_query_state(ui: &Ui<'_>, app: &TableProApp) -> bool {
     let Some(id) = app.query_id() else {
         return false;
     };
@@ -7641,7 +7634,7 @@ fn paint_connection_filter_footer(ui: &mut Ui<'_>, area: termrock::Rect) {
 fn draw_footer(ui: &mut Ui<'_>, area: termrock::Rect, app: &TableProApp) {
     let base = ui.surface_style();
     let explorer_focused = ui.state(EXPLORER).contains(StateFlags::FOCUSED);
-    let empty_query = historical_empty_query(ui, app);
+    let empty_query = empty_query_state(ui, app);
     ui.fill(area, base);
     if app.screen == Screen::Connections && app.connection_filter_editing {
         paint_connection_filter_footer(ui, area);
@@ -8013,671 +8006,6 @@ impl TableProApp {
         );
     }
 
-    fn paint_historical_workbench_maximized(&self, ui: &mut Ui<'_>) -> bool {
-        if !self.historical_workbench_maximized_frame(ui) {
-            return false;
-        }
-        // Hidden trailer. Do not set a bar cursor and do not write cursor bytes.
-        historical_workbench_maximized::paint(ui);
-        true
-    }
-
-    fn paint_historical_workbench_explorer_hidden(&self, ui: &mut Ui<'_>) -> bool {
-        if !self.historical_workbench_explorer_hidden_frame(ui) {
-            return false;
-        }
-        historical_workbench_explorer_hidden::paint(ui);
-        // CUP 7;13 is the steady bar on the idle SQL line. Do not write cursor bytes.
-        if let Some(id) = self.query_id() {
-            ui.register_keyboard_editor(
-                id,
-                ui.full(),
-                Focusability::Focusable,
-                StateFlags::EDITING,
-            );
-            ui.set_bar_cursor(id, Position::new(12, 6));
-        }
-        true
-    }
-
-    fn historical_workbench_explorer_hidden_frame(&self, ui: &Ui<'_>) -> bool {
-        let area = ui.full();
-        // The approved card is the PTY frame. Unit tests have no tty, but
-        // ctrl-b still has to land on the approved cell or its check fails.
-        let on_terminal = std::io::IsTerminal::is_terminal(&std::io::stdout());
-        if area.width != 120 || area.height != 40 || !(on_terminal || cfg!(test)) {
-            return false;
-        }
-        let theme = ui.theme_ref();
-        if theme.capability.color != termrock::ColorLevel::TrueColor
-            || theme.color.accent != termrock::Color::Rgb(0x48, 0xe0, 0x54)
-        {
-            return false;
-        }
-        self.split_state.maximized() == Maximized::Second
-            && !self.workbench.maximized
-            && !self.form_open
-            && self.destructive_intent.is_none()
-            && self.screen != Screen::Connections
-    }
-
-    fn historical_workbench_maximized_frame(&self, ui: &Ui<'_>) -> bool {
-        let area = ui.full();
-        // The approved card is the PTY frame. Unit tests have no tty, but the
-        // zoom key still has to land on the approved cells or its check fails.
-        let on_terminal = std::io::IsTerminal::is_terminal(&std::io::stdout());
-        if area.width != 120 || area.height != 40 || !(on_terminal || cfg!(test)) {
-            return false;
-        }
-        let theme = ui.theme_ref();
-        if theme.capability.color != termrock::ColorLevel::TrueColor
-            || theme.color.accent != termrock::Color::Rgb(0x48, 0xe0, 0x54)
-        {
-            return false;
-        }
-        self.workbench.maximized
-            && self.destructive_intent.is_none()
-            && self.screen != Screen::Connections
-    }
-
-    fn paint_historical_table_scrolled_right(&self, ui: &mut Ui<'_>) -> bool {
-        if !self.historical_table_scrolled_right_frame(ui) {
-            return false;
-        }
-        // Trailer is ESC[?25l. Do not set a bar cursor and do not write cursor bytes.
-        historical_table_scrolled_right::paint(ui);
-        true
-    }
-
-    fn paint_historical_history_tab(&self, ui: &mut Ui<'_>) -> bool {
-        if !self.historical_history_tab_frame(ui) {
-            return false;
-        }
-        // Trailer is ESC[?25l. Do not set a bar cursor and do not write cursor bytes.
-        historical_history_tab::paint(ui);
-        true
-    }
-
-    fn paint_historical_safemode_picker(&self, ui: &mut Ui<'_>) -> bool {
-        if !self.historical_safemode_picker_frame(ui) {
-            return false;
-        }
-        // Trailer is ESC[?25l. Do not set a bar cursor and do not write cursor bytes.
-        historical_safemode_picker::paint(ui);
-        true
-    }
-
-    fn historical_safemode_picker_frame(&self, ui: &Ui<'_>) -> bool {
-        let area = ui.full();
-        // The approved card is the PTY frame. Unit tests have no tty, but
-        // ctrl-l still has to land on the approved cell or its check fails.
-        let on_terminal = std::io::IsTerminal::is_terminal(&std::io::stdout());
-        if area.width != 120 || area.height != 40 || !(on_terminal || cfg!(test)) {
-            return false;
-        }
-        let theme = ui.theme_ref();
-        if theme.capability.color != termrock::ColorLevel::TrueColor
-            || theme.color.accent != termrock::Color::Rgb(0x48, 0xe0, 0x54)
-        {
-            return false;
-        }
-        // set_surface(SafeModePicker) forces SafeFull. ctrl-l leaves Production on Safe.
-        self.surface == Surface::SafeModePicker
-            && self.safe_mode == SafeMode::Safe
-            && self.idle_production_query()
-    }
-
-    fn paint_historical_help_overlay(&self, ui: &mut Ui<'_>) -> bool {
-        if !self.historical_help_overlay_frame(ui) {
-            return false;
-        }
-        // Trailer is ESC[?25l. Do not set a bar cursor and do not write cursor bytes.
-        historical_help_overlay::paint(ui);
-        true
-    }
-
-    fn paint_historical_delete_dialog(&self, ui: &mut Ui<'_>) -> bool {
-        if !self.historical_delete_dialog_frame(ui) {
-            return false;
-        }
-        // Trailer is ESC[?25l. Do not set a bar cursor and do not write cursor bytes.
-        historical_delete_dialog::paint(ui);
-        true
-    }
-
-    fn paint_historical_close_confirm(&self, ui: &mut Ui<'_>) -> bool {
-        if !self.historical_close_confirm_frame(ui) {
-            return false;
-        }
-        // Trailer is ESC[?25l. Do not set a bar cursor and do not write cursor bytes.
-        historical_close_confirm::paint(ui);
-        true
-    }
-
-    fn historical_close_confirm_frame(&self, ui: &Ui<'_>) -> bool {
-        let area = ui.full();
-        // The approved card is the PTY frame. Unit tests have no tty, but
-        // ctrl-w still has to land on the approved cell or its check fails.
-        let on_terminal = std::io::IsTerminal::is_terminal(&std::io::stdout());
-        if area.width != 120 || area.height != 40 || !(on_terminal || cfg!(test)) {
-            return false;
-        }
-        let theme = ui.theme_ref();
-        if theme.capability.color != termrock::ColorLevel::TrueColor
-            || theme.color.accent != termrock::Color::Rgb(0x48, 0xe0, 0x54)
-        {
-            return false;
-        }
-        if self.screen != Screen::Workbench
-            || self.form_open
-            || self.surface != Surface::QueryEditing
-            || self.connection.name != "Production"
-            || self.workbench.maximized
-            || self.split_state.maximized() != Maximized::None
-            || self.workbench.tabs().len() != 2
-        {
-            return false;
-        }
-        let Some(request) = &self.destructive_intent else {
-            return false;
-        };
-        let DestructiveIntent::CloseTab { key, .. } = &request.intent else {
-            return false;
-        };
-        if self.workbench.active_key() != Some(*key) {
-            return false;
-        }
-        // Help, safe mode, the tab list, the picker, the filter editor, dirty
-        // rows, table data, and the connections list are other cards.
-        let Some(Tab::Query(query)) = self.workbench.active() else {
-            return false;
-        };
-        if query.plan.is_some() || query.error.is_some() || query.result.is_some() {
-            return false;
-        }
-        query
-            .editor_state
-            .draft_text()
-            .unwrap_or(query.query.as_str())
-            == "x"
-    }
-
-    fn historical_delete_dialog_frame(&self, ui: &Ui<'_>) -> bool {
-        let area = ui.full();
-        // The approved card is the PTY frame. Unit tests have no tty, but
-        // `d` still has to land on the approved cell or its check fails.
-        let on_terminal = std::io::IsTerminal::is_terminal(&std::io::stdout());
-        if area.width != 120 || area.height != 40 || !(on_terminal || cfg!(test)) {
-            return false;
-        }
-        let theme = ui.theme_ref();
-        if theme.capability.color != termrock::ColorLevel::TrueColor
-            || theme.color.accent != termrock::Color::Rgb(0x48, 0xe0, 0x54)
-        {
-            return false;
-        }
-        // Help, safe mode, the tab list, the picker, dirty rows, table data,
-        // the filter editor, and the plain connections list are other cards.
-        self.connection_delete == ConnectionDelete::Open
-            && self.screen == Screen::Connections
-            && self.surface == Surface::Connections
-            && !self.form_open
-            && !self.connection_filter_editing
-            && self.destructive_intent.is_none()
-            && self.production_connection_selected()
-    }
-
-    fn paint_historical_filter_editor(&self, ui: &mut Ui<'_>) -> bool {
-        if !self.historical_filter_editor_frame(ui) {
-            return false;
-        }
-        // CUP 20;33 is the steady bar on the value placeholder. Do not write cursor bytes.
-        historical_filter_editor::paint(ui);
-        ui.register_keyboard_editor(
-            FILTER_VALUE,
-            ui.full(),
-            Focusability::Focusable,
-            StateFlags::EDITING,
-        );
-        if let Some(pos) = historical_filter_editor::bar_cursor() {
-            ui.set_bar_cursor(FILTER_VALUE, pos);
-        }
-        true
-    }
-
-    fn historical_filter_editor_frame(&self, ui: &Ui<'_>) -> bool {
-        let area = ui.full();
-        // The approved card is the PTY frame. Unit tests have no tty, but
-        // ctrl-f still has to land on the approved cell or its check fails.
-        let on_terminal = std::io::IsTerminal::is_terminal(&std::io::stdout());
-        if area.width != 120 || area.height != 40 || !(on_terminal || cfg!(test)) {
-            return false;
-        }
-        let theme = ui.theme_ref();
-        if theme.capability.color != termrock::ColorLevel::TrueColor
-            || theme.color.accent != termrock::Color::Rgb(0x48, 0xe0, 0x54)
-        {
-            return false;
-        }
-        if self.screen != Screen::Workbench
-            || self.form_open
-            || self.destructive_intent.is_some()
-            || self.workbench.maximized
-            || self.split_state.maximized() != Maximized::None
-            || self.surface != Surface::FilterEditor
-            || self.connection.name != "Production"
-        {
-            return false;
-        }
-        let id_column = self
-            .filter_editor
-            .as_ref()
-            .is_some_and(|draft| draft.column == "id" && draft.value.is_empty());
-        if !id_column {
-            return false;
-        }
-        // Help, safe mode, the tab list, the picker, history, dirty rows, the
-        // plain data grid, and connections are other cards.
-        self.workbench.active_table().is_some_and(|table| {
-            table.table.schema == "public"
-                && table.table.name == "orders"
-                && !table.is_structure()
-                && !table.result.state.is_editing()
-                && table.result.pending_total() == 0
-        })
-    }
-
-    fn historical_help_overlay_frame(&self, ui: &Ui<'_>) -> bool {
-        let area = ui.full();
-        // The approved card is the PTY frame. Unit tests have no tty, but
-        // `?` still has to land on the approved cell or its check fails.
-        let on_terminal = std::io::IsTerminal::is_terminal(&std::io::stdout());
-        if area.width != 120 || area.height != 40 || !(on_terminal || cfg!(test)) {
-            return false;
-        }
-        let theme = ui.theme_ref();
-        if theme.capability.color != termrock::ColorLevel::TrueColor
-            || theme.color.accent != termrock::Color::Rgb(0x48, 0xe0, 0x54)
-        {
-            return false;
-        }
-        // ctrl-l, ctrl-g, ctrl-o, history, table data, and connections are other cards.
-        self.surface == Surface::HelpDialog && self.idle_production_query()
-    }
-
-    fn historical_history_tab_frame(&self, ui: &Ui<'_>) -> bool {
-        let area = ui.full();
-        // The approved card is the PTY frame. Unit tests have no tty, but
-        // ctrl-y still has to land on the approved cell or its check fails.
-        let on_terminal = std::io::IsTerminal::is_terminal(&std::io::stdout());
-        if area.width != 120 || area.height != 40 || !(on_terminal || cfg!(test)) {
-            return false;
-        }
-        let theme = ui.theme_ref();
-        if theme.capability.color != termrock::ColorLevel::TrueColor
-            || theme.color.accent != termrock::Color::Rgb(0x48, 0xe0, 0x54)
-        {
-            return false;
-        }
-        if self.screen != Screen::Workbench
-            || self.form_open
-            || self.destructive_intent.is_some()
-            || self.workbench.maximized
-            || self.split_state.maximized() != Maximized::None
-        {
-            return false;
-        }
-        // Query results, a new tab, table data, and the closed workbench are not this card.
-        matches!(self.workbench.active(), Some(Tab::History(_)))
-    }
-
-    fn historical_table_scrolled_right_frame(&self, ui: &Ui<'_>) -> bool {
-        let area = ui.full();
-        // The approved card is the PTY frame. Unit tests have no tty, but End
-        // still has to land on the approved cell or its check fails.
-        let on_terminal = std::io::IsTerminal::is_terminal(&std::io::stdout());
-        if area.width != 120 || area.height != 40 || !(on_terminal || cfg!(test)) {
-            return false;
-        }
-        let theme = ui.theme_ref();
-        if theme.capability.color != termrock::ColorLevel::TrueColor
-            || theme.color.accent != termrock::Color::Rgb(0x48, 0xe0, 0x54)
-        {
-            return false;
-        }
-        if self.screen != Screen::Workbench
-            || self.form_open
-            || self.destructive_intent.is_some()
-            || self.workbench.maximized
-            || self.split_state.maximized() != Maximized::None
-        {
-            return false;
-        }
-        self.orders_scrolled_to_updated_at()
-    }
-
-    fn orders_scrolled_to_updated_at(&self) -> bool {
-        let Some(table) = self.workbench.active_table() else {
-            return false;
-        };
-        if table.table.schema != "public"
-            || table.table.name != "orders"
-            || table.is_structure()
-            || table.result.state.is_editing()
-            || table.result.state.col_offset() == 0
-        {
-            return false;
-        }
-        let Some((_, column)) = table.result.state.cursor() else {
-            return false;
-        };
-        let Some(index) = usize::from(column.raw()).checked_sub(1) else {
-            return false;
-        };
-        table
-            .result
-            .columns
-            .get(index)
-            .is_some_and(|(name, _)| name == "updated_at")
-    }
-
-    fn paint_historical_query_results(&self, ui: &mut Ui<'_>) -> bool {
-        if !self.historical_query_results_frame(ui) {
-            return false;
-        }
-        historical_query_results::paint(ui);
-        true
-    }
-
-    fn historical_query_results_frame(&self, ui: &Ui<'_>) -> bool {
-        // The approved result card is the PTY frame only. Buffer tests keep the live grid.
-        let area = ui.full();
-        if area.width != 120
-            || area.height != 40
-            || !std::io::IsTerminal::is_terminal(&std::io::stdout())
-        {
-            return false;
-        }
-        let theme = ui.theme_ref();
-        if theme.capability.color != termrock::ColorLevel::TrueColor
-            || theme.color.accent != termrock::Color::Rgb(0x48, 0xe0, 0x54)
-        {
-            return false;
-        }
-        if self.screen != Screen::Workbench || self.form_open || self.destructive_intent.is_some() {
-            return false;
-        }
-        let Some(Tab::Query(query)) = self.workbench.active() else {
-            return false;
-        };
-        if query.plan.is_some() || query.error.is_some() {
-            return false;
-        }
-        let Some(result) = query.result.as_ref() else {
-            return false;
-        };
-        if result.model.row_count() != 25 {
-            return false;
-        }
-        let sql = query
-            .editor_state
-            .draft_text()
-            .unwrap_or(query.query.as_str())
-            .trim();
-        // The error card is a different approved frame. Never stamp results over it.
-        if sql == ERROR_SQL {
-            return false;
-        }
-        sql == RESULT_SQL
-    }
-
-    fn paint_historical_query_error(&self, ui: &mut Ui<'_>) -> bool {
-        if !self.historical_query_error_frame(ui) {
-            return false;
-        }
-        historical_query_error::paint(ui);
-        true
-    }
-
-    fn historical_query_error_frame(&self, ui: &Ui<'_>) -> bool {
-        let area = ui.full();
-        if area.width != 120
-            || area.height != 40
-            || !std::io::IsTerminal::is_terminal(&std::io::stdout())
-        {
-            return false;
-        }
-        let theme = ui.theme_ref();
-        if theme.capability.color != termrock::ColorLevel::TrueColor
-            || theme.color.accent != termrock::Color::Rgb(0x48, 0xe0, 0x54)
-        {
-            return false;
-        }
-        if self.screen != Screen::Workbench || self.form_open || self.destructive_intent.is_some() {
-            return false;
-        }
-        let Some(Tab::Query(query)) = self.workbench.active() else {
-            return false;
-        };
-        if query.error.is_none() || query.plan.is_some() {
-            return false;
-        }
-        let sql = query
-            .editor_state
-            .draft_text()
-            .unwrap_or(query.query.as_str())
-            .trim();
-        sql == ERROR_SQL
-    }
-
-    fn paint_historical_query_completion(&self, ui: &mut Ui<'_>) -> bool {
-        if !self.historical_query_completion_frame(ui) {
-            return false;
-        }
-        historical_query_completion::paint(ui);
-        // The stamp replaces the editor draw, so this frame must still publish
-        // Tab and Enter. The results path accepts on the next key. This frame
-        // does not accept; it only leaves the popup open.
-        let Some(id) = self.query_id() else {
-            return true;
-        };
-        ui.register_keyboard_editor(id, ui.full(), Focusability::Focusable, StateFlags::EDITING);
-        let flags = ui.state(id) | StateFlags::FOCUSED | StateFlags::EDITING;
-        ui.publish_dynamic_bindings(
-            id,
-            flags,
-            [
-                (ACCEPT_SQL_COMPLETION, Some(Chord::key(KeyCode::Tab))),
-                (COMPLETE, Some(Chord::key(KeyCode::Enter))),
-            ]
-            .into_iter(),
-        );
-        if let Some(pos) = historical_query_completion::bar_cursor() {
-            ui.set_bar_cursor(id, pos);
-        }
-        true
-    }
-
-    fn historical_query_completion_frame(&self, ui: &Ui<'_>) -> bool {
-        let area = ui.full();
-        if area.width != 120
-            || area.height != 40
-            || !std::io::IsTerminal::is_terminal(&std::io::stdout())
-        {
-            return false;
-        }
-        let theme = ui.theme_ref();
-        if theme.capability.color != termrock::ColorLevel::TrueColor
-            || theme.color.accent != termrock::Color::Rgb(0x48, 0xe0, 0x54)
-        {
-            return false;
-        }
-        if self.screen != Screen::Workbench || self.form_open || self.destructive_intent.is_some() {
-            return false;
-        }
-        self.open_completion_prefix()
-    }
-
-    fn open_completion_prefix(&self) -> bool {
-        let Some(Tab::Query(query)) = self.workbench.active() else {
-            return false;
-        };
-        // A plan card is explain or analyze, never this unaccepted popup.
-        if query.plan.is_some() || query.error.is_some() || query.result.is_some() {
-            return false;
-        }
-        if !query.editor_state.is_editing() {
-            return false;
-        }
-        let sql = query
-            .editor_state
-            .draft_text()
-            .unwrap_or(query.query.as_str());
-        if sql != COMPLETION_SQL {
-            return false;
-        }
-        self.sql_completion_offer()
-            .is_some_and(|offer| offer.insert.is_some())
-    }
-
-    fn paint_completion_order_by_cell(&self, ui: &mut Ui<'_>) {
-        if !self.open_completion_prefix() {
-            return;
-        }
-        let area = ui.full();
-        if area.width < 60 || area.height <= 11 {
-            return;
-        }
-        // The idle query tab has no completion row. The open popup does.
-        let style = PaintStyle::new()
-            .fg(termrock::Color::Rgb(255, 255, 255))
-            .bg(termrock::Color::Rgb(24, 24, 27))
-            .remove_modifier(Modifier::all())
-            .add_modifier(Modifier::BOLD);
-        ui.paint_str(
-            termrock::Rect {
-                x: 52,
-                y: 11,
-                width: 8,
-                height: 1,
-            },
-            "ORDER BY",
-            style,
-        );
-    }
-
-    fn paint_historical_query_explain(&self, ui: &mut Ui<'_>) -> bool {
-        if !self.historical_query_explain_frame(ui) {
-            return false;
-        }
-        historical_query_explain::paint(ui);
-        // CUP 7;61 is the steady bar after "SELECT * FROM orders". Hidden on every other card.
-        if let Some(id) = self.query_id() {
-            ui.register_keyboard_editor(
-                id,
-                ui.full(),
-                Focusability::Focusable,
-                StateFlags::EDITING,
-            );
-            ui.set_bar_cursor(id, Position::new(60, 6));
-        }
-        true
-    }
-
-    fn historical_query_explain_frame(&self, ui: &Ui<'_>) -> bool {
-        let area = ui.full();
-        if area.width != 120
-            || area.height != 40
-            || !std::io::IsTerminal::is_terminal(&std::io::stdout())
-        {
-            return false;
-        }
-        let theme = ui.theme_ref();
-        if theme.capability.color != termrock::ColorLevel::TrueColor
-            || theme.color.accent != termrock::Color::Rgb(0x48, 0xe0, 0x54)
-        {
-            return false;
-        }
-        if self.screen != Screen::Workbench || self.form_open || self.destructive_intent.is_some() {
-            return false;
-        }
-        let Some(Tab::Query(query)) = self.workbench.active() else {
-            return false;
-        };
-        if query.plan.is_none() || query.error.is_some() || query.result.is_some() {
-            return false;
-        }
-        if query
-            .plan
-            .as_ref()
-            .is_some_and(|plan| plan.actual_ms.is_some())
-        {
-            return false;
-        }
-        let sql = query
-            .editor_state
-            .draft_text()
-            .unwrap_or(query.query.as_str())
-            .trim();
-        sql == EXPLAIN_SQL
-    }
-
-    fn paint_historical_query_analyze(&self, ui: &mut Ui<'_>) -> bool {
-        if !self.historical_query_analyze_frame(ui) {
-            return false;
-        }
-        historical_query_analyze::paint(ui);
-        // Snapshot trailer is CUP 7;61 and a bar cursor. Same cell as explain, not stdout bytes.
-        if let Some(id) = self.query_id() {
-            ui.register_keyboard_editor(
-                id,
-                ui.full(),
-                Focusability::Focusable,
-                StateFlags::EDITING,
-            );
-            ui.set_bar_cursor(id, Position::new(60, 6));
-        }
-        true
-    }
-
-    fn historical_query_analyze_frame(&self, ui: &Ui<'_>) -> bool {
-        let area = ui.full();
-        if area.width != 120
-            || area.height != 40
-            || !std::io::IsTerminal::is_terminal(&std::io::stdout())
-        {
-            return false;
-        }
-        let theme = ui.theme_ref();
-        if theme.capability.color != termrock::ColorLevel::TrueColor
-            || theme.color.accent != termrock::Color::Rgb(0x48, 0xe0, 0x54)
-        {
-            return false;
-        }
-        if self.screen != Screen::Workbench || self.form_open || self.destructive_intent.is_some() {
-            return false;
-        }
-        let Some(Tab::Query(query)) = self.workbench.active() else {
-            return false;
-        };
-        // Ctrl+X keeps actual_ms unset, so this stamp never covers the explain card.
-        if query
-            .plan
-            .as_ref()
-            .is_none_or(|plan| plan.actual_ms.is_none())
-            || query.error.is_some()
-            || query.result.is_some()
-        {
-            return false;
-        }
-        let sql = query
-            .editor_state
-            .draft_text()
-            .unwrap_or(query.query.as_str())
-            .trim();
-        sql == EXPLAIN_SQL
-    }
-
     fn prepare_grid_slots(&self) {
         let filtered_columns = self
             .workbench
@@ -8719,63 +8047,6 @@ impl TableProApp {
         }
     }
 
-    fn paint_approved_form_new(&self, ui: &mut Ui<'_>) {
-        if !self.historical_form_new(ui) {
-            return;
-        }
-        historical_form_new::paint(ui);
-        self.paint_typed_connection_name(ui);
-    }
-
-    fn paint_approved_form_advanced(&self, ui: &mut Ui<'_>) {
-        if !self.historical_form_advanced(ui) {
-            return;
-        }
-        // Backtab from Name lands here. The snapshot hides the cursor.
-        // Do not move the empty card's bar at (46, 8).
-        historical_form_advanced::paint(ui);
-    }
-
-    fn paint_typed_connection_name(&self, ui: &mut Ui<'_>) {
-        const NAME_X: u16 = 46;
-        const NAME_Y: u16 = 8;
-        const NAME_COLUMNS: u16 = 38;
-        let Some(draft) = &self.draft else {
-            return;
-        };
-        if self.fresh_connection_draft() {
-            ui.set_bar_cursor(connections::field::NAME, Position::new(NAME_X, NAME_Y));
-            return;
-        }
-        let truncated;
-        let shown = if width(&draft.name) > NAME_COLUMNS {
-            truncated = truncate(&draft.name, NAME_COLUMNS);
-            truncated.as_str()
-        } else {
-            draft.name.as_str()
-        };
-        let columns = width(shown);
-        let style = PaintStyle::new()
-            .fg(termrock::Color::from_u32(0x00ff_ffff))
-            .bg(termrock::Color::from_u32(0x001e_1e22))
-            .add_modifier(Modifier::UNDERLINED)
-            .underline_color(termrock::Color::from_u32(0x0048_e054));
-        ui.paint_str(
-            termrock::Rect {
-                x: NAME_X,
-                y: NAME_Y,
-                width: columns,
-                height: 1,
-            },
-            shown,
-            style,
-        );
-        ui.set_bar_cursor(
-            connections::field::NAME,
-            Position::new(NAME_X.saturating_add(columns), NAME_Y),
-        );
-    }
-
     fn arm_fresh_name_replacement(&mut self, cx: &Cx<'_>) {
         let Some(draft) = &self.draft else {
             return;
@@ -8804,142 +8075,6 @@ impl TableProApp {
         if draft.name != text {
             text.clone_into(&mut draft.name);
         }
-    }
-
-    fn historical_form_new(&self, ui: &Ui<'_>) -> bool {
-        // Stock form tests draw into a buffer. The approved card is the PTY frame only.
-        let area = ui.full();
-        if area.width != 120
-            || area.height != 40
-            || !self.form_open
-            || !std::io::IsTerminal::is_terminal(&std::io::stdout())
-        {
-            return false;
-        }
-        let theme = ui.theme_ref();
-        if theme.capability.color != termrock::ColorLevel::TrueColor
-            || theme.color.accent != termrock::Color::Rgb(0x48, 0xe0, 0x54)
-        {
-            return false;
-        }
-        if self.screen != Screen::Connections
-            || self.surface != Surface::Connections
-            || self.connection_filter_editing
-            || !self.connections_screen.filter.is_empty()
-            || self.connections_screen.selected != 0
-            || self.destructive_intent.is_some()
-            || !ui
-                .state(connections::field::NAME)
-                .contains(StateFlags::FOCUSED)
-            || !self.approved_card_draft()
-        {
-            return false;
-        }
-        let demo = db::connections();
-        self.connections.len() == demo.len()
-            && self.connections_screen.connections.len() == demo.len()
-            && self
-                .connections
-                .iter()
-                .zip(demo.iter())
-                .all(|(live, saved)| {
-                    live.name == saved.name
-                        && live.host == saved.host
-                        && live.database == saved.database
-                        && live.port == saved.port
-                })
-            && self
-                .connections
-                .iter()
-                .zip(self.connections_screen.connections.iter())
-                .all(|(live, shown)| live.name == shown.name && live.host == shown.host)
-    }
-
-    fn historical_form_advanced(&self, ui: &Ui<'_>) -> bool {
-        // Same card as the empty form, after Backtab and Right. Name stays focused
-        // on the empty card and on the filled-name card, so those frames are not this one.
-        let area = ui.full();
-        if area.width != 120
-            || area.height != 40
-            || !self.form_open
-            || !std::io::IsTerminal::is_terminal(&std::io::stdout())
-        {
-            return false;
-        }
-        let theme = ui.theme_ref();
-        if theme.capability.color != termrock::ColorLevel::TrueColor
-            || theme.color.accent != termrock::Color::Rgb(0x48, 0xe0, 0x54)
-        {
-            return false;
-        }
-        let test_connection = connections::FORM.part(Part::ACTIONS).index(0);
-        if self.screen != Screen::Connections
-            || self.surface != Surface::Connections
-            || self.connection_filter_editing
-            || !self.connections_screen.filter.is_empty()
-            || self.connections_screen.selected != 0
-            || self.destructive_intent.is_some()
-            || ui
-                .state(connections::field::NAME)
-                .contains(StateFlags::FOCUSED)
-            || !ui.state(test_connection).contains(StateFlags::FOCUSED)
-            || !self.fresh_connection_draft()
-        {
-            return false;
-        }
-        let demo = db::connections();
-        self.connections.len() == demo.len()
-            && self.connections_screen.connections.len() == demo.len()
-            && self
-                .connections
-                .iter()
-                .zip(demo.iter())
-                .all(|(live, saved)| {
-                    live.name == saved.name
-                        && live.host == saved.host
-                        && live.database == saved.database
-                        && live.port == saved.port
-                })
-            && self
-                .connections
-                .iter()
-                .zip(self.connections_screen.connections.iter())
-                .all(|(live, shown)| live.name == shown.name && live.host == shown.host)
-    }
-
-    fn fresh_connection_draft(&self) -> bool {
-        let Some(draft) = &self.draft else {
-            return false;
-        };
-        let fresh = ConnectionDraft::from_connection(&self.connection);
-        draft.name == fresh.name && self.draft_matches_card(&fresh)
-    }
-
-    fn approved_card_draft(&self) -> bool {
-        // The name is painted on the card. Other fields must still match the stock draft.
-        let fresh = ConnectionDraft::from_connection(&self.connection);
-        self.draft_matches_card(&fresh)
-    }
-
-    fn draft_matches_card(&self, fresh: &ConnectionDraft) -> bool {
-        let Some(draft) = &self.draft else {
-            return false;
-        };
-        draft.engine == fresh.engine
-            && draft.host == fresh.host
-            && draft.port == fresh.port
-            && draft.database == fresh.database
-            && draft.user == fresh.user
-            && !draft.has_password()
-            && !fresh.has_password()
-            && draft.ask_password == fresh.ask_password
-            && draft.environment == fresh.environment
-            && draft.group == fresh.group
-            && draft.safe_mode == fresh.safe_mode
-            && draft.ssl == fresh.ssl
-            && draft.ssh == fresh.ssh
-            && draft.ssh_host == fresh.ssh_host
-            && draft.startup == fresh.startup
     }
 }
 
@@ -9352,23 +8487,6 @@ impl App for TableProApp {
         response
     }
     fn draw(&self, ui: &mut Ui<'_>) {
-        if self.paint_historical_query_completion(ui)
-            || self.paint_historical_query_results(ui)
-            || self.paint_historical_query_error(ui)
-            || self.paint_historical_query_explain(ui)
-            || self.paint_historical_query_analyze(ui)
-            || self.paint_historical_workbench_maximized(ui)
-            || self.paint_historical_workbench_explorer_hidden(ui)
-            || self.paint_historical_table_scrolled_right(ui)
-            || self.paint_historical_history_tab(ui)
-            || self.paint_historical_safemode_picker(ui)
-            || self.paint_historical_help_overlay(ui)
-            || self.paint_historical_filter_editor(ui)
-            || self.paint_historical_delete_dialog(ui)
-            || self.paint_historical_close_confirm(ui)
-        {
-            return;
-        }
         self.prepare_grid_slots();
         let full = ui.full();
         if full.width < MIN_WIDTH || full.height < MIN_HEIGHT {
@@ -9440,9 +8558,6 @@ impl App for TableProApp {
                 intent.dialog().draw(ui, area, &self.quit_state, |_, _| {});
             });
         }
-        self.paint_approved_form_new(ui);
-        self.paint_approved_form_advanced(ui);
-        self.paint_completion_order_by_cell(ui);
     }
     fn should_quit(&self) -> bool {
         self.quit
@@ -9665,7 +8780,11 @@ mod maximized_workbench {
     use termrock_test_support::Harness;
 
     #[test]
-    fn z_shows_the_approved_maximized_idle_cell() {
+    #[expect(
+        clippy::expect_used,
+        reason = "the test requires the named demo connection"
+    )]
+    fn z_maximizes_the_live_workbench() {
         let mut app = TableProApp::default();
         let index = app
             .connections
@@ -9674,52 +8793,10 @@ mod maximized_workbench {
             .expect("production");
         assert!(app.connect(index));
         let mut harness = Harness::new(app, Theme::junie(), 120, 40);
-        assert_ne!(
-            harness.find("No results yet"),
-            Some((53, 19)),
-            "idle frame already matches the approved cell"
-        );
         let _ = harness.key(KeyCode::Char('z'));
         assert!(harness.app().workbench.maximized);
         assert_eq!(harness.app().screen(), Screen::Workbench);
         assert!(harness.app().destructive_intent.is_none());
-        assert_eq!(
-            harness.find("No results yet"),
-            Some((53, 19)),
-            "query={:?} status={} text={}",
-            harness.app().query(),
-            harness.app().status(),
-            harness.text()
-        );
-        assert_eq!(harness.cell(53, 19).symbol(), "N");
-        assert!(
-            harness.find("Type SQL").is_none(),
-            "live editor covered the stamp: {}",
-            harness.text()
-        );
-        assert!(harness.find("Explorer").is_none(), "{}", harness.text());
-    }
-}
-
-#[cfg(test)]
-mod fresh_name_gate {
-    use super::*;
-    use termrock_test_support::Harness;
-
-    #[test]
-    fn typing_replaces_the_stock_name_and_closes_the_empty_card_gate() {
-        let mut harness = Harness::new(TableProApp::default(), Theme::junie(), 120, 40);
-        let _ = harness.ctrl('n');
-        assert!(harness.app().fresh_connection_draft());
-        let _ = harness.type_str("Staging replica");
-        assert_eq!(
-            harness
-                .app()
-                .connection_draft()
-                .map(|draft| draft.name.as_str()),
-            Some("Staging replica")
-        );
-        assert!(!harness.app().fresh_connection_draft());
     }
 }
 

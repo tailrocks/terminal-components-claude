@@ -287,37 +287,6 @@ impl<'a, T, R> Picker<'a, T, R> {
     }
 }
 
-fn clamp_fixed_size(size: LayerSize, viewport: Rect) -> LayerSize {
-    match size {
-        LayerSize::Fixed(width, height) => LayerSize::Fixed(
-            clamp_width(width, viewport.width),
-            clamp_height(height, viewport.height),
-        ),
-        other => other,
-    }
-}
-
-fn clamp_width(width: u16, viewport_width: u16) -> u16 {
-    if viewport_width == 0 {
-        width
-    } else {
-        let available = width.min(viewport_width.saturating_sub(4));
-        if width > 0 {
-            available.max(1)
-        } else {
-            available
-        }
-    }
-}
-
-fn clamp_height(height: u16, viewport_height: u16) -> u16 {
-    if viewport_height == 0 {
-        height
-    } else {
-        height.min(viewport_height.saturating_sub(2))
-    }
-}
-
 impl<T: AsItem, R: RowFn<T>> Picker<'_, T, R> {
     fn list(&self) -> FilterList<'_, T, BorrowedRow<'_, R>> {
         let mut list = FilterList::new(self.id)
@@ -344,14 +313,13 @@ impl<T: AsItem, R: RowFn<T>> Picker<'_, T, R> {
 
     pub fn measured_size(&self, cx: &Cx<'_>, items: &[T]) -> LayerSize {
         if let Some(size) = self.requested_size {
-            return clamp_fixed_size(size, cx.viewport());
+            return size;
         }
         let d = cx.design();
         let width = self.width.unwrap_or_else(|| {
             FilterList::<T, BorrowedRow<'_, R>>::semantic_width(items)
                 .clamp(d.size.popup_min_width, d.size.popup_max_width)
         });
-        let width = clamp_width(width, cx.viewport().width);
         let max_rows = self.max_rows.unwrap_or(d.size.popup_max_rows).max(1);
         let rows = items
             .len()
@@ -363,10 +331,7 @@ impl<T: AsItem, R: RowFn<T>> Picker<'_, T, R> {
         // query/gap + rows + two trailing content cells. Non-searchable
         // pickers omit the query and its gap.
         let chrome_rows = if self.searchable { 7 } else { 5 };
-        LayerSize::Fixed(
-            width,
-            clamp_height(rows.saturating_add(chrome_rows), cx.viewport().height),
-        )
+        LayerSize::Fixed(width, rows.saturating_add(chrome_rows))
     }
 
     pub fn layer(&self, cx: &Cx<'_>, items: &[T]) -> LayerSpec {
@@ -376,6 +341,7 @@ impl<T: AsItem, R: RowFn<T>> Picker<'_, T, R> {
         LayerSpec::modal(self.id)
             .anchor(Anchor::Screen(align))
             .initial_focus(self.id)
+            .viewport_margin(4, 2)
             .size(self.measured_size(cx, items))
     }
 
@@ -765,23 +731,23 @@ mod tests {
     }
 
     #[test]
-    fn fixed_width_keeps_a_four_column_screen_margin() {
+    fn requested_size_remains_intrinsic_and_the_layer_resolver_applies_viewport_margins() {
         let requested = LayerSize::Fixed(84, 9);
-        assert_eq!(measured_at(requested, 72, 40), LayerSize::Fixed(68, 9));
-        assert_eq!(measured_at(requested, 80, 40), LayerSize::Fixed(76, 9));
-        assert_eq!(measured_at(requested, 100, 40), LayerSize::Fixed(84, 9));
-        assert_eq!(measured_at(requested, 0, 40), LayerSize::Fixed(84, 9));
-        assert_eq!(measured_at(requested, 4, 40), LayerSize::Fixed(1, 9));
-        assert_eq!(measured_at(requested, 1, 40), LayerSize::Fixed(1, 9));
+        assert_eq!(measured_at(requested, 72, 40), requested);
+        assert_eq!(measured_at(requested, 80, 40), requested);
+        assert_eq!(measured_at(requested, 100, 40), requested);
+        assert_eq!(measured_at(requested, 0, 40), requested);
+        assert_eq!(measured_at(requested, 4, 40), requested);
+        assert_eq!(measured_at(requested, 1, 40), requested);
         assert_eq!(measured_at(LayerSize::Fill, 72, 40), LayerSize::Fill);
-        assert_eq!(measured_at(requested, 120, 12), LayerSize::Fixed(84, 9));
-        assert_eq!(measured_at(requested, 120, 2), LayerSize::Fixed(84, 0));
-        assert_eq!(measured_at(requested, 120, 1), LayerSize::Fixed(84, 0));
+        assert_eq!(measured_at(requested, 120, 12), requested);
+        assert_eq!(measured_at(requested, 120, 2), requested);
+        assert_eq!(measured_at(requested, 120, 1), requested);
         assert_eq!(
             measured_at(LayerSize::Fixed(84, 30), 120, 12),
-            LayerSize::Fixed(84, 10)
+            LayerSize::Fixed(84, 30)
         );
-        assert_eq!(measured_at(requested, 120, 0), LayerSize::Fixed(84, 9));
+        assert_eq!(measured_at(requested, 120, 0), requested);
     }
 
     #[test]
@@ -830,10 +796,54 @@ mod tests {
         };
         assert_eq!(measure(5, None, 40), LayerSize::Fixed(12, 12));
         assert_eq!(measure(5, Some(3), 40), LayerSize::Fixed(12, 10));
-        assert_eq!(measure(12, None, 12), LayerSize::Fixed(12, 10));
-        assert_eq!(measure(12, None, 2), LayerSize::Fixed(12, 0));
-        assert_eq!(measure(12, None, 1), LayerSize::Fixed(12, 0));
+        assert_eq!(measure(12, None, 12), LayerSize::Fixed(12, 19));
+        assert_eq!(measure(12, None, 2), LayerSize::Fixed(12, 19));
+        assert_eq!(measure(12, None, 1), LayerSize::Fixed(12, 19));
         assert_eq!(measure(12, None, 0), LayerSize::Fixed(12, 19));
+    }
+
+    #[test]
+    fn picker_first_draw_applies_viewport_margin_before_any_input() {
+        const ID: Id = Id::root("picker.first-draw-short-viewport");
+        struct FirstDrawApp {
+            state: PickerState,
+            items: Vec<Item<'static>>,
+        }
+        impl termrock_runtime::runtime::App for FirstDrawApp {
+            fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+                let picker = Picker::<Item<'static>>::new(ID).width(64).max_rows(12);
+                if cx.update_cause() == termrock_runtime::runtime::UpdateCause::Bootstrap {
+                    cx.open_layer(ID, picker.layer(cx, &self.items));
+                }
+                picker.update(cx, &mut self.state, &self.items).erase()
+            }
+
+            fn draw(&self, ui: &mut Ui<'_>) {
+                let picker = Picker::<Item<'static>>::new(ID).width(64).max_rows(12);
+                ui.layer(ID, |ui, area| {
+                    picker.draw(ui, area, &self.state, &self.items)
+                });
+            }
+        }
+
+        let mut runtime = termrock_runtime::runtime::Runtime::new(
+            FirstDrawApp {
+                state: PickerState::default(),
+                items: (0..12)
+                    .map(|index| Item::new(ItemKey::num(index), "row"))
+                    .collect(),
+            },
+            Theme::junie(),
+        );
+        let _ = runtime.initialize();
+        let screen = Rect::new(0, 0, 120, 12);
+        let mut buffer = ratatui_core::buffer::Buffer::empty(screen);
+        runtime.draw_buffer(screen, &mut buffer).commit_presented();
+        assert_eq!(
+            runtime.layer_area(ID),
+            Some(Rect::new(28, 1, 64, 10)),
+            "the bootstrap layer is constrained by the terminal viewport before its first frame"
+        );
     }
 
     #[test]
