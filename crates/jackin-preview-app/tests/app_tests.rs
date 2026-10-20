@@ -1676,6 +1676,28 @@ fn accounts_filter_and_inspector_open_without_writing_a_credential() {
 }
 
 #[test]
+fn manager_file_menu_paints_the_approved_menu_frame() {
+    let mut h = H::new(Scenario::Returning, Motion::Paused, 40, 120, 40);
+    assert!(
+        !h.text().contains("New workspace…"),
+        "closed manager must stay off the menu frame: {}",
+        h.text()
+    );
+    h.key(KeyCode::F(10));
+    assert!(h.text().contains("New workspace…"), "{}", h.text());
+    let item = h.buffer().cell((15, 2)).expect("new workspace");
+    assert_eq!(item.symbol(), "N");
+    assert_eq!(item.fg, termrock::Color::from_u32(0x00_ff_ff_ff));
+    assert_eq!(item.bg, termrock::Color::from_u32(0x00_2f_5a_a8));
+    assert!(item.modifier.contains(termrock::Modifier::BOLD));
+    let mark = h.buffer().cell((2, 0)).expect("jackin prompt");
+    assert_eq!(mark.symbol(), "j");
+    assert_eq!(mark.fg, termrock::Color::from_u32(0x00_19_19_1c));
+    assert_eq!(mark.bg, termrock::Color::from_u32(0x00_48_e0_54));
+    assert_eq!(h.harness.cursor(), None);
+}
+
+#[test]
 fn paused_returning_down_paints_the_expanded_payments_tree() {
     let mut h = H::new(Scenario::Returning, Motion::Paused, 40, 120, 40);
     assert!(h.text().contains("▸ payments-platform"), "{}", h.text());
