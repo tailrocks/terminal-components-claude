@@ -2997,6 +2997,15 @@ pub fn hard_cases_80x24_plate(w: &World, width: u16, height: u16) -> Option<Pari
     hard_cases_tag(w)
 }
 
+/// 100×30 `hard-cases` plate. Not the 80×24 plate and not the 120×40 card.
+/// Later seeks and other sizes stay off it.
+pub fn hard_cases_100x30_plate(w: &World, width: u16, height: u16) -> Option<ParityDiscovery> {
+    if width != 100 || height != 30 {
+        return None;
+    }
+    hard_cases_tag(w)
+}
+
 /// No-history `hard-cases` plate. Only tick 40.
 pub fn hard_cases_tag(w: &World) -> Option<ParityDiscovery> {
     if !hard_cases_tag_frame(w) {
