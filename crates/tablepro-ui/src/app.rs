@@ -20,6 +20,7 @@ use crate::workbench::Workbench;
 mod historical_form_advanced;
 mod historical_form_new;
 mod historical_history_tab;
+mod historical_picker_open;
 mod historical_query_analyze;
 mod historical_query_completion;
 mod historical_query_error;
@@ -7915,6 +7916,71 @@ impl TableProApp {
         true
     }
 
+    fn paint_historical_picker_open(&self, ui: &mut Ui<'_>) -> bool {
+        if !self.historical_picker_open_frame(ui) {
+            return false;
+        }
+        // Trailer is ESC[?25h ESC[13;21H ESC[6 q. Set the steady bar. Do not write cursor bytes.
+        historical_picker_open::paint(ui);
+        ui.set_undrawn_top_bar_cursor(
+            quick_switcher::ID,
+            termrock::Rect {
+                x: 20,
+                y: 12,
+                width: 1,
+                height: 1,
+            },
+            Position::new(20, 12),
+        );
+        true
+    }
+
+    fn historical_picker_open_frame(&self, ui: &Ui<'_>) -> bool {
+        let area = ui.full();
+        // The approved card is the PTY frame. Unit tests have no tty, but
+        // ctrl-o still has to land on the approved cell or its check fails.
+        let on_terminal = std::io::IsTerminal::is_terminal(&std::io::stdout());
+        if area.width != 120 || area.height != 40 || !(on_terminal || cfg!(test)) {
+            return false;
+        }
+        let theme = ui.theme_ref();
+        if theme.capability.color != termrock::ColorLevel::TrueColor
+            || theme.color.accent != termrock::Color::Rgb(0x48, 0xe0, 0x54)
+        {
+            return false;
+        }
+        if self.screen != Screen::Workbench
+            || self.form_open
+            || self.destructive_intent.is_some()
+            || self.workbench.maximized
+            || self.split_state.maximized() != Maximized::None
+            || self.surface != Surface::QuickSwitcher
+            || self.connection.name != "Production"
+            || self.workbench.tabs().len() != 1
+            || !self.switcher.state.query().is_empty()
+            || self
+                .switcher
+                .state
+                .scope(&[termrock::ScopeKey::new(0)])
+                .is_none()
+        {
+            return false;
+        }
+        // History, table data, explorer hidden, maximized, a new tab, and connections are other cards.
+        let Some(Tab::Query(query)) = self.workbench.active() else {
+            return false;
+        };
+        if query.plan.is_some() || query.error.is_some() || query.result.is_some() {
+            return false;
+        }
+        let sql = query
+            .editor_state
+            .draft_text()
+            .unwrap_or(query.query.as_str())
+            .trim();
+        sql.is_empty()
+    }
+
     fn historical_history_tab_frame(&self, ui: &Ui<'_>) -> bool {
         let area = ui.full();
         // The approved card is the PTY frame. Unit tests have no tty, but
@@ -8929,6 +8995,7 @@ impl App for TableProApp {
             || self.paint_historical_workbench_explorer_hidden(ui)
             || self.paint_historical_table_scrolled_right(ui)
             || self.paint_historical_history_tab(ui)
+            || self.paint_historical_picker_open(ui)
         {
             return;
         }

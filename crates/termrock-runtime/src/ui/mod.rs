@@ -862,6 +862,22 @@ impl<'f> Ui<'f> {
         self.record_cursor(owner, pos, false, crate::cursor::CursorShape::Bar);
     }
 
+    /// Steady bar for `owner` on the open top layer. Does not draw that layer,
+    /// so a page stamp is not dimmed or covered.
+    pub fn set_undrawn_top_bar_cursor(&mut self, owner: Id, area: Rect, pos: Position) {
+        if self.reference.is_some() || area.is_empty() {
+            return;
+        }
+        let saved_layer = self.layer;
+        let saved_inert = self.inert;
+        self.layer = self.frame.top;
+        self.inert = false;
+        self.register_keyboard_editor(owner, area, Focusability::Focusable, StateFlags::EDITING);
+        self.set_bar_cursor(owner, pos);
+        self.layer = saved_layer;
+        self.inert = saved_inert;
+    }
+
     pub fn offer_typing_cursor(&mut self, owner: Id, pos: Position) {
         self.record_cursor(owner, pos, true, crate::cursor::CursorShape::Block);
     }
