@@ -27,8 +27,8 @@ use crate::focus::{FocusEntry, FocusRing, Focusability, ScopeId, ScopeMode};
 use crate::hit::{Axes, Headroom, Registry};
 use crate::id::{Id, Part, PartRef};
 use crate::keymap::{
-    Binding, BindingExtensionError, BindingRegistry, DynamicBindingRegistry, FocusedHintKey,
-    FocusedHints, HintLayer, KeyMap, ScopedBubbleBinding,
+    Binding, BindingDescriptor, BindingExtensionError, BindingRegistry, DynamicBindingRegistry,
+    FocusedHintKey, FocusedHints, HintLayer, KeyMap, ScopedBubbleBinding,
 };
 use crate::layer::{LayerId, LayerKind};
 use crate::response::StateFlags;
@@ -882,6 +882,47 @@ impl<'f> Ui<'f> {
     pub fn publish_dynamic_bindings<I>(&mut self, owner: Id, flags: StateFlags, bindings: I)
     where
         I: Iterator<Item = (ActionKey, Option<crate::event::Chord>)> + Clone,
+    {
+        self.publish_additional_binding_descriptors(
+            owner,
+            flags,
+            bindings.map(|(action, chord)| BindingDescriptor {
+                action,
+                chord,
+                label: "",
+                priority: 0,
+                visible: false,
+            }),
+        );
+    }
+
+    /// Add bindings to the focused owner's current table while preserving hint metadata.
+    pub fn publish_additional_bindings<C: Copy + 'static>(
+        &mut self,
+        owner: Id,
+        flags: StateFlags,
+        table: &'static [Binding<C>],
+    ) {
+        self.publish_additional_binding_descriptors(
+            owner,
+            flags,
+            table.iter().map(|binding| BindingDescriptor {
+                action: binding.action,
+                chord: binding.chord,
+                label: binding.label,
+                priority: binding.priority,
+                visible: binding.visible,
+            }),
+        );
+    }
+
+    fn publish_additional_binding_descriptors<I>(
+        &mut self,
+        owner: Id,
+        flags: StateFlags,
+        bindings: I,
+    ) where
+        I: Iterator<Item = BindingDescriptor> + Clone,
     {
         let initial_focus = self.last.snapshot.focus.is_none()
             && self.last.ring.entries().is_empty()
