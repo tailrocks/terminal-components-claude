@@ -25,3 +25,7 @@ termrock-runtime = { workspace = true, features = ["testing"] }
 termrock-test-support.workspace = true
 unicode-segmentation.workspace = true
 termrock-overlays.workspace = true
+
+# Rust documentation examples are guarded by the workspace doc inventory test.
+[lib]
+doctest = false
