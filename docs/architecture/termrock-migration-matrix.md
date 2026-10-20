@@ -184,6 +184,8 @@ Delivery stays on `parity/termrock-visual-baseline` (PR #38). `design/interactio
 
 Integrated: `be674ef8799c55bc3700cdd36f519cafebc95bed` from `parity/composition-slots-20261020` as `0cd5edb8856396bde1bbd2f8a5377940a3d50447`. It adds the typed picker layer slot. `termrock::slots` passed. Docs conflict kept the frozen-cli note and the new slot section.
 
+Also integrated after cell checks: layout plans `8f7fc45a0` and `a39869753` (`termrock-layout` consumer test passed); session cursor `5e4eb27ec` and `f0360a467` (TablePro explain and explain-analyze 120×40 truecolor stayed at 0 cells); Junie ANSI-256 palette `737ecc836` and `95cdc7bdb` (79 `termrock-theme` lib tests passed); legacy item-row fixture `23a3fac94` (13 `item_row_columns` tests passed). Remote tip after that series is recorded in git, not here, until the push. Full four-app `VISUAL_FULL` runs are still not done. Do not merge to `main` before those two identical runs.
+
 Already patch-equivalent on PR #38 (`git cherry` minus): `db31adf1e` session startup, `cf1ff9153` completion splicing.
 
 Excluded, not merged:
