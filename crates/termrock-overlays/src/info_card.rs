@@ -113,7 +113,6 @@ fn paint_fact(
     fact: &Fact<'_>,
     focus: bool,
 ) {
-    paint_at(ui, origin_x, origin_y, 1, row, " ", ink(MUTED, CARD, false));
     if focus {
         paint_at(ui, origin_x, origin_y, 2, row, "▎", ink(FOCUS, CARD, true));
         paint_at(ui, origin_x, origin_y, 3, row, " ", ink(WHITE, CARD, true));
