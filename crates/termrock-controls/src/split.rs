@@ -487,9 +487,7 @@ impl<'a> SplitPane<'a> {
         let gap = self.gap;
         match phase {
             Phase::Press | Phase::DragStart => {
-                if phase == Phase::DragStart {
-                    let _ = cx.capture(self.id, PartRef::of(Part::SEAM));
-                }
+                let _ = cx.capture(self.id, PartRef::of(Part::SEAM));
                 if st.grab_offset.is_none() {
                     let (first, _) = self.panes(*st, area);
                     let edge = match self.axis {
@@ -500,7 +498,14 @@ impl<'a> SplitPane<'a> {
                         SplitAxis::Horizontal => pos.x,
                         SplitAxis::Vertical => pos.y,
                     };
-                    st.grab_offset = Some(i32::from(coordinate) - i32::from(edge));
+                    // Preserve the click offset for the full-gap target and
+                    // explicitly padded targets. Narrow aligned seam targets
+                    // retain their raw-coordinate drag contract.
+                    st.grab_offset = Some(if self.hit_padding > 0 || self.seam.is_none() {
+                        i32::from(coordinate) - i32::from(edge)
+                    } else {
+                        0
+                    });
                 }
                 acc.consumed();
             }
@@ -530,7 +535,23 @@ impl<'a> SplitPane<'a> {
                     acc.action(SplitAction::Resized(st.percent));
                 }
             }
-            Phase::Click | Phase::Secondary => acc.consumed(),
+            Phase::Click => {
+                if cx
+                    .pointer_click_count(self.id, PartRef::of(Part::SEAM))
+                    .is_some_and(|count| count >= 2 && count.is_multiple_of(2))
+                {
+                    let before = *st;
+                    st.reset(self.reset_policy);
+                    if *st == before {
+                        acc.consumed();
+                    } else {
+                        acc.action(SplitAction::Resized(st.percent));
+                    }
+                } else {
+                    acc.consumed();
+                }
+            }
+            Phase::Secondary => acc.consumed(),
             Phase::Move => {}
 
             _ => {}
@@ -576,7 +597,7 @@ impl<'a> SplitPane<'a> {
         if self.resizable || self.disabled {
             ui.register_control(
                 self.id,
-                seam,
+                if self.seam.is_some() { seam } else { area },
                 if self.disabled {
                     Focusability::Disabled
                 } else {
