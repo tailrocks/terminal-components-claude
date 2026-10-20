@@ -19,6 +19,7 @@ pub mod collections {
 pub mod runtime {
     pub use termrock_runtime::*;
 }
+pub mod slots;
 pub mod controls {
     pub use termrock_controls::*;
 }
@@ -80,6 +81,8 @@ pub use termrock_core::custom_hash16;
 pub use termrock_core::id;
 pub use termrock_core::id::{Id, ItemKey, Part, PartRef, Revision};
 
+pub use slots::PickerSlotExt;
+pub use termrock_runtime::ui::LayerSlot;
 pub use termrock_runtime::{
     Acc, ActivationFeedback, ActivationKey, App, ClockError, FeedbackClock, FeedbackClockError,
     Moment, PaintedFrame, PendingInput, RenderSnapshot, RenderSnapshotError, Runtime,
