@@ -1,11 +1,13 @@
 --- a/tests/visual_baseline/main.rs
 +++ b/tests/visual_baseline/main.rs
-@@ -41,6 +41,8 @@
+@@ -41,6 +41,10 @@
  mod startup_input;
  mod startup_resize;
  mod support;
 +#[path = "frozen_cli_pair.rs"]
 +mod frozen_cli_pair;
++#[path = "frozen_cli_extensions.rs"]
++mod frozen_cli_extensions;
  mod tool;
  
  use std::collections::{BTreeMap, BTreeSet};
@@ -34,3 +36,30 @@
          support::clear_actual(&self.name);
          if !support::capture_enabled(&self.name) {
              return;
+--- a/tests/visual_baseline/main.rs
++++ b/tests/visual_baseline/main.rs
+@@ -129,7 +129,8 @@
+     for scenario in scenarios::all() {
+         trials.push(
+             Trial::test(scenario.test_name(), move || catch(|| scenario.run()))
+                 .with_ignored_flag(true),
+         );
+     }
++    trials.extend(frozen_cli_extensions::trials());
+     libtest_mimic::run(&args, trials).exit();
+--- a/tests/visual_baseline/support.rs
++++ b/tests/visual_baseline/support.rs
+@@ -497,9 +497,14 @@
+     pub fn scroll(&mut self, col: u16, row: u16, dir: Scroll) -> Result<(), tuiscotti::TuiError> {
+         let wheel = match dir {
+             Scroll::Up => Wheel::Up,
+             Scroll::Down => Wheel::Down,
+         };
+         self.sending();
+         self.inner.mouse_wheel(wheel, col, row, MouseMods::NONE)
+     }
++
++    pub fn scroll_right(&mut self, col: u16, row: u16) -> Result<(), tuiscotti::TuiError> {
++        self.sending();
++        self.inner.mouse_wheel(Wheel::Right, col, row, MouseMods::NONE)
++    }
