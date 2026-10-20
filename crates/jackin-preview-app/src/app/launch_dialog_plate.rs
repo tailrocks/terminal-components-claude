@@ -1,5 +1,6 @@
-//! Baseline info and cancel dialog chrome. Content is a fixed block. Empty
-//! padding keeps the dimmed cockpit ink, so that color follows the size.
+//! Cancel dialog chrome. Content is a fixed block. Empty padding keeps the
+//! dimmed cockpit ink, so that color follows the size. Info uses
+//! `termrock::overlays::info_card`.
 use termrock::author::PaintStyle;
 use termrock::{Color, ColorLevel, Modifier, Rect, Ui};
 
