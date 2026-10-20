@@ -27,7 +27,7 @@ Field dependencies were cherry-picked directly, without duplicating their runtim
 2. `c6dedf174e0a8e9531523222fd1e948f109f0daf` preserve drafts during exact focus continuation.
 3. `de7cc53dbe8483f7e44837e469efbc9577f1455b` record the continuation runtime blocker.
 
-All cherry-picks applied without conflicts. Relative to `4a0ab4983`, the selected source changes are limited to `crates/termrock-core/src/diagnostics.rs`, `crates/termrock-fields/{src/edit.rs,src/input.rs,src/lib.rs,src/textarea.rs}`, `crates/termrock-runtime/{src/author.rs,src/layer.rs,src/runtime.rs,src/runtime/clipboard.rs,src/ui/cx.rs,tests/monotonic.rs}`, `crates/termrock-session/src/session.rs`, `crates/termrock-test-support/src/harness.rs`, `crates/termrock-text/{src/buffer.rs,src/editor.rs}`, and `crates/termrock/src/lib.rs`. The only local test changes adapt the two field `publish()` helpers to use `Runtime::prepare`, `draw_prepared` through Ratatui `TestBackend`, and `acknowledge_presented`; production source is not changed locally.
+All cherry-picks applied without conflicts. Relative to `4a0ab4983`, the selected source changes are limited to `crates/termrock-core/src/diagnostics.rs`, `crates/termrock-fields/{src/edit.rs,src/input.rs,src/lib.rs,src/textarea.rs}`, `crates/termrock-runtime/{src/author.rs,src/layer.rs,src/runtime.rs,src/runtime/clipboard.rs,src/ui/cx.rs,tests/monotonic.rs}`, `crates/termrock-session/src/session.rs`, `crates/termrock-test-support/src/harness.rs`, `crates/termrock-text/{src/buffer.rs,src/editor.rs}`, `crates/termrock/src/lib.rs`, and the source audit notes `docs/audits/2026-10-20-picker-family-contracts.md` and `docs/audits/2026-10-20-runtime-prepared-frame.md`. The only local test changes adapt the two field `publish()` helpers to use `Runtime::prepare`, `draw_prepared` through Ratatui `TestBackend`, and `acknowledge_presented`; production source is not changed locally.
 
 ## Verification
 
@@ -44,8 +44,23 @@ At this integrated source, focused run ID `b7c24a2e-44db-455e-a50c-4ce583f2c3df`
 - `termrock-runtime::paint_matched::warmed_matched_paint_allocates_nothing`
 - `termrock-runtime::paint_middle::warmed_borrowed_paint_allocates_nothing`
 
-The full scoped run ID `a0d46de1-84be-4a12-953c-75e9a3b9f850` ran 696 tests: 687 passed, 9 failed, 4 skipped. Its failures are the same nine cases above. All three field continuation tests pass through the prepared-output test helper, including `redirected_edit_menu_closure_blurs_the_held_draft_once`. That test-only result does not clear the independent runtime review, which still requires acknowledgement, redirected-focus, and field-retention fixes.
+The full scoped run ID `a0d46de1-84be-4a12-953c-75e9a3b9f850` on the first stack is superseded by the runtime follow-up below. All three field continuation tests pass through the prepared-output test helper, including `redirected_edit_menu_closure_blurs_the_held_draft_once`.
 
 `cargo clippy -p termrock-runtime -p termrock-session -p termrock-text -p termrock-fields -p termrock-navigation -p termrock-overlays --all-targets -- -D warnings` passed. `cargo fmt --all -- --check` exited 1 only for pre-existing formatting in `crates/showcase-demos/src/pages/chrome.rs`; `git diff 4a0ab4983..HEAD -- crates/showcase-demos/src/pages/chrome.rs` is empty. That unrelated file was not edited.
 
-The eight allocation regressions and baseline note-color assertion remain open. Runtime-stage review for `6be6d55ee57b8e6eba1ebb80690c9908b38dcecc` is pending. No application parity, external consumer, or architecture acceptance is claimed. The earlier a576-only comparison is superseded by this exact-base comparison.
+The initial runtime integration findings are superseded by the exact two-commit follow-up below. No application parity, external consumer, or architecture acceptance is claimed. The earlier a576-only comparison is superseded by the exact-base comparison above.
+
+## Runtime follow-up
+
+Parent runtime branch contributed exactly two commits on top of `6be6d55ee57b8e6eba1ebb80690c9908b38dcecc`:
+
+1. `d18a4c9c13f2d7214ed96ff76b161d2a00546ab4` defers continuation receipts until focus settles. Independent review cleared its three findings.
+2. `d11713bc68642aaf7854393806ba789fa80dbb9c` reuses prepared-frame buffers. Independent review remains active.
+
+The first commit changes `crates/termrock-runtime/src/runtime.rs`, `crates/termrock-runtime/src/ui/cx.rs`, and `crates/termrock-test-support/src/harness.rs`; the second changes only `crates/termrock-runtime/src/runtime.rs` and the prepared-frame audit note.
+
+Focused run ID `4f4b2efa-ae7b-4e0a-820a-3feb469816f9` exercised the eight prior allocation regressions plus the baseline note-color test: all eight allocation cases passed; only `note_wrap_and_clip` failed with the same RGB138 versus RGB128 assertion already present at exact base `4a0ab4983`.
+
+Full scoped run ID `2d49f351-86fb-40cf-9200-b363666458f6` ran 697 tests: 696 passed, 1 failed, 4 skipped. The sole failure was `termrock-fields::note::tests::note_wrap_and_clip`, which also fails at exact base. Scoped clippy passed after the follow-up. Formatting remains red only in the untouched `crates/showcase-demos/src/pages/chrome.rs` baseline file.
+
+The eight allocation regressions from the first stack are resolved by this two-commit follow-up. The earlier 9-failure results are retained above as superseded evidence; no failure was omitted or reclassified as baseline without comparison. `d11713bc68642aaf7854393806ba789fa80dbb9c` review, the baseline note-color assertion, and inherited formatting failure remain open.
