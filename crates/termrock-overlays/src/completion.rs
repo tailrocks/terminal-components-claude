@@ -183,9 +183,13 @@ impl CompletionController {
                 cx.reanchor_layer(self.popup_id, anchor);
                 cx.resize_layer(self.popup_id, LayerSize::Fixed(48, rows.saturating_add(2)));
             } else {
+                // Completion is non-modal and leaves focus on its editor
+                // owner. Restoring the opener on close would undo a real
+                // focus move made while the popup was open.
                 let _ = cx.open_layer_with_token(
                     self.popup_id,
                     LayerSpec::popover(self.popup_id, anchor)
+                        .restore_focus(false)
                         .dismiss(Dismiss::ESC_AND_OUTSIDE)
                         .size(LayerSize::Fixed(48, rows.saturating_add(2))),
                 );
