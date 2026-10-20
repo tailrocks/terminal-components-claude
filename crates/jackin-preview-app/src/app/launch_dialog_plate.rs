@@ -1741,6 +1741,50 @@ fn paint(ui: &mut Ui<'_>, width: u16, height: u16, y_bias: u16, plate: &[Plate])
             }
         });
     }
+    // 16-color and mono dim the whole card, including its title. `NO_COLOR`
+    // keeps the stripped inks and only sets `dim`.
+    if matches!(
+        ui.theme_ref().capability.color,
+        ColorLevel::Ansi16 | ColorLevel::Mono
+    ) {
+        let card = Rect::new(origin_x, origin_y, width, height);
+        if std::env::var_os("NO_COLOR").is_none() {
+            ui.recolor_pair(card, reduced_pair);
+        }
+        ui.add_dim(card);
+    }
+}
+
+fn reduced_pair(fg: Color, bg: Color) -> (Color, Color) {
+    let button = matches!(
+        bg,
+        Color::Rgb(0x27, 0x27, 0x2a) | Color::Rgb(0x3f, 0x3f, 0x46)
+    );
+    let bg = if button {
+        Color::DarkGray
+    } else if matches!(bg, Color::Rgb(..)) {
+        Color::Black
+    } else {
+        bg
+    };
+    let fg = if button {
+        if matches!(fg, Color::Rgb(0xff, 0xff, 0xff) | Color::White) {
+            Color::Black
+        } else {
+            Color::DarkGray
+        }
+    } else if matches!(fg, Color::Rgb(0xff, 0xff, 0xff) | Color::White) {
+        Color::White
+    } else if matches!(fg, Color::Rgb(0x48, 0xe0, 0x54)) {
+        Color::Indexed(10)
+    } else if matches!(fg, Color::Rgb(0x00, 0x00, 0x00) | Color::Black) {
+        Color::Black
+    } else if matches!(fg, Color::Rgb(..)) {
+        Color::Gray
+    } else {
+        fg
+    };
+    (fg, bg)
 }
 
 fn on_black(color: Color) -> bool {
