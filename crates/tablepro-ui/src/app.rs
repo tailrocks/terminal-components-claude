@@ -1924,6 +1924,12 @@ impl TableProApp {
             .active_table()
             .map(|table| table.filters.clone())
             .unwrap_or_default();
+        let pending_total = self
+            .workbench
+            .active_grid()
+            .map_or(0, |(_, grid)| grid.model.pending_total());
+        // The pending bar keeps one blank row above it, so the grid loses two.
+        let pending_gap = if pending_total > 0 { 2 } else { 0 };
         let filter_rows = if filters.is_empty() { 0 } else { 2 };
         if !filters.is_empty() {
             paint_filter_bar(
@@ -1938,7 +1944,11 @@ impl TableProApp {
         }
         let grid_area = termrock::Rect {
             y: inner.y.saturating_add(3).saturating_add(filter_rows),
-            height: inner.height.saturating_sub(5).saturating_sub(filter_rows),
+            height: inner
+                .height
+                .saturating_sub(5)
+                .saturating_sub(filter_rows)
+                .saturating_sub(pending_gap),
             ..inner
         };
         let Some((id, grid_view)) = self.workbench.active_grid() else {
@@ -1956,10 +1966,22 @@ impl TableProApp {
             &grid_view.model,
         );
         let shown = usize::from(grid_area.height.saturating_sub(1));
+        let enabled = filters.iter().filter(|filter| filter.enabled).count();
+        self.paint_table_status(ui, inner, grid_view, enabled, shown, pending_gap);
+    }
+
+    fn paint_table_status(
+        &self,
+        ui: &mut Ui<'_>,
+        inner: termrock::Rect,
+        grid_view: &GridView,
+        enabled: usize,
+        shown: usize,
+        pending_gap: u16,
+    ) {
         let loaded = grid_view.model.row_count();
         let last = shown.min(loaded);
         let cols = grid_column_status(grid_view.columns.len());
-        let enabled = filters.iter().filter(|filter| filter.enabled).count();
         let total = if enabled == 0 {
             grouped(grid_view.model.total())
         } else {
@@ -1991,11 +2013,22 @@ impl TableProApp {
         paint_horizontal_bar(
             ui,
             termrock::Rect {
-                y: status_area.y.saturating_sub(1),
+                y: status_area.y.saturating_sub(1).saturating_sub(pending_gap),
                 height: 1,
                 ..status_area
             },
         );
+        if pending_gap > 0 {
+            paint_pending_bar(
+                ui,
+                termrock::Rect {
+                    y: status_area.y.saturating_sub(1),
+                    height: 1,
+                    ..status_area
+                },
+                &grid_view.model,
+            );
+        }
         let style = ui
             .surface_style()
             .patch(ui.paint_patch(&StylePatch::new().set_fg(TAG_CHROME_FG)));
@@ -3882,16 +3915,15 @@ fn install_scrolled_budgets(
     let row_count = model.row_count().max(1).to_string();
     let gutter = width(&row_count).saturating_add(4);
     let avail = column_budget_avail(area_width, gutter);
-    let editing = state
-        .edit_cell()
-        .and_then(|(_, column)| usize::from(column.raw()).checked_sub(1));
+    let wide = GRID_EDIT.with(|slot| *slot.borrow());
     let widths: Vec<u16> = columns
         .iter()
         .enumerate()
         .map(|(index, (name, ty))| {
             let natural = column_natural_width(name, *ty, model, index);
             // The inline editor keeps two cells of field chrome past the sample.
-            if editing == Some(index) && !matches!(ty, ColType::Int | ColType::Numeric) {
+            // A committed edit keeps that width on the focused text column.
+            if wide == Some(index) && !matches!(ty, ColType::Int | ColType::Numeric) {
                 natural.saturating_add(2)
             } else {
                 natural
@@ -4201,6 +4233,7 @@ fn paint_scrolled_cells(
             let literal = matches!(text.as_str(), "NULL" | "true" | "false");
             let active = cursor
                 .is_some_and(|(cursor_row, cursor_col)| cursor_row == row && cursor_col == col);
+            let dirty = model.pending().is_dirty(row, col);
             let mut style = row_style;
             if active {
                 style = style.patch(
@@ -4210,6 +4243,24 @@ fn paint_scrolled_cells(
                             .set_bg(LEGACY_CELL_BG)
                             .add(Modifier::BOLD),
                     ),
+                );
+            } else if dirty {
+                style = row_style.patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Warning)));
+                let slack =
+                    GRID_EDIT.with(|slot| slot.borrow().is_some_and(|column| column == col));
+                let fill_w = if slack {
+                    place.width.saturating_sub(2)
+                } else {
+                    place.width
+                };
+                ui.fill(
+                    termrock::Rect {
+                        x: origin.saturating_add(place.x),
+                        y,
+                        width: fill_w.min(place.width),
+                        height: 1,
+                    },
+                    style,
                 );
             } else if literal {
                 let mut color = 0x00c6_a0f6;
@@ -4238,6 +4289,7 @@ fn paint_scrolled_cells(
             }
             if !active
                 && !literal
+                && !dirty
                 && let Some(numerator) = fade
             {
                 let color = scaled_rgb(0x00ff_ffff, numerator);
@@ -4483,7 +4535,38 @@ fn paint_grid_header(ui: &mut Ui<'_>, area: termrock::Rect, names: &[String]) {
     }
 }
 
-fn paint_row_numbers(ui: &mut Ui<'_>, area: termrock::Rect, rows: usize, cursor: Option<usize>) {
+fn wide_header_column(
+    columns: &[(String, ColType)],
+    state: &termrock::GridState,
+    model: &ResultGrid,
+) -> Option<usize> {
+    if let Some(index) = state
+        .edit_cell()
+        .and_then(|(_, column)| usize::from(column.raw()).checked_sub(1))
+    {
+        return Some(index);
+    }
+    if model.pending_total() == 0 {
+        return None;
+    }
+    let (_, column) = state.cursor()?;
+    let index = usize::from(column.raw()).checked_sub(1)?;
+    if index == 0 {
+        return None;
+    }
+    let numeric = columns
+        .get(index)
+        .is_some_and(|(_, ty)| matches!(ty, ColType::Int | ColType::Numeric));
+    if numeric { None } else { Some(index) }
+}
+
+fn paint_row_numbers(
+    ui: &mut Ui<'_>,
+    area: termrock::Rect,
+    model: &ResultGrid,
+    cursor: Option<usize>,
+) {
+    let rows = model.row_count();
     let Some(chrome) = GRID_CHROME.with(|chrome| chrome.borrow().clone()) else {
         return;
     };
@@ -4530,6 +4613,22 @@ fn paint_row_numbers(ui: &mut Ui<'_>, area: termrock::Rect, rows: usize, cursor:
             &text,
             plain.patch(ui.paint_patch(&StylePatch::new().set_fg(role))),
         );
+        if model.pending().is_dirty_row(row) {
+            let mut mark = plain.patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Warning)));
+            if cursor == Some(row) {
+                mark = mark.add_modifier(Modifier::BOLD);
+            }
+            ui.paint_str(
+                termrock::Rect {
+                    x: area.x.saturating_add(2),
+                    y,
+                    width: 1,
+                    height: 1,
+                },
+                "•",
+                mark,
+            );
+        }
     }
 }
 
@@ -4609,6 +4708,92 @@ fn paint_bottom_fade(ui: &mut Ui<'_>, area: termrock::Rect, model: &ResultGrid) 
             restyle(ui, arrow_x, 1, arrow);
         }
     }
+}
+
+fn pending_detail(model: &ResultGrid) -> String {
+    let pending = model.pending();
+    let mut updates = 0usize;
+    let mut inserts = 0usize;
+    let mut deletes = 0usize;
+    for row in 0..pending.row_count() {
+        if pending.is_inserted(row) && !pending.is_deleted(row) {
+            inserts = inserts.saturating_add(1);
+        } else if pending.is_deleted(row) && !pending.is_inserted(row) {
+            deletes = deletes.saturating_add(1);
+        } else if pending.is_dirty_row(row) {
+            updates = updates.saturating_add(1);
+        }
+    }
+    let mut parts = Vec::new();
+    if updates > 0 {
+        parts.push(format!(
+            "{updates} update{}",
+            if updates == 1 { "" } else { "s" }
+        ));
+    }
+    if inserts > 0 {
+        parts.push(format!(
+            "{inserts} insert{}",
+            if inserts == 1 { "" } else { "s" }
+        ));
+    }
+    if deletes > 0 {
+        parts.push(format!(
+            "{deletes} delete{}",
+            if deletes == 1 { "" } else { "s" }
+        ));
+    }
+    if parts.is_empty() {
+        String::new()
+    } else {
+        format!("· {}", parts.join(" · "))
+    }
+}
+
+fn paint_pending_bar(ui: &mut Ui<'_>, area: termrock::Rect, model: &ResultGrid) {
+    let base = ui.surface_style();
+    let warning = base.patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Warning)));
+    let muted = base.patch(ui.paint_patch(&StylePatch::new().set_fg(TAG_CHROME_FG)));
+    let label = format!("• {} pending", model.pending_total());
+    let label_width = width(&label);
+    ui.paint_str(
+        termrock::Rect {
+            x: area.x.saturating_add(1),
+            width: label_width,
+            ..area
+        },
+        &label,
+        warning,
+    );
+    let detail = pending_detail(model);
+    if !detail.is_empty() {
+        ui.paint_str(
+            termrock::Rect {
+                x: area.x.saturating_add(2).saturating_add(label_width),
+                width: width(&detail),
+                ..area
+            },
+            &detail,
+            muted,
+        );
+    }
+    let save = base.patch(
+        ui.paint_patch(
+            &StylePatch::new()
+                .set_fg(TAG_BUTTON_FG)
+                .set_bg(TAG_BUTTON_BG),
+        ),
+    );
+    let subtle = base.patch(ui.paint_patch(&StylePatch::new().set_fg(TAG_PATH_FG)));
+    let save_w = width("Save").saturating_add(2);
+    let discard_w = width("Discard").saturating_add(2);
+    let preview_w = width("Preview SQL").saturating_add(2);
+    let mut x = area.right().saturating_sub(save_w);
+    paint_action_button(ui, x, area.y, "Save", save, true);
+    x = x.saturating_sub(1).saturating_sub(discard_w);
+    paint_action_button(ui, x, area.y, "Discard", subtle, false);
+    x = x.saturating_sub(1).saturating_sub(preview_w);
+    paint_action_button(ui, x, area.y, "Preview SQL", subtle, false);
 }
 
 fn paint_horizontal_bar(ui: &mut Ui<'_>, row: termrock::Rect) {
@@ -4707,7 +4892,7 @@ fn draw_painted_grid(
     paint_row_numbers(
         ui,
         area,
-        model.row_count(),
+        model,
         state.cursor().and_then(|(key, _)| {
             (0..model.row_count()).find(|row| GridModel::row_key(model, *row) == key)
         }),
@@ -5887,6 +6072,11 @@ fn grouped(n: usize) -> String {
 fn draw_header(ui: &mut Ui<'_>, area: termrock::Rect, app: &TableProApp) {
     let base = ui.surface_style();
     ui.fill(area, base);
+    let pending_label = if app.screen == Screen::Connections {
+        None
+    } else {
+        workbench_pending_label(app)
+    };
     if app.screen == Screen::Connections {
         let saved = format!("{} saved", app.connections_screen.connections.len());
         if app.surface == Surface::Connections {
@@ -5977,6 +6167,39 @@ fn draw_header(ui: &mut Ui<'_>, area: termrock::Rect, app: &TableProApp) {
         ],
         base,
     );
+    paint_header_pending(ui, area, right.x, pending_label.as_deref(), base);
+}
+
+fn workbench_pending_label(app: &TableProApp) -> Option<String> {
+    let pending = app
+        .workbench
+        .active_grid()
+        .map_or(0, |(_, grid)| grid.model.pending_total());
+    (pending > 0).then(|| format!("• {pending} pending"))
+}
+
+fn paint_header_pending(
+    ui: &mut Ui<'_>,
+    area: termrock::Rect,
+    cluster_x: u16,
+    label: Option<&str>,
+    base: PaintStyle,
+) {
+    let Some(label) = label else {
+        return;
+    };
+    let label_width = width(label);
+    // Two cells stay clear of the capability cluster.
+    let x = cluster_x.saturating_sub(2).saturating_sub(label_width);
+    ui.paint_str(
+        termrock::Rect {
+            x,
+            width: label_width,
+            ..area
+        },
+        label,
+        base.patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Warning))),
+    );
 }
 
 fn connection_footer_spans() -> [Span<'static>; 36] {
@@ -6053,7 +6276,38 @@ fn explorer_footer_spans() -> [Span<'static>; 28] {
     ]
 }
 
-fn paint_data_footer(filtered: bool, paint: impl FnOnce(&[Span<'static>])) {
+fn paint_data_footer(filtered: bool, pending: bool, paint: impl FnOnce(&[Span<'static>])) {
+    if pending && !filtered {
+        paint(&[
+            Span::new(" "),
+            Span::new("↑↓←→").bold(),
+            Span::new(" "),
+            Span::new("Cell").role(TAG_CHROME_FG),
+            Span::new("  "),
+            Span::new("Enter").bold(),
+            Span::new(" "),
+            Span::new("Edit").role(TAG_CHROME_FG),
+            Span::new("  "),
+            Span::new("Alt+D").bold(),
+            Span::new(" "),
+            Span::new("Duplicate row").role(TAG_CHROME_FG),
+            Span::new("  "),
+            Span::new("s").bold(),
+            Span::new(" "),
+            Span::new("Sort").role(TAG_CHROME_FG),
+            Span::new("  "),
+            Span::new("f").bold(),
+            Span::new(" "),
+            Span::new("Filter").role(TAG_CHROME_FG),
+            Span::new("  "),
+            Span::new("Ctrl+S").bold(),
+            Span::new(" "),
+            Span::new("Save").role(TAG_CHROME_FG),
+            Span::new("  "),
+            Span::new("…").role(LEGACY_FAINT),
+        ]);
+        return;
+    }
     if filtered {
         paint(&[
             Span::new(" "),
@@ -6146,8 +6400,9 @@ fn with_footer_spans(
             ]),
             Some(Tab::Table(table)) => {
                 let filtered = table.filters.iter().any(|filter| filter.enabled);
+                let pending = table.result.pending_total() > 0;
                 // An active sort uses the shorter hint row so the sort label fits.
-                paint_data_footer(filtered && sort_footer(app).is_none(), paint);
+                paint_data_footer(filtered && sort_footer(app).is_none(), pending, paint);
             }
             Some(Tab::Query(_)) => paint(&[
                 Span::new(" "),
@@ -6837,7 +7092,11 @@ impl App for TableProApp {
                 .edit_cell()
                 .and_then(|(_, column)| usize::from(column.raw()).checked_sub(1))
         });
-        GRID_EDIT.with(|slot| *slot.borrow_mut() = edit_col);
+        let wide_col = self
+            .workbench
+            .active_grid()
+            .and_then(|(_, grid)| wide_header_column(&grid.columns, &grid.state, &grid.model));
+        GRID_EDIT.with(|slot| *slot.borrow_mut() = wide_col);
         if edit_col.is_some() && std::io::IsTerminal::is_terminal(&std::io::stdout()) {
             let mut out = std::io::stdout().lock();
             let _ = std::io::Write::write_all(&mut out, b"\x1b[6 q");
