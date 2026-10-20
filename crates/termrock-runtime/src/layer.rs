@@ -7,6 +7,101 @@ use crate::action::ActionKey;
 use crate::focus::ScopeId;
 use crate::id::Id;
 
+#[derive(Clone, Copy, PartialEq, Eq, Hash)]
+pub struct LayerOpening {
+    runtime: u64,
+    generation: u64,
+    id: Id,
+    owner: Id,
+    layer: LayerId,
+    parent: Option<LayerParent>,
+}
+
+impl LayerOpening {
+    const fn new(
+        runtime: u64,
+        generation: u64,
+        id: Id,
+        owner: Id,
+        layer: LayerId,
+        parent: Option<LayerParent>,
+    ) -> Self {
+        Self {
+            runtime,
+            generation,
+            id,
+            owner,
+            layer,
+            parent,
+        }
+    }
+
+    pub const fn owner(self) -> Id {
+        self.owner
+    }
+
+    pub const fn layer_id(self) -> LayerId {
+        self.layer
+    }
+
+    pub(crate) const fn runtime(self) -> u64 {
+        self.runtime
+    }
+
+    #[cfg_attr(
+        not(test),
+        expect(
+            dead_code,
+            reason = "opening generation is checked by prepared output and completion tokens"
+        )
+    )]
+    pub(crate) const fn generation(self) -> u64 {
+        self.generation
+    }
+
+    pub(crate) const fn id(self) -> Id {
+        self.id
+    }
+
+    #[cfg_attr(
+        not(test),
+        expect(
+            dead_code,
+            reason = "parent opening identity is checked by focus continuation"
+        )
+    )]
+    pub(crate) const fn parent(self) -> Option<LayerParent> {
+        self.parent
+    }
+}
+
+impl core::fmt::Debug for LayerOpening {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.debug_struct("LayerOpening")
+            .field("id", &self.id)
+            .field("owner", &self.owner)
+            .field("layer", &self.layer)
+            .finish_non_exhaustive()
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub(crate) struct LayerParent {
+    generation: u64,
+    id: Id,
+    layer: LayerId,
+}
+
+impl From<LayerOpening> for LayerParent {
+    fn from(opening: LayerOpening) -> Self {
+        Self {
+            generation: opening.generation,
+            id: opening.id,
+            layer: opening.layer,
+        }
+    }
+}
+
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum LayerKind {
     Modal,
@@ -375,6 +470,7 @@ pub(crate) struct OpenLayer {
     pub(crate) id: Id,
     pub(crate) layer: LayerId,
     pub(crate) spec: LayerSpec,
+    pub(crate) opening: LayerOpening,
 
     pub(crate) restore_to: Option<Id>,
 }
@@ -392,6 +488,8 @@ pub(crate) struct LayerStack {
     pending: Vec<(Id, LayerEvent)>,
 
     next: u32,
+
+    next_generation: u64,
 }
 
 impl Default for LayerStack {
@@ -400,6 +498,7 @@ impl Default for LayerStack {
             open: Vec::new(),
             pending: Vec::new(),
             next: 1,
+            next_generation: 1,
         }
     }
 }
@@ -440,25 +539,42 @@ impl LayerStack {
             .map_or(LayerId::PAGE, |l| l.layer)
     }
 
+    #[cfg(test)]
     pub(crate) fn open(
         &mut self,
         id: Id,
         spec: LayerSpec,
         restore_to: Option<Id>,
     ) -> Option<LayerId> {
+        self.open_with_runtime(id, spec, restore_to, 0)
+            .map(LayerOpening::layer_id)
+    }
+
+    pub(crate) fn open_with_runtime(
+        &mut self,
+        id: Id,
+        spec: LayerSpec,
+        restore_to: Option<Id>,
+        runtime: u64,
+    ) -> Option<LayerOpening> {
         if self.is_open(id) {
             return None;
         }
         let layer = LayerId(u16::try_from(self.next).ok()?);
         self.next = self.next.saturating_add(1);
+        let generation = self.next_generation;
+        self.next_generation = self.next_generation.checked_add(1)?;
+        let parent = self.open.last().map(|open| LayerParent::from(open.opening));
+        let opening = LayerOpening::new(runtime, generation, id, spec.owner, layer, parent);
         self.open.push(OpenLayer {
             id,
             layer,
             spec,
+            opening,
             restore_to,
         });
         self.pending.push((id, LayerEvent::Opened));
-        Some(layer)
+        Some(opening)
     }
 
     pub(crate) fn close(&mut self, id: Id, event: LayerEvent) -> Vec<OpenLayer> {
@@ -526,6 +642,39 @@ mod tests {
         assert_eq!(s.open(DLG, LayerSpec::modal(DLG), None), Some(LayerId(1)));
         assert_eq!(s.close(DLG, LayerEvent::Closed(ActionKey::CANCEL)).len(), 1);
         assert_eq!(s.open(PICK, LayerSpec::modal(PICK), None), Some(LayerId(2)));
+    }
+
+    #[test]
+    fn opening_tokens_identify_runtime_generation_and_concrete_parent() {
+        let mut stack = LayerStack::default();
+        let parent = stack
+            .open_with_runtime(DLG, LayerSpec::modal(DLG), None, 17)
+            .expect("parent layer opens");
+        let child = stack
+            .open_with_runtime(
+                PICK,
+                LayerSpec::popover(PICK, Anchor::Screen(ScreenAlign::Center)),
+                None,
+                17,
+            )
+            .expect("child layer opens");
+        assert_eq!(parent.runtime(), 17);
+        assert_eq!(parent.generation(), 1);
+        assert_eq!(parent.id(), DLG);
+        assert_eq!(child.parent(), Some(parent.into()));
+
+        let _ = stack.close(DLG, LayerEvent::Dismissed(DismissReason::Esc));
+        let reopened = stack
+            .open_with_runtime(DLG, LayerSpec::modal(DLG), None, 17)
+            .expect("same layer id can open again");
+        assert_ne!(reopened, parent);
+        assert_eq!(reopened.generation(), 3);
+
+        let mut other_runtime = LayerStack::default();
+        let other = other_runtime
+            .open_with_runtime(DLG, LayerSpec::modal(DLG), None, 18)
+            .expect("same layer identity in another runtime");
+        assert_ne!(other, parent);
     }
 
     #[test]

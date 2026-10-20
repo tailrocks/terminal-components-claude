@@ -15,7 +15,7 @@ use ratatui_crossterm::crossterm::terminal::{
 };
 
 use termrock_core::event::Input;
-use termrock_runtime::{App, FeedbackClock, Moment, Runtime};
+use termrock_runtime::{App, FeedbackClock, Moment, PreparedFrameError, Runtime};
 use termrock_theme::Theme;
 
 pub type DefaultTerminal = Terminal<CrosstermBackend<Stdout>>;
@@ -364,20 +364,32 @@ fn run_with_cursor_shape_startup<A: App>(
                 let _ = rt.settle();
             }
             if rt.needs_present() {
-                let mut painted = None;
-                session.terminal().draw(|f| {
-                    painted = Some(rt.draw(f));
+                session.terminal().autoresize()?;
+                let area = session.terminal().get_frame().area();
+                let prepared = rt.prepare(area).map_err(io::Error::other)?;
+                let mut bar = false;
+                let result = session.terminal().try_draw(|frame| {
+                    bar = rt
+                        .draw_prepared(prepared, frame)
+                        .map_err(|error| match error {
+                            PreparedFrameError::AreaChanged { .. } => {
+                                io::Error::new(io::ErrorKind::Interrupted, error)
+                            }
+                            PreparedFrameError::Stale => io::Error::other(error),
+                        })?;
                     if suppress_colors {
-                        reset_frame_colors(f.buffer_mut());
+                        reset_frame_colors(frame.buffer_mut());
                     }
-                })?;
-                let bar = if let Some(frame) = painted {
-                    let bar = frame.cursor_bar();
-                    frame.commit_presented();
-                    bar
-                } else {
-                    false
-                };
+                    Ok::<(), io::Error>(())
+                });
+                if let Err(error) = result {
+                    if error.kind() == io::ErrorKind::Interrupted {
+                        continue;
+                    }
+                    return Err(error);
+                }
+                rt.acknowledge_presented(prepared)
+                    .map_err(io::Error::other)?;
                 if let Some(command) = rendered_cursor_command(bar, caret_supported) {
                     execute!(stdout(), command)?;
                 }
