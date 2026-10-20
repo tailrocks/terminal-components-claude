@@ -77,7 +77,51 @@ pub struct LayerCompletion {
     opening: LayerOpening,
     event: LayerEvent,
     restored_focus: Option<Id>,
+    continuation_owner: Option<Id>,
     continuation_acknowledged: bool,
+}
+
+/// Settled outcome for a field that continued focus through one exact layer opening.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct FocusContinuationOutcome {
+    opening: LayerOpening,
+    owner: Id,
+    restored_focus: Option<Id>,
+    continued: bool,
+}
+
+impl FocusContinuationOutcome {
+    pub(crate) const fn new(
+        opening: LayerOpening,
+        owner: Id,
+        restored_focus: Option<Id>,
+        continued: bool,
+    ) -> Self {
+        Self {
+            opening,
+            owner,
+            restored_focus,
+            continued,
+        }
+    }
+
+    pub const fn opening(self) -> LayerOpening {
+        self.opening
+    }
+    pub const fn owner(self) -> Id {
+        self.owner
+    }
+    pub const fn restored_focus(self) -> Option<Id> {
+        self.restored_focus
+    }
+    pub const fn continued(self) -> bool {
+        self.continued
+    }
+
+    pub(crate) const fn with_continued(mut self, continued: bool) -> Self {
+        self.continued = continued;
+        self
+    }
 }
 
 impl LayerCompletion {
@@ -85,12 +129,14 @@ impl LayerCompletion {
         opening: LayerOpening,
         event: LayerEvent,
         restored_focus: Option<Id>,
+        continuation_owner: Option<Id>,
         continuation_acknowledged: bool,
     ) -> Self {
         Self {
             opening,
             event,
             restored_focus,
+            continuation_owner,
             continuation_acknowledged,
         }
     }
@@ -107,8 +153,17 @@ impl LayerCompletion {
         self.restored_focus
     }
 
+    pub const fn continuation_owner(self) -> Option<Id> {
+        self.continuation_owner
+    }
+
     pub const fn continuation_acknowledged(self) -> bool {
         self.continuation_acknowledged
+    }
+
+    pub(crate) const fn with_continuation_acknowledged(mut self, acknowledged: bool) -> Self {
+        self.continuation_acknowledged = acknowledged;
+        self
     }
 }
 
