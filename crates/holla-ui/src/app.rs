@@ -383,6 +383,24 @@ fn paint_monorepo_status(ui: &mut Ui<'_>, area: Rect) {
     let _ = paint_size_label(ui, area);
 }
 
+/// Tag monorepo-child status: child cwd, branch, ahead count, dirty mark, then the size label.
+fn paint_monorepo_child_status(ui: &mut Ui<'_>, area: Rect) {
+    if area.is_empty() {
+        return;
+    }
+    ui.fill(area, status_ink(ui, STATUS_FG, false));
+    let mut x = area.x.saturating_add(STATUS_EDGE);
+    for (text, fg, bold) in [
+        ("~/work/acme/apps/frontend", STATUS_FG, true),
+        ("main", STATUS_GREY, false),
+        ("↑1", STATUS_LINK, false),
+        ("• 2", STATUS_AMBER, false),
+    ] {
+        x = paint_status_text(ui, area, x, text, fg, bold).saturating_add(STATUS_GAP);
+    }
+    let _ = paint_size_label(ui, area);
+}
+
 fn tag_hints(confirm: &'static str, status: Option<&'static str>) -> HintLayer {
     fn hint(key: &'static str, label: &'static str) -> Hint {
         Hint {
@@ -439,6 +457,9 @@ fn menu_project(world: &World) -> String {
         }
         Scenario::MonorepoRoot if crate::sim::catalogue::monorepo_root_tag_frame(world) => {
             "acme · mise monorepo".to_owned()
+        }
+        Scenario::MonorepoChild if crate::sim::catalogue::monorepo_child_tag_frame(world) => {
+            "acme › frontend · Node project · pnpm".to_owned()
         }
         _ => world.cwd.clone(),
     }
@@ -912,6 +933,7 @@ impl App {
         let tail_x = used.saturating_add(2);
         let host = if crate::sim::catalogue::first_use_tag_frame(&self.world)
             || crate::sim::catalogue::monorepo_root_tag_frame(&self.world)
+            || crate::sim::catalogue::monorepo_child_tag_frame(&self.world)
         {
             "mbp · local".to_owned()
         } else {
@@ -937,6 +959,8 @@ impl App {
             paint_first_use_status(ui, status);
         } else if crate::sim::catalogue::monorepo_root_tag_frame(&self.world) {
             paint_monorepo_status(ui, status);
+        } else if crate::sim::catalogue::monorepo_child_tag_frame(&self.world) {
+            paint_monorepo_child_status(ui, status);
         }
         let footer = Rect::new(area.x, area.bottom().saturating_sub(1), area.width, 1);
         self.footer_draw(ui, footer);
@@ -975,6 +999,8 @@ impl App {
             Some(("Open", None))
         } else if crate::sim::catalogue::monorepo_root_tag_frame(&self.world) {
             Some(("Open", Some("Inspect 1…")))
+        } else if crate::sim::catalogue::monorepo_child_tag_frame(&self.world) {
+            Some(("Open", Some("Inspect 3…")))
         } else {
             None
         };
@@ -1482,6 +1508,35 @@ mod tests {
             "{:?}",
             harness.diagnostics()
         );
+    }
+    #[test]
+    fn monorepo_child_frame_40_paints_the_tag_plate_and_later_seeks_keep_home() {
+        let plate = harness(
+            App::for_scenario(Scenario::MonorepoChild, Motion::Paused, 40),
+            Theme::junie(),
+            120,
+            40,
+        );
+        let text = plate.text();
+        assert!(
+            text.contains("acme › frontend · Node project · pnpm"),
+            "{text}"
+        );
+        assert!(text.contains("From acme · the parent root"), "{text}");
+        assert!(text.contains("Inspect 3 GB of generate"), "{text}");
+        assert!(text.contains("• 2"), "{text}");
+        assert!(text.contains("Inspect 3…"), "{text}");
+        assert!(text.contains("~/work/acme/apps…rontend"), "{text}");
+        assert!(text.contains("1 rebuildable candidate"), "{text}");
+        assert!(plate.diagnostics().is_empty(), "{:?}", plate.diagnostics());
+        let later = harness(
+            App::for_scenario(Scenario::MonorepoChild, Motion::Paused, 4_000),
+            Theme::junie(),
+            120,
+            40,
+        );
+        assert!(!later.text().contains("From acme · the parent root"));
+        assert!(later.text().contains("Run dev"), "{}", later.text());
     }
     #[test]
     fn discovery_results_header_is_tag_grey_at_column_4() {
