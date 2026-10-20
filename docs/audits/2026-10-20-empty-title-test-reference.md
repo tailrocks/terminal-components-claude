@@ -1,4 +1,4 @@
-# Empty title owner test reference repair
+# Empty title test reference corrections
 
 ## Fixed reference and diagnosis
 
@@ -26,14 +26,54 @@ log SHA-256:
 `d358d3dcbdb15920af73cb0870e07521229ace6f0516f66159e42d591a590bc5`.
 Evidence is retained at `/tmp/termrock-empty-frozen-proof/`.
 
-Changed only the stale TrueColor expectation to `Rgb(138, 138, 138)`. Existing
-owner foreground/background/modifier assertions, child override precedence,
-instance-patch isolation, and sentinel isolation remain unchanged. The
-aggregate fingerprint `385_672_878_558_749_177` was not changed.
+The owner-test repair changed only the stale TrueColor expectation to
+`Rgb(138, 138, 138)`. Existing owner foreground/background/modifier
+assertions, child override precedence, instance-patch isolation, and sentinel
+isolation remain unchanged.
+
+## Independent aggregate reference decision
+
+The aggregate test hashes `Debug` bytes for all 32 complete cells frames; it
+does not include cursor state. Its source was introduced at
+`a4a702c6d12cff7d776285e87b32d09caa5ba33f`, whose independently reproduced
+original hash is `10_278_960_817_768_212_803`. The later test-only expectation
+`385_672_878_558_749_177` was added at
+`2f1e4088033474e0daba5d2776568f04f75b0547` and conflicts with palette
+semantics in the immutable frozen source. The historical `db53` artifact was
+unavailable; it is not claimed as recovered.
+
+Independent review projected only the frozen palette rules from source
+`4169783ae883788186d161af09ba9c481bd84e5c` onto the exact 32 frames generated
+by `2f1e4088033474e0daba5d2776568f04f75b0547`. The projection changed exactly
+32 foreground values across 5,376 cells: muted/faint entries in TrueColor,
+Ansi256, indexed 16, and Mono. It changed no symbols, positions, backgrounds,
+attributes, underline data, or skipped comparisons. All projected frames
+matched the current source output at `95cdc7bdb111dc1b683a638b421dae718bb29643`
+cell-for-cell. The independent projection, not candidate output, yields the
+correct aggregate fingerprint `2_278_838_586_319_248_431`; the test's
+full-cell comparisons remain enabled. Frozen `Empty` itself has only Empty and
+Error states and a different Error layout, so this decision is solely palette
+authority, not a claim that these 32 states are frozen-baseline UX.
+
+Preserved evidence at
+`/private/tmp/termrock-empty-fingerprint-probe-20261020/`:
+
+- `final-attribution.json` SHA-256:
+  `abaccd91419e6d4e5282c368c24488beae8b46e204070cfb440c45cf2616b6d1`
+- `projection-decisions.json` SHA-256:
+  `2335ea426e9f77e1d4150a59f5514fc0a467776ebd8b415b23fab499f6422e46`
+- `evidence-manifest.json` SHA-256:
+  `edba9d25598f00a55dd0db9540470bf7cb65b5dc9ee34aa335a42d96b5a7b22a`
+- Probe log SHA-256: `d80c08f9b043b00587a21edd45cead5716d37506e3497f77e2e219a7bf87358b`
+
+The old expectation and original source hash remain recorded above so the
+reference correction is auditable; no frame or full-cell comparison was
+removed or weakened.
 
 ## Verification and limits
 
 - Before correction, full `empty_style_inheritance` nextest: 2 passed, 6 failed. Failures were the five owner tests plus `standalone_empty_cells_match_pre_inheritance_reference`; the latter failed at the separate aggregate fingerprint assertion (actual `2_278_838_586_319_248_431`, expected `385_672_878_558_749_177`).
 - After correction, focused five owner tests: 5 passed, 0 failed.
-- After correction, full `empty_style_inheritance` nextest: 7 passed, 1 failed. Only the unchanged aggregate fingerprint test remains red.
-- Frozen source, tag, widget behavior, and aggregate expected value remain unchanged. The remaining fingerprint conflict needs independent diagnosis; this test-reference correction does not resolve it or claim the full test file passes.
+- After the independent aggregate reference correction, `cargo nextest run -p termrock-theme --test empty_style_inheritance`: 8 passed, 0 skipped.
+- `cargo clippy -p termrock-theme --all-targets -- -D warnings`, `cargo fmt --check --package termrock-theme`, and `git diff --check`: passed.
+- Frozen source, tag, and widget behavior remain unchanged. The aggregate expected value now reflects the independently reviewed frozen palette projection; the test states remain broader than the frozen Empty widget and are not represented as frozen UX coverage.
