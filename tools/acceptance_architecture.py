@@ -23,6 +23,7 @@ STAMP_RULES = (
 INCLUDE_RE = re.compile(r"\binclude(?:_str|_bytes)?!\s*\(\s*\"([^\"]+)\"\s*\)")
 DYNAMIC_INCLUDE_RE = re.compile(r"\binclude(?:_str|_bytes)?!\s*\(")
 PATH_MODULE_RE = re.compile(r"#\s*\[\s*path\s*=\s*\"([^\"]+)\"\s*\]")
+DECLARED_MODULE_RE = re.compile(r"\bmod\s+([A-Za-z_][A-Za-z0-9_]*)\s*;")
 
 
 def sha(data: bytes) -> str:
@@ -128,19 +129,13 @@ def production_files(
     return sorted(set(out)), errors
 
 
-def read_source(root: Path, rel: str, tracked: set[str]) -> bytes:
+def read_source(root: Path, rel: str) -> bytes:
     path = root / rel
     resolved = path.resolve(strict=False)
     resolved.relative_to(root)
-    try:
-        return path.read_bytes()
-    except FileNotFoundError:
-        if rel not in tracked:
-            raise
-        blob = run(["git", "show", f":{rel}"], root)
-        if blob.returncode:
-            raise OSError(blob.stderr.decode("utf-8", "replace").strip())
-        return blob.stdout
+    # The live filesystem is the Cargo input. Git's index may contain stale
+    # bytes after a generated or included source file has been removed.
+    return path.read_bytes()
 
 
 def finding(rule: str, rel: str, line: int, content: bytes, detail: str) -> dict[str, Any]:
@@ -301,7 +296,6 @@ def check(root: Path) -> dict[str, Any]:
     source_records: list[dict[str, Any]] = []
     file_bytes: dict[str, bytes] = {}
     pending_sources: list[tuple[dict[str, Any], str, str, bytes, tuple[str, ...]]] = []
-    tracked_set = set(tracked)
     scan_names = production_closure | {str(pkg.get("name", "")) for pkg in application_component_pkgs}
     scan_pkgs = []
     for name in sorted(scan_names):
@@ -342,7 +336,7 @@ def check(root: Path) -> dict[str, Any]:
         for rel in sorted(set(files)):
             path = root / rel
             try:
-                data = read_source(root, rel, set(tracked))
+                data = read_source(root, rel)
             except (OSError, ValueError) as exc:
                 report["errors"].append(f"unreadable or out-of-root production input {rel}: {exc}")
                 continue
@@ -364,6 +358,29 @@ def check(root: Path) -> dict[str, Any]:
         references = [("include", match, match.group(1)) for match in INCLUDE_RE.finditer(text)]
         references.extend(("include", match, None) for match in DYNAMIC_INCLUDE_RE.finditer(text) if not INCLUDE_RE.match(text, match.start()))
         references.extend(("path-module", match, match.group(1)) for match in PATH_MODULE_RE.finditer(text))
+        # Ordinary `mod name;` declarations also select production inputs.
+        # Do not traverse Cargo's potentially huge build directory through a
+        # source symlink; report this selected input as unresolved instead.
+        module_base = (root / rel).parent
+        if Path(rel).name not in {"lib.rs", "main.rs", "mod.rs"}:
+            module_base /= Path(rel).stem
+        target_root = Path(str(metadata.get("target_directory", root / "target"))).resolve(strict=False)
+        for match in DECLARED_MODULE_RE.finditer(text):
+            name = match.group(1)
+            candidates = (module_base / f"{name}.rs", module_base / name / "mod.rs")
+            for candidate in candidates:
+                try:
+                    resolved = candidate.resolve(strict=True)
+                    resolved.relative_to(target_root)
+                except FileNotFoundError:
+                    continue
+                except ValueError:
+                    continue
+                line = text.count("\n", 0, match.start()) + 1
+                report["unaccounted_inputs"].append(
+                    f"production module resolves inside Cargo target directory: {rel}:{line} -> {candidate.relative_to(root)}"
+                )
+                break
         for kind, match, literal in references:
             line = text.count("\n", 0, match.start()) + 1
             if literal is None:
@@ -373,7 +390,7 @@ def check(root: Path) -> dict[str, Any]:
             resolved = referenced.resolve(strict=False)
             try:
                 referenced_rel = resolved.relative_to(root).as_posix()
-                ref_data = read_source(root, referenced_rel, tracked_set)
+                ref_data = read_source(root, referenced_rel)
             except (OSError, ValueError) as exc:
                 report["errors"].append(f"unreadable or out-of-root {kind} from {rel}:{line}: {literal} ({exc})")
                 continue
