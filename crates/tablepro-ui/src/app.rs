@@ -9298,7 +9298,10 @@ fn paint_picker_layer_footer(ui: &mut Ui<'_>, area: termrock::Rect) {
 fn draw_footer(ui: &mut Ui<'_>, area: termrock::Rect, app: &TableProApp) {
     let base = ui.surface_style();
     let explorer_focused = ui.state(EXPLORER).contains(StateFlags::FOCUSED);
-    let empty_query = historical_empty_query(ui, app);
+    let empty_query = historical_empty_query(ui, app)
+        && app
+            .query_id()
+            .is_some_and(|id| ui.state(id).contains(StateFlags::FOCUSED));
     ui.fill(area, base);
     if matches!(app.surface, Surface::QuickSwitcher | Surface::TabListPicker) {
         paint_picker_layer_footer(ui, area);
