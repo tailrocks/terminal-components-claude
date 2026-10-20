@@ -62,6 +62,9 @@ impl PickerState {
     pub fn set_query(&mut self, query: impl Into<String>) {
         self.list.set_query(query);
     }
+    fn reset_query(&mut self, query: impl Into<String>) {
+        self.list.reset_query(query);
+    }
     pub const fn cursor(&self) -> Option<ItemKey> {
         self.list.cursor()
     }
@@ -365,7 +368,7 @@ impl<T: AsItem, R: RowFn<T>> Picker<'_, T, R> {
 
     fn clear_hidden_query(&self, st: &mut PickerState) -> bool {
         if !self.searchable && !st.query().is_empty() {
-            st.set_query("");
+            st.reset_query("");
             true
         } else {
             false
@@ -704,6 +707,7 @@ mod tests {
         let _ = termrock_runtime::runtime::stub::deliver(&mut runtime, key(KeyCode::Char('b')));
         runtime.draw_buffer(area, &mut buffer).commit_presented();
 
+        let query_caret = runtime.cursor().expect("visible query owns its cursor");
         let _ = termrock_runtime::runtime::stub::deliver(&mut runtime, key(KeyCode::Esc));
         runtime.draw_buffer(area, &mut buffer).commit_presented();
         assert_eq!(
@@ -716,10 +720,15 @@ mod tests {
             runtime.is_open(ID),
             "first Esc clears query, keeps picker open"
         );
-
-        let _ = termrock_runtime::runtime::stub::deliver(&mut runtime, key(KeyCode::Char('a')));
+        assert!(runtime.app().state.list().is_query_editing());
+        assert_eq!(runtime.cursor().map(|cursor| cursor.y), Some(query_caret.y));
+        let _ = termrock_runtime::runtime::stub::deliver(&mut runtime, Input::Paste("a".into()));
         runtime.draw_buffer(area, &mut buffer).commit_presented();
-        assert_eq!(runtime.app().state.query(), "a");
+        assert_eq!(
+            runtime.app().state.query(),
+            "a",
+            "paste immediately after Esc"
+        );
         let _ = termrock_runtime::runtime::stub::deliver(&mut runtime, key(KeyCode::Esc));
         runtime.draw_buffer(area, &mut buffer).commit_presented();
         assert_eq!(runtime.app().state.query(), "");
@@ -731,7 +740,8 @@ mod tests {
         let _ = termrock_runtime::runtime::stub::deliver(&mut runtime, key(KeyCode::Enter));
         runtime.draw_buffer(area, &mut buffer).commit_presented();
         assert!(runtime.is_open(ID));
-        let _ = termrock_runtime::runtime::stub::deliver(&mut runtime, key(KeyCode::Char('a')));
+        assert!(runtime.app().state.list().is_query_editing());
+        let _ = termrock_runtime::runtime::stub::deliver(&mut runtime, Input::Paste("a".into()));
         runtime.draw_buffer(area, &mut buffer).commit_presented();
         assert_eq!(runtime.app().state.query(), "zza");
 
