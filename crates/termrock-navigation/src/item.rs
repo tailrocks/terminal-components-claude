@@ -144,20 +144,16 @@ impl ItemColumns {
         row.gutter();
         let mut cells = row.columns_with_gap(
             &[
-                Track::Fixed(if self.tag > 0 || self.group > 0 {
-                    if self.metadata_gap == 1 {
-                        1
-                    } else {
-                        self.metadata_gap
-                    }
-                } else {
-                    1
-                }),
+                Track::Fixed(1),
                 Track::Fixed(1),
                 Track::Fixed(self.label),
                 Track::Fixed(2),
                 Track::Flex(1),
-                Track::Fixed(1),
+                Track::Fixed(if self.tag > 0 || self.group > 0 {
+                    self.metadata_gap
+                } else {
+                    1
+                }),
                 Track::Fixed(self.tag),
                 Track::Fixed(if self.tag > 0 {
                     if self.metadata_gap == 1 {
