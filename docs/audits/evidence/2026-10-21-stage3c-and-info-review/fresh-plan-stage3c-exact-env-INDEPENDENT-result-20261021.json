@@ -1,0 +1,113 @@
+{
+  "decision": "Independent readiness checks are green for capture-only eligibility under this verified exact environment. This is not authorization to capture, replay, compare a candidate, or accept product parity; execution requires a separate explicit step.",
+  "input_packet": {
+    "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/fresh-plan-stage3c-exact-env-verification-packet.json",
+    "sha256": "e0def641b251b52091844e9c9c6481e3e01643f7222e6fc82fe1480397f42f78"
+  },
+  "official_checks": [
+    {
+      "elapsed_seconds": 37.747,
+      "exit_status": 0,
+      "log_sha256": "74661ef8e8984eb7a62010868f31714e8067f638e11f7c81679cb12bb2368538",
+      "no_execution_or_advance": true,
+      "stage": "verify-plan",
+      "verified": true
+    },
+    {
+      "candidate_comparison_eligible": false,
+      "completed_steps": 0,
+      "elapsed_seconds": 33.075,
+      "executed": false,
+      "exit_status": 0,
+      "log_sha256": "e4c1ff75e757bd928f79811abd3ee4d3e22d80707490dfb9a5db23fb3991e09b",
+      "no_execution_or_advance": true,
+      "product_acceptance": false,
+      "stage": "verify-run",
+      "verified": true
+    }
+  ],
+  "old_310_capture": {
+    "all_expected_tree_hashes_match": true,
+    "progress_path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/fresh-capture-stage3b-progress-310a-20261021.json",
+    "receipts_retained": true,
+    "six_chunks": [
+      {
+        "chunk": 0,
+        "expected_sha256": "5029c75622cd3a8cbadd6ac0ea51406ff67f4cbaa432a660842853e1654d491f",
+        "recorded_sha256": "5029c75622cd3a8cbadd6ac0ea51406ff67f4cbaa432a660842853e1654d491f",
+        "unchanged": true
+      },
+      {
+        "chunk": 1,
+        "expected_sha256": "2d5be8ca4f5cf17b025ab6e65b975ec2a2f505ae2977eb4b4cc1dce0f306427e",
+        "recorded_sha256": "2d5be8ca4f5cf17b025ab6e65b975ec2a2f505ae2977eb4b4cc1dce0f306427e",
+        "unchanged": true
+      },
+      {
+        "chunk": 2,
+        "expected_sha256": "74df81f7f698eda2e1897a371eb4dcfb350e01194ee3f9fd6c1c8a3620413516",
+        "recorded_sha256": "74df81f7f698eda2e1897a371eb4dcfb350e01194ee3f9fd6c1c8a3620413516",
+        "unchanged": true
+      },
+      {
+        "chunk": 3,
+        "expected_sha256": "9736b911aee3da3fc616c8c0f431fcfb359b8196af7ad8fb4cccd130a3cefd5e",
+        "recorded_sha256": "9736b911aee3da3fc616c8c0f431fcfb359b8196af7ad8fb4cccd130a3cefd5e",
+        "unchanged": true
+      },
+      {
+        "chunk": 4,
+        "expected_sha256": "4704bd6f206ba84d7d2917c22fe43ae5454e1c219188c1265966fe54eba0b530",
+        "recorded_sha256": "4704bd6f206ba84d7d2917c22fe43ae5454e1c219188c1265966fe54eba0b530",
+        "unchanged": true
+      },
+      {
+        "chunk": 5,
+        "expected_sha256": "d1e1d1e0a20fb4534751406b600c274ebcd000d36b8ced49eaaf5e3942bd08c0",
+        "recorded_sha256": "d1e1d1e0a20fb4534751406b600c274ebcd000d36b8ced49eaaf5e3942bd08c0",
+        "unchanged": true
+      }
+    ]
+  },
+  "original_preparation_report_incident": {
+    "bytes_recovered": false,
+    "original_report_sha256_known": "aca941c5817febacce2676493c36af4992faa0fa7f30c26f9ed25f81f1d12591",
+    "reviewer_result_was_written_to_original_path": true,
+    "this_review_uses_current_plan_and_official_verification_only": true
+  },
+  "plan": {
+    "creation_anchor_sha256": "48ab669c719815a7899c55d8a4b5a4444e514701a947f85c541907fa83550bc7",
+    "id": "58b38fb0b1a1007f14230337f8f1a225",
+    "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/fresh-plan-stage3c-fixed-482-20261021/fresh-capture-plan.json",
+    "sha256": "48ab669c719815a7899c55d8a4b5a4444e514701a947f85c541907fa83550bc7",
+    "status": "prepared-not-executed",
+    "unchanged": true
+  },
+  "run": {
+    "authenticated_by_official_verify_run": true,
+    "completed_steps": 0,
+    "id": "8470dddf86b24e1e8dcf3293d2625b1f",
+    "manifest_path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/fresh-plan-stage3c-fixed-482-20261021/fresh-runs/58b38fb0b1a1007f14230337f8f1a225/run-manifest.json",
+    "status": "prepared-metadata-only"
+  },
+  "schema": "termrock.stage3c-exact-env-independent-review.v1",
+  "scope": "Read-only official plan/run verification. No capture, replay, candidate launch, source/plan/key/journal mutation, or product acceptance.",
+  "source_and_inventory": {
+    "baseline_commit": "4169783ae883788186d161af09ba9c481bd84e5c",
+    "baseline_tag_object": "2718a6b8127a522a3d351d0b4bdb7542fc8da542",
+    "capture_chunks": 910,
+    "checkpoint_inventory_hashes_and_source_pins": "official verify-plan passed with exact env/tool observations; ordered nonempty checkpoint inventory is part of source plan verification",
+    "ordinary_checks": 20,
+    "replay_chunks": 910,
+    "runner_revision": "482cdaf48c42d8355a173e1faeee74e159c46d0b",
+    "runner_sha256": "f2a7583e155c7e85b7c8782c1b163b60bd0bf83038f5e736abe52271724139a8",
+    "tuiscotti_rev": "a1ea27f757d75d07b05499276cd932e9f8e067ad",
+    "visual_cases": 29069
+  },
+  "wrapper": {
+    "invocation": "verify-plan and verify-run with exact manifest cohort binary directory; no --_child bypass used.",
+    "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/fresh-plan-stage3c-verify-exact-environment.py",
+    "sha256": "1de3b4cbccf0e79172dc87ad80735103086cd6f71358ec731c05d4325d0b5cc9",
+    "source_review": "two fixed stages only; constructs pinned clean env; compares hashes and selected-tool observations; records names/status only; no secret material output; no plan rewrite or run-advance function. Outer child uses start_new_session and 205s wait; inner verification subprocess is capped at 190s."
+  }
+}
