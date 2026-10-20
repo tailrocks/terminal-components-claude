@@ -6,6 +6,7 @@
 use crate::domain::ResultGrid;
 use crate::filter_editor::Filter;
 use crate::model::{History, HistoryEntry};
+use std::time::{Duration, Instant};
 use tablepro_demo::db::{Catalog, ColType, Table, Value};
 use tablepro_sql::sql::{self, PlanNode};
 use termrock::{GridModel, GridState, Id, ItemKey, TextInputState};
@@ -205,6 +206,13 @@ impl TableTab {
     }
 }
 
+#[derive(Debug, Clone)]
+pub struct QueryStatus {
+    pub summary: String,
+    pub is_error: bool,
+    pub duration_ms: u32,
+}
+
 #[derive(Clone)]
 pub struct QueryTab {
     pub id: usize,
@@ -216,6 +224,8 @@ pub struct QueryTab {
     pub error: Option<String>,
     pub plan: Option<PlanNode>,
     pub running: bool,
+    /// Most recent execution summary and whether it represents an error.
+    pub last_status: Option<Box<QueryStatus>>,
 }
 
 impl core::fmt::Debug for QueryTab {
@@ -230,6 +240,7 @@ impl core::fmt::Debug for QueryTab {
             .field("has_error", &self.error.is_some())
             .field("has_plan", &self.plan.is_some())
             .field("running", &self.running)
+            .field("last_status", &self.last_status)
             .finish()
     }
 }
@@ -247,21 +258,46 @@ impl QueryTab {
             error: None,
             plan: None,
             running: false,
+            last_status: None,
         }
     }
+
+    pub fn record_status(&mut self, summary: impl Into<String>, is_error: bool, duration_ms: u32) {
+        self.last_status = Some(Box::new(QueryStatus {
+            summary: summary.into(),
+            is_error,
+            duration_ms,
+        }));
+    }
+
+    pub fn record_execution_status(&mut self, succeeded: bool, elapsed: Duration) {
+        let duration_ms = u32::try_from(elapsed.as_millis()).unwrap_or(u32::MAX);
+        let summary = if succeeded {
+            format!("ok · {}", compact_duration(duration_ms))
+        } else {
+            "error".to_owned()
+        };
+        self.record_status(summary, !succeeded, duration_ms);
+    }
+
     pub fn execute(&mut self, catalog: &Catalog) -> Result<usize, String> {
         if self.has_pending_result() {
             return Err("Pending result edits require confirmation".to_owned());
         }
-        let statement = sql::parse(self.query.trim()).map_err(|error| error.message)?;
-        let sql::Statement::Select(select) = statement else {
-            return Err("The demo executor only runs SELECT statements".to_owned());
-        };
-        let result = sql::run_select(catalog, &select).map_err(|error| error.message)?;
-        let rows = result.rows.len();
-        self.result = Some(GridView::from_result(&result));
-        self.error = None;
-        Ok(rows)
+        let started = Instant::now();
+        let outcome = (|| {
+            let statement = sql::parse(self.query.trim()).map_err(|error| error.message)?;
+            let sql::Statement::Select(select) = statement else {
+                return Err("The demo executor only runs SELECT statements".to_owned());
+            };
+            let result = sql::run_select(catalog, &select).map_err(|error| error.message)?;
+            let rows = result.rows.len();
+            self.result = Some(GridView::from_result(&result));
+            self.error = None;
+            Ok(rows)
+        })();
+        self.record_execution_status(outcome.is_ok(), started.elapsed());
+        outcome
     }
     pub fn explain(&mut self, catalog: &Catalog) -> Result<(), String> {
         let statement = sql::parse(self.query.trim()).map_err(|error| error.message)?;
@@ -278,6 +314,21 @@ impl QueryTab {
     }
     pub fn dirty(&self) -> bool {
         self.editor_state.draft_text().unwrap_or(&self.query) != self.saved_text
+    }
+}
+
+fn compact_duration(duration_ms: u32) -> String {
+    match duration_ms {
+        0 => "<1 ms".to_owned(),
+        milliseconds if milliseconds < 1_000 => format!("{milliseconds} ms"),
+        milliseconds if milliseconds < 60_000 => {
+            format!("{:.2} s", f64::from(milliseconds) / 1_000.0)
+        }
+        milliseconds => format!(
+            "{}m {}s",
+            milliseconds / 60_000,
+            (milliseconds % 60_000) / 1_000
+        ),
     }
 }
 

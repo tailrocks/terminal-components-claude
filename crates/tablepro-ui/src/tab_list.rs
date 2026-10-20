@@ -28,18 +28,10 @@ impl AsItem for TabRow {
     }
 }
 
+#[derive(Default)]
 pub(crate) struct TabList {
     pub(crate) state: PickerState,
     pub(crate) rows: Vec<TabRow>,
-}
-
-impl Default for TabList {
-    fn default() -> Self {
-        Self {
-            state: PickerState::default(),
-            rows: Vec::new(),
-        }
-    }
 }
 
 impl TabList {
@@ -88,7 +80,10 @@ fn row(record: &TabRecord, active: Option<TabKey>) -> TabRow {
             if query.running {
                 "running".to_owned()
             } else {
-                "query".to_owned()
+                query
+                    .last_status
+                    .as_ref()
+                    .map_or_else(|| "query".to_owned(), |status| status.summary.clone())
             },
         ),
         Tab::Table(table) => {
