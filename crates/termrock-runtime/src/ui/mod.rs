@@ -22,13 +22,13 @@ pub use slot::LayerSlot;
 
 use crate::action::ActionKey;
 use crate::cursor::CursorRequest;
-use crate::diagnostics::Diagnostic;
+use crate::diagnostics::{Diagnostic, Diagnostics};
 use crate::focus::{FocusEntry, FocusRing, Focusability, ScopeId, ScopeMode};
 use crate::hit::{Axes, Headroom, Registry};
 use crate::id::{Id, Part, PartRef};
 use crate::keymap::{
     Binding, BindingExtensionError, BindingRegistry, DynamicBindingRegistry, FocusedHintKey,
-    FocusedHints, HintLayer, KeyMap,
+    FocusedHints, HintLayer, KeyMap, ScopedBubbleBinding,
 };
 use crate::layer::{LayerId, LayerKind};
 use crate::response::StateFlags;
@@ -74,7 +74,8 @@ pub struct FrameState {
     pub(crate) layout: Vec<(Id, LayoutFacts)>,
     pub(crate) declared: Vec<(Id, StateFlags)>,
     pub(crate) bindings: BindingRegistry,
-    pub(crate) diagnostics: Vec<Diagnostic>,
+    pub(crate) scoped_bubble_bindings: Vec<ScopedBubbleBinding>,
+    pub(crate) diagnostics: Diagnostics,
     pub(crate) roles: Vec<CellRoles>,
     pub(crate) screen: Rect,
     pub(crate) inert_floor: LayerId,
@@ -185,6 +186,7 @@ impl FrameState {
         self.layout.clear();
         self.declared.clear();
         self.bindings.reset();
+        self.scoped_bubble_bindings.clear();
         self.diagnostics.clear();
         self.roles.clear();
         self.roles
@@ -373,6 +375,13 @@ impl<'f> Ui<'f> {
 
     pub const fn is_inert(&self) -> bool {
         self.inert || self.reference.is_some()
+    }
+
+    /// Append a component-author diagnostic to this frame's bounded runtime
+    /// diagnostic stream. Diagnostics are committed with the frame and cannot
+    /// be cleared by an individual component.
+    pub fn diagnostic(&mut self, diagnostic: Diagnostic) {
+        self.frame.diagnostics.push(diagnostic);
     }
 
     pub fn reference<R>(
@@ -730,6 +739,34 @@ impl<'f> Ui<'f> {
         table: &'static [Binding<C>],
     ) {
         self.publish_bindings_filtered(owner, flags, table, |_| true);
+    }
+
+    pub(crate) fn publish_scope_bindings<C: Copy + 'static>(
+        &mut self,
+        scope: ScopeId,
+        owner: Id,
+        flags: StateFlags,
+        table: &'static [Binding<C>],
+    ) {
+        if self.registrations_suppressed() || self.frame.ring.scope_layer(scope) != Some(self.layer)
+        {
+            return;
+        }
+        if let Some(action) =
+            self.frame
+                .bindings
+                .publish_filtered(owner, flags, self.layer, table, |_| true)
+        {
+            self.frame
+                .diagnostics
+                .push(Diagnostic::DuplicateBindingAction { owner, action });
+            return;
+        }
+        self.frame.scoped_bubble_bindings.push(ScopedBubbleBinding {
+            scope,
+            owner,
+            layer: self.layer,
+        });
     }
 
     pub(crate) fn publish_bindings_filtered<C: Copy + 'static>(
@@ -1184,7 +1221,10 @@ impl<'f> Ui<'f> {
                     cell.bg = kept_bg;
                 }
             }
-            self.mark(src, None);
+            // Preserve the source cell's semantic role metadata for the
+            // vacated padding cell, then apply any reset-channel overrides.
+            // Clearing roles here makes later visual passes (such as dimming)
+            // treat padding differently from the row it belongs to.
             self.mark(src, Some(reset));
         }
     }
@@ -1643,7 +1683,7 @@ mod tests {
         assert!(frame.layout.is_empty());
         assert!(frame.cursors.is_empty());
         assert!(frame.bindings.get(OWNER).is_none());
-        assert!(frame.diagnostics.is_empty());
+        assert!(frame.diagnostics.items().is_empty());
         assert!(
             frame
                 .layers
@@ -2081,6 +2121,32 @@ mod tests {
             })
             .collect();
         assert_eq!(text, "10000");
+    }
+
+    #[test]
+    fn right_aligned_padding_keeps_semantic_roles_through_dimming() {
+        use crate::rowui::CellUi;
+        use crate::theme::{Align, PaintStyle};
+
+        let theme = Theme::junie();
+        let (_, page) = with_ui(&theme, |ui| {
+            let area = Rect::new(0, 0, 12, 1);
+            let fill = ui.paint_patch(
+                &StylePatch::new()
+                    .set_fg(Role::Accent)
+                    .set_bg(Role::Surface(Surface::Overlay)),
+            );
+            ui.fill(area, fill);
+            let mut cell = CellUi::new(ui.reborrow(), Rect::new(0, 0, 6, 1), PaintStyle::new());
+            cell.align(Align::Right);
+            cell.text("1");
+            drop(cell);
+            ui.dim_layer(area, 1);
+        });
+
+        let padding = page.cell(Position::new(0, 0)).expect("padding cell");
+        let row_fill = page.cell(Position::new(8, 0)).expect("row fill cell");
+        assert_eq!((padding.fg, padding.bg), (row_fill.fg, row_fill.bg));
     }
 
     #[test]
