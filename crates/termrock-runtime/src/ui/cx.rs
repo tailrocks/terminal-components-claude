@@ -172,7 +172,7 @@ pub struct FrameServices {
     pub(crate) completions: Vec<(LayerCompletion, u8)>,
     pub(crate) focus_continuation_outcomes: Vec<(FocusContinuationOutcome, u8)>,
     pub(crate) focus_continuation_acks: Vec<(LayerOpening, Id, Id)>,
-    pub(crate) focus_continuation_result_acks: Vec<(LayerOpening, Id)>,
+    pub(crate) focus_continuation_result_acks: Vec<(LayerOpening, Id, bool)>,
     pub(crate) focus_result_ack_dispatch_pending: bool,
     pub(crate) continuation_command_pending_present: Option<Id>,
     pub(crate) registry_gen: u32,
@@ -206,6 +206,15 @@ impl core::fmt::Debug for Cx<'_> {
 }
 
 impl<'f> Cx<'f> {
+    fn invalidate_continuation_result_readiness(&mut self) {
+        if !self.services.focus_continuation_result_acks.is_empty() {
+            for (_, _, ready) in &mut self.services.focus_continuation_result_acks {
+                *ready = false;
+            }
+            self.services.focus_result_ack_dispatch_pending = true;
+        }
+    }
+
     #[cfg(test)]
     pub fn new(
         intents: &'f IntentQueue,
@@ -305,12 +314,14 @@ impl<'f> Cx<'f> {
     }
 
     pub fn focus(&mut self, id: Id) {
+        self.invalidate_continuation_result_readiness();
         self.services.initial_focus_layer = None;
         self.services.deferred_focus = None;
         self.services.focus_request = Some(id);
     }
 
     pub fn focus_next(&mut self) {
+        self.invalidate_continuation_result_readiness();
         self.services.initial_focus_layer = None;
         self.services.focus_request = None;
         self.services.deferred_focus = Some(DeferredFocus {
@@ -349,6 +360,7 @@ impl<'f> Cx<'f> {
     }
 
     pub fn focus_prev(&mut self) {
+        self.invalidate_continuation_result_readiness();
         self.services.initial_focus_layer = None;
         self.services.focus_request = None;
         self.services.deferred_focus = Some(DeferredFocus {
@@ -466,6 +478,7 @@ impl<'f> Cx<'f> {
     }
 
     pub fn open_layer_with_token(&mut self, id: Id, spec: LayerSpec) -> Option<LayerOpening> {
+        self.invalidate_continuation_result_readiness();
         let restore = if spec.restore_focus {
             self.last.snapshot.focus.or(self.services.focus_request)
         } else {
@@ -504,27 +517,33 @@ impl<'f> Cx<'f> {
         let candidate = self.services.completions[position].0;
         if candidate.continuation_acknowledged()
             && let Some(owner) = candidate.continuation_owner()
-            && !self
+            && self
                 .services
                 .focus_continuation_result_acks
-                .contains(&(opening, owner))
+                .iter()
+                .find(|(ack_opening, ack_owner, _)| *ack_opening == opening && *ack_owner == owner)
+                .is_none_or(|(_, _, ready)| !*ready)
+            && candidate.restored_focus() == Some(owner)
+            && self.continuation_owner_is_current(opening, owner)
         {
             return None;
         }
         let completion = self.services.completions.remove(position).0;
-        if let Some(owner) = completion.continuation_owner() {
-            self.services
-                .focus_continuation_result_acks
-                .retain(|ack| *ack != (opening, owner));
-            if completion.continuation_acknowledged() {
-                self.services.continuation_command_pending_present = Some(owner);
-            }
-        }
         let still_continued = completion.continuation_owner().is_some_and(|owner| {
             completion.continuation_acknowledged()
                 && completion.restored_focus() == Some(owner)
                 && self.continuation_owner_is_current(opening, owner)
         });
+        if let Some(owner) = completion.continuation_owner() {
+            self.services
+                .focus_continuation_result_acks
+                .retain(|(ack_opening, ack_owner, _)| {
+                    *ack_opening != opening || *ack_owner != owner
+                });
+            if still_continued {
+                self.services.continuation_command_pending_present = Some(owner);
+            }
+        }
         Some(completion.with_continuation_acknowledged(still_continued))
     }
 
@@ -597,9 +616,23 @@ impl<'f> Cx<'f> {
             return false;
         };
         self.services.focus_continuation_outcomes.remove(position);
-        self.services
-            .focus_continuation_result_acks
-            .push((opening, owner));
+        if self.services.completions.iter().any(|(completion, _)| {
+            completion.opening() == opening
+                && completion.continuation_owner() == Some(owner)
+                && completion.continuation_acknowledged()
+        }) {
+            if self.services.focus_continuation_result_acks.len() == 64 {
+                let oldest = self.services.focus_continuation_result_acks.remove(0);
+                self.services.diagnostics.push(
+                    crate::diagnostics::Diagnostic::FocusContinuationUnacknowledged {
+                        owner: oldest.1,
+                    },
+                );
+            }
+            self.services
+                .focus_continuation_result_acks
+                .push((opening, owner, false));
+        }
         self.services.focus_result_ack_dispatch_pending = true;
         true
     }
@@ -688,6 +721,7 @@ impl<'f> Cx<'f> {
     }
 
     pub fn close_layer(&mut self, id: Id, with: Option<ActionKey>) {
+        self.invalidate_continuation_result_readiness();
         let ev = match with {
             Some(k) => LayerEvent::Closed(k),
             None => LayerEvent::Dismissed(DismissReason::Programmatic),
