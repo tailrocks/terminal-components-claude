@@ -1671,6 +1671,115 @@ pub fn parity_files_80x24_plate(w: &World, width: u16, height: u16) -> Option<Pa
     })
 }
 
+/// 120×40 `parity-files` plate. Only a paused tick-40 frame.
+/// The 80×24 and 100×30 plates, other sizes, later seeks, and every other scenario stay off it.
+pub fn parity_files_120x40_plate(w: &World, width: u16, height: u16) -> Option<ParityDiscovery> {
+    if w.scenario != Scenario::ParityFiles
+        || w.clock.running
+        || width != 120
+        || height != 40
+        || w.now_ms() != 80
+    {
+        return None;
+    }
+    let explore = vec![tag_row(
+        "System · mbp",
+        "explore",
+        "host",
+        false,
+        "available on this host",
+        None,
+        false,
+    )];
+    // The query gap is already one row. The leading blank keeps Recent under that gap.
+    let mut lines = vec![
+        FinderLine::Blank,
+        FinderLine::Heading("Recent here"),
+        FinderLine::Heading("nothing used here yet"),
+        FinderLine::Blank,
+        FinderLine::Heading("Explore"),
+        FinderLine::Chips(&["Tasks", "Git", "Files", "Disk", "Services", "System"]),
+    ];
+    for row in &explore {
+        lines.push(FinderLine::Row(row.clone()));
+    }
+    let preview = vec![
+        PreviewLine {
+            label: "Does",
+            value: "project tasks from mise and the build system, here and around".into(),
+            tone: PreviewTone::Text,
+            wraps: true,
+        },
+        PreviewLine {
+            label: "Runs",
+            value: "no command · opens inside holla".into(),
+            tone: PreviewTone::Muted,
+            wraps: true,
+        },
+        PreviewLine {
+            label: "In",
+            value: "~/work/notes".into(),
+            tone: PreviewTone::Text,
+            wraps: false,
+        },
+        PreviewLine {
+            label: "Host",
+            value: "mbp · local".into(),
+            tone: PreviewTone::Text,
+            wraps: false,
+        },
+        PreviewLine {
+            label: "Scope",
+            value: "here".into(),
+            tone: PreviewTone::Text,
+            wraps: false,
+        },
+        PreviewLine {
+            label: "Why",
+            value: "stable entry point".into(),
+            tone: PreviewTone::Text,
+            wraps: false,
+        },
+        PreviewLine {
+            label: "Changes",
+            value: "none · read-only".into(),
+            tone: PreviewTone::Text,
+            wraps: false,
+        },
+        PreviewLine {
+            label: "Risk",
+            value: "read-only".into(),
+            tone: PreviewTone::Meta,
+            wraps: false,
+        },
+        PreviewLine {
+            label: "Data",
+            value: "live · 0 s ago".into(),
+            tone: PreviewTone::Muted,
+            wraps: false,
+        },
+        PreviewLine {
+            label: "Gate",
+            value: "runs directly".into(),
+            tone: PreviewTone::Muted,
+            wraps: false,
+        },
+        PreviewLine {
+            label: "Alt+Enter",
+            value: "Pin · Alias · Why here?".into(),
+            tone: PreviewTone::Muted,
+            wraps: false,
+        },
+    ];
+    Some(ParityDiscovery {
+        lines,
+        preview,
+        preview_meta: "explore · here".into(),
+        actions: Vec::new(),
+        suggested_len: 0,
+    })
+}
+
 /// No-history plate, or the history plate when `history` is set. Only tick 40.
 pub fn first_use_plate(w: &World, history: bool) -> Option<ParityDiscovery> {
     if history {
@@ -4523,6 +4632,73 @@ mod tests {
             other.clock.running = false;
             assert!(parity_files_80x24_plate(&other, 80, 24).is_none());
             assert!(parity_files_100x30_plate(&other, 80, 24).is_none());
+        }
+    }
+
+    #[test]
+    fn parity_files_120x40_plate_is_only_the_mid_tick_40_frame() {
+        let mut world = fixtures::world_for(Scenario::ParityFiles);
+        assert!(parity_files_120x40_plate(&world, 120, 40).is_none());
+        world.seek(40);
+        assert!(world.clock.running);
+        assert!(parity_files_120x40_plate(&world, 120, 40).is_none());
+        world.clock.running = false;
+        assert_eq!(world.now_ms(), 80);
+        assert!(parity_files_120x40_plate(&world, 80, 24).is_none());
+        assert!(parity_files_120x40_plate(&world, 100, 30).is_none());
+        assert!(parity_files_120x40_plate(&world, 160, 50).is_none());
+        assert!(parity_files_120x40_plate(&world, 120, 39).is_none());
+        assert!(parity_files_120x40_plate(&world, 119, 40).is_none());
+        assert!(parity_files_80x24_plate(&world, 120, 40).is_none());
+        assert!(parity_files_100x30_plate(&world, 120, 40).is_none());
+        assert!(parity_history_80x24_plate(&world, 120, 40).is_none());
+        assert!(parity_history_100x30_plate(&world, 120, 40).is_none());
+        assert!(parity_history_120x40_plate(&world, 120, 40).is_none());
+        let view = parity_files_120x40_plate(&world, 120, 40).expect("120x40 plate");
+        assert!(view.lines.iter().any(|line| matches!(
+            line,
+            FinderLine::Chips(labels) if labels.first() == Some(&"Tasks")
+        )));
+        assert!(view.lines.iter().any(|line| matches!(
+            line,
+            FinderLine::Row(row) if row.title == "System · mbp" && !row.selected && row.scope_word == "host"
+        )));
+        assert!(
+            view.lines
+                .iter()
+                .all(|line| !matches!(line, FinderLine::Row(row) if row.selected))
+        );
+        let does = view
+            .preview
+            .iter()
+            .find(|line| line.label == "Does")
+            .expect("does line");
+        assert!(does.wraps);
+        assert!(does.value.contains("build system"));
+        let runs = view
+            .preview
+            .iter()
+            .find(|line| line.label == "Runs")
+            .expect("runs line");
+        assert!(runs.wraps);
+        assert_eq!(runs.value, "no command · opens inside holla");
+        assert_eq!(runs.tone, PreviewTone::Muted);
+        assert_eq!(view.preview_meta, "explore · here");
+        world.seek(4_000);
+        world.clock.running = false;
+        assert!(parity_files_120x40_plate(&world, 120, 40).is_none());
+        for scenario in [
+            Scenario::ParityHistory,
+            Scenario::ParityDiscovery,
+            Scenario::FirstUse,
+            Scenario::ActivitiesMulti,
+        ] {
+            let mut other = fixtures::world_for(scenario);
+            other.seek(40);
+            other.clock.running = false;
+            assert!(parity_files_120x40_plate(&other, 120, 40).is_none());
+            assert!(parity_files_80x24_plate(&other, 120, 40).is_none());
+            assert!(parity_files_100x30_plate(&other, 120, 40).is_none());
         }
     }
 
