@@ -252,6 +252,10 @@ impl<A: App> PaintedFrame<'_, A> {
         self.runtime.commit_frame();
         self.committed = true;
     }
+
+    pub const fn cursor_bar(&self) -> bool {
+        self.runtime.cursor_bar()
+    }
 }
 
 impl<A: App> Drop for PaintedFrame<'_, A> {
@@ -300,6 +304,7 @@ pub struct Runtime<A: App> {
     bootstrapped: bool,
     presented: bool,
     painted_cursor: Option<Position>,
+    painted_cursor_bar: bool,
     cache_snapshot: Option<std::sync::Arc<()>>,
     #[cfg(feature = "testing")]
     projection: Option<ProjectionFacts>,
@@ -358,6 +363,7 @@ impl<A: App> Runtime<A> {
             bootstrapped: false,
             presented: false,
             painted_cursor: None,
+            painted_cursor_bar: false,
             cache_snapshot: None,
             #[cfg(feature = "testing")]
             projection: None,
@@ -1336,13 +1342,16 @@ impl<A: App> Runtime<A> {
         let focus =
             snapshot.map_or_else(|| self.focus.current(), |value| value.last.snapshot.focus);
         self.frame.typing_resolved = typing::resolve(&mut self.frame, focus);
-        self.painted_cursor = cursor::resolve_requests(
+        let resolved = cursor::resolve_requests(
             &self.frame.cursors,
             self.frame.top,
             self.frame.typing_resolved.cursor,
             &mut self.frame.diagnostics,
             &self.frame.typing,
         );
+        self.painted_cursor = resolved.map(|(pos, _)| pos);
+        self.painted_cursor_bar =
+            resolved.is_some_and(|(_, shape)| shape == cursor::CursorShape::Bar);
     }
 
     fn commit_geometry(&mut self) {
@@ -1569,6 +1578,11 @@ impl<A: App> Runtime<A> {
 
     pub const fn cursor_position(&self) -> Option<Position> {
         self.cursor
+    }
+
+    /// The last present kept a steady bar. The session emits that shape.
+    pub const fn cursor_bar(&self) -> bool {
+        self.painted_cursor_bar
     }
 }
 
