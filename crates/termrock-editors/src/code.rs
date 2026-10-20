@@ -756,6 +756,7 @@ impl HighlightCache {
 pub struct CodeEditor<'a> {
     id: Id,
     rows: u16,
+    fill_height: bool,
     highlighter: Option<&'a dyn Highlighter>,
     segmenter: Option<&'a dyn Segmenter>,
     placeholder: Option<&'a str>,
@@ -771,6 +772,7 @@ impl fmt::Debug for CodeEditor<'_> {
         f.debug_struct("CodeEditor")
             .field("id", &self.id)
             .field("rows", &self.rows)
+            .field("fill_height", &self.fill_height)
             .field("highlighter", &self.highlighter.is_some())
             .field("segmenter", &self.segmenter.is_some())
             .field("placeholder", &self.placeholder)
@@ -802,6 +804,7 @@ impl<'a> CodeEditor<'a> {
         CodeEditor {
             id,
             rows,
+            fill_height: false,
             highlighter: None,
             segmenter: None,
             placeholder: None,
@@ -811,6 +814,16 @@ impl<'a> CodeEditor<'a> {
             disabled: false,
             ov: PartStyle::new(),
         }
+    }
+
+    /// Use the complete allocated height instead of the configured row limit.
+    ///
+    /// The default keeps [`CodeEditor::new`] row-limited. Set this for layouts that assign the
+    /// editor flexible vertical space; pass `false` to restore the configured row limit.
+    #[must_use]
+    pub const fn fill_height(mut self, fill: bool) -> Self {
+        self.fill_height = fill;
+        self
     }
 
     pub fn with_completion(
@@ -1250,7 +1263,11 @@ impl<'a> CodeEditor<'a> {
     )]
     pub fn draw(&self, ui: &mut Ui<'_>, area: Rect, st: &CodeEditorState) -> Rect {
         let used = Rect {
-            height: self.rows.min(area.height),
+            height: if self.fill_height {
+                area.height
+            } else {
+                self.rows.min(area.height)
+            },
             ..area
         };
         if used.is_empty() {
@@ -1592,7 +1609,14 @@ impl<'a> CodeEditor<'a> {
     pub fn measure(&self, _ui: &Ui<'_>, constraints: Constraints) -> Size {
         Size {
             min: (20, 2),
-            preferred: (80, self.rows.max(2)),
+            preferred: (
+                80,
+                if self.fill_height {
+                    constraints.max.1
+                } else {
+                    self.rows.max(2)
+                },
+            ),
         }
         .fit(constraints)
     }
@@ -1956,6 +1980,43 @@ mod tests {
             })
             .commit_presented();
         assert_eq!(state, before);
+    }
+
+    #[test]
+    fn fill_height_measurement_obeys_tight_loose_and_zero_constraints_without_state_effects() {
+        let state = CodeEditorState::new("SELECT\n界 e\u{301}");
+        let before = state.clone();
+        let fixed = CodeEditor::new(ID, 4);
+        let fill = CodeEditor::new(ID, 4).fill_height(true);
+        let area = Rect::new(0, 0, 40, 8);
+        let mut runtime = Runtime::new(Stub::default(), Theme::junie());
+        let mut buffer = Buffer::empty(area);
+
+        runtime
+            .draw_scene(area, &mut buffer, |ui, _| {
+                assert_eq!(
+                    fixed.measure(ui, Constraints::loose(40, 8)).preferred,
+                    (40, 4)
+                );
+                assert_eq!(
+                    fill.measure(ui, Constraints::loose(40, 8)).preferred,
+                    (40, 8)
+                );
+                assert_eq!(
+                    fill.measure(ui, Constraints::tight(17, 6)),
+                    Size::exact(17, 6)
+                );
+                assert_eq!(
+                    fill.measure(ui, Constraints::loose(40, 0)),
+                    Size {
+                        min: (20, 0),
+                        preferred: (40, 0),
+                    }
+                );
+            })
+            .commit_presented();
+
+        assert_eq!(state, before, "measurement changed editor state");
     }
 
     #[test]
