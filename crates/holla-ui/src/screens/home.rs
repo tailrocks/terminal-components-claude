@@ -419,6 +419,14 @@ impl HomeState {
             return;
         }
         if let Some(view) =
+            catalogue::parity_history_80x24_plate(world, ui.full().width, ui.full().height)
+            && paint_parity_history_80x24(ui, rows_area, &view)
+        {
+            // Steady bar on the placeholder. CUP 5;4. Do not write cursor bytes.
+            ui.set_bar_cursor(QUERY, termrock::Position::new(3, 4));
+            return;
+        }
+        if let Some(view) =
             catalogue::parity_history_100x30_plate(world, ui.full().width, ui.full().height)
             && paint_parity_history_100x30(ui, rows_area, &view)
         {
@@ -851,6 +859,27 @@ fn split_detail(area: Rect) -> Option<(Rect, Rect)> {
 /// One blank row stays above the action line. Overflow gets a black thumb and the preview fade.
 fn paint_first_use_80x24(ui: &mut Ui<'_>, area: Rect, view: &catalogue::ParityDiscovery) -> bool {
     paint_tag_list_plate(ui, area, view, 80, 24)
+}
+
+/// Frozen columns. Same grid as 100×30. Only the 80×24 frame reaches this painter.
+fn paint_parity_history_80x24(
+    ui: &mut Ui<'_>,
+    area: Rect,
+    view: &catalogue::ParityDiscovery,
+) -> bool {
+    paint_tag_list_plate_at(
+        ui,
+        area,
+        view,
+        80,
+        24,
+        Some(TagCols {
+            label: 12,
+            kind: 7,
+            scope: 4,
+            reason: 65,
+        }),
+    )
 }
 
 /// Frozen columns. `tag_columns` floors the label at 14; this row's kind starts two earlier.
