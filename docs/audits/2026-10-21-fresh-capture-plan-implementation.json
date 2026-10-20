@@ -19,7 +19,7 @@
       "prepare-live --fresh-cohort <id> --baseline-bin-dir <sealed-bin-dir>",
       "verify-live --fresh-cohort <id> --baseline-bin-dir <sealed-bin-dir>",
       "fresh-plan --cohort <id> --baseline-bin-dir <sealed-bin-dir>",
-      "verify-fresh-plan --cohort <id> --baseline-bin-dir <sealed-bin-dir>"
+      "verify-fresh-plan --cohort <id> --baseline-bin-dir <sealed-bin-dir> --expected-plan-sha256 <creation-receipt-digest>"
     ],
     "plan": {
       "inventory_visual_original": 28895,
@@ -34,15 +34,50 @@
       "product_acceptance": false
     }
   },
+  "step2_review_repairs": {
+    "reviewed_commit": "063175d4a3fca9d6c483a8d9bdac4ff5ec980eee",
+    "review_packet": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/fresh-plan-review-063175d/independent-review.json",
+    "review_packet_sha256": "eaea1bb0b68d53073b1d9cd4d0be7f0865a6dcdc617cb842f56a414e9ef5ed0b",
+    "repairs": [
+      "Fresh plan verification requires the exact raw-file SHA-256 returned by plan creation, retained outside the editable plan; recomputing the plan self-digest cannot replace this creation anchor.",
+      "Fresh plan commands default to the bounded 225-second step limit.",
+      "Fresh-run execution uses and fingerprints the explicit environment allowlist, including absent/default values for locale, timezone, terminal color, temporary paths, and other runtime-affecting keys; unlisted inherited keys are removed.",
+      "The plan binds selected Cargo, rustc, cargo-nextest, Python executable paths, byte hashes, stable file identities, versions, and selected toolchain provenance."
+    ],
+    "verification_scope": "Unit and actual frozen-source prepare/plan/verify only; no application process was launched.",
+    "remaining_review": "Independent exact-commit review required before any phase advancement or application launch."
+  },
+  "actual_fresh_plan_smoke": {
+    "root": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/fresh-plan-step2b-20261021",
+    "cohort_id": "frozen-20261021-serial-nonincr-r1-r2",
+    "baseline_source_commit": "4169783ae883788186d161af09ba9c481bd84e5c",
+    "baseline_tag_object": "2718a6b8127a522a3d351d0b4bdb7542fc8da542",
+    "tuiscotti_commit": "a1ea27f757d75d07b05499276cd932e9f8e067ad",
+    "frozen_source_sha256": "f74646a92505bd9baff29c89398af4d31a4812dd7d51acc84d755be61a383850",
+    "live_source_sha256": "74a5ca639350d9e70767576f5283469a8d57db4adf0a9758da8ae14f6aee1430",
+    "plan_self_sha256": "76c75ecb2409c44ee7f448e2079efe3771ff07d442b142b1042232fe36fdd315",
+    "external_creation_file_sha256": "b53268cb67905db41b4c448a862d1a6956596f6585271db2014a95c5d9b15d29",
+    "provenance_manifest_sha256": "4eb758b86e148fc0688704ffbd66b3d6589300dd59ffc3ee67b78a26806ad098",
+    "live_source_manifest_sha256": "00b29204003df9e3679d0ebe4391d1620748a0f45fb9cbef11a5573d5b6fd36e",
+    "inventory": {"visual_original": 28895, "visual_extensions": 174, "visual_total": 29069, "ordinary": 20},
+    "prepare_exit": 0,
+    "prepare_live_exit": 0,
+    "fresh_plan_exit": 0,
+    "verify_fresh_plan_exit": 0,
+    "verify_used_external_creation_file_sha256": true,
+    "application_launches": 0,
+    "phase_advances": 0,
+    "capture_or_replay": 0
+  },
   "preserved_guards": [
     "Legacy prepare-live and verify-live continue to require the unchanged frozen v1 tuple decision and historical build.json pair.",
     "Fresh mode requires the exact separately reviewed cohort, frozen source, pinned tool and harness inputs, and all four sealed binary hashes; it does not load historical build.json or transfer the v1 tuple exception.",
-    "The plan is exclusive-create, read-only, self-digested canonical JSON; verification regenerates all source, cohort, review, harness, environment, inventory, and phase bindings before future execution.",
+    "The plan is exclusive-create, read-only, self-digested canonical JSON; verification additionally requires the independently retained raw-file creation digest and regenerates all source, cohort, review, harness, environment, inventory, and phase bindings before future execution.",
     "Plans contain only allowlisted environment value hashes, never secret values or runner receipt key bytes.",
     "The fresh-capture review grants no candidate comparison, checkpoint reference approval, or product acceptance."
   ],
   "validation": {
-    "python_unittest_frozen_baseline": "58 passed",
+    "python_unittest_frozen_baseline": "60 passed",
     "py_compile": "passed",
     "cli_help_smokes": "passed",
     "diff_check": "passed"
