@@ -368,6 +368,7 @@ pub struct Runtime<A: App> {
     layer_events_pending: Vec<(Id, LayerEvent)>,
     focus_out_closed: Vec<Id>,
     completion_waiting: Vec<OpenLayer>,
+    continuation_cancels_waiting: Vec<(crate::layer::LayerOpening, Id)>,
     completion_dispatch_pending: bool,
     unsettled: usize,
     bootstrapped: bool,
@@ -393,6 +394,44 @@ impl<A: App> core::fmt::Debug for Runtime<A> {
 }
 
 impl<A: App> Runtime<A> {
+    fn prepared_continuation_pending(&self) -> Option<Id> {
+        self.completion_waiting
+            .iter()
+            .find_map(|layer| layer.spec.continues_focus_owner)
+            .or_else(|| {
+                self.continuation_cancels_waiting
+                    .first()
+                    .map(|(_, owner)| *owner)
+            })
+            .or_else(|| {
+                self.services
+                    .completions
+                    .first()
+                    .and_then(|(completion, _)| completion.continuation_owner())
+            })
+            .or_else(|| {
+                self.services
+                    .focus_continuation_outcomes
+                    .first()
+                    .map(|(outcome, _)| outcome.owner())
+            })
+            .or_else(|| {
+                self.services
+                    .continuation_command_pending_present
+                    .as_ref()
+                    .copied()
+            })
+    }
+
+    fn refuse_legacy_continuation_draw(&mut self) {
+        if let Some(owner) = self.prepared_continuation_pending() {
+            self.services
+                .diagnostics
+                .push(Diagnostic::FocusContinuationUnacknowledged { owner });
+            panic!("focus continuation requires Runtime::prepare and prepared output");
+        }
+    }
+
     fn invalidate_prepared(&mut self) {
         self.prepared = None;
         self.presented = false;
@@ -440,6 +479,7 @@ impl<A: App> Runtime<A> {
             layer_events_pending: Vec::new(),
             focus_out_closed: Vec::new(),
             completion_waiting: Vec::new(),
+            continuation_cancels_waiting: Vec::new(),
             completion_dispatch_pending: false,
             unsettled: 0,
             bootstrapped: false,
@@ -1127,6 +1167,13 @@ impl<A: App> Runtime<A> {
             .map(|layer| layer.opening)
             .collect();
         let closed_openings: Vec<_> = closed.iter().map(|layer| layer.opening).collect();
+        let closed_continuations: Vec<_> = self
+            .services
+            .focus_continuation_acks
+            .iter()
+            .filter(|(opening, _, _)| closed_openings.contains(opening))
+            .map(|(opening, owner, _)| (*opening, *owner))
+            .collect();
         let is_descendant = |child: &OpenLayer, ancestor: &OpenLayer| {
             let mut parent = child.opening.parent();
             while let Some(current) = parent {
@@ -1167,6 +1214,18 @@ impl<A: App> Runtime<A> {
             });
             if !superseded {
                 self.completion_waiting.push(*layer);
+            }
+        }
+        for (opening, owner) in closed_continuations {
+            if !self
+                .completion_waiting
+                .iter()
+                .any(|waiting| waiting.opening == opening)
+                && !self
+                    .continuation_cancels_waiting
+                    .contains(&(opening, owner))
+            {
+                self.continuation_cancels_waiting.push((opening, owner));
             }
         }
         self.services
@@ -1330,6 +1389,7 @@ impl<A: App> Runtime<A> {
     pub const fn needs_settle(&self) -> bool {
         self.pending_focus.is_some()
             || self.completion_dispatch_pending
+            || self.services.focus_result_ack_dispatch_pending
             || (self.bootstrapped && self.pending_tick)
     }
 
@@ -1427,6 +1487,7 @@ impl<A: App> Runtime<A> {
         }
         let _ = self.prepared.take();
         self.presented = true;
+        self.services.continuation_command_pending_present = None;
         for (_, age) in &mut self.services.completions {
             *age = age.saturating_add(1);
         }
@@ -1467,7 +1528,10 @@ impl<A: App> Runtime<A> {
             return Response::ignored();
         }
         let Some((from, to, via)) = self.pending_focus.take() else {
-            if core::mem::take(&mut self.completion_dispatch_pending) {
+            let completion_dispatch = core::mem::take(&mut self.completion_dispatch_pending);
+            let focus_result_ack_dispatch =
+                core::mem::take(&mut self.services.focus_result_ack_dispatch_pending);
+            if completion_dispatch || focus_result_ack_dispatch {
                 self.intents.clear();
                 let r = self.run_update(None, UpdateCause::Settle, None);
                 return self.finish(r);
@@ -1615,6 +1679,7 @@ impl<A: App> Runtime<A> {
     }
 
     pub fn draw(&mut self, frame: &mut Frame<'_>) -> PaintedFrame<'_, A> {
+        self.refuse_legacy_continuation_draw();
         let area = frame.area();
         let buf = frame.buffer_mut();
         self.draw_with_buffer(area, buf, None, A::draw);
@@ -1813,10 +1878,24 @@ impl<A: App> Runtime<A> {
         }
         self.staged_focus = None;
         self.last.snapshot.focus = self.focus.current();
-        if self.pending_focus.is_none() && !self.completion_waiting.is_empty() {
+        if self.pending_focus.is_none()
+            && (!self.completion_waiting.is_empty()
+                || !self.continuation_cancels_waiting.is_empty())
+        {
             let restored_focus = self.focus.current();
             let mut dispatch_completion = false;
-            for layer in self.completion_waiting.drain(..) {
+            let canceled = core::mem::take(&mut self.continuation_cancels_waiting);
+            for (opening, owner) in canceled {
+                self.store_focus_continuation_outcome(FocusContinuationOutcome::new(
+                    opening,
+                    owner,
+                    restored_focus,
+                    false,
+                ));
+                dispatch_completion = true;
+            }
+            let waiting = core::mem::take(&mut self.completion_waiting);
+            for layer in waiting {
                 let Some(event) = layer.closed_event else {
                     continue;
                 };
@@ -1855,15 +1934,7 @@ impl<A: App> Runtime<A> {
                         restored_focus,
                         continuation_acknowledged,
                     );
-                    if self.services.focus_continuation_outcomes.len() == 64 {
-                        let oldest = self.services.focus_continuation_outcomes.remove(0).0;
-                        self.services.diagnostics.push(
-                            Diagnostic::FocusContinuationUnacknowledged {
-                                owner: oldest.owner(),
-                            },
-                        );
-                    }
-                    self.services.focus_continuation_outcomes.push((outcome, 0));
+                    self.store_focus_continuation_outcome(outcome);
                 }
                 if self.services.completions.len() == 64 {
                     let oldest = self.services.completions.remove(0).0;
@@ -1895,6 +1966,18 @@ impl<A: App> Runtime<A> {
         self.reconcile_hover();
 
         self.cursor = self.painted_cursor;
+    }
+
+    fn store_focus_continuation_outcome(&mut self, outcome: FocusContinuationOutcome) {
+        if self.services.focus_continuation_outcomes.len() == 64 {
+            let oldest = self.services.focus_continuation_outcomes.remove(0).0;
+            self.services
+                .diagnostics
+                .push(Diagnostic::FocusContinuationUnacknowledged {
+                    owner: oldest.owner(),
+                });
+        }
+        self.services.focus_continuation_outcomes.push((outcome, 0));
     }
 
     fn reconcile_held_pointer(&mut self) {
@@ -2146,6 +2229,7 @@ impl<A: App> Runtime<A> {
     }
 
     pub fn draw_buffer(&mut self, area: Rect, buf: &mut Buffer) -> PaintedFrame<'_, A> {
+        self.refuse_legacy_continuation_draw();
         self.draw_with_buffer(area, buf, None, A::draw);
         PaintedFrame {
             runtime: self,
@@ -2519,11 +2603,13 @@ mod tests {
     const FOCUS_B: Id = Id::root("focus-b");
     const MULTI_PARENT: Id = Id::root("multi-parent");
     const MULTI_CHILD: Id = Id::root("multi-child");
+    const MULTI_GRANDCHILD: Id = Id::root("multi-grandchild");
 
     #[derive(Default)]
     struct MultiCloseProbe {
         parent: Option<crate::layer::LayerOpening>,
         child: Option<crate::layer::LayerOpening>,
+        child_outcome: Option<bool>,
         completed: Vec<crate::layer::LayerOpening>,
     }
 
@@ -2535,12 +2621,44 @@ mod tests {
             {
                 self.parent = cx.open_layer_with_token(
                     MULTI_PARENT,
-                    LayerSpec::modal(MULTI_PARENT).continues_focus(A),
+                    LayerSpec::modal(MULTI_PARENT)
+                        .initial_focus(B)
+                        .continues_focus(A),
                 );
+            }
+            if cx
+                .intents(A)
+                .any(|intent| matches!(intent, Intent::FocusOut { to: Some(B) }))
+                && cx.focus_is_continued(A, B)
+            {
+                assert!(cx.acknowledge_focus_continuation(A, B));
+            }
+            if cx
+                .intents(B)
+                .any(|intent| matches!(intent, Intent::Key(key) if key.code == KeyCode::Char('n')))
+            {
                 self.child = cx.open_layer_with_token(
                     MULTI_CHILD,
-                    LayerSpec::modal(MULTI_CHILD).continues_focus(A),
+                    LayerSpec::modal(MULTI_CHILD)
+                        .initial_focus(MULTI_GRANDCHILD)
+                        .continues_focus(B),
                 );
+            }
+            if cx.intents(B).any(|intent| {
+                matches!(
+                    intent,
+                    Intent::FocusOut {
+                        to: Some(MULTI_GRANDCHILD)
+                    }
+                )
+            }) && cx.focus_is_continued(B, MULTI_GRANDCHILD)
+            {
+                assert!(cx.acknowledge_focus_continuation(B, MULTI_GRANDCHILD));
+            }
+            if cx
+                .intents(MULTI_GRANDCHILD)
+                .any(|intent| matches!(intent, Intent::Key(key) if key.code == KeyCode::Char('x')))
+            {
                 cx.close_layer(MULTI_CHILD, None);
                 cx.close_layer(MULTI_PARENT, None);
             }
@@ -2549,16 +2667,26 @@ mod tests {
                     self.completed.push(opening);
                 }
             }
+            if let Some(opening) = self.child
+                && let Some(outcome) = cx.focus_continuation_result(opening, B)
+            {
+                self.child_outcome = Some(outcome.continued());
+                let _ = cx.acknowledge_focus_continuation_result(opening, B);
+            }
             Response::ignored()
         }
 
         fn draw(&self, ui: &mut Ui<'_>) {
             ui.register_control(A, Rect::new(0, 0, 8, 1), Focusability::Focusable);
             let _ = ui.layer(MULTI_PARENT, |ui, area| {
+                ui.register_control(B, Rect::new(area.x, area.y, 8, 1), Focusability::Focusable);
                 let _ = ui.layer(MULTI_CHILD, |ui, child_area| {
-                    ui.register_control(B, child_area, Focusability::Focusable);
+                    ui.register_control(
+                        MULTI_GRANDCHILD,
+                        Rect::new(child_area.x, child_area.y, 8, 1),
+                        Focusability::Focusable,
+                    );
                 });
-                ui.register_control(A, area, Focusability::Focusable);
             });
         }
     }
@@ -2569,13 +2697,18 @@ mod tests {
         let _ = rt.initialize();
         let token = rt.prepare(SCREEN).expect("initial frame prepares");
         present(&mut rt, token);
-        let _ = rt.handle(key(KeyCode::Char('m'))).expect("layers close");
-        let token = rt.prepare(SCREEN).expect("direct close receipts settle");
-        assert_eq!(rt.app().completed.len(), 1);
-        assert_eq!(
-            rt.app().completed[0],
-            rt.app().parent.expect("parent opening")
-        );
+        rt.set_focus(Some(A));
+        let token = rt.prepare(SCREEN).expect("owner focus prepares");
+        present(&mut rt, token);
+        let _ = rt.handle(key(KeyCode::Char('m'))).expect("parent opens");
+        let token = rt.prepare(SCREEN).expect("parent focus settles");
+        present(&mut rt, token);
+        let _ = rt.handle(key(KeyCode::Char('n'))).expect("child opens");
+        let token = rt.prepare(SCREEN).expect("child focus settles");
+        present(&mut rt, token);
+        let _ = rt.handle(key(KeyCode::Char('x'))).expect("ancestor closes");
+        let token = rt.prepare(SCREEN).expect("descendant cancellation settles");
+        assert_eq!(rt.app().child_outcome, Some(false));
         assert!(
             !rt.app()
                 .completed
@@ -2649,6 +2782,7 @@ mod tests {
         outcome: Option<(Option<Id>, bool)>,
         outcome_acknowledgements: usize,
         completion: Option<(Option<Id>, LayerEvent, bool)>,
+        completion_before_outcome_ack: bool,
     }
 
     impl App for ContinuationProbe {
@@ -2700,6 +2834,7 @@ mod tests {
                 && self.consume_completion
                 && let Some(completion) = cx.take_layer_completion(opening)
             {
+                self.completion_before_outcome_ack = self.outcome_acknowledgements == 0;
                 self.completion = Some((
                     completion.restored_focus(),
                     completion.event(),
@@ -2922,9 +3057,52 @@ mod tests {
         );
         assert_eq!(rt.app().outcome, Some((Some(CONTINUED_OWNER), true)));
         assert_eq!(rt.app().outcome_acknowledgements, 1);
+        assert!(!rt.app().completion_before_outcome_ack);
         assert!(!rt.app().duplicate_ack_succeeded);
+        assert!(
+            std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+                let mut buffer = Buffer::empty(SCREEN);
+                let _frame = rt.draw_buffer(SCREEN, &mut buffer);
+            }))
+            .is_err()
+        );
         present(&mut rt, token);
         assert!(rt.services.focus_continuation_outcomes.is_empty());
+    }
+
+    #[test]
+    fn legacy_draw_refuses_continuation_receipts_before_projection() {
+        let mut rt = Runtime::new(
+            ContinuationProbe {
+                acknowledge_owner: true,
+                consume_completion: false,
+                ..ContinuationProbe::default()
+            },
+            Theme::junie(),
+        );
+        let _ = rt.initialize();
+        let token = rt.prepare(SCREEN).expect("initial frame prepares");
+        present(&mut rt, token);
+        rt.set_focus(Some(CONTINUED_OWNER));
+        let token = rt.prepare(SCREEN).expect("owner focus prepares");
+        present(&mut rt, token);
+        let _ = rt.handle(key(KeyCode::Char('m'))).expect("menu opens");
+        let token = rt.prepare(SCREEN).expect("menu opens");
+        present(&mut rt, token);
+        let _ = rt.handle(key(KeyCode::Char('x'))).expect("menu closes");
+        let _token = rt.prepare(SCREEN).expect("completion is prepared");
+        assert!(
+            std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+                let mut buffer = Buffer::empty(SCREEN);
+                let _frame = rt.draw_buffer(SCREEN, &mut buffer);
+            }))
+            .is_err()
+        );
+        assert!(rt.diagnostics().iter().any(|diagnostic| matches!(
+            diagnostic,
+            Diagnostic::FocusContinuationUnacknowledged { owner }
+                if *owner == CONTINUED_OWNER
+        )));
     }
 
     #[test]
