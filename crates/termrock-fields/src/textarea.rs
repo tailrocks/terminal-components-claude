@@ -65,6 +65,34 @@ impl TextAreaGeometry {
         Some((line, col))
     }
 
+    /// Project an active captured drag through the parent window. Unlike a
+    /// press, a captured drag remains meaningful after leaving `TEXT`; the
+    /// old logical child behavior extended to the document edge from the
+    /// captured origin. Clamp above the visible window to its first row and
+    /// below it to the last logical row.
+    fn captured_document_point(
+        self,
+        pos: Position,
+        child_scroll: usize,
+        horizontal_scroll: u16,
+    ) -> Option<(usize, usize)> {
+        let logical_rows = self.window.logical_rows();
+        if logical_rows == 0 {
+            return None;
+        }
+        let visible_body = self.window.visible_body();
+        let physical_delta = usize::from(pos.y.saturating_sub(visible_body.y));
+        let source_row = self
+            .window
+            .first_source_row()
+            .saturating_add(physical_delta)
+            .min(logical_rows.saturating_sub(1));
+        let line = child_scroll.checked_add(source_row)?;
+        let col = usize::from(pos.x.saturating_sub(self.text.x))
+            .saturating_add(usize::from(horizontal_scroll));
+        Some((line, col))
+    }
+
     fn physical_row(self, document_row: usize, child_scroll: usize) -> Option<u16> {
         let source_row = document_row.checked_sub(child_scroll)?;
         let y = self.window.physical_row_for_source(source_row)?;
@@ -88,13 +116,11 @@ impl TextAreaGeometry {
         (x <= self.text.right()).then_some(Position::new(x, y))
     }
 
-    fn logical_inner_width(self, content_len: usize) -> u16 {
-        let scrollbar = usize::from(content_len > self.window.logical_rows());
-        self.window
-            .visible_body()
-            .width
-            .saturating_sub(2)
-            .saturating_sub(u16::try_from(scrollbar).unwrap_or(u16::MAX))
+    fn logical_inner_width(self) -> u16 {
+        // Keep the established editing contract: horizontal scrolling uses
+        // the body width minus the left gutter and the trailing cell. The
+        // vertical scrollbar does not reduce this logical editor width.
+        self.window.visible_body().width.saturating_sub(3)
     }
 }
 
@@ -937,7 +963,7 @@ impl<'a> TextArea<'a> {
                     ..
                 } if st.is_editing() => {
                     if let Some((line, col)) = geometry.and_then(|geometry| {
-                        geometry.document_point(pos, displayed_scroll, displayed_hscroll)
+                        geometry.captured_document_point(pos, displayed_scroll, displayed_hscroll)
                     }) {
                         if let Some(anchor) = st.pointer_anchor {
                             let line = line.min(st.draft.line_count().saturating_sub(1));
@@ -1002,8 +1028,7 @@ impl<'a> TextArea<'a> {
                 st.scroll.ensure_visible(cur.line);
             }
             if let Some(geometry) = geometry {
-                st.draft
-                    .scroll_into_view(geometry.logical_inner_width(st.draft.line_count()));
+                st.draft.scroll_into_view(geometry.logical_inner_width());
             }
         }
         if let Some(opening) = st.focus_continuation
@@ -1090,8 +1115,7 @@ impl<'a> TextArea<'a> {
             st.scroll.set_content(st.draft.line_count());
             st.scroll.ensure_visible(cursor.line);
             if let Some(geometry) = Self::prepared_geometry(cx, self.id) {
-                st.draft
-                    .scroll_into_view(geometry.logical_inner_width(st.draft.line_count()));
+                st.draft.scroll_into_view(geometry.logical_inner_width());
             }
         }
         applied
@@ -1243,6 +1267,7 @@ impl<'a> TextArea<'a> {
             height: content.height,
         };
         ui.register_decor(self.id, PartRef::of(Part::TEXT), inner);
+        let geometry = TextAreaGeometry::new(window, inner);
         ui.register_editor(self.id, body, focusability, declared);
         ui.publish_bindings(self.id, live, BINDINGS);
 
@@ -1266,10 +1291,18 @@ impl<'a> TextArea<'a> {
         if shown.is_empty() && !editing {
             if let Some(p) = self.placeholder {
                 let ps = style(ui, Part::PLACEHOLDER, live);
-                match ov.slot_for(Part::PLACEHOLDER) {
-                    Some(f) => f(ui, first_row(inner)),
-                    None => {
-                        ui.paint_str(first_row(inner), p, ps.style);
+                if let Some(row) = geometry.and_then(|geometry| {
+                    geometry.physical_row(0, st.scroll.offset()).map(|y| Rect {
+                        y,
+                        height: 1,
+                        ..inner
+                    })
+                }) {
+                    match ov.slot_for(Part::PLACEHOLDER) {
+                        Some(f) => f(ui, first_row(row)),
+                        None => {
+                            ui.paint_str(first_row(row), p, ps.style);
+                        }
                     }
                 }
             }
@@ -1278,7 +1311,6 @@ impl<'a> TextArea<'a> {
             let sel_style = style(ui, Part::ROW, live | StateFlags::SELECTED).style;
             let mut view = st.scroll;
             view.apply_layout(window.logical_rows(), lines);
-            let geometry = TextAreaGeometry::new(window, inner);
             let hs = usize::from(if editing { st.draft.hscroll() } else { 0 });
             let sel = if editing { st.draft.selection() } else { None };
             let mut start = 0usize;
