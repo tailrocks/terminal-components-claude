@@ -6,7 +6,7 @@ use termrock_runtime::{
     App, Cx, Id, ItemKey, KeyCode, Part, PartRef, Response, RowUi, Ui, UpdateCause,
 };
 use termrock_test_support::Harness;
-use termrock_theme::{ColorLevel, Modifier, Theme};
+use termrock_theme::{ColorLevel, CursorStyle, Modifier, Theme};
 use unicode_segmentation::UnicodeSegmentation;
 const ID: Id = Id::root("columns.list");
 const ITEMS: &[Item<'static>] = &[
@@ -40,6 +40,8 @@ struct Page {
     custom: bool,
     searchable: bool,
     policy: FilterPolicy,
+    cursor_style: CursorStyle,
+    metadata_gap: u16,
 }
 fn custom_row(_: &Item<'_>, row: &mut RowUi<'_>) {
     row.label("CUSTOM");
@@ -50,6 +52,8 @@ impl Page {
             .searchable(self.searchable)
             .filter(self.policy)
             .item_layout(self.layout)
+            .cursor_style(self.cursor_style)
+            .metadata_gap(self.metadata_gap)
     }
 }
 impl App for Page {
@@ -87,10 +91,35 @@ fn page(
     custom: bool,
     level: ColorLevel,
 ) -> Harness<Page> {
+    page_with_policy(
+        layout,
+        width,
+        height,
+        custom,
+        level,
+        CursorStyle::Bar,
+        1,
+        ITEMS.to_vec(),
+    )
+}
+#[expect(
+    clippy::too_many_arguments,
+    reason = "the test fixture keeps each render setting explicit"
+)]
+fn page_with_policy(
+    layout: ItemRowLayout,
+    width: u16,
+    height: u16,
+    custom: bool,
+    level: ColorLevel,
+    cursor_style: CursorStyle,
+    metadata_gap: u16,
+    items: Vec<Item<'static>>,
+) -> Harness<Page> {
     Harness::new(
         Page {
             state: FilterListState::default(),
-            items: ITEMS.to_vec(),
+            items,
             layout,
             width,
             height,
@@ -98,6 +127,8 @@ fn page(
             custom,
             searchable: false,
             policy: FilterPolicy::Caller,
+            cursor_style,
+            metadata_gap,
         },
         Theme::junie().for_level(level),
         84,
@@ -162,6 +193,111 @@ fn columns_align_complete_projection_and_emphasize_original_graphemes() {
         );
         assert!(h.diagnostics().is_empty(), "{:?}", h.diagnostics());
     }
+}
+
+#[test]
+fn explicit_default_policies_preserve_full_frame_and_cursor_at_each_color_level() {
+    for level in [
+        ColorLevel::TrueColor,
+        ColorLevel::Ansi256,
+        ColorLevel::Ansi16,
+        ColorLevel::Mono,
+    ] {
+        let default = page(ItemRowLayout::Columns, 64, 4, false, level);
+        let explicit = page_with_policy(
+            ItemRowLayout::Columns,
+            64,
+            4,
+            false,
+            level,
+            CursorStyle::Bar,
+            1,
+            ITEMS.to_vec(),
+        );
+        assert_eq!(default.buffer(), explicit.buffer(), "{level:?}");
+        assert_eq!(default.cursor(), explicit.cursor(), "{level:?}");
+    }
+}
+
+#[test]
+fn fill_cursor_uses_selection_colors_and_keeps_the_reserved_gutter_blank() {
+    let h = page_with_policy(
+        ItemRowLayout::Columns,
+        64,
+        4,
+        false,
+        ColorLevel::TrueColor,
+        CursorStyle::Fill,
+        1,
+        ITEMS.to_vec(),
+    );
+    let row = row(&h, 1);
+    let gutter = h.cell(row.x, row.y);
+    let label = h.cell(row.x.saturating_add(4), row.y);
+    let theme = Theme::junie();
+    assert_eq!(gutter.symbol(), " ");
+    assert_eq!(gutter.bg, theme.color.selection_bg);
+    assert_eq!(label.bg, theme.color.selection_bg);
+    assert_eq!(label.fg, theme.color.selection_fg);
+    assert!(h.app().state.cursor().is_some());
+    assert!(h.diagnostics().is_empty(), "{:?}", h.diagnostics());
+}
+
+#[test]
+fn metadata_gap_only_changes_rows_with_metadata_columns() {
+    let plain = vec![Item::new(ItemKey::num(10), "界 label")];
+    let plain_default = page_with_policy(
+        ItemRowLayout::Columns,
+        64,
+        2,
+        false,
+        ColorLevel::TrueColor,
+        CursorStyle::Bar,
+        1,
+        plain.clone(),
+    );
+    let plain_wide_gap = page_with_policy(
+        ItemRowLayout::Columns,
+        64,
+        2,
+        false,
+        ColorLevel::TrueColor,
+        CursorStyle::Bar,
+        2,
+        plain,
+    );
+    assert_eq!(plain_default.buffer(), plain_wide_gap.buffer());
+
+    let rich = vec![
+        Item::new(ItemKey::num(11), "e\u{301}界 label")
+            .detail("public.alpha")
+            .tag("open")
+            .group("Tables"),
+    ];
+    let narrow_gap = page_with_policy(
+        ItemRowLayout::Columns,
+        64,
+        2,
+        false,
+        ColorLevel::TrueColor,
+        CursorStyle::Bar,
+        1,
+        rich.clone(),
+    );
+    let baseline_gap = page_with_policy(
+        ItemRowLayout::Columns,
+        64,
+        2,
+        false,
+        ColorLevel::TrueColor,
+        CursorStyle::Bar,
+        2,
+        rich,
+    );
+    assert_ne!(narrow_gap.buffer(), baseline_gap.buffer());
+    assert!(baseline_gap.text().contains("public.alpha"));
+    assert!(baseline_gap.text().contains("open"));
+    assert!(baseline_gap.text().contains("Tables"));
 }
 #[test]
 fn scroll_top_repeats_group_without_shifting_columns_or_mutating_on_draw() {
@@ -324,6 +460,8 @@ fn measurement_uses_filtered_projection_not_hidden_source_items() {
             custom: false,
             searchable: true,
             policy: FilterPolicy::Label,
+            cursor_style: CursorStyle::Bar,
+            metadata_gap: 1,
         },
         Theme::junie(),
         84,
@@ -362,6 +500,8 @@ fn independent_ancestor_top_clip_repeats_first_visible_group() {
             custom: false,
             searchable: false,
             policy: FilterPolicy::Caller,
+            cursor_style: CursorStyle::Bar,
+            metadata_gap: 1,
         }),
         Theme::junie(),
         84,
@@ -452,6 +592,8 @@ fn owner_part_styles_win_over_painter_defaults_in_columns_mode() {
                     custom: false,
                     searchable: false,
                     policy: FilterPolicy::Caller,
+                    cursor_style: CursorStyle::Bar,
+                    metadata_gap: 1,
                 },
             },
             theme,
