@@ -3,19 +3,19 @@ use core::cell::Cell;
 use ratatui_core::buffer::Buffer;
 use ratatui_core::layout::Rect;
 use termrock_controls::choice::LabelRadio;
-use termrock_core::event::Input;
+use termrock_core::action::{Action, ActionKey};
+use termrock_core::event::{Input, Key, KeyCode, KeyModifiers, MouseKind};
 use termrock_core::id::{Id, ItemKey, Part, PartRef};
 use termrock_core::validate::FieldError;
 use termrock_fields::input::TextInput;
 use termrock_fields::textarea::TextArea;
 use termrock_forms::{
-    FieldKind, FieldMut, FieldRef, FieldSpec, Form, FormData, FormLane, FormLayout,
+    FieldKind, FieldMut, FieldRef, FieldSpec, Form, FormAction, FormData, FormLane, FormLayout,
     FormLayoutError, FormRow, FormState, GroupKey,
 };
 use termrock_layout::{Constraints, Size, SplitAxis, SplitModel};
 use termrock_overlays::select::LabelSelect;
 use termrock_runtime::diagnostics::Diagnostic;
-use termrock_runtime::hit::RegionKind;
 use termrock_runtime::{App, Cx, FrameRead, Response, Runtime, Ui};
 use termrock_theme::Theme;
 
@@ -29,6 +29,9 @@ const ENDPOINT: Id = Id::root("consumer.notifications.endpoint");
 const MESSAGE: Id = Id::root("consumer.notifications.message");
 const LANE_LEFT: Id = Id::root("consumer.notifications.left-lane");
 const LANE_RIGHT: Id = Id::root("consumer.notifications.right-lane");
+const LANE_SECOND: Id = Id::root("consumer.notifications.secondary-lane");
+const STORE: ActionKey = ActionKey::custom("store-preferences");
+const STORE_ACTIONS: &[Action<'static>] = &[Action::new(STORE, "Store preferences")];
 
 const INTERVALS: &[&str] = &["Immediately", "Hourly", "Daily"];
 const SHORT_TRANSPORTS: &[&str] = &["Mail", "Matrix", "Webhook"];
@@ -99,6 +102,15 @@ impl FormData for Notifications {
             TRANSPORT => self.transports,
             _ => &[],
         }
+    }
+
+    fn value_and_options(&mut self, id: Id) -> (FieldMut<'_>, &[&str]) {
+        let options = match id {
+            INTERVAL => INTERVALS,
+            TRANSPORT => self.transports,
+            _ => &[],
+        };
+        (self.value_mut(id), options)
     }
 
     fn visible(&self, id: Id) -> bool {
@@ -206,7 +218,10 @@ struct LogicalAreaApp<'a> {
 
 impl App for LogicalAreaApp<'_> {
     fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
-        self.update_area = cx.area(FORM);
+        self.update_area = cx
+            .layout(FORM)
+            .and_then(|facts| facts.logical_area)
+            .or_else(|| cx.area(FORM));
         self.form
             .update(cx, &mut self.state, &mut self.data)
             .erase()
@@ -215,6 +230,140 @@ impl App for LogicalAreaApp<'_> {
     fn draw(&self, ui: &mut Ui<'_>) {
         self.form.draw(ui, ui.full(), &self.state, &self.data);
     }
+}
+
+struct ClippedRadioConsumer {
+    state: FormState,
+    data: Notifications,
+}
+
+impl ClippedRadioConsumer {
+    fn fields() -> [FieldSpec<'static>; 2] {
+        [
+            FieldSpec::new(
+                TRANSPORT,
+                "Transport",
+                FieldKind::Radio(LabelRadio::new(TRANSPORT)),
+            ),
+            FieldSpec::new(
+                DESTINATION,
+                "Recipient",
+                FieldKind::Text(TextInput::new(DESTINATION)),
+            ),
+        ]
+    }
+}
+
+impl App for ClippedRadioConsumer {
+    fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+        const ROWS: &[FormRow] = &[FormRow::Field(TRANSPORT), FormRow::Field(DESTINATION)];
+        const LANES: &[FormLane<'static>] = &[FormLane::new(LANE_LEFT, ROWS)];
+        let fields = Self::fields();
+        let layout = FormLayout::new(LANES);
+        let form = Form::new(FORM, &fields)
+            .try_layout(&layout)
+            .expect("valid single lane");
+        form.update(cx, &mut self.state, &mut self.data).erase()
+    }
+
+    fn draw(&self, ui: &mut Ui<'_>) {
+        const ROWS: &[FormRow] = &[FormRow::Field(TRANSPORT), FormRow::Field(DESTINATION)];
+        const LANES: &[FormLane<'static>] = &[FormLane::new(LANE_LEFT, ROWS)];
+        let fields = Self::fields();
+        let layout = FormLayout::new(LANES);
+        let form = Form::new(FORM, &fields)
+            .try_layout(&layout)
+            .expect("valid single lane");
+        form.draw(ui, ui.full(), &self.state, &self.data);
+    }
+}
+
+struct ActionConsumer {
+    state: FormState,
+    data: Notifications,
+    reverse: bool,
+    saves: usize,
+}
+
+impl ActionConsumer {
+    fn fields() -> [FieldSpec<'static>; 2] {
+        [
+            FieldSpec::new(
+                TRANSPORT,
+                "Primary mode",
+                FieldKind::Radio(LabelRadio::new(TRANSPORT)),
+            ),
+            FieldSpec::new(
+                INTERVAL,
+                "Secondary mode",
+                FieldKind::Radio(LabelRadio::new(INTERVAL)),
+            ),
+        ]
+    }
+}
+
+impl App for ActionConsumer {
+    fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+        const LEFT_ROWS: &[FormRow] = &[FormRow::Field(TRANSPORT), FormRow::Spacer(20)];
+        const RIGHT_ROWS: &[FormRow] = &[FormRow::Field(INTERVAL), FormRow::Spacer(20)];
+        let mut lanes = [
+            FormLane::new(LANE_LEFT, LEFT_ROWS),
+            FormLane::new(LANE_SECOND, RIGHT_ROWS),
+        ];
+        if self.reverse {
+            lanes.swap(0, 1);
+        }
+        let layout =
+            FormLayout::new(&lanes).split(SplitModel::new(SplitAxis::Horizontal, 58, 10, 10), 4);
+        let fields = Self::fields();
+        let form = Form::new(FORM, &fields)
+            .actions(STORE_ACTIONS)
+            .try_layout(&layout)
+            .expect("valid two lane layout");
+        let response = form.update(cx, &mut self.state, &mut self.data);
+        if matches!(response.action_ref(), Some(FormAction::Action(STORE))) {
+            self.saves += 1;
+        }
+        response.erase()
+    }
+
+    fn draw(&self, ui: &mut Ui<'_>) {
+        const LEFT_ROWS: &[FormRow] = &[FormRow::Field(TRANSPORT), FormRow::Spacer(20)];
+        const RIGHT_ROWS: &[FormRow] = &[FormRow::Field(INTERVAL), FormRow::Spacer(20)];
+        let mut lanes = [
+            FormLane::new(LANE_LEFT, LEFT_ROWS),
+            FormLane::new(LANE_SECOND, RIGHT_ROWS),
+        ];
+        if self.reverse {
+            lanes.swap(0, 1);
+        }
+        let layout =
+            FormLayout::new(&lanes).split(SplitModel::new(SplitAxis::Horizontal, 58, 10, 10), 4);
+        let fields = Self::fields();
+        let form = Form::new(FORM, &fields)
+            .actions(STORE_ACTIONS)
+            .try_layout(&layout)
+            .expect("valid two lane layout");
+        form.draw(ui, ui.full(), &self.state, &self.data);
+    }
+}
+
+fn present<A: App>(runtime: &mut Runtime<A>, area: Rect) {
+    for _ in 0..3 {
+        if runtime.needs_settle() {
+            let _ = runtime.settle();
+        }
+        let mut buffer = Buffer::empty(area);
+        runtime.draw_buffer(area, &mut buffer).commit_presented();
+    }
+}
+
+fn mouse_input<A: App>(runtime: &mut Runtime<A>, area: Rect, kind: MouseKind, x: u16, y: u16) {
+    let _ = termrock_runtime::runtime::stub::deliver(
+        runtime,
+        termrock_runtime::runtime::stub::mouse(kind, x, y),
+    );
+    present(runtime, area);
 }
 
 #[test]
@@ -591,20 +740,139 @@ fn lane_update_reads_the_last_drawn_form_area_after_resize() {
     for area in [Rect::new(0, 0, 40, 12), Rect::new(0, 0, 60, 20)] {
         let mut buffer = Buffer::empty(area);
         runtime.draw_buffer(area, &mut buffer).commit_presented();
-        assert!(runtime.registry().regions().iter().any(|region| {
-            region.owner == FORM
-                && region.part == PartRef::of(Part::CONTAINER)
-                && region.area == area
-                && region.kind == RegionKind::Decorative
-        }));
         assert!(
-            !runtime
-                .registry()
-                .regions()
-                .iter()
-                .any(|region| region.owner == FORM && region.kind == RegionKind::Control)
+            !runtime.registry().regions().iter().any(|region| {
+                region.owner == FORM
+                    && (region.part == PartRef::of(Part::CONTAINER)
+                        || region.part == PartRef::of(Part::BODY))
+                    && region.area == area
+            }),
+            "logical bounds must not create a hit region covering child controls"
         );
         let _ = termrock_runtime::runtime::stub::deliver(&mut runtime, Input::Tick);
         assert_eq!(runtime.app().update_area, Some(area));
     }
+}
+
+#[test]
+fn clipped_radio_row_pointer_activates_through_the_real_form() {
+    let area = Rect::new(0, 0, 40, 6);
+    let mut runtime = Runtime::new(
+        ClippedRadioConsumer {
+            state: FormState::default(),
+            data: Notifications::default(),
+        },
+        Theme::junie(),
+    );
+    let _ = runtime.initialize();
+    present(&mut runtime, area);
+    runtime.set_focus(Some(DESTINATION));
+    present(&mut runtime, area);
+    let _ = termrock_runtime::runtime::stub::deliver(&mut runtime, Input::Tick);
+    present(&mut runtime, area);
+
+    let option = runtime
+        .area_of_part(TRANSPORT, PartRef::item(Part::ROW, ItemKey::index(8)))
+        .expect("the original eighth option was revealed in the short viewport");
+    for kind in [MouseKind::Down, MouseKind::Up] {
+        mouse_input(
+            &mut runtime,
+            area,
+            kind,
+            option.x.saturating_add(2),
+            option.y,
+        );
+    }
+
+    assert_eq!(runtime.focus(), Some(TRANSPORT));
+    assert_eq!(runtime.app().data.transport, 8);
+
+    let _ = termrock_runtime::runtime::stub::deliver(
+        &mut runtime,
+        Input::Key(Key {
+            code: KeyCode::End,
+            mods: KeyModifiers::NONE,
+        }),
+    );
+    present(&mut runtime, area);
+    assert_eq!(
+        runtime.app().data.transport,
+        8,
+        "moving the cursor is not selection"
+    );
+    assert!(
+        runtime
+            .area_of_part(TRANSPORT, PartRef::item(Part::ROW, ItemKey::index(9)))
+            .is_some()
+    );
+    let _ = termrock_runtime::runtime::stub::deliver(
+        &mut runtime,
+        Input::Key(Key {
+            code: KeyCode::Char(' '),
+            mods: KeyModifiers::NONE,
+        }),
+    );
+    present(&mut runtime, area);
+    assert_eq!(runtime.app().data.transport, 9);
+}
+
+#[test]
+fn fixed_form_action_pointer_activates_after_scrolling_and_lane_reorder() {
+    let mut area = Rect::new(0, 0, 100, 8);
+    let mut runtime = Runtime::new(
+        ActionConsumer {
+            state: FormState::default(),
+            data: Notifications::default(),
+            reverse: false,
+            saves: 0,
+        },
+        Theme::junie(),
+    );
+    let _ = runtime.initialize();
+    present(&mut runtime, area);
+
+    let first_row = PartRef::item(Part::ROW, ItemKey::index(0));
+    let right_before = runtime
+        .area_of_part(INTERVAL, first_row)
+        .expect("right lane row visible");
+    let _ = termrock_runtime::runtime::stub::deliver(
+        &mut runtime,
+        termrock_runtime::runtime::stub::mouse(
+            MouseKind::Wheel(termrock_core::event::Axis::V, 3),
+            right_before.x.saturating_add(2),
+            right_before.y,
+        ),
+    );
+    present(&mut runtime, area);
+    assert!(runtime.area_of_part(INTERVAL, first_row).is_none());
+    assert!(runtime.area_of_part(TRANSPORT, first_row).is_some());
+
+    runtime.app_mut().reverse = true;
+    present(&mut runtime, area);
+    assert!(runtime.area_of_part(INTERVAL, first_row).is_none());
+    assert!(runtime.area_of_part(TRANSPORT, first_row).unwrap().x > 50);
+
+    area = Rect::new(0, 0, 81, 9);
+    let _ = termrock_runtime::runtime::stub::deliver(
+        &mut runtime,
+        Input::Resize(area.width, area.height),
+    );
+    present(&mut runtime, area);
+    assert!(runtime.area_of_part(INTERVAL, first_row).is_none());
+
+    let action = FORM.part(Part::ACTIONS).index(0);
+    let button = runtime
+        .area_of(action)
+        .expect("fixed action button is rendered in the footer");
+    assert_eq!(button.y, area.height - 1);
+    for kind in [MouseKind::Down, MouseKind::Up] {
+        mouse_input(
+            &mut runtime,
+            area,
+            kind,
+            button.x.saturating_add(1),
+            button.y,
+        );
+    }
+    assert_eq!(runtime.app().saves, 1);
 }
