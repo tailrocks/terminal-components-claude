@@ -366,6 +366,23 @@ fn paint_first_use_status(ui: &mut Ui<'_>, area: Rect) {
     let _ = paint_status_text(ui, area, x, mark, STATUS_AMBER, false);
 }
 
+/// Tag docker-cleanup status: cwd without the tilde, then the size label.
+fn paint_docker_cleanup_status(ui: &mut Ui<'_>, area: Rect) {
+    if area.is_empty() {
+        return;
+    }
+    ui.fill(area, status_ink(ui, STATUS_FG, false));
+    let _ = paint_status_text(
+        ui,
+        area,
+        area.x.saturating_add(STATUS_EDGE),
+        "/work/scratch",
+        STATUS_FG,
+        true,
+    );
+    let _ = paint_size_label(ui, area);
+}
+
 /// Tag monorepo-root status: cwd, branch, ahead count, then the size label.
 fn paint_monorepo_status(ui: &mut Ui<'_>, area: Rect) {
     if area.is_empty() {
@@ -399,6 +416,29 @@ fn paint_monorepo_child_status(ui: &mut Ui<'_>, area: Rect) {
         x = paint_status_text(ui, area, x, text, fg, bold).saturating_add(STATUS_GAP);
     }
     let _ = paint_size_label(ui, area);
+}
+
+fn docker_cleanup_hints() -> HintLayer {
+    fn hint(key: &'static str, label: &'static str) -> Hint {
+        Hint {
+            key: HintKey::Label(key),
+            label,
+            priority: 50,
+        }
+    }
+    HintLayer {
+        hints: vec![
+            hint("Type", "Search"),
+            hint("↑↓", "Move"),
+            hint("Enter", "Review…"),
+            hint("Alt+Enter", "Alternatives…"),
+            hint("Tab", "Preview"),
+            hint("Ctrl+↑↓", "Scope"),
+            hint("Esc", "Clear"),
+        ],
+        status: Some(std::borrow::Cow::Borrowed("Clean Docker c…")),
+        ..HintLayer::empty()
+    }
 }
 
 fn tag_hints(confirm: &'static str, status: Option<&'static str>) -> HintLayer {
@@ -460,6 +500,9 @@ fn menu_project(world: &World) -> String {
         }
         Scenario::MonorepoChild if crate::sim::catalogue::monorepo_child_tag_frame(world) => {
             "acme › frontend · Node project · pnpm".to_owned()
+        }
+        Scenario::DockerCleanup if crate::sim::catalogue::docker_cleanup_tag_frame(world) => {
+            "no project".to_owned()
         }
         _ => world.cwd.clone(),
     }
@@ -541,11 +584,15 @@ impl App {
         {
             activities.show(activity.id);
         }
+        let mut home = HomeState::default();
+        if crate::sim::catalogue::docker_cleanup_tag_frame(&world) {
+            home.seed_query(crate::sim::catalogue::DOCKER_CLEANUP_QUERY);
+        }
         Self {
             world,
             motion,
             route,
-            home: HomeState::default(),
+            home,
             plan: None,
             activities,
             overlay: None,
@@ -936,6 +983,8 @@ impl App {
             || crate::sim::catalogue::monorepo_child_tag_frame(&self.world)
         {
             "mbp · local".to_owned()
+        } else if crate::sim::catalogue::docker_cleanup_tag_frame(&self.world) {
+            "devbox · development".to_owned()
         } else {
             self.world.host.identity()
         };
@@ -961,6 +1010,8 @@ impl App {
             paint_monorepo_status(ui, status);
         } else if crate::sim::catalogue::monorepo_child_tag_frame(&self.world) {
             paint_monorepo_child_status(ui, status);
+        } else if crate::sim::catalogue::docker_cleanup_tag_frame(&self.world) {
+            paint_docker_cleanup_status(ui, status);
         }
         let footer = Rect::new(area.x, area.bottom().saturating_sub(1), area.width, 1);
         self.footer_draw(ui, footer);
@@ -1004,6 +1055,17 @@ impl App {
         } else {
             None
         };
+        if crate::sim::catalogue::docker_cleanup_tag_frame(&self.world)
+            && self.route == Route::Home
+            && self.overlay.is_none()
+            && !self.menu.is_open()
+        {
+            let layer = docker_cleanup_hints();
+            HintBar::new(FOOTER, &layer)
+                .patch_part(PARITY_HINT_PARTS)
+                .draw(ui, footer);
+            return;
+        }
         if let Some((confirm, status)) = tag_confirm
             && self.route == Route::Home
             && self.overlay.is_none()
@@ -1115,6 +1177,7 @@ impl App {
     /// One sim step of `world.tick`. That call moves `now_ms` only while the clock is running.
     fn advance_world(&mut self, interval_ms: i64) {
         let _ = self.world.tick(interval_ms);
+        self.home.release_tag_query(&self.world);
         if self
             .status_until_ms
             .is_some_and(|until| self.world.now_ms() >= until)
@@ -1537,6 +1600,63 @@ mod tests {
         );
         assert!(!later.text().contains("From acme · the parent root"));
         assert!(later.text().contains("Run dev"), "{}", later.text());
+    }
+    #[test]
+    fn docker_cleanup_frame_40_paints_the_tag_plate_and_later_seeks_keep_home() {
+        let plate = harness(
+            App::for_scenario(Scenario::DockerCleanup, Motion::Paused, 40),
+            Theme::junie(),
+            120,
+            40,
+        );
+        let text = plate.text();
+        let lines: Vec<&str> = text.lines().collect();
+        assert!(lines[0].contains("no project"), "{}", lines[0]);
+        assert!(lines[0].contains("devbox · development"), "{}", lines[0]);
+        assert!(lines[4].contains("docker clean"), "{}", lines[4]);
+        assert!(lines[6].contains("Results · 7"), "{}", lines[6]);
+        assert!(
+            lines[7].contains("› Clean Docker completely"),
+            "{}",
+            lines[7]
+        );
+        assert!(lines[8].contains("Prune builder cache"), "{}", lines[8]);
+        assert!(
+            lines[15].contains("docker stop acme…redis-1"),
+            "{}",
+            lines[15]
+        );
+        assert!(lines[38].contains("/work/scratch"), "{}", lines[38]);
+        assert!(lines[39].contains("Enter Review…"), "{}", lines[39]);
+        assert!(lines[39].contains("Esc Clear"), "{}", lines[39]);
+        assert!(lines[39].contains("Clean Docker c…"), "{}", lines[39]);
+        let query = plate.cell(3, 4);
+        assert_eq!(query.symbol(), "d");
+        assert!(query.modifier.contains(termrock::Modifier::UNDERLINED));
+        let thumb = plate.cell(116, 8);
+        assert_eq!(thumb.symbol(), "┃");
+        assert_eq!(thumb.fg, Color::Rgb(0x80, 0x80, 0x80));
+        let track = plate.cell(116, 34);
+        assert_eq!(track.symbol(), "┆");
+        assert_eq!(track.fg, Color::Rgb(0x47, 0x47, 0x47));
+        let gate = plate.cell(92, 34);
+        assert_eq!(gate.fg, Color::Rgb(207, 207, 207));
+        assert!(plate.diagnostics().is_empty(), "{:?}", plate.diagnostics());
+        let later = harness(
+            App::for_scenario(Scenario::DockerCleanup, Motion::Paused, 4_000),
+            Theme::junie(),
+            120,
+            40,
+        );
+        assert!(!later.text().contains("Results · 7"));
+        assert!(later.text().contains("Suggested here"), "{}", later.text());
+        assert!(later.app().home.query().is_empty());
+        let mut stepped = App::for_scenario(Scenario::DockerCleanup, Motion::Paused, 40);
+        assert!(termrock::App::accept_paused_clock_step(&mut stepped, 1_100));
+        assert!(stepped.home.query().is_empty());
+        assert!(!crate::sim::catalogue::docker_cleanup_tag_frame(
+            &stepped.world
+        ));
     }
     #[test]
     fn discovery_results_header_is_tag_grey_at_column_4() {
