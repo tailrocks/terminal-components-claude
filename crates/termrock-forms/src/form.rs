@@ -1006,7 +1006,7 @@ impl<'a> Form<'a> {
             .map(|(lane, lane_area)| {
                 let mut y = 0_usize;
                 let mut placements = Vec::new();
-                for row in lane.rows() {
+                for (row_index, row) in lane.rows().iter().enumerate() {
                     match *row {
                         FormRow::Spacer(rows) => y = y.saturating_add(usize::from(rows)),
                         FormRow::Field(id) | FormRow::Fill(id) => {
@@ -1021,9 +1021,19 @@ impl<'a> Form<'a> {
                             let min_height =
                                 placement_height(field, design.size.field_height, data);
                             let height = if matches!(row, FormRow::Fill(_)) {
+                                let trailing_spacers = lane
+                                    .rows()
+                                    .iter()
+                                    .skip(row_index.saturating_add(1))
+                                    .map(|row| match row {
+                                        FormRow::Spacer(rows) => usize::from(*rows),
+                                        _ => 0,
+                                    })
+                                    .fold(0_usize, usize::saturating_add);
                                 min_height.max(
                                     usize::from(lane_area.height)
                                         .saturating_sub(y)
+                                        .saturating_sub(trailing_spacers)
                                         .min(usize::from(u16::MAX))
                                         as u16,
                                 )
@@ -1717,9 +1727,14 @@ impl<'a> Form<'a> {
             }
         }
         self.draw_actions(ui, area);
+        // Expose the actual composed form bounds to the next update pass. This
+        // is a decorative owner region, not a focusable or hit-test control.
+        ui.register_decor(self.id, PartRef::of(Part::BODY), body);
+        ui.register_decor(self.id, PartRef::of(Part::CONTAINER), area);
         ui.report_layout(
             self.id,
-            LayoutFacts::new(usize::from(body.height), max_rows, area.height, area.width),
+            LayoutFacts::new(usize::from(body.height), max_rows, area.height, area.width)
+                .with_logical_area(area),
         );
         area
     }
