@@ -1,5 +1,8 @@
 use core::fmt;
 
+mod composition;
+pub use composition::{ClosureLeaf, CompositionLeaf, composition_leaf};
+
 /// Apply only explicit style channels to an existing component-author surface.
 /// Symbols, inherited channels, hit regions, and cursor state are preserved.
 pub fn patch_style(

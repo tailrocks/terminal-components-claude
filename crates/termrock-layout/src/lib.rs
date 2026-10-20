@@ -3,8 +3,8 @@ pub mod layout;
 pub mod measure;
 
 pub use composition_plan::{
-    Child, ChildPolicy, Composition, CrossAlign, MainAlign, OverflowPolicy, ResolvedChild,
-    ResolvedPlan, column, row, wrap,
+    Child, ChildPolicy, Composition, CompositionKind, CrossAlign, MainAlign, OverflowPolicy,
+    ResolvedChild, ResolvedPlan, column, intrinsic_size, row, wrap,
 };
 pub use layout::*;
 pub use measure::*;
