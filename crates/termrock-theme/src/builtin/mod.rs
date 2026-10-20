@@ -581,7 +581,7 @@ fn grid(m: &mut PartMap<PartRecipe>) {
     row_like(m);
 
     m.entry(Part::ICON).base = p();
-    part(m, Part::ROW, p());
+    part(m, Part::ROW, p()).when(StateFlags::FOCUSED, p().add(Modifier::BOLD));
     part(m, Part::CELL, p())
         .when(
             StateFlags::ACTIVE,
@@ -596,6 +596,12 @@ fn grid(m: &mut PartMap<PartRecipe>) {
                 .add(Modifier::BOLD)
                 .remove(Modifier::REVERSED),
         );
+    part(
+        m,
+        Part::TEXT,
+        p().add(Modifier::UNDERLINED).set_underline(Role::Accent),
+    )
+    .when(StateFlags::ERROR, p().set_underline(Role::Danger));
     part(m, Part::OVERFLOW, p().set_fg(Role::Fg(FgStep::Muted)));
     part(m, Part::ACTIONS, p().set_fg(Role::Fg(FgStep::Secondary)));
 }

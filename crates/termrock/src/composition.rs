@@ -12,7 +12,7 @@ use termrock_editors::{
     CodeEditor, CodeEditorState, CompletingCodeEditor, CompletingCodeEditorState,
 };
 use termrock_layout::{ChildPolicy, Composition as LayoutComposition, Constraints, Size};
-use termrock_navigation::{Tabs, TabsState};
+use termrock_navigation::{Steps, StepsState, Tabs, TabsState};
 pub use termrock_runtime::CompositionError;
 use termrock_runtime::author::CompositionLeaf;
 use termrock_runtime::rowui::RowFn;
@@ -20,7 +20,7 @@ use termrock_runtime::{CompositionSlots, ContentSlot, MAX_COMPOSITION_DEPTH, Mea
 
 /// A borrowed component configured for placement in a composition group.
 ///
-/// Create children with [`button`], [`tabs`], [`code_editor`], or
+/// Create children with [`button`], [`tabs`], [`steps`], [`code_editor`], or
 /// [`completing_code_editor`], then place them in a [`Group`].
 /// The component and its state remain owned by the application.
 pub struct Child<'a> {
@@ -193,6 +193,47 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Measure for TabsLeaf<'_, '_, T, K, R> {
 }
 
 impl<T, K: KeyFn<T>, R: RowFn<T>> CompositionLeaf for TabsLeaf<'_, '_, T, K, R> {
+    fn draw(&self, ui: &mut Ui<'_>, logical: ratatui_core::layout::Rect) {
+        self.component.draw(ui, logical, self.state, self.items);
+    }
+}
+
+/// Adapt a progress rail using caller-owned state and borrowed items.
+pub fn steps<'a, 'config, T, K, R>(
+    component: &'a Steps<'config, T, K, R>,
+    state: &'a StepsState,
+    items: &'a [T],
+) -> Child<'a>
+where
+    'config: 'a,
+    T: 'a,
+    K: KeyFn<T> + 'a,
+    R: RowFn<T> + 'a,
+{
+    Child {
+        content: ChildContent::Leaf(Box::new(StepsLeaf {
+            component,
+            state,
+            items,
+        })),
+        policy: ChildPolicy::default(),
+    }
+}
+
+struct StepsLeaf<'a, 'config, T, K, R> {
+    component: &'a Steps<'config, T, K, R>,
+    state: &'a StepsState,
+    items: &'a [T],
+}
+
+impl<T, K: KeyFn<T>, R: RowFn<T>> Measure for StepsLeaf<'_, '_, T, K, R> {
+    fn measure(&self, ui: &Ui<'_>, constraints: Constraints) -> Size {
+        self.component
+            .measure_with_items(ui, constraints, self.items)
+    }
+}
+
+impl<T, K: KeyFn<T>, R: RowFn<T>> CompositionLeaf for StepsLeaf<'_, '_, T, K, R> {
     fn draw(&self, ui: &mut Ui<'_>, logical: ratatui_core::layout::Rect) {
         self.component.draw(ui, logical, self.state, self.items);
     }

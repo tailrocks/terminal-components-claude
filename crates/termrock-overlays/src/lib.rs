@@ -29,9 +29,11 @@ pub(crate) use termrock_runtime::{
     Acc, PartStyle, SlotFn, cell_at, first_row, overlay_chrome, paint_pressed_bracket, shift,
 };
 
+pub mod cancel_card;
 pub mod completion;
 pub mod dialog;
 pub mod help;
+pub mod info_card;
 pub mod menu;
 pub mod picker;
 pub mod picker_chain;
