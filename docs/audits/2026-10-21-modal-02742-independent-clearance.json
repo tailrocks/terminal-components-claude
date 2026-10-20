@@ -1,0 +1,149 @@
+{
+  "reviewed_commit": "02742e48d58ce319ce98e64095ad86cb1709f5a3",
+  "fix_commit": "d0b40c173a2e9f662a2aca62b904625a8f5583d0",
+  "reference_commit": "4169783ae883788186d161af09ba9c481bd84e5c",
+  "reviewer": "modal_backdrop_independent_review",
+  "decision": "Bounded modal mapping repair cleared. No remaining correctness findings in this scoped repair. Full application acceptance and public API coverage remain outside this clearance.",
+  "prior_findings": [
+    {
+      "id": "R1",
+      "status": "fixed",
+      "evidence": "Nonblank Ansi16/Mono and mapped-collision cases choose muted or primary plus DIM before final Style construction."
+    },
+    {
+      "id": "R2",
+      "status": "fixed",
+      "evidence": "Raw mapped foreground/background and blank flag survive until the style DIM decision. Pair endpoint applies its legacy collision fallback independently."
+    },
+    {
+      "id": "R3",
+      "status": "fixed",
+      "evidence": "Private mapping accepts a documented endpoint semantic policy. Style Some(Reset) follows frozen explicit-background overlay/dark-plane/contrast-plane handling; None selects canvas. Concrete pair API keeps its prior Reset interpretation."
+    }
+  ],
+  "checks": [
+    {
+      "command": "cargo nextest run --manifest-path /private/tmp/modal-backdrop-rereview-65092/Cargo.toml --all-targets --no-fail-fast --success-output immediate",
+      "exit": 0,
+      "result": "Unchanged11 probes:11 passed,0 skipped. Both prior explicit Reset pure/Harness failures now pass."
+    },
+    {
+      "command": "cargo nextest run --manifest-path /private/tmp/modal-backdrop-options-02742/Cargo.toml --all-targets --no-fail-fast --success-output immediate",
+      "exit": 0,
+      "result": "13 tests run:13 passed,0 skipped. Includes36864 Option/style cases and10092 legacy pair cases, original independent probes and4 native actual-Harness/allocation regressions."
+    },
+    {
+      "command": "Independent frozen-source Option/style matrix",
+      "result": "36864 cases match frozen backdrop Style exactly. Both fg/bg include None, explicit Reset, RGB/named/indexed/token colors;4 profiles;4 custom configurations including muted/background collision, ghost/canvas collision and Reset-valued tokens;4 modifier sets including REVERSED|UNDERLINED and Modifier::all(). Blank/nonblank classification, final colors and Style modifiers match.",
+      "oracle": "Frozen theme.rs backdrop, approx_rgb, rel_luminance and contrast_ratio copied mechanically; only method signature and token-field names adapted to public current Theme. No candidate-derived expected values."
+    },
+    {
+      "command": "Immutable95d21 concrete pair snapshot compared at02742",
+      "result": "10092 before/after cases identical across4 profiles,3 custom-token configurations and concrete Reset/named/indexed/RGB/token pairs. Capture fixture not rewritten."
+    },
+    {
+      "command": "cargo nextest run --manifest-path /private/tmp/modal-backdrop-options-02742/Cargo.toml --test modal_backdrop_native",
+      "environment_variants": [
+        "NO_COLOR absent; CLICOLOR_FORCE absent",
+        "NO_COLOR empty; CLICOLOR_FORCE absent",
+        "NO_COLOR=1; CLICOLOR_FORCE absent",
+        "NO_COLOR=1; CLICOLOR_FORCE=1"
+      ],
+      "environment_common": {
+        "TERM": "xterm-256color",
+        "COLORTERM": "truecolor"
+      },
+      "exit_codes": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "result": "Each separate process:4 passed,0 skipped. Exact copied native warmed allocation check remains zero; actual modal cells preserve fixed color/modifier and explicit Reset behavior. No unsafe environment mutation."
+    }
+  ],
+  "architecture": {
+    "ownership": "Pure Theme mapper is the single color-policy owner; runtime delegates and retains frozen modifier replacement/non-ASCII focus-glyph behavior. Existing pair endpoint compatibility is preserved without application or exact-RGB role inference.",
+    "safety": "No new unsafe code, concurrency, ownership or error-handling concerns found in scoped changes.",
+    "coverage": "Existing Showcase real DialogsPage773-779 uses shared confirm/prompt Dialogs through layers; runtime composite_layer2364-2366 invokes shared modal_backdrop for drawn dim layers. The public Theme::backdrop_style catalog registration or explicit coverage allowance remains an open, recorded project gate; no declaration that showcase coverage is complete."
+  },
+  "limits": [
+    "This exact commit was local at review request time; remote WIP remained65092 because a foreign push lock blocked publication. Parent must verify remote publication separately.",
+    "Incoming efda9593/93 ancestry and application/plate changes are not cleared.",
+    "Incoming capability_palettes.rs adds six expected-field overrides and turns all73 green. This modal review does not approve those oracle edits, their reference basis, or theme acceptance; separate independent review is required.",
+    "No full workspace, hosted CI, whole-app paired visual/functional run, cursor/focus full inventory or final acceptance claimed.",
+    "External consumer emits ordinary test-only unused/dead-code warnings; scoped strict Clippy was author-reported, not independently rerun here."
+  ],
+  "worktree": {
+    "path": "/private/tmp/termrock-button-2b3e-review",
+    "head": "02742e48d58ce319ce98e64095ad86cb1709f5a3",
+    "preexisting_changes": "1301 deleted tracked target/tuiscotti artifact paths left untouched. No product source edits."
+  },
+  "artifacts": [
+    {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/modal-backdrop-review-02742/Cargo.lock",
+      "sha256": "b85f9fcfa97e310efdd959f8d0b1cc6f1a680f6d7642924acacb15eb5383fa99"
+    },
+    {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/modal-backdrop-review-02742/Cargo.toml",
+      "sha256": "a29a6b39f5bb98eca50ed216232aa09621adc889ed968788e8b741d00f5012ce"
+    },
+    {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/modal-backdrop-review-02742/consumer-frozen-oracle.rs",
+      "sha256": "5bae6368e5a4f6ee3e946d8f7c183f2f842ba93b7de39c4d4c6ed68aae588d60"
+    },
+    {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/modal-backdrop-review-02742/environment-absent.log",
+      "sha256": "a7bfcfefb7f23066f86d4e3a3f7fa1e393c358b19bd37ee331df9cc28d31b76e"
+    },
+    {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/modal-backdrop-review-02742/environment-empty.log",
+      "sha256": "5e610d0fde8de498283adeb659439eaf0a9e18f6a72976b4b444ba4c6eb8cf4e"
+    },
+    {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/modal-backdrop-review-02742/environment-forced.log",
+      "sha256": "22b96cd65f0aaca6f21e47d52fc1fafe9366ed4e0c0b2bb1de8eb40cd05c6ddd"
+    },
+    {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/modal-backdrop-review-02742/environment-present.log",
+      "sha256": "a27fa2b8cb2f769fb413413b6dac209326c6f6d8cb6c89e4f2f05907d0a7ae1b"
+    },
+    {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/modal-backdrop-review-02742/frozen-ctx.rs",
+      "sha256": "4dd2a8fd3f4efc76ad7c0f0f1e03f613fa74b198aedd57c5932fbb24570ae8ed"
+    },
+    {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/modal-backdrop-review-02742/frozen-theme.rs",
+      "sha256": "9e72e36f973de33f40ff205aaf3a2cc790c880323c793225fd8a5a12561b4c86"
+    },
+    {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/modal-backdrop-review-02742/immutable-pair-before-95d21.txt",
+      "sha256": "af028b547485cc3a8cb6c27b679b6e1ec8f2557f490f244dfce3af245dba9a59"
+    },
+    {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/modal-backdrop-review-02742/modal-fix.patch",
+      "sha256": "a50e0c382f9b6d20d5ce7cfe5c5d16ef9b67abf9d6348d74eaf49574bf74a6e4"
+    },
+    {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/modal-backdrop-review-02742/modal_backdrop_native.rs",
+      "sha256": "d8a75bd01566b6779973133f3e1c1335242c98f566fcccb72dd8eca6cb8368c7"
+    },
+    {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/modal-backdrop-review-02742/options-and-native.log",
+      "sha256": "de14fd0383ceeaa59047b4cf485a344c7d159f0f6e231f0675d660c73b3dd74a"
+    },
+    {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/modal-backdrop-review-02742/results.json",
+      "sha256": "abdc452dd348c756d44f7caa5d91b2db088b7629fdfeadd14d136efa592c5bb9"
+    },
+    {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/modal-backdrop-review-02742/unchanged11.log",
+      "sha256": "5702930ebe376aa18b1802d61829224230fda1ac4fd2d1592ee9072b383efd3b"
+    },
+    {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/modal-backdrop-review-02742/unreviewed-incoming-palette.patch",
+      "sha256": "f31705ae6bfce766e654c67cd8357e421d1ab79cfd4405a043f7040d5ed1dbdc"
+    }
+  ],
+  "timestamp_utc": "2026-10-20T23:21:57.792309+00:00"
+}
