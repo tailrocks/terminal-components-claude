@@ -1684,7 +1684,11 @@ impl<'a> TextInput<'a> {
                 ui.style_defaults_with_explicit(family, variant, target_part, live, defaults, None);
             let mut decoration_style = Style::new();
             let explicit_underline = local_patch.is_some_and(|patch| patch.underline.speaks());
-            if !explicit_underline {
+            if explicit_underline {
+                if resolved.style.underline_cleared() {
+                    decoration_style.underline_color = Some(ratatui_core::style::Color::Reset);
+                }
+            } else {
                 let target_style = decoration.resolved.style;
                 if target_style.underline_cleared() {
                     decoration_style.underline_color = Some(ratatui_core::style::Color::Reset);
@@ -3184,6 +3188,82 @@ mod tests {
         let disabled = render(true);
         assert_eq!(enabled[(2, SCREEN.y)].symbol(), "F");
         assert_ne!(enabled[(2, SCREEN.y)].fg, disabled[(2, SCREEN.y)].fg);
+    }
+
+    #[test]
+    fn explicit_local_underline_clear_resets_embedded_prepaint_before_host_style() {
+        let theme = Theme::junie()
+            .define_family(Family::INPUT, |recipe| {
+                recipe
+                    .part(Part::TEXT)
+                    .base(StylePatch::new().set_underline(crate::theme::Role::Warning));
+            })
+            .define_family(Family::GRID, |recipe| {
+                recipe
+                    .part(Part::TEXT)
+                    .base(StylePatch::new().set_underline(crate::theme::Role::Accent));
+            });
+        let warning = theme.color.warning;
+        let accent = theme.color.accent;
+        let render = |patch: Option<StylePatch>, hosted: bool| {
+            let mut runtime = Runtime::new(Stub::default(), theme.clone());
+            let mut buffer = Buffer::empty(SCREEN);
+            let mut state = TextInputState::default();
+            state.begin("value");
+            let patches = patch.map(|patch| [(Part::TEXT, patch)]);
+            runtime
+                .draw_scene(SCREEN, &mut buffer, |ui, area| {
+                    ui.paint_str(
+                        area,
+                        "value",
+                        Style::default()
+                            .underline_color(ratatui_core::style::Color::Yellow)
+                            .add_modifier(Modifier::UNDERLINED),
+                    );
+                    let mut input = TextInput::new(ID).embedded_cell();
+                    if let Some(patches) = patches.as_ref() {
+                        input = input.patch_part(patches);
+                    }
+                    if hosted {
+                        input = input.text_style_target(Family::GRID, Variant::DEFAULT, Part::TEXT);
+                    }
+                    input.draw(ui, area, &state);
+                })
+                .commit_presented();
+            buffer
+                .content()
+                .chunks(SCREEN.width as usize)
+                .flat_map(|row| row.windows(5))
+                .find(|cells| cells.iter().map(|cell| cell.symbol()).collect::<String>() == "value")
+                .expect("input text is visible")
+                .iter()
+                .map(|cell| (cell.underline_color, cell.modifier))
+                .collect::<Vec<_>>()
+        };
+        let clear = StylePatch {
+            underline: Slot::Clear,
+            ..StylePatch::new()
+        };
+        let set_warning = StylePatch::new().set_underline(crate::theme::Role::Warning);
+
+        for cells in [render(None, true), render(Some(StylePatch::new()), true)] {
+            assert!(cells.iter().all(|(color, modifier)| {
+                *color == accent && modifier.contains(Modifier::UNDERLINED)
+            }));
+        }
+        assert!(render(Some(clear), true).iter().all(|(color, modifier)| {
+            *color == ratatui_core::style::Color::Reset && modifier.contains(Modifier::UNDERLINED)
+        }));
+        assert!(
+            render(Some(set_warning), true)
+                .iter()
+                .all(|(color, modifier)| {
+                    *color == warning && modifier.contains(Modifier::UNDERLINED)
+                })
+        );
+        assert!(render(None, false).iter().all(|(color, modifier)| {
+            *color == warning && modifier.contains(Modifier::UNDERLINED)
+        }));
     }
 
     #[test]
