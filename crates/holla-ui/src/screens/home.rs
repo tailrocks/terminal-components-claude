@@ -269,6 +269,7 @@ impl HomeState {
             .or_else(|| catalogue::activities_multi_plate(world, self.history))
             .or_else(|| catalogue::remote_host_tag(world))
             .or_else(|| catalogue::docker_cleanup_tag(world))
+            .or_else(|| catalogue::hard_cases_tag(world))
             && paint_parity_discovery(ui, rows_area, &view)
         {
             return;
