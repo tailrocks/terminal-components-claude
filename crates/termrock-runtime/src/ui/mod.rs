@@ -1324,6 +1324,28 @@ impl<'f> Ui<'f> {
         self.mark_area(area, None);
     }
 
+    /// Space fill that keeps the ink already on the page.
+    ///
+    /// Baseline `fill` sets the glyph to a space and the background, and leaves
+    /// the foreground. Call it after `modal_backdrop` so an empty dialog cell
+    /// keeps the dimmed color under it.
+    pub fn fill_keep_fg(&mut self, area: Rect, bg: ratatui_core::style::Color) {
+        let area = area.intersection(self.clip);
+        if area.is_empty() {
+            return;
+        }
+        {
+            let buf = self.buffer();
+            for pos in area.positions() {
+                if let Some(cell) = buf.cell_mut(pos) {
+                    cell.set_symbol(" ");
+                    cell.set_bg(bg);
+                }
+            }
+        }
+        self.mark_area(area, None);
+    }
+
     pub(crate) fn layer_count(&self) -> usize {
         self.frame.layers.active().len()
     }
