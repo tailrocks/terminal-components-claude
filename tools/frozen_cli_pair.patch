@@ -37,6 +37,17 @@
 +    let frame = render::frame_from_screen(&obs.screen, &profile_name());
 +    assert_gated(name, &frame);
 +}
+--- a/tests/visual_baseline/support.rs
++++ b/tests/visual_baseline/support.rs
+@@ -501,4 +501,9 @@
+         };
+         self.sending();
+         self.inner.mouse_wheel(wheel, col, row, MouseMods::NONE)
++    }
++
++    pub fn scroll_right(&mut self, col: u16, row: u16) -> Result<(), tuiscotti::TuiError> {
++        self.sending();
++        self.inner.mouse_wheel(Wheel::Right, col, row, MouseMods::NONE)
 --- a/tests/visual_baseline/scenarios/interact.rs
 +++ b/tests/visual_baseline/scenarios/interact.rs
 @@ -130,8 +130,8 @@
@@ -73,17 +84,22 @@
      libtest_mimic::run(&args, trials).exit();
 --- a/tests/visual_baseline/support.rs
 +++ b/tests/visual_baseline/support.rs
-@@ -497,9 +497,14 @@
-     pub fn scroll(&mut self, col: u16, row: u16, dir: Scroll) -> Result<(), tuiscotti::TuiError> {
-         let wheel = match dir {
-             Scroll::Up => Wheel::Up,
-             Scroll::Down => Wheel::Down,
-         };
-         self.sending();
-         self.inner.mouse_wheel(wheel, col, row, MouseMods::NONE)
-     }
-+
-+    pub fn scroll_right(&mut self, col: u16, row: u16) -> Result<(), tuiscotti::TuiError> {
-+        self.sending();
-+        self.inner.mouse_wheel(Wheel::Right, col, row, MouseMods::NONE)
+@@ -613,8 +613,18 @@
+         .env_clear(true)
+         .env("HOME", &home)
+         .cwd(home.clone());
++    let term_profile = std::env::var("TERMROCK_PAIR_TERM_PROFILE").ok();
+     for (key, value) in PINNED_ENV {
++        if key == "TERM" && term_profile.is_some() {
++            continue;
++        }
+         tui = tui.env(key, value);
 +    }
++    match term_profile.as_deref() {
++        Some("unset") => {}
++        Some(profile @ ("xterm-256color" | "linux" | "dumb")) => tui = tui.env("TERM", profile),
++        Some(other) => panic!("unsupported paired TERM profile `{other}`"),
++        None => {}
+     }
+     if matches!(case.color, Color::NoColorEnv) {
+         tui = tui.env("NO_COLOR", "1");
