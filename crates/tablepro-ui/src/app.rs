@@ -14,6 +14,7 @@ use termrock::{
 };
 
 use crate::quick_switcher::{self, QuickSwitcher};
+use crate::tab_list::{self, TabList};
 use crate::tabs::{ExplorerItem, GridView, Tab, TabKey, TabRecord};
 use crate::workbench::Workbench;
 
@@ -24,7 +25,6 @@ mod historical_form_advanced;
 mod historical_form_new;
 mod historical_help_overlay;
 mod historical_history_tab;
-mod historical_picker_open;
 mod historical_query_analyze;
 mod historical_query_completion;
 mod historical_query_error;
@@ -32,9 +32,10 @@ mod historical_query_explain;
 mod historical_query_results;
 mod historical_safemode_picker;
 mod historical_table_scrolled_right;
-mod historical_tablist_open;
 mod historical_workbench_explorer_hidden;
 mod historical_workbench_maximized;
+#[cfg(test)]
+mod picker_contract;
 use tablepro_demo::db::{
     self, Catalog, ColType, ConnectOutcome, Connection, Environment, ObjectKind, SafeMode,
 };
@@ -584,6 +585,7 @@ pub struct TableProApp {
     destructive_notice: Option<&'static str>,
     quit_state: DialogState,
     switcher: QuickSwitcher,
+    tab_list: TabList,
 
     pub screen: Screen,
 
@@ -642,6 +644,7 @@ impl core::fmt::Debug for TableProApp {
             .field("has_destructive_notice", &self.destructive_notice.is_some())
             .field("quit_state", &self.quit_state)
             .field("switcher", &"<query and target snapshot>")
+            .field("tab_list", &self.tab_list.rows.len())
             .field("connections_screen", &self.connections_screen)
             .field("workbench", &self.workbench)
             .field("connection_nodes", &self.connection_nodes.len())
@@ -707,6 +710,7 @@ impl TableProApp {
             destructive_notice: None,
             quit_state: DialogState::default(),
             switcher: QuickSwitcher::default(),
+            tab_list: TabList::default(),
             screen: Screen::Connections,
             surface: Surface::Connections,
             connections_screen: ConnectionsScreen::new(connections),
@@ -1787,10 +1791,19 @@ impl TableProApp {
         self.surface = Surface::QuickSwitcher;
     }
 
-    fn open_tab_list(&mut self) -> bool {
-        if self.surface == Surface::TabListPicker || !self.idle_production_query() {
+    fn open_tab_list(&mut self, cx: &mut Cx<'_>) -> bool {
+        if self.screen != Screen::Workbench || self.form_open || self.destructive_intent.is_some() {
             return false;
         }
+        if cx.is_open(tab_list::ID) {
+            return false;
+        }
+        self.tab_list.open(&self.workbench);
+        cx.open_layer(
+            tab_list::ID,
+            tab_list::picker(self.tab_list.rows.len()).layer(cx, &self.tab_list.rows),
+        );
+        // Direct assign. `set_surface(TabListPicker)` inserts twelve queries.
         self.surface = Surface::TabListPicker;
         true
     }
@@ -1862,6 +1875,53 @@ impl TableProApp {
             _ => {}
         }
         if was_open && !cx.is_open(quick_switcher::ID) && self.surface == Surface::QuickSwitcher {
+            self.sync_active_tab();
+        }
+        response.erase()
+    }
+
+    fn update_tab_list(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+        let was_open = cx.is_open(tab_list::ID);
+        let mut response = tab_list::picker(self.tab_list.rows.len()).update(
+            cx,
+            &mut self.tab_list.state,
+            &self.tab_list.rows,
+        );
+        match response.take_action() {
+            Some(PickerAction::QueryChanged) if was_open => {
+                tab_list::picker(self.tab_list.rows.len())
+                    .reconcile(&mut self.tab_list.state, &self.tab_list.rows);
+            }
+            Some(PickerAction::Chosen(key)) if was_open => {
+                let tab_key = self
+                    .tab_list
+                    .rows
+                    .iter()
+                    .find(|row| ItemKey::num(row.key.get()) == key)
+                    .map(|row| row.key);
+                cx.close_layer(tab_list::ID, None);
+                if let Some(tab_key) = tab_key {
+                    let _ = self.workbench.activate(tab_key);
+                    self.sync_active_tab();
+                }
+            }
+            Some(PickerAction::Secondary(key)) if was_open => {
+                let tab_key = self
+                    .tab_list
+                    .rows
+                    .iter()
+                    .find(|row| ItemKey::num(row.key.get()) == key)
+                    .map(|row| row.key);
+                if let Some(tab_key) = tab_key {
+                    self.request_close_tab(cx, tab_key);
+                    self.tab_list.rows = tab_list::rows(&self.workbench);
+                    tab_list::picker(self.tab_list.rows.len())
+                        .reconcile(&mut self.tab_list.state, &self.tab_list.rows);
+                }
+            }
+            _ => {}
+        }
+        if was_open && !cx.is_open(tab_list::ID) && self.surface == Surface::TabListPicker {
             self.sync_active_tab();
         }
         response.erase()
@@ -2724,7 +2784,13 @@ impl TableProApp {
             ),
             None => (" Workbench".to_owned(), None),
         };
-        let panel = Self::content_panel(&title, meta.as_deref(), !explorer_focused);
+        let content_focused = match self.workbench.active() {
+            Some(Tab::Query(_)) => self
+                .query_id()
+                .is_some_and(|id| ui.state(id).contains(StateFlags::FOCUSED)),
+            _ => !explorer_focused,
+        };
+        let panel = Self::content_panel(&title, meta.as_deref(), content_focused);
         panel.draw(ui, area, |ui, inner| {
             self.draw_tab_body(ui, area, inner, explorer_focused);
         });
@@ -2773,7 +2839,10 @@ impl TableProApp {
                     Some(Tab::Query(query)) if query.result.is_none()
                 )
         {
-            paint_idle_query_tail(ui, area, historical_query);
+            let editor_focused = self
+                .query_id()
+                .is_some_and(|id| ui.state(id).contains(StateFlags::FOCUSED));
+            paint_idle_query_tail(ui, area, historical_query && editor_focused);
         }
         paint_frame_title_tail(
             ui,
@@ -3060,13 +3129,11 @@ fn paint_query_toolbar(ui: &mut Ui<'_>, area: termrock::Rect) {
     );
 }
 
-fn historical_empty_query(ui: &Ui<'_>, app: &TableProApp) -> bool {
-    let Some(id) = app.query_id() else {
-        return false;
-    };
-    if !ui.state(id).contains(StateFlags::FOCUSED) {
+fn historical_empty_query(_ui: &Ui<'_>, app: &TableProApp) -> bool {
+    if app.query_id().is_none() {
         return false;
     }
+    // The empty editor keeps its toolbar and placeholder when a picker takes focus.
     match app.workbench.active() {
         Some(Tab::Query(query)) => {
             query.query.is_empty()
@@ -3096,9 +3163,12 @@ fn paint_focused_empty_query(ui: &mut Ui<'_>, id: Id, area: termrock::Rect, inne
         height: 1,
         ..editor
     };
-    let caret = field.patch(ui.paint_patch(&StylePatch::new().set_fg(TAG_BUTTON_BG)));
-    ui.paint_str(termrock::Rect { width: 1, ..line }, "▎", caret);
-    let number = field.patch(ui.paint_patch(&StylePatch::new().add(Modifier::BOLD)));
+    let editor_focused = ui.state(id).contains(StateFlags::FOCUSED);
+    if editor_focused {
+        let caret = field.patch(ui.paint_patch(&StylePatch::new().set_fg(TAG_BUTTON_BG)));
+        ui.paint_str(termrock::Rect { width: 1, ..line }, "▎", caret);
+    }
+    let number = field.patch(ui.paint_patch(&StylePatch::new().set_fg(LEGACY_FAINT)));
     ui.paint_str(
         termrock::Rect {
             x: line.x.saturating_add(3),
@@ -3110,16 +3180,11 @@ fn paint_focused_empty_query(ui: &mut Ui<'_>, id: Id, area: termrock::Rect, inne
     );
     let placeholder = "Type SQL. Ctrl+R runs the statement under the cursor.";
     let text_width = width(placeholder);
-    let underlined = field.patch(
-        ui.paint_patch(
-            &StylePatch::new()
-                .set_fg(TAG_CHROME_FG)
-                .set_underline(Role::BorderStrong)
-                .add(Modifier::UNDERLINED),
-        ),
-    );
+    let underlined = field.patch(ui.paint_patch(&StylePatch::new().set_fg(LEGACY_FAINT)));
     let text_x = line.x.saturating_add(6);
-    ui.set_bar_cursor(id, Position::new(text_x, line.y));
+    if editor_focused {
+        ui.set_bar_cursor(id, Position::new(text_x, line.y));
+    }
     ui.paint_str(
         termrock::Rect {
             x: text_x,
@@ -3129,42 +3194,44 @@ fn paint_focused_empty_query(ui: &mut Ui<'_>, id: Id, area: termrock::Rect, inne
         placeholder,
         underlined,
     );
-    let gap = field.patch(
-        ui.paint_patch(
-            &StylePatch::new()
-                .set_underline(Role::BorderStrong)
-                .add(Modifier::UNDERLINED),
-        ),
-    );
-    let gap_x = line.x.saturating_add(6).saturating_add(text_width);
-    let gap_end = line.right().saturating_sub(1);
-    if gap_x < gap_end {
+    if editor_focused {
+        let gap = field.patch(
+            ui.paint_patch(
+                &StylePatch::new()
+                    .set_underline(Role::BorderStrong)
+                    .add(Modifier::UNDERLINED),
+            ),
+        );
+        let gap_x = line.x.saturating_add(6).saturating_add(text_width);
+        let gap_end = line.right().saturating_sub(1);
+        if gap_x < gap_end {
+            ui.paint_str(
+                termrock::Rect {
+                    x: gap_x,
+                    width: gap_end.saturating_sub(gap_x),
+                    ..line
+                },
+                &" ".repeat(usize::from(gap_end.saturating_sub(gap_x))),
+                gap,
+            );
+        }
+        let status = "ln 1/1 · col 1";
+        let status_width = width(status);
+        let faint = field.patch(ui.paint_patch(&StylePatch::new().set_fg(LEGACY_FAINT)));
         ui.paint_str(
             termrock::Rect {
-                x: gap_x,
-                width: gap_end.saturating_sub(gap_x),
-                ..line
+                x: editor
+                    .right()
+                    .saturating_sub(3)
+                    .saturating_sub(status_width),
+                y: editor.y.saturating_add(editor.height.saturating_sub(1)),
+                width: status_width,
+                height: 1,
             },
-            &" ".repeat(usize::from(gap_end.saturating_sub(gap_x))),
-            gap,
+            status,
+            faint,
         );
     }
-    let status = "ln 1/1 · col 1";
-    let status_width = width(status);
-    let faint = field.patch(ui.paint_patch(&StylePatch::new().set_fg(LEGACY_FAINT)));
-    ui.paint_str(
-        termrock::Rect {
-            x: editor
-                .right()
-                .saturating_sub(3)
-                .saturating_sub(status_width),
-            y: editor.y.saturating_add(editor.height.saturating_sub(1)),
-            width: status_width,
-            height: 1,
-        },
-        status,
-        faint,
-    );
 }
 
 fn idle_editor_rect(
@@ -3987,8 +4054,7 @@ fn paint_legacy_tabs(
         ui.paint_patch(
             &StylePatch::new()
                 .set_bg(Role::Surface(termrock::Surface::Overlay))
-                .set_fg(Role::Fg(FgStep::Primary))
-                .add(Modifier::BOLD),
+                .set_fg(Role::Fg(FgStep::Primary)),
         ),
     );
     let prefix_idle = base.patch(ui.paint_patch(&StylePatch::new().set_fg(TAG_CHROME_FG)));
@@ -4068,7 +4134,7 @@ fn paint_legacy_tabs(
         x = x.saturating_add(1);
     }
     let quiet = base.patch(ui.paint_patch(&StylePatch::new().set_fg(TAG_RULE_FG)));
-    let hot = base.patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Accent)));
+    let hot = base.patch(ui.paint_patch(&StylePatch::new().set_fg(Role::BorderSubtle)));
     let rule = termrock::Rect {
         y: area.y.saturating_add(1),
         height: 1,
@@ -6934,9 +7000,9 @@ fn draw_header(ui: &mut Ui<'_>, area: termrock::Rect, app: &TableProApp) {
                 area,
                 &[
                     Span::new("  "),
-                    Span::new("▪").role(Role::Accent),
+                    Span::new("▪").role(LEGACY_FAINT),
                     Span::new(" "),
-                    Span::new(" TablePro ").bold(),
+                    Span::new(" TablePro "),
                     Span::new(" "),
                     Span::new("Connections").role(Role::Fg(FgStep::Secondary)),
                     Span::new("  "),
@@ -6950,9 +7016,9 @@ fn draw_header(ui: &mut Ui<'_>, area: termrock::Rect, app: &TableProApp) {
                 area,
                 &[
                     Span::new("  "),
-                    Span::new("▪").role(Role::Accent),
+                    Span::new("▪").role(LEGACY_FAINT),
                     Span::new(" "),
-                    Span::new(" TablePro ").bold(),
+                    Span::new(" TablePro "),
                     Span::new(" "),
                     Span::new("Connections").role(Role::Fg(FgStep::Secondary)),
                     Span::new(&surface).role(Role::Fg(FgStep::Secondary)),
@@ -6977,15 +7043,15 @@ fn draw_header(ui: &mut Ui<'_>, area: termrock::Rect, app: &TableProApp) {
             area,
             &[
                 Span::new("  "),
-                Span::new("▪").role(Role::Accent),
+                Span::new("▪").role(LEGACY_FAINT),
                 Span::new(" "),
-                Span::new(" TablePro  ").bold(),
-                Span::new(&app.connection.name).bold(),
-                Span::new(" ").bold(),
+                Span::new(" TablePro  "),
+                Span::new(&app.connection.name),
                 Span::new(" "),
-                Span::new(glyph).role(LEGACY_DANGER_LABEL).bold(),
-                Span::new(" ").role(LEGACY_DANGER_LABEL).bold(),
-                Span::new(environment).role(LEGACY_DANGER_LABEL).bold(),
+                Span::new(" "),
+                Span::new(glyph).role(LEGACY_FAINT),
+                Span::new(" ").role(LEGACY_FAINT),
+                Span::new(environment).role(LEGACY_FAINT),
                 Span::new(" "),
                 Span::new(&path).role(TAG_PATH_FG),
                 safe_mode_mark(app.safe_mode),
@@ -7580,16 +7646,43 @@ fn paint_connection_filter_footer(ui: &mut Ui<'_>, area: termrock::Rect) {
     );
 }
 
+fn paint_picker_layer_footer(ui: &mut Ui<'_>, area: termrock::Rect) {
+    let base = ui.surface_style();
+    ui.paint_spans(
+        area,
+        &[
+            Span::new(" "),
+            Span::new("Type").bold(),
+            Span::new(" "),
+            Span::new("Filter").role(TAG_CHROME_FG),
+            Span::new("  "),
+            Span::new("↑↓").bold(),
+            Span::new(" "),
+            Span::new("Move").role(TAG_CHROME_FG),
+            Span::new("  "),
+            Span::new("Enter").bold(),
+            Span::new(" "),
+            Span::new("Choose").role(TAG_CHROME_FG),
+            Span::new("  "),
+            Span::new("Esc").bold(),
+            Span::new(" "),
+            Span::new("Cancel").role(TAG_CHROME_FG),
+        ],
+        base,
+    );
+}
+
 fn draw_footer(ui: &mut Ui<'_>, area: termrock::Rect, app: &TableProApp) {
     let base = ui.surface_style();
     let explorer_focused = ui.state(EXPLORER).contains(StateFlags::FOCUSED);
     let empty_query = historical_empty_query(ui, app);
     ui.fill(area, base);
-    if app.screen == Screen::Connections && app.connection_filter_editing {
+    if matches!(app.surface, Surface::QuickSwitcher | Surface::TabListPicker) {
+        paint_picker_layer_footer(ui, area);
+    } else if app.screen == Screen::Connections && app.connection_filter_editing {
         paint_connection_filter_footer(ui, area);
         return;
-    }
-    if empty_query {
+    } else if empty_query {
         paint_query_editor_footer(ui, area);
     } else if !explorer_focused && grid_is_editing(app) {
         paint_cell_edit_footer(ui, area);
@@ -8038,106 +8131,6 @@ impl TableProApp {
         // Trailer is ESC[?25l. Do not set a bar cursor and do not write cursor bytes.
         historical_history_tab::paint(ui);
         true
-    }
-
-    fn paint_historical_picker_open(&self, ui: &mut Ui<'_>) -> bool {
-        if !self.historical_picker_open_frame(ui) {
-            return false;
-        }
-        // Trailer is ESC[?25h ESC[13;21H ESC[6 q. Set the steady bar. Do not write cursor bytes.
-        historical_picker_open::paint(ui);
-        ui.set_undrawn_top_bar_cursor(
-            quick_switcher::ID,
-            termrock::Rect {
-                x: 20,
-                y: 12,
-                width: 1,
-                height: 1,
-            },
-            Position::new(20, 12),
-        );
-        true
-    }
-
-    fn historical_picker_open_frame(&self, ui: &Ui<'_>) -> bool {
-        let area = ui.full();
-        // The approved card is the PTY frame. Unit tests have no tty, but
-        // ctrl-o still has to land on the approved cell or its check fails.
-        let on_terminal = std::io::IsTerminal::is_terminal(&std::io::stdout());
-        if area.width != 120 || area.height != 40 || !(on_terminal || cfg!(test)) {
-            return false;
-        }
-        let theme = ui.theme_ref();
-        if theme.capability.color != termrock::ColorLevel::TrueColor
-            || theme.color.accent != termrock::Color::Rgb(0x48, 0xe0, 0x54)
-        {
-            return false;
-        }
-        if self.screen != Screen::Workbench
-            || self.form_open
-            || self.destructive_intent.is_some()
-            || self.workbench.maximized
-            || self.split_state.maximized() != Maximized::None
-            || self.surface != Surface::QuickSwitcher
-            || self.connection.name != "Production"
-            || self.workbench.tabs().len() != 1
-            || !self.switcher.state.query().is_empty()
-            || self
-                .switcher
-                .state
-                .scope(&[termrock::ScopeKey::new(0)])
-                .is_none()
-        {
-            return false;
-        }
-        // History, table data, explorer hidden, maximized, a new tab, and connections are other cards.
-        let Some(Tab::Query(query)) = self.workbench.active() else {
-            return false;
-        };
-        if query.plan.is_some() || query.error.is_some() || query.result.is_some() {
-            return false;
-        }
-        let sql = query
-            .editor_state
-            .draft_text()
-            .unwrap_or(query.query.as_str())
-            .trim();
-        sql.is_empty()
-    }
-
-    fn paint_historical_tablist_open(&self, ui: &mut Ui<'_>) -> bool {
-        if !self.historical_tablist_open_frame(ui) {
-            return false;
-        }
-        // CUP 19;33 is the steady bar in the filter. Do not write cursor bytes.
-        historical_tablist_open::paint(ui);
-        if let Some(id) = self.query_id() {
-            ui.register_keyboard_editor(
-                id,
-                ui.full(),
-                Focusability::Focusable,
-                StateFlags::EDITING,
-            );
-            ui.set_bar_cursor(id, Position::new(32, 18));
-        }
-        true
-    }
-
-    fn historical_tablist_open_frame(&self, ui: &Ui<'_>) -> bool {
-        let area = ui.full();
-        // The approved card is the PTY frame. Unit tests have no tty, but
-        // ctrl-g still has to land on the approved cell or its check fails.
-        let on_terminal = std::io::IsTerminal::is_terminal(&std::io::stdout());
-        if area.width != 120 || area.height != 40 || !(on_terminal || cfg!(test)) {
-            return false;
-        }
-        let theme = ui.theme_ref();
-        if theme.capability.color != termrock::ColorLevel::TrueColor
-            || theme.color.accent != termrock::Color::Rgb(0x48, 0xe0, 0x54)
-        {
-            return false;
-        }
-        self.surface == Surface::TabListPicker && self.idle_production_query()
     }
 
     fn paint_historical_safemode_picker(&self, ui: &mut Ui<'_>) -> bool {
@@ -9018,6 +9011,7 @@ impl App for TableProApp {
                 .erase();
         }
         response |= self.update_switcher(cx);
+        response |= self.update_tab_list(cx);
         if switcher_was_open {
             return response;
         }
@@ -9118,7 +9112,7 @@ impl App for TableProApp {
                         response |= Response::changed();
                     }
                 }
-                c if c == TAB_LIST && self.open_tab_list() => {
+                c if c == TAB_LIST && self.open_tab_list(cx) => {
                     response |= Response::changed();
                 }
                 c if c == CLEAR_QUERY && self.open_safe_mode_picker() => {
@@ -9376,16 +9370,6 @@ impl App for TableProApp {
                 cx.focus(id);
             }
         }
-        if self.surface == Surface::TabListPicker && self.idle_production_query() {
-            let view = cx.viewport();
-            // The approved bar sits on the 120×40 card. Other sizes keep focus.
-            if view.width == 120
-                && view.height == 40
-                && let Some(id) = self.query_id()
-            {
-                cx.focus(id);
-            }
-        }
         if self.surface == Surface::FilterEditor
             && self
                 .filter_editor
@@ -9411,8 +9395,6 @@ impl App for TableProApp {
             || self.paint_historical_workbench_explorer_hidden(ui)
             || self.paint_historical_table_scrolled_right(ui)
             || self.paint_historical_history_tab(ui)
-            || self.paint_historical_picker_open(ui)
-            || self.paint_historical_tablist_open(ui)
             || self.paint_historical_safemode_picker(ui)
             || self.paint_historical_help_overlay(ui)
             || self.paint_historical_filter_editor(ui)
@@ -9477,6 +9459,14 @@ impl App for TableProApp {
             self.switcher
                 .component()
                 .draw(ui, area, &self.switcher.state, &self.switcher.items);
+        });
+        ui.layer(tab_list::ID, |ui, area| {
+            tab_list::picker(self.tab_list.rows.len()).draw(
+                ui,
+                area,
+                &self.tab_list.state,
+                &self.tab_list.rows,
+            );
         });
         if let Some(intent) = self.destructive_intent.as_ref() {
             ui.layer(QUIT_DIALOG, |ui, area| {

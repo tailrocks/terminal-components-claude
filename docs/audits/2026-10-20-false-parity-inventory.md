@@ -33,7 +33,11 @@ Shared selection on the tablepro and jackin rows is usually `120×40`, truecolor
 
 ## First replacement
 
-TablePro quick-open (`historical_picker_open`) and tab list (`historical_tablist_open`). Fix `Picker` layout, filter, selection, and dismiss. Remove both replay paints in that series. Opening the picker must not depend on the connection name, one empty tab, or one terminal size.
+TablePro quick-open and tab list now draw `termrock_overlays::picker::Picker`. The `historical_picker_open` and `historical_tablist_open` replay paints are removed. Opening either overlay does not depend on the connection name, one empty tab, or one terminal size. The 120×40 truecolor frames are not identical yet.
+
+Recorded before the uncommitted picker series: local `HEAD` `b0504717c280a4bb141cc6043b35fce6664f8a6a`. `origin/parity/termrock-visual-baseline` is ahead at `1a947a251ab9b045610b47729bf481419b9fca8d` (docs only). Rebase onto that tip before the next push. Do not push `main`.
+
+Latest harness: `picker_open` and `tablist_open` at 120×40 truecolor both match the baseline, cell for cell, including the cursor. Supersedes the 1089 / 198 and 253 / 136 counts. The card samples backdrop ink, rows use the shared column solver, the overflowing list fades through `Ui::scroll_edges`, and the footer is the layer hint `Type Filter` while either picker is open. Other `historical_*` and `*_plate` paints are still in the tree. Do not treat the rest of the apps as parity.
 
 ## Still incomplete
 
