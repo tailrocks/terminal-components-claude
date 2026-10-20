@@ -1493,6 +1493,55 @@ fn accounts_detail_downs_paint_the_approved_work_frame() {
 }
 
 #[test]
+fn accounts_drawer_enter_paints_the_approved_work_drawer() {
+    let mut h = H::new(Scenario::AccountsMixed, Motion::Paused, 40, 120, 40);
+    for _ in 0..4 {
+        h.key(KeyCode::Down);
+    }
+    assert!(!h.app().accounts.drawer_open);
+    assert!(
+        !h.text().contains("Tab Actions"),
+        "detail must stay off the drawer footer: {}",
+        h.text()
+    );
+    h.key(KeyCode::Enter);
+    assert!(h.app().accounts.drawer_open);
+    assert_eq!(
+        h.app().accounts.selected_id.as_deref(),
+        Some("acct-claude-work")
+    );
+    assert!(h.text().contains("Tab Actions"), "{}", h.text());
+    let crumb = h.buffer().cell((43, 0)).expect("work breadcrumb");
+    assert_eq!(crumb.symbol(), "A");
+    assert_eq!(crumb.fg, termrock::Color::from_u32(0xb3_b3_b3));
+    assert_eq!(crumb.bg, termrock::Color::from_u32(0x00_00_00));
+    assert!(!crumb.modifier.contains(termrock::Modifier::BOLD));
+    let mark = h.buffer().cell((2, 0)).expect("jackin prompt");
+    assert_eq!(mark.symbol(), "j");
+    assert_eq!(mark.fg, termrock::Color::from_u32(0x19_19_1c));
+    assert_eq!(mark.bg, termrock::Color::from_u32(0x48_e0_54));
+    assert!(mark.modifier.contains(termrock::Modifier::BOLD));
+    let title = h.buffer().cell((44, 2)).expect("drawer title");
+    assert_eq!(title.symbol(), "C");
+    assert_eq!(title.fg, termrock::Color::from_u32(0xff_ff_ff));
+    assert_eq!(title.bg, termrock::Color::from_u32(0x11_11_11));
+    assert!(title.modifier.contains(termrock::Modifier::BOLD));
+    let tab = h.buffer().cell((12, 39)).expect("drawer tab hint");
+    assert_eq!(tab.symbol(), "T");
+    assert_eq!(tab.fg, termrock::Color::from_u32(0xff_ff_ff));
+    assert_eq!(tab.bg, termrock::Color::from_u32(0x00_00_00));
+    assert!(tab.modifier.contains(termrock::Modifier::BOLD));
+    assert_eq!(h.harness.cursor(), None);
+    h.key(KeyCode::Esc);
+    assert!(!h.app().accounts.drawer_open);
+    assert!(
+        !h.text().contains("Tab Actions"),
+        "escape must leave the drawer frame: {}",
+        h.text()
+    );
+}
+
+#[test]
 fn usage_overview_u_paints_the_approved_overview_frame() {
     let mut h = H::new(Scenario::AccountsMixed, Motion::Paused, 40, 120, 40);
     assert!(
