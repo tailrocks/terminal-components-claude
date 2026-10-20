@@ -1,13 +1,13 @@
 use core::marker::PhantomData;
 
-use ratatui_core::layout::{Position, Rect};
+use ratatui_core::layout::Rect;
 
 use super::{Acc, PartStyle, SlotFn, overlay_chrome};
 use crate::id::{Id, ItemKey, Part};
-use crate::layer::{Anchor, LayerSize, LayerSpec, ScreenAlign};
+use crate::layer::{Anchor, Dismiss, LayerSize, LayerSpec, ScreenAlign};
 use crate::response::{Response, StateFlags};
 use crate::text::width;
-use crate::theme::{CursorStyle, Family, FgStep, GlyphRole, Role, StylePatch, Surface, Variant};
+use crate::theme::{CursorStyle, Family, FgStep, Role, StylePatch, Surface, Variant};
 use crate::ui::{Cx, FrameRead, Ui};
 use termrock_navigation::filter_list::{
     FilterList, FilterListAction, FilterListState, FilterPolicy,
@@ -56,6 +56,9 @@ impl PickerState {
     pub fn query(&self) -> &str {
         self.list.query()
     }
+    pub const fn is_query_editing(&self) -> bool {
+        self.list.is_query_editing()
+    }
     pub fn set_query(&mut self, query: impl Into<String>) {
         self.list.set_query(query);
     }
@@ -70,6 +73,11 @@ impl PickerState {
     }
     pub const fn list(&self) -> &FilterListState {
         &self.list
+    }
+    pub fn take_query_edit_menu_request(
+        &mut self,
+    ) -> Option<termrock_fields::input::EditMenuRequest> {
+        self.list.take_query_edit_menu_request()
     }
 }
 
@@ -90,6 +98,7 @@ pub struct Picker<'a, T, R = ItemRow> {
     item_layout: ItemRowLayout,
     surface: Surface,
     cursor_style: CursorStyle,
+    delete_is_secondary: bool,
     metadata_gap: u16,
     patch: Option<&'a StylePatch>,
     parts: &'a [(Part, StylePatch)],
@@ -129,6 +138,7 @@ impl<T> Picker<'_, T, ItemRow> {
             item_layout: ItemRowLayout::Compact,
             surface: Surface::Overlay,
             cursor_style: CursorStyle::Bar,
+            delete_is_secondary: true,
             metadata_gap: 1,
             patch: None,
             parts: &[],
@@ -172,6 +182,11 @@ impl<'a, T, R> Picker<'a, T, R> {
     #[must_use]
     pub const fn cursor_style(mut self, style: CursorStyle) -> Self {
         self.cursor_style = style;
+        self
+    }
+    #[must_use]
+    pub const fn delete_is_secondary(mut self, enabled: bool) -> Self {
+        self.delete_is_secondary = enabled;
         self
     }
     #[must_use]
@@ -252,6 +267,7 @@ impl<'a, T, R> Picker<'a, T, R> {
             item_layout: ItemRowLayout::Compact,
             surface: self.surface,
             cursor_style: self.cursor_style,
+            delete_is_secondary: self.delete_is_secondary,
             metadata_gap: self.metadata_gap,
             patch: self.patch,
             parts: self.parts,
@@ -291,6 +307,8 @@ impl<T: AsItem, R: RowFn<T>> Picker<'_, T, R> {
     fn list(&self) -> FilterList<'_, T, BorrowedRow<'_, R>> {
         let mut list = FilterList::new(self.id)
             .searchable(self.searchable)
+            .placeholder(self.placeholder)
+            .delete_is_secondary(self.delete_is_secondary)
             .filter(self.filter)
             .row(BorrowedRow(&self.row))
             .with_item_layout(self.item_layout)
@@ -327,6 +345,11 @@ impl<T: AsItem, R: RowFn<T>> Picker<'_, T, R> {
 
     pub fn layer(&self, cx: &Cx<'_>, items: &[T]) -> LayerSpec {
         LayerSpec::modal(self.id)
+            .dismiss(Dismiss {
+                esc: false,
+                outside_click: true,
+                focus_out: false,
+            })
             .anchor(Anchor::Screen(
                 self.align.unwrap_or(ScreenAlign::UpperThird),
             ))
@@ -487,63 +510,7 @@ impl<T: AsItem, R: RowFn<T>> Picker<'_, T, R> {
                         height: 1,
                         ..content
                     };
-                    let query_style = self.ov.style(
-                        ui,
-                        self.id,
-                        Family::PICKER,
-                        Variant::DEFAULT,
-                        Part::QUERY,
-                        live | StateFlags::EDITING,
-                    );
-                    ui.fill(query, query_style.style);
-                    let gutter_style = self.ov.style(
-                        ui,
-                        self.id,
-                        Family::PICKER,
-                        Variant::DEFAULT,
-                        Part::GUTTER,
-                        live | StateFlags::FOCUSED | StateFlags::EDITING,
-                    );
-                    ui.glyph(
-                        Rect { width: 1, ..query },
-                        GlyphRole::FocusBar,
-                        gutter_style.style,
-                    );
-                    let empty_query = st.query().is_empty();
-                    let text = if empty_query {
-                        self.placeholder
-                    } else {
-                        st.query()
-                    };
-                    let text_style = if empty_query {
-                        self.ov
-                            .style(
-                                ui,
-                                self.id,
-                                Family::PICKER,
-                                Variant::DEFAULT,
-                                Part::PLACEHOLDER,
-                                live | StateFlags::EDITING,
-                            )
-                            .style
-                    } else {
-                        query_style.style
-                    };
-                    ui.paint_str(
-                        Rect {
-                            x: query.x.saturating_add(2),
-                            width: query.width.saturating_sub(2),
-                            ..query
-                        },
-                        text,
-                        text_style,
-                    );
-                    let caret = Position::new(
-                        query.x.saturating_add(2).saturating_add(width(st.query())),
-                        query.y,
-                    );
-                    // The query caret is a bar even when the result rows use a fill cursor.
-                    ui.set_bar_cursor(self.id, caret);
+                    self.list().draw_query(ui, query, &st.list);
                 }
 
                 let show_hint = !self.hints.is_empty();
@@ -574,7 +541,7 @@ impl<T: AsItem, R: RowFn<T>> Picker<'_, T, R> {
                         }),
                     ..content
                 };
-                self.list().draw(ui, list, &st.list, items);
+                self.list().draw_results(ui, list, &st.list, items);
                 area
             },
         )
@@ -625,6 +592,125 @@ mod tests {
         let mut state = FilterListState::default();
         state.set_query("a");
         assert_eq!(state.query(), "a");
+    }
+
+    #[test]
+    fn picker_routes_query_editing_navigation_and_clear_through_text_input() {
+        use termrock_runtime::event::{Input, Key, KeyCode, KeyModifiers};
+        use termrock_runtime::runtime::{App, Runtime};
+
+        const ID: Id = Id::root("picker.query-runtime");
+        struct QueryApp {
+            state: PickerState,
+            opened: bool,
+            actions: Vec<PickerAction>,
+        }
+        impl App for QueryApp {
+            fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+                let picker = Picker::new(ID).title("Find");
+                let items = [
+                    Item::new(ItemKey::num(1), "alpha"),
+                    Item::new(ItemKey::num(2), "beta"),
+                ];
+                if !self.opened {
+                    self.opened = true;
+                    cx.open_layer(ID, picker.layer(cx, &items));
+                }
+                let mut response = picker.update(cx, &mut self.state, &items);
+                if let Some(action) = response.take_action() {
+                    self.actions.push(action);
+                }
+                response.erase()
+            }
+
+            fn draw(&self, ui: &mut Ui<'_>) {
+                let picker = Picker::new(ID).title("Find");
+                let items = [
+                    Item::new(ItemKey::num(1), "alpha"),
+                    Item::new(ItemKey::num(2), "beta"),
+                ];
+                ui.layer(ID, |ui, area| picker.draw(ui, area, &self.state, &items));
+            }
+        }
+
+        let area = Rect::new(0, 0, 80, 24);
+        let mut buffer = ratatui_core::buffer::Buffer::empty(area);
+        let mut runtime = Runtime::new(
+            QueryApp {
+                state: PickerState::default(),
+                opened: false,
+                actions: Vec::new(),
+            },
+            Theme::junie(),
+        );
+        let _ = runtime.initialize();
+        runtime.draw_buffer(area, &mut buffer).commit_presented();
+        let _ = termrock_runtime::runtime::stub::deliver(&mut runtime, Input::Tick);
+        runtime.draw_buffer(area, &mut buffer).commit_presented();
+        assert_eq!(runtime.focus(), Some(ID));
+
+        let key = |code| {
+            Input::Key(Key {
+                code,
+                mods: KeyModifiers::NONE,
+            })
+        };
+        let _ = termrock_runtime::runtime::stub::deliver(&mut runtime, key(KeyCode::Char('b')));
+        runtime.draw_buffer(area, &mut buffer).commit_presented();
+        assert_eq!(runtime.app().state.query(), "b");
+        assert_eq!(runtime.app().state.list().matched_len(), 1);
+        assert_eq!(
+            runtime.app().actions.last(),
+            Some(&PickerAction::QueryChanged)
+        );
+
+        let _ = termrock_runtime::runtime::stub::deliver(&mut runtime, key(KeyCode::Delete));
+        runtime.draw_buffer(area, &mut buffer).commit_presented();
+        assert_eq!(runtime.app().state.query(), "b");
+        assert!(
+            runtime
+                .app()
+                .actions
+                .contains(&PickerAction::Secondary(ItemKey::num(2))),
+            "actions={:?}, cursor={:?}",
+            runtime.app().actions,
+            runtime.app().state.cursor()
+        );
+
+        let _ = termrock_runtime::runtime::stub::deliver(&mut runtime, key(KeyCode::Backspace));
+        runtime.draw_buffer(area, &mut buffer).commit_presented();
+        assert_eq!(
+            runtime.app().state.query(),
+            "",
+            "editing={}, draft={:?}, actions={:?}",
+            runtime.app().state.is_query_editing(),
+            runtime.app().state.query(),
+            runtime.app().actions
+        );
+        assert_eq!(runtime.app().state.list().matched_len(), 2);
+        let _ = termrock_runtime::runtime::stub::deliver(&mut runtime, key(KeyCode::Backspace));
+        runtime.draw_buffer(area, &mut buffer).commit_presented();
+        assert!(runtime.app().actions.contains(&PickerAction::Back));
+        let _ = termrock_runtime::runtime::stub::deliver(&mut runtime, key(KeyCode::Char('b')));
+        runtime.draw_buffer(area, &mut buffer).commit_presented();
+
+        let _ = termrock_runtime::runtime::stub::deliver(&mut runtime, key(KeyCode::Esc));
+        runtime.draw_buffer(area, &mut buffer).commit_presented();
+        assert_eq!(
+            runtime.app().state.query(),
+            "",
+            "actions: {:?}",
+            runtime.app().actions
+        );
+        assert!(
+            runtime.is_open(ID),
+            "first Esc clears query, keeps picker open"
+        );
+
+        let _ = termrock_runtime::runtime::stub::deliver(&mut runtime, key(KeyCode::Esc));
+        runtime.draw_buffer(area, &mut buffer).commit_presented();
+        assert!(!runtime.is_open(ID), "second Esc dismisses empty picker");
+        assert!(runtime.app().actions.contains(&PickerAction::QueryChanged));
     }
 
     fn measured_at(size: LayerSize, viewport_width: u16) -> LayerSize {
