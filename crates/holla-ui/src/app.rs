@@ -396,6 +396,31 @@ fn paint_size_label(ui: &mut Ui<'_>, area: Rect) -> u16 {
     size_x
 }
 
+/// Tag parity-history status at 100×30: cwd, branch, then the size label. No ahead count.
+fn paint_parity_history_status(ui: &mut Ui<'_>, area: Rect) {
+    if area.is_empty() {
+        return;
+    }
+    ui.fill(area, status_ink(ui, STATUS_FG, false));
+    let cwd_end = paint_status_text(
+        ui,
+        area,
+        area.x.saturating_add(STATUS_EDGE),
+        "~/work/holla",
+        STATUS_FG,
+        true,
+    );
+    let _ = paint_status_text(
+        ui,
+        area,
+        cwd_end.saturating_add(STATUS_GAP),
+        "main",
+        STATUS_GREY,
+        false,
+    );
+    let _ = paint_size_label(ui, area);
+}
+
 /// Tag first-use status: cwd, an 11-cell `/` meter at 91%, then the size label.
 fn paint_first_use_status(ui: &mut Ui<'_>, area: Rect) {
     if area.is_empty() {
@@ -1525,6 +1550,14 @@ impl App {
             paint_remote_host_status(ui, status);
         } else if crate::sim::catalogue::hard_cases_tag_frame(&self.world) {
             paint_hard_cases_status(ui, status);
+        } else if crate::sim::catalogue::parity_history_100x30_plate(
+            &self.world,
+            ui.full().width,
+            ui.full().height,
+        )
+        .is_some()
+        {
+            paint_parity_history_status(ui, status);
         } else if launch_failure_plate_open(&self.world, ui) {
             paint_launch_failure_status(ui, status);
         } else if self.route == Route::Disk
@@ -1636,6 +1669,14 @@ impl App {
             ))
         } else if crate::sim::catalogue::hard_cases_tag_frame(&self.world) {
             Some(("Open", None))
+        } else if crate::sim::catalogue::parity_history_100x30_plate(
+            &self.world,
+            ui.full().width,
+            ui.full().height,
+        )
+        .is_some()
+        {
+            Some(("Run", None))
         } else {
             None
         };
@@ -1748,12 +1789,19 @@ impl App {
                 ui.full().height,
             )
             .is_some();
+            let history_mid = crate::sim::catalogue::parity_history_100x30_plate(
+                &self.world,
+                ui.full().width,
+                ui.full().height,
+            )
+            .is_some();
             let parts = if monorepo_child_mid
                 || remote_host_mid
                 || first_use_mid
                 || monorepo_root_mid
                 || hard_cases_mid
                 || discovery_mid
+                || history_mid
                 || (narrow
                     && (crate::sim::catalogue::first_use_tag_frame(&self.world)
                         || crate::sim::catalogue::monorepo_root_tag_frame(&self.world)
