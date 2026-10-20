@@ -4,7 +4,7 @@ use ratatui_core::style::{Modifier, Style};
 
 use crate::id::{Id, Part, PartRef};
 use crate::response::StateFlags;
-use crate::theme::{Family, GlyphRole, Surface, Variant};
+use crate::theme::{Family, GlyphRole, Slot, Surface, Variant};
 use crate::ui::Ui;
 
 pub use crate::author::PartStyle;
@@ -36,6 +36,13 @@ pub fn overlay_chrome<R>(
             // Copy each page cell through that mapping, then paint the card bg.
             let resolved = container.style.into_style();
             let card_bg = resolved.bg.unwrap_or(ratatui_core::style::Color::Reset);
+            let container_patch = ov.part_patch(Part::CONTAINER);
+            let container_fg = container_patch.and_then(|patch| match patch.fg {
+                Slot::Inherit => None,
+                Slot::Set(_) => Some(resolved.fg),
+                Slot::Clear => Some(Some(ratatui_core::style::Color::Reset)),
+            });
+            let container_modifiers = container_patch.map_or(Modifier::empty(), |patch| patch.add);
             let theme = ui.theme_ref().clone();
             for pos in area.positions() {
                 let (src_fg, src_bg) = ui
@@ -46,14 +53,15 @@ pub fn overlay_chrome<R>(
                         ratatui_core::style::Color::Reset,
                         ratatui_core::style::Color::Reset,
                     ));
-                let (fg, _) = theme.backdrop_colors(src_fg, src_bg);
+                let (backdrop_fg, _) = theme.backdrop_colors(src_fg, src_bg);
+                let fg = container_fg.unwrap_or(Some(backdrop_fg));
                 if let Some(cell) = ui.buffer().cell_mut(pos) {
                     cell.set_symbol(" ");
                     let mut style = Style::new();
-                    style.fg = Some(fg);
+                    style.fg = fg;
                     style.bg = Some(card_bg);
                     cell.set_style(style);
-                    cell.modifier = Modifier::empty();
+                    cell.modifier = container_modifiers;
                 }
             }
             ui.mark_area(area, None);
@@ -182,9 +190,16 @@ impl<A> Acc<A> {
 
 #[cfg(test)]
 mod tests {
+    use ratatui_core::buffer::Buffer;
     use ratatui_core::layout::Rect;
+    use ratatui_core::style::Modifier;
 
-    use super::cell_at;
+    use super::{PartStyle, cell_at, overlay_chrome};
+    use crate::id::{Id, Part};
+    use crate::response::StateFlags;
+    use crate::theme::{Family, Role, Slot, StylePatch, Surface, Theme};
+    use crate::ui::cx::LastFrame;
+    use crate::ui::{FrameState, Ui, UiCore};
 
     const AREA: Rect = Rect {
         x: 4,
@@ -226,5 +241,54 @@ mod tests {
             }
         );
         assert_eq!(cell_at(AREA, AREA.right() + 1).width, 0);
+    }
+
+    #[test]
+    fn picker_chrome_keeps_explicit_container_foreground_and_modifier() {
+        let area = Rect::new(0, 0, 5, 4);
+        let theme = Theme::junie();
+        let mut frame = FrameState::default();
+        frame.reset(1, area);
+        let mut page = Buffer::empty(area);
+        let mut core = UiCore::default();
+        let last = LastFrame::default();
+        let patches = [(
+            Part::CONTAINER,
+            StylePatch::new()
+                .set_fg(Role::Danger)
+                .add(Modifier::UNDERLINED),
+        )];
+        let container = PartStyle::new().part(&patches);
+        assert_eq!(
+            container.part_patch(Part::CONTAINER).unwrap().fg,
+            Slot::Set(Role::Danger)
+        );
+        {
+            let mut ui = Ui::new(&mut frame, &mut page, &mut core, &theme, &last);
+            overlay_chrome(
+                &mut ui,
+                Id::root("picker.chrome-patch"),
+                area,
+                Family::PICKER,
+                Surface::Overlay,
+                container,
+                StateFlags::empty(),
+                StateFlags::empty(),
+                |_, _| (),
+            );
+        }
+        let cell = page.cell((2, 2)).expect("picker chrome cell");
+        let expected_fg = crate::theme::resolve::bind(
+            &theme,
+            StylePatch::new().set_fg(Role::Danger),
+            None,
+            Surface::Overlay,
+        )
+        .style
+        .into_style()
+        .fg
+        .expect("danger foreground");
+        assert_eq!(cell.fg, expected_fg);
+        assert!(cell.modifier.contains(Modifier::UNDERLINED));
     }
 }
