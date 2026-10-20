@@ -1449,6 +1449,21 @@ fn settings_route_s_paints_the_approved_settings_frame() {
 }
 
 #[test]
+fn settings_route_80_paints_the_approved_breadcrumb_cell() {
+    let mut h = H::new(Scenario::AccountsMixed, Motion::Paused, 40, 80, 24);
+    h.key(KeyCode::Char('s'));
+    assert_eq!(h.app().route(), Route::Settings);
+    assert_eq!(h.app().settings.tab, 0);
+    let crumb = h.buffer().cell((51, 0)).expect("settings breadcrumb");
+    assert_eq!(crumb.symbol(), "S");
+    assert_eq!(crumb.fg, termrock::Color::from_u32(0xb3_b3_b3));
+    assert_eq!(crumb.bg, termrock::Color::from_u32(0x00_00_00));
+    assert!(!crumb.modifier.contains(termrock::Modifier::BOLD));
+    assert!(!crumb.modifier.contains(termrock::Modifier::ITALIC));
+    assert_eq!(h.harness.cursor(), None);
+}
+
+#[test]
 fn settings_env_three_enter_paints_the_approved_env_frame() {
     let mut h = H::new(Scenario::AccountsMixed, Motion::Paused, 40, 120, 40);
     h.key(KeyCode::Char('s'));
