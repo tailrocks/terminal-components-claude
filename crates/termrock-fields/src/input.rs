@@ -1148,9 +1148,13 @@ impl<'a> TextInput<'a> {
     /// Register this input's focus, pointer, and key-binding contract when a
     /// host draws its own visible surface for the input state. The supplied
     /// area must belong to the visible host control (for example, a searchable
-    /// list), not to an off-screen or hidden input.
+    /// list), not to an off-screen or hidden input. Unlike `draw`, this method
+    /// keeps the entire supplied host region for focus and pointer routing.
     pub fn register_editor(&self, ui: &mut Ui<'_>, area: Rect, st: &TextInputState) {
-        let area = first_row(area);
+        self.register_editor_area(ui, area, st);
+    }
+
+    fn register_editor_area(&self, ui: &mut Ui<'_>, area: Rect, st: &TextInputState) {
         if area.is_empty() {
             return;
         }
@@ -1573,7 +1577,7 @@ impl<'a> TextInput<'a> {
             height: 1,
         };
         ui.register_decor(self.id, PartRef::of(Part::TEXT), inner);
-        self.register_editor(ui, area, st);
+        self.register_editor_area(ui, area, st);
         let owns_cursor = live.contains(StateFlags::FOCUSED)
             || (editing
                 && matches!(
