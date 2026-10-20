@@ -1,0 +1,40 @@
+{
+  "schema": 1,
+  "source": "ecb271501618508aa6fadc9c9b75c178fcaaa41e",
+  "production_delta_since_2a741": "4a577f67f",
+  "result": {
+    "run": 181,
+    "passed": 161,
+    "failed": 20,
+    "skipped": 0
+  },
+  "failure_names": [
+    "tablepro-ui app::query_result_keys::explain_orders_shows_a_plan_cell_the_error_frame_hides",
+    "tablepro-ui::close_contract query_and_inline_drafts_survive_cancel_without_commit",
+    "tablepro-ui::destructive_generation close_only_binds_target_but_quit_binds_every_tab",
+    "tablepro-ui::footer_unicode connection_form_names_preserve_footer_grapheme_boundaries",
+    "tablepro-ui::form_radio form_radio_commit_changes_draft",
+    "tablepro-ui::form_radio form_radio_enter_submits",
+    "tablepro-ui::form_radio form_radio_focus_bolds_the_painted_row",
+    "tablepro-ui::form_radio form_radio_narrow_frames_clip_the_environment_field",
+    "tablepro-ui::form_radio form_radio_off_marker_uses_the_hollow_circle",
+    "tablepro-ui::form_radio form_radio_right_card_pins_miss_the_stock_form",
+    "tablepro-ui::perf frame_tablepro_connection_form_120x40",
+    "tablepro-ui::perf frame_tablepro_grid_500x14_120x40",
+    "tablepro-ui::replacement_contract result_confirmation_cancel_preserves_inline_draft_and_confirm_targets_captured_tab",
+    "tablepro-ui::replacement_contract result_confirmation_rejects_changed_sql_and_vanished_target_is_noop",
+    "tablepro-ui::replacement_contract save_connect_from_workbench_form_requires_guard_and_cancel_keeps_work",
+    "tablepro-ui::row_actions_contract inserting_after_five_hundred_rows_reveals_the_new_owned_record",
+    "tablepro-ui::row_actions_contract uppercase_u_requires_confirmation_and_preserves_sql_and_other_tab",
+    "tablepro-ui::tab_ownership focused_query_identity_and_draft_survive_earlier_insert_close_and_reorder",
+    "tablepro-ui::undo_contract plain_u_in_sql_editor_is_text_and_leaves_inactive_table_pending",
+    "tablepro-ui::visual tablepro_visual_baseline"
+  ],
+  "cleared_since_2a741": [
+    "tablepro-ui app::fresh_name_gate::typing_replaces_the_stock_name_and_closes_the_empty_card_gate"
+  ],
+  "new_since_2a741": [],
+  "raw_log": "/private/tmp/termrock-tablepro-base-ecb271-all-targets-20261021.log",
+  "raw_log_sha256": "e58b00788e3244d583a1e906009f4deff2f3ce0ad34ac096087345250ec5850c",
+  "limits": "This records the exact current package gate, not full application parity. Some older form test assumptions conflict with independently reviewed frozen source. No expected data or tests were changed. Later external6375 explorer source is not part of this exact run."
+}
