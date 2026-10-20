@@ -48,13 +48,6 @@ impl LayerOpening {
         self.runtime
     }
 
-    #[cfg_attr(
-        not(test),
-        expect(
-            dead_code,
-            reason = "opening generation is checked by prepared output and completion tokens"
-        )
-    )]
     pub(crate) const fn generation(self) -> u64 {
         self.generation
     }
@@ -63,13 +56,6 @@ impl LayerOpening {
         self.id
     }
 
-    #[cfg_attr(
-        not(test),
-        expect(
-            dead_code,
-            reason = "parent opening identity is checked by focus continuation"
-        )
-    )]
     pub(crate) const fn parent(self) -> Option<LayerParent> {
         self.parent
     }
@@ -85,11 +71,52 @@ impl core::fmt::Debug for LayerOpening {
     }
 }
 
+/// Receipt for a closed opening after replacement layout and focus have settled.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct LayerCompletion {
+    opening: LayerOpening,
+    event: LayerEvent,
+    restored_focus: Option<Id>,
+    continuation_acknowledged: bool,
+}
+
+impl LayerCompletion {
+    pub(crate) const fn new(
+        opening: LayerOpening,
+        event: LayerEvent,
+        restored_focus: Option<Id>,
+        continuation_acknowledged: bool,
+    ) -> Self {
+        Self {
+            opening,
+            event,
+            restored_focus,
+            continuation_acknowledged,
+        }
+    }
+
+    pub const fn opening(self) -> LayerOpening {
+        self.opening
+    }
+
+    pub const fn event(self) -> LayerEvent {
+        self.event
+    }
+
+    pub const fn restored_focus(self) -> Option<Id> {
+        self.restored_focus
+    }
+
+    pub const fn continuation_acknowledged(self) -> bool {
+        self.continuation_acknowledged
+    }
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub(crate) struct LayerParent {
-    generation: u64,
-    id: Id,
-    layer: LayerId,
+    pub(crate) generation: u64,
+    pub(crate) id: Id,
+    pub(crate) layer: LayerId,
 }
 
 impl From<LayerOpening> for LayerParent {
@@ -227,6 +254,9 @@ pub struct LayerSpec {
     /// Total horizontal and vertical viewport space reserved outside this layer.
     pub viewport_margin: (u16, u16),
 
+    /// Keep this live underlying control logically active while this layer owns input.
+    pub continues_focus_owner: Option<Id>,
+
     pub backdrop: Backdrop,
 
     pub inert_below: bool,
@@ -243,6 +273,7 @@ impl LayerSpec {
             initial_focus: None,
             size: LayerSize::Fill,
             viewport_margin: (0, 0),
+            continues_focus_owner: None,
             backdrop: Backdrop::Dim {
                 exclude_footer: true,
             },
@@ -260,6 +291,7 @@ impl LayerSpec {
             initial_focus: None,
             size: LayerSize::Fill,
             viewport_margin: (0, 0),
+            continues_focus_owner: None,
             backdrop: Backdrop::None,
             inert_below: false,
         }
@@ -275,6 +307,7 @@ impl LayerSpec {
             initial_focus: None,
             size: LayerSize::Fill,
             viewport_margin: (0, 0),
+            continues_focus_owner: None,
             backdrop: Backdrop::None,
             inert_below: false,
         }
@@ -283,6 +316,12 @@ impl LayerSpec {
     #[must_use]
     pub const fn anchor(mut self, a: Anchor) -> Self {
         self.anchor = a;
+        self
+    }
+
+    #[must_use]
+    pub const fn continues_focus(mut self, owner: Id) -> Self {
+        self.continues_focus_owner = Some(owner);
         self
     }
 
@@ -471,6 +510,7 @@ pub(crate) struct OpenLayer {
     pub(crate) layer: LayerId,
     pub(crate) spec: LayerSpec,
     pub(crate) opening: LayerOpening,
+    pub(crate) closed_event: Option<LayerEvent>,
 
     pub(crate) restore_to: Option<Id>,
 }
@@ -571,6 +611,7 @@ impl LayerStack {
             layer,
             spec,
             opening,
+            closed_event: None,
             restore_to,
         });
         self.pending.push((id, LayerEvent::Opened));
@@ -581,13 +622,14 @@ impl LayerStack {
         let Some(pos) = self.open.iter().position(|l| l.id == id) else {
             return Vec::new();
         };
-        let closed: Vec<OpenLayer> = self.open.drain(pos..).collect();
-        for (i, l) in closed.iter().enumerate() {
+        let mut closed: Vec<OpenLayer> = self.open.drain(pos..).collect();
+        for (i, l) in closed.iter_mut().enumerate() {
             let ev = if i == 0 {
                 event
             } else {
                 LayerEvent::Dismissed(DismissReason::Programmatic)
             };
+            l.closed_event = Some(ev);
             self.pending.push((l.id, ev));
         }
         closed
