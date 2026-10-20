@@ -1276,7 +1276,7 @@ pub fn first_use_80x24_plate(
 }
 
 /// 100×30 no-history `first-use` plate. Not the 80×24 plate and not the 120×40 card.
-/// Later seeks and other sizes stay off it. History keeps the wide card.
+/// Later seeks and other sizes stay off it. History uses the history plate.
 pub fn first_use_100x30_plate(
     w: &World,
     width: u16,
@@ -1563,8 +1563,8 @@ pub fn first_use_history_tag(w: &World) -> Option<ParityDiscovery> {
     })
 }
 
-/// 80×24 history `first-use` plate. Not the 120×40 plate. Later seeks and other sizes stay off it.
-/// History off stays on the no-history plate.
+/// 80×24 history `first-use` plate. Not the 100×30 plate and not the 120×40 card.
+/// Later seeks and other sizes stay off it. History off stays on the no-history plate.
 pub fn first_use_history_80x24_plate(
     w: &World,
     width: u16,
@@ -1574,6 +1574,25 @@ pub fn first_use_history_80x24_plate(
     if !history || width != 80 || height != 24 {
         return None;
     }
+    first_use_history_list(w)
+}
+
+/// 100×30 history `first-use` plate. Not the 80×24 plate and not the 120×40 card.
+/// Later seeks and other sizes stay off it. History off stays on the no-history plate.
+pub fn first_use_history_100x30_plate(
+    w: &World,
+    width: u16,
+    height: u16,
+    history: bool,
+) -> Option<ParityDiscovery> {
+    if !history || width != 100 || height != 30 {
+        return None;
+    }
+    first_use_history_list(w)
+}
+
+/// Collapsed history rows. The wide card keeps the preview.
+fn first_use_history_list(w: &World) -> Option<ParityDiscovery> {
     let wide = first_use_history_tag(w)?;
     let preview = vec![
         PreviewLine {
@@ -3805,6 +3824,43 @@ mod tests {
         let mut other = fixtures::world_for(Scenario::HardCases);
         other.seek(40);
         assert!(first_use_history_80x24_plate(&other, 80, 24, true).is_none());
+    }
+
+    #[test]
+    fn first_use_history_100x30_plate_is_only_the_mid_tick_40_frame() {
+        let mut world = fixtures::world_for(Scenario::FirstUse);
+        assert!(first_use_history_100x30_plate(&world, 100, 30, true).is_none());
+        world.seek(40);
+        assert!(first_use_history_100x30_plate(&world, 80, 24, true).is_none());
+        assert!(first_use_history_100x30_plate(&world, 120, 40, true).is_none());
+        assert!(first_use_history_100x30_plate(&world, 100, 31, true).is_none());
+        assert!(first_use_history_100x30_plate(&world, 99, 30, true).is_none());
+        assert!(first_use_history_100x30_plate(&world, 100, 30, false).is_none());
+        assert!(first_use_100x30_plate(&world, 100, 30, true).is_none());
+        let view =
+            first_use_history_100x30_plate(&world, 100, 30, true).expect("100x30 history plate");
+        assert!(view.lines.iter().any(|line| matches!(
+            line,
+            FinderLine::Row(row) if row.selected && row.title == "Show system resources"
+        )));
+        assert!(view.lines.iter().any(|line| matches!(
+            line,
+            FinderLine::Heading("everything used here is suggested above")
+        )));
+        let runs = view
+            .preview
+            .iter()
+            .find(|line| line.label == "Runs")
+            .expect("runs line");
+        assert_eq!(runs.value, "'holla snapshot system'");
+        assert_eq!(view.preview_meta, "");
+        assert_ne!(first_use_history_tag(&world).as_ref(), Some(&view));
+        assert!(first_use_history_80x24_plate(&world, 100, 30, true).is_none());
+        world.seek(4_000);
+        assert!(first_use_history_100x30_plate(&world, 100, 30, true).is_none());
+        let mut other = fixtures::world_for(Scenario::HardCases);
+        other.seek(40);
+        assert!(first_use_history_100x30_plate(&other, 100, 30, true).is_none());
     }
 
     #[test]
