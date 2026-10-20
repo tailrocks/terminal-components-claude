@@ -2058,7 +2058,7 @@ pub fn parity_git_current_80x24_plate(
 }
 
 /// 80×24 `parity-git-batch` plate. Only a paused tick-40 frame.
-/// The 100×30 plate, cargo, git-current, browser, files, history, discovery, other sizes, later seeks, and every other scenario stay off it.
+/// The 100×30 and 120×40 plates, cargo, git-current, browser, files, history, discovery, other sizes, later seeks, and every other scenario stay off it.
 pub fn parity_git_batch_80x24_plate(w: &World, width: u16, height: u16) -> Option<ParityDiscovery> {
     if w.scenario != Scenario::ParityGitBatch
         || w.clock.running
@@ -2143,7 +2143,7 @@ pub fn parity_git_batch_80x24_plate(w: &World, width: u16, height: u16) -> Optio
 }
 
 /// 100×30 `parity-git-batch` plate. Only a paused tick-40 frame.
-/// The 80×24 plate, cargo, git-current, browser, files, history, discovery, other sizes, later seeks, and every other scenario stay off it.
+/// The 80×24 and 120×40 plates, cargo, git-current, browser, files, history, discovery, other sizes, later seeks, and every other scenario stay off it.
 pub fn parity_git_batch_100x30_plate(
     w: &World,
     width: u16,
@@ -2226,6 +2226,156 @@ pub fn parity_git_batch_100x30_plate(
         lines,
         preview,
         preview_meta: String::new(),
+        actions: Vec::new(),
+        suggested_len: suggested.len(),
+    })
+}
+
+/// 120×40 `parity-git-batch` plate. Only a paused tick-40 frame.
+/// The 80×24 and 100×30 plates, cargo, git-current, browser, files, history, discovery, other sizes, later seeks, and every other scenario stay off it.
+pub fn parity_git_batch_120x40_plate(
+    w: &World,
+    width: u16,
+    height: u16,
+) -> Option<ParityDiscovery> {
+    if w.scenario != Scenario::ParityGitBatch
+        || w.clock.running
+        || width != 120
+        || height != 40
+        || w.now_ms() != 80
+    {
+        return None;
+    }
+    let suggested = vec![tag_row(
+        "Status across 5 child projects",
+        "git",
+        "child",
+        false,
+        "0 dirty · 1 behind",
+        None,
+        true,
+    )];
+    let explore = vec![
+        tag_row(
+            "Children · 4 projects",
+            "explore",
+            "child",
+            false,
+            "4 child projects discovered",
+            None,
+            false,
+        ),
+        tag_row(
+            "System · mbp",
+            "explore",
+            "host",
+            false,
+            "available on this host",
+            None,
+            false,
+        ),
+    ];
+    let mut lines = Vec::new();
+    lines.push(FinderLine::Heading("Suggested here"));
+    for row in &suggested {
+        lines.push(FinderLine::Row(row.clone()));
+    }
+    lines.push(FinderLine::Blank);
+    lines.push(FinderLine::Heading("Recent here"));
+    lines.push(FinderLine::Heading("nothing used here yet"));
+    lines.push(FinderLine::Blank);
+    lines.push(FinderLine::Heading("Explore"));
+    lines.push(FinderLine::Chips(&[
+        "Tasks", "Git", "Files", "Disk", "Services", "System",
+    ]));
+    for row in &explore {
+        lines.push(FinderLine::Row(row.clone()));
+    }
+    let run = "git -C /Users/al…-branch";
+    let mut preview = vec![
+        PreviewLine {
+            label: "Does",
+            value:
+                "inspect every discovered Git project · worktrees deduplicated, submodules marked"
+                    .into(),
+            tone: PreviewTone::Text,
+            wraps: true,
+        },
+        PreviewLine {
+            label: "Runs",
+            value: run.into(),
+            tone: PreviewTone::Secondary,
+            wraps: false,
+        },
+    ];
+    for _ in 0..4 {
+        preview.push(PreviewLine {
+            label: "",
+            value: run.into(),
+            tone: PreviewTone::Secondary,
+            wraps: false,
+        });
+    }
+    preview.extend([
+        PreviewLine {
+            label: "In",
+            value: "~/work/repos".into(),
+            tone: PreviewTone::Text,
+            wraps: false,
+        },
+        PreviewLine {
+            label: "Host",
+            value: "mbp · local".into(),
+            tone: PreviewTone::Text,
+            wraps: false,
+        },
+        PreviewLine {
+            label: "Scope",
+            value: "child".into(),
+            tone: PreviewTone::Text,
+            wraps: false,
+        },
+        PreviewLine {
+            label: "Why",
+            value: "0 dirty · 1 behind".into(),
+            tone: PreviewTone::Text,
+            wraps: false,
+        },
+        PreviewLine {
+            label: "Changes",
+            value: "none · read-only".into(),
+            tone: PreviewTone::Text,
+            wraps: false,
+        },
+        PreviewLine {
+            label: "Risk",
+            value: "read-only".into(),
+            tone: PreviewTone::Meta,
+            wraps: false,
+        },
+        PreviewLine {
+            label: "Data",
+            value: "live · 2 s ago".into(),
+            tone: PreviewTone::Muted,
+            wraps: false,
+        },
+        PreviewLine {
+            label: "Gate",
+            value: "runs directly".into(),
+            tone: PreviewTone::Muted,
+            wraps: false,
+        },
+        PreviewLine {
+            label: "Alt+Enter",
+            value: "Pin · Alias · Why here?".into(),
+            tone: PreviewTone::Muted,
+            wraps: false,
+        },
+    ]);
+    Some(ParityDiscovery {
+        lines,
+        preview,
+        preview_meta: "git · child".into(),
         actions: Vec::new(),
         suggested_len: suggested.len(),
     })
@@ -6371,6 +6521,128 @@ mod tests {
             other.seek(40);
             other.clock.running = false;
             assert!(parity_git_batch_100x30_plate(&other, 100, 30).is_none());
+        }
+    }
+
+    #[test]
+    fn parity_git_batch_120x40_plate_is_only_the_mid_tick_40_frame() {
+        let mut world = fixtures::world_for(Scenario::ParityGitBatch);
+        assert!(parity_git_batch_120x40_plate(&world, 120, 40).is_none());
+        world.seek(40);
+        assert!(world.clock.running);
+        assert!(parity_git_batch_120x40_plate(&world, 120, 40).is_none());
+        world.clock.running = false;
+        assert_eq!(world.now_ms(), 80);
+        assert!(parity_git_batch_80x24_plate(&world, 120, 40).is_none());
+        assert!(parity_git_batch_100x30_plate(&world, 120, 40).is_none());
+        assert!(parity_git_batch_120x40_plate(&world, 80, 24).is_none());
+        assert!(parity_git_batch_120x40_plate(&world, 100, 30).is_none());
+        assert!(parity_git_batch_120x40_plate(&world, 160, 50).is_none());
+        assert!(parity_git_batch_120x40_plate(&world, 120, 39).is_none());
+        assert!(parity_git_batch_120x40_plate(&world, 119, 40).is_none());
+        assert!(parity_git_batch_80x24_plate(&world, 80, 24).is_some());
+        assert!(parity_git_batch_100x30_plate(&world, 100, 30).is_some());
+        assert!(parity_cargo_80x24_plate(&world, 120, 40).is_none());
+        assert!(parity_cargo_100x30_plate(&world, 120, 40).is_none());
+        assert!(parity_cargo_120x40_plate(&world, 120, 40).is_none());
+        assert!(parity_git_current_80x24_plate(&world, 120, 40).is_none());
+        assert!(parity_git_current_100x30_plate(&world, 120, 40).is_none());
+        assert!(parity_git_current_120x40_plate(&world, 120, 40).is_none());
+        assert!(parity_browser_80x24_plate(&world, 120, 40).is_none());
+        assert!(parity_browser_100x30_plate(&world, 120, 40).is_none());
+        assert!(parity_browser_120x40_plate(&world, 120, 40).is_none());
+        assert!(parity_files_80x24_plate(&world, 120, 40).is_none());
+        assert!(parity_files_100x30_plate(&world, 120, 40).is_none());
+        assert!(parity_files_120x40_plate(&world, 120, 40).is_none());
+        assert!(parity_history_80x24_plate(&world, 120, 40).is_none());
+        assert!(parity_history_100x30_plate(&world, 120, 40).is_none());
+        assert!(parity_history_120x40_plate(&world, 120, 40).is_none());
+        assert!(parity_discovery_80x24_plate(&world, 120, 40).is_none());
+        assert!(parity_discovery_100x30_plate(&world, 120, 40).is_none());
+        let view = parity_git_batch_120x40_plate(&world, 120, 40).expect("120x40 plate");
+        assert!(view.lines.iter().any(|line| matches!(
+            line,
+            FinderLine::Row(row) if row.selected
+                && row.title == "Status across 5 child projects"
+                && row.kind == "git"
+                && row.scope_word == "child"
+                && !row.here
+                && row.reason == "0 dirty · 1 behind"
+        )));
+        assert!(view.lines.iter().any(|line| matches!(
+            line,
+            FinderLine::Row(row) if !row.selected
+                && row.title == "Children · 4 projects"
+                && row.kind == "explore"
+                && row.scope_word == "child"
+                && !row.here
+                && row.reason == "4 child projects discovered"
+        )));
+        assert!(view.lines.iter().any(|line| matches!(
+            line,
+            FinderLine::Row(row) if row.title == "System · mbp"
+                && !row.selected
+                && row.kind == "explore"
+                && row.scope_word == "host"
+                && !row.here
+                && row.reason == "available on this host"
+        )));
+        assert_eq!(view.preview_meta, "git · child");
+        let does = view
+            .preview
+            .iter()
+            .find(|line| line.label == "Does")
+            .expect("does line");
+        assert!(does.wraps);
+        assert_eq!(does.tone, PreviewTone::Text);
+        assert_eq!(
+            does.value,
+            "inspect every discovered Git project · worktrees deduplicated, submodules marked"
+        );
+        let runs: Vec<_> = view
+            .preview
+            .iter()
+            .filter(|line| line.tone == PreviewTone::Secondary)
+            .collect();
+        assert_eq!(runs.len(), 5);
+        assert_eq!(runs[0].label, "Runs");
+        assert!(runs[1..].iter().all(|line| line.label.is_empty()));
+        assert!(
+            runs.iter()
+                .all(|line| !line.wraps && line.value == "git -C /Users/al…-branch")
+        );
+        let scope = view
+            .preview
+            .iter()
+            .find(|line| line.label == "Scope")
+            .expect("scope line");
+        assert_eq!(scope.value, "child");
+        let risk = view
+            .preview
+            .iter()
+            .find(|line| line.label == "Risk")
+            .expect("risk line");
+        assert_eq!(risk.value, "read-only");
+        assert_eq!(risk.tone, PreviewTone::Meta);
+        world.seek(4_000);
+        world.clock.running = false;
+        assert!(parity_git_batch_120x40_plate(&world, 120, 40).is_none());
+        for scenario in [
+            Scenario::ParityCargo,
+            Scenario::ParityGitCurrent,
+            Scenario::ParityBrowser,
+            Scenario::ParityFiles,
+            Scenario::ParityHistory,
+            Scenario::ParityDiscovery,
+            Scenario::FirstUse,
+            Scenario::ActivitiesMulti,
+        ] {
+            let mut other = fixtures::world_for(scenario);
+            other.seek(40);
+            other.clock.running = false;
+            assert!(parity_git_batch_120x40_plate(&other, 120, 40).is_none());
+            assert!(parity_git_batch_80x24_plate(&other, 120, 40).is_none());
+            assert!(parity_git_batch_100x30_plate(&other, 120, 40).is_none());
         }
     }
 
