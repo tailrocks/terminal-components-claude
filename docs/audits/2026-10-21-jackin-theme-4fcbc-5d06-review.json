@@ -61,5 +61,16 @@
     "Then replace the Jackin debug trace correction with a shared live link/action component and one real domain run ID. Test displayed identity against copy/log domain results, pointer activation, focus, hover, Unicode cell width, all color profiles, NO_COLOR, and adjacent dimensions 119/120/121 by 39/40/41.",
     "Finally migrate the paused launch cockpit from fixed RUNS to live shared composition. Verify changed launch stages/data and controlled times, frame 39/40/41, normal and failure flows, then remove production replay and the exact selector. Compare pinned real CLI reference/candidate checkpoints without updating expected output from the candidate."
   ],
-  "verification": "Read-only git object inspection and exact commit diff. No source edits, no helper agents, no screenshot or native-test pass claimed. Existing tests mirroring LegacyMono captured mappings do not establish acceptance."
+  "verification": "Read-only git object inspection and exact commit diff. No source edits, no helper agents, no screenshot or native-test pass claimed. Existing tests mirroring LegacyMono captured mappings do not establish acceptance.",
+  "quantizer_followup": {
+    "source_function_sha256_both_references": "ac267a2f1a8e04f204d1daa317b87e9af02c656f0a335f923a59ae5e423b9686",
+    "source": "Frozen and design src/theme.rs:3017-3034 have byte-identical nearest_256 bodies.",
+    "pure_formula_results": {
+      "#3a3a3a": 237,
+      "#48e054": 78,
+      "#262626": 235,
+      "#19191c": 233
+    },
+    "recommendation": "Remove captured exceptions by restoring a documented general source-backed raw RGB quantizer, with arbitrary neighboring-color tests. If choosing a different generic approximation for API reasons, record an explicit reference/API decision and its parity limits. Do not combine Euclidean approximation with a special accent exception or silently retain a captured gray238 expectation. Keep authored semantic palette values independent."
+  }
 }
