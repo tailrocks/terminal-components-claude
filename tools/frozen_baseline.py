@@ -828,6 +828,7 @@ def archive_live_artifacts(source: Path, chunk_root: Path, receipt_root: Path) -
         ("harness-actual", source / "target" / "tuiscotti" / "actual"),
         ("harness-diff", source / "target" / "tuiscotti" / "diff"),
         ("runtime-actual", receipt_root.with_name(receipt_root.name + ".actual")),
+        ("runtime-semantic-actual", receipt_root.with_name(receipt_root.name + ".semantic-actual")),
         ("runtime-diff", receipt_root.with_name(receipt_root.name + ".diff")),
         ("original-actual", receipt_root.with_name(receipt_root.name + ".original-actual")),
         ("original-diff", receipt_root.with_name(receipt_root.name + ".original-diff")),
@@ -924,10 +925,13 @@ def read_receipts(receipt_root: Path, selected: list[str], expected_root: Path) 
     _, expected_entries = flat_sealed_store(expected_root, "runtime expected")
     actual_root = receipt_root.with_name(receipt_root.name + ".actual")
     _, actual_entries = flat_sealed_store(actual_root, "runtime actual")
+    semantic_actual_root = receipt_root.with_name(receipt_root.name + ".semantic-actual")
+    _, semantic_actual_entries = flat_sealed_store(semantic_actual_root, "runtime semantic actual")
     receipts: dict[tuple[str, int, str], tuple[str, str, str | None]] = {}
     expected_receipt_entries: set[str] = set()
     expected_frame_entries: set[str] = set()
     expected_actual_entries: set[str] = set()
+    expected_semantic_actual_entries: set[str] = set()
     expected_cases = set(selected)
     for path in sorted(receipt_root.rglob("*.json")):
         try:
@@ -961,12 +965,19 @@ def read_receipts(receipt_root: Path, selected: list[str], expected_root: Path) 
         expected_semantic = expected_root / f"{checkpoint}.frame.json"
         validate_semantic_frame_file(expected_semantic, semantic_digest)
         actual_semantic = actual_root / f"{checkpoint}.frame.json"
-        if actual_semantic.is_symlink() or not actual_semantic.is_file() or actual_semantic.stat().st_nlink != 1:
-            raise RunnerError(f"actual semantic frame missing or unsafe: {actual_semantic}")
-        if actual_semantic_digest(actual_semantic) != semantic_digest:
-            raise RunnerError(f"actual semantic frame hash mismatch: {actual_semantic}")
+        if actual_semantic.exists() or actual_semantic.is_symlink():
+            if actual_semantic.is_symlink() or not actual_semantic.is_file() or actual_semantic.stat().st_nlink != 1 or actual_semantic_digest(actual_semantic) != semantic_digest:
+                raise RunnerError(f"actual semantic frame hash mismatch or unsafe: {actual_semantic}")
+        semantic_actual = semantic_actual_root / f"{checkpoint}.frame.json"
+        validate_semantic_frame_file(semantic_actual, semantic_digest)
+        actual_ansi = actual_root / f"{checkpoint}.ansi"
+        if actual_ansi.is_symlink() or not actual_ansi.is_file() or actual_ansi.stat().st_nlink != 1 or sha256(actual_ansi) != ansi_digest:
+            raise RunnerError(f"actual ANSI frame missing or hash mismatch: {actual_ansi}")
         expected_frame_entries.update({expected_ansi.name, expected_semantic.name})
-        expected_actual_entries.add(actual_semantic.name)
+        expected_actual_entries.add(actual_ansi.name)
+        if actual_semantic.is_file():
+            expected_actual_entries.add(actual_semantic.name)
+        expected_semantic_actual_entries.add(semantic_actual.name)
         receipts[key] = (ansi_digest, semantic_digest, reference_digest)
     counts = {case: 0 for case in selected}
     for case, _, _ in receipts:
@@ -980,9 +991,15 @@ def read_receipts(receipt_root: Path, selected: list[str], expected_root: Path) 
         raise RunnerError(f"receipt store inventory mismatch: extra={sorted(receipt_entries - expected_receipt_entries)[:3]}, missing={sorted(expected_receipt_entries - receipt_entries)[:3]}")
     if expected_entries != expected_frame_entries:
         raise RunnerError(f"runtime expected frame inventory mismatch: extra={sorted(expected_entries - expected_frame_entries)[:3]}, missing={sorted(expected_frame_entries - expected_entries)[:3]}")
-    actual_frame_entries = {entry for entry in actual_entries if entry.endswith(".frame.json")}
-    if actual_frame_entries != expected_actual_entries:
-        raise RunnerError(f"runtime actual frame inventory mismatch: extra={sorted(actual_frame_entries - expected_actual_entries)[:3]}, missing={sorted(expected_actual_entries - actual_frame_entries)[:3]}")
+    actual_frame_entries = {entry for entry in actual_entries if entry.endswith(".ansi")}
+    if actual_frame_entries != {entry for entry in expected_actual_entries if entry.endswith(".ansi")}:
+        raise RunnerError(f"runtime actual ANSI inventory mismatch: extra={sorted(actual_frame_entries - expected_actual_entries)[:3]}, missing={sorted({entry for entry in expected_actual_entries if entry.endswith('.ansi')} - actual_frame_entries)[:3]}")
+    optional_raw_frame_entries = {entry for entry in actual_entries if entry.endswith(".frame.json")}
+    expected_raw_frame_entries = {entry for entry in expected_actual_entries if entry.endswith(".frame.json")}
+    if optional_raw_frame_entries - expected_raw_frame_entries:
+        raise RunnerError(f"runtime actual Frame inventory mismatch: extra={sorted(optional_raw_frame_entries - expected_raw_frame_entries)[:3]}")
+    if semantic_actual_entries != expected_semantic_actual_entries:
+        raise RunnerError(f"runtime semantic actual inventory mismatch: extra={sorted(semantic_actual_entries - expected_semantic_actual_entries)[:3]}, missing={sorted(expected_semantic_actual_entries - semantic_actual_entries)[:3]}")
     if not receipts:
         raise RunnerError("phase produced no checkpoint receipts")
     return receipts
