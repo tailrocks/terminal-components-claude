@@ -313,7 +313,54 @@ fn paint_status_text(
     x.saturating_add(width.min(room))
 }
 
-fn parity_hints() -> HintLayer {
+fn paint_size_label(ui: &mut Ui<'_>, area: Rect) -> u16 {
+    let screen = ui.full();
+    let size = format!(
+        "{} · {}×{}",
+        ui.theme_ref().capability.color.label(),
+        screen.width,
+        screen.height
+    );
+    let size_w = termrock::width(&size);
+    let size_x = area
+        .right()
+        .saturating_sub(STATUS_EDGE)
+        .saturating_sub(size_w);
+    paint_status_text(ui, area, size_x, &size, STATUS_GREY, false);
+    size_x
+}
+
+/// Tag first-use status: cwd, an 11-cell `/` meter at 91%, then the size label.
+fn paint_first_use_status(ui: &mut Ui<'_>, area: Rect) {
+    if area.is_empty() {
+        return;
+    }
+    ui.fill(area, status_ink(ui, STATUS_FG, false));
+    let _ = paint_status_text(
+        ui,
+        area,
+        area.x.saturating_add(STATUS_EDGE),
+        "~/scratch",
+        STATUS_FG,
+        true,
+    );
+    let size_x = paint_size_label(ui, area);
+    let mark = "91% ▲";
+    let mark_w = termrock::width(mark);
+    let bar_w = 11u16;
+    let meter_w = 1u16
+        .saturating_add(1)
+        .saturating_add(bar_w)
+        .saturating_add(1)
+        .saturating_add(mark_w);
+    let mut x = size_x.saturating_sub(STATUS_GAP).saturating_sub(meter_w);
+    x = paint_status_text(ui, area, x, "/", STATUS_GREY, false).saturating_add(1);
+    x = paint_status_text(ui, area, x, &"━".repeat(10), STATUS_AMBER, false);
+    x = paint_status_text(ui, area, x, "─", Color::Rgb(0x3a, 0x3a, 0x3a), false).saturating_add(1);
+    let _ = paint_status_text(ui, area, x, mark, STATUS_AMBER, false);
+}
+
+fn tag_hints(confirm: &'static str) -> HintLayer {
     fn hint(key: &'static str, label: &'static str) -> Hint {
         Hint {
             key: HintKey::Label(key),
@@ -325,7 +372,7 @@ fn parity_hints() -> HintLayer {
         hints: vec![
             hint("Type", "Search"),
             hint("↑↓", "Move"),
-            hint("Enter", "Confirm…"),
+            hint("Enter", confirm),
             hint("Alt+Enter", "Alternatives…"),
             hint("Tab", "Preview"),
             hint("Ctrl+↑↓", "Scope"),
@@ -363,6 +410,9 @@ fn menu_project(world: &World) -> String {
         | Scenario::ParityDiskScan
         | Scenario::ParityPlatforms
         | Scenario::ParityPlatformsLinux => "no project".to_owned(),
+        Scenario::FirstUse if crate::sim::catalogue::first_use_tag_frame(world) => {
+            "no project".to_owned()
+        }
         _ => world.cwd.clone(),
     }
 }
@@ -833,11 +883,16 @@ impl App {
         let brand_right = lockup_x.saturating_add(brand_width);
         let used = menu_right.max(brand_right);
         let tail_x = used.saturating_add(2);
+        let host = if crate::sim::catalogue::first_use_tag_frame(&self.world) {
+            "mbp · local".to_owned()
+        } else {
+            self.world.host.identity()
+        };
         paint_menu_tail(
             ui,
             Rect::new(tail_x, header.y, header.right().saturating_sub(tail_x), 1),
             &menu_project(&self.world),
-            &self.world.host.identity(),
+            &host,
         );
         self.strip_draw(
             ui,
@@ -846,11 +901,11 @@ impl App {
         if self.route == Route::Home {
             paint_here_band(ui, area);
         }
+        let status = Rect::new(area.x, area.bottom().saturating_sub(2), area.width, 1);
         if self.world.scenario == Scenario::ParityDiscovery {
-            self.paint_parity_status(
-                ui,
-                Rect::new(area.x, area.bottom().saturating_sub(2), area.width, 1),
-            );
+            self.paint_parity_status(ui, status);
+        } else if crate::sim::catalogue::first_use_tag_frame(&self.world) {
+            paint_first_use_status(ui, status);
         }
         let footer = Rect::new(area.x, area.bottom().saturating_sub(1), area.width, 1);
         self.footer_draw(ui, footer);
@@ -869,20 +924,10 @@ impl App {
             x = paint_status_text(ui, area, x, text, fg, bold).saturating_add(STATUS_GAP);
         }
         let left_end = x.saturating_sub(STATUS_GAP);
-        let screen = ui.full();
-        let size = format!(
-            "{} · {}×{}",
-            ui.theme_ref().capability.color.label(),
-            screen.width,
-            screen.height
-        );
         let warn_w = termrock::width(STATUS_WARN);
-        let size_w = termrock::width(&size);
-        let inner_right = area.right().saturating_sub(STATUS_EDGE);
-        let size_x = inner_right.saturating_sub(size_w);
+        let size_x = paint_size_label(ui, area);
         let warn_x = size_x.saturating_sub(STATUS_GAP).saturating_sub(warn_w);
         paint_status_text(ui, area, warn_x, STATUS_WARN, STATUS_AMBER, false);
-        paint_status_text(ui, area, size_x, &size, STATUS_GREY, false);
         let center_w = termrock::width(STATUS_CENTER);
         let lo = left_end.saturating_add(STATUS_GAP);
         let hi = warn_x.saturating_sub(STATUS_GAP);
@@ -893,12 +938,19 @@ impl App {
         }
     }
     fn footer_draw(&self, ui: &mut Ui<'_>, footer: Rect) {
-        if self.world.scenario == Scenario::ParityDiscovery
+        let tag_confirm = if self.world.scenario == Scenario::ParityDiscovery {
+            Some("Confirm…")
+        } else if crate::sim::catalogue::first_use_tag_frame(&self.world) {
+            Some("Open")
+        } else {
+            None
+        };
+        if let Some(confirm) = tag_confirm
             && self.route == Route::Home
             && self.overlay.is_none()
             && !self.menu.is_open()
         {
-            let layer = parity_hints();
+            let layer = tag_hints(confirm);
             HintBar::new(FOOTER, &layer)
                 .patch_part(PARITY_HINT_PARTS)
                 .draw(ui, footer);
@@ -1431,6 +1483,55 @@ mod tests {
             harness.diagnostics().is_empty(),
             "{:?}",
             harness.diagnostics()
+        );
+    }
+    #[test]
+    fn first_use_frame_40_shows_the_disk_tag() {
+        let screen = harness(
+            App::for_scenario(Scenario::FirstUse, Motion::Paused, 40),
+            Theme::junie(),
+            120,
+            40,
+        );
+        let text = screen.text();
+        let lines: Vec<&str> = text.lines().collect();
+        assert!(lines[0].contains("no project"), "{}", lines[0]);
+        assert!(lines[0].contains("mbp · local"), "{}", lines[0]);
+        assert!(lines[7].contains("› Analyze disk usage"), "{}", lines[7]);
+        assert!(lines[7].contains("/ is 91% full"), "{}", lines[7]);
+        assert!(lines[8].contains("sustained pressure…"), "{}", lines[8]);
+        assert!(lines[14].contains("'holla disk analyze'"), "{}", lines[14]);
+        assert!(lines[27].contains("custom path…"), "{}", lines[27]);
+        assert_eq!(
+            lines[38].trim(),
+            "~/scratch                                                                     / ━━━━━━━━━━─ 91% ▲   truecolor · 120×40"
+        );
+        assert!(lines[39].contains("Enter Open"), "{}", lines[39]);
+        assert!(!lines[39].contains("Confirm"), "{}", lines[39]);
+        let runs = screen.cell(92, 14);
+        assert_eq!(runs.fg, Color::Rgb(0xb3, 0xb3, 0xb3));
+        let risk = screen.cell(92, 20);
+        assert_eq!(risk.symbol(), "r");
+        assert_eq!(risk.fg, Color::Rgb(0x73, 0x73, 0x73));
+        let gate = screen.cell(92, 22);
+        assert_eq!(gate.fg, Color::Rgb(0x8a, 0x8a, 0x8a));
+        let bar = screen.cell(81, 38);
+        assert_eq!(bar.symbol(), "━");
+        assert_eq!(bar.fg, Color::Rgb(0xf5, 0x9e, 0x09));
+        let rest = screen.cell(91, 38);
+        assert_eq!(rest.symbol(), "─");
+        assert_eq!(rest.fg, Color::Rgb(0x3a, 0x3a, 0x3a));
+        let early = harness(
+            App::for_scenario(Scenario::FirstUse, Motion::Paused, 0),
+            Theme::junie(),
+            120,
+            40,
+        );
+        assert!(!early.text().contains("holla disk analyze"));
+        assert!(
+            screen.diagnostics().is_empty(),
+            "{:?}",
+            screen.diagnostics()
         );
     }
     #[test]

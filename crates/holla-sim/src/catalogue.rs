@@ -806,6 +806,10 @@ pub struct TagRow {
 pub enum PreviewTone {
     Text,
     Muted,
+    /// Tag preview command ink. `#b3b3b3`, not muted `#8a8a8a`.
+    Secondary,
+    /// Tag preview risk ink when the word is not danger. `#737373`.
+    Meta,
     Danger,
 }
 
@@ -832,6 +836,11 @@ pub struct ParityDiscovery {
     pub preview_meta: String,
     pub actions: Vec<Action>,
     pub suggested_len: usize,
+}
+
+/// Tag `first-use` at fixture tick 40. Later seeks keep the concept home.
+pub fn first_use_tag_frame(w: &World) -> bool {
+    w.scenario == Scenario::FirstUse && w.now_ms() == 80
 }
 
 /// Tag `parity-discovery` at fixture tick 40.
@@ -995,6 +1004,141 @@ pub fn parity_discovery(w: &World) -> Option<ParityDiscovery> {
     })
 }
 
+pub fn first_use_tag(w: &World) -> Option<ParityDiscovery> {
+    if !first_use_tag_frame(w) {
+        return None;
+    }
+    let suggested = vec![
+        tag_row(
+            "Analyze disk usage",
+            "disk",
+            "here",
+            true,
+            "/ is 91% full",
+            None,
+            true,
+        ),
+        tag_row(
+            "Open btm",
+            "system",
+            "host",
+            false,
+            "sustained pressure · continuous view fits",
+            None,
+            false,
+        ),
+        tag_row(
+            "Show system resources",
+            "system",
+            "host",
+            false,
+            "CPU 78% for 4 min",
+            None,
+            false,
+        ),
+    ];
+    let explore = vec![tag_row(
+        "System · mbp",
+        "explore",
+        "host",
+        false,
+        "available on this host",
+        None,
+        false,
+    )];
+    let mut lines = Vec::new();
+    lines.push(FinderLine::Heading("Suggested here"));
+    for row in &suggested {
+        lines.push(FinderLine::Row(row.clone()));
+    }
+    lines.push(FinderLine::Blank);
+    lines.push(FinderLine::Heading("Recent here"));
+    lines.push(FinderLine::Heading("nothing used here yet"));
+    lines.push(FinderLine::Blank);
+    lines.push(FinderLine::Heading("Explore"));
+    lines.push(FinderLine::Chips(&[
+        "Tasks", "Git", "Files", "Disk", "Services", "System",
+    ]));
+    for row in &explore {
+        lines.push(FinderLine::Row(row.clone()));
+    }
+    let preview = vec![
+        PreviewLine {
+            label: "Does",
+            value: "largest-first tree of this folder that deepens as the scan streams; select any entry or rebuildable artifacts for cleanup".into(),
+            tone: PreviewTone::Text,
+            wraps: true,
+        },
+        PreviewLine {
+            label: "Runs",
+            value: "'holla disk analyze'".into(),
+            tone: PreviewTone::Secondary,
+            wraps: true,
+        },
+        PreviewLine {
+            label: "In",
+            value: "~/scratch".into(),
+            tone: PreviewTone::Text,
+            wraps: false,
+        },
+        PreviewLine {
+            label: "Host",
+            value: "mbp · local".into(),
+            tone: PreviewTone::Text,
+            wraps: true,
+        },
+        PreviewLine {
+            label: "Scope",
+            value: "here".into(),
+            tone: PreviewTone::Text,
+            wraps: false,
+        },
+        PreviewLine {
+            label: "Why",
+            value: "/ is 91% full".into(),
+            tone: PreviewTone::Text,
+            wraps: true,
+        },
+        PreviewLine {
+            label: "Changes",
+            value: "none · read-only".into(),
+            tone: PreviewTone::Text,
+            wraps: true,
+        },
+        PreviewLine {
+            label: "Risk",
+            value: "read-only".into(),
+            tone: PreviewTone::Meta,
+            wraps: true,
+        },
+        PreviewLine {
+            label: "Data",
+            value: "live · 2 s ago".into(),
+            tone: PreviewTone::Muted,
+            wraps: true,
+        },
+        PreviewLine {
+            label: "Gate",
+            value: "opens a review · the deletion is gated there (typed phrase)".into(),
+            tone: PreviewTone::Muted,
+            wraps: true,
+        },
+        PreviewLine {
+            label: "Alt+Enter",
+            value: "Disk overview (home folders) · Analyze a custom path… · Top files on this Mac · Pin · Alias · Why here?".into(),
+            tone: PreviewTone::Muted,
+            wraps: true,
+        },
+    ];
+    Some(ParityDiscovery {
+        lines,
+        preview,
+        preview_meta: "disk · here".into(),
+        actions: Vec::new(),
+        suggested_len: suggested.len(),
+    })
+}
+
 fn tag_row(
     title: impl Into<String>,
     kind: &'static str,
@@ -1122,6 +1266,18 @@ mod tests {
             line,
             FinderLine::Row(row) if row.selected && row.kind == "idea"
         )));
+    }
+
+    #[test]
+    fn first_use_tag_exists_only_at_tick_40() {
+        let mut world = fixtures::world_for(Scenario::FirstUse);
+        assert!(first_use_tag(&world).is_none());
+        world.seek(40);
+        let view = first_use_tag(&world).expect("tick 40 tag");
+        assert_eq!(view.preview_meta, "disk · here");
+        assert!(view.preview.iter().any(|line| line.value.contains("path…")));
+        world.seek(4_000);
+        assert!(first_use_tag(&world).is_none());
     }
 
     fn settled(scenario: Scenario) -> World {
