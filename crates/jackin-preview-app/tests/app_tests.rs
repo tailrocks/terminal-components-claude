@@ -1404,6 +1404,44 @@ fn usage_enter_opens_the_read_only_detail_and_escape_closes_it() {
 }
 
 #[test]
+fn settings_route_s_paints_the_approved_settings_frame() {
+    let mut h = H::new(Scenario::AccountsMixed, Motion::Paused, 40, 120, 40);
+    assert!(
+        !h.text().contains("Settings › global"),
+        "accounts list must stay off the settings frame: {}",
+        h.text()
+    );
+    h.key(KeyCode::Char('s'));
+    assert_eq!(h.app().route(), Route::Settings);
+    assert_eq!(h.app().settings.tab, 0);
+    assert!(!h.app().settings.dirty);
+    assert!(h.text().contains("Settings › global"), "{}", h.text());
+    let crumb = h.buffer().cell((56, 0)).expect("settings breadcrumb");
+    assert_eq!(crumb.symbol(), "S");
+    assert_eq!(crumb.fg, termrock::Color::from_u32(0xb3_b3_b3));
+    assert_eq!(crumb.bg, termrock::Color::from_u32(0x00_00_00));
+    assert!(!crumb.modifier.contains(termrock::Modifier::BOLD));
+    let mark = h.buffer().cell((2, 0)).expect("jackin prompt");
+    assert_eq!(mark.symbol(), "j");
+    assert_eq!(mark.fg, termrock::Color::from_u32(0x19_19_1c));
+    assert_eq!(mark.bg, termrock::Color::from_u32(0x48_e0_54));
+    assert!(mark.modifier.contains(termrock::Modifier::BOLD));
+    let tab = h.buffer().cell((2, 3)).expect("general tab mark");
+    assert_eq!(tab.symbol(), "▎");
+    assert_eq!(tab.fg, termrock::Color::from_u32(0x48_e0_54));
+    assert_eq!(tab.bg, termrock::Color::from_u32(0x27_27_2a));
+    assert!(tab.modifier.contains(termrock::Modifier::BOLD));
+    assert_eq!(h.harness.cursor(), None);
+    h.key(KeyCode::Char('5'));
+    assert_ne!(h.app().settings.tab, 0);
+    assert!(
+        !h.text().contains("Settings › global"),
+        "another settings tab must keep the live page: {}",
+        h.text()
+    );
+}
+
+#[test]
 fn settings_tabs_and_save_preview_stay_on_the_settings_route() {
     let mut h = H::new(Scenario::Returning, Motion::Reduced, 0, 120, 40);
     h.key(KeyCode::Char('s'));
