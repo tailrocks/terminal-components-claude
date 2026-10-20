@@ -249,6 +249,12 @@ pub trait GridModel {
     fn actions(&self, _row: usize, _col: usize) -> &[CellAction] {
         &[]
     }
+
+    /// Returns a revision that changes whenever the ordered row-key identity changes.
+    /// Models without a cheap revision use an identity comparison in reusable adapters.
+    fn revision(&self) -> Option<u64> {
+        None
+    }
 }
 
 pub trait GridEditor: GridModel {
@@ -724,6 +730,10 @@ impl Default for GridState {
 }
 
 impl GridState {
+    pub(crate) fn invalidate_model(&mut self) {
+        self.core.invalidate();
+    }
+
     pub(crate) fn set_sort(&mut self, sort: Option<(ColumnKey, SortDir)>) {
         self.sort = sort;
     }
