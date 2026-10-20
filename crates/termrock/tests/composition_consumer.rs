@@ -48,11 +48,11 @@ impl ExternalConsumer {
             workspaces: [
                 Workspace {
                     key: ItemKey::text("source"),
-                    label: "Source",
+                    label: "源泉 🚀",
                 },
                 Workspace {
                     key: ItemKey::text("review"),
-                    label: "Review",
+                    label: "Long workspace · 👩🏽‍💻 — Unicode text beyond the preferred tab width",
                 },
             ],
             run_count: 0,
@@ -77,9 +77,20 @@ impl App for ExternalConsumer {
     fn draw(&self, ui: &mut termrock::Ui<'_>) {
         composition::Group::row([
             composition::button(&self.run).max(Some(8), None),
-            composition::tabs(&self.tabs, &self.tabs_state, &self.workspaces)
+            composition::Group::column([
+                composition::Group::wrap([composition::tabs(
+                    &self.tabs,
+                    &self.tabs_state,
+                    &self.workspaces,
+                )
                 .flex(1)
-                .max(Some(8), None),
+                .max(Some(8), None)])
+                .into_child()
+                .flex(1),
+                composition::Group::wrap(std::iter::empty()).into_child(),
+            ])
+            .into_child()
+            .flex(1),
         ])
         .spec(Composition::new().gap(1).padding(Insets::all(1)))
         .show(ui)
@@ -87,11 +98,7 @@ impl App for ExternalConsumer {
     }
 }
 
-fn render(
-    runtime: &mut Runtime<ExternalConsumer>,
-    terminal: &mut Terminal<TestBackend>,
-    area: Rect,
-) {
+fn render<A: App>(runtime: &mut Runtime<A>, terminal: &mut Terminal<TestBackend>, area: Rect) {
     let prepared = runtime.prepare(area).expect("runtime prepares the frame");
     terminal
         .draw(|frame| {
@@ -111,6 +118,8 @@ fn public_facade_composes_borrowed_button_and_tabs_with_live_input() {
     let mut runtime = Runtime::new(ExternalConsumer::new(), Theme::junie());
     let mut terminal = Terminal::new(TestBackend::new(root.width, root.height)).unwrap();
     render(&mut runtime, &mut terminal, root);
+    assert_eq!(runtime.app().run_count, 0, "drawing has no domain effects");
+    assert_eq!(runtime.app().last_tab_action, None);
 
     let button_area = runtime.area_of(RUN).expect("button hit area");
     let tabs_area = runtime.area_of(WORKSPACES).expect("tabs hit area");
@@ -201,6 +210,38 @@ fn composition_honors_intrinsic_gap_padding_and_child_maximum() {
     assert!(button.width <= 8);
     assert!(tabs.x > button.x + button.width);
     assert!(tabs.width <= 8, "explicit child max is applied");
+}
+
+struct DepthGuardConsumer;
+
+impl App for DepthGuardConsumer {
+    fn update(&mut self, _cx: &mut Cx<'_>) -> Response<()> {
+        Response::ignored()
+    }
+
+    fn draw(&self, ui: &mut termrock::Ui<'_>) {
+        let mut nested = composition::Group::wrap(std::iter::empty());
+        for _ in 0..8_000 {
+            nested = composition::Group::row([nested.into_child()]);
+        }
+        assert_eq!(
+            nested.show(ui),
+            Err(composition::CompositionError::DepthExceeded {
+                depth: 8_001,
+                maximum: 128,
+            })
+        );
+        // Destruction at the end of this method also verifies that a rejected
+        // over-depth consumer tree does not recursively drop each group.
+    }
+}
+
+#[test]
+fn over_depth_nested_public_groups_fail_before_recursive_runtime_conversion() {
+    let area = Rect::new(0, 0, 10, 4);
+    let mut runtime = Runtime::new(DepthGuardConsumer, Theme::junie());
+    let mut terminal = Terminal::new(TestBackend::new(area.width, area.height)).unwrap();
+    render(&mut runtime, &mut terminal, area);
 }
 
 #[test]
