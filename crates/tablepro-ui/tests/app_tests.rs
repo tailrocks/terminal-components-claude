@@ -62,6 +62,24 @@ fn explorer_opens_table_and_grid_navigates() {
 }
 
 #[test]
+fn unfocused_grid_cursor_does_not_style_the_cursor_row() {
+    let mut app = connected();
+    assert!(app.workbench.open_table("orders"));
+    let harness = Harness::new(app, Theme::junie(), 120, 40);
+    assert_eq!(harness.app().surface(), Surface::WorkbenchDefault);
+    let (x, y) = harness
+        .find("1d9f28fc-3e09-4488-bae7-d3aeb39b01c4")
+        .expect("the first result row is rendered");
+    assert!(
+        !harness
+            .cell(x, y)
+            .modifier
+            .contains(termrock::Modifier::BOLD),
+        "unfocused result cells must not be presented as the cursor row"
+    );
+}
+
+#[test]
 fn slash_filters_connections_and_keeps_the_open_detail() {
     let mut harness = Harness::new(TableProApp::default(), Theme::junie(), 120, 40);
     let _ = harness.key(KeyCode::Char('/'));
@@ -394,12 +412,32 @@ fn query_editor_keeps_multiline_unicode_and_cursor_through_resize() {
     let _ = harness.type_str("FROM customers");
     assert_eq!(harness.app().query(), "SELECT '界🙂'\nFROM customers");
     assert!(harness.text().contains("界🙂"));
+    assert!(
+        harness.is_open(query_id.sub("completion")),
+        "the live completion popup remains open for this checkpoint"
+    );
+    assert_eq!(harness.focus(), Some(query_id));
+    assert!(
+        harness.cursor().is_some(),
+        "the nonmodal completion popup preserves the rendered editor caret"
+    );
+    let popup_cursor = harness.cursor().expect("visible completion caret");
+    assert!(
+        harness.diagnostics().is_empty(),
+        "popup cursor retention must not create duplicate controls: {:?}",
+        harness.diagnostics()
+    );
     if harness.is_open(query_id.sub("completion")) {
         let _ = harness.key(KeyCode::Esc);
     }
     assert!(
         harness.cursor().is_some(),
         "the rendered editor owns its cursor"
+    );
+    assert_eq!(
+        harness.cursor(),
+        Some(popup_cursor),
+        "dismissing the completion popup leaves the editor caret in place"
     );
 
     let _ = harness.resize(96, 28);

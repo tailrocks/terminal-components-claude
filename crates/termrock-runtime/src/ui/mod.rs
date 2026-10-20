@@ -67,6 +67,7 @@ pub struct FrameState {
     pub(crate) ring: FocusRing,
     pub(crate) layers: LayerPool,
     pub(crate) cursors: Vec<CursorRequest>,
+    pub(crate) retained_cursor_request: Option<RetainedCursorRequest>,
     pub(crate) typing: Vec<crate::runtime::typing::TypingDeclaration>,
     pub(crate) typing_bindings: BindingRegistry,
     pub(crate) typing_resolved: crate::runtime::typing::TypingResolved,
@@ -82,6 +83,14 @@ pub struct FrameState {
     pub(crate) styled_parts: Vec<(Id, Part)>,
     #[cfg(feature = "testing")]
     pub(crate) styled_queries: Vec<StyledQuery>,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) struct RetainedCursorRequest {
+    pub(crate) owner: Id,
+    pub(crate) parent_layer: LayerId,
+    pub(crate) overlay_layer: LayerId,
+    pub(crate) cursor_index: usize,
 }
 
 #[cfg(feature = "testing")]
@@ -169,6 +178,7 @@ impl FrameState {
         self.ring.reset();
         self.layers.begin();
         self.cursors.clear();
+        self.retained_cursor_request = None;
         self.typing.clear();
         self.typing_bindings.reset();
         self.typing_resolved = crate::runtime::typing::TypingResolved::default();
@@ -953,6 +963,63 @@ impl<'f> Ui<'f> {
         self.record_cursor(owner, pos, false, crate::cursor::CursorShape::Bar);
     }
 
+    /// Retains an already-rendered focused owner's cursor through a nonmodal
+    /// popover that explicitly calls this method. The cursor request is moved to the current
+    /// overlay layer without registering a second control or cursor. Ordinary
+    /// popovers, modal layers, inert layers, and missing or stale owner requests
+    /// do not retain a cursor.
+    pub fn retain_owner_cursor(&mut self, owner: Id) -> bool {
+        if self.reference.is_some() || self.inert || self.layer != self.frame.top {
+            return false;
+        }
+        if self.last.snapshot.focus != Some(owner) {
+            return false;
+        }
+        let Some((top_index, top)) = self.frame.layers.active().iter().enumerate().next_back()
+        else {
+            return false;
+        };
+        if top.layer != self.layer || top.spec.kind != LayerKind::Popover || top.spec.inert_below {
+            return false;
+        }
+        let parent_layer = top_index
+            .checked_sub(1)
+            .and_then(|parent_index| self.frame.layers.active().get(parent_index))
+            .map_or(LayerId::PAGE, |parent| parent.layer);
+        if parent_layer < self.frame.inert_floor
+            || self.frame.registry.layer_of(owner) != Some(parent_layer)
+        {
+            return false;
+        }
+        let Some(area) = self.frame.registry.area_of(owner) else {
+            return false;
+        };
+        let Some((cursor_index, cursor)) =
+            self.frame
+                .cursors
+                .iter_mut()
+                .enumerate()
+                .rev()
+                .find(|(_, cursor)| {
+                    cursor.owner == owner
+                        && cursor.layer == parent_layer
+                        && !cursor.inert
+                        && !cursor.typing_offer
+                        && area.contains(cursor.pos)
+                })
+        else {
+            return false;
+        };
+        cursor.layer = self.layer;
+        self.frame.retained_cursor_request = Some(RetainedCursorRequest {
+            owner,
+            parent_layer,
+            overlay_layer: self.layer,
+            cursor_index,
+        });
+        true
+    }
+
     /// Steady bar for `owner` on the open top layer. Does not draw that layer,
     /// so a page stamp is not dimmed or covered.
     pub fn set_undrawn_top_bar_cursor(&mut self, owner: Id, area: Rect, pos: Position) {
@@ -1289,7 +1356,8 @@ mod tests {
 
     use super::cx::LastFrame;
     use super::{
-        CellRoles, FrameRead, FrameState, LayoutFacts, ReferenceState, ReferenceTarget, Ui, UiCore,
+        CellRoles, FrameRead, FrameState, LayoutFacts, ReferenceState, ReferenceTarget,
+        RetainedCursorRequest, Ui, UiCore,
     };
     use crate::action::ActionKey;
     use crate::event::{Chord, KeyCode};
@@ -1571,6 +1639,160 @@ mod tests {
                 .first()
                 .is_some_and(|layer| !layer.drawn)
         );
+    }
+
+    fn with_cursor_popover(
+        kind: crate::layer::LayerKind,
+        inert_below: bool,
+        owner_focused: bool,
+        owner_area: Rect,
+        cursor_pos: Option<Position>,
+        run: impl FnOnce(&mut Ui<'_>) -> bool,
+    ) -> (bool, FrameState) {
+        const POPUP: Id = Id::root("ui.cursor-popup");
+        let theme = Theme::junie();
+        let mut frame = FrameState::default();
+        frame.reset(1, SCREEN);
+        frame.top = LayerId(1);
+        frame.inert_floor = if inert_below {
+            LayerId(1)
+        } else {
+            LayerId::PAGE
+        };
+        let mut spec = if kind == crate::layer::LayerKind::Modal {
+            LayerSpec::modal(POPUP)
+        } else {
+            LayerSpec::popover(
+                POPUP,
+                crate::layer::Anchor::Screen(crate::layer::ScreenAlign::Center),
+            )
+        };
+        spec.inert_below = inert_below;
+        frame.layers.push(POPUP, LayerId(1), spec, SCREEN, SCREEN);
+        let mut page = Buffer::empty(SCREEN);
+        let mut core = UiCore::default();
+        let mut last = LastFrame::default();
+        if owner_focused {
+            last.snapshot.focus = Some(OWNER);
+        }
+        let moved = {
+            let mut ui = Ui::new(&mut frame, &mut page, &mut core, &theme, &last);
+            ui.register_editor(
+                OWNER,
+                owner_area,
+                Focusability::Focusable,
+                StateFlags::EDITING,
+            );
+            if let Some(pos) = cursor_pos {
+                ui.set_bar_cursor(OWNER, pos);
+            }
+            let mut moved = false;
+            let _ = ui.layer(POPUP, |ui, _| moved = run(ui));
+            moved
+        };
+        (moved, frame)
+    }
+
+    #[test]
+    fn focused_owner_cursor_can_be_retained_only_by_an_opted_in_nonmodal_popover() {
+        use crate::layer::LayerKind;
+
+        let (retained, frame) = with_cursor_popover(
+            LayerKind::Popover,
+            false,
+            true,
+            SCREEN,
+            Some(Position::new(4, 1)),
+            |ui| ui.retain_owner_cursor(OWNER),
+        );
+        assert!(retained);
+        assert_eq!(
+            frame.retained_cursor_request,
+            Some(RetainedCursorRequest {
+                owner: OWNER,
+                parent_layer: LayerId::PAGE,
+                overlay_layer: LayerId(1),
+                cursor_index: 0,
+            })
+        );
+        assert_eq!(frame.cursors.len(), 1, "the real cursor request is reused");
+        assert_eq!(frame.cursors[0].layer, LayerId(1));
+        assert_eq!(frame.cursors[0].pos, Position::new(4, 1));
+        assert_eq!(frame.cursors[0].shape, crate::cursor::CursorShape::Bar);
+
+        let (ordinary, frame) = with_cursor_popover(
+            LayerKind::Popover,
+            false,
+            true,
+            SCREEN,
+            Some(Position::new(4, 1)),
+            |_| false,
+        );
+        assert!(!ordinary, "ordinary popovers do not retain owner cursors");
+        assert_eq!(frame.retained_cursor_request, None);
+        assert_eq!(frame.cursors[0].layer, LayerId::PAGE);
+
+        for (kind, inert, focused, area, cursor) in [
+            (
+                LayerKind::Modal,
+                false,
+                true,
+                SCREEN,
+                Some(Position::new(4, 1)),
+            ),
+            (
+                LayerKind::Popover,
+                true,
+                true,
+                SCREEN,
+                Some(Position::new(4, 1)),
+            ),
+            (
+                LayerKind::Popover,
+                false,
+                false,
+                SCREEN,
+                Some(Position::new(4, 1)),
+            ),
+            (LayerKind::Popover, false, true, SCREEN, None),
+            (
+                LayerKind::Popover,
+                false,
+                true,
+                Rect::new(0, 0, 2, 2),
+                Some(Position::new(4, 1)),
+            ),
+        ] {
+            let (retained, frame) = with_cursor_popover(kind, inert, focused, area, cursor, |ui| {
+                ui.retain_owner_cursor(OWNER)
+            });
+            assert!(!retained, "invalid cursor retention must be rejected");
+            assert_eq!(frame.retained_cursor_request, None);
+            assert!(
+                frame
+                    .cursors
+                    .iter()
+                    .all(|cursor| cursor.layer == LayerId::PAGE),
+                "rejected retention leaves the original cursor scope intact"
+            );
+        }
+
+        let (retained, frame) = with_cursor_popover(
+            LayerKind::Popover,
+            false,
+            true,
+            SCREEN,
+            Some(Position::new(4, 1)),
+            |ui| {
+                ui.register_control(OWNER, SCREEN, Focusability::Focusable);
+                ui.retain_owner_cursor(OWNER)
+            },
+        );
+        assert!(
+            !retained,
+            "an owner registered in the popup is not the parent control"
+        );
+        assert_eq!(frame.retained_cursor_request, None);
     }
 
     #[test]
