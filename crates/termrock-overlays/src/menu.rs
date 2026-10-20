@@ -652,15 +652,13 @@ impl<'a> ContextMenu<'a> {
             let mut y = inner.y;
             if let Some(title) = self.title {
                 let row = first_row(Rect { y, ..inner });
-                let mut title_state = live;
-                title_state.remove(StateFlags::HOVERED);
                 let style = self.ov.style(
                     ui,
                     self.id,
                     Family::MENU,
                     Variant::DEFAULT,
                     Part::TITLE,
-                    title_state,
+                    live,
                 );
                 paint_or_slot(ui, &self.ov, Part::TITLE, row, title, style.style);
                 ui.register_decor(self.id, PartRef::of(Part::TITLE), row);
@@ -1058,13 +1056,32 @@ impl<'a> MenuBar<'a> {
             } else {
                 flags.remove(StateFlags::PRESSED);
             }
-            let style = self.ov.style(
+            let mut defaults = StylePatch::default();
+            if let Some(recipe) = ui
+                .theme_ref()
+                .recipes
+                .get(Family::MENU)
+                .and_then(|recipe| recipe.variant(MENU_BAR_TITLE_VARIANT))
+                .and_then(|parts| parts.get(Part::TITLE))
+            {
+                defaults = recipe.apply(defaults, flags);
+            }
+            let local = self.ov.part_patch(Part::TITLE);
+            let style = ui.style_defaults(
+                Family::MENU,
+                Variant::DEFAULT,
+                Part::TITLE,
+                flags,
+                crate::theme::StyleDefaults::new(defaults),
+                local.as_ref(),
+            );
+            self.ov.note(
                 ui,
                 self.id,
                 Family::MENU,
-                MENU_BAR_TITLE_VARIANT,
+                Variant::DEFAULT,
                 Part::TITLE,
-                flags,
+                style,
             );
             ui.fill(rect, style.style);
             let label = shift(rect, 1);
@@ -1227,6 +1244,106 @@ mod tests {
                 "context-menu heading cell at x={x} changed when its owner was hovered"
             );
         }
+    }
+
+    #[test]
+    fn menu_bar_keeps_public_default_variant_overlay_and_local_patch_precedence() {
+        const ID: Id = Id::root("menu.tests.public-title-resolution");
+        const VARIANT: Variant = Variant::custom("menu.tests.public-title-variant");
+        const OVERLAY_RULES: [crate::theme::OverlayRule; 1] = [(
+            Family::MENU,
+            VARIANT,
+            Part::TITLE,
+            StateFlags::HOVERED,
+            StylePatch::new().set_bg(crate::theme::Role::Custom(ratatui_core::style::Color::Rgb(
+                7, 8, 9,
+            ))),
+        )];
+        const OVERLAY: crate::theme::Overlay = crate::theme::Overlay::new(&OVERLAY_RULES);
+        const LOCAL: [(Part, StylePatch); 1] = [(
+            Part::TITLE,
+            StylePatch::new().set_fg(crate::theme::Role::Custom(ratatui_core::style::Color::Rgb(
+                10, 11, 12,
+            ))),
+        )];
+        const MENUS: [Menu<'static>; 1] = [Menu::new("File", &ITEMS)];
+
+        let theme = Theme::junie().define_variant(Family::MENU, VARIANT, |recipe| {
+            recipe.default_variant(VARIANT);
+            recipe.part(Part::TITLE).when(
+                StateFlags::HOVERED,
+                StylePatch::new().add(crate::theme::Modifier::ITALIC),
+            );
+        });
+        let area = Rect::new(0, 0, 20, 2);
+        let mut runtime = Runtime::new(crate::runtime::stub::Stub::default(), theme);
+        let mut buffer = Buffer::empty(area);
+        runtime
+            .draw_scene(area, &mut buffer, |ui, area| {
+                ui.with_overlay(&OVERLAY, |ui| {
+                    ui.reference(
+                        Some(
+                            crate::ReferenceTarget::new(ID, crate::ReferenceState::HOVERED)
+                                .part(PartRef::item(Part::TITLE, ItemKey::index(0))),
+                        ),
+                        |ui| {
+                            MenuBar::new(ID, &MENUS).patch_part(&LOCAL).draw(
+                                ui,
+                                area,
+                                &MenuState::default(),
+                            );
+                        },
+                    );
+                });
+            })
+            .commit_presented();
+
+        let title = buffer.cell(Position::new(2, 0)).expect("File title cell");
+        assert_eq!(title.fg, ratatui_core::style::Color::Rgb(10, 11, 12));
+        assert_eq!(title.bg, ratatui_core::style::Color::Rgb(7, 8, 9));
+        assert!(title.modifier.contains(crate::theme::Modifier::ITALIC));
+    }
+
+    #[test]
+    fn context_menu_heading_honors_explicit_owner_hover_overlay() {
+        const ID: Id = Id::root("menu.tests.context-title-overlay");
+        const RULES: [crate::theme::OverlayRule; 1] = [(
+            Family::MENU,
+            Variant::DEFAULT,
+            Part::TITLE,
+            StateFlags::HOVERED,
+            StylePatch::new()
+                .set_fg(crate::theme::Role::Custom(ratatui_core::style::Color::Rgb(
+                    21, 22, 23,
+                )))
+                .set_bg(crate::theme::Role::Custom(ratatui_core::style::Color::Rgb(
+                    24, 25, 26,
+                ))),
+        )];
+        const OVERLAY: crate::theme::Overlay = crate::theme::Overlay::new(&RULES);
+        let area = Rect::new(0, 0, 24, 8);
+        let mut runtime = Runtime::new(crate::runtime::stub::Stub::default(), Theme::junie());
+        let mut buffer = Buffer::empty(area);
+        runtime
+            .draw_scene(area, &mut buffer, |ui, area| {
+                ui.with_overlay(&OVERLAY, |ui| {
+                    ui.reference(
+                        Some(crate::ReferenceTarget::new(
+                            ID,
+                            crate::ReferenceState::HOVERED,
+                        )),
+                        |ui| {
+                            ContextMenu::at(ID, &ITEMS, Position::new(0, 0))
+                                .title("Heading")
+                                .draw(ui, area, &MenuState::default());
+                        },
+                    );
+                });
+            })
+            .commit_presented();
+        let heading = buffer.cell(Position::new(1, 1)).expect("heading cell");
+        assert_eq!(heading.fg, ratatui_core::style::Color::Rgb(21, 22, 23));
+        assert_eq!(heading.bg, ratatui_core::style::Color::Rgb(24, 25, 26));
     }
 
     #[test]
