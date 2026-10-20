@@ -528,6 +528,7 @@ pub struct CellUi<'u> {
     ui: Ui<'u>,
     area: Rect,
     style: PaintStyle,
+    reset_style: PaintStyle,
     used: u16,
     align: Align,
     tone: Option<Role>,
@@ -552,15 +553,28 @@ impl<'u> CellUi<'u> {
     }
 
     fn with_resolved_glyph(
-        ui: Ui<'u>,
+        mut ui: Ui<'u>,
         area: Rect,
         style: PaintStyle,
         resolved_glyph: Slot<GlyphRole>,
     ) -> Self {
+        // Alignment moves the callback's painted text and clears its old
+        // cells. Keep the style already underneath this cell so those cleared
+        // cells restore the row/cell padding instead of inheriting the text
+        // style (which can be different for an active Grid cell).
+        let reset_style = if area.width == 0 || area.height == 0 {
+            style
+        } else {
+            ui.buffer()
+                .cell(Position::new(area.x, area.y))
+                .map(|cell| PaintStyle::from(cell.style()))
+                .unwrap_or(style)
+        };
         CellUi {
             ui,
             area,
             style,
+            reset_style,
             used: 0,
             align: Align::Left,
             tone: None,
@@ -741,7 +755,7 @@ impl Drop for CellUi<'_> {
                 x = x.saturating_sub(1);
                 let src = Position::new(x, y);
                 let dst = Position::new(x.saturating_add(shift), y);
-                self.ui.move_cell(src, dst, self.style);
+                self.ui.move_cell(src, dst, self.reset_style);
             }
         }
 
