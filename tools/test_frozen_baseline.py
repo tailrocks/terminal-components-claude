@@ -75,6 +75,53 @@ class RunnerGuards(unittest.TestCase):
         (process_root / "closed-00000000.json").write_bytes(runner.canonical_receipt_json(sign(close_payload)))
         return receipt_root, bins, expected_hashes, payload, key, run_id, launch_digest
 
+    def test_candidate_build_refuses_populated_cache_without_removing_outputs(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            repo = root / "candidate-source"
+            repo.mkdir()
+            (repo / "Cargo.toml").write_text("[workspace]\n")
+            for variant in ("top-level-only", "cached-dependency-and-top-level"):
+                target = root / variant
+                debug = target / "debug"
+                debug.mkdir(parents=True)
+                (debug / "showcase").write_bytes(b"preexisting-baseline-copy")
+                if variant == "cached-dependency-and-top-level":
+                    deps = debug / "deps"
+                    deps.mkdir()
+                    (deps / "libjunie_tui-cached.rlib").write_bytes(b"preexisting-cached-reference-artifact")
+                before = {path.relative_to(target).as_posix(): path.read_bytes() for path in target.rglob("*") if path.is_file()}
+                with patch.object(runner, "run", side_effect=AssertionError("Cargo must not run against an existing target")) as cargo:
+                    with self.assertRaisesRegex(runner.RunnerError, "must be absent"):
+                        runner.build_candidate(repo, root / f"record-{variant}", target, 30)
+                cargo.assert_not_called()
+                after = {path.relative_to(target).as_posix(): path.read_bytes() for path in target.rglob("*") if path.is_file()}
+                self.assertEqual(after, before)
+
+    def test_candidate_build_claims_fresh_target_and_records_binary_identity(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            repo = root / "candidate-source"
+            repo.mkdir()
+            (repo / "Cargo.toml").write_text("[workspace]\n")
+            target = root / "fresh-target"
+
+            def fake_cargo(_command, *, env, **_kwargs):
+                bin_dir = Path(env["CARGO_TARGET_DIR"]) / "debug"
+                bin_dir.mkdir(parents=True)
+                for app in runner.APPS:
+                    binary = bin_dir / app
+                    binary.write_bytes(f"newly-built-{app}".encode())
+                    binary.chmod(0o755)
+
+            with patch.object(runner, "git_state", return_value=("candidate-revision", "c" * 64, [])), patch.object(runner, "run", side_effect=fake_cargo):
+                with patch.object(sys, "stdout", io.StringIO()):
+                    runner.build_candidate(repo, root / "evidence", target, 30)
+            record = json.loads((root / "evidence" / "candidate-build.json").read_text())
+            self.assertEqual(set(record["binary_files"]), set(runner.APPS))
+            for app in runner.APPS:
+                self.assertEqual(record["binary_files"][app], runner.stable_private_binary(target / "debug" / app, f"candidate binary {app}")[1])
+
     def provenance_payload(self) -> dict[str, object]:
         env_values = {key: {"present": False, "value_sha256": None} for key in runner.PROVENANCE_ENV_KEYS}
         env_record = {

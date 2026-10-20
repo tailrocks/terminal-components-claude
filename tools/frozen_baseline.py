@@ -1050,12 +1050,21 @@ def build(repo: Path, root: Path, timeout: int) -> None:
 def build_candidate(repo: Path, root: Path, target: Path, timeout: int) -> None:
     repo = repo.resolve()
     root = root.resolve()
+    if target.is_symlink():
+        raise RunnerError("candidate build target cannot be a symlink")
     target = target.resolve()
     if not (repo / "Cargo.toml").is_file():
         raise RunnerError(f"candidate workspace manifest missing: {repo / 'Cargo.toml'}")
     baseline_target = (root / "cargo-target").resolve()
     if target == baseline_target or baseline_target in target.parents or target in baseline_target.parents:
         raise RunnerError("candidate target directory overlaps immutable frozen build directory")
+    if target.exists():
+        raise RunnerError("candidate build target must be absent to prevent reuse of unverified cached artifacts")
+    target.parent.mkdir(parents=True, exist_ok=True)
+    try:
+        target.mkdir()
+    except FileExistsError as error:
+        raise RunnerError("candidate build target was claimed before the isolated build") from error
     revision, dirty_fingerprint, dirty_files = git_state(repo, timeout)
     env = clean_env()
     env["CARGO_TARGET_DIR"] = str(target)
@@ -2549,7 +2558,8 @@ def main() -> int:
             build(args.repo, args.root, args.timeout)
         elif args.command == "build-candidate":
             root = args.root.resolve()
-            build_candidate(args.repo, root, args.target_dir or root / "candidate-target", args.timeout)
+            default_target = root / "candidate-targets" / f"build-{time.time_ns()}"
+            build_candidate(args.repo, root, args.target_dir or default_target, args.timeout)
         elif args.command == "live-compare":
             root = args.root.resolve()
             baseline_bins = root / "cargo-target" / "debug"
