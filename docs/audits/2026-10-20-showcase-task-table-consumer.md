@@ -17,13 +17,17 @@ data: IDs use `#` plus four digits; duration uses seconds below one minute and
 mapping: Running is `▸ Running`, Failed is error red, Paused is warning amber,
 Queued is muted, and Done is secondary. Zero changes is muted.
 
-The showcase consumer migration is waiting for the public `termrock-grid`
-`Table` constructor and column sort configuration from the component workstream.
-The consumer must keep task data in source order and delegate layout, sorting,
-scrolling, focus, hit testing, and activation to `Table`. Activation must map
-the selected task's domain ID into the existing page status response. Existing
-private geometry and painting remain in place until paired real-CLI frames
-prove the public component renders the same cells and cursor state.
+The public `termrock-grid::Table` and `TableColumn` API is available in
+component commit `caf8eb20ff0dd706debc1c7f1681440eea36960a`. The consumer model
+now keeps task data in source order, uses task IDs as stable keys, formats all
+seven cells, and maps baseline tones. A focused nextest verifies source order,
+IDs, cell text, and all status tones. Component stage two is adding visible-row
+range and status metadata accessors needed by the frozen task card. The consumer
+must delegate layout, sorting, scrolling, focus, hit testing, and activation to
+`Table`. Activation must map the selected task's domain ID into the existing
+page status response. Existing private geometry and painting remain in place
+until paired real-CLI frames prove the public component renders the same cells
+and cursor state.
 
 Current gap: `TablesPage::update` ignores input, and its task table paints
 coordinates and row order privately. Existing in-process tests cover static
