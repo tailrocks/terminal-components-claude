@@ -58,6 +58,24 @@ fn explorer_opens_table_and_grid_navigates() {
 }
 
 #[test]
+fn unfocused_grid_cursor_does_not_style_the_cursor_row() {
+    let mut app = connected();
+    assert!(app.workbench.open_table("orders"));
+    let harness = Harness::new(app, Theme::junie(), 120, 40);
+    assert_eq!(harness.app().surface(), Surface::WorkbenchDefault);
+    let (x, y) = harness
+        .find("1d9f28fc-3e09-4488-bae7-d3aeb39b01c4")
+        .expect("the first result row is rendered");
+    assert!(
+        !harness
+            .cell(x, y)
+            .modifier
+            .contains(termrock::Modifier::BOLD),
+        "unfocused result cells must not be presented as the cursor row"
+    );
+}
+
+#[test]
 fn slash_filters_connections_and_keeps_the_open_detail() {
     let mut harness = Harness::new(TableProApp::default(), Theme::junie(), 120, 40);
     let _ = harness.key(KeyCode::Char('/'));
