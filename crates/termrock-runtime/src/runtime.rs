@@ -57,6 +57,11 @@ pub trait App {
         KeyMap::EMPTY_REF
     }
 
+    /// Default policy used by text editors when they receive focus or typing.
+    fn edit_entry(&self) -> termrock_core::edit_entry::EditEntry {
+        termrock_core::edit_entry::EditEntry::Immediate
+    }
+
     fn min_size(&self) -> Size {
         Size {
             min: (72, 20),
@@ -1350,6 +1355,7 @@ impl<A: App> Runtime<A> {
                     event: pending.event,
                     update: pending.update,
                 }));
+            let edit_entry = self.app.edit_entry();
             let r = {
                 let mut cx = Cx::new_with_cause(
                     &self.intents,
@@ -1360,6 +1366,7 @@ impl<A: App> Runtime<A> {
                     command,
                     pass_cause,
                 )
+                .with_edit_entry(edit_entry)
                 .with_activation_key(activation_key);
                 self.app.update(&mut cx)
             };
@@ -1720,6 +1727,7 @@ impl<A: App> Runtime<A> {
                         .run_update(None, UpdateCause::Event, activation_key)
                         .repaint();
                 } else {
+                    let edit_entry = self.app.edit_entry();
                     let esc = {
                         let mut cx = Cx::new_with_cause(
                             &self.intents,
@@ -1729,7 +1737,8 @@ impl<A: App> Runtime<A> {
                             &self.theme,
                             None,
                             UpdateCause::Event,
-                        );
+                        )
+                        .with_edit_entry(edit_entry);
                         self.app.on_esc(&mut cx)
                     };
                     r |= esc;

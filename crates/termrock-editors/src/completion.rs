@@ -321,11 +321,11 @@ impl<'a> CompletingCodeEditor<'a> {
 
         let editor_response = self.editor.update(cx, &mut state.editor);
         if manual_requested {
-            if state.editor.is_editing()
-                && !state.editor.is_find_typing()
+            if !state.editor.is_find_typing()
                 && !self.editor.is_read_only()
                 && !self.editor.is_disabled()
             {
+                state.editor.begin_edit();
                 self.request(cx, state, CompletionTrigger::Manual);
                 return Response::changed();
             }
