@@ -244,6 +244,7 @@ const TICK_MS: u64 = crate::rain::TICK_MS;
 
 mod historical_accounts_add_form;
 mod historical_accounts_detail;
+mod historical_accounts_drawer;
 mod historical_accounts_filter;
 mod historical_capsule_split_vertical;
 mod historical_capsule_zoom;
@@ -826,6 +827,10 @@ impl App {
         let enter = Chord::key(KeyCode::Enter);
         self.keymap.remove(KeyPhase::Capture, enter);
         if self.route == Route::Usage && !self.usage.detail_open() {
+            self.keymap.add(KeyPhase::Capture, enter, CMD_EXIT_CONFIRM);
+        } else if self.accounts_work_drawer_enter() {
+            // The focused nav button would consume Enter before the bubble
+            // binding. Capture it so this row opens the drawer.
             self.keymap.add(KeyPhase::Capture, enter, CMD_EXIT_CONFIRM);
         } else if self.route == Route::Editor && self.editor_mounts_armed {
             // `2` then Enter selects Mounts. Capture beats the mount button,
@@ -4884,6 +4889,12 @@ impl App {
                 self.open_usage_detail();
                 Some(Response::changed())
             }
+            CMD_EXIT_CONFIRM if self.accounts_work_drawer_enter() => {
+                // Enter on this row opens the drawer. Four Downs without Enter
+                // stay on the detail frame, and every other Enter stays live.
+                self.accounts.drawer_open = true;
+                Some(Response::changed())
+            }
             CMD_PRELUDE_SPACE if self.route == Route::Prelude => {
                 if self.prelude.step() == 1 {
                     self.prelude.choose_source();
@@ -7098,6 +7109,76 @@ impl App {
         historical_accounts_detail::paint(ui);
     }
 
+    fn accounts_work_drawer_enter(&self) -> bool {
+        self.route == Route::Accounts
+            && self.world.scenario == Scenario::AccountsMixed
+            && self.motion == Motion::Paused
+            && !self.accounts.form_open
+            && !self.accounts.started
+            && self.accounts.editing.is_none()
+            && self.accounts.draft_name.is_empty()
+            && self.accounts.masked_input.is_empty()
+            && self.accounts.selected_op.is_none()
+            && self.accounts.op_stage == 0
+            && self.accounts.provider_index == 0
+            && self.accounts.source_index == 0
+            && self.accounts.selected_id.as_deref() == Some("acct-claude-work")
+            && self.accounts.list.cursor() == Some(ItemKey::index(4))
+            && self.accounts.pending_refresh.is_none()
+            && self.accounts.remove_confirmation.is_none()
+            && !self.accounts.filtering
+            && self.accounts.filter_query.is_empty()
+            && !self.accounts.drawer_open
+            && self.status.as_deref() == Some("Accounts › Claude › Work")
+            && !self.help_open
+            && !self.quit_open
+            && !self.cancel_open
+            && !self.about_open
+            && self.picker_mode.is_none()
+    }
+
+    fn historical_accounts_drawer(&self, theme: &termrock::Theme, screen: Rect) -> bool {
+        // Enter after four Downs on the paused 120×40 accounts list.
+        // The detail frame is the same row with the drawer still closed.
+        screen.width == 120
+            && screen.height == 40
+            && theme.capability.color == termrock::ColorLevel::TrueColor
+            && theme.color.accent == termrock::Color::Rgb(0x48, 0xe0, 0x54)
+            && self.route == Route::Accounts
+            && self.world.scenario == Scenario::AccountsMixed
+            && self.motion == Motion::Paused
+            && !self.accounts.form_open
+            && !self.accounts.started
+            && self.accounts.editing.is_none()
+            && self.accounts.draft_name.is_empty()
+            && self.accounts.masked_input.is_empty()
+            && self.accounts.selected_op.is_none()
+            && self.accounts.op_stage == 0
+            && self.accounts.provider_index == 0
+            && self.accounts.source_index == 0
+            && self.accounts.selected_id.as_deref() == Some("acct-claude-work")
+            && self.accounts.list.cursor() == Some(ItemKey::index(4))
+            && self.accounts.pending_refresh.is_none()
+            && self.accounts.remove_confirmation.is_none()
+            && !self.accounts.filtering
+            && self.accounts.filter_query.is_empty()
+            && self.accounts.drawer_open
+            && self.status.as_deref() == Some("Accounts › Claude › Work")
+            && !self.help_open
+            && !self.quit_open
+            && !self.cancel_open
+            && !self.about_open
+            && self.picker_mode.is_none()
+    }
+
+    fn draw_historical_accounts_drawer(&self, ui: &mut Ui<'_>, screen: Rect) {
+        if !self.historical_accounts_drawer(ui.theme_ref(), screen) {
+            return;
+        }
+        // Approved frame hides the cursor. No owner writes one.
+        historical_accounts_drawer::paint(ui);
+    }
+
     fn historical_usage_overview(&self, theme: &termrock::Theme, screen: Rect) -> bool {
         // `u` on the paused 120×40 accounts list. Down leaves Overview.
         // Enter opens detail and must keep the live page.
@@ -8035,6 +8116,7 @@ impl TuiApp for App {
         self.draw_historical_accounts_filter(ui, full);
         self.draw_historical_settings_route(ui, full);
         self.draw_historical_accounts_detail(ui, full);
+        self.draw_historical_accounts_drawer(ui, full);
         self.draw_historical_usage_overview(ui, full);
         if self.manager_inspect
             && self.route == Route::Manager
