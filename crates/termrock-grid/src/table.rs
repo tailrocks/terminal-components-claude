@@ -759,9 +759,13 @@ mod tests {
             }
         }
 
+        let mut test_columns = columns();
+        for column in &mut test_columns {
+            column.column.sortable = true;
+        }
         let mut runtime = Runtime::new(
             TableApp {
-                columns: columns(),
+                columns: test_columns,
                 state: TableState::default(),
                 area: Rect::new(0, 0, 88, 22),
             },
@@ -856,6 +860,7 @@ mod tests {
         );
         assert!(runtime.app().state.grid.visible_rows(24).start > rows_before.start);
         assert_eq!(runtime.app().state.grid.col_offset(), 2);
+        let vertical_range = runtime.app().state.grid.visible_rows(24);
 
         let _ = crate::runtime::stub::deliver(
             &mut runtime,
@@ -877,19 +882,37 @@ mod tests {
             crate::runtime::stub::deliver(&mut runtime, mouse(MouseKind::Move, track.x, track.y));
         let _ = crate::runtime::stub::deliver(&mut runtime, mouse(MouseKind::Up, track.x, track.y));
         assert_eq!(runtime.app().state.grid.col_offset(), 0);
+        assert_eq!(runtime.app().state.grid.visible_rows(24), vertical_range);
+
+        let _ = crate::runtime::stub::deliver(&mut runtime, key(KeyCode::Right));
+        let _ = crate::runtime::stub::deliver(&mut runtime, key(KeyCode::Right));
+        assert_eq!(runtime.app().state.grid.col_offset(), 2);
 
         let _ = crate::runtime::stub::deliver(&mut runtime, crate::event::Input::Resize(130, 22));
         let mut wide_buffer = Buffer::empty(Rect::new(0, 0, 130, 22));
         runtime
             .draw_buffer(Rect::new(0, 0, 130, 22), &mut wide_buffer)
             .commit_presented();
-        assert_eq!(runtime.app().state.grid.col_offset(), 0);
         assert!(
             runtime
                 .area_of_part(bar_id, PartRef::of(Part::TRACK))
                 .is_none()
         );
+        for column in &runtime.app().columns {
+            assert!(
+                runtime
+                    .area_of_part(
+                        table_id,
+                        PartRef::item(
+                            Part::HEADER,
+                            ItemKey::num(u64::from(column.column.key.raw())),
+                        ),
+                    )
+                    .is_some()
+            );
+        }
         let _ = crate::runtime::stub::deliver(&mut runtime, key(KeyCode::Right));
         assert_eq!(runtime.app().state.grid.col_offset(), 0);
+        assert_eq!(runtime.app().state.grid.visible_rows(24).len(), 21);
     }
 }
