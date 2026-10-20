@@ -519,4 +519,45 @@ mod tests {
             })
         );
     }
+
+    #[test]
+    fn cursor_requests_are_clamped_to_nonempty_clips_and_ignored_for_empty_clips() {
+        let (_, frame) = with_ui(
+            Rect {
+                x: 0,
+                y: 0,
+                width: 20,
+                height: 8,
+            },
+            |ui| {
+                ui.with_area(
+                    Rect {
+                        x: 5,
+                        y: 2,
+                        width: 3,
+                        height: 2,
+                    },
+                    |ui| {
+                        ui.set_cursor(
+                            Id::root("slot.cursor"),
+                            ratatui_core::layout::Position::new(1, 7),
+                        );
+                    },
+                );
+                ui.with_area(Rect::default(), |ui| {
+                    ui.set_cursor(
+                        Id::root("slot.empty"),
+                        ratatui_core::layout::Position::new(1, 1),
+                    );
+                });
+            },
+        );
+
+        assert_eq!(frame.cursors.len(), 1);
+        assert_eq!(frame.cursors[0].owner, Id::root("slot.cursor"));
+        assert_eq!(
+            frame.cursors[0].pos,
+            ratatui_core::layout::Position::new(5, 3)
+        );
+    }
 }
