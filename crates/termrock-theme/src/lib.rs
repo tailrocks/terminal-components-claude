@@ -36,6 +36,16 @@ pub use tokens::{
     MeterTokens, MotionTokens, SizeTokens, SpaceTokens, SyntaxTokens,
 };
 
+/// Rendering policy for the active row in a cursor-based list.
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Default)]
+pub enum CursorStyle {
+    /// Show the theme's focus gutter.
+    #[default]
+    Bar,
+    /// Highlight the active row while reserving a blank gutter cell.
+    Fill,
+}
+
 use self::recipe::GlobalOverride;
 
 #[derive(Clone, PartialEq, Eq, Debug)]
