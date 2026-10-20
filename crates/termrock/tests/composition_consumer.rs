@@ -406,12 +406,6 @@ struct ImportStep {
     elapsed: Option<&'static str>,
 }
 
-impl fmt::Display for ImportStep {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(self.label)
-    }
-}
-
 fn import_step_key(step: &ImportStep) -> ItemKey {
     ItemKey::index(step.key)
 }
@@ -424,7 +418,20 @@ fn import_step_metadata(step: &ImportStep) -> Option<&str> {
     step.elapsed
 }
 
-type ImportSteps = Steps<'static, ImportStep, fn(&ImportStep) -> ItemKey>;
+fn import_step_label_width(step: &ImportStep) -> u16 {
+    termrock::text::width(step.label)
+}
+
+fn draw_import_step(step: &ImportStep, row: &mut termrock::RowUi<'_>) {
+    row.label(step.label);
+}
+
+type ImportSteps = Steps<
+    'static,
+    ImportStep,
+    fn(&ImportStep) -> ItemKey,
+    fn(&ImportStep, &mut termrock::RowUi<'_>),
+>;
 
 struct ImportConsumer {
     steps: ImportSteps,
@@ -437,11 +444,14 @@ struct ImportConsumer {
 impl ImportConsumer {
     fn new() -> Self {
         let key: fn(&ImportStep) -> ItemKey = import_step_key;
+        let row: fn(&ImportStep, &mut termrock::RowUi<'_>) = draw_import_step;
         let steps = Steps::new(IMPORT_STEPS)
             .key(key)
             .step(&import_step_state)
             .numbered(true)
-            .metadata(&import_step_metadata);
+            .metadata(&import_step_metadata)
+            .measure_label_width(&import_step_label_width)
+            .row(row);
         Self {
             steps,
             state: StepsState::new(),
@@ -625,6 +635,33 @@ fn public_steps_intrinsic_measurement_uses_live_labels_metadata_and_ordinals() {
         .collect();
     render(&mut runtime, &mut terminal, root);
     assert_eq!(runtime.app().measured_steps.get().preferred.0, 44);
+}
+
+#[test]
+fn public_steps_custom_non_display_row_has_explicit_intrinsic_label_width() {
+    let mut app = ImportConsumer::new();
+    app.items = vec![ImportStep {
+        key: 8,
+        label: "Archive historical package objects",
+        state: StepState::Queued,
+        elapsed: Some("copied from storage archive"),
+    }];
+    let root = Rect::new(0, 0, 100, 4);
+    let mut runtime = Runtime::new(app, Theme::junie());
+    let mut terminal = Terminal::new(TestBackend::new(root.width, root.height)).unwrap();
+    render(&mut runtime, &mut terminal, root);
+
+    let expected = 6usize
+        + usize::from(termrock::text::width("Archive historical package objects"))
+        + usize::from(termrock::text::width("copied from storage archive"))
+        + 3;
+    assert_eq!(
+        runtime.app().measured_steps.get().preferred.0,
+        expected as u16
+    );
+    let text = terminal_text(&terminal);
+    assert!(text.contains("Archive historical package objects"));
+    assert!(text.contains("copied from storage archive"));
 }
 
 #[test]
