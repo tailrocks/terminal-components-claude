@@ -1564,8 +1564,27 @@ pub fn monorepo_root_80x24_plate(
     if history || width != 80 || height != 24 {
         return None;
     }
+    monorepo_root_collapsed(w)
+}
+
+/// 100×30 no-history `monorepo-root` plate. Not the 80×24 plate and not the 120×40 card.
+/// Later seeks and other sizes stay off it. History keeps the wide card.
+pub fn monorepo_root_100x30_plate(
+    w: &World,
+    width: u16,
+    height: u16,
+    history: bool,
+) -> Option<ParityDiscovery> {
+    if history || width != 100 || height != 30 {
+        return None;
+    }
+    monorepo_root_collapsed(w)
+}
+
+/// Collapsed no-history rows. The wide card keeps the preview.
+/// Narrow label keeps one letter of the tool. `node` would paint `n…`; the frozen row is `s…`.
+fn monorepo_root_collapsed(w: &World) -> Option<ParityDiscovery> {
     let wide = monorepo_root_tag(w)?;
-    // Narrow label keeps one letter of the tool. `node` would paint `n…`; the frozen row is `s…`.
     let mut lines = wide.lines;
     for line in &mut lines {
         if let FinderLine::Row(row) = line
