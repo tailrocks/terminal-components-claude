@@ -185,15 +185,15 @@ const NAV_BINDINGS: &[Binding<CodeCmd>] = &[
         false,
     ),
     b(
-        COMPLETION_NEXT_FOCUS_CHORD,
-        CodeCmd::FocusNext,
-        "focus.next",
-        false,
-    ),
-    b(
         COMPLETION_PREV_FOCUS_CHORD,
         CodeCmd::FocusPrevious,
         "focus.previous",
+        false,
+    ),
+    b(
+        COMPLETION_NEXT_FOCUS_CHORD,
+        CodeCmd::FocusNext,
+        "focus.next",
         false,
     ),
     b(
@@ -333,15 +333,15 @@ const EDIT_BINDINGS: &[Binding<CodeCmd>] = &[
         false,
     ),
     b(
-        COMPLETION_NEXT_FOCUS_CHORD,
-        CodeCmd::FocusNext,
-        "focus.next",
-        false,
-    ),
-    b(
         COMPLETION_PREV_FOCUS_CHORD,
         CodeCmd::FocusPrevious,
         "focus.previous",
+        false,
+    ),
+    b(
+        COMPLETION_NEXT_FOCUS_CHORD,
+        CodeCmd::FocusNext,
+        "focus.next",
         false,
     ),
     b(Chord::key(KeyCode::Esc), CodeCmd::Commit, "Done", true),
