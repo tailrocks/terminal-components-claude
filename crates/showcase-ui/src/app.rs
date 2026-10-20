@@ -1721,6 +1721,8 @@ impl TuiApp for App {
                     let _ = ui.paint_str(area, "No page selected", ui.surface_style());
                 });
             }
+        } else if label == "Selection" {
+            showcase_demos::pages::selectable::paint(ui, shell.main);
         } else {
             paint_placeholder(ui, shell.main, label);
         }

@@ -142,6 +142,7 @@ pub mod panels;
 pub mod pickers;
 pub mod progress;
 pub mod scrolling;
+pub mod selectable;
 pub mod settings;
 pub mod sidebars;
 pub mod tables;
