@@ -36,7 +36,7 @@ EXTENSION_SOURCE = Path("tools/frozen_cli_extensions.rs")
 EXTENSION_CASE_PREFIX = "termrock_extensions::showcase::table_sort::"
 EXTENSION_MANIFEST_SHA256 = "b995c00f0dc14d4e0a81d1d56140e1c10ba7936a043e0135196f8fe8421cabb8"
 EXTENSION_SOURCE_SHA256 = "332bd4eac4dc65be1a1478f97177cc658113a063900d8b9c6a0ba2ddc6dc67d9"
-EXTENSION_PATCH_SHA256 = "646d96b5b08c182f9ecdef8e8e8ddf1f6e31095d4b2a073a7eda17d611d69951"
+EXTENSION_PATCH_SHA256 = "7532bf88dfe0b42f1fcd244e484b198a6160c17c81b7bf20a744eef3404fb40a"
 REFERENCE_DECISIONS = Path("tools/frozen_cli_references.json")
 REFERENCE_DECISIONS_SHA256 = "2a43fb118c268300c8bbd6439ea11bb9a24ffff03dc3c9f4601893eee26a096b"
 REFERENCE_CASE = "showcase::resize::overview_grown::120x40::truecolor"
@@ -814,20 +814,23 @@ def apply_term_profile(env: dict[str, str], term_profile: str | None) -> dict[st
             env.pop("TERM", None)
         else:
             env["TERM"] = term_profile
-    effective = {"profile": term_profile or "inherited", "term_present": "TERM" in env, "term": env.get("TERM")}
+    child_term = None if term_profile == "unset" else (term_profile or "xterm-256color")
+    effective = {
+        "profile": term_profile or "harness-default",
+        "runner_term_present": "TERM" in env,
+        "runner_term": env.get("TERM"),
+        "child_term_present": child_term is not None,
+        "child_term": child_term,
+    }
     effective["sha256"] = hashlib.sha256(json.dumps(effective, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
     return effective
 
 
 def validate_reference_term_profile(decisions: list[dict[str, object]], selected: list[str], term_profile: str | None) -> None:
-    if term_profile is None:
-        return
     for decision in decisions:
         if reference_case_selected(decision, selected):
-            pinned_term = decision["environment"]["values"].get("TERM")
-            requested_term = None if term_profile == "unset" else term_profile
-            if requested_term != pinned_term:
-                raise RunnerError(f"the pinned grown-reference exception requires TERM={pinned_term!r}; refusing TERM profile {term_profile!r}")
+            if term_profile is not None:
+                raise RunnerError("the pinned grown-reference exception was reviewed with the harness-default child TERM; profiled runs must exclude that case")
 
 
 def tree_digest_or_empty(path: Path) -> str:
@@ -1320,6 +1323,8 @@ def run_live_chunk(live: Path, root: Path, run_root: Path, phase: str, bins: Pat
         "TERMROCK_PAIR_RECEIPT_ROOT": str(receipt_root.resolve()),
     })
     controlled_environment = apply_term_profile(env, term_profile)
+    if term_profile is not None:
+        env["TERMROCK_PAIR_TERM_PROFILE"] = term_profile
     reference_decisions = reference_decisions or []
     active_references = [decision for decision in reference_decisions if reference_case_selected(decision, selected)]
     if phase == "baseline-capture" and active_references:
@@ -1694,7 +1699,7 @@ def parser() -> argparse.ArgumentParser:
     live_selection.add_argument("--all", action="store_true", help="run all registered ignored visual scenarios")
     live_pair.add_argument("--chunk-size", type=int, default=DEFAULT_CHUNK_SIZE)
     live_pair.add_argument("--term-profile", choices=sorted(TERM_PROFILES), default=None,
-                           help="set TERM identically for all paired phases (default: inherit; 'unset' removes TERM)")
+                           help="set runner and spawned-child TERM for every phase (default: harness child default; 'unset' removes TERM)")
     return ap
 
 
