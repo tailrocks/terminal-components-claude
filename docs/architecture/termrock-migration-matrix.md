@@ -60,9 +60,13 @@ disabled, the test fails in Mono (White cell underline vs Gray row underline);
 with the fix, focused Grid tests pass. `cargo nextest run -p termrock-theme -p
 termrock-grid --all-targets` passes 263/263; strict scoped Clippy and fmt pass.
 
-Updated: 2026-10-20. Status: **in progress; all four applications incomplete**. This is the current migration record. Older audit reports remain evidence, not a complete inventory or acceptance declaration.
-||||||| df30dc013
-Updated: 2026-10-20. Status: **in progress; all four applications incomplete**. This is the current migration record. Older audit reports remain evidence, not a complete inventory or acceptance declaration.
+After normal-merging PR #38 source `25f5792666cefcb1d51d56fcb973fd06a15b8741`,
+`cargo nextest run -p tablepro-ui --all-targets` was run on the merged candidate
+and on the merged PR source with the four Grid-owned source/test files restored.
+The candidate had 184 tests (173 pass, 11 fail); the source base had 183
+(172 pass, 11 fail). Both runs failed the exact same 11 test names listed
+above. The TablePro Grid-cursor regression is the one added passing test. This
+comparison is limited to TablePro nextest and does not establish product parity.
 
 Updated: 2026-10-21. Status: **in progress; all four applications incomplete**. This is the current migration record. Older audit reports remain evidence, not a complete inventory or acceptance declaration.
 
