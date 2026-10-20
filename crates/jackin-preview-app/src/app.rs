@@ -271,8 +271,6 @@ mod historical_capsule_new_tab;
 mod historical_capsule_palette;
 mod historical_capsule_split_vertical;
 mod historical_capsule_zoom;
-mod historical_cockpit_cancel;
-mod historical_cockpit_info;
 mod historical_editor;
 mod historical_editor_auth;
 mod historical_editor_env;
@@ -1468,6 +1466,51 @@ impl App {
         Dialog::info(COCKPIT_INFO_DIALOG, "Debug info")
             .width(66)
             .body_rows(8)
+    }
+
+    fn info_facts(&self) -> Vec<(String, String)> {
+        let role_full = self.selected_role();
+        let role = role_full.rsplit('/').next().unwrap_or(role_full);
+        let workspace = self
+            .world
+            .workspaces
+            .first()
+            .map_or("payments-platform", |workspace| workspace.name.as_str());
+        let mut facts = Vec::new();
+        if let Some(launch) = &self.launch
+            && launch.container_ready()
+        {
+            facts.push(("Container".to_owned(), launch.container.clone()));
+        }
+        facts.push((
+            "Target".to_owned(),
+            format!("{role} into workspace {workspace}"),
+        ));
+        facts.push(("Role".to_owned(), role.to_owned()));
+        facts.push((
+            "Agent".to_owned(),
+            "Claude Code · account Claude · Work".to_owned(),
+        ));
+        let run_id = self
+            .launch
+            .as_ref()
+            .map(|launch| {
+                if launch.trace_label.is_empty() {
+                    launch.run_id.short()
+                } else {
+                    launch.trace_label.clone()
+                }
+            })
+            .unwrap_or_else(|| "none".to_owned());
+        facts.push(("Run id".to_owned(), run_id));
+        facts.push(("jackin".to_owned(), "0.6.4 · preview".to_owned()));
+        if self.cockpit_debug_open {
+            facts.push((
+                "Telemetry".to_owned(),
+                "otlp://collector.internal:4317".to_owned(),
+            ));
+        }
+        facts
     }
 
     fn cockpit_info_lines(&self) -> Vec<String> {
@@ -7223,73 +7266,6 @@ impl App {
         );
     }
 
-    fn historical_cockpit_info(&self, theme: &termrock::Theme, area: Rect) -> bool {
-        // `i` on the paused 120×40 launch. Closed cockpit, `t`, and `d` stay put.
-        self.cockpit_info_open
-            && !self.cockpit_debug_open
-            && !self.cockpit_trace_open
-            && area.width == 120
-            && area.height == 40
-            && theme.capability.color == termrock::ColorLevel::TrueColor
-            && theme.color.accent == termrock::Color::Rgb(0x48, 0xe0, 0x54)
-            && self.route == Route::Cockpit
-            && self.motion == Motion::Paused
-            && self.world.scenario == Scenario::LaunchRunning
-            && self.frame() == 40
-            && self
-                .launch
-                .as_ref()
-                .is_some_and(|launch| launch.failure.is_none())
-            && !self.cockpit.log_open
-            && !self.cancel_open
-            && !self.quit_open
-            && !self.help_open
-            && !self.launch_failure_open
-            && !self.about_open
-    }
-
-    fn draw_historical_cockpit_info(&self, ui: &mut Ui<'_>) {
-        if !self.historical_cockpit_info(ui.theme_ref(), ui.full()) {
-            return;
-        }
-        // Approved frame hides the cursor. This path must not call set_cursor.
-        historical_cockpit_info::paint(ui);
-    }
-
-    fn historical_cockpit_cancel(&self, theme: &termrock::Theme, area: Rect) -> bool {
-        // `x` on the paused 120×40 launch. A click on Cancel, `i`, and `t` stay put.
-        self.cancel_from_x
-            && self.cancel_open
-            && !self.cockpit_info_open
-            && !self.cockpit_debug_open
-            && !self.cockpit_trace_open
-            && area.width == 120
-            && area.height == 40
-            && theme.capability.color == termrock::ColorLevel::TrueColor
-            && theme.color.accent == termrock::Color::Rgb(0x48, 0xe0, 0x54)
-            && self.route == Route::Cockpit
-            && self.motion == Motion::Paused
-            && self.world.scenario == Scenario::LaunchRunning
-            && self.frame() == 40
-            && self
-                .launch
-                .as_ref()
-                .is_some_and(|launch| launch.failure.is_none())
-            && !self.cockpit.log_open
-            && !self.quit_open
-            && !self.help_open
-            && !self.launch_failure_open
-            && !self.about_open
-    }
-
-    fn draw_historical_cockpit_cancel(&self, ui: &mut Ui<'_>) {
-        if !self.historical_cockpit_cancel(ui.theme_ref(), ui.full()) {
-            return;
-        }
-        // Approved frame hides the cursor. This path must not call set_cursor.
-        historical_cockpit_cancel::paint(ui);
-    }
-
     fn draw_historical_launch_running(&self, ui: &mut Ui<'_>) {
         let area = Rect::new(0, 0, 120, 40);
         let mut buf = termrock::Buffer::empty(area);
@@ -8796,9 +8772,7 @@ impl App {
         });
         // The approved cancel frame is painted on the page. Drawing the live
         // modal would dim that page after this function returns.
-        if !self.historical_cockpit_cancel(ui.theme_ref(), ui.full())
-            && !(self.launch_dialog_on_page(ui.full()) && self.cancel_open)
-        {
+        if !(self.launch_dialog_on_page(ui.full()) && self.cancel_open) {
             let cancel_launch = Self::cockpit_cancel_dialog();
             let _ = ui.layer(CANCEL_LAUNCH_DIALOG, |ui, area| {
                 cancel_launch.draw(ui, area, &self.cancel_state, |_, _| {})
@@ -8813,9 +8787,7 @@ impl App {
         });
         // The approved info frame is painted on the page. Drawing the live
         // modal would dim that page after this function returns.
-        if !self.historical_cockpit_info(ui.theme_ref(), ui.full())
-            && !(self.launch_dialog_on_page(ui.full()) && self.cockpit_info_open)
-        {
+        if !(self.launch_dialog_on_page(ui.full()) && self.cockpit_info_open) {
             let cockpit_info = Self::cockpit_info_dialog();
             let _ = ui.layer(COCKPIT_INFO_DIALOG, |ui, area| {
                 let lines = self.cockpit_info_lines();
@@ -9578,22 +9550,42 @@ impl TuiApp for App {
         } else if self.responsive_launch_cockpit(full) {
             launch_cockpit::paint(self, ui);
             if self.cockpit_info_open {
-                launch_dialog_plate::paint_info(ui);
+                let facts = self.info_facts();
+                let shown: Vec<termrock::overlays::info_card::Fact<'_>> = facts
+                    .iter()
+                    .map(|(label, value)| termrock::overlays::info_card::Fact { label, value })
+                    .collect();
+                launch_dialog_plate::paint_info(ui, &shown);
             } else if self.cancel_open {
                 launch_dialog_plate::paint_cancel(ui);
+            }
+            // The stage-rail column stays undimmed through the dialog, same
+            // as the 120×40 presentation frame. Truecolor and 256 already match.
+            let reduced = matches!(
+                ui.theme_ref().capability.color,
+                termrock::ColorLevel::Ansi16 | termrock::ColorLevel::Mono
+            ) || std::env::var_os("NO_COLOR").is_some();
+            if reduced
+                && (self.cockpit_info_open || self.cancel_open)
+                && let Some(column) = launch_cockpit::stage_rail_left(full)
+            {
+                ui.clear_dim(column);
             }
         } else if full.width == 120
             && full.height == 40
             && self.launch_cockpit_scene()
-            && ui.theme_ref().capability.color != termrock::ColorLevel::TrueColor
             && (self.cockpit_info_open || self.cancel_open)
         {
-            // Truecolor 120×40 still uses the historical stamp below. Other
-            // levels start from the same presentation frame as launch-running,
-            // then the dialog dims and paints on top.
+            // Every color level starts from the launch-running presentation
+            // frame. The dialog dims that frame and paints on top.
             self.draw_historical_launch_running(ui);
             if self.cockpit_info_open {
-                launch_dialog_plate::paint_info(ui);
+                let facts = self.info_facts();
+                let shown: Vec<termrock::overlays::info_card::Fact<'_>> = facts
+                    .iter()
+                    .map(|(label, value)| termrock::overlays::info_card::Fact { label, value })
+                    .collect();
+                launch_dialog_plate::paint_info(ui, &shown);
             } else {
                 launch_dialog_plate::paint_cancel(ui);
             }
@@ -9644,8 +9636,6 @@ impl TuiApp for App {
         self.draw_historical_hard_launch_locked(ui);
         self.draw_historical_hard_cases_80(ui);
         self.draw_historical_help_overlay(ui, full);
-        self.draw_historical_cockpit_info(ui);
-        self.draw_historical_cockpit_cancel(ui);
     }
 
     fn should_quit(&self) -> bool {
