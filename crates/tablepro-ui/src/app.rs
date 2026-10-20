@@ -6865,11 +6865,19 @@ fn paint_scrolled_cells(
                 &StylePatch::new().set_fg(Role::Custom(termrock::Color::from_u32(color))),
             ));
         }
+        let mut fill_x = origin;
+        let mut fill_w = chrome.content_width.saturating_add(4);
+        // The column band starts on the gutter tail. That cell stays bold
+        // on the cursor row; the row number to its left does not.
+        if on_cursor && origin > area.x {
+            fill_x = origin.saturating_sub(1);
+            fill_w = fill_w.saturating_add(1);
+        }
         ui.fill(
             termrock::Rect {
-                x: origin,
+                x: fill_x,
                 y,
-                width: chrome.content_width.saturating_add(4),
+                width: fill_w,
                 height: 1,
             },
             row_style,
@@ -7759,7 +7767,88 @@ fn draw_painted_grid(
     );
     if scrolled {
         paint_scrolled_cells(ui, area, columns, state, model);
+    } else if let Some(cursor) = cursor {
+        paint_unscrolled_cursor_row(ui, area, columns, state, model, origin, cursor);
     }
+}
+
+fn paint_unscrolled_cursor_row(
+    ui: &mut Ui<'_>,
+    area: termrock::Rect,
+    columns: &[(String, ColType)],
+    state: &termrock::GridState,
+    model: &ResultGrid,
+    origin: usize,
+    cursor: usize,
+) {
+    let Some(chrome) = GRID_CHROME.with(|chrome| chrome.borrow().clone()) else {
+        return;
+    };
+    let Some(local) = cursor.checked_sub(origin) else {
+        return;
+    };
+    if local >= usize::from(area.height.saturating_sub(1)) {
+        return;
+    }
+    let y = area.y.saturating_add(1).saturating_add(local as u16);
+    if y >= area.bottom() || chrome.gutter == 0 {
+        return;
+    }
+    // The row number stays plain. The cell after it, the gaps, and the
+    // preview arrow are bold on the cursor row in the baseline frame.
+    let x = area.x.saturating_add(chrome.gutter).saturating_sub(1);
+    let span = area.right().saturating_sub(x);
+    ui.paint_style(
+        termrock::Rect {
+            x,
+            y,
+            width: span,
+            height: 1,
+        },
+        PaintStyle::new().add_modifier(Modifier::BOLD),
+    );
+    let Some((_, column)) = state.cursor() else {
+        return;
+    };
+    let Some(col) = usize::from(column.raw()).checked_sub(1) else {
+        return;
+    };
+    let Some(offset) = col.checked_sub(chrome.hidden_left) else {
+        return;
+    };
+    let Some(place) = chrome.places.get(offset) else {
+        return;
+    };
+    let text = GridModel::cell(model, cursor, col).map_or("", |cell| cell.text);
+    let shown = width(text).min(place.width);
+    let pad = place.width.saturating_sub(shown);
+    if pad == 0 {
+        return;
+    }
+    // The active-cell fill paints the whole column, including the slack past
+    // the value. The baseline keeps that slack on the row color.
+    let numeric = columns
+        .get(col)
+        .is_some_and(|(_, ty)| matches!(ty, ColType::Int | ColType::Numeric));
+    let pad_x = if numeric {
+        area.x.saturating_add(chrome.gutter).saturating_add(place.x)
+    } else {
+        area.x
+            .saturating_add(chrome.gutter)
+            .saturating_add(place.x)
+            .saturating_add(shown)
+    };
+    let surface = ui.surface_style().add_modifier(Modifier::BOLD);
+    ui.paint_str(
+        termrock::Rect {
+            x: pad_x,
+            y,
+            width: pad,
+            height: 1,
+        },
+        &" ".repeat(usize::from(pad)),
+        surface,
+    );
 }
 
 fn editor_column_specs<'a>(
