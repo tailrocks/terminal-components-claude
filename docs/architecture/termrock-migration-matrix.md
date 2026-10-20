@@ -7,8 +7,9 @@ that style only for the ACTIVE cursor cell. The reusable Grid now resolves
 row recipes with explicit provenance, passes the resolved row channels into
 cell defaults, and preserves per-cell recipe overrides and modifier removal.
 Existing caller `part_defaults` are included for both ROW and CELL, including
-explicit `Clear` provenance. Empty ACTIVE cells use the same complete-style
-replacement as populated ACTIVE cells. No TablePro-specific style or inset API
+explicit `Clear` provenance when no higher-precedence recipe supplies that
+channel. Empty ACTIVE cells use the same complete-style replacement as
+populated ACTIVE cells. No TablePro-specific style or inset API
 was added.
 
 TablePro had been painting BOLD across the selected data row after Grid drew
@@ -21,8 +22,9 @@ after. Grid-focused styling, ACTIVE precedence, cell channel overrides and
 modifier removal pass in all four color levels.
 
 Validation on merged source `df30dc0`: `cargo nextest run -p termrock-grid
---all-targets` passes 132/132. Real Grid buffer regressions cover unfocused/active cursor row inheritance,
-empty cells, explicit row and cell `Clear`, and deleted-row strike-through.
+--all-targets` passes 133/133. Real Grid buffer regressions cover unfocused/active cursor row inheritance,
+empty cells, explicit row and cell `Clear`, recipe-over-default precedence,
+and deleted-row strike-through.
 The TablePro unfocused-cursor and deleted-row strike regressions pass; the
 latter initially failed with inherited styling, was corrected to preserve the
 row's deletion strike unless CELL explicitly removes it, and now passes. `cargo nextest run -p
