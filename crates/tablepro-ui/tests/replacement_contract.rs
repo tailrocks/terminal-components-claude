@@ -112,7 +112,7 @@ fn result_confirmation_rejects_changed_sql_and_vanished_target_is_noop() {
     let Some(Tab::Query(tab)) = h.app_mut().workbench.tab_mut(key) else {
         unreachable!("query")
     };
-    tab.query = "SELECT * FROM customers LIMIT 2".to_owned();
+    tab.replace_query("SELECT * FROM customers LIMIT 2");
     let _ = h.key(KeyCode::Tab);
     let _ = h.key(KeyCode::Enter);
     assert_eq!(h.app().result().row_count(), 1);
