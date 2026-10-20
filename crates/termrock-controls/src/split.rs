@@ -237,6 +237,14 @@ impl<'a> SplitPane<'a> {
         self.id
     }
 
+    pub const fn axis(&self) -> SplitAxis {
+        self.axis
+    }
+
+    pub const fn gap_size(&self) -> u16 {
+        self.gap
+    }
+
     #[must_use]
     pub const fn gap(mut self, g: u16) -> Self {
         self.gap = g;
