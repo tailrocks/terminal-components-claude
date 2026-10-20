@@ -420,13 +420,19 @@ fn parity_files_tag_plate(world: &World, width: u16, height: u16) -> bool {
         || crate::sim::catalogue::parity_files_120x40_plate(world, width, height).is_some()
 }
 
-/// 80×24 and 100×30 `parity-browser` plates. Files plates and every other size stay off.
-fn parity_browser_tag_plate(world: &World, width: u16, height: u16) -> bool {
+/// 80×24 and 100×30 clip the last hint. 120×40 fits every hint, so it keeps the wide parts.
+fn parity_browser_clipped_plate(world: &World, width: u16, height: u16) -> bool {
     crate::sim::catalogue::parity_browser_80x24_plate(world, width, height).is_some()
         || crate::sim::catalogue::parity_browser_100x30_plate(world, width, height).is_some()
 }
 
-/// Tag parity-browser status at 100×30: cwd, then the size label. No branch.
+/// 80×24, 100×30, and 120×40 `parity-browser` plates. Files plates and every other size stay off.
+fn parity_browser_tag_plate(world: &World, width: u16, height: u16) -> bool {
+    parity_browser_clipped_plate(world, width, height)
+        || crate::sim::catalogue::parity_browser_120x40_plate(world, width, height).is_some()
+}
+
+/// Tag parity-browser status at 80×24, 100×30, and 120×40: cwd, then the size label. No branch.
 fn paint_parity_browser_status(ui: &mut Ui<'_>, area: Rect) {
     if area.is_empty() {
         return;
@@ -1854,7 +1860,7 @@ impl App {
             let files_plate =
                 parity_files_clipped_plate(&self.world, ui.full().width, ui.full().height);
             let browser_plate =
-                parity_browser_tag_plate(&self.world, ui.full().width, ui.full().height);
+                parity_browser_clipped_plate(&self.world, ui.full().width, ui.full().height);
             let parts = if monorepo_child_mid
                 || remote_host_mid
                 || first_use_mid

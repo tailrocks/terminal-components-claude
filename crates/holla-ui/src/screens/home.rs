@@ -475,6 +475,14 @@ impl HomeState {
             return;
         }
         if let Some(view) =
+            catalogue::parity_browser_120x40_plate(world, ui.full().width, ui.full().height)
+            && paint_parity_browser_120x40(ui, rows_area, &view)
+        {
+            // Steady bar on the placeholder. CUP 5;4. Do not write cursor bytes.
+            ui.set_bar_cursor(QUERY, termrock::Position::new(3, 4));
+            return;
+        }
+        if let Some(view) =
             catalogue::parity_history_120x40_plate(world, ui.full().width, ui.full().height)
             && paint_parity_history_120x40(ui, rows_area, &view)
         {
@@ -1109,6 +1117,29 @@ fn paint_parity_browser_100x30(
     view: &catalogue::ParityDiscovery,
 ) -> bool {
     paint_parity_browser_plate(ui, area, view, 100, 30)
+}
+
+/// Wide card. Only the 120×40 browser frame reaches this painter, so the 80 and 100 plates stay single-column.
+fn paint_parity_browser_120x40(
+    ui: &mut Ui<'_>,
+    area: Rect,
+    view: &catalogue::ParityDiscovery,
+) -> bool {
+    let full = ui.full();
+    if full.width != 120 || full.height != 40 {
+        return false;
+    }
+    paint_parity_card(
+        ui,
+        area,
+        view,
+        TagCols {
+            label: 12,
+            kind: 7,
+            scope: 4,
+            reason: 65,
+        },
+    )
 }
 
 fn paint_parity_browser_plate(
