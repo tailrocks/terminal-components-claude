@@ -826,12 +826,17 @@ impl<'f> Ui<'f> {
         } else {
             flags
         };
-        let base = self
+        let (base, base_descriptors) = self
             .frame
             .bindings
             .get(owner)
-            .map(|(published, _)| published.table);
-        let (descriptors, revision) = self.core.dynamic_bindings.update(owner, base, bindings);
+            .map_or((None, &[][..]), |(published, descriptors)| {
+                (Some(published.table), descriptors)
+            });
+        let (descriptors, revision) =
+            self.core
+                .dynamic_bindings
+                .update(owner, base, base_descriptors, bindings);
         if let Some(action) =
             self.frame
                 .bindings
