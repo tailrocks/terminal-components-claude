@@ -48,6 +48,34 @@ fn explorer_opens_table_and_grid_navigates() {
 }
 
 #[test]
+fn alt_d_duplicates_the_selected_connection_and_keeps_the_cursor() {
+    let mut harness = Harness::new(TableProApp::default(), Theme::junie(), 120, 40);
+    for _ in 0..7 {
+        let _ = harness.key(KeyCode::Down);
+    }
+    let _ = harness.alt('d');
+    let text = harness.text();
+    assert!(text.contains("7 saved"), "{text}");
+    assert!(text.contains("Production (Copy)"), "{text}");
+    assert!(text.contains("Duplicated"), "{text}");
+    assert!(text.contains("✓ on"), "{text}");
+    let cursor = text
+        .lines()
+        .find(|line| line.contains('▎') && line.contains("Production"))
+        .expect("cursor row");
+    assert!(
+        !cursor.contains("(Copy)"),
+        "cursor moved onto the copy: {cursor}"
+    );
+    assert_eq!(harness.app().connections_screen.connections.len(), 7);
+    assert!(
+        harness.diagnostics().is_empty(),
+        "{:?}",
+        harness.diagnostics()
+    );
+}
+
+#[test]
 fn alt_d_duplicates_orders_and_scrolls_the_inserted_row_just_out_of_view() {
     let mut app = TableProApp::default();
     let index = app
