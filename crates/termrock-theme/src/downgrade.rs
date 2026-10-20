@@ -236,6 +236,8 @@ pub fn legacy_mono(fg: Color, bg: Color, menu_row: bool) -> Option<LegacyMono> {
             (Color::DarkGray, Color::DarkGray, false, false)
         }
         ((0x26, 0x26, 0x26), (0, 0, 0)) => (Color::DarkGray, Color::Black, false, false),
+        ((0x80, 0x80, 0x80), (0, 0, 0)) => (Color::Gray, Color::Black, false, false),
+        ((0x47, 0x47, 0x47), (0, 0, 0)) => (Color::DarkGray, Color::Black, false, false),
         ((0x8a, 0x8a, 0x8a) | (0xb3, 0xb3, 0xb3) | (0x73, 0x73, 0x73), (0, 0, 0)) => {
             (Color::Gray, Color::Black, false, false)
         }
@@ -837,6 +839,14 @@ mod tests {
         );
         assert_eq!(
             ink(Color::Rgb(0x26, 0x26, 0x26), Color::Rgb(0, 0, 0), false).fg,
+            Color::DarkGray
+        );
+        assert_eq!(
+            ink(Color::Rgb(0x80, 0x80, 0x80), Color::Rgb(0, 0, 0), false).fg,
+            Color::Gray
+        );
+        assert_eq!(
+            ink(Color::Rgb(0x47, 0x47, 0x47), Color::Rgb(0, 0, 0), false).fg,
             Color::DarkGray
         );
         let button = ink(
