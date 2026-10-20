@@ -9,7 +9,7 @@ use crate::id::{Id, Part, PartRef};
 use crate::intent::Intent;
 use crate::keymap::{Binding, BindingState, Bindings};
 use crate::layer::{DismissReason, LayerEvent, LayerSize, LayerSpec};
-use crate::layout::{RowAlign, action_row};
+use crate::layout::RowAlign;
 use crate::measure::{Constraints, Size};
 use crate::response::{Response, StateFlags};
 use crate::secret::{Secret, SecretPolicy};
@@ -189,6 +189,84 @@ fn mnemonic_char(used: &mut u32, label: &str) -> Option<(u16, char)> {
         }
     }
     fallback.map(|(index, ch)| (u16::try_from(index).unwrap_or(0), ch))
+}
+
+#[derive(Clone, Copy, Debug)]
+struct ActionLine {
+    start: usize,
+    end: usize,
+}
+
+#[derive(Debug)]
+struct DialogLayout {
+    height: u16,
+    content: Rect,
+    title: Option<Rect>,
+    description: Rect,
+    input: Rect,
+    body: Rect,
+    actions: Vec<Rect>,
+}
+
+fn action_lines(widths: &[u16], available: u16, spacing: u16) -> Vec<ActionLine> {
+    let mut lines = Vec::new();
+    if widths.is_empty() || available == 0 {
+        return lines;
+    }
+    let mut start = 0;
+    let mut used = 0u16;
+    for (index, &natural) in widths.iter().enumerate() {
+        let width = natural.min(available).max(1);
+        let gap = if index == start { 0 } else { spacing };
+        if index > start && used.saturating_add(gap).saturating_add(width) > available {
+            lines.push(ActionLine { start, end: index });
+            start = index;
+            used = width;
+        } else {
+            used = used.saturating_add(gap).saturating_add(width);
+        }
+    }
+    lines.push(ActionLine {
+        start,
+        end: widths.len(),
+    });
+    lines
+}
+
+fn action_rects(area: Rect, widths: &[u16], lines: &[ActionLine], spacing: u16) -> Vec<Rect> {
+    let mut rects = vec![Rect::ZERO; widths.len()];
+    for (line_index, line) in lines.iter().enumerate() {
+        let Some(row_y) = area
+            .y
+            .checked_add(u16::try_from(line_index).unwrap_or(u16::MAX))
+        else {
+            continue;
+        };
+        if row_y >= area.bottom() {
+            continue;
+        }
+        let Some(line_widths) = widths.get(line.start..line.end) else {
+            continue;
+        };
+        let clamped: Vec<u16> = line_widths
+            .iter()
+            .map(|width| (*width).min(area.width))
+            .collect();
+        let row = Rect {
+            y: row_y,
+            height: 1,
+            ..area
+        };
+        for (offset, rect) in crate::layout::action_row(row, &clamped, spacing, RowAlign::End)
+            .into_iter()
+            .enumerate()
+        {
+            if let Some(slot) = rects.get_mut(line.start.saturating_add(offset)) {
+                *slot = rect;
+            }
+        }
+    }
+    rects
 }
 
 pub struct Dialog<'a> {
@@ -429,9 +507,11 @@ impl<'a> Dialog<'a> {
     }
 
     pub fn update(&self, cx: &mut Cx<'_>, st: &mut DialogState) -> Response<DialogAction> {
+        let d = cx.design();
+        let action_widths = self.action_widths(cx);
         let size = LayerSize::Fixed(
-            self.measured_width(cx.design()),
-            self.measured_height(cx.design()),
+            self.measured_width(d),
+            self.measured_height_with_action_widths(d, &action_widths),
         );
         cx.resize_layer(self.id, size);
         let mut acc = Acc::<DialogAction>::new();
@@ -541,6 +621,7 @@ impl<'a> Dialog<'a> {
         }
     }
 
+    #[cfg(test)]
     fn inner_width(&self, d: &DesignTokens) -> u16 {
         // Baseline pad is 2 columns inside the border: width - 2 * (1 + 2).
         self.measured_width(d).saturating_sub(2 * (1 + 2))
@@ -609,45 +690,182 @@ impl<'a> Dialog<'a> {
         if rows == 0 { 0 } else { rows.saturating_add(1) }
     }
 
+    fn configured_action_widths(&self) -> Vec<u16> {
+        self.effective_actions()
+            .iter()
+            .map(|action| {
+                let chord = action.chord_ref().map_or(0, |chord| {
+                    width(ChordText::of(chord).as_str()).saturating_add(1)
+                });
+                width(action.label())
+                    .saturating_add(2)
+                    .saturating_add(chord)
+            })
+            .collect()
+    }
+
+    fn action_widths(&self, cx: &Cx<'_>) -> Vec<u16> {
+        self.effective_actions()
+            .iter()
+            .enumerate()
+            .map(|(index, action)| {
+                let chord = cx
+                    .effective_chord(self.action_id(index), action.key(), action.chord_ref())
+                    .map_or(0, |chord| {
+                        width(ChordText::of(chord).as_str()).saturating_add(1)
+                    });
+                width(action.label())
+                    .saturating_add(2)
+                    .saturating_add(chord)
+            })
+            .collect()
+    }
+
+    fn layout(&self, outer: Rect, d: &DesignTokens, action_widths: &[u16]) -> DialogLayout {
+        let content = crate::layout::inset(
+            outer,
+            crate::layout::Insets {
+                l: 3,
+                t: 1,
+                r: 3,
+                b: 1,
+            },
+        );
+        let lines = action_lines(action_widths, content.width, 2);
+        let requested_action_height = u16::try_from(lines.len()).unwrap_or(u16::MAX);
+        let action_height = requested_action_height.min(content.height);
+        let action_gap = u16::from(action_height > 0 && content.height > action_height);
+        let body_block = self.body_block(d);
+        let natural_description_rows = self
+            .description
+            .map_or(0, |text| wrapped_rows(text, content.width));
+        let height = 2u16
+            .saturating_add(u16::from(self.title.is_some()))
+            .saturating_add(natural_description_rows)
+            .saturating_add(self.input_rows(d))
+            .saturating_add(body_block)
+            .saturating_add(requested_action_height)
+            .saturating_add(u16::from(requested_action_height > 0));
+        let mut y = content.y;
+        let mut remaining = content.height;
+        let title = self.title.map(|_| {
+            let rect = Rect {
+                y,
+                height: u16::from(remaining > 0),
+                ..content
+            };
+            y = y.saturating_add(rect.height);
+            remaining = remaining.saturating_sub(rect.height);
+            rect
+        });
+        let fixed_after_description = self
+            .input_rows(d)
+            .saturating_add(action_height)
+            .saturating_add(action_gap)
+            .saturating_add(body_block);
+        let desc_capacity = remaining.saturating_sub(fixed_after_description);
+        let description_rows = self.description.map_or(0, |text| {
+            wrapped_rows(text, content.width).min(desc_capacity)
+        });
+        let description = Rect {
+            x: content.x,
+            y,
+            width: content.width,
+            height: description_rows,
+        };
+        y = y.saturating_add(description_rows);
+        remaining = remaining.saturating_sub(description_rows);
+
+        let input_rows = self.input_rows(d).min(
+            remaining
+                .saturating_sub(action_height)
+                .saturating_sub(action_gap),
+        );
+        let input = Rect {
+            x: content.x.saturating_sub(1),
+            y,
+            width: content.width.saturating_add(1),
+            height: input_rows,
+        };
+        y = y.saturating_add(input_rows);
+
+        let action_y = content.bottom().saturating_sub(action_height);
+        let action_area = Rect {
+            x: content.x,
+            y: action_y,
+            width: content.width,
+            height: action_height,
+        };
+        let actions = action_rects(action_area, action_widths, &lines, 2);
+        let mut body_top = y;
+        let body_bottom = action_y.saturating_sub(action_gap);
+        if self.body_block(d) > 0 && body_top < body_bottom {
+            let spare = body_bottom.saturating_sub(body_top);
+            if spare > 1 {
+                body_top = body_top.saturating_add(1);
+            }
+        }
+        let requested_body = body_block.saturating_sub(u16::from(body_block > 0));
+        let body_height = body_bottom.saturating_sub(body_top).min(requested_body);
+        let body = Rect {
+            x: content.x,
+            y: body_top,
+            width: content.width,
+            height: body_height,
+        };
+
+        DialogLayout {
+            height,
+            content,
+            title,
+            description,
+            input,
+            body,
+            actions,
+        }
+    }
+
     pub fn measured_width(&self, d: &DesignTokens) -> u16 {
         self.width.unwrap_or(d.size.dialog_width)
     }
 
     pub fn measured_height(&self, d: &DesignTokens) -> u16 {
-        let inner = self.inner_width(d);
-        let desc = self.description.map_or(0, |s| wrapped_rows(s, inner));
-        // Borders, title, the gap under the title, the gap above the buttons,
-        // and one row of padding above and below (pad.y = 1).
-        let actions: u16 = if self.actions.is_empty() { 0 } else { 1 };
-        5u16.saturating_add(2)
-            .saturating_add(desc)
-            .saturating_add(self.input_rows(d))
-            .saturating_add(self.body_block(d))
-            .saturating_add(actions)
+        self.measured_height_with_action_widths(d, &self.configured_action_widths())
+    }
+
+    fn measured_height_with_action_widths(&self, d: &DesignTokens, action_widths: &[u16]) -> u16 {
+        self.layout(
+            Rect {
+                x: 0,
+                y: 0,
+                width: self.measured_width(d),
+                height: u16::MAX,
+            },
+            d,
+            action_widths,
+        )
+        .height
     }
 
     pub fn layer(&self, cx: &Cx<'_>) -> LayerSpec {
         let d = cx.design();
+        let action_widths = self.action_widths(cx);
         LayerSpec::modal(self.id).size(LayerSize::Fixed(
             self.measured_width(d),
-            self.measured_height(d),
+            self.measured_height_with_action_widths(d, &action_widths),
         ))
     }
 
-    fn frame_rect(&self, ui: &Ui<'_>, area: Rect) -> (Rect, u16) {
+    fn frame_rect(&self, ui: &Ui<'_>, area: Rect, action_widths: &[u16]) -> Rect {
         let d = ui.design();
-        let desc_h = self
-            .description
-            .map_or(0, |s| wrapped_rows(s, self.inner_width(d)));
-        (
-            Rect {
-                x: area.x,
-                y: area.y,
-                width: self.measured_width(d).min(area.width),
-                height: self.measured_height(d).min(area.height),
-            },
-            desc_h,
-        )
+        Rect {
+            x: area.x,
+            y: area.y,
+            width: self.measured_width(d).min(area.width),
+            height: self
+                .measured_height_with_action_widths(d, action_widths)
+                .min(area.height),
+        }
     }
 
     #[expect(
@@ -661,7 +879,21 @@ impl<'a> Dialog<'a> {
         st: &DialogState,
         body: impl FnOnce(&mut Ui<'_>, Rect) -> R,
     ) -> R {
-        let (rect, desc_h) = self.frame_rect(ui, area);
+        let mut action_widths = Vec::with_capacity(self.action_count());
+        for action in self.effective_actions() {
+            let action_id = self.action_id(action_widths.len());
+            let chord_width = ui
+                .effective_chord(action_id, action.key(), action.chord_ref())
+                .map_or(0, |chord| {
+                    width(ChordText::of(chord).as_str()).saturating_add(1)
+                });
+            let button_width = Button::new(action_id, action.label())
+                .measure(ui, Constraints::loose(area.width.saturating_sub(6), 1))
+                .preferred
+                .0;
+            action_widths.push(button_width.saturating_add(chord_width));
+        }
+        let rect = self.frame_rect(ui, area, &action_widths);
         let chrome = if rect.width < 4 || rect.height < 4 {
             Rect {
                 x: area.x,
@@ -689,64 +921,39 @@ impl<'a> Dialog<'a> {
                 if framed.is_empty() {
                     return body(ui, framed);
                 }
+                let layout = self.layout(chrome, ui.design(), &action_widths);
                 let style = |ui: &mut Ui<'_>, part: Part, flags: StateFlags| {
                     ov.style(ui, id, Family::DIALOG, Variant::DEFAULT, part, flags | live)
                 };
-
-                let pad_x = 2u16;
-                let pad_y = 1u16;
-                let inner = crate::layout::inset(
-                    framed,
-                    crate::layout::Insets {
-                        l: pad_x,
-                        t: pad_y,
-                        r: pad_x,
-                        b: pad_y,
-                    },
-                );
-                if inner.is_empty() {
-                    return ui.with_area(inner, |ui| body(ui, inner));
-                }
-                let mut y = inner.y;
-                if let Some(t) = self.title {
+                if let Some(t) = self.title
+                    && let Some(title) = layout.title
+                    && !title.is_empty()
+                {
                     let ts = style(ui, Part::TITLE, StateFlags::empty());
-                    let row = Rect {
-                        y,
-                        height: 1,
-                        ..inner
-                    };
-                    ui.paint_str(row, t, ts.style);
-                    ui.register_decor(id, PartRef::of(Part::TITLE), row);
+                    ui.paint_str(title, t, ts.style);
+                    ui.register_decor(id, PartRef::of(Part::TITLE), title);
                 }
-                y = y.saturating_add(if self.title.is_some() { 2 } else { 1 });
-                let actions_y = if self.actions.is_empty() {
-                    inner.bottom()
-                } else {
-                    inner.bottom().saturating_sub(1)
-                };
-                if let Some(d) = self.description {
+                if let Some(d) = self.description
+                    && !layout.description.is_empty()
+                {
                     let ds = style(ui, Part::DETAIL, StateFlags::empty());
-                    for line in wrap(d, inner.width).iter().take(usize::from(desc_h)) {
-                        if y >= actions_y {
-                            break;
-                        }
+                    for (offset, line) in wrap(d, layout.content.width)
+                        .iter()
+                        .take(usize::from(layout.description.height))
+                        .enumerate()
+                    {
                         let row = Rect {
-                            y,
+                            y: layout
+                                .description
+                                .y
+                                .saturating_add(u16::try_from(offset).unwrap_or(u16::MAX)),
                             height: 1,
-                            ..inner
+                            ..layout.description
                         };
                         ui.paint_str(row, line, ds.style);
-                        y = y.saturating_add(1);
                     }
                 }
-                if self.has_input() {
-                    let field_h = ui.design().size.field_height;
-                    let r = Rect {
-                        x: inner.x.saturating_sub(1),
-                        y,
-                        width: inner.width.saturating_add(1),
-                        height: field_h.min(actions_y.saturating_sub(y)),
-                    };
+                if self.has_input() && !layout.input.is_empty() {
                     let value = if self.ack.is_some() {
                         st.ack_draft.expose()
                     } else {
@@ -757,60 +964,46 @@ impl<'a> Dialog<'a> {
                         .input_label
                         .or(self.prompt)
                         .unwrap_or("Type the token to confirm");
-                    Field::new(label, input)
-                        .plain(true)
-                        .error(self.error)
-                        .draw(ui, r, &st.input);
-                    y = y.saturating_add(field_h);
-                    if self.ack.is_some() {
-                        y = y.saturating_add(1);
-                    }
+                    Field::new(label, input).plain(true).error(self.error).draw(
+                        ui,
+                        layout.input,
+                        &st.input,
+                    );
                 }
-
-                let body_top = if self.body_block(ui.design()) == 0 {
-                    y
-                } else {
-                    y.saturating_add(1)
-                };
-                let body_bottom = actions_y.saturating_sub(u16::from(!self.actions.is_empty()));
-                let body_rect = Rect {
-                    x: inner.x,
-                    y: body_top.min(inner.bottom()),
-                    width: inner.width,
-                    height: body_bottom.saturating_sub(body_top),
-                };
-                ui.register_decor(id, PartRef::of(Part::BODY), body_rect);
-                let out = ui.with_area(body_rect, |ui| body(ui, body_rect));
+                ui.register_decor(id, PartRef::of(Part::BODY), layout.body);
+                let out = ui.with_area(layout.body, |ui| body(ui, layout.body));
                 if !self.actions.is_empty() {
+                    let actions_y = layout
+                        .actions
+                        .iter()
+                        .filter(|rect| !rect.is_empty())
+                        .map(|rect| rect.y)
+                        .min()
+                        .unwrap_or(layout.content.bottom());
+                    let actions_bottom = layout
+                        .actions
+                        .iter()
+                        .filter(|rect| !rect.is_empty())
+                        .map(|rect| rect.bottom())
+                        .max()
+                        .unwrap_or(actions_y);
                     let row = Rect {
-                        x: inner.x,
+                        x: layout.content.x,
                         y: actions_y,
-                        width: inner.width,
-                        height: 1,
+                        width: layout.content.width,
+                        height: actions_bottom.saturating_sub(actions_y),
                     };
                     ui.register_decor(id, PartRef::of(Part::ACTIONS), row);
-                    let mut widths = [0u16; Self::MAX_ACTIONS];
                     let actions = self.effective_actions();
-                    let n = actions.len();
-                    for (i, a) in actions.iter().enumerate() {
-                        let action_id = self.action_id(i);
-                        let chord_width = ui
-                            .effective_chord(action_id, a.key(), a.chord_ref())
-                            .map_or(0, |chord| {
-                                width(ChordText::of(chord).as_str()).saturating_add(1)
-                            });
-                        let w = Button::new(action_id, a.label())
-                            .measure(ui, Constraints::loose(row.width, 1))
-                            .preferred
-                            .0
-                            .saturating_add(chord_width);
-                        if let Some(slot) = widths.get_mut(i) {
-                            *slot = w;
-                        }
-                    }
-                    let rects = action_row(row, widths.get(..n).unwrap_or(&[]), 2, RowAlign::End);
                     let mut used_mnemonic = 0u32;
-                    for ((i, a), r) in actions.iter().enumerate().zip(rects) {
+                    for (i, (a, r)) in actions
+                        .iter()
+                        .zip(layout.actions.iter().copied())
+                        .enumerate()
+                    {
+                        if r.is_empty() {
+                            continue;
+                        }
                         let action_id = self.action_id(i);
                         let enabled = self.enabled(i, a, st);
                         Button::new(action_id, a.label())
@@ -1118,6 +1311,60 @@ mod tests {
                 .area_of(dialog.action_id(Dialog::MAX_ACTIONS))
                 .is_none()
         );
+    }
+
+    #[test]
+    fn action_lines_keep_long_unicode_labels_inside_narrow_frames() {
+        const ACTIONS: [Action<'static>; 3] = [
+            Action::new(ActionKey::custom("first"), "確認する"),
+            Action::new(ActionKey::custom("second"), "保存"),
+            Action::new(ActionKey::custom("third"), "キャンセル"),
+        ];
+        let dialog = Dialog::new(DLG).width(18).body_rows(0).actions(&ACTIONS);
+        let d = &Theme::junie().design;
+        let height = dialog.measured_height(d);
+        assert!(height >= 5, "wrapped actions need one row per action");
+
+        let area = Rect::new(2, 1, dialog.measured_width(d), height);
+        let (mut runtime, mut buffer) = scene();
+        runtime
+            .draw_scene(area, &mut buffer, |ui, _| {
+                dialog.draw(ui, area, &DialogState::default(), |_, _| {});
+            })
+            .commit_presented();
+        for index in 0..ACTIONS.len() {
+            let button = runtime
+                .area_of(dialog.action_id(index))
+                .expect("every wrapped action must register");
+            assert!(
+                button.x >= area.x
+                    && button.y >= area.y
+                    && button.right() <= area.right()
+                    && button.bottom() <= area.bottom(),
+                "action escaped dialog: {button:?}"
+            );
+        }
+    }
+
+    #[test]
+    fn zero_width_dialog_keeps_body_callback_total() {
+        let (mut runtime, mut buffer) = scene();
+        let calls = Cell::new(0);
+        runtime
+            .draw_scene(SCREEN, &mut buffer, |ui, _| {
+                Dialog::new(DLG).actions(&CONFIRM_ACTIONS).draw(
+                    ui,
+                    Rect::new(7, 5, 0, 0),
+                    &DialogState::default(),
+                    |_, body| {
+                        calls.set(calls.get() + 1);
+                        assert!(body.is_empty());
+                    },
+                );
+            })
+            .commit_presented();
+        assert_eq!(calls.get(), 1);
+        assert!(runtime.registry().is_empty());
     }
 
     #[test]
