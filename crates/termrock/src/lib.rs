@@ -156,7 +156,7 @@ pub use termrock_runtime::field_control::FieldControl;
 
 pub use termrock_feedback::{
     DerivedHintBar, Emphasis, Group, HintBar, KeyHint, MAX_ITEMS, Meter, MeterTone, MeterVisual,
-    ProgressBar, Spinner, StatusAction, StatusBar, StatusItem,
+    ProgressBar, Spinner, StatusAction, StatusBar, StatusItem, TextSection,
 };
 
 pub use termrock_navigation::{
