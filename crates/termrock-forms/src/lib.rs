@@ -23,10 +23,12 @@ pub use termrock_theme::ColorLevel;
 pub(crate) use termrock_runtime::{Acc, PartStyle, SlotFn};
 
 pub mod form;
+pub mod form_layout;
 pub mod wizard;
 
 pub use form::{
     EnterPolicy, FieldKind, FieldMut, FieldRef, FieldSpan, FieldSpec, Form, FormAction, FormData,
     FormState, GroupKey,
 };
+pub use form_layout::{FormLane, FormLayout, FormLayoutError, FormRow};
 pub use wizard::{Wizard, WizardAction, WizardCmd, WizardState, WizardStep};
