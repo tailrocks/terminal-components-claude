@@ -48,6 +48,7 @@ impl CapabilityPalettes {
 pub(crate) fn junie() -> CapabilityPalettes {
     CapabilityPalettes::new(super::builtin::junie::tokens())
         .with(ColorLevel::Ansi256, junie_256())
+        .with(ColorLevel::Ansi16, junie_16())
         .with(ColorLevel::Mono, junie_mono())
 }
 
@@ -61,7 +62,7 @@ const fn junie_256() -> ColorTokens {
             Color::Indexed(237),
         ],
         field: Color::Indexed(234),
-        field_hover: Color::Indexed(234),
+        field_hover: Color::Indexed(237),
         fg: [
             Color::Indexed(231),
             Color::Indexed(249),
@@ -138,6 +139,17 @@ const fn junie_256() -> ColorTokens {
             ],
         },
     }
+}
+
+fn junie_16() -> ColorTokens {
+    // Start with the existing generic ANSI16 projection for every token, then
+    // author only the source-qualified FieldHover surface. This is a profile
+    // derivation, not a frozen-output table for unrelated semantic roles.
+    let mut tokens = super::Theme::from_tokens(super::builtin::junie::tokens())
+        .downgrade(ColorLevel::Ansi16)
+        .color;
+    tokens.field_hover = Color::DarkGray;
+    tokens
 }
 
 const fn junie_mono() -> ColorTokens {
