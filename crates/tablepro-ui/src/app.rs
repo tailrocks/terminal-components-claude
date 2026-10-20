@@ -2363,9 +2363,8 @@ impl TableProApp {
             .iter()
             .take(count)
             .any(|column| view.state.sampled_column_width(column.key).is_none())
+            && let Ok(sample) = termrock::WidthSample::new(200, 95)
         {
-            let sample = termrock::WidthSample::new(200, 95)
-                .expect("the frozen grid sample uses 200 rows at the 95th percentile");
             grid.sample_column_widths(&mut view.state, &view.model, sample);
         }
         let response = if view.model.is_editable() {
@@ -3270,13 +3269,11 @@ impl TableProApp {
             extend_query_error_edge(ui, area, inner);
         }
         if let Some(Tab::Query(query)) = self.workbench.active()
-            && query.plan.is_some()
+            && let Some(plan) = query.plan.as_ref()
             && query.error.is_none()
             && query.result.is_none()
         {
-            if let Some(plan) = query.plan.as_ref() {
-                extend_query_plan_edge(ui, area, inner, plan);
-            }
+            extend_query_plan_edge(ui, area, inner, plan);
         }
         if let Some(Tab::Query(query)) = self.workbench.active()
             && query.result.is_some()
@@ -6337,10 +6334,6 @@ fn paint_scrolled_header(
 
 #[allow(
     clippy::too_many_lines,
-    reason = "scrolled cell color, fade, and alignment stay in one pass"
-)]
-#[allow(
-    clippy::too_many_lines,
     reason = "header gutter, primary key, and muted titles share one pass"
 )]
 fn paint_grid_header(
@@ -6893,6 +6886,7 @@ fn repaint_presented_rows(
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 fn draw_painted_grid(
     ui: &mut Ui<'_>,
     area: termrock::Rect,
@@ -8907,6 +8901,7 @@ fn paint_connection_filter_row(ui: &mut Ui<'_>, area: termrock::Rect, query: &st
     ui.set_bar_cursor(CONNECTION_FILTER, Position::new(cursor_x, area.y));
 }
 
+#[allow(clippy::too_many_arguments)]
 fn paint_advanced_connection_body(
     ui: &mut Ui<'_>,
     x: u16,
@@ -9604,6 +9599,7 @@ fn paint_live_connection_card(
     );
 }
 
+#[allow(clippy::too_many_arguments)]
 fn paint_form_radio(
     ui: &mut Ui<'_>,
     origin_x: u16,
@@ -9634,6 +9630,7 @@ fn paint_form_radio(
     paint_at(ui, x.saturating_add(4), y, &shown, text);
 }
 
+#[allow(clippy::too_many_arguments)]
 fn idle_choice_field(
     ui: &mut Ui<'_>,
     origin_x: u16,
@@ -11309,6 +11306,7 @@ mod query_result_keys {
     }
 
     #[test]
+    #[allow(clippy::expect_used)]
     fn visual_key_order_run_stores_twenty_five_rows() {
         let mut app = TableProApp::default();
         let index = app
@@ -11458,6 +11456,7 @@ mod maximized_workbench {
     use termrock_test_support::Harness;
 
     #[test]
+    #[allow(clippy::expect_used)]
     fn z_shows_the_approved_maximized_idle_cell() {
         let mut app = TableProApp::default();
         let index = app
