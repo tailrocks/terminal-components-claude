@@ -1486,9 +1486,16 @@ fn paint_disk_detail(ui: &mut Ui<'_>, area: Rect) {
     }
 }
 
-/// Tag `launch-failure` plate at 120×40. Other sizes keep the concept activity page.
+/// Tag `launch-failure` plate at 120×40 and 80×24. Other sizes keep the concept activity page.
 pub(crate) fn paint_launch_failure_plate(ui: &mut Ui<'_>) -> bool {
     let area = ui.full();
+    if area.width == 80 && area.height == 24 {
+        paint_launch_failure_tabs_narrow(ui, area);
+        paint_launch_failure_heading_narrow(ui, area);
+        paint_launch_failure_output_narrow(ui, area);
+        paint_launch_failure_next_narrow(ui, area);
+        return true;
+    }
     if area.width != 120 || area.height != 40 {
         return false;
     }
@@ -1539,6 +1546,51 @@ fn paint_launch_failure_tabs(ui: &mut Ui<'_>, area: Rect) {
     ui.paint_str(Rect::new(x.saturating_add(27), under, 91, 1), &rest, rule);
 }
 
+fn paint_launch_failure_tabs_narrow(ui: &mut Ui<'_>, area: Rect) {
+    let x = area.x.saturating_add(1);
+    let y = area.y.saturating_add(2);
+    ui.paint_str(
+        Rect::new(x, y, 7, 1),
+        " Here  ",
+        ink(ui, SECONDARY_FG, BLACK, false),
+    );
+    let plate = ink(ui, WHITE, OVERLAY_BG, true);
+    ui.paint_str(
+        Rect::new(x.saturating_add(8), y, 14, 1),
+        " frontend dev ",
+        plate,
+    );
+    ui.paint_str(
+        Rect::new(x.saturating_add(22), y, 1, 1),
+        "!",
+        ink(ui, DANGER_FG, OVERLAY_BG, true),
+    );
+    ui.paint_str(Rect::new(x.saturating_add(23), y, 1, 1), " ", plate);
+    ui.paint_str(
+        Rect::new(x.saturating_add(24), y, 1, 1),
+        "×",
+        ink(ui, SECONDARY_FG, OVERLAY_BG, false),
+    );
+    ui.paint_str(Rect::new(x.saturating_add(25), y, 2, 1), "  ", plate);
+    let under = y.saturating_add(1);
+    let rule = ink(ui, RULE_FG, BLACK, false);
+    ui.paint_str(Rect::new(x, under, 8, 1), &"─".repeat(8), rule);
+    ui.paint_str(
+        Rect::new(x.saturating_add(8), under, 19, 1),
+        &"━".repeat(19),
+        ink(ui, ACCENT_FG, BLACK, false),
+    );
+    let rest_x = x.saturating_add(27);
+    let rest_w = area.right().saturating_sub(rest_x).saturating_sub(1);
+    if rest_w > 0 {
+        ui.paint_str(
+            Rect::new(rest_x, under, rest_w, 1),
+            &"─".repeat(usize::from(rest_w)),
+            rule,
+        );
+    }
+}
+
 fn paint_launch_failure_heading(ui: &mut Ui<'_>, area: Rect) {
     let y = area.y.saturating_add(4);
     ui.paint_str(
@@ -1557,6 +1609,32 @@ fn paint_launch_failure_heading(ui: &mut Ui<'_>, area: Rect) {
         Rect::new(area.x.saturating_add(80), y, termrock::width(right), 1),
         right,
         ink(ui, TAG_GREY_FG, BLACK, false),
+    );
+    let origin = "started by Start frontend dev";
+    ui.paint_str(
+        Rect::new(
+            area.x.saturating_add(2),
+            y.saturating_add(1),
+            termrock::width(origin),
+            1,
+        ),
+        origin,
+        ink(ui, TAG_GREY_FG, BLACK, false),
+    );
+}
+
+fn paint_launch_failure_heading_narrow(ui: &mut Ui<'_>, area: Rect) {
+    let y = area.y.saturating_add(4);
+    ui.paint_str(
+        Rect::new(area.x.saturating_add(2), y, 12, 1),
+        "frontend dev",
+        ink(ui, WHITE, BLACK, true),
+    );
+    let state = " · failed · 1 s · exit 1";
+    ui.paint_str(
+        Rect::new(area.x.saturating_add(14), y, termrock::width(state), 1),
+        state,
+        ink(ui, DANGER_FG, BLACK, false),
     );
     let origin = "started by Start frontend dev";
     ui.paint_str(
@@ -1649,6 +1727,192 @@ fn paint_launch_failure_output(ui: &mut Ui<'_>, area: Rect) {
         &bottom,
         box_fg,
     );
+}
+
+fn paint_launch_failure_output_narrow(ui: &mut Ui<'_>, area: Rect) {
+    let x = area.x.saturating_add(1);
+    let top = area.y.saturating_add(7);
+    let box_fg = ink(ui, BOX_FG, BLACK, false);
+    let title = ink(ui, WHITE, BLACK, true);
+    let meta = ink(ui, META_FG, BLACK, false);
+    ui.paint_str(Rect::new(x, top, 2, 1), "╭─", box_fg);
+    ui.paint_str(Rect::new(x.saturating_add(2), top, 8, 1), " output ", title);
+    ui.paint_str(
+        Rect::new(x.saturating_add(10), top, 55, 1),
+        &"─".repeat(55),
+        box_fg,
+    );
+    ui.paint_str(
+        Rect::new(x.saturating_add(65), top, 11, 1),
+        " following ",
+        meta,
+    );
+    ui.paint_str(Rect::new(x.saturating_add(76), top, 2, 1), "─╮", box_fg);
+    let rows = 9u16;
+    let mut scroll = termrock::ScrollState::new(LAUNCH_OUTPUT.len());
+    scroll.set_viewport(usize::from(rows));
+    scroll.jump_end();
+    let offset = scroll.offset();
+    for row in 0..rows {
+        let y = top.saturating_add(1).saturating_add(row);
+        ui.paint_str(Rect::new(x, y, 1, 1), "│", box_fg);
+        ui.paint_str(Rect::new(x.saturating_add(77), y, 1, 1), "│", box_fg);
+        let Some(&(marked, text)) = LAUNCH_OUTPUT.get(offset.saturating_add(usize::from(row)))
+        else {
+            continue;
+        };
+        if text.is_empty() {
+            continue;
+        }
+        paint_launch_failure_line(ui, x, y, marked, text, row == 0 && offset > 0);
+    }
+    paint_launch_failure_scrollbar(
+        ui,
+        Rect::new(x.saturating_add(75), top.saturating_add(1), 1, rows),
+        &scroll,
+    );
+    let mut bottom = String::from("╰");
+    bottom.push_str(&"─".repeat(76));
+    bottom.push('╯');
+    ui.paint_str(Rect::new(x, top.saturating_add(10), 78, 1), &bottom, box_fg);
+}
+
+/// Faded top line keeps its indent in canvas ink. The glyph run fills through the gutter.
+fn paint_launch_failure_line(
+    ui: &mut Ui<'_>,
+    x: u16,
+    y: u16,
+    marked: bool,
+    text: &str,
+    fade: bool,
+) {
+    let content_x = x.saturating_add(1);
+    const CONTENT_W: u16 = 74;
+    if fade {
+        let ink_fade = ink(ui, faded(WHITE, Some((11, 20))), BLACK, false);
+        if marked {
+            ui.paint_str(
+                Rect::new(content_x.saturating_add(2), y, 2, 1),
+                "! ",
+                ink(ui, DANGER_FG, BLACK, true),
+            );
+            paint_padded(
+                ui,
+                content_x.saturating_add(4),
+                y,
+                CONTENT_W.saturating_sub(4),
+                text,
+                ink_fade,
+            );
+        } else {
+            let indent = u16::try_from(text.chars().take_while(|ch| *ch == ' ').count())
+                .unwrap_or(CONTENT_W)
+                .min(CONTENT_W);
+            paint_padded(
+                ui,
+                content_x.saturating_add(indent),
+                y,
+                CONTENT_W.saturating_sub(indent),
+                text.trim_start(),
+                ink_fade,
+            );
+        }
+        return;
+    }
+    if marked {
+        ui.paint_str(
+            Rect::new(content_x.saturating_add(2), y, 2, 1),
+            "! ",
+            ink(ui, DANGER_FG, BLACK, true),
+        );
+        ui.paint_str(
+            Rect::new(content_x.saturating_add(4), y, termrock::width(text), 1),
+            text,
+            ink(ui, WHITE, BLACK, false),
+        );
+        return;
+    }
+    ui.paint_str(
+        Rect::new(content_x, y, termrock::width(text), 1),
+        text,
+        ink(ui, WHITE, BLACK, false),
+    );
+}
+
+fn paint_padded(
+    ui: &mut Ui<'_>,
+    x: u16,
+    y: u16,
+    width: u16,
+    text: &str,
+    style: termrock::PaintStyle,
+) {
+    if width == 0 {
+        return;
+    }
+    let mut line = String::new();
+    let mut used = 0u16;
+    for ch in text.chars() {
+        if used >= width {
+            break;
+        }
+        line.push(ch);
+        used = used.saturating_add(1);
+    }
+    while used < width {
+        line.push(' ');
+        used = used.saturating_add(1);
+    }
+    ui.paint_str(Rect::new(x, y, width, 1), &line, style);
+}
+
+fn paint_launch_failure_scrollbar(ui: &mut Ui<'_>, area: Rect, scroll: &termrock::ScrollState) {
+    if area.is_empty() {
+        return;
+    }
+    let (start, len) = scroll.thumb(usize::from(area.height));
+    let thumb_end = start.saturating_add(len);
+    for row in 0..area.height {
+        let on_thumb = (start..thumb_end).contains(&usize::from(row));
+        let (glyph, color) = if on_thumb {
+            ("┃", SCROLL_THUMB)
+        } else {
+            ("┆", SCROLL_TRACK)
+        };
+        ui.paint_str(
+            Rect::new(area.x, area.y.saturating_add(row), 1, 1),
+            glyph,
+            ink(ui, color, BLACK, false),
+        );
+    }
+}
+
+fn paint_launch_failure_next_narrow(ui: &mut Ui<'_>, area: Rect) {
+    let mut y = area.y.saturating_add(19);
+    ui.paint_str(
+        Rect::new(area.x.saturating_add(2), y, 4, 1),
+        "Next",
+        ink(ui, META_FG, BLACK, false),
+    );
+    let start = area.x.saturating_add(8);
+    let mut x = start;
+    let label = ink(ui, SECONDARY_FG, BLACK, false);
+    let gutter = ink(ui, BLACK, BLACK, false);
+    for text in [
+        "Find the process on port 5173 ",
+        "Retry frontend dev ",
+        "Open the mise task definition ",
+    ] {
+        let text_w = termrock::width(text);
+        let need = 1u16.saturating_add(text_w);
+        if x != start && x.saturating_add(need) > area.right() {
+            y = y.saturating_add(1);
+            x = start;
+        }
+        ui.paint_str(Rect::new(x, y, 1, 1), " ", gutter);
+        ui.paint_str(Rect::new(x.saturating_add(1), y, text_w, 1), text, label);
+        x = x.saturating_add(1).saturating_add(text_w).saturating_add(2);
+    }
 }
 
 fn paint_launch_failure_next(ui: &mut Ui<'_>, area: Rect) {
