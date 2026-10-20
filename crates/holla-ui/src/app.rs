@@ -1528,7 +1528,10 @@ impl App {
                 Some(("Open", Some("Inspect 1…")))
             }
         } else if crate::sim::catalogue::monorepo_child_tag_frame(&self.world) {
-            if ui.full().width == 80 && ui.full().height == 24 {
+            let narrow = ui.full().width == 80 && ui.full().height == 24;
+            let mid = ui.full().width == 100 && ui.full().height == 30;
+            // 100×30 fits `Ctrl+↑↓ Scope` and clips `Ctrl+G` to the meta `…`. No status.
+            if narrow || mid {
                 Some(("Open", None))
             } else {
                 Some(("Open", Some("Inspect 3…")))
@@ -1604,15 +1607,19 @@ impl App {
             && !self.menu.is_open()
         {
             let layer = tag_hints(confirm, status);
-            // 80×24 first-use, monorepo-root, monorepo-child, remote-host, and parity-discovery clip the last hint to a meta `…`. Wider plates keep the theme overflow.
+            // 80×24 first-use, monorepo-root, monorepo-child, remote-host, and parity-discovery clip the last hint to a meta `…`. The 100×30 monorepo-child plate does the same. Wider plates keep the theme overflow.
             let narrow = ui.full().width == 80 && ui.full().height == 24;
-            let parts = if narrow
-                && (crate::sim::catalogue::first_use_tag_frame(&self.world)
-                    || crate::sim::catalogue::monorepo_root_tag_frame(&self.world)
-                    || crate::sim::catalogue::monorepo_child_tag_frame(&self.world)
-                    || crate::sim::catalogue::remote_host_tag_frame(&self.world)
-                    || crate::sim::catalogue::hard_cases_tag_frame(&self.world)
-                    || self.world.scenario == Scenario::ParityDiscovery)
+            let monorepo_child_mid = crate::sim::catalogue::monorepo_child_tag_frame(&self.world)
+                && ui.full().width == 100
+                && ui.full().height == 30;
+            let parts = if monorepo_child_mid
+                || (narrow
+                    && (crate::sim::catalogue::first_use_tag_frame(&self.world)
+                        || crate::sim::catalogue::monorepo_root_tag_frame(&self.world)
+                        || crate::sim::catalogue::monorepo_child_tag_frame(&self.world)
+                        || crate::sim::catalogue::remote_host_tag_frame(&self.world)
+                        || crate::sim::catalogue::hard_cases_tag_frame(&self.world)
+                        || self.world.scenario == Scenario::ParityDiscovery))
             {
                 ACTIVITIES_HINT_PARTS
             } else {
@@ -2513,6 +2520,86 @@ mod tests {
         assert!(later.text().contains("Search actions"), "{}", later.text());
         assert!(catalogue::monorepo_child_80x24_plate(&later.app().world, 80, 24).is_none());
         assert!(!catalogue::monorepo_child_tag_frame(&later.app().world));
+    }
+    #[test]
+    fn monorepo_child_100x30_frame_40_paints_the_mid_plate_and_later_seeks_keep_home() {
+        let plate = harness(
+            App::for_scenario(Scenario::MonorepoChild, Motion::Paused, 40),
+            Theme::junie(),
+            100,
+            30,
+        );
+        let text = plate.text();
+        let lines: Vec<&str> = text.lines().collect();
+        assert!(
+            lines[7].contains("› Inspect 3 GB of generated artifa…"),
+            "{}",
+            lines[7]
+        );
+        assert!(
+            lines[7].contains("3 GB generated artifacts"),
+            "{}",
+            lines[7]
+        );
+        assert!(
+            lines[8].contains("Install missing tools · sqlx-cli"),
+            "{}",
+            lines[8]
+        );
+        assert!(
+            lines[16].contains("From acme · the parent root"),
+            "{}",
+            lines[16]
+        );
+        assert!(
+            lines[26].contains("→ 'holla disk analyze --artifacts' · here · read-only"),
+            "{}",
+            lines[26]
+        );
+        assert!(!lines[26].contains("Inspect 3"), "{}", lines[26]);
+        assert!(lines[29].contains("Ctrl+↑↓ Scope"), "{}", lines[29]);
+        assert!(!text.contains("Inspect 3…"), "{text}");
+        assert!(!text.contains("1 rebuildable candidate"), "{text}");
+        let ellipsis = plate.cell(88, 29);
+        assert_eq!(ellipsis.symbol(), "…");
+        assert_eq!(ellipsis.fg, Color::Rgb(0x73, 0x73, 0x73));
+        assert!(plate.diagnostics().is_empty(), "{:?}", plate.diagnostics());
+        assert!(catalogue::monorepo_child_100x30_plate(&plate.app().world, 80, 24).is_none());
+        assert!(catalogue::monorepo_child_100x30_plate(&plate.app().world, 120, 40).is_none());
+        let wide = harness(
+            App::for_scenario(Scenario::MonorepoChild, Motion::Paused, 40),
+            Theme::junie(),
+            120,
+            40,
+        );
+        assert!(
+            wide.text().contains("1 rebuildable candidate"),
+            "{}",
+            wide.text()
+        );
+        assert!(wide.text().contains("Inspect 3…"), "{}", wide.text());
+        assert!(!wide.text().contains("'holla disk analyze --artifacts'"));
+        let narrow = harness(
+            App::for_scenario(Scenario::MonorepoChild, Motion::Paused, 40),
+            Theme::junie(),
+            80,
+            24,
+        );
+        assert!(
+            narrow.text().contains("Inspect 3 GB of generated…"),
+            "{}",
+            narrow.text()
+        );
+        assert!(!narrow.text().contains("generated artifa…"));
+        let later = harness(
+            App::for_scenario(Scenario::MonorepoChild, Motion::Paused, 4_000),
+            Theme::junie(),
+            100,
+            30,
+        );
+        assert!(!later.text().contains("From acme · the parent root"));
+        assert!(later.text().contains("Search actions"), "{}", later.text());
+        assert!(catalogue::monorepo_child_100x30_plate(&later.app().world, 100, 30).is_none());
     }
     #[test]
     fn docker_cleanup_frame_40_paints_the_tag_plate_and_later_seeks_keep_home() {
