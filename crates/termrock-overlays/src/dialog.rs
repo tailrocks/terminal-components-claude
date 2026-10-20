@@ -524,9 +524,10 @@ impl<'a> Dialog<'a> {
 
     pub fn update(&self, cx: &mut Cx<'_>, st: &mut DialogState) -> Response<DialogAction> {
         let layer_open = cx.is_open(self.id);
-        if layer_open {
-            st.action_close_pending = false;
-        }
+        // An action may close and reopen this same id before its queued close
+        // event is delivered. Keep the one-update receipt until that event is
+        // classified; if no close arrived, it expires at this update boundary.
+        let action_close_pending = core::mem::take(&mut st.action_close_pending);
         let d = cx.design();
         let action_widths = self.action_widths(cx);
         let viewport_width = cx.viewport().width;
@@ -548,8 +549,7 @@ impl<'a> Dialog<'a> {
         for it in cx.intents(self.id) {
             match it {
                 Intent::Layer(LayerEvent::Dismissed(r)) => {
-                    if r == DismissReason::Programmatic && st.action_close_pending {
-                        st.action_close_pending = false;
+                    if r == DismissReason::Programmatic && action_close_pending {
                         dismissed_after_action = true;
                     } else {
                         dismissal.get_or_insert(r);
@@ -2066,6 +2066,7 @@ mod tests {
             race: bool,
             close_programmatically: bool,
             close_after_action: bool,
+            reopen_after_action: bool,
             dismiss: Dismiss,
             actions: Vec<DialogAction>,
         }
@@ -2107,6 +2108,11 @@ mod tests {
                     if self.close_after_action {
                         self.close_after_action = false;
                         cx.close_layer(DLG, None);
+                        if self.reopen_after_action {
+                            self.reopen_after_action = false;
+                            let dialog = self.dialog();
+                            cx.open_layer(DLG, dialog.layer(cx).dismiss(self.dismiss));
+                        }
                     }
                 }
                 response.erase()
@@ -2200,6 +2206,52 @@ mod tests {
             harness.app().actions,
             vec![DialogAction::Action(ActionKey::CONFIRM)],
             "closing after a chosen action is not a second dismissal action"
+        );
+
+        let app = DialogApp {
+            close_after_action: true,
+            reopen_after_action: true,
+            ..DialogApp::default()
+        };
+        let mut harness = Harness::new(app, Theme::junie(), 80, 24);
+        let _ = harness.handle(Input::Tick);
+        let confirm_id = harness.app().dialog().action_id(1);
+        harness.runtime_mut().set_focus(Some(confirm_id));
+        harness.draw();
+        let _ = harness.key(KeyCode::Enter);
+        assert!(harness.runtime().is_open(DLG), "the same id was reopened");
+        let _ = harness.handle(Input::Tick);
+        assert_eq!(
+            harness.app().actions,
+            vec![DialogAction::Action(ActionKey::CONFIRM)],
+            "the previous generation's queued programmatic close is not a new cancel"
+        );
+        assert!(harness.runtime().is_open(DLG));
+
+        // An action that leaves its layer open only suppresses the immediate
+        // close receipt window. A later programmatic dismissal remains real.
+        let app = DialogApp::default();
+        let mut harness = Harness::new(app, Theme::junie(), 80, 24);
+        let _ = harness.handle(Input::Tick);
+        let confirm_id = harness.app().dialog().action_id(1);
+        harness.runtime_mut().set_focus(Some(confirm_id));
+        harness.draw();
+        let _ = harness.key(KeyCode::Enter);
+        let _ = harness.handle(Input::Tick);
+        assert_eq!(
+            harness.app().actions,
+            vec![DialogAction::Action(ActionKey::CONFIRM)]
+        );
+        harness.app_mut().close_programmatically = true;
+        let _ = harness.handle(Input::Tick);
+        let _ = harness.handle(Input::Tick);
+        assert_eq!(
+            harness.app().actions,
+            vec![
+                DialogAction::Action(ActionKey::CONFIRM),
+                DialogAction::Action(ActionKey::CANCEL),
+            ],
+            "a later independent dismissal still resolves to cancel"
         );
     }
 
