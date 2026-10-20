@@ -285,6 +285,7 @@ mod historical_settings_agents;
 mod historical_settings_env;
 mod historical_settings_mounts;
 mod historical_settings_route;
+mod historical_settings_save;
 mod historical_settings_trust;
 mod historical_usage_detail;
 mod historical_usage_overview;
@@ -7551,6 +7552,48 @@ impl App {
         historical_settings_trust::paint(ui);
     }
 
+    fn historical_settings_save(&self, theme: &termrock::Theme, screen: Rect) -> bool {
+        // `5`, Enter, Space, Down, Space, Ctrl+S on the paused 120×40 Trust tab.
+        // The clean Trust tab stays on its own frame. This dialog paints only
+        // while the save preview is open.
+        screen.width == 120
+            && screen.height == 40
+            && theme.capability.color == termrock::ColorLevel::TrueColor
+            && theme.color.accent == termrock::Color::Rgb(0x48, 0xe0, 0x54)
+            && self.route == Route::Settings
+            && self.world.scenario == Scenario::AccountsMixed
+            && self.motion == Motion::Paused
+            && self.settings.tab == 4
+            && !self.settings_trust_armed
+            && !self.settings_agents_armed
+            && !self.settings_env_armed
+            && !self.settings_mounts_armed
+            && self.settings.dirty
+            && self.settings.save_error.is_none()
+            && self.settings.save_attempts == 0
+            && self.settings_save_preview
+            && self
+                .status
+                .as_deref()
+                .is_some_and(|status| status.starts_with("Save settings"))
+            && !self.help_open
+            && !self.quit_open
+            && !self.cancel_open
+            && !self.about_open
+            && !self.editor_exit_open
+            && !self.cockpit_info_open
+            && !self.launch_failure_open
+            && self.picker_mode.is_none()
+    }
+
+    fn draw_historical_settings_save(&self, ui: &mut Ui<'_>, screen: Rect) {
+        if !self.historical_settings_save(ui.theme_ref(), screen) {
+            return;
+        }
+        // Approved frame hides the cursor. No owner writes one.
+        historical_settings_save::paint(ui);
+    }
+
     fn historical_accounts_detail(&self, theme: &termrock::Theme, screen: Rect) -> bool {
         // Four Downs on the paused 120×40 accounts list land on Claude · Work.
         // The live list never paints `Accounts › Claude › Work`.
@@ -8847,6 +8890,7 @@ impl TuiApp for App {
         self.draw_historical_settings_env(ui, full);
         self.draw_historical_settings_agents(ui, full);
         self.draw_historical_settings_trust(ui, full);
+        self.draw_historical_settings_save(ui, full);
         self.draw_historical_accounts_detail(ui, full);
         self.draw_historical_accounts_drawer(ui, full);
         self.draw_historical_usage_overview(ui, full);
