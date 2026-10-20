@@ -559,6 +559,19 @@ impl CodeEditorState {
         self.editor.selected_text()
     }
 
+    /// Replace `replace_len` bytes immediately before the cursor with a completion.
+    ///
+    /// The editor snaps the replacement range to its existing grapheme boundaries,
+    /// then applies the edit through the normal generation, find, and scroll path.
+    pub fn splice_completion(&mut self, replace_len: usize, insertion: &str) -> bool {
+        let end = self.editor.cursor_offset();
+        let start = end.saturating_sub(replace_len);
+        self.editor.select_range(start, end);
+        let outcome = self.editor.apply(EditAction::Paste(insertion));
+        self.after_edit(outcome);
+        outcome.changed()
+    }
+
     pub fn set_diagnostics(&mut self, mut diagnostics: Vec<CodeDiagnostic>) {
         diagnostics.sort_by_key(|d| d.range.start);
         self.has_error = diagnostics
@@ -1635,6 +1648,64 @@ mod tests {
             })
             .commit_presented();
         assert_eq!(calls.get(), 2);
+    }
+
+    #[test]
+    fn completion_splice_replaces_bytes_before_cursor_and_preserves_suffix() {
+        let mut state = CodeEditorState::new("SELECT nXme");
+        state.jump_to(9);
+        state.begin_edit();
+        let generation = state.edit_generation;
+
+        assert!(state.splice_completion(2, "na"));
+        assert_eq!(state.text(), "SELECT name");
+        assert_eq!(state.cursor_offset(), 9);
+        assert!(state.is_editing());
+        assert_eq!(state.edit_generation, generation + 1);
+    }
+
+    #[test]
+    fn completion_splice_uses_byte_lengths_and_grapheme_safe_ranges() {
+        let mut state = CodeEditorState::new("λx хвост");
+        state.jump_to("λx".len());
+        assert!(state.splice_completion("λx".len(), "界表"));
+        assert_eq!(state.text(), "界表 хвост");
+        assert_eq!(state.cursor_offset(), "界表".len());
+
+        let mut partial_grapheme = CodeEditorState::new("λtail");
+        partial_grapheme.jump_to("λ".len());
+        assert!(partial_grapheme.splice_completion(1, "X"));
+        assert_eq!(partial_grapheme.text(), "Xtail");
+    }
+
+    #[test]
+    fn completion_splice_clamps_to_document_start_and_keeps_diagnostics() {
+        let mut state = CodeEditorState::new("λtail");
+        state.jump_to("λ".len());
+        state.set_diagnostics(vec![CodeDiagnostic::new(
+            0..2,
+            CodeSeverity::Warning,
+            "kept through completion",
+        )]);
+        state.find = Some(FindState {
+            needle: "done".to_owned(),
+            matches: Vec::new(),
+            current: 0,
+            typing: false,
+        });
+
+        assert!(state.splice_completion(usize::MAX, "done"));
+        assert_eq!(state.text(), "donetail");
+        assert_eq!(state.diagnostics().len(), 1);
+        let matches = &state.find.as_ref().unwrap().matches;
+        assert_eq!(matches.len(), 1);
+        assert_eq!(matches[0], 0..4);
+
+        let mut empty = CodeEditorState::new("done");
+        empty.jump_to(4);
+        let generation = empty.edit_generation;
+        assert!(!empty.splice_completion(0, ""));
+        assert_eq!(empty.edit_generation, generation);
     }
 
     #[test]
