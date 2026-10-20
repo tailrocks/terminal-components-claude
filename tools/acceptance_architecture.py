@@ -21,7 +21,6 @@ STAMP_RULES = (
     ("ansi-frame-replay", re.compile(r"(?i)(include_(?:str|bytes)!.*(?:snapshots?|baselines?)/.*\.(?:ansi|ans)|from_ansi|parse_ansi_frame)")),
     ("frame-stamp-type", re.compile(r"(?is)\b(?:struct|enum)\s+\w+\s*\{[^}]{0,800}\bx\s*:\s*u(?:16|32|size)\b[^}]{0,400}\by\s*:\s*u(?:16|32|size)\b[^}]{0,600}\btext\s*:\s*&?\s*'static\s+str")),
 )
-PATH_MODULE_RE = re.compile(r"#\s*\[\s*path\s*=\s*\"([^\"]+)\"\s*\]")
 DECLARED_MODULE_RE = re.compile(r"\bmod\s+(?:r#)?([A-Za-z_][A-Za-z0-9_]*)\s*;")
 
 
@@ -186,6 +185,151 @@ def include_invocations(text: str) -> list[tuple[str, int, str | None]]:
                         literal = "".join(chars)
             found.append((name, index, literal))
             index = end
+            continue
+        index += 1
+    return found
+
+
+def path_attributes(text: str) -> list[tuple[str, int, str | None]]:
+    """Find `path` meta items, including nested cfg_attr forms."""
+    found: list[tuple[str, int, str | None]] = []
+    index = 0
+    while index < len(text):
+        if text.startswith("//", index) or text.startswith("/*", index):
+            next_index = skip_rust_trivia(text, index)
+            if next_index is None:
+                found.append(("lexer", index, None))
+                break
+            index = next_index
+            continue
+        literal_end, uncertain = rust_literal_end(text, index)
+        if uncertain:
+            found.append(("lexer", index, None))
+            break
+        if literal_end is not None:
+            index = literal_end
+            continue
+        if text[index] != "#":
+            index += 1
+            continue
+        opening = skip_rust_trivia(text, index + 1)
+        if opening is None:
+            found.append(("lexer", index, None))
+            break
+        if opening < len(text) and text[opening] == "!":
+            opening = skip_rust_trivia(text, opening + 1)
+            if opening is None:
+                found.append(("lexer", index, None))
+                break
+        if opening >= len(text) or text[opening] != "[":
+            index += 1
+            continue
+        close = rust_group_end(text, opening)
+        if close is None:
+            found.append(("path-module", index, None))
+            break
+        found.extend(path_meta_items(text, opening + 1, close))
+        index = close + 1
+    return found
+
+
+def rust_group_end(text: str, opening: int) -> int | None:
+    pairs = {"(": ")", "[": "]", "{": "}"}
+    if opening >= len(text) or text[opening] not in pairs:
+        return None
+    stack = [pairs[text[opening]]]
+    index = opening + 1
+    while index < len(text):
+        if text.startswith("//", index) or text.startswith("/*", index):
+            next_index = skip_rust_trivia(text, index)
+            if next_index is None:
+                return None
+            index = next_index
+            continue
+        literal_end, uncertain = rust_literal_end(text, index)
+        if uncertain:
+            return None
+        if literal_end is not None:
+            index = literal_end
+            continue
+        char = text[index]
+        if char in pairs:
+            stack.append(pairs[char])
+        elif char in ")]}" :
+            if not stack or char != stack[-1]:
+                return None
+            stack.pop()
+            if not stack:
+                return index
+        index += 1
+    return None
+
+
+def simple_path_literal(text: str, index: int) -> tuple[str | None, int]:
+    """Read a plain or raw Rust string path; unsupported escape forms stay unresolved."""
+    if index < len(text) and text[index] == '"':
+        end = index + 1
+        escaped = False
+        while end < len(text):
+            if text[end] == "\\":
+                escaped = True
+                end += 2
+            elif text[end] == '"':
+                return (None if escaped else text[index + 1 : end]), end + 1
+            elif text[end] in "\r\n":
+                return None, end
+            else:
+                end += 1
+        return None, len(text)
+    if index < len(text) and text[index] == "r":
+        marker = index + 1
+        while marker < len(text) and text[marker] == "#":
+            marker += 1
+        if marker < len(text) and text[marker] == '"':
+            hashes = marker - index - 1
+            terminator = '"' + "#" * hashes
+            end = text.find(terminator, marker + 1)
+            if end < 0:
+                return None, len(text)
+            return text[marker + 1 : end], end + len(terminator)
+    return None, index
+
+
+def path_meta_items(text: str, start: int, end: int) -> list[tuple[str, int, str | None]]:
+    found: list[tuple[str, int, str | None]] = []
+    index = start
+    while index < end:
+        if text.startswith("//", index) or text.startswith("/*", index):
+            next_index = skip_rust_trivia(text, index)
+            if next_index is None:
+                found.append(("lexer", index, None))
+                break
+            index = next_index
+            continue
+        literal_end, uncertain = rust_literal_end(text, index)
+        if uncertain:
+            found.append(("lexer", index, None))
+            break
+        if literal_end is not None:
+            index = literal_end
+            continue
+        if text[index].isalpha() or text[index] == "_":
+            token_end = index + 1
+            while token_end < end and (text[token_end].isalnum() or text[token_end] == "_"):
+                token_end += 1
+            if text[index:token_end] == "path":
+                equals = skip_rust_trivia(text, token_end)
+                if equals is not None and equals < end and text[equals] == "=":
+                    value = skip_rust_trivia(text, equals + 1)
+                    if value is None:
+                        found.append(("path-module", index, None))
+                        break
+                    literal, after = simple_path_literal(text, value)
+                    found.append(("path-module", index, literal))
+                    index = max(token_end, after)
+                    continue
+                found.append(("path-module", index, None))
+            index = token_end
             continue
         index += 1
     return found
@@ -570,7 +714,7 @@ def check(root: Path) -> dict[str, Any]:
         visited_sources.add(key)
         text = data.decode("utf-8", "replace")
         references = include_invocations(text)
-        references.extend(("path-module", match.start(), match.group(1)) for match in PATH_MODULE_RE.finditer(text))
+        references.extend(path_attributes(text))
         module_aliases = target_module_aliases_by_package.get(str(pkg.get("id", pkg.get("name", ""))), set())
         # Ordinary `mod name;` declarations also select production inputs.
         # Do not traverse Cargo's potentially huge build directory through a
@@ -605,6 +749,10 @@ def check(root: Path) -> dict[str, Any]:
             if literal is None:
                 if kind == "lexer":
                     report["unaccounted_inputs"].append(f"Rust lexical uncertainty prevents complete source scan: {rel}:{line}")
+                elif kind == "path-module":
+                    report["unaccounted_inputs"].append(
+                        f"path attribute cannot be statically enumerated or syntax is unsupported: {rel}:{line}"
+                    )
                 else:
                     report["unaccounted_inputs"].append(
                         f"dynamic include path cannot be enumerated or invocation syntax is unsupported: {rel}:{line} ({kind})"

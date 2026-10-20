@@ -375,6 +375,32 @@ include!("after_literals.inc");
         self.assertFalse(report["architecture_checks_passed"])
         self.assertTrue(any("path module resolves inside Cargo target directory" in item and "src/lib.rs:1" in item for item in report["unaccounted_inputs"]))
 
+    def test_raw_path_attribute_outside_package_fails_closed(self) -> None:
+        write(self.root / "crates/termrock-core/src/lib.rs", '#[path = r"../../../shared/entry.rs"]\npub mod external;\n')
+        write(self.root / "shared/entry.rs", "pub mod hidden;\n")
+        write(self.root / "shared/hidden.rs", "// captured terminal frame\n")
+        subprocess.run(["git", "add", "-A"], cwd=self.root, check=True)
+        report = self.run_gate()
+        self.assertFalse(report["architecture_checks_passed"])
+        self.assertTrue(any(row["path"] == "shared/entry.rs" for row in report["source_inputs"]))
+        self.assertTrue(any("outside its package; module tree is not fully accounted" in item and "src/lib.rs:1" in item for item in report["unaccounted_inputs"]))
+
+    def test_commented_nested_cfg_attr_path_fails_closed(self) -> None:
+        write(self.root / "crates/termrock-core/src/lib.rs", '#[cfg_attr(all(), path /* comment */ = /* path */ "../../../shared/entry.rs")]\npub mod external;\n')
+        write(self.root / "shared/entry.rs", "pub mod hidden;\n")
+        write(self.root / "shared/hidden.rs", "// captured terminal frame\n")
+        subprocess.run(["git", "add", "-A"], cwd=self.root, check=True)
+        report = self.run_gate()
+        self.assertFalse(report["architecture_checks_passed"])
+        self.assertTrue(any(row["path"] == "shared/entry.rs" for row in report["source_inputs"]))
+        self.assertTrue(any("outside its package; module tree is not fully accounted" in item and "src/lib.rs:1" in item for item in report["unaccounted_inputs"]))
+
+    def test_dynamic_path_attribute_is_explicitly_unaccounted(self) -> None:
+        write(self.root / "crates/termrock-core/src/lib.rs", '#[path = concat!("generated", ".rs")]\npub mod generated;\n')
+        report = self.run_gate()
+        self.assertFalse(report["architecture_checks_passed"])
+        self.assertTrue(any("path attribute cannot be statically enumerated" in item and "src/lib.rs:1" in item for item in report["unaccounted_inputs"]))
+
     def test_nested_inline_module_alias_into_target_is_unaccounted(self) -> None:
         crate = self.root / "crates/termrock-core"
         write(crate / "src/lib.rs", "pub mod inner {\n    pub mod target;\n}\n")
