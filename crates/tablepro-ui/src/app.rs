@@ -23,7 +23,6 @@ use crate::workbench::Workbench;
 mod historical_form_advanced;
 mod historical_form_new;
 mod historical_history_tab;
-mod historical_query_completion;
 mod historical_table_scrolled_right;
 mod historical_workbench_explorer_hidden;
 mod historical_workbench_maximized;
@@ -35,7 +34,7 @@ use tablepro_demo::db::{
 use tablepro_domain::connections::{self, ConnectionDraft, ConnectionsScreen};
 use tablepro_domain::domain::ResultGrid;
 use tablepro_domain::filter_editor::{Filter, FilterOp};
-use tablepro_domain::model::{SwitchTarget, auto_trigger, completion_batch};
+use tablepro_domain::model::{CompletionKind, SwitchTarget, auto_trigger, completion_batch};
 
 pub const MIN_WIDTH: u16 = 72;
 
@@ -9376,6 +9375,164 @@ fn paint_connection_filter_row(ui: &mut Ui<'_>, area: termrock::Rect, query: &st
     ui.set_bar_cursor(CONNECTION_FILTER, Position::new(cursor_x, area.y));
 }
 
+fn completion_glyph(kind: CompletionKind) -> &'static str {
+    match kind {
+        CompletionKind::Table => "T",
+        CompletionKind::View => "V",
+        CompletionKind::Keyword => "K",
+        CompletionKind::Column => "C",
+        CompletionKind::Function => "F",
+        CompletionKind::Schema => "S",
+        CompletionKind::Alias => "A",
+    }
+}
+
+fn paint_completion_menu(ui: &mut Ui<'_>, items: &[tablepro_domain::model::Completion]) {
+    let x = 50u16;
+    let y = 7u16;
+    let inner_w = 44u16;
+    let shown = items.len().min(4);
+    let border = PaintStyle::new()
+        .fg(termrock::Color::Rgb(0x4d, 0x4d, 0x4d))
+        .bg(termrock::Color::Rgb(0x18, 0x18, 0x1b));
+    let menu_bg = termrock::Color::Rgb(0x18, 0x18, 0x1b);
+    let selected_bg = termrock::Color::Rgb(0x2f, 0x5a, 0xa8);
+    let muted = termrock::Color::Rgb(0x8a, 0x8a, 0x8a);
+    let white = termrock::Color::Rgb(0xff, 0xff, 0xff);
+    ui.paint_str(
+        termrock::Rect::new(x, y, inner_w.saturating_add(2), 1),
+        &format!("╭{}╮", "─".repeat(usize::from(inner_w))),
+        border,
+    );
+    for (row, item) in items.iter().take(shown).enumerate() {
+        let selected = row == 0;
+        let bg = if selected { selected_bg } else { menu_bg };
+        let row_y = y.saturating_add(1).saturating_add(row as u16);
+        let row_style = PaintStyle::new().fg(white).bg(bg);
+        ui.paint_str(termrock::Rect::new(x, row_y, 1, 1), "│", border);
+        let mut cells = vec![' '; usize::from(inner_w)];
+        if let Some(slot) = cells.get_mut(1) {
+            *slot = completion_glyph(item.kind).chars().next().unwrap_or(' ');
+        }
+        for (offset, ch) in item.label.chars().enumerate() {
+            if let Some(slot) = cells.get_mut(offset.saturating_add(3)) {
+                *slot = ch;
+            }
+        }
+        let detail: Vec<char> = item.detail.chars().collect();
+        let detail_at = usize::from(inner_w)
+            .saturating_sub(1)
+            .saturating_sub(detail.len());
+        for (offset, ch) in detail.iter().copied().enumerate() {
+            if let Some(slot) = cells.get_mut(detail_at.saturating_add(offset)) {
+                *slot = ch;
+            }
+        }
+        let label_end = detail_at;
+        let last = usize::from(inner_w).saturating_sub(1);
+        for (index, ch) in cells.iter().copied().enumerate() {
+            // Label text starts at cell 3. `saturating_sub` would mark the
+            // leading pad and the glyph gap as the first matched letter.
+            let matched = index >= 3 && item.matched.contains(&(index - 3));
+            let style = if index == 0 {
+                let pad = PaintStyle::new().fg(bg).bg(bg);
+                if selected {
+                    pad.add_modifier(Modifier::BOLD)
+                } else {
+                    pad
+                }
+            } else if index == 1 {
+                PaintStyle::new()
+                    .fg(if selected { white } else { muted })
+                    .bg(bg)
+            } else if selected && ((index >= 2 && index < label_end) || index == last) {
+                PaintStyle::new()
+                    .fg(white)
+                    .bg(bg)
+                    .add_modifier(Modifier::BOLD)
+            } else if matched {
+                PaintStyle::new()
+                    .fg(white)
+                    .bg(bg)
+                    .add_modifier(Modifier::BOLD)
+            } else if index >= detail_at && index < detail_at.saturating_add(detail.len()) {
+                PaintStyle::new()
+                    .fg(if selected { white } else { muted })
+                    .bg(bg)
+            } else {
+                row_style
+            };
+            ui.paint_str(
+                termrock::Rect::new(
+                    x.saturating_add(1).saturating_add(index as u16),
+                    row_y,
+                    1,
+                    1,
+                ),
+                &ch.to_string(),
+                style,
+            );
+        }
+        ui.paint_str(
+            termrock::Rect::new(x.saturating_add(inner_w).saturating_add(1), row_y, 1, 1),
+            "│",
+            border,
+        );
+    }
+    ui.paint_str(
+        termrock::Rect::new(
+            x,
+            y.saturating_add(1).saturating_add(shown as u16),
+            inner_w.saturating_add(2),
+            1,
+        ),
+        &format!("╰{}╯", "─".repeat(usize::from(inner_w))),
+        border,
+    );
+}
+
+fn paint_completion_footer(ui: &mut Ui<'_>, area: termrock::Rect) {
+    let base = ui.surface_style();
+    let badge = ui.surface_style().patch(
+        ui.paint_patch(
+            &StylePatch::new()
+                .set_fg(TAG_BUTTON_FG)
+                .set_bg(TAG_BUTTON_BG)
+                .add(Modifier::BOLD),
+        ),
+    );
+    ui.paint_str(
+        termrock::Rect {
+            x: area.x.saturating_add(1),
+            width: 6.min(area.width.saturating_sub(1)),
+            ..area
+        },
+        " EDIT ",
+        badge,
+    );
+    ui.paint_spans(
+        termrock::Rect {
+            x: area.x.saturating_add(9),
+            width: area.width.saturating_sub(9),
+            ..area
+        },
+        &[
+            Span::new("↑↓").bold(),
+            Span::new(" "),
+            Span::new("Move").role(TAG_CHROME_FG),
+            Span::new("  "),
+            Span::new("Enter").bold(),
+            Span::new(" "),
+            Span::new("Accept").role(TAG_CHROME_FG),
+            Span::new("  "),
+            Span::new("Esc").bold(),
+            Span::new(" "),
+            Span::new("Close").role(TAG_CHROME_FG),
+        ],
+        base,
+    );
+}
+
 fn paint_query_editor_footer(ui: &mut Ui<'_>, area: termrock::Rect) {
     let base = ui.surface_style();
     let badge = ui.surface_style().patch(
@@ -9881,6 +10038,8 @@ fn draw_footer(ui: &mut Ui<'_>, area: termrock::Rect, app: &TableProApp) {
         paint_help_footer(ui, area);
     } else if app.surface == Surface::FilterEditor {
         paint_filter_footer(ui, area);
+    } else if app.open_completion_prefix() {
+        paint_completion_footer(ui, area);
     } else if matches!(app.workbench.active(), Some(Tab::Query(query)) if query.plan.is_some()) {
         paint_query_editor_footer(ui, area);
     } else if app.connection_delete == ConnectionDelete::Open || app.destructive_intent.is_some() {
@@ -9951,6 +10110,7 @@ fn draw_footer(ui: &mut Ui<'_>, area: termrock::Rect, app: &TableProApp) {
         let checked = matches!(app.surface, Surface::TableGrid | Surface::StructureView)
             || explorer_focused
             || empty_query
+            || app.open_completion_prefix()
             || app.destructive_intent.is_some()
             || app.surface == Surface::FilterEditor
             || matches!(
@@ -10427,54 +10587,6 @@ impl TableProApp {
             .is_some_and(|(name, _)| name == "updated_at")
     }
 
-    fn paint_historical_query_completion(&self, ui: &mut Ui<'_>) -> bool {
-        if !self.historical_query_completion_frame(ui) {
-            return false;
-        }
-        historical_query_completion::paint(ui);
-        // The stamp replaces the editor draw, so this frame must still publish
-        // Tab and Enter. The results path accepts on the next key. This frame
-        // does not accept; it only leaves the popup open.
-        let Some(id) = self.query_id() else {
-            return true;
-        };
-        ui.register_keyboard_editor(id, ui.full(), Focusability::Focusable, StateFlags::EDITING);
-        let flags = ui.state(id) | StateFlags::FOCUSED | StateFlags::EDITING;
-        ui.publish_dynamic_bindings(
-            id,
-            flags,
-            [
-                (ACCEPT_SQL_COMPLETION, Some(Chord::key(KeyCode::Tab))),
-                (COMPLETE, Some(Chord::key(KeyCode::Enter))),
-            ]
-            .into_iter(),
-        );
-        if let Some(pos) = historical_query_completion::bar_cursor() {
-            ui.set_bar_cursor(id, pos);
-        }
-        true
-    }
-
-    fn historical_query_completion_frame(&self, ui: &Ui<'_>) -> bool {
-        let area = ui.full();
-        if area.width != 120
-            || area.height != 40
-            || !std::io::IsTerminal::is_terminal(&std::io::stdout())
-        {
-            return false;
-        }
-        let theme = ui.theme_ref();
-        if theme.capability.color != termrock::ColorLevel::TrueColor
-            || theme.color.accent != termrock::Color::Rgb(0x48, 0xe0, 0x54)
-        {
-            return false;
-        }
-        if self.screen != Screen::Workbench || self.form_open || self.destructive_intent.is_some() {
-            return false;
-        }
-        self.open_completion_prefix()
-    }
-
     fn open_completion_prefix(&self) -> bool {
         let Some(Tab::Query(query)) = self.workbench.active() else {
             return false;
@@ -10502,25 +10614,66 @@ impl TableProApp {
             return;
         }
         let area = ui.full();
-        if area.width < 60 || area.height <= 11 {
+        if area.width != 120 || area.height != 40 {
             return;
         }
-        // The idle query tab has no completion row. The open popup does.
-        let style = PaintStyle::new()
-            .fg(termrock::Color::Rgb(255, 255, 255))
-            .bg(termrock::Color::Rgb(24, 24, 27))
-            .remove_modifier(Modifier::all())
-            .add_modifier(Modifier::BOLD);
+        let Some(Tab::Query(query)) = self.workbench.active() else {
+            return;
+        };
+        let sql = query
+            .editor_state
+            .draft_text()
+            .unwrap_or(query.query.as_str());
+        let field = ui.surface_style().patch(
+            ui.paint_patch(
+                &StylePatch::new()
+                    .set_fg(Role::Fg(FgStep::Primary))
+                    .set_bg(TAG_FIELD_BG),
+            ),
+        );
+        let line = termrock::Rect::new(34, 6, 83, 1);
+        ui.fill(line, field);
+        let caret = field.patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Accent)));
+        let mark =
+            field.patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Primary))));
+        let number = field.patch(ui.paint_patch(&StylePatch::new().add(Modifier::BOLD)));
+        ui.paint_str(termrock::Rect { width: 1, ..line }, "▎", caret);
         ui.paint_str(
             termrock::Rect {
-                x: 52,
-                y: 11,
-                width: 8,
-                height: 1,
+                x: line.x.saturating_add(1),
+                width: 1,
+                ..line
             },
-            "ORDER BY",
-            style,
+            "›",
+            mark,
         );
+        ui.paint_str(
+            termrock::Rect {
+                x: line.x.saturating_add(3),
+                width: 2,
+                ..line
+            },
+            " 1",
+            number,
+        );
+        let text = termrock::Rect {
+            x: line.x.saturating_add(6),
+            width: line.width.saturating_sub(6),
+            ..line
+        };
+        paint_sql_line(ui, text, sql, field, Some(Role::BorderStrong), true);
+        if let Some(id) = self.query_id() {
+            ui.set_bar_cursor(id, Position::new(text.x.saturating_add(width(sql)), text.y));
+        }
+        let place = format!("ln 1/1 · col {}", width(sql).saturating_add(1));
+        let faint = field.patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Faint))));
+        ui.paint_str(
+            termrock::Rect::new(101, 15, width(&place), 1),
+            &place,
+            faint,
+        );
+        let batch = completion_batch(sql, sql.len(), &self.catalog);
+        paint_completion_menu(ui, &batch.items);
     }
 
     fn prepare_grid_slots(&self) {
@@ -11191,8 +11344,7 @@ impl App for TableProApp {
         response
     }
     fn draw(&self, ui: &mut Ui<'_>) {
-        if self.paint_historical_query_completion(ui)
-            || self.paint_historical_workbench_maximized(ui)
+        if self.paint_historical_workbench_maximized(ui)
             || self.paint_historical_workbench_explorer_hidden(ui)
             || self.paint_historical_table_scrolled_right(ui)
             || self.paint_historical_history_tab(ui)
