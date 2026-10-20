@@ -21,7 +21,7 @@ STAMP_RULES = (
     ("ansi-frame-replay", re.compile(r"(?i)(include_(?:str|bytes)!.*(?:snapshots?|baselines?)/.*\.(?:ansi|ans)|from_ansi|parse_ansi_frame)")),
     ("frame-stamp-type", re.compile(r"(?is)\b(?:struct|enum)\s+\w+\s*\{[^}]{0,800}\bx\s*:\s*u(?:16|32|size)\b[^}]{0,400}\by\s*:\s*u(?:16|32|size)\b[^}]{0,600}\btext\s*:\s*&?\s*'static\s+str")),
 )
-INCLUDE_RE = re.compile(r"\binclude(?:_str|_bytes)?!\s*\(\s*\"([^\"]+)\"\s*\)")
+INCLUDE_RE = re.compile(r"\b(include|include_str|include_bytes)!\s*\(\s*\"([^\"]+)\"\s*\)")
 DYNAMIC_INCLUDE_RE = re.compile(r"\binclude(?:_str|_bytes)?!\s*\(")
 PATH_MODULE_RE = re.compile(r"#\s*\[\s*path\s*=\s*\"([^\"]+)\"\s*\]")
 DECLARED_MODULE_RE = re.compile(r"\bmod\s+(?:r#)?([A-Za-z_][A-Za-z0-9_]*)\s*;")
@@ -413,7 +413,7 @@ def check(root: Path) -> dict[str, Any]:
             continue
         visited_sources.add(key)
         text = data.decode("utf-8", "replace")
-        references = [("include", match, match.group(1)) for match in INCLUDE_RE.finditer(text)]
+        references = [(match.group(1), match, match.group(2)) for match in INCLUDE_RE.finditer(text)]
         references.extend(("include", match, None) for match in DYNAMIC_INCLUDE_RE.finditer(text) if not INCLUDE_RE.match(text, match.start()))
         references.extend(("path-module", match, match.group(1)) for match in PATH_MODULE_RE.finditer(text))
         module_aliases = target_module_aliases_by_package.get(str(pkg.get("id", pkg.get("name", ""))), set())
@@ -452,6 +452,14 @@ def check(root: Path) -> dict[str, Any]:
                 continue
             referenced = (root / rel).parent / literal
             resolved = referenced.resolve(strict=False)
+            if kind in {"include", "path-module"}:
+                package_root = Path(str(pkg.get("manifest_path", ""))).resolve().parent
+                try:
+                    resolved.relative_to(package_root)
+                except ValueError:
+                    report["unaccounted_inputs"].append(
+                        f"Rust source input is outside its package; module tree is not fully accounted: {rel}:{line} -> {literal}"
+                    )
             target_root = Path(str(metadata.get("target_directory", root / "target"))).resolve(strict=False)
             if kind == "path-module":
                 try:
@@ -470,9 +478,10 @@ def check(root: Path) -> dict[str, Any]:
                 continue
             source_records.append({"path": referenced_rel, "sha256": sha(ref_data), "bytes": len(ref_data), "package": pkg["name"], "role": package_role, "included_by": rel})
             file_bytes[referenced_rel] = ref_data
-            if kind == "include" and re.search(r"(?i)(?:snapshots?|baselines?)/.*\.(?:ansi|ans)$", literal):
+            if kind in {"include", "include_str", "include_bytes"} and re.search(r"(?i)(?:snapshots?|baselines?)/.*\.(?:ansi|ans)$", literal):
                 report["findings"].append(finding("ansi-frame-replay", rel, line, data, f"includes captured terminal asset {referenced_rel}"))
-            pending_sources.append((pkg, package_role, referenced_rel, ref_data, (*ancestors, rel)))
+            if kind in {"include", "path-module"}:
+                pending_sources.append((pkg, package_role, referenced_rel, ref_data, (*ancestors, rel)))
 
     for rel, data in sorted(file_bytes.items()):
         text = data.decode("utf-8", "replace")
