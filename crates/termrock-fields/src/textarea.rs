@@ -23,6 +23,7 @@ use crate::text::{EditAction, EditOutcome, Extend, Motion, width};
 use crate::theme::{Family, GlyphRole, Slot, StylePatch, Variant};
 use crate::ui::{Cx, FrameRead, Ui};
 use crate::validate::{FieldError, NoValidate, Validate};
+use termrock_runtime::author::VerticalWindow;
 use termrock_runtime::layer::LayerOpening;
 use termrock_runtime::rowui::CellUi;
 use termrock_runtime::scroll_region::ScrollRegion;
@@ -30,6 +31,98 @@ use termrock_runtime::scroll_region::ScrollRegion;
 const CTRL: KeyModifiers = KeyModifiers::CONTROL;
 const ALT: KeyModifiers = KeyModifiers::ALT;
 const SHIFT: KeyModifiers = KeyModifiers::SHIFT;
+
+/// Geometry shared by TextArea drawing and coordinate-bearing input.
+///
+/// `window` describes the component body's visible rows. `text` is the
+/// registered text part inside that body, so pointer, cursor and menu mapping
+/// use the same physical origin and clipping bounds.
+#[derive(Clone, Copy, Debug)]
+struct TextAreaGeometry {
+    window: VerticalWindow,
+    text: Rect,
+}
+
+impl TextAreaGeometry {
+    fn new(window: VerticalWindow, text: Rect) -> Option<Self> {
+        let text = text.intersection(window.visible_body());
+        (!text.is_empty()).then_some(Self { window, text })
+    }
+
+    fn document_point(
+        self,
+        pos: Position,
+        child_scroll: usize,
+        horizontal_scroll: u16,
+    ) -> Option<(usize, usize)> {
+        if !self.text.contains(pos) {
+            return None;
+        }
+        let source_row = self.window.source_row_for_physical(pos.y)?;
+        let line = child_scroll.checked_add(source_row)?;
+        let col = usize::from(pos.x.saturating_sub(self.text.x))
+            .saturating_add(usize::from(horizontal_scroll));
+        Some((line, col))
+    }
+
+    /// Project an active captured drag through the parent window. Unlike a
+    /// press, a captured drag remains meaningful after leaving `TEXT`; the
+    /// old logical child behavior extended to the document edge from the
+    /// captured origin. Clamp above the visible window to its first row, but
+    /// preserve vertical extrapolation below it so the caller can clamp to the
+    /// document edge rather than the parent's logical viewport.
+    fn captured_document_point(
+        self,
+        pos: Position,
+        child_scroll: usize,
+        horizontal_scroll: u16,
+    ) -> Option<(usize, usize)> {
+        let logical_rows = self.window.logical_rows();
+        if logical_rows == 0 {
+            return None;
+        }
+        let visible_body = self.window.visible_body();
+        let physical_delta = usize::from(pos.y.saturating_sub(visible_body.y));
+        let source_row = self
+            .window
+            .first_source_row()
+            .saturating_add(physical_delta);
+        let line = child_scroll.checked_add(source_row)?;
+        let col = usize::from(pos.x.saturating_sub(self.text.x))
+            .saturating_add(usize::from(horizontal_scroll));
+        Some((line, col))
+    }
+
+    fn physical_row(self, document_row: usize, child_scroll: usize) -> Option<u16> {
+        let source_row = document_row.checked_sub(child_scroll)?;
+        let y = self.window.physical_row_for_source(source_row)?;
+        if y < self.text.y || y >= self.text.bottom() {
+            return None;
+        }
+        Some(y)
+    }
+
+    fn cursor_position(
+        self,
+        cursor: crate::text::CursorPos,
+        child_scroll: usize,
+        horizontal_scroll: u16,
+    ) -> Option<Position> {
+        let y = self.physical_row(cursor.line, child_scroll)?;
+        let x = self.text.x.checked_add(
+            u16::try_from(cursor.col.saturating_sub(usize::from(horizontal_scroll)))
+                .unwrap_or(u16::MAX),
+        )?;
+        (x <= self.text.right()).then_some(Position::new(x, y))
+    }
+
+    fn logical_inner_width(self) -> u16 {
+        // Keep the established editing contract: horizontal scrolling uses
+        // the body width minus the left gutter and the trailing cell. The
+        // vertical scrollbar does not reduce this logical editor width.
+        self.window.visible_body().width.saturating_sub(3)
+    }
+}
 
 const fn b(chord: Chord, cmd: TextCmd, label: &'static str, visible: bool) -> Binding<TextCmd> {
     Binding {
@@ -686,6 +779,13 @@ impl<'a> TextArea<'a> {
         width.saturating_sub(3)
     }
 
+    fn prepared_geometry(cx: &Cx<'_>, id: Id) -> Option<TextAreaGeometry> {
+        cx.layout(id)
+            .and_then(|facts| facts.vertical_window)
+            .zip(cx.area_of_part(id, PartRef::of(Part::TEXT)))
+            .and_then(|(window, text)| TextAreaGeometry::new(window, text))
+    }
+
     pub fn update(
         &self,
         cx: &mut Cx<'_>,
@@ -738,6 +838,12 @@ impl<'a> TextArea<'a> {
             line_count(value.expose())
         };
         let scroll = self.scroll_region();
+        let geometry = Self::prepared_geometry(cx, self.id);
+        // Pointer coordinates target the last presented frame. FocusIn can
+        // begin an edit and reveal a different document row during this same
+        // update, so retain the viewport origin before processing intents.
+        let displayed_scroll = st.scroll.offset();
+        let displayed_hscroll = st.draft.hscroll();
         let track_len = if self.disabled {
             None
         } else {
@@ -793,26 +899,19 @@ impl<'a> TextArea<'a> {
                             || (k.code == KeyCode::F(10)
                                 && k.mods.contains(KeyModifiers::SHIFT))) =>
                 {
-                    let anchor = cx.area(self.id).map_or(Position::new(0, 0), |area| {
-                        let cursor = st.draft.cursor_pos();
-                        Position::new(
-                            area.x.saturating_add(2).saturating_add(
-                                u16::try_from(
-                                    cursor.col.saturating_sub(usize::from(st.draft.hscroll())),
-                                )
-                                .unwrap_or(u16::MAX),
-                            ),
-                            area.y.saturating_add(
-                                u16::try_from(cursor.line.saturating_sub(st.scroll.offset()))
-                                    .unwrap_or(u16::MAX),
-                            ),
+                    if let Some(anchor) = geometry.and_then(|g| {
+                        g.cursor_position(
+                            st.draft.cursor_pos(),
+                            st.scroll.offset(),
+                            st.draft.hscroll(),
                         )
-                    });
-                    st.edit_menu_request = Some(EditMenuRequest {
-                        owner: self.id,
-                        part: PartRef::of(Part::TEXT),
-                        anchor,
-                    });
+                    }) {
+                        st.edit_menu_request = Some(EditMenuRequest {
+                            owner: self.id,
+                            part: PartRef::of(Part::TEXT),
+                            anchor,
+                        });
+                    }
                     acc.consumed();
                 }
                 Intent::Key(k) if editable => {
@@ -839,41 +938,40 @@ impl<'a> TextArea<'a> {
                 Intent::Pointer {
                     phase: Phase::Press,
                     part,
-                    local,
+                    pos,
                     ..
                 } if editable || (self.read_only && !self.disabled) => {
-                    if !st.is_editing() {
-                        st.begin(value.expose());
+                    if let Some((line, col)) = geometry.and_then(|geometry| {
+                        geometry.document_point(pos, displayed_scroll, displayed_hscroll)
+                    }) {
+                        if !st.is_editing() {
+                            st.begin(value.expose());
+                        }
+                        st.pointer_anchor = Some(st.draft.pointer_select(
+                            line.min(st.draft.line_count().saturating_sub(1)),
+                            col,
+                            cx.pointer_press_count(self.id, part).unwrap_or(1),
+                        ));
+                        acc.changed();
+                    } else {
+                        acc.consumed();
                     }
-                    let line = st
-                        .scroll
-                        .offset()
-                        .saturating_add(usize::from(local.y))
-                        .min(st.draft.line_count().saturating_sub(1));
-                    let col = usize::from(local.x.saturating_sub(2))
-                        .saturating_add(usize::from(st.draft.hscroll()));
-                    st.pointer_anchor = Some(st.draft.pointer_select(
-                        line,
-                        col,
-                        cx.pointer_press_count(self.id, part).unwrap_or(1),
-                    ));
-                    acc.changed();
                 }
                 Intent::Pointer {
                     phase: Phase::DragStart | Phase::Drag,
-                    local,
+                    pos,
                     ..
                 } if st.is_editing() => {
-                    if let Some(anchor) = st.pointer_anchor {
-                        let line = st
-                            .scroll
-                            .offset()
-                            .saturating_add(usize::from(local.y))
-                            .min(st.draft.line_count().saturating_sub(1));
-                        let col = usize::from(local.x.saturating_sub(2))
-                            .saturating_add(usize::from(st.draft.hscroll()));
-                        st.draft.pointer_extend(anchor, line, col);
-                        acc.changed();
+                    if let Some((line, col)) = geometry.and_then(|geometry| {
+                        geometry.captured_document_point(pos, displayed_scroll, displayed_hscroll)
+                    }) {
+                        if let Some(anchor) = st.pointer_anchor {
+                            let line = line.min(st.draft.line_count().saturating_sub(1));
+                            st.draft.pointer_extend(anchor, line, col);
+                            acc.changed();
+                        } else {
+                            acc.consumed();
+                        }
                     } else {
                         acc.consumed();
                     }
@@ -889,28 +987,28 @@ impl<'a> TextArea<'a> {
                     phase: Phase::Secondary,
                     part,
                     pos,
-                    local,
                     ..
                 } if !self.disabled => {
-                    if !st.is_editing() {
-                        st.begin(value.expose());
-                    }
-                    let line = st
-                        .scroll
-                        .offset()
-                        .saturating_add(usize::from(local.y))
-                        .min(st.draft.line_count().saturating_sub(1));
-                    let col = usize::from(local.x.saturating_sub(2))
-                        .saturating_add(usize::from(st.draft.hscroll()));
-                    let changed = st.draft.pointer_point(line, col);
-                    cx.focus(self.id);
-                    st.edit_menu_request = Some(EditMenuRequest {
-                        owner: self.id,
-                        part,
-                        anchor: pos,
-                    });
-                    if changed {
-                        acc.changed();
+                    if let Some((line, col)) = geometry.and_then(|geometry| {
+                        geometry.document_point(pos, displayed_scroll, displayed_hscroll)
+                    }) {
+                        if !st.is_editing() {
+                            st.begin(value.expose());
+                        }
+                        let changed = st
+                            .draft
+                            .pointer_point(line.min(st.draft.line_count().saturating_sub(1)), col);
+                        cx.focus(self.id);
+                        st.edit_menu_request = Some(EditMenuRequest {
+                            owner: self.id,
+                            part,
+                            anchor: pos,
+                        });
+                        if changed {
+                            acc.changed();
+                        } else {
+                            acc.consumed();
+                        }
                     } else {
                         acc.consumed();
                     }
@@ -929,8 +1027,8 @@ impl<'a> TextArea<'a> {
                 st.scroll.set_content(st.draft.line_count());
                 st.scroll.ensure_visible(cur.line);
             }
-            if let Some(a) = cx.area(self.id) {
-                st.draft.scroll_into_view(Self::inner_width(a.width));
+            if let Some(geometry) = geometry {
+                st.draft.scroll_into_view(geometry.logical_inner_width());
             }
         }
         if let Some(opening) = st.focus_continuation
@@ -974,6 +1072,20 @@ impl<'a> TextArea<'a> {
         )
     }
 
+    /// Return the focused caret's source row inside this TextArea's logical
+    /// visible body, after the document's own scroll offset.
+    ///
+    /// A containing Form can use this row to reveal the caret in its parent
+    /// viewport without reading or changing the document state.
+    pub fn caret_source_row(&self, st: &TextAreaState) -> Option<usize> {
+        st.is_editing().then(|| {
+            st.draft
+                .cursor_pos()
+                .line
+                .saturating_sub(st.scroll.offset())
+        })
+    }
+
     /// Execute one contextual edit command through the field's shared editor.
     pub fn execute_edit_command<T: TextTarget + ?Sized>(
         &self,
@@ -1002,8 +1114,8 @@ impl<'a> TextArea<'a> {
             let cursor = st.draft.cursor_pos();
             st.scroll.set_content(st.draft.line_count());
             st.scroll.ensure_visible(cursor.line);
-            if let Some(area) = cx.area(self.id) {
-                st.draft.scroll_into_view(Self::inner_width(area.width));
+            if let Some(geometry) = Self::prepared_geometry(cx, self.id) {
+                st.draft.scroll_into_view(geometry.logical_inner_width());
             }
         }
         applied
@@ -1079,16 +1191,19 @@ impl<'a> TextArea<'a> {
         }
     }
 
-    #[expect(
-        clippy::too_many_lines,
-        reason = "one pass over the body, the visible lines and the shared trailing cell"
-    )]
     pub fn draw(&self, ui: &mut Ui<'_>, area: Rect, st: &TextAreaState) -> Rect {
         let rows = self.body_rows(area);
         let body = Rect {
             height: rows,
             ..area
         };
+        self.draw_window(ui, VerticalWindow::full(body), st)
+    }
+
+    /// Draw this TextArea through a physical parent window while preserving
+    /// its full logical viewport and document row numbering.
+    pub fn draw_window(&self, ui: &mut Ui<'_>, window: VerticalWindow, st: &TextAreaState) -> Rect {
+        let body = window.visible_body();
         if body.is_empty() {
             return first_row(body);
         }
@@ -1142,7 +1257,9 @@ impl<'a> TextArea<'a> {
             self.value.unwrap_or("")
         };
         let lines = line_count(shown);
-        let content = self.scroll_region().draw(ui, body, &st.scroll, lines);
+        let content = self
+            .scroll_region()
+            .draw_window(ui, window, &st.scroll, lines);
         let inner = Rect {
             x: content.x.saturating_add(2),
             y: content.y,
@@ -1150,6 +1267,7 @@ impl<'a> TextArea<'a> {
             height: content.height,
         };
         ui.register_decor(self.id, PartRef::of(Part::TEXT), inner);
+        let geometry = TextAreaGeometry::new(window, inner);
         ui.register_editor(self.id, body, focusability, declared);
         ui.publish_bindings(self.id, live, BINDINGS);
 
@@ -1173,26 +1291,34 @@ impl<'a> TextArea<'a> {
         if shown.is_empty() && !editing {
             if let Some(p) = self.placeholder {
                 let ps = style(ui, Part::PLACEHOLDER, live);
-                match ov.slot_for(Part::PLACEHOLDER) {
-                    Some(f) => f(ui, first_row(inner)),
-                    None => {
-                        ui.paint_str(first_row(inner), p, ps.style);
+                if let Some(row) = geometry.and_then(|geometry| {
+                    geometry.physical_row(0, st.scroll.offset()).map(|y| Rect {
+                        y,
+                        height: 1,
+                        ..inner
+                    })
+                }) {
+                    match ov.slot_for(Part::PLACEHOLDER) {
+                        Some(f) => f(ui, first_row(row)),
+                        None => {
+                            ui.paint_str(first_row(row), p, ps.style);
+                        }
                     }
                 }
             }
         } else {
             let ts = style(ui, Part::TEXT, live);
             let sel_style = style(ui, Part::ROW, live | StateFlags::SELECTED).style;
-            let view = ScrollRegion::view(&st.scroll, content, lines);
+            let mut view = st.scroll;
+            view.apply_layout(window.logical_rows(), lines);
             let hs = usize::from(if editing { st.draft.hscroll() } else { 0 });
             let sel = if editing { st.draft.selection() } else { None };
             let mut start = 0usize;
             for (i, line) in shown.split('\n').enumerate() {
                 let end = start.saturating_add(line.len());
-                if view.visible_range().contains(&i) {
-                    let y = inner.y.saturating_add(
-                        i.saturating_sub(view.offset()).min(usize::from(u16::MAX)) as u16,
-                    );
+                if view.visible_range().contains(&i)
+                    && let Some(y) = geometry.and_then(|g| g.physical_row(i, view.offset()))
+                {
                     let row = Rect {
                         y,
                         height: 1,
@@ -1242,21 +1368,14 @@ impl<'a> TextArea<'a> {
                 }
                 start = end.saturating_add(1);
             }
-            if editing && live.contains(StateFlags::FOCUSED) && self.editable() {
-                let cur = st.draft.cursor_pos();
-                if cur.line >= view.offset() {
-                    let y = inner.y.saturating_add(
-                        cur.line
-                            .saturating_sub(view.offset())
-                            .min(usize::from(u16::MAX)) as u16,
-                    );
-                    let x = inner.x.saturating_add(
-                        cur.col.saturating_sub(hs).min(usize::from(u16::MAX)) as u16,
-                    );
-                    if y < inner.bottom() {
-                        ui.set_cursor(self.id, Position::new(x.min(inner.right()), y));
-                    }
-                }
+            if editing
+                && live.contains(StateFlags::FOCUSED)
+                && self.editable()
+                && let Some(cursor) = geometry.and_then(|g| {
+                    g.cursor_position(st.draft.cursor_pos(), view.offset(), hs as u16)
+                })
+            {
+                ui.set_cursor(self.id, cursor);
             }
         }
 
@@ -1320,6 +1439,20 @@ impl<'a> TextArea<'a> {
             .draw(ui, area, st)
     }
 
+    /// Draw a non-secret form value through its parent's clipped body window.
+    pub fn draw_in_form_window(
+        &self,
+        ui: &mut Ui<'_>,
+        window: VerticalWindow,
+        st: &TextAreaState,
+        value: &str,
+        inherited_disabled: bool,
+    ) -> Rect {
+        self.with_inherited_disabled(inherited_disabled)
+            .value(value)
+            .draw_window(ui, window, st)
+    }
+
     pub fn draw_secret_in_form(
         &self,
         ui: &mut Ui<'_>,
@@ -1332,6 +1465,21 @@ impl<'a> TextArea<'a> {
             .value(value.expose())
             .secret(self.secret.unwrap_or_default())
             .draw(ui, area, st)
+    }
+
+    /// Draw a secret form value through its parent's clipped body window.
+    pub fn draw_secret_in_form_window(
+        &self,
+        ui: &mut Ui<'_>,
+        window: VerticalWindow,
+        st: &TextAreaState,
+        value: &crate::secret::Secret,
+        inherited_disabled: bool,
+    ) -> Rect {
+        self.with_inherited_disabled(inherited_disabled)
+            .value(value.expose())
+            .secret(self.secret.unwrap_or_default())
+            .draw_window(ui, window, st)
     }
 
     pub fn measure(&self, _ui: &Ui<'_>, c: Constraints) -> Size {
