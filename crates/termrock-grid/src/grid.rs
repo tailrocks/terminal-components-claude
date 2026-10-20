@@ -1601,14 +1601,21 @@ fn apply_style_delta(ui: &Ui<'_>, base: PaintStyle, delta: StylePatch) -> PaintS
     base.patch(top)
 }
 
-fn preserve_default_clears(defaults: StylePatch, mut explicit: StylePatch) -> StylePatch {
-    if defaults.fg == Slot::Clear && explicit.fg == Slot::Inherit {
+fn preserve_default_clears(
+    defaults: StylePatch,
+    resolved: PaintStyle,
+    mut explicit: StylePatch,
+) -> StylePatch {
+    if defaults.fg == Slot::Clear && resolved.fg.is_none() && explicit.fg == Slot::Inherit {
         explicit.fg = Slot::Clear;
     }
-    if defaults.bg == Slot::Clear && explicit.bg == Slot::Inherit {
+    if defaults.bg == Slot::Clear && resolved.bg.is_none() && explicit.bg == Slot::Inherit {
         explicit.bg = Slot::Clear;
     }
-    if defaults.underline == Slot::Clear && explicit.underline == Slot::Inherit {
+    if defaults.underline == Slot::Clear
+        && resolved.underline_color.is_none()
+        && explicit.underline == Slot::Inherit
+    {
         explicit.underline = Slot::Clear;
     }
     explicit
@@ -2882,7 +2889,8 @@ impl Grid<'_> {
             defaults,
             local.as_ref(),
         );
-        resolved.explicit = preserve_default_clears(base, resolved.explicit);
+        resolved.explicit =
+            preserve_default_clears(base, resolved.resolved.style, resolved.explicit);
         self.ov.note(
             ui,
             self.id,
@@ -3057,7 +3065,11 @@ impl Grid<'_> {
             row_defaults,
             row_local.as_ref(),
         );
-        row_resolved.explicit = preserve_default_clears(row_defaults.base, row_resolved.explicit);
+        row_resolved.explicit = preserve_default_clears(
+            row_defaults.base,
+            row_resolved.resolved.style,
+            row_resolved.explicit,
+        );
         self.ov.note(
             ui,
             self.id,
@@ -4295,6 +4307,41 @@ mod tests {
                 .expect("non-cursor cell exists");
             assert_eq!(cell.fg, ratatui_core::style::Color::Reset);
             assert_eq!(cell.bg, ratatui_core::style::Color::Reset);
+        }
+    }
+
+    #[test]
+    fn part_default_clear_does_not_override_a_theme_recipe_value() {
+        let cell_theme = Theme::junie().define_family(Family::GRID, |recipe| {
+            recipe
+                .part(Part::CELL)
+                .base(StylePatch::new().set_fg(Role::Custom(ratatui_core::style::Color::Green)));
+        });
+        let row_theme = Theme::junie().define_family(Family::GRID, |recipe| {
+            recipe
+                .part(Part::ROW)
+                .base(StylePatch::new().set_fg(Role::Custom(ratatui_core::style::Color::Red)));
+        });
+        for (theme, defaults, expected) in [
+            (
+                cell_theme,
+                vec![(Part::CELL, StylePatch::new().clear_fg())],
+                ratatui_core::style::Color::Green,
+            ),
+            (
+                row_theme,
+                vec![(Part::ROW, StylePatch::new().clear_fg())],
+                ratatui_core::style::Color::Red,
+            ),
+        ] {
+            let buffer = focused_grid_buffer_with_defaults(theme, Model::two(), defaults);
+            assert_eq!(
+                buffer
+                    .cell(Position::new(11, 1))
+                    .expect("non-cursor cell exists")
+                    .fg,
+                expected
+            );
         }
     }
 
