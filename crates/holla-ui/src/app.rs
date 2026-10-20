@@ -1482,9 +1482,11 @@ impl App {
         } else if crate::sim::catalogue::first_use_tag_frame(&self.world) {
             Some(("Open", None))
         } else if crate::sim::catalogue::monorepo_root_tag_frame(&self.world) {
+            let narrow = ui.full().width == 80 && ui.full().height == 24;
             if self.home.history {
-                Some(("Trust…", Some("Deploy …")))
-            } else if ui.full().width == 80 && ui.full().height == 24 {
+                // Wide history keeps the deploy status. 80×24 has no room for it.
+                Some(("Trust…", if narrow { None } else { Some("Deploy …") }))
+            } else if narrow {
                 Some(("Open", None))
             } else {
                 Some(("Open", Some("Inspect 1…")))
@@ -1567,8 +1569,7 @@ impl App {
             let narrow = ui.full().width == 80 && ui.full().height == 24;
             let parts = if narrow
                 && (crate::sim::catalogue::first_use_tag_frame(&self.world)
-                    || (crate::sim::catalogue::monorepo_root_tag_frame(&self.world)
-                        && !self.home.history)
+                    || crate::sim::catalogue::monorepo_root_tag_frame(&self.world)
                     || crate::sim::catalogue::monorepo_child_tag_frame(&self.world)
                     || crate::sim::catalogue::remote_host_tag_frame(&self.world)
                     || crate::sim::catalogue::hard_cases_tag_frame(&self.world))
