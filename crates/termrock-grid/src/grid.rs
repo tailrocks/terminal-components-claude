@@ -326,6 +326,8 @@ pub enum GridCmd {
     BeginEdit,
 
     Copy,
+
+    SortCurrent,
 }
 
 const fn b(
@@ -516,6 +518,26 @@ const BINDINGS: [Binding<GridCmd>; 25] = [
         false,
     ),
 ];
+const SORT_BINDING: Binding<GridCmd> = b(
+    "grid.sort-current",
+    Chord::key(KeyCode::Char('s')),
+    GridCmd::SortCurrent,
+    "Sort",
+    false,
+);
+
+const fn with_sort_binding(base: [Binding<GridCmd>; 25]) -> [Binding<GridCmd>; 26] {
+    let mut combined = [SORT_BINDING; 26];
+    let mut index = 0;
+    while index < base.len() {
+        combined[index] = base[index];
+        index += 1;
+    }
+    combined[25] = SORT_BINDING;
+    combined
+}
+
+const TABLE_BINDINGS: [Binding<GridCmd>; 26] = with_sort_binding(BINDINGS);
 
 pub const GRID_MAX_COLUMNS: usize = 64;
 
@@ -702,6 +724,10 @@ impl Default for GridState {
 }
 
 impl GridState {
+    pub(crate) fn set_sort(&mut self, sort: Option<(ColumnKey, SortDir)>) {
+        self.sort = sort;
+    }
+
     pub fn sampled_column_width(&self, key: ColumnKey) -> Option<u16> {
         self.sampled_width(key).map(|sample| sample.natural)
     }
@@ -939,6 +965,8 @@ pub struct Grid<'a> {
     id: Id,
     columns: &'a [Column<'a>],
     nav: NavUnit,
+    row_nav_scrolls_columns: bool,
+    sort_current_column: bool,
     column_gap: u16,
     gutter: GridGutter,
     right_reserve: u16,
@@ -997,6 +1025,8 @@ impl<'a> Grid<'a> {
             id,
             columns,
             nav: NavUnit::Cell,
+            row_nav_scrolls_columns: false,
+            sort_current_column: false,
             column_gap: 1,
             gutter: GridGutter::Compact,
             right_reserve: 0,
@@ -1073,6 +1103,18 @@ impl<'a> Grid<'a> {
     #[must_use]
     pub const fn nav(mut self, u: NavUnit) -> Self {
         self.nav = u;
+        self
+    }
+
+    #[must_use]
+    pub(crate) const fn row_nav_scrolls_columns(mut self, enabled: bool) -> Self {
+        self.row_nav_scrolls_columns = enabled;
+        self
+    }
+
+    #[must_use]
+    pub(crate) const fn sort_current_column(mut self, enabled: bool) -> Self {
+        self.sort_current_column = enabled;
         self
     }
 
@@ -2091,7 +2133,15 @@ impl Grid<'_> {
                         |f| f.boundary,
                     );
                     let col = self.cursor_col(st);
-                    match Binding::command(&BINDINGS, action) {
+                    let command = Binding::command(
+                        if self.sort_current_column {
+                            &TABLE_BINDINGS
+                        } else {
+                            &BINDINGS
+                        },
+                        action,
+                    );
+                    match command {
                         Some(GridCmd::Up) => {
                             self.move_to(st, model, row.saturating_sub(1), col, false, acc);
                         }
@@ -2110,6 +2160,26 @@ impl Grid<'_> {
                         }
                         Some(GridCmd::Right) if st.on_fetch_row() => {
                             self.move_to(st, model, row, col.saturating_add(1), false, acc);
+                        }
+                        Some(GridCmd::Left)
+                            if matches!(self.nav, NavUnit::Row) && self.row_nav_scrolls_columns =>
+                        {
+                            if st.col_offset > 0 {
+                                st.col_offset = st.col_offset.saturating_sub(1);
+                                acc.changed();
+                            } else {
+                                acc.consumed();
+                            }
+                        }
+                        Some(GridCmd::Right)
+                            if matches!(self.nav, NavUnit::Row) && self.row_nav_scrolls_columns =>
+                        {
+                            if st.col_offset.saturating_add(1) < column_count {
+                                st.col_offset = st.col_offset.saturating_add(1);
+                                acc.changed();
+                            } else {
+                                acc.consumed();
+                            }
                         }
                         Some(GridCmd::Left) => match self.nav {
                             NavUnit::Row => acc.consumed(),
@@ -2232,6 +2302,24 @@ impl Grid<'_> {
                                 acc.consumed();
                             }
                         }
+                        Some(GridCmd::SortCurrent) if self.sort_current_column => {
+                            let key = self.col_key(col);
+                            if let Some(key) = key.filter(|_| {
+                                self.columns.get(col).is_some_and(|column| column.sortable)
+                            }) {
+                                let dir = match st.sort {
+                                    Some((current, SortDir::Asc)) if current == key => {
+                                        SortDir::Desc
+                                    }
+                                    _ => SortDir::Asc,
+                                };
+                                st.sort = Some((key, dir));
+                                acc.action(GridAction::Sort(key, dir));
+                            } else {
+                                acc.consumed();
+                            }
+                        }
+                        Some(GridCmd::SortCurrent) => {}
                         None => {}
                     }
                 }
@@ -3201,7 +3289,15 @@ impl Grid<'_> {
             );
         }
         if !inert {
-            ui.publish_bindings(self.id, live, &BINDINGS);
+            ui.publish_bindings(
+                self.id,
+                live,
+                if self.sort_current_column {
+                    &TABLE_BINDINGS
+                } else {
+                    &BINDINGS
+                },
+            );
         }
         let container = self.ov.style(
             ui,
