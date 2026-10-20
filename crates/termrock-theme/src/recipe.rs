@@ -288,7 +288,7 @@ pub struct GlobalOverride {
     pub parts: PartMap<PartRecipe>,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub struct Recipes {
     by_family: Vec<(Family, Recipe)>,
     overrides: Vec<GlobalOverride>,
@@ -302,6 +302,18 @@ static NEXT_RECIPE_REVISION: AtomicU64 = AtomicU64::new(1);
 
 fn next_recipe_revision() -> u64 {
     NEXT_RECIPE_REVISION.fetch_add(1, Ordering::Relaxed)
+}
+
+impl core::fmt::Debug for Recipes {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.debug_struct("Recipes")
+            .field("by_family", &self.by_family)
+            .field("overrides", &self.overrides)
+            .field("neutral", &self.neutral)
+            .field("mono", &self.mono)
+            .field("level_families", &self.level_families)
+            .finish()
+    }
 }
 
 impl PartialEq for Recipes {
