@@ -1442,6 +1442,57 @@ fn settings_route_s_paints_the_approved_settings_frame() {
 }
 
 #[test]
+fn accounts_detail_downs_paint_the_approved_work_frame() {
+    let mut h = H::new(Scenario::AccountsMixed, Motion::Paused, 40, 120, 40);
+    assert!(
+        !h.text().contains("Accounts › Claude › Work"),
+        "closed list must stay off the detail frame: {}",
+        h.text()
+    );
+    for _ in 0..4 {
+        h.key(KeyCode::Down);
+    }
+    assert_eq!(
+        h.app().accounts.selected_id.as_deref(),
+        Some("acct-claude-work")
+    );
+    assert_eq!(
+        h.app().accounts.list.cursor(),
+        Some(termrock::ItemKey::index(4))
+    );
+    assert!(
+        h.text().contains("Accounts › Claude › Work"),
+        "{}",
+        h.text()
+    );
+    let crumb = h.buffer().cell((43, 0)).expect("work breadcrumb");
+    assert_eq!(crumb.symbol(), "A");
+    assert_eq!(crumb.fg, termrock::Color::from_u32(0xb3_b3_b3));
+    assert_eq!(crumb.bg, termrock::Color::from_u32(0x00_00_00));
+    assert!(!crumb.modifier.contains(termrock::Modifier::BOLD));
+    let mark = h.buffer().cell((2, 0)).expect("jackin prompt");
+    assert_eq!(mark.symbol(), "j");
+    assert_eq!(mark.fg, termrock::Color::from_u32(0x19_19_1c));
+    assert_eq!(mark.bg, termrock::Color::from_u32(0x48_e0_54));
+    assert!(mark.modifier.contains(termrock::Modifier::BOLD));
+    let title = h.buffer().cell((44, 2)).expect("work title");
+    assert_eq!(title.symbol(), "C");
+    assert_eq!(title.fg, termrock::Color::from_u32(0xb3_b3_b3));
+    assert_eq!(title.bg, termrock::Color::from_u32(0x11_11_11));
+    assert_eq!(h.harness.cursor(), None);
+    h.key(KeyCode::Down);
+    assert_ne!(
+        h.app().accounts.selected_id.as_deref(),
+        Some("acct-claude-work")
+    );
+    assert!(
+        !h.text().contains("Accounts › Claude › Work"),
+        "the next row must keep the live list: {}",
+        h.text()
+    );
+}
+
+#[test]
 fn settings_tabs_and_save_preview_stay_on_the_settings_route() {
     let mut h = H::new(Scenario::Returning, Motion::Reduced, 0, 120, 40);
     h.key(KeyCode::Char('s'));
