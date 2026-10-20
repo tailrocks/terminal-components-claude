@@ -79,15 +79,26 @@ fn paint_blurb(ui: &mut Ui<'_>, body: Rect) {
     if body.width <= title_w.saturating_add(4) {
         return;
     }
+    let meta = Rect::new(
+        body.x.saturating_add(title_w).saturating_add(2),
+        body.y.saturating_sub(2),
+        body.width.saturating_sub(title_w).saturating_sub(3),
+        1,
+    );
+    let style = ink(MUTED, CANVAS);
+    if width(blurb) <= meta.width {
+        let _ = ui.paint_str(meta, blurb, style);
+        return;
+    }
+    let budget = Rect {
+        width: meta.width.saturating_sub(1),
+        ..meta
+    };
+    let used = ui.paint_str(budget, blurb, style);
     let _ = ui.paint_str(
-        Rect::new(
-            body.x.saturating_add(title_w).saturating_add(2),
-            body.y.saturating_sub(2),
-            body.width.saturating_sub(title_w).saturating_sub(3),
-            1,
-        ),
-        blurb,
-        ink(MUTED, CANVAS),
+        Rect::new(meta.x.saturating_add(used), meta.y, 1, 1),
+        "…",
+        style,
     );
 }
 
@@ -609,12 +620,17 @@ fn paint_panes(ui: &mut Ui<'_>, area: Rect, lines: &[String]) {
     }
 }
 
-fn paint_playground(ui: &mut Ui<'_>, area: Rect, lines: &[String]) {
-    ui.fill(area, ink(WHITE, CANVAS));
-    let Some((left, right)) = split_columns(area) else {
-        return;
-    };
-    let slots = stack_slots(left, &card_heights(card_inner_width(left.width)));
+fn stacked_height(heights: &[u16]) -> u16 {
+    let gaps = u16::try_from(heights.len().saturating_sub(1)).unwrap_or(u16::MAX);
+    heights
+        .iter()
+        .copied()
+        .fold(0, u16::saturating_add)
+        .saturating_add(gaps.saturating_mul(STACK_GAP))
+}
+
+fn paint_card_column(ui: &mut Ui<'_>, area: Rect) {
+    let slots = stack_slots(area, &card_heights(card_inner_width(area.width)));
     if let Some(slot) = slots.first().copied() {
         paint_titled(ui, slot);
     }
@@ -624,6 +640,46 @@ fn paint_playground(ui: &mut Ui<'_>, area: Rect, lines: &[String]) {
     if let Some(slot) = slots.get(2).copied() {
         paint_nested(ui, slot);
     }
+}
+
+fn paint_stacked(ui: &mut Ui<'_>, area: Rect, lines: &[String]) {
+    if area.width < 2 || area.height == 0 {
+        return;
+    }
+    let column_w = area.width.saturating_sub(2);
+    let cards_h = stacked_height(&card_heights(card_inner_width(column_w)));
+    let content_h = cards_h.saturating_mul(2).saturating_add(STACK_GAP);
+    ui.with_area(area, |ui| {
+        paint_card_column(ui, Rect::new(area.x, area.y, column_w, cards_h));
+        paint_panes(
+            ui,
+            Rect::new(
+                area.x,
+                area.y.saturating_add(cards_h).saturating_add(STACK_GAP),
+                column_w,
+                cards_h,
+            ),
+            lines,
+        );
+    });
+    if content_h > area.height {
+        paint_vbar(
+            ui,
+            Rect::new(area.right().saturating_sub(1), area.y, 1, area.height),
+            usize::from(area.height),
+            usize::from(content_h),
+            CANVAS,
+        );
+    }
+}
+
+fn paint_playground(ui: &mut Ui<'_>, area: Rect, lines: &[String]) {
+    ui.fill(area, ink(WHITE, CANVAS));
+    let Some((left, right)) = split_columns(area) else {
+        paint_stacked(ui, area, lines);
+        return;
+    };
+    paint_card_column(ui, left);
     paint_panes(ui, right, lines);
 }
 
@@ -734,5 +790,19 @@ mod tests {
         let card = card_body(Rect::new(48, 21, 46, 15), true);
         assert_eq!(card.width.saturating_sub(2), 40);
         assert!(width("   0.00s  info   Resolving workspace members") > 40);
+    }
+
+    #[test]
+    fn narrow_playground_stacks_the_cards_and_ends_the_blurb_on_ellipsis() {
+        let h = Harness::new(Host, Theme::junie(), 51, 16);
+        assert_eq!(h.cell(49, 0).symbol(), "…");
+        assert_eq!(h.cell(49, 0).fg, Color::Rgb(0x8a, 0x8a, 0x8a));
+        assert_eq!(h.cell(2, 5).symbol(), "T");
+        assert_eq!(h.cell(2, 5).bg, Color::Rgb(0x11, 0x11, 0x11));
+        assert_eq!(h.cell(50, 5).symbol(), "┃");
+        assert_eq!(h.cell(50, 5).fg, Color::Rgb(0x80, 0x80, 0x80));
+        assert!(h.text().contains("Untitled card"), "{}", h.text());
+        assert!(!h.text().contains("Framed"), "{}", h.text());
+        assert!(h.diagnostics().is_empty(), "{:?}", h.diagnostics());
     }
 }
