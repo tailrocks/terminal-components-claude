@@ -26,7 +26,7 @@ run_ignored = "default"
 
 [discovery]
 # Archived evidence workspaces under docs/ are records, not CI units.
-exclude = ["docs/**"]
+exclude = ["docs/**", "tools/frozen-cli-frame-support/**"]
 
 [agents]
 # .github/CLAUDE.md is a symlink to .github/AGENTS.md (AGENTS.md rule).
