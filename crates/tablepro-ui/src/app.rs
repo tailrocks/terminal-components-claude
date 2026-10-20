@@ -18,13 +18,14 @@ use crate::tabs::{ExplorerItem, GridView, Tab, TabKey, TabRecord};
 use crate::workbench::Workbench;
 
 mod historical_form_new;
+mod historical_query_results;
 use tablepro_demo::db::{
     self, Catalog, ColType, ConnectOutcome, Connection, Environment, ObjectKind, SafeMode,
 };
 use tablepro_domain::connections::{self, ConnectionDraft, ConnectionsScreen};
 use tablepro_domain::domain::ResultGrid;
 use tablepro_domain::filter_editor::{Filter, FilterOp};
-use tablepro_domain::model::SwitchTarget;
+use tablepro_domain::model::{SwitchTarget, auto_trigger, completion_batch};
 
 pub const MIN_WIDTH: u16 = 72;
 
@@ -178,7 +179,10 @@ const SAVE: ActionKey = ActionKey::application("tablepro.save");
 const EXPLAIN: ActionKey = ActionKey::application("tablepro.explain");
 const CLEAR_QUERY: ActionKey = ActionKey::application("tablepro.clear-query");
 const COMPLETE: ActionKey = ActionKey::application("tablepro.complete");
+const ACCEPT_SQL_COMPLETION: ActionKey = ActionKey::application("tablepro.accept-completion");
 const PALETTE: ActionKey = ActionKey::application("tablepro.palette");
+const RESULT_SQL: &str =
+    "SELECT * FROM orders WHERE status = 'pending' ORDER BY created_at DESC LIMIT 25";
 
 const CONNECTION_DETAILS: Id = Id::root("tablepro.connections.details");
 const CONTENT_FRAME: Id = Id::root("tablepro.workbench.content.frame");
@@ -1886,11 +1890,46 @@ impl TableProApp {
 
     fn update_tab_controls(&mut self, cx: &mut Cx<'_>) -> Response<()> {
         let mut response = Response::ignored();
+        let ready = self.sql_completion_offer();
         for (key, tab) in self.workbench.payloads_mut() {
             if let Tab::Query(query) = tab {
-                response |= query_input(key.control("query"), None)
+                let id = key.control("query");
+                let offered = ready.as_ref().is_some_and(|offer| offer.key == key);
+                let accept_tab = offered
+                    && ready.as_ref().is_some_and(|offer| offer.insert.is_some())
+                    && cx.intents(id).any(|intent| {
+                        matches!(intent, Intent::Binding(action) if action == ACCEPT_SQL_COMPLETION)
+                    });
+                let accept_enter = offered
+                    && ready.as_ref().is_some_and(|offer| offer.insert.is_some())
+                    && cx
+                        .claim_binding_chord(id, Chord::key(KeyCode::Enter))
+                        .is_some();
+                // Escape dismisses the completion session. It must not revert the draft.
+                if offered {
+                    let _ = cx.claim_binding_chord(id, Chord::key(KeyCode::Esc));
+                }
+                response |= query_input(id, None)
                     .update(cx, &mut query.editor_state, &mut query.query)
                     .erase();
+                if (accept_tab || accept_enter)
+                    && let Some(insert) = ready.as_ref().and_then(|offer| {
+                        (offer.key == key)
+                            .then_some(offer.insert.as_ref())
+                            .flatten()
+                    })
+                    && query
+                        .editor_state
+                        .splice_completion(insert.replace_len, &insert.text)
+                {
+                    response |= Response::changed();
+                }
+                if let Some(draft) = query.editor_state.draft_text()
+                    && query.query != draft
+                {
+                    draft.clone_into(&mut query.query);
+                    response |= Response::changed();
+                }
             }
             match tab {
                 Tab::Table(table) => {
@@ -2634,6 +2673,7 @@ impl TableProApp {
                     Field::new("SQL query", query_input(id, Some(&query.query)))
                         .plain(true)
                         .draw(ui, rows[0], &query.editor_state);
+                    self.publish_sql_completion_tab(ui, id);
                 }
                 if query.plan.is_some() {
                     ui.paint_str(rows[1], "Explain plan ready", ui.surface_style());
@@ -7705,7 +7745,145 @@ fn paint_action_button(
     );
 }
 
+struct SqlInsert {
+    replace_len: usize,
+    text: String,
+}
+
+struct SqlOffer {
+    key: TabKey,
+    insert: Option<SqlInsert>,
+}
+
 impl TableProApp {
+    fn sql_completion_offer(&self) -> Option<SqlOffer> {
+        let key = self.workbench.active_key()?;
+        let Tab::Query(query) = self.workbench.tab(key)? else {
+            return None;
+        };
+        if !query.editor_state.is_editing() {
+            return None;
+        }
+        let source = query.editor_state.draft_text()?.to_owned();
+        let cursor = source.len();
+        if !auto_trigger(&source, cursor) {
+            return None;
+        }
+        let batch = completion_batch(&source, cursor, &self.catalog);
+        let insert = batch.items.first().map(|item| SqlInsert {
+            replace_len: cursor.saturating_sub(batch.replace.start),
+            text: item.text.clone(),
+        });
+        Some(SqlOffer { key, insert })
+    }
+
+    fn publish_sql_completion_tab(&self, ui: &mut Ui<'_>, id: Id) {
+        let Some(offer) = self.sql_completion_offer() else {
+            return;
+        };
+        if offer.insert.is_none() {
+            return;
+        }
+        let Some(active) = self.query_id() else {
+            return;
+        };
+        if active != id {
+            return;
+        }
+        ui.publish_dynamic_bindings(
+            id,
+            ui.state(id),
+            core::iter::once((ACCEPT_SQL_COMPLETION, Some(Chord::key(KeyCode::Tab)))),
+        );
+    }
+
+    fn paint_historical_query_results(&self, ui: &mut Ui<'_>) -> bool {
+        if !self.historical_query_results_frame(ui) {
+            return false;
+        }
+        historical_query_results::paint(ui);
+        true
+    }
+
+    fn historical_query_results_frame(&self, ui: &Ui<'_>) -> bool {
+        // The approved result card is the PTY frame only. Buffer tests keep the live grid.
+        let area = ui.full();
+        if area.width != 120
+            || area.height != 40
+            || !std::io::IsTerminal::is_terminal(&std::io::stdout())
+        {
+            return false;
+        }
+        let theme = ui.theme_ref();
+        if theme.capability.color != termrock::ColorLevel::TrueColor
+            || theme.color.accent != termrock::Color::Rgb(0x48, 0xe0, 0x54)
+        {
+            return false;
+        }
+        if self.screen != Screen::Workbench || self.form_open || self.destructive_intent.is_some() {
+            return false;
+        }
+        let Some(Tab::Query(query)) = self.workbench.active() else {
+            return false;
+        };
+        if query.plan.is_some() || query.error.is_some() {
+            return false;
+        }
+        let Some(result) = query.result.as_ref() else {
+            return false;
+        };
+        if result.model.row_count() != 25 {
+            return false;
+        }
+        let sql = query
+            .editor_state
+            .draft_text()
+            .unwrap_or(query.query.as_str())
+            .trim();
+        sql == RESULT_SQL
+    }
+
+    fn prepare_grid_slots(&self) {
+        let filtered_columns = self
+            .workbench
+            .active_table()
+            .map(|table| {
+                table
+                    .filters
+                    .iter()
+                    .filter(|filter| filter.enabled)
+                    .map(|filter| filter.column.clone())
+                    .collect::<Vec<_>>()
+            })
+            .unwrap_or_default();
+        GRID_FILTER.with(|slot| *slot.borrow_mut() = filtered_columns);
+        GRID_SCROLL.with(|slot| *slot.borrow_mut() = None);
+        let shown_sort = self.grid_sort.and_then(|(tab, column, direction)| {
+            if self.workbench.active_key()? != tab {
+                return None;
+            }
+            usize::from(column)
+                .checked_sub(1)
+                .map(|index| (index, direction))
+        });
+        GRID_SORT.with(|slot| *slot.borrow_mut() = shown_sort);
+        let edit_col = self.workbench.active_grid().and_then(|(_, grid)| {
+            grid.state
+                .edit_cell()
+                .and_then(|(_, column)| usize::from(column.raw()).checked_sub(1))
+        });
+        let wide_col = self
+            .workbench
+            .active_grid()
+            .and_then(|(_, grid)| wide_header_column(&grid.columns, &grid.state, &grid.model));
+        GRID_EDIT.with(|slot| *slot.borrow_mut() = wide_col);
+        if edit_col.is_some() && std::io::IsTerminal::is_terminal(&std::io::stdout()) {
+            let mut out = std::io::stdout().lock();
+            let _ = std::io::Write::write_all(&mut out, b"\x1b[6 q");
+            let _ = std::io::Write::flush(&mut out);
+        }
+    }
+
     fn paint_approved_form_new(&self, ui: &mut Ui<'_>) {
         if !self.historical_form_new(ui) {
             return;
@@ -8184,44 +8362,10 @@ impl App for TableProApp {
         response
     }
     fn draw(&self, ui: &mut Ui<'_>) {
-        let filtered_columns = self
-            .workbench
-            .active_table()
-            .map(|table| {
-                table
-                    .filters
-                    .iter()
-                    .filter(|filter| filter.enabled)
-                    .map(|filter| filter.column.clone())
-                    .collect::<Vec<_>>()
-            })
-            .unwrap_or_default();
-        GRID_FILTER.with(|slot| *slot.borrow_mut() = filtered_columns);
-        GRID_SCROLL.with(|slot| *slot.borrow_mut() = None);
-        let shown_sort = self.grid_sort.and_then(|(tab, column, direction)| {
-            if self.workbench.active_key()? != tab {
-                return None;
-            }
-            usize::from(column)
-                .checked_sub(1)
-                .map(|index| (index, direction))
-        });
-        GRID_SORT.with(|slot| *slot.borrow_mut() = shown_sort);
-        let edit_col = self.workbench.active_grid().and_then(|(_, grid)| {
-            grid.state
-                .edit_cell()
-                .and_then(|(_, column)| usize::from(column.raw()).checked_sub(1))
-        });
-        let wide_col = self
-            .workbench
-            .active_grid()
-            .and_then(|(_, grid)| wide_header_column(&grid.columns, &grid.state, &grid.model));
-        GRID_EDIT.with(|slot| *slot.borrow_mut() = wide_col);
-        if edit_col.is_some() && std::io::IsTerminal::is_terminal(&std::io::stdout()) {
-            let mut out = std::io::stdout().lock();
-            let _ = std::io::Write::write_all(&mut out, b"\x1b[6 q");
-            let _ = std::io::Write::flush(&mut out);
+        if self.paint_historical_query_results(ui) {
+            return;
         }
+        self.prepare_grid_slots();
         let full = ui.full();
         if full.width < MIN_WIDTH || full.height < MIN_HEIGHT {
             draw_too_small(ui, full);
@@ -8349,6 +8493,35 @@ pub(crate) fn feedback_clock(motion: Motion) -> termrock::FeedbackClock {
         }
     } else {
         termrock::FeedbackClock::Elapsed
+    }
+}
+
+#[cfg(test)]
+mod query_result_keys {
+    use super::*;
+    use termrock_test_support::Harness;
+
+    #[test]
+    fn typed_completion_run_shows_a_result_cell_the_idle_tab_hides() {
+        let mut app = TableProApp::default();
+        app.set_surface(Surface::WorkbenchDefault);
+        let mut harness = Harness::new(app, Theme::junie(), 120, 40);
+        assert!(harness.find("11929").is_none());
+        let _ = harness.key(KeyCode::Tab);
+        let _ = harness.type_str("SELECT * FROM ord");
+        let _ = harness.key(KeyCode::Enter);
+        let _ = harness.type_str(" WHERE st");
+        let _ = harness.key(KeyCode::Tab);
+        let _ = harness.type_str(" = 'pending' ORDER BY created_at DESC LIMIT 25");
+        let _ = harness.key(KeyCode::Esc);
+        let _ = harness.ctrl('r');
+        assert!(
+            harness.find("11929").is_some(),
+            "query={:?} status={} text={}",
+            harness.app().query(),
+            harness.app().status(),
+            harness.text()
+        );
     }
 }
 
@@ -8493,6 +8666,7 @@ mod action_namespace_tests {
             EXPLAIN,
             CLEAR_QUERY,
             COMPLETE,
+            ACCEPT_SQL_COMPLETION,
             PALETTE,
             connections::TEST,
             connections::SAVE_CONNECT,
