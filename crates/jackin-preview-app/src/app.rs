@@ -237,6 +237,7 @@ const CAPSULE_COMMANDS: &[Item<'static>] = &[
 ];
 const TICK_MS: u64 = crate::rain::TICK_MS;
 
+mod historical_editor;
 mod historical_inspect;
 mod historical_intro_f300;
 mod historical_paint;
@@ -5458,171 +5459,14 @@ impl App {
         );
     }
 
-    fn draw_historical_editor(&self, ui: &mut Ui<'_>, area: Rect) {
-        let palette = HistoricalPalette::new(ui);
-        ui.fill(area, palette.primary_on_canvas);
-        let _ = Brand::new(APP.sub("editor-brand"), "jackin❯")
-            .draw(ui, Rect::new(area.x.saturating_add(1), area.y, 9, 1));
-
-        let normal = palette.primary_on_canvas;
-        let secondary = palette.secondary_on_canvas;
-        let muted = palette.muted_on_canvas;
-        let border = palette.border_on_canvas;
-        let seam = palette.seam_on_canvas;
-        let accent = palette.accent_on_canvas;
-        let active_tab = palette.primary_on_elevated_bold;
-        let field = palette.primary_on_field;
-        let field_secondary = palette.secondary_on_field;
-        let field_glyph = palette.field_on_field;
-        let button = palette.primary_on_button;
-        let button_glyph = palette.button_on_button;
-        let check = palette.accent_on_canvas;
-
-        let put = |ui: &mut Ui<'_>, x: u16, y: u16, text: &str, style: PaintStyle| {
-            if y < area.bottom() && x < area.right() {
-                ui.paint_str(
-                    Rect::new(x, y, area.right().saturating_sub(x), 1),
-                    text,
-                    style,
-                );
-            }
-        };
-
-        put(ui, 12, 0, " File ", secondary);
-        put(ui, 19, 0, " Go ", secondary);
-        put(ui, 24, 0, " Help ", secondary);
-        put(
-            ui,
-            49,
-            0,
-            "Workspaces › payments-platform › edit",
-            secondary,
-        );
-        put(ui, 88, 0, "inside the Construct", secondary);
-        put(ui, 110, 0, "2 running", muted);
-
-        put(ui, 2, 3, " General  ", active_tab);
-        put(ui, 13, 3, " Mounts  ", secondary);
-        put(ui, 23, 3, " Roles  ", secondary);
-        put(ui, 32, 3, " Environments  ", secondary);
-        put(ui, 48, 3, " Accounts  ", secondary);
-        put(ui, 2, 4, "━━━━━━━━━━", accent);
-        put(
-            ui,
-            12,
-            4,
-            "──────────────────────────────────────────────────────────────────────────────────────────────────────────",
-            seam,
-        );
-
-        put(ui, 6, 6, "Name ", secondary);
-        put(ui, 11, 6, "*", accent);
-        put(
-            ui,
-            12,
-            6,
-            "                                                                ",
-            secondary,
-        );
-        put(ui, 4, 7, "▎", field_glyph);
-        put(
-            ui,
-            5,
-            7,
-            " payments-platform                                                     ",
-            field,
-        );
-        put(ui, 6, 8, "Directory basename by default", muted);
-
-        put(
-            ui,
-            4,
-            10,
-            "Working directory *",
-            palette.secondary_on_canvas_bold,
-        );
-        put(
-            ui,
-            4,
-            11,
-            "/workspace/payments-platform                              ",
-            secondary,
-        );
-        put(ui, 65, 11, "▎", button_glyph);
-        put(ui, 66, 11, "Choose… ", button);
-        put(ui, 4, 12, "Inside the Construct", border);
-
-        put(ui, 4, 14, "▎", palette.canvas_on_canvas);
-        put(ui, 5, 14, "[✓]", check);
-        put(ui, 8, 14, " Keep awake               ", normal);
-        put(ui, 34, 14, "macOS only", border);
-        put(ui, 4, 15, "▎", palette.canvas_on_canvas);
-        put(ui, 5, 15, "[✓]", check);
-        put(
-            ui,
-            8,
-            15,
-            " Git pull before launch                                                                                         ",
-            normal,
-        );
-        put(ui, 6, 17, "On dirty exit", secondary);
-        put(ui, 4, 18, "▎", field_glyph);
-        put(
-            ui,
-            5,
-            18,
-            " ask · show the exit dialog                  ",
-            field,
-        );
-        put(ui, 50, 18, "▾", field_secondary);
-        put(ui, 51, 18, " ", field);
-
-        put(ui, 97, 37, "▎", palette.canvas_on_canvas);
-        put(ui, 98, 37, "Cancel ", secondary);
-        put(ui, 108, 37, "▎", palette.elevated_on_elevated);
-        put(ui, 109, 37, "Save… ", palette.border_on_elevated);
-
-        put(ui, 25, 39, "← →", palette.primary_on_canvas_bold);
-        put(ui, 29, 39, "Tab", muted);
-        put(ui, 34, 39, "1–5", palette.primary_on_canvas_bold);
-        put(ui, 38, 39, "Jump", muted);
-        put(ui, 44, 39, "Enter", palette.primary_on_canvas_bold);
-        put(ui, 50, 39, "Body", muted);
-        put(ui, 56, 39, "[ ]", palette.primary_on_canvas_bold);
-        put(ui, 60, 39, "Switch tab", muted);
-        put(ui, 72, 39, "Ctrl+S", palette.primary_on_canvas_bold);
-        put(ui, 79, 39, "Save", muted);
-        put(ui, 85, 39, "Esc", palette.primary_on_canvas_bold);
-        put(ui, 89, 39, "Back", muted);
-        let edge = palette.primary_on_canvas;
-        ui.paint_cell(
-            Position::new(
-                area.right().saturating_sub(2),
-                area.bottom().saturating_sub(1),
-            ),
-            "  ",
-            edge,
-        );
-        ui.paint_cell(
-            Position::new(
-                area.right().saturating_sub(1),
-                area.bottom().saturating_sub(1),
-            ),
-            " ",
-            edge,
-        );
-        if ui
-            .state(MANAGER_LIST)
-            .contains(termrock::StateFlags::FOCUSED)
-        {
-            ui.set_cursor(
-                MANAGER_LIST,
-                Position::new(
-                    area.right().saturating_sub(1),
-                    area.bottom().saturating_sub(1),
-                ),
-            );
+    fn draw_historical_editor(&self, ui: &mut Ui<'_>, _area: Rect) {
+        // Approved 120×40 truecolor General tab. Other levels keep the live editor.
+        let legacy = ui.theme_ref().capability.color == termrock::ColorLevel::TrueColor
+            && ui.theme_ref().color.accent == termrock::Color::Rgb(0x48, 0xe0, 0x54);
+        if !legacy {
+            return;
         }
+        historical_editor::paint(ui);
     }
 
     fn draw_historical_first_use(&self, ui: &mut Ui<'_>, area: Rect) {
@@ -8173,5 +8017,51 @@ mod paint_contract_tests {
         assert_eq!(settled.cell(2, 0).symbol(), "j");
         assert_eq!(settled.cell(106, 0).symbol(), "n");
         assert_ne!(settled.cell(29, 0).symbol(), "─");
+    }
+
+    #[test]
+    fn returning_editor_general_paints_the_approved_120x40_frame() {
+        use termrock::{Color, KeyCode, Modifier, Theme};
+        use termrock_test_support::Harness;
+        let mut editor = Harness::new(
+            App::for_scenario(Scenario::Returning, Motion::Paused),
+            Theme::junie(),
+            120,
+            40,
+        );
+        let _ = editor.key(KeyCode::Char('e'));
+        let rule = editor.cell(2, 4);
+        assert_eq!(rule.symbol(), "━");
+        assert_eq!(rule.fg, Color::Rgb(0x48, 0xe0, 0x54));
+        assert_eq!(rule.bg, Color::Rgb(0, 0, 0));
+        assert!(!rule.modifier.contains(Modifier::BOLD));
+        let brand = editor.cell(2, 0);
+        assert_eq!(brand.symbol(), "j");
+        assert_eq!(brand.fg, Color::Rgb(0x19, 0x19, 0x1c));
+        assert_eq!(brand.bg, Color::Rgb(0x48, 0xe0, 0x54));
+        assert!(brand.modifier.contains(Modifier::BOLD));
+        assert!(editor.cursor().is_none());
+        assert!(editor.text().contains("General"));
+
+        let mut mounts = App::for_scenario(Scenario::Returning, Motion::Paused);
+        let workspace = mounts.world.workspaces[0].clone();
+        mounts.route = Route::Editor;
+        mounts.editor.load_workspace(&workspace);
+        mounts.editor.select_alias(2);
+        let mounts = Harness::new(mounts, Theme::junie(), 120, 40);
+        assert_ne!(mounts.cell(2, 4).symbol(), "━");
+
+        let mut paper = Harness::new(
+            App::for_scenario(Scenario::Returning, Motion::Paused),
+            Theme::paper(),
+            120,
+            40,
+        );
+        let _ = paper.key(KeyCode::Char('e'));
+        let paper_rule = paper.cell(2, 4);
+        assert!(
+            paper_rule.symbol() != "━" || paper_rule.fg != Color::Rgb(0x48, 0xe0, 0x54),
+            "paper must keep the live editor"
+        );
     }
 }
