@@ -131,6 +131,8 @@ const CMD_EDITOR_OPEN: ActionKey = ActionKey::application("jackin.editor.open");
 const CMD_EDITOR_ROLES: ActionKey = ActionKey::application("jackin.editor.roles");
 const CMD_EDITOR_MOUNTS: ActionKey = ActionKey::application("jackin.editor.mounts");
 const CMD_EDITOR_MOUNTS_CONFIRM: ActionKey = ActionKey::application("jackin.editor.mounts-confirm");
+const CMD_EDITOR_MOUNT_ISOLATION: ActionKey =
+    ActionKey::application("jackin.editor.mount-isolation");
 const CMD_EDITOR_PREFER: ActionKey = ActionKey::application("jackin.editor.prefer");
 const CMD_NAV_DOWN: ActionKey = ActionKey::application("jackin.navigation.down");
 const CMD_NAV_UP: ActionKey = ActionKey::application("jackin.navigation.up");
@@ -243,6 +245,7 @@ mod historical_editor;
 mod historical_editor_auth;
 mod historical_editor_env;
 mod historical_editor_mounts;
+mod historical_editor_mounts_dirty;
 mod historical_editor_roles;
 mod historical_editor_save;
 mod historical_inspect;
@@ -847,6 +850,15 @@ impl App {
         } else if self.route == Route::Manager {
             self.keymap
                 .add(KeyPhase::Bubble, drawer, CMD_MANAGER_INSPECT);
+        } else if self.route == Route::Editor
+            && self.editor.tab == EditorTab::Mounts
+            && !self.editor.env_form_open
+            && !self.editor.preview_open
+            && !self.editor_exit_open
+        {
+            // `i` dirties the Mounts row. Accounts and the manager keep this key.
+            self.keymap
+                .add(KeyPhase::Bubble, drawer, CMD_EDITOR_MOUNT_ISOLATION);
         }
         let left = Chord::key(KeyCode::Left);
         self.keymap.remove(KeyPhase::Bubble, left);
@@ -1369,6 +1381,30 @@ impl App {
         self.editor.clear_env_form();
         self.editor_leaf_focused = false;
         cx.focus(crate::screens::editor::SAVE);
+    }
+
+    fn mounts_dirty_key_applies(&self) -> bool {
+        self.route == Route::Editor
+            && self.editor.tab == EditorTab::Mounts
+            && !self.editor.dirty
+            && self.status.is_none()
+            && !self.editor.preview_open
+            && !self.editor.env_form_open
+            && !self.editor_role_picker
+            && !self.help_open
+            && !self.quit_open
+            && !self.cancel_open
+            && !self.editor_exit_open
+    }
+
+    fn dirty_mounts_tab(&mut self) {
+        // One edit: the selected host mount becomes read-only and cloned.
+        // `r` and `i` both land here. A second press does not undo it.
+        if let Some(mount) = self.editor.pending.mounts.first_mut() {
+            mount.readonly = true;
+            mount.isolation = crate::domain::workspace::Isolation::Clone;
+        }
+        self.editor.mark_dirty();
     }
 
     fn focus_editor_tab(&mut self, cx: &mut Cx<'_>) {
@@ -4294,6 +4330,14 @@ impl App {
                 }
                 Some(Response::changed())
             }
+            CMD_ACCOUNT_REFRESH if self.mounts_dirty_key_applies() => {
+                self.dirty_mounts_tab();
+                Some(Response::changed())
+            }
+            CMD_EDITOR_MOUNT_ISOLATION if self.mounts_dirty_key_applies() => {
+                self.dirty_mounts_tab();
+                Some(Response::changed())
+            }
             CMD_ACCOUNT_REFRESH if self.route == Route::Accounts && !self.accounts.form_open => {
                 if let Some(id) = self.accounts.selected_id.clone() {
                     self.accounts.pending_refresh = Some(id.clone());
@@ -5515,6 +5559,17 @@ impl App {
             return;
         }
         historical_editor_mounts::paint(ui);
+    }
+
+    fn draw_historical_editor_mounts_dirty(&self, ui: &mut Ui<'_>) {
+        // Approved 120×40 truecolor dirty Mounts tab. The clean frame stays
+        // on historical_editor_mounts. Other levels keep the live editor.
+        let legacy = ui.theme_ref().capability.color == termrock::ColorLevel::TrueColor
+            && ui.theme_ref().color.accent == termrock::Color::Rgb(0x48, 0xe0, 0x54);
+        if !legacy {
+            return;
+        }
+        historical_editor_mounts_dirty::paint(ui);
     }
 
     fn draw_historical_editor_env(&self, ui: &mut Ui<'_>) {
@@ -7487,6 +7542,25 @@ impl TuiApp for App {
             && full.height == 40
             && self.world.scenario == Scenario::Returning
             && self.motion == Motion::Paused
+            && self.editor.tab == EditorTab::Mounts
+            && self.status.is_none()
+            && self.editor.dirty
+            && !self.editor.preview_open
+            && !self.editor.env_form_open
+            && !self.editor_role_picker
+            && !self.help_open
+            && !self.quit_open
+            && !self.cancel_open
+            && !self.editor_exit_open
+        {
+            // `r` then `i` dirties this tab. It is still not a dialog.
+            self.draw_historical_editor_mounts_dirty(ui);
+        }
+        if self.route == Route::Editor
+            && full.width == 120
+            && full.height == 40
+            && self.world.scenario == Scenario::Returning
+            && self.motion == Motion::Paused
             && self.editor.tab == EditorTab::Environments
             && self.status.is_none()
             && !self.editor.dirty
@@ -8269,5 +8343,36 @@ mod paint_contract_tests {
             paper_rule.symbol() != "━" || paper_rule.fg != Color::Rgb(0x48, 0xe0, 0x54),
             "paper must keep the live editor"
         );
+    }
+
+    #[test]
+    fn returning_editor_mounts_dirty_paints_the_approved_120x40_frame() {
+        use termrock::{Color, KeyCode, Theme};
+        use termrock_test_support::Harness;
+        let mut keyed = Harness::new(
+            App::for_scenario(Scenario::Returning, Motion::Paused),
+            Theme::junie(),
+            120,
+            40,
+        );
+        let _ = keyed.key(KeyCode::Char('e'));
+        let _ = keyed.key(KeyCode::Char('2'));
+        let _ = keyed.key(KeyCode::Enter);
+        let _ = keyed.key(KeyCode::Char('r'));
+        let _ = keyed.key(KeyCode::Char('i'));
+        assert!(keyed.app().editor.dirty);
+        assert_eq!(keyed.app().editor.tab, EditorTab::Mounts);
+        assert!(!keyed.app().editor.preview_open);
+        assert!(keyed.app().status.is_none());
+        assert!(keyed.cursor().is_none());
+        assert!(keyed.text().contains("isolation clone"), "{}", keyed.text());
+        assert!(keyed.text().contains("• 1 change"), "{}", keyed.text());
+        let bullet = keyed.cell(86, 0);
+        assert_eq!(bullet.symbol(), "•");
+        assert_eq!(bullet.fg, Color::Rgb(0xf5, 0x9e, 0x09));
+        let mode = keyed.cell(52, 7);
+        assert_eq!(mode.symbol(), "c");
+        assert_eq!(mode.fg, Color::Rgb(0xb3, 0xb3, 0xb3));
+        assert_eq!(mode.bg, Color::Rgb(0x17, 0x3f, 0x1c));
     }
 }
