@@ -251,10 +251,7 @@ impl<'a> CompletingCodeEditor<'a> {
         let manual_requested = cx.intents(self.id).any(|intent| {
             matches!(intent, Intent::Binding(action) if action == MANUAL_COMPLETION_ACTION)
         });
-        let focus_lost = cx
-            .intents(self.id)
-            .any(|intent| matches!(intent, Intent::FocusOut { .. }));
-        if focus_lost || self.editor.is_disabled() || self.editor.is_read_only() {
+        if self.editor.is_disabled() || self.editor.is_read_only() {
             CompletionController::new(self.id, self.popup_id).dismiss(cx, &mut state.completion);
             state.items.clear();
             return self.editor.update(cx, &mut state.editor);
@@ -307,7 +304,10 @@ impl<'a> CompletingCodeEditor<'a> {
                 let owner_binding = cx
                     .intents(self.id)
                     .any(|intent| matches!(intent, Intent::Binding(_)));
-                if escape || (!owner_binding && !owner_pointer) {
+                let focus_out = cx
+                    .intents(self.id)
+                    .any(|intent| matches!(intent, Intent::FocusOut { .. }));
+                if escape || (!owner_binding && !owner_pointer && !focus_out) {
                     return if completion_response.is_changed() {
                         Response::changed()
                     } else {

@@ -341,13 +341,9 @@ impl<'u> RowUi<'u> {
     }
 
     pub fn label_matched(&mut self, s: &str, matched: &[usize]) {
-        let mut style = self.style_of(Part::LABEL);
-        // Built-in picker recipes may bold the active row's label. For an
-        // unselected row, reserve bold for matched graphemes so search
-        // emphasis remains distinguishable from the cursor row.
-        if !self.flags.contains(StateFlags::FOCUSED) {
-            style = style.remove_modifier(Modifier::BOLD);
-        }
+        // Match emphasis adds BOLD to matching graphemes in `paint_matched`;
+        // preserve the complete resolved style for all other graphemes.
+        let style = self.style_of(Part::LABEL);
         let area = self.remaining();
         let used = if width(s) <= area.width {
             self.ui.paint_matched(area, s, matched, style)
@@ -994,13 +990,22 @@ mod tests {
         f: impl FnOnce(&mut RowUi<'_>),
     ) -> Buffer {
         let theme = Theme::junie();
+        paint_with_theme_patches(&theme, container_patch, label_patch, f)
+    }
+
+    fn paint_with_theme_patches(
+        theme: &Theme,
+        container_patch: Option<StylePatch>,
+        label_patch: Option<StylePatch>,
+        f: impl FnOnce(&mut RowUi<'_>),
+    ) -> Buffer {
         let mut frame = FrameState::default();
         frame.reset(1, SCREEN);
         let mut page = Buffer::empty(SCREEN);
         let mut core = UiCore::default();
         let last = LastFrame::default();
         {
-            let mut ui = Ui::new(&mut frame, &mut page, &mut core, &theme, &last);
+            let mut ui = Ui::new(&mut frame, &mut page, &mut core, theme, &last);
             let mut row = RowUi::new_with_patches(
                 &mut ui,
                 OWNER,
@@ -1092,6 +1097,57 @@ mod tests {
         assert!(
             page.cell((0, 0))
                 .is_some_and(|cell| !cell.modifier.contains(Modifier::BOLD))
+        );
+    }
+
+    #[test]
+    fn matched_labels_preserve_explicit_bold_and_only_emphasize_matches() {
+        let explicit = StylePatch::new().add(Modifier::BOLD);
+        let page = paint_with_patches(None, Some(explicit), |row| {
+            row.label_matched("label", &[]);
+        });
+        assert!(
+            (0..5).all(|x| page
+                .cell((x, 0))
+                .is_some_and(|cell| cell.modifier.contains(Modifier::BOLD))),
+            "an empty match must preserve the consumer's bold label style"
+        );
+
+        let mut theme = Theme::junie();
+        theme
+            .recipes
+            .get_mut(Family::LIST)
+            .parts
+            .entry(Part::LABEL)
+            .base = StylePatch::new().add(Modifier::BOLD);
+        let page = paint_with_theme_patches(&theme, None, None, |row| {
+            row.label_matched("label", &[1]);
+        });
+        assert!(
+            (0..5).all(|x| page
+                .cell((x, 0))
+                .is_some_and(|cell| cell.modifier.contains(Modifier::BOLD))),
+            "matching must preserve theme-authored bold across the label"
+        );
+
+        let page = paint_with_patches(None, None, |row| {
+            row.label_matched("label", &[1, 4]);
+        });
+        assert!(
+            page.cell((0, 0))
+                .is_some_and(|cell| !cell.modifier.contains(Modifier::BOLD))
+        );
+        assert!(
+            page.cell((1, 0))
+                .is_some_and(|cell| cell.modifier.contains(Modifier::BOLD))
+        );
+        assert!(
+            page.cell((2, 0))
+                .is_some_and(|cell| !cell.modifier.contains(Modifier::BOLD))
+        );
+        assert!(
+            page.cell((4, 0))
+                .is_some_and(|cell| cell.modifier.contains(Modifier::BOLD))
         );
     }
 
