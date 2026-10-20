@@ -1446,11 +1446,18 @@ mod tests {
 
     #[test]
     fn authored_scrollbar_container_press_rule_keeps_the_legacy_filter() {
-        let authored = [(
-            Part::CONTAINER,
-            StateFlags::PRESSED,
-            StylePatch::new().set_glyph(GlyphRole::WarningMark),
-        )];
+        let authored = [
+            (
+                Part::CONTAINER,
+                StateFlags::PRESSED,
+                StylePatch::new().set_glyph(GlyphRole::WarningMark),
+            ),
+            (
+                Part::THUMB,
+                StateFlags::PRESSED,
+                StylePatch::new().set_glyph(GlyphRole::WarningMark),
+            ),
+        ];
         let theme = Theme::junie()
             .builder()
             .mono_rules(Family::SCROLLBAR, &authored)
@@ -1465,6 +1472,14 @@ mod tests {
         );
 
         assert_ne!(pressed.glyph, Slot::Set(GlyphRole::WarningMark));
+        let thumb = theme.resolve(
+            Family::SCROLLBAR,
+            Variant::DEFAULT,
+            Part::THUMB,
+            StateFlags::PRESSED,
+            Surface::Canvas,
+        );
+        assert_eq!(thumb.glyph, Slot::Set(GlyphRole::WarningMark));
     }
 
     #[test]
