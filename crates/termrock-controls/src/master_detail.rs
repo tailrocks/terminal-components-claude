@@ -83,7 +83,7 @@ pub struct MasterDetailLayout {
 }
 
 /// Persistent split and narrow-drawer state for [`MasterDetail`].
-#[derive(Clone, Debug, Default, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub struct MasterDetailState {
     split: Option<SplitPaneState>,
     drawer_open: bool,
@@ -284,22 +284,34 @@ impl MasterDetail {
 
     /// Compute stable pane regions for a terminal area.
     pub fn layout(&self, area: Rect, state: &MasterDetailState) -> MasterDetailLayout {
-        if area.width >= self.collapse_below {
+        let mut layout = self.resolve_responsive_layout(area, state.drawer_open);
+        if layout.mode == MasterDetailMode::Split {
             let split = self.split_pane();
             let split_state = state
                 .split
                 .unwrap_or_else(|| SplitPaneState::new(self.master_share));
             let (master, detail) = split.panes(split_state, area);
+            layout.master = master;
+            layout.detail = detail;
+            layout.seam = split.seam(split_state, area);
+        }
+        layout
+    }
+
+    /// Resolve shared responsive mode and narrow summary geometry.
+    ///
+    /// Split pane geometry remains owned by the configured [`SplitPane`]. In
+    /// split mode, the pane rectangles in the returned value are empty; use
+    /// [`Self::layout`] when this control's split regions are needed.
+    pub fn resolve_responsive_layout(&self, area: Rect, drawer_open: bool) -> MasterDetailLayout {
+        if area.width >= self.collapse_below {
             return MasterDetailLayout {
                 mode: MasterDetailMode::Split,
-                master,
-                detail,
-                summary: Rect::ZERO,
-                seam: split.seam(split_state, area),
+                ..MasterDetailLayout::default()
             };
         }
 
-        if state.drawer_open {
+        if drawer_open {
             return MasterDetailLayout {
                 mode: MasterDetailMode::Drawer,
                 detail: area,
@@ -997,7 +1009,7 @@ mod tests {
         runtime.draw_buffer(area, &mut buffer).commit_presented();
         runtime.set_focus(Some(REAL_DETAIL));
 
-        let before = runtime.app().state.clone();
+        let before = runtime.app().state;
         let md = real_md();
         let expected = md.layout(area, &before);
         assert_eq!(expected.mode, MasterDetailMode::Split);
