@@ -10,6 +10,7 @@ policy = "consumer-v1"
 default_branch = "design/interaction-polish"
 # docs/visual-testing/plan.md §C3: CI runs on ubuntu-24.04.
 runner_label = "ubuntu-24.04"
+crate_timeout_minutes = 15
 
 [stacks.rust]
 # Plain Cargo; matches the documented gate in AGENTS.md.
