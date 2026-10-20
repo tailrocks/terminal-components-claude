@@ -513,3 +513,10 @@ The protected Grid painter-removal candidate `a5ac5cf14c5ffcc2d28d62fadb46bbacdd
 ## Integrated CI protection branch cleanup (2026-10-21)
 
 Deleted only `wip/ci-testing-features-20261021` at `9576b24e96f383590b9b621bfe43ff0154577acd` after writer release, literal ancestry, no open PR, unprotected status, exact-tip lease and remote absence checks. The independently reviewed CI changes remain in PR #38. [Cleanup evidence](../audits/2026-10-21-integrated-ci-branch-cleanup.json) records the integration head. Active Grid/editor preservation branches, the read-only design reference and main remain untouched.
+
+
+## Superseded main-only CI PR consolidated (2026-10-21)
+
+Closed PR #39 after independent review and direct object comparison established no unique required Velnor pin, tool-lock, release-manifest or generated-helper delta beyond PR #38. Its schema-1 configuration and main-specific generated task graph are excluded because they would omit PR #38 testing configuration. Deleted only its unprotected task branch `ci/velnor-0.1.29-main-20261020` at `a6929aeba7479d0b3a746f69d412a1ab701b5242` after checking the closed PR, no dependent open PRs, exact remote tip and remote absence. Main and PR #26 are unchanged. The original branch inventory is preserved with an additive superseding decision in the [branch ledger](../audits/2026-10-20-branch-consolidation.json).
+
+The [upstream Velnor review](../audits/2026-10-21-velnor-upstream-review.md) records latest stable 0.1.29 and upstream main source, the missing Plan timeout setting and the doctest policy conflict. A backward-compatible upstream Plan timeout setting is being implemented separately; it is not released or adopted by Termrock. Doctest coverage must be migrated to executable nextest coverage before disabling any target doctests. CI and application acceptance remain incomplete.
