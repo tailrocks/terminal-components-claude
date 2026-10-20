@@ -404,6 +404,58 @@ impl SplitModel {
         self.layout_with_ratio(area, gap, u32::from(basis_points.clamp(500, 9_500)), 10_000)
     }
 
+    /// Return the smallest extent whose resolved panes can hold both requested
+    /// along-axis sizes at this precise ratio. This calls the same canonical
+    /// split resolver as rendering, so rounding and pane minima stay aligned.
+    pub fn required_extent_with_basis_points(
+        self,
+        gap: u16,
+        basis_points: u16,
+        first: u16,
+        second: u16,
+    ) -> u16 {
+        if self.maximized == Maximized::First {
+            return first;
+        }
+        if self.maximized == Maximized::Second {
+            return second;
+        }
+
+        let usable_min = u32::from(first).saturating_add(u32::from(second));
+        let mut low = usable_min
+            .saturating_add(u32::from(gap))
+            .min(u32::from(u16::MAX)) as u16;
+        let fits = |extent: u16| {
+            let area = match self.axis {
+                SplitAxis::Vertical => Rect::new(0, 0, 1, extent),
+                SplitAxis::Horizontal => Rect::new(0, 0, extent, 1),
+            };
+            let (first_area, second_area) = self.layout_with_basis_points(area, gap, basis_points);
+            let (first_extent, second_extent) = match self.axis {
+                SplitAxis::Vertical => (first_area.height, second_area.height),
+                SplitAxis::Horizontal => (first_area.width, second_area.width),
+            };
+            first_extent >= first && second_extent >= second
+        };
+
+        if fits(low) {
+            return low;
+        }
+        if !fits(u16::MAX) {
+            return u16::MAX;
+        }
+        let mut high = u16::MAX;
+        while low < high {
+            let middle = low + (high - low) / 2;
+            if fits(middle) {
+                high = middle;
+            } else {
+                low = middle.saturating_add(1);
+            }
+        }
+        low
+    }
+
     fn layout_with_ratio(
         &self,
         area: Rect,
@@ -867,6 +919,42 @@ mod tests {
                 );
             }
         }
+    }
+
+    #[test]
+    fn required_split_extent_uses_the_same_ratio_and_rounding_as_layout() {
+        let model = SplitModel::new(SplitAxis::Vertical, 38, 4, 6);
+        for first in 1..=20 {
+            for second in 1..=20 {
+                let extent = model.required_extent_with_basis_points(1, 3_800, first, second);
+                let area = Rect::new(0, 0, 1, extent);
+                let (first_area, second_area) = model.layout_with_basis_points(area, 1, 3_800);
+                assert!(first_area.height >= first, "first={first}, second={second}");
+                assert!(
+                    second_area.height >= second,
+                    "first={first}, second={second}"
+                );
+                if extent > 0 {
+                    let smaller = Rect::new(0, 0, 1, extent - 1);
+                    let (first_area, second_area) =
+                        model.layout_with_basis_points(smaller, 1, 3_800);
+                    assert!(
+                        first_area.height < first || second_area.height < second,
+                        "extent {extent} was not minimal for {first}/{second}"
+                    );
+                }
+            }
+        }
+        assert_eq!(model.required_extent_with_basis_points(1, 3_800, 10, 6), 28);
+
+        let maximized = SplitModel {
+            maximized: Maximized::First,
+            ..model
+        };
+        assert_eq!(
+            maximized.required_extent_with_basis_points(1, 3_800, 10, 6),
+            10
+        );
     }
 
     #[test]

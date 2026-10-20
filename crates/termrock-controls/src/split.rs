@@ -241,8 +241,14 @@ impl<'a> SplitPane<'a> {
         self.axis
     }
 
-    pub const fn gap_size(&self) -> u16 {
-        self.gap
+    /// Smallest extent at which the resolved panes can hold their requested
+    /// along-axis sizes. The current state ratio and the pane's configured
+    /// minima are included by the shared split model.
+    pub fn required_extent(&self, state: &SplitPaneState, first: u16, second: u16) -> u16 {
+        let model = self.model(*state);
+        let first = first.max(model.min_first);
+        let second = second.max(model.min_second);
+        model.required_extent_with_basis_points(self.gap, state.basis_points, first, second)
     }
 
     #[must_use]
