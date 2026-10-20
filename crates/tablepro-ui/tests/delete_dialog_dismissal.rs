@@ -1,5 +1,5 @@
 use tablepro_ui::{Screen, Surface, TableProApp};
-use termrock::{Id, KeyCode, Theme};
+use termrock::{Diagnostic, Id, KeyCode, MouseKind, Theme};
 use termrock_test_support::Harness;
 
 const CONNECTIONS: Id = Id::root("tablepro.connections.list");
@@ -10,6 +10,17 @@ fn open_delete_dialog(harness: &mut Harness<TableProApp>) {
     assert!(
         harness.find("Delete connection?").is_some(),
         "the Delete key opens the live connection confirmation"
+    );
+}
+
+fn assert_no_undelivered_intents(harness: &Harness<TableProApp>) {
+    assert!(
+        !harness
+            .diagnostics()
+            .iter()
+            .any(|diagnostic| matches!(diagnostic, Diagnostic::UndeliveredIntent { .. })),
+        "dialog dismissal left an undelivered intent: {:?}",
+        harness.diagnostics()
     );
 }
 
@@ -28,9 +39,12 @@ fn delete_connection_dialog_dismissal_cancels_and_can_be_reopened() {
         open_delete_dialog(&mut harness);
         let dialog_focus = harness.focus();
         if outside_click {
-            let _ = harness.click(0, 0);
+            let _ = harness.mouse(MouseKind::Down, 0, 0);
+            assert_no_undelivered_intents(&harness);
+            let _ = harness.mouse(MouseKind::Up, 0, 0);
         } else {
             let _ = harness.key(KeyCode::Esc);
+            assert_no_undelivered_intents(&harness);
         }
         assert!(harness.find("Delete connection?").is_none());
         assert_eq!(
