@@ -911,21 +911,9 @@ impl<'f> Ui<'f> {
         typing_offer: bool,
         shape: crate::cursor::CursorShape,
     ) {
-        if self.reference.is_some() || self.clip.is_empty() {
+        if self.reference.is_some() || !self.clip.contains(pos) {
             return;
         }
-        let right = self
-            .clip
-            .x
-            .saturating_add(self.clip.width.saturating_sub(1));
-        let bottom = self
-            .clip
-            .y
-            .saturating_add(self.clip.height.saturating_sub(1));
-        let pos = Position::new(
-            pos.x.clamp(self.clip.x, right),
-            pos.y.clamp(self.clip.y, bottom),
-        );
         self.frame.cursors.push(CursorRequest {
             layer: self.layer,
             owner,
