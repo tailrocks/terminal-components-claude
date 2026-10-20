@@ -26,8 +26,8 @@
   "checks": {
     "runtime_all_targets": "360 tests run, 360 passed, 3 skipped",
     "theme_all_targets": "139 passed, 1 failed: termrock-theme::capability_palettes::all_73_junie_slots_match_reference_capability_output; failure was not changed, waived, or independently established as pre-existing",
-    "theme_and_runtime_scoped_clippy": "pending",
-    "changed_file_rustfmt": "passed"
+    "theme_and_runtime_scoped_clippy": "passed on merged PR38 HEAD 49da9ae391582b783cd7aeeec745294c1c2f2f64 source plus modal change",
+    "changed_file_rustfmt": "passed: rustfmt --check --edition 2024 on three changed Rust files"
   },
   "working_tree_note": "Nextest exposed approximately 1303 deleted tracked files under crates/termrock-conformance/target/tuiscotti-actuals. They were left untouched and unstaged as unrelated existing/worktree artifacts.",
   "coverage_gap": "This shared runtime change has no claim of full application visual/functional acceptance."
