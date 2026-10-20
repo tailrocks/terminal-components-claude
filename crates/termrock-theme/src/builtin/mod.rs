@@ -94,7 +94,10 @@ fn button_variant(m: &mut PartMap<PartRecipe>, v: Variant) {
                 .add(Modifier::BOLD),
         )
         .when(StateFlags::HOVERED, p().set_bg(Role::AccentHover))
-        .when(StateFlags::PRESSED, p().set_bg(Role::AccentPressed))
+        .when(
+            StateFlags::PRESSED,
+            p().set_fg(Role::OnAccent).set_bg(Role::AccentPressed),
+        )
         .when(
             StateFlags::DISABLED,
             p().set_fg(Role::DisabledFg)
@@ -186,8 +189,36 @@ fn button_variant(m: &mut PartMap<PartRecipe>, v: Variant) {
             .set_fg(gutter_fg)
             .remove(Modifier::BOLD),
     );
-    part(m, Part::LABEL, p());
-    part(m, Part::ICON, p());
+    part(m, Part::LABEL, p())
+        .when(
+            StateFlags::BUSY,
+            if v == Variant::PRIMARY {
+                p().set_fg(Role::OnAccent)
+            } else {
+                p().set_fg(Role::Fg(FgStep::Secondary))
+            },
+        )
+        .when(StateFlags::DISABLED, p().set_fg(Role::DisabledFg));
+    part(m, Part::ICON, p())
+        .when(
+            StateFlags::BUSY,
+            p().set_fg(if v == Variant::PRIMARY {
+                Role::OnAccent
+            } else {
+                Role::Accent
+            }),
+        )
+        .when(StateFlags::ERROR, p().set_fg(Role::Danger))
+        .when(StateFlags::DISABLED, p().set_fg(Role::DisabledFg));
+    let pressed_marker_fg = match v {
+        Variant::PRIMARY => Role::OnAccent,
+        Variant::DANGER => Role::OnDanger,
+        _ => Role::Surface(Surface::Canvas),
+    };
+    part(m, Part::MARKER, p().set_fg(Role::Fg(FgStep::Muted)))
+        .when(StateFlags::CHECKED, p().set_fg(Role::Accent))
+        .when(StateFlags::PRESSED, p().set_fg(pressed_marker_fg))
+        .when(StateFlags::DISABLED, p().set_fg(Role::DisabledFg));
 }
 
 fn field_like(m: &mut PartMap<PartRecipe>) {
