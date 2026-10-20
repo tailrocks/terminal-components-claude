@@ -904,3 +904,24 @@ Frozen-behavior deviations (deliberate): `ScrollState::context` defaults to 0 (P
 Handoffs for other owners: `MouseKind::SecondaryDrag` is missing in `termrock-core` `event.rs` `from_crossterm` (right-button drag maps to `None`), needed before `SecondaryTracker::on_secondary_drag` can be driven from real input; the full PR #26 `tests/mouse_targets.rs` port needs the widget-crate owners (it exercises per-widget targets); in parity the bar thumb region is owned by the bar id (PR #26 answered hits with the owner), recorded as the registry's documented adaptation.
 
 Gate on pushed HEAD: `cargo nextest run` for core, text, collections, viewport, runtime (573 passed), `cargo nextest run -p termrock-conformance` failure set byte-identical to the parent commit (288 pre-existing failures from other sessions' landings, zero added), strict clippy `--all-targets` clean and `cargo fmt --check` clean on all touched crates.
+
+
+## 2026-10-21: reviewed navigation row integration
+
+Integrated NavList/RowUi source `9a550edecc55ee99b170ff31ee51957895aeb1ee` and historical test-fixture repair `eb82d6e1526cd55f21cdc66590b9ff36d7606deb`. Independent reviews are preserved under `docs/audits/evidence/2026-10-21-nav-row-integration/`. The row API preserves default rendering and exposes shared composition parts, cursor style, and configurable content gaps. The historical fixture explicitly reconstructs its original disabled palette; production colors and existing checksum literals remain unchanged. Its negative guard now isolates the intended muted-color defect. These changes do not establish Holla or other application parity.
+
+The preceding modal/field/form integration was pushed and remotely verified at `913a74b879039fcf115318edee303c02d395869f`: scoped Fields/Forms/Runtime nextest passed 520 tests with three skipped; scoped strict Clippy and formatting passed. Incoming source from concurrent authors remains subject to independent architecture and product review. All four application acceptance gates remain incomplete.
+
+
+## 2026-10-21: typed dialog and property slots
+
+Integrated `a1903462d2abf972741f15d4b5873a953e5df471`, retaining the existing Dialog renderer, state registration, and PropsList behavior through public typed adapters. The independent clearance packet is under `docs/audits/evidence/2026-10-21-typed-slots/`; its SHA-256 is `9e7253efd9192745bdc0a3d8bc3acc8f5e29ef903961f6231abfd77ac06d2c2f`. The committed clipping regression fails on the previous implementation and the corrected external suite passes 24 tests without skips. Application adoption, InfoDialog chrome, scoped commands, and complete product parity remain unverified.
+
+The preceding navigation increment was pushed and remotely verified at `b77445a6da757045f80cf793adc7812952aaeab9`. Navigation/runtime nextest passed 579 tests with three skips, and the public composition consumer passed three tests without skips; scoped strict Clippy and formatting passed. The first consumer invocation omitted its required `testing` feature and stopped before execution; the corrected invocation passed. Incoming concurrent Button/theme/Showcase changes were preserved through normal merge and still require independent review.
+
+
+## 2026-10-21: recolor channel provenance
+
+Integrated `dfb54cfc5dd9511b214a68677eb213492df897fd`. Existing recolor APIs keep their signatures, callback order, and eligibility; changed channels now preserve unrelated style provenance, while unchanged channels do not acquire new paint metadata. The independent packet under `docs/audits/evidence/2026-10-21-recolor-provenance/` has SHA-256 `50295af7cffefb3a0c25aeee72810bf631490cd10b1d7495b770dba43e75b05b`: the unchanged external suite failed ten of fourteen checks before the fix and passed fourteen twice afterward. This repairs a rendering primitive; it does not authorize application-owned widget repainting or screen-specific recolor passes.
+
+The preceding typed-slot integration was pushed and remotely verified at `7a104258b020f717625848e7582d19ea6bdaf6ed`: scoped Runtime/Overlays nextest passed 479 tests with three skips, and five public slot tests passed without skips; scoped strict Clippy and formatting passed. Independent review additionally exercises Tab, ShiftTab, Escape, and repeated focus restoration across four profiles; this supersedes the earlier authored audit's statement that these independent flows had not yet been exercised. Application parity remains incomplete.
