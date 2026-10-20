@@ -171,3 +171,27 @@ fn public_master_detail_handles_narrow_heights_and_zero_sized_area() {
     }
     example::render_once(0, 0);
 }
+
+#[test]
+fn summary_reserves_the_requested_height_clamped_to_the_short_viewport() {
+    let policy = MasterDetailPolicy::default()
+        .collapse_below(60)
+        .summary_rows(3);
+    for height in 0..=4 {
+        let mut runtime = Runtime::new(example::FileCatalogue::with_policy(policy), Theme::junie());
+        present(&mut runtime, Rect::new(0, 0, 59, height));
+    }
+    for (height, expected_y) in [(6, 4), (9, 6), (12, 9)] {
+        let area = Rect::new(0, 0, 59, height);
+        let mut runtime = Runtime::new(example::FileCatalogue::with_policy(policy), Theme::junie());
+        present(&mut runtime, area);
+        assert_eq!(
+            runtime
+                .area_of(example::SUMMARY)
+                .expect("summary in usable height")
+                .y,
+            expected_y,
+            "summary rows reserve fixed height at height={height}"
+        );
+    }
+}
