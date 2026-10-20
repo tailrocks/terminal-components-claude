@@ -948,6 +948,157 @@ fn paint_collections(ui: &mut Ui<'_>, card: Rect) {
     paint_grid(ui, grid);
 }
 
+// 51×16 is the page rect inside the 72×20 shell.
+const NARROW_PAGE: (u16, u16) = (51, 16);
+
+fn content_narrow(card: Rect) -> Rect {
+    Rect::new(
+        card.x.saturating_add(1),
+        card.y.saturating_add(CARD_PAD),
+        card.width.saturating_sub(2),
+        card.height.saturating_sub(3),
+    )
+}
+
+fn narrow_columns(area: Rect) -> [Rect; 3] {
+    let card_w: u16 = 15;
+    let gap: u16 = 2;
+    let step = card_w.saturating_add(gap);
+    [
+        Rect::new(area.x, area.y, card_w, area.height),
+        Rect::new(
+            area.x.saturating_add(step),
+            area.y,
+            card_w,
+            area.height,
+        ),
+        Rect::new(
+            area.x.saturating_add(step.saturating_mul(2)),
+            area.y,
+            card_w,
+            area.height,
+        ),
+    ]
+}
+
+fn narrow_meta(title: &str, meta: &str, text_w: u16) -> String {
+    let fitted = fit_meta(title, meta, text_w);
+    if fitted.contains('…') {
+        String::new()
+    } else {
+        fitted
+    }
+}
+
+fn paint_card_narrow(ui: &mut Ui<'_>, card: Rect, title: &str, meta: &str) {
+    if card.is_empty() {
+        return;
+    }
+    ui.fill(card, ink(WHITE, SURFACE));
+    let text_w = card.width.saturating_sub(2);
+    if text_w == 0 || card.height == 0 {
+        return;
+    }
+    let text_x = card.x.saturating_add(1);
+    let meta = narrow_meta(title, meta, text_w);
+    let meta_w = width(&meta);
+    let title_w = if meta_w > 0 {
+        text_w.saturating_sub(meta_w).saturating_sub(1)
+    } else {
+        text_w
+    };
+    let shown = if width(title) <= title_w {
+        title.to_owned()
+    } else {
+        truncate(title, title_w)
+    };
+    let _ = ui.paint_str(
+        Rect::new(text_x, card.y, title_w, 1),
+        &shown,
+        ink(SECONDARY, SURFACE),
+    );
+    if meta_w > 0 {
+        let _ = ui.paint_str(
+            Rect::new(
+                text_x.saturating_add(text_w.saturating_sub(meta_w).saturating_sub(1)),
+                card.y,
+                1,
+                1,
+            ),
+            " ",
+            ink(SECONDARY, SURFACE),
+        );
+        let _ = ui.paint_str(
+            Rect::new(
+                text_x.saturating_add(text_w.saturating_sub(meta_w)),
+                card.y,
+                meta_w,
+                1,
+            ),
+            &meta,
+            ink(FAINT, SURFACE),
+        );
+    }
+    if card.height > 1 {
+        let _ = ui.paint_str(
+            Rect::new(text_x, card.y.saturating_add(1), text_w, 1),
+            &"─".repeat(usize::from(text_w)),
+            ink(RULE, SURFACE),
+        );
+    }
+}
+
+fn paint_page_thumb(ui: &mut Ui<'_>, area: Rect) {
+    if area.height == 0 || area.width < 2 {
+        return;
+    }
+    let track = usize::from(area.height);
+    let len = thumb_len(1, 3, track);
+    if len == 0 {
+        return;
+    }
+    let x = area.right().saturating_sub(1);
+    for row in 0..area.height {
+        let on = usize::from(row) < len;
+        let _ = ui.paint_str(
+            Rect::new(x, area.y.saturating_add(row), 1, 1),
+            if on { "┃" } else { "┆" },
+            ink(if on { THUMB } else { TRACK }, CANVAS),
+        );
+    }
+}
+
+fn paint_scrollers_narrow(ui: &mut Ui<'_>, area: Rect, list_offset: usize, log: &[String]) {
+    let cols = narrow_columns(area);
+    let prose_area = content_narrow(cols[0]);
+    let prose = wrapped_prose(prose_area.width.saturating_sub(2));
+    let prose_view = usize::from(prose_area.height);
+    paint_card_narrow(
+        ui,
+        cols[0],
+        "Wrapped text",
+        &position(0, prose_view, prose.len()),
+    );
+    paint_text_rows(ui, prose_area, &prose, 0, |_| SECONDARY, true);
+    let list_area = content_narrow(cols[1]);
+    let list_view_h = usize::from(list_area.height);
+    paint_card_narrow(
+        ui,
+        cols[1],
+        "Long list",
+        &position(list_offset, list_view_h, LIST_LEN),
+    );
+    paint_list_rows(ui, list_area, list_offset);
+    let log_area = content_narrow(cols[2]);
+    let (log_offset, log_view) = log_window(log_area, log);
+    let mut meta = position(log_offset, log_view, log.len());
+    if !meta.is_empty() {
+        meta = format!("{meta} · following");
+    }
+    paint_card_narrow(ui, cols[2], "Log", &meta);
+    let _ = paint_log(ui, log_area, log);
+}
+
 fn paint_scrollers(ui: &mut Ui<'_>, area: Rect, list_offset: usize, log: &[String]) {
     let cols = thirds(area);
     let prose = wrapped_prose(cols[0].width.saturating_sub(6));
@@ -1045,6 +1196,15 @@ impl Page for ScrollingPage {
                 ..body
             };
             let slots = bands(playground);
+            if area.width == NARROW_PAGE.0 && area.height == NARROW_PAGE.1 {
+                if slots[0].height > 0 {
+                    let list_area = content_narrow(narrow_columns(slots[0])[1]);
+                    list_view().draw(ui, list_area, &self.list_state, &self.list);
+                    paint_scrollers_narrow(ui, slots[0], list_offset, &self.log);
+                }
+                paint_page_thumb(ui, playground);
+                return;
+            }
             if slots[0].height > 0 {
                 let list_area = content_of(thirds(slots[0])[1]);
                 list_view().draw(ui, list_area, &self.list_state, &self.list);
