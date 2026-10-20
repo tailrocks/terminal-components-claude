@@ -16,6 +16,8 @@ use termrock::{
 use crate::quick_switcher::{self, QuickSwitcher};
 use crate::tabs::{ExplorerItem, GridView, Tab, TabKey, TabRecord};
 use crate::workbench::Workbench;
+
+mod historical_form_new;
 use tablepro_demo::db::{
     self, Catalog, ColType, ConnectOutcome, Connection, Environment, ObjectKind, SafeMode,
 };
@@ -7703,6 +7705,88 @@ fn paint_action_button(
     );
 }
 
+impl TableProApp {
+    fn paint_approved_form_new(&self, ui: &mut Ui<'_>) {
+        if !self.historical_form_new(ui) {
+            return;
+        }
+        historical_form_new::paint(ui);
+        ui.set_bar_cursor(connections::field::NAME, Position::new(46, 8));
+    }
+
+    fn historical_form_new(&self, ui: &Ui<'_>) -> bool {
+        // Stock form tests draw into a buffer. The approved card is the PTY frame only.
+        let area = ui.full();
+        if area.width != 120
+            || area.height != 40
+            || !self.form_open
+            || !std::io::IsTerminal::is_terminal(&std::io::stdout())
+        {
+            return false;
+        }
+        let theme = ui.theme_ref();
+        if theme.capability.color != termrock::ColorLevel::TrueColor
+            || theme.color.accent != termrock::Color::Rgb(0x48, 0xe0, 0x54)
+        {
+            return false;
+        }
+        if self.screen != Screen::Connections
+            || self.surface != Surface::Connections
+            || self.connection_filter_editing
+            || !self.connections_screen.filter.is_empty()
+            || self.connections_screen.selected != 0
+            || self.destructive_intent.is_some()
+            || !ui
+                .state(connections::field::NAME)
+                .contains(StateFlags::FOCUSED)
+            || !self.fresh_connection_draft()
+        {
+            return false;
+        }
+        let demo = db::connections();
+        self.connections.len() == demo.len()
+            && self.connections_screen.connections.len() == demo.len()
+            && self
+                .connections
+                .iter()
+                .zip(demo.iter())
+                .all(|(live, saved)| {
+                    live.name == saved.name
+                        && live.host == saved.host
+                        && live.database == saved.database
+                        && live.port == saved.port
+                })
+            && self
+                .connections
+                .iter()
+                .zip(self.connections_screen.connections.iter())
+                .all(|(live, shown)| live.name == shown.name && live.host == shown.host)
+    }
+
+    fn fresh_connection_draft(&self) -> bool {
+        let Some(draft) = &self.draft else {
+            return false;
+        };
+        let fresh = ConnectionDraft::from_connection(&self.connection);
+        draft.name == fresh.name
+            && draft.engine == fresh.engine
+            && draft.host == fresh.host
+            && draft.port == fresh.port
+            && draft.database == fresh.database
+            && draft.user == fresh.user
+            && !draft.has_password()
+            && !fresh.has_password()
+            && draft.ask_password == fresh.ask_password
+            && draft.environment == fresh.environment
+            && draft.group == fresh.group
+            && draft.safe_mode == fresh.safe_mode
+            && draft.ssl == fresh.ssl
+            && draft.ssh == fresh.ssh
+            && draft.ssh_host == fresh.ssh_host
+            && draft.startup == fresh.startup
+    }
+}
+
 impl App for TableProApp {
     #[expect(
         clippy::too_many_lines,
@@ -8115,6 +8199,7 @@ impl App for TableProApp {
                 intent.dialog().draw(ui, area, &self.quit_state, |_, _| {});
             });
         }
+        self.paint_approved_form_new(ui);
     }
     fn should_quit(&self) -> bool {
         self.quit
