@@ -1,1 +1,0 @@
-error: libtest JSON output is an experimental feature and must be enabled with NEXTEST_EXPERIMENTAL_LIBTEST_JSON=1
