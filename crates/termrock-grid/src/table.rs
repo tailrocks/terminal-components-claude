@@ -165,17 +165,13 @@ impl<'a> Table<'a> {
         area: Rect,
         state: &TableState,
         model: &M,
-    ) -> (Vec<Column<'a>>, bool, bool, usize) {
+    ) -> (Vec<Column<'a>>, bool, bool, usize, usize) {
         let mut horizontal = false;
         let mut vertical = false;
         for _ in 0..3 {
             let body_rows = usize::from(area.height.saturating_sub(1 + u16::from(horizontal)));
             vertical = model.row_count() > body_rows;
             let viewport = area.width.saturating_sub(5 + u16::from(vertical));
-            let offset = state
-                .grid
-                .col_offset()
-                .min(self.columns.len().saturating_sub(1));
             let mut widths = self
                 .columns
                 .iter()
@@ -200,6 +196,19 @@ impl<'a> Table<'a> {
                     }
                 })
                 .collect::<Vec<_>>();
+            let full_width = widths
+                .iter()
+                .fold(0u16, |sum, width| sum.saturating_add(*width))
+                .saturating_add(self.columns.len().saturating_sub(1).saturating_mul(2) as u16);
+            let all_fit = full_width <= viewport;
+            let offset = if all_fit {
+                0
+            } else {
+                state
+                    .grid
+                    .col_offset()
+                    .min(self.columns.len().saturating_sub(1))
+            };
             let mut used = 0u16;
             let mut visible = 0usize;
             for width in widths.iter().skip(offset) {
@@ -226,7 +235,7 @@ impl<'a> Table<'a> {
                     *width = width.saturating_add(available);
                 }
             }
-            let hidden = offset > 0 || end < self.columns.len();
+            let hidden = !all_fit && (offset > 0 || end < self.columns.len());
             let result = self
                 .columns
                 .iter()
@@ -244,11 +253,11 @@ impl<'a> Table<'a> {
                 })
                 .collect();
             if horizontal == hidden {
-                return (result, horizontal, vertical, visible);
+                return (result, horizontal, vertical, visible, offset);
             }
             horizontal = hidden;
         }
-        (Vec::new(), horizontal, vertical, 0)
+        (Vec::new(), horizontal, vertical, 0, 0)
     }
 
     fn grid<'b>(&self, columns: &'b [Column<'a>], max_offset: usize) -> Grid<'b> {
@@ -315,8 +324,10 @@ impl<'a> Table<'a> {
         {
             area.height = area.height.saturating_add(1);
         }
-        let (columns, horizontal, vertical, visible) = self.grid_columns(area, state, model);
+        let (columns, horizontal, vertical, visible, offset) =
+            self.grid_columns(area, state, model);
         let max_offset = self.columns.len().saturating_sub(visible.max(1));
+        state.grid.set_col_offset(offset.min(max_offset));
         state.horizontal_scroll.set_content(self.columns.len());
         state.horizontal_scroll.set_viewport(visible.max(1));
         state
@@ -422,8 +433,11 @@ impl<'a> Table<'a> {
         state: &TableState,
         model: &M,
     ) -> Rect {
-        let (columns, horizontal, vertical, visible) = self.grid_columns(area, state, model);
+        let (columns, horizontal, vertical, visible, offset) =
+            self.grid_columns(area, state, model);
         let grid = self.grid(&columns, self.columns.len().saturating_sub(visible.max(1)));
+        let mut grid_state = state.grid.clone();
+        grid_state.set_col_offset(offset);
         let order = self.ordered_rows(model, state.sort);
         let ordered = OrderedModel {
             source: model,
@@ -437,12 +451,12 @@ impl<'a> Table<'a> {
         } else {
             area
         };
-        let drawn = grid.draw(ui, grid_area, &state.grid, &ordered);
+        let drawn = grid.draw(ui, grid_area, &grid_state, &ordered);
         if horizontal {
             let mut scroll = state.horizontal_scroll;
             scroll.set_content(self.columns.len());
             scroll.set_viewport(visible.max(1));
-            scroll.scroll_to(state.grid.col_offset());
+            scroll.scroll_to(offset);
             self.draw_horizontal_bar(ui, area, &scroll, vertical);
         }
         drawn
@@ -642,7 +656,7 @@ mod tests {
         let model = Rows;
         let state = TableState::default();
 
-        let (narrow, horizontal, vertical, visible) =
+        let (narrow, horizontal, vertical, visible, _) =
             table.grid_columns(Rect::new(0, 0, 88, 22), &state, &model);
         assert_eq!(
             narrow
@@ -655,7 +669,7 @@ mod tests {
         assert!(vertical);
         assert_eq!(visible, 5);
 
-        let (wide, horizontal, vertical, visible) =
+        let (wide, horizontal, vertical, visible, offset) =
             table.grid_columns(Rect::new(0, 0, 130, 22), &state, &model);
         assert_eq!(
             wide.iter()
@@ -666,14 +680,20 @@ mod tests {
         assert!(!horizontal);
         assert!(vertical);
         assert_eq!(visible, 7);
+        assert_eq!(offset, 0);
 
         let mut scrolled = TableState::default();
         scrolled.grid.set_col_offset(2);
-        let (_, horizontal, _, visible) =
+        let (_, horizontal, _, visible, _) =
             table.grid_columns(Rect::new(0, 0, 88, 22), &scrolled, &model);
         assert!(horizontal, "hidden columns left require the bar too");
         assert_eq!(visible, 5);
         assert_eq!(columns.len().saturating_sub(visible), 2);
+        let (_, horizontal, _, visible, offset) =
+            table.grid_columns(Rect::new(0, 0, 130, 22), &scrolled, &model);
+        assert!(!horizontal);
+        assert_eq!(visible, 7);
+        assert_eq!(offset, 0);
     }
 
     #[test]
@@ -720,9 +740,11 @@ mod tests {
         struct TableApp {
             columns: [TableColumn<'static>; 7],
             state: TableState,
+            area: Rect,
         }
         impl App for TableApp {
             fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+                self.area = cx.viewport();
                 Table::new(Id::root("table.pointer"), &self.columns)
                     .update(cx, &mut self.state, &Rows)
                     .erase()
@@ -730,7 +752,7 @@ mod tests {
             fn draw(&self, ui: &mut Ui<'_>) {
                 Table::new(Id::root("table.pointer"), &self.columns).draw(
                     ui,
-                    Rect::new(0, 0, 88, 22),
+                    self.area,
                     &self.state,
                     &Rows,
                 );
@@ -741,6 +763,7 @@ mod tests {
             TableApp {
                 columns: columns(),
                 state: TableState::default(),
+                area: Rect::new(0, 0, 88, 22),
             },
             Theme::junie(),
         );
@@ -772,6 +795,68 @@ mod tests {
         let track = runtime
             .area_of_part(bar_id, PartRef::of(Part::TRACK))
             .expect("horizontal track registered under its own owner");
+        let initial_thumb = runtime
+            .area_of_part(bar_id, PartRef::of(Part::THUMB))
+            .expect("horizontal thumb registered");
+        let sample = (initial_thumb.x, initial_thumb.y);
+        runtime
+            .draw_buffer(Rect::new(0, 0, 88, 22), &mut buffer)
+            .commit_presented();
+        let rest_cell = buffer.cell(sample).expect("thumb cell");
+        let rest_style = (rest_cell.fg, rest_cell.bg, rest_cell.modifier);
+        let _ =
+            crate::runtime::stub::deliver(&mut runtime, mouse(MouseKind::Move, sample.0, sample.1));
+        runtime
+            .draw_buffer(Rect::new(0, 0, 88, 22), &mut buffer)
+            .commit_presented();
+        let hover_cell = buffer.cell(sample).expect("hovered thumb cell");
+        let hover_style = (hover_cell.fg, hover_cell.bg, hover_cell.modifier);
+        assert_ne!(hover_style, rest_style, "hover must restyle thumb cells");
+        let _ =
+            crate::runtime::stub::deliver(&mut runtime, mouse(MouseKind::Down, sample.0, sample.1));
+        runtime
+            .draw_buffer(Rect::new(0, 0, 88, 22), &mut buffer)
+            .commit_presented();
+        let pressed_cell = buffer.cell(sample).expect("pressed thumb cell");
+        let pressed_style = (pressed_cell.fg, pressed_cell.bg, pressed_cell.modifier);
+        assert_ne!(pressed_style, hover_style, "press must restyle thumb cells");
+        let _ =
+            crate::runtime::stub::deliver(&mut runtime, mouse(MouseKind::Up, sample.0, sample.1));
+
+        let vertical_track = runtime
+            .area_of_part(table_id, PartRef::of(Part::TRACK))
+            .expect("vertical grid track");
+        let vertical_thumb = runtime
+            .area_of_part(table_id, PartRef::of(Part::THUMB))
+            .expect("vertical grid thumb");
+        let rows_before = runtime.app().state.grid.visible_rows(24);
+        let vertical_grab = (
+            vertical_thumb.x,
+            vertical_thumb.y.saturating_add(vertical_thumb.height / 2),
+        );
+        let _ = crate::runtime::stub::deliver(
+            &mut runtime,
+            mouse(MouseKind::Down, vertical_grab.0, vertical_grab.1),
+        );
+        let _ = crate::runtime::stub::deliver(
+            &mut runtime,
+            mouse(
+                MouseKind::Move,
+                vertical_track.x,
+                vertical_track.bottom().saturating_sub(1),
+            ),
+        );
+        let _ = crate::runtime::stub::deliver(
+            &mut runtime,
+            mouse(
+                MouseKind::Up,
+                vertical_track.x,
+                vertical_track.bottom().saturating_sub(1),
+            ),
+        );
+        assert!(runtime.app().state.grid.visible_rows(24).start > rows_before.start);
+        assert_eq!(runtime.app().state.grid.col_offset(), 2);
+
         let _ = crate::runtime::stub::deliver(
             &mut runtime,
             mouse(MouseKind::Down, track.right().saturating_sub(1), track.y),
@@ -791,6 +876,20 @@ mod tests {
         let _ =
             crate::runtime::stub::deliver(&mut runtime, mouse(MouseKind::Move, track.x, track.y));
         let _ = crate::runtime::stub::deliver(&mut runtime, mouse(MouseKind::Up, track.x, track.y));
+        assert_eq!(runtime.app().state.grid.col_offset(), 0);
+
+        let _ = crate::runtime::stub::deliver(&mut runtime, crate::event::Input::Resize(130, 22));
+        let mut wide_buffer = Buffer::empty(Rect::new(0, 0, 130, 22));
+        runtime
+            .draw_buffer(Rect::new(0, 0, 130, 22), &mut wide_buffer)
+            .commit_presented();
+        assert_eq!(runtime.app().state.grid.col_offset(), 0);
+        assert!(
+            runtime
+                .area_of_part(bar_id, PartRef::of(Part::TRACK))
+                .is_none()
+        );
+        let _ = crate::runtime::stub::deliver(&mut runtime, key(KeyCode::Right));
         assert_eq!(runtime.app().state.grid.col_offset(), 0);
     }
 }
