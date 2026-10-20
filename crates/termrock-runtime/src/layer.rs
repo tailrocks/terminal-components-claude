@@ -129,6 +129,9 @@ pub struct LayerSpec {
 
     pub size: LayerSize,
 
+    /// Total horizontal and vertical viewport space reserved outside this layer.
+    pub viewport_margin: (u16, u16),
+
     pub backdrop: Backdrop,
 
     pub inert_below: bool,
@@ -144,6 +147,7 @@ impl LayerSpec {
             restore_focus: true,
             initial_focus: None,
             size: LayerSize::Fill,
+            viewport_margin: (0, 0),
             backdrop: Backdrop::Dim {
                 exclude_footer: true,
             },
@@ -160,6 +164,7 @@ impl LayerSpec {
             restore_focus: true,
             initial_focus: None,
             size: LayerSize::Fill,
+            viewport_margin: (0, 0),
             backdrop: Backdrop::None,
             inert_below: false,
         }
@@ -174,6 +179,7 @@ impl LayerSpec {
             restore_focus: false,
             initial_focus: None,
             size: LayerSize::Fill,
+            viewport_margin: (0, 0),
             backdrop: Backdrop::None,
             inert_below: false,
         }
@@ -210,6 +216,12 @@ impl LayerSpec {
     }
 
     #[must_use]
+    pub const fn viewport_margin(mut self, horizontal_total: u16, vertical_total: u16) -> Self {
+        self.viewport_margin = (horizontal_total, vertical_total);
+        self
+    }
+
+    #[must_use]
     pub const fn inert_below(mut self, yes: bool) -> Self {
         self.inert_below = yes;
         self
@@ -224,6 +236,23 @@ impl LayerSpec {
     pub const fn dismisses_on_focus_out(&self) -> bool {
         self.dismiss.focus_out && !matches!(self.kind, LayerKind::Modal)
     }
+}
+
+pub(crate) fn resolve_layer_area(viewport: Rect, spec: LayerSpec) -> Rect {
+    let LayerSize::Fixed(desired_width, desired_height) = spec.size else {
+        return resolve_anchor(viewport, spec.anchor, spec.size);
+    };
+    if viewport.width == 0 || viewport.height == 0 {
+        return Rect::ZERO;
+    }
+    let max_width = viewport.width.saturating_sub(spec.viewport_margin.0).max(1);
+    let max_height = viewport
+        .height
+        .saturating_sub(spec.viewport_margin.1)
+        .max(1);
+    let width = desired_width.min(max_width).min(viewport.width);
+    let height = desired_height.min(max_height).min(viewport.height);
+    resolve_anchor(viewport, spec.anchor, LayerSize::Fixed(width, height))
 }
 
 #[expect(
@@ -701,6 +730,40 @@ mod tests {
     }
 
     #[test]
+    fn viewport_margin_limits_fixed_size_without_changing_anchor_viewport() {
+        let viewport = Rect::new(7, 5, 120, 12);
+        let spec = LayerSpec::popover(DLG, Anchor::Screen(ScreenAlign::GeometricCenter))
+            .size(LayerSize::Fixed(88, 19))
+            .viewport_margin(4, 2);
+        assert_eq!(spec.size, LayerSize::Fixed(88, 19));
+        assert_eq!(resolve_layer_area(viewport, spec), Rect::new(23, 6, 88, 10));
+        assert_eq!(
+            resolve_layer_area(Rect::new(7, 5, 120, 40), spec),
+            Rect::new(23, 15, 88, 19)
+        );
+    }
+
+    #[test]
+    fn viewport_margin_handles_tiny_and_empty_viewports() {
+        let spec = LayerSpec::popover(DLG, Anchor::Screen(ScreenAlign::GeometricCenter))
+            .size(LayerSize::Fixed(88, 19))
+            .viewport_margin(4, 2);
+        assert_eq!(
+            resolve_layer_area(Rect::new(9, 13, 1, 1), spec),
+            Rect::new(9, 13, 1, 1)
+        );
+        assert_eq!(resolve_layer_area(Rect::new(9, 13, 0, 5), spec), Rect::ZERO);
+        assert_eq!(resolve_layer_area(Rect::new(9, 13, 5, 0), spec), Rect::ZERO);
+    }
+
+    #[test]
+    fn viewport_margin_does_not_change_fill_layer_semantics() {
+        let viewport = Rect::new(7, 5, 120, 40);
+        let spec = LayerSpec::modal(DLG).viewport_margin(4, 2);
+        assert_eq!(resolve_layer_area(viewport, spec), viewport);
+    }
+
+    #[test]
     fn popover_flips_above_when_the_content_does_not_fit_below() {
         let screen = Rect::new(0, 0, 40, 20);
         let below = Anchor::Rect {
@@ -810,6 +873,32 @@ mod runtime_tests {
     const PICK: Id = Id::root("pick");
     const ROW: Id = Id::root("pick.row");
 
+    #[derive(Default)]
+    struct BootstrapLayer {
+        opened: bool,
+        bootstrap_viewport: Option<Rect>,
+    }
+
+    impl crate::runtime::App for BootstrapLayer {
+        fn update(&mut self, cx: &mut crate::ui::Cx<'_>) -> crate::response::Response<()> {
+            if !self.opened {
+                self.bootstrap_viewport = Some(cx.viewport());
+                self.opened = true;
+                cx.open_layer(
+                    PICK,
+                    LayerSpec::popover(PICK, Anchor::Screen(ScreenAlign::GeometricCenter))
+                        .size(LayerSize::Fixed(88, 19))
+                        .viewport_margin(4, 2),
+                );
+            }
+            crate::response::Response::ignored()
+        }
+
+        fn draw(&self, ui: &mut crate::ui::Ui<'_>) {
+            let _ = ui.layer(PICK, |_, _| ());
+        }
+    }
+
     fn dialog_stub() -> Stub {
         Stub {
             page: vec![Control::new(PAGE_A, Rect::new(0, 0, 10, 1))],
@@ -865,6 +954,30 @@ mod runtime_tests {
         rt.app_mut().resize_request = Some((DLG, LayerSize::Fixed(40, 10)));
         let _ = step(&mut rt, &mut buf, key(KeyCode::Char('x')));
         assert_eq!(rt.layer_area(DLG), Some(grown));
+    }
+
+    #[test]
+    fn bootstrap_layer_resolves_against_actual_viewport_and_restores_desired_size() {
+        use ratatui_core::buffer::Buffer;
+
+        let mut rt =
+            crate::runtime::Runtime::new(BootstrapLayer::default(), crate::theme::Theme::junie());
+        let _ = rt.initialize();
+        assert_eq!(rt.app().bootstrap_viewport, Some(Rect::ZERO));
+
+        let mut short = Buffer::empty(Rect::new(0, 0, 120, 12));
+        rt.draw_buffer(Rect::new(0, 0, 120, 12), &mut short)
+            .commit_presented();
+        assert_eq!(rt.layer_area(PICK), Some(Rect::new(16, 1, 88, 10)));
+
+        let mut tall = Buffer::empty(Rect::new(0, 0, 120, 40));
+        rt.draw_buffer(Rect::new(0, 0, 120, 40), &mut tall)
+            .commit_presented();
+        assert_eq!(rt.layer_area(PICK), Some(Rect::new(16, 10, 88, 19)));
+        assert_eq!(
+            rt.open_spec(PICK).map(|spec| spec.size),
+            Some(LayerSize::Fixed(88, 19))
+        );
     }
 
     #[test]
