@@ -201,6 +201,9 @@ class RunnerGuards(unittest.TestCase):
         source_only, actual_cli = runner.ordinary_test_groups(inventory)
         self.assertEqual(source_only, sorted(source_only_names))
         self.assertEqual(actual_cli, cli)
+        self.assertEqual((len(source_only), len(actual_cli)), (11, 9))
+        self.assertIn("isolation::env_isolation", actual_cli)
+        self.assertNotIn("isolation::env_isolation", source_only)
         inventory.pop(cli[0])
         inventory["unknown::cli_test"] = False
         with self.assertRaisesRegex(runner.RunnerError, "CLI ordinary-check inventory changed"):
@@ -224,8 +227,15 @@ class RunnerGuards(unittest.TestCase):
             selected_groups = [sorted(source_only_names), cli, cli]
 
             def fake_run(command, *, cwd, timeout, env, quiet, stdout_path, stderr_path):
+                group = len(calls)
                 calls.append({"command": command, "env": env})
-                events = [json.dumps({"type": "test", "event": "ok", "name": "junie-tui::visual_baseline$" + name}) for name in selected_groups[len(calls) - 1]]
+                if group == 0:
+                    self.assertNotIn("isolation::env_isolation", " ".join(command))
+                else:
+                    expected_bins = baseline_bins if group == 1 else candidate_bins
+                    self.assertIn("isolation::env_isolation", " ".join(command))
+                    self.assertEqual(env.get("VISUAL_BIN_DIR"), str(expected_bins.resolve()))
+                events = [json.dumps({"type": "test", "event": "ok", "name": "junie-tui::visual_baseline$" + name}) for name in selected_groups[group]]
                 stdout_path.write_text("\n".join(events) + "\n")
                 stderr_path.write_text("")
                 return "\n".join(events)
@@ -238,6 +248,54 @@ class RunnerGuards(unittest.TestCase):
             self.assertEqual(calls[2]["env"]["VISUAL_BIN_DIR"], str(candidate_bins.resolve()))
             for call in calls:
                 self.assertFalse(any(key.startswith("TERMROCK_PAIR_") for key in call["env"]))
+
+    def test_candidate_environment_isolation_failure_cannot_pass_green(self) -> None:
+        cli = sorted(runner.EXPECTED_CLI_ORDINARY_TESTS)
+        source_only_names = [f"source_check::{index}" for index in range(runner.EXPECTED_ORDINARY_TESTS - len(cli))]
+        inventory = {name: False for name in [*cli, *source_only_names]}
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            live = root / "live"
+            live.mkdir()
+            run_root = root / "run"
+            run_root.mkdir()
+            baseline_bins = root / "baseline-bins"
+            candidate_bins = root / "candidate-bins"
+            baseline_bins.mkdir()
+            candidate_bins.mkdir()
+            calls = 0
+
+            def fake_run(command, *, cwd, timeout, env, quiet, stdout_path, stderr_path):
+                nonlocal calls
+                group = calls
+                calls += 1
+                selected = source_only_names if group == 0 else cli
+                if group == 0:
+                    self.assertNotIn("isolation::env_isolation", " ".join(command))
+                    self.assertNotIn("VISUAL_BIN_DIR", env)
+                else:
+                    self.assertIn("isolation::env_isolation", " ".join(command))
+                    expected_bins = baseline_bins if group == 1 else candidate_bins
+                    self.assertEqual(env.get("VISUAL_BIN_DIR"), str(expected_bins.resolve()))
+                events = [
+                    json.dumps({
+                        "type": "test",
+                        "event": "failed" if group == 2 and name == "isolation::env_isolation" else "ok",
+                        "name": "junie-tui::visual_baseline$" + name,
+                    })
+                    for name in selected
+                ]
+                stdout_path.write_text("\n".join(events) + "\n")
+                stderr_path.write_text("")
+                return "\n".join(events)
+
+            with patch.object(runner, "run", side_effect=fake_run):
+                with self.assertRaisesRegex(runner.RunnerError, "ordinary candidate-cli checks failed"):
+                    runner.run_ordinary_checks(live, root, run_root, inventory, baseline_bins, candidate_bins, 30)
+            candidate_report = json.loads((run_root / "ordinary" / "candidate-cli" / "report.json").read_text())
+            self.assertEqual(candidate_report["status"], "failed")
+            self.assertIn("isolation::env_isolation", candidate_report["selected_cases"])
+            self.assertEqual(candidate_report["binary_dir"], str(candidate_bins.resolve()))
 
     def test_live_source_provenance_rejects_binary_harness_drift(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
