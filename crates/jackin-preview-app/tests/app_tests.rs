@@ -1442,6 +1442,41 @@ fn settings_route_s_paints_the_approved_settings_frame() {
 }
 
 #[test]
+fn settings_env_three_enter_paints_the_approved_env_frame() {
+    let mut h = H::new(Scenario::AccountsMixed, Motion::Paused, 40, 120, 40);
+    h.key(KeyCode::Char('s'));
+    assert_eq!(h.app().settings.tab, 0);
+    let general = h.buffer().cell((8, 7)).expect("general body");
+    assert_ne!(general.symbol(), "G", "General must not show GH_TOKEN");
+    h.key(KeyCode::Char('3'));
+    assert_eq!(h.app().settings.tab, 0);
+    let armed = h.buffer().cell((8, 7)).expect("armed general body");
+    assert_ne!(armed.symbol(), "G", "`3` alone must stay on General");
+    h.key(KeyCode::Enter);
+    assert_eq!(h.app().settings.tab, 2);
+    let token = h.buffer().cell((8, 7)).expect("GH_TOKEN");
+    assert_eq!(token.symbol(), "G");
+    assert_eq!(token.fg, termrock::Color::from_u32(0xff_ff_ff));
+    assert_eq!(token.bg, termrock::Color::from_u32(0x17_3f_1c));
+    assert!(token.modifier.contains(termrock::Modifier::BOLD));
+    assert!(h.text().contains("GH_TOKEN"), "{}", h.text());
+    assert_eq!(h.harness.cursor(), None);
+
+    let mut mounts = H::new(Scenario::AccountsMixed, Motion::Paused, 40, 120, 40);
+    mounts.key(KeyCode::Char('s'));
+    mounts.key(KeyCode::Char('2'));
+    mounts.key(KeyCode::Enter);
+    assert_eq!(mounts.app().settings.tab, 1);
+    let mount_cell = mounts.buffer().cell((8, 7)).expect("mounts body");
+    assert_ne!(mount_cell.symbol(), "G", "Mounts must not show GH_TOKEN");
+    assert!(
+        !mounts.text().contains("GH_TOKEN"),
+        "Mounts must stay off the environment table: {}",
+        mounts.text()
+    );
+}
+
+#[test]
 fn settings_mounts_two_enter_paints_the_approved_mounts_frame() {
     let mut h = H::new(Scenario::AccountsMixed, Motion::Paused, 40, 120, 40);
     h.key(KeyCode::Char('s'));
