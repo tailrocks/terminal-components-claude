@@ -4,10 +4,15 @@ Updated: 2026-10-20. Status: **in progress; all four applications incomplete**. 
 
 ## TablePro query results 120×40 truecolor — 2026-10-21
 
-`tablepro/query/results/120x40/truecolor` matches with the live results card.
-The ANSI stamp is gone. A slow frame coalesces Esc and Ctrl+R into Alt+Ctrl+R;
-that chord runs the query. Duration comes from the executor (`15 ms` for this
-statement). Other sizes and color levels of this scenario are not re-run yet.
+`tablepro/query/results/120x40` truecolor and nocolor match with the live
+results card. The ANSI stamp is gone. A slow frame coalesces Esc and Ctrl+R
+into Alt+Ctrl+R; that chord runs the query. In mono the Run label is bold
+reverse. Duration comes from the executor (`15 ms` for this statement).
+
+Still red on this scenario: `120x40` 256 (569 cells, tab rule `#444444` vs
+`#3a3a3a`), 16 (306), none (1570). Truecolor other sizes: `80x24` 893,
+`100x30` 1472, `160x50` 2284, `72x20` footer clips `Ctrl+X Explain`. `40x12`
+and `60x18` boot on the 72×20 too-small gate, so `Query 1` never appears.
 Full visual runs and `origin/main` are not done.
 
 ## TablePro data 120×40 color levels — 2026-10-20

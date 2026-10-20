@@ -4457,7 +4457,7 @@ fn idle_query_top(height: u16) -> u16 {
 
 fn paint_query_toolbar(ui: &mut Ui<'_>, area: termrock::Rect) {
     let plain = ui.surface_style().remove_modifier(Modifier::BOLD);
-    let button = plain.patch(
+    let mut button = plain.patch(
         ui.paint_patch(
             &StylePatch::new()
                 .set_fg(TAG_BUTTON_FG)
@@ -4465,6 +4465,9 @@ fn paint_query_toolbar(ui: &mut Ui<'_>, area: termrock::Rect) {
                 .add(Modifier::BOLD),
         ),
     );
+    if ui.theme().capability.color == termrock::ColorLevel::Mono {
+        button = PaintStyle::new().add_modifier(Modifier::BOLD | Modifier::REVERSED);
+    }
     let cap = plain.patch(
         ui.paint_patch(
             &StylePatch::new()
