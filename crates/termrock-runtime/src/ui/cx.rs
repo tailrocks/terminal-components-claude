@@ -209,6 +209,12 @@ impl core::fmt::Debug for Cx<'_> {
 }
 
 impl<'f> Cx<'f> {
+    /// Append a component-author diagnostic to the runtime's bounded diagnostic
+    /// stream. Components cannot clear diagnostics emitted by other owners.
+    pub fn diagnostic(&mut self, diagnostic: crate::diagnostics::Diagnostic) {
+        self.services.diagnostics.push(diagnostic);
+    }
+
     fn invalidate_continuation_result_readiness(&mut self) {
         if !self.services.focus_continuation_result_acks.is_empty() {
             for (_, _, ready) in &mut self.services.focus_continuation_result_acks {
@@ -852,5 +858,40 @@ impl super::Ui<'_> {
 
     pub fn pressed_part(&self, owner: Id) -> Option<PartRef> {
         FrameRead::pressed_part(self, owner)
+    }
+}
+
+#[cfg(test)]
+mod diagnostics_tests {
+    use super::*;
+    use crate::intent::IntentQueue;
+
+    #[test]
+    fn component_author_diagnostics_use_the_bounded_runtime_store() {
+        let intents = IntentQueue::new();
+        let mut services = FrameServices::default();
+        let mut core = UiCore::default();
+        let last = LastFrame::default();
+        let theme = Theme::junie();
+        let owner = Id::root("form");
+        let field = Id::root("name");
+        {
+            let mut cx = Cx::new(&intents, &mut services, &mut core, &last, &theme, None);
+            for _ in 0..70 {
+                cx.diagnostic(crate::diagnostics::Diagnostic::InvalidComponentLayout {
+                    owner,
+                    field: Some(field),
+                });
+            }
+        }
+        assert_eq!(services.diagnostics.items().len(), 64);
+        assert_eq!(services.diagnostics.dropped(), 6);
+        assert!(matches!(
+            services.diagnostics.items().first(),
+            Some(crate::diagnostics::Diagnostic::InvalidComponentLayout {
+                owner: found_owner,
+                field: Some(found_field),
+            }) if *found_owner == owner && *found_field == field
+        ));
     }
 }
