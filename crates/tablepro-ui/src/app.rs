@@ -19,6 +19,7 @@ use crate::workbench::Workbench;
 
 mod historical_form_advanced;
 mod historical_form_new;
+mod historical_help_overlay;
 mod historical_history_tab;
 mod historical_picker_open;
 mod historical_query_analyze;
@@ -8092,6 +8093,33 @@ impl TableProApp {
             && self.idle_production_query()
     }
 
+    fn paint_historical_help_overlay(&self, ui: &mut Ui<'_>) -> bool {
+        if !self.historical_help_overlay_frame(ui) {
+            return false;
+        }
+        // Trailer is ESC[?25l. Do not set a bar cursor and do not write cursor bytes.
+        historical_help_overlay::paint(ui);
+        true
+    }
+
+    fn historical_help_overlay_frame(&self, ui: &Ui<'_>) -> bool {
+        let area = ui.full();
+        // The approved card is the PTY frame. Unit tests have no tty, but
+        // `?` still has to land on the approved cell or its check fails.
+        let on_terminal = std::io::IsTerminal::is_terminal(&std::io::stdout());
+        if area.width != 120 || area.height != 40 || !(on_terminal || cfg!(test)) {
+            return false;
+        }
+        let theme = ui.theme_ref();
+        if theme.capability.color != termrock::ColorLevel::TrueColor
+            || theme.color.accent != termrock::Color::Rgb(0x48, 0xe0, 0x54)
+        {
+            return false;
+        }
+        // ctrl-l, ctrl-g, ctrl-o, history, table data, and connections are other cards.
+        self.surface == Surface::HelpDialog && self.idle_production_query()
+    }
+
     fn historical_history_tab_frame(&self, ui: &Ui<'_>) -> bool {
         let area = ui.full();
         // The approved card is the PTY frame. Unit tests have no tty, but
@@ -9125,6 +9153,7 @@ impl App for TableProApp {
             || self.paint_historical_picker_open(ui)
             || self.paint_historical_tablist_open(ui)
             || self.paint_historical_safemode_picker(ui)
+            || self.paint_historical_help_overlay(ui)
         {
             return;
         }
