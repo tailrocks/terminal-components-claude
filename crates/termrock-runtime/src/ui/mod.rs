@@ -853,14 +853,26 @@ impl<'f> Ui<'f> {
     }
 
     pub fn set_cursor(&mut self, owner: Id, pos: Position) {
-        self.record_cursor(owner, pos, false);
+        self.record_cursor(owner, pos, false, crate::cursor::CursorShape::Block);
+    }
+
+    /// Same as [`Self::set_cursor`] with a steady bar. Presentation emits the
+    /// shape. Callers do not write cursor bytes.
+    pub fn set_bar_cursor(&mut self, owner: Id, pos: Position) {
+        self.record_cursor(owner, pos, false, crate::cursor::CursorShape::Bar);
     }
 
     pub fn offer_typing_cursor(&mut self, owner: Id, pos: Position) {
-        self.record_cursor(owner, pos, true);
+        self.record_cursor(owner, pos, true, crate::cursor::CursorShape::Block);
     }
 
-    fn record_cursor(&mut self, owner: Id, pos: Position, typing_offer: bool) {
+    fn record_cursor(
+        &mut self,
+        owner: Id,
+        pos: Position,
+        typing_offer: bool,
+        shape: crate::cursor::CursorShape,
+    ) {
         if self.reference.is_some() {
             return;
         }
@@ -870,6 +882,7 @@ impl<'f> Ui<'f> {
             pos,
             inert: self.inert,
             typing_offer,
+            shape,
         });
     }
 

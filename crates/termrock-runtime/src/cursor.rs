@@ -5,12 +5,19 @@ use crate::id::Id;
 use crate::layer::LayerId;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) enum CursorShape {
+    Block,
+    Bar,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(crate) struct CursorRequest {
     pub(crate) layer: LayerId,
     pub(crate) owner: Id,
     pub(crate) pos: Position,
     pub(crate) inert: bool,
     pub(crate) typing_offer: bool,
+    pub(crate) shape: CursorShape,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -40,7 +47,7 @@ pub(crate) fn resolve_requests(
     owner: Option<Id>,
     diagnostics: &mut Vec<Diagnostic>,
     typing: &[crate::runtime::typing::TypingDeclaration],
-) -> Option<Position> {
+) -> Option<(Position, CursorShape)> {
     let mut kept: Option<CursorRequest> = None;
     for request in requests {
         if request.inert {
@@ -76,7 +83,7 @@ pub(crate) fn resolve_requests(
             CursorDecision::Silent => {}
         }
     }
-    kept.map(|request| request.pos)
+    kept.map(|request| (request.pos, request.shape))
 }
 
 #[cfg(test)]
@@ -92,6 +99,7 @@ mod tests {
             pos: Position::new(4, 2),
             inert,
             typing_offer: false,
+            shape: CursorShape::Block,
         }
     }
 
@@ -170,7 +178,8 @@ mod tests {
                 Some(focused),
                 &mut diagnostics,
                 &frame.typing,
-            );
+            )
+            .map(|(pos, _)| pos);
             assert_eq!(
                 kept,
                 Some(if focused == FIRST {
