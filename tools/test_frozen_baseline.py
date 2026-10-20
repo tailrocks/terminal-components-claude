@@ -951,6 +951,65 @@ class RunnerGuards(unittest.TestCase):
             (candidate / "actual" / "holla" / "scenario" / "frame.frame.json").write_bytes(b"cells-and-cursor-different")
             self.assertEqual(runner.exact_frame_differences(baseline, candidate), ["frame-bytes-differ:holla/scenario/frame.frame.json"])
 
+    def test_executable_cohort_registry_is_pinned_and_diagnostic_only(self) -> None:
+        repo = Path(runner.__file__).resolve().parent.parent
+        document = runner.load_executable_cohorts(repo)
+        cohort = document["cohorts"][0]
+        self.assertEqual(cohort["status"], runner.DIAGNOSTIC_COHORT_STATUS)
+        self.assertFalse(cohort["build"]["build_admitted"])
+        self.assertFalse(cohort["build"]["reference_frames_approved"])
+        with self.assertRaisesRegex(runner.RunnerError, "not eligible for baseline capture"):
+            runner.require_capture_eligible_cohort(cohort, Path("unused"))
+
+    def test_executable_cohort_schema_rejects_duplicate_unknown_and_bool_version(self) -> None:
+        repo = Path(runner.__file__).resolve().parent.parent
+        original = (repo / runner.EXECUTABLE_COHORTS).read_bytes()
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            path = root / runner.EXECUTABLE_COHORTS
+            path.parent.mkdir(parents=True)
+            for payload, error in (
+                (b'{"schema":"termrock.frozen-cli-build-cohorts","schema":"bad","schema_version":1,"cohorts":[]}', "duplicate executable cohort JSON field"),
+                (json.dumps({**json.loads(original), "unknown": True}).encode(), "fields differ from schema"),
+                (json.dumps({**json.loads(original), "schema_version": True}).encode(), "unsupported executable cohort registry schema"),
+            ):
+                path.write_bytes(payload)
+                with patch.object(runner, "EXECUTABLE_COHORTS_SHA256", runner.hashlib.sha256(payload).hexdigest()):
+                    with self.assertRaisesRegex(runner.RunnerError, error):
+                        runner.load_executable_cohorts(root)
+
+    def test_executable_cohort_rejects_mixed_hashes_and_invented_run_evidence(self) -> None:
+        repo = Path(runner.__file__).resolve().parent.parent
+        document = runner.load_executable_cohorts(repo)
+        for mutate, error in (
+            (lambda c: c["binaries"]["holla"].update({"sha256": "0" * 64}), "hashes differ"),
+            (lambda c: c["runs"][0].update({"complete_target_archive": True}), "archive/retry limitations"),
+            (lambda c: c["runs"].pop(), "exactly two complete run records"),
+            (lambda c: c["source"].update({"tag": "moving-tag"}), "source/tool pins changed"),
+        ):
+            altered = json.loads(json.dumps(document))
+            mutate(altered["cohorts"][0])
+            with self.assertRaisesRegex(runner.RunnerError, error):
+                runner.validate_executable_cohorts(altered)
+
+    def test_diagnostic_binary_check_rejects_symlinks_mismatch_and_path_escape(self) -> None:
+        repo = Path(runner.__file__).resolve().parent.parent
+        cohort = runner.load_executable_cohorts(repo)["cohorts"][0]
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            for name in runner.APPS:
+                (root / name).write_bytes(b"not-the-sealed-reference-binary")
+            with self.assertRaisesRegex(runner.RunnerError, "hash mismatch"):
+                runner.verify_diagnostic_cohort_binaries(cohort, root)
+            (root / "showcase").unlink()
+            (root / "showcase").symlink_to(root / "tablepro")
+            with self.assertRaisesRegex(runner.RunnerError, "private regular file"):
+                runner.verify_diagnostic_cohort_binaries(cohort, root)
+            altered = json.loads(json.dumps(cohort))
+            altered["binaries"]["showcase"]["path"] = "../showcase"
+            with self.assertRaisesRegex(runner.RunnerError, "escapes"):
+                runner.verify_diagnostic_cohort_binaries(altered, root)
+
 
 if __name__ == "__main__":
     unittest.main()
