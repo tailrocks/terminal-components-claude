@@ -581,6 +581,13 @@ impl TextInputState {
         }
     }
 
+    pub fn select_all(&mut self) {
+        let editing = self.draft_text().is_some();
+        if editing {
+            let _ = self.apply(EditAction::SelectAll);
+        }
+    }
+
     pub fn splice_completion(&mut self, replace_len: usize, insertion: &str) -> bool {
         if !self.is_editing() {
             return false;
