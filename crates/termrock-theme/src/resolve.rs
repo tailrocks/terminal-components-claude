@@ -215,8 +215,28 @@ pub(crate) fn accumulate(
     live: StateFlags,
     overlays: &[Overlay],
 ) -> StylePatch {
-    let (defaults, variant, _) = accumulate_defaults(theme, f, v, p, live);
-    apply_explicit(theme, (f, variant, p), live, overlays, defaults)
+    accumulate_profiled(theme, f, v, p, live, overlays).0
+}
+
+fn accumulate_profiled(
+    theme: &Theme,
+    family: Family,
+    requested_variant: Variant,
+    part: Part,
+    live: StateFlags,
+    overlays: &[Overlay],
+) -> (StylePatch, ProfiledStyle) {
+    let (defaults, variant, mut profiled) =
+        accumulate_defaults(theme, family, requested_variant, part, live);
+    let explicit = apply_explicit(
+        theme,
+        (family, variant, part),
+        live,
+        overlays,
+        StylePatch::new(),
+    );
+    profiled.suppress(explicit);
+    (defaults.merge(explicit), profiled)
 }
 
 fn accumulate_defaults(
@@ -225,17 +245,61 @@ fn accumulate_defaults(
     v: Variant,
     p: Part,
     live: StateFlags,
-) -> (StylePatch, Variant, StylePatch) {
+) -> (StylePatch, Variant, ProfiledStyle) {
     let recipes = &theme.recipes;
 
     let (mut acc, variant) = apply_recipe(recipes.get_or_neutral(f), v, p, live, StylePatch::new());
-    let (profiled, exact_profile) = apply_level_family(theme, f, v, variant, p, live, acc);
-    acc = profiled;
+    let (profiled_acc, exact_profile) = apply_level_family(theme, f, v, variant, p, live, acc);
+    acc = profiled_acc;
+    let mut profiled = ProfiledStyle::from_patch(exact_profile);
 
     if theme.capability.color == super::ColorLevel::Mono {
+        let before_mono = acc;
         acc = super::downgrade::apply_mono_fallback(acc, recipes, f, p, live);
+        profiled.retain_unchanged(before_mono, acc);
     }
-    (acc, variant, exact_profile)
+    (acc, variant, profiled)
+}
+
+#[derive(Clone, Copy, Debug, Default)]
+struct ProfiledStyle {
+    fg: bool,
+    bg: bool,
+    underline: bool,
+}
+
+impl ProfiledStyle {
+    fn from_patch(patch: StylePatch) -> Self {
+        Self {
+            fg: matches!(patch.fg, Slot::Set(Role::Custom(_))),
+            bg: matches!(patch.bg, Slot::Set(Role::Custom(_))),
+            underline: matches!(patch.underline, Slot::Set(Role::Custom(_))),
+        }
+    }
+
+    fn retain_unchanged(&mut self, before: StylePatch, after: StylePatch) {
+        if before.fg != after.fg {
+            self.fg = false;
+        }
+        if before.bg != after.bg {
+            self.bg = false;
+        }
+        if before.underline != after.underline {
+            self.underline = false;
+        }
+    }
+
+    fn suppress(&mut self, patch: StylePatch) {
+        if !matches!(patch.fg, Slot::Inherit) {
+            self.fg = false;
+        }
+        if !matches!(patch.bg, Slot::Inherit) {
+            self.bg = false;
+        }
+        if !matches!(patch.underline, Slot::Inherit) {
+            self.underline = false;
+        }
+    }
 }
 
 fn apply_level_family(
@@ -430,10 +494,12 @@ pub fn bind_defaults(
         Some(recipe) => apply_recipe(recipe, requested_variant, part, flags, defaults.base),
         None => (defaults.base, requested_variant),
     };
-    let (profiled, exact_profile) =
+    let (profiled, exact_profile_patch) =
         apply_level_family(theme, family, requested_variant, variant, part, flags, acc);
     acc = profiled;
+    let mut exact_profile = ProfiledStyle::from_patch(exact_profile_patch);
     if theme.capability.color == super::ColorLevel::Mono {
+        let before_mono = acc;
         acc = super::downgrade::apply_mono_with_defaults(
             acc,
             &theme.recipes,
@@ -442,8 +508,17 @@ pub fn bind_defaults(
             flags,
             Some(defaults.mono),
         );
+        exact_profile.retain_unchanged(before_mono, acc);
     }
-    acc = apply_explicit(theme, (family, variant, part), flags, overlays, acc);
+    let explicit = apply_explicit(
+        theme,
+        (family, variant, part),
+        flags,
+        overlays,
+        StylePatch::new(),
+    );
+    exact_profile.suppress(explicit);
+    acc = acc.merge(explicit);
     bind_with_profile(theme, acc, local, surface, exact_profile)
 }
 
@@ -461,10 +536,12 @@ pub fn bind_defaults_with_explicit(
         Some(recipe) => apply_recipe(recipe, requested_variant, part, flags, defaults.base),
         None => (defaults.base, requested_variant),
     };
-    let (profiled, exact_profile) =
+    let (profiled, exact_profile_patch) =
         apply_level_family(theme, family, requested_variant, variant, part, flags, acc);
     acc = profiled;
+    let mut exact_profile = ProfiledStyle::from_patch(exact_profile_patch);
     if theme.capability.color == super::ColorLevel::Mono {
+        let before_mono = acc;
         acc = super::downgrade::apply_mono_with_defaults(
             acc,
             &theme.recipes,
@@ -473,6 +550,7 @@ pub fn bind_defaults_with_explicit(
             flags,
             Some(defaults.mono),
         );
+        exact_profile.retain_unchanged(before_mono, acc);
     }
     let explicit = apply_explicit(
         theme,
@@ -481,7 +559,11 @@ pub fn bind_defaults_with_explicit(
         overlays,
         StylePatch::new(),
     );
+    exact_profile.suppress(explicit);
     acc = acc.merge(explicit);
+    if let Some(local) = local {
+        exact_profile.suppress(*local);
+    }
     let resolved = bind_with_profile(theme, acc, local, surface, exact_profile);
     ResolvedStyle {
         resolved,
@@ -538,12 +620,14 @@ pub fn bind_inherited(
     );
     let base = bind_with_profile(theme, defaults, None, surface, exact_profile).style;
     let top = bind(theme, explicit, None, surface).style;
+    let mut combined_profile = exact_profile;
+    combined_profile.suppress(explicit);
     let mut result = bind_with_profile(
         theme,
         defaults.merge(explicit),
         None,
         surface,
-        exact_profile,
+        combined_profile,
     );
     let mut style = base.patch(inherited).patch(top);
 
@@ -682,7 +766,7 @@ pub fn bind(
     local: Option<&StylePatch>,
     surface: Surface,
 ) -> Resolved {
-    bind_with_profile(theme, acc, local, surface, StylePatch::new())
+    bind_with_profile(theme, acc, local, surface, ProfiledStyle::default())
 }
 
 fn bind_with_profile(
@@ -690,8 +774,11 @@ fn bind_with_profile(
     acc: StylePatch,
     local: Option<&StylePatch>,
     surface: Surface,
-    exact_profile: StylePatch,
+    mut exact_profile: ProfiledStyle,
 ) -> Resolved {
+    if let Some(local) = local {
+        exact_profile.suppress(*local);
+    }
     let acc = match local {
         Some(p) => acc.merge(*p),
         None => acc,
@@ -720,12 +807,10 @@ fn bind_with_profile(
 fn bind_profile_slot(
     theme: &Theme,
     slot: Slot<Role>,
-    exact_profile_slot: Slot<Role>,
+    preserve_authored_custom: bool,
     surface: Surface,
 ) -> Option<Color> {
-    if slot == exact_profile_slot
-        && let Slot::Set(Role::Custom(color)) = exact_profile_slot
-    {
+    if preserve_authored_custom && let Slot::Set(Role::Custom(color)) = slot {
         return Some(color);
     }
     bind_slot(theme, slot, surface)
@@ -748,7 +833,7 @@ const CACHE_SETS: usize = CACHE_SLOTS / WAYS;
 
 #[derive(Clone, Debug)]
 pub struct StyleCache {
-    slots: Box<[(u64, u32, StylePatch); CACHE_SLOTS]>,
+    slots: Box<[(u64, u32, StylePatch, ProfiledStyle); CACHE_SLOTS]>,
     generation: u32,
     hits: u64,
     misses: u64,
@@ -763,7 +848,7 @@ impl Default for StyleCache {
 impl StyleCache {
     pub(crate) fn new() -> Self {
         StyleCache {
-            slots: Box::new([(0, 0, StylePatch::new()); CACHE_SLOTS]),
+            slots: Box::new([(0, 0, StylePatch::new(), ProfiledStyle::default()); CACHE_SLOTS]),
             generation: 1,
             hits: 0,
             misses: 0,
@@ -772,7 +857,8 @@ impl StyleCache {
 
     pub fn clear(&mut self) {
         if self.generation == u32::MAX {
-            self.slots.fill((0, 0, StylePatch::new()));
+            self.slots
+                .fill((0, 0, StylePatch::new(), ProfiledStyle::default()));
             self.generation = 1;
         } else {
             self.generation = self.generation.saturating_add(1);
@@ -823,24 +909,83 @@ impl StyleCache {
         overlays: &[Overlay],
         stack_hash: u64,
     ) -> StylePatch {
+        self.accumulate_profiled(theme, f, v, p, live, overlays, stack_hash)
+            .0
+    }
+
+    #[expect(
+        clippy::too_many_arguments,
+        reason = "the cache key includes all resolved-style dimensions plus its binding surface"
+    )]
+    pub fn resolve(
+        &mut self,
+        theme: &Theme,
+        f: Family,
+        v: Variant,
+        p: Part,
+        live: StateFlags,
+        overlays: &[Overlay],
+        stack_hash: u64,
+        surface: Surface,
+    ) -> Resolved {
+        let (patch, profile) = self.accumulate_profiled(theme, f, v, p, live, overlays, stack_hash);
+        bind_with_profile(theme, patch, None, surface, profile)
+    }
+
+    #[expect(
+        clippy::too_many_arguments,
+        reason = "the cache key includes all resolved-style dimensions plus its binding surface"
+    )]
+    pub fn resolve_patched(
+        &mut self,
+        theme: &Theme,
+        f: Family,
+        v: Variant,
+        p: Part,
+        live: StateFlags,
+        overlays: &[Overlay],
+        stack_hash: u64,
+        surface: Surface,
+        local: &StylePatch,
+    ) -> Resolved {
+        let (patch, mut profile) =
+            self.accumulate_profiled(theme, f, v, p, live, overlays, stack_hash);
+        profile.suppress(*local);
+        bind_with_profile(theme, patch, Some(local), surface, profile)
+    }
+
+    #[expect(
+        clippy::too_many_arguments,
+        reason = "the §11.1 A3 memo key plus the theme and the stack"
+    )]
+    fn accumulate_profiled(
+        &mut self,
+        theme: &Theme,
+        f: Family,
+        v: Variant,
+        p: Part,
+        live: StateFlags,
+        overlays: &[Overlay],
+        stack_hash: u64,
+    ) -> (StylePatch, ProfiledStyle) {
         let key = Self::key(theme, f, v, p, live, stack_hash) | 1;
 
         let set = ((key >> 1) as usize) % CACHE_SETS;
         let base = set.saturating_mul(WAYS);
         for w in 0..WAYS {
-            if let Some((k, g, patch)) = self.slots.get(base.saturating_add(w))
+            if let Some((k, g, patch, profile)) = self.slots.get(base.saturating_add(w))
                 && *k == key
                 && *g == self.generation
             {
-                let patch = *patch;
+                let cached = (*patch, *profile);
                 self.hits = self.hits.wrapping_add(1);
                 if w != 0 {
                     self.promote(base, w);
                 }
-                return patch;
+                return cached;
             }
         }
-        let patch = accumulate(theme, f, v, p, live, overlays);
+        let (patch, profile) = accumulate_profiled(theme, f, v, p, live, overlays);
 
         for w in (1..WAYS).rev() {
             let prev = self
@@ -852,10 +997,10 @@ impl StyleCache {
             }
         }
         if let Some(slot) = self.slots.get_mut(base) {
-            *slot = (key, self.generation, patch);
+            *slot = (key, self.generation, patch, profile);
         }
         self.misses = self.misses.wrapping_add(1);
-        patch
+        (patch, profile)
     }
 
     fn promote(&mut self, base: usize, w: usize) {
@@ -891,8 +1036,10 @@ pub fn resolve_uncached(
     overlays: &[Overlay],
     local: Option<&StylePatch>,
 ) -> Resolved {
-    let (defaults, variant, exact_profile) = accumulate_defaults(theme, f, v, p, live);
-    let acc = apply_explicit(theme, (f, variant, p), live, overlays, defaults);
+    let (acc, mut exact_profile) = accumulate_profiled(theme, f, v, p, live, overlays);
+    if let Some(local) = local {
+        exact_profile.suppress(*local);
+    }
     bind_with_profile(theme, acc, local, surface, exact_profile)
 }
 
