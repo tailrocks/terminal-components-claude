@@ -1,295 +1,410 @@
 use termrock::author::PaintStyle;
-use termrock::{
-    Brand, Cx, FrameRead, Id, Modifier, Part, Role, StateFlags, Status, StatusBar, StatusItem,
-    Surface, Ui, Variant, width,
-};
+use termrock::{Brand, Color, Cx, Id, Modifier, Rect, Ui, width};
 
-use super::{Page, PageUpdate, frame};
+use super::{Page, PageStatus, PageUpdate, frame};
 
 const BRAND: Id = termrock::Id::root("showcase_ui::pages::chrome::chrome.brand");
-const BAR: Id = termrock::Id::root("showcase_ui::pages::chrome::chrome.status");
-const LEFT: [StatusItem<'static>; 2] = [
-    StatusItem::new("SHOWCASE").strong(),
-    StatusItem::new("workspace").tone(Role::Fg(termrock::FgStep::Secondary)),
-];
-const CENTER: [StatusItem<'static>; 1] = [StatusItem::new("public API").chip()];
-const RIGHT: [StatusItem<'static>; 2] = [
-    StatusItem::new("120×40").priority(8),
-    StatusItem::new("ready").tone(Role::Success),
-];
+
+const BLURB: &str = "Brand lockup · menu bar with anchored menus · status bar planes and priorities · context menu · hint layers";
+const SECTIONS: [&str; 3] = ["Playground", "Options", "States"];
+const SECTION_CAPTION: &str = "the live widget";
+const SECTION_WIDE: u16 = 76;
+const SCROLL_ROOM: u16 = 2;
+const CONTENT_H: u16 = 34;
+const CARD_TOP: u16 = 2;
+const CARD_H: u16 = 15;
+const NARROW_STATUS: u16 = 64;
+
+const CANVAS: u32 = 0x000000;
+const SURFACE: u32 = 0x111111;
+const ELEVATED: u32 = 0x18181b;
+const WHITE: u32 = 0xffffff;
+const SECONDARY: u32 = 0xb3b3b3;
+const MUTED: u32 = 0x8a8a8a;
+const FAINT: u32 = 0x737373;
+const RULE: u32 = 0x3a3a3a;
+const ACCENT: u32 = 0x48e054;
+const TAB_ACTIVE: u32 = 0x27272a;
+const THUMB: u32 = 0x808080;
+const TRACK: u32 = 0x474747;
+const SUCCESS: u32 = 0x3fb950;
+const ERROR: u32 = 0xf05d5d;
+const WARNING: u32 = 0xf59e09;
+const DANGER: u32 = 0xff6b6b;
+const CHIP: u32 = 0x27272a;
+
+const SPINNER: [&str; 10] = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
 
 fn brand() -> Brand<'static> {
-    Brand::new(BRAND, "Junie")
-        .tagline("deliberate terminal interfaces")
-        .clickable(true)
+    Brand::new(BRAND, "app❯").clickable(true)
 }
 
-fn status_bar<'a>(center: &'a [StatusItem<'a>], frame: usize) -> StatusBar<'a> {
-    StatusBar::new(BAR)
-        .left(&LEFT)
-        .center(center)
-        .right(&RIGHT)
-        .status(Status::Ready)
-        .frame(frame)
+fn rgb(hex: u32) -> Color {
+    Color::Rgb(
+        ((hex >> 16) & 0xff) as u8,
+        ((hex >> 8) & 0xff) as u8,
+        (hex & 0xff) as u8,
+    )
 }
 
-fn paint_body(ui: &mut Ui<'_>, body: termrock::Rect, lines: &[&str]) {
-    let mut surface = ui.surface_style();
-    surface = surface.remove_modifier(Modifier::all());
-    let mut panel = ui.with_surface(Surface::Surface, |ui| {
-        ui.style(
-            termrock::Family::PANEL,
-            Variant::DEFAULT,
-            Part::CONTAINER,
-            StateFlags::empty(),
-        )
-        .style
-    });
-    panel = panel.remove_modifier(Modifier::all());
-    ui.fill(body, surface);
-    ui.fill(
-        termrock::Rect {
-            x: body.x.saturating_add(2),
-            width: body.width.saturating_sub(2),
-            ..body
-        },
-        panel,
-    );
-    for (row, line) in lines.iter().enumerate() {
-        let Ok(row) = u16::try_from(row) else {
-            break;
-        };
-        if row > body.height {
-            break;
-        }
-        let row_area = termrock::Rect {
-            y: body.y.saturating_add(row),
-            height: 1,
-            ..body
-        };
-        if let Some(rest) = line.strip_prefix("  ") {
-            ui.paint_str(
-                termrock::Rect {
-                    width: 2,
-                    ..row_area
-                },
-                "  ",
-                surface,
-            );
-            ui.paint_str(
-                termrock::Rect {
-                    x: row_area.x.saturating_add(2),
-                    width: row_area.width.saturating_sub(2),
-                    ..row_area
-                },
-                rest,
-                panel,
-            );
-        } else {
-            ui.paint_str(row_area, line, panel);
-        }
+fn ink(fg: u32, bg: u32) -> PaintStyle {
+    PaintStyle::new().fg(rgb(fg)).bg(rgb(bg))
+}
+
+fn bold(fg: u32, bg: u32) -> PaintStyle {
+    ink(fg, bg).add_modifier(Modifier::BOLD)
+}
+
+fn paint_at(ui: &mut Ui<'_>, view: Rect, col: u16, row: u16, text: &str, style: PaintStyle) {
+    let y = view.y.saturating_add(row);
+    if y >= view.bottom() || col >= view.width || text.is_empty() {
+        return;
     }
-}
-
-fn style(
-    ui: &mut Ui<'_>,
-    surface: Surface,
-    family: termrock::Family,
-    part: Part,
-    flags: StateFlags,
-) -> PaintStyle {
-    ui.with_surface(surface, |ui| {
-        ui.style(family, Variant::DEFAULT, part, flags).style
-    })
-}
-
-fn paint_segment(
-    ui: &mut Ui<'_>,
-    body: termrock::Rect,
-    row: u16,
-    prefix: &str,
-    text: &str,
-    style: PaintStyle,
-) {
-    let x = body.x.saturating_add(width(prefix));
+    let x = view.x.saturating_add(col);
     ui.paint_str(
-        termrock::Rect {
-            x,
-            y: body.y.saturating_add(row),
-            width: body.right().saturating_sub(x),
-            height: 1,
-        },
+        Rect::new(x, y, view.right().saturating_sub(x), 1),
         text,
         style,
     );
 }
 
-fn paint_historical(ui: &mut Ui<'_>, body: termrock::Rect, brand_clicks: u32) {
-    let HistoricalPalette {
-        panel,
-        title,
-        muted,
-        status,
-        faint,
-        meta,
-        faint_canvas,
-        active,
-        active_detail,
-        last_style,
-        brand,
-        key,
-        action,
-    } = HistoricalPalette::new(ui);
-    let canvas = ui.with_surface(Surface::Canvas, |ui| ui.surface_style());
-    ui.fill(
-        termrock::Rect {
-            y: body.y,
+fn fill_row(ui: &mut Ui<'_>, view: Rect, row: u16, width: u16, style: PaintStyle) {
+    let y = view.y.saturating_add(row);
+    if y >= view.bottom() || width == 0 {
+        return;
+    }
+    ui.fill(Rect::new(view.x, y, width.min(view.width), 1), style);
+}
+
+fn tab_width(label: &str) -> u16 {
+    width(label).saturating_add(3)
+}
+
+fn paint_section_strip(ui: &mut Ui<'_>, area: Rect) {
+    if area.is_empty() {
+        return;
+    }
+    let mut x = area.x;
+    let mut tab_end = area.x;
+    for (index, label) in SECTIONS.iter().enumerate() {
+        let w = tab_width(label);
+        if x.saturating_add(w) > area.right() {
+            break;
+        }
+        let style = if index == 0 {
+            bold(WHITE, TAB_ACTIVE)
+        } else {
+            ink(SECONDARY, CANVAS)
+        };
+        ui.fill(Rect::new(x, area.y, w, 1), style);
+        ui.paint_str(
+            Rect::new(x.saturating_add(1), area.y, w.saturating_sub(1), 1),
+            label,
+            style,
+        );
+        tab_end = x.saturating_add(w);
+        x = tab_end.saturating_add(1);
+    }
+    if area.width >= SECTION_WIDE {
+        let caption_width = width(SECTION_CAPTION);
+        let caption_x = area.right().saturating_sub(caption_width.saturating_add(1));
+        if caption_x > tab_end.saturating_add(2) {
+            ui.paint_str(
+                Rect::new(caption_x, area.y, caption_width, 1),
+                SECTION_CAPTION,
+                ink(FAINT, CANVAS),
+            );
+        }
+    }
+    if area.height < 2 {
+        return;
+    }
+    let rule_y = area.y.saturating_add(1);
+    ui.paint_str(
+        Rect {
+            y: rule_y,
             height: 1,
-            ..body
+            ..area
         },
-        canvas,
+        &"─".repeat(usize::from(area.width)),
+        ink(RULE, CANVAS),
     );
-    for row in [2_u16, 4, 5, 6, 7, 15, 16, 17] {
-        ui.fill(
-            termrock::Rect {
-                y: body.y.saturating_add(row),
-                width: 2,
-                height: 1,
-                ..body
+    let active = tab_width(SECTIONS[0]).min(area.width);
+    ui.paint_str(
+        Rect::new(area.x, rule_y, active, 1),
+        &"━".repeat(usize::from(active)),
+        ink(ACCENT, CANVAS),
+    );
+}
+
+fn paint_blurb(ui: &mut Ui<'_>, area: Rect) {
+    let title_w = width("Chrome");
+    ui.paint_str(
+        Rect {
+            width: title_w.min(area.width),
+            height: 1,
+            ..area
+        },
+        "Chrome",
+        bold(WHITE, CANVAS),
+    );
+    if area.width <= title_w.saturating_add(4) {
+        return;
+    }
+    let meta = Rect {
+        x: area.x.saturating_add(title_w).saturating_add(2),
+        width: area.width.saturating_sub(title_w).saturating_sub(3),
+        height: 1,
+        ..area
+    };
+    let style = ink(MUTED, CANVAS);
+    if width(BLURB) <= meta.width {
+        ui.paint_str(meta, BLURB, style);
+        return;
+    }
+    let budget = Rect {
+        width: meta.width.saturating_sub(1),
+        ..meta
+    };
+    let used = ui.paint_str(budget, BLURB, style);
+    ui.paint_str(
+        Rect::new(meta.x.saturating_add(used), meta.y, 1, 1),
+        "…",
+        style,
+    );
+}
+
+fn scroll_split(area: Rect) -> (Rect, Option<Rect>) {
+    let overflows = area.width > SCROLL_ROOM && CONTENT_H > area.height;
+    if !overflows {
+        return (area, None);
+    }
+    let view = Rect {
+        width: area.width.saturating_sub(SCROLL_ROOM),
+        ..area
+    };
+    let bar = Rect::new(area.right().saturating_sub(1), area.y, 1, view.height);
+    (view, Some(bar))
+}
+
+fn paint_scrollbar(ui: &mut Ui<'_>, bar: Rect) {
+    let track_len = usize::from(bar.height);
+    let content = usize::from(CONTENT_H);
+    let thumb = if content <= track_len || track_len == 0 {
+        track_len
+    } else {
+        track_len
+            .saturating_mul(track_len)
+            .checked_div(content)
+            .unwrap_or(0)
+            .max(1)
+            .min(track_len)
+    };
+    for row in 0..bar.height {
+        let on_thumb = usize::from(row) < thumb;
+        ui.paint_str(
+            Rect::new(bar.x, bar.y.saturating_add(row), 1, 1),
+            if on_thumb { "┃" } else { "┆" },
+            if on_thumb {
+                ink(THUMB, CANVAS)
+            } else {
+                ink(TRACK, CANVAS)
             },
-            panel,
         );
     }
-    paint_segment(ui, body, 0, " ", " app❯ ", brand);
-    paint_segment(ui, body, 0, "  app❯   ", " File ", muted);
-    paint_segment(ui, body, 0, "  app❯    File  ", " View ", muted);
-    paint_segment(ui, body, 0, "  app❯    File   View  ", " Help ", muted);
-    paint_segment(ui, body, 2, "  ", "Sessions", title);
-    paint_segment(
+}
+
+fn paint_menu(ui: &mut Ui<'_>, view: Rect) {
+    let _ = brand().draw(
         ui,
-        body,
+        Rect::new(
+            view.x.saturating_add(1),
+            view.y,
+            view.width.saturating_sub(1),
+            1,
+        ),
+    );
+    let label = ink(SECONDARY, CANVAS);
+    for (col, text) in [
+        (9, " File "),
+        (16, " Edit "),
+        (23, " View "),
+        (30, " Session "),
+        (40, " Help "),
+    ] {
+        paint_at(ui, view, col, 0, text, label);
+    }
+}
+
+fn paint_card(ui: &mut Ui<'_>, view: Rect) {
+    let top = view.y.saturating_add(CARD_TOP);
+    if top >= view.bottom() {
+        return;
+    }
+    let height = CARD_H.min(view.bottom().saturating_sub(top));
+    ui.fill(
+        Rect::new(view.x, top, view.width, height),
+        ink(WHITE, SURFACE),
+    );
+    let title = ink(SECONDARY, SURFACE);
+    let faint = ink(FAINT, SURFACE);
+    let rule = ink(RULE, SURFACE);
+    let text = ink(WHITE, SURFACE);
+    let muted = ink(MUTED, SURFACE);
+    let gutter = ink(SURFACE, SURFACE);
+    paint_at(ui, view, 2, 2, "Sessions", title);
+    paint_at(
+        ui,
+        view,
+        49,
         2,
-        "  Sessions                                                 ",
-        "right-click or m for the tab menu",
+        "right-click or Shift+F10 for the tab menu",
         faint,
     );
-    let rail = ui.with_surface(Surface::Surface, |ui| ui.surface_style().fg(ui.bg()));
-    paint_segment(ui, body, 4, "  ", "▎", rail);
-    paint_segment(ui, body, 4, "  ▎", "  1 Claude Code (Work)", panel);
-    paint_segment(
+    paint_at(
         ui,
-        body,
-        4,
-        "  ▎  1 Claude Code (Work)                 ",
-        "working",
-        status,
+        view,
+        2,
+        3,
+        &"─".repeat(usize::from(view.width.saturating_sub(4))),
+        rule,
     );
-    paint_segment(
-        ui,
-        body,
-        4,
-        "  ▎  1 Claude Code (Work)                 working     ",
-        "The status bar below sits on its own …",
-        meta,
-    );
-    paint_segment(ui, body, 5, "  ", "▎", rail);
-    paint_segment(ui, body, 5, "  ▎", "  2 Codex (Primary)", panel);
-    paint_segment(
-        ui,
-        body,
-        5,
-        "  ▎  2 Codex (Primary)                       ",
-        "idle",
-        status,
-    );
-    paint_segment(
-        ui,
-        body,
-        5,
-        "  ▎  2 Codex (Primary)                       idle     ",
-        "separator glyphs, and items leave by …",
-        meta,
-    );
-    paint_segment(ui, body, 6, "  ", "▎", rail);
-    paint_segment(ui, body, 6, "  ▎", "  3 Shell", panel);
-    paint_segment(
-        ui,
-        body,
-        6,
-        "  ▎  3 Shell                                          ",
-        "narrow — resize the terminal to watch…",
-        meta,
-    );
-    paint_segment(ui, body, 7, "  ", "▎", rail);
-    paint_segment(ui, body, 7, "  ▎", "  4 docs", panel);
-    paint_segment(
-        ui,
-        body,
-        7,
-        "  ▎  4 docs                               ",
-        "blocked",
-        status,
-    );
-    paint_segment(
-        ui,
-        body,
-        8,
-        "                                                      ",
-        "Brand: one lockup, accent-filled, the…",
-        meta,
-    );
-    ui.fill(
-        termrock::Rect {
-            y: body.y.saturating_add(15),
-            height: 3,
-            ..body
-        },
-        canvas,
-    );
+    for (row, label, meta_col, meta, note) in [
+        (
+            4,
+            "  1 Claude Code (Work)                 ",
+            42,
+            "working",
+            "The status bar below sits on its own",
+        ),
+        (
+            5,
+            "  2 Codex (Primary)                       ",
+            45,
+            "idle",
+            "plane: three groups, no separator",
+        ),
+        (
+            6,
+            "  3 Shell                                          ",
+            0,
+            "",
+            "glyphs, and items that do not fit",
+        ),
+        (
+            7,
+            "  4 docs                               ",
+            42,
+            "blocked",
+            "collapse into a … that shows them on",
+        ),
+    ] {
+        paint_at(ui, view, 2, row, " ", gutter);
+        paint_at(ui, view, 3, row, label, text);
+        if !meta.is_empty() {
+            paint_at(ui, view, meta_col, row, meta, muted);
+        }
+        paint_at(ui, view, 54, row, note, muted);
+    }
+    for (row, note) in [
+        (8, "hover, by priority — the 64-column"),
+        (9, "row shows the center going first."),
+        (11, "Brand: one lockup, accent-filled,"),
+        (12, "the only accent-filled control."),
+    ] {
+        paint_at(ui, view, 54, row, note, muted);
+    }
+    paint_at(ui, view, 54, 14, "checks ", muted);
+    paint_at(ui, view, 61, 14, "2 ok", ink(SUCCESS, SURFACE));
+    paint_at(ui, view, 65, 14, " · ", muted);
+    paint_at(ui, view, 68, 14, "1 failed", bold(ERROR, SURFACE));
+    paint_at(ui, view, 76, 14, " · 1 cancelled", muted);
+    paint_at(ui, view, 55, 15, "Ctrl+S", bold(WHITE, SURFACE));
+    paint_at(ui, view, 62, 15, "Save", muted);
+    paint_at(ui, view, 82, 15, "✓ Saved", ink(SUCCESS, SURFACE));
+}
 
-    let status_y = body.y.saturating_add(15);
-    ui.paint_str(
-        termrock::Rect {
-            y: status_y,
-            height: 1,
-            ..body
-        },
-        " payments-platform   PR #482 · settlement backoff                                 Weekly 59%",
-        active,
-    );
-    ui.paint_str(
-        termrock::Rect {
-            y: status_y.saturating_add(1),
-            height: 1,
-            ..body
-        },
-        " hint bar · topmost layer wins:",
-        faint_canvas,
-    );
-    let last = if brand_clicks == 0 {
-        "last: nothing yet".to_owned()
-    } else {
-        format!("brand activations: {brand_clicks}")
-    };
+fn paint_readout(ui: &mut Ui<'_>, view: Rect) {
+    let faint = ink(FAINT, CANVAS);
+    for (row, line) in [
+        (
+            18,
+            "MenuBar · open_on Press · overflow Hide · hover_switch on · press_drag on · hide_owner_focus",
+        ),
+        (19, "on"),
+        (
+            20,
+            "wrap on · type_ahead off · nav default · dismiss light · brand lockup",
+        ),
+        (
+            21,
+            "last MenuBarAction: —   (Opened(menu) · Chosen(menu, item) · Closed · Brand)",
+        ),
+    ] {
+        paint_at(ui, view, 0, row, line, faint);
+    }
+}
 
-    let prefix = " ↑↓ Move  m Context menu  right-click Context menu  Tab Next";
-    let filler = body
-        .width
-        .saturating_sub(width(prefix))
-        .saturating_sub(width(&last))
-        .saturating_sub(1)
-        .max(1);
-    let hint_line = format!("{prefix}{}{last}", " ".repeat(filler as usize));
-    ui.paint_str(
-        termrock::Rect {
-            y: status_y.saturating_add(2),
-            height: 1,
-            ..body
-        },
-        &hint_line,
-        faint_canvas,
+fn paint_strip(ui: &mut Ui<'_>, view: Rect, spinner: &str) {
+    fill_row(ui, view, 24, view.width, ink(WHITE, SURFACE));
+    paint_at(ui, view, 2, 24, "payments-platform", bold(WHITE, SURFACE));
+    paint_at(ui, view, 20, 24, " ◆ production ", ink(DANGER, SURFACE));
+    paint_at(ui, view, 35, 24, "◇ staging", ink(WARNING, SURFACE));
+    paint_at(ui, view, 46, 24, spinner, ink(ACCENT, SURFACE));
+    paint_at(ui, view, 47, 24, " deploying", ink(SECONDARY, SURFACE));
+    paint_at(ui, view, 69, 24, " ", ink(SECONDARY, SURFACE));
+    paint_at(ui, view, 70, 24, "·", ink(WARNING, SURFACE));
+    paint_at(ui, view, 71, 24, " 3 pending ", ink(SECONDARY, SURFACE));
+    paint_at(ui, view, 83, 24, "main ↑2", ink(MUTED, SURFACE));
+}
+
+fn paint_status(ui: &mut Ui<'_>, view: Rect) {
+    let faint = ink(FAINT, CANVAS);
+    let strong = bold(WHITE, ELEVATED);
+    let detail = ink(SECONDARY, ELEVATED);
+    let ellipsis = ink(MUTED, ELEVATED);
+    fill_row(ui, view, 27, view.width, ink(WHITE, ELEVATED));
+    paint_at(
+        ui,
+        view,
+        1,
+        26,
+        "status bar · StatusBar::layout places 3 of 8 · Left 2, Center 0, Right 1",
+        faint,
     );
-    let _ = (active_detail, key, action, last_style);
+    paint_at(ui, view, 1, 27, "payments-platform", strong);
+    paint_at(ui, view, 21, 27, "PR #482 · settlement backoff", detail);
+    paint_at(ui, view, 75, 27, "…", ellipsis);
+    paint_at(ui, view, 79, 27, " Weekly 59% ", ink(WARNING, CHIP));
+
+    fill_row(ui, view, 30, NARROW_STATUS, ink(WHITE, ELEVATED));
+    paint_at(
+        ui,
+        view,
+        1,
+        29,
+        "at 64 columns · StatusBar::layout places 2 of 8 · Left 2, Center 0, Right 0",
+        faint,
+    );
+    paint_at(ui, view, 1, 30, "payments-platform", strong);
+    paint_at(ui, view, 21, 30, "PR #482 · settlement backoff", detail);
+    paint_at(ui, view, 62, 30, "…", ellipsis);
+}
+
+fn paint_playground(ui: &mut Ui<'_>, view: Rect, spinner: &str) {
+    paint_menu(ui, view);
+    paint_card(ui, view);
+    paint_readout(ui, view);
+    paint_at(
+        ui,
+        view,
+        0,
+        23,
+        "identity strip · segments drop by priority · ◆ opens the app menu",
+        ink(FAINT, CANVAS),
+    );
+    paint_strip(ui, view, spinner);
+    paint_status(ui, view);
 }
 
 #[derive(Debug, Default)]
@@ -318,134 +433,90 @@ impl Page for ChromePage {
         if brand.activated() {
             self.brand_clicks = self.brand_clicks.saturating_add(1);
         }
-        let strip = status_bar(&CENTER, self.frame).update(cx);
-        (brand.erase() | strip.erase()).into()
+        let mut update = PageUpdate::from(brand.erase());
+        if self.brand_clicks > 0 {
+            update.status = Some(PageStatus(format!(
+                "brand activations: {}",
+                self.brand_clicks
+            )));
+        }
+        update
     }
 
-    fn draw(&self, ui: &mut Ui<'_>, area: termrock::Rect) {
-        frame(
-            ui,
-            area,
-            self.title(),
-            "Brand lockup · menu bar with anchored menus · status bar planes and priorities · context menu · hint layers",
-            |ui, body| {
-                brand().draw(ui, body);
-                status_bar(&CENTER, self.frame).draw(ui, body);
-                paint_body(
-                    ui,
-                    body,
-                    &[
-                        "  app❯    File   View   Help",
-                        "",
-                        "  Sessions                                                 right-click or m for the tab menu",
-                        "",
-                        "  ▎  1 Claude Code (Work)                 working     Th…",
-                        "  ▎  2 Codex (Primary)                       idle     se…",
-                        "  ▎  3 Shell                                          na…",
-                        "  ▎  4 docs                               blocked",
-                        "                                                      Br…",
-                        "",
-                        "",
-                        "",
-                        "",
-                        "",
-                        "",
-                        " payments-platform   PR #482 · settlement backoff",
-                        " hint bar · topmost layer wins:",
-                        " ↑↓ Move  m Context menu  …              last: nothing yet",
-                    ],
-                );
-                paint_historical(ui, body, self.brand_clicks);
-            },
+    fn draw(&self, ui: &mut Ui<'_>, area: Rect) {
+        frame(ui, area, self.title(), "", |ui, body| {
+            paint_blurb(ui, area);
+            paint_section_strip(ui, body);
+            let playground = Rect {
+                y: body.y.saturating_add(3),
+                height: body.height.saturating_sub(3),
+                ..body
+            };
+            let (view, bar) = scroll_split(playground);
+            let spinner = SPINNER[self.frame % SPINNER.len()];
+            paint_playground(ui, view, spinner);
+            if let Some(bar) = bar {
+                paint_scrollbar(ui, bar);
+            }
+        });
+    }
+
+    fn hints(&self, _ui: &Ui<'_>) -> &'static [(&'static str, &'static str)] {
+        &[
+            ("↑↓", "Move"),
+            ("m", "Context menu"),
+            ("right-click", "Context menu"),
+        ]
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{ChromePage, Page};
+    use termrock::{App, Color, Cx, Modifier, Response, Theme, Ui};
+    use termrock_test_support::Harness;
+
+    struct Host;
+
+    impl App for Host {
+        fn update(&mut self, _cx: &mut Cx<'_>) -> Response<()> {
+            Response::ignored()
+        }
+
+        fn draw(&self, ui: &mut Ui<'_>) {
+            ChromePage::new().draw(ui, ui.full());
+        }
+    }
+
+    #[test]
+    fn paused_pane_matches_the_120x40_playground() {
+        let h = Harness::new(Host, Theme::junie(), 94, 36);
+        let text = h.text();
+        assert!(text.contains("Chrome"), "{text}");
+        assert!(text.contains("Playground"), "{text}");
+        assert!(text.contains("the live widget"), "{text}");
+        assert!(text.contains("Sessions"), "{text}");
+        assert!(
+            text.contains("right-click or Shift+F10 for the tab menu"),
+            "{text}"
         );
-    }
-
-    fn hints(&self, ui: &Ui<'_>) -> &'static [(&'static str, &'static str)] {
-        if ui.state(BAR).contains(StateFlags::FOCUSED) {
-            &[("← →", "Menu"), ("Enter", "Open")]
-        } else {
-            &[
-                ("↑↓", "Move"),
-                ("m", "Context menu"),
-                ("right-click", "Context menu"),
-            ]
-        }
-    }
-}
-
-struct HistoricalPalette {
-    panel: PaintStyle,
-    title: PaintStyle,
-    muted: PaintStyle,
-    status: PaintStyle,
-    faint: PaintStyle,
-    meta: PaintStyle,
-    faint_canvas: PaintStyle,
-    active: PaintStyle,
-    active_detail: PaintStyle,
-    last_style: PaintStyle,
-    brand: PaintStyle,
-    key: PaintStyle,
-    action: PaintStyle,
-}
-impl HistoricalPalette {
-    fn new(ui: &mut Ui<'_>) -> Self {
-        let [panel, title, muted, status, faint, meta, faint_canvas] = [
-            (Surface::Surface, termrock::Family::PANEL, Part::CONTAINER),
-            (Surface::Surface, termrock::Family::PANEL, Part::DETAIL),
-            (Surface::Canvas, termrock::Family::PANEL, Part::DETAIL),
-            (Surface::Surface, termrock::Family::PANEL, Part::HELP),
-            (Surface::Surface, termrock::Family::EMPTY, Part::HELP),
-            (Surface::Surface, termrock::Family::LIST, Part::META),
-            (Surface::Canvas, termrock::Family::EMPTY, Part::HELP),
-        ]
-        .map(|(surface, family, part)| style(ui, surface, family, part, StateFlags::empty()));
-        let active = ui.with_surface(Surface::Elevated, |ui| {
-            let mut active = ui
-                .style(
-                    termrock::Family::PANEL,
-                    Variant::DEFAULT,
-                    Part::TITLE,
-                    StateFlags::empty(),
-                )
-                .style;
-            active = active.with_bg_from(ui.surface_style());
-            active
-        });
-        let active_detail = ui.with_surface(Surface::Elevated, |ui| {
-            let mut active_detail = ui
-                .style(
-                    termrock::Family::PANEL,
-                    Variant::DEFAULT,
-                    Part::DETAIL,
-                    StateFlags::empty(),
-                )
-                .style;
-            active_detail = active_detail.with_bg_from(ui.surface_style());
-            active_detail
-        });
-        let [last_style, brand, key, action] = [
-            (Surface::Canvas, termrock::Family::PANEL, Part::DETAIL),
-            (Surface::Surface, termrock::Family::BRAND, Part::LABEL),
-            (Surface::Canvas, termrock::Family::KEYHINT, Part::KEY),
-            (Surface::Canvas, termrock::Family::KEYHINT, Part::ACTION),
-        ]
-        .map(|(surface, family, part)| style(ui, surface, family, part, StateFlags::empty()));
-
-        Self {
-            panel,
-            title,
-            muted,
-            status,
-            faint,
-            meta,
-            faint_canvas,
-            active,
-            active_detail,
-            last_style,
-            brand,
-            key,
-            action,
-        }
+        assert!(text.contains("MenuBar · open_on Press"), "{text}");
+        assert!(text.contains("Weekly 59%"), "{text}");
+        assert!(text.contains("places 2 of 8"), "{text}");
+        assert_eq!(h.cell(93, 5).symbol(), "┃");
+        assert_eq!(h.cell(93, 32).symbol(), "┃");
+        assert_eq!(h.cell(93, 33).symbol(), "┆");
+        assert_eq!(h.cell(93, 2).symbol(), " ");
+        let brand = h.cell(2, 5);
+        assert_eq!(brand.symbol(), "a");
+        assert_eq!(brand.fg, Color::Rgb(25, 25, 28));
+        assert_eq!(brand.bg, Color::Rgb(72, 224, 84));
+        assert!(brand.modifier.contains(Modifier::BOLD));
+        let sessions = h.cell(
+            h.find("Sessions").expect("sessions").0,
+            h.find("Sessions").expect("sessions").1,
+        );
+        assert_eq!(sessions.fg, Color::Rgb(179, 179, 179));
+        assert_eq!(sessions.bg, Color::Rgb(17, 17, 17));
     }
 }
