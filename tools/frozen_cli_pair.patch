@@ -13,6 +13,14 @@
  use std::collections::{BTreeMap, BTreeSet};
 --- a/tests/visual_baseline/support.rs
 +++ b/tests/visual_baseline/support.rs
+@@ -504,0 +505,5 @@
++
++    pub fn scroll_right(&mut self, col: u16, row: u16) -> Result<(), tuiscotti::TuiError> {
++        self.sending();
++        self.inner.mouse_wheel(Wheel::Right, col, row, MouseMods::NONE)
++    }
+--- a/tests/visual_baseline/support.rs
++++ b/tests/visual_baseline/support.rs
 @@ -314,6 +314,11 @@
  pub fn assert_gated(name: &str, frame: &Frame) {
  
@@ -37,14 +45,6 @@
 +    let frame = render::frame_from_screen(&obs.screen, &profile_name());
 +    assert_gated(name, &frame);
 +}
---- a/tests/visual_baseline/support.rs
-+++ b/tests/visual_baseline/support.rs
-@@ -504,0 +505,5 @@
-+
-+    pub fn scroll_right(&mut self, col: u16, row: u16) -> Result<(), tuiscotti::TuiError> {
-+        self.sending();
-+        self.inner.mouse_wheel(Wheel::Right, col, row, MouseMods::NONE)
-+    }
 --- a/tests/visual_baseline/scenarios/interact.rs
 +++ b/tests/visual_baseline/scenarios/interact.rs
 @@ -130,8 +130,8 @@
