@@ -45,6 +45,12 @@ REFERENCE_DECISIONS = Path("tools/frozen_cli_references.json")
 REFERENCE_DECISIONS_SHA256 = "2a43fb118c268300c8bbd6439ea11bb9a24ffff03dc3c9f4601893eee26a096b"
 REFERENCE_CASE = "showcase::resize::overview_grown::120x40::truecolor"
 REFERENCE_TUPLE = ("showcase/resize/overview_grown/120x40/truecolor", 0, "showcase/resize/overview_grown/120x40/truecolor")
+EXECUTABLE_COHORTS = Path("tools/frozen_cli_build_cohorts.json")
+EXECUTABLE_COHORTS_SHA256 = "96a83bee520e148bbecf7115644d88f8057a74438029c12c4a3a83253fa0b0b4"
+EXECUTABLE_COHORT_SCHEMA = "termrock.frozen-cli-build-cohorts"
+EXECUTABLE_COHORT_VERSION = 1
+DIAGNOSTIC_COHORT_STATUS = "reproduced-diagnostic-not-reference-approved"
+CAPTURE_ELIGIBLE_COHORT_STATUS = "reviewed-capture-eligible"
 BUILD_PROVENANCE_FILE = "build-provenance.json"
 BUILD_PROVENANCE_SCHEMA = "termrock.frozen-build-provenance"
 BUILD_PROVENANCE_VERSION = 1
@@ -74,6 +80,177 @@ DEFAULT_CHUNK_SIZE = 32
 
 class RunnerError(RuntimeError):
     pass
+
+
+def validate_executable_cohorts(document: object) -> dict[str, object]:
+    """Validate the additive binary-cohort registry without approving frames."""
+    if not isinstance(document, dict) or set(document) != {"schema", "schema_version", "cohorts"}:
+        raise RunnerError("executable cohort registry fields differ from schema version 1")
+    if document["schema"] != EXECUTABLE_COHORT_SCHEMA or type(document["schema_version"]) is not int or document["schema_version"] != EXECUTABLE_COHORT_VERSION:
+        raise RunnerError("unsupported executable cohort registry schema")
+    cohorts = document["cohorts"]
+    if not isinstance(cohorts, list) or len(cohorts) != 1:
+        raise RunnerError("executable cohort registry must contain exactly the recorded cohort")
+    cohort = cohorts[0]
+    fields = {"id", "status", "source", "tools", "build", "binaries", "runs", "limitations"}
+    if not isinstance(cohort, dict) or set(cohort) != fields:
+        raise RunnerError("executable cohort fields differ from schema version 1")
+    if cohort["id"] != "frozen-20261021-serial-nonincr-r1-r2" or cohort["status"] != DIAGNOSTIC_COHORT_STATUS:
+        raise RunnerError("executable cohort is not the exact diagnostic cohort")
+    source = cohort["source"]
+    if not isinstance(source, dict) or set(source) != {"tag", "tag_object", "commit", "tree", "tuiscotti_rev", "cargo_lock_sha256", "rust_toolchain_sha256"}:
+        raise RunnerError("executable cohort source identity fields are invalid")
+    expected_source = {
+        "tag": BASELINE_TAG, "tag_object": BASELINE_TAG_OBJECT, "commit": BASELINE_COMMIT,
+        "tree": BASELINE_TREE, "tuiscotti_rev": TUISCOTTI_REV,
+        "cargo_lock_sha256": "46c1c71d85de829b277feffc959e6e8feab99deb171b1e48521c12d5cf14c2ed",
+        "rust_toolchain_sha256": "007a7e2abbd4afe192a3ef190dfa54914800621e221196747cff9e172735dc00",
+    }
+    if source != expected_source:
+        raise RunnerError("executable cohort frozen source/tool pins changed")
+    tools = cohort["tools"]
+    tool_fields = {"recipe_sha256", "run1_archive_sha256", "run2_archive_sha256", "run2_comparison_sha256", "run1_provenance_sha256", "run2_provenance_sha256", "run1_live_source_sha256", "run2_live_source_sha256", "run1_stage1_receipt_sha256", "run1_stage2_receipt_sha256", "run2_stage1_receipt_sha256", "run2_stage2_receipt_sha256", "run2_sealed_manifest_sha256"}
+    if not isinstance(tools, dict) or set(tools) != tool_fields:
+        raise RunnerError("executable cohort evidence digest fields are invalid")
+    for key, digest in tools.items():
+        if not isinstance(digest, str) or not re.fullmatch(r"[0-9a-f]{64}", digest):
+            raise RunnerError(f"executable cohort evidence digest is invalid: {key}")
+    expected_tools = {
+        "recipe_sha256": "849900e9c848d892824bd2b6636a17ba35d57c9be57859abf136c42f7f314bac",
+        "run1_archive_sha256": "ef4b805a35667e0f1c41018dac78564ba6332489024b19638f4c8d114eaaf5a9",
+        "run2_archive_sha256": "89d6d0c03eaa0911b51af32b1cced55b93d405ec43876b55bae1d19055b540e2",
+        "run2_comparison_sha256": "f2bc6d30b2a528432781e12c318d6e0a6684c38caa5e392dca2c251a59c1ecbc",
+        "run1_provenance_sha256": "4eb758b86e148fc0688704ffbd66b3d6589300dd59ffc3ee67b78a26806ad098",
+        "run2_provenance_sha256": "4eb758b86e148fc0688704ffbd66b3d6589300dd59ffc3ee67b78a26806ad098",
+        "run1_live_source_sha256": "ea29844bfb384c3bb995c1d9594ffd9b58a1e7bfdf19b001eb0b45d9d6eec94c",
+        "run2_live_source_sha256": "ea29844bfb384c3bb995c1d9594ffd9b58a1e7bfdf19b001eb0b45d9d6eec94c",
+        "run1_stage1_receipt_sha256": "e62c9f13660211dde530a81d5d840ee97dc32f31d5d3fc31d1303a7f27547ae3",
+        "run1_stage2_receipt_sha256": "0f3bf5677d69e578ec9a93e5eeecb74bc9a7570deb73070a98cec61a61efaaaf",
+        "run2_stage1_receipt_sha256": "684d9bc6c181d087ad023d37b95187d01b1a1897e36a0674f18d0ccc5322b4a5",
+        "run2_stage2_receipt_sha256": "08b573ed200e1c32ff3627cc5845c744fa12d27d5fc00e87fc02e53240a46f16",
+        "run2_sealed_manifest_sha256": "2ca05dc3d79dabbc49e28f97a9cad0b4241925d482eec2e9257024418743e8b2",
+    }
+    if tools != expected_tools:
+        raise RunnerError("executable cohort build evidence digests changed")
+    build = cohort["build"]
+    if not isinstance(build, dict) or set(build) != {"target", "incremental", "profile", "stage_hashes_match", "build_admitted", "reference_frames_approved"}:
+        raise RunnerError("executable cohort build record is invalid")
+    if build != {"target": "aarch64-apple-darwin", "incremental": False, "profile": "frozen manifest profiles with targeted root-package codegen-units=256", "stage_hashes_match": True, "build_admitted": False, "reference_frames_approved": False}:
+        raise RunnerError("executable cohort diagnostic build claims changed")
+    binaries = cohort["binaries"]
+    if not isinstance(binaries, dict) or set(binaries) != set(APPS):
+        raise RunnerError("executable cohort must pin the complete application binary inventory")
+    expected_binaries = {
+        "showcase": "d54a104c1c3b20eab2aa48cf981c0f163586663a39ab90e54bcd7b8c3527db55",
+        "tablepro": "212cc16c3a50ea7aca6b474964ad492c4cc3c731812491bb06284abe1b9cc5d0",
+        "jackin-preview": "60b2c311a3d6e75b58e93a6f4c6d507d43a0e331d84ea966938a8eec52fb9cf2",
+        "holla": "62d5f4c71a1927a5f9e20d60b9f79ff4a392eb1c7390076dc1eaddee06dfe9bf",
+    }
+    expected_stage1 = {
+        "showcase": "f894221c45026f5af3608d76a3abe54072864c7fb7b4bbc881d3e9d053035f5e",
+        "tablepro": "14aa31279bbf528403afbd51785299f882c441e61c3bca5eb503cf8b2879f9b9",
+        "jackin-preview": "1082dd4c71b4a5f36666b3bd13c4c531e3c68112b1f94c6a8aaa1fedd2d756db",
+        "holla": "20d8404adf3a1c2916be749df1472a1cda7b3c2dd8766f9eef4d387d18c997bd",
+    }
+    expected_paths = {name: {"path": name, "sha256": digest} for name, digest in expected_binaries.items()}
+    if binaries != expected_paths:
+        raise RunnerError("executable cohort hashes differ from the independently reproduced cohort")
+    runs = cohort["runs"]
+    run_fields = {"id", "archive_sha256", "stage1_hashes", "final_hashes", "complete_target_archive", "operational_retry"}
+    if not isinstance(runs, list) or len(runs) != 2 or any(not isinstance(run, dict) or set(run) != run_fields for run in runs):
+        raise RunnerError("executable cohort must contain exactly two complete run records")
+    expected_run_ids = ["serial-run-1", "serial-run-2"]
+    expected_archives = [tools["run1_archive_sha256"], tools["run2_archive_sha256"]]
+    for run, expected_id, expected_archive in zip(runs, expected_run_ids, expected_archives, strict=True):
+        if run["id"] != expected_id or run["final_hashes"] != expected_binaries or run["stage1_hashes"] != expected_stage1:
+            raise RunnerError("executable cohort run identity or binary hashes differ")
+        if run["archive_sha256"] != expected_archive:
+            raise RunnerError("executable cohort run archive digest is invalid")
+        if type(run["complete_target_archive"]) is not bool or type(run["operational_retry"]) is not bool:
+            raise RunnerError("executable cohort run evidence flags are invalid")
+    if runs[0]["complete_target_archive"] is not False or runs[0]["operational_retry"] is not True or runs[1]["complete_target_archive"] is not True or runs[1]["operational_retry"] is not False:
+        raise RunnerError("executable cohort archive/retry limitations were altered")
+    limitations = cohort["limitations"]
+    if limitations != [
+        "This cohort is diagnostic and is not admitted for paired capture.",
+        "Run 1 archive omits the complete controlled target tree; sealed application binaries and receipts are preserved.",
+        "Run 1 required an operational prepare-live retry after an initial missing historical loader manifest; both attempts are preserved.",
+        "The historical build.json loader copy is not fresh provenance and is excluded as cohort evidence.",
+        "The result reproduces at one fixed physical build path on this host; it is not a hermetic or path-independent build claim.",
+        "No new frozen baseline frames or checkpoint reference decisions have been approved.",
+    ]:
+        raise RunnerError("executable cohort limitations changed")
+    return document
+
+
+def load_executable_cohorts(repo: Path) -> dict[str, object]:
+    path = repo / EXECUTABLE_COHORTS
+    if path.is_symlink() or not path.is_file() or sha256(path) != EXECUTABLE_COHORTS_SHA256:
+        raise RunnerError("executable cohort registry is missing, symlinked, or unpinned")
+    def strict_object(pairs: list[tuple[str, object]]) -> dict[str, object]:
+        result: dict[str, object] = {}
+        for key, value in pairs:
+            if key in result:
+                raise RunnerError(f"duplicate executable cohort JSON field: {key}")
+            result[key] = value
+        return result
+    try:
+        return validate_executable_cohorts(json.loads(path.read_text(), object_pairs_hook=strict_object))
+    except (OSError, json.JSONDecodeError) as error:
+        raise RunnerError(f"executable cohort registry cannot be read: {error}") from error
+
+
+def require_capture_eligible_cohort(cohort: dict[str, object], binary_root: Path) -> dict[str, Path]:
+    """Fail closed: diagnostic cohorts cannot launch for reference capture."""
+    if cohort["status"] != CAPTURE_ELIGIBLE_COHORT_STATUS:
+        raise RunnerError("diagnostic executable cohort is not eligible for baseline capture")
+    validate_executable_cohorts({"schema": EXECUTABLE_COHORT_SCHEMA, "schema_version": EXECUTABLE_COHORT_VERSION, "cohorts": [cohort]})
+    raise RunnerError("capture eligibility requires a separately reviewed cohort schema")
+
+
+def verify_diagnostic_cohort_binaries(cohort: dict[str, object], binary_root: Path) -> dict[str, Path]:
+    """Verify preserved diagnostic binaries without granting launch eligibility."""
+    if cohort.get("status") != DIAGNOSTIC_COHORT_STATUS:
+        raise RunnerError("binary verification only accepts the recorded diagnostic cohort")
+    expected = cohort.get("binaries")
+    if not isinstance(expected, dict) or set(expected) != set(APPS):
+        raise RunnerError("diagnostic cohort binary inventory is incomplete")
+    verified: dict[str, Path] = {}
+    for app in APPS:
+        record = expected[app]
+        if not isinstance(record, dict) or set(record) != {"path", "sha256"}:
+            raise RunnerError(f"diagnostic cohort binary path is invalid: {app}")
+        relative = PurePosixPath(record["path"])
+        if relative.is_absolute() or len(relative.parts) != 1 or relative.parts[0] in ("", ".", ".."):
+            raise RunnerError(f"diagnostic cohort binary path escapes the supplied root: {app}")
+        if record["path"] != app:
+            raise RunnerError(f"diagnostic cohort binary path is invalid: {app}")
+        path = binary_root / relative.parts[0]
+        try:
+            before = path.lstat()
+            if stat.S_ISLNK(before.st_mode) or not stat.S_ISREG(before.st_mode) or before.st_nlink != 1:
+                raise RunnerError(f"diagnostic cohort binary is not a private regular file: {app}")
+            flags = os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0)
+            fd = os.open(path, flags)
+            try:
+                opened = os.fstat(fd)
+                digest = hashlib.sha256()
+                while chunk := os.read(fd, 1024 * 1024):
+                    digest.update(chunk)
+                after_fd = os.fstat(fd)
+            finally:
+                os.close(fd)
+            after = path.lstat()
+        except OSError as error:
+            raise RunnerError(f"diagnostic cohort binary cannot be safely opened: {app}: {error}") from error
+        identity = lambda value: (value.st_dev, value.st_ino, value.st_mode, value.st_size, value.st_mtime_ns, value.st_ctime_ns, value.st_nlink)
+        if identity(before) != identity(opened) or identity(opened) != identity(after_fd) or identity(after_fd) != identity(after):
+            raise RunnerError(f"diagnostic cohort binary changed during verification: {app}")
+        actual = digest.hexdigest()
+        if actual != record["sha256"]:
+            raise RunnerError(f"diagnostic cohort binary hash mismatch: {app}")
+        verified[app] = path
+    return verified
 
 
 def run(command: list[str], *, cwd: Path, timeout: int, env: dict[str, str] | None = None, quiet: bool = False, include_stderr: bool = False, stdout_path: Path | None = None, stderr_path: Path | None = None) -> str:
