@@ -27,6 +27,7 @@ Review of `8f7fc45a0ddd448036bacc324a215ce74a9814c8` found three defects, now fi
 ## Verification and remaining work
 
 - `mise exec -- cargo nextest run -p termrock-layout --all-targets`: 22 passed, 0 skipped after review fixes.
+- The independent adversarial contracts from `/private/tmp/termrock-layout-adversarial-8f7/tests/contracts.rs`, rebuilt against this branch in `/private/tmp/termrock-layout-adversarial-a39869753`: 4 passed, 0 skipped. This includes edge-origin visibility and the independent wrap scaling probe.
 - `mise exec -- cargo clippy -p termrock-layout --all-targets -- -D warnings`: passed.
 - `cargo fmt -p termrock-layout --check`: passed.
 - `git diff --check`: passed.
