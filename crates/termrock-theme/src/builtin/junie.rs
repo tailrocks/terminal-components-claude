@@ -173,6 +173,12 @@ pub(crate) fn recipes() -> crate::theme::Recipes {
     use crate::{Part, StateFlags};
 
     let mut recipes = super::default_recipes();
+    recipes.get_mut(Family::MENU).parts.entry(Part::TITLE).when(
+        StateFlags::HOVERED,
+        StylePatch::new()
+            .set_fg(Role::Fg(FgStep::Primary))
+            .set_bg(Role::Custom(Color::from_u32(0x1c_1c_1f))),
+    );
     let row = &mut recipes.get_mut(Family::LIST).parts;
     let container = row.entry(Part::CONTAINER);
     container.states.clear();
