@@ -31,8 +31,8 @@ pub mod textarea;
 
 pub use field::Field;
 pub use input::{
-    BlurPolicy, EditPhase, ErrorState, TextAction, TextCmd, TextInput, TextInputState,
-    discard_error, redacted_text,
+    BlurPolicy, EditCapabilities, EditMenuRequest, EditPhase, ErrorState, TextAction, TextCmd,
+    TextEditCommand, TextInput, TextInputState, discard_error, redacted_text,
 };
 pub use note::Note;
 pub use textarea::{TextArea, TextAreaState};
