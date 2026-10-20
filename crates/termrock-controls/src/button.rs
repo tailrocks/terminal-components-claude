@@ -425,12 +425,7 @@ impl<'a> Button<'a> {
                 };
                 match glyph {
                     Some(g) => {
-                        let marker_style = if live.contains(StateFlags::PRESSED) {
-                            container.style
-                        } else {
-                            ms.style
-                        };
-                        ui.glyph(marker_cell, g, marker_style);
+                        ui.glyph(marker_cell, g, ms.style);
                     }
                     None => ui.fill(marker_cell, ms.style),
                 }
@@ -482,7 +477,7 @@ mod tests {
 
     use ratatui_core::buffer::Buffer;
     use ratatui_core::layout::{Position, Rect};
-    use ratatui_core::style::Modifier;
+    use ratatui_core::style::{Color, Modifier};
 
     use super::*;
     use crate::event::{Input, MouseKind};
@@ -583,7 +578,7 @@ mod tests {
     }
 
     #[test]
-    fn button_focus_gutter_uses_focus_visible_state_and_container_surface() {
+    fn button_focus_gutter_uses_focused_state_and_container_surface() {
         let theme = Theme::junie();
         let mut runtime = Runtime::new(Stub::default(), theme);
         let mut buffer = Buffer::empty(AREA);
@@ -592,7 +587,7 @@ mod tests {
                 ui.reference(
                     Some(crate::ReferenceTarget::new(
                         BUTTON,
-                        crate::ReferenceState::FOCUSED | crate::ReferenceState::FOCUS_VISIBLE,
+                        crate::ReferenceState::FOCUSED,
                     )),
                     |ui| Button::new(BUTTON, "Go").draw(ui, area),
                 );
@@ -606,6 +601,39 @@ mod tests {
             Theme::junie().design.glyphs.get(GlyphRole::FocusBar)
         );
         assert_eq!(gutter.bg, label.bg);
+    }
+
+    #[test]
+    fn pressed_checked_marker_keeps_explicit_style_overrides() {
+        let patch = [(
+            Part::MARKER,
+            StylePatch::new()
+                .set_fg(crate::theme::Role::Custom(Color::Red))
+                .add(Modifier::UNDERLINED),
+        )];
+        let mut runtime = Runtime::new(Stub::default(), Theme::junie());
+        let mut buffer = Buffer::empty(AREA);
+        runtime
+            .draw_scene(AREA, &mut buffer, |ui, area| {
+                ui.reference(
+                    Some(crate::ReferenceTarget::new(
+                        BUTTON,
+                        crate::ReferenceState::PRESSED,
+                    )),
+                    |ui| {
+                        Button::new(BUTTON, "Go")
+                            .checked(true)
+                            .patch_part(&patch)
+                            .draw(ui, area);
+                    },
+                );
+            })
+            .commit_presented();
+
+        let marker = buffer.cell(Position::new(1, 0)).unwrap();
+        assert_eq!(marker.symbol(), "●");
+        assert_eq!(marker.fg, Color::Red);
+        assert!(marker.modifier.contains(Modifier::UNDERLINED));
     }
 
     #[test]
