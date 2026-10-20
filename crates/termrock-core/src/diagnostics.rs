@@ -2,7 +2,7 @@ use ratatui_core::layout::Rect;
 
 use crate::action::ActionKey;
 use crate::event::Chord;
-use crate::id::Id;
+use crate::id::{Id, Part};
 use crate::keys::KeyPhase;
 use crate::layer_types::LayerId;
 
@@ -57,6 +57,11 @@ pub enum Diagnostic {
     InvalidComponentLayout {
         owner: Id,
         field: Option<Id>,
+    },
+    /// A legacy part painter cannot describe a partially clipped component part.
+    UnsupportedClippedComponentSlot {
+        owner: Id,
+        part: Part,
     },
 }
 
@@ -142,6 +147,25 @@ mod tests {
         assert!(matches!(
             first.items().first(),
             Some(Diagnostic::UnaddressableId { id }) if *id == Id::root("first")
+        ));
+    }
+
+    #[test]
+    fn clipped_slot_diagnostics_use_the_same_bounded_store() {
+        let owner = Id::root("scroll-region");
+        let mut d = Diagnostics::default();
+        for _ in 0..Diagnostics::CAPACITY + 3 {
+            d.push(Diagnostic::UnsupportedClippedComponentSlot {
+                owner,
+                part: Part::TRACK,
+            });
+        }
+        assert_eq!(d.items().len(), Diagnostics::CAPACITY);
+        assert_eq!(d.dropped(), 3);
+        assert!(matches!(
+            d.items().first(),
+            Some(Diagnostic::UnsupportedClippedComponentSlot { owner: actual, part: Part::TRACK })
+                if *actual == owner
         ));
     }
 }
