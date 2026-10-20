@@ -25,6 +25,30 @@
      let outcome = RENDERER
          .with(|r| store().check_with(&mut r.borrow_mut(), name, frame, 1.0))
          .unwrap_or_else(|e| panic!("baseline `{name}` could not be checked: {e}"));
+--- a/tests/visual_baseline/support.rs
++++ b/tests/visual_baseline/support.rs
+@@ -719,2 +719,9 @@ pub fn settle_and_gate(session: &mut Session, name: &str) {
+     assert_gated(name, &frame);
+ }
++
++pub fn settle_quiet_and_gate(session: &mut Session, name: &str) {
++    let obs = session.inner.wait_stable_quiet(Instant::now() + session.timeout, Duration::from_millis(400), &CancelToken::new())
++        .unwrap_or_else(|e| panic!("`{name}` never settled: {}", wait_failure("settle", &e)));
++    let frame = render::frame_from_screen(&obs.screen, &profile_name());
++    assert_gated(name, &frame);
++}
+--- a/tests/visual_baseline/scenarios/interact.rs
++++ b/tests/visual_baseline/scenarios/interact.rs
+@@ -130,8 +130,8 @@
+ pub fn showcase_overview_resize(case: &Case, cols: u16, rows: u16) {
+     let mut s = support::spawn_boot(case);
+     resize_geometry(&mut s, cols, rows);
+     s.send_key("ctrl-l").expect("redraw tick");
+     std::thread::sleep(Duration::from_millis(700));
+     find(&mut s, "Design system  Overview");
+-    support::settle_and_gate(&mut s, &case.name);
++    support::settle_quiet_and_gate(&mut s, &case.name);
+ }
 --- a/tests/visual_baseline/scenarios/mod.rs
 +++ b/tests/visual_baseline/scenarios/mod.rs
 @@ -458,6 +458,8 @@
