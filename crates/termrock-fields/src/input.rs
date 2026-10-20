@@ -941,7 +941,15 @@ pub struct TextInput<'a> {
     ov: PartStyle<'a>,
     style_target: Option<(Family, Variant, Part)>,
     auxiliary_style_target: Option<(Family, Variant)>,
+    embedded_cell: bool,
     excluded_commands: &'a [TextCmd],
+}
+
+#[derive(Clone, Copy)]
+struct InputGeometry {
+    text: Rect,
+    gutter: Option<Rect>,
+    leading: u16,
 }
 
 impl fmt::Debug for TextInput<'_> {
@@ -988,6 +996,7 @@ impl<'a> TextInput<'a> {
             ov: PartStyle::new(),
             style_target: None,
             auxiliary_style_target: None,
+            embedded_cell: false,
             excluded_commands: &[],
         }
     }
@@ -1102,6 +1111,17 @@ impl<'a> TextInput<'a> {
         self
     }
 
+    /// Render this input as text embedded in a host-owned cell surface.
+    ///
+    /// The input keeps its normal editing, selection, focus, and cursor
+    /// behavior while leaving the leading cell and focus indicator to its
+    /// host. One trailing cell remains reserved for a host marker.
+    #[must_use]
+    pub const fn embedded_cell(mut self) -> Self {
+        self.embedded_cell = true;
+        self
+    }
+
     #[must_use]
     pub const fn slot(mut self, p: Part, f: SlotFn<'a>) -> Self {
         self.ov = self.ov.slot(p, f);
@@ -1133,6 +1153,7 @@ impl<'a> TextInput<'a> {
             ov: self.ov,
             style_target: self.style_target,
             auxiliary_style_target: self.auxiliary_style_target,
+            embedded_cell: self.embedded_cell,
             excluded_commands: self.excluded_commands,
         }
     }
@@ -1141,8 +1162,20 @@ impl<'a> TextInput<'a> {
         Dyn(self.validate.unwrap_or(&NoValidate))
     }
 
-    const fn inner_width(area_width: u16) -> u16 {
-        area_width.saturating_sub(3)
+    fn geometry(&self, area: Rect) -> InputGeometry {
+        let area = first_row(area);
+        let leading = if self.embedded_cell { 0 } else { 2 };
+        let trailing = if self.embedded_cell { 1 } else { 3 };
+        InputGeometry {
+            text: Rect {
+                x: area.x.saturating_add(leading),
+                y: area.y,
+                width: area.width.saturating_sub(trailing),
+                height: 1.min(area.height),
+            },
+            gutter: (!self.embedded_cell).then(|| cell_at(area, area.x)),
+            leading,
+        }
     }
 
     /// Register this input's focus, pointer, and key-binding contract when a
@@ -1300,8 +1333,9 @@ impl<'a> TextInput<'a> {
                 {
                     let anchor = cx.area(self.id).map_or(Position::new(0, 0), |area| {
                         let col = st.draft.cursor_pos().col;
+                        let geometry = self.geometry(area);
                         Position::new(
-                            area.x.saturating_add(2).saturating_add(
+                            geometry.text.x.saturating_add(
                                 u16::try_from(col.saturating_sub(usize::from(st.draft.hscroll())))
                                     .unwrap_or(u16::MAX),
                             ),
@@ -1340,7 +1374,8 @@ impl<'a> TextInput<'a> {
                     if !st.is_editing() {
                         st.begin(value.expose());
                     }
-                    let col = usize::from(local.x.saturating_sub(2))
+                    let leading = self.geometry(cx.area(self.id).unwrap_or_default()).leading;
+                    let col = usize::from(local.x.saturating_sub(leading))
                         .saturating_add(usize::from(st.draft.hscroll()));
                     st.pointer_anchor = Some(st.draft.pointer_select(
                         0,
@@ -1356,8 +1391,9 @@ impl<'a> TextInput<'a> {
                     ..
                 } if part.item.is_none() && st.is_editing() && self.pointer_enabled => {
                     if let (Some(anchor), Some(area)) = (st.pointer_anchor, cx.area(self.id)) {
-                        let col = usize::from(local.x.saturating_sub(2));
-                        let _ = st.select_pointer_range(anchor, col, Self::inner_width(area.width));
+                        let geometry = self.geometry(area);
+                        let col = usize::from(local.x.saturating_sub(geometry.leading));
+                        let _ = st.select_pointer_range(anchor, col, geometry.text.width);
                         acc.changed();
                     } else {
                         acc.consumed();
@@ -1381,7 +1417,8 @@ impl<'a> TextInput<'a> {
                     if !st.is_editing() {
                         st.begin(value.expose());
                     }
-                    let col = usize::from(local.x.saturating_sub(2))
+                    let leading = self.geometry(cx.area(self.id).unwrap_or_default()).leading;
+                    let col = usize::from(local.x.saturating_sub(leading))
                         .saturating_add(usize::from(st.draft.hscroll()));
                     let changed = st.draft.pointer_point(0, col);
                     cx.focus(self.id);
@@ -1407,7 +1444,7 @@ impl<'a> TextInput<'a> {
         if st.is_editing()
             && let Some(a) = cx.area(self.id)
         {
-            let w = Self::inner_width(a.width);
+            let w = self.geometry(a).text.width;
             st.draft.scroll_into_view(w);
         }
         if let Some(opening) = st.focus_continuation
@@ -1476,7 +1513,7 @@ impl<'a> TextInput<'a> {
             self.live_validate(st);
         }
         if applied && let Some(area) = cx.area(self.id) {
-            st.ensure_cursor_visible(Self::inner_width(area.width));
+            st.ensure_cursor_visible(self.geometry(area).text.width);
         }
         applied
     }
@@ -1575,12 +1612,8 @@ impl<'a> TextInput<'a> {
         }
 
         let busy = matches!(self.status, Status::Busy | Status::Loading);
-        let inner = Rect {
-            x: area.x.saturating_add(2),
-            y: area.y,
-            width: Self::inner_width(area.width),
-            height: 1,
-        };
+        let geometry = self.geometry(area);
+        let inner = geometry.text;
         ui.register_decor(self.id, PartRef::of(Part::TEXT), inner);
         self.register_editor_area(ui, area, st);
         let owns_cursor = live.contains(StateFlags::FOCUSED)
@@ -1606,16 +1639,17 @@ impl<'a> TextInput<'a> {
         };
         let field = style(ui, Part::FIELD);
         ui.fill(area, field.style);
-        let gutter_cell = cell_at(area, area.x);
-        if let Some(f) = ov.slot_for(Part::GUTTER) {
-            f(ui, gutter_cell);
-        } else {
-            let g = style(ui, Part::GUTTER);
-            match g.glyph {
-                Slot::Set(glyph) => {
-                    ui.glyph(gutter_cell, glyph, g.style);
+        if let Some(gutter_cell) = geometry.gutter {
+            if let Some(f) = ov.slot_for(Part::GUTTER) {
+                f(ui, gutter_cell);
+            } else {
+                let g = style(ui, Part::GUTTER);
+                match g.glyph {
+                    Slot::Set(glyph) => {
+                        ui.glyph(gutter_cell, glyph, g.style);
+                    }
+                    Slot::Inherit | Slot::Clear => ui.fill(gutter_cell, g.style),
                 }
-                Slot::Inherit | Slot::Clear => ui.fill(gutter_cell, g.style),
             }
         }
         let shown = if editing {
@@ -1652,12 +1686,17 @@ impl<'a> TextInput<'a> {
                     None => usize::from(width(shown)),
                 };
                 let mut run = inner;
-                if hs > 0 {
+                if hs > 0 && !self.embedded_cell {
                     let used = ui.glyph(run, GlyphRole::Ellipsis, ts.style);
                     run = shift(run, used);
                 }
-                let skip = if hs > 0 { hs.saturating_add(1) } else { 0 };
-                let overflow_right = total > hs.saturating_add(usize::from(inner.width));
+                let skip = if hs > 0 && !self.embedded_cell {
+                    hs.saturating_add(1)
+                } else {
+                    hs
+                };
+                let overflow_right =
+                    !self.embedded_cell && total > hs.saturating_add(usize::from(inner.width));
                 if overflow_right {
                     run.width = run.width.saturating_sub(1);
                 }
@@ -1734,7 +1773,7 @@ impl<'a> TextInput<'a> {
                         ui.set_bar_cursor(self.id, Position::new(cx, inner.y));
                     }
                 }
-            } else if owns_cursor && self.editable() {
+            } else if owns_cursor && self.editable() && !self.embedded_cell {
                 if matches!(
                     self.typing_policy,
                     crate::TypingPolicy::Fallback { cursor: true }
