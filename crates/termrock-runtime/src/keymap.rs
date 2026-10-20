@@ -517,6 +517,7 @@ struct DynamicBindingSet {
 }
 
 impl DynamicBindingRegistry {
+    #[cfg(test)]
     pub(crate) fn update<I>(
         &mut self,
         owner: Id,
@@ -525,6 +526,28 @@ impl DynamicBindingRegistry {
     ) -> (&[BindingDescriptor], u64)
     where
         I: Iterator<Item = (ActionKey, Option<Chord>)> + Clone,
+    {
+        self.update_descriptors(
+            owner,
+            base,
+            bindings.map(|(action, chord)| BindingDescriptor {
+                action,
+                chord,
+                label: "",
+                priority: 0,
+                visible: false,
+            }),
+        )
+    }
+
+    pub(crate) fn update_descriptors<I>(
+        &mut self,
+        owner: Id,
+        base: Option<BindingTableId>,
+        bindings: I,
+    ) -> (&[BindingDescriptor], u64)
+    where
+        I: Iterator<Item = BindingDescriptor> + Clone,
     {
         let mut owner_changed = false;
         if let Some(set) = self.current.as_mut() {
@@ -545,26 +568,18 @@ impl DynamicBindingRegistry {
         let Some(set) = self.current.as_mut() else {
             return (&[], 0);
         };
-        let unchanged =
-            !owner_changed
-                && set.base == base
-                && set.descriptors.iter().zip(bindings.clone()).all(
-                    |(descriptor, (action, chord))| {
-                        descriptor.action == action && descriptor.chord == chord
-                    },
-                )
-                && set.descriptors.len() == bindings.clone().count();
+        let unchanged = !owner_changed
+            && set.base == base
+            && set
+                .descriptors
+                .iter()
+                .zip(bindings.clone())
+                .all(|(descriptor, next)| descriptor == &next)
+            && set.descriptors.len() == bindings.clone().count();
         if !unchanged {
             set.base = base;
             set.descriptors.clear();
-            set.descriptors
-                .extend(bindings.map(|(action, chord)| BindingDescriptor {
-                    action,
-                    chord,
-                    label: "",
-                    priority: 0,
-                    visible: false,
-                }));
+            set.descriptors.extend(bindings);
             self.next_revision = self.next_revision.wrapping_add(1);
             set.revision = self.next_revision;
         }
