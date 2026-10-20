@@ -595,6 +595,11 @@ fn grid(m: &mut PartMap<PartRecipe>) {
 
 fn picker(m: &mut PartMap<PartRecipe>) {
     row_like(m);
+    part(
+        m,
+        Part::TITLE,
+        p().set_fg(Role::Fg(FgStep::Primary)).add(Modifier::BOLD),
+    );
     part(m, Part::LABEL, p()).when(
         StateFlags::ACTIVE | StateFlags::FOCUSED,
         p().set_fg(Role::Focus).add(Modifier::UNDERLINED),
@@ -921,12 +926,92 @@ mod tests {
     }
 
     #[test]
+    fn picker_title_keeps_frozen_primary_bold_style_and_public_precedence() {
+        let levels = [
+            crate::ColorLevel::TrueColor,
+            crate::ColorLevel::Ansi256,
+            crate::ColorLevel::Ansi16,
+            crate::ColorLevel::Mono,
+        ];
+        for base in [Theme::junie(), Theme::paper()] {
+            for level in levels {
+                let theme = base.clone().downgrade(level);
+                let title = theme.resolve(
+                    Family::PICKER,
+                    Variant::DEFAULT,
+                    Part::TITLE,
+                    StateFlags::empty(),
+                    Surface::Canvas,
+                );
+                assert_eq!(
+                    title.style.fg,
+                    crate::theme::resolve::bind_role(
+                        &theme,
+                        Role::Fg(FgStep::Primary),
+                        Surface::Canvas,
+                    ),
+                    "picker heading should keep primary foreground at {level:?}"
+                );
+                assert!(title.style.add_modifier.contains(Modifier::BOLD));
+            }
+        }
+
+        let overridden = Theme::junie().override_family(Family::PICKER, |recipe| {
+            recipe
+                .part(Part::TITLE)
+                .base(p().set_fg(Role::Info).remove(Modifier::BOLD));
+        });
+        let title = overridden.resolve(
+            Family::PICKER,
+            Variant::DEFAULT,
+            Part::TITLE,
+            StateFlags::empty(),
+            Surface::Canvas,
+        );
+        assert_eq!(title.style.fg, Some(overridden.color.info));
+        assert!(!title.style.add_modifier.contains(Modifier::BOLD));
+
+        static OVERLAY_RULES: [crate::theme::OverlayRule; 1] = [(
+            Family::PICKER,
+            Variant::DEFAULT,
+            Part::TITLE,
+            StateFlags::HOVERED,
+            p().set_fg(Role::Warning),
+        )];
+        let overlay = crate::theme::Overlay::new(&OVERLAY_RULES);
+        let local = p()
+            .set_bg(Role::Surface(Surface::Field))
+            .remove(Modifier::BOLD);
+        let themed = Theme::junie();
+        let resolved = crate::theme::resolve::resolve_uncached(
+            &themed,
+            Family::PICKER,
+            Variant::DEFAULT,
+            Part::TITLE,
+            StateFlags::HOVERED,
+            Surface::Canvas,
+            &[overlay],
+            Some(&local),
+        );
+        assert_eq!(resolved.style.fg, Some(themed.color.warning));
+        assert_eq!(resolved.style.bg, Some(themed.bg(Surface::Field)));
+        assert!(!resolved.style.add_modifier.contains(Modifier::BOLD));
+    }
+
+    #[test]
     fn picker_active_focused_label_has_dedicated_focus_affordance_only() {
         let recipes = default_recipes();
         let picker = recipes
             .get(Family::PICKER)
             .expect("PICKER must have a dedicated built-in recipe");
-        assert!(picker.parts.get(Part::TITLE).is_none());
+        let title = picker
+            .parts
+            .get(Part::TITLE)
+            .expect("PICKER title must carry the frozen primary bold heading style");
+        assert_eq!(
+            title.base,
+            p().set_fg(Role::Fg(FgStep::Primary)).add(Modifier::BOLD)
+        );
 
         for base in [Theme::junie(), Theme::paper()] {
             for theme in [base.clone(), base.downgrade(crate::ColorLevel::Mono)] {
