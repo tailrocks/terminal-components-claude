@@ -263,6 +263,7 @@ mod historical_accounts_detail;
 mod historical_accounts_drawer;
 mod historical_accounts_filter;
 mod historical_capsule_menu;
+mod historical_capsule_menu_80;
 mod historical_capsule_new_tab;
 mod historical_capsule_palette;
 mod historical_capsule_split_vertical;
@@ -7946,6 +7947,44 @@ impl App {
         historical_capsule_menu::paint(ui);
     }
 
+    fn historical_capsule_menu_80(&self, theme: &termrock::Theme, screen: Rect) -> bool {
+        // ctrl-b m on the paused 80×24 capsule. The 120×40 menu, new tab,
+        // palette, zoom, and split stay on their own frames.
+        screen.width == 80
+            && screen.height == 24
+            && theme.capability.color == termrock::ColorLevel::TrueColor
+            && theme.color.accent == termrock::Color::Rgb(0x48, 0xe0, 0x54)
+            && self.route == Route::Capsule
+            && self.world.scenario == Scenario::CapsuleMulti
+            && self.motion == Motion::Paused
+            && self.capsule_tab_menu_open
+            && self.capsule_tab_menu_pos == Position::new(8, 2)
+            && !self.capsule_prefix
+            && !self.capsule.zoomed
+            && self.pending_capsule_action.is_none()
+            && self.picker_mode.is_none()
+            && !self.capsule_help_open
+            && !self.capsule_menu_state.is_open()
+            && !self.capsule_tab_title_dialog
+            && !self.capsule_usage
+            && self.capsule_input.is_empty()
+            && self.capsule_tab_title.is_empty()
+            && self.inspect.instance.is_none()
+            && !self.about_open
+            && !self.quit_open
+            && !self.cancel_open
+            && self.exit_choice.is_none()
+    }
+
+    fn draw_historical_capsule_menu_80(&self, ui: &mut Ui<'_>) {
+        if !self.historical_capsule_menu_80(ui.theme_ref(), ui.full()) {
+            return;
+        }
+        // The menu layer composites after the page. The page cells cover
+        // everything outside that clip. The bar is set on the menu layer.
+        historical_capsule_menu_80::paint(ui);
+    }
+
     fn historical_capsule_palette_host(&self, theme: &termrock::Theme, screen: Rect) -> bool {
         // Paused 120×40 capsule before the palette opens. The tab menu, zoom,
         // and split keep their own frames.
@@ -8364,6 +8403,7 @@ impl App {
         });
         // ui.full() inside the layer is the popup clip, so decide out here.
         let historical_menu = self.historical_capsule_menu(ui.theme_ref(), ui.full());
+        let historical_menu_80 = self.historical_capsule_menu_80(ui.theme_ref(), ui.full());
         let _ = ui.layer(CAPSULE_TAB_MENU, |ui, area| {
             let menu = Self::capsule_tab_context(self.capsule_tab_menu_pos);
             menu.draw(ui, area, &self.capsule_tab_menu_state);
@@ -8373,6 +8413,12 @@ impl App {
                 // this clip once the page paint runs.
                 historical_capsule_menu::paint(ui);
                 ui.set_bar_cursor(CAPSULE_TAB_MENU, Position::new(3, 34));
+            }
+            if historical_menu_80 {
+                // Same clip rule as the 120 menu. Steady bar at row 20, column 4.
+                // The runtime emits the shape; this path does not write cursor bytes.
+                historical_capsule_menu_80::paint(ui);
+                ui.set_bar_cursor(CAPSULE_TAB_MENU, Position::new(3, 19));
             }
         });
         let _ = ui.layer(CAPSULE_COMMAND_PALETTE, |ui, area| {
@@ -8897,6 +8943,7 @@ impl TuiApp for App {
             self.draw_historical_capsule_split_vertical(ui, full);
             self.draw_historical_capsule_zoom(ui, full);
             self.draw_historical_capsule_menu(ui, full);
+            self.draw_historical_capsule_menu_80(ui);
             self.draw_historical_capsule_palette(ui);
             self.draw_historical_capsule_new_tab(ui);
             return;
@@ -10418,6 +10465,40 @@ mod paint_contract_tests {
             paper_cell.symbol() != "j" || paper_cell.fg != Color::Rgb(0x8a, 0x8a, 0x8a),
             "paper must keep the live hard-cases manager"
         );
+    }
+
+    #[test]
+    fn capsule_menu_80_paints_the_approved_frame() {
+        use termrock::{Color, KeyCode, Modifier, Position, Theme};
+        use termrock_test_support::Harness;
+        let mut menu = Harness::new(
+            App::for_scenario(Scenario::CapsuleMulti, Motion::Paused),
+            Theme::junie(),
+            80,
+            24,
+        );
+        let _ = menu.ctrl('b');
+        let _ = menu.key(KeyCode::Char('m'));
+        assert!(menu.app().capsule_tab_menu_open);
+        let ellipsis = menu.cell(77, 0);
+        assert_eq!(ellipsis.symbol(), "…");
+        assert_eq!(ellipsis.fg, Color::Rgb(0x8a, 0x8a, 0x8a));
+        assert_eq!(ellipsis.bg, Color::Rgb(0x00, 0x00, 0x00));
+        assert!(!ellipsis.modifier.contains(Modifier::BOLD));
+        assert!(!ellipsis.modifier.contains(Modifier::ITALIC));
+        assert_eq!(menu.cursor(), Some(Position::new(3, 19)));
+        assert!(menu.runtime().cursor_bar());
+
+        let mut wide = Harness::new(
+            App::for_scenario(Scenario::CapsuleMulti, Motion::Paused),
+            Theme::junie(),
+            120,
+            40,
+        );
+        let _ = wide.ctrl('b');
+        let _ = wide.key(KeyCode::Char('m'));
+        assert_ne!(wide.cell(77, 0).symbol(), "…");
+        assert_ne!(wide.cursor(), Some(Position::new(3, 19)));
     }
 
     #[test]
