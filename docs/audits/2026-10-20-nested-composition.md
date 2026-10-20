@@ -37,3 +37,34 @@ command passed the same 8 tests, including resolved bounds, cursor clipping,
 width-sensitive 3-row reflow, wide leaf counts, zero-size behavior, and
 bounded-depth error/drop behavior. The final draw path now consumes retained
 logical and visible bounds; it does not invoke the layout resolver.
+
+## Selective consolidation onto the current PR #38 source
+
+The nested-composition branch was merged with PR #38 tip
+`ef1d6b37daca2ca895c6b35c3253ebe3e37f57d6`. Conflicts in fields, session,
+binding support, layer slots, and existing audit files were resolved in favor
+of that PR #38 source. The composition API was ported additively into a new
+`ui/composition.rs` module and an author submodule. Existing `LayerSlot`,
+`LayerSlotAuthor`, filtered binding publication, binding extension, prepared
+frame handling, and component identity remain owned by the PR #38 versions.
+The shared layout resolver is unchanged; the nested intrinsic-size contract
+and its tests were added to it.
+
+The first merged runtime run exposed an off-clip cursor request in the new
+composition regression. `Ui::record_cursor` now drops cursor requests outside
+its active clip. The regression failed before this fix and passes after it;
+the cursor is not moved to a different visible cell.
+
+Validation on the selective integration worktree:
+
+- `cargo nextest run --locked -p termrock-layout -p termrock-runtime -p termrock`: 356 passed, 3 skipped.
+- Runtime composition integration targets: 8 passed, 0 skipped.
+- `cargo nextest run --locked -p termrock --features testing --test slots`: 1 passed, 0 skipped.
+- `cargo check --locked -p termrock --example composition_consumer`: passed.
+- Strict clippy for `termrock-layout`, `termrock-runtime`, and `termrock`, all targets: passed.
+- Rustfmt check for changed Rust files and `git diff --check`: passed.
+- Workspace `cargo fmt --all --check`: still fails on pre-existing formatting in untouched `crates/showcase-demos/src/pages/chrome.rs` and `crates/tablepro-ui/src/app.rs`.
+
+The independent review of the final merged composition API remains required.
+This library increment does not establish application visual or functional
+parity; all four application acceptance gates remain open.

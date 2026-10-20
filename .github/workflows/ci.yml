@@ -47,7 +47,7 @@ jobs:
       - &s1
         name: Record optional cache budget
         id: velnor-cache-clock
-        run: "set -eu\nunavailable() { printf '%s\\n' '::warning::cache_unavailable: invalid first-step clock or output'; }\noutput=${GITHUB_OUTPUT-}\nseconds=${VELNOR_CACHE_JOB_SECONDS-}\nnow=$(date +%s) || now=\nfor value in \"$now\" \"$seconds\"; do\n  case \"$value\" in ''|*[!0-9]*) unavailable; exit 0 ;; esac\n  case \"$value\" in 0|[1-9]*) ;; *) unavailable; exit 0 ;; esac\n  [ \"${#value}\" -le 10 ] || { unavailable; exit 0; }\ndone\nif [ -z \"$output\" ] || ! printf 'started=%s\\ndeadline=%s\\n' \"$now\" \"$((now + seconds))\" 2>/dev/null >> \"$output\"; then\n  unavailable\nfi\n"
+        run: &r1 "set -eu\nunavailable() { printf '%s\\n' '::warning::cache_unavailable: invalid first-step clock or output'; }\noutput=${GITHUB_OUTPUT-}\nseconds=${VELNOR_CACHE_JOB_SECONDS-}\nnow=$(date +%s) || now=\nfor value in \"$now\" \"$seconds\"; do\n  case \"$value\" in ''|*[!0-9]*) unavailable; exit 0 ;; esac\n  case \"$value\" in 0|[1-9]*) ;; *) unavailable; exit 0 ;; esac\n  [ \"${#value}\" -le 10 ] || { unavailable; exit 0; }\ndone\nif [ -z \"$output\" ] || ! printf 'started=%s\\ndeadline=%s\\n' \"$now\" \"$((now + seconds))\" 2>/dev/null >> \"$output\"; then\n  unavailable\nfi\n"
         env:
           VELNOR_CACHE_JOB_SECONDS: "300"
       - &s2
@@ -333,13 +333,17 @@ jobs:
   rust-holla:
     name: Rust / holla
     runs-on: ubuntu-26.04
-    timeout-minutes: 5
+    timeout-minutes: 15
     env: *m9
     needs:
       - plan
     if: "!contains(needs.plan.outputs.not_affected_jobs, ',rust-holla,')"
     steps:
-      - *s1
+      - name: Record optional cache budget
+        id: velnor-cache-clock
+        run: *r1
+        env:
+          VELNOR_CACHE_JOB_SECONDS: "900"
       - *s2
       - *s3
       - *s8
@@ -406,13 +410,21 @@ jobs:
           overwrite: "true"
           path: ${{ runner.temp }}/velnor/r${{ github.run_id }}-a${{ env.VELNOR_RUN_KEY_ATTEMPT }}
           retention-days: "30"
-      - *s5
+      - name: Admit optional cache save
+        id: velnor-optional-tools-save-budget
+        if: success() && github.event_name == 'push' && github.ref == format('refs/heads/{0}', github.event.repository.default_branch) && github.ref_protected == true && steps.v2.outputs.enabled == 'true' && steps.tools-restore.outputs.cache-hit != 'true'
+        run: *r2
+        env:
+          VELNOR_CACHE_JOB_SECONDS: "900"
+          VELNOR_CACHE_STARTED: ${{ steps.velnor-cache-clock.outputs.started }}
+          VELNOR_CACHE_DEADLINE: ${{ steps.velnor-cache-clock.outputs.deadline }}
+          VELNOR_CACHE_REQUIRED_SECONDS: "90"
       - *s6
       - *s7
   rust-holla-domain:
     name: Rust / holla-domain
     runs-on: ubuntu-26.04
-    timeout-minutes: 5
+    timeout-minutes: 15
     env: *m9
     needs:
       - plan
@@ -466,7 +478,7 @@ jobs:
   rust-holla-sim:
     name: Rust / holla-sim
     runs-on: ubuntu-26.04
-    timeout-minutes: 5
+    timeout-minutes: 15
     env: *m9
     needs:
       - plan
@@ -520,7 +532,7 @@ jobs:
   rust-holla-ui:
     name: Rust / holla-ui
     runs-on: ubuntu-26.04
-    timeout-minutes: 5
+    timeout-minutes: 15
     env: *m9
     needs:
       - plan
@@ -574,7 +586,7 @@ jobs:
   rust-jackin-preview:
     name: Rust / jackin-preview
     runs-on: ubuntu-26.04
-    timeout-minutes: 5
+    timeout-minutes: 15
     env: *m9
     needs:
       - plan
@@ -624,7 +636,7 @@ jobs:
   rust-jackin-preview-app:
     name: Rust / jackin-preview-app
     runs-on: ubuntu-26.04
-    timeout-minutes: 5
+    timeout-minutes: 15
     env: *m9
     needs:
       - plan
@@ -678,7 +690,7 @@ jobs:
   rust-jackin-preview-capsule-ui:
     name: Rust / jackin-preview-capsule-ui
     runs-on: ubuntu-26.04
-    timeout-minutes: 5
+    timeout-minutes: 15
     env: *m9
     needs:
       - plan
@@ -732,7 +744,7 @@ jobs:
   rust-jackin-preview-domain:
     name: Rust / jackin-preview-domain
     runs-on: ubuntu-26.04
-    timeout-minutes: 5
+    timeout-minutes: 15
     env: *m9
     needs:
       - plan
@@ -786,7 +798,7 @@ jobs:
   rust-jackin-preview-host-ui:
     name: Rust / jackin-preview-host-ui
     runs-on: ubuntu-26.04
-    timeout-minutes: 5
+    timeout-minutes: 15
     env: *m9
     needs:
       - plan
@@ -840,7 +852,7 @@ jobs:
   rust-jackin-preview-presentation:
     name: Rust / jackin-preview-presentation
     runs-on: ubuntu-26.04
-    timeout-minutes: 5
+    timeout-minutes: 15
     env: *m9
     needs:
       - plan
@@ -894,7 +906,7 @@ jobs:
   rust-jackin-preview-sim:
     name: Rust / jackin-preview-sim
     runs-on: ubuntu-26.04
-    timeout-minutes: 5
+    timeout-minutes: 15
     env: *m9
     needs:
       - plan
@@ -948,7 +960,7 @@ jobs:
   rust-refactor-proof:
     name: Rust / refactor-proof
     runs-on: ubuntu-26.04
-    timeout-minutes: 5
+    timeout-minutes: 15
     env: *m9
     needs:
       - plan
@@ -1002,7 +1014,7 @@ jobs:
   rust-showcase:
     name: Rust / showcase
     runs-on: ubuntu-26.04
-    timeout-minutes: 5
+    timeout-minutes: 15
     env: *m9
     needs:
       - plan
@@ -1052,7 +1064,7 @@ jobs:
   rust-showcase-demos:
     name: Rust / showcase-demos
     runs-on: ubuntu-26.04
-    timeout-minutes: 5
+    timeout-minutes: 15
     env: *m9
     needs:
       - plan
@@ -1106,7 +1118,7 @@ jobs:
   rust-showcase-ui:
     name: Rust / showcase-ui
     runs-on: ubuntu-26.04
-    timeout-minutes: 5
+    timeout-minutes: 15
     env: *m9
     needs:
       - plan
@@ -1160,7 +1172,7 @@ jobs:
   rust-tablepro:
     name: Rust / tablepro
     runs-on: ubuntu-26.04
-    timeout-minutes: 5
+    timeout-minutes: 15
     env: *m9
     needs:
       - plan
@@ -1210,7 +1222,7 @@ jobs:
   rust-tablepro-demo:
     name: Rust / tablepro-demo
     runs-on: ubuntu-26.04
-    timeout-minutes: 5
+    timeout-minutes: 15
     env: *m9
     needs:
       - plan
@@ -1264,7 +1276,7 @@ jobs:
   rust-tablepro-domain:
     name: Rust / tablepro-domain
     runs-on: ubuntu-26.04
-    timeout-minutes: 5
+    timeout-minutes: 15
     env: *m9
     needs:
       - plan
@@ -1318,7 +1330,7 @@ jobs:
   rust-tablepro-sql:
     name: Rust / tablepro-sql
     runs-on: ubuntu-26.04
-    timeout-minutes: 5
+    timeout-minutes: 15
     env: *m9
     needs:
       - plan
@@ -1372,7 +1384,7 @@ jobs:
   rust-tablepro-ui:
     name: Rust / tablepro-ui
     runs-on: ubuntu-26.04
-    timeout-minutes: 5
+    timeout-minutes: 15
     env: *m9
     needs:
       - plan
@@ -1426,7 +1438,7 @@ jobs:
   rust-termrock:
     name: Rust / termrock
     runs-on: ubuntu-26.04
-    timeout-minutes: 5
+    timeout-minutes: 15
     env: *m9
     needs:
       - plan
@@ -1480,7 +1492,7 @@ jobs:
   rust-termrock-collections:
     name: Rust / termrock-collections
     runs-on: ubuntu-26.04
-    timeout-minutes: 5
+    timeout-minutes: 15
     env: *m9
     needs:
       - plan
@@ -1534,7 +1546,7 @@ jobs:
   rust-termrock-conformance:
     name: Rust / termrock-conformance
     runs-on: ubuntu-26.04
-    timeout-minutes: 5
+    timeout-minutes: 15
     env: *m9
     needs:
       - plan
@@ -1588,7 +1600,7 @@ jobs:
   rust-termrock-controls:
     name: Rust / termrock-controls
     runs-on: ubuntu-26.04
-    timeout-minutes: 5
+    timeout-minutes: 15
     env: *m9
     needs:
       - plan
@@ -1642,7 +1654,7 @@ jobs:
   rust-termrock-core:
     name: Rust / termrock-core
     runs-on: ubuntu-26.04
-    timeout-minutes: 5
+    timeout-minutes: 15
     env: *m9
     needs:
       - plan
@@ -1696,7 +1708,7 @@ jobs:
   rust-termrock-editors:
     name: Rust / termrock-editors
     runs-on: ubuntu-26.04
-    timeout-minutes: 5
+    timeout-minutes: 15
     env: *m9
     needs:
       - plan
@@ -1750,7 +1762,7 @@ jobs:
   rust-termrock-feedback:
     name: Rust / termrock-feedback
     runs-on: ubuntu-26.04
-    timeout-minutes: 5
+    timeout-minutes: 15
     env: *m9
     needs:
       - plan
@@ -1804,7 +1816,7 @@ jobs:
   rust-termrock-fields:
     name: Rust / termrock-fields
     runs-on: ubuntu-26.04
-    timeout-minutes: 5
+    timeout-minutes: 15
     env: *m9
     needs:
       - plan
@@ -1858,7 +1870,7 @@ jobs:
   rust-termrock-forms:
     name: Rust / termrock-forms
     runs-on: ubuntu-26.04
-    timeout-minutes: 5
+    timeout-minutes: 15
     env: *m9
     needs:
       - plan
@@ -1912,7 +1924,7 @@ jobs:
   rust-termrock-grid:
     name: Rust / termrock-grid
     runs-on: ubuntu-26.04
-    timeout-minutes: 5
+    timeout-minutes: 15
     env: *m9
     needs:
       - plan
@@ -1966,7 +1978,7 @@ jobs:
   rust-termrock-layout:
     name: Rust / termrock-layout
     runs-on: ubuntu-26.04
-    timeout-minutes: 5
+    timeout-minutes: 15
     env: *m9
     needs:
       - plan
@@ -2020,7 +2032,7 @@ jobs:
   rust-termrock-navigation:
     name: Rust / termrock-navigation
     runs-on: ubuntu-26.04
-    timeout-minutes: 5
+    timeout-minutes: 15
     env: *m9
     needs:
       - plan
@@ -2074,7 +2086,7 @@ jobs:
   rust-termrock-overlays:
     name: Rust / termrock-overlays
     runs-on: ubuntu-26.04
-    timeout-minutes: 5
+    timeout-minutes: 15
     env: *m9
     needs:
       - plan
@@ -2128,7 +2140,7 @@ jobs:
   rust-termrock-render:
     name: Rust / termrock-render
     runs-on: ubuntu-26.04
-    timeout-minutes: 5
+    timeout-minutes: 15
     env: *m9
     needs:
       - plan
@@ -2182,7 +2194,7 @@ jobs:
   rust-termrock-runtime:
     name: Rust / termrock-runtime
     runs-on: ubuntu-26.04
-    timeout-minutes: 5
+    timeout-minutes: 15
     env: *m9
     needs:
       - plan
@@ -2236,7 +2248,7 @@ jobs:
   rust-termrock-session:
     name: Rust / termrock-session
     runs-on: ubuntu-26.04
-    timeout-minutes: 5
+    timeout-minutes: 15
     env: *m9
     needs:
       - plan
@@ -2290,7 +2302,7 @@ jobs:
   rust-termrock-terminal:
     name: Rust / termrock-terminal
     runs-on: ubuntu-26.04
-    timeout-minutes: 5
+    timeout-minutes: 15
     env: *m9
     needs:
       - plan
@@ -2344,7 +2356,7 @@ jobs:
   rust-termrock-test-support:
     name: Rust / termrock-test-support
     runs-on: ubuntu-26.04
-    timeout-minutes: 5
+    timeout-minutes: 15
     env: *m9
     needs:
       - plan
@@ -2398,7 +2410,7 @@ jobs:
   rust-termrock-text:
     name: Rust / termrock-text
     runs-on: ubuntu-26.04
-    timeout-minutes: 5
+    timeout-minutes: 15
     env: *m9
     needs:
       - plan
@@ -2452,7 +2464,7 @@ jobs:
   rust-termrock-theme:
     name: Rust / termrock-theme
     runs-on: ubuntu-26.04
-    timeout-minutes: 5
+    timeout-minutes: 15
     env: *m9
     needs:
       - plan
@@ -2506,7 +2518,7 @@ jobs:
   rust-termrock-viewport:
     name: Rust / termrock-viewport
     runs-on: ubuntu-26.04
-    timeout-minutes: 5
+    timeout-minutes: 15
     env: *m9
     needs:
       - plan
@@ -2560,7 +2572,7 @@ jobs:
   rust-termrock-visibility-publisher:
     name: Rust / termrock-visibility-publisher
     runs-on: ubuntu-26.04
-    timeout-minutes: 5
+    timeout-minutes: 15
     env: *m9
     needs:
       - plan
@@ -2614,7 +2626,7 @@ jobs:
   rust-termrock-xtask:
     name: Rust / termrock-xtask
     runs-on: ubuntu-26.04
-    timeout-minutes: 5
+    timeout-minutes: 15
     env: *m9
     needs:
       - plan
@@ -2668,7 +2680,7 @@ jobs:
   rust-visual-harness:
     name: Rust / visual-harness
     runs-on: ubuntu-26.04
-    timeout-minutes: 5
+    timeout-minutes: 15
     env: *m9
     needs:
       - plan

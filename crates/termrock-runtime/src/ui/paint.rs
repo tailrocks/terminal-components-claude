@@ -472,7 +472,11 @@ impl Ui<'_> {
             };
             let clear_bar = cell.symbol() == focus_bar
                 && (cell.fg == theme.color.focus || cell.fg == theme.color.on_accent);
-            let (fg, bg) = theme.backdrop_colors(cell.fg, cell.bg);
+            // Baseline `Theme::backdrop` ignores bold. Primary dims to muted.
+            let (mut fg, bg) = theme.backdrop_colors(cell.fg, cell.bg);
+            if clear_bar {
+                fg = bg;
+            }
             let mut style = Style::new();
             style.fg = Some(fg);
             style.bg = Some(bg);
