@@ -908,9 +908,10 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Steps<'_, T, K, R> {
 
     /// Measure this rail from its borrowed items without updating component state.
     ///
-    /// Labels use the optional pure width projection, or a 12-cell minimum.
-    /// The projection does not call the row painter or the application-supplied
-    /// state projection.
+    /// Labels use the optional pure width projection first, then the row's
+    /// intrinsic label width when available, and otherwise a 12-cell minimum.
+    /// Measurement does not call the row painter or application state
+    /// projection.
     pub fn measure_with_items(&self, _ui: &Ui<'_>, c: Constraints, items: &[T]) -> Size {
         let number_lane = if self.numbered {
             items
@@ -926,7 +927,10 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Steps<'_, T, K, R> {
         let prefix = 3usize.saturating_add(number_lane);
         let mut preferred = usize::from(Self::PREFERRED_WIDTH);
         for (ordinal, item) in items.iter().enumerate() {
-            let label_width = self.label_width.map_or(12, |measure| measure(item));
+            let label_width = self.label_width.map_or_else(
+                || self.row.intrinsic_label_width(item).unwrap_or(12),
+                |measure| measure(item),
+            );
             let metadata = self.metadata.and_then(|metadata| metadata(item));
             let metadata_width = if self.metadata.is_some() {
                 metadata.map_or(0, crate::text::width)

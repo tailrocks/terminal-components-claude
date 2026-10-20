@@ -16,6 +16,15 @@ use crate::ui::{FrameRead, Ui};
 
 pub trait RowFn<T> {
     fn row(&self, item: &T, row: &mut RowUi<'_>);
+
+    /// Return a pure intrinsic terminal-cell width for the row label when known.
+    ///
+    /// Custom row renderers default to `None`; consumers may use their own
+    /// explicit measurement projection or a documented fallback. This hook
+    /// must not paint or mutate application state.
+    fn intrinsic_label_width(&self, _item: &T) -> Option<u16> {
+        None
+    }
 }
 
 impl<T, F: Fn(&T, &mut RowUi<'_>)> RowFn<T> for F {
@@ -27,6 +36,10 @@ impl<T, F: Fn(&T, &mut RowUi<'_>)> RowFn<T> for F {
 impl<T: core::fmt::Display> RowFn<T> for termrock_collections::DefaultRow {
     fn row(&self, item: &T, row: &mut RowUi<'_>) {
         row.label_fmt(format_args!("{item}"));
+    }
+
+    fn intrinsic_label_width(&self, item: &T) -> Option<u16> {
+        Some(width(&item.to_string()))
     }
 }
 
