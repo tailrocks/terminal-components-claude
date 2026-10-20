@@ -456,10 +456,17 @@ fn parity_cargo_tag_plate(world: &World, width: u16, height: u16) -> bool {
         || crate::sim::catalogue::parity_cargo_120x40_plate(world, width, height).is_some()
 }
 
-/// 80×24 and 100×30 `parity-git-batch` clip the last hint. Cargo, git-current, and every other size stay off.
+/// 80×24 and 100×30 `parity-git-batch` clip the last hint. 120×40 keeps every hint and a short status.
+/// Cargo, git-current, and every other size stay off.
 fn parity_git_batch_clipped_plate(world: &World, width: u16, height: u16) -> bool {
     crate::sim::catalogue::parity_git_batch_80x24_plate(world, width, height).is_some()
         || crate::sim::catalogue::parity_git_batch_100x30_plate(world, width, height).is_some()
+}
+
+/// 80×24, 100×30, and 120×40 `parity-git-batch`. Cargo, git-current, browser, files, history, discovery, and every other size stay off.
+fn parity_git_batch_tag_plate(world: &World, width: u16, height: u16) -> bool {
+    parity_git_batch_clipped_plate(world, width, height)
+        || crate::sim::catalogue::parity_git_batch_120x40_plate(world, width, height).is_some()
 }
 
 /// Tag parity-browser status at 80×24, 100×30, and 120×40: cwd, then the size label. No branch.
@@ -523,7 +530,7 @@ fn paint_parity_cargo_status(ui: &mut Ui<'_>, area: Rect) {
     let _ = paint_size_label(ui, area);
 }
 
-/// Tag parity-git-batch status at 80×24 and 100×30: cwd, then the size label. No branch.
+/// Tag parity-git-batch status at 80×24, 100×30, and 120×40: cwd, then the size label. No branch.
 fn paint_parity_git_batch_status(ui: &mut Ui<'_>, area: Rect) {
     if area.is_empty() {
         return;
@@ -1721,7 +1728,7 @@ impl App {
             paint_parity_git_current_status(ui, status);
         } else if parity_cargo_tag_plate(&self.world, ui.full().width, ui.full().height) {
             paint_parity_cargo_status(ui, status);
-        } else if parity_git_batch_clipped_plate(&self.world, ui.full().width, ui.full().height) {
+        } else if parity_git_batch_tag_plate(&self.world, ui.full().width, ui.full().height) {
             paint_parity_git_batch_status(ui, status);
         } else if launch_failure_plate_open(&self.world, ui) {
             paint_launch_failure_status(ui, status);
@@ -1844,8 +1851,15 @@ impl App {
             Some(("Open", None))
         } else if parity_cargo_tag_plate(&self.world, ui.full().width, ui.full().height) {
             Some(("Run", None))
-        } else if parity_git_batch_clipped_plate(&self.world, ui.full().width, ui.full().height) {
-            Some(("Open", None))
+        } else if parity_git_batch_tag_plate(&self.world, ui.full().width, ui.full().height) {
+            let wide = crate::sim::catalogue::parity_git_batch_120x40_plate(
+                &self.world,
+                ui.full().width,
+                ui.full().height,
+            )
+            .is_some();
+            // The wide card keeps every hint. The title is cut to the ten cells left of the edge.
+            Some(("Open", wide.then_some("Status ac…")))
         } else {
             None
         };
