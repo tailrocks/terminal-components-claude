@@ -1592,8 +1592,15 @@ impl App {
             let narrow = ui.full().width == 80 && ui.full().height == 24;
             let mid = ui.full().width == 100 && ui.full().height == 30;
             if self.home.history {
-                // Wide history keeps the deploy status. 80×24 has no room for it.
-                Some(("Trust…", if narrow { None } else { Some("Deploy …") }))
+                // Wide history keeps the deploy status. 80×24 and 100×30 have no room for it.
+                Some((
+                    "Trust…",
+                    if narrow || mid {
+                        None
+                    } else {
+                        Some("Deploy …")
+                    },
+                ))
             } else if narrow || mid {
                 // 100×30 fits `Ctrl+↑↓ Scope` and clips `Ctrl+G` to the meta `…`. No status.
                 Some(("Open", None))
@@ -1708,7 +1715,14 @@ impl App {
                 ui.full().height,
                 self.home.history,
             )
-            .is_some();
+            .is_some()
+                || crate::sim::catalogue::monorepo_root_history_100x30_plate(
+                    &self.world,
+                    ui.full().width,
+                    ui.full().height,
+                    self.home.history,
+                )
+                .is_some();
             let hard_cases_mid = crate::sim::catalogue::hard_cases_100x30_plate(
                 &self.world,
                 ui.full().width,
@@ -2582,7 +2596,14 @@ mod tests {
         assert!(catalogue::monorepo_root_100x30_plate(&history.world, 100, 30, true).is_none());
         let history_screen = harness(history, Theme::junie(), 100, 30);
         assert!(
-            history_screen.text().contains("Deploy …"),
+            history_screen
+                .text()
+                .contains("→ tools/deploy-preview.sh --env preview · here · mutating"),
+            "{}",
+            history_screen.text()
+        );
+        assert!(
+            !history_screen.text().contains("Deploy …"),
             "{}",
             history_screen.text()
         );
