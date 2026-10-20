@@ -109,3 +109,22 @@ fn ctrl_l_renders_the_safe_mode_picker_through_its_layer_slot() {
         harness.text()
     );
 }
+
+#[test]
+fn quick_switcher_keeps_a_bar_caret_and_restores_workbench_focus() {
+    let mut harness = Harness::new(production(), Theme::junie(), 120, 40);
+    let workbench_focus = harness.runtime().focus();
+    let _ = harness.ctrl('o');
+    assert_eq!(harness.runtime().focus(), Some(super::quick_switcher::ID));
+    assert!(harness.runtime().cursor_bar());
+
+    let _ = harness.type_str("orders");
+    assert!(harness.text().contains("orders"));
+    assert!(harness.runtime().cursor_bar());
+    let _ = harness.key(termrock::KeyCode::Esc);
+    assert!(harness.is_open(super::quick_switcher::ID));
+    let _ = harness.key(termrock::KeyCode::Esc);
+
+    assert!(!harness.is_open(super::quick_switcher::ID));
+    assert_eq!(harness.runtime().focus(), workbench_focus);
+}

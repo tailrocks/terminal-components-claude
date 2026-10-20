@@ -1731,7 +1731,7 @@ impl<'a> TextInput<'a> {
                     ) {
                         ui.offer_typing_cursor(self.id, Position::new(cx, inner.y));
                     } else {
-                        ui.set_cursor(self.id, Position::new(cx, inner.y));
+                        ui.set_bar_cursor(self.id, Position::new(cx, inner.y));
                     }
                 }
             } else if owns_cursor && self.editable() {
@@ -1741,7 +1741,7 @@ impl<'a> TextInput<'a> {
                 ) {
                     ui.offer_typing_cursor(self.id, Position::new(inner.x, inner.y));
                 } else {
-                    ui.set_cursor(self.id, Position::new(inner.x, inner.y));
+                    ui.set_bar_cursor(self.id, Position::new(inner.x, inner.y));
                 }
             }
         }
@@ -1948,6 +1948,53 @@ mod tests {
         assert!(!query.includes_command(TextCmd::Cancel));
         assert!(query.includes_command(TextCmd::Commit));
         assert!(query.includes_command(TextCmd::Move(Motion::Left, Extend::No)));
+    }
+
+    #[test]
+    fn focused_input_owns_a_bar_caret_for_empty_and_typed_values() {
+        for value in ["", "query"] {
+            let mut state = TextInputState::default();
+            if !value.is_empty() {
+                state.begin(value);
+            }
+            let mut runtime = Runtime::new(
+                CursorShapeInputApp {
+                    state,
+                    value: value.to_owned(),
+                },
+                Theme::junie(),
+            );
+            let _ = runtime.initialize();
+            let mut buffer = Buffer::empty(SCREEN);
+            runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
+
+            assert_eq!(runtime.focus(), Some(ID));
+            assert_eq!(
+                runtime.cursor_position(),
+                Some(Position::new(2 + width(value) as u16, 0))
+            );
+            assert!(runtime.cursor_bar(), "value={value:?}");
+        }
+    }
+
+    struct CursorShapeInputApp {
+        state: TextInputState,
+        value: String,
+    }
+
+    impl App for CursorShapeInputApp {
+        fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+            cx.focus(ID);
+            TextInput::new(ID)
+                .update(cx, &mut self.state, &mut self.value)
+                .erase()
+        }
+
+        fn draw(&self, ui: &mut Ui<'_>) {
+            TextInput::new(ID)
+                .value(&self.value)
+                .draw(ui, SCREEN, &self.state);
+        }
     }
 
     struct ContinuationInputApp {
