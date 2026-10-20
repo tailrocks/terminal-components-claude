@@ -3618,12 +3618,13 @@ mod tests {
     use super::*;
     use crate::event::MouseKind;
     use crate::runtime::stub::{key, mouse};
-    use crate::runtime::{App, Runtime};
+    use crate::runtime::{App, Runtime, UpdateCause};
     use crate::theme::Theme;
     use crate::validate::FieldError;
 
     const ID: Id = Id::root("grid.tests");
     const AREA: Rect = Rect::new(0, 0, 30, 6);
+    const CALLBACK_ID: Id = Id::root("grid.tests.callback_padding");
     const CELL_ACTION: ActionKey = ActionKey::custom("follow");
     const CELL_ACTIONS: [CellAction; 1] = [CellAction::new(CELL_ACTION)];
 
@@ -3656,6 +3657,65 @@ mod tests {
                 badge: None,
             },
         ]
+    }
+
+    struct NumericCellModel;
+
+    impl GridModel for NumericCellModel {
+        fn row_count(&self) -> usize {
+            1
+        }
+
+        fn row_key(&self, _row: usize) -> ItemKey {
+            ItemKey::num(7)
+        }
+
+        fn cell(&self, _row: usize, _column: usize) -> Option<CellRef<'_>> {
+            Some(CellRef::new("7"))
+        }
+    }
+
+    fn paint_identity_cell(cell: GridCell<'_>, ui: &mut CellUi<'_>) {
+        ui.text(cell.value.text);
+    }
+
+    struct CallbackPaddingApp {
+        state: GridState,
+        callback: bool,
+    }
+
+    impl App for CallbackPaddingApp {
+        fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+            if cx.update_cause() == UpdateCause::Bootstrap {
+                cx.focus(CALLBACK_ID);
+            }
+            let mut column = Column::new(ColumnKey::num(7), "number");
+            column.min_width = 10;
+            column.max_width = 10;
+            column.align = Align::Right;
+            Grid::new(CALLBACK_ID, &[column])
+                .update(cx, &mut self.state, &NumericCellModel)
+                .erase()
+        }
+
+        fn draw(&self, ui: &mut Ui<'_>) {
+            let mut column = Column::new(ColumnKey::num(7), "number");
+            column.min_width = 10;
+            column.max_width = 10;
+            column.align = Align::Right;
+            let columns = [column];
+            let grid = Grid::new(CALLBACK_ID, &columns);
+            if self.callback {
+                grid.cell(&paint_identity_cell).draw(
+                    ui,
+                    Rect::new(0, 0, 20, 4),
+                    &self.state,
+                    &NumericCellModel,
+                );
+            } else {
+                grid.draw(ui, Rect::new(0, 0, 20, 4), &self.state, &NumericCellModel);
+            }
+        }
     }
 
     #[derive(Clone, Copy, Debug, Default)]
@@ -4265,6 +4325,52 @@ mod tests {
         let mut buffer = Buffer::empty(AREA);
         runtime.draw_buffer(AREA, &mut buffer).commit_presented();
         buffer
+    }
+
+    #[test]
+    fn identity_cell_callback_preserves_right_aligned_padding_style() {
+        let mut buffers = Vec::new();
+        for callback in [false, true] {
+            let mut runtime = Runtime::new(
+                CallbackPaddingApp {
+                    state: GridState::default(),
+                    callback,
+                },
+                Theme::junie(),
+            );
+            let _ = runtime.initialize();
+            runtime.set_focus(Some(CALLBACK_ID));
+            let _ = runtime.settle();
+            let area = Rect::new(0, 0, 20, 4);
+            let mut buffer = Buffer::empty(area);
+            runtime.draw_buffer(area, &mut buffer).commit_presented();
+            buffers.push(buffer);
+        }
+
+        let [default, callback] = buffers.as_slice() else {
+            panic!("both grid renderings were captured");
+        };
+        for x in 0..15 {
+            let expected = default.cell(Position::new(x, 1)).expect("default cell");
+            let actual = callback.cell(Position::new(x, 1)).expect("callback cell");
+            assert_eq!(
+                (
+                    actual.symbol(),
+                    actual.fg,
+                    actual.bg,
+                    actual.modifier,
+                    actual.underline_color
+                ),
+                (
+                    expected.symbol(),
+                    expected.fg,
+                    expected.bg,
+                    expected.modifier,
+                    expected.underline_color
+                ),
+                "identity callback changed the aligned cell or its padding at x={x}"
+            );
+        }
     }
 
     fn focused_detailed_grid_buffer(theme: Theme, model: Model) -> Buffer {
