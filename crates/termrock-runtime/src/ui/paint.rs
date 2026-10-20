@@ -429,15 +429,14 @@ impl Ui<'_> {
     /// Faint glyphs stay. Bold does not survive the dim.
     pub fn modal_backdrop(&mut self, area: Rect) {
         let area = area.intersection(self.frame.screen);
-        let theme = self.theme_ref().clone();
+        let theme = self.theme;
         let focus_bar = theme.design.glyphs.get(crate::theme::GlyphRole::FocusBar);
+        let page = &mut *self.page;
         for pos in area.positions() {
-            let page = self.page_mut();
             let Some(cell) = page.cell_mut(pos) else {
                 continue;
             };
-            let symbol = cell.symbol().to_owned();
-            let clear_bar = symbol == focus_bar
+            let clear_bar = cell.symbol() == focus_bar
                 && (cell.fg == theme.color.focus || cell.fg == theme.color.on_accent);
             // Baseline `Theme::backdrop` ignores bold. Primary dims to muted.
             let (mut fg, bg) = theme.backdrop_colors(cell.fg, cell.bg);
