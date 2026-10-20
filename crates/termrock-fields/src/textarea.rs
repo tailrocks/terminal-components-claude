@@ -874,14 +874,31 @@ impl<'a> TextArea<'a> {
                     phase: Phase::Secondary,
                     part,
                     pos,
+                    local,
                     ..
                 } if !self.disabled => {
+                    if !st.is_editing() {
+                        st.begin(value.expose());
+                    }
+                    let line = st
+                        .scroll
+                        .offset()
+                        .saturating_add(usize::from(local.y))
+                        .min(st.draft.line_count().saturating_sub(1));
+                    let col = usize::from(local.x.saturating_sub(2))
+                        .saturating_add(usize::from(st.draft.hscroll()));
+                    let changed = st.draft.pointer_point(line, col);
+                    cx.focus(self.id);
                     st.edit_menu_request = Some(EditMenuRequest {
                         owner: self.id,
                         part,
                         anchor: pos,
                     });
-                    acc.consumed();
+                    if changed {
+                        acc.changed();
+                    } else {
+                        acc.consumed();
+                    }
                 }
                 Intent::Pointer { .. } => acc.consumed(),
                 Intent::Cancel if st.is_editing() => {
@@ -912,6 +929,7 @@ impl<'a> TextArea<'a> {
     ) -> EditCapabilities {
         crate::edit::capabilities(
             &st.draft,
+            value.expose(),
             st.is_editing(),
             self.disabled,
             self.editable(),
@@ -929,6 +947,9 @@ impl<'a> TextArea<'a> {
         command: TextEditCommand,
     ) -> bool {
         st.set_sensitive(self.secret.is_some() || value.is_sensitive());
+        if command == TextEditCommand::SelectAll && !st.is_editing() && !self.disabled {
+            st.begin(value.expose());
+        }
         if command == TextEditCommand::Paste
             && self.editable()
             && !st.is_editing()
@@ -1368,6 +1389,35 @@ mod tests {
         value: String,
     }
 
+    struct SecondaryPasteTextAreaApp {
+        state: TextAreaState,
+        value: String,
+        pasted: bool,
+    }
+
+    impl App for SecondaryPasteTextAreaApp {
+        fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+            let area = TextArea::new(ID, 3);
+            let response = area.update(cx, &mut self.state, &mut self.value);
+            if self.state.take_edit_menu_request().is_some() && !self.pasted {
+                cx.clipboard_copy("X");
+                self.pasted = area.execute_edit_command(
+                    cx,
+                    &mut self.state,
+                    &mut self.value,
+                    TextEditCommand::Paste,
+                );
+            }
+            response.erase()
+        }
+
+        fn draw(&self, ui: &mut Ui<'_>) {
+            TextArea::new(ID, 3)
+                .value(&self.value)
+                .draw(ui, SCREEN, &self.state);
+        }
+    }
+
     impl App for SecretTextAreaApp {
         fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
             TextArea::new(ID, 3)
@@ -1435,6 +1485,31 @@ mod tests {
                 "TextArea::PARTS omits owned ScrollRegion part {part:?}"
             );
         }
+    }
+
+    #[test]
+    fn secondary_pointer_paste_inserts_at_the_clicked_textarea_point() {
+        let mut runtime = Runtime::new(
+            SecondaryPasteTextAreaApp {
+                state: TextAreaState::default(),
+                value: "one\ntwo".to_owned(),
+                pasted: false,
+            },
+            Theme::junie(),
+        );
+        let _ = runtime.initialize();
+        let mut buffer = Buffer::empty(SCREEN);
+        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
+        let _ = crate::runtime::stub::deliver(
+            &mut runtime,
+            Input::Mouse(crate::event::Mouse {
+                kind: crate::event::MouseKind::Secondary,
+                pos: Position::new(3, 1),
+                mods: KeyModifiers::NONE,
+            }),
+        );
+        assert!(runtime.app().pasted);
+        assert_eq!(runtime.app().state.draft.text(), "one\ntXwo");
     }
 
     #[test]

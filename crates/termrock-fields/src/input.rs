@@ -381,6 +381,21 @@ impl EditorDraft {
         }
     }
 
+    /// Place the caret at a pointer target unless that target is inside the
+    /// current selection, in which case preserve the selection for a context menu.
+    pub(crate) fn pointer_point(&mut self, line: usize, col: usize) -> bool {
+        let offset = self.offset_at(line, col);
+        if self
+            .selection()
+            .is_some_and(|range| range.start <= offset && offset <= range.end)
+        {
+            return false;
+        }
+        let before = (self.cursor_offset(), self.selection());
+        self.set_cursor_line_col(line, col);
+        before != (self.cursor_offset(), self.selection())
+    }
+
     pub(crate) fn offset_at(&self, line: usize, col: usize) -> usize {
         match self {
             EditorDraft::Plain(editor) | EditorDraft::Secret(editor) => editor.offset_at(line, col),
@@ -1243,14 +1258,26 @@ impl<'a> TextInput<'a> {
                     phase: Phase::Secondary,
                     part,
                     pos,
+                    local,
                     ..
                 } if !self.disabled => {
+                    if !st.is_editing() {
+                        st.begin(value.expose());
+                    }
+                    let col = usize::from(local.x.saturating_sub(2))
+                        .saturating_add(usize::from(st.draft.hscroll()));
+                    let changed = st.draft.pointer_point(0, col);
+                    cx.focus(self.id);
                     st.edit_menu_request = Some(EditMenuRequest {
                         owner: self.id,
                         part,
                         anchor: pos,
                     });
-                    acc.consumed();
+                    if changed {
+                        acc.changed();
+                    } else {
+                        acc.consumed();
+                    }
                 }
                 Intent::Pointer { .. } if self.pointer_enabled => acc.consumed(),
                 Intent::Cancel if st.is_editing() => {
@@ -1277,6 +1304,7 @@ impl<'a> TextInput<'a> {
     ) -> EditCapabilities {
         crate::edit::capabilities(
             &st.draft,
+            value.expose(),
             st.is_editing(),
             self.disabled,
             self.editable(),
@@ -1294,6 +1322,9 @@ impl<'a> TextInput<'a> {
         command: TextEditCommand,
     ) -> bool {
         st.set_sensitive(self.secret.is_some() || value.is_sensitive());
+        if command == TextEditCommand::SelectAll && !st.is_editing() && !self.disabled {
+            st.begin(value.expose());
+        }
         if command == TextEditCommand::Paste
             && self.editable()
             && !st.is_editing()
@@ -1801,6 +1832,78 @@ mod tests {
         request: Option<EditMenuRequest>,
     }
 
+    struct SecondaryPasteApp {
+        state: TextInputState,
+        value: String,
+        preserve_selection: bool,
+        copied: Option<String>,
+    }
+
+    struct IdleReadOnlySelectAllApp {
+        state: TextInputState,
+        value: String,
+        result: bool,
+        copied: Option<String>,
+    }
+
+    impl App for IdleReadOnlySelectAllApp {
+        fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+            let input = TextInput::new(ID).read_only(true);
+            if !self.result {
+                cx.focus(ID);
+                self.result = input.execute_edit_command(
+                    cx,
+                    &mut self.state,
+                    &mut self.value,
+                    TextEditCommand::SelectAll,
+                );
+                let _ = input.execute_edit_command(
+                    cx,
+                    &mut self.state,
+                    &mut self.value,
+                    TextEditCommand::Copy,
+                );
+                self.copied = cx.clipboard_text().map(str::to_owned);
+            }
+            input.update(cx, &mut self.state, &mut self.value).erase()
+        }
+
+        fn draw(&self, ui: &mut Ui<'_>) {
+            TextInput::new(ID)
+                .read_only(true)
+                .value(&self.value)
+                .draw(ui, SCREEN, &self.state);
+        }
+    }
+
+    impl App for SecondaryPasteApp {
+        fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+            let input = TextInput::new(ID);
+            let response = input.update(cx, &mut self.state, &mut self.value);
+            if self.state.take_edit_menu_request().is_some() {
+                cx.clipboard_copy("X");
+                let _ = input.execute_edit_command(
+                    cx,
+                    &mut self.state,
+                    &mut self.value,
+                    if self.preserve_selection {
+                        TextEditCommand::Copy
+                    } else {
+                        TextEditCommand::Paste
+                    },
+                );
+                self.copied = cx.clipboard_text().map(str::to_owned);
+            }
+            response.erase()
+        }
+
+        fn draw(&self, ui: &mut Ui<'_>) {
+            TextInput::new(ID)
+                .value(&self.value)
+                .draw(ui, SCREEN, &self.state);
+        }
+    }
+
     struct IdlePasteApp {
         state: TextInputState,
         value: String,
@@ -2285,6 +2388,63 @@ mod tests {
             .expect("Shift+F10 menu request emitted");
         assert_eq!(keyboard_request.owner, ID);
         assert_eq!(keyboard_request.anchor, Position::new(6, 0));
+    }
+
+    #[test]
+    fn secondary_pointer_paste_uses_clicked_caret_and_preserves_contained_selection() {
+        for (preserve_selection, expected) in [(false, "abXcdef"), (true, "abcdef")] {
+            let mut state = TextInputState::default();
+            if preserve_selection {
+                state.begin("abcdef");
+                state.draft.select_range(1, 4);
+            }
+            let mut runtime = Runtime::new(
+                SecondaryPasteApp {
+                    state,
+                    value: "abcdef".to_owned(),
+                    preserve_selection,
+                    copied: None,
+                },
+                Theme::junie(),
+            );
+            let _ = runtime.initialize();
+            let mut buffer = Buffer::empty(SCREEN);
+            runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
+            let _ = deliver(
+                &mut runtime,
+                Input::Mouse(crate::event::Mouse {
+                    kind: crate::event::MouseKind::Secondary,
+                    pos: Position::new(4, 0),
+                    mods: KeyModifiers::NONE,
+                }),
+            );
+            if preserve_selection {
+                assert_eq!(runtime.app().state.selection(), Some(1..4));
+                assert_eq!(runtime.app().copied.as_deref(), Some("bcd"));
+            } else {
+                assert_eq!(runtime.app().state.draft_text(), Some(expected));
+            }
+        }
+    }
+
+    #[test]
+    fn idle_read_only_select_all_can_be_copied_and_is_rendered_selected() {
+        let mut runtime = Runtime::new(
+            IdleReadOnlySelectAllApp {
+                state: TextInputState::default(),
+                value: "read only".to_owned(),
+                result: false,
+                copied: None,
+            },
+            Theme::junie(),
+        );
+        let _ = runtime.initialize();
+        assert!(runtime.app().result);
+        assert_eq!(runtime.app().state.selection(), Some(0..9));
+        assert_eq!(runtime.app().copied.as_deref(), Some("read only"));
+        let mut buffer = Buffer::empty(SCREEN);
+        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
+        assert_ne!(buffer[(2, 0)].bg, buffer[(12, 0)].bg);
     }
 
     #[test]
