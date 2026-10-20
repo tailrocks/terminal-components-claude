@@ -1,0 +1,9 @@
+# Dialog layout contract repair
+
+Source revision: `39aaf8d5e1dab5cf1c613c0bb7e76638d89d57af` (`parity/termrock-visual-baseline`).
+
+`crates/termrock-overlays/src/dialog.rs` previously measured a fixed one-row action footer and a fixed vertical budget, then positioned the body, prompt field, and buttons independently. Narrow frames clipped trailing actions, undersized frames produced empty body slots, and prompt measurement disagreed with the field row actually rendered. The repair resolves title, wrapped description, input, body, and capped action bounds from one `DialogLayout`, shared by measurement and drawing. Action labels and configured/effective shortcuts contribute to width; actions wrap within the content width. Dialog vertical size now charges border rows, title, field, body, and action rows once; constrained frames reduce description/body space while retaining visible input and footer bounds. The body callback remains total for zero-sized areas.
+
+Validation on the worker branch: `cargo nextest run -p termrock-overlays` passed (96 tests, 0 skipped), including dialog tests (19/19), Unicode action wrapping, small frames, zero-width callback, and the eight-action cap. `rustfmt --check --edition 2024 crates/termrock-overlays/src/dialog.rs` and `git diff --check` passed. Strict crate Clippy passed with `clippy::useless_conversion` and `clippy::unnecessary_cast` allowed for pre-existing findings in `crates/termrock-overlays/src/help.rs`; unqualified crate Clippy also passed with those warnings. Independent review remains pending.
+
+The work does not resolve dialog-control lifecycle, mnemonic routing, dismissal, footer/help semantics, or resize lifecycle findings. Those findings remain separate required work; this layout repair is not evidence of application parity or full dialog acceptance.
