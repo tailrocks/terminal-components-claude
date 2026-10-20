@@ -6872,7 +6872,6 @@ fn draw_painted_grid(
     });
     GRID_SCROLL.with(|slot| *slot.borrow_mut() = Some((area, model.row_count(), origin)));
     paint_row_numbers(ui, area, model, cursor, origin);
-    paint_bottom_fade(ui, area, model, origin);
     paint_grid_header(
         ui,
         area,
