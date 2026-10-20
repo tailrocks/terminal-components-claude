@@ -33,3 +33,7 @@ The ownership audit reports unexcepted production historical renderers. Existing
 ## Acceptance
 
 No application has complete 1:1 acceptance from these runs. The independent library checks establish a bounded library result. Full native workspace validation is red, the registered frozen CLI suite has not completed, and architecture review remains incomplete. Preserve all failures, ignored-case coverage gaps, and evidence until the corresponding source changes pass the unchanged frozen comparisons.
+
+## Integration formatting checkpoint
+
+A later fetch/rebase brought in two formatting differences in Showcase list and scrolling helpers. Rustfmt changed line wrapping and removed optional function-call trailing commas. The diff was inspected and normalized source was compared with the pre-format contents. These formatting corrections preserve rendering and input behavior. The broader native failures above remain recorded independently.
