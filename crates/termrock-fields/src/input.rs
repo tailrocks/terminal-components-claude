@@ -1145,6 +1145,69 @@ impl<'a> TextInput<'a> {
         area_width.saturating_sub(3)
     }
 
+    /// Register this input's focus, pointer, and key-binding contract when a
+    /// host draws its own visible surface for the input state. The supplied
+    /// area must belong to the visible host control (for example, a searchable
+    /// list), not to an off-screen or hidden input.
+    pub fn register_editor(&self, ui: &mut Ui<'_>, area: Rect, st: &TextInputState) {
+        let area = first_row(area);
+        if area.is_empty() {
+            return;
+        }
+        let editing = st.is_editing();
+        let focusability = if self.disabled {
+            Focusability::Disabled
+        } else if self.read_only {
+            Focusability::FocusableReadOnly
+        } else {
+            Focusability::Focusable
+        };
+        let declared = if editing {
+            StateFlags::EDITING
+        } else {
+            StateFlags::empty()
+        };
+        let mut derived = self.status.flags();
+        if editing {
+            derived |= StateFlags::EDITING;
+        }
+        if st.error.is_some() || matches!(self.status, Status::Error) {
+            derived |= StateFlags::ERROR;
+        }
+        if self.read_only {
+            derived |= StateFlags::READ_ONLY;
+        }
+        if self.disabled {
+            derived |= StateFlags::DISABLED;
+        }
+        let runtime = ui
+            .state(self.id)
+            .difference(StateFlags::EDITING | StateFlags::SELECTED);
+        let mut live = PartStyle::flags(runtime, derived);
+        if self.disabled {
+            live = live.difference(StateFlags::HOVERED);
+        }
+
+        if self.pointer_enabled {
+            ui.register_editor(self.id, area, focusability, declared);
+        } else {
+            ui.register_keyboard_editor(self.id, area, focusability, declared);
+        }
+        termrock_runtime::author::publish_bindings_filtered(ui, self.id, live, BINDINGS, |cmd| {
+            self.includes_command(cmd)
+        });
+        if let crate::TypingPolicy::Fallback { cursor } = self.typing_policy {
+            ui.publish_typing_target(
+                self.id,
+                BINDINGS,
+                |cmd| {
+                    self.includes_command(cmd) && !matches!(cmd, TextCmd::Commit | TextCmd::Cancel)
+                },
+                cursor,
+            );
+        }
+    }
+
     pub fn update(
         &self,
         cx: &mut Cx<'_>,
@@ -1248,11 +1311,8 @@ impl<'a> TextInput<'a> {
                     });
                     acc.consumed();
                 }
-                Intent::Key(k) if editable => {
+                Intent::Key(k) if editable && st.is_editing() => {
                     if let Some(c) = k.bare_char() {
-                        if !st.is_editing() {
-                            st.begin(value.expose());
-                        }
                         self.insert(st, c, &mut acc);
                     }
                 }
@@ -1484,19 +1544,6 @@ impl<'a> TextInput<'a> {
         let validation_error = st.error.is_some();
         let status_error = matches!(self.status, Status::Error);
         let error = validation_error || status_error;
-        let focusability = if self.disabled {
-            Focusability::Disabled
-        } else if self.read_only {
-            Focusability::FocusableReadOnly
-        } else {
-            Focusability::Focusable
-        };
-        let declared = if editing {
-            StateFlags::EDITING
-        } else {
-            StateFlags::empty()
-        };
-
         let mut derived = self.status.flags();
         if editing {
             derived |= StateFlags::EDITING;
@@ -1526,24 +1573,7 @@ impl<'a> TextInput<'a> {
             height: 1,
         };
         ui.register_decor(self.id, PartRef::of(Part::TEXT), inner);
-        if self.pointer_enabled {
-            ui.register_editor(self.id, area, focusability, declared);
-        } else {
-            ui.register_keyboard_editor(self.id, area, focusability, declared);
-        }
-        termrock_runtime::author::publish_bindings_filtered(ui, self.id, live, BINDINGS, |cmd| {
-            self.includes_command(cmd)
-        });
-        if let crate::TypingPolicy::Fallback { cursor } = self.typing_policy {
-            ui.publish_typing_target(
-                self.id,
-                BINDINGS,
-                |cmd| {
-                    self.includes_command(cmd) && !matches!(cmd, TextCmd::Commit | TextCmd::Cancel)
-                },
-                cursor,
-            );
-        }
+        self.register_editor(ui, area, st);
         let owns_cursor = live.contains(StateFlags::FOCUSED)
             || (editing
                 && matches!(

@@ -226,6 +226,18 @@ impl FilterListState {
         self.query_input.is_editing()
     }
     pub fn set_query(&mut self, query: impl Into<String>) {
+        let editing = self.query_input.is_editing();
+        self.query = query.into();
+        self.query_input.cancel();
+        if editing {
+            self.query_input.begin(&self.query);
+        }
+        self.core.invalidate();
+    }
+
+    /// Clear a query and end its edit session, for owners that hide the query
+    /// field while retaining the collection state.
+    pub fn reset_query(&mut self, query: impl Into<String>) {
         self.query = query.into();
         self.query_input.cancel();
         self.core.invalidate();
@@ -752,11 +764,18 @@ impl<T: AsItem, R: RowFn<T>> FilterList<'_, T, R> {
                     if previous.is_empty() {
                         acc.action(FilterListAction::Cancel);
                     } else {
+                        // Escape clears the query without dismissing its owner.
+                        // Keep the still-visible field editing so its caret and
+                        // immediate typing/paste remain available.
+                        st.query_input.begin("");
                         acc.action(FilterListAction::QueryChanged);
                     }
                 }
                 Some(TextAction::Committed) => {
                     self.item_action(st, items, FilterListCmd::Choose, &mut acc);
+                    // A commit with no eligible result leaves this search
+                    // owner open, so continue editing its current query.
+                    st.query_input.begin(&st.query);
                 }
                 _ => {}
             }
@@ -953,6 +972,14 @@ impl<T: AsItem, R: RowFn<T>> FilterList<'_, T, R> {
         // Keep FilterList's established area contract. Compositions that own
         // a separate query row (such as Picker) place it explicitly via
         // `draw_query` and pass their result viewport to `draw_results`.
+        if self.searchable && !area.is_empty() {
+            // The standalone searchable FilterList owns the visible result
+            // viewport as its focusable query owner. Picker draws a real
+            // TextInput query row separately and calls draw_results directly.
+            self.query_input(st.query().is_empty())
+                .value(st.query())
+                .register_editor(ui, area, &st.query_input);
+        }
         self.draw_results(ui, area, st, items)
     }
 
@@ -1146,6 +1173,67 @@ mod tests {
     }
 
     #[test]
+    fn standalone_searchable_filter_list_owns_visible_focus_and_typing() {
+        use termrock_core::event::{Input, Key, KeyCode, KeyModifiers};
+        use termrock_runtime::runtime::{App, Runtime};
+
+        const ID: Id = Id::root("filter-list.standalone-search");
+        struct SearchApp {
+            state: FilterListState,
+        }
+        impl App for SearchApp {
+            fn update(
+                &mut self,
+                cx: &mut termrock_runtime::ui::Cx<'_>,
+            ) -> termrock_core::response::Response<()> {
+                let items = [
+                    Item::new(ItemKey::num(1), "alpha"),
+                    Item::new(ItemKey::num(2), "beta"),
+                ];
+                let response = FilterList::<Item<'_>>::new(ID).update(cx, &mut self.state, &items);
+                response.erase()
+            }
+
+            fn draw(&self, ui: &mut Ui<'_>) {
+                let items = [
+                    Item::new(ItemKey::num(1), "alpha"),
+                    Item::new(ItemKey::num(2), "beta"),
+                ];
+                FilterList::<Item<'_>>::new(ID).draw(
+                    ui,
+                    Rect::new(0, 0, 30, 8),
+                    &self.state,
+                    &items,
+                );
+            }
+        }
+
+        let area = Rect::new(0, 0, 30, 8);
+        let mut buffer = Buffer::empty(area);
+        let mut runtime = Runtime::new(
+            SearchApp {
+                state: FilterListState::default(),
+            },
+            Theme::junie(),
+        );
+        let _ = runtime.initialize();
+        runtime.draw_buffer(area, &mut buffer).commit_presented();
+        let _ = termrock_runtime::runtime::stub::deliver(&mut runtime, Input::Tick);
+        runtime.draw_buffer(area, &mut buffer).commit_presented();
+        assert_eq!(runtime.focus(), Some(ID));
+
+        let _ = termrock_runtime::runtime::stub::deliver(
+            &mut runtime,
+            Input::Key(Key {
+                code: KeyCode::Char('b'),
+                mods: KeyModifiers::NONE,
+            }),
+        );
+        runtime.draw_buffer(area, &mut buffer).commit_presented();
+        assert_eq!(runtime.app().state.query(), "b");
+    }
+
+    #[test]
     fn filtering_borrowed_domain_items_reuses_one_index_buffer() {
         let items = [Domain("alpha"), Domain("beta"), Domain("gamma")];
         let mut state = FilterListState::default();
@@ -1157,7 +1245,7 @@ mod tests {
     }
 
     #[test]
-    fn live_query_uses_the_shared_editor_draft_and_external_set_resets_it() {
+    fn live_query_uses_the_shared_editor_draft_and_external_set_keeps_active_editor() {
         let items = [
             Item::new(ItemKey::num(1), "prefix"),
             Item::new(ItemKey::num(2), "other"),
@@ -1173,7 +1261,7 @@ mod tests {
 
         state.set_query("other");
         assert_eq!(state.query(), "other");
-        assert!(!state.query_input.is_editing());
+        assert!(state.query_input.is_editing());
         list.reconcile(&mut state, &items);
         assert_eq!(state.matched_len(), 1);
         assert_eq!(state.cursor(), Some(ItemKey::num(2)));
