@@ -105,7 +105,6 @@ pub(super) fn dim_underlay(ui: &mut Ui<'_>, screen: Rect) {
             y: card.y,
             width: screen.right().saturating_sub(right),
             height: card.height,
-            ..screen
         });
     }
 }
