@@ -7,7 +7,7 @@ use termrock::{
     Grid, GridAction, GridCell, GridColumnFit, GridEditor, GridGutter, GridModel,
     GridSortIndicator, Id, Intent, ItemKey, KeyCode, KeyMap, KeyModifiers, KeyPhase, LayerId,
     Modifier, Panel, PanelKind, Part, Phase, PickerAction, Response, Role, RowDecor, RowTotal,
-    RowUi, Size, Span, SplitAxis, SplitPane, SplitPaneState, StateFlags, StylePatch, Tabs,
+    RowUi, Size, SortDir, Span, SplitAxis, SplitPane, SplitPaneState, StateFlags, StylePatch, Tabs,
     TabsAction, TabsState, TextInput, TextInputState, Theme, Tree, TreeAction,
     TreeBranchActivation, TreeNode, TreeState, Ui, UpdateCause, truncate, truncate_middle, width,
     wrap,
@@ -159,6 +159,7 @@ const FORM: ActionKey = ActionKey::application("tablepro.form");
 const HELP: ActionKey = ActionKey::application("tablepro.help");
 const TAB_LIST: ActionKey = ActionKey::application("tablepro.tab-list");
 const FILTER: ActionKey = ActionKey::application("tablepro.filter");
+const SORT: ActionKey = ActionKey::application("tablepro.sort");
 const PREVIEW: ActionKey = ActionKey::application("tablepro.preview");
 const SAVE: ActionKey = ActionKey::application("tablepro.save");
 const EXPLAIN: ActionKey = ActionKey::application("tablepro.explain");
@@ -486,6 +487,7 @@ fn keymap() -> KeyMap {
             Chord::with(KeyCode::Char('f'), KeyModifiers::NONE),
             FILTER,
         )
+        .bind(KeyPhase::Bubble, Chord::key(KeyCode::Char('s')), SORT)
 }
 
 fn fallback_connection(catalog: &Catalog) -> Connection {
@@ -542,6 +544,7 @@ pub struct TableProApp {
     motion: Motion,
     tick: u64,
     explorer_pin: u8,
+    grid_sort: Option<(TabKey, u16, SortDir)>,
 }
 
 impl core::fmt::Debug for TableProApp {
@@ -585,6 +588,7 @@ impl core::fmt::Debug for TableProApp {
             .field("motion", &self.motion)
             .field("tick", &self.tick)
             .field("explorer_pin", &self.explorer_pin)
+            .field("grid_sort", &self.grid_sort)
             .finish()
     }
 }
@@ -640,6 +644,7 @@ impl TableProApp {
             motion: Motion::Full,
             tick: 0,
             explorer_pin: 0,
+            grid_sort: None,
         };
         app.workbench.new_query(
             "SELECT * FROM orders WHERE status = 'pending' ORDER BY total_amount DESC LIMIT 20",
@@ -1688,10 +1693,92 @@ impl TableProApp {
         } else {
             grid.update(cx, &mut view.state, &view.model)
         };
-        if let Some(GridAction::Sort(key, direction)) = response.action_ref() {
-            view.model.sort(*key, *direction);
+        if let Some(GridAction::Sort(column, direction)) = response.action_ref() {
+            view.model.sort(*column, *direction);
         }
         response
+    }
+
+    fn sort_focused_column(&mut self, cx: &Cx<'_>) -> bool {
+        if self
+            .workbench
+            .active_table()
+            .is_some_and(crate::tabs::TableTab::is_structure)
+        {
+            return false;
+        }
+        let Some(tab) = self.workbench.active_key() else {
+            return false;
+        };
+        let table = self
+            .workbench
+            .active_table()
+            .map(|table| table.table.clone());
+        let direction = {
+            let Some((id, grid)) = self.workbench.active_grid_mut() else {
+                return false;
+            };
+            if !cx.state(id).contains(StateFlags::FOCUSED) || grid.state.is_editing() {
+                return false;
+            }
+            let Some((_, column)) = grid.state.cursor() else {
+                return false;
+            };
+            let Some(index) = usize::from(column.raw()).checked_sub(1) else {
+                return false;
+            };
+            if grid
+                .columns
+                .get(index)
+                .is_some_and(|(_, ty)| matches!(ty, ColType::Json))
+            {
+                return false;
+            }
+            let direction = match self.grid_sort {
+                Some((sorted_tab, sorted_column, SortDir::Asc))
+                    if sorted_tab == tab && sorted_column == column.raw() =>
+                {
+                    SortDir::Desc
+                }
+                _ => SortDir::Asc,
+            };
+            if grid.model.pending_total() == 0
+                && let Some(table) = table.as_ref()
+            {
+                grid.model = sorted_scan(table, grid, index, direction);
+            } else {
+                grid.model.sort(column, direction);
+            }
+            let row = GridModel::row_key(&grid.model, 0);
+            let (columns, count) = Self::column_specs(&grid.columns, grid.model.is_editable());
+            let _ = result_grid(id, columns.get(..count).unwrap_or(&[])).move_cursor_to(
+                &mut grid.state,
+                &grid.model,
+                row,
+                column,
+            );
+            direction
+        };
+        let Some((_, column)) = self
+            .workbench
+            .active_grid()
+            .and_then(|(_, grid)| grid.state.cursor())
+        else {
+            return false;
+        };
+        self.grid_sort = Some((tab, column.raw(), direction));
+        true
+    }
+
+    fn sort_status_prefix(&self) -> Option<String> {
+        let (tab, column, direction) = self.grid_sort?;
+        if self.workbench.active_key()? != tab {
+            return None;
+        }
+        let (_, grid) = self.workbench.active_grid()?;
+        let index = usize::from(column).checked_sub(1)?;
+        let name = grid.columns.get(index)?.0.as_str();
+        Some(format!("sort {name} {}", sort_mark(direction)))
     }
 
     fn draw_table_data(&self, ui: &mut Ui<'_>, inner: termrock::Rect) {
@@ -1718,13 +1805,16 @@ impl TableProApp {
         let shown = usize::from(grid_area.height.saturating_sub(1));
         let loaded = grid_view.model.row_count();
         let last = shown.min(loaded);
-        let status = format!(
-            "rows 1–{} of {} loaded · {} total · cols 1–2 of {}",
+        let cols = grid_column_status(grid_view.columns.len());
+        let mut status = format!(
+            "rows 1–{} of {} loaded · {} total · {cols}",
             grouped(last),
             grouped(loaded),
             grouped(grid_view.model.total()),
-            grouped(grid_view.columns.len()),
         );
+        if let Some(prefix) = self.sort_status_prefix() {
+            status = format!("{prefix} · {status}");
+        }
         let status_area = termrock::Rect {
             y: inner.bottom().saturating_sub(1),
             height: 1,
@@ -2834,6 +2924,7 @@ struct GridChrome {
     content_width: u16,
     complete: usize,
     columns: usize,
+    hidden_left: usize,
     places: Vec<ColPlace>,
 }
 
@@ -2845,6 +2936,7 @@ thread_local! {
     static COL_BUDGETS: RefCell<Vec<ColBudget>> = const { RefCell::new(Vec::new()) };
     static GRID_CHROME: RefCell<Option<GridChrome>> = const { RefCell::new(None) };
     static GRID_SCROLL: RefCell<Option<(termrock::Rect, usize)>> = const { RefCell::new(None) };
+    static GRID_SORT: RefCell<Option<(usize, SortDir)>> = const { RefCell::new(None) };
 }
 
 fn install_grid_budgets(area_width: u16, columns: &[(String, ColType)], model: &ResultGrid) {
@@ -2930,6 +3022,7 @@ fn install_grid_budgets(area_width: u16, columns: &[(String, ColType)], model: &
         content_width: avail,
         complete,
         columns: columns.len(),
+        hidden_left: 0,
         places,
     };
     COL_BUDGETS.with(|budgets_cell| *budgets_cell.borrow_mut() = budgets);
@@ -3391,10 +3484,475 @@ fn paint_grid_scrollbar(ui: &mut Ui<'_>, area: termrock::Rect, rows: usize) {
     clippy::too_many_lines,
     reason = "header gutter, primary key, and muted titles share one pass"
 )]
+fn sorted_scan(table: &db::Table, grid: &GridView, index: usize, direction: SortDir) -> ResultGrid {
+    // The demo executor scans 2_000 rows, then pages the first 500. A local sort
+    // has to use that scan or the first page hides earlier keys.
+    let scan = table.row_count.min(2_000);
+    let keep = grid.model.row_count();
+    let mut rows = db::rows(table, 0, scan);
+    rows.sort_by(|left, right| {
+        let null = db::Value::Null;
+        let cmp = crate::sql::cmp_values(
+            left.get(index).unwrap_or(&null),
+            right.get(index).unwrap_or(&null),
+        );
+        if direction == SortDir::Asc {
+            cmp
+        } else {
+            cmp.reverse()
+        }
+    });
+    rows.truncate(keep);
+    ResultGrid::from_result(&crate::sql::ResultSet {
+        columns: grid.columns.clone(),
+        rows,
+        total: grid.model.total(),
+        source: grid.model.source().map(str::to_owned),
+        duration_ms: 0,
+        editable: grid.model.is_editable(),
+    })
+}
+
+fn sort_mark(direction: SortDir) -> char {
+    match direction {
+        SortDir::Asc => '▴',
+        SortDir::Desc => '▾',
+    }
+}
+
+fn sort_footer(app: &TableProApp) -> Option<String> {
+    let (tab, column, direction) = app.grid_sort?;
+    if app.workbench.active_key()? != tab {
+        return None;
+    }
+    let (_, grid) = app.workbench.active_grid()?;
+    let index = usize::from(column).checked_sub(1)?;
+    let name = grid.columns.get(index)?.0.as_str();
+    let word = match direction {
+        SortDir::Asc => "ascending",
+        SortDir::Desc => "descending",
+    };
+    Some(format!("Sorted by {name} {word}"))
+}
+
+fn grid_column_status(columns: usize) -> String {
+    let chrome = GRID_CHROME.with(|chrome| chrome.borrow().clone());
+    let Some(chrome) = chrome else {
+        return format!("cols 1–2 of {}", grouped(columns));
+    };
+    if chrome.hidden_left == 0 {
+        return format!("cols 1–2 of {}", grouped(chrome.columns));
+    }
+    let first = chrome.hidden_left.saturating_add(1);
+    let last = chrome.hidden_left.saturating_add(chrome.complete.max(1));
+    format!(
+        "cols {}–{} of {}",
+        grouped(first),
+        grouped(last),
+        grouped(chrome.columns)
+    )
+}
+
+fn column_natural_width(name: &str, ty: ColType, model: &ResultGrid, col: usize) -> u16 {
+    let numeric = matches!(ty, ColType::Int | ColType::Numeric);
+    let mut natural = width(name);
+    if name == "id" {
+        natural = natural.saturating_add(2).max(38);
+    } else if !numeric {
+        natural = natural.saturating_add(2);
+    }
+    let sample = model.row_count().min(64);
+    for row in 0..sample {
+        if let Some(cell) = GridModel::cell(model, row, col) {
+            natural = natural.max(width(cell.text));
+        }
+    }
+    natural.clamp(3, 40)
+}
+
+fn column_budget_avail(area_width: u16, gutter: u16) -> u16 {
+    area_width
+        .saturating_sub(1)
+        .saturating_sub(gutter)
+        .saturating_sub(3)
+}
+
+struct WindowFit {
+    complete: usize,
+    places: Vec<ColPlace>,
+}
+
+fn layout_window(widths: &[u16], start: usize, avail: u16) -> WindowFit {
+    let mut places = Vec::new();
+    let mut used = 0u16;
+    let mut complete = 0usize;
+    let mut closed = false;
+    for width in widths.iter().copied().skip(start) {
+        if closed {
+            break;
+        }
+        let gap = if places.is_empty() { 0 } else { 2 };
+        let needed = used.saturating_add(gap).saturating_add(width);
+        if !places.is_empty() && needed > avail {
+            let room = avail.saturating_sub(used).saturating_sub(gap);
+            if room >= 4 {
+                places.push(ColPlace {
+                    x: used.saturating_add(gap),
+                    width: room,
+                    primary: false,
+                });
+            }
+            closed = true;
+            continue;
+        }
+        places.push(ColPlace {
+            x: used.saturating_add(gap),
+            width,
+            primary: false,
+        });
+        used = needed;
+        complete = complete.saturating_add(1);
+    }
+    WindowFit { complete, places }
+}
+
+fn focus_is_complete(widths: &[u16], start: usize, focus: usize, avail: u16) -> bool {
+    if start > focus {
+        return false;
+    }
+    let fit = layout_window(widths, start, avail);
+    focus.saturating_sub(start) < fit.complete
+}
+
+fn window_start(widths: &[u16], focus: usize, avail: u16) -> usize {
+    if focus == 0 || widths.is_empty() {
+        return 0;
+    }
+    let focus = focus.min(widths.len().saturating_sub(1));
+    let mut start = focus;
+    while start > 0 && focus_is_complete(widths, start.saturating_sub(1), focus, avail) {
+        start = start.saturating_sub(1);
+    }
+    start
+}
+
+fn install_scrolled_budgets(
+    area_width: u16,
+    columns: &[(String, ColType)],
+    model: &ResultGrid,
+    state: &termrock::GridState,
+) -> bool {
+    let Some((_, column)) = state.cursor() else {
+        return false;
+    };
+    let Some(focus) = usize::from(column.raw()).checked_sub(1) else {
+        return false;
+    };
+    if focus == 0 || focus >= columns.len() {
+        return false;
+    }
+    let row_count = model.row_count().max(1).to_string();
+    let gutter = width(&row_count).saturating_add(4);
+    let avail = column_budget_avail(area_width, gutter);
+    let widths: Vec<u16> = columns
+        .iter()
+        .enumerate()
+        .map(|(index, (name, ty))| column_natural_width(name, *ty, model, index))
+        .collect();
+    let start = window_start(&widths, focus, avail);
+    if start == 0 {
+        return false;
+    }
+    let fit = layout_window(&widths, start, avail);
+    let mut budgets = Vec::with_capacity(columns.len());
+    for index in 0..columns.len() {
+        let shown = index
+            .checked_sub(start)
+            .and_then(|offset| fit.places.get(offset));
+        budgets.push(ColBudget {
+            kind: if columns.get(index).is_some_and(|(name, _)| name == "id") {
+                KIND_PRIMARY
+            } else if columns
+                .get(index)
+                .is_some_and(|(_, ty)| *ty == ColType::Uuid)
+            {
+                KIND_FOREIGN
+            } else {
+                KIND_OTHER
+            },
+            text: shown.map_or(0, |place| place.width),
+            arrow: false,
+        });
+    }
+    let chrome = GridChrome {
+        gutter,
+        content_width: avail,
+        complete: fit.complete,
+        columns: columns.len(),
+        hidden_left: start,
+        places: fit.places,
+    };
+    COL_BUDGETS.with(|budgets_cell| *budgets_cell.borrow_mut() = budgets);
+    GRID_CHROME.with(|chrome_cell| *chrome_cell.borrow_mut() = Some(chrome));
+    true
+}
+
+fn scaled_channel(channel: u8, numerator: u16) -> u8 {
+    #[allow(
+        clippy::arithmetic_side_effects,
+        reason = "channel times at most 255 plus 127 fits in u32"
+    )]
+    let value = u32::from(channel) * u32::from(numerator) + 127;
+    u8::try_from(value / 255).unwrap_or(u8::MAX)
+}
+
+fn scaled_rgb(color: u32, numerator: u16) -> u32 {
+    let red = scaled_channel(u8::try_from((color >> 16) & 0xff).unwrap_or(0), numerator);
+    let green = scaled_channel(u8::try_from((color >> 8) & 0xff).unwrap_or(0), numerator);
+    let blue = scaled_channel(u8::try_from(color & 0xff).unwrap_or(0), numerator);
+    u32::from(red) << 16 | u32::from(green) << 8 | u32::from(blue)
+}
+
+fn paint_scrolled_header(
+    ui: &mut Ui<'_>,
+    area: termrock::Rect,
+    names: &[String],
+    chrome: &GridChrome,
+) {
+    let base = ui.surface_style().remove_modifier(Modifier::BOLD);
+    ui.fill(
+        termrock::Rect {
+            x: area.x,
+            y: area.y,
+            width: area.width,
+            height: 1,
+        },
+        base,
+    );
+    let muted = base.patch(ui.paint_patch(&StylePatch::new().set_fg(TAG_CHROME_FG)));
+    let sorted_style = base.patch(
+        ui.paint_patch(
+            &StylePatch::new()
+                .set_fg(Role::Fg(FgStep::Primary))
+                .add(Modifier::BOLD),
+        ),
+    );
+    let overflow = base.patch(ui.paint_patch(&StylePatch::new().set_fg(TAG_PATH_FG)));
+    let origin = area.x.saturating_add(chrome.gutter);
+    if chrome.hidden_left > 0 {
+        let label = format!("‹{}", chrome.hidden_left);
+        ui.paint_str(
+            termrock::Rect {
+                x: area.x.saturating_add(1),
+                y: area.y,
+                width: width(&label).min(chrome.gutter.saturating_sub(1)),
+                height: 1,
+            },
+            &label,
+            overflow,
+        );
+    }
+    let sort_at = GRID_SORT.with(|slot| *slot.borrow());
+    for (offset, place) in chrome.places.iter().enumerate() {
+        let index = chrome.hidden_left.saturating_add(offset);
+        let Some(name) = names.get(index) else {
+            continue;
+        };
+        let sorted = sort_at.is_some_and(|(column, _)| column == index);
+        let style = if sorted { sorted_style } else { muted };
+        let mut title = name.clone();
+        if let Some((_, direction)) = sort_at.filter(|(column, _)| *column == index) {
+            title.push(' ');
+            title.push(sort_mark(direction));
+        }
+        ui.fill(
+            termrock::Rect {
+                x: origin.saturating_add(place.x),
+                y: area.y,
+                width: place.width,
+                height: 1,
+            },
+            style,
+        );
+        ui.paint_str(
+            termrock::Rect {
+                x: origin.saturating_add(place.x),
+                y: area.y,
+                width: place.width,
+                height: 1,
+            },
+            &title,
+            style,
+        );
+    }
+    if chrome.hidden_left.saturating_add(chrome.complete) < chrome.columns {
+        let hidden = chrome
+            .columns
+            .saturating_sub(chrome.hidden_left)
+            .saturating_sub(chrome.complete);
+        let label = format!("{hidden}›");
+        let slot = width(&label).max(3);
+        let end = area
+            .x
+            .saturating_add(chrome.gutter)
+            .saturating_add(chrome.content_width)
+            .saturating_add(4);
+        ui.paint_str(
+            termrock::Rect {
+                x: end.saturating_sub(slot),
+                y: area.y,
+                width: width(&label),
+                height: 1,
+            },
+            &label,
+            overflow,
+        );
+    }
+}
+
+#[allow(
+    clippy::too_many_lines,
+    reason = "scrolled cell color, fade, and alignment stay in one pass"
+)]
+fn paint_scrolled_cells(
+    ui: &mut Ui<'_>,
+    area: termrock::Rect,
+    columns: &[(String, ColType)],
+    state: &termrock::GridState,
+    model: &ResultGrid,
+) {
+    let Some(chrome) = GRID_CHROME.with(|chrome| chrome.borrow().clone()) else {
+        return;
+    };
+    let cursor = state.cursor().and_then(|(key, column)| {
+        let row = (0..model.row_count()).find(|row| GridModel::row_key(model, *row) == key)?;
+        usize::from(column.raw())
+            .checked_sub(1)
+            .map(|col| (row, col))
+    });
+    let visible = usize::from(area.height.saturating_sub(1)).min(model.row_count());
+    let origin = area.x.saturating_add(chrome.gutter);
+    let plain = ui.surface_style().remove_modifier(Modifier::BOLD);
+    for row in 0..visible {
+        let y = area.y.saturating_add(1).saturating_add(row as u16);
+        let fade = match visible.saturating_sub(row) {
+            1 => Some(140),
+            2 => Some(204),
+            _ => None,
+        };
+        let on_cursor = cursor.is_some_and(|(cursor_row, _)| cursor_row == row);
+        let mut row_style = plain;
+        if on_cursor {
+            row_style = row_style.add_modifier(Modifier::BOLD);
+        }
+        if let Some(numerator) = fade {
+            let color = scaled_rgb(0x00ff_ffff, numerator);
+            row_style = row_style.patch(ui.paint_patch(
+                &StylePatch::new().set_fg(Role::Custom(termrock::Color::from_u32(color))),
+            ));
+        }
+        ui.fill(
+            termrock::Rect {
+                x: origin,
+                y,
+                width: chrome.content_width.saturating_add(4),
+                height: 1,
+            },
+            row_style,
+        );
+        for (offset, place) in chrome.places.iter().enumerate() {
+            let col = chrome.hidden_left.saturating_add(offset);
+            let Some(text) = GridModel::cell(model, row, col).map(|cell| cell.text.to_owned())
+            else {
+                continue;
+            };
+            let literal = matches!(text.as_str(), "NULL" | "true" | "false");
+            let active = cursor
+                .is_some_and(|(cursor_row, cursor_col)| cursor_row == row && cursor_col == col);
+            let mut style = row_style;
+            if active {
+                style = style.patch(
+                    ui.paint_patch(
+                        &StylePatch::new()
+                            .set_fg(Role::Fg(FgStep::Primary))
+                            .set_bg(LEGACY_CELL_BG)
+                            .add(Modifier::BOLD),
+                    ),
+                );
+            } else if literal {
+                let mut color = 0x00c6_a0f6;
+                if let Some(numerator) = fade {
+                    color = scaled_rgb(color, numerator);
+                }
+                style = style.patch(
+                    ui.paint_patch(
+                        &StylePatch::new()
+                            .set_fg(Role::Custom(termrock::Color::from_u32(color)))
+                            .add(Modifier::ITALIC),
+                    ),
+                );
+                if on_cursor {
+                    style = style.add_modifier(Modifier::BOLD);
+                }
+                ui.fill(
+                    termrock::Rect {
+                        x: origin.saturating_add(place.x),
+                        y,
+                        width: place.width,
+                        height: 1,
+                    },
+                    style,
+                );
+            }
+            if !active
+                && !literal
+                && let Some(numerator) = fade
+            {
+                let color = scaled_rgb(0x00ff_ffff, numerator);
+                style = style.patch(ui.paint_patch(
+                    &StylePatch::new().set_fg(Role::Custom(termrock::Color::from_u32(color))),
+                ));
+            }
+            let shown = if width(&text) > place.width {
+                truncate(&text, place.width)
+            } else {
+                text
+            };
+            let numeric = columns
+                .get(col)
+                .is_some_and(|(_, ty)| matches!(ty, ColType::Int | ColType::Numeric));
+            let text_width = width(&shown).min(place.width);
+            let indent = if numeric {
+                place.width.saturating_sub(text_width)
+            } else {
+                0
+            };
+            ui.paint_str(
+                termrock::Rect {
+                    x: origin.saturating_add(place.x).saturating_add(indent),
+                    y,
+                    width: text_width,
+                    height: 1,
+                },
+                &shown,
+                style,
+            );
+        }
+    }
+}
+
+#[allow(
+    clippy::too_many_lines,
+    reason = "header gutter, primary key, and muted titles share one pass"
+)]
 fn paint_grid_header(ui: &mut Ui<'_>, area: termrock::Rect, names: &[String]) {
     let Some(chrome) = GRID_CHROME.with(|chrome| chrome.borrow().clone()) else {
         return;
     };
+    if chrome.hidden_left > 0 {
+        paint_scrolled_header(ui, area, names, &chrome);
+        return;
+    }
     let base = ui.surface_style().remove_modifier(Modifier::BOLD);
     ui.fill(
         termrock::Rect {
@@ -3623,7 +4181,9 @@ fn paint_bottom_fade(ui: &mut Ui<'_>, area: termrock::Rect, model: &ResultGrid) 
                 style,
             );
         };
-        restyle(ui, origin, chrome.content_width.saturating_add(4), white);
+        if chrome.hidden_left == 0 {
+            restyle(ui, origin, chrome.content_width.saturating_add(4), white);
+        }
         restyle(ui, area.x.saturating_add(1), 2, white);
         if chrome.gutter > 0 {
             restyle(
@@ -3633,17 +4193,20 @@ fn paint_bottom_fade(ui: &mut Ui<'_>, area: termrock::Rect, model: &ResultGrid) 
                 white,
             );
         }
-        for place in &chrome.places {
-            if place.primary {
-                restyle(
-                    ui,
-                    origin.saturating_add(place.x),
-                    place.width.saturating_sub(2),
-                    secondary,
-                );
+        if chrome.hidden_left == 0 {
+            for place in &chrome.places {
+                if place.primary {
+                    restyle(
+                        ui,
+                        origin.saturating_add(place.x),
+                        place.width.saturating_sub(2),
+                        secondary,
+                    );
+                }
             }
         }
-        if let Some(place) = chrome.places.last()
+        if chrome.hidden_left == 0
+            && let Some(place) = chrome.places.last()
             && chrome.places.len() < chrome.columns
         {
             let arrow_x = origin
@@ -3678,6 +4241,16 @@ fn paint_horizontal_bar(ui: &mut Ui<'_>, row: termrock::Rect) {
     let thumb = (usize::from(track_w) * chrome.complete.max(1) / columns)
         .max(1)
         .min(usize::from(track_w));
+    #[allow(
+        clippy::arithmetic_side_effects,
+        reason = "columns is at least 1 and the product fits a terminal width"
+    )]
+    let thumb_at = if chrome.hidden_left == 0 {
+        0
+    } else {
+        (usize::from(track_w) * chrome.hidden_left + columns / 2) / columns
+    }
+    .min(usize::from(track_w).saturating_sub(thumb));
     let track = ui
         .surface_style()
         .patch(ui.paint_patch(&StylePatch::new().set_fg(LEGACY_SCROLL_TRACK)));
@@ -3696,7 +4269,7 @@ fn paint_horizontal_bar(ui: &mut Ui<'_>, row: termrock::Rect) {
     );
     ui.paint_str(
         termrock::Rect {
-            x,
+            x: x.saturating_add(thumb_at as u16),
             y: row.y,
             width: thumb as u16,
             height: 1,
@@ -3716,6 +4289,7 @@ fn draw_painted_grid(
     model: &ResultGrid,
 ) {
     install_grid_budgets(area.width, columns, model);
+    let scrolled = install_scrolled_budgets(area.width, columns, model, state);
     let grid = result_grid(id, specs);
     grid.draw(ui, area, state, &PaintedGrid { inner: model });
     paint_grid_focus_bar(ui, area, state, model);
@@ -3752,6 +4326,9 @@ fn draw_painted_grid(
             .map(|(name, _)| name.clone())
             .collect::<Vec<_>>(),
     );
+    if scrolled {
+        paint_scrolled_cells(ui, area, columns, state, model);
+    }
 }
 fn result_grid<'a>(id: Id, columns: &'a [termrock::Column<'a>]) -> Grid<'a> {
     let grid = Grid::new(id, columns)
@@ -4088,6 +4665,9 @@ fn paint_column_gap(ui: &mut Ui<'_>, area: termrock::Rect) {
     let Some(chrome) = GRID_CHROME.with(|chrome| chrome.borrow().clone()) else {
         return;
     };
+    if chrome.hidden_left > 0 {
+        return;
+    }
     let Some(place) = chrome.places.get(1) else {
         return;
     };
@@ -5023,6 +5603,18 @@ fn draw_footer(ui: &mut Ui<'_>, area: termrock::Rect, app: &TableProApp) {
         };
         ui.fill(right, base);
         ui.paint_str(right, notice, base);
+    } else if let Some(sorted) = sort_footer(app) {
+        let text_width = width(&sorted);
+        let right = termrock::Rect {
+            x: area.right().saturating_sub(text_width).saturating_sub(1),
+            width: text_width,
+            ..area
+        };
+        ui.paint_str(
+            right,
+            &sorted,
+            base.patch(ui.paint_patch(&StylePatch::new().set_fg(TAG_PATH_FG))),
+        );
     } else if app.screen == Screen::Workbench {
         let checked =
             matches!(app.surface, Surface::TableGrid | Surface::StructureView) || explorer_focused;
@@ -5394,6 +5986,9 @@ impl App for TableProApp {
                     self.surface = Surface::HelpDialog;
                     response |= Response::changed();
                 }
+                c if c == SORT && self.sort_focused_column(cx) => {
+                    response |= Response::changed();
+                }
                 _ => {}
             }
         }
@@ -5536,6 +6131,15 @@ impl App for TableProApp {
     }
     fn draw(&self, ui: &mut Ui<'_>) {
         GRID_SCROLL.with(|slot| *slot.borrow_mut() = None);
+        let shown_sort = self.grid_sort.and_then(|(tab, column, direction)| {
+            if self.workbench.active_key()? != tab {
+                return None;
+            }
+            usize::from(column)
+                .checked_sub(1)
+                .map(|index| (index, direction))
+        });
+        GRID_SORT.with(|slot| *slot.borrow_mut() = shown_sort);
         let full = ui.full();
         if full.width < MIN_WIDTH || full.height < MIN_HEIGHT {
             draw_too_small(ui, full);
@@ -5776,6 +6380,7 @@ mod action_namespace_tests {
             HELP,
             TAB_LIST,
             FILTER,
+            SORT,
             PREVIEW,
             SAVE,
             EXPLAIN,
