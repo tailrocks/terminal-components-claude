@@ -1464,6 +1464,26 @@ fn settings_route_80_paints_the_approved_breadcrumb_cell() {
 }
 
 #[test]
+fn settings_mounts_80_paints_the_approved_destination_cell() {
+    let mut h = H::new(Scenario::AccountsMixed, Motion::Paused, 40, 80, 24);
+    h.key(KeyCode::Char('s'));
+    assert_eq!(h.app().settings.tab, 0);
+    let general = h.buffer().cell((8, 6)).expect("general body");
+    assert_ne!(general.symbol(), "D", "General must not show Destination");
+    h.key(KeyCode::Char('2'));
+    assert_eq!(h.app().settings.tab, 0);
+    h.key(KeyCode::Enter);
+    assert_eq!(h.app().settings.tab, 1);
+    let dest = h.buffer().cell((8, 6)).expect("destination heading");
+    assert_eq!(dest.symbol(), "D");
+    assert_eq!(dest.fg, termrock::Color::from_u32(0x8a_8a_8a));
+    assert_eq!(dest.bg, termrock::Color::from_u32(0x00_00_00));
+    assert!(!dest.modifier.contains(termrock::Modifier::BOLD));
+    assert!(!dest.modifier.contains(termrock::Modifier::ITALIC));
+    assert_eq!(h.harness.cursor(), None);
+}
+
+#[test]
 fn settings_env_three_enter_paints_the_approved_env_frame() {
     let mut h = H::new(Scenario::AccountsMixed, Motion::Paused, 40, 120, 40);
     h.key(KeyCode::Char('s'));
