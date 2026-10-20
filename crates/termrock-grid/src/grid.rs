@@ -29,7 +29,6 @@ use termrock_runtime::scroll_region::ScrollRegion;
 
 const CTRL: KeyModifiers = KeyModifiers::CONTROL;
 const SHIFT: KeyModifiers = KeyModifiers::SHIFT;
-
 #[derive(Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct ColumnKey(u16);
 
@@ -980,6 +979,7 @@ impl<'a> Grid<'a> {
         Part::HEADER,
         Part::ROW,
         Part::CELL,
+        Part::TEXT,
         Part::TRACK,
         Part::THUMB,
         Part::OVERFLOW,
@@ -1438,6 +1438,24 @@ impl<'a> Grid<'a> {
         };
         if offset != g.offset {
             g = self.place_columns(body, widths, offset, gutter_width, number_width);
+        }
+
+        // Match the grid's reveal contract: once the cursor is visible, move the
+        // left edge back only while every remaining column still fits. This
+        // avoids leaving a needless blank viewport edge after a wider layout.
+        while g.offset > 0 {
+            let previous = self.place_columns(
+                body,
+                widths,
+                g.offset.saturating_sub(1),
+                gutter_width,
+                number_width,
+            );
+            if previous.hidden_right == 0 {
+                g = previous;
+            } else {
+                break;
+            }
         }
 
         g
@@ -2592,6 +2610,8 @@ impl Grid<'_> {
                 geometry.complete.get(col).copied().unwrap_or(false)
             });
         let mut r = TextInput::new(self.editor_id())
+            .embedded_cell()
+            .text_style_target(Family::GRID, Variant::DEFAULT, Part::TEXT)
             .blur(self.blur)
             .pointer_enabled(pointer_enabled)
             .update(cx, &mut st.editor, &mut value);
@@ -2923,6 +2943,10 @@ impl Grid<'_> {
             style: inherited,
         } = row;
         let inherited = ui.surface_style().patch(inherited);
+        // The detailed gutter has one trailing cell after the row number.
+        // It belongs to the row surface even though it has no glyph or hit
+        // target of its own.
+        ui.fill(geometry.gutter_row(y), inherited);
         let focused = flags.contains(StateFlags::FOCUSED);
         let checked = flags.contains(StateFlags::CHECKED);
         let mut focus = StylePatch::new().set_glyph(GlyphRole::FocusBar);
@@ -3185,10 +3209,11 @@ impl Grid<'_> {
             let actions = model.actions(row, i);
             cflags |= cdecor.flags();
             let cs = self.cell_style(ui, cflags, cell_defaults);
-            if cflags.contains(StateFlags::ACTIVE) {
-                // The cursor cell owns its complete style. Start from the
-                // component surface and remove row modifiers that are absent
-                // from the active-cell style before repainting the cell.
+            if cflags.contains(StateFlags::ACTIVE) && !actions.is_empty() {
+                // A cell action is a full-cell affordance. Ordinary values
+                // keep the focused row surface in their unused cell padding;
+                // their visible text is painted with the independent cursor
+                // style below.
                 ui.fill(rect, active_cell_style(ui, row_style, cs, decor.strike));
             }
             if !cs.explicit.is_empty() {
@@ -3206,7 +3231,12 @@ impl Grid<'_> {
             if decor.strike && !cs.explicit.remove.contains(Modifier::CROSSED_OUT) {
                 cell_delta = cell_delta.add(Modifier::CROSSED_OUT);
             }
-            let style = apply_style_delta(ui, cs.resolved.style, cell_delta);
+            let cell_style = if cflags.contains(StateFlags::ACTIVE) {
+                active_cell_style(ui, row_style, cs, decor.strike)
+            } else {
+                cs.resolved.style
+            };
+            let style = apply_style_delta(ui, cell_style, cell_delta);
             let mut text_rect = rect;
             if let Some(gl) = self.columns.get(i).and_then(|c| c.prefix_glyph) {
                 let used = ui.glyph(rect, gl, style);
@@ -3243,7 +3273,12 @@ impl Grid<'_> {
                 .filter(|_| !editing && refused_error.is_none())
                 .zip(self.col_key(i))
             {
+                let padding_style = (cflags.contains(StateFlags::ACTIVE) && actions.is_empty())
+                    .then(|| ui.surface_style().patch(row_style));
                 let mut painter = CellUi::new(ui.reborrow(), text_rect, style);
+                if let Some(padding_style) = padding_style {
+                    painter.padding_style(padding_style);
+                }
                 painter.align(align);
                 render(
                     GridCell {
@@ -3259,6 +3294,11 @@ impl Grid<'_> {
                 );
             } else {
                 paint_aligned(ui, text_rect, text, align, style);
+            }
+            if cflags.contains(StateFlags::ACTIVE) && !cs.explicit.is_empty() {
+                // The active text style is independent from the focused row,
+                // so apply authored cell overrides after painting that text.
+                termrock_runtime::author::patch_style(ui, rect, cs.resolved.style, cs.explicit);
             }
             if !inert {
                 geometry.register_cell_part(ui, self.id, PartRef::item(Part::CELL, key), i, rect);
@@ -3293,6 +3333,8 @@ impl Grid<'_> {
             }
             if editing {
                 TextInput::new(self.id.part(Part::TEXT))
+                    .embedded_cell()
+                    .text_style_target(Family::GRID, Variant::DEFAULT, Part::TEXT)
                     .pointer_enabled(geometry.complete.get(i).copied().unwrap_or(false))
                     .disabled(self.disabled)
                     .value(cell.text)
@@ -3361,6 +3403,7 @@ impl Grid<'_> {
         let (header, note, body, bar) = self.chrome(area, reason);
         let scroll = Self::scroll_for_view(st, usize::from(body.height));
         let content = self.bar().draw(ui, body, &scroll, total);
+        let scroll_view = ScrollRegion::view(&scroll, content, total);
         let rows = Self::window(st, content, total);
         let g = self.geometry(content, st, model, rows.clone());
         let head = Rect {
@@ -3523,6 +3566,12 @@ impl Grid<'_> {
             }
             self.draw_row(ui, y, row, &row_paint);
         }
+        if !inert {
+            // Keep the reference grid's edge fade in the shared component.
+            // The scroll helper checks for real overflow, skips cursor/reversed
+            // cells, and blends only cells on the container background.
+            ui.scroll_edges(content, &scroll_view);
+        }
         self.draw_actions(ui, bar, live);
         area
     }
@@ -3581,12 +3630,13 @@ mod tests {
     use super::*;
     use crate::event::MouseKind;
     use crate::runtime::stub::{key, mouse};
-    use crate::runtime::{App, Runtime};
+    use crate::runtime::{App, Runtime, UpdateCause};
     use crate::theme::Theme;
     use crate::validate::FieldError;
 
     const ID: Id = Id::root("grid.tests");
     const AREA: Rect = Rect::new(0, 0, 30, 6);
+    const CALLBACK_ID: Id = Id::root("grid.tests.callback_padding");
     const CELL_ACTION: ActionKey = ActionKey::custom("follow");
     const CELL_ACTIONS: [CellAction; 1] = [CellAction::new(CELL_ACTION)];
 
@@ -3619,6 +3669,69 @@ mod tests {
                 badge: None,
             },
         ]
+    }
+
+    struct NumericCellModel;
+
+    impl GridModel for NumericCellModel {
+        fn row_count(&self) -> usize {
+            1
+        }
+
+        fn row_key(&self, _row: usize) -> ItemKey {
+            ItemKey::num(7)
+        }
+
+        fn cell(&self, _row: usize, _column: usize) -> Option<CellRef<'_>> {
+            Some(CellRef::new("7"))
+        }
+    }
+
+    fn paint_identity_cell(cell: GridCell<'_>, ui: &mut CellUi<'_>) {
+        ui.text(cell.value.text);
+    }
+
+    struct CallbackPaddingApp {
+        state: GridState,
+        callback: bool,
+        dim_after: bool,
+    }
+
+    impl App for CallbackPaddingApp {
+        fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+            if cx.update_cause() == UpdateCause::Bootstrap {
+                cx.focus(CALLBACK_ID);
+            }
+            let mut column = Column::new(ColumnKey::num(7), "number");
+            column.min_width = 10;
+            column.max_width = 10;
+            column.align = Align::Right;
+            Grid::new(CALLBACK_ID, &[column])
+                .update(cx, &mut self.state, &NumericCellModel)
+                .erase()
+        }
+
+        fn draw(&self, ui: &mut Ui<'_>) {
+            let mut column = Column::new(ColumnKey::num(7), "number");
+            column.min_width = 10;
+            column.max_width = 10;
+            column.align = Align::Right;
+            let columns = [column];
+            let grid = Grid::new(CALLBACK_ID, &columns);
+            if self.callback {
+                grid.cell(&paint_identity_cell).draw(
+                    ui,
+                    Rect::new(0, 0, 20, 4),
+                    &self.state,
+                    &NumericCellModel,
+                );
+            } else {
+                grid.draw(ui, Rect::new(0, 0, 20, 4), &self.state, &NumericCellModel);
+            }
+            if self.dim_after {
+                ui.dim_layer(Rect::new(0, 0, 20, 4), 2);
+            }
+        }
     }
 
     #[derive(Clone, Copy, Debug, Default)]
@@ -3910,6 +4023,7 @@ mod tests {
         editable: bool,
         actions: Vec<GridAction>,
         part_defaults: Vec<(Part, StylePatch)>,
+        gutter: GridGutter,
     }
 
     impl GridApp {
@@ -3920,6 +4034,7 @@ mod tests {
                 editable,
                 actions: Vec::new(),
                 part_defaults: Vec::new(),
+                gutter: GridGutter::Compact,
             }
         }
     }
@@ -3929,6 +4044,7 @@ mod tests {
             let columns = columns();
             let grid = Grid::new(ID, &columns)
                 .part_defaults(&self.part_defaults)
+                .gutter(self.gutter)
                 .select_mode(SelectMode::Multi);
             let mut response = if self.editable {
                 grid.update_editable(cx, &mut self.state, &mut self.model)
@@ -3944,6 +4060,7 @@ mod tests {
         fn draw(&self, ui: &mut Ui<'_>) {
             Grid::new(ID, &columns())
                 .part_defaults(&self.part_defaults)
+                .gutter(self.gutter)
                 .select_mode(SelectMode::Multi)
                 .draw(ui, AREA, &self.state, &self.model);
         }
@@ -3974,6 +4091,66 @@ mod tests {
         runtime.draw_buffer(AREA, &mut buffer).commit_presented();
         runtime.draw_buffer(AREA, &mut buffer).commit_presented();
         (runtime, buffer)
+    }
+
+    #[test]
+    fn overflowing_grid_fades_only_real_scroll_edges() {
+        let area = Rect::new(0, 0, 30, 8);
+        let mut model = Model::two();
+        model
+            .rows
+            .extend((2..12).map(|row| (ItemKey::num(10 + row), ["alpha", "1"])));
+        let mut state = GridState::default();
+        state.core.scroll_mut().set_content(model.row_count());
+        state.core.scroll_mut().set_viewport(4);
+        state.core.scroll_mut().scroll_to(4);
+        let app = AreaGridApp { state, model, area };
+        let mut runtime = Runtime::new(app, Theme::junie());
+        let _ = runtime.initialize();
+        let mut buffer = Buffer::empty(area);
+        runtime.draw_buffer(area, &mut buffer).commit_presented();
+
+        let alpha_foreground = |y: u16| {
+            buffer
+                .content()
+                .iter()
+                .enumerate()
+                .find(|(index, cell)| {
+                    index / usize::from(area.width) == usize::from(y) && cell.symbol() == "a"
+                })
+                .map(|(_, cell)| cell.fg)
+                .expect("visible alpha cell")
+        };
+        assert_eq!(
+            alpha_foreground(6),
+            ratatui_core::style::Color::Rgb(255, 255, 255)
+        );
+        assert_eq!(
+            alpha_foreground(7),
+            ratatui_core::style::Color::Rgb(140, 140, 140)
+        );
+
+        let fit_app = AreaGridApp {
+            state: GridState::default(),
+            model: Model::two(),
+            area,
+        };
+        let mut fit_runtime = Runtime::new(fit_app, Theme::junie());
+        let _ = fit_runtime.initialize();
+        let mut fit_buffer = Buffer::empty(area);
+        fit_runtime
+            .draw_buffer(area, &mut fit_buffer)
+            .commit_presented();
+        assert!(
+            fit_buffer
+                .content()
+                .iter()
+                .enumerate()
+                .filter(|(index, cell)| {
+                    index / usize::from(area.width) > 0 && cell.symbol() == "a"
+                })
+                .all(|(_, cell)| cell.fg == ratatui_core::style::Color::Rgb(255, 255, 255))
+        );
     }
 
     #[cfg(debug_assertions)]
@@ -4131,6 +4308,7 @@ mod tests {
                 Part::HEADER,
                 Part::ROW,
                 Part::CELL,
+                Part::TEXT,
                 Part::TRACK,
                 Part::THUMB,
                 Part::OVERFLOW,
@@ -4158,7 +4336,7 @@ mod tests {
         let columns = columns();
         let debug = format!("{:?}", Grid::new(ID, &columns));
         assert!(!debug.contains("status"));
-        assert_eq!(Grid::PARTS.len(), 14);
+        assert_eq!(Grid::PARTS.len(), 15);
         assert!(Grid::new(ID, &columns).header_prefixes.is_empty());
     }
 
@@ -4226,6 +4404,76 @@ mod tests {
     }
 
     #[test]
+    fn identity_cell_callback_preserves_right_aligned_padding_style() {
+        for level in [
+            crate::theme::ColorLevel::TrueColor,
+            crate::theme::ColorLevel::Ansi256,
+            crate::theme::ColorLevel::Ansi16,
+            crate::theme::ColorLevel::Mono,
+        ] {
+            let theme = Theme::junie().for_level(level);
+            let mut buffers = Vec::new();
+            for callback in [false, true] {
+                let mut runtime = Runtime::new(
+                    CallbackPaddingApp {
+                        state: GridState::default(),
+                        callback,
+                        dim_after: false,
+                    },
+                    theme.clone(),
+                );
+                let _ = runtime.initialize();
+                runtime.set_focus(Some(CALLBACK_ID));
+                let _ = runtime.settle();
+                let area = Rect::new(0, 0, 20, 4);
+                let mut buffer = Buffer::empty(area);
+                runtime.draw_buffer(area, &mut buffer).commit_presented();
+                buffers.push(buffer);
+            }
+
+            let [default, callback] = buffers.as_slice() else {
+                panic!("both grid renderings were captured");
+            };
+            for x in 0..15 {
+                let expected = default.cell(Position::new(x, 1)).expect("default cell");
+                let actual = callback.cell(Position::new(x, 1)).expect("callback cell");
+                assert_eq!(
+                    (
+                        actual.symbol(),
+                        actual.fg,
+                        actual.bg,
+                        actual.modifier,
+                        actual.underline_color
+                    ),
+                    (
+                        expected.symbol(),
+                        expected.fg,
+                        expected.bg,
+                        expected.modifier,
+                        expected.underline_color
+                    ),
+                    "identity callback changed the aligned cell or its padding at {x} in {level:?}"
+                );
+            }
+        }
+    }
+
+    fn focused_detailed_grid_buffer(theme: Theme, model: Model) -> Buffer {
+        let mut app = GridApp::new(model, false);
+        app.gutter = GridGutter::Detailed {
+            row_numbers: true,
+            min_digits: 1,
+        };
+        let mut runtime = Runtime::new(app, theme);
+        let _ = runtime.initialize();
+        runtime.set_focus(Some(ID));
+        let _ = runtime.settle();
+        let mut buffer = Buffer::empty(AREA);
+        runtime.draw_buffer(AREA, &mut buffer).commit_presented();
+        buffer
+    }
+
+    #[test]
     fn focused_grid_row_style_inherits_into_non_cursor_cells_at_every_color_level() {
         for level in [
             crate::theme::ColorLevel::TrueColor,
@@ -4261,6 +4509,10 @@ mod tests {
                 "the focused row style reaches ordinary cells at {level:?}"
             );
             assert!(
+                non_cursor.modifier.contains(Modifier::BOLD),
+                "the focused Grid row uses the baseline row weight at {level:?}"
+            );
+            assert!(
                 !cursor.modifier.contains(Modifier::ITALIC),
                 "the ACTIVE cursor cell replaces its inherited row style at {level:?}"
             );
@@ -4274,6 +4526,28 @@ mod tests {
                 "the ACTIVE cursor cell keeps its independent underline style at {level:?}"
             );
         }
+    }
+
+    #[test]
+    fn detailed_cursor_keeps_cell_padding_and_gutter_tail_on_focused_row_style() {
+        let buffer = focused_detailed_grid_buffer(Theme::junie(), Model::two());
+        let number = buffer
+            .cell(Position::new(3, 1))
+            .expect("detailed row number exists");
+        let gutter_tail = buffer
+            .cell(Position::new(4, 1))
+            .expect("detailed gutter tail exists");
+        let active_text = buffer
+            .cell(Position::new(5, 1))
+            .expect("active cell text exists");
+        let active_padding = buffer
+            .cell(Position::new(10, 1))
+            .expect("active cell padding exists");
+
+        assert!(!number.modifier.contains(Modifier::BOLD));
+        assert!(gutter_tail.modifier.contains(Modifier::BOLD));
+        assert!(active_padding.modifier.contains(Modifier::BOLD));
+        assert_ne!(active_text.bg, active_padding.bg);
     }
 
     #[test]
@@ -5333,6 +5607,200 @@ mod tests {
         let _ = crate::runtime::stub::deliver(&mut runtime, key(KeyCode::Esc));
         assert!(!runtime.app().state.is_editing());
         assert!(runtime.app().state.edit_error().is_none());
+    }
+
+    #[test]
+    fn rejected_inline_edit_uses_the_grid_error_underline() {
+        let levels = [
+            crate::theme::ColorLevel::TrueColor,
+            crate::theme::ColorLevel::Ansi256,
+            crate::theme::ColorLevel::Ansi16,
+            crate::theme::ColorLevel::Mono,
+        ];
+        for level in levels {
+            let theme = Theme::junie().for_level(level);
+            let (valid, error, recovered) = inline_edit_underline_samples(theme.clone());
+            let valid_expected = theme
+                .resolve(
+                    Family::GRID,
+                    Variant::DEFAULT,
+                    Part::TEXT,
+                    StateFlags::FOCUSED | StateFlags::EDITING,
+                    crate::theme::Surface::Canvas,
+                )
+                .style
+                .as_style()
+                .underline_color;
+            let error_expected = theme
+                .resolve(
+                    Family::GRID,
+                    Variant::DEFAULT,
+                    Part::TEXT,
+                    StateFlags::FOCUSED | StateFlags::EDITING | StateFlags::ERROR,
+                    crate::theme::Surface::Canvas,
+                )
+                .style
+                .as_style()
+                .underline_color;
+            assert_eq!(Some(valid), valid_expected, "valid draft at {level:?}");
+            assert_eq!(Some(error), error_expected, "rejected draft at {level:?}");
+            assert_eq!(
+                Some(recovered),
+                valid_expected,
+                "corrected draft at {level:?}"
+            );
+        }
+    }
+
+    #[test]
+    fn inline_editor_error_underline_respects_theme_override() {
+        let theme = Theme::junie().define_family(Family::GRID, |recipe| {
+            recipe.part(Part::TEXT).when(
+                StateFlags::ERROR,
+                StylePatch::new().set_underline(Role::Warning),
+            );
+        });
+        let (_, error, _) = inline_edit_underline_samples(theme.clone());
+        let expected = theme
+            .resolve(
+                Family::GRID,
+                Variant::DEFAULT,
+                Part::TEXT,
+                StateFlags::FOCUSED | StateFlags::EDITING | StateFlags::ERROR,
+                crate::theme::Surface::Canvas,
+            )
+            .style
+            .as_style()
+            .underline_color;
+        assert_eq!(Some(error), expected);
+    }
+
+    #[test]
+    fn inline_editor_theme_clear_resets_the_input_underline() {
+        for level in [
+            crate::theme::ColorLevel::TrueColor,
+            crate::theme::ColorLevel::Ansi256,
+            crate::theme::ColorLevel::Ansi16,
+            crate::theme::ColorLevel::Mono,
+        ] {
+            let theme = Theme::junie()
+                .for_level(level)
+                .define_family(Family::INPUT, |recipe| {
+                    recipe
+                        .part(Part::TEXT)
+                        .base(StylePatch::new().set_underline(Role::Warning));
+                })
+                .define_family(Family::GRID, |recipe| {
+                    let mut clear = StylePatch::new();
+                    clear.underline = crate::theme::Slot::Clear;
+                    recipe.part(Part::TEXT).when(StateFlags::ERROR, clear);
+                });
+            let (_, error, _) = inline_edit_underline_samples(theme);
+            assert_eq!(error, ratatui_core::style::Color::Reset, "at {level:?}");
+        }
+    }
+
+    #[test]
+    fn inline_editor_theme_clear_resets_prepaint_without_input_underline() {
+        for level in [
+            crate::theme::ColorLevel::TrueColor,
+            crate::theme::ColorLevel::Ansi256,
+            crate::theme::ColorLevel::Ansi16,
+            crate::theme::ColorLevel::Mono,
+        ] {
+            let theme = Theme::junie()
+                .for_level(level)
+                .define_family(Family::GRID, |recipe| {
+                    recipe.part(Part::CELL).base(
+                        StylePatch::new()
+                            .set_underline(Role::Custom(ratatui_core::style::Color::Yellow))
+                            .add(Modifier::UNDERLINED),
+                    );
+                    let mut clear = StylePatch::new();
+                    clear.underline = crate::theme::Slot::Clear;
+                    recipe.part(Part::TEXT).base(clear);
+                });
+            let (mut runtime, mut buffer) = runtime(Model::two(), true);
+            runtime.set_theme(theme);
+            let _ = crate::runtime::stub::deliver(&mut runtime, key(KeyCode::Enter));
+            runtime.draw_buffer(AREA, &mut buffer).commit_presented();
+            let underlined = buffer
+                .content()
+                .iter()
+                .filter(|cell| cell.modifier.contains(Modifier::UNDERLINED))
+                .collect::<Vec<_>>();
+            assert!(
+                !underlined.is_empty(),
+                "the host cell has underline styling at {level:?}"
+            );
+            let rows = buffer.content().chunks(AREA.width as usize);
+            let alpha = rows
+                .clone()
+                .flat_map(|row| row.windows(5))
+                .find(|cells| cells.iter().map(|cell| cell.symbol()).collect::<String>() == "alpha")
+                .expect("edited value is visible");
+            assert!(
+                alpha
+                    .iter()
+                    .all(|cell| cell.underline_color == ratatui_core::style::Color::Reset),
+                "host Clear must reset the edited cell's prepainted underline without an input default at {level:?}"
+            );
+            assert!(
+                rows.clone().flat_map(|row| row.windows(4)).any(|cells| {
+                    cells.iter().map(|cell| cell.symbol()).collect::<String>() == "beta"
+                        && cells
+                            .iter()
+                            .all(|cell| cell.modifier.contains(Modifier::UNDERLINED))
+                }),
+                "the non-edited cell retains its own underline at {level:?}"
+            );
+        }
+    }
+
+    fn inline_edit_underline_samples(
+        theme: Theme,
+    ) -> (
+        ratatui_core::style::Color,
+        ratatui_core::style::Color,
+        ratatui_core::style::Color,
+    ) {
+        let mut model = Model::two();
+        model.fail_commit = true;
+        let (mut runtime, _) = runtime(model, true);
+        runtime.set_theme(theme);
+        let _ = crate::runtime::stub::deliver(&mut runtime, key(KeyCode::Enter));
+        let mut valid_buffer = Buffer::empty(AREA);
+        runtime
+            .draw_buffer(AREA, &mut valid_buffer)
+            .commit_presented();
+        let valid = inline_underline(&valid_buffer);
+
+        let _ = crate::runtime::stub::deliver(&mut runtime, key(KeyCode::Char('x')));
+        let _ = crate::runtime::stub::deliver(&mut runtime, key(KeyCode::Enter));
+        assert!(runtime.app().state.edit_error().is_some());
+        let mut error_buffer = Buffer::empty(AREA);
+        runtime
+            .draw_buffer(AREA, &mut error_buffer)
+            .commit_presented();
+        let error = inline_underline(&error_buffer);
+
+        let _ = crate::runtime::stub::deliver(&mut runtime, key(KeyCode::Char('y')));
+        assert!(runtime.app().state.edit_error().is_none());
+        let mut recovered_buffer = Buffer::empty(AREA);
+        runtime
+            .draw_buffer(AREA, &mut recovered_buffer)
+            .commit_presented();
+        let recovered = inline_underline(&recovered_buffer);
+        (valid, error, recovered)
+    }
+
+    fn inline_underline(buffer: &Buffer) -> ratatui_core::style::Color {
+        buffer
+            .content()
+            .iter()
+            .find(|cell| cell.modifier.contains(Modifier::UNDERLINED))
+            .expect("inline draft remains visibly underlined")
+            .underline_color
     }
 
     #[test]

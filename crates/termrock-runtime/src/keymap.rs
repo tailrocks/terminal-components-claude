@@ -591,6 +591,7 @@ struct DynamicBindingSet {
 }
 
 impl DynamicBindingRegistry {
+    #[cfg(test)]
     pub(crate) fn update<I>(
         &mut self,
         owner: Id,
@@ -600,6 +601,30 @@ impl DynamicBindingRegistry {
     ) -> (&[BindingDescriptor], u64)
     where
         I: Iterator<Item = (ActionKey, Option<Chord>)> + Clone,
+    {
+        self.update_descriptors(
+            owner,
+            base,
+            base_descriptors,
+            bindings.map(|(action, chord)| BindingDescriptor {
+                action,
+                chord,
+                label: "",
+                priority: 0,
+                visible: false,
+            }),
+        )
+    }
+
+    pub(crate) fn update_descriptors<I>(
+        &mut self,
+        owner: Id,
+        base: Option<BindingTableId>,
+        base_descriptors: &[BindingDescriptor],
+        bindings: I,
+    ) -> (&[BindingDescriptor], u64)
+    where
+        I: Iterator<Item = BindingDescriptor> + Clone,
     {
         let mut owner_changed = false;
         if let Some(set) = self.current.as_mut() {
@@ -621,29 +646,21 @@ impl DynamicBindingRegistry {
         let Some(set) = self.current.as_mut() else {
             return (&[], 0);
         };
-        let unchanged =
-            !owner_changed
-                && set.base == base
-                && set.base_descriptors == base_descriptors
-                && set.descriptors.iter().zip(bindings.clone()).all(
-                    |(descriptor, (action, chord))| {
-                        descriptor.action == action && descriptor.chord == chord
-                    },
-                )
-                && set.descriptors.len() == bindings.clone().count();
+        let unchanged = !owner_changed
+            && set.base == base
+            && set.base_descriptors == base_descriptors
+            && set
+                .descriptors
+                .iter()
+                .zip(bindings.clone())
+                .all(|(descriptor, next)| descriptor == &next)
+            && set.descriptors.len() == bindings.clone().count();
         if !unchanged {
             set.base = base;
             set.base_descriptors.clear();
             set.base_descriptors.extend_from_slice(base_descriptors);
             set.descriptors.clear();
-            set.descriptors
-                .extend(bindings.map(|(action, chord)| BindingDescriptor {
-                    action,
-                    chord,
-                    label: "",
-                    priority: 0,
-                    visible: false,
-                }));
+            set.descriptors.extend(bindings);
             self.next_revision = self.next_revision.wrapping_add(1);
             set.revision = self.next_revision;
         }
@@ -668,6 +685,7 @@ pub(crate) struct FocusedHints {
 }
 
 impl FocusedHints {
+    #[cfg(test)]
     fn contains_chord(&self, chord: Chord) -> bool {
         self.layer.hints.iter().any(|hint| {
             hint.key
@@ -696,15 +714,16 @@ impl FocusedHints {
         self.layer.badge = None;
         self.layer.status = None;
         self.layer.centered = false;
-        for binding in table {
-            let Some(chord) = binding
-                .visible
-                .then(|| keymap.component_chord(key.focus, binding.action, binding.chord))
-                .flatten()
+        for (index, binding) in table.iter().enumerate() {
+            let Some(chord) = keymap.component_chord(key.focus, binding.action, binding.chord)
             else {
                 continue;
             };
-            if self.contains_chord(chord) {
+            let shadowed = table[..index]
+                .iter()
+                .filter_map(|prior| keymap.component_chord(key.focus, prior.action, prior.chord))
+                .any(|prior| chord.effective_eq(&prior));
+            if !binding.visible || shadowed {
                 continue;
             }
             let hint = Hint {
@@ -741,6 +760,7 @@ pub enum HintKey {
 }
 
 impl HintKey {
+    #[cfg(test)]
     const fn physical_chord(self) -> Option<Chord> {
         match self {
             Self::Chord(chord) | Self::ChordWithCase { chord, .. } => Some(chord),
@@ -1684,5 +1704,51 @@ mod tests {
                 "hints {first:?} vs {second:?}"
             );
         }
+    }
+
+    #[test]
+    fn hidden_bindings_still_shadow_later_visible_hints() {
+        const HIDDEN: ActionKey = ActionKey::custom("test.hints.hidden");
+        const VISIBLE: ActionKey = ActionKey::custom("test.hints.visible");
+        const OTHER: ActionKey = ActionKey::custom("test.hints.other");
+        let owner = Id::root("hidden-hint-owner");
+        let table = [
+            BindingDescriptor {
+                action: HIDDEN,
+                chord: Some(Chord::key(KeyCode::Tab)),
+                label: "Child command",
+                priority: 80,
+                visible: false,
+            },
+            BindingDescriptor {
+                action: VISIBLE,
+                chord: Some(Chord::key(KeyCode::Tab)),
+                label: "Show details",
+                priority: 40,
+                visible: true,
+            },
+            BindingDescriptor {
+                action: OTHER,
+                chord: Some(Chord::key(KeyCode::Esc)),
+                label: "Back",
+                priority: 40,
+                visible: true,
+            },
+        ];
+        let mut focused = FocusedHints::default();
+        focused.derive(
+            FocusedHintKey {
+                focus: owner,
+                flags: StateFlags::FOCUSED,
+                layer: crate::layer::LayerId::PAGE,
+                table: BindingTableId::dynamic(owner, table.len(), 1),
+                keymap_revision: 0,
+            },
+            &table,
+            &KeyMap::new(),
+        );
+
+        assert_eq!(focused.layer.hints.len(), 1);
+        assert_eq!(focused.layer.hints[0].label, "Back");
     }
 }

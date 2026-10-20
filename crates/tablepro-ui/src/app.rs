@@ -1,4 +1,5 @@
 use std::cell::RefCell;
+use std::time::Instant;
 
 use termrock::author::{PaintStyle, StyleDefaults};
 use termrock::editors::{
@@ -244,6 +245,7 @@ const CLEAR_QUERY: ActionKey = ActionKey::application("tablepro.clear-query");
 const PALETTE: ActionKey = ActionKey::application("tablepro.palette");
 const ZOOM: ActionKey = ActionKey::application("tablepro.zoom");
 const TOGGLE_EXPLORER: ActionKey = ActionKey::application("tablepro.toggle-explorer");
+const FOCUS_EXPLORER: ActionKey = ActionKey::application("tablepro.focus-explorer");
 
 const CONNECTION_DETAILS: Id = Id::root("tablepro.connections.details");
 const CONTENT_FRAME: Id = Id::root("tablepro.workbench.content.frame");
@@ -473,6 +475,11 @@ fn quit_keymap() -> KeyMap {
 fn keymap() -> KeyMap {
     query_keymap(
         quit_keymap()
+            .bind(
+                KeyPhase::Capture,
+                Chord::key(KeyCode::Char('0')),
+                FOCUS_EXPLORER,
+            )
             .bind(KeyPhase::Bubble, Chord::key(KeyCode::Char('u')), UNDO)
             .bind(KeyPhase::Bubble, Chord::key(KeyCode::Char('+')), INSERT_ROW)
             .bind(
@@ -1426,6 +1433,7 @@ impl TableProApp {
                 message: "Query tab is no longer available".to_owned(),
             };
         }
+        let started = Instant::now();
         let statement = match tablepro_sql::sql::parse(query.trim()) {
             Ok(statement) => statement,
             Err(error) => {
@@ -1433,6 +1441,7 @@ impl TableProApp {
                     message: error.message,
                 };
                 self.status = outcome_message(&out);
+                self.record_query_status(key, &out, started.elapsed());
                 return out;
             }
         };
@@ -1476,6 +1485,7 @@ impl TableProApp {
                                 }
                             }
                             self.status = outcome_message(&out);
+                            self.record_query_status(key, &out, started.elapsed());
                             out
                         }
                         Err(error) => {
@@ -1488,6 +1498,7 @@ impl TableProApp {
                                 tab.error = Some(error.message);
                             }
                             self.status = outcome_message(&out);
+                            self.record_query_status(key, &out, started.elapsed());
                             out
                         }
                     }
@@ -1496,9 +1507,26 @@ impl TableProApp {
                         message: "The demo executor only runs SELECT statements".to_owned(),
                     };
                     self.status = outcome_message(&out);
+                    self.record_query_status(key, &out, started.elapsed());
                     out
                 }
             }
+        }
+    }
+
+    fn record_query_status(
+        &mut self,
+        key: TabKey,
+        outcome: &QueryOutcome,
+        elapsed: std::time::Duration,
+    ) {
+        let succeeded = match outcome {
+            QueryOutcome::Executed { .. } => true,
+            QueryOutcome::Rejected { .. } => false,
+            QueryOutcome::ConfirmationRequired { .. } | QueryOutcome::Denied { .. } => return,
+        };
+        if let Some(Tab::Query(tab)) = self.workbench.tab_mut(key) {
+            tab.record_execution_status(succeeded, elapsed);
         }
     }
     fn column_specs(
@@ -1514,12 +1542,20 @@ impl TableProApp {
             );
             col.sortable = true;
             col.editable = editable;
-            col.sticky = index == 0;
+            col.sticky = false;
+            let (min_width, max_width) = match ty {
+                ColType::Uuid => (9, 36),
+                ColType::Text => (6, 40),
+                ColType::Int | ColType::Numeric => (4, 22),
+                ColType::Bool => (5, 5),
+                ColType::Timestamp | ColType::Date => (10, 29),
+                ColType::Json => (8, 40),
+                ColType::Enum => (6, 16),
+            };
+            col.min_width = min_width;
+            col.max_width = max_width;
             if matches!(ty, ColType::Int | ColType::Numeric) {
                 col.align = Align::Right;
-            }
-            if name == "id" {
-                col.min_width = 38;
             }
             if let Some(slot) = specs.get_mut(index) {
                 *slot = col;
@@ -2055,6 +2091,7 @@ impl TableProApp {
                 if let Some(tab_key) = tab_key {
                     let _ = self.workbench.activate(tab_key);
                     self.sync_active_tab();
+                    self.focus_active_tab_primary(cx);
                 }
             }
             Some(PickerAction::Secondary(key)) if was_open => {
@@ -2065,10 +2102,14 @@ impl TableProApp {
                     .find(|row| ItemKey::num(row.key.get()) == key)
                     .map(|row| row.key);
                 if let Some(tab_key) = tab_key {
-                    self.request_close_tab(cx, tab_key);
-                    self.tab_list.rows = tab_list::rows(&self.workbench);
-                    tab_list::picker(self.tab_list.rows.len())
-                        .reconcile(&mut self.tab_list.state, &self.tab_list.rows);
+                    if self.workbench.close_tab_from_picker(tab_key) {
+                        self.sync_active_tab();
+                    }
+                    // The reference closes and reopens the picker after Delete.
+                    // Reopening clears its query and places its cursor on the
+                    // active tab while preserving the picker flow.
+                    cx.close_layer(tab_list::ID, None);
+                    let _ = self.open_tab_list(cx);
                 }
             }
             _ => {}
@@ -2077,6 +2118,25 @@ impl TableProApp {
             self.sync_active_tab();
         }
         response.erase()
+    }
+
+    fn focus_active_tab_primary(&self, cx: &mut Cx<'_>) {
+        match self.workbench.active() {
+            Some(Tab::Query(_)) => {
+                if let Some(id) = self.query_id() {
+                    cx.focus(id);
+                }
+            }
+            Some(Tab::Table(table)) if !table.is_structure() => {
+                if let Some(id) = self.result_id() {
+                    cx.focus(id);
+                }
+            }
+            // Structure and history currently use application-painted bodies,
+            // not a focusable shared widget. Leave focus restoration to the
+            // layer runtime until those views have real shared controls.
+            Some(Tab::Table(_) | Tab::History(_)) | None => {}
+        }
     }
 
     fn update_safe_mode(&mut self, cx: &mut Cx<'_>) -> Response<()> {
@@ -2299,6 +2359,14 @@ impl TableProApp {
     fn update_grid_view(cx: &mut Cx<'_>, id: Id, view: &mut GridView) -> Response<GridAction> {
         let (columns, count) = Self::column_specs(&view.columns, view.model.is_editable());
         let grid = result_grid(id, columns.get(..count).unwrap_or(&[]));
+        if columns
+            .iter()
+            .take(count)
+            .any(|column| view.state.sampled_column_width(column.key).is_none())
+            && let Ok(sample) = termrock::WidthSample::new(200, 95)
+        {
+            grid.sample_column_widths(&mut view.state, &view.model, sample);
+        }
         let response = if view.model.is_editable() {
             grid.update_editable(cx, &mut view.state, &mut view.model)
         } else {
@@ -3201,13 +3269,11 @@ impl TableProApp {
             extend_query_error_edge(ui, area, inner);
         }
         if let Some(Tab::Query(query)) = self.workbench.active()
-            && query.plan.is_some()
+            && let Some(plan) = query.plan.as_ref()
             && query.error.is_none()
             && query.result.is_none()
         {
-            if let Some(plan) = query.plan.as_ref() {
-                extend_query_plan_edge(ui, area, inner, plan);
-            }
+            extend_query_plan_edge(ui, area, inner, plan);
         }
         if let Some(Tab::Query(query)) = self.workbench.active()
             && query.result.is_some()
@@ -3357,9 +3423,6 @@ impl TableProApp {
             }
             Some(Tab::Table(table)) => {
                 if table.is_structure() {
-                    if let Some(key) = self.workbench.active_key() {
-                        ui.register_control(key.control("data"), inner, Focusability::Focusable);
-                    }
                     paint_structure_view(ui, inner, &table.table);
                 } else {
                     self.draw_table_data(ui, inner);
@@ -6271,233 +6334,6 @@ fn paint_scrolled_header(
 
 #[allow(
     clippy::too_many_lines,
-    reason = "scrolled cell color, fade, and alignment stay in one pass"
-)]
-fn paint_scrolled_cells(
-    ui: &mut Ui<'_>,
-    area: termrock::Rect,
-    columns: &[(String, ColType)],
-    state: &termrock::GridState,
-    model: &ResultGrid,
-) {
-    let Some(chrome) = GRID_CHROME.with(|chrome| chrome.borrow().clone()) else {
-        return;
-    };
-    let cursor = state.cursor().and_then(|(key, column)| {
-        let row = (0..model.row_count()).find(|row| GridModel::row_key(model, *row) == key)?;
-        usize::from(column.raw())
-            .checked_sub(1)
-            .map(|col| (row, col))
-    });
-    let visible = usize::from(area.height.saturating_sub(1)).min(model.row_count());
-    let origin = area.x.saturating_add(chrome.gutter);
-    let plain = ui.surface_style().remove_modifier(Modifier::BOLD);
-    for row in 0..visible {
-        let y = area.y.saturating_add(1).saturating_add(row as u16);
-        let fade = match visible.saturating_sub(row) {
-            1 => Some(140),
-            2 => Some(204),
-            _ => None,
-        };
-        let on_cursor = cursor.is_some_and(|(cursor_row, _)| cursor_row == row);
-        let mut row_style = plain;
-        if on_cursor {
-            row_style = row_style.add_modifier(Modifier::BOLD);
-        }
-        if let Some(numerator) = fade {
-            let color = scaled_rgb(0x00ff_ffff, numerator);
-            row_style = row_style.patch(ui.paint_patch(
-                &StylePatch::new().set_fg(Role::Custom(termrock::Color::from_u32(color))),
-            ));
-        }
-        let mut fill_x = origin;
-        let mut fill_w = chrome.content_width.saturating_add(4);
-        // The column band starts on the gutter tail. That cell stays bold
-        // on the cursor row; the row number to its left does not.
-        if on_cursor && origin > area.x {
-            fill_x = origin.saturating_sub(1);
-            fill_w = fill_w.saturating_add(1);
-        }
-        ui.fill(
-            termrock::Rect {
-                x: fill_x,
-                y,
-                width: fill_w,
-                height: 1,
-            },
-            row_style,
-        );
-        for (offset, place) in chrome.places.iter().enumerate() {
-            let col = chrome.hidden_left.saturating_add(offset);
-            let Some(text) = GridModel::cell(model, row, col).map(|cell| cell.text.to_owned())
-            else {
-                continue;
-            };
-            let literal = matches!(text.as_str(), "NULL" | "true" | "false");
-            let active = cursor
-                .is_some_and(|(cursor_row, cursor_col)| cursor_row == row && cursor_col == col);
-            let dirty = model.pending().is_dirty(row, col);
-            let mut style = row_style;
-            if active {
-                style = style.patch(
-                    ui.paint_patch(
-                        &StylePatch::new()
-                            .set_fg(Role::Fg(FgStep::Primary))
-                            .set_bg(LEGACY_CELL_BG)
-                            .add(Modifier::BOLD),
-                    ),
-                );
-            } else if dirty {
-                style = row_style.patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Warning)));
-                let slack =
-                    GRID_EDIT.with(|slot| slot.borrow().is_some_and(|column| column == col));
-                let fill_w = if slack {
-                    place.width.saturating_sub(2)
-                } else {
-                    place.width
-                };
-                ui.fill(
-                    termrock::Rect {
-                        x: origin.saturating_add(place.x),
-                        y,
-                        width: fill_w.min(place.width),
-                        height: 1,
-                    },
-                    style,
-                );
-            } else if literal {
-                let mut color = 0x00c6_a0f6;
-                if let Some(numerator) = fade {
-                    color = scaled_rgb(color, numerator);
-                }
-                style = style.patch(
-                    ui.paint_patch(
-                        &StylePatch::new()
-                            .set_fg(Role::Custom(termrock::Color::from_u32(color)))
-                            .add(Modifier::ITALIC),
-                    ),
-                );
-                if on_cursor {
-                    style = style.add_modifier(Modifier::BOLD);
-                }
-                ui.fill(
-                    termrock::Rect {
-                        x: origin.saturating_add(place.x),
-                        y,
-                        width: place.width,
-                        height: 1,
-                    },
-                    style,
-                );
-            }
-            if !active
-                && !literal
-                && !dirty
-                && let Some(numerator) = fade
-            {
-                let color = scaled_rgb(0x00ff_ffff, numerator);
-                style = style.patch(ui.paint_patch(
-                    &StylePatch::new().set_fg(Role::Custom(termrock::Color::from_u32(color))),
-                ));
-            }
-            let foreign = columns
-                .get(col)
-                .is_some_and(|(name, ty)| *ty == ColType::Uuid && name != "id" && place.width >= 2);
-            let owned;
-            let shown: &str = if foreign {
-                owned = truncate_middle(&text, place.width.saturating_sub(2));
-                &owned
-            } else if width(&text) > place.width {
-                owned = truncate(&text, place.width);
-                &owned
-            } else {
-                &text
-            };
-            let numeric = columns
-                .get(col)
-                .is_some_and(|(_, ty)| matches!(ty, ColType::Int | ColType::Numeric));
-            let text_width = width(shown).min(place.width);
-            let indent = if numeric {
-                place.width.saturating_sub(text_width)
-            } else {
-                0
-            };
-            if active && state.is_editing() && !numeric {
-                paint_inline_editor(ui, origin, *place, y, state.edit_draft().unwrap_or(&text));
-            } else if active && !numeric {
-                let wide = GRID_EDIT.with(|slot| slot.borrow().is_some_and(|column| column == col));
-                // Wide columns keep two cells of field slack outside the selection.
-                // A short value otherwise selects the whole column. Filter marks keep their pad.
-                let mut pad = if wide {
-                    text_width.saturating_add(2)
-                } else {
-                    place.width
-                };
-                if let Some((name, _)) = columns.get(col)
-                    && column_is_filtered(name)
-                {
-                    // Follow the header mark, including " ▴" / " ▾" when this column is sorted.
-                    let mut marked = width(name).saturating_add(2);
-                    if column_is_sorted(col) {
-                        marked = marked.saturating_add(2);
-                    }
-                    pad = text_width.saturating_add(2).max(marked.saturating_add(1));
-                }
-                let pad = pad.min(place.width);
-                ui.fill(
-                    termrock::Rect {
-                        x: origin.saturating_add(place.x),
-                        y,
-                        width: pad,
-                        height: 1,
-                    },
-                    style,
-                );
-            }
-            if !(active && state.is_editing() && !numeric) {
-                ui.paint_str(
-                    termrock::Rect {
-                        x: origin.saturating_add(place.x).saturating_add(indent),
-                        y,
-                        width: text_width,
-                        height: 1,
-                    },
-                    shown,
-                    style,
-                );
-            }
-            if foreign {
-                let slot = origin
-                    .saturating_add(place.x)
-                    .saturating_add(place.width)
-                    .saturating_sub(2);
-                ui.paint_str(
-                    termrock::Rect {
-                        x: slot,
-                        y,
-                        width: 1,
-                        height: 1,
-                    },
-                    " ",
-                    style,
-                );
-                ui.paint_str(
-                    termrock::Rect {
-                        x: slot.saturating_add(1),
-                        y,
-                        width: 1,
-                        height: 1,
-                    },
-                    "→",
-                    style.patch(ui.paint_patch(&StylePatch::new().set_fg(arrow_role(fade)))),
-                );
-            }
-        }
-    }
-}
-
-#[allow(
-    clippy::too_many_lines,
     reason = "header gutter, primary key, and muted titles share one pass"
 )]
 fn paint_grid_header(
@@ -6784,124 +6620,6 @@ fn paint_row_numbers(
     }
 }
 
-fn paint_indexed_edge_dim(
-    ui: &mut Ui<'_>,
-    area: termrock::Rect,
-    chrome: &GridChrome,
-    visible: usize,
-    origin: usize,
-) {
-    let mut rows = vec![visible.saturating_sub(1)];
-    if origin > 0 {
-        rows.push(0);
-    }
-    let dim = PaintStyle::new().add_modifier(Modifier::DIM);
-    let content_x = area.x.saturating_add(chrome.gutter);
-    for row in rows {
-        let y = area.y.saturating_add(1).saturating_add(row as u16);
-        ui.paint_style(
-            termrock::Rect {
-                x: area.x,
-                y,
-                width: content_x
-                    .saturating_add(chrome.content_width)
-                    .saturating_add(4)
-                    .saturating_sub(area.x),
-                height: 1,
-            },
-            dim,
-        );
-    }
-}
-
-fn paint_bottom_fade(ui: &mut Ui<'_>, area: termrock::Rect, model: &ResultGrid, origin: usize) {
-    let Some(chrome) = GRID_CHROME.with(|chrome| chrome.borrow().clone()) else {
-        return;
-    };
-    let visible = usize::from(area.height.saturating_sub(1)).min(model.row_count());
-    if visible < 2 {
-        return;
-    }
-    if ui.theme().capability.color != termrock::ColorLevel::TrueColor {
-        paint_indexed_edge_dim(ui, area, &chrome, visible, origin);
-        return;
-    }
-    let steps = [
-        (
-            Role::Custom(termrock::Color::from_u32(0x00cc_cccc)),
-            Role::Custom(termrock::Color::from_u32(0x008f_8f8f)),
-            Role::Custom(termrock::Color::from_u32(0x006e_6e6e)),
-        ),
-        (
-            Role::Custom(termrock::Color::from_u32(0x008c_8c8c)),
-            Role::Custom(termrock::Color::from_u32(0x0062_6262)),
-            Role::Custom(termrock::Color::from_u32(0x004c_4c4c)),
-        ),
-    ];
-    let mut edges = vec![
-        (visible.saturating_sub(2), steps[0]),
-        (visible.saturating_sub(1), steps[1]),
-    ];
-    if origin > 0 {
-        edges.splice(0..0, [(0, steps[1]), (1, steps[0])]);
-    }
-    for (row, (white, secondary, arrow)) in edges {
-        let y = area.y.saturating_add(1).saturating_add(row as u16);
-        let content_x = area.x.saturating_add(chrome.gutter);
-        let restyle = |ui: &mut Ui<'_>, x, width, role| {
-            if width == 0 {
-                return;
-            }
-            let style = ui
-                .surface_style()
-                .patch(ui.paint_patch(&StylePatch::new().set_fg(role)));
-            ui.paint_style(
-                termrock::Rect {
-                    x,
-                    y,
-                    width,
-                    height: 1,
-                },
-                style,
-            );
-        };
-        if chrome.hidden_left == 0 {
-            restyle(ui, content_x, chrome.content_width.saturating_add(4), white);
-        }
-        restyle(ui, area.x.saturating_add(1), 2, white);
-        if chrome.gutter > 0 {
-            restyle(
-                ui,
-                area.x.saturating_add(chrome.gutter).saturating_sub(1),
-                1,
-                white,
-            );
-        }
-        if chrome.hidden_left == 0 {
-            for place in &chrome.places {
-                if place.primary {
-                    restyle(
-                        ui,
-                        content_x.saturating_add(place.x),
-                        place.width.saturating_sub(2),
-                        secondary,
-                    );
-                }
-            }
-        }
-        if chrome.hidden_left == 0
-            && let Some(place) = chrome.places.last()
-            && chrome.places.len() < chrome.columns
-        {
-            let arrow_x = content_x
-                .saturating_add(place.x)
-                .saturating_add(place.width)
-                .saturating_sub(1);
-            restyle(ui, arrow_x, 1, arrow);
-        }
-    }
-}
-
 fn pending_detail(model: &ResultGrid) -> String {
     let pending = model.pending();
     let mut updates = 0usize;
@@ -7168,6 +6886,7 @@ fn repaint_presented_rows(
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 fn draw_painted_grid(
     ui: &mut Ui<'_>,
     area: termrock::Rect,
@@ -7181,11 +6900,8 @@ fn draw_painted_grid(
 ) {
     GRID_SEEN_ROW.with(|slot| *slot.borrow_mut() = None);
     install_grid_budgets(area.width, columns, model);
-    let scrolled = install_scrolled_budgets(area.width, columns, model, state);
-    // The editor's own cell must be 11 wide so its bar sits on the field tail.
-    let mut editor_columns = Vec::new();
-    let draw_specs = editor_column_specs(specs, columns, state, model, &mut editor_columns);
-    let grid = result_grid(id, draw_specs);
+    install_scrolled_budgets(area.width, columns, model, state);
+    let grid = result_grid(id, specs);
     grid.draw(ui, area, state, &PaintedGrid { inner: model });
     paint_grid_focus_bar(ui, area, state, model);
     let visible = usize::from(area.height.saturating_sub(1)).min(model.row_count());
@@ -7199,7 +6915,6 @@ fn draw_painted_grid(
     });
     GRID_SCROLL.with(|slot| *slot.borrow_mut() = Some((area, model.row_count(), origin)));
     paint_row_numbers(ui, area, model, cursor, origin);
-    paint_bottom_fade(ui, area, model, origin);
     paint_grid_header(
         ui,
         area,
@@ -7210,192 +6925,8 @@ fn draw_painted_grid(
         covered,
         calm_header,
     );
-    if scrolled {
-        paint_scrolled_cells(ui, area, columns, state, model);
-    } else if let Some(cursor) = cursor {
-        paint_unscrolled_cursor_row(ui, area, columns, state, model, origin, cursor);
-    }
 }
 
-fn paint_unscrolled_cursor_row(
-    ui: &mut Ui<'_>,
-    area: termrock::Rect,
-    columns: &[(String, ColType)],
-    state: &termrock::GridState,
-    model: &ResultGrid,
-    origin: usize,
-    cursor: usize,
-) {
-    let Some(chrome) = GRID_CHROME.with(|chrome| chrome.borrow().clone()) else {
-        return;
-    };
-    let Some(local) = cursor.checked_sub(origin) else {
-        return;
-    };
-    if local >= usize::from(area.height.saturating_sub(1)) {
-        return;
-    }
-    let y = area.y.saturating_add(1).saturating_add(local as u16);
-    if y >= area.bottom() || chrome.gutter == 0 {
-        return;
-    }
-    // The row number stays plain. The cell after it, the gaps, and the
-    // preview arrow are bold on the cursor row in the baseline frame.
-    let x = area.x.saturating_add(chrome.gutter).saturating_sub(1);
-    let span = area.right().saturating_sub(x);
-    ui.paint_style(
-        termrock::Rect {
-            x,
-            y,
-            width: span,
-            height: 1,
-        },
-        PaintStyle::new().add_modifier(Modifier::BOLD),
-    );
-    let Some((_, column)) = state.cursor() else {
-        return;
-    };
-    let Some(col) = usize::from(column.raw()).checked_sub(1) else {
-        return;
-    };
-    let Some(offset) = col.checked_sub(chrome.hidden_left) else {
-        return;
-    };
-    let Some(place) = chrome.places.get(offset) else {
-        return;
-    };
-    let text = GridModel::cell(model, cursor, col).map_or("", |cell| cell.text);
-    let shown = width(text).min(place.width);
-    let pad = place.width.saturating_sub(shown);
-    if pad == 0 {
-        return;
-    }
-    // The active-cell fill paints the whole column, including the slack past
-    // the value. The baseline keeps that slack on the row color.
-    let numeric = columns
-        .get(col)
-        .is_some_and(|(_, ty)| matches!(ty, ColType::Int | ColType::Numeric));
-    let pad_x = if numeric {
-        area.x.saturating_add(chrome.gutter).saturating_add(place.x)
-    } else {
-        area.x
-            .saturating_add(chrome.gutter)
-            .saturating_add(place.x)
-            .saturating_add(shown)
-    };
-    let surface = ui.surface_style().add_modifier(Modifier::BOLD);
-    ui.paint_str(
-        termrock::Rect {
-            x: pad_x,
-            y,
-            width: pad,
-            height: 1,
-        },
-        &" ".repeat(usize::from(pad)),
-        surface,
-    );
-}
-
-fn editor_column_specs<'a>(
-    specs: &'a [termrock::Column<'a>],
-    columns: &[(String, ColType)],
-    state: &termrock::GridState,
-    model: &ResultGrid,
-    owned: &'a mut Vec<termrock::Column<'a>>,
-) -> &'a [termrock::Column<'a>] {
-    let Some(index) = state
-        .edit_cell()
-        .and_then(|(_, column)| usize::from(column.raw()).checked_sub(1))
-    else {
-        return specs;
-    };
-    let Some((name, ty)) = columns.get(index) else {
-        return specs;
-    };
-    if matches!(ty, ColType::Int | ColType::Numeric) {
-        return specs;
-    }
-    let place = column_natural_width(name, *ty, model, index).saturating_add(2);
-    let draft = state.edit_draft().unwrap_or("");
-    // The grid parks the hardware cursor on the cell's right edge.
-    let slot_width = width(&editing_window(draft, place.saturating_sub(3))).max(1);
-    owned.extend_from_slice(specs);
-    if let Some(column) = owned.get_mut(index) {
-        column.min_width = slot_width;
-        column.max_width = slot_width;
-    }
-    owned.as_slice()
-}
-
-fn editing_window(text: &str, inner: u16) -> String {
-    let cursor = width(text);
-    let hs = if inner == 0 || cursor < inner {
-        0
-    } else {
-        cursor.saturating_add(1).saturating_sub(inner)
-    };
-    let mut shown = String::new();
-    let skip = if hs > 0 {
-        shown.push('…');
-        hs.saturating_add(1)
-    } else {
-        0
-    };
-    let mut col = 0u16;
-    let mut buf = [0u8; 4];
-    for ch in text.chars() {
-        let piece = ch.encode_utf8(&mut buf);
-        let gw = width(piece);
-        if col >= skip && width(&shown).saturating_add(gw) <= inner {
-            shown.push(ch);
-        }
-        col = col.saturating_add(gw);
-    }
-    shown
-}
-
-fn paint_inline_editor(ui: &mut Ui<'_>, origin: u16, place: ColPlace, y: u16, text: &str) {
-    let field_width = place.width.saturating_sub(2);
-    let inner = place.width.saturating_sub(3);
-    let shown = editing_window(text, inner);
-    let field = ui.surface_style().patch(
-        ui.paint_patch(
-            &StylePatch::new()
-                .set_fg(Role::Fg(FgStep::Primary))
-                .set_bg(TAG_FIELD_BG)
-                .add(Modifier::BOLD),
-        ),
-    );
-    let underlined = field.patch(
-        ui.paint_patch(
-            &StylePatch::new()
-                .set_underline(TAG_BUTTON_BG)
-                .add(Modifier::UNDERLINED)
-                .add(Modifier::BOLD),
-        ),
-    );
-    let x = origin.saturating_add(place.x);
-    ui.fill(
-        termrock::Rect {
-            x,
-            y,
-            width: field_width,
-            height: 1,
-        },
-        field,
-    );
-    let text_width = width(&shown).min(field_width);
-    ui.paint_str(
-        termrock::Rect {
-            x,
-            y,
-            width: text_width,
-            height: 1,
-        },
-        &shown,
-        underlined,
-    );
-}
 fn result_grid<'a>(id: Id, columns: &'a [termrock::Column<'a>]) -> Grid<'a> {
     let grid = Grid::new(id, columns)
         .blur(termrock::BlurPolicy::Keep)
@@ -7406,6 +6937,10 @@ fn result_grid<'a>(id: Id, columns: &'a [termrock::Column<'a>]) -> Grid<'a> {
             min_digits: 1,
         })
         .column_fit(GridColumnFit::CompleteWithPreview { min_width: 4 })
+        .header_sizing(termrock::GridHeaderSizing::Minimum {
+            padding: 2,
+            cap: 24,
+        })
         .column_gap(2)
         .right_reserve(3)
         .sort_indicator(GridSortIndicator::ActiveOnly)
@@ -9366,6 +8901,7 @@ fn paint_connection_filter_row(ui: &mut Ui<'_>, area: termrock::Rect, query: &st
     ui.set_bar_cursor(CONNECTION_FILTER, Position::new(cursor_x, area.y));
 }
 
+#[allow(clippy::too_many_arguments)]
 fn paint_advanced_connection_body(
     ui: &mut Ui<'_>,
     x: u16,
@@ -10063,6 +9599,7 @@ fn paint_live_connection_card(
     );
 }
 
+#[allow(clippy::too_many_arguments)]
 fn paint_form_radio(
     ui: &mut Ui<'_>,
     origin_x: u16,
@@ -10093,6 +9630,7 @@ fn paint_form_radio(
     paint_at(ui, x.saturating_add(4), y, &shown, text);
 }
 
+#[allow(clippy::too_many_arguments)]
 fn idle_choice_field(
     ui: &mut Ui<'_>,
     origin_x: u16,
@@ -10662,7 +10200,7 @@ fn paint_picker_layer_footer(ui: &mut Ui<'_>, area: termrock::Rect) {
 fn draw_footer(ui: &mut Ui<'_>, area: termrock::Rect, app: &TableProApp) {
     let base = ui.surface_style();
     let explorer_focused = ui.state(EXPLORER).contains(StateFlags::FOCUSED);
-    let empty_query = app.blank_sql();
+    let empty_query = app.blank_sql() && query_editor_focused(ui, app);
     ui.fill(area, base);
     if matches!(app.surface, Surface::QuickSwitcher | Surface::TabListPicker) {
         paint_picker_layer_footer(ui, area);
@@ -10782,6 +10320,11 @@ fn draw_footer(ui: &mut Ui<'_>, area: termrock::Rect, app: &TableProApp) {
             base,
         );
     }
+}
+
+fn query_editor_focused(ui: &Ui<'_>, app: &TableProApp) -> bool {
+    app.query_id()
+        .is_some_and(|id| ui.state(id).contains(StateFlags::FOCUSED))
 }
 
 fn draw_too_small(ui: &mut Ui<'_>, area: termrock::Rect) {
@@ -11183,6 +10726,7 @@ impl App for TableProApp {
                         && query.running
                     {
                         query.running = false;
+                        query.record_status("cancelled", false, 0);
                         "Query cancelled".clone_into(&mut self.status);
                         return Response::changed();
                     }
@@ -11346,6 +10890,18 @@ impl App for TableProApp {
                     && self.destructive_intent.is_none() =>
                 {
                     self.split_state.toggle_max(Maximized::Second);
+                    response |= Response::changed();
+                }
+                c if c == FOCUS_EXPLORER
+                    && self.screen == Screen::Workbench
+                    && !self.form_open
+                    && self.destructive_intent.is_none() =>
+                {
+                    if self.split_state.maximized() == Maximized::Second {
+                        self.split_state.toggle_max(Maximized::Second);
+                    }
+                    self.workbench.maximized = false;
+                    cx.focus(EXPLORER);
                     response |= Response::changed();
                 }
                 _ => {}
@@ -11750,6 +11306,7 @@ mod query_result_keys {
     }
 
     #[test]
+    #[allow(clippy::expect_used)]
     fn visual_key_order_run_stores_twenty_five_rows() {
         let mut app = TableProApp::default();
         let index = app
@@ -11899,6 +11456,7 @@ mod maximized_workbench {
     use termrock_test_support::Harness;
 
     #[test]
+    #[allow(clippy::expect_used)]
     fn z_shows_the_approved_maximized_idle_cell() {
         let mut app = TableProApp::default();
         let index = app

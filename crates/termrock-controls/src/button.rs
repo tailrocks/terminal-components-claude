@@ -403,8 +403,10 @@ impl<'a> Button<'a> {
             f(ui, text);
         } else {
             let ls = style(ui, Part::LABEL);
+            let label = crate::text::truncate(self.label, text.width);
+            ui.fill(text, ls.style);
             if matches!(ls.glyph, Slot::Set(GlyphRole::PressLeft)) {
-                ui.paint_str(text, self.label, ls.style);
+                ui.paint_str(text, &label, ls.style);
                 if area.width >= 2 {
                     paint_pressed_bracket(
                         ui,
@@ -414,7 +416,7 @@ impl<'a> Button<'a> {
                     );
                 }
             } else {
-                ui.paint_str(text, self.label, ls.style);
+                ui.paint_str(text, &label, ls.style);
             }
         }
         area
