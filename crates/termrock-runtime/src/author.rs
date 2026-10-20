@@ -132,9 +132,9 @@ pub use crate::capture::Capture;
 pub use crate::focus::{FocusVis, Focusability, ScopeId, ScopeMode};
 pub use crate::hit::{Axes, Headroom, Hit, RegionKind};
 pub use crate::layer::{
-    Anchor, Backdrop, CrossAlign, Dismiss, DismissReason, LayerCompletion, LayerEvent, LayerId,
-    LayerKind, LayerOpening, LayerSize, LayerSpec, ScreenAlign, Side, backdrop_area,
-    resolve_anchor,
+    Anchor, Backdrop, CrossAlign, Dismiss, DismissReason, FocusContinuationOutcome,
+    LayerCompletion, LayerEvent, LayerId, LayerKind, LayerOpening, LayerSize, LayerSpec,
+    ScreenAlign, Side, backdrop_area, resolve_anchor,
 };
 pub use crate::scroll::ScrollState;
 
