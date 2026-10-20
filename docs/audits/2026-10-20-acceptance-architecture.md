@@ -8,14 +8,14 @@ Its report always sets `acceptance_complete` to `false`. A clean bounded archite
 
 ## Evidence
 
-The same checker and policy bytes were used against both source revisions. Reports are retained outside the repository at `/Users/donbeave/Projects/termrock-cli-evidence-20261020/architecture-check-p1-review-pr.json` and `architecture-check-p1-review-design.json`.
+The same checker and policy bytes were used against both source revisions. Reports are retained outside the repository at `/Users/donbeave/Projects/termrock-cli-evidence-20261020/architecture-check-symlink-pr.json` and `architecture-check-symlink-design.json`.
 
 | Source | Architecture check | Evidence |
 | --- | --- | --- |
-| PR branch source `89afe32839a386e1a56c73ef93bd7fc6efb92578` | **Red**: 89 captured-frame/replay findings; 0 dependency violations; 0 source read errors or unaccounted inputs | 397 hashed inputs; 19 expected library roles and 4 binary targets found; every application binary reaches a shared library package. Source manifest SHA-256 `add4c3e0d2c0bf77a7f7c878c22edea2b55ce2a53b27d4948aac7760b29b5b3f`. |
+| PR branch source `89c7aed3c9b38ffd6ed8147993bb2e5bddb5700e` | **Red**: 89 captured-frame/replay findings; 0 dependency violations; 0 source read errors or unaccounted inputs | 397 hashed inputs; 19 expected library roles and 4 binary targets found; every application binary reaches a shared library package. Source manifest SHA-256 `add4c3e0d2c0bf77a7f7c878c22edea2b55ce2a53b27d4948aac7760b29b5b3f`. |
 | Frozen design source `63549695e3009e75c0e955baaa4d31135e74069f` | **Red**: 19 production library roles missing; all four application binaries lack a reusable termrock dependency closure; 2 frame-marker findings | 394 hashed inputs; one dynamic include is explicitly unaccounted; all four application closures are missing. Source manifest SHA-256 `ca4fceaac5a8d71a084870a1d44cea89bed4497885972f7e2a8428c05ba503e5`. |
 
-The policy SHA-256 was `4b7641d76546448660cba8bb2252d488a1c23c5f8818f379ca7f43d23bc47982`; checker SHA-256 was `f420be2f252a6fa9f721b360f87064ad6d5822d5fcb167723ecf0be7fd1d2b7f`. Both reports have `acceptance_complete: false`. The PR's 88 findings break down to 10 frame markers, 43 coordinate-run stamp types, and 35 ANSI frame replays. The design source also has one dynamic include input that the checker cannot enumerate.
+The policy SHA-256 was `4b7641d76546448660cba8bb2252d488a1c23c5f8818f379ca7f43d23bc47982`; checker SHA-256 was `643c53841f7a157f370f7b67aaacbb7b85760611b568d735b1adbd0044207320`. Both reports have `acceptance_complete: false`. The PR's 89 findings break down to 10 frame markers, 44 coordinate-run stamp types, and 35 ANSI frame replays. The design source also has one dynamic include input that the checker cannot enumerate.
 
 Commands:
 
