@@ -38,9 +38,11 @@ EXTENSION_MANIFEST_SHA256 = "b995c00f0dc14d4e0a81d1d56140e1c10ba7936a043e0135196
 EXTENSION_SOURCE_SHA256 = "332bd4eac4dc65be1a1478f97177cc658113a063900d8b9c6a0ba2ddc6dc67d9"
 EXTENSION_PATCH_SHA256 = "646d96b5b08c182f9ecdef8e8e8ddf1f6e31095d4b2a073a7eda17d611d69951"
 REFERENCE_DECISIONS = Path("tools/frozen_cli_references.json")
-REFERENCE_DECISIONS_SHA256 = "2a43fb118c268300c8bbd6439ea11bb9a24ffff03dc3c9f4601893eee26a096b"
+REFERENCE_DECISIONS_SHA256 = "d5d8d6489a8968d6e84941de3fd4b778ed09c879376ee2d575c6d1591c59abe3"
 REFERENCE_CASE = "showcase::resize::overview_grown::120x40::truecolor"
 REFERENCE_TUPLE = ("showcase/resize/overview_grown/120x40/truecolor", 0, "showcase/resize/overview_grown/120x40/truecolor")
+BUTTONS_REFERENCE_CASE = "showcase::audit::buttons::120x40::truecolor"
+REFERENCE_CASES = frozenset({REFERENCE_CASE, BUTTONS_REFERENCE_CASE})
 EXTENSION_SIZES = ((72, 20), (80, 24), (100, 30), (120, 40), (160, 50), (40, 12), (60, 18))
 EXTENSION_COLORS = ("truecolor", "256", "16", "none", "nocolor")
 EXPECTED_CLI_ORDINARY_TESTS = frozenset({
@@ -525,7 +527,7 @@ def nextest_inventory(source: Path, timeout: int, env: dict[str, str], extension
     return inventory
 
 
-def validate_reference_decision_document(document: object) -> dict[str, object]:
+def validate_overview_reference_document(document: object) -> dict[str, object]:
     if not isinstance(document, dict) or set(document) != {"schema_version", "decision_scope", "decisions"}:
         raise RunnerError("reference decision document fields differ from schema version 1")
     if document["schema_version"] != 1 or document["decision_scope"] != "one_exact_stale_approval_live_pair_reference":
@@ -605,6 +607,100 @@ def validate_reference_decision_document(document: object) -> dict[str, object]:
     return decision
 
 
+def validate_buttons_reference_decision(decision: object) -> dict[str, object]:
+    required = {"decision_id", "tuple", "baseline", "control", "environment", "legacy_approval", "live_frame", "independent_captures", "independent_probe"}
+    if not isinstance(decision, dict) or set(decision) != required:
+        raise RunnerError("Buttons reference decision fields differ from the reviewed schema")
+    expected_tuple = {
+        "test_id": BUTTONS_REFERENCE_CASE,
+        "case_id": "showcase/audit/buttons/120x40/truecolor",
+        "ordinal": 0,
+        "logical_name": "showcase/audit/buttons/120x40/truecolor",
+        "application": "showcase",
+        "cols": 120,
+        "rows": 40,
+        "color_mode": "truecolor",
+    }
+    if decision["decision_id"] != "visual-baseline-showcase-buttons-120x40-2026-10-20" or decision["tuple"] != expected_tuple:
+        raise RunnerError("Buttons reference tuple or identity changed")
+    expected_baseline = {
+        "tag": BASELINE_TAG,
+        "tag_object": BASELINE_TAG_OBJECT,
+        "commit": BASELINE_COMMIT,
+        "source_tree": BASELINE_TREE,
+        "source_sha256": "f74646a92505bd9baff29c89398af4d31a4812dd7d51acc84d755be61a383850",
+        "visual_test_tree_sha256": "bdd772e6d049efd700912bc5d7b4464d11bb80e69a5d18b0f175b9421546af05",
+        "inventory_sha256": "d260d2f0644d63a3a1b4c1611c0d7c61777e59e61249e3ca513d1d6217b0639c",
+        "tuiscotti_rev": TUISCOTTI_REV,
+        "showcase_binary_sha256": "21e8b1c1af30b47b331aed033525c4682726b99de5fe1238d4507e58f84359d1",
+        "binary_sha256": {"showcase": "21e8b1c1af30b47b331aed033525c4682726b99de5fe1238d4507e58f84359d1", "tablepro": "f23caa1d97cecc501e8588079e4f38529f834cbd8bb8b57750a427c5a5f993dc", "jackin-preview": "8fccb21faa2459d4b22e5e527f7c1cc29eff64cd1df025957aaed92da35c2a2e", "holla": "6dd87a4e21dff2c69bc2b102234d0f37a5ddcd5c3f2ecd42114a825b2037e01c"},
+    }
+    if decision["baseline"] != expected_baseline:
+        raise RunnerError("Buttons reference frozen source/test/binary pins changed")
+    expected_control = {
+        "argv": ["--page", "buttons", "--color", "truecolor"],
+        "size": [120, 40],
+        "readiness_text": "Junie Design system",
+        "quiet_settle_ms": 400,
+        "quiet_deadline_seconds": 8,
+        "inputs": [],
+        "clock_controls": "none; no motion pause, explicit frame, or ClockStep input",
+        "checkpoint_order": [expected_tuple["logical_name"]],
+    }
+    if decision["control"] != expected_control:
+        raise RunnerError("Buttons reference interaction controls changed")
+    expected_environment = {
+        "runner": {"VISUAL_FULL": "1", "VISUAL_REVIEW": "0"},
+        "values": {"VISUAL_FULL": "1", "VISUAL_REVIEW": "0"},
+        "child_policy": "frozen support::PINNED_ENV plus per-scenario HOME and cwd",
+        "child_values": {"SHELL": "/bin/sh", "JUNIE_TUI_CLIENT_PLATFORM": "macos", "TERM": "xterm-256color", "COLORTERM": "truecolor", "LANG": "C.UTF-8", "LC_ALL": "C.UTF-8", "TZ": "UTC", "PATH": "/usr/bin:/bin:/usr/sbin:/sbin", "HOLLA_NO_HISTORY": "1"},
+        "color_mode": "truecolor",
+        "terminal_profile": "tuiscotti-default",
+        "home_cwd_policy": "scenario_home(case_id), below the isolated live-source target/tuiscotti/home directory",
+    }
+    if decision["environment"] != expected_environment:
+        raise RunnerError("Buttons reference environment contract changed")
+    if decision["legacy_approval"] != {"path": "showcase/audit/buttons/120x40/truecolor.ansi", "sha256": "3a809ef2e455d376556adfcd73c243db0bca6cdfed0e524ed65b6f11efc916c8", "bytes": 16139, "verdict": "known_stale_cells_differ", "paired_exception": "baseline-capture exact checkpoint only; never edits or replaces the frozen approval"}:
+        raise RunnerError("Buttons reference legacy approval record changed")
+    expected_live = {"ansi_sha256": "545c129be118753a89a1683c838cfa227d0090cb8ea18d975557021afa9a94e0", "ansi_bytes": 19270, "semantic_frame_sha256": "19fdbdd4aa349bc2c7fc13ebf5c3a245093a02cf2cbc1183be7854a83a7b0107", "cols": 120, "rows": 40, "cell_count": 4800, "cursor": {"x": 0, "y": 0, "visible": False, "style": "Bar", "blinking": False}}
+    if decision["live_frame"] != expected_live:
+        raise RunnerError("Buttons reference live frame hashes or cursor changed")
+    expected_captures = [
+        {"run_id": "1792502640440881000-933c43607380", "command_sha256": "2a0bfe477ff48a871cf88c437dd94e0890af39c483406becf7760421b41b6b7a", "stdout_sha256": "b0b1307efd5448cb545df8f4f9d5f5f68f88dfe5e13af5de8f19411a4a7ae34b", "stderr_sha256": "c2152c8d74c0b790be79599425f3cb3a5332021f16aa7d67e942a50e943a6607", "report_sha256": "06a7c36c1684fed1b7086f12a9de4c25dcbeb277810c6b460a13de867bce74d0", "ansi_sha256": expected_live["ansi_sha256"], "semantic_frame_sha256": expected_live["semantic_frame_sha256"]},
+        {"run_id": "1792502669657768000-6db31d0ee0cb", "command_sha256": "2a0bfe477ff48a871cf88c437dd94e0890af39c483406becf7760421b41b6b7a", "stdout_sha256": "617aff4914b969bd45bcf85361d6a5f5b9c1d9cb1dc57255b0f575c9490f03be", "stderr_sha256": "955f73a94616812c18b2d30fdf5e0616136f158a76072770090be3381f4235a1", "report_sha256": "955fd8223412cf859b208de652a8a63cd98648c7a690f320effa0bdb41e66bdf", "ansi_sha256": expected_live["ansi_sha256"], "semantic_frame_sha256": expected_live["semantic_frame_sha256"]},
+    ]
+    if decision["independent_captures"] != expected_captures:
+        raise RunnerError("Buttons reference independent capture evidence changed")
+    expected_probe = {
+        "source_sha256": "92f7ad4bd050872e64cb7c7329af1a312086755212918041bc3753267da325f1",
+        "exit_code": 0,
+        "compile_command": "/opt/homebrew/opt/rust/bin/rustc --edition=2024 probe.rs -L dependency=../live-target/debug/deps --extern tuiscotti=../live-target/debug/deps/libtuiscotti-8c67b7fb0e369def.rlib -o probe",
+        "font_profile": "tuiscotti-default",
+        "fonts": {"JetBrainsMonoNerdFontMono-Bold.ttf": "bfcf9a917276ffc058867d87cbc8a5b2f1ab0f4b710e9170dc02763ccb80bd4b", "JetBrainsMonoNerdFontMono-BoldItalic.ttf": "9dba502e00e35209f6ed2a151c7376c051657b067cdebbc6e52d06cb9002cf31", "JetBrainsMonoNerdFontMono-Italic.ttf": "31efd6ead98746f5b0afa1ee6dba60267ad48db36428360bee327bec10621f97", "JetBrainsMonoNerdFontMono-Regular.ttf": "f2a5ea6cfab397445ffab00c0370927b66d61e560a05db5db271b42006381c1a", "NotoSansCJKjp-subset.otf": "777bee41f0c6076c00ad919384359a6e396b8822cf9056041fca8fcf2759d897", "NotoSansSymbols-subset.ttf": "6f9cc93e71f8676361c5db286368be046e75d42c0b841afbf3f50da6bb0a2b8a", "NotoSansSymbols2-subset.ttf": "e1d177a40af910100eceb0e825331e55f0cfd005bc0f26087fd4e58fbe60e6c5"},
+        "output": {"ansi_sha256": expected_live["ansi_sha256"], "semantic_frame_json_sha256": expected_live["semantic_frame_sha256"], "text_sha256": "2622b728607ed3d1c63161ce40089333f02234f1a77b33e0ea12e71b1501cfca", "approved_decoded_frame_json_sha256": "2c1e281be06e58654a79767802a96d4356c71dd0de5b5bb51e4914a694fa9917", "approved_decoded_text_sha256": "f0da2ffd75f1549af171927c6325e59395ae87aab7834ae59adb5978f4d0d12f"},
+        "frame_comparison": {"complete_cells": 4800, "changed_cells": 2723, "approved_cursor": {"x": 0, "y": 0, "visible": False, "style": "Block", "blinking": False}, "live_cursor": expected_live["cursor"]},
+    }
+    if decision["independent_probe"] != expected_probe:
+        raise RunnerError("Buttons reference independent probe evidence changed")
+    return decision
+
+
+def validate_reference_decision_document(document: object) -> list[dict[str, object]]:
+    if not isinstance(document, dict) or set(document) != {"schema_version", "decision_scope", "decisions"}:
+        raise RunnerError("reference decision document fields differ from schema version 1")
+    if document["schema_version"] != 1 or document["decision_scope"] != "two_exact_stale_approval_live_pair_references":
+        raise RunnerError("unsupported reference decision scope")
+    decisions = document["decisions"]
+    if not isinstance(decisions, list) or len(decisions) != 2:
+        raise RunnerError("reference decisions must contain exactly the two reviewed checkpoints")
+    if not isinstance(decisions[0], dict) or decisions[0].get("decision_id") != "visual-baseline-overview-grown-120x40-2026-10-20" or not isinstance(decisions[1], dict) or decisions[1].get("decision_id") != "visual-baseline-showcase-buttons-120x40-2026-10-20":
+        raise RunnerError("reference decision inventory or order changed")
+    overview_document = {"schema_version": 1, "decision_scope": "one_exact_stale_approval_live_pair_reference", "decisions": [decisions[0]]}
+    overview = validate_overview_reference_document(overview_document)
+    buttons = validate_buttons_reference_decision(decisions[1])
+    return [overview, buttons]
+
+
 def load_reference_decisions(repo: Path, root: Path, source: Path) -> tuple[list[dict[str, object]], str]:
     path = repo / REFERENCE_DECISIONS
     if not path.is_file() or path.is_symlink() or sha256(path) != REFERENCE_DECISIONS_SHA256:
@@ -613,17 +709,18 @@ def load_reference_decisions(repo: Path, root: Path, source: Path) -> tuple[list
         document = json.loads(path.read_text())
     except (OSError, ValueError) as error:
         raise RunnerError("could not parse reference decision file") from error
-    decision = validate_reference_decision_document(document)
-    baseline_source = decision["baseline"]
+    decisions = validate_reference_decision_document(document)
+    baseline_source = decisions[0]["baseline"]
     build = json.loads((root / "build.json").read_text())
     if digest_source(source) != baseline_source["source_sha256"] or digest_tree(source / "tests" / "visual_baseline") != baseline_source["visual_test_tree_sha256"]:
         raise RunnerError("reference decision source or test suite pin does not match extracted frozen source")
     if build.get("source_sha256") != baseline_source["source_sha256"] or build.get("binaries") != baseline_source["binary_sha256"]:
         raise RunnerError("reference decision baseline binaries are not the reviewed frozen application build")
-    approval = source / "snapshots" / Path(str(decision["legacy_approval"]["path"]))
-    if not approval.is_file() or sha256(approval) != decision["legacy_approval"]["sha256"] or approval.stat().st_size != decision["legacy_approval"]["bytes"]:
-        raise RunnerError("reference decision legacy approval file changed")
-    return [decision], REFERENCE_DECISIONS_SHA256
+    for decision in decisions:
+        approval = source / "snapshots" / Path(str(decision["legacy_approval"]["path"]))
+        if not approval.is_file() or sha256(approval) != decision["legacy_approval"]["sha256"] or approval.stat().st_size != decision["legacy_approval"]["bytes"]:
+            raise RunnerError("reference decision legacy approval file changed")
+    return decisions, REFERENCE_DECISIONS_SHA256
 
 
 def load_extension_manifest(path: Path) -> dict[str, object]:
@@ -1214,13 +1311,12 @@ def cli_coverage_report_fields(registered_cli_complete: bool) -> dict[str, objec
 def scenario_chunks(names: list[str], size: int) -> list[list[str]]:
     if not 1 <= size <= 512:
         raise RunnerError("chunk size must be 1..512 cases")
-    reference_names = [name for name in names if name == REFERENCE_CASE]
-    if len(reference_names) > 1:
+    reference_names = [name for name in names if name in REFERENCE_CASES]
+    if len(reference_names) != len(set(reference_names)):
         raise RunnerError("reference checkpoint scenario is duplicated in selection")
-    ordinary = [name for name in names if name != REFERENCE_CASE]
+    ordinary = [name for name in names if name not in REFERENCE_CASES]
     chunks = [ordinary[start : start + size] for start in range(0, len(ordinary), size)]
-    if reference_names:
-        chunks.append(reference_names)
+    chunks.extend([[name] for name in reference_names])
     return chunks
 
 
@@ -1294,6 +1390,8 @@ def run_live_chunk(live: Path, root: Path, run_root: Path, phase: str, bins: Pat
     })
     reference_decisions = reference_decisions or []
     active_references = [decision for decision in reference_decisions if reference_case_selected(decision, selected)]
+    if len(active_references) > 1:
+        raise RunnerError("a chunk may contain at most one reviewed reference checkpoint")
     if phase == "baseline-capture" and active_references:
         if len(active_references) != 1 or reference_decision_sha256 != REFERENCE_DECISIONS_SHA256:
             raise RunnerError("invalid or unpinned paired-reference decision")

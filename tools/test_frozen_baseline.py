@@ -219,15 +219,29 @@ class RunnerGuards(unittest.TestCase):
 
     def test_reference_decision_is_pinned_to_exact_tuple_and_two_frames(self) -> None:
         document = json.loads((Path(runner.__file__).resolve().parent / "frozen_cli_references.json").read_text())
-        decision = runner.validate_reference_decision_document(document)
-        self.assertEqual(decision["tuple"]["test_id"], runner.REFERENCE_CASE)
-        self.assertEqual(len(decision["independent_replays"]), 2)
+        decisions = runner.validate_reference_decision_document(document)
+        self.assertEqual([decision["tuple"]["test_id"] for decision in decisions], [runner.REFERENCE_CASE, runner.BUTTONS_REFERENCE_CASE])
+        self.assertEqual(len(decisions[0]["independent_replays"]), 2)
+        self.assertEqual(len(decisions[1]["independent_captures"]), 2)
+        self.assertEqual(runner.sha256(Path(runner.__file__).resolve().parent / "frozen_cli_references.json"), runner.REFERENCE_DECISIONS_SHA256)
         for mutate in (
             lambda data: data["decisions"][0]["tuple"].update({"test_id": "showcase::overview::120x40::truecolor"}),
             lambda data: data["decisions"][0]["tuple"].update({"ordinal": 1}),
             lambda data: data["decisions"][0]["live_frame"].update({"semantic_frame_sha256": "0" * 64}),
             lambda data: data["decisions"][0]["independent_replays"].pop(),
-            lambda data: data["decisions"].append(dict(data["decisions"][0])),
+            lambda data: data["decisions"][1]["tuple"].update({"logical_name": "showcase/audit/buttons/100x30/truecolor"}),
+            lambda data: data["decisions"][1]["environment"]["child_values"].update({"TERM": "dumb"}),
+            lambda data: data["decisions"][1]["baseline"].update({"source_sha256": "0" * 64}),
+            lambda data: data["decisions"][1]["baseline"].update({"tuiscotti_rev": "0" * 40}),
+            lambda data: data["decisions"][1]["live_frame"].update({"ansi_sha256": "0" * 64}),
+            lambda data: data["decisions"][1]["independent_captures"].pop(),
+            lambda data: data["decisions"][1]["independent_probe"]["frame_comparison"].update({"changed_cells": 0}),
+            lambda data: data["decisions"][1]["independent_probe"]["fonts"].update({"JetBrainsMonoNerdFontMono-Regular.ttf": "0" * 64}),
+            lambda data: data["decisions"][1]["independent_probe"]["output"].update({"approved_decoded_text_sha256": "0" * 64}),
+            lambda data: data["decisions"][1]["legacy_approval"].update({"sha256": "0" * 64}),
+            lambda data: data["decisions"][1]["baseline"]["binary_sha256"].update({"showcase": "0" * 64}),
+            lambda data: data["decisions"][1]["control"].update({"clock_controls": "paused"}),
+            lambda data: data["decisions"].append(dict(data["decisions"][1])),
         ):
             altered = json.loads(json.dumps(document))
             mutate(altered)
@@ -235,18 +249,25 @@ class RunnerGuards(unittest.TestCase):
                 runner.validate_reference_decision_document(altered)
 
     def test_reference_receipt_is_exact_and_rejects_ascii_or_cursor_diff(self) -> None:
-        decision = runner.validate_reference_decision_document(json.loads((Path(runner.__file__).resolve().parent / "frozen_cli_references.json").read_text()))
-        key = (decision["tuple"]["case_id"], decision["tuple"]["ordinal"], decision["tuple"]["logical_name"])
-        reference = decision["live_frame"]
-        correct = {key: (reference["ansi_sha256"], reference["semantic_frame_sha256"], runner.REFERENCE_DECISIONS_SHA256)}
-        runner.validate_reference_receipts(correct, [runner.REFERENCE_CASE], "baseline-capture", decision, runner.REFERENCE_DECISIONS_SHA256)
-        wrong_ascii = {key: ("0" * 64, reference["semantic_frame_sha256"], runner.REFERENCE_DECISIONS_SHA256)}
-        wrong_cursor = {key: (reference["ansi_sha256"], "0" * 64, runner.REFERENCE_DECISIONS_SHA256)}
-        for altered in (wrong_ascii, wrong_cursor):
-            with self.assertRaisesRegex(runner.RunnerError, "reviewed live-frame reference mismatch"):
-                runner.validate_reference_receipts(altered, [runner.REFERENCE_CASE], "baseline-capture", decision, runner.REFERENCE_DECISIONS_SHA256)
-        with self.assertRaisesRegex(runner.RunnerError, "reference decision receipt binding"):
-            runner.validate_reference_receipts({key: (reference["ansi_sha256"], reference["semantic_frame_sha256"], None)}, [runner.REFERENCE_CASE], "baseline-capture", decision, runner.REFERENCE_DECISIONS_SHA256)
+        decisions = runner.validate_reference_decision_document(json.loads((Path(runner.__file__).resolve().parent / "frozen_cli_references.json").read_text()))
+        for decision in decisions:
+            test_id = decision["tuple"]["test_id"]
+            key = (decision["tuple"]["case_id"], decision["tuple"]["ordinal"], decision["tuple"]["logical_name"])
+            reference = decision["live_frame"]
+            correct = {key: (reference["ansi_sha256"], reference["semantic_frame_sha256"], runner.REFERENCE_DECISIONS_SHA256)}
+            runner.validate_reference_receipts(correct, [test_id], "baseline-capture", decision, runner.REFERENCE_DECISIONS_SHA256)
+            wrong_ascii = {key: ("0" * 64, reference["semantic_frame_sha256"], runner.REFERENCE_DECISIONS_SHA256)}
+            wrong_cursor = {key: (reference["ansi_sha256"], "0" * 64, runner.REFERENCE_DECISIONS_SHA256)}
+            for altered in (wrong_ascii, wrong_cursor):
+                with self.subTest(test_id=test_id, altered=altered), self.assertRaisesRegex(runner.RunnerError, "reviewed live-frame reference mismatch"):
+                    runner.validate_reference_receipts(altered, [test_id], "baseline-capture", decision, runner.REFERENCE_DECISIONS_SHA256)
+            with self.assertRaisesRegex(runner.RunnerError, "reference decision receipt binding"):
+                runner.validate_reference_receipts({key: (reference["ansi_sha256"], reference["semantic_frame_sha256"], None)}, [test_id], "baseline-capture", decision, runner.REFERENCE_DECISIONS_SHA256)
+            # The same pinned reference frame is mandatory in replay and candidate phases,
+            # but neither phase may claim the capture-only decision receipt.
+            strict = {key: (reference["ansi_sha256"], reference["semantic_frame_sha256"], None)}
+            runner.validate_reference_receipts(strict, [test_id], "baseline-check", decision, runner.REFERENCE_DECISIONS_SHA256)
+            runner.validate_reference_receipts(strict, [test_id], "candidate-check", decision, runner.REFERENCE_DECISIONS_SHA256)
 
     def test_checkpoint_paths_remain_below_portable_filename_limit(self) -> None:
         case = "holla/activities/activities-multi-with-history/120x40/truecolor"
@@ -273,9 +294,19 @@ class RunnerGuards(unittest.TestCase):
     def test_live_chunks_are_deterministic_and_bounded(self) -> None:
         names = [f"case::{index}" for index in range(5)]
         self.assertEqual(runner.scenario_chunks(names, 2), [names[:2], names[2:4], names[4:]])
-        self.assertEqual(runner.scenario_chunks(["before", runner.REFERENCE_CASE, "after"], 2), [["before", "after"], [runner.REFERENCE_CASE]])
+        self.assertEqual(runner.scenario_chunks(["before", runner.REFERENCE_CASE, "middle", runner.BUTTONS_REFERENCE_CASE, "after"], 2), [["before", "middle"], ["after"], [runner.REFERENCE_CASE], [runner.BUTTONS_REFERENCE_CASE]])
         with self.assertRaisesRegex(runner.RunnerError, "duplicated"):
             runner.scenario_chunks([runner.REFERENCE_CASE, runner.REFERENCE_CASE], 2)
+        with self.assertRaisesRegex(runner.RunnerError, "duplicated"):
+            runner.scenario_chunks([runner.BUTTONS_REFERENCE_CASE, runner.BUTTONS_REFERENCE_CASE], 2)
+        selected = [runner.REFERENCE_CASE, runner.BUTTONS_REFERENCE_CASE]
+        accepted = [
+            {"chunk": 0, "selected_cases": [runner.REFERENCE_CASE], "status": "passed"},
+            {"chunk": 1, "selected_cases": [runner.BUTTONS_REFERENCE_CASE], "status": "passed"},
+        ]
+        runner.validate_chunk_coverage(selected, accepted, 2)
+        with self.assertRaisesRegex(runner.RunnerError, "chunk partition"):
+            runner.validate_chunk_coverage(selected, [{"chunk": 0, "selected_cases": selected, "status": "passed"}], 2)
         with self.assertRaisesRegex(runner.RunnerError, "chunk size"):
             runner.scenario_chunks(names, 513)
 
