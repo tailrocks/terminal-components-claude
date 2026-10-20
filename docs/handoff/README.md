@@ -11,12 +11,21 @@ verified. See the matrix's [latest CI comparison](../architecture/termrock-migra
 for exact source tips and blockers.
 
 Latest stable Velnor Actions is `0.1.29` at `e7b2f088715379c22be473fab896a43d50cc16fc`.
-Parity tip `669cee180d70a29619f98eb328bc607d29981584` and design tip
+Parity tip `1d7b8eb291e37cb4806ce1369a8a0abab08a81ac` and design tip
 `f2f6eb716c4a512be3dc9423742fa06e86879b32` already contain workflows generated
-with the current 15-minute Rust job timeout. Main tip
+with the current 15-minute Rust job timeout. Parity generation, plan (47 crates,
+44 jobs, 259 tasks) and Actionlint pass locally; remote run
+[39445641197](https://github.com/tailrocks/terminal-components-claude/actions/runs/39445641197)
+was in progress at observation and is not a green result. Design local checks
+pass, but latest run
+[39438273472](https://github.com/tailrocks/terminal-components-claude/actions/runs/39438273472)
+failed Plan after five minutes and skipped two Rust jobs. Main tip
 `a97e351df736b576904bc450619ca347ea64d65b` has not been upgraded; CI-only PR #39
 is at `a6929aeba7479d0b3a746f69d412a1ab701b5242`. The required Plan job remains
-blocked by its built-in five-minute timeout. Current Velnor main observation
+blocked; run
+[39436987238](https://github.com/tailrocks/terminal-components-claude/actions/runs/39436987238)
+has Plan blocked and Required failed. Main PR #39 local checks pass with 43 jobs,
+but remote required checks do not. Current Velnor main observation
 `16c…` provides no Plan timeout override. Do not work around this by inventing
 a config option. Fresh branch verifiers must provide exact gate results before
 any status is called green.
@@ -41,13 +50,13 @@ integrating the listed work, not by repeating its implementation:
 | `parity/composition-plan-final-20261020` — `6e81c0034989b11321e64cc2da0bb617c37b896c` | Final resolved layout tree; review pending | Obtain independent review before integration. |
 | `parity/dialog-layout-contract-20261020` — `86226a2442f37621bbef91dd50b9b7bc3104659b` | Dialog work pending review, paired parity, and lifecycle checks | Complete the review and runtime lifecycle evidence. |
 | `parity/theme-palette-baseline-20261020` — `737ecc836fc40d77b51d797bda9c3927b12eeee7` | Palette work in progress; 8/9 checks pass, mono remains red | Fix the mono failure and rerun the complete palette set. |
-| `parity/binding-runtime-20261020` — `98900f3e11e4cd34835dec5902694ed260125aee` | Bounded binding identity correction published | Independent review remains required. |
+| `parity/binding-runtime-20261020` — `98900f3e11e4cd34835dec5902694ed260125aee` | Bounded binding identity correction independently cleared | Integration remains pending. |
 | `parity/showcase-button-consumer-20261020` — `60138e17c6a16814039fd3cd84074b5ab0f4b895` | Bounded button change cleared; full Buttons comparison remains red by 2,982 cells | Preserve the red evidence; resolve the source difference at `0f181f05` and rerun the full Buttons suite. |
 
 The parent also has a local reviewed-contract integration commit
 `8462bf28aadabd76833e11395e6237e66468efe0`: native checks are 153 passed, but
 paired product comparison is red. Preserve it unchanged at
-`wip/termrock-reviewed-contract-integration-20261020`; never merge that WIP
-commit into PR #38. This handoff is recorded on
+`wip/termrock-reviewed-contract-integration-20261020`; do not integrate without
+independent merged review and resolution of the red paired proof. This handoff is recorded on
 `wip/ci-upgrade-handoff-20261020` and must receive independent review before
 its documentation is integrated.
