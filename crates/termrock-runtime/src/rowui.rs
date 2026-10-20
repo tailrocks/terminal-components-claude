@@ -73,6 +73,20 @@ fn merge_patch(base: Option<StylePatch>, over: Option<StylePatch>) -> Option<Sty
     }
 }
 
+fn fill_gutter_patch(flags: StateFlags) -> StylePatch {
+    if flags.contains(StateFlags::FOCUSED) {
+        StylePatch::new()
+            .set_fg(Role::HighlightBg)
+            .set_bg(Role::HighlightBg)
+            .add(Modifier::BOLD)
+    } else {
+        StylePatch::new()
+            .set_fg(Role::CurrentSurface)
+            .set_bg(Role::CurrentSurface)
+            .remove(Modifier::BOLD)
+    }
+}
+
 fn resolve_row_part(
     ui: &mut Ui<'_>,
     family: Family,
@@ -82,6 +96,36 @@ fn resolve_row_part(
     patch: Option<StylePatch>,
     cursor_style: CursorStyle,
 ) -> crate::theme::Resolved {
+    if cursor_style == CursorStyle::Fill && part == Part::GUTTER {
+        // Preserve the established blank-cell ink in both active and inactive
+        // filled rows. The gutter's default is lower precedence than authored
+        // theme, overlay, and instance channels, which the canonical resolver
+        // reports as explicit metadata.
+        let explicit = ui.style_defaults_with_explicit(
+            family,
+            variant,
+            part,
+            flags,
+            crate::theme::StyleDefaults::default(),
+            patch.as_ref(),
+        );
+        let local = fill_gutter_patch(flags).merge(explicit.explicit);
+        let mut resolved = ui.style_defaults(
+            family,
+            variant,
+            part,
+            flags,
+            crate::theme::StyleDefaults::default(),
+            Some(&local),
+        );
+        if explicit.explicit.glyph == Slot::Inherit {
+            // The active row is already identified by fill; do not retain the
+            // inherited focus-bar glyph as a second mark. A named/part glyph
+            // and custom slot still win.
+            resolved.glyph = Slot::Clear;
+        }
+        return resolved;
+    }
     if cursor_style == CursorStyle::Fill && flags.contains(StateFlags::FOCUSED) {
         let natural = match patch {
             Some(patch) => ui.style_patched(family, variant, part, flags, &patch),
@@ -1440,6 +1484,74 @@ mod tests {
             page.cell((4, 0))
                 .is_some_and(|cell| cell.modifier.contains(Modifier::BOLD))
         );
+    }
+
+    #[test]
+    fn existing_fill_gutter_preserves_legacy_blank_cell_style_for_every_state_and_profile() {
+        for level in [
+            termrock_theme::ColorLevel::TrueColor,
+            termrock_theme::ColorLevel::Ansi256,
+            termrock_theme::ColorLevel::Ansi16,
+            termrock_theme::ColorLevel::Mono,
+        ] {
+            for flags in [
+                StateFlags::empty(),
+                StateFlags::FOCUSED,
+                StateFlags::FOCUSED | StateFlags::FOCUS_VISIBLE,
+                StateFlags::SELECTED,
+                StateFlags::DISABLED,
+            ] {
+                let theme = Theme::junie().for_level(level);
+                let mut frame = FrameState::default();
+                frame.reset(1, SCREEN);
+                let mut page = Buffer::empty(SCREEN);
+                let mut core = UiCore::default();
+                let last = LastFrame::default();
+                let expected = {
+                    let mut ui = Ui::new(&mut frame, &mut page, &mut core, &theme, &last);
+                    let legacy_gutter = if flags.contains(StateFlags::FOCUSED) {
+                        StylePatch::new()
+                            .set_fg(Role::HighlightBg)
+                            .set_bg(Role::HighlightBg)
+                            .add(Modifier::BOLD)
+                    } else {
+                        StylePatch::new()
+                            .set_fg(Role::CurrentSurface)
+                            .set_bg(Role::CurrentSurface)
+                            .remove(Modifier::BOLD)
+                    };
+                    let expected = ui.paint_patch(&legacy_gutter);
+                    let mut row = RowUi::new(
+                        &mut ui,
+                        OWNER,
+                        Family::LIST,
+                        Variant::DEFAULT,
+                        flags,
+                        ItemKey::index(0),
+                        Rect::new(0, 0, 20, 1),
+                    )
+                    .with_cursor_style(CursorStyle::Fill);
+                    row.gutter();
+                    expected
+                };
+                let cell = page.cell((0, 0)).expect("gutter cell");
+                assert_eq!(
+                    Some(cell.fg),
+                    expected.as_style().fg,
+                    "{level:?} {flags:?} foreground"
+                );
+                assert_eq!(
+                    Some(cell.bg),
+                    expected.as_style().bg,
+                    "{level:?} {flags:?} background"
+                );
+                assert_eq!(
+                    cell.modifier,
+                    expected.as_style().add_modifier,
+                    "{level:?} {flags:?} modifiers"
+                );
+            }
+        }
     }
 
     #[test]
