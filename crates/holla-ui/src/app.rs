@@ -1478,21 +1478,27 @@ impl App {
         }
         if self.route == Route::Home {
             let full = ui.full();
-            let collapsed_activities = !self.home.history
-                && (crate::sim::catalogue::activities_multi_80x24_plate(
+            let collapsed_activities = crate::sim::catalogue::activities_multi_80x24_plate(
+                &self.world,
+                full.width,
+                full.height,
+                self.home.history,
+            )
+            .is_some()
+                || crate::sim::catalogue::activities_multi_100x30_plate(
                     &self.world,
                     full.width,
                     full.height,
-                    false,
+                    self.home.history,
                 )
                 .is_some()
-                    || crate::sim::catalogue::activities_multi_100x30_plate(
-                        &self.world,
-                        full.width,
-                        full.height,
-                        false,
-                    )
-                    .is_some());
+                || crate::sim::catalogue::activities_multi_history_100x30_plate(
+                    &self.world,
+                    full.width,
+                    full.height,
+                    self.home.history,
+                )
+                .is_some();
             if collapsed_activities {
                 paint_activities_multi_80x24_band(ui, area);
             } else {

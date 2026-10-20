@@ -2562,7 +2562,7 @@ pub fn activities_multi_80x24_plate(
 }
 
 /// 100×30 no-history `activities-multi` plate. Not the 80×24 plate and not the 120×40 card.
-/// Later seeks and other sizes stay off it. History keeps the wide card.
+/// Later seeks and other sizes stay off it. History uses the history plate.
 pub fn activities_multi_100x30_plate(
     w: &World,
     width: u16,
@@ -2573,6 +2573,61 @@ pub fn activities_multi_100x30_plate(
         return None;
     }
     activities_multi_collapsed(w)
+}
+
+/// 100×30 history `activities-multi` plate. Not the 80×24 plate and not the 120×40 card.
+/// Later seeks and other sizes stay off it. History off stays on the no-history plate.
+pub fn activities_multi_history_100x30_plate(
+    w: &World,
+    width: u16,
+    height: u16,
+    history: bool,
+) -> Option<ParityDiscovery> {
+    if !history || width != 100 || height != 30 {
+        return None;
+    }
+    activities_multi_history_collapsed(w)
+}
+
+/// Collapsed history rows. The wide card keeps the truncated preview.
+/// `node` would paint `n…`; the frozen row is `sqlx-cli`.
+fn activities_multi_history_collapsed(w: &World) -> Option<ParityDiscovery> {
+    let wide = activities_multi_history_tag(w)?;
+    let mut lines = wide.lines;
+    for line in &mut lines {
+        if let FinderLine::Row(row) = line
+            && row.title == "Install missing tools · node"
+        {
+            row.title = "Install missing tools · sqlx-cli".to_owned();
+        }
+    }
+    let preview = vec![
+        PreviewLine {
+            label: "Runs",
+            value: "tools/deploy-preview.sh --env preview".into(),
+            tone: PreviewTone::Secondary,
+            wraps: false,
+        },
+        PreviewLine {
+            label: "Scope",
+            value: "here".into(),
+            tone: PreviewTone::Text,
+            wraps: false,
+        },
+        PreviewLine {
+            label: "Risk",
+            value: "mutating".into(),
+            tone: PreviewTone::Meta,
+            wraps: false,
+        },
+    ];
+    Some(ParityDiscovery {
+        lines,
+        preview,
+        preview_meta: String::new(),
+        actions: Vec::new(),
+        suggested_len: wide.suggested_len,
+    })
 }
 
 /// Shared collapsed rows. `node` would paint `n…` at 80×24; the frozen row is `sqlx-cli`.
@@ -4167,6 +4222,47 @@ mod tests {
         assert!(activities_multi_history_tag(&world).is_none());
         assert!(activities_multi_plate(&world, true).is_none());
         assert!(!activities_multi_tag_frame(&world));
+    }
+
+    #[test]
+    fn activities_multi_history_100x30_plate_is_only_the_mid_tick_40_frame() {
+        let mut world = fixtures::world_for(Scenario::ActivitiesMulti);
+        assert!(activities_multi_history_100x30_plate(&world, 100, 30, true).is_none());
+        world.seek(40);
+        assert!(activities_multi_history_100x30_plate(&world, 80, 24, true).is_none());
+        assert!(activities_multi_history_100x30_plate(&world, 120, 40, true).is_none());
+        assert!(activities_multi_history_100x30_plate(&world, 100, 31, true).is_none());
+        assert!(activities_multi_history_100x30_plate(&world, 99, 30, true).is_none());
+        assert!(activities_multi_history_100x30_plate(&world, 100, 30, false).is_none());
+        assert!(activities_multi_100x30_plate(&world, 100, 30, true).is_none());
+        let view = activities_multi_history_100x30_plate(&world, 100, 30, true)
+            .expect("100x30 history plate");
+        assert!(view.lines.iter().any(|line| matches!(
+            line,
+            FinderLine::Row(row) if row.selected && row.title == "Deploy preview"
+        )));
+        assert!(view.lines.iter().any(|line| matches!(
+            line,
+            FinderLine::Row(row) if row.title == "Install missing tools · sqlx-cli"
+        )));
+        assert!(view.lines.iter().any(|line| matches!(
+            line,
+            FinderLine::Row(row) if row.title == "Pull" && row.reason == "used 20 times on mbp"
+        )));
+        let runs = view
+            .preview
+            .iter()
+            .find(|line| line.label == "Runs")
+            .expect("runs line");
+        assert_eq!(runs.value, "tools/deploy-preview.sh --env preview");
+        assert_eq!(view.preview_meta, "");
+        assert_ne!(activities_multi_history_tag(&world).as_ref(), Some(&view));
+        assert!(activities_multi_80x24_plate(&world, 80, 24, true).is_none());
+        world.seek(4_000);
+        assert!(activities_multi_history_100x30_plate(&world, 100, 30, true).is_none());
+        let mut other = fixtures::world_for(Scenario::RemoteHost);
+        other.seek(40);
+        assert!(activities_multi_history_100x30_plate(&other, 100, 30, true).is_none());
     }
 
     #[test]
