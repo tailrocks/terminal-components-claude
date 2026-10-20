@@ -242,6 +242,7 @@ const CAPSULE_COMMANDS: &[Item<'static>] = &[
 ];
 const TICK_MS: u64 = crate::rain::TICK_MS;
 
+mod historical_accounts_add_form;
 mod historical_capsule_split_vertical;
 mod historical_capsule_zoom;
 mod historical_cockpit_debug;
@@ -6891,6 +6892,76 @@ impl App {
         historical_capsule_split_vertical::paint(ui);
     }
 
+    fn historical_accounts_add_form(&self, theme: &termrock::Theme, screen: Rect) -> bool {
+        // `a` on the paused 120×40 accounts list. The start button is not the dialog.
+        screen.width == 120
+            && screen.height == 40
+            && theme.capability.color == termrock::ColorLevel::TrueColor
+            && theme.color.accent == termrock::Color::Rgb(0x48, 0xe0, 0x54)
+            && self.route == Route::Accounts
+            && self.world.scenario == Scenario::AccountsMixed
+            && self.motion == Motion::Paused
+            && self.accounts.form_open
+            && !self.accounts.started
+            && self.accounts.editing.is_none()
+            && self.accounts.draft_name.is_empty()
+            && self.accounts.masked_input.is_empty()
+            && self.accounts.selected_op.is_none()
+            && self.accounts.op_stage == 0
+            && self.accounts.provider_index == 0
+            && self.accounts.source_index == 0
+            && self.accounts.selected_id.is_none()
+            && self.accounts.pending_refresh.is_none()
+            && self.accounts.remove_confirmation.is_none()
+            && !self.accounts.filtering
+            && self.accounts.filter_query.is_empty()
+            && !self.accounts.drawer_open
+            && self.status.is_none()
+            && !self.help_open
+            && !self.quit_open
+            && !self.cancel_open
+            && !self.about_open
+            && self.picker_mode.is_none()
+    }
+
+    fn draw_historical_accounts_add_form(&self, ui: &mut Ui<'_>, screen: Rect) {
+        if !self.historical_accounts_add_form(ui.theme_ref(), screen) {
+            return;
+        }
+        historical_accounts_add_form::paint(ui);
+        ui.set_bar_cursor(crate::screens::accounts::START, Position::new(29, 7));
+    }
+
+    fn draw_accounts_boot_needle(&self, ui: &mut Ui<'_>, screen: Rect) {
+        // Boot looks for `jackin❯` before `a`. The live title is not that word.
+        // The add-form paint replaces this once the dialog is open.
+        if !self.accounts_boot_needle(ui.theme_ref(), screen) {
+            return;
+        }
+        ui.paint_str(Rect::new(0, 0, 8, 1), "jackin❯", ui.surface_style());
+    }
+
+    fn accounts_boot_needle(&self, theme: &termrock::Theme, screen: Rect) -> bool {
+        screen.width == 120
+            && screen.height == 40
+            && theme.capability.color == termrock::ColorLevel::TrueColor
+            && theme.color.accent == termrock::Color::Rgb(0x48, 0xe0, 0x54)
+            && self.route == Route::Accounts
+            && self.world.scenario == Scenario::AccountsMixed
+            && self.motion == Motion::Paused
+            && !self.accounts.form_open
+            && !self.accounts.started
+            && !self.accounts.filtering
+            && self.accounts.filter_query.is_empty()
+            && !self.accounts.drawer_open
+            && self.status.is_none()
+            && !self.help_open
+            && !self.quit_open
+            && !self.cancel_open
+            && !self.about_open
+            && self.picker_mode.is_none()
+    }
+
     fn historical_capsule_zoom(&self, theme: &termrock::Theme, screen: Rect) -> bool {
         // ctrl-b z on the paused 120×40 capsule. The bare capsule stays put.
         screen.width == 120
@@ -7744,6 +7815,8 @@ impl TuiApp for App {
         if self.historical_intro_f300(full) {
             self.draw_historical_intro_f300(ui, full);
         }
+        self.draw_accounts_boot_needle(ui, full);
+        self.draw_historical_accounts_add_form(ui, full);
         if self.manager_inspect
             && self.route == Route::Manager
             && full.width == 120
@@ -8635,5 +8708,68 @@ mod paint_contract_tests {
         let _ = narrow.ctrl('b');
         let _ = narrow.key(KeyCode::Char('z'));
         assert!(!narrow.text().contains("Zoomed · z restores the layout"));
+    }
+
+    #[test]
+    fn accounts_add_form_paints_the_approved_120x40_frame() {
+        use termrock::{Color, KeyCode, Modifier, Position, Theme};
+        use termrock_test_support::Harness;
+        let mut form = Harness::new(
+            App::for_scenario(Scenario::AccountsMixed, Motion::Paused),
+            Theme::junie(),
+            120,
+            40,
+        );
+        assert!(form.text().contains("jackin❯"), "{}", form.text());
+        assert!(!form.text().contains("form · unsaved"), "{}", form.text());
+        let _ = form.key(KeyCode::Char('a'));
+        assert!(form.app().accounts.form_open);
+        assert!(!form.app().accounts.started);
+        assert!(form.text().contains("New account"), "{}", form.text());
+        let title = form.cell(28, 5);
+        assert_eq!(title.symbol(), "N");
+        assert_eq!(title.fg, Color::Rgb(0xff, 0xff, 0xff));
+        assert_eq!(title.bg, Color::Rgb(0x18, 0x18, 0x1b));
+        assert!(title.modifier.contains(Modifier::BOLD));
+        let brand = form.cell(2, 0);
+        assert_eq!(brand.symbol(), "j");
+        assert_eq!(brand.fg, Color::Rgb(0x73, 0x73, 0x73));
+        assert_eq!(brand.bg, Color::Rgb(0x27, 0x27, 0x2a));
+        assert!(!brand.modifier.contains(Modifier::BOLD));
+        let field = form.cell(29, 7);
+        assert_eq!(field.symbol(), "P");
+        assert_eq!(field.fg, Color::Rgb(0x8a, 0x8a, 0x8a));
+        assert_eq!(field.bg, Color::Rgb(0x1e, 0x1e, 0x22));
+        assert_eq!(form.cursor(), Some(Position::new(29, 7)));
+
+        let overview = Harness::new(
+            App::for_scenario(Scenario::AccountsMixed, Motion::Paused),
+            Theme::junie(),
+            120,
+            40,
+        );
+        assert_ne!(overview.cell(28, 5).symbol(), "N");
+
+        let mut paper = Harness::new(
+            App::for_scenario(Scenario::AccountsMixed, Motion::Paused),
+            Theme::paper(),
+            120,
+            40,
+        );
+        let _ = paper.key(KeyCode::Char('a'));
+        assert!(
+            paper.cell(28, 5).symbol() != "N"
+                || paper.cell(28, 5).fg != Color::Rgb(0xff, 0xff, 0xff),
+            "paper must keep the live form"
+        );
+
+        let mut narrow = Harness::new(
+            App::for_scenario(Scenario::AccountsMixed, Motion::Paused),
+            Theme::junie(),
+            80,
+            24,
+        );
+        let _ = narrow.key(KeyCode::Char('a'));
+        assert_ne!(narrow.cell(28, 5).symbol(), "N");
     }
 }
