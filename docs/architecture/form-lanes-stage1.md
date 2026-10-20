@@ -38,7 +38,9 @@ data-aware planner made that test pass again.
 
 Invalid layout aborts draw/update without partial registration and returns the
 empty constrained measure fallback; callers can inspect the typed error
-through `validate_layout`. `FormLayoutError::field_id` supplies the associated
-field for field-specific errors. Runtime diagnostic emission is a separate
-prerequisite owned by the runtime author; this packet does not modify runtime
-files. Independent review and delivery remain pending.
+through `validate_layout`. Draw and update append the bounded
+`InvalidComponentLayout` diagnostic, with `FormLayoutError::field_id`
+identifying fields when applicable. Measurement emits no diagnostic. Tests
+assert the invalid update leaves existing FormState untouched and invokes no
+domain validation, while invalid drawing registers no included control.
+Independent review and delivery remain pending.
