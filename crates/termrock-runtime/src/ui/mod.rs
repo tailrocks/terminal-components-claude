@@ -3,6 +3,7 @@ pub mod derived;
 pub mod layer_buf;
 pub mod measure;
 pub mod paint;
+mod slot;
 
 use ratatui_core::buffer::Buffer;
 use ratatui_core::layout::{Position, Rect};
@@ -15,6 +16,7 @@ use cx::LastFrame;
 pub use cx::{Cx, FrameRead, LayoutFacts};
 use derived::{DerivedCache, ReferenceCacheKey};
 use layer_buf::LayerPool;
+pub use slot::LayerSlot;
 
 use crate::action::ActionKey;
 use crate::cursor::CursorRequest;
@@ -23,8 +25,8 @@ use crate::focus::{FocusEntry, FocusRing, Focusability, ScopeId, ScopeMode};
 use crate::hit::{Axes, Headroom, Registry};
 use crate::id::{Id, Part, PartRef};
 use crate::keymap::{
-    Binding, BindingRegistry, DynamicBindingRegistry, FocusedHintKey, FocusedHints, HintLayer,
-    KeyMap,
+    Binding, BindingExtensionError, BindingRegistry, DynamicBindingRegistry, FocusedHintKey,
+    FocusedHints, HintLayer, KeyMap,
 };
 use crate::layer::{LayerId, LayerKind};
 use crate::response::StateFlags;
@@ -455,6 +457,26 @@ impl<'f> Ui<'f> {
         )
     }
 
+    pub fn style_defaults_with_explicit(
+        &self,
+        family: Family,
+        variant: Variant,
+        part: Part,
+        flags: StateFlags,
+        defaults: crate::theme::StyleDefaults<'_>,
+        local: Option<&crate::theme::StylePatch>,
+    ) -> crate::theme::ResolvedStyle {
+        crate::theme::resolve::bind_defaults_with_explicit(
+            self.theme,
+            (family, variant, part),
+            flags,
+            &self.core.overlays,
+            self.surface,
+            defaults,
+            local,
+        )
+    }
+
     pub fn paint_patch(&self, patch: &crate::theme::StylePatch) -> crate::theme::PaintStyle {
         crate::theme::resolve::bind(self.theme, *patch, None, self.surface).style
     }
@@ -694,6 +716,16 @@ impl<'f> Ui<'f> {
         flags: StateFlags,
         table: &'static [Binding<C>],
     ) {
+        self.publish_bindings_filtered(owner, flags, table, |_| true);
+    }
+
+    pub(crate) fn publish_bindings_filtered<C: Copy + 'static>(
+        &mut self,
+        owner: Id,
+        flags: StateFlags,
+        table: &'static [Binding<C>],
+        include: impl Fn(C) -> bool,
+    ) {
         let initial_focus = self.last.snapshot.focus.is_none()
             && self.last.ring.entries().is_empty()
             && self.frame.ring.reachable().next().map(|entry| entry.id) == Some(owner);
@@ -709,10 +741,61 @@ impl<'f> Ui<'f> {
         } else {
             flags
         };
-        if let Some(action) = self.frame.bindings.publish(owner, flags, self.layer, table) {
+        if let Some(action) = self
+            .frame
+            .bindings
+            .publish_filtered(owner, flags, self.layer, table, include)
+        {
             self.frame
                 .diagnostics
                 .push(Diagnostic::DuplicateBindingAction { owner, action });
+        }
+    }
+
+    pub(crate) fn extend_bindings<C: Copy + 'static>(
+        &mut self,
+        owner: Id,
+        flags: StateFlags,
+        table: &'static [Binding<C>],
+        include: impl Fn(C) -> bool,
+    ) -> Result<(), BindingExtensionError> {
+        let initial_focus = self.last.snapshot.focus.is_none()
+            && self.last.ring.entries().is_empty()
+            && self.frame.ring.reachable().next().map(|entry| entry.id) == Some(owner);
+        if self.registrations_suppressed()
+            || (self.last.snapshot.focus != Some(owner) && !initial_focus)
+            || (!flags.contains(StateFlags::FOCUSED) && !initial_focus)
+            || !self.frame.ring.contains(owner)
+        {
+            return Ok(());
+        }
+        let flags = if initial_focus {
+            flags | StateFlags::FOCUSED
+        } else {
+            flags
+        };
+        match self
+            .frame
+            .bindings
+            .extend(owner, flags, self.layer, table, include)
+        {
+            Ok(()) => Ok(()),
+            Err(error @ BindingExtensionError::MissingBase { .. }) => Err(error),
+            Err(error @ BindingExtensionError::DuplicateAction { action, .. }) => {
+                self.frame
+                    .diagnostics
+                    .push(Diagnostic::DuplicateBindingAction { owner, action });
+                Err(error)
+            }
+            Err(error @ BindingExtensionError::ConflictingChord { chord, .. }) => {
+                self.frame.diagnostics.push(Diagnostic::BindingConflict {
+                    chord,
+                    phase: crate::keymap::KeyPhase::Bubble,
+                    a: owner,
+                    b: owner,
+                });
+                Err(error)
+            }
         }
     }
 
@@ -765,12 +848,17 @@ impl<'f> Ui<'f> {
         } else {
             flags
         };
-        let base = self
+        let (base, base_descriptors) = self
             .frame
             .bindings
             .get(owner)
-            .map(|(published, _)| published.table);
-        let (descriptors, revision) = self.core.dynamic_bindings.update(owner, base, bindings);
+            .map_or((None, &[][..]), |(published, descriptors)| {
+                (Some(published.table), descriptors)
+            });
+        let (descriptors, revision) =
+            self.core
+                .dynamic_bindings
+                .update(owner, base, base_descriptors, bindings);
         if let Some(action) =
             self.frame
                 .bindings
@@ -1236,6 +1324,20 @@ mod tests {
         visible: true,
     }];
 
+    #[derive(Clone, Copy)]
+    enum TestNavCmd {
+        Up,
+    }
+
+    const TEST_NAV_BINDINGS: &[Binding<TestNavCmd>] = &[Binding {
+        action: ActionKey::custom("ui.nav.up"),
+        chord: Some(Chord::key(KeyCode::Up)),
+        cmd: TestNavCmd::Up,
+        label: "Up",
+        priority: 2,
+        visible: true,
+    }];
+
     fn with_ui<R>(theme: &Theme, f: impl FnOnce(&mut Ui<'_>) -> R) -> (R, Buffer) {
         let mut frame = FrameState::default();
         frame.reset(1, SCREEN);
@@ -1247,6 +1349,36 @@ mod tests {
             f(&mut ui)
         };
         (out, page)
+    }
+
+    #[test]
+    fn author_binding_extension_is_explicit_and_additive_for_same_owner() {
+        let theme = Theme::junie();
+        with_ui(&theme, |ui| {
+            ui.register_focus_only(OWNER, Focusability::Focusable);
+            ui.publish_bindings(OWNER, StateFlags::FOCUSED, TEST_BINDINGS);
+            crate::author::extend_bindings(
+                ui,
+                OWNER,
+                StateFlags::FOCUSED,
+                TEST_NAV_BINDINGS,
+                |command| matches!(command, TestNavCmd::Up),
+            )
+            .expect("disjoint nav action extends the owner table");
+
+            let (_, descriptors) = ui.frame.bindings.get(OWNER).expect("published owner");
+            assert_eq!(descriptors.len(), 2);
+            assert!(
+                descriptors
+                    .iter()
+                    .any(|binding| binding.action == ActionKey::CONFIRM)
+            );
+            assert!(
+                descriptors
+                    .iter()
+                    .any(|binding| binding.action == ActionKey::custom("ui.nav.up"))
+            );
+        });
     }
 
     #[test]

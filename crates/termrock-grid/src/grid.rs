@@ -3004,7 +3004,7 @@ impl Grid<'_> {
                 .then(|| state.edit_error())
                 .flatten();
             let mut cflags = rflags.difference(StateFlags::PRESSED);
-            if is_cursor && i == cursor.1 {
+            if is_cursor && i == cursor.1 && live.contains(StateFlags::FOCUSED) {
                 cflags |= StateFlags::ACTIVE;
             }
             if range
