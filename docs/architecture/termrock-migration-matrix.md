@@ -1,3 +1,13 @@
+## Current parent integration gate (2026-10-21)
+
+Fields `332f40d`, Form window Stage1 `ae32d3f` and modal repair `02742e4` are integrated locally after independent clearances. The parent's scoped Fields/Forms/Runtime all-targets nextest, strict Clippy and package formatting now pass; the exact summary and remaining ignored tests are recorded in [parent evidence](../audits/2026-10-21-modal-fields-form-parent-integration.json). Modal's three review defects are resolved with 36,864 frozen-derived style cases and 10,092 legacy pair cases. This supersedes the earlier mapping rejections only for that bounded source contract. [Modal clearance](../audits/2026-10-21-modal-02742-independent-clearance.json).
+
+NavList `9a550ed` and the corrected historical ItemRow fixture `eb82d6e` also have independent bounded clearances but are not yet adopted by this checkpoint. [NavList](../audits/2026-10-21-nav-list-9a550-independent-clearance.json), [fixture](../audits/2026-10-21-itemrow-eb82-independent-clearance.json).
+
+Incoming `93b3065` made six expected-value overrides without repairing the palette. Independent review rejects that as frozen proof; the old universal raw projection is also not a semantic oracle. A separate test-integrity restoration removes the six new overrides while preserving the full inventory and documented unresolved red result. No reported Theme-green result authorizes acceptance of those expectations. [Review](../audits/2026-10-21-theme-expectation-overrides-rejection.json).
+
+All four applications, the complete architecture gate, public API coverage and complete paired CLI checks remain incomplete. Source synchronization with other writers does not approve their incoming replay/painter paths or weakened checks.
+
 ## Current source and review update (2026-10-21)
 
 Shared PR #38 advanced through `efda9593a905e3d462a62852748cf43254276dca`. Its history explicitly reverts the Jackin replay deletion (`c99dcef10`) and adds another private 120×40 painter (`8c7624537`). This reverses the earlier source-removal progress; neither retained replay nor a renamed application painter satisfies the library gate. New MasterDetail, runtime binding/hint and TablePro picker/footer changes require independent exact-commit review. Synchronizing that shared history preserves collaboration; it does not approve it.
