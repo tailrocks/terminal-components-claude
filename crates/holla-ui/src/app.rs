@@ -592,6 +592,92 @@ fn activity_chip_style(ui: &Ui<'_>, fg: Color) -> termrock::PaintStyle {
     )
 }
 
+fn launch_failure_plate_open(world: &World, ui: &Ui<'_>) -> bool {
+    let full = ui.full();
+    crate::sim::catalogue::launch_failure_tag_frame(world) && full.width == 120 && full.height == 40
+}
+
+/// Tag launch-failure status: child cwd, branch, ahead, dirty mark, failure, then the size label.
+fn paint_launch_failure_status(ui: &mut Ui<'_>, area: Rect) {
+    if area.is_empty() {
+        return;
+    }
+    ui.fill(area, status_ink(ui, STATUS_FG, false));
+    let mut x = area.x.saturating_add(STATUS_EDGE);
+    for (text, fg, bold) in [
+        ("~/work/acme/apps/frontend", STATUS_FG, true),
+        ("main", STATUS_GREY, false),
+        ("↑1", STATUS_LINK, false),
+        ("• 2", STATUS_AMBER, false),
+    ] {
+        x = paint_status_text(ui, area, x, text, fg, bold).saturating_add(STATUS_GAP);
+    }
+    let left_end = x.saturating_sub(STATUS_GAP);
+    let size_x = paint_size_label(ui, area);
+    let center = "! exit 1 · 1 s";
+    let center_w = termrock::width(center);
+    let lo = left_end.saturating_add(STATUS_GAP);
+    let hi = size_x.saturating_sub(STATUS_GAP);
+    let free = hi.saturating_sub(lo);
+    if free >= center_w {
+        let cx = lo.saturating_add(free.saturating_sub(center_w) / 2);
+        paint_status_text(ui, area, cx, center, STATUS_DANGER, false);
+    }
+}
+
+/// Tag launch-failure footer. `Shift+F10 Menu` misses the status, so the row shows `…`.
+fn paint_launch_failure_footer(ui: &mut Ui<'_>, area: Rect) {
+    if area.is_empty() {
+        return;
+    }
+    let canvas = Color::Rgb(0, 0, 0);
+    let key_style = status_ink(ui, STATUS_FG, true).bg(canvas);
+    let label_style = status_ink(ui, STATUS_GREY, false).bg(canvas);
+    let overflow = status_ink(ui, Color::Rgb(0x73, 0x73, 0x73), false).bg(canvas);
+    let danger = status_ink(ui, STATUS_DANGER, false).bg(canvas);
+    let danger_bold = status_ink(ui, STATUS_DANGER, true).bg(canvas);
+    let rest = " frontend dev failed · exit 1";
+    let total = 1u16.saturating_add(termrock::width(rest));
+    let status_x = area.right().saturating_sub(1).saturating_sub(total);
+    let hints = [
+        ("↑↓", "Scroll"),
+        ("f", "Follow"),
+        ("/", "Find"),
+        ("y", "Copy"),
+        ("r", "Restart"),
+        ("x", "Close"),
+        ("Esc", "Back to Here"),
+        ("Shift+F10", "Menu"),
+    ];
+    let mut x = area.x.saturating_add(1);
+    let mut truncated = false;
+    for (index, (key, label)) in hints.iter().enumerate() {
+        let key_w = termrock::width(key);
+        let label_w = termrock::width(label);
+        let need = key_w.saturating_add(1).saturating_add(label_w);
+        if x.saturating_add(need) > status_x {
+            truncated = true;
+            break;
+        }
+        ui.paint_str(Rect::new(x, area.y, key_w, 1), key, key_style);
+        x = x.saturating_add(key_w).saturating_add(1);
+        ui.paint_str(Rect::new(x, area.y, label_w, 1), label, label_style);
+        x = x.saturating_add(label_w);
+        if index.saturating_add(1) != hints.len() {
+            x = x.saturating_add(2);
+        }
+    }
+    if truncated && x < status_x {
+        ui.paint_str(Rect::new(x, area.y, 1, 1), "…", overflow);
+    }
+    ui.paint_str(Rect::new(status_x, area.y, 1, 1), "!", danger_bold);
+    ui.paint_str(
+        Rect::new(status_x.saturating_add(1), area.y, termrock::width(rest), 1),
+        rest,
+        danger,
+    );
+}
+
 /// Tag monorepo-child status: child cwd, branch, ahead count, dirty mark, then the size label.
 fn paint_monorepo_child_status(ui: &mut Ui<'_>, area: Rect) {
     if area.is_empty() {
@@ -1177,14 +1263,22 @@ impl App {
         menu.draw(ui, Rect::new(menu_x, header.y, menu_width, 1), &self.menu);
         paint_menu_title_pads(ui, menu_x, header.y, menu_x.saturating_add(menu_width));
         // A disk plate has no query, so the bar would keep focus and bold its titles.
-        if self.route == Route::Disk && crate::sim::catalogue::disk_cleanup_tag_frame(&self.world) {
+        if (self.route == Route::Disk && crate::sim::catalogue::disk_cleanup_tag_frame(&self.world))
+            || launch_failure_plate_open(&self.world, ui)
+        {
             paint_disk_menu_titles(ui, menu_x, header.y);
         }
         let menu_right = menu_x.saturating_add(menu_width).saturating_sub(1);
         let brand_right = lockup_x.saturating_add(brand_width);
         let used = menu_right.max(brand_right);
         let tail_x = used.saturating_add(2);
-        let host = if crate::sim::catalogue::first_use_tag_frame(&self.world)
+        let project = if launch_failure_plate_open(&self.world, ui) {
+            "acme › frontend · Node project · pnpm".to_owned()
+        } else {
+            menu_project(&self.world)
+        };
+        let host = if launch_failure_plate_open(&self.world, ui)
+            || crate::sim::catalogue::first_use_tag_frame(&self.world)
             || crate::sim::catalogue::monorepo_root_tag_frame(&self.world)
             || crate::sim::catalogue::monorepo_child_tag_frame(&self.world)
             || crate::sim::catalogue::activities_multi_tag_frame(&self.world)
@@ -1204,10 +1298,12 @@ impl App {
         paint_menu_tail(
             ui,
             Rect::new(tail_x, header.y, header.right().saturating_sub(tail_x), 1),
-            &menu_project(&self.world),
+            &project,
             &host,
         );
-        if !crate::sim::catalogue::activities_multi_tag_frame(&self.world) {
+        if !crate::sim::catalogue::activities_multi_tag_frame(&self.world)
+            && !launch_failure_plate_open(&self.world, ui)
+        {
             self.strip_draw(
                 ui,
                 Rect::new(area.x, area.y.saturating_add(1), area.width, 1),
@@ -1234,6 +1330,8 @@ impl App {
             paint_docker_cleanup_status(ui, status);
         } else if crate::sim::catalogue::remote_host_tag_frame(&self.world) {
             paint_remote_host_status(ui, status);
+        } else if launch_failure_plate_open(&self.world, ui) {
+            paint_launch_failure_status(ui, status);
         } else if self.route == Route::Disk
             && crate::sim::catalogue::disk_cleanup_tag_frame(&self.world)
         {
@@ -1270,6 +1368,14 @@ impl App {
         }
     }
     fn footer_draw(&self, ui: &mut Ui<'_>, footer: Rect) {
+        if launch_failure_plate_open(&self.world, ui)
+            && self.route == Route::Activity
+            && self.overlay.is_none()
+            && !self.menu.is_open()
+        {
+            paint_launch_failure_footer(ui, footer);
+            return;
+        }
         let tag_confirm = if self.world.scenario == Scenario::ParityDiscovery {
             Some(("Confirm…", None))
         } else if crate::sim::catalogue::first_use_tag_frame(&self.world) {
@@ -1657,7 +1763,13 @@ impl termrock::App for App {
                     plan.draw(ui, body);
                 }
             }
-            Route::Activity => self.activities.draw(&self.world, ui, body),
+            Route::Activity => {
+                let plate = launch_failure_plate_open(&self.world, ui)
+                    && home::paint_launch_failure_plate(ui);
+                if !plate {
+                    self.activities.draw(&self.world, ui, body);
+                }
+            }
             Route::Disk => {
                 let plate = crate::sim::catalogue::disk_cleanup_tag_frame(&self.world)
                     && home::paint_disk_cleanup_plate(ui);
@@ -2172,6 +2284,101 @@ mod tests {
         assert!(!crate::sim::catalogue::remote_host_tag_frame(
             &stepped.world
         ));
+    }
+    #[test]
+    fn launch_failure_frame_40_paints_the_tag_plate_and_later_seeks_keep_the_activity() {
+        let plate = harness(
+            App::for_scenario(Scenario::LaunchFailure, Motion::Paused, 40),
+            Theme::junie(),
+            120,
+            40,
+        );
+        let text = plate.text();
+        let lines: Vec<&str> = text.lines().collect();
+        assert!(plate.app().route == Route::Activity);
+        assert!(
+            lines[0].contains("acme › frontend · Node project · pnpm"),
+            "{}",
+            lines[0]
+        );
+        assert!(lines[0].contains("mbp · local"), "{}", lines[0]);
+        assert!(lines[1].trim().is_empty(), "{}", lines[1]);
+        assert!(lines[2].contains("frontend dev"), "{}", lines[2]);
+        assert!(lines[4].contains("failed · 1 s · exit 1"), "{}", lines[4]);
+        assert!(
+            lines[8].contains("$ mise run dev  (apps/frontend)"),
+            "{}",
+            lines[8]
+        );
+        assert!(lines[13].contains("EADDRINUSE"), "{}", lines[13]);
+        assert!(
+            lines[36].contains("Find the process on port 5173"),
+            "{}",
+            lines[36]
+        );
+        assert!(
+            lines[38].contains("~/work/acme/apps/frontend"),
+            "{}",
+            lines[38]
+        );
+        assert!(lines[38].contains("! exit 1 · 1 s"), "{}", lines[38]);
+        assert!(lines[39].contains("Esc Back to Here"), "{}", lines[39]);
+        assert!(
+            lines[39].contains("frontend dev failed · exit 1"),
+            "{}",
+            lines[39]
+        );
+        let file = plate.cell(12, 0);
+        assert_eq!(file.symbol(), "F");
+        assert!(!file.modifier.contains(termrock::Modifier::BOLD));
+        let tab = plate.cell(23, 2);
+        assert_eq!(tab.symbol(), "!");
+        assert_eq!(tab.fg, Color::Rgb(0xf0, 0x5d, 0x5d));
+        assert_eq!(tab.bg, Color::Rgb(0x27, 0x27, 0x2a));
+        let gutter = plate.cell(8, 36);
+        assert_eq!(gutter.symbol(), " ");
+        assert_eq!(gutter.fg, Color::Rgb(0, 0, 0));
+        let bang = plate.cell(89, 39);
+        assert_eq!(bang.symbol(), "!");
+        assert!(bang.modifier.contains(termrock::Modifier::BOLD));
+        assert_eq!(bang.fg, Color::Rgb(0xf0, 0x5d, 0x5d));
+        assert!(plate.diagnostics().is_empty(), "{:?}", plate.diagnostics());
+        let later = harness(
+            App::for_scenario(Scenario::LaunchFailure, Motion::Paused, 4_000),
+            Theme::junie(),
+            120,
+            40,
+        );
+        assert!(!later.text().contains("EADDRINUSE"));
+        assert!(later.text().contains("seed db"), "{}", later.text());
+        assert!(later.app().route == Route::Activity);
+        assert!(!crate::sim::catalogue::launch_failure_tag_frame(
+            &later.app().world
+        ));
+        let mut stepped = App::for_scenario(Scenario::LaunchFailure, Motion::Paused, 40);
+        assert!(termrock::App::accept_paused_clock_step(&mut stepped, 1_100));
+        assert!(!crate::sim::catalogue::launch_failure_tag_frame(
+            &stepped.world
+        ));
+        for scenario in [
+            Scenario::RemoteHost,
+            Scenario::ActivitiesMulti,
+            Scenario::MonorepoRoot,
+            Scenario::FirstUse,
+            Scenario::DockerCleanup,
+            Scenario::DiskCleanup,
+        ] {
+            let other = harness(
+                App::for_scenario(scenario, Motion::Paused, 40),
+                Theme::junie(),
+                120,
+                40,
+            );
+            assert!(!other.text().contains("EADDRINUSE"), "{}", scenario.name());
+            assert!(!crate::sim::catalogue::launch_failure_tag_frame(
+                &other.app().world
+            ));
+        }
     }
     #[test]
     fn activities_multi_frame_40_paints_the_tag_plate_and_later_seeks_keep_home() {
