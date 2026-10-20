@@ -367,6 +367,13 @@ impl<'f> Ui<'f> {
         self.inert || self.reference.is_some()
     }
 
+    /// Append a component-author diagnostic to this frame's bounded runtime
+    /// diagnostic stream. Diagnostics are committed with the frame and cannot
+    /// be cleared by an individual component.
+    pub fn diagnostic(&mut self, diagnostic: Diagnostic) {
+        self.frame.diagnostics.push(diagnostic);
+    }
+
     pub fn reference<R>(
         &mut self,
         target: Option<ReferenceTarget>,
