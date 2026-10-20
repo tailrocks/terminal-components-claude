@@ -443,7 +443,8 @@ fn paint_remote_host_status(ui: &mut Ui<'_>, area: Rect) {
 }
 
 /// Tag hard-cases status. The size label does not fit, so the row ends in `…`.
-/// 80×24 keeps only the path. Wider frames also show the git and docker marks.
+/// 80×24 keeps only the path. 100×30 keeps the git marks and centers the docker warning.
+/// Wider frames also show the conflict count and the rebase mark.
 fn paint_hard_cases_status(ui: &mut Ui<'_>, area: Rect) {
     if area.is_empty() {
         return;
@@ -460,24 +461,37 @@ fn paint_hard_cases_status(ui: &mut Ui<'_>, area: Rect) {
         paint_status_text(ui, area, mark_x, "…", STATUS_GREY, false);
         return;
     }
+    let mid = ui.full().width == 100 && ui.full().height == 30;
     for (text, fg, bold) in [
         (path.as_str(), STATUS_FG, true),
         ("↓14 ↑3", STATUS_LINK, false),
         ("• 7", STATUS_AMBER, false),
-        ("2 conflicts", STATUS_DANGER, false),
-        ("rebase", STATUS_AMBER, false),
     ] {
         x = paint_status_text(ui, area, x, text, fg, bold).saturating_add(STATUS_GAP);
     }
-    paint_status_text(
-        ui,
-        area,
-        x,
-        "! docker, github unavailable",
-        STATUS_DANGER,
-        false,
-    );
+    if !mid {
+        for (text, fg, bold) in [
+            ("2 conflicts", STATUS_DANGER, false),
+            ("rebase", STATUS_AMBER, false),
+        ] {
+            x = paint_status_text(ui, area, x, text, fg, bold).saturating_add(STATUS_GAP);
+        }
+    }
+    let warn = "! docker, github unavailable";
     let mark_x = area.right().saturating_sub(STATUS_EDGE).saturating_sub(1);
+    let warn_x = if mid {
+        let warn_w = termrock::width(warn);
+        let hi = mark_x.saturating_sub(STATUS_GAP);
+        let free = hi.saturating_sub(x);
+        if free >= warn_w {
+            x.saturating_add(free.saturating_sub(warn_w) / 2)
+        } else {
+            x
+        }
+    } else {
+        x
+    };
+    paint_status_text(ui, area, warn_x, warn, STATUS_DANGER, false);
     paint_status_text(ui, area, mark_x, "…", STATUS_GREY, false);
 }
 
@@ -1673,7 +1687,7 @@ impl App {
             && !self.menu.is_open()
         {
             let layer = tag_hints(confirm, status);
-            // 80×24 first-use, monorepo-root, monorepo-child, remote-host, and parity-discovery clip the last hint to a meta `…`. The 100×30 first-use, monorepo-root, monorepo-child, and remote-host plates do the same. Wider plates keep the theme overflow.
+            // 80×24 first-use, monorepo-root, monorepo-child, remote-host, hard-cases, and parity-discovery clip the last hint to a meta `…`. The 100×30 first-use, monorepo-root, monorepo-child, remote-host, and hard-cases plates do the same. Wider plates keep the theme overflow.
             let narrow = ui.full().width == 80 && ui.full().height == 24;
             let mid = ui.full().width == 100 && ui.full().height == 30;
             let monorepo_child_mid =
@@ -1693,10 +1707,17 @@ impl App {
                 self.home.history,
             )
             .is_some();
+            let hard_cases_mid = crate::sim::catalogue::hard_cases_100x30_plate(
+                &self.world,
+                ui.full().width,
+                ui.full().height,
+            )
+            .is_some();
             let parts = if monorepo_child_mid
                 || remote_host_mid
                 || first_use_mid
                 || monorepo_root_mid
+                || hard_cases_mid
                 || (narrow
                     && (crate::sim::catalogue::first_use_tag_frame(&self.world)
                         || crate::sim::catalogue::monorepo_root_tag_frame(&self.world)
@@ -3859,6 +3880,130 @@ mod tests {
         );
         assert!(catalogue::hard_cases_80x24_plate(&later.app().world, 80, 24).is_none());
         assert!(!catalogue::hard_cases_tag_frame(&later.app().world));
+    }
+    #[test]
+    fn hard_cases_100x30_frame_40_paints_the_mid_plate_and_later_seeks_keep_home() {
+        let plate = harness(
+            App::for_scenario(Scenario::HardCases, Motion::Paused, 40),
+            Theme::junie(),
+            100,
+            30,
+        );
+        let text = plate.text();
+        let lines: Vec<&str> = text.lines().collect();
+        assert!(
+            lines[0].contains("northwind-traders-platform-migrati…conciliation-core"),
+            "{}",
+            lines[0]
+        );
+        assert!(lines[0].contains("mbp · local"), "{}", lines[0]);
+        assert!(lines[7].contains("› Analyze disk usage"), "{}", lines[7]);
+        assert!(lines[7].contains("/ is 91% full"), "{}", lines[7]);
+        assert!(
+            lines[8].contains("Resolve the rebase in lazygit"),
+            "{}",
+            lines[8]
+        );
+        assert!(
+            lines[8].contains("rebase in progress · 2 conflicts"),
+            "{}",
+            lines[8]
+        );
+        assert!(
+            lines[19].contains("Parent · northwind-traders-platf…"),
+            "{}",
+            lines[19]
+        );
+        assert!(lines[20].contains("System · mbp"), "{}", lines[20]);
+        assert!(
+            lines[26].contains("→ 'holla disk analyze' · here · read-only"),
+            "{}",
+            lines[26]
+        );
+        assert!(
+            lines[28].contains("~/work/clients/northwind-trad…iation-service"),
+            "{}",
+            lines[28]
+        );
+        assert!(lines[28].contains("↓14 ↑3"), "{}", lines[28]);
+        assert!(lines[28].contains("• 7"), "{}", lines[28]);
+        assert!(
+            lines[28].contains("! docker, github unavailable"),
+            "{}",
+            lines[28]
+        );
+        assert!(!lines[28].contains("2 conflicts"), "{}", lines[28]);
+        assert!(!lines[28].contains("rebase"), "{}", lines[28]);
+        assert!(lines[29].contains("Enter Open"), "{}", lines[29]);
+        assert!(lines[29].contains("Ctrl+↑↓ Scope"), "{}", lines[29]);
+        assert!(!lines[29].contains("Ctrl+G"), "{}", lines[29]);
+        let selected = plate.cell(4, 7);
+        assert_eq!(selected.symbol(), "A");
+        assert_eq!(selected.bg, Color::Rgb(0x2f, 0x5a, 0xa8));
+        assert!(selected.modifier.contains(termrock::Modifier::BOLD));
+        let kind = plate.cell(39, 7);
+        assert_eq!(kind.symbol(), "d");
+        assert!(!kind.modifier.contains(termrock::Modifier::BOLD));
+        assert_eq!(kind.bg, Color::Rgb(0x2f, 0x5a, 0xa8));
+        let warn = plate.cell(65, 28);
+        assert_eq!(warn.symbol(), "!");
+        assert_eq!(warn.fg, Color::Rgb(0xf0, 0x5d, 0x5d));
+        let status_mark = plate.cell(98, 28);
+        assert_eq!(status_mark.symbol(), "…");
+        assert_eq!(status_mark.fg, Color::Rgb(0x8a, 0x8a, 0x8a));
+        let footer_mark = plate.cell(88, 29);
+        assert_eq!(footer_mark.symbol(), "…");
+        assert_eq!(footer_mark.fg, Color::Rgb(0x73, 0x73, 0x73));
+        assert!(plate.diagnostics().is_empty(), "{:?}", plate.diagnostics());
+        let world = &plate.app().world;
+        let view = catalogue::hard_cases_100x30_plate(world, 100, 30).expect("100x30 plate");
+        assert_eq!(catalogue::hard_cases_tag(world), Some(view));
+        assert!(catalogue::hard_cases_100x30_plate(world, 80, 24).is_none());
+        assert!(catalogue::hard_cases_100x30_plate(world, 120, 40).is_none());
+        assert!(catalogue::hard_cases_100x30_plate(world, 100, 31).is_none());
+        assert!(catalogue::hard_cases_100x30_plate(world, 99, 30).is_none());
+        assert!(catalogue::hard_cases_80x24_plate(world, 100, 30).is_none());
+        let wide = harness(
+            App::for_scenario(Scenario::HardCases, Motion::Paused, 40),
+            Theme::junie(),
+            120,
+            40,
+        );
+        let wide_text = wide.text();
+        let wide_lines: Vec<&str> = wide_text.lines().collect();
+        assert!(wide_lines[38].contains("2 conflicts"), "{}", wide_lines[38]);
+        assert!(wide_lines[38].contains("rebase"), "{}", wide_lines[38]);
+        assert!(
+            wide_lines[39].contains("Ctrl+G Activities"),
+            "{}",
+            wide_lines[39]
+        );
+        assert!(catalogue::hard_cases_100x30_plate(&wide.app().world, 120, 40).is_none());
+        let narrow = harness(
+            App::for_scenario(Scenario::HardCases, Motion::Paused, 40),
+            Theme::junie(),
+            80,
+            24,
+        );
+        let narrow_text = narrow.text();
+        let narrow_lines: Vec<&str> = narrow_text.lines().collect();
+        assert!(!narrow_lines[22].contains("↓14"), "{}", narrow_lines[22]);
+        assert!(catalogue::hard_cases_100x30_plate(&narrow.app().world, 80, 24).is_none());
+        let later = harness(
+            App::for_scenario(Scenario::HardCases, Motion::Paused, 4_000),
+            Theme::junie(),
+            100,
+            30,
+        );
+        assert!(
+            !later.text().contains("holla disk analyze"),
+            "{}",
+            later.text()
+        );
+        assert!(catalogue::hard_cases_100x30_plate(&later.app().world, 100, 30).is_none());
+        assert!(!catalogue::hard_cases_tag_frame(&later.app().world));
+        let other = App::for_scenario(Scenario::FirstUse, Motion::Paused, 40);
+        assert!(catalogue::hard_cases_100x30_plate(&other.world, 100, 30).is_none());
     }
     #[test]
     fn activities_multi_frame_40_paints_the_tag_plate_and_later_seeks_keep_home() {
