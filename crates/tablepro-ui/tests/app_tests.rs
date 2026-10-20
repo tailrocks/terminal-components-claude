@@ -7,6 +7,9 @@
     clippy::panic
 )]
 
+#[path = "common/tab_navigation.rs"]
+mod tab_navigation;
+
 use tablepro_ui::{
     CONNECTION_NAME, Catalog, Decision, Filter, FilterOp, History, HistoryTab, PendingEdits,
     QueryOutcome, ResultGrid, SafeMode, Screen, Surface, Tab, TableProApp, Value, complete,
@@ -29,6 +32,49 @@ fn ctrl_t_focuses_the_empty_query_editor_at_120x40() {
     let query = harness.app().query_id().expect("query tab");
     assert_eq!(harness.focus(), Some(query));
     assert_eq!(harness.app().surface(), Surface::QueryEditing);
+    let Some(Tab::Query(tab)) = harness.app().workbench.active() else {
+        panic!("the newly opened tab is a query")
+    };
+    assert!(tab.editor_state.editor().is_editing());
+    assert_eq!(tab.editor_state.editor().text(), "");
+
+    let _ = harness.key(KeyCode::Char('x'));
+    let Some(Tab::Query(tab)) = harness.app().workbench.active() else {
+        panic!("the query tab remains active")
+    };
+    assert!(tab.editor_state.editor().is_editing());
+    assert_eq!(harness.app().query(), "x");
+}
+
+#[test]
+fn preloaded_and_replaced_query_stays_unedited_until_component_focus() {
+    let mut app = connected();
+    let key = app
+        .workbench
+        .new_query("SELECT * FROM orders")
+        .expect("query tab");
+    let Some(Tab::Query(tab)) = app.workbench.tab(key) else {
+        panic!("new query is present")
+    };
+    assert!(!tab.editor_state.editor().is_editing());
+    assert_eq!(tab.editor_state.editor().text(), "SELECT * FROM orders");
+
+    let Some(Tab::Query(tab)) = app.workbench.tab_mut(key) else {
+        panic!("new query is present")
+    };
+    tab.replace_query("SELECT * FROM customers");
+    assert!(!tab.editor_state.editor().is_editing());
+    assert_eq!(tab.editor_state.editor().text(), "SELECT * FROM customers");
+
+    let mut harness = Harness::new(app, Theme::junie(), 120, 40);
+    let Some(id) = harness.app().query_id() else {
+        panic!("preloaded query remains available")
+    };
+    assert!(tab_navigation::tab_to(&mut harness, id));
+    let Some(Tab::Query(tab)) = harness.app().workbench.active() else {
+        panic!("the preloaded query is active")
+    };
+    assert!(tab.editor_state.editor().is_editing());
 }
 
 #[test]
@@ -387,7 +433,8 @@ fn keyboard_flow_full_journey() {
     let mut harness = Harness::new(TableProApp::default(), Theme::junie(), 120, 40);
     let _ = harness.key(KeyCode::Enter);
     let _ = harness.ctrl('t');
-    assert!(harness.tab_to(harness.app().query_id().expect("query id")));
+    let query_id = harness.app().query_id().expect("query id");
+    assert!(tab_navigation::tab_to(&mut harness, query_id));
     let _ = harness.type_str("SELECT * FROM customers LIMIT 3");
     let _ = harness.ctrl('r');
     assert!(harness.app().query().contains("customers"));
@@ -405,7 +452,7 @@ fn query_editor_keeps_multiline_unicode_and_cursor_through_resize() {
     let _ = harness.key(KeyCode::Enter);
     let _ = harness.ctrl('t');
     let query_id = harness.app().query_id().expect("new query editor");
-    assert!(harness.tab_to(query_id));
+    assert!(tab_navigation::tab_to(&mut harness, query_id));
 
     let _ = harness.type_str("SELECT '界🙂'");
     let _ = harness.key(KeyCode::Enter);
@@ -441,16 +488,38 @@ fn query_editor_keeps_multiline_unicode_and_cursor_through_resize() {
         first_item.iter().any(|cell| cell.symbol() == "T"),
         "the shared completion row renders its live table-kind glyph"
     );
-    let label_start = usize::from(popup_area.x.saturating_add(2));
+    let second_item_y = first_item_y.saturating_add(1);
+    assert_eq!(
+        harness
+            .cell(popup_area.x.saturating_add(2), second_item_y)
+            .symbol(),
+        "a"
+    );
+    assert_eq!(
+        harness
+            .cell(popup_area.x.saturating_add(9), second_item_y)
+            .symbol(),
+        "c"
+    );
+    assert!(
+        !format!(
+            "{:?}",
+            harness
+                .cell(popup_area.x.saturating_add(2), second_item_y)
+                .modifier
+        )
+        .contains("BOLD"),
+        "the second, unselected completion remains plain before its fuzzy match"
+    );
     assert!(
         format!(
             "{:?}",
             harness
-                .cell(u16::try_from(label_start).unwrap(), first_item_y)
+                .cell(popup_area.x.saturating_add(9), second_item_y)
                 .modifier
         )
         .contains("BOLD"),
-        "the provider's matched grapheme is emphasized in the real popup"
+        "the provider's matched grapheme is emphasized in the unselected popup row"
     );
     assert!(
         harness.diagnostics().is_empty(),
@@ -507,7 +576,7 @@ fn connection_form_keyboard_and_mouse_reach_every_field() {
     for (index, field) in fields.iter().enumerate() {
         let mut reached = false;
         for _ in 0..32 {
-            if harness.tab_to(field.id) {
+            if tab_navigation::tab_to(&mut harness, field.id) {
                 reached = true;
                 break;
             }
@@ -533,7 +602,7 @@ fn connection_password_is_masked_and_absent_from_the_frame() {
     let mut harness = Harness::new(TableProApp::default(), Theme::junie(), 120, 40);
     let _ = harness.ctrl('n');
     let fields = form_fields();
-    assert!(harness.tab_to(fields[6].id));
+    assert!(tab_navigation::tab_to(&mut harness, fields[6].id));
     let _ = harness.type_str("hunter2");
     assert!(!harness.text().contains("hunter2"));
     assert!(harness.diagnostics().is_empty());
@@ -588,7 +657,8 @@ fn no_diagnostics_are_emitted_during_the_journey() {
     let mut harness = Harness::new(TableProApp::default(), Theme::junie(), 120, 40);
     let _ = harness.key(KeyCode::Enter);
     let _ = harness.ctrl('t');
-    assert!(harness.tab_to(harness.app().query_id().expect("query id")));
+    let query_id = harness.app().query_id().expect("query id");
+    assert!(tab_navigation::tab_to(&mut harness, query_id));
     let _ = harness.type_str("SELECT * FROM orders LIMIT 1");
     let _ = harness.ctrl('r');
     let _ = harness.resize(96, 28);
