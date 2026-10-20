@@ -325,6 +325,12 @@ impl HomeState {
         {
             return;
         }
+        if let Some(view) =
+            catalogue::remote_host_100x30_plate(world, ui.full().width, ui.full().height)
+            && paint_tag_list_plate(ui, rows_area, &view, 100, 30)
+        {
+            return;
+        }
         if let Some(view) = catalogue::activities_multi_80x24_plate(
             world,
             ui.full().width,
