@@ -1,0 +1,162 @@
+{
+  "review_type": "Independent read-only Forms Stage2 implementation and regression plan; not implementation acceptance",
+  "candidate_commit": "ae32d3ff812aa436eb5d6c15eb155d9b8d59502a",
+  "frozen_baseline_commit": "4169783ae883788186d161af09ba9c481bd84e5c",
+  "source_hashes_sha256": {
+    "crates/termrock-forms/src/form.rs": "b9870c74bdc8c69dd830db80826e189041623151703bc748742ca166a5dea54e",
+    "crates/termrock-fields/src/textarea.rs": "78a4e6feac229f7e3827921cd47fe7d07df62515e90e5758839dd6465566934d",
+    "crates/termrock-collections/src/scroll.rs": "7b82f456e113263b3579a9b89a5729252f3a6d87bbe86e7c5137bc9b4b62cc1c",
+    "crates/termrock-runtime/src/ui/cx.rs": "74390188ad6a3158584e72c1723c7eb8881ce6d0962a03762bf6a5c392216c85"
+  },
+  "ownership": {
+    "review_copy": "/private/tmp/termrock-button-9cf76-review",
+    "product_edits": false,
+    "tests_run_for_this_plan": false,
+    "copy_status": {
+      "source_changes": [],
+      "target_artifact_changes_count": 1301,
+      "note": "Tracked target deletions pre-existed this plan. No source restoration, staging, cleanup or deletion performed."
+    }
+  },
+  "diagnosis": [
+    {
+      "path": "crates/termrock-forms/src/form.rs",
+      "lines": [
+        1435,
+        1453,
+        1570,
+        1585
+      ],
+      "finding": "Both linear and lane update paths queue a focused-field reveal on every update, then queue a Radio cursor reveal again. ScrollRegion wheel movement can therefore be undone during the following prepared layout even when focus/caret did not change."
+    },
+    {
+      "path": "crates/termrock-fields/src/textarea.rs",
+      "lines": [
+        1021,
+        1080
+      ],
+      "finding": "TextArea independently ensures its child scroll contains the caret and scrolls horizontally on every editing update. Its caret_source_row accessor supplies only a saturated source row, not cursor column or edit-follow intent. A Form-only row cache cannot prove frozen same-row movement/edit and nested child-wheel behavior."
+    },
+    {
+      "path": "crates/termrock-fields/src/input.rs",
+      "lines": [
+        90
+      ],
+      "finding": "TextAction omits navigation-only moves; Response.changed includes pointer mechanics. Neither is an adequate automatic-follow trigger by itself."
+    }
+  ],
+  "frozen_contract": [
+    {
+      "path": "src/ui/scroll_view.rs",
+      "lines": [
+        169,
+        528,
+        573
+      ],
+      "evidence": "ScrollView caches Followed { focus, target } in logical content coordinates; equal target returns without reveal. Priority is actual caret, then fitting focused control, then tall control gutter/first cell. Missing target clears cache. Parent scroll offset is not part of target."
+    },
+    {
+      "path": "src/ui/scroll_view_tests.rs",
+      "lines": [
+        199,
+        223
+      ],
+      "evidence": "Same focused clipped control after manual offset change stays at manual offset; changed focus follows. Changed list gutter row in a tall control follows."
+    },
+    {
+      "path": "src/widgets/textarea.rs",
+      "lines": [
+        643,
+        1405,
+        1430
+      ],
+      "evidence": "Child follows only when editing and follow_cursor requested, actual cursor changed, or resized. Manual scrolling persists until cursor motion/editing. Right and paste restore visibility; resize preserves long Unicode caret visibility."
+    }
+  ],
+  "approved_plan": {
+    "phase_2a_fields_owner": {
+      "files": [
+        "crates/termrock-fields/src/textarea.rs",
+        "focused Fields native/public regression tests",
+        "one audit record"
+      ],
+      "contract": "TextArea alone owns document editing and child scroll follow. Capture a pure logical caret descriptor and a follow request identity from its actual editor operations; do not make Form inspect EditBuffer, consume raw key bindings, or duplicate pointer/edit logic.",
+      "minimal_api_decision": "First demonstrate whether cursor row+column+editing transition and the existing typed outcome suffice for all frozen probes. If an edit-follow request cannot be observed without duplicating editor mechanics, add a small additive read-only descriptor carrying logical source caret, movement/edit-follow revision, and validity. Keep its document positions distinct from physical parent clipping. Do not expose mutable buffer or broaden TextAction semantics merely to transport geometry.",
+      "trigger_rules": [
+        "Beginning a real edit/focus session, actual cursor/selection navigation, accepted text edits/paste, actual pointer caret placement, and genuine logical child viewport resize may request child follow. Source the exact list from frozen editor operations and tests.",
+        "Wheel/track drag, hover, ticks, settlement and repeat update with identical editing state must not request follow. A physical parent window changing first_source_row or visible height must not masquerade as child resize.",
+        "Keep coordinate actions dependent on valid prepared geometry; keyboard/lifecycle input must remain available while a parent-clipped body is not rendered. Do not synthesize registrations/cursors.",
+        "Edit command API and menu-dispatched edits must use the same editor-owned request mechanism. Stage3 menu layout/routing remains separate."
+      ],
+      "compatibility": "Retain existing caret_source_row, public constructors, text actions, state ownership and zeroization. Any added private state participates in Clone/Eq/Debug/reset/cancel/sensitivity transitions as appropriate; it contains no secret text."
+    },
+    "phase_2b_forms_owner": {
+      "files": [
+        "crates/termrock-forms/src/form.rs",
+        "focused Forms public/native regressions",
+        "one audit record"
+      ],
+      "contract": "FormState alone owns automatic parent follow history, keyed by stable focused field Id and stable lane/scroll owner Id plus logical target kind/span/caret identity. Derive targets after the existing child update from the same pure placement plan used to resolve windows. Use one helper for linear and lane cases.",
+      "target_priority": "Explicit FormState::reveal request has documented one-shot precedence. Otherwise actual focused editing caret descriptor; focused Radio cursor/gutter row; fitting focused control span; tall focused control first/gutter row. Preserve frozen behavior with tests rather than assuming the current bottom-only reveal_index is an exact span implementation.",
+      "geometry_identity": "Use logical placement and actual logical viewport dimensions/width/reflow/lane identity. Exclude scroll offset, translated visible Rect, first_source_row, clipped child window, pointer position, update cause and time. Existing layout facts/plans should suffice; do not add a second runtime/layout system.",
+      "update_order": [
+        "Read valid resolved logical layout and update each existing ScrollRegion once.",
+        "Reconcile and update the actual child once; collect the active logical follow target and editor-owned request identity.",
+        "Compare against previous automatic follow record; queue a reveal only for a changed target, genuine geometry invalidation requiring follow, or explicit request. Do not queue a stale generic field reveal before a more specific target.",
+        "Store comparison state only in update, never draw/measure. Keep pending reveal scheduling in existing ScrollState. Preserve logical request while viewport zero; do not mark an unapplied target as fulfilled accidentally."
+      ],
+      "span_note": "ScrollState currently only queues one index. If a public probe shows bottom-only reveal loses the frozen full fitting-control span, implement the missing span operation once in the collection scrolling owner and use it from Form; do not build an application-local scroll routine.",
+      "lifecycle": [
+        "Clear stale records when focused owner disappears, field kind/state is replaced or field is hidden; preserve stable identity across reorder/lane reflow without associating history with an index.",
+        "Record actual focus transitions, including covered layer and restoration, using runtime ownership. Do not register an offscreen control to force focus/cursor; test existing runtime policy before promising it.",
+        "Include new private history in FormState Clone/Eq/Debug and clear it in reset/zeroize paths. Explicit validation reveal remains effective even for the same owner.",
+        "Viewport-only resize behavior needs a source-backed differential probe: frozen parent cache is focus+target, not an unconditional resize generation. Do not add a forced parent re-center on every resize without evidence. Child genuine resize follow is explicit in frozen source."
+      ]
+    },
+    "serialization": "Finish and review the Fields contract first if needed, then implement Form integration on that exact tip. One writer per component family; no concurrent changes to textarea.rs. No runtime input duplication or application painter changes."
+  },
+  "required_regressions": [
+    {
+      "case": "Parent wheel persistence",
+      "fixture": "Real public Form and lane Form, focus actual editable field through hit/Tab; wheel parent track/thumb with controlled wheel_rows=1.",
+      "assertions": "Offset changes and remains after repeated update, tick, hover, settle and draw. Assert actual TEXT cells/source rows and cursor absence when clipped. RED ae32 then GREEN same source."
+    },
+    {
+      "case": "Caret-follow identity",
+      "fixture": "After parent manual scroll, move Right on same source row; move vertically; type/paste; selection/navigation and actual pointer placement.",
+      "assertions": "Follow only real editor requests, correct original document edited, caret/hit/source row consistent. Pure row-only dedup must fail at least the same-row case."
+    },
+    {
+      "case": "Nested scrolling",
+      "fixture": "Long multiline document in taller logical TextArea clipped by short Form and each lane. Wheel child text and its scrollbar independently from parent.",
+      "assertions": "Child/parent offsets remain independent; child manual scroll persists until real caret/edit request; no re-follow loop as parent offset changes; check thumb partial clipping."
+    },
+    {
+      "case": "Focus and logical targets",
+      "fixture": "Fitting/tall fields, Radio cursor changes, Tab/ShiftTab, focus away/back, modal cover/restore, stable reordered fields and lanes, validation reveal twice.",
+      "assertions": "Changed target follows once; unchanged target does not; explicit reveal is not overwritten; no background or phantom focus registration."
+    },
+    {
+      "case": "Resize and invalid layout",
+      "fixture": "Actual Harness resize before next input; adjacent width/height, zero->nonzero, lane split/reflow, parent window top/bottom clipping.",
+      "assertions": "Geometry refreshed before coordinate input; pending reveal not lost at zero viewport; logical row/caret correct; viewport resize behavior matched to frozen, not assumed."
+    },
+    {
+      "case": "Text/safety/effects",
+      "fixture": "Unicode wide/combining, long horizontal text, empty, secret/read-only/disabled, narrow0/1 cells; repeated measure/draw.",
+      "assertions": "No panic/leak; no validators/domain mutations or input execution in measure/draw; one cursor only within actual rendered TEXT; original value and selection mechanics retained."
+    }
+  ],
+  "verification_and_limits": {
+    "current_status": "Plan only; no Stage2 implementation reviewed or accepted and no new behavioral tests executed in this planning turn.",
+    "reuse_stage1_evidence": "Stage1 ae32 packet 65294d31da48d2fb22b5dfd109c0d3ec120f347abe11853b23ea9d3183cb8840 covers eight public probes and 149 native tests only for logical TextArea windows, not follow correctness.",
+    "required_commands": "Use bounded cargo nextest partitions, scoped strict clippy and fmt. Preserve byte-identical RED/GREEN consumer probes and raw logs. Frozen real CLI paired captures remain a separate acceptance requirement.",
+    "excluded": [
+      "Stage3 edit-menu anchoring/scope work",
+      "TablePro private form replacement",
+      "Form/application full parity acceptance",
+      "Other component families and production replay removal"
+    ],
+    "stop_condition": "Both distinct viewport owners pass unchanged real-consumer regression probes against the pre-fix source and candidate; independent review of exact implementation plus focused checks, without waiving broader application gates."
+  }
+}
