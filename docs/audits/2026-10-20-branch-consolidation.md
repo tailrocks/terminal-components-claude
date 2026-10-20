@@ -4,6 +4,8 @@ Inventory snapshot: **96 remote branches**, observed 2026-10-20 16:07:32 UTC. Th
 
 The external companion at `E-ci-reference-catchall.json` contains all 97 live branch rows, the exact 96-branch starting inventory, and the A–E reports. It preserves each reviewer’s branch-level status and evidence. Reviewed sources can still be blocked, red, superseded, or pending integration; review does not equal merge or acceptance.
 
+This per-branch ledger supersedes coarse branch summaries in the migration matrix. It preserves bounded component work for selective integration even when an entire branch or an application parity gate remains unaccepted. The shared-style 94a/8e9/e72 work is represented by already-integrated 2863/e597 equivalents. Initial Button commit 7dab is superseded by the reviewed 673936/b0f8/2d stack. The full findings and source hashes remain in the branch reports.
+
 ## E findings
 
 PR #38 already pins Velnor Actions **0.1.29** at source commit `e7b2f088715379c22be473fab896a43d50cc16fc`, and `zizmor` 1.31.1. Its config sets `claude_md = "symlink"`, `crate_timeout_minutes = 15`, and excludes `tools/frozen-cli-frame-support/**`; generated `.github/AGENTS.md` identifies 0.1.29, and `.github/CLAUDE.md` is a symlink. This is candidate-specific generated output. Do not replace it with workflows generated for another branch's crate graph.
@@ -31,7 +33,7 @@ D reviewed 15 branches. No wholesale merge was recommended. Architecture checker
 
 A reviewed 23 branches. Four are bounded integration candidates, four are already integrated, 14 are superseded, and the dialog dismissal stack is blocked by a reproduced P1: a second close of a reopened layer generation loses its `CANCEL` action. Keep the dismissal integration blocked until the generation-specific fix passes independent probes.
 
-B reviewed 23 branches. It staged selective widget/runtime integrations and recorded architecture gaps. The Button source has known paired visual differences; composition and master-detail contracts still need proof in real application flows. The newly protected palette commit has unresolved attribution across 19 partitions, including seven failures needing base comparison; preserve it pending diagnosis.
+B reviewed 23 branches. It staged selective widget/runtime integrations and recorded architecture gaps. The Button source has known paired visual differences; composition and master-detail contracts still need proof in real application flows. The post-inventory palette source was protected as `636028fa`; parent follow-up commit `082ad5d3ab3b4b29e790f7b3e4ea21205a5719a0` reports four unchanged source/test blobs independently clear after attributing the full 19-crate failure set. Focused strict Clippy and formatting passed. Source review is clear; PR #38 integration remains pending.
 
 C reviewed 23 branches. TablePro picker and live-contract work, Showcase table work, and selected shared component migrations are staged behind dependencies and paired app proof. Archived monoliths, stale copies, and test-tool-only changes are excluded from app integration. `wip/termrock-reviewed-contract-integration-20261020` is routed to B for selective Button source review; its useful work is not blanket-rejected, and its whole branch is not approved.
 
