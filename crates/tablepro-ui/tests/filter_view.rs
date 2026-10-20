@@ -49,6 +49,50 @@ fn enter_on_status_shows_the_inline_editor() {
 }
 
 #[test]
+fn committed_status_edits_show_the_pending_bar() {
+    let mut app = TableProApp::default();
+    assert!(app.connect(0));
+    let mut harness = Harness::new(app, Theme::junie(), 120, 40);
+    for _ in 0..5 {
+        let _ = harness.key(KeyCode::Down);
+    }
+    let _ = harness.key(KeyCode::Enter);
+    let _ = harness.key(KeyCode::Home);
+    for _ in 0..4 {
+        let _ = harness.key(KeyCode::Right);
+    }
+    let _ = harness.key(KeyCode::Enter);
+    let _ = harness.ctrl('l');
+    let _ = harness.type_str("paid");
+    let _ = harness.key(KeyCode::Enter);
+    let _ = harness.key(KeyCode::Down);
+    let _ = harness.key(KeyCode::Enter);
+    let _ = harness.ctrl('l');
+    let _ = harness.type_str("shipped");
+    let _ = harness.key(KeyCode::Enter);
+    let text = harness.text();
+    assert!(text.contains("• 2 pending"), "{text}");
+    assert!(text.contains("· 2 updates"), "{text}");
+    assert!(text.contains("Preview SQL"), "{text}");
+    assert!(text.contains("Discard"), "{text}");
+    assert!(text.contains("paid"), "{text}");
+    assert!(text.contains("shipped"), "{text}");
+    assert!(harness.row(0).contains("• 2 pending"), "{}", harness.row(0));
+    assert!(harness.row(39).contains("Ctrl+S"), "{}", harness.row(39));
+    assert!(
+        !harness.row(39).contains("Select row"),
+        "{}",
+        harness.row(39)
+    );
+    assert!(harness.row(36).contains("rows 1–24"), "{}", harness.row(36));
+    assert!(
+        harness.diagnostics().is_empty(),
+        "{:?}",
+        harness.diagnostics()
+    );
+}
+
+#[test]
 fn keyboard_filter_keeps_status_pending_window() {
     let mut app = TableProApp::default();
     assert!(app.connect(0));
