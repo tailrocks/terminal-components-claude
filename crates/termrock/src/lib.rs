@@ -86,7 +86,7 @@ pub use termrock_core::id::{Id, ItemKey, Part, PartRef, Revision};
 pub use blocks::{
     MasterDetail, MasterDetailAction, MasterDetailError, MasterDetailPolicy, MasterDetailState,
 };
-pub use slots::PickerSlotExt;
+pub use slots::{DialogSlotExt, PickerSlotExt, PropsSlotExt};
 pub use termrock_runtime::ui::LayerSlot;
 pub use termrock_runtime::{
     Acc, ActivationFeedback, ActivationKey, App, ClockError, FeedbackClock, FeedbackClockError,
