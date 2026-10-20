@@ -1,6 +1,104 @@
 # Termrock migration and acceptance matrix
 
-Updated: 2026-10-20. Status: **in progress; all four applications incomplete**. This is the current migration record. Older audit reports remain evidence, not a complete inventory or acceptance declaration.
+## TablePro shared Grid row-to-cell styling — 2026-10-21
+
+Frozen Grid behavior resolves ordinary cells over their row style and replaces
+that style only for the ACTIVE cursor cell. The reusable Grid now resolves
+row recipes with explicit provenance, passes the resolved row channels into
+cell defaults, and preserves per-cell recipe overrides and modifier removal.
+Existing caller `part_defaults` are included for both ROW and CELL, including
+explicit `Clear` provenance when no higher-precedence recipe supplies that
+channel. Empty ACTIVE cells use the same complete-style replacement as
+populated ACTIVE cells. No TablePro-specific style or inset API
+was added.
+
+TablePro had been painting BOLD across the selected data row after Grid drew
+it, and repainted five cells at the beginning of the second visible column
+with the surface style. Both caller-side corrections are removed; Grid owns
+row/cell styling and its existing column geometry. The real-app regression
+`unfocused_grid_cursor_does_not_style_the_cursor_row` failed before removal
+(on the exact `9b4aae59b5c006e64b3791fa15804f6411633e4d` source) and passes
+after. Grid-focused styling, ACTIVE precedence, cell channel overrides and
+modifier removal pass in all four color levels.
+
+Validation on merged source `df30dc0`: `cargo nextest run -p termrock-grid
+--all-targets` passes 133/133. Real Grid buffer regressions cover unfocused/active cursor row inheritance,
+empty cells, explicit row and cell `Clear`, recipe-over-default precedence,
+and deleted-row strike-through.
+The TablePro unfocused-cursor and deleted-row strike regressions pass; the
+latter initially failed with inherited styling, was corrected to preserve the
+row's deletion strike unless CELL explicitly removes it, and now passes. `cargo nextest run -p
+tablepro-ui --all-targets` runs 184 tests: 173 pass and 11 fail. Remaining
+failures are `explain_orders_shows_a_plan_cell_the_error_frame_hides`,
+`close_only_binds_target_but_quit_binds_every_tab`,
+`frame_tablepro_grid_500x14_120x40`, `query_and_inline_drafts_survive_cancel_without_commit`,
+`result_confirmation_rejects_changed_sql_and_vanished_target_is_noop`,
+`inserting_after_five_hundred_rows_reveals_the_new_owned_record`,
+`result_confirmation_cancel_preserves_inline_draft_and_confirm_targets_captured_tab`,
+`uppercase_u_requires_confirmation_and_preserves_sql_and_other_tab`,
+`plain_u_in_sql_editor_is_text_and_leaves_inactive_table_pending`,
+`tablepro_visual_baseline`, and
+`focused_query_identity_and_draft_survive_earlier_insert_close_and_reorder`.
+Against the exact `df30dc0` source with this change's four files restored,
+TablePro has 183 tests: 172 pass and 11 fail. The candidate has 184 tests:
+173 pass and 11 fail, with the exact same failure names; the added real-app
+regression passes. Grid strict Clippy passes. Combined Grid/TablePro strict
+Clippy is blocked by `tablepro-domain::Tab` large-enum-variant lint at
+`tabs.rs:315` (this task changed no domain source). Scoped formatting is
+checked separately. Full
+product parity remains incomplete; no paired visual approval is claimed.
+
+An independent Grid review then found semantic underline provenance was lost
+when the resolved row underline was converted to a raw Custom color for CELL
+defaults. `PaintStyle` now retains the bound underline role and surface through
+canonical resolution; Grid reuses that role for ordinary cell inheritance,
+while raw underline replacement clears the provenance. ACTIVE cells explicitly
+reset an inherited underline only when their own resolved style has none. No
+global downgrade behavior changed. The regression covers populated and empty
+cells at TrueColor, ANSI-256, ANSI-16, and Mono. With provenance propagation
+disabled, the test fails in Mono (White cell underline vs Gray row underline);
+with the fix, focused Grid tests pass. `cargo nextest run -p termrock-theme -p
+termrock-grid --all-targets` passes 263/263; strict scoped Clippy and fmt pass.
+
+After normal-merging PR #38 source `25f5792666cefcb1d51d56fcb973fd06a15b8741`,
+`cargo nextest run -p tablepro-ui --all-targets` was run on the merged candidate
+and on the merged PR source with the four Grid-owned source/test files restored.
+The candidate had 184 tests (173 pass, 11 fail); the source base had 183
+(172 pass, 11 fail). Both runs failed the exact same 11 test names listed
+above. The TablePro Grid-cursor regression is the one added passing test. This
+comparison is limited to TablePro nextest and does not establish product parity.
+
+Superseding the 25f attribution above, PR source `1dbf3b2caa429a49ec1a38fba641735a3890b918`
+removes the historical completion-popup case and has 181 TablePro tests (170
+pass, 11 fail) with this Grid change's four files restored. The merged candidate
+has 182 tests (171 pass, 11 fail); the 11 failing names are identical. The new
+single passing test is `unfocused_grid_cursor_does_not_style_the_cursor_row`.
+This remains a focused regression comparison, not application acceptance.
+
+Superseding the `1dbf3b2c` attribution above, PR source
+`d371d8f4460d940c2fc460bc3b0a1e79924e9265` removes the historical scrolled
+TablePro grid module. With the four Grid-owned source/test files restored,
+`cargo nextest run -p tablepro-ui --all-targets` runs 180 tests (169 pass, 11
+fail). The merged candidate runs 181 tests (170 pass, 11 fail); both runs have
+the exact same 11 failure names above. The added passing test is
+`unfocused_grid_cursor_does_not_style_the_cursor_row`. Grid/theme remains 263/263
+on this merged source. No product parity acceptance is implied.
+
+Updated: 2026-10-21. Status: **in progress; all four applications incomplete**. This is the current migration record. Older audit reports remain evidence, not a complete inventory or acceptance declaration.
+
+## CI feature-gate increment — 2026-10-21
+
+Velnor Actions 0.1.29 now has a named `testing` Rust configuration while the
+existing `default` configuration stays unchanged. The generated `termrock`
+test task enables the facade `testing` feature and discovers the gated button,
+text-input, slots, and split-block consumer binaries. The generated command
+ran 13 tests across six binaries (13 passed, 0 skipped); actionlint and zizmor
+also passed. Generator 0.1.29 reports explicit default-feature fallbacks for
+packages with no matching feature and does not put `testing` in their Cargo
+argv. Its generated doctest jobs still use `cargo test --doc`, which conflicts
+with the repository's nextest-only rule and remains unresolved. See the
+[CI testing-configuration audit](../audits/2026-10-21-velnor-testing-configuration.md).
+This does not establish full CI or product acceptance.
 
 ## TablePro query results 120×40 truecolor — 2026-10-21
 
@@ -14,6 +112,21 @@ Still red on this scenario: `120x40` 256 (569 cells, tab rule `#444444` vs
 `100x30` 1472, `160x50` 2284, `72x20` footer clips `Ctrl+X Explain`. `40x12`
 and `60x18` boot on the 72×20 too-small gate, so `Query 1` never appears.
 Full visual runs and `origin/main` are not done.
+
+## TablePro query completion 120×40 truecolor — 2026-10-21
+
+`tablepro/query/completion/120x40` truecolor matches. The editor line, the
+four-row catalog menu, and the EDIT footer come from the live completion
+batch. The ANSI stamp module is removed. Results `120x40` truecolor stays
+green on the same tree. The menu geometry is still the 120×40 truecolor
+frame. Nocolor reaches the menu and differs by 125 cells (no reverse
+video). Other completion sizes and color levels are not claimed.
+
+## TablePro scrolled-right 120×40 truecolor — 2026-10-21
+
+`tablepro/table/scrolled_right/120x40` truecolor matches with the live grid.
+The ANSI stamp is removed. The cursor stays on `updated_at` and the window
+shows `‹11`. Other sizes of this scenario are not claimed.
 
 ## TablePro data 120×40 color levels — 2026-10-20
 
@@ -138,7 +251,7 @@ Audit searched production crates for `historical_*`, `*_plate`, `RUNS`, ANSI inc
 | --- | --- | --- |
 | `crates/jackin-preview-app/src/app/historical_*.rs` (41 replay files: `historical_accounts_add_form`, `historical_accounts_add_form_required`, `historical_accounts_detail`, `historical_accounts_detail_80`, `historical_accounts_drawer`, `historical_accounts_filter`, `historical_accounts_filter_80`, `historical_audit_accounts_80`, `historical_capsule_menu`, `historical_capsule_menu_80`, `historical_capsule_new_tab`, `historical_capsule_palette`, `historical_capsule_split_vertical`, `historical_capsule_zoom`, `historical_cockpit_cancel`, `historical_cockpit_info`, `historical_editor`, `historical_editor_auth`, `historical_editor_env`, `historical_editor_mounts`, `historical_editor_mounts_dirty`, `historical_editor_roles`, `historical_editor_save`, `historical_hard_cases_80`, `historical_hard_launch_locked`, `historical_hard_launch_picker`, `historical_help_overlay`, `historical_inspect`, `historical_intro_f300`, `historical_launch_picker`, `historical_manager_menu`, `historical_settings_agents`, `historical_settings_env`, `historical_settings_mounts`, `historical_settings_mounts_80`, `historical_settings_route`, `historical_settings_route_80`, `historical_settings_save`, `historical_settings_trust`, `historical_usage_detail`, `historical_usage_overview`) | `RUNS` arrays encode positioned text and colors; paint those cells after scenario/state/viewport selection. These are production captured-frame replays. `historical_paint.rs` is a separate historical style-recipe helper, not a `RUNS` frame; review it as theme ownership, not as proven replay. Likewise Showcase `historical_palette` functions return semantic theme styles; the name alone does not establish frame replay. | Move behavior into shared widgets/blocks and feed Jackin domain data/actions. All 41 replay files remain unresolved unless removed with a paired journey. |
 | `crates/jackin-preview-presentation/src/{capsule.rs,launch_running.rs}` | Separate presentation-level positioned `RUNS` renderers; proves replay is not limited to app crate. | Shared component composition; unresolved. |
-| `crates/tablepro-ui/src/app.rs` and 7 `crates/tablepro-ui/src/app/historical_*.rs` modules (`historical_form_advanced`, `historical_form_new`, `historical_history_tab`, `historical_query_completion`, `historical_table_scrolled_right`, `historical_workbench_explorer_hidden`, `historical_workbench_maximized`) | Production predicates select fixed scenario/size/state frames; modules parse `RUNS` from `include_str!` ANSI or hold fixed runs; app repaints after normal UI. | Quick-open, tab list, and Safe Mode use `Picker`. Help uses `HelpOverlay`. Delete connection and close-tab confirmation use `Dialog`. The filter editor uses shared overlay chrome plus `TextInput`. A failed query paints the editor, result tab, and error card from the statement error. Explain and explain-analyze paint the editor and the plan strip from the plan tree. Query results paints the editor, chip, and grid from the executed result. Those replay modules are removed. The 7 modules above are still unresolved. `historical_empty_query` is also a production selection predicate and needs source-level replacement review. |
+| `crates/tablepro-ui/src/app.rs` and 5 `crates/tablepro-ui/src/app/historical_*.rs` modules (`historical_form_advanced`, `historical_form_new`, `historical_history_tab`, `historical_workbench_explorer_hidden`, `historical_workbench_maximized`) | Production predicates select fixed scenario/size/state frames; modules parse `RUNS` from `include_str!` ANSI or hold fixed runs; app repaints after normal UI. | Quick-open, tab list, and Safe Mode use `Picker`. Help uses `HelpOverlay`. Delete connection and close-tab confirmation use `Dialog`. The filter editor uses shared overlay chrome plus `TextInput`. A failed query paints the editor, result tab, and error card from the statement error. Explain and explain-analyze paint the editor and the plan strip from the plan tree. Query results paints the editor, chip, and grid from the executed result. Query completion paints the editor line, catalog menu, and EDIT footer from the completion batch. Those replay modules are removed. Scrolled-right orders uses the live grid window. The 5 modules above are still unresolved. `historical_empty_query` is also a production selection predicate and needs source-level replacement review. |
 | `crates/showcase-demos/src/pages/chrome.rs` | At source `0b8f4e32`, `MEDIUM_100X30` is explicitly copied from an approved snapshot; `paint_medium_100x30` writes its positioned cell tuples and dispatch selects exact 79×26 page dimensions. Additional narrow/wide render paths need the same purpose audit. | Real shared chrome/menu/workspace components and responsive composition; unresolved. |
 | `crates/showcase-demos/src/pages/selectable/{frames.rs,delete_confirm.ansi,bulk_mixed.ansi}` | Imports two approved ANSI frames, decodes cells, resets and writes raw buffer for selectable demo cases. | Real shared selectable/table/list components with inert reference-state data; unresolved. |
 | `crates/holla-sim/src/catalogue.rs` plus `crates/holla-ui/src/screens/home.rs` | Scenario and exact viewport/time `*_plate` dispatch selects named fixture view; home helpers paint dedicated fixed families, including parity files/browser and tag lists. Some catalogue functions build semantic domain view data, so review each function before removing it; exact dimension/time selection plus direct plate painters are not accepted as final architecture. | Shared Holla screens/components driven by simulation state and domain view data; unresolved. |
