@@ -104,7 +104,7 @@ fn button_variant(m: &mut PartMap<PartRecipe>, v: Variant) {
         Variant::DANGER => part(
             m,
             Part::CONTAINER,
-            p().set_fg(Role::Danger)
+            p().set_fg(Role::Custom(Color::from_u32(0x00ff_6b6b)))
                 .set_bg(Role::Surface(Surface::Overlay)),
         )
         .when(
@@ -175,9 +175,16 @@ fn button_variant(m: &mut PartMap<PartRecipe>, v: Variant) {
     } else {
         Role::Focus
     };
-    part(m, Part::GUTTER, p()).when(
+    let gutter = if v == Variant::DANGER {
+        p().set_fg(Role::Surface(Surface::Overlay))
+    } else {
+        p()
+    };
+    part(m, Part::GUTTER, gutter).when(
         StateFlags::FOCUSED,
-        p().set_glyph(GlyphRole::FocusBar).set_fg(gutter_fg),
+        p().set_glyph(GlyphRole::FocusBar)
+            .set_fg(gutter_fg)
+            .remove(Modifier::BOLD),
     );
     part(m, Part::LABEL, p());
     part(m, Part::ICON, p());
