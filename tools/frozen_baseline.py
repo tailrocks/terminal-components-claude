@@ -311,7 +311,7 @@ def prepare_live_source(repo: Path, root: Path, source: Path, timeout: int) -> d
     if digest_tree(live / "snapshots") != snapshot_hash:
         raise RunnerError("live source snapshot copy differs from frozen snapshots")
     freeze_tree_readonly(live / "snapshots")
-    run(["patch", "--batch", "--forward", "-p1", "-i", str(patch_path.resolve())], cwd=live, timeout=timeout, quiet=True)
+    run(["patch", "--batch", "--forward", "-V", "none", "-p1", "-i", str(patch_path.resolve())], cwd=live, timeout=timeout, quiet=True)
     module = live / "tests" / "visual_baseline" / "frozen_cli_pair.rs"
     extension_module = live / "tests" / "visual_baseline" / "frozen_cli_extensions.rs"
     extension_manifest_copy = live / "tests" / "visual_baseline" / "frozen_cli_extensions.json"
@@ -988,7 +988,7 @@ def validate_extension_checkpoint_receipts(selected: list[str], receipts: dict[t
         case = scenario_receipt_id(test_name, extension_manifest)
         actual = [(ordinal, logical) for receipt_case, ordinal, logical in receipts if receipt_case == case]
         actual.sort()
-        expected = list(enumerate(obligations[test_name]))
+        expected = list(enumerate(f"{test_name}/{stage}" for stage in obligations[test_name]))
         if actual != expected:
             raise RunnerError(f"extension checkpoint obligations differ for {test_name}: expected={expected}, got={actual}")
     return []
@@ -1022,7 +1022,7 @@ def validate_chunk_coverage(selected: list[str], records: list[dict[str, object]
         raise RunnerError(f"chunk partition contains failed or unfinished chunks: {failed}")
 
 
-def run_live_chunk(live: Path, root: Path, run_root: Path, phase: str, bins: Path, expected_root: Path, selected: list[str], index: int, timeout: int) -> dict[str, object]:
+def run_live_chunk(live: Path, root: Path, run_root: Path, phase: str, bins: Path, expected_root: Path, selected: list[str], index: int, timeout: int, extension_manifest: dict[str, object] | None = None) -> dict[str, object]:
     chunk_name = f"chunk-{index:05}"
     chunk_root = run_root / phase / chunk_name
     receipt_root = chunk_root / "receipts"
@@ -1065,7 +1065,7 @@ def run_live_chunk(live: Path, root: Path, run_root: Path, phase: str, bins: Pat
     receipts: dict[tuple[str, int, str], str] = {}
     if failure is None:
         try:
-            receipts = read_receipts(receipt_root, [scenario_case_id(name) for name in selected], expected_root)
+            receipts = read_receipts(receipt_root, [scenario_receipt_id(name, extension_manifest) for name in selected], expected_root)
         except RunnerError as error:
             failure = str(error)
     artifact_digest = None
@@ -1222,16 +1222,16 @@ def compare_live(repo: Path, candidate_repo: Path, root: Path, baseline_bins: Pa
         phase_chunks = []
         for index, names in enumerate(chunks):
             try:
-                phase_chunks.append(run_live_chunk(live, root, run_root, phase, bins, expected_root, names, index, timeout))
+                phase_chunks.append(run_live_chunk(live, root, run_root, phase, bins, expected_root, names, index, timeout, extension_manifest))
             except RunnerError as error:
                 phase_chunks.append({"chunk": index, "status": "failed", "failure": str(error), "selected_cases": names})
-                report = {"tag_object": BASELINE_TAG_OBJECT, "baseline_commit": BASELINE_COMMIT, "tuiscotti_rev": TUISCOTTI_REV, "live_source": live_record, "candidate_revision": candidate["revision"], "candidate_source_tree": candidate["source_tree"], "candidate_dirty_fingerprint": candidate["dirty_fingerprint"], "candidate_binaries": candidate["binaries"], "case_selection": "all registered scenarios" if all_cases else "explicit cases", "selection_completeness": "complete registered scenarios pending integrity checks" if all_cases else "partial", "acceptance_complete": False, "selected_case_count": len(selected), "test_inventory_sha256": inventory_digest(inventory), "phase": phase, "phase_chunks": phase_chunks, "remaining_chunks": len(chunks) - index - 1}
+                report = {"tag_object": BASELINE_TAG_OBJECT, "baseline_commit": BASELINE_COMMIT, "tuiscotti_rev": TUISCOTTI_REV, "live_source": live_record, "candidate_revision": candidate["revision"], "candidate_source_tree": candidate["source_tree"], "candidate_dirty_fingerprint": candidate["dirty_fingerprint"], "candidate_binaries": candidate["binaries"], "case_selection": "all registered scenarios" if all_cases else "explicit cases", "selection_completeness": "complete registered scenarios pending integrity checks" if all_cases else "partial", **cli_coverage_report_fields(False), "selected_case_count": len(selected), "test_inventory_sha256": inventory_digest(inventory), "phase": phase, "phase_chunks": phase_chunks, "remaining_chunks": len(chunks) - index - 1}
                 (run_root / "report.json").write_text(json.dumps(report, indent=2) + "\n")
                 raise RunnerError(f"{phase} stopped at {index + 1}/{len(chunks)} chunks; evidence saved at {run_root}: {error}")
         try:
             validate_chunk_coverage(selected, phase_chunks, chunk_size)
         except RunnerError as error:
-            failed_report = {"tag_object": BASELINE_TAG_OBJECT, "baseline_commit": BASELINE_COMMIT, "tuiscotti_rev": TUISCOTTI_REV, "live_source": live_record, "candidate_revision": candidate["revision"], "candidate_source_tree": candidate["source_tree"], "candidate_dirty_fingerprint": candidate["dirty_fingerprint"], "candidate_binaries": candidate["binaries"], "case_selection": "all registered scenarios" if all_cases else "explicit cases", "selection_completeness": "partial", "acceptance_complete": False, "selected_scenario_count": len(selected), "test_inventory_sha256": inventory_digest(inventory), "phase": phase, "phase_chunks": phase_chunks, "failure": str(error)}
+            failed_report = {"tag_object": BASELINE_TAG_OBJECT, "baseline_commit": BASELINE_COMMIT, "tuiscotti_rev": TUISCOTTI_REV, "live_source": live_record, "candidate_revision": candidate["revision"], "candidate_source_tree": candidate["source_tree"], "candidate_dirty_fingerprint": candidate["dirty_fingerprint"], "candidate_binaries": candidate["binaries"], "case_selection": "all registered scenarios" if all_cases else "explicit cases", "selection_completeness": "partial", **cli_coverage_report_fields(False), "selected_scenario_count": len(selected), "test_inventory_sha256": inventory_digest(inventory), "phase": phase, "phase_chunks": phase_chunks, "failure": str(error)}
             (run_root / "report.json").write_text(json.dumps(failed_report, indent=2) + "\n")
             raise RunnerError(f"{phase} chunk partition incomplete; report saved at {run_root}: {error}")
         phase_summary: dict[str, object] = {"phase": phase, "status": "passed", "selected_cases": len(selected), "chunks": phase_chunks, "elapsed_seconds": round(time.monotonic() - started, 2)}
@@ -1248,7 +1248,7 @@ def compare_live(repo: Path, candidate_repo: Path, root: Path, baseline_bins: Pa
             phase_summary["status"] = "failed"
             phase_summary["failure"] = str(error)
             phase_reports = [{key: value for key, value in item.items() if key != "receipts"} for item in [*phases, phase_summary]]
-            failure_report = {"tag_object": BASELINE_TAG_OBJECT, "baseline_commit": BASELINE_COMMIT, "tuiscotti_rev": TUISCOTTI_REV, "live_source": live_record, "candidate_revision": candidate["revision"], "candidate_source_tree": candidate["source_tree"], "candidate_dirty_fingerprint": candidate["dirty_fingerprint"], "candidate_binaries": candidate["binaries"], "case_selection": "all registered scenarios" if all_cases else "explicit cases", "selection_completeness": "partial", "acceptance_complete": False, "selected_scenario_count": len(selected), "test_inventory_sha256": inventory_digest(inventory), "phases": phase_reports, "artifacts_root": str(run_root)}
+            failure_report = {"tag_object": BASELINE_TAG_OBJECT, "baseline_commit": BASELINE_COMMIT, "tuiscotti_rev": TUISCOTTI_REV, "live_source": live_record, "candidate_revision": candidate["revision"], "candidate_source_tree": candidate["source_tree"], "candidate_dirty_fingerprint": candidate["dirty_fingerprint"], "candidate_binaries": candidate["binaries"], "case_selection": "all registered scenarios" if all_cases else "explicit cases", "selection_completeness": "partial", **cli_coverage_report_fields(False), "selected_scenario_count": len(selected), "test_inventory_sha256": inventory_digest(inventory), "phases": phase_reports, "artifacts_root": str(run_root)}
             (run_root / "report.json").write_text(json.dumps(failure_report, indent=2) + "\n")
             raise RunnerError(f"{phase} phase incomplete; evidence saved at {run_root}: {error}")
         phases.append(phase_summary)
@@ -1298,7 +1298,7 @@ def compare_live(repo: Path, candidate_repo: Path, root: Path, baseline_bins: Pa
                 "candidate_binaries": candidate["binaries"],
                 "case_selection": "all registered scenarios",
                 "selection_completeness": "incomplete",
-                "acceptance_complete": False,
+                **cli_coverage_report_fields(False),
                 "selected_scenario_count": len(selected),
                 "test_inventory_sha256": inventory_digest(inventory),
                 "ordinary_failure": str(error),
