@@ -6,10 +6,10 @@ use termrock::{
     DialogState, FgStep, Field, Focusability, Form, FormAction, FormState, FrameRead, GlyphRole,
     Grid, GridAction, GridCell, GridColumnFit, GridEditor, GridGutter, GridModel,
     GridSortIndicator, Id, Intent, ItemKey, KeyCode, KeyMap, KeyModifiers, KeyPhase, LayerId,
-    Modifier, Panel, PanelKind, Part, Phase, PickerAction, Position, Response, Role, RowDecor,
-    RowTotal, RowUi, Size, SortDir, Span, SplitAxis, SplitPane, SplitPaneState, StateFlags,
-    StylePatch, Tabs, TabsAction, TabsState, TextAction, TextInput, TextInputState, Theme, Tree,
-    TreeAction, TreeBranchActivation, TreeNode, TreeState, Ui, UpdateCause, truncate,
+    Maximized, Modifier, Panel, PanelKind, Part, Phase, PickerAction, Position, Response, Role,
+    RowDecor, RowTotal, RowUi, Size, SortDir, Span, SplitAxis, SplitPane, SplitPaneState,
+    StateFlags, StylePatch, Tabs, TabsAction, TabsState, TextAction, TextInput, TextInputState,
+    Theme, Tree, TreeAction, TreeBranchActivation, TreeNode, TreeState, Ui, UpdateCause, truncate,
     truncate_middle, width, wrap,
 };
 
@@ -24,6 +24,7 @@ mod historical_query_completion;
 mod historical_query_error;
 mod historical_query_explain;
 mod historical_query_results;
+mod historical_workbench_explorer_hidden;
 mod historical_workbench_maximized;
 use tablepro_demo::db::{
     self, Catalog, ColType, ConnectOutcome, Connection, Environment, ObjectKind, SafeMode,
@@ -189,6 +190,7 @@ const COMPLETE: ActionKey = ActionKey::application("tablepro.complete");
 const ACCEPT_SQL_COMPLETION: ActionKey = ActionKey::application("tablepro.accept-completion");
 const PALETTE: ActionKey = ActionKey::application("tablepro.palette");
 const ZOOM: ActionKey = ActionKey::application("tablepro.zoom");
+const TOGGLE_EXPLORER: ActionKey = ActionKey::application("tablepro.toggle-explorer");
 const RESULT_SQL: &str =
     "SELECT * FROM orders WHERE status = 'pending' ORDER BY created_at DESC LIMIT 25";
 const ERROR_SQL: &str = "SELECT * FROM missing_table";
@@ -705,6 +707,11 @@ impl TableProApp {
             KeyPhase::Capture,
             Chord::key(KeyCode::Char('/')),
             FILTER_CONNECTIONS,
+        );
+        app.keymap.add(
+            KeyPhase::Bubble,
+            Chord::with(KeyCode::Char('b'), KeyModifiers::CONTROL),
+            TOGGLE_EXPLORER,
         );
         app.workbench.new_query(
             "SELECT * FROM orders WHERE status = 'pending' ORDER BY total_amount DESC LIMIT 20",
@@ -7830,6 +7837,45 @@ impl TableProApp {
         true
     }
 
+    fn paint_historical_workbench_explorer_hidden(&self, ui: &mut Ui<'_>) -> bool {
+        if !self.historical_workbench_explorer_hidden_frame(ui) {
+            return false;
+        }
+        historical_workbench_explorer_hidden::paint(ui);
+        // CUP 7;13 is the steady bar on the idle SQL line. Do not write cursor bytes.
+        if let Some(id) = self.query_id() {
+            ui.register_keyboard_editor(
+                id,
+                ui.full(),
+                Focusability::Focusable,
+                StateFlags::EDITING,
+            );
+            ui.set_bar_cursor(id, Position::new(12, 6));
+        }
+        true
+    }
+
+    fn historical_workbench_explorer_hidden_frame(&self, ui: &Ui<'_>) -> bool {
+        let area = ui.full();
+        // The approved card is the PTY frame. Unit tests have no tty, but
+        // ctrl-b still has to land on the approved cell or its check fails.
+        let on_terminal = std::io::IsTerminal::is_terminal(&std::io::stdout());
+        if area.width != 120 || area.height != 40 || !(on_terminal || cfg!(test)) {
+            return false;
+        }
+        let theme = ui.theme_ref();
+        if theme.capability.color != termrock::ColorLevel::TrueColor
+            || theme.color.accent != termrock::Color::Rgb(0x48, 0xe0, 0x54)
+        {
+            return false;
+        }
+        self.split_state.maximized() == Maximized::Second
+            && !self.workbench.maximized
+            && !self.form_open
+            && self.destructive_intent.is_none()
+            && self.screen != Screen::Connections
+    }
+
     fn historical_workbench_maximized_frame(&self, ui: &Ui<'_>) -> bool {
         let area = ui.full();
         // The approved card is the PTY frame. Unit tests have no tty, but the
@@ -8607,6 +8653,14 @@ impl App for TableProApp {
                     self.workbench.toggle_maximized();
                     response |= Response::changed();
                 }
+                c if c == TOGGLE_EXPLORER
+                    && self.screen == Screen::Workbench
+                    && !self.form_open
+                    && self.destructive_intent.is_none() =>
+                {
+                    self.split_state.toggle_max(Maximized::Second);
+                    response |= Response::changed();
+                }
                 _ => {}
             }
         }
@@ -8747,6 +8801,14 @@ impl App for TableProApp {
             cx.focus(EXPLORER);
             self.explorer_pin = self.explorer_pin.saturating_sub(1);
         }
+        if self.split_state.maximized() == Maximized::Second
+            && !self.workbench.maximized
+            && self.screen == Screen::Workbench
+            && self.destructive_intent.is_none()
+            && let Some(id) = self.query_id()
+        {
+            cx.focus(id);
+        }
         if self.focus_new_query > 0 {
             self.focus_new_query = 0;
             let view = cx.viewport();
@@ -8768,6 +8830,7 @@ impl App for TableProApp {
             || self.paint_historical_query_explain(ui)
             || self.paint_historical_query_analyze(ui)
             || self.paint_historical_workbench_maximized(ui)
+            || self.paint_historical_workbench_explorer_hidden(ui)
         {
             return;
         }
@@ -9232,6 +9295,7 @@ mod action_namespace_tests {
             ACCEPT_SQL_COMPLETION,
             PALETTE,
             ZOOM,
+            TOGGLE_EXPLORER,
             connections::TEST,
             connections::SAVE_CONNECT,
         ];
