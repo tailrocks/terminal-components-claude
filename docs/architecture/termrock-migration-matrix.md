@@ -961,6 +961,8 @@ The preceding palette integrity/field-hover increment and modal/capture audit re
 
 ## PR #38 landing-queue integration onto parity/termrock-visual-baseline (2026-10-21)
 
+Imported author report for its historical landing-queue snapshot, not independent acceptance evidence. Later parent integration records supersede its hold list: the reviewed Fields, Steps, and other listed sources have since landed where explicitly recorded above. This report does not clear current application parity or its referenced changes without independent review.
+
 Ordered cherry-pick integration of the cleared landing queue. Pushed tip sequence: `8a8e28300` → `499cec504` → `efda9593a` → `2d66ea9be` → `bfbb72516`; each push gated (`cargo nextest run --all-targets` on touched packages, `cargo fmt --check`, `cargo clippy --all-targets`) on the exact pushed HEAD and serialized through the shared push lock.
 
 Landings:
