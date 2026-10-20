@@ -244,7 +244,12 @@ impl<'a> CompletingCodeEditor<'a> {
                 else {
                     CompletionController::new(self.id, self.popup_id)
                         .dismiss(cx, &mut state.completion);
-                    return Response::consumed();
+                    state.items.clear();
+                    return if completion_response.is_changed() {
+                        Response::changed()
+                    } else {
+                        Response::consumed()
+                    };
                 };
                 let inserted = CompletionController::new(self.id, self.popup_id).accept_with(
                     cx,
@@ -271,15 +276,19 @@ impl<'a> CompletingCodeEditor<'a> {
                         .intents(self.id)
                         .any(|intent| matches!(intent, Intent::Binding(_)))
                 {
-                    return Response::consumed();
+                    return if completion_response.is_changed() {
+                        Response::changed()
+                    } else {
+                        Response::consumed()
+                    };
                 }
             }
             Some(CompletionAction::Moved) | None => {}
         }
 
-        let mut editor_response = self.editor.update(cx, &mut state.editor);
-        let action = editor_response.take_action();
-        match action {
+        let editor_response = self.editor.update(cx, &mut state.editor);
+        let action = editor_response.action_ref().cloned();
+        let editor_response = match action {
             Some(CodeAction::CompletionManual) => {
                 if state.editor.is_editing()
                     && !self.editor.is_read_only()
@@ -306,6 +315,22 @@ impl<'a> CompletingCodeEditor<'a> {
                 editor_response
             }
             _ => editor_response,
+        };
+        Self::combine_response(&completion_response, editor_response)
+    }
+
+    fn combine_response(
+        completion: &Response<CompletionAction>,
+        editor: Response<CodeAction>,
+    ) -> Response<CodeAction> {
+        if editor.is_changed() {
+            editor
+        } else if completion.is_changed() {
+            Response::changed()
+        } else if editor.is_consumed() || completion.is_consumed() {
+            Response::consumed()
+        } else {
+            editor
         }
     }
 
