@@ -75,7 +75,8 @@ impl App for Workbench {
                 .max(Some(24), None),
         ])
         .spec(Composition::new().gap(1).padding(Insets::all(1)))
-        .show(ui);
+        .show(ui)
+        .expect("composition is within the supported depth");
     }
 }
 

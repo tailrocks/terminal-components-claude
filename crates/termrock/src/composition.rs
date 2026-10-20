@@ -10,6 +10,7 @@ use termrock_collections::KeyFn;
 use termrock_controls::Button;
 use termrock_layout::{ChildPolicy, Composition as LayoutComposition, Constraints, Size};
 use termrock_navigation::{Tabs, TabsState};
+pub use termrock_runtime::CompositionError;
 use termrock_runtime::author::CompositionLeaf;
 use termrock_runtime::rowui::RowFn;
 use termrock_runtime::{CompositionSlots, ContentSlot, Measure, Ui};
@@ -158,7 +159,7 @@ impl<'a> Group<'a> {
     }
 
     /// Resolve against the framework-owned area and draw each component once.
-    pub fn show(&self, ui: &mut Ui<'_>) {
+    pub fn show(&self, ui: &mut Ui<'_>) -> Result<(), CompositionError> {
         let children: Vec<_> = self
             .children
             .iter()
@@ -170,7 +171,7 @@ impl<'a> Group<'a> {
             Direction::Wrap => CompositionSlots::wrap(children),
         }
         .spec(self.spec);
-        ui.compose(&slots);
+        ui.compose(&slots)
     }
 
     fn new(direction: Direction, children: impl IntoIterator<Item = Child<'a>>) -> Self {
