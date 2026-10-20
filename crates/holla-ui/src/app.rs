@@ -728,25 +728,43 @@ fn paint_monorepo_child_status(ui: &mut Ui<'_>, area: Rect) {
     let _ = paint_size_label(ui, area);
 }
 
-fn docker_cleanup_hints() -> HintLayer {
-    fn hint(key: &'static str, label: &'static str) -> Hint {
-        Hint {
-            key: HintKey::Label(key),
-            label,
-            priority: 50,
-        }
+fn docker_hint(key: &'static str, label: &'static str) -> Hint {
+    Hint {
+        key: HintKey::Label(key),
+        label,
+        priority: 50,
     }
+}
+
+fn docker_cleanup_hints() -> HintLayer {
     HintLayer {
         hints: vec![
-            hint("Type", "Search"),
-            hint("↑↓", "Move"),
-            hint("Enter", "Review…"),
-            hint("Alt+Enter", "Alternatives…"),
-            hint("Tab", "Preview"),
-            hint("Ctrl+↑↓", "Scope"),
-            hint("Esc", "Clear"),
+            docker_hint("Type", "Search"),
+            docker_hint("↑↓", "Move"),
+            docker_hint("Enter", "Review…"),
+            docker_hint("Alt+Enter", "Alternatives…"),
+            docker_hint("Tab", "Preview"),
+            docker_hint("Ctrl+↑↓", "Scope"),
+            docker_hint("Esc", "Clear"),
         ],
         status: Some(std::borrow::Cow::Borrowed("Clean Docker c…")),
+        ..HintLayer::empty()
+    }
+}
+
+/// 80×24 docker footer. `Esc Clear` stays and `Tab Preview` becomes the meta `…`.
+/// The wide plate keeps list order and the `Clean Docker c…` status.
+fn docker_cleanup_80x24_hints() -> HintLayer {
+    HintLayer {
+        hints: vec![
+            docker_hint("Type", "Search"),
+            docker_hint("↑↓", "Move"),
+            docker_hint("Enter", "Review…"),
+            docker_hint("Alt+Enter", "Alternatives…"),
+            docker_hint("Esc", "Clear"),
+            docker_hint("Tab", "Preview"),
+            docker_hint("Ctrl+↑↓", "Scope"),
+        ],
         ..HintLayer::empty()
     }
 }
@@ -1463,9 +1481,19 @@ impl App {
             && self.overlay.is_none()
             && !self.menu.is_open()
         {
-            let layer = docker_cleanup_hints();
+            let narrow = ui.full().width == 80 && ui.full().height == 24;
+            let layer = if narrow {
+                docker_cleanup_80x24_hints()
+            } else {
+                docker_cleanup_hints()
+            };
+            let parts = if narrow {
+                ACTIVITIES_HINT_PARTS
+            } else {
+                PARITY_HINT_PARTS
+            };
             HintBar::new(FOOTER, &layer)
-                .patch_part(PARITY_HINT_PARTS)
+                .patch_part(parts)
                 .draw(ui, footer);
             return;
         }
@@ -2197,6 +2225,80 @@ mod tests {
         assert!(stepped.home.query().is_empty());
         assert!(!crate::sim::catalogue::docker_cleanup_tag_frame(
             &stepped.world
+        ));
+    }
+    #[test]
+    fn docker_cleanup_80x24_frame_40_paints_the_narrow_plate_and_later_seeks_keep_home() {
+        let plate = harness(
+            App::for_scenario(Scenario::DockerCleanup, Motion::Paused, 40),
+            Theme::junie(),
+            80,
+            24,
+        );
+        let text = plate.text();
+        let lines: Vec<&str> = text.lines().collect();
+        assert!(lines[6].contains("Results · 7"), "{}", lines[6]);
+        assert!(
+            lines[7].contains("› Clean Docker completely"),
+            "{}",
+            lines[7]
+        );
+        assert!(lines[7].contains("18.4 GB recla…"), "{}", lines[7]);
+        assert!(
+            lines[13].contains("Stop and remove all conta…"),
+            "{}",
+            lines[13]
+        );
+        assert!(
+            lines[20].contains(
+                "→ docker stop acme-api-1 acme-wor…-1 acme-redis-1 · on devbox · destructive"
+            ),
+            "{}",
+            lines[20]
+        );
+        let selected = plate.cell(4, 7);
+        assert_eq!(selected.symbol(), "C");
+        assert_eq!(selected.bg, Color::Rgb(0x2f, 0x5a, 0xa8));
+        assert!(selected.modifier.contains(termrock::Modifier::BOLD));
+        let kind = plate.cell(32, 7);
+        assert_eq!(kind.symbol(), "p");
+        assert!(!kind.modifier.contains(termrock::Modifier::BOLD));
+        assert_eq!(kind.bg, Color::Rgb(0x2f, 0x5a, 0xa8));
+        let margin = plate.cell(79, 7);
+        assert_eq!(margin.symbol(), " ");
+        assert_eq!(margin.bg, Color::Rgb(0, 0, 0));
+        let esc = plate.cell(63, 23);
+        assert_eq!(esc.symbol(), "E");
+        assert!(esc.modifier.contains(termrock::Modifier::BOLD));
+        let ellipsis = plate.cell(74, 23);
+        assert_eq!(ellipsis.symbol(), "…");
+        assert_eq!(ellipsis.fg, Color::Rgb(0x73, 0x73, 0x73));
+        assert!(plate.diagnostics().is_empty(), "{:?}", plate.diagnostics());
+        let wide = harness(
+            App::for_scenario(Scenario::DockerCleanup, Motion::Paused, 40),
+            Theme::junie(),
+            120,
+            40,
+        );
+        assert!(
+            wide.text()
+                .lines()
+                .nth(15)
+                .unwrap()
+                .contains("docker stop acme…redis-1"),
+            "{}",
+            wide.text()
+        );
+        let later = harness(
+            App::for_scenario(Scenario::DockerCleanup, Motion::Paused, 4_000),
+            Theme::junie(),
+            80,
+            24,
+        );
+        assert!(!later.text().contains("Results · 7"));
+        assert!(later.text().contains("Suggested here"), "{}", later.text());
+        assert!(!crate::sim::catalogue::docker_cleanup_tag_frame(
+            &later.app().world
         ));
     }
     #[test]
