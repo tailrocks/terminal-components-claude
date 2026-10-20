@@ -17,7 +17,7 @@ pub(crate) struct HomeState {
     pub(crate) scope: Option<Scope>,
     /// `docker clean` was seeded for the tick-40 plate. A later seek clears it.
     tag_query: bool,
-    /// History-on first-use plate. Set from `HOLLA_NO_HISTORY=0`.
+    /// History-on tag plates. Set from `HOLLA_NO_HISTORY=0`.
     pub(crate) history: bool,
 }
 
@@ -264,7 +264,7 @@ impl HomeState {
         }
         if let Some(view) = catalogue::parity_discovery(world)
             .or_else(|| catalogue::first_use_plate(world, self.history))
-            .or_else(|| catalogue::monorepo_root_tag(world))
+            .or_else(|| catalogue::monorepo_root_plate(world, self.history))
             .or_else(|| catalogue::monorepo_child_tag(world))
             .or_else(|| catalogue::activities_multi_tag(world))
             .or_else(|| catalogue::docker_cleanup_tag(world))
