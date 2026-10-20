@@ -8,7 +8,9 @@ use crate::event::{Chord, KeyCode};
 use crate::id::{Id, Part, PartRef};
 use crate::intent::Intent;
 use crate::keymap::{Binding, BindingState, Bindings};
-use crate::layer::{DismissReason, LayerEvent, LayerOpening, LayerSize, LayerSpec, UpdateToken};
+use crate::layer::{
+    Anchor, DismissReason, LayerEvent, LayerOpening, LayerSize, LayerSpec, ScreenAlign, UpdateToken,
+};
 use crate::layout::RowAlign;
 use crate::measure::{Constraints, Size};
 use crate::response::{Response, StateFlags};
@@ -287,6 +289,7 @@ pub struct Dialog<'a> {
     input_label: Option<&'a str>,
     ack: Option<&'a str>,
     error: Option<&'a str>,
+    align: Option<ScreenAlign>,
     ov: PartStyle<'a>,
 }
 
@@ -331,6 +334,7 @@ impl<'a> Dialog<'a> {
             input_label: None,
             ack: None,
             error: None,
+            align: None,
             ov: PartStyle::new(),
         }
     }
@@ -442,6 +446,14 @@ impl<'a> Dialog<'a> {
     #[must_use]
     pub const fn width(mut self, w: u16) -> Self {
         self.width = Some(w);
+        self
+    }
+
+    /// Screen alignment for the modal layer. The default keeps the previous
+    /// behaviour (`ScreenAlign::Center`).
+    #[must_use]
+    pub const fn align(mut self, align: ScreenAlign) -> Self {
+        self.align = Some(align);
         self
     }
 
@@ -913,10 +925,12 @@ impl<'a> Dialog<'a> {
         } else {
             self.measured_width(d).min(viewport_width)
         };
-        LayerSpec::modal(self.id).size(LayerSize::Fixed(
-            width,
-            self.measured_height_for_width(d, width, &action_widths),
-        ))
+        LayerSpec::modal(self.id)
+            .anchor(Anchor::Screen(self.align.unwrap_or(ScreenAlign::Center)))
+            .size(LayerSize::Fixed(
+                width,
+                self.measured_height_for_width(d, width, &action_widths),
+            ))
     }
 
     fn frame_rect(&self, ui: &Ui<'_>, area: Rect, action_widths: &[u16]) -> Rect {
