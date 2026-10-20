@@ -1115,14 +1115,9 @@ pub fn first_use_plate(w: &World, history: bool) -> Option<ParityDiscovery> {
     }
 }
 
-/// 80×24 `first-use` plate. Not the 120×40 plate. Later seeks and other sizes stay off it.
-pub fn first_use_80x24_plate(
-    w: &World,
-    width: u16,
-    height: u16,
-    history: bool,
-) -> Option<ParityDiscovery> {
-    if history || width != 80 || height != 24 || !first_use_tag_frame(w) {
+/// Collapsed no-history `first-use` rows. The wide card keeps the preview.
+fn first_use_collapsed(w: &World) -> Option<ParityDiscovery> {
+    if !first_use_tag_frame(w) {
         return None;
     }
     let suggested = vec![
@@ -1206,6 +1201,33 @@ pub fn first_use_80x24_plate(
         actions: Vec::new(),
         suggested_len: suggested.len(),
     })
+}
+
+/// 80×24 `first-use` plate. Not the 120×40 plate. Later seeks and other sizes stay off it.
+pub fn first_use_80x24_plate(
+    w: &World,
+    width: u16,
+    height: u16,
+    history: bool,
+) -> Option<ParityDiscovery> {
+    if history || width != 80 || height != 24 {
+        return None;
+    }
+    first_use_collapsed(w)
+}
+
+/// 100×30 no-history `first-use` plate. Not the 80×24 plate and not the 120×40 card.
+/// Later seeks and other sizes stay off it. History keeps the wide card.
+pub fn first_use_100x30_plate(
+    w: &World,
+    width: u16,
+    height: u16,
+    history: bool,
+) -> Option<ParityDiscovery> {
+    if history || width != 100 || height != 30 {
+        return None;
+    }
+    first_use_collapsed(w)
 }
 
 /// No-history `first-use` plate. History does not change this projection.
