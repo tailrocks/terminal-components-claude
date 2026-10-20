@@ -42,3 +42,7 @@ The focused Button tests pass 8/8 (`nextest` run `26c20059-5492-40d7-ad1f-ee6b47
 ## Limits
 
 These tests establish this Button/Theme contract only. They do not establish full Showcase behavior, CLI parity for any application, visual-baseline inventory coverage, or acceptance of stored expected artifacts. The unrelated ANSI256 semantic-palette test remains a known failure; the separate narrow-label fit issue remains a later Button increment.
+
+## Exact merged-tip Theme check
+
+On merged WIP tip `be4c5f14a953dd7f26f04123964102508e0e97b0`, an unfiltered `cargo nextest run -p termrock-theme --no-fail-fast --status-level fail` ran 137 tests: 136 passed and `capability_palettes::all_73_junie_slots_match_reference_capability_output` failed (nextest run `fe493d79-c2f7-40ef-988c-84d32580c332`). The assertion reports actual `Indexed(78)` versus expected `Indexed(77)` at `crates/termrock-theme/tests/capability_palettes.rs:68`. This remains a required unresolved Theme gate failure; the filtered 136-pass run is focused evidence only and is not a Theme suite pass. The same unchanged failure was reproduced at base `536ac2603663bff241fe4f11ac121a4045a8843e` in run `35a265ae-2ec9-4132-b246-4fc440aad5dc`. No expected output or palette logic was modified.
