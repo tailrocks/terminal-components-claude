@@ -1,0 +1,331 @@
+use core::fmt;
+
+use ratatui_core::layout::Rect;
+
+use termrock_core::action::ActionKey;
+use termrock_core::id::{Id, ItemKey};
+use termrock_core::response::Response;
+use termrock_overlays::completion::{
+    AsItem, Completion, CompletionAction, CompletionController, CompletionState, Item,
+};
+use termrock_runtime::event::{Chord, KeyCode, KeyModifiers};
+use termrock_runtime::intent::Intent;
+use termrock_runtime::ui::{Cx, Ui};
+
+use crate::code::{CodeAction, CodeEditor, CodeEditorState};
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum CompletionTrigger {
+    TextChanged,
+    CursorMoved,
+    Manual,
+}
+
+#[derive(Clone, PartialEq, Eq)]
+pub struct CompletionValue {
+    key: ItemKey,
+    label: String,
+    insertion: String,
+    detail: String,
+    disabled: bool,
+}
+
+impl CompletionValue {
+    pub fn new(key: ItemKey, label: impl Into<String>, insertion: impl Into<String>) -> Self {
+        Self {
+            key,
+            label: label.into(),
+            insertion: insertion.into(),
+            detail: String::new(),
+            disabled: false,
+        }
+    }
+
+    #[must_use]
+    pub fn detail(mut self, detail: impl Into<String>) -> Self {
+        self.detail = detail.into();
+        self
+    }
+
+    #[must_use]
+    pub const fn disabled(mut self, disabled: bool) -> Self {
+        self.disabled = disabled;
+        self
+    }
+}
+
+impl fmt::Debug for CompletionValue {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("CompletionValue")
+            .field("key", &self.key)
+            .field("label", &"[redacted]")
+            .field("insertion", &"[redacted]")
+            .field("detail", &"[redacted]")
+            .field("disabled", &self.disabled)
+            .finish()
+    }
+}
+
+impl AsItem for CompletionValue {
+    fn as_item(&self) -> Item<'_> {
+        Item::new(self.key, &self.label)
+            .insert(&self.insertion)
+            .detail(&self.detail)
+            .disabled(self.disabled)
+    }
+}
+
+#[derive(Clone, PartialEq, Eq)]
+pub struct CompletionBatch {
+    pub items: Vec<CompletionValue>,
+    pub replace_len: usize,
+}
+
+impl fmt::Debug for CompletionBatch {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("CompletionBatch")
+            .field("item_count", &self.items.len())
+            .field("replace_len", &self.replace_len)
+            .finish()
+    }
+}
+
+pub trait CompletionProvider {
+    fn complete(
+        &self,
+        text: &str,
+        cursor: usize,
+        trigger: CompletionTrigger,
+    ) -> Option<CompletionBatch>;
+}
+
+impl<F> CompletionProvider for F
+where
+    F: Fn(&str, usize, CompletionTrigger) -> Option<CompletionBatch>,
+{
+    fn complete(
+        &self,
+        text: &str,
+        cursor: usize,
+        trigger: CompletionTrigger,
+    ) -> Option<CompletionBatch> {
+        self(text, cursor, trigger)
+    }
+}
+
+#[derive(Clone, PartialEq, Eq)]
+pub struct CompletingCodeEditorState {
+    editor: CodeEditorState,
+    completion: CompletionState,
+    items: Vec<CompletionValue>,
+}
+
+impl fmt::Debug for CompletingCodeEditorState {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("CompletingCodeEditorState")
+            .field("editor", &self.editor)
+            .field("completion_open", &self.completion.is_open())
+            .field("completion_item_count", &self.items.len())
+            .finish()
+    }
+}
+
+impl CompletingCodeEditorState {
+    pub fn new(text: &str) -> Self {
+        Self {
+            editor: CodeEditorState::new(text),
+            completion: CompletionState::default(),
+            items: Vec::new(),
+        }
+    }
+
+    pub const fn editor(&self) -> &CodeEditorState {
+        &self.editor
+    }
+
+    pub fn editor_mut(&mut self) -> &mut CodeEditorState {
+        &mut self.editor
+    }
+
+    pub const fn is_completion_open(&self) -> bool {
+        self.completion.is_open()
+    }
+}
+
+pub struct CompletingCodeEditor<'a> {
+    editor: CodeEditor<'a>,
+    id: Id,
+    popup_id: Id,
+    provider: &'a dyn CompletionProvider,
+}
+
+impl fmt::Debug for CompletingCodeEditor<'_> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("CompletingCodeEditor")
+            .field("id", &self.id)
+            .field("popup_id", &self.popup_id)
+            .finish_non_exhaustive()
+    }
+}
+
+impl<'a> CompletingCodeEditor<'a> {
+    pub(crate) const fn new(
+        editor: CodeEditor<'a>,
+        id: Id,
+        popup_id: Id,
+        provider: &'a dyn CompletionProvider,
+    ) -> Self {
+        Self {
+            editor,
+            id,
+            popup_id,
+            provider,
+        }
+    }
+
+    fn completion(&self) -> Completion<'_, CompletionValue> {
+        Completion::new(self.popup_id)
+    }
+
+    fn request(
+        &self,
+        cx: &mut Cx<'_>,
+        state: &mut CompletingCodeEditorState,
+        trigger: CompletionTrigger,
+    ) {
+        let Some(anchor) = self.editor.cursor_cell(cx, &state.editor) else {
+            CompletionController::new(self.id, self.popup_id).dismiss(cx, &mut state.completion);
+            state.items.clear();
+            return;
+        };
+        let Some(batch) =
+            self.provider
+                .complete(state.editor.text(), state.editor.cursor_offset(), trigger)
+        else {
+            CompletionController::new(self.id, self.popup_id).dismiss(cx, &mut state.completion);
+            state.items.clear();
+            return;
+        };
+        state.items = batch.items;
+        CompletionController::new(self.id, self.popup_id).request(
+            cx,
+            &mut state.completion,
+            anchor,
+            batch.replace_len,
+            &state.items,
+        );
+    }
+
+    pub fn update(
+        &self,
+        cx: &mut Cx<'_>,
+        state: &mut CompletingCodeEditorState,
+    ) -> Response<CodeAction> {
+        let was_open = state.completion.is_open();
+        let focus_lost = cx
+            .intents(self.id)
+            .any(|intent| matches!(intent, Intent::FocusOut { .. }));
+        if focus_lost || self.editor.is_disabled() || self.editor.is_read_only() {
+            CompletionController::new(self.id, self.popup_id).dismiss(cx, &mut state.completion);
+            state.items.clear();
+            return self.editor.update(cx, &mut state.editor);
+        }
+
+        let completing = self.completion();
+        let completion_response =
+            completing.update_for(self.id, cx, &mut state.completion, &state.items);
+        match completion_response.action_ref() {
+            Some(CompletionAction::Accepted(key)) => {
+                let Some(item) = state
+                    .items
+                    .iter()
+                    .find(|item| item.key == *key)
+                    .map(AsItem::as_item)
+                else {
+                    CompletionController::new(self.id, self.popup_id)
+                        .dismiss(cx, &mut state.completion);
+                    return Response::consumed();
+                };
+                let inserted = CompletionController::new(self.id, self.popup_id).accept_with(
+                    cx,
+                    &mut state.completion,
+                    item,
+                    |replace_len, insertion| state.editor.splice_completion(replace_len, insertion),
+                );
+                state.items.clear();
+                return if inserted {
+                    Response::action(CodeAction::Changed)
+                } else {
+                    Response::consumed()
+                };
+            }
+            Some(CompletionAction::Dismissed) => {
+                state.items.clear();
+                let escape = cx.intents(self.id).any(|intent| match intent {
+                    Intent::Cancel => true,
+                    Intent::Binding(action) => action == DISMISS_COMPLETION_ACTION,
+                    _ => false,
+                });
+                if escape
+                    || !cx
+                        .intents(self.id)
+                        .any(|intent| matches!(intent, Intent::Binding(_)))
+                {
+                    return Response::consumed();
+                }
+            }
+            Some(CompletionAction::Moved) | None => {}
+        }
+
+        let mut editor_response = self.editor.update(cx, &mut state.editor);
+        let action = editor_response.take_action();
+        match action {
+            Some(CodeAction::CompletionManual) => {
+                if state.editor.is_editing()
+                    && !self.editor.is_read_only()
+                    && !self.editor.is_disabled()
+                {
+                    self.request(cx, state, CompletionTrigger::Manual);
+                }
+                editor_response.repaint()
+            }
+            Some(CodeAction::Changed)
+                if !self.editor.is_read_only() && !self.editor.is_disabled() =>
+            {
+                self.request(cx, state, CompletionTrigger::TextChanged);
+                editor_response.repaint()
+            }
+            Some(CodeAction::CursorMoved) if was_open => {
+                self.request(cx, state, CompletionTrigger::CursorMoved);
+                editor_response.repaint()
+            }
+            Some(CodeAction::Committed | CodeAction::Leave { .. }) => {
+                CompletionController::new(self.id, self.popup_id)
+                    .dismiss(cx, &mut state.completion);
+                state.items.clear();
+                editor_response
+            }
+            _ => editor_response,
+        }
+    }
+
+    pub fn draw(&self, ui: &mut Ui<'_>, area: Rect, state: &CompletingCodeEditorState) -> Rect {
+        let used = self.editor.draw(ui, area, &state.editor);
+        if state.completion.is_open() {
+            let _ = ui.layer(self.popup_id, |ui, popup_area| {
+                self.completion()
+                    .draw(ui, popup_area, &state.completion, &state.items);
+            });
+        }
+        used
+    }
+}
+
+pub const COMPLETION_MANUAL_CHORD: Chord = Chord::with(KeyCode::Char(' '), KeyModifiers::CONTROL);
+pub const COMPLETION_NEXT_FOCUS_CHORD: Chord = Chord::key(KeyCode::F(6));
+pub const COMPLETION_PREV_FOCUS_CHORD: Chord = Chord::with(KeyCode::F(6), KeyModifiers::SHIFT);
+
+pub const MANUAL_COMPLETION_ACTION: ActionKey = ActionKey::custom("completion.manual");
+pub const FOCUS_NEXT_ACTION: ActionKey = ActionKey::custom("focus.next");
+pub const FOCUS_PREVIOUS_ACTION: ActionKey = ActionKey::custom("focus.previous");
+const DISMISS_COMPLETION_ACTION: ActionKey = ActionKey::custom("completion.dismiss");
