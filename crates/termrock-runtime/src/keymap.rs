@@ -603,6 +603,7 @@ pub(crate) struct FocusedHints {
 }
 
 impl FocusedHints {
+    #[cfg(test)]
     fn contains_chord(&self, chord: Chord) -> bool {
         self.layer.hints.iter().any(|hint| {
             hint.key
@@ -629,15 +630,16 @@ impl FocusedHints {
         self.layer.badge = None;
         self.layer.status = None;
         self.layer.centered = false;
-        for binding in table {
-            let Some(chord) = binding
-                .visible
-                .then(|| keymap.component_chord(key.focus, binding.action, binding.chord))
-                .flatten()
+        for (index, binding) in table.iter().enumerate() {
+            let Some(chord) = keymap.component_chord(key.focus, binding.action, binding.chord)
             else {
                 continue;
             };
-            if self.contains_chord(chord) {
+            let shadowed = table[..index]
+                .iter()
+                .filter_map(|prior| keymap.component_chord(key.focus, prior.action, prior.chord))
+                .any(|prior| chord.effective_eq(&prior));
+            if !binding.visible || shadowed {
                 continue;
             }
             let hint = Hint {
@@ -674,6 +676,7 @@ pub enum HintKey {
 }
 
 impl HintKey {
+    #[cfg(test)]
     const fn physical_chord(self) -> Option<Chord> {
         match self {
             Self::Chord(chord) | Self::ChordWithCase { chord, .. } => Some(chord),
@@ -1313,5 +1316,51 @@ mod tests {
                 "hints {first:?} vs {second:?}"
             );
         }
+    }
+
+    #[test]
+    fn hidden_bindings_still_shadow_later_visible_hints() {
+        const HIDDEN: ActionKey = ActionKey::custom("test.hints.hidden");
+        const VISIBLE: ActionKey = ActionKey::custom("test.hints.visible");
+        const OTHER: ActionKey = ActionKey::custom("test.hints.other");
+        let owner = Id::root("hidden-hint-owner");
+        let table = [
+            BindingDescriptor {
+                action: HIDDEN,
+                chord: Some(Chord::key(KeyCode::Tab)),
+                label: "Child command",
+                priority: 80,
+                visible: false,
+            },
+            BindingDescriptor {
+                action: VISIBLE,
+                chord: Some(Chord::key(KeyCode::Tab)),
+                label: "Show details",
+                priority: 40,
+                visible: true,
+            },
+            BindingDescriptor {
+                action: OTHER,
+                chord: Some(Chord::key(KeyCode::Esc)),
+                label: "Back",
+                priority: 40,
+                visible: true,
+            },
+        ];
+        let mut focused = FocusedHints::default();
+        focused.derive(
+            FocusedHintKey {
+                focus: owner,
+                flags: StateFlags::FOCUSED,
+                layer: crate::layer::LayerId::PAGE,
+                table: BindingTableId::dynamic(owner, table.len(), 1),
+                keymap_revision: 0,
+            },
+            &table,
+            &KeyMap::new(),
+        );
+
+        assert_eq!(focused.layer.hints.len(), 1);
+        assert_eq!(focused.layer.hints[0].label, "Back");
     }
 }

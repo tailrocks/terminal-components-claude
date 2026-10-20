@@ -570,12 +570,21 @@ mod tests {
         priority: 50,
         visible: true,
     }];
+    const HIDDEN_MASTER_CHILD_BINDINGS: &[Binding<MasterDetailCmd>] = &[Binding {
+        action: MASTER_TAB_ACTION,
+        chord: Some(Chord::key(KeyCode::Tab)),
+        cmd: MasterDetailCmd::OpenDetail,
+        label: "Hidden child command",
+        priority: 50,
+        visible: false,
+    }];
 
     struct WideNavigationApp {
         state: MasterDetailState,
         area: Rect,
         child_tab_seen: bool,
         child_tab_binding: bool,
+        child_tab_hidden: bool,
         keymap: KeyMap,
         hints: std::cell::RefCell<Vec<Hint>>,
     }
@@ -593,7 +602,12 @@ mod tests {
                 ui.register_focus_only(MD.master, Focusability::Focusable);
                 ui.register_focus_only(MD.detail, Focusability::Focusable);
                 if layout.mode == MasterDetailMode::Split && self.child_tab_binding {
-                    ui.publish_bindings(MD.master, ui.state(MD.master), MASTER_CHILD_BINDINGS);
+                    let table = if self.child_tab_hidden {
+                        HIDDEN_MASTER_CHILD_BINDINGS
+                    } else {
+                        MASTER_CHILD_BINDINGS
+                    };
+                    ui.publish_bindings(MD.master, ui.state(MD.master), table);
                 }
             });
             let _ = ui.with_focused_hints(|_, hints| {
@@ -669,6 +683,7 @@ mod tests {
                 area,
                 child_tab_seen: false,
                 child_tab_binding: false,
+                child_tab_hidden: false,
                 keymap: KeyMap::new(),
                 hints: std::cell::RefCell::default(),
             },
@@ -716,6 +731,7 @@ mod tests {
                 area,
                 child_tab_seen: false,
                 child_tab_binding: true,
+                child_tab_hidden: false,
                 keymap: KeyMap::new(),
                 hints: std::cell::RefCell::default(),
             },
@@ -742,6 +758,37 @@ mod tests {
     }
 
     #[test]
+    fn hidden_child_tab_binding_shadows_master_detail_hint() {
+        let area = Rect::new(0, 0, 120, 40);
+        let mut runtime = Runtime::new(
+            WideNavigationApp {
+                state: MasterDetailState::default(),
+                area,
+                child_tab_seen: false,
+                child_tab_binding: true,
+                child_tab_hidden: true,
+                keymap: KeyMap::new(),
+                hints: std::cell::RefCell::default(),
+            },
+            Theme::junie(),
+        );
+        let _ = runtime.initialize();
+        let mut buffer = ratatui_core::buffer::Buffer::empty(area);
+        runtime.draw_buffer(area, &mut buffer).commit_presented();
+        runtime.set_focus(Some(MD.master));
+        buffer = ratatui_core::buffer::Buffer::empty(area);
+        runtime.draw_buffer(area, &mut buffer).commit_presented();
+
+        assert!(!runtime.app().hints.borrow().iter().any(|hint| {
+            hint.label == "Show details" && hint.key == HintKey::Chord(Chord::key(KeyCode::Tab))
+        }));
+        let _ = deliver(&mut runtime, key(KeyCode::Tab));
+        assert!(runtime.app().child_tab_seen);
+        assert_eq!(runtime.focus(), Some(MD.master));
+        assert!(!runtime.app().state.drawer_open());
+    }
+
+    #[test]
     fn wide_close_action_remains_remappable() {
         let area = Rect::new(0, 0, 120, 40);
         let mut keymap = KeyMap::new();
@@ -756,6 +803,7 @@ mod tests {
                 area,
                 child_tab_seen: false,
                 child_tab_binding: false,
+                child_tab_hidden: false,
                 keymap,
                 hints: std::cell::RefCell::default(),
             },
