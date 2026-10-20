@@ -30,6 +30,8 @@ pub enum ButtonFocusVisibility {
     Always,
     /// Show the focus treatment only when the runtime marks focus as keyboard-visible.
     KeyboardOnly,
+}
+
 /// Controls whether a checked marker remains visible beside a busy spinner.
 ///
 /// `Keep` preserves the extended Termrock presentation. `Replace` matches the
@@ -478,7 +480,17 @@ impl<'a> Button<'a> {
                 }
             } else {
                 ui.paint_str(text, &label, label_style);
-straints) -> Size {
+            }
+        }
+        area
+    }
+
+    pub fn draw_in_form(&self, ui: &mut Ui<'_>, area: Rect, inherited_disabled: bool) -> Rect {
+        self.with_inherited_disabled(inherited_disabled)
+            .draw(ui, area)
+    }
+
+    pub fn measure(&self, ui: &Ui<'_>, c: Constraints) -> Size {
         Size::exact(self.natural_width(ui), 1).fit(c)
     }
 }
