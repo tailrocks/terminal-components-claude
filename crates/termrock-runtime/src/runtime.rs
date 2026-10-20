@@ -23,7 +23,8 @@ use crate::id::{Id, Part, PartRef};
 use crate::intent::{FocusVia, IntentQueue, Phase};
 use crate::keymap::{BindingTableId, KeyMap, KeyPhase};
 use crate::layer::{
-    Backdrop, DismissReason, LayerEvent, LayerId, OpenLayer, backdrop_area, resolve_layer_area,
+    Backdrop, DismissReason, LayerCompletion, LayerEvent, LayerId, OpenLayer, backdrop_area,
+    resolve_layer_area,
 };
 use crate::measure::Size;
 #[cfg(any(test, feature = "testing"))]
@@ -239,7 +240,7 @@ impl<A: App> ProjectedFrame<'_, A> {
 #[cfg(feature = "testing")]
 impl<A: App> Drop for ProjectedFrame<'_, A> {
     fn drop(&mut self) {
-        self.runtime.presented = false;
+        self.runtime.invalidate_prepared();
     }
 }
 
@@ -275,6 +276,7 @@ impl PreparedFrame {
 pub enum PreparedFrameError {
     Stale,
     AreaChanged { expected: Rect, actual: Rect },
+    DidNotSettle,
 }
 
 impl core::fmt::Display for PreparedFrameError {
@@ -284,6 +286,7 @@ impl core::fmt::Display for PreparedFrameError {
             Self::AreaChanged { expected, actual } => {
                 write!(f, "prepared frame area {expected:?} changed to {actual:?}")
             }
+            Self::DidNotSettle => f.write_str("runtime did not settle before frame preparation"),
         }
     }
 }
@@ -295,6 +298,7 @@ struct PreparedOutput {
     buffer: Buffer,
     cursor: Option<Position>,
     cursor_bar: bool,
+    projected: bool,
 }
 
 #[must_use = "commit only after successful output; dropping aborts publication"]
@@ -323,7 +327,7 @@ impl<A: App> PaintedFrame<'_, A> {
 impl<A: App> Drop for PaintedFrame<'_, A> {
     fn drop(&mut self) {
         if !self.committed {
-            self.runtime.presented = false;
+            self.runtime.invalidate_prepared();
         }
     }
 }
@@ -363,6 +367,8 @@ pub struct Runtime<A: App> {
     staged_focus: Option<(Option<Id>, FocusVia)>,
     layer_events_pending: Vec<(Id, LayerEvent)>,
     focus_out_closed: Vec<Id>,
+    completion_waiting: Vec<OpenLayer>,
+    completion_dispatch_pending: bool,
     unsettled: usize,
     bootstrapped: bool,
     presented: bool,
@@ -387,6 +393,12 @@ impl<A: App> core::fmt::Debug for Runtime<A> {
 }
 
 impl<A: App> Runtime<A> {
+    fn invalidate_prepared(&mut self) {
+        self.prepared = None;
+        self.presented = false;
+        self.prepared_generation = self.prepared_generation.wrapping_add(1);
+    }
+
     #[doc(hidden)]
     pub fn focused_hints_capacity(&self) -> usize {
         self.core.focused_hints.layer.hints.capacity()
@@ -427,6 +439,8 @@ impl<A: App> Runtime<A> {
             staged_focus: None,
             layer_events_pending: Vec::new(),
             focus_out_closed: Vec::new(),
+            completion_waiting: Vec::new(),
+            completion_dispatch_pending: false,
             unsettled: 0,
             bootstrapped: false,
             presented: false,
@@ -445,6 +459,7 @@ impl<A: App> Runtime<A> {
     /// Defaults to one cell, matching the frozen visual baseline. The click window remains
     /// configurable through `Theme::design.motion.double_click_ms`.
     pub fn set_pointer_click_slop(&mut self, cells: u16) {
+        self.invalidate_prepared();
         self.pointer_click_slop = cells;
     }
 
@@ -452,8 +467,8 @@ impl<A: App> Runtime<A> {
         &self.app
     }
 
-    pub const fn app_mut(&mut self) -> &mut A {
-        self.presented = false;
+    pub fn app_mut(&mut self) -> &mut A {
+        self.invalidate_prepared();
         &mut self.app
     }
 
@@ -468,7 +483,7 @@ impl<A: App> Runtime<A> {
     }
 
     pub fn set_theme(&mut self, t: Theme) {
-        self.presented = false;
+        self.invalidate_prepared();
         self.theme = t;
         self.core.clear_caches();
     }
@@ -533,6 +548,9 @@ impl<A: App> Runtime<A> {
                 requested: now,
             });
         }
+        if now != self.now() {
+            self.invalidate_prepared();
+        }
         self.services.now = now;
         if !self.pending_tick && self.services.repaint_at.is_some_and(|at| at <= now) {
             self.pending_tick = true;
@@ -542,7 +560,7 @@ impl<A: App> Runtime<A> {
             if self.inter.press.is_none() {
                 self.last.snapshot.pressed = None;
             }
-            self.presented = false;
+            self.invalidate_prepared();
             self.services.repaint = true;
         }
         Ok(())
@@ -1097,7 +1115,22 @@ impl<A: App> Runtime<A> {
         if closed.is_empty() {
             return;
         }
+        // Only the directly dismissed opening receives a receipt. Descendant layers removed
+        // with an ancestor are canceled so they cannot run stale completion commands.
+        self.completion_waiting.push(closed[0]);
         let focus_out = core::mem::take(&mut self.focus_out_closed);
+        let still_open: Vec<_> = self
+            .services
+            .layers
+            .layers()
+            .iter()
+            .map(|layer| layer.opening)
+            .collect();
+        self.services
+            .focus_continuation_acks
+            .retain(|(opening, _, _)| {
+                still_open.contains(opening) || closed.iter().any(|layer| layer.opening == *opening)
+            });
         for l in &closed {
             if let Some(c) = self.services.capture.get()
                 && self.last.registry.layer_of(c.owner) == Some(l.layer)
@@ -1145,7 +1178,7 @@ impl<A: App> Runtime<A> {
         cause: UpdateCause,
         activation_key: Option<ActivationKey>,
     ) -> Response<()> {
-        self.presented = false;
+        self.invalidate_prepared();
         self.core.begin_cache_frame(self.generation.wrapping_add(1));
         let mut folded = Response::ignored();
         let mut first_pass = true;
@@ -1247,7 +1280,9 @@ impl<A: App> Runtime<A> {
     }
 
     pub const fn needs_settle(&self) -> bool {
-        self.pending_focus.is_some() || (self.bootstrapped && self.pending_tick)
+        self.pending_focus.is_some()
+            || self.completion_dispatch_pending
+            || (self.bootstrapped && self.pending_tick)
     }
 
     pub const fn needs_present(&self) -> bool {
@@ -1260,14 +1295,18 @@ impl<A: App> Runtime<A> {
         if !self.bootstrapped {
             let _ = self.initialize();
         }
-        for _ in 0..MAX_FOCUS_PASSES {
-            while self.needs_settle() {
+        let mut passes = 0;
+        while passes < MAX_FOCUS_PASSES * MAX_FOCUS_PASSES {
+            if self.needs_settle() {
                 let _ = self.settle();
+                passes += 1;
+                continue;
             }
             let mut buffer = Buffer::empty(area);
             self.draw_with_buffer(area, &mut buffer, None, A::draw);
             self.commit_frame();
-            if self.needs_settle() {
+            if !self.presented || self.needs_settle() {
+                passes += 1;
                 continue;
             }
             self.prepared_generation = self.prepared_generation.wrapping_add(1);
@@ -1281,15 +1320,15 @@ impl<A: App> Runtime<A> {
                 buffer,
                 cursor: self.painted_cursor,
                 cursor_bar: self.painted_cursor_bar,
+                projected: false,
             });
             // Geometry is published and focus has settled; input remains blocked until output is
             // acknowledged by the session after a successful terminal flush.
             self.presented = false;
             return Ok(token);
         }
-        self.prepared = None;
-        self.presented = false;
-        Err(PreparedFrameError::Stale)
+        self.invalidate_prepared();
+        Err(PreparedFrameError::DidNotSettle)
     }
 
     /// Copy a prepared frame into Ratatui's callback buffer without running application code.
@@ -1309,18 +1348,18 @@ impl<A: App> Runtime<A> {
             return Err(PreparedFrameError::Stale);
         }
         if token.area != actual {
-            self.prepared = None;
-            self.presented = false;
+            self.invalidate_prepared();
             return Err(PreparedFrameError::AreaChanged {
                 expected: token.area,
                 actual,
             });
         }
-        let output = self.prepared.as_ref().expect("validated prepared frame");
+        let output = self.prepared.as_mut().expect("validated prepared frame");
         frame.buffer_mut().merge(&output.buffer);
         if let Some(cursor) = output.cursor {
             frame.set_cursor_position(cursor);
         }
+        output.projected = true;
         Ok(output.cursor_bar)
     }
 
@@ -1335,6 +1374,9 @@ impl<A: App> Runtime<A> {
         if token.runtime != self.services.runtime_id || token != output.token {
             return Err(PreparedFrameError::Stale);
         }
+        if !output.projected {
+            return Err(PreparedFrameError::Stale);
+        }
         let _ = self.prepared.take();
         self.presented = true;
         Ok(())
@@ -1345,6 +1387,11 @@ impl<A: App> Runtime<A> {
             return Response::ignored();
         }
         let Some((from, to, via)) = self.pending_focus.take() else {
+            if core::mem::take(&mut self.completion_dispatch_pending) {
+                self.intents.clear();
+                let r = self.run_update(None, UpdateCause::Settle, None);
+                return self.finish(r);
+            }
             if !core::mem::take(&mut self.pending_tick) {
                 return Response::ignored();
             }
@@ -1507,7 +1554,7 @@ impl<A: App> Runtime<A> {
         snapshot: Option<&RenderSnapshot>,
         paint: impl FnOnce(&A, &mut Ui<'_>),
     ) {
-        self.presented = false;
+        self.invalidate_prepared();
         self.sync_keymap(snapshot.map(|value| &value.keymap));
 
         let same_snapshot = match (&self.cache_snapshot, snapshot) {
@@ -1681,11 +1728,37 @@ impl<A: App> Runtime<A> {
             self.pending_focus = (from != reconciled).then_some((from, reconciled, via));
             self.focus.set(reconciled);
 
-            self.presented = false;
+            self.invalidate_prepared();
             self.services.repaint = true;
         }
         self.staged_focus = None;
         self.last.snapshot.focus = self.focus.current();
+        if self.pending_focus.is_none() && !self.completion_waiting.is_empty() {
+            let restored_focus = self.focus.current();
+            for layer in self.completion_waiting.drain(..) {
+                let Some(event) = layer.closed_event else {
+                    continue;
+                };
+                let continuation_acknowledged =
+                    layer.spec.continues_focus_owner.is_none_or(|owner| {
+                        self.services.focus_continuation_acks.iter().any(
+                            |(opening, ack_owner, _)| {
+                                *opening == layer.opening && *ack_owner == owner
+                            },
+                        )
+                    });
+                self.services.completions.push(LayerCompletion::new(
+                    layer.opening,
+                    event,
+                    restored_focus,
+                    continuation_acknowledged,
+                ));
+                self.services
+                    .focus_continuation_acks
+                    .retain(|(opening, _, _)| *opening != layer.opening);
+            }
+            self.completion_dispatch_pending = !self.services.completions.is_empty();
+        }
         self.last.snapshot.focus_visible = self.focus.visible();
         self.reconcile_held_pointer();
         self.reconcile_hover();
@@ -1729,7 +1802,7 @@ impl<A: App> Runtime<A> {
             .or_else(|| self.services.feedback.pressed());
         let capture = self.services.capture.get().map(|capture| capture.owner);
         if self.last.snapshot.capture != capture || self.last.snapshot.pressed != pressed {
-            self.presented = false;
+            self.invalidate_prepared();
             self.services.repaint = true;
         }
         self.last.snapshot.capture = capture;
@@ -1763,14 +1836,14 @@ impl<A: App> Runtime<A> {
                 self.services
                     .diagnostics
                     .push(Diagnostic::HoverLayoutDidNotSettle);
-                self.presented = false;
+                self.invalidate_prepared();
                 self.services.repaint = true;
             }
         }
         self.inter.hover = hover;
         self.last.snapshot.hover = hover;
         if hover != painted_hover {
-            self.presented = false;
+            self.invalidate_prepared();
             self.services.repaint = true;
         }
     }
@@ -1977,7 +2050,7 @@ impl<A: App> Runtime<A> {
     pub fn set_focus(&mut self, id: Option<Id>) {
         let from = self.focus.current();
         if from != id {
-            self.presented = false;
+            self.invalidate_prepared();
             self.pending_focus = Some((from, id, FocusVia::Programmatic));
             self.focus.set(id);
             self.last.snapshot.focus = id;
@@ -2275,20 +2348,156 @@ pub mod stub {
 
 #[cfg(test)]
 mod tests {
-    use super::stub::{Control, SCREEN, Stub, deliver, key, runtime, step};
+    use super::stub::{Control, SCREEN, Stub, deliver, key, mouse, runtime, step};
     use super::*;
     use crate::event::MouseKind;
     use crate::focus::Focusability;
     use crate::intent::Intent;
-    use crate::layer::LayerSpec;
+    use crate::layer::{Anchor, LayerSize, LayerSpec, ScreenAlign};
+    use crate::ui::FrameRead;
+    use ratatui::Terminal;
+    use ratatui::backend::TestBackend;
 
     const A: Id = Id::root("a");
     const B: Id = Id::root("b");
     const CLICK_MODAL: Id = Id::root("click-modal");
 
-    #[derive(Default)]
+    fn present<A: App>(rt: &mut Runtime<A>, token: PreparedFrame) {
+        let mut terminal = Terminal::new(TestBackend::new(SCREEN.width, SCREEN.height))
+            .expect("test terminal initializes");
+        terminal
+            .draw(|frame| {
+                rt.draw_prepared(token, frame)
+                    .expect("prepared frame draws");
+            })
+            .expect("test backend draws");
+        rt.acknowledge_presented(token)
+            .expect("backend output is acknowledged");
+    }
+
+    #[derive(Debug, Default)]
     struct BootstrapProbe {
         causes: Vec<UpdateCause>,
+    }
+
+    const CONTINUED_OWNER: Id = Id::root("continued-owner");
+    const CONTINUED_LAYER: Id = Id::root("continued-layer");
+    const CONTINUED_TARGET: Id = Id::root("continued-target");
+    const HOVER_OWNER: Id = Id::root("hover-owner");
+    const FOCUS_A: Id = Id::root("focus-a");
+    const FOCUS_B: Id = Id::root("focus-b");
+
+    #[derive(Debug, Default)]
+    struct ContinuationProbe {
+        opening: Option<crate::layer::LayerOpening>,
+        continued: bool,
+        saw_focus_out: bool,
+        focus_out_to: Vec<Option<Id>>,
+        acknowledgements: usize,
+        acknowledge_owner: bool,
+        completion: Option<(Option<Id>, LayerEvent, bool)>,
+    }
+
+    impl App for ContinuationProbe {
+        fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+            let owner_intents: Vec<_> = cx.intents(CONTINUED_OWNER).collect();
+            for intent in &owner_intents {
+                if let Intent::FocusOut { to } = intent {
+                    self.saw_focus_out = true;
+                    self.focus_out_to.push(*to);
+                }
+                if matches!(intent, Intent::FocusOut { to: Some(target) } if *target == CONTINUED_TARGET)
+                {
+                    self.continued = cx.focus_is_continued(CONTINUED_OWNER, CONTINUED_TARGET);
+                    if self.continued
+                        && self.acknowledge_owner
+                        && cx.acknowledge_focus_continuation(CONTINUED_OWNER, CONTINUED_TARGET)
+                    {
+                        self.acknowledgements += 1;
+                    }
+                }
+                if matches!(intent, Intent::Key(key) if key.code == KeyCode::Char('m')) {
+                    self.opening = cx.open_layer_with_token(
+                        CONTINUED_LAYER,
+                        LayerSpec::popover(CONTINUED_LAYER, Anchor::Screen(ScreenAlign::Center))
+                            .size(LayerSize::Fixed(10, 3))
+                            .initial_focus(CONTINUED_TARGET)
+                            .continues_focus(CONTINUED_OWNER),
+                    );
+                }
+            }
+            for intent in cx.intents(CONTINUED_TARGET) {
+                if matches!(intent, Intent::Key(key) if key.code == KeyCode::Char('x')) {
+                    cx.close_layer(CONTINUED_LAYER, None);
+                }
+            }
+            if let Some(opening) = self.opening
+                && let Some(completion) = cx.take_layer_completion(opening)
+            {
+                self.completion = Some((
+                    completion.restored_focus(),
+                    completion.event(),
+                    completion.continuation_acknowledged(),
+                ));
+            }
+            Response::ignored()
+        }
+
+        fn draw(&self, ui: &mut Ui<'_>) {
+            ui.register_control(
+                CONTINUED_OWNER,
+                Rect::new(0, 0, 10, 1),
+                Focusability::Focusable,
+            );
+            let _ = ui.layer(CONTINUED_LAYER, |ui, area| {
+                ui.register_control(CONTINUED_TARGET, area, Focusability::Focusable);
+            });
+        }
+    }
+
+    struct HoverGeometryProbe;
+
+    impl App for HoverGeometryProbe {
+        fn update(&mut self, _cx: &mut Cx<'_>) -> Response<()> {
+            Response::ignored()
+        }
+
+        fn draw(&self, ui: &mut Ui<'_>) {
+            let x = if ui.state(HOVER_OWNER).contains(StateFlags::HOVERED) {
+                10
+            } else {
+                0
+            };
+            ui.register_control(HOVER_OWNER, Rect::new(x, 0, 10, 1), Focusability::Focusable);
+        }
+    }
+
+    struct FocusCycleProbe;
+
+    impl App for FocusCycleProbe {
+        fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+            if cx.update_cause() == UpdateCause::Bootstrap {
+                cx.focus(FOCUS_A);
+            }
+            if cx
+                .intents(FOCUS_A)
+                .any(|intent| matches!(intent, Intent::FocusIn { .. }))
+            {
+                cx.focus(FOCUS_B);
+            }
+            if cx
+                .intents(FOCUS_B)
+                .any(|intent| matches!(intent, Intent::FocusIn { .. }))
+            {
+                cx.focus(FOCUS_A);
+            }
+            Response::ignored()
+        }
+
+        fn draw(&self, ui: &mut Ui<'_>) {
+            ui.register_control(FOCUS_A, Rect::new(0, 0, 1, 1), Focusability::Focusable);
+            ui.register_control(FOCUS_B, Rect::new(1, 0, 1, 1), Focusability::Focusable);
+        }
     }
 
     impl App for BootstrapProbe {
@@ -2328,8 +2537,7 @@ mod tests {
         assert!(rt.needs_present());
         assert!(rt.handle(key(KeyCode::Enter)).is_err());
 
-        rt.acknowledge_presented(token)
-            .expect("successful output can be acknowledged");
+        present(&mut rt, token);
         assert!(!rt.needs_present());
         assert!(rt.handle(key(KeyCode::Enter)).is_ok());
     }
@@ -2345,9 +2553,114 @@ mod tests {
         let current = second.prepare(SCREEN).expect("second runtime prepares");
         assert!(first.acknowledge_presented(stale).is_err());
         assert!(second.acknowledge_presented(stale).is_err());
-        second
-            .acknowledge_presented(current)
-            .expect("current token is accepted");
+        present(&mut second, current);
+    }
+
+    #[test]
+    fn state_changes_invalidate_prepared_frames() {
+        let mut rt = Runtime::new(BootstrapProbe::default(), Theme::junie());
+        let token = rt.prepare(SCREEN).expect("frame prepares");
+        rt.set_theme(Theme::junie());
+        assert!(rt.acknowledge_presented(token).is_err());
+
+        let token = rt.prepare(SCREEN).expect("frame prepares again");
+        rt.advance_to(Moment::from_millis(1))
+            .expect("clock advances");
+        assert!(rt.acknowledge_presented(token).is_err());
+
+        let token = rt
+            .prepare(SCREEN)
+            .expect("frame prepares after clock change");
+        let _ = rt.app_mut();
+        assert!(rt.acknowledge_presented(token).is_err());
+    }
+
+    #[test]
+    fn prepare_reconciles_hover_geometry_before_output() {
+        let mut rt = Runtime::new(HoverGeometryProbe, Theme::junie());
+        let _ = rt.initialize();
+        let token = rt.prepare(SCREEN).expect("initial frame prepares");
+        present(&mut rt, token);
+        let _ = rt
+            .handle(mouse(MouseKind::Move, 1, 0))
+            .expect("pointer moves");
+        let token = rt.prepare(SCREEN).expect("hover geometry settles");
+        assert_eq!(rt.area_of(HOVER_OWNER).map(|area| area.x), Some(0));
+        assert!(!rt.state_of(HOVER_OWNER).contains(StateFlags::HOVERED));
+        present(&mut rt, token);
+    }
+
+    #[test]
+    fn prepare_bounds_repeated_focus_redirection() {
+        let mut rt = Runtime::new(FocusCycleProbe, Theme::junie());
+        let _ = rt.initialize();
+        assert_eq!(rt.prepare(SCREEN), Err(PreparedFrameError::DidNotSettle));
+    }
+
+    #[test]
+    fn focus_continuation_and_close_receipt_settle_before_prepared_output() {
+        let mut rt = Runtime::new(
+            ContinuationProbe {
+                acknowledge_owner: true,
+                ..ContinuationProbe::default()
+            },
+            Theme::junie(),
+        );
+        let _ = rt.initialize();
+        let token = rt.prepare(SCREEN).expect("initial frame prepares");
+        present(&mut rt, token);
+        rt.set_focus(Some(CONTINUED_OWNER));
+        let token = rt.prepare(SCREEN).expect("owner focus prepares");
+        present(&mut rt, token);
+
+        let _ = rt.handle(key(KeyCode::Char('m'))).expect("menu opens");
+        let token = rt.prepare(SCREEN).expect("menu and FocusOut settle");
+        assert_eq!(rt.focus(), Some(CONTINUED_TARGET));
+        assert!(rt.app().continued, "probe: {:?}", rt.app());
+        assert_eq!(rt.app().acknowledgements, 1);
+        present(&mut rt, token);
+
+        let _ = rt.handle(key(KeyCode::Char('x'))).expect("menu closes");
+        assert!(rt.app().completion.is_none());
+        let token = rt.prepare(SCREEN).expect("completion runs before output");
+        assert_eq!(
+            rt.app().completion,
+            Some((
+                Some(CONTINUED_OWNER),
+                LayerEvent::Dismissed(DismissReason::Programmatic),
+                true
+            ))
+        );
+        present(&mut rt, token);
+    }
+
+    #[test]
+    fn missing_continuation_ack_cancels_receipt_without_blocking_prepare() {
+        let mut rt = Runtime::new(ContinuationProbe::default(), Theme::junie());
+        let _ = rt.initialize();
+        let token = rt.prepare(SCREEN).expect("initial frame prepares");
+        present(&mut rt, token);
+        rt.set_focus(Some(CONTINUED_OWNER));
+        let token = rt.prepare(SCREEN).expect("owner focus prepares");
+        present(&mut rt, token);
+        let _ = rt.handle(key(KeyCode::Char('m'))).expect("menu opens");
+        let token = rt
+            .prepare(SCREEN)
+            .expect("unacknowledged continuation settles");
+        assert!(rt.app().continued);
+        assert_eq!(rt.app().acknowledgements, 0);
+        present(&mut rt, token);
+        let _ = rt.handle(key(KeyCode::Char('x'))).expect("menu closes");
+        let token = rt.prepare(SCREEN).expect("missing ack does not deadlock");
+        assert_eq!(
+            rt.app().completion,
+            Some((
+                Some(CONTINUED_OWNER),
+                LayerEvent::Dismissed(DismissReason::Programmatic),
+                false
+            ))
+        );
+        present(&mut rt, token);
     }
 
     #[derive(Default)]
