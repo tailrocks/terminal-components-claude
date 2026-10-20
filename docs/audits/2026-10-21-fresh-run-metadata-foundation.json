@@ -1,0 +1,33 @@
+{
+  "schema": "termrock.frozen-cli-fresh-run-metadata-foundation",
+  "schema_version": 1,
+  "status": "implementation-ready-for-independent-review-no-capture-performed",
+  "scope": "Stage 3A metadata and receipt-validation foundation only. No application was launched; no baseline frame or ordinary check was captured or replayed.",
+  "plan_binding": {
+    "required_creation_digest": "Externally supplied SHA-256 from fresh-plan publication; plan bytes are revalidated through the no-follow stable reader and current source/tool/inventory verification.",
+    "manifest_bindings": ["plan creation and self digests", "cohort ID and four binary digests", "frozen source paths and digests", "runner and harness input digests", "runtime environment/tool fingerprint", "inventory digest and counts"],
+    "manifest_status": "prepared-metadata-only",
+    "execution_privileges": {"executed": false, "candidate_comparison_eligible": false, "checkpoint_reference_approval": "none", "product_acceptance": false}
+  },
+  "custody": {
+    "key": "32 random bytes created with O_EXCL and O_NOFOLLOW, mode 0600, single-link regular file outside Git, source, binaries, and capture artifacts.",
+    "disclosure": "Key bytes are absent from manifest, logs, environment, and receipt output. Verification checks stable file identity and permissions.",
+    "publication": "Run directory is claimed with exclusive mkdir; manifest is published atomically without replacement and directory-fsynced. Existing run roots and keys are preserved and rejected."
+  },
+  "receipt_validation": {
+    "implemented": "Pure HMAC receipt-chain validator checks exact planned order, no duplicate or skipped cases, predecessor digests, current run/plan/cohort/source/binary/runtime bindings, and nonzero visual checkpoints or ordinary assertions.",
+    "trust_boundary": "No CLI command accepts or signs arbitrary outcomes. No journal writer, phase advance, capture, replay, or finalization command is exposed in this increment.",
+    "partial_prefix": "A valid authenticated prefix reports incomplete and cannot imply full inventory completion or acceptance. Failed, skipped, zero-checkpoint, stale, malformed, or reordered receipts are rejected."
+  },
+  "verification": {
+    "python_unittest": "python3 -m unittest tools.test_frozen_baseline — 65 passed",
+    "py_compile": "python3 -m py_compile tools/frozen_baseline.py tools/test_frozen_baseline.py — passed",
+    "cli_help": ["fresh-run-init", "fresh-run-verify"],
+    "diff_check": "git diff --check — passed"
+  },
+  "remaining_gates": [
+    "Independent exact-commit review is required before any phase advancement implementation.",
+    "Future advancement must use the pinned tuiscotti harness and verify signed per-process launch and close receipts, nonzero ordered checkpoints, expected artifact immutability, and pre/post source/binary/environment identities.",
+    "The fresh capture cohort grants no candidate comparison or checkpoint reference approval; existing reference conflicts remain unresolved and red."
+  ]
+}
