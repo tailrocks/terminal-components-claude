@@ -475,6 +475,14 @@ impl HomeState {
             return;
         }
         if let Some(view) =
+            catalogue::parity_git_current_100x30_plate(world, ui.full().width, ui.full().height)
+            && paint_parity_git_current_100x30(ui, rows_area, &view)
+        {
+            // Steady bar on the placeholder. CUP 5;4. Do not write cursor bytes.
+            ui.set_bar_cursor(QUERY, termrock::Position::new(3, 4));
+            return;
+        }
+        if let Some(view) =
             catalogue::parity_browser_120x40_plate(world, ui.full().width, ui.full().height)
             && paint_parity_browser_120x40(ui, rows_area, &view)
         {
@@ -1117,6 +1125,16 @@ fn paint_parity_browser_100x30(
     view: &catalogue::ParityDiscovery,
 ) -> bool {
     paint_parity_browser_plate(ui, area, view, 100, 30)
+}
+
+/// Default tag columns. Only the 100×30 git-current frame reaches this painter.
+/// Browser and files plates stay on their own painters.
+fn paint_parity_git_current_100x30(
+    ui: &mut Ui<'_>,
+    area: Rect,
+    view: &catalogue::ParityDiscovery,
+) -> bool {
+    paint_tag_list_plate(ui, area, view, 100, 30)
 }
 
 /// Wide card. Only the 120×40 browser frame reaches this painter, so the 80 and 100 plates stay single-column.
