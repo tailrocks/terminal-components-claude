@@ -146,6 +146,9 @@ const CMD_SETTINGS_MOUNTS_CONFIRM: ActionKey =
     ActionKey::application("jackin.settings.mounts-confirm");
 const CMD_SETTINGS_ENV: ActionKey = ActionKey::application("jackin.settings.env");
 const CMD_SETTINGS_ENV_CONFIRM: ActionKey = ActionKey::application("jackin.settings.env-confirm");
+const CMD_SETTINGS_AGENTS: ActionKey = ActionKey::application("jackin.settings.agents");
+const CMD_SETTINGS_AGENTS_CONFIRM: ActionKey =
+    ActionKey::application("jackin.settings.agents-confirm");
 const CMD_NAV_TAB_FIVE: ActionKey = ActionKey::application("jackin.navigation.tab-five");
 const CMD_CAPSULE_PREFIX: ActionKey = ActionKey::application("jackin.capsule.prefix");
 const CMD_CAPSULE_DETACH: ActionKey = ActionKey::application("jackin.capsule.detach");
@@ -275,6 +278,7 @@ mod historical_inspect;
 mod historical_intro_f300;
 mod historical_manager_menu;
 mod historical_paint;
+mod historical_settings_agents;
 mod historical_settings_env;
 mod historical_settings_mounts;
 mod historical_settings_route;
@@ -535,6 +539,7 @@ pub struct App {
     editor_mounts_armed: bool,
     settings_mounts_armed: bool,
     settings_env_armed: bool,
+    settings_agents_armed: bool,
     settings_save_preview: bool,
     capsule_tab_menu_state: MenuState,
     capsule_tab_menu_pos: Position,
@@ -732,6 +737,7 @@ impl App {
             editor_mounts_armed: false,
             settings_mounts_armed: false,
             settings_env_armed: false,
+            settings_agents_armed: false,
             settings_save_preview: false,
             capsule_tab_menu_state: MenuState::default(),
             capsule_tab_menu_pos: Position::new(0, 0),
@@ -880,6 +886,10 @@ impl App {
             // `3` then Enter leaves General for Environments. Capture beats Save.
             self.keymap
                 .add(KeyPhase::Capture, enter, CMD_SETTINGS_ENV_CONFIRM);
+        } else if self.route == Route::Settings && self.settings_agents_armed {
+            // `4` then Enter leaves General for Agents. Capture beats Save.
+            self.keymap
+                .add(KeyPhase::Capture, enter, CMD_SETTINGS_AGENTS_CONFIRM);
         } else if self.add_form_key_host() && self.add_form_backtab && !self.add_form_required {
             // Backtab already stayed on the dialog. Enter validates it.
             // Without this capture the focused start control would leave the page.
@@ -922,6 +932,17 @@ impl App {
                 .add(KeyPhase::Capture, env_key, CMD_SETTINGS_ENV);
         } else {
             self.keymap.add(KeyPhase::Bubble, env_key, CMD_EDITOR_ROLES);
+        }
+        let agents_key = Chord::key(KeyCode::Char('4'));
+        self.keymap.remove(KeyPhase::Bubble, agents_key);
+        self.keymap.remove(KeyPhase::Capture, agents_key);
+        if self.route == Route::Settings && self.settings.tab == 0 {
+            // `4` arms Agents. Enter confirms it. Capture beats editor environments.
+            self.keymap
+                .add(KeyPhase::Capture, agents_key, CMD_SETTINGS_AGENTS);
+        } else {
+            self.keymap
+                .add(KeyPhase::Bubble, agents_key, CMD_EDITOR_ENV);
         }
         let up = Chord::key(KeyCode::Up);
         self.keymap.remove(KeyPhase::Bubble, up);
@@ -4430,6 +4451,9 @@ impl App {
         if !matches!(command, CMD_SETTINGS_ENV | CMD_SETTINGS_ENV_CONFIRM) {
             self.settings_env_armed = false;
         }
+        if !matches!(command, CMD_SETTINGS_AGENTS | CMD_SETTINGS_AGENTS_CONFIRM) {
+            self.settings_agents_armed = false;
+        }
         match command {
             CMD_QUIT => {
                 if !self.quit_open {
@@ -5141,6 +5165,22 @@ impl App {
                 self.settings_env_armed = false;
                 if cx.update_cause() == UpdateCause::Event {
                     self.settings.tab = 2;
+                }
+                Some(Response::changed())
+            }
+            CMD_SETTINGS_AGENTS if self.route == Route::Settings && self.settings.tab == 0 => {
+                // `4` alone stays on General. Enter is what leaves it.
+                if cx.update_cause() == UpdateCause::Event {
+                    self.settings_agents_armed = true;
+                }
+                Some(Response::changed())
+            }
+            CMD_SETTINGS_AGENTS_CONFIRM
+                if self.route == Route::Settings && self.settings_agents_armed =>
+            {
+                self.settings_agents_armed = false;
+                if cx.update_cause() == UpdateCause::Event {
+                    self.settings.tab = 3;
                 }
                 Some(Response::changed())
             }
@@ -7390,6 +7430,46 @@ impl App {
         historical_settings_env::paint(ui);
     }
 
+    fn historical_settings_agents(&self, theme: &termrock::Theme, screen: Rect) -> bool {
+        // `4` then Enter on the paused 120×40 General settings page.
+        // `s` stays on General. `2` then Enter stays on Mounts.
+        // `3` then Enter stays on Environments.
+        // The live page never paints this agent table.
+        screen.width == 120
+            && screen.height == 40
+            && theme.capability.color == termrock::ColorLevel::TrueColor
+            && theme.color.accent == termrock::Color::Rgb(0x48, 0xe0, 0x54)
+            && self.route == Route::Settings
+            && self.world.scenario == Scenario::AccountsMixed
+            && self.motion == Motion::Paused
+            && self.settings.tab == 3
+            && !self.settings_agents_armed
+            && !self.settings_env_armed
+            && !self.settings_mounts_armed
+            && !self.settings.dirty
+            && self.settings.save_error.is_none()
+            && self.settings.save_attempts == 0
+            && !self.settings_save_preview
+            && !self.trusted
+            && self.status.is_none()
+            && !self.help_open
+            && !self.quit_open
+            && !self.cancel_open
+            && !self.about_open
+            && !self.editor_exit_open
+            && !self.cockpit_info_open
+            && !self.launch_failure_open
+            && self.picker_mode.is_none()
+    }
+
+    fn draw_historical_settings_agents(&self, ui: &mut Ui<'_>, screen: Rect) {
+        if !self.historical_settings_agents(ui.theme_ref(), screen) {
+            return;
+        }
+        // Approved frame hides the cursor. No owner writes one.
+        historical_settings_agents::paint(ui);
+    }
+
     fn historical_accounts_detail(&self, theme: &termrock::Theme, screen: Rect) -> bool {
         // Four Downs on the paused 120×40 accounts list land on Claude · Work.
         // The live list never paints `Accounts › Claude › Work`.
@@ -8684,6 +8764,7 @@ impl TuiApp for App {
         self.draw_historical_settings_route(ui, full);
         self.draw_historical_settings_mounts(ui, full);
         self.draw_historical_settings_env(ui, full);
+        self.draw_historical_settings_agents(ui, full);
         self.draw_historical_accounts_detail(ui, full);
         self.draw_historical_accounts_drawer(ui, full);
         self.draw_historical_usage_overview(ui, full);
