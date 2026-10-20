@@ -1,0 +1,15 @@
+# Typed composition leaf facade
+
+This increment is based only on reviewed runtime composition source `10ab21cdb33939ec5ead16b1923c8f91a4bf5cb8`. It adds a facade in `termrock` for Button and Tabs leaves, without importing the separate picker-slot proposal or changing runtime layout, widget, overlay, session, query, or application files.
+
+`composition::button(&Button)` and `composition::tabs(&Tabs, &TabsState, &[T])` return a typed `Child` with fluent minimum, maximum, and flex policies. `Group::{row,column,wrap}` resolves its children through the existing runtime `CompositionSlots` and component `Measure`/draw methods. Component configuration and Tabs state/data remain borrowed; measuring runs no input handlers. Application composition does not pass `Rect`, implement `CompositionLeaf`, or paint cells.
+
+The public integration test compiles as a separate consumer crate and drives the real Runtime: keyboard activation changes a different-data tab selection, pointer press/release activates the composed button, registered hit bounds remain within the root area, and padding/gap/child maximum policies are checked. The executable `composition_consumer` example uses only the public facade for screen composition; it passes the root area only at the Runtime framework boundary. The integration test uses the public `Runtime::prepare`, `draw_prepared`, `acknowledge_presented`, and `area_of` APIs and runs under default features. The executable `composition_consumer` example is a normal example target; the generated `termrock/clippy/default` task runs `cargo clippy --all-targets`, which compiles it.
+
+Panel and text are intentionally not adapted in this increment. `Panel::measure` measures chrome but not body content; `TextSection` renders borrowed text but has no measurement method and keeps its text fields private. A future adapter must define real child-aware panel measurement and shared-text measurement before those helpers can be offered. It must delegate drawing and preserve component hit/focus ownership.
+
+This flat-group facade currently follows the `10ab` runtime API, whose `Ui::compose`/`CompositionSlots::draw` calls are infallible. The nested-composition proposal is separate and not included here. When integrating that API, propagate its depth/validation errors through the facade's group draw method and public example; do not discard them or silently substitute a partial layout.
+
+This is not product parity acceptance. Showcase Buttons migration, screen-level composition, panel/text adapters, and full external consumer/performance coverage remain open.
+
+Validation on the implementation branch: `cargo fmt -p termrock --check`, `cargo clippy -p termrock --all-targets -- -D warnings`, `cargo check -p termrock --example composition_consumer`, `cargo nextest run -p termrock --all-targets --no-fail-fast` (3 passed, 0 skipped), `cargo run -p termrock --example composition_consumer`, and `git diff --check` passed. This validates the facade increment only, not application parity or overall migration acceptance.
