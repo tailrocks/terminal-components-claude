@@ -19,6 +19,7 @@ The original external probe files and their reviewer logs remain unchanged. The 
 - `cargo clippy -p termrock-fields --all-targets -- -D warnings`: passed.
 - `cargo fmt -p termrock-fields --check`: passed.
 - `git diff --check`: passed.
+- The unchanged independent `zero.rs` and `window.rs` probe sources were copied byte-for-byte into `/private/tmp/termrock-textarea-stage3-repair-probe/`, with only manifest dependency paths redirected to this WIP. `cargo nextest run --manifest-path /private/tmp/termrock-textarea-stage3-repair-probe/Cargo.toml --no-fail-fast --status-level fail`: 8 passed, 0 skipped. Both copied test files match the original review sources by SHA-256: `zero.rs` `e96cfd993e19fe512968054d1e9f12901c82267e59cb7dfd6fa02604872b6e19`, `window.rs` `46d56417cc8a5a8e2dc789bddd2ddbe51079aaec646b1b01158e03a99ccd8546`. Captured candidate log: `/private/tmp/termrock-textarea-stage3-repair-probe.log`, SHA-256 `25828679c80639a15059ac624bb44b0a44b176851f5fcb715833979779e7a481`.
 
 During test development, the first new placeholder assertion used a consumer fixture without a configured placeholder; the fixture was corrected to include the same `type here` placeholder as the independent probe. The initial overflow width assertion inspected the first physical row after Ctrl+End had correctly scrolled the six-line document; it was corrected to assert the cursor's visible last row. The final tests assert the intended source cells and cursor coordinates.
 
