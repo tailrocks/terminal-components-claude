@@ -260,6 +260,7 @@ mod historical_editor_mounts;
 mod historical_editor_mounts_dirty;
 mod historical_editor_roles;
 mod historical_editor_save;
+mod historical_help_overlay;
 mod historical_inspect;
 mod historical_intro_f300;
 mod historical_manager_menu;
@@ -7990,6 +7991,43 @@ impl App {
             historical_manager_menu::paint(ui);
         });
     }
+
+    fn historical_help_overlay(&self, theme: &termrock::Theme, screen: Rect) -> bool {
+        // `?` on the paused 120×40 returning manager. False for F10, Tab,
+        // the expanded tree, inspect, and every other host.
+        self.help_open
+            && !self.manager_file_menu
+            && !self.manager_inspect
+            && screen.width == 120
+            && screen.height == 40
+            && theme.capability.color == termrock::ColorLevel::TrueColor
+            && theme.color.accent == termrock::Color::Rgb(0x48, 0xe0, 0x54)
+            && self.route == Route::Manager
+            && self.world.scenario == Scenario::Returning
+            && self.motion == Motion::Paused
+            && self.status.as_deref() == Some("Keyboard shortcuts")
+            && !self.quit_open
+            && !self.cancel_open
+            && !self.about_open
+            && self.launch.is_none()
+            && self.picker_mode.is_none()
+            && self.agent_options.is_empty()
+            && self.active_instance.is_none()
+            && !self.manager.detail_open()
+            && self
+                .manager_rows_cache
+                .first()
+                .is_some_and(|row| self.manager.list.cursor() == Some(row.key))
+    }
+
+    fn draw_historical_help_overlay(&self, ui: &mut Ui<'_>, screen: Rect) {
+        if !self.historical_help_overlay(ui.theme_ref(), screen) {
+            return;
+        }
+        // Page paint only. The approved frame hides the cursor, so this
+        // path must not call set_cursor or set_bar_cursor.
+        historical_help_overlay::paint(ui);
+    }
 }
 
 impl TuiApp for App {
@@ -8312,6 +8350,7 @@ impl TuiApp for App {
             historical_inspect::paint(ui);
         }
         self.draw_historical_manager_menu(ui, full);
+        self.draw_historical_help_overlay(ui, full);
     }
 
     fn should_quit(&self) -> bool {

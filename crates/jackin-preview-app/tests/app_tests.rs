@@ -1729,6 +1729,26 @@ fn accounts_filter_and_inspector_open_without_writing_a_credential() {
 }
 
 #[test]
+fn manager_help_overlay_paints_the_approved_shortcuts_cell() {
+    let mut h = H::new(Scenario::Returning, Motion::Paused, 40, 120, 40);
+    let closed = h.buffer().cell((15, 4)).expect("manager cell");
+    assert_ne!(closed.symbol(), "K");
+    assert!(
+        !h.text().contains("Keyboard shortcuts"),
+        "manager without ? must stay off the help frame: {}",
+        h.text()
+    );
+    h.key(KeyCode::Char('?'));
+    let title = h.buffer().cell((15, 4)).expect("keyboard shortcuts");
+    assert_eq!(title.symbol(), "K");
+    assert_eq!(title.fg, termrock::Color::from_u32(0x00_ff_ff_ff));
+    assert_eq!(title.bg, termrock::Color::from_u32(0x00_18_18_1b));
+    assert!(title.modifier.contains(termrock::Modifier::BOLD));
+    assert!(h.text().contains("Keyboard shortcuts"), "{}", h.text());
+    assert_eq!(h.harness.cursor(), None);
+}
+
+#[test]
 fn manager_file_menu_paints_the_approved_menu_frame() {
     let mut h = H::new(Scenario::Returning, Motion::Paused, 40, 120, 40);
     assert!(
