@@ -104,6 +104,12 @@ const DESC: &str = "Handles checkout, invoicing and refunds for the storefront."
 const LEFT_NEED: u16 = 24;
 const CARD_H: u16 = 16;
 const COLUMN_GAP: u16 = 4;
+const NARROW_W: u16 = 59;
+const NARROW_H: u16 = 18;
+const NARROW_GUTTER: u16 = 2;
+const NARROW_SCROLL_CONTENT: u16 = 25;
+const SCROLL_THUMB: u32 = 0x0080_8080;
+const SCROLL_TRACK: u32 = 0x0047_4747;
 
 fn rgb(hex: u32) -> Color {
     Color::Rgb(
@@ -173,14 +179,55 @@ fn paint_at(ui: &mut Ui<'_>, area: Rect, x: u16, y: u16, text: &str, style: Pain
     );
 }
 
+fn narrow_frame(body: Rect) -> bool {
+    body.width == NARROW_W && body.height == NARROW_H
+}
+
+fn paint_clip(
+    ui: &mut Ui<'_>,
+    area: Rect,
+    x: u16,
+    y: u16,
+    text: &str,
+    style: PaintStyle,
+    cols: u16,
+) {
+    let (shown, clipped) = clip_prefix(text, cols, true);
+    paint_at(ui, area, x, y, &shown, style);
+    if clipped && cols > 0 {
+        paint_at(
+            ui,
+            area,
+            x.saturating_add(cols.saturating_sub(1)),
+            y,
+            "…",
+            style,
+        );
+    }
+}
+
 fn paint_heading(ui: &mut Ui<'_>, body: Rect) {
     let y = body.y.saturating_sub(2);
     let title = "Project settings";
     paint_at(ui, Rect { y, ..body }, 0, y, title, bold(WHITE, CANVAS));
     let meta = "Composed: tabs, form, editable table, list, dialogs";
     let meta_x = width(title).saturating_add(2);
-    if body.width > meta_x {
-        paint_at(ui, Rect { y, ..body }, meta_x, y, meta, ink(MUTED, CANVAS));
+    let row = Rect { y, ..body };
+    if narrow_frame(body) {
+        let room = body.width.saturating_sub(meta_x).saturating_sub(1);
+        if room > 0 {
+            paint_clip(ui, row, meta_x, y, meta, plain(MUTED, CANVAS), room);
+        }
+        paint_at(
+            ui,
+            row,
+            body.width.saturating_sub(1),
+            y,
+            " ",
+            plain(WHITE, CANVAS),
+        );
+    } else if body.width > meta_x {
+        paint_at(ui, row, meta_x, y, meta, ink(MUTED, CANVAS));
     }
 }
 
@@ -288,16 +335,51 @@ fn paint_tab_strip(ui: &mut Ui<'_>, area: Rect, labels: &[&str], active: usize, 
 }
 
 fn paint_general(ui: &mut Ui<'_>, body: Rect, active: usize) {
+    let narrow = narrow_frame(body);
     if let Some(strip) = row_band(body, 0, 2) {
         paint_tab_strip(ui, strip, &SECTIONS, 0, true);
     }
-    if let Some(strip) = row_band(body, 3, 2) {
+    let content = if narrow {
+        Rect {
+            width: body.width.saturating_sub(NARROW_GUTTER),
+            ..body
+        }
+    } else {
+        body
+    };
+    if let Some(strip) = row_band(content, 3, 2) {
         paint_tab_strip(ui, strip, &SETTINGS_TABS, active, false);
     }
-    let Some(card) = row_band(body, 6, CARD_H.min(body.height.saturating_sub(6))) else {
+    let Some(card) = row_band(content, 6, CARD_H.min(content.height.saturating_sub(6))) else {
         return;
     };
-    paint_card(ui, card);
+    paint_card(ui, card, narrow);
+    if narrow {
+        paint_narrow_bar(ui, body);
+    }
+}
+
+fn paint_narrow_bar(ui: &mut Ui<'_>, body: Rect) {
+    let height = body.height.saturating_sub(3);
+    let thumb = thumb_len(height, NARROW_SCROLL_CONTENT);
+    let x = body.right().saturating_sub(1);
+    let y0 = body.y.saturating_add(3);
+    for row in 0..height {
+        let on_thumb = row < thumb;
+        ui.paint_str(
+            Rect::new(x, y0.saturating_add(row), 1, 1),
+            if on_thumb { "┃" } else { "┆" },
+            plain(if on_thumb { SCROLL_THUMB } else { SCROLL_TRACK }, CANVAS),
+        );
+    }
+}
+
+fn thumb_len(viewport: u16, content: u16) -> u16 {
+    if content <= viewport || viewport == 0 {
+        return viewport;
+    }
+    let len = u32::from(viewport).saturating_mul(u32::from(viewport)) / u32::from(content);
+    u16::try_from(len).unwrap_or(viewport).max(1).min(viewport)
 }
 
 fn row_band(body: Rect, row: u16, height: u16) -> Option<Rect> {
@@ -311,7 +393,7 @@ fn row_band(body: Rect, row: u16, height: u16) -> Option<Rect> {
     })
 }
 
-fn paint_card(ui: &mut Ui<'_>, card: Rect) {
+fn paint_card(ui: &mut Ui<'_>, card: Rect, narrow: bool) {
     if card.width < 8 || card.height < 4 {
         return;
     }
@@ -342,7 +424,17 @@ fn paint_card(ui: &mut Ui<'_>, card: Rect) {
     if let Some(left_w) = left_width(content.width) {
         paint_columns(ui, content, left_w);
     } else {
-        paint_stacked(ui, content);
+        paint_stacked(ui, content, !narrow);
+        if narrow {
+            paint_at(
+                ui,
+                card,
+                4,
+                card.bottom().saturating_sub(1),
+                "Visibility",
+                plain(SECONDARY, SURFACE),
+            );
+        }
     }
 }
 
@@ -411,7 +503,7 @@ fn paint_columns(ui: &mut Ui<'_>, content: Rect, left_w: u16) {
     paint_save(ui, content);
 }
 
-fn paint_stacked(ui: &mut Ui<'_>, content: Rect) {
+fn paint_stacked(ui: &mut Ui<'_>, content: Rect, save: bool) {
     paint_name_label(ui, content);
     paint_field(ui, row(content, 1), "payments-gateway", false);
     paint_at(
@@ -430,7 +522,9 @@ fn paint_stacked(ui: &mut Ui<'_>, content: Rect) {
     if desc.height > 0 {
         paint_field(ui, desc, DESC, true);
     }
-    paint_save(ui, content);
+    if save {
+        paint_save(ui, content);
+    }
 }
 
 fn paint_name_label(ui: &mut Ui<'_>, area: Rect) {
