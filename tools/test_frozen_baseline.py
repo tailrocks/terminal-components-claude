@@ -17,6 +17,34 @@ import frozen_baseline as runner
 
 
 class RunnerGuards(unittest.TestCase):
+    def test_term_profiles_are_explicit_and_reported(self) -> None:
+        for profile in ("xterm-256color", "linux", "dumb"):
+            env = {"TERM": "inherited"}
+            record = runner.apply_term_profile(env, profile)
+            self.assertEqual(env["TERM"], profile)
+            self.assertEqual(record["profile"], profile)
+            self.assertEqual(record["term"], profile)
+            self.assertEqual(len(record["sha256"]), 64)
+        env = {"TERM": "inherited"}
+        record = runner.apply_term_profile(env, "unset")
+        self.assertNotIn("TERM", env)
+        self.assertFalse(record["term_present"])
+        self.assertIsNone(record["term"])
+        inherited = {"TERM": "host-term"}
+        self.assertEqual(runner.apply_term_profile(inherited, None)["term"], "host-term")
+        with self.assertRaisesRegex(runner.RunnerError, "unsupported TERM profile"):
+            runner.apply_term_profile({}, "vt100")
+
+    def test_grown_reference_exception_is_fixed_to_its_term(self) -> None:
+        decision = runner.validate_reference_decision_document(json.loads((Path(runner.__file__).resolve().parent / "frozen_cli_references.json").read_text()))
+        decisions = [decision]
+        runner.validate_reference_term_profile(decisions, [runner.REFERENCE_CASE], None)
+        runner.validate_reference_term_profile(decisions, [runner.REFERENCE_CASE], "dumb")
+        for profile in ("xterm-256color", "linux", "unset"):
+            with self.assertRaisesRegex(runner.RunnerError, "pinned grown-reference exception"):
+                runner.validate_reference_term_profile(decisions, [runner.REFERENCE_CASE], profile)
+        runner.validate_reference_term_profile(decisions, ["showcase::pages::overview::120x40::truecolor"], "linux")
+
     def semantic_frame(self, *, cursor_style: str = "Bar") -> bytes:
         cell = {"x": 0, "y": 0, "symbol": "x", "width": 1, "continuation": False, "fg": {"Rgb": {"r": 255, "g": 255, "b": 255}}, "bg": {"Rgb": {"r": 0, "g": 0, "b": 0}}, "mods": {"hidden": False, "blink": False, "bold": False, "dim": False, "italic": False, "underline": False, "strikethrough": False, "reverse": False}}
         frame = {"version": 3, "cols": 1, "rows": 1, "cells": [cell], "cursor": {"x": 0, "y": 0, "visible": False, "style": cursor_style, "blinking": False}, "provenance": {"tool": "tuiscotti", "tool_version": "0.2.0", "profile": "tuiscotti-default", "source": "screen", "argv": [], "created_unix": 0}}
