@@ -1,3 +1,10 @@
+
+## Current integration checkpoint: Fields window repair (2026-10-21)
+
+Adopted source `332f40d07e38512f91cfb038eb9174c413755686` after independent review and parent verification: 504 scoped native tests passed, three existing tests skipped; strict scoped Clippy and formatting passed. This supersedes the earlier rejected horizontal-origin, captured-drag, and placeholder projections only within the reviewed contract. Forms adapter, caret-follow, edit-menu, clipped thumb policy, and all application parity remain incomplete. Evidence: [parent integration](../audits/2026-10-21-textarea-332f-parent-integration.json), [independent clearance](../audits/2026-10-21-textarea-332f-clearance.json).
+
+The 1,301 missing tracked conformance artifacts were restored from exact Git HEAD, with their identities preserved. Cause remains unknown; controlled independent checkout did not reproduce loss. This is recovery, not a product fix or a diagnosed cleaner defect. [Diagnosis](../audits/2026-10-21-artifact-absence-independent-diagnosis.json).
+
 # Termrock migration and acceptance matrix
 
 ## Current acceptance status — 2026-10-21
