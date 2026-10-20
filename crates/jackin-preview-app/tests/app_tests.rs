@@ -1586,6 +1586,59 @@ fn usage_overview_u_paints_the_approved_overview_frame() {
 }
 
 #[test]
+fn usage_detail_down_enter_paints_the_approved_detail_frame() {
+    let mut h = H::new(Scenario::AccountsMixed, Motion::Paused, 40, 120, 40);
+    let back_before = h.buffer().cell((49, 39)).expect("accounts footer");
+    assert_ne!(
+        back_before.symbol(),
+        "B",
+        "accounts list must stay off the detail footer"
+    );
+    h.key(KeyCode::Char('u'));
+    assert_eq!(h.app().route(), Route::Usage);
+    assert_eq!(
+        h.app().usage.tab,
+        jackin_preview_app::screens::usage::Tab::Overview
+    );
+    assert!(!h.app().usage.detail_open());
+    let back_overview = h.buffer().cell((49, 39)).expect("overview footer");
+    assert_ne!(
+        back_overview.symbol(),
+        "B",
+        "overview host must stay off the detail footer: {}",
+        h.text()
+    );
+    assert!(h.text().contains("Usage › Overview"), "{}", h.text());
+    h.key(KeyCode::Down);
+    assert_eq!(
+        h.app().usage.tab,
+        jackin_preview_app::screens::usage::Tab::Registration
+    );
+    assert!(!h.app().usage.detail_open());
+    let back_tab = h.buffer().cell((49, 39)).expect("registration footer");
+    assert_ne!(back_tab.symbol(), "B", "{}", h.text());
+    h.key(KeyCode::Enter);
+    assert!(h.app().usage.detail_open());
+    assert!(h.text().contains("Back to list"), "{}", h.text());
+    assert!(
+        h.text().contains("Usage › Claude › Personal"),
+        "{}",
+        h.text()
+    );
+    let back = h.buffer().cell((49, 39)).expect("detail back hint");
+    assert_eq!(back.symbol(), "B");
+    assert_eq!(back.fg, termrock::Color::from_u32(0x8a_8a_8a));
+    assert_eq!(back.bg, termrock::Color::from_u32(0x00_00_00));
+    assert!(!back.modifier.contains(termrock::Modifier::BOLD));
+    let mark = h.buffer().cell((2, 0)).expect("jackin prompt");
+    assert_eq!(mark.symbol(), "j");
+    assert_eq!(mark.fg, termrock::Color::from_u32(0x19_19_1c));
+    assert_eq!(mark.bg, termrock::Color::from_u32(0x48_e0_54));
+    assert!(mark.modifier.contains(termrock::Modifier::BOLD));
+    assert_eq!(h.harness.cursor(), None);
+}
+
+#[test]
 fn settings_tabs_and_save_preview_stay_on_the_settings_route() {
     let mut h = H::new(Scenario::Returning, Motion::Reduced, 0, 120, 40);
     h.key(KeyCode::Char('s'));
