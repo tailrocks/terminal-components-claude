@@ -6,11 +6,11 @@ use crate::action::ActionKey;
 use crate::capture::{Capture, CaptureSlot};
 use crate::diagnostics::Diagnostics;
 use crate::event::Chord;
-use crate::focus::FocusRing;
+use crate::focus::{FocusRing, ScopeId};
 use crate::hit::Registry;
 use crate::id::{Id, PartRef};
 use crate::intent::{IntentIter, IntentQueue};
-use crate::keymap::{BindingRegistry, KeyMap};
+use crate::keymap::{BindingRegistry, KeyMap, ScopedBubbleBinding};
 use crate::layer::{
     Anchor, DismissReason, FocusContinuationOutcome, LayerCompletion, LayerEvent,
     LayerEventReceipt, LayerId, LayerOpening, LayerSize, LayerSpec, LayerStack, UpdateToken,
@@ -67,6 +67,7 @@ pub struct LastFrame {
     pub(crate) layout: Vec<(Id, LayoutFacts)>,
     pub(crate) declared: Vec<(Id, StateFlags)>,
     pub(crate) bindings: BindingRegistry,
+    pub(crate) scoped_bubble_bindings: Vec<ScopedBubbleBinding>,
     pub(crate) typing_bindings: BindingRegistry,
     pub(crate) typing: crate::runtime::typing::TypingResolved,
     pub(crate) snapshot: Snapshot,
@@ -209,6 +210,12 @@ impl core::fmt::Debug for Cx<'_> {
 }
 
 impl<'f> Cx<'f> {
+    /// Append a component-author diagnostic to the runtime's bounded diagnostic
+    /// stream. Components cannot clear diagnostics emitted by other owners.
+    pub fn diagnostic(&mut self, diagnostic: crate::diagnostics::Diagnostic) {
+        self.services.diagnostics.push(diagnostic);
+    }
+
     fn invalidate_continuation_result_readiness(&mut self) {
         if !self.services.focus_continuation_result_acks.is_empty() {
             for (_, _, ready) in &mut self.services.focus_continuation_result_acks {
@@ -811,6 +818,22 @@ impl<'f> Cx<'f> {
         self.services.layers.top()
     }
 
+    /// Return the currently focused registered control when it belongs to
+    /// `scope` on the topmost interactive layer.
+    pub fn focused_in_scope(&self, scope: ScopeId) -> Option<Id> {
+        let focused = self.last.snapshot.focus?;
+        let entry = self.last.ring.entry(focused)?;
+        let scope_layer = self.last.ring.scope_layer(scope)?;
+        let top = self.services.layers.top();
+        (entry.id == focused
+            && !entry.disabled
+            && self.last.ring.contains(focused)
+            && self.last.ring.within(entry.scope, scope)
+            && entry.layer == scope_layer
+            && entry.layer == top)
+            .then_some(focused)
+    }
+
     pub fn is_open(&self, id: Id) -> bool {
         self.services.layers.is_open(id)
     }
@@ -866,5 +889,40 @@ impl super::Ui<'_> {
 
     pub fn pressed_part(&self, owner: Id) -> Option<PartRef> {
         FrameRead::pressed_part(self, owner)
+    }
+}
+
+#[cfg(test)]
+mod diagnostics_tests {
+    use super::*;
+    use crate::intent::IntentQueue;
+
+    #[test]
+    fn component_author_diagnostics_use_the_bounded_runtime_store() {
+        let intents = IntentQueue::new();
+        let mut services = FrameServices::default();
+        let mut core = UiCore::default();
+        let last = LastFrame::default();
+        let theme = Theme::junie();
+        let owner = Id::root("form");
+        let field = Id::root("name");
+        {
+            let mut cx = Cx::new(&intents, &mut services, &mut core, &last, &theme, None);
+            for _ in 0..70 {
+                cx.diagnostic(crate::diagnostics::Diagnostic::InvalidComponentLayout {
+                    owner,
+                    field: Some(field),
+                });
+            }
+        }
+        assert_eq!(services.diagnostics.items().len(), 64);
+        assert_eq!(services.diagnostics.dropped(), 6);
+        assert!(matches!(
+            services.diagnostics.items().first(),
+            Some(crate::diagnostics::Diagnostic::InvalidComponentLayout {
+                owner: found_owner,
+                field: Some(found_field),
+            }) if *found_owner == owner && *found_field == field
+        ));
     }
 }

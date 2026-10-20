@@ -157,6 +157,24 @@ impl FocusRing {
         self.scopes.iter().find(|r| r.id == id)
     }
 
+    pub(crate) fn scope_layer(&self, id: ScopeId) -> Option<LayerId> {
+        self.scope(id).map(|scope| scope.layer)
+    }
+
+    pub(crate) fn scope_depth(&self, id: ScopeId) -> Option<usize> {
+        let mut current = Some(id);
+        let mut depth = 0usize;
+        for _ in 0..=self.scopes.len() {
+            let scope = current?;
+            depth = depth.saturating_add(1);
+            current = self.scope(scope)?.parent;
+            if current.is_none() {
+                return Some(depth);
+            }
+        }
+        None
+    }
+
     pub fn active_trap(&self) -> Option<ScopeId> {
         self.scopes
             .iter()
