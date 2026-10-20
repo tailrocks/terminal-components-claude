@@ -1291,13 +1291,14 @@ const ACCENT_FG: Color = Color::Rgb(0x48, 0xe0, 0x54);
 const AMBER_FG: Color = Color::Rgb(0xf5, 0x9e, 0x09);
 const LINK_FG: Color = Color::Rgb(0x79, 0xb8, 0xff);
 
-/// Tag `disk-cleanup` plate at 120×40 and 80×24. Other sizes keep the concept disk page.
-/// The narrow frame omits the detail card and shifts the size column.
+/// Tag `disk-cleanup` plate at 120×40, 100×30, and 80×24. Other sizes keep the concept disk page.
+/// The wide frame keeps the detail card. Narrower frames omit it and shift the size column.
 pub(crate) fn paint_disk_cleanup_plate(ui: &mut Ui<'_>) -> bool {
     let area = ui.full();
     let wide = area.width == 120 && area.height == 40;
+    let mid = area.width == 100 && area.height == 30;
     let narrow = area.width == 80 && area.height == 24;
-    if !wide && !narrow {
+    if !wide && !mid && !narrow {
         return false;
     }
     paint_disk_cleanup_band(ui, area);
@@ -1306,6 +1307,8 @@ pub(crate) fn paint_disk_cleanup_plate(ui: &mut Ui<'_>) -> bool {
     if wide {
         paint_disk_detail(ui, area);
         paint_disk_tree(ui, area);
+    } else if mid {
+        paint_disk_tree_100(ui, area);
     } else {
         paint_disk_tree_80(ui, area);
     }
@@ -1990,6 +1993,11 @@ fn paint_disk_tree(ui: &mut Ui<'_>, area: Rect) {
 /// 80×24 tree. The size column sits further right. The selected fill stops after that column.
 fn paint_disk_tree_80(ui: &mut Ui<'_>, area: Rect) {
     paint_disk_rows(ui, area, 61, 78);
+}
+
+/// 100×30 tree. No detail card. The size column sits on the right, one bold cell past the size.
+fn paint_disk_tree_100(ui: &mut Ui<'_>, area: Rect) {
+    paint_disk_rows(ui, area, 81, 98);
 }
 
 fn paint_disk_rows(ui: &mut Ui<'_>, area: Rect, size_at: u16, fill_w: u16) {
