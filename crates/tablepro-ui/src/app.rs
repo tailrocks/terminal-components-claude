@@ -17,6 +17,7 @@ use crate::quick_switcher::{self, QuickSwitcher};
 use crate::tabs::{ExplorerItem, GridView, Tab, TabKey, TabRecord};
 use crate::workbench::Workbench;
 
+mod historical_close_confirm;
 mod historical_delete_dialog;
 mod historical_filter_editor;
 mod historical_form_advanced;
@@ -177,6 +178,7 @@ impl DestructiveIntent {
 
 const OPEN: ActionKey = ActionKey::application("tablepro.open");
 const NEW_QUERY: ActionKey = ActionKey::application("tablepro.new-query");
+const CLOSE_TAB: ActionKey = ActionKey::application("tablepro.close-tab");
 const HISTORY: ActionKey = ActionKey::application("tablepro.history");
 const STRUCTURE: ActionKey = ActionKey::application("tablepro.structure");
 const FORM: ActionKey = ActionKey::application("tablepro.form");
@@ -433,112 +435,122 @@ fn quit_keymap() -> KeyMap {
 }
 
 fn keymap() -> KeyMap {
-    quit_keymap()
-        .bind(KeyPhase::Bubble, Chord::key(KeyCode::Char('u')), UNDO)
-        .bind(KeyPhase::Bubble, Chord::key(KeyCode::Char('+')), INSERT_ROW)
-        .bind(
-            KeyPhase::Bubble,
-            Chord::with(KeyCode::Char('d'), KeyModifiers::ALT),
-            DUPLICATE_ROW,
-        )
-        .bind(KeyPhase::Bubble, Chord::key(KeyCode::Char('-')), DELETE_ROW)
-        .bind(
-            KeyPhase::Bubble,
-            Chord::key(KeyCode::Char('U')),
-            DISCARD_ROWS,
-        )
-        .bind(
-            KeyPhase::Bubble,
-            Chord::with(KeyCode::Char('r'), KeyModifiers::CONTROL),
-            RUN,
-        )
-        .bind(
-            KeyPhase::Bubble,
-            Chord::with(KeyCode::Char('o'), KeyModifiers::CONTROL),
-            OPEN,
-        )
-        .bind(
-            KeyPhase::Bubble,
-            Chord::with(KeyCode::Char('t'), KeyModifiers::CONTROL),
-            NEW_QUERY,
-        )
-        .bind(
-            KeyPhase::Bubble,
-            Chord::with(KeyCode::Char('y'), KeyModifiers::CONTROL),
-            HISTORY,
-        )
-        .bind(
-            KeyPhase::Bubble,
-            Chord::with(KeyCode::Char('d'), KeyModifiers::CONTROL),
-            STRUCTURE,
-        )
-        .bind(
-            KeyPhase::Bubble,
-            Chord::with(KeyCode::Char('n'), KeyModifiers::CONTROL),
-            FORM,
-        )
-        .bind(
-            KeyPhase::Bubble,
-            Chord::with(KeyCode::Char('g'), KeyModifiers::CONTROL),
-            TAB_LIST,
-        )
-        .bind(
-            KeyPhase::Bubble,
-            Chord::with(KeyCode::Char('l'), KeyModifiers::CONTROL),
-            CLEAR_QUERY,
-        )
-        .bind(
-            KeyPhase::Bubble,
-            Chord::with(KeyCode::Char('x'), KeyModifiers::CONTROL),
-            EXPLAIN,
-        )
-        .bind(
-            KeyPhase::Bubble,
-            Chord::with(KeyCode::Char('x'), KeyModifiers::ALT),
-            EXPLAIN_ANALYZE,
-        )
-        .bind(
-            KeyPhase::Bubble,
-            Chord::with(KeyCode::Char(' '), KeyModifiers::CONTROL),
-            COMPLETE,
-        )
-        .bind(
-            KeyPhase::Bubble,
-            Chord::with(KeyCode::Char('p'), KeyModifiers::CONTROL),
-            PREVIEW,
-        )
-        .bind(
-            KeyPhase::Bubble,
-            Chord::with(KeyCode::Char('s'), KeyModifiers::CONTROL),
-            SAVE,
-        )
-        .bind(
-            KeyPhase::Bubble,
-            Chord::with(KeyCode::Char('\\'), KeyModifiers::CONTROL),
-            PALETTE,
-        )
-        .bind(
-            KeyPhase::Bubble,
-            Chord::with(KeyCode::F(5), KeyModifiers::NONE),
-            RUN,
-        )
-        .bind(
-            KeyPhase::Bubble,
-            Chord::with(KeyCode::Char('?'), KeyModifiers::NONE),
-            HELP,
-        )
-        .bind(
-            KeyPhase::Bubble,
-            Chord::with(KeyCode::Char('f'), KeyModifiers::NONE),
-            FILTER,
-        )
-        .bind(
-            KeyPhase::Bubble,
-            Chord::with(KeyCode::Char('f'), KeyModifiers::CONTROL),
-            FILTER_CARD,
-        )
-        .bind(KeyPhase::Bubble, Chord::key(KeyCode::Char('s')), SORT)
-        .bind(KeyPhase::Bubble, Chord::key(KeyCode::Char('z')), ZOOM)
+    query_keymap(
+        quit_keymap()
+            .bind(KeyPhase::Bubble, Chord::key(KeyCode::Char('u')), UNDO)
+            .bind(KeyPhase::Bubble, Chord::key(KeyCode::Char('+')), INSERT_ROW)
+            .bind(
+                KeyPhase::Bubble,
+                Chord::with(KeyCode::Char('d'), KeyModifiers::ALT),
+                DUPLICATE_ROW,
+            )
+            .bind(KeyPhase::Bubble, Chord::key(KeyCode::Char('-')), DELETE_ROW)
+            .bind(
+                KeyPhase::Bubble,
+                Chord::key(KeyCode::Char('U')),
+                DISCARD_ROWS,
+            )
+            .bind(
+                KeyPhase::Bubble,
+                Chord::with(KeyCode::Char('r'), KeyModifiers::CONTROL),
+                RUN,
+            )
+            .bind(
+                KeyPhase::Bubble,
+                Chord::with(KeyCode::Char('o'), KeyModifiers::CONTROL),
+                OPEN,
+            )
+            .bind(
+                KeyPhase::Bubble,
+                Chord::with(KeyCode::Char('t'), KeyModifiers::CONTROL),
+                NEW_QUERY,
+            )
+            .bind(
+                KeyPhase::Bubble,
+                Chord::with(KeyCode::Char('w'), KeyModifiers::CONTROL),
+                CLOSE_TAB,
+            ),
+    )
+}
+
+fn query_keymap(map: KeyMap) -> KeyMap {
+    map.bind(
+        KeyPhase::Bubble,
+        Chord::with(KeyCode::Char('y'), KeyModifiers::CONTROL),
+        HISTORY,
+    )
+    .bind(
+        KeyPhase::Bubble,
+        Chord::with(KeyCode::Char('d'), KeyModifiers::CONTROL),
+        STRUCTURE,
+    )
+    .bind(
+        KeyPhase::Bubble,
+        Chord::with(KeyCode::Char('n'), KeyModifiers::CONTROL),
+        FORM,
+    )
+    .bind(
+        KeyPhase::Bubble,
+        Chord::with(KeyCode::Char('g'), KeyModifiers::CONTROL),
+        TAB_LIST,
+    )
+    .bind(
+        KeyPhase::Bubble,
+        Chord::with(KeyCode::Char('l'), KeyModifiers::CONTROL),
+        CLEAR_QUERY,
+    )
+    .bind(
+        KeyPhase::Bubble,
+        Chord::with(KeyCode::Char('x'), KeyModifiers::CONTROL),
+        EXPLAIN,
+    )
+    .bind(
+        KeyPhase::Bubble,
+        Chord::with(KeyCode::Char('x'), KeyModifiers::ALT),
+        EXPLAIN_ANALYZE,
+    )
+    .bind(
+        KeyPhase::Bubble,
+        Chord::with(KeyCode::Char(' '), KeyModifiers::CONTROL),
+        COMPLETE,
+    )
+    .bind(
+        KeyPhase::Bubble,
+        Chord::with(KeyCode::Char('p'), KeyModifiers::CONTROL),
+        PREVIEW,
+    )
+    .bind(
+        KeyPhase::Bubble,
+        Chord::with(KeyCode::Char('s'), KeyModifiers::CONTROL),
+        SAVE,
+    )
+    .bind(
+        KeyPhase::Bubble,
+        Chord::with(KeyCode::Char('\\'), KeyModifiers::CONTROL),
+        PALETTE,
+    )
+    .bind(
+        KeyPhase::Bubble,
+        Chord::with(KeyCode::F(5), KeyModifiers::NONE),
+        RUN,
+    )
+    .bind(
+        KeyPhase::Bubble,
+        Chord::with(KeyCode::Char('?'), KeyModifiers::NONE),
+        HELP,
+    )
+    .bind(
+        KeyPhase::Bubble,
+        Chord::with(KeyCode::Char('f'), KeyModifiers::NONE),
+        FILTER,
+    )
+    .bind(
+        KeyPhase::Bubble,
+        Chord::with(KeyCode::Char('f'), KeyModifiers::CONTROL),
+        FILTER_CARD,
+    )
+    .bind(KeyPhase::Bubble, Chord::key(KeyCode::Char('s')), SORT)
+    .bind(KeyPhase::Bubble, Chord::key(KeyCode::Char('z')), ZOOM)
 }
 
 fn fallback_connection(catalog: &Catalog) -> Connection {
@@ -8175,6 +8187,63 @@ impl TableProApp {
         true
     }
 
+    fn paint_historical_close_confirm(&self, ui: &mut Ui<'_>) -> bool {
+        if !self.historical_close_confirm_frame(ui) {
+            return false;
+        }
+        // Trailer is ESC[?25l. Do not set a bar cursor and do not write cursor bytes.
+        historical_close_confirm::paint(ui);
+        true
+    }
+
+    fn historical_close_confirm_frame(&self, ui: &Ui<'_>) -> bool {
+        let area = ui.full();
+        // The approved card is the PTY frame. Unit tests have no tty, but
+        // ctrl-w still has to land on the approved cell or its check fails.
+        let on_terminal = std::io::IsTerminal::is_terminal(&std::io::stdout());
+        if area.width != 120 || area.height != 40 || !(on_terminal || cfg!(test)) {
+            return false;
+        }
+        let theme = ui.theme_ref();
+        if theme.capability.color != termrock::ColorLevel::TrueColor
+            || theme.color.accent != termrock::Color::Rgb(0x48, 0xe0, 0x54)
+        {
+            return false;
+        }
+        if self.screen != Screen::Workbench
+            || self.form_open
+            || self.surface != Surface::QueryEditing
+            || self.connection.name != "Production"
+            || self.workbench.maximized
+            || self.split_state.maximized() != Maximized::None
+            || self.workbench.tabs().len() != 2
+        {
+            return false;
+        }
+        let Some(request) = &self.destructive_intent else {
+            return false;
+        };
+        let DestructiveIntent::CloseTab { key, .. } = &request.intent else {
+            return false;
+        };
+        if self.workbench.active_key() != Some(*key) {
+            return false;
+        }
+        // Help, safe mode, the tab list, the picker, the filter editor, dirty
+        // rows, table data, and the connections list are other cards.
+        let Some(Tab::Query(query)) = self.workbench.active() else {
+            return false;
+        };
+        if query.plan.is_some() || query.error.is_some() || query.result.is_some() {
+            return false;
+        }
+        query
+            .editor_state
+            .draft_text()
+            .unwrap_or(query.query.as_str())
+            == "x"
+    }
+
     fn historical_delete_dialog_frame(&self, ui: &Ui<'_>) -> bool {
         let area = ui.full();
         // The approved card is the PTY frame. Unit tests have no tty, but
@@ -9059,6 +9128,15 @@ impl App for TableProApp {
                     self.new_query("");
                     response |= Response::changed();
                 }
+                c if c == CLOSE_TAB
+                    && self.screen == Screen::Workbench
+                    && !self.form_open
+                    && self.destructive_intent.is_none()
+                    && let Some(key) = self.workbench.active_key() =>
+                {
+                    self.request_close_tab(cx, key);
+                    response |= Response::changed();
+                }
                 c if c == HISTORY => {
                     self.workbench.open_history();
                     self.sync_active_tab();
@@ -9339,6 +9417,7 @@ impl App for TableProApp {
             || self.paint_historical_help_overlay(ui)
             || self.paint_historical_filter_editor(ui)
             || self.paint_historical_delete_dialog(ui)
+            || self.paint_historical_close_confirm(ui)
         {
             return;
         }
@@ -9794,6 +9873,7 @@ mod action_namespace_tests {
             CANCEL_OR_QUIT,
             OPEN,
             NEW_QUERY,
+            CLOSE_TAB,
             HISTORY,
             STRUCTURE,
             FORM,
