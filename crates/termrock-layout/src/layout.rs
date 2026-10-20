@@ -387,7 +387,7 @@ impl SplitModel {
     }
 
     pub fn layout(&self, area: Rect, gap: u16) -> (Rect, Rect) {
-        self.layout_with_basis_points(area, gap, u16::from(self.percent).saturating_mul(100))
+        self.layout_with_ratio(area, gap, u32::from(self.percent), 100)
     }
 
     /// Resolve this split using a precise first-pane ratio in basis points.
@@ -400,6 +400,16 @@ impl SplitModel {
         area: Rect,
         gap: u16,
         basis_points: u16,
+    ) -> (Rect, Rect) {
+        self.layout_with_ratio(area, gap, u32::from(basis_points.clamp(500, 9_500)), 10_000)
+    }
+
+    fn layout_with_ratio(
+        &self,
+        area: Rect,
+        gap: u16,
+        numerator: u32,
+        denominator: u32,
     ) -> (Rect, Rect) {
         let split = |at: u16| match self.axis {
             SplitAxis::Vertical => {
@@ -421,9 +431,7 @@ impl SplitModel {
                 if usable < self.min_first.saturating_add(self.min_second) {
                     return (area, self.collapsed(area, true));
                 }
-                let basis_points = basis_points.clamp(500, 9_500);
-                let first =
-                    (u32::from(usable).saturating_mul(u32::from(basis_points)) / 10_000) as u16;
+                let first = (u32::from(usable).saturating_mul(numerator) / denominator) as u16;
                 let first = first.clamp(self.min_first, usable.saturating_sub(self.min_second));
                 split(first)
             }
@@ -488,9 +496,11 @@ impl SplitModel {
             return false;
         }
         let first = offset.clamp(self.min_first, usable.saturating_sub(self.min_second));
+        // Choose the smallest ratio whose floored layout reaches the pointer
+        // cell. Rounding to nearest can leave the seam one cell short.
         let precise = (u32::from(first)
             .saturating_mul(10_000)
-            .saturating_add(u32::from(usable) / 2))
+            .saturating_add(u32::from(usable).saturating_sub(1)))
         .checked_div(u32::from(usable))
         .unwrap_or(0)
         .clamp(500, 9_500) as u16;
@@ -829,6 +839,44 @@ mod tests {
                 .height,
             16
         );
+    }
+
+    #[test]
+    fn precise_split_drag_reaches_each_feasible_cell_on_both_axes() {
+        for axis in [SplitAxis::Vertical, SplitAxis::Horizontal] {
+            let area = match axis {
+                SplitAxis::Vertical => Rect::new(7, 11, 20, 35),
+                SplitAxis::Horizontal => Rect::new(7, 11, 35, 20),
+            };
+            let mut model = SplitModel::new(axis, 38, 4, 6);
+            for target in 4..=28 {
+                let pos = match axis {
+                    SplitAxis::Vertical => Position::new(area.x, area.y + target),
+                    SplitAxis::Horizontal => Position::new(area.x + target, area.y),
+                };
+                let mut basis_points = 3_800;
+                model.drag_to_with_basis_points(area, 1, pos, &mut basis_points);
+                let (first, _) = model.layout_with_basis_points(area, 1, basis_points);
+                let actual = match axis {
+                    SplitAxis::Vertical => first.height,
+                    SplitAxis::Horizontal => first.width,
+                };
+                assert_eq!(
+                    actual, target,
+                    "axis={axis:?}, target={target}, ratio={basis_points}"
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn legacy_layout_preserves_raw_public_percent_extremes() {
+        let area = Rect::new(0, 0, 1_001, 10);
+        let mut model = SplitModel::new(SplitAxis::Horizontal, 50, 1, 1);
+        model.percent = 0;
+        assert_eq!(model.layout(area, 1).0.width, 1);
+        model.percent = 100;
+        assert_eq!(model.layout(area, 1).0.width, 999);
     }
 
     #[test]
