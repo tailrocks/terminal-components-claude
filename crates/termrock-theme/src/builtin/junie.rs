@@ -173,7 +173,10 @@ pub(crate) fn recipes() -> crate::theme::Recipes {
     use crate::{Part, StateFlags};
 
     let mut recipes = super::default_recipes();
-    recipes.get_mut(Family::MENU).parts.entry(Part::TITLE).when(
+    let bar_title = recipes
+        .get_mut(Family::MENU)
+        .variant_mut(crate::Variant::custom("termrock.menu-bar-title"));
+    bar_title.entry(Part::TITLE).when(
         StateFlags::HOVERED,
         StylePatch::new()
             .set_fg(Role::Fg(FgStep::Primary))
