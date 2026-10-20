@@ -443,6 +443,7 @@ fn paint_remote_host_status(ui: &mut Ui<'_>, area: Rect) {
 }
 
 /// Tag hard-cases status. The size label does not fit, so the row ends in `…`.
+/// 80×24 keeps only the path. Wider frames also show the git and docker marks.
 fn paint_hard_cases_status(ui: &mut Ui<'_>, area: Rect) {
     if area.is_empty() {
         return;
@@ -453,6 +454,12 @@ fn paint_hard_cases_status(ui: &mut Ui<'_>, area: Rect) {
         44,
     );
     let mut x = area.x.saturating_add(STATUS_EDGE);
+    if ui.full().width == 80 && ui.full().height == 24 {
+        paint_status_text(ui, area, x, &path, STATUS_FG, true);
+        let mark_x = area.right().saturating_sub(STATUS_EDGE).saturating_sub(1);
+        paint_status_text(ui, area, mark_x, "…", STATUS_GREY, false);
+        return;
+    }
     for (text, fg, bold) in [
         (path.as_str(), STATUS_FG, true),
         ("↓14 ↑3", STATUS_LINK, false),
@@ -1545,7 +1552,8 @@ impl App {
                     || (crate::sim::catalogue::monorepo_root_tag_frame(&self.world)
                         && !self.home.history)
                     || crate::sim::catalogue::monorepo_child_tag_frame(&self.world)
-                    || crate::sim::catalogue::remote_host_tag_frame(&self.world))
+                    || crate::sim::catalogue::remote_host_tag_frame(&self.world)
+                    || crate::sim::catalogue::hard_cases_tag_frame(&self.world))
             {
                 ACTIVITIES_HINT_PARTS
             } else {
@@ -3040,6 +3048,93 @@ mod tests {
                 &other.app().world
             ));
         }
+    }
+    #[test]
+    fn hard_cases_80x24_frame_40_paints_the_narrow_plate_and_later_seeks_keep_home() {
+        let plate = harness(
+            App::for_scenario(Scenario::HardCases, Motion::Paused, 40),
+            Theme::junie(),
+            80,
+            24,
+        );
+        let text = plate.text();
+        let lines: Vec<&str> = text.lines().collect();
+        assert!(lines[7].contains("› Analyze disk usage"), "{}", lines[7]);
+        assert!(
+            lines[8].contains("Resolve the rebase in laz…"),
+            "{}",
+            lines[8]
+        );
+        assert!(lines[8].contains("rebase in progress…"), "{}", lines[8]);
+        assert!(
+            lines[18].contains("Children · 14 projects"),
+            "{}",
+            lines[18]
+        );
+        assert!(
+            lines[20].contains("→ 'holla disk analyze' · here · read-only"),
+            "{}",
+            lines[20]
+        );
+        assert!(
+            lines[22].contains("~/work/clients/northwind-trad…iation-service"),
+            "{}",
+            lines[22]
+        );
+        assert!(!lines[22].contains("↓14"), "{}", lines[22]);
+        assert!(!lines[22].contains("docker"), "{}", lines[22]);
+        assert!(lines[23].contains("Enter Open"), "{}", lines[23]);
+        assert!(lines[23].contains("Tab"), "{}", lines[23]);
+        let thumb = plate.cell(78, 6);
+        assert_eq!(thumb.symbol(), "┃");
+        assert_eq!(thumb.fg, Color::Rgb(0x80, 0x80, 0x80));
+        let track = plate.cell(78, 17);
+        assert_eq!(track.symbol(), "┆");
+        assert_eq!(track.fg, Color::Rgb(0x47, 0x47, 0x47));
+        let mut footer_overflow = None;
+        for x in 0..80 {
+            let cell = plate.cell(x, 23);
+            if cell.symbol() == "…" {
+                footer_overflow = Some((x, cell.fg));
+            }
+        }
+        assert_eq!(
+            footer_overflow,
+            Some((73, Color::Rgb(0x73, 0x73, 0x73))),
+            "{}",
+            lines[23]
+        );
+        let world = &plate.app().world;
+        assert!(catalogue::hard_cases_80x24_plate(world, 120, 40).is_none());
+        assert!(catalogue::hard_cases_80x24_plate(world, 80, 40).is_none());
+        assert!(catalogue::hard_cases_80x24_plate(world, 81, 24).is_none());
+        assert!(catalogue::hard_cases_80x24_plate(world, 100, 30).is_none());
+        let wide = harness(
+            App::for_scenario(Scenario::HardCases, Motion::Paused, 40),
+            Theme::junie(),
+            120,
+            40,
+        );
+        assert!(
+            wide.text().contains("! docker, github unavailable"),
+            "{}",
+            wide.text()
+        );
+        assert!(wide.text().contains("↓14 ↑3"), "{}", wide.text());
+        assert!(catalogue::hard_cases_80x24_plate(&wide.app().world, 120, 40).is_none());
+        let later = harness(
+            App::for_scenario(Scenario::HardCases, Motion::Paused, 4_000),
+            Theme::junie(),
+            80,
+            24,
+        );
+        assert!(
+            !later.text().contains("holla disk analyze"),
+            "{}",
+            later.text()
+        );
+        assert!(catalogue::hard_cases_80x24_plate(&later.app().world, 80, 24).is_none());
+        assert!(!catalogue::hard_cases_tag_frame(&later.app().world));
     }
     #[test]
     fn activities_multi_frame_40_paints_the_tag_plate_and_later_seeks_keep_home() {
