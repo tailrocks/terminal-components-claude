@@ -17,7 +17,7 @@ use termrock_runtime::keymap::{Binding, BindingState, Bindings};
 use termrock_runtime::rowui::{RowFn, RowUi};
 use termrock_runtime::scroll_region::ScrollRegion;
 use termrock_runtime::ui::{Cx, FrameRead, Ui};
-use termrock_theme::{Family, GlyphRole, Slot, StylePatch, Variant};
+use termrock_theme::{CursorStyle, Family, GlyphRole, Slot, StylePatch, Variant};
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum FilterListAction {
@@ -221,6 +221,8 @@ pub struct FilterList<'a, T, R = crate::item::ItemRow> {
     id: Id,
     row: R,
     item_layout: crate::item::ItemRowLayout,
+    cursor_style: CursorStyle,
+    metadata_gap: u16,
     empty: Option<EmptyState<'a>>,
     status: Status,
     frame: usize,
@@ -248,6 +250,8 @@ impl<T> FilterList<'_, T, crate::item::ItemRow> {
             id,
             row: crate::item::ItemRow,
             item_layout: crate::item::ItemRowLayout::Compact,
+            cursor_style: CursorStyle::Bar,
+            metadata_gap: 1,
             empty: None,
             status: Status::Ready,
             frame: 0,
@@ -275,6 +279,18 @@ impl<'a, T, R> FilterList<'a, T, R> {
         self
     }
 
+    #[must_use]
+    pub const fn cursor_style(mut self, style: CursorStyle) -> Self {
+        self.cursor_style = style;
+        self
+    }
+
+    #[must_use]
+    pub const fn metadata_gap(mut self, gap: u16) -> Self {
+        self.metadata_gap = gap;
+        self
+    }
+
     pub const PARTS: &'static [Part] = &[
         Part::CONTAINER,
         Part::GUTTER,
@@ -294,6 +310,8 @@ impl<'a, T, R> FilterList<'a, T, R> {
             id: self.id,
             row,
             item_layout: crate::item::ItemRowLayout::Compact,
+            cursor_style: self.cursor_style,
+            metadata_gap: self.metadata_gap,
             empty: self.empty,
             status: self.status,
             frame: self.frame,
@@ -717,6 +735,7 @@ impl<T: AsItem, R: RowFn<T>> FilterList<'_, T, R> {
                         .map(AsItem::as_item)
                 }),
                 content.width,
+                self.metadata_gap,
             )
         });
         let mut last_group = "";
@@ -759,7 +778,8 @@ impl<T: AsItem, R: RowFn<T>> FilterList<'_, T, R> {
                 flags,
                 semantic.key,
                 row,
-            );
+            )
+            .with_cursor_style(self.cursor_style);
             if let Some(columns) = &columns {
                 let group = semantic.group.unwrap_or("");
                 columns.paint(

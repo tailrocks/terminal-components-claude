@@ -116,11 +116,11 @@ pub use termrock_runtime::layer::{
 };
 
 pub use termrock_theme::{
-    Align, BorderSet, CapabilityPalettes, ColorLevel, ColorTokens, Density, DesignTokens, FG_STEPS,
-    Family, FgStep, GlyphRole, MONO_RULES_PER_FAMILY, MeterFillRest, MeterRole, MeterThresholds,
-    Modifier, MonoRule, Overlay, OverlayRule, PaintStyle, PartMetrics, Resolved, Role,
-    SURFACE_LEVELS, Slot, StyleDefaults, StylePatch, Surface, SyntaxRole, Theme, ThemeBuilder,
-    Variant,
+    Align, BorderSet, CapabilityPalettes, ColorLevel, ColorTokens, CursorStyle, Density,
+    DesignTokens, FG_STEPS, Family, FgStep, GlyphRole, MONO_RULES_PER_FAMILY, MeterFillRest,
+    MeterRole, MeterThresholds, Modifier, MonoRule, Overlay, OverlayRule, PaintStyle, PartMetrics,
+    Resolved, Role, SURFACE_LEVELS, Slot, StyleDefaults, StylePatch, Surface, SyntaxRole, Theme,
+    ThemeBuilder, Variant,
 };
 
 pub use termrock_layout::{Constraints, Size};
@@ -223,5 +223,6 @@ mod tests {
         assert_ne!(id.hash(), 0);
         let rev = Revision::zero();
         assert_eq!(rev.0, 0);
+        assert_eq!(CursorStyle::default(), CursorStyle::Bar);
     }
 }
