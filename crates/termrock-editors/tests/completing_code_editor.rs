@@ -2,6 +2,7 @@ use std::cell::RefCell;
 
 use ratatui_core::buffer::Buffer;
 use ratatui_core::layout::{Position, Rect};
+use termrock_core::action::ActionKey;
 use termrock_core::id::{Id, ItemKey};
 use termrock_editors::code::{CodeAction, CodeEditor};
 use termrock_editors::completion::{
@@ -271,6 +272,74 @@ fn remapped_focus_binding_works_while_completion_is_open() {
         runtime.app().actions.last(),
         Some(&CodeAction::Leave { backward: false })
     );
+}
+
+#[test]
+fn find_shortcut_closes_completion_before_find_keys_are_used() {
+    let mut tab = runtime("SELECT co");
+    send(&mut tab, KeyCode::Char(' '), KeyModifiers::CONTROL);
+    assert!(tab.app().state.is_completion_open());
+
+    send(&mut tab, KeyCode::Char('f'), KeyModifiers::CONTROL);
+    assert!(!tab.app().state.is_completion_open());
+    assert!(!tab.is_open(POPUP));
+    assert!(tab.app().state.editor().is_find_typing());
+
+    send(&mut tab, KeyCode::Tab, KeyModifiers::NONE);
+    assert_eq!(tab.app().state.editor().text(), "SELECT co");
+    assert!(!tab.app().state.is_completion_open());
+    assert!(tab.app().state.editor().is_find_typing());
+
+    let mut enter = runtime("SELECT co");
+    send(&mut enter, KeyCode::Char(' '), KeyModifiers::CONTROL);
+    send(&mut enter, KeyCode::Char('f'), KeyModifiers::CONTROL);
+    send(&mut enter, KeyCode::Enter, KeyModifiers::NONE);
+    assert!(!enter.app().state.editor().is_find_typing());
+    assert!(!enter.app().state.is_completion_open());
+
+    let mut escape = runtime("SELECT co");
+    send(&mut escape, KeyCode::Char(' '), KeyModifiers::CONTROL);
+    send(&mut escape, KeyCode::Char('f'), KeyModifiers::CONTROL);
+    send(&mut escape, KeyCode::Esc, KeyModifiers::NONE);
+    assert!(!escape.app().state.editor().is_find_typing());
+    assert!(!escape.app().state.is_completion_open());
+}
+
+#[test]
+fn printable_remapped_command_matches_with_completion_open_or_closed() {
+    let mut closed = runtime("SELECT co");
+    closed.app_mut().keymap.remap_component(
+        EDITOR,
+        ActionKey::custom("Left"),
+        termrock_runtime::Chord::key(KeyCode::Char('h')),
+    );
+    let before = closed.app().state.editor().cursor_offset();
+    send(&mut closed, KeyCode::Char('h'), KeyModifiers::NONE);
+    let closed_result = (
+        closed.app().state.editor().text().to_owned(),
+        closed.app().state.editor().cursor_offset(),
+    );
+    assert_eq!(closed_result.0, "SELECT co");
+    assert_eq!(closed_result.1, before - 1);
+
+    let mut open = runtime("SELECT co");
+    open.app_mut().keymap.remap_component(
+        EDITOR,
+        ActionKey::custom("Left"),
+        termrock_runtime::Chord::key(KeyCode::Char('h')),
+    );
+    send(&mut open, KeyCode::Char(' '), KeyModifiers::CONTROL);
+    assert!(open.app().state.is_completion_open());
+    let before = open.app().state.editor().cursor_offset();
+    send(&mut open, KeyCode::Char('h'), KeyModifiers::NONE);
+    assert_eq!(
+        (
+            open.app().state.editor().text().to_owned(),
+            open.app().state.editor().cursor_offset()
+        ),
+        closed_result
+    );
+    assert_eq!(open.app().state.editor().cursor_offset(), before - 1);
 }
 
 #[test]
