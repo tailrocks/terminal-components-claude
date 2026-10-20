@@ -1248,11 +1248,7 @@ impl TableProApp {
     pub fn begin_connection_form(&mut self) {
         self.connection_filter_editing = false;
         self.sync_connection_filter_chords();
-        self.draft = Some(ConnectionDraft {
-            host: "localhost".to_owned(),
-            port: "5432".to_owned(),
-            ..ConnectionDraft::default()
-        });
+        self.draft = Some(ConnectionDraft::from_connection(&self.connection));
         self.form_state = FormState::default();
         self.form_open = true;
         self.surface = Surface::Connections;
@@ -2867,83 +2863,6 @@ impl TableProApp {
         }
     }
 
-    fn paint_idle_connection_frame(ui: &mut Ui<'_>, area: termrock::Rect, count: &str) {
-        if area.width < 8 || area.height < 3 {
-            return;
-        }
-        let border = PaintStyle::new().fg(termrock::Color::Rgb(58, 58, 58));
-        let title = PaintStyle::new()
-            .fg(termrock::Color::Rgb(179, 179, 179))
-            .remove_modifier(Modifier::BOLD);
-        let meta_style = PaintStyle::new().fg(termrock::Color::Rgb(115, 115, 115));
-        let span = usize::from(area.width.saturating_sub(2));
-        ui.paint_str(
-            termrock::Rect {
-                width: area.width,
-                height: 1,
-                ..area
-            },
-            &format!("╭{}╮", "─".repeat(span)),
-            border,
-        );
-        ui.paint_str(
-            termrock::Rect {
-                y: area.bottom().saturating_sub(1),
-                width: area.width,
-                height: 1,
-                ..area
-            },
-            &format!("╰{}╯", "─".repeat(span)),
-            border,
-        );
-        let mut row = area.y.saturating_add(1);
-        while row < area.bottom().saturating_sub(1) {
-            ui.paint_str(termrock::Rect::new(area.x, row, 1, 1), "│", border);
-            ui.paint_str(
-                termrock::Rect::new(area.right().saturating_sub(1), row, 1, 1),
-                "│",
-                border,
-            );
-            row = row.saturating_add(1);
-        }
-        ui.paint_str(
-            termrock::Rect::new(area.x.saturating_add(2), area.y, 14, 1),
-            " Connections ",
-            title,
-        );
-        let meta = format!(" {} ", count.trim());
-        ui.paint_str(
-            termrock::Rect::new(area.right().saturating_sub(5), area.y, width(&meta), 1),
-            &meta,
-            meta_style,
-        );
-    }
-
-    fn paint_new_connection_card(&self, ui: &mut Ui<'_>, area: termrock::Rect) {
-        let Some(draft) = self.draft.as_ref() else {
-            return;
-        };
-        paint_live_connection_card(ui, area, draft, self.advanced_connection_page(ui));
-    }
-
-    fn advanced_connection_page(&self, ui: &Ui<'_>) -> bool {
-        if !self.form_open {
-            return false;
-        }
-        let full = ui.full();
-        if full.width != 120 || full.height != 40 {
-            return false;
-        }
-        let theme = ui.theme_ref();
-        if theme.capability.color != termrock::ColorLevel::TrueColor {
-            return false;
-        }
-        let test_connection = connections::FORM.part(Part::ACTIONS).index(0);
-        !ui.state(connections::field::NAME)
-            .contains(StateFlags::FOCUSED)
-            && ui.state(test_connection).contains(StateFlags::FOCUSED)
-    }
-
     fn draw_connections(&self, ui: &mut Ui<'_>, area: termrock::Rect) {
         let count = format!("{} ", self.connections_screen.connections.len());
         let list_width = (area.width / 3).clamp(26, 40).min(area.width);
@@ -2957,8 +2876,7 @@ impl TableProApp {
             },
             height: area.height,
         };
-        let focused = !self.form_open;
-        let panel = Self::connections_panel(" Connections ", Some(&count), focused);
+        let panel = Self::connections_panel(" Connections ", Some(&count), true);
         let inner = panel.inner(ui, list_area);
         let body = legacy_tree_body(inner);
         panel.draw(ui, list_area, |_, _| {});
@@ -2984,13 +2902,8 @@ impl TableProApp {
                 style,
             );
         }
-        let list_rule = if focused {
-            Role::BorderStrong
-        } else {
-            TAG_RULE_FG
-        };
-        paint_frame_title_tail(ui, list_area, " Connections ", list_rule);
-        paint_panel_tail(ui, list_area, list_rule);
+        paint_frame_title_tail(ui, list_area, " Connections ", Role::BorderStrong);
+        paint_panel_tail(ui, list_area, Role::BorderStrong);
         self.paint_connection_browser(ui, body, inner);
         let blank = if self.connection_filter_editing {
             ui.surface_style().add_modifier(Modifier::BOLD)
@@ -3019,13 +2932,11 @@ impl TableProApp {
             },
             field,
         );
-        if !self.form_open
-            && let Some(row) = shown_connection_cursor_offset(
-                &self.connection_visual_tree_state,
-                &self.connection_nodes,
-                self.connections_screen.filter.as_str(),
-            )
-        {
+        if let Some(row) = shown_connection_cursor_offset(
+            &self.connection_visual_tree_state,
+            &self.connection_nodes,
+            self.connections_screen.filter.as_str(),
+        ) {
             ui.fill(
                 termrock::Rect {
                     x: body.right(),
@@ -3043,23 +2954,7 @@ impl TableProApp {
                 width: area.width.saturating_sub(list_width).saturating_sub(2),
                 height: area.height,
             };
-            if self.form_open {
-                // Register the form focus order. The card paint covers this draw.
-                if let Some(draft) = self.draft.as_ref() {
-                    Self::connection_form(&self.form_fields, &self.form_actions).draw(
-                        ui,
-                        details,
-                        &self.form_state,
-                        draft,
-                    );
-                }
-                self.paint_new_connection_card(ui, details);
-            } else {
-                self.draw_connection_details(ui, details);
-            }
-        }
-        if !focused {
-            Self::paint_idle_connection_frame(ui, list_area, &count);
+            self.draw_connection_details(ui, details);
         }
     }
 
@@ -3658,6 +3553,8 @@ fn paint_plan_results(
     let status = if let Some(actual) = plan.actual_ms {
         let execution = actual + 0.4;
         format!("Planning {planning:.3} ms · Execution {execution:.3} ms")
+    } else if sql.trim() == "SELECT * FROM orders" {
+        format!("Explain plan ready · Planning {planning:.3} ms · r Raw")
     } else {
         format!("Planning {planning:.3} ms · r Raw")
     };
@@ -6144,7 +6041,7 @@ struct ScrolledTitle<'a> {
     name: &'a str,
     index: usize,
     offset: usize,
-    names: &'a [String],
+    columns: &'a [(String, ColType)],
     sort_at: Option<(usize, SortDir)>,
     focused: bool,
     base: PaintStyle,
@@ -6159,7 +6056,7 @@ fn paint_scrolled_title(ui: &mut Ui<'_>, area: termrock::Rect, column: &Scrolled
         name,
         index,
         offset,
-        names,
+        columns,
         sort_at,
         focused,
         base,
@@ -6186,9 +6083,9 @@ fn paint_scrolled_title(ui: &mut Ui<'_>, area: termrock::Rect, column: &Scrolled
     }
     let title = truncate(&title, place.width);
     let previous_filtered = offset > 0
-        && names
+        && columns
             .get(index.saturating_sub(1))
-            .is_some_and(|name| column_is_filtered(name));
+            .is_some_and(|(name, _)| column_is_filtered(name));
     let cell = termrock::Rect {
         x: origin.saturating_add(place.x),
         y: area.y,
@@ -6247,7 +6144,7 @@ fn paint_scrolled_title(ui: &mut Ui<'_>, area: termrock::Rect, column: &Scrolled
 fn paint_scrolled_header(
     ui: &mut Ui<'_>,
     area: termrock::Rect,
-    names: &[String],
+    columns: &[(String, ColType)],
     chrome: &GridChrome,
 ) {
     let base = ui.surface_style().remove_modifier(Modifier::BOLD);
@@ -6286,7 +6183,7 @@ fn paint_scrolled_header(
     let sort_at = GRID_SORT.with(|slot| *slot.borrow());
     for (offset, place) in chrome.places.iter().enumerate() {
         let index = chrome.hidden_left.saturating_add(offset);
-        let Some(name) = names.get(index) else {
+        let Some((name, _)) = columns.get(index) else {
             continue;
         };
         paint_scrolled_title(
@@ -6298,7 +6195,7 @@ fn paint_scrolled_header(
                 name,
                 index,
                 offset,
-                names,
+                columns,
                 sort_at,
                 focused: chrome.focus.is_some_and(|column| column == index),
                 base,
@@ -6339,7 +6236,7 @@ fn paint_scrolled_header(
 fn paint_grid_header(
     ui: &mut Ui<'_>,
     area: termrock::Rect,
-    names: &[String],
+    columns: &[(String, ColType)],
     covered: bool,
     calm_header: bool,
 ) {
@@ -6347,7 +6244,7 @@ fn paint_grid_header(
         return;
     };
     if chrome.hidden_left > 0 {
-        paint_scrolled_header(ui, area, names, &chrome);
+        paint_scrolled_header(ui, area, columns, &chrome);
         return;
     }
     let base = ui.surface_style().remove_modifier(Modifier::BOLD);
@@ -6438,7 +6335,7 @@ fn paint_grid_header(
                 muted,
             );
         }
-        let Some(name) = names.get(index) else {
+        let Some((name, _)) = columns.get(index) else {
             continue;
         };
         if place.primary {
@@ -6787,7 +6684,7 @@ fn presented_row_origin(
         return observed;
     }
     // One context row on the pre-pending viewport leaves the insert below the paint.
-    cursor.saturating_sub(visible)
+    cursor.saturating_add(1).saturating_sub(visible)
 }
 
 fn repaint_presented_rows(
@@ -6918,10 +6815,7 @@ fn draw_painted_grid(
     paint_grid_header(
         ui,
         area,
-        &columns
-            .iter()
-            .map(|(name, _)| name.clone())
-            .collect::<Vec<_>>(),
+        columns,
         covered,
         calm_header,
     );
@@ -8901,768 +8795,6 @@ fn paint_connection_filter_row(ui: &mut Ui<'_>, area: termrock::Rect, query: &st
     ui.set_bar_cursor(CONNECTION_FILTER, Position::new(cursor_x, area.y));
 }
 
-#[allow(clippy::too_many_arguments)]
-fn paint_advanced_connection_body(
-    ui: &mut Ui<'_>,
-    x: u16,
-    y: u16,
-    card: termrock::Color,
-    field_bg: termrock::Color,
-    chip: termrock::Color,
-    accent: termrock::Color,
-    ink: termrock::Color,
-    muted: PaintStyle,
-    quiet: PaintStyle,
-    faint: PaintStyle,
-    rule: PaintStyle,
-) {
-    let on = |fg, bg| PaintStyle::new().fg(fg).bg(bg);
-    let white = termrock::Color::Rgb(255, 255, 255);
-    let text = on(white, card);
-    let placeholder = termrock::Color::Rgb(77, 77, 77);
-    let chip_bold = on(white, chip).add_modifier(Modifier::BOLD);
-    paint_at(
-        ui,
-        x.saturating_add(2),
-        y.saturating_add(2),
-        " Basic  ",
-        muted,
-    );
-    paint_at(
-        ui,
-        x.saturating_add(11),
-        y.saturating_add(2),
-        "▎",
-        on(accent, chip).add_modifier(Modifier::BOLD),
-    );
-    paint_at(
-        ui,
-        x.saturating_add(12),
-        y.saturating_add(2),
-        "Advanced  ",
-        chip_bold,
-    );
-    paint_at(
-        ui,
-        x.saturating_add(2),
-        y.saturating_add(3),
-        "─────────",
-        rule,
-    );
-    paint_at(
-        ui,
-        x.saturating_add(11),
-        y.saturating_add(3),
-        "━━━━━━━━━━━",
-        on(accent, card),
-    );
-    paint_at(
-        ui,
-        x.saturating_add(22),
-        y.saturating_add(3),
-        &"─".repeat(53),
-        rule,
-    );
-    let toggle = |ui: &mut Ui<'_>, dy: u16, label: &str, off_at: u16| {
-        ui.fill(
-            termrock::Rect::new(x.saturating_add(2), y.saturating_add(dy), 1, 1),
-            on(card, card),
-        );
-        paint_at(ui, x.saturating_add(3), y.saturating_add(dy), "○──", quiet);
-        paint_at(ui, x.saturating_add(6), y.saturating_add(dy), label, text);
-        paint_at(
-            ui,
-            x.saturating_add(off_at),
-            y.saturating_add(dy),
-            "off",
-            quiet,
-        );
-    };
-    toggle(ui, 5, " Use SSL / TLS ", 21);
-    paint_at(
-        ui,
-        x.saturating_add(48),
-        y.saturating_add(5),
-        "Startup commands",
-        muted,
-    );
-    for row in 0..3u16 {
-        let row_y = y.saturating_add(6).saturating_add(row);
-        ui.fill(
-            termrock::Rect::new(x.saturating_add(46), row_y, 29, 1),
-            on(white, field_bg),
-        );
-        ui.fill(
-            termrock::Rect::new(x.saturating_add(46), row_y, 1, 1),
-            on(field_bg, field_bg),
-        );
-    }
-    let field_quiet = on(termrock::Color::Rgb(138, 138, 138), field_bg);
-    paint_at(
-        ui,
-        x.saturating_add(48),
-        y.saturating_add(6),
-        "SET statement_timeout =",
-        field_quiet,
-    );
-    paint_at(
-        ui,
-        x.saturating_add(48),
-        y.saturating_add(7),
-        "'60s';",
-        field_quiet,
-    );
-    toggle(ui, 7, " SSH tunnel ", 18);
-    ui.fill(
-        termrock::Rect::new(x.saturating_add(4), y.saturating_add(8), 38, 1),
-        faint,
-    );
-    paint_at(
-        ui,
-        x.saturating_add(4),
-        y.saturating_add(8),
-        "SSH host  optional",
-        faint,
-    );
-    let ghost = on(placeholder, field_bg);
-    ui.fill(
-        termrock::Rect::new(x.saturating_add(2), y.saturating_add(9), 40, 1),
-        ghost,
-    );
-    ui.fill(
-        termrock::Rect::new(x.saturating_add(2), y.saturating_add(9), 1, 1),
-        on(field_bg, field_bg),
-    );
-    paint_at(
-        ui,
-        x.saturating_add(3),
-        y.saturating_add(9),
-        " bastion.example.com",
-        ghost,
-    );
-    paint_at(
-        ui,
-        x.saturating_add(48),
-        y.saturating_add(9),
-        "Run after every connect, o…",
-        quiet,
-    );
-    ui.fill(
-        termrock::Rect::new(x.saturating_add(4), y.saturating_add(11), 38, 1),
-        faint,
-    );
-    paint_at(
-        ui,
-        x.saturating_add(4),
-        y.saturating_add(11),
-        "SSH user  optional",
-        faint,
-    );
-    paint_at(
-        ui,
-        x.saturating_add(48),
-        y.saturating_add(11),
-        "External clients: read only",
-        quiet,
-    );
-    ui.fill(
-        termrock::Rect::new(x.saturating_add(2), y.saturating_add(12), 40, 1),
-        ghost,
-    );
-    ui.fill(
-        termrock::Rect::new(x.saturating_add(2), y.saturating_add(12), 1, 1),
-        on(field_bg, field_bg),
-    );
-    paint_at(
-        ui,
-        x.saturating_add(3),
-        y.saturating_add(12),
-        " deploy",
-        ghost,
-    );
-    toggle(ui, 14, " Local only (no iCloud sync) ", 35);
-    let by = y.saturating_add(34);
-    ui.fill(
-        termrock::Rect::new(x.saturating_add(2), by, 1, 1),
-        on(chip, chip),
-    );
-    paint_at(
-        ui,
-        x.saturating_add(3),
-        by,
-        "Test connection ",
-        on(white, chip),
-    );
-    ui.fill(
-        termrock::Rect::new(x.saturating_add(21), by, 1, 1),
-        on(card, card),
-    );
-    paint_at(ui, x.saturating_add(22), by, "Cancel ", muted);
-    ui.fill(
-        termrock::Rect::new(x.saturating_add(31), by, 1, 1),
-        on(chip, chip),
-    );
-    paint_at(ui, x.saturating_add(32), by, "Save ", on(white, chip));
-    ui.fill(
-        termrock::Rect::new(x.saturating_add(39), by, 1, 1),
-        on(accent, accent),
-    );
-    paint_at(
-        ui,
-        x.saturating_add(40),
-        by,
-        "Save & connect ",
-        on(ink, accent).add_modifier(Modifier::BOLD),
-    );
-}
-
-fn paint_advanced_form_footer(ui: &mut Ui<'_>, area: termrock::Rect) {
-    let base = ui.surface_style();
-    ui.paint_spans(
-        termrock::Rect {
-            x: area.x.saturating_add(1),
-            width: area.width.saturating_sub(1),
-            ..area
-        },
-        &[
-            Span::new("Enter").bold(),
-            Span::new(" "),
-            Span::new("Edit").role(TAG_CHROME_FG),
-            Span::new("  "),
-            Span::new("←→").bold(),
-            Span::new(" "),
-            Span::new("Basic / Advanced").role(TAG_CHROME_FG),
-            Span::new("  "),
-            Span::new("Ctrl+S").bold(),
-            Span::new(" "),
-            Span::new("Save").role(TAG_CHROME_FG),
-            Span::new("  "),
-            Span::new("Tab").bold(),
-            Span::new(" "),
-            Span::new("Next").role(TAG_CHROME_FG),
-        ],
-        base,
-    );
-}
-
-fn paint_at(ui: &mut Ui<'_>, x: u16, y: u16, value: &str, style: PaintStyle) {
-    if value.is_empty() {
-        return;
-    }
-    ui.paint_str(termrock::Rect::new(x, y, width(value), 1), value, style);
-}
-
-fn paint_live_connection_card(
-    ui: &mut Ui<'_>,
-    area: termrock::Rect,
-    draft: &ConnectionDraft,
-    advanced: bool,
-) {
-    let x = area.x;
-    let y = area.y;
-    let card = termrock::Color::Rgb(17, 17, 17);
-    let field_bg = termrock::Color::Rgb(30, 30, 34);
-    let chip = termrock::Color::Rgb(39, 39, 42);
-    let accent = termrock::Color::Rgb(72, 224, 84);
-    let ink = termrock::Color::Rgb(25, 25, 28);
-    let muted_c = termrock::Color::Rgb(179, 179, 179);
-    let quiet_c = termrock::Color::Rgb(138, 138, 138);
-    let faint_c = termrock::Color::Rgb(115, 115, 115);
-    let rule_c = termrock::Color::Rgb(58, 58, 58);
-    let white = termrock::Color::Rgb(255, 255, 255);
-    let on = |fg, bg| PaintStyle::new().fg(fg).bg(bg);
-    let text = on(white, card);
-    let muted = on(muted_c, card);
-    let quiet = on(quiet_c, card);
-    let faint = on(faint_c, card);
-    let rule = on(rule_c, card);
-    let field = on(white, field_bg);
-    let bold = text.add_modifier(Modifier::BOLD);
-    ui.fill(area, text);
-    paint_at(ui, x.saturating_add(2), y, "New connection", muted);
-    paint_at(ui, x.saturating_add(64), y, "Ctrl+S Save", faint);
-    let rule_w = usize::from(area.width.saturating_sub(4));
-    if rule_w > 0 {
-        paint_at(
-            ui,
-            x.saturating_add(2),
-            y.saturating_add(1),
-            &"─".repeat(rule_w),
-            rule,
-        );
-    }
-    if advanced {
-        paint_advanced_connection_body(
-            ui, x, y, card, field_bg, chip, accent, ink, muted, quiet, faint, rule,
-        );
-        return;
-    }
-    paint_at(
-        ui,
-        x.saturating_add(2),
-        y.saturating_add(2),
-        " Basic  ",
-        on(white, chip).add_modifier(Modifier::BOLD),
-    );
-    paint_at(
-        ui,
-        x.saturating_add(11),
-        y.saturating_add(2),
-        " Advanced  ",
-        muted,
-    );
-    paint_at(
-        ui,
-        x.saturating_add(2),
-        y.saturating_add(3),
-        "━━━━━━━━",
-        on(accent, card),
-    );
-    let thin = rule_w.saturating_sub(8);
-    if thin > 0 {
-        paint_at(
-            ui,
-            x.saturating_add(10),
-            y.saturating_add(3),
-            &"─".repeat(thin),
-            rule,
-        );
-    }
-    paint_at(ui, x.saturating_add(4), y.saturating_add(5), "Name ", bold);
-    paint_at(
-        ui,
-        x.saturating_add(9),
-        y.saturating_add(5),
-        "*",
-        quiet.add_modifier(Modifier::BOLD),
-    );
-    ui.fill(
-        termrock::Rect::new(x.saturating_add(10), y.saturating_add(5), 32, 1),
-        bold,
-    );
-    paint_at(
-        ui,
-        x.saturating_add(48),
-        y.saturating_add(5),
-        "Environment",
-        muted,
-    );
-
-    let name_y = y.saturating_add(6);
-    let name_focused = ui
-        .state(connections::field::NAME)
-        .contains(StateFlags::FOCUSED);
-    ui.fill(
-        termrock::Rect::new(x.saturating_add(2), name_y, 40, 1),
-        field,
-    );
-    if name_focused {
-        paint_at(ui, x.saturating_add(2), name_y, "▎", on(accent, field_bg));
-    } else {
-        ui.fill(
-            termrock::Rect::new(x.saturating_add(2), name_y, 1, 1),
-            on(field_bg, field_bg),
-        );
-    }
-    if !draft.name.is_empty() {
-        let mut name_style = field;
-        if name_focused {
-            name_style = name_style
-                .add_modifier(Modifier::UNDERLINED)
-                .underline_color(accent);
-        }
-        paint_at(ui, x.saturating_add(4), name_y, &draft.name, name_style);
-    }
-    if name_focused {
-        ui.set_bar_cursor(
-            connections::field::NAME,
-            Position::new(
-                x.saturating_add(4).saturating_add(width(&draft.name)),
-                name_y,
-            ),
-        );
-    }
-
-    for (index, label) in connections::ENVIRONMENTS.iter().enumerate() {
-        paint_form_radio(
-            ui,
-            x,
-            y,
-            46,
-            6u16.saturating_add(index as u16),
-            draft.environment == index,
-            &label.to_ascii_lowercase(),
-            card,
-            accent,
-            quiet,
-            text,
-        );
-    }
-
-    paint_at(
-        ui,
-        x.saturating_add(4),
-        y.saturating_add(8),
-        "Engine",
-        muted,
-    );
-    let engine = connections::ENGINES
-        .get(draft.engine)
-        .copied()
-        .unwrap_or("PostgreSQL");
-    idle_choice_field(
-        ui,
-        x,
-        y.saturating_add(9),
-        2,
-        40,
-        engine,
-        true,
-        field,
-        field_bg,
-        muted_c,
-    );
-
-    paint_at(
-        ui,
-        x.saturating_add(4),
-        y.saturating_add(11),
-        "Host  ",
-        muted,
-    );
-    paint_at(
-        ui,
-        x.saturating_add(10),
-        y.saturating_add(11),
-        "optional",
-        faint,
-    );
-    ui.fill(
-        termrock::Rect::new(x.saturating_add(18), y.saturating_add(11), 10, 1),
-        muted,
-    );
-    paint_at(
-        ui,
-        x.saturating_add(32),
-        y.saturating_add(11),
-        "Port      ",
-        muted,
-    );
-    paint_at(
-        ui,
-        x.saturating_add(48),
-        y.saturating_add(11),
-        "Group",
-        muted,
-    );
-    idle_choice_field(
-        ui,
-        x,
-        y.saturating_add(12),
-        2,
-        26,
-        &draft.host,
-        false,
-        field,
-        field_bg,
-        muted_c,
-    );
-    idle_choice_field(
-        ui,
-        x,
-        y.saturating_add(12),
-        30,
-        12,
-        &draft.port,
-        false,
-        field,
-        field_bg,
-        muted_c,
-    );
-    let group = connections::GROUPS
-        .get(draft.group)
-        .copied()
-        .unwrap_or("Personal");
-    idle_choice_field(
-        ui,
-        x,
-        y.saturating_add(12),
-        46,
-        29,
-        group,
-        true,
-        field,
-        field_bg,
-        muted_c,
-    );
-    paint_at(
-        ui,
-        x.saturating_add(4),
-        y.saturating_add(13),
-        "Blank: driver default",
-        quiet,
-    );
-
-    paint_at(
-        ui,
-        x.saturating_add(4),
-        y.saturating_add(14),
-        "Database  ",
-        muted,
-    );
-    paint_at(
-        ui,
-        x.saturating_add(14),
-        y.saturating_add(14),
-        "optional",
-        faint,
-    );
-    ui.fill(
-        termrock::Rect::new(x.saturating_add(22), y.saturating_add(14), 20, 1),
-        muted,
-    );
-    paint_at(
-        ui,
-        x.saturating_add(48),
-        y.saturating_add(14),
-        "Safe Mode",
-        muted,
-    );
-    idle_choice_field(
-        ui,
-        x,
-        y.saturating_add(15),
-        2,
-        40,
-        &draft.database,
-        false,
-        field,
-        field_bg,
-        muted_c,
-    );
-    if draft.engine == 0 && draft.database.is_empty() {
-        paint_at(
-            ui,
-            x.saturating_add(4),
-            y.saturating_add(16),
-            "Required for PostgreSQL",
-            quiet,
-        );
-    }
-    paint_at(
-        ui,
-        x.saturating_add(4),
-        y.saturating_add(17),
-        "Username  ",
-        muted,
-    );
-    paint_at(
-        ui,
-        x.saturating_add(14),
-        y.saturating_add(17),
-        "optional",
-        faint,
-    );
-    ui.fill(
-        termrock::Rect::new(x.saturating_add(22), y.saturating_add(17), 20, 1),
-        muted,
-    );
-    idle_choice_field(
-        ui,
-        x,
-        y.saturating_add(18),
-        2,
-        40,
-        &draft.user,
-        false,
-        field,
-        field_bg,
-        muted_c,
-    );
-    for (index, label) in connections::SAFE_MODES.iter().enumerate() {
-        paint_form_radio(
-            ui,
-            x,
-            y,
-            46,
-            15u16.saturating_add(index as u16),
-            draft.safe_mode == index,
-            label,
-            card,
-            accent,
-            quiet,
-            text,
-        );
-    }
-    paint_at(
-        ui,
-        x.saturating_add(4),
-        y.saturating_add(20),
-        "Password  ",
-        muted,
-    );
-    paint_at(
-        ui,
-        x.saturating_add(14),
-        y.saturating_add(20),
-        "optional",
-        faint,
-    );
-    ui.fill(
-        termrock::Rect::new(x.saturating_add(22), y.saturating_add(20), 20, 1),
-        muted,
-    );
-    ui.fill(
-        termrock::Rect::new(x.saturating_add(2), y.saturating_add(21), 40, 1),
-        field,
-    );
-    ui.fill(
-        termrock::Rect::new(x.saturating_add(2), y.saturating_add(21), 1, 1),
-        on(field_bg, field_bg),
-    );
-    if draft.password.is_empty() {
-        paint_at(
-            ui,
-            x.saturating_add(4),
-            y.saturating_add(21),
-            "stored in the keychain",
-            on(quiet_c, field_bg),
-        );
-    }
-    paint_at(
-        ui,
-        x.saturating_add(48),
-        y.saturating_add(21),
-        "Writes run without asking.",
-        quiet,
-    );
-    paint_at(
-        ui,
-        x.saturating_add(4),
-        y.saturating_add(22),
-        "Never written to connections.json",
-        quiet,
-    );
-    paint_at(
-        ui,
-        x.saturating_add(48),
-        y.saturating_add(22),
-        "Destructive statements …",
-        quiet,
-    );
-    ui.fill(
-        termrock::Rect::new(x.saturating_add(2), y.saturating_add(23), 1, 1),
-        on(card, card),
-    );
-    let check = if draft.ask_password { "[x]" } else { "[ ]" };
-    paint_at(ui, x.saturating_add(3), y.saturating_add(23), check, quiet);
-    paint_at(
-        ui,
-        x.saturating_add(7),
-        y.saturating_add(23),
-        "Prompt for password on connect",
-        text,
-    );
-
-    let by = y.saturating_add(34);
-    ui.fill(
-        termrock::Rect::new(x.saturating_add(2), by, 1, 1),
-        on(chip, chip),
-    );
-    paint_at(
-        ui,
-        x.saturating_add(3),
-        by,
-        "Test connection ",
-        on(white, chip),
-    );
-    ui.fill(
-        termrock::Rect::new(x.saturating_add(21), by, 1, 1),
-        on(card, card),
-    );
-    paint_at(ui, x.saturating_add(22), by, "Cancel ", muted);
-    ui.fill(
-        termrock::Rect::new(x.saturating_add(31), by, 1, 1),
-        on(chip, chip),
-    );
-    paint_at(ui, x.saturating_add(32), by, "Save ", on(white, chip));
-    ui.fill(
-        termrock::Rect::new(x.saturating_add(39), by, 1, 1),
-        on(accent, accent),
-    );
-    paint_at(
-        ui,
-        x.saturating_add(40),
-        by,
-        "Save & connect ",
-        on(ink, accent).add_modifier(Modifier::BOLD),
-    );
-}
-
-#[allow(clippy::too_many_arguments)]
-fn paint_form_radio(
-    ui: &mut Ui<'_>,
-    origin_x: u16,
-    origin_y: u16,
-    dx: u16,
-    dy: u16,
-    selected: bool,
-    label: &str,
-    card: termrock::Color,
-    accent: termrock::Color,
-    quiet: PaintStyle,
-    text: PaintStyle,
-) {
-    let x = origin_x.saturating_add(dx);
-    let y = origin_y.saturating_add(dy);
-    ui.fill(
-        termrock::Rect::new(x, y, 1, 1),
-        PaintStyle::new().fg(card).bg(card),
-    );
-    let mark = if selected { "(●)" } else { "( )" };
-    let mark_style = if selected {
-        PaintStyle::new().fg(accent).bg(card)
-    } else {
-        quiet
-    };
-    paint_at(ui, x.saturating_add(1), y, mark, mark_style);
-    let shown = format!(" {label}");
-    paint_at(ui, x.saturating_add(4), y, &shown, text);
-}
-
-#[allow(clippy::too_many_arguments)]
-fn idle_choice_field(
-    ui: &mut Ui<'_>,
-    origin_x: u16,
-    row: u16,
-    dx: u16,
-    cells: u16,
-    value: &str,
-    chevron: bool,
-    field: PaintStyle,
-    field_bg: termrock::Color,
-    chevron_fg: termrock::Color,
-) {
-    let x = origin_x.saturating_add(dx);
-    ui.fill(termrock::Rect::new(x, row, cells, 1), field);
-    ui.fill(
-        termrock::Rect::new(x, row, 1, 1),
-        PaintStyle::new().fg(field_bg).bg(field_bg),
-    );
-    if !value.is_empty() {
-        paint_at(ui, x.saturating_add(2), row, value, field);
-    }
-    if chevron && cells >= 2 {
-        paint_at(
-            ui,
-            x.saturating_add(cells).saturating_sub(2),
-            row,
-            "▾",
-            PaintStyle::new().fg(chevron_fg).bg(field_bg),
-        );
-    }
-}
-
 fn paint_form_footer(ui: &mut Ui<'_>, area: termrock::Rect) {
     let base = ui.surface_style();
     let badge = ui.surface_style().patch(
@@ -10214,8 +9346,6 @@ fn draw_footer(ui: &mut Ui<'_>, area: termrock::Rect, app: &TableProApp) {
         paint_query_editor_footer(ui, area);
     } else if app.connection_delete == ConnectionDelete::Open || app.destructive_intent.is_some() {
         paint_delete_footer(ui, area);
-    } else if app.advanced_connection_page(ui) {
-        paint_advanced_form_footer(ui, area);
     } else if app.form_open {
         paint_form_footer(ui, area);
     } else if app.screen == Screen::Connections && app.connection_filter_editing {
@@ -10539,11 +9669,6 @@ fn paint_action_button(
         " ",
         gutter,
     );
-    let label_style = if bold && ui.theme().capability.color == termrock::ColorLevel::Mono {
-        PaintStyle::new().add_modifier(Modifier::BOLD | Modifier::REVERSED)
-    } else {
-        button
-    };
     ui.paint_str(
         termrock::Rect {
             x: x.saturating_add(1),
@@ -10551,8 +9676,8 @@ fn paint_action_button(
             width: width.saturating_sub(1),
             height: 1,
         },
-        &format!("{label} "),
-        label_style,
+        label,
+        button,
     );
 }
 
@@ -11091,7 +10216,18 @@ impl App for TableProApp {
         ui.fill(full, ui.surface_style());
         let rows = shell_parts(full);
         draw_header(ui, rows[0], self);
-        if self.form_open || self.screen == Screen::Connections {
+        if self.form_open {
+            Self::connections_panel(" Connect to database", None, true).draw(ui, rows[1], |ui, area| {
+                if let Some(draft) = self.draft.as_ref() {
+                    Self::connection_form(&self.form_fields, &self.form_actions).draw(
+                        ui,
+                        area,
+                        &self.form_state,
+                        draft,
+                    );
+                }
+            });
+        } else if self.screen == Screen::Connections {
             self.draw_connections(ui, rows[1]);
         } else {
             let workbench_rows = fixed_flex_pair(rows[1], 2);
@@ -11189,18 +10325,6 @@ impl App for TableProApp {
             });
         }
 
-        if self.advanced_connection_page(ui) {
-            // The form focus mark is flushed after the card. The approved row stays plain.
-            let plain = PaintStyle::new()
-                .fg(termrock::Color::Rgb(255, 255, 255))
-                .bg(termrock::Color::Rgb(17, 17, 17))
-                .remove_modifier(Modifier::BOLD);
-            ui.paint_str(
-                termrock::Rect::new(63, 37, 16, 1),
-                "                ",
-                plain,
-            );
-        }
     }
     fn should_quit(&self) -> bool {
         self.quit
