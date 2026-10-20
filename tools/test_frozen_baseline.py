@@ -17,6 +17,120 @@ import frozen_baseline as runner
 
 
 class RunnerGuards(unittest.TestCase):
+    def provenance_payload(self) -> dict[str, object]:
+        env_values = {key: {"present": False, "value_sha256": None} for key in runner.PROVENANCE_ENV_KEYS}
+        env_record = {
+            "policy": "hash-only-explicit-build-environment-allowlist",
+            "allowlisted_values": env_values,
+            "fingerprint_sha256": runner.canonical_json_digest(env_values),
+            "unknown_environment_values_recorded": False,
+            "effective_env_was_runner_cleaned": True,
+            "hermetic": False,
+            "hermeticity_note": "test fixture",
+        }
+        stages = [
+            {
+                "name": name,
+                "argv": ["cargo", name],
+                "effective_environment": env_record,
+                "output_application_binary_sha256": {app: "0" * 64 for app in runner.APPS},
+            }
+            for name in ("build-frozen-binaries", "build-frozen-nextest-harness")
+        ]
+        return {
+            "schema": runner.BUILD_PROVENANCE_SCHEMA,
+            "schema_version": runner.BUILD_PROVENANCE_VERSION,
+            "status": "observed-not-hermetic",
+            "observed_at_utc": "2026-10-20T00:00:00+00:00",
+            "reference": {"tag": runner.BASELINE_TAG, "tag_object": runner.BASELINE_TAG_OBJECT, "commit": runner.BASELINE_COMMIT, "tree": runner.BASELINE_TREE, "source_digest": "1" * 64, "archive_sha256": "2" * 64, "archive_argv": ["git", "-C", "/repo", "archive", "--format=tar", runner.BASELINE_COMMIT], "cargo_lock_sha256": "3" * 64, "rust_toolchain_toml_sha256": None, "tuiscotti_rev": runner.TUISCOTTI_REV},
+            "runner_inputs": {name: None for name in ("runner", "harness_patch", "frame_helper_manifest", "frame_helper_lock", "frame_helper", "extension_manifest", "extension_source", "reference_decisions")},
+            "host": {"system": "test", "release": "test", "machine": "test", "python": "test"},
+            "target_dir": "/tmp/isolated-target",
+            "config_inputs": [],
+            "toolchain": {name: None for name in ("cargo_path_entry", "cargo_selected_toolchain", "cargo_selection_method", "rustup", "active_toolchain", "rustc_selected_toolchain", "rustc_selection_method", "rustc_host_triple", "llvm_version", "rustc_sysroot", "rustc_sysroot_identity_files", "cc", "clang", "linker", "xcrun", "xcode_select", "sdk_path", "sdk_version", "xcode_developer_directory", "link_invocation")},
+            "build": {"stage_order": [stage["name"] for stage in stages], "stages": stages, "environment_policy": "test", "profile": "Cargo default dev profile", "features": "default features", "target_triple": None, "target_selection": "test", "final_application_binary_sha256": {app: "0" * 64 for app in runner.APPS}, "final_hash_point": "after build"},
+            "admission": {"eligible": False, "reason": "provenance observation only; no reference decision or binary admission is performed"},
+        }
+
+    def test_build_provenance_seals_and_checks_integrity(self) -> None:
+        payload = self.provenance_payload()
+        sealed = runner.seal_build_provenance(payload)
+        runner.validate_build_provenance(sealed)
+        changed = dict(sealed)
+        changed["host"] = {"system": "tampered"}
+        with self.assertRaisesRegex(runner.RunnerError, "content digest mismatch"):
+            runner.validate_build_provenance(changed)
+        missing = dict(sealed)
+        missing.pop("toolchain")
+        with self.assertRaisesRegex(runner.RunnerError, "required fields"):
+            runner.validate_build_provenance(missing)
+        missing_runner_input = self.provenance_payload()
+        missing_runner_input["runner_inputs"].pop("runner")
+        with self.assertRaisesRegex(runner.RunnerError, "runner input hashes"):
+            runner.validate_build_provenance(runner.seal_build_provenance(missing_runner_input))
+
+    def test_build_provenance_final_hashes_match_last_stage(self) -> None:
+        payload = self.provenance_payload()
+        payload["build"]["final_application_binary_sha256"][runner.APPS[0]] = "1" * 64
+        with self.assertRaisesRegex(runner.RunnerError, "final binaries differ"):
+            runner.validate_build_provenance(runner.seal_build_provenance(payload))
+
+    def test_build_provenance_payload_collects_tool_inputs(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            repo = Path(temporary)
+            source = repo / "frozen-source"
+            source.mkdir()
+            (source / "Cargo.lock").write_text("lock")
+            (source / "rust-toolchain.toml").write_text("toolchain")
+            inputs = {
+                "tools/frozen_cli_pair.patch": "patch",
+                "tools/frozen-cli-frame-support/Cargo.toml": "manifest",
+                "tools/frozen-cli-frame-support/Cargo.lock": "helper-lock",
+                "tools/frozen-cli-frame-support/src/lib.rs": "helper",
+                str(runner.EXTENSION_MANIFEST): "extensions",
+                str(runner.EXTENSION_SOURCE): "extension-source",
+                str(runner.REFERENCE_DECISIONS): "decisions",
+            }
+            for relative, contents in inputs.items():
+                path = repo / relative
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_text(contents)
+            toolchain = {name: None for name in (
+                "cargo_path_entry", "cargo_selected_toolchain", "cargo_selection_method", "rustup", "active_toolchain",
+                "rustc_selected_toolchain", "rustc_selection_method", "rustc_host_triple", "llvm_version", "rustc_sysroot",
+                "rustc_sysroot_identity_files", "cc", "clang", "linker", "xcrun", "xcode_select", "sdk_path", "sdk_version",
+                "xcode_developer_directory", "link_invocation",
+            )}
+            stage_names = ("build-frozen-binaries", "build-frozen-nextest-harness")
+            stage_hashes = {app: "0" * 64 for app in runner.APPS}
+            stages = [
+                {"name": name, "argv": ["cargo", name], "env": {"PATH": "/bin"}, "output_application_binary_sha256": stage_hashes}
+                for name in stage_names
+            ]
+            with patch.object(runner.subprocess, "run", return_value=runner.subprocess.CompletedProcess([], 0, b"archive", b"")), patch.object(runner, "toolchain_provenance", return_value=toolchain):
+                payload = runner.build_provenance_payload(repo, source, "1" * 64, repo / "target", stage_hashes, stages, {"PATH": "/bin"}, 20)
+            sealed = runner.seal_build_provenance(payload)
+            runner.validate_build_provenance(sealed)
+            self.assertEqual(sealed["runner_inputs"]["runner"], runner.sha256(Path(runner.__file__).resolve()))
+            self.assertEqual(sealed["runner_inputs"]["frame_helper_lock"], runner.sha256(repo / "tools/frozen-cli-frame-support/Cargo.lock"))
+
+    def test_build_provenance_cohort_fingerprint_excludes_observation_time(self) -> None:
+        first = runner.seal_build_provenance(self.provenance_payload())
+        second_payload = self.provenance_payload()
+        second_payload["observed_at_utc"] = "2026-10-21T00:00:00+00:00"
+        second = runner.seal_build_provenance(second_payload)
+        self.assertEqual(first["cohort_fingerprint_sha256"], second["cohort_fingerprint_sha256"])
+        self.assertNotEqual(first["provenance_sha256"], second["provenance_sha256"])
+
+    def test_build_environment_records_only_hashes_for_safe_allowlist(self) -> None:
+        secret = "never-serialize-this-token"
+        record = runner.build_environment_fingerprint({"PATH": "/safe/bin", "CFLAGS": "-O2", "AWS_SECRET_ACCESS_KEY": secret})
+        encoded = json.dumps(record)
+        self.assertNotIn(secret, encoded)
+        self.assertNotIn("AWS_SECRET_ACCESS_KEY", encoded)
+        self.assertEqual(record["allowlisted_values"]["PATH"]["value_sha256"], runner.hashlib.sha256(b"/safe/bin").hexdigest())
+        self.assertFalse(record["hermetic"])
+
     def test_term_profiles_are_explicit_and_reported(self) -> None:
         for profile in ("xterm-256color", "linux", "dumb"):
             env = {"TERM": "inherited"}
