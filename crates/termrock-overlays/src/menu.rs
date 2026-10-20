@@ -1313,32 +1313,44 @@ mod tests {
             );
         });
         let area = Rect::new(0, 0, 20, 2);
-        let mut runtime = Runtime::new(crate::runtime::stub::Stub::default(), theme);
-        let mut buffer = Buffer::empty(area);
-        runtime
-            .draw_scene(area, &mut buffer, |ui, area| {
-                ui.with_overlay(&OVERLAY, |ui| {
-                    ui.reference(
-                        Some(
-                            crate::ReferenceTarget::new(ID, crate::ReferenceState::HOVERED)
-                                .part(PartRef::item(Part::TITLE, ItemKey::index(0))),
-                        ),
-                        |ui| {
-                            MenuBar::new(ID, &MENUS).patch_part(&LOCAL).draw(
-                                ui,
-                                area,
-                                &MenuState::default(),
-                            );
-                        },
-                    );
-                });
-            })
-            .commit_presented();
+        for scope in [MenuBarHoverScope::Bar, MenuBarHoverScope::Title] {
+            let mut runtime = Runtime::new(crate::runtime::stub::Stub::default(), theme.clone());
+            let mut buffer = Buffer::empty(area);
+            runtime
+                .draw_scene(area, &mut buffer, |ui, area| {
+                    ui.with_overlay(&OVERLAY, |ui| {
+                        ui.reference(
+                            Some(
+                                crate::ReferenceTarget::new(ID, crate::ReferenceState::HOVERED)
+                                    .part(PartRef::item(Part::TITLE, ItemKey::index(0))),
+                            ),
+                            |ui| {
+                                MenuBar::new(ID, &MENUS)
+                                    .hover_scope(scope)
+                                    .patch_part(&LOCAL)
+                                    .draw(ui, area, &MenuState::default());
+                            },
+                        );
+                    });
+                })
+                .commit_presented();
 
-        let title = buffer.cell(Position::new(2, 0)).expect("File title cell");
-        assert_eq!(title.fg, ratatui_core::style::Color::Rgb(10, 11, 12));
-        assert_eq!(title.bg, ratatui_core::style::Color::Rgb(7, 8, 9));
-        assert!(title.modifier.contains(crate::theme::Modifier::ITALIC));
+            let title = buffer.cell(Position::new(2, 0)).expect("File title cell");
+            assert_eq!(
+                title.fg,
+                ratatui_core::style::Color::Rgb(10, 11, 12),
+                "foreground with {scope:?}"
+            );
+            assert_eq!(
+                title.bg,
+                ratatui_core::style::Color::Rgb(7, 8, 9),
+                "overlay background with {scope:?}"
+            );
+            assert!(
+                title.modifier.contains(crate::theme::Modifier::ITALIC),
+                "family default variant with {scope:?}"
+            );
+        }
     }
 
     #[test]
