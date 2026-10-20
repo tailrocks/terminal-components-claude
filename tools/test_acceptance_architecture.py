@@ -61,7 +61,7 @@ class ArchitectureGateTests(unittest.TestCase):
     def test_transitive_renamed_target_dependency_fails(self) -> None:
         helper = self.root / "crates/helper"
         write(helper / "Cargo.toml", '[package]\nname="termrock-helper"\nversion="0.1.0"\nedition="2024"\n')
-        write(helper / "src/lib.rs", "pub fn helper() {}\n")
+        write(helper / "src/lib.rs", "// captured terminal frame\npub fn helper() {}\n")
         write(self.root / "crates/showcase-domain/Cargo.toml", '[package]\nname="showcase-domain"\nversion="0.1.0"\nedition="2024"\n')
         write(self.root / "crates/showcase-domain/src/lib.rs", "pub fn domain() {}\n")
         write(self.root / "crates/termrock-core/Cargo.toml", '[package]\nname="termrock-core"\nversion="0.1.0"\nedition="2024"\n[target.\'cfg(unix)\'.dependencies]\ninternal = { package = "termrock-helper", path = "../helper" }\n')
@@ -74,6 +74,7 @@ class ArchitectureGateTests(unittest.TestCase):
         self.assertEqual(violation["file"], "crates/helper/Cargo.toml")
         self.assertIsInstance(violation["line"], int)
         self.assertEqual(len(violation["sha256"]), 64)
+        self.assertTrue(any(item["file"] == "crates/helper/src/lib.rs" for item in report["findings"]))
 
     def test_missing_role_fails_closed(self) -> None:
         path = self.root / "crates/termrock-terminal/Cargo.toml"
@@ -140,6 +141,43 @@ fn render(ui: &mut Ui) { for cell in FRAME_PIECES { ui.paint(cell.x, cell.y, cel
         subprocess.run(["git", "add", "-A"], cwd=self.root, check=True)
         report = self.run_gate()
         self.assertIn("showcase", report["application_shared_closure_missing"])
+
+    def test_custom_lib_target_path_is_hashed_and_scanned(self) -> None:
+        write(self.root / "crates/termrock-core/Cargo.toml", '[package]\nname="termrock-core"\nversion="0.1.0"\nedition="2024"\n[lib]\npath="other.rs"\n')
+        write(self.root / "crates/termrock-core/other.rs", "// captured terminal frame\npub fn shared() {}\n")
+        subprocess.run(["git", "add", "-A"], cwd=self.root, check=True)
+        report = self.run_gate()
+        self.assertFalse(report["architecture_checks_passed"])
+        self.assertTrue(any(row["path"] == "crates/termrock-core/other.rs" for row in report["source_inputs"]))
+        self.assertTrue(any(item["file"] == "crates/termrock-core/other.rs" for item in report["findings"]))
+
+    def test_custom_build_target_outside_src_is_hashed_and_unresolved(self) -> None:
+        write(self.root / "crates/termrock-core/Cargo.toml", '[package]\nname="termrock-core"\nversion="0.1.0"\nedition="2024"\nbuild="build/custom.rs"\n')
+        write(self.root / "crates/termrock-core/build/custom.rs", "fn main() {}\n")
+        subprocess.run(["git", "add", "-A"], cwd=self.root, check=True)
+        report = self.run_gate()
+        self.assertFalse(report["architecture_checks_passed"])
+        self.assertTrue(any(row["path"] == "crates/termrock-core/build/custom.rs" for row in report["source_inputs"]))
+        self.assertTrue(any("build-generated production inputs" in item and "build/custom.rs" in item for item in report["unaccounted_inputs"]))
+
+    def test_nested_include_and_path_module_are_followed(self) -> None:
+        write(self.root / "crates/termrock-core/src/lib.rs", 'include!("../first.inc");\n')
+        write(self.root / "crates/termrock-core/first.inc", '#[path = "generated/second.rs"]\nmod nested;\n')
+        write(self.root / "crates/termrock-core/generated/second.rs", "// captured terminal frame\n")
+        subprocess.run(["git", "add", "-A"], cwd=self.root, check=True)
+        report = self.run_gate()
+        self.assertFalse(report["architecture_checks_passed"])
+        self.assertTrue(any(row["path"] == "crates/termrock-core/generated/second.rs" and row.get("included_by") == "crates/termrock-core/first.inc" for row in report["source_inputs"]))
+        self.assertTrue(any(item["file"] == "crates/termrock-core/generated/second.rs" for item in report["findings"]))
+
+    def test_recursive_include_cycle_fails_closed(self) -> None:
+        write(self.root / "crates/termrock-core/src/lib.rs", 'include!("../first.inc");\n')
+        write(self.root / "crates/termrock-core/first.inc", 'include!("second.inc");\n')
+        write(self.root / "crates/termrock-core/second.inc", 'include!("first.inc");\n')
+        subprocess.run(["git", "add", "-A"], cwd=self.root, check=True)
+        report = self.run_gate()
+        self.assertFalse(report["architecture_checks_passed"])
+        self.assertTrue(any("recursive production source include cycle" in error for error in report["errors"]))
 
 
 if __name__ == "__main__":
