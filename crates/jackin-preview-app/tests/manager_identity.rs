@@ -20,6 +20,27 @@ fn tab_from_the_manager_paints_the_detail_drawer_hints() {
 }
 
 #[test]
+fn inspect_shortcut_paints_the_container_dialog() {
+    let mut h = Harness::new(
+        App::for_scenario_at(Scenario::Returning, Motion::Paused, 40),
+        Theme::junie(),
+        120,
+        40,
+    );
+    let _ = h.key(KeyCode::Down);
+    let _ = h.key(KeyCode::Char(' '));
+    let _ = h.key(KeyCode::Down);
+    let _ = h.key(KeyCode::Char('i'));
+    let text = h.text();
+    assert!(text.contains("Container 7f3a"), "{text}");
+    assert!(text.contains("read-only"), "{text}");
+    assert!(text.contains("Copy"), "{text}");
+    let _ = h.key(KeyCode::Esc);
+    assert!(!h.text().contains("Container 7f3a"), "{}", h.text());
+    assert!(!h.app().should_quit());
+}
+
+#[test]
 fn selected_workspace_survives_world_reordering() {
     let mut h = Harness::new(
         App::for_scenario(Scenario::Returning, Motion::Paused),
