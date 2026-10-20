@@ -59,7 +59,7 @@ pub struct Theme {
 
 impl Theme {
     pub fn junie() -> Theme {
-        Theme {
+        let theme = Theme {
             color: builtin::junie::tokens(),
             design: builtin::junie::design(),
             recipes: builtin::junie::recipes(),
@@ -67,7 +67,36 @@ impl Theme {
                 color: ColorLevel::TrueColor,
             },
             capability_palettes: Some(std::sync::Arc::new(palettes::junie())),
-        }
+        };
+        use crate::id::Part;
+        use crate::recipe::Family;
+        use crate::response::StateFlags;
+        use crate::role::Role;
+        use ColorLevel::{Ansi16, Ansi256, Mono, TrueColor};
+        use ratatui_core::style::Color;
+
+        [
+            (
+                TrueColor,
+                Color::from_u32(0x00_4d_4d_4d),
+                Color::from_u32(0x00_80_80_80),
+            ),
+            (Ansi256, Color::Indexed(239), Color::Indexed(245)),
+            (Ansi16, Color::DarkGray, Color::Gray),
+            (Mono, Color::DarkGray, Color::Gray),
+        ]
+        .into_iter()
+        .fold(theme, |theme, (level, rest, hover)| {
+            theme.define_family_for_level(level, Family::SPLIT, |recipe| {
+                recipe
+                    .part(Part::SEAM)
+                    .base(StylePatch::new().set_fg(Role::Custom(rest)))
+                    .when(
+                        StateFlags::HOVERED,
+                        StylePatch::new().set_fg(Role::Custom(hover)),
+                    );
+            })
+        })
     }
 
     pub fn paper() -> Theme {
@@ -158,6 +187,25 @@ impl Theme {
         for (p, part) in e.into_parts().iter() {
             recipe.parts.entry(p).merge_from(part);
         }
+        self
+    }
+
+    /// Define capability-specific family defaults that apply before ordinary user overrides.
+    ///
+    /// A level default only replaces channels that remain equal to the family recipe captured
+    /// when the first profile for this family is defined. This lets a consumer customize one
+    /// channel (including clearing it) without losing unrelated level-specific defaults.
+    #[must_use]
+    pub fn define_family_for_level(
+        mut self,
+        level: ColorLevel,
+        family: Family,
+        edit: impl FnOnce(&mut RecipeEdit),
+    ) -> Theme {
+        let mut e = RecipeEdit::default();
+        edit(&mut e);
+        self.recipes
+            .define_level_family(level, family, e.into_parts());
         self
     }
 
@@ -482,5 +530,164 @@ mod tests {
             Surface::Canvas,
         );
         assert_eq!(out.style.fg, Some(d.color.warning));
+    }
+
+    fn seam_fg(theme: &Theme, state: StateFlags) -> Option<Color> {
+        theme
+            .resolve(
+                Family::SPLIT,
+                Variant::DEFAULT,
+                Part::SEAM,
+                state,
+                Surface::Canvas,
+            )
+            .style
+            .as_style()
+            .fg
+    }
+
+    #[test]
+    fn junie_split_seam_uses_capability_profile_and_pressed_accent_precedence() {
+        let cases = [
+            (
+                ColorLevel::TrueColor,
+                Color::Rgb(77, 77, 77),
+                Color::Rgb(128, 128, 128),
+            ),
+            (
+                ColorLevel::Ansi256,
+                Color::Indexed(239),
+                Color::Indexed(245),
+            ),
+            (ColorLevel::Ansi16, Color::DarkGray, Color::Gray),
+            (ColorLevel::Mono, Color::Black, Color::White),
+        ];
+        for (level, rest, hover) in cases {
+            let mut theme = Theme::junie();
+            theme.capability.color = level;
+            assert_eq!(
+                seam_fg(&theme, StateFlags::empty()),
+                Some(rest),
+                "{level:?}"
+            );
+            assert_eq!(
+                seam_fg(&theme, StateFlags::HOVERED),
+                Some(hover),
+                "{level:?}"
+            );
+            let accent = resolve::bind_role(&theme, Role::Accent, Surface::Canvas);
+            assert_eq!(
+                seam_fg(&theme, StateFlags::HOVERED | StateFlags::PRESSED),
+                accent,
+                "pressed has precedence over hover at {level:?}"
+            );
+        }
+    }
+
+    #[test]
+    fn seam_profile_does_not_alias_custom_disabled_tokens_and_user_recipe_channels_win() {
+        let mut theme = Theme::junie();
+        theme.capability.color = ColorLevel::Ansi256;
+        theme.color.disabled_fg = Color::Indexed(17);
+        assert_eq!(
+            seam_fg(&theme, StateFlags::empty()),
+            Some(Color::Indexed(239))
+        );
+
+        let custom = Theme::junie().define_family(Family::SPLIT, |recipe| {
+            recipe
+                .part(Part::SEAM)
+                .base(StylePatch::new().set_fg(Role::Danger));
+        });
+        assert_eq!(
+            seam_fg(&custom, StateFlags::empty()),
+            Some(custom.color.danger)
+        );
+
+        let custom_hover = Theme::junie().define_family(Family::SPLIT, |recipe| {
+            recipe
+                .part(Part::SEAM)
+                .when(StateFlags::HOVERED, StylePatch::new().set_fg(Role::Danger));
+        });
+        assert_eq!(
+            seam_fg(&custom_hover, StateFlags::HOVERED),
+            Some(custom_hover.color.danger)
+        );
+
+        let custom_background = Theme::junie().define_family(Family::SPLIT, |recipe| {
+            recipe
+                .part(Part::SEAM)
+                .base(StylePatch::new().set_bg(Role::Danger));
+        });
+        let custom_background_style = custom_background
+            .resolve(
+                Family::SPLIT,
+                Variant::DEFAULT,
+                Part::SEAM,
+                StateFlags::empty(),
+                Surface::Canvas,
+            )
+            .style;
+        assert_eq!(
+            custom_background_style.as_style().fg,
+            Some(Color::Rgb(77, 77, 77))
+        );
+        assert_eq!(
+            custom_background_style.as_style().bg,
+            Some(custom_background.color.danger)
+        );
+
+        let override_theme = Theme::junie().override_family(Family::SPLIT, |recipe| {
+            recipe
+                .part(Part::SEAM)
+                .base(StylePatch::new().set_fg(Role::Danger));
+        });
+        assert_eq!(
+            seam_fg(&override_theme, StateFlags::empty()),
+            Some(override_theme.color.danger)
+        );
+
+        let mut cleared = Theme::junie();
+        cleared.capability.color = ColorLevel::Ansi256;
+        cleared
+            .recipes
+            .get_mut(Family::SPLIT)
+            .parts
+            .entry(Part::SEAM)
+            .base
+            .fg = Slot::Clear;
+        assert_eq!(seam_fg(&cleared, StateFlags::empty()), None);
+    }
+
+    #[test]
+    fn style_cache_key_tracks_capability_level_and_recipe_revision() {
+        let mut theme = Theme::junie();
+        let mut cache = resolve::StyleCache::new();
+        let query = |cache: &mut resolve::StyleCache, theme: &Theme| {
+            cache.accumulate(
+                theme,
+                Family::SPLIT,
+                Variant::DEFAULT,
+                Part::SEAM,
+                StateFlags::empty(),
+                &[],
+                0,
+            )
+        };
+        let truecolor = query(&mut cache, &theme);
+        theme.capability.color = ColorLevel::Ansi256;
+        let ansi = query(&mut cache, &theme);
+        assert_ne!(truecolor.fg, ansi.fg);
+        assert_eq!(cache.stats(), (0, 2));
+
+        theme
+            .recipes
+            .get_mut(Family::SPLIT)
+            .parts
+            .entry(Part::SEAM)
+            .base = StylePatch::new().set_fg(Role::Danger);
+        let customized = query(&mut cache, &theme);
+        assert_eq!(customized.fg, Slot::Set(Role::Danger));
+        assert_eq!(cache.stats(), (0, 3));
     }
 }
