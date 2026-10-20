@@ -10,6 +10,7 @@ use termrock_runtime::{
     App, Cx, Focusability, Id, Input, Key, KeyCode, KeyModifiers, Mouse, MouseKind, Position, Rect,
     Response, Runtime, Theme, Ui,
 };
+use termrock_test_support::Harness;
 
 const ID: Id = Id::root("textarea.window.consumer");
 const BACKGROUND: Id = Id::root("textarea.window.background");
@@ -39,11 +40,21 @@ impl App for Consumer {
         ui.register_control(BACKGROUND, Rect::new(20, 0, 1, 1), Focusability::Focusable);
         TextArea::new(ID, 5)
             .value(&self.value)
+            .placeholder("type here")
             .draw_window(ui, self.window, &self.state);
     }
 }
 
 fn runtime(window: VerticalWindow, offset: usize, focus_on_bootstrap: bool) -> Runtime<Consumer> {
+    runtime_with_value(window, offset, focus_on_bootstrap, VALUE)
+}
+
+fn runtime_with_value(
+    window: VerticalWindow,
+    offset: usize,
+    focus_on_bootstrap: bool,
+    value: &str,
+) -> Runtime<Consumer> {
     let mut state = TextAreaState::default();
     state.scroll_mut().set_content(8);
     state.scroll_mut().set_viewport(5);
@@ -51,7 +62,7 @@ fn runtime(window: VerticalWindow, offset: usize, focus_on_bootstrap: bool) -> R
     let mut runtime = Runtime::new(
         Consumer {
             state,
-            value: VALUE.to_owned(),
+            value: value.to_owned(),
             window,
             focus_on_bootstrap,
         },
@@ -61,7 +72,29 @@ fn runtime(window: VerticalWindow, offset: usize, focus_on_bootstrap: bool) -> R
     runtime
 }
 
-fn draw(runtime: &mut Runtime<Consumer>) -> Buffer {
+struct LegacyConsumer {
+    state: TextAreaState,
+    value: String,
+}
+
+impl App for LegacyConsumer {
+    fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+        if cx.update_cause() == termrock_runtime::UpdateCause::Bootstrap {
+            cx.focus(ID);
+        }
+        TextArea::new(ID, 5)
+            .update(cx, &mut self.state, &mut self.value)
+            .erase()
+    }
+
+    fn draw(&self, ui: &mut Ui<'_>) {
+        TextArea::new(ID, 5)
+            .value(&self.value)
+            .draw(ui, Rect::new(2, 2, 14, 5), &self.state);
+    }
+}
+
+fn draw<A: App>(runtime: &mut Runtime<A>) -> Buffer {
     let mut buffer = Buffer::empty(SCREEN);
     for _ in 0..16 {
         if runtime.needs_settle() {
@@ -198,5 +231,96 @@ fn page_commands_keep_the_full_logical_child_viewport() {
     assert_eq!(
         TextArea::new(ID, 5).caret_source_row(&runtime.app().state),
         Some(4)
+    );
+}
+
+#[test]
+fn clipped_empty_placeholder_stays_on_its_logical_source_row() {
+    let visible = VerticalWindow::new(Rect::new(2, 2, 14, 2), 5, 0).unwrap();
+    let mut visible_runtime = runtime(visible, 0, false);
+    visible_runtime.app_mut().value.clear();
+    let buffer = draw(&mut visible_runtime);
+    assert_eq!(row(&buffer, 2, 4, 8), "type her");
+
+    let hidden = VerticalWindow::new(Rect::new(2, 2, 14, 2), 5, 2).unwrap();
+    let mut runtime = runtime(hidden, 0, false);
+    runtime.app_mut().value.clear();
+    let buffer = draw(&mut runtime);
+    assert_eq!(row(&buffer, 2, 4, 8), "");
+}
+
+#[test]
+fn ordinary_horizontal_scroll_keeps_legacy_origin_with_and_without_scrollbar() {
+    for value in [
+        "abcdefghijklmnopqrstuvwxyz",
+        "one\ntwo\nthree\nfour\nfive\nabcdefghijklmnopqrstuvwxyz",
+    ] {
+        let mut harness = Harness::new(
+            LegacyConsumer {
+                state: TextAreaState::default(),
+                value: value.to_owned(),
+            },
+            Theme::junie(),
+            24,
+            12,
+        );
+        let _ = harness.click(4, 2);
+        let _ = harness.handle(Input::Key(Key {
+            code: KeyCode::End,
+            mods: KeyModifiers::CONTROL,
+        }));
+        let y = if value.contains('\n') { 6 } else { 2 };
+        assert_eq!(
+            harness.cell(4, y).symbol(),
+            "q",
+            "legacy horizontal origin for {value:?}: row={:?}, cursor={:?}",
+            (4..15)
+                .map(|x| harness.cell(x, y).symbol())
+                .collect::<String>(),
+            harness.cursor()
+        );
+        assert_eq!(harness.cursor(), Some(Position::new(14, y)));
+    }
+}
+
+#[test]
+fn captured_drag_outside_window_extends_in_original_unicode_row() {
+    let window = VerticalWindow::new(Rect::new(2, 2, 14, 2), 5, 2).unwrap();
+    let value = "zero\none\ntwo\nfour\nfive\n三é\nsix\nseven";
+    let mut runtime = runtime_with_value(window, 3, true, value);
+    let initial = draw(&mut runtime);
+    assert_eq!(row(&initial, 2, 4, 8), "三 é");
+
+    for input in [
+        Input::Mouse(Mouse {
+            kind: MouseKind::Down,
+            pos: Position::new(4, 2),
+            mods: KeyModifiers::NONE,
+        }),
+        Input::Mouse(Mouse {
+            kind: MouseKind::Drag,
+            pos: Position::new(21, 2),
+            mods: KeyModifiers::NONE,
+        }),
+        Input::Mouse(Mouse {
+            kind: MouseKind::Up,
+            pos: Position::new(21, 2),
+            mods: KeyModifiers::NONE,
+        }),
+        Input::Key(Key {
+            code: KeyCode::Char('X'),
+            mods: KeyModifiers::NONE,
+        }),
+        Input::Key(Key {
+            code: KeyCode::Esc,
+            mods: KeyModifiers::NONE,
+        }),
+    ] {
+        let _ = termrock_runtime::stub::deliver(&mut runtime, input);
+        let _ = draw(&mut runtime);
+    }
+    assert_eq!(
+        runtime.app().value,
+        "zero\none\ntwo\nfour\nfive\nX\nsix\nseven"
     );
 }
