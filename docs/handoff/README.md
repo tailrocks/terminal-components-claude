@@ -35,3 +35,14 @@ in `docs/audits/2026-10-21-selectable-bypass-removal.md`. Next steps:
 have the shell owners reconcile nav/sidebar/footer painting with the
 frozen captures (then re-approve on purpose), and hand the tier-dependent
 modal-backdrop mapping to the runtime owners.
+||||||| parent of 7201b3497 (docs: record PR #38 landing-queue integration state)
+
+## Landing-queue integration state (2026-10-21)
+
+Queue integration onto `parity/termrock-visual-baseline` is complete through step 7; pushed tip `bfbb72516` (sequence `8a8e28300` → `499cec504` → `efda9593a` → `2d66ea9be` → `bfbb72516`, all gated and pushed under the push lock). Full landing/skip/hold record: [migration matrix, PR #38 landing-queue section](../architecture/termrock-migration-matrix.md).
+
+Resume points:
+
+1. `parity/buttons-reference-decision-20261020` executable pins: re-advance the Buttons reference decision through the cohort-review machinery (six reviewed audit docs pin `frozen_cli_references.json` at `2a43fb11…`; branch pins `d5d8d648…`). Docs commits already landed.
+2. `parity/tablepro-picker-live-20261020`: re-port 10 commits from the old `query_editor` model onto the landed `query_input` filter-list design, then run its frozen tab-picker geometry assertions; land only if green.
+3. Still held per queue: `wip/textarea-fields-stage3-20261021`, `wip/steps-shared-contract-20261021`.
