@@ -32,6 +32,7 @@ pub mod brand;
 pub mod button;
 pub mod choice;
 pub mod empty;
+pub mod master_detail;
 pub mod panel;
 pub mod props;
 pub mod radio_field;
@@ -44,6 +45,9 @@ pub use choice::{
     Checkbox, ChoiceCmd, LabelRadio, RadioGroup, RadioGroupAction, RadioGroupState, Toggle,
 };
 pub use empty::Empty;
+pub use master_detail::{
+    MasterDetail, MasterDetailCmd, MasterDetailLayout, MasterDetailMode, MasterDetailState,
+};
 pub use panel::{Panel, PanelKind};
 pub use props::{Props, PropsAction, PropsCmd, PropsList, PropsRow, PropsState, PropsValue};
 pub use radio_field::RadioField;
