@@ -529,9 +529,17 @@ fn outside_pointer_and_focus_loss_dismiss_and_commit() {
     send(&mut runtime, KeyCode::Char(' '), KeyModifiers::CONTROL);
     assert!(runtime.app().state.is_completion_open());
     runtime.set_focus(Some(NEXT));
+    assert_eq!(runtime.focus(), Some(NEXT), "focus request before settling");
     let mut buffer = Buffer::empty(AREA);
     runtime.draw_buffer(AREA, &mut buffer).commit_presented();
+    assert_eq!(
+        runtime.focus(),
+        Some(NEXT),
+        "focus after settling the popup close"
+    );
     let _ = termrock_runtime::stub::deliver(&mut runtime, Input::Tick);
     assert!(!runtime.app().state.is_completion_open());
-    assert!(!runtime.app().state.editor().is_editing());
+    assert_eq!(runtime.app().actions.last(), Some(&CodeAction::Committed));
+    assert_eq!(runtime.focus(), Some(EDITOR));
+    assert!(runtime.app().state.editor().is_editing());
 }

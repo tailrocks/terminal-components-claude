@@ -1030,7 +1030,9 @@ impl<'a> CodeEditor<'a> {
                 Intent::Key(key)
                     if st.editing
                         || st.find.as_ref().is_some_and(|find| find.typing)
-                        || (edit_entry == EditEntry::TypeToEdit && key.bare_char().is_some()) =>
+                        || (edit_entry == EditEntry::TypeToEdit
+                            && !self.read_only
+                            && key.bare_char().is_some()) =>
                 {
                     if !st.editing && !st.find.as_ref().is_some_and(|find| find.typing) {
                         st.begin_edit();
@@ -1807,6 +1809,14 @@ mod tests {
     }
 
     #[test]
+    fn immediate_focus_entry_keeps_the_first_i_as_document_text() {
+        let (mut runtime, mut buffer) = focused_runtime("alpha", false);
+        assert!(runtime.app().state.is_editing());
+        send_key(&mut runtime, &mut buffer, KeyCode::Char('i'));
+        assert_eq!(runtime.app().state.text(), "ialpha");
+    }
+
+    #[test]
     fn editor_override_takes_precedence_over_app_edit_entry_policy() {
         let area = Rect::new(0, 0, 40, 5);
         let mut runtime = Runtime::new(
@@ -1848,6 +1858,16 @@ mod tests {
         runtime.draw_buffer(area, &mut buffer).commit_presented();
         assert!(runtime.app().state.is_editing());
         assert_eq!(runtime.app().state.text(), "x");
+    }
+
+    #[test]
+    fn type_to_edit_does_not_enter_read_only_editor() {
+        let (mut runtime, mut buffer) =
+            focused_runtime_with_entry("alpha", true, EditEntry::TypeToEdit);
+        assert!(!runtime.app().state.is_editing());
+        send_key(&mut runtime, &mut buffer, KeyCode::Char('x'));
+        assert!(!runtime.app().state.is_editing());
+        assert_eq!(runtime.app().state.text(), "alpha");
     }
 
     #[test]
