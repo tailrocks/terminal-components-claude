@@ -803,6 +803,33 @@ def clean_env() -> dict[str, str]:
     return {key: value for key, value in os.environ.items() if key not in blocked and not key.startswith(blocked_prefixes)}
 
 
+TERM_PROFILES = {"xterm-256color", "linux", "dumb", "unset"}
+
+
+def apply_term_profile(env: dict[str, str], term_profile: str | None) -> dict[str, object]:
+    if term_profile is not None:
+        if term_profile not in TERM_PROFILES:
+            raise RunnerError(f"unsupported TERM profile: {term_profile}")
+        if term_profile == "unset":
+            env.pop("TERM", None)
+        else:
+            env["TERM"] = term_profile
+    effective = {"profile": term_profile or "inherited", "term_present": "TERM" in env, "term": env.get("TERM")}
+    effective["sha256"] = hashlib.sha256(json.dumps(effective, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
+    return effective
+
+
+def validate_reference_term_profile(decisions: list[dict[str, object]], selected: list[str], term_profile: str | None) -> None:
+    if term_profile is None:
+        return
+    for decision in decisions:
+        if reference_case_selected(decision, selected):
+            pinned_term = decision["environment"]["values"].get("TERM")
+            requested_term = None if term_profile == "unset" else term_profile
+            if requested_term != pinned_term:
+                raise RunnerError(f"the pinned grown-reference exception requires TERM={pinned_term!r}; refusing TERM profile {term_profile!r}")
+
+
 def tree_digest_or_empty(path: Path) -> str:
     return digest_tree(path) if path.exists() else hashlib.sha256(b"").hexdigest()
 
@@ -1275,7 +1302,7 @@ def paired_reference_report(decisions: list[dict[str, object]], selected: list[s
     return output
 
 
-def run_live_chunk(live: Path, root: Path, run_root: Path, phase: str, bins: Path, expected_root: Path, selected: list[str], index: int, timeout: int, extension_manifest: dict[str, object] | None = None, reference_decisions: list[dict[str, object]] | None = None, reference_decision_sha256: str | None = None) -> dict[str, object]:
+def run_live_chunk(live: Path, root: Path, run_root: Path, phase: str, bins: Path, expected_root: Path, selected: list[str], index: int, timeout: int, extension_manifest: dict[str, object] | None = None, reference_decisions: list[dict[str, object]] | None = None, reference_decision_sha256: str | None = None, term_profile: str | None = None) -> dict[str, object]:
     chunk_name = f"chunk-{index:05}"
     chunk_root = run_root / phase / chunk_name
     receipt_root = chunk_root / "receipts"
@@ -1292,6 +1319,7 @@ def run_live_chunk(live: Path, root: Path, run_root: Path, phase: str, bins: Pat
         "TERMROCK_PAIR_EXPECTED_ROOT": str(expected_root.resolve()),
         "TERMROCK_PAIR_RECEIPT_ROOT": str(receipt_root.resolve()),
     })
+    controlled_environment = apply_term_profile(env, term_profile)
     reference_decisions = reference_decisions or []
     active_references = [decision for decision in reference_decisions if reference_case_selected(decision, selected)]
     if phase == "baseline-capture" and active_references:
@@ -1300,6 +1328,7 @@ def run_live_chunk(live: Path, root: Path, run_root: Path, phase: str, bins: Pat
         decision = active_references[0]
         for name, value in decision["environment"]["values"].items():
             env[name] = value
+        controlled_environment = apply_term_profile(env, term_profile)
         ref_tuple = decision["tuple"]
         env.update({
             "TERMROCK_PAIR_REFERENCE_CASE": ref_tuple["case_id"],
@@ -1351,6 +1380,7 @@ def run_live_chunk(live: Path, root: Path, run_root: Path, phase: str, bins: Pat
     record = {
         "phase": phase,
         "chunk": index,
+        "controlled_environment": controlled_environment,
         "status": "failed" if failure else "passed",
         "failure": failure,
         "selected_cases": selected,
@@ -1443,7 +1473,7 @@ def run_ordinary_checks(live: Path, root: Path, run_root: Path, inventory: dict[
     return results
 
 
-def compare_live(repo: Path, candidate_repo: Path, root: Path, baseline_bins: Path, candidate_bins: Path, selectors: list[str] | None, all_cases: bool, chunk_size: int, timeout: int) -> None:
+def compare_live(repo: Path, candidate_repo: Path, root: Path, baseline_bins: Path, candidate_bins: Path, selectors: list[str] | None, all_cases: bool, chunk_size: int, timeout: int, term_profile: str | None = None) -> None:
     repo, root, source = paths(repo, root)
     candidate_repo = candidate_repo.resolve()
     _, candidate = baseline_and_candidate_records(candidate_repo, root, baseline_bins, candidate_bins, timeout)
@@ -1475,6 +1505,9 @@ def compare_live(repo: Path, candidate_repo: Path, root: Path, baseline_bins: Pa
                 raise RunnerError(f"selected zero baseline tests: {name!r}")
             if not inventory[name]:
                 raise RunnerError(f"selected test is not an ignored visual scenario: {name}")
+    validate_reference_term_profile(reference_decisions, selected, term_profile)
+    controlled_env = clean_env()
+    controlled_environment = apply_term_profile(controlled_env, term_profile)
     chunks = scenario_chunks(selected, chunk_size)
     original_snapshots_hash = digest_tree(source / "snapshots")
     harness_hash = digest_tree(source / "tests" / "visual_baseline")
@@ -1497,16 +1530,16 @@ def compare_live(repo: Path, candidate_repo: Path, root: Path, baseline_bins: Pa
         phase_chunks = []
         for index, names in enumerate(chunks):
             try:
-                phase_chunks.append(run_live_chunk(live, root, run_root, phase, bins, expected_root, names, index, timeout, extension_manifest, reference_decisions, reference_decision_sha256))
+                phase_chunks.append(run_live_chunk(live, root, run_root, phase, bins, expected_root, names, index, timeout, extension_manifest, reference_decisions, reference_decision_sha256, term_profile))
             except RunnerError as error:
-                phase_chunks.append({"chunk": index, "status": "failed", "failure": str(error), "selected_cases": names})
-                report = {"tag_object": BASELINE_TAG_OBJECT, "baseline_commit": BASELINE_COMMIT, "tuiscotti_rev": TUISCOTTI_REV, "live_source": live_record, "candidate_revision": candidate["revision"], "candidate_source_tree": candidate["source_tree"], "candidate_dirty_fingerprint": candidate["dirty_fingerprint"], "candidate_binaries": candidate["binaries"], "reference_decisions_sha256": reference_decision_sha256, "legacy_approval_conflicts": paired_reference_report(reference_decisions, selected, reference_decision_sha256), "case_selection": "all registered scenarios" if all_cases else "explicit cases", "selection_completeness": "complete registered scenarios pending integrity checks" if all_cases else "partial", **cli_coverage_report_fields(False), "selected_case_count": len(selected), "test_inventory_sha256": inventory_digest(inventory), "phase": phase, "phase_chunks": phase_chunks, "remaining_chunks": len(chunks) - index - 1}
+                phase_chunks.append({"chunk": index, "status": "failed", "failure": str(error), "selected_cases": names, "controlled_environment": controlled_environment})
+                report = {"tag_object": BASELINE_TAG_OBJECT, "baseline_commit": BASELINE_COMMIT, "tuiscotti_rev": TUISCOTTI_REV, "live_source": live_record, "candidate_revision": candidate["revision"], "candidate_source_tree": candidate["source_tree"], "candidate_dirty_fingerprint": candidate["dirty_fingerprint"], "candidate_binaries": candidate["binaries"], "reference_decisions_sha256": reference_decision_sha256, "controlled_environment": controlled_environment, "legacy_approval_conflicts": paired_reference_report(reference_decisions, selected, reference_decision_sha256), "case_selection": "all registered scenarios" if all_cases else "explicit cases", "selection_completeness": "complete registered scenarios pending integrity checks" if all_cases else "partial", **cli_coverage_report_fields(False), "selected_case_count": len(selected), "test_inventory_sha256": inventory_digest(inventory), "phase": phase, "phase_chunks": phase_chunks, "remaining_chunks": len(chunks) - index - 1}
                 (run_root / "report.json").write_text(json.dumps(report, indent=2) + "\n")
                 raise RunnerError(f"{phase} stopped at {index + 1}/{len(chunks)} chunks; evidence saved at {run_root}: {error}")
         try:
             validate_chunk_coverage(selected, phase_chunks, chunk_size)
         except RunnerError as error:
-            failed_report = {"tag_object": BASELINE_TAG_OBJECT, "baseline_commit": BASELINE_COMMIT, "tuiscotti_rev": TUISCOTTI_REV, "live_source": live_record, "candidate_revision": candidate["revision"], "candidate_source_tree": candidate["source_tree"], "candidate_dirty_fingerprint": candidate["dirty_fingerprint"], "candidate_binaries": candidate["binaries"], "reference_decisions_sha256": reference_decision_sha256, "legacy_approval_conflicts": paired_reference_report(reference_decisions, selected, reference_decision_sha256), "case_selection": "all registered scenarios" if all_cases else "explicit cases", "selection_completeness": "partial", **cli_coverage_report_fields(False), "selected_scenario_count": len(selected), "test_inventory_sha256": inventory_digest(inventory), "phase": phase, "phase_chunks": phase_chunks, "failure": str(error)}
+            failed_report = {"tag_object": BASELINE_TAG_OBJECT, "baseline_commit": BASELINE_COMMIT, "tuiscotti_rev": TUISCOTTI_REV, "live_source": live_record, "candidate_revision": candidate["revision"], "candidate_source_tree": candidate["source_tree"], "candidate_dirty_fingerprint": candidate["dirty_fingerprint"], "candidate_binaries": candidate["binaries"], "reference_decisions_sha256": reference_decision_sha256, "controlled_environment": controlled_environment, "legacy_approval_conflicts": paired_reference_report(reference_decisions, selected, reference_decision_sha256), "case_selection": "all registered scenarios" if all_cases else "explicit cases", "selection_completeness": "partial", **cli_coverage_report_fields(False), "selected_scenario_count": len(selected), "test_inventory_sha256": inventory_digest(inventory), "phase": phase, "phase_chunks": phase_chunks, "failure": str(error)}
             (run_root / "report.json").write_text(json.dumps(failed_report, indent=2) + "\n")
             raise RunnerError(f"{phase} chunk partition incomplete; report saved at {run_root}: {error}")
         phase_summary: dict[str, object] = {"phase": phase, "status": "passed", "selected_cases": len(selected), "chunks": phase_chunks, "elapsed_seconds": round(time.monotonic() - started, 2)}
@@ -1523,7 +1556,7 @@ def compare_live(repo: Path, candidate_repo: Path, root: Path, baseline_bins: Pa
             phase_summary["status"] = "failed"
             phase_summary["failure"] = str(error)
             phase_reports = [{key: value for key, value in item.items() if key != "receipts"} for item in [*phases, phase_summary]]
-            failure_report = {"tag_object": BASELINE_TAG_OBJECT, "baseline_commit": BASELINE_COMMIT, "tuiscotti_rev": TUISCOTTI_REV, "live_source": live_record, "candidate_revision": candidate["revision"], "candidate_source_tree": candidate["source_tree"], "candidate_dirty_fingerprint": candidate["dirty_fingerprint"], "candidate_binaries": candidate["binaries"], "reference_decisions_sha256": reference_decision_sha256, "legacy_approval_conflicts": paired_reference_report(reference_decisions, selected, reference_decision_sha256), "case_selection": "all registered scenarios" if all_cases else "explicit cases", "selection_completeness": "partial", **cli_coverage_report_fields(False), "selected_scenario_count": len(selected), "test_inventory_sha256": inventory_digest(inventory), "phases": phase_reports, "artifacts_root": str(run_root)}
+            failure_report = {"tag_object": BASELINE_TAG_OBJECT, "baseline_commit": BASELINE_COMMIT, "tuiscotti_rev": TUISCOTTI_REV, "live_source": live_record, "candidate_revision": candidate["revision"], "candidate_source_tree": candidate["source_tree"], "candidate_dirty_fingerprint": candidate["dirty_fingerprint"], "candidate_binaries": candidate["binaries"], "reference_decisions_sha256": reference_decision_sha256, "controlled_environment": controlled_environment, "legacy_approval_conflicts": paired_reference_report(reference_decisions, selected, reference_decision_sha256), "case_selection": "all registered scenarios" if all_cases else "explicit cases", "selection_completeness": "partial", **cli_coverage_report_fields(False), "selected_scenario_count": len(selected), "test_inventory_sha256": inventory_digest(inventory), "phases": phase_reports, "artifacts_root": str(run_root)}
             (run_root / "report.json").write_text(json.dumps(failure_report, indent=2) + "\n")
             raise RunnerError(f"{phase} phase incomplete; evidence saved at {run_root}: {error}")
         phases.append(phase_summary)
@@ -1541,6 +1574,7 @@ def compare_live(repo: Path, candidate_repo: Path, root: Path, baseline_bins: Pa
             "candidate_source_tree": candidate["source_tree"],
             "candidate_dirty_fingerprint": candidate["dirty_fingerprint"],
             "candidate_binaries": candidate["binaries"],
+            "controlled_environment": controlled_environment,
             "case_selection": "all registered scenarios" if all_cases else "explicit cases",
             "selection_completeness": "complete" if all_cases else "partial",
             "selected_scenario_count": len(selected),
@@ -1571,6 +1605,7 @@ def compare_live(repo: Path, candidate_repo: Path, root: Path, baseline_bins: Pa
                 "candidate_source_tree": candidate["source_tree"],
                 "candidate_dirty_fingerprint": candidate["dirty_fingerprint"],
                 "candidate_binaries": candidate["binaries"],
+                "controlled_environment": controlled_environment,
                 "case_selection": "all registered scenarios",
                 "selection_completeness": "incomplete",
                 **cli_coverage_report_fields(False),
@@ -1610,6 +1645,7 @@ def compare_live(repo: Path, candidate_repo: Path, root: Path, baseline_bins: Pa
         "candidate_dirty_fingerprint": candidate["dirty_fingerprint"],
         "candidate_dirty_files": candidate["dirty_files"],
         "candidate_binaries": candidate["binaries"],
+        "controlled_environment": controlled_environment,
         "case_selection": "all registered scenarios" if all_cases else "explicit cases",
         "selection_completeness": "complete" if coverage_complete else "partial",
         "expected_registered_scenarios": EXPECTED_SCENARIOS,
@@ -1657,6 +1693,8 @@ def parser() -> argparse.ArgumentParser:
     live_selection.add_argument("--case", action="append", help="exact ignored scenario test name; may be repeated")
     live_selection.add_argument("--all", action="store_true", help="run all registered ignored visual scenarios")
     live_pair.add_argument("--chunk-size", type=int, default=DEFAULT_CHUNK_SIZE)
+    live_pair.add_argument("--term-profile", choices=sorted(TERM_PROFILES), default=None,
+                           help="set TERM identically for all paired phases (default: inherit; 'unset' removes TERM)")
     return ap
 
 
@@ -1678,7 +1716,7 @@ def main() -> int:
         elif args.command == "live-compare":
             root = args.root.resolve()
             baseline_bins = root / "cargo-target" / "debug"
-            compare_live(args.repo, args.candidate_repo or args.repo, root, baseline_bins, args.candidate_bin_dir.resolve(), args.case, args.all, args.chunk_size, args.timeout)
+            compare_live(args.repo, args.candidate_repo or args.repo, root, baseline_bins, args.candidate_bin_dir.resolve(), args.case, args.all, args.chunk_size, args.timeout, args.term_profile)
         else:
             root = args.root.resolve()
             baseline_bins = root / "cargo-target" / "debug"
