@@ -48,3 +48,7 @@ required-features = ["testing"]
 [[test]]
 name = "split_block_consumer"
 required-features = ["testing"]
+
+[[test]]
+name = "master_detail_consumer"
+required-features = ["testing"]
