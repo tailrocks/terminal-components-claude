@@ -172,7 +172,7 @@ fn filtered_selection_and_keymap_remap_refresh_conflict_diagnostics() {
 }
 
 #[test]
-fn public_binding_table_id_keeps_its_exhaustive_variant_set() {
+fn public_binding_table_id_keeps_its_original_exhaustive_variant_set() {
     fn shape(identity: BindingTableId) -> u8 {
         match identity {
             BindingTableId::Static {
@@ -184,10 +184,6 @@ fn public_binding_table_id_keeps_its_exhaustive_variant_set() {
                 revision: _,
                 len: _,
             } => 1,
-            BindingTableId::Composite {
-                revision: _,
-                len: _,
-            } => 2,
         }
     }
 
@@ -202,11 +198,7 @@ fn public_binding_table_id_keeps_its_exhaustive_variant_set() {
                 revision: 0,
                 len: 0,
             }),
-            shape(BindingTableId::Composite {
-                revision: 0,
-                len: 0,
-            }),
         ],
-        [0, 1, 2]
+        [0, 1]
     );
 }
