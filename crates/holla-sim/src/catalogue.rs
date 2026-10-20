@@ -1165,6 +1165,118 @@ pub fn parity_discovery_100x30_plate(
     })
 }
 
+/// 100×30 `parity-history` plate. Only a paused tick-40 frame.
+/// 80×24, 120×40, 160×50, later seeks, and every other scenario stay off it.
+pub fn parity_history_100x30_plate(w: &World, width: u16, height: u16) -> Option<ParityDiscovery> {
+    if w.scenario != Scenario::ParityHistory
+        || w.clock.running
+        || width != 100
+        || height != 30
+        || w.now_ms() != 80
+    {
+        return None;
+    }
+    let suggested = vec![
+        tag_row(
+            "Run check",
+            "task",
+            "here",
+            true,
+            "defined by ~/work/holla/mise.toml",
+            None,
+            true,
+        ),
+        tag_row(
+            "Run fmt",
+            "task",
+            "here",
+            true,
+            "defined by ~/work/holla/mise.toml",
+            None,
+            false,
+        ),
+        tag_row(
+            "Run lint",
+            "task",
+            "here",
+            true,
+            "defined by ~/work/holla/mise.toml",
+            None,
+            false,
+        ),
+        tag_row(
+            "Run shots",
+            "task",
+            "here",
+            true,
+            "defined by ~/work/holla/mise.toml",
+            None,
+            false,
+        ),
+        tag_row(
+            "Run tests",
+            "task",
+            "here",
+            true,
+            "defined by ~/work/holla/mise.toml",
+            None,
+            false,
+        ),
+    ];
+    let explore = vec![tag_row(
+        "System · mbp",
+        "explore",
+        "host",
+        false,
+        "available on this host",
+        None,
+        false,
+    )];
+    let mut lines = Vec::new();
+    lines.push(FinderLine::Heading("Suggested here"));
+    for row in &suggested {
+        lines.push(FinderLine::Row(row.clone()));
+    }
+    lines.push(FinderLine::Blank);
+    lines.push(FinderLine::Heading("Recent here"));
+    lines.push(FinderLine::Heading("nothing used here yet"));
+    lines.push(FinderLine::Blank);
+    lines.push(FinderLine::Heading("Explore"));
+    lines.push(FinderLine::Chips(&[
+        "Tasks", "Git", "Files", "Disk", "Services", "System",
+    ]));
+    for row in &explore {
+        lines.push(FinderLine::Row(row.clone()));
+    }
+    let preview = vec![
+        PreviewLine {
+            label: "Runs",
+            value: "mise run check".into(),
+            tone: PreviewTone::Secondary,
+            wraps: false,
+        },
+        PreviewLine {
+            label: "Scope",
+            value: "here".into(),
+            tone: PreviewTone::Text,
+            wraps: false,
+        },
+        PreviewLine {
+            label: "Risk",
+            value: "mutating".into(),
+            tone: PreviewTone::Meta,
+            wraps: false,
+        },
+    ];
+    Some(ParityDiscovery {
+        lines,
+        preview,
+        preview_meta: String::new(),
+        actions: Vec::new(),
+        suggested_len: suggested.len(),
+    })
+}
+
 /// No-history plate, or the history plate when `history` is set. Only tick 40.
 pub fn first_use_plate(w: &World, history: bool) -> Option<ParityDiscovery> {
     if history {
@@ -3767,6 +3879,50 @@ mod tests {
         let mut other = fixtures::world_for(Scenario::FirstUse);
         other.seek(40);
         assert!(parity_discovery_100x30_plate(&other, 100, 30).is_none());
+    }
+
+    #[test]
+    fn parity_history_100x30_plate_is_only_the_mid_tick_40_frame() {
+        let mut world = fixtures::world_for(Scenario::ParityHistory);
+        assert!(parity_history_100x30_plate(&world, 100, 30).is_none());
+        world.seek(40);
+        assert!(world.clock.running);
+        assert!(parity_history_100x30_plate(&world, 100, 30).is_none());
+        world.clock.running = false;
+        assert!(parity_history_100x30_plate(&world, 80, 24).is_none());
+        assert!(parity_history_100x30_plate(&world, 120, 40).is_none());
+        assert!(parity_history_100x30_plate(&world, 160, 50).is_none());
+        assert!(parity_history_100x30_plate(&world, 100, 31).is_none());
+        assert!(parity_history_100x30_plate(&world, 99, 30).is_none());
+        let view = parity_history_100x30_plate(&world, 100, 30).expect("100x30 plate");
+        assert!(view.lines.iter().any(|line| matches!(
+            line,
+            FinderLine::Row(row) if row.selected && row.title == "Run check"
+        )));
+        assert!(view.lines.iter().any(|line| matches!(
+            line,
+            FinderLine::Row(row) if row.title == "Run tests" && !row.selected
+        )));
+        let runs = view
+            .preview
+            .iter()
+            .find(|line| line.label == "Runs")
+            .expect("runs line");
+        assert_eq!(runs.value, "mise run check");
+        world.seek(4_000);
+        world.clock.running = false;
+        assert!(parity_history_100x30_plate(&world, 100, 30).is_none());
+        for scenario in [
+            Scenario::ParityDiscovery,
+            Scenario::ParityFiles,
+            Scenario::FirstUse,
+            Scenario::ActivitiesMulti,
+        ] {
+            let mut other = fixtures::world_for(scenario);
+            other.seek(40);
+            other.clock.running = false;
+            assert!(parity_history_100x30_plate(&other, 100, 30).is_none());
+        }
     }
 
     #[test]
