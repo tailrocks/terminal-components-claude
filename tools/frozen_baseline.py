@@ -135,6 +135,9 @@ def validate_executable_cohorts(document: object) -> dict[str, object]:
     build = cohort["build"]
     if not isinstance(build, dict) or set(build) != {"target", "incremental", "profile", "stage_hashes_match", "build_admitted", "reference_frames_approved"}:
         raise RunnerError("executable cohort build record is invalid")
+    for field in ("incremental", "stage_hashes_match", "build_admitted", "reference_frames_approved"):
+        if type(build[field]) is not bool:
+            raise RunnerError(f"executable cohort build field must have boolean type: {field}")
     if build != {"target": "aarch64-apple-darwin", "incremental": False, "profile": "frozen manifest profiles with targeted root-package codegen-units=256", "stage_hashes_match": True, "build_admitted": False, "reference_frames_approved": False}:
         raise RunnerError("executable cohort diagnostic build claims changed")
     binaries = cohort["binaries"]
@@ -185,8 +188,28 @@ def validate_executable_cohorts(document: object) -> dict[str, object]:
 
 def load_executable_cohorts(repo: Path) -> dict[str, object]:
     path = repo / EXECUTABLE_COHORTS
-    if path.is_symlink() or not path.is_file() or sha256(path) != EXECUTABLE_COHORTS_SHA256:
-        raise RunnerError("executable cohort registry is missing, symlinked, or unpinned")
+    try:
+        before = path.lstat()
+        if stat.S_ISLNK(before.st_mode) or not stat.S_ISREG(before.st_mode):
+            raise RunnerError("executable cohort registry is missing, symlinked, or non-regular")
+        fd = os.open(path, os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0))
+        try:
+            opened = os.fstat(fd)
+            chunks: list[bytes] = []
+            while chunk := os.read(fd, 1024 * 1024):
+                chunks.append(chunk)
+            after_fd = os.fstat(fd)
+        finally:
+            os.close(fd)
+        after = path.lstat()
+    except OSError as error:
+        raise RunnerError(f"executable cohort registry cannot be safely read: {error}") from error
+    identity = lambda value: (value.st_dev, value.st_ino, value.st_mode, value.st_size, value.st_mtime_ns, value.st_ctime_ns, value.st_nlink)
+    if identity(before) != identity(opened) or identity(opened) != identity(after_fd) or identity(after_fd) != identity(after):
+        raise RunnerError("executable cohort registry changed during read")
+    payload = b"".join(chunks)
+    if hashlib.sha256(payload).hexdigest() != EXECUTABLE_COHORTS_SHA256:
+        raise RunnerError("executable cohort registry is unpinned")
     def strict_object(pairs: list[tuple[str, object]]) -> dict[str, object]:
         result: dict[str, object] = {}
         for key, value in pairs:
@@ -195,7 +218,7 @@ def load_executable_cohorts(repo: Path) -> dict[str, object]:
             result[key] = value
         return result
     try:
-        return validate_executable_cohorts(json.loads(path.read_text(), object_pairs_hook=strict_object))
+        return validate_executable_cohorts(json.loads(payload, object_pairs_hook=strict_object))
     except (OSError, json.JSONDecodeError) as error:
         raise RunnerError(f"executable cohort registry cannot be read: {error}") from error
 
@@ -210,6 +233,8 @@ def require_capture_eligible_cohort(cohort: dict[str, object], binary_root: Path
 
 def verify_diagnostic_cohort_binaries(cohort: dict[str, object], binary_root: Path) -> dict[str, Path]:
     """Verify preserved diagnostic binaries without granting launch eligibility."""
+    validated = validate_executable_cohorts({"schema": EXECUTABLE_COHORT_SCHEMA, "schema_version": EXECUTABLE_COHORT_VERSION, "cohorts": [cohort]})
+    cohort = validated["cohorts"][0]
     if cohort.get("status") != DIAGNOSTIC_COHORT_STATUS:
         raise RunnerError("binary verification only accepts the recorded diagnostic cohort")
     expected = cohort.get("binaries")
