@@ -10,7 +10,7 @@ use termrock_overlays::completion::{
 };
 use termrock_runtime::event::{Chord, KeyCode, KeyModifiers};
 use termrock_runtime::intent::Intent;
-use termrock_runtime::ui::{Cx, Ui};
+use termrock_runtime::ui::{Cx, FrameRead, Ui};
 
 use crate::code::{CodeAction, CodeEditor, CodeEditorState};
 
@@ -222,6 +222,9 @@ impl<'a> CompletingCodeEditor<'a> {
         state: &mut CompletingCodeEditorState,
     ) -> Response<CodeAction> {
         let was_open = state.completion.is_open();
+        let manual_requested = cx.intents(self.id).any(|intent| {
+            matches!(intent, Intent::Binding(action) if action == MANUAL_COMPLETION_ACTION)
+        });
         let focus_lost = cx
             .intents(self.id)
             .any(|intent| matches!(intent, Intent::FocusOut { .. }));
@@ -291,6 +294,16 @@ impl<'a> CompletingCodeEditor<'a> {
         }
 
         let editor_response = self.editor.update(cx, &mut state.editor);
+        if manual_requested {
+            if state.editor.is_editing()
+                && !self.editor.is_read_only()
+                && !self.editor.is_disabled()
+            {
+                self.request(cx, state, CompletionTrigger::Manual);
+                return Response::changed();
+            }
+            return Response::consumed();
+        }
         if was_open && state.editor.is_find_typing() {
             CompletionController::new(self.id, self.popup_id).dismiss(cx, &mut state.completion);
             state.items.clear();
@@ -298,15 +311,6 @@ impl<'a> CompletingCodeEditor<'a> {
         }
         let action = editor_response.action_ref().cloned();
         let editor_response = match action {
-            Some(CodeAction::CompletionManual) => {
-                if state.editor.is_editing()
-                    && !self.editor.is_read_only()
-                    && !self.editor.is_disabled()
-                {
-                    self.request(cx, state, CompletionTrigger::Manual);
-                }
-                editor_response.repaint()
-            }
             Some(CodeAction::Changed)
                 if !self.editor.is_read_only() && !self.editor.is_disabled() =>
             {
@@ -345,6 +349,12 @@ impl<'a> CompletingCodeEditor<'a> {
 
     pub fn draw(&self, ui: &mut Ui<'_>, area: Rect, state: &CompletingCodeEditorState) -> Rect {
         let used = self.editor.draw(ui, area, &state.editor);
+        let live = ui.state(self.id);
+        ui.publish_dynamic_bindings(
+            self.id,
+            live,
+            core::iter::once((MANUAL_COMPLETION_ACTION, Some(COMPLETION_MANUAL_CHORD))),
+        );
         if state.completion.is_open() {
             let _ = ui.layer(self.popup_id, |ui, popup_area| {
                 self.completion()

@@ -148,6 +148,28 @@ fn send(runtime: &mut Runtime<EditorApp>, code: KeyCode, mods: KeyModifiers) {
     runtime.draw_buffer(AREA, &mut buffer).commit_presented();
 }
 
+struct BareEditorApp {
+    state: termrock_editors::code::CodeEditorState,
+}
+
+impl App for BareEditorApp {
+    fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+        CodeEditor::new(EDITOR, 6)
+            .update(cx, &mut self.state)
+            .erase()
+    }
+
+    fn draw(&self, ui: &mut Ui<'_>) {
+        CodeEditor::new(EDITOR, 6).draw(ui, Rect::new(0, 0, 80, 8), &self.state);
+    }
+}
+
+fn send_bare(runtime: &mut Runtime<BareEditorApp>, code: KeyCode, mods: KeyModifiers) {
+    let _ = termrock_runtime::stub::deliver(runtime, key(code, mods));
+    let mut buffer = Buffer::empty(AREA);
+    runtime.draw_buffer(AREA, &mut buffer).commit_presented();
+}
+
 fn click(runtime: &mut Runtime<EditorApp>, x: u16, y: u16) {
     for kind in [MouseKind::Down, MouseKind::Up] {
         let _ = termrock_runtime::stub::deliver(
@@ -221,6 +243,24 @@ fn remapped_manual_completion_uses_keymap_binding() {
         runtime.app().provider.triggers.borrow().as_slice(),
         &[CompletionTrigger::Manual]
     );
+}
+
+#[test]
+fn bare_code_editor_ctrl_space_does_not_trigger_completions() {
+    let mut state = termrock_editors::code::CodeEditorState::new("SELECT co");
+    state.begin_edit();
+    let mut runtime = Runtime::new(BareEditorApp { state }, Theme::junie());
+    let _ = runtime.initialize();
+    let mut buffer = Buffer::empty(AREA);
+    runtime.draw_buffer(AREA, &mut buffer).commit_presented();
+    runtime.set_focus(Some(EDITOR));
+    runtime.draw_buffer(AREA, &mut buffer).commit_presented();
+
+    send_bare(&mut runtime, KeyCode::Char(' '), KeyModifiers::CONTROL);
+
+    assert_eq!(runtime.app().state.text(), "SELECT co");
+    assert!(runtime.app().state.is_editing());
+    assert!(!runtime.app().state.is_find_typing());
 }
 
 #[test]
