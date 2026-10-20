@@ -94,6 +94,7 @@ pub struct DialogState {
     input: TextInputState,
     draft: String,
     ack_draft: Secret,
+    action_close_pending: bool,
 }
 
 impl Clone for DialogState {
@@ -106,6 +107,7 @@ impl Clone for DialogState {
                 self.draft.clone()
             },
             ack_draft: Secret::new(redacted_text(self.ack_draft.expose())),
+            action_close_pending: self.action_close_pending,
         }
     }
 }
@@ -118,6 +120,7 @@ impl PartialEq for DialogState {
             } else {
                 self.draft == other.draft
             }
+            && self.action_close_pending == other.action_close_pending
     }
 }
 
@@ -129,6 +132,7 @@ impl fmt::Debug for DialogState {
             .field("input", &self.input)
             .field("draft", &"[redacted]")
             .field("ack_draft", &"[redacted]")
+            .field("action_close_pending", &self.action_close_pending)
             .finish()
     }
 }
@@ -150,6 +154,7 @@ impl DialogState {
         self.input.zeroize();
         zeroize_string(&mut self.draft);
         self.ack_draft.zeroize();
+        self.action_close_pending = false;
     }
 
     fn set_secret_mode(&mut self, secret: bool) {
@@ -518,6 +523,10 @@ impl<'a> Dialog<'a> {
     }
 
     pub fn update(&self, cx: &mut Cx<'_>, st: &mut DialogState) -> Response<DialogAction> {
+        let layer_open = cx.is_open(self.id);
+        if layer_open {
+            st.action_close_pending = false;
+        }
         let d = cx.design();
         let action_widths = self.action_widths(cx);
         let viewport_width = cx.viewport().width;
@@ -535,10 +544,16 @@ impl<'a> Dialog<'a> {
         let mut action_fired = false;
         let mut dismissal = None;
         let mut cancelled = false;
+        let mut dismissed_after_action = false;
         for it in cx.intents(self.id) {
             match it {
                 Intent::Layer(LayerEvent::Dismissed(r)) => {
-                    dismissal.get_or_insert(r);
+                    if r == DismissReason::Programmatic && st.action_close_pending {
+                        st.action_close_pending = false;
+                        dismissed_after_action = true;
+                    } else {
+                        dismissal.get_or_insert(r);
+                    }
                 }
 
                 Intent::Layer(_) => acc.repaint(),
@@ -550,6 +565,7 @@ impl<'a> Dialog<'a> {
         if let Some(reason) = dismissal {
             acc.action(self.resolve_dismissal(reason, st));
         }
+        let suppress_activation = dismissal.is_some() || dismissed_after_action || !layer_open;
         let is_ack = self.ack.is_some();
         st.set_secret_mode(is_ack);
         if self.has_input() {
@@ -561,17 +577,17 @@ impl<'a> Dialog<'a> {
                     .update(cx, &mut st.input, &mut st.draft)
             };
             let committed = matches!(r.action_ref(), Some(TextAction::Committed));
-            if dismissal.is_none() {
+            if !suppress_activation {
                 acc.fold(&r.erase());
             }
-            if dismissal.is_none() && committed && self.prompt.is_some() {
+            if !suppress_activation && committed && self.prompt.is_some() {
                 if let Some(i) = self.primary_index(st)
                     && let Some(a) = self.actions.get(i)
                 {
                     acc.action(DialogAction::Action(a.key()));
                     action_fired = true;
                 }
-            } else if dismissal.is_none()
+            } else if !suppress_activation
                 && committed
                 && is_ack
                 && let Some(id) =
@@ -592,7 +608,7 @@ impl<'a> Dialog<'a> {
                 .variant(self.variant_of(a))
                 .disabled(!enabled)
                 .update(cx);
-            if dismissal.is_none() {
+            if !suppress_activation {
                 if r.activated() {
                     acc.action(DialogAction::Action(a.key()));
                     action_fired = true;
@@ -601,7 +617,7 @@ impl<'a> Dialog<'a> {
                 }
             }
             for it in cx.intents(bid) {
-                if dismissal.is_some() {
+                if suppress_activation {
                     continue;
                 }
                 if let Intent::Binding(action) = it {
@@ -635,6 +651,7 @@ impl<'a> Dialog<'a> {
         if action_fired && self.ack.is_some() {
             st.zeroize();
         }
+        st.action_close_pending |= action_fired;
         acc.finish(self.id)
     }
 
@@ -1133,6 +1150,11 @@ mod tests {
     const REMAPPED_ACTIONS: [Action<'static>; 2] = [
         Action::new(ActionKey::custom("go"), "Go"),
         Action::new(ActionKey::custom("do"), "Do"),
+    ];
+    const RACE_CANCEL: ActionKey = ActionKey::custom("dialog.tests.race-cancel");
+    const RACE_ACTIONS: [Action<'static>; 2] = [
+        Action::new(RACE_CANCEL, "Stop"),
+        Action::new(ActionKey::CONFIRM, "Go"),
     ];
 
     fn remapped_dialog() -> Dialog<'static> {
@@ -2041,14 +2063,22 @@ mod tests {
             state: DialogState,
             opened: bool,
             acknowledgement: bool,
+            race: bool,
             close_programmatically: bool,
+            close_after_action: bool,
             dismiss: Dismiss,
             actions: Vec<DialogAction>,
         }
 
         impl DialogApp {
             fn dialog(&self) -> Dialog<'static> {
-                if self.acknowledgement {
+                if self.race {
+                    Dialog::new(DLG)
+                        .title("Review")
+                        .body_rows(0)
+                        .actions(&RACE_ACTIONS)
+                        .cancel(RACE_CANCEL)
+                } else if self.acknowledgement {
                     acknowledge()
                 } else {
                     confirm()
@@ -2074,6 +2104,10 @@ mod tests {
                 let response = self.dialog().update(cx, &mut self.state);
                 if let Some(action) = response.action_ref() {
                     self.actions.push(*action);
+                    if self.close_after_action {
+                        self.close_after_action = false;
+                        cx.close_layer(DLG, None);
+                    }
                 }
                 response.erase()
             }
@@ -2128,6 +2162,45 @@ mod tests {
         let _ = harness.key(KeyCode::Esc);
         assert!(harness.runtime().is_open(DLG));
         assert!(harness.app().actions.is_empty());
+
+        let app = DialogApp {
+            race: true,
+            dismiss: Dismiss::ESC_AND_OUTSIDE,
+            ..DialogApp::default()
+        };
+        let mut harness = Harness::new(app, Theme::junie(), 80, 24);
+        let _ = harness.handle(Input::Tick);
+        let confirm_id = harness.app().dialog().action_id(1);
+        harness.runtime_mut().set_focus(Some(confirm_id));
+        harness.draw();
+        harness.app_mut().close_programmatically = true;
+        let _ = harness.key(KeyCode::Enter);
+        let _ = harness.handle(Input::Tick);
+
+        assert_eq!(
+            harness.app().actions,
+            vec![DialogAction::Action(RACE_CANCEL)],
+            "the stale confirm intent must be drained while the queued close resolves once"
+        );
+        assert!(harness.runtime().diagnostics().is_empty());
+
+        let app = DialogApp {
+            close_after_action: true,
+            ..DialogApp::default()
+        };
+        let mut harness = Harness::new(app, Theme::junie(), 80, 24);
+        let _ = harness.handle(Input::Tick);
+        let confirm_id = harness.app().dialog().action_id(1);
+        harness.runtime_mut().set_focus(Some(confirm_id));
+        harness.draw();
+        let _ = harness.key(KeyCode::Enter);
+        let _ = harness.handle(Input::Tick);
+
+        assert_eq!(
+            harness.app().actions,
+            vec![DialogAction::Action(ActionKey::CONFIRM)],
+            "closing after a chosen action is not a second dismissal action"
+        );
     }
 
     #[test]
