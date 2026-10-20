@@ -17,6 +17,11 @@ import frozen_baseline as runner
 
 
 class RunnerGuards(unittest.TestCase):
+    def semantic_frame(self, *, cursor_style: str = "Bar") -> bytes:
+        cell = {"x": 0, "y": 0, "symbol": "x", "width": 1, "continuation": False, "fg": {"Rgb": {"r": 255, "g": 255, "b": 255}}, "bg": {"Rgb": {"r": 0, "g": 0, "b": 0}}, "mods": {"hidden": False, "blink": False, "bold": False, "dim": False, "italic": False, "underline": False, "strikethrough": False, "reverse": False}}
+        frame = {"version": 3, "cols": 1, "rows": 1, "cells": [cell], "cursor": {"x": 0, "y": 0, "visible": False, "style": cursor_style, "blinking": False}, "provenance": {"tool": "tuiscotti", "tool_version": "0.2.0", "profile": "tuiscotti-default", "source": "screen", "argv": [], "created_unix": 0}}
+        return json.dumps(frame, separators=(",", ":")).encode()
+
     def extension_manifest(self) -> dict[str, object]:
         journey = {"id": "sort", "title": "Sort table", "checkpoints": ["initial", "sorted", "cleared"]}
         sizes = [{"cols": cols, "rows": rows, "allow_narrow_fallback": (cols, rows) in {(40, 12), (60, 18)}} for cols, rows in runner.EXTENSION_SIZES]
@@ -121,7 +126,7 @@ class RunnerGuards(unittest.TestCase):
         with self.assertRaisesRegex(runner.RunnerError, "did not all pass"):
             runner.nextest_events(failed, [selected[0]])
 
-    def test_live_receipts_bind_case_order_name_and_frame_bytes(self) -> None:
+    def test_live_receipts_bind_case_order_name_and_both_frame_digests(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
             case = "holla/files/120x40/truecolor"
@@ -129,10 +134,15 @@ class RunnerGuards(unittest.TestCase):
             expected = root / "expected"
             receipt_root = root / "receipts"
             expected.mkdir()
+            actual_root = root / "receipts.actual"
+            actual_root.mkdir()
             ansi = b"frame\x1b[?25h"
+            semantic = self.semantic_frame()
             identity = runner.checkpoint_identity(case, 0, logical)
-            frame_name = f"checkpoint-00000000-{identity}.ansi"
-            (expected / frame_name).write_bytes(ansi)
+            stem = f"checkpoint-00000000-{identity}"
+            (expected / f"{stem}.ansi").write_bytes(ansi)
+            (expected / f"{stem}.frame.json").write_bytes(semantic)
+            (actual_root / f"{stem}.frame.json").write_bytes(semantic)
             receipt_dir = receipt_root / runner.hashlib.sha256(case.encode()).hexdigest()
             receipt_dir.mkdir(parents=True)
             receipt = {
@@ -140,13 +150,60 @@ class RunnerGuards(unittest.TestCase):
                 "ordinal": 0,
                 "logical_name": logical,
                 "sha256": runner.hashlib.sha256(ansi).hexdigest(),
+                "semantic_frame_sha256": runner.hashlib.sha256(semantic).hexdigest(),
             }
-            (receipt_dir / f"checkpoint-00000000-{identity}.json").write_text(json.dumps(receipt))
+            (receipt_dir / f"{stem}.json").write_text(json.dumps(receipt))
+            actual_with_host_provenance = json.loads(semantic)
+            actual_with_host_provenance["provenance"]["created_unix"] = 123
+            (actual_root / f"{stem}.frame.json").write_text(json.dumps(actual_with_host_provenance, separators=(",", ":")))
             found = runner.read_receipts(receipt_root, [case], expected)
-            self.assertEqual(found, {(case, 0, logical): receipt["sha256"]})
-            (expected / frame_name).write_bytes(b"changed")
-            with self.assertRaisesRegex(runner.RunnerError, "hash mismatch"):
+            self.assertEqual(found, {(case, 0, logical): (receipt["sha256"], receipt["semantic_frame_sha256"], None)})
+            (expected / f"{stem}.ansi").write_bytes(b"changed")
+            with self.assertRaisesRegex(runner.RunnerError, "ANSI frame missing or hash mismatch"):
                 runner.read_receipts(receipt_root, [case], expected)
+            (expected / f"{stem}.ansi").write_bytes(ansi)
+            (expected / f"{stem}.frame.json").write_bytes(self.semantic_frame(cursor_style="Block"))
+            with self.assertRaisesRegex(runner.RunnerError, "semantic frame hash mismatch"):
+                runner.read_receipts(receipt_root, [case], expected)
+            (expected / f"{stem}.frame.json").write_bytes(semantic)
+            (actual_root / f"{stem}.frame.json").write_bytes(self.semantic_frame(cursor_style="Block"))
+            with self.assertRaisesRegex(runner.RunnerError, "actual semantic frame hash mismatch"):
+                runner.read_receipts(receipt_root, [case], expected)
+            (actual_root / f"{stem}.frame.json").write_bytes(semantic)
+            (actual_root / f"{stem}.extra.frame.json").write_bytes(semantic)
+            with self.assertRaisesRegex(runner.RunnerError, "runtime actual frame inventory mismatch"):
+                runner.read_receipts(receipt_root, [case], expected)
+
+    def test_reference_decision_is_pinned_to_exact_tuple_and_two_frames(self) -> None:
+        document = json.loads((Path(runner.__file__).resolve().parent / "frozen_cli_references.json").read_text())
+        decision = runner.validate_reference_decision_document(document)
+        self.assertEqual(decision["tuple"]["test_id"], runner.REFERENCE_CASE)
+        self.assertEqual(len(decision["independent_replays"]), 2)
+        for mutate in (
+            lambda data: data["decisions"][0]["tuple"].update({"test_id": "showcase::overview::120x40::truecolor"}),
+            lambda data: data["decisions"][0]["tuple"].update({"ordinal": 1}),
+            lambda data: data["decisions"][0]["live_frame"].update({"semantic_frame_sha256": "0" * 64}),
+            lambda data: data["decisions"][0]["independent_replays"].pop(),
+            lambda data: data["decisions"].append(dict(data["decisions"][0])),
+        ):
+            altered = json.loads(json.dumps(document))
+            mutate(altered)
+            with self.assertRaises(runner.RunnerError):
+                runner.validate_reference_decision_document(altered)
+
+    def test_reference_receipt_is_exact_and_rejects_ascii_or_cursor_diff(self) -> None:
+        decision = runner.validate_reference_decision_document(json.loads((Path(runner.__file__).resolve().parent / "frozen_cli_references.json").read_text()))
+        key = (decision["tuple"]["case_id"], decision["tuple"]["ordinal"], decision["tuple"]["logical_name"])
+        reference = decision["live_frame"]
+        correct = {key: (reference["ansi_sha256"], reference["semantic_frame_sha256"], runner.REFERENCE_DECISIONS_SHA256)}
+        runner.validate_reference_receipts(correct, [runner.REFERENCE_CASE], "baseline-capture", decision, runner.REFERENCE_DECISIONS_SHA256)
+        wrong_ascii = {key: ("0" * 64, reference["semantic_frame_sha256"], runner.REFERENCE_DECISIONS_SHA256)}
+        wrong_cursor = {key: (reference["ansi_sha256"], "0" * 64, runner.REFERENCE_DECISIONS_SHA256)}
+        for altered in (wrong_ascii, wrong_cursor):
+            with self.assertRaisesRegex(runner.RunnerError, "reviewed live-frame reference mismatch"):
+                runner.validate_reference_receipts(altered, [runner.REFERENCE_CASE], "baseline-capture", decision, runner.REFERENCE_DECISIONS_SHA256)
+        with self.assertRaisesRegex(runner.RunnerError, "reference decision receipt binding"):
+            runner.validate_reference_receipts({key: (reference["ansi_sha256"], reference["semantic_frame_sha256"], None)}, [runner.REFERENCE_CASE], "baseline-capture", decision, runner.REFERENCE_DECISIONS_SHA256)
 
     def test_checkpoint_paths_remain_below_portable_filename_limit(self) -> None:
         case = "holla/activities/activities-multi-with-history/120x40/truecolor"
@@ -173,6 +230,9 @@ class RunnerGuards(unittest.TestCase):
     def test_live_chunks_are_deterministic_and_bounded(self) -> None:
         names = [f"case::{index}" for index in range(5)]
         self.assertEqual(runner.scenario_chunks(names, 2), [names[:2], names[2:4], names[4:]])
+        self.assertEqual(runner.scenario_chunks(["before", runner.REFERENCE_CASE, "after"], 2), [["before", "after"], [runner.REFERENCE_CASE]])
+        with self.assertRaisesRegex(runner.RunnerError, "duplicated"):
+            runner.scenario_chunks([runner.REFERENCE_CASE, runner.REFERENCE_CASE], 2)
         with self.assertRaisesRegex(runner.RunnerError, "chunk size"):
             runner.scenario_chunks(names, 513)
 
@@ -201,6 +261,7 @@ class RunnerGuards(unittest.TestCase):
             expected = root / "expected"
             receipts.mkdir()
             expected.mkdir()
+            (root / "receipts.actual").mkdir()
             with self.assertRaisesRegex(runner.RunnerError, "missing checkpoint receipts"):
                 runner.read_receipts(receipts, ["showcase/pages/overview"], expected)
 
