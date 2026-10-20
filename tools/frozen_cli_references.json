@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "decision_scope": "one_exact_stale_approval_live_pair_reference",
+  "decision_scope": "two_exact_stale_approval_live_pair_references",
   "decisions": [
     {
       "decision_id": "visual-baseline-overview-grown-120x40-2026-10-20",
@@ -109,6 +109,163 @@
         "test_id": "showcase::pages::overview::120x40::truecolor",
         "ansi_sha256": "9d07df1b6a32e33d2af4f66d5eff80ff08d55759782f28a42fa7f286f53e5915",
         "semantic_frame_sha256": "0340c1d42acbadea6cfd6b05534dec4a0ebdb2ca25a0b581ec7719274641e4de"
+      }
+    },
+    {
+      "decision_id": "visual-baseline-showcase-buttons-120x40-2026-10-20",
+      "tuple": {
+        "test_id": "showcase::audit::buttons::120x40::truecolor",
+        "case_id": "showcase/audit/buttons/120x40/truecolor",
+        "ordinal": 0,
+        "logical_name": "showcase/audit/buttons/120x40/truecolor",
+        "application": "showcase",
+        "cols": 120,
+        "rows": 40,
+        "color_mode": "truecolor"
+      },
+      "baseline": {
+        "tag": "visual-baseline",
+        "tag_object": "2718a6b8127a522a3d351d0b4bdb7542fc8da542",
+        "commit": "4169783ae883788186d161af09ba9c481bd84e5c",
+        "source_tree": "ad0f7cf8899df8c5fea3ced3f60adf0ac9a2d297",
+        "source_sha256": "f74646a92505bd9baff29c89398af4d31a4812dd7d51acc84d755be61a383850",
+        "visual_test_tree_sha256": "bdd772e6d049efd700912bc5d7b4464d11bb80e69a5d18b0f175b9421546af05",
+        "inventory_sha256": "d260d2f0644d63a3a1b4c1611c0d7c61777e59e61249e3ca513d1d6217b0639c",
+        "tuiscotti_rev": "a1ea27f757d75d07b05499276cd932e9f8e067ad",
+        "showcase_binary_sha256": "21e8b1c1af30b47b331aed033525c4682726b99de5fe1238d4507e58f84359d1",
+        "binary_sha256": {
+          "showcase": "21e8b1c1af30b47b331aed033525c4682726b99de5fe1238d4507e58f84359d1",
+          "tablepro": "f23caa1d97cecc501e8588079e4f38529f834cbd8bb8b57750a427c5a5f993dc",
+          "jackin-preview": "8fccb21faa2459d4b22e5e527f7c1cc29eff64cd1df025957aaed92da35c2a2e",
+          "holla": "6dd87a4e21dff2c69bc2b102234d0f37a5ddcd5c3f2ecd42114a825b2037e01c"
+        }
+      },
+      "control": {
+        "argv": [
+          "--page",
+          "buttons",
+          "--color",
+          "truecolor"
+        ],
+        "size": [
+          120,
+          40
+        ],
+        "readiness_text": "Junie Design system",
+        "quiet_settle_ms": 400,
+        "quiet_deadline_seconds": 8,
+        "inputs": [],
+        "checkpoint_order": [
+          "showcase/audit/buttons/120x40/truecolor"
+        ],
+        "clock_controls": "none; no motion pause, explicit frame, or ClockStep input"
+      },
+      "environment": {
+        "runner": {
+          "VISUAL_FULL": "1",
+          "VISUAL_REVIEW": "0"
+        },
+        "child_policy": "frozen support::PINNED_ENV plus per-scenario HOME and cwd",
+        "child_values": {
+          "SHELL": "/bin/sh",
+          "JUNIE_TUI_CLIENT_PLATFORM": "macos",
+          "TERM": "xterm-256color",
+          "COLORTERM": "truecolor",
+          "LANG": "C.UTF-8",
+          "LC_ALL": "C.UTF-8",
+          "TZ": "UTC",
+          "PATH": "/usr/bin:/bin:/usr/sbin:/sbin",
+          "HOLLA_NO_HISTORY": "1"
+        },
+        "color_mode": "truecolor",
+        "terminal_profile": "tuiscotti-default",
+        "home_cwd_policy": "scenario_home(case_id), below the isolated live-source target/tuiscotti/home directory",
+        "values": {
+          "VISUAL_FULL": "1",
+          "VISUAL_REVIEW": "0"
+        }
+      },
+      "legacy_approval": {
+        "path": "showcase/audit/buttons/120x40/truecolor.ansi",
+        "sha256": "3a809ef2e455d376556adfcd73c243db0bca6cdfed0e524ed65b6f11efc916c8",
+        "bytes": 16139,
+        "verdict": "known_stale_cells_differ",
+        "paired_exception": "baseline-capture exact checkpoint only; never edits or replaces the frozen approval"
+      },
+      "live_frame": {
+        "ansi_sha256": "545c129be118753a89a1683c838cfa227d0090cb8ea18d975557021afa9a94e0",
+        "ansi_bytes": 19270,
+        "semantic_frame_sha256": "19fdbdd4aa349bc2c7fc13ebf5c3a245093a02cf2cbc1183be7854a83a7b0107",
+        "cols": 120,
+        "rows": 40,
+        "cell_count": 4800,
+        "cursor": {
+          "x": 0,
+          "y": 0,
+          "visible": false,
+          "style": "Bar",
+          "blinking": false
+        }
+      },
+      "independent_captures": [
+        {
+          "run_id": "1792502640440881000-933c43607380",
+          "command_sha256": "2a0bfe477ff48a871cf88c437dd94e0890af39c483406becf7760421b41b6b7a",
+          "stdout_sha256": "b0b1307efd5448cb545df8f4f9d5f5f68f88dfe5e13af5de8f19411a4a7ae34b",
+          "stderr_sha256": "c2152c8d74c0b790be79599425f3cb3a5332021f16aa7d67e942a50e943a6607",
+          "report_sha256": "06a7c36c1684fed1b7086f12a9de4c25dcbeb277810c6b460a13de867bce74d0",
+          "ansi_sha256": "545c129be118753a89a1683c838cfa227d0090cb8ea18d975557021afa9a94e0",
+          "semantic_frame_sha256": "19fdbdd4aa349bc2c7fc13ebf5c3a245093a02cf2cbc1183be7854a83a7b0107"
+        },
+        {
+          "run_id": "1792502669657768000-6db31d0ee0cb",
+          "command_sha256": "2a0bfe477ff48a871cf88c437dd94e0890af39c483406becf7760421b41b6b7a",
+          "stdout_sha256": "617aff4914b969bd45bcf85361d6a5f5b9c1d9cb1dc57255b0f575c9490f03be",
+          "stderr_sha256": "955f73a94616812c18b2d30fdf5e0616136f158a76072770090be3381f4235a1",
+          "report_sha256": "955fd8223412cf859b208de652a8a63cd98648c7a690f320effa0bdb41e66bdf",
+          "ansi_sha256": "545c129be118753a89a1683c838cfa227d0090cb8ea18d975557021afa9a94e0",
+          "semantic_frame_sha256": "19fdbdd4aa349bc2c7fc13ebf5c3a245093a02cf2cbc1183be7854a83a7b0107"
+        }
+      ],
+      "independent_probe": {
+        "source_sha256": "92f7ad4bd050872e64cb7c7329af1a312086755212918041bc3753267da325f1",
+        "exit_code": 0,
+        "compile_command": "/opt/homebrew/opt/rust/bin/rustc --edition=2024 probe.rs -L dependency=../live-target/debug/deps --extern tuiscotti=../live-target/debug/deps/libtuiscotti-8c67b7fb0e369def.rlib -o probe",
+        "output": {
+          "ansi_sha256": "545c129be118753a89a1683c838cfa227d0090cb8ea18d975557021afa9a94e0",
+          "semantic_frame_json_sha256": "19fdbdd4aa349bc2c7fc13ebf5c3a245093a02cf2cbc1183be7854a83a7b0107",
+          "text_sha256": "2622b728607ed3d1c63161ce40089333f02234f1a77b33e0ea12e71b1501cfca",
+          "approved_decoded_frame_json_sha256": "2c1e281be06e58654a79767802a96d4356c71dd0de5b5bb51e4914a694fa9917",
+          "approved_decoded_text_sha256": "f0da2ffd75f1549af171927c6325e59395ae87aab7834ae59adb5978f4d0d12f"
+        },
+        "frame_comparison": {
+          "complete_cells": 4800,
+          "changed_cells": 2723,
+          "approved_cursor": {
+            "x": 0,
+            "y": 0,
+            "visible": false,
+            "style": "Block",
+            "blinking": false
+          },
+          "live_cursor": {
+            "x": 0,
+            "y": 0,
+            "visible": false,
+            "style": "Bar",
+            "blinking": false
+          }
+        },
+        "font_profile": "tuiscotti-default",
+        "fonts": {
+          "JetBrainsMonoNerdFontMono-Bold.ttf": "bfcf9a917276ffc058867d87cbc8a5b2f1ab0f4b710e9170dc02763ccb80bd4b",
+          "JetBrainsMonoNerdFontMono-BoldItalic.ttf": "9dba502e00e35209f6ed2a151c7376c051657b067cdebbc6e52d06cb9002cf31",
+          "JetBrainsMonoNerdFontMono-Italic.ttf": "31efd6ead98746f5b0afa1ee6dba60267ad48db36428360bee327bec10621f97",
+          "JetBrainsMonoNerdFontMono-Regular.ttf": "f2a5ea6cfab397445ffab00c0370927b66d61e560a05db5db271b42006381c1a",
+          "NotoSansCJKjp-subset.otf": "777bee41f0c6076c00ad919384359a6e396b8822cf9056041fca8fcf2759d897",
+          "NotoSansSymbols-subset.ttf": "6f9cc93e71f8676361c5db286368be046e75d42c0b841afbf3f50da6bb0a2b8a",
+          "NotoSansSymbols2-subset.ttf": "e1d177a40af910100eceb0e825331e55f0cfd005bc0f26087fd4e58fbe60e6c5"
+        }
       }
     }
   ]
