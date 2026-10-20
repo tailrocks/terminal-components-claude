@@ -389,22 +389,26 @@ impl BindingRegistry {
         };
         let prior = self.tables[prior_index];
         let prior_end = prior.start.saturating_add(prior.len);
-        let prior_descriptors = self
+        let prior_range = self
             .descriptors
             .get(prior.start..prior_end)
-            .unwrap_or(&[])
-            .to_vec();
-        let mut additions = Vec::new();
-        for binding in table.iter().filter(|binding| include(binding.cmd)) {
-            if prior_descriptors
-                .iter()
-                .chain(additions.iter())
-                .any(|item: &BindingDescriptor| item.action == binding.action)
-            {
-                return Err(BindingExtensionError::DuplicateAction {
-                    owner,
-                    action: binding.action,
-                });
+            .map(|_| prior.start..prior_end);
+        let prior_len = prior_range.as_ref().map_or(0, |range| range.len());
+        let start = self.descriptors.len();
+        // Reserve enough for the copied base and every possible extension before
+        // appending. This keeps the frame-hot path allocation-free and lets the
+        // validation pass call `include` exactly once for each binding.
+        self.descriptors
+            .reserve(prior_len.saturating_add(table.len()));
+        self.tables.reserve(1);
+        let copied_start = self.descriptors.len();
+        if let Some(range) = prior_range {
+            self.descriptors.extend_from_within(range);
+        }
+        let additions_start = self.descriptors.len();
+        for binding in table {
+            if !include(binding.cmd) {
+                continue;
             }
             let descriptor = BindingDescriptor {
                 action: binding.action,
@@ -413,22 +417,30 @@ impl BindingRegistry {
                 priority: binding.priority,
                 visible: binding.visible,
             };
+            let prior = &self.descriptors[copied_start..additions_start];
+            let additions = &self.descriptors[additions_start..];
+            if prior
+                .iter()
+                .chain(additions)
+                .any(|item| item.action == binding.action)
+            {
+                self.descriptors.truncate(start);
+                return Err(BindingExtensionError::DuplicateAction {
+                    owner,
+                    action: binding.action,
+                });
+            }
             if let Some(chord) = descriptor.chord
-                && prior_descriptors
+                && prior
                     .iter()
-                    .chain(additions.iter())
+                    .chain(additions)
                     .any(|item| item.chord.is_some_and(|other| chord.effective_eq(&other)))
             {
+                self.descriptors.truncate(start);
                 return Err(BindingExtensionError::ConflictingChord { owner, chord });
             }
-            additions.push(descriptor);
+            self.descriptors.push(descriptor);
         }
-
-        let start = self.descriptors.len();
-        self.descriptors
-            .reserve(prior_descriptors.len() + additions.len());
-        self.descriptors.extend_from_slice(&prior_descriptors);
-        self.descriptors.extend(additions);
         let len = self.descriptors.len().saturating_sub(start);
         self.composite_revision = self.composite_revision.wrapping_add(1);
         self.tables.push(PublishedBindings {
@@ -1096,6 +1108,12 @@ mod tests {
                 owner,
                 chord: Chord::key(KeyCode::Esc),
             })
+        );
+        assert_eq!(registry.tables.len(), 1, "a rejected extension published a table");
+        assert_eq!(
+            registry.descriptors.len(),
+            1,
+            "a rejected extension retained its provisional descriptors"
         );
         assert_eq!(registry.get(owner).expect("base retained").1.len(), 1);
     }
