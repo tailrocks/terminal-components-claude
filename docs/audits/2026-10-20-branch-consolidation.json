@@ -1,0 +1,830 @@
+{
+  "schema_version": 1,
+  "record_status": "in_progress_pending_A-D_reviews",
+  "captured_utc": "2026-10-20T16:07:32.696460+00:00",
+  "fresh_E_refs_verified_utc": "2026-10-20T16:10:45Z",
+  "inventory_source": "/Users/donbeave/Projects/termrock-cli-evidence-20261020/branch-consolidation/assigned-inventory.json",
+  "inventory_sha256": "af14e7dfcdbde111ca7e12628fd8ceb6a89de82b616223bb5d0dfd2d25851591",
+  "captured_remote_heads_source": "/Users/donbeave/Projects/termrock-cli-evidence-20261020/branch-consolidation/remote-heads-current.tsv",
+  "captured_remote_heads_sha256": "7a1654ae14848d4c683e4a14b421decef59fca7106c22cbe4b6cf72537916720",
+  "inventory_validation": {
+    "branch_rows": 96,
+    "unique_branch_names": 96,
+    "assignment_counts": {
+      "A-runtime-input": 23,
+      "B-components-layout": 23,
+      "C-apps-preservation": 23,
+      "D-tests-proof": 15,
+      "E-ci-reference-catchall": 12
+    },
+    "fresh_E_refs_all_match_inventory": true
+  },
+  "fixed_references": {
+    "baseline_commit": "4169783ae883788186d161af09ba9c481bd84e5c",
+    "baseline_tag_object": "2718a6b8127a522a3d351d0b4bdb7542fc8da542",
+    "tuiscotti_commit": "a1ea27f757d75d07b05499276cd932e9f8e067ad",
+    "design_reference_commit": "f4867e9b5f8a08a3bb61ce80d644198a29f51984"
+  },
+  "integration_target": {
+    "branch": "parity/termrock-visual-baseline",
+    "snapshot_sha": "6bcdc42173232b53ed48b221ae8d099791283e39",
+    "current_sha_when_recorded": "0cd5edb8856396bde1bbd2f8a5377940a3d50447",
+    "pr": 38
+  },
+  "workflow_reference": {
+    "velnor_actions_version": "0.1.29",
+    "velnor_actions_source_commit": "e7b2f088715379c22be473fab896a43d50cc16fc",
+    "manifest_sha256": "90f67687aa10b06718096bf4fd630096d0b4ffc0cd6e5ed4a50846fb3e2c3af0",
+    "pr38_config_proof": [
+      "mise.toml pins velnor-actions 0.1.29",
+      "mise.toml pins zizmor 1.31.1",
+      ".velnor/config.toml sets claude_md = symlink, crate_timeout_minutes = 15, and excludes tools/frozen-cli-frame-support/**",
+      ".github/AGENTS.md generated header says Velnor Actions 0.1.29",
+      ".github/CLAUDE.md is a symlink"
+    ]
+  },
+  "ci_evidence": {
+    "main_upgrade_pr": 39,
+    "main_upgrade_head": "a6929aeba7479d0b3a746f69d412a1ab701b5242",
+    "main_upgrade_run": 39436987238,
+    "actionlint": "success",
+    "plan_annotation": "The job has exceeded the maximum execution time of 5m0s",
+    "rust_jobs": "skipped because Plan was cancelled",
+    "required": "failure",
+    "plan_check_run": 118676486859,
+    "required_check_run": 118679354268,
+    "source": "gh pr view 39 and GitHub check-run annotations queried 2026-10-20",
+    "pr38_latest_run": 39455126168,
+    "pr38_latest_run_status": "in_progress at head 0cd5edb8856396bde1bbd2f8a5377940a3d50447, observed 2026-10-20T16:10:45Z"
+  },
+  "branches": [
+    {
+      "branch": "audit/replay-origin-current-source-20261020",
+      "inventory_sha": "55824ec3ba5d62aa2a743be3d83f9ef5d98e61ee",
+      "observed_remote_sha": "55824ec3ba5d62aa2a743be3d83f9ef5d98e61ee",
+      "assignment": "D-tests-proof",
+      "status": "pending",
+      "reason": "Assigned to another audit workstream; no verdict recorded here."
+    },
+    {
+      "branch": "chore/rust-comment-cleanup",
+      "inventory_sha": "0b1142a2fb2462e597588b34b4845c812c9c12c2",
+      "observed_remote_sha": "0b1142a2fb2462e597588b34b4845c812c9c12c2",
+      "assignment": "E-ci-reference-catchall",
+      "status": "excluded",
+      "reason": "Three commits remove/reflow comments across 492 Rust files on a legacy tree; no unique reusable-component or baseline-parity behavior. Broad documentation loss and source churn do not advance PR38."
+    },
+    {
+      "branch": "ci/design-rust-timeout-20261020",
+      "inventory_sha": "f2f6eb716c4a512be3dc9423742fa06e86879b32",
+      "observed_remote_sha": "f2f6eb716c4a512be3dc9423742fa06e86879b32",
+      "assignment": "E-ci-reference-catchall",
+      "status": "duplicate-reference-only",
+      "reason": "Head equals design/interaction-polish. It carries the reference branch Velnor 0.1.29 generation and 15-minute crate timeout; PR38 already generates its own current tree with Velnor 0.1.29 and 15-minute crate timeout."
+    },
+    {
+      "branch": "ci/velnor-0.1.29-main-20261020",
+      "inventory_sha": "a6929aeba7479d0b3a746f69d412a1ab701b5242",
+      "observed_remote_sha": "a6929aeba7479d0b3a746f69d412a1ab701b5242",
+      "assignment": "E-ci-reference-catchall",
+      "status": "blocked-separate-main-delivery",
+      "reason": "Main-only Velnor 0.1.16 to 0.1.29 upgrade. PR38 already uses 0.1.29, so generated main files are inapplicable. PR39 remains open/blocked: run 39436987238 Actionlint passed, Plan exceeded 5m0s, Rust jobs skipped, Required failed."
+    },
+    {
+      "branch": "ci/zizmor-design-20261020",
+      "inventory_sha": "4860d0350d5faebd9298cb92c0154ecf585b3d83",
+      "observed_remote_sha": "4860d0350d5faebd9298cb92c0154ecf585b3d83",
+      "assignment": "E-ci-reference-catchall",
+      "status": "superseded-reference-only",
+      "reason": "Design CI pin update is already present at design head f2f6eb716c4a512be3dc9423742fa06e86879b32 (zizmor 1.31.1); no PR38-specific delta."
+    },
+    {
+      "branch": "codex/rescue-capture-command-prod-gate-20261017",
+      "inventory_sha": "77fc91a82aeb145be4efc4403b18380ff40d21fb",
+      "observed_remote_sha": "77fc91a82aeb145be4efc4403b18380ff40d21fb",
+      "assignment": "C-apps-preservation",
+      "status": "pending",
+      "reason": "Assigned to another audit workstream; no verdict recorded here."
+    },
+    {
+      "branch": "codex/rescue-pr17-e44-20261017",
+      "inventory_sha": "e44d5504e91d90f8404a5488d8539ed71001e31f",
+      "observed_remote_sha": "e44d5504e91d90f8404a5488d8539ed71001e31f",
+      "assignment": "C-apps-preservation",
+      "status": "pending",
+      "reason": "Assigned to another audit workstream; no verdict recorded here."
+    },
+    {
+      "branch": "codex/rescue-status-proposal-check-20261018",
+      "inventory_sha": "2a5b0b5f40c5fce4af56bfcb4f94093e2d6c1211",
+      "observed_remote_sha": "2a5b0b5f40c5fce4af56bfcb4f94093e2d6c1211",
+      "assignment": "C-apps-preservation",
+      "status": "pending",
+      "reason": "Assigned to another audit workstream; no verdict recorded here."
+    },
+    {
+      "branch": "codex/termrock-local-proposals-20261018",
+      "inventory_sha": "824876cb044cb16b5e1cc0dcb61acd793351f565",
+      "observed_remote_sha": "824876cb044cb16b5e1cc0dcb61acd793351f565",
+      "assignment": "C-apps-preservation",
+      "status": "pending",
+      "reason": "Assigned to another audit workstream; no verdict recorded here."
+    },
+    {
+      "branch": "codex/termrock-q48-source-only-20261019",
+      "inventory_sha": "086443450833ea72158284e033b4b6d2ca06cc12",
+      "observed_remote_sha": "086443450833ea72158284e033b4b6d2ca06cc12",
+      "assignment": "C-apps-preservation",
+      "status": "pending",
+      "reason": "Assigned to another audit workstream; no verdict recorded here."
+    },
+    {
+      "branch": "design/interaction-polish",
+      "inventory_sha": "f2f6eb716c4a512be3dc9423742fa06e86879b32",
+      "observed_remote_sha": "f2f6eb716c4a512be3dc9423742fa06e86879b32",
+      "assignment": "E-ci-reference-catchall",
+      "status": "protected-reference-only",
+      "reason": "PR26/reference branch. Never merge, modify, close, or delete. Useful for source comparison only."
+    },
+    {
+      "branch": "docs/branch-authority-cleanup",
+      "inventory_sha": "c4b62deccf0ff32383253f597d020084dc180c03",
+      "observed_remote_sha": "c4b62deccf0ff32383253f597d020084dc180c03",
+      "assignment": "D-tests-proof",
+      "status": "pending",
+      "reason": "Assigned to another audit workstream; no verdict recorded here."
+    },
+    {
+      "branch": "docs/interaction-reference-cleanup",
+      "inventory_sha": "1d35481674bdd79f5508def12233d0c9b72285b6",
+      "observed_remote_sha": "1d35481674bdd79f5508def12233d0c9b72285b6",
+      "assignment": "D-tests-proof",
+      "status": "pending",
+      "reason": "Assigned to another audit workstream; no verdict recorded here."
+    },
+    {
+      "branch": "fix/picker-focus-and-rows-20261020",
+      "inventory_sha": "56a8547a48647d7158f6a288df6db4708f7b0f0c",
+      "observed_remote_sha": "56a8547a48647d7158f6a288df6db4708f7b0f0c",
+      "assignment": "A-runtime-input",
+      "status": "pending",
+      "reason": "Assigned to another audit workstream; no verdict recorded here."
+    },
+    {
+      "branch": "main",
+      "inventory_sha": "a97e351df736b576904bc450619ca347ea64d65b",
+      "observed_remote_sha": "a97e351df736b576904bc450619ca347ea64d65b",
+      "assignment": "E-ci-reference-catchall",
+      "status": "protected-base-only",
+      "reason": "Protected base branch. No direct merge or modification. Main workflow upgrade stays in PR39; PR38 is the sole refactor integration target."
+    },
+    {
+      "branch": "parity/acceptance-architecture-20261020",
+      "inventory_sha": "c6f1ee62465845459e815a228ee541571ae548c9",
+      "observed_remote_sha": "c6f1ee62465845459e815a228ee541571ae548c9",
+      "assignment": "D-tests-proof",
+      "status": "pending",
+      "reason": "Assigned to another audit workstream; no verdict recorded here."
+    },
+    {
+      "branch": "parity/acceptance-architecture-module-path-20261020",
+      "inventory_sha": "461c7d1e1a33ecbc6fad2ec143353bbd578e4aa0",
+      "observed_remote_sha": "461c7d1e1a33ecbc6fad2ec143353bbd578e4aa0",
+      "assignment": "D-tests-proof",
+      "status": "pending",
+      "reason": "Assigned to another audit workstream; no verdict recorded here."
+    },
+    {
+      "branch": "parity/acceptance-architecture-p1-20261020",
+      "inventory_sha": "73e8dea2267ee6350518be87d3b999d76703834b",
+      "observed_remote_sha": "73e8dea2267ee6350518be87d3b999d76703834b",
+      "assignment": "D-tests-proof",
+      "status": "pending",
+      "reason": "Assigned to another audit workstream; no verdict recorded here."
+    },
+    {
+      "branch": "parity/acceptance-architecture-symlink-20261020",
+      "inventory_sha": "a48e94fae4fe1b774bd5fd4864fc933979f7b9a5",
+      "observed_remote_sha": "a48e94fae4fe1b774bd5fd4864fc933979f7b9a5",
+      "assignment": "D-tests-proof",
+      "status": "pending",
+      "reason": "Assigned to another audit workstream; no verdict recorded here."
+    },
+    {
+      "branch": "parity/binding-runtime-20261020",
+      "inventory_sha": "98900f3e11e4cd34835dec5902694ed260125aee",
+      "observed_remote_sha": "98900f3e11e4cd34835dec5902694ed260125aee",
+      "assignment": "A-runtime-input",
+      "status": "pending",
+      "reason": "Assigned to another audit workstream; no verdict recorded here."
+    },
+    {
+      "branch": "parity/button-contract-20261020",
+      "inventory_sha": "7dab012ee6c0094f7a2a0264a41d6530984c6820",
+      "observed_remote_sha": "7dab012ee6c0094f7a2a0264a41d6530984c6820",
+      "assignment": "B-components-layout",
+      "status": "pending",
+      "reason": "Assigned to another audit workstream; no verdict recorded here."
+    },
+    {
+      "branch": "parity/button-contract-review-20261020",
+      "inventory_sha": "2d65740b717a86fbc5701c0286f7b35454ea5332",
+      "observed_remote_sha": "2d65740b717a86fbc5701c0286f7b35454ea5332",
+      "assignment": "B-components-layout",
+      "status": "pending",
+      "reason": "Assigned to another audit workstream; no verdict recorded here."
+    },
+    {
+      "branch": "parity/buttons-reference-decision-20261020",
+      "inventory_sha": "2289a4f4768a787af767da5fcf0819fe01cade66",
+      "observed_remote_sha": "2289a4f4768a787af767da5fcf0819fe01cade66",
+      "assignment": "D-tests-proof",
+      "status": "pending",
+      "reason": "Assigned to another audit workstream; no verdict recorded here."
+    },
+    {
+      "branch": "parity/ci-planning-fix-20261020",
+      "inventory_sha": "8beaf2865b922fbea0ae082f914367d1fed64609",
+      "observed_remote_sha": "8beaf2865b922fbea0ae082f914367d1fed64609",
+      "assignment": "E-ci-reference-catchall",
+      "status": "duplicate-obsolete-generated-output",
+      "reason": "Its config-level additions are already in PR38: `claude_md = \"symlink\"` and exclusion of `tools/frozen-cli-frame-support/**`. Its generated output targets Velnor 0.1.16/legacy tree, stale against PR38 0.1.29 generation; do not copy generated files."
+    },
+    {
+      "branch": "parity/code-completion-composite-20261020",
+      "inventory_sha": "12e760e81ddf31d2956a2a05af567abfc64d7769",
+      "observed_remote_sha": "12e760e81ddf31d2956a2a05af567abfc64d7769",
+      "assignment": "A-runtime-input",
+      "status": "pending",
+      "reason": "Assigned to another audit workstream; no verdict recorded here."
+    },
+    {
+      "branch": "parity/completion-manual-fixes-20261020",
+      "inventory_sha": "1a150420b0faa8784f56ccdca3cda01d16d8778e",
+      "observed_remote_sha": "1a150420b0faa8784f56ccdca3cda01d16d8778e",
+      "assignment": "A-runtime-input",
+      "status": "pending",
+      "reason": "Assigned to another audit workstream; no verdict recorded here."
+    },
+    {
+      "branch": "parity/completion-primitives-20261020",
+      "inventory_sha": "cf1ff91536fdb402325eb6716856eec4688c106c",
+      "observed_remote_sha": "cf1ff91536fdb402325eb6716856eec4688c106c",
+      "assignment": "A-runtime-input",
+      "status": "pending",
+      "reason": "Assigned to another audit workstream; no verdict recorded here."
+    },
+    {
+      "branch": "parity/composition-fallible-20261020",
+      "inventory_sha": "8cecb53b26470f7de6edfe6bbc95b25711cf1570",
+      "observed_remote_sha": "8cecb53b26470f7de6edfe6bbc95b25711cf1570",
+      "assignment": "B-components-layout",
+      "status": "pending",
+      "reason": "Assigned to another audit workstream; no verdict recorded here."
+    },
+    {
+      "branch": "parity/composition-leaves-20261020",
+      "inventory_sha": "69605184c97d34e10e937189743f5d2454be6d28",
+      "observed_remote_sha": "69605184c97d34e10e937189743f5d2454be6d28",
+      "assignment": "B-components-layout",
+      "status": "pending",
+      "reason": "Assigned to another audit workstream; no verdict recorded here."
+    },
+    {
+      "branch": "parity/composition-plan-final-20261020",
+      "inventory_sha": "6e81c0034989b11321e64cc2da0bb617c37b896c",
+      "observed_remote_sha": "6e81c0034989b11321e64cc2da0bb617c37b896c",
+      "assignment": "B-components-layout",
+      "status": "pending",
+      "reason": "Assigned to another audit workstream; no verdict recorded here."
+    },
+    {
+      "branch": "parity/composition-slots-20261020",
+      "inventory_sha": "be674ef8799c55bc3700cdd36f519cafebc95bed",
+      "observed_remote_sha": "be674ef8799c55bc3700cdd36f519cafebc95bed",
+      "assignment": "B-components-layout",
+      "status": "pending",
+      "reason": "Assigned to another audit workstream; no verdict recorded here."
+    },
+    {
+      "branch": "parity/composition-slots-runtime-20261020",
+      "inventory_sha": "10ab21cdb33939ec5ead16b1923c8f91a4bf5cb8",
+      "observed_remote_sha": "10ab21cdb33939ec5ead16b1923c8f91a4bf5cb8",
+      "assignment": "B-components-layout",
+      "status": "pending",
+      "reason": "Assigned to another audit workstream; no verdict recorded here."
+    },
+    {
+      "branch": "parity/dialog-dismissal-contract-20261020",
+      "inventory_sha": "1be6567aeaa7bfc80c81ee1f2f10eb39f66248d9",
+      "observed_remote_sha": "1be6567aeaa7bfc80c81ee1f2f10eb39f66248d9",
+      "assignment": "A-runtime-input",
+      "status": "pending",
+      "reason": "Assigned to another audit workstream; no verdict recorded here."
+    },
+    {
+      "branch": "parity/dialog-layout-contract-20261020",
+      "inventory_sha": "86226a2442f37621bbef91dd50b9b7bc3104659b",
+      "observed_remote_sha": "86226a2442f37621bbef91dd50b9b7bc3104659b",
+      "assignment": "B-components-layout",
+      "status": "pending",
+      "reason": "Assigned to another audit workstream; no verdict recorded here."
+    },
+    {
+      "branch": "parity/edit-menu-overlay-20261020",
+      "inventory_sha": "12a24761ff9da2019f2c04ad63b21db9e92da5c7",
+      "observed_remote_sha": "12a24761ff9da2019f2c04ad63b21db9e92da5c7",
+      "assignment": "A-runtime-input",
+      "status": "pending",
+      "reason": "Assigned to another audit workstream; no verdict recorded here."
+    },
+    {
+      "branch": "parity/empty-style-reference-fix-20261020",
+      "inventory_sha": "45b4ca679272b4b3c8948139cd87c1473d652bbf",
+      "observed_remote_sha": "45b4ca679272b4b3c8948139cd87c1473d652bbf",
+      "assignment": "B-components-layout",
+      "status": "pending",
+      "reason": "Assigned to another audit workstream; no verdict recorded here."
+    },
+    {
+      "branch": "parity/field-continuation-20261020",
+      "inventory_sha": "de7cc53dbe8483f7e44837e469efbc9577f1455b",
+      "observed_remote_sha": "de7cc53dbe8483f7e44837e469efbc9577f1455b",
+      "assignment": "A-runtime-input",
+      "status": "pending",
+      "reason": "Assigned to another audit workstream; no verdict recorded here."
+    },
+    {
+      "branch": "parity/frame-semantics-20261020",
+      "inventory_sha": "12ab1458facd213bae7a8a1b1f2c1125e65b4261",
+      "observed_remote_sha": "12ab1458facd213bae7a8a1b1f2c1125e65b4261",
+      "assignment": "D-tests-proof",
+      "status": "pending",
+      "reason": "Assigned to another audit workstream; no verdict recorded here."
+    },
+    {
+      "branch": "parity/frozen-table-workflows-20261020",
+      "inventory_sha": "b6d75a22d79dd20cdd12fb53f2e03a7c7bad02b6",
+      "observed_remote_sha": "b6d75a22d79dd20cdd12fb53f2e03a7c7bad02b6",
+      "assignment": "D-tests-proof",
+      "status": "pending",
+      "reason": "Assigned to another audit workstream; no verdict recorded here."
+    },
+    {
+      "branch": "parity/item-row-palette-reference-20261020",
+      "inventory_sha": "23a3fac940f24a499b532b0ef580f19355715043",
+      "observed_remote_sha": "23a3fac940f24a499b532b0ef580f19355715043",
+      "assignment": "B-components-layout",
+      "status": "pending",
+      "reason": "Assigned to another audit workstream; no verdict recorded here."
+    },
+    {
+      "branch": "parity/layout-plan-20261020",
+      "inventory_sha": "eba2423164e679a2b5cdfd842aad060bea0dff6d",
+      "observed_remote_sha": "eba2423164e679a2b5cdfd842aad060bea0dff6d",
+      "assignment": "B-components-layout",
+      "status": "pending",
+      "reason": "Assigned to another audit workstream; no verdict recorded here."
+    },
+    {
+      "branch": "parity/master-detail-20261020",
+      "inventory_sha": "1ca91e1421e812e582a9681e8ba2a56e66127e97",
+      "observed_remote_sha": "1ca91e1421e812e582a9681e8ba2a56e66127e97",
+      "assignment": "B-components-layout",
+      "status": "pending",
+      "reason": "Assigned to another audit workstream; no verdict recorded here."
+    },
+    {
+      "branch": "parity/menubar-hover-20261020",
+      "inventory_sha": "c02ea120935a9f5fba7bcc713b08136fc199b11e",
+      "observed_remote_sha": "c02ea120935a9f5fba7bcc713b08136fc199b11e",
+      "assignment": "A-runtime-input",
+      "status": "pending",
+      "reason": "Assigned to another audit workstream; no verdict recorded here."
+    },
+    {
+      "branch": "parity/migration-matrix-20261020",
+      "inventory_sha": "ea9f6f4400af7ad57a9af9a7c1387eb00c6133ff",
+      "observed_remote_sha": "ea9f6f4400af7ad57a9af9a7c1387eb00c6133ff",
+      "assignment": "D-tests-proof",
+      "status": "pending",
+      "reason": "Assigned to another audit workstream; no verdict recorded here."
+    },
+    {
+      "branch": "parity/nested-composition-20261020",
+      "inventory_sha": "7195d29782fba5ae5040cc56ac900bb48f517381",
+      "observed_remote_sha": "7195d29782fba5ae5040cc56ac900bb48f517381",
+      "assignment": "B-components-layout",
+      "status": "pending",
+      "reason": "Assigned to another audit workstream; no verdict recorded here."
+    },
+    {
+      "branch": "parity/nested-composition-consumer-20261020",
+      "inventory_sha": "d4f7bfbaf69554c12d8e0ad6ec8357d010099a20",
+      "observed_remote_sha": "d4f7bfbaf69554c12d8e0ad6ec8357d010099a20",
+      "assignment": "B-components-layout",
+      "status": "pending",
+      "reason": "Assigned to another audit workstream; no verdict recorded here."
+    },
+    {
+      "branch": "parity/nested-modal-reference-20261020",
+      "inventory_sha": "d3e5647c87aeb33cab03b378fe0f7111718ff3a0",
+      "observed_remote_sha": "d3e5647c87aeb33cab03b378fe0f7111718ff3a0",
+      "assignment": "B-components-layout",
+      "status": "pending",
+      "reason": "Assigned to another audit workstream; no verdict recorded here."
+    },
+    {
+      "branch": "parity/note-reference-color-20261020",
+      "inventory_sha": "c0c0f148b54c3459ee157de19dd49ca84bb3b447",
+      "observed_remote_sha": "c0c0f148b54c3459ee157de19dd49ca84bb3b447",
+      "assignment": "A-runtime-input",
+      "status": "pending",
+      "reason": "Assigned to another audit workstream; no verdict recorded here."
+    },
+    {
+      "branch": "parity/ordinary-cli-partition-20261020",
+      "inventory_sha": "0d7f38bac1ce4420036d930e1f90ad05459732de",
+      "observed_remote_sha": "0d7f38bac1ce4420036d930e1f90ad05459732de",
+      "assignment": "D-tests-proof",
+      "status": "pending",
+      "reason": "Assigned to another audit workstream; no verdict recorded here."
+    },
+    {
+      "branch": "parity/picker-family-contracts-20261020",
+      "inventory_sha": "0416a30146fc39b73ec320935620a692c4d88814",
+      "observed_remote_sha": "0416a30146fc39b73ec320935620a692c4d88814",
+      "assignment": "A-runtime-input",
+      "status": "pending",
+      "reason": "Assigned to another audit workstream; no verdict recorded here."
+    },
+    {
+      "branch": "parity/picker-geometry-20261020",
+      "inventory_sha": "6b72d77a6e3914557e862d0f8490f9cfcc01c5b8",
+      "observed_remote_sha": "6b72d77a6e3914557e862d0f8490f9cfcc01c5b8",
+      "assignment": "A-runtime-input",
+      "status": "pending",
+      "reason": "Assigned to another audit workstream; no verdict recorded here."
+    },
+    {
+      "branch": "parity/picker-query-component-20261020",
+      "inventory_sha": "fe158fb56be6bffb30309521b5b71f778f26f39f",
+      "observed_remote_sha": "fe158fb56be6bffb30309521b5b71f778f26f39f",
+      "assignment": "A-runtime-input",
+      "status": "pending",
+      "reason": "Assigned to another audit workstream; no verdict recorded here."
+    },
+    {
+      "branch": "parity/picker-stack-integration-20261020",
+      "inventory_sha": "801e6c94892703bde5309e3daa31f37c3a727910",
+      "observed_remote_sha": "801e6c94892703bde5309e3daa31f37c3a727910",
+      "assignment": "A-runtime-input",
+      "status": "pending",
+      "reason": "Assigned to another audit workstream; no verdict recorded here."
+    },
+    {
+      "branch": "parity/runtime-crate-timeout-15-20261020",
+      "inventory_sha": "4d0df7704dcb284d0c9726e78ea68bcca30838fc",
+      "observed_remote_sha": "4d0df7704dcb284d0c9726e78ea68bcca30838fc",
+      "assignment": "E-ci-reference-catchall",
+      "status": "already-integrated",
+      "reason": "Branch tip 4d0df7704dcb284d0c9726e78ea68bcca30838fc is an ancestor of PR38 snapshot 6bcdc42173232b53ed48b221ae8d099791283e39; `crate_timeout_minutes = 15` is present."
+    },
+    {
+      "branch": "parity/runtime-fields-binding-query-current-20261020",
+      "inventory_sha": "8635f4bf600d931e0b5c96b22e9150a5b58375de",
+      "observed_remote_sha": "8635f4bf600d931e0b5c96b22e9150a5b58375de",
+      "assignment": "A-runtime-input",
+      "status": "pending",
+      "reason": "Assigned to another audit workstream; no verdict recorded here."
+    },
+    {
+      "branch": "parity/runtime-fields-integration-20261020",
+      "inventory_sha": "ffc3b25efb4879a598e180d924daa5d37d721aab",
+      "observed_remote_sha": "ffc3b25efb4879a598e180d924daa5d37d721aab",
+      "assignment": "A-runtime-input",
+      "status": "pending",
+      "reason": "Assigned to another audit workstream; no verdict recorded here."
+    },
+    {
+      "branch": "parity/runtime-layer-contracts-20261020",
+      "inventory_sha": "0cf26d54ecf53adec8a925050882d6a65d736f02",
+      "observed_remote_sha": "0cf26d54ecf53adec8a925050882d6a65d736f02",
+      "assignment": "A-runtime-input",
+      "status": "pending",
+      "reason": "Assigned to another audit workstream; no verdict recorded here."
+    },
+    {
+      "branch": "parity/runtime-picker-allocation-20261020",
+      "inventory_sha": "7c1a092ab7cfa37002f06e505cd4577f133750f4",
+      "observed_remote_sha": "7c1a092ab7cfa37002f06e505cd4577f133750f4",
+      "assignment": "A-runtime-input",
+      "status": "pending",
+      "reason": "Assigned to another audit workstream; no verdict recorded here."
+    },
+    {
+      "branch": "parity/session-cursor-parity-20261020",
+      "inventory_sha": "94f937deb192d1678476b5b1d4c2e4511b75627e",
+      "observed_remote_sha": "94f937deb192d1678476b5b1d4c2e4511b75627e",
+      "assignment": "A-runtime-input",
+      "status": "pending",
+      "reason": "Assigned to another audit workstream; no verdict recorded here."
+    },
+    {
+      "branch": "parity/session-cursor-policy-20261020",
+      "inventory_sha": "5b6a2312199c4b59c6d21a190d83f4e2069529cf",
+      "observed_remote_sha": "5b6a2312199c4b59c6d21a190d83f4e2069529cf",
+      "assignment": "A-runtime-input",
+      "status": "pending",
+      "reason": "Assigned to another audit workstream; no verdict recorded here."
+    },
+    {
+      "branch": "parity/session-cursor-prepared-port-20261020",
+      "inventory_sha": "5ca3c4f205aed4719d6558f2bbe9829a6321bdae",
+      "observed_remote_sha": "5ca3c4f205aed4719d6558f2bbe9829a6321bdae",
+      "assignment": "A-runtime-input",
+      "status": "pending",
+      "reason": "Assigned to another audit workstream; no verdict recorded here."
+    },
+    {
+      "branch": "parity/session-startup-20261020",
+      "inventory_sha": "db31adf1e7329c63c8e81e6e9fc981803781ed3c",
+      "observed_remote_sha": "db31adf1e7329c63c8e81e6e9fc981803781ed3c",
+      "assignment": "A-runtime-input",
+      "status": "pending",
+      "reason": "Assigned to another audit workstream; no verdict recorded here."
+    },
+    {
+      "branch": "parity/shared-style-integration-20261020",
+      "inventory_sha": "e72dbb15369d541ee86095f6caaee3f7e4680828",
+      "observed_remote_sha": "e72dbb15369d541ee86095f6caaee3f7e4680828",
+      "assignment": "B-components-layout",
+      "status": "pending",
+      "reason": "Assigned to another audit workstream; no verdict recorded here."
+    },
+    {
+      "branch": "parity/shared-style-integration-current-20261020",
+      "inventory_sha": "2863bf6e7f011c321088263cce12d423b16d73d3",
+      "observed_remote_sha": "2863bf6e7f011c321088263cce12d423b16d73d3",
+      "assignment": "B-components-layout",
+      "status": "pending",
+      "reason": "Assigned to another audit workstream; no verdict recorded here."
+    },
+    {
+      "branch": "parity/shared-style-regressions-20261020",
+      "inventory_sha": "94a1215e27e67bfad76f9edb8ca5b00fa9810c80",
+      "observed_remote_sha": "94a1215e27e67bfad76f9edb8ca5b00fa9810c80",
+      "assignment": "B-components-layout",
+      "status": "pending",
+      "reason": "Assigned to another audit workstream; no verdict recorded here."
+    },
+    {
+      "branch": "parity/shared-style-review-20261020",
+      "inventory_sha": "4a0ab4983b84b4909d0182a323eb6e1714651691",
+      "observed_remote_sha": "4a0ab4983b84b4909d0182a323eb6e1714651691",
+      "assignment": "B-components-layout",
+      "status": "pending",
+      "reason": "Assigned to another audit workstream; no verdict recorded here."
+    },
+    {
+      "branch": "parity/showcase-button-consumer-20261020",
+      "inventory_sha": "60138e17c6a16814039fd3cd84074b5ab0f4b895",
+      "observed_remote_sha": "60138e17c6a16814039fd3cd84074b5ab0f4b895",
+      "assignment": "B-components-layout",
+      "status": "pending",
+      "reason": "Assigned to another audit workstream; no verdict recorded here."
+    },
+    {
+      "branch": "parity/strict-accounting-fix-20261020",
+      "inventory_sha": "70b7f9e6c196b57d1b13aee56ac6d6a17e6db388",
+      "observed_remote_sha": "70b7f9e6c196b57d1b13aee56ac6d6a17e6db388",
+      "assignment": "D-tests-proof",
+      "status": "pending",
+      "reason": "Assigned to another audit workstream; no verdict recorded here."
+    },
+    {
+      "branch": "parity/table-component-20261020",
+      "inventory_sha": "f0899c71b1e06ebdd5181c85488c8f0fd916adea",
+      "observed_remote_sha": "f0899c71b1e06ebdd5181c85488c8f0fd916adea",
+      "assignment": "B-components-layout",
+      "status": "pending",
+      "reason": "Assigned to another audit workstream; no verdict recorded here."
+    },
+    {
+      "branch": "parity/table-consumer-20261020",
+      "inventory_sha": "e3cccd8a277adac55efc0e75ae0291a0a358d624",
+      "observed_remote_sha": "e3cccd8a277adac55efc0e75ae0291a0a358d624",
+      "assignment": "C-apps-preservation",
+      "status": "pending",
+      "reason": "Assigned to another audit workstream; no verdict recorded here."
+    },
+    {
+      "branch": "parity/tablepro-footer-focus-20261020",
+      "inventory_sha": "1ac6dfced934a3015a7c90bc3006ccf2de0287a2",
+      "observed_remote_sha": "1ac6dfced934a3015a7c90bc3006ccf2de0287a2",
+      "assignment": "C-apps-preservation",
+      "status": "pending",
+      "reason": "Assigned to another audit workstream; no verdict recorded here."
+    },
+    {
+      "branch": "parity/tablepro-live-contracts-20261020",
+      "inventory_sha": "4ab81ae474b86ca3f3c74fe6e79328c20f7c6826",
+      "observed_remote_sha": "4ab81ae474b86ca3f3c74fe6e79328c20f7c6826",
+      "assignment": "C-apps-preservation",
+      "status": "pending",
+      "reason": "Assigned to another audit workstream; no verdict recorded here."
+    },
+    {
+      "branch": "parity/tablepro-picker-live-20261020",
+      "inventory_sha": "366dc67c9546abb59176df9398ee0b772d87d99d",
+      "observed_remote_sha": "366dc67c9546abb59176df9398ee0b772d87d99d",
+      "assignment": "C-apps-preservation",
+      "status": "pending",
+      "reason": "Assigned to another audit workstream; no verdict recorded here."
+    },
+    {
+      "branch": "parity/termrock-visual-baseline",
+      "inventory_sha": "6bcdc42173232b53ed48b221ae8d099791283e39",
+      "observed_remote_sha": "6bcdc42173232b53ed48b221ae8d099791283e39",
+      "assignment": "E-ci-reference-catchall",
+      "status": "integration-target",
+      "reason": "PR38 source branch; not a source to merge into itself. Inventory snapshot 6bcdc42173232b53ed48b221ae8d099791283e39; advanced during audit to 0cd5edb8856396bde1bbd2f8a5377940a3d50447."
+    },
+    {
+      "branch": "parity/text-runtime-editing-20261020",
+      "inventory_sha": "a099f3e242d262ea9f67f993450cde497746fbb3",
+      "observed_remote_sha": "a099f3e242d262ea9f67f993450cde497746fbb3",
+      "assignment": "A-runtime-input",
+      "status": "pending",
+      "reason": "Assigned to another audit workstream; no verdict recorded here."
+    },
+    {
+      "branch": "parity/theme-palette-baseline-20261020",
+      "inventory_sha": "95cdc7bdb111dc1b683a638b421dae718bb29643",
+      "observed_remote_sha": "95cdc7bdb111dc1b683a638b421dae718bb29643",
+      "assignment": "B-components-layout",
+      "status": "pending",
+      "reason": "Assigned to another audit workstream; no verdict recorded here."
+    },
+    {
+      "branch": "parity/velnor-design-upgrade-20261020",
+      "inventory_sha": "8533344520cfdf12734c1c149fc89ec946b3ea46",
+      "observed_remote_sha": "8533344520cfdf12734c1c149fc89ec946b3ea46",
+      "assignment": "E-ci-reference-catchall",
+      "status": "duplicate-reference-only",
+      "reason": "Generated Velnor 0.1.29 upgrade based on design/interaction-polish. PR38 independently has current 0.1.29 generation for its own crate graph and config; importing design output would replace candidate-specific workflows."
+    },
+    {
+      "branch": "parity/velnor-parity-20261020",
+      "inventory_sha": "e7961cee0f377530e0aa5f35fcca63b5cfc76de5",
+      "observed_remote_sha": "e7961cee0f377530e0aa5f35fcca63b5cfc76de5",
+      "assignment": "E-ci-reference-catchall",
+      "status": "superseded-duplicate",
+      "reason": "Earlier PR38 Velnor 0.1.29 generation. Current PR38 retains the version and adds candidate-specific discovery exclusions and 15-minute crate timeout. Its old config would regress those settings."
+    },
+    {
+      "branch": "preservation/local-work-2026-10-17",
+      "inventory_sha": "7982d64c6c0dc8518683a5ba4f7755ca16dafeff",
+      "observed_remote_sha": "7982d64c6c0dc8518683a5ba4f7755ca16dafeff",
+      "assignment": "C-apps-preservation",
+      "status": "pending",
+      "reason": "Assigned to another audit workstream; no verdict recorded here."
+    },
+    {
+      "branch": "preservation/terminal-components-rescue-20261019",
+      "inventory_sha": "c8c114cf223c7b91fb6b0f06575f8241130b8346",
+      "observed_remote_sha": "c8c114cf223c7b91fb6b0f06575f8241130b8346",
+      "assignment": "C-apps-preservation",
+      "status": "pending",
+      "reason": "Assigned to another audit workstream; no verdict recorded here."
+    },
+    {
+      "branch": "preservation/termrock-20261016",
+      "inventory_sha": "023fdeb41fd7c789a66003825fdc19c3c73fce4a",
+      "observed_remote_sha": "023fdeb41fd7c789a66003825fdc19c3c73fce4a",
+      "assignment": "C-apps-preservation",
+      "status": "pending",
+      "reason": "Assigned to another audit workstream; no verdict recorded here."
+    },
+    {
+      "branch": "preservation/termrock-combined-20261019",
+      "inventory_sha": "f34cb4cf1fbeacdca0cec80ee06a7b7489ffb397",
+      "observed_remote_sha": "f34cb4cf1fbeacdca0cec80ee06a7b7489ffb397",
+      "assignment": "C-apps-preservation",
+      "status": "pending",
+      "reason": "Assigned to another audit workstream; no verdict recorded here."
+    },
+    {
+      "branch": "preservation/termrock-design-interaction-polish-20261016",
+      "inventory_sha": "e172d3b2f9467b3a14febd94c787768d74a9c1c1",
+      "observed_remote_sha": "e172d3b2f9467b3a14febd94c787768d74a9c1c1",
+      "assignment": "C-apps-preservation",
+      "status": "pending",
+      "reason": "Assigned to another audit workstream; no verdict recorded here."
+    },
+    {
+      "branch": "preservation/termrock-sanitized-visibility-queue-20261019",
+      "inventory_sha": "17c543693bf292c35ed93a7c88e873fdd986b636",
+      "observed_remote_sha": "17c543693bf292c35ed93a7c88e873fdd986b636",
+      "assignment": "C-apps-preservation",
+      "status": "pending",
+      "reason": "Assigned to another audit workstream; no verdict recorded here."
+    },
+    {
+      "branch": "wip/ci-upgrade-handoff-20261020",
+      "inventory_sha": "706c138339c22bbd113ea449cf28d1c23c119764",
+      "observed_remote_sha": "706c138339c22bbd113ea449cf28d1c23c119764",
+      "assignment": "D-tests-proof",
+      "status": "pending",
+      "reason": "Assigned to another audit workstream; no verdict recorded here."
+    },
+    {
+      "branch": "wip/plan-s16",
+      "inventory_sha": "70e04be37adebd43a26af1e4ae14b73ee7298ca4",
+      "observed_remote_sha": "70e04be37adebd43a26af1e4ae14b73ee7298ca4",
+      "assignment": "C-apps-preservation",
+      "status": "pending",
+      "reason": "Assigned to another audit workstream; no verdict recorded here."
+    },
+    {
+      "branch": "wip/pr38-palette-style-integration-20261020",
+      "inventory_sha": "b0a3bea5a486c4b67a83a10ec5463c690c590208",
+      "observed_remote_sha": "b0a3bea5a486c4b67a83a10ec5463c690c590208",
+      "assignment": "B-components-layout",
+      "status": "pending",
+      "reason": "Assigned to another audit workstream; no verdict recorded here."
+    },
+    {
+      "branch": "wip/rapps-3-7-14",
+      "inventory_sha": "b76517cec3a25d91d465329b5e99d6217beef93f",
+      "observed_remote_sha": "b76517cec3a25d91d465329b5e99d6217beef93f",
+      "assignment": "C-apps-preservation",
+      "status": "pending",
+      "reason": "Assigned to another audit workstream; no verdict recorded here."
+    },
+    {
+      "branch": "wip/reach-pages-a",
+      "inventory_sha": "3cb2198dd6ad26921dd519f4c420c7060d144f92",
+      "observed_remote_sha": "3cb2198dd6ad26921dd519f4c420c7060d144f92",
+      "assignment": "C-apps-preservation",
+      "status": "pending",
+      "reason": "Assigned to another audit workstream; no verdict recorded here."
+    },
+    {
+      "branch": "wip/reach-pages-a-2",
+      "inventory_sha": "37e21b8a4796b61208ec36ae563af7ac71e2a2d7",
+      "observed_remote_sha": "37e21b8a4796b61208ec36ae563af7ac71e2a2d7",
+      "assignment": "C-apps-preservation",
+      "status": "pending",
+      "reason": "Assigned to another audit workstream; no verdict recorded here."
+    },
+    {
+      "branch": "wip/s14-followups",
+      "inventory_sha": "19fcb24b68137cf009ef16aa329da3250d73f1c6",
+      "observed_remote_sha": "19fcb24b68137cf009ef16aa329da3250d73f1c6",
+      "assignment": "C-apps-preservation",
+      "status": "pending",
+      "reason": "Assigned to another audit workstream; no verdict recorded here."
+    },
+    {
+      "branch": "wip/shared-design-working-tree-20261020",
+      "inventory_sha": "1d7fdb224a7c68e5946e8747fb9f92365ebcbef1",
+      "observed_remote_sha": "1d7fdb224a7c68e5946e8747fb9f92365ebcbef1",
+      "assignment": "E-ci-reference-catchall",
+      "status": "excluded-protected-snapshot",
+      "reason": "Working-tree preservation snapshot of the design reference plus broad legacy-source deletions/comment edits (163 files, 12,624 deletions relative to design head). Not safe or relevant to merge; retain for evidence until a separately reviewed disposition."
+    },
+    {
+      "branch": "wip/style-conformance-20261020",
+      "inventory_sha": "c2396b45622d0ae2a3cb836756612d8354abb2db",
+      "observed_remote_sha": "c2396b45622d0ae2a3cb836756612d8354abb2db",
+      "assignment": "D-tests-proof",
+      "status": "pending",
+      "reason": "Assigned to another audit workstream; no verdict recorded here."
+    },
+    {
+      "branch": "wip/table-consumer-baseline",
+      "inventory_sha": "fa02fa54a6151c43cccd56d61e096f4a87808f13",
+      "observed_remote_sha": "fa02fa54a6151c43cccd56d61e096f4a87808f13",
+      "assignment": "C-apps-preservation",
+      "status": "pending",
+      "reason": "Assigned to another audit workstream; no verdict recorded here."
+    },
+    {
+      "branch": "wip/termrock-reviewed-contract-integration-20261020",
+      "inventory_sha": "8462bf28aadabd76833e11395e6237e66468efe0",
+      "observed_remote_sha": "8462bf28aadabd76833e11395e6237e66468efe0",
+      "assignment": "C-apps-preservation",
+      "status": "pending",
+      "reason": "Assigned to another audit workstream; no verdict recorded here."
+    },
+    {
+      "branch": "wip/v1-showcase",
+      "inventory_sha": "68651fba7168f5789ec72224ec76c312ed9f8fc9",
+      "observed_remote_sha": "68651fba7168f5789ec72224ec76c312ed9f8fc9",
+      "assignment": "C-apps-preservation",
+      "status": "pending",
+      "reason": "Assigned to another audit workstream; no verdict recorded here."
+    }
+  ]
+}
