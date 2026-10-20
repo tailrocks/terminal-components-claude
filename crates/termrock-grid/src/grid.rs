@@ -248,6 +248,12 @@ pub trait GridModel {
     fn actions(&self, _row: usize, _col: usize) -> &[CellAction] {
         &[]
     }
+
+    /// Returns a revision that changes whenever the ordered row-key identity changes.
+    /// Models without a cheap revision use an identity comparison in reusable adapters.
+    fn revision(&self) -> Option<u64> {
+        None
+    }
 }
 
 pub trait GridEditor: GridModel {
@@ -325,6 +331,8 @@ pub enum GridCmd {
     BeginEdit,
 
     Copy,
+
+    SortCurrent,
 }
 
 const fn b(
@@ -515,6 +523,26 @@ const BINDINGS: [Binding<GridCmd>; 25] = [
         false,
     ),
 ];
+const SORT_BINDING: Binding<GridCmd> = b(
+    "grid.sort-current",
+    Chord::key(KeyCode::Char('s')),
+    GridCmd::SortCurrent,
+    "Sort",
+    false,
+);
+
+const fn with_sort_binding(base: [Binding<GridCmd>; 25]) -> [Binding<GridCmd>; 26] {
+    let mut combined = [SORT_BINDING; 26];
+    let mut index = 0;
+    while index < base.len() {
+        combined[index] = base[index];
+        index += 1;
+    }
+    combined[25] = SORT_BINDING;
+    combined
+}
+
+const TABLE_BINDINGS: [Binding<GridCmd>; 26] = with_sort_binding(BINDINGS);
 
 pub const GRID_MAX_COLUMNS: usize = 64;
 
@@ -701,6 +729,14 @@ impl Default for GridState {
 }
 
 impl GridState {
+    pub(crate) fn invalidate_model(&mut self) {
+        self.core.invalidate();
+    }
+
+    pub(crate) fn set_sort(&mut self, sort: Option<(ColumnKey, SortDir)>) {
+        self.sort = sort;
+    }
+
     pub fn sampled_column_width(&self, key: ColumnKey) -> Option<u16> {
         self.sampled_width(key).map(|sample| sample.natural)
     }
@@ -763,6 +799,20 @@ impl GridState {
 
     pub const fn col_offset(&self) -> usize {
         self.col_offset
+    }
+
+    pub(crate) fn set_col_offset(&mut self, offset: usize) {
+        self.col_offset = offset;
+    }
+
+    pub fn visible_rows(&self, total: usize) -> core::ops::Range<usize> {
+        let scroll = self.core.scroll();
+        let start = scroll.offset().min(total);
+        start..start.saturating_add(scroll.viewport_len()).min(total)
+    }
+
+    pub const fn rows_overflow(&self) -> bool {
+        self.core.scroll().overflows()
     }
 
     fn set_cursor(&mut self, row: usize, key: ItemKey, col_index: usize, col: ColumnKey) {
@@ -938,6 +988,9 @@ pub struct Grid<'a> {
     id: Id,
     columns: &'a [Column<'a>],
     nav: NavUnit,
+    row_nav_scrolls_columns: bool,
+    row_nav_scroll_limit: Option<usize>,
+    sort_current_column: bool,
     column_gap: u16,
     gutter: GridGutter,
     right_reserve: u16,
@@ -946,6 +999,7 @@ pub struct Grid<'a> {
     column_fit: GridColumnFit,
     header_sizing: GridHeaderSizing,
     sort_indicator: GridSortIndicator,
+    cell_tone_styles: &'a [(Role, StylePatch)],
     overflow_indicator: GridOverflowIndicator,
     disabled: bool,
     fetch_on_activate: bool,
@@ -997,6 +1051,9 @@ impl<'a> Grid<'a> {
             id,
             columns,
             nav: NavUnit::Cell,
+            row_nav_scrolls_columns: false,
+            row_nav_scroll_limit: None,
+            sort_current_column: false,
             column_gap: 1,
             gutter: GridGutter::Compact,
             right_reserve: 0,
@@ -1005,6 +1062,7 @@ impl<'a> Grid<'a> {
             column_fit: GridColumnFit::Whole,
             header_sizing: GridHeaderSizing::Content,
             sort_indicator: GridSortIndicator::Always,
+            cell_tone_styles: &[],
             overflow_indicator: GridOverflowIndicator::Count,
             disabled: false,
             fetch_on_activate: false,
@@ -1073,6 +1131,23 @@ impl<'a> Grid<'a> {
     #[must_use]
     pub const fn nav(mut self, u: NavUnit) -> Self {
         self.nav = u;
+        self
+    }
+
+    #[must_use]
+    pub(crate) const fn row_nav_scrolls_columns(mut self, enabled: bool) -> Self {
+        self.row_nav_scrolls_columns = enabled;
+        self
+    }
+
+    pub(crate) const fn row_nav_scroll_limit(mut self, limit: usize) -> Self {
+        self.row_nav_scroll_limit = Some(limit);
+        self
+    }
+
+    #[must_use]
+    pub(crate) const fn sort_current_column(mut self, enabled: bool) -> Self {
+        self.sort_current_column = enabled;
         self
     }
 
@@ -1158,6 +1233,14 @@ impl<'a> Grid<'a> {
     #[must_use]
     pub const fn sort_indicator(mut self, policy: GridSortIndicator) -> Self {
         self.sort_indicator = policy;
+        self
+    }
+
+    /// Applies additional cell style patches for semantic tones, after the
+    /// resolved cell style and the tone's default foreground.
+    #[must_use]
+    pub const fn cell_tone_styles(mut self, styles: &'a [(Role, StylePatch)]) -> Self {
+        self.cell_tone_styles = styles;
         self
     }
 
@@ -2183,7 +2266,15 @@ impl Grid<'_> {
                         |f| f.boundary,
                     );
                     let col = self.cursor_col(st);
-                    match Binding::command(&BINDINGS, action) {
+                    let command = Binding::command(
+                        if self.sort_current_column {
+                            &TABLE_BINDINGS
+                        } else {
+                            &BINDINGS
+                        },
+                        action,
+                    );
+                    match command {
                         Some(GridCmd::Up) => {
                             self.move_to(st, model, row.saturating_sub(1), col, false, acc);
                         }
@@ -2202,6 +2293,30 @@ impl Grid<'_> {
                         }
                         Some(GridCmd::Right) if st.on_fetch_row() => {
                             self.move_to(st, model, row, col.saturating_add(1), false, acc);
+                        }
+                        Some(GridCmd::Left)
+                            if matches!(self.nav, NavUnit::Row) && self.row_nav_scrolls_columns =>
+                        {
+                            if st.col_offset > 0 {
+                                st.col_offset = st.col_offset.saturating_sub(1);
+                                acc.changed();
+                            } else {
+                                acc.consumed();
+                            }
+                        }
+                        Some(GridCmd::Right)
+                            if matches!(self.nav, NavUnit::Row) && self.row_nav_scrolls_columns =>
+                        {
+                            if st.col_offset
+                                < self
+                                    .row_nav_scroll_limit
+                                    .unwrap_or_else(|| column_count.saturating_sub(1))
+                            {
+                                st.col_offset = st.col_offset.saturating_add(1);
+                                acc.changed();
+                            } else {
+                                acc.consumed();
+                            }
                         }
                         Some(GridCmd::Left) => match self.nav {
                             NavUnit::Row => acc.consumed(),
@@ -2324,6 +2439,24 @@ impl Grid<'_> {
                                 acc.consumed();
                             }
                         }
+                        Some(GridCmd::SortCurrent) if self.sort_current_column => {
+                            let key = self.col_key(col);
+                            if let Some(key) = key.filter(|_| {
+                                self.columns.get(col).is_some_and(|column| column.sortable)
+                            }) {
+                                let dir = match st.sort {
+                                    Some((current, SortDir::Asc)) if current == key => {
+                                        SortDir::Desc
+                                    }
+                                    _ => SortDir::Asc,
+                                };
+                                st.sort = Some((key, dir));
+                                acc.action(GridAction::Sort(key, dir));
+                            } else {
+                                acc.consumed();
+                            }
+                        }
+                        Some(GridCmd::SortCurrent) => {}
                         None => {}
                     }
                 }
@@ -3222,6 +3355,11 @@ impl Grid<'_> {
             let mut cell_delta = StylePatch::new();
             if let Some(role) = cdecor.tone.or(cell.tone) {
                 cell_delta = cell_delta.set_fg(role);
+                if let Some((_, patch)) =
+                    self.cell_tone_styles.iter().find(|(tone, _)| *tone == role)
+                {
+                    cell_delta = cell_delta.merge(*patch);
+                }
             }
             if cdecor.italic {
                 cell_delta = cell_delta.add(Modifier::ITALIC);
@@ -3389,7 +3527,15 @@ impl Grid<'_> {
             );
         }
         if !inert {
-            ui.publish_bindings(self.id, live, &BINDINGS);
+            ui.publish_bindings(
+                self.id,
+                live,
+                if self.sort_current_column {
+                    &TABLE_BINDINGS
+                } else {
+                    &BINDINGS
+                },
+            );
         }
         let container = self.ov.style(
             ui,
