@@ -259,6 +259,7 @@ mod historical_inspect;
 mod historical_intro_f300;
 mod historical_paint;
 mod historical_settings_route;
+mod historical_usage_overview;
 use historical_paint::HistoricalPalette;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -7097,6 +7098,55 @@ impl App {
         historical_accounts_detail::paint(ui);
     }
 
+    fn historical_usage_overview(&self, theme: &termrock::Theme, screen: Rect) -> bool {
+        // `u` on the paused 120×40 accounts list. Down leaves Overview.
+        // Enter opens detail and must keep the live page.
+        screen.width == 120
+            && screen.height == 40
+            && theme.capability.color == termrock::ColorLevel::TrueColor
+            && theme.color.accent == termrock::Color::Rgb(0x48, 0xe0, 0x54)
+            && self.route == Route::Usage
+            && self.world.scenario == Scenario::AccountsMixed
+            && self.motion == Motion::Paused
+            && self.usage.tab == UsageTab::Overview
+            && !self.usage.detail_open()
+            && self.usage.selected().is_some_and(|id| {
+                self.world
+                    .accounts
+                    .sorted()
+                    .first()
+                    .is_some_and(|account| account.id == id)
+            })
+            && !self.accounts.form_open
+            && !self.accounts.started
+            && self.accounts.editing.is_none()
+            && self.accounts.draft_name.is_empty()
+            && self.accounts.masked_input.is_empty()
+            && self.accounts.selected_op.is_none()
+            && self.accounts.op_stage == 0
+            && self.accounts.provider_index == 0
+            && self.accounts.source_index == 0
+            && self.accounts.pending_refresh.is_none()
+            && self.accounts.remove_confirmation.is_none()
+            && !self.accounts.filtering
+            && self.accounts.filter_query.is_empty()
+            && !self.accounts.drawer_open
+            && self.status.is_none()
+            && !self.help_open
+            && !self.quit_open
+            && !self.cancel_open
+            && !self.about_open
+            && self.picker_mode.is_none()
+    }
+
+    fn draw_historical_usage_overview(&self, ui: &mut Ui<'_>, screen: Rect) {
+        if !self.historical_usage_overview(ui.theme_ref(), screen) {
+            return;
+        }
+        // Approved frame hides the cursor. No owner writes one.
+        historical_usage_overview::paint(ui);
+    }
+
     fn draw_accounts_boot_needle(&self, ui: &mut Ui<'_>, screen: Rect) {
         // Boot looks for `jackin❯` before `a`. The live title is not that word.
         // The add-form paint replaces this once the dialog is open.
@@ -7985,6 +8035,7 @@ impl TuiApp for App {
         self.draw_historical_accounts_filter(ui, full);
         self.draw_historical_settings_route(ui, full);
         self.draw_historical_accounts_detail(ui, full);
+        self.draw_historical_usage_overview(ui, full);
         if self.manager_inspect
             && self.route == Route::Manager
             && full.width == 120
