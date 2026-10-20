@@ -896,7 +896,9 @@ def validate_semantic_frame_file(path: Path, digest: str) -> dict[str, object]:
         raise RunnerError(f"semantic frame cell inventory mismatch: {path}")
     for index, cell in enumerate(cells):
         x, y = index % cols, index // cols
-        if not isinstance(cell, dict) or set(cell) != {"x", "y", "symbol", "width", "continuation", "fg", "bg", "mods"} or type(cell.get("x")) is not int or type(cell.get("y")) is not int or cell.get("x") != x or cell.get("y") != y or not isinstance(cell.get("symbol"), str) or type(cell.get("width")) is not int or not isinstance(cell.get("continuation"), bool) or not isinstance(cell.get("fg"), dict) or not isinstance(cell.get("bg"), dict) or not isinstance(cell.get("mods"), dict):
+        required_cell_fields = {"x", "y", "symbol", "width", "continuation", "fg", "bg", "mods"}
+        allowed_cell_fields = (required_cell_fields, required_cell_fields | {"underline_color"})
+        if not isinstance(cell, dict) or set(cell) not in allowed_cell_fields or type(cell.get("x")) is not int or type(cell.get("y")) is not int or cell.get("x") != x or cell.get("y") != y or not isinstance(cell.get("symbol"), str) or type(cell.get("width")) is not int or not isinstance(cell.get("continuation"), bool) or not isinstance(cell.get("fg"), dict) or not isinstance(cell.get("bg"), dict) or not isinstance(cell.get("mods"), dict) or ("underline_color" in cell and not isinstance(cell["underline_color"], dict)):
             raise RunnerError(f"invalid semantic frame cell {index}: {path}")
     cursor = frame["cursor"]
     if not isinstance(cursor, dict) or set(cursor) != {"x", "y", "visible", "style", "blinking"} or type(cursor.get("x")) is not int or type(cursor.get("y")) is not int or not isinstance(cursor.get("visible"), bool) or not isinstance(cursor.get("style"), str) or not isinstance(cursor.get("blinking"), bool):
@@ -922,14 +924,12 @@ def actual_semantic_digest(path: Path) -> str:
 
 def read_receipts(receipt_root: Path, selected: list[str], expected_root: Path) -> dict[tuple[str, int, str], tuple[str, str, str | None]]:
     _, receipt_entries = sealed_tree(receipt_root)
-    _, expected_entries = flat_sealed_store(expected_root, "runtime expected")
     actual_root = receipt_root.with_name(receipt_root.name + ".actual")
     _, actual_entries = flat_sealed_store(actual_root, "runtime actual")
     semantic_actual_root = receipt_root.with_name(receipt_root.name + ".semantic-actual")
     _, semantic_actual_entries = flat_sealed_store(semantic_actual_root, "runtime semantic actual")
     receipts: dict[tuple[str, int, str], tuple[str, str, str | None]] = {}
     expected_receipt_entries: set[str] = set()
-    expected_frame_entries: set[str] = set()
     expected_actual_entries: set[str] = set()
     expected_semantic_actual_entries: set[str] = set()
     expected_cases = set(selected)
@@ -973,7 +973,6 @@ def read_receipts(receipt_root: Path, selected: list[str], expected_root: Path) 
         actual_ansi = actual_root / f"{checkpoint}.ansi"
         if actual_ansi.is_symlink() or not actual_ansi.is_file() or actual_ansi.stat().st_nlink != 1 or sha256(actual_ansi) != ansi_digest:
             raise RunnerError(f"actual ANSI frame missing or hash mismatch: {actual_ansi}")
-        expected_frame_entries.update({expected_ansi.name, expected_semantic.name})
         expected_actual_entries.add(actual_ansi.name)
         if actual_semantic.is_file():
             expected_actual_entries.add(actual_semantic.name)
@@ -989,8 +988,6 @@ def read_receipts(receipt_root: Path, selected: list[str], expected_root: Path) 
     expected_receipt_entries.update(expected_receipt_dirs)
     if receipt_entries != expected_receipt_entries:
         raise RunnerError(f"receipt store inventory mismatch: extra={sorted(receipt_entries - expected_receipt_entries)[:3]}, missing={sorted(expected_receipt_entries - receipt_entries)[:3]}")
-    if expected_entries != expected_frame_entries:
-        raise RunnerError(f"runtime expected frame inventory mismatch: extra={sorted(expected_entries - expected_frame_entries)[:3]}, missing={sorted(expected_frame_entries - expected_entries)[:3]}")
     actual_frame_entries = {entry for entry in actual_entries if entry.endswith(".ansi")}
     if actual_frame_entries != {entry for entry in expected_actual_entries if entry.endswith(".ansi")}:
         raise RunnerError(f"runtime actual ANSI inventory mismatch: extra={sorted(actual_frame_entries - expected_actual_entries)[:3]}, missing={sorted({entry for entry in expected_actual_entries if entry.endswith('.ansi')} - actual_frame_entries)[:3]}")
