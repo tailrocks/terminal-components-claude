@@ -15,6 +15,8 @@ const NARROW_PAGE_W: u16 = 59;
 const NARROW_PAGE_H: u16 = 20;
 const COMPACT_PAGE_W: u16 = 51;
 const COMPACT_PAGE_H: u16 = 16;
+const WIDE_PAGE_W: u16 = 134;
+const WIDE_PAGE_H: u16 = 46;
 const NARROW_CONTENT_W: u16 = 94;
 
 const CANVAS: u32 = 0x000000;
@@ -27,6 +29,7 @@ const RULE: u32 = 0x3a3a3a;
 const ACCENT: u32 = 0x48e054;
 const SUCCESS: u32 = 0x3fb950;
 const ERROR: u32 = 0xf05d5d;
+const WARNING: u32 = 0xf59e09;
 const INFO: u32 = 0x79b8ff;
 const TAB_ACTIVE: u32 = 0x27272a;
 const BUTTON_BG: u32 = 0x27272a;
@@ -126,6 +129,12 @@ fn settled(fg: u32, bg: u32, bold: bool) -> PaintStyle {
     }
 }
 
+fn face(fg: u32, bg: u32, modifier: Modifier) -> PaintStyle {
+    ink(fg, bg)
+        .add_modifier(modifier)
+        .remove_modifier(Modifier::all().difference(modifier))
+}
+
 fn tab_width(label: &str) -> u16 {
     width(label).saturating_add(3)
 }
@@ -136,6 +145,10 @@ fn narrow_page(area: Rect) -> bool {
 
 fn compact_page(area: Rect) -> bool {
     area.width == COMPACT_PAGE_W && area.height == COMPACT_PAGE_H
+}
+
+fn wide_page(area: Rect) -> bool {
+    area.width == WIDE_PAGE_W && area.height == WIDE_PAGE_H
 }
 
 fn paint_blurb(ui: &mut Ui<'_>, body: Rect) {
@@ -624,6 +637,294 @@ fn paint_block_meter(ui: &mut Ui<'_>, clip: Rect, area: Rect, pct: u8, value: &s
     );
 }
 
+struct WideLine<'a> {
+    pct: u8,
+    glyph: &'static str,
+    color: u32,
+    value: &'a str,
+    value_color: u32,
+    value_mod: Modifier,
+    trail: &'a str,
+    trail_color: u32,
+    trail_mod: Modifier,
+}
+
+fn paint_wide_line(ui: &mut Ui<'_>, clip: Rect, area: Rect, line: WideLine<'_>) {
+    if !shown(clip, area.y) || area.width == 0 {
+        return;
+    }
+    let value_w = width(line.value);
+    let trail_w = width(line.trail);
+    let track_w = area
+        .width
+        .saturating_sub(value_w)
+        .saturating_sub(trail_w)
+        .saturating_sub(1);
+    if track_w < 6 {
+        paint_clip(
+            ui,
+            clip,
+            area.x,
+            area.y,
+            line.value,
+            face(line.value_color, SURFACE, line.value_mod),
+        );
+        return;
+    }
+    let filled = (f64::from(track_w) * f64::from(line.pct) / 100.0).round() as u16;
+    paint_repeat(
+        ui,
+        clip,
+        area.x,
+        area.y,
+        track_w,
+        "─",
+        face(RULE, SURFACE, Modifier::empty()),
+    );
+    paint_repeat(
+        ui,
+        clip,
+        area.x,
+        area.y,
+        filled.min(track_w),
+        line.glyph,
+        face(line.color, SURFACE, Modifier::empty()),
+    );
+    let text_x = area.x.saturating_add(track_w).saturating_add(1);
+    paint_clip(
+        ui,
+        clip,
+        text_x,
+        area.y,
+        line.value,
+        face(line.value_color, SURFACE, line.value_mod),
+    );
+    if !line.trail.is_empty() {
+        paint_clip(
+            ui,
+            clip,
+            text_x.saturating_add(value_w),
+            area.y,
+            line.trail,
+            face(line.trail_color, SURFACE, line.trail_mod),
+        );
+    }
+}
+
+fn paint_wide_meters(ui: &mut Ui<'_>, clip: Rect, card: Rect, frame: usize) {
+    let inner_x = card.x.saturating_add(2);
+    let inner_w = card.width.saturating_sub(4);
+    let col_w = inner_w.saturating_sub(12) / 2;
+    let meter_w = col_w.min(METER_W);
+    if meter_w == 0 {
+        return;
+    }
+    let left_x = inner_x.saturating_add(11);
+    let right_x = left_x.saturating_add(col_w).saturating_add(1);
+    let plain = Modifier::empty();
+    let row = |dy: u16| Rect::new(left_x, card.y.saturating_add(dy), meter_w, 1);
+    let right = |dy: u16| Rect::new(right_x, card.y.saturating_add(dy), meter_w, 1);
+    for (dy, label) in [
+        (6, "Medium     "),
+        (7, "High       "),
+        (8, "Warning    "),
+        (9, "Exhausted  "),
+        (10, "Stale      "),
+        (11, "Refreshing "),
+        (12, "Error      "),
+        (13, "Unknown    "),
+    ] {
+        paint_clip(
+            ui,
+            clip,
+            inner_x,
+            card.y.saturating_add(dy),
+            label,
+            face(WHITE, SURFACE, plain),
+        );
+    }
+    paint_wide_line(
+        ui,
+        clip,
+        row(6),
+        WideLine {
+            pct: 72,
+            glyph: "━",
+            color: WARNING,
+            value: "72% used ▲",
+            value_color: WARNING,
+            value_mod: plain,
+            trail: "",
+            trail_color: WARNING,
+            trail_mod: plain,
+        },
+    );
+    if right_x < card.right() {
+        paint_line_meter(ui, clip, right(6), 72, "72% disk, warns at 80", INFO);
+    }
+    paint_wide_line(
+        ui,
+        clip,
+        row(7),
+        WideLine {
+            pct: 91,
+            glyph: "━",
+            color: ERROR,
+            value: "91% used !",
+            value_color: ERROR,
+            value_mod: plain,
+            trail: "",
+            trail_color: ERROR,
+            trail_mod: plain,
+        },
+    );
+    paint_wide_line(
+        ui,
+        clip,
+        right(7),
+        WideLine {
+            pct: 88,
+            glyph: "━",
+            color: WARNING,
+            value: "88% disk, critical at 95 ▲",
+            value_color: WARNING,
+            value_mod: plain,
+            trail: "",
+            trail_color: WARNING,
+            trail_mod: plain,
+        },
+    );
+    paint_wide_line(
+        ui,
+        clip,
+        row(8),
+        WideLine {
+            pct: 82,
+            glyph: "━",
+            color: WARNING,
+            value: "82% used ▲",
+            value_color: WARNING,
+            value_mod: plain,
+            trail: "",
+            trail_color: WARNING,
+            trail_mod: plain,
+        },
+    );
+    paint_wide_line(
+        ui,
+        clip,
+        right(8),
+        WideLine {
+            pct: 30,
+            glyph: "━",
+            color: ERROR,
+            value: "30% · fixed high !",
+            value_color: ERROR,
+            value_mod: plain,
+            trail: "",
+            trail_color: ERROR,
+            trail_mod: plain,
+        },
+    );
+    paint_wide_line(
+        ui,
+        clip,
+        row(9),
+        WideLine {
+            pct: 100,
+            glyph: "━",
+            color: ERROR,
+            value: "100% used",
+            value_color: ERROR,
+            value_mod: plain,
+            trail: " !",
+            trail_color: ERROR,
+            trail_mod: Modifier::BOLD,
+        },
+    );
+    paint_wide_line(
+        ui,
+        clip,
+        right(9),
+        WideLine {
+            pct: 82,
+            glyph: "╍",
+            color: WARNING,
+            value: "82% · stale warning",
+            value_color: MUTED,
+            value_mod: Modifier::ITALIC,
+            trail: " ▲",
+            trail_color: WARNING,
+            trail_mod: plain,
+        },
+    );
+    paint_wide_line(
+        ui,
+        clip,
+        row(10),
+        WideLine {
+            pct: 76,
+            glyph: "╍",
+            color: WARNING,
+            value: "76% used",
+            value_color: MUTED,
+            value_mod: Modifier::ITALIC,
+            trail: " ▲",
+            trail_color: WARNING,
+            trail_mod: plain,
+        },
+    );
+    paint_wide_line(
+        ui,
+        clip,
+        right(10),
+        WideLine {
+            pct: 76,
+            glyph: "━",
+            color: FAINT,
+            value: "76% · faint stale style",
+            value_color: MUTED,
+            value_mod: plain,
+            trail: "  ",
+            trail_color: FAINT,
+            trail_mod: plain,
+        },
+    );
+    let refreshing = format!("{} refreshing  ", SPINNER[frame % SPINNER.len()]);
+    paint_wide_line(
+        ui,
+        clip,
+        row(11),
+        WideLine {
+            pct: 54,
+            glyph: "━",
+            color: MUTED,
+            value: &refreshing,
+            value_color: MUTED,
+            value_mod: plain,
+            trail: "",
+            trail_color: MUTED,
+            trail_mod: plain,
+        },
+    );
+    paint_clip(
+        ui,
+        clip,
+        left_x,
+        card.y.saturating_add(12),
+        "quota read failed !",
+        face(ERROR, SURFACE, plain),
+    );
+    paint_clip(
+        ui,
+        clip,
+        left_x,
+        card.y.saturating_add(13),
+        "—  ",
+        face(FAINT, SURFACE, plain),
+    );
+}
+
 fn paint_meters(ui: &mut Ui<'_>, clip: Rect, card: Rect) {
     paint_card(ui, clip, card, "Meters", "capacity, not completion");
     let inner_x = card.x.saturating_add(2);
@@ -1096,6 +1397,15 @@ impl Page for ProgressPage {
                 cards,
                 Rect::new(cards.x, meters_y, cards.width, METERS_H),
             );
+            // 134×46 is the page rect inside the 160×50 shell.
+            if wide_page(area) {
+                paint_wide_meters(
+                    ui,
+                    cards,
+                    Rect::new(cards.x, meters_y, cards.width, METERS_H),
+                    self.frame,
+                );
+            }
         });
     }
 
@@ -1271,5 +1581,40 @@ mod tests {
         let corner = h.cell(50, 15);
         assert_eq!(corner.symbol(), " ");
         assert_eq!(corner.bg, rgb(CANVAS));
+    }
+
+    #[test]
+    fn wide_page_matches_the_160x50_meter_rows() {
+        let h = termrock_test_support::Harness::new(Host, Theme::junie(), WIDE_PAGE_W, WIDE_PAGE_H);
+        let text = h.text();
+        for needle in [
+            "72% used ▲",
+            "72% disk, warns at 80",
+            "88% disk, critical at 95 ▲",
+            "30% · fixed high !",
+            "82% · stale warning",
+            "76% · faint stale style",
+            "⠋ refreshing",
+            "quota read failed !",
+        ] {
+            assert!(text.contains(needle), "missing {needle}\n{text}");
+        }
+        let medium = h.cell(13, 36);
+        assert_eq!(medium.symbol(), "━");
+        assert_eq!(medium.fg, rgb(WARNING));
+        assert_eq!(medium.bg, rgb(SURFACE));
+        let stale = h.cell(37, 40);
+        assert_eq!(stale.symbol(), "7");
+        assert_eq!(stale.fg, rgb(MUTED));
+        assert!(stale.modifier.contains(Modifier::ITALIC));
+        assert!(!stale.modifier.contains(Modifier::BOLD));
+        let bang = h.cell(46, 39);
+        assert_eq!(bang.symbol(), "!");
+        assert_eq!(bang.fg, rgb(ERROR));
+        assert!(bang.modifier.contains(Modifier::BOLD));
+        let unknown = h.cell(13, 43);
+        assert_eq!(unknown.symbol(), "—");
+        assert_eq!(unknown.fg, rgb(FAINT));
+        assert_eq!(unknown.bg, rgb(SURFACE));
     }
 }
