@@ -267,6 +267,7 @@ jobs:
       - rust-termrock-viewport
       - rust-termrock-visibility-publisher
       - rust-termrock-xtask
+      - rust-visual-harness
       - actionlint
     if: always()
     steps:
@@ -302,14 +303,14 @@ jobs:
         env:
           VELNOR_INTERNAL_OP: write-request-v1
           VELNOR_NEEDS_JSON: ${{ toJSON(needs) }}
-          VELNOR_NEEDS_EXPECTED: "[\"actionlint\",\"plan\",\"rust-holla\",\"rust-holla-domain\",\"rust-holla-sim\",\"rust-holla-ui\",\"rust-jackin-preview\",\"rust-jackin-preview-app\",\"rust-jackin-preview-capsule-ui\",\"rust-jackin-preview-domain\",\"rust-jackin-preview-host-ui\",\"rust-jackin-preview-presentation\",\"rust-jackin-preview-sim\",\"rust-refactor-proof\",\"rust-showcase\",\"rust-showcase-demos\",\"rust-showcase-ui\",\"rust-tablepro\",\"rust-tablepro-demo\",\"rust-tablepro-domain\",\"rust-tablepro-sql\",\"rust-tablepro-ui\",\"rust-termrock\",\"rust-termrock-collections\",\"rust-termrock-conformance\",\"rust-termrock-controls\",\"rust-termrock-core\",\"rust-termrock-editors\",\"rust-termrock-feedback\",\"rust-termrock-fields\",\"rust-termrock-forms\",\"rust-termrock-grid\",\"rust-termrock-layout\",\"rust-termrock-navigation\",\"rust-termrock-overlays\",\"rust-termrock-render\",\"rust-termrock-runtime\",\"rust-termrock-session\",\"rust-termrock-terminal\",\"rust-termrock-test-support\",\"rust-termrock-text\",\"rust-termrock-theme\",\"rust-termrock-viewport\",\"rust-termrock-visibility-publisher\",\"rust-termrock-xtask\"]"
+          VELNOR_NEEDS_EXPECTED: "[\"actionlint\",\"plan\",\"rust-holla\",\"rust-holla-domain\",\"rust-holla-sim\",\"rust-holla-ui\",\"rust-jackin-preview\",\"rust-jackin-preview-app\",\"rust-jackin-preview-capsule-ui\",\"rust-jackin-preview-domain\",\"rust-jackin-preview-host-ui\",\"rust-jackin-preview-presentation\",\"rust-jackin-preview-sim\",\"rust-refactor-proof\",\"rust-showcase\",\"rust-showcase-demos\",\"rust-showcase-ui\",\"rust-tablepro\",\"rust-tablepro-demo\",\"rust-tablepro-domain\",\"rust-tablepro-sql\",\"rust-tablepro-ui\",\"rust-termrock\",\"rust-termrock-collections\",\"rust-termrock-conformance\",\"rust-termrock-controls\",\"rust-termrock-core\",\"rust-termrock-editors\",\"rust-termrock-feedback\",\"rust-termrock-fields\",\"rust-termrock-forms\",\"rust-termrock-grid\",\"rust-termrock-layout\",\"rust-termrock-navigation\",\"rust-termrock-overlays\",\"rust-termrock-render\",\"rust-termrock-runtime\",\"rust-termrock-session\",\"rust-termrock-terminal\",\"rust-termrock-test-support\",\"rust-termrock-text\",\"rust-termrock-theme\",\"rust-termrock-viewport\",\"rust-termrock-visibility-publisher\",\"rust-termrock-xtask\",\"rust-visual-harness\"]"
           VELNOR_REQUEST_FILE: ${{ runner.temp }}/velnor/request/merge-v1-request.json
         run: "\"$RUNNER_TEMP\"'/velnor/bin/velnor-actions-0.1.16'"
       - name: Merge reports
         env:
           VELNOR_INTERNAL_OP: merge-v1
           VELNOR_NEEDS_JSON: ${{ toJSON(needs) }}
-          VELNOR_NEEDS_EXPECTED: "[\"actionlint\",\"plan\",\"rust-holla\",\"rust-holla-domain\",\"rust-holla-sim\",\"rust-holla-ui\",\"rust-jackin-preview\",\"rust-jackin-preview-app\",\"rust-jackin-preview-capsule-ui\",\"rust-jackin-preview-domain\",\"rust-jackin-preview-host-ui\",\"rust-jackin-preview-presentation\",\"rust-jackin-preview-sim\",\"rust-refactor-proof\",\"rust-showcase\",\"rust-showcase-demos\",\"rust-showcase-ui\",\"rust-tablepro\",\"rust-tablepro-demo\",\"rust-tablepro-domain\",\"rust-tablepro-sql\",\"rust-tablepro-ui\",\"rust-termrock\",\"rust-termrock-collections\",\"rust-termrock-conformance\",\"rust-termrock-controls\",\"rust-termrock-core\",\"rust-termrock-editors\",\"rust-termrock-feedback\",\"rust-termrock-fields\",\"rust-termrock-forms\",\"rust-termrock-grid\",\"rust-termrock-layout\",\"rust-termrock-navigation\",\"rust-termrock-overlays\",\"rust-termrock-render\",\"rust-termrock-runtime\",\"rust-termrock-session\",\"rust-termrock-terminal\",\"rust-termrock-test-support\",\"rust-termrock-text\",\"rust-termrock-theme\",\"rust-termrock-viewport\",\"rust-termrock-visibility-publisher\",\"rust-termrock-xtask\"]"
+          VELNOR_NEEDS_EXPECTED: "[\"actionlint\",\"plan\",\"rust-holla\",\"rust-holla-domain\",\"rust-holla-sim\",\"rust-holla-ui\",\"rust-jackin-preview\",\"rust-jackin-preview-app\",\"rust-jackin-preview-capsule-ui\",\"rust-jackin-preview-domain\",\"rust-jackin-preview-host-ui\",\"rust-jackin-preview-presentation\",\"rust-jackin-preview-sim\",\"rust-refactor-proof\",\"rust-showcase\",\"rust-showcase-demos\",\"rust-showcase-ui\",\"rust-tablepro\",\"rust-tablepro-demo\",\"rust-tablepro-domain\",\"rust-tablepro-sql\",\"rust-tablepro-ui\",\"rust-termrock\",\"rust-termrock-collections\",\"rust-termrock-conformance\",\"rust-termrock-controls\",\"rust-termrock-core\",\"rust-termrock-editors\",\"rust-termrock-feedback\",\"rust-termrock-fields\",\"rust-termrock-forms\",\"rust-termrock-grid\",\"rust-termrock-layout\",\"rust-termrock-navigation\",\"rust-termrock-overlays\",\"rust-termrock-render\",\"rust-termrock-runtime\",\"rust-termrock-session\",\"rust-termrock-terminal\",\"rust-termrock-test-support\",\"rust-termrock-text\",\"rust-termrock-theme\",\"rust-termrock-viewport\",\"rust-termrock-visibility-publisher\",\"rust-termrock-xtask\",\"rust-visual-harness\"]"
           VELNOR_REQUEST_FILE: ${{ runner.temp }}/velnor/request/merge-v1-request.json
         run: "\"$RUNNER_TEMP\"'/velnor/bin/velnor-actions-0.1.16'"
       - name: Publish final report
@@ -4522,5 +4523,99 @@ jobs:
         with:
           if-no-files-found: error
           name: velnor-crate-r${{ github.run_id }}-a${{ github.run_attempt }}-rust-termrock-xtask
+          path: ${{ runner.temp }}/velnor/r${{ github.run_id }}-a${{ github.run_attempt }}
+          retention-days: "30"
+  rust-visual-harness:
+    name: Rust / visual-harness
+    runs-on: ubuntu-26.04
+    timeout-minutes: 30
+    env:
+      VELNOR_ASSET_SHA256: 8e7bda8b76d0613224c55bc9a02b95ea3f214b00351bf85cce986204055863d8
+      VELNOR_ASSET_URL: https://github.com/tailrocks/velnor-new/releases/download/v0.1.16/velnor-actions-0.1.16-x86_64-unknown-linux-gnu
+      VELNOR_RELEASE_COMMIT: 66719d14f87a893b4c8f52f76204fad19f124909
+    needs:
+      - plan
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: "false"
+      - name: V2 identity
+        id: v2
+        uses: ./.github/actions/velnor-tools-prelude-u26 # zizmor: ignore[self-repository]
+        with:
+          d: e8b8c57df6cf91d928fc28e05b0e1066b86971149770d5347274a6ee814686b6
+      - name: Restore Mise tools
+        if: steps.v2.outputs.enabled == 'true'
+        uses: ./.github/actions/velnor-tools-cache-restore # zizmor: ignore[self-repository]
+        with:
+          key: mise-tools-v2-${{steps.v2.outputs.identity}}
+          seed-admitted: ${{ steps.v2.outputs.seed_admitted }}
+      - name: Setup Mise
+        uses: jdx/mise-action@9b200bcecbfd6303e69a4a261b2e09e3757440a7
+        with:
+          cache: "false"
+          cache_save: "false"
+          env: "false"
+          install: "false"
+          sha256: 94c45523c7b6760b7da704f16051171ca32e8447a849a02266a439a4455e9a12
+          version: 2026.10.13
+      - name: Acquire Velnor
+        run: "sh -c 'unset ACTIONS_ID_TOKEN_REQUEST_TOKEN ACTIONS_ID_TOKEN_REQUEST_URL ACTIONS_RUNTIME_TOKEN GITHUB_TOKEN MISE_GITHUB_TOKEN GH_TOKEN GH_HOST GH_CONFIG_DIR; d=\"$RUNNER_TEMP/velnor/bin/velnor-actions-0.1.16\"&&mkdir -p \"${d%/*}\"&&s=\"/opt/velnor/seed/generator/${d##*/}\"&&p=\"$VELNOR_ASSET_SHA256  \"&&if [ -f \"$s\" ]&&echo \"$p$s\"|sha256sum -c -;then cp \"$s\" \"$d\";else curl -fsSL --retry 5 --retry-all-errors --proto '\\''=https'\\'' --tlsv1.2 \"$VELNOR_ASSET_URL\" -o \"$d\"&&echo \"$p$d\"|sha256sum -c -;fi&&chmod +x \"$d\"'"
+      - name: Download plan
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333
+        with:
+          name: velnor-plan-r${{ github.run_id }}-a${{ github.run_attempt }}
+          path: ${{ runner.temp }}/velnor/r${{ github.run_id }}-a${{ github.run_attempt }}
+      - name: Prepare pinned tools
+        env:
+          MISE_CARGO_HOME: ${{ runner.temp }}/velnor/cargo
+          MISE_RUSTUP_HOME: ${{ runner.temp }}/velnor/rustup
+        run: mise --no-config --no-env --no-hooks install rust@1.99.1 actionlint@1.7.12 shellcheck@0.11.0 zizmor@1.31.1 aqua:nextest-rs/nextest/cargo-nextest@0.9.148
+      - name: Prepare Rust components
+        env:
+          CARGO_HOME: ${{ runner.temp }}/velnor/cargo
+          MISE_CARGO_HOME: ${{ runner.temp }}/velnor/cargo
+          MISE_RUSTUP_HOME: ${{ runner.temp }}/velnor/rustup
+          RUSTUP_HOME: ${{ runner.temp }}/velnor/rustup
+        run: mise --no-config --no-env --no-hooks exec rust@1.99.1 -- rustup component add --toolchain 1.99.1-x86_64-unknown-linux-gnu clippy rustfmt
+      - name: Restore Cargo sources
+        if: github.event_name != 'workflow_dispatch'
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
+        with:
+          key: velnor-v1-sources-x86_64-unknown-linux-gnu-1.99.1-${{hashFiles('Cargo.lock')}}
+          path: "${{ runner.temp }}/velnor/cargo/registry/index\n${{ runner.temp }}/velnor/cargo/registry/cache\n${{ runner.temp }}/velnor/cargo/git/db"
+          restore-keys: velnor-v1-sources-x86_64-unknown-linux-gnu-1.99.1-
+      - name: Fetch Cargo sources
+        env:
+          MISE_CARGO_HOME: ${{ runner.temp }}/velnor/cargo
+          MISE_RUSTUP_HOME: ${{ runner.temp }}/velnor/rustup
+        run: "sh -c 'mkdir -p \"$RUNNER_TEMP/velnor/cargo-clean\" && cd \"$RUNNER_TEMP/velnor/cargo-clean\" && if mise --no-config --no-env --no-hooks exec rust@1.99.1 -- cargo metadata --locked --offline --manifest-path \"$GITHUB_WORKSPACE/Cargo.toml\" >/dev/null 2>&1; then echo \"velnor: sources hit, skipping fetch\"; else echo \"velnor: sources miss (source_missing), fetching\"; mise --no-config --no-env --no-hooks exec rust@1.99.1 -- cargo fetch --locked --manifest-path \"$GITHUB_WORKSPACE/Cargo.toml\"; fi'"
+      - name: Format
+        if: "!contains(needs.plan.outputs.covered_tasks, ',stack/rust/crates/visual-harness/fmt/default,')"
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-e9ef1e8747a851aa0a533048a4e210a8f8c666eca6588c3f6fbc569ce8846b38"}
+      - name: Clippy
+        if: "!contains(needs.plan.outputs.covered_tasks, ',stack/rust/crates/visual-harness/clippy/default,')"
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-29e7b731ac4cd993fe9f786d753e56ecac68b3bf41bed9570742426726c5c96a"}
+      - name: Build test executables
+        if: "!contains(needs.plan.outputs.covered_tasks, ',stack/rust/crates/visual-harness/build/default,')"
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-856357ff78bc529d68a06ada6333cdb851a24351f476d52e70417c9c1093dee2"}
+      - name: Unit and integration tests
+        if: "!contains(needs.plan.outputs.covered_tasks, ',stack/rust/crates/visual-harness/nextest/default,')"
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-eab0b784898a704ba87148a4c5efe6fbaa952f8d0e11f4702279d10d045a9ff6"}
+      - name: Documentation
+        if: "!contains(needs.plan.outputs.covered_tasks, ',stack/rust/crates/visual-harness/doc/default,')"
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-97c9ac339199be3dd1d5656ec2bdd16b642b2bdde40c4f3f71083c0b96dacb8e"}
+      - name: Upload crate reports
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          if-no-files-found: error
+          name: velnor-crate-r${{ github.run_id }}-a${{ github.run_attempt }}-rust-visual-harness
           path: ${{ runner.temp }}/velnor/r${{ github.run_id }}-a${{ github.run_attempt }}
           retention-days: "30"
