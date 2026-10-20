@@ -99,3 +99,30 @@ the four requested binaries ran seven tests: seven passed, 0 skipped.
 
 This record demonstrates enabling the public facade's feature-gated consumer
 tests. It does not establish full-workspace CI success or application parity.
+
+## Plan checkout and remaining coverage findings
+
+The independent checkout diagnosis is preserved in
+[`ci-plan-checkout-diagnosis-20261021.json`](ci-plan-checkout-diagnosis-20261021.json)
+(SHA-256 `cbaab4f103d8ee67ab500a41acd4c9ebc4c765c0fc7dd21bc429a0d5aa6b9ba4`).
+It identifies run `39468344965`, Plan job `118786018355`, on head
+`9b4aae59b5c006e64b3791fa15804f6411633e4d`: GitHub explicitly reported the
+five-minute job limit while Checkout was still running, before Plan or nextest
+started. Other listed runs ended by newer-run or higher-priority concurrency
+cancellation and are not timeout evidence. The missing Plan artifact and
+downstream Required failure are consequences of the interrupted job. The
+diagnosis attributes the input cost to the large immutable baseline corpus and
+full-history checkout, not to the new feature matrix. It also confirms that
+Velnor Actions 0.1.29 has no Plan timeout or checkout policy configuration;
+the configured Rust crate timeout does not control this job.
+
+The read-only public-consumer and capability coverage plan is preserved in
+[`ci-public-consumer-plan-f076.json`](ci-public-consumer-plan-f076.json)
+(SHA-256 `b54fd5de9939425096d41e146e715abd716c09a2dd96c16263374ff50fa0aa63`).
+It confirms this increment closes the generated facade feature-argument gap,
+not the standalone external-consumer obligation or Showcase's typed capability
+catalog/gate. Those remain separate work; external-consumer tests must use
+public APIs and different domain data, and deferred showcase capabilities
+must remain explicitly incomplete. The Velnor-generated `cargo test --doc`
+conflict documented above also remains unresolved. None of these findings is
+treated as a passing CI or architecture gate.
