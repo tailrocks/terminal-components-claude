@@ -179,9 +179,9 @@ pub use termrock_overlays::{
     CommandPalette, Completion, CompletionAction, CompletionCmd, CompletionController,
     CompletionState, ContextMenu, Dialog, DialogAction, DialogCmd, DialogState, HelpAction,
     HelpCmd, HelpOverlay, HelpOverlayState, HelpSection, LabelSelect, Menu, MenuAction, MenuBar,
-    MenuCmd, MenuItem, MenuState, Picker, PickerAction, PickerChain, PickerChainAction,
-    PickerChainCmd, PickerChainState, PickerStage, PickerState, ScopeKey, Select, SelectAction,
-    SelectCmd, SelectField, SelectState,
+    MenuBarHoverScope, MenuCmd, MenuItem, MenuState, Picker, PickerAction, PickerChain,
+    PickerChainAction, PickerChainCmd, PickerChainState, PickerStage, PickerState, ScopeKey,
+    Select, SelectAction, SelectCmd, SelectField, SelectState,
 };
 
 pub use termrock_grid::{
