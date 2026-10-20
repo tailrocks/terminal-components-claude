@@ -4,8 +4,8 @@ use ratatui_core::layout::{Position, Rect};
 use ratatui_core::terminal::Terminal;
 use termrock::{
     App, Axis, ColorLevel, Diagnostic, Family, FocusRing, Id, Input, Invalidate, Key, KeyCode,
-    KeyModifiers, LayerId, Mouse, MouseKind, Part, PartRef, Resolved, Response, Runtime,
-    StateFlags, Theme, Variant,
+    KeyModifiers, LayerId, Mouse, MouseKind, Part, PartRef, PreparedFrameError, Resolved, Response,
+    Runtime, StateFlags, Theme, Variant,
 };
 
 use crate::digest::Scene;
@@ -193,25 +193,28 @@ impl<A: App> Harness<A> {
 
     pub fn draw(&mut self) {
         for _ in 0..16 {
-            if self.rt.needs_settle() {
-                let _ = self.rt.settle();
+            let area = self.term.get_frame().area();
+            let prepared = self.rt.prepare(area).expect("runtime prepares frame");
+            let mut area_changed = false;
+            self.term
+                .draw(|frame| {
+                    if let Err(error) = self.rt.draw_prepared(prepared, frame) {
+                        area_changed = matches!(error, PreparedFrameError::AreaChanged { .. });
+                        if !area_changed {
+                            panic!("prepared frame projection failed: {error}");
+                        }
+                    }
+                })
+                .expect("draw");
+            if area_changed {
+                continue;
             }
-            {
-                let mut painted = None;
-                self.term
-                    .draw(|f| {
-                        painted = Some(self.rt.draw(f));
-                    })
-                    .expect("draw");
-                if let Some(frame) = painted {
-                    frame.commit_presented();
-                }
-            }
-            if !self.rt.needs_settle() && !self.rt.needs_present() {
-                return;
-            }
+            self.rt
+                .acknowledge_presented(prepared)
+                .expect("test backend acknowledges frame");
+            return;
         }
-        panic!("harness focus did not settle: {:?}", self.rt.diagnostics());
+        panic!("harness output did not settle: {:?}", self.rt.diagnostics());
     }
 
     pub fn ticks(&mut self, n: usize) {
