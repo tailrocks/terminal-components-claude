@@ -881,6 +881,11 @@ pub fn remote_host_tag_frame(w: &World) -> bool {
     w.scenario == Scenario::RemoteHost && w.now_ms() == 80
 }
 
+/// Tag `launch-failure` at fixture tick 40. Later seeks keep the concept activity page.
+pub fn launch_failure_tag_frame(w: &World) -> bool {
+    w.scenario == Scenario::LaunchFailure && w.now_ms() == 80
+}
+
 /// Tag `parity-discovery` at fixture tick 40.
 ///
 /// `--frame 40` seeks 80 ms. Every tag source for this fixture is done by tick 40,
@@ -3041,6 +3046,29 @@ mod tests {
             let mut other = fixtures::world_for(scenario);
             other.seek(40);
             assert!(remote_host_tag(&other).is_none(), "{}", scenario.name());
+        }
+    }
+
+    #[test]
+    fn launch_failure_tag_exists_only_at_tick_40() {
+        let mut world = fixtures::world_for(Scenario::LaunchFailure);
+        assert!(!launch_failure_tag_frame(&world));
+        world.seek(40);
+        assert!(launch_failure_tag_frame(&world));
+        assert_eq!(world.now_ms(), 80);
+        world.seek(4_000);
+        assert!(!launch_failure_tag_frame(&world));
+        for scenario in [
+            Scenario::RemoteHost,
+            Scenario::ActivitiesMulti,
+            Scenario::MonorepoRoot,
+            Scenario::FirstUse,
+            Scenario::DockerCleanup,
+            Scenario::DiskCleanup,
+        ] {
+            let mut other = fixtures::world_for(scenario);
+            other.seek(40);
+            assert!(!launch_failure_tag_frame(&other), "{}", scenario.name());
         }
     }
 
