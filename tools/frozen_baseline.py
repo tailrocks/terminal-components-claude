@@ -34,7 +34,7 @@ EXPECTED_ORDINARY_TESTS = 20
 EXTENSION_MANIFEST = Path("tools/frozen_cli_extensions.json")
 EXTENSION_SOURCE = Path("tools/frozen_cli_extensions.rs")
 EXTENSION_CASE_PREFIX = "termrock_extensions::showcase::table_sort::"
-EXTENSION_MANIFEST_SHA256 = "a7d11bee34a8bcbc26fba137d21b13b4d1b275d4b2c8b301597874c2dbb8d28d"
+EXTENSION_MANIFEST_SHA256 = "b995c00f0dc14d4e0a81d1d56140e1c10ba7936a043e0135196f8fe8421cabb8"
 EXTENSION_SOURCE_SHA256 = "332bd4eac4dc65be1a1478f97177cc658113a063900d8b9c6a0ba2ddc6dc67d9"
 EXTENSION_PATCH_SHA256 = "e6e09049d418e82bd5d838986217dac249e80f13a95214b1ff217d37e5fa4e8c"
 EXTENSION_SIZES = ((72, 20), (80, 24), (100, 30), (120, 40), (160, 50), (40, 12), (60, 18))
@@ -593,9 +593,8 @@ def load_extension_manifest(path: Path) -> dict[str, object]:
         case_checkpoints = case.get("checkpoints")
         if not isinstance(case_checkpoints, list) or not case_checkpoints or any(not isinstance(item, str) or not item for item in case_checkpoints) or len(set(case_checkpoints)) != len(case_checkpoints):
             raise RunnerError(f"invalid case checkpoint obligations: {case_id}")
-        positions = [allowed_checkpoints.index(item) if item in allowed_checkpoints else -1 for item in case_checkpoints]
-        if positions != sorted(positions) or -1 in positions or case_checkpoints[0] != "initial" or (reveal_checkpoint is not None and (len(case_checkpoints) < 2 or case_checkpoints[1] != reveal_checkpoint)):
-            raise RunnerError(f"extension case checkpoint obligations differ from journey order: {case_id}")
+        if case_checkpoints != allowed_checkpoints:
+            raise RunnerError(f"extension case checkpoint obligations differ from exact journey checkpoints: {case_id}")
     expected_combinations = {
         (journey_id, width, height, color)
         for journey_id in journey_ids

@@ -257,6 +257,7 @@
       "checkpoints": [
         "initial",
         "table_revealed_120x40",
+        "ascending",
         "descending",
         "cleared"
       ]
@@ -270,6 +271,7 @@
       "checkpoints": [
         "initial",
         "table_revealed_120x40",
+        "ascending",
         "descending",
         "cleared"
       ]
@@ -283,6 +285,7 @@
       "checkpoints": [
         "initial",
         "table_revealed_120x40",
+        "ascending",
         "descending",
         "cleared"
       ]
@@ -296,6 +299,7 @@
       "checkpoints": [
         "initial",
         "table_revealed_120x40",
+        "ascending",
         "descending",
         "cleared"
       ]
@@ -309,6 +313,7 @@
       "checkpoints": [
         "initial",
         "table_revealed_120x40",
+        "ascending",
         "descending",
         "cleared"
       ]
@@ -668,6 +673,7 @@
       "checkpoints": [
         "initial",
         "table_revealed_120x40",
+        "changes_scroll_1",
         "changes_scroll_2",
         "ascending",
         "descending",
@@ -683,6 +689,7 @@
       "checkpoints": [
         "initial",
         "table_revealed_120x40",
+        "changes_scroll_1",
         "changes_scroll_2",
         "ascending",
         "descending",
@@ -698,6 +705,7 @@
       "checkpoints": [
         "initial",
         "table_revealed_120x40",
+        "changes_scroll_1",
         "changes_scroll_2",
         "ascending",
         "descending",
@@ -713,6 +721,7 @@
       "checkpoints": [
         "initial",
         "table_revealed_120x40",
+        "changes_scroll_1",
         "changes_scroll_2",
         "ascending",
         "descending",
@@ -728,6 +737,7 @@
       "checkpoints": [
         "initial",
         "table_revealed_120x40",
+        "changes_scroll_1",
         "changes_scroll_2",
         "ascending",
         "descending",
@@ -1097,6 +1107,7 @@
       "checkpoints": [
         "initial",
         "table_revealed_120x40",
+        "keyboard_ascending",
         "keyboard_descending",
         "keyboard_cleared"
       ]
@@ -1110,6 +1121,7 @@
       "checkpoints": [
         "initial",
         "table_revealed_120x40",
+        "keyboard_ascending",
         "keyboard_descending",
         "keyboard_cleared"
       ]
@@ -1123,6 +1135,7 @@
       "checkpoints": [
         "initial",
         "table_revealed_120x40",
+        "keyboard_ascending",
         "keyboard_descending",
         "keyboard_cleared"
       ]
@@ -1136,6 +1149,7 @@
       "checkpoints": [
         "initial",
         "table_revealed_120x40",
+        "keyboard_ascending",
         "keyboard_descending",
         "keyboard_cleared"
       ]
@@ -1149,6 +1163,7 @@
       "checkpoints": [
         "initial",
         "table_revealed_120x40",
+        "keyboard_ascending",
         "keyboard_descending",
         "keyboard_cleared"
       ]
@@ -1488,6 +1503,7 @@
       "checkpoints": [
         "initial",
         "table_revealed_120x40",
+        "horizontally_scrolled_1",
         "horizontally_scrolled_2",
         "scrolled_changes_ascending"
       ]
@@ -1501,6 +1517,7 @@
       "checkpoints": [
         "initial",
         "table_revealed_120x40",
+        "horizontally_scrolled_1",
         "horizontally_scrolled_2",
         "scrolled_changes_ascending"
       ]
@@ -1514,6 +1531,7 @@
       "checkpoints": [
         "initial",
         "table_revealed_120x40",
+        "horizontally_scrolled_1",
         "horizontally_scrolled_2",
         "scrolled_changes_ascending"
       ]
@@ -1527,6 +1545,7 @@
       "checkpoints": [
         "initial",
         "table_revealed_120x40",
+        "horizontally_scrolled_1",
         "horizontally_scrolled_2",
         "scrolled_changes_ascending"
       ]
@@ -1540,6 +1559,7 @@
       "checkpoints": [
         "initial",
         "table_revealed_120x40",
+        "horizontally_scrolled_1",
         "horizontally_scrolled_2",
         "scrolled_changes_ascending"
       ]
@@ -1869,6 +1889,7 @@
       "checkpoints": [
         "initial",
         "table_revealed_120x40",
+        "owner_sorted",
         "stable_id_hovered"
       ]
     },
@@ -1881,6 +1902,7 @@
       "checkpoints": [
         "initial",
         "table_revealed_120x40",
+        "owner_sorted",
         "stable_id_hovered"
       ]
     },
@@ -1893,6 +1915,7 @@
       "checkpoints": [
         "initial",
         "table_revealed_120x40",
+        "owner_sorted",
         "stable_id_hovered"
       ]
     },
@@ -1905,6 +1928,7 @@
       "checkpoints": [
         "initial",
         "table_revealed_120x40",
+        "owner_sorted",
         "stable_id_hovered"
       ]
     },
@@ -1917,6 +1941,7 @@
       "checkpoints": [
         "initial",
         "table_revealed_120x40",
+        "owner_sorted",
         "stable_id_hovered"
       ]
     },
@@ -2231,6 +2256,7 @@
       "checkpoints": [
         "initial",
         "table_revealed_120x40",
+        "owner_sorted",
         "result_activated"
       ]
     },
@@ -2243,6 +2269,7 @@
       "checkpoints": [
         "initial",
         "table_revealed_120x40",
+        "owner_sorted",
         "result_activated"
       ]
     },
@@ -2255,6 +2282,7 @@
       "checkpoints": [
         "initial",
         "table_revealed_120x40",
+        "owner_sorted",
         "result_activated"
       ]
     },
@@ -2267,6 +2295,7 @@
       "checkpoints": [
         "initial",
         "table_revealed_120x40",
+        "owner_sorted",
         "result_activated"
       ]
     },
@@ -2279,6 +2308,7 @@
       "checkpoints": [
         "initial",
         "table_revealed_120x40",
+        "owner_sorted",
         "result_activated"
       ]
     },
