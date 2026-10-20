@@ -61,7 +61,7 @@ struct ScrollPointer {
     part: Part,
     pos: Position,
     local: Position,
-    track_len: u16,
+    track_len: usize,
     window: Option<VerticalWindow>,
 }
 
@@ -158,12 +158,14 @@ impl<'a> ScrollRegion<'a> {
     }
 
     pub fn prepare(&self, cx: &Cx<'_>, st: &mut ScrollState, content_len: usize) -> u16 {
-        let viewport = cx
-            .layout(self.id)
-            .map_or(st.viewport_len(), |l| l.viewport_len);
+        let layout = cx.layout(self.id);
+        let viewport = layout.map_or(st.viewport_len(), |layout| {
+            layout
+                .vertical_window
+                .map_or(layout.viewport_len, VerticalWindow::logical_rows)
+        });
         st.apply_layout(viewport, content_len);
-        cx.layout(self.id)
-            .map_or(viewport.min(usize::from(u16::MAX)) as u16, |l| l.rows)
+        layout.map_or(viewport.min(usize::from(u16::MAX)) as u16, |l| l.rows)
     }
 
     pub fn handle_intent(
@@ -208,7 +210,7 @@ impl<'a> ScrollRegion<'a> {
                     part: part.part,
                     pos,
                     local,
-                    track_len,
+                    track_len: logical_track_len(track_len, window),
                     window,
                 },
             ),
@@ -243,7 +245,7 @@ impl<'a> ScrollRegion<'a> {
                 if let Some(window) = window
                     && let Some(track_pos) = logical_track_row(window, pos.y)
                 {
-                    st.press_track(track_pos, usize::from(track_len));
+                    st.press_track(track_pos, track_len);
                 }
                 if !cx.capture(self.id, PartRef::of(Part::THUMB)) {
                     st.release_track();
@@ -254,7 +256,7 @@ impl<'a> ScrollRegion<'a> {
                 let track_pos = window
                     .and_then(|window| window.source_row_for_physical(pos.y))
                     .unwrap_or_else(|| usize::from(local.y));
-                st.scroll_to(st.offset_for_track_pos(track_pos, usize::from(track_len)));
+                st.scroll_to(st.offset_for_track_pos(track_pos, track_len));
                 moved(st.offset() != before)
             }
             Phase::Drag => {
@@ -264,10 +266,10 @@ impl<'a> ScrollRegion<'a> {
                     };
                     if cx.capture_owner() != Some(self.id) {
                         st.release_track();
-                        st.scroll_to(st.offset_for_track_pos(track_y, usize::from(track_len)));
+                        st.scroll_to(st.offset_for_track_pos(track_y, track_len));
                         return moved(st.offset() != before);
                     }
-                    st.drag_track(track_y, usize::from(track_len));
+                    st.drag_track(track_y, track_len);
                     return moved(st.offset() != before);
                 }
                 let capture_area = cx.capture_area().unwrap_or_default();
@@ -278,13 +280,13 @@ impl<'a> ScrollRegion<'a> {
                     .map_or(capture_area.y, |area| area.y);
                 if cx.capture_owner() != Some(self.id) {
                     let track_pos = usize::from(pos.y.saturating_sub(track_y));
-                    st.scroll_to(st.offset_for_track_pos(track_pos, usize::from(track_len)));
+                    st.scroll_to(st.offset_for_track_pos(track_pos, track_len));
                     return moved(st.offset() != before);
                 }
-                let (_, thumb_len) = st.thumb(usize::from(track_len));
+                let (_, thumb_len) = st.thumb(track_len);
                 let grab = origin.y.saturating_sub(capture_area.y);
                 let centered = thumb_drag_position(pos.y, track_y, grab, thumb_len);
-                st.scroll_to(st.offset_for_track_pos(centered, usize::from(track_len)));
+                st.scroll_to(st.offset_for_track_pos(centered, track_len));
                 moved(st.offset() != before)
             }
             Phase::Release | Phase::DragEnd => {
@@ -578,14 +580,26 @@ fn logical_track_row(window: VerticalWindow, physical_y: u16) -> Option<usize> {
     window.source_row_for_physical(physical_y)
 }
 
+fn logical_track_len(fallback: u16, window: Option<VerticalWindow>) -> usize {
+    window.map_or(usize::from(fallback), VerticalWindow::logical_rows)
+}
+
 fn logical_track_row_for_drag(window: VerticalWindow, physical_y: u16) -> Option<usize> {
     let logical_rows = window.logical_rows();
     if logical_rows == 0 || window.visible_body().height == 0 {
         return None;
     }
-    let relative = i32::from(physical_y) - i32::from(window.visible_body().y);
-    let source = i64::try_from(window.first_source_row()).ok()? + i64::from(relative);
-    Some(source.clamp(0, i64::try_from(logical_rows.saturating_sub(1)).ok()?) as usize)
+    let body_y = window.visible_body().y;
+    let source = if physical_y >= body_y {
+        window
+            .first_source_row()
+            .saturating_add(usize::from(physical_y - body_y))
+    } else {
+        window
+            .first_source_row()
+            .saturating_sub(usize::from(body_y - physical_y))
+    };
+    Some(source.min(logical_rows - 1))
 }
 
 fn without_inherited_bold(
@@ -778,6 +792,58 @@ mod tests {
     struct ScrollHarness {
         state: ScrollState,
         source_top: usize,
+    }
+
+    struct LargeWindowHarness {
+        state: ScrollState,
+    }
+
+    impl App for LargeWindowHarness {
+        fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+            ScrollRegion::new(ID).update(cx, &mut self.state, 1_000_000)
+        }
+
+        fn draw(&self, ui: &mut Ui<'_>) {
+            if let Ok(window) = VerticalWindow::new(Rect::new(0, 4, 10, 10), 100_000, 45_000) {
+                ScrollRegion::new(ID).draw_window(ui, window, &self.state, 1_000_000);
+            }
+        }
+    }
+
+    #[test]
+    fn window_track_length_uses_usize_logical_rows_above_u16() {
+        for rows in [
+            usize::from(u16::MAX),
+            usize::from(u16::MAX) + 1,
+            100_000,
+            usize::MAX,
+        ] {
+            let first = rows.saturating_sub(1);
+            let window = VerticalWindow::new(Rect::new(0, 4, 1, 1), rows, first).unwrap();
+            assert_eq!(logical_track_len(13, Some(window)), rows);
+            assert_eq!(logical_track_row_for_drag(window, 4), Some(first));
+            assert_eq!(
+                logical_track_row_for_drag(window, 3),
+                Some(first.saturating_sub(1).min(rows.saturating_sub(1)))
+            );
+        }
+        assert_eq!(logical_track_len(13, None), 13);
+    }
+
+    #[test]
+    fn large_logical_window_keeps_thumb_grab_offset_when_pressed() {
+        let mut state = ScrollState::new(1_000_000);
+        state.set_viewport(100_000);
+        state.scroll_to(450_000);
+        let mut rt = Runtime::new(LargeWindowHarness { state }, Theme::junie());
+        let _ = rt.initialize();
+        let _ = deliver(&mut rt, mouse(MouseKind::Move, 0, 0));
+        let _ = deliver(&mut rt, mouse(MouseKind::Down, 9, 4));
+        assert_eq!(
+            rt.app().state.offset(),
+            450_000,
+            "the clipped visible row is inside the thumb computed over 100,000 logical rows"
+        );
     }
 
     impl App for ScrollHarness {
