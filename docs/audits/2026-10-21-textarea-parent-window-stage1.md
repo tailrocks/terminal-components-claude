@@ -35,3 +35,11 @@ This is only the typed prepared-geometry prerequisite. It does not implement
 window-aware ScrollRegion painting/input, TextArea clipping, Form parent reveal,
 context-menu routing, or frozen application parity. Those remain separate
 required increments and acceptance checks.
+
+Independent review follow-up for c79dc196378d4eabf1549bc3c334d8507c97fade:
+the public probe `zero_width_full_window_exposes_no_rows` failed because a
+zero-width, positive-height full window still exposed rows. All mapping helpers
+now treat either zero width or zero height as empty. The unchanged public probe
+passes (2 passed, 0 skipped), and native tests explicitly cover both empty
+shapes. `cargo nextest run -p termrock-runtime --all-targets --features testing`
+passes (348 passed, 3 skipped); strict testing-feature clippy and rustfmt pass.
