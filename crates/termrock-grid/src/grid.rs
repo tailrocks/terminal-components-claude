@@ -2943,6 +2943,10 @@ impl Grid<'_> {
             style: inherited,
         } = row;
         let inherited = ui.surface_style().patch(inherited);
+        // The detailed gutter has one trailing cell after the row number.
+        // It belongs to the row surface even though it has no glyph or hit
+        // target of its own.
+        ui.fill(geometry.gutter_row(y), inherited);
         let focused = flags.contains(StateFlags::FOCUSED);
         let checked = flags.contains(StateFlags::CHECKED);
         let mut focus = StylePatch::new().set_glyph(GlyphRole::FocusBar);
@@ -3205,10 +3209,11 @@ impl Grid<'_> {
             let actions = model.actions(row, i);
             cflags |= cdecor.flags();
             let cs = self.cell_style(ui, cflags, cell_defaults);
-            if cflags.contains(StateFlags::ACTIVE) {
-                // The cursor cell owns its complete style. Start from the
-                // component surface and remove row modifiers that are absent
-                // from the active-cell style before repainting the cell.
+            if cflags.contains(StateFlags::ACTIVE) && !actions.is_empty() {
+                // A cell action is a full-cell affordance. Ordinary values
+                // keep the focused row surface in their unused cell padding;
+                // their visible text is painted with the independent cursor
+                // style below.
                 ui.fill(rect, active_cell_style(ui, row_style, cs, decor.strike));
             }
             if !cs.explicit.is_empty() {
@@ -3226,7 +3231,12 @@ impl Grid<'_> {
             if decor.strike && !cs.explicit.remove.contains(Modifier::CROSSED_OUT) {
                 cell_delta = cell_delta.add(Modifier::CROSSED_OUT);
             }
-            let style = apply_style_delta(ui, cs.resolved.style, cell_delta);
+            let cell_style = if cflags.contains(StateFlags::ACTIVE) {
+                active_cell_style(ui, row_style, cs, decor.strike)
+            } else {
+                cs.resolved.style
+            };
+            let style = apply_style_delta(ui, cell_style, cell_delta);
             let mut text_rect = rect;
             if let Some(gl) = self.columns.get(i).and_then(|c| c.prefix_glyph) {
                 let used = ui.glyph(rect, gl, style);
@@ -3279,6 +3289,11 @@ impl Grid<'_> {
                 );
             } else {
                 paint_aligned(ui, text_rect, text, align, style);
+            }
+            if cflags.contains(StateFlags::ACTIVE) && !cs.explicit.is_empty() {
+                // The active text style is independent from the focused row,
+                // so apply authored cell overrides after painting that text.
+                termrock_runtime::author::patch_style(ui, rect, cs.resolved.style, cs.explicit);
             }
             if !inert {
                 geometry.register_cell_part(ui, self.id, PartRef::item(Part::CELL, key), i, rect);
@@ -3932,6 +3947,7 @@ mod tests {
         editable: bool,
         actions: Vec<GridAction>,
         part_defaults: Vec<(Part, StylePatch)>,
+        gutter: GridGutter,
     }
 
     impl GridApp {
@@ -3942,6 +3958,7 @@ mod tests {
                 editable,
                 actions: Vec::new(),
                 part_defaults: Vec::new(),
+                gutter: GridGutter::Compact,
             }
         }
     }
@@ -3951,6 +3968,7 @@ mod tests {
             let columns = columns();
             let grid = Grid::new(ID, &columns)
                 .part_defaults(&self.part_defaults)
+                .gutter(self.gutter)
                 .select_mode(SelectMode::Multi);
             let mut response = if self.editable {
                 grid.update_editable(cx, &mut self.state, &mut self.model)
@@ -3966,6 +3984,7 @@ mod tests {
         fn draw(&self, ui: &mut Ui<'_>) {
             Grid::new(ID, &columns())
                 .part_defaults(&self.part_defaults)
+                .gutter(self.gutter)
                 .select_mode(SelectMode::Multi)
                 .draw(ui, AREA, &self.state, &self.model);
         }
@@ -4248,6 +4267,21 @@ mod tests {
         buffer
     }
 
+    fn focused_detailed_grid_buffer(theme: Theme, model: Model) -> Buffer {
+        let mut app = GridApp::new(model, false);
+        app.gutter = GridGutter::Detailed {
+            row_numbers: true,
+            min_digits: 1,
+        };
+        let mut runtime = Runtime::new(app, theme);
+        let _ = runtime.initialize();
+        runtime.set_focus(Some(ID));
+        let _ = runtime.settle();
+        let mut buffer = Buffer::empty(AREA);
+        runtime.draw_buffer(AREA, &mut buffer).commit_presented();
+        buffer
+    }
+
     #[test]
     fn focused_grid_row_style_inherits_into_non_cursor_cells_at_every_color_level() {
         for level in [
@@ -4284,6 +4318,10 @@ mod tests {
                 "the focused row style reaches ordinary cells at {level:?}"
             );
             assert!(
+                non_cursor.modifier.contains(Modifier::BOLD),
+                "the focused Grid row uses the baseline row weight at {level:?}"
+            );
+            assert!(
                 !cursor.modifier.contains(Modifier::ITALIC),
                 "the ACTIVE cursor cell replaces its inherited row style at {level:?}"
             );
@@ -4297,6 +4335,28 @@ mod tests {
                 "the ACTIVE cursor cell keeps its independent underline style at {level:?}"
             );
         }
+    }
+
+    #[test]
+    fn detailed_cursor_keeps_cell_padding_and_gutter_tail_on_focused_row_style() {
+        let buffer = focused_detailed_grid_buffer(Theme::junie(), Model::two());
+        let number = buffer
+            .cell(Position::new(3, 1))
+            .expect("detailed row number exists");
+        let gutter_tail = buffer
+            .cell(Position::new(4, 1))
+            .expect("detailed gutter tail exists");
+        let active_text = buffer
+            .cell(Position::new(5, 1))
+            .expect("active cell text exists");
+        let active_padding = buffer
+            .cell(Position::new(10, 1))
+            .expect("active cell padding exists");
+
+        assert!(!number.modifier.contains(Modifier::BOLD));
+        assert!(gutter_tail.modifier.contains(Modifier::BOLD));
+        assert!(active_padding.modifier.contains(Modifier::BOLD));
+        assert_ne!(active_text.bg, active_padding.bg);
     }
 
     #[test]
