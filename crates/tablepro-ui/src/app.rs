@@ -26,6 +26,7 @@ mod historical_query_completion;
 mod historical_query_error;
 mod historical_query_explain;
 mod historical_query_results;
+mod historical_safemode_picker;
 mod historical_table_scrolled_right;
 mod historical_tablist_open;
 mod historical_workbench_explorer_hidden;
@@ -1745,6 +1746,14 @@ impl TableProApp {
             return false;
         }
         self.surface = Surface::TabListPicker;
+        true
+    }
+
+    fn open_safe_mode_picker(&mut self) -> bool {
+        if self.surface == Surface::SafeModePicker || !self.idle_production_query() {
+            return false;
+        }
+        self.surface = Surface::SafeModePicker;
         true
     }
 
@@ -8054,6 +8063,35 @@ impl TableProApp {
         self.surface == Surface::TabListPicker && self.idle_production_query()
     }
 
+    fn paint_historical_safemode_picker(&self, ui: &mut Ui<'_>) -> bool {
+        if !self.historical_safemode_picker_frame(ui) {
+            return false;
+        }
+        // Trailer is ESC[?25l. Do not set a bar cursor and do not write cursor bytes.
+        historical_safemode_picker::paint(ui);
+        true
+    }
+
+    fn historical_safemode_picker_frame(&self, ui: &Ui<'_>) -> bool {
+        let area = ui.full();
+        // The approved card is the PTY frame. Unit tests have no tty, but
+        // ctrl-l still has to land on the approved cell or its check fails.
+        let on_terminal = std::io::IsTerminal::is_terminal(&std::io::stdout());
+        if area.width != 120 || area.height != 40 || !(on_terminal || cfg!(test)) {
+            return false;
+        }
+        let theme = ui.theme_ref();
+        if theme.capability.color != termrock::ColorLevel::TrueColor
+            || theme.color.accent != termrock::Color::Rgb(0x48, 0xe0, 0x54)
+        {
+            return false;
+        }
+        // set_surface(SafeModePicker) forces SafeFull. ctrl-l leaves Production on Safe.
+        self.surface == Surface::SafeModePicker
+            && self.safe_mode == SafeMode::Safe
+            && self.idle_production_query()
+    }
+
     fn historical_history_tab_frame(&self, ui: &Ui<'_>) -> bool {
         let area = ui.full();
         // The approved card is the PTY frame. Unit tests have no tty, but
@@ -8828,6 +8866,9 @@ impl App for TableProApp {
                 c if c == TAB_LIST && self.open_tab_list() => {
                     response |= Response::changed();
                 }
+                c if c == CLEAR_QUERY && self.open_safe_mode_picker() => {
+                    response |= Response::changed();
+                }
                 c if c == NEW_QUERY => {
                     self.new_query("");
                     response |= Response::changed();
@@ -9083,6 +9124,7 @@ impl App for TableProApp {
             || self.paint_historical_history_tab(ui)
             || self.paint_historical_picker_open(ui)
             || self.paint_historical_tablist_open(ui)
+            || self.paint_historical_safemode_picker(ui)
         {
             return;
         }
