@@ -1,7 +1,7 @@
-//! Baseline info and cancel dialog chrome. The block is the same at every
-//! size; only its origin moves. The cockpit under it is painted live.
+//! Baseline info and cancel dialog chrome. Content is a fixed block. Empty
+//! padding keeps the dimmed cockpit ink, so that color follows the size.
 use termrock::author::PaintStyle;
-use termrock::{Color, Modifier, Rect, Ui};
+use termrock::{Color, ColorLevel, Modifier, Rect, Ui};
 
 struct Plate {
     y: u16,
@@ -1664,6 +1664,13 @@ pub(super) fn paint_cancel(ui: &mut Ui<'_>) {
     paint(ui, 54, 11, 1, CANCEL);
 }
 
+/// Space runs whose ink is the cockpit under the card, not dialog chrome.
+fn underlay_space(run: &Plate) -> bool {
+    !run.text.is_empty()
+        && run.text.bytes().all(|byte| byte == b' ')
+        && matches!(run.fg, 0x8a_8a8a | 0x73_7373 | 0x00_0000)
+}
+
 fn paint(ui: &mut Ui<'_>, width: u16, height: u16, y_bias: u16, plate: &[Plate]) {
     let screen = ui.full();
     if screen.height == 0 || screen.width < width || screen.height < height {
@@ -1680,7 +1687,14 @@ fn paint(ui: &mut Ui<'_>, width: u16, height: u16, y_bias: u16, plate: &[Plate])
         .y
         .saturating_add(screen.height.saturating_sub(height) / 2)
         .saturating_add(y_bias);
+    ui.fill_keep_fg(
+        Rect::new(origin_x, origin_y, width, height),
+        Color::from_u32(0x0018_181b),
+    );
     for run in plate {
+        if underlay_space(run) {
+            continue;
+        }
         let mut style = PaintStyle::new()
             .fg(Color::from_u32(run.fg))
             .bg(Color::from_u32(run.bg))
@@ -1710,4 +1724,52 @@ fn paint(ui: &mut Ui<'_>, width: u16, height: u16, y_bias: u16, plate: &[Plate])
             style,
         );
     }
+    // The block is truecolor. A 256-color theme swaps those inks for the
+    // baseline index table after the dim, and leaves indexed cockpit cells.
+    if ui.theme_ref().capability.color == ColorLevel::Ansi256 {
+        let card = Rect::new(origin_x, origin_y, width, height);
+        ui.recolor_rgb(card, ansi256_ink);
+        // Backdrop maps rain index 238 (`#444444`) to overlay 235 (`#262626`).
+        // On black that ink is the ghost ramp, index 238.
+        ui.recolor_fg(screen, |fg, bg| {
+            let rain = matches!(fg, Color::Indexed(235) | Color::Rgb(0x26, 0x26, 0x26));
+            let plane = on_black(bg) || matches!(bg, Color::Indexed(233));
+            if rain && plane {
+                Some(Color::Indexed(238))
+            } else {
+                None
+            }
+        });
+    }
+}
+
+fn on_black(color: Color) -> bool {
+    matches!(
+        color,
+        Color::Black | Color::Indexed(0) | Color::Indexed(16) | Color::Rgb(0, 0, 0)
+    )
+}
+
+/// Junie truecolor token → baseline `apply_256` index.
+fn ansi256_ink(color: Color) -> Color {
+    let Color::Rgb(red, green, blue) = color else {
+        return color;
+    };
+    let index = match (red, green, blue) {
+        (0x18, 0x18, 0x1b) => 233,
+        (0x4d, 0x4d, 0x4d) | (0x73, 0x73, 0x73) => 242,
+        (0x8a, 0x8a, 0x8a) => 245,
+        (0xb3, 0xb3, 0xb3) => 249,
+        (0xff, 0xff, 0xff) => 231,
+        (0x48, 0xe0, 0x54) => 78,
+        (0x26, 0x26, 0x26) => 238,
+        (0x27, 0x27, 0x2a) => 235,
+        (0x19, 0x19, 0x1c) => 232,
+        (0x00, 0x00, 0x00) => 16,
+        (0xff, 0x6b, 0x6b) => 203,
+        _ => {
+            return termrock::theme::downgrade_color(color, ColorLevel::Ansi256);
+        }
+    };
+    Color::Indexed(index)
 }

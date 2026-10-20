@@ -1,0 +1,74 @@
+{
+  "source_commit": "57ca512b3796b04e518a73b5fdfe7391f312c6f3",
+  "integration_commit": "06335d7063bba163090130f3443d73f9a39eeebf",
+  "checks": [
+    {
+      "command": [
+        "cargo",
+        "nextest",
+        "run",
+        "-p",
+        "termrock-controls",
+        "-p",
+        "termrock-theme",
+        "--all-targets",
+        "--status-level",
+        "fail",
+        "--final-status-level",
+        "fail"
+      ],
+      "exit_code": 100,
+      "log": "/private/tmp/termrock-parent-button-57ca-0.log",
+      "log_sha256": "6c6a7dc924b1c4bc8ec69e985df4ef7fa108ecb0c3bece23a9c8c5a7f3dff3c7"
+    },
+    {
+      "command": [
+        "cargo",
+        "clippy",
+        "-p",
+        "termrock-controls",
+        "-p",
+        "termrock-theme",
+        "--all-targets",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "exit_code": 0,
+      "log": "/private/tmp/termrock-parent-button-57ca-1.log",
+      "log_sha256": "dc4281cc74f811a82ff7dced857aa006677639c464c492d74e6f4050148659e0"
+    },
+    {
+      "command": [
+        "cargo",
+        "fmt",
+        "-p",
+        "termrock-controls",
+        "-p",
+        "termrock-theme",
+        "--check"
+      ],
+      "exit_code": 0,
+      "log": "/private/tmp/termrock-parent-button-57ca-2.log",
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "command": [
+        "git",
+        "diff",
+        "--check"
+      ],
+      "exit_code": 0,
+      "log": "/private/tmp/termrock-parent-button-57ca-3.log",
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "nextest_result": {
+    "passed": 258,
+    "failed": 1,
+    "skipped": 0,
+    "failure": "all_73_junie_slots_match_reference_capability_output: Indexed(78) versus Indexed(77)",
+    "attribution": "Independently reproduced on prior source 536ac and candidate 57ca. Not waived or reported green."
+  },
+  "acceptance": false
+}
