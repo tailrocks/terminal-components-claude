@@ -1656,8 +1656,9 @@ const CANCEL: &[Plate] = &[
     },
 ];
 
-pub(super) fn paint_info(ui: &mut Ui<'_>) {
-    paint(ui, 66, 11, 0, INFO);
+pub(super) fn paint_info(ui: &mut Ui<'_>, facts: &[termrock::overlays::info_card::Fact<'_>]) {
+    termrock::overlays::info_card::paint(ui, facts);
+    recolor(ui, 66, 11, 0);
 }
 
 pub(super) fn paint_cancel(ui: &mut Ui<'_>) {
@@ -1724,6 +1725,18 @@ fn paint(ui: &mut Ui<'_>, width: u16, height: u16, y_bias: u16, plate: &[Plate])
             style,
         );
     }
+    recolor(ui, width, height, y_bias);
+}
+
+fn recolor(ui: &mut Ui<'_>, width: u16, height: u16, y_bias: u16) {
+    let screen = ui.full();
+    let origin_x = screen
+        .x
+        .saturating_add(screen.width.saturating_sub(width) / 2);
+    let origin_y = screen
+        .y
+        .saturating_add(screen.height.saturating_sub(height) / 2)
+        .saturating_add(y_bias);
     // The block is truecolor. A 256-color theme swaps those inks for the
     // baseline index table after the dim, and leaves indexed cockpit cells.
     if ui.theme_ref().capability.color == ColorLevel::Ansi256 {
