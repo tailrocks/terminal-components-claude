@@ -75,6 +75,45 @@ class RunnerGuards(unittest.TestCase):
         with self.assertRaisesRegex(runner.RunnerError, "final binaries differ"):
             runner.validate_build_provenance(runner.seal_build_provenance(payload))
 
+    def test_build_provenance_payload_collects_tool_inputs(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            repo = Path(temporary)
+            source = repo / "frozen-source"
+            source.mkdir()
+            (source / "Cargo.lock").write_text("lock")
+            (source / "rust-toolchain.toml").write_text("toolchain")
+            inputs = {
+                "tools/frozen_cli_pair.patch": "patch",
+                "tools/frozen-cli-frame-support/Cargo.toml": "manifest",
+                "tools/frozen-cli-frame-support/Cargo.lock": "helper-lock",
+                "tools/frozen-cli-frame-support/src/lib.rs": "helper",
+                str(runner.EXTENSION_MANIFEST): "extensions",
+                str(runner.EXTENSION_SOURCE): "extension-source",
+                str(runner.REFERENCE_DECISIONS): "decisions",
+            }
+            for relative, contents in inputs.items():
+                path = repo / relative
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_text(contents)
+            toolchain = {name: None for name in (
+                "cargo_path_entry", "cargo_selected_toolchain", "cargo_selection_method", "rustup", "active_toolchain",
+                "rustc_selected_toolchain", "rustc_selection_method", "rustc_host_triple", "llvm_version", "rustc_sysroot",
+                "rustc_sysroot_identity_files", "cc", "clang", "linker", "xcrun", "xcode_select", "sdk_path", "sdk_version",
+                "xcode_developer_directory", "link_invocation",
+            )}
+            stage_names = ("build-frozen-binaries", "build-frozen-nextest-harness")
+            stage_hashes = {app: "0" * 64 for app in runner.APPS}
+            stages = [
+                {"name": name, "argv": ["cargo", name], "env": {"PATH": "/bin"}, "output_application_binary_sha256": stage_hashes}
+                for name in stage_names
+            ]
+            with patch.object(runner.subprocess, "run", return_value=runner.subprocess.CompletedProcess([], 0, b"archive", b"")), patch.object(runner, "toolchain_provenance", return_value=toolchain):
+                payload = runner.build_provenance_payload(repo, source, "1" * 64, repo / "target", stage_hashes, stages, {"PATH": "/bin"}, 20)
+            sealed = runner.seal_build_provenance(payload)
+            runner.validate_build_provenance(sealed)
+            self.assertEqual(sealed["runner_inputs"]["runner"], runner.sha256(Path(runner.__file__).resolve()))
+            self.assertEqual(sealed["runner_inputs"]["frame_helper_lock"], runner.sha256(repo / "tools/frozen-cli-frame-support/Cargo.lock"))
+
     def test_build_provenance_cohort_fingerprint_excludes_observation_time(self) -> None:
         first = runner.seal_build_provenance(self.provenance_payload())
         second_payload = self.provenance_payload()
