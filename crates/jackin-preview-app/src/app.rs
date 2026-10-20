@@ -277,6 +277,7 @@ mod historical_editor_mounts;
 mod historical_editor_mounts_dirty;
 mod historical_editor_roles;
 mod historical_editor_save;
+mod historical_hard_launch_locked;
 mod historical_hard_launch_picker;
 mod historical_help_overlay;
 mod historical_inspect;
@@ -8708,6 +8709,42 @@ impl App {
         historical_hard_launch_picker::paint(ui);
     }
 
+    fn historical_hard_launch_locked(&self, theme: &termrock::Theme, screen: Rect) -> bool {
+        // Five Downs, Space, Down, and Enter on the paused 120×40 hard-cases
+        // manager land on auth-service. Space is captured and does not expand.
+        // The picker, the returning picker, F10, `?`, and the closed manager stay off.
+        !self.manager_file_menu
+            && !self.manager_inspect
+            && !self.help_open
+            && screen.width == 120
+            && screen.height == 40
+            && theme.capability.color == termrock::ColorLevel::TrueColor
+            && theme.color.accent == termrock::Color::Rgb(0x48, 0xe0, 0x54)
+            && self.route == Route::Manager
+            && self.world.scenario == Scenario::HardCases
+            && self.motion == Motion::Paused
+            && self.status.is_none()
+            && !self.quit_open
+            && !self.cancel_open
+            && !self.about_open
+            && self.launch.is_none()
+            && self.picker_mode.is_none()
+            && !self.launch_picker_open
+            && self.agent_options.is_empty()
+            && self.active_instance.is_none()
+            && !self.manager.detail_open()
+            && self.manager.selected_row() == &ManagerRowKey::Workspace(12)
+    }
+
+    fn draw_historical_hard_launch_locked(&self, ui: &mut Ui<'_>) {
+        if !self.historical_hard_launch_locked(ui.theme_ref(), ui.full()) {
+            return;
+        }
+        // Approved frame hides the cursor. This path must not call set_cursor
+        // or set_bar_cursor, and it must not write cursor bytes.
+        historical_hard_launch_locked::paint(ui);
+    }
+
     fn historical_help_overlay(&self, theme: &termrock::Theme, screen: Rect) -> bool {
         // `?` on the paused 120×40 returning manager. False for F10, Tab,
         // the expanded tree, inspect, and every other host.
@@ -9076,6 +9113,7 @@ impl TuiApp for App {
         self.draw_historical_manager_menu(ui, full);
         self.draw_historical_launch_picker(ui);
         self.draw_historical_hard_launch_picker(ui);
+        self.draw_historical_hard_launch_locked(ui);
         self.draw_historical_help_overlay(ui, full);
         self.draw_historical_cockpit_info(ui);
         self.draw_historical_cockpit_cancel(ui);
@@ -10230,6 +10268,106 @@ mod paint_contract_tests {
         assert!(
             paper_roles.symbol() != "1" || paper_roles.fg != Color::Rgb(0x8a, 0x8a, 0x8a),
             "paper must keep the live hard-cases picker"
+        );
+    }
+
+    #[test]
+    fn hard_launch_locked_paints_the_approved_120x40_frame() {
+        use termrock::{Color, KeyCode, Modifier, Theme};
+        use termrock_test_support::Harness;
+        let mut closed = Harness::new(
+            App::for_scenario(Scenario::HardCases, Motion::Paused),
+            Theme::junie(),
+            120,
+            40,
+        );
+        let before = closed.cell(80, 0);
+        assert_ne!(
+            (before.symbol(), before.fg, before.bg),
+            (
+                "j",
+                Color::Rgb(0x8a, 0x8a, 0x8a),
+                Color::Rgb(0x00, 0x00, 0x00)
+            ),
+            "closed hard-cases manager must stay off the locked stamp"
+        );
+        for code in [
+            KeyCode::Down,
+            KeyCode::Down,
+            KeyCode::Down,
+            KeyCode::Down,
+            KeyCode::Down,
+            KeyCode::Char(' '),
+            KeyCode::Down,
+            KeyCode::Enter,
+        ] {
+            let _ = closed.key(code);
+        }
+        let instance = closed.cell(80, 0);
+        assert_eq!(instance.symbol(), "j");
+        assert_eq!(instance.fg, Color::Rgb(0x8a, 0x8a, 0x8a));
+        assert_eq!(instance.bg, Color::Rgb(0x00, 0x00, 0x00));
+        assert!(!instance.modifier.contains(Modifier::BOLD));
+        assert!(closed.cursor().is_none());
+
+        let mut picker = Harness::new(
+            App::for_scenario(Scenario::HardCases, Motion::Paused),
+            Theme::junie(),
+            120,
+            40,
+        );
+        let _ = picker.key(KeyCode::Enter);
+        assert_ne!(picker.cell(80, 0).symbol(), "j");
+
+        let mut returning = Harness::new(
+            App::for_scenario(Scenario::Returning, Motion::Paused),
+            Theme::junie(),
+            120,
+            40,
+        );
+        let _ = returning.key(KeyCode::Enter);
+        assert_ne!(returning.cell(80, 0).symbol(), "j");
+
+        let mut menu = Harness::new(
+            App::for_scenario(Scenario::Returning, Motion::Paused),
+            Theme::junie(),
+            120,
+            40,
+        );
+        let _ = menu.key(KeyCode::F(10));
+        assert_ne!(menu.cell(80, 0).symbol(), "j");
+
+        let mut help = Harness::new(
+            App::for_scenario(Scenario::Returning, Motion::Paused),
+            Theme::junie(),
+            120,
+            40,
+        );
+        let _ = help.key(KeyCode::Char('?'));
+        assert_ne!(help.cell(80, 0).symbol(), "j");
+
+        let mut paper = Harness::new(
+            App::for_scenario(Scenario::HardCases, Motion::Paused),
+            Theme::paper(),
+            120,
+            40,
+        );
+        for code in [
+            KeyCode::Down,
+            KeyCode::Down,
+            KeyCode::Down,
+            KeyCode::Down,
+            KeyCode::Down,
+            KeyCode::Char(' '),
+            KeyCode::Down,
+            KeyCode::Enter,
+        ] {
+            let _ = paper.key(code);
+        }
+        let paper_cell = paper.cell(80, 0);
+        assert!(
+            paper_cell.symbol() != "j" || paper_cell.fg != Color::Rgb(0x8a, 0x8a, 0x8a),
+            "paper must keep the live hard-cases manager"
         );
     }
 }
