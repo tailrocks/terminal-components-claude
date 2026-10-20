@@ -9,3 +9,7 @@ license.workspace = true
 termrock-core.workspace = true
 ratatui.workspace = true
 ratatui-core.workspace = true
+
+# Rust documentation examples are guarded by the workspace doc inventory test.
+[lib]
+doctest = false
