@@ -26,6 +26,8 @@ pub enum CompletionTrigger {
 pub struct CompletionValue {
     key: ItemKey,
     label: String,
+    glyph: String,
+    matched: Vec<usize>,
     insertion: String,
     detail: String,
     disabled: bool,
@@ -36,10 +38,24 @@ impl CompletionValue {
         Self {
             key,
             label: label.into(),
+            glyph: String::new(),
+            matched: Vec::new(),
             insertion: insertion.into(),
             detail: String::new(),
             disabled: false,
         }
+    }
+
+    #[must_use]
+    pub fn glyph(mut self, glyph: impl Into<String>) -> Self {
+        self.glyph = glyph.into();
+        self
+    }
+
+    #[must_use]
+    pub fn matched(mut self, indices: impl Into<Vec<usize>>) -> Self {
+        self.matched = indices.into();
+        self
     }
 
     #[must_use]
@@ -60,6 +76,8 @@ impl fmt::Debug for CompletionValue {
         f.debug_struct("CompletionValue")
             .field("key", &self.key)
             .field("label", &"[redacted]")
+            .field("glyph", &self.glyph)
+            .field("matched_count", &self.matched.len())
             .field("insertion", &"[redacted]")
             .field("detail", &"[redacted]")
             .field("disabled", &self.disabled)
@@ -70,6 +88,8 @@ impl fmt::Debug for CompletionValue {
 impl AsItem for CompletionValue {
     fn as_item(&self) -> Item<'_> {
         Item::new(self.key, &self.label)
+            .glyph(&self.glyph)
+            .matched(&self.matched)
             .insert(&self.insertion)
             .detail(&self.detail)
             .disabled(self.disabled)
@@ -231,10 +251,7 @@ impl<'a> CompletingCodeEditor<'a> {
         let manual_requested = cx.intents(self.id).any(|intent| {
             matches!(intent, Intent::Binding(action) if action == MANUAL_COMPLETION_ACTION)
         });
-        let focus_lost = cx
-            .intents(self.id)
-            .any(|intent| matches!(intent, Intent::FocusOut { .. }));
-        if focus_lost || self.editor.is_disabled() || self.editor.is_read_only() {
+        if self.editor.is_disabled() || self.editor.is_read_only() {
             CompletionController::new(self.id, self.popup_id).dismiss(cx, &mut state.completion);
             state.items.clear();
             return self.editor.update(cx, &mut state.editor);
@@ -287,7 +304,10 @@ impl<'a> CompletingCodeEditor<'a> {
                 let owner_binding = cx
                     .intents(self.id)
                     .any(|intent| matches!(intent, Intent::Binding(_)));
-                if escape || (!owner_binding && !owner_pointer) {
+                let focus_out = cx
+                    .intents(self.id)
+                    .any(|intent| matches!(intent, Intent::FocusOut { .. }));
+                if escape || (!owner_binding && !owner_pointer && !focus_out) {
                     return if completion_response.is_changed() {
                         Response::changed()
                     } else {
@@ -301,11 +321,11 @@ impl<'a> CompletingCodeEditor<'a> {
 
         let editor_response = self.editor.update(cx, &mut state.editor);
         if manual_requested {
-            if state.editor.is_editing()
-                && !state.editor.is_find_typing()
+            if !state.editor.is_find_typing()
                 && !self.editor.is_read_only()
                 && !self.editor.is_disabled()
             {
+                state.editor.begin_edit();
                 self.request(cx, state, CompletionTrigger::Manual);
                 return Response::changed();
             }
@@ -360,6 +380,7 @@ impl<'a> CompletingCodeEditor<'a> {
             let _ = ui.layer(self.popup_id, |ui, popup_area| {
                 self.completion()
                     .draw(ui, popup_area, &state.completion, &state.items);
+                let _ = ui.retain_owner_cursor(self.id);
             });
         }
         let live = ui.state(self.id);

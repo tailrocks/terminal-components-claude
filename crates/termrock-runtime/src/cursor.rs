@@ -1,6 +1,6 @@
 use ratatui_core::layout::Position;
 
-use crate::diagnostics::Diagnostic;
+use crate::diagnostics::{Diagnostic, Diagnostics};
 use crate::id::Id;
 use crate::layer::LayerId;
 
@@ -45,7 +45,7 @@ pub(crate) fn resolve_requests(
     requests: &[CursorRequest],
     top: LayerId,
     owner: Option<Id>,
-    diagnostics: &mut Vec<Diagnostic>,
+    diagnostics: &mut Diagnostics,
     typing: &[crate::runtime::typing::TypingDeclaration],
 ) -> Option<(Position, CursorShape)> {
     let mut kept: Option<CursorRequest> = None;
@@ -171,7 +171,7 @@ mod tests {
                 ui.set_cursor(FIRST, Position::new(1, 1));
                 ui.set_cursor(SECOND, Position::new(9, 2));
             }
-            let mut diagnostics = Vec::new();
+            let mut diagnostics = Diagnostics::default();
             let kept = resolve_requests(
                 &frame.cursors,
                 LayerId::PAGE,
@@ -190,6 +190,7 @@ mod tests {
             );
 
             let rejected: Vec<Id> = diagnostics
+                .items()
                 .iter()
                 .filter_map(|d| match d {
                     Diagnostic::CursorRejected { owner, .. } => Some(*owner),

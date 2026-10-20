@@ -1005,8 +1005,57 @@ class RunnerGuards(unittest.TestCase):
         self.assertEqual(cohort["status"], runner.DIAGNOSTIC_COHORT_STATUS)
         self.assertFalse(cohort["build"]["build_admitted"])
         self.assertFalse(cohort["build"]["reference_frames_approved"])
-        with self.assertRaisesRegex(runner.RunnerError, "no separately reviewed"):
-            runner.require_capture_eligible_cohort(repo, cohort["id"], Path("unused"))
+        reviews, _digest = runner.load_cohort_review_registry(repo, document, runner.EXECUTABLE_COHORTS_SHA256)
+        review = reviews[cohort["id"]]
+        self.assertTrue(review["fresh_baseline_capture_eligible"])
+        self.assertTrue(review["baseline_replay_eligible"])
+        self.assertFalse(review["candidate_comparison_eligible"])
+        self.assertEqual(review["checkpoint_reference_approval"], "none")
+        self.assertFalse(review["product_acceptance_eligible"])
+        self.assertEqual(review["evidence"][0]["report_sha256"], runner.CAPTURE_REVIEW_DECISION_SHA256)
+        decision, decision_digest, _index, index_digest, contract, contract_digest = runner._capture_review_documents(repo)
+        self.assertEqual(decision_digest, review["decision_sha256"])
+        self.assertEqual(index_digest, review["evidence_index_sha256"])
+        self.assertEqual(contract_digest, runner.CAPTURE_REVIEW_CONTRACT_SHA256)
+        self.assertEqual(decision["cohort_id"], cohort["id"])
+        self.assertEqual(decision["cohort_registry_sha256"], runner.EXECUTABLE_COHORTS_SHA256)
+        self.assertEqual(decision["source"], cohort["source"])
+        self.assertEqual(decision["binary_sha256"], {app: cohort["binaries"][app]["sha256"] for app in runner.APPS})
+        self.assertEqual(contract["status"], "proposed-implementation-contract-not-executed")
+        self.assertEqual(runner.sha256(repo / runner.REFERENCE_DECISIONS), runner.REFERENCE_DECISIONS_SHA256)
+
+    def test_fresh_capture_review_does_not_transfer_old_checkpoint_exception(self) -> None:
+        repo = Path(runner.__file__).resolve().parent.parent
+        reference_path = repo / runner.REFERENCE_DECISIONS
+        payload = reference_path.read_bytes()
+        self.assertEqual(runner.hashlib.sha256(payload).hexdigest(), runner.REFERENCE_DECISIONS_SHA256)
+        legacy = json.loads(payload)
+        self.assertEqual(legacy["decision_scope"], "one_exact_stale_approval_live_pair_reference")
+        self.assertEqual(len(legacy["decisions"]), 1)
+        stale = legacy["decisions"][0]
+        self.assertEqual(stale["tuple"]["test_id"], runner.REFERENCE_CASE)
+        self.assertEqual(stale["legacy_approval"]["verdict"], "known_stale_cells_differ")
+        self.assertEqual(stale["legacy_approval"]["paired_exception"], "never edits or replaces this approval; its standalone legacy verdict stays red")
+        reviews, _ = runner.load_cohort_review_registry(repo, runner.load_executable_cohorts(repo), runner.EXECUTABLE_COHORTS_SHA256)
+        capture = reviews["frozen-20261021-serial-nonincr-r1-r2"]
+        self.assertEqual(capture["checkpoint_reference_approval"], "none")
+        self.assertFalse(capture["candidate_comparison_eligible"])
+        self.assertFalse(capture["product_acceptance_eligible"])
+
+    def test_capture_review_decision_evidence_and_contract_are_hash_pinned(self) -> None:
+        repo = Path(runner.__file__).resolve().parent.parent
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            for relative in (runner.CAPTURE_REVIEW_DECISION, runner.CAPTURE_REVIEW_EVIDENCE_INDEX, runner.CAPTURE_REVIEW_CONTRACT, Path("docs/audits/2026-10-21-fresh-baseline-capture-evidence-recheck.json")):
+                destination = root / relative
+                destination.parent.mkdir(parents=True, exist_ok=True)
+                destination.write_bytes((repo / relative).read_bytes())
+            for relative in (runner.CAPTURE_REVIEW_DECISION, runner.CAPTURE_REVIEW_EVIDENCE_INDEX, runner.CAPTURE_REVIEW_CONTRACT):
+                original = (root / relative).read_bytes()
+                (root / relative).write_bytes(original + b" ")
+                with self.assertRaisesRegex(runner.RunnerError, "is unpinned"):
+                    runner._capture_review_documents(root)
+                (root / relative).write_bytes(original)
 
     def test_executable_cohort_schema_rejects_duplicate_unknown_and_bool_version(self) -> None:
         repo = Path(runner.__file__).resolve().parent.parent
@@ -1095,33 +1144,69 @@ class RunnerGuards(unittest.TestCase):
         fixture_registry = {"schema": runner.EXECUTABLE_COHORT_SCHEMA, "schema_version": runner.EXECUTABLE_COHORT_VERSION, "cohorts": [cohort]}
         registry_bytes = (json.dumps(fixture_registry, indent=2) + "\n").encode()
         registry_digest = runner.hashlib.sha256(registry_bytes).hexdigest()
+        decision = json.loads((repo / runner.CAPTURE_REVIEW_DECISION).read_text())
+        decision["cohort_id"] = cohort["id"]
+        decision["cohort_registry_sha256"] = registry_digest
+        decision["binary_sha256"] = binary_hashes.copy()
+        decision["source"] = cohort["source"]
+        decision_bytes = (json.dumps(decision, indent=2) + "\n").encode()
+        decision_digest = runner.hashlib.sha256(decision_bytes).hexdigest()
+        index = json.loads((repo / runner.CAPTURE_REVIEW_EVIDENCE_INDEX).read_text())
+        index["cohort_id"] = cohort["id"]
+        index["decision_sha256"] = decision_digest
+        index["reviewed_integration_commit"] = decision["integration_commit_reviewed"]
+        index["source"] = decision["source"]
+        index["binary_sha256"] = binary_hashes.copy()
+        index["artifacts"]["capture_eligibility_decision"]["sha256"] = decision_digest
+        index["artifacts"]["capture_eligibility_decision"]["bytes"] = len(decision_bytes)
+        index_bytes = (json.dumps(index, indent=2) + "\n").encode()
+        index_digest = runner.hashlib.sha256(index_bytes).hexdigest()
         review = {
             "cohort_id": cohort["id"],
             "status": runner.CAPTURE_ELIGIBLE_COHORT_STATUS,
             "cohort_registry_sha256": registry_digest,
             "binary_sha256": binary_hashes,
             "source": cohort["source"],
-            "evidence": [{"reviewer": "independent-review-fixture", "scope": "executable-cohort-capture-eligibility", "report_sha256": "a" * 64}],
+            "evidence": [{"reviewer": decision["reviewer"], "scope": decision["scope"], "report_sha256": decision_digest}],
+            "decision_sha256": decision_digest,
+            "evidence_index_sha256": index_digest,
+            "integration_commit_reviewed": decision["integration_commit_reviewed"],
+            "fresh_baseline_capture_eligible": True,
+            "baseline_replay_eligible": True,
             "candidate_comparison_eligible": False,
             "checkpoint_reference_approval": "none",
+            "product_acceptance_eligible": False,
         }
-        review_bytes = (json.dumps({"schema": runner.COHORT_REVIEWS_SCHEMA, "schema_version": 1, "reviews": [review]}, indent=2) + "\n").encode()
+        review_bytes = (json.dumps({"schema": runner.COHORT_REVIEWS_SCHEMA, "schema_version": runner.COHORT_REVIEWS_VERSION, "reviews": [review]}, indent=2) + "\n").encode()
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
             (root / runner.EXECUTABLE_COHORTS).parent.mkdir(parents=True)
             (root / runner.EXECUTABLE_COHORTS).write_bytes(registry_bytes)
             (root / runner.COHORT_REVIEWS).write_bytes(review_bytes)
+            (root / runner.CAPTURE_REVIEW_EVIDENCE_INDEX).parent.mkdir(parents=True, exist_ok=True)
+            (root / runner.CAPTURE_REVIEW_EVIDENCE_INDEX).write_bytes(index_bytes)
+            for artifact in index["artifacts"].values():
+                artifact_path = Path(artifact["repository_path"])
+                destination = root / artifact_path
+                destination.parent.mkdir(parents=True, exist_ok=True)
+                if artifact_path == runner.CAPTURE_REVIEW_DECISION:
+                    destination.write_bytes(decision_bytes)
+                else:
+                    destination.write_bytes((repo / artifact_path).read_bytes())
             bins = root / "sealed-bin"
             bins.mkdir()
             for app, data in binary_bytes.items():
                 path = bins / app
                 path.write_bytes(data)
                 path.chmod(0o755)
-            with patch.object(runner, "EXECUTABLE_COHORTS_SHA256", registry_digest), patch.object(runner, "COHORT_REVIEWS_SHA256", runner.hashlib.sha256(review_bytes).hexdigest()):
+            with patch.object(runner, "EXECUTABLE_COHORTS_SHA256", registry_digest), patch.object(runner, "COHORT_REVIEWS_SHA256", runner.hashlib.sha256(review_bytes).hexdigest()), patch.object(runner, "CAPTURE_REVIEW_DECISION_SHA256", decision_digest), patch.object(runner, "CAPTURE_REVIEW_EVIDENCE_INDEX_SHA256", index_digest):
                 admitted = runner.require_capture_eligible_cohort(root, cohort["id"], bins)
                 self.assertEqual(admitted["status"], runner.CAPTURE_ELIGIBLE_COHORT_STATUS)
+                self.assertTrue(admitted["fresh_baseline_capture_eligible"])
+                self.assertTrue(admitted["baseline_replay_eligible"])
                 self.assertFalse(admitted["candidate_comparison_eligible"])
                 self.assertEqual(admitted["checkpoint_reference_approval"], "none")
+                self.assertFalse(admitted["product_acceptance_eligible"])
                 self.assertFalse(admitted["acceptance_complete"])
                 source = root / "source"
                 source.mkdir()
@@ -1184,12 +1269,19 @@ class RunnerGuards(unittest.TestCase):
                     read_records()
                 for alteration in (
                     {**review, "candidate_comparison_eligible": True},
+                    {**review, "fresh_baseline_capture_eligible": False},
+                    {**review, "baseline_replay_eligible": 0},
+                    {**review, "product_acceptance_eligible": True},
                     {**review, "checkpoint_reference_approval": "approved"},
                     {**review, "cohort_registry_sha256": "0" * 64},
                     {**review, "binary_sha256": {**binary_hashes, "holla": "0" * 64}},
+                    {**review, "source": {**cohort["source"], "commit": "different-source"}},
+                    {**review, "decision_sha256": "0" * 64},
+                    {**review, "evidence_index_sha256": "0" * 64},
+                    {**review, "integration_commit_reviewed": "different-commit"},
                     {**review, "evidence": []},
                 ):
-                    altered = (json.dumps({"schema": runner.COHORT_REVIEWS_SCHEMA, "schema_version": 1, "reviews": [alteration]}, indent=2) + "\n").encode()
+                    altered = (json.dumps({"schema": runner.COHORT_REVIEWS_SCHEMA, "schema_version": runner.COHORT_REVIEWS_VERSION, "reviews": [alteration]}, indent=2) + "\n").encode()
                     (root / runner.COHORT_REVIEWS).write_bytes(altered)
                     with patch.object(runner, "COHORT_REVIEWS_SHA256", runner.hashlib.sha256(altered).hexdigest()):
                         with self.assertRaises(runner.RunnerError):

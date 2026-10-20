@@ -83,6 +83,9 @@ pub use termrock_core::custom_hash16;
 pub use termrock_core::id;
 pub use termrock_core::id::{Id, ItemKey, Part, PartRef, Revision};
 
+pub use blocks::{
+    MasterDetail, MasterDetailAction, MasterDetailError, MasterDetailPolicy, MasterDetailState,
+};
 pub use slots::PickerSlotExt;
 pub use termrock_runtime::ui::LayerSlot;
 pub use termrock_runtime::{
@@ -99,6 +102,7 @@ pub use termrock_session::{
 
 pub use termrock_core::action::{Action, ActionKey};
 pub use termrock_core::diagnostics::Diagnostic;
+pub use termrock_core::edit_entry::EditEntry;
 pub use termrock_core::event::{Axis, Chord, Input, Key, KeyCode, KeyModifiers, Mouse, MouseKind};
 pub use termrock_core::intent::{FocusVia, Intent, IntentIter, Phase};
 pub use termrock_core::keys::{MediaKeyCode, ModifierKeyCode};
