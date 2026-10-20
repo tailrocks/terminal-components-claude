@@ -16,7 +16,7 @@ use crate::intent::{Intent, Phase};
 use crate::keymap::{Binding, BindingState, Bindings};
 use crate::measure::{Constraints, Size};
 use crate::response::{Response, StateFlags};
-use crate::scroll::ScrollState;
+use crate::scroll::{FollowCursor, ScrollState};
 use crate::text::Span;
 use crate::text::measure::{grapheme_width, graphemes};
 use crate::theme::{Family, GlyphRole, Role, Slot, StylePatch, Variant};
@@ -611,7 +611,7 @@ fn word_at<'a>(line: impl Into<LineRef<'a>>, col: usize) -> Option<(usize, usize
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct ViewportState {
     scroll: ScrollState,
-    follow: bool,
+    follow: FollowCursor,
     selection: Option<(CellPos, CellPos)>,
     anchor: Option<CellPos>,
     caret: Option<CellPos>,
@@ -622,7 +622,7 @@ impl Default for ViewportState {
     fn default() -> Self {
         ViewportState {
             scroll: ScrollState::default(),
-            follow: true,
+            follow: FollowCursor::Always,
             selection: None,
             anchor: None,
             caret: None,
@@ -637,11 +637,28 @@ impl ViewportState {
     }
 
     pub const fn follow(&self) -> bool {
-        self.follow
+        match self.follow {
+            FollowCursor::Always => true,
+            FollowCursor::OnMove => false,
+        }
     }
 
     pub const fn set_follow(&mut self, on: bool) {
-        self.follow = on;
+        self.follow = if on {
+            FollowCursor::Always
+        } else {
+            FollowCursor::OnMove
+        };
+    }
+
+    /// How the view follows the end of its output.
+    pub const fn follow_cursor(&self) -> FollowCursor {
+        self.follow
+    }
+
+    /// Set how the view follows the end of its output.
+    pub const fn set_follow_cursor(&mut self, follow: FollowCursor) {
+        self.follow = follow;
     }
 
     pub fn selection(&self) -> Option<(CellPos, CellPos)> {
@@ -961,7 +978,11 @@ impl<'a> TextViewport<'a> {
         let mut acc = Acc::<ViewportAction>::new();
         acc.fold(&bar);
         if st.scroll.offset() != before {
-            st.follow = st.scroll.at_end();
+            st.follow = if st.scroll.at_end() {
+                FollowCursor::Always
+            } else {
+                FollowCursor::OnMove
+            };
         }
         for it in cx.intents(self.id) {
             match it {
@@ -982,7 +1003,7 @@ impl<'a> TextViewport<'a> {
                 _ => {}
             }
         }
-        if st.follow {
+        if st.follow == FollowCursor::Always {
             st.scroll.jump_end();
         }
         acc.finish(self.id)
@@ -1014,10 +1035,14 @@ impl<'a> TextViewport<'a> {
             Phase::Drag => {
                 if pos.y < area.y {
                     st.scroll.scroll_by(-1);
-                    st.follow = false;
+                    st.follow = FollowCursor::OnMove;
                 } else if pos.y >= area.bottom() {
                     st.scroll.scroll_by(1);
-                    st.follow = st.scroll.at_end();
+                    st.follow = if st.scroll.at_end() {
+                        FollowCursor::Always
+                    } else {
+                        FollowCursor::OnMove
+                    };
                 }
                 let clamped = Position::new(
                     pos.x
@@ -1085,8 +1110,8 @@ impl<'a> TextViewport<'a> {
             ViewportCmd::End => {
                 st.scroll.jump_end();
                 let was = st.follow;
-                st.follow = true;
-                if was {
+                st.follow = FollowCursor::Always;
+                if was == FollowCursor::Always {
                     acc.changed();
                 } else {
                     acc.action(ViewportAction::FollowChanged(true));
@@ -1094,11 +1119,16 @@ impl<'a> TextViewport<'a> {
                 return;
             }
             ViewportCmd::ToggleFollow => {
-                st.follow = !st.follow;
-                if st.follow {
+                st.follow = match st.follow {
+                    FollowCursor::Always => FollowCursor::OnMove,
+                    FollowCursor::OnMove => FollowCursor::Always,
+                };
+                if st.follow == FollowCursor::Always {
                     st.scroll.jump_end();
                 }
-                acc.action(ViewportAction::FollowChanged(st.follow));
+                acc.action(ViewportAction::FollowChanged(
+                    st.follow == FollowCursor::Always,
+                ));
                 return;
             }
             ViewportCmd::Copy => {
@@ -1114,7 +1144,11 @@ impl<'a> TextViewport<'a> {
         if st.scroll.offset() == before {
             acc.consumed();
         } else {
-            st.follow = st.scroll.at_end();
+            st.follow = if st.scroll.at_end() {
+                FollowCursor::Always
+            } else {
+                FollowCursor::OnMove
+            };
             acc.changed();
         }
     }
@@ -1166,7 +1200,7 @@ impl<'a> TextViewport<'a> {
         Self::note_indexed(indexed);
         let mut view = st.scroll;
         view.apply_layout(usize::from(area.height), total);
-        if st.follow {
+        if st.follow == FollowCursor::Always {
             view.jump_end();
         }
         let (first_line, first_row) = {
