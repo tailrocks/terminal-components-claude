@@ -946,10 +946,10 @@ impl<'f> Ui<'f> {
             .map_or((None, &[][..]), |(published, descriptors)| {
                 (Some(published.table), descriptors)
             });
-        let (descriptors, revision) =
-            self.core
-                .dynamic_bindings
-                .update(owner, base, base_descriptors, bindings);
+        let (descriptors, revision) = self
+            .core
+            .dynamic_bindings
+            .update_descriptors(owner, base, base_descriptors, bindings);
         if let Some(action) =
             self.frame
                 .bindings
