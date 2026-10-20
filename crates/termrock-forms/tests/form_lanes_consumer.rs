@@ -3,7 +3,8 @@ use core::cell::Cell;
 use ratatui_core::buffer::Buffer;
 use ratatui_core::layout::Rect;
 use termrock_controls::choice::LabelRadio;
-use termrock_core::id::{Id, Part, PartRef};
+use termrock_core::event::Input;
+use termrock_core::id::{Id, ItemKey, Part, PartRef};
 use termrock_core::validate::FieldError;
 use termrock_fields::input::TextInput;
 use termrock_fields::textarea::TextArea;
@@ -14,7 +15,8 @@ use termrock_forms::{
 use termrock_layout::{Constraints, Size, SplitAxis, SplitModel};
 use termrock_overlays::select::LabelSelect;
 use termrock_runtime::diagnostics::Diagnostic;
-use termrock_runtime::{App, Cx, Response, Runtime, Ui};
+use termrock_runtime::hit::RegionKind;
+use termrock_runtime::{App, Cx, FrameRead, Response, Runtime, Ui};
 use termrock_theme::Theme;
 
 const FORM: Id = Id::root("consumer.notifications.form");
@@ -193,6 +195,26 @@ impl App for InvalidLayoutUpdateApp<'_> {
     }
 
     fn draw(&self, _ui: &mut Ui<'_>) {}
+}
+
+struct LogicalAreaApp<'a> {
+    form: Form<'a>,
+    state: FormState,
+    data: Notifications,
+    update_area: Option<Rect>,
+}
+
+impl App for LogicalAreaApp<'_> {
+    fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+        self.update_area = cx.area(FORM);
+        self.form
+            .update(cx, &mut self.state, &mut self.data)
+            .erase()
+    }
+
+    fn draw(&self, ui: &mut Ui<'_>) {
+        self.form.draw(ui, ui.full(), &self.state, &self.data);
+    }
 }
 
 #[test]
@@ -507,5 +529,82 @@ fn live_radio_options_match_measurement_to_rendered_lane_extent() {
             radio.y + transports.len() as u16 + 2,
             "measured extent matches the last live radio row"
         );
+    }
+}
+
+#[test]
+fn fill_reserves_trailing_fixed_spacers_before_allocating_height() {
+    let fields = [FieldSpec::new(
+        MESSAGE,
+        "Message",
+        FieldKind::Area(TextArea::new(MESSAGE, 4)),
+    )];
+    let rows = [FormRow::fill(MESSAGE), FormRow::spacer(2)];
+    let lanes = [FormLane::new(LANE_LEFT, &rows)];
+    let layout = FormLayout::new(&lanes);
+    let form = Form::new(FORM, &fields)
+        .try_layout(&layout)
+        .expect("Fill may be followed by fixed spacer rows");
+    let scroll_id = FORM.part(Part::BODY).item(ItemKey::Num(LANE_LEFT.hash()));
+
+    for (height, should_overflow) in [(12, false), (5, true)] {
+        let area = Rect::new(0, 0, 40, height);
+        let mut buffer = Buffer::empty(area);
+        let mut runtime = Runtime::new(EmptyApp, Theme::junie());
+        runtime
+            .draw_scene(area, &mut buffer, |ui, area| {
+                form.draw(ui, area, &FormState::default(), &Notifications::default());
+            })
+            .commit_presented();
+        assert_eq!(
+            runtime
+                .area_of_part(scroll_id, PartRef::of(Part::THUMB))
+                .is_some(),
+            should_overflow,
+            "Fill minimum plus trailing spacer is considered at height {height}"
+        );
+    }
+}
+
+#[test]
+fn lane_update_reads_the_last_drawn_form_area_after_resize() {
+    let fields = [FieldSpec::new(
+        DESTINATION,
+        "Destination",
+        FieldKind::Text(TextInput::new(DESTINATION)),
+    )];
+    let rows = [FormRow::field(DESTINATION)];
+    let lanes = [FormLane::new(LANE_LEFT, &rows)];
+    let layout = FormLayout::new(&lanes);
+    let form = Form::new(FORM, &fields)
+        .try_layout(&layout)
+        .expect("valid one-lane layout");
+    let app = LogicalAreaApp {
+        form,
+        state: FormState::default(),
+        data: Notifications::default(),
+        update_area: None,
+    };
+    let mut runtime = Runtime::new(app, Theme::junie());
+    let _ = runtime.initialize();
+
+    for area in [Rect::new(0, 0, 40, 12), Rect::new(0, 0, 60, 20)] {
+        let mut buffer = Buffer::empty(area);
+        runtime.draw_buffer(area, &mut buffer).commit_presented();
+        assert!(runtime.registry().regions().iter().any(|region| {
+            region.owner == FORM
+                && region.part == PartRef::of(Part::CONTAINER)
+                && region.area == area
+                && region.kind == RegionKind::Decorative
+        }));
+        assert!(
+            !runtime
+                .registry()
+                .regions()
+                .iter()
+                .any(|region| region.owner == FORM && region.kind == RegionKind::Control)
+        );
+        let _ = termrock_runtime::runtime::stub::deliver(&mut runtime, Input::Tick);
+        assert_eq!(runtime.app().update_area, Some(area));
     }
 }
