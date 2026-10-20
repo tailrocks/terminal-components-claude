@@ -7711,7 +7711,77 @@ impl TableProApp {
             return;
         }
         historical_form_new::paint(ui);
-        ui.set_bar_cursor(connections::field::NAME, Position::new(46, 8));
+        self.paint_typed_connection_name(ui);
+    }
+
+    fn paint_typed_connection_name(&self, ui: &mut Ui<'_>) {
+        const NAME_X: u16 = 46;
+        const NAME_Y: u16 = 8;
+        const NAME_COLUMNS: u16 = 38;
+        let Some(draft) = &self.draft else {
+            return;
+        };
+        if self.fresh_connection_draft() {
+            ui.set_bar_cursor(connections::field::NAME, Position::new(NAME_X, NAME_Y));
+            return;
+        }
+        let truncated;
+        let shown = if width(&draft.name) > NAME_COLUMNS {
+            truncated = truncate(&draft.name, NAME_COLUMNS);
+            truncated.as_str()
+        } else {
+            draft.name.as_str()
+        };
+        let columns = width(shown);
+        let style = PaintStyle::new()
+            .fg(termrock::Color::from_u32(0x00ff_ffff))
+            .bg(termrock::Color::from_u32(0x001e_1e22))
+            .add_modifier(Modifier::UNDERLINED)
+            .underline_color(termrock::Color::from_u32(0x0048_e054));
+        ui.paint_str(
+            termrock::Rect {
+                x: NAME_X,
+                y: NAME_Y,
+                width: columns,
+                height: 1,
+            },
+            shown,
+            style,
+        );
+        ui.set_bar_cursor(
+            connections::field::NAME,
+            Position::new(NAME_X.saturating_add(columns), NAME_Y),
+        );
+    }
+
+    fn arm_fresh_name_replacement(&mut self, cx: &Cx<'_>) {
+        let Some(draft) = &self.draft else {
+            return;
+        };
+        if draft.name != self.connection.name {
+            return;
+        }
+        let name = connections::field::NAME;
+        let typing = cx.intents(name).any(|intent| match intent {
+            Intent::Key(key) => key.bare_char().is_some(),
+            Intent::Paste(_) => true,
+            _ => false,
+        });
+        if typing && self.form_state.editing_text(name) == Some(self.connection.name.as_str()) {
+            self.form_state.select_editing_text(name);
+        }
+    }
+
+    fn mirror_name_edit(&mut self) {
+        let Some(text) = self.form_state.editing_text(connections::field::NAME) else {
+            return;
+        };
+        let Some(draft) = self.draft.as_mut() else {
+            return;
+        };
+        if draft.name != text {
+            text.clone_into(&mut draft.name);
+        }
     }
 
     fn historical_form_new(&self, ui: &Ui<'_>) -> bool {
@@ -7739,7 +7809,7 @@ impl TableProApp {
             || !ui
                 .state(connections::field::NAME)
                 .contains(StateFlags::FOCUSED)
-            || !self.fresh_connection_draft()
+            || !self.approved_card_draft()
         {
             return false;
         }
@@ -7768,8 +7838,20 @@ impl TableProApp {
             return false;
         };
         let fresh = ConnectionDraft::from_connection(&self.connection);
-        draft.name == fresh.name
-            && draft.engine == fresh.engine
+        draft.name == fresh.name && self.draft_matches_card(&fresh)
+    }
+
+    fn approved_card_draft(&self) -> bool {
+        // The name is painted on the card. Other fields must still match the stock draft.
+        let fresh = ConnectionDraft::from_connection(&self.connection);
+        self.draft_matches_card(&fresh)
+    }
+
+    fn draft_matches_card(&self, fresh: &ConnectionDraft) -> bool {
+        let Some(draft) = &self.draft else {
+            return false;
+        };
+        draft.engine == fresh.engine
             && draft.host == fresh.host
             && draft.port == fresh.port
             && draft.database == fresh.database
@@ -7950,6 +8032,7 @@ impl App for TableProApp {
                 _ => {}
             }
         }
+        self.arm_fresh_name_replacement(cx);
         let form_was_open = self.form_open;
         if self.draft.is_some() {
             let fields = &self.form_fields;
@@ -7984,6 +8067,7 @@ impl App for TableProApp {
                 }
                 response |= form_response.erase();
             }
+            self.mirror_name_edit();
         }
         if form_was_open {
             return response;
@@ -8265,6 +8349,28 @@ pub(crate) fn feedback_clock(motion: Motion) -> termrock::FeedbackClock {
         }
     } else {
         termrock::FeedbackClock::Elapsed
+    }
+}
+
+#[cfg(test)]
+mod fresh_name_gate {
+    use super::*;
+    use termrock_test_support::Harness;
+
+    #[test]
+    fn typing_replaces_the_stock_name_and_closes_the_empty_card_gate() {
+        let mut harness = Harness::new(TableProApp::default(), Theme::junie(), 120, 40);
+        let _ = harness.ctrl('n');
+        assert!(harness.app().fresh_connection_draft());
+        let _ = harness.type_str("Staging replica");
+        assert_eq!(
+            harness
+                .app()
+                .connection_draft()
+                .map(|draft| draft.name.as_str()),
+            Some("Staging replica")
+        );
+        assert!(!harness.app().fresh_connection_draft());
     }
 }
 
