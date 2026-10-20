@@ -1503,6 +1503,14 @@ impl<A: App> Runtime<A> {
                 false
             }
         });
+        self.services
+            .focus_continuation_result_acks
+            .retain(|(opening, owner, _)| {
+                self.services.completions.iter().any(|(completion, _)| {
+                    completion.opening() == *opening
+                        && completion.continuation_owner() == Some(*owner)
+                })
+            });
         for (_, age) in &mut self.services.focus_continuation_outcomes {
             *age = age.saturating_add(1);
         }
@@ -1878,6 +1886,15 @@ impl<A: App> Runtime<A> {
         }
         self.staged_focus = None;
         self.last.snapshot.focus = self.focus.current();
+        if self.pending_focus.is_none() && !self.services.focus_continuation_result_acks.is_empty()
+        {
+            let mut became_ready = false;
+            for (_, _, ready) in &mut self.services.focus_continuation_result_acks {
+                became_ready |= !*ready;
+                *ready = true;
+            }
+            self.completion_dispatch_pending |= became_ready;
+        }
         if self.pending_focus.is_none()
             && (!self.completion_waiting.is_empty()
                 || !self.continuation_cancels_waiting.is_empty())
@@ -2714,6 +2731,7 @@ mod tests {
                 .completed
                 .contains(&rt.app().child.expect("child opening"))
         );
+        assert!(rt.services.focus_continuation_result_acks.is_empty());
         present(&mut rt, token);
     }
 
@@ -2775,6 +2793,7 @@ mod tests {
         owner_hidden: bool,
         owner_disabled: bool,
         consume_completion: bool,
+        menu_before_outcome_ack: bool,
         reopen_after_close: bool,
         replacement: Option<crate::layer::LayerOpening>,
         duplicate_result_ack: bool,
@@ -2783,6 +2802,7 @@ mod tests {
         outcome_acknowledgements: usize,
         completion: Option<(Option<Id>, LayerEvent, bool)>,
         completion_before_outcome_ack: bool,
+        redirect_after_outcome_ack: Option<Id>,
     }
 
     impl App for ContinuationProbe {
@@ -2830,16 +2850,8 @@ mod tests {
                     }
                 }
             }
-            if let Some(opening) = self.opening
-                && self.consume_completion
-                && let Some(completion) = cx.take_layer_completion(opening)
-            {
-                self.completion_before_outcome_ack = self.outcome_acknowledgements == 0;
-                self.completion = Some((
-                    completion.restored_focus(),
-                    completion.event(),
-                    completion.continuation_acknowledged(),
-                ));
+            if self.menu_before_outcome_ack {
+                self.take_completion(cx);
             }
             if self.observe_outcome
                 && let Some(opening) = self.continuation_opening
@@ -2848,16 +2860,23 @@ mod tests {
                 self.outcome = Some((outcome.restored_focus(), outcome.continued()));
                 if cx.acknowledge_focus_continuation_result(opening, CONTINUED_OWNER) {
                     self.outcome_acknowledgements += 1;
+                    if let Some(target) = self.redirect_after_outcome_ack {
+                        cx.focus(target);
+                    }
                 }
                 if self.duplicate_result_ack {
                     self.duplicate_ack_succeeded =
                         cx.acknowledge_focus_continuation_result(opening, CONTINUED_OWNER);
                 }
             }
+            if !self.menu_before_outcome_ack {
+                self.take_completion(cx);
+            }
             Response::ignored()
         }
 
         fn draw(&self, ui: &mut Ui<'_>) {
+            ui.register_control(B, Rect::new(20, 0, 10, 1), Focusability::Focusable);
             if !self.owner_hidden {
                 ui.register_control(
                     CONTINUED_OWNER,
@@ -2872,6 +2891,22 @@ mod tests {
             let _ = ui.layer(CONTINUED_LAYER, |ui, area| {
                 ui.register_control(CONTINUED_TARGET, area, Focusability::Focusable);
             });
+        }
+    }
+
+    impl ContinuationProbe {
+        fn take_completion(&mut self, cx: &mut Cx<'_>) {
+            if let Some(opening) = self.opening
+                && self.consume_completion
+                && let Some(completion) = cx.take_layer_completion(opening)
+            {
+                self.completion_before_outcome_ack = self.outcome_acknowledgements == 0;
+                self.completion = Some((
+                    completion.restored_focus(),
+                    completion.event(),
+                    completion.continuation_acknowledged(),
+                ));
+            }
         }
     }
 
@@ -3024,6 +3059,7 @@ mod tests {
                 acknowledge_owner: true,
                 observe_outcome: true,
                 consume_completion: true,
+                menu_before_outcome_ack: true,
                 duplicate_result_ack: true,
                 ..ContinuationProbe::default()
             },
@@ -3068,6 +3104,39 @@ mod tests {
         );
         present(&mut rt, token);
         assert!(rt.services.focus_continuation_outcomes.is_empty());
+        assert!(rt.services.focus_continuation_result_acks.is_empty());
+    }
+
+    #[test]
+    fn focus_redirect_during_result_ack_cancels_same_update_completion() {
+        let mut rt = Runtime::new(
+            ContinuationProbe {
+                acknowledge_owner: true,
+                observe_outcome: true,
+                consume_completion: true,
+                redirect_after_outcome_ack: Some(B),
+                ..ContinuationProbe::default()
+            },
+            Theme::junie(),
+        );
+        let _ = rt.initialize();
+        let token = rt.prepare(SCREEN).expect("initial frame prepares");
+        present(&mut rt, token);
+        rt.set_focus(Some(CONTINUED_OWNER));
+        let token = rt.prepare(SCREEN).expect("owner focus prepares");
+        present(&mut rt, token);
+        let _ = rt.handle(key(KeyCode::Char('m'))).expect("menu opens");
+        let token = rt.prepare(SCREEN).expect("menu opens");
+        present(&mut rt, token);
+        let _ = rt.handle(key(KeyCode::Char('x'))).expect("menu closes");
+        let token = rt.prepare(SCREEN).expect("redirect settles before receipt");
+        assert_eq!(rt.focus(), Some(B));
+        assert_eq!(
+            rt.app().completion.map(|(_, _, continued)| continued),
+            Some(false)
+        );
+        assert_eq!(rt.app().outcome_acknowledgements, 1);
+        present(&mut rt, token);
     }
 
     #[test]
