@@ -10,8 +10,8 @@ use crate::field_control::FieldControl;
 use crate::focus::Focusability;
 use crate::id::{Id, Part, PartRef};
 use crate::input::{
-    BlurPolicy, EditPhase, EditorDraft, ErrorState, TextAction, TextCmd, TextTarget, byte_at_col,
-    discard_error,
+    BlurPolicy, EditCapabilities, EditMenuRequest, EditPhase, EditorDraft, ErrorState, TextAction,
+    TextCmd, TextEditCommand, TextTarget, byte_at_col, discard_error,
 };
 use crate::intent::{Intent, Phase};
 use crate::keymap::{Binding, BindingState, Bindings};
@@ -251,6 +251,8 @@ pub struct TextAreaState {
     error: Option<ErrorState>,
     redacted_snapshot: bool,
     sensitivity: Option<bool>,
+    edit_menu_request: Option<EditMenuRequest>,
+    pointer_anchor: Option<usize>,
 }
 
 impl Clone for TextAreaState {
@@ -262,6 +264,8 @@ impl Clone for TextAreaState {
             error: self.error.as_ref().map(ErrorState::clone_snapshot),
             redacted_snapshot: self.is_sensitive(),
             sensitivity: self.sensitivity,
+            edit_menu_request: self.edit_menu_request,
+            pointer_anchor: self.pointer_anchor,
         }
     }
 }
@@ -272,12 +276,14 @@ impl PartialEq for TextAreaState {
             self.is_sensitive() == other.is_sensitive()
                 && self.phase == other.phase
                 && self.scroll == other.scroll
+                && self.pointer_anchor == other.pointer_anchor
                 && self.error.as_ref().map(ErrorState::is_sensitive)
                     == other.error.as_ref().map(ErrorState::is_sensitive)
         } else {
             self.draft.same(&other.draft)
                 && self.phase == other.phase
                 && self.scroll == other.scroll
+                && self.pointer_anchor == other.pointer_anchor
                 && match (&self.error, &other.error) {
                     (Some(left), Some(right)) => left.same(right),
                     (None, None) => true,
@@ -299,6 +305,7 @@ impl fmt::Debug for TextAreaState {
             .field("error", &self.error.as_ref().map(|_| "[redacted]"))
             .field("redacted_snapshot", &self.redacted_snapshot)
             .field("sensitivity", &self.sensitivity)
+            .field("pointer_anchor", &self.pointer_anchor)
             .field("sensitive", &self.is_sensitive())
             .finish()
     }
@@ -314,6 +321,11 @@ impl TextAreaState {
 
     pub const fn is_editing(&self) -> bool {
         matches!(self.phase, EditPhase::Editing)
+    }
+
+    /// Take a pending contextual edit-menu request, if one was made this update.
+    pub fn take_edit_menu_request(&mut self) -> Option<EditMenuRequest> {
+        self.edit_menu_request.take()
     }
 
     pub const fn phase(&self) -> EditPhase {
@@ -713,6 +725,7 @@ impl<'a> TextArea<'a> {
         st.set_sensitive(self.secret.is_some() || value.is_sensitive());
         let mut acc = Acc::<TextAction>::new();
         let editable = self.editable();
+        st.edit_menu_request = None;
         let lines = if st.is_editing() {
             st.draft.line_count()
         } else {
@@ -759,6 +772,34 @@ impl<'a> TextArea<'a> {
                         }
                     }
                 }
+                Intent::Key(k)
+                    if !self.disabled
+                        && (k.code == KeyCode::Menu
+                            || (k.code == KeyCode::F(10)
+                                && k.mods.contains(KeyModifiers::SHIFT))) =>
+                {
+                    let anchor = cx.area(self.id).map_or(Position::new(0, 0), |area| {
+                        let cursor = st.draft.cursor_pos();
+                        Position::new(
+                            area.x.saturating_add(2).saturating_add(
+                                u16::try_from(
+                                    cursor.col.saturating_sub(usize::from(st.draft.hscroll())),
+                                )
+                                .unwrap_or(u16::MAX),
+                            ),
+                            area.y.saturating_add(
+                                u16::try_from(cursor.line.saturating_sub(st.scroll.offset()))
+                                    .unwrap_or(u16::MAX),
+                            ),
+                        )
+                    });
+                    st.edit_menu_request = Some(EditMenuRequest {
+                        owner: self.id,
+                        part: PartRef::of(Part::TEXT),
+                        anchor,
+                    });
+                    acc.consumed();
+                }
                 Intent::Key(k) if editable => {
                     if !st.is_editing() {
                         st.begin(value.expose());
@@ -781,10 +822,11 @@ impl<'a> TextArea<'a> {
                 Intent::Pointer { part, .. }
                     if part.part == Part::TRACK || part.part == Part::THUMB => {}
                 Intent::Pointer {
-                    phase: Phase::Press | Phase::Click,
+                    phase: Phase::Press,
+                    part,
                     local,
                     ..
-                } if editable => {
+                } if editable || (self.read_only && !self.disabled) => {
                     if !st.is_editing() {
                         st.begin(value.expose());
                     }
@@ -795,8 +837,68 @@ impl<'a> TextArea<'a> {
                         .min(st.draft.line_count().saturating_sub(1));
                     let col = usize::from(local.x.saturating_sub(2))
                         .saturating_add(usize::from(st.draft.hscroll()));
-                    st.draft.set_cursor_line_col(line, col);
+                    st.pointer_anchor = Some(st.draft.pointer_select(
+                        line,
+                        col,
+                        cx.pointer_press_count(self.id, part).unwrap_or(1),
+                    ));
                     acc.changed();
+                }
+                Intent::Pointer {
+                    phase: Phase::DragStart | Phase::Drag,
+                    local,
+                    ..
+                } if st.is_editing() => {
+                    if let Some(anchor) = st.pointer_anchor {
+                        let line = st
+                            .scroll
+                            .offset()
+                            .saturating_add(usize::from(local.y))
+                            .min(st.draft.line_count().saturating_sub(1));
+                        let col = usize::from(local.x.saturating_sub(2))
+                            .saturating_add(usize::from(st.draft.hscroll()));
+                        st.draft.pointer_extend(anchor, line, col);
+                        acc.changed();
+                    } else {
+                        acc.consumed();
+                    }
+                }
+                Intent::Pointer {
+                    phase: Phase::Release | Phase::DragEnd,
+                    ..
+                } => {
+                    st.pointer_anchor = None;
+                    acc.consumed();
+                }
+                Intent::Pointer {
+                    phase: Phase::Secondary,
+                    part,
+                    pos,
+                    local,
+                    ..
+                } if !self.disabled => {
+                    if !st.is_editing() {
+                        st.begin(value.expose());
+                    }
+                    let line = st
+                        .scroll
+                        .offset()
+                        .saturating_add(usize::from(local.y))
+                        .min(st.draft.line_count().saturating_sub(1));
+                    let col = usize::from(local.x.saturating_sub(2))
+                        .saturating_add(usize::from(st.draft.hscroll()));
+                    let changed = st.draft.pointer_point(line, col);
+                    cx.focus(self.id);
+                    st.edit_menu_request = Some(EditMenuRequest {
+                        owner: self.id,
+                        part,
+                        anchor: pos,
+                    });
+                    if changed {
+                        acc.changed();
+                    } else {
+                        acc.consumed();
+                    }
                 }
                 Intent::Pointer { .. } => acc.consumed(),
                 Intent::Cancel if st.is_editing() => {
@@ -817,6 +919,58 @@ impl<'a> TextArea<'a> {
             }
         }
         acc.finish(self.id)
+    }
+
+    /// Report available edit commands without exposing the field's buffer.
+    pub fn edit_capabilities<T: TextTarget + ?Sized>(
+        &self,
+        st: &TextAreaState,
+        value: &T,
+    ) -> EditCapabilities {
+        crate::edit::capabilities(
+            &st.draft,
+            value.expose(),
+            st.is_editing(),
+            self.disabled,
+            self.editable(),
+            self.secret.is_some() || st.is_sensitive(),
+            value.is_sensitive(),
+        )
+    }
+
+    /// Execute one contextual edit command through the field's shared editor.
+    pub fn execute_edit_command<T: TextTarget + ?Sized>(
+        &self,
+        cx: &mut Cx<'_>,
+        st: &mut TextAreaState,
+        value: &mut T,
+        command: TextEditCommand,
+    ) -> bool {
+        st.set_sensitive(self.secret.is_some() || value.is_sensitive());
+        if command == TextEditCommand::SelectAll && !st.is_editing() && !self.disabled {
+            st.begin(value.expose());
+        }
+        if command == TextEditCommand::Paste
+            && self.editable()
+            && !st.is_editing()
+            && cx.clipboard_text().is_some()
+        {
+            st.begin(value.expose());
+        }
+        let capabilities = self.edit_capabilities(st, value);
+        let applied = crate::edit::execute(cx, &mut st.draft, capabilities, command);
+        if applied && matches!(command, TextEditCommand::Cut | TextEditCommand::Paste) {
+            self.live_validate(st);
+        }
+        if applied {
+            let cursor = st.draft.cursor_pos();
+            st.scroll.set_content(st.draft.line_count());
+            st.scroll.ensure_visible(cursor.line);
+            if let Some(area) = cx.area(self.id) {
+                st.draft.scroll_into_view(Self::inner_width(area.width));
+            }
+        }
+        applied
     }
 
     fn live_validate(&self, st: &mut TextAreaState) {
@@ -1235,6 +1389,35 @@ mod tests {
         value: String,
     }
 
+    struct SecondaryPasteTextAreaApp {
+        state: TextAreaState,
+        value: String,
+        pasted: bool,
+    }
+
+    impl App for SecondaryPasteTextAreaApp {
+        fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+            let area = TextArea::new(ID, 3);
+            let response = area.update(cx, &mut self.state, &mut self.value);
+            if self.state.take_edit_menu_request().is_some() && !self.pasted {
+                cx.clipboard_copy("X");
+                self.pasted = area.execute_edit_command(
+                    cx,
+                    &mut self.state,
+                    &mut self.value,
+                    TextEditCommand::Paste,
+                );
+            }
+            response.erase()
+        }
+
+        fn draw(&self, ui: &mut Ui<'_>) {
+            TextArea::new(ID, 3)
+                .value(&self.value)
+                .draw(ui, SCREEN, &self.state);
+        }
+    }
+
     impl App for SecretTextAreaApp {
         fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
             TextArea::new(ID, 3)
@@ -1302,6 +1485,31 @@ mod tests {
                 "TextArea::PARTS omits owned ScrollRegion part {part:?}"
             );
         }
+    }
+
+    #[test]
+    fn secondary_pointer_paste_inserts_at_the_clicked_textarea_point() {
+        let mut runtime = Runtime::new(
+            SecondaryPasteTextAreaApp {
+                state: TextAreaState::default(),
+                value: "one\ntwo".to_owned(),
+                pasted: false,
+            },
+            Theme::junie(),
+        );
+        let _ = runtime.initialize();
+        let mut buffer = Buffer::empty(SCREEN);
+        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
+        let _ = crate::runtime::stub::deliver(
+            &mut runtime,
+            Input::Mouse(crate::event::Mouse {
+                kind: crate::event::MouseKind::Secondary,
+                pos: Position::new(3, 1),
+                mods: KeyModifiers::NONE,
+            }),
+        );
+        assert!(runtime.app().pasted);
+        assert_eq!(runtime.app().state.draft.text(), "one\ntXwo");
     }
 
     #[test]
