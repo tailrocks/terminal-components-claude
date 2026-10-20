@@ -1120,7 +1120,9 @@ impl<'a> MenuBar<'a> {
                     style
                 }
             };
-            ui.fill(rect, style.style);
+            if self.hover_scope == MenuBarHoverScope::Title {
+                ui.fill(rect, style.style);
+            }
             let label = shift(rect, 1);
             if let Some(slot) = self.ov.slot_for(Part::TITLE) {
                 slot(ui, label);
@@ -1351,6 +1353,33 @@ mod tests {
                 "family default variant with {scope:?}"
             );
         }
+    }
+
+    #[test]
+    fn default_menu_bar_scope_keeps_title_patches_off_the_padding_cells() {
+        const ID: Id = Id::root("menu.tests.default-title-padding");
+        const MENUS: [Menu<'static>; 1] = [Menu::new("File", &ITEMS)];
+        const PATCH: [(Part, StylePatch); 1] = [(
+            Part::TITLE,
+            StylePatch::new().set_bg(crate::theme::Role::Custom(ratatui_core::style::Color::Rgb(
+                7, 8, 9,
+            ))),
+        )];
+        let area = Rect::new(0, 0, 20, 1);
+        let mut runtime = Runtime::new(crate::runtime::stub::Stub::default(), Theme::junie());
+        let mut buffer = Buffer::empty(area);
+        runtime
+            .draw_scene(area, &mut buffer, |ui, area| {
+                MenuBar::new(ID, &MENUS)
+                    .patch_part(&PATCH)
+                    .draw(ui, area, &MenuState::default());
+            })
+            .commit_presented();
+
+        let title_bg = ratatui_core::style::Color::Rgb(7, 8, 9);
+        assert_eq!(buffer.cell(Position::new(2, 0)).unwrap().bg, title_bg);
+        assert_ne!(buffer.cell(Position::new(1, 0)).unwrap().bg, title_bg);
+        assert_ne!(buffer.cell(Position::new(6, 0)).unwrap().bg, title_bg);
     }
 
     #[test]
