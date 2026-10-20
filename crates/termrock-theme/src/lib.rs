@@ -214,7 +214,10 @@ impl Theme {
     /// Baseline modal dim. Glyphs stay. Accent and secondary ink become faint.
     /// A rule that already fails contrast stays the ghost gray.
     pub fn backdrop_colors(&self, fg: Color, bg: Color) -> (Color, Color) {
-        let (mapped_fg, mapped_bg, _) = self.map_backdrop(Some(fg), Some(bg));
+        let (mut mapped_fg, mapped_bg, blank) = self.map_backdrop(Some(fg), Some(bg));
+        if !blank && mapped_fg == mapped_bg {
+            mapped_fg = self.backdrop_collision_ink(mapped_bg);
+        }
         (mapped_fg, mapped_bg)
     }
 
@@ -222,14 +225,22 @@ impl Theme {
     /// The glyph is preserved by the renderer; only nonblank dim cells receive DIM.
     #[must_use]
     pub fn backdrop_style(&self, style: Style) -> Style {
-        let (fg, bg, blank) = self.map_backdrop(style.fg, style.bg);
+        let (mut fg, bg, blank) = self.map_backdrop(style.fg, style.bg);
         let dim = !blank
             && (fg == bg || matches!(self.capability.color, ColorLevel::Ansi16 | ColorLevel::Mono));
+        if dim {
+            fg = self.backdrop_collision_ink(bg);
+        }
         let mut mapped = Style::new().fg(fg).bg(bg);
         if dim {
             mapped = mapped.add_modifier(Modifier::DIM);
         }
         mapped
+    }
+
+    fn backdrop_collision_ink(&self, bg: Color) -> Color {
+        let muted = self.color.fg[2];
+        if muted == bg { self.color.fg[0] } else { muted }
     }
 
     fn map_backdrop(&self, fg: Option<Color>, bg: Option<Color>) -> (Color, Color, bool) {
@@ -294,9 +305,6 @@ impl Theme {
                 .into_iter()
                 .find(|ink| reads(*ink, new_bg))
                 .unwrap_or(primary);
-        }
-        if !blank && mapped == new_bg {
-            mapped = if muted == new_bg { primary } else { muted };
         }
         (mapped, new_bg, blank)
     }
