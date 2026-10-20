@@ -1320,6 +1320,15 @@ pub fn first_use_history_tag(w: &World) -> Option<ParityDiscovery> {
     })
 }
 
+/// No-history plate, or the history plate when `history` is set. Only tick 40.
+pub fn monorepo_root_plate(w: &World, history: bool) -> Option<ParityDiscovery> {
+    if history {
+        monorepo_root_history_tag(w)
+    } else {
+        monorepo_root_tag(w)
+    }
+}
+
 pub fn monorepo_root_tag(w: &World) -> Option<ParityDiscovery> {
     if !monorepo_root_tag_frame(w) {
         return None;
@@ -1480,6 +1489,183 @@ pub fn monorepo_root_tag(w: &World) -> Option<ParityDiscovery> {
         lines,
         preview,
         preview_meta: "disk · here".into(),
+        actions: Vec::new(),
+        suggested_len: suggested.len(),
+    })
+}
+
+/// History-on `monorepo-root` plate. Same tick as the no-history plate. A later seek stays on concept home.
+pub fn monorepo_root_history_tag(w: &World) -> Option<ParityDiscovery> {
+    if !monorepo_root_tag_frame(w) {
+        return None;
+    }
+    let suggested = vec![
+        tag_row(
+            "Deploy preview",
+            "custom",
+            "here",
+            true,
+            "Current folder · ⚠ unreviewed · used 7 times here",
+            None,
+            true,
+        ),
+        tag_row(
+            "Follow acme-api-1 logs",
+            "docker",
+            "here",
+            true,
+            "service is unhealthy",
+            None,
+            false,
+        ),
+        tag_row(
+            "Inspect 10 GB of generated artifacts",
+            "disk",
+            "here",
+            true,
+            "10 GB generated artifacts",
+            None,
+            false,
+        ),
+        tag_row(
+            "Install missing tools · node",
+            "task",
+            "here",
+            true,
+            "1 tool missing",
+            None,
+            false,
+        ),
+        tag_row(
+            "Review cleanup candidates",
+            "cleanup",
+            "host",
+            false,
+            "10.6 GiB across 4 categories",
+            None,
+            false,
+        ),
+    ];
+    let recent = vec![tag_row(
+        "Pull",
+        "git",
+        "here",
+        true,
+        "used 20 times on mbp",
+        None,
+        false,
+    )];
+    let explore = vec![
+        tag_row(
+            "Children · 3 projects",
+            "explore",
+            "child",
+            false,
+            "3 child projects discovered",
+            None,
+            false,
+        ),
+        tag_row(
+            "System · mbp",
+            "explore",
+            "host",
+            false,
+            "available on this host",
+            None,
+            false,
+        ),
+    ];
+    let mut lines = Vec::new();
+    lines.push(FinderLine::Heading("Suggested here"));
+    for row in &suggested {
+        lines.push(FinderLine::Row(row.clone()));
+    }
+    lines.push(FinderLine::Blank);
+    lines.push(FinderLine::Heading("Recent here"));
+    for row in &recent {
+        lines.push(FinderLine::Row(row.clone()));
+    }
+    lines.push(FinderLine::Blank);
+    lines.push(FinderLine::Heading("Explore"));
+    lines.push(FinderLine::Chips(&[
+        "Tasks", "Git", "Files", "Disk", "Services", "System",
+    ]));
+    for row in &explore {
+        lines.push(FinderLine::Row(row.clone()));
+    }
+    let preview = vec![
+        PreviewLine {
+            label: "Does",
+            value: "push the current branch to the preview stack".into(),
+            tone: PreviewTone::Text,
+            wraps: true,
+        },
+        PreviewLine {
+            label: "Runs",
+            value: "tools/deploy-pre…preview".into(),
+            tone: PreviewTone::Secondary,
+            wraps: true,
+        },
+        PreviewLine {
+            label: "In",
+            value: "~/work/acme".into(),
+            tone: PreviewTone::Text,
+            wraps: false,
+        },
+        PreviewLine {
+            label: "Host",
+            value: "mbp · local".into(),
+            tone: PreviewTone::Text,
+            wraps: true,
+        },
+        PreviewLine {
+            label: "Scope",
+            value: "here".into(),
+            tone: PreviewTone::Text,
+            wraps: false,
+        },
+        PreviewLine {
+            label: "Why",
+            value: "Current folder · ⚠ unreviewed · used 7 times here".into(),
+            tone: PreviewTone::Text,
+            wraps: true,
+        },
+        PreviewLine {
+            label: "Changes",
+            value: "see the command".into(),
+            tone: PreviewTone::Text,
+            wraps: true,
+        },
+        PreviewLine {
+            label: "Risk",
+            value: "mutating".into(),
+            tone: PreviewTone::Muted,
+            wraps: true,
+        },
+        PreviewLine {
+            label: "Data",
+            value: "live · 0 s ago".into(),
+            tone: PreviewTone::Muted,
+            wraps: true,
+        },
+        PreviewLine {
+            label: "Gate",
+            value: "trust required · ~/work/acme/.holla.toml".into(),
+            tone: PreviewTone::Text,
+            wraps: true,
+        },
+        PreviewLine {
+            label: "Alt+Enter",
+            value: "Set an alias… · Show configuration diagnostics · Pin · Alias · Why here?"
+                .into(),
+            tone: PreviewTone::Muted,
+            wraps: true,
+        },
+    ];
+    Some(ParityDiscovery {
+        lines,
+        preview,
+        preview_meta: "custom · here".into(),
         actions: Vec::new(),
         suggested_len: suggested.len(),
     })
@@ -2234,6 +2420,7 @@ mod tests {
         assert!(monorepo_root_tag(&world).is_none());
         world.seek(40);
         let view = monorepo_root_tag(&world).expect("tick 40 tag");
+        assert_eq!(monorepo_root_plate(&world, false), Some(view.clone()));
         assert_eq!(view.preview_meta, "disk · here");
         assert!(view.lines.iter().any(|line| matches!(
             line,
@@ -2246,6 +2433,47 @@ mod tests {
         );
         world.seek(4_000);
         assert!(monorepo_root_tag(&world).is_none());
+        assert!(monorepo_root_plate(&world, false).is_none());
+    }
+
+    #[test]
+    fn monorepo_root_history_tag_exists_only_at_tick_40() {
+        let mut world = fixtures::world_for(Scenario::MonorepoRoot);
+        assert!(monorepo_root_history_tag(&world).is_none());
+        assert!(monorepo_root_plate(&world, true).is_none());
+        world.seek(40);
+        let view = monorepo_root_history_tag(&world).expect("tick 40 history tag");
+        assert_eq!(monorepo_root_plate(&world, true), Some(view.clone()));
+        assert_ne!(monorepo_root_tag(&world), Some(view.clone()));
+        assert_eq!(view.preview_meta, "custom · here");
+        assert!(view.lines.iter().any(|line| matches!(
+            line,
+            FinderLine::Row(row) if row.selected && row.title == "Deploy preview"
+        )));
+        assert!(view.lines.iter().any(|line| matches!(
+            line,
+            FinderLine::Row(row) if row.title == "Pull" && row.reason == "used 20 times on mbp"
+        )));
+        assert!(
+            !view
+                .lines
+                .iter()
+                .any(|line| matches!(line, FinderLine::Heading("nothing used here yet")))
+        );
+        assert!(
+            view.preview
+                .iter()
+                .any(|line| { line.label == "Runs" && line.value == "tools/deploy-pre…preview" })
+        );
+        assert!(
+            view.preview
+                .iter()
+                .any(|line| line.label == "Risk" && line.value == "mutating")
+        );
+        world.seek(4_000);
+        assert!(monorepo_root_history_tag(&world).is_none());
+        assert!(monorepo_root_plate(&world, true).is_none());
+        assert!(!monorepo_root_tag_frame(&world));
     }
 
     #[test]
