@@ -8,10 +8,11 @@ use termrock::{
     GridModel,
     GridSortIndicator, Id, Intent, ItemKey, KeyCode, KeyMap, KeyModifiers, KeyPhase, LayerId,
     LayerSize, LayerSpec, Maximized, Modifier, Panel, PanelKind, Part, Phase, PickerAction,
-    Position, Response, Role, RowDecor, RowTotal, RowUi, ScreenAlign, Size, SortDir, Span,
-    SplitAxis, SplitPane, SplitPaneState, StateFlags, StylePatch, Tabs, TabsAction, TabsState,
-    TextAction, TextInput, TextInputState, Theme, Tree, TreeAction, TreeBranchActivation, TreeNode,
-    TreeState, Ui, UpdateCause, truncate, truncate_middle, width, wrap,
+    PickerSlotExt, Position, Response, Role, RowDecor, RowTotal, RowUi, ScreenAlign, Size, SortDir,
+    Span, SplitAxis, SplitPane, SplitPaneState, StateFlags, StylePatch, Tabs, TabsAction,
+    TabsState, TextAction, TextInput, TextInputState, Theme, Tree, TreeAction,
+    TreeBranchActivation, TreeNode, TreeState, Ui, UpdateCause, truncate, truncate_middle, width,
+    wrap,
 };
 
 use crate::quick_switcher::{self, QuickSwitcher};
@@ -11263,23 +11264,23 @@ impl App for TableProApp {
         }
         draw_footer(ui, rows[2], self);
         self.draw_filter_editor(ui);
-        ui.layer(quick_switcher::ID, |ui, area| {
-            self.switcher
-                .component()
-                .draw(ui, area, &self.switcher.state, &self.switcher.items);
+        ui.layer_slot(quick_switcher::ID, |slot| {
+            slot.picker(
+                self.switcher.component(),
+                &self.switcher.state,
+                &self.switcher.items,
+            );
         });
-        ui.layer(tab_list::ID, |ui, area| {
-            tab_list::picker(self.tab_list.rows.len()).draw(
-                ui,
-                area,
+        ui.layer_slot(tab_list::ID, |slot| {
+            slot.picker(
+                tab_list::picker(self.tab_list.rows.len()),
                 &self.tab_list.state,
                 &self.tab_list.rows,
             );
         });
-        ui.layer(crate::safe_mode::ID, |ui, area| {
-            crate::safe_mode::picker(self.safe_mode_picker.rows.len()).draw(
-                ui,
-                area,
+        ui.layer_slot(crate::safe_mode::ID, |slot| {
+            slot.picker(
+                crate::safe_mode::picker(self.safe_mode_picker.rows.len()),
                 &self.safe_mode_picker.state,
                 &self.safe_mode_picker.rows,
             );
