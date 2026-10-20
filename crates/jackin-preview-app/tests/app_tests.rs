@@ -1952,6 +1952,27 @@ fn manager_help_overlay_paints_the_approved_shortcuts_cell() {
 }
 
 #[test]
+fn manager_launch_picker_paints_the_approved_agent_cell() {
+    let mut h = H::new(Scenario::Returning, Motion::Paused, 40, 120, 40);
+    let closed = h.buffer().cell((20, 16)).expect("manager cell");
+    assert_ne!(
+        (closed.symbol(), closed.bg),
+        ("L", termrock::Color::from_u32(0x00_18_18_1b)),
+        "closed manager must stay off the launch picker frame: {}",
+        h.text()
+    );
+    h.key(KeyCode::Enter);
+    let title = h.buffer().cell((20, 16)).expect("launch picker title");
+    assert_eq!(title.symbol(), "L");
+    assert_eq!(title.fg, termrock::Color::from_u32(0x00_ff_ff_ff));
+    assert_eq!(title.bg, termrock::Color::from_u32(0x00_18_18_1b));
+    assert!(title.modifier.contains(termrock::Modifier::BOLD));
+    assert!(!title.modifier.contains(termrock::Modifier::ITALIC));
+    assert!(h.text().contains("Launch · choose Agent"), "{}", h.text());
+    assert_eq!(h.harness.cursor(), None);
+}
+
+#[test]
 fn manager_file_menu_paints_the_approved_menu_frame() {
     let mut h = H::new(Scenario::Returning, Motion::Paused, 40, 120, 40);
     assert!(
