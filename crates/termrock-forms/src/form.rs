@@ -7,6 +7,7 @@ use super::{Acc, PartStyle};
 use crate::action::{Action, ActionKey};
 use crate::event::{Chord, KeyCode};
 use crate::focus::Focusability;
+use crate::form_layout::{FormLayout, FormLayoutError, FormRow};
 use crate::id::{Id, Part, PartRef, fnv1a};
 use crate::intent::Intent;
 use crate::measure::{Constraints, Size};
@@ -394,6 +395,7 @@ pub struct FormState {
     errors: Vec<(Id, ErrorState)>,
     dirty: bool,
     reveal: Option<Id>,
+    lane_scrolls: Vec<(Id, ScrollState)>,
 }
 
 impl Clone for FormState {
@@ -414,6 +416,7 @@ impl Clone for FormState {
                 .collect(),
             dirty: self.dirty,
             reveal: self.reveal,
+            lane_scrolls: self.lane_scrolls.clone(),
         }
     }
 }
@@ -431,6 +434,7 @@ impl PartialEq for FormState {
             )
             && self.dirty == other.dirty
             && self.reveal == other.reveal
+            && self.lane_scrolls == other.lane_scrolls
     }
 }
 
@@ -449,6 +453,28 @@ impl fmt::Debug for FormState {
 }
 
 impl FormState {
+    fn lane_scroll(&self, lane: Id) -> ScrollState {
+        self.lane_scrolls
+            .iter()
+            .find(|(key, _)| *key == lane)
+            .map_or(ScrollState::default(), |(_, state)| *state)
+    }
+
+    fn lane_scroll_mut(&mut self, lane: Id) -> &mut ScrollState {
+        let existing = self.lane_scrolls.iter().position(|(key, _)| *key == lane);
+        if let Some(index) = existing {
+            if let Some((_, state)) = self.lane_scrolls.get_mut(index) {
+                return state;
+            }
+            return &mut self.scroll;
+        }
+        self.lane_scrolls.push((lane, ScrollState::default()));
+        match self.lane_scrolls.last_mut() {
+            Some((_, state)) => state,
+            None => &mut self.scroll,
+        }
+    }
+
     pub const fn is_dirty(&self) -> bool {
         self.dirty
     }
@@ -680,6 +706,7 @@ pub struct Form<'a> {
     group: GroupKey,
     ov: PartStyle<'a>,
     parts: &'a [(Part, StylePatch)],
+    layout: Option<&'a FormLayout<'a>>,
 }
 
 impl fmt::Debug for Form<'_> {
@@ -692,6 +719,7 @@ impl fmt::Debug for Form<'_> {
             .field("enter", &self.enter)
             .field("columns", &self.columns)
             .field("group", &self.group)
+            .field("layout", &self.layout.is_some())
             .finish_non_exhaustive()
     }
 }
@@ -703,6 +731,18 @@ struct Placement {
     left: u16,
     width: u16,
     height: u16,
+}
+
+struct LanePlan {
+    id: Id,
+    area: Rect,
+    content_rows: usize,
+    placements: Vec<Placement>,
+}
+
+fn lane_scroll_id(form: Id, lane: Id) -> Id {
+    form.part(Part::BODY)
+        .item(crate::id::ItemKey::Num(lane.hash()))
 }
 
 struct Placements<'fields, 'a> {
@@ -728,16 +768,7 @@ impl Placements<'_, '_> {
             {
                 continue;
             }
-            let height = match &field.kind {
-                FieldKind::Area(area) => {
-                    self.field_height.max(area.rows_in_form().saturating_add(2))
-                }
-                FieldKind::Radio(_) => {
-                    let rows = u16::try_from(data.options(field.id).len()).unwrap_or(u16::MAX);
-                    self.field_height.max(rows.saturating_add(2))
-                }
-                _ => self.field_height,
-            };
+            let height = placement_height(field, self.field_height, data);
             let is_half = self.columns == 2 && field.span == FieldSpan::Half;
             let half_width = self.width.saturating_sub(self.gap) / 2;
             if is_half && let Some(left_height) = self.half_height.take() {
@@ -777,6 +808,17 @@ impl Placements<'_, '_> {
     }
 }
 
+fn placement_height<D: FormData + ?Sized>(field: &FieldSpec<'_>, base: u16, data: &D) -> u16 {
+    match &field.kind {
+        FieldKind::Area(area) => base.max(area.rows_in_form().saturating_add(2)),
+        FieldKind::Radio(_) => {
+            let rows = u16::try_from(data.options(field.id).len()).unwrap_or(u16::MAX);
+            base.max(rows.saturating_add(2))
+        }
+        _ => base,
+    }
+}
+
 impl<'a> Form<'a> {
     pub const PARTS: &'static [Part] = &[
         Part::CONTAINER,
@@ -799,6 +841,7 @@ impl<'a> Form<'a> {
             group: GroupKey::ALL,
             ov: PartStyle::new(),
             parts: &[],
+            layout: None,
         }
     }
 
@@ -830,6 +873,42 @@ impl<'a> Form<'a> {
     pub const fn group(mut self, group: GroupKey) -> Self {
         self.group = group;
         self
+    }
+
+    /// Apply a borrowed semantic lane layout after checking its static shape
+    /// and field references. Active-group/data visibility completeness is
+    /// checked by [`Self::validate_layout`] before each rendering phase.
+    pub fn try_layout(mut self, layout: &'a FormLayout<'a>) -> Result<Self, FormLayoutError> {
+        layout.validate(self.fields.iter().map(|field| field.id))?;
+        self.layout = Some(layout);
+        Ok(self)
+    }
+
+    /// Validate the final builder configuration against the current group and
+    /// live visibility data without reading field values or mutating state.
+    pub fn validate_layout<D: FormData + ?Sized>(&self, data: &D) -> Result<(), FormLayoutError> {
+        let Some(layout) = self.layout else {
+            return Ok(());
+        };
+        layout.validate(self.fields.iter().map(|field| field.id))?;
+        for field in self.fields {
+            if self.shown(data, field)
+                && !layout
+                    .lanes()
+                    .iter()
+                    .flat_map(|lane| lane.rows())
+                    .any(|row| match row {
+                        FormRow::Field(id) | FormRow::Fill(id) => *id == field.id,
+                        FormRow::Pair { first, second, .. } => {
+                            *first == field.id || *second == field.id
+                        }
+                        FormRow::Spacer(_) => false,
+                    })
+            {
+                return Err(FormLayoutError::MissingVisibleField(field.id));
+            }
+        }
+        Ok(())
     }
 
     #[must_use]
@@ -900,6 +979,138 @@ impl<'a> Form<'a> {
             rows = rows.max(placement.top.saturating_add(usize::from(placement.height)));
         }
         rows
+    }
+
+    fn lane_plans<D: FormData + ?Sized>(
+        &self,
+        design: &DesignTokens,
+        area: Rect,
+        data: &D,
+    ) -> Vec<LanePlan> {
+        let Some(layout) = self.layout else {
+            return Vec::new();
+        };
+        let lane_areas: Vec<Rect> = match (layout.lanes().len(), layout.split_policy()) {
+            (1, _) => vec![area],
+            (2, Some((split, gap))) => {
+                let (first, second) = split.layout(area, gap);
+                vec![first, second]
+            }
+            _ => Vec::new(), // Construction preflight makes this unreachable.
+        };
+        layout
+            .lanes()
+            .iter()
+            .zip(lane_areas)
+            .map(|(lane, lane_area)| {
+                let mut y = 0_usize;
+                let mut placements = Vec::new();
+                for row in lane.rows() {
+                    match *row {
+                        FormRow::Spacer(rows) => y = y.saturating_add(usize::from(rows)),
+                        FormRow::Field(id) | FormRow::Fill(id) => {
+                            let Some((index, field)) = self
+                                .fields
+                                .iter()
+                                .enumerate()
+                                .find(|(_, field)| field.id == id && self.shown(data, field))
+                            else {
+                                continue;
+                            };
+                            let min_height =
+                                placement_height(field, design.size.field_height, data);
+                            let height = if matches!(row, FormRow::Fill(_)) {
+                                min_height.max(
+                                    usize::from(lane_area.height)
+                                        .saturating_sub(y)
+                                        .min(usize::from(u16::MAX))
+                                        as u16,
+                                )
+                            } else {
+                                min_height
+                            };
+                            placements.push(Placement {
+                                index,
+                                top: y,
+                                left: 0,
+                                width: lane_area.width,
+                                height,
+                            });
+                            y = y.saturating_add(usize::from(height));
+                        }
+                        FormRow::Pair {
+                            first,
+                            second,
+                            split,
+                            gap,
+                        } => {
+                            let first_field =
+                                self.fields.iter().enumerate().find(|(_, field)| {
+                                    field.id == first && self.shown(data, field)
+                                });
+                            let second_field =
+                                self.fields.iter().enumerate().find(|(_, field)| {
+                                    field.id == second && self.shown(data, field)
+                                });
+                            match (first_field, second_field) {
+                                (
+                                    Some((first_index, first_field)),
+                                    Some((second_index, second_field)),
+                                ) => {
+                                    let (first_area, second_area) =
+                                        split.layout(Rect::new(0, 0, lane_area.width, 1), gap);
+                                    let first_height = placement_height(
+                                        first_field,
+                                        design.size.field_height,
+                                        data,
+                                    );
+                                    let second_height = placement_height(
+                                        second_field,
+                                        design.size.field_height,
+                                        data,
+                                    );
+                                    let height = first_height.max(second_height);
+                                    placements.push(Placement {
+                                        index: first_index,
+                                        top: y,
+                                        left: first_area.x,
+                                        width: first_area.width,
+                                        height: first_height,
+                                    });
+                                    placements.push(Placement {
+                                        index: second_index,
+                                        top: y,
+                                        left: second_area.x,
+                                        width: second_area.width,
+                                        height: second_height,
+                                    });
+                                    y = y.saturating_add(usize::from(height));
+                                }
+                                (Some((index, field)), None) | (None, Some((index, field))) => {
+                                    let height =
+                                        placement_height(field, design.size.field_height, data);
+                                    placements.push(Placement {
+                                        index,
+                                        top: y,
+                                        left: 0,
+                                        width: lane_area.width,
+                                        height,
+                                    });
+                                    y = y.saturating_add(usize::from(height));
+                                }
+                                (None, None) => {}
+                            }
+                        }
+                    }
+                }
+                LanePlan {
+                    id: lane.id,
+                    area: lane_area,
+                    content_rows: y,
+                    placements,
+                }
+            })
+            .collect()
     }
 
     fn set_slot_value(slot: &mut FieldSlot, value: &FieldMut<'_>) {
@@ -1097,6 +1308,12 @@ impl<'a> Form<'a> {
         st: &mut FormState,
         data: &mut D,
     ) -> Response<FormAction> {
+        if self.validate_layout(data).is_err() {
+            return Response::ignored().for_id(self.id);
+        }
+        if self.layout.is_some() {
+            return self.update_lanes(cx, st, data);
+        }
         st.reconcile_fields_with_data(self.fields, data);
         let width = cx.area(self.id).map_or(0, |area| area.width);
         let content_rows = Self::content_rows(self.placements(cx.design(), width), data);
@@ -1198,6 +1415,118 @@ impl<'a> Form<'a> {
         }
     }
 
+    fn update_lanes<D: FormData + ?Sized>(
+        &self,
+        cx: &mut Cx<'_>,
+        st: &mut FormState,
+        data: &mut D,
+    ) -> Response<FormAction> {
+        st.reconcile_fields_with_data(self.fields, data);
+        let area = cx.area(self.id).unwrap_or_default();
+        let body = Rect {
+            height: area
+                .height
+                .saturating_sub(u16::from(!self.actions.is_empty())),
+            ..area
+        };
+        let plans = self.lane_plans(cx.design(), body, data);
+        let mut acc = Acc::<FormAction>::new();
+        let mut first = None;
+        for plan in &plans {
+            let response = ScrollRegion::new(lane_scroll_id(self.id, plan.id))
+                .patch_part(self.parts)
+                .update(cx, st.lane_scroll_mut(plan.id), plan.content_rows);
+            acc.fold(&response.erase());
+        }
+        if let Some(id) = st.reveal.take()
+            && let Some((plan, placement)) = plans.iter().find_map(|plan| {
+                plan.placements
+                    .iter()
+                    .find(|placement| self.fields.get(placement.index).is_some_and(|f| f.id == id))
+                    .map(|placement| (plan, placement))
+            })
+        {
+            let viewport = st.lane_scroll(plan.id).viewport_len();
+            st.lane_scroll_mut(plan.id)
+                .ensure_visible_on_next_layout(Self::reveal_index(*placement, viewport));
+        }
+
+        let placed: Vec<usize> = plans
+            .iter()
+            .flat_map(|plan| plan.placements.iter().map(|placement| placement.index))
+            .collect();
+        let enter_requested = self.enter == EnterPolicy::SubmitsWhenIdle
+            && placed.iter().any(|index| {
+                self.fields.get(*index).is_some_and(|field| {
+                    cx.state(field.id).contains(StateFlags::FOCUSED)
+                        && !cx.state(field.id).contains(StateFlags::EDITING)
+                        && !cx.swallows_typing(field.id)
+                        && cx
+                            .claim_binding_chord(field.id, Chord::key(KeyCode::Enter))
+                            .is_some()
+                })
+            });
+
+        for plan in &plans {
+            for placement in &plan.placements {
+                let Some(field) = self.fields.get(placement.index) else {
+                    continue;
+                };
+                if cx.state(field.id).contains(StateFlags::FOCUSED) {
+                    let viewport = st.lane_scroll(plan.id).viewport_len();
+                    st.lane_scroll_mut(plan.id)
+                        .ensure_visible_on_next_layout(Self::reveal_index(*placement, viewport));
+                }
+                let disabled = data.disabled(field.id);
+                let (value, options) = data.value_and_options(field.id);
+                let Some(slot) = Self::prepare_slot(st, placement.index, field, &value) else {
+                    continue;
+                };
+                let response = Self::update_field(field, cx, slot, value, options, disabled);
+                if let Some(action) = response.action_ref().copied() {
+                    if matches!(action, FormAction::Committed(_)) {
+                        st.dirty = true;
+                    }
+                    Self::remember_action(&mut first, action);
+                }
+                acc.fold(&response.erase());
+            }
+        }
+
+        let mut requested = enter_requested.then_some(self.submit);
+        for (index, action) in self.actions.iter().enumerate() {
+            let action_id = self.id.part(Part::ACTIONS).index(index);
+            let response = Button::new(action_id, action.label())
+                .variant(action.variant())
+                .disabled(!action.is_enabled())
+                .update(cx);
+            let domain_action = action.is_enabled()
+                && cx
+                    .intents(action_id)
+                    .any(|intent| matches!(intent, Intent::Binding(key) if key == action.key()));
+            if (response.activated() || domain_action) && requested.is_none() {
+                requested = Some(action.key());
+            }
+            acc.fold(&response.erase());
+        }
+        if let Some(key) = requested {
+            let action = if key == self.submit {
+                self.submit_form(cx, st, data)
+            } else {
+                FormAction::Action(key)
+            };
+            if key == self.submit {
+                first = Some(action);
+            } else {
+                Self::remember_action(&mut first, action);
+            }
+        }
+        match first {
+            Some(action) => Response::action(action).for_id(self.id),
+            None => acc.finish(self.id),
+        }
+    }
+
     fn field_error<'d, D: FormData + ?Sized>(
         st: &'d FormState,
         data: &'d D,
@@ -1233,8 +1562,11 @@ impl<'a> Form<'a> {
         st: &FormState,
         data: &D,
     ) -> Rect {
-        if area.is_empty() {
+        if area.is_empty() || self.validate_layout(data).is_err() {
             return area;
+        }
+        if self.layout.is_some() {
+            return self.draw_lanes(ui, area, st, data);
         }
         let content_rows = Self::content_rows(self.placements(ui.design(), area.width), data);
         let actions_height = u16::from(!self.actions.is_empty());
@@ -1299,6 +1631,83 @@ impl<'a> Form<'a> {
                 area.height,
                 area.width,
             ),
+        );
+        area
+    }
+
+    fn draw_lanes<D: FormData + ?Sized>(
+        &self,
+        ui: &mut Ui<'_>,
+        area: Rect,
+        st: &FormState,
+        data: &D,
+    ) -> Rect {
+        let body = Rect {
+            height: area
+                .height
+                .saturating_sub(u16::from(!self.actions.is_empty())),
+            ..area
+        };
+        let plans = self.lane_plans(ui.design(), body, data);
+        let form_style = self.ov.style(
+            ui,
+            self.id,
+            Family::FORM,
+            Variant::DEFAULT,
+            Part::CONTAINER,
+            StateFlags::empty(),
+        );
+        let mut max_rows = 0;
+        for plan in &plans {
+            max_rows = max_rows.max(plan.content_rows);
+            let scroll_id = lane_scroll_id(self.id, plan.id);
+            let scroll_state = st.lane_scroll(plan.id);
+            let scroll = ScrollRegion::new(scroll_id).patch_part(self.parts);
+            let content = scroll.draw(ui, plan.area, &scroll_state, plan.content_rows);
+            ui.fill(content, form_style.style);
+            ui.register_decor(scroll_id, PartRef::of(Part::BODY), content);
+            let view = ScrollRegion::view(&scroll_state, plan.area, plan.content_rows);
+            let base = view.offset();
+            for placement in &plan.placements {
+                let Some(field) = self.fields.get(placement.index) else {
+                    continue;
+                };
+                let bottom = placement.top.saturating_add(usize::from(placement.height));
+                if bottom <= base
+                    || placement.top >= base.saturating_add(usize::from(content.height))
+                {
+                    Self::register_clipped_field(ui, field, data);
+                    continue;
+                }
+                let y_offset = placement.top.saturating_sub(base);
+                let field_area = Rect {
+                    x: content.x.saturating_add(placement.left),
+                    y: content
+                        .y
+                        .saturating_add(y_offset.min(usize::from(u16::MAX)) as u16),
+                    width: placement
+                        .width
+                        .min(content.width.saturating_sub(placement.left)),
+                    height: placement.height.min(
+                        content
+                            .height
+                            .saturating_sub(y_offset.min(usize::from(u16::MAX)) as u16),
+                    ),
+                };
+                let fallback;
+                let slot = if let Some(slot) = st.slots.get(placement.index) {
+                    slot
+                } else {
+                    fallback = FieldSlot::new(field.id);
+                    &fallback
+                };
+                self.draw_control(ui, field_area, field, slot, st, data);
+            }
+        }
+        self.draw_actions(ui, area);
+        ui.report_layout(
+            self.id,
+            LayoutFacts::new(usize::from(body.height), max_rows, area.height, area.width),
         );
         area
     }
@@ -1527,11 +1936,12 @@ impl<'a> Form<'a> {
         }
     }
 
-    /// Estimates size without consulting [`FormData`].
+    /// Estimates the legacy linear layout without consulting [`FormData`].
     ///
     /// This compatibility method cannot account for data-dependent visibility,
     /// radio option counts, or the row pairing used when `columns(2)` is set.
-    /// Consumers with form data should use [`Self::measure_with_data`].
+    /// This estimate also ignores an explicit lane layout. Consumers with
+    /// form data should use [`Self::measure_with_data`].
     pub fn measure(&self, ui: &Ui<'_>, constraints: Constraints) -> Size {
         let rows = self
             .fields
@@ -1558,6 +1968,33 @@ impl<'a> Form<'a> {
         constraints: Constraints,
         data: &D,
     ) -> Size {
+        if self.layout.is_some() {
+            if self.validate_layout(data).is_err() {
+                return Size::default().fit(constraints);
+            }
+            let body_height = constraints
+                .max
+                .1
+                .saturating_sub(u16::from(!self.actions.is_empty()));
+            let plans = self.lane_plans(
+                ui.design(),
+                Rect::new(0, 0, constraints.max.0, body_height),
+                data,
+            );
+            let rows = plans
+                .iter()
+                .map(|plan| plan.content_rows)
+                .max()
+                .unwrap_or(0)
+                .saturating_add(usize::from(!self.actions.is_empty()))
+                .try_into()
+                .unwrap_or(u16::MAX);
+            return Size {
+                min: (8, rows.min(1)),
+                preferred: (constraints.max.0, rows),
+            }
+            .fit(constraints);
+        }
         let rows = Self::content_rows(self.placements(ui.design(), constraints.max.0), data)
             .saturating_add(usize::from(!self.actions.is_empty()))
             .try_into()
