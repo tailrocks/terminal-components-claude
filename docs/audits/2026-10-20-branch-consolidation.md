@@ -2,7 +2,7 @@
 
 Inventory snapshot: **96 remote branches**, observed 2026-10-20 16:07:32 UTC. The JSON companion records each exact starting SHA and audit assignment. Validation found 96 rows, 96 unique branch names, and 12 E-assigned branches. Fresh `git ls-remote` checks at 16:10 UTC matched all 12 E heads. The remote PR #38 head advanced during review from inventory snapshot `6bcdc42173232b53ed48b221ae8d099791283e39` to `0cd5edb8856396bde1bbd2f8a5377940a3d50447`; latest run 39455126168 was still in progress when recorded.
 
-This is the E (CI, reference, and catchall) report only. A–D rows remain explicitly pending; this record makes no approval claims for them. The external copy of the E evidence is `E-ci-reference-catchall.json` under the captured evidence directory.
+E (CI, reference, and catchall) and D (tests and proof) reports are recorded. A–C rows remain explicitly pending; this record makes no approval claims for them. The external copy at `E-ci-reference-catchall.json` includes all 96 branch rows and both completed reports. Detailed D evidence remains linked from that JSON to the captured evidence directory.
 
 ## E findings
 
@@ -23,6 +23,10 @@ PR #38 already pins Velnor Actions **0.1.29** at source commit `e7b2f088715379c2
 | `parity/velnor-parity-20261020` | `e7961cee` | Superseded duplicate | Earlier 0.1.29 generation. Its older config would drop PR #38's current 15-minute timeout and discovery exclusions. |
 | `wip/shared-design-working-tree-20261020` | `1d7fdb22` | Exclude and preserve | Snapshot based on design reference; 163 changed files and 12,624 deletions against design head. Not safe to merge. Keep branch pending its own disposition. |
 
+## D findings
+
+D reviewed 15 branches. No wholesale merge was recommended. Architecture checker revisions are superseded by exact final files already in PR #38; frozen-table workflow revisions are stale and their candidate comparisons remain red; docs and working-tree snapshots are excluded or require manual reconciliation. `parity/buttons-reference-decision-20261020` and `parity/ordinary-cli-partition-20261020` are selective tool-port candidates only. `wip/style-conformance-20261020` requires component/runtime review. Preserve all red candidate evidence; no D finding establishes app acceptance. Branch-by-branch hashes, ancestry counts, findings, and scopes are in the JSON companion.
+
 ## Verification limits
 
-E branch heads were checked directly with `git ls-remote`. PR #39's Plan timeout and Required failure were checked through GitHub run 39436987238 and check-run annotations. No generated files were hand-edited. PR #38's latest CI run was still running at observation time, so no result is claimed. This audit does not establish product parity, the reusable-library gate, or A–D branch disposition.
+E branch heads were checked directly with `git ls-remote`. PR #39's Plan timeout and Required failure were checked through GitHub run 39436987238 and check-run annotations. D performed a separate read-only history/source review; it did not run full checked-out builds. No generated files were hand-edited. PR #38's latest CI run was still running at observation time, so no result is claimed. This audit does not establish product parity, the reusable-library gate, or A–C branch disposition.
