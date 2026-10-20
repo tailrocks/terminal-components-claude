@@ -9700,6 +9700,11 @@ fn paint_action_button(
         " ",
         gutter,
     );
+    let label_style = if bold && ui.theme().capability.color == termrock::ColorLevel::Mono {
+        PaintStyle::new().add_modifier(Modifier::BOLD | Modifier::REVERSED)
+    } else {
+        button
+    };
     ui.paint_str(
         termrock::Rect {
             x: x.saturating_add(1),
@@ -9707,8 +9712,8 @@ fn paint_action_button(
             width: width.saturating_sub(1),
             height: 1,
         },
-        label,
-        button,
+        &format!("{label} "),
+        label_style,
     );
 }
 
