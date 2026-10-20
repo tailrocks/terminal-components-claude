@@ -1442,6 +1442,28 @@ fn settings_route_s_paints_the_approved_settings_frame() {
 }
 
 #[test]
+fn settings_mounts_two_enter_paints_the_approved_mounts_frame() {
+    let mut h = H::new(Scenario::AccountsMixed, Motion::Paused, 40, 120, 40);
+    h.key(KeyCode::Char('s'));
+    assert_eq!(h.app().settings.tab, 0);
+    let general = h.buffer().cell((8, 6)).expect("general body");
+    assert_ne!(general.symbol(), "D", "General must not show Destination");
+    h.key(KeyCode::Char('2'));
+    assert_eq!(h.app().settings.tab, 0);
+    let armed = h.buffer().cell((8, 6)).expect("armed general body");
+    assert_ne!(armed.symbol(), "D", "`2` alone must stay on General");
+    h.key(KeyCode::Enter);
+    assert_eq!(h.app().settings.tab, 1);
+    let dest = h.buffer().cell((8, 6)).expect("destination heading");
+    assert_eq!(dest.symbol(), "D");
+    assert_eq!(dest.fg, termrock::Color::from_u32(0x8a_8a_8a));
+    assert_eq!(dest.bg, termrock::Color::from_u32(0x00_00_00));
+    assert!(!dest.modifier.contains(termrock::Modifier::BOLD));
+    assert!(h.text().contains("/home/agent/.gitconfig"), "{}", h.text());
+    assert_eq!(h.harness.cursor(), None);
+}
+
+#[test]
 fn accounts_detail_downs_paint_the_approved_work_frame() {
     let mut h = H::new(Scenario::AccountsMixed, Motion::Paused, 40, 120, 40);
     assert!(
