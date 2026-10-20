@@ -31,6 +31,16 @@ APPS = ("showcase", "tablepro", "jackin-preview", "holla")
 MAX_TIMEOUT = 230
 EXPECTED_SCENARIOS = 28_895
 EXPECTED_ORDINARY_TESTS = 20
+EXPECTED_CLI_ORDINARY_TESTS = frozenset({
+    "modes::showcase_boot_sets_terminal_modes",
+    "modes::tablepro_boot_sets_terminal_modes",
+    "modes::holla_boot_sets_terminal_modes",
+    "modes::jackin_boot_sets_terminal_modes",
+    "startup_input::showcase_discards_keys_typed_before_start",
+    "startup_input::tablepro_discards_keys_typed_before_start",
+    "startup_resize::a_resize_queued_with_a_key_still_reaches_the_app",
+    "startup_resize::a_resize_right_after_the_first_frame_repaints",
+})
 DEFAULT_CHUNK_SIZE = 32
 
 
@@ -615,13 +625,13 @@ def read_receipts(receipt_root: Path, selected: list[str], expected_root: Path) 
         key = (case, ordinal, logical)
         if key in receipts:
             raise RunnerError(f"duplicate checkpoint receipt: {key}")
-        case_hex = case.encode().hex()
-        logical_hex = logical.encode().hex()
-        expected_receipt = receipt_root / case_hex / f"{ordinal:08}-{logical_hex}.json"
+        case_hash = hashlib.sha256(case.encode()).hexdigest()
+        checkpoint = f"checkpoint-{ordinal:08}-{checkpoint_identity(case, ordinal, logical)}"
+        expected_receipt = receipt_root / case_hash / f"{checkpoint}.json"
         if path != expected_receipt:
             raise RunnerError(f"checkpoint receipt path does not match its identity: {path}")
         expected_receipt_entries.add(path.relative_to(receipt_root).as_posix())
-        expected_frame = expected_root / f"case-{case_hex}-{ordinal:08}-{logical_hex}.ansi"
+        expected_frame = expected_root / f"{checkpoint}.ansi"
         if expected_frame.is_symlink() or not expected_frame.is_file() or sha256(expected_frame) != digest:
             raise RunnerError(f"receipt frame missing or hash mismatch: {expected_frame}")
         receipts[key] = digest
@@ -631,7 +641,7 @@ def read_receipts(receipt_root: Path, selected: list[str], expected_root: Path) 
     missing = sorted(case for case, count in counts.items() if count == 0)
     if missing:
         raise RunnerError(f"successful scenarios missing checkpoint receipts: {missing[:5]}")
-    expected_receipt_dirs = {case.encode().hex() + "/" for case, _, _ in receipts}
+    expected_receipt_dirs = {hashlib.sha256(case.encode()).hexdigest() + "/" for case, _, _ in receipts}
     expected_receipt_entries.update(expected_receipt_dirs)
     if receipt_entries != expected_receipt_entries:
         raise RunnerError(f"receipt store inventory mismatch: extra={sorted(receipt_entries - expected_receipt_entries)[:3]}, missing={sorted(expected_receipt_entries - receipt_entries)[:3]}")
@@ -788,6 +798,17 @@ def baseline_and_candidate_records(repo: Path, root: Path, baseline_bins: Path, 
     return build_record, candidate
 
 
+def checkpoint_identity(case: str, ordinal: int, logical_name: str) -> str:
+    identity = hashlib.sha256()
+    identity.update(b"termrock-paired-checkpoint-v1\0")
+    identity.update(case.encode())
+    identity.update(b"\0")
+    identity.update(ordinal.to_bytes(8, "big"))
+    identity.update(b"\0")
+    identity.update(logical_name.encode())
+    return identity.hexdigest()
+
+
 def exact_receipt_differences(left: dict[tuple[str, int, str], str], right: dict[tuple[str, int, str], str]) -> list[str]:
     differences = []
     for key in sorted(set(left) | set(right)):
@@ -912,40 +933,56 @@ def phase_receipts(run_root: Path, phase: str, selected: list[str], expected_roo
     missing = sorted(name for name, count in counts.items() if count == 0)
     if missing:
         raise RunnerError(f"phase scenario coverage incomplete: {missing[:5]}")
-    expected_files = {f"case-{case.encode().hex()}-{ordinal:08}-{logical.encode().hex()}.ansi" for case, ordinal, logical in combined}
+    expected_files = {f"checkpoint-{ordinal:08}-{checkpoint_identity(case, ordinal, logical)}.ansi" for case, ordinal, logical in combined}
     _, actual_files = flat_sealed_store(expected_root, "runtime expected")
     if actual_files != expected_files:
         raise RunnerError(f"runtime expected frame inventory mismatch: missing={sorted(expected_files - actual_files)[:3]}, extra={sorted(actual_files - expected_files)[:3]}")
     return combined
 
 
-def run_ordinary_checks(live: Path, root: Path, run_root: Path, inventory: dict[str, bool], timeout: int) -> dict[str, object]:
+def ordinary_test_groups(inventory: dict[str, bool]) -> tuple[list[str], list[str]]:
     selected = sorted(name for name, ignored in inventory.items() if not ignored)
-    env = clean_env()
-    if any(key.startswith("TERMROCK_PAIR_") for key in env):
-        raise RunnerError("pair runtime flags leaked into ordinary checks")
-    env.update({"CARGO_TARGET_DIR": str(root / "live-target"), "NEXTEST_EXPERIMENTAL_LIBTEST_JSON": "1"})
-    command = ["cargo", "nextest", "run", "--locked", "--manifest-path", str(live / "Cargo.toml"), "-p", TEST_PACKAGE, "--test", TEST_TARGET, "--filter-expr", selected_expression(selected), "--message-format", "libtest-json-plus", "--no-fail-fast"]
-    output_dir = run_root / "ordinary"
-    output_dir.mkdir(parents=True, exist_ok=False)
-    failure = None
-    events: dict[str, str] = {}
-    try:
-        stdout = run(command, cwd=live, timeout=timeout, env=env, quiet=True, stdout_path=output_dir / "stdout.jsonl", stderr_path=output_dir / "stderr.log")
-        events = nextest_events(stdout, selected)
-    except RunnerError as error:
-        failure = str(error)
-    stdout_path = output_dir / "stdout.jsonl"
-    stdout_gzip = output_dir / "stdout.jsonl.gz"
-    if stdout_path.is_file():
-        with stdout_path.open("rb") as source_stream, gzip.open(stdout_gzip, "wb", compresslevel=6) as compressed:
-            shutil.copyfileobj(source_stream, compressed)
-        stdout_path.unlink()
-    result = {"status": "failed" if failure else "passed", "failure": failure, "selected_cases": selected, "passed_test_events": len(events), "stdout_sha256": sha256(stdout_gzip) if stdout_gzip.is_file() else None, "stderr_sha256": sha256(output_dir / "stderr.log") if (output_dir / "stderr.log").is_file() else None}
-    (output_dir / "report.json").write_text(json.dumps(result, indent=2) + "\n")
-    if failure:
-        raise RunnerError(f"ordinary non-scenario checks failed; report saved: {failure}")
-    return result
+    if len(selected) != EXPECTED_ORDINARY_TESTS:
+        raise RunnerError(f"ordinary test inventory changed: {len(selected)}; expected {EXPECTED_ORDINARY_TESTS}")
+    cli = sorted(name for name in selected if name.startswith(("modes::", "startup_input::", "startup_resize::")))
+    if set(cli) != EXPECTED_CLI_ORDINARY_TESTS:
+        raise RunnerError(f"CLI ordinary-check inventory changed: expected {sorted(EXPECTED_CLI_ORDINARY_TESTS)}, got {cli}")
+    return [name for name in selected if name not in EXPECTED_CLI_ORDINARY_TESTS], cli
+
+
+def run_ordinary_checks(live: Path, root: Path, run_root: Path, inventory: dict[str, bool], baseline_bins: Path, candidate_bins: Path, timeout: int) -> dict[str, object]:
+    source_only, cli = ordinary_test_groups(inventory)
+    suites = (("source-only", source_only, None), ("baseline-cli", cli, baseline_bins), ("candidate-cli", cli, candidate_bins))
+    results: dict[str, object] = {}
+    for suite_name, selected, bins in suites:
+        env = clean_env()
+        if any(key.startswith("TERMROCK_PAIR_") for key in env):
+            raise RunnerError("pair runtime flags leaked into ordinary checks")
+        env.update({"CARGO_TARGET_DIR": str(root / "live-target"), "NEXTEST_EXPERIMENTAL_LIBTEST_JSON": "1"})
+        if bins is not None:
+            env["VISUAL_BIN_DIR"] = str(bins.resolve())
+        command = ["cargo", "nextest", "run", "--locked", "--manifest-path", str(live / "Cargo.toml"), "-p", TEST_PACKAGE, "--test", TEST_TARGET, "--filter-expr", selected_expression(selected), "--message-format", "libtest-json-plus", "--no-fail-fast"]
+        output_dir = run_root / "ordinary" / suite_name
+        output_dir.mkdir(parents=True, exist_ok=False)
+        failure = None
+        events: dict[str, str] = {}
+        try:
+            stdout = run(command, cwd=live, timeout=timeout, env=env, quiet=True, stdout_path=output_dir / "stdout.jsonl", stderr_path=output_dir / "stderr.log")
+            events = nextest_events(stdout, selected)
+        except RunnerError as error:
+            failure = str(error)
+        stdout_path = output_dir / "stdout.jsonl"
+        stdout_gzip = output_dir / "stdout.jsonl.gz"
+        if stdout_path.is_file():
+            with stdout_path.open("rb") as source_stream, gzip.open(stdout_gzip, "wb", compresslevel=6) as compressed:
+                shutil.copyfileobj(source_stream, compressed)
+            stdout_path.unlink()
+        result = {"status": "failed" if failure else "passed", "failure": failure, "selected_cases": selected, "binary_dir": str(bins.resolve()) if bins is not None else None, "passed_test_events": len(events), "stdout_sha256": sha256(stdout_gzip) if stdout_gzip.is_file() else None, "stderr_sha256": sha256(output_dir / "stderr.log") if (output_dir / "stderr.log").is_file() else None}
+        (output_dir / "report.json").write_text(json.dumps(result, indent=2) + "\n")
+        results[suite_name] = result
+        if failure:
+            raise RunnerError(f"ordinary {suite_name} checks failed; report saved: {output_dir}: {failure}")
+    return results
 
 
 def compare_live(repo: Path, candidate_repo: Path, root: Path, baseline_bins: Path, candidate_bins: Path, selectors: list[str] | None, all_cases: bool, chunk_size: int, timeout: int) -> None:
@@ -1029,8 +1066,42 @@ def compare_live(repo: Path, candidate_repo: Path, root: Path, baseline_bins: Pa
     differences = exact_receipt_differences(receipts[0], receipts[1]) + exact_receipt_differences(receipts[0], receipts[2])
     if differences:
         raise RunnerError(f"live checkpoint mismatch; see {run_root}: {differences[:5]}")
-    ordinary = run_ordinary_checks(live, root, run_root, inventory, timeout) if all_cases else None
-    coverage_complete = all_cases and ordinary is not None and len(ordinary["selected_cases"]) == EXPECTED_ORDINARY_TESTS
+    ordinary = None
+    if all_cases:
+        try:
+            ordinary = run_ordinary_checks(live, root, run_root, inventory, baseline_bins, candidate_bins, timeout)
+        except RunnerError as error:
+            failure_report = {
+                "tag_object": BASELINE_TAG_OBJECT,
+                "baseline_commit": BASELINE_COMMIT,
+                "tuiscotti_rev": TUISCOTTI_REV,
+                "live_source": live_record,
+                "candidate_revision": candidate["revision"],
+                "candidate_source_tree": candidate["source_tree"],
+                "candidate_dirty_fingerprint": candidate["dirty_fingerprint"],
+                "candidate_binaries": candidate["binaries"],
+                "case_selection": "all registered scenarios",
+                "selection_completeness": "incomplete",
+                "acceptance_complete": False,
+                "selected_scenario_count": len(selected),
+                "test_inventory_sha256": inventory_digest(inventory),
+                "ordinary_failure": str(error),
+                "phases": [{key: value for key, value in phase.items() if key != "receipts"} for phase in phases],
+                "artifacts_root": str(run_root),
+            }
+            (run_root / "report.json").write_text(json.dumps(failure_report, indent=2) + "\n")
+            raise RunnerError(f"ordinary checks incomplete; report saved at {run_root / 'report.json'}: {error}") from error
+    source_only, ordinary_cli = ordinary_test_groups(inventory)
+    coverage_complete = (
+        all_cases
+        and ordinary is not None
+        and ordinary["source-only"]["status"] == "passed"
+        and ordinary["source-only"]["selected_cases"] == source_only
+        and ordinary["baseline-cli"]["status"] == "passed"
+        and ordinary["baseline-cli"]["selected_cases"] == ordinary_cli
+        and ordinary["candidate-cli"]["status"] == "passed"
+        and ordinary["candidate-cli"]["selected_cases"] == ordinary_cli
+    )
     report = {
         "tag_object": BASELINE_TAG_OBJECT,
         "baseline_commit": BASELINE_COMMIT,
