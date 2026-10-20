@@ -1,7 +1,7 @@
 //! A two-pane block that composes existing groups through a shared SplitPane.
 
 use termrock_controls::{SplitAction, SplitPane, SplitPaneState};
-use termrock_layout::{Constraints, Size, SplitAxis};
+use termrock_layout::{Constraints, Maximized, Size, SplitAxis};
 use termrock_runtime::{Cx, Response, Ui};
 
 use crate::composition::{CompositionError, Group};
@@ -56,61 +56,68 @@ impl<'a> SplitBlock<'a> {
     }
 
     /// Measure the pane and both groups without drawing or dispatching input.
-    pub fn measure(&self, ui: &Ui<'_>, constraints: Constraints) -> Result<Size, SplitBlockError> {
+    pub fn measure(
+        &self,
+        ui: &Ui<'_>,
+        state: &SplitPaneState,
+        constraints: Constraints,
+    ) -> Result<Size, SplitBlockError> {
         let first = self.first.ok_or(SplitBlockError::MissingFirst)?;
         let second = self.second.ok_or(SplitBlockError::MissingSecond)?;
+        first.validate_depth()?;
+        second.validate_depth()?;
         let first_size = first.measure(ui, constraints)?;
         let second_size = second.measure(ui, constraints)?;
-        let pane_size = self.pane.measure(ui, constraints);
-        let gap = self.pane_gap();
-        let combined = match self.pane_axis() {
-            SplitAxis::Horizontal => Size {
-                min: (
-                    first_size
-                        .min
-                        .0
-                        .saturating_add(gap)
-                        .saturating_add(second_size.min.0)
-                        .max(pane_size.min.0),
-                    first_size.min.1.max(second_size.min.1).max(pane_size.min.1),
-                ),
-                preferred: (
-                    first_size
-                        .preferred
-                        .0
-                        .saturating_add(gap)
-                        .saturating_add(second_size.preferred.0),
-                    first_size.preferred.1.max(second_size.preferred.1),
-                ),
-            },
-            SplitAxis::Vertical => Size {
-                min: (
-                    first_size.min.0.max(second_size.min.0).max(pane_size.min.0),
-                    first_size
-                        .min
-                        .1
-                        .saturating_add(gap)
-                        .saturating_add(second_size.min.1)
-                        .max(pane_size.min.1),
-                ),
-                preferred: (
-                    first_size.preferred.0.max(second_size.preferred.0),
-                    first_size
-                        .preferred
-                        .1
-                        .saturating_add(gap)
-                        .saturating_add(second_size.preferred.1),
-                ),
-            },
+        let maximized = state.maximized();
+        let visible_first = maximized != Maximized::Second;
+        let visible_second = maximized != Maximized::First;
+        let first_min = axis_extent(first_size.min, self.pane_axis());
+        let second_min = axis_extent(second_size.min, self.pane_axis());
+        let first_preferred = axis_extent(first_size.preferred, self.pane_axis()).max(first_min);
+        let second_preferred = axis_extent(second_size.preferred, self.pane_axis()).max(second_min);
+        let along_min = self.pane.required_extent(
+            state,
+            if visible_first { first_min } else { 0 },
+            if visible_second { second_min } else { 0 },
+        );
+        let along_preferred = self.pane.required_extent(
+            state,
+            if visible_first { first_preferred } else { 0 },
+            if visible_second { second_preferred } else { 0 },
+        );
+        let other_axis = match (self.pane_axis(), maximized) {
+            (SplitAxis::Horizontal, Maximized::None) => (first_size.min.1, second_size.min.1),
+            (SplitAxis::Horizontal, Maximized::First) => (first_size.min.1, 0),
+            (SplitAxis::Horizontal, Maximized::Second) => (0, second_size.min.1),
+            (SplitAxis::Vertical, Maximized::None) => (first_size.min.0, second_size.min.0),
+            (SplitAxis::Vertical, Maximized::First) => (first_size.min.0, 0),
+            (SplitAxis::Vertical, Maximized::Second) => (0, second_size.min.0),
         };
-        Ok(Size {
-            min: combined.min,
-            preferred: (
-                combined.preferred.0.max(combined.min.0),
-                combined.preferred.1.max(combined.min.1),
+        let other_preferred = match (self.pane_axis(), maximized) {
+            (SplitAxis::Horizontal, Maximized::None) => {
+                (first_size.preferred.1, second_size.preferred.1)
+            }
+            (SplitAxis::Horizontal, Maximized::First) => (first_size.preferred.1, 0),
+            (SplitAxis::Horizontal, Maximized::Second) => (0, second_size.preferred.1),
+            (SplitAxis::Vertical, Maximized::None) => {
+                (first_size.preferred.0, second_size.preferred.0)
+            }
+            (SplitAxis::Vertical, Maximized::First) => (first_size.preferred.0, 0),
+            (SplitAxis::Vertical, Maximized::Second) => (0, second_size.preferred.0),
+        };
+        let other_min = other_axis.0.max(other_axis.1).max(1);
+        let other_preferred = other_preferred.0.max(other_preferred.1).max(other_min);
+        let (min, preferred) = match self.pane_axis() {
+            SplitAxis::Horizontal => (
+                (along_min, other_min),
+                (along_preferred.max(along_min), other_preferred),
             ),
-        }
-        .fit(constraints))
+            SplitAxis::Vertical => (
+                (other_min, along_min),
+                (other_preferred, along_preferred.max(along_min)),
+            ),
+        };
+        Ok(Size { min, preferred }.fit(constraints))
     }
 
     /// Draw both groups in the two rectangles returned by the shared pane
@@ -138,8 +145,11 @@ impl<'a> SplitBlock<'a> {
     fn pane_axis(&self) -> SplitAxis {
         self.pane.axis()
     }
+}
 
-    fn pane_gap(&self) -> u16 {
-        self.pane.gap_size()
+const fn axis_extent(size: (u16, u16), axis: SplitAxis) -> u16 {
+    match axis {
+        SplitAxis::Horizontal => size.0,
+        SplitAxis::Vertical => size.1,
     }
 }
