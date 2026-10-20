@@ -3125,15 +3125,6 @@ impl TableProApp {
                 };
                 (format!(" {} ", query.name), Some(meta))
             }
-            Some(Tab::Query(query))
-                if !explorer_focused
-                    && !historical_empty_query(ui, self)
-                    && (query.result.is_some()
-                        || query.error.is_some()
-                        || query.plan.is_some()) =>
-            {
-                (format!(" {}", query.name), None)
-            }
             Some(Tab::Query(query)) => (format!(" {} ", query.name), None),
             Some(Tab::History(_)) => (
                 " Query history ".to_owned(),
@@ -3249,8 +3240,8 @@ impl TableProApp {
         if let Some((grid_area, rows, origin)) = GRID_SCROLL.with(|slot| *slot.borrow()) {
             paint_grid_scrollbar(ui, grid_area, rows, origin);
         }
-        let historical_query = historical_empty_query(ui, self);
-        if historical_query
+        let blank_sql = self.blank_sql();
+        if blank_sql
             || explorer_focused
                 && matches!(
                     self.workbench.active(),
@@ -3260,7 +3251,7 @@ impl TableProApp {
             let editor_focused = self
                 .query_id()
                 .is_some_and(|id| ui.state(id).contains(StateFlags::FOCUSED));
-            paint_idle_query_tail(ui, area, historical_query && editor_focused);
+            paint_idle_query_tail(ui, area, blank_sql && editor_focused);
         }
         paint_frame_title_tail(
             ui,
@@ -3294,7 +3285,7 @@ impl TableProApp {
                 }
                 paint_idle_query(ui, area, inner);
             }
-            Some(Tab::Query(_)) if historical_empty_query(ui, self) => {
+            Some(Tab::Query(_)) if self.blank_sql() => {
                 if let Some(id) = self.query_id() {
                     ui.register_keyboard_editor(
                         id,
@@ -4716,22 +4707,6 @@ fn paint_query_toolbar(ui: &mut Ui<'_>, area: termrock::Rect) {
         "Explain ",
         quiet,
     );
-}
-
-fn historical_empty_query(_ui: &Ui<'_>, app: &TableProApp) -> bool {
-    if app.query_id().is_none() {
-        return false;
-    }
-    // The empty editor keeps its toolbar and placeholder when a picker takes focus.
-    match app.workbench.active() {
-        Some(Tab::Query(query)) => {
-            query.query.is_empty()
-                && query.result.is_none()
-                && query.error.is_none()
-                && query.plan.is_none()
-        }
-        _ => false,
-    }
 }
 
 fn paint_focused_empty_query(ui: &mut Ui<'_>, id: Id, area: termrock::Rect, inner: termrock::Rect) {
@@ -11519,7 +11494,7 @@ fn paint_picker_layer_footer(ui: &mut Ui<'_>, area: termrock::Rect) {
 fn draw_footer(ui: &mut Ui<'_>, area: termrock::Rect, app: &TableProApp) {
     let base = ui.surface_style();
     let explorer_focused = ui.state(EXPLORER).contains(StateFlags::FOCUSED);
-    let empty_query = historical_empty_query(ui, app);
+    let empty_query = app.blank_sql();
     ui.fill(area, base);
     if matches!(app.surface, Surface::QuickSwitcher | Surface::TabListPicker) {
         paint_picker_layer_footer(ui, area);
@@ -11544,7 +11519,7 @@ fn draw_footer(ui: &mut Ui<'_>, area: termrock::Rect, app: &TableProApp) {
         return;
     } else if app.workbench.maximized {
         paint_maximized_footer(ui, area);
-    } else if empty_query {
+    } else if empty_query && !explorer_focused {
         paint_query_editor_footer(ui, area);
     } else if !explorer_focused && grid_is_editing(app) {
         paint_cell_edit_footer(ui, area);
@@ -11923,6 +11898,10 @@ impl TableProApp {
             ui.state(id),
             core::iter::once((ACCEPT_SQL_COMPLETION, Some(Chord::key(KeyCode::Tab)))),
         );
+    }
+
+    fn blank_sql(&self) -> bool {
+        self.query_id().is_some() && self.blank_maximized_query()
     }
 
     fn blank_maximized_query(&self) -> bool {
