@@ -32,7 +32,44 @@ const REFERENCE_ACTUAL_ANSI_SHA256: &str =
 const REFERENCE_ACTUAL_SEMANTIC_SHA256: &str =
     "01e9f7d349fc8075df7b64188db97a05705792aac8c781184db14a6d1ecc253a";
 const REFERENCE_DECISION_SHA256: &str =
-    "2a43fb118c268300c8bbd6439ea11bb9a24ffff03dc3c9f4601893eee26a096b";
+    "d5d8d6489a8968d6e84941de3fd4b778ed09c879376ee2d575c6d1591c59abe3";
+const BUTTONS_REFERENCE_CASE: &str = "showcase/audit/buttons/120x40/truecolor";
+const BUTTONS_REFERENCE_LOGICAL: &str = "showcase/audit/buttons/120x40/truecolor";
+const BUTTONS_REFERENCE_APPROVAL_ANSI_SHA256: &str =
+    "3a809ef2e455d376556adfcd73c243db0bca6cdfed0e524ed65b6f11efc916c8";
+const BUTTONS_REFERENCE_ACTUAL_ANSI_SHA256: &str =
+    "545c129be118753a89a1683c838cfa227d0090cb8ea18d975557021afa9a94e0";
+const BUTTONS_REFERENCE_ACTUAL_SEMANTIC_SHA256: &str =
+    "19fdbdd4aa349bc2c7fc13ebf5c3a245093a02cf2cbc1183be7854a83a7b0107";
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+struct ReferencePin {
+    case_name: &'static str,
+    ordinal: u64,
+    logical_name: &'static str,
+    approval_ansi_sha256: &'static str,
+    actual_ansi_sha256: &'static str,
+    actual_semantic_sha256: &'static str,
+}
+
+const REFERENCE_PINS: [ReferencePin; 2] = [
+    ReferencePin {
+        case_name: REFERENCE_CASE,
+        ordinal: REFERENCE_ORDINAL,
+        logical_name: REFERENCE_LOGICAL,
+        approval_ansi_sha256: REFERENCE_APPROVAL_ANSI_SHA256,
+        actual_ansi_sha256: REFERENCE_ACTUAL_ANSI_SHA256,
+        actual_semantic_sha256: REFERENCE_ACTUAL_SEMANTIC_SHA256,
+    },
+    ReferencePin {
+        case_name: BUTTONS_REFERENCE_CASE,
+        ordinal: 0,
+        logical_name: BUTTONS_REFERENCE_LOGICAL,
+        approval_ansi_sha256: BUTTONS_REFERENCE_APPROVAL_ANSI_SHA256,
+        actual_ansi_sha256: BUTTONS_REFERENCE_ACTUAL_ANSI_SHA256,
+        actual_semantic_sha256: BUTTONS_REFERENCE_ACTUAL_SEMANTIC_SHA256,
+    },
+];
 
 /// Runtime pairing errors. Display text carries the underlying failure.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -136,6 +173,7 @@ fn env_value(name: &str) -> Result<Option<String>, Error> {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 struct ReferenceDecision {
+    pin: ReferencePin,
     decision_sha256: String,
 }
 
@@ -198,34 +236,44 @@ impl ReferenceDecision {
         let ordinal = ordinal
             .parse::<u64>()
             .map_err(|_| Error::new("invalid paired reference ordinal"))?;
-        if case_name != REFERENCE_CASE
-            || ordinal != REFERENCE_ORDINAL
-            || logical_name != REFERENCE_LOGICAL
-            || ansi_sha256 != REFERENCE_ACTUAL_ANSI_SHA256
-            || semantic_sha256 != REFERENCE_ACTUAL_SEMANTIC_SHA256
-            || decision_sha256 != REFERENCE_DECISION_SHA256
-        {
+        let pin = REFERENCE_PINS
+            .iter()
+            .copied()
+            .find(|pin| {
+                case_name == pin.case_name
+                    && ordinal == pin.ordinal
+                    && logical_name == pin.logical_name
+                    && ansi_sha256 == pin.actual_ansi_sha256
+                    && semantic_sha256 == pin.actual_semantic_sha256
+            })
+            .ok_or_else(|| {
+                Error::new(
+                    "paired reference decision does not match either pinned frozen reference",
+                )
+            })?;
+        if decision_sha256 != REFERENCE_DECISION_SHA256 {
             return Err(Error::new(
-                "paired reference decision does not match the pinned frozen reference",
+                "paired reference decision manifest hash does not match the reviewed pins",
             ));
         }
         Ok(Some(Self {
+            pin,
             decision_sha256: decision_sha256.to_string(),
         }))
     }
 
     fn applies_to(&self, case_name: &str, ordinal: u64, logical_name: &str) -> bool {
-        case_name == REFERENCE_CASE
-            && ordinal == REFERENCE_ORDINAL
-            && logical_name == REFERENCE_LOGICAL
+        case_name == self.pin.case_name
+            && ordinal == self.pin.ordinal
+            && logical_name == self.pin.logical_name
     }
 
     fn authorizes_legacy_mismatch(&self, observed: &OriginalApprovalMismatch<'_>) -> bool {
         self.applies_to(observed.case_name, observed.ordinal, observed.logical_name)
             && self.decision_sha256 == REFERENCE_DECISION_SHA256
-            && observed.approval_sha256 == REFERENCE_APPROVAL_ANSI_SHA256
-            && observed.actual_ansi_sha256 == REFERENCE_ACTUAL_ANSI_SHA256
-            && observed.actual_semantic_sha256 == REFERENCE_ACTUAL_SEMANTIC_SHA256
+            && observed.approval_sha256 == self.pin.approval_ansi_sha256
+            && observed.actual_ansi_sha256 == self.pin.actual_ansi_sha256
+            && observed.actual_semantic_sha256 == self.pin.actual_semantic_sha256
             && observed.status == tuiscotti::snapshot::Status::CellsDiffer
             && observed.ansi_match == Some(false)
     }
@@ -252,7 +300,10 @@ impl Recorder {
     ) -> Result<Self, Error> {
         validate_logical_name(case_name)?;
         if reference_decision.is_some()
-            && (config.phase != Phase::BaselineCapture || case_name != REFERENCE_CASE)
+            && (config.phase != Phase::BaselineCapture
+                || !reference_decision
+                    .as_ref()
+                    .is_some_and(|decision| case_name == decision.pin.case_name))
         {
             return Err(Error::new(
                 "paired reference decision is valid only for its pinned baseline-capture case",
@@ -995,6 +1046,80 @@ mod tests {
             .is_err()
         );
 
+        let buttons = ReferenceDecision::from_values(
+            Some(BUTTONS_REFERENCE_CASE),
+            Some("0"),
+            Some(BUTTONS_REFERENCE_LOGICAL),
+            Some(BUTTONS_REFERENCE_ACTUAL_ANSI_SHA256),
+            Some(BUTTONS_REFERENCE_ACTUAL_SEMANTIC_SHA256),
+            Some(REFERENCE_DECISION_SHA256),
+        )
+        .unwrap()
+        .unwrap();
+        assert_eq!(buttons.pin, REFERENCE_PINS[1]);
+        for (case, ordinal, logical, ansi, semantic, decision_hash) in [
+            (
+                BUTTONS_REFERENCE_CASE,
+                "1",
+                BUTTONS_REFERENCE_LOGICAL,
+                BUTTONS_REFERENCE_ACTUAL_ANSI_SHA256,
+                BUTTONS_REFERENCE_ACTUAL_SEMANTIC_SHA256,
+                REFERENCE_DECISION_SHA256,
+            ),
+            (
+                BUTTONS_REFERENCE_CASE,
+                "0",
+                "showcase/audit/buttons/100x30/truecolor",
+                BUTTONS_REFERENCE_ACTUAL_ANSI_SHA256,
+                BUTTONS_REFERENCE_ACTUAL_SEMANTIC_SHA256,
+                REFERENCE_DECISION_SHA256,
+            ),
+            (
+                BUTTONS_REFERENCE_CASE,
+                "0",
+                BUTTONS_REFERENCE_LOGICAL,
+                REFERENCE_ACTUAL_ANSI_SHA256,
+                BUTTONS_REFERENCE_ACTUAL_SEMANTIC_SHA256,
+                REFERENCE_DECISION_SHA256,
+            ),
+            (
+                BUTTONS_REFERENCE_CASE,
+                "0",
+                BUTTONS_REFERENCE_LOGICAL,
+                BUTTONS_REFERENCE_ACTUAL_ANSI_SHA256,
+                REFERENCE_ACTUAL_SEMANTIC_SHA256,
+                REFERENCE_DECISION_SHA256,
+            ),
+            (
+                "showcase/audit/buttons/100x30/truecolor",
+                "0",
+                BUTTONS_REFERENCE_LOGICAL,
+                BUTTONS_REFERENCE_ACTUAL_ANSI_SHA256,
+                BUTTONS_REFERENCE_ACTUAL_SEMANTIC_SHA256,
+                REFERENCE_DECISION_SHA256,
+            ),
+            (
+                BUTTONS_REFERENCE_CASE,
+                "0",
+                BUTTONS_REFERENCE_LOGICAL,
+                BUTTONS_REFERENCE_ACTUAL_ANSI_SHA256,
+                BUTTONS_REFERENCE_ACTUAL_SEMANTIC_SHA256,
+                "0000000000000000000000000000000000000000000000000000000000000000",
+            ),
+        ] {
+            assert!(
+                ReferenceDecision::from_values(
+                    Some(case),
+                    Some(ordinal),
+                    Some(logical),
+                    Some(ansi),
+                    Some(semantic),
+                    Some(decision_hash)
+                )
+                .is_err()
+            );
+        }
+
         let decision = ReferenceDecision::from_values(
             Some(REFERENCE_CASE),
             Some("0"),
@@ -1033,6 +1158,7 @@ mod tests {
     #[test]
     fn reference_exception_authorizes_only_the_pinned_mismatch() {
         let decision = ReferenceDecision {
+            pin: REFERENCE_PINS[0],
             decision_sha256: REFERENCE_DECISION_SHA256.to_string(),
         };
         let expected = OriginalApprovalMismatch {
@@ -1062,12 +1188,38 @@ mod tests {
         let mut changed = expected;
         changed.ansi_match = Some(true);
         assert!(!decision.authorizes_legacy_mismatch(&changed));
+
+        let buttons = ReferenceDecision {
+            pin: REFERENCE_PINS[1],
+            decision_sha256: REFERENCE_DECISION_SHA256.to_string(),
+        };
+        let expected_buttons = OriginalApprovalMismatch {
+            case_name: BUTTONS_REFERENCE_CASE,
+            ordinal: 0,
+            logical_name: BUTTONS_REFERENCE_LOGICAL,
+            approval_sha256: BUTTONS_REFERENCE_APPROVAL_ANSI_SHA256,
+            actual_ansi_sha256: BUTTONS_REFERENCE_ACTUAL_ANSI_SHA256,
+            actual_semantic_sha256: BUTTONS_REFERENCE_ACTUAL_SEMANTIC_SHA256,
+            status: tuiscotti::snapshot::Status::CellsDiffer,
+            ansi_match: Some(false),
+        };
+        assert!(buttons.authorizes_legacy_mismatch(&expected_buttons));
+        let mut changed = expected_buttons;
+        changed.actual_semantic_sha256 = REFERENCE_ACTUAL_SEMANTIC_SHA256;
+        assert!(!buttons.authorizes_legacy_mismatch(&changed));
+        let mut changed = expected_buttons;
+        changed.approval_sha256 = REFERENCE_APPROVAL_ANSI_SHA256;
+        assert!(!buttons.authorizes_legacy_mismatch(&changed));
+        let mut changed = expected_buttons;
+        changed.case_name = REFERENCE_CASE;
+        assert!(!buttons.authorizes_legacy_mismatch(&changed));
     }
 
     #[test]
     fn reference_decision_is_rejected_outside_its_capture_case_and_phase() {
         let scratch = Scratch::new("reference-scope");
         let decision = ReferenceDecision {
+            pin: REFERENCE_PINS[0],
             decision_sha256: REFERENCE_DECISION_SHA256.to_string(),
         };
         assert!(
@@ -1102,6 +1254,36 @@ mod tests {
             )
             .is_ok()
         );
+        let buttons_decision = ReferenceDecision {
+            pin: REFERENCE_PINS[1],
+            decision_sha256: REFERENCE_DECISION_SHA256.to_string(),
+        };
+        for phase in [Phase::BaselineCheck, Phase::CandidateCheck] {
+            assert!(
+                Recorder::new_with_reference(
+                    config(phase, &scratch),
+                    BUTTONS_REFERENCE_CASE,
+                    Some(buttons_decision.clone()),
+                )
+                .is_err()
+            );
+        }
+        assert!(
+            Recorder::new_with_reference(
+                config(Phase::BaselineCapture, &scratch),
+                REFERENCE_CASE,
+                Some(buttons_decision.clone()),
+            )
+            .is_err()
+        );
+        assert!(
+            Recorder::new_with_reference(
+                config(Phase::BaselineCapture, &scratch),
+                BUTTONS_REFERENCE_CASE,
+                Some(buttons_decision),
+            )
+            .is_ok()
+        );
     }
 
     #[test]
@@ -1124,47 +1306,65 @@ mod tests {
 
         let scratch = Scratch::new("slash-reference-case");
         let values = [
-            (PHASE_ENV, Some("baseline-capture".to_string())),
-            (
-                EXPECTED_ROOT_ENV,
-                Some(scratch.path("expected").to_string_lossy().into_owned()),
-            ),
-            (
-                RECEIPT_ROOT_ENV,
-                Some(scratch.path("receipts").to_string_lossy().into_owned()),
-            ),
-            (REFERENCE_CASE_ENV, Some(REFERENCE_CASE.to_string())),
-            (REFERENCE_ORDINAL_ENV, Some(REFERENCE_ORDINAL.to_string())),
-            (REFERENCE_LOGICAL_ENV, Some(REFERENCE_LOGICAL.to_string())),
-            (
-                REFERENCE_ANSI_SHA256_ENV,
-                Some(REFERENCE_ACTUAL_ANSI_SHA256.to_string()),
-            ),
-            (
-                REFERENCE_SEMANTIC_SHA256_ENV,
-                Some(REFERENCE_ACTUAL_SEMANTIC_SHA256.to_string()),
-            ),
-            (
-                REFERENCE_DECISION_SHA256_ENV,
-                Some(REFERENCE_DECISION_SHA256.to_string()),
-            ),
+            PHASE_ENV,
+            EXPECTED_ROOT_ENV,
+            RECEIPT_ROOT_ENV,
+            REFERENCE_CASE_ENV,
+            REFERENCE_ORDINAL_ENV,
+            REFERENCE_LOGICAL_ENV,
+            REFERENCE_ANSI_SHA256_ENV,
+            REFERENCE_SEMANTIC_SHA256_ENV,
+            REFERENCE_DECISION_SHA256_ENV,
         ];
         let restore = RestoreEnv(
             values
                 .iter()
-                .map(|(key, _)| (*key, std::env::var_os(key)))
+                .map(|key| (*key, std::env::var_os(key)))
                 .collect(),
         );
-        for (key, value) in values {
-            // SAFETY: this test is the only one that reads paired env variables.
-            unsafe { std::env::set_var(key, value.unwrap()) };
+        let scratch_expected = scratch.path("expected").to_string_lossy().into_owned();
+        let scratch_receipts = scratch.path("receipts").to_string_lossy().into_owned();
+        for pin in REFERENCE_PINS {
+            for (key, value) in [
+                (PHASE_ENV, "baseline-capture".to_string()),
+                (EXPECTED_ROOT_ENV, scratch_expected.clone()),
+                (RECEIPT_ROOT_ENV, scratch_receipts.clone()),
+                (REFERENCE_CASE_ENV, pin.case_name.to_string()),
+                (REFERENCE_ORDINAL_ENV, pin.ordinal.to_string()),
+                (REFERENCE_LOGICAL_ENV, pin.logical_name.to_string()),
+                (
+                    REFERENCE_ANSI_SHA256_ENV,
+                    pin.actual_ansi_sha256.to_string(),
+                ),
+                (
+                    REFERENCE_SEMANTIC_SHA256_ENV,
+                    pin.actual_semantic_sha256.to_string(),
+                ),
+                (
+                    REFERENCE_DECISION_SHA256_ENV,
+                    REFERENCE_DECISION_SHA256.to_string(),
+                ),
+            ] {
+                // SAFETY: this test serializes the only paired-env reader in this process.
+                unsafe { std::env::set_var(key, value) };
+            }
+            assert!(begin_case(pin.case_name).unwrap());
+            ACTIVE.with(|active| {
+                assert_eq!(active.borrow().as_ref().unwrap().case_name, pin.case_name);
+                assert_eq!(
+                    active
+                        .borrow()
+                        .as_ref()
+                        .unwrap()
+                        .reference_decision
+                        .as_ref()
+                        .unwrap()
+                        .pin,
+                    pin
+                );
+                *active.borrow_mut() = None;
+            });
         }
-
-        assert!(begin_case(REFERENCE_CASE).unwrap());
-        ACTIVE.with(|active| {
-            assert_eq!(active.borrow().as_ref().unwrap().case_name, REFERENCE_CASE);
-            *active.borrow_mut() = None;
-        });
         drop(restore);
     }
 
