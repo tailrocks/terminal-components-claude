@@ -225,16 +225,19 @@ where
     let gaps = gap_positions(
         main_sizes.len(),
         spec.gap,
-        main_sizes.iter().map(|size| *size as u32).sum(),
+        main_sizes
+            .iter()
+            .map(|size| u64::from(*size))
+            .fold(0u64, u64::saturating_add),
         main_extent,
         spec.main_align,
     );
     let main_used = main_sizes
         .iter()
-        .map(|size| u32::from(*size))
-        .sum::<u32>()
+        .map(|size| u64::from(*size))
+        .fold(0u64, u64::saturating_add)
         .saturating_add(
-            u32::from(spec.gap).saturating_mul(main_sizes.len().saturating_sub(1) as u32),
+            u64::from(spec.gap).saturating_mul(main_sizes.len().saturating_sub(1) as u64),
         );
     let mut cursor = main_offset(main_extent, main_used, spec.main_align);
     let mut resolved = Vec::with_capacity(children.len());
@@ -265,13 +268,13 @@ where
         let (x, y, width, height) = if horizontal {
             (
                 sat_add(content.x, cursor),
-                sat_add(content.y, u32::from(cross_start)),
+                sat_add(content.y, u64::from(cross_start)),
                 main_size,
                 cross_size,
             )
         } else {
             (
-                sat_add(content.x, u32::from(cross_start)),
+                sat_add(content.x, u64::from(cross_start)),
                 sat_add(content.y, cursor),
                 cross_size,
                 main_size,
@@ -289,10 +292,10 @@ where
             visible: intersection(logical, content),
         });
         cursor = cursor
-            .saturating_add(u32::from(main_size))
-            .saturating_add(u32::from(spec.gap));
+            .saturating_add(u64::from(main_size))
+            .saturating_add(u64::from(spec.gap));
         if let Some(extra_gap) = gaps.get(index) {
-            cursor = cursor.saturating_add(u32::from(*extra_gap));
+            cursor = cursor.saturating_add(u64::from(*extra_gap));
         }
     }
 
@@ -323,22 +326,24 @@ where
         .collect();
     let mut lines: Vec<Vec<usize>> = Vec::new();
     let mut line = Vec::new();
-    let mut line_width = 0u32;
+    let mut line_width = 0u64;
     for (index, child) in children.iter().enumerate() {
         let width = axis_preferred(child, measured[index], true);
         let needed = if line.is_empty() {
-            u32::from(width)
+            u64::from(width)
         } else {
-            line_width + u32::from(spec.gap) + u32::from(width)
+            line_width
+                .saturating_add(u64::from(spec.gap))
+                .saturating_add(u64::from(width))
         };
-        if !line.is_empty() && needed > u32::from(content.width) {
+        if !line.is_empty() && needed > u64::from(content.width) {
             lines.push(std::mem::take(&mut line));
             line_width = 0;
         }
         if !line.is_empty() {
-            line_width = line_width.saturating_add(u32::from(spec.gap));
+            line_width = line_width.saturating_add(u64::from(spec.gap));
         }
-        line_width = line_width.saturating_add(u32::from(width));
+        line_width = line_width.saturating_add(u64::from(width));
         line.push(index);
     }
     if !line.is_empty() {
@@ -353,7 +358,7 @@ where
         };
         children.len()
     ];
-    let mut y = 0u32;
+    let mut y = 0u64;
     for indices in lines {
         let line_children: Vec<Child<'_, T>> = indices.iter().map(|&i| children[i]).collect();
         let line_sizes: Vec<Size> = indices.iter().map(|&i| measured[i]).collect();
@@ -365,11 +370,21 @@ where
             spec.overflow,
             true,
         );
-        let used_children = widths.iter().map(|w| u32::from(*w)).sum::<u32>();
+        let used_children = widths
+            .iter()
+            .map(|width| u64::from(*width))
+            .fold(0u64, u64::saturating_add);
         let used = used_children.saturating_add(
-            u32::from(spec.gap).saturating_mul(widths.len().saturating_sub(1) as u32),
+            u64::from(spec.gap).saturating_mul(widths.len().saturating_sub(1) as u64),
         );
         let mut x = main_offset(content.width, used, spec.main_align);
+        let extra_gaps = gap_positions(
+            indices.len(),
+            spec.gap,
+            used_children,
+            content.width,
+            spec.main_align,
+        );
         let line_height = indices
             .iter()
             .map(|&i| axis_preferred(&children[i], measured[i], false))
@@ -386,7 +401,7 @@ where
             );
             let logical = Rect {
                 x: sat_add(content.x, x),
-                y: sat_add(content.y, y.saturating_add(u32::from(height.0))),
+                y: sat_add(content.y, y.saturating_add(u64::from(height.0))),
                 width,
                 height: height.1,
             };
@@ -396,23 +411,15 @@ where
                 visible: intersection(logical, content),
             };
             x = x
-                .saturating_add(u32::from(width))
-                .saturating_add(u32::from(spec.gap));
-            if let Some(extra_gap) = gap_positions(
-                indices.len(),
-                spec.gap,
-                used_children,
-                content.width,
-                spec.main_align,
-            )
-            .get(local)
-            {
-                x = x.saturating_add(u32::from(*extra_gap));
+                .saturating_add(u64::from(width))
+                .saturating_add(u64::from(spec.gap));
+            if let Some(extra_gap) = extra_gaps.get(local) {
+                x = x.saturating_add(u64::from(*extra_gap));
             }
         }
         y = y
-            .saturating_add(u32::from(line_height))
-            .saturating_add(u32::from(spec.gap));
+            .saturating_add(u64::from(line_height))
+            .saturating_add(u64::from(spec.gap));
     }
     ResolvedPlan {
         area,
@@ -432,8 +439,20 @@ where
     let measured = measure(child.value, constraints);
     let max_w = child.policy.max.0.unwrap_or(u16::MAX);
     let max_h = child.policy.max.1.unwrap_or(u16::MAX);
-    let min_w = child.policy.min.0.max(measured.min.0).min(max_w);
-    let min_h = child.policy.min.1.max(measured.min.1).min(max_h);
+    let min_w = child
+        .policy
+        .min
+        .0
+        .max(child.policy.intrinsic.min.0)
+        .max(measured.min.0)
+        .min(max_w);
+    let min_h = child
+        .policy
+        .min
+        .1
+        .max(child.policy.intrinsic.min.1)
+        .max(measured.min.1)
+        .min(max_h);
     let pref_w = measured
         .preferred
         .0
@@ -590,37 +609,45 @@ fn distribute_flex<T: ?Sized>(
     }
 }
 
-fn main_offset(extent: u16, used: u32, align: MainAlign) -> u32 {
+fn main_offset(extent: u16, used: u64, align: MainAlign) -> u64 {
     match align {
         MainAlign::Start | MainAlign::SpaceBetween => 0,
-        MainAlign::Center => u32::from(extent).saturating_sub(used) / 2,
-        MainAlign::End => u32::from(extent).saturating_sub(used),
+        MainAlign::Center => u64::from(extent).saturating_sub(used) / 2,
+        MainAlign::End => u64::from(extent).saturating_sub(used),
     }
 }
 
 fn gap_positions(
     count: usize,
     gap: u16,
-    used_children: u32,
+    used_children: u64,
     extent: u16,
     align: MainAlign,
 ) -> Vec<u16> {
+    #[cfg(test)]
+    GAP_POSITION_CALLS.with(|calls| calls.set(calls.get().saturating_add(1)));
     let gaps = count.saturating_sub(1);
     if gaps == 0 || align != MainAlign::SpaceBetween {
         return vec![0; count];
     }
-    let used = used_children.saturating_add(u32::from(gap).saturating_mul(gaps as u32));
-    let extra = u32::from(extent).saturating_sub(used) / gaps as u32;
-    let remainder = u32::from(extent).saturating_sub(used) % gaps as u32;
+    let gap_count = gaps as u64;
+    let used = used_children.saturating_add(u64::from(gap).saturating_mul(gap_count));
+    let extra = u64::from(extent).saturating_sub(used) / gap_count;
+    let remainder = u64::from(extent).saturating_sub(used) % gap_count;
     (0..count)
         .map(|i| {
             if i < gaps {
-                (extra + u32::from((i as u32) < remainder)).min(u32::from(u16::MAX)) as u16
+                (extra + u64::from((i as u64) < remainder)).min(u64::from(u16::MAX)) as u16
             } else {
                 0
             }
         })
         .collect()
+}
+
+#[cfg(test)]
+std::thread_local! {
+    static GAP_POSITION_CALLS: std::cell::Cell<usize> = const { std::cell::Cell::new(0) };
 }
 
 fn cross_position(
@@ -644,10 +671,10 @@ fn cross_position(
     (offset, size)
 }
 
-fn sat_add(origin: u16, offset: u32) -> u16 {
-    u32::from(origin)
+fn sat_add(origin: u16, offset: u64) -> u16 {
+    u64::from(origin)
         .saturating_add(offset)
-        .min(u32::from(u16::MAX)) as u16
+        .min(u64::from(u16::MAX)) as u16
 }
 
 fn intersection(a: Rect, b: Rect) -> Rect {
@@ -770,6 +797,27 @@ mod tests {
             |_, _| Size::exact(u16::MAX, u16::MAX),
         );
         assert!(tiny.children.iter().all(|child| child.visible.is_empty()));
+    }
+
+    #[test]
+    fn intrinsic_minimum_participates_in_overflow_compression() {
+        let children = [
+            Child::new("first", ChildPolicy::new(Size::exact(8, 1))),
+            Child::new("second", ChildPolicy::new(Size::exact(8, 1))),
+        ];
+        let plan = row(
+            Rect::new(0, 0, 8, 1),
+            &children,
+            Composition::new(),
+            |_, _| Size::default(),
+        );
+        assert_eq!(
+            plan.children
+                .iter()
+                .map(|child| child.logical.width)
+                .collect::<Vec<_>>(),
+            [8, 0]
+        );
     }
 
     #[test]
@@ -917,5 +965,41 @@ mod tests {
                 && u32::from(child.visible.x) + u32::from(child.visible.width)
                     <= u32::from(area.x) + u32::from(area.width)
         }));
+    }
+
+    #[test]
+    fn very_large_preserved_minimum_sum_does_not_overflow() {
+        let child = Child::new(
+            "wide",
+            ChildPolicy::new(Size::exact(u16::MAX, 1)).min(u16::MAX, 1),
+        );
+        let children = vec![child; 65_538];
+        let plan = row(
+            Rect::new(0, 0, u16::MAX, 1),
+            &children,
+            Composition::new().overflow(OverflowPolicy::PreserveMinimum),
+            |_, _| Size::default(),
+        );
+        assert_eq!(plan.children.len(), children.len());
+        assert_eq!(plan.children[0].logical.width, u16::MAX);
+        assert_eq!(plan.children.last().unwrap().logical.width, u16::MAX);
+    }
+
+    #[test]
+    fn wide_wrap_resolves_gap_positions_once_per_line() {
+        let children = vec![Child::new("empty", ChildPolicy::new(Size::default())); 8_000];
+        GAP_POSITION_CALLS.with(|calls| calls.set(0));
+        let plan = wrap(
+            Rect::new(1, 1, 1, 1),
+            &children,
+            Composition::new().main_align(MainAlign::SpaceBetween),
+            |_, _| Size::default(),
+        );
+        let calls = GAP_POSITION_CALLS.with(std::cell::Cell::get);
+        assert_eq!(calls, 1);
+        assert_eq!(plan.children.len(), children.len());
+        assert_eq!(plan.children[0].logical.x, 1);
+        assert_eq!(plan.children[1].logical.x, 2);
+        assert_eq!(plan.children.last().unwrap().logical.x, 2);
     }
 }
