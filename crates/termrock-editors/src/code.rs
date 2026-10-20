@@ -6,8 +6,8 @@ use ratatui_core::style::Modifier;
 
 use super::{Acc, PartStyle, SlotFn, cell_at, first_row};
 use crate::completion::{
-    COMPLETION_MANUAL_CHORD, COMPLETION_NEXT_FOCUS_CHORD, COMPLETION_PREV_FOCUS_CHORD,
-    CompletingCodeEditor, CompletionProvider,
+    COMPLETION_NEXT_FOCUS_CHORD, COMPLETION_PREV_FOCUS_CHORD, CompletingCodeEditor,
+    CompletionProvider,
 };
 use crate::event::{Chord, KeyCode, KeyModifiers};
 use crate::focus::Focusability;
@@ -117,8 +117,6 @@ pub enum CodeAction {
     Committed,
 
     Leave { backward: bool },
-
-    CompletionManual,
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -159,8 +157,6 @@ pub enum CodeCmd {
 
     Block(bool),
 
-    CompletionManual,
-
     FocusNext,
 
     FocusPrevious,
@@ -178,12 +174,6 @@ const fn b(chord: Chord, cmd: CodeCmd, label: &'static str, visible: bool) -> Bi
 }
 
 const NAV_BINDINGS: &[Binding<CodeCmd>] = &[
-    b(
-        COMPLETION_MANUAL_CHORD,
-        CodeCmd::CompletionManual,
-        "completion.manual",
-        false,
-    ),
     b(
         COMPLETION_PREV_FOCUS_CHORD,
         CodeCmd::FocusPrevious,
@@ -326,12 +316,6 @@ const NAV_BINDINGS: &[Binding<CodeCmd>] = &[
 ];
 
 const EDIT_BINDINGS: &[Binding<CodeCmd>] = &[
-    b(
-        COMPLETION_MANUAL_CHORD,
-        CodeCmd::CompletionManual,
-        "completion.manual",
-        false,
-    ),
     b(
         COMPLETION_PREV_FOCUS_CHORD,
         CodeCmd::FocusPrevious,
@@ -1103,7 +1087,6 @@ impl<'a> CodeEditor<'a> {
         acc: &mut Acc<CodeAction>,
     ) {
         match command {
-            CodeCmd::CompletionManual => acc.action(CodeAction::CompletionManual),
             CodeCmd::FocusNext => {
                 st.commit();
                 cx.focus_next();
