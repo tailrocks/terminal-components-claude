@@ -313,7 +313,7 @@ impl<'a> MasterDetail<'a> {
                 ContentSlot::new(
                     summary,
                     ChildPolicy::default()
-                        .min(0, 1)
+                        .min(0, summary_rows)
                         .max(None, Some(summary_rows)),
                 ),
             ])
