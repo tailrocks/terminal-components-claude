@@ -565,9 +565,12 @@ impl<'u> CellUi<'u> {
         let reset_style = if area.width == 0 || area.height == 0 {
             style
         } else {
+            let position = Position::new(area.x, area.y);
+            let roles = ui.roles_at(position);
+            let surface = ui.surface();
             ui.buffer()
-                .cell(Position::new(area.x, area.y))
-                .map(|cell| PaintStyle::from(cell.style()))
+                .cell(position)
+                .map(|cell| PaintStyle::bound(cell.style(), roles.fg, roles.bg, surface))
                 .unwrap_or(style)
         };
         CellUi {
