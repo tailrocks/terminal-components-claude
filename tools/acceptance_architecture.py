@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
 from pathlib import Path
 import re
 import subprocess
@@ -136,6 +137,38 @@ def read_source(root: Path, rel: str) -> bytes:
     # The live filesystem is the Cargo input. Git's index may contain stale
     # bytes after a generated or included source file has been removed.
     return path.read_bytes()
+
+
+def target_directory_module_aliases(package_root: Path, target_directory: Path) -> set[str]:
+    """Find source-tree symlink names that point into Cargo build output.
+
+    Do not follow directory symlinks while walking: target directories can be
+    large. Matching module names anywhere in a package is deliberately
+    conservative because lexical scanning does not model nested inline-module
+    scopes or custom Cargo target roots.
+    """
+    aliases: set[str] = set()
+    target_directory = target_directory.resolve(strict=False)
+    for current, directories, _files in os.walk(package_root, followlinks=False):
+        current_path = Path(current)
+        try:
+            current_path.resolve(strict=True).relative_to(target_directory)
+        except (OSError, ValueError):
+            pass
+        else:
+            directories[:] = []
+            continue
+        for name in directories:
+            candidate = current_path / name
+            if not candidate.is_symlink():
+                continue
+            try:
+                resolved = candidate.resolve(strict=True)
+                resolved.relative_to(target_directory)
+            except (OSError, ValueError):
+                continue
+            aliases.add(name)
+    return aliases
 
 
 def finding(rule: str, rel: str, line: int, content: bytes, detail: str) -> dict[str, Any]:
@@ -296,6 +329,7 @@ def check(root: Path) -> dict[str, Any]:
     source_records: list[dict[str, Any]] = []
     file_bytes: dict[str, bytes] = {}
     pending_sources: list[tuple[dict[str, Any], str, str, bytes, tuple[str, ...]]] = []
+    target_module_aliases_by_package: dict[str, set[str]] = {}
     scan_names = production_closure | {str(pkg.get("name", "")) for pkg in application_component_pkgs}
     scan_pkgs = []
     for name in sorted(scan_names):
@@ -310,6 +344,10 @@ def check(root: Path) -> dict[str, Any]:
             continue
         pkg_root = manifest.parent
         pkg_rel_root = pkg_root.relative_to(root).as_posix()
+        target_module_aliases_by_package[str(pkg.get("id", pkg.get("name", "")))] = target_directory_module_aliases(
+            pkg_root,
+            Path(str(metadata.get("target_directory", root / "target"))),
+        )
         target_paths: list[str] = []
         for target in pkg.get("targets", []):
             if not set(target.get("kind", [])) & {"lib", "bin", "proc-macro", "custom-build"}:
@@ -358,6 +396,7 @@ def check(root: Path) -> dict[str, Any]:
         references = [("include", match, match.group(1)) for match in INCLUDE_RE.finditer(text)]
         references.extend(("include", match, None) for match in DYNAMIC_INCLUDE_RE.finditer(text) if not INCLUDE_RE.match(text, match.start()))
         references.extend(("path-module", match, match.group(1)) for match in PATH_MODULE_RE.finditer(text))
+        module_aliases = target_module_aliases_by_package.get(str(pkg.get("id", pkg.get("name", ""))), set())
         # Ordinary `mod name;` declarations also select production inputs.
         # Do not traverse Cargo's potentially huge build directory through a
         # source symlink; report this selected input as unresolved instead.
@@ -367,6 +406,11 @@ def check(root: Path) -> dict[str, Any]:
         target_root = Path(str(metadata.get("target_directory", root / "target"))).resolve(strict=False)
         for match in DECLARED_MODULE_RE.finditer(text):
             name = match.group(1)
+            if name in module_aliases:
+                line = text.count("\n", 0, match.start()) + 1
+                report["unaccounted_inputs"].append(
+                    f"production module may resolve through a Cargo target-directory alias: {rel}:{line} -> {name}"
+                )
             candidates = (module_base / f"{name}.rs", module_base / name / "mod.rs")
             for candidate in candidates:
                 try:

@@ -218,6 +218,26 @@ fn render(ui: &mut Ui) { for cell in FRAME_PIECES { ui.paint(cell.x, cell.y, cel
         self.assertTrue(any("production module resolves inside Cargo target directory" in item and "src/lib.rs:1" in item for item in report["unaccounted_inputs"]))
         self.assertFalse(any(row["path"] == "target/mod.rs" for row in report["source_inputs"]))
 
+    def test_custom_cargo_root_module_alias_into_target_is_unaccounted(self) -> None:
+        crate = self.root / "crates/termrock-core"
+        write(crate / "Cargo.toml", '[package]\nname="termrock-core"\nversion="0.1.0"\nedition="2024"\n[lib]\npath="other.rs"\n')
+        write(crate / "other.rs", "pub mod target;\n")
+        write(self.root / "target/mod.rs", "// captured terminal frame\n")
+        (crate / "target").symlink_to(self.root / "target", target_is_directory=True)
+        report = self.run_gate()
+        self.assertFalse(report["architecture_checks_passed"])
+        self.assertTrue(any("production module may resolve through a Cargo target-directory alias" in item and "other.rs:1" in item for item in report["unaccounted_inputs"]))
+
+    def test_nested_inline_module_alias_into_target_is_unaccounted(self) -> None:
+        crate = self.root / "crates/termrock-core"
+        write(crate / "src/lib.rs", "pub mod inner {\n    pub mod target;\n}\n")
+        write(self.root / "target/mod.rs", "// captured terminal frame\n")
+        (crate / "src/inner").mkdir(parents=True, exist_ok=True)
+        (crate / "src/inner/target").symlink_to(self.root / "target", target_is_directory=True)
+        report = self.run_gate()
+        self.assertFalse(report["architecture_checks_passed"])
+        self.assertTrue(any("production module may resolve through a Cargo target-directory alias" in item and "src/lib.rs:2" in item for item in report["unaccounted_inputs"]))
+
     def test_missing_live_include_does_not_fall_back_to_git_index(self) -> None:
         include = self.root / "crates/termrock-core/generated.inc"
         write(self.root / "crates/termrock-core/src/lib.rs", 'include!("../generated.inc");\n')
