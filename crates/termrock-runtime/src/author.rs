@@ -136,8 +136,9 @@ pub use crate::capture::Capture;
 pub use crate::focus::{FocusVis, Focusability, ScopeId, ScopeMode};
 pub use crate::hit::{Axes, Headroom, Hit, RegionKind};
 pub use crate::layer::{
-    Anchor, Backdrop, CrossAlign, Dismiss, DismissReason, LayerEvent, LayerId, LayerKind,
-    LayerSize, LayerSpec, ScreenAlign, Side, backdrop_area, resolve_anchor,
+    Anchor, Backdrop, CrossAlign, Dismiss, DismissReason, FocusContinuationOutcome,
+    LayerCompletion, LayerEvent, LayerId, LayerKind, LayerOpening, LayerSize, LayerSpec,
+    ScreenAlign, Side, backdrop_area, resolve_anchor,
 };
 pub use crate::scroll::ScrollState;
 
@@ -165,9 +166,39 @@ pub use termrock_collections::collection::{
 
 pub use crate::action::{Action, ActionKey};
 pub use crate::keymap::{
-    Binding, BindingState, BindingTableId, Bindings, Hint, HintLayer, KeyMap, KeyPhase,
-    binding_conflicts,
+    Binding, BindingExtensionError, BindingState, BindingTableId, Bindings, Hint, HintLayer,
+    KeyMap, KeyPhase, binding_conflicts,
 };
+
+/// Explicitly extends an existing same-owner component binding table for this frame.
+///
+/// Unlike [`Ui::publish_bindings`], this does not replace the prior table. Only bindings
+/// selected by `include` are added. Duplicate actions and ambiguous default chords are
+/// rejected and diagnosed; key-map remapping conflicts remain visible through runtime
+/// binding-conflict diagnostics.
+pub fn extend_bindings<C: Copy + 'static>(
+    ui: &mut Ui<'_>,
+    owner: Id,
+    flags: StateFlags,
+    table: &'static [Binding<C>],
+    include: impl Fn(C) -> bool,
+) -> Result<(), BindingExtensionError> {
+    ui.extend_bindings(owner, flags, table, include)
+}
+
+/// Publishes an explicitly selected subset of a static component binding table.
+///
+/// This keeps the replacement semantics of [`Ui::publish_bindings`]; use
+/// [`extend_bindings`] when multiple controls intentionally share one owner.
+pub fn publish_bindings_filtered<C: Copy + 'static>(
+    ui: &mut Ui<'_>,
+    owner: Id,
+    flags: StateFlags,
+    table: &'static [Binding<C>],
+    include: impl Fn(C) -> bool,
+) {
+    ui.publish_bindings_filtered(owner, flags, table, include);
+}
 
 pub use crate::diagnostics::Diagnostic;
 pub use crate::field_control::FieldControl;
