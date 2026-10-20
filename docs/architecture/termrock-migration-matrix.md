@@ -183,16 +183,16 @@ shows `‹11`. Other sizes of this scenario are not claimed.
 history list. The card paints the seeded log: search row, ten oldest entries,
 and the detail card. The ANSI stamp is removed. Other sizes are not claimed.
 
-## TablePro data 120×40 color levels — 2026-10-20
+## TablePro data 120×40 color levels — 2026-10-21
 
-`tablepro/table/data/120x40` truecolor, 256, and nocolor match the frozen
-frames. 256 borders use the baseline palette indexes (subtle 238, strong 242,
-seam and scroll track 239, faint 242, thumb 245, accent background 22,
-on-accent 232), not nearest-gray of the truecolor RGB. Outer grid edges dim
-when the cells are not truecolor RGB. The focused primary cell reverses in
-mono. `connections/default` 120×40 truecolor, 256, and nocolor match. The
-Connect label is bold reverse with no explicit ink in mono.
-Full visual runs and `origin/main` are not done.
+`tablepro/table/data/120x40` truecolor matches. A right-aligned value used to
+clear its pad to Default; the vacated cells keep the row fill. The cursor row
+is bold through the gutter tail, the gaps, the preview arrow, and the slack
+past the active value. `tablepro/table/scrolled_right/120x40` truecolor matches,
+including that gutter tail. `tablepro/table/data/120x40` nocolor and 256 match. Legacy inks use the
+frozen 256 indexes (`#3a3a3a` → 238, `#474747` → 239, `#737373` → 242,
+`#808080` → 245, `#173f1c` → 22), not the nearest gray ramp step. Other sizes
+are not claimed. Full visual runs and `origin/main` are not done.
 
 ## Palette and independently diagnosed reference corrections — 2026-10-20
 

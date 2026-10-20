@@ -1102,8 +1102,20 @@ impl<'f> Ui<'f> {
                 }
             }
             if let Some(cell) = self.buffer().cell_mut(src) {
+                // `reset` drops every channel. A partial style then leaves
+                // fg/bg at Default, which punches a hole through the row fill
+                // when a right-aligned value shifts off those cells.
+                let kept_fg = cell.fg;
+                let kept_bg = cell.bg;
                 cell.reset();
-                cell.set_style(reset.into_style());
+                let style = reset.into_style();
+                cell.set_style(style);
+                if style.fg.is_none() {
+                    cell.fg = kept_fg;
+                }
+                if style.bg.is_none() {
+                    cell.bg = kept_bg;
+                }
             }
             self.mark(src, None);
             self.mark(src, Some(reset));
@@ -1812,6 +1824,41 @@ mod tests {
                 });
             }
         }
+    }
+
+    #[test]
+    fn right_align_keeps_the_row_fill_in_the_vacated_prefix() {
+        use ratatui_core::style::Color;
+
+        use crate::rowui::CellUi;
+        use crate::theme::{Align, PaintStyle};
+
+        let theme = Theme::junie();
+        let (_, page) = with_ui(&theme, |ui| {
+            let area = Rect::new(0, 0, 12, 1);
+            let row = PaintStyle::new()
+                .fg(Color::Rgb(255, 255, 255))
+                .bg(Color::Rgb(0, 0, 0));
+            ui.fill(area, row);
+            let mut cell = CellUi::new(ui.reborrow(), area, PaintStyle::new());
+            cell.align(Align::Right);
+            cell.text("10000");
+        });
+        for x in 0..7 {
+            let cell = page.cell(Position::new(x, 0)).expect("prefix cell");
+            assert_eq!(cell.symbol(), " ", "prefix symbol {x}");
+            assert_eq!(cell.fg, Color::Rgb(255, 255, 255), "prefix fg {x}");
+            assert_eq!(cell.bg, Color::Rgb(0, 0, 0), "prefix bg {x}");
+        }
+        let text: String = (7..12)
+            .map(|x| {
+                page.cell(Position::new(x, 0))
+                    .expect("digit cell")
+                    .symbol()
+                    .to_owned()
+            })
+            .collect();
+        assert_eq!(text, "10000");
     }
 
     #[test]
