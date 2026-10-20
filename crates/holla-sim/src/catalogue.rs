@@ -2058,7 +2058,7 @@ pub fn parity_git_current_80x24_plate(
 }
 
 /// 80×24 `parity-cargo` plate. Only a paused tick-40 frame.
-/// Git-current, browser, files, history, discovery, other sizes, later seeks, and every other scenario stay off it.
+/// The 100×30 and 120×40 plates, git-current, browser, files, history, discovery, other sizes, later seeks, and every other scenario stay off it.
 pub fn parity_cargo_80x24_plate(w: &World, width: u16, height: u16) -> Option<ParityDiscovery> {
     if w.scenario != Scenario::ParityCargo
         || w.clock.running
@@ -2170,7 +2170,7 @@ pub fn parity_cargo_80x24_plate(w: &World, width: u16, height: u16) -> Option<Pa
 }
 
 /// 100×30 `parity-cargo` plate. Only a paused tick-40 frame.
-/// The 80×24 plate, git-current, browser, files, history, discovery, other sizes, later seeks, and every other scenario stay off it.
+/// The 80×24 and 120×40 plates, git-current, browser, files, history, discovery, other sizes, later seeks, and every other scenario stay off it.
 pub fn parity_cargo_100x30_plate(w: &World, width: u16, height: u16) -> Option<ParityDiscovery> {
     if w.scenario != Scenario::ParityCargo
         || w.clock.running
@@ -2276,6 +2276,166 @@ pub fn parity_cargo_100x30_plate(w: &World, width: u16, height: u16) -> Option<P
         lines,
         preview,
         preview_meta: String::new(),
+        actions: Vec::new(),
+        suggested_len: suggested.len(),
+    })
+}
+
+/// 120×40 `parity-cargo` plate. Only a paused tick-40 frame.
+/// The 80×24 and 100×30 plates, git-current, browser, files, history, discovery, other sizes, later seeks, and every other scenario stay off it.
+pub fn parity_cargo_120x40_plate(w: &World, width: u16, height: u16) -> Option<ParityDiscovery> {
+    if w.scenario != Scenario::ParityCargo
+        || w.clock.running
+        || width != 120
+        || height != 40
+        || w.now_ms() != 80
+    {
+        return None;
+    }
+    let suggested = vec![
+        tag_row(
+            "Show git status",
+            "git",
+            "here",
+            true,
+            "on main",
+            None,
+            false,
+        ),
+        tag_row(
+            "cargo build",
+            "cargo",
+            "here",
+            true,
+            "Cargo.toml here",
+            None,
+            true,
+        ),
+        tag_row(
+            "cargo check",
+            "cargo",
+            "here",
+            true,
+            "Cargo.toml here",
+            None,
+            false,
+        ),
+        tag_row(
+            "cargo clean · 900.0 MiB",
+            "cleanup",
+            "here",
+            true,
+            "900.0 MiB of generated artifacts",
+            Some("destructive"),
+            false,
+        ),
+        tag_row(
+            "cargo clippy",
+            "cargo",
+            "here",
+            true,
+            "Cargo.toml here",
+            None,
+            false,
+        ),
+    ];
+    let explore = vec![tag_row(
+        "System · mbp",
+        "explore",
+        "host",
+        false,
+        "available on this host",
+        None,
+        false,
+    )];
+    let mut lines = Vec::new();
+    lines.push(FinderLine::Heading("Suggested here"));
+    for row in &suggested {
+        lines.push(FinderLine::Row(row.clone()));
+    }
+    lines.push(FinderLine::Blank);
+    lines.push(FinderLine::Heading("Recent here"));
+    lines.push(FinderLine::Heading("nothing used here yet"));
+    lines.push(FinderLine::Blank);
+    lines.push(FinderLine::Heading("Explore"));
+    lines.push(FinderLine::Chips(&[
+        "Tasks", "Git", "Files", "Disk", "Services", "System",
+    ]));
+    for row in &explore {
+        lines.push(FinderLine::Row(row.clone()));
+    }
+    let preview = vec![
+        PreviewLine {
+            label: "Does",
+            value: "build the debug profile · compiler diagnostics stay in the activity".into(),
+            tone: PreviewTone::Text,
+            wraps: true,
+        },
+        PreviewLine {
+            label: "Runs",
+            value: "cargo build".into(),
+            tone: PreviewTone::Secondary,
+            wraps: false,
+        },
+        PreviewLine {
+            label: "In",
+            value: "~/work/engine".into(),
+            tone: PreviewTone::Text,
+            wraps: false,
+        },
+        PreviewLine {
+            label: "Host",
+            value: "mbp · local".into(),
+            tone: PreviewTone::Text,
+            wraps: false,
+        },
+        PreviewLine {
+            label: "Scope",
+            value: "here".into(),
+            tone: PreviewTone::Text,
+            wraps: false,
+        },
+        PreviewLine {
+            label: "Why",
+            value: "Cargo.toml here".into(),
+            tone: PreviewTone::Text,
+            wraps: false,
+        },
+        PreviewLine {
+            label: "Changes",
+            value: "see the command".into(),
+            tone: PreviewTone::Text,
+            wraps: false,
+        },
+        PreviewLine {
+            label: "Risk",
+            value: "mutating".into(),
+            tone: PreviewTone::Muted,
+            wraps: false,
+        },
+        PreviewLine {
+            label: "Data",
+            value: "live · 2 s ago".into(),
+            tone: PreviewTone::Muted,
+            wraps: false,
+        },
+        PreviewLine {
+            label: "Gate",
+            value: "runs directly".into(),
+            tone: PreviewTone::Muted,
+            wraps: false,
+        },
+        PreviewLine {
+            label: "Alt+Enter",
+            value: "Pin · Alias · Why here?".into(),
+            tone: PreviewTone::Muted,
+            wraps: false,
+        },
+    ];
+    Some(ParityDiscovery {
+        lines,
+        preview,
+        preview_meta: "cargo · here".into(),
         actions: Vec::new(),
         suggested_len: suggested.len(),
     })
@@ -5927,6 +6087,116 @@ mod tests {
             other.seek(40);
             other.clock.running = false;
             assert!(parity_cargo_100x30_plate(&other, 100, 30).is_none());
+        }
+    }
+
+    #[test]
+    fn parity_cargo_120x40_plate_is_only_the_mid_tick_40_frame() {
+        let mut world = fixtures::world_for(Scenario::ParityCargo);
+        assert!(parity_cargo_120x40_plate(&world, 120, 40).is_none());
+        world.seek(40);
+        assert!(world.clock.running);
+        assert!(parity_cargo_120x40_plate(&world, 120, 40).is_none());
+        world.clock.running = false;
+        assert_eq!(world.now_ms(), 80);
+        assert!(parity_cargo_80x24_plate(&world, 120, 40).is_none());
+        assert!(parity_cargo_100x30_plate(&world, 120, 40).is_none());
+        assert!(parity_cargo_120x40_plate(&world, 80, 24).is_none());
+        assert!(parity_cargo_120x40_plate(&world, 100, 30).is_none());
+        assert!(parity_cargo_120x40_plate(&world, 160, 50).is_none());
+        assert!(parity_cargo_120x40_plate(&world, 120, 39).is_none());
+        assert!(parity_cargo_120x40_plate(&world, 119, 40).is_none());
+        assert!(parity_cargo_80x24_plate(&world, 80, 24).is_some());
+        assert!(parity_cargo_100x30_plate(&world, 100, 30).is_some());
+        assert!(parity_git_current_80x24_plate(&world, 120, 40).is_none());
+        assert!(parity_git_current_100x30_plate(&world, 120, 40).is_none());
+        assert!(parity_git_current_120x40_plate(&world, 120, 40).is_none());
+        assert!(parity_browser_80x24_plate(&world, 120, 40).is_none());
+        assert!(parity_browser_100x30_plate(&world, 120, 40).is_none());
+        assert!(parity_browser_120x40_plate(&world, 120, 40).is_none());
+        assert!(parity_files_80x24_plate(&world, 120, 40).is_none());
+        assert!(parity_files_100x30_plate(&world, 120, 40).is_none());
+        assert!(parity_files_120x40_plate(&world, 120, 40).is_none());
+        assert!(parity_history_80x24_plate(&world, 120, 40).is_none());
+        assert!(parity_history_100x30_plate(&world, 120, 40).is_none());
+        assert!(parity_history_120x40_plate(&world, 120, 40).is_none());
+        assert!(parity_discovery_80x24_plate(&world, 120, 40).is_none());
+        assert!(parity_discovery_100x30_plate(&world, 120, 40).is_none());
+        let view = parity_cargo_120x40_plate(&world, 120, 40).expect("120x40 plate");
+        assert!(view.lines.iter().any(|line| matches!(
+            line,
+            FinderLine::Row(row) if row.selected
+                && row.title == "cargo build"
+                && row.kind == "cargo"
+                && row.scope_word == "here"
+                && row.reason == "Cargo.toml here"
+        )));
+        assert!(view.lines.iter().any(|line| matches!(
+            line,
+            FinderLine::Row(row) if !row.selected
+                && row.title == "Show git status"
+                && row.kind == "git"
+                && row.scope_word == "here"
+                && row.reason == "on main"
+        )));
+        assert!(view.lines.iter().any(|line| matches!(
+            line,
+            FinderLine::Row(row) if !row.selected
+                && row.title == "cargo clean · 900.0 MiB"
+                && row.kind == "cleanup"
+                && row.reason == "900.0 MiB of generated artifacts"
+                && row.risk == Some("destructive")
+        )));
+        assert!(view.lines.iter().any(|line| matches!(
+            line,
+            FinderLine::Row(row) if row.title == "System · mbp"
+                && !row.selected
+                && row.scope_word == "host"
+                && !row.here
+        )));
+        assert_eq!(view.preview_meta, "cargo · here");
+        let does = view
+            .preview
+            .iter()
+            .find(|line| line.label == "Does")
+            .expect("does line");
+        assert!(does.wraps);
+        assert_eq!(
+            does.value,
+            "build the debug profile · compiler diagnostics stay in the activity"
+        );
+        let runs = view
+            .preview
+            .iter()
+            .find(|line| line.label == "Runs")
+            .expect("runs line");
+        assert_eq!(runs.value, "cargo build");
+        assert_eq!(runs.tone, PreviewTone::Secondary);
+        let risk = view
+            .preview
+            .iter()
+            .find(|line| line.label == "Risk")
+            .expect("risk line");
+        assert_eq!(risk.value, "mutating");
+        assert_eq!(risk.tone, PreviewTone::Muted);
+        world.seek(4_000);
+        world.clock.running = false;
+        assert!(parity_cargo_120x40_plate(&world, 120, 40).is_none());
+        for scenario in [
+            Scenario::ParityGitCurrent,
+            Scenario::ParityBrowser,
+            Scenario::ParityFiles,
+            Scenario::ParityHistory,
+            Scenario::ParityDiscovery,
+            Scenario::FirstUse,
+            Scenario::ActivitiesMulti,
+        ] {
+            let mut other = fixtures::world_for(scenario);
+            other.seek(40);
+            other.clock.running = false;
+            assert!(parity_cargo_120x40_plate(&other, 120, 40).is_none());
+            assert!(parity_cargo_80x24_plate(&other, 120, 40).is_none());
+            assert!(parity_cargo_100x30_plate(&other, 120, 40).is_none());
         }
     }
 
