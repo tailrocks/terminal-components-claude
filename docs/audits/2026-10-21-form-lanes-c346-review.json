@@ -1,0 +1,71 @@
+{
+  "reviewed_commit": "c346aff507351d1490f55caa3a6de7c8347a6853",
+  "decision": "bounded_increment_clear",
+  "findings": [],
+  "scope": "Read-only independent medium-effort review of Form lanes descriptor, Radio clipping and parent hit registration fix; not complete Form clipping, library or product acceptance.",
+  "previous_review": "../form-lanes-review-a0e6/review.json",
+  "source_evidence": [
+    {
+      "path": "crates/termrock-forms/src/form.rs:1449",
+      "finding": "update_lanes reads prepared LayoutFacts.logical_area with previous registry fallback rather than requiring a covering owner hit region."
+    },
+    {
+      "path": "crates/termrock-forms/src/form.rs:1774",
+      "finding": "draw_lanes no longer appends parent BODY/CONTAINER decorations after children; real Radio original-item and fixed Button hit regions remain reachable."
+    },
+    {
+      "path": "crates/termrock-forms/tests/form_lanes_consumer.rs:743",
+      "finding": "Previous owner-region assertion was replaced by logical bounds and non-covering region assertions, consistent with the actual prepared-area contract. New input tests assert real field and action behavior rather than accepting swallowed events."
+    }
+  ],
+  "commands": [
+    {
+      "command": "cargo nextest run --manifest-path /private/tmp/form-lanes-public-probes/Cargo.toml --no-fail-fast",
+      "timeout_seconds": 225,
+      "exit_code": 0,
+      "result": "5 passed; zero skipped; unchanged valid-data external suite from a0e6 review",
+      "log": "external-unchanged-probes.log"
+    },
+    {
+      "command": "cargo nextest run --locked -p termrock-controls -p termrock-forms --all-targets",
+      "timeout_seconds": 225,
+      "exit_code": 0,
+      "result": "176 passed; zero skipped (Controls113, Forms63)",
+      "log": "native.log"
+    }
+  ],
+  "verified_public_behaviors": [
+    "Fill reserves allowed trailing Spacer rows; no false overflow when minimum plus spacers fits.",
+    "Partial Radio source window does not repeat hidden chrome or original leading options.",
+    "Real pointer Down/Up on visible original option8 focuses Radio and selects8; End moves cursor to original9 without selecting, Space chooses9.",
+    "Wheel scroll affects only the addressed lane; keyed lane scroll survives descriptor reorder and resize100x8 to81x9.",
+    "Fixed real footer action remains at final row and real pointer click invokes its domain action exactly once."
+  ],
+  "required_unresolved": [
+    "TextArea source-window and cursor/pointer/scrollbar behavior under partial parent clipping remains explicitly unresolved. Form discards first body source row for non-Radio child rendering; this is not cleared by Radio-only tests.",
+    "Other untested FieldKind clipping combinations and complete application migrations remain outside this bounded fix.",
+    "No frozen CLI application comparison, full workspace gate, CI acceptance or screenshot approval performed."
+  ],
+  "smallest_followup_plan": {
+    "scope": "One component-owned TextArea viewport contract in termrock-fields, one Form adapter, focused external tests; no global signed-coordinate transform or second rendering/input system.",
+    "required_inputs": "A resolved positive visible body rectangle plus logical body row count and first visible source body row; TextArea owns conversion to document line, its own scrolling, horizontal offset and cursor geometry.",
+    "invariants": [
+      "Draw and update must use the same prepared viewport metadata; parent window offset must not be applied only during painting or by cloning/modifying editor state.",
+      "Pointer local row, drag/selection, keyboard reveal, page size, edit-menu anchor, visible cursor and scrollbar track/thumb hit mapping must use that one resolved window.",
+      "Preserve complete source text and existing editor state; no slicing text, reindexing documents, dummy controls or caller repaint.",
+      "Existing normal TextArea APIs delegate through zero parent offset and preserve existing behavior.",
+      "Parent owns lane scroll; TextArea owns document scroll; neither silently overwrites the other state."
+    ],
+    "prerequisite": "Agree with the runtime/API owner how typed component-owned prepared viewport metadata is retained/read before implementation. Existing LayoutFacts alone does not explicitly carry an arbitrary top source offset; do not overload unrelated fields or add required public fields without compatibility review.",
+    "tests": "Real multi-line TextArea in overflowing Form: top-only, bottom-only and both clipping; move/edit cursor above and below visible source rows; click original line/column, drag selection, wheel document and parent separately, resize and reopen, Unicode widths, no cursor when clipped, zero sizes. Keep the unresolved gap explicit until these pass."
+  },
+  "artifacts": {
+    "consumer-Cargo.lock": "bb5250f987b637f71315ec1b2bf98bdabf605c1cfa13ed5b9e7f59c36c78e7af",
+    "consumer-Cargo.toml": "cd00583079b13f6049afff412929dbc77c77848c58d9d5613b1a318723adde02",
+    "interaction.rs": "1f9ee000f5020e0e236c3cbd8ec7f1be7dc3f0d0ab903d54313b27c8cfff510b",
+    "external-unchanged-probes.log": "23709d5683aab2da00fa16deb71824bd231c6cfa282b23b36343f77fc6431720",
+    "native.log": "9eef015fa4f8030abe1481f16d19b9420db1a8aa8fa0d16b7299b1c1db87545c",
+    "public-probes.rs": "af87bb39198f9f70c810c61cc4b457a0c854a0a14a73fa40dd6a8e3e85a844f6"
+  },
+  "source_status": ""
+}
