@@ -16,6 +16,10 @@ The reviewer ran the predecessor assertion against the exact `93b306503` product
 
 References remain fixed: baseline source `4169783ae883788186d161af09ba9c481bd84e5c`, tag object `2718a6b8127a522a3d351d0b4bdb7542fc8da542`, and tuiscotti `a1ea27f757d75d07b05499276cd932e9f8e067ad`.
 
+## Worktree recovery record
+
+During branch setup, a scoped stash command was used before the shared-worktree stash risk was recognized. `git stash pop` reported dropped object `8a8b5b5ca22235728602a0aa77d8eac0f81d2732`. Its two parents are `63f966679b0d564f3f8f361eb06d467992027644` and `a649f8c65f23fefa8aeb803412007249bd061d27`. It differs by one path from each parent. An atomic local safety ref, `refs/termrock-safety/stash-8a8b5b5c`, now protects the object from garbage collection. The shared stash reflog does not establish whether this object came from my command or another worktree actor. I did not inspect or publish its contents. The unrelated one-line `crates/jackin-preview-app/src/app.rs` worktree edit remains untouched and excluded from this change.
+
 ## Validation status
 
 This increment restores the unsupported expectations and leaves the known semantic mismatch visible. The resulting red assertion is an unresolved product defect, not a passing parity check. On current PR38 source, nextest reported the `Ansi256` mismatch: candidate values `accent_pressed=238`, `accent_tint=233`, `focus_ring=238`, `highlight_danger_bg=238`, `danger_tint=233`, and `syntax.match_bg=233`; the retained generic projection expects `71`, `22`, `71`, `95`, `52`, and `22`. The log SHA-256 is `c46e0da1374258f3aaa490735f622daa0694dbc4788a62b6a2975d628cdb71d4`. No palette implementation or frozen reference data was changed.
