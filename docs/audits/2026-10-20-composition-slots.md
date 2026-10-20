@@ -20,11 +20,14 @@ width-dependent text leaf compressed by row allocation. A separate integration
 consumer compiles only against public Termrock APIs with different live data.
 
 An independent runtime probe found a cursor escaping a clipped real `TextInput`
-leaf. `Ui::record_cursor` now clamps cursor requests to the active nonempty clip
-and ignores them for empty clips. The real-input integration regression failed
-before this fix with visible input `Rect { x: 6, y: 0, width: 4, height: 1 }`
-and cursor `Position { x: 12, y: 0 }`; it now requires the cursor at the last
-visible cell. A focused runtime test covers out-of-clip and empty-clip requests.
+leaf. `Ui::record_cursor` now suppresses cursor requests outside its active clip.
+It does not relocate an offscreen insertion point to a different character or
+cell. The real-input integration regression failed before this fix with visible
+input `Rect { x: 6, y: 0, width: 4, height: 1 }` and cursor
+`Position { x: 12, y: 0 }`; it now requires no visible cursor rather than a false
+cursor at the last visible cell. The leaf must be measured/scroll-adjusted to
+make its actual caret visible; that remains a component-level follow-up.
+Focused runtime coverage includes out-of-clip and empty-clip requests.
 
 The current API intentionally composes one flat group per call. Nested groups,
 grids, named slots, shell and master-detail blocks, and application migrations
