@@ -194,27 +194,39 @@ impl App for DeviceInfo {
 
     fn draw(&self, ui: &mut Ui<'_>) {
         let rows = self.rows();
-        let render = |ui: &mut Ui<'_>| {
-            ui.layer_slot(INFO, |slot| {
-                if self.use_typed_slots {
-                    slot.dialog(&self.dialog, &self.dialog_state, |body| {
-                        body.props_list(&self.props, &self.props_state, &rows);
+        ui.layer_slot(INFO, |slot| {
+            if self.clip_parent {
+                // Clip inside the layer's component-author boundary. Layer
+                // dispatch establishes the layer viewport itself, so an
+                // outer Ui::with_area would not model an inner parent clip.
+                slot.render_component(|ui, area| {
+                    ui.with_area(Rect::new(20, 7, 12, 4), |ui| {
+                        if self.use_typed_slots {
+                            self.dialog
+                                .draw_body_slot(ui, area, &self.dialog_state, |body| {
+                                    body.props_list(&self.props, &self.props_state, &rows);
+                                });
+                        } else {
+                            self.dialog
+                                .draw(ui, area, &self.dialog_state, |ui, body_area| {
+                                    self.props.draw(ui, body_area, &self.props_state, &rows);
+                                });
+                        }
                     });
-                } else {
-                    slot.render_component(|ui, area| {
-                        self.dialog
-                            .draw(ui, area, &self.dialog_state, |ui, body_area| {
-                                self.props.draw(ui, body_area, &self.props_state, &rows);
-                            });
-                    });
-                }
-            });
-        };
-        if self.clip_parent {
-            ui.with_area(Rect::new(20, 7, 12, 4), render);
-        } else {
-            render(ui);
-        }
+                });
+            } else if self.use_typed_slots {
+                slot.dialog(&self.dialog, &self.dialog_state, |body| {
+                    body.props_list(&self.props, &self.props_state, &rows);
+                });
+            } else {
+                slot.render_component(|ui, area| {
+                    self.dialog
+                        .draw(ui, area, &self.dialog_state, |ui, body_area| {
+                            self.props.draw(ui, body_area, &self.props_state, &rows);
+                        });
+                });
+            }
+        });
     }
 }
 
