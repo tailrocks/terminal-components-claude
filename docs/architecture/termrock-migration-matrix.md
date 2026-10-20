@@ -2,6 +2,37 @@
 
 Updated: 2026-10-20. Status: **in progress; all four applications incomplete**. This is the current migration record. Older audit reports remain evidence, not a complete inventory or acceptance declaration.
 
+## Reviewed shared-style delivery — 2026-10-20
+
+The source series reviewed at `2863bf6e7f011c321088263cce12d423b16d73d3`
+starts from PR #38 commit `1d7b8eb291e37cb4806ce1369a8a0abab08a81ac`.
+Independent review verified all ten changed Rust files are byte-identical
+to previously cleared `e72dbb15369d541ee86095f6caaee3f7e4680828`; current
+TablePro fixes, Dialog backdrop handling, and focus-bar suppression remain
+intact. Explicit theme, overlay and instance style channels reach the shared
+components without application repainting. No application, CI, captured frame,
+expected hash, or frozen reference is changed by this series.
+
+The same four-package nextest command runs 675 cases after the change versus
+662 on the parent: all 13 new regressions pass, two parent failures are fixed,
+and the same 14 existing failures remain. The full gate is **not green**.
+Those failures comprise six Dialog layout cases and eight theme capability,
+empty-style, or nested-backdrop cases. The palette corrections and reference
+repairs are separate review candidates, not silently included here. Strict
+package Clippy and formatting pass. Detailed source mapping and original logs
+are in [the style audit](../audits/2026-10-20-shared-style-regressions.md);
+independent evidence is at `/tmp/termrock-style-review-2863`, and the parent
+repeat is retained under
+`/Users/donbeave/Projects/termrock-cli-evidence-20261020/pr38-style-delivery/`.
+
+Fresh real-CLI evidence on unchanged parent `1d7b8eb` captures and replays all
+four selected TablePro checkpoints. Picker-open and tab-list-open match the
+candidate exactly, but both Esc-dismissed flows differ in 82 footer cells;
+cursor state matches. This limited sample remains incomplete and does not
+approve the runtime/Picker integration. See the preserved
+`tablepro-picker-1d7/paired-tablepro-picker-result.json` evidence index beneath
+the same external evidence root. All four applications remain incomplete.
+
 ## Fixed sources and starting tips
 
 | Source | Identity recorded before this work | Use |
