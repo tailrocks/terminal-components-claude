@@ -341,9 +341,32 @@ impl<'u> RowUi<'u> {
     }
 
     pub fn label_matched(&mut self, s: &str, matched: &[usize]) {
-        // Match emphasis adds BOLD to matching graphemes in `paint_matched`;
-        // preserve the complete resolved style for all other graphemes.
-        let style = self.style_of(Part::LABEL);
+        let patch = self.label_patch;
+        let resolved = self.ui.style_defaults_with_explicit(
+            self.family,
+            self.variant,
+            Part::LABEL,
+            self.flags,
+            crate::theme::StyleDefaults::new(StylePatch::new().remove(Modifier::BOLD)),
+            patch.as_ref(),
+        );
+        let mut style = resolved.resolved.style;
+        if !self.flags.contains(StateFlags::FOCUSED)
+            && !resolved.explicit.add.contains(Modifier::BOLD)
+            && !self.label_recipe_adds_bold()
+        {
+            // An unfocused row uses match emphasis for BOLD by default. A
+            // theme recipe or explicit style patch may still opt into bold.
+            style = style.remove_modifier(Modifier::BOLD);
+        }
+        #[cfg(feature = "testing")]
+        self.ui.note_styled(
+            self.owner,
+            self.family,
+            self.variant,
+            Part::LABEL,
+            resolved.resolved,
+        );
         let area = self.remaining();
         let used = if width(s) <= area.width {
             self.ui.paint_matched(area, s, matched, style)
@@ -361,6 +384,35 @@ impl<'u> RowUi<'u> {
             used.saturating_add(self.ui.glyph(tail, GlyphRole::Ellipsis, style))
         };
         self.left = self.left.saturating_add(used);
+    }
+
+    fn label_recipe_adds_bold(&self) -> bool {
+        let Some(recipe) = self.ui.theme().recipes.get(self.family) else {
+            return false;
+        };
+        let variant = if self.variant == Variant::DEFAULT {
+            recipe.default_variant
+        } else {
+            self.variant
+        };
+        let family = recipe.parts.get(Part::LABEL);
+        let variant_part = recipe
+            .variant(variant)
+            .and_then(|parts| parts.get(Part::LABEL));
+        let base = family
+            .map_or(StylePatch::new(), |part| part.base)
+            .merge(variant_part.map_or(StylePatch::new(), |part| part.base));
+        if base.add.contains(Modifier::BOLD) {
+            return true;
+        }
+        family
+            .into_iter()
+            .chain(variant_part)
+            .flat_map(|part| part.states.iter())
+            .filter(|rule| rule.matches(self.flags))
+            .fold(base, |patch, rule| patch.merge(rule.patch))
+            .add
+            .contains(Modifier::BOLD)
     }
 
     pub fn label_patched(&mut self, s: &str, p: &StylePatch) {
