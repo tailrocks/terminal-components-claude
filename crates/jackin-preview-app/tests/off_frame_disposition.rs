@@ -270,6 +270,21 @@ fn paused_frames_do_not_open_quit_or_cancel() {
 }
 
 #[test]
+fn cockpit_t_paints_the_approved_run_id_on_the_paused_launch() {
+    let mut h = H::new(Scenario::LaunchRunning, Motion::Paused, 40, 120, 40);
+    assert!(
+        !h.text().contains("run-2026"),
+        "run id stays hidden until t: {}",
+        h.text()
+    );
+    h.key(KeyCode::Char('t'));
+    assert!(h.text().contains("run-202609030914-b5df"), "{}", h.text());
+    let cell = h.buffer().cell((97, 36)).expect("run id");
+    assert_eq!(cell.symbol(), "r");
+    assert_eq!(cell.fg, termrock::Color::from_u32(0x79_b8_ff));
+}
+
+#[test]
 fn cockpit_debug_info_opens_only_on_i_and_hides_telemetry_until_d() {
     let mut h = H::new(Scenario::LaunchRunning, Motion::Paused, 0, 120, 40);
     assert_eq!(h.app().route(), Route::Cockpit);
