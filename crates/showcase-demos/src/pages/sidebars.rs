@@ -1,6 +1,6 @@
 use termrock::{
     Button, Color, Cx, Id, ItemKey, Modifier, NavList, NavListAction, NavListState, NavMode,
-    PaintStyle, Rect, RowUi, Ui, Variant, width,
+    PaintStyle, Rect, RowUi, Ui, Variant, width, wrap,
 };
 
 use super::{Page, PageUpdate, frame};
@@ -16,6 +16,9 @@ const SECTION_WIDE: u16 = 76;
 const SIDE_W: u16 = 28;
 const CARD_GAP: u16 = 2;
 const CARD_H: u16 = 20;
+const CARD_MIN_W: u16 = 24;
+const CONTENT_MIN_W: u16 = SIDE_W + CARD_GAP + CARD_MIN_W;
+const SCROLL_ROOM: u16 = 2;
 const NAV_ROWS: u16 = 16;
 
 const CANVAS: u32 = 0x000000;
@@ -29,6 +32,8 @@ const ACCENT: u32 = 0x48e054;
 const ACCENT_BG: u32 = 0x173f1c;
 const TAB_ACTIVE: u32 = 0x27272a;
 const DISABLED: u32 = 0x4d4d4d;
+const THUMB: u32 = 0x808080;
+const TRACK: u32 = 0x474747;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 struct SidebarItem {
@@ -205,15 +210,29 @@ fn paint_blurb(ui: &mut Ui<'_>, body: Rect) {
     if body.width <= title_w.saturating_add(4) {
         return;
     }
+    let meta = Rect::new(
+        body.x.saturating_add(title_w).saturating_add(2),
+        body.y.saturating_sub(2),
+        body.width.saturating_sub(title_w).saturating_sub(3),
+        1,
+    );
+    let style = ink(MUTED, CANVAS);
+    if width(BLURB) <= meta.width {
+        ui.paint_str(meta, BLURB, style);
+        return;
+    }
+    if meta.width == 0 {
+        return;
+    }
+    let budget = Rect {
+        width: meta.width.saturating_sub(1),
+        ..meta
+    };
+    let used = ui.paint_str(budget, BLURB, style);
     ui.paint_str(
-        Rect::new(
-            body.x.saturating_add(title_w).saturating_add(2),
-            body.y.saturating_sub(2),
-            body.width.saturating_sub(title_w).saturating_sub(3),
-            1,
-        ),
-        BLURB,
-        ink(MUTED, CANVAS),
+        Rect::new(meta.x.saturating_add(used), meta.y, 1, 1),
+        "…",
+        style,
     );
 }
 
@@ -492,50 +511,198 @@ fn paint_content(ui: &mut Ui<'_>, card: Rect, selected: &str, last: &str) {
             ink(RULE, SURFACE),
         );
     }
+    let mut y = card.y.saturating_add(2);
     for (index, line) in content_lines(last).iter().enumerate() {
-        let Ok(offset) = u16::try_from(index) else {
-            break;
-        };
-        let y = card.y.saturating_add(2).saturating_add(offset);
-        if y >= card.bottom() || line.is_empty() {
-            continue;
-        }
-        let accent = (2..=4).contains(&index);
-        let Some(first) = line.chars().next() else {
-            continue;
-        };
-        if accent {
-            let split = first.len_utf8();
-            let (glyph, rest) = line.split_at(split);
-            let glyph_w = width(glyph);
-            ui.paint_str(Rect::new(text_x, y, text_w, 1), glyph, ink(ACCENT, SURFACE));
-            ui.paint_str(
-                Rect::new(
-                    text_x.saturating_add(glyph_w),
-                    y,
-                    text_w.saturating_sub(glyph_w),
-                    1,
-                ),
-                rest,
-                ink(SECONDARY, SURFACE),
-            );
+        let parts = if line.is_empty() || text_w == 0 {
+            vec![String::new()]
         } else {
+            wrap(line, text_w)
+        };
+        let accent = (2..=4).contains(&index);
+        for (part_index, part) in parts.iter().enumerate() {
+            if y >= card.bottom() {
+                return;
+            }
+            if !part.is_empty() {
+                if accent && part_index == 0 {
+                    paint_accent_line(ui, text_x, y, text_w, part);
+                } else {
+                    ui.paint_str(
+                        Rect::new(text_x, y, text_w, 1),
+                        part,
+                        ink(SECONDARY, SURFACE),
+                    );
+                }
+            }
+            y = y.saturating_add(1);
+        }
+    }
+}
+
+fn paint_accent_line(ui: &mut Ui<'_>, text_x: u16, y: u16, text_w: u16, line: &str) {
+    let Some(first) = line.chars().next() else {
+        return;
+    };
+    let split = first.len_utf8();
+    let (glyph, rest) = line.split_at(split);
+    let glyph_w = width(glyph);
+    ui.paint_str(Rect::new(text_x, y, text_w, 1), glyph, ink(ACCENT, SURFACE));
+    ui.paint_str(
+        Rect::new(
+            text_x.saturating_add(glyph_w),
+            y,
+            text_w.saturating_sub(glyph_w),
+            1,
+        ),
+        rest,
+        ink(SECONDARY, SURFACE),
+    );
+}
+
+fn text_columns(content_w: u16) -> u16 {
+    let side_w = SIDE_W.min(content_w);
+    let content_x = side_w.saturating_add(CARD_GAP);
+    if content_x >= content_w {
+        return 0;
+    }
+    content_w.saturating_sub(content_x).saturating_sub(4)
+}
+
+fn wrapped_rows(text: &str, columns: u16) -> u16 {
+    u16::try_from(wrap(text, columns.max(1)).len()).unwrap_or(u16::MAX)
+}
+
+fn content_height(content_w: u16, last: &str) -> u16 {
+    let columns = text_columns(content_w);
+    let body = if columns == 0 {
+        0
+    } else {
+        content_lines(last)
+            .iter()
+            .map(|line| {
+                if line.is_empty() {
+                    1
+                } else {
+                    wrapped_rows(line, columns)
+                }
+            })
+            .fold(0u16, u16::saturating_add)
+    };
+    let fitted = body.saturating_add(2);
+    if fitted > CARD_H {
+        // One resting row under the last wrapped line. The thumb uses it.
+        fitted.saturating_add(1)
+    } else {
+        CARD_H
+    }
+}
+
+fn playground_width(area: Rect, last: &str) -> u16 {
+    let mut width = area.width.max(CONTENT_MIN_W);
+    let height = content_height(width, last);
+    if height > area.height && area.width > SCROLL_ROOM && width <= area.width {
+        let narrow = area.width.saturating_sub(SCROLL_ROOM);
+        let narrowed = narrow.max(CONTENT_MIN_W);
+        if narrowed <= narrow {
+            width = narrowed;
+        }
+    }
+    width
+}
+
+struct ScrollSplit {
+    view: Rect,
+    vertical: bool,
+    horizontal: bool,
+}
+
+fn scroll_split(area: Rect, content_w: u16, content_h: u16) -> ScrollSplit {
+    let (mut vertical, mut horizontal) = (false, false);
+    for _ in 0..3 {
+        let view_w = area
+            .width
+            .saturating_sub(if vertical { SCROLL_ROOM } else { 0 });
+        let view_h = area.height.saturating_sub(u16::from(horizontal));
+        let next_v = content_h > view_h;
+        let next_h = content_w > view_w;
+        if (next_v, next_h) == (vertical, horizontal) {
+            break;
+        }
+        vertical = next_v;
+        horizontal = next_h;
+    }
+    let vertical = vertical && area.width > SCROLL_ROOM;
+    let horizontal = horizontal && area.height > 1;
+    let view = Rect {
+        width: area
+            .width
+            .saturating_sub(if vertical { SCROLL_ROOM } else { 0 }),
+        height: area.height.saturating_sub(u16::from(horizontal)),
+        ..area
+    };
+    ScrollSplit {
+        view,
+        vertical,
+        horizontal,
+    }
+}
+
+fn track_thumb(viewport: u16, track: u16, content: u16) -> u16 {
+    if content <= viewport || track == 0 {
+        return track;
+    }
+    let len = u32::from(viewport).saturating_mul(u32::from(track)) / u32::from(content);
+    u16::try_from(len).unwrap_or(u16::MAX).max(1).min(track)
+}
+
+fn paint_page_scrollbars(
+    ui: &mut Ui<'_>,
+    area: Rect,
+    split: &ScrollSplit,
+    content_w: u16,
+    content_h: u16,
+) {
+    if split.vertical {
+        let bar = Rect::new(area.right().saturating_sub(1), area.y, 1, split.view.height);
+        let thumb = track_thumb(split.view.height, bar.height, content_h);
+        for row in 0..bar.height {
+            let on = row < thumb;
             ui.paint_str(
-                Rect::new(text_x, y, text_w, 1),
-                line,
-                ink(SECONDARY, SURFACE),
+                Rect::new(bar.x, bar.y.saturating_add(row), 1, 1),
+                if on { "┃" } else { "┆" },
+                if on {
+                    ink(THUMB, CANVAS)
+                } else {
+                    ink(TRACK, CANVAS)
+                },
+            );
+        }
+    }
+    if split.horizontal {
+        let width = area.width.saturating_sub(u16::from(split.vertical));
+        let bar = Rect::new(area.x, area.bottom().saturating_sub(1), width, 1);
+        let thumb = track_thumb(split.view.width, bar.width, content_w);
+        for col in 0..bar.width {
+            let on = col < thumb;
+            ui.paint_str(
+                Rect::new(bar.x.saturating_add(col), bar.y, 1, 1),
+                if on { "━" } else { "┄" },
+                if on {
+                    ink(THUMB, CANVAS)
+                } else {
+                    ink(TRACK, CANVAS)
+                },
             );
         }
     }
 }
 
-fn paint_playground(ui: &mut Ui<'_>, area: Rect, selected: &str, last: &str) {
+fn paint_playground_body(ui: &mut Ui<'_>, area: Rect, selected: &str, last: &str) {
     if area.is_empty() {
         return;
     }
-    let height = CARD_H.min(area.height);
     let side_w = SIDE_W.min(area.width);
-    paint_side(ui, Rect::new(area.x, area.y, side_w, height), selected);
+    paint_side(ui, Rect::new(area.x, area.y, side_w, area.height), selected);
     let content_x = area.x.saturating_add(side_w).saturating_add(CARD_GAP);
     if content_x >= area.right() {
         return;
@@ -546,11 +713,25 @@ fn paint_playground(ui: &mut Ui<'_>, area: Rect, selected: &str, last: &str) {
             content_x,
             area.y,
             area.right().saturating_sub(content_x),
-            height,
+            area.height,
         ),
         selected,
         last,
     );
+}
+
+fn paint_playground(ui: &mut Ui<'_>, area: Rect, selected: &str, last: &str) {
+    if area.is_empty() {
+        return;
+    }
+    let content_w = playground_width(area, last);
+    let content_h = content_height(content_w, last);
+    let split = scroll_split(area, content_w, content_h);
+    let content = Rect::new(area.x, area.y, content_w, content_h);
+    ui.with_area(split.view, |ui| {
+        paint_playground_body(ui, content, selected, last);
+    });
+    paint_page_scrollbars(ui, area, &split, content_w, content_h);
 }
 
 #[derive(Debug, Default)]
@@ -690,5 +871,25 @@ mod tests {
         assert_eq!(h.cell(32, 9).symbol(), "\u{203a}");
         assert_eq!(h.cell(32, 9).fg, Color::Rgb(0x48, 0xe0, 0x54));
         assert_eq!(h.cell(32, 6).symbol(), "─");
+    }
+
+    #[test]
+    fn narrow_playground_scrolls_and_ends_the_blurb_on_ellipsis() {
+        let h = termrock_test_support::Harness::new(Host, Theme::junie(), 51, 16);
+        assert_eq!(h.cell(48, 0).symbol(), "h");
+        assert_eq!(h.cell(49, 0).symbol(), "…");
+        assert_eq!(h.cell(49, 0).fg, Color::Rgb(0x8a, 0x8a, 0x8a));
+        assert_eq!(h.cell(49, 0).bg, Color::Rgb(0, 0, 0));
+        assert_eq!(h.cell(48, 7).symbol(), "↑");
+        assert_eq!(h.cell(32, 8).symbol(), "(");
+        assert_eq!(h.cell(50, 5).symbol(), "┃");
+        assert_eq!(h.cell(50, 5).fg, Color::Rgb(0x80, 0x80, 0x80));
+        assert_eq!(h.cell(50, 8).symbol(), "┆");
+        assert_eq!(h.cell(50, 8).fg, Color::Rgb(0x47, 0x47, 0x47));
+        assert_eq!(h.cell(0, 15).symbol(), "━");
+        assert_eq!(h.cell(44, 15).symbol(), "━");
+        assert_eq!(h.cell(45, 15).symbol(), "┄");
+        assert_eq!(h.cell(49, 15).symbol(), "┄");
+        assert_eq!(h.cell(50, 15).symbol(), " ");
     }
 }
