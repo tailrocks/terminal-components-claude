@@ -201,7 +201,7 @@ fn check(kind: u8, child: bool) {
         Some(if child {
             Color::Cyan
         } else {
-            Color::Rgb(128, 128, 128)
+            Color::Rgb(138, 138, 138)
         }),
         "other instance"
     );
