@@ -287,6 +287,10 @@ pub const SITES: &[Site] = &[
         &["showcase/flows/pickers/open"],
     ),
     rows(
+        "crates/showcase-demos/src/pages/selectable.rs::with_dialog",
+        &["showcase/flows/selectable/delete_confirm"],
+    ),
+    rows(
         "crates/showcase-demos/src/pages/settings.rs::remove_dialog",
         &["showcase/overlays/settings_remove_member"],
     ),
