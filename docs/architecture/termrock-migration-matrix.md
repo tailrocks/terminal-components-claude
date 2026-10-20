@@ -1,6 +1,20 @@
 # Termrock migration and acceptance matrix
 
-Updated: 2026-10-20. Status: **in progress; all four applications incomplete**. This is the current migration record. Older audit reports remain evidence, not a complete inventory or acceptance declaration.
+Updated: 2026-10-21. Status: **in progress; all four applications incomplete**. This is the current migration record. Older audit reports remain evidence, not a complete inventory or acceptance declaration.
+
+## CI feature-gate increment — 2026-10-21
+
+Velnor Actions 0.1.29 now has a named `testing` Rust configuration while the
+existing `default` configuration stays unchanged. The generated `termrock`
+test task enables the facade `testing` feature and discovers the gated button,
+text-input, slots, and split-block consumer binaries. The generated command
+ran 13 tests across six binaries (13 passed, 0 skipped); actionlint and zizmor
+also passed. Generator 0.1.29 reports explicit default-feature fallbacks for
+packages with no matching feature and does not put `testing` in their Cargo
+argv. Its generated doctest jobs still use `cargo test --doc`, which conflicts
+with the repository's nextest-only rule and remains unresolved. See the
+[CI testing-configuration audit](../audits/2026-10-21-velnor-testing-configuration.md).
+This does not establish full CI or product acceptance.
 
 ## TablePro query results 120×40 truecolor — 2026-10-21
 
