@@ -52,6 +52,7 @@ pub mod terminal {
 pub mod session {
     pub use termrock_session::*;
 }
+pub mod composition;
 pub mod author {
     pub use ratatui_core::buffer::{Buffer, Cell};
     pub use ratatui_core::layout::{Position, Rect};
