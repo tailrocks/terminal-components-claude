@@ -11,7 +11,9 @@ use crate::hit::Registry;
 use crate::id::{Id, PartRef};
 use crate::intent::{IntentIter, IntentQueue};
 use crate::keymap::{BindingRegistry, KeyMap};
-use crate::layer::{Anchor, DismissReason, LayerEvent, LayerId, LayerSize, LayerSpec, LayerStack};
+use crate::layer::{
+    Anchor, DismissReason, LayerEvent, LayerId, LayerOpening, LayerSize, LayerSpec, LayerStack,
+};
 use crate::response::StateFlags;
 use crate::runtime::UpdateCause;
 use crate::theme::{DesignTokens, Theme};
@@ -145,6 +147,7 @@ pub(crate) struct DeferredFocus {
 
 #[derive(Debug, Default)]
 pub struct FrameServices {
+    pub(crate) runtime_id: u64,
     pub(crate) viewport: Rect,
     pub(crate) layers: LayerStack,
     pub(crate) capture: CaptureSlot,
@@ -451,19 +454,36 @@ impl<'f> Cx<'f> {
     }
 
     pub fn open_layer(&mut self, id: Id, spec: LayerSpec) {
+        let _ = self.open_layer_with_token(id, spec);
+    }
+
+    pub fn open_layer_with_token(&mut self, id: Id, spec: LayerSpec) -> Option<LayerOpening> {
         let restore = if spec.restore_focus {
             self.last.snapshot.focus.or(self.services.focus_request)
         } else {
             None
         };
-        if let Some(layer) = self.services.layers.open(id, spec, restore) {
+        let opening =
+            self.services
+                .layers
+                .open_with_runtime(id, spec, restore, self.services.runtime_id);
+        if let Some(opening) = opening {
             self.services.reset_pointer_clicks = true;
             self.services.initial_focus_layer = None;
             if let Some(target) = spec.initial_focus {
                 self.focus(target);
-                self.services.initial_focus_layer = Some(layer);
+                self.services.initial_focus_layer = Some(opening.layer_id());
             }
         }
+        opening
+    }
+
+    pub fn layer_opening(&self, id: Id) -> Option<LayerOpening> {
+        self.services
+            .layers
+            .get(id)
+            .map(|layer| layer.opening)
+            .filter(|opening| opening.id() == id && opening.runtime() == self.services.runtime_id)
     }
 
     pub fn resize_layer(&mut self, id: Id, size: LayerSize) {
