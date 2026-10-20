@@ -17,3 +17,18 @@ Focused runtime-backed tests check the one-item 64×8 frame at `(28, 16)` in a
 40×12, empty/many-row measurement, and theme/explicit row limits. The Picker
 continues to use its live `FilterList` renderer; no captured frame or
 application-specific geometry path is involved.
+
+The shared Picker also exposes `hints(&str)` for the baseline's
+application-supplied footer text. It draws through the component renderer on
+the reserved bottom content row; empty or omitted hints leave that row blank.
+The Picker test checks visible footer output.
+
+At initial Bootstrap the runtime viewport is zero, so a Picker cannot measure
+against the first terminal size while opening its layer. The runtime resolves
+that stored fixed size against the first draw area, clamping to the full
+terminal height rather than the Picker's required two-cell outer margin. The
+Picker component receives only the resolved layer rectangle at draw time and
+cannot repair that first-frame placement without a runtime relayout contract.
+This remains an integration blocker for first-draw short-terminal parity; a
+runtime owner must make the opened layer size responsive before accepting this
+geometry increment.
