@@ -43,7 +43,9 @@ pub use completion::{
 };
 pub use dialog::{Dialog, DialogAction, DialogCmd, DialogState};
 pub use help::{HelpAction, HelpCmd, HelpOverlay, HelpOverlayState, HelpSection};
-pub use menu::{ContextMenu, Menu, MenuAction, MenuBar, MenuCmd, MenuItem, MenuState};
+pub use menu::{
+    ContextMenu, Menu, MenuAction, MenuBar, MenuBarHoverScope, MenuCmd, MenuItem, MenuState,
+};
 pub use picker::{
     AsItem, CommandPalette, Item, ItemRow, ItemRowLayout, Picker, PickerAction, PickerState,
     ScopeKey,
