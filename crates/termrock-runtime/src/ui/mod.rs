@@ -407,7 +407,7 @@ impl<'f> Ui<'f> {
         part: Part,
         flags: StateFlags,
     ) -> Resolved {
-        let acc = self.core.style_cache.accumulate(
+        self.core.style_cache.resolve(
             self.theme,
             family,
             variant,
@@ -415,8 +415,8 @@ impl<'f> Ui<'f> {
             flags,
             &self.core.overlays,
             self.core.stack_hash,
-        );
-        crate::theme::resolve::bind(self.theme, acc, None, self.surface)
+            self.surface,
+        )
     }
 
     pub(crate) fn style_inherited(
@@ -489,7 +489,7 @@ impl<'f> Ui<'f> {
         flags: StateFlags,
         patch: &crate::theme::StylePatch,
     ) -> Resolved {
-        let acc = self.core.style_cache.accumulate(
+        self.core.style_cache.resolve_patched(
             self.theme,
             family,
             variant,
@@ -497,8 +497,9 @@ impl<'f> Ui<'f> {
             flags,
             &self.core.overlays,
             self.core.stack_hash,
-        );
-        crate::theme::resolve::bind(self.theme, acc, Some(patch), self.surface)
+            self.surface,
+            patch,
+        )
     }
 
     #[cfg(feature = "testing")]
