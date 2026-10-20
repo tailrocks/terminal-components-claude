@@ -360,6 +360,7 @@ impl<'a> CompletingCodeEditor<'a> {
             let _ = ui.layer(self.popup_id, |ui, popup_area| {
                 self.completion()
                     .draw(ui, popup_area, &state.completion, &state.items);
+                let _ = ui.retain_owner_cursor(self.id);
             });
         }
         let live = ui.state(self.id);

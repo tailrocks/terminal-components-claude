@@ -27,7 +27,6 @@ use crate::workbench::Workbench;
 mod historical_form_advanced;
 mod historical_form_new;
 mod historical_history_tab;
-mod historical_table_scrolled_right;
 mod historical_workbench_explorer_hidden;
 mod historical_workbench_maximized;
 #[cfg(test)]
@@ -6952,21 +6951,6 @@ fn draw_painted_grid(
     let grid = result_grid(id, draw_specs);
     grid.draw(ui, area, state, &PaintedGrid { inner: model });
     paint_grid_focus_bar(ui, area, state, model);
-    if !calm_header
-        && let Some((key, _)) = state.cursor()
-        && let Some(row) = (0..model.row_count()).find(|row| GridModel::row_key(model, *row) == key)
-    {
-        let bold = PaintStyle::new().add_modifier(Modifier::BOLD);
-        ui.paint_style(
-            termrock::Rect {
-                x: area.x.saturating_add(1),
-                y: area.y.saturating_add(1).saturating_add(row as u16),
-                width: area.width.saturating_sub(1),
-                height: 1,
-            },
-            bold,
-        );
-    }
     let visible = usize::from(area.height.saturating_sub(1)).min(model.row_count());
     let observed = GRID_SEEN_ROW.with(|slot| slot.borrow().unwrap_or(0));
     let origin = presented_row_origin(model, state, visible, observed);
@@ -6978,7 +6962,6 @@ fn draw_painted_grid(
     });
     GRID_SCROLL.with(|slot| *slot.borrow_mut() = Some((area, model.row_count(), origin)));
     paint_row_numbers(ui, area, model, cursor, origin);
-    paint_column_gap(ui, area);
     paint_bottom_fade(ui, area, model, origin);
     paint_grid_header(
         ui,
@@ -7435,36 +7418,6 @@ fn visible_explorer_count(nodes: &[ExplorerNode], state: &TreeState) -> usize {
         }
     }
     count
-}
-
-fn paint_column_gap(ui: &mut Ui<'_>, area: termrock::Rect) {
-    let Some(chrome) = GRID_CHROME.with(|chrome| chrome.borrow().clone()) else {
-        return;
-    };
-    if chrome.hidden_left > 0 {
-        return;
-    }
-    let Some(place) = chrome.places.get(1) else {
-        return;
-    };
-    let width = 5.min(place.width);
-    if width == 0 {
-        return;
-    }
-    let style = ui.surface_style();
-    let rows = usize::from(area.height.saturating_sub(1));
-    let x = area.x.saturating_add(chrome.gutter).saturating_add(place.x);
-    for row in 0..rows {
-        ui.paint_style(
-            termrock::Rect {
-                x,
-                y: area.y.saturating_add(1).saturating_add(row as u16),
-                width,
-                height: 1,
-            },
-            style,
-        );
-    }
 }
 
 fn paint_explorer_outside(
@@ -9675,15 +9628,6 @@ impl TableProApp {
             && self.screen != Screen::Connections
     }
 
-    fn paint_historical_table_scrolled_right(&self, ui: &mut Ui<'_>) -> bool {
-        if !self.historical_table_scrolled_right_frame(ui) {
-            return false;
-        }
-        // Trailer is ESC[?25l. Do not set a bar cursor and do not write cursor bytes.
-        historical_table_scrolled_right::paint(ui);
-        true
-    }
-
     fn paint_historical_history_tab(&self, ui: &mut Ui<'_>) -> bool {
         if !self.historical_history_tab_frame(ui) {
             return false;
@@ -9718,57 +9662,6 @@ impl TableProApp {
         // Query results, a new tab, table data, and the closed workbench are not this card.
         matches!(self.workbench.active(), Some(Tab::History(_)))
     }
-
-    fn historical_table_scrolled_right_frame(&self, ui: &Ui<'_>) -> bool {
-        let area = ui.full();
-        // The approved card is the PTY frame. Unit tests have no tty, but End
-        // still has to land on the approved cell or its check fails.
-        let on_terminal = std::io::IsTerminal::is_terminal(&std::io::stdout());
-        if area.width != 120 || area.height != 40 || !(on_terminal || cfg!(test)) {
-            return false;
-        }
-        let theme = ui.theme_ref();
-        if theme.capability.color != termrock::ColorLevel::TrueColor
-            || theme.color.accent != termrock::Color::Rgb(0x48, 0xe0, 0x54)
-        {
-            return false;
-        }
-        if self.screen != Screen::Workbench
-            || self.form_open
-            || self.destructive_intent.is_some()
-            || self.workbench.maximized
-            || self.split_state.maximized() != Maximized::None
-        {
-            return false;
-        }
-        self.orders_scrolled_to_updated_at()
-    }
-
-    fn orders_scrolled_to_updated_at(&self) -> bool {
-        let Some(table) = self.workbench.active_table() else {
-            return false;
-        };
-        if table.table.schema != "public"
-            || table.table.name != "orders"
-            || table.is_structure()
-            || table.result.state.is_editing()
-            || table.result.state.col_offset() == 0
-        {
-            return false;
-        }
-        let Some((_, column)) = table.result.state.cursor() else {
-            return false;
-        };
-        let Some(index) = usize::from(column.raw()).checked_sub(1) else {
-            return false;
-        };
-        table
-            .result
-            .columns
-            .get(index)
-            .is_some_and(|(name, _)| name == "updated_at")
-    }
-
     fn prepare_grid_slots(&self) {
         let filtered_columns = self
             .workbench
@@ -10439,7 +10332,6 @@ impl App for TableProApp {
     fn draw(&self, ui: &mut Ui<'_>) {
         if self.paint_historical_workbench_maximized(ui)
             || self.paint_historical_workbench_explorer_hidden(ui)
-            || self.paint_historical_table_scrolled_right(ui)
             || self.paint_historical_history_tab(ui)
         {
             return;
