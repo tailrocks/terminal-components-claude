@@ -21,6 +21,20 @@ impl crate::author::LayerSlotAuthor for LayerSlot<'_, '_> {
     }
 }
 
+impl crate::author::NestedLayerSlotAuthor for Ui<'_> {
+    fn with_nested_layer_slot<R>(
+        &mut self,
+        area: Rect,
+        render: impl FnOnce(&mut LayerSlot<'_, '_>) -> R,
+    ) -> R {
+        let area = self.clip.intersection(area);
+        self.with_area(area, |ui| {
+            let mut slot = LayerSlot::new(ui, area);
+            render(&mut slot)
+        })
+    }
+}
+
 impl<'f> Ui<'f> {
     pub fn layer_slot<R>(
         &mut self,
