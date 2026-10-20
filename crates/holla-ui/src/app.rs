@@ -767,6 +767,7 @@ impl App {
             activities.show(activity.id);
         }
         let mut home = HomeState::default();
+        home.history = crate::sim::catalogue::history_enabled();
         if crate::sim::catalogue::docker_cleanup_tag_frame(&world) {
             home.seed_query(crate::sim::catalogue::DOCKER_CLEANUP_QUERY);
         }
@@ -2195,6 +2196,67 @@ mod tests {
             "{:?}",
             screen.diagnostics()
         );
+    }
+    #[test]
+    fn first_use_history_frame_40_paints_the_system_tag_and_later_seeks_keep_home() {
+        let mut app = App::for_scenario(Scenario::FirstUse, Motion::Paused, 40);
+        app.home.history = true;
+        let screen = harness(app, Theme::junie(), 120, 40);
+        let text = screen.text();
+        let lines: Vec<&str> = text.lines().collect();
+        assert!(lines[7].contains("› Show system resources"), "{}", lines[7]);
+        assert!(lines[7].contains("CPU 78% for 4 min"), "{}", lines[7]);
+        assert!(
+            lines[12].contains("everything used here is suggested above"),
+            "{}",
+            lines[12]
+        );
+        assert!(
+            lines[13].contains("'holla snapshot system'"),
+            "{}",
+            lines[13]
+        );
+        assert!(lines[22].contains("runs directly"), "{}", lines[22]);
+        assert!(!text.contains("nothing used here yet"), "{text}");
+        assert!(!text.contains("holla disk analyze"), "{text}");
+        let selected = screen.cell(2, 7);
+        assert_eq!(selected.symbol(), "›");
+        assert_eq!(selected.bg, Color::Rgb(0x2f, 0x5a, 0xa8));
+        assert!(selected.modifier.contains(termrock::Modifier::BOLD));
+        let runs = screen.cell(92, 13);
+        assert_eq!(runs.symbol(), "'");
+        assert_eq!(runs.fg, Color::Rgb(0xb3, 0xb3, 0xb3));
+        let risk = screen.cell(92, 20);
+        assert_eq!(risk.symbol(), "r");
+        assert_eq!(risk.fg, Color::Rgb(0x73, 0x73, 0x73));
+        let gate = screen.cell(92, 22);
+        assert_eq!(gate.symbol(), "r");
+        assert_eq!(gate.fg, Color::Rgb(0x8a, 0x8a, 0x8a));
+        assert_eq!(
+            lines[38].trim(),
+            "~/scratch                                                                     / ━━━━━━━━━━─ 91% ▲   truecolor · 120×40"
+        );
+        assert!(
+            screen.diagnostics().is_empty(),
+            "{:?}",
+            screen.diagnostics()
+        );
+        let mut later_app = App::for_scenario(Scenario::FirstUse, Motion::Paused, 4_000);
+        later_app.home.history = true;
+        let later = harness(later_app, Theme::junie(), 120, 40);
+        assert!(!later.text().contains("holla snapshot system"));
+        assert!(
+            !later
+                .text()
+                .contains("everything used here is suggested above")
+        );
+        assert!(later.text().contains("Search actions"), "{}", later.text());
+        let mut stepped = App::for_scenario(Scenario::FirstUse, Motion::Paused, 40);
+        stepped.home.history = true;
+        assert!(catalogue::first_use_history_tag(&stepped.world).is_some());
+        assert!(termrock::App::accept_paused_clock_step(&mut stepped, 1_100));
+        assert!(catalogue::first_use_history_tag(&stepped.world).is_none());
+        assert!(!catalogue::first_use_tag_frame(&stepped.world));
     }
     #[test]
     fn paused_clock_step_advances_world_time_by_1100_ms() {

@@ -843,6 +843,11 @@ pub fn first_use_tag_frame(w: &World) -> bool {
     w.scenario == Scenario::FirstUse && w.now_ms() == 80
 }
 
+/// Harness history-on value. `HOLLA_NO_HISTORY=1` and an unset variable keep the no-history plate.
+pub fn history_enabled() -> bool {
+    std::env::var_os("HOLLA_NO_HISTORY").is_some_and(|value| value == "0")
+}
+
 /// Tag `monorepo-root` at fixture tick 40. Later seeks keep the concept home.
 pub fn monorepo_root_tag_frame(w: &World) -> bool {
     w.scenario == Scenario::MonorepoRoot && w.now_ms() == 80
@@ -1032,6 +1037,16 @@ pub fn parity_discovery(w: &World) -> Option<ParityDiscovery> {
     })
 }
 
+/// No-history plate, or the history plate when `history` is set. Only tick 40.
+pub fn first_use_plate(w: &World, history: bool) -> Option<ParityDiscovery> {
+    if history {
+        first_use_history_tag(w)
+    } else {
+        first_use_tag(w)
+    }
+}
+
+/// No-history `first-use` plate. History does not change this projection.
 pub fn first_use_tag(w: &World) -> Option<ParityDiscovery> {
     if !first_use_tag_frame(w) {
         return None;
@@ -1162,6 +1177,144 @@ pub fn first_use_tag(w: &World) -> Option<ParityDiscovery> {
         lines,
         preview,
         preview_meta: "disk · here".into(),
+        actions: Vec::new(),
+        suggested_len: suggested.len(),
+    })
+}
+
+/// History-on `first-use` plate. Same tick as the no-history plate. A later seek stays on concept home.
+pub fn first_use_history_tag(w: &World) -> Option<ParityDiscovery> {
+    if !first_use_tag_frame(w) {
+        return None;
+    }
+    let suggested = vec![
+        tag_row(
+            "Show system resources",
+            "system",
+            "host",
+            false,
+            "CPU 78% for 4 min",
+            None,
+            true,
+        ),
+        tag_row(
+            "Analyze disk usage",
+            "disk",
+            "here",
+            true,
+            "/ is 91% full",
+            None,
+            false,
+        ),
+        tag_row(
+            "Open btm",
+            "system",
+            "host",
+            false,
+            "sustained pressure · continuous view fits",
+            None,
+            false,
+        ),
+    ];
+    let explore = vec![tag_row(
+        "System · mbp",
+        "explore",
+        "host",
+        false,
+        "available on this host",
+        None,
+        false,
+    )];
+    let mut lines = Vec::new();
+    lines.push(FinderLine::Heading("Suggested here"));
+    for row in &suggested {
+        lines.push(FinderLine::Row(row.clone()));
+    }
+    lines.push(FinderLine::Blank);
+    lines.push(FinderLine::Heading("Recent here"));
+    lines.push(FinderLine::Heading(
+        "everything used here is suggested above",
+    ));
+    lines.push(FinderLine::Blank);
+    lines.push(FinderLine::Heading("Explore"));
+    lines.push(FinderLine::Chips(&[
+        "Tasks", "Git", "Files", "Disk", "Services", "System",
+    ]));
+    for row in &explore {
+        lines.push(FinderLine::Row(row.clone()));
+    }
+    let preview = vec![
+        PreviewLine {
+            label: "Does",
+            value: "CPU, load, memory, swap, pressure, disk and network snapshot; then hand off to btm for continuous monitoring".into(),
+            tone: PreviewTone::Text,
+            wraps: true,
+        },
+        PreviewLine {
+            label: "Runs",
+            value: "'holla snapshot system'".into(),
+            tone: PreviewTone::Secondary,
+            wraps: true,
+        },
+        PreviewLine {
+            label: "In",
+            value: "mbp · host-wide".into(),
+            tone: PreviewTone::Text,
+            wraps: false,
+        },
+        PreviewLine {
+            label: "Host",
+            value: "mbp · local".into(),
+            tone: PreviewTone::Text,
+            wraps: true,
+        },
+        PreviewLine {
+            label: "Scope",
+            value: "host".into(),
+            tone: PreviewTone::Text,
+            wraps: false,
+        },
+        PreviewLine {
+            label: "Why",
+            value: "CPU 78% for 4 min · used 2 times on mbp".into(),
+            tone: PreviewTone::Text,
+            wraps: true,
+        },
+        PreviewLine {
+            label: "Changes",
+            value: "none · read-only".into(),
+            tone: PreviewTone::Text,
+            wraps: true,
+        },
+        PreviewLine {
+            label: "Risk",
+            value: "read-only".into(),
+            tone: PreviewTone::Meta,
+            wraps: true,
+        },
+        PreviewLine {
+            label: "Data",
+            value: "live · 2 s ago".into(),
+            tone: PreviewTone::Muted,
+            wraps: true,
+        },
+        PreviewLine {
+            label: "Gate",
+            value: "runs directly".into(),
+            tone: PreviewTone::Muted,
+            wraps: true,
+        },
+        PreviewLine {
+            label: "Alt+Enter",
+            value: "Open btm · Show process tree · Pin · Alias · Why here?".into(),
+            tone: PreviewTone::Muted,
+            wraps: true,
+        },
+    ];
+    Some(ParityDiscovery {
+        lines,
+        preview,
+        preview_meta: "system · host".into(),
         actions: Vec::new(),
         suggested_len: suggested.len(),
     })
@@ -2035,8 +2188,44 @@ mod tests {
         let view = first_use_tag(&world).expect("tick 40 tag");
         assert_eq!(view.preview_meta, "disk · here");
         assert!(view.preview.iter().any(|line| line.value.contains("path…")));
+        assert_eq!(first_use_plate(&world, false), Some(view));
         world.seek(4_000);
         assert!(first_use_tag(&world).is_none());
+        assert!(first_use_plate(&world, false).is_none());
+    }
+
+    #[test]
+    fn first_use_history_tag_exists_only_at_tick_40() {
+        let mut world = fixtures::world_for(Scenario::FirstUse);
+        assert!(first_use_history_tag(&world).is_none());
+        assert!(first_use_plate(&world, true).is_none());
+        world.seek(40);
+        let view = first_use_history_tag(&world).expect("tick 40 history tag");
+        assert_eq!(first_use_plate(&world, true), Some(view.clone()));
+        assert_ne!(first_use_tag(&world), Some(view.clone()));
+        assert_eq!(view.preview_meta, "system · host");
+        assert!(view.lines.iter().any(|line| matches!(
+            line,
+            FinderLine::Row(row) if row.selected && row.title == "Show system resources"
+        )));
+        assert!(view.lines.iter().any(|line| matches!(
+            line,
+            FinderLine::Heading("everything used here is suggested above")
+        )));
+        assert!(
+            view.preview.iter().any(|line| {
+                line.label == "Runs" && line.value.contains("holla snapshot system")
+            })
+        );
+        assert!(
+            view.preview
+                .iter()
+                .any(|line| line.label == "Gate" && line.value == "runs directly")
+        );
+        world.seek(4_000);
+        assert!(first_use_history_tag(&world).is_none());
+        assert!(first_use_plate(&world, true).is_none());
+        assert!(!first_use_tag_frame(&world));
     }
 
     #[test]
