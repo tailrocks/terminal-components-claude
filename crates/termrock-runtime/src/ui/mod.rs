@@ -1,3 +1,4 @@
+pub mod composition;
 pub mod cx;
 pub mod derived;
 pub mod layer_buf;
@@ -12,6 +13,7 @@ use ratatui_core::style::Color;
 use core::ops::{BitOr, BitOrAssign};
 use std::collections::HashMap;
 
+pub use composition::{CompositionError, CompositionSlots, ContentSlot, MAX_COMPOSITION_DEPTH};
 use cx::LastFrame;
 pub use cx::{Cx, FrameRead, LayoutFacts};
 use derived::{DerivedCache, ReferenceCacheKey};
@@ -977,7 +979,7 @@ impl<'f> Ui<'f> {
         typing_offer: bool,
         shape: crate::cursor::CursorShape,
     ) {
-        if self.reference.is_some() {
+        if self.reference.is_some() || !self.clip.contains(pos) {
             return;
         }
         self.frame.cursors.push(CursorRequest {

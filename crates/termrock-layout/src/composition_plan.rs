@@ -50,6 +50,14 @@ pub struct Composition {
     pub overflow: OverflowPolicy,
 }
 
+/// Main-axis behavior used to measure a nested composition's intrinsic size.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum CompositionKind {
+    Row,
+    Column,
+    Wrap,
+}
+
 impl Composition {
     pub const fn new() -> Self {
         Self {
@@ -157,6 +165,156 @@ pub struct ResolvedPlan {
     pub area: Rect,
     pub content: Rect,
     pub children: Vec<ResolvedChild>,
+}
+
+/// Measure a composition from child sizes without resolving input or drawing.
+///
+/// This is shared by nested composition groups so a group can participate as
+/// one measured child in its parent. Padding and gaps contribute to the
+/// intrinsic size; alignment and flex consume only space supplied by a parent.
+pub fn intrinsic_size<T: ?Sized, F>(
+    children: &[Child<'_, T>],
+    spec: Composition,
+    kind: CompositionKind,
+    constraints: Constraints,
+    measure: F,
+) -> Size
+where
+    F: Fn(&T, Constraints) -> Size,
+{
+    let content_width = constraints
+        .max
+        .0
+        .saturating_sub(spec.padding.l.saturating_add(spec.padding.r));
+    let content_height = constraints
+        .max
+        .1
+        .saturating_sub(spec.padding.t.saturating_add(spec.padding.b));
+    let child_constraints = Constraints::loose(content_width, content_height);
+    let sizes: Vec<_> = children
+        .iter()
+        .map(|child| normalized_measure(child, child_constraints, &measure))
+        .collect();
+    let gaps = u64::from(spec.gap).saturating_mul(children.len().saturating_sub(1) as u64);
+    let sum_axis = |horizontal: bool, minimum: bool| {
+        sizes
+            .iter()
+            .enumerate()
+            .map(|(index, size)| {
+                let child = &children[index];
+                if minimum {
+                    u64::from(if horizontal { size.min.0 } else { size.min.1 })
+                } else {
+                    u64::from(axis_preferred(child, *size, horizontal))
+                }
+            })
+            .fold(0u64, u64::saturating_add)
+    };
+    let max_axis = |horizontal: bool, minimum: bool| {
+        sizes
+            .iter()
+            .enumerate()
+            .map(|(index, size)| {
+                let child = &children[index];
+                if minimum {
+                    if horizontal { size.min.0 } else { size.min.1 }
+                } else {
+                    axis_preferred(child, *size, horizontal)
+                }
+            })
+            .max()
+            .unwrap_or(0)
+    };
+    let (min_w, min_h, pref_w, pref_h) = match kind {
+        CompositionKind::Row => (
+            sum_axis(true, true).saturating_add(gaps),
+            u64::from(max_axis(false, true)),
+            sum_axis(true, false).saturating_add(gaps),
+            u64::from(max_axis(false, false)),
+        ),
+        CompositionKind::Column => (
+            u64::from(max_axis(true, true)),
+            sum_axis(false, true).saturating_add(gaps),
+            u64::from(max_axis(true, false)),
+            sum_axis(false, false).saturating_add(gaps),
+        ),
+        CompositionKind::Wrap => {
+            let (min_w, min_h) =
+                intrinsic_wrap_sizes(children, &sizes, spec.gap, true, content_width);
+            let (pref_w, pref_h) =
+                intrinsic_wrap_sizes(children, &sizes, spec.gap, false, content_width);
+            (
+                u64::from(min_w),
+                u64::from(min_h),
+                u64::from(pref_w),
+                u64::from(pref_h),
+            )
+        }
+    };
+    let horizontal_padding = u64::from(spec.padding.l).saturating_add(u64::from(spec.padding.r));
+    let vertical_padding = u64::from(spec.padding.t).saturating_add(u64::from(spec.padding.b));
+    let min = (
+        sat_extent(min_w.saturating_add(horizontal_padding)),
+        sat_extent(min_h.saturating_add(vertical_padding)),
+    );
+    let preferred = (
+        sat_extent(pref_w.saturating_add(horizontal_padding)).max(min.0),
+        sat_extent(pref_h.saturating_add(vertical_padding)).max(min.1),
+    );
+    Size { min, preferred }.fit(constraints)
+}
+
+fn intrinsic_wrap_sizes<T: ?Sized>(
+    children: &[Child<'_, T>],
+    sizes: &[Size],
+    gap: u16,
+    minimum: bool,
+    width: u16,
+) -> (u16, u16) {
+    let mut line_width = 0u64;
+    let mut line_height = 0u64;
+    let mut widest = 0u64;
+    let mut total_height = 0u64;
+    let mut line_items = 0usize;
+    for (index, child) in children.iter().enumerate() {
+        let size = sizes[index];
+        let item_width = u64::from(if minimum {
+            size.min.0
+        } else {
+            axis_preferred(child, size, true)
+        });
+        let item_height = u64::from(if minimum {
+            size.min.1
+        } else {
+            axis_preferred(child, size, false)
+        });
+        let needed = line_width
+            .saturating_add(if line_items == 0 { 0 } else { u64::from(gap) })
+            .saturating_add(item_width);
+        if line_items > 0 && needed > u64::from(width) {
+            widest = widest.max(line_width);
+            total_height = total_height
+                .saturating_add(line_height)
+                .saturating_add(u64::from(gap));
+            line_width = 0;
+            line_height = 0;
+            line_items = 0;
+        }
+        line_width = line_width
+            .saturating_add(if line_items == 0 { 0 } else { u64::from(gap) })
+            .saturating_add(item_width);
+        line_height = line_height.max(item_height);
+        line_items += 1;
+    }
+    if line_items > 0 {
+        widest = widest.max(line_width);
+        total_height = total_height.saturating_add(line_height);
+    }
+    (sat_extent(widest), sat_extent(total_height))
+}
+
+fn sat_extent(value: u64) -> u16 {
+    value.min(u64::from(u16::MAX)) as u16
 }
 
 /// Resolve a horizontal row from immutable child data and a pure measurement
@@ -705,6 +863,68 @@ mod tests {
 
     fn item(value: &'static str, size: (u16, u16)) -> Child<'static, str> {
         Child::new(value, ChildPolicy::new(Size::exact(size.0, size.1)))
+    }
+
+    #[test]
+    fn nested_intrinsic_wrap_handles_wide_narrow_empty_and_bounded_children() {
+        let labels = [String::from("a"), String::from("b")];
+        let children = [
+            Child::new(
+                labels[0].as_str(),
+                ChildPolicy::default().min(2, 1).max(Some(4), None),
+            ),
+            Child::new(labels[1].as_str(), ChildPolicy::default().min(2, 1)),
+        ];
+        let measure = |name: &str, _: Constraints| {
+            if name == "a" {
+                Size {
+                    min: (2, 1),
+                    preferred: (3, 1),
+                }
+            } else {
+                Size {
+                    min: (2, 1),
+                    preferred: (4, 2),
+                }
+            }
+        };
+        let narrow = intrinsic_size(
+            &children,
+            Composition::new().gap(1),
+            CompositionKind::Wrap,
+            Constraints::loose(4, 10),
+            measure,
+        );
+        assert_eq!(narrow.min, (2, 3));
+        assert_eq!(narrow.preferred, (4, 4));
+
+        let wide = intrinsic_size(
+            &children,
+            Composition::new().gap(1),
+            CompositionKind::Wrap,
+            Constraints::loose(10, 10),
+            measure,
+        );
+        assert_eq!(wide.preferred, (8, 2));
+
+        let empty: [Child<'_, str>; 0] = [];
+        let padded = intrinsic_size(
+            &empty,
+            Composition::new().padding(Insets::all(2)),
+            CompositionKind::Column,
+            Constraints::loose(8, 8),
+            |_, _| Size::default(),
+        );
+        assert_eq!(padded.preferred, (4, 4));
+
+        let zero = intrinsic_size(
+            &children,
+            Composition::new(),
+            CompositionKind::Wrap,
+            Constraints::loose(0, 0),
+            measure,
+        );
+        assert_eq!(zero.preferred, (0, 0));
     }
 
     #[test]
