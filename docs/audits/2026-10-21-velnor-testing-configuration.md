@@ -19,6 +19,11 @@ matches the checksum asset in the `v0.1.29` release. The repository's
 `mise.toml` and lock already pin `0.1.29`; neither tool pin nor lock was
 changed.
 
+Before protection, the series was rebased onto the latest fetched PR #38 tip
+`9c1e2dc77f0e60c7bada6c463656302ce491ebb1`. The feature and generation gates
+were rerun on `3e2622b82d408e03e8cd8a20d815f12e9d78b1b8`; the subsequent
+change to this audit only records the exact fallback package inventory.
+
 ## Configuration and generated argv
 
 The approved `velnor-actions config migrate --to 2` output supplies the
