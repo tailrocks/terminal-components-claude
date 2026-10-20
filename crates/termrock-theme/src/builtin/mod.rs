@@ -1,7 +1,7 @@
 pub(crate) mod junie;
 pub(crate) mod paper;
 
-use ratatui_core::style::Modifier;
+use ratatui_core::style::{Color, Modifier};
 
 use super::glyph::GlyphRole;
 use super::patch::StylePatch;
@@ -289,10 +289,7 @@ fn tabs(m: &mut PartMap<PartRecipe>) {
             p().set_fg(Role::Fg(FgStep::Primary))
                 .set_bg(Role::RaisedSurface),
         )
-        .when(
-            StateFlags::ACTIVE,
-            p().set_fg(Role::Fg(FgStep::Primary)).add(Modifier::BOLD),
-        );
+        .when(StateFlags::ACTIVE, p().set_fg(Role::Fg(FgStep::Primary)));
     part(
         m,
         Part::RULE,
@@ -301,7 +298,8 @@ fn tabs(m: &mut PartMap<PartRecipe>) {
     )
     .when(
         StateFlags::ACTIVE,
-        p().set_fg(Role::Accent).set_glyph(GlyphRole::RuleActive),
+        p().set_fg(Role::BorderSubtle)
+            .set_glyph(GlyphRole::RuleActive),
     );
     part(
         m,
@@ -399,13 +397,15 @@ fn scrollbar(m: &mut PartMap<PartRecipe>) {
     part(
         m,
         Part::TRACK,
-        p().set_fg(Role::BorderSubtle)
+        // Baseline scroll track is WHITE_28, not the border-subtle token.
+        p().set_fg(Role::Custom(Color::from_u32(0x0047_4747)))
             .set_glyph(GlyphRole::ScrollTrack),
     );
     part(
         m,
         Part::THUMB,
-        p().set_fg(Role::Fg(FgStep::Muted))
+        // Rest is the handle ladder's neutral grey. Muted text is a different token.
+        p().set_fg(Role::Custom(Color::from_u32(0x0080_8080)))
             .set_glyph(GlyphRole::ScrollThumb),
     )
     .when(StateFlags::HOVERED, p().set_fg(Role::Fg(FgStep::Secondary)))
@@ -595,9 +595,46 @@ fn grid(m: &mut PartMap<PartRecipe>) {
 
 fn picker(m: &mut PartMap<PartRecipe>) {
     row_like(m);
-    part(m, Part::LABEL, p()).when(
+    part(
+        m,
+        Part::CONTAINER,
+        p().set_fg(Role::Fg(FgStep::Muted))
+            .set_bg(Role::CurrentSurface),
+    );
+    part(m, Part::BORDER, p().set_fg(Role::BorderStrong));
+    // Baseline picker titles are bold on the card surface. The label focus
+    // underline stays on LABEL and must not move onto TITLE.
+    part(
+        m,
+        Part::TITLE,
+        p().set_fg(Role::Fg(FgStep::Primary))
+            .set_bg(Role::CurrentSurface)
+            .add(Modifier::BOLD),
+    );
+    part(m, Part::LABEL, p().set_fg(Role::Fg(FgStep::Primary))).when(
         StateFlags::ACTIVE | StateFlags::FOCUSED,
         p().set_fg(Role::Focus).add(Modifier::UNDERLINED),
+    );
+    part(m, Part::ICON, p().set_fg(Role::Fg(FgStep::Muted)));
+    part(m, Part::META, p().set_fg(Role::Fg(FgStep::Muted)));
+    part(
+        m,
+        Part::QUERY,
+        p().set_fg(Role::Fg(FgStep::Primary))
+            .set_bg(Role::Surface(Surface::Field)),
+    );
+    part(
+        m,
+        Part::PLACEHOLDER,
+        p().set_fg(Role::Fg(FgStep::Muted))
+            .set_bg(Role::Surface(Surface::Field)),
+    );
+    // Field background belongs to the editing query, not to list-row gutters.
+    part(m, Part::GUTTER, p()).when(
+        StateFlags::FOCUSED | StateFlags::EDITING,
+        p().set_glyph(GlyphRole::FocusBar)
+            .set_fg(Role::Focus)
+            .set_bg(Role::Surface(Surface::Field)),
     );
 }
 
@@ -926,7 +963,7 @@ mod tests {
         let picker = recipes
             .get(Family::PICKER)
             .expect("PICKER must have a dedicated built-in recipe");
-        assert!(picker.parts.get(Part::TITLE).is_none());
+        assert!(picker.parts.get(Part::TITLE).is_some());
 
         for base in [Theme::junie(), Theme::paper()] {
             for theme in [base.clone(), base.downgrade(crate::ColorLevel::Mono)] {
@@ -939,6 +976,9 @@ mod tests {
                         Surface::Canvas,
                     )
                 };
+                let title = resolve(Part::TITLE, StateFlags::empty());
+                assert!(title.style.add_modifier.contains(Modifier::BOLD));
+                assert!(!title.style.add_modifier.contains(Modifier::UNDERLINED));
                 let active = resolve(Part::LABEL, StateFlags::ACTIVE);
                 let focused = resolve(Part::LABEL, StateFlags::FOCUSED);
                 let both = resolve(Part::LABEL, StateFlags::ACTIVE | StateFlags::FOCUSED);
@@ -949,16 +989,15 @@ mod tests {
                 assert!(!focused.style.add_modifier.contains(Modifier::UNDERLINED));
                 assert_eq!(both.style.fg, expected_focus);
                 assert!(both.style.add_modifier.contains(Modifier::UNDERLINED));
-                assert_eq!(
-                    resolve(Part::CONTAINER, StateFlags::ACTIVE | StateFlags::FOCUSED),
-                    theme.resolve(
-                        Family::LIST,
-                        Variant::DEFAULT,
-                        Part::CONTAINER,
-                        StateFlags::ACTIVE | StateFlags::FOCUSED,
-                        Surface::Canvas,
-                    )
+                // The card keeps muted ink. Focused bold still comes from the shared row rule.
+                let card = resolve(Part::CONTAINER, StateFlags::ACTIVE | StateFlags::FOCUSED);
+                let muted = crate::theme::resolve::bind_role(
+                    &theme,
+                    Role::Fg(FgStep::Muted),
+                    Surface::Canvas,
                 );
+                assert_eq!(card.style.fg, muted);
+                assert!(card.style.add_modifier.contains(Modifier::BOLD));
             }
         }
     }
@@ -1098,8 +1137,8 @@ mod tests {
             [
                 Color::from_u32(0xffffff),
                 Color::from_u32(0xb3b3b3),
-                Color::from_u32(0x808080),
-                Color::from_u32(0x4d4d4d),
+                Color::from_u32(0x8a8a8a),
+                Color::from_u32(0x737373),
                 Color::from_u32(0x262626)
             ]
         );

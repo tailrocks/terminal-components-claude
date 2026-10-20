@@ -231,6 +231,7 @@ pub struct FilterList<'a, T, R = crate::item::ItemRow> {
     patch: Option<&'a StylePatch>,
     parts: &'a [(Part, StylePatch)],
     ov: PartStyle<'a>,
+    preserve_surface: bool,
     _item: PhantomData<fn(&T)>,
 }
 
@@ -260,6 +261,7 @@ impl<T> FilterList<'_, T, crate::item::ItemRow> {
             patch: None,
             parts: &[],
             ov: PartStyle::new(),
+            preserve_surface: false,
             _item: PhantomData,
         }
     }
@@ -282,6 +284,13 @@ impl<'a, T, R> FilterList<'a, T, R> {
     #[must_use]
     pub const fn cursor_style(mut self, style: CursorStyle) -> Self {
         self.cursor_style = style;
+        self
+    }
+
+    /// The picker card already painted this rectangle. Do not cover that ink.
+    #[must_use]
+    pub const fn preserve_surface(mut self, preserve: bool) -> Self {
+        self.preserve_surface = preserve;
         self
     }
 
@@ -320,6 +329,7 @@ impl<'a, T, R> FilterList<'a, T, R> {
             patch: self.patch,
             parts: self.parts,
             ov: self.ov,
+            preserve_surface: self.preserve_surface,
             _item: PhantomData,
         }
     }
@@ -366,7 +376,9 @@ impl<'a, T, R> FilterList<'a, T, R> {
         self
     }
     fn scrollbar(&self) -> ScrollRegion<'a> {
-        let mut bar = ScrollRegion::new(self.id).patch_part(self.parts);
+        let mut bar = ScrollRegion::new(self.id)
+            .patch_part(self.parts)
+            .preserve_underlay(self.preserve_surface);
         if let Some(p) = self.patch {
             bar = bar.patch(p);
         }
@@ -426,6 +438,17 @@ impl<'a, T, R> FilterList<'a, T, R> {
         }
         shift(area, area.width.min(2))
     }
+}
+
+fn surface_already_opaque(ui: &mut Ui<'_>, area: Rect) -> bool {
+    ui.with_area(area, |ui| {
+        let (buf, clip) = ui.raw();
+        !clip.is_empty()
+            && clip.positions().all(|pos| {
+                buf.cell(pos)
+                    .is_some_and(|cell| cell.bg != ratatui_core::style::Color::Reset)
+            })
+    })
 }
 
 fn contains_folded(label: &str, query: &str) -> bool {
@@ -818,7 +841,10 @@ impl<T: AsItem, R: RowFn<T>> FilterList<'_, T, R> {
             Part::CONTAINER,
             live,
         );
-        ui.fill(area, container.style);
+        // A focused picker container is bold. Filling it covers backdrop-sampled ink.
+        if !surface_already_opaque(ui, area) {
+            ui.fill(area, container.style);
+        }
         let identity = !st.initialized && st.query.is_empty();
         let visible_len = if identity {
             items.len()
@@ -853,6 +879,10 @@ impl<T: AsItem, R: RowFn<T>> FilterList<'_, T, R> {
             return area;
         }
         self.draw_rows(ui, content, st, items, live);
+        // Baseline fades the last visible rows of an overflowing list toward the card.
+        let mut view = *st.scroll();
+        view.apply_layout(usize::from(content.height), visible_len);
+        ui.scroll_edges(content, &view);
         area
     }
 }
