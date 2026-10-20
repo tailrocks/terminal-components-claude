@@ -169,6 +169,28 @@ fn zeroize_string(value: &mut String) {
     crate::secret::wipe_string(core::mem::take(value));
 }
 
+fn mnemonic_char(used: &mut u32, label: &str) -> Option<(u16, char)> {
+    let mut fallback = None;
+    for (index, ch) in label.chars().enumerate() {
+        if !ch.is_ascii_alphanumeric() {
+            continue;
+        }
+        let bit = u32::from(ch.to_ascii_lowercase() as u8).saturating_sub(u32::from(b'a'));
+        if bit >= 26 {
+            continue;
+        }
+        let mask = 1u32 << bit;
+        if fallback.is_none() {
+            fallback = Some((index, ch));
+        }
+        if *used & mask == 0 {
+            *used |= mask;
+            return Some((u16::try_from(index).unwrap_or(0), ch));
+        }
+    }
+    fallback.map(|(index, ch)| (u16::try_from(index).unwrap_or(0), ch))
+}
+
 pub struct Dialog<'a> {
     id: Id,
     title: Option<&'a str>,
@@ -787,6 +809,7 @@ impl<'a> Dialog<'a> {
                         }
                     }
                     let rects = action_row(row, widths.get(..n).unwrap_or(&[]), 2, RowAlign::End);
+                    let mut used_mnemonic = 0u32;
                     for ((i, a), r) in actions.iter().enumerate().zip(rects) {
                         let action_id = self.action_id(i);
                         let enabled = self.enabled(i, a, st);
@@ -794,7 +817,7 @@ impl<'a> Dialog<'a> {
                             .variant(self.variant_of(a))
                             .disabled(!enabled)
                             .draw(ui, r);
-                        if let Some(ch) = a.label().chars().next() {
+                        if let Some((offset, ch)) = mnemonic_char(&mut used_mnemonic, a.label()) {
                             let mut patch = StylePatch::new()
                                 .set_bg(Role::Surface(Surface::Overlay))
                                 .add(Modifier::UNDERLINED);
@@ -808,7 +831,7 @@ impl<'a> Dialog<'a> {
                             let mark = ui.paint_patch(&patch);
                             ui.paint_str(
                                 Rect {
-                                    x: r.x.saturating_add(1),
+                                    x: r.x.saturating_add(1).saturating_add(offset),
                                     y: r.y,
                                     width: 1,
                                     height: 1,
