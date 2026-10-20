@@ -1,6 +1,6 @@
 use crate::theme::PaintStyle;
 use ratatui_core::layout::Rect;
-use ratatui_core::style::{Modifier, Style};
+use ratatui_core::style::{Color, Modifier};
 
 use crate::id::{Id, Part, PartRef};
 use crate::response::StateFlags;
@@ -30,19 +30,35 @@ pub fn overlay_chrome<R>(
         if area.is_empty() {
             return ui.with_area(area, |ui| body(ui, area));
         }
-        let container = ov.style(ui, id, family, Variant::DEFAULT, Part::CONTAINER, live);
+        let container = (family != Family::PICKER)
+            .then(|| ov.style(ui, id, family, Variant::DEFAULT, Part::CONTAINER, live));
         if family == Family::PICKER {
             // Baseline fills the popup in the same buffer the backdrop dimmed.
             // Copy each page cell through that mapping, then paint the card bg.
-            let resolved = container.style.into_style();
-            let card_bg = resolved.bg.unwrap_or(ratatui_core::style::Color::Reset);
             let container_patch = ov.part_patch(Part::CONTAINER);
-            let container_fg = container_patch.and_then(|patch| match patch.fg {
-                Slot::Inherit => None,
-                Slot::Set(_) => Some(resolved.fg),
-                Slot::Clear => Some(Some(ratatui_core::style::Color::Reset)),
-            });
-            let container_modifiers = container_patch.map_or(Modifier::empty(), |patch| patch.add);
+            let detailed = ui.style_defaults_with_explicit(
+                family,
+                Variant::DEFAULT,
+                Part::CONTAINER,
+                live,
+                crate::theme::StyleDefaults::default(),
+                container_patch.as_ref(),
+            );
+            ov.note(
+                ui,
+                id,
+                family,
+                Variant::DEFAULT,
+                Part::CONTAINER,
+                detailed.resolved,
+            );
+            let resolved = detailed.resolved.style.into_style();
+            let explicit = detailed.explicit;
+            let card_bg = match explicit.bg {
+                Slot::Inherit => resolved.bg.unwrap_or(Color::Reset),
+                Slot::Set(_) => resolved.bg.unwrap_or(Color::Reset),
+                Slot::Clear => Color::Reset,
+            };
             let theme = ui.theme_ref().clone();
             for pos in area.positions() {
                 let (src_fg, src_bg) = ui
@@ -54,19 +70,19 @@ pub fn overlay_chrome<R>(
                         ratatui_core::style::Color::Reset,
                     ));
                 let (backdrop_fg, _) = theme.backdrop_colors(src_fg, src_bg);
-                let fg = container_fg.unwrap_or(Some(backdrop_fg));
                 if let Some(cell) = ui.buffer().cell_mut(pos) {
                     cell.set_symbol(" ");
-                    let mut style = Style::new();
-                    style.fg = fg;
-                    style.bg = Some(card_bg);
-                    cell.set_style(style);
-                    cell.modifier = container_modifiers;
+                    cell.fg = backdrop_fg;
+                    cell.bg = card_bg;
+                    cell.modifier = Modifier::empty();
                 }
             }
+            ui.patch_style(area, detailed.resolved.style, explicit);
             ui.mark_area(area, None);
         } else {
-            ui.fill(area, container.style);
+            if let Some(container) = container {
+                ui.fill(area, container.style);
+            }
         }
         ui.register_decor(id, PartRef::of(Part::CONTAINER), area);
 
@@ -192,7 +208,7 @@ impl<A> Acc<A> {
 mod tests {
     use ratatui_core::buffer::Buffer;
     use ratatui_core::layout::Rect;
-    use ratatui_core::style::Modifier;
+    use ratatui_core::style::{Color, Modifier};
 
     use super::{PartStyle, cell_at, overlay_chrome};
     use crate::id::{Id, Part};
@@ -290,5 +306,85 @@ mod tests {
         .expect("danger foreground");
         assert_eq!(cell.fg, expected_fg);
         assert!(cell.modifier.contains(Modifier::UNDERLINED));
+    }
+
+    #[test]
+    fn picker_chrome_keeps_theme_container_channels() {
+        let area = Rect::new(0, 0, 5, 4);
+        let theme = Theme::junie().override_family(Family::PICKER, |recipe| {
+            recipe.part(Part::CONTAINER).base(
+                StylePatch::new()
+                    .set_fg(Role::Danger)
+                    .set_underline(Role::Warning)
+                    .add(Modifier::UNDERLINED),
+            );
+        });
+        let mut frame = FrameState::default();
+        frame.reset(1, area);
+        let mut page = Buffer::empty(area);
+        let mut core = UiCore::default();
+        let last = LastFrame::default();
+        {
+            let mut ui = Ui::new(&mut frame, &mut page, &mut core, &theme, &last);
+            overlay_chrome(
+                &mut ui,
+                Id::root("picker.chrome-theme"),
+                area,
+                Family::PICKER,
+                Surface::Overlay,
+                PartStyle::new(),
+                StateFlags::empty(),
+                StateFlags::empty(),
+                |_, _| (),
+            );
+        }
+        let cell = page.cell((2, 2)).expect("picker chrome cell");
+        let resolved = crate::theme::resolve::bind(
+            &theme,
+            StylePatch::new()
+                .set_fg(Role::Danger)
+                .set_underline(Role::Warning)
+                .add(Modifier::UNDERLINED),
+            None,
+            Surface::Overlay,
+        )
+        .style
+        .into_style();
+        assert_eq!(cell.fg, resolved.fg.expect("theme container foreground"));
+        assert_eq!(
+            cell.underline_color,
+            resolved.underline_color.expect("theme underline color")
+        );
+        assert!(cell.modifier.contains(Modifier::UNDERLINED));
+    }
+
+    #[test]
+    fn component_author_patch_changes_only_explicit_style_channels() {
+        let area = Rect::new(0, 0, 1, 1);
+        let theme = Theme::junie();
+        let mut frame = FrameState::default();
+        frame.reset(1, area);
+        let mut page = Buffer::empty(area);
+        let cell = page.cell_mut((0, 0)).expect("seed cell");
+        cell.set_symbol("x");
+        cell.fg = Color::Green;
+        cell.bg = Color::Blue;
+        cell.underline_color = Color::Yellow;
+        cell.modifier = Modifier::BOLD | Modifier::ITALIC;
+        let mut core = UiCore::default();
+        let last = LastFrame::default();
+        let mut explicit = StylePatch::new().clear_bg().remove(Modifier::BOLD);
+        explicit.underline = Slot::Clear;
+        {
+            let mut ui = Ui::new(&mut frame, &mut page, &mut core, &theme, &last);
+            crate::author::patch_style(&mut ui, area, crate::theme::PaintStyle::new(), explicit);
+        }
+        let cell = page.cell((0, 0)).expect("patched cell");
+        assert_eq!(cell.symbol(), "x");
+        assert_eq!(cell.fg, Color::Green, "inherited fg remains intact");
+        assert_eq!(cell.bg, Color::Reset, "explicit clear resets bg");
+        assert_eq!(cell.underline_color, Color::Reset);
+        assert!(!cell.modifier.contains(Modifier::BOLD));
+        assert!(cell.modifier.contains(Modifier::ITALIC));
     }
 }
