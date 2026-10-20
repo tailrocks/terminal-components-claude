@@ -1462,12 +1462,20 @@ impl TableProApp {
             );
             col.sortable = true;
             col.editable = editable;
-            col.sticky = index == 0;
+            col.sticky = false;
+            let (min_width, max_width) = match ty {
+                ColType::Uuid => (9, 36),
+                ColType::Text => (6, 40),
+                ColType::Int | ColType::Numeric => (4, 22),
+                ColType::Bool => (5, 5),
+                ColType::Timestamp | ColType::Date => (10, 29),
+                ColType::Json => (8, 40),
+                ColType::Enum => (6, 16),
+            };
+            col.min_width = min_width;
+            col.max_width = max_width;
             if matches!(ty, ColType::Int | ColType::Numeric) {
                 col.align = Align::Right;
-            }
-            if name == "id" {
-                col.min_width = 38;
             }
             if let Some(slot) = specs.get_mut(index) {
                 *slot = col;
@@ -2271,6 +2279,15 @@ impl TableProApp {
     fn update_grid_view(cx: &mut Cx<'_>, id: Id, view: &mut GridView) -> Response<GridAction> {
         let (columns, count) = Self::column_specs(&view.columns, view.model.is_editable());
         let grid = result_grid(id, columns.get(..count).unwrap_or(&[]));
+        if columns
+            .iter()
+            .take(count)
+            .any(|column| view.state.sampled_column_width(column.key).is_none())
+        {
+            let sample = termrock::WidthSample::new(200, 95)
+                .expect("the frozen grid sample uses 200 rows at the 95th percentile");
+            grid.sample_column_widths(&mut view.state, &view.model, sample);
+        }
         let response = if view.model.is_editable() {
             grid.update_editable(cx, &mut view.state, &mut view.model)
         } else {
@@ -6666,225 +6683,6 @@ fn paint_scrolled_header(
 
 #[allow(
     clippy::too_many_lines,
-    reason = "scrolled cell color, fade, and alignment stay in one pass"
-)]
-fn paint_scrolled_cells(
-    ui: &mut Ui<'_>,
-    area: termrock::Rect,
-    columns: &[(String, ColType)],
-    state: &termrock::GridState,
-    model: &ResultGrid,
-) {
-    let Some(chrome) = GRID_CHROME.with(|chrome| chrome.borrow().clone()) else {
-        return;
-    };
-    let cursor = state.cursor().and_then(|(key, column)| {
-        let row = (0..model.row_count()).find(|row| GridModel::row_key(model, *row) == key)?;
-        usize::from(column.raw())
-            .checked_sub(1)
-            .map(|col| (row, col))
-    });
-    let visible = usize::from(area.height.saturating_sub(1)).min(model.row_count());
-    let origin = area.x.saturating_add(chrome.gutter);
-    let plain = ui.surface_style().remove_modifier(Modifier::BOLD);
-    for row in 0..visible {
-        let y = area.y.saturating_add(1).saturating_add(row as u16);
-        let fade = match visible.saturating_sub(row) {
-            1 => Some(140),
-            2 => Some(204),
-            _ => None,
-        };
-        let on_cursor = cursor.is_some_and(|(cursor_row, _)| cursor_row == row);
-        let mut row_style = plain;
-        if on_cursor {
-            row_style = row_style.add_modifier(Modifier::BOLD);
-        }
-        if let Some(numerator) = fade {
-            let color = scaled_rgb(0x00ff_ffff, numerator);
-            row_style = row_style.patch(ui.paint_patch(
-                &StylePatch::new().set_fg(Role::Custom(termrock::Color::from_u32(color))),
-            ));
-        }
-        ui.fill(
-            termrock::Rect {
-                x: origin,
-                y,
-                width: chrome.content_width.saturating_add(4),
-                height: 1,
-            },
-            row_style,
-        );
-        for (offset, place) in chrome.places.iter().enumerate() {
-            let col = chrome.hidden_left.saturating_add(offset);
-            let Some(text) = GridModel::cell(model, row, col).map(|cell| cell.text.to_owned())
-            else {
-                continue;
-            };
-            let literal = matches!(text.as_str(), "NULL" | "true" | "false");
-            let active = cursor
-                .is_some_and(|(cursor_row, cursor_col)| cursor_row == row && cursor_col == col);
-            let dirty = model.pending().is_dirty(row, col);
-            let mut style = row_style;
-            if active {
-                style = style.patch(
-                    ui.paint_patch(
-                        &StylePatch::new()
-                            .set_fg(Role::Fg(FgStep::Primary))
-                            .set_bg(LEGACY_CELL_BG)
-                            .add(Modifier::BOLD),
-                    ),
-                );
-            } else if dirty {
-                style = row_style.patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Warning)));
-                let slack =
-                    GRID_EDIT.with(|slot| slot.borrow().is_some_and(|column| column == col));
-                let fill_w = if slack {
-                    place.width.saturating_sub(2)
-                } else {
-                    place.width
-                };
-                ui.fill(
-                    termrock::Rect {
-                        x: origin.saturating_add(place.x),
-                        y,
-                        width: fill_w.min(place.width),
-                        height: 1,
-                    },
-                    style,
-                );
-            } else if literal {
-                let mut color = 0x00c6_a0f6;
-                if let Some(numerator) = fade {
-                    color = scaled_rgb(color, numerator);
-                }
-                style = style.patch(
-                    ui.paint_patch(
-                        &StylePatch::new()
-                            .set_fg(Role::Custom(termrock::Color::from_u32(color)))
-                            .add(Modifier::ITALIC),
-                    ),
-                );
-                if on_cursor {
-                    style = style.add_modifier(Modifier::BOLD);
-                }
-                ui.fill(
-                    termrock::Rect {
-                        x: origin.saturating_add(place.x),
-                        y,
-                        width: place.width,
-                        height: 1,
-                    },
-                    style,
-                );
-            }
-            if !active
-                && !literal
-                && !dirty
-                && let Some(numerator) = fade
-            {
-                let color = scaled_rgb(0x00ff_ffff, numerator);
-                style = style.patch(ui.paint_patch(
-                    &StylePatch::new().set_fg(Role::Custom(termrock::Color::from_u32(color))),
-                ));
-            }
-            let foreign = columns
-                .get(col)
-                .is_some_and(|(name, ty)| *ty == ColType::Uuid && name != "id" && place.width >= 2);
-            let owned;
-            let shown: &str = if foreign {
-                owned = truncate_middle(&text, place.width.saturating_sub(2));
-                &owned
-            } else if width(&text) > place.width {
-                owned = truncate(&text, place.width);
-                &owned
-            } else {
-                &text
-            };
-            let numeric = columns
-                .get(col)
-                .is_some_and(|(_, ty)| matches!(ty, ColType::Int | ColType::Numeric));
-            let text_width = width(shown).min(place.width);
-            let indent = if numeric {
-                place.width.saturating_sub(text_width)
-            } else {
-                0
-            };
-            if active && state.is_editing() && !numeric {
-                paint_inline_editor(ui, origin, *place, y, state.edit_draft().unwrap_or(&text));
-            } else if active && !numeric {
-                let wide = GRID_EDIT.with(|slot| slot.borrow().is_some_and(|column| column == col));
-                // Wide columns keep two cells of field slack outside the selection.
-                // A short value otherwise selects the whole column. Filter marks keep their pad.
-                let mut pad = if wide {
-                    text_width.saturating_add(2)
-                } else {
-                    place.width
-                };
-                if let Some((name, _)) = columns.get(col)
-                    && column_is_filtered(name)
-                {
-                    // Follow the header mark, including " ▴" / " ▾" when this column is sorted.
-                    let mut marked = width(name).saturating_add(2);
-                    if column_is_sorted(col) {
-                        marked = marked.saturating_add(2);
-                    }
-                    pad = text_width.saturating_add(2).max(marked.saturating_add(1));
-                }
-                let pad = pad.min(place.width);
-                ui.fill(
-                    termrock::Rect {
-                        x: origin.saturating_add(place.x),
-                        y,
-                        width: pad,
-                        height: 1,
-                    },
-                    style,
-                );
-            }
-            if !(active && state.is_editing() && !numeric) {
-                ui.paint_str(
-                    termrock::Rect {
-                        x: origin.saturating_add(place.x).saturating_add(indent),
-                        y,
-                        width: text_width,
-                        height: 1,
-                    },
-                    shown,
-                    style,
-                );
-            }
-            if foreign {
-                let slot = origin
-                    .saturating_add(place.x)
-                    .saturating_add(place.width)
-                    .saturating_sub(2);
-                ui.paint_str(
-                    termrock::Rect {
-                        x: slot,
-                        y,
-                        width: 1,
-                        height: 1,
-                    },
-                    " ",
-                    style,
-                );
-                ui.paint_str(
-                    termrock::Rect {
-                        x: slot.saturating_add(1),
-                        y,
-                        width: 1,
-                        height: 1,
-                    },
-                    "→",
-                    style.patch(ui.paint_patch(&StylePatch::new().set_fg(arrow_role(fade)))),
-                );
-            }
-        }
-    }
-}
-
-#[allow(
-    clippy::too_many_lines,
     reason = "header gutter, primary key, and muted titles share one pass"
 )]
 fn paint_grid_header(
@@ -7568,7 +7366,7 @@ fn draw_painted_grid(
 ) {
     GRID_SEEN_ROW.with(|slot| *slot.borrow_mut() = None);
     install_grid_budgets(area.width, columns, model);
-    let scrolled = install_scrolled_budgets(area.width, columns, model, state);
+    install_scrolled_budgets(area.width, columns, model, state);
     // The editor's own cell must be 11 wide so its bar sits on the field tail.
     let mut editor_columns = Vec::new();
     let draw_specs = editor_column_specs(specs, columns, state, model, &mut editor_columns);
@@ -7597,9 +7395,6 @@ fn draw_painted_grid(
         covered,
         calm_header,
     );
-    if scrolled {
-        paint_scrolled_cells(ui, area, columns, state, model);
-    }
 }
 
 fn editor_column_specs<'a>(
@@ -7660,48 +7455,6 @@ fn editing_window(text: &str, inner: u16) -> String {
     shown
 }
 
-fn paint_inline_editor(ui: &mut Ui<'_>, origin: u16, place: ColPlace, y: u16, text: &str) {
-    let field_width = place.width.saturating_sub(2);
-    let inner = place.width.saturating_sub(3);
-    let shown = editing_window(text, inner);
-    let field = ui.surface_style().patch(
-        ui.paint_patch(
-            &StylePatch::new()
-                .set_fg(Role::Fg(FgStep::Primary))
-                .set_bg(TAG_FIELD_BG)
-                .add(Modifier::BOLD),
-        ),
-    );
-    let underlined = field.patch(
-        ui.paint_patch(
-            &StylePatch::new()
-                .set_underline(TAG_BUTTON_BG)
-                .add(Modifier::UNDERLINED)
-                .add(Modifier::BOLD),
-        ),
-    );
-    let x = origin.saturating_add(place.x);
-    ui.fill(
-        termrock::Rect {
-            x,
-            y,
-            width: field_width,
-            height: 1,
-        },
-        field,
-    );
-    let text_width = width(&shown).min(field_width);
-    ui.paint_str(
-        termrock::Rect {
-            x,
-            y,
-            width: text_width,
-            height: 1,
-        },
-        &shown,
-        underlined,
-    );
-}
 fn result_grid<'a>(id: Id, columns: &'a [termrock::Column<'a>]) -> Grid<'a> {
     let grid = Grid::new(id, columns)
         .blur(termrock::BlurPolicy::Keep)
@@ -7712,6 +7465,10 @@ fn result_grid<'a>(id: Id, columns: &'a [termrock::Column<'a>]) -> Grid<'a> {
             min_digits: 1,
         })
         .column_fit(GridColumnFit::CompleteWithPreview { min_width: 4 })
+        .header_sizing(termrock::GridHeaderSizing::Minimum {
+            padding: 2,
+            cap: 24,
+        })
         .column_gap(2)
         .right_reserve(3)
         .sort_indicator(GridSortIndicator::ActiveOnly)
