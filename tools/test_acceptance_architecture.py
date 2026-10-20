@@ -256,6 +256,48 @@ fn render(ui: &mut Ui) { for cell in FRAME_PIECES { ui.paint(cell.x, cell.y, cel
         self.assertFalse(any(row["path"] == "shared/hidden.rs" for row in report["source_inputs"]))
         self.assertTrue(any(item["file"] == "shared/nested.inc" for item in report["findings"]))
 
+    def test_out_of_package_path_module_with_children_fails_closed(self) -> None:
+        crate = self.root / "crates/termrock-core"
+        write(crate / "src/lib.rs", '#[path = "../../../shared/entry.rs"]\npub mod external;\n')
+        write(self.root / "shared/entry.rs", "pub mod hidden;\n")
+        write(self.root / "shared/hidden.rs", "// captured terminal frame in path child\n")
+        report = self.run_gate()
+        self.assertFalse(report["architecture_checks_passed"])
+        self.assertTrue(any("Rust source input is outside its package; module tree is not fully accounted" in item and "src/lib.rs:1" in item for item in report["unaccounted_inputs"]))
+        self.assertTrue(any(row["path"] == "shared/entry.rs" for row in report["source_inputs"]))
+        self.assertFalse(any(row["path"] == "shared/hidden.rs" for row in report["source_inputs"]))
+
+    def test_out_of_package_rust_include_with_children_fails_closed(self) -> None:
+        crate = self.root / "crates/termrock-core"
+        write(crate / "src/lib.rs", 'include!("../../../shared/entry.rs");\n')
+        write(self.root / "shared/entry.rs", "pub mod hidden;\n")
+        write(self.root / "shared/hidden.rs", "// captured terminal frame in include child\n")
+        report = self.run_gate()
+        self.assertFalse(report["architecture_checks_passed"])
+        self.assertTrue(any("Rust source input is outside its package; module tree is not fully accounted" in item and "src/lib.rs:1" in item for item in report["unaccounted_inputs"]))
+        self.assertTrue(any(row["path"] == "shared/entry.rs" for row in report["source_inputs"]))
+        self.assertFalse(any(row["path"] == "shared/hidden.rs" for row in report["source_inputs"]))
+
+    def test_transitive_cross_package_rust_include_fails_closed_and_scans_known_inputs(self) -> None:
+        crate = self.root / "crates/termrock-core"
+        write(crate / "src/lib.rs", 'include!("../../../shared/entry.inc");\n')
+        write(self.root / "shared/entry.inc", 'include!("nested.inc");\n')
+        write(self.root / "shared/nested.inc", "// captured terminal frame in transitive source\n")
+        report = self.run_gate()
+        self.assertFalse(report["architecture_checks_passed"])
+        self.assertTrue(any("Rust source input is outside its package; module tree is not fully accounted" in item and "src/lib.rs:1" in item for item in report["unaccounted_inputs"]))
+        self.assertTrue(any(row["path"] == "shared/entry.inc" for row in report["source_inputs"]))
+        self.assertTrue(any(row["path"] == "shared/nested.inc" for row in report["source_inputs"]))
+        self.assertTrue(any(item["file"] == "shared/nested.inc" for item in report["findings"]))
+
+    def test_out_of_package_include_str_is_accounted_as_data(self) -> None:
+        crate = self.root / "crates/termrock-core"
+        write(crate / "src/lib.rs", 'pub const DATA: &str = include_str!("../../../shared/data.txt");\npub const BYTES: &[u8] = include_bytes!("../../../shared/data.txt");\n')
+        write(self.root / "shared/data.txt", "pub mod hidden;\n")
+        report = self.run_gate()
+        self.assertTrue(report["architecture_checks_passed"], report["errors"])
+        self.assertTrue(any(row["path"] == "shared/data.txt" for row in report["source_inputs"]))
+
     def test_path_attribute_file_alias_into_target_is_unaccounted(self) -> None:
         crate = self.root / "crates/termrock-core"
         write(crate / "src/lib.rs", '#[path = "generated.rs"]\npub mod generated;\n')
