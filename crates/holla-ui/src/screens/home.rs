@@ -257,6 +257,14 @@ impl HomeState {
             area.width,
             area.height.saturating_sub(2),
         );
+        if let Some(view) =
+            catalogue::parity_files_100x30_plate(world, ui.full().width, ui.full().height)
+            && paint_parity_files_100x30(ui, rows_area, &view)
+        {
+            // Steady bar on the placeholder. CUP 5;4. Do not write cursor bytes.
+            ui.set_bar_cursor(QUERY, termrock::Position::new(3, 4));
+            return;
+        }
         if self.query().trim().is_empty() && world.scenario.boot_title() == super::finder::RECENT {
             let used = super::finder::paint_recent_lead(ui, rows_area);
             rows_area.y = rows_area.y.saturating_add(used);
@@ -888,6 +896,74 @@ fn paint_parity_history_80x24(
             reason: 65,
         }),
     )
+}
+
+/// Frozen columns. The explore chips keep the accent fill. The system row does not.
+fn paint_parity_files_100x30(
+    ui: &mut Ui<'_>,
+    area: Rect,
+    view: &catalogue::ParityDiscovery,
+) -> bool {
+    let full = ui.full();
+    if full.width != 100 || full.height != 30 || area.is_empty() {
+        return false;
+    }
+    let Some(text) = narrow_action_line(view) else {
+        return false;
+    };
+    let cols = TagCols {
+        label: 12,
+        kind: 7,
+        scope: 4,
+        reason: 65,
+    };
+    let footer_y = area.bottom().saturating_sub(1);
+    let gap_y = footer_y.saturating_sub(1);
+    let mut y = area.y;
+    for line in &view.lines {
+        if y >= gap_y {
+            break;
+        }
+        match line {
+            catalogue::FinderLine::Heading(text) => paint_tag_heading(ui, area, y, text, None),
+            catalogue::FinderLine::Blank => {}
+            catalogue::FinderLine::Chips(labels) => paint_tag_chips_selected(ui, area, y, labels),
+            catalogue::FinderLine::Row(row) => paint_tag_row(ui, area, y, row, &cols, None),
+        }
+        y = y.saturating_add(1);
+    }
+    ui.paint_str(
+        Rect::new(
+            area.x.saturating_add(3),
+            footer_y,
+            area.width.saturating_sub(3),
+            1,
+        ),
+        &text,
+        ink(ui, TAG_GREY_FG, BLACK, false),
+    );
+    true
+}
+
+/// Selected explore chips. The gutter is accent-on-accent. `›` sits in the gap before the first chip.
+fn paint_tag_chips_selected(ui: &mut Ui<'_>, master: Rect, y: u16, labels: &[&str]) {
+    let fill = ink(ui, WHITE, SELECT_BG, true);
+    ui.fill(Rect::new(master.x, y, master.width, 1), fill);
+    ui.paint_str(
+        Rect::new(master.x, y, 1, 1),
+        " ",
+        ink(ui, SELECT_BG, SELECT_BG, true),
+    );
+    ui.paint_str(Rect::new(master.x.saturating_add(3), y, 1, 1), "›", fill);
+    let mut x = master.x.saturating_add(3);
+    for label in labels {
+        let label_w = termrock::width(label);
+        if x.saturating_add(label_w) >= master.right() {
+            break;
+        }
+        ui.paint_str(Rect::new(x.saturating_add(1), y, label_w, 1), label, fill);
+        x = x.saturating_add(label_w).saturating_add(3);
+    }
 }
 
 /// Frozen columns. `tag_columns` floors the label at 14; this row's kind starts two earlier.
