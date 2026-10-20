@@ -459,6 +459,14 @@ impl HomeState {
             return;
         }
         if let Some(view) =
+            catalogue::parity_browser_80x24_plate(world, ui.full().width, ui.full().height)
+            && paint_parity_browser_80x24(ui, rows_area, &view)
+        {
+            // Steady bar on the placeholder. CUP 5;4. Do not write cursor bytes.
+            ui.set_bar_cursor(QUERY, termrock::Position::new(3, 4));
+            return;
+        }
+        if let Some(view) =
             catalogue::parity_browser_100x30_plate(world, ui.full().width, ui.full().height)
             && paint_parity_browser_100x30(ui, rows_area, &view)
         {
@@ -1085,18 +1093,37 @@ fn paint_parity_history_100x30(
     )
 }
 
-/// Frozen columns. Only the 100×30 browser frame reaches this painter, so files plates stay off.
+/// Frozen columns. Only the 80×24 browser frame reaches this painter, so the 100×30 plate stays off.
+fn paint_parity_browser_80x24(
+    ui: &mut Ui<'_>,
+    area: Rect,
+    view: &catalogue::ParityDiscovery,
+) -> bool {
+    paint_parity_browser_plate(ui, area, view, 80, 24)
+}
+
+/// Frozen columns. Only the 100×30 browser frame reaches this painter, so the 80×24 plate stays off.
 fn paint_parity_browser_100x30(
     ui: &mut Ui<'_>,
     area: Rect,
     view: &catalogue::ParityDiscovery,
 ) -> bool {
+    paint_parity_browser_plate(ui, area, view, 100, 30)
+}
+
+fn paint_parity_browser_plate(
+    ui: &mut Ui<'_>,
+    area: Rect,
+    view: &catalogue::ParityDiscovery,
+    width: u16,
+    height: u16,
+) -> bool {
     paint_tag_list_plate_at(
         ui,
         area,
         view,
-        100,
-        30,
+        width,
+        height,
         Some(TagCols {
             label: 12,
             kind: 7,
