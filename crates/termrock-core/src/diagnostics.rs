@@ -40,6 +40,10 @@ pub enum Diagnostic {
     FocusTransitionDidNotSettle {
         target: Option<Id>,
     },
+    /// A settled focus continuation result was not acknowledged before its bounded retention expired.
+    FocusContinuationUnacknowledged {
+        owner: Id,
+    },
     UnaddressableId {
         id: Id,
     },
