@@ -50,5 +50,43 @@
     "The independent probes and native widget suite do not establish full TablePro application parity.",
     "The application all-target comparison against the exact merged base is still running; its result will be recorded separately.",
     "A separate source-backed raw RGB quantizer decision is required; no RGB lookup exception or LegacyMono behavior is accepted by this Grid/CellUi change."
-  ]
+  ],
+  "raw_rgb_quantization": {
+    "status": "generic frozen-baseline ANSI256 raw RGB rule restored; semantic palette projections remain a separate path",
+    "source": {
+      "baseline_commit": "4169783ae883788186d161af09ba9c481bd84e5c",
+      "design_commit": "f4867e9b5f8a08a3bb61ce80d644198a29f51984",
+      "source_path": "src/theme.rs:3017-3033",
+      "algorithm_sha256": "ac267a2f1a8e04f204d1daa317b87e9af02c656f0a335f923a59ae5e423b9686",
+      "rule": "round RGB cube steps; compute nearest grayscale index from integer channel average; use grayscale only when its squared error is lower and chroma is <=30"
+    },
+    "change": "Removed full-palette Euclidean raw RGB conversion and exact raw-RGB ANSI16 overrides. ANSI256 now uses the frozen generic cube/grayscale rule for all raw RGB values. Semantic Junie palette capabilities remain authored in palettes.rs.",
+    "regression": "The previous #3a3a3a -> 238 assertion failed against both pinned sources; frozen rule returns 237. Updated expectations for #474747 (238), #808080 (244), #171f1c (23), and #48e054 (78), with a multi-category test to prevent selected-color lookup behavior.",
+    "verification": {
+      "raw_quantizer_tests": {
+        "command": "cargo nextest run -p termrock-theme --lib downgrade::tests::downgrade_is_deterministic_per_level downgrade::tests::ansi256_raw_rgb_uses_the_frozen_general_cube_and_gray_rule",
+        "result": "2 passed, 87 filtered out"
+      },
+      "theme_package": {
+        "command": "cargo nextest run -p termrock-theme --all-targets",
+        "result": "132 passed, 1 failed, 0 skipped (133 total)",
+        "failure": "capability_palettes::all_73_junie_slots_match_reference_capability_output",
+        "log": "/private/tmp/grid-theme-quantizer-final.log"
+      },
+      "shared_cohort": {
+        "command": "cargo nextest run -p termrock-runtime -p termrock-grid -p termrock-fields -p termrock-theme --all-targets",
+        "result": "693 passed, 1 failed, 3 skipped (694 total)",
+        "failure": "termrock-theme::capability_palettes all_73_junie_slots_match_reference_capability_output",
+        "log": "/private/tmp/grid-theme-cohort-quantizer-final.log"
+      },
+      "public_probes": {
+        "command": "CARGO_TARGET_DIR=/private/tmp/termrock-grid-padding-current/target cargo nextest run --manifest-path /private/tmp/termrock-grid-padding-current/Cargo.toml --all-targets",
+        "result": "11 passed, 0 skipped",
+        "log": "/private/tmp/grid-c6-final-probes-quantizer.log"
+      },
+      "strict_clippy": "cargo clippy -p termrock-runtime -p termrock-grid -p termrock-fields -p termrock-theme --all-targets -- -D warnings: passed",
+      "format": "rustfmt --check --edition 2024 crates/termrock-theme/src/downgrade.rs crates/termrock-theme/tests/capability_palettes.rs crates/termrock-runtime/src/rowui.rs crates/termrock-grid/src/grid.rs; git diff --check: passed"
+    },
+    "remaining": "The all_73 test has an unresolved semantic-capability expected-output disagreement: production Junie capability slots differ from its fixture; frozen baseline apply_256 source assigns different values (for example accent_pressed=65, focus_ring=78, highlight-danger=88). Preserve the failing fixture and production table; do not copy current production palette into expectations. Requires a separately reviewed semantic-role migration. LegacyMono raw-color pair behavior also remains an unreviewed merged increment."
+  }
 }
