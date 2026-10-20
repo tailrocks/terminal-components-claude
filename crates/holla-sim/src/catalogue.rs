@@ -853,6 +853,14 @@ pub fn monorepo_child_tag_frame(w: &World) -> bool {
     w.scenario == Scenario::MonorepoChild && w.now_ms() == 80
 }
 
+/// Pre-typed finder query on the `docker-cleanup` tag frame.
+pub const DOCKER_CLEANUP_QUERY: &str = "docker clean";
+
+/// Tag `docker-cleanup` at fixture tick 40. Later seeks keep the concept home.
+pub fn docker_cleanup_tag_frame(w: &World) -> bool {
+    w.scenario == Scenario::DockerCleanup && w.now_ms() == 80
+}
+
 /// Tag `parity-discovery` at fixture tick 40.
 ///
 /// `--frame 40` seeks 80 ms. Every tag source for this fixture is done by tick 40,
@@ -1504,6 +1512,174 @@ pub fn monorepo_child_tag(w: &World) -> Option<ParityDiscovery> {
     })
 }
 
+pub fn docker_cleanup_tag(w: &World) -> Option<ParityDiscovery> {
+    if !docker_cleanup_tag_frame(w) {
+        return None;
+    }
+    let suggested = vec![
+        tag_row(
+            "Clean Docker completely",
+            "plan",
+            "on devbox",
+            false,
+            "18.4 GB reclaimable on devbox",
+            Some("destructive"),
+            true,
+        ),
+        tag_row(
+            "Prune builder cache",
+            "docker",
+            "on devbox",
+            false,
+            "6.1 GB of build cache",
+            Some("destructive"),
+            false,
+        ),
+        tag_row(
+            "Stop all containers",
+            "docker",
+            "on devbox",
+            false,
+            "5 running on devbox",
+            None,
+            false,
+        ),
+        tag_row(
+            "Prune unused networks",
+            "docker",
+            "on devbox",
+            false,
+            "available on this host",
+            None,
+            false,
+        ),
+        tag_row(
+            "Prune unused volumes",
+            "docker",
+            "on devbox",
+            false,
+            "7 volumes",
+            Some("destructive"),
+            false,
+        ),
+        tag_row(
+            "Remove all unused images",
+            "docker",
+            "on devbox",
+            false,
+            "12 dangling",
+            Some("destructive"),
+            false,
+        ),
+        tag_row(
+            "Stop and remove all containers",
+            "docker",
+            "on devbox",
+            false,
+            "12 containers on devbox",
+            Some("destructive"),
+            false,
+        ),
+    ];
+    let mut lines = Vec::new();
+    lines.push(FinderLine::Heading("Results · 7"));
+    for row in &suggested {
+        lines.push(FinderLine::Row(row.clone()));
+    }
+    let mut preview = vec![PreviewLine {
+        label: "Does",
+        value: "remove all user-removable Docker state on devbox: containers, all images, networks, system data, volumes, build cache · as a reviewable plan".into(),
+        tone: PreviewTone::Text,
+        wraps: true,
+    }];
+    let runs = [
+        "docker stop acme…redis-1",
+        "docker rm acme-a…na loki",
+        "docker image pru…--force",
+        "docker network p…--force",
+        "docker system pr…--force",
+        "docker volume pr…--force",
+    ];
+    for (index, command) in runs.into_iter().enumerate() {
+        preview.push(PreviewLine {
+            label: if index == 0 { "Runs" } else { "" },
+            value: command.into(),
+            tone: PreviewTone::Secondary,
+            wraps: false,
+        });
+    }
+    preview.push(PreviewLine {
+        label: "",
+        value: "… 2 more".into(),
+        tone: PreviewTone::Muted,
+        wraps: false,
+    });
+    preview.extend([
+        PreviewLine {
+            label: "In",
+            value: "devbox · host-wide".into(),
+            tone: PreviewTone::Text,
+            wraps: false,
+        },
+        PreviewLine {
+            label: "Host",
+            value: "devbox · development · over SSH".into(),
+            tone: PreviewTone::Text,
+            wraps: true,
+        },
+        PreviewLine {
+            label: "Scope",
+            value: "on devbox".into(),
+            tone: PreviewTone::Text,
+            wraps: false,
+        },
+        PreviewLine {
+            label: "Why",
+            value: "18.4 GB reclaimable on devbox".into(),
+            tone: PreviewTone::Text,
+            wraps: true,
+        },
+        PreviewLine {
+            label: "Changes",
+            value: "12 containers · 41 images · 7 volumes · ~18.4 GB reclaimed · permanent".into(),
+            tone: PreviewTone::Text,
+            wraps: true,
+        },
+        PreviewLine {
+            label: "Risk",
+            value: "destructive".into(),
+            tone: PreviewTone::Danger,
+            wraps: true,
+        },
+        PreviewLine {
+            label: "Data",
+            value: "live · 2 s ago".into(),
+            tone: PreviewTone::Muted,
+            wraps: true,
+        },
+        PreviewLine {
+            label: "Gate",
+            value: "two gates · type I UNDERSTAND: REMOVE ALL DOCKER DATA ON devbox".into(),
+            tone: PreviewTone::Text,
+            wraps: true,
+        },
+        PreviewLine {
+            label: "Alt+Enter",
+            value: "Stop all containers only · Prune builder cache only · Pin · Alias · Why here?"
+                .into(),
+            tone: PreviewTone::Muted,
+            wraps: true,
+        },
+    ]);
+    Some(ParityDiscovery {
+        lines,
+        preview,
+        preview_meta: "plan · on devbox".into(),
+        actions: Vec::new(),
+        suggested_len: suggested.len(),
+    })
+}
+
 fn tag_row(
     title: impl Into<String>,
     kind: &'static str,
@@ -1699,6 +1875,30 @@ mod tests {
         );
         world.seek(4_000);
         assert!(monorepo_child_tag(&world).is_none());
+    }
+
+    #[test]
+    fn docker_cleanup_tag_exists_only_at_tick_40() {
+        let mut world = fixtures::world_for(Scenario::DockerCleanup);
+        assert!(docker_cleanup_tag(&world).is_none());
+        world.seek(40);
+        let view = docker_cleanup_tag(&world).expect("tick 40 tag");
+        assert_eq!(view.preview_meta, "plan · on devbox");
+        assert!(
+            view.lines
+                .iter()
+                .any(|line| matches!(line, FinderLine::Heading("Results · 7")))
+        );
+        assert!(view.lines.iter().any(|line| matches!(
+            line,
+            FinderLine::Row(row) if row.selected && row.kind == "plan" && row.title == "Clean Docker completely"
+        )));
+        assert!(view.preview.iter().any(|line| line.label == "Runs"
+            && line.value == "docker stop acme…redis-1"
+            && !line.wraps));
+        assert!(view.preview.iter().any(|line| line.label == "Alt+Enter"));
+        world.seek(4_000);
+        assert!(docker_cleanup_tag(&world).is_none());
     }
 
     fn settled(scenario: Scenario) -> World {
