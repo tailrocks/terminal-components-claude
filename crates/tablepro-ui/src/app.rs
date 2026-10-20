@@ -245,6 +245,7 @@ const CLEAR_QUERY: ActionKey = ActionKey::application("tablepro.clear-query");
 const PALETTE: ActionKey = ActionKey::application("tablepro.palette");
 const ZOOM: ActionKey = ActionKey::application("tablepro.zoom");
 const TOGGLE_EXPLORER: ActionKey = ActionKey::application("tablepro.toggle-explorer");
+const FOCUS_EXPLORER: ActionKey = ActionKey::application("tablepro.focus-explorer");
 
 const CONNECTION_DETAILS: Id = Id::root("tablepro.connections.details");
 const CONTENT_FRAME: Id = Id::root("tablepro.workbench.content.frame");
@@ -474,6 +475,11 @@ fn quit_keymap() -> KeyMap {
 fn keymap() -> KeyMap {
     query_keymap(
         quit_keymap()
+            .bind(
+                KeyPhase::Capture,
+                Chord::key(KeyCode::Char('0')),
+                FOCUS_EXPLORER,
+            )
             .bind(KeyPhase::Bubble, Chord::key(KeyCode::Char('u')), UNDO)
             .bind(KeyPhase::Bubble, Chord::key(KeyCode::Char('+')), INSERT_ROW)
             .bind(
@@ -10197,7 +10203,7 @@ fn paint_picker_layer_footer(ui: &mut Ui<'_>, area: termrock::Rect) {
 fn draw_footer(ui: &mut Ui<'_>, area: termrock::Rect, app: &TableProApp) {
     let base = ui.surface_style();
     let explorer_focused = ui.state(EXPLORER).contains(StateFlags::FOCUSED);
-    let empty_query = app.blank_sql();
+    let empty_query = app.blank_sql() && query_editor_focused(ui, app);
     ui.fill(area, base);
     if matches!(app.surface, Surface::QuickSwitcher | Surface::TabListPicker) {
         paint_picker_layer_footer(ui, area);
@@ -10317,6 +10323,11 @@ fn draw_footer(ui: &mut Ui<'_>, area: termrock::Rect, app: &TableProApp) {
             base,
         );
     }
+}
+
+fn query_editor_focused(ui: &Ui<'_>, app: &TableProApp) -> bool {
+    app.query_id()
+        .is_some_and(|id| ui.state(id).contains(StateFlags::FOCUSED))
 }
 
 fn draw_too_small(ui: &mut Ui<'_>, area: termrock::Rect) {
@@ -10882,6 +10893,18 @@ impl App for TableProApp {
                     && self.destructive_intent.is_none() =>
                 {
                     self.split_state.toggle_max(Maximized::Second);
+                    response |= Response::changed();
+                }
+                c if c == FOCUS_EXPLORER
+                    && self.screen == Screen::Workbench
+                    && !self.form_open
+                    && self.destructive_intent.is_none() =>
+                {
+                    if self.split_state.maximized() == Maximized::Second {
+                        self.split_state.toggle_max(Maximized::Second);
+                    }
+                    self.workbench.maximized = false;
+                    cx.focus(EXPLORER);
                     response |= Response::changed();
                 }
                 _ => {}

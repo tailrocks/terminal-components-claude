@@ -42,6 +42,69 @@ fn choosing_a_query_tab_moves_focus_to_its_editor() {
 }
 
 #[test]
+fn quick_switcher_escape_restores_explorer_footer_hints() {
+    let mut harness = connected();
+    harness.draw();
+
+    let _ = harness.ctrl('o');
+    assert!(harness.text().contains("Open Quickly"));
+    let _ = harness.key(KeyCode::Esc);
+    harness.draw();
+
+    assert!(
+        harness.text().contains("Ctrl+O Quick open"),
+        "{}",
+        harness.text()
+    );
+    assert!(!harness.text().contains("F6"), "{}", harness.text());
+    assert!(
+        harness.diagnostics().is_empty(),
+        "{:?}",
+        harness.diagnostics()
+    );
+}
+
+#[test]
+fn zero_returns_from_table_grid_to_explorer_for_next_table() {
+    let mut harness = connected();
+    harness.draw();
+    for _ in 0..5 {
+        let _ = harness.key(KeyCode::Down);
+    }
+    let _ = harness.key(KeyCode::Enter);
+    assert!(
+        harness.text().contains("public › orders"),
+        "{}",
+        harness.text()
+    );
+
+    let _ = harness.key(KeyCode::Char('0'));
+    assert_eq!(
+        harness.focus(),
+        Some(Id::root("tablepro.workbench.explorer.tree"))
+    );
+    let _ = harness.key(KeyCode::Down);
+    let _ = harness.key(KeyCode::Enter);
+
+    let Some(table) = harness.app().workbench.active_table() else {
+        unreachable!("explorer activation creates a table tab")
+    };
+    assert_eq!(table.table.name, "order_items");
+    assert!(
+        harness.text().contains("public › order_items"),
+        "{}",
+        harness.text()
+    );
+    let _ = harness.ctrl('g');
+    assert!(harness.text().contains("order_items"), "{}", harness.text());
+    assert!(
+        harness.diagnostics().is_empty(),
+        "{:?}",
+        harness.diagnostics()
+    );
+}
+
+#[test]
 fn delete_closes_clean_tab_and_reopens_picker_with_empty_filter() {
     let mut harness = connected();
     let Some(removed) = harness.app_mut().workbench.new_query("SELECT 1") else {
