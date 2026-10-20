@@ -6,8 +6,10 @@ Frozen Grid behavior resolves ordinary cells over their row style and replaces
 that style only for the ACTIVE cursor cell. The reusable Grid now resolves
 row recipes with explicit provenance, passes the resolved row channels into
 cell defaults, and preserves per-cell recipe overrides and modifier removal.
-Existing caller `part_defaults` are included for both ROW and CELL. No
-TablePro-specific style or inset API was added.
+Existing caller `part_defaults` are included for both ROW and CELL, including
+explicit `Clear` provenance. Empty ACTIVE cells use the same complete-style
+replacement as populated ACTIVE cells. No TablePro-specific style or inset API
+was added.
 
 TablePro had been painting BOLD across the selected data row after Grid drew
 it, and repainted five cells at the beginning of the second visible column
@@ -19,10 +21,11 @@ after. Grid-focused styling, ACTIVE precedence, cell channel overrides and
 modifier removal pass in all four color levels.
 
 Validation on merged source `df30dc0`: `cargo nextest run -p termrock-grid
---all-targets` passes 130/130. Real TablePro regressions for the unfocused
-cursor row and deleted-row strike-through pass; the latter initially failed
-with inherited styling, was corrected to preserve the row's deletion strike
-unless CELL explicitly removes it, and now passes. `cargo nextest run -p
+--all-targets` passes 132/132. Real Grid buffer regressions cover unfocused/active cursor row inheritance,
+empty cells, explicit row and cell `Clear`, and deleted-row strike-through.
+The TablePro unfocused-cursor and deleted-row strike regressions pass; the
+latter initially failed with inherited styling, was corrected to preserve the
+row's deletion strike unless CELL explicitly removes it, and now passes. `cargo nextest run -p
 tablepro-ui --all-targets` runs 184 tests: 173 pass and 11 fail. Remaining
 failures are `explain_orders_shows_a_plan_cell_the_error_frame_hides`,
 `close_only_binds_target_but_quit_binds_every_tab`,
@@ -34,9 +37,13 @@ failures are `explain_orders_shows_a_plan_cell_the_error_frame_hides`,
 `plain_u_in_sql_editor_is_text_and_leaves_inactive_table_pending`,
 `tablepro_visual_baseline`, and
 `focused_query_identity_and_draft_survive_earlier_insert_close_and_reorder`.
-The Grid/TablePro package Clippy check is blocked by
-`tablepro-domain::Tab` large-enum-variant lint at `tabs.rs:315` (this task
-changed no domain source). Scoped formatting is checked separately. Full
+Against the exact `df30dc0` source with this change's four files restored,
+TablePro has 183 tests: 172 pass and 11 fail. The candidate has 184 tests:
+173 pass and 11 fail, with the exact same failure names; the added real-app
+regression passes. Grid strict Clippy passes. Combined Grid/TablePro strict
+Clippy is blocked by `tablepro-domain::Tab` large-enum-variant lint at
+`tabs.rs:315` (this task changed no domain source). Scoped formatting is
+checked separately. Full
 product parity remains incomplete; no paired visual approval is claimed.
 
 Updated: 2026-10-20. Status: **in progress; all four applications incomplete**. This is the current migration record. Older audit reports remain evidence, not a complete inventory or acceptance declaration.
