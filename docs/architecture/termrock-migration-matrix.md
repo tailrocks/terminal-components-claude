@@ -1,3 +1,9 @@
+## Current blocker update: runtime and capture integrity (2026-10-21)
+
+Fields integration passed 504 scoped tests before incoming shared changes. Publication is now blocked by incoming `adf334b` introducing a deterministic modal snapshot allocation under inherited `NO_COLOR` (503/504 passed). The unchanged isolated test also fails; removing the variable passes only as diagnosis. No environment workaround is accepted. [Evidence](../audits/2026-10-21-fields-publication-incoming-runtime-blocker.json).
+
+Frozen captures have six verified contiguous chunks, ordinals 0–5, totaling 192 cases/checkpoints/process receipts. Hash verification passed and final directories exactly match receipts. Capture is paused because independent review found that a post-rename verification/journal failure can leave an unreceipted directory with no failure marker, blocking retry. The missing injected-failure test is a coverage defect. A separate shared runner repair is underway; no replay, candidate comparison or product approval is authorized by these receipts. [Progress](../audits/2026-10-21-fresh-capture-paused-progress.json), [finding](../audits/2026-10-21-fresh-advance-failure-review.json).
+
 
 ## Current integration checkpoint: Fields window repair (2026-10-21)
 
