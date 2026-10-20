@@ -1,0 +1,61 @@
+{
+  "reviewed_commit": "26e4d54879fcd9b777df701bb65881f6f11a09a4",
+  "disposition": "CHANGES REQUIRED: canonical host Clear provenance is fixed, but winning local Clear does not reset prepainted underline.",
+  "source_copy": "/private/tmp/termrock-grid-26e4-independent",
+  "source_edits": false,
+  "positive_findings": [
+    "The synthetic Warning/Accent calibration and same_underline_binding comparison are removed. Each text decoration target has one normal host resolution.",
+    "Final canonical underline Slot::Clear is retained as private PaintStyle metadata, with an additive accessor. Existing private fields already prevent external struct literals, so the added private field does not introduce a new mandatory public literal field.",
+    "Canonical accumulation, local Set/Clear override order, profile binding, raw underline setters, and unrelated modifier patches have focused tests. Existing ResolvedStyle.explicit semantics were not widened.",
+    "Grid update and draw use the same embedded-cell presentation. Shared geometry drives pointer mapping, scrolling, clipping, and cursor placement. Default TextInput configuration remains unchanged when embedded mode and target are absent.",
+    "Host decoration transfers underline color and UNDERLINED only; input foreground/background remain independently resolved. No exact-color or application/test-identity renderer was introduced in this bounded library series."
+  ],
+  "finding": {
+    "severity": "P2",
+    "path": "crates/termrock-fields/src/input.rs:1687",
+    "problem": "A local underline Slot::Clear correctly prevents the host underline override, but no Color::Reset is emitted for that winning local Clear. The resolved style has no underline color, so ordinary buffer patching leaves a prepainted underline intact.",
+    "reproduction": "Prepaint an underlined yellow cell, draw TextInput.embedded_cell().patch(&clear).text_style_target(GRID,DEFAULT,TEXT) with a host Accent underline. The actual text underline remains Yellow instead of Reset.",
+    "probe": "explicit_local_clear_wins_over_host_decoration_and_prepaint",
+    "fix": "Carry the winning local canonical Clear into the actual text underline reset while retaining local Set, host Clear/Inherit/Set, semantic profile binding, and modifier precedence. Do not reintroduce calibration or infer authored channels from colors."
+  },
+  "verification": {
+    "established_probes": {
+      "run": 4,
+      "passed": 4,
+      "failed": 0,
+      "skipped": 0,
+      "log": "/private/tmp/termrock-grid-26e4-probes.log",
+      "log_sha256": "ca103dd1910d08c3622870757f4318a247bf2766336a057ca659de275d7dc3d5"
+    },
+    "extended_probes": {
+      "run": 5,
+      "passed": 4,
+      "failed": 1,
+      "skipped": 0,
+      "log": "/private/tmp/termrock-grid-26e4-probes-extended.log",
+      "source": "/private/tmp/termrock-grid-26e4-probes/src/lib.rs",
+      "log_sha256": "47ef7666286653757af4d195b3b3fb4d6c7ab4322a5f05477b63660cee2ec498"
+    },
+    "native": {
+      "command": "cargo nextest run --locked -p termrock-fields -p termrock-grid -p termrock-theme --all-targets --no-fail-fast",
+      "run": 344,
+      "passed": 344,
+      "failed": 0,
+      "skipped": 0,
+      "log": "/private/tmp/termrock-grid-26e4-native.log",
+      "log_sha256": "6507173225ec480e17192cf0d8593390bfae7b20c216bbc56af17d5c05b46a13"
+    },
+    "clippy": {
+      "command": "cargo clippy --locked -p termrock-fields -p termrock-grid -p termrock-theme --all-targets -- -D warnings",
+      "passed": true,
+      "log": "/private/tmp/termrock-grid-26e4-clippy.log",
+      "log_sha256": "07112f10330e2815af6b7be97b8843b21e4b9d3c23379f5ef9add8a7f52957f3"
+    },
+    "formatting": "Scoped rustfmt --edition2024 --check passed for the six changed library/test files. git diff --check passed; the source worktree remains clean."
+  },
+  "limits": [
+    "This verdict applies only to exact26e4. Concurrent external9268 downgrade changes are not included.",
+    "No full frozen CLI parity or complete architecture acceptance is established.",
+    "No expected artifact was modified."
+  ]
+}
