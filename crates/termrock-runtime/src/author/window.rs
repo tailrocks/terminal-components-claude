@@ -84,6 +84,9 @@ impl VerticalWindow {
 
     /// Return the source rows visible in this window.
     pub fn visible_source_range(self) -> Range<usize> {
+        if self.visible_body.width == 0 || self.visible_body.height == 0 {
+            return self.first_source_row..self.first_source_row;
+        }
         let end = self
             .first_source_row
             .saturating_add(usize::from(self.visible_body.height))
@@ -93,6 +96,9 @@ impl VerticalWindow {
 
     /// Map an absolute physical terminal row to the component's source row.
     pub fn source_row_for_physical(self, physical_row: u16) -> Option<usize> {
+        if self.visible_body.width == 0 || self.visible_body.height == 0 {
+            return None;
+        }
         let local = physical_row.checked_sub(self.visible_body.y)?;
         if local >= self.visible_body.height {
             return None;
@@ -103,6 +109,9 @@ impl VerticalWindow {
 
     /// Map a visible source row to an absolute physical row.
     pub fn physical_row_for_source(self, source_row: usize) -> Option<u16> {
+        if self.visible_body.width == 0 || self.visible_body.height == 0 {
+            return None;
+        }
         let local = source_row.checked_sub(self.first_source_row)?;
         if local >= usize::from(self.visible_body.height) || source_row >= self.logical_rows {
             return None;
@@ -168,6 +177,14 @@ mod tests {
         let empty = VerticalWindow::full(Rect::new(0, 7, 0, 0));
         assert_eq!(empty.visible_source_range(), 0..0);
         assert_eq!(empty.source_row_for_physical(7), None);
+        assert_eq!(empty.physical_row_for_source(0), None);
+
+        for area in [Rect::new(0, 7, 0, 3), Rect::new(0, 7, 4, 0)] {
+            let empty = VerticalWindow::full(area);
+            assert_eq!(empty.visible_source_range(), 0..0);
+            assert_eq!(empty.source_row_for_physical(7), None);
+            assert_eq!(empty.physical_row_for_source(0), None);
+        }
 
         let edge = VerticalWindow::new(
             Rect {
