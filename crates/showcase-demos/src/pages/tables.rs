@@ -1,6 +1,6 @@
 use termrock::{Color, Cx, Modifier, PaintStyle, Rect, Response, Ui, width};
 
-use showcase_data::{TASKS, TaskRow, TaskStatus};
+use showcase_data::{TASKS, TaskStatus};
 
 use super::{Page, PageUpdate, frame};
 
@@ -327,15 +327,26 @@ fn paint_blurb(ui: &mut Ui<'_>, body: Rect) {
     if body.width <= title_w.saturating_add(4) {
         return;
     }
+    let meta = Rect::new(
+        body.x.saturating_add(title_w).saturating_add(2),
+        body.y.saturating_sub(2),
+        body.width.saturating_sub(title_w).saturating_sub(3),
+        1,
+    );
+    let style = ink(MUTED, CANVAS);
+    if width(BLURB) <= meta.width {
+        ui.paint_str(meta, BLURB, style);
+        return;
+    }
+    let budget = Rect {
+        width: meta.width.saturating_sub(1),
+        ..meta
+    };
+    let used = ui.paint_str(budget, BLURB, style);
     ui.paint_str(
-        Rect::new(
-            body.x.saturating_add(title_w).saturating_add(2),
-            body.y.saturating_sub(2),
-            body.width.saturating_sub(title_w).saturating_sub(3),
-            1,
-        ),
-        BLURB,
-        ink(MUTED, CANVAS),
+        Rect::new(meta.x.saturating_add(used), meta.y, 1, 1),
+        "…",
+        style,
     );
 }
 
@@ -596,7 +607,7 @@ fn paint_header(
             x,
             area.y,
             col_w,
-            &fit(spec.title, col_w, false),
+            &fit(spec.title, col_w, spec.right),
             ink(MUTED, SURFACE),
         );
         x = x.saturating_add(col_w).saturating_add(COL_GAP);
@@ -669,42 +680,15 @@ fn status_text(status: TaskStatus) -> &'static str {
     }
 }
 
-fn task_cells(task: &TaskRow) -> [PaintedCell<'static>; 7] {
-    PaintedCell::task_row(task)
+fn changes_text(changes: u32) -> String {
+    changes.to_string()
 }
 
-impl PaintedCell<'static> {
-    fn task_row(task: &TaskRow) -> [PaintedCell<'static>; 7] {
-        [
-            PaintedCell {
-                text: task_id(task.id),
-                fg: MUTED,
-            },
-            PaintedCell {
-                text: task.name,
-                fg: WHITE,
-            },
-            PaintedCell {
-                text: task.owner,
-                fg: WHITE,
-            },
-            PaintedCell {
-                text: status_text(task.status),
-                fg: status_fg(task.status),
-            },
-            PaintedCell {
-                text: task.branch,
-                fg: MUTED,
-            },
-            PaintedCell {
-                text: "",
-                fg: WHITE,
-            },
-            PaintedCell {
-                text: "",
-                fg: WHITE,
-            },
-        ]
+fn duration_text(seconds: u32) -> String {
+    if seconds >= 60 {
+        format!("{}m {:02}s", seconds / 60, seconds % 60)
+    } else {
+        format!("{seconds}s")
     }
 }
 
@@ -744,17 +728,48 @@ const TASK_IDS: [(u32, &str); 24] = [
 ];
 
 fn paint_tasks(ui: &mut Ui<'_>, card: Rect) {
-    let rows = usize::from(card_inner(card).height.saturating_sub(2).max(1));
-    let shown = rows.min(TASKS.len());
-    let meta = format!("unsorted · 1–{shown} of {}", TASKS.len());
-    paint_card_chrome(ui, card, "Tasks", &meta);
     let inner = card_inner(card);
     let Some(geom) = table_geom(inner, &TASK_SPECS, TASKS.len(), 0) else {
+        paint_card_chrome(ui, card, "Tasks", "");
         return;
     };
+    let shown = usize::from(geom.body).min(TASKS.len());
+    let meta = format!("unsorted · 1–{shown} of {}", TASKS.len());
+    paint_card_chrome(ui, card, "Tasks", &meta);
     paint_header(ui, Rect { height: 1, ..inner }, &TASK_SPECS, &geom, None);
     for (index, task) in TASKS.iter().enumerate().take(usize::from(geom.body)) {
-        let cells = task_cells(task);
+        let changes = changes_text(task.changes);
+        let duration = duration_text(task.duration_s);
+        let cells = [
+            PaintedCell {
+                text: task_id(task.id),
+                fg: MUTED,
+            },
+            PaintedCell {
+                text: task.name,
+                fg: WHITE,
+            },
+            PaintedCell {
+                text: task.owner,
+                fg: WHITE,
+            },
+            PaintedCell {
+                text: status_text(task.status),
+                fg: status_fg(task.status),
+            },
+            PaintedCell {
+                text: task.branch,
+                fg: MUTED,
+            },
+            PaintedCell {
+                text: &changes,
+                fg: if task.changes == 0 { MUTED } else { WHITE },
+            },
+            PaintedCell {
+                text: &duration,
+                fg: WHITE,
+            },
+        ];
         paint_table_row(
             ui,
             Rect::new(
@@ -870,11 +885,44 @@ fn paint_reviewers(ui: &mut Ui<'_>, card: Rect) {
 fn paint_checks(ui: &mut Ui<'_>, card: Rect) {
     paint_card_chrome(ui, card, "Checks", "");
     let inner = card_inner(card);
-    if inner.height < 2 || inner.width == 0 {
+    if inner.height == 0 || inner.width == 0 {
+        return;
+    }
+    let header = ink(MUTED, SURFACE);
+    let check_x = inner.x.saturating_add(TABLE_INSET);
+    let check_w = width("Check");
+    paint_at(ui, check_x, inner.y, check_w, "Check", header);
+    let result_w = width("Result");
+    let result_x = card.right().saturating_sub(12);
+    let gap_x = check_x.saturating_add(check_w);
+    // Baseline keeps two unpainted cells before Result and two muted cells after it.
+    let gap_w = result_x.saturating_sub(2).saturating_sub(gap_x);
+    if gap_w > 0 {
+        paint_at(
+            ui,
+            gap_x,
+            inner.y,
+            gap_w,
+            &" ".repeat(usize::from(gap_w)),
+            header,
+        );
+    }
+    paint_at(ui, result_x, inner.y, result_w, "Result", header);
+    paint_at(
+        ui,
+        result_x.saturating_add(result_w),
+        inner.y,
+        2,
+        "  ",
+        header,
+    );
+    if inner.height < 2 {
         return;
     }
     let title = "No checks have run yet";
-    let y = inner.y.saturating_add(inner.height / 2);
+    let body_y = inner.y.saturating_add(1);
+    let body_h = inner.height.saturating_sub(1);
+    let y = body_y.saturating_add(body_h / 2);
     let text_w = width(title).min(inner.width);
     paint_at(
         ui,
@@ -884,7 +932,7 @@ fn paint_checks(ui: &mut Ui<'_>, card: Rect) {
         y,
         text_w,
         title,
-        ink(MUTED, SURFACE),
+        header,
     );
 }
 
@@ -1025,6 +1073,20 @@ mod tests {
         assert_eq!(geom.cols_w, 82);
         assert_eq!(geom.widths, vec![5, 33, 7, 9, 20]);
         assert_eq!(content_height(), 25 + 8 + 6 + CARD_GAP * 2);
+    }
+
+    #[test]
+    fn wide_task_columns_keep_branch_and_numeric_widths() {
+        let area = Rect::new(0, 0, 130, 22);
+        let geom = table_geom(area, &TASK_SPECS, 24, 0).expect("geom");
+        assert!(geom.has_sb);
+        assert!(!geom.has_bar);
+        assert_eq!(geom.body, 21);
+        assert_eq!(geom.shown, 7);
+        assert_eq!(geom.widths, vec![5, 53, 7, 9, 20, 9, 9]);
+        assert_eq!(super::duration_text(412), "6m 52s");
+        assert_eq!(super::duration_text(0), "0s");
+        assert_eq!(super::changes_text(14), "14");
     }
 
     #[test]
