@@ -13,6 +13,7 @@ pub(crate) use termrock_text as text;
 pub(crate) use termrock_theme as theme;
 
 pub use termrock_core::action::ActionKey;
+pub use termrock_core::edit_entry::EditEntry;
 pub use termrock_runtime::{ReferenceState, ReferenceTarget, ScrollRegion};
 pub use termrock_text::{Secret, SecretPolicy};
 

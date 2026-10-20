@@ -238,8 +238,7 @@ impl core::fmt::Debug for QueryTab {
 impl QueryTab {
     pub fn new(id: usize, query: impl Into<String>) -> Self {
         let query = query.into();
-        let mut editor_state = CompletingCodeEditorState::new(&query);
-        editor_state.editor_mut().begin_edit();
+        let editor_state = CompletingCodeEditorState::new(&query);
         Self {
             id,
             name: format!("Query {id}"),
@@ -297,7 +296,6 @@ impl QueryTab {
     pub fn replace_query(&mut self, query: impl Into<String>) {
         let query = query.into();
         *self.editor_state = CompletingCodeEditorState::new(&query);
-        self.editor_state.editor_mut().begin_edit();
         self.query = query;
     }
 

@@ -1,3 +1,6 @@
+#[path = "common/tab_navigation.rs"]
+mod tab_navigation;
+
 use tablepro_ui::{GridView, Surface, TableProApp, Value};
 use termrock::{App, Dialog, Id, KeyCode, Part, Theme};
 use termrock_test_support::Harness;
@@ -9,7 +12,7 @@ fn draft(surface: Surface, value: &str) -> Harness<TableProApp> {
     let Some(id) = h.app().result_id() else {
         unreachable!("grid")
     };
-    assert!(h.tab_to(id));
+    assert!(tab_navigation::tab_to(&mut h, id));
     for _ in 0..6 {
         let _ = h.key(KeyCode::Right);
     }
@@ -66,7 +69,10 @@ fn draft_survives_tab_and_structure_blur_then_explicit_enter_commits() {
         unreachable!("table")
     };
     let _ = h.ctrl('t');
-    assert!(h.tab_to(Id::root("tablepro.workbench.tab-strip")));
+    assert!(tab_navigation::tab_to(
+        &mut h,
+        Id::root("tablepro.workbench.tab-strip")
+    ));
     let _ = h.key(KeyCode::Left);
     assert_eq!(h.app().workbench.active_key(), Some(key));
     assert_eq!(view(&h).state.edit_draft(), Some("EUR"));
@@ -75,7 +81,7 @@ fn draft_survives_tab_and_structure_blur_then_explicit_enter_commits() {
     assert_eq!(view(&h).state.edit_draft(), Some("EUR"));
     assert_eq!(h.app().result().pending_total(), 0);
     let editor = key.control("data").part(Part::TEXT);
-    assert!(h.tab_to(editor));
+    assert!(tab_navigation::tab_to(&mut h, editor));
     let _ = h.key(KeyCode::Enter);
     assert_eq!(view(&h).state.edit_draft(), None);
     assert_eq!(h.app().result().pending_total(), 1);
@@ -134,7 +140,7 @@ fn inserted_row_and_deleted_row_accounting_keep_distinct_operations() {
     let Some(id) = inserted.app().result_id() else {
         unreachable!("grid")
     };
-    assert!(inserted.tab_to(id));
+    assert!(tab_navigation::tab_to(&mut inserted, id));
     let _ = inserted.key_mod(KeyCode::End, termrock::KeyModifiers::CONTROL);
     for _ in 0..6 {
         let _ = inserted.key(KeyCode::Right);

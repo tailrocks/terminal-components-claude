@@ -1,3 +1,6 @@
+#[path = "common/tab_navigation.rs"]
+mod tab_navigation;
+
 use tablepro_ui::{Screen, Surface, TableProApp};
 use termrock::{Diagnostic, Id, KeyCode, MouseKind, Theme};
 use termrock_test_support::Harness;
@@ -5,7 +8,10 @@ use termrock_test_support::Harness;
 const CONNECTIONS: Id = Id::root("tablepro.connections.list");
 
 fn open_delete_dialog(harness: &mut Harness<TableProApp>) {
-    assert!(harness.tab_to(CONNECTIONS), "connections list is reachable");
+    assert!(
+        tab_navigation::tab_to(harness, CONNECTIONS),
+        "connections list is reachable"
+    );
     let _ = harness.key(KeyCode::Char('d'));
     assert!(
         harness.find("Delete connection?").is_some(),
@@ -32,7 +38,7 @@ fn delete_connection_dialog_dismissal_cancels_and_can_be_reopened() {
         app.set_surface(Surface::Connections);
         let original_connections = app.connections_screen.connections.clone();
         let mut harness = Harness::new(app, Theme::junie(), 120, 40);
-        assert!(harness.tab_to(CONNECTIONS));
+        assert!(tab_navigation::tab_to(&mut harness, CONNECTIONS));
         let original_frame = harness.buffer().clone();
         let original_cursor = harness.cursor();
 
