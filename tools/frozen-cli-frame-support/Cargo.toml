@@ -1,0 +1,11 @@
+[package]
+name = "frozen-cli-frame-support"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[workspace]
+
+[dependencies]
+sha2 = "0.11"
+tuiscotti = { git = "https://github.com/tailrocks/tuiscotti", rev = "a1ea27f757d75d07b05499276cd932e9f8e067ad" }
