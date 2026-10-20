@@ -28,17 +28,22 @@ row painter and task horizontal scrollbar were removed. Reviewer and Checks
 cards still use their existing private rendering and are outside this bounded
 consumer change.
 
+The Table consumer configures `Role::Danger` through the public per-table
+`tone_styles` builder, mapping only the Failed task status to baseline RGB
+`#f05d5d`. This leaves theme resolution and table focus/hover/selection
+overlays in the shared component. The shared Table default is ActiveOnly sort
+indicators, matching the frozen header state.
+
 Focused integration tests now verify a real click on the Owner header changes
 the shared table sort state and moves a task row, and Enter activation emits
 the expected domain result. These are widget-harness checks; the pinned real
 CLI paired workflows are still required for acceptance.
 
-`cargo nextest run -p showcase-demos tables::tests --no-fail-fast` currently
-passes 5 of 6 focused tests. Source order, IDs, cell values/tones, table column
-configuration, and Enter activation pass. The remaining test correctly fails:
-the shared theme paints `Role::Danger` as RGB `(228,69,69)` while the frozen
-task status is `(240,93,93)`. Do not change the expectation or paint around the
-component; the shared style/theme API needs an exact-color solution.
+`cargo nextest run -p showcase-demos tables::tests --no-fail-fast` passes all
+7 focused tests. Source order, IDs, cell values/tones, table column
+configuration, exact Failed status RGB, Owner header sorting, and Enter
+activation pass. The sort indicator default and per-table tone override come
+from the shared Table API.
 
 The pinned paired extension runner captured and replayed all six frozen
 120x40 truecolor workflows (24 ordered receipts per workflow), but its candidate
