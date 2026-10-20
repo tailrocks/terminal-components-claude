@@ -308,7 +308,19 @@ const APPLIED: &[(&str, &str)] = &[
     ("Remote", "Loading, then Ready"),
 ];
 
-fn picker(kind: PickerKind, item_count: usize) -> Picker<'static, Item<'static>> {
+fn quick_scope_label(scope: QuickScope) -> &'static str {
+    match scope {
+        QuickScope::All => "All · Tab scope",
+        QuickScope::Files => "Files · Tab scope",
+        QuickScope::Tasks => "Tasks · Tab scope",
+    }
+}
+
+fn picker(
+    kind: PickerKind,
+    item_count: usize,
+    scope: QuickScope,
+) -> Picker<'static, Item<'static>> {
     let (title, placeholder, searchable, width, height) = match kind {
         PickerKind::Quick => {
             let rows = item_count.clamp(1, 12) as u16;
@@ -333,7 +345,7 @@ fn picker(kind: PickerKind, item_count: usize) -> Picker<'static, Item<'static>>
         .size(LayerSize::Fixed(width, height))
         .align(ScreenAlign::Center);
     if matches!(kind, PickerKind::Quick) {
-        picker.scopes(SCOPES)
+        picker.scopes(SCOPES).scope_label(quick_scope_label(scope))
     } else {
         picker
     }
@@ -858,7 +870,6 @@ fn paint_picker(
     kind: PickerKind,
     state: &PickerState,
     items: &[Item<'static>],
-    scope: QuickScope,
 ) {
     let content = picker_content(area);
     if content.is_empty() {
@@ -882,26 +893,6 @@ fn paint_picker(
         title,
         title_style,
     );
-    if kind == PickerKind::Quick {
-        let label = match scope {
-            QuickScope::All => "All · Tab scope",
-            QuickScope::Files => "Files · Tab scope",
-            QuickScope::Tasks => "Tasks · Tab scope",
-        };
-        let label_width = width(label);
-        let scope_style = picker_style(ui, Part::META, live);
-        ui.paint_str(
-            Rect {
-                x: content.right().saturating_sub(label_width),
-                y: content.y,
-                width: label_width,
-                height: 1,
-            },
-            label,
-            scope_style,
-        );
-    }
-
     if !matches!(kind, PickerKind::Level) {
         let query = Rect {
             y: content.y.saturating_add(1),
@@ -1337,7 +1328,7 @@ impl PickersPage {
             PickerKind::Tabs => TABS_ITEMS,
             PickerKind::Level => LEVEL_ITEMS,
         };
-        let spec = picker(kind, items.len()).layer(cx, items);
+        let spec = picker(kind, items.len(), self.quick_scope).layer(cx, items);
         cx.open_layer(PICKER, spec);
     }
 }
@@ -1377,7 +1368,7 @@ impl Page for PickersPage {
             PickerKind::Tabs => TABS_ITEMS,
             PickerKind::Level => LEVEL_ITEMS,
         };
-        let action = picker(kind, items.len()).update(cx, &mut self.state, items);
+        let action = picker(kind, items.len(), self.quick_scope).update(cx, &mut self.state, items);
         let action_value = action.action_ref().copied();
         result |= action.erase();
         if let Some(action) = action_value {
@@ -1468,8 +1459,8 @@ impl Page for PickersPage {
         if let Some(kind) = self.open_kind {
             ui.layer(PICKER, |ui, layer| {
                 let items = self.items(kind);
-                picker(kind, items.len()).draw(ui, layer, &self.state, items);
-                paint_picker(ui, layer, kind, &self.state, items, self.quick_scope);
+                picker(kind, items.len(), self.quick_scope).draw(ui, layer, &self.state, items);
+                paint_picker(ui, layer, kind, &self.state, items);
             });
         }
     }
