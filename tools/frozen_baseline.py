@@ -34,8 +34,8 @@ EXPECTED_ORDINARY_TESTS = 20
 EXTENSION_MANIFEST = Path("tools/frozen_cli_extensions.json")
 EXTENSION_SOURCE = Path("tools/frozen_cli_extensions.rs")
 EXTENSION_CASE_PREFIX = "termrock_extensions::showcase::table_sort::"
-EXTENSION_MANIFEST_SHA256 = "1b1fe1921461b16b5d7c69796540c54f123795d644281e322a33b0da55fa7b27"
-EXTENSION_SOURCE_SHA256 = "9a9bfd1d38d66c593584727ad47732351c37c5a03202f3099a6af250bd8bf966"
+EXTENSION_MANIFEST_SHA256 = "a7d11bee34a8bcbc26fba137d21b13b4d1b275d4b2c8b301597874c2dbb8d28d"
+EXTENSION_SOURCE_SHA256 = "332bd4eac4dc65be1a1478f97177cc658113a063900d8b9c6a0ba2ddc6dc67d9"
 EXTENSION_PATCH_SHA256 = "e6e09049d418e82bd5d838986217dac249e80f13a95214b1ff217d37e5fa4e8c"
 EXTENSION_SIZES = ((72, 20), (80, 24), (100, 30), (120, 40), (160, 50), (40, 12), (60, 18))
 EXTENSION_COLORS = ("truecolor", "256", "16", "none", "nocolor")
@@ -582,11 +582,19 @@ def load_extension_manifest(path: Path) -> dict[str, object]:
             raise RunnerError(f"extension case ID does not encode its declared inputs: {case_id}")
         generated_combinations.add((journey_id, width, height, case["color_mode"]))
         expected_checkpoints = journey_checkpoints[journey_id]
-        if (width, height) in narrow_sizes:
+        if width < 120:
             if not expected_checkpoints or expected_checkpoints[0] != "initial":
-                raise RunnerError(f"narrow extension journey must begin with initial checkpoint: {journey_id}")
-            expected_checkpoints = ["initial", "narrow_revealed_80x24", *expected_checkpoints[1:]]
-        if case.get("checkpoints") != expected_checkpoints:
+                raise RunnerError(f"sub-120 extension journey must begin with initial checkpoint: {journey_id}")
+            reveal_checkpoint = "narrow_revealed_120x40" if (width, height) in narrow_sizes else "table_revealed_120x40"
+            allowed_checkpoints = ["initial", reveal_checkpoint, *expected_checkpoints[1:]]
+        else:
+            reveal_checkpoint = None
+            allowed_checkpoints = expected_checkpoints
+        case_checkpoints = case.get("checkpoints")
+        if not isinstance(case_checkpoints, list) or not case_checkpoints or any(not isinstance(item, str) or not item for item in case_checkpoints) or len(set(case_checkpoints)) != len(case_checkpoints):
+            raise RunnerError(f"invalid case checkpoint obligations: {case_id}")
+        positions = [allowed_checkpoints.index(item) if item in allowed_checkpoints else -1 for item in case_checkpoints]
+        if positions != sorted(positions) or -1 in positions or case_checkpoints[0] != "initial" or (reveal_checkpoint is not None and (len(case_checkpoints) < 2 or case_checkpoints[1] != reveal_checkpoint)):
             raise RunnerError(f"extension case checkpoint obligations differ from journey order: {case_id}")
     expected_combinations = {
         (journey_id, width, height, color)
@@ -638,6 +646,12 @@ def selected_expression(names: list[str]) -> str:
 
 def scenario_case_id(test_name: str) -> str:
     return test_name.replace("::", "/")
+
+
+def scenario_receipt_id(test_name: str, extension_manifest: dict[str, object] | None = None) -> str:
+    if extension_manifest is not None and test_name in extension_manifest["generated_case_ids"]:
+        return test_name
+    return scenario_case_id(test_name)
 
 
 def nextest_events(stdout: str, selected: list[str]) -> dict[str, str]:
@@ -971,13 +985,22 @@ def validate_extension_checkpoint_receipts(selected: list[str], receipts: dict[t
     obligations = extension_manifest["checkpoint_obligations"]
     extension_ids = set(extension_manifest["generated_case_ids"])
     for test_name in sorted(set(selected) & extension_ids):
-        case = scenario_case_id(test_name)
+        case = scenario_receipt_id(test_name, extension_manifest)
         actual = [(ordinal, logical) for receipt_case, ordinal, logical in receipts if receipt_case == case]
         actual.sort()
         expected = list(enumerate(obligations[test_name]))
         if actual != expected:
             raise RunnerError(f"extension checkpoint obligations differ for {test_name}: expected={expected}, got={actual}")
     return []
+
+
+def cli_coverage_report_fields(registered_cli_complete: bool) -> dict[str, object]:
+    return {
+        "scope": "registered_cli_scenarios_and_ordinary_checks",
+        "registered_cli_complete": registered_cli_complete,
+        "overall_acceptance_complete": False,
+        "acceptance_complete": False,
+    }
 
 
 def scenario_chunks(names: list[str], size: int) -> list[list[str]]:
@@ -1078,13 +1101,13 @@ def phase_receipts(run_root: Path, phase: str, selected: list[str], expected_roo
     combined: dict[tuple[str, int, str], str] = {}
     for chunk in sorted((run_root / phase).glob("chunk-*")):
         names = json.loads((chunk / "report.json").read_text())["selected_cases"]
-        chunk_cases = [scenario_case_id(name) for name in names]
+        chunk_cases = [scenario_receipt_id(name, extension_manifest) for name in names]
         chunk_receipts = read_receipts(chunk / "receipts", chunk_cases, expected_root)
         overlap = set(combined) & set(chunk_receipts)
         if overlap:
             raise RunnerError(f"duplicate phase checkpoint identities: {sorted(overlap)[:3]}")
         combined.update(chunk_receipts)
-    counts = {scenario_case_id(name): 0 for name in selected}
+    counts = {scenario_receipt_id(name, extension_manifest): 0 for name in selected}
     for case, _, _ in combined:
         if case not in counts:
             raise RunnerError(f"phase contains unselected scenario receipt: {case}")
@@ -1234,6 +1257,30 @@ def compare_live(repo: Path, candidate_repo: Path, root: Path, baseline_bins: Pa
     receipts = [phase["receipts"] for phase in phases]
     differences = exact_receipt_differences(receipts[0], receipts[1]) + exact_receipt_differences(receipts[0], receipts[2])
     if differences:
+        mismatch_report = {
+            "tag_object": BASELINE_TAG_OBJECT,
+            "baseline_commit": BASELINE_COMMIT,
+            "tuiscotti_rev": TUISCOTTI_REV,
+            "live_source": live_record,
+            "candidate_revision": candidate["revision"],
+            "candidate_source_tree": candidate["source_tree"],
+            "candidate_dirty_fingerprint": candidate["dirty_fingerprint"],
+            "candidate_binaries": candidate["binaries"],
+            "case_selection": "all registered scenarios" if all_cases else "explicit cases",
+            "selection_completeness": "complete" if all_cases else "partial",
+            "selected_scenario_count": len(selected),
+            "original_scenario_count": EXPECTED_SCENARIOS,
+            "extension_scenario_count": len(extension_ids),
+            "extension_manifest_sha256": extension_manifest_hash,
+            "test_inventory_sha256": inventory_digest(inventory),
+            "checkpoint_differences": differences,
+            "checkpoint_receipt_sha256": [hashlib.sha256(json.dumps([[*key, value] for key, value in sorted(receipt.items())], separators=(",", ":")).encode()).hexdigest() for receipt in receipts],
+            "phases": [{key: value for key, value in phase.items() if key != "receipts"} for phase in phases],
+            "ordinary_checks": "not run because paired checkpoints differed",
+            **cli_coverage_report_fields(False),
+            "artifacts_root": str(run_root),
+        }
+        (run_root / "report.json").write_text(json.dumps(mismatch_report, indent=2) + "\n")
         raise RunnerError(f"live checkpoint mismatch; see {run_root}: {differences[:5]}")
     ordinary = None
     if all_cases:
@@ -1301,7 +1348,7 @@ def compare_live(repo: Path, candidate_repo: Path, root: Path, baseline_bins: Pa
         "checkpoint_count": len(receipts[0]),
         "checkpoint_receipt_sha256": [hashlib.sha256(json.dumps([[*key, value] for key, value in sorted(receipt.items())], separators=(",", ":")).encode()).hexdigest() for receipt in receipts],
         "checkpoint_differences": differences,
-        "acceptance_complete": coverage_complete and not differences,
+        **cli_coverage_report_fields(coverage_complete and not differences),
         "artifacts_root": str(run_root),
     }
     (run_root / "report.json").write_text(json.dumps(report, indent=2) + "\n")
