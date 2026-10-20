@@ -4,6 +4,7 @@ use std::borrow::Cow;
 use crate::action::ActionKey;
 use crate::diagnostics::Diagnostic;
 use crate::event::{Chord, Key};
+use crate::focus::ScopeId;
 use crate::id::Id;
 use crate::response::StateFlags;
 
@@ -346,6 +347,13 @@ pub(crate) struct PublishedBindings {
     pub(crate) table: BindingTableId,
     start: usize,
     len: usize,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) struct ScopedBubbleBinding {
+    pub(crate) scope: ScopeId,
+    pub(crate) owner: Id,
+    pub(crate) layer: crate::layer::LayerId,
 }
 
 #[derive(Clone, Debug, Default)]
