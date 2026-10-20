@@ -540,6 +540,6 @@ fn outside_pointer_and_focus_loss_dismiss_and_commit() {
     let _ = termrock_runtime::stub::deliver(&mut runtime, Input::Tick);
     assert!(!runtime.app().state.is_completion_open());
     assert_eq!(runtime.app().actions.last(), Some(&CodeAction::Committed));
-    assert_eq!(runtime.focus(), Some(EDITOR));
-    assert!(runtime.app().state.editor().is_editing());
+    assert_eq!(runtime.focus(), Some(NEXT));
+    assert!(!runtime.app().state.editor().is_editing());
 }
