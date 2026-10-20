@@ -23,15 +23,19 @@ class RunnerGuards(unittest.TestCase):
             record = runner.apply_term_profile(env, profile)
             self.assertEqual(env["TERM"], profile)
             self.assertEqual(record["profile"], profile)
-            self.assertEqual(record["term"], profile)
+            self.assertEqual(record["runner_term"], profile)
+            self.assertEqual(record["child_term"], profile)
             self.assertEqual(len(record["sha256"]), 64)
         env = {"TERM": "inherited"}
         record = runner.apply_term_profile(env, "unset")
         self.assertNotIn("TERM", env)
-        self.assertFalse(record["term_present"])
-        self.assertIsNone(record["term"])
+        self.assertFalse(record["runner_term_present"])
+        self.assertFalse(record["child_term_present"])
+        self.assertIsNone(record["child_term"])
         inherited = {"TERM": "host-term"}
-        self.assertEqual(runner.apply_term_profile(inherited, None)["term"], "host-term")
+        inherited_record = runner.apply_term_profile(inherited, None)
+        self.assertEqual(inherited_record["runner_term"], "host-term")
+        self.assertEqual(inherited_record["child_term"], "xterm-256color")
         with self.assertRaisesRegex(runner.RunnerError, "unsupported TERM profile"):
             runner.apply_term_profile({}, "vt100")
 
@@ -39,11 +43,18 @@ class RunnerGuards(unittest.TestCase):
         decision = runner.validate_reference_decision_document(json.loads((Path(runner.__file__).resolve().parent / "frozen_cli_references.json").read_text()))
         decisions = [decision]
         runner.validate_reference_term_profile(decisions, [runner.REFERENCE_CASE], None)
-        runner.validate_reference_term_profile(decisions, [runner.REFERENCE_CASE], "dumb")
-        for profile in ("xterm-256color", "linux", "unset"):
+        for profile in ("xterm-256color", "linux", "dumb", "unset"):
             with self.assertRaisesRegex(runner.RunnerError, "pinned grown-reference exception"):
                 runner.validate_reference_term_profile(decisions, [runner.REFERENCE_CASE], profile)
         runner.validate_reference_term_profile(decisions, ["showcase::pages::overview::120x40::truecolor"], "linux")
+
+    def test_versioned_harness_applies_term_profile_to_tuiscotti_child(self) -> None:
+        patch = Path(runner.__file__).resolve().parent / "frozen_cli_pair.patch"
+        self.assertEqual(runner.sha256(patch), runner.EXTENSION_PATCH_SHA256)
+        source = patch.read_text()
+        self.assertIn('std::env::var("TERMROCK_PAIR_TERM_PROFILE")', source)
+        self.assertIn('Some("unset") => {}', source)
+        self.assertIn('tui = tui.env("TERM", profile)', source)
 
     def semantic_frame(self, *, cursor_style: str = "Bar") -> bytes:
         cell = {"x": 0, "y": 0, "symbol": "x", "width": 1, "continuation": False, "fg": {"Rgb": {"r": 255, "g": 255, "b": 255}}, "bg": {"Rgb": {"r": 0, "g": 0, "b": 0}}, "mods": {"hidden": False, "blink": False, "bold": False, "dim": False, "italic": False, "underline": False, "strikethrough": False, "reverse": False}}
