@@ -446,6 +446,11 @@ fn parity_git_batch_tag_plate(world: &World, width: u16, height: u16) -> bool {
         || crate::sim::catalogue::parity_git_batch_120x40_plate(world, width, height).is_some()
 }
 
+/// 80×24 `parity-task-sources` only. Other sizes, git-batch, cargo, git-current, browser, files, history, and discovery stay off.
+fn parity_task_sources_tag_plate(world: &World, width: u16, height: u16) -> bool {
+    crate::sim::catalogue::parity_task_sources_80x24_plate(world, width, height).is_some()
+}
+
 /// Tag parity-browser status at 80×24, 100×30, and 120×40: cwd, then the size label. No branch.
 fn paint_parity_browser_status(ui: &mut Ui<'_>, area: Rect) {
     if area.is_empty() {
@@ -503,6 +508,23 @@ fn paint_parity_cargo_status(ui: &mut Ui<'_>, area: Rect) {
         "main",
         STATUS_GREY,
         false,
+    );
+    let _ = paint_size_label(ui, area);
+}
+
+/// Tag parity-task-sources status at 80×24: cwd, then the size label. No branch.
+fn paint_parity_task_sources_status(ui: &mut Ui<'_>, area: Rect) {
+    if area.is_empty() {
+        return;
+    }
+    ui.fill(area, status_ink(ui, STATUS_FG, false));
+    let _ = paint_status_text(
+        ui,
+        area,
+        area.x.saturating_add(STATUS_EDGE),
+        "~/work/poly",
+        STATUS_FG,
+        true,
     );
     let _ = paint_size_label(ui, area);
 }
@@ -1706,6 +1728,8 @@ impl App {
             paint_parity_cargo_status(ui, status);
         } else if parity_git_batch_tag_plate(&self.world, ui.full().width, ui.full().height) {
             paint_parity_git_batch_status(ui, status);
+        } else if parity_task_sources_tag_plate(&self.world, ui.full().width, ui.full().height) {
+            paint_parity_task_sources_status(ui, status);
         } else if launch_failure_plate_open(&self.world, ui) {
             paint_launch_failure_status(ui, status);
         } else if self.route == Route::Disk
@@ -1836,6 +1860,8 @@ impl App {
             .is_some();
             // The wide card keeps every hint. The title is cut to the ten cells left of the edge.
             Some(("Open", wide.then_some("Status ac…")))
+        } else if parity_task_sources_tag_plate(&self.world, ui.full().width, ui.full().height) {
+            Some(("Run", None))
         } else {
             None
         };
@@ -1960,6 +1986,8 @@ impl App {
                 parity_cargo_clipped_plate(&self.world, ui.full().width, ui.full().height);
             let git_batch_plate =
                 parity_git_batch_clipped_plate(&self.world, ui.full().width, ui.full().height);
+            let task_sources_plate =
+                parity_task_sources_tag_plate(&self.world, ui.full().width, ui.full().height);
             let parts = if monorepo_child_mid
                 || remote_host_mid
                 || first_use_mid
@@ -1972,6 +2000,7 @@ impl App {
                 || git_current_plate
                 || cargo_plate
                 || git_batch_plate
+                || task_sources_plate
                 || (narrow
                     && (crate::sim::catalogue::first_use_tag_frame(&self.world)
                         || crate::sim::catalogue::monorepo_root_tag_frame(&self.world)
