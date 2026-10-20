@@ -50,7 +50,8 @@ pub enum GlyphRole {
 }
 
 impl GlyphRole {
-pub const ALL: [GlyphRole; 45] = [        GlyphRole::FocusBar,
+    pub const ALL: [GlyphRole; 45] = [
+        GlyphRole::FocusBar,
         GlyphRole::Chosen,
         GlyphRole::Checked,
         GlyphRole::CheckboxOn,
@@ -245,13 +246,37 @@ mod tests {
 
     #[test]
     fn select_roles_are_appended_without_shifting_existing_discriminants() {
-assert_eq!(GlyphRole::ALL.len(), 45);        assert_eq!(GlyphRole::PrimaryKey as usize, 41);
+        assert_eq!(GlyphRole::ALL.len(), 45);
+        assert_eq!(GlyphRole::PrimaryKey as usize, 41);
         assert_eq!(GlyphRole::SecretMask as usize, 38);
         assert_eq!(GlyphRole::SelectClosed as usize, 39);
         assert_eq!(GlyphRole::SelectOpen as usize, 40);
         assert_eq!(GlyphRole::DotOn as usize, 42);
         assert_eq!(GlyphRole::DotOff as usize, 43);
         assert_eq!(GlyphRole::SwitchOff as usize, 44);
+    }
+
+    #[test]
+    fn dot_roles_are_one_cell_and_distinct_from_radio_pair_glyphs() {
+        let glyphs = crate::theme::Theme::junie().design.glyphs;
+        assert_eq!(glyphs.get(GlyphRole::DotOn), "●");
+        assert_eq!(glyphs.get(GlyphRole::DotOff), "○");
+        assert_eq!(glyphs.get(GlyphRole::RadioOn), "(●)");
+        assert_eq!(glyphs.get(GlyphRole::RadioOff), "(○)");
+    }
+
+    #[test]
+    fn ascii_builder_defines_dot_roles_without_changing_radio_roles() {
+        let glyphs = crate::theme::Theme::junie()
+            .builder()
+            .ascii_glyphs()
+            .build()
+            .design
+            .glyphs;
+        assert_eq!(glyphs.get(GlyphRole::DotOn), "*");
+        assert_eq!(glyphs.get(GlyphRole::DotOff), "o");
+        assert_eq!(glyphs.get(GlyphRole::RadioOn), "(●)");
+        assert_eq!(glyphs.get(GlyphRole::RadioOff), "(○)");
     }
 
     #[test]

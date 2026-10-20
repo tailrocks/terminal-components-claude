@@ -38,8 +38,9 @@ pub enum ButtonFocusVisibility {
 /// frozen application contract, where the spinner temporarily owns that lane.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub enum BusyMarkerPolicy {
-    #[default]
     Keep,
+    /// Frozen-contract default: the spinner lane takes over from the marker.
+    #[default]
     Replace,
 }
 
@@ -122,7 +123,7 @@ impl<'a> Button<'a> {
             autofocus: false,
             status: Status::Ready,
             checked: None,
-            busy_marker: BusyMarkerPolicy::Keep,
+            busy_marker: BusyMarkerPolicy::Replace,
             ov: PartStyle::new(),
         }
     }
@@ -610,7 +611,7 @@ mod tests {
     }
 
     #[test]
-    fn button_focus_gutter_uses_focused_state_and_container_surface() {
+    fn button_focus_gutter_uses_focus_visible_state_and_container_surface() {
         let theme = Theme::junie();
         let mut runtime = Runtime::new(Stub::default(), theme);
         let mut buffer = Buffer::empty(AREA);
@@ -619,7 +620,7 @@ mod tests {
                 ui.reference(
                     Some(crate::ReferenceTarget::new(
                         BUTTON,
-                        crate::ReferenceState::FOCUSED,
+                        crate::ReferenceState::FOCUSED | crate::ReferenceState::FOCUS_VISIBLE,
                     )),
                     |ui| Button::new(BUTTON, "Go").draw(ui, area),
                 );

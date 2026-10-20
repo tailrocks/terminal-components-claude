@@ -376,8 +376,8 @@ mod tests {
         let page = ShowcaseButtons(ButtonsPage::new());
         let theme = Theme::junie()
             .builder()
-            .glyph(GlyphRole::SwitchOff, "o")
-            .glyph(GlyphRole::SwitchKnob, "x")
+            .glyph(GlyphRole::DotOff, "o")
+            .glyph(GlyphRole::DotOn, "x")
             .glyph(GlyphRole::FocusBar, "f")
             .build();
         let mut harness = Harness::new(page, theme, 120, 40);
