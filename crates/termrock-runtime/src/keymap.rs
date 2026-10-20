@@ -29,6 +29,13 @@ pub struct Binding<C: 'static> {
     pub visible: bool,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum BindingExtensionError {
+    MissingBase { owner: Id },
+    DuplicateAction { owner: Id, action: ActionKey },
+    ConflictingChord { owner: Id, chord: Chord },
+}
+
 impl<C: Copy + 'static> Binding<C> {
     pub fn command(table: &[Binding<C>], action: ActionKey) -> Option<C> {
         table.iter().find(|b| b.action == action).map(|b| b.cmd)
@@ -305,6 +312,12 @@ pub enum BindingTableId {
 
         len: usize,
     },
+
+    Composite {
+        revision: u64,
+
+        len: usize,
+    },
 }
 
 impl BindingTableId {
@@ -345,6 +358,7 @@ pub(crate) struct PublishedBindings {
 pub(crate) struct BindingRegistry {
     tables: Vec<PublishedBindings>,
     descriptors: Vec<BindingDescriptor>,
+    composite_revision: u64,
 }
 
 impl BindingRegistry {
@@ -353,6 +367,7 @@ impl BindingRegistry {
         self.descriptors.clear();
     }
 
+    #[cfg(test)]
     pub(crate) fn publish<C: Copy + 'static>(
         &mut self,
         owner: Id,
@@ -360,33 +375,80 @@ impl BindingRegistry {
         layer: crate::layer::LayerId,
         table: &'static [Binding<C>],
     ) -> Option<ActionKey> {
-        let start = self.descriptors.len();
-        for binding in table {
-            if self
-                .descriptors
-                .get(start..)
-                .is_some_and(|prior| prior.iter().any(|item| item.action == binding.action))
+        self.publish_filtered(owner, flags, layer, table, |_| true)
+    }
+
+    pub(crate) fn extend<C: Copy + 'static>(
+        &mut self,
+        owner: Id,
+        flags: StateFlags,
+        layer: crate::layer::LayerId,
+        table: &'static [Binding<C>],
+        include: impl Fn(C) -> bool,
+    ) -> Result<(), BindingExtensionError> {
+        let prior_index = self
+            .tables
+            .iter()
+            .rposition(|published| published.owner == owner);
+        let Some(prior_index) = prior_index else {
+            return Err(BindingExtensionError::MissingBase { owner });
+        };
+        let prior = self.tables[prior_index];
+        let prior_end = prior.start.saturating_add(prior.len);
+        let prior_descriptors = self
+            .descriptors
+            .get(prior.start..prior_end)
+            .unwrap_or(&[])
+            .to_vec();
+        let mut additions = Vec::new();
+        for binding in table.iter().filter(|binding| include(binding.cmd)) {
+            if prior_descriptors
+                .iter()
+                .chain(additions.iter())
+                .any(|item: &BindingDescriptor| item.action == binding.action)
             {
-                self.descriptors.truncate(start);
-                return Some(binding.action);
+                return Err(BindingExtensionError::DuplicateAction {
+                    owner,
+                    action: binding.action,
+                });
             }
-            self.descriptors.push(BindingDescriptor {
+            let descriptor = BindingDescriptor {
                 action: binding.action,
                 chord: binding.chord,
                 label: binding.label,
                 priority: binding.priority,
                 visible: binding.visible,
-            });
+            };
+            if let Some(chord) = descriptor.chord
+                && prior_descriptors
+                    .iter()
+                    .chain(additions.iter())
+                    .any(|item| item.chord.is_some_and(|other| chord.effective_eq(&other)))
+            {
+                return Err(BindingExtensionError::ConflictingChord { owner, chord });
+            }
+            additions.push(descriptor);
         }
+
+        let start = self.descriptors.len();
+        self.descriptors
+            .reserve(prior_descriptors.len() + additions.len());
+        self.descriptors.extend_from_slice(&prior_descriptors);
+        self.descriptors.extend(additions);
+        let len = self.descriptors.len().saturating_sub(start);
+        self.composite_revision = self.composite_revision.wrapping_add(1);
         self.tables.push(PublishedBindings {
             owner,
             flags,
             layer,
-            table: BindingTableId::of(table),
+            table: BindingTableId::Composite {
+                revision: self.composite_revision,
+                len,
+            },
             start,
-            len: table.len(),
+            len,
         });
-        None
+        Ok(())
     }
 
     pub(crate) fn publish_filtered<C: Copy + 'static>(
@@ -874,6 +936,168 @@ mod tests {
             Some(ACTION)
         );
         assert!(registry.get(Id::root("duplicate")).is_none());
+    }
+
+    #[test]
+    fn explicit_extension_combines_different_typed_actions_and_resets_per_frame() {
+        #[derive(Clone, Copy)]
+        enum FieldCmd {
+            Backspace,
+            Commit,
+        }
+        #[derive(Clone, Copy)]
+        enum NavCmd {
+            Up,
+            Enter,
+        }
+        const BACKSPACE: ActionKey = ActionKey::custom("extension.field.backspace");
+        const COMMIT: ActionKey = ActionKey::custom("extension.field.commit");
+        const UP: ActionKey = ActionKey::custom("extension.nav.up");
+        const ENTER: ActionKey = ActionKey::custom("extension.nav.enter");
+        const FIELD: &[Binding<FieldCmd>] = &[
+            Binding {
+                action: BACKSPACE,
+                chord: Some(Chord::key(KeyCode::Backspace)),
+                cmd: FieldCmd::Backspace,
+                label: "Backspace",
+                priority: 80,
+                visible: true,
+            },
+            Binding {
+                action: COMMIT,
+                chord: Some(Chord::key(KeyCode::Enter)),
+                cmd: FieldCmd::Commit,
+                label: "Commit",
+                priority: 70,
+                visible: true,
+            },
+        ];
+        const NAV: &[Binding<NavCmd>] = &[
+            Binding {
+                action: UP,
+                chord: Some(Chord::key(KeyCode::Up)),
+                cmd: NavCmd::Up,
+                label: "Up",
+                priority: 40,
+                visible: true,
+            },
+            Binding {
+                action: ENTER,
+                chord: Some(Chord::key(KeyCode::Enter)),
+                cmd: NavCmd::Enter,
+                label: "Choose",
+                priority: 60,
+                visible: true,
+            },
+        ];
+        let owner = Id::root("extension.owner");
+        let mut registry = BindingRegistry::default();
+        assert_eq!(
+            registry.publish(
+                owner,
+                StateFlags::FOCUSED,
+                crate::layer::LayerId::PAGE,
+                FIELD
+            ),
+            None
+        );
+        assert_eq!(
+            registry.extend(
+                owner,
+                StateFlags::FOCUSED,
+                crate::layer::LayerId::PAGE,
+                NAV,
+                |command| matches!(command, NavCmd::Up),
+            ),
+            Ok(())
+        );
+        let (_, descriptors) = registry.get(owner).expect("extended table");
+        assert_eq!(descriptors.len(), 3);
+        assert!(
+            descriptors
+                .iter()
+                .any(|binding| binding.action == BACKSPACE)
+        );
+        assert!(descriptors.iter().any(|binding| binding.action == COMMIT));
+        assert!(descriptors.iter().any(|binding| binding.action == UP));
+        assert!(!descriptors.iter().any(|binding| binding.action == ENTER));
+
+        let mut keymap = KeyMap::new();
+        keymap.remap_component(owner, UP, Chord::key(KeyCode::Backspace));
+        assert_eq!(keymap.component_conflicts(owner, descriptors).len(), 1);
+
+        registry.reset();
+        assert!(registry.get(owner).is_none());
+    }
+
+    #[test]
+    fn explicit_extension_rejects_action_and_default_chord_conflicts() {
+        #[derive(Clone, Copy)]
+        enum Command {
+            Base,
+            Extra,
+        }
+        const ACTION: ActionKey = ActionKey::custom("extension.conflict.action");
+        const EXTRA: ActionKey = ActionKey::custom("extension.conflict.extra");
+        const BASE: &[Binding<Command>] = &[Binding {
+            action: ACTION,
+            chord: Some(Chord::key(KeyCode::Esc)),
+            cmd: Command::Base,
+            label: "Cancel",
+            priority: 1,
+            visible: true,
+        }];
+        const SAME_ACTION: &[Binding<Command>] = &[Binding {
+            action: ACTION,
+            chord: Some(Chord::key(KeyCode::Enter)),
+            cmd: Command::Extra,
+            label: "Extra",
+            priority: 1,
+            visible: true,
+        }];
+        const SAME_CHORD: &[Binding<Command>] = &[Binding {
+            action: EXTRA,
+            chord: Some(Chord::key(KeyCode::Esc)),
+            cmd: Command::Extra,
+            label: "Extra",
+            priority: 1,
+            visible: true,
+        }];
+        let owner = Id::root("extension.conflict");
+        let mut registry = BindingRegistry::default();
+        registry.publish(
+            owner,
+            StateFlags::FOCUSED,
+            crate::layer::LayerId::PAGE,
+            BASE,
+        );
+        assert_eq!(
+            registry.extend(
+                owner,
+                StateFlags::FOCUSED,
+                crate::layer::LayerId::PAGE,
+                SAME_ACTION,
+                |_| true,
+            ),
+            Err(BindingExtensionError::DuplicateAction {
+                owner,
+                action: ACTION
+            })
+        );
+        assert_eq!(
+            registry.extend(
+                owner,
+                StateFlags::FOCUSED,
+                crate::layer::LayerId::PAGE,
+                SAME_CHORD,
+                |_| true,
+            ),
+            Err(BindingExtensionError::ConflictingChord {
+                owner,
+                chord: Chord::key(KeyCode::Esc),
+            })
+        );
+        assert_eq!(registry.get(owner).expect("base retained").1.len(), 1);
     }
 
     #[test]
