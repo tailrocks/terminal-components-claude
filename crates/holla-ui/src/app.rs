@@ -1593,7 +1593,16 @@ impl App {
             }
         } else if crate::sim::catalogue::remote_host_tag_frame(&self.world) {
             let narrow = ui.full().width == 80 && ui.full().height == 24;
-            Some(("Run", if narrow { None } else { Some("Follow pay…") }))
+            let mid = ui.full().width == 100 && ui.full().height == 30;
+            // 100×30 fits `Ctrl+↑↓ Scope` and clips `Ctrl+G` to the meta `…`. No status.
+            Some((
+                "Run",
+                if narrow || mid {
+                    None
+                } else {
+                    Some("Follow pay…")
+                },
+            ))
         } else if crate::sim::catalogue::hard_cases_tag_frame(&self.world) {
             Some(("Open", None))
         } else {
@@ -1662,12 +1671,14 @@ impl App {
             && !self.menu.is_open()
         {
             let layer = tag_hints(confirm, status);
-            // 80×24 first-use, monorepo-root, monorepo-child, remote-host, and parity-discovery clip the last hint to a meta `…`. The 100×30 monorepo-child plate does the same. Wider plates keep the theme overflow.
+            // 80×24 first-use, monorepo-root, monorepo-child, remote-host, and parity-discovery clip the last hint to a meta `…`. The 100×30 monorepo-child and remote-host plates do the same. Wider plates keep the theme overflow.
             let narrow = ui.full().width == 80 && ui.full().height == 24;
-            let monorepo_child_mid = crate::sim::catalogue::monorepo_child_tag_frame(&self.world)
-                && ui.full().width == 100
-                && ui.full().height == 30;
+            let mid = ui.full().width == 100 && ui.full().height == 30;
+            let monorepo_child_mid =
+                mid && crate::sim::catalogue::monorepo_child_tag_frame(&self.world);
+            let remote_host_mid = mid && crate::sim::catalogue::remote_host_tag_frame(&self.world);
             let parts = if monorepo_child_mid
+                || remote_host_mid
                 || (narrow
                     && (crate::sim::catalogue::first_use_tag_frame(&self.world)
                         || crate::sim::catalogue::monorepo_root_tag_frame(&self.world)
@@ -3196,7 +3207,7 @@ mod tests {
         assert!(catalogue::remote_host_80x24_plate(world, 80, 40).is_none());
         assert!(catalogue::remote_host_80x24_plate(world, 81, 24).is_none());
         assert!(catalogue::remote_host_80x24_plate(world, 100, 30).is_none());
-        for (width, height) in [(120_u16, 40_u16), (80, 40), (100, 30)] {
+        for (width, height) in [(120_u16, 40_u16), (80, 40)] {
             let other = harness(
                 App::for_scenario(Scenario::RemoteHost, Motion::Paused, 40),
                 Theme::junie(),
@@ -3221,6 +3232,113 @@ mod tests {
         assert!(!later.text().contains("journalctl -u payments-worker"));
         assert!(catalogue::remote_host_80x24_plate(&later.app().world, 80, 24).is_none());
         assert!(!catalogue::remote_host_tag_frame(&later.app().world));
+    }
+    #[test]
+    fn remote_host_100x30_frame_40_paints_the_mid_plate_and_later_seeks_keep_home() {
+        let plate = harness(
+            App::for_scenario(Scenario::RemoteHost, Motion::Paused, 40),
+            Theme::junie(),
+            100,
+            30,
+        );
+        let text = plate.text();
+        let lines: Vec<&str> = text.lines().collect();
+        assert!(
+            lines[7].contains("Who is blocking the database?"),
+            "{}",
+            lines[7]
+        );
+        assert!(
+            lines[7].contains("2 sessions blocked for 4 min"),
+            "{}",
+            lines[7]
+        );
+        assert!(!lines[7].contains("41 min"), "{}", lines[7]);
+        assert!(
+            lines[8].contains("› Follow payments-worker journal"),
+            "{}",
+            lines[8]
+        );
+        assert!(lines[8].contains("unit is restarting"), "{}", lines[8]);
+        assert!(lines[9].contains("sustained pressure…"), "{}", lines[9]);
+        assert!(lines[18].contains("System · prod-eu-1"), "{}", lines[18]);
+        assert!(
+            lines[26]
+                .contains("→ journalctl -u payments-worker -f -n 200 · on prod-eu-1 · read-only"),
+            "{}",
+            lines[26]
+        );
+        assert!(!text.contains("journalctl -u pa…"), "{text}");
+        assert!(lines[28].contains("/srv/payments"), "{}", lines[28]);
+        assert!(lines[28].contains("detached @ v2.14.3"), "{}", lines[28]);
+        assert!(lines[29].contains("Enter Run"), "{}", lines[29]);
+        assert!(lines[29].contains("Ctrl+↑↓ Scope"), "{}", lines[29]);
+        assert!(lines[29].contains('…'), "{}", lines[29]);
+        assert!(!lines[29].contains("Follow pay…"), "{}", lines[29]);
+        assert!(!lines[29].contains("Ctrl+G"), "{}", lines[29]);
+        let selected = plate.cell(4, 8);
+        assert_eq!(selected.symbol(), "F");
+        assert_eq!(selected.bg, Color::Rgb(0x2f, 0x5a, 0xa8));
+        assert!(selected.modifier.contains(termrock::Modifier::BOLD));
+        let kind = plate.cell(36, 8);
+        assert_eq!(kind.symbol(), "s");
+        assert!(!kind.modifier.contains(termrock::Modifier::BOLD));
+        assert_eq!(kind.bg, Color::Rgb(0x2f, 0x5a, 0xa8));
+        let edge = plate.cell(98, 8);
+        assert_eq!(edge.symbol(), " ");
+        assert_eq!(edge.bg, Color::Rgb(0x2f, 0x5a, 0xa8));
+        let age = plate.cell(83, 7);
+        assert_eq!(age.symbol(), "4");
+        assert_eq!(age.fg, Color::Rgb(0x8a, 0x8a, 0x8a));
+        let ellipsis = plate.cell(87, 29);
+        assert_eq!(ellipsis.symbol(), "…");
+        assert_eq!(ellipsis.fg, Color::Rgb(0x73, 0x73, 0x73));
+        assert!(plate.diagnostics().is_empty(), "{:?}", plate.diagnostics());
+        let world = &plate.app().world;
+        assert!(catalogue::remote_host_100x30_plate(world, 100, 30).is_some());
+        assert!(catalogue::remote_host_100x30_plate(world, 80, 24).is_none());
+        assert!(catalogue::remote_host_100x30_plate(world, 120, 40).is_none());
+        assert!(catalogue::remote_host_100x30_plate(world, 100, 31).is_none());
+        assert!(catalogue::remote_host_100x30_plate(world, 99, 30).is_none());
+        let wide = harness(
+            App::for_scenario(Scenario::RemoteHost, Motion::Paused, 40),
+            Theme::junie(),
+            120,
+            40,
+        );
+        assert!(wide.text().contains("Follow pay…"), "{}", wide.text());
+        assert!(wide.text().contains("Ctrl+G"), "{}", wide.text());
+        assert!(!wide.text().contains("for 4 min"), "{}", wide.text());
+        assert!(
+            wide.text().contains("journalctl -u pa… -n 200"),
+            "{}",
+            wide.text()
+        );
+        let narrow = harness(
+            App::for_scenario(Scenario::RemoteHost, Motion::Paused, 40),
+            Theme::junie(),
+            80,
+            24,
+        );
+        assert!(
+            narrow.text().contains("Follow payments-worker jo…"),
+            "{}",
+            narrow.text()
+        );
+        assert!(!narrow.text().contains("for 4 min"), "{}", narrow.text());
+        assert!(!narrow.text().contains("Follow pay…"), "{}", narrow.text());
+        let later = harness(
+            App::for_scenario(Scenario::RemoteHost, Motion::Paused, 4_000),
+            Theme::junie(),
+            100,
+            30,
+        );
+        assert!(!later.text().contains("Follow payments-worker"));
+        assert!(!later.text().contains("journalctl -u payments-worker"));
+        assert!(catalogue::remote_host_100x30_plate(&later.app().world, 100, 30).is_none());
+        assert!(!catalogue::remote_host_tag_frame(&later.app().world));
+        let other = App::for_scenario(Scenario::ActivitiesMulti, Motion::Paused, 40);
+        assert!(catalogue::remote_host_100x30_plate(&other.world, 100, 30).is_none());
     }
     #[test]
     fn launch_failure_frame_40_paints_the_tag_plate_and_later_seeks_keep_the_activity() {
