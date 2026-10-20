@@ -241,11 +241,11 @@ mod tests {
             opened.focus(),
             Some(tablepro_domain::connections::field::NAME)
         );
-        assert!(opened.app().fresh_connection_draft());
+        assert!(opened.app().empty_new_connection_draft());
         let _ = opened.key(KeyCode::BackTab);
         let _ = opened.key(KeyCode::Right);
         assert_eq!(opened.focus(), Some(test_connection));
-        assert!(opened.app().fresh_connection_draft());
+        assert!(opened.app().empty_new_connection_draft());
         assert!(
             !opened
                 .runtime()
