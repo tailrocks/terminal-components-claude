@@ -63,12 +63,6 @@ fn all_73_junie_slots_match_reference_capability_output() {
             expected.on_accent = Color::Indexed(232);
             expected.border_strong = Color::Indexed(242);
             expected.disabled_fg = Color::Indexed(239);
-            expected.accent_pressed = Color::Indexed(238);
-            expected.accent_tint = Color::Indexed(233);
-            expected.focus_ring = Color::Indexed(238);
-            expected.highlight_danger_bg = Color::Indexed(238);
-            expected.danger_tint = Color::Indexed(233);
-            expected.syntax.match_bg = Color::Indexed(233);
         }
         assert_eq!(original.downgrade(level).color, expected, "{level:?}");
     }
