@@ -158,34 +158,31 @@ const BINDINGS: &[Binding<FilterListCmd>] = &[
         "Next scope",
         false,
     ),
+    Binding {
+        action: ActionKey::custom("filter-list.back"),
+        chord: Some(Chord::key(KeyCode::Backspace)),
+        cmd: FilterListCmd::Back,
+        label: "Back",
+        priority: 60,
+        visible: false,
+    },
+    Binding {
+        action: ActionKey::custom("filter-list.secondary"),
+        chord: Some(Chord::key(KeyCode::Delete)),
+        cmd: FilterListCmd::Secondary,
+        label: "Secondary",
+        priority: 70,
+        visible: false,
+    },
+    Binding {
+        action: ActionKey::custom("filter-list.cancel"),
+        chord: Some(Chord::key(KeyCode::Esc)),
+        cmd: FilterListCmd::Cancel,
+        label: "Cancel",
+        priority: 60,
+        visible: false,
+    },
 ];
-
-const BACK_BINDING: &[Binding<FilterListCmd>] = &[Binding {
-    action: ActionKey::custom("filter-list.back"),
-    chord: Some(Chord::key(KeyCode::Backspace)),
-    cmd: FilterListCmd::Back,
-    label: "Back",
-    priority: 60,
-    visible: false,
-}];
-
-const SECONDARY_BINDING: &[Binding<FilterListCmd>] = &[Binding {
-    action: ActionKey::custom("filter-list.secondary"),
-    chord: Some(Chord::key(KeyCode::Delete)),
-    cmd: FilterListCmd::Secondary,
-    label: "Secondary",
-    priority: 70,
-    visible: false,
-}];
-
-const CANCEL_BINDING: &[Binding<FilterListCmd>] = &[Binding {
-    action: ActionKey::custom("filter-list.cancel"),
-    chord: Some(Chord::key(KeyCode::Esc)),
-    cmd: FilterListCmd::Cancel,
-    label: "Cancel",
-    priority: 60,
-    visible: false,
-}];
 
 const QUERY_EXCLUDE_NONE: &[TextCmd] = &[TextCmd::DeleteToLineEnd];
 const QUERY_EXCLUDE_DELETE: &[TextCmd] = &[TextCmd::Delete, TextCmd::DeleteToLineEnd];
@@ -478,6 +475,15 @@ impl<'a, T, R> FilterList<'a, T, R> {
             .style_target(Family::PICKER, Variant::DEFAULT, Part::QUERY)
     }
 
+    fn searchable_binding(&self, cmd: FilterListCmd, query_empty: bool) -> bool {
+        match cmd {
+            FilterListCmd::Home | FilterListCmd::End | FilterListCmd::Choose => false,
+            FilterListCmd::Back | FilterListCmd::Cancel => query_empty,
+            FilterListCmd::Secondary => self.delete_is_secondary,
+            _ => true,
+        }
+    }
+
     fn readiness_area(&self, ui: &mut Ui<'_>, area: Rect, live: StateFlags) -> Rect {
         if self.status == Status::Ready || area.is_empty() {
             return area;
@@ -691,7 +697,9 @@ impl<T: AsItem, R: RowFn<T>> FilterList<'_, T, R> {
     }
 
     fn row_is_pressed(&self, ui: &Ui<'_>, key: ItemKey) -> bool {
-        FrameRead::pressed_part(ui, self.results_id) == Some(PartRef::item(Part::ROW, key))
+        let part = PartRef::item(Part::ROW, key);
+        FrameRead::pressed_part(ui, self.id) == Some(part)
+            || (self.searchable && FrameRead::pressed_part(ui, self.results_id) == Some(part))
     }
 
     fn handle_cmd(
@@ -745,7 +753,14 @@ impl<T: AsItem, R: RowFn<T>> FilterList<'_, T, R> {
         st: &mut FilterListState,
         items: &[T],
     ) -> Response<FilterListAction> {
+        let hidden_query_changed = !self.searchable && !st.query().is_empty();
+        if hidden_query_changed {
+            st.reset_query("");
+        }
         let mut acc = Acc::new();
+        if hidden_query_changed {
+            acc.action(FilterListAction::QueryChanged);
+        }
 
         if self.searchable {
             let previous = st.query().to_owned();
@@ -792,10 +807,23 @@ impl<T: AsItem, R: RowFn<T>> FilterList<'_, T, R> {
         for intent in cx.intents(self.id) {
             match intent {
                 Intent::Binding(action) => {
-                    let cmd = Binding::command(BINDINGS, action)
-                        .or_else(|| Binding::command(BACK_BINDING, action))
-                        .or_else(|| Binding::command(SECONDARY_BINDING, action))
-                        .or_else(|| Binding::command(CANCEL_BINDING, action));
+                    let cmd = Binding::command(BINDINGS, action).or_else(|| {
+                        if hidden_query_changed {
+                            Binding::command(
+                                TextInput::new(self.id).bindings(BindingState {
+                                    flags: StateFlags::empty(),
+                                }),
+                                action,
+                            )
+                            .and_then(|command| match command {
+                                TextCmd::Cancel => Some(FilterListCmd::Cancel),
+                                TextCmd::Backspace => Some(FilterListCmd::Back),
+                                _ => None,
+                            })
+                        } else {
+                            None
+                        }
+                    });
                     if let Some(cmd) = cmd {
                         self.handle_cmd(cmd, st, items, page, &mut acc);
                     }
@@ -804,45 +832,52 @@ impl<T: AsItem, R: RowFn<T>> FilterList<'_, T, R> {
                 _ => {}
             }
         }
-        for intent in cx.intents(self.results_id) {
-            match intent {
-                Intent::Pointer {
-                    phase,
-                    part:
-                        PartRef {
-                            part: Part::ROW,
-                            item: Some(key),
-                        },
-                    ..
-                } => {
-                    let Some(i) = st
-                        .matches
-                        .iter()
-                        .position(|&s| items.get(s).is_some_and(|x| x.as_item().key == key))
-                    else {
-                        acc.consumed();
-                        continue;
-                    };
-                    st.core.set_cursor(i, key);
-                    match phase {
-                        Phase::Secondary => {
-                            self.item_action(st, items, FilterListCmd::Secondary, &mut acc);
-                        }
-                        Phase::Click | Phase::DoubleClick => {
-                            self.item_action(st, items, FilterListCmd::Choose, &mut acc);
-                        }
-                        Phase::Press => {
-                            acc.changed();
-                        }
-                        _ => {
+        let pointer_owners = if self.searchable {
+            [Some(self.id), Some(self.results_id)]
+        } else {
+            [Some(self.id), None]
+        };
+        for owner in pointer_owners.into_iter().flatten() {
+            for intent in cx.intents(owner) {
+                match intent {
+                    Intent::Pointer {
+                        phase,
+                        part:
+                            PartRef {
+                                part: Part::ROW,
+                                item: Some(key),
+                            },
+                        ..
+                    } => {
+                        let Some(i) = st
+                            .matches
+                            .iter()
+                            .position(|&s| items.get(s).is_some_and(|x| x.as_item().key == key))
+                        else {
                             acc.consumed();
+                            continue;
+                        };
+                        st.core.set_cursor(i, key);
+                        match phase {
+                            Phase::Secondary => {
+                                self.item_action(st, items, FilterListCmd::Secondary, &mut acc);
+                            }
+                            Phase::Click | Phase::DoubleClick => {
+                                self.item_action(st, items, FilterListCmd::Choose, &mut acc);
+                            }
+                            Phase::Press => {
+                                acc.changed();
+                            }
+                            _ => {
+                                acc.consumed();
+                            }
                         }
                     }
+                    Intent::Pointer { .. } => {
+                        acc.consumed();
+                    }
+                    _ => {}
                 }
-                Intent::Pointer { .. } => {
-                    acc.consumed();
-                }
-                _ => {}
             }
         }
         acc.finish(self.id)
@@ -943,7 +978,7 @@ impl<T: AsItem, R: RowFn<T>> FilterList<'_, T, R> {
             let visible = !row.intersection(ui.full()).is_empty();
             let mut row_ui = RowUi::new(
                 ui,
-                self.results_id,
+                self.id,
                 Family::PICKER,
                 Variant::DEFAULT,
                 flags,
@@ -964,7 +999,11 @@ impl<T: AsItem, R: RowFn<T>> FilterList<'_, T, R> {
             } else {
                 self.row.row(item, &mut row_ui);
             }
-            ui.register_part(self.results_id, PartRef::item(Part::ROW, semantic.key), row);
+            let part = PartRef::item(Part::ROW, semantic.key);
+            ui.register_part(self.id, part, row);
+            if self.searchable {
+                ui.register_part(self.results_id, part, row);
+            }
         }
     }
 
@@ -994,31 +1033,26 @@ impl<T: AsItem, R: RowFn<T>> FilterList<'_, T, R> {
         if area.is_empty() {
             return area;
         }
+        let live = ui.state(self.id);
         if !self.searchable {
             ui.register_control(self.id, area, Focusability::Focusable);
+            // Without the visible query TextInput there is no base binding
+            // publisher for this control. Publish the list bindings here so
+            // the following extensions (Back, Secondary, Cancel) and regular
+            // navigation/activation commands can be routed to the focused
+            // owner.
+            ui.publish_bindings(self.id, live, BINDINGS);
         }
-        let live = ui.state(self.id);
-        let _ = author::extend_bindings(
-            ui,
-            self.id,
-            live,
-            self.bindings(BindingState { flags: live }),
-            |cmd| {
-                !self.searchable
-                    || !matches!(
-                        cmd,
-                        FilterListCmd::Home | FilterListCmd::End | FilterListCmd::Choose
-                    )
-            },
-        );
-        if !self.searchable || st.query().is_empty() {
-            let _ = author::extend_bindings(ui, self.id, live, BACK_BINDING, |_| true);
-        }
-        if self.delete_is_secondary || !self.searchable {
-            let _ = author::extend_bindings(ui, self.id, live, SECONDARY_BINDING, |_| true);
-        }
-        if !self.searchable || st.query().is_empty() {
-            let _ = author::extend_bindings(ui, self.id, live, CANCEL_BINDING, |_| true);
+        if self.searchable {
+            let _ = author::extend_bindings(
+                ui,
+                self.id,
+                live,
+                self.bindings(BindingState { flags: live }),
+                |cmd| self.searchable_binding(cmd, st.query().is_empty()),
+            );
+        } else {
+            ui.publish_bindings(self.id, live, BINDINGS);
         }
         let mut live = PartStyle::flags(ui.state(self.id), self.status.flags());
         live.remove(StateFlags::PRESSED);
@@ -1100,11 +1134,9 @@ impl<T, R> Bindings for FilterList<'_, T, R> {
 
 #[cfg(test)]
 mod tests {
-    use super::{
-        BACK_BINDING, BINDINGS, FilterList, FilterListAction, FilterListState, SECONDARY_BINDING,
-        contains_folded,
-    };
+    use super::{BINDINGS, FilterList, FilterListAction, FilterListState, contains_folded};
     use crate::Acc;
+    use termrock_core::action::ActionKey;
     use termrock_core::id::{Id, ItemKey, Part};
     use termrock_core::response::StateFlags;
     use termrock_theme::{Family, Role, StylePatch, Theme};
@@ -1273,10 +1305,14 @@ mod tests {
         let list = FilterList::<Item<'static>, ItemRow>::new(Id::root("picker"));
         assert_eq!(list.results_id, Id::root("picker").sub("results"));
         assert_ne!(list.results_id, list.id);
-        assert_eq!(BACK_BINDING[0].priority, 60);
-        assert_eq!(SECONDARY_BINDING[0].priority, 70);
-        assert!(Binding::command(BINDINGS, BACK_BINDING[0].action).is_none());
-        assert!(Binding::command(BINDINGS, SECONDARY_BINDING[0].action).is_none());
+        assert_eq!(
+            Binding::command(BINDINGS, ActionKey::custom("filter-list.back")),
+            Some(super::FilterListCmd::Back)
+        );
+        assert_eq!(
+            Binding::command(BINDINGS, ActionKey::custom("filter-list.secondary")),
+            Some(super::FilterListCmd::Secondary)
+        );
     }
 
     #[test]

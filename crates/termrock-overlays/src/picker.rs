@@ -384,7 +384,10 @@ impl<T: AsItem, R: RowFn<T>> Picker<'_, T, R> {
         if cx.is_open(self.id) {
             cx.resize_layer(self.id, self.measured_size(cx, items));
         }
-        let query_changed = self.clear_hidden_query(st);
+        // Let FilterList clear hidden query state during update so it can also
+        // consume the typed binding delivered by the previous searchable
+        // frame (for example Esc or Backspace on the transition event).
+        let query_changed = !self.searchable && !st.query().is_empty();
         let inner = self.list().update(cx, &mut st.list, items);
         let mut acc = Acc::new();
         if inner.is_consumed() {
