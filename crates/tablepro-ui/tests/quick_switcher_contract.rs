@@ -3,6 +3,7 @@ use termrock::{App, Id, KeyCode, Theme};
 use termrock_test_support::Harness;
 const PICKER: Id = Id::root("tablepro.quick-switcher");
 const TAB_LIST: Id = Id::root("tablepro.tab-list-picker");
+const DESTRUCTIVE: Id = Id::root("tablepro.quit-dialog");
 const EXPLORER: Id = Id::root("tablepro.workbench.explorer.tree");
 fn connected() -> Harness<TableProApp> {
     let mut app = TableProApp::new();
@@ -15,6 +16,8 @@ fn source_quick_switcher_opens_table_and_escape_clears_then_closes() {
     let _ = h.ctrl('o');
     assert!(h.layer_area(PICKER).is_some());
     assert!(h.text().contains("Open Quickly"));
+    assert!(h.text().contains("All · Tab scope"));
+    assert!(h.text().contains("↑ ↓ Move  Enter Open  Esc Cancel"));
     let _ = h.type_str("cust");
     assert!(h.text().contains("customers"));
     let _ = h.key(KeyCode::Enter);
@@ -208,6 +211,7 @@ fn tab_list_picker_uses_stable_tab_keys_for_filter_activation_and_delete() {
         "three searchable tabs center the full picker in 120x40"
     );
     assert!(h.text().contains("Open tabs"));
+    assert!(h.text().contains("Delete Close"));
     assert!(h.text().contains("Query 1"));
     let _ = h.type_str("Query 1");
     assert!(
@@ -229,6 +233,7 @@ fn tab_list_picker_uses_stable_tab_keys_for_filter_activation_and_delete() {
     );
     let _ = h.key(KeyCode::Enter);
     assert_eq!(h.app().workbench.active_key(), Some(original));
+    assert_eq!(h.focus(), h.app().query_id());
     assert!(h.layer_area(TAB_LIST).is_none());
 
     let _ = h.ctrl('g');
@@ -249,6 +254,99 @@ fn tab_list_picker_uses_stable_tab_keys_for_filter_activation_and_delete() {
     assert!(h.layer_area(TAB_LIST).is_none());
     assert_eq!(h.app().workbench.active_key(), Some(original));
     assert_ne!(second, third);
+    assert!(h.diagnostics().is_empty(), "{:?}", h.diagnostics());
+}
+
+#[test]
+fn query_tab_metadata_uses_the_latest_domain_execution_summary() {
+    let make = |error: Option<&str>| {
+        let mut app = TableProApp::new();
+        assert!(app.connect(0));
+        if let Some(Tab::Query(query)) = app.workbench.active_mut() {
+            query.query = "SELECT 1".to_owned();
+        }
+        app.workbench
+            .history
+            .push(tablepro_ui::model::HistoryEntry {
+                id: 0,
+                sql: "SELECT 1".to_owned(),
+                connection: "Local PostgreSQL".to_owned(),
+                database: "acme_dev".to_owned(),
+                schema: "public".to_owned(),
+                minutes_ago: 0,
+                duration_ms: Some(0),
+                rows: error.is_none().then_some(1),
+                error: error.map(str::to_owned),
+                source: tablepro_ui::model::HistorySource::Editor,
+            });
+        Harness::new(app, Theme::junie(), 120, 40)
+    };
+    let mut h = make(None);
+    let _ = h.ctrl('g');
+    assert!(h.text().contains("ok · <1 ms"), "{}", h.text());
+    assert!(!h.text().contains("complete"));
+    let mut h = make(Some("syntax error"));
+    let _ = h.ctrl('g');
+    assert!(h.text().contains("error"), "{}", h.text());
+}
+
+#[test]
+#[expect(
+    clippy::expect_used,
+    reason = "the scenario requires the newly created query tab and editor"
+)]
+fn chosen_query_tab_moves_focus_to_its_live_editor() {
+    let mut h = connected();
+    let second = h
+        .app_mut()
+        .workbench
+        .new_query("SELECT 2")
+        .expect("tab key");
+    h.draw();
+    let _ = h.ctrl('g');
+    let _ = h.type_str("Query 2");
+    let _ = h.key(KeyCode::Enter);
+    assert_eq!(h.app().workbench.active_key(), Some(second));
+    assert_eq!(h.focus(), h.app().query_id());
+    assert!(h.diagnostics().is_empty(), "{:?}", h.diagnostics());
+}
+
+#[test]
+#[expect(
+    clippy::expect_used,
+    reason = "the scenario requires the newly created query tab and editor"
+)]
+fn deleting_a_dirty_query_uses_the_domain_confirmation_flow() {
+    let mut h = connected();
+    let second = h
+        .app_mut()
+        .workbench
+        .new_query("SELECT 2")
+        .expect("tab key");
+    h.draw();
+    let editor = h.app().query_id().expect("query editor id");
+    assert!(h.tab_to(editor));
+    let _ = h.type_str(" + 3");
+    let _ = h.ctrl('g');
+    let _ = h.type_str("Query 2");
+    let _ = h.key(KeyCode::Delete);
+    assert!(h.layer_area(DESTRUCTIVE).is_some());
+    assert!(
+        h.app()
+            .workbench
+            .tabs()
+            .iter()
+            .any(|tab| tab.key() == second)
+    );
+    let _ = h.key(KeyCode::Esc);
+    assert!(h.layer_area(DESTRUCTIVE).is_none());
+    assert!(
+        h.app()
+            .workbench
+            .tabs()
+            .iter()
+            .any(|tab| tab.key() == second)
+    );
     assert!(h.diagnostics().is_empty(), "{:?}", h.diagnostics());
 }
 
