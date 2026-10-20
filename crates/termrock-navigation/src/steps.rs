@@ -196,6 +196,8 @@ pub struct StepsState {
     frontier_revision: u64,
 }
 
+type MetadataFn<'a, T> = dyn for<'item> Fn(&'item T) -> Option<&'item str> + 'a;
+
 impl StepsState {
     #[must_use]
     pub const fn new() -> Self {
@@ -240,6 +242,8 @@ pub struct Steps<'a, T, K = ByIndex, R = DefaultRow> {
     key: K,
     row: R,
     step: Option<&'a dyn Fn(&T) -> StepState>,
+    metadata: Option<&'a MetadataFn<'a, T>>,
+    numbered: bool,
     navigable: bool,
     disabled: bool,
     ov: PartStyle<'a>,
@@ -268,6 +272,8 @@ impl<T> Steps<'_, T, ByIndex, DefaultRow> {
             key: ByIndex,
             row: DefaultRow,
             step: None,
+            metadata: None,
+            numbered: false,
             navigable: false,
             disabled: false,
             ov: PartStyle::new(),
@@ -315,12 +321,36 @@ impl<'a, T, K, R> Steps<'a, T, K, R> {
         self
     }
 
+    /// Show a one-based ordinal before each label.
+    ///
+    /// The default leaves the existing row layout unchanged. Numbered rows
+    /// reserve a three-cell number lane, including its following gap.
+    #[must_use]
+    pub const fn numbered(mut self, yes: bool) -> Self {
+        self.numbered = yes;
+        self
+    }
+
+    /// Read optional trailing metadata from borrowed item data.
+    ///
+    /// Without this accessor, the current state label remains the trailing
+    /// metadata. When configured, `None` hides metadata for that item.
+    pub fn metadata<F>(mut self, f: &'a F) -> Self
+    where
+        F: for<'item> Fn(&'item T) -> Option<&'item str> + 'a,
+    {
+        self.metadata = Some(f);
+        self
+    }
+
     pub fn key<K2: Fn(&T) -> ItemKey>(self, k: K2) -> Steps<'a, T, K2, R> {
         Steps {
             id: self.id,
             key: k,
             row: self.row,
             step: self.step,
+            metadata: self.metadata,
+            numbered: self.numbered,
             navigable: self.navigable,
             disabled: self.disabled,
             ov: self.ov,
@@ -337,6 +367,8 @@ impl<'a, T, K, R> Steps<'a, T, K, R> {
             key: self.key,
             row: r,
             step: self.step,
+            metadata: self.metadata,
+            numbered: self.numbered,
             navigable: self.navigable,
             disabled: self.disabled,
             ov: self.ov,
@@ -696,11 +728,15 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Steps<'_, T, K, R> {
                 width: content.width,
                 height: 1,
             };
-            self.paint_row(ui, rect, flags, key, step, item);
+            self.paint_row(ui, rect, flags, key, step, i, item);
         }
         area
     }
 
+    #[expect(
+        clippy::too_many_arguments,
+        reason = "one row uses its resolved state, stable identity, ordinal, and borrowed item"
+    )]
     fn paint_row(
         &self,
         ui: &mut Ui<'_>,
@@ -708,6 +744,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Steps<'_, T, K, R> {
         flags: StateFlags,
         key: ItemKey,
         step: StepState,
+        ordinal: usize,
         item: &T,
     ) {
         let row_style = self.ov.style(
@@ -767,10 +804,46 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Steps<'_, T, K, R> {
             width: rect.width.saturating_sub(3),
             ..rect
         };
-        let meta_width = crate::text::width(step.label());
-        if meta_width > 0 && meta_width.saturating_add(2) <= body.width {
+        if self.numbered {
+            let number = format!("{:02}", ordinal.saturating_add(1));
+            let number_width = number.len().max(2);
+            let number_rect = Rect {
+                x: body.x,
+                width: number_width.min(usize::from(body.width)) as u16,
+                ..body
+            };
+            let number_style = self.ov.style(
+                ui,
+                self.id,
+                Family::STEPS,
+                Variant::DEFAULT,
+                Part::META,
+                flags,
+            );
+            ui.paint_str(number_rect, &number, number_style.style);
+            let advance = number_width.saturating_add(1).min(usize::from(u16::MAX)) as u16;
+            body.x = body.x.saturating_add(advance);
+            body.width = body.width.saturating_sub(advance);
+        }
+        let metadata = self
+            .metadata
+            .and_then(|metadata| metadata(item))
+            .or_else(|| self.metadata.is_none().then(|| step.label()));
+        let meta_width = metadata.map_or(0, crate::text::width);
+        let configured_layout = self.numbered || self.metadata.is_some();
+        let metadata_fits = metadata.is_some()
+            && meta_width > 0
+            && if configured_layout {
+                meta_width.saturating_add(15) <= body.width
+            } else {
+                meta_width.saturating_add(2) <= body.width
+            };
+        if metadata_fits {
             let meta = Rect {
-                x: body.right().saturating_sub(meta_width),
+                x: body
+                    .right()
+                    .saturating_sub(meta_width)
+                    .saturating_sub(u16::from(configured_layout)),
                 width: meta_width,
                 ..body
             };
@@ -782,8 +855,10 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Steps<'_, T, K, R> {
                 Part::META,
                 flags,
             );
-            ui.paint_str(meta, step.label(), style.style);
-            body.width = body.width.saturating_sub(meta_width.saturating_add(1));
+            ui.paint_str(meta, metadata.unwrap_or_default(), style.style);
+            body.width = body
+                .width
+                .saturating_sub(meta_width.saturating_add(if configured_layout { 3 } else { 1 }));
         }
         if !body.is_empty() {
             let mut r = RowUi::new_with_patches(
@@ -806,7 +881,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Steps<'_, T, K, R> {
 
     pub fn measure(&self, _ui: &Ui<'_>, c: Constraints) -> Size {
         Size {
-            min: (12, 1),
+            min: (12 + if self.numbered { 6 } else { 0 }, 1),
             preferred: (Self::PREFERRED_WIDTH, c.max.1),
         }
         .fit(c)
