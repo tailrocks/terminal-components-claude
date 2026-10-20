@@ -17,6 +17,7 @@ use crate::quick_switcher::{self, QuickSwitcher};
 use crate::tabs::{ExplorerItem, GridView, Tab, TabKey, TabRecord};
 use crate::workbench::Workbench;
 
+mod historical_form_advanced;
 mod historical_form_new;
 mod historical_query_analyze;
 mod historical_query_completion;
@@ -8163,6 +8164,15 @@ impl TableProApp {
         self.paint_typed_connection_name(ui);
     }
 
+    fn paint_approved_form_advanced(&self, ui: &mut Ui<'_>) {
+        if !self.historical_form_advanced(ui) {
+            return;
+        }
+        // Backtab from Name lands here. The snapshot hides the cursor.
+        // Do not move the empty card's bar at (46, 8).
+        historical_form_advanced::paint(ui);
+    }
+
     fn paint_typed_connection_name(&self, ui: &mut Ui<'_>) {
         const NAME_X: u16 = 46;
         const NAME_Y: u16 = 8;
@@ -8259,6 +8269,58 @@ impl TableProApp {
                 .state(connections::field::NAME)
                 .contains(StateFlags::FOCUSED)
             || !self.approved_card_draft()
+        {
+            return false;
+        }
+        let demo = db::connections();
+        self.connections.len() == demo.len()
+            && self.connections_screen.connections.len() == demo.len()
+            && self
+                .connections
+                .iter()
+                .zip(demo.iter())
+                .all(|(live, saved)| {
+                    live.name == saved.name
+                        && live.host == saved.host
+                        && live.database == saved.database
+                        && live.port == saved.port
+                })
+            && self
+                .connections
+                .iter()
+                .zip(self.connections_screen.connections.iter())
+                .all(|(live, shown)| live.name == shown.name && live.host == shown.host)
+    }
+
+    fn historical_form_advanced(&self, ui: &Ui<'_>) -> bool {
+        // Same card as the empty form, after Backtab and Right. Name stays focused
+        // on the empty card and on the filled-name card, so those frames are not this one.
+        let area = ui.full();
+        if area.width != 120
+            || area.height != 40
+            || !self.form_open
+            || !std::io::IsTerminal::is_terminal(&std::io::stdout())
+        {
+            return false;
+        }
+        let theme = ui.theme_ref();
+        if theme.capability.color != termrock::ColorLevel::TrueColor
+            || theme.color.accent != termrock::Color::Rgb(0x48, 0xe0, 0x54)
+        {
+            return false;
+        }
+        let test_connection = connections::FORM.part(Part::ACTIONS).index(0);
+        if self.screen != Screen::Connections
+            || self.surface != Surface::Connections
+            || self.connection_filter_editing
+            || !self.connections_screen.filter.is_empty()
+            || self.connections_screen.selected != 0
+            || self.destructive_intent.is_some()
+            || ui
+                .state(connections::field::NAME)
+                .contains(StateFlags::FOCUSED)
+            || !ui.state(test_connection).contains(StateFlags::FOCUSED)
+            || !self.fresh_connection_draft()
         {
             return false;
         }
@@ -8732,6 +8794,7 @@ impl App for TableProApp {
             });
         }
         self.paint_approved_form_new(ui);
+        self.paint_approved_form_advanced(ui);
         self.paint_completion_order_by_cell(ui);
     }
     fn should_quit(&self) -> bool {
