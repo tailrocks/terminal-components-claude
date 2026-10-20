@@ -469,8 +469,6 @@ mod tests {
         md: MasterDetail,
         state: MasterDetailState,
         keymap: KeyMap,
-        modal_requested: bool,
-        mode: core::cell::Cell<MasterDetailMode>,
     }
 
     impl Default for DrawerApp {
@@ -479,27 +477,18 @@ mod tests {
                 md: MD,
                 state: MasterDetailState::default(),
                 keymap: KeyMap::new(),
-                modal_requested: false,
-                mode: core::cell::Cell::new(MasterDetailMode::Master),
             }
         }
     }
 
     impl App for DrawerApp {
         fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
-            if core::mem::take(&mut self.modal_requested) {
-                cx.open_layer(
-                    MODAL,
-                    crate::runtime::LayerSpec::modal(MODAL).initial_focus(MODAL_FOCUS),
-                );
-            }
             self.md.update(cx, &mut self.state).erase()
         }
 
         fn draw(&self, ui: &mut Ui<'_>) {
-            self.md.draw(ui, SCREEN, &self.state, |ui, layout| {
-                self.mode.set(layout.mode);
-                match layout.mode {
+            self.md
+                .draw(ui, SCREEN, &self.state, |ui, layout| match layout.mode {
                     MasterDetailMode::Split => {
                         ui.register_focus_only(MD.master, Focusability::Focusable);
                         ui.register_focus_only(MD.detail, Focusability::Focusable);
@@ -510,11 +499,7 @@ mod tests {
                     MasterDetailMode::Drawer => {
                         ui.register_focus_only(MD.detail, Focusability::Focusable);
                     }
-                }
-            });
-            let _ = ui.layer(MODAL, |ui, _| {
-                ui.register_focus_only(MODAL_FOCUS, Focusability::Focusable);
-            });
+                });
         }
 
         fn keymap(&self) -> &KeyMap {
@@ -527,6 +512,8 @@ mod tests {
         state: MasterDetailState,
         area: core::cell::Cell<Rect>,
         mode: core::cell::Cell<MasterDetailMode>,
+        detail_rect: core::cell::Cell<Rect>,
+        modal_requested: bool,
     }
 
     impl Default for ResizeApp {
@@ -536,6 +523,8 @@ mod tests {
                 state: MasterDetailState::default(),
                 area: core::cell::Cell::new(Rect::new(0, 0, 120, 40)),
                 mode: core::cell::Cell::new(MasterDetailMode::Split),
+                detail_rect: core::cell::Cell::new(Rect::ZERO),
+                modal_requested: false,
             }
         }
     }
@@ -546,6 +535,12 @@ mod tests {
 
     impl App for ResizeApp {
         fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+            if core::mem::take(&mut self.modal_requested) {
+                cx.open_layer(
+                    MODAL,
+                    crate::runtime::LayerSpec::modal(MODAL).initial_focus(MODAL_FOCUS),
+                );
+            }
             self.md.update(cx, &mut self.state).erase()
         }
 
@@ -553,6 +548,7 @@ mod tests {
             let area = self.area.get();
             self.md.draw(ui, area, &self.state, |ui, layout| {
                 self.mode.set(layout.mode);
+                self.detail_rect.set(layout.detail);
                 match layout.mode {
                     MasterDetailMode::Split => {
                         ui.register_focus_only(MD.master, Focusability::Focusable);
@@ -567,6 +563,9 @@ mod tests {
                         ui.register_focus_only(DETAIL_CHILD, Focusability::Focusable);
                     }
                 }
+            });
+            let _ = ui.layer(MODAL, |ui, _| {
+                ui.register_focus_only(MODAL_FOCUS, Focusability::Focusable);
             });
         }
     }
@@ -590,21 +589,36 @@ mod tests {
 
     #[test]
     fn drawer_survives_modal_focus_excursion() {
-        let mut runtime = Runtime::new(DrawerApp::default(), Theme::junie());
+        let mut runtime = Runtime::new(ResizeApp::default(), Theme::junie());
         let _ = runtime.initialize();
-        let mut buffer = ratatui_core::buffer::Buffer::empty(SCREEN);
-        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
-        let _ = deliver(&mut runtime, key(KeyCode::Tab));
-        buffer = ratatui_core::buffer::Buffer::empty(SCREEN);
-        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
+        let mut buffer = ratatui_core::buffer::Buffer::empty(Rect::new(0, 0, 120, 40));
+        runtime
+            .draw_buffer(Rect::new(0, 0, 120, 40), &mut buffer)
+            .commit_presented();
+        runtime.set_focus(Some(DETAIL_CHILD));
+        buffer = ratatui_core::buffer::Buffer::empty(Rect::new(0, 0, 120, 40));
+        runtime
+            .draw_buffer(Rect::new(0, 0, 120, 40), &mut buffer)
+            .commit_presented();
+        let _ = deliver(&mut runtime, crate::event::Input::Resize(80, 24));
+        runtime.app().area.set(Rect::new(0, 0, 80, 24));
+        buffer = ratatui_core::buffer::Buffer::empty(Rect::new(0, 0, 80, 24));
+        runtime
+            .draw_buffer(Rect::new(0, 0, 80, 24), &mut buffer)
+            .commit_presented();
         assert_eq!(runtime.app().mode.get(), MasterDetailMode::Drawer);
-        assert!(runtime.app().state.drawer_open());
+        let drawer_detail = runtime.app().detail_rect.get();
 
         runtime.app_mut().modal_requested = true;
         let _ = deliver(&mut runtime, key(KeyCode::Char('x')));
         assert!(runtime.is_open(MODAL));
         assert_eq!(runtime.focus(), Some(MODAL_FOCUS));
+        buffer = ratatui_core::buffer::Buffer::empty(Rect::new(0, 0, 80, 24));
+        runtime
+            .draw_buffer(Rect::new(0, 0, 80, 24), &mut buffer)
+            .commit_presented();
         assert_eq!(runtime.app().mode.get(), MasterDetailMode::Drawer);
+        assert_eq!(runtime.app().detail_rect.get(), drawer_detail);
         assert!(runtime.app().state.drawer_open());
     }
 
