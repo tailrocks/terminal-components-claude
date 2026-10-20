@@ -1,0 +1,237 @@
+{
+  "status": "Independent architecture/UI audit: changes required. The new library file remains a procedural app presentation painter; live facts do not satisfy the component or product gate.",
+  "reviewed_commit": "93b306503581d0c90665ca884af78000e3a29258",
+  "baseline_source": "4169783ae883788186d161af09ba9c481bd84e5c",
+  "scope": "Only the new197-line overlays/info_card.rs, its export and Jackin app/info helper wiring; adjacent existing selectors are inspected because they choose this path. Later commits and current remote tip are not covered.",
+  "findings": [
+    {
+      "id": "IC1",
+      "priority": "P1",
+      "path": "crates/termrock-overlays/src/info_card.rs",
+      "line": 34,
+      "title": "Replace the procedural plate transcription with real shared overlay and property components",
+      "evidence": "The public API is only paint(Ui,facts), with no Id, state, update, measure, typed action or layout allocation. It paints literal Debug info/read-only/Close/\u00d7 and always paints a focus gutter on index0. Five public diagnostic probes show pixels with no registered regions/focus, no navigation, facts beyond8 silently unavailable, empty data without Close focus, and a width65 view rendering no dialog. Matching coordinates/colors from the old INFO table establish mechanism provenance; names and width66 alone are not the basis for this finding.",
+      "replacement_owner": "Existing termrock-overlays Dialog chrome/layer/update/draw/measure plus termrock-controls PropsList/PropsState/PropsRow and real shared Buttons. Use the separately owned typed Dialog/Props adapter work; do not create another independent renderer."
+    },
+    {
+      "id": "IC2",
+      "priority": "P1",
+      "path": "crates/jackin-preview-app/src/app.rs",
+      "line": 8790,
+      "title": "Render the active modal layer instead of substituting a frame-selected page painter",
+      "introduced_in_this_commit": false,
+      "qualification": "The suppression/clock/viewport mechanism is inherited and retained by the new InfoCard call sites at9552/9582; do not attribute all of it to93b.",
+      "evidence": "For paused LaunchRunning frame40, launch_dialog_on_page suppresses ui.layer while open_cockpit_info still opens and updates the Dialog layer. Real App probes in12 size/profile cases have no action bounds/hit/focus at frame40;12 corresponding frame41 cases have a real Close action. At120x40 the declared modal area is(27,8,66,16), while the card paints(27,14,66,11). At frame40 Tab then Enter leaves it open; clicking visible Target at(31,15), hitNone, dismisses and restores manager focus. At frame41 Tab/Enter closes and Target click stays open. Frozen InfoDialog/PropsList explicitly makes a single fact click select and supports keyed copy/navigation.",
+      "replacement_owner": "Always compose the real Dialog/Props body in the active ui.layer using the same IDs and configuration for update/layout/draw. Remove frame40/exact120x40 modal implementation selection and the page-paint suppression when its real replacement passes paired tests."
+    },
+    {
+      "id": "IC3",
+      "priority": "P2",
+      "path": "crates/termrock-overlays/src/info_card.rs",
+      "line": 133,
+      "title": "Use terminal-cell text layout and clip fact labels to the component body",
+      "evidence": "label_cols and paint_at width use chars().count(), not terminal-cell width; labels are not truncated or clipped to card. A real public consumer with label\u754c loses it entirely because its Rect is1 cell. A100-character ASCII label paints X over the right border at(92,15) and outside the66-cell card at(93,15). The fixed8-fact take also has no scrolling state, so the ninth fact remains unavailable after End.",
+      "replacement_owner": "Existing PropsList measurement, shared termrock-text grapheme/cell-width/wrap/truncate tools, and resolved body clipping/scroll state. Preserve all view data; do not bound data by the former snapshot row count."
+    },
+    {
+      "id": "IC4",
+      "priority": "P1",
+      "path": "crates/jackin-preview-app/src/app/launch_dialog_plate.rs",
+      "line": 802,
+      "title": "Remove app-owned repainting and color inference after the shared component",
+      "evidence": "paint_info calls the new shared painter and immediately calls app recolor(66,11,0). That helper converts the card RGB inks and also recolors screen rain by RGB/index/background pairs;16/mono handling and NO_COLOR switches remain app-owned. The new component itself ignores custom accent/foreground/surface tokens and emits the same raw RGB title/focus/background in all4 capability profiles. These are source/real-buffer observations, not a claim about final encoded CLI frames.",
+      "replacement_owner": "Shared theme roles/state/profile rules used by the real Dialog/Props/Button renderers. Remove app-level RGB/pair correction and post-widget painting; do not rename it or move the inference helper into Termrock."
+    }
+  ],
+  "provenance": {
+    "old_owner": "93b306503581d0c90665ca884af78000e3a29258^:crates/jackin-preview-app/src/app/launch_dialog_plate.rs INFO table",
+    "matching_details": [
+      "66x11 geometry; border metadata x49; close glyph x62; Close label x57/y9; bottom border y10.",
+      "First fact gutter x2/y1, label x4, label width8 and value startx12.",
+      "Exact card18181b, border4d4d4d, whiteffffff, muted8a8a8a, faint737373, closeb3b3b3, focus48e054 and button27272a colors.",
+      "Old underlay-space skipping is replaced by raw fill_keep_fg, with the same dimmed-page-ink presentation intention."
+    ],
+    "baseline_distinction": "Frozen InfoDialog legitimately defaults width66 but derives height from content, uses modal Frame fitting/theme and real controls. Frozen PropsList computes cell-width columns, supports stable row selection/scroll/reveal/copy and actual row hit regions. The new helper retains one captured initial state rather than those mechanics."
+  },
+  "frozen_contract": {
+    "src/bin/jackin_preview/screens/cockpit.rs:392": "Domain builds Target/Role/current Agent+account/Run id/version, optionally Container and Telemetry; Run id and Container are copyable. It opens the shared InfoDialog with Debug info and read-only metadata.",
+    "src/widgets/info_dialog.rs:196": "Initial focus is PropsList for nonempty data, Close for empty. Shared dialog handles navigation, typed copy/action/close results, dismiss policy, pointer and scrollbar routing, and actual buttons.",
+    "src/widgets/info_dialog.rs:363": "Content-derived height, shared modal Frame, PropsList rendering and real button/hit registration.",
+    "src/widgets/info_dialog.rs:558": "Frozen regression: a single fact click selects, double click copies a copyable value.",
+    "src/widgets/props.rs:473": "Cursor navigation, scrolling and copy/reveal mechanics are component state; per-grapheme rendering and cell-width columns are shared."
+  },
+  "retain_separately": {
+    "useful": [
+      "Application-owned explicit label/value view data and borrowed Fact mapping keep whole App/World objects out of the library.",
+      "Live Container readiness and Run id/trace extraction improve on the deleted captured run-id/value table. Preserve those domain calculations where they match frozen behavior."
+    ],
+    "not_yet_proven": "The new info_facts still hardcodes the Agent/account label, chooses the first workspace, loses copyability/wrap/tone metadata and uses a shortened/trace Run id. Frozen source uses current agent/account/target and full copyable values. Reconcile these domain contracts rather than blindly treating every current string as authoritative. The Telemetry branch is unreachable in the special launch renderer because launch_cockpit_scene excludes cockpit_debug_open."
+  },
+  "replacement_plan": [
+    {
+      "stage": 1,
+      "owner": "Application domain/view-data code",
+      "work": "Keep live fact construction in Jackin, deduplicate the competing info_facts/cockpit_info_lines sources, supply stable keyed PropsRow view data with copyable/tone/wrap flags and correct full domain values. Keep simulation and account models outside Termrock."
+    },
+    {
+      "stage": 2,
+      "owner": "Existing separately owned Dialog/Props shared contract work",
+      "work": "Use the actual Dialog layer/chrome/actions and existing PropsList state/update/measure/draw. Supply title/meta/labels through public configuration; support initial Props focus or empty Close focus, shared text, clipping, scrolling and typed copy actions. Do not duplicate the ongoing adapter implementation."
+    },
+    {
+      "stage": 3,
+      "owner": "Jackin screen composition and shared theme/runtime policy",
+      "work": "Replace every info path with the same public shared composition. Remove info_card painter, launch_dialog_on_page suppression and info afterpaint recolor in the same validated series. Configure genuine baseline layout/state/profile variants centrally; remove the exact-frame/viewport implementation switch rather than moving it."
+    },
+    {
+      "stage": 4,
+      "owner": "Independent paired product/API verification",
+      "work": "Exercise actual frozen/candidate binaries for open/select/copy/Tab/Close/escape/outside-click/hover/press/resize/focus restoration around frames39/40/41 and adjacent dimensions. Cover all4 profiles, changed domain values, empty/large/Unicode data and repeated cycles. Require no fake controls and no app repaint; use an unrelated public consumer. No approval from matching initial pixels."
+    }
+  ],
+  "checks": {
+    "commands": [
+      {
+        "name": "public-component-defect-probes",
+        "command": [
+          "cargo",
+          "nextest",
+          "run",
+          "--manifest-path",
+          "/private/tmp/info-card-93b-independent-review/consumer/Cargo.toml",
+          "--all-targets",
+          "--no-fail-fast"
+        ],
+        "exit": 0
+      },
+      {
+        "name": "real-app-interaction-probes",
+        "command": [
+          "cargo",
+          "nextest",
+          "run",
+          "--manifest-path",
+          "/private/tmp/info-card-93b-independent-review/consumer/Cargo.toml",
+          "--all-targets",
+          "--features",
+          "app-probes",
+          "-E",
+          "test(real_app_info_interaction_receipts)"
+        ],
+        "exit": 0
+      }
+    ],
+    "public_defect_probes": {
+      "run": 5,
+      "passed": 5,
+      "skipped": 0,
+      "interpretation": "These diagnostic assertions confirm the listed defects; their PASS is not product success."
+    },
+    "real_app_matrix": {
+      "cases": 24,
+      "frames": [
+        40,
+        41
+      ],
+      "sizes": [
+        [
+          120,
+          40
+        ],
+        [
+          119,
+          40
+        ],
+        [
+          80,
+          24
+        ]
+      ],
+      "profiles": [
+        "TrueColor",
+        "Ansi256",
+        "Ansi16",
+        "Mono"
+      ],
+      "opened": 24,
+      "frame40_missing_close_control_focus_hit": 12,
+      "frame41_real_close_controls": 12,
+      "close_click_dismisses": 24,
+      "qualification": "A visible Close click dismisses even at frame40, apparently as light dismissal. This audit does not claim that click is dead."
+    },
+    "real_app_keyboard_fact_click": [
+      {
+        "area": "Some(Rect { x: 27, y: 8, width: 66, height: 16 })",
+        "focus_after_tab": "None",
+        "focus_after_target_click": "Some(jackin.preview \u25b8 manager)",
+        "focus_before": "None",
+        "frame": 40,
+        "open_after_enter": true,
+        "open_after_target_click": false,
+        "target_hit": "None",
+        "target_position": [
+          31,
+          15
+        ]
+      },
+      {
+        "area": "Some(Rect { x: 27, y: 8, width: 66, height: 16 })",
+        "focus_after_tab": "Some(jackin.preview \u25b8 #0)",
+        "focus_after_target_click": "Some(jackin.preview \u25b8 #0)",
+        "focus_before": "Some(jackin.preview \u25b8 #0)",
+        "frame": 41,
+        "open_after_enter": false,
+        "open_after_target_click": true,
+        "target_hit": "Some(Hit { owner: jackin.preview \u25b8 cockpit-info, part: PartRef { part: Part::BODY, item: None }, layer: LayerId(1), kind: Decorative, local: Position { x: 0, y: 0 } })",
+        "target_position": [
+          30,
+          12
+        ]
+      }
+    ],
+    "bounded_main_script_seconds": 11.09865279198857,
+    "bounded_extra_probe_seconds": 4.03548416600097
+  },
+  "limits": [
+    "No source edits, integration, push, full workspace lint/test or CI claims.",
+    "No tuiscotti paired CLI capture was executed; these are real Runtime/App buffer/input probes and frozen-source contract comparisons, not full terminal-mode/timing parity proof.",
+    "Later remote changes may replace these exact paths; this report covers exact93b only.",
+    "Existing typed Dialog/Props adapters and separately cleared modal027 repair were not re-reviewed or duplicated."
+  ],
+  "source_sha256": {
+    "93b306503581d0c90665ca884af78000e3a29258:crates/termrock-overlays/src/info_card.rs": "cf0cacf36a7ded900466abd2c385c7aad7e35a0a3e6a677716eaa9d965873453",
+    "93b306503581d0c90665ca884af78000e3a29258:crates/jackin-preview-app/src/app/launch_dialog_plate.rs": "c907efc7f94b0813b34e79ffe6e86289765d712d1c35dd95ecb628e8973aace1",
+    "4169783ae883788186d161af09ba9c481bd84e5c:src/widgets/info_dialog.rs": "3de22475dd814d96a640e8025883066260a4a49e7bafbdc706c22e9b427e660b",
+    "4169783ae883788186d161af09ba9c481bd84e5c:src/widgets/props.rs": "4e9997c5d66ac1df5a02d94f5c5213673c6d5b419f2f7d86abc771c2fce51de4",
+    "4169783ae883788186d161af09ba9c481bd84e5c:src/ui/modal.rs": "745d8dc4c05c53186f7068a7f7c528e9596fb9ac2145ffd5d1a133c7a9622391",
+    "4169783ae883788186d161af09ba9c481bd84e5c:src/bin/jackin_preview/screens/cockpit.rs": "f390c4ef1606dbe9e12afd26ba95779e8a67b789c0d12ab1c62a7dd32fd8f8ce"
+  },
+  "review_copy": {
+    "path": "/private/tmp/termrock-button-before-review",
+    "head": "93b306503581d0c90665ca884af78000e3a29258",
+    "tracked_changes": 0
+  },
+  "product_acceptance": false,
+  "library_gate": false,
+  "evidence_root": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/info-card-93b-independent-audit",
+  "evidence_sha256": {
+    "4169783a-src_bin_jackin_preview_screens_cockpit.rs": "f390c4ef1606dbe9e12afd26ba95779e8a67b789c0d12ab1c62a7dd32fd8f8ce",
+    "4169783a-src_ui_modal.rs": "745d8dc4c05c53186f7068a7f7c528e9596fb9ac2145ffd5d1a133c7a9622391",
+    "4169783a-src_widgets_info_dialog.rs": "3de22475dd814d96a640e8025883066260a4a49e7bafbdc706c22e9b427e660b",
+    "4169783a-src_widgets_props.rs": "4e9997c5d66ac1df5a02d94f5c5213673c6d5b419f2f7d86abc771c2fce51de4",
+    "93b30650-crates_jackin-preview-app_src_app_launch_dialog_plate.rs": "c907efc7f94b0813b34e79ffe6e86289765d712d1c35dd95ecb628e8973aace1",
+    "93b30650-crates_termrock-overlays_src_info_card.rs": "cf0cacf36a7ded900466abd2c385c7aad7e35a0a3e6a677716eaa9d965873453",
+    "app-relevant-source.txt": "1f067cc0937fe59c9eb741a00f90a836aa41fc7dde8e4fc7a07f7b6cb2a6961c",
+    "consumer/Cargo.lock": "fd45bdf501cff5a8c0db25520673eb8bf21fb804aaf6261387e541befbaf6740",
+    "consumer/Cargo.toml": "e312411113d0f46ac65afb99009c89504329beb72857bde72cbd08dbb83e5105",
+    "consumer/src/lib.rs": "3d5780346935f1db76a6352e655a94536539dab964efcd9c89f9be9216f9b714",
+    "public-component-defect-probes.log": "9c858e6dd7d8a0f036ef61decbe27ebae0d2c0b26d8d320cd5eb707d9d4b7abf",
+    "real-app-interaction-probes.log": "baa9392d1a4c323d4c000ccd03770e743f3371b87327391d9a8e77ca7af4fe4b",
+    "real-app-keyboard-probes.log": "8fe25bccde1490037298ec71d6b137dfe0bc836207a1b4fdc447e8f7bf92968d",
+    "real-app-keyboard-report.json": "9b4fd9a9592f464f379df6f605ad36b9ceed24b4e920bfbfa3f86935eb25ac03",
+    "real-app-report.json": "5ecea152861b3fa6f26f881f32c82a3e4bb87e223bb4527e4704294f1847749b",
+    "results.json": "080ff68a8a0168337142094d444ebf65572e9afb2286d3b285a43f93d798e9a3",
+    "reviewed-change.patch": "59241737a7f68fbaed2d05ecd9f9ab20ec988b92ae479b57fd3f4e87d51bc1bd",
+    "run.py": "a1407f5b09db63e53cb33daf47d79d7a191f7daae4115005e84ae3c8e2b22ee3"
+  }
+}
