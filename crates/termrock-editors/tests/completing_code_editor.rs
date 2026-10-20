@@ -150,13 +150,16 @@ fn send(runtime: &mut Runtime<EditorApp>, code: KeyCode, mods: KeyModifiers) {
 
 struct BareEditorApp {
     state: termrock_editors::code::CodeEditorState,
+    actions: Vec<CodeAction>,
 }
 
 impl App for BareEditorApp {
     fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
-        CodeEditor::new(EDITOR, 6)
-            .update(cx, &mut self.state)
-            .erase()
+        let response = CodeEditor::new(EDITOR, 6).update(cx, &mut self.state);
+        if let Some(action) = response.action_ref() {
+            self.actions.push(action.clone());
+        }
+        response.erase()
     }
 
     fn draw(&self, ui: &mut Ui<'_>) {
@@ -239,17 +242,48 @@ fn remapped_manual_completion_uses_keymap_binding() {
     assert!(!runtime.app().state.is_completion_open());
     send(&mut runtime, KeyCode::F(4), KeyModifiers::NONE);
     assert!(runtime.app().state.is_completion_open());
+    send(&mut runtime, KeyCode::F(4), KeyModifiers::NONE);
+    assert!(runtime.app().state.is_completion_open());
     assert_eq!(
         runtime.app().provider.triggers.borrow().as_slice(),
-        &[CompletionTrigger::Manual]
+        &[CompletionTrigger::Manual, CompletionTrigger::Manual]
     );
+}
+
+#[test]
+fn default_manual_completion_remains_available_while_popup_is_open() {
+    let mut runtime = runtime("SELECT co");
+    send(&mut runtime, KeyCode::Char(' '), KeyModifiers::CONTROL);
+    send(&mut runtime, KeyCode::Char(' '), KeyModifiers::CONTROL);
+    assert!(runtime.app().state.is_completion_open());
+    assert_eq!(
+        runtime.app().provider.triggers.borrow().as_slice(),
+        &[CompletionTrigger::Manual, CompletionTrigger::Manual]
+    );
+}
+
+#[test]
+fn manual_completion_is_ignored_while_find_is_typing() {
+    let mut runtime = runtime("SELECT co");
+    send(&mut runtime, KeyCode::Char('f'), KeyModifiers::CONTROL);
+    assert!(runtime.app().state.editor().is_find_typing());
+    send(&mut runtime, KeyCode::Char(' '), KeyModifiers::CONTROL);
+    assert!(runtime.app().state.editor().is_find_typing());
+    assert!(!runtime.app().state.is_completion_open());
+    assert!(runtime.app().provider.triggers.borrow().is_empty());
 }
 
 #[test]
 fn bare_code_editor_ctrl_space_does_not_trigger_completions() {
     let mut state = termrock_editors::code::CodeEditorState::new("SELECT co");
     state.begin_edit();
-    let mut runtime = Runtime::new(BareEditorApp { state }, Theme::junie());
+    let mut runtime = Runtime::new(
+        BareEditorApp {
+            state,
+            actions: Vec::new(),
+        },
+        Theme::junie(),
+    );
     let _ = runtime.initialize();
     let mut buffer = Buffer::empty(AREA);
     runtime.draw_buffer(AREA, &mut buffer).commit_presented();
@@ -261,6 +295,7 @@ fn bare_code_editor_ctrl_space_does_not_trigger_completions() {
     assert_eq!(runtime.app().state.text(), "SELECT co");
     assert!(runtime.app().state.is_editing());
     assert!(!runtime.app().state.is_find_typing());
+    assert!(runtime.app().actions.is_empty());
 }
 
 #[test]
