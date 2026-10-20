@@ -221,26 +221,42 @@ fn explicit_default_policies_preserve_full_frame_and_cursor_at_each_color_level(
 
 #[test]
 fn fill_cursor_uses_selection_colors_and_keeps_the_reserved_gutter_blank() {
-    let h = page_with_policy(
-        ItemRowLayout::Columns,
-        64,
-        4,
-        false,
+    for level in [
         ColorLevel::TrueColor,
-        CursorStyle::Fill,
-        1,
-        ITEMS.to_vec(),
-    );
-    let row = row(&h, 1);
-    let gutter = h.cell(row.x, row.y);
-    let label = h.cell(row.x.saturating_add(4), row.y);
-    let theme = Theme::junie();
-    assert_eq!(gutter.symbol(), " ");
-    assert_eq!(gutter.bg, theme.color.selection_bg);
-    assert_eq!(label.bg, theme.color.selection_bg);
-    assert_eq!(label.fg, theme.color.selection_fg);
-    assert!(h.app().state.cursor().is_some());
-    assert!(h.diagnostics().is_empty(), "{:?}", h.diagnostics());
+        ColorLevel::Ansi256,
+        ColorLevel::Ansi16,
+        ColorLevel::Mono,
+    ] {
+        let h = page_with_policy(
+            ItemRowLayout::Columns,
+            64,
+            4,
+            false,
+            level,
+            CursorStyle::Fill,
+            1,
+            ITEMS.to_vec(),
+        );
+        let row = row(&h, 1);
+        let gutter = h.cell(row.x, row.y);
+        let label = h.cell(row.x.saturating_add(4), row.y);
+        let theme = Theme::junie().for_level(level);
+        assert_eq!(gutter.symbol(), " ", "{level:?}");
+        assert_eq!(label.bg, theme.color.selection_bg, "{level:?}");
+        assert_eq!(label.fg, theme.color.selection_fg, "{level:?}");
+        assert!(h.app().state.cursor().is_some());
+        assert!(h.diagnostics().is_empty(), "{:?}", h.diagnostics());
+
+        let bar = page(ItemRowLayout::Columns, 64, 4, false, level);
+        assert_eq!(
+            bar.app().state.cursor(),
+            h.app().state.cursor(),
+            "{level:?}"
+        );
+        assert_eq!(bar.cursor(), h.cursor(), "{level:?}");
+        assert_ne!(bar.buffer(), h.buffer(), "{level:?}");
+        assert_ne!(bar.cell(row.x, row.y).symbol(), " ", "{level:?}");
+    }
 }
 
 #[test]
