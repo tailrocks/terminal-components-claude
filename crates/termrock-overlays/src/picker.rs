@@ -729,30 +729,55 @@ mod tests {
             "a",
             "paste immediately after Esc"
         );
+        let resized = Rect::new(0, 0, 90, 26);
+        let _ = termrock_runtime::runtime::stub::deliver(
+            &mut runtime,
+            Input::Resize(resized.width, resized.height),
+        );
+        buffer = ratatui_core::buffer::Buffer::empty(resized);
+        runtime.draw_buffer(resized, &mut buffer).commit_presented();
+        assert_eq!(runtime.app().state.query(), "a");
+        assert!(runtime.app().state.list().is_query_editing());
+        assert!(
+            runtime.cursor().is_some(),
+            "resized query retains its caret"
+        );
         let _ = termrock_runtime::runtime::stub::deliver(&mut runtime, key(KeyCode::Esc));
-        runtime.draw_buffer(area, &mut buffer).commit_presented();
+        runtime.draw_buffer(resized, &mut buffer).commit_presented();
         assert_eq!(runtime.app().state.query(), "");
         for code in [KeyCode::Char('z'), KeyCode::Char('z')] {
             let _ = termrock_runtime::runtime::stub::deliver(&mut runtime, key(code));
-            runtime.draw_buffer(area, &mut buffer).commit_presented();
+            runtime.draw_buffer(resized, &mut buffer).commit_presented();
         }
         assert_eq!(runtime.app().state.query(), "zz");
         let _ = termrock_runtime::runtime::stub::deliver(&mut runtime, key(KeyCode::Enter));
-        runtime.draw_buffer(area, &mut buffer).commit_presented();
+        runtime.draw_buffer(resized, &mut buffer).commit_presented();
         assert!(runtime.is_open(ID));
         assert!(runtime.app().state.list().is_query_editing());
         let _ = termrock_runtime::runtime::stub::deliver(&mut runtime, Input::Paste("a".into()));
-        runtime.draw_buffer(area, &mut buffer).commit_presented();
+        runtime.draw_buffer(resized, &mut buffer).commit_presented();
         assert_eq!(runtime.app().state.query(), "zza");
 
         let _ = termrock_runtime::runtime::stub::deliver(&mut runtime, key(KeyCode::Esc));
-        runtime.draw_buffer(area, &mut buffer).commit_presented();
+        runtime.draw_buffer(resized, &mut buffer).commit_presented();
         assert_eq!(runtime.app().state.query(), "");
 
         let _ = termrock_runtime::runtime::stub::deliver(&mut runtime, key(KeyCode::Esc));
-        runtime.draw_buffer(area, &mut buffer).commit_presented();
+        runtime.draw_buffer(resized, &mut buffer).commit_presented();
         assert!(!runtime.is_open(ID), "second Esc dismisses empty picker");
         assert!(runtime.app().actions.contains(&PickerAction::QueryChanged));
+
+        runtime.app_mut().opened = false;
+        let _ = termrock_runtime::runtime::stub::deliver(&mut runtime, Input::Tick);
+        runtime.draw_buffer(resized, &mut buffer).commit_presented();
+        assert!(runtime.is_open(ID));
+        let _ = termrock_runtime::runtime::stub::deliver(&mut runtime, key(KeyCode::Char('b')));
+        runtime.draw_buffer(resized, &mut buffer).commit_presented();
+        assert_eq!(runtime.app().state.query(), "b");
+        let _ = termrock_runtime::runtime::stub::deliver(&mut runtime, key(KeyCode::Esc));
+        runtime.draw_buffer(resized, &mut buffer).commit_presented();
+        assert_eq!(runtime.app().state.query(), "");
+        assert!(runtime.cursor().is_some());
     }
 
     #[test]
