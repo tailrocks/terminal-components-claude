@@ -30,3 +30,7 @@ unicode-width.workspace = true
 [[test]]
 name = "visual_baseline"
 path = "tests/visual_baseline/main.rs"
+
+# Rust documentation examples are guarded by the workspace doc inventory test.
+[lib]
+doctest = false
