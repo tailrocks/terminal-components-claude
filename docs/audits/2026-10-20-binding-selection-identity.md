@@ -9,7 +9,7 @@ after selecting `Beta`, and composite bindings retained `Beta` after switching b
 APIs and `Harness` rendering.
 
 The public `BindingTableId` remains unchanged and continues to identify its original
-static/dynamic/composite table. Runtime caches now also compare the exact selected
+static or dynamic table. Runtime caches now also compare the exact selected
 `BindingDescriptor` slice. Focused hints, conflict diagnostics, and dynamic-binding base
 identity all use this structural comparison, so frame-local composite revision reuse and
 equal-sized filtered subsets cannot reuse stale results. Comparisons allocate only when
@@ -35,3 +35,10 @@ Post-fix validation on the worker commit: `cargo nextest run -p termrock-runtime
 --all-targets` passed 299 tests with 3 skipped; `cargo clippy -p termrock-runtime
 --all-targets -- -D warnings`, rustfmt checks on the changed Rust files, and
 `git diff --check` passed.
+
+Review correction: the first worker commit accidentally retained a `Composite` public
+variant introduced by its base, despite the original public contract having only
+`Static` and `Dynamic`. This follow-up removes that variant, represents composed-table
+publication with the existing dynamic identity, and changes the external consumer test
+to exhaustively match exactly the original two variants. The previous three-variant
+claim was incorrect and is superseded by this correction.

@@ -312,12 +312,6 @@ pub enum BindingTableId {
 
         len: usize,
     },
-
-    Composite {
-        revision: u64,
-
-        len: usize,
-    },
 }
 
 impl BindingTableId {
@@ -441,10 +435,7 @@ impl BindingRegistry {
             owner,
             flags,
             layer,
-            table: BindingTableId::Composite {
-                revision: self.composite_revision,
-                len,
-            },
+            table: BindingTableId::dynamic(owner, len, self.composite_revision),
             start,
             len,
         });
