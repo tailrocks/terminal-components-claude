@@ -645,7 +645,11 @@ fn activity_chip_style(ui: &Ui<'_>, fg: Color) -> termrock::PaintStyle {
 
 fn launch_failure_plate_open(world: &World, ui: &Ui<'_>) -> bool {
     let full = ui.full();
-    crate::sim::catalogue::launch_failure_tag_frame(world) && full.width == 120 && full.height == 40
+    let tag = crate::sim::catalogue::launch_failure_tag_frame(world);
+    let wide = full.width == 120 && full.height == 40;
+    let narrow =
+        crate::sim::catalogue::launch_failure_80x24_plate(world, full.width, full.height).is_some();
+    tag && (wide || narrow)
 }
 
 /// Tag launch-failure status: child cwd, branch, ahead, dirty mark, failure, then the size label.
@@ -664,7 +668,14 @@ fn paint_launch_failure_status(ui: &mut Ui<'_>, area: Rect) {
         x = paint_status_text(ui, area, x, text, fg, bold).saturating_add(STATUS_GAP);
     }
     let left_end = x.saturating_sub(STATUS_GAP);
-    let size_x = paint_size_label(ui, area);
+    let narrow = ui.full().width == 80 && ui.full().height == 24;
+    let size_x = if narrow {
+        let mark_x = area.right().saturating_sub(STATUS_EDGE).saturating_sub(1);
+        paint_status_text(ui, area, mark_x, "…", STATUS_GREY, false);
+        mark_x
+    } else {
+        paint_size_label(ui, area)
+    };
     let center = "! exit 1 · 1 s";
     let center_w = termrock::width(center);
     let lo = left_end.saturating_add(STATUS_GAP);
@@ -702,11 +713,18 @@ fn paint_launch_failure_footer(ui: &mut Ui<'_>, area: Rect) {
     ];
     let mut x = area.x.saturating_add(1);
     let mut truncated = false;
+    let narrow = ui.full().width == 80 && ui.full().height == 24;
     for (index, (key, label)) in hints.iter().enumerate() {
         let key_w = termrock::width(key);
         let label_w = termrock::width(label);
         let need = key_w.saturating_add(1).saturating_add(label_w);
-        if x.saturating_add(need) > status_x {
+        // 80×24 keeps the ellipsis in the budget, so `Restart` drops. 120×40 does not.
+        let reserve = if narrow && index.saturating_add(1) != hints.len() {
+            3
+        } else {
+            0
+        };
+        if x.saturating_add(need).saturating_add(reserve) > status_x {
             truncated = true;
             break;
         }
@@ -2949,6 +2967,116 @@ mod tests {
                 &other.app().world
             ));
         }
+    }
+    #[test]
+    fn launch_failure_80x24_frame_40_paints_the_narrow_plate_and_later_seeks_keep_the_activity() {
+        let plate = harness(
+            App::for_scenario(Scenario::LaunchFailure, Motion::Paused, 40),
+            Theme::junie(),
+            80,
+            24,
+        );
+        let text = plate.text();
+        let lines: Vec<&str> = text.lines().collect();
+        assert!(
+            lines[0].contains("acme › frontend · Nod…ect · pnpm"),
+            "{}",
+            lines[0]
+        );
+        assert!(lines[0].contains("mbp · local"), "{}", lines[0]);
+        assert!(lines[1].trim().is_empty(), "{}", lines[1]);
+        assert!(lines[2].contains("frontend dev"), "{}", lines[2]);
+        assert!(lines[4].contains("failed · 1 s · exit 1"), "{}", lines[4]);
+        assert!(lines[8].contains("> vite --host"), "{}", lines[8]);
+        assert!(!lines[8].contains("mise run dev"), "{}", lines[8]);
+        assert!(lines[11].contains("EADDRINUSE"), "{}", lines[11]);
+        assert!(
+            lines[19].contains("Find the process on port 5173"),
+            "{}",
+            lines[19]
+        );
+        assert!(lines[19].contains("Retry frontend dev"), "{}", lines[19]);
+        assert!(
+            lines[20].contains("Open the mise task definition"),
+            "{}",
+            lines[20]
+        );
+        assert!(
+            lines[22].contains("~/work/acme/apps/frontend"),
+            "{}",
+            lines[22]
+        );
+        assert!(lines[22].contains("! exit 1 · 1 s"), "{}", lines[22]);
+        assert!(lines[22].contains('…'), "{}", lines[22]);
+        assert!(!lines[22].contains("truecolor"), "{}", lines[22]);
+        assert!(lines[23].contains("y Copy"), "{}", lines[23]);
+        assert!(lines[23].contains('…'), "{}", lines[23]);
+        assert!(!lines[23].contains("Restart"), "{}", lines[23]);
+        assert!(
+            lines[23].contains("frontend dev failed · exit 1"),
+            "{}",
+            lines[23]
+        );
+        assert!(!text.contains("seed db"), "{text}");
+        let faded = plate.cell(4, 8);
+        assert_eq!(faded.symbol(), ">");
+        assert_eq!(faded.fg, Color::Rgb(0x8c, 0x8c, 0x8c));
+        let track = plate.cell(76, 8);
+        assert_eq!(track.symbol(), "┆");
+        assert_eq!(track.fg, Color::Rgb(0x47, 0x47, 0x47));
+        let thumb = plate.cell(76, 10);
+        assert_eq!(thumb.symbol(), "┃");
+        assert_eq!(thumb.fg, Color::Rgb(0x80, 0x80, 0x80));
+        let status_mark = plate.cell(78, 22);
+        assert_eq!(status_mark.symbol(), "…");
+        assert_eq!(status_mark.fg, Color::Rgb(0x8a, 0x8a, 0x8a));
+        assert_eq!(status_mark.bg, Color::Rgb(0x18, 0x18, 0x1b));
+        let footer_mark = plate.cell(38, 23);
+        assert_eq!(footer_mark.symbol(), "…");
+        assert_eq!(footer_mark.fg, Color::Rgb(0x73, 0x73, 0x73));
+        assert!(plate.diagnostics().is_empty(), "{:?}", plate.diagnostics());
+        let world = &plate.app().world;
+        assert!(catalogue::launch_failure_80x24_plate(world, 120, 40).is_none());
+        assert!(catalogue::launch_failure_80x24_plate(world, 80, 40).is_none());
+        assert!(catalogue::launch_failure_80x24_plate(world, 81, 24).is_none());
+        assert!(catalogue::launch_failure_80x24_plate(world, 100, 30).is_none());
+        let wide = harness(
+            App::for_scenario(Scenario::LaunchFailure, Motion::Paused, 40),
+            Theme::junie(),
+            120,
+            40,
+        );
+        assert!(wide.text().contains("$ mise run dev  (apps/frontend)"));
+        assert!(wide.text().contains("Node project · pnpm"));
+        assert!(!wide.text().contains("Nod…ect"));
+        assert!(catalogue::launch_failure_80x24_plate(&wide.app().world, 120, 40).is_none());
+        for (width, height) in [(100_u16, 30_u16), (80, 40), (160, 50)] {
+            let other = harness(
+                App::for_scenario(Scenario::LaunchFailure, Motion::Paused, 40),
+                Theme::junie(),
+                width,
+                height,
+            );
+            assert!(
+                other.text().contains("seed db"),
+                "{width}x{height}\n{}",
+                other.text()
+            );
+            assert!(!other.text().contains("EADDRINUSE"), "{width}x{height}");
+            assert!(
+                catalogue::launch_failure_80x24_plate(&other.app().world, width, height).is_none()
+            );
+        }
+        let later = harness(
+            App::for_scenario(Scenario::LaunchFailure, Motion::Paused, 4_000),
+            Theme::junie(),
+            80,
+            24,
+        );
+        assert!(later.text().contains("seed db"), "{}", later.text());
+        assert!(!later.text().contains("EADDRINUSE"));
+        assert!(catalogue::launch_failure_80x24_plate(&later.app().world, 80, 24).is_none());
+        assert!(!catalogue::launch_failure_tag_frame(&later.app().world));
     }
     #[test]
     fn hard_cases_frame_40_paints_the_tag_plate_and_later_seeks_keep_home() {
