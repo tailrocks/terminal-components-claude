@@ -381,7 +381,7 @@ impl<A: App> Harness<A> {
         self.rt.app()
     }
 
-    pub const fn app_mut(&mut self) -> &mut A {
+    pub fn app_mut(&mut self) -> &mut A {
         self.rt.app_mut()
     }
 
