@@ -16,7 +16,7 @@ use termrock_core::id::{Id, Part};
 use termrock_core::response::Response;
 use termrock_runtime::{App, Cx, Status, Ui};
 use termrock_test_support::Harness;
-use termrock_theme::{Family, GlyphRole, Role, StateFlags, StylePatch, Theme};
+use termrock_theme::{ColorLevel, Family, GlyphRole, Role, StateFlags, StylePatch, Theme, Variant};
 
 const BUTTON: Id = Id::root("button.contract.main");
 const AREA: Rect = Rect {
@@ -76,9 +76,44 @@ fn checked_fallback_keeps_single_cell_button_marker_and_explicit_patch_wins() {
     let off = Harness::new(PropsPage::default(), Theme::junie(), 20, 1);
     assert_eq!(
         on.cell(1, 0).symbol(),
-        Theme::junie().design.glyphs.get(GlyphRole::SwitchKnob)
+        Theme::junie().design.glyphs.get(GlyphRole::DotOn)
     );
-    assert_eq!(off.cell(1, 0).symbol(), " ");
+    assert_eq!(
+        off.cell(1, 0).symbol(),
+        Theme::junie().design.glyphs.get(GlyphRole::DotOff)
+    );
+
+    let ascii = Theme::junie().builder().ascii_glyphs().build();
+    let ascii_on = Harness::new(
+        PropsPage {
+            checked: true,
+            ..PropsPage::default()
+        },
+        ascii.clone(),
+        20,
+        1,
+    );
+    let ascii_off = Harness::new(PropsPage::default(), ascii, 20, 1);
+    assert_eq!(ascii_on.cell(1, 0).symbol(), "*");
+    assert_eq!(ascii_off.cell(1, 0).symbol(), "o");
+
+    let custom_dots = Theme::junie()
+        .builder()
+        .glyph(GlyphRole::DotOn, "+")
+        .glyph(GlyphRole::DotOff, "-")
+        .build();
+    let custom_on = Harness::new(
+        PropsPage {
+            checked: true,
+            ..PropsPage::default()
+        },
+        custom_dots.clone(),
+        20,
+        1,
+    );
+    let custom_off = Harness::new(PropsPage::default(), custom_dots, 20, 1);
+    assert_eq!(custom_on.cell(1, 0).symbol(), "+");
+    assert_eq!(custom_off.cell(1, 0).symbol(), "-");
 
     struct PatchedMarker;
     impl App for PatchedMarker {
@@ -246,12 +281,15 @@ const OTHER: Id = Id::root("button.contract.other");
 
 struct FocusPage {
     policy: ButtonFocusVisibility,
+    variant: Variant,
     activations: usize,
 }
 
 impl FocusPage {
     fn button(&self) -> Button<'static> {
-        Button::new(BUTTON, "Go").focus_visible(self.policy)
+        Button::new(BUTTON, "Go")
+            .variant(self.variant)
+            .focus_visible(self.policy)
     }
 }
 
@@ -280,6 +318,10 @@ fn focus_theme() -> Theme {
             StateFlags::FOCUS_VISIBLE,
             StylePatch::new().set_glyph(GlyphRole::FocusBar),
         );
+        edit.part(Part::LABEL).when(
+            StateFlags::FOCUSED,
+            StylePatch::new().add(ratatui_core::style::Modifier::BOLD),
+        );
     })
 }
 
@@ -288,6 +330,7 @@ fn pointer_focus_visibility_obeys_always_and_keyboard_only_policies() {
     let mut always = Harness::new(
         FocusPage {
             policy: ButtonFocusVisibility::Always,
+            variant: Variant::DEFAULT,
             activations: 0,
         },
         focus_theme(),
@@ -309,6 +352,7 @@ fn pointer_focus_visibility_obeys_always_and_keyboard_only_policies() {
     let mut keyboard_only = Harness::new(
         FocusPage {
             policy: ButtonFocusVisibility::KeyboardOnly,
+            variant: Variant::DEFAULT,
             activations: 0,
         },
         focus_theme(),
@@ -321,6 +365,13 @@ fn pointer_focus_visibility_obeys_always_and_keyboard_only_policies() {
     assert_eq!(
         keyboard_only.resolved(BUTTON, Part::GUTTER).glyph,
         termrock_theme::Slot::Set(GlyphRole::RuleQuiet)
+    );
+    assert!(
+        keyboard_only
+            .resolved(BUTTON, Part::LABEL)
+            .style
+            .add_modifier
+            .contains(ratatui_core::style::Modifier::BOLD)
     );
     let _ = keyboard_only.mouse(termrock_core::event::MouseKind::Up, 10, 0);
     assert_eq!(keyboard_only.app().activations, 1);
@@ -336,6 +387,91 @@ fn pointer_focus_visibility_obeys_always_and_keyboard_only_policies() {
         keyboard_only.resolved(OTHER, Part::GUTTER).glyph,
         termrock_theme::Slot::Set(GlyphRole::FocusBar)
     );
+}
+
+#[test]
+fn focus_visibility_policies_hold_for_every_button_variant_and_color_level() {
+    let variants = [
+        Variant::DEFAULT,
+        Variant::PRIMARY,
+        Variant::SECONDARY,
+        Variant::SUBTLE,
+        Variant::DANGER,
+        Variant::TOGGLE,
+        Variant::QUIET,
+        Variant::GHOST,
+    ];
+    let levels = [
+        ColorLevel::TrueColor,
+        ColorLevel::Ansi256,
+        ColorLevel::Ansi16,
+        ColorLevel::Mono,
+    ];
+    for level in levels {
+        for variant in variants {
+            let mut always = Harness::new(
+                FocusPage {
+                    policy: ButtonFocusVisibility::Always,
+                    variant,
+                    activations: 0,
+                },
+                Theme::junie().downgrade(level),
+                30,
+                1,
+            );
+            let _ = always.mouse(termrock_core::event::MouseKind::Down, 10, 0);
+            assert_eq!(always.focus(), Some(BUTTON), "{level:?}/{variant:?}");
+            assert_eq!(
+                always.resolved(BUTTON, Part::GUTTER).glyph,
+                termrock_theme::Slot::Set(GlyphRole::FocusBar),
+                "Always omitted pointer focus at {level:?}/{variant:?}"
+            );
+
+            let mut keyboard = Harness::new(
+                FocusPage {
+                    policy: ButtonFocusVisibility::KeyboardOnly,
+                    variant,
+                    activations: 0,
+                },
+                Theme::junie().downgrade(level),
+                30,
+                1,
+            );
+            let _ = keyboard.key(termrock_core::keys::KeyCode::Tab);
+            assert_eq!(keyboard.focus(), Some(BUTTON), "{level:?}/{variant:?}");
+            assert!(keyboard.focus_visible(), "{level:?}/{variant:?}");
+            assert_eq!(
+                keyboard.resolved(BUTTON, Part::GUTTER).glyph,
+                termrock_theme::Slot::Set(GlyphRole::FocusBar),
+                "keyboard focus omitted its indicator at {level:?}/{variant:?}"
+            );
+
+            let mut keyboard_only = Harness::new(
+                FocusPage {
+                    policy: ButtonFocusVisibility::KeyboardOnly,
+                    variant,
+                    activations: 0,
+                },
+                Theme::junie().downgrade(level),
+                30,
+                1,
+            );
+            let _ = keyboard_only.mouse(termrock_core::event::MouseKind::Down, 10, 0);
+            let _ = keyboard_only.mouse(termrock_core::event::MouseKind::Up, 10, 0);
+            assert_eq!(keyboard_only.focus(), Some(BUTTON), "{level:?}/{variant:?}");
+            assert_ne!(
+                keyboard_only.resolved(BUTTON, Part::GUTTER).glyph,
+                termrock_theme::Slot::Set(GlyphRole::FocusBar),
+                "KeyboardOnly showed pointer focus at {level:?}/{variant:?}"
+            );
+            let _ = keyboard_only.key(termrock_core::keys::KeyCode::Enter);
+            assert_eq!(
+                keyboard_only.app().activations,
+                2,
+                "actual focus/binding lost at {level:?}/{variant:?}"
+            );
+        }
+    }
 }
 
 struct InertFocusedButton;
@@ -364,6 +500,12 @@ fn always_policy_does_not_promote_focus_in_an_inert_reference_scope() {
         h.resolved(BUTTON, Part::GUTTER).glyph,
         termrock_theme::Slot::Set(GlyphRole::RuleQuiet)
     );
+    assert!(
+        h.resolved(BUTTON, Part::LABEL)
+            .style
+            .add_modifier
+            .contains(ratatui_core::style::Modifier::BOLD)
+    );
     assert!(!h.ring().is_registered(BUTTON));
 }
 
@@ -372,6 +514,7 @@ fn keyboard_enter_and_space_share_button_activation() {
     let mut h = Harness::new(
         FocusPage {
             policy: ButtonFocusVisibility::KeyboardOnly,
+            variant: Variant::DEFAULT,
             activations: 0,
         },
         focus_theme(),
