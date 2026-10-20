@@ -3680,6 +3680,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "termrock-shell"
+version = "0.1.0"
+dependencies = [
+ "ratatui",
+ "ratatui-core",
+ "termrock",
+ "termrock-core",
+ "termrock-layout",
+ "termrock-runtime",
+ "termrock-test-support",
+ "termrock-theme",
+]
+
+[[package]]
 name = "termrock-terminal"
 version = "0.1.0"
 dependencies = [
