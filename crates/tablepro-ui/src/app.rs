@@ -2311,9 +2311,8 @@ impl TableProApp {
             .iter()
             .take(count)
             .any(|column| view.state.sampled_column_width(column.key).is_none())
+            && let Ok(sample) = termrock::WidthSample::new(200, 95)
         {
-            let sample = termrock::WidthSample::new(200, 95)
-                .expect("the frozen grid sample uses 200 rows at the 95th percentile");
             grid.sample_column_widths(&mut view.state, &view.model, sample);
         }
         let response = if view.model.is_editable() {
@@ -3218,13 +3217,11 @@ impl TableProApp {
             extend_query_error_edge(ui, area, inner);
         }
         if let Some(Tab::Query(query)) = self.workbench.active()
-            && query.plan.is_some()
+            && let Some(plan) = query.plan.as_ref()
             && query.error.is_none()
             && query.result.is_none()
         {
-            if let Some(plan) = query.plan.as_ref() {
-                extend_query_plan_edge(ui, area, inner, plan);
-            }
+            extend_query_plan_edge(ui, area, inner, plan);
         }
         if let Some(Tab::Query(query)) = self.workbench.active()
             && query.result.is_some()
@@ -6288,10 +6285,6 @@ fn paint_scrolled_header(
 
 #[allow(
     clippy::too_many_lines,
-    reason = "scrolled cell color, fade, and alignment stay in one pass"
-)]
-#[allow(
-    clippy::too_many_lines,
     reason = "header gutter, primary key, and muted titles share one pass"
 )]
 fn paint_grid_header(
@@ -6844,6 +6837,7 @@ fn repaint_presented_rows(
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 fn draw_painted_grid(
     ui: &mut Ui<'_>,
     area: termrock::Rect,
