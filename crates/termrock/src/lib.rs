@@ -111,8 +111,9 @@ pub use termrock_runtime::{
 };
 
 pub use termrock_runtime::layer::{
-    Anchor, Backdrop, CrossAlign, Dismiss, DismissReason, LayerEvent, LayerId, LayerKind,
-    LayerOpening, LayerSize, LayerSpec, ScreenAlign, Side, backdrop_area, resolve_anchor,
+    Anchor, Backdrop, CrossAlign, Dismiss, DismissReason, LayerCompletion, LayerEvent, LayerId,
+    LayerKind, LayerOpening, LayerSize, LayerSpec, ScreenAlign, Side, backdrop_area,
+    resolve_anchor,
 };
 
 pub use termrock_theme::{
