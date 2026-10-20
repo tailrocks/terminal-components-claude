@@ -2,7 +2,10 @@
 
 pub mod app;
 pub mod cli;
+pub mod help_keys;
 pub mod quick_switcher;
+pub mod safe_mode;
+pub mod tab_list;
 pub mod workbench;
 
 pub use tablepro_demo::db;

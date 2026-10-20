@@ -1464,6 +1464,26 @@ fn settings_route_80_paints_the_approved_breadcrumb_cell() {
 }
 
 #[test]
+fn settings_mounts_80_paints_the_approved_destination_cell() {
+    let mut h = H::new(Scenario::AccountsMixed, Motion::Paused, 40, 80, 24);
+    h.key(KeyCode::Char('s'));
+    assert_eq!(h.app().settings.tab, 0);
+    let general = h.buffer().cell((8, 6)).expect("general body");
+    assert_ne!(general.symbol(), "D", "General must not show Destination");
+    h.key(KeyCode::Char('2'));
+    assert_eq!(h.app().settings.tab, 0);
+    h.key(KeyCode::Enter);
+    assert_eq!(h.app().settings.tab, 1);
+    let dest = h.buffer().cell((8, 6)).expect("destination heading");
+    assert_eq!(dest.symbol(), "D");
+    assert_eq!(dest.fg, termrock::Color::from_u32(0x8a_8a_8a));
+    assert_eq!(dest.bg, termrock::Color::from_u32(0x00_00_00));
+    assert!(!dest.modifier.contains(termrock::Modifier::BOLD));
+    assert!(!dest.modifier.contains(termrock::Modifier::ITALIC));
+    assert_eq!(h.harness.cursor(), None);
+}
+
+#[test]
 fn settings_env_three_enter_paints_the_approved_env_frame() {
     let mut h = H::new(Scenario::AccountsMixed, Motion::Paused, 40, 120, 40);
     h.key(KeyCode::Char('s'));
@@ -1711,6 +1731,30 @@ fn accounts_detail_downs_paint_the_approved_work_frame() {
 }
 
 #[test]
+fn accounts_detail_downs_paint_the_approved_80_work_cell() {
+    let mut h = H::new(Scenario::AccountsMixed, Motion::Paused, 40, 80, 24);
+    let closed = h.buffer().cell((38, 0)).expect("overview crumb");
+    assert_ne!(
+        closed.symbol(),
+        "A",
+        "overview must stay off the detail crumb"
+    );
+    for _ in 0..4 {
+        h.key(KeyCode::Down);
+    }
+    assert_eq!(
+        h.app().accounts.selected_id.as_deref(),
+        Some("acct-claude-work")
+    );
+    let crumb = h.buffer().cell((38, 0)).expect("work breadcrumb");
+    assert_eq!(crumb.symbol(), "A");
+    assert_eq!(crumb.fg, termrock::Color::from_u32(0xb3_b3_b3));
+    assert_eq!(crumb.bg, termrock::Color::from_u32(0x00_00_00));
+    assert!(!crumb.modifier.contains(termrock::Modifier::BOLD));
+    assert_eq!(h.harness.cursor(), None);
+}
+
+#[test]
 fn accounts_drawer_enter_paints_the_approved_work_drawer() {
     let mut h = H::new(Scenario::AccountsMixed, Motion::Paused, 40, 120, 40);
     for _ in 0..4 {
@@ -1901,6 +1945,28 @@ fn accounts_filter_enter_paints_the_approved_filter_frame() {
     assert_eq!(mark.symbol(), "j");
     assert_eq!(mark.fg, termrock::Color::from_u32(0x19_19_1c));
     assert_eq!(mark.bg, termrock::Color::from_u32(0x48_e0_54));
+    assert_eq!(h.harness.cursor(), None);
+}
+
+#[test]
+fn accounts_filter_enter_paints_the_approved_80_filter_cell() {
+    let mut h = H::new(Scenario::AccountsMixed, Motion::Paused, 40, 80, 24);
+    assert!(
+        !h.text().contains("Accounts · filt"),
+        "closed list must stay off the filter frame: {}",
+        h.text()
+    );
+    h.key(KeyCode::Char('/'));
+    h.type_str("work");
+    h.key(KeyCode::Enter);
+    assert!(h.app().accounts.filtering);
+    assert!(!h.app().accounts.filter_input.is_editing());
+    assert_eq!(h.app().accounts.filter_query, "work");
+    let title = h.buffer().cell((4, 2)).expect("filter title");
+    assert_eq!(title.symbol(), "A");
+    assert_eq!(title.fg, termrock::Color::from_u32(0xff_ff_ff));
+    assert_eq!(title.bg, termrock::Color::from_u32(0x00_00_00));
+    assert!(title.modifier.contains(termrock::Modifier::BOLD));
     assert_eq!(h.harness.cursor(), None);
 }
 

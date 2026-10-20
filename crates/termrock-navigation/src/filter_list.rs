@@ -17,7 +17,7 @@ use termrock_runtime::keymap::{Binding, BindingState, Bindings};
 use termrock_runtime::rowui::{RowFn, RowUi};
 use termrock_runtime::scroll_region::ScrollRegion;
 use termrock_runtime::ui::{Cx, FrameRead, Ui};
-use termrock_theme::{Family, GlyphRole, Slot, StylePatch, Variant};
+use termrock_theme::{CursorStyle, Family, GlyphRole, Slot, StylePatch, Variant};
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum FilterListAction {
@@ -221,6 +221,8 @@ pub struct FilterList<'a, T, R = crate::item::ItemRow> {
     id: Id,
     row: R,
     item_layout: crate::item::ItemRowLayout,
+    cursor_style: CursorStyle,
+    metadata_gap: u16,
     empty: Option<EmptyState<'a>>,
     status: Status,
     frame: usize,
@@ -229,6 +231,7 @@ pub struct FilterList<'a, T, R = crate::item::ItemRow> {
     patch: Option<&'a StylePatch>,
     parts: &'a [(Part, StylePatch)],
     ov: PartStyle<'a>,
+    preserve_surface: bool,
     _item: PhantomData<fn(&T)>,
 }
 
@@ -248,6 +251,8 @@ impl<T> FilterList<'_, T, crate::item::ItemRow> {
             id,
             row: crate::item::ItemRow,
             item_layout: crate::item::ItemRowLayout::Compact,
+            cursor_style: CursorStyle::Bar,
+            metadata_gap: 1,
             empty: None,
             status: Status::Ready,
             frame: 0,
@@ -256,6 +261,7 @@ impl<T> FilterList<'_, T, crate::item::ItemRow> {
             patch: None,
             parts: &[],
             ov: PartStyle::new(),
+            preserve_surface: false,
             _item: PhantomData,
         }
     }
@@ -272,6 +278,25 @@ impl<T> FilterList<'_, T, crate::item::ItemRow> {
 impl<'a, T, R> FilterList<'a, T, R> {
     pub const fn with_item_layout(mut self, layout: crate::item::ItemRowLayout) -> Self {
         self.item_layout = layout;
+        self
+    }
+
+    #[must_use]
+    pub const fn cursor_style(mut self, style: CursorStyle) -> Self {
+        self.cursor_style = style;
+        self
+    }
+
+    /// The picker card already painted this rectangle. Do not cover that ink.
+    #[must_use]
+    pub const fn preserve_surface(mut self, preserve: bool) -> Self {
+        self.preserve_surface = preserve;
+        self
+    }
+
+    #[must_use]
+    pub const fn metadata_gap(mut self, gap: u16) -> Self {
+        self.metadata_gap = gap;
         self
     }
 
@@ -294,6 +319,8 @@ impl<'a, T, R> FilterList<'a, T, R> {
             id: self.id,
             row,
             item_layout: crate::item::ItemRowLayout::Compact,
+            cursor_style: self.cursor_style,
+            metadata_gap: self.metadata_gap,
             empty: self.empty,
             status: self.status,
             frame: self.frame,
@@ -302,6 +329,7 @@ impl<'a, T, R> FilterList<'a, T, R> {
             patch: self.patch,
             parts: self.parts,
             ov: self.ov,
+            preserve_surface: self.preserve_surface,
             _item: PhantomData,
         }
     }
@@ -348,7 +376,9 @@ impl<'a, T, R> FilterList<'a, T, R> {
         self
     }
     fn scrollbar(&self) -> ScrollRegion<'a> {
-        let mut bar = ScrollRegion::new(self.id).patch_part(self.parts);
+        let mut bar = ScrollRegion::new(self.id)
+            .patch_part(self.parts)
+            .preserve_underlay(self.preserve_surface);
         if let Some(p) = self.patch {
             bar = bar.patch(p);
         }
@@ -408,6 +438,17 @@ impl<'a, T, R> FilterList<'a, T, R> {
         }
         shift(area, area.width.min(2))
     }
+}
+
+fn surface_already_opaque(ui: &mut Ui<'_>, area: Rect) -> bool {
+    ui.with_area(area, |ui| {
+        let (buf, clip) = ui.raw();
+        !clip.is_empty()
+            && clip.positions().all(|pos| {
+                buf.cell(pos)
+                    .is_some_and(|cell| cell.bg != ratatui_core::style::Color::Reset)
+            })
+    })
 }
 
 fn contains_folded(label: &str, query: &str) -> bool {
@@ -717,6 +758,7 @@ impl<T: AsItem, R: RowFn<T>> FilterList<'_, T, R> {
                         .map(AsItem::as_item)
                 }),
                 content.width,
+                self.metadata_gap,
             )
         });
         let mut last_group = "";
@@ -759,7 +801,8 @@ impl<T: AsItem, R: RowFn<T>> FilterList<'_, T, R> {
                 flags,
                 semantic.key,
                 row,
-            );
+            )
+            .with_cursor_style(self.cursor_style);
             if let Some(columns) = &columns {
                 let group = semantic.group.unwrap_or("");
                 columns.paint(
@@ -790,15 +833,33 @@ impl<T: AsItem, R: RowFn<T>> FilterList<'_, T, R> {
         ui.publish_bindings(self.id, live, self.bindings(BindingState { flags: live }));
         let mut live = PartStyle::flags(ui.state(self.id), self.status.flags());
         live.remove(StateFlags::PRESSED);
-        let container = self.ov.style(
+        let container_patch = self.ov.part_patch(Part::CONTAINER);
+        let detailed = ui.style_defaults_with_explicit(
+            Family::PICKER,
+            Variant::DEFAULT,
+            Part::CONTAINER,
+            live,
+            crate::theme::StyleDefaults::default(),
+            container_patch.as_ref(),
+        );
+        self.ov.note(
             ui,
             self.id,
             Family::PICKER,
             Variant::DEFAULT,
             Part::CONTAINER,
-            live,
+            detailed.resolved,
         );
-        ui.fill(area, container.style);
+        if !self.preserve_surface || !surface_already_opaque(ui, area) {
+            ui.fill(area, detailed.resolved.style);
+        } else {
+            termrock_runtime::author::patch_style(
+                ui,
+                area,
+                detailed.resolved.style,
+                detailed.explicit,
+            );
+        }
         let identity = !st.initialized && st.query.is_empty();
         let visible_len = if identity {
             items.len()
@@ -833,6 +894,10 @@ impl<T: AsItem, R: RowFn<T>> FilterList<'_, T, R> {
             return area;
         }
         self.draw_rows(ui, content, st, items, live);
+        // Baseline fades the last visible rows of an overflowing list toward the card.
+        let mut view = *st.scroll();
+        view.apply_layout(usize::from(content.height), visible_len);
+        ui.scroll_edges(content, &view);
         area
     }
 }
@@ -850,7 +915,7 @@ mod tests {
     use crate::Acc;
     use termrock_core::id::{Id, ItemKey, Part};
     use termrock_core::response::StateFlags;
-    use termrock_theme::Theme;
+    use termrock_theme::{Family, Role, StylePatch, Theme};
 
     use crate::item::{AsItem, Item, ItemRow};
     use ratatui_core::buffer::Buffer;
@@ -863,13 +928,17 @@ mod tests {
 
     fn with_ui<R>(f: impl FnOnce(&mut Ui<'_>) -> R) -> (R, Buffer) {
         let theme = Theme::junie();
+        with_ui_theme(&theme, f)
+    }
+
+    fn with_ui_theme<R>(theme: &Theme, f: impl FnOnce(&mut Ui<'_>) -> R) -> (R, Buffer) {
         let mut frame = FrameState::default();
         frame.reset(1, Rect::new(0, 0, 30, 8));
         let mut page = Buffer::empty(Rect::new(0, 0, 30, 8));
         let mut core = UiCore::default();
         let last = LastFrame::default();
         let out = {
-            let mut ui = Ui::new(&mut frame, &mut page, &mut core, &theme, &last);
+            let mut ui = Ui::new(&mut frame, &mut page, &mut core, theme, &last);
             f(&mut ui)
         };
         (out, page)
@@ -974,5 +1043,63 @@ mod tests {
                 .readiness_area(ui, AREA, StateFlags::LOADING)
         });
         assert_eq!(slotted[(AREA.x, AREA.y)].symbol(), "#");
+    }
+
+    #[test]
+    fn explicit_container_patch_reaches_an_opaque_preserved_surface() {
+        let theme = Theme::junie();
+        let patch = [(Part::CONTAINER, StylePatch::new().set_bg(Role::Danger))];
+        let (_, page) = with_ui(|ui| {
+            let surface = ui.surface_style();
+            ui.fill(AREA, surface);
+            FilterList::<Item<'_>>::new(Id::root("filter-list.opaque-patch"))
+                .searchable(false)
+                .preserve_surface(true)
+                .patch_part(&patch)
+                .draw(ui, AREA, &FilterListState::default(), &[]);
+        });
+        assert_eq!(page[(AREA.x, AREA.y)].bg, theme.color.danger);
+    }
+
+    #[test]
+    fn themed_container_channels_reach_an_opaque_preserved_surface() {
+        let theme = Theme::junie().override_family(Family::PICKER, |recipe| {
+            recipe.part(Part::CONTAINER).base(
+                StylePatch::new()
+                    .set_bg(Role::Danger)
+                    .add(ratatui_core::style::Modifier::UNDERLINED),
+            );
+        });
+        let (_, page) = with_ui_theme(&theme, |ui| {
+            let surface = ui.surface_style();
+            ui.fill(AREA, surface);
+            FilterList::<Item<'_>>::new(Id::root("filter-list.themed-opaque"))
+                .searchable(false)
+                .preserve_surface(true)
+                .draw(ui, AREA, &FilterListState::default(), &[]);
+        });
+        let cell = &page[(AREA.x, AREA.y)];
+        assert_eq!(cell.bg, theme.color.danger);
+        assert!(
+            cell.modifier
+                .contains(ratatui_core::style::Modifier::UNDERLINED)
+        );
+    }
+
+    #[test]
+    fn container_fill_is_not_skipped_for_an_opaque_unpreserved_area() {
+        let (_, page) = with_ui(|ui| {
+            ui.fill(
+                AREA,
+                termrock_theme::PaintStyle::new().bg(ratatui_core::style::Color::Magenta),
+            );
+            FilterList::<Item<'_>>::new(Id::root("filter-list.opaque-fill"))
+                .searchable(false)
+                .draw(ui, AREA, &FilterListState::default(), &[]);
+        });
+        assert_ne!(
+            page[(AREA.x, AREA.y)].bg,
+            ratatui_core::style::Color::Magenta
+        );
     }
 }

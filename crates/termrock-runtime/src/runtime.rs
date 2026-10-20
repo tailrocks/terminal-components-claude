@@ -1596,7 +1596,7 @@ fn composite_layer(ui: &mut Ui<'_>, i: usize, screen: Rect) {
     };
     if drawn && matches!(backdrop, Backdrop::Dim { .. }) {
         let area = backdrop_area(screen, backdrop);
-        ui.dim_layer(area, 2);
+        ui.modal_backdrop(area);
     }
     if drawn {
         ui.composite(i);
