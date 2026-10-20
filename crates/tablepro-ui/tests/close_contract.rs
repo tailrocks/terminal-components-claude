@@ -97,6 +97,7 @@ fn query_and_inline_drafts_survive_cancel_without_commit() {
                 unreachable!("query")
             };
             assert!(tab.dirty(), "cancel must retain the unsaved query");
+            assert!(!tab.editor_state.editor().is_editing());
             assert_eq!(tab.query, "SELECT private_draft");
             assert_eq!(tab.editor_state.editor().text(), "SELECT private_draft");
         } else {
