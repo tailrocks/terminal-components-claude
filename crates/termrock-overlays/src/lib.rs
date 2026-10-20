@@ -32,6 +32,7 @@ pub(crate) use termrock_runtime::{
 pub mod completion;
 pub mod dialog;
 pub mod help;
+pub mod info_card;
 pub mod menu;
 pub mod picker;
 pub mod picker_chain;
