@@ -132,7 +132,8 @@ fn plain_u_in_sql_editor_is_text_and_leaves_inactive_table_pending() {
     let Some(Tab::Query(query)) = h.app().workbench.active() else {
         unreachable!("query")
     };
-    assert_eq!(query.editor_state.draft_text(), Some("u"));
+    assert!(query.editor_state.editor().is_editing());
+    assert_eq!(query.editor_state.editor().text(), "u");
     assert!(h.app().workbench.tabs().iter().any(
         |tab| matches!(tab.payload(), Tab::Table(table) if table.result.pending_total() == 1)
     ));

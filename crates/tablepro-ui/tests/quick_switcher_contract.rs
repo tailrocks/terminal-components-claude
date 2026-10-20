@@ -56,7 +56,7 @@ fn schema_target_changes_context_and_preserves_tab_identity_and_draft() {
     assert_eq!(h.app().workbench.tabs().len(), count);
     assert_eq!(h.app().query(), query);
     assert!(matches!(h.app().workbench.active(), Some(Tab::Query(tab))
-        if tab.editor_state.draft_text() == Some("SELECT secret_schema_draft")));
+        if tab.editor_state.editor().text() == "SELECT secret_schema_draft"));
     assert_eq!(h.focus(), Some(EXPLORER));
     assert!(h.text().contains("events"), "{}", h.text());
     assert!(!h.app_mut().select_schema("missing"));
