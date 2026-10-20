@@ -296,6 +296,7 @@ impl<'a> CompletingCodeEditor<'a> {
         let editor_response = self.editor.update(cx, &mut state.editor);
         if manual_requested {
             if state.editor.is_editing()
+                && !state.editor.is_find_typing()
                 && !self.editor.is_read_only()
                 && !self.editor.is_disabled()
             {
@@ -349,18 +350,18 @@ impl<'a> CompletingCodeEditor<'a> {
 
     pub fn draw(&self, ui: &mut Ui<'_>, area: Rect, state: &CompletingCodeEditorState) -> Rect {
         let used = self.editor.draw(ui, area, &state.editor);
-        let live = ui.state(self.id);
-        ui.publish_dynamic_bindings(
-            self.id,
-            live,
-            core::iter::once((MANUAL_COMPLETION_ACTION, Some(COMPLETION_MANUAL_CHORD))),
-        );
         if state.completion.is_open() {
             let _ = ui.layer(self.popup_id, |ui, popup_area| {
                 self.completion()
                     .draw(ui, popup_area, &state.completion, &state.items);
             });
         }
+        let live = ui.state(self.id);
+        ui.publish_dynamic_bindings(
+            self.id,
+            live,
+            core::iter::once((MANUAL_COMPLETION_ACTION, Some(COMPLETION_MANUAL_CHORD))),
+        );
         used
     }
 }

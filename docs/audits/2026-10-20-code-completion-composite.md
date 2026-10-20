@@ -11,3 +11,5 @@ The editing key path checks effective bindings before inserting a printable char
 Focused integration coverage is in `crates/termrock-editors/tests/completing_code_editor.rs`. SQL-specific candidate generation remains consumer domain logic.
 
 The current runtime outside-click path dismisses the top layer and returns without forwarding the pointer to its owner (`crates/termrock-runtime/src/runtime.rs`, `outside_click`). Tests prove popup dismissal only. Owner click-through requires a shared backdrop-region API and remains a follow-up outside this editor-only change.
+
+The follow-up review found that Ctrl+Space could invoke completion while Find was accepting query text, and that the popup's owner binding publication replaced the editor's dynamic manual-completion binding. The adapter now rejects manual requests during Find and republishes its dynamic binding after the popup publishes its bindings. Bare `CodeEditor` Ctrl+Space coverage also verifies that no `CodeAction` escapes. These regressions fail on the pre-fix adapter: the default and remapped manual-binding tests trigger only once while the popup is open, and the Find test opens completion.
