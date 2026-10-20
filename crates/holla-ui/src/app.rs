@@ -1708,7 +1708,14 @@ impl App {
                 ui.full().height,
                 self.home.history,
             )
-            .is_some();
+            .is_some()
+                || crate::sim::catalogue::first_use_history_100x30_plate(
+                    &self.world,
+                    ui.full().width,
+                    ui.full().height,
+                    self.home.history,
+                )
+                .is_some();
             let monorepo_root_mid = crate::sim::catalogue::monorepo_root_100x30_plate(
                 &self.world,
                 ui.full().width,
