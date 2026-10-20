@@ -564,6 +564,90 @@ mod tests {
         assert_eq!(state.query(), "a");
     }
 
+    #[test]
+    fn query_field_resolves_picker_family_theme_and_part_patch() {
+        const ID: Id = Id::root("picker.query-presentation");
+        const QUERY_PATCH: &[(Part, StylePatch)] = &[(
+            Part::QUERY,
+            StylePatch::new().set_fg(crate::theme::Role::Danger),
+        )];
+        const GLOBAL_PATCH: StylePatch = StylePatch::new().set_bg(crate::theme::Role::Danger);
+
+        struct PaintApp {
+            state: PickerState,
+            patch_kind: u8,
+        }
+
+        impl termrock_runtime::runtime::App for PaintApp {
+            fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+                let picker = Self::picker(self.patch_kind);
+                if cx.update_cause() == termrock_runtime::runtime::UpdateCause::Bootstrap {
+                    cx.open_layer(ID, picker.layer(cx, &[]));
+                }
+                picker.update(cx, &mut self.state, &[]).erase()
+            }
+
+            fn draw(&self, ui: &mut Ui<'_>) {
+                let picker = Self::picker(self.patch_kind);
+                ui.layer(ID, |ui, area| picker.draw(ui, area, &self.state, &[]));
+            }
+        }
+
+        impl PaintApp {
+            fn picker(patch_kind: u8) -> Picker<'static, Item<'static>> {
+                let picker = Picker::new(ID)
+                    .placeholder("X")
+                    .size(LayerSize::Fixed(20, 7));
+                match patch_kind {
+                    1 => picker.patch(&GLOBAL_PATCH),
+                    2 => picker.patch_part(QUERY_PATCH),
+                    _ => picker,
+                }
+            }
+        }
+
+        let render = |patch_kind: u8, themed, focused_style| {
+            let theme = if themed {
+                Theme::junie().override_family(Family::PICKER, |recipe| {
+                    recipe
+                        .part(Part::QUERY)
+                        .base(StylePatch::new().set_fg(crate::theme::Role::Warning));
+                    if focused_style {
+                        recipe.part(Part::QUERY).when(
+                            StateFlags::FOCUSED,
+                            StylePatch::new().set_fg(crate::theme::Role::Success),
+                        );
+                    }
+                })
+            } else {
+                Theme::junie()
+            };
+            let mut runtime = termrock_runtime::runtime::Runtime::new(
+                PaintApp {
+                    state: PickerState::default(),
+                    patch_kind,
+                },
+                theme,
+            );
+            let _ = runtime.initialize();
+            let area = Rect::new(0, 0, 30, 12);
+            let mut buffer = ratatui_core::buffer::Buffer::empty(area);
+            runtime.draw_buffer(area, &mut buffer).commit_presented();
+            buffer
+        };
+
+        let plain = render(0, false, false);
+        let base_theme = render(0, true, false);
+        let themed = render(0, true, true);
+        let patched = render(2, true, true);
+        let globally_patched = render(1, false, false);
+        assert_eq!(plain[(9, 2)].symbol(), "X");
+        assert_ne!(plain[(9, 2)].fg, base_theme[(9, 2)].fg);
+        assert_ne!(base_theme[(9, 2)].fg, themed[(9, 2)].fg);
+        assert_ne!(themed[(9, 2)].fg, patched[(9, 2)].fg);
+        assert_ne!(plain[(9, 2)].bg, globally_patched[(9, 2)].bg);
+    }
+
     fn measured_at(size: LayerSize, viewport_width: u16) -> LayerSize {
         struct MeasureApp {
             size: LayerSize,
