@@ -19,7 +19,8 @@ fn reference256(r: u8, g: u8, b: u8) -> Color {
     let gray = 8 + gi * 10;
     let gray_error =
         (gray - i32::from(r)).pow(2) + (gray - i32::from(g)).pow(2) + (gray - i32::from(b)).pow(2);
-    Color::Indexed(if gray_error < cube_error {
+    let chroma = i32::from(r.max(g).max(b)) - i32::from(r.min(g).min(b));
+    Color::Indexed(if gray_error < cube_error && chroma <= 30 {
         (232 + gi) as u8
     } else {
         cube as u8
@@ -58,7 +59,7 @@ fn all_73_junie_slots_match_reference_capability_output() {
         if level == ColorLevel::Ansi256 {
             // Frozen Theme::apply_256 assigns these semantic roles explicitly
             // (baseline src/theme.rs:921-962). Preserve those authored indexes;
-            // generic custom RGB conversion remains nearest-color based.
+            // generic raw RGB conversion follows the frozen cube/gray rule.
             expected.on_accent = Color::Indexed(232);
             expected.border_strong = Color::Indexed(242);
             expected.disabled_fg = Color::Indexed(239);
@@ -67,7 +68,7 @@ fn all_73_junie_slots_match_reference_capability_output() {
     }
     assert_eq!(
         downgrade_color(Color::Rgb(72, 224, 84), ColorLevel::Ansi256),
-        Color::Indexed(77)
+        Color::Indexed(78)
     );
     assert_eq!(
         original.downgrade(ColorLevel::Ansi256).color.accent,
@@ -160,7 +161,8 @@ fn direct_token_mutation_and_quantization_collision_never_reattach() {
     let original = Theme::junie();
     let mut custom = original.clone();
 
-    let changed = Color::Rgb(95, 215, 135);
+    // Distinct raw RGB values collide on the same frozen cube index.
+    let changed = Color::Rgb(55, 215, 100);
     custom.color.accent = changed;
     let narrowed = custom.for_level(ColorLevel::Ansi256);
     assert_eq!(narrowed.color.accent, Color::Indexed(78));
