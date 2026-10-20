@@ -176,11 +176,30 @@ fn button_variant(m: &mut PartMap<PartRecipe>, v: Variant) {
         Role::Focus
     };
     part(m, Part::GUTTER, p()).when(
-        StateFlags::FOCUSED,
+        StateFlags::FOCUS_VISIBLE,
         p().set_glyph(GlyphRole::FocusBar).set_fg(gutter_fg),
     );
-    part(m, Part::LABEL, p());
-    part(m, Part::ICON, p());
+    part(m, Part::LABEL, p()).when(
+        StateFlags::BUSY,
+        if v == Variant::PRIMARY {
+            p().set_fg(Role::OnAccent)
+        } else {
+            p().set_fg(Role::Fg(FgStep::Secondary))
+        },
+    );
+    part(m, Part::ICON, p())
+        .when(
+            StateFlags::BUSY,
+            p().set_fg(if v == Variant::PRIMARY {
+                Role::OnAccent
+            } else {
+                Role::Accent
+            }),
+        )
+        .when(StateFlags::ERROR, p().set_fg(Role::Danger));
+    part(m, Part::MARKER, p().set_fg(Role::Fg(FgStep::Muted)))
+        .when(StateFlags::CHECKED, p().set_fg(Role::Accent))
+        .when(StateFlags::DISABLED, p().set_fg(Role::DisabledFg));
 }
 
 fn field_like(m: &mut PartMap<PartRecipe>) {
