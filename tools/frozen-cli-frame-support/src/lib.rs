@@ -838,9 +838,15 @@ fn process_image_for_expected(
     pid: u32,
     expected_path: &Path,
 ) -> Result<(PathBuf, String, String, String, &'static str), Error> {
+    let initial_start = macos_process_start(pid)?;
     let deadline = std::time::Instant::now() + std::time::Duration::from_secs(2);
     loop {
         if let Ok(observed) = process_image(pid) {
+            if observed.3 != initial_start {
+                return Err(Error::new(
+                    "paired child PID identity changed while waiting for its executable",
+                ));
+            }
             if observed.0 == expected_path {
                 return Ok(observed);
             }
