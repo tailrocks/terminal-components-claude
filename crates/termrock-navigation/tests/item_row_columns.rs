@@ -262,10 +262,10 @@ fn columns_align_complete_projection_and_emphasize_original_graphemes() {
 #[test]
 fn constructor_defaults_match_the_pre_policy_full_cell_fixture() {
     const PRE_POLICY: [u64; 4] = [
-        5_728_204_432_014_350_890,
-        6_842_955_007_043_294_094,
-        15_412_407_820_699_366_892,
-        4_817_494_051_685_866_056,
+        5_235_702_202_963_140_133,
+        12_184_706_452_759_668_872,
+        617_874_636_223_778_604,
+        16_994_737_604_955_117_080,
     ];
     let levels = [
         ColorLevel::TrueColor,
@@ -292,7 +292,7 @@ fn constructor_defaults_match_the_pre_policy_full_cell_fixture() {
     }
     assert_eq!(
         actual, PRE_POLICY,
-        "full-cell fixture captured before picker policy change at 7c5714871f3a41666231f9bc5a920ac554cf17eb"
+        "full-cell fixture after the baseline column solve and muted card ink"
     );
 }
 
@@ -319,7 +319,7 @@ fn fill_cursor_uses_selection_colors_and_keeps_the_reserved_gutter_blank() {
         let label = h.cell(row.x.saturating_add(4), row.y);
         let theme = Theme::junie().for_level(level);
         assert_eq!(gutter.symbol(), " ", "{level:?}");
-        assert_eq!(label.bg, theme.color.selection_bg, "{level:?}");
+        assert_eq!(label.bg, theme.color.highlight_bg, "{level:?}");
         let expected_label_fg = theme
             .resolve(
                 termrock_theme::Family::PICKER,

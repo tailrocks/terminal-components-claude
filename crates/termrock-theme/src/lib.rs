@@ -161,6 +161,62 @@ impl Theme {
         self
     }
 
+    /// Baseline modal dim. Glyphs stay. Accent and secondary ink become faint.
+    /// A rule that already fails contrast stays the ghost gray.
+    pub fn backdrop_colors(&self, fg: Color, bg: Color) -> (Color, Color) {
+        let tokens = &self.color;
+        let canvas = tokens.surfaces[0];
+        let surface = tokens.surfaces[1];
+        let elevated = tokens.surfaces[2];
+        let overlay = tokens.surfaces[3];
+        let primary = tokens.fg[0];
+        let secondary = tokens.fg[1];
+        let muted = tokens.fg[2];
+        let faint = tokens.fg[3];
+        let ghost = tokens.fg[4];
+        let new_bg = if bg == canvas || bg == surface || bg == elevated {
+            bg
+        } else if bg == tokens.field || bg == tokens.field_hover {
+            elevated
+        } else if bg == Color::Reset {
+            canvas
+        } else {
+            overlay
+        };
+        let dark = bg == Color::Reset
+            || bg == canvas
+            || bg == surface
+            || bg == elevated
+            || bg == tokens.field
+            || bg == tokens.field_hover;
+        let plane = if bg == Color::Reset { canvas } else { bg };
+        let reads = |ink: Color, plane: Color| builder::contrast(ink, plane) >= 3.0;
+        let blank = fg == bg || ((fg == canvas || fg == surface) && dark && !reads(fg, plane));
+        let mut mapped = if blank {
+            new_bg
+        } else if fg == canvas || fg == surface {
+            muted
+        } else if fg == tokens.accent || fg == tokens.focus {
+            faint
+        } else if fg == primary || fg == tokens.danger || fg == tokens.warning {
+            muted
+        } else if fg == secondary || fg == tokens.on_accent {
+            faint
+        } else {
+            ghost
+        };
+        if !blank && reads(fg, plane) && !reads(mapped, new_bg) {
+            mapped = [faint, muted, secondary]
+                .into_iter()
+                .find(|ink| reads(*ink, new_bg))
+                .unwrap_or(primary);
+        }
+        if !blank && mapped == new_bg {
+            mapped = if muted == new_bg { primary } else { muted };
+        }
+        (mapped, new_bg)
+    }
+
     pub fn bg(&self, s: Surface) -> Color {
         match s {
             Surface::Field => self.color.field,
