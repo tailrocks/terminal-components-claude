@@ -30,10 +30,11 @@ pub fn overlay_chrome<R>(
         if area.is_empty() {
             return ui.with_area(area, |ui| body(ui, area));
         }
-        let container = (family != Family::PICKER)
+        let backdrop_chrome = matches!(family, Family::PICKER | Family::DIALOG);
+        let container = (!backdrop_chrome)
             .then(|| ov.style(ui, id, family, Variant::DEFAULT, Part::CONTAINER, live));
-        if family == Family::PICKER {
-            // Baseline fills the popup in the same buffer the backdrop dimmed.
+        if backdrop_chrome {
+            // Picker and dialog chrome fill the same buffer the backdrop dimmed.
             // Copy each page cell through that mapping, then paint the card bg.
             let container_patch = ov.part_patch(Part::CONTAINER);
             let detailed = ui.style_defaults_with_explicit(
@@ -79,10 +80,8 @@ pub fn overlay_chrome<R>(
             }
             ui.patch_style(area, detailed.resolved.style, explicit);
             ui.mark_area(area, None);
-        } else {
-            if let Some(container) = container {
-                ui.fill(area, container.style);
-            }
+        } else if let Some(container) = container {
+            ui.fill(area, container.style);
         }
         ui.register_decor(id, PartRef::of(Part::CONTAINER), area);
 
@@ -213,7 +212,9 @@ mod tests {
     use super::{PartStyle, cell_at, overlay_chrome};
     use crate::id::{Id, Part};
     use crate::response::StateFlags;
-    use crate::theme::{Family, Role, Slot, StylePatch, Surface, Theme};
+    use crate::theme::{
+        Family, Overlay, OverlayRule, Role, Slot, StylePatch, Surface, Theme, Variant,
+    };
     use crate::ui::cx::LastFrame;
     use crate::ui::{FrameState, Ui, UiCore};
 
@@ -223,6 +224,50 @@ mod tests {
         width: 3,
         height: 2,
     };
+
+    fn draw_dialog_chrome(
+        theme: &Theme,
+        style: PartStyle<'_>,
+        overlay: Option<&Overlay>,
+    ) -> Buffer {
+        let area = Rect::new(0, 0, 5, 4);
+        let mut frame = FrameState::default();
+        frame.reset(1, area);
+        let mut page = Buffer::empty(area);
+        for pos in area.positions() {
+            if let Some(cell) = page.cell_mut(pos) {
+                cell.set_symbol("x");
+                cell.fg = Color::White;
+                cell.bg = Color::Black;
+                cell.modifier = Modifier::BOLD;
+                cell.underline_color = Color::Cyan;
+            }
+        }
+        let mut core = UiCore::default();
+        let last = LastFrame::default();
+        {
+            let mut ui = Ui::new(&mut frame, &mut page, &mut core, theme, &last);
+            let draw = |ui: &mut Ui<'_>| {
+                overlay_chrome(
+                    ui,
+                    Id::root("dialog.chrome-style-contract"),
+                    area,
+                    Family::DIALOG,
+                    Surface::Overlay,
+                    style,
+                    StateFlags::empty(),
+                    StateFlags::empty(),
+                    |_, _| (),
+                );
+            };
+            if let Some(overlay) = overlay {
+                ui.with_overlay(overlay, draw);
+            } else {
+                draw(&mut ui);
+            }
+        }
+        page
+    }
 
     #[test]
     fn cell_at_is_empty_for_every_x_outside_the_area_on_either_side() {
@@ -356,6 +401,90 @@ mod tests {
             resolved.underline_color.expect("theme underline color")
         );
         assert!(cell.modifier.contains(Modifier::UNDERLINED));
+    }
+
+    #[test]
+    fn dialog_chrome_keeps_explicit_instance_container_channels() {
+        let theme = Theme::junie();
+        let patches = [(
+            Part::CONTAINER,
+            StylePatch::new()
+                .set_fg(Role::Danger)
+                .set_bg(Role::Info)
+                .set_underline(Role::Warning)
+                .add(Modifier::ITALIC),
+        )];
+        let page = draw_dialog_chrome(&theme, PartStyle::new().part(&patches), None);
+        let cell = page.cell((2, 2)).expect("dialog chrome cell");
+        assert_eq!(cell.symbol(), " ");
+        assert_eq!(cell.fg, theme.color.danger);
+        assert_eq!(cell.bg, theme.color.info);
+        assert_eq!(cell.underline_color, theme.color.warning);
+        assert!(cell.modifier.contains(Modifier::ITALIC));
+        assert!(!cell.modifier.contains(Modifier::BOLD));
+    }
+
+    #[test]
+    fn dialog_chrome_resolves_theme_overlay_and_instance_precedence() {
+        static RULES: [OverlayRule; 1] = [(
+            Family::DIALOG,
+            Variant::DEFAULT,
+            Part::CONTAINER,
+            StateFlags::empty(),
+            StylePatch::new()
+                .set_fg(Role::Warning)
+                .set_bg(Role::Danger)
+                .set_underline(Role::Info)
+                .add(Modifier::ITALIC)
+                .remove(Modifier::BOLD),
+        )];
+        let theme = Theme::junie().override_family(Family::DIALOG, |recipe| {
+            recipe.part(Part::CONTAINER).base(
+                StylePatch::new()
+                    .set_fg(Role::Danger)
+                    .set_bg(Role::Warning)
+                    .set_underline(Role::Accent)
+                    .add(Modifier::BOLD),
+            );
+        });
+        let overlay = Overlay::new(&RULES);
+        let mut instance = StylePatch::new()
+            .set_fg(Role::Accent)
+            .clear_bg()
+            .add(Modifier::BOLD)
+            .remove(Modifier::ITALIC);
+        instance.underline = Slot::Inherit;
+        let patches = [(Part::CONTAINER, instance)];
+        let page = draw_dialog_chrome(&theme, PartStyle::new().part(&patches), Some(&overlay));
+        let cell = page.cell((2, 2)).expect("dialog chrome cell");
+        assert_eq!(cell.fg, theme.color.accent, "instance fg wins");
+        assert_eq!(cell.bg, Color::Reset, "instance clear wins");
+        assert_eq!(
+            cell.underline_color, theme.color.info,
+            "overlay underline wins"
+        );
+        assert!(cell.modifier.contains(Modifier::BOLD), "instance add wins");
+        assert!(
+            !cell.modifier.contains(Modifier::ITALIC),
+            "instance remove wins"
+        );
+    }
+
+    #[test]
+    fn dialog_chrome_clear_resets_explicit_channels() {
+        let theme = Theme::junie();
+        let mut patch = StylePatch::new()
+            .clear_fg()
+            .clear_bg()
+            .remove(Modifier::BOLD);
+        patch.underline = Slot::Clear;
+        let patches = [(Part::CONTAINER, patch)];
+        let page = draw_dialog_chrome(&theme, PartStyle::new().part(&patches), None);
+        let cell = page.cell((2, 2)).expect("dialog chrome cell");
+        assert_eq!(cell.fg, Color::Reset);
+        assert_eq!(cell.bg, Color::Reset);
+        assert_eq!(cell.underline_color, Color::Reset);
+        assert!(!cell.modifier.contains(Modifier::BOLD));
     }
 
     #[test]
