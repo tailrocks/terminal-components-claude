@@ -1,0 +1,9 @@
+# Code editor completion composition
+
+`CodeEditor::with_completion(popup_id, provider)` composes the existing code editor and completion overlay. `CompletingCodeEditorState` owns editor state, popup state and candidate values. Providers return owned batches with a byte replacement length; candidate text and insertion are redacted in debug output.
+
+The composition requests suggestions only after a text change, after cursor motion while the popup was already open, or after the manual completion binding. Drawing, focus and ticks do not call the provider. Completion bindings retain priority over editor bindings, so Tab accepts a suggestion; the next Tab keeps the editor's configured indent behavior. Escape dismisses the popup first and commits the editor on the next Escape. F6 and Shift+F6 commit and move focus forward and backward. All three actions support the component `KeyMap`.
+
+The shared editor resolves its normal bindings when an overlay publishes a temporary binding table for the editor owner. This keeps cursor movement and focus navigation working while completion is open, and respects remapped and removed component chords.
+
+Focused integration coverage is in `crates/termrock-editors/tests/completing_code_editor.rs`. SQL-specific candidate generation remains consumer domain logic.
