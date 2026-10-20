@@ -86,7 +86,7 @@ pub use termrock_core::id::{Id, ItemKey, Part, PartRef, Revision};
 pub use blocks::{
     MasterDetail, MasterDetailAction, MasterDetailError, MasterDetailPolicy, MasterDetailState,
 };
-pub use slots::PickerSlotExt;
+pub use slots::{DialogSlotExt, PickerSlotExt, PropsSlotExt};
 pub use termrock_runtime::ui::LayerSlot;
 pub use termrock_runtime::{
     Acc, ActivationFeedback, ActivationKey, App, ClockError, FeedbackClock, FeedbackClockError,
@@ -152,11 +152,11 @@ pub use termrock_runtime::{
 };
 
 pub use termrock_controls::{
-    Brand, Button, ButtonCmd, Checkbox, ChoiceCmd, Empty, LabelRadio, MasterDetailCmd,
-    MasterDetailLayout, MasterDetailMode, Panel, PanelKind, Props, PropsAction, PropsCmd,
-    PropsList, PropsRow, PropsState, PropsValue, RadioField, RadioGroup, RadioGroupAction,
-    RadioGroupState, ResetPolicy, SplitAction, SplitCmd, SplitPane, SplitPaneState, Toggle,
-    TooSmall,
+    Brand, BusyMarkerPolicy, Button, ButtonCmd, Checkbox, ChoiceCmd, Empty, LabelRadio,
+    MasterDetailCmd, MasterDetailLayout, MasterDetailMode, Panel, PanelKind, Props, PropsAction,
+    PropsCmd, PropsList, PropsRow, PropsState, PropsValue, RadioField, RadioGroup,
+    RadioGroupAction, RadioGroupState, ResetPolicy, SplitAction, SplitCmd, SplitPane,
+    SplitPaneState, Toggle, TooSmall,
 };
 
 pub use termrock_fields::{
