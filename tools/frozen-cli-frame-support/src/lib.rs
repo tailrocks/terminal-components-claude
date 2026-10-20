@@ -10,7 +10,7 @@ use std::fs::{self, OpenOptions};
 use std::io::Write;
 use std::path::{Path, PathBuf};
 use tuiscotti::grouped::{ArtifactSet, GroupedStore};
-use tuiscotti::{Frame, Profile, VENDORED_FACES};
+use tuiscotti::{Frame, Profile, Provenance, VENDORED_FACES};
 
 const PHASE_ENV: &str = "TERMROCK_PAIR_PHASE";
 const EXPECTED_ROOT_ENV: &str = "TERMROCK_PAIR_EXPECTED_ROOT";
@@ -151,6 +151,7 @@ impl Recorder {
             .ok_or_else(|| Error::new("paired capture checkpoint ordinal overflow"))?;
         let store_name = checkpoint_name(&self.case_name, ordinal, name);
         let ansi = tuiscotti::render::ansi_dump_with_cursor(frame);
+        let semantic_frame = semantic_frame_json(frame);
         let receipt_path = self.receipt_path(ordinal, name);
         validate_concrete_path(&self.config.receipt_root, &receipt_path, "receipt", true)?;
         if receipt_path.exists() {
@@ -163,16 +164,32 @@ impl Recorder {
         match self.config.phase {
             Phase::BaselineCapture => {
                 let expected = self.config.expected_root.join(format!("{store_name}.ansi"));
+                let expected_frame = self
+                    .config
+                    .expected_root
+                    .join(format!("{store_name}.frame.json"));
                 validate_concrete_path(
                     &self.config.expected_root,
                     &expected,
                     "runtime expectation",
                     true,
                 )?;
+                validate_concrete_path(
+                    &self.config.expected_root,
+                    &expected_frame,
+                    "semantic runtime expectation",
+                    true,
+                )?;
                 if expected.exists() {
                     return Err(Error::new(format!(
                         "paired capture expectation already exists: {}",
                         expected.display()
+                    )));
+                }
+                if expected_frame.exists() {
+                    return Err(Error::new(format!(
+                        "paired semantic expectation already exists: {}",
+                        expected_frame.display()
                     )));
                 }
                 check_original_if_present(
@@ -182,6 +199,7 @@ impl Recorder {
                     &self.config.receipt_root,
                 )?;
                 create_new_bytes(&expected, ansi.as_bytes())?;
+                create_new_bytes(&expected_frame, semantic_frame.as_bytes())?;
                 self.check_runtime(&store_name, frame)?;
             }
             Phase::BaselineCheck | Phase::CandidateCheck => {
@@ -189,10 +207,30 @@ impl Recorder {
             }
         }
 
-        self.write_receipt(ordinal, name, &ansi)
+        self.write_receipt(ordinal, name, &ansi, &semantic_frame)
     }
 
     fn check_runtime(&self, name: &str, frame: &Frame) -> Result<(), Error> {
+        let expected_frame = self.config.expected_root.join(format!("{name}.frame.json"));
+        validate_concrete_path(
+            &self.config.expected_root,
+            &expected_frame,
+            "semantic runtime expectation",
+            true,
+        )?;
+        let expected_semantics = fs::read(&expected_frame).map_err(|error| {
+            Error::new(format!(
+                "cannot read semantic runtime expectation {}: {error}",
+                expected_frame.display()
+            ))
+        })?;
+        let actual_semantics = semantic_frame_json(frame);
+        if expected_semantics != actual_semantics.as_bytes() {
+            return Err(Error::new(format!(
+                "semantic runtime frame mismatch: {}",
+                expected_frame.display()
+            )));
+        }
         let sidecar_root = artifact_root(&self.config.receipt_root, "runtime-expected");
         let actual_root = artifact_root(&self.config.receipt_root, "actual");
         let diff_root = artifact_root(&self.config.receipt_root, "diff");
@@ -220,15 +258,23 @@ impl Recorder {
             .map_err(|error| Error::new(error.to_string()))
     }
 
-    fn write_receipt(&self, ordinal: u64, name: &str, ansi: &str) -> Result<(), Error> {
+    fn write_receipt(
+        &self,
+        ordinal: u64,
+        name: &str,
+        ansi: &str,
+        semantic_frame: &str,
+    ) -> Result<(), Error> {
         let path = self.receipt_path(ordinal, name);
         validate_concrete_path(&self.config.receipt_root, &path, "receipt", true)?;
         let hash = Sha256::digest(ansi.as_bytes());
+        let semantic_hash = Sha256::digest(semantic_frame.as_bytes());
         let record = format!(
-            "{{\n  \"case_id\": {},\n  \"ordinal\": {ordinal},\n  \"logical_name\": {},\n  \"sha256\": \"{}\"\n}}\n",
+            "{{\n  \"case_id\": {},\n  \"ordinal\": {ordinal},\n  \"logical_name\": {},\n  \"sha256\": \"{}\",\n  \"semantic_frame_sha256\": \"{}\"\n}}\n",
             json_string(&self.case_name),
             json_string(name),
             hex(&hash),
+            hex(&semantic_hash),
         );
         create_new_bytes(&path, record.as_bytes())
     }
@@ -238,6 +284,14 @@ impl Recorder {
         let checkpoint = format!("{}.json", checkpoint_name(&self.case_name, ordinal, name));
         self.config.receipt_root.join(case_id).join(checkpoint)
     }
+}
+
+/// Canonical observable frame, excluding capture provenance and retaining all
+/// cells plus cursor position, visibility, shape, and blink intent.
+fn semantic_frame_json(frame: &Frame) -> String {
+    let mut frame = frame.clone();
+    frame.provenance = Provenance::default();
+    frame.to_json()
 }
 
 thread_local! {
@@ -340,14 +394,12 @@ fn validate_grouped_paths(
     diff_root: &Path,
     name: &str,
 ) -> Result<(), Error> {
-    for extension in ["ansi"] {
-        validate_concrete_path(
-            approved_root,
-            &named_artifact(approved_root, name, extension),
-            "approved artifact",
-            false,
-        )?;
-    }
+    validate_concrete_path(
+        approved_root,
+        &named_artifact(approved_root, name, "ansi"),
+        "approved artifact",
+        false,
+    )?;
     for extension in ["png", "html", "png.fidelity.json"] {
         validate_concrete_path(
             expected_root,
@@ -635,6 +687,9 @@ mod tests {
     use std::time::{SystemTime, UNIX_EPOCH};
     use tuiscotti::{Cursor, Frame, Provenance};
 
+    type FrameMutation = Box<dyn Fn(&mut Frame)>;
+    type NamedFrameMutation<'a> = (&'a str, FrameMutation);
+
     struct Scratch(PathBuf);
 
     impl Scratch {
@@ -702,7 +757,7 @@ mod tests {
         capture(&scratch, "dashboard/home", "home", &frame()).unwrap();
 
         assert!(!original.join("home.ansi").exists());
-        assert_eq!(fs::read_dir(scratch.path("expected")).unwrap().count(), 1);
+        assert_eq!(fs::read_dir(scratch.path("expected")).unwrap().count(), 2);
         let receipt = scratch
             .path("receipts")
             .join(case_directory("dashboard/home"))
@@ -715,6 +770,7 @@ mod tests {
         assert!(receipt_text.contains("\"ordinal\": 0"));
         assert!(receipt_text.contains("\"logical_name\": \"home\""));
         assert!(receipt_text.contains("\"sha256\": \""));
+        assert!(receipt_text.contains("\"semantic_frame_sha256\": \""));
     }
 
     #[test]
@@ -747,7 +803,7 @@ mod tests {
         let scratch = Scratch::new("mutation");
         let expected = frame();
         capture(&scratch, "scenario", "home", &expected).unwrap();
-        let mut changes: Vec<(&str, Box<dyn Fn(&mut Frame)>)> = vec![
+        let mut changes: Vec<NamedFrameMutation<'_>> = vec![
             (
                 "character",
                 Box::new(|value| value.cells[0].symbol = "B".into()),
@@ -788,6 +844,88 @@ mod tests {
             );
             assert!(!candidate_config.receipt_root.exists(), "{label}");
         }
+    }
+
+    #[test]
+    fn hidden_cursor_position_shape_and_blink_are_compared_when_ansi_is_identical() {
+        let scratch = Scratch::new("hidden-cursor-semantics");
+        let mut expected = frame();
+        expected.cursor.visible = false;
+        capture(&scratch, "scenario", "home", &expected).unwrap();
+        let expected_ansi = tuiscotti::render::ansi_dump_with_cursor(&expected);
+
+        let changes: [NamedFrameMutation<'_>; 4] = [
+            ("hidden-x", Box::new(|value| value.cursor.x += 1)),
+            ("hidden-y", Box::new(|value| value.cursor.y -= 1)),
+            (
+                "hidden-shape",
+                Box::new(|value| value.cursor.style = tuiscotti::CursorStyle::Bar),
+            ),
+            (
+                "hidden-blink",
+                Box::new(|value| value.cursor.blinking = true),
+            ),
+        ];
+        for (label, change) in changes {
+            let mut changed = expected.clone();
+            change(&mut changed);
+            assert_eq!(
+                tuiscotti::render::ansi_dump_with_cursor(&changed),
+                expected_ansi,
+                "the pinned ANSI projection should hide {label}"
+            );
+            let mut candidate_config = config(Phase::CandidateCheck, &scratch);
+            candidate_config.receipt_root = scratch.path(&format!("receipts-{label}"));
+            let mut candidate = Recorder::new(candidate_config.clone(), "scenario").unwrap();
+            assert!(
+                candidate
+                    .handle_frame("home", &changed, &scratch.path("original"))
+                    .is_err(),
+                "semantic comparison must reject {label}"
+            );
+            assert!(!candidate_config.receipt_root.exists(), "{label}");
+        }
+    }
+
+    #[test]
+    fn matching_baseline_frame_passes_capture_replay_and_candidate_phases() {
+        let scratch = Scratch::new("semantic-positive-control");
+        let source = frame();
+        capture(&scratch, "scenario", "home", &source).unwrap();
+
+        for (phase, root) in [
+            (Phase::BaselineCheck, "baseline-receipts"),
+            (Phase::CandidateCheck, "candidate-receipts"),
+        ] {
+            let mut phase_config = config(phase, &scratch);
+            phase_config.receipt_root = scratch.path(root);
+            let mut recorder = Recorder::new(phase_config, "scenario").unwrap();
+            recorder
+                .handle_frame("home", &source, &scratch.path("original"))
+                .unwrap();
+        }
+    }
+
+    #[test]
+    fn missing_semantic_expectation_fails_closed() {
+        let scratch = Scratch::new("missing-semantic-frame");
+        let source = frame();
+        capture(&scratch, "scenario", "home", &source).unwrap();
+        let expected_frame = scratch.path("expected").join(format!(
+            "{}.frame.json",
+            checkpoint_name("scenario", 0, "home")
+        ));
+        fs::remove_file(expected_frame).unwrap();
+
+        let mut candidate_config = config(Phase::CandidateCheck, &scratch);
+        candidate_config.receipt_root = scratch.path("candidate-receipts");
+        let mut candidate = Recorder::new(candidate_config.clone(), "scenario").unwrap();
+        assert!(
+            candidate
+                .handle_frame("home", &source, &scratch.path("original"))
+                .is_err()
+        );
+        assert!(!candidate_config.receipt_root.exists());
     }
 
     #[test]
