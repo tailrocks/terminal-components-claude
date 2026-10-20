@@ -24,7 +24,7 @@ Do not add another `historical_*` paint or size-specific `*_plate` cell dump. Tw
 
 ## Counts on this commit
 
-- `tablepro-ui`: 12 `mod historical_*` remain. 10 early-return paints load `snapshots/**/120x40/truecolor.ansi`. `historical_form_new` and `historical_form_advanced` are inlined cell dumps. Quick-open, tab list, and Safe Mode belong to `termrock_overlays::picker::Picker`. Help belongs to `termrock_overlays::help::HelpOverlay`. Delete connection and close-tab confirmation belong to `termrock_overlays::dialog::Dialog`.
+- `tablepro-ui`: 11 `mod historical_*` remain. 9 early-return paints load `snapshots/**/120x40/truecolor.ansi`. `historical_form_new` and `historical_form_advanced` are inlined cell dumps. Quick-open, tab list, and Safe Mode belong to `termrock_overlays::picker::Picker`. Help belongs to `termrock_overlays::help::HelpOverlay`. Delete connection and close-tab confirmation belong to `termrock_overlays::dialog::Dialog`. The filter editor is a live modal on shared overlay chrome and `TextInput`; `tablepro::table::filter_editor::120x40::truecolor` matches.
 - `jackin-preview-app`: 42 `historical_*::paint` call sites, 2 presentation blits, 2 boot-needle stamps that paint `jackin❯` over the title.
 - `holla-sim` / `holla-ui`: 46 `*_plate` selectors plus 2 full-screen cell plates (`paint_disk_cleanup_plate`, `paint_launch_failure_plate`). Selectors key off one scenario, one size, and `now_ms()==80`.
 - `showcase-demos`: selectable delete-confirm and bulk-mixed ANSI stamps. `showcase-ui` has none.
