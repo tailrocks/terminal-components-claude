@@ -1,14 +1,12 @@
 use ratatui_core::layout::Rect;
 use ratatui_core::style::Color;
-use termrock_core::id::Part;
-use termrock_core::id::{Id, ItemKey};
+use termrock_core::id::{Id, ItemKey, Part};
 use termrock_core::response::Response;
 use termrock_overlays::picker::{Item, Picker, PickerAction, PickerState};
 use termrock_runtime::layer::{LayerSize, ScreenAlign};
 use termrock_runtime::{App, Cx, Ui, UpdateCause};
 use termrock_test_support::Harness;
-use termrock_theme::Theme;
-use termrock_theme::{Role, StylePatch};
+use termrock_theme::{Family, Role, StateFlags, StylePatch, Surface, Theme, Variant};
 
 const ID: Id = Id::root("picker.scope");
 const ITEMS: &[Item<'static>] = &[Item::new(ItemKey::num(0), "First")];
@@ -108,6 +106,18 @@ fn cells_text(h: &Harness<Page>, y: u16, x: u16, width: u16) -> String {
     text
 }
 
+fn default_meta_style() -> ratatui_core::style::Style {
+    *Theme::junie()
+        .resolve(
+            Family::PICKER,
+            Variant::DEFAULT,
+            Part::META,
+            StateFlags::empty(),
+            Surface::Overlay,
+        )
+        .style
+}
+
 fn explicit_page(
     scope: Option<&'static str>,
     width: u16,
@@ -153,13 +163,12 @@ fn scope_label_shares_title_row_right_aligned_and_preserves_hidden_cursor() {
     );
     let without_caption = explicit_page(None, 84, 9, false);
     let mut expected = without_caption.buffer().clone();
-    let caption_style = h.buffer().cell((56, 16)).expect("caption start").style();
     expected.set_stringn(
         56,
         16,
         "payments-platform › chainargos/the-architect",
         44,
-        caption_style,
+        default_meta_style(),
     );
     assert_eq!(h.buffer(), &expected);
     assert_eq!(h.cursor(), without_caption.cursor());
@@ -223,14 +232,39 @@ fn explicit_size_caption_uses_unicode_cell_width_truncation_and_meta_style() {
     assert_eq!(cells_text(&h, 16, 69, 6), "abc日 …");
     let without_caption = explicit_page(None, 35, 9, true);
     let mut expected = without_caption.buffer().clone();
-    let caption_style = h.buffer().cell((69, 16)).expect("caption start").style();
-    expected.set_stringn(69, 16, "abc日…", 6, caption_style);
+    expected.set_stringn(69, 16, "abc日…", 6, {
+        let mut style = default_meta_style();
+        style.fg = Some(Color::Rgb(1, 2, 3));
+        style
+    });
     assert_eq!(h.buffer(), &expected);
     assert_eq!(h.cursor(), without_caption.cursor());
     assert_eq!(h.cursor(), None);
-    assert_eq!(
-        h.buffer().cell((69, 16)).map(|cell| cell.fg),
-        Some(Color::Rgb(1, 2, 3))
-    );
     assert!(h.diagnostics().is_empty(), "{:?}", h.diagnostics());
+}
+
+#[test]
+fn explicit_size_caption_shows_at_six_cells_and_hides_at_five() {
+    let visible = explicit_page(Some("abcdefghi"), 34, 9, false);
+    assert_eq!(cells_text(&visible, 16, 69, 6), "abcde…");
+    let without_caption = explicit_page(None, 34, 9, false);
+    let mut expected = without_caption.buffer().clone();
+    expected.set_stringn(69, 16, "abcde…", 6, default_meta_style());
+    assert_eq!(visible.buffer(), &expected);
+    assert_eq!(visible.cursor(), without_caption.cursor());
+
+    let hidden = explicit_page(Some("abcdefghi"), 33, 9, false);
+    let without_caption = explicit_page(None, 33, 9, false);
+    assert_eq!(hidden.buffer(), without_caption.buffer());
+    assert_eq!(hidden.cursor(), without_caption.cursor());
+    assert!(
+        visible.diagnostics().is_empty(),
+        "{:?}",
+        visible.diagnostics()
+    );
+    assert!(
+        hidden.diagnostics().is_empty(),
+        "{:?}",
+        hidden.diagnostics()
+    );
 }
