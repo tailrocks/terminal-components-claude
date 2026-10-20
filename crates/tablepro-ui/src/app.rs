@@ -22,7 +22,6 @@ use crate::workbench::Workbench;
 mod historical_form_advanced;
 mod historical_form_new;
 mod historical_history_tab;
-mod historical_query_analyze;
 mod historical_query_completion;
 mod historical_query_results;
 mod historical_table_scrolled_right;
@@ -203,7 +202,6 @@ const TOGGLE_EXPLORER: ActionKey = ActionKey::application("tablepro.toggle-explo
 const RESULT_SQL: &str =
     "SELECT * FROM orders WHERE status = 'pending' ORDER BY created_at DESC LIMIT 25";
 const ERROR_SQL: &str = "SELECT * FROM missing_table";
-const EXPLAIN_SQL: &str = "SELECT * FROM orders";
 const COMPLETION_SQL: &str = "SELECT * FROM ord";
 
 const CONNECTION_DETAILS: Id = Id::root("tablepro.connections.details");
@@ -2936,7 +2934,15 @@ impl TableProApp {
                 (format!(" {} ", query.name), Some("2 ms ".to_owned()))
             }
             Some(Tab::Query(query)) if query.plan.is_some() && query.result.is_none() => {
-                (format!(" {} ", query.name), Some("2 ms ".to_owned()))
+                let meta = if let Some(actual) = query.plan.as_ref().and_then(|plan| plan.actual_ms)
+                {
+                    let execution_ms = actual + 0.4;
+                    let n = (execution_ms as u32) + 1;
+                    format!("{n} ms ")
+                } else {
+                    "2 ms ".to_owned()
+                };
+                (format!(" {} ", query.name), Some(meta))
             }
             Some(Tab::Query(query))
                 if !explorer_focused
@@ -3393,7 +3399,11 @@ fn paint_plan_results(
                 .remove(Modifier::BOLD),
         ),
     );
-    let label = " EXPLAIN ";
+    let label = if plan.actual_ms.is_some() {
+        " EXPLAIN ANALYZE "
+    } else {
+        " EXPLAIN "
+    };
     ui.paint_str(
         termrock::Rect {
             width: width(label),
@@ -3445,7 +3455,12 @@ fn paint_plan_results(
         })
         .unwrap_or(0);
     let planning = 0.21 + predicates as f64 * 0.09;
-    let status = format!("Planning {planning:.3} ms · r Raw");
+    let status = if let Some(actual) = plan.actual_ms {
+        let execution = actual + 0.4;
+        format!("Planning {planning:.3} ms · Execution {execution:.3} ms")
+    } else {
+        format!("Planning {planning:.3} ms · r Raw")
+    };
     let muted = plain.patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Muted))));
     ui.paint_str(
         termrock::Rect::new(
@@ -3540,6 +3555,10 @@ fn paint_plan_node(
     let metrics = ui.surface_style().patch(
         ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Secondary))),
     );
+    let actual = match node.actual_ms {
+        Some(m) => format!("{m:.1} ms"),
+        None => "—".to_owned(),
+    };
     let cost = format!(
         "{:>13} {:>8} {:>10}",
         format!(
@@ -3548,7 +3567,7 @@ fn paint_plan_node(
             node.cost.1.round() as i64
         ),
         fmt_plan_rows(node.rows),
-        "—"
+        actual
     );
     ui.paint_str(
         termrock::Rect::new(cols_x, *y, width(&cost), 1),
@@ -9994,62 +10013,6 @@ impl TableProApp {
         );
     }
 
-    fn paint_historical_query_analyze(&self, ui: &mut Ui<'_>) -> bool {
-        if !self.historical_query_analyze_frame(ui) {
-            return false;
-        }
-        historical_query_analyze::paint(ui);
-        // Snapshot trailer is CUP 7;61 and a bar cursor. Same cell as explain, not stdout bytes.
-        if let Some(id) = self.query_id() {
-            ui.register_keyboard_editor(
-                id,
-                ui.full(),
-                Focusability::Focusable,
-                StateFlags::EDITING,
-            );
-            ui.set_bar_cursor(id, Position::new(60, 6));
-        }
-        true
-    }
-
-    fn historical_query_analyze_frame(&self, ui: &Ui<'_>) -> bool {
-        let area = ui.full();
-        if area.width != 120
-            || area.height != 40
-            || !std::io::IsTerminal::is_terminal(&std::io::stdout())
-        {
-            return false;
-        }
-        let theme = ui.theme_ref();
-        if theme.capability.color != termrock::ColorLevel::TrueColor
-            || theme.color.accent != termrock::Color::Rgb(0x48, 0xe0, 0x54)
-        {
-            return false;
-        }
-        if self.screen != Screen::Workbench || self.form_open || self.destructive_intent.is_some() {
-            return false;
-        }
-        let Some(Tab::Query(query)) = self.workbench.active() else {
-            return false;
-        };
-        // Ctrl+X keeps actual_ms unset, so this stamp never covers the explain card.
-        if query
-            .plan
-            .as_ref()
-            .is_none_or(|plan| plan.actual_ms.is_none())
-            || query.error.is_some()
-            || query.result.is_some()
-        {
-            return false;
-        }
-        let sql = query
-            .editor_state
-            .draft_text()
-            .unwrap_or(query.query.as_str())
-            .trim();
-        sql == EXPLAIN_SQL
-    }
-
     fn prepare_grid_slots(&self) {
         let filtered_columns = self
             .workbench
@@ -10720,7 +10683,6 @@ impl App for TableProApp {
     fn draw(&self, ui: &mut Ui<'_>) {
         if self.paint_historical_query_completion(ui)
             || self.paint_historical_query_results(ui)
-            || self.paint_historical_query_analyze(ui)
             || self.paint_historical_workbench_maximized(ui)
             || self.paint_historical_workbench_explorer_hidden(ui)
             || self.paint_historical_table_scrolled_right(ui)
