@@ -30,3 +30,7 @@ This record covers the launch-identity and child-cleanup increment merged into t
 The full four-application paired capture/replay/candidate comparison has not passed twice, and no replacement baseline binary cohort has been admitted. Exact product parity and library acceptance remain incomplete. The reviewer did not inject a real Tuiscotti close failure; the error path omits completion evidence and the verifier rejects missing closure receipts, but teardown-failure injection remains additional coverage. Receipt smoke and negative-control checks are test-system evidence only, not application parity evidence.
 
 `git diff --check` reports the required single-space context lines in the unified extension patch as whitespace. Those context lines are required for patch application and were retained; the patch applies cleanly to the frozen source.
+
+## Task-branch cleanup
+
+After integration and review, task-owned branch `wip/termrock-launch-receipts-20261021` at `d8fd898fc1b12f65f2072bb8bfe362b4cd20ea58` was deleted. Before deletion, its tip was verified as an ancestor of `parity/termrock-visual-baseline`; GitHub reported no pull request for that head (`gh pr list --state all --head ...` returned `[]`). The ordinary remote deletion succeeded without force. After deletion, `git ls-remote --heads origin` reported 86 branches, the PR #38 branch resolved to `e0ac3e260b8d9d944a10f080a528938f9dea05ed`, and the WIP ref was absent. This is task-branch cleanup evidence only; it does not imply that unrelated branches have been reviewed or removed.
