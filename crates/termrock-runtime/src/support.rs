@@ -1,5 +1,6 @@
 use crate::theme::PaintStyle;
 use ratatui_core::layout::Rect;
+use ratatui_core::style::{Modifier, Style};
 
 use crate::id::{Id, Part, PartRef};
 use crate::response::StateFlags;
@@ -30,7 +31,35 @@ pub fn overlay_chrome<R>(
             return ui.with_area(area, |ui| body(ui, area));
         }
         let container = ov.style(ui, id, family, Variant::DEFAULT, Part::CONTAINER, live);
-        ui.fill(area, container.style);
+        if family == Family::PICKER {
+            // Baseline fills the popup in the same buffer the backdrop dimmed.
+            // Copy each page cell through that mapping, then paint the card bg.
+            let resolved = container.style.into_style();
+            let card_bg = resolved.bg.unwrap_or(ratatui_core::style::Color::Reset);
+            let theme = ui.theme_ref().clone();
+            for pos in area.positions() {
+                let (src_fg, src_bg) = ui
+                    .page_mut()
+                    .cell(pos)
+                    .map(|cell| (cell.fg, cell.bg))
+                    .unwrap_or((
+                        ratatui_core::style::Color::Reset,
+                        ratatui_core::style::Color::Reset,
+                    ));
+                let (fg, _) = theme.backdrop_colors(src_fg, src_bg);
+                if let Some(cell) = ui.buffer().cell_mut(pos) {
+                    cell.set_symbol(" ");
+                    let mut style = Style::new();
+                    style.fg = Some(fg);
+                    style.bg = Some(card_bg);
+                    cell.set_style(style);
+                    cell.modifier = Modifier::empty();
+                }
+            }
+            ui.mark_area(area, None);
+        } else {
+            ui.fill(area, container.style);
+        }
         ui.register_decor(id, PartRef::of(Part::CONTAINER), area);
 
         let border = ov.style(ui, id, family, Variant::DEFAULT, Part::BORDER, border_live);
