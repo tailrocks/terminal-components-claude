@@ -16,8 +16,8 @@ pub mod resolve;
 pub mod role;
 pub mod tokens;
 
-use ratatui_core::style::Color;
 pub use ratatui_core::style::Modifier;
+use ratatui_core::style::{Color, Style};
 
 pub use border::BorderSet;
 pub use builder::ThemeBuilder;
@@ -214,6 +214,25 @@ impl Theme {
     /// Baseline modal dim. Glyphs stay. Accent and secondary ink become faint.
     /// A rule that already fails contrast stays the ghost gray.
     pub fn backdrop_colors(&self, fg: Color, bg: Color) -> (Color, Color) {
+        let (mapped_fg, mapped_bg, _) = self.map_backdrop(Some(fg), Some(bg));
+        (mapped_fg, mapped_bg)
+    }
+
+    /// Map a painted cell to the modal backdrop while replacing its modifiers.
+    /// The glyph is preserved by the renderer; only nonblank dim cells receive DIM.
+    #[must_use]
+    pub fn backdrop_style(&self, style: Style) -> Style {
+        let (fg, bg, blank) = self.map_backdrop(style.fg, style.bg);
+        let dim = !blank
+            && (fg == bg || matches!(self.capability.color, ColorLevel::Ansi16 | ColorLevel::Mono));
+        let mut mapped = Style::new().fg(fg).bg(bg);
+        if dim {
+            mapped = mapped.add_modifier(Modifier::DIM);
+        }
+        mapped
+    }
+
+    fn map_backdrop(&self, fg: Option<Color>, bg: Option<Color>) -> (Color, Color, bool) {
         let tokens = &self.color;
         let canvas = tokens.surfaces[0];
         let surface = tokens.surfaces[1];
@@ -224,38 +243,53 @@ impl Theme {
         let muted = tokens.fg[2];
         let faint = tokens.fg[3];
         let ghost = tokens.fg[4];
-        let new_bg = if bg == canvas || bg == surface || bg == elevated {
-            bg
-        } else if bg == tokens.field || bg == tokens.field_hover {
+        let source_bg = bg.unwrap_or(Color::Reset);
+        let new_bg = if bg == Some(canvas) || bg == Some(surface) || bg == Some(elevated) {
+            source_bg
+        } else if bg == Some(tokens.field) || bg == Some(tokens.field_hover) {
             elevated
-        } else if bg == Color::Reset {
+        } else if source_bg == Color::Reset {
             canvas
         } else {
             overlay
         };
-        let dark = bg == Color::Reset
-            || bg == canvas
-            || bg == surface
-            || bg == elevated
-            || bg == tokens.field
-            || bg == tokens.field_hover;
-        let plane = if bg == Color::Reset { canvas } else { bg };
+        let dark = bg.is_none()
+            || source_bg == Color::Reset
+            || source_bg == canvas
+            || source_bg == surface
+            || source_bg == elevated
+            || source_bg == tokens.field
+            || source_bg == tokens.field_hover;
+        let plane = if source_bg == Color::Reset {
+            canvas
+        } else {
+            source_bg
+        };
         let reads = |ink: Color, plane: Color| builder::contrast(ink, plane) >= 3.0;
-        let blank = fg == bg || ((fg == canvas || fg == surface) && dark && !reads(fg, plane));
+        let blank = match fg {
+            Some(color) if Some(color) == bg => true,
+            Some(color) => (color == canvas || color == surface) && dark && !reads(color, plane),
+            None => false,
+        };
         let mut mapped = if blank {
             new_bg
-        } else if fg == canvas || fg == surface {
+        } else if matches!(fg, Some(color) if color == canvas || color == surface) {
             muted
-        } else if fg == tokens.accent || fg == tokens.focus {
+        } else if matches!(fg, Some(color) if color == tokens.accent || color == tokens.focus) {
             faint
-        } else if fg == primary || fg == tokens.danger || fg == tokens.warning {
+        } else if matches!(fg, Some(color) if color == primary || color == tokens.danger || color == tokens.warning)
+        {
             muted
-        } else if fg == secondary || fg == tokens.on_accent {
+        } else if matches!(fg, Some(color) if color == secondary || color == tokens.on_accent) {
             faint
         } else {
             ghost
         };
-        if !blank && reads(fg, plane) && !reads(mapped, new_bg) {
+        if let Some(color) = fg
+            && !blank
+            && reads(color, plane)
+            && !reads(mapped, new_bg)
+        {
             mapped = [faint, muted, secondary]
                 .into_iter()
                 .find(|ink| reads(*ink, new_bg))
@@ -264,7 +298,7 @@ impl Theme {
         if !blank && mapped == new_bg {
             mapped = if muted == new_bg { primary } else { muted };
         }
-        (mapped, new_bg)
+        (mapped, new_bg, blank)
     }
 
     pub fn bg(&self, s: Surface) -> Color {

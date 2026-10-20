@@ -1,0 +1,34 @@
+{
+  "date": "2026-10-21",
+  "scope": "shared runtime modal backdrop policy",
+  "baseline_commit": "4169783ae883788186d161af09ba9c481bd84e5c",
+  "tag_object": "2718a6b8127a522a3d351d0b4bdb7542fc8da542",
+  "test_tool_commit": "a1ea27f757d75d07b05499276cd932e9f8e067ad",
+  "integration": {
+    "branch": "wip/runtime-modal-backdrop-20261021",
+    "base_pr38": "49da9ae391582b783cd7aeeec745294c1c2f2f64",
+    "merged_pr38_tip_observed": "49da9ae391582b783cd7aeeec745294c1c2f2f64",
+    "parent_wip": "91f280307e8f84caa79d30ce3f126e2fd4a8340d",
+    "parent_wip_parent": "c84a883826ed54418664eb680255492ab8424cab",
+    "forms_stage1": "ae32d3ff812aa436eb5d6c15eb155d9b8d59502a"
+  },
+  "decision": "Move modal backdrop color mapping into pure Theme::backdrop_style(Style). Remove per-cell NO_COLOR environment access and application-like color heuristics. Existing capability detection remains the owner of NO_COLOR precedence. Keep backdrop_colors(Color, Color) as the pair API.",
+  "baseline_contract": "Frozen baseline src/theme.rs backdrop mapping (1243-1312) and src/ui/ctx.rs modal backdrop (658-688): replace existing modifiers; add DIM only for nonblank cells when mapped foreground equals mapped background or color level is Ansi16/Mono; clear the non-ASCII focus glyph independently of its foreground color.",
+  "regression_proof": {
+    "red": "Before the fix, NO_COLOR=1 cargo nextest run -p termrock-runtime --lib modal_backdrop_uses_theme_mapping_and_clears_only_focus_glyph failed at TrueColor because modal underlay retained raw White instead of theme-muted Gray.",
+    "green": [
+      "NO_COLOR= cargo nextest run -p termrock-runtime --test modal_backdrop: 1 passed",
+      "env -u NO_COLOR cargo nextest run -p termrock-runtime --test modal_backdrop: 1 passed",
+      "cargo nextest run -p termrock-runtime --lib modal_backdrop_uses_theme_mapping_and_clears_only_focus_glyph: 1 passed (four color levels, custom muted/background collision, blank, modifiers and focus glyph)",
+      "cargo nextest run -p termrock-runtime --test modal_backdrop: warmed allocation check 1 passed"
+    ]
+  },
+  "checks": {
+    "runtime_all_targets": "360 tests run, 360 passed, 3 skipped",
+    "theme_all_targets": "139 passed, 1 failed: termrock-theme::capability_palettes::all_73_junie_slots_match_reference_capability_output; failure was not changed, waived, or independently established as pre-existing",
+    "theme_and_runtime_scoped_clippy": "pending",
+    "changed_file_rustfmt": "passed"
+  },
+  "working_tree_note": "Nextest exposed approximately 1303 deleted tracked files under crates/termrock-conformance/target/tuiscotti-actuals. They were left untouched and unstaged as unrelated existing/worktree artifacts.",
+  "coverage_gap": "This shared runtime change has no claim of full application visual/functional acceptance."
+}
