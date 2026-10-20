@@ -196,18 +196,19 @@ impl<A: App> Harness<A> {
             let area = self.term.get_frame().area();
             let prepared = self.rt.prepare(area).expect("runtime prepares frame");
             let mut area_changed = false;
-            self.term
-                .draw(|frame| {
+            let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+                let _ = self.term.draw(|frame| {
                     if let Err(error) = self.rt.draw_prepared(prepared, frame) {
                         area_changed = matches!(error, PreparedFrameError::AreaChanged { .. });
-                        if !area_changed {
-                            panic!("prepared frame projection failed: {error}");
-                        }
+                        panic!("prepared frame projection failed: {error}");
                     }
-                })
-                .expect("draw");
-            if area_changed {
+                });
+            }));
+            if result.is_err() && area_changed {
                 continue;
+            }
+            if let Err(payload) = result {
+                std::panic::resume_unwind(payload);
             }
             self.rt
                 .acknowledge_presented(prepared)
