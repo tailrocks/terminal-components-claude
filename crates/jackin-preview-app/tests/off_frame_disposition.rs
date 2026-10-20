@@ -285,6 +285,21 @@ fn cockpit_t_paints_the_approved_run_id_on_the_paused_launch() {
 }
 
 #[test]
+fn cockpit_x_paints_the_cancel_title_the_closed_cockpit_hides() {
+    let closed = H::new(Scenario::LaunchRunning, Motion::Paused, 40, 120, 40);
+    let before = closed.buffer().cell((36, 17)).expect("title cell");
+    assert_ne!(before.symbol(), "C", "closed cockpit has no cancel title");
+    let mut open = H::new(Scenario::LaunchRunning, Motion::Paused, 40, 120, 40);
+    open.key(KeyCode::Char('x'));
+    let cell = open.buffer().cell((36, 17)).expect("cancel title");
+    assert_eq!(cell.symbol(), "C");
+    assert_eq!(cell.fg, termrock::Color::from_u32(0x00_ff_ff_ff));
+    assert_eq!(cell.bg, termrock::Color::from_u32(0x00_18_18_1b));
+    assert!(cell.modifier.contains(termrock::Modifier::BOLD));
+    assert!(!cell.modifier.contains(termrock::Modifier::UNDERLINED));
+}
+
+#[test]
 fn cockpit_i_paints_the_approved_debug_title_on_the_paused_launch() {
     let closed = H::new(Scenario::LaunchRunning, Motion::Paused, 40, 120, 40);
     let before = closed.buffer().cell((30, 14)).expect("title cell");
