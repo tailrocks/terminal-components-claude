@@ -480,6 +480,7 @@ impl<'u> RowUi<'u> {
                 }
                 Slot::Clear => self.ui.fill(cell, resolved.style),
                 Slot::Inherit => {
+                    self.ui.fill(cell, resolved.style);
                     let mut content = CellUi::new(self.ui.reborrow(), cell, resolved.style);
                     fallback(&mut content);
                 }
@@ -528,6 +529,7 @@ impl<'u> RowUi<'u> {
                 }
                 Slot::Clear => self.ui.fill(cell, resolved.style),
                 Slot::Inherit => {
+                    self.ui.fill(cell, resolved.style);
                     let mut content = CellUi::new(self.ui.reborrow(), cell, resolved.style);
                     fallback(&mut content);
                 }
