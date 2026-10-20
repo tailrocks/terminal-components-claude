@@ -21,7 +21,7 @@ use crate::tabs::{ExplorerItem, GridView, Tab, TabKey, TabRecord};
 use crate::workbench::Workbench;
 
 mod connection_form_focus;
-mod historical_workbench_explorer_hidden;
+mod explorer_collapsed;
 mod historical_workbench_maximized;
 #[cfg(test)]
 mod picker_contract;
@@ -2982,6 +2982,37 @@ impl TableProApp {
         }
     }
 
+    fn paint_collapsed_explorer(&self, ui: &mut Ui<'_>, area: termrock::Rect) {
+        let mark = PaintStyle::new().fg(termrock::Color::Rgb(179, 179, 179));
+        let x = area.x;
+        let mut row = area.y;
+        while row < area.bottom() {
+            ui.paint_str(termrock::Rect::new(x, row, 1, 1), " ", mark);
+            row = row.saturating_add(1);
+        }
+        ui.paint_str(termrock::Rect::new(x, area.y, 1, 1), "›", mark);
+        let gap = ui.surface_style();
+        let mut gap_row = area.y;
+        let gap_x = area.x.saturating_add(1);
+        while gap_row < area.bottom() {
+            ui.paint_str(termrock::Rect::new(gap_x, gap_row, 1, 1), " ", gap);
+            gap_row = gap_row.saturating_add(1);
+        }
+        for (index, ch) in "Explorer".chars().enumerate() {
+            let label = ch.to_string();
+            ui.paint_str(
+                termrock::Rect::new(
+                    x,
+                    area.y.saturating_add(2).saturating_add(index as u16),
+                    1,
+                    1,
+                ),
+                &label,
+                mark,
+            );
+        }
+    }
+
     fn draw_explorer(&self, ui: &mut Ui<'_>, area: termrock::Rect) {
         // One extra trailing space shifts the framed meta one cell left.
         let meta = format!("{}     ", self.workbench.current_schema());
@@ -4726,7 +4757,13 @@ fn paint_focused_empty_query(ui: &mut Ui<'_>, id: Id, area: termrock::Rect, inne
         let caret = field.patch(ui.paint_patch(&StylePatch::new().set_fg(TAG_BUTTON_BG)));
         ui.paint_str(termrock::Rect { width: 1, ..line }, "▎", caret);
     }
-    let number = field.patch(ui.paint_patch(&StylePatch::new().set_fg(LEGACY_FAINT)));
+    let number = field.patch(
+        ui.paint_patch(
+            &StylePatch::new()
+                .set_fg(Role::Fg(FgStep::Primary))
+                .add(Modifier::BOLD),
+        ),
+    );
     ui.paint_str(
         termrock::Rect {
             x: line.x.saturating_add(3),
@@ -4738,7 +4775,14 @@ fn paint_focused_empty_query(ui: &mut Ui<'_>, id: Id, area: termrock::Rect, inne
     );
     let placeholder = "Type SQL. Ctrl+R runs the statement under the cursor.";
     let text_width = width(placeholder);
-    let underlined = field.patch(ui.paint_patch(&StylePatch::new().set_fg(LEGACY_FAINT)));
+    let underlined = field.patch(
+        ui.paint_patch(
+            &StylePatch::new()
+                .set_fg(TAG_CHROME_FG)
+                .set_underline(Role::BorderStrong)
+                .add(Modifier::UNDERLINED),
+        ),
+    );
     let text_x = line.x.saturating_add(6);
     if editor_focused {
         ui.set_bar_cursor(id, Position::new(text_x, line.y));
@@ -11655,45 +11699,6 @@ impl TableProApp {
         true
     }
 
-    fn paint_historical_workbench_explorer_hidden(&self, ui: &mut Ui<'_>) -> bool {
-        if !self.historical_workbench_explorer_hidden_frame(ui) {
-            return false;
-        }
-        historical_workbench_explorer_hidden::paint(ui);
-        // CUP 7;13 is the steady bar on the idle SQL line. Do not write cursor bytes.
-        if let Some(id) = self.query_id() {
-            ui.register_keyboard_editor(
-                id,
-                ui.full(),
-                Focusability::Focusable,
-                StateFlags::EDITING,
-            );
-            ui.set_bar_cursor(id, Position::new(12, 6));
-        }
-        true
-    }
-
-    fn historical_workbench_explorer_hidden_frame(&self, ui: &Ui<'_>) -> bool {
-        let area = ui.full();
-        // The approved card is the PTY frame. Unit tests have no tty, but
-        // ctrl-b still has to land on the approved cell or its check fails.
-        let on_terminal = std::io::IsTerminal::is_terminal(&std::io::stdout());
-        if area.width != 120 || area.height != 40 || !(on_terminal || cfg!(test)) {
-            return false;
-        }
-        let theme = ui.theme_ref();
-        if theme.capability.color != termrock::ColorLevel::TrueColor
-            || theme.color.accent != termrock::Color::Rgb(0x48, 0xe0, 0x54)
-        {
-            return false;
-        }
-        self.split_state.maximized() == Maximized::Second
-            && !self.workbench.maximized
-            && !self.form_open
-            && self.destructive_intent.is_none()
-            && self.screen != Screen::Connections
-    }
-
     fn historical_workbench_maximized_frame(&self, ui: &Ui<'_>) -> bool {
         let area = ui.full();
         // The approved card is the PTY frame. Unit tests have no tty, but the
@@ -12299,9 +12304,7 @@ impl App for TableProApp {
         response
     }
     fn draw(&self, ui: &mut Ui<'_>) {
-        if self.paint_historical_workbench_maximized(ui)
-            || self.paint_historical_workbench_explorer_hidden(ui)
-        {
+        if self.paint_historical_workbench_maximized(ui) {
             return;
         }
         self.prepare_grid_slots();
@@ -12343,6 +12346,15 @@ impl App for TableProApp {
             );
             if self.workbench.maximized {
                 self.draw_content(ui, workbench_rows[1]);
+            } else if self.split_state.maximized() == Maximized::Second {
+                let body = workbench_rows[1];
+                let content = termrock::Rect {
+                    x: body.x.saturating_add(2),
+                    width: body.width.saturating_sub(2),
+                    ..body
+                };
+                self.draw_content(ui, content);
+                self.paint_collapsed_explorer(ui, body);
             } else {
                 workbench_split().draw(
                     ui,
