@@ -194,6 +194,7 @@ pub struct Cx<'f> {
     update_cause: UpdateCause,
     activation_key: Option<crate::runtime::ActivationKey>,
     update_token: UpdateToken,
+    edit_entry: termrock_core::edit_entry::EditEntry,
 }
 
 impl core::fmt::Debug for Cx<'_> {
@@ -264,6 +265,7 @@ impl<'f> Cx<'f> {
             update_cause,
             activation_key: None,
             update_token,
+            edit_entry: termrock_core::edit_entry::EditEntry::Immediate,
         }
     }
 
@@ -315,6 +317,19 @@ impl<'f> Cx<'f> {
 
     pub const fn update_cause(&self) -> UpdateCause {
         self.update_cause
+    }
+
+    /// App-wide default for text editor edit-entry behavior.
+    pub const fn edit_entry(&self) -> termrock_core::edit_entry::EditEntry {
+        self.edit_entry
+    }
+
+    pub(crate) const fn with_edit_entry(
+        mut self,
+        edit_entry: termrock_core::edit_entry::EditEntry,
+    ) -> Self {
+        self.edit_entry = edit_entry;
+        self
     }
 
     pub const fn activation_key(&self) -> Option<crate::runtime::ActivationKey> {
@@ -768,6 +783,22 @@ impl<'f> Cx<'f> {
             .events
             .iter()
             .position(|receipt| receipt.opening().id() == id)?;
+        Some(self.services.events.remove(pos))
+    }
+
+    /// Claims the next exact layer event receipt and only its matching layer
+    /// intent. Unrelated intents owned by the layer remain available to their
+    /// component and continue to participate in undelivered-intent checks.
+    pub fn take_layer_intent_receipt(&mut self, id: Id) -> Option<LayerEventReceipt> {
+        let pos = self
+            .services
+            .events
+            .iter()
+            .position(|receipt| receipt.opening().id() == id)?;
+        let receipt = *self.services.events.get(pos)?;
+        if !self.intents.claim_next_layer_event(id, receipt.event()) {
+            return None;
+        }
         Some(self.services.events.remove(pos))
     }
 

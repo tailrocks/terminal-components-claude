@@ -99,6 +99,7 @@ pub use termrock_session::{
 
 pub use termrock_core::action::{Action, ActionKey};
 pub use termrock_core::diagnostics::Diagnostic;
+pub use termrock_core::edit_entry::EditEntry;
 pub use termrock_core::event::{Axis, Chord, Input, Key, KeyCode, KeyModifiers, Mouse, MouseKind};
 pub use termrock_core::intent::{FocusVia, Intent, IntentIter, Phase};
 pub use termrock_core::keys::{MediaKeyCode, ModifierKeyCode};

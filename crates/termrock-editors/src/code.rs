@@ -21,6 +21,7 @@ use crate::text::measure::{grapheme_width, graphemes};
 use crate::text::{EditAction, EditOutcome, Extend, Motion, TextEditorCore, width};
 use crate::theme::{Family, GlyphRole, Role, Slot, StylePatch, SyntaxRole, Variant};
 use crate::ui::{Cx, FrameRead, Ui};
+use termrock_core::edit_entry::EditEntry;
 use termrock_runtime::scroll_region::ScrollRegion;
 
 const CTRL: KeyModifiers = KeyModifiers::CONTROL;
@@ -764,6 +765,7 @@ pub struct CodeEditor<'a> {
     tab_behavior: TabBehavior,
     read_only: bool,
     disabled: bool,
+    edit_entry: Option<EditEntry>,
     ov: PartStyle<'a>,
 }
 
@@ -780,6 +782,7 @@ impl fmt::Debug for CodeEditor<'_> {
             .field("tab_behavior", &self.tab_behavior)
             .field("read_only", &self.read_only)
             .field("disabled", &self.disabled)
+            .field("edit_entry", &self.edit_entry)
             .finish_non_exhaustive()
     }
 }
@@ -812,6 +815,7 @@ impl<'a> CodeEditor<'a> {
             tab_behavior: TabBehavior::Indent,
             read_only: false,
             disabled: false,
+            edit_entry: None,
             ov: PartStyle::new(),
         }
     }
@@ -882,6 +886,13 @@ impl<'a> CodeEditor<'a> {
     #[must_use]
     pub const fn disabled(mut self, yes: bool) -> Self {
         self.disabled = yes;
+        self
+    }
+
+    /// Override the app-wide default for entering edit mode.
+    #[must_use]
+    pub const fn edit_entry(mut self, entry: EditEntry) -> Self {
+        self.edit_entry = Some(entry);
         self
     }
 
@@ -986,6 +997,7 @@ impl<'a> CodeEditor<'a> {
             return Response::ignored();
         }
         let mut acc = Acc::<CodeAction>::new();
+        let edit_entry = self.edit_entry.unwrap_or_else(|| cx.edit_entry());
         let lines = st.editor.line_count();
         let bar = self.bar();
         let track = bar.prepare(cx, &mut st.scroll, lines);
@@ -993,6 +1005,14 @@ impl<'a> CodeEditor<'a> {
         for intent in cx.intents(self.id) {
             acc.fold(&bar.handle_intent(cx, &mut st.scroll, track, intent));
             match intent {
+                Intent::FocusIn { .. }
+                    if edit_entry == EditEntry::Immediate && !self.read_only && !self.disabled =>
+                {
+                    if !st.editing {
+                        st.begin_edit();
+                        acc.changed();
+                    }
+                }
                 Intent::FocusOut { .. } | Intent::Cancel if st.editing => {
                     st.commit();
                     acc.action(CodeAction::Committed);
@@ -1008,8 +1028,16 @@ impl<'a> CodeEditor<'a> {
                     }
                 }
                 Intent::Key(key)
-                    if st.editing || st.find.as_ref().is_some_and(|find| find.typing) =>
+                    if st.editing
+                        || st.find.as_ref().is_some_and(|find| find.typing)
+                        || (edit_entry == EditEntry::TypeToEdit
+                            && !self.read_only
+                            && key.bare_char().is_some()) =>
                 {
+                    if !st.editing && !st.find.as_ref().is_some_and(|find| find.typing) {
+                        st.begin_edit();
+                        acc.changed();
+                    }
                     let command = Self::active_bindings(st).iter().find(|binding| {
                         cx.effective_chord(self.id, binding.action, binding.chord)
                             .is_some_and(|chord| chord.matches(&key))
@@ -1583,7 +1611,7 @@ impl<'a> CodeEditor<'a> {
             if find.typing && live.contains(StateFlags::FOCUSED) {
                 let x = at.saturating_add(width(&find.needle));
                 if x < footer.right() {
-                    ui.set_cursor(self.id, Position::new(x, footer.y));
+                    ui.set_bar_cursor(self.id, Position::new(x, footer.y));
                 }
             }
         } else if let Some(diagnostic) = nearest_diagnostic(&st.diagnostics, st.cursor_offset()) {
@@ -1601,7 +1629,7 @@ impl<'a> CodeEditor<'a> {
                 usize::from(st.editor.hscroll()),
             )
         {
-            ui.set_cursor(self.id, position);
+            ui.set_bar_cursor(self.id, position);
         }
         used
     }
@@ -1704,29 +1732,99 @@ mod tests {
     struct EditorApp {
         state: CodeEditorState,
         read_only: bool,
+        app_entry: EditEntry,
+        widget_entry: Option<EditEntry>,
     }
 
     impl App for EditorApp {
         fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
-            CodeEditor::new(ID, 5)
-                .read_only(self.read_only)
-                .update(cx, &mut self.state)
-                .erase()
+            if cx.update_cause() == crate::runtime::UpdateCause::Bootstrap {
+                cx.focus(ID);
+            }
+            let editor = CodeEditor::new(ID, 5).read_only(self.read_only);
+            let editor = if let Some(entry) = self.widget_entry {
+                editor.edit_entry(entry)
+            } else {
+                editor
+            };
+            editor.update(cx, &mut self.state).erase()
         }
 
         fn draw(&self, ui: &mut Ui<'_>) {
-            CodeEditor::new(ID, 5)
-                .read_only(self.read_only)
-                .draw(ui, ui.full(), &self.state);
+            let editor = CodeEditor::new(ID, 5).read_only(self.read_only);
+            let editor = if let Some(entry) = self.widget_entry {
+                editor.edit_entry(entry)
+            } else {
+                editor
+            };
+            editor.draw(ui, ui.full(), &self.state);
+        }
+
+        fn edit_entry(&self) -> EditEntry {
+            self.app_entry
         }
     }
 
     fn focused_runtime(text: &str, read_only: bool) -> (Runtime<EditorApp>, Buffer) {
+        focused_runtime_with_entry(text, read_only, EditEntry::Immediate)
+    }
+
+    fn focused_runtime_with_entry(
+        text: &str,
+        read_only: bool,
+        app_entry: EditEntry,
+    ) -> (Runtime<EditorApp>, Buffer) {
         let area = Rect::new(0, 0, 40, 5);
         let mut runtime = Runtime::new(
             EditorApp {
                 state: CodeEditorState::new(text),
                 read_only,
+                app_entry,
+                widget_entry: None,
+            },
+            Theme::junie(),
+        );
+        let _ = runtime.initialize();
+        let mut buffer = Buffer::empty(area);
+        runtime.draw_buffer(area, &mut buffer).commit_presented();
+        let _ = crate::runtime::stub::deliver(&mut runtime, crate::event::Input::Tick);
+        runtime.draw_buffer(area, &mut buffer).commit_presented();
+        (runtime, buffer)
+    }
+
+    fn send_key(runtime: &mut Runtime<EditorApp>, buffer: &mut Buffer, code: KeyCode) {
+        let _ = crate::runtime::stub::deliver(runtime, key(code));
+        runtime.draw_buffer(buffer.area, buffer).commit_presented();
+    }
+
+    #[test]
+    fn focus_entry_is_effective_but_bare_state_and_text_replacement_stay_unedited() {
+        let mut state = CodeEditorState::new("preloaded");
+        assert!(!state.is_editing());
+        state.set_text("replaced");
+        assert!(!state.is_editing());
+
+        let (runtime, _) = focused_runtime("", false);
+        assert!(runtime.app().state.is_editing());
+    }
+
+    #[test]
+    fn immediate_focus_entry_keeps_the_first_i_as_document_text() {
+        let (mut runtime, mut buffer) = focused_runtime("alpha", false);
+        assert!(runtime.app().state.is_editing());
+        send_key(&mut runtime, &mut buffer, KeyCode::Char('i'));
+        assert_eq!(runtime.app().state.text(), "ialpha");
+    }
+
+    #[test]
+    fn editor_override_takes_precedence_over_app_edit_entry_policy() {
+        let area = Rect::new(0, 0, 40, 5);
+        let mut runtime = Runtime::new(
+            EditorApp {
+                state: CodeEditorState::new("query"),
+                read_only: false,
+                app_entry: EditEntry::Explicit,
+                widget_entry: Some(EditEntry::Immediate),
             },
             Theme::junie(),
         );
@@ -1735,12 +1833,41 @@ mod tests {
         runtime.draw_buffer(area, &mut buffer).commit_presented();
         let _ = crate::runtime::stub::deliver(&mut runtime, key(KeyCode::Tab));
         runtime.draw_buffer(area, &mut buffer).commit_presented();
-        (runtime, buffer)
+        assert!(runtime.app().state.is_editing());
     }
 
-    fn send_key(runtime: &mut Runtime<EditorApp>, buffer: &mut Buffer, code: KeyCode) {
-        let _ = crate::runtime::stub::deliver(runtime, key(code));
-        runtime.draw_buffer(buffer.area, buffer).commit_presented();
+    #[test]
+    fn type_to_edit_app_policy_inserts_the_first_focused_character() {
+        let area = Rect::new(0, 0, 40, 5);
+        let mut runtime = Runtime::new(
+            EditorApp {
+                state: CodeEditorState::new(""),
+                read_only: false,
+                app_entry: EditEntry::TypeToEdit,
+                widget_entry: None,
+            },
+            Theme::junie(),
+        );
+        let _ = runtime.initialize();
+        let mut buffer = Buffer::empty(area);
+        runtime.draw_buffer(area, &mut buffer).commit_presented();
+        let _ = crate::runtime::stub::deliver(&mut runtime, key(KeyCode::Tab));
+        runtime.draw_buffer(area, &mut buffer).commit_presented();
+        assert!(!runtime.app().state.is_editing());
+        let _ = crate::runtime::stub::deliver(&mut runtime, key(KeyCode::Char('x')));
+        runtime.draw_buffer(area, &mut buffer).commit_presented();
+        assert!(runtime.app().state.is_editing());
+        assert_eq!(runtime.app().state.text(), "x");
+    }
+
+    #[test]
+    fn type_to_edit_does_not_enter_read_only_editor() {
+        let (mut runtime, mut buffer) =
+            focused_runtime_with_entry("alpha", true, EditEntry::TypeToEdit);
+        assert!(!runtime.app().state.is_editing());
+        send_key(&mut runtime, &mut buffer, KeyCode::Char('x'));
+        assert!(!runtime.app().state.is_editing());
+        assert_eq!(runtime.app().state.text(), "alpha");
     }
 
     #[test]
@@ -2021,7 +2148,8 @@ mod tests {
 
     #[test]
     fn find_input_routes_text_backspace_enter_and_escape() {
-        let (mut runtime, mut buffer) = focused_runtime("alpha beta alpha", false);
+        let (mut runtime, mut buffer) =
+            focused_runtime_with_entry("alpha beta alpha", false, EditEntry::Explicit);
         for code in [
             KeyCode::Char('/'),
             KeyCode::Char('a'),

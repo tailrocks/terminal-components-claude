@@ -1,3 +1,6 @@
+#[path = "common/tab_navigation.rs"]
+mod tab_navigation;
+
 use tablepro_ui::{QueryTab, Surface, Tab, TableProApp};
 use termrock::{App, Id, KeyCode, Theme};
 use termrock_test_support::Harness;
@@ -42,7 +45,10 @@ fn captured_close_rejects_payload_replacement_after_clone_insertion_and_reorder(
         unreachable!("payload")
     };
     let mut h = Harness::new(app, Theme::junie(), 120, 40);
-    assert!(h.tab_to(Id::root("tablepro.workbench.tab-strip")));
+    assert!(tab_navigation::tab_to(
+        &mut h,
+        Id::root("tablepro.workbench.tab-strip")
+    ));
     let _ = h.key(KeyCode::Char('x'));
     assert!(h.find("Close tab with unsaved work?").is_some());
     let Some(copy) = h.app_mut().workbench.insert_tab(0, payload) else {
