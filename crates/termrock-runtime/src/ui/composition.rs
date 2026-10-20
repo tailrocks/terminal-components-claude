@@ -323,6 +323,23 @@ impl<'a> CompositionSlots<'a> {
         self.draw_resolved(ui, &resolved);
         Ok(())
     }
+
+    /// Measure this composition using the same tree, resolved widths, and
+    /// width-dependent remeasurement used by [`Self::draw`]. Measurement is
+    /// read-only: it does not draw leaves or dispatch input.
+    pub fn measure(&self, ui: &Ui<'_>, constraints: Constraints) -> Result<Size, CompositionError> {
+        if self.depth > MAX_COMPOSITION_DEPTH {
+            return Err(CompositionError::DepthExceeded {
+                depth: self.depth,
+                maximum: MAX_COMPOSITION_DEPTH,
+            });
+        }
+        let area = Rect::new(0, 0, constraints.max.0, constraints.max.1);
+        let mut measured = self.measure_tree(ui, constraints);
+        let resolved = self.resolve(area, &measured.children);
+        self.remeasure_resolved(ui, &mut measured, &resolved, resolved.content.height);
+        Ok(self.intrinsic(&measured.children, constraints))
+    }
 }
 
 #[derive(Clone)]
@@ -365,6 +382,7 @@ mod tests {
     use crate::author::composition_leaf;
     use crate::focus::Focusability;
     use crate::id::Id;
+    use crate::layout::ChildPolicy;
     use crate::measure::{Constraints, Size};
     use crate::theme::Theme;
     use crate::ui::cx::LastFrame;
@@ -456,6 +474,44 @@ mod tests {
             frame.registry.area_of(Id::root("slot.b")),
             Some(drawn.borrow()[1].1)
         );
+    }
+
+    #[test]
+    fn pure_measure_uses_resolved_width_reflow_without_drawing() {
+        let widths = RefCell::new(Vec::new());
+        let draws = Cell::new(0);
+        let first = composition_leaf(
+            |_: &Ui<'_>, constraints: Constraints| {
+                widths.borrow_mut().push(constraints.max.0);
+                Size {
+                    min: (1, 1),
+                    preferred: (8, 1),
+                }
+                .fit(constraints)
+            },
+            |_: &mut Ui<'_>, _| draws.set(draws.get() + 1),
+        );
+        let second = composition_leaf(
+            |_: &Ui<'_>, constraints: Constraints| {
+                widths.borrow_mut().push(constraints.max.0);
+                Size {
+                    min: (1, 1),
+                    preferred: (8, 1),
+                }
+                .fit(constraints)
+            },
+            |_: &mut Ui<'_>, _| draws.set(draws.get() + 1),
+        );
+        let slots = super::CompositionSlots::row([
+            super::ContentSlot::new(&first, ChildPolicy::default().flex(1)),
+            super::ContentSlot::new(&second, ChildPolicy::default().flex(1)),
+        ]);
+        let (size, _) = with_ui(Rect::new(0, 0, 10, 2), |ui| {
+            slots.measure(ui, Constraints::loose(10, 2)).unwrap()
+        });
+        assert_eq!(size.preferred.0, 10);
+        assert!(widths.borrow().iter().any(|width| *width < 10));
+        assert_eq!(draws.get(), 0);
     }
 
     #[test]
