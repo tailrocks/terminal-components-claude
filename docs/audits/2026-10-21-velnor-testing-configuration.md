@@ -42,6 +42,21 @@ the named configuration creates parallel default-equivalent package tasks.
 This is generator behavior and is recorded here rather than hidden by a
 hand-written task or generated-file edit.
 
+The plan reports those 39 fallbacks for: `holla`, `holla-domain`, `holla-sim`,
+`holla-ui`, `jackin-preview`, `jackin-preview-app`,
+`jackin-preview-capsule-ui`, `jackin-preview-domain`,
+`jackin-preview-host-ui`, `jackin-preview-presentation`, `jackin-preview-sim`,
+`refactor-proof`, `showcase`, `showcase-demos`, `showcase-ui`, `tablepro`,
+`tablepro-demo`, `tablepro-domain`, `tablepro-sql`, `tablepro-ui`,
+`termrock-collections`, `termrock-conformance`, `termrock-controls`,
+`termrock-editors`, `termrock-feedback`, `termrock-fields`, `termrock-forms`,
+`termrock-grid`, `termrock-layout`, `termrock-navigation`, `termrock-overlays`,
+`termrock-render`, `termrock-session`, `termrock-terminal`,
+`termrock-test-support`, `termrock-text`, `termrock-visibility-publisher`,
+`termrock-xtask`, and `visual-harness`. Their testing-configuration Cargo argv
+does not contain `--features testing`; each fallback is explicitly named in
+the Velnor plan.
+
 The generated `termrock` testing task passes:
 
 ```text
