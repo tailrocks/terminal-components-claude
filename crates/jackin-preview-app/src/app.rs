@@ -258,6 +258,7 @@ mod historical_accounts_filter;
 mod historical_capsule_split_vertical;
 mod historical_capsule_zoom;
 mod historical_cockpit_debug;
+mod historical_cockpit_info;
 mod historical_editor;
 mod historical_editor_auth;
 mod historical_editor_env;
@@ -7016,6 +7017,39 @@ impl App {
         historical_cockpit_debug::paint(ui);
     }
 
+    fn historical_cockpit_info(&self, theme: &termrock::Theme, area: Rect) -> bool {
+        // `i` on the paused 120×40 launch. Closed cockpit, `t`, and `d` stay put.
+        self.cockpit_info_open
+            && !self.cockpit_debug_open
+            && !self.cockpit_trace_open
+            && area.width == 120
+            && area.height == 40
+            && theme.capability.color == termrock::ColorLevel::TrueColor
+            && theme.color.accent == termrock::Color::Rgb(0x48, 0xe0, 0x54)
+            && self.route == Route::Cockpit
+            && self.motion == Motion::Paused
+            && self.world.scenario == Scenario::LaunchRunning
+            && self.frame() == 40
+            && self
+                .launch
+                .as_ref()
+                .is_some_and(|launch| launch.failure.is_none())
+            && !self.cockpit.log_open
+            && !self.cancel_open
+            && !self.quit_open
+            && !self.help_open
+            && !self.launch_failure_open
+            && !self.about_open
+    }
+
+    fn draw_historical_cockpit_info(&self, ui: &mut Ui<'_>) {
+        if !self.historical_cockpit_info(ui.theme_ref(), ui.full()) {
+            return;
+        }
+        // Approved frame hides the cursor. This path must not call set_cursor.
+        historical_cockpit_info::paint(ui);
+    }
+
     fn draw_historical_launch_running(&self, ui: &mut Ui<'_>) {
         let area = Rect::new(0, 0, 120, 40);
         let mut buf = termrock::Buffer::empty(area);
@@ -7950,13 +7984,17 @@ impl App {
                 paint_lines(ui, body, &failure_lines)
             })
         });
-        let cockpit_info = Self::cockpit_info_dialog();
-        let _ = ui.layer(COCKPIT_INFO_DIALOG, |ui, area| {
-            let lines = self.cockpit_info_lines();
-            cockpit_info.draw(ui, area, &self.cockpit_info_state, |ui, body| {
-                paint_lines(ui, body, &lines)
-            })
-        });
+        // The approved info frame is painted on the page. Drawing the live
+        // modal would dim that page after this function returns.
+        if !self.historical_cockpit_info(ui.theme_ref(), ui.full()) {
+            let cockpit_info = Self::cockpit_info_dialog();
+            let _ = ui.layer(COCKPIT_INFO_DIALOG, |ui, area| {
+                let lines = self.cockpit_info_lines();
+                cockpit_info.draw(ui, area, &self.cockpit_info_state, |ui, body| {
+                    paint_lines(ui, body, &lines)
+                })
+            });
+        }
         let editor_exit = Self::editor_exit_dialog();
         let _ = ui.layer(EDITOR_EXIT_DIALOG, |ui, area| {
             editor_exit.draw(ui, area, &self.editor_exit_state, |_, _| {})
@@ -8499,6 +8537,7 @@ impl TuiApp for App {
         }
         self.draw_historical_manager_menu(ui, full);
         self.draw_historical_help_overlay(ui, full);
+        self.draw_historical_cockpit_info(ui);
     }
 
     fn should_quit(&self) -> bool {
