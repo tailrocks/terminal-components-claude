@@ -156,6 +156,33 @@ impl Ui<'_> {
         }
     }
 
+    /// Fade an overflowing picker list toward the card, the way option-list
+    /// `fade_edges` does.
+    ///
+    /// A viewport of 12 rows or more fades two rows (keep 0.8, then 0.55).
+    /// A shorter viewport fades only the outer row. The blend target is the
+    /// majority background of `area` (the card fill). A cursor row is left whole.
+    ///
+    /// Call this after the rows are painted. `ScrollRegion::draw` paints the
+    /// bar first, so a fade there is covered by the rows. The call that belongs
+    /// in `crates/termrock-navigation/src/filter_list.rs` `FilterList::draw`,
+    /// immediately after `self.draw_rows(ui, content, st, items, live);`:
+    ///
+    /// ```ignore
+    /// let view = ScrollRegion::view(st.core.scroll(), content, visible_len);
+    /// ui.fade_picker_overflow(content, &view);
+    /// ```
+    ///
+    /// `content` is the rect `scrollbar().draw` returned (the bar column is
+    /// already excluded). `visible_len` is the match count already in scope.
+    pub fn fade_picker_overflow(&mut self, area: Rect, state: &ScrollState) {
+        let mut laid_out = *state;
+        if laid_out.viewport_len() == 0 {
+            laid_out.set_viewport(usize::from(area.height));
+        }
+        self.scroll_edges(area, &laid_out);
+    }
+
     fn fade_unless_protected(
         &mut self,
         area: Rect,
@@ -398,6 +425,32 @@ impl Ui<'_> {
         (self.buffer(), clip)
     }
 
+    /// Dim a modal underlay the way the baseline backdrop does.
+    /// Faint glyphs stay. Bold does not survive the dim.
+    pub fn modal_backdrop(&mut self, area: Rect) {
+        let area = area.intersection(self.frame.screen);
+        let theme = self.theme_ref().clone();
+        let focus_bar = theme.design.glyphs.get(crate::theme::GlyphRole::FocusBar);
+        for pos in area.positions() {
+            let page = self.page_mut();
+            let Some(cell) = page.cell_mut(pos) else {
+                continue;
+            };
+            let symbol = cell.symbol().to_owned();
+            let clear_bar = symbol == focus_bar
+                && (cell.fg == theme.color.focus || cell.fg == theme.color.on_accent);
+            let (fg, bg) = theme.backdrop_colors(cell.fg, cell.bg);
+            let mut style = Style::new();
+            style.fg = Some(fg);
+            style.bg = Some(bg);
+            cell.set_style(style);
+            cell.modifier = Modifier::empty();
+            if clear_bar {
+                cell.set_symbol(" ");
+            }
+        }
+    }
+
     pub fn dim_layer(&mut self, area: Rect, steps: u8) {
         if steps == 0 {
             return;
@@ -554,6 +607,82 @@ mod tests {
         let edge = page.cell(Position::new(0, 0)).expect("edge cell");
         let middle = page.cell(Position::new(0, 1)).expect("middle cell");
         assert_ne!(edge.fg, middle.fg, "the edge foreground was faded");
+    }
+
+    #[test]
+    fn picker_overflow_fade_blends_the_last_two_rows_toward_the_card() {
+        let theme = Theme::junie();
+        let card = Color::Rgb(0x18, 0x18, 0x1b);
+        let label = Color::Rgb(0xff, 0xff, 0xff);
+        let meta = Color::Rgb(0x8a, 0x8a, 0x8a);
+        let height = 13u16;
+        let area = Rect::new(0, 0, 4, height);
+        let mut frame = FrameState::default();
+        frame.reset(1, area);
+        let mut page = Buffer::empty(area);
+        let mut core = UiCore::default();
+        let last = LastFrame::default();
+        {
+            let mut ui = Ui::new(&mut frame, &mut page, &mut core, &theme, &last);
+            let fill = Style::new().bg(card);
+            ui.fill(area, fill);
+            for y in area.y..area.bottom() {
+                ui.paint_str(
+                    Rect::new(area.x, y, 1, 1),
+                    "a",
+                    Style::new().fg(label).bg(card),
+                );
+                ui.paint_str(
+                    Rect::new(area.x + 1, y, 1, 1),
+                    "V",
+                    Style::new().fg(meta).bg(card),
+                );
+            }
+            let mut state = ScrollState::new(40);
+            state.set_viewport(usize::from(height));
+            ui.fade_picker_overflow(area, &state);
+        }
+        let fg = |x, y| page.cell(Position::new(x, y)).expect("cell").fg;
+        assert_eq!(
+            fg(0, 0),
+            label,
+            "the top stays whole when nothing is hidden above"
+        );
+        assert_eq!(fg(0, height - 3), label, "only the last two rows fade");
+        assert_eq!(fg(0, height - 2), Color::Rgb(0xd1, 0xd1, 0xd1));
+        assert_eq!(fg(1, height - 2), Color::Rgb(0x73, 0x73, 0x74));
+        assert_eq!(fg(0, height - 1), Color::Rgb(0x97, 0x97, 0x98));
+        assert_eq!(fg(1, height - 1), Color::Rgb(0x57, 0x57, 0x58));
+    }
+
+    #[test]
+    fn picker_overflow_fade_uses_area_height_when_the_viewport_is_unlaid() {
+        let theme = Theme::junie();
+        let card = Color::Rgb(0x18, 0x18, 0x1b);
+        let label = Color::Rgb(0xff, 0xff, 0xff);
+        let area = Rect::new(0, 0, 2, 13);
+        let mut frame = FrameState::default();
+        frame.reset(1, area);
+        let mut page = Buffer::empty(area);
+        let mut core = UiCore::default();
+        let last = LastFrame::default();
+        {
+            let mut ui = Ui::new(&mut frame, &mut page, &mut core, &theme, &last);
+            ui.fill(area, Style::new().fg(label).bg(card));
+            for y in area.y..area.bottom() {
+                ui.paint_str(
+                    Rect::new(area.x, y, area.width, 1),
+                    "ab",
+                    Style::new().fg(label).bg(card),
+                );
+            }
+            ui.fade_picker_overflow(area, &ScrollState::new(40));
+        }
+        let bottom = page
+            .cell(Position::new(0, area.bottom() - 1))
+            .expect("outer")
+            .fg;
+        assert_eq!(bottom, Color::Rgb(0x97, 0x97, 0x98));
     }
 
     fn dimmed_cell(

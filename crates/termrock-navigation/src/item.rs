@@ -117,20 +117,30 @@ impl ItemColumns {
         row_width: u16,
         metadata_gap: u16,
     ) -> Self {
-        let mut columns = Self {
-            metadata_gap,
-            ..Self::default()
-        };
+        let mut label_need = 0u16;
+        let mut detail_need = 0u16;
+        let mut tag = 0u16;
+        let mut group = 0u16;
         for item in items {
-            columns.label = columns.label.max(width(item.label));
-            columns.tag = columns.tag.max(width(item.tag.unwrap_or("")));
-            columns.group = columns.group.max(width(item.group.unwrap_or("")));
+            label_need = label_need.max(width(item.label));
+            detail_need = detail_need.max(width(item.detail));
+            tag = tag.max(width(item.tag.unwrap_or("")));
+            group = group.max(width(item.group.unwrap_or("")));
         }
-        let limit = u16::try_from(u32::from(row_width).saturating_mul(45) / 100)
+        // Baseline `columns::solve`: the label and the detail share spare
+        // width, so a long label stops short of the 45% cap.
+        label_need = label_need.max(6);
+        let cap = u16::try_from(u32::from(row_width).saturating_mul(45) / 100)
             .unwrap_or(u16::MAX)
             .max(6);
-        columns.label = columns.label.clamp(6, limit);
-        columns
+        let label_cap = label_need.min(cap);
+        let label = solve_label(row_width, label_cap, detail_need, tag, group);
+        Self {
+            label,
+            tag,
+            group,
+            metadata_gap,
+        }
     }
 
     #[must_use]
@@ -206,6 +216,178 @@ impl ItemColumns {
             group.text(item.group.unwrap_or(""));
         }
     }
+}
+
+#[derive(Clone, Copy)]
+struct SolvedCol {
+    min: u16,
+    ideal: u16,
+    max: u16,
+    flex: u16,
+    drop: bool,
+}
+
+fn solve_label(row_width: u16, label_cap: u16, detail_need: u16, tag: u16, group: u16) -> u16 {
+    let mut cols = [SolvedCol {
+        min: 0,
+        ideal: 0,
+        max: 0,
+        flex: 0,
+        drop: false,
+    }; 4];
+    let detail_min = detail_need.min(4);
+    cols[0] = SolvedCol {
+        min: label_cap.min(12),
+        ideal: label_cap,
+        max: label_cap,
+        flex: 0,
+        drop: false,
+    };
+    cols[1] = SolvedCol {
+        min: detail_min,
+        ideal: detail_need.max(detail_min),
+        max: u16::MAX,
+        flex: 1,
+        drop: true,
+    };
+    let mut n = 2usize;
+    if tag > 0 {
+        cols[n] = SolvedCol {
+            min: tag,
+            ideal: tag,
+            max: tag,
+            flex: 0,
+            drop: false,
+        };
+        n = n.saturating_add(1);
+    }
+    if group > 0 {
+        cols[n] = SolvedCol {
+            min: group,
+            ideal: group,
+            max: group,
+            flex: 0,
+            drop: false,
+        };
+        n = n.saturating_add(1);
+    }
+    let widths = solve_columns(&cols[..n], row_width.saturating_sub(4), 2);
+    widths.first().copied().unwrap_or(label_cap)
+}
+
+fn solve_columns(cols: &[SolvedCol], avail: u16, gap: u16) -> [u16; 4] {
+    let n = cols.len().min(4);
+    let mut visible = [true; 4];
+    let gaps = |visible: &[bool; 4]| -> u32 {
+        gap as u32
+            * visible
+                .iter()
+                .take(n)
+                .filter(|on| **on)
+                .count()
+                .saturating_sub(1) as u32
+    };
+    let mins = |visible: &[bool; 4]| -> u32 {
+        cols.iter()
+            .take(n)
+            .zip(visible.iter().take(n))
+            .filter(|(_, on)| **on)
+            .map(|(col, _)| u32::from(col.min))
+            .sum()
+    };
+    while mins(&visible).saturating_add(gaps(&visible)) > u32::from(avail) {
+        let victim = cols
+            .iter()
+            .take(n)
+            .enumerate()
+            .filter(|(i, col)| visible[*i] && col.drop)
+            .min_by_key(|(i, _)| core::cmp::Reverse(*i))
+            .map(|(i, _)| i);
+        match victim {
+            Some(i) => visible[i] = false,
+            None => break,
+        }
+    }
+    let room = u32::from(avail).saturating_sub(gaps(&visible));
+    let mut w = [0u32; 4];
+    for (i, col) in cols.iter().take(n).enumerate() {
+        if visible[i] {
+            w[i] = u32::from(col.min);
+        }
+    }
+    let mut used: u32 = w.iter().take(n).sum();
+    for i in (0..n).rev() {
+        if used <= room {
+            break;
+        }
+        let cut = (used - room).min(w[i]);
+        w[i] -= cut;
+        used -= cut;
+    }
+    let mut spare = room.saturating_sub(used);
+    while spare > 0 {
+        let mut grew = false;
+        for i in 0..n {
+            if spare == 0 {
+                break;
+            }
+            if visible[i] && w[i] < u32::from(cols[i].ideal) {
+                w[i] += 1;
+                spare -= 1;
+                grew = true;
+            }
+        }
+        if !grew {
+            break;
+        }
+    }
+    while spare > 0 {
+        let mut open = [false; 4];
+        let mut open_count = 0u32;
+        let mut weight = 0u32;
+        for i in 0..n {
+            if visible[i] && cols[i].flex > 0 && w[i] < u32::from(cols[i].max) {
+                open[i] = true;
+                open_count = open_count.saturating_add(1);
+                weight = weight.saturating_add(u32::from(cols[i].flex));
+            }
+        }
+        if open_count == 0 || weight == 0 {
+            break;
+        }
+        let round = spare;
+        let mut given = 0u32;
+        for i in 0..n {
+            if !open[i] || spare == 0 {
+                continue;
+            }
+            let share = (round.saturating_mul(u32::from(cols[i].flex)) / weight)
+                .max(1)
+                .min(u32::from(cols[i].max) - w[i])
+                .min(spare);
+            w[i] += share;
+            spare -= share;
+            given = given.saturating_add(share);
+        }
+        if given == 0 {
+            break;
+        }
+    }
+    for i in 0..n {
+        if spare == 0 {
+            break;
+        }
+        if visible[i] && w[i] < u32::from(cols[i].max) {
+            let give = (u32::from(cols[i].max) - w[i]).min(spare);
+            w[i] += give;
+            spare -= give;
+        }
+    }
+    let mut out = [0u16; 4];
+    for i in 0..n {
+        out[i] = u16::try_from(w[i]).unwrap_or(u16::MAX);
+    }
+    out
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]

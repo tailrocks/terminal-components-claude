@@ -9,7 +9,9 @@ use crate::id::{Id, ItemKey, Part};
 use crate::layout::{Track, distribute_into};
 use crate::response::StateFlags;
 use crate::text::{Span, width};
-use crate::theme::{Align, CursorStyle, Family, GlyphRole, Role, Slot, StylePatch, Variant};
+use crate::theme::{
+    Align, CursorStyle, Family, FgStep, GlyphRole, Role, Slot, StylePatch, Variant,
+};
 use crate::ui::{FrameRead, Ui};
 
 pub trait RowFn<T> {
@@ -32,8 +34,22 @@ pub const MAX_COLUMNS: usize = 16;
 
 const fn selected_row_patch() -> StylePatch {
     StylePatch::new()
-        .set_bg(Role::SelectionBg)
-        .set_fg(Role::SelectionFg)
+        .set_bg(Role::HighlightBg)
+        .set_fg(Role::HighlightFg)
+        .add(Modifier::BOLD)
+        .remove(Modifier::UNDERLINED)
+}
+
+fn selected_part_patch(part: Part) -> StylePatch {
+    let patch = StylePatch::new()
+        .set_bg(Role::HighlightBg)
+        .set_fg(Role::HighlightFg)
+        .remove(Modifier::UNDERLINED);
+    if part == Part::LABEL || part == Part::ROW {
+        patch.add(Modifier::BOLD)
+    } else {
+        patch.remove(Modifier::BOLD)
+    }
 }
 
 fn resolve_row_part(
@@ -46,14 +62,26 @@ fn resolve_row_part(
     cursor_style: CursorStyle,
 ) -> crate::theme::Resolved {
     if cursor_style == CursorStyle::Fill && flags.contains(StateFlags::FOCUSED) {
-        return ui.style_defaults(
-            family,
-            variant,
-            part,
-            flags,
-            crate::theme::StyleDefaults::new(selected_row_patch()),
-            patch.as_ref(),
-        );
+        let natural = match patch {
+            Some(patch) => ui.style_patched(family, variant, part, flags, &patch),
+            None => ui.style(family, variant, part, flags),
+        };
+        let owner_ink = |role: Option<(Role, crate::theme::Surface)>| {
+            role.is_some_and(|(role, _)| matches!(role, Role::Custom(_)))
+        };
+        // Built-in fill ink is highlight. An owner Custom role still wins.
+        if !owner_ink(natural.style.fg_role) && !owner_ink(natural.style.bg_role) {
+            let force = selected_part_patch(part);
+            return ui.style_defaults(
+                family,
+                variant,
+                part,
+                flags,
+                crate::theme::StyleDefaults::new(selected_row_patch()),
+                Some(&force),
+            );
+        }
+        return natural;
     }
     match patch {
         Some(patch) => ui.style_patched(family, variant, part, flags, &patch),
@@ -168,6 +196,22 @@ impl<'u> RowUi<'u> {
                 None,
             );
             self.ui.fill(self.row, resolved.style);
+        } else if style == CursorStyle::Fill {
+            // Baseline fills every row before the gutter. Unfocused fill is
+            // primary ink on the card, so label padding stays white.
+            let patch = StylePatch::new()
+                .set_fg(Role::Fg(FgStep::Primary))
+                .set_bg(Role::CurrentSurface)
+                .remove(Modifier::BOLD);
+            let resolved = self.ui.style_defaults(
+                self.family,
+                self.variant,
+                Part::ROW,
+                self.flags,
+                crate::theme::StyleDefaults::new(patch),
+                None,
+            );
+            self.ui.fill(self.row, resolved.style);
         }
         self
     }
@@ -235,6 +279,35 @@ impl<'u> RowUi<'u> {
 
     pub fn gutter(&mut self) {
         if self.cursor_style == CursorStyle::Fill && self.flags.contains(StateFlags::FOCUSED) {
+            let mark = self.ui.paint_patch(
+                &StylePatch::new()
+                    .set_fg(Role::HighlightBg)
+                    .set_bg(Role::HighlightBg)
+                    .add(Modifier::BOLD),
+            );
+            let area = self.remaining();
+            let cell = Rect {
+                width: area.width.min(1),
+                ..area
+            };
+            self.ui.fill(cell, mark);
+            self.left = self.left.saturating_add(1);
+            return;
+        }
+        if self.cursor_style == CursorStyle::Fill {
+            // Baseline unfocused gutter is a space whose ink matches the row.
+            let mark = self.ui.paint_patch(
+                &StylePatch::new()
+                    .set_fg(Role::CurrentSurface)
+                    .set_bg(Role::CurrentSurface)
+                    .remove(Modifier::BOLD),
+            );
+            let area = self.remaining();
+            let cell = Rect {
+                width: area.width.min(1),
+                ..area
+            };
+            self.ui.fill(cell, mark);
             self.left = self.left.saturating_add(1);
             return;
         }
