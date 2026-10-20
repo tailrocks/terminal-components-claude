@@ -1,24 +1,3 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 pub mod holla;
 pub mod interact;
 pub mod jackin;
@@ -28,10 +7,6 @@ pub mod tablepro;
 use std::sync::OnceLock;
 
 use crate::support::{self, Case, Color, Session};
-
-
-
-
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Bin {
@@ -77,35 +52,25 @@ impl Bin {
     }
 }
 
-
 #[derive(Clone, Copy)]
 pub enum Drive {
-
     Steps,
 
     Live(fn(&mut Session, &Case)),
 
-
     Resize(fn(&Case, u16, u16)),
 }
 
-
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Status {
-
     Stored,
 
     Pending,
 }
 
-
-
-
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Pointer {
-
     Hover(&'static str),
-
 
     Press(&'static str),
 
@@ -114,10 +79,8 @@ pub enum Pointer {
     RightClick(&'static str),
 }
 
-
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Dismiss {
-
     Esc,
 
     Outside,
@@ -133,8 +96,6 @@ impl Dismiss {
         }
     }
 }
-
-
 
 #[derive(Clone, Copy)]
 pub struct Variant {
@@ -177,18 +138,14 @@ impl Variant {
     }
 }
 
-
 #[derive(Clone, Copy)]
 pub struct Root {
-
     pub root: &'static str,
     pub bin: Bin,
 
     pub args: &'static [&'static str],
 
     pub ready: &'static str,
-
-
 
     pub steps: &'static [&'static str],
     pub timeout_ms: u64,
@@ -202,9 +159,7 @@ pub struct Root {
 
     pub pointer: Option<Pointer>,
 
-
     pub dismiss: Option<Status>,
-
 
     pub min_size: (u16, u16),
 
@@ -268,7 +223,6 @@ impl Root {
         self
     }
 
-
     pub const fn pending(mut self) -> Self {
         self.status = Status::Pending;
         self
@@ -294,29 +248,20 @@ impl Root {
         self
     }
 
-
-
     pub const fn min_size(mut self, cols: u16, rows: u16) -> Self {
         self.min_size = (cols, rows);
         self
     }
-
-
-
 
     pub const fn env(mut self, env: &'static [(&'static str, &'static str)]) -> Self {
         self.env = env;
         self
     }
 
-
     pub const fn dismiss_pending(mut self) -> Self {
         self.dismiss = Some(Status::Pending);
         self
     }
-
-
-
 
     pub fn case(&self, cols: u16, rows: u16, color: Color) -> Case {
         let name = format!("{}/{cols}x{rows}/{}", self.root, color.suffix());
@@ -361,7 +306,6 @@ impl Root {
     }
 }
 
-
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Kind {
     Surface,
@@ -383,9 +327,6 @@ impl Kind {
     }
 }
 
-
-
-
 pub struct Tier {
     pub name: &'static str,
     pub sizes: &'static [(u16, u16)],
@@ -404,10 +345,6 @@ pub const ALL_KINDS: &[Kind] = &[
     Kind::Resize,
 ];
 
-
-
-
-
 pub const MATRIX: &[Tier] = &[
     Tier {
         name: "full",
@@ -425,16 +362,11 @@ pub const MATRIX: &[Tier] = &[
     },
 ];
 
-
-
-
 pub const SMOKE: &[((u16, u16), Color)] =
     &[((120, 40), Color::Truecolor), ((72, 20), Color::NoColorEnv)];
 
-
 #[derive(Clone)]
 pub struct Scenario {
-
     pub name: String,
     pub kind: Kind,
     pub tier: &'static str,
@@ -449,15 +381,11 @@ pub struct Scenario {
 }
 
 impl Scenario {
-
     pub fn test_name(&self) -> String {
         self.name.replace('/', "::")
     }
 
-
-
     pub fn run(&self) {
-
         support::clear_actual(&self.name);
         if !support::capture_enabled(&self.name) {
             return;
@@ -471,8 +399,6 @@ impl Scenario {
         let mut session = self.drive_session(&self.name);
         support::settle_and_gate(&mut session, &self.name);
     }
-
-
 
     fn drive_session(&self, as_name: &str) -> Session {
         let mut case = self.root.case(self.cols, self.rows, self.color);
@@ -490,8 +416,6 @@ impl Scenario {
         session
     }
 
-
-
     pub fn capture(&self, as_name: &str) -> Result<tuiscotti::Frame, String> {
         if let Drive::Resize(_) = self.root.drive {
             return Err(format!("`{}` is a resize row", self.name));
@@ -499,7 +423,6 @@ impl Scenario {
         self.drive_session(as_name).wait_stable(support::SETTLE)
     }
 }
-
 
 pub fn tables() -> Vec<(&'static str, Kind, &'static [Root])> {
     let mut out = Vec::new();
@@ -546,7 +469,6 @@ pub fn tables() -> Vec<(&'static str, Kind, &'static [Root])> {
     out
 }
 
-
 pub fn all() -> Vec<Scenario> {
     let mut out = Vec::new();
     for (_, kind, table) in tables() {
@@ -589,9 +511,6 @@ pub fn all() -> Vec<Scenario> {
     }
     out
 }
-
-
-
 
 pub fn check_tables() -> Result<(), String> {
     let mut problems = Vec::new();
