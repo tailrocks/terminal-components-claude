@@ -31,3 +31,7 @@ The PR excludes `crates/termrock-e2e/**` and `crates/termrock-visibility-tests/*
 ## Branch comparison
 
 The frozen CLI runner/tooling sources listed above are identical between the recorded PR and design commits. CI plans are not identical: the design branch declares visual tiers in `.velnor/config.toml` and generates `suites.yml`; the PR branch removes those declarations and generated workflow. Its latest run had not completed at audit time. Recheck both branches after the config correction and keep any remaining coverage gaps explicit.
+
+## Generated instruction symlink correction
+
+Velnor Actions 0.1.16 supports `[agents] claude_md = "symlink"`. This config now requests that mode, and generated `.github/CLAUDE.md` is the relative symlink `AGENTS.md`, matching the repository's generated-file instruction. `mise exec -- velnor-actions generate` and `mise exec -- velnor-actions plan` succeeded. A second `generate --output-dir /private/tmp/termrock-ci-plan-generated-symlink-20261020` preview exactly matched the committed `.github` tree, including symlink type. The plan still includes 39 `cargo test --doc` tasks, lacks an external-consumer target, and does not invoke the paired Python CLI runner; those are unresolved blockers, not accepted coverage. The upstream capability evidence is Velnor Actions release commit `f5d6692642fa6774048963073dfb5cc33d039abd`, source `crates/velnor-actions-contract/src/config/agents.rs` and CLI test `crates/velnor-actions-cli/tests/impl_cli_suites_and_symlink.rs`.
