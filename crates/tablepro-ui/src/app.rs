@@ -246,11 +246,6 @@ const PALETTE: ActionKey = ActionKey::application("tablepro.palette");
 const ZOOM: ActionKey = ActionKey::application("tablepro.zoom");
 const TOGGLE_EXPLORER: ActionKey = ActionKey::application("tablepro.toggle-explorer");
 const FOCUS_EXPLORER: ActionKey = ActionKey::application("tablepro.focus-explorer");
-const RESULT_SQL: &str =
-    "SELECT * FROM orders WHERE status = 'pending' ORDER BY created_at DESC LIMIT 25";
-const ERROR_SQL: &str = "SELECT * FROM missing_table";
-const EXPLAIN_SQL: &str = "SELECT * FROM orders";
-const COMPLETION_SQL: &str = "SELECT * FROM ord";
 
 const CONNECTION_DETAILS: Id = Id::root("tablepro.connections.details");
 const CONTENT_FRAME: Id = Id::root("tablepro.workbench.content.frame");
@@ -10208,10 +10203,7 @@ fn paint_picker_layer_footer(ui: &mut Ui<'_>, area: termrock::Rect) {
 fn draw_footer(ui: &mut Ui<'_>, area: termrock::Rect, app: &TableProApp) {
     let base = ui.surface_style();
     let explorer_focused = ui.state(EXPLORER).contains(StateFlags::FOCUSED);
-    let empty_query = app.blank_sql()
-        && app
-            .query_id()
-            .is_some_and(|id| ui.state(id).contains(StateFlags::FOCUSED));
+    let empty_query = app.blank_sql() && query_editor_focused(ui, app);
     ui.fill(area, base);
     if matches!(app.surface, Surface::QuickSwitcher | Surface::TabListPicker) {
         paint_picker_layer_footer(ui, area);
