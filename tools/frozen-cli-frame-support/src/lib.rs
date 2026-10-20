@@ -478,8 +478,13 @@ impl Recorder {
         intent: ProcessLaunchIntent,
         pid: u32,
     ) -> Result<ProcessLaunchReceipt, Error> {
-        let (observed_path, observed_sha256, observed_file_identity, image_hash_source) =
-            process_image(pid)?;
+        let (
+            observed_path,
+            observed_sha256,
+            observed_file_identity,
+            process_start_identity,
+            image_hash_source,
+        ) = process_image(pid)?;
         let expected_sha256_after = sha256_file(&intent.expected_path)?;
         if observed_path != intent.expected_path
             || observed_sha256 != intent.expected_sha256
@@ -536,6 +541,10 @@ impl Recorder {
             json_string(&observed_path.to_string_lossy()),
         );
         fields.insert("observed_sha256".into(), json_string(&observed_sha256));
+        fields.insert(
+            "process_start_identity".into(),
+            json_string(&process_start_identity),
+        );
         fields.insert(
             "previous_receipt_sha256".into(),
             self.latest_process_receipt_sha256
@@ -769,7 +778,7 @@ fn metadata_identity(_metadata: &fs::Metadata) -> Result<String, Error> {
 }
 
 #[cfg(target_os = "linux")]
-fn process_image(pid: u32) -> Result<(PathBuf, String, String, &'static str), Error> {
+fn process_image(pid: u32) -> Result<(PathBuf, String, String, String, &'static str), Error> {
     use std::os::unix::fs::MetadataExt as _;
     let proc_exe = PathBuf::from(format!("/proc/{pid}/exe"));
     let before_start = process_start_time(pid)?;
@@ -819,6 +828,7 @@ fn process_image(pid: u32) -> Result<(PathBuf, String, String, &'static str), Er
         path,
         hex(&digest.finalize()),
         identity,
+        before_start,
         "linux-proc-exe-open-fd",
     ))
 }
@@ -839,18 +849,94 @@ fn process_start_time(pid: u32) -> Result<String, Error> {
 }
 
 #[cfg(target_os = "macos")]
-fn process_image(pid: u32) -> Result<(PathBuf, String, String, &'static str), Error> {
+fn process_image(pid: u32) -> Result<(PathBuf, String, String, String, &'static str), Error> {
+    let before_start = macos_process_start(pid)?;
     let first_path = macos_process_path(pid)?;
     let first_identity = file_identity(&first_path)?;
     let hash = sha256_file(&first_path)?;
     let second_path = macos_process_path(pid)?;
     let second_identity = file_identity(&second_path)?;
-    if first_path != second_path || first_identity != second_identity {
+    let after_start = macos_process_start(pid)?;
+    if first_path != second_path || first_identity != second_identity || before_start != after_start
+    {
         return Err(Error::new(
             "paired macOS child path or file identity changed during verification",
         ));
     }
-    Ok((first_path, hash, first_identity, "macos-proc-pidpath-file"))
+    Ok((
+        first_path,
+        hash,
+        first_identity,
+        before_start,
+        "macos-proc-pidpath-file",
+    ))
+}
+
+#[cfg(target_os = "macos")]
+fn macos_process_start(pid: u32) -> Result<String, Error> {
+    use std::ffi::{c_char, c_int, c_void};
+    #[repr(C)]
+    struct ProcBsdInfo {
+        flags: u32,
+        status: u32,
+        xstatus: u32,
+        pid: u32,
+        ppid: u32,
+        uid: u32,
+        gid: u32,
+        ruid: u32,
+        rgid: u32,
+        svuid: u32,
+        svgid: u32,
+        reserved: u32,
+        command: [c_char; 16],
+        name: [c_char; 32],
+        nfiles: u32,
+        pgid: u32,
+        pjobc: u32,
+        terminal_device: u32,
+        terminal_pgid: u32,
+        nice: i32,
+        start_seconds: u64,
+        start_microseconds: u64,
+    }
+    const PROC_PIDTBSDINFO: c_int = 3;
+    #[link(name = "proc")]
+    unsafe extern "C" {
+        #[link_name = "proc_pidinfo"]
+        fn process_info(
+            pid: c_int,
+            flavor: c_int,
+            arg: u64,
+            buffer: *mut c_void,
+            size: c_int,
+        ) -> c_int;
+    }
+    let mut info = std::mem::MaybeUninit::<ProcBsdInfo>::zeroed();
+    let size = std::mem::size_of::<ProcBsdInfo>() as c_int;
+    // SAFETY: `info` is writable for exactly its declared size and proc_pidinfo
+    // initializes that entire structure when it reports success.
+    let read = unsafe {
+        process_info(
+            pid as c_int,
+            PROC_PIDTBSDINFO,
+            0,
+            info.as_mut_ptr().cast(),
+            size,
+        )
+    };
+    if read != size {
+        return Err(Error::new("macOS process start identity is unavailable"));
+    }
+    // SAFETY: the exact structure size was returned above.
+    let info = unsafe { info.assume_init() };
+    if info.pid != pid {
+        return Err(Error::new("macOS process identity does not match PID"));
+    }
+    Ok(format!(
+        "{}:{}",
+        info.start_seconds, info.start_microseconds
+    ))
 }
 
 #[cfg(target_os = "macos")]
@@ -882,7 +968,7 @@ fn macos_process_path(pid: u32) -> Result<PathBuf, Error> {
 }
 
 #[cfg(not(any(target_os = "linux", target_os = "macos")))]
-fn process_image(_pid: u32) -> Result<(PathBuf, String, String, &'static str), Error> {
+fn process_image(_pid: u32) -> Result<(PathBuf, String, String, String, &'static str), Error> {
     Err(Error::new(
         "paired process image probe is unsupported on this platform",
     ))
@@ -1444,10 +1530,12 @@ fn json_string(value: &str) -> String {
         match character {
             '"' => output.push_str("\\\""),
             '\\' => output.push_str("\\\\"),
+            '\u{8}' => output.push_str("\\b"),
             '\n' => output.push_str("\\n"),
+            '\u{c}' => output.push_str("\\f"),
             '\r' => output.push_str("\\r"),
             '\t' => output.push_str("\\t"),
-            control if control.is_control() => {
+            control if u32::from(control) <= 0x1f => {
                 use std::fmt::Write as _;
                 let _ = write!(output, "\\u{:04x}", u32::from(control));
             }
@@ -1461,8 +1549,8 @@ fn json_string(value: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::time::{SystemTime, UNIX_EPOCH};
-    use tuiscotti::{Cursor, Frame, Provenance};
+    use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
+    use tuiscotti::{CancelToken, Cursor, Frame, Provenance, Tui};
 
     type FrameMutation = Box<dyn Fn(&mut Frame)>;
     type NamedFrameMutation<'a> = (&'a str, FrameMutation);
@@ -1479,15 +1567,72 @@ mod tests {
     }
 
     #[test]
+    fn json_string_uses_python_json_canonical_control_escapes() {
+        assert_eq!(
+            json_string("\u{8}\u{c}\u{1b}\u{7f}\u{85}"),
+            "\"\\b\\f\\u001b\u{7f}\u{85}\""
+        );
+    }
+
+    #[test]
     fn process_probe_reports_the_running_test_binary_and_hash() {
         let expected = std::env::current_exe().unwrap().canonicalize().unwrap();
-        let (observed, digest, _identity, method) = process_image(std::process::id()).unwrap();
+        let (observed, digest, _identity, process_start, method) =
+            process_image(std::process::id()).unwrap();
         assert_eq!(observed, expected);
         assert_eq!(digest, sha256_file(&expected).unwrap());
+        assert!(!process_start.is_empty());
+        assert!(!process_start.is_empty());
         #[cfg(target_os = "linux")]
         assert_eq!(method, "linux-proc-exe-open-fd");
         #[cfg(target_os = "macos")]
         assert_eq!(method, "macos-proc-pidpath-file");
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn tuiscotti_child_env_removal_and_close_are_observable() {
+        const KEY: &str = "TERMROCK_PAIR_PROCESS_RECEIPT_KEY";
+        let child = Tui::new([
+            "/bin/sh",
+            "-c",
+            "if [ -z \"${TERMROCK_PAIR_PROCESS_RECEIPT_KEY-}\" ]; then printf CLEAN; else printf LEAKED; fi",
+        ])
+        .size(80, 24)
+        .env_clear(true)
+        .env(KEY, "receipt-secret-must-not-reach-child")
+        .env_remove(KEY)
+        .spawn()
+        .expect("spawn isolated Tuiscotti child");
+        let observation = child
+            .wait_stable_quiet(
+                Instant::now() + Duration::from_secs(5),
+                Duration::from_millis(30),
+                &CancelToken::new(),
+            )
+            .expect("child emitted and settled its environment result");
+        let output = (0..observation.screen.rows())
+            .map(|row| {
+                (0..observation.screen.cols())
+                    .filter_map(|col| observation.screen.get(col, row))
+                    .filter(|cell| !cell.continuation)
+                    .map(|cell| cell.symbol.as_str())
+                    .collect::<String>()
+            })
+            .collect::<String>();
+        assert!(
+            output.contains("CLEAN"),
+            "child environment was not clean: {output:?}"
+        );
+        assert!(
+            !output.contains("LEAKED"),
+            "receipt key leaked to child: {output:?}"
+        );
+        child.close().expect("close and reap Tuiscotti child");
+        assert!(
+            child.poll_exit().is_some(),
+            "close must observe the reaped child"
+        );
     }
 
     #[test]

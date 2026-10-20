@@ -40,7 +40,7 @@ EXTENSION_SOURCE = Path("tools/frozen_cli_extensions.rs")
 EXTENSION_CASE_PREFIX = "termrock_extensions::showcase::table_sort::"
 EXTENSION_MANIFEST_SHA256 = "b995c00f0dc14d4e0a81d1d56140e1c10ba7936a043e0135196f8fe8421cabb8"
 EXTENSION_SOURCE_SHA256 = "332bd4eac4dc65be1a1478f97177cc658113a063900d8b9c6a0ba2ddc6dc67d9"
-EXTENSION_PATCH_SHA256 = "5d21a55bfde3982cd2a1678193d80c8de0d21deeecf5ba86595c05e6843ad298"
+EXTENSION_PATCH_SHA256 = "67dd55f311b3344b28d4062d8b5acc6d12fe36fb9b5ee817f72b0e579b1b8a0e"
 REFERENCE_DECISIONS = Path("tools/frozen_cli_references.json")
 REFERENCE_DECISIONS_SHA256 = "2a43fb118c268300c8bbd6439ea11bb9a24ffff03dc3c9f4601893eee26a096b"
 REFERENCE_CASE = "showcase::resize::overview_grown::120x40::truecolor"
@@ -1389,7 +1389,7 @@ def verify_process_receipts(
     known_launch_fields = {
         "app", "argv_provenance", "case_id", "constructed_argv_hmac_sha256", "constructed_env_hmac_sha256",
         "constructed_env_keys", "expected_file_identity", "expected_path", "expected_sha256", "image_hash_source", "observed_file_identity", "observed_path",
-        "observed_sha256", "previous_receipt_sha256", "run_id", "phase", "pid", "ordinal", "schema", "hmac_sha256",
+        "observed_sha256", "process_start_identity", "previous_receipt_sha256", "run_id", "phase", "pid", "ordinal", "schema", "hmac_sha256",
     }
     known_close_fields = {"case_id", "launch_receipt_sha256", "ordinal", "phase", "run_id", "schema", "hmac_sha256"}
 
@@ -1442,6 +1442,10 @@ def verify_process_receipts(
                         raise RunnerError(f"process executable file identity changed during spawn: {path}")
                     if type(record.get("pid")) is not int or record["pid"] <= 0:
                         raise RunnerError(f"process receipt PID is invalid: {path}")
+                    process_start = record.get("process_start_identity")
+                    start_pattern = r"[0-9]+" if sys.platform.startswith("linux") else r"[0-9]+:[0-9]+" if sys.platform == "darwin" else r"(?!)"
+                    if not isinstance(process_start, str) or re.fullmatch(start_pattern, process_start) is None:
+                        raise RunnerError(f"process start identity is missing: {path}")
                     if record.get("argv_provenance") != "tuiscotti-builder-input" or not isinstance(record.get("constructed_argv_hmac_sha256"), str) or not re.fullmatch(r"[0-9a-f]{64}", record["constructed_argv_hmac_sha256"]):
                         raise RunnerError(f"constructed argv receipt is invalid: {path}")
                     if not isinstance(record.get("constructed_env_hmac_sha256"), str) or not re.fullmatch(r"[0-9a-f]{64}", record["constructed_env_hmac_sha256"]):
