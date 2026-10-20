@@ -7184,6 +7184,11 @@ impl App {
                     .bg(termrock::Color::Reset)
                     .add_modifier(Modifier::BOLD | Modifier::REVERSED);
                 ui.paint_str(Rect::new(1, 0, 9, 1), " jackin❯ ", brand);
+            } else if std::env::var_os("NO_COLOR").is_none() {
+                style = PaintStyle::new()
+                    .fg(termrock::Color::Gray)
+                    .bg(termrock::Color::Black)
+                    .add_modifier(Modifier::UNDERLINED);
             }
         }
         ui.paint_str(
@@ -7274,13 +7279,28 @@ impl App {
             level,
             termrock::ColorLevel::Ansi256 | termrock::ColorLevel::Ansi16
         );
+        let mono_frame =
+            level == termrock::ColorLevel::Mono && std::env::var_os("NO_COLOR").is_none();
         for y in area.y..area.bottom() {
             for x in area.x..area.right() {
                 let Some(cell) = buf.cell(Position::new(x, y)) else {
                     continue;
                 };
                 let mut style = cell.style();
-                if indexed {
+                if mono_frame {
+                    if let (Some(fg), Some(bg)) = (style.fg, style.bg)
+                        && let Some(ink) = termrock::theme::legacy_mono(fg, bg, y == 0)
+                    {
+                        style.fg = Some(ink.fg);
+                        style.bg = Some(ink.bg);
+                        if ink.underline {
+                            style = style.add_modifier(Modifier::UNDERLINED);
+                        }
+                        if ink.reverse {
+                            style = style.add_modifier(Modifier::REVERSED);
+                        }
+                    }
+                } else if indexed {
                     if let (Some(fg), Some(bg)) = (style.fg, style.bg) {
                         let (fg, bg) = termrock::theme::downgrade_pair(fg, bg, level);
                         style.fg = Some(fg);
