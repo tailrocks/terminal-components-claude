@@ -298,6 +298,7 @@ mod historical_settings_save;
 mod historical_settings_trust;
 mod historical_usage_detail;
 mod historical_usage_overview;
+mod launch_cockpit;
 mod manager_help;
 use historical_paint::HistoricalPalette;
 
@@ -7128,10 +7129,8 @@ impl App {
         }
     }
 
-    fn historical_launch_running_frame(&self, area: Rect) -> bool {
-        area.width == 120
-            && area.height == 40
-            && self.route == Route::Cockpit
+    fn paused_launch_scene(&self) -> bool {
+        self.route == Route::Cockpit
             && self.motion == Motion::Paused
             && self.world.scenario == Scenario::LaunchRunning
             && self.frame() == 40
@@ -7147,6 +7146,10 @@ impl App {
             && !self.help_open
             && !self.launch_failure_open
             && !self.about_open
+    }
+
+    fn historical_launch_running_frame(&self, area: Rect) -> bool {
+        area.width == 120 && area.height == 40 && self.paused_launch_scene()
     }
 
     fn paint_cockpit_trace(&self, ui: &mut Ui<'_>, screen: Rect) {
@@ -7316,6 +7319,13 @@ impl App {
                 }
                 ui.paint_cell(Position::new(x, y), cell.symbol(), style);
             }
+        }
+        if std::env::var_os("NO_COLOR").is_some() {
+            let brand = PaintStyle::new()
+                .fg(termrock::Color::Rgb(0, 0, 0))
+                .bg(termrock::Color::Reset)
+                .add_modifier(Modifier::BOLD | Modifier::REVERSED);
+            ui.paint_str(Rect::new(1, 0, 9, 1), " jackin❯ ", brand);
         }
     }
 
@@ -9544,6 +9554,8 @@ impl TuiApp for App {
         }
         if self.historical_launch_running_frame(full) {
             self.draw_historical_launch_running(ui);
+        } else if self.paused_launch_scene() {
+            launch_cockpit::paint(self, ui);
         }
         if self.cockpit_trace_open {
             self.paint_cockpit_trace(ui, full);
