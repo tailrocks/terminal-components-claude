@@ -65,6 +65,28 @@ fn selected_part_patch(part: Part) -> StylePatch {
     }
 }
 
+fn merge_patch(base: Option<StylePatch>, over: Option<StylePatch>) -> Option<StylePatch> {
+    match (base, over) {
+        (Some(base), Some(over)) => Some(base.merge(over)),
+        (Some(patch), None) | (None, Some(patch)) => Some(patch),
+        (None, None) => None,
+    }
+}
+
+fn fill_gutter_patch(flags: StateFlags) -> StylePatch {
+    if flags.contains(StateFlags::FOCUSED) {
+        StylePatch::new()
+            .set_fg(Role::HighlightBg)
+            .set_bg(Role::HighlightBg)
+            .add(Modifier::BOLD)
+    } else {
+        StylePatch::new()
+            .set_fg(Role::CurrentSurface)
+            .set_bg(Role::CurrentSurface)
+            .remove(Modifier::BOLD)
+    }
+}
+
 fn resolve_row_part(
     ui: &mut Ui<'_>,
     family: Family,
@@ -74,6 +96,36 @@ fn resolve_row_part(
     patch: Option<StylePatch>,
     cursor_style: CursorStyle,
 ) -> crate::theme::Resolved {
+    if cursor_style == CursorStyle::Fill && part == Part::GUTTER {
+        // Preserve the established blank-cell ink in both active and inactive
+        // filled rows. The gutter's default is lower precedence than authored
+        // theme, overlay, and instance channels, which the canonical resolver
+        // reports as explicit metadata.
+        let explicit = ui.style_defaults_with_explicit(
+            family,
+            variant,
+            part,
+            flags,
+            crate::theme::StyleDefaults::default(),
+            patch.as_ref(),
+        );
+        let local = fill_gutter_patch(flags).merge(explicit.explicit);
+        let mut resolved = ui.style_defaults(
+            family,
+            variant,
+            part,
+            flags,
+            crate::theme::StyleDefaults::default(),
+            Some(&local),
+        );
+        if explicit.explicit.glyph == Slot::Inherit {
+            // The active row is already identified by fill; do not retain the
+            // inherited focus-bar glyph as a second mark. A named/part glyph
+            // and custom slot still win.
+            resolved.glyph = Slot::Clear;
+        }
+        return resolved;
+    }
     if cursor_style == CursorStyle::Fill && flags.contains(StateFlags::FOCUSED) {
         let natural = match patch {
             Some(patch) => ui.style_patched(family, variant, part, flags, &patch),
@@ -83,11 +135,11 @@ fn resolve_row_part(
             role.is_some_and(|(role, _)| matches!(role, Role::Custom(_)))
         };
         // Built-in fill ink is highlight. An explicit owner role still wins.
-        if !owner_ink(natural.style.fg_role) && !owner_ink(natural.style.bg_role) {
+        let resolved = if !owner_ink(natural.style.fg_role) && !owner_ink(natural.style.bg_role) {
             // Cursor-fill styling is a default. Theme overrides and overlays
             // must still resolve above it; only the row's explicit instance
             // patch belongs at the top of the precedence stack.
-            return ui.style_defaults(
+            let resolved = ui.style_defaults_with_explicit(
                 family,
                 variant,
                 part,
@@ -95,8 +147,29 @@ fn resolve_row_part(
                 crate::theme::StyleDefaults::new(selected_part_patch(part)),
                 patch.as_ref(),
             );
+            resolved.resolved
+        } else {
+            natural
+        };
+        if part == Part::GUTTER {
+            let explicit = ui.style_defaults_with_explicit(
+                family,
+                variant,
+                part,
+                flags,
+                crate::theme::StyleDefaults::default(),
+                patch.as_ref(),
+            );
+            if explicit.explicit.glyph == Slot::Inherit {
+                // Fill already identifies the focused row. A second focus
+                // mark in its gutter would duplicate the active-row cue.
+                return crate::theme::Resolved {
+                    glyph: Slot::Clear,
+                    ..resolved
+                };
+            }
         }
-        return natural;
+        return resolved;
     }
     match patch {
         Some(patch) => ui.style_patched(family, variant, part, flags, &patch),
@@ -113,6 +186,9 @@ pub struct RowUi<'u> {
     key: ItemKey,
     row: Rect,
     cursor_style: CursorStyle,
+    author_style: crate::author::PartStyle<'u>,
+    author_parts: Option<&'u [Part]>,
+    container_patch: Option<StylePatch>,
     label_patch: Option<StylePatch>,
     left: u16,
     right: u16,
@@ -158,8 +234,73 @@ impl<'u> RowUi<'u> {
         container_patch: Option<StylePatch>,
         label_patch: Option<StylePatch>,
     ) -> RowUi<'u> {
+        Self::construct(
+            ui,
+            owner,
+            family,
+            variant,
+            flags,
+            key,
+            row,
+            crate::author::PartStyle::new(),
+            container_patch,
+            label_patch,
+        )
+    }
+
+    /// Create a row with the component author's named-part patches and slot.
+    ///
+    /// This constructor is intended for shared widgets that need one canonical
+    /// row resolver while retaining their existing public part customization.
+    /// Ordinary consumers should use their widget's public builders instead.
+    #[expect(
+        clippy::too_many_arguments,
+        reason = "component-author rows carry the existing phase context and one part-style contract"
+    )]
+    pub fn new_with_author_style<'a: 'u>(
+        ui: &'u mut Ui<'a>,
+        owner: Id,
+        family: Family,
+        variant: Variant,
+        flags: StateFlags,
+        key: ItemKey,
+        row: Rect,
+        author_style: crate::author::PartStyle<'u>,
+    ) -> RowUi<'u> {
+        Self::construct(
+            ui,
+            owner,
+            family,
+            variant,
+            flags,
+            key,
+            row,
+            author_style,
+            None,
+            None,
+        )
+    }
+
+    #[expect(
+        clippy::too_many_arguments,
+        reason = "the private constructor centralizes the public and component-author row paths"
+    )]
+    fn construct<'a: 'u>(
+        ui: &'u mut Ui<'a>,
+        owner: Id,
+        family: Family,
+        variant: Variant,
+        flags: StateFlags,
+        key: ItemKey,
+        row: Rect,
+        author_style: crate::author::PartStyle<'u>,
+        container_patch: Option<StylePatch>,
+        label_patch: Option<StylePatch>,
+    ) -> RowUi<'u> {
         let mut ui = ui.reborrow();
-        let container = match container_patch {
+        let initial_container_patch =
+            merge_patch(author_style.part_patch(Part::CONTAINER), container_patch);
+        let container = match initial_container_patch {
             Some(patch) => {
                 ui.style_patched(family, variant, Part::CONTAINER, flags, &patch)
                     .style
@@ -176,10 +317,49 @@ impl<'u> RowUi<'u> {
             key,
             row,
             cursor_style: CursorStyle::Bar,
+            author_style,
+            author_parts: None,
+            container_patch,
             label_patch,
             left: 0,
             right: 0,
         }
+    }
+
+    fn patch_for(&self, part: Part) -> Option<StylePatch> {
+        let mut patch = self
+            .author_part(part)
+            .then(|| self.author_style.part_patch(part))
+            .flatten();
+        let scoped = match part {
+            Part::CONTAINER => self.container_patch,
+            Part::LABEL => self.label_patch,
+            _ => None,
+        };
+        if let Some(scoped) = scoped {
+            patch = merge_patch(patch, Some(scoped));
+        }
+        patch
+    }
+
+    fn author_part(&self, part: Part) -> bool {
+        self.author_parts.is_none_or(|parts| parts.contains(&part))
+    }
+
+    /// Limit component-author patches and slots to the widget-owned part set.
+    ///
+    /// This keeps caller-owned row parts such as metadata and arbitrary cells
+    /// under their existing RowUi configuration.
+    pub fn with_author_parts(mut self, parts: &'u [Part]) -> Self {
+        self.author_parts = Some(parts);
+        self
+    }
+
+    fn fill_patch(&self) -> Option<StylePatch> {
+        merge_patch(
+            self.author_style.part_patch(Part::ROW),
+            self.patch_for(Part::CONTAINER),
+        )
     }
 
     pub const fn flags(&self) -> StateFlags {
@@ -202,29 +382,31 @@ impl<'u> RowUi<'u> {
     pub fn with_cursor_style(mut self, style: CursorStyle) -> Self {
         self.cursor_style = style;
         if style == CursorStyle::Fill && self.flags.contains(StateFlags::FOCUSED) {
+            let patch = self.fill_patch();
             let resolved = self.ui.style_defaults(
                 self.family,
                 self.variant,
                 Part::ROW,
                 self.flags,
                 crate::theme::StyleDefaults::new(selected_row_patch()),
-                None,
+                patch.as_ref(),
             );
             self.ui.fill(self.row, resolved.style);
         } else if style == CursorStyle::Fill {
             // Baseline fills every row before the gutter. Unfocused fill is
             // primary ink on the card, so label padding stays white.
-            let patch = StylePatch::new()
+            let defaults = StylePatch::new()
                 .set_fg(Role::Fg(FgStep::Primary))
                 .set_bg(Role::CurrentSurface)
                 .remove(Modifier::BOLD);
+            let patch = self.fill_patch();
             let resolved = self.ui.style_defaults(
                 self.family,
                 self.variant,
                 Part::ROW,
                 self.flags,
-                crate::theme::StyleDefaults::new(patch),
-                None,
+                crate::theme::StyleDefaults::new(defaults),
+                patch.as_ref(),
             );
             self.ui.fill(self.row, resolved.style);
         }
@@ -241,8 +423,12 @@ impl<'u> RowUi<'u> {
         }
     }
 
+    pub fn remaining_width(&self) -> u16 {
+        self.remaining().width
+    }
+
     fn style_of(&mut self, part: Part) -> PaintStyle {
-        let patch = (part == Part::LABEL).then_some(self.label_patch).flatten();
+        let patch = self.patch_for(part);
         let r = resolve_row_part(
             &mut self.ui,
             self.family,
@@ -259,13 +445,14 @@ impl<'u> RowUi<'u> {
     }
 
     pub fn marker(&mut self, g: GlyphRole) {
+        let patch = self.patch_for(Part::MARKER);
         let r = resolve_row_part(
             &mut self.ui,
             self.family,
             self.variant,
             self.flags,
             Part::MARKER,
-            None,
+            patch,
             self.cursor_style,
         );
         #[cfg(feature = "testing")]
@@ -293,54 +480,120 @@ impl<'u> RowUi<'u> {
     }
 
     pub fn gutter(&mut self) {
-        if self.cursor_style == CursorStyle::Fill && self.flags.contains(StateFlags::FOCUSED) {
-            let mark = self.ui.paint_patch(
-                &StylePatch::new()
-                    .set_fg(Role::HighlightBg)
-                    .set_bg(Role::HighlightBg)
-                    .add(Modifier::BOLD),
-            );
-            let area = self.remaining();
-            let cell = Rect {
-                width: area.width.min(1),
-                ..area
-            };
-            self.ui.fill(cell, mark);
-            self.left = self.left.saturating_add(1);
-            return;
-        }
-        if self.cursor_style == CursorStyle::Fill {
-            // Baseline unfocused gutter is a space whose ink matches the row.
-            let mark = self.ui.paint_patch(
-                &StylePatch::new()
-                    .set_fg(Role::CurrentSurface)
-                    .set_bg(Role::CurrentSurface)
-                    .remove(Modifier::BOLD),
-            );
-            let area = self.remaining();
-            let cell = Rect {
-                width: area.width.min(1),
-                ..area
-            };
-            self.ui.fill(cell, mark);
-            self.left = self.left.saturating_add(1);
-            return;
-        }
-        let r = self
-            .ui
-            .style(self.family, self.variant, Part::GUTTER, self.flags);
+        self.leading_part(Part::GUTTER, 1, 0, |_| {});
+    }
+
+    /// Draw a fixed-width leading component-author part and advance the row.
+    ///
+    /// A named slot or resolved glyph takes precedence over `fallback`. The
+    /// width and gap are reserved even when the current row is narrower.
+    pub fn leading_part(
+        &mut self,
+        part: Part,
+        width: u16,
+        gap: u16,
+        fallback: impl FnOnce(&mut CellUi<'_>),
+    ) {
         let area = self.remaining();
         let cell = Rect {
-            width: area.width.min(1),
+            width: width.min(area.width),
             ..area
         };
-        match r.glyph {
-            Slot::Set(g) => {
-                self.ui.glyph(cell, g, r.style);
+        let patch = self.patch_for(part);
+        let resolved = resolve_row_part(
+            &mut self.ui,
+            self.family,
+            self.variant,
+            self.flags,
+            part,
+            patch,
+            self.cursor_style,
+        );
+        #[cfg(feature = "testing")]
+        self.ui
+            .note_styled(self.owner, self.family, self.variant, part, resolved);
+        let author_style = self.author_style;
+        let allowed = self.author_part(part);
+        let slot = allowed.then(|| author_style.slot_for(part)).flatten();
+        if let Some(slot) = slot {
+            slot(&mut self.ui, cell);
+        } else {
+            match resolved.glyph {
+                Slot::Set(glyph) => {
+                    self.ui.glyph(cell, glyph, resolved.style);
+                }
+                Slot::Clear => self.ui.fill(cell, resolved.style),
+                Slot::Inherit => {
+                    self.ui.fill(cell, resolved.style);
+                    let mut content = CellUi::new(self.ui.reborrow(), cell, resolved.style);
+                    fallback(&mut content);
+                }
             }
-            Slot::Inherit | Slot::Clear => self.ui.fill(cell, r.style),
         }
-        self.left = self.left.saturating_add(1);
+        self.left = self.left.saturating_add(width).saturating_add(gap);
+    }
+
+    /// Draw and reserve a trailing component-author part before row content.
+    pub fn trailing_part(
+        &mut self,
+        part: Part,
+        width: u16,
+        gap: u16,
+        fallback: impl FnOnce(&mut CellUi<'_>),
+    ) {
+        let area = self.remaining();
+        let cell_width = width.min(area.width);
+        let cell = Rect {
+            x: area.right().saturating_sub(cell_width),
+            width: cell_width,
+            ..area
+        };
+        let patch = self.patch_for(part);
+        let resolved = resolve_row_part(
+            &mut self.ui,
+            self.family,
+            self.variant,
+            self.flags,
+            part,
+            patch,
+            self.cursor_style,
+        );
+        #[cfg(feature = "testing")]
+        self.ui
+            .note_styled(self.owner, self.family, self.variant, part, resolved);
+        let author_style = self.author_style;
+        let allowed = self.author_part(part);
+        let slot = allowed.then(|| author_style.slot_for(part)).flatten();
+        if let Some(slot) = slot {
+            slot(&mut self.ui, cell);
+        } else {
+            match resolved.glyph {
+                Slot::Set(glyph) => {
+                    self.ui.glyph(cell, glyph, resolved.style);
+                }
+                Slot::Clear => self.ui.fill(cell, resolved.style),
+                Slot::Inherit => {
+                    self.ui.fill(cell, resolved.style);
+                    let mut content = CellUi::new(self.ui.reborrow(), cell, resolved.style);
+                    fallback(&mut content);
+                }
+            }
+        }
+        self.right = self.right.saturating_add(cell_width).saturating_add(gap);
+    }
+
+    pub fn has_space(&self) -> bool {
+        !self.remaining().is_empty()
+    }
+
+    /// Begin caller-owned content after component-author leading/trailing parts.
+    ///
+    /// The resulting `area()` preserves the pre-composition row-content area
+    /// contract for custom row renderers.
+    pub fn begin_content(&mut self) {
+        self.row = self.remaining();
+        self.left = 0;
+        self.right = 0;
     }
 
     pub fn indent(&mut self, depth: u16) {
@@ -354,7 +607,7 @@ impl<'u> RowUi<'u> {
     }
 
     pub fn label_matched(&mut self, s: &str, matched: &[usize]) {
-        let patch = self.label_patch;
+        let patch = self.patch_for(Part::LABEL);
         let resolved = self.ui.style_defaults_with_explicit(
             self.family,
             self.variant,
@@ -395,7 +648,9 @@ impl<'u> RowUi<'u> {
     }
 
     pub fn label_patched(&mut self, s: &str, p: &StylePatch) {
-        let patch = self.label_patch.map_or(*p, |forwarded| forwarded.merge(*p));
+        let patch = self
+            .patch_for(Part::LABEL)
+            .map_or(*p, |forwarded| forwarded.merge(*p));
         let st = resolve_row_part(
             &mut self.ui,
             self.family,
@@ -1232,6 +1487,74 @@ mod tests {
     }
 
     #[test]
+    fn existing_fill_gutter_preserves_legacy_blank_cell_style_for_every_state_and_profile() {
+        for level in [
+            termrock_theme::ColorLevel::TrueColor,
+            termrock_theme::ColorLevel::Ansi256,
+            termrock_theme::ColorLevel::Ansi16,
+            termrock_theme::ColorLevel::Mono,
+        ] {
+            for flags in [
+                StateFlags::empty(),
+                StateFlags::FOCUSED,
+                StateFlags::FOCUSED | StateFlags::FOCUS_VISIBLE,
+                StateFlags::SELECTED,
+                StateFlags::DISABLED,
+            ] {
+                let theme = Theme::junie().for_level(level);
+                let mut frame = FrameState::default();
+                frame.reset(1, SCREEN);
+                let mut page = Buffer::empty(SCREEN);
+                let mut core = UiCore::default();
+                let last = LastFrame::default();
+                let expected = {
+                    let mut ui = Ui::new(&mut frame, &mut page, &mut core, &theme, &last);
+                    let legacy_gutter = if flags.contains(StateFlags::FOCUSED) {
+                        StylePatch::new()
+                            .set_fg(Role::HighlightBg)
+                            .set_bg(Role::HighlightBg)
+                            .add(Modifier::BOLD)
+                    } else {
+                        StylePatch::new()
+                            .set_fg(Role::CurrentSurface)
+                            .set_bg(Role::CurrentSurface)
+                            .remove(Modifier::BOLD)
+                    };
+                    let expected = ui.paint_patch(&legacy_gutter);
+                    let mut row = RowUi::new(
+                        &mut ui,
+                        OWNER,
+                        Family::LIST,
+                        Variant::DEFAULT,
+                        flags,
+                        ItemKey::index(0),
+                        Rect::new(0, 0, 20, 1),
+                    )
+                    .with_cursor_style(CursorStyle::Fill);
+                    row.gutter();
+                    expected
+                };
+                let cell = page.cell((0, 0)).expect("gutter cell");
+                assert_eq!(
+                    Some(cell.fg),
+                    expected.as_style().fg,
+                    "{level:?} {flags:?} foreground"
+                );
+                assert_eq!(
+                    Some(cell.bg),
+                    expected.as_style().bg,
+                    "{level:?} {flags:?} background"
+                );
+                assert_eq!(
+                    cell.modifier,
+                    expected.as_style().add_modifier,
+                    "{level:?} {flags:?} modifiers"
+                );
+            }
+        }
+    }
+
+    #[test]
     fn focused_fill_keeps_explicit_builtin_role_and_modifier() {
         let theme = Theme::junie();
         let mut frame = FrameState::default();
@@ -1261,6 +1584,35 @@ mod tests {
         let label = page.cell((0, 0)).expect("focused label");
         assert_eq!(label.bg, theme.color.danger);
         assert!(label.modifier.contains(Modifier::UNDERLINED));
+    }
+
+    #[test]
+    fn focused_fill_preserves_the_constructor_container_patch_in_row_padding() {
+        let theme = Theme::junie();
+        let mut frame = FrameState::default();
+        frame.reset(1, SCREEN);
+        let mut page = Buffer::empty(SCREEN);
+        let mut core = UiCore::default();
+        let last = LastFrame::default();
+        let container = StylePatch::new().set_bg(Role::Danger);
+        {
+            let mut ui = Ui::new(&mut frame, &mut page, &mut core, &theme, &last);
+            let mut row = RowUi::new_with_patches(
+                &mut ui,
+                OWNER,
+                Family::LIST,
+                Variant::DEFAULT,
+                StateFlags::FOCUSED,
+                ItemKey::index(0),
+                Rect::new(0, 0, 20, 1),
+                Some(container),
+                None,
+            )
+            .with_cursor_style(CursorStyle::Fill);
+            row.label("label");
+        }
+        let padding = page.cell((12, 0)).expect("row padding");
+        assert_eq!(padding.bg, theme.color.danger);
     }
 
     #[test]

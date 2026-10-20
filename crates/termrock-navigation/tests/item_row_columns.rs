@@ -1,4 +1,4 @@
-use ratatui_core::layout::Rect;
+use ratatui_core::layout::{Position, Rect};
 use ratatui_core::style::Color;
 use termrock_navigation::{
     FilterList, FilterListAction, FilterListState, FilterPolicy, Item, ItemRowLayout,
@@ -347,6 +347,7 @@ fn constructor_defaults_match_the_pre_policy_full_cell_fixture() {
             let mut legacy_theme = Theme::junie().for_level(ColorLevel::Ansi256);
             legacy_theme.color.fg[2] = Color::Indexed(244);
             legacy_theme.color.fg[3] = Color::Indexed(238);
+            legacy_theme.color.disabled_fg = Color::Indexed(238);
             let legacy = page_with_theme(
                 ItemRowLayout::Columns,
                 64,
@@ -363,38 +364,119 @@ fn constructor_defaults_match_the_pre_policy_full_cell_fixture() {
                 "legacy fixture fingerprint under authored legacy palette"
             );
 
+            let mut incomplete_theme = Theme::junie().for_level(ColorLevel::Ansi256);
+            incomplete_theme.color.fg[2] = Color::Indexed(244);
+            incomplete_theme.color.fg[3] = Color::Indexed(238);
+            let incomplete = page_with_theme(
+                ItemRowLayout::Columns,
+                64,
+                4,
+                false,
+                None,
+                None,
+                ITEMS.to_vec(),
+                incomplete_theme,
+            );
+            let disabled_row = row(&legacy, 3);
+            let mut disabled_ink_differences = Vec::new();
+            for y in legacy.buffer().area.y..legacy.buffer().area.bottom() {
+                for x in legacy.buffer().area.x..legacy.buffer().area.right() {
+                    let old = &incomplete.buffer()[(x, y)];
+                    let restored = &legacy.buffer()[(x, y)];
+                    if old != restored {
+                        disabled_ink_differences.push((
+                            x,
+                            y,
+                            old.symbol().to_owned(),
+                            old.fg,
+                            restored.fg,
+                        ));
+                        assert!(disabled_row.contains(Position::new(x, y)));
+                        assert_eq!(old.symbol(), restored.symbol());
+                        assert_eq!(old.bg, restored.bg);
+                        assert_eq!(old.modifier, restored.modifier);
+                        assert_eq!(old.fg, Color::Indexed(239));
+                        assert_eq!(restored.fg, Color::Indexed(238));
+                    }
+                }
+            }
+            assert!(!disabled_ink_differences.is_empty());
+            let expected_disabled_xs: Vec<u16> =
+                [1].into_iter().chain(3..=56).chain([64]).collect();
+            assert_eq!(
+                disabled_ink_differences
+                    .iter()
+                    .map(|(x, y, _, _, _)| (*x, *y))
+                    .collect::<Vec<_>>(),
+                expected_disabled_xs
+                    .into_iter()
+                    .map(|x| (x, 3))
+                    .collect::<Vec<_>>(),
+                "omitting the historical disabled foreground changes only these cells"
+            );
+            assert_eq!(incomplete.cursor(), legacy.cursor());
+            assert_eq!(
+                incomplete.runtime().registry().regions(),
+                legacy.runtime().registry().regions(),
+                "reconstructing disabled ink must not change hit regions"
+            );
+
             let mut corrected = legacy.buffer().clone();
             let mut corrected_cells = 0;
+            let mut muted_positions = Vec::new();
             for y in corrected.area.y..corrected.area.bottom() {
                 for x in corrected.area.x..corrected.area.right() {
                     let cell = &mut corrected[(x, y)];
                     if cell.fg == Color::Indexed(244) {
                         cell.fg = Color::Indexed(245);
                         corrected_cells += 1;
+                        muted_positions.push((x, y));
                     }
                 }
             }
             assert_eq!(corrected_cells, 174, "only muted foreground cells change");
-            assert_eq!(
-                default.buffer(),
-                &corrected,
-                "frozen palette full-cell output"
-            );
-            assert_eq!(default.cursor(), legacy.cursor());
-
-            let mut wrong_muted = legacy.buffer().clone();
-            for y in wrong_muted.area.y..wrong_muted.area.bottom() {
-                for x in wrong_muted.area.x..wrong_muted.area.right() {
-                    let cell = &mut wrong_muted[(x, y)];
-                    if cell.fg == Color::Indexed(244) {
-                        cell.fg = Color::Indexed(246);
+            let mut disabled_cells = 0;
+            for y in disabled_row.y..disabled_row.bottom() {
+                for x in disabled_row.x..disabled_row.right() {
+                    let cell = &mut corrected[(x, y)];
+                    if cell.fg == Color::Indexed(238) {
+                        cell.fg = Color::Indexed(239);
+                        disabled_cells += 1;
                     }
                 }
             }
+            assert_eq!(
+                disabled_cells,
+                disabled_ink_differences.len(),
+                "frozen disabled foreground corrects only the disabled row"
+            );
+            assert_eq!(
+                default.buffer(),
+                &corrected,
+                "frozen muted and disabled colors restore full-cell output"
+            );
+            assert_eq!(default.cursor(), legacy.cursor());
+            assert_eq!(
+                default.runtime().registry().regions(),
+                legacy.runtime().registry().regions(),
+                "palette reconstruction preserves all hit regions"
+            );
+
+            let mut wrong_muted = corrected.clone();
+            for (x, y) in muted_positions.iter().copied() {
+                let before = &corrected[(x, y)];
+                let cell = &mut wrong_muted[(x, y)];
+                assert_eq!(before.fg, Color::Indexed(245));
+                assert_eq!(cell.symbol(), before.symbol());
+                assert_eq!(cell.bg, before.bg);
+                assert_eq!(cell.modifier, before.modifier);
+                cell.fg = Color::Indexed(246);
+            }
+            assert_eq!(muted_positions.len(), 174);
             assert_ne!(
                 default.buffer(),
                 &wrong_muted,
-                "incorrect muted palette detected"
+                "mutating only normalized muted cells must change full-cell output"
             );
         } else {
             assert_eq!(
