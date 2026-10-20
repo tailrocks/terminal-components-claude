@@ -347,4 +347,3 @@ fn production_theme_replacement_invalidates_palette_derived_style_cache() {
     runtime.draw_buffer(area, &mut buffer).commit_presented();
     assert_eq!(buffer.cell((0, 0)).map(|c| c.fg), Some(Color::Indexed(100)));
 }
-
