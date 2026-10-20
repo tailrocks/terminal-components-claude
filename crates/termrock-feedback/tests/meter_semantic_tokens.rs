@@ -191,9 +191,11 @@ fn low_and_stale_tokens_match_reference_roles_but_custom_colors_remain_authorita
         let reference = Theme::junie().for_level(level);
         assert_eq!(reference.color.meter.low, reference.color.fg[1]);
         assert_eq!(reference.color.meter.stale, reference.color.fg[3]);
+        assert_eq!(reference.color.meter.unknown, reference.color.fg[3]);
         let mut custom = Theme::junie();
         custom.color.meter.low = Color::Rgb(12, 123, 210);
         custom.color.meter.stale = Color::Rgb(210, 100, 13);
+        custom.color.meter.unknown = Color::Rgb(86, 123, 210);
         let narrowed = custom.for_level(level);
         assert_eq!(
             narrowed.color.meter.low,
@@ -202,6 +204,10 @@ fn low_and_stale_tokens_match_reference_roles_but_custom_colors_remain_authorita
         assert_eq!(
             narrowed.color.meter.stale,
             downgrade_color(Color::Rgb(210, 100, 13), level)
+        );
+        assert_eq!(
+            narrowed.color.meter.unknown,
+            downgrade_color(Color::Rgb(86, 123, 210), level)
         );
     }
 }
