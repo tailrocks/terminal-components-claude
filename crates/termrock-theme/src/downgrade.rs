@@ -95,13 +95,25 @@ fn sq_dist(a: (u8, u8, u8), b: (u8, u8, u8)) -> u32 {
 
 /// Legacy inks whose baseline 256 index is not the nearest ramp step.
 /// `#3a3a3a` is ramp 237, and the frozen frames use 238 (`#444444`).
+/// `#48e054` is cube 77, and the frozen frames use 78 (`#5fd787`).
 fn frozen_ansi256(rgb: (u8, u8, u8)) -> Option<u8> {
     match rgb {
-        (0x3a, 0x3a, 0x3a) => Some(238),
+        (0x3a, 0x3a, 0x3a) | (0x26, 0x26, 0x26) => Some(238),
         (0x47, 0x47, 0x47) => Some(239),
         (0x73, 0x73, 0x73) => Some(242),
         (0x80, 0x80, 0x80) => Some(245),
         (0x17, 0x3f, 0x1c) => Some(22),
+        (0x48, 0xe0, 0x54) => Some(78),
+        (0x19, 0x19, 0x1c) => Some(232),
+        _ => None,
+    }
+}
+
+/// Legacy inks whose baseline 16-color name is not the nearest hue.
+fn frozen_ansi16(rgb: (u8, u8, u8)) -> Option<Color> {
+    match rgb {
+        (0x3f, 0xb9, 0x50) => Some(Color::Green),
+        (0x79, 0xb8, 0xff) => Some(Color::White),
         _ => None,
     }
 }
@@ -201,6 +213,17 @@ fn mono(rgb: (u8, u8, u8)) -> Color {
     }
 }
 
+/// Downgrade a painted pair. On 16 colors, white on dark gray becomes black
+/// so the label keeps the baseline contrast.
+pub fn downgrade_pair(fg: Color, bg: Color, level: ColorLevel) -> (Color, Color) {
+    let mut fg = downgrade_color(fg, level);
+    let bg = downgrade_color(bg, level);
+    if level == ColorLevel::Ansi16 && fg == Color::White && bg == Color::DarkGray {
+        fg = Color::Black;
+    }
+    (fg, bg)
+}
+
 pub fn downgrade_color(c: Color, level: ColorLevel) -> Color {
     let Some(rgb) = rgb_of(c) else {
         return c;
@@ -214,7 +237,9 @@ pub fn downgrade_color(c: Color, level: ColorLevel) -> Color {
             other => other,
         },
         ColorLevel::Ansi16 => match c {
-            Color::Rgb(..) | Color::Indexed(_) => nearest_16(rgb),
+            Color::Rgb(..) | Color::Indexed(_) => {
+                frozen_ansi16(rgb).unwrap_or_else(|| nearest_16(rgb))
+            }
             other => other,
         },
         ColorLevel::Mono => mono(rgb),
@@ -662,7 +687,7 @@ mod tests {
 
         assert_eq!(
             downgrade_color(Color::Rgb(0x48, 0xe0, 0x54), ColorLevel::Ansi256),
-            Color::Indexed(77)
+            Color::Indexed(78)
         );
         // These legacy inks keep the baseline 256 indexes. Nearest-gray is one
         // ramp step off. Other custom RGB values still use nearest-color.
