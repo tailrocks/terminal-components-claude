@@ -2,6 +2,17 @@
 
 Updated: 2026-10-20. Status: **in progress; all four applications incomplete**. This is the current migration record. Older audit reports remain evidence, not a complete inventory or acceptance declaration.
 
+## TablePro data 120×40 color levels — 2026-10-20
+
+`tablepro/table/data/120x40` truecolor, 256, and nocolor match the frozen
+frames. 256 borders use the baseline palette indexes (subtle 238, strong 242,
+seam and scroll track 239, faint 242, thumb 245, accent background 22,
+on-accent 232), not nearest-gray of the truecolor RGB. Outer grid edges dim
+when the cells are not truecolor RGB. The focused primary cell reverses in
+mono. Connections default 120×40 truecolor and 256 also match.
+`connections/default` nocolor still misses reverse on the Connect label.
+Full visual runs and `origin/main` are not done.
+
 ## Palette and independently diagnosed reference corrections — 2026-10-20
 
 This increment follows style delivery `e597618d6576a725538a70d71250fd81c6599c28`.
