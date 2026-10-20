@@ -19,16 +19,19 @@ group or visibility change cannot silently activate an omitted field.
 
 The implementation uses `SplitModel::layout` for both sibling lanes and
 paired rows. `measure_with_data`, update-time focus reveal, lane scrolling,
-field drawing, clipping, and control registration derive their geometry from
-the same lane plan. Measurement and drawing do not validate or mutate domain
-data. The pre-existing `measure` API remains the documented data-independent
-estimate; the default form planner is unchanged.
+field drawing and control registration derive their geometry from the same
+lane plan. Measurement and drawing do not validate or mutate domain data. The
+pre-existing `measure` API remains the documented data-independent estimate;
+the default form planner is unchanged. Form lanes record their real owner
+rectangle as a decorative region and logical layout area so the next update
+uses the last composed bounds, including after a resize.
 
 This stage does not add sections, Tabs, section lifecycle handling, or
 cross-section validation. The TablePro application still has not migrated to
 this public Form layout. Exact application parity therefore remains unproven.
 
-Verification: `cargo nextest run -p termrock-forms --all-targets` passes 57/57;
+Verification before the latest lane corrections: `cargo nextest run
+-p termrock-forms --all-targets` passed 57/57;
 `cargo clippy -p termrock-forms --all-targets -- -D warnings`,
 `cargo check -p termrock-forms --example form_lanes`, package-scoped formatting,
 and `git diff --check` pass. A deliberate fixed-radio-height mutation caused
@@ -43,4 +46,23 @@ through `validate_layout`. Draw and update append the bounded
 identifying fields when applicable. Measurement emits no diagnostic. Tests
 assert the invalid update leaves existing FormState untouched and invokes no
 domain validation, while invalid drawing registers no included control.
-Independent review and delivery remain pending.
+
+Independent review of `451789d` requested changes. Two findings are resolved
+in the current working increment: Fill now reserves fixed trailing spacer rows
+before taking remaining height, and the lane Form owner registers its actual
+drawn area for the next update. Public regressions for both were verified red
+under deliberate removal of their fixes, then green when restored. The Form
+area is exposed only through a decorative CONTAINER region and the test checks
+that no focusable Form control is registered.
+
+One P1 remains pending the reviewed shared-component API: a field partially
+intersected by a lane scroll offset is drawn from its beginning at the viewport
+top. Existing `Ui::with_area` clips but does not translate a component's
+virtual origin; unsigned `Rect` cannot express the negative origin needed for
+generic partial-field rendering. Slicing radio data would alter index-based
+item identity. The independent reviewer proposed a RadioGroup-owned window
+renderer that retains the full item slice and original index keys; Controls
+ownership and API agreement are required before implementing that extension.
+TextArea's partial viewport and cursor mapping is a separate unresolved case.
+The same saturation exists in the pre-existing linear Form path and has not
+been silently changed. Exact application parity remains unproven.
