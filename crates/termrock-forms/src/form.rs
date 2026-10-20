@@ -1386,6 +1386,15 @@ impl<'a> Form<'a> {
                 continue;
             };
             let response = Self::update_field(field, cx, slot, value, options, disabled);
+            if cx.state(field.id).contains(StateFlags::FOCUSED)
+                && matches!(field.kind, FieldKind::Radio(_))
+            {
+                let cursor_row = placement
+                    .top
+                    .saturating_add(1)
+                    .saturating_add(slot.radio.cursor_index());
+                st.scroll.ensure_visible_on_next_layout(cursor_row);
+            }
             if let Some(action) = response.action_ref().copied() {
                 if matches!(action, FormAction::Committed(_)) {
                     st.dirty = true;
@@ -1498,6 +1507,16 @@ impl<'a> Form<'a> {
                     continue;
                 };
                 let response = Self::update_field(field, cx, slot, value, options, disabled);
+                if cx.state(field.id).contains(StateFlags::FOCUSED)
+                    && matches!(field.kind, FieldKind::Radio(_))
+                {
+                    let cursor_row = placement
+                        .top
+                        .saturating_add(1)
+                        .saturating_add(slot.radio.cursor_index());
+                    st.lane_scroll_mut(plan.id)
+                        .ensure_visible_on_next_layout(cursor_row);
+                }
                 if let Some(action) = response.action_ref().copied() {
                     if matches!(action, FormAction::Committed(_)) {
                         st.dirty = true;
@@ -1642,7 +1661,16 @@ impl<'a> Form<'a> {
                         .saturating_sub(y_offset.min(usize::from(u16::MAX)) as u16),
                 ),
             };
-            self.draw_control(ui, field_area, field, slot, st, data);
+            self.draw_control(
+                ui,
+                field_area,
+                base.saturating_sub(placement.top),
+                placement.height,
+                field,
+                slot,
+                st,
+                data,
+            );
         }
         self.draw_actions(ui, area);
         ui.report_layout(
@@ -1723,7 +1751,16 @@ impl<'a> Form<'a> {
                     fallback = FieldSlot::new(field.id);
                     &fallback
                 };
-                self.draw_control(ui, field_area, field, slot, st, data);
+                self.draw_control(
+                    ui,
+                    field_area,
+                    base.saturating_sub(placement.top),
+                    placement.height,
+                    field,
+                    slot,
+                    st,
+                    data,
+                );
             }
         }
         self.draw_actions(ui, area);
@@ -1800,10 +1837,13 @@ impl<'a> Form<'a> {
         }
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn draw_control<D: FormData + ?Sized>(
         &self,
         ui: &mut Ui<'_>,
         area: Rect,
+        source_first_row: usize,
+        logical_height: u16,
         field: &FieldSpec<'a>,
         slot: &FieldSlot,
         st: &FormState,
@@ -1812,7 +1852,24 @@ impl<'a> Form<'a> {
         let disabled = data.disabled(field.id);
         let error = Self::field_error(st, data, field);
         let options = data.options(field.id);
-        let control_area = self.draw_chrome(ui, area, field, error);
+        if let (FieldKind::Radio(control), FieldRef::Choice(value)) =
+            (&field.kind, data.value(field.id))
+        {
+            let (body, first_body_row) =
+                self.draw_chrome_window(ui, area, field, error, source_first_row, logical_height);
+            control.draw_in_form_window(
+                ui,
+                body,
+                &slot.radio,
+                value,
+                options,
+                InheritedFormState { disabled },
+                first_body_row,
+            );
+            return;
+        }
+        let (control_area, _body_first_row) =
+            self.draw_chrome_window(ui, area, field, error, source_first_row, logical_height);
         match (&field.kind, data.value(field.id)) {
             (FieldKind::Text(control), FieldRef::Text(value)) => {
                 control.draw_in_form(ui, control_area, &slot.input, value, disabled);
@@ -1836,16 +1893,7 @@ impl<'a> Form<'a> {
                     InheritedFormState { disabled },
                 );
             }
-            (FieldKind::Radio(control), FieldRef::Choice(value)) => {
-                control.draw_in_form(
-                    ui,
-                    control_area,
-                    &slot.radio,
-                    value,
-                    options,
-                    InheritedFormState { disabled },
-                );
-            }
+            (FieldKind::Radio(_), FieldRef::Choice(_)) => unreachable!("radio handled above"),
             (FieldKind::Chips(control), FieldRef::Chips(_)) => {
                 control.draw_in_form(ui, control_area, &slot.chips, options, disabled);
             }
@@ -1893,52 +1941,68 @@ impl<'a> Form<'a> {
         }
     }
 
-    fn draw_chrome(
+    fn draw_chrome_window(
         &self,
         ui: &mut Ui<'_>,
         area: Rect,
         field: &FieldSpec<'_>,
         error: Option<&str>,
-    ) -> Rect {
+        source_first_row: usize,
+        logical_height: u16,
+    ) -> (Rect, usize) {
         if area.is_empty() {
-            return area;
+            return (area, 0);
         }
-        let label = Rect { height: 1, ..area };
-        let label_style = self.ov.style(
-            ui,
-            self.id,
-            Family::FIELD,
-            Variant::DEFAULT,
-            Part::LABEL,
-            StateFlags::empty(),
-        );
-        let text = Rect {
-            x: label.x.saturating_add(2),
-            width: label.width.saturating_sub(2),
-            ..label
-        };
-        let used = ui.paint_str(text, field.label, label_style.style);
-        if field.required && !field.label.is_empty() {
-            ui.paint_str(
-                Rect {
-                    x: text.x.saturating_add(used).saturating_add(1),
-                    width: 1,
-                    ..text
-                },
-                "*",
-                label_style.style,
+        let source_end = source_first_row.saturating_add(usize::from(area.height));
+        if source_first_row == 0 {
+            let label = Rect { height: 1, ..area };
+            let style = self.ov.style(
+                ui,
+                self.id,
+                Family::FIELD,
+                Variant::DEFAULT,
+                Part::LABEL,
+                StateFlags::empty(),
             );
+            let text = Rect {
+                x: label.x.saturating_add(2),
+                width: label.width.saturating_sub(2),
+                ..label
+            };
+            let used = ui.paint_str(text, field.label, style.style);
+            if field.required && !field.label.is_empty() {
+                ui.paint_str(
+                    Rect {
+                        x: text.x.saturating_add(used).saturating_add(1),
+                        width: 1,
+                        ..text
+                    },
+                    "*",
+                    style.style,
+                );
+            }
+            ui.register_decor(field.id, PartRef::of(Part::LABEL), label);
         }
-        ui.register_decor(field.id, PartRef::of(Part::LABEL), label);
-        let message = error.or(field.help);
-        if let Some(message) = message
-            && area.height >= 3
+
+        let has_help = logical_height >= 3;
+        let help_source_row = usize::from(logical_height.saturating_sub(1));
+        if has_help
+            && source_first_row <= help_source_row
+            && help_source_row < source_end
+            && let Some(message) = error.or(field.help)
         {
-            let help = Rect {
-                x: area.x.saturating_add(2),
-                y: area.bottom().saturating_sub(1),
-                width: area.width.saturating_sub(2),
+            let row = Rect {
+                x: area.x,
+                y: area
+                    .y
+                    .saturating_add((help_source_row - source_first_row) as u16),
+                width: area.width,
                 height: 1,
+            };
+            let help = Rect {
+                x: row.x.saturating_add(2),
+                width: row.width.saturating_sub(2),
+                ..row
             };
             let flags = if error.is_some() {
                 StateFlags::ERROR
@@ -1954,13 +2018,40 @@ impl<'a> Form<'a> {
                 flags,
             );
             ui.paint_str(help, message, style.style);
-            ui.register_decor(field.id, PartRef::of(Part::HELP), help);
+            ui.register_decor(field.id, PartRef::of(Part::HELP), row);
         }
-        Rect {
-            y: area.y.saturating_add(1),
-            height: area.height.saturating_sub(2),
+
+        // Form fields reserve source row zero for the label and the final
+        // source row for help, matching draw_chrome's unscrolled contract.
+        let body_start = 1usize.max(source_first_row);
+        let source_body_end = if has_help {
+            usize::from(logical_height.saturating_sub(1))
+        } else {
+            1
+        };
+        let body_end = source_body_end.min(source_end);
+        if body_start >= body_end {
+            return (
+                Rect {
+                    y: area.y.saturating_add(
+                        body_start
+                            .saturating_sub(source_first_row)
+                            .min(usize::from(u16::MAX)) as u16,
+                    ),
+                    height: 0,
+                    ..area
+                },
+                body_start.saturating_sub(1),
+            );
+        }
+        let body = Rect {
+            y: area
+                .y
+                .saturating_add((body_start - source_first_row).min(usize::from(u16::MAX)) as u16),
+            height: (body_end - body_start).min(usize::from(u16::MAX)) as u16,
             ..area
-        }
+        };
+        (body, body_start.saturating_sub(1))
     }
 
     /// Estimates the legacy linear layout without consulting [`FormData`].
@@ -2042,6 +2133,8 @@ mod tests {
 
     use super::*;
     use crate::event::{Input, Key, KeyModifiers};
+    use crate::form_layout::FormLane;
+    use crate::id::ItemKey;
     use crate::keymap::KeyMap;
     use crate::runtime::App;
     use crate::runtime::Runtime;
@@ -2059,6 +2152,15 @@ mod tests {
     const NOTE: Id = Id::root("form.tests.note");
     const CHOOSER: Id = Id::root("form.tests.chooser");
     const MATRIX: Id = Id::root("form.tests.matrix");
+    const CLIP_A: Id = Id::root("form.tests.clip.a");
+    const CLIP_B: Id = Id::root("form.tests.clip.b");
+    const CLIP_C: Id = Id::root("form.tests.clip.c");
+    const CLIP_RADIO: Id = Id::root("form.tests.clip.radio");
+    const CLIP_AFTER: Id = Id::root("form.tests.clip.after");
+    const CLIP_LANE: Id = Id::root("form.tests.clip.lane");
+    const CLIP_OPTIONS: &[&str] = &[
+        "alpha", "beta", "gamma", "delta", "epsilon", "zeta", "eta", "theta", "iota", "kappa",
+    ];
     const SAVE_CHORD: Chord = Chord::with(KeyCode::Char('s'), KeyModifiers::CONTROL);
     const ACTIONS: &[Action<'static>] = &[Action::new(ActionKey::SAVE, "Save").chord(SAVE_CHORD)];
     const OPTIONS: &[&str] = &["one", "two", "three"];
@@ -2590,6 +2692,214 @@ mod tests {
         (0..buffer.area.width)
             .map(|x| buffer.cell((x, y)).expect("row cell").symbol())
             .collect()
+    }
+
+    #[derive(Default)]
+    struct RadioClipData {
+        before_a: String,
+        before_b: String,
+        before_c: String,
+        selected: usize,
+        after: String,
+    }
+
+    impl FormData for RadioClipData {
+        fn value(&self, id: Id) -> FieldRef<'_> {
+            match id {
+                CLIP_A => FieldRef::Text(&self.before_a),
+                CLIP_B => FieldRef::Text(&self.before_b),
+                CLIP_C => FieldRef::Text(&self.before_c),
+                CLIP_RADIO => FieldRef::Choice(self.selected),
+                CLIP_AFTER => FieldRef::Text(&self.after),
+                _ => FieldRef::Text(""),
+            }
+        }
+
+        fn value_mut(&mut self, id: Id) -> FieldMut<'_> {
+            match id {
+                CLIP_A => FieldMut::Text(&mut self.before_a),
+                CLIP_B => FieldMut::Text(&mut self.before_b),
+                CLIP_C => FieldMut::Text(&mut self.before_c),
+                CLIP_RADIO => FieldMut::Choice(&mut self.selected),
+                CLIP_AFTER => FieldMut::Text(&mut self.after),
+                _ => FieldMut::ReadOnly,
+            }
+        }
+
+        fn options(&self, id: Id) -> &[&str] {
+            if id == CLIP_RADIO { CLIP_OPTIONS } else { &[] }
+        }
+
+        fn validate(&self, _id: Id, _value: FieldRef<'_>) -> Result<(), FieldError> {
+            Ok(())
+        }
+    }
+
+    struct RadioClipApp<'form, 'spec, 'state> {
+        form: &'form Form<'spec>,
+        state: &'state mut FormState,
+        data: &'state mut RadioClipData,
+    }
+
+    impl App for RadioClipApp<'_, '_, '_> {
+        fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+            self.form.update(cx, self.state, self.data).erase()
+        }
+
+        fn draw(&self, ui: &mut Ui<'_>) {
+            self.form.draw(ui, ui.full(), self.state, self.data);
+        }
+    }
+
+    #[test]
+    fn partially_scrolled_radio_draws_source_window_without_repeating_chrome() {
+        let fields = [
+            FieldSpec::new(CLIP_A, "Before A", FieldKind::Text(TextInput::new(CLIP_A))),
+            FieldSpec::new(CLIP_B, "Before B", FieldKind::Text(TextInput::new(CLIP_B))),
+            FieldSpec::new(CLIP_C, "Before C", FieldKind::Text(TextInput::new(CLIP_C))),
+            FieldSpec::new(
+                CLIP_RADIO,
+                "Operating mode",
+                FieldKind::Radio(LabelRadio::new(CLIP_RADIO)),
+            )
+            .help("Pick a stable mode."),
+            FieldSpec::new(
+                CLIP_AFTER,
+                "Following",
+                FieldKind::Text(TextInput::new(CLIP_AFTER)),
+            ),
+        ];
+        let rows = [
+            FormRow::Field(CLIP_A),
+            FormRow::Field(CLIP_B),
+            FormRow::Field(CLIP_C),
+            FormRow::Field(CLIP_RADIO),
+            FormRow::Field(CLIP_AFTER),
+            FormRow::spacer(30),
+        ];
+        let lanes = [FormLane::new(CLIP_LANE, &rows)];
+        let layout = FormLayout::new(&lanes);
+        let form = Form::new(FORM, &fields)
+            .try_layout(&layout)
+            .expect("valid radio clipping layout");
+        let mut state = FormState::default();
+        state.lane_scroll_mut(CLIP_LANE).set_content(54);
+        state.lane_scroll_mut(CLIP_LANE).set_viewport(12);
+        state.lane_scroll_mut(CLIP_LANE).scroll_to(18);
+        let data = RadioClipData::default();
+        let area = Rect::new(0, 0, 50, 12);
+        let mut runtime = Runtime::new(Stub::default(), Theme::junie());
+        let mut buffer = Buffer::empty(area);
+        runtime
+            .draw_scene(area, &mut buffer, |ui, area| {
+                form.draw(ui, area, &state, &data);
+            })
+            .commit_presented();
+
+        assert!(!row_text(&buffer, 0).contains("Operating mode"));
+        assert!(row_text(&buffer, 0).contains("iota"));
+        assert!(row_text(&buffer, 1).contains("kappa"));
+        assert!(row_text(&buffer, 2).contains("Pick a stable mode."));
+        assert!(row_text(&buffer, 3).contains("Following"));
+        assert_eq!(
+            runtime
+                .area_of_part(CLIP_RADIO, PartRef::item(Part::ROW, ItemKey::index(8)))
+                .map(|rect| rect.y),
+            Some(0)
+        );
+        assert_eq!(
+            runtime
+                .area_of_part(CLIP_RADIO, PartRef::item(Part::ROW, ItemKey::index(9)))
+                .map(|rect| rect.y),
+            Some(1)
+        );
+        assert!(
+            runtime
+                .area_of_part(CLIP_RADIO, PartRef::item(Part::ROW, ItemKey::index(0)))
+                .is_none()
+        );
+    }
+
+    #[test]
+    fn focused_radio_scroll_reveals_the_live_cursor_row_from_update() {
+        let fields = [
+            FieldSpec::new(CLIP_A, "Before A", FieldKind::Text(TextInput::new(CLIP_A))),
+            FieldSpec::new(CLIP_B, "Before B", FieldKind::Text(TextInput::new(CLIP_B))),
+            FieldSpec::new(CLIP_C, "Before C", FieldKind::Text(TextInput::new(CLIP_C))),
+            FieldSpec::new(
+                CLIP_RADIO,
+                "Operating mode",
+                FieldKind::Radio(LabelRadio::new(CLIP_RADIO)),
+            )
+            .help("Pick a stable mode."),
+            FieldSpec::new(
+                CLIP_AFTER,
+                "Following",
+                FieldKind::Text(TextInput::new(CLIP_AFTER)),
+            ),
+        ];
+        let rows = [
+            FormRow::Field(CLIP_A),
+            FormRow::Field(CLIP_B),
+            FormRow::Field(CLIP_C),
+            FormRow::Field(CLIP_RADIO),
+            FormRow::Field(CLIP_AFTER),
+            FormRow::spacer(30),
+        ];
+        let lanes = [FormLane::new(CLIP_LANE, &rows)];
+        let layout = FormLayout::new(&lanes);
+        let form = Form::new(FORM, &fields)
+            .try_layout(&layout)
+            .expect("valid radio clipping layout");
+        let mut state = FormState::default();
+        let mut data = RadioClipData::default();
+        state.reconcile_fields_with_data(&fields, &data);
+        state.lane_scroll_mut(CLIP_LANE).set_content(54);
+        state.lane_scroll_mut(CLIP_LANE).set_viewport(12);
+
+        let app = RadioClipApp {
+            form: &form,
+            state: &mut state,
+            data: &mut data,
+        };
+        let area = Rect::new(0, 0, 50, 12);
+        let mut runtime = Runtime::new(app, Theme::junie());
+        let _ = runtime.initialize();
+        let mut buffer = Buffer::empty(area);
+        runtime.draw_buffer(area, &mut buffer).commit_presented();
+        let Some(slot) = runtime
+            .app_mut()
+            .state
+            .slots
+            .iter_mut()
+            .find(|slot| slot.id == CLIP_RADIO)
+        else {
+            panic!("radio field slot was reconciled");
+        };
+        slot.radio.set_cursor(9, ItemKey::index(9));
+        runtime.set_focus(Some(CLIP_RADIO));
+        let _ = runtime.settle();
+        let _ = crate::runtime::stub::deliver(&mut runtime, Input::Tick);
+        assert!(
+            runtime
+                .app()
+                .state
+                .slots
+                .iter()
+                .find(|slot| slot.id == CLIP_RADIO)
+                .is_some_and(|slot| slot.radio.cursor_index() == 9)
+        );
+        assert!(
+            runtime.app().state.lane_scroll(CLIP_LANE).offset() >= 8,
+            "update reveals the focused original option row"
+        );
+        runtime.draw_buffer(area, &mut buffer).commit_presented();
+        assert_eq!(
+            runtime
+                .area_of_part(CLIP_RADIO, PartRef::item(Part::ROW, ItemKey::index(9)))
+                .map(|rect| rect.y),
+            Some(11)
+        );
     }
 
     #[test]

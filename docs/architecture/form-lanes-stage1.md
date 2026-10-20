@@ -55,14 +55,19 @@ under deliberate removal of their fixes, then green when restored. The Form
 area is exposed only through a decorative CONTAINER region and the test checks
 that no focusable Form control is registered.
 
-One P1 remains pending the reviewed shared-component API: a field partially
-intersected by a lane scroll offset is drawn from its beginning at the viewport
-top. Existing `Ui::with_area` clips but does not translate a component's
-virtual origin; unsigned `Rect` cannot express the negative origin needed for
-generic partial-field rendering. Slicing radio data would alter index-based
-item identity. The independent reviewer proposed a RadioGroup-owned window
-renderer that retains the full item slice and original index keys; Controls
-ownership and API agreement are required before implementing that extension.
-TextArea's partial viewport and cursor mapping is a separate unresolved case.
-The same saturation exists in the pre-existing linear Form path and has not
-been silently changed. Exact application parity remains unproven.
+The reviewed RadioGroup-owned window renderer is now implemented. It accepts
+the complete item slice and a first visible row, paints and registers only the
+visible rows, and keeps original item indexes as keys. Form clips field chrome
+and Radio body rows using the original field source positions in both linear
+and lane layouts. A real buffer/registry regression checks a ten-option field
+at scroll offset 18: options 8 and 9 occupy rows 0 and 1, help occupies row 2,
+and the next field begins at row 3. A separate public Controls consumer proves
+only original keys 8 and 9 are registered and pointer activation chooses item
+8. Focused radio updates now reveal the current original cursor row.
+
+TextArea's partial viewport and cursor mapping is still unresolved; this Radio
+contract does not imply all field kinds are correct when partially clipped.
+The legacy linear Form had the same saturation issue and now uses this
+Radio-specific source-window path. The default layout and fully visible
+RadioGroup draw behavior retain their existing geometry. Exact application
+parity remains unproven.
