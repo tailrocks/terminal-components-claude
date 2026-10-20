@@ -1330,20 +1330,7 @@ impl<'f> Ui<'f> {
     /// the foreground. Call it after `modal_backdrop` so an empty dialog cell
     /// keeps the dimmed color under it.
     pub fn fill_keep_fg(&mut self, area: Rect, bg: ratatui_core::style::Color) {
-        let area = area.intersection(self.clip);
-        if area.is_empty() {
-            return;
-        }
-        {
-            let buf = self.buffer();
-            for pos in area.positions() {
-                if let Some(cell) = buf.cell_mut(pos) {
-                    cell.set_symbol(" ");
-                    cell.set_bg(bg);
-                }
-            }
-        }
-        self.mark_area(area, None);
+        self.fill(area, crate::theme::PaintStyle::new().bg(bg));
     }
 
     /// Map truecolor inks. Indexed and named colors stay.
