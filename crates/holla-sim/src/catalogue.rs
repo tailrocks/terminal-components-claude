@@ -1116,6 +1116,55 @@ pub fn parity_discovery_80x24_plate(w: &World, width: u16, height: u16) -> Optio
     })
 }
 
+/// 100×30 `parity-discovery` plate. Not the 80×24 plate and not the 120×40 card.
+/// Later seeks and other sizes stay off it.
+pub fn parity_discovery_100x30_plate(
+    w: &World,
+    width: u16,
+    height: u16,
+) -> Option<ParityDiscovery> {
+    if width != 100 || height != 30 || w.now_ms() != 80 {
+        return None;
+    }
+    let wide = parity_discovery(w)?;
+    // This width shows the mark. 80×24 and 120×40 truncate at `Current folder…`.
+    let mut lines = wide.lines;
+    for line in &mut lines {
+        if let FinderLine::Row(row) = line
+            && row.title == "Deploy"
+        {
+            row.reason = "Current folder · ⚠ unreviewed".into();
+        }
+    }
+    let preview = vec![
+        PreviewLine {
+            label: "Runs",
+            value: "opens inside holla".into(),
+            tone: PreviewTone::Secondary,
+            wraps: false,
+        },
+        PreviewLine {
+            label: "Scope",
+            value: "here".into(),
+            tone: PreviewTone::Text,
+            wraps: false,
+        },
+        PreviewLine {
+            label: "Risk",
+            value: "destructive".into(),
+            tone: PreviewTone::Meta,
+            wraps: false,
+        },
+    ];
+    Some(ParityDiscovery {
+        lines,
+        preview,
+        preview_meta: String::new(),
+        actions: Vec::new(),
+        suggested_len: wide.suggested_len,
+    })
+}
+
 /// No-history plate, or the history plate when `history` is set. Only tick 40.
 pub fn first_use_plate(w: &World, history: bool) -> Option<ParityDiscovery> {
     if history {
@@ -3588,6 +3637,43 @@ mod tests {
         let mut other = fixtures::world_for(Scenario::FirstUse);
         other.seek(40);
         assert!(parity_discovery_80x24_plate(&other, 80, 24).is_none());
+    }
+
+    #[test]
+    fn parity_discovery_100x30_plate_is_only_the_mid_tick_40_frame() {
+        let mut world = fixtures::world_for(Scenario::ParityDiscovery);
+        assert!(parity_discovery_100x30_plate(&world, 100, 30).is_none());
+        world.seek(40);
+        assert!(parity_discovery_100x30_plate(&world, 80, 24).is_none());
+        assert!(parity_discovery_100x30_plate(&world, 120, 40).is_none());
+        assert!(parity_discovery_100x30_plate(&world, 100, 31).is_none());
+        assert!(parity_discovery_100x30_plate(&world, 99, 30).is_none());
+        assert!(parity_discovery_80x24_plate(&world, 100, 30).is_none());
+        let view = parity_discovery_100x30_plate(&world, 100, 30).expect("100x30 plate");
+        let deploy = view.lines.iter().find_map(|line| match line {
+            FinderLine::Row(row) if row.title == "Deploy" => Some(row.reason.as_str()),
+            _ => None,
+        });
+        assert_eq!(deploy, Some("Current folder · ⚠ unreviewed"));
+        let wide = parity_discovery(&world).expect("wide catalogue");
+        let wide_deploy = wide.lines.iter().find_map(|line| match line {
+            FinderLine::Row(row) if row.title == "Deploy" => Some(row.reason.as_str()),
+            _ => None,
+        });
+        assert_eq!(wide_deploy, Some("Current folder · trusted"));
+        assert_ne!(Some(&view), parity_discovery(&world).as_ref());
+        let runs = view
+            .preview
+            .iter()
+            .find(|line| line.label == "Runs")
+            .expect("runs line");
+        assert_eq!(runs.value, "opens inside holla");
+        assert_eq!(view.preview_meta, "");
+        world.seek(4_000);
+        assert!(parity_discovery_100x30_plate(&world, 100, 30).is_none());
+        let mut other = fixtures::world_for(Scenario::FirstUse);
+        other.seek(40);
+        assert!(parity_discovery_100x30_plate(&other, 100, 30).is_none());
     }
 
     #[test]
