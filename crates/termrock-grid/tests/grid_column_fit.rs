@@ -179,6 +179,43 @@ fn resize_keeps_reference_offset_and_cursor_even_when_target_becomes_preview() {
 }
 
 #[test]
+fn inline_editor_uses_cell_origin_and_shared_cursor_for_live_data() {
+    let mut h = Harness::new(Page::new(), Theme::junie(), 32, 5);
+    let _ = h.key(KeyCode::Enter);
+    assert!(h.app().state.is_editing());
+    assert!(h.row(1).contains("aaaaaa"), "{}", h.row(1));
+    assert_ne!(h.cell(2, 1).symbol(), "…");
+    assert_eq!(h.cursor(), Some(termrock_runtime::Position::new(8, 1)));
+
+    let _ = h.type_str("界");
+    assert_eq!(h.app().state.edit_draft(), Some("aaaaaaaa界"));
+    assert!(h.row(1).contains('界'), "{}", h.row(1));
+}
+
+#[test]
+fn resize_expands_column_window_left_when_every_remaining_column_fits() {
+    let mut h = Harness::new(Page::new(), Theme::junie(), 32, 5);
+    let _ = h.key(KeyCode::Right);
+    let _ = h.key(KeyCode::Right);
+    assert_eq!(h.app().state.col_offset(), 1);
+
+    h.app_mut().area.width = 44;
+    let _ = h.resize(44, 5);
+    h.draw();
+    let _ = h.key(KeyCode::Left);
+    let _ = h.key(KeyCode::Right);
+
+    assert_eq!(h.app().state.col_offset(), 0);
+    assert_eq!(h.cell(2, 1).symbol(), "a");
+    assert_eq!(h.cell(12, 1).symbol(), "b");
+    assert_eq!(h.cell(26, 1).symbol(), "c");
+    assert_eq!(
+        h.app().state.cursor(),
+        Some((ItemKey::num(0), ColumnKey::num(2)))
+    );
+}
+
+#[test]
 fn wider_target_uses_prior_complete_count_and_can_remain_preview() {
     let mut page = Page::new();
     for (col, width) in page.columns.iter_mut().zip([8, 8, 24]) {
