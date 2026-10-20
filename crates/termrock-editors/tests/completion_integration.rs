@@ -91,8 +91,9 @@ fn routing_runtime() -> (Runtime<RoutingApp>, Buffer) {
     runtime.draw_buffer(AREA, &mut buffer).commit_presented();
     runtime.set_focus(Some(EDITOR));
     runtime.draw_buffer(AREA, &mut buffer).commit_presented();
-    let _ = termrock_runtime::stub::deliver(&mut runtime, key(KeyCode::Char('i')));
-    runtime.draw_buffer(AREA, &mut buffer).commit_presented();
+    // The default Immediate policy enters edit mode on FocusIn. Keep the
+    // first user character for the assertion below instead of simulating
+    // the pre-policy first-key entry gesture.
     runtime.app_mut().open_next = true;
     let _ = termrock_runtime::stub::deliver(&mut runtime, Input::Tick);
     runtime.draw_buffer(AREA, &mut buffer).commit_presented();
