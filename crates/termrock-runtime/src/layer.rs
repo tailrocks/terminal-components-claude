@@ -7,6 +7,51 @@ use crate::action::ActionKey;
 use crate::focus::ScopeId;
 use crate::id::Id;
 
+/// Identifies one application update callback within a runtime.
+///
+/// Tokens are intentionally opaque: consumers may compare them to associate a
+/// component action with a programmatic layer close from that same callback.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub struct UpdateToken {
+    runtime: u64,
+    callback: u64,
+}
+
+impl UpdateToken {
+    pub(crate) const fn new(runtime: u64, callback: u64) -> Self {
+        Self { runtime, callback }
+    }
+}
+
+/// The lifecycle event for one exact layer opening.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct LayerEventReceipt {
+    pub(crate) opening: LayerOpening,
+    pub(crate) event: LayerEvent,
+    pub(crate) update: Option<UpdateToken>,
+}
+
+impl LayerEventReceipt {
+    pub const fn opening(self) -> LayerOpening {
+        self.opening
+    }
+
+    pub const fn event(self) -> LayerEvent {
+        self.event
+    }
+
+    pub const fn update(self) -> Option<UpdateToken> {
+        self.update
+    }
+}
+
+#[derive(Clone, Copy, Debug)]
+pub(crate) struct PendingLayerEvent {
+    pub(crate) opening: LayerOpening,
+    pub(crate) event: LayerEvent,
+    pub(crate) update: Option<UpdateToken>,
+}
+
 #[derive(Clone, Copy, PartialEq, Eq, Hash)]
 pub struct LayerOpening {
     runtime: u64,
@@ -580,7 +625,7 @@ impl OpenLayer {
 pub(crate) struct LayerStack {
     open: Vec<OpenLayer>,
 
-    pending: Vec<(Id, LayerEvent)>,
+    pending: Vec<PendingLayerEvent>,
 
     next: u32,
 
@@ -669,11 +714,25 @@ impl LayerStack {
             closed_event: None,
             restore_to,
         });
-        self.pending.push((id, LayerEvent::Opened));
+        self.pending.push(PendingLayerEvent {
+            opening,
+            event: LayerEvent::Opened,
+            update: None,
+        });
         Some(opening)
     }
 
+    #[cfg(test)]
     pub(crate) fn close(&mut self, id: Id, event: LayerEvent) -> Vec<OpenLayer> {
+        self.close_with_update(id, event, None)
+    }
+
+    pub(crate) fn close_with_update(
+        &mut self,
+        id: Id,
+        event: LayerEvent,
+        update: Option<UpdateToken>,
+    ) -> Vec<OpenLayer> {
         let Some(pos) = self.open.iter().position(|l| l.id == id) else {
             return Vec::new();
         };
@@ -685,12 +744,24 @@ impl LayerStack {
                 LayerEvent::Dismissed(DismissReason::Programmatic)
             };
             l.closed_event = Some(ev);
-            self.pending.push((l.id, ev));
+            self.pending.push(PendingLayerEvent {
+                opening: l.opening,
+                event: ev,
+                update: if i == 0 { update } else { None },
+            });
         }
         closed
     }
 
+    #[cfg(test)]
     pub(crate) fn take_pending(&mut self) -> Vec<(Id, LayerEvent)> {
+        self.take_pending_receipts()
+            .into_iter()
+            .map(|pending| (pending.opening.id(), pending.event))
+            .collect()
+    }
+
+    pub(crate) fn take_pending_receipts(&mut self) -> Vec<PendingLayerEvent> {
         core::mem::take(&mut self.pending)
     }
 }
@@ -739,6 +810,41 @@ mod tests {
         assert_eq!(s.open(DLG, LayerSpec::modal(DLG), None), Some(LayerId(1)));
         assert_eq!(s.close(DLG, LayerEvent::Closed(ActionKey::CANCEL)).len(), 1);
         assert_eq!(s.open(PICK, LayerSpec::modal(PICK), None), Some(LayerId(2)));
+    }
+
+    #[test]
+    fn receipts_retain_each_reopened_layer_opening_and_close_callback() {
+        let mut stack = LayerStack::default();
+        let first = stack
+            .open_with_runtime(DLG, LayerSpec::modal(DLG), None, 7)
+            .expect("first opening");
+        let first_update = UpdateToken::new(7, 11);
+        stack.close_with_update(
+            DLG,
+            LayerEvent::Dismissed(DismissReason::Programmatic),
+            Some(first_update),
+        );
+        let second = stack
+            .open_with_runtime(DLG, LayerSpec::modal(DLG), None, 7)
+            .expect("reopened layer");
+        let second_update = UpdateToken::new(7, 12);
+        stack.close_with_update(
+            DLG,
+            LayerEvent::Dismissed(DismissReason::Programmatic),
+            Some(second_update),
+        );
+
+        let receipts = stack.take_pending_receipts();
+        let closed: Vec<_> = receipts
+            .iter()
+            .filter(|receipt| receipt.event == LayerEvent::Dismissed(DismissReason::Programmatic))
+            .collect();
+        assert_eq!(closed.len(), 2);
+        assert_eq!(closed[0].opening, first);
+        assert_eq!(closed[0].update, Some(first_update));
+        assert_eq!(closed[1].opening, second);
+        assert_eq!(closed[1].update, Some(second_update));
+        assert_ne!(closed[0].opening, closed[1].opening);
     }
 
     #[test]
