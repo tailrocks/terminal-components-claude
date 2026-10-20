@@ -7,13 +7,46 @@ This section is the current decision summary. Detailed chronological checkpoints
 | Application | Product gate | Library gate and next dependency |
 | --- | --- | --- |
 | Showcase | Incomplete; complete paired comparison has not passed twice. | Remaining replay/correction paths and capability coverage require verification. Shared button/state-matrix adoption remains required. |
-| TablePro | Incomplete; latest validated source 2a741b378 has 21 failing tests, including ten additional form regressions; full paired coverage is outstanding. | Real editor migration is blocked on introduced all-target compilation failures, shared focus-entry lifecycle handling and unselected completion match emphasis. The frozen default focuses directly into editing; no extra Enter is permitted. Grid painter removal is blocked on shared embedded-input geometry. History still has private widget painting and missing functional controls. |
+| TablePro | Incomplete; latest parent-validated source ecb271501 has 20 failing tests; form reference conflicts and genuine defects remain unresolved; full paired coverage is outstanding. | Real editor migration is blocked on introduced all-target compilation failures, shared focus-entry lifecycle handling and unselected completion match emphasis. The frozen default focuses directly into editing; no extra Enter is permitted. Grid painter removal is blocked on shared embedded-input geometry. History still has private widget painting and missing functional controls. |
 | Jackin (`jackin-preview`) | Incomplete; replay-backed frames are not acceptable parity proof. | Read-only inventory at `adc6d0e3f668818f6f8321310452db6806c123cc` found 41 fixed-cell historical replay modules, a separate historical palette helper, and two presentation RUNS frames. Replace them by shared components; preserve legitimate brand-specific animations and domain transitions. |
 | Holla | Incomplete; fixed-size/time plate output is not acceptable parity proof. | Same inventory found 46 plate builders, private Finder painting and scenario/time/viewport selectors. Shared searchable sectioned results and responsive master-detail composition must replace them while preserving domain scenarios/actions. |
 
 The Holla/Jackin inventory found their application source subtrees identical between fixed baseline `4169783ae883788186d161af09ba9c481bd84e5c` and fixed design reference `f4867e9b5f8a08a3bb61ce80d644198a29f51984`; those reference subtrees contain no historical/RUNS/plate mechanisms. This is source evidence, not a functional comparison. Holla's frozen Finder has one search/navigation owner and a responsive master-detail policy: detail share 34%, minimum 34 cells, maximum 48 cells, gap 2, collapse below 108 columns and one summary row. General shared contracts must express these constraints without an approved-size table or application-specific library variant.
 
 Baseline rebuilding remains diagnostic and unadmitted. The reviewed nonincremental fixed-path recipe is being independently repeated; neither a successful build nor executable-byte reproducibility establishes product parity. Ordered real-process receipts, immutable reference decisions, complete frozen capture/replay, candidate comparisons, functional outcomes, cursor/mode/cleanup checks and deliberate-defect controls remain required. Full workspace nextest, Clippy, formatting, CI, executable public consumer examples and independent final reviews are not complete. No application or library acceptance is claimed.
+
+## Form data-aware measurement — 2026-10-21
+
+`Form::measure_with_data` measures from the same `Placements` iterator consumed
+by Form update and draw. It observes field visibility and option counts, then
+applies the same group filtering, radio height, text-area height and paired
+`Half` row rules. It does not invoke validation or control update handlers. The
+existing `Form::measure` signature remains source compatible and is documented
+as a data-independent estimate.
+
+The public `termrock-forms` integration test uses notification-preferences data
+with unrelated field IDs, three and ten transport choices, a hidden endpoint,
+disabled locale, paired fields, a four-row text area, long help, and wide Unicode
+labels and values. It verifies live measurement against registered rendered
+field bounds and option rows, visibility, pairing, narrow and zero-width
+constraints, and a narrow draw. The regression first ran against the legacy
+method and failed with estimated height 24 versus rendered height 27. The
+data-aware method passes with height 27; three-option and empty-option data
+measure 20 and 18 rows. Measurement invoked no validators. On this worktree,
+`cargo nextest run -p termrock-forms --all-targets` passed 52/52; the affected
+layout/runtime/control/field/overlay packages passed 644 tests with three
+existing skips. Strict `termrock-forms` Clippy and scoped rustfmt passed.
+
+**Showcase capability coverage allowlist:** `Form::measure_with_data` is covered
+by the executable public consumer test
+`crates/termrock-forms/tests/form_measurement.rs`. Reason: this pure sizing API
+adds no rendered control or Showcase screen, and adding a screen would change
+the frozen Showcase flow. The refactor branch has no machine-checked Showcase
+catalog/coverage gate; this records the disposition for gate restoration, not
+catalog acceptance.
+
+This increment proves the library API only. It does not migrate TablePro's
+connection form or establish application parity.
 
 
 ## TablePro shared Grid row-to-cell styling — 2026-10-21
@@ -150,16 +183,16 @@ shows `‹11`. Other sizes of this scenario are not claimed.
 history list. The card paints the seeded log: search row, ten oldest entries,
 and the detail card. The ANSI stamp is removed. Other sizes are not claimed.
 
-## TablePro data 120×40 color levels — 2026-10-20
+## TablePro data 120×40 color levels — 2026-10-21
 
-`tablepro/table/data/120x40` truecolor, 256, and nocolor match the frozen
-frames. 256 borders use the baseline palette indexes (subtle 238, strong 242,
-seam and scroll track 239, faint 242, thumb 245, accent background 22,
-on-accent 232), not nearest-gray of the truecolor RGB. Outer grid edges dim
-when the cells are not truecolor RGB. The focused primary cell reverses in
-mono. `connections/default` 120×40 truecolor, 256, and nocolor match. The
-Connect label is bold reverse with no explicit ink in mono.
-Full visual runs and `origin/main` are not done.
+`tablepro/table/data/120x40` truecolor matches. A right-aligned value used to
+clear its pad to Default; the vacated cells keep the row fill. The cursor row
+is bold through the gutter tail, the gaps, the preview arrow, and the slack
+past the active value. `tablepro/table/scrolled_right/120x40` truecolor matches,
+including that gutter tail. `tablepro/table/data/120x40` nocolor and 256 match. Legacy inks use the
+frozen 256 indexes (`#3a3a3a` → 238, `#474747` → 239, `#737373` → 242,
+`#808080` → 245, `#173f1c` → 22), not the nearest gray ramp step. Other sizes
+are not claimed. Full visual runs and `origin/main` are not done.
 
 ## Palette and independently diagnosed reference corrections — 2026-10-20
 
@@ -273,7 +306,7 @@ Audit searched production crates for `historical_*`, `*_plate`, `RUNS`, ANSI inc
 | --- | --- | --- |
 | `crates/jackin-preview-app/src/app/historical_*.rs` (41 replay files: `historical_accounts_add_form`, `historical_accounts_add_form_required`, `historical_accounts_detail`, `historical_accounts_detail_80`, `historical_accounts_drawer`, `historical_accounts_filter`, `historical_accounts_filter_80`, `historical_audit_accounts_80`, `historical_capsule_menu`, `historical_capsule_menu_80`, `historical_capsule_new_tab`, `historical_capsule_palette`, `historical_capsule_split_vertical`, `historical_capsule_zoom`, `historical_cockpit_cancel`, `historical_cockpit_info`, `historical_editor`, `historical_editor_auth`, `historical_editor_env`, `historical_editor_mounts`, `historical_editor_mounts_dirty`, `historical_editor_roles`, `historical_editor_save`, `historical_hard_cases_80`, `historical_hard_launch_locked`, `historical_hard_launch_picker`, `historical_help_overlay`, `historical_inspect`, `historical_intro_f300`, `historical_launch_picker`, `historical_manager_menu`, `historical_settings_agents`, `historical_settings_env`, `historical_settings_mounts`, `historical_settings_mounts_80`, `historical_settings_route`, `historical_settings_route_80`, `historical_settings_save`, `historical_settings_trust`, `historical_usage_detail`, `historical_usage_overview`) | `RUNS` arrays encode positioned text and colors; paint those cells after scenario/state/viewport selection. These are production captured-frame replays. `historical_paint.rs` is a separate historical style-recipe helper, not a `RUNS` frame; review it as theme ownership, not as proven replay. Likewise Showcase `historical_palette` functions return semantic theme styles; the name alone does not establish frame replay. | Move behavior into shared widgets/blocks and feed Jackin domain data/actions. All 41 replay files remain unresolved unless removed with a paired journey. |
 | `crates/jackin-preview-presentation/src/{capsule.rs,launch_running.rs}` | Separate presentation-level positioned `RUNS` renderers; proves replay is not limited to app crate. | Shared component composition; unresolved. |
-| `crates/tablepro-ui/src/app.rs` and 1 `crates/tablepro-ui/src/app/historical_*.rs` module (`historical_workbench_maximized`) | Production predicates select fixed scenario/size/state frames; modules parse `RUNS` from `include_str!` ANSI or hold fixed runs; app repaints after normal UI. | Quick-open, tab list, and Safe Mode use `Picker`. Help uses `HelpOverlay`. Delete connection and close-tab confirmation use `Dialog`. The filter editor uses shared overlay chrome plus `TextInput`. A failed query paints the editor, result tab, and error card from the statement error. Explain and explain-analyze paint the editor and the plan strip from the plan tree. Query results paints the editor, chip, and grid from the executed result. Query completion paints the editor line, catalog menu, and EDIT footer from the completion batch. Those replay modules are removed. Scrolled-right orders uses the live grid window. History paints the search row, oldest-first list, and detail card from the seeded log. The new-connection card paints Basic fields from the empty draft. The Advanced page paints the SSL, SSH, and startup placeholders from that same card. Hiding the explorer paints the vertical Explorer rail and the inset query card. The module above is still unresolved. `historical_empty_query` is also a production selection predicate and needs source-level replacement review. |
+| `crates/tablepro-ui/src/app.rs` | Production predicates select fixed scenario/size/state frames; modules parse `RUNS` from `include_str!` ANSI or hold fixed runs; app repaints after normal UI. | Quick-open, tab list, and Safe Mode use `Picker`. Help uses `HelpOverlay`. Delete connection and close-tab confirmation use `Dialog`. The filter editor uses shared overlay chrome plus `TextInput`. A failed query paints the editor, result tab, and error card from the statement error. Explain and explain-analyze paint the editor and the plan strip from the plan tree. Query results paints the editor, chip, and grid from the executed result. Query completion paints the editor line, catalog menu, and EDIT footer from the completion batch. Those replay modules are removed. Scrolled-right orders uses the live grid window. History paints the search row, oldest-first list, and detail card from the seeded log. The new-connection card paints Basic fields from the empty draft. The Advanced page paints the SSL, SSH, and startup placeholders from that same card. Hiding the explorer paints the vertical Explorer rail and the inset query card. Zooming an empty query paints the blank results card, the tab focus mark, and the zoom footer. `tablepro/workbench/maximized/120x40` truecolor matches. No `historical_*.rs` replay module remains. `historical_empty_query` is still a production selection predicate and needs source-level replacement review. |
 | `crates/showcase-demos/src/pages/chrome.rs` | At source `0b8f4e32`, `MEDIUM_100X30` is explicitly copied from an approved snapshot; `paint_medium_100x30` writes its positioned cell tuples and dispatch selects exact 79×26 page dimensions. Additional narrow/wide render paths need the same purpose audit. | Real shared chrome/menu/workspace components and responsive composition; unresolved. |
 | `crates/showcase-demos/src/pages/selectable/{frames.rs,delete_confirm.ansi,bulk_mixed.ansi}` | Imports two approved ANSI frames, decodes cells, resets and writes raw buffer for selectable demo cases. | Real shared selectable/table/list components with inert reference-state data; unresolved. |
 | `crates/holla-sim/src/catalogue.rs` plus `crates/holla-ui/src/screens/home.rs` | Scenario and exact viewport/time `*_plate` dispatch selects named fixture view; home helpers paint dedicated fixed families, including parity files/browser and tag lists. Some catalogue functions build semantic domain view data, so review each function before removing it; exact dimension/time selection plus direct plate painters are not accepted as final architecture. | Shared Holla screens/components driven by simulation state and domain view data; unresolved. |
@@ -555,3 +588,40 @@ Separately, independent review of protected embedded-input candidate `59e8cffb30
 Integrated independently reviewed source `cf346dd4ba85b165cefcbec3bbeeccab21fb2a23` by normal merge. The additive registry `tools/frozen_cli_build_cohorts.json` and strict loader bind the independently reproduced four final executables, stage1 hashes, frozen source/tool identities and archived evidence, with explicit RUN1 limitations. [Independent adversarial review](../audits/2026-10-21-baseline-cohort-schema-review.json) confirms rejection of numeric boolean claims, forged cohorts, duplicate JSON keys, registry replacement/in-place races and binary mutation. The parent reran all 48 Python tests, Python compilation and whitespace validation successfully on the merge. The old v1 reference document SHA remains `2a43fb118c268300c8bbd6439ea11bb9a24ffff03dc3c9f4601893eee26a096b`.
 
 This integration is diagnostic only. Capture eligibility is rejected, no paired-runner path uses the registry yet, no production code or reference frames changed, and the old tuple-specific exception remains unchanged. The next increments require separately reviewed executable-cohort adoption and resumable plan/advance/finalize commands. Current live-compare starts a timestamped run and loops every chunk inside one command; running the complete inventory that way violates the bounded-command rule. A resumed run must bind immutable complete inventory, phase/chunk order, candidate/source/environment/cohort identities, securely verified process/checkpoint/close receipts and expected-frame hashes. Finalization must reject incomplete, failed, duplicate, missing or zero-checkpoint coverage and require all twenty ordinary checks. No application acceptance follows from this schema gate.
+
+
+## Current package gate, form reference conflicts and upstream CI dependency (2026-10-21)
+
+Parent validation at `ecb271501618508aa6fadc9c9b75c178fcaaa41e` runs 181 all-target TablePro tests: 161 passed, 20 failed, zero skipped. [Exact results and raw-log hash](../audits/2026-10-21-tablepro-ecb271-base-results.json) supersede the earlier 21-failure count for this source. The external Advanced-form replacement clears the fresh-name test; no additional failure names appear. This remains a red package gate. Later external `6375fcee053d7859279ce436efde98c258ae649f` replaces a hidden-explorer replay; its source ownership and behavior still need independent review.
+
+The [independent connection-form source review](../audits/2026-10-21-external-connection-form-review.json) distinguishes real private-painter/input/focus/clipping/password defects from test assumptions conflicting with frozen construction and glyphs. Frozen new connections are blank rather than cloned Production; environment labels are lowercase and the off-radio glyph is `( )`. These findings do not authorize silently changing tests or reference artifacts. Repeatable frozen CLI evidence and documented reference decisions must preserve coverage and functional assertions. The new shared Form prerequisite is pure data-aware measurement backed by the existing placement planner; sections, live controls and actual TablePro adoption follow separately.
+
+Independent MasterDetail review of protected source `e4eb0726ec61f5b17160d81f2e1aad6967bc8023` reproduces three failures despite native suites passing: nested narrow drawer Escape uses terminal rather than block bounds; Escape misses a real focused detail descendant; summary height follows intrinsic content instead of the exact clamped policy. It remains unintegrated. The Grid follow-up at `bddfbe63f5cb8fa77e363fb233ac5fe8d51c4907` is under independent rereview; its source-base TablePro comparison retains the same twenty failures. Neither library workstream is accepted from native green tests alone.
+
+Upstream [Velnor draft PR #249](https://github.com/tailrocks/velnor-new/pull/249) provides the reviewed optional Plan timeout setting. Its head is `e5c69f476a768da5cce4904d8dc58c008e90c476`; the implementation was independently reviewed at the preceding code commit, with a final documentation-only compatibility note. Omitted config remains five minutes and full generated YAML changes only the requested Plan scalar. The Rust WorkflowConfig field addition is explicitly source-breaking for downstream struct literals. Focused checks pass; latest observed image CI was running and DCO required action. No merge, release or Termrock adoption occurred. Termrock keeps released Velnor 0.1.29; a fifteen-minute trial has not yet demonstrated a successful Plan checkout.
+
+
+## Push-lock incident and recovery (2026-10-21)
+
+The Form worker successfully acquired the shared push lock. A MasterDetail worker failed to acquire it but, because its shell did not stop on that failure, overwrote the owner metadata and proceeded with a separate WIP push. Both completed remote tips were verified: Form `eca0aee9f119be3ac238dbdc0d6f6a75594c5e35` and MasterDetail `856059ad5950cc6f266beb3c4273bbf6f5afa93d`. Neither push forced a shared ref. The original Form lock owner independently traced its successful acquisition, verified the known overwritten metadata and both completed tips, recorded the timestamp limitation, and released its own original lock at 2026-10-20T19:27:30Z. The coordinator did not remove an unknown other owner's recent lock. Future acquisition failures must abort the push cycle; ownership must be checked before release. This scheduling failure is recorded rather than hidden and does not provide any product or review acceptance.
+
+
+## Pure data-aware Form measurement (2026-10-21)
+
+Integrated independently reviewed Form source `eca0aee9f119be3ac238dbdc0d6f6a75594c5e35` by normal merge at `cf46299272a992c7aeb445152d9b7eec7beadd12`. The additive `measure_with_data` uses the existing placement planner; legacy measurement remains unchanged. The real regression measured 24 rows before the fix against 27 drawn rows. The independent public consumer covers dynamic radio choices, visibility, groups, constraints, empty data and effect-free measurement. [Independent evidence](../audits/2026-10-21-form-data-measure-review.json) records limitations. Parent verification on the merge passed all 52 Form tests, strict all-target Form Clippy, scoped formatting and whitespace validation. Sections, lane composition, actual application migration and full parity remain incomplete.
+
+
+## Independently reviewed cohort adapter and fresh candidate builds (2026-10-21)
+
+Integrated protected tool source `979acbe0f3b7125d51f8f5cae2c25e786adbd544`. The adapter accepts only pinned registry paths and rejects aliasing, replacement and cached-target executable substitution. Candidate compilation now requires a fresh exclusively created target; existing files and directories are rejected before Cargo without cleanup. [Independent review](../audits/2026-10-21-baseline-cohort-adapter-review.json) reproduces actual cached-dependency substitution rejection and fresh pinned-Cargo compilation, plus all 51 Python tests and prior identity/race controls. No compiler hermeticity is claimed. The production cohort review registry remains empty: no capture approval, historical-exception transfer or application parity acceptance follows. Resumable full-inventory lifecycle adoption remains required.
+
+Parent Form measurement delivery was verified remotely at `ee6a65743c532b3ae0cbe57265f503dff5f61e2e` after fetching and merging concurrent commits and rerunning 52 Form tests, strict Clippy, formatting and whitespace checks on the exact pushed head. New external commits `009bbd98a7a42250760aa4ce29b309e8beb0fe5c` and `9268b190e` still need independent ownership and theme-contract review; their presence is not acceptance.
+
+
+## Independent review blocks protected candidates (2026-10-21)
+
+The [editor review](../audits/2026-10-21-editor-8153-review.json) rejects `8153f3f85ba1b3c494bfcbfa1c7d8ce95753e847`: completion closure steals focus back from the real next control and re-enters editing; changing the native assertion to accept that result is not a repair. The independent public regression requires `(NEXT, false)`. Default unmatched Unicode labels also incorrectly become bold; explicit consumer bold must remain supported. Both findings are assigned to a separate repair implementer, with review preserved. The historical ItemRow fingerprint failure remains separately attributed.
+
+The [MasterDetail review](../audits/2026-10-21-master-detail-b460-review.json) verifies the original nested-bounds and detail-descendant fixes at `b46010bd95300e04d2903895fa6def76a4a7f368`, but exposes a scoped binding that declines Escape suppressing outer/global fallback. Runtime repair is assigned to its existing exclusive writer. The old summary probe counted the editor footer incorrectly; its original failed output is retained, and a separate precise body-plus-footer probe passes. This documented diagnosis does not turn the true fallback failure green.
+
+Protected Grid source `26e4d54879fcd9b777df701bb65881f6f11a09a4` replaces synthetic color inference with private canonical Clear provenance and passes 344 native tests plus four original public probes. A fifth independent public probe still finds a winning local underline Clear leaves a prepainted Yellow underline. That finding is assigned to the same exclusive component writer. None of these three candidates is integrated or accepted based on their native green suites.
