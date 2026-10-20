@@ -1,7 +1,7 @@
 use termrock::grid::{Column, ColumnKey, Table, TableAction, TableColumn, TableSort, TableState};
 use termrock::{
     CellRef, Color, Cx, FgStep, GridAction, GridModel, ItemKey, Modifier, PaintStyle, Rect, Role,
-    Ui, width,
+    StylePatch, Ui, width,
 };
 
 use showcase_data::{TASKS, TaskStatus};
@@ -22,6 +22,10 @@ const COL_GAP: u16 = 2;
 const TABLE_INSET: u16 = 3;
 const TABLE_CHROME: u16 = 5;
 const TASK_TABLE_ID: termrock::Id = termrock::id!("tables.tasks");
+const TASK_TONE_STYLES: [(Role, StylePatch); 1] = [(
+    Role::Danger,
+    StylePatch::new().set_fg(Role::Custom(Color::Rgb(240, 93, 93))),
+)];
 
 const CANVAS: u32 = 0x000000;
 const SURFACE: u32 = 0x111111;
@@ -715,7 +719,7 @@ impl GridModel for TaskTableModel {
 }
 
 fn task_table() -> Table<'static> {
-    Table::new(TASK_TABLE_ID, &TASK_COLUMNS)
+    Table::new(TASK_TABLE_ID, &TASK_COLUMNS).tone_styles(&TASK_TONE_STYLES)
 }
 
 fn draw_tasks(ui: &mut Ui<'_>, card: Rect, state: &TableState, model: &TaskTableModel) {
