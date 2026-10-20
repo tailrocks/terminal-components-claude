@@ -1,0 +1,74 @@
+{
+  "source_head": "df30dc013aa6d78df6f9eb58fc67f3f3d61be37f",
+  "status": "diagnosed_upstream_generator_budget_and_checkout_blocker_not_Rust_test_failure",
+  "evidence": [
+    {
+      "run": 39468344965,
+      "head": "9b4aae59b5c006e64b3791fa15804f6411633e4d",
+      "job": 118786018355,
+      "url": "https://github.com/tailrocks/terminal-components-claude/actions/runs/39468344965/job/118786018355",
+      "stage": "Checkout",
+      "interval": "2026-10-20T17:43:05Z to17:48:03Z",
+      "check_annotation": "The job has exceeded the maximum execution time of5m0s",
+      "result": "Plan/nextest neverstarted; Publishplan missingartifact isconsequence"
+    },
+    {
+      "run": 39470118735,
+      "head": "f0760158eba66e576d5d9bb74a058f59e209f64e",
+      "job": 118791657363,
+      "stage": "Checkout",
+      "interval": "17:54:31Z to17:56:59Z",
+      "result": "CancelledwhennewerPRrunstarted; nottimeoutproof",
+      "checkout_log": "fetch-depth0, gitfetch --no-tags --prune --no-recurse-submodules origin +refs/heads/*:refs/remotes/origin/* +refs/tags/*:refs/tags/* +PRmergecommit"
+    },
+    {
+      "run": 39470320911,
+      "head": "df30dc013aa6d78df6f9eb58fc67f3f3d61be37f",
+      "job": 118792993722,
+      "interval": "17:57:10Z to18:02:26Z",
+      "result": "Cancelledbyhigherprioritywaiting velnor-CI-38 duringPreparepinnedtools; nottimeoutannotation. Plan/nextest stillnotstarted."
+    }
+  ],
+  "tree_size": {
+    "method": "git ls-tree -r --long exactdf30; logicalbloblengths, notmeasuredcompressednetworktransfer",
+    "tracked_paths": 94837,
+    "tracked_target_paths": 1301,
+    "tracked_target_logical_bytes": 17537012,
+    "baseline_corpus_paths": 75502,
+    "baseline_corpus_logical_bytes": 13420826872,
+    "showcase_snapshot_paths": 7125,
+    "showcase_snapshot_logical_bytes": 3049542985
+  },
+  "conclusions": [
+    "Confirmedone5minutePlanjobtimeoutinsidecheckout; repeatedothercancellationscausedbyPRconcurrency, distinguishboth.",
+    "Noevidencefeaturematrix/nextestplanningcausedobservedtimeout: neverreachedPlanstep; testingvariantnotyetpresentintimedouthead.",
+    "Largeimmutablecorpus/fullhistory/allrefcheckout isdominantrepositorybulk; trackedtarget17MBisnotdominant. Do notdeletecorpus/alterbaseline asfix.",
+    "Skipped/cancelledRustjobsarenotpassingvalidation."
+  ],
+  "approved_generator": {
+    "release": "https://github.com/tailrocks/velnor-new/releases/tag/v0.1.29",
+    "source": "e7b2f088715379c22be473fab896a43d50cc16fc",
+    "source_contract": "crates/velnor-actions-contract/src/config/workflow.rs41\u201349 documentscrate_timeout_minutes only. Approvedschema2migrateexposesnoplan_timeout/checkoutpolicykey. workflow_timeout.rs requiresboundedliteraljobtimeouts; generatedPlan remains5."
+  },
+  "minimal_staged_fix": [
+    {
+      "owner": "upstreamvelnorworker",
+      "change": "AddreviewedexplicitboundedPlan/bootstrapjobtimeoutconfiguration tocontract/schema/renderer/cachedeadlineidentity; regressiontests provecrate_timeoutdoesnotimplicitlychangePlanandselectedbudgetcoversexistingcheckout/tool/bootstrap. Avoidunreviewedblanketdefaultbump."
+    },
+    {
+      "owner": "upstreamcheckoutarchitect",
+      "change": "Separatelymeasureactualfetch/checkoutcost, considerfilteredhistory/targetedrefcheckout orplannerlightweightcheckout whilepreservingmerge-base/affectedselection/inputinventoryandimmutableoraclecontracts. Do notshallow/sparseblindly oromitrequiredtestassets."
+    },
+    {
+      "owner": "repositoryCIworker",
+      "change": "Afterapprovedupstreamrelease/pin/pathdecision, setexplicitmeasuredPlanbudget/regenerateusingvelnoronly; nohandworkflowedit. Continuefeaturecoverageconfigurationindependently."
+    },
+    {
+      "owner": "independentCIreviewer",
+      "change": "RununinterruptedexactPR38CI; requirePlanpublishesandallrequiredRustjobsactuallyexecute. Capturecheckout/tools/planstagedurations,timeoutidentity,nonzeroobligationsandRequiredverdict."
+    }
+  ],
+  "workflow_constraint": "PRconcurrencycancel_in_progress true cancelsoldrunsonnewpush. Do notmislabelcancelledrunasPlanperformancefailure; needoneuninterruptedrunforacceptance.",
+  "upstream_loop_blocker": "docs/upstream/README.md missingfromlatestPR38anduserdesignfilesystem; noPRloopinstructionsorupstreamPRlinksavailable. Noexternalcomments/messages/PRcreatedbythisread-onlyreview.",
+  "scope": "Noeditsorgeneratedchanges, no cargo testcommandexecuted."
+}
