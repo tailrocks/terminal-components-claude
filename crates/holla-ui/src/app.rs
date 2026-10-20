@@ -444,10 +444,16 @@ fn parity_git_current_tag_plate(world: &World, width: u16, height: u16) -> bool 
         || crate::sim::catalogue::parity_git_current_120x40_plate(world, width, height).is_some()
 }
 
-/// 80×24 and 100×30 `parity-cargo`. Git-current, browser, files, history, discovery, and every other size stay off.
-fn parity_cargo_tag_plate(world: &World, width: u16, height: u16) -> bool {
+/// 80×24 and 100×30 clip the last hint. 120×40 fits every hint, so it keeps the wide parts.
+fn parity_cargo_clipped_plate(world: &World, width: u16, height: u16) -> bool {
     crate::sim::catalogue::parity_cargo_80x24_plate(world, width, height).is_some()
         || crate::sim::catalogue::parity_cargo_100x30_plate(world, width, height).is_some()
+}
+
+/// 80×24, 100×30, and 120×40 `parity-cargo`. Git-current, browser, files, history, discovery, and every other size stay off.
+fn parity_cargo_tag_plate(world: &World, width: u16, height: u16) -> bool {
+    parity_cargo_clipped_plate(world, width, height)
+        || crate::sim::catalogue::parity_cargo_120x40_plate(world, width, height).is_some()
 }
 
 /// Tag parity-browser status at 80×24, 100×30, and 120×40: cwd, then the size label. No branch.
@@ -486,7 +492,7 @@ fn paint_parity_git_current_status(ui: &mut Ui<'_>, area: Rect) {
     let _ = paint_size_label(ui, area);
 }
 
-/// Tag parity-cargo status at 80×24 and 100×30: cwd, branch, then the size label. No ahead count.
+/// Tag parity-cargo status at 80×24, 100×30, and 120×40: cwd, branch, then the size label. No ahead count.
 fn paint_parity_cargo_status(ui: &mut Ui<'_>, area: Rect) {
     if area.is_empty() {
         return;
@@ -1934,7 +1940,7 @@ impl App {
             let git_current_plate =
                 parity_git_current_clipped_plate(&self.world, ui.full().width, ui.full().height);
             let cargo_plate =
-                parity_cargo_tag_plate(&self.world, ui.full().width, ui.full().height);
+                parity_cargo_clipped_plate(&self.world, ui.full().width, ui.full().height);
             let parts = if monorepo_child_mid
                 || remote_host_mid
                 || first_use_mid
