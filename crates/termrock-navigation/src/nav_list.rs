@@ -3,7 +3,7 @@ use core::marker::PhantomData;
 
 use ratatui_core::layout::Rect;
 
-use super::{Acc, PartStyle, SlotFn, cell_at};
+use super::{Acc, PartStyle, SlotFn};
 use crate::measure::{Constraints, Size};
 use crate::scroll::ScrollState;
 use termrock_collections::collection::{
@@ -19,7 +19,7 @@ use termrock_runtime::rowui::{RowFn, RowUi};
 use termrock_runtime::scroll_region::ScrollRegion;
 use termrock_runtime::ui::{Cx, FrameRead, Ui};
 use termrock_text::width;
-use termrock_theme::{CursorStyle, Family, Slot, StylePatch, Variant};
+use termrock_theme::{CursorStyle, Family, StylePatch, Variant};
 
 pub type BadgeFn<'a, T> = &'a dyn Fn(&T) -> Option<&str>;
 
@@ -297,6 +297,7 @@ impl<'a, T, K, R> NavList<'a, T, K, R> {
     }
     pub const PARTS: &'static [Part] = &[
         Part::CONTAINER,
+        Part::ROW,
         Part::GUTTER,
         Part::MARKER,
         Part::ICON,
@@ -947,106 +948,41 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> NavList<'_, T, K, R> {
     }
 
     fn paint_row(&self, ui: &mut Ui<'_>, rect: Rect, flags: StateFlags, key: ItemKey, item: &T) {
-        let rs = self.ov.style(
+        let mut row = RowUi::new_with_author_style(
             ui,
             self.id,
             Family::LIST,
             Variant::DEFAULT,
-            Part::CONTAINER,
             flags,
-        );
-        ui.fill(rect, rs.style);
-        self.paint_cell_part(ui, cell_at(rect, rect.x), Part::GUTTER, flags, None);
-        self.paint_cell_part(
-            ui,
-            cell_at(rect, rect.x.saturating_add(1)),
-            Part::MARKER,
-            flags,
-            None,
-        );
+            key,
+            rect,
+            self.ov,
+        )
+        .with_author_parts(Self::PARTS)
+        .with_cursor_style(self.cursor_style);
+        row.leading_part(Part::GUTTER, 1, 0, |_| {});
+        row.leading_part(Part::MARKER, 1, 0, |_| {});
         let icon = self.icon.map(|f| f(item));
-        self.paint_cell_part(
-            ui,
-            cell_at(rect, rect.x.saturating_add(2)),
-            Part::ICON,
-            flags,
-            icon,
-        );
+        row.leading_part(Part::ICON, 1, self.content_gap, |cell| {
+            if let Some(icon) = icon {
+                cell.text(icon);
+            }
+        });
         if self.mode == NavMode::Collapsed {
             return;
         }
-        let content_offset = 3_u16.saturating_add(self.content_gap);
-        let body = Rect {
-            x: rect.x.saturating_add(content_offset),
-            width: rect.width.saturating_sub(content_offset),
-            ..rect
-        };
-        if body.is_empty() {
-            return;
-        }
         let badge = self.badge.and_then(|f| f(item)).filter(|s| !s.is_empty());
-        let (row_body, badge_area) = badge.map_or((body, Rect::ZERO), |text| {
-            let badge_width = width(text).min(body.width);
-            let gap = u16::from(badge_width < body.width);
-            (
-                Rect {
-                    width: body.width.saturating_sub(badge_width).saturating_sub(gap),
-                    ..body
-                },
-                Rect {
-                    x: body.right().saturating_sub(badge_width),
-                    width: badge_width,
-                    ..body
-                },
-            )
-        });
-        if !row_body.is_empty() {
-            let mut r = RowUi::new_with_patches(
-                ui,
-                self.id,
-                Family::LIST,
-                Variant::DEFAULT,
-                flags,
-                key,
-                row_body,
-                self.ov.part_patch(Part::CONTAINER),
-                self.ov.part_patch(Part::LABEL),
-            )
-            .with_cursor_style(self.cursor_style);
-            self.row.row(item, &mut r);
-        }
         if let Some(text) = badge {
-            self.paint_cell_part(ui, badge_area, Part::BADGE, flags, Some(text));
+            let available = row.remaining_width();
+            let badge_width = width(text).min(available);
+            let gap = u16::from(badge_width < available);
+            row.trailing_part(Part::BADGE, badge_width, gap, |cell| {
+                cell.text(text);
+            });
         }
-    }
-
-    fn paint_cell_part(
-        &self,
-        ui: &mut Ui<'_>,
-        cell: Rect,
-        part: Part,
-        flags: StateFlags,
-        text: Option<&str>,
-    ) {
-        if let Some(f) = self.ov.slot_for(part) {
-            f(ui, cell);
-            return;
-        }
-        let r = self
-            .ov
-            .style(ui, self.id, Family::LIST, Variant::DEFAULT, part, flags);
-        match r.glyph {
-            Slot::Set(g) => {
-                ui.glyph(cell, g, r.style);
-            }
-            Slot::Inherit => match text {
-                Some(t) if !t.is_empty() => {
-                    ui.fill(cell, r.style);
-                    ui.paint_str(cell, t, r.style);
-                }
-                _ => ui.fill(cell, r.style),
-            },
-            Slot::Clear => ui.fill(cell, r.style),
+        if row.has_space() {
+            row.begin_content();
+            self.row.row(item, &mut row);
         }
     }
 
