@@ -48,6 +48,13 @@ const READOUT: [&str; 2] = [
     "nav default · type-ahead on (TypeAhead, 1000 ms pause) · click ClickPolicy { activate: Double, edit_on: Double, check: BoxOnly }, check BoxOnly · wrap false · skip_disabled true",
     "toggle platform+click · scrollbar_gap 1 · track_click Page · reveal tooltip · a ListCmd::ToggleAll · ⌘A ListCmd::SelectAll",
 ];
+// Page rect inside the 160×50 shell. Equal columns and this readout exist only there.
+const WIDE_PAGE_W: u16 = 134;
+const WIDE_PAGE_H: u16 = 46;
+const WIDE_READOUT: [&str; 2] = [
+    "nav default · type-ahead on (TypeAhead, 1000 ms pause) · click Double, check BoxOnly · wrap false · skip_disabled true",
+    "toggle platform+click · scrollbar_gap 1 · track_click Page · reveal tooltip · a ListCmd::ToggleAll · Ctrl+A ListCmd::SelectAll",
+];
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 struct FileRow {
@@ -348,6 +355,23 @@ fn card_layout(view_width: u16) -> CardLayout {
             height: y,
             width,
         }
+    }
+}
+
+fn equal_card_layout(view_width: u16) -> CardLayout {
+    let usable = view_width.saturating_sub(CARD_GAP_X.saturating_mul(2));
+    let base = usable / 3;
+    let widths = [base, base, usable.saturating_sub(base.saturating_mul(2))];
+    let mut rects = [Rect::ZERO; 3];
+    let mut x = 0u16;
+    for (index, card_w) in widths.into_iter().enumerate() {
+        rects[index] = Rect::new(x, 0, card_w, CARD_H);
+        x = x.saturating_add(card_w).saturating_add(CARD_GAP_X);
+    }
+    CardLayout {
+        rects,
+        height: CARD_H,
+        width: view_width,
     }
 }
 
@@ -662,26 +686,51 @@ fn paint_files(ui: &mut Ui<'_>, card: Rect, checked: &KeySet) {
     paint_list_scrollbar(ui, list, FILES.len());
 }
 
-fn paint_search(ui: &mut Ui<'_>, card: Rect) {
+fn paint_search(ui: &mut Ui<'_>, card: Rect, center_title: bool) {
     paint_card_chrome(ui, card, "Search results", "");
     let inner = card_inner(card);
     if inner.height < 2 || inner.width == 0 {
         return;
     }
     let title = "No results for “retry”";
+    let title_w = width(title);
+    let (text_x, text_w) = if center_title && title_w < inner.width {
+        (
+            inner
+                .x
+                .saturating_add(inner.width.saturating_sub(title_w) / 2),
+            title_w,
+        )
+    } else {
+        (inner.x, inner.width)
+    };
     let y = inner.y.saturating_add(inner.height / 2);
     ui.paint_str(
-        Rect {
-            y,
-            height: 1,
-            ..inner
-        },
+        Rect::new(text_x, y, text_w, 1),
         title,
         ink(MUTED, SURFACE),
     );
 }
 
-fn paint_playground(ui: &mut Ui<'_>, area: Rect, chosen: &str, checked: &KeySet) {
+fn paint_wide_readout(ui: &mut Ui<'_>, area: Rect, cards_h: u16) {
+    let y = area.y.saturating_add(cards_h).saturating_add(1);
+    for (index, line) in WIDE_READOUT.iter().enumerate() {
+        let Ok(offset) = u16::try_from(index) else {
+            break;
+        };
+        let row = y.saturating_add(offset);
+        if row >= area.bottom() {
+            break;
+        }
+        ui.paint_str(
+            Rect::new(area.x, row, area.width, 1),
+            line,
+            ink(FAINT, CANVAS),
+        );
+    }
+}
+
+fn paint_playground(ui: &mut Ui<'_>, area: Rect, chosen: &str, checked: &KeySet, wide: bool) {
     if area.is_empty() {
         return;
     }
@@ -695,15 +744,22 @@ fn paint_playground(ui: &mut Ui<'_>, area: Rect, chosen: &str, checked: &KeySet)
     } else {
         area
     };
-    let cards = card_layout(view.width);
+    let cards = if wide {
+        equal_card_layout(view.width)
+    } else {
+        card_layout(view.width)
+    };
     ui.with_area(view, |ui| {
         let language = offset_card(view, cards.rects[0]);
         let files = offset_card(view, cards.rects[1]);
         let search = offset_card(view, cards.rects[2]);
         paint_language(ui, language, chosen);
         paint_files(ui, files, checked);
-        paint_search(ui, search);
+        paint_search(ui, search, wide);
     });
+    if wide {
+        paint_wide_readout(ui, view, cards.height);
+    }
     if overflows {
         paint_scrollbar(
             ui,
@@ -788,6 +844,7 @@ impl Page for ListsPage {
 
     fn draw(&self, ui: &mut Ui<'_>, area: Rect) {
         let chosen = self.chosen_label();
+        let wide = area.width == WIDE_PAGE_W && area.height == WIDE_PAGE_H;
         frame(ui, area, self.title(), "", |ui, body| {
             paint_blurb(ui, body);
             paint_section_strip(
@@ -810,6 +867,7 @@ impl Page for ListsPage {
                 },
                 chosen,
                 self.multi.checked(),
+                wide,
             );
         });
     }
