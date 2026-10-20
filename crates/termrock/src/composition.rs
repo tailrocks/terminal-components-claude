@@ -275,6 +275,7 @@ impl<'a> Group<'a> {
     /// Measure intrinsic size through the shared layout resolver without
     /// dispatching input, drawing, or changing component state.
     pub fn measure(&self, ui: &Ui<'_>, constraints: Constraints) -> Result<Size, CompositionError> {
+        self.validate_depth()?;
         self.slots().measure(ui, constraints)
     }
 
