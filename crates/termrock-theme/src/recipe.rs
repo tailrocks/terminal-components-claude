@@ -5,6 +5,7 @@ use super::glyph::GlyphRole;
 use super::patch::{Slot, StateRule, StylePatch};
 use crate::id::{Part, fnv1a};
 use crate::response::StateFlags;
+use crate::theme::ColorLevel;
 
 const FNV_OFFSET: u64 = 0xcbf2_9ce4_8422_2325;
 
@@ -286,12 +287,34 @@ pub struct GlobalOverride {
     pub parts: PartMap<PartRecipe>,
 }
 
-#[derive(Clone, PartialEq, Eq, Debug)]
+#[derive(Clone, Debug)]
 pub struct Recipes {
     by_family: Vec<(Family, Recipe)>,
     overrides: Vec<GlobalOverride>,
     neutral: Recipe,
     mono: Vec<(Family, Vec<MonoRule>)>,
+    level_families: Vec<LevelFamilyRecipe>,
+    revision: u64,
+}
+
+impl PartialEq for Recipes {
+    fn eq(&self, other: &Self) -> bool {
+        self.by_family == other.by_family
+            && self.overrides == other.overrides
+            && self.neutral == other.neutral
+            && self.mono == other.mono
+            && self.level_families == other.level_families
+    }
+}
+
+impl Eq for Recipes {}
+
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub(crate) struct LevelFamilyRecipe {
+    pub level: ColorLevel,
+    pub family: Family,
+    pub seed: Recipe,
+    pub parts: PartMap<PartRecipe>,
 }
 
 impl Default for Recipes {
@@ -301,6 +324,8 @@ impl Default for Recipes {
             overrides: Vec::new(),
             neutral: super::builtin::neutral_recipe(),
             mono: Vec::new(),
+            level_families: Vec::new(),
+            revision: 0,
         }
     }
 }
@@ -328,6 +353,7 @@ impl Recipes {
                   filled, so it is in range by construction"
     )]
     pub fn get_mut(&mut self, f: Family) -> &mut Recipe {
+        self.revision = self.revision.wrapping_add(1);
         let i = match self.by_family.binary_search_by_key(&f, |(k, _)| *k) {
             Ok(i) => i,
             Err(i) => {
@@ -371,6 +397,7 @@ impl Recipes {
                   filled, so it is in range by construction"
     )]
     pub(crate) fn set_mono_rules(&mut self, f: Family, rules: Vec<MonoRule>) {
+        self.revision = self.revision.wrapping_add(1);
         let i = match self.mono.binary_search_by_key(&f, |(k, _)| *k) {
             Ok(i) => i,
             Err(i) => {
@@ -386,7 +413,48 @@ impl Recipes {
     }
 
     pub(crate) fn push_override(&mut self, o: GlobalOverride) {
+        self.revision = self.revision.wrapping_add(1);
         self.overrides.push(o);
+    }
+
+    pub(crate) fn level_family(
+        &self,
+        level: ColorLevel,
+        family: Family,
+    ) -> Option<&LevelFamilyRecipe> {
+        self.level_families
+            .iter()
+            .find(|entry| entry.level == level && entry.family == family)
+    }
+
+    pub(crate) fn define_level_family(
+        &mut self,
+        level: ColorLevel,
+        family: Family,
+        parts: PartMap<PartRecipe>,
+    ) {
+        self.revision = self.revision.wrapping_add(1);
+        if let Some(existing) = self
+            .level_families
+            .iter_mut()
+            .find(|entry| entry.level == level && entry.family == family)
+        {
+            for (part, recipe) in parts.iter() {
+                existing.parts.entry(part).merge_from(recipe);
+            }
+            return;
+        }
+        let seed = self.get_or_neutral(family).clone();
+        self.level_families.push(LevelFamilyRecipe {
+            level,
+            family,
+            seed,
+            parts,
+        });
+    }
+
+    pub(crate) const fn revision(&self) -> u64 {
+        self.revision
     }
 }
 
