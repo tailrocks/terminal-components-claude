@@ -871,7 +871,7 @@ impl<A: App> Runtime<A> {
             last.owner == h.owner
                 && last.part == h.part
                 && self.now().saturating_duration_since(last.at)
-                    <= core::time::Duration::from_millis(window)
+                    < core::time::Duration::from_millis(window)
                 && last.pos.x.abs_diff(m.pos.x) <= self.pointer_click_slop
                 && last.pos.y.abs_diff(m.pos.y) <= self.pointer_click_slop
         });
@@ -927,7 +927,7 @@ impl<A: App> Runtime<A> {
             owner: p.owner,
             part: p.part,
             at: self.now(),
-            pos: p.pos,
+            pos: m.pos,
             count: click_count,
         });
         self.intents
@@ -964,7 +964,7 @@ impl<A: App> Runtime<A> {
                             owner: press.owner,
                             part: press.part,
                             at: self.now(),
-                            pos: press.pos,
+                            pos: m.pos,
                             count: click_count,
                         });
                         self.services.pointer_press_count =
@@ -999,7 +999,7 @@ impl<A: App> Runtime<A> {
                 last.owner == owner
                     && last.part == part
                     && self.now().saturating_duration_since(last.at)
-                        <= core::time::Duration::from_millis(window)
+                        < core::time::Duration::from_millis(window)
                     && last.pos.x.abs_diff(pos.x) <= self.pointer_click_slop
                     && last.pos.y.abs_diff(pos.y) <= self.pointer_click_slop
             })
@@ -2678,6 +2678,123 @@ mod tests {
         let _ = rt.advance_to(
             rt.now()
                 .saturating_add(core::time::Duration::from_millis(600)),
+        );
+        let _ = deliver(&mut rt, super::stub::mouse(MouseKind::Up, 2, 0));
+        rt.draw_buffer(SCREEN, &mut buf).commit_presented();
+
+        assert_eq!(rt.app().counts.last(), Some(&(Phase::Click, 1)));
+        assert!(!rt.app().phases.contains(&Phase::DoubleClick));
+    }
+
+    #[test]
+    fn click_slop_uses_release_position_for_uncaptured_clicks() {
+        let mut rt = Runtime::new(PressCountProbe::default(), Theme::junie());
+        let _ = rt.initialize();
+        let mut buf = Buffer::empty(SCREEN);
+        for _ in 0..8 {
+            rt.draw_buffer(SCREEN, &mut buf).commit_presented();
+            if !rt.needs_settle() {
+                break;
+            }
+            let _ = rt.settle();
+        }
+        let _ = deliver(&mut rt, super::stub::mouse(MouseKind::Down, 2, 0));
+        rt.draw_buffer(SCREEN, &mut buf).commit_presented();
+        let _ = deliver(&mut rt, super::stub::mouse(MouseKind::Up, 3, 0));
+        rt.draw_buffer(SCREEN, &mut buf).commit_presented();
+        let _ = deliver(&mut rt, super::stub::mouse(MouseKind::Down, 4, 0));
+        rt.draw_buffer(SCREEN, &mut buf).commit_presented();
+
+        assert_eq!(rt.app().counts.last(), Some(&(Phase::Press, 2)));
+    }
+
+    #[test]
+    fn click_slop_uses_release_position_for_captured_clicks() {
+        let mut rt = Runtime::new(
+            PressCountProbe {
+                capture_on_press: true,
+                ..PressCountProbe::default()
+            },
+            Theme::junie(),
+        );
+        let _ = rt.initialize();
+        let mut buf = Buffer::empty(SCREEN);
+        for _ in 0..8 {
+            rt.draw_buffer(SCREEN, &mut buf).commit_presented();
+            if !rt.needs_settle() {
+                break;
+            }
+            let _ = rt.settle();
+        }
+        let click = |rt: &mut Runtime<PressCountProbe>, buf: &mut Buffer| {
+            let _ = deliver(rt, super::stub::mouse(MouseKind::Down, 2, 0));
+            rt.draw_buffer(SCREEN, buf).commit_presented();
+            let _ = deliver(rt, super::stub::mouse(MouseKind::Up, 3, 0));
+            rt.draw_buffer(SCREEN, buf).commit_presented();
+        };
+        click(&mut rt, &mut buf);
+        let _ = deliver(&mut rt, super::stub::mouse(MouseKind::Down, 4, 0));
+        rt.draw_buffer(SCREEN, &mut buf).commit_presented();
+
+        assert_eq!(rt.app().counts.last(), Some(&(Phase::Press, 2)));
+    }
+
+    #[test]
+    fn click_window_is_exclusive_at_exact_boundary() {
+        let mut rt = Runtime::new(PressCountProbe::default(), Theme::junie());
+        let _ = rt.initialize();
+        let mut buf = Buffer::empty(SCREEN);
+        for _ in 0..8 {
+            rt.draw_buffer(SCREEN, &mut buf).commit_presented();
+            if !rt.needs_settle() {
+                break;
+            }
+            let _ = rt.settle();
+        }
+        let _ = deliver(&mut rt, super::stub::mouse(MouseKind::Down, 2, 0));
+        rt.draw_buffer(SCREEN, &mut buf).commit_presented();
+        let _ = deliver(&mut rt, super::stub::mouse(MouseKind::Up, 2, 0));
+        rt.draw_buffer(SCREEN, &mut buf).commit_presented();
+        let window = rt.theme().design.motion.double_click_ms;
+        let _ = rt.advance_to(
+            rt.now()
+                .saturating_add(core::time::Duration::from_millis(window)),
+        );
+        let _ = deliver(&mut rt, super::stub::mouse(MouseKind::Down, 2, 0));
+        rt.draw_buffer(SCREEN, &mut buf).commit_presented();
+
+        assert_eq!(rt.app().counts.last(), Some(&(Phase::Press, 1)));
+    }
+
+    #[test]
+    fn click_window_is_exclusive_when_release_lands_on_deadline() {
+        let mut rt = Runtime::new(PressCountProbe::default(), Theme::junie());
+        let _ = rt.initialize();
+        let mut buf = Buffer::empty(SCREEN);
+        for _ in 0..8 {
+            rt.draw_buffer(SCREEN, &mut buf).commit_presented();
+            if !rt.needs_settle() {
+                break;
+            }
+            let _ = rt.settle();
+        }
+        let _ = deliver(&mut rt, super::stub::mouse(MouseKind::Down, 2, 0));
+        rt.draw_buffer(SCREEN, &mut buf).commit_presented();
+        let _ = deliver(&mut rt, super::stub::mouse(MouseKind::Up, 2, 0));
+        rt.draw_buffer(SCREEN, &mut buf).commit_presented();
+
+        let window = rt.theme().design.motion.double_click_ms;
+        let lead_in = window.saturating_sub(100);
+        let _ = rt.advance_to(
+            rt.now()
+                .saturating_add(core::time::Duration::from_millis(lead_in)),
+        );
+        let _ = deliver(&mut rt, super::stub::mouse(MouseKind::Down, 2, 0));
+        rt.draw_buffer(SCREEN, &mut buf).commit_presented();
+        assert_eq!(rt.app().counts.last(), Some(&(Phase::Press, 2)));
+        let _ = rt.advance_to(
+            rt.now()
+                .saturating_add(core::time::Duration::from_millis(100)),
         );
         let _ = deliver(&mut rt, super::stub::mouse(MouseKind::Up, 2, 0));
         rt.draw_buffer(SCREEN, &mut buf).commit_presented();

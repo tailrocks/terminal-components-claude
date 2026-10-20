@@ -257,7 +257,7 @@ fn runtime_flash_is_an_idle_deadline_and_expires_at_140ms_without_app_tick() {
 #[test]
 fn double_click_window_uses_elapsed_time_without_tick_events() {
     let window = Theme::junie().design.motion.double_click_ms;
-    for (elapsed, expected) in [(window, 1), (window + 1, 0)] {
+    for (elapsed, expected) in [(window - 1, 1), (window, 0), (window + 1, 0)] {
         let mut h = Harness::new(Timed::delayed(2200), Theme::junie(), 20, 4);
         let _ = h.click(1, 0);
         let _ = h.advance(Duration::from_millis(elapsed));
