@@ -258,7 +258,6 @@ const CAPSULE_COMMANDS: &[Item<'static>] = &[
 const TICK_MS: u64 = crate::rain::TICK_MS;
 
 mod historical_accounts_add_form;
-mod historical_accounts_add_form_required;
 mod historical_accounts_detail;
 mod historical_accounts_detail_80;
 mod historical_accounts_drawer;
@@ -7435,8 +7434,19 @@ impl App {
         }
         historical_accounts_add_form::paint(ui);
         if self.add_form_required {
-            // Backtab then Enter. The empty form does not take this paint.
-            historical_accounts_add_form_required::paint(ui);
+            // Backtab then Enter. The control row includes the focus gutter.
+            let message_bg = ui.theme_ref().bg(termrock::Surface::Elevated);
+            termrock::fields::paint_field_error(
+                ui,
+                termrock::fields::FieldErrorChrome {
+                    label: "Display name",
+                    field: Rect::new(27, 7, 65, 1),
+                    value: "Personal, Work, Team…",
+                    message: "Required",
+                    ink: termrock::Color::Rgb(0xf0, 0x5d, 0x5d),
+                    message_bg,
+                },
+            );
         }
         ui.set_bar_cursor(crate::screens::accounts::START, Position::new(29, 7));
     }

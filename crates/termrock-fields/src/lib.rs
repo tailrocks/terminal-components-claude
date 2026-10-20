@@ -26,12 +26,14 @@ pub(crate) use termrock_runtime::{Acc, PartStyle, SlotFn, cell_at, first_row, sh
 
 pub mod edit;
 pub mod field;
+pub mod field_error;
 pub mod input;
 pub mod note;
 pub mod textarea;
 
 pub use edit::{EditCapabilities, EditMenuRequest, TextEditCommand};
 pub use field::Field;
+pub use field_error::{FieldErrorChrome, paint_field_error};
 pub use input::{
     BlurPolicy, EditPhase, ErrorState, TextAction, TextCmd, TextInput, TextInputState,
     discard_error, redacted_text,
