@@ -47,7 +47,7 @@ const fn gap(key: &'static str, gap: &'static str) -> Site {
 }
 
 #[rustfmt::skip]
-pub const SITES: &[Site] = &[
+pub const HISTORICAL_SITES: &[Site] = &[
 
     rows("holla/app.rs::confirm_plan", &["holla/flows/upgrade/confirm"]),
     rows("holla/app.rs::draw", &["holla/flows/help/overlay", "holla/flows/quit/confirm"]),
@@ -197,6 +197,113 @@ pub const SITES: &[Site] = &[
     rows("tablepro/connections.rs::leave_form", &["tablepro/connections/form_leave_esc", "tablepro/connections/form_leave_edit", "tablepro/connections/form_leave_new"]),
 ];
 
+pub const SITES: &[Site] = &[
+    rows(
+        "crates/holla-ui/src/app.rs::gate_dialog",
+        &["holla/flows/upgrade/confirm"],
+    ),
+    gap(
+        "crates/holla-ui/src/screens/actions.rs::picker",
+        "OPEN: parity/custom-actions has no captured open/dismiss sequence for the actions picker",
+    ),
+    rows(
+        "crates/holla-ui/src/screens/clone.rs::picker",
+        &["holla/flows/args/clone"],
+    ),
+    rows(
+        "crates/holla-ui/src/screens/dialogs.rs::props",
+        &["holla/flows/upgrade/confirm", "holla/overlays/alias_prompt"],
+    ),
+    rows(
+        "crates/jackin-preview-app/src/app.rs::account_picker",
+        &[
+            "jackin/overlays/accounts_op_picker",
+            "jackin/overlays/config_env_op",
+        ],
+    ),
+    rows(
+        "crates/jackin-preview-app/src/app.rs::capsule_command_palette",
+        &[
+            "jackin/capsule/palette",
+            "jackin/overlays/capsule_split_picker",
+        ],
+    ),
+    rows(
+        "crates/jackin-preview-app/src/app.rs::cockpit_cancel_dialog",
+        &["jackin/cockpit/cancel_confirm"],
+    ),
+    gap(
+        "crates/jackin-preview-app/src/app.rs::draw_layers",
+        "OPEN: no capsule-help scenario row; manager/help_overlay exercises a different help content owner",
+    ),
+    gap(
+        "crates/jackin-preview-app/src/app.rs::editor_exit_dialog",
+        "OPEN: editor exit confirmation has no dedicated captured scenario; editor/quit_guard covers application quit guard",
+    ),
+    rows(
+        "crates/jackin-preview-app/src/app.rs::launch_agent_picker",
+        &[
+            "jackin/manager/launch_picker",
+            "jackin/manager/hard_launch_picker",
+        ],
+    ),
+    gap(
+        "crates/jackin-preview-app/src/app.rs::launch_dialog",
+        "OPEN: launch confirmation has no current scenario row",
+    ),
+    gap(
+        "crates/jackin-preview-app/src/app.rs::open_capsule_help",
+        "OPEN: no capsule-help scenario row; manager/help_overlay exercises a different help content owner",
+    ),
+    rows(
+        "crates/jackin-preview-app/src/app.rs::quit_dialog",
+        &["jackin/overlays/capsule_quit"],
+    ),
+    rows(
+        "crates/jackin-preview-app/src/app.rs::role_picker",
+        &["jackin/overlays/config_role_picker"],
+    ),
+    gap(
+        "crates/jackin-preview-app/src/app.rs::update_overlays",
+        "OPEN: capsule-help update path shares the uncaptured capsule-help owner",
+    ),
+    rows(
+        "crates/showcase-demos/src/pages/dialogs.rs::confirm",
+        &[
+            "showcase/flows/dialogs/open",
+            "showcase/flows/dialogs/destructive",
+        ],
+    ),
+    rows(
+        "crates/showcase-demos/src/pages/dialogs.rs::prompt",
+        &["showcase/flows/dialogs/prompt"],
+    ),
+    rows(
+        "crates/showcase-demos/src/pages/overview.rs::update",
+        &["showcase/flows/help/overlay"],
+    ),
+    rows(
+        "crates/showcase-demos/src/pages/pickers.rs::picker",
+        &["showcase/flows/pickers/open"],
+    ),
+    rows(
+        "crates/showcase-demos/src/pages/settings.rs::remove_dialog",
+        &["showcase/overlays/settings_remove_member"],
+    ),
+    rows(
+        "crates/showcase-demos/src/pages/taskrunner.rs::cancel_dialog",
+        &["showcase/overlays/taskrunner_cancel"],
+    ),
+    rows(
+        "crates/tablepro-ui/src/app.rs::dialog",
+        &["tablepro/workbench/quit_confirm"],
+    ),
+    rows(
+        "crates/tablepro-ui/src/quick_switcher.rs::component",
+        &["tablepro/overlays/picker_open"],
+    ),
+];
+
 fn enclosing_fn(line: &str) -> Option<&str> {
     let at = line
         .match_indices("fn ")
@@ -224,15 +331,23 @@ fn rs_files(dir: &Path, out: &mut Vec<std::path::PathBuf>) {
     }
 }
 
-pub fn scan(bin_dir: &Path) -> BTreeMap<String, usize> {
+pub fn scan(workspace: &Path) -> BTreeMap<String, usize> {
+    let roots = crate::determinism::source_roots(workspace);
+    assert!(
+        !roots.is_empty(),
+        "no application or termrock source roots found under {}",
+        workspace.display()
+    );
     let mut files = Vec::new();
-    rs_files(bin_dir, &mut files);
+    for root in roots {
+        rs_files(&root, &mut files);
+    }
     files.sort();
     let mut sites = BTreeMap::new();
     for file in files {
         let rel = file
-            .strip_prefix(bin_dir)
-            .expect("under src/bin")
+            .strip_prefix(workspace)
+            .expect("under workspace")
             .to_string_lossy()
             .replace('\\', "/");
         let text = std::fs::read_to_string(&file).unwrap_or_else(|e| panic!("read {rel}: {e}"));
@@ -244,7 +359,7 @@ pub fn scan(bin_dir: &Path) -> BTreeMap<String, usize> {
             if NOT_OPENING.iter().any(|p| line.contains(p)) {
                 continue;
             }
-            let hits = OPENERS.iter().filter(|p| line.contains(*p)).count();
+            let hits = OPENERS.iter().filter(|p| contains_call(line, p)).count();
             if hits > 0 {
                 *sites.entry(format!("{rel}::{current}")).or_insert(0) += hits;
             }
@@ -253,19 +368,40 @@ pub fn scan(bin_dir: &Path) -> BTreeMap<String, usize> {
     sites
 }
 
+fn contains_call(line: &str, pattern: &str) -> bool {
+    line.match_indices(pattern).any(|(at, _)| {
+        pattern.starts_with('.')
+            || at == 0
+            || !line[..at]
+                .chars()
+                .next_back()
+                .is_some_and(|c| c.is_alphanumeric() || c == '_')
+    })
+}
+
+fn unlisted_sites(
+    scanned: &BTreeMap<String, usize>,
+    listed: &BTreeMap<&str, &Site>,
+) -> Vec<String> {
+    scanned
+        .keys()
+        .filter(|key| !listed.contains_key(key.as_str()))
+        .cloned()
+        .collect()
+}
+
 pub fn overlay_sites() {
-    let scanned = scan(&Path::new(env!("CARGO_MANIFEST_DIR")).join("src/bin"));
+    let workspace = crate::support::manifest_path("");
+    let scanned = scan(&workspace);
     let listed: BTreeMap<&str, &Site> = SITES.iter().map(|s| (s.key, s)).collect();
     let mut problems = Vec::new();
     if listed.len() != SITES.len() {
         problems.push("duplicate keys in SITES".to_string());
     }
-    for key in scanned.keys() {
-        if !listed.contains_key(key.as_str()) {
-            problems.push(format!(
-                "new overlay site `{key}`: add an OVERLAYS row (open + both dismissals) and list it in overlay_sites::SITES"
-            ));
-        }
+    for key in unlisted_sites(&scanned, &listed) {
+        problems.push(format!(
+            "new overlay site `{key}`: add an OVERLAYS row (open + both dismissals) and list it in overlay_sites::SITES"
+        ));
     }
     for key in listed.keys() {
         if !scanned.contains_key(*key) {
@@ -278,7 +414,7 @@ pub fn overlay_sites() {
         .into_iter()
         .flat_map(|(_, _, table)| table.iter().map(|r| r.root))
         .collect();
-    for site in SITES {
+    for site in SITES.iter().chain(HISTORICAL_SITES) {
         if site.rows.is_empty() == site.gap.is_empty() {
             problems.push(format!(
                 "`{}` needs rows or a gap reason, not both",
@@ -311,6 +447,36 @@ pub fn overlay_sites() {
     );
 }
 
+pub fn site_scanner_detects_unlisted_overlay_and_ignores_prefix_matches() {
+    let workspace = std::env::temp_dir().join(format!(
+        "visual-harness-overlay-sites-{}",
+        std::process::id()
+    ));
+    let source = workspace.join("crates/holla-ui/src/app.rs");
+    let package = source
+        .parent()
+        .and_then(Path::parent)
+        .expect("package root");
+    std::fs::create_dir_all(source.parent().expect("source parent")).expect("create source root");
+    std::fs::write(
+        package.join("Cargo.toml"),
+        "[package]\nname = \"holla-ui\"\nversion = \"0.1.0\"\n",
+    )
+    .expect("write package manifest");
+    std::fs::write(
+        &source,
+        "fn newly_added_owner() { Dialog::confirm(ID, \"title\", \"body\"); ProductDialog::new(intent); }\n",
+    )
+    .expect("write overlay source fixture");
+    let scanned = scan(&workspace);
+    let listed: BTreeMap<&str, &Site> = SITES.iter().map(|site| (site.key, site)).collect();
+    std::fs::remove_dir_all(&workspace).expect("remove source fixture");
+    let key = "crates/holla-ui/src/app.rs::newly_added_owner";
+    assert_eq!(scanned.get(key), Some(&1));
+    assert_eq!(unlisted_sites(&scanned, &listed), vec![key.to_string()]);
+    assert!(!scanned.keys().any(|key| key.contains("ProductDialog")));
+}
+
 pub fn site_scanner_reads_functions() {
     assert_eq!(
         enclosing_fn("    pub fn open_help(&mut self) {"),
@@ -319,4 +485,7 @@ pub fn site_scanner_reads_functions() {
     assert_eq!(enclosing_fn("fn a<'b>() {}"), Some("a"));
     assert_eq!(enclosing_fn("let f = Fn::new();"), None);
     assert_eq!(enclosing_fn("    let defn = 1;"), None);
+    assert!(contains_call("Dialog::confirm(ID)", "Dialog::confirm("));
+    assert!(!contains_call("ProductDialog::new(ID)", "Dialog::new("));
+    site_scanner_detects_unlisted_overlay_and_ignores_prefix_matches();
 }
