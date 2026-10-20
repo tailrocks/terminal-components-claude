@@ -36,7 +36,7 @@
     "reviewed_commit": "ee879b2fc97ca1cf37b5ce010f218c72beed17c6",
     "review_packet_sha256": "b67e932efbfa55721237cd5398d1466ca69f8ac3abd716a4a591cb08523ad3f5",
     "fixed_findings": ["enforce owned stable 0700 custody and 0600 key; exclude actual worktree/common Git directories", "derive authenticated journal steps from externally anchored immutable plan and inventory; reject empty or arbitrary completion claims"],
-    "prior_actual_prepare_only_evidence": {"path": "external:stage3a-custody-fix-20261021/actual-prepare-proof.json", "sha256": "4144c7820fd7f6345154780f134a6b52860546ba0fc30f5a1e868f76fca7aa9f", "status": "superseded because runner changed after this proof; not evidence for the repaired commit"},
-    "repaired_commit_actual_prepare_only_evidence": "Pending rerun after exact source commit; no application launch, capture, replay, candidate comparison, or reference approval is authorized by this foundation."
+    "superseded_actual_prepare_only_evidence": {"path": "external:stage3a-custody-fix-98e59e/actual-prepare-proof.json", "sha256": "f32abe15f1dda80af60442b7245a3bcf16a41017014d5137ed0bbc8a65c8ed7b", "status": "not evidence for the successor source revision"},
+    "repaired_commit_actual_prepare_only_evidence": "Pending a new exact-commit prepare/plan/init/verify run; no application launch, capture, replay, candidate comparison, or reference approval is authorized by this foundation."
   }
 }
