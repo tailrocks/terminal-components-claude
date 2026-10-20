@@ -48,13 +48,21 @@ fn all_73_junie_slots_match_reference_capability_output() {
         ColorLevel::Ansi16,
         ColorLevel::Mono,
     ] {
-        let expected = original
+        let mut expected = original
             .color
             .map_colors(&mut |color| match (level, color) {
                 (ColorLevel::Ansi256, Color::Rgb(r, g, b)) => reference256(r, g, b),
                 (ColorLevel::Mono, Color::Rgb(r, g, b)) => reference_mono(r, g, b),
                 _ => downgrade_color(color, level),
             });
+        if level == ColorLevel::Ansi256 {
+            // Frozen Theme::apply_256 assigns these semantic roles explicitly
+            // (baseline src/theme.rs:921-962). Preserve those authored indexes;
+            // generic custom RGB conversion remains nearest-color based.
+            expected.on_accent = Color::Indexed(232);
+            expected.border_strong = Color::Indexed(242);
+            expected.disabled_fg = Color::Indexed(239);
+        }
         assert_eq!(original.downgrade(level).color, expected, "{level:?}");
     }
     assert_eq!(
