@@ -177,18 +177,27 @@ mod tests {
         let mut narrow = Theme::junie();
         narrow.design.glyphs.set(GlyphRole::FocusBar, "█");
         let focused = StateFlags::FOCUSED;
-        let measure_focused = |t: &Theme| {
+        let measure_focused = |t: &Theme, focus_visible: bool| {
             let mut frame = FrameState::default();
             frame.reset(1, SCREEN);
             let mut page = Buffer::empty(SCREEN);
             let mut core = UiCore::default();
             let mut last = LastFrame::default();
             last.snapshot.focus = Some(crate::id::Id::root("m.button"));
+            last.snapshot.focus_visible = focus_visible;
             let ui = Ui::new(&mut frame, &mut page, &mut core, t, &last);
-            assert_eq!(ui.state(crate::id::Id::root("m.button")), focused);
+            let expected = if focus_visible {
+                focused | StateFlags::FOCUS_VISIBLE
+            } else {
+                focused
+            };
+            assert_eq!(ui.state(crate::id::Id::root("m.button")), expected);
             b.measure(&ui, c).preferred.0
         };
-        assert_eq!(measure_focused(&wide), measure_focused(&narrow) + 1);
+        assert_eq!(measure_focused(&wide, true), 8);
+        assert_eq!(measure_focused(&narrow, true), 7);
+        assert_eq!(measure_focused(&wide, false), 6);
+        assert_eq!(measure_focused(&narrow, false), 6);
     }
 
     #[test]
