@@ -9796,7 +9796,7 @@ mod paint_contract_tests {
         use termrock_test_support::Harness;
         for theme in [Theme::junie(), Theme::paper()] {
             for (scenario, x, y, glyph) in [
-                (Scenario::CapsuleMulti, 103, 8, "F"),
+                (Scenario::CapsuleMulti, 103, 7, "F"),
                 (Scenario::CapsuleMulti, 2, 0, "j"),
                 (Scenario::Returning, 20, 39, "L"),
             ] {
@@ -9809,6 +9809,21 @@ mod paint_contract_tests {
                     "critical custom text must remain readable"
                 );
             }
+        }
+
+        let failed = Harness::new(
+            App::for_scenario_at(Scenario::CapsuleMulti, Motion::Paused, 40),
+            Theme::junie(),
+            120,
+            40,
+        )
+        .with_color(ColorLevel::Mono);
+        let label = failed.find("FAILED").expect("failure status label");
+        for (offset, glyph) in "FAILED".chars().enumerate() {
+            let x = label.0 + u16::try_from(offset).expect("short label offset");
+            let cell = failed.cell(x, label.1);
+            assert_eq!(cell.symbol(), glyph.to_string());
+            assert_ne!(cell.fg, cell.bg, "FAILED label must stay readable in mono");
         }
     }
 
