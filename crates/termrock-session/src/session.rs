@@ -3,7 +3,7 @@ use std::time::{Duration, Instant};
 
 use ratatui_core::terminal::Terminal;
 use ratatui_crossterm::CrosstermBackend;
-use ratatui_crossterm::crossterm::cursor::Hide;
+use ratatui_crossterm::crossterm::cursor::{Hide, SetCursorStyle};
 use ratatui_crossterm::crossterm::event::{
     DisableBracketedPaste, DisableMouseCapture, EnableBracketedPaste, EnableMouseCapture, poll,
     read,
@@ -178,8 +178,15 @@ pub fn run_with_feedback_clock<A: App>(
                         reset_frame_colors(f.buffer_mut());
                     }
                 })?;
-                if let Some(frame) = painted {
+                let bar = if let Some(frame) = painted {
+                    let bar = frame.cursor_bar();
                     frame.commit_presented();
+                    bar
+                } else {
+                    false
+                };
+                if bar {
+                    execute!(stdout(), SetCursorStyle::SteadyBar)?;
                 }
                 continue;
             }
