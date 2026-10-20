@@ -1468,6 +1468,51 @@ impl App {
             .body_rows(8)
     }
 
+    fn info_facts(&self) -> Vec<(String, String)> {
+        let role_full = self.selected_role();
+        let role = role_full.rsplit('/').next().unwrap_or(role_full);
+        let workspace = self
+            .world
+            .workspaces
+            .first()
+            .map_or("payments-platform", |workspace| workspace.name.as_str());
+        let mut facts = Vec::new();
+        if let Some(launch) = &self.launch
+            && launch.container_ready()
+        {
+            facts.push(("Container".to_owned(), launch.container.clone()));
+        }
+        facts.push((
+            "Target".to_owned(),
+            format!("{role} into workspace {workspace}"),
+        ));
+        facts.push(("Role".to_owned(), role.to_owned()));
+        facts.push((
+            "Agent".to_owned(),
+            "Claude Code · account Claude · Work".to_owned(),
+        ));
+        let run_id = self
+            .launch
+            .as_ref()
+            .map(|launch| {
+                if launch.trace_label.is_empty() {
+                    launch.run_id.short()
+                } else {
+                    launch.trace_label.clone()
+                }
+            })
+            .unwrap_or_else(|| "none".to_owned());
+        facts.push(("Run id".to_owned(), run_id));
+        facts.push(("jackin".to_owned(), "0.6.4 · preview".to_owned()));
+        if self.cockpit_debug_open {
+            facts.push((
+                "Telemetry".to_owned(),
+                "otlp://collector.internal:4317".to_owned(),
+            ));
+        }
+        facts
+    }
+
     fn cockpit_info_lines(&self) -> Vec<String> {
         let role_full = self.selected_role();
         let role = role_full.rsplit('/').next().unwrap_or(role_full);
@@ -9505,7 +9550,12 @@ impl TuiApp for App {
         } else if self.responsive_launch_cockpit(full) {
             launch_cockpit::paint(self, ui);
             if self.cockpit_info_open {
-                launch_dialog_plate::paint_info(ui);
+                let facts = self.info_facts();
+                let shown: Vec<termrock::overlays::info_card::Fact<'_>> = facts
+                    .iter()
+                    .map(|(label, value)| termrock::overlays::info_card::Fact { label, value })
+                    .collect();
+                launch_dialog_plate::paint_info(ui, &shown);
             } else if self.cancel_open {
                 launch_dialog_plate::paint_cancel(ui);
             }
@@ -9530,7 +9580,12 @@ impl TuiApp for App {
             // frame. The dialog dims that frame and paints on top.
             self.draw_historical_launch_running(ui);
             if self.cockpit_info_open {
-                launch_dialog_plate::paint_info(ui);
+                let facts = self.info_facts();
+                let shown: Vec<termrock::overlays::info_card::Fact<'_>> = facts
+                    .iter()
+                    .map(|(label, value)| termrock::overlays::info_card::Fact { label, value })
+                    .collect();
+                launch_dialog_plate::paint_info(ui, &shown);
             } else {
                 launch_dialog_plate::paint_cancel(ui);
             }
