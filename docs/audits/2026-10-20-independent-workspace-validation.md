@@ -37,3 +37,11 @@ No application has complete 1:1 acceptance from these runs. The independent libr
 ## Integration formatting checkpoint
 
 A later fetch/rebase brought in two formatting differences in Showcase list and scrolling helpers. Rustfmt changed line wrapping and removed optional function-call trailing commas. The diff was inspected and normalized source was compared with the pre-format contents. These formatting corrections preserve rendering and input behavior. The broader native failures above remain recorded independently.
+
+## Cleared integration checkpoint
+
+The corrected ordinary-check partition is 11 source-only checks and nine real-CLI checks for each binary version. `isolation::env_isolation` runs against both explicit binary directories. The runner guard suite has 18 tests, including a candidate-isolation failure regression. The same tooling change is being applied to both comparison branches.
+
+The default MenuBar and Picker-title style changes remain outside this integration checkpoint. Their real-baseline evidence is retained, but the combined native gate has 15 component-digest failures (seven MenuBar and eight Picker). No frozen approvals were modified and no failing comparisons were weakened. The full deferred source is preserved at local ref `wip/style-conformance-20261020` (29ff641f4598755d6897442a9191b3c031529646). Resolving this native-fixture authority conflict remains work, not accepted parity.
+
+The cleared checkpoint passed 1,479 default-member tests with 615 skipped before its formatting-only follow-up. Independent workspace failures documented above and full paired-CLI coverage remain incomplete. Neither branch is accepted as complete.
