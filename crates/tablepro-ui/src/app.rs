@@ -6,11 +6,11 @@ use termrock::{
     DialogState, FgStep, Field, Focusability, Form, FormAction, FormState, FrameRead, GlyphRole,
     Grid, GridAction, GridCell, GridColumnFit, GridEditor, GridGutter, GridModel,
     GridSortIndicator, Id, Intent, ItemKey, KeyCode, KeyMap, KeyModifiers, KeyPhase, LayerId,
-    Modifier, Panel, PanelKind, Part, Phase, PickerAction, Response, Role, RowDecor, RowTotal,
-    RowUi, Size, SortDir, Span, SplitAxis, SplitPane, SplitPaneState, StateFlags, StylePatch, Tabs,
-    TabsAction, TabsState, TextAction, TextInput, TextInputState, Theme, Tree, TreeAction,
-    TreeBranchActivation, TreeNode, TreeState, Ui, UpdateCause, truncate, truncate_middle, width,
-    wrap,
+    Modifier, Panel, PanelKind, Part, Phase, PickerAction, Position, Response, Role, RowDecor,
+    RowTotal, RowUi, Size, SortDir, Span, SplitAxis, SplitPane, SplitPaneState, StateFlags,
+    StylePatch, Tabs, TabsAction, TabsState, TextAction, TextInput, TextInputState, Theme, Tree,
+    TreeAction, TreeBranchActivation, TreeNode, TreeState, Ui, UpdateCause, truncate,
+    truncate_middle, width, wrap,
 };
 
 use crate::quick_switcher::{self, QuickSwitcher};
@@ -28,6 +28,7 @@ pub const MIN_WIDTH: u16 = 72;
 
 pub const MIN_HEIGHT: u16 = 20;
 const CONNECTIONS: Id = Id::root("tablepro.connections.list");
+const CONNECTION_FILTER: Id = Id::root("tablepro.connections.filter");
 const CONNECTIONS_PANEL: Id = Id::root("tablepro.connections.panel");
 const EXPLORER: Id = Id::root("tablepro.workbench.explorer.tree");
 const EXPLORER_PANEL: Id = Id::root("tablepro.workbench.explorer.panel");
@@ -164,6 +165,11 @@ const FORM: ActionKey = ActionKey::application("tablepro.form");
 const HELP: ActionKey = ActionKey::application("tablepro.help");
 const TAB_LIST: ActionKey = ActionKey::application("tablepro.tab-list");
 const FILTER: ActionKey = ActionKey::application("tablepro.filter");
+const FILTER_CONNECTIONS: ActionKey = ActionKey::application("tablepro.connections.filter");
+const CLEAR_CONNECTION_FILTER: ActionKey =
+    ActionKey::application("tablepro.connections.filter.clear");
+const COMMIT_CONNECTION_FILTER: ActionKey =
+    ActionKey::application("tablepro.connections.filter.commit");
 const SORT: ActionKey = ActionKey::application("tablepro.sort");
 const PREVIEW: ActionKey = ActionKey::application("tablepro.preview");
 const SAVE: ActionKey = ActionKey::application("tablepro.save");
@@ -542,6 +548,8 @@ pub struct TableProApp {
     connection_nodes: Vec<ConnectionNode>,
     connection_tree_state: TreeState,
     connection_visual_tree_state: TreeState,
+    connection_filter_input: TextInputState,
+    connection_filter_editing: bool,
     explorer_nodes: Vec<ExplorerNode>,
     explorer_tree_state: TreeState,
     tabs_state: TabsState,
@@ -592,6 +600,11 @@ impl core::fmt::Debug for TableProApp {
             .field(
                 "connection_visual_tree_state",
                 &self.connection_visual_tree_state,
+            )
+            .field("connection_filter_editing", &self.connection_filter_editing)
+            .field(
+                "connection_filter_input",
+                &self.connection_filter_input.draft_text().map(str::len),
             )
             .field("explorer_nodes", &self.explorer_nodes.len())
             .field("explorer_tree_state", &self.explorer_tree_state)
@@ -650,6 +663,8 @@ impl TableProApp {
             connection_nodes,
             connection_tree_state,
             connection_visual_tree_state,
+            connection_filter_input: TextInputState::default(),
+            connection_filter_editing: false,
             explorer_nodes,
             explorer_tree_state,
             tabs_state: TabsState::default(),
@@ -665,6 +680,11 @@ impl TableProApp {
             grid_sort: None,
             filter_editor: None,
         };
+        app.keymap.add(
+            KeyPhase::Capture,
+            Chord::key(KeyCode::Char('/')),
+            FILTER_CONNECTIONS,
+        );
         app.workbench.new_query(
             "SELECT * FROM orders WHERE status = 'pending' ORDER BY total_amount DESC LIMIT 20",
         );
@@ -909,6 +929,144 @@ impl TableProApp {
             initial_connection_visual_tree_state(&self.connection_nodes);
     }
 
+    fn paint_connection_browser(
+        &self,
+        ui: &mut Ui<'_>,
+        body: termrock::Rect,
+        inner: termrock::Rect,
+    ) {
+        ui.with_area(body, |ui| {
+            let filter = termrock::Rect {
+                x: body.x,
+                y: inner.y.saturating_add(1),
+                width: body.width,
+                height: 1.min(inner.height),
+            };
+            if self.connection_filter_editing {
+                ui.register_keyboard_editor(
+                    CONNECTION_FILTER,
+                    filter,
+                    Focusability::Focusable,
+                    StateFlags::EDITING,
+                );
+            }
+            paint_connection_filter_row(
+                ui,
+                filter,
+                &self.connections_screen.filter,
+                self.connection_filter_editing,
+            );
+            let tree_area = termrock::Rect {
+                y: body.y.saturating_add(2),
+                height: inner.height.saturating_sub(2),
+                ..body
+            };
+            self.draw_connection_tree(ui, tree_area);
+            let query = self.connections_screen.filter.as_str();
+            paint_connection_focus_bar(
+                ui,
+                tree_area,
+                &self.connection_visual_tree_state,
+                &self.connection_nodes,
+                query,
+            );
+            paint_connection_mark_plain(
+                ui,
+                tree_area,
+                &self.connection_visual_tree_state,
+                &self.connection_nodes,
+                query,
+            );
+        });
+    }
+
+    fn draw_connection_tree(&self, ui: &mut Ui<'_>, area: termrock::Rect) {
+        let filter = self.connections_screen.filter.clone();
+        if filter.is_empty() {
+            connection_tree().draw(
+                ui,
+                area,
+                &self.connection_visual_tree_state,
+                &self.connection_nodes,
+            );
+            return;
+        }
+        let revision = connection_filter_revision(&filter);
+        let matcher = |node: &ConnectionNode| connection_node_matches(node, &filter);
+        connection_tree().query(revision, &matcher).draw(
+            ui,
+            area,
+            &self.connection_visual_tree_state,
+            &self.connection_nodes,
+        );
+    }
+
+    fn update_connection_tree(&mut self, cx: &mut Cx<'_>) -> Response<TreeAction> {
+        let filter = self.connections_screen.filter.clone();
+        if filter.is_empty() {
+            return connection_tree().update(
+                cx,
+                &mut self.connection_tree_state,
+                &self.connection_nodes,
+            );
+        }
+        let revision = connection_filter_revision(&filter);
+        let matcher = |node: &ConnectionNode| connection_node_matches(node, &filter);
+        connection_tree().query(revision, &matcher).update(
+            cx,
+            &mut self.connection_tree_state,
+            &self.connection_nodes,
+        )
+    }
+
+    fn update_connection_filter(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+        let response = if self.connection_filter_editing {
+            let response = TextInput::new(CONNECTION_FILTER)
+                .blur(termrock::BlurPolicy::Keep)
+                .update(
+                    cx,
+                    &mut self.connection_filter_input,
+                    &mut self.connections_screen.filter,
+                );
+            let action = response.action_ref().copied();
+            let mut response = response.erase();
+            if action == Some(TextAction::Cancelled) {
+                self.connections_screen.filter.clear();
+                self.connection_filter_editing = false;
+                cx.focus(CONNECTIONS);
+                response |= Response::changed();
+            } else if action == Some(TextAction::Committed) {
+                self.connection_filter_editing = false;
+                cx.focus(CONNECTIONS);
+                response |= Response::changed();
+            } else if let Some(draft) = self.connection_filter_input.draft_text().map(str::to_owned)
+                && self.connections_screen.filter != draft
+            {
+                self.connections_screen.filter = draft;
+                response |= Response::changed();
+            }
+            response
+        } else {
+            for _ in cx.intents(CONNECTION_FILTER) {}
+            Response::ignored()
+        };
+        self.sync_connection_filter_chords();
+        response
+    }
+
+    fn sync_connection_filter_chords(&mut self) {
+        let escape = Chord::key(KeyCode::Esc);
+        let enter = Chord::key(KeyCode::Enter);
+        self.keymap.remove(KeyPhase::Capture, escape);
+        self.keymap.remove(KeyPhase::Capture, enter);
+        if self.connection_filter_editing {
+            self.keymap
+                .add(KeyPhase::Capture, escape, CLEAR_CONNECTION_FILTER);
+            self.keymap
+                .add(KeyPhase::Capture, enter, COMMIT_CONNECTION_FILTER);
+        }
+    }
+
     fn sync_connection_selection(&mut self) {
         let Some(cursor) = self.connection_tree_state.cursor() else {
             return;
@@ -953,6 +1111,8 @@ impl TableProApp {
     }
 
     pub fn begin_connection_form(&mut self) {
+        self.connection_filter_editing = false;
+        self.sync_connection_filter_chords();
         self.draft = Some(ConnectionDraft::from_connection(&self.connection));
         self.form_state = FormState::default();
         self.form_open = true;
@@ -976,6 +1136,8 @@ impl TableProApp {
     }
 
     fn connect_confirmed(&mut self, connection: &Connection) -> bool {
+        self.connection_filter_editing = false;
+        self.sync_connection_filter_chords();
         if !self.workbench.can_insert_tab() {
             return false;
         }
@@ -2214,41 +2376,13 @@ impl TableProApp {
         panel.draw(ui, list_area, |_, _| {});
         paint_frame_title_tail(ui, list_area, " Connections ", Role::BorderStrong);
         paint_panel_tail(ui, list_area, Role::BorderStrong);
-        ui.with_area(body, |ui| {
-            let filter = termrock::Rect {
-                x: body.x,
-                y: inner.y.saturating_add(1),
-                width: body.width,
-                height: 1.min(inner.height),
-            };
-            paint_legacy_filter(ui, filter, "Filter connections", TAG_CHROME_FG);
-            let tree_area = termrock::Rect {
-                y: body.y.saturating_add(2),
-                height: inner.height.saturating_sub(2),
-                ..body
-            };
-            connection_tree().draw(
-                ui,
-                tree_area,
-                &self.connection_visual_tree_state,
-                &self.connection_nodes,
-            );
-            paint_connection_focus_bar(
-                ui,
-                tree_area,
-                &self.connection_visual_tree_state,
-                &self.connection_nodes,
-            );
-            paint_connection_mark_plain(
-                ui,
-                tree_area,
-                &self.connection_visual_tree_state,
-                &self.connection_nodes,
-            );
-        });
-        let blank = ui
-            .surface_style()
-            .patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Secondary))));
+        self.paint_connection_browser(ui, body, inner);
+        let blank = if self.connection_filter_editing {
+            ui.surface_style().add_modifier(Modifier::BOLD)
+        } else {
+            ui.surface_style()
+                .patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Secondary))))
+        };
         ui.fill(
             termrock::Rect {
                 x: body.x.saturating_add(2),
@@ -2270,9 +2404,11 @@ impl TableProApp {
             },
             field,
         );
-        if let Some(row) =
-            connection_cursor_offset(&self.connection_visual_tree_state, &self.connection_nodes)
-        {
+        if let Some(row) = shown_connection_cursor_offset(
+            &self.connection_visual_tree_state,
+            &self.connection_nodes,
+            self.connections_screen.filter.as_str(),
+        ) {
             ui.fill(
                 termrock::Rect {
                     x: body.right(),
@@ -3098,11 +3234,68 @@ fn connection_cursor_offset(state: &TreeState, nodes: &[ConnectionNode]) -> Opti
     u16::try_from(row).ok()
 }
 
+fn connection_filter_revision(query: &str) -> u64 {
+    query.bytes().fold(0x9e37_79b9_u64, |hash, byte| {
+        hash.wrapping_mul(0x0100_0000_01b3)
+            .wrapping_add(u64::from(byte))
+    })
+}
+
+fn connection_node_matches(node: &ConnectionNode, query: &str) -> bool {
+    let query = query.to_ascii_lowercase();
+    match node {
+        ConnectionNode::Connection { connection, .. } => {
+            connection.name.to_ascii_lowercase().contains(&query)
+        }
+        ConnectionNode::Group { name } => name.to_ascii_lowercase().contains(&query),
+    }
+}
+
+fn connection_node_shown(node: &ConnectionNode, nodes: &[ConnectionNode], query: &str) -> bool {
+    if query.is_empty() || connection_node_matches(node, query) {
+        return true;
+    }
+    let ConnectionNode::Group { name } = node else {
+        return false;
+    };
+    nodes.iter().any(|other| {
+        matches!(
+            other,
+            ConnectionNode::Connection { connection, .. }
+                if connection.group == *name && connection_node_matches(other, query)
+        )
+    })
+}
+
+fn shown_connection_cursor_offset(
+    state: &TreeState,
+    nodes: &[ConnectionNode],
+    query: &str,
+) -> Option<u16> {
+    if query.is_empty() {
+        return connection_cursor_offset(state, nodes);
+    }
+    let cursor = state.cursor()?;
+    let mut seen = 0usize;
+    for node in nodes {
+        if !connection_node_shown(node, nodes, query) {
+            continue;
+        }
+        if connection_node_key(node) == cursor {
+            let row = seen.checked_sub(state.scroll().offset())?;
+            return u16::try_from(row).ok();
+        }
+        seen = seen.saturating_add(1);
+    }
+    None
+}
+
 fn paint_connection_mark_plain(
     ui: &mut Ui<'_>,
     area: termrock::Rect,
     state: &TreeState,
     nodes: &[ConnectionNode],
+    query: &str,
 ) {
     let Some(cursor) = state.cursor() else {
         return;
@@ -3117,7 +3310,7 @@ fn paint_connection_mark_plain(
     if mark.text == " " {
         return;
     }
-    let Some(row) = connection_cursor_offset(state, nodes) else {
+    let Some(row) = shown_connection_cursor_offset(state, nodes, query) else {
         return;
     };
     let y = area.y.saturating_add(row);
@@ -3153,23 +3346,12 @@ fn paint_connection_focus_bar(
     area: termrock::Rect,
     state: &TreeState,
     nodes: &[ConnectionNode],
+    query: &str,
 ) {
-    let Some(cursor) = state.cursor() else {
+    let Some(row) = shown_connection_cursor_offset(state, nodes, query) else {
         return;
     };
-    let Some(index) = nodes
-        .iter()
-        .position(|node| connection_node_key(node) == cursor)
-    else {
-        return;
-    };
-    let offset = state.scroll().offset();
-    let Some(row) = index.checked_sub(offset) else {
-        return;
-    };
-    let y = area
-        .y
-        .saturating_add(u16::try_from(row).unwrap_or(u16::MAX));
+    let y = area.y.saturating_add(row);
     if y >= area.bottom() {
         return;
     }
@@ -6889,10 +7071,106 @@ fn paint_connection_hints(
     );
 }
 
+fn paint_connection_filter_row(ui: &mut Ui<'_>, area: termrock::Rect, query: &str, editing: bool) {
+    let (text, ink) = if query.is_empty() {
+        ("Filter connections", TAG_CHROME_FG)
+    } else {
+        (query, Role::Fg(FgStep::Primary))
+    };
+    paint_legacy_filter(ui, area, text, ink);
+    if !editing || area.is_empty() {
+        return;
+    }
+    if !query.is_empty() && area.width > 2 {
+        let underlined = ui.surface_style().remove_modifier(Modifier::BOLD).patch(
+            ui.paint_patch(
+                &StylePatch::new()
+                    .set_fg(Role::Fg(FgStep::Primary))
+                    .set_bg(TAG_FIELD_BG)
+                    .set_underline(TAG_BUTTON_BG)
+                    .add(Modifier::UNDERLINED),
+            ),
+        );
+        ui.paint_str(
+            termrock::Rect {
+                x: area.x.saturating_add(2),
+                width: width(query).min(area.width.saturating_sub(2)),
+                ..area
+            },
+            query,
+            underlined,
+        );
+    }
+    let caret = ui
+        .surface_style()
+        .remove_modifier(Modifier::BOLD)
+        .patch(ui.paint_patch(&StylePatch::new().set_fg(TAG_BUTTON_BG).set_bg(TAG_FIELD_BG)));
+    ui.paint_str(
+        termrock::Rect {
+            width: 1.min(area.width),
+            ..area
+        },
+        "▎",
+        caret,
+    );
+    let cursor_x = area
+        .x
+        .saturating_add(2)
+        .saturating_add(width(query))
+        .min(area.right().saturating_sub(1));
+    ui.set_bar_cursor(CONNECTION_FILTER, Position::new(cursor_x, area.y));
+}
+
+fn paint_connection_filter_footer(ui: &mut Ui<'_>, area: termrock::Rect) {
+    let base = ui.surface_style();
+    let badge = ui.surface_style().patch(
+        ui.paint_patch(
+            &StylePatch::new()
+                .set_fg(TAG_BUTTON_FG)
+                .set_bg(TAG_BUTTON_BG)
+                .add(Modifier::BOLD),
+        ),
+    );
+    ui.paint_str(
+        termrock::Rect {
+            x: area.x.saturating_add(1),
+            width: 6.min(area.width.saturating_sub(1)),
+            ..area
+        },
+        " EDIT ",
+        badge,
+    );
+    ui.paint_spans(
+        termrock::Rect {
+            x: area.x.saturating_add(9),
+            width: area.width.saturating_sub(9),
+            ..area
+        },
+        &[
+            Span::new("Type").bold(),
+            Span::new(" "),
+            Span::new("Filter").role(TAG_CHROME_FG),
+            Span::new("  "),
+            Span::new("↓").bold(),
+            Span::new(" "),
+            Span::new("Into list").role(TAG_CHROME_FG),
+            Span::new("  "),
+            Span::new("Esc").bold(),
+            Span::new(" "),
+            Span::new("Clear").role(TAG_CHROME_FG),
+        ],
+        base,
+    );
+}
+
 fn draw_footer(ui: &mut Ui<'_>, area: termrock::Rect, app: &TableProApp) {
     let base = ui.surface_style();
     let explorer_focused = ui.state(EXPLORER).contains(StateFlags::FOCUSED);
     ui.fill(area, base);
+    if app.screen == Screen::Connections && app.connection_filter_editing {
+        paint_connection_filter_footer(ui, area);
+        return;
+    }
     if !explorer_focused && grid_is_editing(app) {
         paint_cell_edit_footer(ui, area);
     } else {
@@ -7337,6 +7615,33 @@ impl App for TableProApp {
                 c if c == FILTER && self.begin_column_filter(cx) => {
                     response |= Response::changed();
                 }
+                c if c == FILTER_CONNECTIONS
+                    && self.screen == Screen::Connections
+                    && !self.form_open
+                    && !self.connection_filter_editing =>
+                {
+                    self.connection_filter_editing = true;
+                    self.connection_filter_input
+                        .begin(&self.connections_screen.filter);
+                    cx.focus(CONNECTION_FILTER);
+                    response |= Response::changed();
+                }
+                c if c == CLEAR_CONNECTION_FILTER && self.connection_filter_editing => {
+                    self.connections_screen.filter.clear();
+                    self.connection_filter_editing = false;
+                    self.connection_filter_input.cancel();
+                    cx.focus(CONNECTIONS);
+                    response |= Response::changed();
+                }
+                c if c == COMMIT_CONNECTION_FILTER && self.connection_filter_editing => {
+                    if let Some(draft) = self.connection_filter_input.draft_text() {
+                        draft.clone_into(&mut self.connections_screen.filter);
+                    }
+                    self.connection_filter_editing = false;
+                    self.connection_filter_input.cancel();
+                    cx.focus(CONNECTIONS);
+                    response |= Response::changed();
+                }
                 _ => {}
             }
         }
@@ -7392,12 +7697,13 @@ impl App for TableProApp {
                 self.request_connect(cx, self.connections_screen.selected);
                 return response | Response::changed();
             }
-            let tree_response = connection_tree().update(
-                cx,
-                &mut self.connection_tree_state,
-                &self.connection_nodes,
-            );
-            self.sync_connection_selection();
+            response |= self.update_connection_filter(cx);
+            let tree_response = self.update_connection_tree(cx);
+            // Typing the filter moves the hidden cursor onto the match. The open
+            // detail stays on the connection that was selected before `/`.
+            if !self.connection_filter_editing {
+                self.sync_connection_selection();
+            }
             if tree_response.action_ref().is_some() {
                 self.connection_visual_tree_state = self.connection_tree_state.clone();
             }
