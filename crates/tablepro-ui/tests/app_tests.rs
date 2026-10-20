@@ -22,6 +22,16 @@ fn connected() -> TableProApp {
 }
 
 #[test]
+fn ctrl_t_focuses_the_empty_query_editor_at_120x40() {
+    let mut harness = Harness::new(TableProApp::default(), Theme::junie(), 120, 40);
+    let _ = harness.key(KeyCode::Enter);
+    let _ = harness.ctrl('t');
+    let query = harness.app().query_id().expect("query tab");
+    assert_eq!(harness.focus(), Some(query));
+    assert_eq!(harness.app().surface(), Surface::QueryEditing);
+}
+
+#[test]
 fn connections_screen_lists_and_connects_with_keyboard() {
     let mut harness = Harness::new(TableProApp::default(), Theme::junie(), 120, 40);
     assert!(harness.find("Connections").is_some());
