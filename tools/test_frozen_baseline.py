@@ -18,17 +18,17 @@ import frozen_baseline as runner
 
 class RunnerGuards(unittest.TestCase):
     def extension_manifest(self) -> dict[str, object]:
-        journey = {"id": "sort", "title": "Sort table", "checkpoints": ["initial", "sorted"]}
+        journey = {"id": "sort", "title": "Sort table", "checkpoints": ["initial", "sorted", "cleared"]}
         sizes = [{"cols": cols, "rows": rows, "allow_narrow_fallback": (cols, rows) in {(40, 12), (60, 18)}} for cols, rows in runner.EXTENSION_SIZES]
         cases = []
         for cols, rows in runner.EXTENSION_SIZES:
             modes = ("truecolor", "nocolor") if (cols, rows) in {(40, 12), (60, 18)} else runner.EXTENSION_COLORS
             if (cols, rows) in {(40, 12), (60, 18)}:
-                checkpoints = ["initial", "narrow_revealed_120x40", "sorted"]
+                checkpoints = ["initial", "narrow_revealed_120x40", "sorted", "cleared"]
             elif cols < 120:
-                checkpoints = ["initial", "table_revealed_120x40", "sorted"]
+                checkpoints = ["initial", "table_revealed_120x40", "sorted", "cleared"]
             else:
-                checkpoints = ["initial", "sorted"]
+                checkpoints = ["initial", "sorted", "cleared"]
             for color in modes:
                 cases.append({"id": f"{runner.EXTENSION_CASE_PREFIX}sort::{cols}x{rows}::{color}", "journey_id": "sort", "cols": cols, "rows": rows, "color_mode": color, "checkpoints": checkpoints})
         return {"schema_version": 1, "extension_id_prefix": runner.EXTENSION_CASE_PREFIX, "journeys": [journey], "sizes": sizes, "color_modes": list(runner.EXTENSION_COLORS), "generated_cases": cases}
@@ -235,6 +235,16 @@ class RunnerGuards(unittest.TestCase):
             path = Path(temp) / "extensions.json"
             path.write_text(json.dumps(manifest))
             with self.assertRaisesRegex(runner.RunnerError, "matrix incomplete"):
+                runner.load_extension_manifest(path)
+
+    def test_extension_manifest_rejects_missing_middle_checkpoint(self) -> None:
+        manifest = self.extension_manifest()
+        case = next(case for case in manifest["generated_cases"] if case["cols"] == 120 and case["rows"] == 40)
+        case["checkpoints"] = ["initial", "cleared"]
+        with tempfile.TemporaryDirectory() as temp:
+            path = Path(temp) / "extensions.json"
+            path.write_text(json.dumps(manifest))
+            with self.assertRaisesRegex(runner.RunnerError, "exact journey checkpoints"):
                 runner.load_extension_manifest(path)
 
     def test_extension_manifest_rejects_duplicate_ids_and_unordered_obligations(self) -> None:
