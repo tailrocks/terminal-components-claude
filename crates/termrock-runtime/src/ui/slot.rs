@@ -7,7 +7,7 @@
 use ratatui_core::layout::Rect;
 
 use crate::author::CompositionLeaf;
-use crate::layout::{self, Child, ChildPolicy, Composition, ResolvedPlan};
+use crate::layout::{self, Child, ChildPolicy, Composition, CompositionKind, ResolvedPlan};
 use crate::measure::{Constraints, Size};
 use crate::ui::Ui;
 use crate::ui::measure::Measure;
@@ -21,21 +21,34 @@ enum Direction {
 
 /// A borrowed component leaf and its intrinsic, bound, and flex policy.
 pub struct ContentSlot<'a> {
-    component: &'a dyn CompositionLeaf,
+    content: Content<'a>,
     policy: ChildPolicy,
+}
+
+enum Content<'a> {
+    Leaf(&'a dyn CompositionLeaf),
+    Group(Box<CompositionSlots<'a>>),
 }
 
 impl<'a> ContentSlot<'a> {
     /// Place a component leaf in a composition group.
     pub const fn new(component: &'a dyn CompositionLeaf, policy: ChildPolicy) -> Self {
-        Self { component, policy }
+        Self {
+            content: Content::Leaf(component),
+            policy,
+        }
+    }
+
+    /// Place a nested row, column, or wrapping group in another group.
+    pub fn nested(group: CompositionSlots<'a>, policy: ChildPolicy) -> Self {
+        Self {
+            content: Content::Group(Box::new(group)),
+            policy,
+        }
     }
 }
 
-/// A flat row, column, or wrapping group of reusable component leaves.
-///
-/// This first adapter resolves one group per composition call. Nested blocks
-/// can be added through the same leaf contract when a consumer requires them.
+/// A row, column, or wrapping group of reusable component leaves and groups.
 pub struct CompositionSlots<'a> {
     direction: Direction,
     spec: Composition,
@@ -73,82 +86,162 @@ impl<'a> CompositionSlots<'a> {
         }
     }
 
-    fn resolve(&self, ui: &Ui<'_>, area: Rect) -> ResolvedPlan {
+    fn measure_tree(&self, ui: &Ui<'_>, constraints: Constraints) -> MeasuredGroup {
+        let content = Constraints::loose(
+            constraints
+                .max
+                .0
+                .saturating_sub(self.spec.padding.l.saturating_add(self.spec.padding.r)),
+            constraints
+                .max
+                .1
+                .saturating_sub(self.spec.padding.t.saturating_add(self.spec.padding.b)),
+        );
+        let children = self
+            .children
+            .iter()
+            .map(|slot| match &slot.content {
+                Content::Leaf(leaf) => MeasuredNode {
+                    size: Measure::measure(*leaf, ui, content),
+                    children: None,
+                },
+                Content::Group(group) => {
+                    let nested = group.measure_tree(ui, content);
+                    MeasuredNode {
+                        size: nested.size,
+                        children: Some(Box::new(nested)),
+                    }
+                }
+            })
+            .collect::<Vec<_>>();
+        let size = self.intrinsic(&children, constraints);
+        MeasuredGroup { size, children }
+    }
+
+    fn intrinsic(&self, measured: &[MeasuredNode], constraints: Constraints) -> Size {
         let indices: Vec<usize> = (0..self.children.len()).collect();
         let children: Vec<Child<'_, usize>> = indices
             .iter()
             .zip(&self.children)
-            .map(|(index, child)| Child::new(index, child.policy))
+            .map(|(index, slot)| Child::new(index, slot.policy))
             .collect();
-        let content = layout::inset(area, self.spec.padding);
-        let constraints = Constraints::loose(content.width, content.height);
-        let mut sizes: Vec<Size> = self
-            .children
-            .iter()
-            .map(|child| Measure::measure(child.component, ui, constraints))
-            .collect();
-        let initial_measure = |index: &usize, _constraints: Constraints| sizes[*index];
-        let initial = match self.direction {
-            Direction::Row => layout::row(area, &children, self.spec, initial_measure),
-            Direction::Column => layout::column(area, &children, self.spec, initial_measure),
-            Direction::Wrap => layout::wrap(area, &children, self.spec, initial_measure),
-        };
+        let sizes: Vec<Size> = measured.iter().map(|node| node.size).collect();
+        layout::intrinsic_size(
+            &children,
+            self.spec,
+            self.kind(),
+            constraints,
+            |index, _| sizes[*index],
+        )
+    }
 
-        // Re-measure only leaves whose resolved width differs from their
-        // intrinsic width. This bounded second pass lets width-sensitive text
-        // compute its final height after flex or overflow allocation.
-        let mut reflowed = false;
-        for resolved in &initial.children {
-            let Some(size) = sizes.get(resolved.index).copied() else {
-                continue;
-            };
-            if resolved.logical.width == size.preferred.0 {
-                continue;
-            }
-            let constraints = Constraints {
-                max: (resolved.logical.width, initial.content.height),
-                tight_w: true,
-                tight_h: false,
-            };
-            let measured =
-                Measure::measure(self.children[resolved.index].component, ui, constraints);
-            if measured != size {
-                sizes[resolved.index] = measured;
-                reflowed = true;
-            }
-        }
-
-        if !reflowed {
-            return initial;
-        }
-
-        let resolved_measure = |index: &usize, _constraints: Constraints| sizes[*index];
+    fn kind(&self) -> CompositionKind {
         match self.direction {
-            Direction::Row => layout::row(area, &children, self.spec, resolved_measure),
-            Direction::Column => layout::column(area, &children, self.spec, resolved_measure),
-            Direction::Wrap => layout::wrap(area, &children, self.spec, resolved_measure),
+            Direction::Row => CompositionKind::Row,
+            Direction::Column => CompositionKind::Column,
+            Direction::Wrap => CompositionKind::Wrap,
+        }
+    }
+
+    fn resolve(&self, area: Rect, measured: &[MeasuredNode]) -> ResolvedPlan {
+        let indices: Vec<usize> = (0..self.children.len()).collect();
+        let children: Vec<Child<'_, usize>> = indices
+            .iter()
+            .zip(&self.children)
+            .map(|(index, slot)| Child::new(index, slot.policy))
+            .collect();
+        let sizes: Vec<Size> = measured.iter().map(|node| node.size).collect();
+        let measure = |index: &usize, _| sizes[*index];
+        match self.direction {
+            Direction::Row => layout::row(area, &children, self.spec, measure),
+            Direction::Column => layout::column(area, &children, self.spec, measure),
+            Direction::Wrap => layout::wrap(area, &children, self.spec, measure),
+        }
+    }
+
+    fn remeasure_resolved(&self, ui: &Ui<'_>, group: &mut MeasuredGroup, plan: &ResolvedPlan) {
+        for resolved in &plan.children {
+            let Some(slot) = self.children.get(resolved.index) else {
+                continue;
+            };
+            let Some(node) = group.children.get_mut(resolved.index) else {
+                continue;
+            };
+            match &slot.content {
+                Content::Leaf(leaf) => {
+                    if resolved.logical.width != node.size.preferred.0 {
+                        let constraints = Constraints {
+                            max: (resolved.logical.width, plan.content.height),
+                            tight_w: true,
+                            tight_h: false,
+                        };
+                        node.size = Measure::measure(*leaf, ui, constraints);
+                    }
+                }
+                Content::Group(nested) => {
+                    if let Some(nested_measured) = node.children.as_deref_mut() {
+                        let child_plan =
+                            nested.resolve(resolved.logical, &nested_measured.children);
+                        nested.remeasure_resolved(ui, nested_measured, &child_plan);
+                        nested_measured.size = nested.intrinsic(
+                            &nested_measured.children,
+                            Constraints::loose(resolved.logical.width, resolved.logical.height),
+                        );
+                        node.size = nested_measured.size;
+                    }
+                }
+            }
+        }
+    }
+
+    fn draw_tree(&self, ui: &mut Ui<'_>, group: &MeasuredGroup, area: Rect) {
+        let plan = self.resolve(area, &group.children);
+        for resolved in &plan.children {
+            let Some(slot) = self.children.get(resolved.index) else {
+                continue;
+            };
+            if resolved.visible.is_empty() {
+                continue;
+            }
+            match &slot.content {
+                Content::Leaf(leaf) => {
+                    ui.with_area(resolved.visible, |ui| leaf.draw(ui, resolved.logical))
+                }
+                Content::Group(nested) => {
+                    if let Some(child) = group
+                        .children
+                        .get(resolved.index)
+                        .and_then(|n| n.children.as_deref())
+                    {
+                        ui.with_area(resolved.visible, |ui| {
+                            nested.draw_tree(ui, child, resolved.logical)
+                        });
+                    }
+                }
+            }
         }
     }
 
     /// Resolve from the framework root, then draw each visible leaf once.
     pub fn draw(&self, ui: &mut Ui<'_>) {
-        let plan = self.resolve(ui, ui.full());
-        self.draw_plan(ui, &plan);
+        let root = ui.full();
+        let mut measured = self.measure_tree(ui, Constraints::loose(root.width, root.height));
+        let first = self.resolve(root, &measured.children);
+        self.remeasure_resolved(ui, &mut measured, &first);
+        self.draw_tree(ui, &measured, root);
     }
+}
 
-    fn draw_plan(&self, ui: &mut Ui<'_>, plan: &ResolvedPlan) {
-        for child in &plan.children {
-            let Some(slot) = self.children.get(child.index) else {
-                continue;
-            };
-            if child.visible.is_empty() {
-                continue;
-            }
-            ui.with_area(child.visible, |ui| {
-                slot.component.draw(ui, child.logical);
-            });
-        }
-    }
+#[derive(Clone)]
+struct MeasuredNode {
+    size: Size,
+    children: Option<Box<MeasuredGroup>>,
+}
+
+#[derive(Clone)]
+struct MeasuredGroup {
+    size: Size,
+    children: Vec<MeasuredNode>,
 }
 
 impl Ui<'_> {
