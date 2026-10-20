@@ -852,6 +852,58 @@ class RunnerGuards(unittest.TestCase):
         with self.assertRaises(SystemExit):
             runner.parser().parse_args(["verify-fresh-plan", "--cohort", "fixture", "--baseline-bin-dir", "/bins"])
 
+    def test_fresh_plan_creation_digest_is_precomputed_before_publish_race(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            plan = self._fresh_plan_fixture(root)
+            inventory = {row["name"]: row["ignored"] for row in plan["inventory"]["full_sorted"]}
+            repo = root / "repo"
+            source = root / "source"
+            live = root / "live-source"
+            path = root / runner.FRESH_PLAN_FILE
+            original_reader = runner._read_self_sealed_plan
+
+            def rewrite_after_stable_read(plan_path: Path, expected_sha256: str | None = None) -> dict[str, object]:
+                parsed = original_reader(plan_path, expected_sha256)
+                changed = json.loads(json.dumps(plan))
+                changed["execution"]["chunk_size"] = 2
+                visual = changed["inventory"]["visual_selected"]
+                changed["execution"]["phases"][0]["chunks"] = runner._chunk_records(visual, 2)
+                changed["execution"]["phases"][1]["chunks"] = runner._chunk_records(visual, 2)
+                changed["execution"]["phases"][2]["groups"] = [
+                    {"name": "source-only", "chunks": runner._chunk_records(changed["inventory"]["ordinary_source_only"], 2)},
+                    {"name": "baseline-cli", "chunks": runner._chunk_records(changed["inventory"]["ordinary_baseline_cli"], 2)},
+                ]
+                changed["plan_sha256"] = runner.canonical_json_digest({key: value for key, value in changed.items() if key != "plan_sha256"})
+                plan_path.chmod(0o600)
+                plan_path.write_text(json.dumps(changed, ensure_ascii=False, sort_keys=True, separators=(",", ":")) + "\n")
+                return parsed
+
+            stdout = io.StringIO()
+            with (
+                patch.object(runner, "EXPECTED_SCENARIOS", 1),
+                patch.object(runner, "EXPECTED_ORDINARY_TESTS", 2),
+                patch.object(runner, "ordinary_test_groups", return_value=(["source_only::fixture"], ["modes::showcase_boot_sets_terminal_modes"])),
+                patch.object(runner, "paths", return_value=(repo, root, source)),
+                patch.object(runner, "verify_source"),
+                patch.object(runner, "require_capture_eligible_cohort", return_value=plan["cohort"]),
+                patch.object(runner, "verify_live_source", return_value=(live, {"test_inventory_sha256": runner.inventory_digest(inventory)})),
+                patch.object(runner, "load_extension_manifest", return_value={"generated_case_ids": plan["inventory"]["visual_extensions"], "checkpoint_obligations": {}}),
+                patch.object(runner, "fresh_clean_env", return_value={"LANG": "C"}),
+                patch.object(runner, "nextest_inventory", return_value=inventory),
+                patch.object(runner, "require_inventory_matches"),
+                patch.object(runner, "build_fresh_plan_payload", return_value=plan),
+                patch.object(runner, "_read_self_sealed_plan", side_effect=rewrite_after_stable_read),
+                patch.object(sys, "stdout", stdout),
+            ):
+                result = runner.create_fresh_plan(repo, root, "fixture-cohort", root / "bins", 10, 1, None)
+            self.assertEqual(result, plan)
+            report = json.loads(stdout.getvalue())
+            original_bytes = (json.dumps(plan, ensure_ascii=False, sort_keys=True, separators=(",", ":")) + "\n").encode()
+            self.assertEqual(report["creation_file_sha256"], runner.hashlib.sha256(original_bytes).hexdigest())
+            with self.assertRaisesRegex(runner.RunnerError, "externally retained creation digest"):
+                original_reader(path, report["creation_file_sha256"])
+
     def test_fresh_prepare_mode_does_not_consult_legacy_build_or_tuple_approval(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
