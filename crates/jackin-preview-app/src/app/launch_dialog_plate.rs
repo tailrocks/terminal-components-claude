@@ -13,863 +13,6 @@ struct Plate {
     under: bool,
 }
 
-const INFO: &[Plate] = &[
-    Plate {
-        y: 0,
-        x: 0,
-        text: "╭─",
-        fg: 0x4d4d4d,
-        bg: 0x18181b,
-        bold: false,
-        under: false,
-    },
-    Plate {
-        y: 0,
-        x: 2,
-        text: " Debug info ",
-        fg: 0xffffff,
-        bg: 0x18181b,
-        bold: true,
-        under: false,
-    },
-    Plate {
-        y: 0,
-        x: 14,
-        text: "───────────────────────────────────",
-        fg: 0x4d4d4d,
-        bg: 0x18181b,
-        bold: false,
-        under: false,
-    },
-    Plate {
-        y: 0,
-        x: 49,
-        text: " read-only ",
-        fg: 0x737373,
-        bg: 0x18181b,
-        bold: false,
-        under: false,
-    },
-    Plate {
-        y: 0,
-        x: 60,
-        text: "─ ",
-        fg: 0x4d4d4d,
-        bg: 0x18181b,
-        bold: false,
-        under: false,
-    },
-    Plate {
-        y: 0,
-        x: 62,
-        text: "×",
-        fg: 0xb3b3b3,
-        bg: 0x18181b,
-        bold: false,
-        under: false,
-    },
-    Plate {
-        y: 0,
-        x: 63,
-        text: " ─╮",
-        fg: 0x4d4d4d,
-        bg: 0x18181b,
-        bold: false,
-        under: false,
-    },
-    Plate {
-        y: 1,
-        x: 0,
-        text: "│",
-        fg: 0x4d4d4d,
-        bg: 0x18181b,
-        bold: false,
-        under: false,
-    },
-    Plate {
-        y: 1,
-        x: 1,
-        text: " ",
-        fg: 0x8a8a8a,
-        bg: 0x18181b,
-        bold: false,
-        under: false,
-    },
-    Plate {
-        y: 1,
-        x: 2,
-        text: "▎",
-        fg: 0x48e054,
-        bg: 0x18181b,
-        bold: true,
-        under: false,
-    },
-    Plate {
-        y: 1,
-        x: 3,
-        text: " ",
-        fg: 0xffffff,
-        bg: 0x18181b,
-        bold: true,
-        under: false,
-    },
-    Plate {
-        y: 1,
-        x: 4,
-        text: "Target",
-        fg: 0x8a8a8a,
-        bg: 0x18181b,
-        bold: false,
-        under: false,
-    },
-    Plate {
-        y: 1,
-        x: 10,
-        text: "  the-architect into workspace payments-platform     ",
-        fg: 0xffffff,
-        bg: 0x18181b,
-        bold: true,
-        under: false,
-    },
-    Plate {
-        y: 1,
-        x: 63,
-        text: "  ",
-        fg: 0x8a8a8a,
-        bg: 0x18181b,
-        bold: false,
-        under: false,
-    },
-    Plate {
-        y: 1,
-        x: 65,
-        text: "│",
-        fg: 0x4d4d4d,
-        bg: 0x18181b,
-        bold: false,
-        under: false,
-    },
-    Plate {
-        y: 2,
-        x: 0,
-        text: "│",
-        fg: 0x4d4d4d,
-        bg: 0x18181b,
-        bold: false,
-        under: false,
-    },
-    Plate {
-        y: 2,
-        x: 1,
-        text: " ",
-        fg: 0x8a8a8a,
-        bg: 0x18181b,
-        bold: false,
-        under: false,
-    },
-    Plate {
-        y: 2,
-        x: 2,
-        text: " ",
-        fg: 0x18181b,
-        bg: 0x18181b,
-        bold: false,
-        under: false,
-    },
-    Plate {
-        y: 2,
-        x: 3,
-        text: " ",
-        fg: 0xffffff,
-        bg: 0x18181b,
-        bold: false,
-        under: false,
-    },
-    Plate {
-        y: 2,
-        x: 4,
-        text: "Role",
-        fg: 0x8a8a8a,
-        bg: 0x18181b,
-        bold: false,
-        under: false,
-    },
-    Plate {
-        y: 2,
-        x: 8,
-        text: "    the-architect                                      ",
-        fg: 0xffffff,
-        bg: 0x18181b,
-        bold: false,
-        under: false,
-    },
-    Plate {
-        y: 2,
-        x: 63,
-        text: "  ",
-        fg: 0x8a8a8a,
-        bg: 0x18181b,
-        bold: false,
-        under: false,
-    },
-    Plate {
-        y: 2,
-        x: 65,
-        text: "│",
-        fg: 0x4d4d4d,
-        bg: 0x18181b,
-        bold: false,
-        under: false,
-    },
-    Plate {
-        y: 3,
-        x: 0,
-        text: "│",
-        fg: 0x4d4d4d,
-        bg: 0x18181b,
-        bold: false,
-        under: false,
-    },
-    Plate {
-        y: 3,
-        x: 1,
-        text: " ",
-        fg: 0x8a8a8a,
-        bg: 0x18181b,
-        bold: false,
-        under: false,
-    },
-    Plate {
-        y: 3,
-        x: 2,
-        text: " ",
-        fg: 0x18181b,
-        bg: 0x18181b,
-        bold: false,
-        under: false,
-    },
-    Plate {
-        y: 3,
-        x: 3,
-        text: " ",
-        fg: 0xffffff,
-        bg: 0x18181b,
-        bold: false,
-        under: false,
-    },
-    Plate {
-        y: 3,
-        x: 4,
-        text: "Agent",
-        fg: 0x8a8a8a,
-        bg: 0x18181b,
-        bold: false,
-        under: false,
-    },
-    Plate {
-        y: 3,
-        x: 9,
-        text: "   Claude Code · account Claude · Work                ",
-        fg: 0xffffff,
-        bg: 0x18181b,
-        bold: false,
-        under: false,
-    },
-    Plate {
-        y: 3,
-        x: 63,
-        text: "  ",
-        fg: 0x8a8a8a,
-        bg: 0x18181b,
-        bold: false,
-        under: false,
-    },
-    Plate {
-        y: 3,
-        x: 65,
-        text: "│",
-        fg: 0x4d4d4d,
-        bg: 0x18181b,
-        bold: false,
-        under: false,
-    },
-    Plate {
-        y: 4,
-        x: 0,
-        text: "│",
-        fg: 0x4d4d4d,
-        bg: 0x18181b,
-        bold: false,
-        under: false,
-    },
-    Plate {
-        y: 4,
-        x: 1,
-        text: " ",
-        fg: 0x8a8a8a,
-        bg: 0x18181b,
-        bold: false,
-        under: false,
-    },
-    Plate {
-        y: 4,
-        x: 2,
-        text: " ",
-        fg: 0x18181b,
-        bg: 0x18181b,
-        bold: false,
-        under: false,
-    },
-    Plate {
-        y: 4,
-        x: 3,
-        text: " ",
-        fg: 0xffffff,
-        bg: 0x18181b,
-        bold: false,
-        under: false,
-    },
-    Plate {
-        y: 4,
-        x: 4,
-        text: "Run id",
-        fg: 0x8a8a8a,
-        bg: 0x18181b,
-        bold: false,
-        under: false,
-    },
-    Plate {
-        y: 4,
-        x: 10,
-        text: "  run-202609030914-b5df                              ",
-        fg: 0xffffff,
-        bg: 0x18181b,
-        bold: false,
-        under: false,
-    },
-    Plate {
-        y: 4,
-        x: 63,
-        text: "  ",
-        fg: 0x8a8a8a,
-        bg: 0x18181b,
-        bold: false,
-        under: false,
-    },
-    Plate {
-        y: 4,
-        x: 65,
-        text: "│",
-        fg: 0x4d4d4d,
-        bg: 0x18181b,
-        bold: false,
-        under: false,
-    },
-    Plate {
-        y: 5,
-        x: 0,
-        text: "│",
-        fg: 0x4d4d4d,
-        bg: 0x18181b,
-        bold: false,
-        under: false,
-    },
-    Plate {
-        y: 5,
-        x: 1,
-        text: " ",
-        fg: 0x8a8a8a,
-        bg: 0x18181b,
-        bold: false,
-        under: false,
-    },
-    Plate {
-        y: 5,
-        x: 2,
-        text: " ",
-        fg: 0x18181b,
-        bg: 0x18181b,
-        bold: false,
-        under: false,
-    },
-    Plate {
-        y: 5,
-        x: 3,
-        text: " ",
-        fg: 0xffffff,
-        bg: 0x18181b,
-        bold: false,
-        under: false,
-    },
-    Plate {
-        y: 5,
-        x: 4,
-        text: "jackin",
-        fg: 0x8a8a8a,
-        bg: 0x18181b,
-        bold: false,
-        under: false,
-    },
-    Plate {
-        y: 5,
-        x: 10,
-        text: "  0.6.4 · preview                                    ",
-        fg: 0xffffff,
-        bg: 0x18181b,
-        bold: false,
-        under: false,
-    },
-    Plate {
-        y: 5,
-        x: 63,
-        text: "  ",
-        fg: 0x8a8a8a,
-        bg: 0x18181b,
-        bold: false,
-        under: false,
-    },
-    Plate {
-        y: 5,
-        x: 65,
-        text: "│",
-        fg: 0x4d4d4d,
-        bg: 0x18181b,
-        bold: false,
-        under: false,
-    },
-    Plate {
-        y: 6,
-        x: 0,
-        text: "│",
-        fg: 0x4d4d4d,
-        bg: 0x18181b,
-        bold: false,
-        under: false,
-    },
-    Plate {
-        y: 6,
-        x: 1,
-        text: "          ",
-        fg: 0x8a8a8a,
-        bg: 0x18181b,
-        bold: false,
-        under: false,
-    },
-    Plate {
-        y: 6,
-        x: 11,
-        text: " ",
-        fg: 0x000000,
-        bg: 0x18181b,
-        bold: false,
-        under: false,
-    },
-    Plate {
-        y: 6,
-        x: 12,
-        text: "  ",
-        fg: 0x8a8a8a,
-        bg: 0x18181b,
-        bold: false,
-        under: false,
-    },
-    Plate {
-        y: 6,
-        x: 14,
-        text: "  ",
-        fg: 0x737373,
-        bg: 0x18181b,
-        bold: false,
-        under: false,
-    },
-    Plate {
-        y: 6,
-        x: 16,
-        text: " ",
-        fg: 0x8a8a8a,
-        bg: 0x18181b,
-        bold: false,
-        under: false,
-    },
-    Plate {
-        y: 6,
-        x: 17,
-        text: "              ",
-        fg: 0x737373,
-        bg: 0x18181b,
-        bold: false,
-        under: false,
-    },
-    Plate {
-        y: 6,
-        x: 31,
-        text: "                 ",
-        fg: 0x8a8a8a,
-        bg: 0x18181b,
-        bold: false,
-        under: false,
-    },
-    Plate {
-        y: 6,
-        x: 48,
-        text: "      ",
-        fg: 0x737373,
-        bg: 0x18181b,
-        bold: false,
-        under: false,
-    },
-    Plate {
-        y: 6,
-        x: 54,
-        text: "           ",
-        fg: 0x8a8a8a,
-        bg: 0x18181b,
-        bold: false,
-        under: false,
-    },
-    Plate {
-        y: 6,
-        x: 65,
-        text: "│",
-        fg: 0x4d4d4d,
-        bg: 0x18181b,
-        bold: false,
-        under: false,
-    },
-    Plate {
-        y: 7,
-        x: 0,
-        text: "│",
-        fg: 0x4d4d4d,
-        bg: 0x18181b,
-        bold: false,
-        under: false,
-    },
-    Plate {
-        y: 7,
-        x: 1,
-        text: "          ",
-        fg: 0x8a8a8a,
-        bg: 0x18181b,
-        bold: false,
-        under: false,
-    },
-    Plate {
-        y: 7,
-        x: 11,
-        text: " ",
-        fg: 0x000000,
-        bg: 0x18181b,
-        bold: false,
-        under: false,
-    },
-    Plate {
-        y: 7,
-        x: 12,
-        text: "  ",
-        fg: 0x8a8a8a,
-        bg: 0x18181b,
-        bold: false,
-        under: false,
-    },
-    Plate {
-        y: 7,
-        x: 14,
-        text: "  ",
-        fg: 0x737373,
-        bg: 0x18181b,
-        bold: false,
-        under: false,
-    },
-    Plate {
-        y: 7,
-        x: 16,
-        text: " ",
-        fg: 0x8a8a8a,
-        bg: 0x18181b,
-        bold: false,
-        under: false,
-    },
-    Plate {
-        y: 7,
-        x: 17,
-        text: "             ",
-        fg: 0x737373,
-        bg: 0x18181b,
-        bold: false,
-        under: false,
-    },
-    Plate {
-        y: 7,
-        x: 30,
-        text: "                  ",
-        fg: 0x8a8a8a,
-        bg: 0x18181b,
-        bold: false,
-        under: false,
-    },
-    Plate {
-        y: 7,
-        x: 48,
-        text: "      ",
-        fg: 0x737373,
-        bg: 0x18181b,
-        bold: false,
-        under: false,
-    },
-    Plate {
-        y: 7,
-        x: 54,
-        text: "           ",
-        fg: 0x8a8a8a,
-        bg: 0x18181b,
-        bold: false,
-        under: false,
-    },
-    Plate {
-        y: 7,
-        x: 65,
-        text: "│",
-        fg: 0x4d4d4d,
-        bg: 0x18181b,
-        bold: false,
-        under: false,
-    },
-    Plate {
-        y: 8,
-        x: 0,
-        text: "│",
-        fg: 0x4d4d4d,
-        bg: 0x18181b,
-        bold: false,
-        under: false,
-    },
-    Plate {
-        y: 8,
-        x: 1,
-        text: "          ",
-        fg: 0x8a8a8a,
-        bg: 0x18181b,
-        bold: false,
-        under: false,
-    },
-    Plate {
-        y: 8,
-        x: 11,
-        text: " ",
-        fg: 0x000000,
-        bg: 0x18181b,
-        bold: false,
-        under: false,
-    },
-    Plate {
-        y: 8,
-        x: 12,
-        text: "  ",
-        fg: 0x8a8a8a,
-        bg: 0x18181b,
-        bold: false,
-        under: false,
-    },
-    Plate {
-        y: 8,
-        x: 14,
-        text: "  ",
-        fg: 0x737373,
-        bg: 0x18181b,
-        bold: false,
-        under: false,
-    },
-    Plate {
-        y: 8,
-        x: 16,
-        text: " ",
-        fg: 0x8a8a8a,
-        bg: 0x18181b,
-        bold: false,
-        under: false,
-    },
-    Plate {
-        y: 8,
-        x: 17,
-        text: "         ",
-        fg: 0x737373,
-        bg: 0x18181b,
-        bold: false,
-        under: false,
-    },
-    Plate {
-        y: 8,
-        x: 26,
-        text: "                      ",
-        fg: 0x8a8a8a,
-        bg: 0x18181b,
-        bold: false,
-        under: false,
-    },
-    Plate {
-        y: 8,
-        x: 48,
-        text: "      ",
-        fg: 0x737373,
-        bg: 0x18181b,
-        bold: false,
-        under: false,
-    },
-    Plate {
-        y: 8,
-        x: 54,
-        text: "           ",
-        fg: 0x8a8a8a,
-        bg: 0x18181b,
-        bold: false,
-        under: false,
-    },
-    Plate {
-        y: 8,
-        x: 65,
-        text: "│",
-        fg: 0x4d4d4d,
-        bg: 0x18181b,
-        bold: false,
-        under: false,
-    },
-    Plate {
-        y: 9,
-        x: 0,
-        text: "│",
-        fg: 0x4d4d4d,
-        bg: 0x18181b,
-        bold: false,
-        under: false,
-    },
-    Plate {
-        y: 9,
-        x: 1,
-        text: "          ",
-        fg: 0x8a8a8a,
-        bg: 0x18181b,
-        bold: false,
-        under: false,
-    },
-    Plate {
-        y: 9,
-        x: 11,
-        text: " ",
-        fg: 0x000000,
-        bg: 0x18181b,
-        bold: false,
-        under: false,
-    },
-    Plate {
-        y: 9,
-        x: 12,
-        text: "  ",
-        fg: 0x8a8a8a,
-        bg: 0x18181b,
-        bold: false,
-        under: false,
-    },
-    Plate {
-        y: 9,
-        x: 14,
-        text: "  ",
-        fg: 0x737373,
-        bg: 0x18181b,
-        bold: false,
-        under: false,
-    },
-    Plate {
-        y: 9,
-        x: 16,
-        text: " ",
-        fg: 0x8a8a8a,
-        bg: 0x18181b,
-        bold: false,
-        under: false,
-    },
-    Plate {
-        y: 9,
-        x: 17,
-        text: "       ",
-        fg: 0x737373,
-        bg: 0x18181b,
-        bold: false,
-        under: false,
-    },
-    Plate {
-        y: 9,
-        x: 24,
-        text: "                        ",
-        fg: 0x8a8a8a,
-        bg: 0x18181b,
-        bold: false,
-        under: false,
-    },
-    Plate {
-        y: 9,
-        x: 48,
-        text: "      ",
-        fg: 0x737373,
-        bg: 0x18181b,
-        bold: false,
-        under: false,
-    },
-    Plate {
-        y: 9,
-        x: 54,
-        text: "  ",
-        fg: 0x8a8a8a,
-        bg: 0x18181b,
-        bold: false,
-        under: false,
-    },
-    Plate {
-        y: 9,
-        x: 56,
-        text: " ",
-        fg: 0x27272a,
-        bg: 0x27272a,
-        bold: false,
-        under: false,
-    },
-    Plate {
-        y: 9,
-        x: 57,
-        text: "Close ",
-        fg: 0xffffff,
-        bg: 0x27272a,
-        bold: false,
-        under: false,
-    },
-    Plate {
-        y: 9,
-        x: 63,
-        text: "  ",
-        fg: 0x8a8a8a,
-        bg: 0x18181b,
-        bold: false,
-        under: false,
-    },
-    Plate {
-        y: 9,
-        x: 65,
-        text: "│",
-        fg: 0x4d4d4d,
-        bg: 0x18181b,
-        bold: false,
-        under: false,
-    },
-    Plate {
-        y: 10,
-        x: 0,
-        text: "╰────────────────────────────────────────────────────────────────╯",
-        fg: 0x4d4d4d,
-        bg: 0x18181b,
-        bold: false,
-        under: false,
-    },
-];
 const CANCEL: &[Plate] = &[
     Plate {
         y: 0,
@@ -1656,8 +799,9 @@ const CANCEL: &[Plate] = &[
     },
 ];
 
-pub(super) fn paint_info(ui: &mut Ui<'_>) {
-    paint(ui, 66, 11, 0, INFO);
+pub(super) fn paint_info(ui: &mut Ui<'_>, facts: &[termrock::overlays::info_card::Fact<'_>]) {
+    termrock::overlays::info_card::paint(ui, facts);
+    recolor(ui, 66, 11, 0);
 }
 
 pub(super) fn paint_cancel(ui: &mut Ui<'_>) {
@@ -1724,6 +868,18 @@ fn paint(ui: &mut Ui<'_>, width: u16, height: u16, y_bias: u16, plate: &[Plate])
             style,
         );
     }
+    recolor(ui, width, height, y_bias);
+}
+
+fn recolor(ui: &mut Ui<'_>, width: u16, height: u16, y_bias: u16) {
+    let screen = ui.full();
+    let origin_x = screen
+        .x
+        .saturating_add(screen.width.saturating_sub(width) / 2);
+    let origin_y = screen
+        .y
+        .saturating_add(screen.height.saturating_sub(height) / 2)
+        .saturating_add(y_bias);
     // The block is truecolor. A 256-color theme swaps those inks for the
     // baseline index table after the dim, and leaves indexed cockpit cells.
     if ui.theme_ref().capability.color == ColorLevel::Ansi256 {
@@ -1741,6 +897,66 @@ fn paint(ui: &mut Ui<'_>, width: u16, height: u16, y_bias: u16, plate: &[Plate])
             }
         });
     }
+    // 16-color and mono dim the whole card, including its title. `NO_COLOR`
+    // keeps the stripped inks and only sets `dim`.
+    if matches!(
+        ui.theme_ref().capability.color,
+        ColorLevel::Ansi16 | ColorLevel::Mono
+    ) {
+        let card = Rect::new(origin_x, origin_y, width, height);
+        if std::env::var_os("NO_COLOR").is_none() {
+            let ansi16 = ui.theme_ref().capability.color == ColorLevel::Ansi16;
+            ui.recolor_pair(card, move |fg, bg| reduced_pair(fg, bg, ansi16));
+        }
+        ui.add_dim(card);
+    }
+}
+
+fn reduced_pair(fg: Color, bg: Color, ansi16: bool) -> (Color, Color) {
+    let button = matches!(
+        bg,
+        Color::Rgb(0x27, 0x27, 0x2a) | Color::Rgb(0x3f, 0x3f, 0x46)
+    );
+    let bg = if button {
+        Color::DarkGray
+    } else if matches!(bg, Color::Rgb(..)) {
+        Color::Black
+    } else {
+        bg
+    };
+    let fg = if button {
+        if matches!(fg, Color::Rgb(0x48, 0xe0, 0x54)) {
+            Color::White
+        } else if matches!(
+            fg,
+            Color::Rgb(0x18, 0x18, 0x1b) | Color::Rgb(0x27, 0x27, 0x2a) | Color::Rgb(0, 0, 0)
+        ) {
+            Color::DarkGray
+        } else {
+            Color::Black
+        }
+    } else if matches!(fg, Color::Rgb(0xff, 0xff, 0xff) | Color::White) {
+        Color::White
+    } else if matches!(fg, Color::Rgb(0x48, 0xe0, 0x54)) {
+        if ansi16 {
+            Color::Indexed(10)
+        } else {
+            Color::White
+        }
+    } else if matches!(
+        fg,
+        Color::Rgb(0x00, 0x00, 0x00)
+            | Color::Black
+            | Color::Rgb(0x18, 0x18, 0x1b)
+            | Color::Rgb(0x27, 0x27, 0x2a)
+    ) {
+        Color::Black
+    } else if matches!(fg, Color::Rgb(..)) {
+        Color::Gray
+    } else {
+        fg
+    };
+    (fg, bg)
 }
 
 fn on_black(color: Color) -> bool {
