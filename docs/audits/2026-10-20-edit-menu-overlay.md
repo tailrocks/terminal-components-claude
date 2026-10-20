@@ -1,0 +1,9 @@
+# Shared edit-menu overlay increment (2026-10-20; integration pending)
+
+`termrock-overlays` now exposes `EditMenu`, `EditMenuState`, and `EditMenuAction` as an adapter around the existing `ContextMenu`/layer machinery. `EditMenu::new(owner)` derives the stable `owner.sub("edit-menu")` ID. The caller passes the real `EditMenuRequest` anchor and current `EditCapabilities`; the adapter renders Cut, Copy, Paste, and Select all rows, disables unavailable operations (including empty clipboard paste), and yields only a typed `TextEditCommand` after the underlying context menu closes. Escape and outside dismissal yield a typed close reason. Editor buffer, selection, caret geometry, and execution remain in the field component.
+
+Consumers process the field update before the menu update and use `EditMenuState::is_open` to keep the field draft while focus is nested in the popup. The layer restores the previous field focus when it closes. The adapter itself accepts no application state or geometry and draws through the runtime layer slot.
+
+Runtime tests cover a TextInput opening its menu by Shift+F10 and choosing Select all exactly once; a separate TextArea consumer right-clicking and pasting at the prepared caret; Escape and outside dismissal; blocked typing into the background field; restored focus and cursor; and stable read-only, secret, disabled, and clipboard availability. Full picker wiring and frozen-baseline CLI parity remain open.
+
+Validation before push: `cargo nextest run -p termrock-overlays --lib --no-fail-fast` passed 65/65; `cargo clippy -p termrock-overlays --all-targets -- -D warnings` and `cargo check -p termrock` passed; scoped rustfmt and `git diff --check` passed. Workspace `cargo fmt --check` remains red on pre-existing formatting drift in `crates/showcase-demos/src/pages/chrome.rs`, outside this increment.
