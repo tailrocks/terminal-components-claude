@@ -11,6 +11,7 @@ use termrock_controls::Button;
 use termrock_editors::{
     CodeEditor, CodeEditorState, CompletingCodeEditor, CompletingCodeEditorState,
 };
+use termrock_layout::composition_plan::{Child as PlanChild, CompositionKind, intrinsic_size};
 use termrock_layout::{ChildPolicy, Composition as LayoutComposition, Constraints, Size};
 use termrock_navigation::{Tabs, TabsState};
 pub use termrock_runtime::CompositionError;
@@ -268,13 +269,60 @@ impl<'a> Group<'a> {
 
     /// Resolve against the framework-owned area and draw each component once.
     pub fn show(&self, ui: &mut Ui<'_>) -> Result<(), CompositionError> {
+        self.validate_depth()?;
+        ui.compose(&self.slots())
+    }
+
+    /// Measure intrinsic size through the shared layout resolver without
+    /// dispatching input, drawing, or changing component state.
+    pub fn measure(&self, ui: &Ui<'_>, constraints: Constraints) -> Result<Size, CompositionError> {
+        self.validate_depth()?;
+        let child_constraints = Constraints::loose(
+            constraints
+                .max
+                .0
+                .saturating_sub(self.spec.padding.l.saturating_add(self.spec.padding.r)),
+            constraints
+                .max
+                .1
+                .saturating_sub(self.spec.padding.t.saturating_add(self.spec.padding.b)),
+        );
+        let mut sizes = Vec::with_capacity(self.children.len());
+        for child in &self.children {
+            sizes.push(child.measure(ui, child_constraints)?);
+        }
+        let indices: Vec<usize> = (0..self.children.len()).collect();
+        let children: Vec<PlanChild<'_, usize>> = indices
+            .iter()
+            .zip(&self.children)
+            .map(|(index, child)| PlanChild::new(index, child.policy))
+            .collect();
+        Ok(intrinsic_size(
+            &children,
+            self.spec,
+            self.kind(),
+            constraints,
+            |index, _| sizes[*index],
+        ))
+    }
+
+    fn kind(&self) -> CompositionKind {
+        match self.direction {
+            Direction::Row => CompositionKind::Row,
+            Direction::Column => CompositionKind::Column,
+            Direction::Wrap => CompositionKind::Wrap,
+        }
+    }
+
+    pub(crate) fn validate_depth(&self) -> Result<(), CompositionError> {
         if self.depth > MAX_COMPOSITION_DEPTH {
-            return Err(CompositionError::DepthExceeded {
+            Err(CompositionError::DepthExceeded {
                 depth: self.depth,
                 maximum: MAX_COMPOSITION_DEPTH,
-            });
+            })
+        } else {
+            Ok(())
         }
-        ui.compose(&self.slots())
     }
 
     fn slots(&self) -> CompositionSlots<'_> {
@@ -300,6 +348,13 @@ impl<'a> Group<'a> {
 }
 
 impl Child<'_> {
+    fn measure(&self, ui: &Ui<'_>, constraints: Constraints) -> Result<Size, CompositionError> {
+        match &self.content {
+            ChildContent::Leaf(leaf) => Ok(Measure::measure(leaf.as_ref(), ui, constraints)),
+            ChildContent::Group(group) => group.measure(ui, constraints),
+        }
+    }
+
     fn nested_depth(&self) -> usize {
         match &self.content {
             ChildContent::Leaf(_) => 0,
