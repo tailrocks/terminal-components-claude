@@ -2718,45 +2718,127 @@ def verify_fresh_plan(repo: Path, root: Path, cohort_id: str, baseline_bin_dir: 
     return plan
 
 
-def _stable_secret_key(path: Path, *, create: bool = False) -> tuple[bytes, tuple[int, int, int, int]]:
-    """Read or exclusively create a private per-run HMAC key without following links."""
-    if create:
-        path.parent.mkdir(parents=True, exist_ok=True)
-        flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, "O_NOFOLLOW", 0)
-        try:
-            fd = os.open(path, flags, 0o600)
-        except FileExistsError as error:
-            raise RunnerError("fresh run key already exists") from error
-        key = secrets.token_bytes(32)
-        try:
-            os.write(fd, key)
-            os.fsync(fd)
-            os.fchmod(fd, 0o600)
-        finally:
-            os.close(fd)
+def _open_directory_chain(path: Path) -> tuple[int, os.stat_result]:
+    """Open a canonical directory path component-by-component without following links."""
+    canonical = path.resolve(strict=True)
+    fd = os.open(os.sep, os.O_RDONLY | getattr(os, "O_DIRECTORY", 0))
     try:
-        before = path.lstat()
-        if stat.S_ISLNK(before.st_mode) or not stat.S_ISREG(before.st_mode) or before.st_nlink != 1 or stat.S_IMODE(before.st_mode) != 0o600:
-            raise RunnerError("fresh run key must be a private 0600 regular file")
-        fd = os.open(path, os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0))
-        try:
-            opened = os.fstat(fd)
-            chunks: list[bytes] = []
-            while chunk := os.read(fd, 4096):
-                chunks.append(chunk)
-            after_fd = os.fstat(fd)
-        finally:
+        for component in canonical.parts[1:]:
+            child = os.open(component, os.O_RDONLY | getattr(os, "O_DIRECTORY", 0) | getattr(os, "O_NOFOLLOW", 0), dir_fd=fd)
             os.close(fd)
-        after = path.lstat()
+            fd = child
+        return fd, os.fstat(fd)
+    except OSError:
+        os.close(fd)
+        raise
+
+
+def _private_custody_directory(path: Path, *, create: bool) -> tuple[int, os.stat_result, Path]:
+    """Open an owned 0700 custody directory; existing unsafe directories are never chmodded."""
+    path = path.absolute()
+    parent = path.parent
+    try:
+        canonical_parent = parent.resolve(strict=True)
+        if canonical_parent != parent:
+            raise RunnerError("fresh run custody path contains a symlinked ancestor")
+        parent_fd, _parent_info = _open_directory_chain(canonical_parent)
     except OSError as error:
-        raise RunnerError(f"fresh run key cannot be safely read: {error}") from error
-    identity = lambda item: (item.st_dev, item.st_ino, item.st_mode, item.st_size, item.st_mtime_ns, item.st_ctime_ns, item.st_nlink)
-    if identity(before) != identity(opened) or identity(opened) != identity(after_fd) or identity(after_fd) != identity(after):
-        raise RunnerError("fresh run key changed during read")
-    key = b"".join(chunks)
-    if len(key) != 32:
-        raise RunnerError("fresh run key must contain exactly 32 bytes")
-    return key, (after.st_dev, after.st_ino, after.st_size, stat.S_IMODE(after.st_mode))
+        raise RunnerError(f"fresh run custody parent is unsafe or missing: {error}") from error
+    if create:
+        created = False
+        try:
+            os.mkdir(path.name, mode=0o700, dir_fd=parent_fd)
+            created = True
+        except FileExistsError:
+            pass
+        except OSError as error:
+            os.close(parent_fd)
+            raise RunnerError(f"fresh run custody directory cannot be created: {error}") from error
+        if created:
+            created_fd = os.open(path.name, os.O_RDONLY | getattr(os, "O_DIRECTORY", 0) | getattr(os, "O_NOFOLLOW", 0), dir_fd=parent_fd)
+            try:
+                os.fchmod(created_fd, 0o700)
+            finally:
+                os.close(created_fd)
+    os.close(parent_fd)
+    try:
+        canonical = path.resolve(strict=True)
+        if canonical != path:
+            raise RunnerError("fresh run custody path contains a symlinked ancestor")
+        fd, info = _open_directory_chain(canonical)
+        if create and created:
+            os.fchmod(fd, 0o700)
+            info = os.fstat(fd)
+        if not stat.S_ISDIR(info.st_mode) or info.st_uid != os.geteuid() or stat.S_IMODE(info.st_mode) != 0o700:
+            os.close(fd)
+            raise RunnerError("fresh run custody directory must be owned by this user and mode 0700")
+        return fd, info, canonical
+    except OSError as error:
+        raise RunnerError(f"fresh run custody directory is unsafe: {error}") from error
+
+
+def _stable_secret_key(path: Path, *, create: bool = False) -> tuple[bytes, tuple[int, int, int, int], Path]:
+    """Read or exclusively create a private per-run HMAC key relative to a stable 0700 dirfd."""
+    dir_fd, dir_info, custody_path = _private_custody_directory(path.parent, create=create)
+    name = path.name
+    try:
+        if create:
+            flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, "O_NOFOLLOW", 0)
+            try:
+                fd = os.open(name, flags, 0o600, dir_fd=dir_fd)
+            except FileExistsError as error:
+                raise RunnerError("fresh run key already exists") from error
+            key = secrets.token_bytes(32)
+            try:
+                view = memoryview(key)
+                while view:
+                    view = view[os.write(fd, view):]
+                os.fsync(fd)
+            finally:
+                os.close(fd)
+        try:
+            before = os.stat(name, dir_fd=dir_fd, follow_symlinks=False)
+            if stat.S_ISLNK(before.st_mode) or not stat.S_ISREG(before.st_mode) or before.st_nlink != 1 or stat.S_IMODE(before.st_mode) != 0o600 or before.st_uid != os.geteuid():
+                raise RunnerError("fresh run key must be an owned private 0600 regular file")
+            fd = os.open(name, os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0), dir_fd=dir_fd)
+            try:
+                opened = os.fstat(fd)
+                chunks: list[bytes] = []
+                while chunk := os.read(fd, 4096):
+                    chunks.append(chunk)
+                after_fd = os.fstat(fd)
+            finally:
+                os.close(fd)
+            after = os.stat(name, dir_fd=dir_fd, follow_symlinks=False)
+            path_fd, path_info = _open_directory_chain(custody_path)
+            os.close(path_fd)
+        except OSError as error:
+            raise RunnerError(f"fresh run key cannot be safely read: {error}") from error
+        identity = lambda item: (item.st_dev, item.st_ino, item.st_mode, item.st_size, item.st_mtime_ns, item.st_ctime_ns, item.st_nlink, item.st_uid)
+        dir_identity = lambda item: (item.st_dev, item.st_ino, item.st_mode, item.st_uid)
+        if identity(before) != identity(opened) or identity(opened) != identity(after_fd) or identity(after_fd) != identity(after) or dir_identity(dir_info) != dir_identity(path_info):
+            raise RunnerError("fresh run key or custody directory changed during read")
+        key = b"".join(chunks)
+        if len(key) != 32:
+            raise RunnerError("fresh run key must contain exactly 32 bytes")
+        return key, (after.st_dev, after.st_ino, after.st_size, stat.S_IMODE(after.st_mode)), custody_path / name
+    finally:
+        os.close(dir_fd)
+
+
+def _git_metadata_paths(repo: Path) -> set[Path]:
+    """Return resolved worktree and common Git metadata roots, including linked worktrees."""
+    paths: set[Path] = set()
+    for option in ("--absolute-git-dir", "--git-common-dir"):
+        try:
+            result = subprocess.run(["git", "-C", str(repo), "rev-parse", "--path-format=absolute", option], check=True, capture_output=True, text=True, timeout=10)
+        except (OSError, subprocess.SubprocessError) as error:
+            raise RunnerError(f"cannot identify Git metadata path for key-custody check: {error}") from error
+        value = result.stdout.strip()
+        if not value:
+            raise RunnerError("Git returned an empty metadata path")
+        paths.add(Path(value).resolve())
+    return paths
 
 
 def _atomic_create_bytes(path: Path, payload: bytes, mode: int = 0o400) -> None:
@@ -2823,16 +2905,25 @@ def create_fresh_run(repo: Path, root: Path, cohort_id: str, baseline_bin_dir: P
     """Create authenticated PREPARED metadata only; this command never launches an application."""
     plan = verify_fresh_plan(repo, root, cohort_id, baseline_bin_dir, timeout, expected_plan_sha256)
     repo, root, _source = paths(repo, root)
-    key_path = key_path.parent.resolve() / key_path.name
+    key_path = key_path.absolute()
     run_root = (root / "fresh-runs" / str(plan["plan_id"])).absolute()
     protected = [repo.resolve(), root.resolve(), Path(plan["source"]["source_path"]).resolve(), Path(plan["source"]["live_source_path"]).resolve(), Path(plan["execution"]["artifact_roots"]["run_root"]).resolve(), Path(plan["cohort"]["binaries"][APPS[0]]["path"]).resolve().parent]
     if any(key_path == item or item in key_path.parents for item in protected):
         raise RunnerError("fresh run key custody must be outside Git, source, binaries, and artifact roots")
-    key, key_identity = _stable_secret_key(key_path, create=True)
+    git_paths = _git_metadata_paths(repo)
+    protected.extend(git_paths)
+    if any(key_path == item or item in key_path.parents for item in protected):
+        raise RunnerError("fresh run key custody must be outside Git, source, binaries, and artifact roots")
+    custody_fd, _custody_info, key_path_parent = _private_custody_directory(key_path.parent, create=True)
+    os.close(custody_fd)
+    key_path = key_path_parent / key_path.name
+    if any(key_path == item or item in key_path.parents for item in protected):
+        raise RunnerError("fresh run key custody must be outside Git, source, binaries, and artifact roots")
     try:
         run_root.mkdir(parents=True, exist_ok=False, mode=0o700)
     except FileExistsError as error:
         raise RunnerError("fresh run directory already exists; refusing to reuse or clean evidence") from error
+    key, key_identity, key_path = _stable_secret_key(key_path, create=True)
     manifest: dict[str, object] = {
         "schema": FRESH_RUN_MANIFEST_SCHEMA,
         "schema_version": FRESH_RUN_MANIFEST_VERSION,
@@ -2867,8 +2958,14 @@ def verify_fresh_run(repo: Path, root: Path, cohort_id: str, baseline_bin_dir: P
     plan = verify_fresh_plan(repo, root, cohort_id, baseline_bin_dir, timeout, expected_plan_sha256)
     _repo, root, _source = paths(repo, root)
     run_root = (root / "fresh-runs" / str(plan["plan_id"])).absolute()
-    key_path = key_path.parent.resolve() / key_path.name
-    key, key_identity = _stable_secret_key(key_path)
+    key_path = key_path.absolute()
+    git_paths = _git_metadata_paths(repo)
+    protected = [repo.resolve(), root.resolve(), Path(plan["source"]["source_path"]).resolve(), Path(plan["source"]["live_source_path"]).resolve(), Path(plan["execution"]["artifact_roots"]["run_root"]).resolve(), Path(plan["cohort"]["binaries"][APPS[0]]["path"]).resolve().parent, *git_paths]
+    if any(key_path == item or item in key_path.parents for item in protected):
+        raise RunnerError("fresh run key custody must be outside Git, source, binaries, and artifact roots")
+    key, key_identity, key_path = _stable_secret_key(key_path)
+    if any(key_path == item or item in key_path.parents for item in protected):
+        raise RunnerError("fresh run key custody must be outside Git, source, binaries, and artifact roots")
     envelope, _raw = _read_stable_json(run_root / FRESH_RUN_MANIFEST_FILE, "fresh run manifest")
     if set(envelope) != {"manifest", "hmac_sha256"} or not isinstance(envelope["manifest"], dict) or not isinstance(envelope["hmac_sha256"], str):
         raise RunnerError("fresh run manifest envelope is invalid")
@@ -2939,8 +3036,28 @@ def _fresh_run_receipt_body(envelope: object, key: bytes) -> dict[str, object]:
     return receipt
 
 
-def validate_fresh_run_journal(envelopes: list[object], key: bytes, manifest: dict[str, object], planned_steps: list[dict[str, object]]) -> dict[str, object]:
-    """Validate an authenticated completed prefix; partial prefixes remain explicitly incomplete."""
+def _fresh_plan_steps(plan: dict[str, object]) -> list[dict[str, object]]:
+    phases = plan["execution"]["phases"]
+    steps: list[dict[str, object]] = []
+    for phase in phases:
+        if phase["name"] in {"baseline-capture", "baseline-replay"}:
+            for chunk in phase["chunks"]:
+                steps.append({"phase": phase["name"], "chunk": chunk["index"], "selected_cases": chunk["selected_cases"]})
+        elif phase["name"] == "baseline-ordinary-checks":
+            for group in phase["groups"]:
+                for chunk in group["chunks"]:
+                    steps.append({"phase": phase["name"], "chunk": chunk["index"], "selected_cases": chunk["selected_cases"]})
+    if not steps or not any(step["phase"] == "baseline-capture" for step in steps) or not any(step["phase"] == "baseline-replay" for step in steps) or not any(step["phase"] == "baseline-ordinary-checks" for step in steps):
+        raise RunnerError("fresh run plan has an empty required phase inventory")
+    return steps
+
+
+def validate_fresh_run_journal(envelopes: list[object], key: bytes, manifest: dict[str, object], plan_path: Path, expected_plan_sha256: str) -> dict[str, object]:
+    """Validate an authenticated completed prefix against the externally anchored immutable plan."""
+    plan = _read_self_sealed_plan(plan_path, expected_plan_sha256)
+    if plan["plan_id"] != manifest.get("plan_id") or plan["plan_sha256"] != manifest.get("plan_self_sha256") or plan["inventory"]["sha256"] != manifest.get("inventory_sha256"):
+        raise RunnerError("fresh run plan or inventory differs from the authenticated manifest")
+    planned_steps = _fresh_plan_steps(plan)
     if not isinstance(envelopes, list) or len(envelopes) > len(planned_steps):
         raise RunnerError("fresh run journal has extra receipts")
     prior_digest: str | None = None
@@ -2960,7 +3077,8 @@ def validate_fresh_run_journal(envelopes: list[object], key: bytes, manifest: di
         if any(receipt.get(field) != value for field, value in expected_claims.items()):
             raise RunnerError("fresh run receipt is stale or bound to different source, binary, environment, or plan")
         prior_digest = hashlib.sha256(canonical_receipt_json(envelope)).hexdigest()
-    return {"completed_steps": len(envelopes), "planned_steps": len(planned_steps), "complete": len(envelopes) == len(planned_steps), "executed": bool(envelopes), "candidate_comparison_eligible": False, "product_acceptance": False}
+    complete = bool(planned_steps) and len(envelopes) == len(planned_steps)
+    return {"completed_steps": len(envelopes), "planned_steps": len(planned_steps), "complete": complete, "executed": bool(envelopes), "candidate_comparison_eligible": False, "product_acceptance": False}
 
 
 def validate_chunk_coverage(selected: list[str], records: list[dict[str, object]], size: int) -> None:
