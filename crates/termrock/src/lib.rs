@@ -197,8 +197,9 @@ pub use termrock_grid::{
 };
 
 pub use termrock_editors::{
-    CodeAction, CodeCmd, CodeDiagnostic, CodeEditor, CodeEditorState, CodeSeverity, DiffLineKind,
-    DiffMode, DiffRow, DiffSource, DiffView, DiffViewState, Highlighter, Segmenter, TabBehavior,
+    CodeAction, CodeCmd, CodeDiagnostic, CodeEditor, CodeEditorState, CodeSeverity,
+    CompletingCodeEditor, CompletingCodeEditorState, DiffLineKind, DiffMode, DiffRow, DiffSource,
+    DiffView, DiffViewState, Highlighter, Segmenter, TabBehavior,
 };
 
 pub use termrock_forms::{
