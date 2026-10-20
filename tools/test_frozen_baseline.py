@@ -47,6 +47,7 @@ class RunnerGuards(unittest.TestCase):
             "observed_file_identity": "1:2:3:4:5",
             "observed_path": path,
             "observed_sha256": expected_hashes[app],
+            "process_start_identity": "1234" if sys.platform.startswith("linux") else "1234:56",
             "previous_receipt_sha256": None,
             "run_id": run_id,
             "phase": phase,
@@ -495,6 +496,49 @@ class RunnerGuards(unittest.TestCase):
             receipt_root, bins, hashes, _, key, run_id, _ = self.make_process_bundle(root / "missing")
             next((receipt_root / "process").rglob("launch-*.json")).unlink()
             with self.assertRaisesRegex(runner.RunnerError, "missing launch record"):
+                runner.verify_process_receipts(receipt_root, ["showcase::fixture::live"], "candidate-check", bins, hashes, None, run_id, key.hex(), {})
+
+    def test_process_receipts_require_start_identity_and_authenticated_launch_chain(self) -> None:
+        if not (sys.platform.startswith("linux") or sys.platform == "darwin"):
+            self.skipTest("paired process image probing is unsupported on this platform")
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            receipt_root, bins, hashes, _, key, run_id, first_digest = self.make_process_bundle(root)
+            process_dir = next((receipt_root / "process").iterdir())
+            launch_path = process_dir / "launch-00000000.json"
+            record = json.loads(launch_path.read_text())
+            record.pop("process_start_identity")
+            record.pop("hmac_sha256")
+            record["hmac_sha256"] = runner.hmac.new(key, runner.canonical_receipt_json(record), runner.hashlib.sha256).hexdigest()
+            launch_path.write_bytes(runner.canonical_receipt_json(record))
+            with self.assertRaisesRegex(runner.RunnerError, "fields differ from schema"):
+                runner.verify_process_receipts(receipt_root, ["showcase::fixture::live"], "candidate-check", bins, hashes, None, run_id, key.hex(), {})
+
+            receipt_root, bins, hashes, payload, key, run_id, first_digest = self.make_process_bundle(root / "chain")
+            process_dir = next((receipt_root / "process").iterdir())
+            second = dict(payload)
+            second.update({"ordinal": 1, "pid": 12346, "previous_receipt_sha256": first_digest})
+            second.pop("hmac_sha256", None)
+            second["hmac_sha256"] = runner.hmac.new(key, runner.canonical_receipt_json(second), runner.hashlib.sha256).hexdigest()
+            second_path = process_dir / "launch-00000001.json"
+            second_path.write_bytes(runner.canonical_receipt_json(second))
+            second_digest = runner.sha256(second_path)
+            close = {
+                "case_id": payload["case_id"], "launch_receipt_sha256": second_digest,
+                "ordinal": 1, "phase": payload["phase"], "run_id": run_id, "schema": 1,
+            }
+            close["hmac_sha256"] = runner.hmac.new(key, runner.canonical_receipt_json(close), runner.hashlib.sha256).hexdigest()
+            (process_dir / "closed-00000001.json").write_bytes(runner.canonical_receipt_json(close))
+            second["previous_receipt_sha256"] = "f" * 64
+            second.pop("hmac_sha256")
+            second["hmac_sha256"] = runner.hmac.new(key, runner.canonical_receipt_json(second), runner.hashlib.sha256).hexdigest()
+            second_path.write_bytes(runner.canonical_receipt_json(second))
+            second_digest = runner.sha256(second_path)
+            close["launch_receipt_sha256"] = second_digest
+            close.pop("hmac_sha256")
+            close["hmac_sha256"] = runner.hmac.new(key, runner.canonical_receipt_json(close), runner.hashlib.sha256).hexdigest()
+            (process_dir / "closed-00000001.json").write_bytes(runner.canonical_receipt_json(close))
+            with self.assertRaisesRegex(runner.RunnerError, "chain is broken"):
                 runner.verify_process_receipts(receipt_root, ["showcase::fixture::live"], "candidate-check", bins, hashes, None, run_id, key.hex(), {})
 
     def test_phase_binary_inventory_rejects_symlinks_and_postbuild_replacement(self) -> None:
