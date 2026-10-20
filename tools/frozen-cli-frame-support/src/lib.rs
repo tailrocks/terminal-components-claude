@@ -151,16 +151,29 @@ impl Recorder {
             .ok_or_else(|| Error::new("paired capture checkpoint ordinal overflow"))?;
         let store_name = checkpoint_name(&self.case_name, ordinal, name);
         let ansi = tuiscotti::render::ansi_dump_with_cursor(frame);
+        let receipt_path = self.receipt_path(ordinal, name);
+        if receipt_path.exists() {
+            return Err(Error::new(format!(
+                "paired capture receipt already exists: {}",
+                receipt_path.display()
+            )));
+        }
 
         match self.config.phase {
             Phase::BaselineCapture => {
+                let expected = self.config.expected_root.join(format!("{store_name}.ansi"));
+                if expected.exists() {
+                    return Err(Error::new(format!(
+                        "paired capture expectation already exists: {}",
+                        expected.display()
+                    )));
+                }
                 check_original_if_present(
                     original_expected_root,
                     name,
                     frame,
                     &self.config.receipt_root,
                 )?;
-                let expected = self.config.expected_root.join(format!("{store_name}.ansi"));
                 create_new_bytes(&expected, ansi.as_bytes())?;
                 self.check_runtime(&store_name, frame)?;
             }
@@ -194,9 +207,7 @@ impl Recorder {
     }
 
     fn write_receipt(&self, ordinal: u64, name: &str, ansi: &str) -> Result<(), Error> {
-        let case_id = hex(self.case_name.as_bytes());
-        let checkpoint = format!("{ordinal:08}-{}.json", hex(name.as_bytes()));
-        let path = self.config.receipt_root.join(case_id).join(checkpoint);
+        let path = self.receipt_path(ordinal, name);
         let hash = Sha256::digest(ansi.as_bytes());
         let record = format!(
             "{{\n  \"case_id\": {},\n  \"ordinal\": {ordinal},\n  \"logical_name\": {},\n  \"sha256\": \"{}\"\n}}\n",
@@ -205,6 +216,12 @@ impl Recorder {
             hex(&hash),
         );
         create_new_bytes(&path, record.as_bytes())
+    }
+
+    fn receipt_path(&self, ordinal: u64, name: &str) -> PathBuf {
+        let case_id = hex(self.case_name.as_bytes());
+        let checkpoint = format!("{ordinal:08}-{}.json", hex(name.as_bytes()));
+        self.config.receipt_root.join(case_id).join(checkpoint)
     }
 }
 
