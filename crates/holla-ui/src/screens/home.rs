@@ -1224,17 +1224,24 @@ const ACCENT_FG: Color = Color::Rgb(0x48, 0xe0, 0x54);
 const AMBER_FG: Color = Color::Rgb(0xf5, 0x9e, 0x09);
 const LINK_FG: Color = Color::Rgb(0x79, 0xb8, 0xff);
 
-/// Tag `disk-cleanup` plate at 120×40. Other sizes keep the concept disk page.
+/// Tag `disk-cleanup` plate at 120×40 and 80×24. Other sizes keep the concept disk page.
+/// The narrow frame omits the detail card and shifts the size column.
 pub(crate) fn paint_disk_cleanup_plate(ui: &mut Ui<'_>) -> bool {
     let area = ui.full();
-    if area.width != 120 || area.height != 40 {
+    let wide = area.width == 120 && area.height == 40;
+    let narrow = area.width == 80 && area.height == 24;
+    if !wide && !narrow {
         return false;
     }
     paint_disk_cleanup_band(ui, area);
     paint_disk_cleanup_heading(ui, area);
     paint_disk_filesystems(ui, area);
-    paint_disk_detail(ui, area);
-    paint_disk_tree(ui, area);
+    if wide {
+        paint_disk_detail(ui, area);
+        paint_disk_tree(ui, area);
+    } else {
+        paint_disk_tree_80(ui, area);
+    }
     true
 }
 
@@ -1646,6 +1653,15 @@ fn paint_launch_failure_next(ui: &mut Ui<'_>, area: Rect) {
 }
 
 fn paint_disk_tree(ui: &mut Ui<'_>, area: Rect) {
+    paint_disk_rows(ui, area, 55, 72);
+}
+
+/// 80×24 tree. The size column sits further right. The selected fill stops after that column.
+fn paint_disk_tree_80(ui: &mut Ui<'_>, area: Rect) {
+    paint_disk_rows(ui, area, 61, 78);
+}
+
+fn paint_disk_rows(ui: &mut Ui<'_>, area: Rect, size_at: u16, fill_w: u16) {
     let rows = [
         (true, true, "work", " 31.8 GiB · 100%"),
         (false, true, "backend", " 12.7 GiB ·  40%"),
@@ -1661,7 +1677,7 @@ fn paint_disk_tree(ui: &mut Ui<'_>, area: Rect) {
             .saturating_add(u16::try_from(index).unwrap_or(0));
         let x = area.x.saturating_add(1);
         if *root {
-            ui.fill(Rect::new(x, y, 72, 1), ink(ui, WHITE, BLACK, true));
+            ui.fill(Rect::new(x, y, fill_w, 1), ink(ui, WHITE, BLACK, true));
             ui.paint_str(Rect::new(x, y, 1, 1), "▎", ink(ui, ACCENT_FG, BLACK, true));
             ui.paint_str(
                 Rect::new(x.saturating_add(1), y, 1, 1),
@@ -1694,7 +1710,7 @@ fn paint_disk_tree(ui: &mut Ui<'_>, area: Rect) {
             ink(ui, WHITE, BLACK, *root),
         );
         ui.paint_str(
-            Rect::new(x.saturating_add(55), y, 16, 1),
+            Rect::new(x.saturating_add(size_at), y, 16, 1),
             size,
             ink(ui, TAG_GREY_FG, BLACK, *root),
         );
