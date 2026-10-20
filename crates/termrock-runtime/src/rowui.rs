@@ -340,6 +340,33 @@ impl<'u> RowUi<'u> {
         self.label_in(s, st);
     }
 
+    pub fn label_matched(&mut self, s: &str, matched: &[usize]) {
+        let mut style = self.style_of(Part::LABEL);
+        // Built-in picker recipes may bold the active row's label. For an
+        // unselected row, reserve bold for matched graphemes so search
+        // emphasis remains distinguishable from the cursor row.
+        if !self.flags.contains(StateFlags::FOCUSED) {
+            style = style.remove_modifier(Modifier::BOLD);
+        }
+        let area = self.remaining();
+        let used = if width(s) <= area.width {
+            self.ui.paint_matched(area, s, matched, style)
+        } else {
+            let head = Rect {
+                width: area.width.saturating_sub(1),
+                ..area
+            };
+            let used = self.ui.paint_matched(head, s, matched, style);
+            let tail = Rect {
+                x: area.x.saturating_add(used),
+                width: area.width.saturating_sub(used),
+                ..area
+            };
+            used.saturating_add(self.ui.glyph(tail, GlyphRole::Ellipsis, style))
+        };
+        self.left = self.left.saturating_add(used);
+    }
+
     pub fn label_patched(&mut self, s: &str, p: &StylePatch) {
         let patch = self.label_patch.map_or(*p, |forwarded| forwarded.merge(*p));
         let st = resolve_row_part(
