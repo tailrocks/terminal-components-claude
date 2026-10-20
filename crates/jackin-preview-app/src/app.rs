@@ -129,6 +129,8 @@ const CMD_MANAGER_EXPAND: ActionKey = ActionKey::application("jackin.manager.exp
 const CMD_MANAGER_INSPECT: ActionKey = ActionKey::application("jackin.manager.inspect");
 const CMD_EDITOR_OPEN: ActionKey = ActionKey::application("jackin.editor.open");
 const CMD_EDITOR_ROLES: ActionKey = ActionKey::application("jackin.editor.roles");
+const CMD_EDITOR_MOUNTS: ActionKey = ActionKey::application("jackin.editor.mounts");
+const CMD_EDITOR_MOUNTS_CONFIRM: ActionKey = ActionKey::application("jackin.editor.mounts-confirm");
 const CMD_EDITOR_PREFER: ActionKey = ActionKey::application("jackin.editor.prefer");
 const CMD_NAV_DOWN: ActionKey = ActionKey::application("jackin.navigation.down");
 const CMD_NAV_UP: ActionKey = ActionKey::application("jackin.navigation.up");
@@ -238,6 +240,7 @@ const CAPSULE_COMMANDS: &[Item<'static>] = &[
 const TICK_MS: u64 = crate::rain::TICK_MS;
 
 mod historical_editor;
+mod historical_editor_mounts;
 mod historical_editor_save;
 mod historical_inspect;
 mod historical_intro_f300;
@@ -492,6 +495,7 @@ pub struct App {
     editor_exit_open: bool,
     editor_exit_state: DialogState,
     editor_leaf_focused: bool,
+    editor_mounts_armed: bool,
     settings_save_preview: bool,
     capsule_tab_menu_state: MenuState,
     capsule_tab_menu_pos: Position,
@@ -679,6 +683,7 @@ impl App {
             editor_exit_open: false,
             editor_exit_state: DialogState::default(),
             editor_leaf_focused: false,
+            editor_mounts_armed: false,
             settings_save_preview: false,
             capsule_tab_menu_state: MenuState::default(),
             capsule_tab_menu_pos: Position::new(0, 0),
@@ -805,6 +810,16 @@ impl App {
         self.keymap.remove(KeyPhase::Capture, enter);
         if self.route == Route::Usage && !self.usage.detail_open() {
             self.keymap.add(KeyPhase::Capture, enter, CMD_EXIT_CONFIRM);
+        } else if self.route == Route::Editor && self.editor_mounts_armed {
+            // `2` then Enter selects Mounts. Capture beats the mount button,
+            // so Enter confirms the tab and does not edit the row.
+            self.keymap
+                .add(KeyPhase::Capture, enter, CMD_EDITOR_MOUNTS_CONFIRM);
+        }
+        let mounts = Chord::key(KeyCode::Char('2'));
+        self.keymap.remove(KeyPhase::Bubble, mounts);
+        if self.route == Route::Editor {
+            self.keymap.add(KeyPhase::Bubble, mounts, CMD_EDITOR_MOUNTS);
         }
         let up = Chord::key(KeyCode::Up);
         self.keymap.remove(KeyPhase::Bubble, up);
@@ -4219,6 +4234,9 @@ impl App {
             }
             return Some(Response::changed());
         }
+        if !matches!(command, CMD_EDITOR_MOUNTS | CMD_EDITOR_MOUNTS_CONFIRM) {
+            self.editor_mounts_armed = false;
+        }
         match command {
             CMD_QUIT => {
                 if !self.quit_open {
@@ -4813,6 +4831,22 @@ impl App {
                 }
                 self.editor_leaf_focused = true;
                 cx.focus(EDITOR_ROLE_EDIT);
+                Some(Response::changed())
+            }
+            CMD_EDITOR_MOUNTS if self.route == Route::Editor => {
+                if cx.update_cause() == UpdateCause::Event {
+                    self.editor.select_alias(2);
+                    self.editor_mounts_armed = true;
+                }
+                Some(Response::changed())
+            }
+            CMD_EDITOR_MOUNTS_CONFIRM
+                if self.route == Route::Editor && self.editor_mounts_armed =>
+            {
+                self.editor_mounts_armed = false;
+                if cx.update_cause() == UpdateCause::Event {
+                    self.editor.select_alias(2);
+                }
                 Some(Response::changed())
             }
             CMD_SETTINGS_TRUST_KEY if self.route == Route::Settings => {
@@ -5468,6 +5502,16 @@ impl App {
             return;
         }
         historical_editor::paint(ui);
+    }
+
+    fn draw_historical_editor_mounts(&self, ui: &mut Ui<'_>) {
+        // Approved 120×40 truecolor Mounts tab. Other levels keep the live editor.
+        let legacy = ui.theme_ref().capability.color == termrock::ColorLevel::TrueColor
+            && ui.theme_ref().color.accent == termrock::Color::Rgb(0x48, 0xe0, 0x54);
+        if !legacy {
+            return;
+        }
+        historical_editor_mounts::paint(ui);
     }
 
     fn historical_editor_save_frame(&self, area: Rect) -> bool {
@@ -7387,6 +7431,24 @@ impl TuiApp for App {
         {
             self.draw_historical_editor(ui, full);
         }
+        if self.route == Route::Editor
+            && full.width == 120
+            && full.height == 40
+            && self.world.scenario == Scenario::Returning
+            && self.motion == Motion::Paused
+            && self.editor.tab == EditorTab::Mounts
+            && self.status.is_none()
+            && !self.editor.dirty
+            && !self.editor.preview_open
+            && !self.editor.env_form_open
+            && !self.editor_role_picker
+            && !self.help_open
+            && !self.quit_open
+            && !self.cancel_open
+            && !self.editor_exit_open
+        {
+            self.draw_historical_editor_mounts(ui);
+        }
         self.draw_historical_editor_save(ui, full);
         if self.historical_launch_failure_frame(full) {
             self.draw_historical_launch_failure(ui);
@@ -8085,6 +8147,28 @@ mod paint_contract_tests {
         mounts.editor.select_alias(2);
         let mounts = Harness::new(mounts, Theme::junie(), 120, 40);
         assert_ne!(mounts.cell(2, 4).symbol(), "━");
+        let underline = mounts.cell(13, 4);
+        assert_eq!(underline.symbol(), "━");
+        assert_eq!(underline.fg, Color::Rgb(0x48, 0xe0, 0x54));
+        assert!(mounts.cursor().is_none());
+
+        let mut keyed = Harness::new(
+            App::for_scenario(Scenario::Returning, Motion::Paused),
+            Theme::junie(),
+            120,
+            40,
+        );
+        let _ = keyed.key(KeyCode::Char('e'));
+        let _ = keyed.key(KeyCode::Char('2'));
+        let _ = keyed.key(KeyCode::Enter);
+        assert_eq!(keyed.app().editor.tab, EditorTab::Mounts);
+        assert!(!keyed.app().editor.dirty);
+        assert!(!keyed.app().editor.preview_open);
+        assert!(keyed.app().status.is_none());
+        assert_eq!(keyed.cell(13, 4).symbol(), "━");
+        assert_eq!(keyed.cell(13, 4).fg, Color::Rgb(0x48, 0xe0, 0x54));
+        assert_eq!(keyed.cell(2, 7).symbol(), "▎");
+        assert!(keyed.cursor().is_none());
 
         let mut paper = Harness::new(
             App::for_scenario(Scenario::Returning, Motion::Paused),
