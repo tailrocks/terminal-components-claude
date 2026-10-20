@@ -2687,6 +2687,7 @@ mod tests {
     const RETIRED_FOCUS_LAYER: Id = Id::root("retired-focus-layer");
     const RETIRED_FOCUS_CONTROL: Id = Id::root("retired-focus-control");
     const RETIRED_FOCUS_NEXT: Id = Id::root("retired-focus-next");
+    const SELECTIVE_LAYER: Id = Id::root("selective-layer");
 
     fn present<A: App>(rt: &mut Runtime<A>, token: PreparedFrame) {
         let mut terminal = Terminal::new(TestBackend::new(SCREEN.width, SCREEN.height))
@@ -2890,6 +2891,163 @@ mod tests {
                 ui.register_control(B, area, Focusability::Focusable);
             });
         }
+    }
+
+    #[derive(Default)]
+    struct SelectiveLayerReceiptProbe {
+        opening: Option<crate::layer::LayerOpening>,
+        replaced: Option<crate::layer::LayerOpening>,
+        receipts: Vec<crate::layer::LayerEventReceipt>,
+        layer_keys: Vec<KeyCode>,
+        immediate_reopen: bool,
+    }
+
+    impl SelectiveLayerReceiptProbe {
+        fn open(&self, cx: &mut Cx<'_>) -> Option<crate::layer::LayerOpening> {
+            cx.open_layer_with_token(
+                SELECTIVE_LAYER,
+                LayerSpec::popover(SELECTIVE_LAYER, Anchor::Screen(ScreenAlign::Center))
+                    .size(LayerSize::Fixed(10, 3))
+                    .initial_focus(SELECTIVE_LAYER),
+            )
+        }
+    }
+
+    impl App for SelectiveLayerReceiptProbe {
+        fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+            while let Some(receipt) = cx.take_layer_intent_receipt(SELECTIVE_LAYER) {
+                self.receipts.push(receipt);
+            }
+            if cx
+                .intents(A)
+                .any(|intent| matches!(intent, Intent::Key(key) if key.code == KeyCode::Char('m')))
+            {
+                self.opening = self.open(cx);
+            }
+            let close = cx
+                .intents(SELECTIVE_LAYER)
+                .any(|intent| matches!(intent, Intent::Key(key) if key.code == KeyCode::Char('x')));
+            if close {
+                cx.close_layer(SELECTIVE_LAYER, None);
+                if self.immediate_reopen {
+                    self.replaced = self.open(cx);
+                }
+            } else if cx
+                .intents(A)
+                .any(|intent| matches!(intent, Intent::Key(key) if key.code == KeyCode::Char('r')))
+            {
+                self.replaced = self.open(cx);
+            } else {
+                for intent in cx.intents(SELECTIVE_LAYER) {
+                    if let Intent::Key(key) = intent {
+                        self.layer_keys.push(key.code);
+                    }
+                }
+            }
+            Response::ignored()
+        }
+
+        fn draw(&self, ui: &mut Ui<'_>) {
+            ui.register_control(A, Rect::new(0, 0, 8, 1), Focusability::Focusable);
+            let _ = ui.layer(SELECTIVE_LAYER, |ui, area| {
+                ui.register_control(SELECTIVE_LAYER, area, Focusability::Focusable);
+            });
+        }
+    }
+
+    #[test]
+    fn selective_layer_receipts_preserve_mixed_intents_and_reject_old_generation() {
+        let mut rt = Runtime::new(SelectiveLayerReceiptProbe::default(), Theme::junie());
+        let _ = rt.initialize();
+        let token = rt.prepare(SCREEN).expect("initial frame prepares");
+        present(&mut rt, token);
+        rt.set_focus(Some(A));
+        let token = rt.prepare(SCREEN).expect("owner focus prepares");
+        present(&mut rt, token);
+
+        let _ = rt.handle(key(KeyCode::Char('m'))).expect("layer opens");
+        let token = rt.prepare(SCREEN).expect("layer opens");
+        present(&mut rt, token);
+        let first = rt.app().opening.expect("first opening");
+
+        let _ = rt.handle(key(KeyCode::Char('x'))).expect("layer closes");
+        let token = rt.prepare(SCREEN).expect("layer close settles");
+        present(&mut rt, token);
+
+        let _ = rt.handle(key(KeyCode::Char('r'))).expect("layer reopens");
+        let token = rt.prepare(SCREEN).expect("replacement settles");
+        present(&mut rt, token);
+        let replacement = rt.app().replaced.expect("replacement opening");
+        assert_ne!(first, replacement);
+
+        let receipts = &rt.app().receipts;
+        assert!(receipts.iter().any(|receipt| {
+            receipt.opening() == first
+                && receipt.event() == LayerEvent::Dismissed(DismissReason::Programmatic)
+                && receipt.update().is_some()
+        }));
+        assert!(receipts.iter().any(
+            |receipt| receipt.opening() == replacement && receipt.event() == LayerEvent::Opened
+        ));
+        assert_eq!(
+            rt.app()
+                .receipts
+                .iter()
+                .map(|receipt| (receipt.opening(), receipt.event()))
+                .collect::<Vec<_>>(),
+            vec![
+                (first, LayerEvent::Opened),
+                (first, LayerEvent::Dismissed(DismissReason::Programmatic),),
+                (replacement, LayerEvent::Opened),
+            ],
+            "opening identities and delayed close receipts retain chronological order"
+        );
+    }
+
+    #[test]
+    fn same_update_layer_reopen_keeps_new_generation_live() {
+        let app = SelectiveLayerReceiptProbe {
+            immediate_reopen: true,
+            ..SelectiveLayerReceiptProbe::default()
+        };
+        let mut rt = Runtime::new(app, Theme::junie());
+        let _ = rt.initialize();
+        let token = rt.prepare(SCREEN).expect("initial frame prepares");
+        present(&mut rt, token);
+        rt.set_focus(Some(A));
+        let token = rt.prepare(SCREEN).expect("owner focus prepares");
+        present(&mut rt, token);
+
+        let _ = rt.handle(key(KeyCode::Char('m'))).expect("layer opens");
+        let token = rt.prepare(SCREEN).expect("layer opens");
+        present(&mut rt, token);
+        let first = rt.app().opening.expect("first opening");
+
+        let _ = rt
+            .handle(key(KeyCode::Char('x')))
+            .expect("layer closes and reopens");
+        let token = rt.prepare(SCREEN).expect("same-update replacement settles");
+        present(&mut rt, token);
+        let replacement = rt.app().replaced.expect("replacement opening");
+        assert_ne!(first, replacement);
+        assert!(
+            rt.is_open(SELECTIVE_LAYER),
+            "same-ID replacement remains open"
+        );
+        assert!(
+            !rt.app().receipts.iter().any(|receipt| {
+                receipt.opening() == first && matches!(receipt.event(), LayerEvent::Dismissed(_))
+            }),
+            "coalesced old close has no stale dismissal receipt"
+        );
+        assert_eq!(
+            rt.focus(),
+            Some(SELECTIVE_LAYER),
+            "new layer keeps its focus target"
+        );
+        assert!(!rt.diagnostics().iter().any(|diagnostic| {
+            matches!(diagnostic, Diagnostic::UndeliveredIntent { owner } if *owner == SELECTIVE_LAYER)
+        }));
     }
 
     #[test]

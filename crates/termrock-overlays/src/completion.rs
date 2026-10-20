@@ -16,6 +16,7 @@ use crate::theme::{Family, StylePatch, Variant};
 use crate::ui::{Cx, FrameRead, Ui};
 use termrock_collections::collection::{CollectionCore, Reconcile};
 use termrock_runtime::empty::EmptyState;
+use termrock_runtime::layer::{LayerOpening, UpdateToken};
 use termrock_runtime::rowui::{RowFn, RowUi};
 use termrock_runtime::scroll_region::ScrollRegion;
 
@@ -128,6 +129,8 @@ pub struct CompletionState {
     owner: Option<Id>,
     anchor: Rect,
     replace_len: usize,
+    opening: Option<LayerOpening>,
+    programmatic_close: Option<(LayerOpening, UpdateToken)>,
 }
 
 impl CompletionState {
@@ -180,14 +183,19 @@ impl CompletionController {
                 cx.reanchor_layer(self.popup_id, anchor);
                 cx.resize_layer(self.popup_id, LayerSize::Fixed(48, rows.saturating_add(2)));
             } else {
-                cx.open_layer(
+                let _ = cx.open_layer_with_token(
                     self.popup_id,
                     LayerSpec::popover(self.popup_id, anchor)
                         .dismiss(Dismiss::ESC_AND_OUTSIDE)
                         .size(LayerSize::Fixed(48, rows.saturating_add(2))),
                 );
             }
+            state.opening = cx.layer_opening(self.popup_id).or(state.opening);
         } else {
+            if let Some(opening) = cx.layer_opening(self.popup_id) {
+                state.opening = Some(opening);
+                state.programmatic_close = Some((opening, cx.update_token()));
+            }
             cx.close_layer(self.popup_id, None);
         }
     }
@@ -195,6 +203,10 @@ impl CompletionController {
     pub fn dismiss(&self, cx: &mut Cx<'_>, state: &mut CompletionState) {
         state.open = false;
         state.owner = None;
+        if let Some(opening) = cx.layer_opening(self.popup_id) {
+            state.opening = Some(opening);
+            state.programmatic_close = Some((opening, cx.update_token()));
+        }
         cx.close_layer(self.popup_id, None);
     }
 
@@ -465,8 +477,41 @@ impl<T: AsItem, R: RowFn<T>> Completion<'_, T, R> {
         state: &mut CompletionState,
         items: &[T],
     ) -> Response<CompletionAction> {
+        let mut events = Acc::<CompletionAction>::new();
+        while let Some(receipt) = cx.take_layer_intent_receipt(self.id) {
+            let opening = receipt.opening();
+            let expected_close = state.programmatic_close.is_some_and(|(expected, update)| {
+                expected == opening && receipt.update() == Some(update)
+            });
+            if expected_close {
+                state.programmatic_close = None;
+                if state.opening == Some(opening) && !state.open {
+                    state.opening = None;
+                }
+                continue;
+            }
+            if state.opening != Some(opening)
+                || cx
+                    .layer_opening(self.id)
+                    .is_some_and(|live| live != opening)
+            {
+                continue;
+            }
+            match receipt.event() {
+                LayerEvent::Dismissed(_) => {
+                    let was_open = state.open;
+                    state.open = false;
+                    state.owner = None;
+                    state.opening = None;
+                    if was_open {
+                        events.action(CompletionAction::Dismissed);
+                    }
+                }
+                LayerEvent::Opened | LayerEvent::Closed(_) => {}
+            }
+        }
         if !state.open {
-            return Response::ignored();
+            return events.finish(self.id);
         }
         state.owner = Some(owner);
         let _ = state
@@ -495,11 +540,6 @@ impl<T: AsItem, R: RowFn<T>> Completion<'_, T, R> {
         }
         for intent in cx.intents(self.id) {
             match intent {
-                Intent::Layer(LayerEvent::Dismissed(_)) => {
-                    state.open = false;
-                    state.owner = None;
-                    acc.action(CompletionAction::Dismissed);
-                }
                 Intent::Pointer {
                     phase: Phase::Click | Phase::DoubleClick,
                     part:
