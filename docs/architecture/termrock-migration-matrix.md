@@ -925,3 +925,24 @@ The preceding navigation increment was pushed and remotely verified at `b77445a6
 Integrated `dfb54cfc5dd9511b214a68677eb213492df897fd`. Existing recolor APIs keep their signatures, callback order, and eligibility; changed channels now preserve unrelated style provenance, while unchanged channels do not acquire new paint metadata. The independent packet under `docs/audits/evidence/2026-10-21-recolor-provenance/` has SHA-256 `50295af7cffefb3a0c25aeee72810bf631490cd10b1d7495b770dba43e75b05b`: the unchanged external suite failed ten of fourteen checks before the fix and passed fourteen twice afterward. This repairs a rendering primitive; it does not authorize application-owned widget repainting or screen-specific recolor passes.
 
 The preceding typed-slot integration was pushed and remotely verified at `7a104258b020f717625848e7582d19ea6bdaf6ed`: scoped Runtime/Overlays nextest passed 479 tests with three skips, and five public slot tests passed without skips; scoped strict Clippy and formatting passed. Independent review additionally exercises Tab, ShiftTab, Escape, and repeated focus restoration across four profiles; this supersedes the earlier authored audit's statement that these independent flows had not yet been exercised. Application parity remains incomplete.
+
+## PR #38 landing-queue integration onto parity/termrock-visual-baseline (2026-10-21)
+
+Ordered cherry-pick integration of the cleared landing queue. Pushed tip sequence: `8a8e28300` → `499cec504` → `efda9593a` → `2d66ea9be` → `bfbb72516`; each push gated (`cargo nextest run --all-targets` on touched packages, `cargo fmt --check`, `cargo clippy --all-targets`) on the exact pushed HEAD and serialized through the shared push lock.
+
+Landings:
+
+- Four bounded fixes plus `wip/palette-grid-repair-20261021` (grid tests kept intact) at `8a8e28300`. `fill-keep-fg` and `button-narrow` were already landed (empty `git cherry`) and skipped.
+- Style chain `empty-style-reference-fix-20261020` then `item-row-palette-reference-20261020` at `499cec504`; `wip/pr38-palette-style-integration` never landed separately. `item-row-palette-reference`'s only other unlanded commit was a matrix-doc note, folded here.
+- Master-detail, `tablepro-live-contracts`, `tablepro-footer-focus` at `efda9593a`.
+- Button chain (`showcase-button-consumer` with `button-contract-review` squashed into it) at `2d66ea9be` with three semantic merges, all stated in the queue: `BusyMarkerPolicy` defaults to `Replace` (frozen-contract behavior kept, `Keep` available as override); theme keeps the landed `Dot`/`DotOff` glyph roles (showcase overrides adapted); button focus gutter keyed on `FOCUSED | FOCUS_VISIBLE` per the landed FOCUS_VISIBLE semantics.
+- `wip/table-consumer-baseline` (15 commits plus one compile adaptation: `press_track`/`drag_track` now return `bool`, two `let _ =` bindings added) at `bfbb72516`. `parity/table-component-20261020` not landed — superseded by this branch.
+
+Skips (verified, not dropped work): `runtime-fields` remainder identical to the step-3 commits; `strict-accounting` already integrated via ancestor `407d727f9` (tools byte-identical, tip superset); `picker-family-contracts` and `picker-geometry` superseded by the landed hosted-query-ownership lineage (`7861b05ea`/`5c50c1776`/`35f623525`); `edit-menu-overlay` already landed as `39169524e`; `wip/termrock-reviewed-contract-integration-20261020` skipped per queue.
+
+Holds:
+
+- `parity/buttons-reference-decision-20261020` executable pins (`0f93b80b1`, `88bc8cdf2`): the branch pins `tools/frozen_cli_references.json` at `d5d8d648…` and adds the Buttons reference decision validator, but the landed cohort-review architecture freezes the same file at `2a43fb11…` inside six reviewed audit documents (`fresh-baseline-capture-eligibility`, `fresh-baseline-capture-evidence-recheck`, `cohort-capture-metadata-de156-review`, `baseline-cohort-adapter-review`, `baseline-cohort-schema-review`, `baseline-adapter-source-equivalence`), several themselves hash-pinned in `frozen_baseline.py`. Landing would rewrite frozen review records. The branch's pure-docs commits (paired Buttons CLI proof, TablePro delete-dialog parity proof) are landed. The Buttons pin must be re-advanced through the cohort-review machinery, not by editing reviewed decisions.
+- `parity/frozen-table-workflows-20261020` (`b6d75a22d`): only its audit note landed; the executable table-sort extension content is byte-identical to content already at the tip (superseded), verified by hash.
+- `parity/tablepro-picker-live-20261020` (10 commits): not mechanical — `crates/termrock-navigation/src/filter_list.rs` diverged structurally (landed `query_input` model vs branch's `query_editor` model). Requires a re-port against the landed design before its frozen tab-picker geometry assertions can run; recorded as known WIP.
+- Per queue: `wip/textarea-fields-stage3-20261021` and `wip/steps-shared-contract-20261021` remain held.
