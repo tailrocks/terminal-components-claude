@@ -596,6 +596,12 @@ fn grid(m: &mut PartMap<PartRecipe>) {
                 .add(Modifier::BOLD)
                 .remove(Modifier::REVERSED),
         );
+    part(
+        m,
+        Part::TEXT,
+        p().add(Modifier::UNDERLINED).set_underline(Role::Accent),
+    )
+    .when(StateFlags::ERROR, p().set_underline(Role::Danger));
     part(m, Part::OVERFLOW, p().set_fg(Role::Fg(FgStep::Muted)));
     part(m, Part::ACTIONS, p().set_fg(Role::Fg(FgStep::Secondary)));
 }
