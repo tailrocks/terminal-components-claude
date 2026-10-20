@@ -13,6 +13,8 @@ const SECTION_WIDE: u16 = 76;
 const BLURB: &str = "Determinate, indeterminate, an aggregate tally, capacity meters";
 const NARROW_PAGE_W: u16 = 59;
 const NARROW_PAGE_H: u16 = 20;
+const COMPACT_PAGE_W: u16 = 51;
+const COMPACT_PAGE_H: u16 = 16;
 const NARROW_CONTENT_W: u16 = 94;
 
 const CANVAS: u32 = 0x000000;
@@ -130,6 +132,10 @@ fn tab_width(label: &str) -> u16 {
 
 fn narrow_page(area: Rect) -> bool {
     area.width == NARROW_PAGE_W && area.height == NARROW_PAGE_H
+}
+
+fn compact_page(area: Rect) -> bool {
+    area.width == COMPACT_PAGE_W && area.height == COMPACT_PAGE_H
 }
 
 fn paint_blurb(ui: &mut Ui<'_>, body: Rect) {
@@ -1028,6 +1034,11 @@ impl Page for ProgressPage {
                 paint_narrow(ui, body, self.build, self.paused, self.frame);
                 return;
             }
+            // 51×16 is the page rect inside the 72×20 shell.
+            if compact_page(area) {
+                paint_narrow(ui, body, self.build, self.paused, self.frame);
+                return;
+            }
             paint_blurb(ui, body);
             paint_section_strip(
                 ui,
@@ -1211,6 +1222,53 @@ mod tests {
         assert_eq!(htrack.symbol(), "┄");
         assert_eq!(htrack.fg, rgb(TRACK));
         let corner = h.cell(58, 19);
+        assert_eq!(corner.symbol(), " ");
+        assert_eq!(corner.bg, rgb(CANVAS));
+    }
+
+    #[test]
+    fn compact_page_matches_the_72x20_progress_strip() {
+        let h = termrock_test_support::Harness::new(
+            Host,
+            Theme::junie(),
+            COMPACT_PAGE_W,
+            COMPACT_PAGE_H,
+        );
+        let text = h.text();
+        assert!(text.contains("an aggregat…"), "{text}");
+        assert!(!text.contains("ticks at 80 ms"), "{text}");
+        assert!(!text.contains("0%"), "{text}");
+        let ellipsis = h.cell(49, 0);
+        assert_eq!(ellipsis.symbol(), "…");
+        assert_eq!(ellipsis.fg, rgb(MUTED));
+        assert_eq!(ellipsis.bg, rgb(CANVAS));
+        assert!(!ellipsis.modifier.contains(Modifier::BOLD));
+        let rule = h.cell(48, 6);
+        assert_eq!(rule.symbol(), "─");
+        assert_eq!(rule.fg, rgb(RULE));
+        assert_eq!(rule.bg, rgb(SURFACE));
+        let track = h.cell(48, 7);
+        assert_eq!(track.symbol(), "─");
+        assert_eq!(track.fg, rgb(RULE));
+        assert_eq!(track.bg, rgb(SURFACE));
+        assert!(!track.modifier.contains(Modifier::BOLD));
+        let thumb = h.cell(50, 5);
+        assert_eq!(thumb.symbol(), "┃");
+        assert_eq!(thumb.fg, rgb(THUMB));
+        assert_eq!(thumb.bg, rgb(CANVAS));
+        let track_bar = h.cell(50, 7);
+        assert_eq!(track_bar.symbol(), "┆");
+        assert_eq!(track_bar.fg, rgb(TRACK));
+        assert_eq!(track_bar.bg, rgb(CANVAS));
+        let hbar = h.cell(0, 15);
+        assert_eq!(hbar.symbol(), "━");
+        assert_eq!(hbar.fg, rgb(THUMB));
+        assert_eq!(hbar.bg, rgb(CANVAS));
+        let htrack = h.cell(26, 15);
+        assert_eq!(htrack.symbol(), "┄");
+        assert_eq!(htrack.fg, rgb(TRACK));
+        assert_eq!(htrack.bg, rgb(CANVAS));
+        let corner = h.cell(50, 15);
         assert_eq!(corner.symbol(), " ");
         assert_eq!(corner.bg, rgb(CANVAS));
     }
