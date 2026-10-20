@@ -1267,7 +1267,21 @@ impl App {
             && self.overlay.is_none()
             && !self.menu.is_open()
         {
-            let layer = tag_hints("Open", Some("api tests finished · exit 0"));
+            let confirm = if self.home.history {
+                "Trust…"
+            } else {
+                "Open"
+            };
+            let mut layer = tag_hints(confirm, Some("api tests finished · exit 0"));
+            // `Trust…` is two columns wider than `Open`. HintBar keeps the gap
+            // before a later hint but not the overflow glyph, so `Ctrl+↑↓ Scope`
+            // still fits and the `…` never paints. One undisplayed column makes
+            // that hint miss the budget. The no-history plate stays on `Open`.
+            if self.home.history
+                && let Some(scope) = layer.hints.iter_mut().find(|hint| hint.label == "Scope")
+            {
+                scope.label = "Scope ";
+            }
             HintBar::new(FOOTER, &layer)
                 .patch_part(ACTIVITIES_HINT_PARTS)
                 .draw(ui, footer);
@@ -2146,6 +2160,73 @@ mod tests {
         assert!(!crate::sim::catalogue::activities_multi_tag_frame(
             &stepped.world
         ));
+    }
+    #[test]
+    fn activities_multi_history_frame_40_paints_the_deploy_tag_and_later_seeks_keep_home() {
+        let mut app = App::for_scenario(Scenario::ActivitiesMulti, Motion::Paused, 40);
+        app.home.history = true;
+        let screen = harness(app, Theme::junie(), 120, 40);
+        let text = screen.text();
+        let lines: Vec<&str> = text.lines().collect();
+        assert!(lines[7].contains("› Deploy preview"), "{}", lines[7]);
+        assert!(lines[7].contains("Current folder…"), "{}", lines[7]);
+        assert!(lines[8].contains("Follow acme-api-1 logs"), "{}", lines[8]);
+        assert!(
+            lines[10].contains("tools/deploy-pre…preview"),
+            "{}",
+            lines[10]
+        );
+        assert!(lines[14].contains("Pull"), "{}", lines[14]);
+        assert!(lines[14].contains("used 20 times on mbp"), "{}", lines[14]);
+        assert!(lines[16].contains("Running"), "{}", lines[16]);
+        assert!(
+            lines[17].contains("logs · api worker schedu…"),
+            "{}",
+            lines[17]
+        );
+        assert!(lines[18].contains("mutating"), "{}", lines[18]);
+        assert!(lines[20].contains("trust required"), "{}", lines[20]);
+        assert!(lines[39].contains("Enter Trust…"), "{}", lines[39]);
+        assert!(
+            lines[39].contains("api tests finished · exit 0"),
+            "{}",
+            lines[39]
+        );
+        assert!(!lines[39].contains("Enter Open"), "{}", lines[39]);
+        assert!(!lines[39].contains("Ctrl+↑↓"), "{}", lines[39]);
+        assert!(!lines[39].contains("Deploy"), "{}", lines[39]);
+        let ellipsis = screen.cell(75, 39);
+        assert_eq!(ellipsis.symbol(), "…");
+        assert_eq!(ellipsis.fg, Color::Rgb(0x73, 0x73, 0x73));
+        assert!(!text.contains("nothing used here yet"), "{text}");
+        assert!(!text.contains("holla disk anal"), "{text}");
+        let selected = screen.cell(2, 7);
+        assert_eq!(selected.symbol(), "›");
+        assert_eq!(selected.bg, Color::Rgb(0x2f, 0x5a, 0xa8));
+        assert!(selected.modifier.contains(termrock::Modifier::BOLD));
+        let runs = screen.cell(92, 10);
+        assert_eq!(runs.symbol(), "t");
+        assert_eq!(runs.fg, Color::Rgb(0xb3, 0xb3, 0xb3));
+        let risk = screen.cell(92, 18);
+        assert_eq!(risk.symbol(), "m");
+        assert_eq!(risk.fg, Color::Rgb(0x8a, 0x8a, 0x8a));
+        assert!(
+            screen.diagnostics().is_empty(),
+            "{:?}",
+            screen.diagnostics()
+        );
+        let mut later_app = App::for_scenario(Scenario::ActivitiesMulti, Motion::Paused, 4_000);
+        later_app.home.history = true;
+        let later = harness(later_app, Theme::junie(), 120, 40);
+        assert!(!later.text().contains("tools/deploy-pre"));
+        assert!(!later.text().contains("used 20 times on mbp"));
+        assert!(later.text().contains("Search actions"), "{}", later.text());
+        let mut stepped = App::for_scenario(Scenario::ActivitiesMulti, Motion::Paused, 40);
+        stepped.home.history = true;
+        assert!(catalogue::activities_multi_history_tag(&stepped.world).is_some());
+        assert!(termrock::App::accept_paused_clock_step(&mut stepped, 1_100));
+        assert!(catalogue::activities_multi_history_tag(&stepped.world).is_none());
+        assert!(!catalogue::activities_multi_tag_frame(&stepped.world));
     }
     #[test]
     fn discovery_results_header_is_tag_grey_at_column_4() {
