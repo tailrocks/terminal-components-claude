@@ -14,6 +14,7 @@ use termrock::{
 };
 
 use crate::quick_switcher::{self, QuickSwitcher};
+use crate::safe_mode::SafeModePicker;
 use crate::tab_list::{self, TabList};
 use crate::tabs::{ExplorerItem, GridView, Tab, TabKey, TabRecord};
 use crate::workbench::Workbench;
@@ -30,7 +31,6 @@ mod historical_query_completion;
 mod historical_query_error;
 mod historical_query_explain;
 mod historical_query_results;
-mod historical_safemode_picker;
 mod historical_table_scrolled_right;
 mod historical_workbench_explorer_hidden;
 mod historical_workbench_maximized;
@@ -586,6 +586,7 @@ pub struct TableProApp {
     quit_state: DialogState,
     switcher: QuickSwitcher,
     tab_list: TabList,
+    safe_mode_picker: SafeModePicker,
 
     pub screen: Screen,
 
@@ -645,6 +646,7 @@ impl core::fmt::Debug for TableProApp {
             .field("quit_state", &self.quit_state)
             .field("switcher", &"<query and target snapshot>")
             .field("tab_list", &self.tab_list.rows.len())
+            .field("safe_mode_picker", &self.safe_mode_picker.rows.len())
             .field("connections_screen", &self.connections_screen)
             .field("workbench", &self.workbench)
             .field("connection_nodes", &self.connection_nodes.len())
@@ -711,6 +713,7 @@ impl TableProApp {
             quit_state: DialogState::default(),
             switcher: QuickSwitcher::default(),
             tab_list: TabList::default(),
+            safe_mode_picker: SafeModePicker::default(),
             screen: Screen::Connections,
             surface: Surface::Connections,
             connections_screen: ConnectionsScreen::new(connections),
@@ -1808,10 +1811,20 @@ impl TableProApp {
         true
     }
 
-    fn open_safe_mode_picker(&mut self) -> bool {
-        if self.surface == Surface::SafeModePicker || !self.idle_production_query() {
+    fn open_safe_mode_picker(&mut self, cx: &mut Cx<'_>) -> bool {
+        if self.screen != Screen::Workbench || self.form_open || self.destructive_intent.is_some() {
             return false;
         }
+        if cx.is_open(crate::safe_mode::ID) {
+            return false;
+        }
+        self.safe_mode_picker.open(self.safe_mode);
+        cx.open_layer(
+            crate::safe_mode::ID,
+            crate::safe_mode::picker(self.safe_mode_picker.rows.len())
+                .layer(cx, &self.safe_mode_picker.rows),
+        );
+        // Direct assign. set_surface(SafeModePicker) forces SafeFull.
         self.surface = Surface::SafeModePicker;
         true
     }
@@ -1922,6 +1935,27 @@ impl TableProApp {
             _ => {}
         }
         if was_open && !cx.is_open(tab_list::ID) && self.surface == Surface::TabListPicker {
+            self.sync_active_tab();
+        }
+        response.erase()
+    }
+
+    fn update_safe_mode(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+        let was_open = cx.is_open(crate::safe_mode::ID);
+        let mut response = crate::safe_mode::picker(self.safe_mode_picker.rows.len()).update(
+            cx,
+            &mut self.safe_mode_picker.state,
+            &self.safe_mode_picker.rows,
+        );
+        if let Some(PickerAction::Chosen(key)) = response.take_action()
+            && was_open
+            && let Some(mode) = crate::safe_mode::mode_of(key)
+        {
+            self.set_safe_mode(mode);
+            cx.close_layer(crate::safe_mode::ID, None);
+        }
+        if was_open && !cx.is_open(crate::safe_mode::ID) && self.surface == Surface::SafeModePicker
+        {
             self.sync_active_tab();
         }
         response.erase()
@@ -7646,6 +7680,28 @@ fn paint_connection_filter_footer(ui: &mut Ui<'_>, area: termrock::Rect) {
     );
 }
 
+fn paint_picker_move_footer(ui: &mut Ui<'_>, area: termrock::Rect) {
+    let base = ui.surface_style();
+    ui.paint_spans(
+        area,
+        &[
+            Span::new(" "),
+            Span::new("↑↓").bold(),
+            Span::new(" "),
+            Span::new("Move").role(TAG_CHROME_FG),
+            Span::new("  "),
+            Span::new("Enter").bold(),
+            Span::new(" "),
+            Span::new("Choose").role(TAG_CHROME_FG),
+            Span::new("  "),
+            Span::new("Esc").bold(),
+            Span::new(" "),
+            Span::new("Cancel").role(TAG_CHROME_FG),
+        ],
+        base,
+    );
+}
+
 fn paint_picker_layer_footer(ui: &mut Ui<'_>, area: termrock::Rect) {
     let base = ui.surface_style();
     ui.paint_spans(
@@ -7679,6 +7735,8 @@ fn draw_footer(ui: &mut Ui<'_>, area: termrock::Rect, app: &TableProApp) {
     ui.fill(area, base);
     if matches!(app.surface, Surface::QuickSwitcher | Surface::TabListPicker) {
         paint_picker_layer_footer(ui, area);
+    } else if app.surface == Surface::SafeModePicker {
+        paint_picker_move_footer(ui, area);
     } else if app.screen == Screen::Connections && app.connection_filter_editing {
         paint_connection_filter_footer(ui, area);
         return;
@@ -8131,35 +8189,6 @@ impl TableProApp {
         // Trailer is ESC[?25l. Do not set a bar cursor and do not write cursor bytes.
         historical_history_tab::paint(ui);
         true
-    }
-
-    fn paint_historical_safemode_picker(&self, ui: &mut Ui<'_>) -> bool {
-        if !self.historical_safemode_picker_frame(ui) {
-            return false;
-        }
-        // Trailer is ESC[?25l. Do not set a bar cursor and do not write cursor bytes.
-        historical_safemode_picker::paint(ui);
-        true
-    }
-
-    fn historical_safemode_picker_frame(&self, ui: &Ui<'_>) -> bool {
-        let area = ui.full();
-        // The approved card is the PTY frame. Unit tests have no tty, but
-        // ctrl-l still has to land on the approved cell or its check fails.
-        let on_terminal = std::io::IsTerminal::is_terminal(&std::io::stdout());
-        if area.width != 120 || area.height != 40 || !(on_terminal || cfg!(test)) {
-            return false;
-        }
-        let theme = ui.theme_ref();
-        if theme.capability.color != termrock::ColorLevel::TrueColor
-            || theme.color.accent != termrock::Color::Rgb(0x48, 0xe0, 0x54)
-        {
-            return false;
-        }
-        // set_surface(SafeModePicker) forces SafeFull. ctrl-l leaves Production on Safe.
-        self.surface == Surface::SafeModePicker
-            && self.safe_mode == SafeMode::Safe
-            && self.idle_production_query()
     }
 
     fn paint_historical_help_overlay(&self, ui: &mut Ui<'_>) -> bool {
@@ -9012,6 +9041,7 @@ impl App for TableProApp {
         }
         response |= self.update_switcher(cx);
         response |= self.update_tab_list(cx);
+        response |= self.update_safe_mode(cx);
         if switcher_was_open {
             return response;
         }
@@ -9115,7 +9145,7 @@ impl App for TableProApp {
                 c if c == TAB_LIST && self.open_tab_list(cx) => {
                     response |= Response::changed();
                 }
-                c if c == CLEAR_QUERY && self.open_safe_mode_picker() => {
+                c if c == CLEAR_QUERY && self.open_safe_mode_picker(cx) => {
                     response |= Response::changed();
                 }
                 c if c == NEW_QUERY => {
@@ -9395,7 +9425,6 @@ impl App for TableProApp {
             || self.paint_historical_workbench_explorer_hidden(ui)
             || self.paint_historical_table_scrolled_right(ui)
             || self.paint_historical_history_tab(ui)
-            || self.paint_historical_safemode_picker(ui)
             || self.paint_historical_help_overlay(ui)
             || self.paint_historical_filter_editor(ui)
             || self.paint_historical_delete_dialog(ui)
@@ -9466,6 +9495,14 @@ impl App for TableProApp {
                 area,
                 &self.tab_list.state,
                 &self.tab_list.rows,
+            );
+        });
+        ui.layer(crate::safe_mode::ID, |ui, area| {
+            crate::safe_mode::picker(self.safe_mode_picker.rows.len()).draw(
+                ui,
+                area,
+                &self.safe_mode_picker.state,
+                &self.safe_mode_picker.rows,
             );
         });
         if let Some(intent) = self.destructive_intent.as_ref() {
