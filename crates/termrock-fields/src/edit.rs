@@ -34,21 +34,27 @@ pub struct EditMenuRequest {
 
 pub(crate) fn capabilities(
     draft: &EditorDraft,
+    committed_text: &str,
     is_editing: bool,
     disabled: bool,
     editable: bool,
     secret: bool,
     value_sensitive: bool,
 ) -> EditCapabilities {
-    let selection = draft.selection();
+    let selection = is_editing.then(|| draft.selection()).flatten();
     let selected = selection.is_some();
-    let all_selected = selection.is_some_and(|range| range == (0..draft.text().len()));
+    let content = if is_editing {
+        draft.text()
+    } else {
+        committed_text
+    };
+    let all_selected = selection.is_some_and(|range| range == (0..content.len()));
     let can_copy = selected && !disabled && !secret && !value_sensitive && !draft.is_sensitive();
     EditCapabilities {
         can_cut: can_copy && editable,
         can_copy,
         can_paste: editable,
-        can_select_all: !disabled && is_editing && !draft.text().is_empty() && !all_selected,
+        can_select_all: !disabled && !content.is_empty() && !all_selected,
     }
 }
 
