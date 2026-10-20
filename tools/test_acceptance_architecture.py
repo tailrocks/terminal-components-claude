@@ -208,6 +208,27 @@ fn render(ui: &mut Ui) { for cell in FRAME_PIECES { ui.paint(cell.x, cell.y, cel
         self.assertTrue(report["architecture_checks_passed"], report["errors"])
         self.assertFalse(any("target/generated.rs" in row["path"] for row in report["source_inputs"]))
 
+    def test_declared_module_into_pruned_target_directory_is_unaccounted(self) -> None:
+        write(self.root / "target/mod.rs", "// captured terminal frame\n")
+        link = self.root / "crates/termrock-core/src/target"
+        link.symlink_to(self.root / "target", target_is_directory=True)
+        write(self.root / "crates/termrock-core/src/lib.rs", "pub mod target;\n")
+        report = self.run_gate()
+        self.assertFalse(report["architecture_checks_passed"])
+        self.assertTrue(any("production module resolves inside Cargo target directory" in item and "src/lib.rs:1" in item for item in report["unaccounted_inputs"]))
+        self.assertFalse(any(row["path"] == "target/mod.rs" for row in report["source_inputs"]))
+
+    def test_missing_live_include_does_not_fall_back_to_git_index(self) -> None:
+        include = self.root / "crates/termrock-core/generated.inc"
+        write(self.root / "crates/termrock-core/src/lib.rs", 'include!("../generated.inc");\n')
+        write(include, "// captured terminal frame\n")
+        subprocess.run(["git", "add", "-A"], cwd=self.root, check=True)
+        include.unlink()
+        report = self.run_gate()
+        self.assertFalse(report["architecture_checks_passed"])
+        self.assertTrue(any("unreadable or out-of-root include" in item and "generated.inc" in item for item in report["errors"]))
+        self.assertFalse(any(row["path"] == "crates/termrock-core/generated.inc" for row in report["source_inputs"]))
+
     def test_custom_build_target_outside_src_is_hashed_and_unresolved(self) -> None:
         write(self.root / "crates/termrock-core/Cargo.toml", '[package]\nname="termrock-core"\nversion="0.1.0"\nedition="2024"\nbuild="build/custom.rs"\n')
         write(self.root / "crates/termrock-core/build/custom.rs", "fn main() {}\n")
