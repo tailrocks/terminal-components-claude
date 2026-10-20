@@ -1154,7 +1154,10 @@ impl<'f> Ui<'f> {
                     cell.bg = kept_bg;
                 }
             }
-            self.mark(src, None);
+            // Preserve the source cell's semantic role metadata for the
+            // vacated padding cell, then apply any reset-channel overrides.
+            // Clearing roles here makes later visual passes (such as dimming)
+            // treat padding differently from the row it belongs to.
             self.mark(src, Some(reset));
         }
     }
@@ -1896,6 +1899,32 @@ mod tests {
             })
             .collect();
         assert_eq!(text, "10000");
+    }
+
+    #[test]
+    fn right_aligned_padding_keeps_semantic_roles_through_dimming() {
+        use crate::rowui::CellUi;
+        use crate::theme::{Align, PaintStyle};
+
+        let theme = Theme::junie();
+        let (_, page) = with_ui(&theme, |ui| {
+            let area = Rect::new(0, 0, 12, 1);
+            let fill = ui.paint_patch(
+                &StylePatch::new()
+                    .set_fg(Role::Accent)
+                    .set_bg(Role::Surface(Surface::Overlay)),
+            );
+            ui.fill(area, fill);
+            let mut cell = CellUi::new(ui.reborrow(), Rect::new(0, 0, 6, 1), PaintStyle::new());
+            cell.align(Align::Right);
+            cell.text("1");
+            drop(cell);
+            ui.dim_layer(area, 1);
+        });
+
+        let padding = page.cell(Position::new(0, 0)).expect("padding cell");
+        let row_fill = page.cell(Position::new(8, 0)).expect("row fill cell");
+        assert_eq!((padding.fg, padding.bg), (row_fill.fg, row_fill.bg));
     }
 
     #[test]
