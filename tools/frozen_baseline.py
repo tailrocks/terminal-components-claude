@@ -7,11 +7,13 @@ import argparse
 from datetime import datetime, timezone
 import gzip
 import hashlib
+import hmac
 import json
 import os
 from pathlib import Path, PurePosixPath
 import platform
 import re
+import secrets
 import shutil
 import signal
 import stat
@@ -38,7 +40,7 @@ EXTENSION_SOURCE = Path("tools/frozen_cli_extensions.rs")
 EXTENSION_CASE_PREFIX = "termrock_extensions::showcase::table_sort::"
 EXTENSION_MANIFEST_SHA256 = "b995c00f0dc14d4e0a81d1d56140e1c10ba7936a043e0135196f8fe8421cabb8"
 EXTENSION_SOURCE_SHA256 = "332bd4eac4dc65be1a1478f97177cc658113a063900d8b9c6a0ba2ddc6dc67d9"
-EXTENSION_PATCH_SHA256 = "efa2aa83839780200cd6b9a3c1761af7ea16e19661d70a5a0a9c57f08812d52f"
+EXTENSION_PATCH_SHA256 = "17de30ad69fea9c7f514cd6530727283637d090958020ebe13a311aad4506ff4"
 REFERENCE_DECISIONS = Path("tools/frozen_cli_references.json")
 REFERENCE_DECISIONS_SHA256 = "2a43fb118c268300c8bbd6439ea11bb9a24ffff03dc3c9f4601893eee26a096b"
 REFERENCE_CASE = "showcase::resize::overview_grown::120x40::truecolor"
@@ -130,6 +132,18 @@ def sha256(path: Path) -> str:
         for chunk in iter(lambda: stream.read(1024 * 1024), b""):
             h.update(chunk)
     return h.hexdigest()
+
+
+def phase_binary_hashes(bins: Path) -> dict[str, str]:
+    if bins.is_symlink() or not bins.is_dir():
+        raise RunnerError(f"paired phase binary directory is missing or unsafe: {bins}")
+    result = {}
+    for app in APPS:
+        binary = bins / app
+        if binary.is_symlink() or not binary.is_file() or binary.stat().st_nlink != 1:
+            raise RunnerError(f"paired phase executable is missing or unsafe: {binary}")
+        result[app] = sha256(binary)
+    return result
 
 
 def digest_tree(path: Path) -> str:
@@ -1253,6 +1267,7 @@ def actual_semantic_digest(path: Path) -> str:
 
 def read_receipts(receipt_root: Path, selected: list[str], expected_root: Path) -> dict[tuple[str, int, str], tuple[str, str, str | None]]:
     _, receipt_entries = sealed_tree(receipt_root)
+    checkpoint_entries = {entry for entry in receipt_entries if not entry.startswith("process/") and entry != "process/"}
     actual_root = receipt_root.with_name(receipt_root.name + ".actual")
     _, actual_entries = flat_sealed_store(actual_root, "runtime actual")
     semantic_actual_root = receipt_root.with_name(receipt_root.name + ".semantic-actual")
@@ -1263,6 +1278,8 @@ def read_receipts(receipt_root: Path, selected: list[str], expected_root: Path) 
     expected_semantic_actual_entries: set[str] = set()
     expected_cases = set(selected)
     for path in sorted(receipt_root.rglob("*.json")):
+        if path.relative_to(receipt_root).parts[0] == "process":
+            continue
         try:
             record = json.loads(path.read_text())
             case = record["case_id"]
@@ -1270,10 +1287,11 @@ def read_receipts(receipt_root: Path, selected: list[str], expected_root: Path) 
             logical = record["logical_name"]
             ansi_digest = record["sha256"]
             semantic_digest = record["semantic_frame_sha256"]
+            process_digest = record["process_receipt_sha256"]
             reference_digest = record.get("reference_decision_sha256")
-            if not isinstance(case, str) or type(ordinal) is not int or ordinal < 0 or not isinstance(logical, str) or not isinstance(ansi_digest, str) or not re.fullmatch(r"[0-9a-f]{64}", ansi_digest) or not isinstance(semantic_digest, str) or not re.fullmatch(r"[0-9a-f]{64}", semantic_digest) or (reference_digest is not None and (not isinstance(reference_digest, str) or not re.fullmatch(r"[0-9a-f]{64}", reference_digest))):
+            if not isinstance(case, str) or type(ordinal) is not int or ordinal < 0 or not isinstance(logical, str) or not isinstance(ansi_digest, str) or not re.fullmatch(r"[0-9a-f]{64}", ansi_digest) or not isinstance(semantic_digest, str) or not re.fullmatch(r"[0-9a-f]{64}", semantic_digest) or not isinstance(process_digest, str) or not re.fullmatch(r"[0-9a-f]{64}", process_digest) or (reference_digest is not None and (not isinstance(reference_digest, str) or not re.fullmatch(r"[0-9a-f]{64}", reference_digest))):
                 raise TypeError("invalid receipt field")
-            if set(record) not in ({"case_id", "ordinal", "logical_name", "sha256", "semantic_frame_sha256"}, {"case_id", "ordinal", "logical_name", "sha256", "semantic_frame_sha256", "reference_decision_sha256"}):
+            if set(record) not in ({"case_id", "ordinal", "logical_name", "sha256", "semantic_frame_sha256", "process_receipt_sha256"}, {"case_id", "ordinal", "logical_name", "sha256", "semantic_frame_sha256", "process_receipt_sha256", "reference_decision_sha256"}):
                 raise TypeError("unexpected receipt field")
         except (OSError, ValueError, KeyError, TypeError) as error:
             raise RunnerError(f"invalid checkpoint receipt: {path}") from error
@@ -1315,8 +1333,8 @@ def read_receipts(receipt_root: Path, selected: list[str], expected_root: Path) 
         raise RunnerError(f"successful scenarios missing checkpoint receipts: {missing[:5]}")
     expected_receipt_dirs = {hashlib.sha256(case.encode()).hexdigest() + "/" for case, _, _ in receipts}
     expected_receipt_entries.update(expected_receipt_dirs)
-    if receipt_entries != expected_receipt_entries:
-        raise RunnerError(f"receipt store inventory mismatch: extra={sorted(receipt_entries - expected_receipt_entries)[:3]}, missing={sorted(expected_receipt_entries - receipt_entries)[:3]}")
+    if checkpoint_entries != expected_receipt_entries:
+        raise RunnerError(f"checkpoint receipt inventory mismatch: extra={sorted(checkpoint_entries - expected_receipt_entries)[:3]}, missing={sorted(expected_receipt_entries - checkpoint_entries)[:3]}")
     actual_frame_entries = {entry for entry in actual_entries if entry.endswith(".ansi")}
     if actual_frame_entries != {entry for entry in expected_actual_entries if entry.endswith(".ansi")}:
         raise RunnerError(f"runtime actual ANSI inventory mismatch: extra={sorted(actual_frame_entries - expected_actual_entries)[:3]}, missing={sorted({entry for entry in expected_actual_entries if entry.endswith('.ansi')} - actual_frame_entries)[:3]}")
@@ -1329,6 +1347,170 @@ def read_receipts(receipt_root: Path, selected: list[str], expected_root: Path) 
     if not receipts:
         raise RunnerError("phase produced no checkpoint receipts")
     return receipts
+
+
+def canonical_receipt_json(record: dict[str, object]) -> bytes:
+    return json.dumps(record, sort_keys=True, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
+
+
+def process_app_for_case(case: str, extension_manifest: dict[str, object] | None) -> str:
+    if extension_manifest is not None and case in extension_manifest["generated_case_ids"]:
+        if not case.startswith(EXTENSION_CASE_PREFIX):
+            raise RunnerError(f"extension process case is outside the pinned app prefix: {case}")
+        return "showcase"
+    app = case.split("::", 1)[0]
+    if app == "jackin":
+        app = "jackin-preview"
+    if app not in APPS:
+        raise RunnerError(f"process receipt case has an unregistered application: {case}")
+    return app
+
+
+def verify_process_receipts(
+    receipt_root: Path,
+    selected: list[str],
+    phase: str,
+    bins: Path,
+    expected_hashes: dict[str, str],
+    extension_manifest: dict[str, object] | None,
+    run_id: str,
+    key_hex: str,
+    checkpoint_receipts: dict[tuple[str, int, str], tuple[str, str, str | None]],
+) -> tuple[dict[str, list[str]], dict[str, object]]:
+    if not re.fullmatch(r"[0-9a-f]{64}", key_hex):
+        raise RunnerError("paired process receipt key is invalid")
+    key = bytes.fromhex(key_hex)
+    process_root = receipt_root / "process"
+    _, entries = sealed_tree(process_root)
+    selected_ids = [scenario_receipt_id(name, extension_manifest) for name in selected]
+    expected = {case: process_app_for_case(name, extension_manifest) for name, case in zip(selected, selected_ids, strict=True)}
+    launches: dict[str, list[tuple[int, dict[str, object], str]]] = {case: [] for case in selected_ids}
+    closures: dict[str, list[tuple[int, dict[str, object]]]] = {case: [] for case in selected_ids}
+    known_launch_fields = {
+        "app", "argv_provenance", "case_id", "constructed_argv_hmac_sha256", "constructed_env_hmac_sha256",
+        "constructed_env_keys", "expected_file_identity", "expected_path", "expected_sha256", "image_hash_source", "observed_file_identity", "observed_path",
+        "observed_sha256", "process_start_identity", "previous_receipt_sha256", "run_id", "phase", "pid", "ordinal", "schema", "hmac_sha256",
+    }
+    known_close_fields = {"case_id", "launch_receipt_sha256", "ordinal", "phase", "run_id", "schema", "hmac_sha256"}
+
+    def read_signed(path: Path, fields: set[str]) -> dict[str, object]:
+        if path.is_symlink() or not path.is_file() or path.stat().st_nlink != 1:
+            raise RunnerError(f"process receipt is not an isolated regular file: {path}")
+        raw = path.read_bytes()
+        try:
+            record = json.loads(raw)
+        except (UnicodeDecodeError, ValueError) as error:
+            raise RunnerError(f"process receipt is invalid JSON: {path}") from error
+        if not isinstance(record, dict) or set(record) != fields:
+            raise RunnerError(f"process receipt fields differ from schema: {path}")
+        signature = record.get("hmac_sha256")
+        if not isinstance(signature, str) or not re.fullmatch(r"[0-9a-f]{64}", signature):
+            raise RunnerError(f"process receipt signature is missing or malformed: {path}")
+        payload = dict(record)
+        payload.pop("hmac_sha256")
+        expected_signature = hmac.new(key, canonical_receipt_json(payload), hashlib.sha256).hexdigest()
+        if not hmac.compare_digest(signature, expected_signature):
+            raise RunnerError(f"process receipt authentication failed: {path}")
+        return record
+
+    expected_entries: set[str] = set()
+    for case in selected_ids:
+        case_hash = hashlib.sha256(case.encode()).hexdigest()
+        launch_dir = process_root / case_hash
+        for kind in ("launch", "closed"):
+            matches = sorted(launch_dir.glob(f"{kind}-*.json")) if launch_dir.is_dir() and not launch_dir.is_symlink() else []
+            if not matches:
+                raise RunnerError(f"process receipt inventory is missing {kind} record for {case}")
+            for path in matches:
+                relative = path.relative_to(process_root).as_posix()
+                match = re.fullmatch(rf"{kind}-(\d{{8}})\.json", path.name)
+                if not match:
+                    raise RunnerError(f"process receipt filename is malformed: {path}")
+                ordinal = int(match.group(1))
+                record = read_signed(path, known_launch_fields if kind == "launch" else known_close_fields)
+                if record.get("case_id") != case or record.get("phase") != phase or record.get("run_id") != run_id or record.get("schema") != 1 or record.get("ordinal") != ordinal:
+                    raise RunnerError(f"process receipt identity or ordering mismatch: {path}")
+                expected_entries.add(relative)
+                if kind == "launch":
+                    app = expected[case]
+                    expected_path = str((bins / app).resolve())
+                    if record.get("app") != app or record.get("expected_path") != expected_path or record.get("observed_path") != expected_path:
+                        raise RunnerError(f"process executable path does not match {phase} phase: {path}")
+                    if record.get("expected_sha256") != expected_hashes.get(app) or record.get("observed_sha256") != expected_hashes.get(app):
+                        raise RunnerError(f"process executable hash does not match {phase} phase: {path}")
+                    if not isinstance(record.get("expected_file_identity"), str) or record.get("observed_file_identity") != record.get("expected_file_identity"):
+                        raise RunnerError(f"process executable file identity changed during spawn: {path}")
+                    if type(record.get("pid")) is not int or record["pid"] <= 0:
+                        raise RunnerError(f"process receipt PID is invalid: {path}")
+                    process_start = record.get("process_start_identity")
+                    start_pattern = r"[0-9]+" if sys.platform.startswith("linux") else r"[0-9]+:[0-9]+" if sys.platform == "darwin" else r"(?!)"
+                    if not isinstance(process_start, str) or re.fullmatch(start_pattern, process_start) is None:
+                        raise RunnerError(f"process start identity is missing: {path}")
+                    if record.get("argv_provenance") != "tuiscotti-builder-input" or not isinstance(record.get("constructed_argv_hmac_sha256"), str) or not re.fullmatch(r"[0-9a-f]{64}", record["constructed_argv_hmac_sha256"]):
+                        raise RunnerError(f"constructed argv receipt is invalid: {path}")
+                    if not isinstance(record.get("constructed_env_hmac_sha256"), str) or not re.fullmatch(r"[0-9a-f]{64}", record["constructed_env_hmac_sha256"]):
+                        raise RunnerError(f"constructed environment receipt is invalid: {path}")
+                    env_keys = record.get("constructed_env_keys")
+                    if not isinstance(env_keys, list) or any(not isinstance(name, str) for name in env_keys) or env_keys != sorted(set(env_keys)) or any(re.search(r"(SECRET|TOKEN|PASSWORD|CREDENTIAL|PRIVATE|API_KEY)", name, re.IGNORECASE) for name in env_keys):
+                        raise RunnerError(f"constructed environment key inventory is unsafe: {path}")
+                    allowed_probe = "linux-proc-exe-open-fd" if sys.platform.startswith("linux") else "macos-proc-pidpath-file" if sys.platform == "darwin" else None
+                    if allowed_probe is None or record.get("image_hash_source") != allowed_probe:
+                        raise RunnerError("paired process image probing is unsupported or weaker than the platform contract")
+                    if not isinstance(record.get("previous_receipt_sha256"), (str, type(None))) or (record.get("previous_receipt_sha256") is not None and not re.fullmatch(r"[0-9a-f]{64}", record["previous_receipt_sha256"])):
+                        raise RunnerError(f"process receipt chain link is invalid: {path}")
+                    receipt_digest = sha256(path)
+                    launches[case].append((ordinal, record, receipt_digest))
+                else:
+                    closures[case].append((ordinal, record))
+
+    expected_tree_entries = expected_entries | {f"{hashlib.sha256(case.encode()).hexdigest()}/" for case in selected_ids}
+    if entries != expected_tree_entries:
+        unexpected = sorted(entries - expected_tree_entries)
+        missing = sorted(expected_tree_entries - entries)
+        raise RunnerError(f"process receipt inventory mismatch: extra={unexpected[:3]}, missing={missing[:3]}")
+
+    process_links: dict[str, list[str]] = {}
+    all_pids: set[int] = set()
+    for case, records in launches.items():
+        records.sort(key=lambda row: row[0])
+        closed = sorted(closures[case], key=lambda row: row[0])
+        if not records or [ordinal for ordinal, _, _ in records] != list(range(len(records))):
+            raise RunnerError(f"process launch sequence is incomplete for {case}")
+        if [ordinal for ordinal, _ in closed] != list(range(len(records))):
+            raise RunnerError(f"process session completion sequence is incomplete for {case}")
+        previous = None
+        hashes = []
+        for ordinal, record, digest in records:
+            if record.get("previous_receipt_sha256") != previous:
+                raise RunnerError(f"process launch chain is broken for {case} ordinal {ordinal}")
+            pid = record["pid"]
+            if pid in all_pids:
+                raise RunnerError(f"paired child PID was reused within the chunk: {pid}")
+            all_pids.add(pid)
+            close_record = closed[ordinal][1]
+            if close_record.get("launch_receipt_sha256") != digest:
+                raise RunnerError(f"process completion does not bind launch receipt for {case} ordinal {ordinal}")
+            previous = digest
+            hashes.append(digest)
+        process_links[case] = hashes
+
+    linked_checkpoints: set[tuple[str, int, str]] = set()
+    for path in sorted(receipt_root.rglob("*.json")):
+        if path.relative_to(receipt_root).parts[0] == "process":
+            continue
+        record = json.loads(path.read_text())
+        case = record.get("case_id")
+        logical = record.get("logical_name")
+        ordinal = record.get("ordinal")
+        if not isinstance(case, str) or not isinstance(logical, str) or type(ordinal) is not int:
+            raise RunnerError(f"checkpoint process link identity is invalid: {path}")
+        linked_checkpoints.add((case, ordinal, logical))
+        if record.get("process_receipt_sha256") not in process_links.get(case, []):
+            raise RunnerError(f"checkpoint receipt is not linked to its launched process: {path}")
+    if not checkpoint_receipts or linked_checkpoints != set(checkpoint_receipts):
+        raise RunnerError("process receipts cannot pass without the complete checkpoint receipt inventory")
+    digest, _ = sealed_tree(process_root)
+    return process_links, {"receipt_count": sum(map(len, process_links.values())), "inventory_sha256": digest, "pid_count": len(all_pids)}
 
 
 def clear_runtime_artifacts(source: Path) -> None:
@@ -1591,12 +1773,17 @@ def paired_reference_report(decisions: list[dict[str, object]], selected: list[s
     return output
 
 
-def run_live_chunk(live: Path, root: Path, run_root: Path, phase: str, bins: Path, expected_root: Path, selected: list[str], index: int, timeout: int, extension_manifest: dict[str, object] | None = None, reference_decisions: list[dict[str, object]] | None = None, reference_decision_sha256: str | None = None, term_profile: str | None = None) -> dict[str, object]:
+def run_live_chunk(live: Path, root: Path, run_root: Path, phase: str, bins: Path, expected_root: Path, selected: list[str], index: int, timeout: int, expected_binary_hashes: dict[str, str], extension_manifest: dict[str, object] | None = None, reference_decisions: list[dict[str, object]] | None = None, reference_decision_sha256: str | None = None, term_profile: str | None = None) -> dict[str, object]:
     chunk_name = f"chunk-{index:05}"
     chunk_root = run_root / phase / chunk_name
     receipt_root = chunk_root / "receipts"
     logs = chunk_root / "logs"
     receipt_root.mkdir(parents=True, exist_ok=False)
+    initial_binary_hashes = phase_binary_hashes(bins)
+    if initial_binary_hashes != expected_binary_hashes:
+        raise RunnerError(f"{phase} binaries changed before paired chunk: {bins}")
+    process_receipt_key = secrets.token_hex(32)
+    process_receipt_run_id = f"{run_root.name}:{phase}:{chunk_name}"
     env = clean_env()
     env.update({
         "CARGO_TARGET_DIR": str(root / "live-target"),
@@ -1607,6 +1794,8 @@ def run_live_chunk(live: Path, root: Path, run_root: Path, phase: str, bins: Pat
         "TERMROCK_PAIR_PHASE": phase,
         "TERMROCK_PAIR_EXPECTED_ROOT": str(expected_root.resolve()),
         "TERMROCK_PAIR_RECEIPT_ROOT": str(receipt_root.resolve()),
+        "TERMROCK_PAIR_PROCESS_RECEIPT_KEY": process_receipt_key,
+        "TERMROCK_PAIR_PROCESS_RECEIPT_RUN_ID": process_receipt_run_id,
     })
     controlled_environment = apply_term_profile(env, term_profile)
     if term_profile is not None:
@@ -1643,6 +1832,12 @@ def run_live_chunk(live: Path, root: Path, run_root: Path, phase: str, bins: Pat
         events = nextest_events(stdout, selected)
     except RunnerError as error:
         failure = str(error)
+    try:
+        final_binary_hashes = phase_binary_hashes(bins)
+        if final_binary_hashes != initial_binary_hashes or final_binary_hashes != expected_binary_hashes:
+            raise RunnerError(f"{phase} binaries changed during paired chunk: {bins}")
+    except RunnerError as error:
+        failure = f"{failure}; {error}" if failure else str(error)
     stdout_path = logs / "stdout.jsonl"
     stdout_gzip = logs / "stdout.jsonl.gz"
     if stdout_path.is_file():
@@ -1655,9 +1850,14 @@ def run_live_chunk(live: Path, root: Path, run_root: Path, phase: str, bins: Pat
         failure = f"{failure}; {error}" if failure else str(error)
         artifacts = chunk_root / "artifacts"
     receipts: dict[tuple[str, int, str], tuple[str, str, str | None]] = {}
+    process_summary: dict[str, object] = {"receipt_count": 0, "inventory_sha256": None, "pid_count": 0}
     if failure is None:
         try:
             receipts = read_receipts(receipt_root, [scenario_receipt_id(name, extension_manifest) for name in selected], expected_root)
+            _, process_summary = verify_process_receipts(
+                receipt_root, selected, phase, bins, expected_binary_hashes, extension_manifest,
+                process_receipt_run_id, process_receipt_key, receipts,
+            )
             for decision in reference_decisions:
                 validate_reference_receipts(receipts, [scenario_receipt_id(name, extension_manifest) for name in selected], phase, decision, reference_decision_sha256 or "")
         except RunnerError as error:
@@ -1677,6 +1877,10 @@ def run_live_chunk(live: Path, root: Path, run_root: Path, phase: str, bins: Pat
         "selected_cases": selected,
         "successful_test_events": len(events),
         "checkpoint_count": len(receipts),
+        "process_receipt_count": process_summary["receipt_count"],
+        "process_receipt_inventory_sha256": process_summary["inventory_sha256"],
+        "process_pid_count": process_summary["pid_count"],
+        "phase_binary_hashes": final_binary_hashes if "final_binary_hashes" in locals() else None,
         "checkpoint_inventory_sha256": hashlib.sha256(json.dumps([[*key, *value] for key, value in sorted(receipts.items())], separators=(",", ":")).encode()).hexdigest(),
         "receipt_root": str(receipt_root),
         "artifact_dir": str(artifacts),
@@ -1767,7 +1971,7 @@ def run_ordinary_checks(live: Path, root: Path, run_root: Path, inventory: dict[
 def compare_live(repo: Path, candidate_repo: Path, root: Path, baseline_bins: Path, candidate_bins: Path, selectors: list[str] | None, all_cases: bool, chunk_size: int, timeout: int, term_profile: str | None = None) -> None:
     repo, root, source = paths(repo, root)
     candidate_repo = candidate_repo.resolve()
-    _, candidate = baseline_and_candidate_records(candidate_repo, root, baseline_bins, candidate_bins, timeout)
+    baseline_build, candidate = baseline_and_candidate_records(candidate_repo, root, baseline_bins, candidate_bins, timeout)
     live, live_record = verify_live_source(repo, root, source, timeout)
     reference_decisions, reference_decision_sha256 = load_reference_decisions(repo, root, source)
     extension_manifest_path = repo / EXTENSION_MANIFEST
@@ -1819,9 +2023,10 @@ def compare_live(repo: Path, candidate_repo: Path, root: Path, baseline_bins: Pa
             expected_before = None
         started = time.monotonic()
         phase_chunks = []
+        expected_binary_hashes = baseline_build["binaries"] if phase in {"baseline-capture", "baseline-check"} else candidate["binaries"]
         for index, names in enumerate(chunks):
             try:
-                phase_chunks.append(run_live_chunk(live, root, run_root, phase, bins, expected_root, names, index, timeout, extension_manifest, reference_decisions, reference_decision_sha256, term_profile))
+                phase_chunks.append(run_live_chunk(live, root, run_root, phase, bins, expected_root, names, index, timeout, expected_binary_hashes, extension_manifest, reference_decisions, reference_decision_sha256, term_profile))
             except RunnerError as error:
                 phase_chunks.append({"chunk": index, "status": "failed", "failure": str(error), "selected_cases": names, "controlled_environment": controlled_environment})
                 report = {"tag_object": BASELINE_TAG_OBJECT, "baseline_commit": BASELINE_COMMIT, "tuiscotti_rev": TUISCOTTI_REV, "live_source": live_record, "candidate_revision": candidate["revision"], "candidate_source_tree": candidate["source_tree"], "candidate_dirty_fingerprint": candidate["dirty_fingerprint"], "candidate_binaries": candidate["binaries"], "reference_decisions_sha256": reference_decision_sha256, "controlled_environment": controlled_environment, "legacy_approval_conflicts": paired_reference_report(reference_decisions, selected, reference_decision_sha256), "case_selection": "all registered scenarios" if all_cases else "explicit cases", "selection_completeness": "complete registered scenarios pending integrity checks" if all_cases else "partial", **cli_coverage_report_fields(False), "selected_case_count": len(selected), "test_inventory_sha256": inventory_digest(inventory), "phase": phase, "phase_chunks": phase_chunks, "remaining_chunks": len(chunks) - index - 1}
