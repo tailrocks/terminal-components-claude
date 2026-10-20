@@ -304,6 +304,12 @@ impl HomeState {
         {
             return;
         }
+        if let Some(view) =
+            catalogue::hard_cases_80x24_plate(world, ui.full().width, ui.full().height)
+            && paint_first_use_80x24(ui, rows_area, &view)
+        {
+            return;
+        }
         if let Some(view) = catalogue::parity_discovery(world)
             .or_else(|| catalogue::first_use_plate(world, self.history))
             .or_else(|| catalogue::monorepo_root_plate(world, self.history))
