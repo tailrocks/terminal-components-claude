@@ -18,13 +18,21 @@ row unchanged. The application remains responsible for providing domain text.
 ## Evidence
 
 `crates/termrock-overlays/tests/picker_scope.rs` checks the complete rendered
-buffer and cursor for absent and empty captions, right alignment, clipping,
-the six-cell hide threshold, and Enter selection. Existing explicit-width
-Picker tests run alongside it.
+buffer and cursor for the baseline explicit outer rectangle `(18,15,84,9)`,
+title at `(20,16)`, caption ending at column `99`, Unicode grapheme truncation,
+`Part::META` override, absent and empty captions, clipping, the six-cell hide
+threshold, and Enter selection. The renderer test calls the public `Picker::draw`
+with that explicit rectangle to isolate caption painting from layer placement.
 
-Command: `cargo nextest run -p termrock-overlays --test picker_scope --test picker_width`
+Known separate placement gap: current `ScreenAlign::Center` resolves vertical
+position with `free / 3`, so Picker's layer resolver does not produce frozen
+rectangle `(18,15,84,9)` on a 120×40 screen. This is tracked for the shared layer
+resolver; the caption test does not certify layer placement.
 
-Result: 7 passed, 0 skipped.
+Command: `cargo nextest run -p termrock-overlays --all-targets`
+
+Result: 88 passed, 0 skipped. `cargo clippy -p termrock-overlays --all-targets`,
+`cargo fmt --check`, and `git diff --check` also passed.
 
 This component check is not a complete frozen CLI parity run. Application
 composition and the paired baseline CLI capture remain separate gates.
