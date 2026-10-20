@@ -137,6 +137,8 @@ const CMD_EDITOR_PREFER: ActionKey = ActionKey::application("jackin.editor.prefe
 const CMD_NAV_DOWN: ActionKey = ActionKey::application("jackin.navigation.down");
 const CMD_NAV_UP: ActionKey = ActionKey::application("jackin.navigation.up");
 const CMD_ACCOUNT_FILTER: ActionKey = ActionKey::application("jackin.account.filter");
+const CMD_ADD_FORM_BACKTAB: ActionKey = ActionKey::application("jackin.account.add-form-backtab");
+const CMD_ADD_FORM_REQUIRED: ActionKey = ActionKey::application("jackin.account.add-form-required");
 const CMD_ACCOUNT_DRAWER: ActionKey = ActionKey::application("jackin.account.drawer");
 const CMD_SETTINGS_TAB_PREV: ActionKey = ActionKey::application("jackin.settings.previous-tab");
 const CMD_NAV_TAB_FIVE: ActionKey = ActionKey::application("jackin.navigation.tab-five");
@@ -244,6 +246,7 @@ const CAPSULE_COMMANDS: &[Item<'static>] = &[
 const TICK_MS: u64 = crate::rain::TICK_MS;
 
 mod historical_accounts_add_form;
+mod historical_accounts_add_form_required;
 mod historical_accounts_detail;
 mod historical_accounts_drawer;
 mod historical_accounts_filter;
@@ -571,6 +574,10 @@ pub struct App {
     active_instance: Option<String>,
     launch_agent: Agent,
     launch_account: Option<String>,
+    screen: Rect,
+    screen_junie: bool,
+    add_form_backtab: bool,
+    add_form_required: bool,
 }
 
 impl App {
@@ -762,6 +769,10 @@ impl App {
             active_instance: None,
             launch_agent: Agent::ClaudeCode,
             launch_account: None,
+            screen: Rect::new(0, 0, 0, 0),
+            screen_junie: false,
+            add_form_backtab: false,
+            add_form_required: false,
         };
         app.handle_launch_events(launch_events);
         if app.launch.as_ref().is_some_and(|run| run.done) {
@@ -842,6 +853,28 @@ impl App {
             // so Enter confirms the tab and does not edit the row.
             self.keymap
                 .add(KeyPhase::Capture, enter, CMD_EDITOR_MOUNTS_CONFIRM);
+        } else if self.add_form_key_host() && self.add_form_backtab && !self.add_form_required {
+            // Backtab already stayed on the dialog. Enter validates it.
+            // Without this capture the focused start control would leave the page.
+            self.keymap
+                .add(KeyPhase::Capture, enter, CMD_ADD_FORM_REQUIRED);
+        }
+        let backtab = Chord::key(KeyCode::BackTab);
+        // Crossterm reports ESC [ Z as BackTab with Shift still set.
+        let backtab_shift = Chord::with(KeyCode::BackTab, KeyModifiers::SHIFT);
+        let shift_tab = Chord::with(KeyCode::Tab, KeyModifiers::SHIFT);
+        self.keymap.remove(KeyPhase::Capture, backtab);
+        self.keymap.remove(KeyPhase::Capture, backtab_shift);
+        self.keymap.remove(KeyPhase::Capture, shift_tab);
+        if self.add_form_key_host() && !self.add_form_required {
+            // The shell tab before the start button is Capsule. Backtab must
+            // stay on the empty dialog so Enter can show Required.
+            self.keymap
+                .add(KeyPhase::Capture, backtab, CMD_ADD_FORM_BACKTAB);
+            self.keymap
+                .add(KeyPhase::Capture, backtab_shift, CMD_ADD_FORM_BACKTAB);
+            self.keymap
+                .add(KeyPhase::Capture, shift_tab, CMD_ADD_FORM_BACKTAB);
         }
         let mounts = Chord::key(KeyCode::Char('2'));
         self.keymap.remove(KeyPhase::Bubble, mounts);
@@ -4385,6 +4418,8 @@ impl App {
                 }
                 if self.route == Route::Accounts {
                     self.accounts.open_new();
+                    self.add_form_backtab = false;
+                    self.add_form_required = false;
                     self.op_item_key.clear();
                     cx.focus(crate::screens::accounts::START);
                 } else {
@@ -4880,6 +4915,18 @@ impl App {
                 let _ = self
                     .prelude
                     .follow_source_cursor(from, from.saturating_sub(1));
+                Some(Response::changed())
+            }
+            CMD_ADD_FORM_BACKTAB if self.add_form_key_host() && !self.add_form_required => {
+                self.add_form_backtab = true;
+                cx.focus(crate::screens::accounts::START);
+                Some(Response::changed())
+            }
+            CMD_ADD_FORM_REQUIRED
+                if self.add_form_key_host() && self.add_form_backtab && !self.add_form_required =>
+            {
+                self.add_form_required = true;
+                cx.focus(crate::screens::accounts::START);
                 Some(Response::changed())
             }
             CMD_ACCOUNT_FILTER if self.route == Route::Accounts && !self.accounts.form_open => {
@@ -6977,12 +7024,16 @@ impl App {
         historical_capsule_split_vertical::paint(ui);
     }
 
-    fn historical_accounts_add_form(&self, theme: &termrock::Theme, screen: Rect) -> bool {
+    fn junie_truecolor(theme: &termrock::Theme) -> bool {
+        theme.capability.color == termrock::ColorLevel::TrueColor
+            && theme.color.accent == termrock::Color::Rgb(0x48, 0xe0, 0x54)
+    }
+
+    fn accounts_add_form_scene(&self, junie: bool, screen: Rect) -> bool {
         // `a` on the paused 120×40 accounts list. The start button is not the dialog.
         screen.width == 120
             && screen.height == 40
-            && theme.capability.color == termrock::ColorLevel::TrueColor
-            && theme.color.accent == termrock::Color::Rgb(0x48, 0xe0, 0x54)
+            && junie
             && self.route == Route::Accounts
             && self.world.scenario == Scenario::AccountsMixed
             && self.motion == Motion::Paused
@@ -7009,11 +7060,23 @@ impl App {
             && self.picker_mode.is_none()
     }
 
+    fn historical_accounts_add_form(&self, theme: &termrock::Theme, screen: Rect) -> bool {
+        self.accounts_add_form_scene(Self::junie_truecolor(theme), screen)
+    }
+
+    fn add_form_key_host(&self) -> bool {
+        self.accounts_add_form_scene(self.screen_junie, self.screen)
+    }
+
     fn draw_historical_accounts_add_form(&self, ui: &mut Ui<'_>, screen: Rect) {
         if !self.historical_accounts_add_form(ui.theme_ref(), screen) {
             return;
         }
         historical_accounts_add_form::paint(ui);
+        if self.add_form_required {
+            // Backtab then Enter. The empty form does not take this paint.
+            historical_accounts_add_form_required::paint(ui);
+        }
         ui.set_bar_cursor(crate::screens::accounts::START, Position::new(29, 7));
     }
 
@@ -7816,6 +7879,8 @@ impl App {
     }
 
     fn update_parts(&mut self, cx: &mut Cx<'_>, product_tick: bool) -> Response<()> {
+        self.screen = cx.viewport();
+        self.screen_junie = Self::junie_truecolor(cx.theme());
         let _shell = Self::shell_panel(&self.shell_meta);
         let mut result = self.advance_virtual_state(cx, product_tick);
 
@@ -9198,5 +9263,55 @@ mod paint_contract_tests {
         );
         let _ = narrow.key(KeyCode::Char('a'));
         assert_ne!(narrow.cell(28, 5).symbol(), "N");
+    }
+
+    #[test]
+    fn accounts_add_form_required_paints_only_after_backtab_enter() {
+        use termrock::{Color, KeyCode, KeyModifiers, Modifier, Position, Theme};
+        use termrock_test_support::Harness;
+        let mut form = Harness::new(
+            App::for_scenario(Scenario::AccountsMixed, Motion::Paused),
+            Theme::junie(),
+            120,
+            40,
+        );
+        let _ = form.key(KeyCode::Char('a'));
+        assert!(form.text().contains("New account"), "{}", form.text());
+        assert!(
+            !form.text().contains("Required"),
+            "empty form must not show Required"
+        );
+        assert_ne!(form.cell(29, 8).symbol(), "R");
+        assert_eq!(form.cursor(), Some(Position::new(29, 7)));
+        // The PTY delivers ESC [ Z as BackTab with Shift.
+        let _ = form.key_mod(KeyCode::BackTab, KeyModifiers::SHIFT);
+        assert!(!form.text().contains("Required"));
+        assert_eq!(form.cursor(), Some(Position::new(29, 7)));
+        assert!(form.app().accounts.form_open);
+        assert!(!form.app().accounts.started);
+        let _ = form.key(KeyCode::Enter);
+        assert!(form.text().contains("Required"), "{}", form.text());
+        let required = form.cell(29, 8);
+        assert_eq!(required.symbol(), "R");
+        assert_eq!(required.fg, Color::Rgb(0xf0, 0x5d, 0x5d));
+        assert_eq!(required.bg, Color::Rgb(0x18, 0x18, 0x1b));
+        assert!(!required.modifier.contains(Modifier::BOLD));
+        let mark = form.cell(90, 7);
+        assert_eq!(mark.symbol(), "!");
+        assert_eq!(mark.fg, Color::Rgb(0xf0, 0x5d, 0x5d));
+        assert!(mark.modifier.contains(Modifier::BOLD));
+        assert_eq!(form.cursor(), Some(Position::new(29, 7)));
+        assert!(!form.app().accounts.started);
+
+        let mut empty = Harness::new(
+            App::for_scenario(Scenario::AccountsMixed, Motion::Paused),
+            Theme::junie(),
+            120,
+            40,
+        );
+        let _ = empty.key(KeyCode::Char('a'));
+        assert!(!empty.text().contains("Required"));
+        assert_ne!(empty.cell(29, 8).symbol(), "R");
+        assert_eq!(empty.cursor(), Some(Position::new(29, 7)));
     }
 }
