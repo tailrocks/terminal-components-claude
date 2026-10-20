@@ -2,6 +2,7 @@ use tablepro_ui::{Surface, Tab, TableProApp};
 use termrock::{App, Id, KeyCode, Theme};
 use termrock_test_support::Harness;
 const PICKER: Id = Id::root("tablepro.quick-switcher");
+const TAB_LIST: Id = Id::root("tablepro.tab-list-picker");
 const EXPLORER: Id = Id::root("tablepro.workbench.explorer.tree");
 fn connected() -> Harness<TableProApp> {
     let mut app = TableProApp::new();
@@ -173,6 +174,80 @@ fn switcher_query_is_absent_from_app_debug() {
     let _ = h.type_str("picker_secret_19");
     assert!(!format!("{:?}", h.app()).contains("picker_secret_19"));
     assert!(h.text().contains("picker_secret_19"));
+    assert!(h.diagnostics().is_empty(), "{:?}", h.diagnostics());
+}
+
+#[test]
+fn tab_list_picker_uses_stable_tab_keys_for_filter_activation_and_delete() {
+    use termrock::{ItemKey, Part, PartRef};
+
+    let mut h = connected();
+    let original = h.app().workbench.active_key().expect("initial tab");
+    let second = h
+        .app_mut()
+        .workbench
+        .new_query("SELECT 2")
+        .expect("second tab");
+    let third = h
+        .app_mut()
+        .workbench
+        .new_query("SELECT 3")
+        .expect("third tab");
+    h.draw();
+
+    let _ = h.ctrl('g');
+    assert!(h.layer_area(TAB_LIST).is_some());
+    assert!(h.text().contains("Open tabs"));
+    assert!(h.text().contains("Query 1"));
+    let _ = h.type_str("Query 1");
+    assert!(
+        h.area_of_part(
+            TAB_LIST,
+            PartRef::item(Part::ROW, ItemKey::num(original.get()))
+        )
+        .is_some(),
+        "{}; {:?}",
+        h.text(),
+        h.diagnostics()
+    );
+    assert!(
+        h.area_of_part(
+            TAB_LIST,
+            PartRef::item(Part::ROW, ItemKey::num(second.get()))
+        )
+        .is_none()
+    );
+    let _ = h.key(KeyCode::Enter);
+    assert_eq!(h.app().workbench.active_key(), Some(original));
+    assert!(h.layer_area(TAB_LIST).is_none());
+
+    let _ = h.ctrl('g');
+    let _ = h.type_str("Query 2");
+    let _ = h.key(KeyCode::Delete);
+    assert_eq!(
+        h.app()
+            .workbench
+            .tabs()
+            .iter()
+            .map(tablepro_ui::TabRecord::key)
+            .collect::<Vec<_>>(),
+        vec![original, third]
+    );
+    assert_eq!(h.app().workbench.active_key(), Some(original));
+    assert!(h.layer_area(TAB_LIST).is_some());
+    let _ = h.key(KeyCode::Esc);
+    assert!(h.layer_area(TAB_LIST).is_none());
+    assert_eq!(h.app().workbench.active_key(), Some(original));
+    assert_ne!(second, third);
+    assert!(h.diagnostics().is_empty(), "{:?}", h.diagnostics());
+}
+
+#[test]
+fn tab_list_picker_keeps_the_frozen_single_tab_geometry() {
+    let mut h = connected();
+    let _ = h.ctrl('g');
+    let area = h.layer_area(TAB_LIST).expect("open tab picker");
+    assert_eq!((area.x, area.y, area.width, area.height), (28, 16, 64, 8));
     assert!(h.diagnostics().is_empty(), "{:?}", h.diagnostics());
 }
 
