@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "record_status": "in_progress_pending_A-D_reviews",
+  "record_status": "in_progress_pending_A-B-C_reviews",
   "captured_utc": "2026-10-20T16:07:32.696460+00:00",
   "fresh_E_refs_verified_utc": "2026-10-20T16:10:45Z",
   "inventory_source": "/Users/donbeave/Projects/termrock-cli-evidence-20261020/branch-consolidation/assigned-inventory.json",
@@ -63,8 +63,12 @@
       "inventory_sha": "55824ec3ba5d62aa2a743be3d83f9ef5d98e61ee",
       "observed_remote_sha": "55824ec3ba5d62aa2a743be3d83f9ef5d98e61ee",
       "assignment": "D-tests-proof",
-      "status": "pending",
-      "reason": "Assigned to another audit workstream; no verdict recorded here."
+      "status": "duplicate-in-target",
+      "reason": "Replay-origin path inventory commit/recount. Verified audit Markdown SHA matches PR38 target exactly (38ada73e3bd11a574a08ca592a0b8ee51c2bb8811fac48133e3f6f375cf049e3); extension manifest/source also match target. No unique changes to merge.",
+      "review_source": "D-tests-proof.json",
+      "review_evidence_scope": "Read-only source/history review; no branch checkout edits, no candidate expected-data update, no product acceptance claim.",
+      "commits_not_in_pr38_ancestry_at_observation": 2,
+      "changed_paths_vs_pr38_snapshot_6bcdc": 34
     },
     {
       "branch": "chore/rust-comment-cleanup",
@@ -151,16 +155,24 @@
       "inventory_sha": "c4b62deccf0ff32383253f597d020084dc180c03",
       "observed_remote_sha": "c4b62deccf0ff32383253f597d020084dc180c03",
       "assignment": "D-tests-proof",
-      "status": "pending",
-      "reason": "Assigned to another audit workstream; no verdict recorded here."
+      "status": "exclude",
+      "reason": "Broad stale cleanup branch, not a test-proof increment. 12 commits; target-tree delta 13,088 paths incl deletion of 12,625 snapshots, generated-workflow changes, comment stripping/formatting across application and library source, lock/tool changes. Frozen evidence/protected reference files at risk; do not merge wholesale. No independent pinned test proof for its aggregate.",
+      "review_source": "D-tests-proof.json",
+      "review_evidence_scope": "Read-only source/history review; no branch checkout edits, no candidate expected-data update, no product acceptance claim.",
+      "commits_not_in_pr38_ancestry_at_observation": 12,
+      "changed_paths_vs_pr38_snapshot_6bcdc": 13088
     },
     {
       "branch": "docs/interaction-reference-cleanup",
       "inventory_sha": "1d35481674bdd79f5508def12233d0c9b72285b6",
       "observed_remote_sha": "1d35481674bdd79f5508def12233d0c9b72285b6",
       "assignment": "D-tests-proof",
-      "status": "pending",
-      "reason": "Assigned to another audit workstream; no verdict recorded here."
+      "status": "exclude-protected-reference",
+      "reason": "Highly divergent full reference/design snapshot: target-tree delta 83,849 paths incl 75,502 baselines, 2,712 baseline artifacts and 1,712 shots. It contains intended design history and must remain reference-only; merging would replace PR38/reference artifacts. No merge.",
+      "review_source": "D-tests-proof.json",
+      "review_evidence_scope": "Read-only source/history review; no branch checkout edits, no candidate expected-data update, no product acceptance claim.",
+      "commits_not_in_pr38_ancestry_at_observation": 1046,
+      "changed_paths_vs_pr38_snapshot_6bcdc": 83849
     },
     {
       "branch": "fix/picker-focus-and-rows-20261020",
@@ -183,32 +195,48 @@
       "inventory_sha": "c6f1ee62465845459e815a228ee541571ae548c9",
       "observed_remote_sha": "c6f1ee62465845459e815a228ee541571ae548c9",
       "assignment": "D-tests-proof",
-      "status": "pending",
-      "reason": "Assigned to another audit workstream; no verdict recorded here."
+      "status": "superseded-duplicate",
+      "reason": "Initial source-bound architecture checker; older than module-path/P1/symlink and final strict-accounting. PR38 target already has final checker/policy/tests (checker SHA 455ebbefef8b0847d83c1069892e2eb4c8d3e64e32b25da17f57c121fd085c26; policy SHA 4b7641d76546448660cba8bb2252d488a1c23c5f8818f379ca7f43d23bc47982; test SHA 96cdfaf9e02aad1e15a68c7c8c2ebbe5ccff73b0c39f738f11e4308dd9fe4711). No unique merge.",
+      "review_source": "D-tests-proof.json",
+      "review_evidence_scope": "Read-only source/history review; no branch checkout edits, no candidate expected-data update, no product acceptance claim.",
+      "commits_not_in_pr38_ancestry_at_observation": 3,
+      "changed_paths_vs_pr38_snapshot_6bcdc": 84
     },
     {
       "branch": "parity/acceptance-architecture-module-path-20261020",
       "inventory_sha": "461c7d1e1a33ecbc6fad2ec143353bbd578e4aa0",
       "observed_remote_sha": "461c7d1e1a33ecbc6fad2ec143353bbd578e4aa0",
       "assignment": "D-tests-proof",
-      "status": "pending",
-      "reason": "Assigned to another audit workstream; no verdict recorded here."
+      "status": "superseded-duplicate",
+      "reason": "Intermediate checker added source module paths, Cargo target-dir handling and evidence binding. Its checker/test hashes (1f7a1089e688 / 49b6559781b4) are superseded by the exact final versions in PR38 target. Historical docs report 89 replay findings on old source and acceptance=false; retain only as provenance if desired.",
+      "review_source": "D-tests-proof.json",
+      "review_evidence_scope": "Read-only source/history review; no branch checkout edits, no candidate expected-data update, no product acceptance claim.",
+      "commits_not_in_pr38_ancestry_at_observation": 15,
+      "changed_paths_vs_pr38_snapshot_6bcdc": 72
     },
     {
       "branch": "parity/acceptance-architecture-p1-20261020",
       "inventory_sha": "73e8dea2267ee6350518be87d3b999d76703834b",
       "observed_remote_sha": "73e8dea2267ee6350518be87d3b999d76703834b",
       "assignment": "D-tests-proof",
-      "status": "pending",
-      "reason": "Assigned to another audit workstream; no verdict recorded here."
+      "status": "superseded-duplicate",
+      "reason": "Intermediate P1 checker/test revision (f420be2f252a / 41d847656623) predates symlink and fail-closed include/path handling and final target implementation. No unique merge.",
+      "review_source": "D-tests-proof.json",
+      "review_evidence_scope": "Read-only source/history review; no branch checkout edits, no candidate expected-data update, no product acceptance claim.",
+      "commits_not_in_pr38_ancestry_at_observation": 7,
+      "changed_paths_vs_pr38_snapshot_6bcdc": 72
     },
     {
       "branch": "parity/acceptance-architecture-symlink-20261020",
       "inventory_sha": "a48e94fae4fe1b774bd5fd4864fc933979f7b9a5",
       "observed_remote_sha": "a48e94fae4fe1b774bd5fd4864fc933979f7b9a5",
       "assignment": "D-tests-proof",
-      "status": "pending",
-      "reason": "Assigned to another audit workstream; no verdict recorded here."
+      "status": "superseded-duplicate",
+      "reason": "Intermediate symlink-aware checker/test revision (643c53841f7a / 548020b2c989); superseded by strict-accounting and exact final tools already in PR38. No unique merge.",
+      "review_source": "D-tests-proof.json",
+      "review_evidence_scope": "Read-only source/history review; no branch checkout edits, no candidate expected-data update, no product acceptance claim.",
+      "commits_not_in_pr38_ancestry_at_observation": 11,
+      "changed_paths_vs_pr38_snapshot_6bcdc": 72
     },
     {
       "branch": "parity/binding-runtime-20261020",
@@ -239,8 +267,12 @@
       "inventory_sha": "2289a4f4768a787af767da5fcf0819fe01cade66",
       "observed_remote_sha": "2289a4f4768a787af767da5fcf0819fe01cade66",
       "assignment": "D-tests-proof",
-      "status": "pending",
-      "reason": "Assigned to another audit workstream; no verdict recorded here."
+      "status": "selective-merge-candidate",
+      "reason": "Four commits include pinned, independently diagnosed frozen approval conflict; strict exception is limited to one frozen baseline-capture checkpoint and preserves old approval bytes, decision digest, repeated-output hashes; candidate and replay remain exact. Branch also records candidate button and TablePro dialog failures, not passes. Independent reports show actual candidates remain red; do not bless candidate or modify frozen snapshots. Port only tool/tests/docs changes after checking against target’s later runner, as target support file is older/different; do not merge branch wholesale.",
+      "review_source": "D-tests-proof.json",
+      "review_evidence_scope": "Read-only source/history review; no branch checkout edits, no candidate expected-data update, no product acceptance claim.",
+      "commits_not_in_pr38_ancestry_at_observation": 4,
+      "changed_paths_vs_pr38_snapshot_6bcdc": 32
     },
     {
       "branch": "parity/ci-planning-fix-20261020",
@@ -359,16 +391,24 @@
       "inventory_sha": "12ab1458facd213bae7a8a1b1f2c1125e65b4261",
       "observed_remote_sha": "12ab1458facd213bae7a8a1b1f2c1125e65b4261",
       "assignment": "D-tests-proof",
-      "status": "pending",
-      "reason": "Assigned to another audit workstream; no verdict recorded here."
+      "status": "mostly-duplicate-selective-review",
+      "reason": "Semantic-frame/cursor provenance and checkpoint receipt improvements are represented in target support library and extension source/manifest: target hashes match branch latest for support (4b16d1ef61df) and extension source/manifest (332bd4eac4dc, b995c00f0dc1). Branch runner/test files are materially smaller/older than target; never merge wholesale. Independent evidence: selected baseline capture/replay pilots passed; candidate had measured diffs, full inventory still incomplete. Confirm any remaining exact commit delta before cherry-pick.",
+      "review_source": "D-tests-proof.json",
+      "review_evidence_scope": "Read-only source/history review; no branch checkout edits, no candidate expected-data update, no product acceptance claim.",
+      "commits_not_in_pr38_ancestry_at_observation": 9,
+      "changed_paths_vs_pr38_snapshot_6bcdc": 97
     },
     {
       "branch": "parity/frozen-table-workflows-20261020",
       "inventory_sha": "b6d75a22d79dd20cdd12fb53f2e03a7c7bad02b6",
       "observed_remote_sha": "b6d75a22d79dd20cdd12fb53f2e03a7c7bad02b6",
       "assignment": "D-tests-proof",
-      "status": "pending",
-      "reason": "Assigned to another audit workstream; no verdict recorded here."
+      "status": "superseded-exclude",
+      "reason": "Adds six table-sort journeys but its a7d11bee manifest and reduced runner/helper predate current b995c00f manifest and full target runner. The six cases were exercised: capture/replay 24/24 ordered receipts passed, candidate all six red; 138 other extension cases and original 28,895 scenarios unrun. Preserve coverage concept; do not import stale/partial manifest or claim parity.",
+      "review_source": "D-tests-proof.json",
+      "review_evidence_scope": "Read-only source/history review; no branch checkout edits, no candidate expected-data update, no product acceptance claim.",
+      "commits_not_in_pr38_ancestry_at_observation": 1,
+      "changed_paths_vs_pr38_snapshot_6bcdc": 89
     },
     {
       "branch": "parity/item-row-palette-reference-20261020",
@@ -407,8 +447,12 @@
       "inventory_sha": "ea9f6f4400af7ad57a9af9a7c1387eb00c6133ff",
       "observed_remote_sha": "ea9f6f4400af7ad57a9af9a7c1387eb00c6133ff",
       "assignment": "D-tests-proof",
-      "status": "pending",
-      "reason": "Assigned to another audit workstream; no verdict recorded here."
+      "status": "superseded-doc",
+      "reason": "One documentation commit; matrix/head differs from current PR38 matrix and is stale relative to later CI/test evidence. Target already has canonical matrix. Reconcile only genuinely new evidence into current matrix after validating source refs; no wholesale cherry-pick.",
+      "review_source": "D-tests-proof.json",
+      "review_evidence_scope": "Read-only source/history review; no branch checkout edits, no candidate expected-data update, no product acceptance claim.",
+      "commits_not_in_pr38_ancestry_at_observation": 1,
+      "changed_paths_vs_pr38_snapshot_6bcdc": 72
     },
     {
       "branch": "parity/nested-composition-20261020",
@@ -447,8 +491,12 @@
       "inventory_sha": "0d7f38bac1ce4420036d930e1f90ad05459732de",
       "observed_remote_sha": "0d7f38bac1ce4420036d930e1f90ad05459732de",
       "assignment": "D-tests-proof",
-      "status": "pending",
-      "reason": "Assigned to another audit workstream; no verdict recorded here."
+      "status": "selective-merge-candidate",
+      "reason": "27 commits contain sound ordinary CLI partition correction (11 source checks, 9 frozen-binary, 9 candidate-binary; isolation::env_isolation must run under both binary dirs), candidate-isolation negative control, and explicit TERM profile recording for paired runs. Branch validates 11/9/9 controls, but has older runner base; current PR38 tool sources differ. Cherry-pick/port only profile/partition guards and source-bound tests after comparing against current runner; retain branch's stale candidate failures as evidence only. Candidate product gate remains red/incomplete.",
+      "review_source": "D-tests-proof.json",
+      "review_evidence_scope": "Read-only source/history review; no branch checkout edits, no candidate expected-data update, no product acceptance claim.",
+      "commits_not_in_pr38_ancestry_at_observation": 27,
+      "changed_paths_vs_pr38_snapshot_6bcdc": 96
     },
     {
       "branch": "parity/picker-family-contracts-20261020",
@@ -599,8 +647,12 @@
       "inventory_sha": "70b7f9e6c196b57d1b13aee56ac6d6a17e6db388",
       "observed_remote_sha": "70b7f9e6c196b57d1b13aee56ac6d6a17e6db388",
       "assignment": "D-tests-proof",
-      "status": "pending",
-      "reason": "Assigned to another audit workstream; no verdict recorded here."
+      "status": "selective-merge-already-integrated-with-production-exclusions",
+      "reason": "Final fail-closed architecture checker/test bytes exactly match target. Branch includes important source fixes to code completion and app views, but target blobs match these sampled completion/Holla/Jackin/Showcase production files; its diff also introduces many crates/tablepro historical_* replay files and deletes typed components. Do not merge branch wholesale. No unique architecture-test code remains; inspect any unrepresented product commit under component stream.",
+      "review_source": "D-tests-proof.json",
+      "review_evidence_scope": "Read-only source/history review; no branch checkout edits, no candidate expected-data update, no product acceptance claim.",
+      "commits_not_in_pr38_ancestry_at_observation": 34,
+      "changed_paths_vs_pr38_snapshot_6bcdc": 69
     },
     {
       "branch": "parity/table-component-20261020",
@@ -735,8 +787,12 @@
       "inventory_sha": "706c138339c22bbd113ea449cf28d1c23c119764",
       "observed_remote_sha": "706c138339c22bbd113ea449cf28d1c23c119764",
       "assignment": "D-tests-proof",
-      "status": "pending",
-      "reason": "Assigned to another audit workstream; no verdict recorded here."
+      "status": "docs-only-review",
+      "reason": "WIP head 706c... carries CI handoff and matrix edits plus stale TablePro historical modules in its tree. Do not merge product source. The relevant matrix/handoff text is a candidate for manual reconciliation only; test-integrity changes none. CI report itself says Plan timeout/Rust skipped and is not product acceptance.",
+      "review_source": "D-tests-proof.json",
+      "review_evidence_scope": "Read-only source/history review; no branch checkout edits, no candidate expected-data update, no product acceptance claim.",
+      "commits_not_in_pr38_ancestry_at_observation": 2,
+      "changed_paths_vs_pr38_snapshot_6bcdc": 18
     },
     {
       "branch": "wip/plan-s16",
@@ -799,8 +855,12 @@
       "inventory_sha": "c2396b45622d0ae2a3cb836756612d8354abb2db",
       "observed_remote_sha": "c2396b45622d0ae2a3cb836756612d8354abb2db",
       "assignment": "D-tests-proof",
-      "status": "pending",
-      "reason": "Assigned to another audit workstream; no verdict recorded here."
+      "status": "component-review-required",
+      "reason": "Thirteen commits include actual Picker/MenuBar/session/completion/theme behavior and tests plus deferred-parity evidence. Not a test-integrity-only change; some live baseline probes are incomplete and not all supported-profile frames green. Route commits to component/runtime reviewers; merge only individually proven shared-component fixes. Keep its handoff and red evidence; no acceptance claim.",
+      "review_source": "D-tests-proof.json",
+      "review_evidence_scope": "Read-only source/history review; no branch checkout edits, no candidate expected-data update, no product acceptance claim.",
+      "commits_not_in_pr38_ancestry_at_observation": 13,
+      "changed_paths_vs_pr38_snapshot_6bcdc": 94
     },
     {
       "branch": "wip/table-consumer-baseline",
@@ -826,5 +886,40 @@
       "status": "pending",
       "reason": "Assigned to another audit workstream; no verdict recorded here."
     }
-  ]
+  ],
+  "stream_reports": {
+    "D-tests-proof": {
+      "status": "reviewed",
+      "reviewed_branches": 15,
+      "source": "/Users/donbeave/Projects/termrock-cli-evidence-20261020/branch-consolidation/D-tests-proof.json",
+      "method": "Compared exact assigned remote refs and ancestry with PR38 remote snapshot; inspected commit histories, changed paths, runner manifests/source hashes, audits and recorded paired-run evidence. Full checked-out builds were not run by this read-only review.",
+      "summary": {
+        "branches_reviewed": 15,
+        "direct_wholesale_merges_recommended": 0,
+        "selective_tool_port_candidates": [
+          "parity/buttons-reference-decision-20261020",
+          "parity/ordinary-cli-partition-20261020"
+        ],
+        "already_integrated_or_superseded": [
+          "audit/replay-origin-current-source-20261020",
+          "parity/acceptance-architecture-20261020",
+          "parity/acceptance-architecture-module-path-20261020",
+          "parity/acceptance-architecture-p1-20261020",
+          "parity/acceptance-architecture-symlink-20261020",
+          "parity/frame-semantics-20261020",
+          "parity/frozen-table-workflows-20261020",
+          "parity/migration-matrix-20261020",
+          "parity/strict-accounting-fix-20261020"
+        ],
+        "excluded_or_route_elsewhere": [
+          "docs/branch-authority-cleanup",
+          "docs/interaction-reference-cleanup",
+          "wip/ci-upgrade-handoff-20261020",
+          "wip/style-conformance-20261020"
+        ],
+        "candidate_outcomes": "All branch-local partial paired evidence remains explicitly partial; multiple current candidate scenarios are red, and full inventory/two-pass app acceptance is unproven."
+      },
+      "limitation": "Read-only source/history review; no branch checkouts or candidate expected-data updates; no product acceptance claim."
+    }
+  }
 }
