@@ -374,6 +374,7 @@ pub struct Runtime<A: App> {
     bootstrapped: bool,
     presented: bool,
     prepared: Option<PreparedOutput>,
+    scratch_buffer: Option<Buffer>,
     prepared_generation: u64,
     painted_cursor: Option<Position>,
     painted_cursor_bar: bool,
@@ -433,7 +434,9 @@ impl<A: App> Runtime<A> {
     }
 
     fn invalidate_prepared(&mut self) {
-        self.prepared = None;
+        if let Some(output) = self.prepared.take() {
+            self.scratch_buffer = Some(output.buffer);
+        }
         self.presented = false;
         self.prepared_generation = self.prepared_generation.wrapping_add(1);
     }
@@ -485,6 +488,7 @@ impl<A: App> Runtime<A> {
             bootstrapped: false,
             presented: false,
             prepared: None,
+            scratch_buffer: None,
             prepared_generation: 0,
             painted_cursor: None,
             painted_cursor_bar: false,
@@ -1403,6 +1407,9 @@ impl<A: App> Runtime<A> {
         if !self.bootstrapped {
             let _ = self.initialize();
         }
+        if let Some(output) = self.prepared.take() {
+            self.scratch_buffer = Some(output.buffer);
+        }
         let mut passes = 0;
         while passes < MAX_FOCUS_PASSES * MAX_FOCUS_PASSES {
             if self.needs_settle() {
@@ -1410,10 +1417,16 @@ impl<A: App> Runtime<A> {
                 passes += 1;
                 continue;
             }
-            let mut buffer = Buffer::empty(area);
+            let mut buffer = self
+                .scratch_buffer
+                .take()
+                .unwrap_or_else(|| Buffer::empty(area));
+            buffer.resize(area);
+            buffer.reset();
             self.draw_with_buffer(area, &mut buffer, None, A::draw);
             self.commit_frame();
             if !self.presented || self.needs_settle() {
+                self.scratch_buffer = Some(buffer);
                 passes += 1;
                 continue;
             }
@@ -1485,7 +1498,8 @@ impl<A: App> Runtime<A> {
         if !output.projected {
             return Err(PreparedFrameError::Stale);
         }
-        let _ = self.prepared.take();
+        let output = self.prepared.take().expect("validated prepared frame");
+        self.scratch_buffer = Some(output.buffer);
         self.presented = true;
         self.services.continuation_command_pending_present = None;
         for (_, age) in &mut self.services.completions {
