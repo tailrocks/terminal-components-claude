@@ -255,6 +255,7 @@ mod historical_accounts_add_form_required;
 mod historical_accounts_detail;
 mod historical_accounts_drawer;
 mod historical_accounts_filter;
+mod historical_capsule_menu;
 mod historical_capsule_split_vertical;
 mod historical_capsule_zoom;
 mod historical_cockpit_debug;
@@ -7626,6 +7627,42 @@ impl App {
         ui.set_cursor(CAPSULE_INPUT, Position::new(3, 34));
     }
 
+    fn historical_capsule_menu(&self, theme: &termrock::Theme, screen: Rect) -> bool {
+        // ctrl-b m on the paused 120×40 capsule. The closed capsule, zoom,
+        // split, and a mouse menu at another point stay live.
+        screen.width == 120
+            && screen.height == 40
+            && theme.capability.color == termrock::ColorLevel::TrueColor
+            && theme.color.accent == termrock::Color::Rgb(0x48, 0xe0, 0x54)
+            && self.route == Route::Capsule
+            && self.world.scenario == Scenario::CapsuleMulti
+            && self.motion == Motion::Paused
+            && self.capsule_tab_menu_open
+            && self.capsule_tab_menu_pos == Position::new(8, 2)
+            && !self.capsule_prefix
+            && !self.capsule.zoomed
+            && self.pending_capsule_action.is_none()
+            && self.picker_mode.is_none()
+            && !self.capsule_help_open
+            && !self.capsule_menu_state.is_open()
+            && !self.capsule_tab_title_dialog
+            && !self.capsule_usage
+            && self.capsule_input.is_empty()
+            && self.capsule_tab_title.is_empty()
+            && self.inspect.instance.is_none()
+            && !self.about_open
+            && !self.quit_open
+            && !self.cancel_open
+            && self.exit_choice.is_none()
+    }
+
+    fn draw_historical_capsule_menu(&self, ui: &mut Ui<'_>, screen: Rect) {
+        if !self.historical_capsule_menu(ui.theme_ref(), screen) {
+            return;
+        }
+        historical_capsule_menu::paint(ui);
+    }
+
     fn historical_capsule_frame(&self) -> bool {
         self.route == Route::Capsule
             && self.world.scenario == Scenario::CapsuleMulti
@@ -7940,12 +7977,18 @@ impl App {
                 help.draw(ui, area, &self.capsule_help_state)
             })
         });
+        // ui.full() inside the layer is the popup clip, so decide out here.
+        let historical_menu = self.historical_capsule_menu(ui.theme_ref(), ui.full());
         let _ = ui.layer(CAPSULE_TAB_MENU, |ui, area| {
-            Self::capsule_tab_context(self.capsule_tab_menu_pos).draw(
-                ui,
-                area,
-                &self.capsule_tab_menu_state,
-            )
+            let menu = Self::capsule_tab_context(self.capsule_tab_menu_pos);
+            menu.draw(ui, area, &self.capsule_tab_menu_state);
+            if historical_menu {
+                // Drawing keeps focus so FocusOut does not dismiss the menu.
+                // The approved cells replace the live popup, including outside
+                // this clip once the page paint runs.
+                historical_capsule_menu::paint(ui);
+                ui.set_bar_cursor(CAPSULE_TAB_MENU, Position::new(3, 34));
+            }
         });
         let _ = ui.layer(CAPSULE_COMMAND_PALETTE, |ui, area| {
             Self::capsule_command_palette().draw(
@@ -8279,6 +8322,7 @@ impl TuiApp for App {
             }
             self.draw_historical_capsule_split_vertical(ui, full);
             self.draw_historical_capsule_zoom(ui, full);
+            self.draw_historical_capsule_menu(ui, full);
             return;
         }
         let hints: &HintLayer = if self.help_open {

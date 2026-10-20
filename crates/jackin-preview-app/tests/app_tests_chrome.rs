@@ -125,6 +125,27 @@ fn menu_bar_opens_switches_and_runs_an_action() {
 }
 
 #[test]
+fn capsule_prefix_m_paints_the_change_title_cell() {
+    let closed = H::new(Scenario::CapsuleMulti, Motion::Paused, 40, 120, 40);
+    let before = closed.buffer().cell((4, 5)).expect("closed capsule cell");
+    assert_ne!(before.symbol(), "C", "closed capsule has no Change title");
+    assert!(
+        !closed.text().contains("Change title…"),
+        "closed capsule must stay off the menu frame: {}",
+        closed.text()
+    );
+    let mut open = H::new(Scenario::CapsuleMulti, Motion::Paused, 40, 120, 40);
+    open.ctrl('b');
+    open.key(KeyCode::Char('m'));
+    let cell = open.buffer().cell((4, 5)).expect("Change title");
+    assert_eq!(cell.symbol(), "C");
+    assert_eq!(cell.fg, termrock::Color::from_u32(0x00_ff_ff_ff));
+    assert_eq!(cell.bg, termrock::Color::from_u32(0x00_2f_5a_a8));
+    assert!(cell.modifier.contains(termrock::Modifier::BOLD));
+    assert!(open.text().contains("Change title…"), "{}", open.text());
+}
+
+#[test]
 fn tab_context_menu_renames_and_closes_by_mouse_and_keyboard() {
     let mut h = H::new(Scenario::CapsuleMulti, Motion::Reduced, 0, 120, 40);
     let (x, y) = h.find("Shell").unwrap();
