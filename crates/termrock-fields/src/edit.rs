@@ -18,6 +18,9 @@ pub enum TextEditCommand {
 /// Commands currently available for a field's selection and editability.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub struct EditCapabilities {
+    /// Whether the field accepts edits. This is independent of whether the
+    /// current value is sensitive (and therefore cannot be copied/cut).
+    pub editable: bool,
     pub can_cut: bool,
     pub can_copy: bool,
     pub can_paste: bool,
@@ -51,9 +54,10 @@ pub(crate) fn capabilities(
     let all_selected = selection.is_some_and(|range| range == (0..content.len()));
     let can_copy = selected && !disabled && !secret && !value_sensitive && !draft.is_sensitive();
     EditCapabilities {
+        editable: editable && !disabled,
         can_cut: can_copy && editable,
         can_copy,
-        can_paste: editable,
+        can_paste: editable && !disabled,
         can_select_all: !disabled && !content.is_empty() && !all_selected,
     }
 }

@@ -21,7 +21,7 @@ const ITEMS: [MenuItem<'static>; 4] = [
         .chord(Chord::with(KeyCode::Char('v'), KeyModifiers::CONTROL))
         .separator(),
     MenuItem::new(SELECT_ALL, "Select all")
-        .chord(Chord::with(KeyCode::Char('l'), KeyModifiers::CONTROL)),
+        .chord(Chord::with(KeyCode::Char('a'), KeyModifiers::CONTROL)),
 ];
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -35,7 +35,7 @@ pub struct EditMenuState {
     request: Option<EditMenuRequest>,
     menu: MenuState,
     clipboard_has_text: bool,
-    items: [MenuItem<'static>; 4],
+    items: Vec<MenuItem<'static>>,
 }
 
 impl Default for EditMenuState {
@@ -44,7 +44,7 @@ impl Default for EditMenuState {
             request: None,
             menu: MenuState::default(),
             clipboard_has_text: false,
-            items: ITEMS,
+            items: ITEMS.to_vec(),
         }
     }
 }
@@ -150,19 +150,23 @@ impl EditMenu {
     fn menu<'a>(
         &self,
         request: EditMenuRequest,
-        items: &'a [MenuItem<'static>; 4],
+        items: &'a [MenuItem<'static>],
     ) -> ContextMenu<'a> {
         ContextMenu::at(self.id, items, request.anchor)
     }
 }
 
-fn menu_items(capabilities: EditCapabilities, clipboard_has_text: bool) -> [MenuItem<'static>; 4] {
-    [
-        ITEMS[0].disabled(!capabilities.can_cut),
-        ITEMS[1].disabled(!capabilities.can_copy),
-        ITEMS[2].disabled(!capabilities.can_paste || !clipboard_has_text),
-        ITEMS[3].disabled(!capabilities.can_select_all),
-    ]
+fn menu_items(capabilities: EditCapabilities, clipboard_has_text: bool) -> Vec<MenuItem<'static>> {
+    let mut items = Vec::with_capacity(4);
+    if capabilities.editable {
+        items.push(ITEMS[0].disabled(!capabilities.can_cut));
+    }
+    items.push(ITEMS[1].disabled(!capabilities.can_copy));
+    if capabilities.editable {
+        items.push(ITEMS[2].disabled(!capabilities.can_paste || !clipboard_has_text));
+    }
+    items.push(ITEMS[3].disabled(!capabilities.can_select_all));
+    items
 }
 
 fn command_for(action: ActionKey) -> Option<TextEditCommand> {
@@ -338,20 +342,26 @@ mod tests {
     fn menu_rows_retain_readonly_secret_disabled_and_clipboard_availability() {
         let readonly = menu_items(
             EditCapabilities {
+                editable: false,
                 can_copy: true,
                 can_select_all: true,
                 ..EditCapabilities::default()
             },
             false,
         );
-        assert_eq!(readonly.len(), 4);
-        assert!(readonly[0].is_disabled());
+        assert_eq!(readonly.len(), 2);
+        assert_eq!(readonly[0].label(), "Copy");
+        assert!(!readonly[0].is_disabled());
+        assert_eq!(readonly[1].label(), "Select all");
         assert!(!readonly[1].is_disabled());
-        assert!(readonly[2].is_disabled());
-        assert!(!readonly[3].is_disabled());
+        assert_eq!(
+            readonly[1].chord_ref(),
+            Some(Chord::with(KeyCode::Char('a'), KeyModifiers::CONTROL,))
+        );
 
         let secret = menu_items(
             EditCapabilities {
+                editable: true,
                 can_select_all: true,
                 ..EditCapabilities::default()
             },
@@ -363,6 +373,7 @@ mod tests {
         assert!(!secret[3].is_disabled());
 
         let disabled = menu_items(EditCapabilities::default(), true);
+        assert_eq!(disabled.len(), 2);
         assert!(disabled.iter().all(MenuItem::is_disabled));
     }
 
