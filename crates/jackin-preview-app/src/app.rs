@@ -11,12 +11,13 @@ use termrock::author::PaintStyle;
 use termrock::{
     Action, ActionKey, ActivationKey, App as TuiApp, AsItem, Brand, Button, Chord, ContextMenu, Cx,
     Dialog, DialogAction, DialogState, FrameRead, HelpAction, HelpOverlay, HelpOverlayState,
-    HelpSection, Hint, HintBar, HintLayer, Id, Intent, Item, ItemKey, KeyCode, KeyMap,
-    KeyModifiers, KeyPhase, List, ListAction, ListState, Menu, MenuAction, MenuBar, MenuItem,
-    MenuState, Modifier, Moment, Panel, Part, PartRef, Phase, Picker, PickerAction, PickerState,
-    Position, ProjectedText, Reconcile, Rect, Response, SecretPolicy, StatusBar, StatusItem, Tabs,
-    TabsAction, TabsState, TextAction, TextInput, TextInputState, TextViewport, TooSmall, Ui,
-    UpdateCause, Variant, ViewportAction, ViewportLine, ViewportState,
+    HelpSection, Hint, HintBar, HintLayer, Id, Intent, Item, ItemKey, ItemRowLayout, KeyCode,
+    KeyMap, KeyModifiers, KeyPhase, LayerSize, List, ListAction, ListState, Menu, MenuAction,
+    MenuBar, MenuItem, MenuState, Modifier, Moment, Panel, Part, PartRef, Phase, Picker,
+    PickerAction, PickerState, Position, ProjectedText, Reconcile, Rect, Response, ScreenAlign,
+    SecretPolicy, StatusBar, StatusItem, Tabs, TabsAction, TabsState, TextAction, TextInput,
+    TextInputState, TextViewport, TooSmall, Ui, UpdateCause, Variant, ViewportAction, ViewportLine,
+    ViewportState,
 };
 
 use crate::domain::account::{
@@ -281,7 +282,6 @@ mod historical_hard_launch_picker;
 mod historical_help_overlay;
 mod historical_inspect;
 mod historical_intro_f300;
-mod historical_launch_picker;
 mod historical_manager_menu;
 mod historical_paint;
 mod historical_settings_agents;
@@ -389,19 +389,51 @@ struct AgentOption {
     agent: Agent,
     account: Option<String>,
     blocked: bool,
+    glyph: &'static str,
+    tag: &'static str,
+    group: &'static str,
 }
 
 impl AgentOption {
-    fn from_candidate(candidate: LaunchCandidate, world: &World) -> Self {
+    fn from_candidate(
+        candidate: LaunchCandidate,
+        world: &World,
+        workspace_id: Option<u32>,
+        role: &str,
+    ) -> Self {
+        let workspace = workspace_id.and_then(|id| world.workspace(id));
         let account = candidate.account.clone();
         let account_label = account
             .as_deref()
             .and_then(|id| world.accounts.get(id))
             .map(Account::title);
-        let detail = match (&account_label, &candidate.blocked) {
-            (_, Some(reason)) => format!("blocked · {reason}"),
-            (Some(account), None) => format!("ready · {account}"),
-            (None, None) => "ready".to_owned(),
+        let (detail, tag, blocked) = match (&account, &candidate.blocked) {
+            (Some(id), _) => {
+                let resolution =
+                    world.account_for(candidate.agent.provider(), workspace, Some(role), None);
+                let level = resolution.level.map_or("", |level| level.label());
+                let additional = world
+                    .eligible_accounts(candidate.agent, workspace, Some(role))
+                    .len()
+                    .saturating_sub(1);
+                let suffix = if additional > 0 {
+                    format!(" · +{additional} more available")
+                } else {
+                    String::new()
+                };
+                let title = account_label.as_deref().unwrap_or(id);
+                (
+                    format!("account {title} · {level}{suffix}"),
+                    if additional > 0 {
+                        "choose at start"
+                    } else {
+                        "ready"
+                    },
+                    false,
+                )
+            }
+            (None, Some(reason)) => (reason.clone(), "unavailable", true),
+            (None, None) => ("no usable account".to_owned(), "unavailable", true),
         };
         Self {
             key: candidate.agent.short().to_owned(),
@@ -409,14 +441,26 @@ impl AgentOption {
             detail,
             agent: candidate.agent,
             account,
-            blocked: candidate.blocked.is_some(),
+            blocked,
+            glyph: if candidate.agent.registerable() {
+                "▪"
+            } else {
+                "·"
+            },
+            tag,
+            group: "agents",
         }
     }
 }
 
 impl AsItem for AgentOption {
     fn as_item(&self) -> Item<'_> {
-        Item::new(ItemKey::text(&self.key), &self.label).detail(&self.detail)
+        Item::new(ItemKey::text(&self.key), &self.label)
+            .detail(&self.detail)
+            .glyph(self.glyph)
+            .tag(self.tag)
+            .group(self.group)
+            .disabled(self.blocked)
     }
 }
 
@@ -1041,14 +1085,47 @@ impl App {
     }
 
     fn launch_candidates(&self) -> Vec<AgentOption> {
-        let workspace = self
-            .manager
-            .selected()
-            .or_else(|| self.world.workspaces.first().map(|workspace| workspace.id));
-        ManagerState::launch_candidates(&self.world, workspace, Some(self.selected_role()))
+        let workspace = self.launch_workspace();
+        let role = self.launch_role(workspace);
+        ManagerState::launch_candidates(&self.world, workspace, Some(&role))
             .into_iter()
-            .map(|candidate| AgentOption::from_candidate(candidate, &self.world))
+            .map(|candidate| AgentOption::from_candidate(candidate, &self.world, workspace, &role))
             .collect()
+    }
+
+    fn launch_workspace(&self) -> Option<u32> {
+        self.manager
+            .selected()
+            .or_else(|| self.world.cwd_workspace().map(|workspace| workspace.id))
+            .or_else(|| self.world.workspaces.first().map(|workspace| workspace.id))
+    }
+
+    fn launch_role(&self, workspace: Option<u32>) -> String {
+        workspace
+            .and_then(|id| self.world.workspace(id))
+            .and_then(|workspace| {
+                workspace
+                    .roles
+                    .default
+                    .clone()
+                    .or(workspace.roles.last.clone())
+            })
+            .unwrap_or_else(|| "the-architect".to_owned())
+    }
+
+    fn launch_scope(&self) -> String {
+        let workspace = self.launch_workspace();
+        let role = self.launch_role(workspace);
+        let title = workspace
+            .and_then(|id| self.world.workspace(id))
+            .map(|workspace| workspace.name.clone())
+            .unwrap_or_else(|| {
+                self.world
+                    .cwd
+                    .strip_prefix(&self.world.home)
+                    .map_or_else(|| self.world.cwd.clone(), |rest| format!("~{rest}"))
+            });
+        format!("{title} › {}", self.role_label(&role))
     }
 
     fn launch_available(&self) -> bool {
@@ -1295,8 +1372,14 @@ impl App {
         Picker::new(ROLE_PICKER).title(title)
     }
 
-    fn launch_agent_picker() -> Picker<'static, AgentOption> {
-        Picker::new(crate::screens::manager::AGENT_PICKER).title("Launch · choose Agent")
+    fn launch_agent_picker(scope: &str, item_count: usize) -> Picker<'_, AgentOption> {
+        Picker::new(crate::screens::manager::AGENT_PICKER)
+            .title("Launch · choose Agent")
+            .scope_label(scope)
+            .searchable(false)
+            .size(LayerSize::Fixed(84, item_count.clamp(1, 12) as u16 + 5))
+            .align(ScreenAlign::GeometricCenter)
+            .item_layout(ItemRowLayout::Columns)
     }
 
     fn account_picker() -> Picker<'static, AccountOption> {
@@ -1919,7 +2002,8 @@ impl App {
             self.status = Some("No configured agent account is available".into());
             return;
         }
-        let picker = Self::launch_agent_picker();
+        let scope = self.launch_scope();
+        let picker = Self::launch_agent_picker(&scope, self.agent_options.len());
         let spec = picker.layer(cx, &self.agent_options);
         cx.open_layer(crate::screens::manager::AGENT_PICKER, spec);
         self.status = Some("Launch · choose Agent".into());
@@ -3248,7 +3332,8 @@ impl App {
             result |= Response::changed();
         }
 
-        let agent_picker = Self::launch_agent_picker();
+        let scope = self.launch_scope();
+        let agent_picker = Self::launch_agent_picker(&scope, self.agent_options.len());
         let response = agent_picker.update(cx, &mut self.agent_state, &self.agent_options);
         let action = response.action_ref().copied();
         result |= response.erase();
@@ -8443,12 +8528,11 @@ impl App {
         let _ = ui.layer(ROLE_PICKER, |ui, area| {
             role_picker.draw(ui, area, &self.role_state, &self.roles)
         });
-        let agent_picker = Self::launch_agent_picker();
+        let scope = self.launch_scope();
+        let agent_picker = Self::launch_agent_picker(&scope, self.agent_options.len());
         // The approved picker frame is painted on the page. Drawing the live
         // modal would dim that page and place a cursor after this returns.
-        if !self.historical_launch_picker(ui.theme_ref(), ui.full())
-            && !self.historical_hard_launch_picker(ui.theme_ref(), ui.full())
-        {
+        if !self.historical_hard_launch_picker(ui.theme_ref(), ui.full()) {
             let _ = ui.layer(crate::screens::manager::AGENT_PICKER, |ui, area| {
                 agent_picker.draw(ui, area, &self.agent_state, &self.agent_options)
             });
@@ -8642,22 +8726,6 @@ impl App {
         !self.launch_picker_open
             && !cx.is_open(crate::screens::manager::AGENT_PICKER)
             && self.launch_picker_host(cx.theme(), cx.viewport())
-    }
-
-    fn historical_launch_picker(&self, theme: &termrock::Theme, screen: Rect) -> bool {
-        self.launch_picker_open
-            && self.status.as_deref() == Some("Launch · choose Agent")
-            && !self.agent_options.is_empty()
-            && self.launch_picker_host(theme, screen)
-    }
-
-    fn draw_historical_launch_picker(&self, ui: &mut Ui<'_>) {
-        if !self.historical_launch_picker(ui.theme_ref(), ui.full()) {
-            return;
-        }
-        // Approved frame hides the cursor. This path must not call set_cursor
-        // or set_bar_cursor, and it must not write cursor bytes.
-        historical_launch_picker::paint(ui);
     }
 
     fn hard_launch_picker_host(&self, theme: &termrock::Theme, screen: Rect) -> bool {
@@ -9074,7 +9142,6 @@ impl TuiApp for App {
             historical_inspect::paint(ui);
         }
         self.draw_historical_manager_menu(ui, full);
-        self.draw_historical_launch_picker(ui);
         self.draw_historical_hard_launch_picker(ui);
         self.draw_historical_help_overlay(ui, full);
         self.draw_historical_cockpit_info(ui);

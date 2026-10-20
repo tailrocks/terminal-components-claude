@@ -1962,14 +1962,91 @@ fn manager_launch_picker_paints_the_approved_agent_cell() {
         h.text()
     );
     h.key(KeyCode::Enter);
+    let picker_area = h
+        .harness
+        .layer_area(jackin_preview_app::screens::manager::AGENT_PICKER);
+    assert_eq!(picker_area, Some(termrock::Rect::new(18, 15, 84, 9)));
     let title = h.buffer().cell((20, 16)).expect("launch picker title");
     assert_eq!(title.symbol(), "L");
     assert_eq!(title.fg, termrock::Color::from_u32(0x00_ff_ff_ff));
-    assert_eq!(title.bg, termrock::Color::from_u32(0x00_18_18_1b));
+    assert_eq!(
+        title.bg,
+        termrock::Color::from_u32(0x00_18_18_1b),
+        "{}",
+        h.text()
+    );
     assert!(title.modifier.contains(termrock::Modifier::BOLD));
     assert!(!title.modifier.contains(termrock::Modifier::ITALIC));
     assert!(h.text().contains("Launch · choose Agent"), "{}", h.text());
+    assert!(
+        h.text().contains("payments-platform › the-architect"),
+        "{}",
+        h.text()
+    );
     assert_eq!(h.harness.cursor(), None);
+}
+
+#[test]
+fn manager_launch_picker_has_no_extra_row_focus_gutter() {
+    let mut h = H::new(Scenario::Returning, Motion::Paused, 40, 120, 40);
+    h.key(KeyCode::Enter);
+    let gutter = h.buffer().cell((20, 17)).expect("first agent row gutter");
+    assert_eq!(gutter.symbol(), " ", "{}", h.text());
+    let glyph = h.buffer().cell((21, 17)).expect("first agent glyph");
+    assert_eq!(glyph.symbol(), "▪", "{}", h.text());
+}
+
+#[test]
+fn manager_launch_picker_scope_uses_the_role_display_name() {
+    let mut h = H::new(Scenario::Returning, Motion::Paused, 40, 120, 40);
+    h.key(KeyCode::Enter);
+    assert!(
+        h.text().contains("payments-platform › the-architect"),
+        "{}",
+        h.text()
+    );
+}
+
+#[test]
+fn manager_launch_picker_escape_dismisses_without_launching() {
+    let mut h = H::new(Scenario::Returning, Motion::Paused, 40, 120, 40);
+    h.key(KeyCode::Enter);
+    assert!(
+        h.harness
+            .is_open(jackin_preview_app::screens::manager::AGENT_PICKER)
+    );
+    h.key(KeyCode::Esc);
+    assert!(
+        !h.harness
+            .is_open(jackin_preview_app::screens::manager::AGENT_PICKER)
+    );
+    assert_eq!(h.app().route(), Route::Manager);
+    assert!(h.app().launch().is_none());
+}
+
+#[test]
+fn manager_launch_picker_down_then_enter_launches_selected_account_agent() {
+    let mut h = H::new(Scenario::Returning, Motion::Paused, 40, 120, 40);
+    h.key(KeyCode::Enter);
+    h.key(KeyCode::Down);
+    assert!(
+        h.harness
+            .is_open(jackin_preview_app::screens::manager::AGENT_PICKER),
+        "picker closed on Down: {}",
+        h.text()
+    );
+    h.key(KeyCode::Enter);
+    assert!(
+        !h.harness
+            .is_open(jackin_preview_app::screens::manager::AGENT_PICKER),
+        "picker stayed open on Enter: {}",
+        h.text()
+    );
+    assert_eq!(h.app().route(), Route::Cockpit);
+    assert_eq!(
+        h.app().launch().map(|launch| launch.agent),
+        Some(jackin_preview_app::domain::agent::Agent::Codex)
+    );
 }
 
 #[test]
