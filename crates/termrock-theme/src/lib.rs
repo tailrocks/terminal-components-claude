@@ -214,7 +214,7 @@ impl Theme {
     /// Baseline modal dim. Glyphs stay. Accent and secondary ink become faint.
     /// A rule that already fails contrast stays the ghost gray.
     pub fn backdrop_colors(&self, fg: Color, bg: Color) -> (Color, Color) {
-        let (mut mapped_fg, mapped_bg, blank) = self.map_backdrop(Some(fg), Some(bg));
+        let (mut mapped_fg, mapped_bg, blank) = self.map_backdrop(Some(fg), Some(bg), true);
         if !blank && mapped_fg == mapped_bg {
             mapped_fg = self.backdrop_collision_ink(mapped_bg);
         }
@@ -225,7 +225,7 @@ impl Theme {
     /// The glyph is preserved by the renderer; only nonblank dim cells receive DIM.
     #[must_use]
     pub fn backdrop_style(&self, style: Style) -> Style {
-        let (mut fg, bg, blank) = self.map_backdrop(style.fg, style.bg);
+        let (mut fg, bg, blank) = self.map_backdrop(style.fg, style.bg, false);
         let dim = !blank
             && (fg == bg || matches!(self.capability.color, ColorLevel::Ansi16 | ColorLevel::Mono));
         if dim {
@@ -243,7 +243,14 @@ impl Theme {
         if muted == bg { self.color.fg[0] } else { muted }
     }
 
-    fn map_backdrop(&self, fg: Option<Color>, bg: Option<Color>) -> (Color, Color, bool) {
+    // The legacy concrete-color pair API treats Color::Reset as an absent
+    // terminal default. The Style API must preserve Some(Reset) versus None.
+    fn map_backdrop(
+        &self,
+        fg: Option<Color>,
+        bg: Option<Color>,
+        reset_background_is_canvas: bool,
+    ) -> (Color, Color, bool) {
         let tokens = &self.color;
         let canvas = tokens.surfaces[0];
         let surface = tokens.surfaces[1];
@@ -259,19 +266,19 @@ impl Theme {
             source_bg
         } else if bg == Some(tokens.field) || bg == Some(tokens.field_hover) {
             elevated
-        } else if source_bg == Color::Reset {
+        } else if bg.is_none() || (reset_background_is_canvas && source_bg == Color::Reset) {
             canvas
         } else {
             overlay
         };
         let dark = bg.is_none()
-            || source_bg == Color::Reset
+            || (reset_background_is_canvas && source_bg == Color::Reset)
             || source_bg == canvas
             || source_bg == surface
             || source_bg == elevated
             || source_bg == tokens.field
             || source_bg == tokens.field_hover;
-        let plane = if source_bg == Color::Reset {
+        let plane = if bg.is_none() || (reset_background_is_canvas && source_bg == Color::Reset) {
             canvas
         } else {
             source_bg

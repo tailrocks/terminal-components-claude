@@ -13,6 +13,7 @@ struct Backdrop;
 struct StyledBackdrop {
     style: Style,
     blank_style: Option<Style>,
+    second_style: Option<Style>,
 }
 
 impl App for Backdrop {
@@ -42,6 +43,9 @@ impl App for StyledBackdrop {
         ui.paint_cell(ratatui_core::layout::Position::new(0, 0), "x", self.style);
         if let Some(style) = self.blank_style {
             ui.paint_cell(ratatui_core::layout::Position::new(1, 0), " ", style);
+        }
+        if let Some(style) = self.second_style {
+            ui.paint_cell(ratatui_core::layout::Position::new(2, 0), "y", style);
         }
         ui.modal_backdrop(SCREEN);
     }
@@ -84,6 +88,7 @@ fn reduced_modal_cells_use_muted_ink_and_replace_modifiers() {
                     .bg(Color::Black)
                     .add_modifier(Modifier::BOLD | Modifier::ITALIC),
             ),
+            second_style: None,
         };
         let runtime = Harness::new(app, theme.clone(), SCREEN.width, SCREEN.height);
         let cell = runtime.cell(0, 0);
@@ -122,6 +127,7 @@ fn modal_mapping_collision_retains_dim_after_pair_fallback() {
                 .bg(theme.color.surfaces[0])
                 .add_modifier(Modifier::BOLD | Modifier::ITALIC),
             blank_style: None,
+            second_style: None,
         };
         let runtime = Harness::new(app, theme.clone(), SCREEN.width, SCREEN.height);
         let cell = runtime.cell(0, 0);
@@ -130,4 +136,19 @@ fn modal_mapping_collision_retains_dim_after_pair_fallback() {
         assert_eq!(cell.modifier, Modifier::DIM, "{level:?}");
         assert_eq!(cell.symbol(), "x", "{level:?}");
     }
+}
+
+#[test]
+fn actual_modal_preserves_explicit_reset_as_overlay_background() {
+    let theme = Theme::junie();
+    let app = StyledBackdrop {
+        style: Style::new().fg(Color::White).bg(Color::Reset),
+        blank_style: None,
+        second_style: Some(Style::new().fg(Color::White)),
+    };
+    let runtime = Harness::new(app, theme.clone(), SCREEN.width, SCREEN.height);
+    assert_eq!(runtime.cell(0, 0).symbol(), "x");
+    assert_eq!(runtime.cell(0, 0).bg, theme.color.surfaces[3]);
+    assert_eq!(runtime.cell(2, 0).symbol(), "y");
+    assert_eq!(runtime.cell(2, 0).bg, theme.color.surfaces[3]);
 }
