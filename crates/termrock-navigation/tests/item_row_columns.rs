@@ -157,6 +157,32 @@ fn page_with_options(
     metadata_gap: Option<u16>,
     items: Vec<Item<'static>>,
 ) -> Harness<Page> {
+    page_with_theme(
+        layout,
+        width,
+        height,
+        custom,
+        cursor_style,
+        metadata_gap,
+        items,
+        Theme::junie().for_level(level),
+    )
+}
+
+#[expect(
+    clippy::too_many_arguments,
+    reason = "the test fixture keeps each render setting explicit"
+)]
+fn page_with_theme(
+    layout: ItemRowLayout,
+    width: u16,
+    height: u16,
+    custom: bool,
+    cursor_style: Option<CursorStyle>,
+    metadata_gap: Option<u16>,
+    items: Vec<Item<'static>>,
+    theme: Theme,
+) -> Harness<Page> {
     Harness::new(
         Page {
             state: FilterListState::default(),
@@ -171,7 +197,7 @@ fn page_with_options(
             cursor_style,
             metadata_gap,
         },
-        Theme::junie().for_level(level),
+        theme,
         84,
         8,
     )
@@ -261,7 +287,7 @@ fn columns_align_complete_projection_and_emphasize_original_graphemes() {
 
 #[test]
 fn constructor_defaults_match_the_pre_policy_full_cell_fixture() {
-    const PRE_POLICY: [u64; 4] = [
+    const PRE_POLICY_LEGACY_PALETTE: [u64; 4] = [
         5_235_702_202_963_140_133,
         12_184_706_452_759_668_872,
         617_874_636_223_778_604,
@@ -273,7 +299,6 @@ fn constructor_defaults_match_the_pre_policy_full_cell_fixture() {
         ColorLevel::Ansi16,
         ColorLevel::Mono,
     ];
-    let mut actual = [0; 4];
     for (index, level) in levels.into_iter().enumerate() {
         let default = page(ItemRowLayout::Columns, 64, 4, false, level);
         let explicit = page_with_policy(
@@ -288,12 +313,69 @@ fn constructor_defaults_match_the_pre_policy_full_cell_fixture() {
         );
         assert_eq!(default.buffer(), explicit.buffer(), "{level:?}");
         assert_eq!(default.cursor(), explicit.cursor(), "{level:?}");
-        actual[index] = full_cell_fingerprint(&default);
+        if level == ColorLevel::Ansi256 {
+            // This fixture was authored before the frozen Junie palette correction. Keep
+            // its historical fingerprint under its explicit legacy muted/faint colors.
+            let mut legacy_theme = Theme::junie().for_level(ColorLevel::Ansi256);
+            legacy_theme.color.fg[2] = Color::Indexed(244);
+            legacy_theme.color.fg[3] = Color::Indexed(238);
+            let legacy = page_with_theme(
+                ItemRowLayout::Columns,
+                64,
+                4,
+                false,
+                None,
+                None,
+                ITEMS.to_vec(),
+                legacy_theme,
+            );
+            assert_eq!(
+                full_cell_fingerprint(&legacy),
+                PRE_POLICY_LEGACY_PALETTE[index],
+                "legacy fixture fingerprint under authored legacy palette"
+            );
+
+            let mut corrected = legacy.buffer().clone();
+            let mut corrected_cells = 0;
+            for y in corrected.area.y..corrected.area.bottom() {
+                for x in corrected.area.x..corrected.area.right() {
+                    let cell = &mut corrected[(x, y)];
+                    if cell.fg == Color::Indexed(244) {
+                        cell.fg = Color::Indexed(245);
+                        corrected_cells += 1;
+                    }
+                }
+            }
+            assert_eq!(corrected_cells, 174, "only muted foreground cells change");
+            assert_eq!(
+                default.buffer(),
+                &corrected,
+                "frozen palette full-cell output"
+            );
+            assert_eq!(default.cursor(), legacy.cursor());
+
+            let mut wrong_muted = legacy.buffer().clone();
+            for y in wrong_muted.area.y..wrong_muted.area.bottom() {
+                for x in wrong_muted.area.x..wrong_muted.area.right() {
+                    let cell = &mut wrong_muted[(x, y)];
+                    if cell.fg == Color::Indexed(244) {
+                        cell.fg = Color::Indexed(246);
+                    }
+                }
+            }
+            assert_ne!(
+                default.buffer(),
+                &wrong_muted,
+                "incorrect muted palette detected"
+            );
+        } else {
+            assert_eq!(
+                full_cell_fingerprint(&default),
+                PRE_POLICY_LEGACY_PALETTE[index],
+                "historical full-cell fixture outside the corrected ANSI-256 palette"
+            );
+        }
     }
-    assert_eq!(
-        actual, PRE_POLICY,
-        "full-cell fixture after the baseline column solve and muted card ink"
-    );
 }
 
 #[test]
