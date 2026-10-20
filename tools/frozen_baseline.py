@@ -2629,7 +2629,7 @@ def _read_self_sealed_plan(path: Path, expected_sha256: str | None = None) -> di
     return validate_fresh_plan_document(parsed)
 
 
-def _atomic_create_plan(path: Path, document: dict[str, object]) -> None:
+def _atomic_create_plan(path: Path, document: dict[str, object]) -> str:
     path.parent.mkdir(parents=True, exist_ok=True)
     payload = (json.dumps(document, ensure_ascii=False, sort_keys=True, separators=(",", ":")) + "\n").encode()
     fd, temporary_name = tempfile.mkstemp(prefix=f".{path.name}.", dir=path.parent)
@@ -2651,6 +2651,7 @@ def _atomic_create_plan(path: Path, document: dict[str, object]) -> None:
             os.close(directory_fd)
     finally:
         temporary.unlink(missing_ok=True)
+    return hashlib.sha256(payload).hexdigest()
 
 
 def create_fresh_plan(
@@ -2681,9 +2682,9 @@ def create_fresh_plan(
         plan_id=run_id, created_at=created_at,
     )
     plan_path = root / FRESH_PLAN_FILE
-    _atomic_create_plan(plan_path, plan)
-    _read_self_sealed_plan(plan_path)
-    print(json.dumps({"plan_path": str(plan_path), "plan_sha256": plan["plan_sha256"], "creation_file_sha256": sha256(plan_path), "status": plan["status"], "visual_cases": plan["inventory"]["visual_count"], "ordinary_checks": plan["inventory"]["ordinary_count"]}, indent=2))
+    creation_file_sha256 = _atomic_create_plan(plan_path, plan)
+    _read_self_sealed_plan(plan_path, creation_file_sha256)
+    print(json.dumps({"plan_path": str(plan_path), "plan_sha256": plan["plan_sha256"], "creation_file_sha256": creation_file_sha256, "status": plan["status"], "visual_cases": plan["inventory"]["visual_count"], "ordinary_checks": plan["inventory"]["ordinary_count"]}, indent=2))
     return plan
 
 
