@@ -47,5 +47,5 @@ pub use empty::Empty;
 pub use panel::{Panel, PanelKind};
 pub use props::{Props, PropsAction, PropsCmd, PropsList, PropsRow, PropsState, PropsValue};
 pub use radio_field::RadioField;
-pub use split::{SplitAction, SplitCmd, SplitPane, SplitPaneState};
+pub use split::{ResetPolicy, SplitAction, SplitCmd, SplitPane, SplitPaneState};
 pub use too_small::TooSmall;
