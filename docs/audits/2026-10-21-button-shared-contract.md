@@ -9,9 +9,9 @@ Scope: `termrock-controls::Button` focus visibility and busy-prefix geometry. Th
 - A busy button has one leading spinner prefix. Its checked marker is suppressed during busy state and its measurement no longer reserves a second marker lane. Busy/disabled controls remain non-activating.
 - Owner-wide `Ui::reference` styles the actual Button parts without registering a focus stop, action binding, cursor, or control hit area. No second reference renderer was added.
 
-## Marker contract left open
+## Marker contract from the first Button-only increment (superseded below)
 
-The checked Button fallback is intentionally not changed to `GlyphRole::RadioOn/RadioOff`. Frozen source `4169783ae883788186d161af09ba9c481bd84e5c` uses a one-cell dot and a following spacer in this control. The current `RadioOn/RadioOff` glyphs are three-cell strings (`(●)` / `(○)`); widening this Button marker would alter its measured geometry, while forcing either role into its one-cell marker clips the glyph. This increment preserves the current one-cell `SwitchKnob` checked fallback and blank unchecked fallback; explicit marker `Set`, `Clear`, and slot precedence remain tested. A generic one-cell dot/toggle semantic role needs a separate shared Theme API decision and owner. No baseline frame or stored approval was modified.
+The first Button-only increment intentionally left the marker unchanged: frozen source uses a one-cell dot and spacer, while current RadioOn/Off glyphs are three-cell strings. The later Theme contract below resolves this with distinct one-cell DotOn/DotOff roles; it does not crop or widen the Radio roles.
 
 ## Evidence
 
@@ -27,6 +27,18 @@ The checked Button fallback is intentionally not changed to `GlyphRole::RadioOn/
 
 Independent review found that `KeyboardOnly` removed `FOCUSED` from the same local flags used to publish keyboard bindings. The added no-Tab regression reproduces the failure: after pointer down/up focuses the button, Enter left activation count at 1 instead of 2 (`nextest` run `7bf46007-e0fd-4e7c-871e-51ab2bd09c3c`, red before the fix). Binding publication now receives the runtime focus flags before a separate `style_flags` view applies the focus-visibility policy. The same regression checks both Enter and Space without a Tab round trip. The focused suite is green after the fix (`0c939a68-1e6a-4e14-9b34-d232961a434c`).
 
+## Shared Theme contract increment
+
+The reviewed follow-up agreement `button-dot-focus-recipe-agreement-5cd18153.json` adds `GlyphRole::DotOn` and `DotOff` as discriminants 42/43 while preserving `GlyphSet::new([&'static str; 41], ...)`. The new semantic storage lives in private string fields; the original 41-entry array is unchanged. Unicode defaults are `●`/`○`; `.ascii_glyphs()` configures `*`/`o`, and later explicit builder overrides still win. RadioOn/Off remain `(●)`/`(○)` and are not clipped or reused as Button dots.
+
+Button marker fallback now uses DotOn/DotOff when MARKER inherits. Explicit Set, Clear, and slot handling remain intact. The shared color recipe changes only the Button gutter focus indicator to match `FOCUS_VISIBLE`; `FOCUSED` remains available for container/body emphasis and binding publication. The Mono fallback replaces the default Button-only gutter rule with a `FOCUS_VISIBLE` rule, while retaining generic FOCUSED gutter behavior for other families and custom Button mono rules. Focus policy no longer removes FOCUSED from `style_flags`.
+
+Button tests cover real pointer focus for Always and KeyboardOnly, keyboard focus and no-Tab Enter activation across all eight Button variants and four color profiles, focused body-label styling, inert reference state, busy/checked prefix geometry, Unicode clipping, explicit glyph customization, and marker part override precedence. Theme tests cover the old public constructor shape and every role get/set, stable old role indices, ASCII/Unicode dots, all variants/profiles for the Button gutter recipe, non-Button List behavior, and authored Button Mono overrides.
+
+The body-style regression was run at pre-change commit `536ac2603663bff241fe4f11ac121a4045a8843e` using the real Harness and a KeyboardOnly button with pointer focus. It failed because the label's FOCUSED bold recipe was lost (`nextest` run `271f1227-ecae-4d29-8348-834a708b0094`). The same contract now passes as part of the green Button suite; the temporary baseline worktree and test were removed.
+
+The focused Button tests pass 8/8 (`nextest` run `26c20059-5492-40d7-ad1f-ee6b478141ac`). Controls all-targets passed 121/121 (`3f9c3bd3-52e0-4660-9bed-89dfa1a33d06`). Theme tests pass with one known test excluded: 136 passed, 1 skipped (`8c3528ee-47f4-4958-92c4-4272156c5a36`). The unfiltered theme run had 136 passes and one failure, `all_73_junie_slots_match_reference_capability_output`, where the reference formula expects ANSI256 index 77 and implementation returns 78. This is confirmed pre-existing at `536ac2603663bff241fe4f11ac121a4045a8843e` (run `35a265ae-2ec9-4132-b246-4fc440aad5dc`) and reproduced unchanged on this worktree (`776914ae-a451-400e-af8c-e50b81a9d0f6`, before the other theme fixes, then `19d0a244-4be6-4100-9bbb-6930311ed7b5`). No palette or approval data was altered. Strict Clippy for both packages and targeted rustfmt passed.
+
 ## Limits
 
-These tests establish the changed Button contract within the controls package only. They do not establish full Showcase behavior, CLI parity for any application, visual-baseline inventory coverage, or acceptance of stored expected artifacts. The marker-role design remains unresolved as described above.
+These tests establish this Button/Theme contract only. They do not establish full Showcase behavior, CLI parity for any application, visual-baseline inventory coverage, or acceptance of stored expected artifacts. The unrelated ANSI256 semantic-palette test remains a known failure; the separate narrow-label fit issue remains a later Button increment.
