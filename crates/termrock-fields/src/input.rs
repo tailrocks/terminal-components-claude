@@ -940,6 +940,7 @@ pub struct TextInput<'a> {
     status: Status,
     ov: PartStyle<'a>,
     style_target: Option<(Family, Variant, Part)>,
+    auxiliary_style_target: Option<(Family, Variant)>,
     excluded_commands: &'a [TextCmd],
 }
 
@@ -986,6 +987,7 @@ impl<'a> TextInput<'a> {
             status: Status::Ready,
             ov: PartStyle::new(),
             style_target: None,
+            auxiliary_style_target: None,
             excluded_commands: &[],
         }
     }
@@ -1092,6 +1094,14 @@ impl<'a> TextInput<'a> {
         self
     }
 
+    /// Resolve the gutter and placeholder through the host component's family.
+    /// Their part identities remain independent theme and overlay targets.
+    #[must_use]
+    pub const fn auxiliary_style_target(mut self, family: Family, variant: Variant) -> Self {
+        self.auxiliary_style_target = Some((family, variant));
+        self
+    }
+
     #[must_use]
     pub const fn slot(mut self, p: Part, f: SlotFn<'a>) -> Self {
         self.ov = self.ov.slot(p, f);
@@ -1122,6 +1132,7 @@ impl<'a> TextInput<'a> {
             status: self.status,
             ov: self.ov,
             style_target: self.style_target,
+            auxiliary_style_target: self.auxiliary_style_target,
             excluded_commands: self.excluded_commands,
         }
     }
@@ -1237,8 +1248,11 @@ impl<'a> TextInput<'a> {
                     });
                     acc.consumed();
                 }
-                Intent::Key(k) if editable && st.is_editing() => {
+                Intent::Key(k) if editable => {
                     if let Some(c) = k.bare_char() {
+                        if !st.is_editing() {
+                            st.begin(value.expose());
+                        }
                         self.insert(st, c, &mut acc);
                     }
                 }
@@ -1539,10 +1553,16 @@ impl<'a> TextInput<'a> {
         let ov = self.ov;
         let id = self.id;
         let style_target = self.style_target;
+        let auxiliary_style_target = self.auxiliary_style_target;
         let style = |ui: &mut Ui<'_>, part: Part| {
             let mapped_part = style_target.filter(|_| matches!(part, Part::FIELD | Part::TEXT));
-            let (family, variant, part) =
-                mapped_part.unwrap_or((Family::INPUT, Variant::DEFAULT, part));
+            let (family, variant, part) = mapped_part
+                .or_else(|| {
+                    auxiliary_style_target
+                        .filter(|_| matches!(part, Part::GUTTER | Part::PLACEHOLDER))
+                        .map(|(family, variant)| (family, variant, part))
+                })
+                .unwrap_or((Family::INPUT, Variant::DEFAULT, part));
             ov.style(ui, id, family, variant, part, live)
         };
         let field = style(ui, Part::FIELD);
@@ -3013,6 +3033,64 @@ mod tests {
         assert_ne!(placeholder[(2, 0)].fg, value[(2, 0)].fg);
         assert_ne!(value[(2, 0)].fg, selected[(2, 0)].fg);
         assert_ne!(value[(0, 0)].fg, value[(2, 0)].fg);
+    }
+
+    #[test]
+    fn hosted_query_auxiliary_parts_can_resolve_through_host_family() {
+        let theme = Theme::junie().override_family(Family::PICKER, |recipe| {
+            recipe
+                .part(Part::GUTTER)
+                .base(StylePatch::new().set_fg(crate::theme::Role::Warning));
+            recipe
+                .part(Part::PLACEHOLDER)
+                .base(StylePatch::new().set_fg(crate::theme::Role::Danger));
+        });
+        let mut runtime = Runtime::new(Stub::default(), theme);
+        let mut buffer = Buffer::empty(SCREEN);
+        runtime
+            .draw_scene(SCREEN, &mut buffer, |ui, area| {
+                TextInput::new(ID)
+                    .placeholder("Filter")
+                    .style_target(Family::PICKER, Variant::DEFAULT, Part::QUERY)
+                    .auxiliary_style_target(Family::PICKER, Variant::DEFAULT)
+                    .draw(ui, area, &TextInputState::default());
+            })
+            .commit_presented();
+
+        let theme = Theme::junie().override_family(Family::PICKER, |recipe| {
+            recipe
+                .part(Part::GUTTER)
+                .base(StylePatch::new().set_fg(crate::theme::Role::Warning));
+            recipe
+                .part(Part::PLACEHOLDER)
+                .base(StylePatch::new().set_fg(crate::theme::Role::Danger));
+        });
+        let warning = theme
+            .resolve(
+                Family::PICKER,
+                Variant::DEFAULT,
+                Part::GUTTER,
+                StateFlags::empty(),
+                crate::theme::Surface::Field,
+            )
+            .style
+            .as_style()
+            .fg
+            .expect("picker gutter theme has a foreground");
+        let danger = theme
+            .resolve(
+                Family::PICKER,
+                Variant::DEFAULT,
+                Part::PLACEHOLDER,
+                StateFlags::empty(),
+                crate::theme::Surface::Field,
+            )
+            .style
+            .as_style()
+            .fg
+            .expect("picker placeholder theme has a foreground");
+        assert_eq!(buffer[(0, 0)].fg, warning);
+        assert_eq!(buffer[(2, 0)].fg, danger);
     }
 
     #[test]
