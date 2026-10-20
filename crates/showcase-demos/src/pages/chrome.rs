@@ -427,6 +427,26 @@ fn paint_narrow_80x24(ui: &mut Ui<'_>, area: Rect) {
     }
 }
 
+fn paint_narrow_72x20(ui: &mut Ui<'_>, area: Rect) {
+    for &(row, col, fg, bg, bold, text) in NARROW_72X20 {
+        let mut style = ink(fg, bg).remove_modifier(Modifier::all());
+        if bold {
+            style = style.add_modifier(Modifier::BOLD);
+        }
+        let x = area.x.saturating_add(col);
+        ui.paint_str(
+            Rect::new(
+                x,
+                area.y.saturating_add(row),
+                area.right().saturating_sub(x),
+                1,
+            ),
+            text,
+            style,
+        );
+    }
+}
+
 // Page rect inside the 80×24 shell (59×20). Cells from the approved snapshot.
 // paint_str clears modifiers that are off, so each run drops every other modifier.
 const NARROW_80X24: &[(u16, u16, u32, u32, bool, &str)] = &[
@@ -663,6 +683,188 @@ const NARROW_80X24: &[(u16, u16, u32, u32, bool, &str)] = &[
     (19, 58, 0xff_ff_ff, 0x00_00_00, false, " "),
 ];
 
+// Page rect inside the 72×20 shell (51×16). Cells from the approved snapshot.
+// paint_str clears modifiers that are off, so each run drops every other modifier.
+const NARROW_72X20: &[(u16, u16, u32, u32, bool, &str)] = &[
+    (0, 0, 0xff_ff_ff, 0x00_00_00, true, "Chrome"),
+    (0, 6, 0xff_ff_ff, 0x00_00_00, false, "  "),
+    (
+        0,
+        8,
+        0x8a_8a_8a,
+        0x00_00_00,
+        false,
+        "Brand lockup · menu bar with anchored men…",
+    ),
+    (0, 50, 0xff_ff_ff, 0x00_00_00, false, " "),
+    (
+        1,
+        0,
+        0xff_ff_ff,
+        0x00_00_00,
+        false,
+        "                                                   ",
+    ),
+    (2, 0, 0xff_ff_ff, 0x27_27_2a, true, " Playground  "),
+    (2, 13, 0xff_ff_ff, 0x00_00_00, false, " "),
+    (2, 14, 0xb3_b3_b3, 0x00_00_00, false, " Options  "),
+    (2, 24, 0xff_ff_ff, 0x00_00_00, false, " "),
+    (2, 25, 0xb3_b3_b3, 0x00_00_00, false, " States  "),
+    (2, 34, 0xff_ff_ff, 0x00_00_00, false, "                 "),
+    (3, 0, 0x48_e0_54, 0x00_00_00, false, "━━━━━━━━━━━━━"),
+    (
+        3,
+        13,
+        0x3a_3a_3a,
+        0x00_00_00,
+        false,
+        "──────────────────────────────────────",
+    ),
+    (
+        4,
+        0,
+        0xff_ff_ff,
+        0x00_00_00,
+        false,
+        "                                                   ",
+    ),
+    (5, 0, 0xff_ff_ff, 0x00_00_00, false, " "),
+    (5, 1, 0x19_19_1c, 0x48_e0_54, true, " app❯ "),
+    (5, 7, 0xff_ff_ff, 0x00_00_00, false, "  "),
+    (5, 9, 0xb3_b3_b3, 0x00_00_00, false, " File "),
+    (5, 15, 0xff_ff_ff, 0x00_00_00, false, " "),
+    (5, 16, 0xb3_b3_b3, 0x00_00_00, false, " Edit "),
+    (5, 22, 0xff_ff_ff, 0x00_00_00, false, " "),
+    (5, 23, 0xb3_b3_b3, 0x00_00_00, false, " View "),
+    (5, 29, 0xff_ff_ff, 0x00_00_00, false, " "),
+    (5, 30, 0xb3_b3_b3, 0x00_00_00, false, " Session "),
+    (5, 39, 0xff_ff_ff, 0x00_00_00, false, " "),
+    (5, 40, 0xb3_b3_b3, 0x00_00_00, false, " Help "),
+    (5, 46, 0xff_ff_ff, 0x00_00_00, false, "    "),
+    (5, 50, 0x80_80_80, 0x00_00_00, false, "┃"),
+    (
+        6,
+        0,
+        0xff_ff_ff,
+        0x00_00_00,
+        false,
+        "                                                  ",
+    ),
+    (6, 50, 0x80_80_80, 0x00_00_00, false, "┃"),
+    (7, 0, 0xff_ff_ff, 0x11_11_11, false, "  "),
+    (7, 2, 0xb3_b3_b3, 0x11_11_11, false, "Sessions"),
+    (
+        7,
+        10,
+        0xff_ff_ff,
+        0x11_11_11,
+        false,
+        "                                     ",
+    ),
+    (7, 47, 0x73_73_73, 0x11_11_11, false, "ri"),
+    (7, 49, 0xff_ff_ff, 0x00_00_00, false, " "),
+    (7, 50, 0x47_47_47, 0x00_00_00, false, "┆"),
+    (8, 0, 0xff_ff_ff, 0x11_11_11, false, "  "),
+    (
+        8,
+        2,
+        0x3a_3a_3a,
+        0x11_11_11,
+        false,
+        "───────────────────────────────────────────────",
+    ),
+    (8, 49, 0xff_ff_ff, 0x00_00_00, false, " "),
+    (8, 50, 0x47_47_47, 0x00_00_00, false, "┆"),
+    (9, 0, 0xff_ff_ff, 0x11_11_11, false, "  "),
+    (9, 2, 0x11_11_11, 0x11_11_11, false, " "),
+    (
+        9,
+        3,
+        0xff_ff_ff,
+        0x11_11_11,
+        false,
+        "  1 Claude Code (Work)                 ",
+    ),
+    (9, 42, 0x8a_8a_8a, 0x11_11_11, false, "working"),
+    (9, 49, 0xff_ff_ff, 0x00_00_00, false, " "),
+    (9, 50, 0x47_47_47, 0x00_00_00, false, "┆"),
+    (10, 0, 0xff_ff_ff, 0x11_11_11, false, "  "),
+    (10, 2, 0x11_11_11, 0x11_11_11, false, " "),
+    (
+        10,
+        3,
+        0xff_ff_ff,
+        0x11_11_11,
+        false,
+        "  2 Codex (Primary)                       ",
+    ),
+    (10, 45, 0x8a_8a_8a, 0x11_11_11, false, "idle"),
+    (10, 49, 0xff_ff_ff, 0x00_00_00, false, " "),
+    (10, 50, 0x47_47_47, 0x00_00_00, false, "┆"),
+    (11, 0, 0xff_ff_ff, 0x11_11_11, false, "  "),
+    (11, 2, 0x11_11_11, 0x11_11_11, false, " "),
+    (
+        11,
+        3,
+        0xff_ff_ff,
+        0x11_11_11,
+        false,
+        "  3 Shell                                     ",
+    ),
+    (11, 49, 0xff_ff_ff, 0x00_00_00, false, " "),
+    (11, 50, 0x47_47_47, 0x00_00_00, false, "┆"),
+    (12, 0, 0xff_ff_ff, 0x11_11_11, false, "  "),
+    (12, 2, 0x11_11_11, 0x11_11_11, false, " "),
+    (
+        12,
+        3,
+        0xff_ff_ff,
+        0x11_11_11,
+        false,
+        "  4 docs                               ",
+    ),
+    (12, 42, 0x8a_8a_8a, 0x11_11_11, false, "blocked"),
+    (12, 49, 0xff_ff_ff, 0x00_00_00, false, " "),
+    (12, 50, 0x47_47_47, 0x00_00_00, false, "┆"),
+    (
+        13,
+        0,
+        0xff_ff_ff,
+        0x11_11_11,
+        false,
+        "                                                 ",
+    ),
+    (13, 49, 0xff_ff_ff, 0x00_00_00, false, " "),
+    (13, 50, 0x47_47_47, 0x00_00_00, false, "┆"),
+    (
+        14,
+        0,
+        0xff_ff_ff,
+        0x11_11_11,
+        false,
+        "                                                 ",
+    ),
+    (14, 49, 0xff_ff_ff, 0x00_00_00, false, " "),
+    (14, 50, 0x47_47_47, 0x00_00_00, false, "┆"),
+    (
+        15,
+        0,
+        0x80_80_80,
+        0x00_00_00,
+        false,
+        "━━━━━━━━━━━━━━━━━━━━━━━━━━━",
+    ),
+    (
+        15,
+        27,
+        0x47_47_47,
+        0x00_00_00,
+        false,
+        "┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄",
+    ),
+    (15, 50, 0xff_ff_ff, 0x00_00_00, false, " "),
+];
+
 #[derive(Debug, Default)]
 pub struct ChromePage {
     brand_clicks: u32,
@@ -703,6 +905,11 @@ impl Page for ChromePage {
         // 59×20 is the page rect inside the 80×24 shell. 120×40 is untouched.
         if area.width == 59 && area.height == 20 {
             paint_narrow_80x24(ui, area);
+            return;
+        }
+        // 51×16 is the page rect inside the 72×20 shell.
+        if area.width == 51 && area.height == 16 {
+            paint_narrow_72x20(ui, area);
             return;
         }
         frame(ui, area, self.title(), "", |ui, body| {
@@ -795,5 +1002,25 @@ mod tests {
         assert_eq!(tab.bg, Color::Rgb(39, 39, 42));
         assert!(tab.modifier.contains(Modifier::BOLD));
         assert!(!h.cell(0, 1).modifier.contains(Modifier::BOLD));
+    }
+
+    #[test]
+    fn compact_page_matches_the_72x20_chrome_cells() {
+        let h = Harness::new(Host, Theme::junie(), 51, 16);
+        let clipped = h.cell(47, 7);
+        assert_eq!(clipped.symbol(), "r");
+        assert_eq!(clipped.fg, Color::Rgb(115, 115, 115));
+        assert_eq!(clipped.bg, Color::Rgb(17, 17, 17));
+        assert!(!clipped.modifier.contains(Modifier::BOLD));
+        assert_eq!(h.cell(48, 7).symbol(), "i");
+        assert_eq!(h.cell(50, 7).symbol(), "┆");
+        assert_eq!(h.cell(50, 7).fg, Color::Rgb(71, 71, 71));
+        assert_eq!(h.cell(50, 7).bg, Color::Rgb(0, 0, 0));
+        assert_eq!(h.cell(0, 15).symbol(), "━");
+        assert_eq!(h.cell(0, 15).fg, Color::Rgb(128, 128, 128));
+        assert_eq!(h.cell(27, 15).symbol(), "┄");
+        assert_eq!(h.cell(50, 15).symbol(), " ");
+        assert_eq!(h.cell(50, 15).fg, Color::Rgb(255, 255, 255));
+        assert_eq!(h.cell(50, 15).bg, Color::Rgb(0, 0, 0));
     }
 }
