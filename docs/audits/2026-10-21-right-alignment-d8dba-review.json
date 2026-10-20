@@ -1,0 +1,55 @@
+{
+  "reviewed_commit": "d8dba9013e70c22321734043f78b59de7be55a01",
+  "decision": "Cleared for bounded integration of the semantic role preservation follow-up. No remaining source finding in this review scope.",
+  "source_scope": "Only the Ui::move_cell source role reset removal and its native regression are new relative to independently cleared bc99f0ccf90880ef0088357b0a1eedde020bbdaf.",
+  "source_reasoning": [
+    "Ui::move_cell copies both the source cell pixels and CellRoles to the destination. It resets the vacated source glyph and attributes, while explicitly retaining original foreground/background values whenever the reset PaintStyle leaves those channels inherited.",
+    "The removed mark(src,None) unconditionally erased semantic origin metadata for those retained pixel channels. Keeping metadata and then applying mark(src,Some(reset)) makes role behavior match the actual pixel patch.",
+    "CellRoles::patch preserves existing metadata for an inherited style channel and replaces it for an explicit Set or Reset channel. Role-based resets retain the requested role; raw Color::Reset clears the role. The same mark path works on page and overlay targets.",
+    "No new color conversion, style resolver, application painter, control registration or layout/state owner is introduced. The repair does not change alignment geometry or glyph movement."
+  ],
+  "verification": [
+    {
+      "command": "cargo nextest run --all-targets right_aligned_padding_retains_semantic_dimming in the independent public consumer",
+      "result": "One test passed; one unrelated custom RGB test was excluded by the filter and is not counted as passed.",
+      "log": "/tmp/right-align-independent-d8dba-public.log"
+    },
+    {
+      "command": "External public alignment channel probes, cargo nextest run --all-targets -E test(right_)",
+      "result": "Three tests passed, one unrelated custom RGB case excluded. Covers zero/one-width regions and inherited, semantic Set, raw foreground Reset and raw background Reset with and without dimming at widths2,3,6.",
+      "log": "/tmp/right-align-independent-d8dba-channel-probes-corrected.log"
+    },
+    {
+      "command": "cargo nextest run --locked -p termrock-runtime -p termrock-core --all-targets --features termrock-runtime/testing",
+      "result": "388 passed, three skipped; skipped fixtures are not counted as passing coverage. Includes right alignment, explicit style clearing, role/dimming, glyph slot state and zero-area contracts.",
+      "log": "/tmp/right-align-independent-d8dba-native.log"
+    },
+    {
+      "command": "cargo nextest run --locked -p termrock --features testing --test master_detail_consumer",
+      "result": "Seven passed, zero skipped.",
+      "log": "/tmp/right-align-independent-d8dba-master.log"
+    },
+    {
+      "command": "Critical independent public scoped/runtime probe suite",
+      "result": "Ten passed, one preserved diagnosed obsolete summary assertion failed, zero skipped. Modal persistence, leaf/inner/outer/global ordering, actual nested bounds and resize semantics remain green.",
+      "log": "/tmp/right-align-independent-d8dba-scoped.log"
+    },
+    {
+      "command": "cargo clippy --locked -p termrock-runtime -p termrock-core --all-targets --features termrock-runtime/testing -- -D warnings",
+      "result": "Exit zero.",
+      "log": "/tmp/right-align-independent-d8dba-clippy.log"
+    },
+    {
+      "command": "cargo fmt --check -p termrock-runtime -p termrock-core; git diff --check bc99f0cc HEAD",
+      "result": "Both exit zero.",
+      "log": "/tmp/right-align-independent-d8dba-fmt.log"
+    }
+  ],
+  "probe_interpretation_note": "An initial new channel probe incorrectly expected reset style to repaint every untouched padding cell. Source CellUi::drop moves only painted source cells, so only vacated source positions receive reset style; untouched slack retains its prior row style. The corrected probe separately compares vacated source position to the explicitly reset reference and untouched slack to the row reference. The original erroneous probe output is preserved at /tmp/right-align-independent-d8dba-channel-probes.log; no repository test or expected baseline artifact was changed.",
+  "limits": [
+    "The generic custom RGB nearest-color conversion failure is independently assigned to the theme owner and remains a known separate base failure; this packet does not clear or hide it.",
+    "The preserved old summary assertion and default-feature all-target/example cursor compile gap remain explicitly unresolved as described in master-detail-review-bc99.json.",
+    "No frozen CLI application parity, full workspace acceptance or CI success is claimed. Parent must rerun integration gates on the exact merged source.",
+    "No product source edits, helper agents or pushes were performed by this reviewer."
+  ]
+}
