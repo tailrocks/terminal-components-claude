@@ -940,6 +940,7 @@ pub struct TextInput<'a> {
     status: Status,
     ov: PartStyle<'a>,
     style_target: Option<(Family, Variant, Part)>,
+    excluded_commands: &'a [TextCmd],
 }
 
 impl fmt::Debug for TextInput<'_> {
@@ -985,6 +986,7 @@ impl<'a> TextInput<'a> {
             status: Status::Ready,
             ov: PartStyle::new(),
             style_target: None,
+            excluded_commands: &[],
         }
     }
 
@@ -1021,6 +1023,16 @@ impl<'a> TextInput<'a> {
     #[must_use]
     pub const fn typing_policy(mut self, policy: crate::TypingPolicy) -> Self {
         self.typing_policy = policy;
+        self
+    }
+
+    /// Leave selected editing commands available to a containing component.
+    ///
+    /// The editor still owns rendering and state; excluded commands are simply
+    /// omitted from this input's binding table so the owner can route them.
+    #[must_use]
+    pub const fn exclude_commands(mut self, commands: &'a [TextCmd]) -> Self {
+        self.excluded_commands = commands;
         self
     }
 
@@ -1090,6 +1102,10 @@ impl<'a> TextInput<'a> {
         !self.disabled && !self.read_only
     }
 
+    fn includes_command(&self, command: TextCmd) -> bool {
+        !self.excluded_commands.contains(&command)
+    }
+
     const fn with_inherited_disabled(&self, inherited: bool) -> Self {
         TextInput {
             id: self.id,
@@ -1106,6 +1122,7 @@ impl<'a> TextInput<'a> {
             status: self.status,
             ov: self.ov,
             style_target: self.style_target,
+            excluded_commands: self.excluded_commands,
         }
     }
 
@@ -1500,12 +1517,16 @@ impl<'a> TextInput<'a> {
         } else {
             ui.register_keyboard_editor(self.id, area, focusability, declared);
         }
-        ui.publish_bindings(self.id, live, BINDINGS);
+        termrock_runtime::author::publish_bindings_filtered(ui, self.id, live, BINDINGS, |cmd| {
+            self.includes_command(cmd)
+        });
         if let crate::TypingPolicy::Fallback { cursor } = self.typing_policy {
             ui.publish_typing_target(
                 self.id,
                 BINDINGS,
-                |cmd| !matches!(cmd, TextCmd::Commit | TextCmd::Cancel),
+                |cmd| {
+                    self.includes_command(cmd) && !matches!(cmd, TextCmd::Commit | TextCmd::Cancel)
+                },
                 cursor,
             );
         }
@@ -1850,6 +1871,25 @@ mod tests {
     const CONTEXT_LAYER: Id = Id::root("input.context-layer");
     const CONTEXT_TARGET: Id = Id::root("input.context-target");
     const REDIRECT_TARGET: Id = Id::root("input.redirect-target");
+
+    #[test]
+    fn excluded_commands_are_opt_in_and_preserve_other_editor_bindings() {
+        let defaults = TextInput::new(ID);
+        assert!(defaults.includes_command(TextCmd::Backspace));
+        assert!(defaults.includes_command(TextCmd::Delete));
+        assert!(defaults.includes_command(TextCmd::Cancel));
+
+        let query = TextInput::new(ID).exclude_commands(&[
+            TextCmd::Backspace,
+            TextCmd::Delete,
+            TextCmd::Cancel,
+        ]);
+        assert!(!query.includes_command(TextCmd::Backspace));
+        assert!(!query.includes_command(TextCmd::Delete));
+        assert!(!query.includes_command(TextCmd::Cancel));
+        assert!(query.includes_command(TextCmd::Commit));
+        assert!(query.includes_command(TextCmd::Move(Motion::Left, Extend::No)));
+    }
 
     struct ContinuationInputApp {
         state: TextInputState,
