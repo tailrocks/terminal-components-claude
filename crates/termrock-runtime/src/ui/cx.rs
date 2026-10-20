@@ -166,6 +166,8 @@ pub struct FrameServices {
     pub(crate) closed_layers: Vec<crate::layer::OpenLayer>,
     pub(crate) registry_gen: u32,
     pub(crate) press_pos: Option<Position>,
+    pub(crate) clipboard: crate::runtime::clipboard::Clipboard,
+    pub(crate) pointer_press_count: Option<(Id, PartRef, u8)>,
 }
 
 pub struct Cx<'f> {
@@ -352,6 +354,31 @@ impl<'f> Cx<'f> {
         self.services.viewport
     }
 
+    /// Return text copied through this runtime's shared clipboard service.
+    pub fn clipboard_text(&self) -> Option<&str> {
+        self.services.clipboard.text()
+    }
+
+    /// Copy text into this runtime's shared clipboard service.
+    pub fn clipboard_copy(&mut self, text: &str) {
+        self.services.clipboard.copy(text);
+    }
+
+    /// Clear and wipe this runtime's shared clipboard contents.
+    pub fn clipboard_clear(&mut self) {
+        self.services.clipboard.clear();
+    }
+
+    /// Install an optional integration hook for copied text.
+    pub fn set_clipboard_copy_hook(&mut self, hook: impl Fn(&str) + 'static) {
+        self.services.clipboard.set_copy_hook(hook);
+    }
+
+    /// Remove the optional integration hook for copied text.
+    pub fn clear_clipboard_copy_hook(&mut self) {
+        self.services.clipboard.clear_copy_hook();
+    }
+
     pub const fn now(&self) -> crate::runtime::Moment {
         self.services.now
     }
@@ -393,6 +420,21 @@ impl<'f> Cx<'f> {
 
     pub fn capture_owner(&self) -> Option<Id> {
         self.services.capture.get().map(|c| c.owner)
+    }
+
+    /// Return the click count for this component's current press or release intent.
+    pub fn pointer_press_count(&self, owner: Id, part: PartRef) -> Option<u8> {
+        self.services
+            .pointer_press_count
+            .filter(|(current_owner, current_part, _)| {
+                *current_owner == owner && *current_part == part
+            })
+            .map(|(_, _, count)| count)
+    }
+
+    /// Return the click count for this component's current click intent.
+    pub fn pointer_click_count(&self, owner: Id, part: PartRef) -> Option<u8> {
+        self.pointer_press_count(owner, part)
     }
 
     pub fn release_capture(&mut self) {
