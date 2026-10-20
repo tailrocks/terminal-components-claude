@@ -1711,6 +1711,9 @@ impl<A: App> Runtime<A> {
         {
             let scoped_bindings = self.scoped_bubble_bindings(&k);
             for (owner, action, chord) in scoped_bindings {
+                if !self.scoped_bubble_binding_is_current(&k, owner, action, chord) {
+                    continue;
+                }
                 self.intents.clear();
                 self.intents.binding(owner, action, chord);
                 r |= self.run_update(None, UpdateCause::Event, activation_key);
@@ -1801,6 +1804,41 @@ impl<A: App> Runtime<A> {
             .into_iter()
             .map(|(_, owner, action, chord)| (owner, action, chord))
             .collect()
+    }
+
+    fn scoped_bubble_binding_is_current(
+        &self,
+        key: &crate::event::Key,
+        owner: crate::Id,
+        action: crate::ActionKey,
+        chord: crate::event::Chord,
+    ) -> bool {
+        let Some(focus) = self.focus.current() else {
+            return false;
+        };
+        let Some(entry) = self.last.ring.entry(focus) else {
+            return false;
+        };
+        let top = self.services.layers.top();
+        if self.last.snapshot.focus != Some(focus)
+            || !self.last.ring.contains(focus)
+            || entry.layer != top
+        {
+            return false;
+        }
+        let scope_is_current = self.last.scoped_bubble_bindings.iter().any(|published| {
+            published.owner == owner
+                && published.layer == top
+                && self.last.ring.scope_layer(published.scope) == Some(top)
+                && self.last.ring.within(entry.scope, published.scope)
+        });
+        if !scope_is_current {
+            return false;
+        }
+        let Some((_, descriptors)) = self.last.bindings.get(owner) else {
+            return false;
+        };
+        self.core.keymap.component_binding(owner, descriptors, key) == Some((action, chord))
     }
 
     fn finish(&mut self, mut r: Response<()>) -> Response<()> {
@@ -1906,8 +1944,7 @@ impl<A: App> Runtime<A> {
     fn commit_geometry(&mut self) {
         self.services.viewport = self.frame.screen;
 
-        let mut diags = core::mem::take(&mut self.frame.diagnostics);
-        self.services.diagnostics.extend(diags.drain(..));
+        self.services.diagnostics.append(&self.frame.diagnostics);
         core::mem::swap(&mut self.last.registry, &mut self.frame.registry);
         self.last.layout.clear();
         self.last.layout.append(&mut self.frame.layout);
@@ -4458,7 +4495,10 @@ mod tests {
         }
 
         fn draw(&self, ui: &mut Ui<'_>) {
-            for _ in 0..70 {
+            ui.diagnostic(Diagnostic::UnaddressableId {
+                id: Id::root("preexisting-author-diagnostic"),
+            });
+            for _ in 0..69 {
                 ui.diagnostic(Diagnostic::InvalidComponentLayout {
                     owner: Id::root("form"),
                     field: None,
@@ -4478,14 +4518,24 @@ mod tests {
         assert_eq!(rt.diagnostics_dropped(), 6);
         assert!(matches!(
             rt.diagnostics().first(),
-            Some(Diagnostic::InvalidComponentLayout { owner, field: None })
-                if *owner == Id::root("form")
+            Some(Diagnostic::UnaddressableId { id })
+                if *id == Id::root("preexisting-author-diagnostic")
         ));
+        assert_eq!(
+            rt.diagnostics()
+                .iter()
+                .filter(|diagnostic| matches!(diagnostic, Diagnostic::InvalidComponentLayout { owner, field: None } if *owner == Id::root("form")))
+                .count(),
+            63
+        );
     }
 
     const BUBBLE_OUTER_SCOPE: Id = Id::root("bubble-outer-scope");
     const BUBBLE_INNER_SCOPE: Id = Id::root("bubble-inner-scope");
     const BUBBLE_CHILD: Id = Id::root("bubble-child");
+    const BUBBLE_SIBLING_CHILD: Id = Id::root("bubble-sibling-child");
+    const BUBBLE_MODAL: Id = Id::root("bubble-modal");
+    const BUBBLE_MODAL_CHILD: Id = Id::root("bubble-modal-child");
     const BUBBLE_OUTER_OWNER: Id = Id::root("bubble-outer-owner");
     const BUBBLE_INNER_OWNER: Id = Id::root("bubble-inner-owner");
     const BUBBLE_ACTION: ActionKey = ActionKey::custom("test.scope.dismiss");
@@ -4501,6 +4551,8 @@ mod tests {
     #[derive(Default)]
     struct ScopedDeclineProbe {
         publish_outer: bool,
+        open_modal_on_inner: bool,
+        move_focus_to_sibling_on_inner: bool,
         inner_calls: usize,
         outer_calls: usize,
         esc_calls: usize,
@@ -4516,6 +4568,15 @@ mod tests {
                 .any(|intent| matches!(intent, Intent::Binding(BUBBLE_ACTION)))
             {
                 self.inner_calls += 1;
+                if self.open_modal_on_inner {
+                    cx.open_layer(
+                        BUBBLE_MODAL,
+                        LayerSpec::modal(BUBBLE_MODAL).dismiss(crate::layer::Dismiss::NONE),
+                    );
+                }
+                if self.move_focus_to_sibling_on_inner {
+                    cx.focus(BUBBLE_SIBLING_CHILD);
+                }
                 return Response::ignored();
             }
             if cx
@@ -4547,6 +4608,14 @@ mod tests {
                     );
                     ui.register_control(BUBBLE_CHILD, SCREEN, Focusability::Focusable);
                 });
+            });
+            ui.register_control(
+                BUBBLE_SIBLING_CHILD,
+                Rect::new(0, 0, 1, 1),
+                Focusability::Focusable,
+            );
+            let _ = ui.layer(BUBBLE_MODAL, |ui, area| {
+                ui.register_control(BUBBLE_MODAL_CHILD, area, Focusability::Focusable);
             });
         }
 
@@ -4593,5 +4662,26 @@ mod tests {
         assert_eq!(rt.app().inner_calls, 1);
         assert_eq!(rt.app().outer_calls, 1);
         assert_eq!(rt.app().esc_calls, 0);
+    }
+
+    #[test]
+    fn opening_modal_from_inner_scope_skips_stale_outer_binding() {
+        let (mut rt, _) = ready_scoped_decline_probe(true);
+        rt.app_mut().open_modal_on_inner = true;
+        let _ = deliver(&mut rt, key(KeyCode::Esc));
+        assert_eq!(rt.app().inner_calls, 1);
+        assert_eq!(rt.app().outer_calls, 0);
+        assert_eq!(rt.app().esc_calls, 1);
+    }
+
+    #[test]
+    fn focus_moving_out_of_inner_scope_skips_stale_scope_candidates() {
+        let (mut rt, _) = ready_scoped_decline_probe(true);
+        rt.app_mut().move_focus_to_sibling_on_inner = true;
+        let _ = deliver(&mut rt, key(KeyCode::Esc));
+        assert_eq!(rt.app().inner_calls, 1);
+        assert_eq!(rt.focus(), Some(BUBBLE_SIBLING_CHILD));
+        assert_eq!(rt.app().outer_calls, 0);
+        assert_eq!(rt.app().esc_calls, 1);
     }
 }
