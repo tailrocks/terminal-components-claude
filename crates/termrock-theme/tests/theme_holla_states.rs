@@ -59,13 +59,13 @@ fn every_hover_plane_uses_reference_tokens_in_all_color_modes() {
         (
             ColorLevel::TrueColor,
             [
-                0x18_18_1b, 0x27_27_2a, 0x27_27_2a, 0x3f_3f_46, 0x3f_3f_46, 0x23_23_28, 0x3f_3f_46,
+                0x18_18_1b, 0x27_27_2a, 0x27_27_2a, 0x3f_3f_46, 0x3f_3f_46, 0x2f_2f_34, 0x3f_3f_46,
             ]
             .map(Color::from_u32),
         ),
         (
             ColorLevel::Ansi256,
-            [233, 235, 235, 237, 237, 234, 237].map(Color::Indexed),
+            [233, 235, 235, 237, 237, 237, 237].map(Color::Indexed),
         ),
         (
             ColorLevel::Ansi16,
