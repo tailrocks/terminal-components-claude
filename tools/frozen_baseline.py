@@ -876,6 +876,19 @@ def frame_digest(path: Path) -> str:
     return h.hexdigest()
 
 
+def valid_color(value: object) -> bool:
+    if value == "Default":
+        return True
+    if not isinstance(value, dict) or len(value) != 1:
+        return False
+    if "Indexed" in value:
+        return type(value["Indexed"]) is int and 0 <= value["Indexed"] <= 255
+    if "Rgb" in value:
+        rgb = value["Rgb"]
+        return isinstance(rgb, dict) and set(rgb) == {"r", "g", "b"} and all(type(rgb[channel]) is int and 0 <= rgb[channel] <= 255 for channel in ("r", "g", "b"))
+    return False
+
+
 def validate_semantic_frame_file(path: Path, digest: str) -> dict[str, object]:
     if path.is_symlink() or not path.is_file() or path.stat().st_nlink != 1:
         raise RunnerError(f"semantic frame missing or not an isolated regular file: {path}")
@@ -898,7 +911,7 @@ def validate_semantic_frame_file(path: Path, digest: str) -> dict[str, object]:
         x, y = index % cols, index // cols
         required_cell_fields = {"x", "y", "symbol", "width", "continuation", "fg", "bg", "mods"}
         allowed_cell_fields = (required_cell_fields, required_cell_fields | {"underline_color"})
-        if not isinstance(cell, dict) or set(cell) not in allowed_cell_fields or type(cell.get("x")) is not int or type(cell.get("y")) is not int or cell.get("x") != x or cell.get("y") != y or not isinstance(cell.get("symbol"), str) or type(cell.get("width")) is not int or not isinstance(cell.get("continuation"), bool) or not isinstance(cell.get("fg"), dict) or not isinstance(cell.get("bg"), dict) or not isinstance(cell.get("mods"), dict) or ("underline_color" in cell and not isinstance(cell["underline_color"], dict)):
+        if not isinstance(cell, dict) or set(cell) not in allowed_cell_fields or type(cell.get("x")) is not int or type(cell.get("y")) is not int or cell.get("x") != x or cell.get("y") != y or not isinstance(cell.get("symbol"), str) or type(cell.get("width")) is not int or not isinstance(cell.get("continuation"), bool) or not valid_color(cell.get("fg")) or not valid_color(cell.get("bg")) or not isinstance(cell.get("mods"), dict) or ("underline_color" in cell and not valid_color(cell["underline_color"])):
             raise RunnerError(f"invalid semantic frame cell {index}: {path}")
     cursor = frame["cursor"]
     if not isinstance(cursor, dict) or set(cursor) != {"x", "y", "visible", "style", "blinking"} or type(cursor.get("x")) is not int or type(cursor.get("y")) is not int or not isinstance(cursor.get("visible"), bool) or not isinstance(cursor.get("style"), str) or not isinstance(cursor.get("blinking"), bool):
