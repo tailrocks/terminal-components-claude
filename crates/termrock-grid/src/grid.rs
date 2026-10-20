@@ -29,6 +29,12 @@ use termrock_runtime::scroll_region::ScrollRegion;
 
 const CTRL: KeyModifiers = KeyModifiers::CONTROL;
 const SHIFT: KeyModifiers = KeyModifiers::SHIFT;
+const INLINE_EDITOR_STYLE: [(Part, StylePatch); 1] = [(
+    Part::TEXT,
+    StylePatch::new()
+        .add(Modifier::UNDERLINED)
+        .set_underline(Role::Accent),
+)];
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct ColumnKey(u16);
@@ -2610,6 +2616,8 @@ impl Grid<'_> {
                 geometry.complete.get(col).copied().unwrap_or(false)
             });
         let mut r = TextInput::new(self.editor_id())
+            .embedded_cell()
+            .patch_part(&INLINE_EDITOR_STYLE)
             .blur(self.blur)
             .pointer_enabled(pointer_enabled)
             .update(cx, &mut st.editor, &mut value);
@@ -3311,6 +3319,8 @@ impl Grid<'_> {
             }
             if editing {
                 TextInput::new(self.id.part(Part::TEXT))
+                    .embedded_cell()
+                    .patch_part(&INLINE_EDITOR_STYLE)
                     .pointer_enabled(geometry.complete.get(i).copied().unwrap_or(false))
                     .disabled(self.disabled)
                     .value(cell.text)

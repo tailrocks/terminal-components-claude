@@ -24,7 +24,7 @@ fn enter_on_status_shows_the_inline_editor() {
             .is_some_and(|(_, grid)| grid.state.is_editing())
     );
     assert!(harness.row(8).contains("curre…"), "{}", harness.row(8));
-    assert!(harness.row(9).contains("…ivered"), "{}", harness.row(9));
+    assert!(harness.row(9).contains("livered"), "{}", harness.row(9));
     assert!(harness.row(9).contains("25.90"), "{}", harness.row(9));
     assert!(harness.row(39).contains("EDIT"), "{}", harness.row(39));
     assert!(harness.row(39).contains("Next cell"), "{}", harness.row(39));
@@ -33,13 +33,15 @@ fn enter_on_status_shows_the_inline_editor() {
         "{}",
         harness.row(39)
     );
-    let draft = &harness.buffer()[(79, 9)];
-    assert_eq!(draft.symbol(), "…");
-    assert!(draft.modifier.contains(Modifier::UNDERLINED));
+    let draft = (0..120)
+        .map(|x| &harness.buffer()[(x, 9)])
+        .find(|cell| cell.symbol() == "l" && cell.modifier.contains(Modifier::UNDERLINED))
+        .expect("the inline draft starts with the first visible scrolled character");
+    assert_eq!(draft.symbol(), "l");
     assert_eq!(
         harness.cursor(),
-        Some(termrock::Position::new(86, 9)),
-        "editor bar"
+        Some(termrock::Position::new(48, 9)),
+        "the inline editor begins at the cell's first text cell"
     );
     assert!(
         harness.diagnostics().is_empty(),
