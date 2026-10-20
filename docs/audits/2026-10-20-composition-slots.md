@@ -19,6 +19,13 @@ single draw calls, stable control identity, shared hit-region clipping, and a
 width-dependent text leaf compressed by row allocation. A separate integration
 consumer compiles only against public Termrock APIs with different live data.
 
+An independent runtime probe found a cursor escaping a clipped real `TextInput`
+leaf. `Ui::record_cursor` now clamps cursor requests to the active nonempty clip
+and ignores them for empty clips. The real-input integration regression failed
+before this fix with visible input `Rect { x: 6, y: 0, width: 4, height: 1 }`
+and cursor `Position { x: 12, y: 0 }`; it now requires the cursor at the last
+visible cell. A focused runtime test covers out-of-clip and empty-clip requests.
+
 The current API intentionally composes one flat group per call. Nested groups,
 grids, named slots, shell and master-detail blocks, and application migrations
 remain incomplete and must build on this adapter without exposing application
@@ -34,6 +41,8 @@ Focused checks:
 ```text
 mise exec -- cargo nextest run -p termrock-runtime --lib ui::slot
 mise exec -- cargo nextest run -p termrock-runtime --test composition_consumer
+mise exec -- cargo nextest run -p termrock-runtime --test composition_cursor_clip
+mise exec -- cargo nextest run -p termrock-runtime --all-targets
 mise exec -- cargo clippy -p termrock-runtime --all-targets -- -D warnings
 rustfmt --edition 2024 --check crates/termrock-runtime/src/author.rs crates/termrock-runtime/src/ui/mod.rs crates/termrock-runtime/src/ui/slot.rs crates/termrock-runtime/tests/composition_consumer.rs
 ```
@@ -41,3 +50,7 @@ rustfmt --edition 2024 --check crates/termrock-runtime/src/author.rs crates/term
 Workspace `cargo fmt --check` remains red on pre-existing fixed-cell data in
 `crates/showcase-demos/src/pages/chrome.rs`; this increment did not edit that
 file. No application parity or full architecture acceptance is claimed.
+
+Cursor-fix validation: `ui::slot` passed 6/6, `composition_cursor_clip` passed
+1/1, and the full runtime target suite passed 306 tests with 3 pre-existing
+skips. Package clippy, changed-file rustfmt, and `git diff --check` passed.
