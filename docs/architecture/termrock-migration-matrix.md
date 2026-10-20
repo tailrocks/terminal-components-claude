@@ -1,5 +1,21 @@
 # Termrock migration and acceptance matrix
 
+## Current acceptance status — 2026-10-21
+
+This section is the current decision summary. Detailed chronological checkpoints below remain evidence; their intermediate candidate statuses and branch tips are superseded by later exact-commit records. PR #38 was remotely verified at `6d1587e160d2f317436163d997cdc40f21c7263a` before this record update. The frozen source, tag object, Tuiscotti revision and read-only design reference are unchanged.
+
+| Application | Product gate | Library gate and next dependency |
+| --- | --- | --- |
+| Showcase | Incomplete; complete paired comparison has not passed twice. | Remaining replay/correction paths and capability coverage require verification. Shared button/state-matrix adoption remains required. |
+| TablePro | Incomplete; exact base has 11 known failing tests and full paired coverage is outstanding. | Real editor migration is blocked on introduced all-target compilation failures, initial editing state and unselected completion match emphasis. Grid painter removal is blocked on shared embedded-input geometry. History still has private widget painting and missing functional controls. |
+| Jackin (`jackin-preview`) | Incomplete; replay-backed frames are not acceptable parity proof. | Read-only inventory at `adc6d0e3f668818f6f8321310452db6806c123cc` found 41 fixed-cell historical replay modules, a separate historical palette helper, and two presentation RUNS frames. Replace them by shared components; preserve legitimate brand-specific animations and domain transitions. |
+| Holla | Incomplete; fixed-size/time plate output is not acceptable parity proof. | Same inventory found 46 plate builders, private Finder painting and scenario/time/viewport selectors. Shared searchable sectioned results and responsive master-detail composition must replace them while preserving domain scenarios/actions. |
+
+The Holla/Jackin inventory found their application source subtrees identical between fixed baseline `4169783ae883788186d161af09ba9c481bd84e5c` and fixed design reference `f4867e9b5f8a08a3bb61ce80d644198a29f51984`; those reference subtrees contain no historical/RUNS/plate mechanisms. This is source evidence, not a functional comparison. Holla's frozen Finder has one search/navigation owner and a responsive master-detail policy: detail share 34%, minimum 34 cells, maximum 48 cells, gap 2, collapse below 108 columns and one summary row. General shared contracts must express these constraints without an approved-size table or application-specific library variant.
+
+Baseline rebuilding remains diagnostic and unadmitted. The reviewed nonincremental fixed-path recipe is being independently repeated; neither a successful build nor executable-byte reproducibility establishes product parity. Ordered real-process receipts, immutable reference decisions, complete frozen capture/replay, candidate comparisons, functional outcomes, cursor/mode/cleanup checks and deliberate-defect controls remain required. Full workspace nextest, Clippy, formatting, CI, executable public consumer examples and independent final reviews are not complete. No application or library acceptance is claimed.
+
+
 ## TablePro shared Grid row-to-cell styling — 2026-10-21
 
 Frozen Grid behavior resolves ordinary cells over their row style and replaces
