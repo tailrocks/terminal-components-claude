@@ -1,0 +1,88 @@
+{
+  "schema": "termrock.fresh-plan-step2-independent-review",
+  "schema_version": 1,
+  "reviewed_commit": "fff270fd0d2edcb0b06486fbcde07c88ee4feabe",
+  "source_copy": "/private/tmp/termrock-fresh-plan-final-review-fff",
+  "source_tree_clean": true,
+  "verdict": "step2_prepared-plan-integrity-cleared_with_scope_limits",
+  "fixed_references": {
+    "baseline_commit": "4169783ae883788186d161af09ba9c481bd84e5c",
+    "baseline_tag_object": "2718a6b8127a522a3d351d0b4bdb7542fc8da542",
+    "tuiscotti": "a1ea27f757d75d07b05499276cd932e9f8e067ad"
+  },
+  "runtime_recipe": {
+    "path": "docs/audits/2026-10-21-fresh-plan-runtime-recipe.json",
+    "sha256": "afd785fd6a37e6e4b54a03a42c11e2e87498a415f259cb53de3cfae3156cea96",
+    "reconstructed_effective_environment_fingerprint": "a7d5bf4241aa2b00d8556d50ec06be243bc3575ec3540731c5f9b8b3f859e372"
+  },
+  "actual_plan": {
+    "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/fresh-plan-step2c-20261021/fresh-capture-plan.json",
+    "creation_sha256": "b35afd9e68d54741afb8b67651aa82ec021e201e9db7ed076a33ac1165666a4f",
+    "self_sha256": "9544a48a2f338991c6a4c6d08b8f29dcc4299cd8c2bc874428fa074337036a0d",
+    "file_mode": "0400",
+    "inventory_visual": 29069,
+    "inventory_ordinary": 20,
+    "frozen_source_commit": "4169783ae883788186d161af09ba9c481bd84e5c",
+    "candidate_comparison_eligible": false,
+    "reference_approval": "none",
+    "product_acceptance": false
+  },
+  "checks": [
+    {
+      "name": "actual positive plan verification",
+      "command": "tools/frozen_baseline.py --repo <review-copy> --root <recipe.plan_root> --timeout 225 verify-fresh-plan --cohort <recipe.cohort_id> --baseline-bin-dir <sealed-baseline-bins> --expected-plan-sha256 <recipe.plan_creation_file_sha256>",
+      "result": "PASS; exit 0 in 26.5s; cargo nextest list reran against live frozen-source harness; verified=true; no app launched or test executed"
+    },
+    {
+      "name": "effective environment drift",
+      "command": "same verifier with exact recipe environment, then LANG=C; then TZ=UTC (previously absent); then NO_COLOR removed (previously present)",
+      "result": "PASS; all three rejected specifically as live source provenance changed: preparation_environment"
+    },
+    {
+      "name": "same-path tool byte observation",
+      "command": "_selected_executable_observation on temporary cargo executable; changed bytes while preserving executable path and reported version",
+      "result": "PASS; path and version unchanged; SHA-256 and file identity changed; stored tool observation differs. verify_live_source compares regenerated preparation_tool_observation to the recorded value."
+    },
+    {
+      "name": "partition rewrite under creation anchor",
+      "command": "_read_self_sealed_plan on temporary raw plan copy after changing chunk_size 32 to 31, regenerating all chunk records and plan self digest; retained original raw creation SHA",
+      "result": "PASS; rejected: fresh plan does not match the externally retained creation digest"
+    },
+    {
+      "name": "creation publication race",
+      "command": "real create_fresh_plan publication and receipt path with successful reader wrapper rewriting a coherent 32-to-31 plan before receipt emission",
+      "result": "PASS; emitted SHA equals original serialized payload SHA b35afd...; rewritten bytes rejected under receipt SHA"
+    },
+    {
+      "name": "Python frozen runner regression suite",
+      "command": "python3 tools/test_frozen_baseline.py",
+      "result": "PASS; 61 tests"
+    },
+    {
+      "name": "patch whitespace",
+      "command": "git diff --check <parent> fff270fd0d2edcb0b06486fbcde07c88ee4feabe",
+      "result": "PASS"
+    }
+  ],
+  "source_review": {
+    "creation_digest": "_atomic_create_plan hashes the exact canonical payload before publication; exclusive hard-link publish; stable reader receives the precomputed digest; emitted receipt uses same digest.",
+    "environment": "Allowlisted key presence and value hashes included in preparation manifest; verification rebuilds and compares environment and tool observation before inventory regeneration. Unlisted inherited variables removed.",
+    "tools": "Cargo, rustc path entry, cargo-nextest, Python and selected toolchain metadata record resolved paths, bytes, stable identity and versions; regenerated tool record equality enforced.",
+    "legacy_scope": "This commit changes only fresh-plan creation receipt calculation, its race regression, and the nonsecret runtime recipe. Legacy tuple/build admission code unchanged.",
+    "privileges": "No candidate phase, comparison eligibility, checkpoint reference approval, product acceptance, phase advancement, capture, replay, or app process."
+  },
+  "findings": [],
+  "coverage_gaps": [
+    "Same-path tool-byte drift was independently proven at the selected-tool observation helper and source-level verifier binding; a full verify-fresh-plan mutation of the host Cargo executable was not attempted because it would modify a shared system tool. Environment-preserving full-verifier tool mutation remains unexecuted.",
+    "External creation SHA is accepted as an operator-supplied custody value; this runner does not authenticate the identity or durable storage of its custodian. Preserve creation output independently under repository review policy.",
+    "This is prepared-plan validation only. The resumable capture/replay lifecycle, all baseline app launches, reference corpus production, candidate comparisons, and product/library acceptance remain unreviewed and incomplete."
+  ],
+  "artifact_integrity": {
+    "recipe_sha256": "afd785fd6a37e6e4b54a03a42c11e2e87498a415f259cb53de3cfae3156cea96",
+    "plan_file_sha256_after_verification": "b35afd9e68d54741afb8b67651aa82ec021e201e9db7ed076a33ac1165666a4f",
+    "source_edits": false,
+    "expected_artifact_edits": false,
+    "application_launches": 0,
+    "phase_advances": 0
+  }
+}
