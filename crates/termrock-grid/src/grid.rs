@@ -1440,6 +1440,24 @@ impl<'a> Grid<'a> {
             g = self.place_columns(body, widths, offset, gutter_width, number_width);
         }
 
+        // Match the grid's reveal contract: once the cursor is visible, move the
+        // left edge back only while every remaining column still fits. This
+        // avoids leaving a needless blank viewport edge after a wider layout.
+        while g.offset > 0 {
+            let previous = self.place_columns(
+                body,
+                widths,
+                g.offset.saturating_sub(1),
+                gutter_width,
+                number_width,
+            );
+            if previous.hidden_right == 0 {
+                g = previous;
+            } else {
+                break;
+            }
+        }
+
         g
     }
 
