@@ -1,4 +1,4 @@
-# Capability palette authorship correction
+# Capability palette authorship and shared grid fade
 
 ## Decision
 
@@ -30,3 +30,12 @@ Independent API review found two stale-cache cases: public `Recipes::iter_mut` d
 Follow-up comparison against frozen source `4169783ae883788186d161af09ba9c481bd84e5c:src/theme.rs` at `apply_mono` showed its seam ladder is explicitly `DarkGray / Gray / White`. The capability-specific Mono recipe now preserves its authored custom colors through final style binding, while ordinary `Role::Custom` colors still use generic color downgrade. Coverage checks all four Junie color levels, a custom Mono profile through `Theme::downgrade`, and an ordinary custom RGB channel through the generic path. The updated full theme suite passes 129/129. Independent review of this follow-up is pending; it is not application parity approval.
 
 The first Mono follow-up passed only `Theme::resolve` and did not preserve author provenance through the real cached `Ui::style` path; an explicit same-value `Role::Custom(DarkGray)` override also incorrectly inherited the profile bypass. The resolver cache now carries private per-channel authored-profile provenance to the binding call, and explicit overlays/overrides/local patches clear that provenance without comparing color values. The real `SplitPane` renderer verifies rest-cell colors across all four capability levels and the same-value explicit Custom override. On the corrected follow-up, `cargo nextest run --locked -p termrock-theme -p termrock-runtime -p termrock-controls` passes 546 tests, with 3 skipped.
+## Shared grid edge fade
+
+The frozen reference's grid uses the shared scroll-edge fade only when content is hidden above or below the viewport. Its policy preserves the cursor row, reversed cells, and cells whose background differs from the grid container. The candidate `Grid::draw` now applies the existing shared `Ui::scroll_edges` policy to its resolved content viewport after drawing rows. The TablePro-only `paint_bottom_fade` and indexed edge repaint were removed instead of moving the row-specific repaint into the library.
+
+`termrock-grid::grid::tests::overflowing_grid_fades_only_real_scroll_edges` checks an overflowing grid's bottom edge and confirms a fitting grid does not fade its visible content. The test failed when the shared `Grid::draw` call was temporarily removed (the overflowing edge returned from RGB 140 to RGB 255), then passed after restoration. Existing `termrock-runtime::ui::paint` tests cover cursor protection, reversed cells, container-background eligibility, and edge selection.
+
+The focused `cargo nextest run --locked -p termrock-grid` run passed 125/125. The broader `cargo nextest run --locked -p tablepro-ui` run compiled after adding its required snapshot paths to this sparse worktree, then failed 13/180 tests (167 passed). Failures include existing TablePro interaction/duplicate-ID/performance cases and the stored visual baseline case; this is not a passing product comparison. The paired frozen-binary run remains necessary to decide exact application parity.
+
+The existing application-level `draw_painted_grid` / `paint_scrolled_cells` path still repaints the shared Grid and remains architecture debt. It is recorded here as unresolved rather than expanded into this change without a component-contract migration map.
