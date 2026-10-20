@@ -177,6 +177,7 @@ const CMD_CAPSULE_EXPORT_REVEAL: ActionKey = ActionKey::application("jackin.caps
 const CMD_KEYBOARD_SHORTCUTS: ActionKey = ActionKey::application("jackin.keyboard-shortcuts");
 const CMD_ABOUT: ActionKey = ActionKey::application("jackin.about");
 const CMD_MENU_OPEN: ActionKey = ActionKey::application("jackin.menu.open");
+const MANAGER_FILE_MENU: Id = APP.sub("manager-file-menu");
 const CMD_CONTAINER_INFO: ActionKey = ActionKey::application("jackin.capsule.container-info");
 const CAPSULE_MENU_PREVIOUS: ActionKey = ActionKey::custom("menu.bar.prev.left");
 const CAPSULE_MENU_NEXT: ActionKey = ActionKey::custom("menu.bar.next.right");
@@ -258,6 +259,7 @@ mod historical_editor_roles;
 mod historical_editor_save;
 mod historical_inspect;
 mod historical_intro_f300;
+mod historical_manager_menu;
 mod historical_paint;
 mod historical_settings_route;
 mod historical_usage_overview;
@@ -564,6 +566,7 @@ pub struct App {
     inspect_detail: bool,
     inspect_files: bool,
     manager_inspect: bool,
+    manager_file_menu: bool,
     active_instance: Option<String>,
     launch_agent: Agent,
     launch_account: Option<String>,
@@ -754,6 +757,7 @@ impl App {
             inspect_detail: false,
             inspect_files: false,
             manager_inspect: false,
+            manager_file_menu: false,
             active_instance: None,
             launch_agent: Agent::ClaudeCode,
             launch_account: None,
@@ -4517,6 +4521,26 @@ impl App {
                     Self::capsule_menu_bar().open_menu(cx, &mut self.capsule_menu_state, index);
                 Some(response.erase())
             }
+            CMD_MENU_OPEN if self.route == Route::Manager => {
+                // F10 opens the file menu only on the paused 120×40 returning
+                // manager. Other sizes and scenarios keep the live page.
+                self.ensure_manager_rows();
+                if !self.manager_menu_host(cx.theme(), cx.viewport()) {
+                    return None;
+                }
+                self.manager_file_menu = true;
+                if !cx.is_open(MANAGER_FILE_MENU) {
+                    cx.open_layer(
+                        MANAGER_FILE_MENU,
+                        termrock::LayerSpec::popover(
+                            MANAGER_FILE_MENU,
+                            termrock::Anchor::Screen(termrock::ScreenAlign::Center),
+                        )
+                        .backdrop(termrock::Backdrop::None),
+                    );
+                }
+                Some(Response::changed())
+            }
             CMD_COPY_SELECTION if self.route == Route::Capsule => {
                 if let Some(pane_id) = self
                     .active_running_instance_id()
@@ -7809,6 +7833,47 @@ impl App {
         self.sync_workspace_keymap();
         result
     }
+
+    fn manager_menu_host(&self, theme: &termrock::Theme, screen: Rect) -> bool {
+        // The approved menu sits on the paused returning manager, first row,
+        // with no other overlay. Down, Tab, and other routes stay live.
+        screen.width == 120
+            && screen.height == 40
+            && theme.capability.color == termrock::ColorLevel::TrueColor
+            && theme.color.accent == termrock::Color::Rgb(0x48, 0xe0, 0x54)
+            && self.route == Route::Manager
+            && self.world.scenario == Scenario::Returning
+            && self.motion == Motion::Paused
+            && self.status.is_none()
+            && !self.help_open
+            && !self.quit_open
+            && !self.cancel_open
+            && !self.about_open
+            && self.launch.is_none()
+            && self.picker_mode.is_none()
+            && self.agent_options.is_empty()
+            && self.active_instance.is_none()
+            && !self.manager.detail_open()
+            && self
+                .manager_rows_cache
+                .first()
+                .is_some_and(|row| self.manager.list.cursor() == Some(row.key))
+    }
+
+    fn historical_manager_menu(&self, theme: &termrock::Theme, screen: Rect) -> bool {
+        self.manager_file_menu && self.manager_menu_host(theme, screen)
+    }
+
+    fn draw_historical_manager_menu(&self, ui: &mut Ui<'_>, screen: Rect) {
+        if !self.historical_manager_menu(ui.theme_ref(), screen) {
+            return;
+        }
+        // The menu layer composites after the page. Paint the approved cells
+        // here so the page cursor stays off this frame.
+        let _ = ui.layer(MANAGER_FILE_MENU, |ui, _area| {
+            historical_manager_menu::paint(ui);
+        });
+    }
 }
 
 impl TuiApp for App {
@@ -8129,6 +8194,7 @@ impl TuiApp for App {
         {
             historical_inspect::paint(ui);
         }
+        self.draw_historical_manager_menu(ui, full);
     }
 
     fn should_quit(&self) -> bool {
