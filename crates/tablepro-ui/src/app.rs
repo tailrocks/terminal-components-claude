@@ -1896,12 +1896,20 @@ impl TableProApp {
     }
 
     fn draw_explorer(&self, ui: &mut Ui<'_>, area: termrock::Rect) {
-        let meta = format!("{}    ", self.workbench.current_schema());
+        // One extra trailing space shifts the framed meta one cell left.
+        let meta = format!("{}     ", self.workbench.current_schema());
         let panel = Self::explorer_panel(&meta, self.surface != Surface::TableGrid);
         let inner = panel.inner(ui, area);
         let body = legacy_tree_body(inner);
         panel.draw(ui, area, |_, _| {});
         paint_panel_tail(ui, area, TAG_RULE_FG);
+        paint_explorer_title_gap(ui, area);
+        paint_explorer_meta_band(ui, area);
+        let tree_area = termrock::Rect {
+            y: body.y.saturating_add(2),
+            height: inner.height.saturating_sub(2),
+            ..body
+        };
         ui.with_area(body, |ui| {
             let filter = termrock::Rect {
                 x: body.x,
@@ -1910,12 +1918,13 @@ impl TableProApp {
                 height: 1.min(inner.height),
             };
             paint_legacy_filter(ui, filter, "Filter objects", TAG_CHROME_FG);
-            let tree_area = termrock::Rect {
-                y: body.y.saturating_add(2),
-                height: inner.height.saturating_sub(2),
-                ..body
-            };
             explorer_tree().draw(
+                ui,
+                tree_area,
+                &self.explorer_tree_state,
+                &self.explorer_nodes,
+            );
+            paint_explorer_indent(
                 ui,
                 tree_area,
                 &self.explorer_tree_state,
@@ -1929,16 +1938,25 @@ impl TableProApp {
             );
         });
         paint_explorer_collapse(ui, area);
+        paint_explorer_chevron_gap(ui, area);
+        paint_explorer_outside(
+            ui,
+            &self.explorer_tree_state,
+            &self.explorer_nodes,
+            inner,
+            body,
+            tree_area,
+        );
     }
 
     fn draw_content(&self, ui: &mut Ui<'_>, area: termrock::Rect) {
         let (title, meta) = match self.workbench.active() {
             Some(Tab::Table(table)) => (
                 format!(
-                    " {}",
+                    " {} ",
                     qualified_label("", &table.table.schema, &table.table.name)
                 ),
-                Some(format!("{} cols", table.table.columns.len())),
+                Some(format!("{} cols ", table.table.columns.len())),
             ),
             Some(Tab::Query(query)) => (format!(" {}", query.name), None),
             Some(Tab::History(_)) => (
@@ -1995,6 +2013,26 @@ impl TableProApp {
             }
         });
         paint_content_seam(ui, area);
+        if let Some(Tab::Table(table)) = self.workbench.active()
+            && !table.is_structure()
+        {
+            let quiet = ui
+                .surface_style()
+                .patch(ui.paint_patch(&StylePatch::new().set_fg(TAG_RULE_FG)));
+            ui.paint_str(
+                termrock::Rect {
+                    x: area
+                        .x
+                        .saturating_add(area.width)
+                        .saturating_sub(ui.design().space.frame_inset),
+                    y: area.y.saturating_add(2),
+                    width: 1,
+                    height: 1,
+                },
+                "─",
+                quiet,
+            );
+        }
         if let Some((grid_area, rows)) = GRID_SCROLL.with(|slot| *slot.borrow()) {
             paint_grid_scrollbar(ui, grid_area, rows);
         }
@@ -2690,7 +2728,7 @@ fn paint_legacy_tabs(
                 height: 1,
             },
             " ",
-            base,
+            base.remove_modifier(Modifier::BOLD),
         );
         x = x.saturating_add(1);
     }
@@ -2776,9 +2814,9 @@ fn paint_chosen_explorer_row(
         return;
     }
     let row = termrock::Rect {
-        x: area.x.saturating_add(1),
+        x: area.x,
         y,
-        width: area.width.saturating_sub(1),
+        width: area.width.saturating_add(1),
         height: 1,
     };
     let fill = ui.surface_style().patch(
@@ -2790,6 +2828,16 @@ fn paint_chosen_explorer_row(
         ),
     );
     ui.fill(row, fill);
+    ui.paint_str(
+        termrock::Rect {
+            x: area.x,
+            y,
+            width: 1,
+            height: 1,
+        },
+        " ",
+        fill.with_fg_from_bg(fill),
+    );
     let depth = explorer_depth(node);
     let fold_x = area
         .x
@@ -2813,7 +2861,8 @@ fn paint_chosen_explorer_row(
         ui.paint_patch(
             &StylePatch::new()
                 .set_fg(TAG_CHROME_FG)
-                .set_bg(LEGACY_SELECT_BG),
+                .set_bg(LEGACY_SELECT_BG)
+                .remove(Modifier::BOLD),
         ),
     );
     let name_style = fill.patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Accent)));
@@ -2937,6 +2986,18 @@ fn paint_grid_scrollbar(ui: &mut Ui<'_>, area: termrock::Rect, rows: usize) {
     let thumb = plain.patch(ui.paint_patch(&StylePatch::new().set_fg(LEGACY_SCROLL_THUMB)));
     for offset in 0..track_len {
         let y = area.y.saturating_add(1).saturating_add(offset as u16);
+        let from_end = track_len.saturating_sub(offset).saturating_sub(1);
+        let cover = if from_end == 0 {
+            plain.patch(ui.paint_patch(
+                &StylePatch::new().set_fg(Role::Custom(termrock::Color::from_u32(0x008c_8c8c))),
+            ))
+        } else if from_end == 1 {
+            plain.patch(ui.paint_patch(
+                &StylePatch::new().set_fg(Role::Custom(termrock::Color::from_u32(0x00cc_cccc))),
+            ))
+        } else {
+            plain
+        };
         ui.paint_str(
             termrock::Rect {
                 x: covered,
@@ -2945,7 +3006,7 @@ fn paint_grid_scrollbar(ui: &mut Ui<'_>, area: termrock::Rect, rows: usize) {
                 height: 1,
             },
             " ",
-            plain,
+            cover,
         );
         let glyph = if offset < thumb_len { "┃" } else { "┆" };
         let style = if offset < thumb_len { thumb } else { track };
@@ -2994,9 +3055,6 @@ fn paint_grid_header(ui: &mut Ui<'_>, area: termrock::Rect, names: &[String]) {
                 .remove(Modifier::BOLD),
         ),
     );
-    let column_pad = base
-        .remove_modifier(Modifier::BOLD)
-        .patch(ui.paint_patch(&StylePatch::new().set_fg(TAG_PATH_FG).remove(Modifier::BOLD)));
     ui.fill(
         termrock::Rect {
             x: area.x.saturating_add(chrome.gutter),
@@ -3016,7 +3074,28 @@ fn paint_grid_header(ui: &mut Ui<'_>, area: termrock::Rect, names: &[String]) {
             width: place.width,
             height: 1,
         };
-        ui.fill(rect, if place.primary { base } else { column_pad });
+        let fill_width = if place.primary {
+            place.width.saturating_sub(2)
+        } else {
+            place.width
+        };
+        ui.fill(
+            termrock::Rect {
+                width: fill_width,
+                ..rect
+            },
+            if place.primary { primary } else { muted },
+        );
+        if place.primary {
+            ui.fill(
+                termrock::Rect {
+                    x: origin.saturating_add(place.width),
+                    width: 2,
+                    ..rect
+                },
+                muted,
+            );
+        }
         let Some(name) = names.get(index) else {
             continue;
         };
@@ -3063,9 +3142,22 @@ fn paint_grid_header(ui: &mut Ui<'_>, area: termrock::Rect, names: &[String]) {
             .saturating_add(chrome.gutter)
             .saturating_add(chrome.content_width)
             .saturating_add(4);
+        let label_x = end.saturating_sub(label_w);
+        if label_x > area.x {
+            ui.paint_str(
+                termrock::Rect {
+                    x: label_x.saturating_sub(1),
+                    y: area.y,
+                    width: 1,
+                    height: 1,
+                },
+                " ",
+                base,
+            );
+        }
         ui.paint_str(
             termrock::Rect {
-                x: end.saturating_sub(label_w),
+                x: label_x,
                 y: area.y,
                 width: label_w,
                 height: 1,
@@ -3085,6 +3177,11 @@ fn paint_row_numbers(ui: &mut Ui<'_>, area: termrock::Rect, rows: usize, cursor:
     let plain = ui.surface_style().remove_modifier(Modifier::BOLD);
     for row in 0..visible {
         let y = area.y.saturating_add(1).saturating_add(row as u16);
+        let gutter = if cursor == Some(row) {
+            plain.add_modifier(Modifier::BOLD)
+        } else {
+            plain
+        };
         for dx in 1..3 {
             ui.paint_str(
                 termrock::Rect {
@@ -3094,7 +3191,7 @@ fn paint_row_numbers(ui: &mut Ui<'_>, area: termrock::Rect, rows: usize, cursor:
                     height: 1,
                 },
                 " ",
-                plain,
+                gutter,
             );
         }
         let fade = visible.saturating_sub(row);
@@ -3163,9 +3260,23 @@ fn paint_bottom_fade(ui: &mut Ui<'_>, area: termrock::Rect, model: &ResultGrid) 
             );
         };
         restyle(ui, origin, chrome.content_width.saturating_add(4), white);
+        restyle(ui, area.x.saturating_add(1), 2, white);
+        if chrome.gutter > 0 {
+            restyle(
+                ui,
+                area.x.saturating_add(chrome.gutter).saturating_sub(1),
+                1,
+                white,
+            );
+        }
         for place in &chrome.places {
             if place.primary {
-                restyle(ui, origin.saturating_add(place.x), place.width, secondary);
+                restyle(
+                    ui,
+                    origin.saturating_add(place.x),
+                    place.width.saturating_sub(2),
+                    secondary,
+                );
             }
         }
         if let Some(place) = chrome.places.last()
@@ -3267,6 +3378,7 @@ fn draw_painted_grid(
             (0..model.row_count()).find(|row| GridModel::row_key(model, *row) == key)
         }),
     );
+    paint_column_gap(ui, area);
     paint_bottom_fade(ui, area, model);
     paint_grid_header(
         ui,
@@ -3379,6 +3491,191 @@ fn paint_panel_tail(ui: &mut Ui<'_>, area: termrock::Rect, ink: Role) {
     );
 }
 
+fn paint_explorer_title_gap(ui: &mut Ui<'_>, area: termrock::Rect) {
+    let style = ui.surface_style().patch(
+        ui.paint_patch(
+            &StylePatch::new()
+                .set_fg(Role::Fg(FgStep::Secondary))
+                .remove(Modifier::BOLD),
+        ),
+    );
+    ui.paint_str(
+        termrock::Rect {
+            x: area.x.saturating_add(2).saturating_add(width(" Explorer")),
+            y: area.y,
+            width: 1,
+            height: 1,
+        },
+        " ",
+        style,
+    );
+}
+
+fn paint_explorer_meta_band(ui: &mut Ui<'_>, area: termrock::Rect) {
+    let inset = ui.design().space.frame_inset;
+    let style = ui
+        .surface_style()
+        .patch(ui.paint_patch(&StylePatch::new().set_fg(TAG_PATH_FG).remove(Modifier::BOLD)));
+    let width = area.width.saturating_sub(inset.saturating_mul(2));
+    if width == 0 || area.height < 2 {
+        return;
+    }
+    ui.paint_str(
+        termrock::Rect {
+            x: area.x.saturating_add(inset).saturating_add(1),
+            y: area.y.saturating_add(1),
+            width,
+            height: 1,
+        },
+        &" ".repeat(usize::from(width)),
+        style,
+    );
+}
+
+fn paint_explorer_chevron_gap(ui: &mut Ui<'_>, area: termrock::Rect) {
+    let mark = area.right().saturating_sub(4);
+    if mark == 0 {
+        return;
+    }
+    let style = ui
+        .surface_style()
+        .patch(ui.paint_patch(&StylePatch::new().set_fg(TAG_RULE_FG).remove(Modifier::BOLD)));
+    for x in [mark.saturating_sub(1), mark.saturating_add(1)] {
+        ui.paint_str(
+            termrock::Rect {
+                x,
+                y: area.y,
+                width: 1,
+                height: 1,
+            },
+            " ",
+            style,
+        );
+    }
+}
+
+fn paint_explorer_indent(
+    ui: &mut Ui<'_>,
+    area: termrock::Rect,
+    state: &TreeState,
+    nodes: &[ExplorerNode],
+) {
+    let rows = visible_explorer_count(nodes, state).min(usize::from(area.height));
+    let base = ui.surface_style();
+    let quiet = base.with_fg_from_bg(base);
+    for offset in 0..rows {
+        ui.paint_str(
+            termrock::Rect {
+                x: area.x,
+                y: area.y.saturating_add(offset as u16),
+                width: 1,
+                height: 1,
+            },
+            " ",
+            quiet,
+        );
+    }
+}
+
+fn visible_explorer_count(nodes: &[ExplorerNode], state: &TreeState) -> usize {
+    let mut show = [false; 8];
+    show[0] = true;
+    let mut count = 0usize;
+    for node in nodes {
+        let depth = explorer_depth(node);
+        if !show.get(depth).copied().unwrap_or(false) {
+            continue;
+        }
+        count = count.saturating_add(1);
+        let expanded = state.is_expanded(explorer_node_key(node));
+        if let Some(child) = show.get_mut(depth.saturating_add(1)) {
+            *child = expanded;
+        }
+        for deeper in show.iter_mut().skip(depth.saturating_add(2)) {
+            *deeper = false;
+        }
+    }
+    count
+}
+
+fn paint_column_gap(ui: &mut Ui<'_>, area: termrock::Rect) {
+    let Some(chrome) = GRID_CHROME.with(|chrome| chrome.borrow().clone()) else {
+        return;
+    };
+    let Some(place) = chrome.places.get(1) else {
+        return;
+    };
+    let width = 5.min(place.width);
+    if width == 0 {
+        return;
+    }
+    let style = ui.surface_style();
+    let rows = usize::from(area.height.saturating_sub(1));
+    let x = area.x.saturating_add(chrome.gutter).saturating_add(place.x);
+    for row in 0..rows {
+        ui.paint_style(
+            termrock::Rect {
+                x,
+                y: area.y.saturating_add(1).saturating_add(row as u16),
+                width,
+                height: 1,
+            },
+            style,
+        );
+    }
+}
+
+fn paint_explorer_outside(
+    ui: &mut Ui<'_>,
+    state: &TreeState,
+    nodes: &[ExplorerNode],
+    inner: termrock::Rect,
+    body: termrock::Rect,
+    tree_area: termrock::Rect,
+) {
+    let field = ui
+        .surface_style()
+        .patch(ui.paint_patch(&StylePatch::new().set_bg(Role::Surface(termrock::Surface::Field))));
+    ui.paint_str(
+        termrock::Rect {
+            x: body.right(),
+            y: inner.y.saturating_add(1),
+            width: 1,
+            height: 1,
+        },
+        " ",
+        field,
+    );
+    let Some(key) = state.chosen() else {
+        return;
+    };
+    let Some(index) = visible_explorer_index(nodes, state, key) else {
+        return;
+    };
+    let y = tree_area.y.saturating_add(index as u16);
+    if y >= tree_area.bottom() {
+        return;
+    }
+    let fill = ui.surface_style().patch(
+        ui.paint_patch(
+            &StylePatch::new()
+                .set_bg(LEGACY_SELECT_BG)
+                .set_fg(Role::Fg(FgStep::Primary))
+                .add(Modifier::BOLD),
+        ),
+    );
+    ui.paint_str(
+        termrock::Rect {
+            x: tree_area.right(),
+            y,
+            width: 1,
+            height: 1,
+        },
+        " ",
+        fill,
+    );
+}
+
 fn paint_explorer_collapse(ui: &mut Ui<'_>, area: termrock::Rect) {
     if area.width < 6 || area.height == 0 {
         return;
@@ -3420,8 +3717,17 @@ fn paint_data_mode(ui: &mut Ui<'_>, inner: termrock::Rect) {
             height: 1,
             ..inner
         },
-        "Data    Structure",
+        "Data    Structure  ",
         rest,
+    );
+    ui.paint_str(
+        termrock::Rect {
+            width: 1.min(inner.width),
+            height: 1,
+            ..inner
+        },
+        " ",
+        chip,
     );
     ui.paint_str(
         termrock::Rect {
@@ -3432,6 +3738,16 @@ fn paint_data_mode(ui: &mut Ui<'_>, inner: termrock::Rect) {
         },
         "Data  ",
         chip,
+    );
+    ui.paint_str(
+        termrock::Rect {
+            x: inner.x.saturating_add(7),
+            width: 1,
+            height: 1,
+            ..inner
+        },
+        " ",
+        ui.surface_style().remove_modifier(Modifier::BOLD),
     );
     let rule = termrock::Rect {
         y: inner.y.saturating_add(1),
@@ -3472,7 +3788,7 @@ fn paint_content_seam(ui: &mut Ui<'_>, area: termrock::Rect) {
     let style = ui
         .surface_style()
         .patch(ui.paint_patch(&StylePatch::new().set_fg(Role::BorderStrong)));
-    for y in area.y.saturating_add(1)..area.bottom().saturating_sub(1) {
+    for y in area.y..area.bottom() {
         if area.x > 0 {
             ui.paint_str(
                 termrock::Rect {
@@ -3484,6 +3800,9 @@ fn paint_content_seam(ui: &mut Ui<'_>, area: termrock::Rect) {
                 "│",
                 style,
             );
+        }
+        if y == area.y || y.saturating_add(1) == area.bottom() {
+            continue;
         }
         ui.paint_str(
             termrock::Rect {
@@ -3804,11 +4123,10 @@ fn draw_footer(ui: &mut Ui<'_>, area: termrock::Rect, app: &TableProApp) {
             String::with_capacity(prefix.len().saturating_add(app.connection.name.len()));
         right_text.push_str(prefix);
         right_text.push_str(&app.connection.name);
-        right_text.push(' ');
-        let width = width(&right_text);
+        let text_width = width(&right_text);
         let right = termrock::Rect {
-            x: area.right().saturating_sub(width),
-            width,
+            x: area.right().saturating_sub(text_width).saturating_sub(1),
+            width: text_width,
             ..area
         };
         ui.paint_spans(
