@@ -1,4 +1,5 @@
 use std::cell::RefCell;
+use std::time::Instant;
 
 use termrock::author::{PaintStyle, StyleDefaults};
 use termrock::editors::{
@@ -1426,6 +1427,7 @@ impl TableProApp {
                 message: "Query tab is no longer available".to_owned(),
             };
         }
+        let started = Instant::now();
         let statement = match tablepro_sql::sql::parse(query.trim()) {
             Ok(statement) => statement,
             Err(error) => {
@@ -1433,6 +1435,7 @@ impl TableProApp {
                     message: error.message,
                 };
                 self.status = outcome_message(&out);
+                self.record_query_status(key, &out, started.elapsed());
                 return out;
             }
         };
@@ -1476,6 +1479,7 @@ impl TableProApp {
                                 }
                             }
                             self.status = outcome_message(&out);
+                            self.record_query_status(key, &out, started.elapsed());
                             out
                         }
                         Err(error) => {
@@ -1488,6 +1492,7 @@ impl TableProApp {
                                 tab.error = Some(error.message);
                             }
                             self.status = outcome_message(&out);
+                            self.record_query_status(key, &out, started.elapsed());
                             out
                         }
                     }
@@ -1496,9 +1501,26 @@ impl TableProApp {
                         message: "The demo executor only runs SELECT statements".to_owned(),
                     };
                     self.status = outcome_message(&out);
+                    self.record_query_status(key, &out, started.elapsed());
                     out
                 }
             }
+        }
+    }
+
+    fn record_query_status(
+        &mut self,
+        key: TabKey,
+        outcome: &QueryOutcome,
+        elapsed: std::time::Duration,
+    ) {
+        let succeeded = match outcome {
+            QueryOutcome::Executed { .. } => true,
+            QueryOutcome::Rejected { .. } => false,
+            QueryOutcome::ConfirmationRequired { .. } | QueryOutcome::Denied { .. } => return,
+        };
+        if let Some(Tab::Query(tab)) = self.workbench.tab_mut(key) {
+            tab.record_execution_status(succeeded, elapsed);
         }
     }
     fn column_specs(
@@ -2063,6 +2085,7 @@ impl TableProApp {
                 if let Some(tab_key) = tab_key {
                     let _ = self.workbench.activate(tab_key);
                     self.sync_active_tab();
+                    self.focus_active_tab_primary(cx);
                 }
             }
             Some(PickerAction::Secondary(key)) if was_open => {
@@ -2073,10 +2096,20 @@ impl TableProApp {
                     .find(|row| ItemKey::num(row.key.get()) == key)
                     .map(|row| row.key);
                 if let Some(tab_key) = tab_key {
-                    self.request_close_tab(cx, tab_key);
-                    self.tab_list.rows = tab_list::rows(&self.workbench);
-                    tab_list::picker(self.tab_list.rows.len())
-                        .reconcile(&mut self.tab_list.state, &self.tab_list.rows);
+                    if let Some(index) = self
+                        .workbench
+                        .tabs()
+                        .iter()
+                        .position(|tab| tab.key() == tab_key)
+                    {
+                        let _ = self.workbench.close_tab(index);
+                        self.sync_active_tab();
+                    }
+                    // The reference closes and reopens the picker after Delete.
+                    // Reopening clears its query and places its cursor on the
+                    // active tab while preserving the picker flow.
+                    cx.close_layer(tab_list::ID, None);
+                    let _ = self.open_tab_list(cx);
                 }
             }
             _ => {}
@@ -2085,6 +2118,12 @@ impl TableProApp {
             self.sync_active_tab();
         }
         response.erase()
+    }
+
+    fn focus_active_tab_primary(&self, cx: &mut Cx<'_>) {
+        if let Some(id) = self.query_id().or_else(|| self.result_id()) {
+            cx.focus(id);
+        }
     }
 
     fn update_safe_mode(&mut self, cx: &mut Cx<'_>) -> Response<()> {
@@ -10675,6 +10714,7 @@ impl App for TableProApp {
                         && query.running
                     {
                         query.running = false;
+                        query.record_status("cancelled", false, 0);
                         "Query cancelled".clone_into(&mut self.status);
                         return Response::changed();
                     }
