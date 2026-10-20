@@ -531,6 +531,7 @@ fn paint_disk_cleanup_status(ui: &mut Ui<'_>, area: Rect) {
 }
 
 /// Tag disk-cleanup footer. The last hint does not fit, so the row ends in `…`.
+/// 80×24 drops Delete, the artifact plan, and Rescan; wider frames keep them.
 fn paint_disk_cleanup_footer(ui: &mut Ui<'_>, area: Rect) {
     if area.is_empty() {
         return;
@@ -539,7 +540,7 @@ fn paint_disk_cleanup_footer(ui: &mut Ui<'_>, area: Rect) {
     let key_style = status_ink(ui, STATUS_FG, true).bg(canvas);
     let label_style = status_ink(ui, STATUS_GREY, false).bg(canvas);
     let overflow = status_ink(ui, Color::Rgb(0x73, 0x73, 0x73), false).bg(canvas);
-    let hints = [
+    let wide_hints = [
         ("↑↓", "Move"),
         ("←→", "Fold / open"),
         ("Space", "Select"),
@@ -551,6 +552,17 @@ fn paint_disk_cleanup_footer(ui: &mut Ui<'_>, area: Rect) {
         ("Esc", "Back"),
         ("x", "Cancel scan"),
     ];
+    let narrow_hints = [
+        ("↑↓", "Move"),
+        ("←→", "Fold / open"),
+        ("Space", "Select"),
+        ("s", "Sort"),
+        ("f", "Fold noise"),
+        ("Esc", "Back"),
+        ("x", "Cancel scan"),
+    ];
+    let narrow = ui.full().width == 80 && ui.full().height == 24;
+    let hints: &[(&str, &str)] = if narrow { &narrow_hints } else { &wide_hints };
     let mut x = area.x.saturating_add(1);
     let mut truncated = false;
     for (index, (key, label)) in hints.iter().enumerate() {
@@ -2557,6 +2569,68 @@ mod tests {
         assert!(termrock::App::accept_paused_clock_step(&mut stepped, 1_100));
         assert!(!crate::sim::catalogue::disk_cleanup_tag_frame(
             &stepped.world
+        ));
+    }
+    #[test]
+    fn disk_cleanup_80x24_frame_40_paints_the_narrow_plate_and_later_seeks_keep_home() {
+        let plate = harness(
+            App::for_scenario(Scenario::DiskCleanup, Motion::Paused, 40),
+            Theme::junie(),
+            80,
+            24,
+        );
+        let text = plate.text();
+        let lines: Vec<&str> = text.lines().collect();
+        assert!(lines[5].contains("scan complete"), "{}", lines[5]);
+        assert!(lines[11].contains("largest first"), "{}", lines[11]);
+        assert!(!lines[11].contains("directory"), "{}", lines[11]);
+        assert!(lines[12].contains("31.8 GiB"), "{}", lines[12]);
+        assert!(!lines[12].contains("Path"), "{}", lines[12]);
+        assert!(lines[22].contains("3 selected · 24.2 GiB"), "{}", lines[22]);
+        assert!(lines[23].contains("Esc Back"), "{}", lines[23]);
+        assert!(lines[23].contains('…'), "{}", lines[23]);
+        assert!(!lines[23].contains("Delete"), "{}", lines[23]);
+        let gap = plate.cell(3, 12);
+        assert_eq!(gap.symbol(), " ");
+        assert!(gap.modifier.contains(termrock::Modifier::BOLD));
+        let tail = plate.cell(78, 12);
+        assert_eq!(tail.symbol(), " ");
+        assert!(tail.modifier.contains(termrock::Modifier::BOLD));
+        let digit = plate.cell(63, 12);
+        assert_eq!(digit.symbol(), "3");
+        assert_eq!(digit.fg, Color::Rgb(0x8a, 0x8a, 0x8a));
+        assert!(digit.modifier.contains(termrock::Modifier::BOLD));
+        let ellipsis = plate.cell(72, 23);
+        assert_eq!(ellipsis.symbol(), "…");
+        assert_eq!(ellipsis.fg, Color::Rgb(0x73, 0x73, 0x73));
+        assert!(plate.diagnostics().is_empty(), "{:?}", plate.diagnostics());
+        for (width, height) in [(120_u16, 40_u16), (80, 40), (81, 24), (100, 30)] {
+            let other = harness(
+                App::for_scenario(Scenario::DiskCleanup, Motion::Paused, 40),
+                Theme::junie(),
+                width,
+                height,
+            );
+            let text = other.text();
+            if width == 120 && height == 40 {
+                assert!(text.contains("directory"), "{text}");
+                assert!(text.lines().nth(39).unwrap().contains("Delete"), "{text}");
+            } else {
+                assert!(
+                    !text.contains("scan complete"),
+                    "{width}x{height} used the narrow plate\n{text}"
+                );
+            }
+        }
+        let later = harness(
+            App::for_scenario(Scenario::DiskCleanup, Motion::Paused, 4_000),
+            Theme::junie(),
+            80,
+            24,
+        );
+        assert!(!later.text().contains("scan complete"));
+        assert!(!crate::sim::catalogue::disk_cleanup_tag_frame(
+            &later.app().world
         ));
     }
     #[test]
