@@ -201,6 +201,22 @@ class RunnerGuards(unittest.TestCase):
             with self.assertRaisesRegex(runner.RunnerError, "invalid semantic frame cell"):
                 runner.validate_semantic_frame_file(path, "")
 
+    def test_semantic_frame_accepts_default_and_indexed_colors(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            path = Path(temp) / "frame.json"
+            frame = json.loads(self.semantic_frame())
+            frame["cells"][0]["fg"] = "Default"
+            frame["cells"][0]["bg"] = {"Indexed": 0}
+            frame["cells"][0]["underline_color"] = "Default"
+            payload = json.dumps(frame, separators=(",", ":")).encode()
+            path.write_bytes(payload)
+            runner.validate_semantic_frame_file(path, runner.hashlib.sha256(payload).hexdigest())
+            for invalid in ({"Indexed": 256}, {"Rgb": {"r": 0, "g": 0, "b": 999}}, {"Other": 1}, {"Rgb": {"r": True, "g": 0, "b": 0}}):
+                frame["cells"][0]["fg"] = invalid
+                path.write_text(json.dumps(frame, separators=(",", ":")))
+                with self.assertRaisesRegex(runner.RunnerError, "invalid semantic frame cell"):
+                    runner.validate_semantic_frame_file(path, "")
+
     def test_reference_decision_is_pinned_to_exact_tuple_and_two_frames(self) -> None:
         document = json.loads((Path(runner.__file__).resolve().parent / "frozen_cli_references.json").read_text())
         decision = runner.validate_reference_decision_document(document)
