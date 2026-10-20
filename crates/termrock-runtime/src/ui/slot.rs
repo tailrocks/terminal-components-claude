@@ -4,6 +4,7 @@
 //! from the framework-owned [`Ui`], and the resolved plan is shared by each
 //! leaf's draw and interaction registration.
 
+use core::fmt;
 use ratatui_core::layout::Rect;
 
 use crate::author::CompositionLeaf;
@@ -23,6 +24,26 @@ enum Direction {
 pub struct ContentSlot<'a> {
     content: Content<'a>,
     policy: ChildPolicy,
+}
+
+/// Maximum number of nested composition groups supported by a single tree.
+pub const MAX_COMPOSITION_DEPTH: usize = 128;
+
+/// A composition request that could not be resolved safely.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum CompositionError {
+    /// The composition exceeds the bounded recursion depth.
+    DepthExceeded { depth: usize, maximum: usize },
+}
+
+impl fmt::Display for CompositionError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::DepthExceeded { depth, maximum } => {
+                write!(f, "composition depth {depth} exceeds maximum {maximum}")
+            }
+        }
+    }
 }
 
 enum Content<'a> {
@@ -53,6 +74,27 @@ pub struct CompositionSlots<'a> {
     direction: Direction,
     spec: Composition,
     children: Vec<ContentSlot<'a>>,
+    depth: usize,
+}
+
+impl Drop for CompositionSlots<'_> {
+    fn drop(&mut self) {
+        // Tear nested groups down iteratively. Deep invalid trees must remain
+        // safely droppable after `try_draw` reports a bounded-depth error.
+        let mut pending = Vec::new();
+        for slot in self.children.drain(..) {
+            if let Content::Group(group) = slot.content {
+                pending.push(group);
+            }
+        }
+        while let Some(mut group) = pending.pop() {
+            for slot in group.children.drain(..) {
+                if let Content::Group(child) = slot.content {
+                    pending.push(child);
+                }
+            }
+        }
+    }
 }
 
 impl<'a> CompositionSlots<'a> {
@@ -79,10 +121,20 @@ impl<'a> CompositionSlots<'a> {
     }
 
     fn new(direction: Direction, children: impl IntoIterator<Item = ContentSlot<'a>>) -> Self {
+        let children: Vec<_> = children.into_iter().collect();
+        let depth = 1 + children
+            .iter()
+            .filter_map(|slot| match &slot.content {
+                Content::Group(group) => Some(group.depth),
+                Content::Leaf(_) => None,
+            })
+            .max()
+            .unwrap_or(0);
         Self {
             direction,
             spec: Composition::new(),
-            children: children.into_iter().collect(),
+            children,
+            depth,
         }
     }
 
@@ -159,7 +211,13 @@ impl<'a> CompositionSlots<'a> {
         }
     }
 
-    fn remeasure_resolved(&self, ui: &Ui<'_>, group: &mut MeasuredGroup, plan: &ResolvedPlan) {
+    fn remeasure_resolved(
+        &self,
+        ui: &Ui<'_>,
+        group: &mut MeasuredGroup,
+        plan: &ResolvedPlan,
+        available_height: u16,
+    ) {
         for resolved in &plan.children {
             let Some(slot) = self.children.get(resolved.index) else {
                 continue;
@@ -171,7 +229,7 @@ impl<'a> CompositionSlots<'a> {
                 Content::Leaf(leaf) => {
                     if resolved.logical.width != node.size.preferred.0 {
                         let constraints = Constraints {
-                            max: (resolved.logical.width, plan.content.height),
+                            max: (resolved.logical.width, available_height),
                             tight_w: true,
                             tight_h: false,
                         };
@@ -180,12 +238,20 @@ impl<'a> CompositionSlots<'a> {
                 }
                 Content::Group(nested) => {
                     if let Some(nested_measured) = node.children.as_deref_mut() {
-                        let child_plan =
-                            nested.resolve(resolved.logical, &nested_measured.children);
-                        nested.remeasure_resolved(ui, nested_measured, &child_plan);
+                        let available = Rect {
+                            height: available_height,
+                            ..resolved.logical
+                        };
+                        let child_plan = nested.resolve(available, &nested_measured.children);
+                        nested.remeasure_resolved(
+                            ui,
+                            nested_measured,
+                            &child_plan,
+                            child_plan.content.height,
+                        );
                         nested_measured.size = nested.intrinsic(
                             &nested_measured.children,
-                            Constraints::loose(resolved.logical.width, resolved.logical.height),
+                            Constraints::loose(resolved.logical.width, available_height),
                         );
                         node.size = nested_measured.size;
                     }
@@ -223,12 +289,19 @@ impl<'a> CompositionSlots<'a> {
     }
 
     /// Resolve from the framework root, then draw each visible leaf once.
-    pub fn draw(&self, ui: &mut Ui<'_>) {
+    pub fn draw(&self, ui: &mut Ui<'_>) -> Result<(), CompositionError> {
+        if self.depth > MAX_COMPOSITION_DEPTH {
+            return Err(CompositionError::DepthExceeded {
+                depth: self.depth,
+                maximum: MAX_COMPOSITION_DEPTH,
+            });
+        }
         let root = ui.full();
         let mut measured = self.measure_tree(ui, Constraints::loose(root.width, root.height));
         let first = self.resolve(root, &measured.children);
-        self.remeasure_resolved(ui, &mut measured, &first);
+        self.remeasure_resolved(ui, &mut measured, &first, first.content.height);
         self.draw_tree(ui, &measured, root);
+        Ok(())
     }
 }
 
@@ -246,8 +319,8 @@ struct MeasuredGroup {
 
 impl Ui<'_> {
     /// Compose measured component leaves in the framework-owned root area.
-    pub fn compose(&mut self, slots: &CompositionSlots<'_>) {
-        slots.draw(self);
+    pub fn compose(&mut self, slots: &CompositionSlots<'_>) -> Result<(), CompositionError> {
+        slots.draw(self)
     }
 }
 
@@ -318,7 +391,7 @@ mod tests {
                 width: 20,
                 height: 5,
             },
-            |ui| ui.compose(&slots),
+            |ui| ui.compose(&slots).expect("valid composition"),
         );
 
         assert_eq!(measured_a.get(), 1);
@@ -381,7 +454,7 @@ mod tests {
                 width: 9,
                 height: 4,
             },
-            |ui| ui.compose(&slots),
+            |ui| ui.compose(&slots).expect("valid composition"),
         );
         assert_eq!(drawn.borrow().len(), 3);
         assert_eq!(
@@ -410,7 +483,7 @@ mod tests {
                 width: 5,
                 height: 5,
             },
-            |ui| ui.compose(&slots),
+            |ui| ui.compose(&slots).expect("valid composition"),
         );
         assert_eq!(drawn.borrow().len(), 3);
         assert_eq!(
@@ -471,7 +544,7 @@ mod tests {
                 height: 8,
             },
             |ui| {
-                ui.compose(&slots);
+                ui.compose(&slots).expect("valid composition");
             },
         );
 
@@ -525,7 +598,7 @@ mod tests {
                 height: 2,
             },
             |ui| {
-                ui.compose(&slots);
+                ui.compose(&slots).expect("valid composition");
             },
         );
 
@@ -597,7 +670,7 @@ mod tests {
                 height: 8,
             },
             |ui| {
-                ui.compose(&slots);
+                ui.compose(&slots).expect("valid composition");
             },
         );
 
