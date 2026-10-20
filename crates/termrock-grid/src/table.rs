@@ -20,6 +20,12 @@ pub enum TableSort {
     NumericDisplay,
 }
 
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub enum TableAction {
+    Grid(GridAction),
+    SortChanged(Option<(ColumnKey, SortDir)>),
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct TableColumn<'a> {
     pub column: Column<'a>,
@@ -46,6 +52,9 @@ pub struct TableState {
     grid: GridState,
     order: Vec<usize>,
     sort: Option<(ColumnKey, SortDir)>,
+    model_keys: Vec<ItemKey>,
+    model_revision: Option<u64>,
+    model_revision_seen: bool,
 }
 
 impl TableState {
@@ -63,6 +72,31 @@ impl TableState {
 
     pub const fn grid_state(&self) -> &GridState {
         &self.grid
+    }
+
+    fn sync_model<M: GridModel + ?Sized>(&mut self, model: &M) {
+        let revision = model.revision();
+        let changed = match revision {
+            Some(revision) if self.model_revision_seen => self.model_revision != Some(revision),
+            _ => {
+                self.model_keys.len() != model.row_count()
+                    || self
+                        .model_keys
+                        .iter()
+                        .enumerate()
+                        .any(|(index, key)| model.row_key(index) != *key)
+            }
+        };
+        if changed {
+            self.grid.invalidate_model();
+        }
+        if changed || !self.model_revision_seen {
+            self.model_keys.clear();
+            self.model_keys
+                .extend((0..model.row_count()).map(|index| model.row_key(index)));
+        }
+        self.model_revision = revision;
+        self.model_revision_seen = true;
     }
 }
 
@@ -128,7 +162,8 @@ impl<'a> Table<'a> {
         cx: &mut Cx<'_>,
         state: &mut TableState,
         model: &M,
-    ) -> Response<GridAction> {
+    ) -> Response<TableAction> {
+        state.sync_model(model);
         let columns = self.grid_columns();
         let grid = self.grid(&columns);
         state.order = self.ordered_rows(model, state.sort);
@@ -156,9 +191,14 @@ impl<'a> Table<'a> {
                 };
                 let _ = grid.move_cursor_to(&mut state.grid, &ordered, row, column);
             }
-            return response;
+            let cleared = state.sort.is_none();
+            return response.map_action(|action| match action {
+                GridAction::Sort(_, _) if cleared => TableAction::SortChanged(None),
+                GridAction::Sort(_, _) => TableAction::SortChanged(state.sort),
+                other => TableAction::Grid(other),
+            });
         }
-        response
+        response.map_action(TableAction::Grid)
     }
 
     pub fn draw<M: GridModel + ?Sized>(
