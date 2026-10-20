@@ -29,7 +29,7 @@
      if let Ok(tool) = std::env::var("VISUAL_TOOL") {
          if let Err(e) = tool::run(&tool) {
              eprintln!("{e}");
-@@ -132,7 +147,57 @@
+@@ -132,7 +147,80 @@
                  .with_ignored_flag(true),
          );
      }
@@ -42,11 +42,23 @@
 +
 +fn paired_adapter_spawn_smoke() {
 +    let name = "showcase/adapter_spawn_smoke";
++    let old_bin_root = std::env::var_os("VISUAL_BIN_DIR");
++    let unique = std::time::SystemTime::now()
++        .duration_since(std::time::UNIX_EPOCH)
++        .expect("clock after epoch")
++        .as_nanos();
++    let bin_root = std::env::temp_dir().join(format!(
++        "termrock-paired-adapter-smoke-{}-{unique}",
++        std::process::id()
++    ));
++    std::fs::create_dir(&bin_root).expect("create exclusive smoke binary directory");
++    // SAFETY: this opt-in test is run alone with --test-threads=1, and no
++    // library or application worker threads exist before Tui::spawn.
++    unsafe { std::env::set_var("VISUAL_BIN_DIR", &bin_root) };
 +    assert!(frozen_cli_pair::begin_case(name).expect("begin paired smoke case"));
-+    let bin = std::path::PathBuf::from(std::env::var("VISUAL_BIN_DIR").expect("visual bin dir"))
-+        .join("showcase");
++    let bin = bin_root.join("showcase");
 +    std::fs::copy(std::env::current_exe().expect("adapter test executable"), &bin)
-+        .expect("copy real executable for adapter smoke");
++        .expect("copy real executable into exclusive smoke directory");
 +    let bin = Box::leak(
 +        bin.into_os_string()
 +            .into_string()
@@ -84,6 +96,17 @@
 +    let case_dir = receipt_root.join("process").join("ae13af98323838c0bb99ed21b10e8f632e8b472b05f006c9c6b6dfb83563a8df");
 +    assert!(case_dir.join("launch-00000000.json").is_file());
 +    assert!(case_dir.join("closed-00000000.json").is_file());
++    match old_bin_root {
++        Some(value) => {
++            // SAFETY: the test's Tui session has been closed and reaped.
++            unsafe { std::env::set_var("VISUAL_BIN_DIR", value) };
++        }
++        None => {
++            // SAFETY: the test's Tui session has been closed and reaped.
++            unsafe { std::env::remove_var("VISUAL_BIN_DIR") };
++        }
++    }
++    std::fs::remove_dir_all(bin_root).expect("remove only the exclusive smoke directory");
  }
  
  fn check(name: &str, body: fn()) -> Trial {
