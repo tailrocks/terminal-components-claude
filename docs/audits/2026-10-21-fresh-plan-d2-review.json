@@ -1,0 +1,84 @@
+{
+  "reviewed_commit": "d2e21c58357a97e6ce3b7f9dc53d8bdd044487a6",
+  "reviewer": "editor_contract_independent_review",
+  "source_copy": "/private/tmp/termrock-fresh-plan-d2e2-review",
+  "verdict": "changes_requested",
+  "findings": [
+    {
+      "id": "FRESH-PLAN-CREATION-ANCHOR-TOCTOU",
+      "priority": "P2",
+      "path": "tools/frozen_baseline.py",
+      "line": 2683,
+      "problem": "Creation publishes and stable-reads a plan, then obtains the externally trusted creation_file_sha256 through a separate mutable-path read. A coherent rewrite between those reads is emitted as the creation anchor although the returned plan and receipt semantic hash still describe the original document. Verification accepts the modified raw file under that newly emitted anchor.",
+      "evidence": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/fresh-plan-review-d2e21c58/creation-anchor-race.json",
+      "scope": "Real create_fresh_plan publication/read/receipt code; preparation/inventory/payload calls mocked to the existing real frozen-source plan. No product binaries launched.",
+      "repair": "Compute the raw creation digest from the exact serialized payload being exclusively published. Validate the published file with that digest and emit the precomputed digest; do not derive custody from a subsequent mutable-path hash. Add the unchanged race probe as a regression."
+    }
+  ],
+  "checks": {
+    "python_unit_suite": {
+      "command": "python3 tools/test_frozen_baseline.py",
+      "result": "60 passed",
+      "exit_code": 0,
+      "log": "/private/tmp/termrock-fresh-plan-d2e2-python-tests.log"
+    },
+    "default_timeout_seconds": {
+      "fresh-plan": 225,
+      "verify-fresh-plan": 225
+    },
+    "raw_creation_anchor_matches_actual_plan": true,
+    "raw_creation_anchor": "b53268cb67905db41b4c448a862d1a6956596f6585271db2014a95c5d9b15d29",
+    "internally_coherent_repartition_rejected_by_original_external_anchor": "fresh plan does not match the externally retained creation digest",
+    "semantic_and_publication_guards": {
+      "commit": "d2e21c58357a97e6ce3b7f9dc53d8bdd044487a6",
+      "semantic_rejections": {
+        "completed-status": "fresh plan schema or execution status is invalid",
+        "missing-phase": "fresh plan phase records are malformed",
+        "zero-visual-chunks": "fresh plan visual phase chunk membership differs from inventory",
+        "partial-visual-selection": "fresh plan inventory selection differs from complete registered inventory",
+        "candidate-privilege": "fresh plan execution scope enables a forbidden phase",
+        "cohort-complete-claim": "fresh plan cohort grants forbidden candidate or reference privileges"
+      },
+      "publication_and_races": {
+        "second_publication_rejected": "refusing to replace immutable fresh plan: /var/folders/8p/h376l_nn3375kyj72czdq2x80000gn/T/tmphe3wydgu/plan.json",
+        "symlink_reader_rejected": "fresh plan is symlinked or non-regular",
+        "competing_publication_rejected": "refusing to replace immutable fresh plan: /var/folders/8p/h376l_nn3375kyj72czdq2x80000gn/T/tmphe3wydgu/race.json",
+        "competing_writer_preserved": true,
+        "temporary_files_cleaned": true,
+        "read_mutation_rejected": "fresh plan changed during read"
+      },
+      "capture_executed": false
+    },
+    "actual_root_build_json_absent": true,
+    "actual_plan_original_bytes_preserved": true,
+    "actual_inventory_declared": {
+      "visual": 29069,
+      "ordinary": 20
+    },
+    "actual_positive_replay": {
+      "status": "unavailable: exact preparation environment recipe not supplied",
+      "attempt_exit_code": 1,
+      "diagnostic": "live source provenance changed: preparation_environment",
+      "log": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/fresh-plan-review-d2e21c58/actual-verify-valid-default.log",
+      "interpretation": "Fail-closed behavior observed. This is not a successful positive replay; changed-environment attempts sharing this mismatched base do not independently prove each drift detector."
+    }
+  },
+  "coverage_gaps": [
+    "Exact positive real-inventory verification remains unproven until the original nonsecret allowlisted environment values and absent-key recipe are exported.",
+    "Actual same-environment selected-tool-byte drift negative was not rerun against a valid freshly prepared plan; prior review defect remains unclosed by independent execution.",
+    "Environment present/absent drift needs rerunning from a valid matching base environment; current mismatched-base rejections are not acceptance evidence.",
+    "No application capture, execution, snapshot approval, candidate comparison, or product/library completion claim."
+  ],
+  "source_inspection": {
+    "external_anchor_required_by_public_verifier": true,
+    "effective_environment_allowlist_records_presence_and_absence": true,
+    "unknown_inherited_environment_keys_removed": true,
+    "selected_cargo_rustc_nextest_python_bytes_observed": true,
+    "self_digest_alone_not_claimed_as_trust_in_docs": true,
+    "transitive_compiler_linker_inputs_observations_not_hermetic_proof": true
+  },
+  "source_edits": false,
+  "helpers_spawned": false,
+  "applications_launched": false,
+  "approval_granted": false
+}

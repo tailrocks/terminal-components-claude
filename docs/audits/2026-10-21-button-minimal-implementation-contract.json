@@ -16,5 +16,10 @@
     "Owner-wide reference styles all five parts using deliberately distinct custom recipes; explicit glyph Clear and custom MARKER/GUTTER patches win. Confirm zero registry controls/bindings/cursor and no actions or domain effects.",
     "Focused controls nextest, strict Clippy and scoped formatting. Commit and protect the coherent increment on a WIP branch under the shared push lock, then independent exact-commit review."
   ],
-  "limits": "This is not a full Showcase migration, CLI parity proof, expected-data approval or reference decision. Existing stored Buttons audit conflict remains unresolved."
+  "limits": "This is not a full Showcase migration, CLI parity proof, expected-data approval or reference decision. Existing stored Buttons audit conflict remains unresolved.",
+  "superseding_marker_correction": {
+    "status": "The earlier RadioOn/RadioOff fallback recommendation is superseded and must not be implemented.",
+    "source": "Current builtin/junie.rs113 uses three-cell (\u25cf)/(\u25cb) Radio roles. Frozen theme.rs2421-2422 uses one-cell Button dot_on/off \u25cf/\u25cb and ASCII2486-2487 */o.",
+    "required_contract": "Coordinate a semantic one-cell dot role extension with the Theme owner while preserving existing GlyphRole discriminants and GlyphSet::new signature. SwitchKnob alone supplies only on; do not crop a Radio glyph or hardcode app marker characters. Explicit marker glyph/slot overrides must continue to win."
+  }
 }
