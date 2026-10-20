@@ -45,6 +45,15 @@ the checked-in `.github` tree, including file types and symlinks.
 - Pinned Actionlint `1.7.12` passed against both generated workflows with the
   two exact native-step concurrency ignore patterns Velnor emits in CI.
 - A clean generated preview matched the checked-in `.github` tree.
+- Independent reproduction at exact commit `417c5e884a96eab5f8bc8be305bc3219c18a14b3`
+  initially failed with `unknown_nextest_profile:smoke` when the preview output
+  directory did not exist. Repeating from the same checkout with a newly
+  created empty output directory passed and matched all 22 `.github` entries,
+  including file bytes and symlink targets. The verifier confirmed the same
+  Velnor binary SHA-256, tracked 3,050-byte Nextest config, root plus `xtask`
+  discovery, and no environment overrides. Preserve both transcripts at
+  `/tmp/velnor-design-preview-failure-20261020.log` and
+  `/tmp/velnor-design-preview-retry-20261020.log`.
 
 No CI run is claimed by this audit. The product reference branch, frozen
 baseline tag and commit, and Tuiscotti pin remain unchanged.
