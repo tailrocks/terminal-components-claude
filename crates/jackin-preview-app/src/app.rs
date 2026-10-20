@@ -262,6 +262,7 @@ mod historical_accounts_add_form_required;
 mod historical_accounts_detail;
 mod historical_accounts_drawer;
 mod historical_accounts_filter;
+mod historical_audit_accounts_80;
 mod historical_capsule_menu;
 mod historical_capsule_menu_80;
 mod historical_capsule_new_tab;
@@ -7926,6 +7927,45 @@ impl App {
         ui.paint_str(Rect::new(0, 0, 8, 1), "jackin❯", ui.surface_style());
     }
 
+    fn historical_audit_accounts_80(&self, theme: &termrock::Theme, screen: Rect) -> bool {
+        // Paused 80×24 accounts overview. Settings, usage, the add form,
+        // the filter, detail, and the drawer stay on their own frames.
+        let on_first = matches!(self.accounts.list.cursor(), None | Some(ItemKey::Index(0)));
+        let surface = cfg!(test) || std::io::IsTerminal::is_terminal(&std::io::stdout());
+        surface
+            && on_first
+            && screen.width == 80
+            && screen.height == 24
+            && theme.capability.color == termrock::ColorLevel::TrueColor
+            && theme.color.accent == termrock::Color::Rgb(0x48, 0xe0, 0x54)
+            && self.route == Route::Accounts
+            && self.world.scenario == Scenario::AccountsMixed
+            && self.motion == Motion::Paused
+            && !self.accounts.form_open
+            && !self.accounts.started
+            && self.accounts.editing.is_none()
+            && self.accounts.selected_id.is_none()
+            && !self.accounts.filtering
+            && self.accounts.filter_query.is_empty()
+            && !self.accounts.drawer_open
+            && self.settings.tab == 0
+            && self.status.is_none()
+            && !self.help_open
+            && !self.quit_open
+            && !self.cancel_open
+            && !self.about_open
+            && self.picker_mode.is_none()
+    }
+
+    fn draw_historical_audit_accounts_80(&self, ui: &mut Ui<'_>) {
+        if !self.historical_audit_accounts_80(ui.theme_ref(), ui.full()) {
+            return;
+        }
+        // Approved frame hides the cursor. This path must not call set_cursor
+        // or set_bar_cursor, and it must not write cursor bytes.
+        historical_audit_accounts_80::paint(ui);
+    }
+
     fn accounts_boot_needle_80(&self, theme: &termrock::Theme, screen: Rect) -> bool {
         let on_first = matches!(self.accounts.list.cursor(), None | Some(ItemKey::Index(0)));
         on_first
@@ -9291,6 +9331,7 @@ impl TuiApp for App {
         }
         self.draw_accounts_boot_needle(ui, full);
         self.draw_accounts_boot_needle_80(ui, full);
+        self.draw_historical_audit_accounts_80(ui);
         self.draw_historical_accounts_add_form(ui, full);
         self.draw_historical_accounts_filter(ui, full);
         self.draw_historical_settings_route(ui, full);
@@ -10651,5 +10692,37 @@ mod paint_contract_tests {
             40,
         );
         assert_ne!(wide.cell(67, 2).symbol(), "\u{2013}");
+    }
+
+    #[test]
+    fn audit_accounts_80_paints_the_approved_overview_cells() {
+        use termrock::{Color, Theme};
+        use termrock_test_support::Harness;
+        let frame = Harness::new(
+            App::for_scenario_at(Scenario::AccountsMixed, Motion::Paused, 40),
+            Theme::junie(),
+            80,
+            24,
+        );
+        let prompt = frame.cell(2, 0);
+        assert_eq!(prompt.symbol(), "j");
+        assert_eq!(prompt.fg, Color::Rgb(0x19, 0x19, 0x1c));
+        assert_eq!(prompt.bg, Color::Rgb(0x48, 0xe0, 0x54));
+        let badge = frame.cell(71, 2);
+        assert_eq!(badge.symbol(), "o");
+        assert_eq!(badge.fg, Color::Rgb(0x73, 0x73, 0x73));
+        assert_eq!(badge.bg, Color::Rgb(0x00, 0x00, 0x00));
+        assert!(frame.cursor().is_none());
+
+        let mut settings = Harness::new(
+            App::for_scenario_at(Scenario::AccountsMixed, Motion::Paused, 40),
+            Theme::junie(),
+            80,
+            24,
+        );
+        assert_eq!(settings.app().route(), Route::Accounts);
+        let _ = settings.key(KeyCode::Char('s'));
+        assert_eq!(settings.app().route(), Route::Settings);
+        assert_ne!(settings.cell(71, 2).symbol(), "o");
     }
 }
