@@ -66,3 +66,14 @@ After-fix checks on the isolated branch:
 - `git diff --check` — passed.
 - Independent code review: pending exact-commit review.
 - Full application parity and library acceptance: pending; this audit is not an acceptance claim.
+
+## Post-rebase lint repair
+
+The source branch advanced to `a5766d24783c2b268e727497fe6861b6479c71cc`
+while this worker series was rebased. Strict clippy then reported three
+redundant `u16` conversions in `crates/termrock-overlays/src/help.rs` at the
+scroll label width, first column key width, and help key width. These were
+lint-only changes: `termrock_text::width` already returns `u16`. Removed the
+identity conversions without changing layout values. The strict package clippy
+gate was rerun after this repair and passed. The three source lines were the
+only extension beyond the original shared-style file ownership.
