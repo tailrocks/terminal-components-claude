@@ -8,14 +8,14 @@ Its report always sets `acceptance_complete` to `false`. A clean bounded archite
 
 ## Evidence
 
-The same checker and policy bytes were used against both source revisions. Reports are retained outside the repository at `/Users/donbeave/Projects/termrock-cli-evidence-20261020/architecture-check-pr-5d9f5b177.json` and `architecture-check-design-f4867e9b5.json`.
+The same checker and policy bytes were used against both source revisions. Reports are retained outside the repository at `/Users/donbeave/Projects/termrock-cli-evidence-20261020/architecture-check-pr-970c93ee4.json` and `architecture-check-design-f4867e9b5.json`.
 
 | Source | Architecture check | Evidence |
 | --- | --- | --- |
-| PR branch source `5d9f5b1772e733dad4940c84fb9a06b3baaae0ce` | **Red**: 85 captured-frame/replay findings; 0 dependency violations; 0 source read errors | 392 hashed inputs; 19 expected library roles and 4 binary targets found; every application binary reaches a shared library package. Source manifest SHA-256 `1ca8d0b09bd18844d8ab5e02f07549ac7b14c857720fecdb821f2da8b1c39128`. |
+| PR branch source `970c93ee4e88522b3900384794db748028157ce0` | **Red**: 85 captured-frame/replay findings; 0 dependency violations; 0 source read errors or unaccounted inputs | 392 hashed inputs; 19 expected library roles and 4 binary targets found; every application binary reaches a shared library package. Source manifest SHA-256 `1ca8d0b09bd18844d8ab5e02f07549ac7b14c857720fecdb821f2da8b1c39128`. |
 | Design source `f4867e9b5f8a08a3bb61ce80d644198a29f51984` | **Red**: 19 production library roles missing; all four application binaries lack a reusable termrock dependency closure | 1,482 hashed inputs. Source manifest SHA-256 `4485f73b73f8a17a363bd31b782c55cb9927a7cc8415bb4c4a3080de19285c68`. |
 
-The policy SHA-256 was `4b7641d76546448660cba8bb2252d488a1c23c5f8818f379ca7f43d23bc47982`; checker SHA-256 was `48de3bf4f2e791ac77de204d5be9d0a76b2e1a6ba6131fb33f9b2759c8f0d524`. Both reports have `acceptance_complete: false`. The PR's 85 findings break down to 10 frame markers, 42 coordinate-run stamp types, and 33 ANSI frame replays. Dynamic includes and build scripts appear as unaccounted inputs and keep the bounded architecture check red.
+The policy SHA-256 was `4b7641d76546448660cba8bb2252d488a1c23c5f8818f379ca7f43d23bc47982`; checker SHA-256 was `891243dc4d42729c9cba90fbe61bbaf8895cd1a88d79d4fbb168cd84df0aa158`. Both reports have `acceptance_complete: false`. The PR's 85 findings break down to 10 frame markers, 42 coordinate-run stamp types, and 33 ANSI frame replays. The design source also has one dynamic include input that the checker cannot enumerate.
 
 Commands:
 
