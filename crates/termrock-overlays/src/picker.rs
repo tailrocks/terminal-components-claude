@@ -77,6 +77,7 @@ pub struct Picker<'a, T, R = ItemRow> {
     id: Id,
     title: &'a str,
     scope_label: Option<&'a str>,
+    hints: Option<&'a str>,
     width: Option<u16>,
     max_rows: Option<u16>,
     searchable: bool,
@@ -116,6 +117,7 @@ impl<T> Picker<'_, T, ItemRow> {
             id,
             title: "Choose",
             scope_label: None,
+            hints: None,
             width: None,
             max_rows: None,
             searchable: true,
@@ -189,6 +191,12 @@ impl<'a, T, R> Picker<'a, T, R> {
         self.scope_label = Some(label);
         self
     }
+    /// Shows application-provided keyboard hints on the picker's bottom row.
+    #[must_use]
+    pub const fn hints(mut self, hints: &'a str) -> Self {
+        self.hints = Some(hints);
+        self
+    }
     #[must_use]
     pub const fn width(mut self, width: u16) -> Self {
         self.width = Some(width);
@@ -239,6 +247,7 @@ impl<'a, T, R> Picker<'a, T, R> {
             id: self.id,
             title: self.title,
             scope_label: self.scope_label,
+            hints: self.hints,
             width: self.width,
             max_rows: self.max_rows,
             searchable: self.searchable,
@@ -278,20 +287,34 @@ impl<'a, T, R> Picker<'a, T, R> {
     }
 }
 
-fn clamp_fixed_width(size: LayerSize, viewport_width: u16) -> LayerSize {
+fn clamp_fixed_size(size: LayerSize, viewport: Rect) -> LayerSize {
     match size {
-        LayerSize::Fixed(width, height) => {
-            LayerSize::Fixed(clamp_width(width, viewport_width), height)
-        }
+        LayerSize::Fixed(width, height) => LayerSize::Fixed(
+            clamp_width(width, viewport.width),
+            clamp_height(height, viewport.height),
+        ),
         other => other,
     }
 }
 
 fn clamp_width(width: u16, viewport_width: u16) -> u16 {
-    if viewport_width > 4 {
-        width.min(viewport_width.saturating_sub(4))
-    } else {
+    if viewport_width == 0 {
         width
+    } else {
+        let available = width.min(viewport_width.saturating_sub(4));
+        if width > 0 {
+            available.max(1)
+        } else {
+            available
+        }
+    }
+}
+
+fn clamp_height(height: u16, viewport_height: u16) -> u16 {
+    if viewport_height == 0 {
+        height
+    } else {
+        height.min(viewport_height.saturating_sub(2))
     }
 }
 
@@ -321,7 +344,7 @@ impl<T: AsItem, R: RowFn<T>> Picker<'_, T, R> {
 
     pub fn measured_size(&self, cx: &Cx<'_>, items: &[T]) -> LayerSize {
         if let Some(size) = self.requested_size {
-            return clamp_fixed_width(size, cx.viewport().width);
+            return clamp_fixed_size(size, cx.viewport());
         }
         let d = cx.design();
         let width = self.width.unwrap_or_else(|| {
@@ -340,7 +363,10 @@ impl<T: AsItem, R: RowFn<T>> Picker<'_, T, R> {
         // query/gap + rows + two trailing content cells. Non-searchable
         // pickers omit the query and its gap.
         let chrome_rows = if self.searchable { 7 } else { 5 };
-        LayerSize::Fixed(width, rows.saturating_add(chrome_rows))
+        LayerSize::Fixed(
+            width,
+            clamp_height(rows.saturating_add(chrome_rows), cx.viewport().height),
+        )
     }
 
     pub fn layer(&self, cx: &Cx<'_>, items: &[T]) -> LayerSpec {
@@ -525,10 +551,30 @@ impl<T: AsItem, R: RowFn<T>> Picker<'_, T, R> {
                         .saturating_add(if self.searchable { 3 } else { 1 }),
                     height: content
                         .height
-                        .saturating_sub(if self.searchable { 4 } else { 3 }),
+                        .saturating_sub(if self.searchable { 4 } else { 2 }),
                     ..content
                 };
                 self.list().draw(ui, list, &st.list, items);
+                if let Some(hints) = self.hints.filter(|hints| !hints.is_empty()) {
+                    let hint_style = self.ov.style(
+                        ui,
+                        self.id,
+                        Family::PICKER,
+                        Variant::DEFAULT,
+                        Part::META,
+                        live,
+                    );
+                    let hint = Rect {
+                        y: content.bottom().saturating_sub(1),
+                        height: 1,
+                        ..content
+                    };
+                    ui.paint_str(
+                        hint,
+                        crate::text::truncate(hints, hint.width).as_str(),
+                        hint_style.style,
+                    );
+                }
                 area
             },
         )
@@ -658,14 +704,32 @@ mod tests {
         let themed = render(0, true, true);
         let patched = render(2, true, true);
         let globally_patched = render(1, false, false);
-        assert_eq!(plain[(9, 4)].symbol(), "X");
-        assert_ne!(plain[(9, 4)].fg, base_theme[(9, 4)].fg);
-        assert_ne!(base_theme[(9, 4)].fg, themed[(9, 4)].fg);
-        assert_ne!(themed[(9, 4)].fg, patched[(9, 4)].fg);
-        assert_ne!(plain[(9, 4)].bg, globally_patched[(9, 4)].bg);
+        let query_cell = plain
+            .content
+            .iter()
+            .position(|cell| cell.symbol() == "X")
+            .expect("query placeholder is visible");
+        let query_x = u16::try_from(query_cell % 30).expect("screen x fits u16");
+        let query_y = u16::try_from(query_cell / 30).expect("screen y fits u16");
+        assert_ne!(
+            plain[(query_x, query_y)].fg,
+            base_theme[(query_x, query_y)].fg
+        );
+        assert_ne!(
+            base_theme[(query_x, query_y)].fg,
+            themed[(query_x, query_y)].fg
+        );
+        assert_ne!(
+            themed[(query_x, query_y)].fg,
+            patched[(query_x, query_y)].fg
+        );
+        assert_ne!(
+            plain[(query_x, query_y)].bg,
+            globally_patched[(query_x, query_y)].bg
+        );
     }
 
-    fn measured_at(size: LayerSize, viewport_width: u16) -> LayerSize {
+    fn measured_at(size: LayerSize, viewport_width: u16, viewport_height: u16) -> LayerSize {
         struct MeasureApp {
             size: LayerSize,
             measured: Option<LayerSize>,
@@ -682,7 +746,7 @@ mod tests {
 
             fn draw(&self, _ui: &mut Ui<'_>) {}
         }
-        let area = Rect::new(0, 0, viewport_width, 9);
+        let area = Rect::new(0, 0, viewport_width, viewport_height);
         let mut runtime = termrock_runtime::runtime::Runtime::new(
             MeasureApp {
                 size,
@@ -703,12 +767,21 @@ mod tests {
     #[test]
     fn fixed_width_keeps_a_four_column_screen_margin() {
         let requested = LayerSize::Fixed(84, 9);
-        assert_eq!(measured_at(requested, 72), LayerSize::Fixed(68, 9));
-        assert_eq!(measured_at(requested, 80), LayerSize::Fixed(76, 9));
-        assert_eq!(measured_at(requested, 100), LayerSize::Fixed(84, 9));
-        assert_eq!(measured_at(requested, 0), LayerSize::Fixed(84, 9));
-        assert_eq!(measured_at(requested, 4), LayerSize::Fixed(84, 9));
-        assert_eq!(measured_at(LayerSize::Fill, 72), LayerSize::Fill);
+        assert_eq!(measured_at(requested, 72, 40), LayerSize::Fixed(68, 9));
+        assert_eq!(measured_at(requested, 80, 40), LayerSize::Fixed(76, 9));
+        assert_eq!(measured_at(requested, 100, 40), LayerSize::Fixed(84, 9));
+        assert_eq!(measured_at(requested, 0, 40), LayerSize::Fixed(84, 9));
+        assert_eq!(measured_at(requested, 4, 40), LayerSize::Fixed(1, 9));
+        assert_eq!(measured_at(requested, 1, 40), LayerSize::Fixed(1, 9));
+        assert_eq!(measured_at(LayerSize::Fill, 72, 40), LayerSize::Fill);
+        assert_eq!(measured_at(requested, 120, 12), LayerSize::Fixed(84, 9));
+        assert_eq!(measured_at(requested, 120, 2), LayerSize::Fixed(84, 0));
+        assert_eq!(measured_at(requested, 120, 1), LayerSize::Fixed(84, 0));
+        assert_eq!(
+            measured_at(LayerSize::Fixed(84, 30), 120, 12),
+            LayerSize::Fixed(84, 10)
+        );
+        assert_eq!(measured_at(requested, 120, 0), LayerSize::Fixed(84, 9));
     }
 
     #[test]
@@ -734,7 +807,7 @@ mod tests {
         let items: Vec<_> = (0..20)
             .map(|index| Item::new(ItemKey::num(index), "row"))
             .collect();
-        let measure = |popup_max_rows, max_rows| {
+        let measure = |popup_max_rows, max_rows, viewport_height| {
             let mut theme = Theme::junie();
             theme.design.size.popup_max_rows = popup_max_rows;
             let mut runtime = termrock_runtime::runtime::Runtime::new(
@@ -746,7 +819,7 @@ mod tests {
                 theme,
             );
             let _ = runtime.initialize();
-            let area = Rect::new(0, 0, 120, 40);
+            let area = Rect::new(0, 0, 120, viewport_height);
             let mut buffer = ratatui_core::buffer::Buffer::empty(area);
             runtime.draw_buffer(area, &mut buffer).commit_presented();
             let _ = termrock_runtime::runtime::stub::deliver(
@@ -755,8 +828,12 @@ mod tests {
             );
             runtime.app().measured.expect("measured_size ran")
         };
-        assert_eq!(measure(5, None), LayerSize::Fixed(12, 12));
-        assert_eq!(measure(5, Some(3)), LayerSize::Fixed(12, 10));
+        assert_eq!(measure(5, None, 40), LayerSize::Fixed(12, 12));
+        assert_eq!(measure(5, Some(3), 40), LayerSize::Fixed(12, 10));
+        assert_eq!(measure(12, None, 12), LayerSize::Fixed(12, 10));
+        assert_eq!(measure(12, None, 2), LayerSize::Fixed(12, 0));
+        assert_eq!(measure(12, None, 1), LayerSize::Fixed(12, 0));
+        assert_eq!(measure(12, None, 0), LayerSize::Fixed(12, 19));
     }
 
     #[test]
@@ -772,7 +849,8 @@ mod tests {
             fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
                 let picker = Picker::<Item<'static>>::new(ID)
                     .title("Open tabs")
-                    .width(64);
+                    .width(64)
+                    .hints("Enter Open  Esc Cancel");
                 if cx.update_cause() == termrock_runtime::runtime::UpdateCause::Bootstrap {
                     cx.open_layer(ID, picker.layer(cx, &self.items));
                 }
@@ -782,7 +860,8 @@ mod tests {
             fn draw(&self, ui: &mut Ui<'_>) {
                 let picker = Picker::<Item<'static>>::new(ID)
                     .title("Open tabs")
-                    .width(64);
+                    .width(64)
+                    .hints("Enter Open  Esc Cancel");
                 ui.layer(ID, |ui, area| {
                     picker.draw(ui, area, &self.state, &self.items)
                 });
@@ -816,6 +895,11 @@ mod tests {
             "O",
             "title starts one cell inside the border"
         );
+        assert_eq!(
+            frame[(30, 22)].symbol(),
+            "E",
+            "application-provided footer hints render on the reserved bottom content row"
+        );
         let row_origin = (0..screen.height).find_map(|y| {
             (0..screen.width).find_map(|x| {
                 let matches = "orders".chars().enumerate().all(|(offset, ch)| {
@@ -848,6 +932,14 @@ mod tests {
         );
         let _ = render(&mut runtime, narrow);
         assert_eq!(runtime.layer_area(ID), Some(Rect::new(2, 2, 36, 8)));
+
+        let empty = Rect::new(0, 0, 120, 0);
+        let _ = termrock_runtime::runtime::stub::deliver(
+            &mut runtime,
+            termrock_runtime::event::Input::Resize(empty.width, empty.height),
+        );
+        let _ = render(&mut runtime, empty);
+        assert!(runtime.layer_area(ID).is_some_and(|area| area.is_empty()));
     }
 
     #[test]
@@ -902,6 +994,66 @@ mod tests {
             LayerSize::Fixed(20, 19)
         );
         assert_eq!(measure(vec![], false), LayerSize::Fixed(20, 6));
+    }
+
+    #[test]
+    fn nonsearchable_picker_reserves_its_hint_row_in_the_list_viewport() {
+        const ID: Id = Id::root("picker.nonsearchable-hint-row");
+        struct NonSearchApp {
+            state: PickerState,
+            items: Vec<Item<'static>>,
+        }
+        impl termrock_runtime::runtime::App for NonSearchApp {
+            fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+                let picker = Picker::<Item<'static>>::new(ID)
+                    .title("Choose row")
+                    .width(32)
+                    .max_rows(1)
+                    .searchable(false);
+                if cx.update_cause() == termrock_runtime::runtime::UpdateCause::Bootstrap {
+                    cx.open_layer(ID, picker.layer(cx, &self.items));
+                }
+                picker.update(cx, &mut self.state, &self.items).erase()
+            }
+            fn draw(&self, ui: &mut Ui<'_>) {
+                let picker = Picker::<Item<'static>>::new(ID)
+                    .title("Choose row")
+                    .width(32)
+                    .max_rows(1)
+                    .searchable(false);
+                ui.layer(ID, |ui, area| {
+                    picker.draw(ui, area, &self.state, &self.items)
+                });
+            }
+        }
+
+        let mut runtime = termrock_runtime::runtime::Runtime::new(
+            NonSearchApp {
+                state: PickerState::default(),
+                items: vec![
+                    Item::new(ItemKey::num(1), "first"),
+                    Item::new(ItemKey::num(2), "second"),
+                    Item::new(ItemKey::num(3), "third"),
+                ],
+            },
+            Theme::junie(),
+        );
+        let _ = runtime.initialize();
+        let screen = Rect::new(0, 0, 80, 16);
+        let mut frame = ratatui_core::buffer::Buffer::empty(screen);
+        runtime.draw_buffer(screen, &mut frame).commit_presented();
+        assert_eq!(runtime.layer_area(ID), Some(Rect::new(24, 5, 32, 6)));
+        let contains = |label: &str| {
+            frame.content.windows(label.len()).any(|cells| {
+                cells
+                    .iter()
+                    .zip(label.chars())
+                    .all(|(cell, ch)| cell.symbol() == ch.to_string())
+            })
+        };
+        assert!(contains("first"));
+        assert!(contains("second"), "one trailing hint cell is reserved");
+        assert!(!contains("third"));
     }
 
     #[test]
