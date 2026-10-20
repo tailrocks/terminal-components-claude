@@ -262,6 +262,12 @@ impl HomeState {
             rows_area.y = rows_area.y.saturating_add(used);
             rows_area.height = rows_area.height.saturating_sub(used);
         }
+        if let Some(view) =
+            catalogue::first_use_80x24_plate(world, ui.full().width, ui.full().height, self.history)
+            && paint_first_use_80x24(ui, rows_area, &view)
+        {
+            return;
+        }
         if let Some(view) = catalogue::parity_discovery(world)
             .or_else(|| catalogue::first_use_plate(world, self.history))
             .or_else(|| catalogue::monorepo_root_plate(world, self.history))
@@ -680,6 +686,66 @@ fn split_detail(area: Rect) -> Option<(Rect, Rect)> {
             detail_w,
             area.height,
         ),
+    ))
+}
+
+/// Single-column `first-use` body. The 120×40 plate keeps its preview card.
+fn paint_first_use_80x24(ui: &mut Ui<'_>, area: Rect, view: &catalogue::ParityDiscovery) -> bool {
+    let full = ui.full();
+    if full.width != 80 || full.height != 24 || area.is_empty() {
+        return false;
+    }
+    let Some(text) = narrow_action_line(view) else {
+        return false;
+    };
+    let rows: Vec<&catalogue::TagRow> = view
+        .lines
+        .iter()
+        .filter_map(|line| match line {
+            catalogue::FinderLine::Row(row) => Some(row),
+            _ => None,
+        })
+        .collect();
+    let cols = tag_columns(&rows, area.width.saturating_sub(4));
+    let footer_y = area.bottom().saturating_sub(1);
+    let mut y = area.y;
+    for line in &view.lines {
+        if y >= footer_y {
+            break;
+        }
+        match line {
+            catalogue::FinderLine::Heading(text) => paint_tag_heading(ui, area, y, text),
+            catalogue::FinderLine::Blank => {}
+            catalogue::FinderLine::Chips(labels) => paint_tag_chips(ui, area, y, labels),
+            catalogue::FinderLine::Row(row) => paint_tag_row(ui, area, y, row, &cols),
+        }
+        y = y.saturating_add(1);
+    }
+    ui.paint_str(
+        Rect::new(
+            area.x.saturating_add(3),
+            footer_y,
+            area.width.saturating_sub(3),
+            1,
+        ),
+        &text,
+        ink(ui, TAG_GREY_FG, BLACK, false),
+    );
+    true
+}
+
+fn narrow_action_line(view: &catalogue::ParityDiscovery) -> Option<String> {
+    let value = |label: &str| {
+        view.preview
+            .iter()
+            .find(|line| line.label == label)
+            .map(|line| line.value.as_str())
+    };
+    Some(format!(
+        "→ {} · {} · {}",
+        value("Runs")?,
+        value("Scope")?,
+        value("Risk")?
     ))
 }
 
