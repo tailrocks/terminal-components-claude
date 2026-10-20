@@ -1671,14 +1671,22 @@ impl App {
             && !self.menu.is_open()
         {
             let layer = tag_hints(confirm, status);
-            // 80×24 first-use, monorepo-root, monorepo-child, remote-host, and parity-discovery clip the last hint to a meta `…`. The 100×30 monorepo-child and remote-host plates do the same. Wider plates keep the theme overflow.
+            // 80×24 first-use, monorepo-root, monorepo-child, remote-host, and parity-discovery clip the last hint to a meta `…`. The 100×30 first-use, monorepo-child, and remote-host plates do the same. Wider plates keep the theme overflow.
             let narrow = ui.full().width == 80 && ui.full().height == 24;
             let mid = ui.full().width == 100 && ui.full().height == 30;
             let monorepo_child_mid =
                 mid && crate::sim::catalogue::monorepo_child_tag_frame(&self.world);
             let remote_host_mid = mid && crate::sim::catalogue::remote_host_tag_frame(&self.world);
+            let first_use_mid = crate::sim::catalogue::first_use_100x30_plate(
+                &self.world,
+                ui.full().width,
+                ui.full().height,
+                self.home.history,
+            )
+            .is_some();
             let parts = if monorepo_child_mid
                 || remote_host_mid
+                || first_use_mid
                 || (narrow
                     && (crate::sim::catalogue::first_use_tag_frame(&self.world)
                         || crate::sim::catalogue::monorepo_root_tag_frame(&self.world)
@@ -4240,6 +4248,106 @@ mod tests {
             later.text()
         );
         assert!(!catalogue::first_use_tag_frame(&later.app().world));
+    }
+    #[test]
+    fn first_use_100x30_frame_40_paints_the_mid_plate_and_later_seeks_keep_home() {
+        let plate = harness(
+            App::for_scenario(Scenario::FirstUse, Motion::Paused, 40),
+            Theme::junie(),
+            100,
+            30,
+        );
+        let text = plate.text();
+        let lines: Vec<&str> = text.lines().collect();
+        assert!(lines[7].contains("› Analyze disk usage"), "{}", lines[7]);
+        assert!(lines[7].contains("/ is 91% full"), "{}", lines[7]);
+        assert!(
+            lines[8].contains("sustained pressure · continuous view fits"),
+            "{}",
+            lines[8]
+        );
+        assert!(!lines[8].contains('…'), "{}", lines[8]);
+        assert!(
+            lines[26].contains("→ 'holla disk analyze' · here · read-only"),
+            "{}",
+            lines[26]
+        );
+        assert!(!text.contains("largest-first"), "{text}");
+        assert!(lines[29].contains("Enter Open"), "{}", lines[29]);
+        assert!(lines[29].contains("Ctrl+↑↓ Scope"), "{}", lines[29]);
+        assert!(!lines[29].contains("Ctrl+G"), "{}", lines[29]);
+        let selected = plate.cell(4, 7);
+        assert_eq!(selected.symbol(), "A");
+        assert_eq!(selected.bg, Color::Rgb(0x2f, 0x5a, 0xa8));
+        assert!(selected.modifier.contains(termrock::Modifier::BOLD));
+        let kind = plate.cell(27, 7);
+        assert_eq!(kind.symbol(), "d");
+        assert!(!kind.modifier.contains(termrock::Modifier::BOLD));
+        assert_eq!(kind.bg, Color::Rgb(0x2f, 0x5a, 0xa8));
+        let ellipsis = plate.cell(88, 29);
+        assert_eq!(ellipsis.symbol(), "…");
+        assert_eq!(ellipsis.fg, Color::Rgb(0x73, 0x73, 0x73));
+        assert!(plate.diagnostics().is_empty(), "{:?}", plate.diagnostics());
+        let world = &plate.app().world;
+        assert!(catalogue::first_use_100x30_plate(world, 100, 30, false).is_some());
+        assert!(catalogue::first_use_100x30_plate(world, 80, 24, false).is_none());
+        assert!(catalogue::first_use_100x30_plate(world, 120, 40, false).is_none());
+        assert!(catalogue::first_use_100x30_plate(world, 100, 31, false).is_none());
+        assert!(catalogue::first_use_100x30_plate(world, 99, 30, false).is_none());
+        assert!(catalogue::first_use_100x30_plate(world, 100, 30, true).is_none());
+        let wide = harness(
+            App::for_scenario(Scenario::FirstUse, Motion::Paused, 40),
+            Theme::junie(),
+            120,
+            40,
+        );
+        assert!(wide.text().contains("Ctrl+G Activities"), "{}", wide.text());
+        assert!(wide.text().contains("largest-first"), "{}", wide.text());
+        let narrow = harness(
+            App::for_scenario(Scenario::FirstUse, Motion::Paused, 40),
+            Theme::junie(),
+            80,
+            24,
+        );
+        assert!(
+            narrow.text().contains("sustained pressure…"),
+            "{}",
+            narrow.text()
+        );
+        assert!(
+            !narrow
+                .text()
+                .contains("sustained pressure · continuous view fits"),
+            "{}",
+            narrow.text()
+        );
+        let later = harness(
+            App::for_scenario(Scenario::FirstUse, Motion::Paused, 4_000),
+            Theme::junie(),
+            100,
+            30,
+        );
+        assert!(!later.text().contains("holla disk analyze"));
+        assert!(catalogue::first_use_100x30_plate(&later.app().world, 100, 30, false).is_none());
+        assert!(!catalogue::first_use_tag_frame(&later.app().world));
+        let other = App::for_scenario(Scenario::RemoteHost, Motion::Paused, 40);
+        assert!(catalogue::first_use_100x30_plate(&other.world, 100, 30, false).is_none());
+        let mut history = App::for_scenario(Scenario::FirstUse, Motion::Paused, 40);
+        history.home.history = true;
+        assert!(catalogue::first_use_100x30_plate(&history.world, 100, 30, true).is_none());
+        let history_screen = harness(history, Theme::junie(), 100, 30);
+        assert!(
+            history_screen.text().contains("holla snapshot"),
+            "{}",
+            history_screen.text()
+        );
+        assert!(
+            !history_screen
+                .text()
+                .contains("→ 'holla disk analyze' · here · read-only"),
+            "{}",
+            history_screen.text()
+        );
     }
     #[test]
     fn first_use_history_frame_40_paints_the_system_tag_and_later_seeks_keep_home() {
