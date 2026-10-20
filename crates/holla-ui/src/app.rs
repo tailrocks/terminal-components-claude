@@ -223,6 +223,31 @@ fn brand() -> Brand<'static> {
     Brand::new(BRAND, "holla❯").clickable(true)
 }
 
+/// Rest titles for the disk plate. Focus would bold them; the tag bar is not bold.
+fn paint_disk_menu_titles(ui: &mut Ui<'_>, menu_x: u16, y: u16) {
+    let plain = ui.paint_patch(
+        &StylePatch::new()
+            .set_fg(Role::Fg(FgStep::Secondary))
+            .remove(termrock::Modifier::BOLD),
+    );
+    let gap = ui.paint_patch(
+        &StylePatch::new()
+            .set_fg(Role::Fg(FgStep::Primary))
+            .remove(termrock::Modifier::BOLD),
+    );
+    let mut x = menu_x;
+    ui.paint_str(Rect::new(x, y, 1, 1), " ", gap);
+    x = x.saturating_add(1);
+    for label in BAR_LABELS {
+        let text = format!(" {label} ");
+        let width = termrock::width(&text);
+        ui.paint_str(Rect::new(x, y, width, 1), &text, plain);
+        x = x.saturating_add(width);
+        ui.paint_str(Rect::new(x, y, 1, 1), " ", gap);
+        x = x.saturating_add(1);
+    }
+}
+
 fn paint_menu_title_pads(ui: &mut Ui<'_>, menu_x: u16, y: u16, menu_right: u16) {
     // MenuBar paints the label only. The tag's " {title} " pads use the same secondary ink.
     let style = ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Secondary)));
@@ -383,6 +408,89 @@ fn paint_docker_cleanup_status(ui: &mut Ui<'_>, area: Rect) {
     let _ = paint_size_label(ui, area);
 }
 
+/// Tag disk-cleanup status: cwd, centered selection, then the 91% meter.
+fn paint_disk_cleanup_status(ui: &mut Ui<'_>, area: Rect) {
+    if area.is_empty() {
+        return;
+    }
+    ui.fill(area, status_ink(ui, STATUS_FG, false));
+    let cwd_end = paint_status_text(
+        ui,
+        area,
+        area.x.saturating_add(STATUS_EDGE),
+        "~/work",
+        STATUS_FG,
+        true,
+    );
+    let size_x = paint_size_label(ui, area);
+    let mark = "91% ▲";
+    let mark_w = termrock::width(mark);
+    let bar_w = 11u16;
+    let meter_w = 1u16
+        .saturating_add(1)
+        .saturating_add(bar_w)
+        .saturating_add(1)
+        .saturating_add(mark_w);
+    let meter_x = size_x.saturating_sub(STATUS_GAP).saturating_sub(meter_w);
+    let center = "3 selected · 24.2 GiB";
+    let center_w = termrock::width(center);
+    let lo = cwd_end.saturating_add(STATUS_GAP);
+    let hi = meter_x.saturating_sub(STATUS_GAP);
+    let free = hi.saturating_sub(lo);
+    if free >= center_w {
+        let cx = lo.saturating_add(free.saturating_sub(center_w) / 2);
+        paint_status_text(ui, area, cx, center, Color::Rgb(0xb3, 0xb3, 0xb3), false);
+    }
+    let mut x = paint_status_text(ui, area, meter_x, "/", STATUS_GREY, false).saturating_add(1);
+    x = paint_status_text(ui, area, x, &"━".repeat(10), STATUS_AMBER, false);
+    x = paint_status_text(ui, area, x, "─", Color::Rgb(0x3a, 0x3a, 0x3a), false).saturating_add(1);
+    let _ = paint_status_text(ui, area, x, mark, STATUS_AMBER, false);
+}
+
+/// Tag disk-cleanup footer. The last hint does not fit, so the row ends in `…`.
+fn paint_disk_cleanup_footer(ui: &mut Ui<'_>, area: Rect) {
+    if area.is_empty() {
+        return;
+    }
+    let canvas = Color::Rgb(0, 0, 0);
+    let key_style = status_ink(ui, STATUS_FG, true).bg(canvas);
+    let label_style = status_ink(ui, STATUS_GREY, false).bg(canvas);
+    let overflow = status_ink(ui, Color::Rgb(0x73, 0x73, 0x73), false).bg(canvas);
+    let hints = [
+        ("↑↓", "Move"),
+        ("←→", "Fold / open"),
+        ("Space", "Select"),
+        ("s", "Sort"),
+        ("f", "Fold noise"),
+        ("d", "Delete…"),
+        ("c", "Artifact plan"),
+        ("r", "Rescan"),
+        ("Esc", "Back"),
+        ("x", "Cancel scan"),
+    ];
+    let mut x = area.x.saturating_add(1);
+    let mut truncated = false;
+    for (index, (key, label)) in hints.iter().enumerate() {
+        let key_w = termrock::width(key);
+        let label_w = termrock::width(label);
+        let need = key_w.saturating_add(1).saturating_add(label_w);
+        if x.saturating_add(need) > area.right() {
+            truncated = true;
+            break;
+        }
+        ui.paint_str(Rect::new(x, area.y, key_w, 1), key, key_style);
+        x = x.saturating_add(key_w).saturating_add(1);
+        ui.paint_str(Rect::new(x, area.y, label_w, 1), label, label_style);
+        x = x.saturating_add(label_w);
+        if index.saturating_add(1) != hints.len() {
+            x = x.saturating_add(2);
+        }
+    }
+    if truncated && x < area.right() {
+        ui.paint_str(Rect::new(x, area.y, 1, 1), "…", overflow);
+    }
+}
+
 /// Tag monorepo-root status: cwd, branch, ahead count, then the size label.
 fn paint_monorepo_status(ui: &mut Ui<'_>, area: Rect) {
     if area.is_empty() {
@@ -503,6 +611,9 @@ fn menu_project(world: &World) -> String {
         }
         Scenario::DockerCleanup if crate::sim::catalogue::docker_cleanup_tag_frame(world) => {
             "no project".to_owned()
+        }
+        Scenario::DiskCleanup if crate::sim::catalogue::disk_cleanup_tag_frame(world) => {
+            "work · project collection".to_owned()
         }
         _ => world.cwd.clone(),
     }
@@ -974,6 +1085,10 @@ impl App {
             .min(menu_room);
         menu.draw(ui, Rect::new(menu_x, header.y, menu_width, 1), &self.menu);
         paint_menu_title_pads(ui, menu_x, header.y, menu_x.saturating_add(menu_width));
+        // A disk plate has no query, so the bar would keep focus and bold its titles.
+        if self.route == Route::Disk && crate::sim::catalogue::disk_cleanup_tag_frame(&self.world) {
+            paint_disk_menu_titles(ui, menu_x, header.y);
+        }
         let menu_right = menu_x.saturating_add(menu_width).saturating_sub(1);
         let brand_right = lockup_x.saturating_add(brand_width);
         let used = menu_right.max(brand_right);
@@ -985,6 +1100,10 @@ impl App {
             "mbp · local".to_owned()
         } else if crate::sim::catalogue::docker_cleanup_tag_frame(&self.world) {
             "devbox · development".to_owned()
+        } else if self.route == Route::Disk
+            && crate::sim::catalogue::disk_cleanup_tag_frame(&self.world)
+        {
+            "mbp · local".to_owned()
         } else {
             self.world.host.identity()
         };
@@ -1012,6 +1131,10 @@ impl App {
             paint_monorepo_child_status(ui, status);
         } else if crate::sim::catalogue::docker_cleanup_tag_frame(&self.world) {
             paint_docker_cleanup_status(ui, status);
+        } else if self.route == Route::Disk
+            && crate::sim::catalogue::disk_cleanup_tag_frame(&self.world)
+        {
+            paint_disk_cleanup_status(ui, status);
         }
         let footer = Rect::new(area.x, area.bottom().saturating_sub(1), area.width, 1);
         self.footer_draw(ui, footer);
@@ -1064,6 +1187,14 @@ impl App {
             HintBar::new(FOOTER, &layer)
                 .patch_part(PARITY_HINT_PARTS)
                 .draw(ui, footer);
+            return;
+        }
+        if crate::sim::catalogue::disk_cleanup_tag_frame(&self.world)
+            && self.route == Route::Disk
+            && self.overlay.is_none()
+            && !self.menu.is_open()
+        {
+            paint_disk_cleanup_footer(ui, footer);
             return;
         }
         if let Some((confirm, status)) = tag_confirm
@@ -1393,7 +1524,13 @@ impl termrock::App for App {
                 }
             }
             Route::Activity => self.activities.draw(&self.world, ui, body),
-            Route::Disk => disk::draw(&self.world, ui, body),
+            Route::Disk => {
+                let plate = crate::sim::catalogue::disk_cleanup_tag_frame(&self.world)
+                    && home::paint_disk_cleanup_plate(ui);
+                if !plate {
+                    disk::draw(&self.world, ui, body);
+                }
+            }
             Route::Files => files::draw(&self.world, ui, body),
             Route::Cleanup => cleanup::draw(&self.world, ui, body),
             Route::Review => review::draw(&self.world, ui, body),
@@ -1655,6 +1792,74 @@ mod tests {
         assert!(termrock::App::accept_paused_clock_step(&mut stepped, 1_100));
         assert!(stepped.home.query().is_empty());
         assert!(!crate::sim::catalogue::docker_cleanup_tag_frame(
+            &stepped.world
+        ));
+    }
+    #[test]
+    fn disk_cleanup_frame_40_paints_the_tag_plate_and_later_seeks_keep_home() {
+        let plate = harness(
+            App::for_scenario(Scenario::DiskCleanup, Motion::Paused, 40),
+            Theme::junie(),
+            120,
+            40,
+        );
+        let text = plate.text();
+        let lines: Vec<&str> = text.lines().collect();
+        assert!(plate.app().route == Route::Disk);
+        assert!(
+            lines[0].contains("work · project collection"),
+            "{}",
+            lines[0]
+        );
+        assert!(lines[0].contains("mbp · local"), "{}", lines[0]);
+        assert!(lines[1].contains("Here › Disk › Usage"), "{}", lines[1]);
+        assert!(lines[2].contains("Here › Disk › Usage"), "{}", lines[2]);
+        assert!(lines[4].contains("Disk usage · ~/work"), "{}", lines[4]);
+        assert!(lines[5].contains("scan complete"), "{}", lines[5]);
+        assert!(lines[8].contains("842 of 926 GB"), "{}", lines[8]);
+        assert!(lines[12].contains("work"), "{}", lines[12]);
+        assert!(lines[13].contains("~/work"), "{}", lines[13]);
+        assert!(lines[38].contains("3 selected · 24.2 GiB"), "{}", lines[38]);
+        assert!(lines[39].contains("Esc Back"), "{}", lines[39]);
+        assert!(lines[39].contains('…'), "{}", lines[39]);
+        let file = plate.cell(12, 0);
+        assert_eq!(file.symbol(), "F");
+        assert!(!file.modifier.contains(termrock::Modifier::BOLD));
+        let gutter = plate.cell(1, 12);
+        assert_eq!(gutter.symbol(), "▎");
+        assert_eq!(gutter.fg, Color::Rgb(0x48, 0xe0, 0x54));
+        assert!(gutter.modifier.contains(termrock::Modifier::BOLD));
+        let hidden = plate.cell(1, 13);
+        assert_eq!(hidden.symbol(), " ");
+        assert_eq!(hidden.fg, Color::Rgb(0, 0, 0));
+        let card = plate.cell(75, 20);
+        assert_eq!(card.bg, Color::Rgb(0x11, 0x11, 0x11));
+        let tab = plate.cell(2, 2);
+        assert_eq!(tab.bg, Color::Rgb(0x27, 0x27, 0x2a));
+        let meter = plate.cell(81, 38);
+        assert_eq!(meter.symbol(), "━");
+        assert_eq!(meter.fg, Color::Rgb(0xf5, 0x9e, 0x09));
+        let ellipsis = plate.cell(110, 39);
+        assert_eq!(ellipsis.symbol(), "…");
+        assert_eq!(ellipsis.fg, Color::Rgb(0x73, 0x73, 0x73));
+        assert!(plate.diagnostics().is_empty(), "{:?}", plate.diagnostics());
+        let later = harness(
+            App::for_scenario(Scenario::DiskCleanup, Motion::Paused, 4_000),
+            Theme::junie(),
+            120,
+            40,
+        );
+        assert!(!later.text().contains("scan complete"));
+        assert!(later.text().contains("Disk usage"), "{}", later.text());
+        assert!(
+            later.text().contains("~/work/forge/target"),
+            "{}",
+            later.text()
+        );
+        assert!(later.app().route == Route::Disk);
+        let mut stepped = App::for_scenario(Scenario::DiskCleanup, Motion::Paused, 40);
+        assert!(termrock::App::accept_paused_clock_step(&mut stepped, 1_100));
+        assert!(!crate::sim::catalogue::disk_cleanup_tag_frame(
             &stepped.world
         ));
     }

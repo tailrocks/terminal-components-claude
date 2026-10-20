@@ -1044,6 +1044,301 @@ fn flatten_preview(
     flat
 }
 
+const OVERLAY_BG: Color = Color::Rgb(0x27, 0x27, 0x2a);
+const ACCENT_FG: Color = Color::Rgb(0x48, 0xe0, 0x54);
+const AMBER_FG: Color = Color::Rgb(0xf5, 0x9e, 0x09);
+const LINK_FG: Color = Color::Rgb(0x79, 0xb8, 0xff);
+
+/// Tag `disk-cleanup` plate at 120×40. Other sizes keep the concept disk page.
+pub(crate) fn paint_disk_cleanup_plate(ui: &mut Ui<'_>) -> bool {
+    let area = ui.full();
+    if area.width != 120 || area.height != 40 {
+        return false;
+    }
+    paint_disk_cleanup_band(ui, area);
+    paint_disk_cleanup_heading(ui, area);
+    paint_disk_filesystems(ui, area);
+    paint_disk_detail(ui, area);
+    paint_disk_tree(ui, area);
+    true
+}
+
+fn paint_disk_cleanup_band(ui: &mut Ui<'_>, area: Rect) {
+    let x = area.x.saturating_add(1);
+    let crumb_y = area.y.saturating_add(1);
+    ui.paint_str(
+        Rect::new(x.saturating_add(1), crumb_y, 4, 1),
+        "Here",
+        ink(ui, SECONDARY_FG, BLACK, false),
+    );
+    ui.paint_str(
+        Rect::new(x.saturating_add(5), crumb_y, 3, 1),
+        " › ",
+        ink(ui, META_FG, BLACK, false),
+    );
+    ui.paint_str(
+        Rect::new(x.saturating_add(8), crumb_y, 12, 1),
+        "Disk › Usage",
+        ink(ui, WHITE, BLACK, true),
+    );
+    let tab_y = area.y.saturating_add(2);
+    let tab_w = 22u16;
+    let plate = ink(ui, WHITE, OVERLAY_BG, true);
+    let tab = Rect::new(x, tab_y, tab_w, 1);
+    ui.fill(tab, plate);
+    ui.paint_str(tab, " Here › Disk › Usage  ", plate);
+    let under = tab_y.saturating_add(1);
+    ui.paint_str(
+        Rect::new(x, under, tab_w, 1),
+        &"━".repeat(usize::from(tab_w)),
+        ink(ui, ACCENT_FG, BLACK, false),
+    );
+    let rest = area.width.saturating_sub(2).saturating_sub(tab_w);
+    if rest > 0 {
+        ui.paint_str(
+            Rect::new(x.saturating_add(tab_w), under, rest, 1),
+            &"─".repeat(usize::from(rest)),
+            ink(ui, RULE_FG, BLACK, false),
+        );
+    }
+}
+
+fn paint_disk_cleanup_heading(ui: &mut Ui<'_>, area: Rect) {
+    let title = "Disk usage · ~/work";
+    ui.paint_str(
+        Rect::new(
+            area.x.saturating_add(2),
+            area.y.saturating_add(4),
+            termrock::width(title),
+            1,
+        ),
+        title,
+        ink(ui, WHITE, BLACK, true),
+    );
+    let sub = "scan complete · 31.8 GiB allocated · 35 entries · 3 selected (24.2 GiB)";
+    ui.paint_str(
+        Rect::new(
+            area.x.saturating_add(2),
+            area.y.saturating_add(5),
+            termrock::width(sub),
+            1,
+        ),
+        sub,
+        ink(ui, TAG_GREY_FG, BLACK, false),
+    );
+    let files = "Filesystems";
+    ui.paint_str(
+        Rect::new(
+            area.x.saturating_add(4),
+            area.y.saturating_add(7),
+            termrock::width(files),
+            1,
+        ),
+        files,
+        ink(ui, TAG_GREY_FG, BLACK, false),
+    );
+    let sort = "largest first · allocated · noise folded";
+    ui.paint_str(
+        Rect::new(
+            area.x.saturating_add(4),
+            area.y.saturating_add(11),
+            termrock::width(sort),
+            1,
+        ),
+        sort,
+        ink(ui, TAG_GREY_FG, BLACK, false),
+    );
+}
+
+struct FilesystemRow {
+    row: u16,
+    name: &'static str,
+    filled: usize,
+    meter: Color,
+    percent: &'static str,
+    percent_fg: Color,
+    size: &'static str,
+}
+
+fn paint_disk_filesystems(ui: &mut Ui<'_>, area: Rect) {
+    for row in [
+        FilesystemRow {
+            row: 8,
+            name: "/",
+            filled: 16,
+            meter: AMBER_FG,
+            percent: "91% ▲",
+            percent_fg: AMBER_FG,
+            size: "842 of 926 GB",
+        },
+        FilesystemRow {
+            row: 9,
+            name: "/Volumes/Backup",
+            filled: 13,
+            meter: LINK_FG,
+            percent: "71%",
+            percent_fg: WHITE,
+            size: "1420 of 2000 GB",
+        },
+    ] {
+        paint_filesystem(ui, area, &row);
+    }
+}
+
+fn paint_filesystem(ui: &mut Ui<'_>, area: Rect, row: &FilesystemRow) {
+    let y = area.y.saturating_add(row.row);
+    let name_x = area.x.saturating_add(4);
+    ui.paint_str(
+        Rect::new(name_x, y, 22, 1),
+        &fit_cells(row.name, 22),
+        ink(ui, SECONDARY_FG, BLACK, false),
+    );
+    let bar_x = name_x.saturating_add(24);
+    let filled = u16::try_from(row.filled).unwrap_or(0);
+    let empty = 18u16.saturating_sub(filled);
+    if filled > 0 {
+        ui.paint_str(
+            Rect::new(bar_x, y, filled, 1),
+            &"━".repeat(usize::from(filled)),
+            ink(ui, row.meter, BLACK, false),
+        );
+    }
+    if empty > 0 {
+        ui.paint_str(
+            Rect::new(bar_x.saturating_add(filled), y, empty, 1),
+            &"─".repeat(usize::from(empty)),
+            ink(ui, RULE_FG, BLACK, false),
+        );
+    }
+    let slot_x = bar_x.saturating_add(19);
+    ui.paint_str(
+        Rect::new(slot_x, y, 5, 1),
+        "     ",
+        ink(ui, row.meter, BLACK, false),
+    );
+    ui.paint_str(
+        Rect::new(slot_x, y, termrock::width(row.percent), 1),
+        row.percent,
+        ink(ui, row.percent_fg, BLACK, false),
+    );
+    ui.paint_str(
+        Rect::new(slot_x.saturating_add(7), y, termrock::width(row.size), 1),
+        row.size,
+        ink(ui, TAG_GREY_FG, BLACK, false),
+    );
+}
+
+fn paint_disk_detail(ui: &mut Ui<'_>, area: Rect) {
+    let card = Rect::new(area.x.saturating_add(75), area.y.saturating_add(11), 44, 26);
+    let canvas = ink(ui, WHITE, PREVIEW_BG, false);
+    ui.fill(card, canvas);
+    let inner_x = card.x.saturating_add(2);
+    ui.paint_str(
+        Rect::new(inner_x, card.y, 4, 1),
+        "work",
+        ink(ui, SECONDARY_FG, PREVIEW_BG, false),
+    );
+    let meta = "directory";
+    let meta_w = termrock::width(meta);
+    ui.paint_str(
+        Rect::new(
+            inner_x.saturating_add(40).saturating_sub(meta_w),
+            card.y,
+            meta_w,
+            1,
+        ),
+        meta,
+        ink(ui, META_FG, PREVIEW_BG, false),
+    );
+    ui.paint_str(
+        Rect::new(inner_x, card.y.saturating_add(1), 40, 1),
+        &"─".repeat(40),
+        ink(ui, RULE_FG, PREVIEW_BG, false),
+    );
+    let rows = [
+        ("Path", "~/work", false),
+        ("Allocated", "31.8 GiB", false),
+        ("Apparent", "31.8 GiB · block rounding", false),
+        ("Entries", "35 · hardlinks counted once", false),
+        ("Modified", "2026-09-07 08:41", false),
+        ("Freshness", "live · complete", true),
+        ("Selection", "not selected · Space selects", true),
+    ];
+    for (index, (label, value, muted)) in rows.iter().enumerate() {
+        let y = card
+            .y
+            .saturating_add(2)
+            .saturating_add(u16::try_from(index).unwrap_or(0));
+        ui.paint_str(
+            Rect::new(inner_x, y, termrock::width(label), 1),
+            label,
+            ink(ui, TAG_GREY_FG, PREVIEW_BG, false),
+        );
+        let value_fg = if *muted { TAG_GREY_FG } else { WHITE };
+        ui.paint_str(
+            Rect::new(inner_x.saturating_add(11), y, termrock::width(value), 1),
+            value,
+            ink(ui, value_fg, PREVIEW_BG, false),
+        );
+    }
+}
+
+fn paint_disk_tree(ui: &mut Ui<'_>, area: Rect) {
+    let rows = [
+        (true, true, "work", " 31.8 GiB · 100%"),
+        (false, true, "backend", " 12.7 GiB ·  40%"),
+        (false, true, "frontend", "  8.8 GiB ·  28%"),
+        (false, false, "dumps", "  6.3 GiB ·  20%"),
+        (false, true, "android", "  4.0 GiB ·  13%"),
+        (false, false, "backend-wt", " 24.0 KiB ·   0%"),
+    ];
+    for (index, (root, marked, name, size)) in rows.iter().enumerate() {
+        let y = area
+            .y
+            .saturating_add(12)
+            .saturating_add(u16::try_from(index).unwrap_or(0));
+        let x = area.x.saturating_add(1);
+        if *root {
+            ui.fill(Rect::new(x, y, 72, 1), ink(ui, WHITE, BLACK, true));
+            ui.paint_str(Rect::new(x, y, 1, 1), "▎", ink(ui, ACCENT_FG, BLACK, true));
+            ui.paint_str(
+                Rect::new(x.saturating_add(1), y, 1, 1),
+                "▾",
+                ink(ui, SECONDARY_FG, BLACK, true),
+            );
+        } else {
+            ui.paint_str(Rect::new(x, y, 1, 1), " ", ink(ui, BLACK, BLACK, false));
+            ui.paint_str(
+                Rect::new(x.saturating_add(3), y, 1, 1),
+                "▸",
+                ink(ui, SECONDARY_FG, BLACK, false),
+            );
+        }
+        let mark_x = if *root {
+            x.saturating_add(3)
+        } else {
+            x.saturating_add(5)
+        };
+        let mark = if *marked { "◐" } else { " " };
+        ui.paint_str(
+            Rect::new(mark_x, y, 1, 1),
+            mark,
+            ink(ui, TAG_GREY_FG, BLACK, false),
+        );
+        let name_x = mark_x.saturating_add(2);
+        ui.paint_str(
+            Rect::new(name_x, y, termrock::width(name), 1),
+            name,
+            ink(ui, WHITE, BLACK, *root),
+        );
+        ui.paint_str(
+            Rect::new(x.saturating_add(55), y, 16, 1),
+            size,
+            ink(ui, TAG_GREY_FG, BLACK, *root),
+        );
+    }
+}
+
 #[cfg(test)]
 #[expect(
     clippy::panic,
