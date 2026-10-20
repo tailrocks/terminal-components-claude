@@ -23,6 +23,10 @@ title at `(20,16)`, caption ending at column `99`, Unicode grapheme truncation,
 `Part::META` override, absent and empty captions, clipping, the six-cell hide
 threshold, and Enter selection. The renderer test calls the public `Picker::draw`
 with that explicit rectangle to isolate caption painting from layer placement.
+Widths 34 and 33 exercise exactly six available cells (visible) and five
+(hidden). Expected caption cell styles come from an independent
+`Theme::resolve(Family::PICKER, ..., Part::META, ...)` call; a custom META patch
+checks the full resulting cell style independently of the rendered cells.
 
 Known separate placement gap: current `ScreenAlign::Center` resolves vertical
 position with `free / 3`, so Picker's layer resolver does not produce frozen
@@ -31,7 +35,7 @@ resolver; the caption test does not certify layer placement.
 
 Command: `cargo nextest run -p termrock-overlays --all-targets`
 
-Result: 88 passed, 0 skipped. `cargo clippy -p termrock-overlays --all-targets`,
+Result: 89 passed, 0 skipped. `cargo clippy -p termrock-overlays --all-targets`,
 `cargo fmt --check`, and `git diff --check` also passed.
 
 This component check is not a complete frozen CLI parity run. Application
