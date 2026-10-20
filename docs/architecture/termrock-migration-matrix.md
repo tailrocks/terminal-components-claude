@@ -1,3 +1,15 @@
+## Current source and review update (2026-10-21)
+
+Shared PR #38 advanced through `efda9593a905e3d462a62852748cf43254276dca`. Its history explicitly reverts the Jackin replay deletion (`c99dcef10`) and adds another private 120×40 painter (`8c7624537`). This reverses the earlier source-removal progress; neither retained replay nor a renamed application painter satisfies the library gate. New MasterDetail, runtime binding/hint and TablePro picker/footer changes require independent exact-commit review. Synchronizing that shared history preserves collaboration; it does not approve it.
+
+The independent review of historical `49da9ae` proves two functional improvements but retains Debug-info navigation/copy, modal isolation and captured-frame painter defects; its one new strict-Clippy error is attributed separately from nine existing diagnostics. Two capsule cursor failures also reproduce its predecessor. [Review](../audits/2026-10-21-jackin-49da-independent-review.json).
+
+Modal `65092d9` fixes the first two findings but remains rejected: explicit `Style.bg = Some(Color::Reset)` is conflated with `None`, producing Black instead of frozen overlay `#27272a`. Eleven probes have nine passes and two failures, while all 10,092 legacy pair outputs remain unchanged. Four environment runs preserve zero-allocation behavior. The same author is repairing Option semantics without changing the legacy pair endpoint. [Review](../audits/2026-10-21-modal-65092-independent-rejection.json).
+
+Recolor primitives `dfb54cf` are independently cleared: unchanged public probes improve from four of fourteen to fourteen of fourteen twice, preserving complete cells, semantic channel provenance, transparent layers and interaction registries. Native runtime retains only the separately reproduced incoming modal allocation failure; this is bounded primitive clearance, not product acceptance. [Review](../audits/2026-10-21-recolor-dfb54-independent-clearance.json).
+
+The persistent ItemRow historical fixture failure has a source-backed hypothesis: it reconstructs old foreground values but omits old disabled ink 238 after production was correctly changed to frozen index 239. A test-only worker must prove complete-cell equality before repairing that historical reconstruction. Production index 239 and the existing expected checksum must remain unchanged. [Diagnosis](../audits/2026-10-21-itemrow-historical-fixture-diagnosis.json).
+
 ## Current review checkpoint (2026-10-21)
 
 All four applications and the complete architecture gate remain incomplete. Parent source integration is preserved on `wip/parent-fields-runtime-blocker-20261021`; it has not passed publication to PR #38 after incoming modal changes. Main, design/PR #26, the frozen tag and fixed source revisions remain unchanged.
