@@ -155,7 +155,7 @@ const fn junie_mono() -> ColorTokens {
             Color::White,
             Color::Gray,
             Color::Gray,
-            Color::DarkGray,
+            Color::Gray,
             Color::Black,
         ],
         on_accent: Color::Black,
