@@ -77,3 +77,42 @@ lint-only changes: `termrock_text::width` already returns `u16`. Removed the
 identity conversions without changing layout values. The strict package clippy
 gate was rerun after this repair and passed. The three source lines were the
 only extension beyond the original shared-style file ownership.
+
+## Reapplication onto current parity source
+
+This integration starts from remote `parity/termrock-visual-baseline` commit
+`1d7b8eb291e37cb4806ce1369a8a0abab08a81ac`. It reapplies only the reviewed
+shared-style chain, preserving the intervening TablePro fixes:
+
+| Original commit | Integrated commit | Change |
+|---|---|---|
+| `f3dc9c506c1f5f3aa41c1985c468546d60452e07` | `ea4a92429` | Preserve explicit component style channels. |
+| `708420d470cc333867efaf0738faf21a3cd15a79` | `3ba054515` | Preserve theme/overlay/instance precedence. |
+| `4a0ab4983b84b4909d0182a323eb6e1714651691` | `600113898` | Remove redundant Help width conversions. |
+| `e72dbb15369d541ee86095f6caaee3f7e4680828` | `35aa04f24` | Apply explicit style channels to Dialog backdrop chrome too. |
+
+The second cherry-pick conflicted in `support.rs` because the current parity
+source had extended backdrop chrome from Picker to Dialog. The final resolution
+uses one explicit-channel path for both Picker and Dialog, preserving the
+current Dialog backdrop behavior. `ui/paint.rs` retains the current borrowed
+backdrop projection and focus-bar foreground suppression. No app, CLI, baseline,
+test-tool, or CI files were changed by this series.
+
+Exact four-package comparison:
+
+- Parent `1d7b8eb`: `cargo nextest run --locked -p termrock-runtime -p
+  termrock-navigation -p termrock-overlays -p termrock-theme` — 662 run, 646
+  passed, 16 failed, 3 skipped.
+- Integrated candidate `35aa04f24`: the same command — 675 run, 661 passed,
+  14 failed, 3 skipped. The candidate adds 13 passing regression tests and
+  fixes the two parent failures `steps::tests::every_override_channel_is_forwarded_to_scrollbar`
+  and `warmed_modal_snapshot_projection_performs_zero_allocations`.
+- The same 14 failures remain on both revisions: six Dialog layout/size tests
+  and eight Theme palette, empty-style inheritance, or nested-backdrop tests.
+  They are recorded as unresolved, not passed or suppressed.
+- Strict package clippy (`cargo clippy --locked -p termrock-runtime -p
+  termrock-navigation -p termrock-overlays -p termrock-theme --all-targets --
+  -D warnings`) passed. `rustfmt --edition 2024 --check` on every changed Rust
+  file and `git diff --check` passed.
+- Full application parity and library acceptance remain incomplete; this
+  focused integration is not a completion claim.
