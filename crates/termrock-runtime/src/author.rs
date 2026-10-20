@@ -1,43 +1,7 @@
 use core::fmt;
 
-/// Component-author contract used by the geometry-private composition API.
-///
-/// Implementations measure without input handling or domain effects. Drawing
-/// receives the logical bounds while `Ui` clips painting and registration to
-/// the resolved visible bounds.
-pub trait CompositionLeaf: Measure {
-    fn draw(&self, ui: &mut Ui<'_>, logical: Rect);
-}
-
-/// Closure-backed component leaf for adapters and focused consumer examples.
-pub struct ClosureLeaf<M, D> {
-    measure: M,
-    draw: D,
-}
-
-/// Build a component-author leaf from pure measurement and rendering callbacks.
-pub const fn composition_leaf<M, D>(measure: M, draw: D) -> ClosureLeaf<M, D> {
-    ClosureLeaf { measure, draw }
-}
-
-impl<M, D> Measure for ClosureLeaf<M, D>
-where
-    M: for<'ui> Fn(&Ui<'ui>, Constraints) -> Size,
-{
-    fn measure(&self, ui: &Ui<'_>, constraints: Constraints) -> Size {
-        (self.measure)(ui, constraints)
-    }
-}
-
-impl<M, D> CompositionLeaf for ClosureLeaf<M, D>
-where
-    M: for<'ui> Fn(&Ui<'ui>, Constraints) -> Size,
-    D: for<'ui> Fn(&mut Ui<'ui>, Rect),
-{
-    fn draw(&self, ui: &mut Ui<'_>, logical: Rect) {
-        (self.draw)(ui, logical);
-    }
-}
+mod composition;
+pub use composition::{ClosureLeaf, CompositionLeaf, composition_leaf};
 
 /// Apply only explicit style channels to an existing component-author surface.
 /// Symbols, inherited channels, hit regions, and cursor state are preserved.
@@ -167,6 +131,10 @@ pub use crate::intent::{FocusVia, Intent, IntentIter, Phase};
 pub use crate::response::{Activated, Flow, Invalidate, Response, StateFlags};
 pub use crate::ui::{Cx, FrameRead, LayoutFacts, ReferenceState, ReferenceTarget, Ui};
 
+pub trait LayerSlotAuthor {
+    fn render_component<R>(&mut self, render: impl FnOnce(&mut Ui<'_>, Rect) -> R) -> R;
+}
+
 pub use crate::capture::Capture;
 pub use crate::focus::{FocusVis, Focusability, ScopeId, ScopeMode};
 pub use crate::hit::{Axes, Headroom, Hit, RegionKind};
@@ -201,9 +169,39 @@ pub use termrock_collections::collection::{
 
 pub use crate::action::{Action, ActionKey};
 pub use crate::keymap::{
-    Binding, BindingState, BindingTableId, Bindings, Hint, HintLayer, KeyMap, KeyPhase,
-    binding_conflicts,
+    Binding, BindingExtensionError, BindingState, BindingTableId, Bindings, Hint, HintLayer,
+    KeyMap, KeyPhase, binding_conflicts,
 };
+
+/// Explicitly extends an existing same-owner component binding table for this frame.
+///
+/// Unlike [`Ui::publish_bindings`], this does not replace the prior table. Only bindings
+/// selected by `include` are added. Duplicate actions and ambiguous default chords are
+/// rejected and diagnosed; key-map remapping conflicts remain visible through runtime
+/// binding-conflict diagnostics.
+pub fn extend_bindings<C: Copy + 'static>(
+    ui: &mut Ui<'_>,
+    owner: Id,
+    flags: StateFlags,
+    table: &'static [Binding<C>],
+    include: impl Fn(C) -> bool,
+) -> Result<(), BindingExtensionError> {
+    ui.extend_bindings(owner, flags, table, include)
+}
+
+/// Publishes an explicitly selected subset of a static component binding table.
+///
+/// This keeps the replacement semantics of [`Ui::publish_bindings`]; use
+/// [`extend_bindings`] when multiple controls intentionally share one owner.
+pub fn publish_bindings_filtered<C: Copy + 'static>(
+    ui: &mut Ui<'_>,
+    owner: Id,
+    flags: StateFlags,
+    table: &'static [Binding<C>],
+    include: impl Fn(C) -> bool,
+) {
+    ui.publish_bindings_filtered(owner, flags, table, include);
+}
 
 pub use crate::diagnostics::Diagnostic;
 pub use crate::field_control::FieldControl;
