@@ -6,8 +6,8 @@ use ratatui_core::layout::{Position, Rect};
 use termrock::editors::{CompletionBatch, CompletionTrigger};
 use termrock::{
     App, Button, CodeEditor, CodeEditorState, CompletingCodeEditor, CompletingCodeEditorState, Cx,
-    Id, Input, ItemKey, Key, KeyCode, KeyModifiers, Mouse, MouseKind, Response, Runtime, Tabs,
-    TabsAction, TabsState, Theme, composition,
+    Id, Input, ItemKey, Key, KeyCode, KeyModifiers, Mouse, MouseKind, Response, Runtime, StepState,
+    Steps, StepsAction, StepsState, Tabs, TabsAction, TabsState, Theme, composition,
     layout::{Composition, Insets},
 };
 
@@ -393,4 +393,217 @@ fn zero_area_prepare_then_resize_keeps_composed_input_live() {
         .expect("resized tabs pointer release is dispatched");
     render(&mut runtime, &mut terminal, resized);
     assert_eq!(runtime.focus(), Some(WORKSPACES));
+}
+
+const IMPORT_STEPS: Id = Id::root("external.import_steps");
+
+#[derive(Clone, Copy)]
+struct ImportStep {
+    key: usize,
+    label: &'static str,
+    state: StepState,
+    elapsed: Option<&'static str>,
+}
+
+impl fmt::Display for ImportStep {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.label)
+    }
+}
+
+fn import_step_key(step: &ImportStep) -> ItemKey {
+    ItemKey::index(step.key)
+}
+
+fn import_step_state(step: &ImportStep) -> StepState {
+    step.state
+}
+
+fn import_step_metadata(step: &ImportStep) -> Option<&str> {
+    step.elapsed
+}
+
+type ImportSteps = Steps<'static, ImportStep, fn(&ImportStep) -> ItemKey>;
+
+struct ImportConsumer {
+    steps: ImportSteps,
+    state: StepsState,
+    items: Vec<ImportStep>,
+    last_action: Option<StepsAction>,
+}
+
+impl ImportConsumer {
+    fn new() -> Self {
+        let key: fn(&ImportStep) -> ItemKey = import_step_key;
+        let steps = Steps::new(IMPORT_STEPS)
+            .key(key)
+            .step(&import_step_state)
+            .numbered(true)
+            .metadata(&import_step_metadata);
+        Self {
+            steps,
+            state: StepsState::new(),
+            items: vec![
+                ImportStep {
+                    key: 0,
+                    label: "Fetch source",
+                    state: StepState::Done,
+                    elapsed: Some("2s"),
+                },
+                ImportStep {
+                    key: 1,
+                    label: "Parse manifest",
+                    state: StepState::Running,
+                    elapsed: Some("11s"),
+                },
+                ImportStep {
+                    key: 2,
+                    label: "Index package files",
+                    state: StepState::Queued,
+                    elapsed: None,
+                },
+                ImportStep {
+                    key: 3,
+                    label: "Publish imported package",
+                    state: StepState::Queued,
+                    elapsed: None,
+                },
+                ImportStep {
+                    key: 4,
+                    label: "Verify signatures",
+                    state: StepState::Blocked,
+                    elapsed: Some("waiting for review"),
+                },
+                ImportStep {
+                    key: 5,
+                    label: "Clean temporary files",
+                    state: StepState::Skipped,
+                    elapsed: None,
+                },
+                ImportStep {
+                    key: 6,
+                    label: "Final report — 確認",
+                    state: StepState::Failed,
+                    elapsed: Some("retry needed"),
+                },
+            ],
+            last_action: None,
+        }
+    }
+}
+
+impl App for ImportConsumer {
+    fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+        let response = self.steps.update(cx, &mut self.state, &self.items);
+        self.last_action = response.action_ref().copied();
+        response.erase()
+    }
+
+    fn draw(&self, ui: &mut termrock::Ui<'_>) {
+        composition::Group::column([composition::steps(&self.steps, &self.state, &self.items)])
+            .show(ui)
+            .expect("public deployment steps fit the composition depth");
+    }
+}
+
+fn terminal_text(terminal: &Terminal<TestBackend>) -> String {
+    let area = *terminal.backend().buffer().area();
+    (0..area.height)
+        .map(|y| {
+            (0..area.width)
+                .filter_map(|x| terminal.backend().buffer().cell((x, y)))
+                .map(|cell| cell.symbol())
+                .collect::<String>()
+        })
+        .collect::<Vec<_>>()
+        .join("\n")
+}
+
+#[test]
+fn public_steps_composition_uses_live_import_data_and_stable_keys() {
+    let root = Rect::new(0, 0, 48, 9);
+    let mut runtime = Runtime::new(ImportConsumer::new(), Theme::junie());
+    let mut terminal = Terminal::new(TestBackend::new(root.width, root.height)).unwrap();
+    render(&mut runtime, &mut terminal, root);
+    let text = terminal_text(&terminal);
+    assert!(text.contains("01"), "rendered import steps:\n{text}");
+    assert!(text.contains("Fetch source"));
+    assert!(text.contains("2s"));
+    assert!(text.contains("02"));
+    assert!(text.contains("Parse manifest"));
+    assert!(text.contains("11s"));
+    assert!(text.contains("07"));
+    assert!(text.contains("Final report"));
+    assert!(
+        !text.lines().nth(2).unwrap_or_default().contains("queued"),
+        "an explicit absent metadata value hides the default state label"
+    );
+    assert_eq!(
+        runtime.app().last_action,
+        None,
+        "drawing emits no app action"
+    );
+
+    let stable = ItemKey::index(2);
+    let first = runtime
+        .area_of_part(
+            IMPORT_STEPS,
+            termrock::PartRef::item(termrock::Part::ROW, stable),
+        )
+        .expect("the original stable key has a rendered row");
+    runtime.app_mut().items.swap(2, 4);
+    render(&mut runtime, &mut terminal, root);
+    let moved = runtime
+        .area_of_part(
+            IMPORT_STEPS,
+            termrock::PartRef::item(termrock::Part::ROW, stable),
+        )
+        .expect("the same stable key remains rendered after reorder");
+    assert_ne!(first.y, moved.y, "stable key follows reordered item");
+    assert_eq!(runtime.app().last_action, None);
+
+    let narrow = Rect::new(0, 0, 18, 4);
+    let mut narrow_terminal = Terminal::new(TestBackend::new(narrow.width, narrow.height)).unwrap();
+    render(&mut runtime, &mut narrow_terminal, narrow);
+    assert!(terminal_text(&narrow_terminal).contains("01"));
+    assert_eq!(runtime.app().last_action, None);
+
+    runtime.app_mut().items.clear();
+    render(&mut runtime, &mut narrow_terminal, narrow);
+    assert!(runtime.area_of(IMPORT_STEPS).is_some());
+    assert_eq!(runtime.app().last_action, None);
+
+    runtime
+        .prepare(Rect::new(0, 0, 0, 0))
+        .expect("zero-sized composition is valid");
+    let resized = Rect::new(0, 0, 36, 5);
+    let mut resized_terminal =
+        Terminal::new(TestBackend::new(resized.width, resized.height)).unwrap();
+    render(&mut runtime, &mut resized_terminal, resized);
+    assert!(within(
+        resized,
+        runtime
+            .area_of(IMPORT_STEPS)
+            .expect("steps layout refreshes after zero-area resize")
+    ));
+    assert_eq!(runtime.app().last_action, None);
+}
+
+#[test]
+fn numbered_steps_format_ordinals_above_two_digits() {
+    let root = Rect::new(0, 0, 28, 104);
+    let mut app = ImportConsumer::new();
+    app.items = (0..104)
+        .map(|index| ImportStep {
+            key: index,
+            label: "Import file",
+            state: StepState::Queued,
+            elapsed: None,
+        })
+        .collect();
+    let mut runtime = Runtime::new(app, Theme::junie());
+    let mut terminal = Terminal::new(TestBackend::new(root.width, root.height)).unwrap();
+    render(&mut runtime, &mut terminal, root);
+    assert!(terminal_text(&terminal).contains("100"));
+    assert!(terminal_text(&terminal).contains("104"));
 }
