@@ -1,3 +1,4 @@
+pub mod clipboard;
 pub(crate) mod feedback;
 #[cfg(feature = "crossterm")]
 mod time;
@@ -9,6 +10,7 @@ pub use typing::TypingPolicy;
 use ratatui_core::buffer::Buffer;
 use ratatui_core::layout::{Position, Rect};
 use ratatui_core::terminal::Frame;
+use std::sync::atomic::{AtomicU64, Ordering};
 
 use crate::action::ActionKey;
 use crate::capture::Capture;
@@ -21,7 +23,8 @@ use crate::id::{Id, Part, PartRef};
 use crate::intent::{FocusVia, IntentQueue, Phase};
 use crate::keymap::{BindingTableId, KeyMap, KeyPhase};
 use crate::layer::{
-    Backdrop, DismissReason, LayerEvent, LayerId, OpenLayer, backdrop_area, resolve_anchor,
+    Backdrop, DismissReason, FocusContinuationOutcome, LayerCompletion, LayerEvent, LayerId,
+    OpenLayer, backdrop_area, resolve_layer_area,
 };
 use crate::measure::Size;
 #[cfg(any(test, feature = "testing"))]
@@ -30,6 +33,16 @@ use crate::response::{Invalidate, Response};
 use crate::theme::Theme;
 use crate::ui::cx::{FrameServices, LastFrame};
 use crate::ui::{Cx, FrameState, Ui, UiCore};
+
+static NEXT_RUNTIME_ID: AtomicU64 = AtomicU64::new(1);
+
+fn next_runtime_id() -> u64 {
+    NEXT_RUNTIME_ID
+        .try_update(Ordering::Relaxed, Ordering::Relaxed, |next| {
+            next.checked_add(1)
+        })
+        .expect("runtime identity space exhausted")
+}
 
 pub trait App {
     fn update(&mut self, cx: &mut Cx<'_>) -> Response<()>;
@@ -89,6 +102,16 @@ struct Press {
     area: Rect,
     dragging: bool,
     pos: Position,
+    click_count: u8,
+}
+
+#[derive(Clone, Copy, Debug)]
+struct LastClick {
+    owner: Id,
+    part: PartRef,
+    at: Moment,
+    pos: Position,
+    count: u8,
 }
 
 #[derive(Clone, Copy, Debug, Default)]
@@ -98,7 +121,7 @@ struct Interaction {
     hover_suppressed: bool,
     hover_passes: u8,
     press: Option<Press>,
-    last_click: Option<(Id, PartRef, Moment)>,
+    last_click: Option<LastClick>,
     last_input_key: bool,
 }
 
@@ -217,7 +240,7 @@ impl<A: App> ProjectedFrame<'_, A> {
 #[cfg(feature = "testing")]
 impl<A: App> Drop for ProjectedFrame<'_, A> {
     fn drop(&mut self) {
-        self.runtime.presented = false;
+        self.runtime.invalidate_prepared();
     }
 }
 
@@ -233,6 +256,49 @@ impl core::fmt::Debug for PendingInput {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         f.write_str("PendingInput { event: <redacted> }")
     }
+}
+
+/// Opaque identity for one runtime-prepared terminal frame.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub struct PreparedFrame {
+    runtime: u64,
+    generation: u64,
+    area: Rect,
+}
+
+impl PreparedFrame {
+    pub const fn area(self) -> Rect {
+        self.area
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum PreparedFrameError {
+    Stale,
+    AreaChanged { expected: Rect, actual: Rect },
+    DidNotSettle,
+}
+
+impl core::fmt::Display for PreparedFrameError {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        match self {
+            Self::Stale => f.write_str("prepared terminal frame is stale"),
+            Self::AreaChanged { expected, actual } => {
+                write!(f, "prepared frame area {expected:?} changed to {actual:?}")
+            }
+            Self::DidNotSettle => f.write_str("runtime did not settle before frame preparation"),
+        }
+    }
+}
+
+impl core::error::Error for PreparedFrameError {}
+
+struct PreparedOutput {
+    token: PreparedFrame,
+    buffer: Buffer,
+    cursor: Option<Position>,
+    cursor_bar: bool,
+    projected: bool,
 }
 
 #[must_use = "commit only after successful output; dropping aborts publication"]
@@ -261,7 +327,7 @@ impl<A: App> PaintedFrame<'_, A> {
 impl<A: App> Drop for PaintedFrame<'_, A> {
     fn drop(&mut self) {
         if !self.committed {
-            self.runtime.presented = false;
+            self.runtime.invalidate_prepared();
         }
     }
 }
@@ -281,6 +347,7 @@ struct FocusRestore {
 pub struct Runtime<A: App> {
     app: A,
     theme: Theme,
+    pointer_click_slop: u16,
     last: LastFrame,
     focus: FocusState,
     services: FrameServices,
@@ -295,14 +362,21 @@ pub struct Runtime<A: App> {
     pending_focus: Option<(Option<Id>, Option<Id>, FocusVia)>,
     restore_after_publication: Option<FocusRestore>,
     keymap_conflict_key: Option<ConflictCacheKey>,
+    keymap_conflict_component: Vec<crate::keymap::BindingDescriptor>,
     keymap_conflict_typing: Vec<crate::keymap::BindingDescriptor>,
     keymap_conflicts: Vec<Diagnostic>,
     staged_focus: Option<(Option<Id>, FocusVia)>,
     layer_events_pending: Vec<(Id, LayerEvent)>,
     focus_out_closed: Vec<Id>,
+    completion_waiting: Vec<OpenLayer>,
+    continuation_cancels_waiting: Vec<(crate::layer::LayerOpening, Id)>,
+    completion_dispatch_pending: bool,
     unsettled: usize,
     bootstrapped: bool,
     presented: bool,
+    prepared: Option<PreparedOutput>,
+    scratch_buffer: Option<Buffer>,
+    prepared_generation: u64,
     painted_cursor: Option<Position>,
     painted_cursor_bar: bool,
     cache_snapshot: Option<std::sync::Arc<()>>,
@@ -322,6 +396,52 @@ impl<A: App> core::fmt::Debug for Runtime<A> {
 }
 
 impl<A: App> Runtime<A> {
+    fn prepared_continuation_pending(&self) -> Option<Id> {
+        self.completion_waiting
+            .iter()
+            .find_map(|layer| layer.spec.continues_focus_owner)
+            .or_else(|| {
+                self.continuation_cancels_waiting
+                    .first()
+                    .map(|(_, owner)| *owner)
+            })
+            .or_else(|| {
+                self.services
+                    .completions
+                    .first()
+                    .and_then(|(completion, _)| completion.continuation_owner())
+            })
+            .or_else(|| {
+                self.services
+                    .focus_continuation_outcomes
+                    .first()
+                    .map(|(outcome, _)| outcome.owner())
+            })
+            .or_else(|| {
+                self.services
+                    .continuation_command_pending_present
+                    .as_ref()
+                    .copied()
+            })
+    }
+
+    fn refuse_legacy_continuation_draw(&mut self) {
+        if let Some(owner) = self.prepared_continuation_pending() {
+            self.services
+                .diagnostics
+                .push(Diagnostic::FocusContinuationUnacknowledged { owner });
+            panic!("focus continuation requires Runtime::prepare and prepared output");
+        }
+    }
+
+    fn invalidate_prepared(&mut self) {
+        if let Some(output) = self.prepared.take() {
+            self.scratch_buffer = Some(output.buffer);
+        }
+        self.presented = false;
+        self.prepared_generation = self.prepared_generation.wrapping_add(1);
+    }
+
     #[doc(hidden)]
     pub fn focused_hints_capacity(&self) -> usize {
         self.core.focused_hints.layer.hints.capacity()
@@ -334,12 +454,15 @@ impl<A: App> Runtime<A> {
     pub fn new_with_feedback_clock(app: A, theme: Theme, clock: FeedbackClock) -> Self {
         let mut core = UiCore::default();
         core.keymap.clone_from(app.keymap());
+        let runtime_id = next_runtime_id();
         Runtime {
             app,
             theme,
+            pointer_click_slop: 1,
             last: LastFrame::default(),
             focus: FocusState::default(),
             services: FrameServices {
+                runtime_id,
                 feedback: feedback::FeedbackState::new(clock),
                 ..FrameServices::default()
             },
@@ -354,14 +477,21 @@ impl<A: App> Runtime<A> {
             pending_focus: None,
             restore_after_publication: None,
             keymap_conflict_key: None,
+            keymap_conflict_component: Vec::new(),
             keymap_conflict_typing: Vec::new(),
             keymap_conflicts: Vec::new(),
             staged_focus: None,
             layer_events_pending: Vec::new(),
             focus_out_closed: Vec::new(),
+            completion_waiting: Vec::new(),
+            continuation_cancels_waiting: Vec::new(),
+            completion_dispatch_pending: false,
             unsettled: 0,
             bootstrapped: false,
             presented: false,
+            prepared: None,
+            scratch_buffer: None,
+            prepared_generation: 0,
             painted_cursor: None,
             painted_cursor_bar: false,
             cache_snapshot: None,
@@ -370,12 +500,21 @@ impl<A: App> Runtime<A> {
         }
     }
 
+    /// Set app-wide pointer click slop in terminal cells.
+    ///
+    /// Defaults to one cell, matching the frozen visual baseline. The click window remains
+    /// configurable through `Theme::design.motion.double_click_ms`.
+    pub fn set_pointer_click_slop(&mut self, cells: u16) {
+        self.invalidate_prepared();
+        self.pointer_click_slop = cells;
+    }
+
     pub const fn app(&self) -> &A {
         &self.app
     }
 
-    pub const fn app_mut(&mut self) -> &mut A {
-        self.presented = false;
+    pub fn app_mut(&mut self) -> &mut A {
+        self.invalidate_prepared();
         &mut self.app
     }
 
@@ -390,7 +529,7 @@ impl<A: App> Runtime<A> {
     }
 
     pub fn set_theme(&mut self, t: Theme) {
-        self.presented = false;
+        self.invalidate_prepared();
         self.theme = t;
         self.core.clear_caches();
     }
@@ -455,6 +594,9 @@ impl<A: App> Runtime<A> {
                 requested: now,
             });
         }
+        if now != self.now() {
+            self.invalidate_prepared();
+        }
         self.services.now = now;
         if !self.pending_tick && self.services.repaint_at.is_some_and(|at| at <= now) {
             self.pending_tick = true;
@@ -464,7 +606,7 @@ impl<A: App> Runtime<A> {
             if self.inter.press.is_none() {
                 self.last.snapshot.pressed = None;
             }
-            self.presented = false;
+            self.invalidate_prepared();
             self.services.repaint = true;
         }
         Ok(())
@@ -506,6 +648,7 @@ impl<A: App> Runtime<A> {
                 .get(owner)
                 .map(|(_, table)| (owner, table))
         });
+        let component_table = component.map_or(&[][..], |(_, _, table)| table);
         let typing_table = typing.map_or(&[][..], |(_, table)| table);
         let key = ConflictCacheKey {
             focused: component.map(|(owner, table, _)| (owner, table)),
@@ -513,10 +656,16 @@ impl<A: App> Runtime<A> {
             revision: self.core.keymap_revision,
         };
 
-        if self.keymap_conflict_key == Some(key) && self.keymap_conflict_typing == typing_table {
+        if self.keymap_conflict_key == Some(key)
+            && self.keymap_conflict_component == component_table
+            && self.keymap_conflict_typing == typing_table
+        {
             return;
         }
         self.keymap_conflict_key = Some(key);
+        self.keymap_conflict_component.clear();
+        self.keymap_conflict_component
+            .extend_from_slice(component_table);
         self.keymap_conflict_typing.clear();
         self.keymap_conflict_typing.extend_from_slice(typing_table);
         self.keymap_conflicts.clear();
@@ -724,6 +873,7 @@ impl<A: App> Runtime<A> {
     }
 
     fn enqueue_mouse(&mut self, m: Mouse) {
+        self.services.pointer_press_count = None;
         self.inter.pointer_position = Some(m.pos);
         if m.kind == MouseKind::Up {
             self.services.press_pos = None;
@@ -844,12 +994,24 @@ impl<A: App> Runtime<A> {
             return;
         }
         let area = self.region_area(h);
+        let window = self.theme.design.motion.double_click_ms;
+        let count = self.inter.last_click.filter(|last| {
+            last.owner == h.owner
+                && last.part == h.part
+                && self.now().saturating_duration_since(last.at)
+                    < core::time::Duration::from_millis(window)
+                && last.pos.x.abs_diff(m.pos.x) <= self.pointer_click_slop
+                && last.pos.y.abs_diff(m.pos.y) <= self.pointer_click_slop
+        });
+        let count = count.map_or(1, |last| last.count.saturating_add(1));
+        self.services.pointer_press_count = Some((h.owner, h.part, count));
         self.inter.press = Some(Press {
             owner: h.owner,
             part: h.part,
             area,
             dragging: false,
             pos: m.pos,
+            click_count: count,
         });
         self.services.press_pos = Some(m.pos);
         self.last.snapshot.pressed = Some((h.owner, h.part));
@@ -868,6 +1030,7 @@ impl<A: App> Runtime<A> {
 
     fn pointer_up(&mut self, p: Press, hit: Option<Hit>, m: Mouse) {
         self.last.snapshot.pressed = None;
+        self.services.pointer_press_count = Some((p.owner, p.part, p.click_count));
         let local = Self::local_in(p.area, m.pos);
         self.intents
             .pointer(p.owner, Phase::Release, p.part, m.pos, local, m.mods);
@@ -880,23 +1043,21 @@ impl<A: App> Runtime<A> {
         if !same {
             return;
         }
-        let window = self.theme.design.motion.double_click_ms;
-        let double = self.inter.last_click.is_some_and(|(o, part, at)| {
-            o == p.owner
-                && part == p.part
-                && self.now().saturating_duration_since(at)
-                    <= core::time::Duration::from_millis(window)
-        });
+        let click_count = self.valid_click_count(p.owner, p.part, m.pos);
+        self.services.pointer_press_count = Some((p.owner, p.part, click_count));
+        let double = click_count.is_multiple_of(2);
         let phase = if double {
             Phase::DoubleClick
         } else {
             Phase::Click
         };
-        self.inter.last_click = if double {
-            None
-        } else {
-            Some((p.owner, p.part, self.now()))
-        };
+        self.inter.last_click = Some(LastClick {
+            owner: p.owner,
+            part: p.part,
+            at: self.now(),
+            pos: m.pos,
+            count: click_count,
+        });
         self.intents
             .pointer(p.owner, phase, p.part, m.pos, local, m.mods);
         let flash = self.theme.design.motion.press_flash_ms;
@@ -917,16 +1078,32 @@ impl<A: App> Runtime<A> {
                     .pointer(cap.owner, Phase::Drag, cap.part, m.pos, local, m.mods);
             }
             MouseKind::Up => {
+                let press = self.inter.press.take();
+                self.services.pointer_press_count =
+                    press.map(|press| (press.owner, press.part, press.click_count));
                 self.intents
                     .pointer(cap.owner, Phase::Release, cap.part, m.pos, local, m.mods);
                 self.intents
                     .pointer(cap.owner, Phase::DragEnd, cap.part, m.pos, local, m.mods);
                 if cap.contains(m.pos) {
+                    if let Some(press) = press {
+                        let click_count = self.valid_click_count(press.owner, press.part, m.pos);
+                        self.inter.last_click = Some(LastClick {
+                            owner: press.owner,
+                            part: press.part,
+                            at: self.now(),
+                            pos: m.pos,
+                            count: click_count,
+                        });
+                        self.services.pointer_press_count =
+                            Some((press.owner, press.part, click_count));
+                    }
                     self.intents
                         .pointer(cap.owner, Phase::Click, cap.part, m.pos, local, m.mods);
+                } else {
+                    self.inter.last_click = None;
                 }
                 self.services.capture.release();
-                self.inter.press = None;
                 self.last.snapshot.pressed = None;
                 self.last.snapshot.capture = None;
             }
@@ -937,6 +1114,24 @@ impl<A: App> Runtime<A> {
             }
             MouseKind::Secondary | MouseKind::SecondaryUp | MouseKind::Wheel(..) => {}
         }
+    }
+
+    /// Re-evaluate a potential multi-click at activation time. A long-held press
+    /// keeps its down-time count for selection, but must not become a double-click
+    /// after the configured interval has elapsed.
+    fn valid_click_count(&self, owner: Id, part: PartRef, pos: Position) -> u8 {
+        let window = self.theme.design.motion.double_click_ms;
+        self.inter
+            .last_click
+            .filter(|last| {
+                last.owner == owner
+                    && last.part == part
+                    && self.now().saturating_duration_since(last.at)
+                        < core::time::Duration::from_millis(window)
+                    && last.pos.x.abs_diff(pos.x) <= self.pointer_click_slop
+                    && last.pos.y.abs_diff(pos.y) <= self.pointer_click_slop
+            })
+            .map_or(1, |last| last.count.saturating_add(1))
     }
 
     fn outside_click(&mut self) {
@@ -956,7 +1151,14 @@ impl<A: App> Runtime<A> {
             .services
             .layers
             .close(top.id, LayerEvent::Dismissed(reason));
+        let changed = !closed.is_empty();
+        if let Some(root) = closed.first() {
+            self.services.direct_closed_layers.push(*root);
+        }
         self.services.closed_layers.extend(closed);
+        if changed {
+            self.services.reset_pointer_clicks = true;
+        }
 
         if reason == DismissReason::Esc {
             self.intents.cancel(top.spec.owner);
@@ -969,6 +1171,85 @@ impl<A: App> Runtime<A> {
         if closed.is_empty() {
             return;
         }
+        let direct = core::mem::take(&mut self.services.direct_closed_layers);
+        let still_open: Vec<_> = self
+            .services
+            .layers
+            .layers()
+            .iter()
+            .map(|layer| layer.opening)
+            .collect();
+        let closed_openings: Vec<_> = closed.iter().map(|layer| layer.opening).collect();
+        let closed_continuations: Vec<_> = self
+            .services
+            .focus_continuation_acks
+            .iter()
+            .filter(|(opening, _, _)| closed_openings.contains(opening))
+            .map(|(opening, owner, _)| (*opening, *owner))
+            .collect();
+        let is_descendant = |child: &OpenLayer, ancestor: &OpenLayer| {
+            let mut parent = child.opening.parent();
+            while let Some(current) = parent {
+                if current.id == ancestor.id
+                    && current.layer == ancestor.layer
+                    && current.generation == ancestor.opening.generation()
+                {
+                    return true;
+                }
+                parent = closed
+                    .iter()
+                    .find(|layer| {
+                        layer.id == current.id
+                            && layer.layer == current.layer
+                            && layer.opening.generation() == current.generation
+                    })
+                    .and_then(|layer| layer.opening.parent());
+            }
+            false
+        };
+        self.completion_waiting.retain(|waiting| {
+            !waiting.opening.parent().is_some_and(|parent| {
+                closed_openings.iter().any(|opening| {
+                    opening.id() == parent.id
+                        && opening.layer_id() == parent.layer
+                        && opening.generation() == parent.generation
+                })
+            })
+        });
+        // Completion is opt-in, and only direct closes can trigger it. A later direct close of
+        // an ancestor supersedes a child receipt created earlier in the same update.
+        for layer in &direct {
+            if layer.spec.continues_focus_owner.is_none() {
+                continue;
+            }
+            let superseded = direct.iter().any(|ancestor| {
+                ancestor.opening != layer.opening && is_descendant(layer, ancestor)
+            });
+            if !superseded {
+                self.completion_waiting.push(*layer);
+            }
+        }
+        for (opening, owner) in closed_continuations {
+            if !self
+                .completion_waiting
+                .iter()
+                .any(|waiting| waiting.opening == opening)
+                && !self
+                    .continuation_cancels_waiting
+                    .contains(&(opening, owner))
+            {
+                self.continuation_cancels_waiting.push((opening, owner));
+            }
+        }
+        self.services
+            .focus_continuation_acks
+            .retain(|(opening, _, _)| {
+                still_open.contains(opening)
+                    || self
+                        .completion_waiting
+                        .iter()
+                        .any(|waiting| waiting.opening == *opening)
+            });
         let focus_out = core::mem::take(&mut self.focus_out_closed);
         for l in &closed {
             if let Some(c) = self.services.capture.get()
@@ -979,13 +1260,13 @@ impl<A: App> Runtime<A> {
             }
         }
 
-        if let Some(first) = closed.first()
-            && first.spec.restore_focus
-            && !focus_out.contains(&first.id)
+        if let Some(last) = direct.last()
+            && last.spec.restore_focus
+            && !focus_out.contains(&last.id)
         {
-            let target = first
+            let target = last
                 .restore_to
-                .or_else(|| self.focus.take_restore(first.scope()));
+                .or_else(|| self.focus.take_restore(last.scope()));
             self.restore_after_publication = Some(FocusRestore { target });
 
             if self.focus.current().is_some_and(|owner| {
@@ -1017,7 +1298,7 @@ impl<A: App> Runtime<A> {
         cause: UpdateCause,
         activation_key: Option<ActivationKey>,
     ) -> Response<()> {
-        self.presented = false;
+        self.invalidate_prepared();
         self.core.begin_cache_frame(self.generation.wrapping_add(1));
         let mut folded = Response::ignored();
         let mut first_pass = true;
@@ -1119,11 +1400,158 @@ impl<A: App> Runtime<A> {
     }
 
     pub const fn needs_settle(&self) -> bool {
-        self.pending_focus.is_some() || (self.bootstrapped && self.pending_tick)
+        self.pending_focus.is_some()
+            || self.completion_dispatch_pending
+            || self.services.focus_result_ack_dispatch_pending
+            || (self.bootstrapped && self.pending_tick)
     }
 
     pub const fn needs_present(&self) -> bool {
         !self.presented
+    }
+
+    /// Settle runtime focus and update work against the supplied area and retain one final frame.
+    /// No terminal output is performed here.
+    pub fn prepare(&mut self, area: Rect) -> Result<PreparedFrame, PreparedFrameError> {
+        if !self.bootstrapped {
+            let _ = self.initialize();
+        }
+        if let Some(output) = self.prepared.take() {
+            self.scratch_buffer = Some(output.buffer);
+        }
+        let mut passes = 0;
+        while passes < MAX_FOCUS_PASSES * MAX_FOCUS_PASSES {
+            if self.needs_settle() {
+                let _ = self.settle();
+                passes += 1;
+                continue;
+            }
+            let mut buffer = self
+                .scratch_buffer
+                .take()
+                .unwrap_or_else(|| Buffer::empty(area));
+            buffer.resize(area);
+            buffer.reset();
+            self.draw_with_buffer(area, &mut buffer, None, A::draw);
+            self.commit_frame();
+            if !self.presented || self.needs_settle() {
+                self.scratch_buffer = Some(buffer);
+                passes += 1;
+                continue;
+            }
+            self.prepared_generation = self.prepared_generation.wrapping_add(1);
+            let token = PreparedFrame {
+                runtime: self.services.runtime_id,
+                generation: self.prepared_generation,
+                area,
+            };
+            self.prepared = Some(PreparedOutput {
+                token,
+                buffer,
+                cursor: self.painted_cursor,
+                cursor_bar: self.painted_cursor_bar,
+                projected: false,
+            });
+            // Geometry is published and focus has settled; input remains blocked until output is
+            // acknowledged by the session after a successful terminal flush.
+            self.presented = false;
+            return Ok(token);
+        }
+        self.invalidate_prepared();
+        Err(PreparedFrameError::DidNotSettle)
+    }
+
+    /// Copy a prepared frame into Ratatui's callback buffer without running application code.
+    pub fn draw_prepared(
+        &mut self,
+        token: PreparedFrame,
+        frame: &mut Frame<'_>,
+    ) -> Result<bool, PreparedFrameError> {
+        let actual = frame.area();
+        let Some(output) = self.prepared.as_ref() else {
+            return Err(PreparedFrameError::Stale);
+        };
+        if token.runtime != self.services.runtime_id
+            || token != output.token
+            || token.generation != self.prepared_generation
+        {
+            return Err(PreparedFrameError::Stale);
+        }
+        if token.area != actual {
+            self.invalidate_prepared();
+            return Err(PreparedFrameError::AreaChanged {
+                expected: token.area,
+                actual,
+            });
+        }
+        let output = self.prepared.as_mut().expect("validated prepared frame");
+        frame.buffer_mut().merge(&output.buffer);
+        if let Some(cursor) = output.cursor {
+            frame.set_cursor_position(cursor);
+        }
+        output.projected = true;
+        Ok(output.cursor_bar)
+    }
+
+    /// Mark a prepared frame as physically presented after the terminal backend succeeds.
+    pub fn acknowledge_presented(
+        &mut self,
+        token: PreparedFrame,
+    ) -> Result<(), PreparedFrameError> {
+        let Some(output) = self.prepared.as_ref() else {
+            return Err(PreparedFrameError::Stale);
+        };
+        if token.runtime != self.services.runtime_id || token != output.token {
+            return Err(PreparedFrameError::Stale);
+        }
+        if !output.projected {
+            return Err(PreparedFrameError::Stale);
+        }
+        let output = self.prepared.take().expect("validated prepared frame");
+        self.scratch_buffer = Some(output.buffer);
+        self.presented = true;
+        self.services.continuation_command_pending_present = None;
+        for (_, age) in &mut self.services.completions {
+            *age = age.saturating_add(1);
+        }
+        self.services.completions.retain(|(completion, age)| {
+            if *age < 32 {
+                true
+            } else {
+                self.services
+                    .diagnostics
+                    .push(Diagnostic::FocusContinuationUnacknowledged {
+                        owner: completion.opening().owner(),
+                    });
+                false
+            }
+        });
+        self.services
+            .focus_continuation_result_acks
+            .retain(|(opening, owner, _)| {
+                self.services.completions.iter().any(|(completion, _)| {
+                    completion.opening() == *opening
+                        && completion.continuation_owner() == Some(*owner)
+                })
+            });
+        for (_, age) in &mut self.services.focus_continuation_outcomes {
+            *age = age.saturating_add(1);
+        }
+        self.services
+            .focus_continuation_outcomes
+            .retain(|(outcome, age)| {
+                if *age < 32 {
+                    true
+                } else {
+                    self.services
+                        .diagnostics
+                        .push(Diagnostic::FocusContinuationUnacknowledged {
+                            owner: outcome.owner(),
+                        });
+                    false
+                }
+            });
+        Ok(())
     }
 
     pub fn settle(&mut self) -> Response<()> {
@@ -1131,6 +1559,14 @@ impl<A: App> Runtime<A> {
             return Response::ignored();
         }
         let Some((from, to, via)) = self.pending_focus.take() else {
+            let completion_dispatch = core::mem::take(&mut self.completion_dispatch_pending);
+            let focus_result_ack_dispatch =
+                core::mem::take(&mut self.services.focus_result_ack_dispatch_pending);
+            if completion_dispatch || focus_result_ack_dispatch {
+                self.intents.clear();
+                let r = self.run_update(None, UpdateCause::Settle, None);
+                return self.finish(r);
+            }
             if !core::mem::take(&mut self.pending_tick) {
                 return Response::ignored();
             }
@@ -1261,6 +1697,10 @@ impl<A: App> Runtime<A> {
 
     fn finish(&mut self, mut r: Response<()>) -> Response<()> {
         self.reconcile_held_pointer();
+        if core::mem::take(&mut self.services.reset_pointer_clicks) {
+            self.inter.last_click = None;
+            self.services.pointer_press_count = None;
+        }
         if self.services.repaint {
             r = r.repaint();
         }
@@ -1270,6 +1710,7 @@ impl<A: App> Runtime<A> {
     }
 
     pub fn draw(&mut self, frame: &mut Frame<'_>) -> PaintedFrame<'_, A> {
+        self.refuse_legacy_continuation_draw();
         let area = frame.area();
         let buf = frame.buffer_mut();
         self.draw_with_buffer(area, buf, None, A::draw);
@@ -1289,7 +1730,7 @@ impl<A: App> Runtime<A> {
         snapshot: Option<&RenderSnapshot>,
         paint: impl FnOnce(&A, &mut Ui<'_>),
     ) {
-        self.presented = false;
+        self.invalidate_prepared();
         self.sync_keymap(snapshot.map(|value| &value.keymap));
 
         let same_snapshot = match (&self.cache_snapshot, snapshot) {
@@ -1320,7 +1761,7 @@ impl<A: App> Runtime<A> {
             |value| value.layers.as_slice(),
         );
         for l in layers {
-            let rect = resolve_anchor(area, l.spec.anchor, l.spec.size);
+            let rect = resolve_layer_area(area, l.spec);
             self.frame.layers.push(l.id, l.layer, l.spec, rect, area);
         }
 
@@ -1463,16 +1904,120 @@ impl<A: App> Runtime<A> {
             self.pending_focus = (from != reconciled).then_some((from, reconciled, via));
             self.focus.set(reconciled);
 
-            self.presented = false;
+            self.invalidate_prepared();
             self.services.repaint = true;
         }
         self.staged_focus = None;
         self.last.snapshot.focus = self.focus.current();
+        if self.pending_focus.is_none() && !self.services.focus_continuation_result_acks.is_empty()
+        {
+            let mut became_ready = false;
+            for (_, _, ready) in &mut self.services.focus_continuation_result_acks {
+                became_ready |= !*ready;
+                *ready = true;
+            }
+            self.completion_dispatch_pending |= became_ready;
+        }
+        if self.pending_focus.is_none()
+            && (!self.completion_waiting.is_empty()
+                || !self.continuation_cancels_waiting.is_empty())
+        {
+            let restored_focus = self.focus.current();
+            let mut dispatch_completion = false;
+            let canceled = core::mem::take(&mut self.continuation_cancels_waiting);
+            for (opening, owner) in canceled {
+                self.store_focus_continuation_outcome(FocusContinuationOutcome::new(
+                    opening,
+                    owner,
+                    restored_focus,
+                    false,
+                ));
+                dispatch_completion = true;
+            }
+            let waiting = core::mem::take(&mut self.completion_waiting);
+            for layer in waiting {
+                let Some(event) = layer.closed_event else {
+                    continue;
+                };
+                let continuation_acknowledged =
+                    layer.spec.continues_focus_owner.is_some_and(|owner| {
+                        let parent = layer.opening.parent();
+                        let parent_layer = parent.map_or(LayerId::PAGE, |parent| parent.layer);
+                        let parent_is_current = match parent {
+                            None => self.services.layers.top() == LayerId::PAGE,
+                            Some(parent) => self.services.layers.layers().iter().any(|open| {
+                                open.id == parent.id
+                                    && open.layer == parent.layer
+                                    && open.opening.generation() == parent.generation
+                                    && self.services.layers.top() == open.layer
+                            }),
+                        };
+                        let owner_is_live =
+                            self.last.ring.entry(owner).is_some_and(|entry| {
+                                entry.layer == parent_layer && !entry.disabled
+                            });
+                        let opening_not_replaced = self.services.layers.get(layer.id).is_none();
+                        restored_focus == Some(owner)
+                            && parent_is_current
+                            && owner_is_live
+                            && opening_not_replaced
+                            && self.services.focus_continuation_acks.iter().any(
+                                |(opening, ack_owner, _)| {
+                                    *opening == layer.opening && *ack_owner == owner
+                                },
+                            )
+                    });
+                if let Some(owner) = layer.spec.continues_focus_owner {
+                    let outcome = FocusContinuationOutcome::new(
+                        layer.opening,
+                        owner,
+                        restored_focus,
+                        continuation_acknowledged,
+                    );
+                    self.store_focus_continuation_outcome(outcome);
+                }
+                if self.services.completions.len() == 64 {
+                    let oldest = self.services.completions.remove(0).0;
+                    self.services
+                        .diagnostics
+                        .push(Diagnostic::FocusContinuationUnacknowledged {
+                            owner: oldest.opening().owner(),
+                        });
+                }
+                self.services.completions.push((
+                    LayerCompletion::new(
+                        layer.opening,
+                        event,
+                        restored_focus,
+                        layer.spec.continues_focus_owner,
+                        continuation_acknowledged,
+                    ),
+                    0,
+                ));
+                dispatch_completion = true;
+                self.services
+                    .focus_continuation_acks
+                    .retain(|(opening, _, _)| *opening != layer.opening);
+            }
+            self.completion_dispatch_pending |= dispatch_completion;
+        }
         self.last.snapshot.focus_visible = self.focus.visible();
         self.reconcile_held_pointer();
         self.reconcile_hover();
 
         self.cursor = self.painted_cursor;
+    }
+
+    fn store_focus_continuation_outcome(&mut self, outcome: FocusContinuationOutcome) {
+        if self.services.focus_continuation_outcomes.len() == 64 {
+            let oldest = self.services.focus_continuation_outcomes.remove(0).0;
+            self.services
+                .diagnostics
+                .push(Diagnostic::FocusContinuationUnacknowledged {
+                    owner: oldest.owner(),
+                });
+        }
+        self.services.focus_continuation_outcomes.push((outcome, 0));
     }
 
     fn reconcile_held_pointer(&mut self) {
@@ -1497,6 +2042,7 @@ impl<A: App> Runtime<A> {
             .is_some_and(|press| !eligible(press.owner, press.part));
         if capture_invalid {
             self.services.capture.release();
+            self.services.reset_pointer_clicks = true;
         }
         if capture_invalid || press_invalid {
             self.inter.press = None;
@@ -1510,7 +2056,7 @@ impl<A: App> Runtime<A> {
             .or_else(|| self.services.feedback.pressed());
         let capture = self.services.capture.get().map(|capture| capture.owner);
         if self.last.snapshot.capture != capture || self.last.snapshot.pressed != pressed {
-            self.presented = false;
+            self.invalidate_prepared();
             self.services.repaint = true;
         }
         self.last.snapshot.capture = capture;
@@ -1544,14 +2090,14 @@ impl<A: App> Runtime<A> {
                 self.services
                     .diagnostics
                     .push(Diagnostic::HoverLayoutDidNotSettle);
-                self.presented = false;
+                self.invalidate_prepared();
                 self.services.repaint = true;
             }
         }
         self.inter.hover = hover;
         self.last.snapshot.hover = hover;
         if hover != painted_hover {
-            self.presented = false;
+            self.invalidate_prepared();
             self.services.repaint = true;
         }
     }
@@ -1723,6 +2269,7 @@ impl<A: App> Runtime<A> {
     }
 
     pub fn draw_buffer(&mut self, area: Rect, buf: &mut Buffer) -> PaintedFrame<'_, A> {
+        self.refuse_legacy_continuation_draw();
         self.draw_with_buffer(area, buf, None, A::draw);
         PaintedFrame {
             runtime: self,
@@ -1758,7 +2305,7 @@ impl<A: App> Runtime<A> {
     pub fn set_focus(&mut self, id: Option<Id>) {
         let from = self.focus.current();
         if from != id {
-            self.presented = false;
+            self.invalidate_prepared();
             self.pending_focus = Some((from, id, FocusVia::Programmatic));
             self.focus.set(id);
             self.last.snapshot.focus = id;
@@ -2056,18 +2603,379 @@ pub mod stub {
 
 #[cfg(test)]
 mod tests {
-    use super::stub::{Control, SCREEN, Stub, deliver, key, runtime, step};
+    use super::stub::{Control, SCREEN, Stub, deliver, key, mouse, runtime, step};
     use super::*;
     use crate::event::MouseKind;
     use crate::focus::Focusability;
-    use crate::layer::LayerSpec;
+    use crate::intent::Intent;
+    use crate::layer::{Anchor, LayerSize, LayerSpec, ScreenAlign};
+    use crate::ui::FrameRead;
+    use ratatui::Terminal;
+    use ratatui::backend::TestBackend;
 
     const A: Id = Id::root("a");
     const B: Id = Id::root("b");
+    const CLICK_MODAL: Id = Id::root("click-modal");
 
-    #[derive(Default)]
+    fn present<A: App>(rt: &mut Runtime<A>, token: PreparedFrame) {
+        let mut terminal = Terminal::new(TestBackend::new(SCREEN.width, SCREEN.height))
+            .expect("test terminal initializes");
+        terminal
+            .draw(|frame| {
+                rt.draw_prepared(token, frame)
+                    .expect("prepared frame draws");
+            })
+            .expect("test backend draws");
+        rt.acknowledge_presented(token)
+            .expect("backend output is acknowledged");
+    }
+
+    #[derive(Debug, Default)]
     struct BootstrapProbe {
         causes: Vec<UpdateCause>,
+    }
+
+    const CONTINUED_OWNER: Id = Id::root("continued-owner");
+    const CONTINUED_LAYER: Id = Id::root("continued-layer");
+    const CONTINUED_TARGET: Id = Id::root("continued-target");
+    const HOVER_OWNER: Id = Id::root("hover-owner");
+    const FOCUS_A: Id = Id::root("focus-a");
+    const FOCUS_B: Id = Id::root("focus-b");
+    const MULTI_PARENT: Id = Id::root("multi-parent");
+    const MULTI_CHILD: Id = Id::root("multi-child");
+    const MULTI_GRANDCHILD: Id = Id::root("multi-grandchild");
+
+    #[derive(Default)]
+    struct MultiCloseProbe {
+        parent: Option<crate::layer::LayerOpening>,
+        child: Option<crate::layer::LayerOpening>,
+        child_outcome: Option<bool>,
+        completed: Vec<crate::layer::LayerOpening>,
+    }
+
+    impl App for MultiCloseProbe {
+        fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+            if cx
+                .intents(A)
+                .any(|intent| matches!(intent, Intent::Key(key) if key.code == KeyCode::Char('m')))
+            {
+                self.parent = cx.open_layer_with_token(
+                    MULTI_PARENT,
+                    LayerSpec::modal(MULTI_PARENT)
+                        .initial_focus(B)
+                        .continues_focus(A),
+                );
+            }
+            if cx
+                .intents(A)
+                .any(|intent| matches!(intent, Intent::FocusOut { to: Some(B) }))
+                && cx.focus_is_continued(A, B)
+            {
+                assert!(cx.acknowledge_focus_continuation(A, B));
+            }
+            if cx
+                .intents(B)
+                .any(|intent| matches!(intent, Intent::Key(key) if key.code == KeyCode::Char('n')))
+            {
+                self.child = cx.open_layer_with_token(
+                    MULTI_CHILD,
+                    LayerSpec::modal(MULTI_CHILD)
+                        .initial_focus(MULTI_GRANDCHILD)
+                        .continues_focus(B),
+                );
+            }
+            if cx.intents(B).any(|intent| {
+                matches!(
+                    intent,
+                    Intent::FocusOut {
+                        to: Some(MULTI_GRANDCHILD)
+                    }
+                )
+            }) && cx.focus_is_continued(B, MULTI_GRANDCHILD)
+            {
+                assert!(cx.acknowledge_focus_continuation(B, MULTI_GRANDCHILD));
+            }
+            if cx
+                .intents(MULTI_GRANDCHILD)
+                .any(|intent| matches!(intent, Intent::Key(key) if key.code == KeyCode::Char('x')))
+            {
+                cx.close_layer(MULTI_CHILD, None);
+                cx.close_layer(MULTI_PARENT, None);
+            }
+            for opening in [self.parent, self.child].into_iter().flatten() {
+                if cx.take_layer_completion(opening).is_some() {
+                    self.completed.push(opening);
+                }
+            }
+            if let Some(opening) = self.child
+                && let Some(outcome) = cx.focus_continuation_result(opening, B)
+            {
+                self.child_outcome = Some(outcome.continued());
+                let _ = cx.acknowledge_focus_continuation_result(opening, B);
+            }
+            Response::ignored()
+        }
+
+        fn draw(&self, ui: &mut Ui<'_>) {
+            ui.register_control(A, Rect::new(0, 0, 8, 1), Focusability::Focusable);
+            let _ = ui.layer(MULTI_PARENT, |ui, area| {
+                ui.register_control(B, Rect::new(area.x, area.y, 8, 1), Focusability::Focusable);
+                let _ = ui.layer(MULTI_CHILD, |ui, child_area| {
+                    ui.register_control(
+                        MULTI_GRANDCHILD,
+                        Rect::new(child_area.x, child_area.y, 8, 1),
+                        Focusability::Focusable,
+                    );
+                });
+            });
+        }
+    }
+
+    #[test]
+    fn direct_nested_closes_cancel_child_receipt_and_keep_parent_receipt() {
+        let mut rt = Runtime::new(MultiCloseProbe::default(), Theme::junie());
+        let _ = rt.initialize();
+        let token = rt.prepare(SCREEN).expect("initial frame prepares");
+        present(&mut rt, token);
+        rt.set_focus(Some(A));
+        let token = rt.prepare(SCREEN).expect("owner focus prepares");
+        present(&mut rt, token);
+        let _ = rt.handle(key(KeyCode::Char('m'))).expect("parent opens");
+        let token = rt.prepare(SCREEN).expect("parent focus settles");
+        present(&mut rt, token);
+        let _ = rt.handle(key(KeyCode::Char('n'))).expect("child opens");
+        let token = rt.prepare(SCREEN).expect("child focus settles");
+        present(&mut rt, token);
+        let _ = rt.handle(key(KeyCode::Char('x'))).expect("ancestor closes");
+        let token = rt.prepare(SCREEN).expect("descendant cancellation settles");
+        assert_eq!(rt.app().child_outcome, Some(false));
+        assert!(
+            !rt.app()
+                .completed
+                .contains(&rt.app().child.expect("child opening"))
+        );
+        assert!(rt.services.focus_continuation_result_acks.is_empty());
+        present(&mut rt, token);
+    }
+
+    struct OrdinaryLayerProbe;
+
+    impl App for OrdinaryLayerProbe {
+        fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+            if cx
+                .intents(A)
+                .any(|intent| matches!(intent, Intent::Key(key) if key.code == KeyCode::Char('m')))
+            {
+                cx.open_layer(CLICK_MODAL, LayerSpec::modal(CLICK_MODAL).initial_focus(B));
+            }
+            if cx
+                .intents(B)
+                .any(|intent| matches!(intent, Intent::Key(key) if key.code == KeyCode::Char('x')))
+            {
+                cx.close_layer(CLICK_MODAL, None);
+            }
+            Response::ignored()
+        }
+
+        fn draw(&self, ui: &mut Ui<'_>) {
+            ui.register_control(A, Rect::new(0, 0, 8, 1), Focusability::Focusable);
+            let _ = ui.layer(CLICK_MODAL, |ui, area| {
+                ui.register_control(B, area, Focusability::Focusable);
+            });
+        }
+    }
+
+    #[test]
+    fn ordinary_layer_close_does_not_enqueue_completion_or_extra_update() {
+        let mut rt = Runtime::new(OrdinaryLayerProbe, Theme::junie());
+        let _ = rt.initialize();
+        let token = rt.prepare(SCREEN).expect("initial frame prepares");
+        present(&mut rt, token);
+        rt.set_focus(Some(A));
+        let token = rt.prepare(SCREEN).expect("owner focus prepares");
+        present(&mut rt, token);
+        let _ = rt.handle(key(KeyCode::Char('m'))).expect("modal opens");
+        let token = rt.prepare(SCREEN).expect("modal opens");
+        present(&mut rt, token);
+        let _ = rt.handle(key(KeyCode::Char('x'))).expect("modal closes");
+        let token = rt.prepare(SCREEN).expect("modal closes");
+        assert!(rt.services.completions.is_empty());
+        assert!(!rt.completion_dispatch_pending);
+        assert!(!rt.needs_settle());
+        present(&mut rt, token);
+    }
+
+    #[derive(Debug, Default)]
+    struct ContinuationProbe {
+        opening: Option<crate::layer::LayerOpening>,
+        continuation_opening: Option<crate::layer::LayerOpening>,
+        continued: bool,
+        acknowledgements: usize,
+        acknowledge_owner: bool,
+        observe_outcome: bool,
+        owner_hidden: bool,
+        owner_disabled: bool,
+        consume_completion: bool,
+        menu_before_outcome_ack: bool,
+        reopen_after_close: bool,
+        replacement: Option<crate::layer::LayerOpening>,
+        duplicate_result_ack: bool,
+        duplicate_ack_succeeded: bool,
+        outcome: Option<(Option<Id>, bool)>,
+        outcome_acknowledgements: usize,
+        completion: Option<(Option<Id>, LayerEvent, bool)>,
+        completion_before_outcome_ack: bool,
+        redirect_after_outcome_ack: Option<Id>,
+    }
+
+    impl App for ContinuationProbe {
+        fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+            let owner_intents: Vec<_> = cx.intents(CONTINUED_OWNER).collect();
+            for intent in &owner_intents {
+                if let Intent::FocusOut { to: Some(target) } = intent {
+                    self.continuation_opening =
+                        cx.focus_continuation_opening(CONTINUED_OWNER, *target);
+                }
+                if matches!(intent, Intent::FocusOut { to: Some(target) } if *target == CONTINUED_TARGET)
+                {
+                    self.continued = cx.focus_is_continued(CONTINUED_OWNER, CONTINUED_TARGET);
+                    if self.continued
+                        && self.acknowledge_owner
+                        && cx.acknowledge_focus_continuation(CONTINUED_OWNER, CONTINUED_TARGET)
+                    {
+                        self.acknowledgements += 1;
+                    }
+                }
+                if matches!(intent, Intent::Key(key) if key.code == KeyCode::Char('m')) {
+                    self.opening = cx.open_layer_with_token(
+                        CONTINUED_LAYER,
+                        LayerSpec::popover(CONTINUED_LAYER, Anchor::Screen(ScreenAlign::Center))
+                            .size(LayerSize::Fixed(10, 3))
+                            .initial_focus(CONTINUED_TARGET)
+                            .continues_focus(CONTINUED_OWNER),
+                    );
+                }
+            }
+            for intent in cx.intents(CONTINUED_TARGET) {
+                if matches!(intent, Intent::Key(key) if key.code == KeyCode::Char('x')) {
+                    cx.close_layer(CONTINUED_LAYER, None);
+                    if self.reopen_after_close {
+                        self.replacement = cx.open_layer_with_token(
+                            CONTINUED_LAYER,
+                            LayerSpec::popover(
+                                CONTINUED_LAYER,
+                                Anchor::Screen(ScreenAlign::Center),
+                            )
+                            .size(LayerSize::Fixed(10, 3))
+                            .initial_focus(CONTINUED_TARGET)
+                            .continues_focus(CONTINUED_OWNER),
+                        );
+                    }
+                }
+            }
+            if self.menu_before_outcome_ack {
+                self.take_completion(cx);
+            }
+            if self.observe_outcome
+                && let Some(opening) = self.continuation_opening
+                && let Some(outcome) = cx.focus_continuation_result(opening, CONTINUED_OWNER)
+            {
+                self.outcome = Some((outcome.restored_focus(), outcome.continued()));
+                if cx.acknowledge_focus_continuation_result(opening, CONTINUED_OWNER) {
+                    self.outcome_acknowledgements += 1;
+                    if let Some(target) = self.redirect_after_outcome_ack {
+                        cx.focus(target);
+                    }
+                }
+                if self.duplicate_result_ack {
+                    self.duplicate_ack_succeeded =
+                        cx.acknowledge_focus_continuation_result(opening, CONTINUED_OWNER);
+                }
+            }
+            if !self.menu_before_outcome_ack {
+                self.take_completion(cx);
+            }
+            Response::ignored()
+        }
+
+        fn draw(&self, ui: &mut Ui<'_>) {
+            ui.register_control(B, Rect::new(20, 0, 10, 1), Focusability::Focusable);
+            if !self.owner_hidden {
+                ui.register_control(
+                    CONTINUED_OWNER,
+                    Rect::new(0, 0, 10, 1),
+                    if self.owner_disabled {
+                        Focusability::Disabled
+                    } else {
+                        Focusability::Focusable
+                    },
+                );
+            }
+            let _ = ui.layer(CONTINUED_LAYER, |ui, area| {
+                ui.register_control(CONTINUED_TARGET, area, Focusability::Focusable);
+            });
+        }
+    }
+
+    impl ContinuationProbe {
+        fn take_completion(&mut self, cx: &mut Cx<'_>) {
+            if let Some(opening) = self.opening
+                && self.consume_completion
+                && let Some(completion) = cx.take_layer_completion(opening)
+            {
+                self.completion_before_outcome_ack = self.outcome_acknowledgements == 0;
+                self.completion = Some((
+                    completion.restored_focus(),
+                    completion.event(),
+                    completion.continuation_acknowledged(),
+                ));
+            }
+        }
+    }
+
+    struct HoverGeometryProbe;
+
+    impl App for HoverGeometryProbe {
+        fn update(&mut self, _cx: &mut Cx<'_>) -> Response<()> {
+            Response::ignored()
+        }
+
+        fn draw(&self, ui: &mut Ui<'_>) {
+            let x = if ui.state(HOVER_OWNER).contains(StateFlags::HOVERED) {
+                10
+            } else {
+                0
+            };
+            ui.register_control(HOVER_OWNER, Rect::new(x, 0, 10, 1), Focusability::Focusable);
+        }
+    }
+
+    struct FocusCycleProbe;
+
+    impl App for FocusCycleProbe {
+        fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+            if cx.update_cause() == UpdateCause::Bootstrap {
+                cx.focus(FOCUS_A);
+            }
+            if cx
+                .intents(FOCUS_A)
+                .any(|intent| matches!(intent, Intent::FocusIn { .. }))
+            {
+                cx.focus(FOCUS_B);
+            }
+            if cx
+                .intents(FOCUS_B)
+                .any(|intent| matches!(intent, Intent::FocusIn { .. }))
+            {
+                cx.focus(FOCUS_A);
+            }
+            Response::ignored()
+        }
+
+        fn draw(&self, ui: &mut Ui<'_>) {
+            ui.register_control(FOCUS_A, Rect::new(0, 0, 1, 1), Focusability::Focusable);
+            ui.register_control(FOCUS_B, Rect::new(1, 0, 1, 1), Focusability::Focusable);
+        }
     }
 
     impl App for BootstrapProbe {
@@ -2097,6 +3005,400 @@ mod tests {
         rt.draw_buffer(SCREEN, &mut buf).commit_presented();
         assert_eq!(rt.app().causes, vec![UpdateCause::Bootstrap]);
         assert_eq!(rt.clock_ms(), 0);
+    }
+
+    #[test]
+    fn prepared_frame_publishes_geometry_but_blocks_input_until_acknowledged() {
+        let mut rt = Runtime::new(BootstrapProbe::default(), Theme::junie());
+        let token = rt.prepare(SCREEN).expect("frame prepares");
+        assert_eq!(token.area(), SCREEN);
+        assert!(rt.needs_present());
+        assert!(rt.handle(key(KeyCode::Enter)).is_err());
+
+        present(&mut rt, token);
+        assert!(!rt.needs_present());
+        assert!(rt.handle(key(KeyCode::Enter)).is_ok());
+    }
+
+    #[test]
+    fn prepared_frame_tokens_are_runtime_and_generation_scoped() {
+        let mut first = Runtime::new(BootstrapProbe::default(), Theme::junie());
+        let mut second = Runtime::new(BootstrapProbe::default(), Theme::junie());
+        let stale = first.prepare(SCREEN).expect("first frame prepares");
+        let _ = first
+            .prepare(SCREEN)
+            .expect("reprepare advances generation");
+        let current = second.prepare(SCREEN).expect("second runtime prepares");
+        assert!(first.acknowledge_presented(stale).is_err());
+        assert!(second.acknowledge_presented(stale).is_err());
+        present(&mut second, current);
+    }
+
+    #[test]
+    fn state_changes_invalidate_prepared_frames() {
+        let mut rt = Runtime::new(BootstrapProbe::default(), Theme::junie());
+        let token = rt.prepare(SCREEN).expect("frame prepares");
+        rt.set_theme(Theme::junie());
+        assert!(rt.acknowledge_presented(token).is_err());
+
+        let token = rt.prepare(SCREEN).expect("frame prepares again");
+        rt.advance_to(Moment::from_millis(1))
+            .expect("clock advances");
+        assert!(rt.acknowledge_presented(token).is_err());
+
+        let token = rt
+            .prepare(SCREEN)
+            .expect("frame prepares after clock change");
+        let _ = rt.app_mut();
+        assert!(rt.acknowledge_presented(token).is_err());
+    }
+
+    #[test]
+    fn prepare_reconciles_hover_geometry_before_output() {
+        let mut rt = Runtime::new(HoverGeometryProbe, Theme::junie());
+        let _ = rt.initialize();
+        let token = rt.prepare(SCREEN).expect("initial frame prepares");
+        present(&mut rt, token);
+        let _ = rt
+            .handle(mouse(MouseKind::Move, 1, 0))
+            .expect("pointer moves");
+        let token = rt.prepare(SCREEN).expect("hover geometry settles");
+        assert_eq!(rt.area_of(HOVER_OWNER).map(|area| area.x), Some(0));
+        assert!(!rt.state_of(HOVER_OWNER).contains(StateFlags::HOVERED));
+        present(&mut rt, token);
+    }
+
+    #[test]
+    fn prepare_bounds_repeated_focus_redirection() {
+        let mut rt = Runtime::new(FocusCycleProbe, Theme::junie());
+        let _ = rt.initialize();
+        assert_eq!(rt.prepare(SCREEN), Err(PreparedFrameError::DidNotSettle));
+    }
+
+    #[test]
+    fn focus_continuation_and_close_receipt_settle_before_prepared_output() {
+        let mut rt = Runtime::new(
+            ContinuationProbe {
+                acknowledge_owner: true,
+                observe_outcome: true,
+                consume_completion: true,
+                menu_before_outcome_ack: true,
+                duplicate_result_ack: true,
+                ..ContinuationProbe::default()
+            },
+            Theme::junie(),
+        );
+        let _ = rt.initialize();
+        let token = rt.prepare(SCREEN).expect("initial frame prepares");
+        present(&mut rt, token);
+        rt.set_focus(Some(CONTINUED_OWNER));
+        let token = rt.prepare(SCREEN).expect("owner focus prepares");
+        present(&mut rt, token);
+
+        let _ = rt.handle(key(KeyCode::Char('m'))).expect("menu opens");
+        let token = rt.prepare(SCREEN).expect("menu and FocusOut settle");
+        assert_eq!(rt.focus(), Some(CONTINUED_TARGET));
+        assert!(rt.app().continued, "probe: {:?}", rt.app());
+        assert_eq!(rt.app().acknowledgements, 1);
+        assert!(rt.app().continuation_opening.is_some());
+        present(&mut rt, token);
+
+        let _ = rt.handle(key(KeyCode::Char('x'))).expect("menu closes");
+        assert!(rt.app().completion.is_none());
+        let token = rt.prepare(SCREEN).expect("completion runs before output");
+        assert_eq!(
+            rt.app().completion,
+            Some((
+                Some(CONTINUED_OWNER),
+                LayerEvent::Dismissed(DismissReason::Programmatic),
+                true
+            ))
+        );
+        assert_eq!(rt.app().outcome, Some((Some(CONTINUED_OWNER), true)));
+        assert_eq!(rt.app().outcome_acknowledgements, 1);
+        assert!(!rt.app().completion_before_outcome_ack);
+        assert!(!rt.app().duplicate_ack_succeeded);
+        assert!(
+            std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+                let mut buffer = Buffer::empty(SCREEN);
+                let _frame = rt.draw_buffer(SCREEN, &mut buffer);
+            }))
+            .is_err()
+        );
+        present(&mut rt, token);
+        assert!(rt.services.focus_continuation_outcomes.is_empty());
+        assert!(rt.services.focus_continuation_result_acks.is_empty());
+    }
+
+    #[test]
+    fn focus_redirect_during_result_ack_cancels_same_update_completion() {
+        let mut rt = Runtime::new(
+            ContinuationProbe {
+                acknowledge_owner: true,
+                observe_outcome: true,
+                consume_completion: true,
+                redirect_after_outcome_ack: Some(B),
+                ..ContinuationProbe::default()
+            },
+            Theme::junie(),
+        );
+        let _ = rt.initialize();
+        let token = rt.prepare(SCREEN).expect("initial frame prepares");
+        present(&mut rt, token);
+        rt.set_focus(Some(CONTINUED_OWNER));
+        let token = rt.prepare(SCREEN).expect("owner focus prepares");
+        present(&mut rt, token);
+        let _ = rt.handle(key(KeyCode::Char('m'))).expect("menu opens");
+        let token = rt.prepare(SCREEN).expect("menu opens");
+        present(&mut rt, token);
+        let _ = rt.handle(key(KeyCode::Char('x'))).expect("menu closes");
+        let token = rt.prepare(SCREEN).expect("redirect settles before receipt");
+        assert_eq!(rt.focus(), Some(B));
+        assert_eq!(
+            rt.app().completion.map(|(_, _, continued)| continued),
+            Some(false)
+        );
+        assert_eq!(rt.app().outcome_acknowledgements, 1);
+        present(&mut rt, token);
+    }
+
+    #[test]
+    fn legacy_draw_refuses_continuation_receipts_before_projection() {
+        let mut rt = Runtime::new(
+            ContinuationProbe {
+                acknowledge_owner: true,
+                consume_completion: false,
+                ..ContinuationProbe::default()
+            },
+            Theme::junie(),
+        );
+        let _ = rt.initialize();
+        let token = rt.prepare(SCREEN).expect("initial frame prepares");
+        present(&mut rt, token);
+        rt.set_focus(Some(CONTINUED_OWNER));
+        let token = rt.prepare(SCREEN).expect("owner focus prepares");
+        present(&mut rt, token);
+        let _ = rt.handle(key(KeyCode::Char('m'))).expect("menu opens");
+        let token = rt.prepare(SCREEN).expect("menu opens");
+        present(&mut rt, token);
+        let _ = rt.handle(key(KeyCode::Char('x'))).expect("menu closes");
+        let _token = rt.prepare(SCREEN).expect("completion is prepared");
+        assert!(
+            std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+                let mut buffer = Buffer::empty(SCREEN);
+                let _frame = rt.draw_buffer(SCREEN, &mut buffer);
+            }))
+            .is_err()
+        );
+        assert!(rt.diagnostics().iter().any(|diagnostic| matches!(
+            diagnostic,
+            Diagnostic::FocusContinuationUnacknowledged { owner }
+                if *owner == CONTINUED_OWNER
+        )));
+    }
+
+    #[test]
+    fn removed_continuation_owner_receives_cancellation_not_success() {
+        let mut rt = Runtime::new(
+            ContinuationProbe {
+                acknowledge_owner: true,
+                observe_outcome: true,
+                consume_completion: true,
+                ..ContinuationProbe::default()
+            },
+            Theme::junie(),
+        );
+        let _ = rt.initialize();
+        let token = rt.prepare(SCREEN).expect("initial frame prepares");
+        present(&mut rt, token);
+        rt.set_focus(Some(CONTINUED_OWNER));
+        let token = rt.prepare(SCREEN).expect("owner focus prepares");
+        present(&mut rt, token);
+        let _ = rt.handle(key(KeyCode::Char('m'))).expect("menu opens");
+        let token = rt.prepare(SCREEN).expect("menu opens");
+        present(&mut rt, token);
+        rt.app_mut().owner_hidden = true;
+        let token = rt.prepare(SCREEN).expect("owner removal publishes");
+        present(&mut rt, token);
+        let _ = rt.handle(key(KeyCode::Char('x'))).expect("menu closes");
+        let token = rt.prepare(SCREEN).expect("removed owner settles");
+        assert_eq!(rt.app().outcome, Some((rt.focus(), false)));
+        assert_eq!(rt.app().completion.map(|(_, _, ack)| ack), Some(false));
+        present(&mut rt, token);
+    }
+
+    #[test]
+    fn disabled_continuation_owner_receives_cancellation_not_success() {
+        let mut rt = Runtime::new(
+            ContinuationProbe {
+                acknowledge_owner: true,
+                observe_outcome: true,
+                consume_completion: true,
+                ..ContinuationProbe::default()
+            },
+            Theme::junie(),
+        );
+        let _ = rt.initialize();
+        let token = rt.prepare(SCREEN).expect("initial frame prepares");
+        present(&mut rt, token);
+        rt.set_focus(Some(CONTINUED_OWNER));
+        let token = rt.prepare(SCREEN).expect("owner focus prepares");
+        present(&mut rt, token);
+        let _ = rt.handle(key(KeyCode::Char('m'))).expect("menu opens");
+        let token = rt.prepare(SCREEN).expect("menu opens");
+        present(&mut rt, token);
+        rt.app_mut().owner_disabled = true;
+        let token = rt.prepare(SCREEN).expect("disabled owner publishes");
+        present(&mut rt, token);
+        let _ = rt.handle(key(KeyCode::Char('x'))).expect("menu closes");
+        let token = rt.prepare(SCREEN).expect("disabled owner settles");
+        assert_eq!(rt.app().outcome, Some((rt.focus(), false)));
+        assert_eq!(rt.app().completion.map(|(_, _, ack)| ack), Some(false));
+        present(&mut rt, token);
+    }
+
+    #[test]
+    fn same_id_reopen_cannot_reuse_closed_opening_success() {
+        let mut rt = Runtime::new(
+            ContinuationProbe {
+                acknowledge_owner: true,
+                observe_outcome: true,
+                consume_completion: true,
+                reopen_after_close: true,
+                ..ContinuationProbe::default()
+            },
+            Theme::junie(),
+        );
+        let _ = rt.initialize();
+        let token = rt.prepare(SCREEN).expect("initial frame prepares");
+        present(&mut rt, token);
+        rt.set_focus(Some(CONTINUED_OWNER));
+        let token = rt.prepare(SCREEN).expect("owner focus prepares");
+        present(&mut rt, token);
+        let _ = rt.handle(key(KeyCode::Char('m'))).expect("menu opens");
+        let token = rt.prepare(SCREEN).expect("menu opens");
+        present(&mut rt, token);
+        let old_opening = rt.app().opening.expect("old opening token");
+        let _ = rt
+            .handle(key(KeyCode::Char('x')))
+            .expect("menu closes and reopens");
+        let token = rt.prepare(SCREEN).expect("replacement opening settles");
+        assert_ne!(rt.app().replacement, Some(old_opening));
+        assert_eq!(rt.app().completion.map(|(_, _, ack)| ack), Some(false));
+        assert_eq!(
+            rt.app().outcome.map(|(_, continued)| continued),
+            Some(false)
+        );
+        present(&mut rt, token);
+    }
+
+    #[test]
+    fn continuation_outcome_survives_owner_delay_until_exact_ack() {
+        let mut rt = Runtime::new(
+            ContinuationProbe {
+                acknowledge_owner: true,
+                observe_outcome: false,
+                ..ContinuationProbe::default()
+            },
+            Theme::junie(),
+        );
+        let _ = rt.initialize();
+        let token = rt.prepare(SCREEN).expect("initial frame prepares");
+        present(&mut rt, token);
+        rt.set_focus(Some(CONTINUED_OWNER));
+        let token = rt.prepare(SCREEN).expect("owner focus prepares");
+        present(&mut rt, token);
+        let _ = rt.handle(key(KeyCode::Char('m'))).expect("menu opens");
+        let token = rt.prepare(SCREEN).expect("menu opens");
+        present(&mut rt, token);
+        let _ = rt.handle(key(KeyCode::Char('x'))).expect("menu closes");
+        let token = rt.prepare(SCREEN).expect("outcome publishes");
+        present(&mut rt, token);
+        assert_eq!(rt.app().outcome_acknowledgements, 0);
+        assert_eq!(rt.services.focus_continuation_outcomes.len(), 1);
+
+        rt.app_mut().observe_outcome = true;
+        let token = rt.prepare(SCREEN).expect("owner becomes observable");
+        present(&mut rt, token);
+        let _ = rt.handle(Input::Tick).expect("delayed owner updates");
+        let token = rt.prepare(SCREEN).expect("delayed owner frame prepares");
+        assert_eq!(rt.app().outcome, Some((Some(CONTINUED_OWNER), true)));
+        assert_eq!(rt.app().outcome_acknowledgements, 1);
+        present(&mut rt, token);
+        assert!(rt.services.focus_continuation_outcomes.is_empty());
+    }
+
+    #[test]
+    fn unacknowledged_continuation_receipts_expire_with_diagnostic() {
+        let mut rt = Runtime::new(
+            ContinuationProbe {
+                acknowledge_owner: true,
+                ..ContinuationProbe::default()
+            },
+            Theme::junie(),
+        );
+        let _ = rt.initialize();
+        let token = rt.prepare(SCREEN).expect("initial frame prepares");
+        present(&mut rt, token);
+        rt.set_focus(Some(CONTINUED_OWNER));
+        let token = rt.prepare(SCREEN).expect("owner focus prepares");
+        present(&mut rt, token);
+        let _ = rt.handle(key(KeyCode::Char('m'))).expect("menu opens");
+        let token = rt.prepare(SCREEN).expect("menu opens");
+        present(&mut rt, token);
+        let _ = rt.handle(key(KeyCode::Char('x'))).expect("menu closes");
+        let token = rt.prepare(SCREEN).expect("completion is queued");
+        present(&mut rt, token);
+        assert_eq!(rt.services.completions.len(), 1);
+        assert_eq!(rt.services.focus_continuation_outcomes.len(), 1);
+
+        for _ in 0..31 {
+            let token = rt.prepare(SCREEN).expect("idle frame prepares");
+            present(&mut rt, token);
+        }
+        assert!(rt.services.completions.is_empty());
+        assert!(rt.services.focus_continuation_outcomes.is_empty());
+        assert!(rt.diagnostics().iter().any(|diagnostic| matches!(
+            diagnostic,
+            Diagnostic::FocusContinuationUnacknowledged {
+                owner: CONTINUED_OWNER
+            }
+        )));
+    }
+
+    #[test]
+    fn missing_continuation_ack_cancels_receipt_without_blocking_prepare() {
+        let mut rt = Runtime::new(
+            ContinuationProbe {
+                consume_completion: true,
+                ..ContinuationProbe::default()
+            },
+            Theme::junie(),
+        );
+        let _ = rt.initialize();
+        let token = rt.prepare(SCREEN).expect("initial frame prepares");
+        present(&mut rt, token);
+        rt.set_focus(Some(CONTINUED_OWNER));
+        let token = rt.prepare(SCREEN).expect("owner focus prepares");
+        present(&mut rt, token);
+        let _ = rt.handle(key(KeyCode::Char('m'))).expect("menu opens");
+        let token = rt
+            .prepare(SCREEN)
+            .expect("unacknowledged continuation settles");
+        assert!(rt.app().continued);
+        assert_eq!(rt.app().acknowledgements, 0);
+        present(&mut rt, token);
+        let _ = rt.handle(key(KeyCode::Char('x'))).expect("menu closes");
+        let token = rt.prepare(SCREEN).expect("missing ack does not deadlock");
+        assert_eq!(
+            rt.app().completion,
+            Some((
+                Some(CONTINUED_OWNER),
+                LayerEvent::Dismissed(DismissReason::Programmatic),
+                false
+            ))
+        );
+        present(&mut rt, token);
     }
 
     #[derive(Default)]
@@ -2331,6 +3633,437 @@ mod tests {
             undelivered.iter().all(|o| *o == dlg),
             "{:?}",
             rt.diagnostics()
+        );
+    }
+
+    #[derive(Default)]
+    struct PressCountProbe {
+        counts: Vec<(Phase, u8)>,
+        phases: Vec<Phase>,
+        capture_on_press: bool,
+        open_modal_on_click: bool,
+    }
+
+    impl App for PressCountProbe {
+        fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+            for owner in [A, B] {
+                for intent in cx.intents(owner) {
+                    if let Intent::Pointer { phase, part, .. } = intent {
+                        self.phases.push(phase);
+                        if matches!(
+                            phase,
+                            Phase::Press | Phase::Release | Phase::Click | Phase::DoubleClick
+                        ) && let Some(count) = cx.pointer_click_count(owner, part)
+                        {
+                            self.counts.push((phase, count));
+                        }
+                        if phase == Phase::Press && self.capture_on_press {
+                            assert!(cx.capture(owner, part));
+                        }
+                        if phase == Phase::Click && self.open_modal_on_click {
+                            cx.open_layer(CLICK_MODAL, LayerSpec::modal(CLICK_MODAL));
+                        }
+                    }
+                }
+            }
+            Response::ignored()
+        }
+
+        fn draw(&self, ui: &mut Ui<'_>) {
+            let area = Rect::new(0, 0, 8, 2);
+            ui.register_control(A, area, Focusability::Focusable);
+            ui.register_part(A, PartRef::of(Part::LABEL), area);
+            let other = Rect::new(10, 0, 8, 2);
+            ui.register_control(B, other, Focusability::Focusable);
+            ui.register_part(B, PartRef::of(Part::LABEL), other);
+            ui.layer(CLICK_MODAL, |ui, area| {
+                ui.register_control(CLICK_MODAL, area, Focusability::Focusable);
+            });
+        }
+    }
+
+    #[test]
+    fn pointer_press_count_tracks_triples_and_keeps_double_click_phase() {
+        let mut rt = Runtime::new(PressCountProbe::default(), Theme::junie());
+        let _ = rt.initialize();
+        let mut buf = Buffer::empty(SCREEN);
+        for _ in 0..8 {
+            rt.draw_buffer(SCREEN, &mut buf).commit_presented();
+            if !rt.needs_settle() {
+                break;
+            }
+            let _ = rt.settle();
+        }
+
+        for _ in 0..3 {
+            let _ = deliver(&mut rt, super::stub::mouse(MouseKind::Down, 2, 0));
+            rt.draw_buffer(SCREEN, &mut buf).commit_presented();
+            let _ = deliver(&mut rt, super::stub::mouse(MouseKind::Up, 2, 0));
+            rt.draw_buffer(SCREEN, &mut buf).commit_presented();
+            rt.advance_to(
+                rt.now()
+                    .saturating_add(core::time::Duration::from_millis(100)),
+            )
+            .unwrap();
+        }
+
+        assert_eq!(
+            rt.app().counts,
+            [
+                (Phase::Press, 1),
+                (Phase::Release, 1),
+                (Phase::Click, 1),
+                (Phase::Press, 2),
+                (Phase::Release, 2),
+                (Phase::DoubleClick, 2),
+                (Phase::Press, 3),
+                (Phase::Release, 3),
+                (Phase::Click, 3),
+            ]
+        );
+        assert_eq!(
+            rt.app()
+                .phases
+                .iter()
+                .filter(|phase| **phase == Phase::DoubleClick)
+                .count(),
+            1,
+            "existing second-click phase remains available"
+        );
+    }
+
+    #[test]
+    fn pointer_press_count_resets_after_slop_and_target_change() {
+        let mut rt = Runtime::new(PressCountProbe::default(), Theme::junie());
+        let _ = rt.initialize();
+        let mut buf = Buffer::empty(SCREEN);
+        for _ in 0..8 {
+            rt.draw_buffer(SCREEN, &mut buf).commit_presented();
+            if !rt.needs_settle() {
+                break;
+            }
+            let _ = rt.settle();
+        }
+        for x in [2, 4, 12, 2] {
+            let _ = deliver(&mut rt, super::stub::mouse(MouseKind::Down, x, 0));
+            rt.draw_buffer(SCREEN, &mut buf).commit_presented();
+            let _ = deliver(&mut rt, super::stub::mouse(MouseKind::Up, x, 0));
+            rt.draw_buffer(SCREEN, &mut buf).commit_presented();
+        }
+        rt.set_pointer_click_slop(2);
+        let _ = deliver(&mut rt, super::stub::mouse(MouseKind::Down, 4, 0));
+        rt.draw_buffer(SCREEN, &mut buf).commit_presented();
+        let _ = deliver(&mut rt, super::stub::mouse(MouseKind::Up, 4, 0));
+        rt.draw_buffer(SCREEN, &mut buf).commit_presented();
+        assert_eq!(
+            rt.app()
+                .counts
+                .iter()
+                .filter_map(|(phase, count)| (*phase == Phase::Press).then_some(*count))
+                .collect::<Vec<_>>(),
+            [1, 1, 1, 1, 2]
+        );
+    }
+
+    #[test]
+    fn capture_interruption_resets_the_pointer_click_sequence() {
+        let mut rt = Runtime::new(PressCountProbe::default(), Theme::junie());
+        let _ = rt.initialize();
+        let mut buf = Buffer::empty(SCREEN);
+        for _ in 0..8 {
+            rt.draw_buffer(SCREEN, &mut buf).commit_presented();
+            if !rt.needs_settle() {
+                break;
+            }
+            let _ = rt.settle();
+        }
+        let click = |rt: &mut Runtime<PressCountProbe>, buf: &mut Buffer| {
+            let _ = deliver(rt, super::stub::mouse(MouseKind::Down, 2, 0));
+            rt.draw_buffer(SCREEN, buf).commit_presented();
+            let _ = deliver(rt, super::stub::mouse(MouseKind::Up, 2, 0));
+            rt.draw_buffer(SCREEN, buf).commit_presented();
+        };
+
+        click(&mut rt, &mut buf);
+        rt.app_mut().capture_on_press = true;
+        let _ = deliver(&mut rt, super::stub::mouse(MouseKind::Down, 2, 0));
+        rt.draw_buffer(SCREEN, &mut buf).commit_presented();
+        let _ = deliver(&mut rt, super::stub::mouse(MouseKind::Up, 20, 0));
+        rt.draw_buffer(SCREEN, &mut buf).commit_presented();
+        rt.app_mut().capture_on_press = false;
+        click(&mut rt, &mut buf);
+
+        assert_eq!(
+            rt.app()
+                .counts
+                .iter()
+                .filter_map(|(phase, count)| (*phase == Phase::Press).then_some(*count))
+                .collect::<Vec<_>>(),
+            [1, 2, 1]
+        );
+    }
+
+    #[test]
+    fn successful_captured_clicks_keep_the_sequence_count() {
+        let mut rt = Runtime::new(
+            PressCountProbe {
+                capture_on_press: true,
+                ..PressCountProbe::default()
+            },
+            Theme::junie(),
+        );
+        let _ = rt.initialize();
+        let mut buf = Buffer::empty(SCREEN);
+        for _ in 0..8 {
+            rt.draw_buffer(SCREEN, &mut buf).commit_presented();
+            if !rt.needs_settle() {
+                break;
+            }
+            let _ = rt.settle();
+        }
+        for _ in 0..3 {
+            let _ = deliver(&mut rt, super::stub::mouse(MouseKind::Down, 2, 0));
+            rt.draw_buffer(SCREEN, &mut buf).commit_presented();
+            let _ = deliver(&mut rt, super::stub::mouse(MouseKind::Up, 2, 0));
+            rt.draw_buffer(SCREEN, &mut buf).commit_presented();
+        }
+        assert_eq!(
+            rt.app()
+                .counts
+                .iter()
+                .filter_map(|(phase, count)| (*phase == Phase::Press).then_some(*count))
+                .collect::<Vec<_>>(),
+            [1, 2, 3]
+        );
+    }
+
+    #[test]
+    fn a_long_second_press_expires_double_click_at_uncaptured_release() {
+        let mut rt = Runtime::new(PressCountProbe::default(), Theme::junie());
+        let _ = rt.initialize();
+        let mut buf = Buffer::empty(SCREEN);
+        for _ in 0..8 {
+            rt.draw_buffer(SCREEN, &mut buf).commit_presented();
+            if !rt.needs_settle() {
+                break;
+            }
+            let _ = rt.settle();
+        }
+        let _ = deliver(&mut rt, super::stub::mouse(MouseKind::Down, 2, 0));
+        rt.draw_buffer(SCREEN, &mut buf).commit_presented();
+        let _ = deliver(&mut rt, super::stub::mouse(MouseKind::Up, 2, 0));
+        rt.draw_buffer(SCREEN, &mut buf).commit_presented();
+
+        let _ = rt.advance_to(
+            rt.now()
+                .saturating_add(core::time::Duration::from_millis(100)),
+        );
+        let _ = deliver(&mut rt, super::stub::mouse(MouseKind::Down, 2, 0));
+        rt.draw_buffer(SCREEN, &mut buf).commit_presented();
+        assert_eq!(rt.app().counts.last(), Some(&(Phase::Press, 2)));
+        let _ = rt.advance_to(
+            rt.now()
+                .saturating_add(core::time::Duration::from_millis(600)),
+        );
+        let _ = deliver(&mut rt, super::stub::mouse(MouseKind::Up, 2, 0));
+        rt.draw_buffer(SCREEN, &mut buf).commit_presented();
+
+        assert_eq!(rt.app().counts.last(), Some(&(Phase::Click, 1)));
+        assert!(!rt.app().phases.contains(&Phase::DoubleClick));
+    }
+
+    #[test]
+    fn a_long_second_press_expires_double_click_at_captured_release() {
+        let mut rt = Runtime::new(PressCountProbe::default(), Theme::junie());
+        let _ = rt.initialize();
+        let mut buf = Buffer::empty(SCREEN);
+        for _ in 0..8 {
+            rt.draw_buffer(SCREEN, &mut buf).commit_presented();
+            if !rt.needs_settle() {
+                break;
+            }
+            let _ = rt.settle();
+        }
+        let click = |rt: &mut Runtime<PressCountProbe>, buf: &mut Buffer| {
+            let _ = deliver(rt, super::stub::mouse(MouseKind::Down, 2, 0));
+            rt.draw_buffer(SCREEN, buf).commit_presented();
+            let _ = deliver(rt, super::stub::mouse(MouseKind::Up, 2, 0));
+            rt.draw_buffer(SCREEN, buf).commit_presented();
+        };
+        click(&mut rt, &mut buf);
+        let _ = rt.advance_to(
+            rt.now()
+                .saturating_add(core::time::Duration::from_millis(100)),
+        );
+        rt.app_mut().capture_on_press = true;
+        let _ = deliver(&mut rt, super::stub::mouse(MouseKind::Down, 2, 0));
+        rt.draw_buffer(SCREEN, &mut buf).commit_presented();
+        assert_eq!(rt.app().counts.last(), Some(&(Phase::Press, 2)));
+        let _ = rt.advance_to(
+            rt.now()
+                .saturating_add(core::time::Duration::from_millis(600)),
+        );
+        let _ = deliver(&mut rt, super::stub::mouse(MouseKind::Up, 2, 0));
+        rt.draw_buffer(SCREEN, &mut buf).commit_presented();
+
+        assert_eq!(rt.app().counts.last(), Some(&(Phase::Click, 1)));
+        assert!(!rt.app().phases.contains(&Phase::DoubleClick));
+    }
+
+    #[test]
+    fn click_slop_uses_release_position_for_uncaptured_clicks() {
+        let mut rt = Runtime::new(PressCountProbe::default(), Theme::junie());
+        let _ = rt.initialize();
+        let mut buf = Buffer::empty(SCREEN);
+        for _ in 0..8 {
+            rt.draw_buffer(SCREEN, &mut buf).commit_presented();
+            if !rt.needs_settle() {
+                break;
+            }
+            let _ = rt.settle();
+        }
+        let _ = deliver(&mut rt, super::stub::mouse(MouseKind::Down, 2, 0));
+        rt.draw_buffer(SCREEN, &mut buf).commit_presented();
+        let _ = deliver(&mut rt, super::stub::mouse(MouseKind::Up, 3, 0));
+        rt.draw_buffer(SCREEN, &mut buf).commit_presented();
+        let _ = deliver(&mut rt, super::stub::mouse(MouseKind::Down, 4, 0));
+        rt.draw_buffer(SCREEN, &mut buf).commit_presented();
+
+        assert_eq!(rt.app().counts.last(), Some(&(Phase::Press, 2)));
+    }
+
+    #[test]
+    fn click_slop_uses_release_position_for_captured_clicks() {
+        let mut rt = Runtime::new(
+            PressCountProbe {
+                capture_on_press: true,
+                ..PressCountProbe::default()
+            },
+            Theme::junie(),
+        );
+        let _ = rt.initialize();
+        let mut buf = Buffer::empty(SCREEN);
+        for _ in 0..8 {
+            rt.draw_buffer(SCREEN, &mut buf).commit_presented();
+            if !rt.needs_settle() {
+                break;
+            }
+            let _ = rt.settle();
+        }
+        let click = |rt: &mut Runtime<PressCountProbe>, buf: &mut Buffer| {
+            let _ = deliver(rt, super::stub::mouse(MouseKind::Down, 2, 0));
+            rt.draw_buffer(SCREEN, buf).commit_presented();
+            let _ = deliver(rt, super::stub::mouse(MouseKind::Up, 3, 0));
+            rt.draw_buffer(SCREEN, buf).commit_presented();
+        };
+        click(&mut rt, &mut buf);
+        let _ = deliver(&mut rt, super::stub::mouse(MouseKind::Down, 4, 0));
+        rt.draw_buffer(SCREEN, &mut buf).commit_presented();
+
+        assert_eq!(rt.app().counts.last(), Some(&(Phase::Press, 2)));
+    }
+
+    #[test]
+    fn click_window_is_exclusive_at_exact_boundary() {
+        let mut rt = Runtime::new(PressCountProbe::default(), Theme::junie());
+        let _ = rt.initialize();
+        let mut buf = Buffer::empty(SCREEN);
+        for _ in 0..8 {
+            rt.draw_buffer(SCREEN, &mut buf).commit_presented();
+            if !rt.needs_settle() {
+                break;
+            }
+            let _ = rt.settle();
+        }
+        let _ = deliver(&mut rt, super::stub::mouse(MouseKind::Down, 2, 0));
+        rt.draw_buffer(SCREEN, &mut buf).commit_presented();
+        let _ = deliver(&mut rt, super::stub::mouse(MouseKind::Up, 2, 0));
+        rt.draw_buffer(SCREEN, &mut buf).commit_presented();
+        let window = rt.theme().design.motion.double_click_ms;
+        let _ = rt.advance_to(
+            rt.now()
+                .saturating_add(core::time::Duration::from_millis(window)),
+        );
+        let _ = deliver(&mut rt, super::stub::mouse(MouseKind::Down, 2, 0));
+        rt.draw_buffer(SCREEN, &mut buf).commit_presented();
+
+        assert_eq!(rt.app().counts.last(), Some(&(Phase::Press, 1)));
+    }
+
+    #[test]
+    fn click_window_is_exclusive_when_release_lands_on_deadline() {
+        let mut rt = Runtime::new(PressCountProbe::default(), Theme::junie());
+        let _ = rt.initialize();
+        let mut buf = Buffer::empty(SCREEN);
+        for _ in 0..8 {
+            rt.draw_buffer(SCREEN, &mut buf).commit_presented();
+            if !rt.needs_settle() {
+                break;
+            }
+            let _ = rt.settle();
+        }
+        let _ = deliver(&mut rt, super::stub::mouse(MouseKind::Down, 2, 0));
+        rt.draw_buffer(SCREEN, &mut buf).commit_presented();
+        let _ = deliver(&mut rt, super::stub::mouse(MouseKind::Up, 2, 0));
+        rt.draw_buffer(SCREEN, &mut buf).commit_presented();
+
+        let window = rt.theme().design.motion.double_click_ms;
+        let lead_in = window.saturating_sub(100);
+        let _ = rt.advance_to(
+            rt.now()
+                .saturating_add(core::time::Duration::from_millis(lead_in)),
+        );
+        let _ = deliver(&mut rt, super::stub::mouse(MouseKind::Down, 2, 0));
+        rt.draw_buffer(SCREEN, &mut buf).commit_presented();
+        assert_eq!(rt.app().counts.last(), Some(&(Phase::Press, 2)));
+        let _ = rt.advance_to(
+            rt.now()
+                .saturating_add(core::time::Duration::from_millis(100)),
+        );
+        let _ = deliver(&mut rt, super::stub::mouse(MouseKind::Up, 2, 0));
+        rt.draw_buffer(SCREEN, &mut buf).commit_presented();
+
+        assert_eq!(rt.app().counts.last(), Some(&(Phase::Click, 1)));
+        assert!(!rt.app().phases.contains(&Phase::DoubleClick));
+    }
+
+    #[test]
+    fn opening_and_dismissing_a_layer_resets_the_pointer_click_sequence() {
+        let mut rt = Runtime::new(
+            PressCountProbe {
+                open_modal_on_click: true,
+                ..PressCountProbe::default()
+            },
+            Theme::junie(),
+        );
+        let _ = rt.initialize();
+        let mut buf = Buffer::empty(SCREEN);
+        for _ in 0..8 {
+            rt.draw_buffer(SCREEN, &mut buf).commit_presented();
+            if !rt.needs_settle() {
+                break;
+            }
+            let _ = rt.settle();
+        }
+        let _ = deliver(&mut rt, super::stub::mouse(MouseKind::Down, 2, 0));
+        rt.draw_buffer(SCREEN, &mut buf).commit_presented();
+        let _ = deliver(&mut rt, super::stub::mouse(MouseKind::Up, 2, 0));
+        rt.draw_buffer(SCREEN, &mut buf).commit_presented();
+        assert!(rt.is_open(CLICK_MODAL));
+
+        let _ = deliver(&mut rt, super::stub::key(KeyCode::Esc));
+        rt.draw_buffer(SCREEN, &mut buf).commit_presented();
+        rt.app_mut().open_modal_on_click = false;
+        let _ = deliver(&mut rt, super::stub::mouse(MouseKind::Down, 2, 0));
+        rt.draw_buffer(SCREEN, &mut buf).commit_presented();
+
+        assert_eq!(
+            rt.app()
+                .counts
+                .iter()
+                .filter_map(|(phase, count)| (*phase == Phase::Press).then_some(*count))
+                .collect::<Vec<_>>(),
+            [1, 1]
         );
     }
 }
