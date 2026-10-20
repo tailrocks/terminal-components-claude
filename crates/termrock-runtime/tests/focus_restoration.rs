@@ -222,13 +222,15 @@ fn removed_disabled_and_reparented_openers_use_published_eligibility() {
         rt.app_mut().opener = opener;
         publish(&mut rt, &mut buf);
         let before = rt.app().ins.len();
+        let out_before = rt.app().outs.len();
         key(&mut rt, 'c');
         assert_eq!(rt.focus(), None);
         assert_eq!(
             rt.app().outs.last(),
-            Some(&MODAL),
-            "closed owner must receive immediate FocusOut"
+            Some(&A),
+            "page blur is delivered; retired modal gets no stale FocusOut"
         );
+        assert_eq!(rt.app().outs.len(), out_before);
         assert_eq!(
             rt.app().ins.len(),
             before,
@@ -260,8 +262,13 @@ fn nested_close_restores_only_inside_surviving_modal() {
     key(&mut rt, 'n');
     publish(&mut rt, &mut buf);
     assert_eq!(rt.focus(), Some(INNER));
+    let out_before = rt.app().outs.len();
     key(&mut rt, 'c');
-    assert_eq!(rt.app().outs.last(), Some(&INNER));
+    assert_eq!(
+        rt.app().outs.len(),
+        out_before,
+        "closed child gets no stale FocusOut"
+    );
     publish(&mut rt, &mut buf);
     assert_eq!(rt.focus(), Some(MODAL));
     assert!(rt.layer_area(MODAL).is_some());
