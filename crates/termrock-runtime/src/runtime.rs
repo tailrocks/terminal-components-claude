@@ -226,6 +226,10 @@ impl<A: App> ProjectedFrame<'_, A> {
         core::mem::swap(&mut output.last.registry, &mut frame.registry);
         core::mem::swap(&mut output.last.ring, &mut frame.ring);
         core::mem::swap(&mut output.last.bindings, &mut frame.bindings);
+        core::mem::swap(
+            &mut output.last.scoped_bubble_bindings,
+            &mut frame.scoped_bubble_bindings,
+        );
         core::mem::swap(&mut output.last.typing_bindings, &mut frame.typing_bindings);
         output.last.typing = frame.typing_resolved;
         output.last.layout.clear();
@@ -1706,7 +1710,10 @@ impl<A: App> Runtime<A> {
             && !r.is_consumed()
         {
             self.intents.clear();
-            if let Some(cmd) = self.core.keymap.lookup(KeyPhase::Bubble, &k, false) {
+            if let Some((owner, action, chord)) = self.scoped_bubble_binding(&k) {
+                self.intents.binding(owner, action, chord);
+                r |= self.run_update(None, UpdateCause::Event, activation_key);
+            } else if let Some(cmd) = self.core.keymap.lookup(KeyPhase::Bubble, &k, false) {
                 r |= self.run_update(Some(cmd), UpdateCause::Event, activation_key);
             } else if k.code == KeyCode::Esc {
                 let dismissable = self
@@ -1743,6 +1750,40 @@ impl<A: App> Runtime<A> {
         }
         drop(input);
         Ok(self.finish(r))
+    }
+
+    fn scoped_bubble_binding(
+        &self,
+        key: &crate::event::Key,
+    ) -> Option<(crate::Id, crate::ActionKey, crate::event::Chord)> {
+        let focus = self.last.snapshot.focus?;
+        let entry = self.last.ring.entry(focus)?;
+        if !self.last.ring.contains(focus) || entry.layer != self.services.layers.top() {
+            return None;
+        }
+        self.last
+            .scoped_bubble_bindings
+            .iter()
+            .filter(|published| {
+                published.layer == entry.layer
+                    && self.last.ring.scope_layer(published.scope) == Some(entry.layer)
+                    && self.last.ring.within(entry.scope, published.scope)
+            })
+            .filter_map(|published| {
+                let (_, descriptors) = self.last.bindings.get(published.owner)?;
+                let (action, chord) =
+                    self.core
+                        .keymap
+                        .component_binding(published.owner, descriptors, key)?;
+                Some((
+                    self.last.ring.scope_depth(published.scope)?,
+                    published.owner,
+                    action,
+                    chord,
+                ))
+            })
+            .max_by_key(|(depth, _, _, _)| *depth)
+            .map(|(_, owner, action, chord)| (owner, action, chord))
     }
 
     fn finish(&mut self, mut r: Response<()>) -> Response<()> {
@@ -1856,6 +1897,10 @@ impl<A: App> Runtime<A> {
         self.last.declared.clear();
         self.last.declared.append(&mut self.frame.declared);
         core::mem::swap(&mut self.last.bindings, &mut self.frame.bindings);
+        core::mem::swap(
+            &mut self.last.scoped_bubble_bindings,
+            &mut self.frame.scoped_bubble_bindings,
+        );
         core::mem::swap(
             &mut self.last.typing_bindings,
             &mut self.frame.typing_bindings,

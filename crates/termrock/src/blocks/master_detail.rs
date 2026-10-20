@@ -3,10 +3,25 @@
 use ratatui_core::layout::Rect;
 use termrock_controls::{SplitPane, SplitPaneState};
 use termrock_layout::{ChildPolicy, Composition, Constraints, Size, SplitAxis};
-use termrock_runtime::author::CompositionLeaf;
-use termrock_runtime::{CompositionSlots, ContentSlot, Cx, Measure, Response, Ui};
+use termrock_runtime::author::{self, CompositionLeaf};
+use termrock_runtime::focus::{ScopeId, ScopeMode};
+use termrock_runtime::keymap::Binding;
+use termrock_runtime::{
+    CompositionSlots, ContentSlot, Cx, FrameRead, LayoutFacts, Measure, Response, Ui,
+};
 
 use crate::composition::{CompositionError, Group};
+
+const CLOSE_DETAIL: crate::ActionKey =
+    crate::ActionKey::custom("termrock.master_detail.close_detail");
+const DETAIL_BINDINGS: &[Binding<MasterDetailAction>] = &[Binding {
+    action: CLOSE_DETAIL,
+    chord: Some(crate::Chord::key(crate::KeyCode::Esc)),
+    cmd: MasterDetailAction::DrawerClosed,
+    label: "Close detail",
+    priority: 0,
+    visible: false,
+}];
 
 /// Responsive layout policy for a reusable master/detail block.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -188,19 +203,24 @@ impl<'a> MasterDetail<'a> {
         Response::action(MasterDetailAction::DrawerClosed).for_id(self.id)
     }
 
-    /// Dismiss an open drawer on Escape before the configured detail owner
-    /// handles the same input. Call before updating that detail control, and
-    /// return the consumed response immediately. Other intents remain available
-    /// to the detail control through the normal update pass.
+    /// Close an open narrow drawer only for the scoped bubble binding that the
+    /// runtime routes after the focused detail control declines Escape.
     pub fn update(
         &self,
         cx: &mut Cx<'_>,
         state: &mut MasterDetailState,
     ) -> Response<MasterDetailAction> {
-        if state.drawer_open
-            && self.policy.is_collapsed(cx.viewport().width)
-            && cx.intents(self.detail_owner).any(
-                |intent| matches!(intent, crate::Intent::Key(key) if key.is(crate::KeyCode::Esc)),
+        let scope = self.detail_scope();
+        let narrow_drawer_is_active = state.drawer_open
+            && cx
+                .layout(self.id)
+                .and_then(|facts| facts.logical_area)
+                .filter(|area| !area.is_empty())
+                .is_some_and(|area| self.policy.is_collapsed(area.width))
+            && cx.focused_in_scope(scope).is_some();
+        if narrow_drawer_is_active
+            && cx.intents(self.id).any(
+                |intent| matches!(intent, crate::Intent::Binding(action) if action == CLOSE_DETAIL),
             )
         {
             self.close_detail(cx, state)
@@ -261,22 +281,37 @@ impl<'a> MasterDetail<'a> {
             summary.validate_depth()?;
         }
 
-        if ui.full().width >= self.policy.collapse_below {
-            self.wide_split(master, detail)
-                .show(ui, &SplitPaneState::default())
-                .map_err(|error| match error {
-                    crate::blocks::SplitBlockError::Composition(error) => {
-                        MasterDetailError::Composition(error)
+        let area = ui.full();
+        ui.report_layout(self.id, LayoutFacts::default().with_logical_area(area));
+        if area.width >= self.policy.collapse_below {
+            let mut result: Result<(), CompositionError> = Ok(());
+            self.wide_pane()
+                .draw(ui, area, &SplitPaneState::default(), |ui, first, second| {
+                    result = ui.with_area(first, |ui| master.show(ui));
+                    if result.is_ok() {
+                        result = ui.with_area(second, |ui| {
+                            ui.focus_scope(self.detail_scope().id(), ScopeMode::Normal, |ui| {
+                                detail.show(ui)
+                            })
+                        });
                     }
-                    crate::blocks::SplitBlockError::MissingFirst => {
-                        MasterDetailError::MissingMaster
-                    }
-                    crate::blocks::SplitBlockError::MissingSecond => {
-                        MasterDetailError::MissingDetail
-                    }
-                })
+                });
+            result.map_err(Into::into)
         } else if state.drawer_open {
-            detail.show(ui).map_err(Into::into)
+            ui.focus_scope(self.detail_scope().id(), ScopeMode::Normal, |ui| {
+                let result = detail.show(ui);
+                if result.is_ok() {
+                    author::publish_scope_bindings(
+                        ui,
+                        self.detail_scope(),
+                        self.id,
+                        crate::StateFlags::empty(),
+                        DETAIL_BINDINGS,
+                    );
+                }
+                result
+            })
+            .map_err(Into::into)
         } else {
             ui.compose(&self.narrow_slots(master, ui.full().height))
                 .map_err(Into::into)
@@ -288,21 +323,27 @@ impl<'a> MasterDetail<'a> {
         master: &'a Group<'a>,
         detail: &'a Group<'a>,
     ) -> crate::blocks::SplitBlock<'a> {
-        crate::blocks::SplitBlock::new(
-            SplitPane::new(self.id, SplitAxis::Horizontal)
-                .gap(self.policy.gap)
-                .min_first(1)
-                .min_second(self.policy.detail_min)
-                .resizable(false)
-                .fixed_second_share(
-                    self.policy.detail_share,
-                    self.policy.detail_min,
-                    self.policy.detail_max,
-                )
-                .seam_start(0),
-        )
-        .first(master)
-        .second(detail)
+        crate::blocks::SplitBlock::new(self.wide_pane())
+            .first(master)
+            .second(detail)
+    }
+
+    fn wide_pane(&self) -> SplitPane<'a> {
+        SplitPane::new(self.id, SplitAxis::Horizontal)
+            .gap(self.policy.gap)
+            .min_first(1)
+            .min_second(self.policy.detail_min)
+            .resizable(false)
+            .fixed_second_share(
+                self.policy.detail_share,
+                self.policy.detail_min,
+                self.policy.detail_max,
+            )
+            .seam_start(0)
+    }
+
+    const fn detail_scope(&self) -> ScopeId {
+        ScopeId::new(self.id.sub("detail.scope"))
     }
 
     fn narrow_slots(&self, master: &'a Group<'a>, height: u16) -> CompositionSlots<'a> {
