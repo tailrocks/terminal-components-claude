@@ -60,20 +60,20 @@ url_api = "https://api.github.com/repos/cli/cli/releases/assets/599854720"
 provenance = "github-attestations"
 
 [[tools."github:tailrocks/velnor-new"]]
-version = "0.1.12"
+version = "0.1.29"
 backend = "github:tailrocks/velnor-new"
-specifiers = ["0.1.12"]
+specifiers = ["0.1.29"]
 
 [tools."github:tailrocks/velnor-new"."platforms.linux-x64"]
-checksum = "sha256:2488f97877c2ed55489fdf4dec70412c0196d33afc7366bd2ced949f2a94557f"
-url = "https://github.com/tailrocks/velnor-new/releases/download/v0.1.12/velnor-actions-0.1.12-x86_64-unknown-linux-gnu"
-url_api = "https://api.github.com/repos/tailrocks/velnor-new/releases/assets/649358871"
+checksum = "sha256:ffb8c82a10ae55344225cb77f8a3f68c2ccd42068cff5959254bfed5d7780b74"
+url = "https://github.com/tailrocks/velnor-new/releases/download/v0.1.29/velnor-actions-0.1.29-x86_64-unknown-linux-gnu"
+url_api = "https://api.github.com/repos/tailrocks/velnor-new/releases/assets/659190563"
 provenance = "github-attestations"
 
 [tools."github:tailrocks/velnor-new"."platforms.macos-arm64"]
-checksum = "sha256:f08ba3c1f67e76490a4d374a323b7f716ed1bbca2c0ed4b575b50f2cd29453e9"
-url = "https://github.com/tailrocks/velnor-new/releases/download/v0.1.12/velnor-actions-0.1.12-aarch64-apple-darwin"
-url_api = "https://api.github.com/repos/tailrocks/velnor-new/releases/assets/649358869"
+checksum = "sha256:7c4e0efeab89e05928bbd9a375d7b594fd9236caef2eac7b4ad241b3a92dd1d3"
+url = "https://github.com/tailrocks/velnor-new/releases/download/v0.1.29/velnor-actions-0.1.29-aarch64-apple-darwin"
+url_api = "https://api.github.com/repos/tailrocks/velnor-new/releases/assets/659190562"
 provenance = "github-attestations"
 
 [[tools.rust]]
