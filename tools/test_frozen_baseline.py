@@ -694,6 +694,334 @@ class RunnerGuards(unittest.TestCase):
         with self.assertRaisesRegex(runner.RunnerError, "chunk size"):
             runner.scenario_chunks(names, 513)
 
+    def _fresh_plan_fixture(self, root: Path) -> dict[str, object]:
+        repo = root / "repo"
+        source = root / "source"
+        live = root / "live-source"
+        for directory in (repo / "tools" / "frozen-cli-frame-support" / "src", source / "snapshots", source / "tests" / "visual_baseline", live / "tests" / "visual_baseline"):
+            directory.mkdir(parents=True, exist_ok=True)
+        for relative, contents in (
+            (Path("tools/frozen_cli_extensions.json"), "{}"),
+            (Path("tools/frozen_cli_extensions.rs"), "extension"),
+            (Path("tools/frozen_cli_pair.patch"), "patch"),
+            (Path("tools/frozen-cli-frame-support/src/lib.rs"), "helper"),
+        ):
+            target = repo / relative
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_text(contents)
+        for relative, contents in ((Path("Cargo.lock"), "lock"), (Path("rust-toolchain.toml"), "toolchain")):
+            (source / relative).write_text(contents)
+        (source / "tests" / "visual_baseline" / "main.rs").write_text("harness")
+        (live / "tests" / "visual_baseline" / "main.rs").write_text("patched harness")
+        (root / "provenance.json").write_text("{}")
+        (root / "live-source.json").write_text("{}")
+        extension = "termrock_extensions::showcase::table_sort::fixture::80x24::truecolor"
+        inventory = {
+            "showcase::pages::fixture::80x24::truecolor": True,
+            extension: True,
+            "source_only::fixture": False,
+            "modes::showcase_boot_sets_terminal_modes": False,
+        }
+        live_record = {"test_inventory_sha256": runner.inventory_digest(inventory), "module_sha256": "a" * 64}
+        cohort = {
+            "cohort_id": "fixture-cohort",
+            "cohort_registry_sha256": "b" * 64,
+            "review_registry_sha256": "c" * 64,
+            "decision_sha256": "d" * 64,
+            "evidence_index_sha256": "e" * 64,
+            "status": runner.CAPTURE_ELIGIBLE_COHORT_STATUS,
+            "source": {"commit": runner.BASELINE_COMMIT},
+            "tools": {},
+            "fresh_baseline_capture_eligible": True,
+            "baseline_replay_eligible": True,
+            "candidate_comparison_eligible": False,
+            "checkpoint_reference_approval": "none",
+            "product_acceptance_eligible": False,
+            "acceptance_complete": False,
+            "binaries": {app: {"path": str(root / "bins" / app), "sha256": "f" * 64} for app in runner.APPS},
+        }
+        manifest = {"generated_case_ids": [extension], "checkpoint_obligations": {extension: ["initial", "done"]}}
+        original_inventory = {name: ignored for name, ignored in inventory.items() if name != extension}
+        with patch.object(runner, "EXPECTED_SCENARIOS", 1), patch.object(runner, "EXPECTED_ORDINARY_TESTS", 2), patch.object(runner, "validate_extension_inventory", return_value=(original_inventory, [extension])), patch.object(runner, "ordinary_test_groups", return_value=( ["source_only::fixture"], ["modes::showcase_boot_sets_terminal_modes"] )), patch.object(runner, "fresh_clean_env", return_value={"LANG": "C", "TERM": "xterm-256color", "CARGO_TARGET_DIR": str(root / "live-target"), "NEXTEST_EXPERIMENTAL_LIBTEST_JSON": "1"}), patch.object(runner, "fresh_tool_observation", return_value={"cargo": {"path": "/pinned/cargo", "sha256": "1" * 64}}):
+            plan = runner.build_fresh_plan_payload(
+                repo=repo, root=root, cohort=cohort, live_record=live_record, inventory=inventory,
+                extension_manifest=manifest, chunk_size=1, term_profile=None, plan_id="1" * 32,
+                created_at="2026-10-21T00:00:00+00:00",
+            )
+        return plan
+
+    def test_fresh_plan_is_complete_capture_only_inventory_and_verifiable(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            plan = self._fresh_plan_fixture(root)
+            self.assertEqual(plan["inventory"]["visual_count"], 2)
+            self.assertEqual(plan["inventory"]["ordinary_count"], 2)
+            self.assertEqual([phase["name"] for phase in plan["execution"]["phases"]], ["baseline-capture", "baseline-replay", "baseline-ordinary-checks"])
+            self.assertFalse(plan["execution"]["candidate_comparison_eligible"])
+            self.assertIsNone(plan["execution"]["candidate_phase"])
+            self.assertEqual(plan["cohort"]["checkpoint_reference_approval"], "none")
+            self.assertEqual(plan["inventory"]["checkpoint_obligations"][plan["inventory"]["visual_extensions"][0]]["checkpoints"], ["initial", "done"])
+            path = root / runner.FRESH_PLAN_FILE
+            runner._atomic_create_plan(path, plan)
+            with patch.object(runner, "EXPECTED_SCENARIOS", 1), patch.object(runner, "EXPECTED_ORDINARY_TESTS", 2), patch.object(runner, "ordinary_test_groups", return_value=(["source_only::fixture"], ["modes::showcase_boot_sets_terminal_modes"])):
+                digest = runner.sha256(path)
+                self.assertEqual(runner._read_self_sealed_plan(path, digest), plan)
+                with self.assertRaisesRegex(runner.RunnerError, "externally retained creation digest"):
+                    runner._read_self_sealed_plan(path, "0" * 64)
+            with self.assertRaisesRegex(runner.RunnerError, "refusing to replace"):
+                runner._atomic_create_plan(path, plan)
+
+    def test_fresh_plan_rejects_duplicate_zero_chunk_privilege_and_digest_tampering(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            plan = self._fresh_plan_fixture(Path(temp))
+            mutations = []
+            duplicate = json.loads(json.dumps(plan))
+            duplicate["inventory"]["full_sorted"].append(duplicate["inventory"]["full_sorted"][0])
+            mutations.append(duplicate)
+            zero_chunk = json.loads(json.dumps(plan))
+            zero_chunk["execution"]["phases"][0]["chunks"] = []
+            mutations.append(zero_chunk)
+            privilege = json.loads(json.dumps(plan))
+            privilege["execution"]["candidate_comparison_eligible"] = True
+            mutations.append(privilege)
+            old_tuple = json.loads(json.dumps(plan))
+            old_tuple["legacy_reference_decision"] = {"sha256": runner.REFERENCE_DECISIONS_SHA256}
+            mutations.append(old_tuple)
+            digest = json.loads(json.dumps(plan))
+            digest["plan_sha256"] = "0" * 64
+            mutations.append(digest)
+            for altered in mutations:
+                with self.subTest(mutation=altered), self.assertRaises(runner.RunnerError):
+                    runner.validate_fresh_plan_document(altered)
+            coherent = json.loads(json.dumps(plan))
+            coherent["execution"]["chunk_size"] = 2
+            visual = coherent["inventory"]["visual_selected"]
+            coherent["execution"]["phases"][0]["chunks"] = runner._chunk_records(visual, 2)
+            coherent["execution"]["phases"][1]["chunks"] = runner._chunk_records(visual, 2)
+            coherent["execution"]["phases"][2]["groups"] = [
+                {"name": "source-only", "chunks": runner._chunk_records(coherent["inventory"]["ordinary_source_only"], 2)},
+                {"name": "baseline-cli", "chunks": runner._chunk_records(coherent["inventory"]["ordinary_baseline_cli"], 2)},
+            ]
+            coherent["plan_sha256"] = runner.canonical_json_digest({key: value for key, value in coherent.items() if key != "plan_sha256"})
+            with patch.object(runner, "EXPECTED_SCENARIOS", 1), patch.object(runner, "EXPECTED_ORDINARY_TESTS", 2), patch.object(runner, "ordinary_test_groups", return_value=(["source_only::fixture"], ["modes::showcase_boot_sets_terminal_modes"])):
+                runner.validate_fresh_plan_document(coherent)
+            with tempfile.TemporaryDirectory() as temp:
+                path = Path(temp) / runner.FRESH_PLAN_FILE
+                runner._atomic_create_plan(path, coherent)
+                with self.assertRaisesRegex(runner.RunnerError, "externally retained creation digest"):
+                    original_creation_digest = runner.hashlib.sha256((json.dumps(plan, ensure_ascii=False, sort_keys=True, separators=(",", ":")) + "\n").encode()).hexdigest()
+                    runner._read_self_sealed_plan(path, original_creation_digest)
+
+    def test_fresh_plan_reader_rejects_symlink_and_duplicate_json_keys(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            plan = self._fresh_plan_fixture(root)
+            path = root / runner.FRESH_PLAN_FILE
+            runner._atomic_create_plan(path, plan)
+            alias = root / "plan-link.json"
+            alias.symlink_to(path)
+            with self.assertRaisesRegex(runner.RunnerError, "symlinked or non-regular"):
+                runner._read_self_sealed_plan(alias)
+            duplicate = root / "plan-duplicate.json"
+            duplicate.write_text('{"schema":"x","schema":"y"}')
+            with self.assertRaisesRegex(runner.RunnerError, "duplicate fresh plan JSON field"):
+                runner._read_self_sealed_plan(duplicate)
+
+    def test_fresh_environment_binds_locale_color_timezone_and_tool_bytes(self) -> None:
+        baseline = {key: "stable" for key in runner.FRESH_RUNTIME_ENV_KEYS}
+        baseline.pop("LC_ALL")
+        expected = runner.fresh_environment_fingerprint(baseline)
+        for key, value in (("LANG", "fr_FR.UTF-8"), ("LC_ALL", "C"), ("TZ", "UTC"), ("NO_COLOR", "1"), ("COLORTERM", "truecolor")):
+            changed = dict(baseline)
+            changed[key] = value
+            self.assertNotEqual(runner.fresh_environment_fingerprint(changed), expected, key)
+        env = {"PATH": "/tools", "RUSTC": "/tools/rustc"}
+        observation = {"path": "/tools/cargo", "sha256": "a" * 64, "version": "cargo 1"}
+        with patch.object(runner, "_selected_executable_observation", side_effect=[observation] * 4), patch.object(runner, "toolchain_provenance", return_value={"selected": True}):
+            first = runner.fresh_tool_observation(Path("/src"), env)
+        changed_observation = {"path": "/tools/cargo", "sha256": "b" * 64, "version": "cargo 1"}
+        with patch.object(runner, "_selected_executable_observation", side_effect=[changed_observation] + [observation] * 3), patch.object(runner, "toolchain_provenance", return_value={"selected": True}):
+            second = runner.fresh_tool_observation(Path("/src"), env)
+        self.assertNotEqual(first, second)
+
+    def test_fresh_plan_cli_defaults_to_bounded_timeout_and_external_anchor_required(self) -> None:
+        args = runner.parser().parse_args(["fresh-plan", "--cohort", "fixture", "--baseline-bin-dir", "/bins"])
+        self.assertEqual(args.timeout, runner.FRESH_PLAN_MAX_TIMEOUT)
+        verify = runner.parser().parse_args(["verify-fresh-plan", "--cohort", "fixture", "--baseline-bin-dir", "/bins", "--expected-plan-sha256", "a" * 64])
+        self.assertEqual(verify.expected_plan_sha256, "a" * 64)
+        with self.assertRaises(SystemExit):
+            runner.parser().parse_args(["verify-fresh-plan", "--cohort", "fixture", "--baseline-bin-dir", "/bins"])
+
+    def test_fresh_plan_creation_digest_is_precomputed_before_publish_race(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            plan = self._fresh_plan_fixture(root)
+            inventory = {row["name"]: row["ignored"] for row in plan["inventory"]["full_sorted"]}
+            repo = root / "repo"
+            source = root / "source"
+            live = root / "live-source"
+            path = root / runner.FRESH_PLAN_FILE
+            original_reader = runner._read_self_sealed_plan
+
+            def rewrite_after_stable_read(plan_path: Path, expected_sha256: str | None = None) -> dict[str, object]:
+                parsed = original_reader(plan_path, expected_sha256)
+                changed = json.loads(json.dumps(plan))
+                changed["execution"]["chunk_size"] = 2
+                visual = changed["inventory"]["visual_selected"]
+                changed["execution"]["phases"][0]["chunks"] = runner._chunk_records(visual, 2)
+                changed["execution"]["phases"][1]["chunks"] = runner._chunk_records(visual, 2)
+                changed["execution"]["phases"][2]["groups"] = [
+                    {"name": "source-only", "chunks": runner._chunk_records(changed["inventory"]["ordinary_source_only"], 2)},
+                    {"name": "baseline-cli", "chunks": runner._chunk_records(changed["inventory"]["ordinary_baseline_cli"], 2)},
+                ]
+                changed["plan_sha256"] = runner.canonical_json_digest({key: value for key, value in changed.items() if key != "plan_sha256"})
+                plan_path.chmod(0o600)
+                plan_path.write_text(json.dumps(changed, ensure_ascii=False, sort_keys=True, separators=(",", ":")) + "\n")
+                return parsed
+
+            stdout = io.StringIO()
+            with (
+                patch.object(runner, "EXPECTED_SCENARIOS", 1),
+                patch.object(runner, "EXPECTED_ORDINARY_TESTS", 2),
+                patch.object(runner, "ordinary_test_groups", return_value=(["source_only::fixture"], ["modes::showcase_boot_sets_terminal_modes"])),
+                patch.object(runner, "paths", return_value=(repo, root, source)),
+                patch.object(runner, "verify_source"),
+                patch.object(runner, "require_capture_eligible_cohort", return_value=plan["cohort"]),
+                patch.object(runner, "verify_live_source", return_value=(live, {"test_inventory_sha256": runner.inventory_digest(inventory)})),
+                patch.object(runner, "load_extension_manifest", return_value={"generated_case_ids": plan["inventory"]["visual_extensions"], "checkpoint_obligations": {}}),
+                patch.object(runner, "fresh_clean_env", return_value={"LANG": "C"}),
+                patch.object(runner, "nextest_inventory", return_value=inventory),
+                patch.object(runner, "require_inventory_matches"),
+                patch.object(runner, "build_fresh_plan_payload", return_value=plan),
+                patch.object(runner, "_read_self_sealed_plan", side_effect=rewrite_after_stable_read),
+                patch.object(sys, "stdout", stdout),
+            ):
+                result = runner.create_fresh_plan(repo, root, "fixture-cohort", root / "bins", 10, 1, None)
+            self.assertEqual(result, plan)
+            report = json.loads(stdout.getvalue())
+            original_bytes = (json.dumps(plan, ensure_ascii=False, sort_keys=True, separators=(",", ":")) + "\n").encode()
+            self.assertEqual(report["creation_file_sha256"], runner.hashlib.sha256(original_bytes).hexdigest())
+            with self.assertRaisesRegex(runner.RunnerError, "externally retained creation digest"):
+                original_reader(path, report["creation_file_sha256"])
+
+    def test_fresh_prepare_mode_does_not_consult_legacy_build_or_tuple_approval(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            repo = root / "repo"
+            source = root / "source"
+            for directory in (repo / "tools" / "frozen-cli-frame-support" / "src", source / "snapshots", source / "tests" / "visual_baseline" / "scenarios"):
+                directory.mkdir(parents=True)
+            patch_path = repo / "tools" / "frozen_cli_pair.patch"
+            helper_path = repo / "tools" / "frozen-cli-frame-support" / "src" / "lib.rs"
+            extension_manifest_path = repo / runner.EXTENSION_MANIFEST
+            extension_source_path = repo / runner.EXTENSION_SOURCE
+            for path in (patch_path, helper_path, extension_manifest_path, extension_source_path):
+                path.write_text("fixture")
+            expected_changes = {
+                "tests/visual_baseline/main.rs", "tests/visual_baseline/support.rs",
+                "tests/visual_baseline/scenarios/mod.rs", "tests/visual_baseline/scenarios/interact.rs",
+                "tests/visual_baseline/frozen_cli_pair.rs", "tests/visual_baseline/frozen_cli_extensions.rs",
+                "tests/visual_baseline/frozen_cli_extensions.json",
+            }
+            initial_manifest = {}
+            final_manifest = {name: "fixture" for name in expected_changes}
+            extension_case = "termrock_extensions::showcase::table_sort::fixture::80x24::truecolor"
+            inventory = {"showcase::pages::fixture::80x24::truecolor": True, extension_case: True}
+            capture = {"cohort_id": "fixture-cohort", "fresh_baseline_capture_eligible": True}
+
+            def fake_digest(path: Path) -> str:
+                if path == patch_path:
+                    return runner.EXTENSION_PATCH_SHA256
+                if path == extension_manifest_path:
+                    return runner.EXTENSION_MANIFEST_SHA256
+                if path == extension_source_path:
+                    return runner.EXTENSION_SOURCE_SHA256
+                if path == helper_path:
+                    return "a" * 64
+                return "b" * 64
+
+            with (
+                patch.object(runner, "load_reference_decisions", side_effect=AssertionError("legacy tuple/build loader must not be called")) as legacy,
+                patch.object(runner, "_fresh_cohort_source_record", return_value=capture),
+                patch.object(runner, "load_extension_manifest", return_value={"generated_case_ids": [extension_case], "checkpoint_obligations": {extension_case: ["initial"]}}),
+                patch.object(runner, "file_manifest", side_effect=[initial_manifest, final_manifest]),
+                patch.object(runner, "digest_tree", return_value="c" * 64),
+                patch.object(runner, "digest_source", return_value="d" * 64),
+                patch.object(runner, "freeze_tree_readonly"),
+                patch.object(runner, "run"),
+                patch.object(runner, "nextest_inventory", return_value=inventory),
+                patch.object(runner, "validate_extension_inventory", return_value=(inventory, [extension_case])),
+                patch.object(runner, "sha256", side_effect=fake_digest),
+                patch.object(runner, "fresh_clean_env", return_value={"PATH": "/tools", "LANG": "C"}),
+                patch.object(runner, "fresh_tool_observation", return_value={"cargo": "fixture"}),
+            ):
+                result = runner.prepare_live_source(repo, root, source, 10, fresh_cohort_id="fixture-cohort", baseline_bin_dir=root / "sealed")
+            legacy.assert_not_called()
+            self.assertEqual(result["fresh_capture_cohort"], capture)
+            self.assertIsNone(result["reference_decisions_sha256"])
+
+    def test_fresh_live_verification_does_not_load_legacy_tuple_decision(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            repo = root / "repo"
+            source = root / "source"
+            live = root / "live-source"
+            for directory in (source / "snapshots", live / "snapshots", live / "tests" / "visual_baseline"):
+                directory.mkdir(parents=True, exist_ok=True)
+            helper = repo / "tools" / "frozen-cli-frame-support" / "src" / "lib.rs"
+            patch_file = repo / "tools" / "frozen_cli_pair.patch"
+            extension_manifest = repo / runner.EXTENSION_MANIFEST
+            extension_source = repo / runner.EXTENSION_SOURCE
+            for path in (helper, patch_file, extension_manifest, extension_source):
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_text("fixture")
+            live_module = live / "tests" / "visual_baseline" / "frozen_cli_pair.rs"
+            live_extension_module = live / "tests" / "visual_baseline" / "frozen_cli_extensions.rs"
+            live_manifest_copy = live / "tests" / "visual_baseline" / "frozen_cli_extensions.json"
+            for path in (live_module, live_extension_module, live_manifest_copy):
+                path.write_text("fixture")
+            capture = {"cohort_id": "fixture-cohort", "binary_sha256": {app: "a" * 64 for app in runner.APPS}}
+            fresh_env = {"PATH": "/tools", "LANG": "C", "CARGO_TARGET_DIR": str(root / "live-target"), "NEXTEST_EXPERIMENTAL_LIBTEST_JSON": "1"}
+            record = {
+                "frozen_source_sha256": "frozen", "live_source_sha256": "live",
+                "patch_sha256": runner.EXTENSION_PATCH_SHA256, "helper_sha256": "helper",
+                "module_sha256": "module", "extension_manifest_sha256": runner.EXTENSION_MANIFEST_SHA256,
+                "extension_source_sha256": runner.EXTENSION_SOURCE_SHA256,
+                "extension_module_sha256": "extension-module", "extension_manifest_copy_sha256": "manifest-copy",
+                "reference_decisions_sha256": None, "fresh_capture_cohort": capture,
+                "frozen_snapshots_sha256": "snapshots", "live_snapshots_sha256": "snapshots",
+                "preparation_environment": runner.fresh_environment_fingerprint(fresh_env),
+                "preparation_tool_observation": {"cargo": "fixture"},
+            }
+            (root / "live-source.json").write_text(json.dumps(record))
+
+            def fake_sha(path: Path) -> str:
+                return {
+                    patch_file: runner.EXTENSION_PATCH_SHA256,
+                    helper: "helper",
+                    live_module: "module",
+                    extension_manifest: runner.EXTENSION_MANIFEST_SHA256,
+                    extension_source: runner.EXTENSION_SOURCE_SHA256,
+                    live_extension_module: "extension-module",
+                    live_manifest_copy: "manifest-copy",
+                }.get(path, "unused")
+
+            with (
+                patch.object(runner, "load_reference_decisions", side_effect=AssertionError("fresh source must not consult old tuple/build provenance")) as legacy,
+                patch.object(runner, "_fresh_cohort_source_record", return_value=capture),
+                patch.object(runner, "digest_source", side_effect=lambda path: "frozen" if path == source else "live"),
+                patch.object(runner, "digest_tree", return_value="snapshots"),
+                patch.object(runner, "sha256", side_effect=fake_sha),
+                patch.object(runner, "fresh_clean_env", return_value={"PATH": "/tools", "LANG": "C"}),
+                patch.object(runner, "fresh_tool_observation", return_value={"cargo": "fixture"}),
+            ):
+                verified_live, verified_record = runner.verify_live_source(
+                    repo, root, source, 10, fresh_cohort_id="fixture-cohort", baseline_bin_dir=root / "sealed",
+                )
+            legacy.assert_not_called()
+            self.assertEqual(verified_live, live)
+            self.assertEqual(verified_record["fresh_capture_cohort"], capture)
+
     def test_chunk_coverage_rejects_missing_duplicate_skipped_and_repartitioned(self) -> None:
         selected = [f"case::{index}" for index in range(5)]
         good = [
