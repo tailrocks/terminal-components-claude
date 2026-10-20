@@ -7367,10 +7367,7 @@ fn draw_painted_grid(
     GRID_SEEN_ROW.with(|slot| *slot.borrow_mut() = None);
     install_grid_budgets(area.width, columns, model);
     install_scrolled_budgets(area.width, columns, model, state);
-    // The editor's own cell must be 11 wide so its bar sits on the field tail.
-    let mut editor_columns = Vec::new();
-    let draw_specs = editor_column_specs(specs, columns, state, model, &mut editor_columns);
-    let grid = result_grid(id, draw_specs);
+    let grid = result_grid(id, specs);
     grid.draw(ui, area, state, &PaintedGrid { inner: model });
     paint_grid_focus_bar(ui, area, state, model);
     let visible = usize::from(area.height.saturating_sub(1)).min(model.row_count());
@@ -7395,64 +7392,6 @@ fn draw_painted_grid(
         covered,
         calm_header,
     );
-}
-
-fn editor_column_specs<'a>(
-    specs: &'a [termrock::Column<'a>],
-    columns: &[(String, ColType)],
-    state: &termrock::GridState,
-    model: &ResultGrid,
-    owned: &'a mut Vec<termrock::Column<'a>>,
-) -> &'a [termrock::Column<'a>] {
-    let Some(index) = state
-        .edit_cell()
-        .and_then(|(_, column)| usize::from(column.raw()).checked_sub(1))
-    else {
-        return specs;
-    };
-    let Some((name, ty)) = columns.get(index) else {
-        return specs;
-    };
-    if matches!(ty, ColType::Int | ColType::Numeric) {
-        return specs;
-    }
-    let place = column_natural_width(name, *ty, model, index).saturating_add(2);
-    let draft = state.edit_draft().unwrap_or("");
-    // The grid parks the hardware cursor on the cell's right edge.
-    let slot_width = width(&editing_window(draft, place.saturating_sub(3))).max(1);
-    owned.extend_from_slice(specs);
-    if let Some(column) = owned.get_mut(index) {
-        column.min_width = slot_width;
-        column.max_width = slot_width;
-    }
-    owned.as_slice()
-}
-
-fn editing_window(text: &str, inner: u16) -> String {
-    let cursor = width(text);
-    let hs = if inner == 0 || cursor < inner {
-        0
-    } else {
-        cursor.saturating_add(1).saturating_sub(inner)
-    };
-    let mut shown = String::new();
-    let skip = if hs > 0 {
-        shown.push('…');
-        hs.saturating_add(1)
-    } else {
-        0
-    };
-    let mut col = 0u16;
-    let mut buf = [0u8; 4];
-    for ch in text.chars() {
-        let piece = ch.encode_utf8(&mut buf);
-        let gw = width(piece);
-        if col >= skip && width(&shown).saturating_add(gw) <= inner {
-            shown.push(ch);
-        }
-        col = col.saturating_add(gw);
-    }
-    shown
 }
 
 fn result_grid<'a>(id: Id, columns: &'a [termrock::Column<'a>]) -> Grid<'a> {
