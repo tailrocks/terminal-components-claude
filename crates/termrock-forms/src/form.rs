@@ -26,6 +26,7 @@ use termrock_fields::input::{ErrorState, TextAction, TextInput, TextInputState, 
 use termrock_fields::textarea::{TextArea, TextAreaState};
 use termrock_navigation::chip::{ChipBarState, LabelChips};
 use termrock_overlays::select::{LabelSelect, SelectAction, SelectState};
+use termrock_runtime::author::VerticalWindow;
 use termrock_runtime::diagnostics::Diagnostic;
 use termrock_runtime::scroll_region::ScrollRegion;
 
@@ -732,6 +733,68 @@ struct Placement {
     left: u16,
     width: u16,
     height: u16,
+}
+
+#[derive(Clone, Copy)]
+struct FieldWindow {
+    area: Rect,
+    source_first_row: usize,
+    logical_height: u16,
+}
+
+fn resolve_field_window(content: Rect, placement: Placement, offset: usize) -> Option<FieldWindow> {
+    let visible_start = placement.top.max(offset);
+    let visible_end = placement
+        .top
+        .saturating_add(usize::from(placement.height))
+        .min(offset.saturating_add(usize::from(content.height)));
+    if visible_start >= visible_end {
+        return None;
+    }
+    let row_offset = visible_start.saturating_sub(offset);
+    Some(FieldWindow {
+        area: Rect {
+            x: content.x.saturating_add(placement.left),
+            y: content
+                .y
+                .saturating_add(row_offset.min(usize::from(u16::MAX)) as u16),
+            width: placement
+                .width
+                .min(content.width.saturating_sub(placement.left)),
+            height: visible_end
+                .saturating_sub(visible_start)
+                .min(usize::from(u16::MAX)) as u16,
+        },
+        source_first_row: visible_start.saturating_sub(placement.top),
+        logical_height: placement.height,
+    })
+}
+
+fn textarea_window(
+    body: Rect,
+    first_source_row: usize,
+    logical_field_height: u16,
+    requested_rows: u16,
+) -> Option<VerticalWindow> {
+    let logical_rows = usize::from(requested_rows.min(logical_field_height.saturating_sub(2)));
+    let visible_start = first_source_row.min(logical_rows);
+    let visible_end = first_source_row
+        .saturating_add(usize::from(body.height))
+        .min(logical_rows);
+    if body.width == 0 || visible_start >= visible_end {
+        return None;
+    }
+    let row_offset = visible_start.saturating_sub(first_source_row);
+    let visible_body = Rect {
+        y: body
+            .y
+            .saturating_add(row_offset.min(usize::from(u16::MAX)) as u16),
+        height: visible_end
+            .saturating_sub(visible_start)
+            .min(usize::from(u16::MAX)) as u16,
+        ..body
+    };
+    VerticalWindow::new(visible_body, logical_rows, visible_start).ok()
 }
 
 struct LanePlan {
@@ -1648,31 +1711,15 @@ impl<'a> Form<'a> {
                 fallback = FieldSlot::new(field.id);
                 &fallback
             };
-            let bottom = placement.top.saturating_add(usize::from(placement.height));
-            if bottom <= base || placement.top >= base.saturating_add(usize::from(content.height)) {
+            let Some(window) = resolve_field_window(content, placement, base) else {
                 Self::register_clipped_field(ui, field, data);
                 continue;
-            }
-            let y_offset = placement.top.saturating_sub(base);
-            let field_area = Rect {
-                x: content.x.saturating_add(placement.left),
-                y: content
-                    .y
-                    .saturating_add(y_offset.min(usize::from(u16::MAX)) as u16),
-                width: placement
-                    .width
-                    .min(content.width.saturating_sub(placement.left)),
-                height: placement.height.min(
-                    content
-                        .height
-                        .saturating_sub(y_offset.min(usize::from(u16::MAX)) as u16),
-                ),
             };
             self.draw_control(
                 ui,
-                field_area,
-                base.saturating_sub(placement.top),
-                placement.height,
+                window.area,
+                window.source_first_row,
+                window.logical_height,
                 field,
                 slot,
                 st,
@@ -1729,27 +1776,9 @@ impl<'a> Form<'a> {
                 let Some(field) = self.fields.get(placement.index) else {
                     continue;
                 };
-                let bottom = placement.top.saturating_add(usize::from(placement.height));
-                if bottom <= base
-                    || placement.top >= base.saturating_add(usize::from(content.height))
-                {
+                let Some(window) = resolve_field_window(content, *placement, base) else {
                     Self::register_clipped_field(ui, field, data);
                     continue;
-                }
-                let y_offset = placement.top.saturating_sub(base);
-                let field_area = Rect {
-                    x: content.x.saturating_add(placement.left),
-                    y: content
-                        .y
-                        .saturating_add(y_offset.min(usize::from(u16::MAX)) as u16),
-                    width: placement
-                        .width
-                        .min(content.width.saturating_sub(placement.left)),
-                    height: placement.height.min(
-                        content
-                            .height
-                            .saturating_sub(y_offset.min(usize::from(u16::MAX)) as u16),
-                    ),
                 };
                 let fallback;
                 let slot = if let Some(slot) = st.slots.get(placement.index) {
@@ -1760,9 +1789,9 @@ impl<'a> Form<'a> {
                 };
                 self.draw_control(
                     ui,
-                    field_area,
-                    base.saturating_sub(placement.top),
-                    placement.height,
+                    window.area,
+                    window.source_first_row,
+                    window.logical_height,
                     field,
                     slot,
                     st,
@@ -1873,7 +1902,7 @@ impl<'a> Form<'a> {
             );
             return;
         }
-        let (control_area, _body_first_row) =
+        let (control_area, body_first_row) =
             self.draw_chrome_window(ui, area, field, error, source_first_row, logical_height);
         match (&field.kind, data.value(field.id)) {
             (FieldKind::Text(control), FieldRef::Text(value)) => {
@@ -1883,10 +1912,24 @@ impl<'a> Form<'a> {
                 control.draw_secret_in_form(ui, control_area, &slot.input, value, disabled);
             }
             (FieldKind::Area(control), FieldRef::Text(value)) => {
-                control.draw_in_form(ui, control_area, &slot.area, value, disabled);
+                if let Some(window) = textarea_window(
+                    control_area,
+                    body_first_row,
+                    logical_height,
+                    control.rows_in_form(),
+                ) {
+                    control.draw_in_form_window(ui, window, &slot.area, value, disabled);
+                }
             }
             (FieldKind::Area(control), FieldRef::Secret(value)) => {
-                control.draw_secret_in_form(ui, control_area, &slot.area, value, disabled);
+                if let Some(window) = textarea_window(
+                    control_area,
+                    body_first_row,
+                    logical_height,
+                    control.rows_in_form(),
+                ) {
+                    control.draw_secret_in_form_window(ui, window, &slot.area, value, disabled);
+                }
             }
             (FieldKind::Select(control), FieldRef::Choice(value)) => {
                 control.draw_in_form(
@@ -3985,6 +4028,25 @@ mod tests {
         let _ = crate::runtime::stub::deliver(&mut runtime, Input::Tick);
         runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
         assert_eq!(runtime.app().data.secret.expose(), "hunter2!");
+    }
+
+    #[test]
+    fn textarea_parent_window_intersects_the_logical_form_body() {
+        let window = textarea_window(Rect::new(2, 5, 12, 4), 2, 7, 5)
+            .expect("visible source rows intersect the logical editor");
+        assert_eq!(window.visible_body(), Rect::new(2, 5, 12, 3));
+        assert_eq!(window.logical_rows(), 5);
+        assert_eq!(window.first_source_row(), 2);
+
+        let short = textarea_window(Rect::new(2, 5, 12, 4), 1, 7, 2)
+            .expect("the configured TextArea row count caps logical height");
+        assert_eq!(short.visible_body(), Rect::new(2, 5, 12, 1));
+        assert_eq!(short.logical_rows(), 2);
+        assert_eq!(short.first_source_row(), 1);
+
+        assert!(textarea_window(Rect::new(2, 5, 12, 0), 0, 7, 5).is_none());
+        assert!(textarea_window(Rect::new(2, 5, 0, 2), 0, 7, 5).is_none());
+        assert!(textarea_window(Rect::new(2, 5, 12, 2), 3, 5, 3).is_none());
     }
 
     #[test]
