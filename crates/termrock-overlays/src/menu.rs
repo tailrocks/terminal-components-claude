@@ -1011,6 +1011,7 @@ impl<'a> MenuBar<'a> {
         }
         let mut live = PartStyle::flags(ui.state(self.id), StateFlags::empty());
         live.remove(StateFlags::PRESSED);
+        live.remove(StateFlags::HOVERED);
         let container = self.ov.style(
             ui,
             self.id,
@@ -1061,6 +1062,7 @@ impl<'a> MenuBar<'a> {
                 Part::TITLE,
                 flags,
             );
+            ui.fill(rect, style.style);
             let label = shift(rect, 1);
             if let Some(slot) = self.ov.slot_for(Part::TITLE) {
                 slot(ui, label);
@@ -1163,7 +1165,7 @@ mod tests {
     use ratatui_core::layout::Position;
 
     use super::*;
-    use crate::event::{Input, Key, KeyModifiers};
+    use crate::event::{Input, Key, KeyModifiers, Mouse, MouseKind};
     use crate::keymap::KeyMap;
     use crate::runtime::{App, Runtime};
     use crate::theme::Theme;
@@ -1445,6 +1447,62 @@ mod tests {
             )),
             "the strip and dropdown both registered as the owner control"
         );
+    }
+
+    #[test]
+    fn menu_bar_keyboard_and_pointer_activation_survive_all_color_levels() {
+        let area = Rect::new(0, 0, 40, 10);
+        for color in [
+            crate::ColorLevel::TrueColor,
+            crate::ColorLevel::Ansi256,
+            crate::ColorLevel::Ansi16,
+            crate::ColorLevel::Mono,
+        ] {
+            let mut buffer = Buffer::empty(area);
+            let mut runtime = Runtime::new(
+                MenuBarApp {
+                    state: MenuState::default(),
+                },
+                Theme::junie().downgrade(color),
+            );
+            let _ = runtime.initialize();
+            runtime.draw_buffer(area, &mut buffer).commit_presented();
+            runtime.draw_buffer(area, &mut buffer).commit_presented();
+
+            let _ = crate::runtime::stub::deliver(&mut runtime, Input::Key(key(KeyCode::Right)));
+            let _ = crate::runtime::stub::deliver(&mut runtime, Input::Key(key(KeyCode::Enter)));
+            assert_eq!(runtime.app().state.open, Some(0), "keyboard at {color:?}");
+            let _ = crate::runtime::stub::deliver(&mut runtime, Input::Key(key(KeyCode::Esc)));
+            assert_eq!(runtime.app().state.open, None, "escape at {color:?}");
+
+            let mouse = |kind, x, y| {
+                Input::Mouse(Mouse {
+                    kind,
+                    pos: Position::new(x, y),
+                    mods: KeyModifiers::NONE,
+                })
+            };
+            let _ = crate::runtime::stub::deliver(&mut runtime, mouse(MouseKind::Move, 2, 0));
+            runtime.draw_buffer(area, &mut buffer).commit_presented();
+            let _ = crate::runtime::stub::deliver(&mut runtime, mouse(MouseKind::Down, 2, 0));
+            runtime.draw_buffer(area, &mut buffer).commit_presented();
+            assert_eq!(
+                buffer
+                    .cell(Position::new(1, 0))
+                    .map(ratatui_core::buffer::Cell::symbol),
+                Some("["),
+                "pressed left pad at {color:?}"
+            );
+            assert_eq!(
+                buffer
+                    .cell(Position::new(6, 0))
+                    .map(ratatui_core::buffer::Cell::symbol),
+                Some("]"),
+                "pressed right pad at {color:?}"
+            );
+            let _ = crate::runtime::stub::deliver(&mut runtime, mouse(MouseKind::Up, 2, 0));
+            assert_eq!(runtime.app().state.open, Some(0), "pointer at {color:?}");
+        }
     }
 
     #[test]

@@ -344,10 +344,16 @@ fn menu(r: &mut Recipe) {
                 .set_bg(Role::Fg(FgStep::Primary))
                 .add(Modifier::BOLD),
         );
-    part(m, Part::TITLE, p()).when(
-        StateFlags::PRESSED,
-        p().set_glyph(GlyphRole::PressLeft).add(Modifier::BOLD),
-    );
+    part(m, Part::TITLE, p().set_fg(Role::Fg(FgStep::Secondary)))
+        .when(
+            StateFlags::HOVERED,
+            p().set_fg(Role::Fg(FgStep::Primary))
+                .set_bg(Role::HoverSurface),
+        )
+        .when(
+            StateFlags::PRESSED,
+            p().set_glyph(GlyphRole::PressLeft).add(Modifier::BOLD),
+        );
     part(m, Part::KEY, p().set_fg(Role::Fg(FgStep::Muted)));
     part(
         r.variant_mut(Variant::DANGER),
