@@ -14,6 +14,7 @@ pub struct PaintStyle {
     style: Style,
     pub fg_role: Option<(Role, Surface)>,
     pub bg_role: Option<(Role, Surface)>,
+    underline_role: Option<(Role, Surface)>,
 }
 
 impl PaintStyle {
@@ -23,6 +24,7 @@ impl PaintStyle {
             style: Style::new(),
             fg_role: None,
             bg_role: None,
+            underline_role: None,
         }
     }
 
@@ -31,7 +33,19 @@ impl PaintStyle {
             style,
             fg_role: fg.filter(|_| style.fg.is_some()).map(|r| (r, surface)),
             bg_role: bg.filter(|_| style.bg.is_some()).map(|r| (r, surface)),
+            underline_role: None,
         }
+    }
+
+    #[must_use]
+    pub const fn underline_role(&self) -> Option<(Role, Surface)> {
+        self.underline_role
+    }
+
+    #[must_use]
+    pub(crate) const fn with_underline_role(mut self, role: Option<(Role, Surface)>) -> Self {
+        self.underline_role = role;
+        self
     }
 
     #[must_use]
@@ -89,6 +103,7 @@ impl PaintStyle {
     #[must_use]
     pub fn underline_color(mut self, color: Color) -> Self {
         self.style = self.style.underline_color(color);
+        self.underline_role = None;
         self
     }
 
@@ -113,6 +128,9 @@ impl PaintStyle {
         if other.style.bg.is_some() {
             self.bg_role = other.bg_role;
         }
+        if other.style.underline_color.is_some() {
+            self.underline_role = other.underline_role;
+        }
         self.style = self.style.patch(other.style);
         self
     }
@@ -124,6 +142,7 @@ impl From<Style> for PaintStyle {
             style,
             fg_role: None,
             bg_role: None,
+            underline_role: None,
         }
     }
 }
@@ -797,6 +816,13 @@ fn bind_with_profile(
             acc.fg.get().map(|role| canonical_role(theme, role)),
             acc.bg.get().map(|role| canonical_role(theme, role)),
             surface,
+        )
+        .with_underline_role(
+            acc.underline
+                .get()
+                .map(|role| canonical_role(theme, role))
+                .filter(|_| style.underline_color.is_some())
+                .map(|role| (role, surface)),
         ),
         glyph: acc.glyph,
         size: m.size,
@@ -1046,6 +1072,7 @@ pub fn resolve_uncached(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::theme::ColorLevel;
     use crate::theme::patch::StateRule;
     use crate::theme::recipe::{GlobalOverride, OverlayRule, PartMap, PartRecipe};
     use crate::theme::role::FgStep;
@@ -1111,6 +1138,32 @@ mod tests {
         assert!(channels.explicit.add.contains(Modifier::BOLD));
         assert!(!channels.explicit.add.contains(Modifier::UNDERLINED));
         assert!(channels.explicit.remove.contains(Modifier::UNDERLINED));
+    }
+
+    #[test]
+    fn bound_underline_role_survives_inheritance_and_raw_color_replaces_it() {
+        let theme = Theme::junie().for_level(ColorLevel::Mono);
+        let role = Role::Fg(FgStep::Faint);
+        let bound = bind(
+            &theme,
+            StylePatch::new().set_underline(role),
+            None,
+            Surface::Canvas,
+        )
+        .style;
+
+        assert_eq!(bound.underline_role(), Some((role, Surface::Canvas)));
+
+        let raw = bound.underline_color(Color::Yellow);
+        assert_eq!(raw.underline_role(), None);
+        assert_eq!(raw.as_style().underline_color, Some(Color::Yellow));
+
+        let patch = bound.patch(Style::new().underline_color(Color::Blue));
+        assert_eq!(patch.underline_role(), None);
+        assert_eq!(patch.as_style().underline_color, Some(Color::Blue));
+
+        let inherited = bound.patch(Style::new().add_modifier(Modifier::ITALIC));
+        assert_eq!(inherited.underline_role(), Some((role, Surface::Canvas)));
     }
 
     fn label_fg(
