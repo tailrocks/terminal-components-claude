@@ -19,7 +19,6 @@ use crate::tab_list::{self, TabList};
 use crate::tabs::{ExplorerItem, GridView, Tab, TabKey, TabRecord};
 use crate::workbench::Workbench;
 
-mod historical_close_confirm;
 mod historical_filter_editor;
 mod historical_form_advanced;
 mod historical_form_new;
@@ -1552,7 +1551,28 @@ impl TableProApp {
 
     fn open_destructive(&mut self, cx: &mut Cx<'_>, intent: DestructiveIntent) {
         self.destructive_notice = None;
-        cx.open_layer(QUIT_DIALOG, intent.dialog().layer(cx));
+        let dialog = intent.dialog().width(54);
+        let design = cx.design();
+        let width = dialog.measured_width(design);
+        let height = dialog.measured_height(design);
+        let screen = cx.viewport();
+        let top = 2u16;
+        let bottom = 1u16;
+        let bounds_h = screen.height.saturating_sub(top.saturating_add(bottom));
+        let y = screen
+            .y
+            .saturating_add(top)
+            .saturating_add(bounds_h.saturating_sub(height) / 2);
+        let x = screen
+            .x
+            .saturating_add(screen.width.saturating_sub(width) / 2);
+        cx.open_layer(
+            QUIT_DIALOG,
+            LayerSpec::modal(QUIT_DIALOG)
+                .anchor(Anchor::Point(Position::new(x, y.saturating_sub(1))))
+                .initial_focus(dialog.action_id(0))
+                .size(LayerSize::Fixed(width, height)),
+        );
         self.destructive_intent = Some(DestructiveRequest {
             intent,
             owner: self.workbench.owner_token(),
@@ -2900,7 +2920,13 @@ impl TableProApp {
                 ),
                 Some(format!("{} cols ", table.table.columns.len())),
             ),
-            Some(Tab::Query(query)) if !explorer_focused && !historical_empty_query(ui, self) => {
+            Some(Tab::Query(query))
+                if !explorer_focused
+                    && !historical_empty_query(ui, self)
+                    && (query.result.is_some()
+                        || query.error.is_some()
+                        || query.plan.is_some()) =>
+            {
                 (format!(" {}", query.name), None)
             }
             Some(Tab::Query(query)) => (format!(" {} ", query.name), None),
@@ -2917,9 +2943,19 @@ impl TableProApp {
             _ => !explorer_focused,
         };
         let panel = Self::content_panel(&title, meta.as_deref(), content_focused);
+        let inner = panel.inner(ui, area);
         panel.draw(ui, area, |ui, inner| {
             self.draw_tab_body(ui, area, inner, explorer_focused);
         });
+        if let Some(Tab::Query(query)) = self.workbench.active()
+            && query.result.is_none()
+            && query.error.is_none()
+            && query.plan.is_none()
+            && !query.query.is_empty()
+            && !explorer_focused
+        {
+            extend_idle_query_edge(ui, area, inner);
+        }
         paint_content_seam(
             ui,
             area,
@@ -3035,13 +3071,18 @@ impl TableProApp {
                 } else if query.result.is_some() {
                     self.draw_result_grid(ui, rows[1]);
                 } else {
-                    let message = termrock::Rect {
-                        x: rows[1].x,
-                        y: rows[1].y.saturating_add(rows[1].height / 2),
-                        width: rows[1].width,
-                        height: 1,
-                    };
-                    ui.paint_str(message, "No results yet", ui.surface_style());
+                    if let Some(id) = self.query_id() {
+                        ui.register_keyboard_editor(
+                            id,
+                            inner,
+                            Focusability::Focusable,
+                            StateFlags::empty(),
+                        );
+                    }
+                    paint_idle_query(ui, area, inner);
+                    if !query.query.is_empty() {
+                        paint_draft_query_line(ui, area, inner, &query.query);
+                    }
                 }
             }
             Some(Tab::Table(table)) => {
@@ -3381,6 +3422,95 @@ fn idle_editor_rect(
         height: editor_rows,
         ..body
     })
+}
+
+fn extend_idle_query_edge(ui: &mut Ui<'_>, area: termrock::Rect, inner: termrock::Rect) {
+    let Some(editor) = idle_editor_rect(ui, area, inner) else {
+        return;
+    };
+    let field = ui.surface_style().patch(
+        ui.paint_patch(
+            &StylePatch::new()
+                .set_fg(Role::Fg(FgStep::Primary))
+                .set_bg(TAG_FIELD_BG),
+        ),
+    );
+    ui.fill(
+        termrock::Rect {
+            x: inner.right(),
+            y: editor.y,
+            width: 1,
+            height: editor.height,
+        },
+        field,
+    );
+    let seam = ui
+        .surface_style()
+        .patch(ui.paint_patch(&StylePatch::new().set_fg(Role::BorderStrong)));
+    ui.paint_str(
+        termrock::Rect {
+            x: inner.right(),
+            y: editor.y.saturating_add(editor.height),
+            width: 1,
+            height: 1,
+        },
+        "─",
+        seam,
+    );
+}
+
+fn paint_draft_query_line(
+    ui: &mut Ui<'_>,
+    area: termrock::Rect,
+    inner: termrock::Rect,
+    text: &str,
+) {
+    let Some(editor) = idle_editor_rect(ui, area, inner) else {
+        return;
+    };
+    let field = ui.surface_style().patch(
+        ui.paint_patch(
+            &StylePatch::new()
+                .set_fg(Role::Fg(FgStep::Primary))
+                .set_bg(TAG_FIELD_BG),
+        ),
+    );
+    let line = termrock::Rect {
+        height: 1,
+        ..editor
+    };
+    ui.fill(line, field);
+    let blank = field.patch(ui.paint_patch(&StylePatch::new().set_fg(TAG_FIELD_BG)));
+    ui.paint_str(termrock::Rect { width: 1, ..line }, " ", blank);
+    let gutter =
+        field.patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Secondary))));
+    ui.paint_str(
+        termrock::Rect {
+            x: line.x.saturating_add(1),
+            width: 1,
+            ..line
+        },
+        "›",
+        gutter,
+    );
+    ui.paint_str(
+        termrock::Rect {
+            x: line.x.saturating_add(3),
+            width: 2,
+            ..line
+        },
+        " 1",
+        gutter,
+    );
+    ui.paint_str(
+        termrock::Rect {
+            x: line.x.saturating_add(6),
+            width: width(text),
+            ..line
+        },
+        text,
+        field,
+    );
 }
 
 fn paint_query_editor(ui: &mut Ui<'_>, area: termrock::Rect) {
@@ -7871,7 +8001,7 @@ fn draw_footer(ui: &mut Ui<'_>, area: termrock::Rect, app: &TableProApp) {
         paint_picker_move_footer(ui, area);
     } else if app.surface == Surface::HelpDialog {
         paint_help_footer(ui, area);
-    } else if app.connection_delete == ConnectionDelete::Open {
+    } else if app.connection_delete == ConnectionDelete::Open || app.destructive_intent.is_some() {
         paint_delete_footer(ui, area);
     } else if app.screen == Screen::Connections && app.connection_filter_editing {
         paint_connection_filter_footer(ui, area);
@@ -7938,7 +8068,8 @@ fn draw_footer(ui: &mut Ui<'_>, area: termrock::Rect, app: &TableProApp) {
     } else if app.screen == Screen::Workbench {
         let checked = matches!(app.surface, Surface::TableGrid | Surface::StructureView)
             || explorer_focused
-            || empty_query;
+            || empty_query
+            || app.destructive_intent.is_some();
         let prefix = if checked {
             "✓ Connected to "
         } else {
@@ -8325,63 +8456,6 @@ impl TableProApp {
         // Trailer is ESC[?25l. Do not set a bar cursor and do not write cursor bytes.
         historical_history_tab::paint(ui);
         true
-    }
-
-    fn paint_historical_close_confirm(&self, ui: &mut Ui<'_>) -> bool {
-        if !self.historical_close_confirm_frame(ui) {
-            return false;
-        }
-        // Trailer is ESC[?25l. Do not set a bar cursor and do not write cursor bytes.
-        historical_close_confirm::paint(ui);
-        true
-    }
-
-    fn historical_close_confirm_frame(&self, ui: &Ui<'_>) -> bool {
-        let area = ui.full();
-        // The approved card is the PTY frame. Unit tests have no tty, but
-        // ctrl-w still has to land on the approved cell or its check fails.
-        let on_terminal = std::io::IsTerminal::is_terminal(&std::io::stdout());
-        if area.width != 120 || area.height != 40 || !(on_terminal || cfg!(test)) {
-            return false;
-        }
-        let theme = ui.theme_ref();
-        if theme.capability.color != termrock::ColorLevel::TrueColor
-            || theme.color.accent != termrock::Color::Rgb(0x48, 0xe0, 0x54)
-        {
-            return false;
-        }
-        if self.screen != Screen::Workbench
-            || self.form_open
-            || self.surface != Surface::QueryEditing
-            || self.connection.name != "Production"
-            || self.workbench.maximized
-            || self.split_state.maximized() != Maximized::None
-            || self.workbench.tabs().len() != 2
-        {
-            return false;
-        }
-        let Some(request) = &self.destructive_intent else {
-            return false;
-        };
-        let DestructiveIntent::CloseTab { key, .. } = &request.intent else {
-            return false;
-        };
-        if self.workbench.active_key() != Some(*key) {
-            return false;
-        }
-        // Help, safe mode, the tab list, the picker, the filter editor, dirty
-        // rows, table data, and the connections list are other cards.
-        let Some(Tab::Query(query)) = self.workbench.active() else {
-            return false;
-        };
-        if query.plan.is_some() || query.error.is_some() || query.result.is_some() {
-            return false;
-        }
-        query
-            .editor_state
-            .draft_text()
-            .unwrap_or(query.query.as_str())
-            == "x"
     }
 
     fn paint_historical_filter_editor(&self, ui: &mut Ui<'_>) -> bool {
@@ -9495,7 +9569,6 @@ impl App for TableProApp {
             || self.paint_historical_table_scrolled_right(ui)
             || self.paint_historical_history_tab(ui)
             || self.paint_historical_filter_editor(ui)
-            || self.paint_historical_close_confirm(ui)
         {
             return;
         }
