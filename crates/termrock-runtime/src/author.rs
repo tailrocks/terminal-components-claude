@@ -117,6 +117,10 @@ pub use crate::intent::{FocusVia, Intent, IntentIter, Phase};
 pub use crate::response::{Activated, Flow, Invalidate, Response, StateFlags};
 pub use crate::ui::{Cx, FrameRead, LayoutFacts, ReferenceState, ReferenceTarget, Ui};
 
+pub trait LayerSlotAuthor {
+    fn render_component<R>(&mut self, render: impl FnOnce(&mut Ui<'_>, Rect) -> R) -> R;
+}
+
 pub use crate::capture::Capture;
 pub use crate::focus::{FocusVis, Focusability, ScopeId, ScopeMode};
 pub use crate::hit::{Axes, Headroom, Hit, RegionKind};
