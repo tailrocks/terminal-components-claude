@@ -819,3 +819,10 @@ Integrated independently cleared source 79667 at `1fac27d0fc44387eb8fe78236693f1
 ## Narrow Unicode Button label contract integrated (2026-10-21)
 
 Integrated reviewed source 38a375, including the independently corrected frozen-source audit identity, at `759858e6f46dee746fe202a988e9716777db2fdd`. Button labels use existing shared grapheme/cell truncation and retain explicit label-slot ownership; five-cell `世界` renders `世…` as the frozen contract requires. Parent [exact integration checks](../audits/2026-10-21-button-narrow-parent-checks.json) run 482 Controls/Runtime tests successfully, retain three existing ignored fixtures, and pass strict scoped Clippy, formatting and whitespace checks. Actual Showcase state-matrix migration and complete application parity remain required. The separate all-73 semantic palette test remains failing and is not part of this bounded green scope.
+
+
+## Completed component task-branch consolidation (2026-10-21)
+
+Removed five completed task-owned refs after exact-tip leases, literal-ancestor checks against PR38, unprotected status and no open dependent PR: the Grid protection ref, runtime focus fixture ref, fill provenance ref, original Button contract ref and narrow Button ref. [Deletion evidence](../audits/2026-10-21-component-task-branch-cleanup.json) verifies all absent and observes main, design reference and frozen tag unchanged across the operation. The [current head inventory](../audits/2026-10-21-current-branch-inventory.json) retains necessary unintegrated WIPs and marks newly observed heads as unreviewed; the original all-branch disposition ledger remains authoritative for earlier exclusions. No protected, reference, user-backup or unreviewed branch was deleted.
+
+Narrow Button integration is pushed and remote-verified at `4ae4cb9dd7feb17f8835f9588d80bcedac0497fd`, after the same 482 Controls/Runtime tests pass on exact HEAD. This does not resolve the retained palette failure, production application replay mechanisms, or four-application paired acceptance.
