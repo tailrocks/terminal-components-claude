@@ -7,10 +7,10 @@ use termrock::{
     GlyphRole, Grid, GridAction, GridCell, GridColumnFit, GridEditor, GridGutter, GridModel,
     GridSortIndicator, Id, Intent, ItemKey, KeyCode, KeyMap, KeyModifiers, KeyPhase, LayerId,
     LayerSize, LayerSpec, Maximized, Modifier, Panel, PanelKind, Part, Phase, PickerAction,
-    Position, Response, Role, RowDecor, RowTotal, RowUi, Size, SortDir, Span, SplitAxis, SplitPane,
-    SplitPaneState, StateFlags, StylePatch, Tabs, TabsAction, TabsState, TextAction, TextInput,
-    TextInputState, Theme, Tree, TreeAction, TreeBranchActivation, TreeNode, TreeState, Ui,
-    UpdateCause, truncate, truncate_middle, width, wrap,
+    Position, Response, Role, RowDecor, RowTotal, RowUi, ScreenAlign, Size, SortDir, Span,
+    SplitAxis, SplitPane, SplitPaneState, StateFlags, StylePatch, Tabs, TabsAction, TabsState,
+    TextAction, TextInput, TextInputState, Theme, Tree, TreeAction, TreeBranchActivation, TreeNode,
+    TreeState, Ui, UpdateCause, truncate, truncate_middle, width, wrap,
 };
 
 use crate::quick_switcher::{self, QuickSwitcher};
@@ -19,7 +19,6 @@ use crate::tab_list::{self, TabList};
 use crate::tabs::{ExplorerItem, GridView, Tab, TabKey, TabRecord};
 use crate::workbench::Workbench;
 
-mod historical_filter_editor;
 mod historical_form_advanced;
 mod historical_form_new;
 mod historical_history_tab;
@@ -51,6 +50,7 @@ const EXPLORER: Id = Id::root("tablepro.workbench.explorer.tree");
 const EXPLORER_PANEL: Id = Id::root("tablepro.workbench.explorer.panel");
 const TAB_STRIP: Id = Id::root("tablepro.workbench.tab-strip");
 const WORKBENCH_SPLIT: Id = Id::root("tablepro.workbench.split");
+const FILTER_LAYER: Id = Id::root("tablepro.filter.layer");
 const FILTER_VALUE: Id = Id::root("tablepro.filter.value");
 const FILTER_STEP: Id = Id::root("tablepro.filter.step");
 const FILTER_APPLY: Id = Id::root("tablepro.filter.apply");
@@ -2415,8 +2415,14 @@ impl TableProApp {
             .as_ref()
             .is_some_and(|draft| draft.column == "id" && draft.value.is_empty());
         if id_column {
-            // The approved card is the 120×40 truecolor frame. Other sizes keep the live field.
             self.surface = Surface::FilterEditor;
+            cx.open_layer(
+                FILTER_LAYER,
+                LayerSpec::modal(FILTER_LAYER)
+                    .anchor(Anchor::Screen(ScreenAlign::GeometricCenter))
+                    .initial_focus(FILTER_VALUE)
+                    .size(LayerSize::Fixed(64, 15)),
+            );
         }
         true
     }
@@ -2500,7 +2506,12 @@ impl TableProApp {
         let Some(draft) = &self.filter_editor else {
             return;
         };
-        // Off the grid. The value field only has to join the focus ring.
+        if self.surface == Surface::FilterEditor {
+            ui.layer(FILTER_LAYER, |ui, area| {
+                paint_filter_card(ui, area, &draft.column, &draft.value, &draft.input);
+            });
+            return;
+        }
         TextInput::new(FILTER_VALUE).draw(ui, termrock::Rect::new(0, 0, 12, 1), &draft.input);
         ui.register_focus_only(FILTER_STEP, Focusability::Focusable);
         ui.register_focus_only(FILTER_APPLY, Focusability::Focusable);
@@ -2518,7 +2529,7 @@ impl TableProApp {
     }
 
     fn draw_table_data(&self, ui: &mut Ui<'_>, inner: termrock::Rect) {
-        paint_data_mode(ui, inner);
+        paint_data_mode(ui, inner, self.surface != Surface::FilterEditor);
         let filters = self
             .workbench
             .active_table()
@@ -2564,6 +2575,7 @@ impl TableProApp {
             columns.get(..count).unwrap_or(&[]),
             &grid_view.state,
             &grid_view.model,
+            self.surface == Surface::FilterEditor,
         );
         let shown = usize::from(grid_area.height.saturating_sub(1));
         let enabled = filters.iter().filter(|filter| filter.enabled).count();
@@ -2661,6 +2673,7 @@ impl TableProApp {
                 columns.get(..count).unwrap_or(&[]),
                 &grid.state,
                 &grid.model,
+                false,
             );
         }
     }
@@ -2887,6 +2900,7 @@ impl TableProApp {
                 tree_area,
                 &self.explorer_tree_state,
                 &self.explorer_nodes,
+                self.surface != Surface::FilterEditor,
             );
         });
         paint_explorer_collapse(ui, area);
@@ -2936,12 +2950,13 @@ impl TableProApp {
             ),
             None => (" Workbench".to_owned(), None),
         };
-        let content_focused = match self.workbench.active() {
-            Some(Tab::Query(_)) => self
-                .query_id()
-                .is_some_and(|id| ui.state(id).contains(StateFlags::FOCUSED)),
-            _ => !explorer_focused,
-        };
+        let content_focused = self.surface != Surface::FilterEditor
+            && match self.workbench.active() {
+                Some(Tab::Query(_)) => self
+                    .query_id()
+                    .is_some_and(|id| ui.state(id).contains(StateFlags::FOCUSED)),
+                _ => !explorer_focused,
+            };
         let panel = Self::content_panel(&title, meta.as_deref(), content_focused);
         let inner = panel.inner(ui, area);
         panel.draw(ui, area, |ui, inner| {
@@ -4456,6 +4471,7 @@ fn paint_chosen_explorer_row(
     area: termrock::Rect,
     state: &TreeState,
     nodes: &[ExplorerNode],
+    accent_name: bool,
 ) {
     let Some(key) = state.chosen() else {
         return;
@@ -4522,7 +4538,11 @@ fn paint_chosen_explorer_row(
                 .remove(Modifier::BOLD),
         ),
     );
-    let name_style = fill.patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Accent)));
+    let name_style = if accent_name {
+        fill.patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Accent)))
+    } else {
+        fill
+    };
     let text_x = fold_x.saturating_add(2);
     ui.paint_str(
         termrock::Rect {
@@ -5417,7 +5437,7 @@ fn paint_scrolled_cells(
     clippy::too_many_lines,
     reason = "header gutter, primary key, and muted titles share one pass"
 )]
-fn paint_grid_header(ui: &mut Ui<'_>, area: termrock::Rect, names: &[String]) {
+fn paint_grid_header(ui: &mut Ui<'_>, area: termrock::Rect, names: &[String], covered: bool) {
     let Some(chrome) = GRID_CHROME.with(|chrome| chrome.borrow().clone()) else {
         return;
     };
@@ -5438,7 +5458,11 @@ fn paint_grid_header(ui: &mut Ui<'_>, area: termrock::Rect, names: &[String]) {
     let primary = base.patch(
         ui.paint_patch(
             &StylePatch::new()
-                .set_fg(Role::Fg(FgStep::Primary))
+                .set_fg(Role::Fg(if covered {
+                    FgStep::Secondary
+                } else {
+                    FgStep::Primary
+                }))
                 .add(Modifier::BOLD),
         ),
     );
@@ -6023,6 +6047,7 @@ fn draw_painted_grid(
     specs: &[termrock::Column<'_>],
     state: &termrock::GridState,
     model: &ResultGrid,
+    covered: bool,
 ) {
     GRID_SEEN_ROW.with(|slot| *slot.borrow_mut() = None);
     install_grid_budgets(area.width, columns, model);
@@ -6067,6 +6092,7 @@ fn draw_painted_grid(
             .iter()
             .map(|(name, _)| name.clone())
             .collect::<Vec<_>>(),
+        covered,
     );
     if scrolled {
         paint_scrolled_cells(ui, area, columns, state, model);
@@ -7053,7 +7079,7 @@ fn paint_bar_piece(
     *x = x.saturating_add(slot);
 }
 
-fn paint_data_mode(ui: &mut Ui<'_>, inner: termrock::Rect) {
+fn paint_data_mode(ui: &mut Ui<'_>, inner: termrock::Rect, accent_rule: bool) {
     if inner.height < 2 {
         return;
     }
@@ -7114,7 +7140,11 @@ fn paint_data_mode(ui: &mut Ui<'_>, inner: termrock::Rect) {
     };
     let active = ui
         .surface_style()
-        .patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Accent)));
+        .patch(ui.paint_patch(&StylePatch::new().set_fg(if accent_rule {
+            Role::Accent
+        } else {
+            TAG_RULE_FG
+        })));
     let quiet = ui
         .surface_style()
         .patch(ui.paint_patch(&StylePatch::new().set_fg(TAG_RULE_FG)));
@@ -7902,6 +7932,314 @@ fn paint_connection_filter_footer(ui: &mut Ui<'_>, area: termrock::Rect) {
     );
 }
 
+fn paint_filter_footer(ui: &mut Ui<'_>, area: termrock::Rect) {
+    let base = ui.surface_style();
+    ui.paint_spans(
+        area,
+        &[
+            Span::new(" "),
+            Span::new("Tab").bold(),
+            Span::new(" "),
+            Span::new("Next field").role(TAG_CHROME_FG),
+            Span::new("  "),
+            Span::new("Enter").bold(),
+            Span::new(" "),
+            Span::new("Apply").role(TAG_CHROME_FG),
+            Span::new("  "),
+            Span::new("Esc").bold(),
+            Span::new(" "),
+            Span::new("Cancel").role(TAG_CHROME_FG),
+        ],
+        base,
+    );
+}
+
+fn paint_closed_select(
+    ui: &mut Ui<'_>,
+    area: termrock::Rect,
+    label: &str,
+    value: &str,
+    help: Option<&str>,
+) {
+    let elevated = Role::Surface(termrock::Surface::Elevated);
+    let secondary = ui.surface_style().patch(
+        ui.paint_patch(
+            &StylePatch::new()
+                .set_fg(Role::Fg(FgStep::Secondary))
+                .set_bg(elevated),
+        ),
+    );
+    let field = ui.surface_style().patch(
+        ui.paint_patch(
+            &StylePatch::new()
+                .set_fg(Role::Fg(FgStep::Primary))
+                .set_bg(TAG_FIELD_BG),
+        ),
+    );
+    let blank = field.with_fg_from_bg(field);
+    let chevron =
+        field.patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Secondary))));
+    let muted = ui.surface_style().patch(
+        ui.paint_patch(
+            &StylePatch::new()
+                .set_fg(Role::Fg(FgStep::Muted))
+                .set_bg(elevated),
+        ),
+    );
+    ui.paint_str(
+        termrock::Rect {
+            x: area.x.saturating_add(2),
+            y: area.y,
+            width: width(label),
+            height: 1,
+        },
+        label,
+        secondary,
+    );
+    let row = termrock::Rect {
+        y: area.y.saturating_add(1),
+        height: 1,
+        ..area
+    };
+    ui.fill(row, field);
+    ui.paint_str(termrock::Rect { width: 1, ..row }, " ", blank);
+    ui.paint_str(
+        termrock::Rect {
+            x: row.x.saturating_add(2),
+            width: width(value),
+            ..row
+        },
+        value,
+        field,
+    );
+    ui.paint_str(
+        termrock::Rect {
+            x: row.right().saturating_sub(2),
+            width: 1,
+            ..row
+        },
+        "▾",
+        chevron,
+    );
+    if let Some(help) = help {
+        let shown = truncate(help, area.width.saturating_sub(2));
+        ui.paint_str(
+            termrock::Rect {
+                x: area.x.saturating_add(2),
+                y: area.y.saturating_add(2),
+                width: width(&shown),
+                height: 1,
+            },
+            &shown,
+            muted,
+        );
+    }
+}
+
+fn paint_filter_card(
+    ui: &mut Ui<'_>,
+    area: termrock::Rect,
+    column: &str,
+    value: &str,
+    input: &TextInputState,
+) {
+    termrock::runtime::overlay_chrome(
+        ui,
+        FILTER_LAYER,
+        area,
+        termrock::Family::DIALOG,
+        termrock::Surface::Elevated,
+        termrock::runtime::PartStyle::new(),
+        StateFlags::empty(),
+        StateFlags::FOCUSED,
+        |ui, _framed| {
+            paint_filter_card_body(ui, area, column, value, input);
+        },
+    );
+}
+
+fn paint_filter_card_body(
+    ui: &mut Ui<'_>,
+    area: termrock::Rect,
+    column: &str,
+    value: &str,
+    input: &TextInputState,
+) {
+    let elevated = Role::Surface(termrock::Surface::Elevated);
+    let bold = ui.surface_style().patch(
+        ui.paint_patch(
+            &StylePatch::new()
+                .set_fg(Role::Fg(FgStep::Primary))
+                .set_bg(elevated)
+                .add(Modifier::BOLD),
+        ),
+    );
+    let secondary = ui.surface_style().patch(
+        ui.paint_patch(
+            &StylePatch::new()
+                .set_fg(Role::Fg(FgStep::Secondary))
+                .set_bg(elevated),
+        ),
+    );
+    let field = ui.surface_style().patch(
+        ui.paint_patch(
+            &StylePatch::new()
+                .set_fg(Role::Fg(FgStep::Primary))
+                .set_bg(TAG_FIELD_BG),
+        ),
+    );
+    let placeholder =
+        field.patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Muted))));
+    let caret = field.patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Accent)));
+    ui.paint_str(
+        termrock::Rect {
+            x: area.x.saturating_add(3),
+            y: area.y.saturating_add(1),
+            width: 10,
+            height: 1,
+        },
+        "Add filter",
+        bold,
+    );
+    let band_x = area.x.saturating_add(2);
+    let band_y = area.y.saturating_add(3);
+    let band_w = area.width.saturating_sub(5);
+    let left_w = band_w.saturating_sub(2) / 2;
+    let right_w = band_w.saturating_sub(2).saturating_sub(left_w);
+    let right_x = band_x.saturating_add(left_w).saturating_add(2);
+    paint_closed_select(
+        ui,
+        termrock::Rect::new(band_x, band_y, left_w, 3),
+        "Column",
+        column,
+        None,
+    );
+    paint_closed_select(
+        ui,
+        termrock::Rect::new(right_x, band_y, right_w, 3),
+        "Operator",
+        "=",
+        Some("Operators that fit the column type come first"),
+    );
+    let value_w = band_w;
+    let value_label = fit_cols("Value", value_w.saturating_sub(2));
+    ui.paint_str(
+        termrock::Rect {
+            x: band_x.saturating_add(2),
+            y: band_y.saturating_add(3),
+            width: value_w.saturating_sub(2),
+            height: 1,
+        },
+        &value_label,
+        bold,
+    );
+    let value_row = termrock::Rect {
+        x: band_x,
+        y: band_y.saturating_add(4),
+        width: value_w,
+        height: 1,
+    };
+    TextInput::new(FILTER_VALUE)
+        .placeholder("value")
+        .placeholder_while_editing(true)
+        .draw(ui, value_row, input);
+    ui.fill(value_row, field);
+    ui.paint_str(
+        termrock::Rect {
+            width: 1,
+            ..value_row
+        },
+        "▎",
+        caret,
+    );
+    let shown = if value.is_empty() { "value" } else { value };
+    let shown_style = if value.is_empty() { placeholder } else { field };
+    ui.paint_str(
+        termrock::Rect {
+            x: value_row.x.saturating_add(2),
+            width: width(shown),
+            ..value_row
+        },
+        shown,
+        shown_style,
+    );
+    ui.set_bar_cursor(
+        FILTER_VALUE,
+        Position::new(value_row.x.saturating_add(2), value_row.y),
+    );
+    let preview = format!("WHERE {column} = '{}'", value.replace('\'', "''"));
+    ui.paint_str(
+        termrock::Rect {
+            x: area.x.saturating_add(3),
+            y: area.y.saturating_add(10),
+            width: width(&preview),
+            height: 1,
+        },
+        &preview,
+        secondary,
+    );
+    let row_y = area.y.saturating_add(13);
+    let row_right = area.x.saturating_add(area.width).saturating_sub(3);
+    let apply_x = row_right.saturating_sub(12);
+    let cancel_x = apply_x.saturating_sub(9);
+    let blank = ui
+        .surface_style()
+        .patch(ui.paint_patch(&StylePatch::new().set_fg(elevated).set_bg(elevated)));
+    ui.paint_str(
+        termrock::Rect {
+            x: cancel_x,
+            y: row_y,
+            width: 1,
+            height: 1,
+        },
+        " ",
+        blank,
+    );
+    ui.paint_str(
+        termrock::Rect {
+            x: cancel_x.saturating_add(1),
+            y: row_y,
+            width: 7,
+            height: 1,
+        },
+        "Cancel ",
+        secondary,
+    );
+    let apply_pad = ui
+        .surface_style()
+        .patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Accent).set_bg(Role::Accent)));
+    let apply = ui.surface_style().patch(
+        ui.paint_patch(
+            &StylePatch::new()
+                .set_fg(TAG_BUTTON_FG)
+                .set_bg(TAG_BUTTON_BG)
+                .add(Modifier::BOLD),
+        ),
+    );
+    ui.paint_str(
+        termrock::Rect {
+            x: apply_x,
+            y: row_y,
+            width: 1,
+            height: 1,
+        },
+        " ",
+        apply_pad,
+    );
+    ui.paint_str(
+        termrock::Rect {
+            x: apply_x.saturating_add(1),
+            y: row_y,
+            width: 11,
+            height: 1,
+        },
+        "Add filter ",
+        apply,
+    );
+    ui.register_focus_only(FILTER_STEP, Focusability::Focusable);
+    ui.register_focus_only(FILTER_APPLY, Focusability::Focusable);
+}
+
 fn paint_delete_footer(ui: &mut Ui<'_>, area: termrock::Rect) {
     let base = ui.surface_style();
     ui.paint_spans(
@@ -8001,6 +8339,8 @@ fn draw_footer(ui: &mut Ui<'_>, area: termrock::Rect, app: &TableProApp) {
         paint_picker_move_footer(ui, area);
     } else if app.surface == Surface::HelpDialog {
         paint_help_footer(ui, area);
+    } else if app.surface == Surface::FilterEditor {
+        paint_filter_footer(ui, area);
     } else if app.connection_delete == ConnectionDelete::Open || app.destructive_intent.is_some() {
         paint_delete_footer(ui, area);
     } else if app.screen == Screen::Connections && app.connection_filter_editing {
@@ -8069,7 +8409,8 @@ fn draw_footer(ui: &mut Ui<'_>, area: termrock::Rect, app: &TableProApp) {
         let checked = matches!(app.surface, Surface::TableGrid | Surface::StructureView)
             || explorer_focused
             || empty_query
-            || app.destructive_intent.is_some();
+            || app.destructive_intent.is_some()
+            || app.surface == Surface::FilterEditor;
         let prefix = if checked {
             "✓ Connected to "
         } else {
@@ -8456,66 +8797,6 @@ impl TableProApp {
         // Trailer is ESC[?25l. Do not set a bar cursor and do not write cursor bytes.
         historical_history_tab::paint(ui);
         true
-    }
-
-    fn paint_historical_filter_editor(&self, ui: &mut Ui<'_>) -> bool {
-        if !self.historical_filter_editor_frame(ui) {
-            return false;
-        }
-        // CUP 20;33 is the steady bar on the value placeholder. Do not write cursor bytes.
-        historical_filter_editor::paint(ui);
-        ui.register_keyboard_editor(
-            FILTER_VALUE,
-            ui.full(),
-            Focusability::Focusable,
-            StateFlags::EDITING,
-        );
-        if let Some(pos) = historical_filter_editor::bar_cursor() {
-            ui.set_bar_cursor(FILTER_VALUE, pos);
-        }
-        true
-    }
-
-    fn historical_filter_editor_frame(&self, ui: &Ui<'_>) -> bool {
-        let area = ui.full();
-        // The approved card is the PTY frame. Unit tests have no tty, but
-        // ctrl-f still has to land on the approved cell or its check fails.
-        let on_terminal = std::io::IsTerminal::is_terminal(&std::io::stdout());
-        if area.width != 120 || area.height != 40 || !(on_terminal || cfg!(test)) {
-            return false;
-        }
-        let theme = ui.theme_ref();
-        if theme.capability.color != termrock::ColorLevel::TrueColor
-            || theme.color.accent != termrock::Color::Rgb(0x48, 0xe0, 0x54)
-        {
-            return false;
-        }
-        if self.screen != Screen::Workbench
-            || self.form_open
-            || self.destructive_intent.is_some()
-            || self.workbench.maximized
-            || self.split_state.maximized() != Maximized::None
-            || self.surface != Surface::FilterEditor
-            || self.connection.name != "Production"
-        {
-            return false;
-        }
-        let id_column = self
-            .filter_editor
-            .as_ref()
-            .is_some_and(|draft| draft.column == "id" && draft.value.is_empty());
-        if !id_column {
-            return false;
-        }
-        // Help, safe mode, the tab list, the picker, history, dirty rows, the
-        // plain data grid, and connections are other cards.
-        self.workbench.active_table().is_some_and(|table| {
-            table.table.schema == "public"
-                && table.table.name == "orders"
-                && !table.is_structure()
-                && !table.result.state.is_editing()
-                && table.result.pending_total() == 0
-        })
     }
 
     fn historical_history_tab_frame(&self, ui: &Ui<'_>) -> bool {
@@ -9568,7 +9849,6 @@ impl App for TableProApp {
             || self.paint_historical_workbench_explorer_hidden(ui)
             || self.paint_historical_table_scrolled_right(ui)
             || self.paint_historical_history_tab(ui)
-            || self.paint_historical_filter_editor(ui)
         {
             return;
         }
