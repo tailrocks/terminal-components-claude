@@ -60,7 +60,6 @@ pub fn overlay_chrome<R>(
                 Slot::Set(_) => resolved.bg.unwrap_or(Color::Reset),
                 Slot::Clear => Color::Reset,
             };
-            let theme = ui.theme_ref().clone();
             for pos in area.positions() {
                 let (src_fg, src_bg) = ui
                     .page_mut()
@@ -70,7 +69,7 @@ pub fn overlay_chrome<R>(
                         ratatui_core::style::Color::Reset,
                         ratatui_core::style::Color::Reset,
                     ));
-                let (backdrop_fg, _) = theme.backdrop_colors(src_fg, src_bg);
+                let (backdrop_fg, _) = ui.theme_ref().backdrop_colors(src_fg, src_bg);
                 if let Some(cell) = ui.buffer().cell_mut(pos) {
                     cell.set_symbol(" ");
                     cell.fg = backdrop_fg;
