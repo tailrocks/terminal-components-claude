@@ -408,13 +408,19 @@ fn parity_history_clipped_plate(world: &World, width: u16, height: u16) -> bool 
         || crate::sim::catalogue::parity_history_100x30_plate(world, width, height).is_some()
 }
 
-/// 80×24 and 100×30 `parity-files` plates. Other sizes stay off both.
-fn parity_files_tag_plate(world: &World, width: u16, height: u16) -> bool {
+/// 80×24 and 100×30 clip the last hint. 120×40 fits every hint, so it keeps the wide parts.
+fn parity_files_clipped_plate(world: &World, width: u16, height: u16) -> bool {
     crate::sim::catalogue::parity_files_80x24_plate(world, width, height).is_some()
         || crate::sim::catalogue::parity_files_100x30_plate(world, width, height).is_some()
 }
 
-/// Tag parity-files status at 80×24 and 100×30: cwd, then the size label. No branch.
+/// 80×24, 100×30, and 120×40 `parity-files` plates. Other sizes stay off.
+fn parity_files_tag_plate(world: &World, width: u16, height: u16) -> bool {
+    parity_files_clipped_plate(world, width, height)
+        || crate::sim::catalogue::parity_files_120x40_plate(world, width, height).is_some()
+}
+
+/// Tag parity-files status at 80×24, 100×30, and 120×40: cwd, then the size label. No branch.
 fn paint_parity_files_status(ui: &mut Ui<'_>, area: Rect) {
     if area.is_empty() {
         return;
@@ -1819,7 +1825,7 @@ impl App {
             let history_plate =
                 parity_history_clipped_plate(&self.world, ui.full().width, ui.full().height);
             let files_plate =
-                parity_files_tag_plate(&self.world, ui.full().width, ui.full().height);
+                parity_files_clipped_plate(&self.world, ui.full().width, ui.full().height);
             let parts = if monorepo_child_mid
                 || remote_host_mid
                 || first_use_mid
