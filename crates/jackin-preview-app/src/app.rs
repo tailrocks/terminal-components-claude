@@ -260,6 +260,7 @@ const TICK_MS: u64 = crate::rain::TICK_MS;
 mod historical_accounts_add_form;
 mod historical_accounts_add_form_required;
 mod historical_accounts_detail;
+mod historical_accounts_detail_80;
 mod historical_accounts_drawer;
 mod historical_accounts_filter;
 mod historical_accounts_filter_80;
@@ -7783,6 +7784,49 @@ impl App {
         historical_accounts_detail::paint(ui);
     }
 
+    fn historical_accounts_detail_80(&self, theme: &termrock::Theme, screen: Rect) -> bool {
+        // Four Downs on the paused 80×24 accounts list land on Claude · Work.
+        // The 120×40 detail, the overview, and the filter stay on their frames.
+        screen.width == 80
+            && screen.height == 24
+            && theme.capability.color == termrock::ColorLevel::TrueColor
+            && theme.color.accent == termrock::Color::Rgb(0x48, 0xe0, 0x54)
+            && self.route == Route::Accounts
+            && self.world.scenario == Scenario::AccountsMixed
+            && self.motion == Motion::Paused
+            && !self.accounts.form_open
+            && !self.accounts.started
+            && self.accounts.editing.is_none()
+            && self.accounts.draft_name.is_empty()
+            && self.accounts.masked_input.is_empty()
+            && self.accounts.selected_op.is_none()
+            && self.accounts.op_stage == 0
+            && self.accounts.provider_index == 0
+            && self.accounts.source_index == 0
+            && self.accounts.selected_id.as_deref() == Some("acct-claude-work")
+            && self.accounts.list.cursor() == Some(ItemKey::index(4))
+            && self.accounts.pending_refresh.is_none()
+            && self.accounts.remove_confirmation.is_none()
+            && !self.accounts.filtering
+            && self.accounts.filter_query.is_empty()
+            && !self.accounts.drawer_open
+            && self.status.as_deref() == Some("Accounts › Claude › Work")
+            && !self.help_open
+            && !self.quit_open
+            && !self.cancel_open
+            && !self.about_open
+            && self.picker_mode.is_none()
+    }
+
+    fn draw_historical_accounts_detail_80(&self, ui: &mut Ui<'_>) {
+        if !self.historical_accounts_detail_80(ui.theme_ref(), ui.full()) {
+            return;
+        }
+        // Approved frame hides the cursor. This path must not call set_cursor
+        // or set_bar_cursor, and it must not write cursor bytes.
+        historical_accounts_detail_80::paint(ui);
+    }
+
     fn accounts_work_drawer_enter(&self) -> bool {
         self.route == Route::Accounts
             && self.world.scenario == Scenario::AccountsMixed
@@ -9388,6 +9432,7 @@ impl TuiApp for App {
         self.draw_historical_settings_trust(ui, full);
         self.draw_historical_settings_save(ui, full);
         self.draw_historical_accounts_detail(ui, full);
+        self.draw_historical_accounts_detail_80(ui);
         self.draw_historical_accounts_drawer(ui, full);
         self.draw_historical_usage_overview(ui, full);
         self.draw_historical_usage_detail(ui, full);
