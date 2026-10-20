@@ -423,11 +423,12 @@ impl<'a> Button<'a> {
                     Slot::Inherit => Some(GlyphRole::SwitchOff),
                     Slot::Clear => None,
                 };
+                let marker_style = ms.over(container.style);
                 match glyph {
                     Some(g) => {
-                        ui.glyph(marker_cell, g, ms.style);
+                        ui.glyph(marker_cell, g, marker_style);
                     }
-                    None => ui.fill(marker_cell, ms.style),
+                    None => ui.fill(marker_cell, marker_style),
                 }
             }
             text = shift(text, 2);
@@ -436,18 +437,19 @@ impl<'a> Button<'a> {
             f(ui, text);
         } else {
             let ls = style(ui, Part::LABEL);
+            let label_style = ls.over(container.style);
             if matches!(ls.glyph, Slot::Set(GlyphRole::PressLeft)) {
-                ui.paint_str(text, self.label, ls.style);
+                ui.paint_str(text, self.label, label_style);
                 if area.width >= 2 {
                     paint_pressed_bracket(
                         ui,
                         gutter_cell,
                         cell_at(area, area.right().saturating_sub(1)),
-                        ls.style,
+                        label_style,
                     );
                 }
             } else {
-                ui.paint_str(text, self.label, ls.style);
+                ui.paint_str(text, self.label, label_style);
             }
         }
         area
@@ -601,6 +603,42 @@ mod tests {
             Theme::junie().design.glyphs.get(GlyphRole::FocusBar)
         );
         assert_eq!(gutter.bg, label.bg);
+    }
+
+    #[test]
+    fn pressed_checked_marker_uses_its_variant_on_fill_foreground() {
+        for variant in [Variant::PRIMARY, Variant::DANGER] {
+            let mut runtime = Runtime::new(Stub::default(), Theme::junie());
+            let mut buffer = Buffer::empty(AREA);
+            runtime
+                .draw_scene(AREA, &mut buffer, |ui, area| {
+                    ui.reference(
+                        Some(crate::ReferenceTarget::new(
+                            BUTTON,
+                            crate::ReferenceState::PRESSED,
+                        )),
+                        |ui| {
+                            Button::new(BUTTON, "Go")
+                                .variant(variant)
+                                .checked(true)
+                                .draw(ui, area);
+                        },
+                    );
+                })
+                .commit_presented();
+
+            let marker = buffer.cell(Position::new(1, 0)).unwrap();
+            let label = buffer.cell(Position::new(3, 0)).unwrap();
+            assert_eq!(marker.symbol(), "●");
+            assert_eq!(
+                marker.fg,
+                label.fg,
+                "pressed marker mismatch for {variant:?}: symbols {} / {}, row {}",
+                marker.symbol(),
+                label.symbol(),
+                row_text(&buffer, AREA.width),
+            );
+        }
     }
 
     #[test]
