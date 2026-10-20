@@ -7,7 +7,7 @@
 use core::fmt;
 
 use termrock_collections::KeyFn;
-use termrock_controls::Button;
+use termrock_controls::{Button, PropsList, PropsRow, PropsState};
 use termrock_editors::{
     CodeEditor, CodeEditorState, CompletingCodeEditor, CompletingCodeEditorState,
 };
@@ -138,6 +138,44 @@ where
     Child {
         content: ChildContent::Leaf(Box::new(CompletingCodeEditorLeaf { component, state })),
         policy: ChildPolicy::default(),
+    }
+}
+
+/// Adapt a property list while retaining its caller-owned keyed state and
+/// borrowed rows. Measurement and drawing delegate to the existing component.
+pub fn props_list<'a, 'config>(
+    component: &'a PropsList<'config>,
+    state: &'a PropsState,
+    rows: &'a [PropsRow<'a>],
+) -> Child<'a>
+where
+    'config: 'a,
+{
+    Child {
+        content: ChildContent::Leaf(Box::new(PropsListLeaf {
+            component,
+            state,
+            rows,
+        })),
+        policy: ChildPolicy::default(),
+    }
+}
+
+struct PropsListLeaf<'a, 'config> {
+    component: &'a PropsList<'config>,
+    state: &'a PropsState,
+    rows: &'a [PropsRow<'a>],
+}
+
+impl Measure for PropsListLeaf<'_, '_> {
+    fn measure(&self, ui: &Ui<'_>, constraints: Constraints) -> Size {
+        self.component.measure(ui, constraints)
+    }
+}
+
+impl CompositionLeaf for PropsListLeaf<'_, '_> {
+    fn draw(&self, ui: &mut Ui<'_>, logical: ratatui_core::layout::Rect) {
+        self.component.draw(ui, logical, self.state, self.rows);
     }
 }
 
