@@ -22,28 +22,63 @@ pub type DefaultTerminal = Terminal<CrosstermBackend<Stdout>>;
 
 /// Terminal caret shape used before the first rendered cursor request.
 ///
-/// The default matches the frozen application shell's shared caret policy.
+/// The default follows the frozen shell's terminal capability policy.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub enum SessionCursorShape {
+    /// Use the baseline bar shape only when the terminal advertises support.
+    #[default]
+    Auto,
     /// Use the terminal's configured default shape.
     Terminal,
     /// Use a steady block caret.
     Block,
     /// Use a steady underline caret.
     Underline,
-    /// Use the baseline steady bar caret.
-    #[default]
+    /// Use the baseline steady bar caret even when capability detection says unsupported.
     Bar,
 }
 
 impl SessionCursorShape {
-    const fn command(self) -> SetCursorStyle {
+    const fn command(self, caret_supported: bool) -> Option<SetCursorStyle> {
         match self {
-            Self::Terminal => SetCursorStyle::DefaultUserShape,
-            Self::Block => SetCursorStyle::SteadyBlock,
-            Self::Underline => SetCursorStyle::SteadyUnderScore,
-            Self::Bar => SetCursorStyle::SteadyBar,
+            Self::Auto if caret_supported => Some(SetCursorStyle::SteadyBar),
+            Self::Auto => None,
+            Self::Terminal => Some(SetCursorStyle::DefaultUserShape),
+            Self::Block => Some(SetCursorStyle::SteadyBlock),
+            Self::Underline => Some(SetCursorStyle::SteadyUnderScore),
+            Self::Bar => Some(SetCursorStyle::SteadyBar),
         }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+struct TerminalShapeSupport {
+    caret: bool,
+}
+
+impl TerminalShapeSupport {
+    fn current() -> Self {
+        Self::from_env(|key| std::env::var(key).ok())
+    }
+
+    fn from_env(get: impl Fn(&str) -> Option<String>) -> Self {
+        let term = get("TERM").unwrap_or_default().to_ascii_lowercase();
+        let program = get("TERM_PROGRAM").unwrap_or_default().to_ascii_lowercase();
+        let modern = term.contains("kitty")
+            || term.contains("ghostty")
+            || term.starts_with("foot")
+            || term.starts_with("wezterm")
+            || program == "wezterm"
+            || program == "ghostty"
+            || get("KITTY_WINDOW_ID").is_some();
+        let caret = modern
+            || term.starts_with("xterm")
+            || term.starts_with("tmux")
+            || term.starts_with("screen")
+            || term.starts_with("alacritty")
+            || term.starts_with("rxvt-unicode")
+            || term.starts_with("vte");
+        Self { caret }
     }
 }
 
@@ -93,6 +128,7 @@ impl StartupInput {
 pub struct TerminalSession {
     terminal: DefaultTerminal,
     left: bool,
+    reset_cursor_shape: bool,
 }
 
 impl core::fmt::Debug for TerminalSession {
@@ -103,18 +139,21 @@ impl core::fmt::Debug for TerminalSession {
     }
 }
 
-fn restore_modes() -> io::Result<()> {
+fn restore_modes(reset_cursor_shape: bool) -> io::Result<()> {
     let mut out = stdout();
-    restore_modes_with(&mut out, disable_raw_mode)
+    restore_modes_with(&mut out, disable_raw_mode, reset_cursor_shape)
 }
 
 fn restore_modes_with(
     out: &mut impl Write,
     restore_raw: impl FnOnce() -> io::Result<()>,
+    reset_cursor_shape: bool,
 ) -> io::Result<()> {
     let mut first = Ok(());
 
-    first = first.and(execute!(out, SetCursorStyle::DefaultUserShape));
+    if reset_cursor_shape {
+        first = first.and(execute!(out, SetCursorStyle::DefaultUserShape));
+    }
     first = first.and(execute!(out, Show));
     first = first.and(execute!(out, EnableLineWrap));
     first = first.and(execute!(out, DisableBracketedPaste));
@@ -124,15 +163,36 @@ fn restore_modes_with(
     first.and(out.flush())
 }
 
-fn enter_terminal_modes(out: &mut impl Write, cursor_shape: SessionCursorShape) -> io::Result<()> {
+fn enter_terminal_modes(
+    out: &mut impl Write,
+    cursor_shape: SessionCursorShape,
+    caret_supported: bool,
+) -> io::Result<bool> {
     execute!(
         out,
         EnterAlternateScreen,
         EnableMouseCapture,
-        EnableBracketedPaste,
-        cursor_shape.command(),
-        Hide
-    )
+        EnableBracketedPaste
+    )?;
+    let changed_cursor_shape = if let Some(command) = cursor_shape.command(caret_supported) {
+        execute!(out, command)?;
+        true
+    } else {
+        false
+    };
+    execute!(out, Hide)?;
+    Ok(changed_cursor_shape)
+}
+
+const fn rendered_cursor_command(
+    cursor_bar: bool,
+    caret_supported: bool,
+) -> Option<SetCursorStyle> {
+    if cursor_bar && caret_supported {
+        Some(SetCursorStyle::SteadyBar)
+    } else {
+        None
+    }
 }
 
 struct EntryCleanup<R: FnMut() -> io::Result<()>> {
@@ -188,21 +248,30 @@ impl TerminalSession {
     }
 
     pub fn enter_with_cursor_shape(cursor_shape: SessionCursorShape) -> io::Result<Self> {
-        chain_panic_hook(|| {
-            let _ = restore_modes();
+        Self::enter_with_cursor_shape_support(cursor_shape, TerminalShapeSupport::current().caret)
+    }
+
+    fn enter_with_cursor_shape_support(
+        cursor_shape: SessionCursorShape,
+        caret_supported: bool,
+    ) -> io::Result<Self> {
+        let reset_cursor_shape = cursor_shape.command(caret_supported).is_some();
+        chain_panic_hook(move || {
+            let _ = restore_modes(reset_cursor_shape);
         });
         let terminal = enter_guarded(
             || {
                 enable_raw_mode()?;
                 let mut out = stdout();
-                enter_terminal_modes(&mut out, cursor_shape)?;
+                enter_terminal_modes(&mut out, cursor_shape, caret_supported)?;
                 Terminal::new(CrosstermBackend::new(out))
             },
-            restore_modes,
+            || restore_modes(reset_cursor_shape),
         )?;
         Ok(TerminalSession {
             terminal,
             left: false,
+            reset_cursor_shape,
         })
     }
 
@@ -214,7 +283,7 @@ impl TerminalSession {
         leave_with(
             &mut self.left,
             || self.terminal.show_cursor(),
-            restore_modes,
+            || restore_modes(self.reset_cursor_shape),
         )
     }
 }
@@ -279,7 +348,9 @@ fn run_with_cursor_shape_startup<A: App>(
     cursor_shape: SessionCursorShape,
 ) -> io::Result<()> {
     prepare_startup_input(startup, std::thread::sleep, drain_pending_input);
-    let mut session = TerminalSession::enter_with_cursor_shape(cursor_shape)?;
+    let caret_supported = TerminalShapeSupport::current().caret;
+    let mut session =
+        TerminalSession::enter_with_cursor_shape_support(cursor_shape, caret_supported)?;
     let origin = Instant::now();
     let mut rt = Runtime::new_with_feedback_clock(app, theme.for_terminal(), clock);
     let _ = rt.initialize();
@@ -307,8 +378,8 @@ fn run_with_cursor_shape_startup<A: App>(
                 } else {
                     false
                 };
-                if bar {
-                    execute!(stdout(), SetCursorStyle::SteadyBar)?;
+                if let Some(command) = rendered_cursor_command(bar, caret_supported) {
+                    execute!(stdout(), command)?;
                 }
                 continue;
             }
@@ -496,10 +567,14 @@ mod tests {
     fn broken_output_still_restores_later_modes_raw_input_and_flushes() {
         let mut out = BrokenOutput::default();
         let raw = Cell::new(false);
-        let result = restore_modes_with(&mut out, || {
-            raw.set(true);
-            Err(io::Error::from(io::ErrorKind::PermissionDenied))
-        });
+        let result = restore_modes_with(
+            &mut out,
+            || {
+                raw.set(true);
+                Err(io::Error::from(io::ErrorKind::PermissionDenied))
+            },
+            false,
+        );
         assert_eq!(
             result.err().map(|error| error.kind()),
             Some(io::ErrorKind::BrokenPipe)
@@ -517,9 +592,11 @@ mod tests {
             calls: 1,
             ..BrokenOutput::default()
         };
-        let result = restore_modes_with(&mut out, || {
-            Err(io::Error::from(io::ErrorKind::PermissionDenied))
-        });
+        let result = restore_modes_with(
+            &mut out,
+            || Err(io::Error::from(io::ErrorKind::PermissionDenied)),
+            true,
+        );
         assert_eq!(
             result.err().map(|error| error.kind()),
             Some(io::ErrorKind::PermissionDenied)
@@ -530,7 +607,7 @@ mod tests {
     #[test]
     fn session_starts_with_bar_shape_even_while_cursor_is_hidden() {
         let mut out = Vec::new();
-        assert!(enter_terminal_modes(&mut out, SessionCursorShape::default()).is_ok());
+        assert!(enter_terminal_modes(&mut out, SessionCursorShape::default(), true).is_ok());
         let bytes = String::from_utf8_lossy(&out);
         let steady_bar = bytes.find("\x1b[6 q").expect("steady bar sequence");
         let hide = bytes.find("\x1b[?25l").expect("hidden cursor sequence");
@@ -549,19 +626,62 @@ mod tests {
             (SessionCursorShape::Bar, "\x1b[6 q"),
         ] {
             let mut out = Vec::new();
-            assert!(enter_terminal_modes(&mut out, shape).is_ok());
+            assert!(enter_terminal_modes(&mut out, shape, false).is_ok());
             assert!(String::from_utf8_lossy(&out).contains(sequence));
         }
-        assert_eq!(SessionCursorShape::default(), SessionCursorShape::Bar);
+        assert_eq!(SessionCursorShape::default(), SessionCursorShape::Auto);
     }
 
     #[test]
     fn terminal_cleanup_restores_cursor_style_and_visibility() {
         let mut out = Vec::new();
-        assert!(restore_modes_with(&mut out, || Ok(())).is_ok());
+        assert!(restore_modes_with(&mut out, || Ok(()), true).is_ok());
         let bytes = String::from_utf8_lossy(&out);
         assert!(bytes.contains("\x1b[0 q"), "cursor style reset");
         assert!(bytes.contains("\x1b[?25h"), "cursor shown");
+    }
+
+    #[test]
+    fn automatic_shape_matches_frozen_terminal_capability_policy() {
+        let env = |pairs: &[(&str, &str)]| {
+            TerminalShapeSupport::from_env(|key| {
+                pairs
+                    .iter()
+                    .find(|(name, _)| *name == key)
+                    .map(|(_, value)| (*value).to_owned())
+            })
+        };
+        assert!(env(&[("TERM", "xterm-256color")]).caret);
+        assert!(env(&[("TERM_PROGRAM", "WezTerm")]).caret);
+        assert!(env(&[("TERM", "tmux-256color")]).caret);
+        assert!(!env(&[("TERM", "linux")]).caret);
+        assert!(!env(&[("TERM", "dumb")]).caret);
+        assert!(!env(&[]).caret);
+    }
+
+    #[test]
+    fn unsupported_automatic_shape_preserves_terminal_default_and_cleanup() {
+        let mut enter = Vec::new();
+        assert!(matches!(
+            enter_terminal_modes(&mut enter, SessionCursorShape::Auto, false),
+            Ok(false)
+        ));
+        assert!(!String::from_utf8_lossy(&enter).contains("\x1b[6 q"));
+
+        let mut cleanup = Vec::new();
+        assert!(restore_modes_with(&mut cleanup, || Ok(()), false).is_ok());
+        assert!(!String::from_utf8_lossy(&cleanup).contains("\x1b[0 q"));
+        assert!(String::from_utf8_lossy(&cleanup).contains("\x1b[?25h"));
+    }
+
+    #[test]
+    fn rendered_cursor_style_respects_terminal_capability() {
+        assert_eq!(
+            rendered_cursor_command(true, true),
+            Some(SetCursorStyle::SteadyBar)
+        );
+        assert_eq!(rendered_cursor_command(true, false), None);
+        assert_eq!(rendered_cursor_command(false, true), None);
     }
 
     #[test]
