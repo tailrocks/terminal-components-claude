@@ -23,7 +23,12 @@ class RunnerGuards(unittest.TestCase):
         cases = []
         for cols, rows in runner.EXTENSION_SIZES:
             modes = ("truecolor", "nocolor") if (cols, rows) in {(40, 12), (60, 18)} else runner.EXTENSION_COLORS
-            checkpoints = ["initial", "narrow_revealed_80x24", "sorted"] if (cols, rows) in {(40, 12), (60, 18)} else ["initial", "sorted"]
+            if (cols, rows) in {(40, 12), (60, 18)}:
+                checkpoints = ["initial", "narrow_revealed_120x40", "sorted"]
+            elif cols < 120:
+                checkpoints = ["initial", "table_revealed_120x40", "sorted"]
+            else:
+                checkpoints = ["initial", "sorted"]
             for color in modes:
                 cases.append({"id": f"{runner.EXTENSION_CASE_PREFIX}sort::{cols}x{rows}::{color}", "journey_id": "sort", "cols": cols, "rows": rows, "color_mode": color, "checkpoints": checkpoints})
         return {"schema_version": 1, "extension_id_prefix": runner.EXTENSION_CASE_PREFIX, "journeys": [journey], "sizes": sizes, "color_modes": list(runner.EXTENSION_COLORS), "generated_cases": cases}
@@ -251,12 +256,22 @@ class RunnerGuards(unittest.TestCase):
 
     def test_extension_receipts_must_match_ordered_manifest_checkpoints(self) -> None:
         name = runner.EXTENSION_CASE_PREFIX + "sort::80x24::truecolor"
-        case = runner.scenario_case_id(name)
+        case = name
         manifest = {"generated_case_ids": [name], "checkpoint_obligations": {name: ["before", "sorted"]}}
         receipts = {(case, 0, "before"): "1" * 64, (case, 1, "sorted"): "2" * 64}
+        self.assertEqual(runner.scenario_receipt_id(name, manifest), name)
+        self.assertEqual(runner.scenario_receipt_id("showcase::overview::120x40::truecolor", manifest), "showcase/overview/120x40/truecolor")
         self.assertEqual(runner.validate_extension_checkpoint_receipts([name], receipts, manifest), [])
         with self.assertRaisesRegex(runner.RunnerError, "checkpoint obligations differ"):
             runner.validate_extension_checkpoint_receipts([name], {(case, 0, "sorted"): "1" * 64}, manifest)
+
+    def test_registered_cli_green_does_not_claim_overall_acceptance(self) -> None:
+        report = runner.cli_coverage_report_fields(True)
+        self.assertEqual(report["scope"], "registered_cli_scenarios_and_ordinary_checks")
+        self.assertTrue(report["registered_cli_complete"])
+        self.assertFalse(report["overall_acceptance_complete"])
+        self.assertFalse(report["acceptance_complete"])
+        self.assertFalse(runner.cli_coverage_report_fields(False)["registered_cli_complete"])
 
     def test_ordinary_inventory_separates_cli_cases_from_source_checks(self) -> None:
         cli = sorted(runner.EXPECTED_CLI_ORDINARY_TESTS)
