@@ -24,7 +24,7 @@ Do not add another `historical_*` paint or size-specific `*_plate` cell dump. Tw
 
 ## Counts on this commit
 
-- `tablepro-ui`: 15 `mod historical_*` remain. 13 early-return paints load `snapshots/**/120x40/truecolor.ansi`. `historical_form_new` and `historical_form_advanced` are inlined cell dumps. Quick-open, tab list, and Safe Mode belong to `termrock_overlays::picker::Picker` (`crates/termrock-overlays/src/picker.rs`).
+- `tablepro-ui`: 14 `mod historical_*` remain. 12 early-return paints load `snapshots/**/120x40/truecolor.ansi`. `historical_form_new` and `historical_form_advanced` are inlined cell dumps. Quick-open, tab list, and Safe Mode belong to `termrock_overlays::picker::Picker`. Help belongs to `termrock_overlays::help::HelpOverlay`.
 - `jackin-preview-app`: 42 `historical_*::paint` call sites, 2 presentation blits, 2 boot-needle stamps that paint `jackin❯` over the title.
 - `holla-sim` / `holla-ui`: 46 `*_plate` selectors plus 2 full-screen cell plates (`paint_disk_cleanup_plate`, `paint_launch_failure_plate`). Selectors key off one scenario, one size, and `now_ms()==80`.
 - `showcase-demos`: selectable delete-confirm and bulk-mixed ANSI stamps. `showcase-ui` has none.
@@ -37,7 +37,7 @@ TablePro quick-open and tab list now draw `termrock_overlays::picker::Picker`. T
 
 Recorded before the uncommitted picker series: local `HEAD` `b0504717c280a4bb141cc6043b35fce6664f8a6a`. `origin/parity/termrock-visual-baseline` is ahead at `1a947a251ab9b045610b47729bf481419b9fca8d` (docs only). Rebase onto that tip before the next push. Do not push `main`.
 
-Latest harness: `picker_open`, `tablist_open`, and `safemode_picker` at 120×40 truecolor match the baseline, cell for cell, including the cursor. Supersedes the 1089 / 198 and 253 / 136 counts. The card samples backdrop ink, rows use the shared column solver, the overflowing list fades through `Ui::scroll_edges`, and a searchable picker footer is `Type Filter`. Safe Mode is the same picker with search off, size `Fixed(112, rows + 5)`, footer `↑↓ Move  Enter Choose  Esc Cancel`, and a hidden cursor. `historical_safemode_picker` is removed. Opening it does not depend on the connection name, one empty tab, or one terminal size. Other `historical_*` and `*_plate` paints are still in the tree. Do not treat the rest of the apps as parity.
+Latest harness: `picker_open`, `tablist_open`, and `safemode_picker` at 120×40 truecolor match the baseline, cell for cell, including the cursor. Supersedes the 1089 / 198 and 253 / 136 counts. The card samples backdrop ink, rows use the shared column solver, the overflowing list fades through `Ui::scroll_edges`, and a searchable picker footer is `Type Filter`. Safe Mode is the same picker with search off, size `Fixed(112, rows + 5)`, footer `↑↓ Move  Enter Choose  Esc Cancel`, and a hidden cursor. `historical_safemode_picker` is removed. Opening it does not depend on the connection name, one empty tab, or one terminal size. `?` opens `HelpOverlay` at 80% of the screen, centered. `historical_help_overlay` is removed. The 120×40 truecolor help frame matches, including the hidden cursor. Other `historical_*` and `*_plate` paints are still in the tree. Do not treat the rest of the apps as parity.
 
 ## Review of `a848219fd` (picker frames)
 

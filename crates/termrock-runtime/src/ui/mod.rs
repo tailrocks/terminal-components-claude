@@ -1080,6 +1080,40 @@ impl<'f> Ui<'f> {
         self.page
     }
 
+    /// Card fill that keeps the dimmed page glyph color and sets the card background.
+    pub fn fill_card_from_page(&mut self, area: Rect, card: ratatui_core::style::Color) {
+        let theme = self.theme.clone();
+        let samples: Vec<_> = area
+            .positions()
+            .map(|pos| {
+                let (fg, bg) = self
+                    .page
+                    .cell(pos)
+                    .map(|cell| (cell.fg, cell.bg))
+                    .unwrap_or((
+                        ratatui_core::style::Color::Reset,
+                        ratatui_core::style::Color::Reset,
+                    ));
+                let (fg, _) = theme.backdrop_colors(fg, bg);
+                (pos, fg)
+            })
+            .collect();
+        {
+            let buf = self.buffer();
+            for (pos, fg) in samples {
+                if let Some(cell) = buf.cell_mut(pos) {
+                    cell.set_symbol(" ");
+                    let mut style = ratatui_core::style::Style::new();
+                    style.fg = Some(fg);
+                    style.bg = Some(card);
+                    cell.set_style(style);
+                    cell.modifier = ratatui_core::style::Modifier::empty();
+                }
+            }
+        }
+        self.mark_area(area, None);
+    }
+
     pub(crate) fn layer_count(&self) -> usize {
         self.frame.layers.active().len()
     }
