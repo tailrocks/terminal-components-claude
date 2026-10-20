@@ -23,7 +23,6 @@ mod historical_form_advanced;
 mod historical_form_new;
 mod historical_history_tab;
 mod historical_query_completion;
-mod historical_query_results;
 mod historical_table_scrolled_right;
 mod historical_workbench_explorer_hidden;
 mod historical_workbench_maximized;
@@ -199,9 +198,6 @@ const ACCEPT_SQL_COMPLETION: ActionKey = ActionKey::application("tablepro.accept
 const PALETTE: ActionKey = ActionKey::application("tablepro.palette");
 const ZOOM: ActionKey = ActionKey::application("tablepro.zoom");
 const TOGGLE_EXPLORER: ActionKey = ActionKey::application("tablepro.toggle-explorer");
-const RESULT_SQL: &str =
-    "SELECT * FROM orders WHERE status = 'pending' ORDER BY created_at DESC LIMIT 25";
-const ERROR_SQL: &str = "SELECT * FROM missing_table";
 const COMPLETION_SQL: &str = "SELECT * FROM ord";
 
 const CONNECTION_DETAILS: Id = Id::root("tablepro.connections.details");
@@ -448,6 +444,16 @@ fn keymap() -> KeyMap {
             .bind(
                 KeyPhase::Bubble,
                 Chord::with(KeyCode::Char('r'), KeyModifiers::CONTROL),
+                RUN,
+            )
+            // A slow frame lets Esc and Ctrl+R sit in the same read. Crossterm
+            // then reports one Alt+Ctrl+R. That chord is still Run.
+            .bind(
+                KeyPhase::Bubble,
+                Chord::with(
+                    KeyCode::Char('r'),
+                    KeyModifiers::CONTROL | KeyModifiers::ALT,
+                ),
                 RUN,
             )
             .bind(
@@ -2572,6 +2578,7 @@ impl TableProApp {
             &grid_view.state,
             &grid_view.model,
             self.surface == Surface::FilterEditor,
+            false,
         );
         let shown = usize::from(grid_area.height.saturating_sub(1));
         let enabled = filters.iter().filter(|filter| filter.enabled).count();
@@ -2659,19 +2666,37 @@ impl TableProApp {
     }
 
     fn draw_result_grid(&self, ui: &mut Ui<'_>, area: termrock::Rect) {
+        if area.height < 2 {
+            return;
+        }
+        let grid_area = termrock::Rect {
+            width: area.width.saturating_sub(3),
+            height: area.height.saturating_sub(1),
+            ..area
+        };
         if let Some((id, grid)) = self.workbench.active_grid() {
             let (columns, count) = Self::column_specs(&grid.columns, grid.model.is_editable());
             draw_painted_grid(
                 ui,
-                area,
+                grid_area,
                 id,
                 &grid.columns,
                 columns.get(..count).unwrap_or(&[]),
                 &grid.state,
                 &grid.model,
                 false,
+                true,
             );
         }
+        paint_horizontal_bar(
+            ui,
+            termrock::Rect {
+                y: area.bottom().saturating_sub(1),
+                width: area.width.saturating_sub(3),
+                height: 1,
+                ..area
+            },
+        );
     }
 
     fn draw_connection_details(&self, ui: &mut Ui<'_>, area: termrock::Rect) {
@@ -2933,6 +2958,16 @@ impl TableProApp {
             Some(Tab::Query(query)) if query.error.is_some() && query.plan.is_none() => {
                 (format!(" {} ", query.name), Some("2 ms ".to_owned()))
             }
+            Some(Tab::Query(query))
+                if query.result.is_some() && query.plan.is_none() && query.error.is_none() =>
+            {
+                let ms = query
+                    .result
+                    .as_ref()
+                    .map(|grid| grid.model.duration_ms())
+                    .unwrap_or(0);
+                (format!(" {} ", query.name), Some(format!("{ms} ms ")))
+            }
             Some(Tab::Query(query)) if query.plan.is_some() && query.result.is_none() => {
                 let meta = if let Some(actual) = query.plan.as_ref().and_then(|plan| plan.actual_ms)
                 {
@@ -2995,6 +3030,13 @@ impl TableProApp {
             if let Some(plan) = query.plan.as_ref() {
                 extend_query_plan_edge(ui, area, inner, plan);
             }
+        }
+        if let Some(Tab::Query(query)) = self.workbench.active()
+            && query.result.is_some()
+            && query.plan.is_none()
+            && query.error.is_none()
+        {
+            extend_query_results_edge(ui, inner);
         }
         paint_content_seam(
             ui,
@@ -3117,6 +3159,31 @@ impl TableProApp {
                 }
                 if let Some(message) = query.error.as_deref() {
                     paint_query_error(ui, area, inner, query.query.as_str(), message);
+                }
+            }
+            Some(Tab::Query(query))
+                if query.result.is_some() && query.plan.is_none() && query.error.is_none() =>
+            {
+                let id = self.query_id();
+                if let Some(id) = id {
+                    ui.register_keyboard_editor(
+                        id,
+                        inner,
+                        Focusability::Focusable,
+                        StateFlags::empty(),
+                    );
+                }
+                if let Some(result) = query.result.as_ref() {
+                    let grid_area = paint_query_results_chrome(
+                        ui,
+                        area,
+                        inner,
+                        query.query.as_str(),
+                        result.model.row_count(),
+                        result.model.duration_ms(),
+                        result.model.source(),
+                    );
+                    self.draw_result_grid(ui, grid_area);
                 }
             }
             Some(Tab::Query(query)) => {
@@ -3303,7 +3370,10 @@ fn paint_query_plan(
     );
     ui.fill(editor, field);
     if editor.height > 0 {
-        let line = termrock::Rect { height: 1, ..editor };
+        let line = termrock::Rect {
+            height: 1,
+            ..editor
+        };
         let caret = field.patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Accent)));
         let mark =
             field.patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Primary))));
@@ -3528,9 +3598,9 @@ fn paint_plan_node(
             None => node.op.clone(),
         }
     } else {
-        let chevron = ui.surface_style().patch(
-            ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Secondary))),
-        );
+        let chevron = ui
+            .surface_style()
+            .patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Secondary))));
         ui.paint_str(
             termrock::Rect::new(
                 area.x
@@ -3552,9 +3622,9 @@ fn paint_plan_node(
         &fitted,
         label_style,
     );
-    let metrics = ui.surface_style().patch(
-        ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Secondary))),
-    );
+    let metrics = ui
+        .surface_style()
+        .patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Secondary))));
     let actual = match node.actual_ms {
         Some(m) => format!("{m:.1} ms"),
         None => "—".to_owned(),
@@ -3633,6 +3703,340 @@ fn fmt_plan_rows(rows: usize) -> String {
         format!("{:.1} M", rows as f64 / 1_000_000.0)
     } else {
         rows.to_string()
+    }
+}
+
+const SQL_STRING: Role = Role::Custom(termrock::Color::from_u32(0x008b_d5ca));
+const SQL_NUMBER: Role = Role::Custom(termrock::Color::from_u32(0x00c6_a0f6));
+
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum SqlPaint {
+    Text,
+    Keyword,
+    Star,
+    Eq,
+    Str,
+    Num,
+}
+
+fn classify_sql(sql: &str) -> Vec<SqlPaint> {
+    let chars: Vec<char> = sql.chars().collect();
+    let mut kinds = vec![SqlPaint::Text; chars.len()];
+    let mut index = 0;
+    while index < chars.len() {
+        if chars[index] == '\'' {
+            let start = index;
+            index = index.saturating_add(1);
+            while index < chars.len() && chars[index] != '\'' {
+                index = index.saturating_add(1);
+            }
+            if index < chars.len() {
+                index = index.saturating_add(1);
+            }
+            for kind in &mut kinds[start..index] {
+                *kind = SqlPaint::Str;
+            }
+            continue;
+        }
+        if chars[index].is_ascii_digit() {
+            let start = index;
+            while index < chars.len() && chars[index].is_ascii_digit() {
+                index = index.saturating_add(1);
+            }
+            for kind in &mut kinds[start..index] {
+                *kind = SqlPaint::Num;
+            }
+            continue;
+        }
+        if chars[index].is_ascii_alphabetic() {
+            let start = index;
+            while index < chars.len()
+                && (chars[index].is_ascii_alphanumeric() || chars[index] == '_')
+            {
+                index = index.saturating_add(1);
+            }
+            let word: String = chars[start..index].iter().collect();
+            let kind = if sql_keyword(&word) {
+                SqlPaint::Keyword
+            } else {
+                SqlPaint::Text
+            };
+            for slot in &mut kinds[start..index] {
+                *slot = kind;
+            }
+            continue;
+        }
+        if chars[index] == '*' {
+            kinds[index] = SqlPaint::Star;
+        } else if chars[index] == '=' {
+            kinds[index] = SqlPaint::Eq;
+        }
+        index = index.saturating_add(1);
+    }
+    kinds
+}
+
+fn paint_clipped_sql(ui: &mut Ui<'_>, area: termrock::Rect, sql: &str, field: PaintStyle) -> u16 {
+    if area.width == 0 || area.height == 0 {
+        return 0;
+    }
+    let chars: Vec<char> = sql.chars().collect();
+    let kinds = classify_sql(sql);
+    let limit = usize::from(area.width);
+    let start = if chars.len() <= limit {
+        0
+    } else {
+        chars.len().saturating_sub(limit.saturating_sub(1))
+    };
+    let muted = field.patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Muted))));
+    let keyword =
+        field.patch(ui.paint_patch(&StylePatch::new().set_fg(SQL_KEYWORD).add(Modifier::BOLD)));
+    let string = field.patch(ui.paint_patch(&StylePatch::new().set_fg(SQL_STRING)));
+    let number =
+        field.patch(ui.paint_patch(&StylePatch::new().set_fg(SQL_NUMBER).add(Modifier::ITALIC)));
+    let mut x = area.x;
+    if start > 0 {
+        ui.paint_str(
+            termrock::Rect {
+                x,
+                width: 1,
+                ..area
+            },
+            "…",
+            muted,
+        );
+        x = x.saturating_add(1);
+    }
+    for (index, ch) in chars.iter().enumerate().skip(start) {
+        if x >= area.right() {
+            break;
+        }
+        let style = match kinds.get(index).copied().unwrap_or(SqlPaint::Text) {
+            SqlPaint::Keyword => keyword,
+            SqlPaint::Star | SqlPaint::Eq => muted,
+            SqlPaint::Str => string,
+            SqlPaint::Num => number,
+            SqlPaint::Text => field,
+        };
+        ui.paint_str(
+            termrock::Rect {
+                x,
+                width: 1,
+                ..area
+            },
+            &ch.to_string(),
+            style,
+        );
+        x = x.saturating_add(1);
+    }
+    x.saturating_sub(area.x)
+}
+
+fn paint_query_results_chrome(
+    ui: &mut Ui<'_>,
+    area: termrock::Rect,
+    inner: termrock::Rect,
+    sql: &str,
+    rows: usize,
+    duration_ms: u32,
+    source: Option<&str>,
+) -> termrock::Rect {
+    if inner.height < 8 || inner.width == 0 {
+        return inner;
+    }
+    let inset = ui.design().space.frame_inset;
+    let body = termrock::Rect {
+        x: area.x.saturating_add(inset),
+        y: inner.y,
+        width: area.width.saturating_sub(inset),
+        height: inner.height,
+    };
+    let top = idle_query_top(inner.height);
+    let editor_rows = top.saturating_sub(2);
+    paint_query_toolbar(ui, termrock::Rect { height: 1, ..body });
+    let editor = termrock::Rect {
+        y: body.y.saturating_add(1),
+        height: editor_rows,
+        ..body
+    };
+    let field = ui.surface_style().patch(
+        ui.paint_patch(
+            &StylePatch::new()
+                .set_fg(Role::Fg(FgStep::Primary))
+                .set_bg(TAG_FIELD_BG),
+        ),
+    );
+    ui.fill(editor, field);
+    if editor.height > 0 {
+        let line = termrock::Rect {
+            height: 1,
+            ..editor
+        };
+        let caret = field.patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Accent)));
+        let mark =
+            field.patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Primary))));
+        let number = field.patch(ui.paint_patch(&StylePatch::new().add(Modifier::BOLD)));
+        ui.paint_str(termrock::Rect { width: 1, ..line }, "▎", caret);
+        ui.paint_str(
+            termrock::Rect {
+                x: line.x.saturating_add(1),
+                width: 1,
+                ..line
+            },
+            "›",
+            mark,
+        );
+        ui.paint_str(
+            termrock::Rect {
+                x: line.x.saturating_add(3),
+                width: 2,
+                ..line
+            },
+            " 1",
+            number,
+        );
+        let text = termrock::Rect {
+            x: line.x.saturating_add(6),
+            width: line.width.saturating_sub(9),
+            ..line
+        };
+        paint_clipped_sql(ui, text, sql, field);
+    }
+    if editor.height > 2 {
+        let bar = termrock::Rect {
+            y: editor.bottom().saturating_sub(2),
+            height: 1,
+            ..editor
+        };
+        let track = field.patch(ui.paint_patch(&StylePatch::new().set_fg(LEGACY_SCROLL_TRACK)));
+        let thumb = field.patch(ui.paint_patch(&StylePatch::new().set_fg(LEGACY_SCROLL_THUMB)));
+        let bar_x = bar.x.saturating_add(6);
+        ui.paint_str(termrock::Rect::new(bar_x, bar.y, 3, 1), "┄┄┄", track);
+        let thumb_w = bar.width.saturating_sub(10);
+        ui.paint_str(
+            termrock::Rect::new(bar_x.saturating_add(3), bar.y, thumb_w, 1),
+            &"━".repeat(usize::from(thumb_w)),
+            thumb,
+        );
+    }
+    if editor.height > 1 {
+        let status = termrock::Rect {
+            y: editor.bottom().saturating_sub(1),
+            height: 1,
+            ..editor
+        };
+        let place = format!("ln 1/1 · col {}", width(sql).saturating_add(1));
+        let place_w = width(&place);
+        let faint = field.patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Faint))));
+        ui.paint_str(
+            termrock::Rect {
+                x: status.right().saturating_sub(3).saturating_sub(place_w),
+                width: place_w,
+                ..status
+            },
+            &place,
+            faint,
+        );
+    }
+    let seam_y = editor.y.saturating_add(editor.height);
+    paint_query_seam(
+        ui,
+        termrock::Rect {
+            y: seam_y,
+            height: 1,
+            ..body
+        },
+    );
+    let below = termrock::Rect {
+        y: seam_y.saturating_add(1),
+        height: body.bottom().saturating_sub(seam_y.saturating_add(1)),
+        ..body
+    };
+    let table = source
+        .and_then(|name| name.rsplit('.').next())
+        .unwrap_or("orders");
+    let label = format!(" SELECT {table} ({rows}) ");
+    let plain = ui.surface_style();
+    let chip = plain.patch(
+        ui.paint_patch(
+            &StylePatch::new()
+                .set_fg(Role::Fg(FgStep::Primary))
+                .set_bg(Role::Surface(termrock::Surface::Overlay))
+                .add(Modifier::BOLD),
+        ),
+    );
+    let close = chip.patch(
+        ui.paint_patch(
+            &StylePatch::new()
+                .set_fg(Role::Fg(FgStep::Secondary))
+                .remove(Modifier::BOLD),
+        ),
+    );
+    ui.paint_str(
+        termrock::Rect {
+            width: width(&label),
+            height: 1,
+            ..below
+        },
+        &label,
+        chip,
+    );
+    let close_x = below.x.saturating_add(width(&label));
+    ui.paint_str(termrock::Rect::new(close_x, below.y, 1, 1), "×", close);
+    ui.paint_str(
+        termrock::Rect::new(close_x.saturating_add(1), below.y, 2, 1),
+        "  ",
+        chip,
+    );
+    let tab_w = width(&label).saturating_add(3);
+    let rule = termrock::Rect {
+        y: below.y.saturating_add(1),
+        height: 1,
+        ..below
+    };
+    let hot = plain.patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Accent)));
+    let quiet = plain.patch(ui.paint_patch(&StylePatch::new().set_fg(TAG_RULE_FG)));
+    ui.paint_str(
+        termrock::Rect {
+            width: tab_w.min(rule.width),
+            ..rule
+        },
+        &"━".repeat(usize::from(tab_w.min(rule.width))),
+        hot,
+    );
+    if rule.width > tab_w {
+        ui.paint_str(
+            termrock::Rect {
+                x: rule.x.saturating_add(tab_w),
+                width: rule.width.saturating_sub(tab_w),
+                ..rule
+            },
+            &"─".repeat(usize::from(rule.width.saturating_sub(tab_w))),
+            quiet,
+        );
+    }
+    let ok = plain.patch(ui.paint_patch(&StylePatch::new().set_fg(TAG_OK_FG)));
+    let muted = plain.patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Muted))));
+    ui.paint_str(
+        termrock::Rect::new(below.x.saturating_add(1), below.y.saturating_add(2), 1, 1),
+        "✓",
+        ok,
+    );
+    let rest = format!(" {rows} rows · {duration_ms} ms");
+    ui.paint_str(
+        termrock::Rect::new(
+            below.x.saturating_add(2),
+            below.y.saturating_add(2),
+            width(&rest),
+            1,
+        ),
+        &rest,
+        muted,
+    );
+    termrock::Rect {
+        y: below.y.saturating_add(3),
+        height: below.height.saturating_sub(3),
+        ..below
     }
 }
 
@@ -3862,6 +4266,8 @@ fn sql_keyword(word: &str) -> bool {
             | "AS"
             | "EXPLAIN"
             | "ANALYZE"
+            | "DESC"
+            | "ASC"
     )
 }
 
@@ -4304,7 +4710,12 @@ fn extend_query_plan_edge(
     ui.paint_str(termrock::Rect::new(x, editor_y, 1, 1), " ", lined);
     if editor_rows > 1 {
         ui.fill(
-            termrock::Rect::new(x, editor_y.saturating_add(1), 1, editor_rows.saturating_sub(1)),
+            termrock::Rect::new(
+                x,
+                editor_y.saturating_add(1),
+                1,
+                editor_rows.saturating_sub(1),
+            ),
             field,
         );
     }
@@ -4345,6 +4756,50 @@ fn paint_plan_edge_nodes(
     for child in &node.children {
         paint_plan_edge_nodes(ui, x, y, child, root_cost);
     }
+}
+
+fn extend_query_results_edge(ui: &mut Ui<'_>, inner: termrock::Rect) {
+    if inner.height < 8 || inner.width == 0 {
+        return;
+    }
+    let top = idle_query_top(inner.height);
+    let editor_rows = top.saturating_sub(2);
+    let editor_y = inner.y.saturating_add(1);
+    let x = inner.right();
+    let field = ui.surface_style().patch(
+        ui.paint_patch(
+            &StylePatch::new()
+                .set_fg(Role::Fg(FgStep::Primary))
+                .set_bg(TAG_FIELD_BG),
+        ),
+    );
+    ui.fill(termrock::Rect::new(x, editor_y, 1, editor_rows), field);
+    if editor_rows > 2 {
+        let thumb = field.patch(ui.paint_patch(&StylePatch::new().set_fg(LEGACY_SCROLL_THUMB)));
+        ui.paint_str(
+            termrock::Rect::new(
+                x,
+                editor_y.saturating_add(editor_rows.saturating_sub(2)),
+                1,
+                1,
+            ),
+            "━",
+            thumb,
+        );
+    }
+    let seam_y = editor_y.saturating_add(editor_rows);
+    let seam = ui
+        .surface_style()
+        .patch(ui.paint_patch(&StylePatch::new().set_fg(Role::BorderStrong)));
+    ui.paint_str(termrock::Rect::new(x, seam_y, 1, 1), "─", seam);
+    let quiet = ui
+        .surface_style()
+        .patch(ui.paint_patch(&StylePatch::new().set_fg(TAG_RULE_FG)));
+    ui.paint_str(
+        termrock::Rect::new(x, seam_y.saturating_add(2), 1, 1),
+        "─",
+        quiet,
+    );
 }
 
 fn extend_query_error_edge(ui: &mut Ui<'_>, area: termrock::Rect, inner: termrock::Rect) {
@@ -5497,12 +5952,12 @@ fn paint_chosen_explorer_row(
                 .remove(Modifier::BOLD),
         ),
     );
-    let name_style = if accent_name && ui.theme().capability.color == termrock::ColorLevel::TrueColor
-    {
-        fill.patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Accent)))
-    } else {
-        fill
-    };
+    let name_style =
+        if accent_name && ui.theme().capability.color == termrock::ColorLevel::TrueColor {
+            fill.patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Accent)))
+        } else {
+            fill
+        };
     let text_x = fold_x.saturating_add(2);
     ui.paint_str(
         termrock::Rect {
@@ -5563,7 +6018,8 @@ fn paint_result_cell(cell: GridCell<'_>, ui: &mut CellUi<'_>) {
         ui.patch(&patch);
     } else if budget.kind == KIND_PRIMARY {
         let mut patch = StylePatch::new().set_fg(TAG_PATH_FG);
-        if cell.flags.contains(StateFlags::FOCUSED) && ui.color_level() == termrock::ColorLevel::Mono
+        if cell.flags.contains(StateFlags::FOCUSED)
+            && ui.color_level() == termrock::ColorLevel::Mono
         {
             patch = patch.add(Modifier::REVERSED);
         }
@@ -6411,7 +6867,13 @@ fn paint_scrolled_cells(
     clippy::too_many_lines,
     reason = "header gutter, primary key, and muted titles share one pass"
 )]
-fn paint_grid_header(ui: &mut Ui<'_>, area: termrock::Rect, names: &[String], covered: bool) {
+fn paint_grid_header(
+    ui: &mut Ui<'_>,
+    area: termrock::Rect,
+    names: &[String],
+    covered: bool,
+    calm_header: bool,
+) {
     let Some(chrome) = GRID_CHROME.with(|chrome| chrome.borrow().clone()) else {
         return;
     };
@@ -6429,17 +6891,27 @@ fn paint_grid_header(ui: &mut Ui<'_>, area: termrock::Rect, names: &[String], co
         },
         base,
     );
-    let primary = base.patch(
-        ui.paint_patch(
-            &StylePatch::new()
-                .set_fg(Role::Fg(if covered {
-                    FgStep::Secondary
-                } else {
-                    FgStep::Primary
-                }))
-                .add(Modifier::BOLD),
-        ),
-    );
+    let primary = if calm_header {
+        base.patch(
+            ui.paint_patch(
+                &StylePatch::new()
+                    .set_fg(TAG_CHROME_FG)
+                    .remove(Modifier::BOLD),
+            ),
+        )
+    } else {
+        base.patch(
+            ui.paint_patch(
+                &StylePatch::new()
+                    .set_fg(Role::Fg(if covered {
+                        FgStep::Secondary
+                    } else {
+                        FgStep::Primary
+                    }))
+                    .add(Modifier::BOLD),
+            ),
+        )
+    };
     let muted = base.remove_modifier(Modifier::BOLD).patch(
         ui.paint_patch(
             &StylePatch::new()
@@ -6456,8 +6928,17 @@ fn paint_grid_header(ui: &mut Ui<'_>, area: termrock::Rect, names: &[String], co
         },
         base,
     );
-    let key =
-        base.patch(ui.paint_patch(&StylePatch::new().set_fg(LEGACY_FAINT).add(Modifier::BOLD)));
+    let key = if calm_header {
+        base.patch(
+            ui.paint_patch(
+                &StylePatch::new()
+                    .set_fg(LEGACY_FAINT)
+                    .remove(Modifier::BOLD),
+            ),
+        )
+    } else {
+        base.patch(ui.paint_patch(&StylePatch::new().set_fg(LEGACY_FAINT).add(Modifier::BOLD)))
+    };
     for (index, place) in chrome.places.iter().enumerate() {
         let origin = area.x.saturating_add(chrome.gutter).saturating_add(place.x);
         let rect = termrock::Rect {
@@ -7063,6 +7544,7 @@ fn draw_painted_grid(
     state: &termrock::GridState,
     model: &ResultGrid,
     covered: bool,
+    calm_header: bool,
 ) {
     GRID_SEEN_ROW.with(|slot| *slot.borrow_mut() = None);
     install_grid_budgets(area.width, columns, model);
@@ -7073,7 +7555,8 @@ fn draw_painted_grid(
     let grid = result_grid(id, draw_specs);
     grid.draw(ui, area, state, &PaintedGrid { inner: model });
     paint_grid_focus_bar(ui, area, state, model);
-    if let Some((key, _)) = state.cursor()
+    if !calm_header
+        && let Some((key, _)) = state.cursor()
         && let Some(row) = (0..model.row_count()).find(|row| GridModel::row_key(model, *row) == key)
     {
         let bold = PaintStyle::new().add_modifier(Modifier::BOLD);
@@ -7108,6 +7591,7 @@ fn draw_painted_grid(
             .map(|(name, _)| name.clone())
             .collect::<Vec<_>>(),
         covered,
+        calm_header,
     );
     if scrolled {
         paint_scrolled_cells(ui, area, columns, state, model);
@@ -8624,32 +9108,36 @@ fn with_footer_spans(
                 // An active sort uses the shorter hint row so the sort label fits.
                 paint_data_footer(filtered && sort_footer(app).is_none(), pending, paint);
             }
-            Some(Tab::Query(query)) if query.error.is_some() => paint(&[
-                Span::new(" "),
-                Span::new("Enter").bold(),
-                Span::new(" "),
-                Span::new("Edit").role(Role::Fg(FgStep::Muted)),
-                Span::new("  "),
-                Span::new("Ctrl+R").bold(),
-                Span::new(" "),
-                Span::new("Run").role(Role::Fg(FgStep::Muted)),
-                Span::new("  "),
-                Span::new("Alt+R").bold(),
-                Span::new(" "),
-                Span::new("Run all").role(Role::Fg(FgStep::Muted)),
-                Span::new("  "),
-                Span::new("Ctrl+X").bold(),
-                Span::new(" "),
-                Span::new("Explain").role(Role::Fg(FgStep::Muted)),
-                Span::new("  "),
-                Span::new("/").bold(),
-                Span::new(" "),
-                Span::new("Find").role(Role::Fg(FgStep::Muted)),
-                Span::new("  "),
-                Span::new("Tab").bold(),
-                Span::new(" "),
-                Span::new("Next").role(Role::Fg(FgStep::Muted)),
-            ]),
+            Some(Tab::Query(query))
+                if query.error.is_some() || (query.result.is_some() && query.plan.is_none()) =>
+            {
+                paint(&[
+                    Span::new(" "),
+                    Span::new("Enter").bold(),
+                    Span::new(" "),
+                    Span::new("Edit").role(Role::Fg(FgStep::Muted)),
+                    Span::new("  "),
+                    Span::new("Ctrl+R").bold(),
+                    Span::new(" "),
+                    Span::new("Run").role(Role::Fg(FgStep::Muted)),
+                    Span::new("  "),
+                    Span::new("Alt+R").bold(),
+                    Span::new(" "),
+                    Span::new("Run all").role(Role::Fg(FgStep::Muted)),
+                    Span::new("  "),
+                    Span::new("Ctrl+X").bold(),
+                    Span::new(" "),
+                    Span::new("Explain").role(Role::Fg(FgStep::Muted)),
+                    Span::new("  "),
+                    Span::new("/").bold(),
+                    Span::new(" "),
+                    Span::new("Find").role(Role::Fg(FgStep::Muted)),
+                    Span::new("  "),
+                    Span::new("Tab").bold(),
+                    Span::new(" "),
+                    Span::new("Next").role(Role::Fg(FgStep::Muted)),
+                ]);
+            }
             Some(Tab::Query(_)) => paint(&[
                 Span::new(" "),
                 Span::new("Enter").bold(),
@@ -9459,7 +9947,8 @@ fn draw_footer(ui: &mut Ui<'_>, area: termrock::Rect, app: &TableProApp) {
             || app.surface == Surface::FilterEditor
             || matches!(
                 app.workbench.active(),
-                Some(Tab::Query(query)) if query.error.is_some() || query.plan.is_some()
+                Some(Tab::Query(query))
+                    if query.error.is_some() || query.plan.is_some() || query.result.is_some()
             );
         let prefix = if checked {
             "✓ Connected to "
@@ -9928,56 +10417,6 @@ impl TableProApp {
             .columns
             .get(index)
             .is_some_and(|(name, _)| name == "updated_at")
-    }
-
-    fn paint_historical_query_results(&self, ui: &mut Ui<'_>) -> bool {
-        if !self.historical_query_results_frame(ui) {
-            return false;
-        }
-        historical_query_results::paint(ui);
-        true
-    }
-
-    fn historical_query_results_frame(&self, ui: &Ui<'_>) -> bool {
-        // The approved result card is the PTY frame only. Buffer tests keep the live grid.
-        let area = ui.full();
-        if area.width != 120
-            || area.height != 40
-            || !std::io::IsTerminal::is_terminal(&std::io::stdout())
-        {
-            return false;
-        }
-        let theme = ui.theme_ref();
-        if theme.capability.color != termrock::ColorLevel::TrueColor
-            || theme.color.accent != termrock::Color::Rgb(0x48, 0xe0, 0x54)
-        {
-            return false;
-        }
-        if self.screen != Screen::Workbench || self.form_open || self.destructive_intent.is_some() {
-            return false;
-        }
-        let Some(Tab::Query(query)) = self.workbench.active() else {
-            return false;
-        };
-        if query.plan.is_some() || query.error.is_some() {
-            return false;
-        }
-        let Some(result) = query.result.as_ref() else {
-            return false;
-        };
-        if result.model.row_count() != 25 {
-            return false;
-        }
-        let sql = query
-            .editor_state
-            .draft_text()
-            .unwrap_or(query.query.as_str())
-            .trim();
-        // The error card is a different approved frame. Never stamp results over it.
-        if sql == ERROR_SQL {
-            return false;
-        }
-        sql == RESULT_SQL
     }
 
     fn paint_historical_query_completion(&self, ui: &mut Ui<'_>) -> bool {
@@ -10745,7 +11184,6 @@ impl App for TableProApp {
     }
     fn draw(&self, ui: &mut Ui<'_>) {
         if self.paint_historical_query_completion(ui)
-            || self.paint_historical_query_results(ui)
             || self.paint_historical_workbench_maximized(ui)
             || self.paint_historical_workbench_explorer_hidden(ui)
             || self.paint_historical_table_scrolled_right(ui)
@@ -10957,6 +11395,38 @@ mod query_result_keys {
         if let Some((x, y)) = located {
             assert_eq!(harness.cell(x, y).symbol(), "O");
         }
+    }
+
+    #[test]
+    fn visual_key_order_run_stores_twenty_five_rows() {
+        let mut app = TableProApp::default();
+        let index = app
+            .connections
+            .iter()
+            .position(|connection| connection.name == "Production")
+            .expect("production");
+        assert!(app.connect(index));
+        let mut harness = Harness::new(app, Theme::junie(), 120, 40);
+        let _ = harness.key(KeyCode::Tab);
+        let _ = harness.type_str("SELECT * FROM ord");
+        let _ = harness.key(KeyCode::Enter);
+        let _ = harness.type_str(" WHERE st");
+        let _ = harness.key(KeyCode::Tab);
+        let _ = harness.type_str(" = 'pending' ORDER BY created_at DESC LIMIT 25");
+        let _ = harness.key(KeyCode::Esc);
+        let _ = harness.ctrl('r');
+        let rows = match harness.app().workbench.active() {
+            Some(Tab::Query(query)) => query.result.as_ref().map(|grid| grid.model.row_count()),
+            _ => None,
+        };
+        assert_eq!(
+            (rows, harness.find("25 rows").is_some()),
+            (Some(25), true),
+            "query={:?} status={} text={}",
+            harness.app().query(),
+            harness.app().status(),
+            harness.text()
+        );
     }
 
     #[test]

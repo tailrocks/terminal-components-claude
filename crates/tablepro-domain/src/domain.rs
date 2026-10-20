@@ -339,6 +339,7 @@ pub struct ResultGrid {
     total: usize,
     editable: bool,
     source: Option<String>,
+    duration_ms: u32,
     read_only_reason: Option<String>,
 
     display: Vec<Option<String>>,
@@ -384,6 +385,7 @@ impl ResultGrid {
             total: result.total,
             editable: result.editable,
             source: result.source.clone(),
+            duration_ms: result.duration_ms,
             read_only_reason,
             display: Vec::new(),
             undo: Vec::new(),
@@ -406,6 +408,10 @@ impl ResultGrid {
 
     pub fn source(&self) -> Option<&str> {
         self.source.as_deref()
+    }
+
+    pub const fn duration_ms(&self) -> u32 {
+        self.duration_ms
     }
 
     pub fn pending(&self) -> &PendingEdits {
