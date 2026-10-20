@@ -1445,7 +1445,11 @@ impl App {
                 Some(("Open", Some("Inspect 1…")))
             }
         } else if crate::sim::catalogue::monorepo_child_tag_frame(&self.world) {
-            Some(("Open", Some("Inspect 3…")))
+            if ui.full().width == 80 && ui.full().height == 24 {
+                Some(("Open", None))
+            } else {
+                Some(("Open", Some("Inspect 3…")))
+            }
         } else if crate::sim::catalogue::remote_host_tag_frame(&self.world) {
             Some(("Run", Some("Follow pay…")))
         } else if crate::sim::catalogue::hard_cases_tag_frame(&self.world) {
@@ -1513,12 +1517,13 @@ impl App {
             && !self.menu.is_open()
         {
             let layer = tag_hints(confirm, status);
-            // 80×24 first-use and monorepo-root clip `Ctrl+G` to a meta `…`. Wider plates keep the theme overflow.
+            // 80×24 first-use, monorepo-root, and monorepo-child clip `Ctrl+G` to a meta `…`. Wider plates keep the theme overflow.
             let narrow = ui.full().width == 80 && ui.full().height == 24;
             let parts = if narrow
                 && (crate::sim::catalogue::first_use_tag_frame(&self.world)
                     || (crate::sim::catalogue::monorepo_root_tag_frame(&self.world)
-                        && !self.home.history))
+                        && !self.home.history)
+                    || crate::sim::catalogue::monorepo_child_tag_frame(&self.world))
             {
                 ACTIVITIES_HINT_PARTS
             } else {
@@ -2264,6 +2269,96 @@ mod tests {
         );
         assert!(!later.text().contains("From acme · the parent root"));
         assert!(later.text().contains("Run dev"), "{}", later.text());
+    }
+    #[test]
+    fn monorepo_child_80x24_frame_40_paints_the_narrow_plate_and_later_seeks_keep_home() {
+        let plate = harness(
+            App::for_scenario(Scenario::MonorepoChild, Motion::Paused, 40),
+            Theme::junie(),
+            80,
+            24,
+        );
+        let text = plate.text();
+        let lines: Vec<&str> = text.lines().collect();
+        assert!(
+            lines[7].contains("› Inspect 3 GB of generated…"),
+            "{}",
+            lines[7]
+        );
+        assert!(
+            lines[7].contains("3 GB generated artifacts"),
+            "{}",
+            lines[7]
+        );
+        assert!(
+            lines[8].contains("Install missing tools · s…"),
+            "{}",
+            lines[8]
+        );
+        assert!(
+            lines[16].contains("From acme · the parent root"),
+            "{}",
+            lines[16]
+        );
+        assert!(
+            lines[20].contains("→ 'holla disk analyze --artifacts' · here · read-only"),
+            "{}",
+            lines[20]
+        );
+        assert!(lines[23].contains("Tab Preview"), "{}", lines[23]);
+        assert!(!text.contains("Inspect 3…"), "{text}");
+        let reason_end = plate.cell(76, 9);
+        assert_eq!(reason_end.symbol(), "…");
+        assert_eq!(reason_end.fg, Color::Rgb(0x8a, 0x8a, 0x8a));
+        let before_thumb = plate.cell(77, 9);
+        assert_eq!(before_thumb.symbol(), " ");
+        assert!(!text.contains("System · mbp"), "{text}");
+        let selected = plate.cell(4, 7);
+        assert_eq!(selected.symbol(), "I");
+        assert_eq!(selected.bg, Color::Rgb(0x2f, 0x5a, 0xa8));
+        assert!(selected.modifier.contains(termrock::Modifier::BOLD));
+        let thumb = plate.cell(78, 7);
+        assert_eq!(thumb.symbol(), "┃");
+        assert_eq!(thumb.fg, Color::Rgb(0x80, 0x80, 0x80));
+        let track = plate.cell(78, 18);
+        assert_eq!(track.symbol(), "┆");
+        assert_eq!(track.fg, Color::Rgb(0x47, 0x47, 0x47));
+        let faded = plate.cell(4, 18);
+        assert_eq!(faded.symbol(), "S");
+        assert_eq!(faded.fg, Color::Rgb(140, 140, 140));
+        let ellipsis = plate.cell(73, 23);
+        assert_eq!(ellipsis.symbol(), "…");
+        assert_eq!(ellipsis.fg, Color::Rgb(0x73, 0x73, 0x73));
+        assert!(plate.diagnostics().is_empty(), "{:?}", plate.diagnostics());
+        let world = &plate.app().world;
+        assert!(catalogue::monorepo_child_80x24_plate(world, 120, 40).is_none());
+        assert!(catalogue::monorepo_child_80x24_plate(world, 80, 40).is_none());
+        assert!(catalogue::monorepo_child_80x24_plate(world, 81, 24).is_none());
+        assert!(catalogue::monorepo_child_80x24_plate(world, 100, 30).is_none());
+        let wide = harness(
+            App::for_scenario(Scenario::MonorepoChild, Motion::Paused, 40),
+            Theme::junie(),
+            120,
+            40,
+        );
+        assert!(
+            wide.text().contains("1 rebuildable candidate"),
+            "{}",
+            wide.text()
+        );
+        assert!(!wide.text().contains("holla disk analyze --artifacts"));
+        assert!(wide.text().contains("Inspect 3…"), "{}", wide.text());
+        let later = harness(
+            App::for_scenario(Scenario::MonorepoChild, Motion::Paused, 4_000),
+            Theme::junie(),
+            80,
+            24,
+        );
+        assert!(!later.text().contains("holla disk analyze --artifacts"));
+        assert!(!later.text().contains("› Inspect 3 GB"));
+        assert!(later.text().contains("Search actions"), "{}", later.text());
+        assert!(catalogue::monorepo_child_80x24_plate(&later.app().world, 80, 24).is_none());
+        assert!(!catalogue::monorepo_child_tag_frame(&later.app().world));
     }
     #[test]
     fn docker_cleanup_frame_40_paints_the_tag_plate_and_later_seeks_keep_home() {
