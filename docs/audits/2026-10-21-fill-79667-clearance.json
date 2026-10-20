@@ -1,0 +1,92 @@
+{
+  "reviewer": "Independent Rust reviewer /root/button_theme_contract_review",
+  "reviewed_commit": "79667c8355884ac8761579f00d08d5adfd263cdb",
+  "comparison_commit": "f2d66896f3341b115a217a1bdad6379badebccbb",
+  "status": "Bounded foreground-provenance fix cleared. No new findings in reviewed change. No application or complete architecture acceptance.",
+  "findings": [],
+  "resolved_contract": {
+    "path": "crates/termrock-runtime/src/ui/mod.rs",
+    "line": 1332,
+    "evidence": "fill_keep_fg now delegates solely to the existing Ui::fill with PaintStyle::new().bg(bg). Generic fill performs the existing clipping and passes Some(style) to mark_area, retaining the untouched foreground role and attributes while replacing the explicit background channel. The duplicate raw buffer loop and role-erasing mark_area(None) call are removed. No other production function changes in this commit.",
+    "probe_equivalence": "Original independent probe source is byte-identical in old, predecessor and repaired packages; only dependency paths differ.",
+    "red_before_green": "Exact predecessor f2d66896f:2run1pass1fail0skip. Later dim produced foreground RGB(38,38,38) versus equivalent generic fill RGB(179,179,179). Exact79667:2/2pass0skip."
+  },
+  "checks": [
+    {
+      "command": "cargo nextest run --manifest-path /private/tmp/fill-keep-fg-f2d-independent/Cargo.toml --no-fail-fast --status-level fail",
+      "exit": 100,
+      "run_id": "62ab97c6-e782-4cce-a0c1-64d61381a978",
+      "result": "Original probe on exact predecessor:2run1pass1fail0skip."
+    },
+    {
+      "command": "cargo nextest run --manifest-path /private/tmp/fill-keep-fg-79667-independent/Cargo.toml --no-fail-fast --status-level fail",
+      "exit": 0,
+      "run_id": "ef4d93d6-f119-409b-bcad-f223cb12a8c1",
+      "result": "Original public probe2/2passed0skip."
+    },
+    {
+      "command": "cargo nextest run -p termrock-runtime --test fill_keep_fg --no-fail-fast --status-level fail",
+      "exit": 0,
+      "run_id": "4463740c-6c5f-4ccc-b58f-ab16215b412e",
+      "result": "1matrix test passed0skip;4profiles,3backgrounds includingReset/custom, page/modal, clipped/full."
+    },
+    {
+      "command": "cargo nextest run -p termrock-runtime --test paint_matched --no-fail-fast --status-level fail",
+      "exit": 0,
+      "run_id": "557365c2-cbbd-466c-a66c-6e25c6a09b32",
+      "result": "4/4passed0skip."
+    },
+    {
+      "command": "cargo clippy -p termrock-runtime --all-targets -- -D warnings",
+      "exit": 0
+    },
+    {
+      "command": "cargo fmt -p termrock-runtime --check",
+      "exit": 0
+    }
+  ],
+  "limits": [
+    "No new approval for recolor_rgb, recolor_fg, fill_card_from_page, application dialog plates or other production replay/pixel-correction mechanisms. They are outside this repair and remain subject to separate architecture findings.",
+    "No full runtime/workspace test gate or four-application real CLI comparison claimed.",
+    "Initial paint_matched command incorrectly targeted lib with a name filter and returned exit4 for zero matched tests. That is not a pass; corrected command explicitly selected the integration target and ran4tests. Original log preserved.",
+    "No source edits, implementation commits or branch pushes by reviewer; candidate read-only worktree clean."
+  ],
+  "artifacts": [
+    {
+      "path": "/private/tmp/fill-keep-fg-f2d-public.log",
+      "sha256": "42f67520d73a90e7420c87c59ebf8d01d64266c546227a807641ff054a54d54c"
+    },
+    {
+      "path": "/private/tmp/fill-keep-fg-79667-public.log",
+      "sha256": "1549a94fcdadb43344bfcf6116fa7de1a80f5d8157ee05c9fdbe8bcd8e5e12c0"
+    },
+    {
+      "path": "/private/tmp/fill-keep-fg-79667-native.log",
+      "sha256": "211457388d8a0aa76d223c96f0850cb720f0dd312163c9c0d3187d59b7a17967"
+    },
+    {
+      "path": "/private/tmp/fill-keep-fg-79667-paint-matched-final.log",
+      "sha256": "7e9355d8345f301bc5c4b91ab18145f7d37231d079d1455417bc83385b8502ea"
+    },
+    {
+      "path": "/private/tmp/fill-keep-fg-79667-clippy.log",
+      "sha256": "8d2e333b8c998666375b2b7f6fcd41a024bc3fa04a565b69059aa8629ed17186"
+    },
+    {
+      "path": "/private/tmp/fill-keep-fg-79667-fmt.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/private/tmp/fill-keep-fg-79667-paint-matched.log",
+      "sha256": "0027d6199ff8bb2e0856d7e02cd5aeeb30c12154cc47b8926fec1c95589b0c08"
+    },
+    {
+      "path": "/private/tmp/fill-keep-fg-1ceed-independent/src/lib.rs",
+      "sha256": "4411144f898da2ef2eacf48137e1a7e074e1ccf09cabef58111238e6ed0ff1b8"
+    },
+    {
+      "path": "/private/tmp/fill-keep-fg-79667-independent/src/lib.rs",
+      "sha256": "4411144f898da2ef2eacf48137e1a7e074e1ccf09cabef58111238e6ed0ff1b8"
+    }
+  ]
+}
