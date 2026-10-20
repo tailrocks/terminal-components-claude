@@ -234,48 +234,92 @@ jobs:
       - plan
       - rust-holla
       - rust-holla-domain
+      - rust-holla-domain-testing
       - rust-holla-sim
+      - rust-holla-sim-testing
+      - rust-holla-testing
       - rust-holla-ui
+      - rust-holla-ui-testing
       - rust-jackin-preview
       - rust-jackin-preview-app
+      - rust-jackin-preview-app-testing
       - rust-jackin-preview-capsule-ui
+      - rust-jackin-preview-capsule-ui-testing
       - rust-jackin-preview-domain
+      - rust-jackin-preview-domain-testing
       - rust-jackin-preview-host-ui
+      - rust-jackin-preview-host-ui-testing
       - rust-jackin-preview-presentation
+      - rust-jackin-preview-presentation-testing
       - rust-jackin-preview-sim
+      - rust-jackin-preview-sim-testing
+      - rust-jackin-preview-testing
       - rust-refactor-proof
+      - rust-refactor-proof-testing
       - rust-showcase
       - rust-showcase-demos
+      - rust-showcase-demos-testing
+      - rust-showcase-testing
       - rust-showcase-ui
+      - rust-showcase-ui-testing
       - rust-tablepro
       - rust-tablepro-demo
+      - rust-tablepro-demo-testing
       - rust-tablepro-domain
+      - rust-tablepro-domain-testing
       - rust-tablepro-sql
+      - rust-tablepro-sql-testing
+      - rust-tablepro-testing
       - rust-tablepro-ui
+      - rust-tablepro-ui-testing
       - rust-termrock
       - rust-termrock-collections
+      - rust-termrock-collections-testing
       - rust-termrock-conformance
+      - rust-termrock-conformance-testing
       - rust-termrock-controls
+      - rust-termrock-controls-testing
       - rust-termrock-core
+      - rust-termrock-core-testing
       - rust-termrock-editors
+      - rust-termrock-editors-testing
       - rust-termrock-feedback
+      - rust-termrock-feedback-testing
       - rust-termrock-fields
+      - rust-termrock-fields-testing
       - rust-termrock-forms
+      - rust-termrock-forms-testing
       - rust-termrock-grid
+      - rust-termrock-grid-testing
       - rust-termrock-layout
+      - rust-termrock-layout-testing
       - rust-termrock-navigation
+      - rust-termrock-navigation-testing
       - rust-termrock-overlays
+      - rust-termrock-overlays-testing
       - rust-termrock-render
+      - rust-termrock-render-testing
       - rust-termrock-runtime
+      - rust-termrock-runtime-testing
       - rust-termrock-session
+      - rust-termrock-session-testing
       - rust-termrock-terminal
+      - rust-termrock-terminal-testing
       - rust-termrock-test-support
+      - rust-termrock-test-support-testing
+      - rust-termrock-testing
       - rust-termrock-text
+      - rust-termrock-text-testing
       - rust-termrock-theme
+      - rust-termrock-theme-testing
       - rust-termrock-viewport
+      - rust-termrock-viewport-testing
       - rust-termrock-visibility-publisher
+      - rust-termrock-visibility-publisher-testing
       - rust-termrock-xtask
+      - rust-termrock-xtask-testing
       - rust-visual-harness
+      - rust-visual-harness-testing
       - actionlint
     if: ${{ !cancelled() }}
     steps:
@@ -300,14 +344,14 @@ jobs:
         env:
           VELNOR_INTERNAL_OP: write-request-v1
           VELNOR_NEEDS_JSON: ${{ toJSON(needs) }}
-          VELNOR_NEEDS_EXPECTED: "[\"actionlint\",\"plan\",\"rust-holla\",\"rust-holla-domain\",\"rust-holla-sim\",\"rust-holla-ui\",\"rust-jackin-preview\",\"rust-jackin-preview-app\",\"rust-jackin-preview-capsule-ui\",\"rust-jackin-preview-domain\",\"rust-jackin-preview-host-ui\",\"rust-jackin-preview-presentation\",\"rust-jackin-preview-sim\",\"rust-refactor-proof\",\"rust-showcase\",\"rust-showcase-demos\",\"rust-showcase-ui\",\"rust-tablepro\",\"rust-tablepro-demo\",\"rust-tablepro-domain\",\"rust-tablepro-sql\",\"rust-tablepro-ui\",\"rust-termrock\",\"rust-termrock-collections\",\"rust-termrock-conformance\",\"rust-termrock-controls\",\"rust-termrock-core\",\"rust-termrock-editors\",\"rust-termrock-feedback\",\"rust-termrock-fields\",\"rust-termrock-forms\",\"rust-termrock-grid\",\"rust-termrock-layout\",\"rust-termrock-navigation\",\"rust-termrock-overlays\",\"rust-termrock-render\",\"rust-termrock-runtime\",\"rust-termrock-session\",\"rust-termrock-terminal\",\"rust-termrock-test-support\",\"rust-termrock-text\",\"rust-termrock-theme\",\"rust-termrock-viewport\",\"rust-termrock-visibility-publisher\",\"rust-termrock-xtask\",\"rust-visual-harness\"]"
+          VELNOR_NEEDS_EXPECTED: "[\"actionlint\",\"plan\",\"rust-holla\",\"rust-holla-domain\",\"rust-holla-domain-testing\",\"rust-holla-sim\",\"rust-holla-sim-testing\",\"rust-holla-testing\",\"rust-holla-ui\",\"rust-holla-ui-testing\",\"rust-jackin-preview\",\"rust-jackin-preview-app\",\"rust-jackin-preview-app-testing\",\"rust-jackin-preview-capsule-ui\",\"rust-jackin-preview-capsule-ui-testing\",\"rust-jackin-preview-domain\",\"rust-jackin-preview-domain-testing\",\"rust-jackin-preview-host-ui\",\"rust-jackin-preview-host-ui-testing\",\"rust-jackin-preview-presentation\",\"rust-jackin-preview-presentation-testing\",\"rust-jackin-preview-sim\",\"rust-jackin-preview-sim-testing\",\"rust-jackin-preview-testing\",\"rust-refactor-proof\",\"rust-refactor-proof-testing\",\"rust-showcase\",\"rust-showcase-demos\",\"rust-showcase-demos-testing\",\"rust-showcase-testing\",\"rust-showcase-ui\",\"rust-showcase-ui-testing\",\"rust-tablepro\",\"rust-tablepro-demo\",\"rust-tablepro-demo-testing\",\"rust-tablepro-domain\",\"rust-tablepro-domain-testing\",\"rust-tablepro-sql\",\"rust-tablepro-sql-testing\",\"rust-tablepro-testing\",\"rust-tablepro-ui\",\"rust-tablepro-ui-testing\",\"rust-termrock\",\"rust-termrock-collections\",\"rust-termrock-collections-testing\",\"rust-termrock-conformance\",\"rust-termrock-conformance-testing\",\"rust-termrock-controls\",\"rust-termrock-controls-testing\",\"rust-termrock-core\",\"rust-termrock-core-testing\",\"rust-termrock-editors\",\"rust-termrock-editors-testing\",\"rust-termrock-feedback\",\"rust-termrock-feedback-testing\",\"rust-termrock-fields\",\"rust-termrock-fields-testing\",\"rust-termrock-forms\",\"rust-termrock-forms-testing\",\"rust-termrock-grid\",\"rust-termrock-grid-testing\",\"rust-termrock-layout\",\"rust-termrock-layout-testing\",\"rust-termrock-navigation\",\"rust-termrock-navigation-testing\",\"rust-termrock-overlays\",\"rust-termrock-overlays-testing\",\"rust-termrock-render\",\"rust-termrock-render-testing\",\"rust-termrock-runtime\",\"rust-termrock-runtime-testing\",\"rust-termrock-session\",\"rust-termrock-session-testing\",\"rust-termrock-terminal\",\"rust-termrock-terminal-testing\",\"rust-termrock-test-support\",\"rust-termrock-test-support-testing\",\"rust-termrock-testing\",\"rust-termrock-text\",\"rust-termrock-text-testing\",\"rust-termrock-theme\",\"rust-termrock-theme-testing\",\"rust-termrock-viewport\",\"rust-termrock-viewport-testing\",\"rust-termrock-visibility-publisher\",\"rust-termrock-visibility-publisher-testing\",\"rust-termrock-xtask\",\"rust-termrock-xtask-testing\",\"rust-visual-harness\",\"rust-visual-harness-testing\"]"
           VELNOR_REQUEST_FILE: ${{ runner.temp }}/velnor/request/merge-v1-request.json
         run: *r7
       - name: Merge reports
         env:
           VELNOR_INTERNAL_OP: merge-v1
           VELNOR_NEEDS_JSON: ${{ toJSON(needs) }}
-          VELNOR_NEEDS_EXPECTED: "[\"actionlint\",\"plan\",\"rust-holla\",\"rust-holla-domain\",\"rust-holla-sim\",\"rust-holla-ui\",\"rust-jackin-preview\",\"rust-jackin-preview-app\",\"rust-jackin-preview-capsule-ui\",\"rust-jackin-preview-domain\",\"rust-jackin-preview-host-ui\",\"rust-jackin-preview-presentation\",\"rust-jackin-preview-sim\",\"rust-refactor-proof\",\"rust-showcase\",\"rust-showcase-demos\",\"rust-showcase-ui\",\"rust-tablepro\",\"rust-tablepro-demo\",\"rust-tablepro-domain\",\"rust-tablepro-sql\",\"rust-tablepro-ui\",\"rust-termrock\",\"rust-termrock-collections\",\"rust-termrock-conformance\",\"rust-termrock-controls\",\"rust-termrock-core\",\"rust-termrock-editors\",\"rust-termrock-feedback\",\"rust-termrock-fields\",\"rust-termrock-forms\",\"rust-termrock-grid\",\"rust-termrock-layout\",\"rust-termrock-navigation\",\"rust-termrock-overlays\",\"rust-termrock-render\",\"rust-termrock-runtime\",\"rust-termrock-session\",\"rust-termrock-terminal\",\"rust-termrock-test-support\",\"rust-termrock-text\",\"rust-termrock-theme\",\"rust-termrock-viewport\",\"rust-termrock-visibility-publisher\",\"rust-termrock-xtask\",\"rust-visual-harness\"]"
+          VELNOR_NEEDS_EXPECTED: "[\"actionlint\",\"plan\",\"rust-holla\",\"rust-holla-domain\",\"rust-holla-domain-testing\",\"rust-holla-sim\",\"rust-holla-sim-testing\",\"rust-holla-testing\",\"rust-holla-ui\",\"rust-holla-ui-testing\",\"rust-jackin-preview\",\"rust-jackin-preview-app\",\"rust-jackin-preview-app-testing\",\"rust-jackin-preview-capsule-ui\",\"rust-jackin-preview-capsule-ui-testing\",\"rust-jackin-preview-domain\",\"rust-jackin-preview-domain-testing\",\"rust-jackin-preview-host-ui\",\"rust-jackin-preview-host-ui-testing\",\"rust-jackin-preview-presentation\",\"rust-jackin-preview-presentation-testing\",\"rust-jackin-preview-sim\",\"rust-jackin-preview-sim-testing\",\"rust-jackin-preview-testing\",\"rust-refactor-proof\",\"rust-refactor-proof-testing\",\"rust-showcase\",\"rust-showcase-demos\",\"rust-showcase-demos-testing\",\"rust-showcase-testing\",\"rust-showcase-ui\",\"rust-showcase-ui-testing\",\"rust-tablepro\",\"rust-tablepro-demo\",\"rust-tablepro-demo-testing\",\"rust-tablepro-domain\",\"rust-tablepro-domain-testing\",\"rust-tablepro-sql\",\"rust-tablepro-sql-testing\",\"rust-tablepro-testing\",\"rust-tablepro-ui\",\"rust-tablepro-ui-testing\",\"rust-termrock\",\"rust-termrock-collections\",\"rust-termrock-collections-testing\",\"rust-termrock-conformance\",\"rust-termrock-conformance-testing\",\"rust-termrock-controls\",\"rust-termrock-controls-testing\",\"rust-termrock-core\",\"rust-termrock-core-testing\",\"rust-termrock-editors\",\"rust-termrock-editors-testing\",\"rust-termrock-feedback\",\"rust-termrock-feedback-testing\",\"rust-termrock-fields\",\"rust-termrock-fields-testing\",\"rust-termrock-forms\",\"rust-termrock-forms-testing\",\"rust-termrock-grid\",\"rust-termrock-grid-testing\",\"rust-termrock-layout\",\"rust-termrock-layout-testing\",\"rust-termrock-navigation\",\"rust-termrock-navigation-testing\",\"rust-termrock-overlays\",\"rust-termrock-overlays-testing\",\"rust-termrock-render\",\"rust-termrock-render-testing\",\"rust-termrock-runtime\",\"rust-termrock-runtime-testing\",\"rust-termrock-session\",\"rust-termrock-session-testing\",\"rust-termrock-terminal\",\"rust-termrock-terminal-testing\",\"rust-termrock-test-support\",\"rust-termrock-test-support-testing\",\"rust-termrock-testing\",\"rust-termrock-text\",\"rust-termrock-text-testing\",\"rust-termrock-theme\",\"rust-termrock-theme-testing\",\"rust-termrock-viewport\",\"rust-termrock-viewport-testing\",\"rust-termrock-visibility-publisher\",\"rust-termrock-visibility-publisher-testing\",\"rust-termrock-xtask\",\"rust-termrock-xtask-testing\",\"rust-visual-harness\",\"rust-visual-harness-testing\"]"
           VELNOR_REQUEST_FILE: ${{ runner.temp }}/velnor/request/merge-v1-request.json
         run: *r7
       - name: Publish final report
@@ -475,6 +519,60 @@ jobs:
           overwrite: "true"
           path: ${{ runner.temp }}/velnor/r${{ github.run_id }}-a${{ env.VELNOR_RUN_KEY_ATTEMPT }}
           retention-days: "30"
+  rust-holla-domain-testing:
+    name: Rust / holla-domain (testing)
+    runs-on: ubuntu-26.04
+    timeout-minutes: 15
+    env: *m9
+    needs:
+      - plan
+    if: "!contains(needs.plan.outputs.not_affected_jobs, ',rust-holla-domain-testing,')"
+    steps:
+      - *s2
+      - *s3
+      - *s8
+      - *s11
+      - *s4
+      - *s10
+      - *s12
+      - *s9
+      - *s13
+      - *s14
+      - *s15
+      - name: Build test executables
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-44c2d4e878d97604faa7b6b4c563308255c79206c9ac1093a4b8009d3b1915bf"}
+      - name: Format
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-050346ea1cf4b499147fde17cbc54c0d126eeb02b1939901975259402d417dd4"}
+      - name: Clippy
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-3ef99e32d2cbed11196b80d29c150015c79c3f6dad720962848965f2ed894e07"}
+      - name: Unit and integration tests
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-099fe20bafd1467b1414470c3bc4d40c053f7149487d05b0138af71e12d9751b"}
+      - name: Doctests
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-f322f0065d1f27fc9a8a3715f580ab8e0d8eee1c11fc4fd67c0b0899b7a3a0d8"}
+      - name: Documentation
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-24d7fce4619d522f32c508891de6420551aa0bd51fab04f1e6e1a6f123d058b9"}
+      - name: Wait for parallel checks
+        wait-all:
+      - name: Upload crate reports
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          if-no-files-found: error
+          name: velnor-crate-r${{ github.run_id }}-a${{ env.VELNOR_RUN_KEY_ATTEMPT }}-rust-holla-domain-testing
+          overwrite: "true"
+          path: ${{ runner.temp }}/velnor/r${{ github.run_id }}-a${{ env.VELNOR_RUN_KEY_ATTEMPT }}
+          retention-days: "30"
   rust-holla-sim:
     name: Rust / holla-sim
     runs-on: ubuntu-26.04
@@ -529,6 +627,110 @@ jobs:
           overwrite: "true"
           path: ${{ runner.temp }}/velnor/r${{ github.run_id }}-a${{ env.VELNOR_RUN_KEY_ATTEMPT }}
           retention-days: "30"
+  rust-holla-sim-testing:
+    name: Rust / holla-sim (testing)
+    runs-on: ubuntu-26.04
+    timeout-minutes: 15
+    env: *m9
+    needs:
+      - plan
+    if: "!contains(needs.plan.outputs.not_affected_jobs, ',rust-holla-sim-testing,')"
+    steps:
+      - *s2
+      - *s3
+      - *s8
+      - *s11
+      - *s4
+      - *s10
+      - *s12
+      - *s9
+      - *s13
+      - *s14
+      - *s15
+      - name: Build test executables
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-ed915bf8a0e4a36180ab58b7c67337934beb99958c2025e0ec13885e9458a41d"}
+      - name: Format
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-a77a28fa52e0849b45c03497f620cd5f4c6861b9d596082a5e16b1fcd2a80280"}
+      - name: Clippy
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-4ee487813e3de29879563d81dbee1492e2ebc3db5e7f476083c484c22d55d9d0"}
+      - name: Unit and integration tests
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-f86efddf70a12fee2a1e87601c0266344d5da89d7b51f21db568443ca58de3e3"}
+      - name: Doctests
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-fa730008026823462725ac0058bd9b965589403fae428089f996c99f88f829b8"}
+      - name: Documentation
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-be8f396f37a9a517bdaa9451df2140b108c53f24b48ced0d850b89f720858a62"}
+      - name: Wait for parallel checks
+        wait-all:
+      - name: Upload crate reports
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          if-no-files-found: error
+          name: velnor-crate-r${{ github.run_id }}-a${{ env.VELNOR_RUN_KEY_ATTEMPT }}-rust-holla-sim-testing
+          overwrite: "true"
+          path: ${{ runner.temp }}/velnor/r${{ github.run_id }}-a${{ env.VELNOR_RUN_KEY_ATTEMPT }}
+          retention-days: "30"
+  rust-holla-testing:
+    name: Rust / holla (testing)
+    runs-on: ubuntu-26.04
+    timeout-minutes: 15
+    env: *m9
+    needs:
+      - plan
+    if: "!contains(needs.plan.outputs.not_affected_jobs, ',rust-holla-testing,')"
+    steps:
+      - *s2
+      - *s3
+      - *s8
+      - *s11
+      - *s4
+      - *s10
+      - *s12
+      - *s9
+      - *s13
+      - *s14
+      - *s15
+      - name: Build test executables
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-5ccdd1542ab79c319672cd4d5360ba872fd03c48f75171273361d2a47cd88e13"}
+      - name: Format
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-01d305d1e178474486d220f32a702737f868639f25e01f7ac222d4a573af9539"}
+      - name: Clippy
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-9f494d119c65135dcbf70e5bd4bf8bed728f0c842c84ed6bf0231b19dd0ed14c"}
+      - name: Unit and integration tests
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-ed0d464744ea8404a2f42a58aaf63cdd56e02d61c1e80f952b2aac600213fe12"}
+      - name: Documentation
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-5fb6f30d6e18c03e857fd5d27e5ad37b1c8f081a0ef14b28ab937a5b8ee517b3"}
+      - name: Wait for parallel checks
+        wait-all:
+      - name: Upload crate reports
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          if-no-files-found: error
+          name: velnor-crate-r${{ github.run_id }}-a${{ env.VELNOR_RUN_KEY_ATTEMPT }}-rust-holla-testing
+          overwrite: "true"
+          path: ${{ runner.temp }}/velnor/r${{ github.run_id }}-a${{ env.VELNOR_RUN_KEY_ATTEMPT }}
+          retention-days: "30"
   rust-holla-ui:
     name: Rust / holla-ui
     runs-on: ubuntu-26.04
@@ -580,6 +782,60 @@ jobs:
         with:
           if-no-files-found: error
           name: velnor-crate-r${{ github.run_id }}-a${{ env.VELNOR_RUN_KEY_ATTEMPT }}-rust-holla-ui
+          overwrite: "true"
+          path: ${{ runner.temp }}/velnor/r${{ github.run_id }}-a${{ env.VELNOR_RUN_KEY_ATTEMPT }}
+          retention-days: "30"
+  rust-holla-ui-testing:
+    name: Rust / holla-ui (testing)
+    runs-on: ubuntu-26.04
+    timeout-minutes: 15
+    env: *m9
+    needs:
+      - plan
+    if: "!contains(needs.plan.outputs.not_affected_jobs, ',rust-holla-ui-testing,')"
+    steps:
+      - *s2
+      - *s3
+      - *s8
+      - *s11
+      - *s4
+      - *s10
+      - *s12
+      - *s9
+      - *s13
+      - *s14
+      - *s15
+      - name: Build test executables
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-cc625e8f6629466ce8ff8df6b58f65e7909b2743348823d48608f0f50fd86cfb"}
+      - name: Format
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-45fe873949fc2b83383bc0b828ed7b480a77444b7866ab5cf9d2dc2eea6f0d90"}
+      - name: Clippy
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-f3502ef9de48bf6337b99875b58ae765982f8538227bcac15abd6d30c474ec55"}
+      - name: Unit and integration tests
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-7f9b7ce5e2005bdebc07d9bce4689b4e9f23a961120dd6b5650e02c756cfcd75"}
+      - name: Doctests
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-c1de90982025e61b1171ded39d5c7b41a99b7add9c0c1d6f3721bd14bd0a1b17"}
+      - name: Documentation
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-378d03a616b94aebbf1409f7e2a5e374b2902bebba0440beb7ac6724d2549e69"}
+      - name: Wait for parallel checks
+        wait-all:
+      - name: Upload crate reports
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          if-no-files-found: error
+          name: velnor-crate-r${{ github.run_id }}-a${{ env.VELNOR_RUN_KEY_ATTEMPT }}-rust-holla-ui-testing
           overwrite: "true"
           path: ${{ runner.temp }}/velnor/r${{ github.run_id }}-a${{ env.VELNOR_RUN_KEY_ATTEMPT }}
           retention-days: "30"
@@ -687,6 +943,60 @@ jobs:
           overwrite: "true"
           path: ${{ runner.temp }}/velnor/r${{ github.run_id }}-a${{ env.VELNOR_RUN_KEY_ATTEMPT }}
           retention-days: "30"
+  rust-jackin-preview-app-testing:
+    name: Rust / jackin-preview-app (testing)
+    runs-on: ubuntu-26.04
+    timeout-minutes: 15
+    env: *m9
+    needs:
+      - plan
+    if: "!contains(needs.plan.outputs.not_affected_jobs, ',rust-jackin-preview-app-testing,')"
+    steps:
+      - *s2
+      - *s3
+      - *s8
+      - *s11
+      - *s4
+      - *s10
+      - *s12
+      - *s9
+      - *s13
+      - *s14
+      - *s15
+      - name: Build test executables
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-f703d819f460cbb4ec2de28e2c417a17f180bb37d07825b4be180aa98672ef16"}
+      - name: Format
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-a45fc49d181faea8105d19aeff53ba320495b6d35b7e48c555d3d64360193612"}
+      - name: Clippy
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-797cad35e85401327671ce344925ed56b82758f70035a508a35be744f5114704"}
+      - name: Unit and integration tests
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-69fa11f24c0861eaf04fb544177f1380fef1d916015523e89a1ed2f8c02a5588"}
+      - name: Doctests
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-4e82b867932cae324499cae8b113810b77105ec0271e517a09e2199ff81c7935"}
+      - name: Documentation
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-cf25b30105cb57c154910b7a0e905631c2e7f8e012fef54d43cfa382ecd749f7"}
+      - name: Wait for parallel checks
+        wait-all:
+      - name: Upload crate reports
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          if-no-files-found: error
+          name: velnor-crate-r${{ github.run_id }}-a${{ env.VELNOR_RUN_KEY_ATTEMPT }}-rust-jackin-preview-app-testing
+          overwrite: "true"
+          path: ${{ runner.temp }}/velnor/r${{ github.run_id }}-a${{ env.VELNOR_RUN_KEY_ATTEMPT }}
+          retention-days: "30"
   rust-jackin-preview-capsule-ui:
     name: Rust / jackin-preview-capsule-ui
     runs-on: ubuntu-26.04
@@ -738,6 +1048,60 @@ jobs:
         with:
           if-no-files-found: error
           name: velnor-crate-r${{ github.run_id }}-a${{ env.VELNOR_RUN_KEY_ATTEMPT }}-rust-jackin-preview-capsule-ui
+          overwrite: "true"
+          path: ${{ runner.temp }}/velnor/r${{ github.run_id }}-a${{ env.VELNOR_RUN_KEY_ATTEMPT }}
+          retention-days: "30"
+  rust-jackin-preview-capsule-ui-testing:
+    name: Rust / jackin-preview-capsule-ui (testing)
+    runs-on: ubuntu-26.04
+    timeout-minutes: 15
+    env: *m9
+    needs:
+      - plan
+    if: "!contains(needs.plan.outputs.not_affected_jobs, ',rust-jackin-preview-capsule-ui-testing,')"
+    steps:
+      - *s2
+      - *s3
+      - *s8
+      - *s11
+      - *s4
+      - *s10
+      - *s12
+      - *s9
+      - *s13
+      - *s14
+      - *s15
+      - name: Build test executables
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-fded73c4ee8e5d35f7c9c7e35e6986c9d76cb28b09eb4a341be6e6c7b81292ee"}
+      - name: Format
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-e074922625973dd357ad72e69aeaa2d25367087eff11564a7c0330b1bc3a2979"}
+      - name: Clippy
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-e126b3658d052d207a06679e3ab07df20a8086c50d8b849aadc95b99e1ce2aa7"}
+      - name: Unit and integration tests
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-713f98cad924e619e12f3687601b771285f39ac0b589d5112e36fa520a795b7f"}
+      - name: Doctests
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-3475642dbcf9f489d3c7f6ba331727b42d75870a3877c2dff0c213da75f7905e"}
+      - name: Documentation
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-afd860991d5b0a1105e1709163ff05c6d24209e9d0826e6a200d39c0cee79f7f"}
+      - name: Wait for parallel checks
+        wait-all:
+      - name: Upload crate reports
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          if-no-files-found: error
+          name: velnor-crate-r${{ github.run_id }}-a${{ env.VELNOR_RUN_KEY_ATTEMPT }}-rust-jackin-preview-capsule-ui-testing
           overwrite: "true"
           path: ${{ runner.temp }}/velnor/r${{ github.run_id }}-a${{ env.VELNOR_RUN_KEY_ATTEMPT }}
           retention-days: "30"
@@ -795,6 +1159,60 @@ jobs:
           overwrite: "true"
           path: ${{ runner.temp }}/velnor/r${{ github.run_id }}-a${{ env.VELNOR_RUN_KEY_ATTEMPT }}
           retention-days: "30"
+  rust-jackin-preview-domain-testing:
+    name: Rust / jackin-preview-domain (testing)
+    runs-on: ubuntu-26.04
+    timeout-minutes: 15
+    env: *m9
+    needs:
+      - plan
+    if: "!contains(needs.plan.outputs.not_affected_jobs, ',rust-jackin-preview-domain-testing,')"
+    steps:
+      - *s2
+      - *s3
+      - *s8
+      - *s11
+      - *s4
+      - *s10
+      - *s12
+      - *s9
+      - *s13
+      - *s14
+      - *s15
+      - name: Build test executables
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-c6900ae4f6d3f15db3150456561823c0bb482c275d192bd05d1e24ab3f8cb956"}
+      - name: Format
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-8c129cb305921995c258bfd3b25266e184f17dcb2c73e43ecf0715677373a99f"}
+      - name: Clippy
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-939ad157cb15cc6f1dffb2b9d2145f3bfa6d15c88dabd245dbd63eb15960d789"}
+      - name: Unit and integration tests
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-11a92d90759888cf2149a2dd643ccaa8ee8e2c85d21325a557d8bcb775f22917"}
+      - name: Doctests
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-6d2374c4732ea09341c3313fb4036982f31d14ab8ac9ba8acfe926f0c447917c"}
+      - name: Documentation
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-7ae3aceecadc593459e4816791550dae3c5ee17204dc3e5cfbfa4d59e4172b78"}
+      - name: Wait for parallel checks
+        wait-all:
+      - name: Upload crate reports
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          if-no-files-found: error
+          name: velnor-crate-r${{ github.run_id }}-a${{ env.VELNOR_RUN_KEY_ATTEMPT }}-rust-jackin-preview-domain-testing
+          overwrite: "true"
+          path: ${{ runner.temp }}/velnor/r${{ github.run_id }}-a${{ env.VELNOR_RUN_KEY_ATTEMPT }}
+          retention-days: "30"
   rust-jackin-preview-host-ui:
     name: Rust / jackin-preview-host-ui
     runs-on: ubuntu-26.04
@@ -846,6 +1264,60 @@ jobs:
         with:
           if-no-files-found: error
           name: velnor-crate-r${{ github.run_id }}-a${{ env.VELNOR_RUN_KEY_ATTEMPT }}-rust-jackin-preview-host-ui
+          overwrite: "true"
+          path: ${{ runner.temp }}/velnor/r${{ github.run_id }}-a${{ env.VELNOR_RUN_KEY_ATTEMPT }}
+          retention-days: "30"
+  rust-jackin-preview-host-ui-testing:
+    name: Rust / jackin-preview-host-ui (testing)
+    runs-on: ubuntu-26.04
+    timeout-minutes: 15
+    env: *m9
+    needs:
+      - plan
+    if: "!contains(needs.plan.outputs.not_affected_jobs, ',rust-jackin-preview-host-ui-testing,')"
+    steps:
+      - *s2
+      - *s3
+      - *s8
+      - *s11
+      - *s4
+      - *s10
+      - *s12
+      - *s9
+      - *s13
+      - *s14
+      - *s15
+      - name: Build test executables
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-a208988c82a0601c09d30465112a8d664faed0f8d16208e893f95ec2f715a2cf"}
+      - name: Format
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-45d5a56ad88352d6eea7e16c503bf1f49b1abef238e5ae669400e048e2491ff7"}
+      - name: Clippy
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-6c9ea108fcc91873fec5ca2b3de7f763018dbb19fc37dcd5d66d5408e7de7983"}
+      - name: Unit and integration tests
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-8de827a22cd068e9943171ecf3c7afde9a1e5d6796fedab8533e93a4daba50fd"}
+      - name: Doctests
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-d3fcaa8e9d7fbf2c5759ea681a9e9704f24398a582abe8039481ead874915fd6"}
+      - name: Documentation
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-7c5038821a5f2063756799ae3b09031c1f1f0e05e704a803db6f36438c549ac0"}
+      - name: Wait for parallel checks
+        wait-all:
+      - name: Upload crate reports
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          if-no-files-found: error
+          name: velnor-crate-r${{ github.run_id }}-a${{ env.VELNOR_RUN_KEY_ATTEMPT }}-rust-jackin-preview-host-ui-testing
           overwrite: "true"
           path: ${{ runner.temp }}/velnor/r${{ github.run_id }}-a${{ env.VELNOR_RUN_KEY_ATTEMPT }}
           retention-days: "30"
@@ -903,6 +1375,60 @@ jobs:
           overwrite: "true"
           path: ${{ runner.temp }}/velnor/r${{ github.run_id }}-a${{ env.VELNOR_RUN_KEY_ATTEMPT }}
           retention-days: "30"
+  rust-jackin-preview-presentation-testing:
+    name: Rust / jackin-preview-presentation (testing)
+    runs-on: ubuntu-26.04
+    timeout-minutes: 15
+    env: *m9
+    needs:
+      - plan
+    if: "!contains(needs.plan.outputs.not_affected_jobs, ',rust-jackin-preview-presentation-testing,')"
+    steps:
+      - *s2
+      - *s3
+      - *s8
+      - *s11
+      - *s4
+      - *s10
+      - *s12
+      - *s9
+      - *s13
+      - *s14
+      - *s15
+      - name: Build test executables
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-edfa111724b5dbee8aa1ab83e80900afbc4a2df9c7132c0fa34e3b9a65aba5a4"}
+      - name: Format
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-41b33d7f0e294c4d949cf650c5ce55154dff53f909c034cc21dbf902a27c1996"}
+      - name: Clippy
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-fcad9733670e6ab50e1c86daae6343c547adaba9be5559cbf2bc8c44279fbf02"}
+      - name: Unit and integration tests
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-ae18692942f2e1367557fb6aafcbf83a5747384f0eb8c4df13719be74b5ae1f9"}
+      - name: Doctests
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-9c79198b07466bea3749991d39a25c223184fd7dfb083898b367c4ae2dc902c9"}
+      - name: Documentation
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-ec0e652570e081b38faa93afd498bbc29046f621a3e88b3623212863291485c7"}
+      - name: Wait for parallel checks
+        wait-all:
+      - name: Upload crate reports
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          if-no-files-found: error
+          name: velnor-crate-r${{ github.run_id }}-a${{ env.VELNOR_RUN_KEY_ATTEMPT }}-rust-jackin-preview-presentation-testing
+          overwrite: "true"
+          path: ${{ runner.temp }}/velnor/r${{ github.run_id }}-a${{ env.VELNOR_RUN_KEY_ATTEMPT }}
+          retention-days: "30"
   rust-jackin-preview-sim:
     name: Rust / jackin-preview-sim
     runs-on: ubuntu-26.04
@@ -957,6 +1483,110 @@ jobs:
           overwrite: "true"
           path: ${{ runner.temp }}/velnor/r${{ github.run_id }}-a${{ env.VELNOR_RUN_KEY_ATTEMPT }}
           retention-days: "30"
+  rust-jackin-preview-sim-testing:
+    name: Rust / jackin-preview-sim (testing)
+    runs-on: ubuntu-26.04
+    timeout-minutes: 15
+    env: *m9
+    needs:
+      - plan
+    if: "!contains(needs.plan.outputs.not_affected_jobs, ',rust-jackin-preview-sim-testing,')"
+    steps:
+      - *s2
+      - *s3
+      - *s8
+      - *s11
+      - *s4
+      - *s10
+      - *s12
+      - *s9
+      - *s13
+      - *s14
+      - *s15
+      - name: Build test executables
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-f3e522ee64b4b3d1f2482d03b5958c3bed630e805920ff43378ddc6f06dff7dc"}
+      - name: Format
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-2d04661cf13aa7b7d4ccecbdfc816f0aa7dd6c1b6eab2e6b151d640ea9e25e5e"}
+      - name: Clippy
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-e00b3db4696ba8c62696ab34a3ea10ce68ff74ef627e595b81d1702c176b93bd"}
+      - name: Unit and integration tests
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-63f8e5a7fa3921e728443c1ca36862d718588c4245aa34c491e2bded72af4c2e"}
+      - name: Doctests
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-74336ac4d140baf2e84a5ed67876c81a42ed62d98c471f37fbe3e76a26530284"}
+      - name: Documentation
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-eaa11f8f7b7187da9b21e96da64d1e34db0298e20f4e696b37f06cc2c1c4936d"}
+      - name: Wait for parallel checks
+        wait-all:
+      - name: Upload crate reports
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          if-no-files-found: error
+          name: velnor-crate-r${{ github.run_id }}-a${{ env.VELNOR_RUN_KEY_ATTEMPT }}-rust-jackin-preview-sim-testing
+          overwrite: "true"
+          path: ${{ runner.temp }}/velnor/r${{ github.run_id }}-a${{ env.VELNOR_RUN_KEY_ATTEMPT }}
+          retention-days: "30"
+  rust-jackin-preview-testing:
+    name: Rust / jackin-preview (testing)
+    runs-on: ubuntu-26.04
+    timeout-minutes: 15
+    env: *m9
+    needs:
+      - plan
+    if: "!contains(needs.plan.outputs.not_affected_jobs, ',rust-jackin-preview-testing,')"
+    steps:
+      - *s2
+      - *s3
+      - *s8
+      - *s11
+      - *s4
+      - *s10
+      - *s12
+      - *s9
+      - *s13
+      - *s14
+      - *s15
+      - name: Build test executables
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-1eb6b0d65271040452fef2b27e1f971141955e7e29f608a094aee917f783497e"}
+      - name: Format
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-a86f9012ad84be4df6ac765c347b4373e923cef53746ff6b0fd5a75e8a067226"}
+      - name: Clippy
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-54dad28e8f6711800085bb7aaf974d1a5663bc51148615a13810ba33fa32691a"}
+      - name: Unit and integration tests
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-ef85bf36c45e83ce60058f91b1d1e404f97e01b980d54d3e916e4c6a5bbd628e"}
+      - name: Documentation
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-c928c805f12f7f3566c842d3d7f93675a395081631eed58d667bdb8876f6638e"}
+      - name: Wait for parallel checks
+        wait-all:
+      - name: Upload crate reports
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          if-no-files-found: error
+          name: velnor-crate-r${{ github.run_id }}-a${{ env.VELNOR_RUN_KEY_ATTEMPT }}-rust-jackin-preview-testing
+          overwrite: "true"
+          path: ${{ runner.temp }}/velnor/r${{ github.run_id }}-a${{ env.VELNOR_RUN_KEY_ATTEMPT }}
+          retention-days: "30"
   rust-refactor-proof:
     name: Rust / refactor-proof
     runs-on: ubuntu-26.04
@@ -1008,6 +1638,60 @@ jobs:
         with:
           if-no-files-found: error
           name: velnor-crate-r${{ github.run_id }}-a${{ env.VELNOR_RUN_KEY_ATTEMPT }}-rust-refactor-proof
+          overwrite: "true"
+          path: ${{ runner.temp }}/velnor/r${{ github.run_id }}-a${{ env.VELNOR_RUN_KEY_ATTEMPT }}
+          retention-days: "30"
+  rust-refactor-proof-testing:
+    name: Rust / refactor-proof (testing)
+    runs-on: ubuntu-26.04
+    timeout-minutes: 15
+    env: *m9
+    needs:
+      - plan
+    if: "!contains(needs.plan.outputs.not_affected_jobs, ',rust-refactor-proof-testing,')"
+    steps:
+      - *s2
+      - *s3
+      - *s8
+      - *s11
+      - *s4
+      - *s10
+      - *s12
+      - *s9
+      - *s13
+      - *s14
+      - *s15
+      - name: Build test executables
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-a5ec5ec4758effe02da94eab53c946d6a2a201c497b95a6332da8c0f2ada7c30"}
+      - name: Format
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-fcefe54f9e2c26b178ac47af47014e189c398a0fd09d76e9ebfc81aa376d2c72"}
+      - name: Clippy
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-2702b936efef0d8a19da80301495774e319d55a65b4b16d6a65a87fa706c32cd"}
+      - name: Unit and integration tests
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-5ed9ead396e9fdfdbc2173547931c982cae67a58209e23eab5454c433ae16e23"}
+      - name: Doctests
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-5d239f7d1a0811aec239ca45b7b10e027f742a90a1ad9923202c65eeed4d1a75"}
+      - name: Documentation
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-921b123f86faa6156176e2679238fe7616c7541a9b5661bdbb780ecbb6333347"}
+      - name: Wait for parallel checks
+        wait-all:
+      - name: Upload crate reports
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          if-no-files-found: error
+          name: velnor-crate-r${{ github.run_id }}-a${{ env.VELNOR_RUN_KEY_ATTEMPT }}-rust-refactor-proof-testing
           overwrite: "true"
           path: ${{ runner.temp }}/velnor/r${{ github.run_id }}-a${{ env.VELNOR_RUN_KEY_ATTEMPT }}
           retention-days: "30"
@@ -1115,6 +1799,110 @@ jobs:
           overwrite: "true"
           path: ${{ runner.temp }}/velnor/r${{ github.run_id }}-a${{ env.VELNOR_RUN_KEY_ATTEMPT }}
           retention-days: "30"
+  rust-showcase-demos-testing:
+    name: Rust / showcase-demos (testing)
+    runs-on: ubuntu-26.04
+    timeout-minutes: 15
+    env: *m9
+    needs:
+      - plan
+    if: "!contains(needs.plan.outputs.not_affected_jobs, ',rust-showcase-demos-testing,')"
+    steps:
+      - *s2
+      - *s3
+      - *s8
+      - *s11
+      - *s4
+      - *s10
+      - *s12
+      - *s9
+      - *s13
+      - *s14
+      - *s15
+      - name: Build test executables
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-b4402be60dee9d8a8e6da8d7ce43fbab6fc09fb762264cd3fe180cf607aaa317"}
+      - name: Format
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-f7356f591e567171762674aaa5a62321db470d25f2f12b61e1a5d23c6a678cfa"}
+      - name: Clippy
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-d8189bcbe05856f08c736298fe8d08f7df929f40f67423499de086dced1d5531"}
+      - name: Unit and integration tests
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-aebcb6fda96e7de239ad37573b59b43f29ce3119142b14884540f7303cc60d56"}
+      - name: Doctests
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-0040229e99cbeb5949431b03d16c278c92e42ea349af6b8afd58a9b2a730b24b"}
+      - name: Documentation
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-bb5c78642cabce6ce2cc828643a5d5f83455db23393945775a4dd9957e357a55"}
+      - name: Wait for parallel checks
+        wait-all:
+      - name: Upload crate reports
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          if-no-files-found: error
+          name: velnor-crate-r${{ github.run_id }}-a${{ env.VELNOR_RUN_KEY_ATTEMPT }}-rust-showcase-demos-testing
+          overwrite: "true"
+          path: ${{ runner.temp }}/velnor/r${{ github.run_id }}-a${{ env.VELNOR_RUN_KEY_ATTEMPT }}
+          retention-days: "30"
+  rust-showcase-testing:
+    name: Rust / showcase (testing)
+    runs-on: ubuntu-26.04
+    timeout-minutes: 15
+    env: *m9
+    needs:
+      - plan
+    if: "!contains(needs.plan.outputs.not_affected_jobs, ',rust-showcase-testing,')"
+    steps:
+      - *s2
+      - *s3
+      - *s8
+      - *s11
+      - *s4
+      - *s10
+      - *s12
+      - *s9
+      - *s13
+      - *s14
+      - *s15
+      - name: Build test executables
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-ff7e45061ba5599cbb41294de40f00ebb15d104580ede3ad836a261a7cc63b59"}
+      - name: Format
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-c40908ab8e1411001a3e415131216e2fd46f46f1c081009f5f67186ee96eced0"}
+      - name: Clippy
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-2545cf2b2151e08755d2eba59f9c6adc8c761abda86123376fc1b4767d61e1fb"}
+      - name: Unit and integration tests
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-8f871718af1ccca4f665d8c3f17638c25c869fc4d31464659c45b1cf43865299"}
+      - name: Documentation
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-0befb015baed9f66560e5834082a5080e83d24f102942a0cb3607ad4b2c50255"}
+      - name: Wait for parallel checks
+        wait-all:
+      - name: Upload crate reports
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          if-no-files-found: error
+          name: velnor-crate-r${{ github.run_id }}-a${{ env.VELNOR_RUN_KEY_ATTEMPT }}-rust-showcase-testing
+          overwrite: "true"
+          path: ${{ runner.temp }}/velnor/r${{ github.run_id }}-a${{ env.VELNOR_RUN_KEY_ATTEMPT }}
+          retention-days: "30"
   rust-showcase-ui:
     name: Rust / showcase-ui
     runs-on: ubuntu-26.04
@@ -1166,6 +1954,60 @@ jobs:
         with:
           if-no-files-found: error
           name: velnor-crate-r${{ github.run_id }}-a${{ env.VELNOR_RUN_KEY_ATTEMPT }}-rust-showcase-ui
+          overwrite: "true"
+          path: ${{ runner.temp }}/velnor/r${{ github.run_id }}-a${{ env.VELNOR_RUN_KEY_ATTEMPT }}
+          retention-days: "30"
+  rust-showcase-ui-testing:
+    name: Rust / showcase-ui (testing)
+    runs-on: ubuntu-26.04
+    timeout-minutes: 15
+    env: *m9
+    needs:
+      - plan
+    if: "!contains(needs.plan.outputs.not_affected_jobs, ',rust-showcase-ui-testing,')"
+    steps:
+      - *s2
+      - *s3
+      - *s8
+      - *s11
+      - *s4
+      - *s10
+      - *s12
+      - *s9
+      - *s13
+      - *s14
+      - *s15
+      - name: Build test executables
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-3ff6edddd2591d8f9f0eb201c5c735e2ed7a657bb2d5772c98a9239547a516cc"}
+      - name: Format
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-44dc74f1e184cd7abaa9f44edffa0d33bebe6568ef47bff6fb353417c80d174f"}
+      - name: Clippy
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-946a3a5b0e4d9e470bc6f4917f11a2e62fb61e461ee86f42182d970440f61e49"}
+      - name: Unit and integration tests
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-de9dee2c1fe11313c6b462decf1d5a3762a19848f96a3d55b3fde3eb6c72c9c0"}
+      - name: Doctests
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-c4884b368f8813c51bf426b6ff4bedb394116f4e6e5d33675e92f3cba9411fa7"}
+      - name: Documentation
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-d8ee86ae6258e0dac6f3d17118e93f113b5a75f0abcf0d476596e396ad1e3b0b"}
+      - name: Wait for parallel checks
+        wait-all:
+      - name: Upload crate reports
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          if-no-files-found: error
+          name: velnor-crate-r${{ github.run_id }}-a${{ env.VELNOR_RUN_KEY_ATTEMPT }}-rust-showcase-ui-testing
           overwrite: "true"
           path: ${{ runner.temp }}/velnor/r${{ github.run_id }}-a${{ env.VELNOR_RUN_KEY_ATTEMPT }}
           retention-days: "30"
@@ -1273,6 +2115,60 @@ jobs:
           overwrite: "true"
           path: ${{ runner.temp }}/velnor/r${{ github.run_id }}-a${{ env.VELNOR_RUN_KEY_ATTEMPT }}
           retention-days: "30"
+  rust-tablepro-demo-testing:
+    name: Rust / tablepro-demo (testing)
+    runs-on: ubuntu-26.04
+    timeout-minutes: 15
+    env: *m9
+    needs:
+      - plan
+    if: "!contains(needs.plan.outputs.not_affected_jobs, ',rust-tablepro-demo-testing,')"
+    steps:
+      - *s2
+      - *s3
+      - *s8
+      - *s11
+      - *s4
+      - *s10
+      - *s12
+      - *s9
+      - *s13
+      - *s14
+      - *s15
+      - name: Build test executables
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-06ecf59905eb683248f3a3449b689c6b85702763e2e1cfcd516991c5f176dd81"}
+      - name: Format
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-3bc2e7cadf341aabadad263e0694523441dea9a21125ef547b36559beb975f3e"}
+      - name: Clippy
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-805cc5c5602261f05507d28770ff42cccd59abcc4ebe79c00f359cb83ef91053"}
+      - name: Unit and integration tests
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-5227bd24775fde4248ef54cf83f759ca890a7c51c0637ef7c4c482441f451bfe"}
+      - name: Doctests
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-1867e8e2b7f0a9e6241c73f3fafe190d168e3353433d5ca8cf896544dd7bf972"}
+      - name: Documentation
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-bab67452a62c8208ca651488c8ac4bd68a39cefc7663a47baaadcf3156e5bac5"}
+      - name: Wait for parallel checks
+        wait-all:
+      - name: Upload crate reports
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          if-no-files-found: error
+          name: velnor-crate-r${{ github.run_id }}-a${{ env.VELNOR_RUN_KEY_ATTEMPT }}-rust-tablepro-demo-testing
+          overwrite: "true"
+          path: ${{ runner.temp }}/velnor/r${{ github.run_id }}-a${{ env.VELNOR_RUN_KEY_ATTEMPT }}
+          retention-days: "30"
   rust-tablepro-domain:
     name: Rust / tablepro-domain
     runs-on: ubuntu-26.04
@@ -1324,6 +2220,60 @@ jobs:
         with:
           if-no-files-found: error
           name: velnor-crate-r${{ github.run_id }}-a${{ env.VELNOR_RUN_KEY_ATTEMPT }}-rust-tablepro-domain
+          overwrite: "true"
+          path: ${{ runner.temp }}/velnor/r${{ github.run_id }}-a${{ env.VELNOR_RUN_KEY_ATTEMPT }}
+          retention-days: "30"
+  rust-tablepro-domain-testing:
+    name: Rust / tablepro-domain (testing)
+    runs-on: ubuntu-26.04
+    timeout-minutes: 15
+    env: *m9
+    needs:
+      - plan
+    if: "!contains(needs.plan.outputs.not_affected_jobs, ',rust-tablepro-domain-testing,')"
+    steps:
+      - *s2
+      - *s3
+      - *s8
+      - *s11
+      - *s4
+      - *s10
+      - *s12
+      - *s9
+      - *s13
+      - *s14
+      - *s15
+      - name: Build test executables
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-76e43d712b2c13792893dcf7b9b10f9d3e557e3f594354cf027a908aa54b0a1f"}
+      - name: Format
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-96256a668b84bfaecfca991fc14444c7740a457b460015d6184fd5d12d5c5f5d"}
+      - name: Clippy
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-71551291459ee6534a9f70db3f6e38d7b0a762bc27e9a194c1e38c8c9c79dd13"}
+      - name: Unit and integration tests
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-3c2dc7b3e192deae78d869cd9f92e4a85eacafce437fc2811caf1ba62f816f85"}
+      - name: Doctests
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-538e425880621299e9d22724ca7172929bcdacf3ac4efbc14c77b9bfd604c2d8"}
+      - name: Documentation
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-1c9dc83d9ba8e6f1482d6aa1372be0e73f6e2fa1cb2d4d36dfb310d5bd447dcc"}
+      - name: Wait for parallel checks
+        wait-all:
+      - name: Upload crate reports
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          if-no-files-found: error
+          name: velnor-crate-r${{ github.run_id }}-a${{ env.VELNOR_RUN_KEY_ATTEMPT }}-rust-tablepro-domain-testing
           overwrite: "true"
           path: ${{ runner.temp }}/velnor/r${{ github.run_id }}-a${{ env.VELNOR_RUN_KEY_ATTEMPT }}
           retention-days: "30"
@@ -1381,6 +2331,110 @@ jobs:
           overwrite: "true"
           path: ${{ runner.temp }}/velnor/r${{ github.run_id }}-a${{ env.VELNOR_RUN_KEY_ATTEMPT }}
           retention-days: "30"
+  rust-tablepro-sql-testing:
+    name: Rust / tablepro-sql (testing)
+    runs-on: ubuntu-26.04
+    timeout-minutes: 15
+    env: *m9
+    needs:
+      - plan
+    if: "!contains(needs.plan.outputs.not_affected_jobs, ',rust-tablepro-sql-testing,')"
+    steps:
+      - *s2
+      - *s3
+      - *s8
+      - *s11
+      - *s4
+      - *s10
+      - *s12
+      - *s9
+      - *s13
+      - *s14
+      - *s15
+      - name: Build test executables
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-f5e86a89cbdd216e9b8ea2d6b79b79eef3c579db43476d1c0de3cc41d2fd9d7d"}
+      - name: Format
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-6bf22ae2f664438da8f64e5d4701089319bb58ef395e3db3d07fa5b40acde518"}
+      - name: Clippy
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-703fa537bd0eced270bf66e285e8b99c85c18bdeb0dc9d5abcdec4175c564f66"}
+      - name: Unit and integration tests
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-0d6f80946c9626179aaab4467438f9ceead4506629beae8c99b579850af2456c"}
+      - name: Doctests
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-7471b2d52973339cdb3b074f1677b76d23858e91df7e2e1a83ff79825084d3c5"}
+      - name: Documentation
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-9dca3b61112fbf160d025fa9937ece2564d40c9ae5f5243e29099860ebe18e19"}
+      - name: Wait for parallel checks
+        wait-all:
+      - name: Upload crate reports
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          if-no-files-found: error
+          name: velnor-crate-r${{ github.run_id }}-a${{ env.VELNOR_RUN_KEY_ATTEMPT }}-rust-tablepro-sql-testing
+          overwrite: "true"
+          path: ${{ runner.temp }}/velnor/r${{ github.run_id }}-a${{ env.VELNOR_RUN_KEY_ATTEMPT }}
+          retention-days: "30"
+  rust-tablepro-testing:
+    name: Rust / tablepro (testing)
+    runs-on: ubuntu-26.04
+    timeout-minutes: 15
+    env: *m9
+    needs:
+      - plan
+    if: "!contains(needs.plan.outputs.not_affected_jobs, ',rust-tablepro-testing,')"
+    steps:
+      - *s2
+      - *s3
+      - *s8
+      - *s11
+      - *s4
+      - *s10
+      - *s12
+      - *s9
+      - *s13
+      - *s14
+      - *s15
+      - name: Build test executables
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-37df7affe4418f77cc495e2ba761a21df4f8eb0e99c7f6d2a8de3a6013d5340b"}
+      - name: Format
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-bdfb60c3ce32d23b6091e8c2266d3021bdc7f4e0fd445cc434c0ee035ca465ad"}
+      - name: Clippy
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-25f4261bde67d5e667d3b1e54e2cf23b0cca69a31ea3f85a36b881e9558e8b2b"}
+      - name: Unit and integration tests
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-eb1b0c9bd776b677f55d8f3a7ddb31f89f2ca2b41ec62af09db4a9a21f813bc2"}
+      - name: Documentation
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-8c952e5b53d19bd25bdae6e52c2e7d1ad6783e206092d4c74be2192a97c8ac11"}
+      - name: Wait for parallel checks
+        wait-all:
+      - name: Upload crate reports
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          if-no-files-found: error
+          name: velnor-crate-r${{ github.run_id }}-a${{ env.VELNOR_RUN_KEY_ATTEMPT }}-rust-tablepro-testing
+          overwrite: "true"
+          path: ${{ runner.temp }}/velnor/r${{ github.run_id }}-a${{ env.VELNOR_RUN_KEY_ATTEMPT }}
+          retention-days: "30"
   rust-tablepro-ui:
     name: Rust / tablepro-ui
     runs-on: ubuntu-26.04
@@ -1432,6 +2486,60 @@ jobs:
         with:
           if-no-files-found: error
           name: velnor-crate-r${{ github.run_id }}-a${{ env.VELNOR_RUN_KEY_ATTEMPT }}-rust-tablepro-ui
+          overwrite: "true"
+          path: ${{ runner.temp }}/velnor/r${{ github.run_id }}-a${{ env.VELNOR_RUN_KEY_ATTEMPT }}
+          retention-days: "30"
+  rust-tablepro-ui-testing:
+    name: Rust / tablepro-ui (testing)
+    runs-on: ubuntu-26.04
+    timeout-minutes: 15
+    env: *m9
+    needs:
+      - plan
+    if: "!contains(needs.plan.outputs.not_affected_jobs, ',rust-tablepro-ui-testing,')"
+    steps:
+      - *s2
+      - *s3
+      - *s8
+      - *s11
+      - *s4
+      - *s10
+      - *s12
+      - *s9
+      - *s13
+      - *s14
+      - *s15
+      - name: Build test executables
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-ce09cf6ac5e1ef904e4e23d8c77a5f56f84d5b216ad9992402948c646cc1b064"}
+      - name: Format
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-725d3c0f00980aa5d1592a06875a7c426f0859a4816fa6591d827516155e4c3b"}
+      - name: Clippy
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-e167406d59320ad8846942eb2882a5671494458ea0d51a513f3da89e00e57ce3"}
+      - name: Unit and integration tests
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-683ff4db0b038a0891e6c99ae55650a19ae2a109178364d414eb18a1e4f0e51c"}
+      - name: Doctests
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-c80b4c6c4e01d75d58323bd20c4ec0789658969f8649773e344477d343bd60e4"}
+      - name: Documentation
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-9e424f4ab312ade91bae91f96fb82435e0e2c7e603f6c90a165c636d560c9e3b"}
+      - name: Wait for parallel checks
+        wait-all:
+      - name: Upload crate reports
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          if-no-files-found: error
+          name: velnor-crate-r${{ github.run_id }}-a${{ env.VELNOR_RUN_KEY_ATTEMPT }}-rust-tablepro-ui-testing
           overwrite: "true"
           path: ${{ runner.temp }}/velnor/r${{ github.run_id }}-a${{ env.VELNOR_RUN_KEY_ATTEMPT }}
           retention-days: "30"
@@ -1543,6 +2651,60 @@ jobs:
           overwrite: "true"
           path: ${{ runner.temp }}/velnor/r${{ github.run_id }}-a${{ env.VELNOR_RUN_KEY_ATTEMPT }}
           retention-days: "30"
+  rust-termrock-collections-testing:
+    name: Rust / termrock-collections (testing)
+    runs-on: ubuntu-26.04
+    timeout-minutes: 15
+    env: *m9
+    needs:
+      - plan
+    if: "!contains(needs.plan.outputs.not_affected_jobs, ',rust-termrock-collections-testing,')"
+    steps:
+      - *s2
+      - *s3
+      - *s8
+      - *s11
+      - *s4
+      - *s10
+      - *s12
+      - *s9
+      - *s13
+      - *s14
+      - *s15
+      - name: Build test executables
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-97dac25aa6816f035d8eb9b71a5bdc143e287626a1c4d8670798d5d2006043c4"}
+      - name: Format
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-ba15b5efb0ee756110966e00404638b2bbfb869a9d9de37bb7fab85c89275628"}
+      - name: Clippy
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-e83f98d484ff04a23bd9df4ecd768afd4c1bdf8f14ebb291ca49ad5c0da0143a"}
+      - name: Unit and integration tests
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-309e83e527c66a61a2d354b57b23ff5fa941593e4752cfc597e1e4e6cdd8df5b"}
+      - name: Doctests
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-a176f79a7e7a676b0d71c3516fe1dd792f108f100310180c5f63ba787c21d474"}
+      - name: Documentation
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-a521f5874e859759aa3ba6228688e39a7ec1044886f8c3798e9afeb66c80acdd"}
+      - name: Wait for parallel checks
+        wait-all:
+      - name: Upload crate reports
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          if-no-files-found: error
+          name: velnor-crate-r${{ github.run_id }}-a${{ env.VELNOR_RUN_KEY_ATTEMPT }}-rust-termrock-collections-testing
+          overwrite: "true"
+          path: ${{ runner.temp }}/velnor/r${{ github.run_id }}-a${{ env.VELNOR_RUN_KEY_ATTEMPT }}
+          retention-days: "30"
   rust-termrock-conformance:
     name: Rust / termrock-conformance
     runs-on: ubuntu-26.04
@@ -1594,6 +2756,60 @@ jobs:
         with:
           if-no-files-found: error
           name: velnor-crate-r${{ github.run_id }}-a${{ env.VELNOR_RUN_KEY_ATTEMPT }}-rust-termrock-conformance
+          overwrite: "true"
+          path: ${{ runner.temp }}/velnor/r${{ github.run_id }}-a${{ env.VELNOR_RUN_KEY_ATTEMPT }}
+          retention-days: "30"
+  rust-termrock-conformance-testing:
+    name: Rust / termrock-conformance (testing)
+    runs-on: ubuntu-26.04
+    timeout-minutes: 15
+    env: *m9
+    needs:
+      - plan
+    if: "!contains(needs.plan.outputs.not_affected_jobs, ',rust-termrock-conformance-testing,')"
+    steps:
+      - *s2
+      - *s3
+      - *s8
+      - *s11
+      - *s4
+      - *s10
+      - *s12
+      - *s9
+      - *s13
+      - *s14
+      - *s15
+      - name: Build test executables
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-73d2897e681abf6461499f5df1a9c956697996ddbfdf3af2dc494d5d9367f995"}
+      - name: Format
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-b58439a4486e5d1e3e60d3fbdf0f42deb9730d8275202ac6bee936016d888d7b"}
+      - name: Clippy
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-a95f24783e627109d8089faa78884511bcc91e3ec3c24554215d987348d33d2e"}
+      - name: Unit and integration tests
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-82f748e1adf21bd2b5e2b9335acf7d9eb0ef415d968f645f1c01038b3a13c18e"}
+      - name: Doctests
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-6a389346d379fe63a4b15b8fcca7fe576ee63a2f2c1e7bb0baa77558c953d613"}
+      - name: Documentation
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-5bb1b8c1a145db2880324ef414cfcc781f2e6bfb550b3c3ec60a60a850dc0b7c"}
+      - name: Wait for parallel checks
+        wait-all:
+      - name: Upload crate reports
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          if-no-files-found: error
+          name: velnor-crate-r${{ github.run_id }}-a${{ env.VELNOR_RUN_KEY_ATTEMPT }}-rust-termrock-conformance-testing
           overwrite: "true"
           path: ${{ runner.temp }}/velnor/r${{ github.run_id }}-a${{ env.VELNOR_RUN_KEY_ATTEMPT }}
           retention-days: "30"
@@ -1651,6 +2867,60 @@ jobs:
           overwrite: "true"
           path: ${{ runner.temp }}/velnor/r${{ github.run_id }}-a${{ env.VELNOR_RUN_KEY_ATTEMPT }}
           retention-days: "30"
+  rust-termrock-controls-testing:
+    name: Rust / termrock-controls (testing)
+    runs-on: ubuntu-26.04
+    timeout-minutes: 15
+    env: *m9
+    needs:
+      - plan
+    if: "!contains(needs.plan.outputs.not_affected_jobs, ',rust-termrock-controls-testing,')"
+    steps:
+      - *s2
+      - *s3
+      - *s8
+      - *s11
+      - *s4
+      - *s10
+      - *s12
+      - *s9
+      - *s13
+      - *s14
+      - *s15
+      - name: Build test executables
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-7b51e1605a54e54d57579021d70e024c5d7f33b5722ef6c91bc3dd1bfec2937d"}
+      - name: Format
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-e354a13114a04343f81cf966138351e827f1779f6c03d1c659f6ec6d051fe147"}
+      - name: Clippy
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-a1d18ba057b9d6d12ee7a7ee715a2a1f88355534e35a68bf6c651c437aa41fac"}
+      - name: Unit and integration tests
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-b960b45d99f421b536966cf45f784d0bcbaad1e2df02064b44495061d5564fc8"}
+      - name: Doctests
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-a9740de11ea70c3ccfcdbb6115105f57d2eac8ada02d2a7be1323fb9e7a39411"}
+      - name: Documentation
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-dfd8b8e7e81bee507fc2d9bfa738dae0b20d717d216e5d1aa2179ff5e81c79b5"}
+      - name: Wait for parallel checks
+        wait-all:
+      - name: Upload crate reports
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          if-no-files-found: error
+          name: velnor-crate-r${{ github.run_id }}-a${{ env.VELNOR_RUN_KEY_ATTEMPT }}-rust-termrock-controls-testing
+          overwrite: "true"
+          path: ${{ runner.temp }}/velnor/r${{ github.run_id }}-a${{ env.VELNOR_RUN_KEY_ATTEMPT }}
+          retention-days: "30"
   rust-termrock-core:
     name: Rust / termrock-core
     runs-on: ubuntu-26.04
@@ -1702,6 +2972,60 @@ jobs:
         with:
           if-no-files-found: error
           name: velnor-crate-r${{ github.run_id }}-a${{ env.VELNOR_RUN_KEY_ATTEMPT }}-rust-termrock-core
+          overwrite: "true"
+          path: ${{ runner.temp }}/velnor/r${{ github.run_id }}-a${{ env.VELNOR_RUN_KEY_ATTEMPT }}
+          retention-days: "30"
+  rust-termrock-core-testing:
+    name: Rust / termrock-core (testing)
+    runs-on: ubuntu-26.04
+    timeout-minutes: 15
+    env: *m9
+    needs:
+      - plan
+    if: "!contains(needs.plan.outputs.not_affected_jobs, ',rust-termrock-core-testing,')"
+    steps:
+      - *s2
+      - *s3
+      - *s8
+      - *s11
+      - *s4
+      - *s10
+      - *s12
+      - *s9
+      - *s13
+      - *s14
+      - *s15
+      - name: Build test executables
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-01a329aadd8aecfb91fa7081730e19becf2e2bdf5226a204fcc9a4b58efdb2ba"}
+      - name: Format
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-8a1549c60a72a822df35e276e9b83d08d2654992abcc255edaa40e367c23a209"}
+      - name: Clippy
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-1dc607533c3aa0b1e90279a7588895989dd802282ddd7307598884d9bd79c32f"}
+      - name: Unit and integration tests
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-2a29cacd156db68550775f0c92beff6c5912f9058f21b122561fe0ba338eeeee"}
+      - name: Doctests
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-084c1691ba20745b7e6acd81fbab2dab9132e545510aceb790501355a7b4fb80"}
+      - name: Documentation
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-1b554d2c00e374acdafd84d094ea1f3d33434e5859b04116fcdba9e26640f08f"}
+      - name: Wait for parallel checks
+        wait-all:
+      - name: Upload crate reports
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          if-no-files-found: error
+          name: velnor-crate-r${{ github.run_id }}-a${{ env.VELNOR_RUN_KEY_ATTEMPT }}-rust-termrock-core-testing
           overwrite: "true"
           path: ${{ runner.temp }}/velnor/r${{ github.run_id }}-a${{ env.VELNOR_RUN_KEY_ATTEMPT }}
           retention-days: "30"
@@ -1759,6 +3083,60 @@ jobs:
           overwrite: "true"
           path: ${{ runner.temp }}/velnor/r${{ github.run_id }}-a${{ env.VELNOR_RUN_KEY_ATTEMPT }}
           retention-days: "30"
+  rust-termrock-editors-testing:
+    name: Rust / termrock-editors (testing)
+    runs-on: ubuntu-26.04
+    timeout-minutes: 15
+    env: *m9
+    needs:
+      - plan
+    if: "!contains(needs.plan.outputs.not_affected_jobs, ',rust-termrock-editors-testing,')"
+    steps:
+      - *s2
+      - *s3
+      - *s8
+      - *s11
+      - *s4
+      - *s10
+      - *s12
+      - *s9
+      - *s13
+      - *s14
+      - *s15
+      - name: Build test executables
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-951f1fe79e060d005a804de86be3d8a24ebf91cefd61473c7aff4ac580427ea3"}
+      - name: Format
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-971d48057c2b462907927abd85b7f251f0c59bb1489cb1a499006207296062cd"}
+      - name: Clippy
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-7037d8a93c1fd899e7691e482938a02bea278ef9f072ba8fae165a5d570749f6"}
+      - name: Unit and integration tests
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-70753fdc09dbbe9df53e9dd5f41c802c30bf14647bdd6d02a632e9215a228ce5"}
+      - name: Doctests
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-3a25b1a03f6fdddbd476820b80f1cebe18be74e8c04124f69f10a74badfc3fed"}
+      - name: Documentation
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-7b1f9ee813e0a374c7e491e4eb5924f2ed8dc195de96221cdeb080feed18120f"}
+      - name: Wait for parallel checks
+        wait-all:
+      - name: Upload crate reports
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          if-no-files-found: error
+          name: velnor-crate-r${{ github.run_id }}-a${{ env.VELNOR_RUN_KEY_ATTEMPT }}-rust-termrock-editors-testing
+          overwrite: "true"
+          path: ${{ runner.temp }}/velnor/r${{ github.run_id }}-a${{ env.VELNOR_RUN_KEY_ATTEMPT }}
+          retention-days: "30"
   rust-termrock-feedback:
     name: Rust / termrock-feedback
     runs-on: ubuntu-26.04
@@ -1810,6 +3188,60 @@ jobs:
         with:
           if-no-files-found: error
           name: velnor-crate-r${{ github.run_id }}-a${{ env.VELNOR_RUN_KEY_ATTEMPT }}-rust-termrock-feedback
+          overwrite: "true"
+          path: ${{ runner.temp }}/velnor/r${{ github.run_id }}-a${{ env.VELNOR_RUN_KEY_ATTEMPT }}
+          retention-days: "30"
+  rust-termrock-feedback-testing:
+    name: Rust / termrock-feedback (testing)
+    runs-on: ubuntu-26.04
+    timeout-minutes: 15
+    env: *m9
+    needs:
+      - plan
+    if: "!contains(needs.plan.outputs.not_affected_jobs, ',rust-termrock-feedback-testing,')"
+    steps:
+      - *s2
+      - *s3
+      - *s8
+      - *s11
+      - *s4
+      - *s10
+      - *s12
+      - *s9
+      - *s13
+      - *s14
+      - *s15
+      - name: Build test executables
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-2fe4f98dd63f74f1175160f5a0825c5eb5ad8e41af078506b3f6f1666fdaca03"}
+      - name: Format
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-2572ed9ead616a8d649aeea61c85a5cc6e143392812ec56e4c4754c9d418d7e2"}
+      - name: Clippy
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-9a464b8862a3ba82de206528903da8aaa829cbb38417d45dc1de19b5fe99c903"}
+      - name: Unit and integration tests
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-b9996ce45bfceb5a890afbcbd47a023cc82420308f959d7071bcde9fb7afac77"}
+      - name: Doctests
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-7d1d7dcf03cbe8f7f41045c087c17f1f1cff8c70c4be76da6031763550ce0f8d"}
+      - name: Documentation
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-04061b4fa54c7708ea7fc6988b86c7dedabb6653c1abfa468dc82abc4472b75a"}
+      - name: Wait for parallel checks
+        wait-all:
+      - name: Upload crate reports
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          if-no-files-found: error
+          name: velnor-crate-r${{ github.run_id }}-a${{ env.VELNOR_RUN_KEY_ATTEMPT }}-rust-termrock-feedback-testing
           overwrite: "true"
           path: ${{ runner.temp }}/velnor/r${{ github.run_id }}-a${{ env.VELNOR_RUN_KEY_ATTEMPT }}
           retention-days: "30"
@@ -1867,6 +3299,60 @@ jobs:
           overwrite: "true"
           path: ${{ runner.temp }}/velnor/r${{ github.run_id }}-a${{ env.VELNOR_RUN_KEY_ATTEMPT }}
           retention-days: "30"
+  rust-termrock-fields-testing:
+    name: Rust / termrock-fields (testing)
+    runs-on: ubuntu-26.04
+    timeout-minutes: 15
+    env: *m9
+    needs:
+      - plan
+    if: "!contains(needs.plan.outputs.not_affected_jobs, ',rust-termrock-fields-testing,')"
+    steps:
+      - *s2
+      - *s3
+      - *s8
+      - *s11
+      - *s4
+      - *s10
+      - *s12
+      - *s9
+      - *s13
+      - *s14
+      - *s15
+      - name: Build test executables
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-ffe7edfd07dc5e4cec8497e7cca4072b7f61031ce8c3490a3dcc7782e2ae054f"}
+      - name: Format
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-70bcb16642f806128566df916af4342c84386114ea0fd1744d2fcc3f721aafee"}
+      - name: Clippy
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-1abcae754620a1633316aca590b78eb8a22320289a5da2063db85c840361e07f"}
+      - name: Unit and integration tests
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-a20625daf5c02fbed20af6fe92c5238ea60c57ebaac112aad4bfe506c8444fb5"}
+      - name: Doctests
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-d5e2ea91791e632edc315ed8fac4dc651c361ad630b3e22635dbd9aff0ea210d"}
+      - name: Documentation
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-d84830cc9ed03ecedd9cef11d58057140bf2480a0be9847e66ab981651c19173"}
+      - name: Wait for parallel checks
+        wait-all:
+      - name: Upload crate reports
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          if-no-files-found: error
+          name: velnor-crate-r${{ github.run_id }}-a${{ env.VELNOR_RUN_KEY_ATTEMPT }}-rust-termrock-fields-testing
+          overwrite: "true"
+          path: ${{ runner.temp }}/velnor/r${{ github.run_id }}-a${{ env.VELNOR_RUN_KEY_ATTEMPT }}
+          retention-days: "30"
   rust-termrock-forms:
     name: Rust / termrock-forms
     runs-on: ubuntu-26.04
@@ -1918,6 +3404,60 @@ jobs:
         with:
           if-no-files-found: error
           name: velnor-crate-r${{ github.run_id }}-a${{ env.VELNOR_RUN_KEY_ATTEMPT }}-rust-termrock-forms
+          overwrite: "true"
+          path: ${{ runner.temp }}/velnor/r${{ github.run_id }}-a${{ env.VELNOR_RUN_KEY_ATTEMPT }}
+          retention-days: "30"
+  rust-termrock-forms-testing:
+    name: Rust / termrock-forms (testing)
+    runs-on: ubuntu-26.04
+    timeout-minutes: 15
+    env: *m9
+    needs:
+      - plan
+    if: "!contains(needs.plan.outputs.not_affected_jobs, ',rust-termrock-forms-testing,')"
+    steps:
+      - *s2
+      - *s3
+      - *s8
+      - *s11
+      - *s4
+      - *s10
+      - *s12
+      - *s9
+      - *s13
+      - *s14
+      - *s15
+      - name: Build test executables
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-72f0ced14a0ff6639be2c080c688842d8c71680b95136d92bf836a15579d13c4"}
+      - name: Format
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-4eb0106c4b7d71a81ecf0c93d4e10045a5961ecd8e7667294b60bec815b080cb"}
+      - name: Clippy
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-6fba1ebc791585fb0d6cb20a6a369660e0d2b5d7a2bb1eda927cbd13d9f8e374"}
+      - name: Unit and integration tests
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-c4ec9e6984c18b21a91b2bceeec77e01c43a5315d8dee605cc472e4d8e662afe"}
+      - name: Doctests
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-342efc704506f77f98f3e6f5bf2ff039c8044a6b35d8832fde7ceb00362d201b"}
+      - name: Documentation
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-a7c5d41a4960f8864a43774611b487b60038b35f2d44763d42644c5a397a7926"}
+      - name: Wait for parallel checks
+        wait-all:
+      - name: Upload crate reports
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          if-no-files-found: error
+          name: velnor-crate-r${{ github.run_id }}-a${{ env.VELNOR_RUN_KEY_ATTEMPT }}-rust-termrock-forms-testing
           overwrite: "true"
           path: ${{ runner.temp }}/velnor/r${{ github.run_id }}-a${{ env.VELNOR_RUN_KEY_ATTEMPT }}
           retention-days: "30"
@@ -1975,6 +3515,60 @@ jobs:
           overwrite: "true"
           path: ${{ runner.temp }}/velnor/r${{ github.run_id }}-a${{ env.VELNOR_RUN_KEY_ATTEMPT }}
           retention-days: "30"
+  rust-termrock-grid-testing:
+    name: Rust / termrock-grid (testing)
+    runs-on: ubuntu-26.04
+    timeout-minutes: 15
+    env: *m9
+    needs:
+      - plan
+    if: "!contains(needs.plan.outputs.not_affected_jobs, ',rust-termrock-grid-testing,')"
+    steps:
+      - *s2
+      - *s3
+      - *s8
+      - *s11
+      - *s4
+      - *s10
+      - *s12
+      - *s9
+      - *s13
+      - *s14
+      - *s15
+      - name: Build test executables
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-b190809e82383f7a92f4e75941bacaf945c45cb6db73e1b28694285804416c01"}
+      - name: Format
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-9ac39e49d485fe2c291dd9198cdda389c8b18ff367df9637387e597c64aa2efb"}
+      - name: Clippy
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-7d4c31071074cbf59f500ef488dfb38814997da34c6e9a245f22e73bf67b0600"}
+      - name: Unit and integration tests
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-7b6d7b3bc30bdf782713ae8fc2c91d91bc2fe503754591426cec06d6d5225fd7"}
+      - name: Doctests
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-7e0b320a490d533b06555bdc80aeb27ebd2d9180a4e7ca86af88cc0db261b43b"}
+      - name: Documentation
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-28e01e0d84ac14436ff41cc0870a1dced395469cf4ee9ea0ca0cb6f77ed600ec"}
+      - name: Wait for parallel checks
+        wait-all:
+      - name: Upload crate reports
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          if-no-files-found: error
+          name: velnor-crate-r${{ github.run_id }}-a${{ env.VELNOR_RUN_KEY_ATTEMPT }}-rust-termrock-grid-testing
+          overwrite: "true"
+          path: ${{ runner.temp }}/velnor/r${{ github.run_id }}-a${{ env.VELNOR_RUN_KEY_ATTEMPT }}
+          retention-days: "30"
   rust-termrock-layout:
     name: Rust / termrock-layout
     runs-on: ubuntu-26.04
@@ -2026,6 +3620,60 @@ jobs:
         with:
           if-no-files-found: error
           name: velnor-crate-r${{ github.run_id }}-a${{ env.VELNOR_RUN_KEY_ATTEMPT }}-rust-termrock-layout
+          overwrite: "true"
+          path: ${{ runner.temp }}/velnor/r${{ github.run_id }}-a${{ env.VELNOR_RUN_KEY_ATTEMPT }}
+          retention-days: "30"
+  rust-termrock-layout-testing:
+    name: Rust / termrock-layout (testing)
+    runs-on: ubuntu-26.04
+    timeout-minutes: 15
+    env: *m9
+    needs:
+      - plan
+    if: "!contains(needs.plan.outputs.not_affected_jobs, ',rust-termrock-layout-testing,')"
+    steps:
+      - *s2
+      - *s3
+      - *s8
+      - *s11
+      - *s4
+      - *s10
+      - *s12
+      - *s9
+      - *s13
+      - *s14
+      - *s15
+      - name: Build test executables
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-7784dfd4ba777c007e4507fd8672459ebe2fdc859f749d1ec6b2b84777ab91a5"}
+      - name: Format
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-2dae1982c486b97b82af61d83cf809af33dfe43d11c6d6597644c821873e2006"}
+      - name: Clippy
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-c5cdf3de25a00a9d67408b82519ee272b8ae354250c8f6139e1c0db550d43abd"}
+      - name: Unit and integration tests
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-0f014ec25fd969ad6c613db24f99c0a3bf41e3992b5c9e342aa469f13f598a21"}
+      - name: Doctests
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-7dda215d4e2ffb31a4732425b67d405522316d40d5d8a356ef870f90c7626e1d"}
+      - name: Documentation
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-b9bcc4aaa4a7fb04194e52c3d043c0441afcf1f087dc3d666a1b609dd2ea68d1"}
+      - name: Wait for parallel checks
+        wait-all:
+      - name: Upload crate reports
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          if-no-files-found: error
+          name: velnor-crate-r${{ github.run_id }}-a${{ env.VELNOR_RUN_KEY_ATTEMPT }}-rust-termrock-layout-testing
           overwrite: "true"
           path: ${{ runner.temp }}/velnor/r${{ github.run_id }}-a${{ env.VELNOR_RUN_KEY_ATTEMPT }}
           retention-days: "30"
@@ -2083,6 +3731,60 @@ jobs:
           overwrite: "true"
           path: ${{ runner.temp }}/velnor/r${{ github.run_id }}-a${{ env.VELNOR_RUN_KEY_ATTEMPT }}
           retention-days: "30"
+  rust-termrock-navigation-testing:
+    name: Rust / termrock-navigation (testing)
+    runs-on: ubuntu-26.04
+    timeout-minutes: 15
+    env: *m9
+    needs:
+      - plan
+    if: "!contains(needs.plan.outputs.not_affected_jobs, ',rust-termrock-navigation-testing,')"
+    steps:
+      - *s2
+      - *s3
+      - *s8
+      - *s11
+      - *s4
+      - *s10
+      - *s12
+      - *s9
+      - *s13
+      - *s14
+      - *s15
+      - name: Build test executables
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-8b1bb98c31a0411c4eaadb39098bd01a8e9e46e9a9a0afb70783924d543f6a41"}
+      - name: Format
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-bf200b152e5ee5d45a95c5370d86cd2a0a757967060d032374cbd82d9c233a0a"}
+      - name: Clippy
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-0baee74b860d88b48151c277d482f1658cd87983a522150acb71acddcd93a5ce"}
+      - name: Unit and integration tests
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-dcca3480d8daf60d87b6198d9f120a82f8d356ee756bea5a91fcb2a794c98177"}
+      - name: Doctests
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-ace13aa3c94e2f322d769d0f48d2287ba714283d2d5b9135962ed2b92b70ba44"}
+      - name: Documentation
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-5e9f80b36ebdfd5d974ab6c44b1d97557fc250c26bb02089ab85d7c4266817ef"}
+      - name: Wait for parallel checks
+        wait-all:
+      - name: Upload crate reports
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          if-no-files-found: error
+          name: velnor-crate-r${{ github.run_id }}-a${{ env.VELNOR_RUN_KEY_ATTEMPT }}-rust-termrock-navigation-testing
+          overwrite: "true"
+          path: ${{ runner.temp }}/velnor/r${{ github.run_id }}-a${{ env.VELNOR_RUN_KEY_ATTEMPT }}
+          retention-days: "30"
   rust-termrock-overlays:
     name: Rust / termrock-overlays
     runs-on: ubuntu-26.04
@@ -2134,6 +3836,60 @@ jobs:
         with:
           if-no-files-found: error
           name: velnor-crate-r${{ github.run_id }}-a${{ env.VELNOR_RUN_KEY_ATTEMPT }}-rust-termrock-overlays
+          overwrite: "true"
+          path: ${{ runner.temp }}/velnor/r${{ github.run_id }}-a${{ env.VELNOR_RUN_KEY_ATTEMPT }}
+          retention-days: "30"
+  rust-termrock-overlays-testing:
+    name: Rust / termrock-overlays (testing)
+    runs-on: ubuntu-26.04
+    timeout-minutes: 15
+    env: *m9
+    needs:
+      - plan
+    if: "!contains(needs.plan.outputs.not_affected_jobs, ',rust-termrock-overlays-testing,')"
+    steps:
+      - *s2
+      - *s3
+      - *s8
+      - *s11
+      - *s4
+      - *s10
+      - *s12
+      - *s9
+      - *s13
+      - *s14
+      - *s15
+      - name: Build test executables
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-4c2eeba8c80a1f19b8ef41acf929a870e24bb8033d2fb67bcd105d8e809671cf"}
+      - name: Format
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-e3015fc7b7b814fd5ecd71f324e8e6623f468e8ba3562ec660939c495a09bf2d"}
+      - name: Clippy
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-96c3bf826ba64d3eb92ce09f58fc58ee78bb695bc89edc8b2d8740b2d986a2b3"}
+      - name: Unit and integration tests
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-4e55d45a2af609c8a7cfa69950ca4c154ce17ab2b2ad9a12e4770bda490ae415"}
+      - name: Doctests
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-a2132f99e4d4cdf6fffa53851060e71ad634673390496af650abb72d7ca29f47"}
+      - name: Documentation
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-ef495b0901ff46d1e4b47919523a82f879843bbf266707a95bbdb2be1986babe"}
+      - name: Wait for parallel checks
+        wait-all:
+      - name: Upload crate reports
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          if-no-files-found: error
+          name: velnor-crate-r${{ github.run_id }}-a${{ env.VELNOR_RUN_KEY_ATTEMPT }}-rust-termrock-overlays-testing
           overwrite: "true"
           path: ${{ runner.temp }}/velnor/r${{ github.run_id }}-a${{ env.VELNOR_RUN_KEY_ATTEMPT }}
           retention-days: "30"
@@ -2191,6 +3947,60 @@ jobs:
           overwrite: "true"
           path: ${{ runner.temp }}/velnor/r${{ github.run_id }}-a${{ env.VELNOR_RUN_KEY_ATTEMPT }}
           retention-days: "30"
+  rust-termrock-render-testing:
+    name: Rust / termrock-render (testing)
+    runs-on: ubuntu-26.04
+    timeout-minutes: 15
+    env: *m9
+    needs:
+      - plan
+    if: "!contains(needs.plan.outputs.not_affected_jobs, ',rust-termrock-render-testing,')"
+    steps:
+      - *s2
+      - *s3
+      - *s8
+      - *s11
+      - *s4
+      - *s10
+      - *s12
+      - *s9
+      - *s13
+      - *s14
+      - *s15
+      - name: Build test executables
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-916c480c40dfbee1891e5f711ef190fd9a108e45d739f079718a04ebe50162f6"}
+      - name: Format
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-00c4ebe223d183db828d47a7ff5452cccdcb37f06f5b0760bc0f9e69a8b6abb4"}
+      - name: Clippy
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-bfd432c0bffc3c6da20b6e5f8bce72673674c840db7fcf449a367db062db6d3d"}
+      - name: Unit and integration tests
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-0b8b20704113135173a1fb7586c17e0f65b20cf81eaa08634d8e33d025819e36"}
+      - name: Doctests
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-e00dd2e9ed0543709b5fb214efe7429b4b36dcd80a82b7df06de16c7ad7d52f2"}
+      - name: Documentation
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-242750cc23d708900f900be1d3474abaded728ddb359f28ec32c325d5736c0f0"}
+      - name: Wait for parallel checks
+        wait-all:
+      - name: Upload crate reports
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          if-no-files-found: error
+          name: velnor-crate-r${{ github.run_id }}-a${{ env.VELNOR_RUN_KEY_ATTEMPT }}-rust-termrock-render-testing
+          overwrite: "true"
+          path: ${{ runner.temp }}/velnor/r${{ github.run_id }}-a${{ env.VELNOR_RUN_KEY_ATTEMPT }}
+          retention-days: "30"
   rust-termrock-runtime:
     name: Rust / termrock-runtime
     runs-on: ubuntu-26.04
@@ -2242,6 +4052,60 @@ jobs:
         with:
           if-no-files-found: error
           name: velnor-crate-r${{ github.run_id }}-a${{ env.VELNOR_RUN_KEY_ATTEMPT }}-rust-termrock-runtime
+          overwrite: "true"
+          path: ${{ runner.temp }}/velnor/r${{ github.run_id }}-a${{ env.VELNOR_RUN_KEY_ATTEMPT }}
+          retention-days: "30"
+  rust-termrock-runtime-testing:
+    name: Rust / termrock-runtime (testing)
+    runs-on: ubuntu-26.04
+    timeout-minutes: 15
+    env: *m9
+    needs:
+      - plan
+    if: "!contains(needs.plan.outputs.not_affected_jobs, ',rust-termrock-runtime-testing,')"
+    steps:
+      - *s2
+      - *s3
+      - *s8
+      - *s11
+      - *s4
+      - *s10
+      - *s12
+      - *s9
+      - *s13
+      - *s14
+      - *s15
+      - name: Build test executables
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-1b2aa11ea6e995196a81bc0347a7377da73e47a929be66faa17e8bb447ae7927"}
+      - name: Format
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-fd479809d1375fce77f943d9b65f8f1b360c02d601da465c432e16146eaa9567"}
+      - name: Clippy
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-29e8ee9c0072ab70c06411866bf2f6a5c9f5ae2f55888c4faa28c52ec055906d"}
+      - name: Unit and integration tests
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-745902ac96575796179bf998fbb2b824053959e5c397d8f1a3794f9de5551b7b"}
+      - name: Doctests
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-695e4b9d608e59d14f23ef25c14e75640992056b699bf446d81bee2fdc4fa26d"}
+      - name: Documentation
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-019868656a2596e9fe2f54585aa2d84d4148f08174c4e4890adade8cbc3c544e"}
+      - name: Wait for parallel checks
+        wait-all:
+      - name: Upload crate reports
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          if-no-files-found: error
+          name: velnor-crate-r${{ github.run_id }}-a${{ env.VELNOR_RUN_KEY_ATTEMPT }}-rust-termrock-runtime-testing
           overwrite: "true"
           path: ${{ runner.temp }}/velnor/r${{ github.run_id }}-a${{ env.VELNOR_RUN_KEY_ATTEMPT }}
           retention-days: "30"
@@ -2299,6 +4163,60 @@ jobs:
           overwrite: "true"
           path: ${{ runner.temp }}/velnor/r${{ github.run_id }}-a${{ env.VELNOR_RUN_KEY_ATTEMPT }}
           retention-days: "30"
+  rust-termrock-session-testing:
+    name: Rust / termrock-session (testing)
+    runs-on: ubuntu-26.04
+    timeout-minutes: 15
+    env: *m9
+    needs:
+      - plan
+    if: "!contains(needs.plan.outputs.not_affected_jobs, ',rust-termrock-session-testing,')"
+    steps:
+      - *s2
+      - *s3
+      - *s8
+      - *s11
+      - *s4
+      - *s10
+      - *s12
+      - *s9
+      - *s13
+      - *s14
+      - *s15
+      - name: Build test executables
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-f1530f1f69870e82e4a40537413aa03d318db7579a72907e2bb10f7d2a4f4a8f"}
+      - name: Format
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-a0dd33d366df44545048b8bc1576c9eefa530be95a26d5cb70b8e534a407b77f"}
+      - name: Clippy
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-495d7a9a97e7096b987451aa4699cdf8eeb04601ac8f97292442ec143e8b1ce3"}
+      - name: Unit and integration tests
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-714c772fc0871ae5507305afcf609a4e1d2b07f934b1b023e9b05d8694ffea65"}
+      - name: Doctests
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-edc8beebae48c40752a810f51c52b28b1429ea5653f93853462e47809032e77d"}
+      - name: Documentation
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-28d9409a598464f808e2874fc9a6232dab236ce93f08749603d2263c1f9f6e31"}
+      - name: Wait for parallel checks
+        wait-all:
+      - name: Upload crate reports
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          if-no-files-found: error
+          name: velnor-crate-r${{ github.run_id }}-a${{ env.VELNOR_RUN_KEY_ATTEMPT }}-rust-termrock-session-testing
+          overwrite: "true"
+          path: ${{ runner.temp }}/velnor/r${{ github.run_id }}-a${{ env.VELNOR_RUN_KEY_ATTEMPT }}
+          retention-days: "30"
   rust-termrock-terminal:
     name: Rust / termrock-terminal
     runs-on: ubuntu-26.04
@@ -2350,6 +4268,60 @@ jobs:
         with:
           if-no-files-found: error
           name: velnor-crate-r${{ github.run_id }}-a${{ env.VELNOR_RUN_KEY_ATTEMPT }}-rust-termrock-terminal
+          overwrite: "true"
+          path: ${{ runner.temp }}/velnor/r${{ github.run_id }}-a${{ env.VELNOR_RUN_KEY_ATTEMPT }}
+          retention-days: "30"
+  rust-termrock-terminal-testing:
+    name: Rust / termrock-terminal (testing)
+    runs-on: ubuntu-26.04
+    timeout-minutes: 15
+    env: *m9
+    needs:
+      - plan
+    if: "!contains(needs.plan.outputs.not_affected_jobs, ',rust-termrock-terminal-testing,')"
+    steps:
+      - *s2
+      - *s3
+      - *s8
+      - *s11
+      - *s4
+      - *s10
+      - *s12
+      - *s9
+      - *s13
+      - *s14
+      - *s15
+      - name: Build test executables
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-e0159569624f0089399905afca1add650dd03a82063c8346136006142c04895d"}
+      - name: Format
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-bb620ec90ee662d05278395723ef6a1ca06bcf53b95a0ba3088f0c02a70e549a"}
+      - name: Clippy
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-57819674d9b8a65fbed1b605222d70039f47aec682696a205ccf1a6713f08873"}
+      - name: Unit and integration tests
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-fc7d4447afb454b06bb8b104849387d49e0984af08e0f727e3464ec041b1f201"}
+      - name: Doctests
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-2c6aa53a13dd4313166cbd096b9e4349ce96879aa087b4281e5d7d02f47f6c8a"}
+      - name: Documentation
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-dfcc105e95ccb152c34b634cf7e79e303a7bef285879707cc48cb5aa78490039"}
+      - name: Wait for parallel checks
+        wait-all:
+      - name: Upload crate reports
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          if-no-files-found: error
+          name: velnor-crate-r${{ github.run_id }}-a${{ env.VELNOR_RUN_KEY_ATTEMPT }}-rust-termrock-terminal-testing
           overwrite: "true"
           path: ${{ runner.temp }}/velnor/r${{ github.run_id }}-a${{ env.VELNOR_RUN_KEY_ATTEMPT }}
           retention-days: "30"
@@ -2407,6 +4379,114 @@ jobs:
           overwrite: "true"
           path: ${{ runner.temp }}/velnor/r${{ github.run_id }}-a${{ env.VELNOR_RUN_KEY_ATTEMPT }}
           retention-days: "30"
+  rust-termrock-test-support-testing:
+    name: Rust / termrock-test-support (testing)
+    runs-on: ubuntu-26.04
+    timeout-minutes: 15
+    env: *m9
+    needs:
+      - plan
+    if: "!contains(needs.plan.outputs.not_affected_jobs, ',rust-termrock-test-support-testing,')"
+    steps:
+      - *s2
+      - *s3
+      - *s8
+      - *s11
+      - *s4
+      - *s10
+      - *s12
+      - *s9
+      - *s13
+      - *s14
+      - *s15
+      - name: Build test executables
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-a37f2277189dc096540908073ae5f524c817139ab15d7c0fda880bb50085c1d3"}
+      - name: Format
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-4eb81a7b3a9358c01517cc1f0b1db7cb21b0721e1bcbfaf03bbb93cc3414ec97"}
+      - name: Clippy
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-c8e9b303f6b88d11124c72d5f0409e3c3e7ba676d042463c9b6ffdcb87176b22"}
+      - name: Unit and integration tests
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-73734b442217ee6e11213e5a429ce5b4f436f4050491c3c49f540b4702429a2e"}
+      - name: Doctests
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-1c11f2d99c9dffd1529aea4dab251673bb2aee5bc45c6753b72fb7041513e1a5"}
+      - name: Documentation
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-e1e5e0d14a622335def5313165320b296fe9b0bef790af9b634ea43db7e1d02c"}
+      - name: Wait for parallel checks
+        wait-all:
+      - name: Upload crate reports
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          if-no-files-found: error
+          name: velnor-crate-r${{ github.run_id }}-a${{ env.VELNOR_RUN_KEY_ATTEMPT }}-rust-termrock-test-support-testing
+          overwrite: "true"
+          path: ${{ runner.temp }}/velnor/r${{ github.run_id }}-a${{ env.VELNOR_RUN_KEY_ATTEMPT }}
+          retention-days: "30"
+  rust-termrock-testing:
+    name: Rust / termrock (testing)
+    runs-on: ubuntu-26.04
+    timeout-minutes: 15
+    env: *m9
+    needs:
+      - plan
+    if: "!contains(needs.plan.outputs.not_affected_jobs, ',rust-termrock-testing,')"
+    steps:
+      - *s2
+      - *s3
+      - *s8
+      - *s11
+      - *s4
+      - *s10
+      - *s12
+      - *s9
+      - *s13
+      - *s14
+      - *s15
+      - name: Build test executables
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-cb58ae5939f1cc61382bc948df721187b8b4610e36fe232d5390aa6415c39e8d"}
+      - name: Format
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-b73e7a371a8ba3e1380b3bcb48e39d1cf3c286bf985ba76d25a066f94ecbc29d"}
+      - name: Clippy
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-7e663e786faeb44bd2e0198b2a3e7015bbecf23a7230c28f97a29c00959f3f12"}
+      - name: Unit and integration tests
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-035d20b6568f67ee5ca9a790c0ccc2c4a322c7c9be6be4808ee58f06ac48ced4"}
+      - name: Doctests
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-3e71393e7aa2836be365d91ff76c99c45509e9f01e4e9feab982f71014e50b68"}
+      - name: Documentation
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-4e9da98d81b3947972796b74704afe9f00f3274286f0aa0d904209b4375fce0c"}
+      - name: Wait for parallel checks
+        wait-all:
+      - name: Upload crate reports
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          if-no-files-found: error
+          name: velnor-crate-r${{ github.run_id }}-a${{ env.VELNOR_RUN_KEY_ATTEMPT }}-rust-termrock-testing
+          overwrite: "true"
+          path: ${{ runner.temp }}/velnor/r${{ github.run_id }}-a${{ env.VELNOR_RUN_KEY_ATTEMPT }}
+          retention-days: "30"
   rust-termrock-text:
     name: Rust / termrock-text
     runs-on: ubuntu-26.04
@@ -2458,6 +4538,60 @@ jobs:
         with:
           if-no-files-found: error
           name: velnor-crate-r${{ github.run_id }}-a${{ env.VELNOR_RUN_KEY_ATTEMPT }}-rust-termrock-text
+          overwrite: "true"
+          path: ${{ runner.temp }}/velnor/r${{ github.run_id }}-a${{ env.VELNOR_RUN_KEY_ATTEMPT }}
+          retention-days: "30"
+  rust-termrock-text-testing:
+    name: Rust / termrock-text (testing)
+    runs-on: ubuntu-26.04
+    timeout-minutes: 15
+    env: *m9
+    needs:
+      - plan
+    if: "!contains(needs.plan.outputs.not_affected_jobs, ',rust-termrock-text-testing,')"
+    steps:
+      - *s2
+      - *s3
+      - *s8
+      - *s11
+      - *s4
+      - *s10
+      - *s12
+      - *s9
+      - *s13
+      - *s14
+      - *s15
+      - name: Build test executables
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-c83e5cd1c8cb4828711f35a926646a6dab765fc865fb2cd8413aaf6236b42fa3"}
+      - name: Format
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-fca899fc95e096ac0e325265aec6f6296c60ff558b5f8ddd1a7c5053f2f3c264"}
+      - name: Clippy
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-ed215ddf6f324457133e3ec4003eab39a4ed15135b947057789712c61566662f"}
+      - name: Unit and integration tests
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-feba152f31210af5db551b9093822065c0ee829c8123a1c2d30970d487a19a1b"}
+      - name: Doctests
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-22efae7481b435e82b8ee28654e2457d05a012af902d8932fa8aa7265c8afdaf"}
+      - name: Documentation
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-f7c95adab85b82b9403bb33b9f83897635f3ca8e7df54233a2fe0524174d13b9"}
+      - name: Wait for parallel checks
+        wait-all:
+      - name: Upload crate reports
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          if-no-files-found: error
+          name: velnor-crate-r${{ github.run_id }}-a${{ env.VELNOR_RUN_KEY_ATTEMPT }}-rust-termrock-text-testing
           overwrite: "true"
           path: ${{ runner.temp }}/velnor/r${{ github.run_id }}-a${{ env.VELNOR_RUN_KEY_ATTEMPT }}
           retention-days: "30"
@@ -2515,6 +4649,60 @@ jobs:
           overwrite: "true"
           path: ${{ runner.temp }}/velnor/r${{ github.run_id }}-a${{ env.VELNOR_RUN_KEY_ATTEMPT }}
           retention-days: "30"
+  rust-termrock-theme-testing:
+    name: Rust / termrock-theme (testing)
+    runs-on: ubuntu-26.04
+    timeout-minutes: 15
+    env: *m9
+    needs:
+      - plan
+    if: "!contains(needs.plan.outputs.not_affected_jobs, ',rust-termrock-theme-testing,')"
+    steps:
+      - *s2
+      - *s3
+      - *s8
+      - *s11
+      - *s4
+      - *s10
+      - *s12
+      - *s9
+      - *s13
+      - *s14
+      - *s15
+      - name: Build test executables
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-fe5d809fe6ad5df19225042808567ac4286eb733c994a9004a6a6f9e703911bf"}
+      - name: Format
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-70e13fb6d8193af3ceeb74749ebda0b674ef01736f1d3cedef506089d3718ca1"}
+      - name: Clippy
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-1c1bc0577e94c33802a235ea882fbfbbbaa11a97087259258f9ec38514b11cbd"}
+      - name: Unit and integration tests
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-ee1e2e913d06dcb9eb569269e6393945857cae743d43f26c88c0d373e81ed440"}
+      - name: Doctests
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-3921ee8fbc5a3a8a3840c5e310d48ac8ff3b63d78ae5f00d13aaf1368dc46d7d"}
+      - name: Documentation
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-40af15234d6c88ee635b18cd70283f501710f65b34086736f714f38ccc3ef099"}
+      - name: Wait for parallel checks
+        wait-all:
+      - name: Upload crate reports
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          if-no-files-found: error
+          name: velnor-crate-r${{ github.run_id }}-a${{ env.VELNOR_RUN_KEY_ATTEMPT }}-rust-termrock-theme-testing
+          overwrite: "true"
+          path: ${{ runner.temp }}/velnor/r${{ github.run_id }}-a${{ env.VELNOR_RUN_KEY_ATTEMPT }}
+          retention-days: "30"
   rust-termrock-viewport:
     name: Rust / termrock-viewport
     runs-on: ubuntu-26.04
@@ -2566,6 +4754,60 @@ jobs:
         with:
           if-no-files-found: error
           name: velnor-crate-r${{ github.run_id }}-a${{ env.VELNOR_RUN_KEY_ATTEMPT }}-rust-termrock-viewport
+          overwrite: "true"
+          path: ${{ runner.temp }}/velnor/r${{ github.run_id }}-a${{ env.VELNOR_RUN_KEY_ATTEMPT }}
+          retention-days: "30"
+  rust-termrock-viewport-testing:
+    name: Rust / termrock-viewport (testing)
+    runs-on: ubuntu-26.04
+    timeout-minutes: 15
+    env: *m9
+    needs:
+      - plan
+    if: "!contains(needs.plan.outputs.not_affected_jobs, ',rust-termrock-viewport-testing,')"
+    steps:
+      - *s2
+      - *s3
+      - *s8
+      - *s11
+      - *s4
+      - *s10
+      - *s12
+      - *s9
+      - *s13
+      - *s14
+      - *s15
+      - name: Build test executables
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-70a6b3981ec977033da0d132769a27dcd967fc859fe1a350ea7aab58b58144e4"}
+      - name: Format
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-19f912232f4f45cfff49629367ddad4467842eefb3ffe568c3121bfeecdcd445"}
+      - name: Clippy
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-24fb3e6561c7fedfa007da049b6af99d3ee4bb9847e322fb266e9ddf1ee4fc94"}
+      - name: Unit and integration tests
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-8f281d2dddcb280b033c9485d213740bc6c11d3e8752542765177d76f0c76a05"}
+      - name: Doctests
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-356a3a33be236b69ff1d3dd777364f80343293b39ecab796ce5e83f95cf1cafa"}
+      - name: Documentation
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-6d0db5ce1903ce4f39e50da0089fb456b912de76873152e9617d47c26860691f"}
+      - name: Wait for parallel checks
+        wait-all:
+      - name: Upload crate reports
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          if-no-files-found: error
+          name: velnor-crate-r${{ github.run_id }}-a${{ env.VELNOR_RUN_KEY_ATTEMPT }}-rust-termrock-viewport-testing
           overwrite: "true"
           path: ${{ runner.temp }}/velnor/r${{ github.run_id }}-a${{ env.VELNOR_RUN_KEY_ATTEMPT }}
           retention-days: "30"
@@ -2623,6 +4865,60 @@ jobs:
           overwrite: "true"
           path: ${{ runner.temp }}/velnor/r${{ github.run_id }}-a${{ env.VELNOR_RUN_KEY_ATTEMPT }}
           retention-days: "30"
+  rust-termrock-visibility-publisher-testing:
+    name: Rust / termrock-visibility-publisher (testing)
+    runs-on: ubuntu-26.04
+    timeout-minutes: 15
+    env: *m9
+    needs:
+      - plan
+    if: "!contains(needs.plan.outputs.not_affected_jobs, ',rust-termrock-visibility-publisher-testing,')"
+    steps:
+      - *s2
+      - *s3
+      - *s8
+      - *s11
+      - *s4
+      - *s10
+      - *s12
+      - *s9
+      - *s13
+      - *s14
+      - *s15
+      - name: Build test executables
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-ee6b37d9ed6fb330d3edde43d0e6be1dffedc0542edf1d44500b7fb544820063"}
+      - name: Format
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-086cabf8500e03f761c853f056c8e29f8d6186b6d30ac29ebedaebda06116b87"}
+      - name: Clippy
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-b73f21c257550c09adde08c8ab52dbb179afb581e0fd4f4cf6710fd5de0d230d"}
+      - name: Unit and integration tests
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-0ce79584cbcbabefcf5f66e69eec262112e2bbdd6d6d07a98232b35d8bbd398f"}
+      - name: Doctests
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-97956640e2b6d18b9c422a4788955243710b6fcfc870ec1f38625cdd0f0cc79f"}
+      - name: Documentation
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-e7ddf4f36861a8983ac02edc15a4b97e62bfa5a5be9ba2bfdcbff5a62100d984"}
+      - name: Wait for parallel checks
+        wait-all:
+      - name: Upload crate reports
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          if-no-files-found: error
+          name: velnor-crate-r${{ github.run_id }}-a${{ env.VELNOR_RUN_KEY_ATTEMPT }}-rust-termrock-visibility-publisher-testing
+          overwrite: "true"
+          path: ${{ runner.temp }}/velnor/r${{ github.run_id }}-a${{ env.VELNOR_RUN_KEY_ATTEMPT }}
+          retention-days: "30"
   rust-termrock-xtask:
     name: Rust / termrock-xtask
     runs-on: ubuntu-26.04
@@ -2677,6 +4973,60 @@ jobs:
           overwrite: "true"
           path: ${{ runner.temp }}/velnor/r${{ github.run_id }}-a${{ env.VELNOR_RUN_KEY_ATTEMPT }}
           retention-days: "30"
+  rust-termrock-xtask-testing:
+    name: Rust / termrock-xtask (testing)
+    runs-on: ubuntu-26.04
+    timeout-minutes: 15
+    env: *m9
+    needs:
+      - plan
+    if: "!contains(needs.plan.outputs.not_affected_jobs, ',rust-termrock-xtask-testing,')"
+    steps:
+      - *s2
+      - *s3
+      - *s8
+      - *s11
+      - *s4
+      - *s10
+      - *s12
+      - *s9
+      - *s13
+      - *s14
+      - *s15
+      - name: Build test executables
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-2bd095a0993f90b3b825ec784864438a4309701ba76216918345e8cd9a7a6b06"}
+      - name: Format
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-772a9f8b14e23ddf80063ea7d8be4a9737d9799c252228f567ffc97a80691c2e"}
+      - name: Clippy
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-62e734bdbfb9ee60ca3056b11371c5b68083ce7cfe4cb48cc425441b7e964250"}
+      - name: Unit and integration tests
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-a1bd79c534115eb8372c1678158750a9ab5ec862954210b928fd4f7eadf8a8ba"}
+      - name: Doctests
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-0b750528e618348136f183aca93950811653b1510a8e0c354159a4babef5dd1d"}
+      - name: Documentation
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-59cc11f1a765c326006444a8468a1d9b53c62c8d15fb568784d86c689c559dd4"}
+      - name: Wait for parallel checks
+        wait-all:
+      - name: Upload crate reports
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          if-no-files-found: error
+          name: velnor-crate-r${{ github.run_id }}-a${{ env.VELNOR_RUN_KEY_ATTEMPT }}-rust-termrock-xtask-testing
+          overwrite: "true"
+          path: ${{ runner.temp }}/velnor/r${{ github.run_id }}-a${{ env.VELNOR_RUN_KEY_ATTEMPT }}
+          retention-days: "30"
   rust-visual-harness:
     name: Rust / visual-harness
     runs-on: ubuntu-26.04
@@ -2724,6 +5074,56 @@ jobs:
         with:
           if-no-files-found: error
           name: velnor-crate-r${{ github.run_id }}-a${{ env.VELNOR_RUN_KEY_ATTEMPT }}-rust-visual-harness
+          overwrite: "true"
+          path: ${{ runner.temp }}/velnor/r${{ github.run_id }}-a${{ env.VELNOR_RUN_KEY_ATTEMPT }}
+          retention-days: "30"
+  rust-visual-harness-testing:
+    name: Rust / visual-harness (testing)
+    runs-on: ubuntu-26.04
+    timeout-minutes: 15
+    env: *m9
+    needs:
+      - plan
+    if: "!contains(needs.plan.outputs.not_affected_jobs, ',rust-visual-harness-testing,')"
+    steps:
+      - *s2
+      - *s3
+      - *s8
+      - *s11
+      - *s4
+      - *s10
+      - *s12
+      - *s9
+      - *s13
+      - *s14
+      - *s15
+      - name: Build test executables
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-c4e572153e66dfd7bd3fabf96edb400cb3123a4b6d42eee3c77015e82ae9b17c"}
+      - name: Format
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-5b74605adfce49f629798f0cabc4023209539278e9091033ee6ab8ee26ea09e3"}
+      - name: Clippy
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-abfef248dd3fde1f2261f22632da4945d408e86dff9eaa521da82b94af6b3383"}
+      - name: Unit and integration tests
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-1626c08cea1c848379d01d2f386631a60a62d02c4a30cec3c1af75195f3e4e7f"}
+      - name: Documentation
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-77c1d4072057a4b224b08b55a33e9aa57e97010ee5c1ccb6de3602f0e7ad0549"}
+      - name: Wait for parallel checks
+        wait-all:
+      - name: Upload crate reports
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          if-no-files-found: error
+          name: velnor-crate-r${{ github.run_id }}-a${{ env.VELNOR_RUN_KEY_ATTEMPT }}-rust-visual-harness-testing
           overwrite: "true"
           path: ${{ runner.temp }}/velnor/r${{ github.run_id }}-a${{ env.VELNOR_RUN_KEY_ATTEMPT }}
           retention-days: "30"
