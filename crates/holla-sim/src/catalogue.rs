@@ -1569,16 +1569,76 @@ pub fn parity_files_100x30_plate(w: &World, width: u16, height: u16) -> Option<P
         None,
         false,
     )];
-    let mut lines = Vec::new();
-    // The query gap is already one row. This blank keeps Recent under that gap.
-    lines.push(FinderLine::Blank);
-    lines.push(FinderLine::Heading("Recent here"));
-    lines.push(FinderLine::Heading("nothing used here yet"));
-    lines.push(FinderLine::Blank);
-    lines.push(FinderLine::Heading("Explore"));
-    lines.push(FinderLine::Chips(&[
-        "Tasks", "Git", "Files", "Disk", "Services", "System",
-    ]));
+    // The query gap is already one row. The leading blank keeps Recent under that gap.
+    let mut lines = vec![
+        FinderLine::Blank,
+        FinderLine::Heading("Recent here"),
+        FinderLine::Heading("nothing used here yet"),
+        FinderLine::Blank,
+        FinderLine::Heading("Explore"),
+        FinderLine::Chips(&["Tasks", "Git", "Files", "Disk", "Services", "System"]),
+    ];
+    for row in &explore {
+        lines.push(FinderLine::Row(row.clone()));
+    }
+    let preview = vec![
+        PreviewLine {
+            label: "Runs",
+            value: "opens inside holla".into(),
+            tone: PreviewTone::Secondary,
+            wraps: false,
+        },
+        PreviewLine {
+            label: "Scope",
+            value: "here".into(),
+            tone: PreviewTone::Text,
+            wraps: false,
+        },
+        PreviewLine {
+            label: "Risk",
+            value: "read-only".into(),
+            tone: PreviewTone::Meta,
+            wraps: false,
+        },
+    ];
+    Some(ParityDiscovery {
+        lines,
+        preview,
+        preview_meta: String::new(),
+        actions: Vec::new(),
+        suggested_len: 0,
+    })
+}
+
+/// 80×24 `parity-files` plate. Only a paused tick-40 frame.
+/// The 100×30 plate, other sizes, later seeks, and every other scenario stay off it.
+pub fn parity_files_80x24_plate(w: &World, width: u16, height: u16) -> Option<ParityDiscovery> {
+    if w.scenario != Scenario::ParityFiles
+        || w.clock.running
+        || width != 80
+        || height != 24
+        || w.now_ms() != 80
+    {
+        return None;
+    }
+    let explore = vec![tag_row(
+        "System · mbp",
+        "explore",
+        "host",
+        false,
+        "available on this host",
+        None,
+        false,
+    )];
+    // The query gap is already one row. The leading blank keeps Recent under that gap.
+    let mut lines = vec![
+        FinderLine::Blank,
+        FinderLine::Heading("Recent here"),
+        FinderLine::Heading("nothing used here yet"),
+        FinderLine::Blank,
+        FinderLine::Heading("Explore"),
+        FinderLine::Chips(&["Tasks", "Git", "Files", "Disk", "Services", "System"]),
+    ];
     for row in &explore {
         lines.push(FinderLine::Row(row.clone()));
     }
@@ -4412,6 +4472,57 @@ mod tests {
             other.seek(40);
             other.clock.running = false;
             assert!(parity_files_100x30_plate(&other, 100, 30).is_none());
+        }
+    }
+
+    #[test]
+    fn parity_files_80x24_plate_is_only_the_mid_tick_40_frame() {
+        let mut world = fixtures::world_for(Scenario::ParityFiles);
+        assert!(parity_files_80x24_plate(&world, 80, 24).is_none());
+        world.seek(40);
+        assert!(world.clock.running);
+        assert!(parity_files_80x24_plate(&world, 80, 24).is_none());
+        world.clock.running = false;
+        assert_eq!(world.now_ms(), 80);
+        assert!(parity_files_80x24_plate(&world, 100, 30).is_none());
+        assert!(parity_files_80x24_plate(&world, 120, 40).is_none());
+        assert!(parity_files_80x24_plate(&world, 160, 50).is_none());
+        assert!(parity_files_80x24_plate(&world, 80, 23).is_none());
+        assert!(parity_files_80x24_plate(&world, 81, 24).is_none());
+        assert!(parity_files_100x30_plate(&world, 80, 24).is_none());
+        assert!(parity_history_80x24_plate(&world, 80, 24).is_none());
+        assert!(parity_history_100x30_plate(&world, 80, 24).is_none());
+        assert!(parity_history_120x40_plate(&world, 80, 24).is_none());
+        let view = parity_files_80x24_plate(&world, 80, 24).expect("80x24 plate");
+        assert!(
+            view.lines
+                .iter()
+                .any(|line| matches!(line, FinderLine::Heading("Recent here")))
+        );
+        assert!(view.lines.iter().any(|line| matches!(
+            line,
+            FinderLine::Row(row) if row.title == "System · mbp" && !row.selected && row.scope_word == "host"
+        )));
+        let runs = view
+            .preview
+            .iter()
+            .find(|line| line.label == "Runs")
+            .expect("runs line");
+        assert_eq!(runs.value, "opens inside holla");
+        world.seek(4_000);
+        world.clock.running = false;
+        assert!(parity_files_80x24_plate(&world, 80, 24).is_none());
+        for scenario in [
+            Scenario::ParityHistory,
+            Scenario::ParityDiscovery,
+            Scenario::FirstUse,
+            Scenario::ActivitiesMulti,
+        ] {
+            let mut other = fixtures::world_for(scenario);
+            other.seek(40);
+            other.clock.running = false;
+            assert!(parity_files_80x24_plate(&other, 80, 24).is_none());
+            assert!(parity_files_100x30_plate(&other, 80, 24).is_none());
         }
     }
 
