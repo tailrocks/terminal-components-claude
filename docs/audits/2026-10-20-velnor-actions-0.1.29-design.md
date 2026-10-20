@@ -56,5 +56,35 @@ the checked-in `.github` tree, including file types and symlinks.
   transcripts remain at `/tmp/velnor-design-preview-failure-20261020.log` and
   `/tmp/velnor-design-preview-retry-20261020.log`.
 
-No CI run is claimed by this audit. The product reference branch, frozen
-baseline tag and commit, and Tuiscotti pin remain unchanged.
+## Zizmor pin follow-up
+
+This follow-up starts from design PR head
+`9b1c77b89e46b89f56632c841f1ade40371f03dc`. Its Plan job in run
+[`39425825516`](https://github.com/tailrocks/terminal-components-claude/actions/runs/39425825516)
+failed in `Check generated files` because the pinned `mise.toml` declared
+zizmor `1.30.1`, while validation required `aqua:zizmorcore/zizmor@1.31.1`.
+Plan publication then failed because generation did not produce an artifact;
+the two Rust jobs were skipped. This is a tool pin mismatch, not a Rust test
+result.
+
+The official [zizmor v1.31.1 release](https://github.com/zizmorcore/zizmor/releases/tag/v1.31.1)
+was published 2026-10-15. Its tag resolves to commit
+`effdb35fa7868863f11655db256d9008922fa427`. GitHub's release metadata lists
+SHA-256 `d185f726bdaf92df78273217dfdd24ebcd6b0ef48cf3ce776ff5762b6e138c99`
+for Linux x86_64 and
+`ad5aa633cd56215b11e6c51d51f90c7e6b22904a75047d1215abbd422f61d698` for
+macOS ARM64. `mise lock zizmor@1.31.1` verified the two configured artifacts
+and updated the pin and lock metadata; `mise exec -- zizmor --version`
+reports `1.31.1`.
+
+The follow-up was generated with pinned Velnor Actions `0.1.29` and the full
+workspace discovery inputs, including root `.config/nextest.toml`, `crates`,
+`tools`, and `xtask`. Velnor `plan` selects the root `ci` Nextest profile and
+detects the two intended workspaces and two crate jobs. A clean preview
+matches all 22 `.github` entries by path, file type, symlink target, and bytes.
+The generated `.github` tree did not need a diff for this tool-only update.
+Pinned Actionlint `1.7.12` and `git diff --check` pass. The new pin/lock still
+needs remote CI execution; no post-fix CI success is claimed here.
+
+The product reference branch, frozen baseline tag and commit, and Tuiscotti
+pin remain unchanged.
