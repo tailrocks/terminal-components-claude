@@ -40,3 +40,7 @@ required-features = ["testing"]
 [[test]]
 name = "ex02_text_input"
 required-features = ["testing"]
+
+[[test]]
+name = "slots"
+required-features = ["testing"]

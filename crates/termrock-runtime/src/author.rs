@@ -1,5 +1,16 @@
 use core::fmt;
 
+/// Apply only explicit style channels to an existing component-author surface.
+/// Symbols, inherited channels, hit regions, and cursor state are preserved.
+pub fn patch_style(
+    ui: &mut crate::ui::Ui<'_>,
+    area: ratatui_core::layout::Rect,
+    style: crate::theme::PaintStyle,
+    explicit: crate::theme::StylePatch,
+) {
+    ui.patch_style(area, style, explicit);
+}
+
 pub type PartPainter<'a> = dyn Fn(&mut Ui<'_>, Rect) + 'a;
 
 #[derive(Clone, Copy)]
@@ -116,6 +127,10 @@ pub use crate::event::{Axis, Chord, Input, Key, KeyCode, KeyModifiers, Mouse, Mo
 pub use crate::intent::{FocusVia, Intent, IntentIter, Phase};
 pub use crate::response::{Activated, Flow, Invalidate, Response, StateFlags};
 pub use crate::ui::{Cx, FrameRead, LayoutFacts, ReferenceState, ReferenceTarget, Ui};
+
+pub trait LayerSlotAuthor {
+    fn render_component<R>(&mut self, render: impl FnOnce(&mut Ui<'_>, Rect) -> R) -> R;
+}
 
 pub use crate::capture::Capture;
 pub use crate::focus::{FocusVis, Focusability, ScopeId, ScopeMode};

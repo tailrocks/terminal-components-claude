@@ -3,6 +3,7 @@ pub mod derived;
 pub mod layer_buf;
 pub mod measure;
 pub mod paint;
+mod slot;
 
 use ratatui_core::buffer::Buffer;
 use ratatui_core::layout::{Position, Rect};
@@ -15,6 +16,7 @@ use cx::LastFrame;
 pub use cx::{Cx, FrameRead, LayoutFacts};
 use derived::{DerivedCache, ReferenceCacheKey};
 use layer_buf::LayerPool;
+pub use slot::LayerSlot;
 
 use crate::action::ActionKey;
 use crate::cursor::CursorRequest;
@@ -445,6 +447,26 @@ impl<'f> Ui<'f> {
         local: Option<&crate::theme::StylePatch>,
     ) -> Resolved {
         crate::theme::resolve::bind_defaults(
+            self.theme,
+            (family, variant, part),
+            flags,
+            &self.core.overlays,
+            self.surface,
+            defaults,
+            local,
+        )
+    }
+
+    pub fn style_defaults_with_explicit(
+        &self,
+        family: Family,
+        variant: Variant,
+        part: Part,
+        flags: StateFlags,
+        defaults: crate::theme::StyleDefaults<'_>,
+        local: Option<&crate::theme::StylePatch>,
+    ) -> crate::theme::ResolvedStyle {
+        crate::theme::resolve::bind_defaults_with_explicit(
             self.theme,
             (family, variant, part),
             flags,
@@ -1078,6 +1100,40 @@ impl<'f> Ui<'f> {
 
     pub(crate) fn page_mut(&mut self) -> &mut Buffer {
         self.page
+    }
+
+    /// Card fill that keeps the dimmed page glyph color and sets the card background.
+    pub fn fill_card_from_page(&mut self, area: Rect, card: ratatui_core::style::Color) {
+        let theme = self.theme.clone();
+        let samples: Vec<_> = area
+            .positions()
+            .map(|pos| {
+                let (fg, bg) = self
+                    .page
+                    .cell(pos)
+                    .map(|cell| (cell.fg, cell.bg))
+                    .unwrap_or((
+                        ratatui_core::style::Color::Reset,
+                        ratatui_core::style::Color::Reset,
+                    ));
+                let (fg, _) = theme.backdrop_colors(fg, bg);
+                (pos, fg)
+            })
+            .collect();
+        {
+            let buf = self.buffer();
+            for (pos, fg) in samples {
+                if let Some(cell) = buf.cell_mut(pos) {
+                    cell.set_symbol(" ");
+                    let mut style = ratatui_core::style::Style::new();
+                    style.fg = Some(fg);
+                    style.bg = Some(card);
+                    cell.set_style(style);
+                    cell.modifier = ratatui_core::style::Modifier::empty();
+                }
+            }
+        }
+        self.mark_area(area, None);
     }
 
     pub(crate) fn layer_count(&self) -> usize {

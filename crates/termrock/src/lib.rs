@@ -19,6 +19,7 @@ pub mod collections {
 pub mod runtime {
     pub use termrock_runtime::*;
 }
+pub mod slots;
 pub mod controls {
     pub use termrock_controls::*;
 }
@@ -80,6 +81,8 @@ pub use termrock_core::custom_hash16;
 pub use termrock_core::id;
 pub use termrock_core::id::{Id, ItemKey, Part, PartRef, Revision};
 
+pub use slots::PickerSlotExt;
+pub use termrock_runtime::ui::LayerSlot;
 pub use termrock_runtime::{
     Acc, ActivationFeedback, ActivationKey, App, ClockError, FeedbackClock, FeedbackClockError,
     Moment, PaintedFrame, PendingInput, RenderSnapshot, RenderSnapshotError, Runtime,
@@ -116,11 +119,11 @@ pub use termrock_runtime::layer::{
 };
 
 pub use termrock_theme::{
-    Align, BorderSet, CapabilityPalettes, ColorLevel, ColorTokens, Density, DesignTokens, FG_STEPS,
-    Family, FgStep, GlyphRole, MONO_RULES_PER_FAMILY, MeterFillRest, MeterRole, MeterThresholds,
-    Modifier, MonoRule, Overlay, OverlayRule, PaintStyle, PartMetrics, Resolved, Role,
-    SURFACE_LEVELS, Slot, StyleDefaults, StylePatch, Surface, SyntaxRole, Theme, ThemeBuilder,
-    Variant,
+    Align, BorderSet, CapabilityPalettes, ColorLevel, ColorTokens, CursorStyle, Density,
+    DesignTokens, FG_STEPS, Family, FgStep, GlyphRole, MONO_RULES_PER_FAMILY, MeterFillRest,
+    MeterRole, MeterThresholds, Modifier, MonoRule, Overlay, OverlayRule, PaintStyle, PartMetrics,
+    Resolved, Role, SURFACE_LEVELS, Slot, StyleDefaults, StylePatch, Surface, SyntaxRole, Theme,
+    ThemeBuilder, Variant,
 };
 
 pub use termrock_layout::{Constraints, Size};
@@ -179,9 +182,9 @@ pub use termrock_overlays::{
     CommandPalette, Completion, CompletionAction, CompletionCmd, CompletionController,
     CompletionState, ContextMenu, Dialog, DialogAction, DialogCmd, DialogState, HelpAction,
     HelpCmd, HelpOverlay, HelpOverlayState, HelpSection, LabelSelect, Menu, MenuAction, MenuBar,
-    MenuCmd, MenuItem, MenuState, Picker, PickerAction, PickerChain, PickerChainAction,
-    PickerChainCmd, PickerChainState, PickerStage, PickerState, ScopeKey, Select, SelectAction,
-    SelectCmd, SelectField, SelectState,
+    MenuBarHoverScope, MenuCmd, MenuItem, MenuState, Picker, PickerAction, PickerChain,
+    PickerChainAction, PickerChainCmd, PickerChainState, PickerStage, PickerState, ScopeKey,
+    Select, SelectAction, SelectCmd, SelectField, SelectState,
 };
 
 pub use termrock_grid::{
@@ -223,5 +226,6 @@ mod tests {
         assert_ne!(id.hash(), 0);
         let rev = Revision::zero();
         assert_eq!(rev.0, 0);
+        assert_eq!(CursorStyle::default(), CursorStyle::Bar);
     }
 }

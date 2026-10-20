@@ -285,7 +285,7 @@ mod tests {
         }
 
         let j = crate::theme::Theme::junie();
-        assert_eq!(j.design.glyphs.scrollbar().begin, "│");
+        assert_eq!(j.design.glyphs.scrollbar().begin, "┆");
         assert_eq!(j.design.glyphs.rule_quiet().cross, "┼");
     }
 }

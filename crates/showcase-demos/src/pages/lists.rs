@@ -705,11 +705,7 @@ fn paint_search(ui: &mut Ui<'_>, card: Rect, center_title: bool) {
         (inner.x, inner.width)
     };
     let y = inner.y.saturating_add(inner.height / 2);
-    ui.paint_str(
-        Rect::new(text_x, y, text_w, 1),
-        title,
-        ink(MUTED, SURFACE),
-    );
+    ui.paint_str(Rect::new(text_x, y, text_w, 1), title, ink(MUTED, SURFACE));
 }
 
 fn paint_wide_readout(ui: &mut Ui<'_>, area: Rect, cards_h: u16) {
