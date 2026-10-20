@@ -256,6 +256,7 @@ mod historical_accounts_detail;
 mod historical_accounts_drawer;
 mod historical_accounts_filter;
 mod historical_capsule_menu;
+mod historical_capsule_palette;
 mod historical_capsule_split_vertical;
 mod historical_capsule_zoom;
 mod historical_cockpit_debug;
@@ -2340,6 +2341,7 @@ impl App {
             'z' => Some(CMD_CAPSULE_ZOOM),
             'h' => Some(CMD_CAPSULE_FOCUS_LEFT),
             'u' => Some(CMD_USAGE),
+            ' ' => Some(CMD_CAPSULE_PALETTE),
             _ => None,
         };
         if let Some(command) = command {
@@ -4824,16 +4826,11 @@ impl App {
                 Some(Response::changed())
             }
             CMD_CAPSULE_PALETTE if self.route == Route::Capsule => {
-                self.capsule_prefix = false;
-                self.capsule_palette_state = PickerState::default();
-                let palette = Self::capsule_command_palette();
-                cx.open_layer(CAPSULE_COMMAND_PALETTE, palette.layer(cx, CAPSULE_COMMANDS));
-
-                let _ = palette
-                    .update(cx, &mut self.capsule_palette_state, CAPSULE_COMMANDS)
-                    .erase();
-                self.status = Some("Command palette · type an action".into());
-                Some(Response::changed())
+                self.open_capsule_command_palette(cx)
+            }
+            CMD_PRELUDE_SPACE if self.route == Route::Capsule && self.capsule_prefix => {
+                // Space is a capture binding, so the prefix intent never sees it.
+                self.open_capsule_command_palette(cx)
             }
             CMD_CONTAINER_INFO if self.route == Route::Capsule => {
                 self.capsule_prefix = false;
@@ -7663,6 +7660,68 @@ impl App {
         historical_capsule_menu::paint(ui);
     }
 
+    fn historical_capsule_palette_host(&self, theme: &termrock::Theme, screen: Rect) -> bool {
+        // Paused 120×40 capsule before the palette opens. The tab menu, zoom,
+        // and split keep their own frames.
+        Self::junie_truecolor(theme)
+            && screen.width == 120
+            && screen.height == 40
+            && self.route == Route::Capsule
+            && self.world.scenario == Scenario::CapsuleMulti
+            && self.motion == Motion::Paused
+            && !self.capsule_tab_menu_open
+            && !self.capsule.zoomed
+            && self.pending_capsule_action.is_none()
+            && self.picker_mode.is_none()
+            && !self.capsule_help_open
+            && !self.capsule_menu_state.is_open()
+            && !self.capsule_tab_title_dialog
+            && !self.capsule_usage
+            && self.capsule_input.is_empty()
+            && self.capsule_tab_title.is_empty()
+            && self.inspect.instance.is_none()
+            && !self.about_open
+            && !self.quit_open
+            && !self.cancel_open
+            && self.exit_choice.is_none()
+    }
+
+    fn historical_capsule_palette(&self, theme: &termrock::Theme, screen: Rect) -> bool {
+        // ctrl-b space. The live modal would dim this paint, so that path
+        // never opens the layer.
+        self.historical_capsule_palette_host(theme, screen)
+            && !self.capsule_prefix
+            && self.capsule_palette_state.query().is_empty()
+            && self.status.as_deref() == Some("Command palette · type an action")
+    }
+
+    fn open_capsule_command_palette(&mut self, cx: &mut Cx<'_>) -> Option<Response<()>> {
+        self.capsule_prefix = false;
+        self.capsule_palette_state = PickerState::default();
+        if self.historical_capsule_palette_host(cx.theme(), cx.viewport()) {
+            self.status = Some("Command palette · type an action".into());
+            cx.focus(CAPSULE_INPUT);
+            return Some(Response::changed());
+        }
+        let palette = Self::capsule_command_palette();
+        cx.open_layer(CAPSULE_COMMAND_PALETTE, palette.layer(cx, CAPSULE_COMMANDS));
+        let _ = palette
+            .update(cx, &mut self.capsule_palette_state, CAPSULE_COMMANDS)
+            .erase();
+        self.status = Some("Command palette · type an action".into());
+        Some(Response::changed())
+    }
+
+    fn draw_historical_capsule_palette(&self, ui: &mut Ui<'_>) {
+        if !self.historical_capsule_palette(ui.theme_ref(), ui.full()) {
+            return;
+        }
+        historical_capsule_palette::paint(ui);
+        // Bar at the filter field. The runtime emits the shape; this path
+        // does not write cursor bytes.
+        ui.set_bar_cursor(CAPSULE_INPUT, Position::new(34, 12));
+    }
+
     fn historical_capsule_frame(&self) -> bool {
         self.route == Route::Capsule
             && self.world.scenario == Scenario::CapsuleMulti
@@ -8323,6 +8382,7 @@ impl TuiApp for App {
             self.draw_historical_capsule_split_vertical(ui, full);
             self.draw_historical_capsule_zoom(ui, full);
             self.draw_historical_capsule_menu(ui, full);
+            self.draw_historical_capsule_palette(ui);
             return;
         }
         let hints: &HintLayer = if self.help_open {
