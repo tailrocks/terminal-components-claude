@@ -46,6 +46,30 @@ fn explorer_opens_table_and_grid_navigates() {
     assert_eq!(tab.result.row_count(), 500);
     assert_eq!(tab.table.name, "orders");
 }
+
+#[test]
+fn alt_d_duplicates_orders_and_scrolls_the_inserted_row_just_out_of_view() {
+    let mut app = TableProApp::default();
+    let index = app
+        .connections_screen
+        .connections
+        .iter()
+        .position(|connection| connection.name == "Production")
+        .expect("production");
+    assert!(app.connect(index));
+    let mut h = Harness::new(app, Theme::junie(), 120, 40);
+    for _ in 0..5 {
+        let _ = h.key(KeyCode::Down);
+    }
+    let _ = h.key(KeyCode::Enter);
+    let _ = h.alt('d');
+    let text = h.text();
+    assert!(text.contains("rows 477–500 of 501"), "{text}");
+    assert!(text.contains("1 insert"), "{text}");
+    assert!(text.contains("92e3ff9a"), "{text}");
+    assert!(!text.contains("DEFAULT"), "{text}");
+    assert!(h.diagnostics().is_empty(), "{:?}", h.diagnostics());
+}
 #[test]
 fn sort_and_filter_on_table_tab() {
     let mut app = connected();
