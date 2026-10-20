@@ -1,0 +1,23 @@
+{
+  "date_utc": "2026-10-20T21:24:52.713549+00:00",
+  "integration_target": "396d738787fc6dd9272a66559a2f8fd8302396ff",
+  "deleted": [
+    {
+      "branch": "wip/velnor-0130-pr38-20261021",
+      "tip": "9cc5cba3b33176c46ff840f40d39c6650f683500",
+      "literal_ancestor": true,
+      "protected": false,
+      "open_dependent_prs": []
+    },
+    {
+      "branch": "wip/pr38-ci-integration-review-20261021",
+      "tip": "425133fad5e9359a8ddf53463932d8494fc9df2c",
+      "literal_ancestor": true,
+      "protected": false,
+      "open_dependent_prs": []
+    }
+  ],
+  "owner_release": "Velnor author confirmed clean exact tip and released source ref; parent owns temporary protection ref. Independent 9cc clearance and exact generated 21-entry parent gate recorded in migration matrix.",
+  "remaining_refs_verified_absent": true,
+  "main_design_baseline_changed": false
+}
