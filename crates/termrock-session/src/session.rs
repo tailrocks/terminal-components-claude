@@ -3,7 +3,7 @@ use std::time::{Duration, Instant};
 
 use ratatui_core::terminal::Terminal;
 use ratatui_crossterm::CrosstermBackend;
-use ratatui_crossterm::crossterm::cursor::{Hide, SetCursorStyle};
+use ratatui_crossterm::crossterm::cursor::{Hide, SetCursorStyle, Show};
 use ratatui_crossterm::crossterm::event::{
     DisableBracketedPaste, DisableMouseCapture, EnableBracketedPaste, EnableMouseCapture, poll,
     read,
@@ -19,6 +19,33 @@ use termrock_runtime::{App, FeedbackClock, Moment, Runtime};
 use termrock_theme::Theme;
 
 pub type DefaultTerminal = Terminal<CrosstermBackend<Stdout>>;
+
+/// Terminal caret shape used before the first rendered cursor request.
+///
+/// The default matches the frozen application shell's shared caret policy.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub enum SessionCursorShape {
+    /// Use the terminal's configured default shape.
+    Terminal,
+    /// Use a steady block caret.
+    Block,
+    /// Use a steady underline caret.
+    Underline,
+    /// Use the baseline steady bar caret.
+    #[default]
+    Bar,
+}
+
+impl SessionCursorShape {
+    const fn command(self) -> SetCursorStyle {
+        match self {
+            Self::Terminal => SetCursorStyle::DefaultUserShape,
+            Self::Block => SetCursorStyle::SteadyBlock,
+            Self::Underline => SetCursorStyle::SteadyUnderScore,
+            Self::Bar => SetCursorStyle::SteadyBar,
+        }
+    }
+}
 
 /// Startup behavior shared by applications using the terminal session.
 ///
@@ -87,12 +114,25 @@ fn restore_modes_with(
 ) -> io::Result<()> {
     let mut first = Ok(());
 
+    first = first.and(execute!(out, SetCursorStyle::DefaultUserShape));
+    first = first.and(execute!(out, Show));
     first = first.and(execute!(out, EnableLineWrap));
     first = first.and(execute!(out, DisableBracketedPaste));
     first = first.and(execute!(out, DisableMouseCapture));
     first = first.and(execute!(out, LeaveAlternateScreen));
     first = first.and(restore_raw());
     first.and(out.flush())
+}
+
+fn enter_terminal_modes(out: &mut impl Write, cursor_shape: SessionCursorShape) -> io::Result<()> {
+    execute!(
+        out,
+        EnterAlternateScreen,
+        EnableMouseCapture,
+        EnableBracketedPaste,
+        cursor_shape.command(),
+        Hide
+    )
 }
 
 struct EntryCleanup<R: FnMut() -> io::Result<()>> {
@@ -144,6 +184,10 @@ pub fn chain_panic_hook(restore: impl Fn() + Send + Sync + 'static) {
 
 impl TerminalSession {
     pub fn enter() -> io::Result<Self> {
+        Self::enter_with_cursor_shape(SessionCursorShape::default())
+    }
+
+    pub fn enter_with_cursor_shape(cursor_shape: SessionCursorShape) -> io::Result<Self> {
         chain_panic_hook(|| {
             let _ = restore_modes();
         });
@@ -151,13 +195,7 @@ impl TerminalSession {
             || {
                 enable_raw_mode()?;
                 let mut out = stdout();
-                execute!(
-                    out,
-                    EnterAlternateScreen,
-                    EnableMouseCapture,
-                    EnableBracketedPaste,
-                    Hide
-                )?;
+                enter_terminal_modes(&mut out, cursor_shape)?;
                 Terminal::new(CrosstermBackend::new(out))
             },
             restore_modes,
@@ -205,18 +243,43 @@ pub fn run_with_startup<A: App>(app: A, theme: Theme, startup: StartupInput) -> 
 }
 
 /// Run an application with explicit feedback clock and startup input behavior.
-#[expect(
-    clippy::needless_pass_by_value,
-    reason = "session owns the supplied theme API and narrows capability once before runtime construction"
-)]
 pub fn run_with_feedback_clock_and_startup<A: App>(
     app: A,
     theme: Theme,
     clock: FeedbackClock,
     startup: StartupInput,
 ) -> io::Result<()> {
+    run_with_cursor_shape_startup(app, theme, clock, startup, SessionCursorShape::default())
+}
+
+/// Run an application with an explicit initial terminal caret shape.
+pub fn run_with_cursor_shape<A: App>(
+    app: A,
+    theme: Theme,
+    cursor_shape: SessionCursorShape,
+) -> io::Result<()> {
+    run_with_cursor_shape_startup(
+        app,
+        theme,
+        FeedbackClock::Elapsed,
+        StartupInput::default(),
+        cursor_shape,
+    )
+}
+
+#[expect(
+    clippy::needless_pass_by_value,
+    reason = "session owns the supplied theme API and narrows capability once before runtime construction"
+)]
+fn run_with_cursor_shape_startup<A: App>(
+    app: A,
+    theme: Theme,
+    clock: FeedbackClock,
+    startup: StartupInput,
+    cursor_shape: SessionCursorShape,
+) -> io::Result<()> {
     prepare_startup_input(startup, std::thread::sleep, drain_pending_input);
-    let mut session = TerminalSession::enter()?;
+    let mut session = TerminalSession::enter_with_cursor_shape(cursor_shape)?;
     let origin = Instant::now();
     let mut rt = Runtime::new_with_feedback_clock(app, theme.for_terminal(), clock);
     let _ = rt.initialize();
@@ -461,7 +524,44 @@ mod tests {
             result.err().map(|error| error.kind()),
             Some(io::ErrorKind::PermissionDenied)
         );
-        assert_eq!(out.flushes, 5);
+        assert_eq!(out.flushes, 7);
+    }
+
+    #[test]
+    fn session_starts_with_bar_shape_even_while_cursor_is_hidden() {
+        let mut out = Vec::new();
+        assert!(enter_terminal_modes(&mut out, SessionCursorShape::default()).is_ok());
+        let bytes = String::from_utf8_lossy(&out);
+        let steady_bar = bytes.find("\x1b[6 q").expect("steady bar sequence");
+        let hide = bytes.find("\x1b[?25l").expect("hidden cursor sequence");
+        assert!(
+            steady_bar < hide,
+            "shape is set before the cursor is hidden"
+        );
+    }
+
+    #[test]
+    fn session_cursor_shape_configuration_maps_to_terminal_shapes() {
+        for (shape, sequence) in [
+            (SessionCursorShape::Terminal, "\x1b[0 q"),
+            (SessionCursorShape::Block, "\x1b[2 q"),
+            (SessionCursorShape::Underline, "\x1b[4 q"),
+            (SessionCursorShape::Bar, "\x1b[6 q"),
+        ] {
+            let mut out = Vec::new();
+            assert!(enter_terminal_modes(&mut out, shape).is_ok());
+            assert!(String::from_utf8_lossy(&out).contains(sequence));
+        }
+        assert_eq!(SessionCursorShape::default(), SessionCursorShape::Bar);
+    }
+
+    #[test]
+    fn terminal_cleanup_restores_cursor_style_and_visibility() {
+        let mut out = Vec::new();
+        assert!(restore_modes_with(&mut out, || Ok(())).is_ok());
+        let bytes = String::from_utf8_lossy(&out);
+        assert!(bytes.contains("\x1b[0 q"), "cursor style reset");
+        assert!(bytes.contains("\x1b[?25h"), "cursor shown");
     }
 
     #[test]
