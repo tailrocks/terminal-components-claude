@@ -15,6 +15,39 @@ The Holla/Jackin inventory found their application source subtrees identical bet
 
 Baseline rebuilding remains diagnostic and unadmitted. The reviewed nonincremental fixed-path recipe is being independently repeated; neither a successful build nor executable-byte reproducibility establishes product parity. Ordered real-process receipts, immutable reference decisions, complete frozen capture/replay, candidate comparisons, functional outcomes, cursor/mode/cleanup checks and deliberate-defect controls remain required. Full workspace nextest, Clippy, formatting, CI, executable public consumer examples and independent final reviews are not complete. No application or library acceptance is claimed.
 
+## Form data-aware measurement — 2026-10-21
+
+`Form::measure_with_data` measures from the same `Placements` iterator consumed
+by Form update and draw. It observes field visibility and option counts, then
+applies the same group filtering, radio height, text-area height and paired
+`Half` row rules. It does not invoke validation or control update handlers. The
+existing `Form::measure` signature remains source compatible and is documented
+as a data-independent estimate.
+
+The public `termrock-forms` integration test uses notification-preferences data
+with unrelated field IDs, three and ten transport choices, a hidden endpoint,
+disabled locale, paired fields, a four-row text area, long help, and wide Unicode
+labels and values. It verifies live measurement against registered rendered
+field bounds and option rows, visibility, pairing, narrow and zero-width
+constraints, and a narrow draw. The regression first ran against the legacy
+method and failed with estimated height 24 versus rendered height 27. The
+data-aware method passes with height 27; three-option and empty-option data
+measure 20 and 18 rows. Measurement invoked no validators. On this worktree,
+`cargo nextest run -p termrock-forms --all-targets` passed 52/52; the affected
+layout/runtime/control/field/overlay packages passed 644 tests with three
+existing skips. Strict `termrock-forms` Clippy and scoped rustfmt passed.
+
+**Showcase capability coverage allowlist:** `Form::measure_with_data` is covered
+by the executable public consumer test
+`crates/termrock-forms/tests/form_measurement.rs`. Reason: this pure sizing API
+adds no rendered control or Showcase screen, and adding a screen would change
+the frozen Showcase flow. The refactor branch has no machine-checked Showcase
+catalog/coverage gate; this records the disposition for gate restoration, not
+catalog acceptance.
+
+This increment proves the library API only. It does not migrate TablePro's
+connection form or establish application parity.
+
 
 ## TablePro shared Grid row-to-cell styling — 2026-10-21
 
