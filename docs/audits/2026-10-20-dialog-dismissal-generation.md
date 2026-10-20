@@ -22,6 +22,9 @@ pair. The real Harness case closes an ancestor around an acknowledgement
 dialog and checks that the child resolves Cancel and clears its secret. Runtime
 tests also assert callback-token uniqueness across update, Esc callback, and
 separate runtime instances, plus receipt identity across reopened generations.
+The ancestor-cascade assertion was deliberately run with the weaker `None ==
+None` predicate and failed as intended (`left: []`, expected one Cancel action),
+then passed after suppression required a positive exact action receipt.
 
 Focused Harness coverage exercises a normal action close, close/reopen without
 closing the new opening, close/reopen/close in the same callback, and a later
