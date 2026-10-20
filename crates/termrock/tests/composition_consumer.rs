@@ -1,4 +1,5 @@
 use core::fmt;
+use std::cell::Cell;
 
 use ratatui::Terminal;
 use ratatui::backend::TestBackend;
@@ -8,7 +9,7 @@ use termrock::{
     App, Button, CodeEditor, CodeEditorState, CompletingCodeEditor, CompletingCodeEditorState, Cx,
     Id, Input, ItemKey, Key, KeyCode, KeyModifiers, Mouse, MouseKind, Response, Runtime, StepState,
     Steps, StepsAction, StepsState, Tabs, TabsAction, TabsState, Theme, composition,
-    layout::{Composition, Insets},
+    layout::{Composition, Constraints, Insets, Size},
 };
 
 const RUN: Id = Id::root("external.run");
@@ -430,6 +431,7 @@ struct ImportConsumer {
     state: StepsState,
     items: Vec<ImportStep>,
     last_action: Option<StepsAction>,
+    measured_steps: Cell<Size>,
 }
 
 impl ImportConsumer {
@@ -488,6 +490,7 @@ impl ImportConsumer {
                 },
             ],
             last_action: None,
+            measured_steps: Cell::new(Size::default()),
         }
     }
 }
@@ -500,7 +503,14 @@ impl App for ImportConsumer {
     }
 
     fn draw(&self, ui: &mut termrock::Ui<'_>) {
-        composition::Group::column([composition::steps(&self.steps, &self.state, &self.items)])
+        let composition =
+            composition::Group::row([composition::steps(&self.steps, &self.state, &self.items)]);
+        self.measured_steps.set(
+            composition
+                .measure(ui, Constraints::loose(200, 120))
+                .expect("public deployment steps fit the composition depth"),
+        );
+        composition
             .show(ui)
             .expect("public deployment steps fit the composition depth");
     }
@@ -587,6 +597,34 @@ fn public_steps_composition_uses_live_import_data_and_stable_keys() {
             .expect("steps layout refreshes after zero-area resize")
     ));
     assert_eq!(runtime.app().last_action, None);
+}
+
+#[test]
+fn public_steps_intrinsic_measurement_uses_live_labels_metadata_and_ordinals() {
+    let mut app = ImportConsumer::new();
+    app.items = vec![ImportStep {
+        key: 0,
+        label: "Upload files",
+        state: StepState::Queued,
+        elapsed: Some("transferred 2048 files"),
+    }];
+    let root = Rect::new(0, 0, 100, 4);
+    let mut runtime = Runtime::new(app, Theme::junie());
+    let mut terminal = Terminal::new(TestBackend::new(root.width, root.height)).unwrap();
+    render(&mut runtime, &mut terminal, root);
+    assert_eq!(runtime.app().measured_steps.get().preferred.0, 43);
+    assert!(terminal_text(&terminal).contains("transferred 2048 files"));
+
+    runtime.app_mut().items = (0..105)
+        .map(|key| ImportStep {
+            key,
+            label: "Upload files",
+            state: StepState::Queued,
+            elapsed: Some("transferred 2048 files"),
+        })
+        .collect();
+    render(&mut runtime, &mut terminal, root);
+    assert_eq!(runtime.app().measured_steps.get().preferred.0, 44);
 }
 
 #[test]
