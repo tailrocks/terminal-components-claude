@@ -50,6 +50,14 @@ pub enum Diagnostic {
     DuplicateLayerDraw {
         id: Id,
     },
+    /// A component could not produce a valid layout from its current configuration.
+    ///
+    /// `field` identifies a field or child when the component can name one; it is
+    /// absent for structural errors that apply to the component as a whole.
+    InvalidComponentLayout {
+        owner: Id,
+        field: Option<Id>,
+    },
 }
 
 #[derive(Debug, Default, Clone)]
