@@ -126,8 +126,8 @@ const fn junie_256() -> ColorTokens {
             high: Color::Indexed(167),
             track: Color::Indexed(235),
             fill_rest: crate::theme::MeterFillRest::ReferenceLift,
-            stale: Color::Indexed(238),
-            unknown: Color::Indexed(238),
+            stale: Color::Indexed(242),
+            unknown: Color::Indexed(242),
             series: [
                 Color::Indexed(78),
                 Color::Indexed(214),
@@ -215,8 +215,8 @@ const fn junie_mono() -> ColorTokens {
             high: Color::Gray,
             track: Color::Black,
             fill_rest: crate::theme::MeterFillRest::ReferenceLift,
-            stale: Color::DarkGray,
-            unknown: Color::DarkGray,
+            stale: Color::Gray,
+            unknown: Color::Gray,
             series: [
                 Color::Gray,
                 Color::Gray,
