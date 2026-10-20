@@ -36,7 +36,11 @@ EXTENSION_SOURCE = Path("tools/frozen_cli_extensions.rs")
 EXTENSION_CASE_PREFIX = "termrock_extensions::showcase::table_sort::"
 EXTENSION_MANIFEST_SHA256 = "b995c00f0dc14d4e0a81d1d56140e1c10ba7936a043e0135196f8fe8421cabb8"
 EXTENSION_SOURCE_SHA256 = "332bd4eac4dc65be1a1478f97177cc658113a063900d8b9c6a0ba2ddc6dc67d9"
-EXTENSION_PATCH_SHA256 = "e6e09049d418e82bd5d838986217dac249e80f13a95214b1ff217d37e5fa4e8c"
+EXTENSION_PATCH_SHA256 = "646d96b5b08c182f9ecdef8e8e8ddf1f6e31095d4b2a073a7eda17d611d69951"
+REFERENCE_DECISIONS = Path("tools/frozen_cli_references.json")
+REFERENCE_DECISIONS_SHA256 = "2a43fb118c268300c8bbd6439ea11bb9a24ffff03dc3c9f4601893eee26a096b"
+REFERENCE_CASE = "showcase::resize::overview_grown::120x40::truecolor"
+REFERENCE_TUPLE = ("showcase/resize/overview_grown/120x40/truecolor", 0, "showcase/resize/overview_grown/120x40/truecolor")
 EXTENSION_SIZES = ((72, 20), (80, 24), (100, 30), (120, 40), (160, 50), (40, 12), (60, 18))
 EXTENSION_COLORS = ("truecolor", "256", "16", "none", "nocolor")
 EXPECTED_CLI_ORDINARY_TESTS = frozenset({
@@ -305,6 +309,7 @@ def prepare_live_source(repo: Path, root: Path, source: Path, timeout: int) -> d
     if sha256(extension_manifest_path) != EXTENSION_MANIFEST_SHA256 or sha256(extension_source_path) != EXTENSION_SOURCE_SHA256:
         raise RunnerError("visual extension manifest or Rust module differs from the pinned extension revision")
     extension_manifest = load_extension_manifest(extension_manifest_path)
+    _, reference_decision_hash = load_reference_decisions(repo, root, source)
     before = file_manifest(source)
     shutil.copytree(source, live, ignore=shutil.ignore_patterns("target"), symlinks=True)
     snapshot_hash = digest_tree(source / "snapshots")
@@ -318,7 +323,7 @@ def prepare_live_source(repo: Path, root: Path, source: Path, timeout: int) -> d
     shutil.copyfile(helper_path, module)
     shutil.copyfile(extension_source_path, extension_module)
     shutil.copyfile(extension_manifest_path, extension_manifest_copy)
-    expected = {"tests/visual_baseline/main.rs", "tests/visual_baseline/support.rs", "tests/visual_baseline/scenarios/mod.rs", "tests/visual_baseline/frozen_cli_pair.rs", "tests/visual_baseline/frozen_cli_extensions.rs", "tests/visual_baseline/frozen_cli_extensions.json"}
+    expected = {"tests/visual_baseline/main.rs", "tests/visual_baseline/support.rs", "tests/visual_baseline/scenarios/mod.rs", "tests/visual_baseline/scenarios/interact.rs", "tests/visual_baseline/frozen_cli_pair.rs", "tests/visual_baseline/frozen_cli_extensions.rs", "tests/visual_baseline/frozen_cli_extensions.json"}
     after = file_manifest(live)
     changed = {name for name in set(before) | set(after) if before.get(name) != after.get(name)}
     if changed != expected:
@@ -335,6 +340,7 @@ def prepare_live_source(repo: Path, root: Path, source: Path, timeout: int) -> d
         "extension_source_sha256": sha256(extension_source_path),
         "extension_module_sha256": sha256(extension_module),
         "extension_case_count": len(extension_manifest["generated_case_ids"]),
+        "reference_decisions_sha256": reference_decision_hash,
         "extension_inventory_sha256": hashlib.sha256(json.dumps(extension_manifest["generated_case_ids"], separators=(",", ":")).encode()).hexdigest(),
         "frozen_snapshots_sha256": snapshot_hash,
         "live_snapshots_sha256": digest_tree(live / "snapshots"),
@@ -363,6 +369,8 @@ def verify_live_source(repo: Path, root: Path, source: Path, timeout: int) -> tu
     helper = repo / "tools" / "frozen-cli-frame-support" / "src" / "lib.rs"
     extension_manifest = repo / EXTENSION_MANIFEST
     extension_source = repo / EXTENSION_SOURCE
+    reference_path = repo / REFERENCE_DECISIONS
+    reference_decision_hash = sha256(reference_path) if reference_path.is_file() and not reference_path.is_symlink() else ""
     current = {
         "frozen_source_sha256": digest_source(source),
         "live_source_sha256": digest_source(live),
@@ -373,12 +381,16 @@ def verify_live_source(repo: Path, root: Path, source: Path, timeout: int) -> tu
         "extension_source_sha256": sha256(extension_source),
         "extension_module_sha256": sha256(live / "tests" / "visual_baseline" / "frozen_cli_extensions.rs"),
         "extension_manifest_copy_sha256": sha256(live / "tests" / "visual_baseline" / "frozen_cli_extensions.json"),
+        "reference_decisions_sha256": reference_decision_hash,
         "frozen_snapshots_sha256": digest_tree(source / "snapshots"),
         "live_snapshots_sha256": digest_tree(live / "snapshots"),
     }
     for key, value in current.items():
         if recorded.get(key) != value:
             raise RunnerError(f"live source provenance changed: {key}")
+    _, validated_reference_hash = load_reference_decisions(repo, root, source)
+    if validated_reference_hash != current["reference_decisions_sha256"]:
+        raise RunnerError("reference decision provenance changed")
     if current["extension_manifest_sha256"] != EXTENSION_MANIFEST_SHA256 or current["extension_source_sha256"] != EXTENSION_SOURCE_SHA256:
         raise RunnerError("visual extension inputs differ from the pinned extension revision")
     if current["patch_sha256"] != EXTENSION_PATCH_SHA256:
@@ -511,6 +523,107 @@ def nextest_inventory(source: Path, timeout: int, env: dict[str, str], extension
     else:
         validate_extension_inventory(inventory, extension_manifest)
     return inventory
+
+
+def validate_reference_decision_document(document: object) -> dict[str, object]:
+    if not isinstance(document, dict) or set(document) != {"schema_version", "decision_scope", "decisions"}:
+        raise RunnerError("reference decision document fields differ from schema version 1")
+    if document["schema_version"] != 1 or document["decision_scope"] != "one_exact_stale_approval_live_pair_reference":
+        raise RunnerError("unsupported reference decision scope")
+    decisions = document["decisions"]
+    if not isinstance(decisions, list) or len(decisions) != 1:
+        raise RunnerError("reference decisions must contain exactly the reviewed single checkpoint")
+    decision = decisions[0]
+    required = {"decision_id", "tuple", "baseline", "control", "environment", "legacy_approval", "live_frame", "independent_replays", "independent_control"}
+    if not isinstance(decision, dict) or set(decision) != required:
+        raise RunnerError("reference decision fields differ from schema version 1")
+    expected_tuple = {
+        "test_id": REFERENCE_CASE,
+        "case_id": REFERENCE_TUPLE[0],
+        "ordinal": REFERENCE_TUPLE[1],
+        "logical_name": REFERENCE_TUPLE[2],
+        "application": "showcase",
+        "cols": 120,
+        "rows": 40,
+        "color_mode": "truecolor",
+    }
+    if decision["tuple"] != expected_tuple or decision["decision_id"] != "visual-baseline-overview-grown-120x40-2026-10-20":
+        raise RunnerError("reference decision tuple or identity changed")
+    baseline = decision["baseline"]
+    expected_baseline = {
+        "tag": BASELINE_TAG,
+        "tag_object": BASELINE_TAG_OBJECT,
+        "commit": BASELINE_COMMIT,
+        "source_tree": BASELINE_TREE,
+        "source_sha256": "f74646a92505bd9baff29c89398af4d31a4812dd7d51acc84d755be61a383850",
+        "visual_test_tree_sha256": "bdd772e6d049efd700912bc5d7b4464d11bb80e69a5d18b0f175b9421546af05",
+        "inventory_sha256": "d260d2f0644d63a3a1b4c1611c0d7c61777e59e61249e3ca513d1d6217b0639c",
+        "tuiscotti_rev": TUISCOTTI_REV,
+        "showcase_binary_sha256": "21e8b1c1af30b47b331aed033525c4682726b99de5fe1238d4507e58f84359d1",
+        "binary_sha256": {"showcase": "21e8b1c1af30b47b331aed033525c4682726b99de5fe1238d4507e58f84359d1", "tablepro": "f23caa1d97cecc501e8588079e4f38529f834cbd8bb8b57750a427c5a5f993dc", "jackin-preview": "8fccb21faa2459d4b22e5e527f7c1cc29eff64cd1df025957aaed92da35c2a2e", "holla": "6dd87a4e21dff2c69bc2b102234d0f37a5ddcd5c3f2ecd42114a825b2037e01c"},
+    }
+    if baseline != expected_baseline:
+        raise RunnerError("reference decision frozen source/test/binary pins changed")
+    control = decision["control"]
+    expected_control = {
+        "boot_args": ["--page", "overview"],
+        "start_size": [80, 24],
+        "resize_to": [120, 40],
+        "inputs_after_resize": ["ctrl-l"],
+        "post_input_delay_ms": 700,
+        "readiness_text": "Design system  Overview",
+        "quiet_settle_ms": 400,
+        "checkpoint_order": [REFERENCE_TUPLE[2]],
+    }
+    if control != expected_control:
+        raise RunnerError("reference decision interaction controls changed")
+    environment = decision["environment"]
+    expected_environment = {
+        "policy": "runner-clean-env-with-fixed-values",
+        "values": {"VISUAL_FULL": "1", "VISUAL_REVIEW": "0", "TERM": "dumb", "NO_COLOR": "1", "COLORTERM": "", "LANG": "C.UTF-8", "LC_ALL": "C.UTF-8"},
+        "terminal_profile": "tuiscotti-default",
+    }
+    if environment != expected_environment:
+        raise RunnerError("reference decision environment contract changed")
+    legacy = decision["legacy_approval"]
+    if legacy != {"path": "showcase/resize/overview_grown/120x40/truecolor.ansi", "sha256": "7769a6686dfc5cb5c69facb03f54a0fa57e963b35fcf315b1c4625745e2b7708", "bytes": 18474, "verdict": "known_stale_cells_differ", "paired_exception": "never edits or replaces this approval; its standalone legacy verdict stays red"}:
+        raise RunnerError("reference decision legacy approval record changed")
+    live_frame = decision["live_frame"]
+    if live_frame != {"ansi_sha256": "f2e07ed284673b1d543441767460193e987034e163ca7ea7d3d4496473a0d442", "ansi_bytes": 19454, "semantic_frame_sha256": "01e9f7d349fc8075df7b64188db97a05705792aac8c781184db14a6d1ecc253a", "cols": 120, "rows": 40, "cell_count": 4800, "cursor": {"x": 0, "y": 0, "visible": False, "style": "Bar", "blinking": False}}:
+        raise RunnerError("reference decision live frame hashes or cursor changed")
+    repeats = decision["independent_replays"]
+    if not isinstance(repeats, list) or len(repeats) != 2:
+        raise RunnerError("reference decision requires two independent frozen replays")
+    for index, repeat in enumerate(repeats, 1):
+        if not isinstance(repeat, dict) or set(repeat) != {"run_id", "command_sha256", "log_sha256", "ansi_sha256", "semantic_frame_sha256"} or repeat["run_id"] != f"repeat-{index}" or repeat["ansi_sha256"] != live_frame["ansi_sha256"] or repeat["semantic_frame_sha256"] != live_frame["semantic_frame_sha256"]:
+            raise RunnerError("reference decision repeat does not reproduce the reviewed frame")
+        if any(not isinstance(repeat[key], str) or not re.fullmatch(r"[0-9a-f]{64}", repeat[key]) for key in ("command_sha256", "log_sha256")):
+            raise RunnerError("reference decision repeat evidence hash is invalid")
+    control_proof = decision["independent_control"]
+    if control_proof != {"test_id": "showcase::pages::overview::120x40::truecolor", "ansi_sha256": "9d07df1b6a32e33d2af4f66d5eff80ff08d55759782f28a42fa7f286f53e5915", "semantic_frame_sha256": "0340c1d42acbadea6cfd6b05534dec4a0ebdb2ca25a0b581ec7719274641e4de"}:
+        raise RunnerError("reference decision independent control changed")
+    return decision
+
+
+def load_reference_decisions(repo: Path, root: Path, source: Path) -> tuple[list[dict[str, object]], str]:
+    path = repo / REFERENCE_DECISIONS
+    if not path.is_file() or path.is_symlink() or sha256(path) != REFERENCE_DECISIONS_SHA256:
+        raise RunnerError("reference decision file is missing or differs from the reviewed pin")
+    try:
+        document = json.loads(path.read_text())
+    except (OSError, ValueError) as error:
+        raise RunnerError("could not parse reference decision file") from error
+    decision = validate_reference_decision_document(document)
+    baseline_source = decision["baseline"]
+    build = json.loads((root / "build.json").read_text())
+    if digest_source(source) != baseline_source["source_sha256"] or digest_tree(source / "tests" / "visual_baseline") != baseline_source["visual_test_tree_sha256"]:
+        raise RunnerError("reference decision source or test suite pin does not match extracted frozen source")
+    if build.get("source_sha256") != baseline_source["source_sha256"] or build.get("binaries") != baseline_source["binary_sha256"]:
+        raise RunnerError("reference decision baseline binaries are not the reviewed frozen application build")
+    approval = source / "snapshots" / Path(str(decision["legacy_approval"]["path"]))
+    if not approval.is_file() or sha256(approval) != decision["legacy_approval"]["sha256"] or approval.stat().st_size != decision["legacy_approval"]["bytes"]:
+        raise RunnerError("reference decision legacy approval file changed")
+    return [decision], REFERENCE_DECISIONS_SHA256
 
 
 def load_extension_manifest(path: Path) -> dict[str, object]:
@@ -715,6 +828,7 @@ def archive_live_artifacts(source: Path, chunk_root: Path, receipt_root: Path) -
         ("harness-actual", source / "target" / "tuiscotti" / "actual"),
         ("harness-diff", source / "target" / "tuiscotti" / "diff"),
         ("runtime-actual", receipt_root.with_name(receipt_root.name + ".actual")),
+        ("runtime-semantic-actual", receipt_root.with_name(receipt_root.name + ".semantic-actual")),
         ("runtime-diff", receipt_root.with_name(receipt_root.name + ".diff")),
         ("original-actual", receipt_root.with_name(receipt_root.name + ".original-actual")),
         ("original-diff", receipt_root.with_name(receipt_root.name + ".original-diff")),
@@ -762,11 +876,75 @@ def frame_digest(path: Path) -> str:
     return h.hexdigest()
 
 
-def read_receipts(receipt_root: Path, selected: list[str], expected_root: Path) -> dict[tuple[str, int, str], str]:
+def valid_color(value: object) -> bool:
+    if value == "Default":
+        return True
+    if not isinstance(value, dict) or len(value) != 1:
+        return False
+    if "Indexed" in value:
+        return type(value["Indexed"]) is int and 0 <= value["Indexed"] <= 255
+    if "Rgb" in value:
+        rgb = value["Rgb"]
+        return isinstance(rgb, dict) and set(rgb) == {"r", "g", "b"} and all(type(rgb[channel]) is int and 0 <= rgb[channel] <= 255 for channel in ("r", "g", "b"))
+    return False
+
+
+def validate_semantic_frame_file(path: Path, digest: str) -> dict[str, object]:
+    if path.is_symlink() or not path.is_file() or path.stat().st_nlink != 1:
+        raise RunnerError(f"semantic frame missing or not an isolated regular file: {path}")
+    payload = path.read_bytes()
+    if digest and hashlib.sha256(payload).hexdigest() != digest:
+        raise RunnerError(f"semantic frame hash mismatch: {path}")
+    try:
+        frame = json.loads(payload)
+    except (UnicodeDecodeError, ValueError) as error:
+        raise RunnerError(f"invalid semantic frame JSON: {path}") from error
+    if not isinstance(frame, dict) or set(frame) != {"version", "cols", "rows", "cells", "cursor", "provenance"}:
+        raise RunnerError(f"semantic frame fields differ from Frame JSON schema: {path}")
+    cols, rows = frame["cols"], frame["rows"]
+    if type(frame["version"]) is not int or frame["version"] != 3 or type(cols) is not int or type(rows) is not int or cols < 1 or rows < 1:
+        raise RunnerError(f"invalid semantic frame dimensions or version: {path}")
+    cells = frame["cells"]
+    if not isinstance(cells, list) or len(cells) != cols * rows:
+        raise RunnerError(f"semantic frame cell inventory mismatch: {path}")
+    for index, cell in enumerate(cells):
+        x, y = index % cols, index // cols
+        required_cell_fields = {"x", "y", "symbol", "width", "continuation", "fg", "bg", "mods"}
+        allowed_cell_fields = (required_cell_fields, required_cell_fields | {"underline_color"})
+        if not isinstance(cell, dict) or set(cell) not in allowed_cell_fields or type(cell.get("x")) is not int or type(cell.get("y")) is not int or cell.get("x") != x or cell.get("y") != y or not isinstance(cell.get("symbol"), str) or type(cell.get("width")) is not int or not isinstance(cell.get("continuation"), bool) or not valid_color(cell.get("fg")) or not valid_color(cell.get("bg")) or not isinstance(cell.get("mods"), dict) or ("underline_color" in cell and not valid_color(cell["underline_color"])):
+            raise RunnerError(f"invalid semantic frame cell {index}: {path}")
+    cursor = frame["cursor"]
+    if not isinstance(cursor, dict) or set(cursor) != {"x", "y", "visible", "style", "blinking"} or type(cursor.get("x")) is not int or type(cursor.get("y")) is not int or not isinstance(cursor.get("visible"), bool) or not isinstance(cursor.get("style"), str) or not isinstance(cursor.get("blinking"), bool):
+        raise RunnerError(f"invalid semantic frame cursor: {path}")
+    if cursor["x"] >= cols or cursor["y"] >= rows or not isinstance(frame["provenance"], dict):
+        raise RunnerError(f"invalid semantic frame cursor bounds or provenance: {path}")
+    return frame
+
+
+def actual_semantic_digest(path: Path) -> str:
+    frame = validate_semantic_frame_file(path, "")
+    frame["provenance"] = {
+        "tool": "tuiscotti",
+        "tool_version": "0.2.0",
+        "profile": "tuiscotti-default",
+        "source": "screen",
+        "argv": [],
+        "created_unix": 0,
+    }
+    canonical = json.dumps(frame, ensure_ascii=False, separators=(",", ":")).encode()
+    return hashlib.sha256(canonical).hexdigest()
+
+
+def read_receipts(receipt_root: Path, selected: list[str], expected_root: Path) -> dict[tuple[str, int, str], tuple[str, str, str | None]]:
     _, receipt_entries = sealed_tree(receipt_root)
-    flat_sealed_store(expected_root, "runtime expected")
-    receipts: dict[tuple[str, int, str], str] = {}
+    actual_root = receipt_root.with_name(receipt_root.name + ".actual")
+    _, actual_entries = flat_sealed_store(actual_root, "runtime actual")
+    semantic_actual_root = receipt_root.with_name(receipt_root.name + ".semantic-actual")
+    _, semantic_actual_entries = flat_sealed_store(semantic_actual_root, "runtime semantic actual")
+    receipts: dict[tuple[str, int, str], tuple[str, str, str | None]] = {}
     expected_receipt_entries: set[str] = set()
+    expected_actual_entries: set[str] = set()
+    expected_semantic_actual_entries: set[str] = set()
     expected_cases = set(selected)
     for path in sorted(receipt_root.rglob("*.json")):
         try:
@@ -774,9 +952,13 @@ def read_receipts(receipt_root: Path, selected: list[str], expected_root: Path) 
             case = record["case_id"]
             ordinal = record["ordinal"]
             logical = record["logical_name"]
-            digest = record["sha256"]
-            if not isinstance(case, str) or not isinstance(ordinal, int) or ordinal < 0 or not isinstance(logical, str) or not isinstance(digest, str) or not re.fullmatch(r"[0-9a-f]{64}", digest):
+            ansi_digest = record["sha256"]
+            semantic_digest = record["semantic_frame_sha256"]
+            reference_digest = record.get("reference_decision_sha256")
+            if not isinstance(case, str) or type(ordinal) is not int or ordinal < 0 or not isinstance(logical, str) or not isinstance(ansi_digest, str) or not re.fullmatch(r"[0-9a-f]{64}", ansi_digest) or not isinstance(semantic_digest, str) or not re.fullmatch(r"[0-9a-f]{64}", semantic_digest) or (reference_digest is not None and (not isinstance(reference_digest, str) or not re.fullmatch(r"[0-9a-f]{64}", reference_digest))):
                 raise TypeError("invalid receipt field")
+            if set(record) not in ({"case_id", "ordinal", "logical_name", "sha256", "semantic_frame_sha256"}, {"case_id", "ordinal", "logical_name", "sha256", "semantic_frame_sha256", "reference_decision_sha256"}):
+                raise TypeError("unexpected receipt field")
         except (OSError, ValueError, KeyError, TypeError) as error:
             raise RunnerError(f"invalid checkpoint receipt: {path}") from error
         if case not in expected_cases:
@@ -790,10 +972,25 @@ def read_receipts(receipt_root: Path, selected: list[str], expected_root: Path) 
         if path != expected_receipt:
             raise RunnerError(f"checkpoint receipt path does not match its identity: {path}")
         expected_receipt_entries.add(path.relative_to(receipt_root).as_posix())
-        expected_frame = expected_root / f"{checkpoint}.ansi"
-        if expected_frame.is_symlink() or not expected_frame.is_file() or sha256(expected_frame) != digest:
-            raise RunnerError(f"receipt frame missing or hash mismatch: {expected_frame}")
-        receipts[key] = digest
+        expected_ansi = expected_root / f"{checkpoint}.ansi"
+        if expected_ansi.is_symlink() or not expected_ansi.is_file() or expected_ansi.stat().st_nlink != 1 or sha256(expected_ansi) != ansi_digest:
+            raise RunnerError(f"receipt ANSI frame missing or hash mismatch: {expected_ansi}")
+        expected_semantic = expected_root / f"{checkpoint}.frame.json"
+        validate_semantic_frame_file(expected_semantic, semantic_digest)
+        actual_semantic = actual_root / f"{checkpoint}.frame.json"
+        if actual_semantic.exists() or actual_semantic.is_symlink():
+            if actual_semantic.is_symlink() or not actual_semantic.is_file() or actual_semantic.stat().st_nlink != 1 or actual_semantic_digest(actual_semantic) != semantic_digest:
+                raise RunnerError(f"actual semantic frame hash mismatch or unsafe: {actual_semantic}")
+        semantic_actual = semantic_actual_root / f"{checkpoint}.frame.json"
+        validate_semantic_frame_file(semantic_actual, semantic_digest)
+        actual_ansi = actual_root / f"{checkpoint}.ansi"
+        if actual_ansi.is_symlink() or not actual_ansi.is_file() or actual_ansi.stat().st_nlink != 1 or sha256(actual_ansi) != ansi_digest:
+            raise RunnerError(f"actual ANSI frame missing or hash mismatch: {actual_ansi}")
+        expected_actual_entries.add(actual_ansi.name)
+        if actual_semantic.is_file():
+            expected_actual_entries.add(actual_semantic.name)
+        expected_semantic_actual_entries.add(semantic_actual.name)
+        receipts[key] = (ansi_digest, semantic_digest, reference_digest)
     counts = {case: 0 for case in selected}
     for case, _, _ in receipts:
         counts[case] += 1
@@ -804,6 +1001,15 @@ def read_receipts(receipt_root: Path, selected: list[str], expected_root: Path) 
     expected_receipt_entries.update(expected_receipt_dirs)
     if receipt_entries != expected_receipt_entries:
         raise RunnerError(f"receipt store inventory mismatch: extra={sorted(receipt_entries - expected_receipt_entries)[:3]}, missing={sorted(expected_receipt_entries - receipt_entries)[:3]}")
+    actual_frame_entries = {entry for entry in actual_entries if entry.endswith(".ansi")}
+    if actual_frame_entries != {entry for entry in expected_actual_entries if entry.endswith(".ansi")}:
+        raise RunnerError(f"runtime actual ANSI inventory mismatch: extra={sorted(actual_frame_entries - expected_actual_entries)[:3]}, missing={sorted({entry for entry in expected_actual_entries if entry.endswith('.ansi')} - actual_frame_entries)[:3]}")
+    optional_raw_frame_entries = {entry for entry in actual_entries if entry.endswith(".frame.json")}
+    expected_raw_frame_entries = {entry for entry in expected_actual_entries if entry.endswith(".frame.json")}
+    if optional_raw_frame_entries - expected_raw_frame_entries:
+        raise RunnerError(f"runtime actual Frame inventory mismatch: extra={sorted(optional_raw_frame_entries - expected_raw_frame_entries)[:3]}")
+    if semantic_actual_entries != expected_semantic_actual_entries:
+        raise RunnerError(f"runtime semantic actual inventory mismatch: extra={sorted(semantic_actual_entries - expected_semantic_actual_entries)[:3]}, missing={sorted(expected_semantic_actual_entries - semantic_actual_entries)[:3]}")
     if not receipts:
         raise RunnerError("phase produced no checkpoint receipts")
     return receipts
@@ -968,15 +1174,18 @@ def checkpoint_identity(case: str, ordinal: int, logical_name: str) -> str:
     return identity.hexdigest()
 
 
-def exact_receipt_differences(left: dict[tuple[str, int, str], str], right: dict[tuple[str, int, str], str]) -> list[str]:
+def exact_receipt_differences(left: dict[tuple[str, int, str], tuple[str, str, str | None]], right: dict[tuple[str, int, str], tuple[str, str, str | None]]) -> list[str]:
     differences = []
     for key in sorted(set(left) | set(right)):
         if key not in left:
             differences.append(f"candidate-only:{key}")
         elif key not in right:
             differences.append(f"baseline-only:{key}")
-        elif left[key] != right[key]:
-            differences.append(f"checkpoint-digest-differs:{key}")
+        else:
+            if left[key][0] != right[key][0]:
+                differences.append(f"ansi-digest-differs:{key}")
+            if left[key][1] != right[key][1]:
+                differences.append(f"semantic-frame-digest-differs:{key}")
     return differences
 
 
@@ -1005,7 +1214,14 @@ def cli_coverage_report_fields(registered_cli_complete: bool) -> dict[str, objec
 def scenario_chunks(names: list[str], size: int) -> list[list[str]]:
     if not 1 <= size <= 512:
         raise RunnerError("chunk size must be 1..512 cases")
-    return [names[start : start + size] for start in range(0, len(names), size)]
+    reference_names = [name for name in names if name == REFERENCE_CASE]
+    if len(reference_names) > 1:
+        raise RunnerError("reference checkpoint scenario is duplicated in selection")
+    ordinary = [name for name in names if name != REFERENCE_CASE]
+    chunks = [ordinary[start : start + size] for start in range(0, len(ordinary), size)]
+    if reference_names:
+        chunks.append(reference_names)
+    return chunks
 
 
 def validate_chunk_coverage(selected: list[str], records: list[dict[str, object]], size: int) -> None:
@@ -1021,7 +1237,45 @@ def validate_chunk_coverage(selected: list[str], records: list[dict[str, object]
         raise RunnerError(f"chunk partition contains failed or unfinished chunks: {failed}")
 
 
-def run_live_chunk(live: Path, root: Path, run_root: Path, phase: str, bins: Path, expected_root: Path, selected: list[str], index: int, timeout: int, extension_manifest: dict[str, object] | None = None) -> dict[str, object]:
+def reference_case_selected(decision: dict[str, object], selected: list[str]) -> bool:
+    return decision["tuple"]["test_id"] in selected or decision["tuple"]["case_id"] in selected
+
+
+def validate_reference_receipts(receipts: dict[tuple[str, int, str], tuple[str, str, str | None]], selected: list[str], phase: str, decision: dict[str, object], decision_sha256: str) -> None:
+    reference = decision["tuple"]
+    key = (reference["case_id"], reference["ordinal"], reference["logical_name"])
+    matched = receipts.get(key)
+    if reference_case_selected(decision, selected):
+        if matched is None:
+            raise RunnerError(f"selected stale-approval reference checkpoint is missing: {key}")
+        if matched[0] != decision["live_frame"]["ansi_sha256"] or matched[1] != decision["live_frame"]["semantic_frame_sha256"]:
+            raise RunnerError(f"reviewed live-frame reference mismatch at {key}")
+        expected_decision_hash = decision_sha256 if phase == "baseline-capture" else None
+        if matched[2] != expected_decision_hash:
+            raise RunnerError(f"reference decision receipt binding mismatch at {key}: {matched[2]}")
+    elif any(value[2] is not None for value in receipts.values()):
+        raise RunnerError("unselected or unrelated checkpoint claims a reference decision")
+
+
+def paired_reference_report(decisions: list[dict[str, object]], selected: list[str], decision_sha256: str) -> list[dict[str, object]]:
+    output = []
+    for decision in decisions:
+        if reference_case_selected(decision, selected):
+            output.append({
+                "decision_id": decision["decision_id"],
+                "decision_sha256": decision_sha256,
+                "test_id": decision["tuple"]["test_id"],
+                "checkpoint": [decision["tuple"]["case_id"], decision["tuple"]["ordinal"], decision["tuple"]["logical_name"]],
+                "legacy_approval_conflict_preserved": True,
+                "legacy_approval_sha256": decision["legacy_approval"]["sha256"],
+                "live_reference_ansi_sha256": decision["live_frame"]["ansi_sha256"],
+                "live_reference_semantic_frame_sha256": decision["live_frame"]["semantic_frame_sha256"],
+                "scope": "baseline-capture exact checkpoint only",
+            })
+    return output
+
+
+def run_live_chunk(live: Path, root: Path, run_root: Path, phase: str, bins: Path, expected_root: Path, selected: list[str], index: int, timeout: int, extension_manifest: dict[str, object] | None = None, reference_decisions: list[dict[str, object]] | None = None, reference_decision_sha256: str | None = None) -> dict[str, object]:
     chunk_name = f"chunk-{index:05}"
     chunk_root = run_root / phase / chunk_name
     receipt_root = chunk_root / "receipts"
@@ -1038,6 +1292,25 @@ def run_live_chunk(live: Path, root: Path, run_root: Path, phase: str, bins: Pat
         "TERMROCK_PAIR_EXPECTED_ROOT": str(expected_root.resolve()),
         "TERMROCK_PAIR_RECEIPT_ROOT": str(receipt_root.resolve()),
     })
+    reference_decisions = reference_decisions or []
+    active_references = [decision for decision in reference_decisions if reference_case_selected(decision, selected)]
+    if phase == "baseline-capture" and active_references:
+        if len(active_references) != 1 or reference_decision_sha256 != REFERENCE_DECISIONS_SHA256:
+            raise RunnerError("invalid or unpinned paired-reference decision")
+        decision = active_references[0]
+        for name, value in decision["environment"]["values"].items():
+            env[name] = value
+        ref_tuple = decision["tuple"]
+        env.update({
+            "TERMROCK_PAIR_REFERENCE_CASE": ref_tuple["case_id"],
+            "TERMROCK_PAIR_REFERENCE_ORDINAL": str(ref_tuple["ordinal"]),
+            "TERMROCK_PAIR_REFERENCE_LOGICAL": ref_tuple["logical_name"],
+            "TERMROCK_PAIR_REFERENCE_ANSI_SHA256": decision["live_frame"]["ansi_sha256"],
+            "TERMROCK_PAIR_REFERENCE_SEMANTIC_FRAME_SHA256": decision["live_frame"]["semantic_frame_sha256"],
+            "TERMROCK_PAIR_REFERENCE_DECISION_SHA256": reference_decision_sha256,
+        })
+    elif any(name.startswith("TERMROCK_PAIR_REFERENCE_") for name in env):
+        raise RunnerError("reference env unexpectedly survived clean environment")
     expression = selected_expression(selected)
     command = ["cargo", "nextest", "run", "--locked", "--manifest-path", str(live / "Cargo.toml"), "-p", TEST_PACKAGE, "--test", TEST_TARGET, "--run-ignored", "only", "--filter-expr", expression, "--message-format", "libtest-json-plus", "--no-fail-fast"]
     clear_runtime_artifacts(live)
@@ -1061,10 +1334,12 @@ def run_live_chunk(live: Path, root: Path, run_root: Path, phase: str, bins: Pat
     except RunnerError as error:
         failure = f"{failure}; {error}" if failure else str(error)
         artifacts = chunk_root / "artifacts"
-    receipts: dict[tuple[str, int, str], str] = {}
+    receipts: dict[tuple[str, int, str], tuple[str, str, str | None]] = {}
     if failure is None:
         try:
             receipts = read_receipts(receipt_root, [scenario_receipt_id(name, extension_manifest) for name in selected], expected_root)
+            for decision in reference_decisions:
+                validate_reference_receipts(receipts, [scenario_receipt_id(name, extension_manifest) for name in selected], phase, decision, reference_decision_sha256 or "")
         except RunnerError as error:
             failure = str(error)
     artifact_digest = None
@@ -1081,7 +1356,7 @@ def run_live_chunk(live: Path, root: Path, run_root: Path, phase: str, bins: Pat
         "selected_cases": selected,
         "successful_test_events": len(events),
         "checkpoint_count": len(receipts),
-        "checkpoint_inventory_sha256": hashlib.sha256(json.dumps([[*key, value] for key, value in sorted(receipts.items())], separators=(",", ":")).encode()).hexdigest(),
+        "checkpoint_inventory_sha256": hashlib.sha256(json.dumps([[*key, *value] for key, value in sorted(receipts.items())], separators=(",", ":")).encode()).hexdigest(),
         "receipt_root": str(receipt_root),
         "artifact_dir": str(artifacts),
         "elapsed_seconds": round(time.monotonic() - started, 2),
@@ -1096,8 +1371,8 @@ def run_live_chunk(live: Path, root: Path, run_root: Path, phase: str, bins: Pat
     return record
 
 
-def phase_receipts(run_root: Path, phase: str, selected: list[str], expected_root: Path, extension_manifest: dict[str, object] | None = None) -> dict[tuple[str, int, str], str]:
-    combined: dict[tuple[str, int, str], str] = {}
+def phase_receipts(run_root: Path, phase: str, selected: list[str], expected_root: Path, extension_manifest: dict[str, object] | None = None) -> dict[tuple[str, int, str], tuple[str, str, str | None]]:
+    combined: dict[tuple[str, int, str], tuple[str, str, str | None]] = {}
     for chunk in sorted((run_root / phase).glob("chunk-*")):
         names = json.loads((chunk / "report.json").read_text())["selected_cases"]
         chunk_cases = [scenario_receipt_id(name, extension_manifest) for name in names]
@@ -1114,7 +1389,7 @@ def phase_receipts(run_root: Path, phase: str, selected: list[str], expected_roo
     missing = sorted(name for name, count in counts.items() if count == 0)
     if missing:
         raise RunnerError(f"phase scenario coverage incomplete: {missing[:5]}")
-    expected_files = {f"checkpoint-{ordinal:08}-{checkpoint_identity(case, ordinal, logical)}.ansi" for case, ordinal, logical in combined}
+    expected_files = {name for case, ordinal, logical in combined for name in (f"checkpoint-{ordinal:08}-{checkpoint_identity(case, ordinal, logical)}.ansi", f"checkpoint-{ordinal:08}-{checkpoint_identity(case, ordinal, logical)}.frame.json")}
     _, actual_files = flat_sealed_store(expected_root, "runtime expected")
     if actual_files != expected_files:
         raise RunnerError(f"runtime expected frame inventory mismatch: missing={sorted(expected_files - actual_files)[:3]}, extra={sorted(actual_files - expected_files)[:3]}")
@@ -1173,6 +1448,7 @@ def compare_live(repo: Path, candidate_repo: Path, root: Path, baseline_bins: Pa
     candidate_repo = candidate_repo.resolve()
     _, candidate = baseline_and_candidate_records(candidate_repo, root, baseline_bins, candidate_bins, timeout)
     live, live_record = verify_live_source(repo, root, source, timeout)
+    reference_decisions, reference_decision_sha256 = load_reference_decisions(repo, root, source)
     extension_manifest_path = repo / EXTENSION_MANIFEST
     extension_manifest = load_extension_manifest(extension_manifest_path)
     extension_manifest_hash = sha256(extension_manifest_path)
@@ -1221,16 +1497,16 @@ def compare_live(repo: Path, candidate_repo: Path, root: Path, baseline_bins: Pa
         phase_chunks = []
         for index, names in enumerate(chunks):
             try:
-                phase_chunks.append(run_live_chunk(live, root, run_root, phase, bins, expected_root, names, index, timeout, extension_manifest))
+                phase_chunks.append(run_live_chunk(live, root, run_root, phase, bins, expected_root, names, index, timeout, extension_manifest, reference_decisions, reference_decision_sha256))
             except RunnerError as error:
                 phase_chunks.append({"chunk": index, "status": "failed", "failure": str(error), "selected_cases": names})
-                report = {"tag_object": BASELINE_TAG_OBJECT, "baseline_commit": BASELINE_COMMIT, "tuiscotti_rev": TUISCOTTI_REV, "live_source": live_record, "candidate_revision": candidate["revision"], "candidate_source_tree": candidate["source_tree"], "candidate_dirty_fingerprint": candidate["dirty_fingerprint"], "candidate_binaries": candidate["binaries"], "case_selection": "all registered scenarios" if all_cases else "explicit cases", "selection_completeness": "complete registered scenarios pending integrity checks" if all_cases else "partial", **cli_coverage_report_fields(False), "selected_case_count": len(selected), "test_inventory_sha256": inventory_digest(inventory), "phase": phase, "phase_chunks": phase_chunks, "remaining_chunks": len(chunks) - index - 1}
+                report = {"tag_object": BASELINE_TAG_OBJECT, "baseline_commit": BASELINE_COMMIT, "tuiscotti_rev": TUISCOTTI_REV, "live_source": live_record, "candidate_revision": candidate["revision"], "candidate_source_tree": candidate["source_tree"], "candidate_dirty_fingerprint": candidate["dirty_fingerprint"], "candidate_binaries": candidate["binaries"], "reference_decisions_sha256": reference_decision_sha256, "legacy_approval_conflicts": paired_reference_report(reference_decisions, selected, reference_decision_sha256), "case_selection": "all registered scenarios" if all_cases else "explicit cases", "selection_completeness": "complete registered scenarios pending integrity checks" if all_cases else "partial", **cli_coverage_report_fields(False), "selected_case_count": len(selected), "test_inventory_sha256": inventory_digest(inventory), "phase": phase, "phase_chunks": phase_chunks, "remaining_chunks": len(chunks) - index - 1}
                 (run_root / "report.json").write_text(json.dumps(report, indent=2) + "\n")
                 raise RunnerError(f"{phase} stopped at {index + 1}/{len(chunks)} chunks; evidence saved at {run_root}: {error}")
         try:
             validate_chunk_coverage(selected, phase_chunks, chunk_size)
         except RunnerError as error:
-            failed_report = {"tag_object": BASELINE_TAG_OBJECT, "baseline_commit": BASELINE_COMMIT, "tuiscotti_rev": TUISCOTTI_REV, "live_source": live_record, "candidate_revision": candidate["revision"], "candidate_source_tree": candidate["source_tree"], "candidate_dirty_fingerprint": candidate["dirty_fingerprint"], "candidate_binaries": candidate["binaries"], "case_selection": "all registered scenarios" if all_cases else "explicit cases", "selection_completeness": "partial", **cli_coverage_report_fields(False), "selected_scenario_count": len(selected), "test_inventory_sha256": inventory_digest(inventory), "phase": phase, "phase_chunks": phase_chunks, "failure": str(error)}
+            failed_report = {"tag_object": BASELINE_TAG_OBJECT, "baseline_commit": BASELINE_COMMIT, "tuiscotti_rev": TUISCOTTI_REV, "live_source": live_record, "candidate_revision": candidate["revision"], "candidate_source_tree": candidate["source_tree"], "candidate_dirty_fingerprint": candidate["dirty_fingerprint"], "candidate_binaries": candidate["binaries"], "reference_decisions_sha256": reference_decision_sha256, "legacy_approval_conflicts": paired_reference_report(reference_decisions, selected, reference_decision_sha256), "case_selection": "all registered scenarios" if all_cases else "explicit cases", "selection_completeness": "partial", **cli_coverage_report_fields(False), "selected_scenario_count": len(selected), "test_inventory_sha256": inventory_digest(inventory), "phase": phase, "phase_chunks": phase_chunks, "failure": str(error)}
             (run_root / "report.json").write_text(json.dumps(failed_report, indent=2) + "\n")
             raise RunnerError(f"{phase} chunk partition incomplete; report saved at {run_root}: {error}")
         phase_summary: dict[str, object] = {"phase": phase, "status": "passed", "selected_cases": len(selected), "chunks": phase_chunks, "elapsed_seconds": round(time.monotonic() - started, 2)}
@@ -1247,7 +1523,7 @@ def compare_live(repo: Path, candidate_repo: Path, root: Path, baseline_bins: Pa
             phase_summary["status"] = "failed"
             phase_summary["failure"] = str(error)
             phase_reports = [{key: value for key, value in item.items() if key != "receipts"} for item in [*phases, phase_summary]]
-            failure_report = {"tag_object": BASELINE_TAG_OBJECT, "baseline_commit": BASELINE_COMMIT, "tuiscotti_rev": TUISCOTTI_REV, "live_source": live_record, "candidate_revision": candidate["revision"], "candidate_source_tree": candidate["source_tree"], "candidate_dirty_fingerprint": candidate["dirty_fingerprint"], "candidate_binaries": candidate["binaries"], "case_selection": "all registered scenarios" if all_cases else "explicit cases", "selection_completeness": "partial", **cli_coverage_report_fields(False), "selected_scenario_count": len(selected), "test_inventory_sha256": inventory_digest(inventory), "phases": phase_reports, "artifacts_root": str(run_root)}
+            failure_report = {"tag_object": BASELINE_TAG_OBJECT, "baseline_commit": BASELINE_COMMIT, "tuiscotti_rev": TUISCOTTI_REV, "live_source": live_record, "candidate_revision": candidate["revision"], "candidate_source_tree": candidate["source_tree"], "candidate_dirty_fingerprint": candidate["dirty_fingerprint"], "candidate_binaries": candidate["binaries"], "reference_decisions_sha256": reference_decision_sha256, "legacy_approval_conflicts": paired_reference_report(reference_decisions, selected, reference_decision_sha256), "case_selection": "all registered scenarios" if all_cases else "explicit cases", "selection_completeness": "partial", **cli_coverage_report_fields(False), "selected_scenario_count": len(selected), "test_inventory_sha256": inventory_digest(inventory), "phases": phase_reports, "artifacts_root": str(run_root)}
             (run_root / "report.json").write_text(json.dumps(failure_report, indent=2) + "\n")
             raise RunnerError(f"{phase} phase incomplete; evidence saved at {run_root}: {error}")
         phases.append(phase_summary)
@@ -1273,7 +1549,7 @@ def compare_live(repo: Path, candidate_repo: Path, root: Path, baseline_bins: Pa
             "extension_manifest_sha256": extension_manifest_hash,
             "test_inventory_sha256": inventory_digest(inventory),
             "checkpoint_differences": differences,
-            "checkpoint_receipt_sha256": [hashlib.sha256(json.dumps([[*key, value] for key, value in sorted(receipt.items())], separators=(",", ":")).encode()).hexdigest() for receipt in receipts],
+            "checkpoint_receipt_sha256": [hashlib.sha256(json.dumps([[*key, *value] for key, value in sorted(receipt.items())], separators=(",", ":")).encode()).hexdigest() for receipt in receipts],
             "phases": [{key: value for key, value in phase.items() if key != "receipts"} for phase in phases],
             "ordinary_checks": "not run because paired checkpoints differed",
             **cli_coverage_report_fields(False),
@@ -1327,6 +1603,8 @@ def compare_live(repo: Path, candidate_repo: Path, root: Path, baseline_bins: Pa
         "original_snapshots_sha256": original_snapshots_hash,
         "original_harness_sha256": harness_hash,
         "live_source": live_record,
+        "reference_decisions_sha256": reference_decision_sha256,
+        "legacy_approval_conflicts": paired_reference_report(reference_decisions, selected, reference_decision_sha256),
         "candidate_revision": candidate["revision"],
         "candidate_source_tree": candidate["source_tree"],
         "candidate_dirty_fingerprint": candidate["dirty_fingerprint"],
@@ -1345,7 +1623,7 @@ def compare_live(repo: Path, candidate_repo: Path, root: Path, baseline_bins: Pa
         "ordinary_checks": ordinary,
         "phases": [{key: value for key, value in phase.items() if key != "receipts"} for phase in phases],
         "checkpoint_count": len(receipts[0]),
-        "checkpoint_receipt_sha256": [hashlib.sha256(json.dumps([[*key, value] for key, value in sorted(receipt.items())], separators=(",", ":")).encode()).hexdigest() for receipt in receipts],
+        "checkpoint_receipt_sha256": [hashlib.sha256(json.dumps([[*key, *value] for key, value in sorted(receipt.items())], separators=(",", ":")).encode()).hexdigest() for receipt in receipts],
         "checkpoint_differences": differences,
         **cli_coverage_report_fields(coverage_complete and not differences),
         "artifacts_root": str(run_root),
