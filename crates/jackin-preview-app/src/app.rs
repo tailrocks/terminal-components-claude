@@ -238,6 +238,7 @@ const CAPSULE_COMMANDS: &[Item<'static>] = &[
 const TICK_MS: u64 = crate::rain::TICK_MS;
 
 mod historical_editor;
+mod historical_editor_save;
 mod historical_inspect;
 mod historical_intro_f300;
 mod historical_paint;
@@ -5469,6 +5470,39 @@ impl App {
         historical_editor::paint(ui);
     }
 
+    fn historical_editor_save_frame(&self, area: Rect) -> bool {
+        // Live ctrl-s opens the preview. The approved 120×40 frame is the
+        // dialog over General after the checkbox toggle. Other editor tabs
+        // keep their own frames.
+        area.width == 120
+            && area.height == 40
+            && self.route == Route::Editor
+            && self.world.scenario == Scenario::Returning
+            && self.motion == Motion::Paused
+            && self.editor.tab == EditorTab::General
+            && self.editor.dirty
+            && self.editor.preview_open
+            && self
+                .status
+                .as_deref()
+                .is_some_and(|status| status.starts_with("Save workspace"))
+            && !self.editor.env_form_open
+            && !self.editor_role_picker
+            && !self.help_open
+            && !self.quit_open
+            && !self.cancel_open
+            && !self.editor_exit_open
+    }
+
+    fn draw_historical_editor_save(&self, ui: &mut Ui<'_>, area: Rect) {
+        let legacy = ui.theme_ref().capability.color == termrock::ColorLevel::TrueColor
+            && ui.theme_ref().color.accent == termrock::Color::Rgb(0x48, 0xe0, 0x54);
+        if !legacy || !self.historical_editor_save_frame(area) {
+            return;
+        }
+        historical_editor_save::paint(ui);
+    }
+
     fn draw_historical_first_use(&self, ui: &mut Ui<'_>, area: Rect) {
         // Approved 120×40 truecolor still uses the pre-migration junie grays.
         // Keep paper and mono on the live palette so their digests stay put.
@@ -7353,6 +7387,7 @@ impl TuiApp for App {
         {
             self.draw_historical_editor(ui, full);
         }
+        self.draw_historical_editor_save(ui, full);
         if self.historical_launch_failure_frame(full) {
             self.draw_historical_launch_failure(ui);
         }
