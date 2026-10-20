@@ -1061,6 +1061,99 @@ pub fn first_use_plate(w: &World, history: bool) -> Option<ParityDiscovery> {
     }
 }
 
+/// 80×24 `first-use` plate. Not the 120×40 plate. Later seeks and other sizes stay off it.
+pub fn first_use_80x24_plate(
+    w: &World,
+    width: u16,
+    height: u16,
+    history: bool,
+) -> Option<ParityDiscovery> {
+    if history || width != 80 || height != 24 || !first_use_tag_frame(w) {
+        return None;
+    }
+    let suggested = vec![
+        tag_row(
+            "Analyze disk usage",
+            "disk",
+            "here",
+            true,
+            "/ is 91% full",
+            None,
+            true,
+        ),
+        tag_row(
+            "Open btm",
+            "system",
+            "host",
+            false,
+            "sustained pressure · continuous view fits",
+            None,
+            false,
+        ),
+        tag_row(
+            "Show system resources",
+            "system",
+            "host",
+            false,
+            "CPU 78% for 4 min",
+            None,
+            false,
+        ),
+    ];
+    let explore = vec![tag_row(
+        "System · mbp",
+        "explore",
+        "host",
+        false,
+        "available on this host",
+        None,
+        false,
+    )];
+    let mut lines = Vec::new();
+    lines.push(FinderLine::Heading("Suggested here"));
+    for row in &suggested {
+        lines.push(FinderLine::Row(row.clone()));
+    }
+    lines.push(FinderLine::Blank);
+    lines.push(FinderLine::Heading("Recent here"));
+    lines.push(FinderLine::Heading("nothing used here yet"));
+    lines.push(FinderLine::Blank);
+    lines.push(FinderLine::Heading("Explore"));
+    lines.push(FinderLine::Chips(&[
+        "Tasks", "Git", "Files", "Disk", "Services", "System",
+    ]));
+    for row in &explore {
+        lines.push(FinderLine::Row(row.clone()));
+    }
+    let preview = vec![
+        PreviewLine {
+            label: "Runs",
+            value: "'holla disk analyze'".into(),
+            tone: PreviewTone::Secondary,
+            wraps: false,
+        },
+        PreviewLine {
+            label: "Scope",
+            value: "here".into(),
+            tone: PreviewTone::Text,
+            wraps: false,
+        },
+        PreviewLine {
+            label: "Risk",
+            value: "read-only".into(),
+            tone: PreviewTone::Meta,
+            wraps: false,
+        },
+    ];
+    Some(ParityDiscovery {
+        lines,
+        preview,
+        preview_meta: String::new(),
+        actions: Vec::new(),
+        suggested_len: suggested.len(),
+    })
+}
+
 /// No-history `first-use` plate. History does not change this projection.
 pub fn first_use_tag(w: &World) -> Option<ParityDiscovery> {
     if !first_use_tag_frame(w) {
@@ -2950,6 +3043,35 @@ mod tests {
         world.seek(4_000);
         assert!(first_use_tag(&world).is_none());
         assert!(first_use_plate(&world, false).is_none());
+        assert!(first_use_80x24_plate(&world, 80, 24, false).is_none());
+    }
+
+    #[test]
+    fn first_use_80x24_plate_is_only_the_narrow_tick_40_frame() {
+        let mut world = fixtures::world_for(Scenario::FirstUse);
+        assert!(first_use_80x24_plate(&world, 80, 24, false).is_none());
+        world.seek(40);
+        assert!(first_use_80x24_plate(&world, 120, 40, false).is_none());
+        assert!(first_use_80x24_plate(&world, 80, 40, false).is_none());
+        assert!(first_use_80x24_plate(&world, 81, 24, false).is_none());
+        assert!(first_use_80x24_plate(&world, 80, 24, true).is_none());
+        let view = first_use_80x24_plate(&world, 80, 24, false).expect("80x24 plate");
+        assert!(view.lines.iter().any(|line| matches!(
+            line,
+            FinderLine::Row(row) if row.selected && row.title == "Analyze disk usage" && row.here
+        )));
+        assert_ne!(first_use_plate(&world, false).as_ref(), Some(&view));
+        let runs = view
+            .preview
+            .iter()
+            .find(|line| line.label == "Runs")
+            .unwrap();
+        assert_eq!(runs.value, "'holla disk analyze'");
+        world.seek(4_000);
+        assert!(first_use_80x24_plate(&world, 80, 24, false).is_none());
+        let mut other = fixtures::world_for(Scenario::HardCases);
+        other.seek(40);
+        assert!(first_use_80x24_plate(&other, 80, 24, false).is_none());
     }
 
     #[test]
