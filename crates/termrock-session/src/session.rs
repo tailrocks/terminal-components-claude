@@ -20,6 +20,49 @@ use termrock_theme::Theme;
 
 pub type DefaultTerminal = Terminal<CrosstermBackend<Stdout>>;
 
+/// Startup behavior shared by applications using the terminal session.
+///
+/// The default preserves the historical `JUNIE_TUI_START_DELAY_MS` behavior
+/// and discards input typed before the application starts.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct StartupInput {
+    delay: Option<Duration>,
+    discard_pending: bool,
+}
+
+impl Default for StartupInput {
+    fn default() -> Self {
+        Self::from_environment()
+    }
+}
+
+impl StartupInput {
+    /// Read the historical startup delay and discard pre-start input.
+    pub fn from_environment() -> Self {
+        Self {
+            delay: std::env::var("JUNIE_TUI_START_DELAY_MS")
+                .ok()
+                .and_then(|value| value.parse().ok())
+                .map(Duration::from_millis),
+            discard_pending: true,
+        }
+    }
+
+    /// Set an optional startup delay. `None` disables the delay.
+    #[must_use]
+    pub const fn delay(mut self, delay: Option<Duration>) -> Self {
+        self.delay = delay;
+        self
+    }
+
+    /// Choose whether to discard input queued before startup.
+    #[must_use]
+    pub const fn discard_pending(mut self, discard: bool) -> Self {
+        self.discard_pending = discard;
+        self
+    }
+}
+
 pub struct TerminalSession {
     terminal: DefaultTerminal,
     left: bool,
@@ -148,15 +191,31 @@ pub fn run<A: App>(app: A, theme: Theme) -> io::Result<()> {
     run_with_feedback_clock(app, theme, FeedbackClock::Elapsed)
 }
 
-#[expect(
-    clippy::needless_pass_by_value,
-    reason = "session owns the supplied theme API and narrows capability once before runtime construction"
-)]
 pub fn run_with_feedback_clock<A: App>(
     app: A,
     theme: Theme,
     clock: FeedbackClock,
 ) -> io::Result<()> {
+    run_with_feedback_clock_and_startup(app, theme, clock, StartupInput::default())
+}
+
+/// Run an application with explicit startup input behavior.
+pub fn run_with_startup<A: App>(app: A, theme: Theme, startup: StartupInput) -> io::Result<()> {
+    run_with_feedback_clock_and_startup(app, theme, FeedbackClock::Elapsed, startup)
+}
+
+/// Run an application with explicit feedback clock and startup input behavior.
+#[expect(
+    clippy::needless_pass_by_value,
+    reason = "session owns the supplied theme API and narrows capability once before runtime construction"
+)]
+pub fn run_with_feedback_clock_and_startup<A: App>(
+    app: A,
+    theme: Theme,
+    clock: FeedbackClock,
+    startup: StartupInput,
+) -> io::Result<()> {
+    prepare_startup_input(startup, std::thread::sleep, drain_pending_input);
     let mut session = TerminalSession::enter()?;
     let origin = Instant::now();
     let mut rt = Runtime::new_with_feedback_clock(app, theme.for_terminal(), clock);
@@ -219,6 +278,46 @@ pub fn run_with_feedback_clock<A: App>(
     session.leave()
 }
 
+fn prepare_startup_input(
+    startup: StartupInput,
+    sleep: impl FnOnce(Duration),
+    drain: impl FnOnce() -> io::Result<usize>,
+) {
+    if let Some(delay) = startup.delay {
+        sleep(delay);
+    }
+    if startup.discard_pending {
+        let _ = drain();
+    }
+}
+
+fn drain_pending_input() -> io::Result<usize> {
+    use ratatui_crossterm::crossterm::event::{poll as poll_input, read as read_input};
+    use ratatui_crossterm::crossterm::terminal::{
+        disable_raw_mode as disable_input_raw_mode, enable_raw_mode as enable_input_raw_mode,
+        is_raw_mode_enabled,
+    };
+
+    let was_raw = is_raw_mode_enabled()?;
+    if !was_raw {
+        enable_input_raw_mode()?;
+    }
+    let drained = (|| {
+        let mut count = 0;
+        while poll_input(Duration::ZERO)? {
+            let _ = read_input()?;
+            count += 1;
+        }
+        Ok(count)
+    })();
+    if was_raw {
+        drained
+    } else {
+        disable_input_raw_mode()?;
+        drained
+    }
+}
+
 fn reset_frame_colors(buffer: &mut ratatui_core::buffer::Buffer) {
     for cell in &mut buffer.content {
         cell.fg = ratatui_core::style::Color::Reset;
@@ -231,6 +330,42 @@ mod tests {
     use super::*;
     use std::cell::Cell;
     use std::sync::{Arc, Mutex};
+
+    #[test]
+    fn startup_delay_precedes_discard_and_drain_errors_are_ignored() {
+        let calls = std::cell::RefCell::new(Vec::new());
+        prepare_startup_input(
+            StartupInput {
+                delay: Some(Duration::from_millis(17)),
+                discard_pending: true,
+            },
+            |delay| {
+                calls
+                    .borrow_mut()
+                    .push(format!("sleep:{}", delay.as_millis()))
+            },
+            || {
+                calls.borrow_mut().push("drain".to_owned());
+                Err(io::Error::from(io::ErrorKind::BrokenPipe))
+            },
+        );
+        assert_eq!(*calls.borrow(), vec!["sleep:17", "drain"]);
+    }
+
+    #[test]
+    fn startup_options_can_disable_delay_and_pending_input_discard() {
+        let options = StartupInput::default().delay(None).discard_pending(false);
+        let calls = Cell::new(0);
+        prepare_startup_input(
+            options,
+            |_| calls.set(calls.get() + 1),
+            || {
+                calls.set(calls.get() + 10);
+                Ok(0)
+            },
+        );
+        assert_eq!(calls.get(), 0);
+    }
 
     #[test]
     fn partial_entry_errors_restore_once_and_preserve_the_entry_error() {
