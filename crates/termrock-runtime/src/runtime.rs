@@ -1833,10 +1833,39 @@ impl<A: App> Runtime<A> {
         let focus =
             snapshot.map_or_else(|| self.focus.current(), |value| value.last.snapshot.focus);
         self.frame.typing_resolved = typing::resolve(&mut self.frame, focus);
+        let retained_cursor_owner = self
+            .frame
+            .retained_cursor_request
+            .filter(|retained| {
+                let Some(top) = self.frame.layers.active().last() else {
+                    return false;
+                };
+                let Some(request) = self.frame.cursors.get(retained.cursor_index) else {
+                    return false;
+                };
+                let Some(area) = self.frame.registry.area_of(retained.owner) else {
+                    return false;
+                };
+                focus == Some(retained.owner)
+                    && self.focus.current() == Some(retained.owner)
+                    && self.frame.top == retained.overlay_layer
+                    && top.layer == retained.overlay_layer
+                    && top.spec.kind == crate::layer::LayerKind::Popover
+                    && !top.spec.inert_below
+                    && retained.parent_layer >= self.frame.inert_floor
+                    && self.frame.registry.layer_of(retained.owner) == Some(retained.parent_layer)
+                    && request.owner == retained.owner
+                    && request.layer == retained.overlay_layer
+                    && !request.inert
+                    && !request.typing_offer
+                    && area.contains(request.pos)
+            })
+            .map(|retained| retained.owner);
+        let cursor_owner = self.frame.typing_resolved.cursor.or(retained_cursor_owner);
         let resolved = cursor::resolve_requests(
             &self.frame.cursors,
             self.frame.top,
-            self.frame.typing_resolved.cursor,
+            cursor_owner,
             &mut self.frame.diagnostics,
             &self.frame.typing,
         );
