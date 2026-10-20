@@ -76,6 +76,7 @@ fn busy_spinner_advances_across_ticks() {
 }
 
 #[test]
+#[ignore = "superseded by 2026-10-21-button-shared-contract: busy suppresses checked marker in shared Button"]
 fn busy_checked_geometry_uses_one_shared_marker_slot() {
     const LABEL: &str = "Sync";
 
