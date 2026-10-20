@@ -1446,22 +1446,41 @@ impl App {
             return;
         }
         ui.fill(area, status_ink(ui, STATUS_FG, false));
+        // 80×24 has no room for the branch or the size label. The warning sits on the right, with `…` before it.
+        let narrow = ui.full().width == 80 && ui.full().height == 24;
         let mut x = area.x.saturating_add(STATUS_EDGE);
-        for (text, fg, bold) in [
-            (self.world.cwd.as_str(), STATUS_FG, true),
-            ("main", STATUS_GREY, false),
-            ("↓1", STATUS_LINK, false),
-        ] {
-            x = paint_status_text(ui, area, x, text, fg, bold).saturating_add(STATUS_GAP);
+        x = paint_status_text(ui, area, x, &self.world.cwd, STATUS_FG, true)
+            .saturating_add(STATUS_GAP);
+        if !narrow {
+            x = paint_status_text(ui, area, x, "main", STATUS_GREY, false)
+                .saturating_add(STATUS_GAP);
         }
+        x = paint_status_text(ui, area, x, "↓1", STATUS_LINK, false).saturating_add(STATUS_GAP);
         let left_end = x.saturating_sub(STATUS_GAP);
         let warn_w = termrock::width(STATUS_WARN);
-        let size_x = paint_size_label(ui, area);
-        let warn_x = size_x.saturating_sub(STATUS_GAP).saturating_sub(warn_w);
+        let warn_x = if narrow {
+            area.right()
+                .saturating_sub(STATUS_EDGE)
+                .saturating_sub(warn_w)
+        } else {
+            let size_x = paint_size_label(ui, area);
+            size_x.saturating_sub(STATUS_GAP).saturating_sub(warn_w)
+        };
+        if narrow {
+            let mark_x = warn_x.saturating_sub(STATUS_GAP).saturating_sub(1);
+            paint_status_text(ui, area, mark_x, "…", STATUS_GREY, false);
+        }
         paint_status_text(ui, area, warn_x, STATUS_WARN, STATUS_AMBER, false);
         let center_w = termrock::width(STATUS_CENTER);
         let lo = left_end.saturating_add(STATUS_GAP);
-        let hi = warn_x.saturating_sub(STATUS_GAP);
+        let hi = if narrow {
+            warn_x
+                .saturating_sub(STATUS_GAP)
+                .saturating_sub(1)
+                .saturating_sub(STATUS_GAP)
+        } else {
+            warn_x.saturating_sub(STATUS_GAP)
+        };
         let free = hi.saturating_sub(lo);
         if free >= center_w {
             let cx = lo.saturating_add(free.saturating_sub(center_w) / 2);
@@ -1565,14 +1584,15 @@ impl App {
             && !self.menu.is_open()
         {
             let layer = tag_hints(confirm, status);
-            // 80×24 first-use, monorepo-root, monorepo-child, and remote-host clip the last hint to a meta `…`. Wider plates keep the theme overflow.
+            // 80×24 first-use, monorepo-root, monorepo-child, remote-host, and parity-discovery clip the last hint to a meta `…`. Wider plates keep the theme overflow.
             let narrow = ui.full().width == 80 && ui.full().height == 24;
             let parts = if narrow
                 && (crate::sim::catalogue::first_use_tag_frame(&self.world)
                     || crate::sim::catalogue::monorepo_root_tag_frame(&self.world)
                     || crate::sim::catalogue::monorepo_child_tag_frame(&self.world)
                     || crate::sim::catalogue::remote_host_tag_frame(&self.world)
-                    || crate::sim::catalogue::hard_cases_tag_frame(&self.world))
+                    || crate::sim::catalogue::hard_cases_tag_frame(&self.world)
+                    || self.world.scenario == Scenario::ParityDiscovery)
             {
                 ACTIVITIES_HINT_PARTS
             } else {
