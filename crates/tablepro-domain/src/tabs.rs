@@ -8,7 +8,7 @@ use crate::filter_editor::Filter;
 use crate::model::{History, HistoryEntry};
 use tablepro_demo::db::{Catalog, ColType, Table, Value};
 use tablepro_sql::sql::{self, PlanNode};
-use termrock::{GridModel, GridState, Id, ItemKey, TextInputState};
+use termrock::{CompletingCodeEditorState, GridModel, GridState, Id, ItemKey, SyntaxRole};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct TabKey(u64);
@@ -210,7 +210,8 @@ pub struct QueryTab {
     pub id: usize,
     pub name: String,
     pub query: String,
-    pub editor_state: TextInputState,
+    /// Shared multiline editor and completion state for this query tab.
+    pub editor_state: Box<CompletingCodeEditorState>,
     pub saved_text: String,
     pub result: Option<GridView>,
     pub error: Option<String>,
@@ -237,12 +238,13 @@ impl core::fmt::Debug for QueryTab {
 impl QueryTab {
     pub fn new(id: usize, query: impl Into<String>) -> Self {
         let query = query.into();
+        let editor_state = CompletingCodeEditorState::new(&query);
         Self {
             id,
             name: format!("Query {id}"),
             saved_text: query.clone(),
+            editor_state: Box::new(editor_state),
             query,
-            editor_state: TextInputState::default(),
             result: None,
             error: None,
             plan: None,
@@ -250,6 +252,7 @@ impl QueryTab {
         }
     }
     pub fn execute(&mut self, catalog: &Catalog) -> Result<usize, String> {
+        self.sync_query_text();
         if self.has_pending_result() {
             return Err("Pending result edits require confirmation".to_owned());
         }
@@ -264,6 +267,7 @@ impl QueryTab {
         Ok(rows)
     }
     pub fn explain(&mut self, catalog: &Catalog) -> Result<(), String> {
+        self.sync_query_text();
         let statement = sql::parse(self.query.trim()).map_err(|error| error.message)?;
         let sql::Statement::Select(select) = statement else {
             return Err("Explain accepts SELECT statements".to_owned());
@@ -277,8 +281,57 @@ impl QueryTab {
             .is_some_and(|grid| grid.pending_total() > 0)
     }
     pub fn dirty(&self) -> bool {
-        self.editor_state.draft_text().unwrap_or(&self.query) != self.saved_text
+        self.editor_state.editor().text() != self.saved_text
     }
+
+    /// Copies the editor's authoritative buffer into the SQL execution snapshot.
+    pub fn sync_query_text(&mut self) {
+        self.editor_state
+            .editor()
+            .text()
+            .clone_into(&mut self.query);
+    }
+
+    /// Replaces the query and resets editor mechanics for a newly loaded statement.
+    pub fn replace_query(&mut self, query: impl Into<String>) {
+        let query = query.into();
+        *self.editor_state = CompletingCodeEditorState::new(&query);
+        self.query = query;
+    }
+
+    /// Commits active editing without changing the editor's text.
+    pub fn commit_query_edit(&mut self) {
+        self.editor_state.editor_mut().commit();
+        self.sync_query_text();
+    }
+}
+
+/// SQL syntax ranges used by the shared code editor.
+pub fn highlight_sql(src: &str) -> Vec<(core::ops::Range<usize>, SyntaxRole)> {
+    sql::tokenize(src)
+        .into_iter()
+        .filter_map(|token| {
+            let role = match token.kind {
+                sql::TokKind::Keyword => SyntaxRole::Keyword,
+                sql::TokKind::Ident => SyntaxRole::Ident,
+                sql::TokKind::Number => SyntaxRole::Number,
+                sql::TokKind::String => SyntaxRole::Str,
+                sql::TokKind::Operator => SyntaxRole::Operator,
+                sql::TokKind::Punct => SyntaxRole::Punct,
+                sql::TokKind::Comment => SyntaxRole::Comment,
+                sql::TokKind::Whitespace => return None,
+            };
+            Some((token.start..token.end, role))
+        })
+        .collect()
+}
+
+/// Statement boundaries used for running the SQL statement at the cursor.
+pub fn segment_sql(src: &str) -> Vec<core::ops::Range<usize>> {
+    sql::split_statements(src)
+        .into_iter()
+        .map(|(start, end)| start..end)
+        .collect()
 }
 
 #[derive(Debug, Clone)]

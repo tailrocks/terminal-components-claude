@@ -3273,13 +3273,11 @@ impl Grid<'_> {
                 .filter(|_| !editing && refused_error.is_none())
                 .zip(self.col_key(i))
             {
+                let padding_style = (cflags.contains(StateFlags::ACTIVE) && actions.is_empty())
+                    .then(|| ui.surface_style().patch(row_style));
                 let mut painter = CellUi::new(ui.reborrow(), text_rect, style);
-                if cflags.contains(StateFlags::ACTIVE) && actions.is_empty() {
-                    // Ordinary cursor text is styled independently from its
-                    // focused row. Alignment padding restores the canonical
-                    // row surface underneath that text. Action cells keep
-                    // their full-cell active style as the padding instead.
-                    painter.padding_style(row_style);
+                if let Some(padding_style) = padding_style {
+                    painter.padding_style(padding_style);
                 }
                 painter.align(align);
                 render(
@@ -4346,21 +4344,14 @@ mod tests {
             crate::theme::ColorLevel::Ansi16,
             crate::theme::ColorLevel::Mono,
         ] {
-            let theme = Theme::junie()
-                .override_family(Family::GRID, |recipe| {
-                    recipe.part(Part::ROW).when(
-                        StateFlags::FOCUSED,
-                        StylePatch::new().set_bg(Role::HighlightBg),
-                    );
-                })
-                .for_level(level);
+            let theme = Theme::junie().for_level(level);
             let mut buffers = Vec::new();
             for callback in [false, true] {
                 let mut runtime = Runtime::new(
                     CallbackPaddingApp {
                         state: GridState::default(),
                         callback,
-                        dim_after: true,
+                        dim_after: false,
                     },
                     theme.clone(),
                 );

@@ -1,0 +1,173 @@
+{
+  "reviewed_source": "7efe824fefeab1b26794b2fec9f749214d81041a",
+  "comparison_source": "d8dba9013e70c22321734043f78b59de7be55a01",
+  "status": "Cause and minimal coverage-preserving fix independently established. Product source remains unchanged and default repository gate is still red until author applies the fix.",
+  "finding": {
+    "path": "crates/termrock/tests/composition_consumer.rs:311,325",
+    "problem": "Two cursor bounds assertions call Runtime::cursor, which is inside the runtime testing-feature implementation. The facade test target itself is not gated by that feature, so default all-target compilation fails.",
+    "source_proof": "At reviewed parent runtime.rs2226, unconditional Runtime::cursor_position returns self.cursor. At2275, testing-only Runtime::cursor also returns self.cursor. This is already the same production observation API. Test source is identical between the parent and Master follow-up; this failure is not introduced by the move_cell metadata fix."
+  },
+  "minimal_fix": {
+    "file": "crates/termrock/tests/composition_consumer.rs",
+    "change": "Replace exactly the two .cursor() calls with .cursor_position().",
+    "preservation": "Keep both assertions and all five consumer tests executable under default features. Do not add required-features to hide this target, remove cursor assertions, enable testing globally, expose new testing APIs in production or change generated workflows.",
+    "ownership": "One test-file writer can make this bounded change independently of runtime, theme and Forms writers, after confirming ownership with parent."
+  },
+  "verification": [
+    {
+      "command": "cargo nextest run --locked -p termrock --all-targets",
+      "result": "Exit101. E0599 at the two Runtime::cursor calls; no tests executed.",
+      "log": "/tmp/default-cursor-7efe-nextest.log"
+    },
+    {
+      "command": "cargo clippy --locked -p termrock --all-targets -- -D warnings",
+      "result": "Exit101 with the same two missing-method errors.",
+      "log": "/tmp/default-cursor-7efe-clippy.log"
+    },
+    {
+      "command": "cargo nextest run --locked -p termrock --all-targets --features testing --no-fail-fast",
+      "result": "13 passed, zero skipped.",
+      "log": "/tmp/default-cursor-7efe-testing-nextest.log"
+    },
+    {
+      "command": "cargo clippy --locked -p termrock --all-targets --features testing -- -D warnings",
+      "result": "Exit zero.",
+      "log": "/tmp/default-cursor-7efe-testing-clippy.log"
+    },
+    {
+      "command": "Exact generated facade testing Cargo nextest argv, replayed locally without changing source",
+      "result": "13 passed, zero skipped.",
+      "log": "/tmp/default-cursor-7efe-generated-testing.log"
+    },
+    {
+      "command": "Separate public default-feature consumer containing the unchanged composition integration test source with only the two method substitutions",
+      "result": "Five passed, zero skipped. No testing feature enabled. This proves the proposed adapter change preserves the actual assertions without editing repository source.",
+      "source": "/private/tmp/termrock-default-cursor-contract-probe/tests/consumer.rs",
+      "log": "/tmp/default-cursor-7efe-public-replacement.log"
+    },
+    {
+      "command": "Strict Clippy all-targets on the separate public default-feature consumer containing only the proposed cursor substitutions",
+      "result": "Exit zero.",
+      "log": "/tmp/default-cursor-7efe-public-replacement-clippy.log"
+    }
+  ],
+  "ci_source_proof": {
+    "generator": "0.1.29, from generated task manifest and workflow header.",
+    "config": ".velnor/config.toml:30-38 explicitly defines default and testing configurations. Facade testing forwards termrock-runtime/testing and termrock-viewport/testing.",
+    "tasks": {
+      "stack/rust/crates/termrock/build/default": [
+        "cargo",
+        "nextest",
+        "list",
+        "--profile",
+        "ci",
+        "--list-type",
+        "binaries-only",
+        "--locked",
+        "--offline",
+        "--manifest-path",
+        "crates/termrock/Cargo.toml",
+        "--package",
+        "termrock"
+      ],
+      "stack/rust/crates/termrock/build/testing": [
+        "cargo",
+        "nextest",
+        "list",
+        "--profile",
+        "ci",
+        "--list-type",
+        "binaries-only",
+        "--locked",
+        "--offline",
+        "--manifest-path",
+        "crates/termrock/Cargo.toml",
+        "--package",
+        "termrock",
+        "--no-default-features",
+        "--features",
+        "default,testing"
+      ],
+      "stack/rust/crates/termrock/clippy/default": [
+        "cargo",
+        "clippy",
+        "--locked",
+        "--offline",
+        "--manifest-path",
+        "crates/termrock/Cargo.toml",
+        "--package",
+        "termrock",
+        "--all-targets",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "stack/rust/crates/termrock/clippy/testing": [
+        "cargo",
+        "clippy",
+        "--locked",
+        "--offline",
+        "--manifest-path",
+        "crates/termrock/Cargo.toml",
+        "--package",
+        "termrock",
+        "--all-targets",
+        "--no-default-features",
+        "--features",
+        "default,testing",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "stack/rust/crates/termrock/nextest/default": [
+        "cargo",
+        "nextest",
+        "run",
+        "--profile",
+        "ci",
+        "--locked",
+        "--offline",
+        "--manifest-path",
+        "crates/termrock/Cargo.toml",
+        "--package",
+        "termrock",
+        "--no-tests",
+        "fail"
+      ],
+      "stack/rust/crates/termrock/nextest/testing": [
+        "cargo",
+        "nextest",
+        "run",
+        "--profile",
+        "ci",
+        "--locked",
+        "--offline",
+        "--manifest-path",
+        "crates/termrock/Cargo.toml",
+        "--package",
+        "termrock",
+        "--no-tests",
+        "fail",
+        "--no-default-features",
+        "--features",
+        "default,testing"
+      ]
+    },
+    "required_job": ".github/workflows/ci.yml:4436-4488 defines Rust / termrock (testing), depends on Plan and executes build, strict Clippy and unit/integration tasks from the manifest. Required verdict depends on rust-termrock-testing at310; the Required gate fails unless its verdict succeeds.",
+    "consumer_coverage": "The exact generated nextest command enables default,testing and has no test filter. Current parent discovery executes all13 facade assertions, including five composition consumer tests, four SplitBlock tests, one Picker slot test, two example journeys and the facade export test. The Master branch adds seven MasterDetail tests not yet present in this parent; the integrated source must verify the expanded inventory after merge.",
+    "examples": "Generated Clippy uses --all-targets and compiles public examples. The cursor failure is in test assertions, not example application rendering. Do not claim generated nextest executes every example main or a whole Showcase capability gate.",
+    "remaining_ci_blockers": [
+      "Plan retains its five-minute timeout at workflow115. No new remote Actions execution was inspected by this review; previously reported checkout/Plan timeout and skipped Rust jobs are not cleared.",
+      "The generated manifest still contains direct cargo test --doc tasks. They were inspected only, never executed by this reviewer; the nextest-only policy conflict remains separately assigned and is not resolved by this test fix."
+    ]
+  },
+  "after_author_fix_gates": [
+    "Run exact default facade all-target nextest and strict Clippy, then feature-enabled equivalents and formatting.",
+    "After integration of MasterDetail, require all seven new consumer tests in the testing-feature job and compare the complete registered test inventory; do not infer their execution from the current parent13 count.",
+    "Run generated output freshness through the pinned approved generator if config inputs change. This two-call test-only fix requires no generated workflow changes."
+  ],
+  "limits": [
+    "No product source or generated files were edited. External proof source is test-only evidence, not a replacement implementation.",
+    "No frozen application parity, full workspace acceptance or CI success is claimed."
+  ]
+}

@@ -1,0 +1,54 @@
+{
+  "status": "focused compatibility repair passed; broader merged package suite blocked by an independently assigned color quantizer conflict",
+  "work_branch": "wip/tablepro-grid-scroll-embedded-input-20261021",
+  "work_commit_before_merge": "c37a3a2d7066c0004d139315b34d892a0769de8b",
+  "merged_pr38_source": "67ebf35cdc2ae6c51169ab7939b51e70d045fadd",
+  "reference": {
+    "baseline_commit": "4169783ae883788186d161af09ba9c481bd84e5c",
+    "design_commit": "f4867e9b5f8a08a3bb61ce80d644198a29f51984"
+  },
+  "change": {
+    "runtime": "CellUi::new keeps the caller's explicit PaintStyle as its default padding/reset style. The additive padding_style builder allows a composing Grid to pass a canonical style without reading painted buffer cells or reconstructing semantic roles.",
+    "grid": "For ordinary active values only (no action affordance), vacated aligned callback cells use ui.surface_style().patch(row_style): missing row channels retain the resolved UI surface while authored row channels win. Action cells keep their existing full active style. Explicit CELL patches still run after callback rendering.",
+    "compatibility": "Explicit caller Danger and Color::Reset padding remain honored; no public PaintStyle fields changed."
+  },
+  "red_before_green_after": {
+    "native_regression": "termrock-grid::grid::tests::identity_cell_callback_preserves_right_aligned_padding_style compares the ordinary renderer and an identity callback at every color level without a focused-row override or post-render dim. Removing the Grid padding-style adapter fails at the first padding cell: the callback leaks active green into padding while the ordinary renderer retains the surface background.",
+    "before_log": "/private/tmp/grid-c6-final-red.log",
+    "after_public_probes": "/private/tmp/grid-c6-final-probes-green.log",
+    "public_probe_command": "CARGO_TARGET_DIR=/private/tmp/termrock-grid-padding-current/target cargo nextest run --manifest-path /private/tmp/termrock-grid-padding-current/Cargo.toml --all-targets",
+    "public_probe_result": "11 passed, 0 skipped"
+  },
+  "focused_verification": {
+    "command": "cargo nextest run -p termrock-runtime -p termrock-grid -p termrock-fields -p termrock-theme --all-targets",
+    "result": "692 passed, 1 failed, 3 skipped",
+    "failure": "termrock-theme downgrade::tests::downgrade_is_deterministic_per_level asserts custom RGB #3a3a3a maps to index 238. The WIP generic nearest implementation maps it to 237; this expectation awaits the independent frozen-quantizer decision and has not been weakened.",
+    "strict_clippy": "cargo clippy -p termrock-runtime -p termrock-grid -p termrock-fields -p termrock-theme --all-targets -- -D warnings: passed",
+    "format": "rustfmt --check --edition 2024 crates/termrock-runtime/src/rowui.rs crates/termrock-grid/src/grid.rs crates/termrock-theme/src/downgrade.rs: passed; git diff --check: passed",
+    "tablepro_all_targets": {
+      "command": "cargo nextest run -p tablepro-ui --all-targets",
+      "result": "170 passed, 13 failed, 0 skipped (183 total) on the merged PR #38 candidate; this cohort has not yet been compared against the exact 67ebf35 base",
+      "log": "/private/tmp/grid-c6-merged-tablepro-alltargets.log",
+      "failed_tests": [
+        "app::query_result_keys::explain_orders_shows_a_plan_cell_the_error_frame_hides",
+        "form_radio::form_radio_enter_submits",
+        "form_radio::form_radio_narrow_frames_clip_the_environment_field",
+        "form_radio::form_radio_focus_bolds_the_painted_row",
+        "form_radio::form_radio_right_card_pins_miss_the_stock_form",
+        "form_radio::form_radio_off_marker_uses_the_hollow_circle",
+        "form_radio::form_radio_commit_changes_draft",
+        "footer_unicode::connection_form_names_preserve_footer_grapheme_boundaries",
+        "perf::frame_tablepro_connection_form_120x40",
+        "perf::frame_tablepro_grid_500x14_120x40",
+        "replacement_contract::save_connect_from_workbench_form_requires_guard_and_cancel_keeps_work",
+        "row_actions_contract::inserting_after_five_hundred_rows_reveals_the_new_owned_record",
+        "visual::tablepro_visual_baseline"
+      ]
+    }
+  },
+  "scope_and_gaps": [
+    "The independent probes and native widget suite do not establish full TablePro application parity.",
+    "The application all-target comparison against the exact merged base is still running; its result will be recorded separately.",
+    "A separate source-backed raw RGB quantizer decision is required; no RGB lookup exception or LegacyMono behavior is accepted by this Grid/CellUi change."
+  ]
+}

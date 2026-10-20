@@ -1,0 +1,110 @@
+{
+  "references": {
+    "review_head": "85b19ebbbca341d36effdcaea9abfcd951c99c7b",
+    "baseline": "4169783ae883788186d161af09ba9c481bd84e5c",
+    "design_reference": "f4867e9b5f8a08a3bb61ce80d644198a29f51984"
+  },
+  "reviewer": "editor_contract_independent_review",
+  "disposition": "Changes required; keep useful replay deletions and repair shared owners before acceptance.",
+  "acceptance_complete": false,
+  "increments": [
+    {
+      "commit": "009bbd98a7a42250760aa4ce29b309e8beb0fe5c",
+      "retain": "Fix vacated right-alignment padding to retain inherited row colors when reset style omits those channels.",
+      "replace": "Application paint_unscrolled_cursor_row and enlarged paint_scrolled_cells correction bands repaint the shared Grid after draw. Move their contracts into Grid/theme; the existing Grid writer already owns this work.",
+      "additional_repair": "Retain semantic CellRoles for preserved foreground/background channels in Ui::move_cell."
+    },
+    {
+      "commit": "9268b190e93c0d22bcee05dd562171f964a51166",
+      "retain": "Desired authored semantic capability slots belong in CapabilityPalettes or semantic component recipes.",
+      "replace": "Exact RGB lookup in generic downgrade_color changes arbitrary custom colors and rewrites expectations. Restore the documented general conversion contract instead of inferring semantic palette identity from RGB."
+    },
+    {
+      "commit": "ddc3dd3fef545444fdda48af75ea040c498b2efc",
+      "retain": "Deletion of captured maximized ANSI module and terminal/exact-size/exact-accent/test-execution selector.",
+      "extract": "Use real Panel, Tabs, EmptyState and focus-aware split/workspace contracts rather than the new manual rounded-border/results painter and tab afterpainter.",
+      "replace": "Maximization must distinguish focused editor versus results, and focus/footer output must derive from actual active owner and layer."
+    },
+    {
+      "commit": "9931b3dfda5cd1aac423589e6f73f70a8445c042",
+      "retain": "blank_sql is a semantic application-data predicate, not a test-identity or exact-viewport selector. Following Explorer focus for footer hints is a useful correction.",
+      "replace": "Existing blank-query branch still registers a keyboard editor without drawing the real widget and paints its pixels privately. Preserve pending editor759d adoption during integration; do not restore ghost paths. Resolve footer hints from exact focus, not merely !Explorer.",
+      "unverified": "Changed nonempty query title padding requires paired frame evidence across normal/error/result/plan contexts; source alone does not prove a visual difference."
+    }
+  ],
+  "findings": [
+    {
+      "severity": "P2",
+      "introduced_by": "009bbd98a7a42250760aa4ce29b309e8beb0fe5c",
+      "path": "crates/termrock-runtime/src/ui/mod.rs:1120",
+      "issue": "move_cell retains vacated source RGB foreground/background when reset omits them, then clears their semantic CellRoles with mark(src,None). Subsequent dimming treats those cells as unbound backdrop while adjacent same-color semantic fill remains on its own ladder/surface.",
+      "proof": "External public Ui/CellUi/Harness probe first asserts identical raw fg/bg before dimming; after dim_layer(1), prefix is fgRgb(38,38,38)/bgBlack, adjacent row fgRgb(58,179,67)/bgRgb(39,39,42).",
+      "repair": "Preserve the source semantic role separately for every retained color channel, while honoring explicit reset colors and provenance."
+    },
+    {
+      "severity": "P2",
+      "introduced_by": "9268b190e93c0d22bcee05dd562171f964a51166",
+      "path": "crates/termrock-theme/src/downgrade.rs:212",
+      "issue": "Generic custom RGB conversion now recognizes five exact RGB values as frozen semantic inks. For #3a3a3a it returns238 rather than237; #474747 returns239 rather than238. These generic outcomes also contradict the frozen and fixed-design general conversion implementation.",
+      "proof": "Independent public downgrade_color probe returnsIndexed238 for #3a3a3a instead of237. Frozen416 and designf486 theme.rs3002\u20133033 have the same general conversion algorithm and no exact RGB table.",
+      "repair": "Keep frozen semantic palette assignments explicit; remove lookup from general custom-color conversion and restore meaningful unmodified conversion regressions."
+    },
+    {
+      "severity": "P1",
+      "path": "crates/tablepro-ui/src/app.rs:12543",
+      "issue": "Every empty maximized query becomes a static results card, irrespective of focused editor/results pane. ZOOM only toggles workbench.maximized and does not capture the focused query split target. Editor controls and owner registration disappear in that branch.",
+      "reference": "Frozen416 and fixeddesignf486 app.rs747\u2013762 choose Maximized::First when editor focused, Second otherwise. tabs.rs1640\u20131656 renders the resulting top editor and returns only when bottom is empty. Those reference source files are identical between the fixed commits.",
+      "repair": "Restore focus-aware pane maximization through shared split/workspace policy and real editor/results components. Add editor-focused/results-focused zoom, resize, edit and unzoom workflows.",
+      "replacement_in": "ddc3dd3fef545444fdda48af75ea040c498b2efc",
+      "attribution": "The focus-insensitive ZOOM toggle predates ddc3. The new live replacement retains that gap and still renders only the results card for empty maximized queries; this is a required baseline behavior gap, not a claim that ddc3 newly changed the handler."
+    },
+    {
+      "severity": "P2",
+      "introduced_by": "ddc3dd3fef545444fdda48af75ea040c498b2efc",
+      "path": "crates/tablepro-ui/src/app.rs:12541",
+      "issue": "paint_legacy_tabs receives mark_focus=workbench.maximized and draws an accent focus gutter on the selected tab without checking tab focus or inactive overlay layer. The maximized footer likewise always advertises tab-strip actions. Maximization state is not keyboard focus.",
+      "reference": "Frozen workbench.rs598\u2013636 chooses strip hints only when focus equals strip.id, otherwise delegates to the focused application widget; Tabs owns its own focus rendering.",
+      "repair": "Move tab parts and focus styling into shared Tabs and resolve hints through actual focused/top-layer component state. Test maximized editor/grid focus and modal/popup coverage."
+    },
+    {
+      "severity": "P2",
+      "introduced_by": "009bbd98a7a42250760aa4ce29b309e8beb0fe5c",
+      "path": "crates/tablepro-ui/src/app.rs:7894",
+      "issue": "New application correction painter changes cursor-row bold and active-cell slack after shared Grid draws. It derives geometry from GRID_CHROME and overwrites rendered cells. This is directly prohibited application-owned widget rendering.",
+      "repair": "Use Grid row/cell/gutter/spacing theme contracts and delete afterpainter in the already assigned Grid workstream."
+    }
+  ],
+  "verification": {
+    "kind": "Read-only source/diff review plus independent public component probes.",
+    "external_probe_source": "/private/tmp/termrock-concurrent-85b1-probes/src/lib.rs",
+    "external_probe_log": "/private/tmp/termrock-concurrent-85b1-probes.log",
+    "external_probe_log_sha256": "6f902de3fe680efbf48b22ee2f13b9eab98ba1681529d56bbdb57399623ce7d3",
+    "run": 2,
+    "passed": 0,
+    "failed": 2,
+    "skipped": 0,
+    "reference_sources_equal": "git diff4169783f4867e9 --src/bin/tablepro/app.rs src/bin/tablepro/workbench.rs src/bin/tablepro/tabs.rs src/theme.rs is empty.",
+    "frozen_generic_examples": {
+      "3a3a3a": 237,
+      "474747": 238,
+      "737373": 242,
+      "808080": 244,
+      "173f1c": 23
+    },
+    "expected_artifacts_modified": false,
+    "source_edits": false,
+    "review_worktree_clean": true
+  },
+  "regression_expectations": [
+    "Right-aligned partial reset retains raw colors and semantic roles through dimming, overlays, profiles, explicit reset and custom channels.",
+    "Custom RGB conversion tests remain independent of authored semantic palettes; test adjacent RGB values and profiles.",
+    "Maximize from editor, results, tab strip and Explorer with empty/nonempty query; resize and unzoom; preserve edit text and cursor.",
+    "Exactly one focus marker on top layer; no maximized background marker under modal/popup.",
+    "Blank SQL footer follows actual strip/editor/Explorer ownership and overlay state; live editor is rendered for registered editor owners."
+  ],
+  "limits": [
+    "The parent-reported TablePro180run159pass21fail and missing maximized test-module issue were not rerun or relabeled green here.",
+    "No complete29069-scenario plus20ordinary-check frozen application comparison was run.",
+    "No separate implementation was started for work already owned by Grid or editor authors."
+  ]
+}

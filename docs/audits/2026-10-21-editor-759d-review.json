@@ -1,0 +1,67 @@
+{
+  "revision": "759d0d411ed9148e3d04f700bcc81d7b90b97a4a",
+  "decision": "No actionable findings in the bounded editor/completion/matched-label series. Existing shared fingerprint failure remains attributed and unresolved.",
+  "acceptance_complete": false,
+  "supersedes": [
+    "/private/tmp/termrock-editor-f684-independent-review.json",
+    "/private/tmp/termrock-editor-8153-independent-review.json",
+    "/private/tmp/termrock-editor-1f3d-independent-review.json"
+  ],
+  "resolved_findings": [
+    "The manual label_recipe_adds_bold family/variant/state walker and post-resolution BOLD stripping are removed. Matched labels now use one canonical defaults resolution, with remove(BOLD) below authored theme and consumer patches.",
+    "Read-only TypeToEdit never enters editing on a character; explicit BOLD patches and theme-authored BOLD remain authoritative.",
+    "Completion nonmodal popovers opt out of restoring stale opener focus. The real-runtime regression requires final NEXT focus, Committed action, and !is_editing after blur.",
+    "The obsolete explicit i setup is removed for Immediate entry while the literal i first-character regression and unchanged xalpha result assertions remain.",
+    "Unselected Unicode matching retains distinct matched/plain graphemes; explicit modifiers and focused-fill colors remain preserved."
+  ],
+  "source_architecture": [
+    "App::edit_entry is additive with a default, Cx policy storage is private, and per-editor edit_entry overrides are additive builders. No mandatory Theme field or separate input/render system is introduced.",
+    "Cursor retention reuses an actual same-frame parent owner cursor request in an opted-in top nonmodal popover; existing bounds, inert-layer, identity, focus, and final cursor ownership guards remain.",
+    "The live CompletingCodeEditor adoption replaces the private query/completion renderer and exact-SQL/exact-size completion selector in this series; unrelated historical/app-owned painters remain outside this bounded clearance.",
+    "No expected artifact or frozen revision changed. Concurrent later PR38 commits are excluded from this exact verdict."
+  ],
+  "verification": {
+    "native": {
+      "command": "cargo nextest run --locked -p termrock-runtime -p termrock-editors -p termrock-overlays -p termrock-navigation --all-targets --no-fail-fast",
+      "run": 695,
+      "passed": 694,
+      "failed": 1,
+      "ignored_driver_fixtures": 3,
+      "existing_failure": "constructor_defaults_match_the_pre_policy_full_cell_fixture: actual17020103994864682368 expected12184706452759668872, identical to independent6375 base.",
+      "log": "/private/tmp/termrock-editor-759d-native.log",
+      "log_sha256": "87748bbd77359ca65f9f45201d107e50af1578513b37ae544707c717b83586fa"
+    },
+    "external": {
+      "command": "cargo nextest run --manifest-path /private/tmp/termrock-editor-f684-probes/Cargo.toml --no-fail-fast",
+      "run": 20,
+      "passed": 20,
+      "failed": 0,
+      "skipped": 0,
+      "source": "/private/tmp/termrock-editor-f684-probes",
+      "unchanged_since_1f3d": true,
+      "coverage": [
+        "read-only TypeToEdit",
+        "explicit BOLD override",
+        "final focus and nonediting after completion blur",
+        "Escape, acceptance, outside pointer, reopen",
+        "manual/remapped completion and traversal",
+        "find input",
+        "focused-fill empty-match label foreground/background"
+      ],
+      "log": "/private/tmp/termrock-editor-759d-probes.log",
+      "log_sha256": "07abab663f8e9190fe928cd1d6754d377d4e141571540c3bb9c1cc92b1b041bd"
+    },
+    "clippy": {
+      "command": "cargo clippy --locked -p termrock-runtime -p termrock-editors -p termrock-overlays -p termrock-navigation --all-targets -- -D warnings",
+      "passed": true,
+      "log": "/private/tmp/termrock-editor-759d-clippy.log",
+      "log_sha256": "556306b0c62171915e66db3a03d6461a20ff05794ecbca1597728eeb9e25fe0e"
+    },
+    "formatting": "Scoped rustfmt --edition2024 --check passed for changed editor/runtime/overlay files; git diff --check passed. Reviewer worktree is clean."
+  },
+  "limits": [
+    "This is bounded source and regression clearance, not a green complete native gate: one existing fingerprint failure remains unchanged.",
+    "Exact759d TablePro all-target and full real-CLI paired parity were not rerun in this final rereview. Prior exactf684 independent application/base attribution remains historical evidence, not validation of later integration.",
+    "No source, expected artifact, or shared writer worktree edits by the reviewer."
+  ]
+}
