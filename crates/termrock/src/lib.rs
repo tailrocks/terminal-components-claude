@@ -53,6 +53,7 @@ pub mod terminal {
 pub mod session {
     pub use termrock_session::*;
 }
+pub mod blocks;
 pub mod composition;
 pub mod author {
     pub use ratatui_core::buffer::{Buffer, Cell};

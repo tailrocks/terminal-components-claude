@@ -44,3 +44,7 @@ required-features = ["testing"]
 [[test]]
 name = "slots"
 required-features = ["testing"]
+
+[[test]]
+name = "split_block_consumer"
+required-features = ["testing"]
