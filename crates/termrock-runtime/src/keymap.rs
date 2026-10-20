@@ -29,6 +29,13 @@ pub struct Binding<C: 'static> {
     pub visible: bool,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum BindingExtensionError {
+    MissingBase { owner: Id },
+    DuplicateAction { owner: Id, action: ActionKey },
+    ConflictingChord { owner: Id, chord: Chord },
+}
+
 impl<C: Copy + 'static> Binding<C> {
     pub fn command(table: &[Binding<C>], action: ActionKey) -> Option<C> {
         table.iter().find(|b| b.action == action).map(|b| b.cmd)
@@ -345,6 +352,7 @@ pub(crate) struct PublishedBindings {
 pub(crate) struct BindingRegistry {
     tables: Vec<PublishedBindings>,
     descriptors: Vec<BindingDescriptor>,
+    composite_revision: u64,
 }
 
 impl BindingRegistry {
@@ -353,6 +361,7 @@ impl BindingRegistry {
         self.descriptors.clear();
     }
 
+    #[cfg(test)]
     pub(crate) fn publish<C: Copy + 'static>(
         &mut self,
         owner: Id,
@@ -360,33 +369,89 @@ impl BindingRegistry {
         layer: crate::layer::LayerId,
         table: &'static [Binding<C>],
     ) -> Option<ActionKey> {
+        self.publish_filtered(owner, flags, layer, table, |_| true)
+    }
+
+    pub(crate) fn extend<C: Copy + 'static>(
+        &mut self,
+        owner: Id,
+        flags: StateFlags,
+        layer: crate::layer::LayerId,
+        table: &'static [Binding<C>],
+        include: impl Fn(C) -> bool,
+    ) -> Result<(), BindingExtensionError> {
+        let prior_index = self
+            .tables
+            .iter()
+            .rposition(|published| published.owner == owner);
+        let Some(prior_index) = prior_index else {
+            return Err(BindingExtensionError::MissingBase { owner });
+        };
+        let prior = self.tables[prior_index];
+        let prior_end = prior.start.saturating_add(prior.len);
+        let prior_range = self
+            .descriptors
+            .get(prior.start..prior_end)
+            .map(|_| prior.start..prior_end);
+        let prior_len = prior_range.as_ref().map_or(0, |range| range.len());
         let start = self.descriptors.len();
+        // Reserve enough for the copied base and every possible extension before
+        // appending. This keeps the frame-hot path allocation-free and lets the
+        // validation pass call `include` exactly once for each binding.
+        self.descriptors
+            .reserve(prior_len.saturating_add(table.len()));
+        self.tables.reserve(1);
+        let copied_start = self.descriptors.len();
+        if let Some(range) = prior_range {
+            self.descriptors.extend_from_within(range);
+        }
+        let additions_start = self.descriptors.len();
         for binding in table {
-            if self
-                .descriptors
-                .get(start..)
-                .is_some_and(|prior| prior.iter().any(|item| item.action == binding.action))
-            {
-                self.descriptors.truncate(start);
-                return Some(binding.action);
+            if !include(binding.cmd) {
+                continue;
             }
-            self.descriptors.push(BindingDescriptor {
+            let descriptor = BindingDescriptor {
                 action: binding.action,
                 chord: binding.chord,
                 label: binding.label,
                 priority: binding.priority,
                 visible: binding.visible,
-            });
+            };
+            let prior = &self.descriptors[copied_start..additions_start];
+            let additions = &self.descriptors[additions_start..];
+            if prior
+                .iter()
+                .chain(additions)
+                .any(|item| item.action == binding.action)
+            {
+                self.descriptors.truncate(start);
+                return Err(BindingExtensionError::DuplicateAction {
+                    owner,
+                    action: binding.action,
+                });
+            }
+            if let Some(chord) = descriptor.chord
+                && prior
+                    .iter()
+                    .chain(additions)
+                    .any(|item| item.chord.is_some_and(|other| chord.effective_eq(&other)))
+            {
+                self.descriptors.truncate(start);
+                return Err(BindingExtensionError::ConflictingChord { owner, chord });
+            }
+            self.descriptors.push(descriptor);
         }
+        let len = self.descriptors.len().saturating_sub(start);
+        self.composite_revision = self.composite_revision.wrapping_add(1);
         self.tables.push(PublishedBindings {
             owner,
             flags,
             layer,
-            table: BindingTableId::of(table),
+            table: BindingTableId::dynamic(owner, len, self.composite_revision),
             start,
-            len: table.len(),
+            len,
         });
-        None
+        Ok(())
     }
 
     pub(crate) fn publish_filtered<C: Copy + 'static>(
@@ -512,6 +577,7 @@ pub(crate) struct DynamicBindingRegistry {
 struct DynamicBindingSet {
     owner: Id,
     base: Option<BindingTableId>,
+    base_descriptors: Vec<BindingDescriptor>,
     descriptors: Vec<BindingDescriptor>,
     revision: u64,
 }
@@ -521,6 +587,7 @@ impl DynamicBindingRegistry {
         &mut self,
         owner: Id,
         base: Option<BindingTableId>,
+        base_descriptors: &[BindingDescriptor],
         bindings: I,
     ) -> (&[BindingDescriptor], u64)
     where
@@ -538,6 +605,7 @@ impl DynamicBindingRegistry {
             self.current = Some(DynamicBindingSet {
                 owner,
                 base: None,
+                base_descriptors: Vec::new(),
                 descriptors: Vec::new(),
                 revision: 0,
             });
@@ -548,6 +616,7 @@ impl DynamicBindingRegistry {
         let unchanged =
             !owner_changed
                 && set.base == base
+                && set.base_descriptors == base_descriptors
                 && set.descriptors.iter().zip(bindings.clone()).all(
                     |(descriptor, (action, chord))| {
                         descriptor.action == action && descriptor.chord == chord
@@ -556,6 +625,8 @@ impl DynamicBindingRegistry {
                 && set.descriptors.len() == bindings.clone().count();
         if !unchanged {
             set.base = base;
+            set.base_descriptors.clear();
+            set.base_descriptors.extend_from_slice(base_descriptors);
             set.descriptors.clear();
             set.descriptors
                 .extend(bindings.map(|(action, chord)| BindingDescriptor {
@@ -585,6 +656,7 @@ pub(crate) struct FocusedHintKey {
 pub(crate) struct FocusedHints {
     key: Option<FocusedHintKey>,
     pub(crate) layer: HintLayer,
+    descriptors: Vec<BindingDescriptor>,
 }
 
 impl FocusedHints {
@@ -606,10 +678,12 @@ impl FocusedHints {
         table: &[BindingDescriptor],
         keymap: &KeyMap,
     ) {
-        if self.key == Some(key) {
+        if self.key == Some(key) && self.descriptors == table {
             return;
         }
         self.key = Some(key);
+        self.descriptors.clear();
+        self.descriptors.extend_from_slice(table);
         self.layer.hints.clear();
         self.layer.badge = None;
         self.layer.status = None;
@@ -877,6 +951,178 @@ mod tests {
     }
 
     #[test]
+    fn explicit_extension_combines_different_typed_actions_and_resets_per_frame() {
+        #[derive(Clone, Copy)]
+        enum FieldCmd {
+            Backspace,
+            Commit,
+        }
+        #[derive(Clone, Copy)]
+        enum NavCmd {
+            Up,
+            Enter,
+        }
+        const BACKSPACE: ActionKey = ActionKey::custom("extension.field.backspace");
+        const COMMIT: ActionKey = ActionKey::custom("extension.field.commit");
+        const UP: ActionKey = ActionKey::custom("extension.nav.up");
+        const ENTER: ActionKey = ActionKey::custom("extension.nav.enter");
+        const FIELD: &[Binding<FieldCmd>] = &[
+            Binding {
+                action: BACKSPACE,
+                chord: Some(Chord::key(KeyCode::Backspace)),
+                cmd: FieldCmd::Backspace,
+                label: "Backspace",
+                priority: 80,
+                visible: true,
+            },
+            Binding {
+                action: COMMIT,
+                chord: Some(Chord::key(KeyCode::Enter)),
+                cmd: FieldCmd::Commit,
+                label: "Commit",
+                priority: 70,
+                visible: true,
+            },
+        ];
+        const NAV: &[Binding<NavCmd>] = &[
+            Binding {
+                action: UP,
+                chord: Some(Chord::key(KeyCode::Up)),
+                cmd: NavCmd::Up,
+                label: "Up",
+                priority: 40,
+                visible: true,
+            },
+            Binding {
+                action: ENTER,
+                chord: Some(Chord::key(KeyCode::Enter)),
+                cmd: NavCmd::Enter,
+                label: "Choose",
+                priority: 60,
+                visible: true,
+            },
+        ];
+        let owner = Id::root("extension.owner");
+        let mut registry = BindingRegistry::default();
+        assert_eq!(
+            registry.publish(
+                owner,
+                StateFlags::FOCUSED,
+                crate::layer::LayerId::PAGE,
+                FIELD
+            ),
+            None
+        );
+        assert_eq!(
+            registry.extend(
+                owner,
+                StateFlags::FOCUSED,
+                crate::layer::LayerId::PAGE,
+                NAV,
+                |command| matches!(command, NavCmd::Up),
+            ),
+            Ok(())
+        );
+        let (_, descriptors) = registry.get(owner).expect("extended table");
+        assert_eq!(descriptors.len(), 3);
+        assert!(
+            descriptors
+                .iter()
+                .any(|binding| binding.action == BACKSPACE)
+        );
+        assert!(descriptors.iter().any(|binding| binding.action == COMMIT));
+        assert!(descriptors.iter().any(|binding| binding.action == UP));
+        assert!(!descriptors.iter().any(|binding| binding.action == ENTER));
+
+        let mut keymap = KeyMap::new();
+        keymap.remap_component(owner, UP, Chord::key(KeyCode::Backspace));
+        assert_eq!(keymap.component_conflicts(owner, descriptors).len(), 1);
+
+        registry.reset();
+        assert!(registry.get(owner).is_none());
+    }
+
+    #[test]
+    fn explicit_extension_rejects_action_and_default_chord_conflicts() {
+        #[derive(Clone, Copy)]
+        enum Command {
+            Base,
+            Extra,
+        }
+        const ACTION: ActionKey = ActionKey::custom("extension.conflict.action");
+        const EXTRA: ActionKey = ActionKey::custom("extension.conflict.extra");
+        const BASE: &[Binding<Command>] = &[Binding {
+            action: ACTION,
+            chord: Some(Chord::key(KeyCode::Esc)),
+            cmd: Command::Base,
+            label: "Cancel",
+            priority: 1,
+            visible: true,
+        }];
+        const SAME_ACTION: &[Binding<Command>] = &[Binding {
+            action: ACTION,
+            chord: Some(Chord::key(KeyCode::Enter)),
+            cmd: Command::Extra,
+            label: "Extra",
+            priority: 1,
+            visible: true,
+        }];
+        const SAME_CHORD: &[Binding<Command>] = &[Binding {
+            action: EXTRA,
+            chord: Some(Chord::key(KeyCode::Esc)),
+            cmd: Command::Extra,
+            label: "Extra",
+            priority: 1,
+            visible: true,
+        }];
+        let owner = Id::root("extension.conflict");
+        let mut registry = BindingRegistry::default();
+        registry.publish(
+            owner,
+            StateFlags::FOCUSED,
+            crate::layer::LayerId::PAGE,
+            BASE,
+        );
+        assert_eq!(
+            registry.extend(
+                owner,
+                StateFlags::FOCUSED,
+                crate::layer::LayerId::PAGE,
+                SAME_ACTION,
+                |_| true,
+            ),
+            Err(BindingExtensionError::DuplicateAction {
+                owner,
+                action: ACTION
+            })
+        );
+        assert_eq!(
+            registry.extend(
+                owner,
+                StateFlags::FOCUSED,
+                crate::layer::LayerId::PAGE,
+                SAME_CHORD,
+                |_| true,
+            ),
+            Err(BindingExtensionError::ConflictingChord {
+                owner,
+                chord: Chord::key(KeyCode::Esc),
+            })
+        );
+        assert_eq!(
+            registry.tables.len(),
+            1,
+            "a rejected extension published a table"
+        );
+        assert_eq!(
+            registry.descriptors.len(),
+            1,
+            "a rejected extension retained its provisional descriptors"
+        );
+        assert_eq!(registry.get(owner).expect("base retained").1.len(), 1);
+    }
+
+    #[test]
     fn effective_duplicate_chord_including_hidden_is_diagnosed() {
         const VISIBLE: ActionKey = ActionKey::custom("test.visible");
         const HIDDEN: ActionKey = ActionKey::custom("test.hidden");
@@ -997,11 +1243,13 @@ mod tests {
         let (_, first) = snapshots.update(
             Id::root("first"),
             None,
+            &[],
             core::iter::once((action, Some(Chord::key(KeyCode::F(1))))),
         );
         let (_, unchanged) = snapshots.update(
             Id::root("first"),
             None,
+            &[],
             core::iter::once((action, Some(Chord::key(KeyCode::F(1))))),
         );
         assert_eq!(first, unchanged);
@@ -1013,6 +1261,7 @@ mod tests {
             let _ = snapshots.update(
                 Id::root("owner").index(index),
                 None,
+                &[],
                 core::iter::once((action, Some(Chord::key(KeyCode::F(2))))),
             );
         }
@@ -1031,11 +1280,13 @@ mod tests {
         let (_, max) = snapshots.update(
             Id::root("wrap"),
             None,
+            &[],
             core::iter::once((action, Some(Chord::key(KeyCode::F(3))))),
         );
         let (_, wrapped) = snapshots.update(
             Id::root("wrap"),
             None,
+            &[],
             core::iter::once((action, Some(Chord::key(KeyCode::F(4))))),
         );
         assert_eq!(max, u64::MAX);
@@ -1043,6 +1294,133 @@ mod tests {
         assert_ne!(
             BindingTableId::dynamic(Id::root("wrap"), 1, max),
             BindingTableId::dynamic(Id::root("wrap"), 1, wrapped)
+        );
+    }
+
+    #[test]
+    fn dynamic_snapshot_invalidates_when_selected_base_descriptors_change() {
+        let owner = Id::root("selected-base");
+        let dynamic = ActionKey::custom("selected-base.dynamic");
+        let first = [BindingDescriptor {
+            action: ActionKey::custom("selected-base.first"),
+            chord: Some(Chord::key(KeyCode::Up)),
+            label: "First",
+            priority: 1,
+            visible: true,
+        }];
+        let second = [BindingDescriptor {
+            action: ActionKey::custom("selected-base.second"),
+            chord: Some(Chord::key(KeyCode::Down)),
+            label: "Second",
+            priority: 1,
+            visible: true,
+        }];
+        let binding = core::iter::once((dynamic, Some(Chord::key(KeyCode::Char('x')))));
+        let mut snapshots = DynamicBindingRegistry::default();
+        let (_, first_revision) = snapshots.update(
+            owner,
+            Some(BindingTableId::Static {
+                command_type: TypeId::of::<()>(),
+                address: 1,
+                len: 2,
+            }),
+            &first,
+            binding.clone(),
+        );
+        let (_, second_revision) = snapshots.update(
+            owner,
+            Some(BindingTableId::Static {
+                command_type: TypeId::of::<()>(),
+                address: 1,
+                len: 2,
+            }),
+            &second,
+            binding.clone(),
+        );
+        let (_, unchanged_revision) = snapshots.update(
+            owner,
+            Some(BindingTableId::Static {
+                command_type: TypeId::of::<()>(),
+                address: 1,
+                len: 2,
+            }),
+            &second,
+            binding,
+        );
+
+        assert_ne!(first_revision, second_revision);
+        assert_eq!(second_revision, unchanged_revision);
+    }
+
+    #[test]
+    fn focused_hints_refresh_when_selected_descriptors_change_under_same_table_id() {
+        let owner = Id::root("filtered-hints");
+        let key = FocusedHintKey {
+            focus: owner,
+            flags: StateFlags::FOCUSED,
+            layer: crate::layer::LayerId::PAGE,
+            table: BindingTableId::Static {
+                command_type: TypeId::of::<()>(),
+                address: 1,
+                len: 2,
+            },
+            keymap_revision: 0,
+        };
+        let first = [BindingDescriptor {
+            action: ActionKey::custom("filtered.first"),
+            chord: Some(Chord::key(KeyCode::Up)),
+            label: "First",
+            priority: 1,
+            visible: true,
+        }];
+        let second = [BindingDescriptor {
+            action: ActionKey::custom("filtered.second"),
+            chord: Some(Chord::key(KeyCode::Down)),
+            label: "Second",
+            priority: 1,
+            visible: true,
+        }];
+        let mut focused = FocusedHints::default();
+        focused.derive(key, &first, &KeyMap::new());
+        assert_eq!(focused.layer.hints[0].label, "First");
+        focused.derive(key, &second, &KeyMap::new());
+        assert_eq!(focused.layer.hints[0].label, "Second");
+    }
+
+    #[test]
+    fn focused_hints_refresh_when_keymap_remaps_a_stable_descriptor() {
+        let owner = Id::root("remapped-hints");
+        let action = ActionKey::custom("remapped-hints.action");
+        let table = [BindingDescriptor {
+            action,
+            chord: Some(Chord::key(KeyCode::Up)),
+            label: "Move",
+            priority: 1,
+            visible: true,
+        }];
+        let mut focused = FocusedHints::default();
+        let key = |keymap_revision| FocusedHintKey {
+            focus: owner,
+            flags: StateFlags::FOCUSED,
+            layer: crate::layer::LayerId::PAGE,
+            table: BindingTableId::Static {
+                command_type: TypeId::of::<()>(),
+                address: 1,
+                len: 1,
+            },
+            keymap_revision,
+        };
+
+        focused.derive(key(0), &table, &KeyMap::new());
+        assert_eq!(
+            focused.layer.hints[0].key,
+            HintKey::Chord(Chord::key(KeyCode::Up))
+        );
+        let remapped = KeyMap::new().bind_component(owner, action, Chord::key(KeyCode::Down));
+        focused.derive(key(1), &table, &remapped);
+        assert_eq!(
+            focused.layer.hints[0].key,
+            HintKey::Chord(Chord::key(KeyCode::Down))
         );
     }
     #[test]
