@@ -96,6 +96,20 @@ const BINDINGS: &[Binding<FilterListCmd>] = &[
         false,
     ),
     binding(
+        ActionKey::custom("filter-list.ctrl-k"),
+        Chord::with(KeyCode::Char('k'), KeyModifiers::CONTROL),
+        FilterListCmd::Up,
+        "Up",
+        false,
+    ),
+    binding(
+        ActionKey::custom("filter-list.ctrl-j"),
+        Chord::with(KeyCode::Char('j'), KeyModifiers::CONTROL),
+        FilterListCmd::Down,
+        "Down",
+        false,
+    ),
+    binding(
         ActionKey::custom("filter-list.page-up"),
         Chord::key(KeyCode::PageUp),
         FilterListCmd::PageUp,
@@ -173,10 +187,19 @@ const CANCEL_BINDING: &[Binding<FilterListCmd>] = &[Binding {
     visible: false,
 }];
 
-const QUERY_EXCLUDE_NONE: &[TextCmd] = &[];
-const QUERY_EXCLUDE_DELETE: &[TextCmd] = &[TextCmd::Delete];
-const QUERY_EXCLUDE_EMPTY: &[TextCmd] = &[TextCmd::Backspace, TextCmd::Delete, TextCmd::Cancel];
-const QUERY_EXCLUDE_EMPTY_NO_DELETE: &[TextCmd] = &[TextCmd::Backspace, TextCmd::Cancel];
+const QUERY_EXCLUDE_NONE: &[TextCmd] = &[TextCmd::DeleteToLineEnd];
+const QUERY_EXCLUDE_DELETE: &[TextCmd] = &[TextCmd::Delete, TextCmd::DeleteToLineEnd];
+const QUERY_EXCLUDE_EMPTY: &[TextCmd] = &[
+    TextCmd::Backspace,
+    TextCmd::Delete,
+    TextCmd::Cancel,
+    TextCmd::DeleteToLineEnd,
+];
+const QUERY_EXCLUDE_EMPTY_NO_DELETE: &[TextCmd] = &[
+    TextCmd::Backspace,
+    TextCmd::Cancel,
+    TextCmd::DeleteToLineEnd,
+];
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
 pub enum FilterPolicy {
@@ -439,6 +462,7 @@ impl<'a, T, R> FilterList<'a, T, R> {
             .placeholder_while_editing(true)
             .blur(BlurPolicy::Keep)
             .exclude_commands(excluded)
+            .auxiliary_style_target(Family::PICKER, Variant::DEFAULT)
             .style_target(Family::PICKER, Variant::DEFAULT, Part::QUERY)
     }
 
@@ -713,51 +737,31 @@ impl<T: AsItem, R: RowFn<T>> FilterList<'_, T, R> {
 
         if self.searchable {
             let previous = st.query().to_owned();
-            let backspace = cx.effective_chord(
-                self.id,
-                ActionKey::custom("Backspace"),
-                Some(Chord::key(KeyCode::Backspace)),
-            );
-            let delete = cx.effective_chord(
-                self.id,
-                ActionKey::custom("Delete"),
-                Some(Chord::key(KeyCode::Delete)),
-            );
-            let back_to_owner = st.query().is_empty()
-                && backspace.is_some_and(|chord| cx.claim_binding_chord(self.id, chord).is_some());
-            let delete_secondary = self.delete_is_secondary
-                && delete.is_some_and(|chord| cx.claim_binding_chord(self.id, chord).is_some());
-            if back_to_owner {
-                acc.action(FilterListAction::Back);
-            } else if delete_secondary {
-                self.item_action(st, items, FilterListCmd::Secondary, &mut acc);
-            } else {
-                let committed = st.query.clone();
-                let input = self
-                    .query_input(previous.is_empty())
-                    .value(&committed)
-                    .update(cx, &mut st.query_input, &mut st.query);
-                match input.action_ref().copied() {
-                    Some(TextAction::Changed) => {
-                        st.core.invalidate();
+            let committed = st.query.clone();
+            let input = self
+                .query_input(previous.is_empty())
+                .value(&committed)
+                .update(cx, &mut st.query_input, &mut st.query);
+            match input.action_ref().copied() {
+                Some(TextAction::Changed) => {
+                    st.core.invalidate();
+                    acc.action(FilterListAction::QueryChanged);
+                }
+                Some(TextAction::Cancelled) => {
+                    st.set_query("");
+                    if previous.is_empty() {
+                        acc.action(FilterListAction::Cancel);
+                    } else {
                         acc.action(FilterListAction::QueryChanged);
                     }
-                    Some(TextAction::Cancelled) => {
-                        st.set_query("");
-                        if previous.is_empty() {
-                            acc.action(FilterListAction::Cancel);
-                        } else {
-                            acc.action(FilterListAction::QueryChanged);
-                        }
-                    }
-                    Some(TextAction::Committed) => {
-                        self.item_action(st, items, FilterListCmd::Choose, &mut acc);
-                    }
-                    _ => {}
                 }
-                st.query_edit_menu = st.query_input.take_edit_menu_request();
-                acc.fold(&input.erase());
+                Some(TextAction::Committed) => {
+                    self.item_action(st, items, FilterListCmd::Choose, &mut acc);
+                }
+                _ => {}
             }
+            st.query_edit_menu = st.query_input.take_edit_menu_request();
+            acc.fold(&input.erase());
         }
 
         self.reconcile(st, items);
@@ -946,17 +950,10 @@ impl<T: AsItem, R: RowFn<T>> FilterList<'_, T, R> {
     }
 
     pub fn draw(&self, ui: &mut Ui<'_>, area: Rect, st: &FilterListState, items: &[T]) -> Rect {
-        if self.searchable && !area.is_empty() {
-            self.draw_query(ui, Rect { height: 1, ..area }, st);
-            let results = Rect {
-                y: area.y.saturating_add(1),
-                height: area.height.saturating_sub(1),
-                ..area
-            };
-            self.draw_results(ui, results, st, items)
-        } else {
-            self.draw_results(ui, area, st, items)
-        }
+        // Keep FilterList's established area contract. Compositions that own
+        // a separate query row (such as Picker) place it explicitly via
+        // `draw_query` and pass their result viewport to `draw_results`.
+        self.draw_results(ui, area, st, items)
     }
 
     #[doc(hidden)]
@@ -1132,6 +1129,20 @@ mod tests {
         assert!(contains_folded(item.label, "cpa"));
         assert_eq!(FilterList::<Domain, ItemRow>::semantic_width(&[domain]), 22);
         assert!(!contains_folded("picker", "px"));
+    }
+
+    #[test]
+    fn searchable_filter_list_draw_keeps_its_full_area_for_results() {
+        let items = [Item::new(ItemKey::num(1), "alpha")];
+        let (_, page) = with_ui(|ui| {
+            FilterList::<Item<'_>>::new(Id::root("filter-list.area-contract")).draw(
+                ui,
+                AREA,
+                &FilterListState::default(),
+                &items,
+            );
+        });
+        assert_eq!(page[(AREA.x.saturating_add(1), AREA.y)].symbol(), "a");
     }
 
     #[test]

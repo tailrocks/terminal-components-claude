@@ -664,6 +664,16 @@ mod tests {
             Some(&PickerAction::QueryChanged)
         );
 
+        let _ = termrock_runtime::runtime::stub::deliver(
+            &mut runtime,
+            Input::Key(Key {
+                code: KeyCode::Char('k'),
+                mods: KeyModifiers::CONTROL,
+            }),
+        );
+        runtime.draw_buffer(area, &mut buffer).commit_presented();
+        assert_eq!(runtime.app().state.query(), "b", "Ctrl+K navigates results");
+
         let _ = termrock_runtime::runtime::stub::deliver(&mut runtime, key(KeyCode::Delete));
         runtime.draw_buffer(area, &mut buffer).commit_presented();
         assert_eq!(runtime.app().state.query(), "b");
@@ -707,10 +717,117 @@ mod tests {
             "first Esc clears query, keeps picker open"
         );
 
+        let _ = termrock_runtime::runtime::stub::deliver(&mut runtime, key(KeyCode::Char('a')));
+        runtime.draw_buffer(area, &mut buffer).commit_presented();
+        assert_eq!(runtime.app().state.query(), "a");
+        let _ = termrock_runtime::runtime::stub::deliver(&mut runtime, key(KeyCode::Esc));
+        runtime.draw_buffer(area, &mut buffer).commit_presented();
+        assert_eq!(runtime.app().state.query(), "");
+        for code in [KeyCode::Char('z'), KeyCode::Char('z')] {
+            let _ = termrock_runtime::runtime::stub::deliver(&mut runtime, key(code));
+            runtime.draw_buffer(area, &mut buffer).commit_presented();
+        }
+        assert_eq!(runtime.app().state.query(), "zz");
+        let _ = termrock_runtime::runtime::stub::deliver(&mut runtime, key(KeyCode::Enter));
+        runtime.draw_buffer(area, &mut buffer).commit_presented();
+        assert!(runtime.is_open(ID));
+        let _ = termrock_runtime::runtime::stub::deliver(&mut runtime, key(KeyCode::Char('a')));
+        runtime.draw_buffer(area, &mut buffer).commit_presented();
+        assert_eq!(runtime.app().state.query(), "zza");
+
+        let _ = termrock_runtime::runtime::stub::deliver(&mut runtime, key(KeyCode::Esc));
+        runtime.draw_buffer(area, &mut buffer).commit_presented();
+        assert_eq!(runtime.app().state.query(), "");
+
         let _ = termrock_runtime::runtime::stub::deliver(&mut runtime, key(KeyCode::Esc));
         runtime.draw_buffer(area, &mut buffer).commit_presented();
         assert!(!runtime.is_open(ID), "second Esc dismisses empty picker");
         assert!(runtime.app().actions.contains(&PickerAction::QueryChanged));
+    }
+
+    #[test]
+    fn filter_navigation_remapping_uses_typed_action_not_delete_chord_claim() {
+        use termrock_runtime::event::{Input, Key, KeyCode, KeyModifiers};
+        use termrock_runtime::keymap::KeyMap;
+        use termrock_runtime::runtime::{App, Runtime};
+        use termrock_runtime::{ActionKey, Chord};
+
+        const ID: Id = Id::root("picker.remapped-filter-navigation");
+        const DOWN: ActionKey = ActionKey::custom("filter-list.down");
+        const SECONDARY: ActionKey = ActionKey::custom("filter-list.secondary");
+        struct RemappedApp {
+            state: PickerState,
+            opened: bool,
+            actions: Vec<PickerAction>,
+            keymap: KeyMap,
+        }
+        impl App for RemappedApp {
+            fn keymap(&self) -> &KeyMap {
+                &self.keymap
+            }
+
+            fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+                let picker = Picker::new(ID).title("Find");
+                let items = [
+                    Item::new(ItemKey::num(1), "alpha"),
+                    Item::new(ItemKey::num(2), "beta"),
+                ];
+                if !self.opened {
+                    self.opened = true;
+                    cx.open_layer(ID, picker.layer(cx, &items));
+                }
+                let mut response = picker.update(cx, &mut self.state, &items);
+                if let Some(action) = response.take_action() {
+                    self.actions.push(action);
+                }
+                response.erase()
+            }
+
+            fn draw(&self, ui: &mut Ui<'_>) {
+                let picker = Picker::new(ID).title("Find");
+                let items = [
+                    Item::new(ItemKey::num(1), "alpha"),
+                    Item::new(ItemKey::num(2), "beta"),
+                ];
+                ui.layer(ID, |ui, area| picker.draw(ui, area, &self.state, &items));
+            }
+        }
+
+        let mut keymap = KeyMap::new();
+        keymap.remove_component(ID, SECONDARY);
+        keymap.remap_component(ID, DOWN, Chord::key(KeyCode::Delete));
+        let area = Rect::new(0, 0, 80, 24);
+        let mut buffer = ratatui_core::buffer::Buffer::empty(area);
+        let mut runtime = Runtime::new(
+            RemappedApp {
+                state: PickerState::default(),
+                opened: false,
+                actions: Vec::new(),
+                keymap,
+            },
+            Theme::junie(),
+        );
+        let _ = runtime.initialize();
+        runtime.draw_buffer(area, &mut buffer).commit_presented();
+        let _ = termrock_runtime::runtime::stub::deliver(&mut runtime, Input::Tick);
+        runtime.draw_buffer(area, &mut buffer).commit_presented();
+        let _ = termrock_runtime::runtime::stub::deliver(
+            &mut runtime,
+            Input::Key(Key {
+                code: KeyCode::Delete,
+                mods: KeyModifiers::NONE,
+            }),
+        );
+        runtime.draw_buffer(area, &mut buffer).commit_presented();
+
+        assert_eq!(runtime.app().state.cursor(), Some(ItemKey::num(2)));
+        assert!(
+            !runtime
+                .app()
+                .actions
+                .iter()
+                .any(|action| matches!(action, PickerAction::Secondary(_)))
+        );
     }
 
     fn measured_at(size: LayerSize, viewport_width: u16) -> LayerSize {
