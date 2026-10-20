@@ -605,6 +605,7 @@ impl DynamicBindingRegistry {
         self.update_descriptors(
             owner,
             base,
+            base_descriptors,
             bindings.map(|(action, chord)| BindingDescriptor {
                 action,
                 chord,
@@ -619,6 +620,7 @@ impl DynamicBindingRegistry {
         &mut self,
         owner: Id,
         base: Option<BindingTableId>,
+        base_descriptors: &[BindingDescriptor],
         bindings: I,
     ) -> (&[BindingDescriptor], u64)
     where
