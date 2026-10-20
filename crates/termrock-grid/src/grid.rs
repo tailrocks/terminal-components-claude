@@ -1000,6 +1000,7 @@ pub struct Grid<'a> {
     column_fit: GridColumnFit,
     header_sizing: GridHeaderSizing,
     sort_indicator: GridSortIndicator,
+    cell_tone_styles: &'a [(Role, StylePatch)],
     overflow_indicator: GridOverflowIndicator,
     disabled: bool,
     fetch_on_activate: bool,
@@ -1061,6 +1062,7 @@ impl<'a> Grid<'a> {
             column_fit: GridColumnFit::Whole,
             header_sizing: GridHeaderSizing::Content,
             sort_indicator: GridSortIndicator::Always,
+            cell_tone_styles: &[],
             overflow_indicator: GridOverflowIndicator::Count,
             disabled: false,
             fetch_on_activate: false,
@@ -1231,6 +1233,14 @@ impl<'a> Grid<'a> {
     #[must_use]
     pub const fn sort_indicator(mut self, policy: GridSortIndicator) -> Self {
         self.sort_indicator = policy;
+        self
+    }
+
+    /// Applies additional cell style patches for semantic tones, after the
+    /// resolved cell style and the tone's default foreground.
+    #[must_use]
+    pub const fn cell_tone_styles(mut self, styles: &'a [(Role, StylePatch)]) -> Self {
+        self.cell_tone_styles = styles;
         self
     }
 
@@ -3179,6 +3189,11 @@ impl Grid<'_> {
             let mut cell_delta = StylePatch::new();
             if let Some(role) = cdecor.tone.or(cell.tone) {
                 cell_delta = cell_delta.set_fg(role);
+                if let Some((_, patch)) =
+                    self.cell_tone_styles.iter().find(|(tone, _)| *tone == role)
+                {
+                    cell_delta = cell_delta.merge(*patch);
+                }
             }
             if cdecor.italic {
                 cell_delta = cell_delta.add(Modifier::ITALIC);
