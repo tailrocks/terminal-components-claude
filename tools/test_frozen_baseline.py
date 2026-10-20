@@ -5,10 +5,12 @@ from __future__ import annotations
 
 import io
 import json
+import os
 import sys
 import tarfile
 import tempfile
 import unittest
+from contextlib import ExitStack
 from pathlib import Path
 from unittest.mock import patch
 
@@ -795,6 +797,255 @@ class RunnerGuards(unittest.TestCase):
                 created_at="2026-10-21T00:00:00+00:00",
             )
         return plan
+
+    def _fresh_advance_fixture(self, base: Path) -> dict[str, object]:
+        base = base.resolve()
+        root = base / "runner-root"
+        root.mkdir()
+        plan = self._fresh_plan_fixture(root)
+        plan_path = root / runner.FRESH_PLAN_FILE
+        creation_sha256 = runner._atomic_create_plan(plan_path, plan)
+        bins = root / "bins"
+        bins.mkdir()
+        for app in runner.APPS:
+            (bins / app).write_bytes(f"fixture-{app}".encode())
+        key_dir = base / "custody"
+        key_dir.mkdir(mode=0o700)
+        key_path = key_dir / "run.key"
+        repo = root / "repo"
+        source = root / "source"
+        stdout = io.StringIO()
+        with (
+            patch.object(runner, "EXPECTED_SCENARIOS", 1),
+            patch.object(runner, "EXPECTED_ORDINARY_TESTS", 2),
+            patch.object(runner, "ordinary_test_groups", return_value=(["source_only::fixture"], ["modes::showcase_boot_sets_terminal_modes"])),
+            patch.object(runner, "verify_fresh_plan", return_value=plan),
+            patch.object(runner, "paths", return_value=(repo, root, source)),
+            patch.object(runner, "_git_metadata_paths", return_value=set()),
+            patch.object(runner.sys, "stdout", stdout),
+        ):
+            manifest = runner.create_fresh_run(repo, root, "fixture-cohort", bins, 30, creation_sha256, key_path)
+        return {
+            "base": base,
+            "root": root,
+            "repo": repo,
+            "source": source,
+            "live": root / "live-source",
+            "plan": plan,
+            "plan_path": plan_path,
+            "creation_sha256": creation_sha256,
+            "bins": bins,
+            "key_path": key_path,
+            "manifest": manifest,
+            "run_root": root / "fresh-runs" / plan["plan_id"],
+        }
+
+    def _advance_fresh_fixture(self, fixture: dict[str, object], run_live_chunk, **patches):
+        context = ExitStack()
+        stdout = io.StringIO()
+        fixture["advance_stdout"] = stdout
+        context.enter_context(patch.object(runner.sys, "stdout", stdout))
+        context.enter_context(patch.object(runner, "EXPECTED_SCENARIOS", 1))
+        context.enter_context(patch.object(runner, "EXPECTED_ORDINARY_TESTS", 2))
+        context.enter_context(patch.object(runner, "ordinary_test_groups", return_value=(["source_only::fixture"], ["modes::showcase_boot_sets_terminal_modes"])))
+        context.enter_context(patch.object(runner, "paths", return_value=(fixture["repo"], fixture["root"], fixture["source"])))
+        context.enter_context(patch.object(runner, "verify_fresh_run", return_value=fixture["manifest"]))
+        context.enter_context(patch.object(runner, "verify_live_source", return_value=(fixture["live"], {"source_sha256": fixture["manifest"]["source"]["source_sha256"]})))
+        context.enter_context(patch.object(runner, "phase_binary_hashes", return_value=fixture["manifest"]["binary_hashes"]))
+        context.enter_context(patch.object(runner, "verify_source", return_value=fixture["manifest"]["source"]["source_sha256"]))
+        context.enter_context(patch.object(runner, "load_extension_manifest", return_value={"generated_case_ids": [], "checkpoint_obligations": {}}))
+        if run_live_chunk is not None:
+            context.enter_context(patch.object(runner, "run_live_chunk", side_effect=run_live_chunk))
+        for name, value in patches.items():
+            context.enter_context(patch.object(runner, name, side_effect=value) if callable(value) else patch.object(runner, name, value=value))
+        return context
+
+    @staticmethod
+    def _passing_live_chunk(_live, _root, runner_dir, phase, _baseline_bin_dir, expected_root, selected, chunk_index, *_args, **_kwargs):
+        expected_root.mkdir(parents=True, exist_ok=True)
+        (expected_root / "frame.json").write_text('{"frame":"fixture"}\n')
+        report = runner_dir / phase / f"chunk-{chunk_index:05}" / "report.json"
+        report.parent.mkdir(parents=True)
+        report.write_text(json.dumps({"status": "passed", "selected_cases": selected}) + "\n")
+        return {
+            "status": "passed",
+            "checkpoint_count": len(selected),
+            "successful_test_events": len(selected),
+            "process_receipt_count": 1,
+            "process_pid_count": 1,
+            "process_receipt_inventory_sha256": "a" * 64,
+            "checkpoint_inventory_sha256": "b" * 64,
+            "artifacts_sha256": "c" * 64,
+        }
+
+    @staticmethod
+    def _fake_cargo(path: Path, *, timeout: bool) -> Path:
+        path.mkdir()
+        cargo = path / "cargo"
+        script = "#!/usr/bin/python3\nimport os, sys, time\nopen(os.environ['FAKE_CARGO_PID_FILE'], 'w').write(str(os.getpid()))\nprint('fake nextest stdout')\nprint('fake nextest stderr', file=sys.stderr)\n"
+        script += "time.sleep(5)\n" if timeout else "sys.exit(17)\n"
+        cargo.write_text(script)
+        cargo.chmod(0o755)
+        return cargo
+
+    def _assert_failed_attempt_preserved(self, fixture: dict[str, object], *, phase: str = "baseline-capture") -> Path:
+        phase_root = Path(fixture["plan"]["execution"]["artifact_roots"][phase.replace("-", "_")])
+        attempts = sorted(phase_root.glob(".attempt-*"))
+        self.assertEqual(len(attempts), 1, f"attempts={attempts} phase_exists={phase_root.exists()} error={fixture.get('advance_error')} stdout={fixture['advance_stdout'].getvalue()!r}")
+        attempt = attempts[0]
+        marker_path = attempt / "untrusted-failure.json"
+        self.assertTrue(marker_path.is_file(), marker_path)
+        marker = json.loads(marker_path.read_text())
+        self.assertEqual(marker["status"], "untrusted-failed-attempt")
+        self.assertIn(marker["attempt_root_original_mode"], {"0555", "0700"})
+        self.assertEqual(marker["attempt_root_mode_for_marker"], "0700")
+        self.assertFalse((phase_root / "chunk-00000").exists())
+        journal = Path(fixture["run_root"]) / "journal"
+        self.assertFalse(journal.exists() and list(journal.iterdir()))
+        envelopes = runner._fresh_journal_envelopes(Path(fixture["run_root"]))
+        manifest_envelope, _ = runner._read_stable_json(Path(fixture["run_root"]) / runner.FRESH_RUN_MANIFEST_FILE, "fresh run manifest")
+        with patch.object(runner, "EXPECTED_SCENARIOS", 1), patch.object(runner, "EXPECTED_ORDINARY_TESTS", 2), patch.object(runner, "ordinary_test_groups", return_value=(["source_only::fixture"], ["modes::showcase_boot_sets_terminal_modes"])):
+            progress = runner.validate_fresh_run_journal(envelopes, fixture["key_path"].read_bytes(), manifest_envelope, fixture["plan_path"], fixture["creation_sha256"])
+        self.assertEqual(progress["completed_steps"], 0)
+        self.assertFalse(progress["candidate_comparison_eligible"])
+        return attempt
+
+    def test_fresh_advance_failed_child_and_timeout_keep_attempt_and_retry_same_ordinal(self) -> None:
+        for failure in ("child", "timeout"):
+            with self.subTest(failure=failure), tempfile.TemporaryDirectory() as temp:
+                fixture = self._fresh_advance_fixture(Path(temp))
+                fake_bin = Path(temp) / "fake-bin"
+                self._fake_cargo(fake_bin, timeout=failure == "timeout")
+                pid_path = Path(temp) / "fake-cargo.pid"
+                run_patch = {}
+                if failure == "timeout":
+                    original_run = runner.run
+                    run_patch["run"] = lambda command, **kwargs: original_run(command, **{**kwargs, "timeout": 1})
+                with self._advance_fresh_fixture(fixture, None, clean_env=lambda: {"PATH": str(fake_bin), "HOME": str(Path(temp) / "home"), "FAKE_CARGO_PID_FILE": str(pid_path)}, **run_patch):
+                    with self.assertRaises((runner.RunnerError, runner.subprocess.TimeoutExpired)) as raised:
+                        runner.advance_fresh_run(fixture["repo"], fixture["root"], "fixture-cohort", fixture["bins"], 30, fixture["creation_sha256"], fixture["key_path"])
+                    fixture["advance_error"] = str(raised.exception)
+                attempt = self._assert_failed_attempt_preserved(fixture)
+                report = attempt / "runner" / "baseline-capture" / "chunk-00000" / "report.json"
+                self.assertTrue(report.is_file())
+                self.assertEqual(json.loads(report.read_text())["status"], "failed")
+                logs = report.parent / "logs"
+                self.assertTrue((logs / "stderr.log").is_file())
+                self.assertTrue((logs / "stdout.jsonl.gz").is_file())
+                self.assertNotIn('"journal_ordinal"', fixture["advance_stdout"].getvalue())
+                self.assertTrue(pid_path.is_file())
+                child_pid = int(pid_path.read_text())
+                if failure == "timeout":
+                    with self.assertRaises(ProcessLookupError):
+                        os.kill(child_pid, 0)
+
+                with self._advance_fresh_fixture(fixture, self._passing_live_chunk):
+                    output = runner.advance_fresh_run(fixture["repo"], fixture["root"], "fixture-cohort", fixture["bins"], 30, fixture["creation_sha256"], fixture["key_path"])
+                self.assertEqual(output["journal_ordinal"], 0)
+                self.assertEqual(output["phase"], "baseline-capture")
+                self.assertTrue((Path(fixture["run_root"]) / "journal" / "step-00000000.json").is_file())
+
+    def test_fresh_advance_mutated_artifact_is_retained_as_failed_attempt(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            fixture = self._fresh_advance_fixture(Path(temp))
+            original_verify = runner._verify_fresh_journal_artifacts
+            mutated_hashes: list[str] = []
+
+            def mutate_then_verify(plan, envelopes):
+                if not envelopes:
+                    return original_verify(plan, envelopes)
+                phase_root = Path(plan["execution"]["artifact_roots"]["baseline_capture"])
+                frame = phase_root / "chunk-00000" / "expected" / "frame.json"
+                frame.chmod(0o644)
+                frame.write_text('{"frame":"mutated after digest"}\n')
+                frame.chmod(0o444)
+                mutated_hashes.append(runner.sha256(frame))
+                return original_verify(plan, envelopes)
+
+            with self._advance_fresh_fixture(fixture, self._passing_live_chunk, _verify_fresh_journal_artifacts=mutate_then_verify):
+                with self.assertRaisesRegex(runner.RunnerError, "changed|immutable"):
+                    runner.advance_fresh_run(fixture["repo"], fixture["root"], "fixture-cohort", fixture["bins"], 30, fixture["creation_sha256"], fixture["key_path"])
+            attempt = self._assert_failed_attempt_preserved(fixture)
+            frame = attempt / "expected" / "frame.json"
+            self.assertEqual(runner.sha256(frame), mutated_hashes[0])
+            self.assertEqual(fixture["advance_stdout"].getvalue(), "")
+
+    def test_fresh_advance_postrename_verification_failure_rolls_back_to_attempt(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            fixture = self._fresh_advance_fixture(Path(temp))
+            phase_root = Path(fixture["plan"]["execution"]["artifact_roots"]["baseline_capture"])
+
+            original_verify = runner._verify_fresh_journal_artifacts
+            committed_hashes: list[str] = []
+
+            def fail_verification(_plan, envelopes):
+                if not envelopes:
+                    return original_verify(_plan, envelopes)
+                final_chunk = phase_root / "chunk-00000"
+                self.assertTrue(final_chunk.is_dir())
+                committed_hashes.append(runner._fresh_expected_tree_sha256(final_chunk / "runner"))
+                raise runner.RunnerError("injected postrename verification failure")
+
+            with self._advance_fresh_fixture(fixture, self._passing_live_chunk, _verify_fresh_journal_artifacts=fail_verification):
+                with self.assertRaisesRegex(runner.RunnerError, "postrename verification"):
+                    runner.advance_fresh_run(fixture["repo"], fixture["root"], "fixture-cohort", fixture["bins"], 30, fixture["creation_sha256"], fixture["key_path"])
+            attempt = self._assert_failed_attempt_preserved(fixture)
+            self.assertEqual(runner._fresh_expected_tree_sha256(attempt / "runner"), committed_hashes[0])
+            self.assertEqual(fixture["advance_stdout"].getvalue(), "")
+
+    def test_fresh_advance_journal_failure_rolls_back_and_keeps_ordinal_zero(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            fixture = self._fresh_advance_fixture(Path(temp))
+            published_hashes: list[str] = []
+
+            def fail_append(*_args, **_kwargs):
+                final_chunk = Path(fixture["plan"]["execution"]["artifact_roots"]["baseline_capture"]) / "chunk-00000"
+                published_hashes.append(runner._fresh_expected_tree_sha256(final_chunk / "runner"))
+                raise runner.RunnerError("injected journal publication failure")
+
+            with self._advance_fresh_fixture(fixture, self._passing_live_chunk, _fresh_journal_append=fail_append):
+                with self.assertRaisesRegex(runner.RunnerError, "journal publication"):
+                    runner.advance_fresh_run(fixture["repo"], fixture["root"], "fixture-cohort", fixture["bins"], 30, fixture["creation_sha256"], fixture["key_path"])
+            attempt = self._assert_failed_attempt_preserved(fixture)
+            self.assertTrue((attempt / "runner" / "baseline-capture" / "chunk-00000" / "report.json").is_file())
+            self.assertEqual(runner._fresh_expected_tree_sha256(attempt / "runner"), published_hashes[0])
+            self.assertEqual(fixture["advance_stdout"].getvalue(), "")
+
+    def test_fresh_advance_exception_after_receipt_publication_keeps_committed_step(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            fixture = self._fresh_advance_fixture(Path(temp))
+            original_append = runner._fresh_journal_append
+
+            def append_then_raise(run_root, envelope, ordinal):
+                original_append(run_root, envelope, ordinal)
+                raise runner.RunnerError("injected exception after immutable receipt publication")
+
+            with self._advance_fresh_fixture(fixture, self._passing_live_chunk, _fresh_journal_append=append_then_raise):
+                with self.assertRaisesRegex(runner.RunnerError, "immutable ordinal 0 was published.*verified resume"):
+                    runner.advance_fresh_run(fixture["repo"], fixture["root"], "fixture-cohort", fixture["bins"], 30, fixture["creation_sha256"], fixture["key_path"])
+            journal_path = Path(fixture["run_root"]) / "journal" / "step-00000000.json"
+            self.assertTrue(journal_path.is_file())
+            committed = Path(fixture["plan"]["execution"]["artifact_roots"]["baseline_capture"]) / "chunk-00000"
+            self.assertTrue(committed.is_dir())
+            receipt_sha = runner.sha256(journal_path)
+            chunk_sha = runner._fresh_expected_tree_sha256(committed)
+            failure_markers = list((Path(fixture["run_root"]) / "failed-attempts").glob("ordinal-*.json"))
+            self.assertEqual(len(failure_markers), 1)
+            self.assertEqual(json.loads(failure_markers[0].read_text())["status"], "untrusted-failed-publication")
+            envelopes = runner._fresh_journal_envelopes(Path(fixture["run_root"]))
+            key = fixture["key_path"].read_bytes()
+            with patch.object(runner, "EXPECTED_SCENARIOS", 1), patch.object(runner, "EXPECTED_ORDINARY_TESTS", 2), patch.object(runner, "ordinary_test_groups", return_value=(["source_only::fixture"], ["modes::showcase_boot_sets_terminal_modes"])):
+                result = runner.validate_fresh_run_journal(envelopes, key, runner._read_stable_json(Path(fixture["run_root"]) / runner.FRESH_RUN_MANIFEST_FILE, "fresh run manifest")[0], fixture["plan_path"], fixture["creation_sha256"])
+            self.assertEqual(result["completed_steps"], 1)
+            self.assertFalse(result["candidate_comparison_eligible"])
+            retry = unittest.mock.Mock(side_effect=self._passing_live_chunk)
+            with self._advance_fresh_fixture(fixture, retry):
+                with self.assertRaisesRegex(runner.RunnerError, "unresolved post-publication failure"):
+                    runner.advance_fresh_run(fixture["repo"], fixture["root"], "fixture-cohort", fixture["bins"], 30, fixture["creation_sha256"], fixture["key_path"])
+            retry.assert_not_called()
+            self.assertEqual(runner.sha256(journal_path), receipt_sha)
+            self.assertEqual(runner._fresh_expected_tree_sha256(committed), chunk_sha)
+            self.assertFalse((committed.parent / "chunk-00001").exists())
 
     def test_fresh_plan_is_complete_capture_only_inventory_and_verifiable(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
