@@ -114,9 +114,10 @@ class RunnerGuards(unittest.TestCase):
             receipt_root = root / "receipts"
             expected.mkdir()
             ansi = b"frame\x1b[?25h"
-            frame_name = f"case-{case.encode().hex()}-00000000-{logical.encode().hex()}.ansi"
+            identity = runner.checkpoint_identity(case, 0, logical)
+            frame_name = f"checkpoint-00000000-{identity}.ansi"
             (expected / frame_name).write_bytes(ansi)
-            receipt_dir = receipt_root / case.encode().hex()
+            receipt_dir = receipt_root / runner.hashlib.sha256(case.encode()).hexdigest()
             receipt_dir.mkdir(parents=True)
             receipt = {
                 "case_id": case,
@@ -124,12 +125,20 @@ class RunnerGuards(unittest.TestCase):
                 "logical_name": logical,
                 "sha256": runner.hashlib.sha256(ansi).hexdigest(),
             }
-            (receipt_dir / f"00000000-{logical.encode().hex()}.json").write_text(json.dumps(receipt))
+            (receipt_dir / f"checkpoint-00000000-{identity}.json").write_text(json.dumps(receipt))
             found = runner.read_receipts(receipt_root, [case], expected)
             self.assertEqual(found, {(case, 0, logical): receipt["sha256"]})
             (expected / frame_name).write_bytes(b"changed")
             with self.assertRaisesRegex(runner.RunnerError, "hash mismatch"):
                 runner.read_receipts(receipt_root, [case], expected)
+
+    def test_checkpoint_paths_remain_below_portable_filename_limit(self) -> None:
+        case = "holla/activities/activities-multi-with-history/120x40/truecolor"
+        logical = "holla/activities/activities-multi-with-history/120x40/truecolor"
+        identity = runner.checkpoint_identity(case, 0, logical)
+        filename = f"checkpoint-00000000-{identity}.ansi"
+        self.assertLessEqual(len(filename.encode()), 255)
+        self.assertEqual(len(identity), 64)
 
     def test_sealed_runtime_store_rejects_symlinks_and_nested_entries(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
@@ -184,6 +193,51 @@ class RunnerGuards(unittest.TestCase):
         runner.require_inventory_matches(inventory, runner.inventory_digest(inventory))
         with self.assertRaisesRegex(runner.RunnerError, "Nextest inventory hash mismatch"):
             runner.require_inventory_matches(inventory, "0" * 64)
+
+    def test_ordinary_inventory_separates_cli_cases_from_source_checks(self) -> None:
+        cli = sorted(runner.EXPECTED_CLI_ORDINARY_TESTS)
+        source_only_names = [f"source_check::{index}" for index in range(runner.EXPECTED_ORDINARY_TESTS - len(cli))]
+        inventory = {name: False for name in [*cli, *source_only_names]}
+        source_only, actual_cli = runner.ordinary_test_groups(inventory)
+        self.assertEqual(source_only, sorted(source_only_names))
+        self.assertEqual(actual_cli, cli)
+        inventory.pop(cli[0])
+        inventory["unknown::cli_test"] = False
+        with self.assertRaisesRegex(runner.RunnerError, "CLI ordinary-check inventory changed"):
+            runner.ordinary_test_groups(inventory)
+
+    def test_ordinary_cli_checks_run_with_both_explicit_binary_dirs(self) -> None:
+        cli = sorted(runner.EXPECTED_CLI_ORDINARY_TESTS)
+        source_only_names = [f"source_check::{index}" for index in range(runner.EXPECTED_ORDINARY_TESTS - len(cli))]
+        inventory = {name: False for name in [*cli, *source_only_names]}
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            live = root / "live"
+            live.mkdir()
+            run_root = root / "run"
+            run_root.mkdir()
+            baseline_bins = root / "baseline-bins"
+            candidate_bins = root / "candidate-bins"
+            baseline_bins.mkdir()
+            candidate_bins.mkdir()
+            calls: list[dict[str, object]] = []
+            selected_groups = [sorted(source_only_names), cli, cli]
+
+            def fake_run(command, *, cwd, timeout, env, quiet, stdout_path, stderr_path):
+                calls.append({"command": command, "env": env})
+                events = [json.dumps({"type": "test", "event": "ok", "name": "junie-tui::visual_baseline$" + name}) for name in selected_groups[len(calls) - 1]]
+                stdout_path.write_text("\n".join(events) + "\n")
+                stderr_path.write_text("")
+                return "\n".join(events)
+
+            with patch.object(runner, "run", side_effect=fake_run):
+                result = runner.run_ordinary_checks(live, root, run_root, inventory, baseline_bins, candidate_bins, 30)
+            self.assertEqual(set(result), {"source-only", "baseline-cli", "candidate-cli"})
+            self.assertNotIn("VISUAL_BIN_DIR", calls[0]["env"])
+            self.assertEqual(calls[1]["env"]["VISUAL_BIN_DIR"], str(baseline_bins.resolve()))
+            self.assertEqual(calls[2]["env"]["VISUAL_BIN_DIR"], str(candidate_bins.resolve()))
+            for call in calls:
+                self.assertFalse(any(key.startswith("TERMROCK_PAIR_") for key in call["env"]))
 
     def test_live_source_provenance_rejects_binary_harness_drift(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
