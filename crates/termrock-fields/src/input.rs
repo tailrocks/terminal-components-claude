@@ -1,6 +1,7 @@
 use core::fmt;
 
 use ratatui_core::layout::{Position, Rect};
+use ratatui_core::style::{Modifier, Style};
 
 use super::{PartStyle, SlotFn, cell_at, first_row, shift};
 use crate::action::ActionKey;
@@ -16,7 +17,7 @@ use crate::response::{Response, StateFlags};
 use crate::secret::{Secret, SecretPolicy, wipe_string};
 use crate::text::measure::graphemes;
 use crate::text::{EditAction, EditOutcome, Extend, Motion, TextEditorCore, width};
-use crate::theme::{Family, GlyphRole, Slot, StylePatch, Variant};
+use crate::theme::{Family, GlyphRole, PaintStyle, Role, Slot, StyleDefaults, StylePatch, Variant};
 use crate::ui::{Cx, FrameRead, Ui};
 use crate::validate::{FieldError, NoValidate, Validate};
 use termrock_runtime::Status;
@@ -940,8 +941,17 @@ pub struct TextInput<'a> {
     status: Status,
     ov: PartStyle<'a>,
     style_target: Option<(Family, Variant, Part)>,
+    text_style_target: Option<(Family, Variant, Part)>,
     auxiliary_style_target: Option<(Family, Variant)>,
+    embedded_cell: bool,
     excluded_commands: &'a [TextCmd],
+}
+
+#[derive(Clone, Copy)]
+struct InputGeometry {
+    text: Rect,
+    gutter: Option<Rect>,
+    leading: u16,
 }
 
 impl fmt::Debug for TextInput<'_> {
@@ -956,6 +966,7 @@ impl fmt::Debug for TextInput<'_> {
             .field("read_only", &self.read_only)
             .field("disabled", &self.disabled)
             .field("pointer_enabled", &self.pointer_enabled)
+            .field("text_style_target", &self.text_style_target)
             .field("status", &self.status)
             .finish_non_exhaustive()
     }
@@ -987,7 +998,9 @@ impl<'a> TextInput<'a> {
             status: Status::Ready,
             ov: PartStyle::new(),
             style_target: None,
+            text_style_target: None,
             auxiliary_style_target: None,
+            embedded_cell: false,
             excluded_commands: &[],
         }
     }
@@ -1094,11 +1107,35 @@ impl<'a> TextInput<'a> {
         self
     }
 
+    /// Resolve text decoration through another component's presentation.
+    ///
+    /// The input keeps its text foreground and field surface. The host owns
+    /// the underline and underline modifier, while all auxiliary parts retain
+    /// their normal input theme. This is useful when the host owns a semantic
+    /// text state such as an inline editor's error underline.
+    #[doc(hidden)]
+    #[must_use]
+    pub const fn text_style_target(mut self, family: Family, variant: Variant, part: Part) -> Self {
+        self.text_style_target = Some((family, variant, part));
+        self
+    }
+
     /// Resolve the gutter and placeholder through the host component's family.
     /// Their part identities remain independent theme and overlay targets.
     #[must_use]
     pub const fn auxiliary_style_target(mut self, family: Family, variant: Variant) -> Self {
         self.auxiliary_style_target = Some((family, variant));
+        self
+    }
+
+    /// Render this input as text embedded in a host-owned cell surface.
+    ///
+    /// The input keeps its normal editing, selection, focus, and cursor
+    /// behavior while leaving the leading cell and focus indicator to its
+    /// host. One trailing cell remains reserved for a host marker.
+    #[must_use]
+    pub const fn embedded_cell(mut self) -> Self {
+        self.embedded_cell = true;
         self
     }
 
@@ -1132,7 +1169,9 @@ impl<'a> TextInput<'a> {
             status: self.status,
             ov: self.ov,
             style_target: self.style_target,
+            text_style_target: self.text_style_target,
             auxiliary_style_target: self.auxiliary_style_target,
+            embedded_cell: self.embedded_cell,
             excluded_commands: self.excluded_commands,
         }
     }
@@ -1141,8 +1180,20 @@ impl<'a> TextInput<'a> {
         Dyn(self.validate.unwrap_or(&NoValidate))
     }
 
-    const fn inner_width(area_width: u16) -> u16 {
-        area_width.saturating_sub(3)
+    fn geometry(&self, area: Rect) -> InputGeometry {
+        let area = first_row(area);
+        let leading = if self.embedded_cell { 0 } else { 2 };
+        let trailing = if self.embedded_cell { 1 } else { 3 };
+        InputGeometry {
+            text: Rect {
+                x: area.x.saturating_add(leading),
+                y: area.y,
+                width: area.width.saturating_sub(trailing),
+                height: 1.min(area.height),
+            },
+            gutter: (!self.embedded_cell).then(|| cell_at(area, area.x)),
+            leading,
+        }
     }
 
     /// Register this input's focus, pointer, and key-binding contract when a
@@ -1300,8 +1351,9 @@ impl<'a> TextInput<'a> {
                 {
                     let anchor = cx.area(self.id).map_or(Position::new(0, 0), |area| {
                         let col = st.draft.cursor_pos().col;
+                        let geometry = self.geometry(area);
                         Position::new(
-                            area.x.saturating_add(2).saturating_add(
+                            geometry.text.x.saturating_add(
                                 u16::try_from(col.saturating_sub(usize::from(st.draft.hscroll())))
                                     .unwrap_or(u16::MAX),
                             ),
@@ -1340,7 +1392,8 @@ impl<'a> TextInput<'a> {
                     if !st.is_editing() {
                         st.begin(value.expose());
                     }
-                    let col = usize::from(local.x.saturating_sub(2))
+                    let leading = self.geometry(cx.area(self.id).unwrap_or_default()).leading;
+                    let col = usize::from(local.x.saturating_sub(leading))
                         .saturating_add(usize::from(st.draft.hscroll()));
                     st.pointer_anchor = Some(st.draft.pointer_select(
                         0,
@@ -1356,8 +1409,9 @@ impl<'a> TextInput<'a> {
                     ..
                 } if part.item.is_none() && st.is_editing() && self.pointer_enabled => {
                     if let (Some(anchor), Some(area)) = (st.pointer_anchor, cx.area(self.id)) {
-                        let col = usize::from(local.x.saturating_sub(2));
-                        let _ = st.select_pointer_range(anchor, col, Self::inner_width(area.width));
+                        let geometry = self.geometry(area);
+                        let col = usize::from(local.x.saturating_sub(geometry.leading));
+                        let _ = st.select_pointer_range(anchor, col, geometry.text.width);
                         acc.changed();
                     } else {
                         acc.consumed();
@@ -1381,7 +1435,8 @@ impl<'a> TextInput<'a> {
                     if !st.is_editing() {
                         st.begin(value.expose());
                     }
-                    let col = usize::from(local.x.saturating_sub(2))
+                    let leading = self.geometry(cx.area(self.id).unwrap_or_default()).leading;
+                    let col = usize::from(local.x.saturating_sub(leading))
                         .saturating_add(usize::from(st.draft.hscroll()));
                     let changed = st.draft.pointer_point(0, col);
                     cx.focus(self.id);
@@ -1407,7 +1462,7 @@ impl<'a> TextInput<'a> {
         if st.is_editing()
             && let Some(a) = cx.area(self.id)
         {
-            let w = Self::inner_width(a.width);
+            let w = self.geometry(a).text.width;
             st.draft.scroll_into_view(w);
         }
         if let Some(opening) = st.focus_continuation
@@ -1476,7 +1531,7 @@ impl<'a> TextInput<'a> {
             self.live_validate(st);
         }
         if applied && let Some(area) = cx.area(self.id) {
-            st.ensure_cursor_visible(Self::inner_width(area.width));
+            st.ensure_cursor_visible(self.geometry(area).text.width);
         }
         applied
     }
@@ -1575,12 +1630,8 @@ impl<'a> TextInput<'a> {
         }
 
         let busy = matches!(self.status, Status::Busy | Status::Loading);
-        let inner = Rect {
-            x: area.x.saturating_add(2),
-            y: area.y,
-            width: Self::inner_width(area.width),
-            height: 1,
-        };
+        let geometry = self.geometry(area);
+        let inner = geometry.text;
         ui.register_decor(self.id, PartRef::of(Part::TEXT), inner);
         self.register_editor_area(ui, area, st);
         let owns_cursor = live.contains(StateFlags::FOCUSED)
@@ -1592,30 +1643,97 @@ impl<'a> TextInput<'a> {
         let ov = self.ov;
         let id = self.id;
         let style_target = self.style_target;
+        let text_style_target = self.text_style_target;
         let auxiliary_style_target = self.auxiliary_style_target;
         let style = |ui: &mut Ui<'_>, part: Part| {
-            let mapped_part = style_target.filter(|_| matches!(part, Part::FIELD | Part::TEXT));
-            let (family, variant, part) = mapped_part
+            let base_target = style_target
+                .filter(|_| matches!(part, Part::FIELD | Part::TEXT))
                 .or_else(|| {
                     auxiliary_style_target
                         .filter(|_| matches!(part, Part::GUTTER | Part::PLACEHOLDER))
                         .map(|(family, variant)| (family, variant, part))
                 })
                 .unwrap_or((Family::INPUT, Variant::DEFAULT, part));
-            ov.style(ui, id, family, variant, part, live)
+            let Some((family, variant, target_part)) =
+                text_style_target.filter(|_| part == Part::TEXT)
+            else {
+                return ov.style(ui, id, base_target.0, base_target.1, base_target.2, live);
+            };
+
+            // A host may supply only the text decoration while the input
+            // keeps its own foreground and field surface. Resolve both
+            // recipes normally so theme/profile and overlay precedence stay
+            // shared; then transfer the target's underline channels only.
+            let local_patch = ov.part_patch(part);
+            let mut resolved = match local_patch {
+                Some(patch) => {
+                    ui.style_patched(base_target.0, base_target.1, base_target.2, live, &patch)
+                }
+                None => ui.style(base_target.0, base_target.1, base_target.2, live),
+            };
+            let base_underline = resolved
+                .style
+                .underline_role()
+                .map(|(role, _)| role)
+                .or_else(|| resolved.style.as_style().underline_color.map(Role::Custom));
+            let defaults =
+                StyleDefaults::new(base_underline.map_or_else(StylePatch::new, |role| {
+                    StylePatch::new().set_underline(role)
+                }));
+            let decoration =
+                ui.style_defaults_with_explicit(family, variant, target_part, live, defaults, None);
+            let mut decoration_style = Style::new();
+            let explicit_underline = local_patch.is_some_and(|patch| patch.underline.speaks());
+            if explicit_underline {
+                if resolved.style.underline_cleared() {
+                    decoration_style.underline_color = Some(ratatui_core::style::Color::Reset);
+                }
+            } else {
+                let target_style = decoration.resolved.style;
+                if target_style.underline_cleared() {
+                    decoration_style.underline_color = Some(ratatui_core::style::Color::Reset);
+                } else if target_style.underline_role().is_some() {
+                    decoration_style.underline_color = target_style.as_style().underline_color;
+                }
+            }
+            let explicit_underline_modifier = local_patch.is_some_and(|patch| {
+                patch.add.contains(Modifier::UNDERLINED)
+                    || patch.remove.contains(Modifier::UNDERLINED)
+            });
+            if !explicit_underline_modifier {
+                decoration_style.add_modifier = decoration
+                    .resolved
+                    .style
+                    .as_style()
+                    .add_modifier
+                    .intersection(Modifier::UNDERLINED);
+                decoration_style.sub_modifier = decoration
+                    .resolved
+                    .style
+                    .as_style()
+                    .sub_modifier
+                    .intersection(Modifier::UNDERLINED);
+            }
+            resolved.style = resolved.style.patch(PaintStyle::from(decoration_style));
+            let mut styled = decoration.resolved;
+            styled.style = resolved.style;
+            ov.note(ui, id, family, variant, target_part, styled);
+            resolved = styled;
+            resolved
         };
         let field = style(ui, Part::FIELD);
         ui.fill(area, field.style);
-        let gutter_cell = cell_at(area, area.x);
-        if let Some(f) = ov.slot_for(Part::GUTTER) {
-            f(ui, gutter_cell);
-        } else {
-            let g = style(ui, Part::GUTTER);
-            match g.glyph {
-                Slot::Set(glyph) => {
-                    ui.glyph(gutter_cell, glyph, g.style);
+        if let Some(gutter_cell) = geometry.gutter {
+            if let Some(f) = ov.slot_for(Part::GUTTER) {
+                f(ui, gutter_cell);
+            } else {
+                let g = style(ui, Part::GUTTER);
+                match g.glyph {
+                    Slot::Set(glyph) => {
+                        ui.glyph(gutter_cell, glyph, g.style);
+                    }
+                    Slot::Inherit | Slot::Clear => ui.fill(gutter_cell, g.style),
                 }
-                Slot::Inherit | Slot::Clear => ui.fill(gutter_cell, g.style),
             }
         }
         let shown = if editing {
@@ -1652,12 +1770,17 @@ impl<'a> TextInput<'a> {
                     None => usize::from(width(shown)),
                 };
                 let mut run = inner;
-                if hs > 0 {
+                if hs > 0 && !self.embedded_cell {
                     let used = ui.glyph(run, GlyphRole::Ellipsis, ts.style);
                     run = shift(run, used);
                 }
-                let skip = if hs > 0 { hs.saturating_add(1) } else { 0 };
-                let overflow_right = total > hs.saturating_add(usize::from(inner.width));
+                let skip = if hs > 0 && !self.embedded_cell {
+                    hs.saturating_add(1)
+                } else {
+                    hs
+                };
+                let overflow_right =
+                    !self.embedded_cell && total > hs.saturating_add(usize::from(inner.width));
                 if overflow_right {
                     run.width = run.width.saturating_sub(1);
                 }
@@ -1734,7 +1857,7 @@ impl<'a> TextInput<'a> {
                         ui.set_bar_cursor(self.id, Position::new(cx, inner.y));
                     }
                 }
-            } else if owns_cursor && self.editable() {
+            } else if owns_cursor && self.editable() && !self.embedded_cell {
                 if matches!(
                     self.typing_policy,
                     crate::TypingPolicy::Fallback { cursor: true }
@@ -3065,6 +3188,82 @@ mod tests {
         let disabled = render(true);
         assert_eq!(enabled[(2, SCREEN.y)].symbol(), "F");
         assert_ne!(enabled[(2, SCREEN.y)].fg, disabled[(2, SCREEN.y)].fg);
+    }
+
+    #[test]
+    fn explicit_local_underline_clear_resets_embedded_prepaint_before_host_style() {
+        let theme = Theme::junie()
+            .define_family(Family::INPUT, |recipe| {
+                recipe
+                    .part(Part::TEXT)
+                    .base(StylePatch::new().set_underline(crate::theme::Role::Warning));
+            })
+            .define_family(Family::GRID, |recipe| {
+                recipe
+                    .part(Part::TEXT)
+                    .base(StylePatch::new().set_underline(crate::theme::Role::Accent));
+            });
+        let warning = theme.color.warning;
+        let accent = theme.color.accent;
+        let render = |patch: Option<StylePatch>, hosted: bool| {
+            let mut runtime = Runtime::new(Stub::default(), theme.clone());
+            let mut buffer = Buffer::empty(SCREEN);
+            let mut state = TextInputState::default();
+            state.begin("value");
+            let patches = patch.map(|patch| [(Part::TEXT, patch)]);
+            runtime
+                .draw_scene(SCREEN, &mut buffer, |ui, area| {
+                    ui.paint_str(
+                        area,
+                        "value",
+                        Style::default()
+                            .underline_color(ratatui_core::style::Color::Yellow)
+                            .add_modifier(Modifier::UNDERLINED),
+                    );
+                    let mut input = TextInput::new(ID).embedded_cell();
+                    if let Some(patches) = patches.as_ref() {
+                        input = input.patch_part(patches);
+                    }
+                    if hosted {
+                        input = input.text_style_target(Family::GRID, Variant::DEFAULT, Part::TEXT);
+                    }
+                    input.draw(ui, area, &state);
+                })
+                .commit_presented();
+            buffer
+                .content()
+                .chunks(SCREEN.width as usize)
+                .flat_map(|row| row.windows(5))
+                .find(|cells| cells.iter().map(|cell| cell.symbol()).collect::<String>() == "value")
+                .expect("input text is visible")
+                .iter()
+                .map(|cell| (cell.underline_color, cell.modifier))
+                .collect::<Vec<_>>()
+        };
+        let clear = StylePatch {
+            underline: Slot::Clear,
+            ..StylePatch::new()
+        };
+        let set_warning = StylePatch::new().set_underline(crate::theme::Role::Warning);
+
+        for cells in [render(None, true), render(Some(StylePatch::new()), true)] {
+            assert!(cells.iter().all(|(color, modifier)| {
+                *color == accent && modifier.contains(Modifier::UNDERLINED)
+            }));
+        }
+        assert!(render(Some(clear), true).iter().all(|(color, modifier)| {
+            *color == ratatui_core::style::Color::Reset && modifier.contains(Modifier::UNDERLINED)
+        }));
+        assert!(
+            render(Some(set_warning), true)
+                .iter()
+                .all(|(color, modifier)| {
+                    *color == warning && modifier.contains(Modifier::UNDERLINED)
+                })
+        );
+        assert!(render(None, false).iter().all(|(color, modifier)| {
+            *color == warning && modifier.contains(Modifier::UNDERLINED)
+        }));
     }
 
     #[test]
