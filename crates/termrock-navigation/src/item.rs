@@ -93,16 +93,34 @@ pub enum ItemRowLayout {
     Columns,
 }
 
-#[derive(Default)]
 pub struct ItemColumns {
     label: u16,
     tag: u16,
     group: u16,
+    metadata_gap: u16,
+}
+
+impl Default for ItemColumns {
+    fn default() -> Self {
+        Self {
+            label: 0,
+            tag: 0,
+            group: 0,
+            metadata_gap: 1,
+        }
+    }
 }
 
 impl ItemColumns {
-    pub(crate) fn measure<'a>(items: impl Iterator<Item = Item<'a>>, row_width: u16) -> Self {
-        let mut columns = Self::default();
+    pub(crate) fn measure<'a>(
+        items: impl Iterator<Item = Item<'a>>,
+        row_width: u16,
+        metadata_gap: u16,
+    ) -> Self {
+        let mut columns = Self {
+            metadata_gap,
+            ..Self::default()
+        };
         for item in items {
             columns.label = columns.label.max(width(item.label));
             columns.tag = columns.tag.max(width(item.tag.unwrap_or("")));
@@ -115,19 +133,41 @@ impl ItemColumns {
         columns
     }
 
+    #[must_use]
+    pub const fn metadata_gap(mut self, gap: u16) -> Self {
+        self.metadata_gap = gap;
+        self
+    }
+
     pub(crate) fn paint(&self, item: Item<'_>, show_group: bool, row: &mut RowUi<'_>) {
         let focused = row.flags().contains(StateFlags::FOCUSED);
         row.gutter();
         let mut cells = row.columns_with_gap(
             &[
-                Track::Fixed(1),
+                Track::Fixed(if self.tag > 0 || self.group > 0 {
+                    if self.metadata_gap == 1 {
+                        1
+                    } else {
+                        self.metadata_gap
+                    }
+                } else {
+                    1
+                }),
                 Track::Fixed(1),
                 Track::Fixed(self.label),
                 Track::Fixed(2),
                 Track::Flex(1),
                 Track::Fixed(1),
                 Track::Fixed(self.tag),
-                Track::Fixed(if self.tag > 0 { 2 } else { 0 }),
+                Track::Fixed(if self.tag > 0 {
+                    if self.metadata_gap == 1 {
+                        2
+                    } else {
+                        self.metadata_gap
+                    }
+                } else {
+                    0
+                }),
                 Track::Fixed(self.group),
                 Track::Fixed(u16::from(self.group > 0)),
             ],
