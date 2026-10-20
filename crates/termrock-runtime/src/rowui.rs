@@ -714,6 +714,10 @@ impl<'u> CellUi<'u> {
         });
         self
     }
+
+    pub fn color_level(&self) -> crate::theme::ColorLevel {
+        self.ui.theme_ref().capability.color
+    }
 }
 
 impl Drop for CellUi<'_> {
