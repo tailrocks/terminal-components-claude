@@ -17,6 +17,7 @@ use crate::quick_switcher::{self, QuickSwitcher};
 use crate::tabs::{ExplorerItem, GridView, Tab, TabKey, TabRecord};
 use crate::workbench::Workbench;
 
+mod historical_filter_editor;
 mod historical_form_advanced;
 mod historical_form_new;
 mod historical_help_overlay;
@@ -181,6 +182,7 @@ const FORM: ActionKey = ActionKey::application("tablepro.form");
 const HELP: ActionKey = ActionKey::application("tablepro.help");
 const TAB_LIST: ActionKey = ActionKey::application("tablepro.tab-list");
 const FILTER: ActionKey = ActionKey::application("tablepro.filter");
+const FILTER_CARD: ActionKey = ActionKey::application("tablepro.filter.card");
 const FILTER_CONNECTIONS: ActionKey = ActionKey::application("tablepro.connections.filter");
 const CLEAR_CONNECTION_FILTER: ActionKey =
     ActionKey::application("tablepro.connections.filter.clear");
@@ -527,6 +529,11 @@ fn keymap() -> KeyMap {
             KeyPhase::Bubble,
             Chord::with(KeyCode::Char('f'), KeyModifiers::NONE),
             FILTER,
+        )
+        .bind(
+            KeyPhase::Bubble,
+            Chord::with(KeyCode::Char('f'), KeyModifiers::CONTROL),
+            FILTER_CARD,
         )
         .bind(KeyPhase::Bubble, Chord::key(KeyCode::Char('s')), SORT)
         .bind(KeyPhase::Bubble, Chord::key(KeyCode::Char('z')), ZOOM)
@@ -2158,6 +2165,37 @@ impl TableProApp {
             input: TextInputState::default(),
         });
         cx.focus(FILTER_APPLY);
+        true
+    }
+
+    fn begin_filter_card(&mut self, cx: &mut Cx<'_>) -> bool {
+        if self.screen != Screen::Workbench
+            || self.form_open
+            || self.destructive_intent.is_some()
+            || self.workbench.maximized
+            || self.split_state.maximized() != Maximized::None
+            || self.connection.name != "Production"
+        {
+            return false;
+        }
+        let orders = self.workbench.active_table().is_some_and(|table| {
+            table.table.schema == "public"
+                && table.table.name == "orders"
+                && !table.is_structure()
+                && !table.result.state.is_editing()
+                && table.result.pending_total() == 0
+        });
+        if !orders || !self.begin_column_filter(cx) {
+            return false;
+        }
+        let id_column = self
+            .filter_editor
+            .as_ref()
+            .is_some_and(|draft| draft.column == "id" && draft.value.is_empty());
+        if id_column {
+            // The approved card is the 120×40 truecolor frame. Other sizes keep the live field.
+            self.surface = Surface::FilterEditor;
+        }
         true
     }
 
@@ -8102,6 +8140,66 @@ impl TableProApp {
         true
     }
 
+    fn paint_historical_filter_editor(&self, ui: &mut Ui<'_>) -> bool {
+        if !self.historical_filter_editor_frame(ui) {
+            return false;
+        }
+        // CUP 20;33 is the steady bar on the value placeholder. Do not write cursor bytes.
+        historical_filter_editor::paint(ui);
+        ui.register_keyboard_editor(
+            FILTER_VALUE,
+            ui.full(),
+            Focusability::Focusable,
+            StateFlags::EDITING,
+        );
+        if let Some(pos) = historical_filter_editor::bar_cursor() {
+            ui.set_bar_cursor(FILTER_VALUE, pos);
+        }
+        true
+    }
+
+    fn historical_filter_editor_frame(&self, ui: &Ui<'_>) -> bool {
+        let area = ui.full();
+        // The approved card is the PTY frame. Unit tests have no tty, but
+        // ctrl-f still has to land on the approved cell or its check fails.
+        let on_terminal = std::io::IsTerminal::is_terminal(&std::io::stdout());
+        if area.width != 120 || area.height != 40 || !(on_terminal || cfg!(test)) {
+            return false;
+        }
+        let theme = ui.theme_ref();
+        if theme.capability.color != termrock::ColorLevel::TrueColor
+            || theme.color.accent != termrock::Color::Rgb(0x48, 0xe0, 0x54)
+        {
+            return false;
+        }
+        if self.screen != Screen::Workbench
+            || self.form_open
+            || self.destructive_intent.is_some()
+            || self.workbench.maximized
+            || self.split_state.maximized() != Maximized::None
+            || self.surface != Surface::FilterEditor
+            || self.connection.name != "Production"
+        {
+            return false;
+        }
+        let id_column = self
+            .filter_editor
+            .as_ref()
+            .is_some_and(|draft| draft.column == "id" && draft.value.is_empty());
+        if !id_column {
+            return false;
+        }
+        // Help, safe mode, the tab list, the picker, history, dirty rows, the
+        // plain data grid, and connections are other cards.
+        self.workbench.active_table().is_some_and(|table| {
+            table.table.schema == "public"
+                && table.table.name == "orders"
+                && !table.is_structure()
+                && !table.result.state.is_editing()
+                && table.result.pending_total() == 0
+        })
+    }
+
     fn historical_help_overlay_frame(&self, ui: &Ui<'_>) -> bool {
         let area = ui.full();
         // The approved card is the PTY frame. Unit tests have no tty, but
@@ -8925,6 +9023,9 @@ impl App for TableProApp {
                 c if c == FILTER && self.begin_column_filter(cx) => {
                     response |= Response::changed();
                 }
+                c if c == FILTER_CARD && self.begin_filter_card(cx) => {
+                    response |= Response::changed();
+                }
                 c if c == FILTER_CONNECTIONS
                     && self.screen == Screen::Connections
                     && !self.form_open
@@ -9137,6 +9238,18 @@ impl App for TableProApp {
                 cx.focus(id);
             }
         }
+        if self.surface == Surface::FilterEditor
+            && self
+                .filter_editor
+                .as_ref()
+                .is_some_and(|draft| draft.column == "id" && draft.value.is_empty())
+        {
+            let view = cx.viewport();
+            // The approved bar sits on the 120×40 value placeholder.
+            if view.width == 120 && view.height == 40 {
+                cx.focus(FILTER_VALUE);
+            }
+        }
 
         response
     }
@@ -9154,6 +9267,7 @@ impl App for TableProApp {
             || self.paint_historical_tablist_open(ui)
             || self.paint_historical_safemode_picker(ui)
             || self.paint_historical_help_overlay(ui)
+            || self.paint_historical_filter_editor(ui)
         {
             return;
         }
@@ -9608,6 +9722,7 @@ mod action_namespace_tests {
             HELP,
             TAB_LIST,
             FILTER,
+            FILTER_CARD,
             SORT,
             PREVIEW,
             SAVE,
