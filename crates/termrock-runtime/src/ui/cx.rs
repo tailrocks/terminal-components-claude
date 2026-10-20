@@ -6,11 +6,11 @@ use crate::action::ActionKey;
 use crate::capture::{Capture, CaptureSlot};
 use crate::diagnostics::Diagnostics;
 use crate::event::Chord;
-use crate::focus::FocusRing;
+use crate::focus::{FocusRing, ScopeId};
 use crate::hit::Registry;
 use crate::id::{Id, PartRef};
 use crate::intent::{IntentIter, IntentQueue};
-use crate::keymap::{BindingRegistry, KeyMap};
+use crate::keymap::{BindingRegistry, KeyMap, ScopedBubbleBinding};
 use crate::layer::{
     Anchor, DismissReason, FocusContinuationOutcome, LayerCompletion, LayerEvent,
     LayerEventReceipt, LayerId, LayerOpening, LayerSize, LayerSpec, LayerStack, UpdateToken,
@@ -67,6 +67,7 @@ pub struct LastFrame {
     pub(crate) layout: Vec<(Id, LayoutFacts)>,
     pub(crate) declared: Vec<(Id, StateFlags)>,
     pub(crate) bindings: BindingRegistry,
+    pub(crate) scoped_bubble_bindings: Vec<ScopedBubbleBinding>,
     pub(crate) typing_bindings: BindingRegistry,
     pub(crate) typing: crate::runtime::typing::TypingResolved,
     pub(crate) snapshot: Snapshot,
@@ -778,6 +779,22 @@ impl<'f> Cx<'f> {
 
     pub fn top_layer(&self) -> LayerId {
         self.services.layers.top()
+    }
+
+    /// Return the currently focused registered control when it belongs to
+    /// `scope` on the topmost interactive layer.
+    pub fn focused_in_scope(&self, scope: ScopeId) -> Option<Id> {
+        let focused = self.last.snapshot.focus?;
+        let entry = self.last.ring.entry(focused)?;
+        let scope_layer = self.last.ring.scope_layer(scope)?;
+        let top = self.services.layers.top();
+        (entry.id == focused
+            && !entry.disabled
+            && self.last.ring.contains(focused)
+            && self.last.ring.within(entry.scope, scope)
+            && entry.layer == scope_layer
+            && entry.layer == top)
+            .then_some(focused)
     }
 
     pub fn is_open(&self, id: Id) -> bool {
