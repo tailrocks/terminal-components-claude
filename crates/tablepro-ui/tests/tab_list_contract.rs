@@ -73,6 +73,93 @@ fn delete_closes_clean_tab_and_reopens_picker_with_empty_filter() {
 }
 
 #[test]
+fn delete_discards_dirty_query_tab_from_picker() {
+    let mut harness = connected();
+    let Some(query_key) = harness.app_mut().workbench.new_query("SELECT 1") else {
+        unreachable!("fixture has available tab identities")
+    };
+    let Some(tablepro_ui::Tab::Query(query)) = harness.app_mut().workbench.tab_mut(query_key)
+    else {
+        unreachable!("created tab is a query")
+    };
+    query.query.push_str(" -- unsaved");
+    assert!(query.dirty());
+    harness.draw();
+
+    let _ = harness.ctrl('g');
+    let _ = harness.type_str("Query 2");
+    let _ = harness.key(KeyCode::Delete);
+
+    assert!(harness.app().workbench.tab(query_key).is_none());
+    assert!(harness.layer_area(TAB_LIST).is_some());
+    assert!(!harness.text().contains("Close tab with unsaved work?"));
+    assert!(
+        harness.diagnostics().is_empty(),
+        "{:?}",
+        harness.diagnostics()
+    );
+}
+
+#[test]
+fn delete_discards_pending_table_edits_from_picker() {
+    let mut app = TableProApp::new();
+    assert!(app.connect(0));
+    assert!(app.workbench.open_table("customers"));
+    let mut harness = Harness::new(app, Theme::junie(), 120, 40);
+    let Some(table_key) = harness.app().workbench.active_key() else {
+        unreachable!("connected fixture has a table tab")
+    };
+    let Some(tablepro_ui::Tab::Table(table)) = harness.app_mut().workbench.tab_mut(table_key)
+    else {
+        unreachable!("connected fixture opens a table")
+    };
+    assert!(table.result.model.insert_row().is_some());
+    assert!(table.result.pending_total() > 0);
+    harness.draw();
+
+    let _ = harness.ctrl('g');
+    let _ = harness.key(KeyCode::Delete);
+
+    assert!(harness.app().workbench.tab(table_key).is_none());
+    assert!(harness.layer_area(TAB_LIST).is_some());
+    assert!(!harness.text().contains("Close tab with unsaved work?"));
+    assert!(
+        harness.diagnostics().is_empty(),
+        "{:?}",
+        harness.diagnostics()
+    );
+}
+
+#[test]
+fn selecting_structure_tab_does_not_focus_a_painted_only_control() {
+    let mut app = TableProApp::new();
+    assert!(app.connect(0));
+    assert!(app.workbench.open_table("customers"));
+    let mut harness = Harness::new(app, Theme::junie(), 120, 40);
+    let Some(table_key) = harness.app().workbench.active_key() else {
+        unreachable!("connected fixture has a table tab")
+    };
+    let Some(tablepro_ui::Tab::Table(table)) = harness.app_mut().workbench.tab_mut(table_key)
+    else {
+        unreachable!("connected fixture opens a table")
+    };
+    table.mode = tablepro_ui::tabs::TableMode::Structure;
+    harness.draw();
+
+    let _ = harness.ctrl('g');
+    let _ = harness.key(KeyCode::Enter);
+
+    assert_eq!(harness.app().workbench.active_key(), Some(table_key));
+    assert_ne!(harness.focus(), Some(table_key.control("structure")));
+    assert_ne!(harness.focus(), Some(table_key.control("data")));
+    assert!(
+        harness.diagnostics().is_empty(),
+        "{:?}",
+        harness.diagnostics()
+    );
+}
+
+#[test]
 fn query_tab_detail_uses_its_last_execution_status() {
     let mut app = TableProApp::new();
     assert!(app.connect(0));
