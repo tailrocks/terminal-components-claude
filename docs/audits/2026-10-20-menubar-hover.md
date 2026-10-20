@@ -2,9 +2,13 @@
 
 ## Change
 
-`MenuBar::draw` now removes owner-level `HOVERED` before resolving its container style. A hovered title resolves its own title style and paints its full padded title rectangle, so the bar background and neighboring titles remain unchanged. MenuBar hover defaults come from a private recipe variant, then resolve under the public `MENU/DEFAULT/TITLE` identity with `Ui::style_defaults`, preserving family default variants, recipe overrides, overlays, and local part patches. ContextMenu keeps its original live owner state, so caller-defined hover recipes and overlays still apply to headings.
+With title-scoped hover selected, `MenuBar::draw` removes owner-level `HOVERED` before resolving its container style. A hovered title resolves its own title style and paints its full padded title rectangle, so the bar background and neighboring titles remain unchanged. Title defaults come from a private recipe variant, then resolve under the public `MENU/DEFAULT/TITLE` identity with `Ui::style_defaults`, preserving family default variants, recipe overrides, overlays, and local part patches. ContextMenu keeps its original live owner state, so caller-defined hover recipes and overlays still apply to headings.
 
 Holla no longer overrides the title foreground or paints title pads after the shared component. Keyboard bindings, click handling, pressed brackets, and menu state transitions remain in the shared component.
+
+## Component-default compatibility
+
+Native `MenuBar` rendering keeps the pre-hover-refactor `Bar` policy by default. This preserves the existing MENU/DEFAULT/TITLE recipe behavior and whole-bar owner hover, including the seven native `menu_bar` render fixtures. Applications opt into title-scoped hover through the public `MenuBar::hover_scope(MenuBarHoverScope::Title)` policy; Holla does so explicitly to match its frozen padded-title hover. The title-scoped policy uses the theme's `termrock.menu-bar-title` recipe, with local title patches and runtime overlays still resolved by the public MENU/DEFAULT/TITLE identity. Native component fixtures are not changed.
 
 ## Evidence
 
