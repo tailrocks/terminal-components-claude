@@ -1,17 +1,8 @@
-
-
-
-
-
-
-
-
 use std::collections::BTreeMap;
 use std::process::Command;
 
 use crate::support;
 use crate::tool::ENV_PROBE_END;
-
 
 const LEAKS: [(&str, &str); 13] = [
     ("SHELL", "/leaked/shell"),
@@ -28,7 +19,6 @@ const LEAKS: [(&str, &str); 13] = [
     ("JUNIE_TUI_GLYPHS", "ascii"),
     ("JUNIE_LEAK_CANARY", "leaked"),
 ];
-
 
 const SHELL_OWN: [&str; 4] = ["PWD", "OLDPWD", "SHLVL", "_"];
 
@@ -47,9 +37,6 @@ fn tool(tool: &str, envs: &[(&str, &str)], extra: &[(&str, &str)]) -> String {
     );
     String::from_utf8(out.stdout).expect("tool output is UTF-8")
 }
-
-
-
 
 fn child_env_is_pinned() {
     let text = tool("env-probe", &LEAKS, &[]);
@@ -81,9 +68,7 @@ fn child_env_is_pinned() {
     );
 }
 
-
 fn app_capture_ignores_parent_env() {
-
     let name = "showcase/pages/overview/72x20/truecolor";
     let clean = tool(
         "capture",

@@ -1,18 +1,3 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 use std::time::Duration;
 
 use crate::scenarios::Bin;
@@ -24,7 +9,6 @@ fn typed_before_start_is_discarded(name: &'static str, bin: &'static str, needle
 
     s.type_text("q").expect("type");
     support::boot(&mut s, case.needle);
-
 
     std::thread::sleep(Duration::from_millis(600));
     assert!(
