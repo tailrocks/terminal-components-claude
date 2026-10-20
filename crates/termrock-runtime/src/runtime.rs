@@ -1711,12 +1711,13 @@ impl<A: App> Runtime<A> {
         let input_top_layer = self.services.layers.top();
         let input_focus = self.focus.current();
         let mut r = self.run_update(None, update_cause, activation_key);
+        let mut input_scope_changed =
+            self.services.layers.top() != input_top_layer || self.focus.current() != input_focus;
 
         if let Some(k) = key_input
             && !r.is_consumed()
         {
             let scoped_bindings = self.scoped_bubble_bindings(&k);
-            let mut input_scope_changed = false;
             for (owner, action, chord) in scoped_bindings {
                 if self.services.layers.top() != input_top_layer
                     || self.focus.current() != input_focus
@@ -4572,7 +4573,9 @@ mod tests {
     struct ScopedDeclineProbe {
         publish_outer: bool,
         open_modal_on_inner: bool,
+        open_modal_on_leaf: bool,
         move_focus_to_sibling_on_inner: bool,
+        move_focus_to_sibling_on_leaf: bool,
         inner_calls: usize,
         outer_calls: usize,
         esc_calls: usize,
@@ -4582,6 +4585,20 @@ mod tests {
         fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
             if cx.update_cause() == UpdateCause::Bootstrap {
                 cx.focus(BUBBLE_CHILD);
+            }
+            if cx
+                .intents(BUBBLE_CHILD)
+                .any(|intent| matches!(intent, Intent::Key(key) if key.code == KeyCode::Esc))
+            {
+                if self.open_modal_on_leaf {
+                    cx.open_layer(
+                        BUBBLE_MODAL,
+                        LayerSpec::modal(BUBBLE_MODAL).dismiss(crate::layer::Dismiss::NONE),
+                    );
+                }
+                if self.move_focus_to_sibling_on_leaf {
+                    cx.focus(BUBBLE_SIBLING_CHILD);
+                }
             }
             if cx
                 .intents(BUBBLE_INNER_OWNER)
@@ -4693,6 +4710,28 @@ mod tests {
         assert_eq!(rt.app().outer_calls, 0);
         assert_eq!(rt.app().esc_calls, 0);
         assert!(rt.is_open(BUBBLE_MODAL));
+    }
+
+    #[test]
+    fn opening_modal_from_leaf_skips_stale_global_escape_fallback() {
+        let (mut rt, _) = ready_scoped_decline_probe(true);
+        rt.app_mut().open_modal_on_leaf = true;
+        let _ = deliver(&mut rt, key(KeyCode::Esc));
+        assert!(rt.is_open(BUBBLE_MODAL));
+        assert_eq!(rt.app().inner_calls, 0);
+        assert_eq!(rt.app().outer_calls, 0);
+        assert_eq!(rt.app().esc_calls, 0);
+    }
+
+    #[test]
+    fn moving_focus_from_leaf_skips_stale_scope_and_global_fallbacks() {
+        let (mut rt, _) = ready_scoped_decline_probe(true);
+        rt.app_mut().move_focus_to_sibling_on_leaf = true;
+        let _ = deliver(&mut rt, key(KeyCode::Esc));
+        assert_eq!(rt.focus(), Some(BUBBLE_SIBLING_CHILD));
+        assert_eq!(rt.app().inner_calls, 0);
+        assert_eq!(rt.app().outer_calls, 0);
+        assert_eq!(rt.app().esc_calls, 0);
     }
 
     #[test]
