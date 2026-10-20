@@ -978,6 +978,15 @@ class RunnerGuards(unittest.TestCase):
                     with self.assertRaisesRegex(runner.RunnerError, error):
                         runner.load_executable_cohorts(root)
 
+    def test_executable_cohort_boolean_claims_reject_integer_aliases(self) -> None:
+        repo = Path(runner.__file__).resolve().parent.parent
+        document = runner.load_executable_cohorts(repo)
+        for field, replacement in (("incremental", 0), ("stage_hashes_match", 1), ("build_admitted", 0), ("reference_frames_approved", 0)):
+            altered = json.loads(json.dumps(document))
+            altered["cohorts"][0]["build"][field] = replacement
+            with self.assertRaisesRegex(runner.RunnerError, "boolean type"):
+                runner.validate_executable_cohorts(altered)
+
     def test_executable_cohort_rejects_mixed_hashes_and_invented_run_evidence(self) -> None:
         repo = Path(runner.__file__).resolve().parent.parent
         document = runner.load_executable_cohorts(repo)
@@ -1007,8 +1016,43 @@ class RunnerGuards(unittest.TestCase):
                 runner.verify_diagnostic_cohort_binaries(cohort, root)
             altered = json.loads(json.dumps(cohort))
             altered["binaries"]["showcase"]["path"] = "../showcase"
-            with self.assertRaisesRegex(runner.RunnerError, "escapes"):
+            with self.assertRaisesRegex(runner.RunnerError, "hashes differ from the independently reproduced cohort"):
                 runner.verify_diagnostic_cohort_binaries(altered, root)
+
+    def test_diagnostic_binary_check_rejects_forged_hash_inventory(self) -> None:
+        repo = Path(runner.__file__).resolve().parent.parent
+        cohort = runner.load_executable_cohorts(repo)["cohorts"][0]
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            altered = json.loads(json.dumps(cohort))
+            for app in runner.APPS:
+                data = f"unrelated-{app}".encode()
+                (root / app).write_bytes(data)
+                altered["binaries"][app]["sha256"] = runner.hashlib.sha256(data).hexdigest()
+            with self.assertRaisesRegex(runner.RunnerError, "hashes differ from the independently reproduced cohort"):
+                runner.verify_diagnostic_cohort_binaries(altered, root)
+
+    def test_registry_hash_and_parse_use_one_pinned_file_read(self) -> None:
+        actual_path = Path(runner.__file__).resolve().parent.parent / runner.EXECUTABLE_COHORTS
+        original = actual_path.read_bytes()
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            path = root / runner.EXECUTABLE_COHORTS
+            path.parent.mkdir(parents=True)
+            path.write_bytes(original)
+
+            def replace_after_hash(target: Path) -> str:
+                digest = runner.hashlib.sha256(target.read_bytes()).hexdigest()
+                altered = json.loads(target.read_text())
+                altered["cohorts"][0]["status"] = "forged-status"
+                target.write_text(json.dumps(altered))
+                return digest
+
+            with patch.object(runner, "EXECUTABLE_COHORTS_SHA256", runner.hashlib.sha256(original).hexdigest()), patch.object(runner, "sha256", side_effect=replace_after_hash) as separate_hash:
+                loaded = runner.load_executable_cohorts(root)
+                separate_hash.assert_not_called()
+            self.assertEqual(loaded["cohorts"][0]["status"], runner.DIAGNOSTIC_COHORT_STATUS)
+            self.assertEqual(path.read_bytes(), original)
 
 
 if __name__ == "__main__":
