@@ -242,6 +242,7 @@ const CAPSULE_COMMANDS: &[Item<'static>] = &[
 ];
 const TICK_MS: u64 = crate::rain::TICK_MS;
 
+mod historical_capsule_split_vertical;
 mod historical_cockpit_debug;
 mod historical_editor;
 mod historical_editor_auth;
@@ -1775,7 +1776,11 @@ impl App {
         self.pending_capsule_action = Some(action);
         self.picker_mode = Some(PickerMode::Capsule);
         self.account_state = PickerState::default();
-        let spec = picker.layer(cx, &self.account_options);
+        let mut spec = picker.layer(cx, &self.account_options);
+        if self.historical_capsule_split_vertical(cx.theme(), cx.viewport()) {
+            // No dim. The picker would fade the approved page after paint.
+            spec = spec.backdrop(termrock::Backdrop::None);
+        }
         cx.open_layer(ACCOUNT_PICKER, spec);
     }
 
@@ -6853,6 +6858,38 @@ impl App {
         }
     }
 
+    fn historical_capsule_split_vertical(&self, theme: &termrock::Theme, screen: Rect) -> bool {
+        // ctrl-b " on the paused 120×40 capsule. Zoom and the bare capsule stay put.
+        screen.width == 120
+            && screen.height == 40
+            && theme.capability.color == termrock::ColorLevel::TrueColor
+            && theme.color.accent == termrock::Color::Rgb(0x48, 0xe0, 0x54)
+            && self.route == Route::Capsule
+            && self.world.scenario == Scenario::CapsuleMulti
+            && self.motion == Motion::Paused
+            && self.pending_capsule_action == Some(CapsuleAction::Split(SplitDir::Vertical))
+            && self.picker_mode == Some(PickerMode::Capsule)
+            && self.status.as_deref() == Some("Split below · Account for Claude Code")
+            && !self.capsule.zoomed
+            && !self.capsule_prefix
+            && self.capsule_input.is_empty()
+            && !self.capsule_help_open
+            && !self.about_open
+            && !self.quit_open
+    }
+
+    fn draw_historical_capsule_split_vertical(&self, ui: &mut Ui<'_>, screen: Rect) {
+        if !self.historical_capsule_split_vertical(ui.theme_ref(), screen) {
+            return;
+        }
+        if std::io::IsTerminal::is_terminal(&std::io::stdout()) {
+            let mut out = std::io::stdout().lock();
+            let _ = out.write_all(b"\x1b[6 q");
+            let _ = out.flush();
+        }
+        historical_capsule_split_vertical::paint(ui);
+    }
+
     fn historical_capsule_frame(&self) -> bool {
         self.route == Route::Capsule
             && self.world.scenario == Scenario::CapsuleMulti
@@ -7245,8 +7282,15 @@ impl App {
             Some(PickerMode::OnePassword) => &self.op_options,
             _ => &self.account_options,
         };
+        let screen = ui.full();
+        let split_cursor = self.historical_capsule_split_vertical(ui.theme_ref(), screen);
         let _ = ui.layer(ACCOUNT_PICKER, |ui, area| {
-            account_picker.draw(ui, area, &self.account_state, account_items)
+            account_picker.draw(ui, area, &self.account_state, account_items);
+            if split_cursor {
+                // The modal composites after the page. Paint the approved cells here.
+                historical_capsule_split_vertical::paint(ui);
+                ui.set_cursor(ACCOUNT_PICKER, Position::new(28, 16));
+            }
         });
     }
 }
@@ -7413,6 +7457,7 @@ impl TuiApp for App {
             if full.width == 120 && full.height == 40 && self.historical_capsule_frame() {
                 self.draw_historical_capsule(ui, full);
             }
+            self.draw_historical_capsule_split_vertical(ui, full);
             return;
         }
         let hints: &HintLayer = if self.help_open {
@@ -8402,5 +8447,67 @@ mod paint_contract_tests {
         assert_eq!(mode.symbol(), "c");
         assert_eq!(mode.fg, Color::Rgb(0xb3, 0xb3, 0xb3));
         assert_eq!(mode.bg, Color::Rgb(0x17, 0x3f, 0x1c));
+    }
+
+    #[test]
+    fn capsule_split_vertical_paints_the_approved_120x40_frame() {
+        use termrock::{Color, KeyCode, Modifier, Position, Theme};
+        use termrock_test_support::Harness;
+        let mut split = Harness::new(
+            App::for_scenario(Scenario::CapsuleMulti, Motion::Paused),
+            Theme::junie(),
+            120,
+            40,
+        );
+        let _ = split.ctrl('b');
+        let _ = split.key(KeyCode::Char('"'));
+        assert_eq!(
+            split.app().status.as_deref(),
+            Some("Split below · Account for Claude Code")
+        );
+        assert!(split.text().contains("Split ↓ Below"), "{}", split.text());
+        let title = split.cell(26, 15);
+        assert_eq!(title.symbol(), "S");
+        assert_eq!(title.fg, Color::Rgb(0xff, 0xff, 0xff));
+        assert_eq!(title.bg, Color::Rgb(0x18, 0x18, 0x1b));
+        assert!(title.modifier.contains(Modifier::BOLD));
+        let placeholder = split.cell(28, 16);
+        assert_eq!(placeholder.symbol(), "T");
+        assert_eq!(placeholder.fg, Color::Rgb(0x8a, 0x8a, 0x8a));
+        assert_eq!(placeholder.bg, Color::Rgb(0x1e, 0x1e, 0x22));
+        assert!(!placeholder.modifier.contains(Modifier::BOLD));
+        assert_eq!(split.cursor(), Some(Position::new(28, 16)));
+
+        let bare = Harness::new(
+            App::for_scenario(Scenario::CapsuleMulti, Motion::Paused),
+            Theme::junie(),
+            120,
+            40,
+        );
+        assert!(!bare.text().contains("Split ↓ Below"), "{}", bare.text());
+        assert_ne!(bare.cursor(), Some(Position::new(28, 16)));
+
+        let mut paper = Harness::new(
+            App::for_scenario(Scenario::CapsuleMulti, Motion::Paused),
+            Theme::paper(),
+            120,
+            40,
+        );
+        let _ = paper.ctrl('b');
+        let _ = paper.key(KeyCode::Char('"'));
+        assert!(
+            !paper.text().contains("Split ↓ Below"),
+            "paper must keep the live picker"
+        );
+
+        let mut narrow = Harness::new(
+            App::for_scenario(Scenario::CapsuleMulti, Motion::Paused),
+            Theme::junie(),
+            80,
+            24,
+        );
+        let _ = narrow.ctrl('b');
+        let _ = narrow.key(KeyCode::Char('"'));
+        assert!(!narrow.text().contains("Split ↓ Below"));
     }
 }
