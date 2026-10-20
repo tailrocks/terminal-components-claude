@@ -1,0 +1,59 @@
+{
+  "reviewed_commit": "67377aad3c3ab9b36acac47cb48f6c594172907a",
+  "remote_verification": "Independent git ls-remote confirms refs/heads/wip/textarea-parent-window-stage1 equals the reviewed SHA.",
+  "disposition": "Cleared for bounded ScrollRegion stage2 integration. The large logical-track defect from scroll-window-stage2-review-59e69133.json is fixed. No TextArea, Form or application acceptance is implied.",
+  "source_review": [
+    "The private ScrollPointer track length is now usize. Windowed press, track click and drag derive it from the same window.logical_rows used by painting; prepare also applies that logical viewport. Public legacy u16 prepare/handle signatures remain unchanged and no-window callers retain that fallback.",
+    "The drag mapping uses saturating usize addition/subtraction from the descriptor source row rather than a narrowing signed conversion. The physical/source descriptor remains the sole mapping; no second scroll state or grab cache was added.",
+    "Legacy draw delegates to a full window and retains canonical theme resolution. Modern per-part window callback precedence, complete legacy part handling and bounded unsupported-part diagnostics remain intact.",
+    "Non-exhaustive Diagnostic gained an additive variant through the existing bounded store. Runtime/editor input queue, focus policy, scope lifecycle and actual cursor-retention code are not changed by this source diff."
+  ],
+  "independent_public_results": {
+    "unchanged_original_five": "5 passed,0 skipped; /tmp/scroll-window-67377-independent-original.log. The originally failing100000-row thumb press now retains450000.",
+    "expanded_suite": "9 passed,0 skipped; /tmp/scroll-window-67377-independent-final-corrected.log. Includes65535/65536/100000 captured drags, usizeMAX descriptor mapping, held pointer outside visible window and logical-end clamp, resize cancellation followed by a new press using the fresh parent mapping, slot precedence/intervals, original endpoint caps and a fully visible legacy thumb inside a clipped track.",
+    "consumer": "/private/tmp/scroll-window-59e-independent",
+    "probe_correction": "An added resize probe first attempted input before publishing app_mut changes, then assumed capture should survive resize. Both failed attempts are preserved in /tmp/scroll-window-67377-independent-final.log and /tmp/scroll-window-67377-independent-resize-corrected.log with source copies /private/tmp/scroll-window-67377-resize-probe-pending-original.rs and /private/tmp/scroll-window-67377-resize-probe-preserve-drag-obsolete.rs. Existing runtime capture.rs:239-244 explicitly requires capture cancellation on resize. The corrected companion asserts cancellation and verifies fresh source mapping after a new press; no product source or original five expected assertions changed."
+  },
+  "legacy_compatibility": {
+    "source_before": "e2cdce0affc4370dea73b9f67d187e8deb193c3a",
+    "source_after": "67377aad3c3ab9b36acac47cb48f6c594172907a",
+    "method": "The same separate public consumer recorded every decoded Buffer cell/style, TRACK and THUMB region, and diagnostics for60 ordinary unwindowed draw scenes: four profiles, widths0/1/2/8/16 and offsets0/7/76. Each source was independently checked out in the reviewer-owned copy before its Nextest execution.",
+    "result": "Both1-test consumers passed and recorded outputs are byte-identical, SHA2565ff65e590b263b575c054be55d7f8644a8b469470d6416ea90b2b9af64b23bd0.",
+    "consumer": "/private/tmp/scroll-legacy-compat-independent",
+    "outputs": [
+      "/tmp/scroll-legacy-e2cd-parent.cells",
+      "/tmp/scroll-legacy-67377.cells"
+    ],
+    "logs": [
+      "/tmp/scroll-legacy-e2cd-parent.log",
+      "/tmp/scroll-legacy-67377.log"
+    ]
+  },
+  "independent_native": [
+    {
+      "command": "cargo nextest run --locked -p termrock-runtime --lib scroll_region::tests --no-fail-fast",
+      "result": "17 passed,217 explicitly filtered",
+      "log": "/tmp/scroll-window-67377-native.log"
+    },
+    {
+      "command": "cargo nextest run --locked -p termrock-runtime --lib capture::tests --no-fail-fast",
+      "result": "4 passed,230 explicitly filtered",
+      "log": "/tmp/scroll-window-67377-capture-native.log"
+    },
+    {
+      "command": "cargo clippy --locked -p termrock-runtime --all-targets --features testing -- -D warnings",
+      "result": "Exit0",
+      "log": "/tmp/scroll-window-67377-clippy.log"
+    },
+    {
+      "command": "rustfmt --edition2024 --check on scroll_region.rs and diagnostics.rs; git diff --check e2cd..67377",
+      "result": "Exit0"
+    }
+  ],
+  "stage3_boundary": "Fields TextArea must consume this descriptor through existing prepared LayoutFacts: logical body viewport remains independent from the visible parent row interval; visible document row equals child scroll offset plus first_source_row. Use the same mapping for draw, selection, pointer/drag, real cursor, menu anchor and scrollbar. Existing zero-offset APIs must delegate without changed defaults. Do not slice/reindex document data, clone and mutate state to draw, use cached app Rects, add a global coordinate transform or run input/domain effects during measure/draw. Form clipping and menu/focus behavior still require separate real-consumer tests.",
+  "remaining_limits": [
+    "This bounded review does not run the entire runtime/editor workspace; author full-suite results remain separately attributed.",
+    "No pinned paired CLI cohort acceptance, expected artifact update, full application parity or complete migration approval.",
+    "Missing prepared facts and zero/narrow behavior retain existing fallback code; only the specified public/native cases were independently executed."
+  ]
+}

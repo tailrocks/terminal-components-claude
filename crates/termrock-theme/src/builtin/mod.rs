@@ -181,7 +181,7 @@ fn button_variant(m: &mut PartMap<PartRecipe>, v: Variant) {
         p()
     };
     part(m, Part::GUTTER, gutter).when(
-        StateFlags::FOCUSED,
+        StateFlags::FOCUS_VISIBLE,
         p().set_glyph(GlyphRole::FocusBar)
             .set_fg(gutter_fg)
             .remove(Modifier::BOLD),
