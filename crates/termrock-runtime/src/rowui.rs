@@ -350,15 +350,10 @@ impl<'u> RowUi<'u> {
             crate::theme::StyleDefaults::new(StylePatch::new().remove(Modifier::BOLD)),
             patch.as_ref(),
         );
-        let mut style = resolved.resolved.style;
-        if !self.flags.contains(StateFlags::FOCUSED)
-            && !resolved.explicit.add.contains(Modifier::BOLD)
-            && !self.label_recipe_adds_bold()
-        {
-            // An unfocused row uses match emphasis for BOLD by default. A
-            // theme recipe or explicit style patch may still opt into bold.
-            style = style.remove_modifier(Modifier::BOLD);
-        }
+        // Unfocused labels use match emphasis for BOLD by default. Supplying
+        // that default to the canonical resolver leaves theme and consumer
+        // patches authoritative without replaying recipe resolution here.
+        let style = resolved.resolved.style;
         #[cfg(feature = "testing")]
         self.ui.note_styled(
             self.owner,
@@ -384,35 +379,6 @@ impl<'u> RowUi<'u> {
             used.saturating_add(self.ui.glyph(tail, GlyphRole::Ellipsis, style))
         };
         self.left = self.left.saturating_add(used);
-    }
-
-    fn label_recipe_adds_bold(&self) -> bool {
-        let Some(recipe) = self.ui.theme().recipes.get(self.family) else {
-            return false;
-        };
-        let variant = if self.variant == Variant::DEFAULT {
-            recipe.default_variant
-        } else {
-            self.variant
-        };
-        let family = recipe.parts.get(Part::LABEL);
-        let variant_part = recipe
-            .variant(variant)
-            .and_then(|parts| parts.get(Part::LABEL));
-        let base = family
-            .map_or(StylePatch::new(), |part| part.base)
-            .merge(variant_part.map_or(StylePatch::new(), |part| part.base));
-        if base.add.contains(Modifier::BOLD) {
-            return true;
-        }
-        family
-            .into_iter()
-            .chain(variant_part)
-            .flat_map(|part| part.states.iter())
-            .filter(|rule| rule.matches(self.flags))
-            .fold(base, |patch, rule| patch.merge(rule.patch))
-            .add
-            .contains(Modifier::BOLD)
     }
 
     pub fn label_patched(&mut self, s: &str, p: &StylePatch) {
