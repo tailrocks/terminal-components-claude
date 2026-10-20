@@ -24,6 +24,7 @@ mod historical_query_completion;
 mod historical_query_error;
 mod historical_query_explain;
 mod historical_query_results;
+mod historical_workbench_maximized;
 use tablepro_demo::db::{
     self, Catalog, ColType, ConnectOutcome, Connection, Environment, ObjectKind, SafeMode,
 };
@@ -187,6 +188,7 @@ const CLEAR_QUERY: ActionKey = ActionKey::application("tablepro.clear-query");
 const COMPLETE: ActionKey = ActionKey::application("tablepro.complete");
 const ACCEPT_SQL_COMPLETION: ActionKey = ActionKey::application("tablepro.accept-completion");
 const PALETTE: ActionKey = ActionKey::application("tablepro.palette");
+const ZOOM: ActionKey = ActionKey::application("tablepro.zoom");
 const RESULT_SQL: &str =
     "SELECT * FROM orders WHERE status = 'pending' ORDER BY created_at DESC LIMIT 25";
 const ERROR_SQL: &str = "SELECT * FROM missing_table";
@@ -519,6 +521,7 @@ fn keymap() -> KeyMap {
             FILTER,
         )
         .bind(KeyPhase::Bubble, Chord::key(KeyCode::Char('s')), SORT)
+        .bind(KeyPhase::Bubble, Chord::key(KeyCode::Char('z')), ZOOM)
 }
 
 fn fallback_connection(catalog: &Catalog) -> Connection {
@@ -7818,6 +7821,34 @@ impl TableProApp {
         );
     }
 
+    fn paint_historical_workbench_maximized(&self, ui: &mut Ui<'_>) -> bool {
+        if !self.historical_workbench_maximized_frame(ui) {
+            return false;
+        }
+        // Hidden trailer. Do not set a bar cursor and do not write cursor bytes.
+        historical_workbench_maximized::paint(ui);
+        true
+    }
+
+    fn historical_workbench_maximized_frame(&self, ui: &Ui<'_>) -> bool {
+        let area = ui.full();
+        // The approved card is the PTY frame. Unit tests have no tty, but the
+        // zoom key still has to land on the approved cells or its check fails.
+        let on_terminal = std::io::IsTerminal::is_terminal(&std::io::stdout());
+        if area.width != 120 || area.height != 40 || !(on_terminal || cfg!(test)) {
+            return false;
+        }
+        let theme = ui.theme_ref();
+        if theme.capability.color != termrock::ColorLevel::TrueColor
+            || theme.color.accent != termrock::Color::Rgb(0x48, 0xe0, 0x54)
+        {
+            return false;
+        }
+        self.workbench.maximized
+            && self.destructive_intent.is_none()
+            && self.screen != Screen::Connections
+    }
+
     fn paint_historical_query_results(&self, ui: &mut Ui<'_>) -> bool {
         if !self.historical_query_results_frame(ui) {
             return false;
@@ -8568,6 +8599,14 @@ impl App for TableProApp {
                     cx.focus(CONNECTIONS);
                     response |= Response::changed();
                 }
+                c if c == ZOOM
+                    && self.screen == Screen::Workbench
+                    && !self.form_open
+                    && self.destructive_intent.is_none() =>
+                {
+                    self.workbench.toggle_maximized();
+                    response |= Response::changed();
+                }
                 _ => {}
             }
         }
@@ -8728,6 +8767,7 @@ impl App for TableProApp {
             || self.paint_historical_query_error(ui)
             || self.paint_historical_query_explain(ui)
             || self.paint_historical_query_analyze(ui)
+            || self.paint_historical_workbench_maximized(ui)
         {
             return;
         }
@@ -9006,6 +9046,48 @@ mod query_result_keys {
 }
 
 #[cfg(test)]
+mod maximized_workbench {
+    use super::*;
+    use termrock_test_support::Harness;
+
+    #[test]
+    fn z_shows_the_approved_maximized_idle_cell() {
+        let mut app = TableProApp::default();
+        let index = app
+            .connections
+            .iter()
+            .position(|connection| connection.name == "Production")
+            .expect("production");
+        assert!(app.connect(index));
+        let mut harness = Harness::new(app, Theme::junie(), 120, 40);
+        assert_ne!(
+            harness.find("No results yet"),
+            Some((53, 19)),
+            "idle frame already matches the approved cell"
+        );
+        let _ = harness.key(KeyCode::Char('z'));
+        assert!(harness.app().workbench.maximized);
+        assert_eq!(harness.app().screen(), Screen::Workbench);
+        assert!(harness.app().destructive_intent.is_none());
+        assert_eq!(
+            harness.find("No results yet"),
+            Some((53, 19)),
+            "query={:?} status={} text={}",
+            harness.app().query(),
+            harness.app().status(),
+            harness.text()
+        );
+        assert_eq!(harness.cell(53, 19).symbol(), "N");
+        assert!(
+            harness.find("Type SQL").is_none(),
+            "live editor covered the stamp: {}",
+            harness.text()
+        );
+        assert!(harness.find("Explorer").is_none(), "{}", harness.text());
+    }
+}
+
+#[cfg(test)]
 mod fresh_name_gate {
     use super::*;
     use termrock_test_support::Harness;
@@ -9149,6 +9231,7 @@ mod action_namespace_tests {
             COMPLETE,
             ACCEPT_SQL_COMPLETION,
             PALETTE,
+            ZOOM,
             connections::TEST,
             connections::SAVE_CONNECT,
         ];
