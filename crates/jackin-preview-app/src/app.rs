@@ -9582,6 +9582,17 @@ impl TuiApp for App {
             } else if self.cancel_open {
                 launch_dialog_plate::paint_cancel(ui);
             }
+            // The stage-rail column stays undimmed through the dialog, same
+            // as the 120×40 presentation frame. Truecolor and 256 already match.
+            let reduced = matches!(
+                ui.theme_ref().capability.color,
+                termrock::ColorLevel::Ansi16 | termrock::ColorLevel::Mono
+            ) || std::env::var_os("NO_COLOR").is_some();
+            if reduced && (self.cockpit_info_open || self.cancel_open) {
+                if let Some(column) = launch_cockpit::stage_rail_left(full) {
+                    ui.clear_dim(column);
+                }
+            }
         } else if full.width == 120
             && full.height == 40
             && self.launch_cockpit_scene()
@@ -9596,6 +9607,9 @@ impl TuiApp for App {
                 launch_dialog_plate::paint_info(ui);
             } else {
                 launch_dialog_plate::paint_cancel(ui);
+            }
+            if let Some(column) = launch_cockpit::stage_rail_left(full) {
+                ui.clear_dim(column);
             }
             launch_cockpit::paint_open_footer(ui, self.cancel_open);
         }
