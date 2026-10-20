@@ -459,7 +459,10 @@ impl Recorder {
 /// cells plus cursor position, visibility, shape, and blink intent.
 fn semantic_frame_json(frame: &Frame) -> String {
     let mut frame = frame.clone();
-    frame.provenance = Provenance::default();
+    frame.provenance = Provenance {
+        source: "screen".to_string(),
+        ..Provenance::default()
+    };
     frame.to_json()
 }
 
@@ -1324,6 +1327,14 @@ mod tests {
                 "failed {label} must not have a success receipt"
             );
         }
+    }
+
+    #[test]
+    fn semantic_frame_uses_the_reviewed_screen_provenance() {
+        let semantic = semantic_frame_json(&frame());
+        let decoded = Frame::from_json(&semantic).unwrap();
+        assert_eq!(decoded.provenance.source, "screen");
+        assert_eq!(semantic, semantic_frame_json(&decoded));
     }
 
     #[cfg(unix)]
