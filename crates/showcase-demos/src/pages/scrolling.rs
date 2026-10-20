@@ -950,6 +950,8 @@ fn paint_collections(ui: &mut Ui<'_>, card: Rect) {
 
 // 51×16 is the page rect inside the 72×20 shell.
 const NARROW_PAGE: (u16, u16) = (51, 16);
+// 59×20 is the page rect inside the 80×24 shell.
+const SHELL_80_PAGE: (u16, u16) = (59, 20);
 
 fn content_narrow(card: Rect) -> Rect {
     Rect::new(
@@ -1066,6 +1068,49 @@ fn paint_page_thumb(ui: &mut Ui<'_>, area: Rect) {
             ink(if on { THUMB } else { TRACK }, CANVAS),
         );
     }
+}
+
+fn columns_80(area: Rect) -> [Rect; 3] {
+    let gap = 2u16;
+    let widths = [18u16, 18, 17];
+    let mut x = area.x;
+    let mut cols = [Rect::new(0, 0, 0, 0); 3];
+    for (index, width) in widths.into_iter().enumerate() {
+        cols[index] = Rect::new(x, area.y, width, area.height);
+        x = x.saturating_add(width).saturating_add(gap);
+    }
+    cols
+}
+
+fn paint_scrollers_80(ui: &mut Ui<'_>, area: Rect, list_offset: usize, log: &[String]) {
+    let cols = columns_80(area);
+    let prose_area = content_narrow(cols[0]);
+    let prose = wrapped_prose(prose_area.width.saturating_sub(2));
+    let prose_view = usize::from(prose_area.height);
+    paint_card_narrow(
+        ui,
+        cols[0],
+        "Wrapped text",
+        &position(0, prose_view, prose.len()),
+    );
+    paint_text_rows(ui, prose_area, &prose, 0, |_| SECONDARY, true);
+    let list_area = content_narrow(cols[1]);
+    let list_view_h = usize::from(list_area.height);
+    paint_card_narrow(
+        ui,
+        cols[1],
+        "Long list",
+        &position(list_offset, list_view_h, LIST_LEN),
+    );
+    paint_list_rows(ui, list_area, list_offset);
+    let log_area = content_narrow(cols[2]);
+    let (log_offset, log_view) = log_window(log_area, log);
+    let mut meta = position(log_offset, log_view, log.len());
+    if !meta.is_empty() {
+        meta = format!("{meta} · following");
+    }
+    paint_card_narrow(ui, cols[2], "Log", &meta);
+    let _ = paint_log(ui, log_area, log);
 }
 
 fn paint_scrollers_narrow(ui: &mut Ui<'_>, area: Rect, list_offset: usize, log: &[String]) {
@@ -1201,6 +1246,15 @@ impl Page for ScrollingPage {
                     let list_area = content_narrow(narrow_columns(slots[0])[1]);
                     list_view().draw(ui, list_area, &self.list_state, &self.list);
                     paint_scrollers_narrow(ui, slots[0], list_offset, &self.log);
+                }
+                paint_page_thumb(ui, playground);
+                return;
+            }
+            if area.width == SHELL_80_PAGE.0 && area.height == SHELL_80_PAGE.1 {
+                if slots[0].height > 0 {
+                    let list_area = content_narrow(columns_80(slots[0])[1]);
+                    list_view().draw(ui, list_area, &self.list_state, &self.list);
+                    paint_scrollers_80(ui, slots[0], list_offset, &self.log);
                 }
                 paint_page_thumb(ui, playground);
                 return;
