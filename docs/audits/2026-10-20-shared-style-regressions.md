@@ -116,3 +116,64 @@ Exact four-package comparison:
   file and `git diff --check` passed.
 - Full application parity and library acceptance remain incomplete; this
   focused integration is not a completion claim.
+## Integration onto current PR #38 source
+
+Applied the independently reviewed shared-style commits, in order, onto
+`09df933dc31f8c92528e57ae6810c0377c83cfb6`:
+
+- `f3dc9c506` — explicit component style channels.
+- `708420d47` — theme and overlay precedence.
+- `4a0ab4983` — redundant Help width conversions.
+
+The cherry-picks produced `1a44bd04a`, `8e9a7f59e`, and `941061f45`. Resolved
+the `support.rs` collision by retaining the current PR source's `DIALOG`
+backdrop path and applying the new explicit-channel path only to `PICKER`.
+The `ui/paint.rs` merge retains current `clear_bar` foreground suppression and
+the borrowed, allocation-free backdrop path. No later PR source changes were
+overwritten; each incoming patch was scoped to the owned files.
+
+Validation on merged source `941061f45`:
+
+- `cargo nextest run -p termrock-runtime -p termrock-navigation -p termrock-overlays -p termrock-theme` — 658 passed, 14 failed, 3 skipped. All 14 failures reproduce on the exact parent `09df933`: the same six Dialog tests and eight Theme tests. The parent has two additional failures (`steps::tests::every_override_channel_is_forwarded_to_scrollbar` and `warmed_modal_snapshot_projection_performs_zero_allocations`) fixed by this change. The merged source adds 10 focused tests; all pass.
+- The same package command on exact parent `09df933` — 646 passed, 16 failed, 3 skipped. Eight Theme failures: `all_73_junie_slots_match_reference_capability_output`, `filter_empty_inherits_owner`, `select_empty_inherits_owner`, `list_empty_inherits_owner`, `grid_empty_inherits_owner`, `tree_empty_inherits_owner`, `nested_public_layers_dim_the_composited_origin_and_preserve_unwritten_cells`, and `standalone_empty_cells_match_pre_inheritance_reference`. Six Dialog failures are unchanged at the merged source.
+- The parent and merged worktrees used separate `CARGO_TARGET_DIR` values for the final repeat runs, preventing Cargo artifacts from crossing source revisions.
+- Strict package clippy, `cargo clippy -p termrock-runtime -p termrock-navigation -p termrock-overlays -p termrock-theme --all-targets -- -D warnings` — passed.
+- `rustfmt --edition 2024 --check` on all 10 changed Rust files and `git diff --check` — passed.
+- Workspace `cargo fmt --all --check` — blocked by existing formatting differences in untouched `crates/showcase-demos/src/pages/chrome.rs`.
+- Independent review of the exact integrated collision resolution remains pending. This increment does not establish application parity or full library acceptance.
+
+## Dialog container channel follow-up
+
+Independent external-consumer review of `e61c16a06d28e6f68e37055923b605de6cd44f16`
+found that the preserved Dialog backdrop branch still replaced explicit
+container foreground with sampled backdrop ink and cleared container
+modifiers. The external `tuiscotti` consumer probes at
+`/tmp/shared-style-external-e61/src/lib.rs` reproduced both defects: 1/3 pass,
+with the theme and instance Dialog-channel cases failing. The frozen-background
+and focus suppression cases passed.
+
+Changed `overlay_chrome` to resolve Picker and Dialog backdrop containers
+through one `ResolvedStyle` path. Both retain sampled backdrop ink for inherited
+foreground, card background and neutralized underlay modifiers; explicit
+theme, overlay, and instance channels then apply with shared precedence. Added
+unit coverage for instance fg/bg/underline/modifier channels, theme-overlay-
+instance precedence including `Inherit`, and `Clear` resets. No cursor, focus,
+or application-specific branch was added.
+
+Post-fix evidence:
+
+- Runtime support tests `dialog_chrome_*` — 3 passed, 0 failed. Coverage checks
+  instance fg/bg/underline/modifiers; theme, overlay, and instance precedence;
+  and explicit clear behavior. On `e61c16a06`, the external actual-Dialog probes
+  failed for instance and theme channels before this fix.
+- External consumer rebuilt against this source — 4 passed, 0 skipped: actual
+  Dialog instance channels, actual Dialog theme channels, actual Picker
+  channels, and unchanged modal focus-color suppression with ordinary content
+  retained.
+- Combined focused runtime set, including Picker and
+  `warmed_modal_snapshot_projection_performs_zero_allocations` — 7 passed,
+  0 failed; modal projection remains allocation-free.
+- Strict `cargo clippy -p termrock-runtime --all-targets -- -D warnings`,
+  `rustfmt --edition 2024 --check crates/termrock-runtime/src/support.rs`, and
+  `git diff --check` — passed.
+- PR #38 source integration and full application parity remain pending.
