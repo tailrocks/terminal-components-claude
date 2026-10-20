@@ -426,6 +426,22 @@ fn paint_first_use_status(ui: &mut Ui<'_>, area: Rect) {
     let _ = paint_status_text(ui, area, x, mark, STATUS_AMBER, false);
 }
 
+/// Tag remote-host status: service cwd, detached tag, then the size label.
+fn paint_remote_host_status(ui: &mut Ui<'_>, area: Rect) {
+    if area.is_empty() {
+        return;
+    }
+    ui.fill(area, status_ink(ui, STATUS_FG, false));
+    let mut x = area.x.saturating_add(STATUS_EDGE);
+    for (text, fg, bold) in [
+        ("/srv/payments", STATUS_FG, true),
+        ("detached @ v2.14.3", STATUS_GREY, false),
+    ] {
+        x = paint_status_text(ui, area, x, text, fg, bold).saturating_add(STATUS_GAP);
+    }
+    let _ = paint_size_label(ui, area);
+}
+
 /// Tag docker-cleanup status: cwd without the tilde, then the size label.
 fn paint_docker_cleanup_status(ui: &mut Ui<'_>, area: Rect) {
     if area.is_empty() {
@@ -682,6 +698,9 @@ fn menu_project(world: &World) -> String {
         }
         Scenario::DockerCleanup if crate::sim::catalogue::docker_cleanup_tag_frame(world) => {
             "no project".to_owned()
+        }
+        Scenario::RemoteHost if crate::sim::catalogue::remote_host_tag_frame(world) => {
+            "payments · service checkout".to_owned()
         }
         Scenario::DiskCleanup if crate::sim::catalogue::disk_cleanup_tag_frame(world) => {
             "work · project collection".to_owned()
@@ -1173,6 +1192,8 @@ impl App {
             "mbp · local".to_owned()
         } else if crate::sim::catalogue::docker_cleanup_tag_frame(&self.world) {
             "devbox · development".to_owned()
+        } else if crate::sim::catalogue::remote_host_tag_frame(&self.world) {
+            "◆ prod-eu-1 · production".to_owned()
         } else if self.route == Route::Disk
             && crate::sim::catalogue::disk_cleanup_tag_frame(&self.world)
         {
@@ -1211,6 +1232,8 @@ impl App {
             paint_monorepo_child_status(ui, status);
         } else if crate::sim::catalogue::docker_cleanup_tag_frame(&self.world) {
             paint_docker_cleanup_status(ui, status);
+        } else if crate::sim::catalogue::remote_host_tag_frame(&self.world) {
+            paint_remote_host_status(ui, status);
         } else if self.route == Route::Disk
             && crate::sim::catalogue::disk_cleanup_tag_frame(&self.world)
         {
@@ -1259,6 +1282,8 @@ impl App {
             }
         } else if crate::sim::catalogue::monorepo_child_tag_frame(&self.world) {
             Some(("Open", Some("Inspect 3…")))
+        } else if crate::sim::catalogue::remote_host_tag_frame(&self.world) {
+            Some(("Run", Some("Follow pay…")))
         } else {
             None
         };
@@ -2078,6 +2103,73 @@ mod tests {
         let mut stepped = App::for_scenario(Scenario::DiskCleanup, Motion::Paused, 40);
         assert!(termrock::App::accept_paused_clock_step(&mut stepped, 1_100));
         assert!(!crate::sim::catalogue::disk_cleanup_tag_frame(
+            &stepped.world
+        ));
+    }
+    #[test]
+    fn remote_host_frame_40_paints_the_tag_plate_and_later_seeks_keep_home() {
+        let plate = harness(
+            App::for_scenario(Scenario::RemoteHost, Motion::Paused, 40),
+            Theme::junie(),
+            120,
+            40,
+        );
+        let text = plate.text();
+        let lines: Vec<&str> = text.lines().collect();
+        assert!(
+            lines[0].contains("payments · service checkout"),
+            "{}",
+            lines[0]
+        );
+        assert!(
+            lines[0].contains("◆ prod-eu-1 · production"),
+            "{}",
+            lines[0]
+        );
+        assert!(!lines[0].contains("ssh"), "{}", lines[0]);
+        assert!(
+            lines[8].contains("› Follow payments-worker j…"),
+            "{}",
+            lines[8]
+        );
+        assert!(lines[8].contains("unit is restarting"), "{}", lines[8]);
+        assert!(lines[8].contains("journalctl -u"), "{}", lines[8]);
+        assert!(
+            lines[10].contains("journalctl -u pa… -n 200"),
+            "{}",
+            lines[10]
+        );
+        assert!(lines[14].contains("nothing used here yet"), "{}", lines[14]);
+        assert!(lines[18].contains("System · prod-eu-1"), "{}", lines[18]);
+        assert!(lines[38].contains("/srv/payments"), "{}", lines[38]);
+        assert!(lines[38].contains("detached @ v2.14.3"), "{}", lines[38]);
+        assert!(lines[39].contains("Enter Run"), "{}", lines[39]);
+        assert!(lines[39].contains("Follow pay…"), "{}", lines[39]);
+        assert!(lines[39].contains("Ctrl+G"), "{}", lines[39]);
+        let selected = plate.cell(4, 8);
+        assert_eq!(selected.symbol(), "F");
+        assert_eq!(selected.bg, Color::Rgb(0x2f, 0x5a, 0xa8));
+        assert!(selected.modifier.contains(termrock::Modifier::BOLD));
+        let kind = plate.cell(31, 8);
+        assert_eq!(kind.symbol(), "s");
+        assert!(!kind.modifier.contains(termrock::Modifier::BOLD));
+        let risk = plate.cell(92, 17);
+        assert_eq!(risk.symbol(), "r");
+        assert_eq!(risk.fg, Color::Rgb(0x73, 0x73, 0x73));
+        assert_eq!(risk.bg, Color::Rgb(0x11, 0x11, 0x11));
+        assert!(plate.diagnostics().is_empty(), "{:?}", plate.diagnostics());
+        let later = harness(
+            App::for_scenario(Scenario::RemoteHost, Motion::Paused, 4_000),
+            Theme::junie(),
+            120,
+            40,
+        );
+        assert!(!later.text().contains("Follow payments-worker"));
+        assert!(!later.text().contains("detached @ v2.14.3"));
+        assert!(later.app().route == Route::Home);
+        let mut stepped = App::for_scenario(Scenario::RemoteHost, Motion::Paused, 40);
+        assert!(termrock::App::accept_paused_clock_step(&mut stepped, 1_100));
+        assert!(!crate::sim::catalogue::remote_host_tag_frame(
             &stepped.world
         ));
     }
