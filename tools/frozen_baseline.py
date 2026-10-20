@@ -312,9 +312,6 @@ def prepare_live_source(repo: Path, root: Path, source: Path, timeout: int) -> d
     if live.exists():
         raise RunnerError(f"refusing to replace prepared live source: {live}")
     patch_path = repo / "tools" / "frozen_cli_pair.patch"
-    runner_path = Path(__file__).resolve()
-    helper_manifest = repo / "tools" / "frozen-cli-frame-support" / "Cargo.toml"
-    helper_lock = repo / "tools" / "frozen-cli-frame-support" / "Cargo.lock"
     helper_path = repo / "tools" / "frozen-cli-frame-support" / "src" / "lib.rs"
     extension_manifest_path = repo / EXTENSION_MANIFEST
     extension_source_path = repo / EXTENSION_SOURCE
@@ -581,7 +578,10 @@ def build_provenance_payload(repo: Path, source: Path, source_hash: str, target:
     )
     if archive.returncode != 0:
         raise RunnerError("could not fingerprint the fixed frozen-source git archive")
+    runner_path = Path(__file__).resolve()
     patch_path = repo / "tools" / "frozen_cli_pair.patch"
+    helper_manifest = repo / "tools" / "frozen-cli-frame-support" / "Cargo.toml"
+    helper_lock = repo / "tools" / "frozen-cli-frame-support" / "Cargo.lock"
     helper_path = repo / "tools" / "frozen-cli-frame-support" / "src" / "lib.rs"
     extension_manifest = repo / EXTENSION_MANIFEST
     extension_source = repo / EXTENSION_SOURCE
