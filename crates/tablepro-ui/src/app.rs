@@ -3,9 +3,8 @@ use std::cell::RefCell;
 use termrock::author::{PaintStyle, StyleDefaults};
 use termrock::{
     Action, ActionKey, Align, Anchor, App, CellAction, CellUi, Chord, ColumnKey, Cx, Dialog,
-    DialogAction, DialogState, FgStep, Field, Focusability, Form, FormAction, FormState,
-    FrameRead, GlyphRole, Grid, GridAction, GridCell, GridColumnFit, GridEditor, GridGutter,
-    GridModel,
+    DialogAction, DialogState, FgStep, Field, Focusability, Form, FormAction, FormState, FrameRead,
+    GlyphRole, Grid, GridAction, GridCell, GridColumnFit, GridEditor, GridGutter, GridModel,
     GridSortIndicator, Id, Intent, ItemKey, KeyCode, KeyMap, KeyModifiers, KeyPhase, LayerId,
     LayerSize, LayerSpec, Maximized, Modifier, Panel, PanelKind, Part, Phase, PickerAction,
     PickerSlotExt, Position, Response, Role, RowDecor, RowTotal, RowUi, ScreenAlign, Size, SortDir,
