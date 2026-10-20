@@ -4328,7 +4328,7 @@
       "observed_remote_sha": "636028fa130b2a0f841badb3ba93aa2330b907d6",
       "assignment": "post-inventory:B-components-layout",
       "status": "source-reviewed-clear; PR38 integration pending",
-      "reason": "Created after the 96-branch inventory to protect unique palette/reference commit 636028fa130b2a0f841badb3ba93aa2330b907d6. Parent is attributing 19 crate partitions; five Dialog failures plus meter_semantic_tokens and scrollbar_full_track require base comparison. Preserve exact source; do not overwrite or treat current failures as accepted. Parent reports 19-crate partition evidence of 1,687 run entries, 680 passed, 7 failed, and 678 partition-skips; failures to attribute: five Dialog cases, `meter_semantic_tokens`, and `scrollbar_full_track`.",
+      "reason": "Created after the 96-branch inventory to protect palette/reference commit 636028fa130b2a0f841badb3ba93aa2330b907d6. Both 19-crate nextest partitions ran 1,361 tests: 1,352 passed and nine failed (six Dialog layout assertions, meter semantic tokens, Note wrapping, and full-track scrollbar). All failures were independently reproduced on base e597618d6576a725538a70d71250fd81c6599c28. Source review is clear; integration remains pending until the exact remote delivery is recorded. Partition exclusions are not additional skipped cases.",
       "inventory_review_status": "protected-source-pending-attribution at initial review; superseded by parent follow-up below",
       "source_review_followup": {
         "commit": "082ad5d3ab3b4b29e790f7b3e4ea21205a5719a0",
@@ -4569,7 +4569,7 @@
     "E-ci-reference-catchall": 12,
     "reviewed_initial_total": 96,
     "post_inventory_branches": 1,
-    "post_inventory_review_pending": 1
+    "post_inventory_review_pending": 0
   },
   "live_inventory_after_review": {
     "observed_from": "remote-heads-after-review.tsv",
