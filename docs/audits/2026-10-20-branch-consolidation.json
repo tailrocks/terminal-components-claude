@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "record_status": "all_branch_reviews_and_palette_source_integration_recorded; product_and_remaining_component_integration_gates_pending",
+  "record_status": "branch inventory and authorized cleanup recorded; source and product acceptance gates remain incomplete",
   "captured_utc": "2026-10-20T16:07:32.696460+00:00",
   "fresh_E_refs_verified_utc": "2026-10-20T16:10:45Z",
   "inventory_source": "/Users/donbeave/Projects/termrock-cli-evidence-20261020/branch-consolidation/assigned-inventory.json",
@@ -628,6 +628,14 @@
         "replacement_source": "7c1a092ab7cfa37002f06e505cd4577f133750f4",
         "source_review_scope": "Actual commit diffs, ancestry, stable patch equivalence, relevant implementation and tests; not branch-name inference.",
         "acceptance_complete": false
+      },
+      "current_status_override": {
+        "effective_status": "already-delivered-source-equivalent",
+        "candidate_commit": "1a150420b0faa8784f56ccdca3cda01d16d8778e",
+        "candidate_blobs_byte_identical_at": "072fc24d6dd4f53dbd544485174e39aff2c92f43",
+        "verification": "cargo nextest integration suite: 16 passed, 0 skipped",
+        "evidence_log": "/Users/donbeave/Projects/termrock-cli-evidence-20261020/branch-consolidation/completion-current-nextest.log",
+        "note": "No branch cherry-pick/source replay required; original eligible review remains preserved."
       }
     },
     {
@@ -2672,7 +2680,17 @@
       "observed_remote_sha": "4d0df7704dcb284d0c9726e78ea68bcca30838fc",
       "assignment": "E-ci-reference-catchall",
       "status": "already-integrated",
-      "reason": "Branch tip 4d0df7704dcb284d0c9726e78ea68bcca30838fc is an ancestor of PR38 snapshot 6bcdc42173232b53ed48b221ae8d099791283e39; `crate_timeout_minutes = 15` is present."
+      "reason": "Branch tip 4d0df7704dcb284d0c9726e78ea68bcca30838fc is an ancestor of PR38 snapshot 6bcdc42173232b53ed48b221ae8d099791283e39; `crate_timeout_minutes = 15` is present. Final cleanup recheck: exact remote tip unchanged; ancestor of PR38 fe0b8ad0; no PR, unprotected; deleted via expected-old-SHA lease and absence verified.",
+      "current_status_override": {
+        "effective_status": "integrated-ancestor; remote branch deleted after verification",
+        "exact_remote_tip_before_cleanup": "4d0df7704dcb284d0c9726e78ea68bcca30838fc",
+        "integrated_ancestor_of": "fe0b8ad0ad5cd5db1c342a295f16f9f6745f1d2f",
+        "open_prs": [],
+        "protection_api": "404 unprotected",
+        "remote_absent_verified": true,
+        "deletion": "expected-old-SHA lease",
+        "parent_review": "independently reviewed and delivered; no unreviewed tip changes"
+      }
     },
     {
       "branch": "parity/runtime-fields-binding-query-current-20261020",
@@ -3499,7 +3517,7 @@
       "observed_remote_sha": "2863bf6e7f011c321088263cce12d423b16d73d3",
       "assignment": "B-components-layout",
       "status": "already-integrated-ancestry",
-      "reason": "Exact2863 ancestor of target6bcdc; delivery gate recorde597.",
+      "reason": "Exact2863 ancestor of target6bcdc; delivery gate recorde597. Final cleanup recheck: exact remote tip unchanged; ancestor of PR38 fe0b8ad0; no PR, unprotected; deleted via expected-old-SHA lease and absence verified.",
       "review_source": "B-components-layout.json",
       "review": {
         "branch": "parity/shared-style-integration-current-20261020",
@@ -3512,6 +3530,16 @@
         "changed_paths": [],
         "concurrent_target_paths": [],
         "production_blob_matches": {}
+      },
+      "current_status_override": {
+        "effective_status": "integrated-ancestor; remote branch deleted after verification",
+        "exact_remote_tip_before_cleanup": "2863bf6e7f011c321088263cce12d423b16d73d3",
+        "integrated_ancestor_of": "fe0b8ad0ad5cd5db1c342a295f16f9f6745f1d2f",
+        "open_prs": [],
+        "protection_api": "404 unprotected",
+        "remote_absent_verified": true,
+        "deletion": "expected-old-SHA lease",
+        "parent_review": "independently reviewed and delivered; no unreviewed tip changes"
       }
     },
     {
@@ -4351,11 +4379,13 @@
           "strict_clippy": "passed",
           "fmt": "passed",
           "diff_check": "passed",
-          "full_19_crate_partition": "1352/1361 passed; 9 failures attributed to baseline"
+          "full_19_crate_partition": "1352/1361 passed; 9 failures attributed to candidate base e597618d6576a725538a70d71250fd81c6599c28"
         },
         "branch_tip_before_cleanup": "636028fa130b2a0f841badb3ba93aa2330b907d6",
         "integrated": true,
-        "remote_cleanup_status": "pending deletion after final exact-ref checks"
+        "remote_cleanup_status": "deleted with expected-old-SHA lease; absent on verification",
+        "deletion_target_head": "fe0b8ad0ad5cd5db1c342a295f16f9f6745f1d2f",
+        "integrated_ancestor_of": "fe0b8ad0ad5cd5db1c342a295f16f9f6745f1d2f"
       }
     },
     {
@@ -4364,12 +4394,14 @@
       "observed_remote_sha": "98aa14d2d79322294b9f7b699b19999c838b823c",
       "assignment": "task-created-after-inventory",
       "status": "integrated-into-PR38",
-      "reason": "This ledger branch carried the A-E branch inventory and evidence. It was integrated into PR38 at 072fc24. Delete only after exact-tip, no-open-PR, unprotected, and ancestry checks.",
+      "reason": "This ledger branch carried the A-E branch inventory and evidence. It was integrated into PR38 at 072fc24; exact tip, ancestry, no-open-PR, and unprotected checks passed before expected-old-SHA deletion.",
       "current_status_override": {
         "delivery_commit": "072fc24d6dd4f53dbd544485174e39aff2c92f43",
         "branch_tip_before_cleanup": "98aa14d2d79322294b9f7b699b19999c838b823c",
         "integrated": true,
-        "remote_cleanup_status": "pending deletion after final exact-ref checks"
+        "remote_cleanup_status": "deleted with expected-old-SHA lease; absent on verification",
+        "deletion_target_head": "fe0b8ad0ad5cd5db1c342a295f16f9f6745f1d2f",
+        "integrated_ancestor_of": "fe0b8ad0ad5cd5db1c342a295f16f9f6745f1d2f"
       }
     }
   ],
@@ -4616,20 +4648,60 @@
     "post_inventory_branches": 2,
     "post_inventory_review_pending": 0,
     "palette_source_integrated_at": "072fc24d6dd4f53dbd544485174e39aff2c92f43",
-    "current_live_branches_before_cleanup": 98
+    "current_live_branches_before_cleanup": 94
   },
   "live_inventory_after_review": {
-    "observed_from": "fresh ls-remote before prune",
+    "observed_from": "fresh git ls-remote after two task-owned WIP deletions; 2026-10-20T16:25:11Z",
     "branch_count_before_cleanup": 98,
+    "branch_count_after_cleanup": 94,
     "original_inventory_branches": 96,
     "new_after_start": [
       "wip/branch-consolidation-E-20261020",
       "wip/pr38-palette-reviewed-20261020"
     ],
     "advanced_since_start": {
-      "parity/termrock-visual-baseline": "072fc24d6dd4f53dbd544485174e39aff2c92f43"
+      "parity/termrock-visual-baseline": "fe0b8ad0ad5cd5db1c342a295f16f9f6745f1d2f"
     },
-    "deletions_at_recording": []
+    "deleted_after_exact_checks": [
+      {
+        "branch": "wip/branch-consolidation-E-20261020",
+        "expected_old_sha": "98aa14d2d79322294b9f7b699b19999c838b823c",
+        "remote_absent_verified": true,
+        "integrated_ancestor_of": "fe0b8ad0ad5cd5db1c342a295f16f9f6745f1d2f",
+        "open_prs": [],
+        "protection_api": "404 unprotected",
+        "deletion": "expected-old-SHA lease"
+      },
+      {
+        "branch": "wip/pr38-palette-reviewed-20261020",
+        "expected_old_sha": "636028fa130b2a0f841badb3ba93aa2330b907d6",
+        "remote_absent_verified": true,
+        "integrated_ancestor_of": "fe0b8ad0ad5cd5db1c342a295f16f9f6745f1d2f",
+        "open_prs": [],
+        "protection_api": "404 unprotected",
+        "deletion": "expected-old-SHA lease"
+      },
+      {
+        "branch": "parity/runtime-crate-timeout-15-20261020",
+        "expected_old_sha": "4d0df7704dcb284d0c9726e78ea68bcca30838fc",
+        "remote_absent_verified": true,
+        "integrated_ancestor_of": "fe0b8ad0ad5cd5db1c342a295f16f9f6745f1d2f",
+        "open_prs": [],
+        "protection_api": "404 unprotected",
+        "deletion": "expected-old-SHA lease",
+        "parent_reviewed_and_delivered": true
+      },
+      {
+        "branch": "parity/shared-style-integration-current-20261020",
+        "expected_old_sha": "2863bf6e7f011c321088263cce12d423b16d73d3",
+        "remote_absent_verified": true,
+        "integrated_ancestor_of": "fe0b8ad0ad5cd5db1c342a295f16f9f6745f1d2f",
+        "open_prs": [],
+        "protection_api": "404 unprotected",
+        "deletion": "expected-old-SHA lease",
+        "parent_reviewed_and_delivered": true
+      }
+    ]
   },
   "integration_followups": [
     {
@@ -4641,14 +4713,29 @@
       "at_utc": "2026-10-20",
       "source": "parent integration report and remote PR38 head verification",
       "delivery_commit": "072fc24d6dd4f53dbd544485174e39aff2c92f43",
-      "finding": "Palette source 636028fa is integrated. Source review commit 082ad5d3ab3b4b29e790f7b3e4ea21205a5719a0 cleared four exact source/test blobs; focused nextest 314/314 passed with zero skips, strict clippy/fmt/diff checks passed. The full 19-crate partition passed 1352/1361; nine failures were attributed to baseline. This supersedes the earlier palette pending-integration note. No application parity acceptance."
+      "finding": "Palette source 636028fa is integrated. Source review commit 082ad5d3ab3b4b29e790f7b3e4ea21205a5719a0 cleared four exact source/test blobs; focused nextest 314/314 passed with zero skips, strict clippy/fmt/diff checks passed. The full 19-crate partition passed 1352/1361; nine failures were reproduced/attributed to candidate base e597618d6576a725538a70d71250fd81c6599c28. This supersedes the earlier palette pending-integration note. No application parity acceptance."
     },
     {
       "at_utc": "2026-10-20",
       "source": "parent integration report and remote PR38 head verification",
       "delivery_commit": "072fc24d6dd4f53dbd544485174e39aff2c92f43",
-      "finding": "Palette source 636028fa integrated. Source review commit 082ad5d3ab3b4b29e790f7b3e4ea21205a5719a0 cleared four exact source/test blobs; focused nextest 314/314 passed with zero skips, strict clippy/fmt/diff checks passed. The full 19-crate partition passed 1352/1361; nine failures were attributed to baseline. Supersedes earlier pending-attribution note. No application parity acceptance."
+      "finding": "Palette source 636028fa integrated. Source review commit 082ad5d3ab3b4b29e790f7b3e4ea21205a5719a0 cleared four exact source/test blobs; focused nextest 314/314 passed with zero skips, strict clippy/fmt/diff checks passed. The full 19-crate partition passed 1352/1361; nine failures were reproduced/attributed to candidate base e597618d6576a725538a70d71250fd81c6599c28. Supersedes earlier pending-attribution note. No application parity acceptance."
+    },
+    {
+      "at_utc": "2026-10-20T16:25:11Z",
+      "source": "live remote head, protected-ref, PR, ancestry, and lease-delete verification",
+      "finding": "Deleted exactly the two task-owned integrated WIP branches using expected-old-SHA leases. Both exact tips were ancestors of PR38, had no PRs, were unprotected, and were absent from remote heads after deletion. This first WIP-only cleanup was the intermediate count change from 98 to 96, before the two original-inventory branches were removed."
+    },
+    {
+      "at_utc": "2026-10-20",
+      "source": "parent source-equivalence and focused integration-test report",
+      "finding": "Completion manual-fix source/test blobs from 1a150420b0faa8784f56ccdca3cda01d16d8778e are byte-identical on PR38 at 072fc24; current combined editor integration tests passed 16/16, zero skipped. No source replay was needed. Evidence log: /Users/donbeave/Projects/termrock-cli-evidence-20261020/branch-consolidation/completion-current-nextest.log."
+    },
+    {
+      "at_utc": "2026-10-20T16:25:11Z",
+      "source": "parent authorization plus exact remote tip/ancestry/PR/protection verification",
+      "finding": "Also deleted exactly two independently reviewed and delivered original-inventory branches: parity/runtime-crate-timeout-15-20261020 at 4d0df770 and parity/shared-style-integration-current-20261020 at 2863bf6e. Each remote tip matched the recorded SHA, was an ancestor of PR38 fe0b8ad0, had no PR and was unprotected. Both expected-old-SHA lease deletions were verified absent. No other branch was deleted. This second cleanup changed the live count from 96 to the final 94."
     }
   ],
-  "interpretation_policy": "This 98-row exact branch ledger supersedes coarse branch classifications in the migration matrix. A branch may contain a bounded reusable contract worth integration while its whole branch or product gate remains unaccepted. Shared-style 94a/8e9/e72 lineage is represented by already-integrated 2863/e597 equivalents; early Button 7dab is superseded by reviewed 673936/b0f8/2d stack. Do not reject useful component contracts solely because full application parity remains red."
+  "interpretation_policy": "This 98-row historical branch ledger (94 live branches after four authorized branch cleanups) supersedes coarse branch classifications in the migration matrix. A branch may contain a bounded reusable contract worth integration while its whole branch or product gate remains unaccepted. Shared-style 94a/8e9/e72 lineage is represented by already-integrated 2863/e597 equivalents; early Button 7dab is superseded by reviewed 673936/b0f8/2d stack. Do not reject useful component contracts solely because full application parity remains red."
 }
