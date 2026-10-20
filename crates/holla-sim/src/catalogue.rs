@@ -2265,6 +2265,41 @@ pub fn activities_multi_history_tag(w: &World) -> Option<ParityDiscovery> {
     })
 }
 
+/// 80×24 `monorepo-child` plate. Not the 120×40 plate. Later seeks and other sizes stay off it.
+pub fn monorepo_child_80x24_plate(w: &World, width: u16, height: u16) -> Option<ParityDiscovery> {
+    if width != 80 || height != 24 {
+        return None;
+    }
+    let wide = monorepo_child_tag(w)?;
+    let preview = vec![
+        PreviewLine {
+            label: "Runs",
+            value: "'holla disk analyze --artifacts'".into(),
+            tone: PreviewTone::Secondary,
+            wraps: false,
+        },
+        PreviewLine {
+            label: "Scope",
+            value: "here".into(),
+            tone: PreviewTone::Text,
+            wraps: false,
+        },
+        PreviewLine {
+            label: "Risk",
+            value: "read-only".into(),
+            tone: PreviewTone::Meta,
+            wraps: false,
+        },
+    ];
+    Some(ParityDiscovery {
+        lines: wide.lines,
+        preview,
+        preview_meta: String::new(),
+        actions: Vec::new(),
+        suggested_len: wide.suggested_len,
+    })
+}
+
 pub fn monorepo_child_tag(w: &World) -> Option<ParityDiscovery> {
     if !monorepo_child_tag_frame(w) {
         return None;
@@ -3408,6 +3443,39 @@ mod tests {
         );
         world.seek(4_000);
         assert!(monorepo_child_tag(&world).is_none());
+        assert!(monorepo_child_80x24_plate(&world, 80, 24).is_none());
+    }
+
+    #[test]
+    fn monorepo_child_80x24_plate_is_only_the_narrow_tick_40_frame() {
+        let mut world = fixtures::world_for(Scenario::MonorepoChild);
+        assert!(monorepo_child_80x24_plate(&world, 80, 24).is_none());
+        world.seek(40);
+        assert!(monorepo_child_80x24_plate(&world, 120, 40).is_none());
+        assert!(monorepo_child_80x24_plate(&world, 80, 40).is_none());
+        assert!(monorepo_child_80x24_plate(&world, 81, 24).is_none());
+        assert!(monorepo_child_80x24_plate(&world, 100, 30).is_none());
+        let view = monorepo_child_80x24_plate(&world, 80, 24).expect("80x24 plate");
+        assert!(view.lines.iter().any(|line| matches!(
+            line,
+            FinderLine::Row(row) if row.selected && row.title.starts_with("Inspect 3 GB")
+        )));
+        assert!(view.lines.iter().any(|line| matches!(
+            line,
+            FinderLine::Row(row) if row.title == "Install missing tools · sqlx-cli"
+        )));
+        let runs = view
+            .preview
+            .iter()
+            .find(|line| line.label == "Runs")
+            .expect("runs");
+        assert_eq!(runs.value, "'holla disk analyze --artifacts'");
+        assert_ne!(monorepo_child_tag(&world).as_ref(), Some(&view));
+        world.seek(4_000);
+        assert!(monorepo_child_80x24_plate(&world, 80, 24).is_none());
+        let mut other = fixtures::world_for(Scenario::FirstUse);
+        other.seek(40);
+        assert!(monorepo_child_80x24_plate(&other, 80, 24).is_none());
     }
 
     #[test]
