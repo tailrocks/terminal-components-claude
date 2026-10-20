@@ -47,11 +47,11 @@ impl Workbench {
             workspaces: [
                 Workspace {
                     key: ItemKey::text("source"),
-                    label: "Source",
+                    label: "源泉 🚀",
                 },
                 Workspace {
                     key: ItemKey::text("review"),
-                    label: "Review",
+                    label: "Long workspace · 👩🏽‍💻 — Unicode text beyond the preferred tab width",
                 },
             ],
         }
@@ -70,9 +70,20 @@ impl App for Workbench {
     fn draw(&self, ui: &mut termrock::Ui<'_>) {
         composition::Group::row([
             composition::button(&self.run).max(Some(8), None),
-            composition::tabs(&self.tabs, &self.tabs_state, &self.workspaces)
+            composition::Group::column([
+                composition::Group::wrap([composition::tabs(
+                    &self.tabs,
+                    &self.tabs_state,
+                    &self.workspaces,
+                )
                 .flex(1)
-                .max(Some(24), None),
+                .max(Some(24), None)])
+                .into_child()
+                .flex(1),
+                composition::Group::wrap(std::iter::empty()).into_child(),
+            ])
+            .into_child()
+            .flex(1),
         ])
         .spec(Composition::new().gap(1).padding(Insets::all(1)))
         .show(ui)
