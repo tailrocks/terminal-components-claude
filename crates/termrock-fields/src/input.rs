@@ -1834,6 +1834,8 @@ impl FieldControl for TextInput<'_> {
 mod tests {
     use core::cell::Cell;
 
+    use ratatui::Terminal;
+    use ratatui::backend::TestBackend;
     use ratatui_core::buffer::Buffer;
 
     use super::*;
@@ -1947,19 +1949,21 @@ mod tests {
     }
 
     fn publish<A: App>(runtime: &mut Runtime<A>) {
-        let mut buffer = Buffer::empty(SCREEN);
-        for _ in 0..24 {
-            if runtime.needs_settle() {
-                let _ = runtime.settle();
-                continue;
-            }
-            if runtime.needs_present() {
-                runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
-                continue;
-            }
-            return;
-        }
-        panic!("field continuation runtime did not settle");
+        let prepared = runtime
+            .prepare(SCREEN)
+            .expect("field continuation frame prepares");
+        let mut terminal = Terminal::new(TestBackend::new(SCREEN.width, SCREEN.height))
+            .expect("test terminal initializes");
+        terminal
+            .draw(|frame| {
+                runtime
+                    .draw_prepared(prepared, frame)
+                    .expect("prepared field continuation frame draws");
+            })
+            .expect("test backend draws");
+        runtime
+            .acknowledge_presented(prepared)
+            .expect("test backend acknowledges field continuation frame");
     }
 
     fn open_context_menu(runtime: &mut Runtime<ContinuationInputApp>) {
