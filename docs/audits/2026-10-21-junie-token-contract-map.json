@@ -1,0 +1,3177 @@
+{
+  "reviewed_source": "5cd181530ba61781cf6a2c69d97895a9b0741275",
+  "frozen_source": "4169783ae883788186d161af09ba9c481bd84e5c",
+  "disposition": "Research mapping, not palette approval. All73 slots inventoried; direct, contextual, ambiguous and extension roles deliberately distinguished.",
+  "reference_evaluation": "Outputs are derived from frozen Theme::junie constants, downgrade_all and explicit apply_256/apply_16/apply_mono assignments. They are NOT copied from candidate palettes.rs. Contextual rows have no invented global output. TrueColor is included to expose already-existing non-quantizer differences.",
+  "frozen_source_paths": [
+    "src/theme.rs:485-570 palette constants",
+    "src/theme.rs:734-805 Theme::junie",
+    "src/theme.rs:830-913 downgrade_all/for_level ordering",
+    "src/theme.rs:920-1113 explicit profile tables",
+    "src/theme.rs:1409-1655 interactive/legible",
+    "src/theme.rs:1948-1974 match_current/selection",
+    "src/theme.rs:2084-2103 syntax",
+    "src/widgets/code.rs:1090-1206 syntax/selection/find/diagnostics",
+    "src/widgets/progress.rs:350-410,452-510 meter"
+  ],
+  "row_count": 73,
+  "rows": [
+    {
+      "token": "surfaces[0]",
+      "role_expression": "Role::Surface(Surface::Canvas)",
+      "frozen_field": "canvas",
+      "status": "Mapped for the stated component use",
+      "contract": "Theme::bg planes; frozen theme.rs:1279 onward and interactive body/ladder selection. Hover/pressed plane ladders are separate, not this rest token.",
+      "frozen_outputs": {
+        "TrueColor": "#000000",
+        "Ansi256": "Indexed(16)",
+        "Ansi16": "Black",
+        "Mono": "Black"
+      },
+      "current_production_references": [
+        {
+          "path": "crates/holla-ui/src/app.rs",
+          "line": 1586,
+          "source": ".set_fg(Role::Surface(Surface::Canvas))"
+        },
+        {
+          "path": "crates/jackin-preview-app/src/app/historical_paint.rs",
+          "line": 43,
+          "source": ".set_bg(Role::Surface(Surface::Canvas))"
+        },
+        {
+          "path": "crates/jackin-preview-app/src/app/historical_paint.rs",
+          "line": 50,
+          "source": ".set_bg(Role::Surface(Surface::Canvas))"
+        },
+        {
+          "path": "crates/jackin-preview-app/src/app/historical_paint.rs",
+          "line": 77,
+          "source": ".set_fg(Role::Surface(Surface::Canvas))"
+        },
+        {
+          "path": "crates/jackin-preview-app/src/app/historical_paint.rs",
+          "line": 78,
+          "source": ".set_bg(Role::Surface(Surface::Canvas))"
+        },
+        {
+          "path": "crates/jackin-preview-app/src/app/historical_paint.rs",
+          "line": 85,
+          "source": ".set_bg(Role::Surface(Surface::Canvas))"
+        },
+        {
+          "path": "crates/jackin-preview-app/src/app/historical_paint.rs",
+          "line": 106,
+          "source": ".set_bg(Role::Surface(Surface::Canvas))"
+        },
+        {
+          "path": "crates/jackin-preview-app/src/app/historical_paint.rs",
+          "line": 134,
+          "source": ".set_bg(Role::Surface(Surface::Canvas))"
+        },
+        {
+          "path": "crates/jackin-preview-app/src/app/historical_paint.rs",
+          "line": 141,
+          "source": ".set_bg(Role::Surface(Surface::Canvas))"
+        },
+        {
+          "path": "crates/jackin-preview-app/src/app/historical_paint.rs",
+          "line": 169,
+          "source": ".set_bg(Role::Surface(Surface::Canvas))"
+        },
+        {
+          "path": "crates/jackin-preview-app/src/app/historical_paint.rs",
+          "line": 176,
+          "source": ".set_bg(Role::Surface(Surface::Canvas))"
+        },
+        {
+          "path": "crates/jackin-preview-app/src/app/historical_paint.rs",
+          "line": 183,
+          "source": ".set_bg(Role::Surface(Surface::Canvas))"
+        },
+        {
+          "path": "crates/jackin-preview-app/src/app/historical_paint.rs",
+          "line": 211,
+          "source": ".set_bg(Role::Surface(Surface::Canvas))"
+        },
+        {
+          "path": "crates/jackin-preview-presentation/src/rain.rs",
+          "line": 116,
+          "source": ".set_bg(Role::Surface(Surface::Canvas)),"
+        },
+        {
+          "path": "crates/termrock-theme/src/builtin/mod.rs",
+          "line": 44,
+          "source": "p().set_fg(Role::Surface(Surface::Canvas))"
+        },
+        {
+          "path": "crates/termrock-theme/src/builtin/mod.rs",
+          "line": 142,
+          "source": "p().set_fg(Role::Surface(Surface::Canvas))"
+        },
+        {
+          "path": "crates/termrock-theme/src/builtin/mod.rs",
+          "line": 162,
+          "source": "p().set_fg(Role::Surface(Surface::Canvas))"
+        },
+        {
+          "path": "crates/termrock-theme/src/builtin/mod.rs",
+          "line": 348,
+          "source": "p().set_fg(Role::Surface(Surface::Canvas))"
+        },
+        {
+          "path": "crates/termrock-theme/src/builtin/mod.rs",
+          "line": 383,
+          "source": "p().set_fg(Role::Surface(Surface::Canvas))"
+        },
+        {
+          "path": "crates/termrock-theme/src/builtin/mod.rs",
+          "line": 594,
+          "source": "p().set_fg(Role::Surface(Surface::Canvas))"
+        },
+        {
+          "path": "crates/termrock-theme/src/downgrade.rs",
+          "line": 415,
+          "source": ".set_fg(Role::Surface(Surface::Canvas))"
+        },
+        {
+          "path": "crates/termrock-theme/src/downgrade.rs",
+          "line": 515,
+          "source": ".set_fg(Role::Surface(Surface::Canvas))"
+        },
+        {
+          "path": "crates/termrock-theme/src/downgrade.rs",
+          "line": 532,
+          "source": ".set_fg(Role::Surface(Surface::Canvas))"
+        },
+        {
+          "path": "crates/termrock-theme/src/downgrade.rs",
+          "line": 545,
+          "source": ".set_fg(Role::Surface(Surface::Canvas))"
+        },
+        {
+          "path": "crates/termrock-theme/src/downgrade.rs",
+          "line": 590,
+          "source": ".set_fg(Role::Surface(Surface::Canvas))"
+        },
+        {
+          "path": "crates/termrock-theme/src/downgrade.rs",
+          "line": 603,
+          "source": ".set_fg(Role::Surface(Surface::Canvas))"
+        }
+      ]
+    },
+    {
+      "token": "surfaces[1]",
+      "role_expression": "Role::Surface(Surface::Surface)",
+      "frozen_field": "surface",
+      "status": "Mapped for the stated component use",
+      "contract": "Theme::bg planes; frozen theme.rs:1279 onward and interactive body/ladder selection. Hover/pressed plane ladders are separate, not this rest token.",
+      "frozen_outputs": {
+        "TrueColor": "#111111",
+        "Ansi256": "Indexed(232)",
+        "Ansi16": "Black",
+        "Mono": "Black"
+      },
+      "current_production_references": [
+        {
+          "path": "crates/jackin-preview-app/src/app/historical_paint.rs",
+          "line": 64,
+          "source": ".set_bg(Role::Surface(Surface::Surface))"
+        },
+        {
+          "path": "crates/jackin-preview-app/src/app/historical_paint.rs",
+          "line": 113,
+          "source": ".set_bg(Role::Surface(Surface::Surface))"
+        },
+        {
+          "path": "crates/jackin-preview-app/src/app/historical_paint.rs",
+          "line": 162,
+          "source": ".set_bg(Role::Surface(Surface::Surface))"
+        },
+        {
+          "path": "crates/jackin-preview-app/src/app/historical_paint.rs",
+          "line": 197,
+          "source": ".set_bg(Role::Surface(Surface::Surface))"
+        },
+        {
+          "path": "crates/jackin-preview-app/src/app/historical_paint.rs",
+          "line": 204,
+          "source": ".set_bg(Role::Surface(Surface::Surface))"
+        },
+        {
+          "path": "crates/termrock-theme/src/builtin/mod.rs",
+          "line": 461,
+          "source": ".set_bg(Role::Surface(Surface::Surface)),"
+        }
+      ]
+    },
+    {
+      "token": "surfaces[2]",
+      "role_expression": "Role::Surface(Surface::Elevated)",
+      "frozen_field": "surface_elevated",
+      "status": "Mapped for the stated component use",
+      "contract": "Theme::bg planes; frozen theme.rs:1279 onward and interactive body/ladder selection. Hover/pressed plane ladders are separate, not this rest token.",
+      "frozen_outputs": {
+        "TrueColor": "#18181b",
+        "Ansi256": "Indexed(233)",
+        "Ansi16": "Black",
+        "Mono": "Black"
+      },
+      "current_production_references": [
+        {
+          "path": "crates/jackin-preview-app/src/app/historical_paint.rs",
+          "line": 57,
+          "source": ".set_bg(Role::Surface(Surface::Elevated))"
+        },
+        {
+          "path": "crates/jackin-preview-app/src/app/historical_paint.rs",
+          "line": 91,
+          "source": ".set_fg(Role::Surface(Surface::Elevated))"
+        },
+        {
+          "path": "crates/jackin-preview-app/src/app/historical_paint.rs",
+          "line": 92,
+          "source": ".set_bg(Role::Surface(Surface::Elevated))"
+        },
+        {
+          "path": "crates/jackin-preview-app/src/app/historical_paint.rs",
+          "line": 148,
+          "source": ".set_bg(Role::Surface(Surface::Elevated))"
+        },
+        {
+          "path": "crates/termrock-overlays/src/dialog.rs",
+          "line": 689,
+          "source": ".set_bg(Role::Surface(Surface::Elevated)),"
+        },
+        {
+          "path": "crates/termrock-overlays/src/dialog.rs",
+          "line": 694,
+          "source": ".set_bg(Role::Surface(Surface::Elevated)),"
+        }
+      ]
+    },
+    {
+      "token": "surfaces[3]",
+      "role_expression": "Role::Surface(Surface::Overlay)",
+      "frozen_field": "surface_overlay",
+      "status": "Mapped for the stated component use",
+      "contract": "Theme::bg planes; frozen theme.rs:1279 onward and interactive body/ladder selection. Hover/pressed plane ladders are separate, not this rest token.",
+      "frozen_outputs": {
+        "TrueColor": "#27272a",
+        "Ansi256": "Indexed(235)",
+        "Ansi16": "DarkGray",
+        "Mono": "DarkGray"
+      },
+      "current_production_references": [
+        {
+          "path": "crates/holla-ui/src/app.rs",
+          "line": 2441,
+          "source": ".set_bg(Role::Surface(Surface::Overlay))"
+        },
+        {
+          "path": "crates/holla-ui/src/app.rs",
+          "line": 2490,
+          "source": ".set_bg(Role::Surface(Surface::Overlay))"
+        },
+        {
+          "path": "crates/jackin-preview-app/src/app/historical_paint.rs",
+          "line": 70,
+          "source": ".set_fg(Role::Surface(Surface::Overlay))"
+        },
+        {
+          "path": "crates/jackin-preview-app/src/app/historical_paint.rs",
+          "line": 71,
+          "source": ".set_bg(Role::Surface(Surface::Overlay))"
+        },
+        {
+          "path": "crates/jackin-preview-app/src/app/historical_paint.rs",
+          "line": 127,
+          "source": ".set_bg(Role::Surface(Surface::Overlay))"
+        },
+        {
+          "path": "crates/termrock-overlays/src/dialog.rs",
+          "line": 1065,
+          "source": ".set_bg(Role::Surface(Surface::Overlay))"
+        },
+        {
+          "path": "crates/termrock-theme/src/builtin/mod.rs",
+          "line": 108,
+          "source": ".set_bg(Role::Surface(Surface::Overlay)),"
+        },
+        {
+          "path": "crates/termrock-theme/src/builtin/mod.rs",
+          "line": 153,
+          "source": ".set_bg(Role::Surface(Surface::Overlay)),"
+        },
+        {
+          "path": "crates/termrock-theme/src/builtin/mod.rs",
+          "line": 179,
+          "source": "p().set_fg(Role::Surface(Surface::Overlay))"
+        }
+      ]
+    },
+    {
+      "token": "surfaces[4]",
+      "role_expression": "Role::Surface(Surface::Popover)",
+      "frozen_field": "popover",
+      "status": "Mapped for the stated component use",
+      "contract": "Theme::bg planes; frozen theme.rs:1279 onward and interactive body/ladder selection. Hover/pressed plane ladders are separate, not this rest token.",
+      "frozen_outputs": {
+        "TrueColor": "#3f3f46",
+        "Ansi256": "Indexed(237)",
+        "Ansi16": "DarkGray",
+        "Mono": "DarkGray"
+      },
+      "current_production_references": [
+        {
+          "path": "crates/termrock-theme/src/builtin/mod.rs",
+          "line": 112,
+          "source": "p().set_bg(Role::Surface(Surface::Popover)),"
+        },
+        {
+          "path": "crates/termrock-theme/src/builtin/mod.rs",
+          "line": 157,
+          "source": "p().set_bg(Role::Surface(Surface::Popover)),"
+        }
+      ]
+    },
+    {
+      "token": "field",
+      "role_expression": "Role::Surface(Surface::Field)",
+      "frozen_field": "field",
+      "status": "Mapped for the stated component use",
+      "contract": "Shared field_like FIELD base; frozen Kind::Field uses Plane::Field.",
+      "frozen_outputs": {
+        "TrueColor": "#1e1e22",
+        "Ansi256": "Indexed(234)",
+        "Ansi16": "Black",
+        "Mono": "Black"
+      },
+      "current_production_references": [
+        {
+          "path": "crates/jackin-preview-app/src/app/historical_paint.rs",
+          "line": 98,
+          "source": ".set_fg(Role::Surface(Surface::Field))"
+        },
+        {
+          "path": "crates/jackin-preview-app/src/app/historical_paint.rs",
+          "line": 99,
+          "source": ".set_bg(Role::Surface(Surface::Field))"
+        },
+        {
+          "path": "crates/jackin-preview-app/src/app/historical_paint.rs",
+          "line": 155,
+          "source": ".set_bg(Role::Surface(Surface::Field))"
+        },
+        {
+          "path": "crates/jackin-preview-app/src/app/historical_paint.rs",
+          "line": 190,
+          "source": ".set_bg(Role::Surface(Surface::Field))"
+        },
+        {
+          "path": "crates/termrock-theme/src/builtin/mod.rs",
+          "line": 198,
+          "source": ".set_bg(Role::Surface(Surface::Field)),"
+        },
+        {
+          "path": "crates/termrock-theme/src/builtin/mod.rs",
+          "line": 206,
+          "source": "p().set_bg(Role::Surface(Surface::Field)),"
+        },
+        {
+          "path": "crates/termrock-theme/src/builtin/mod.rs",
+          "line": 637,
+          "source": ".set_bg(Role::Surface(Surface::Field)),"
+        },
+        {
+          "path": "crates/termrock-theme/src/builtin/mod.rs",
+          "line": 643,
+          "source": ".set_bg(Role::Surface(Surface::Field)),"
+        },
+        {
+          "path": "crates/termrock-theme/src/builtin/mod.rs",
+          "line": 650,
+          "source": ".set_bg(Role::Surface(Surface::Field)),"
+        }
+      ]
+    },
+    {
+      "token": "field_hover",
+      "role_expression": "Role::Surface(Surface::FieldHover)",
+      "frozen_field": "field_hover",
+      "status": "Mapped for the stated component use",
+      "contract": "Shared field_like FIELD HOVERED; frozen field ladder hover uses INPUT_HOVER. EDITING may suppress hover.",
+      "frozen_outputs": {
+        "TrueColor": "#2f2f34",
+        "Ansi256": "Indexed(237)",
+        "Ansi16": "DarkGray",
+        "Mono": "Black"
+      },
+      "current_production_references": [
+        {
+          "path": "crates/termrock-theme/src/builtin/mod.rs",
+          "line": 202,
+          "source": "p().set_bg(Role::Surface(Surface::FieldHover)),"
+        }
+      ]
+    },
+    {
+      "token": "fg[0]",
+      "role_expression": "Role::Fg(FgStep::Primary)",
+      "frozen_field": "text_primary",
+      "status": "Mapped for the stated component use",
+      "contract": "Text primary/secondary/muted/faint helpers and explicit component text styling; later legibility and backdrop transforms remain contextual.",
+      "frozen_outputs": {
+        "TrueColor": "#ffffff",
+        "Ansi256": "Indexed(231)",
+        "Ansi16": "White",
+        "Mono": "White"
+      },
+      "current_production_references": [
+        {
+          "path": "crates/holla-ui/src/app.rs",
+          "line": 231,
+          "source": ".set_fg(Role::Fg(FgStep::Primary))"
+        },
+        {
+          "path": "crates/holla-ui/src/app.rs",
+          "line": 1167,
+          "source": ".paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Primary)))"
+        },
+        {
+          "path": "crates/holla-ui/src/app.rs",
+          "line": 2440,
+          "source": ".set_fg(Role::Fg(FgStep::Primary))"
+        },
+        {
+          "path": "crates/holla-ui/src/app.rs",
+          "line": 2489,
+          "source": ".set_fg(Role::Fg(FgStep::Primary))"
+        },
+        {
+          "path": "crates/holla-ui/src/screens/activity.rs",
+          "line": 64,
+          "source": ".set_fg(Role::Fg(FgStep::Primary))"
+        },
+        {
+          "path": "crates/holla-ui/src/screens/activity.rs",
+          "line": 179,
+          "source": "2 => Role::Fg(FgStep::Primary),"
+        },
+        {
+          "path": "crates/holla-ui/src/screens/cleanup.rs",
+          "line": 10,
+          "source": ".set_fg(Role::Fg(FgStep::Primary))"
+        },
+        {
+          "path": "crates/holla-ui/src/screens/disk.rs",
+          "line": 39,
+          "source": ".set_fg(Role::Fg(FgStep::Primary))"
+        },
+        {
+          "path": "crates/holla-ui/src/screens/finder.rs",
+          "line": 13,
+          "source": ".set_fg(Role::Fg(FgStep::Primary))"
+        },
+        {
+          "path": "crates/holla-ui/src/screens/home.rs",
+          "line": 685,
+          "source": ".set_fg(Role::Fg(FgStep::Primary))"
+        },
+        {
+          "path": "crates/holla-ui/src/screens/plan.rs",
+          "line": 115,
+          "source": ".set_fg(Role::Fg(FgStep::Primary))"
+        },
+        {
+          "path": "crates/jackin-preview-app/src/app/historical_paint.rs",
+          "line": 119,
+          "source": ".set_fg(Role::Fg(FgStep::Primary))"
+        },
+        {
+          "path": "crates/jackin-preview-app/src/app/historical_paint.rs",
+          "line": 126,
+          "source": ".set_fg(Role::Fg(FgStep::Primary))"
+        },
+        {
+          "path": "crates/jackin-preview-app/src/app/historical_paint.rs",
+          "line": 133,
+          "source": ".set_fg(Role::Fg(FgStep::Primary))"
+        },
+        {
+          "path": "crates/jackin-preview-app/src/app/historical_paint.rs",
+          "line": 140,
+          "source": ".set_fg(Role::Fg(FgStep::Primary))"
+        },
+        {
+          "path": "crates/jackin-preview-app/src/app/historical_paint.rs",
+          "line": 147,
+          "source": ".set_fg(Role::Fg(FgStep::Primary))"
+        },
+        {
+          "path": "crates/jackin-preview-app/src/app/historical_paint.rs",
+          "line": 154,
+          "source": ".set_fg(Role::Fg(FgStep::Primary))"
+        },
+        {
+          "path": "crates/jackin-preview-app/src/app/historical_paint.rs",
+          "line": 161,
+          "source": ".set_fg(Role::Fg(FgStep::Primary))"
+        },
+        {
+          "path": "crates/jackin-preview-app/src/app/historical_paint.rs",
+          "line": 220,
+          "source": "StylePatch::new().set_fg(Role::Fg(FgStep::Primary)),"
+        },
+        {
+          "path": "crates/jackin-preview-app/src/app/historical_paint.rs",
+          "line": 225,
+          "source": "StylePatch::new().set_fg(Role::Fg(FgStep::Primary)),"
+        },
+        {
+          "path": "crates/jackin-preview-app/src/app/historical_paint.rs",
+          "line": 230,
+          "source": "StylePatch::new().set_fg(Role::Fg(FgStep::Primary)),"
+        },
+        {
+          "path": "crates/jackin-preview-app/src/app/historical_paint.rs",
+          "line": 235,
+          "source": "StylePatch::new().set_fg(Role::Fg(FgStep::Primary)),"
+        },
+        {
+          "path": "crates/jackin-preview-app/src/app/historical_paint.rs",
+          "line": 240,
+          "source": "StylePatch::new().set_fg(Role::Fg(FgStep::Primary)),"
+        },
+        {
+          "path": "crates/jackin-preview-app/src/app/historical_paint.rs",
+          "line": 245,
+          "source": "StylePatch::new().set_fg(Role::Fg(FgStep::Primary)),"
+        },
+        {
+          "path": "crates/jackin-preview-app/src/app/historical_paint.rs",
+          "line": 250,
+          "source": "StylePatch::new().set_fg(Role::Fg(FgStep::Primary)),"
+        },
+        {
+          "path": "crates/jackin-preview-app/src/app/historical_paint.rs",
+          "line": 255,
+          "source": "StylePatch::new().set_fg(Role::Fg(FgStep::Primary)),"
+        },
+        {
+          "path": "crates/jackin-preview-app/src/app/historical_paint.rs",
+          "line": 260,
+          "source": "StylePatch::new().set_fg(Role::Fg(FgStep::Primary)),"
+        },
+        {
+          "path": "crates/jackin-preview-app/src/app/historical_paint.rs",
+          "line": 265,
+          "source": "StylePatch::new().set_fg(Role::Fg(FgStep::Primary)),"
+        },
+        {
+          "path": "crates/jackin-preview-app/src/app/historical_paint.rs",
+          "line": 270,
+          "source": "StylePatch::new().set_fg(Role::Fg(FgStep::Primary)),"
+        },
+        {
+          "path": "crates/jackin-preview-app/src/app/historical_paint.rs",
+          "line": 275,
+          "source": "StylePatch::new().set_fg(Role::Fg(FgStep::Primary)),"
+        },
+        {
+          "path": "crates/jackin-preview-app/src/app/historical_paint.rs",
+          "line": 280,
+          "source": "StylePatch::new().set_fg(Role::Fg(FgStep::Primary)),"
+        },
+        {
+          "path": "crates/jackin-preview-app/src/app/historical_paint.rs",
+          "line": 285,
+          "source": "StylePatch::new().set_fg(Role::Fg(FgStep::Primary)),"
+        },
+        {
+          "path": "crates/jackin-preview-app/src/app/historical_paint.rs",
+          "line": 290,
+          "source": "StylePatch::new().set_fg(Role::Fg(FgStep::Primary)),"
+        },
+        {
+          "path": "crates/jackin-preview-app/src/app/historical_paint.rs",
+          "line": 295,
+          "source": "StylePatch::new().set_fg(Role::Fg(FgStep::Primary)),"
+        },
+        {
+          "path": "crates/jackin-preview-app/src/app/historical_paint.rs",
+          "line": 300,
+          "source": "StylePatch::new().set_fg(Role::Fg(FgStep::Primary)),"
+        },
+        {
+          "path": "crates/jackin-preview-app/src/app/historical_paint.rs",
+          "line": 305,
+          "source": "StylePatch::new().set_fg(Role::Fg(FgStep::Primary)),"
+        },
+        {
+          "path": "crates/jackin-preview-app/src/app/historical_paint.rs",
+          "line": 310,
+          "source": "StylePatch::new().set_fg(Role::Fg(FgStep::Primary)),"
+        },
+        {
+          "path": "crates/jackin-preview-app/src/app/historical_paint.rs",
+          "line": 315,
+          "source": "StylePatch::new().set_fg(Role::Fg(FgStep::Primary)),"
+        },
+        {
+          "path": "crates/jackin-preview-app/src/app/historical_paint.rs",
+          "line": 320,
+          "source": "StylePatch::new().set_fg(Role::Fg(FgStep::Primary)),"
+        },
+        {
+          "path": "crates/jackin-preview-app/src/app/historical_paint.rs",
+          "line": 325,
+          "source": "StylePatch::new().set_fg(Role::Fg(FgStep::Primary)),"
+        },
+        {
+          "path": "crates/jackin-preview-presentation/src/rain.rs",
+          "line": 115,
+          "source": ".set_fg(Role::Fg(FgStep::Primary))"
+        },
+        {
+          "path": "crates/jackin-preview-sim/src/changes.rs",
+          "line": 53,
+          "source": "DiffLineKind::Context => Role::Fg(FgStep::Primary),"
+        },
+        {
+          "path": "crates/jackin-preview-sim/src/pty.rs",
+          "line": 337,
+          "source": "Self::Normal => Role::Fg(FgStep::Primary),"
+        },
+        {
+          "path": "crates/termrock-feedback/src/section.rs",
+          "line": 32,
+          "source": ".set_fg(Role::Fg(FgStep::Primary))"
+        },
+        {
+          "path": "crates/termrock-overlays/src/dialog.rs",
+          "line": 1068,
+          "source": "patch = patch.set_fg(Role::Fg(FgStep::Primary)).add(Modifier::BOLD);"
+        },
+        {
+          "path": "crates/termrock-runtime/src/rowui.rs",
+          "line": 205,
+          "source": ".set_fg(Role::Fg(FgStep::Primary))"
+        },
+        {
+          "path": "crates/termrock-theme/src/builtin/junie.rs",
+          "line": 184,
+          "source": ".set_fg(Role::Fg(FgStep::Primary))"
+        },
+        {
+          "path": "crates/termrock-theme/src/builtin/junie.rs",
+          "line": 194,
+          "source": ".set_bg(Role::Fg(FgStep::Primary))"
+        },
+        {
+          "path": "crates/termrock-theme/src/builtin/mod.rs",
+          "line": 27,
+          "source": "p().set_fg(Role::Fg(FgStep::Primary))"
+        },
+        {
+          "path": "crates/termrock-theme/src/builtin/mod.rs",
+          "line": 45,
+          "source": ".set_bg(Role::Fg(FgStep::Primary))"
+        },
+        {
+          "path": "crates/termrock-theme/src/builtin/mod.rs",
+          "line": 82,
+          "source": ".when(StateFlags::FOCUSED, p().set_fg(Role::Fg(FgStep::Primary)));"
+        },
+        {
+          "path": "crates/termrock-theme/src/builtin/mod.rs",
+          "line": 133,
+          "source": "p().set_fg(Role::Fg(FgStep::Primary))"
+        },
+        {
+          "path": "crates/termrock-theme/src/builtin/mod.rs",
+          "line": 138,
+          "source": "p().set_fg(Role::Fg(FgStep::Primary)).add(Modifier::BOLD),"
+        },
+        {
+          "path": "crates/termrock-theme/src/builtin/mod.rs",
+          "line": 143,
+          "source": ".set_bg(Role::Fg(FgStep::Primary)),"
+        },
+        {
+          "path": "crates/termrock-theme/src/builtin/mod.rs",
+          "line": 152,
+          "source": "p().set_fg(Role::Fg(FgStep::Primary))"
+        },
+        {
+          "path": "crates/termrock-theme/src/builtin/mod.rs",
+          "line": 163,
+          "source": ".set_bg(Role::Fg(FgStep::Primary)),"
+        },
+        {
+          "path": "crates/termrock-theme/src/builtin/mod.rs",
+          "line": 174,
+          "source": "Role::Fg(FgStep::Primary)"
+        },
+        {
+          "path": "crates/termrock-theme/src/builtin/mod.rs",
+          "line": 197,
+          "source": "p().set_fg(Role::Fg(FgStep::Primary))"
+        },
+        {
+          "path": "crates/termrock-theme/src/builtin/mod.rs",
+          "line": 216,
+          "source": "p().set_fg(Role::Fg(FgStep::Primary)).add(Modifier::BOLD),"
+        },
+        {
+          "path": "crates/termrock-theme/src/builtin/mod.rs",
+          "line": 257,
+          "source": "p().set_fg(Role::Fg(FgStep::Primary))"
+        },
+        {
+          "path": "crates/termrock-theme/src/builtin/mod.rs",
+          "line": 265,
+          "source": "p().set_fg(Role::Fg(FgStep::Primary)).add(Modifier::BOLD),"
+        },
+        {
+          "path": "crates/termrock-theme/src/builtin/mod.rs",
+          "line": 296,
+          "source": "p().set_fg(Role::Fg(FgStep::Primary))"
+        },
+        {
+          "path": "crates/termrock-theme/src/builtin/mod.rs",
+          "line": 299,
+          "source": ".when(StateFlags::ACTIVE, p().set_fg(Role::Fg(FgStep::Primary)));"
+        },
+        {
+          "path": "crates/termrock-theme/src/builtin/mod.rs",
+          "line": 317,
+          "source": ".when(StateFlags::HOVERED, p().set_fg(Role::Fg(FgStep::Primary)));"
+        },
+        {
+          "path": "crates/termrock-theme/src/builtin/mod.rs",
+          "line": 349,
+          "source": ".set_bg(Role::Fg(FgStep::Primary))"
+        },
+        {
+          "path": "crates/termrock-theme/src/builtin/mod.rs",
+          "line": 364,
+          "source": "p().set_fg(Role::Fg(FgStep::Primary))"
+        },
+        {
+          "path": "crates/termrock-theme/src/builtin/mod.rs",
+          "line": 384,
+          "source": ".set_bg(Role::Fg(FgStep::Primary))"
+        },
+        {
+          "path": "crates/termrock-theme/src/builtin/mod.rs",
+          "line": 398,
+          "source": "p().set_fg(Role::Fg(FgStep::Primary)).add(Modifier::BOLD),"
+        },
+        {
+          "path": "crates/termrock-theme/src/builtin/mod.rs",
+          "line": 419,
+          "source": ".when(StateFlags::FOCUSED, p().set_fg(Role::Fg(FgStep::Primary)))"
+        },
+        {
+          "path": "crates/termrock-theme/src/builtin/mod.rs",
+          "line": 434,
+          "source": "p().set_fg(Role::Fg(FgStep::Primary))"
+        },
+        {
+          "path": "crates/termrock-theme/src/builtin/mod.rs",
+          "line": 466,
+          "source": "p().set_fg(Role::Fg(FgStep::Primary)).add(Modifier::BOLD),"
+        },
+        {
+          "path": "crates/termrock-theme/src/builtin/mod.rs",
+          "line": 485,
+          "source": "p().set_fg(Role::Fg(FgStep::Primary)).add(Modifier::BOLD),"
+        },
+        {
+          "path": "crates/termrock-theme/src/builtin/mod.rs",
+          "line": 532,
+          "source": "p().set_fg(Role::Fg(FgStep::Primary))"
+        },
+        {
+          "path": "crates/termrock-theme/src/builtin/mod.rs",
+          "line": 538,
+          "source": "p().set_fg(Role::Fg(FgStep::Primary)).add(Modifier::BOLD),"
+        },
+        {
+          "path": "crates/termrock-theme/src/builtin/mod.rs",
+          "line": 562,
+          "source": ".when(StateFlags::HOVERED, p().set_fg(Role::Fg(FgStep::Primary)));"
+        },
+        {
+          "path": "crates/termrock-theme/src/builtin/mod.rs",
+          "line": 577,
+          "source": ".when(StateFlags::HOVERED, p().set_fg(Role::Fg(FgStep::Primary)));"
+        },
+        {
+          "path": "crates/termrock-theme/src/builtin/mod.rs",
+          "line": 595,
+          "source": ".set_bg(Role::Fg(FgStep::Primary))"
+        },
+        {
+          "path": "crates/termrock-theme/src/builtin/mod.rs",
+          "line": 623,
+          "source": "p().set_fg(Role::Fg(FgStep::Primary))"
+        },
+        {
+          "path": "crates/termrock-theme/src/builtin/mod.rs",
+          "line": 627,
+          "source": "part(m, Part::LABEL, p().set_fg(Role::Fg(FgStep::Primary))).when("
+        },
+        {
+          "path": "crates/termrock-theme/src/builtin/mod.rs",
+          "line": 636,
+          "source": "p().set_fg(Role::Fg(FgStep::Primary))"
+        },
+        {
+          "path": "crates/termrock-theme/src/downgrade.rs",
+          "line": 414,
+          "source": "p().set_bg(Role::Fg(FgStep::Primary))"
+        },
+        {
+          "path": "crates/termrock-theme/src/downgrade.rs",
+          "line": 437,
+          "source": ".set_fg(Role::Fg(FgStep::Primary))"
+        },
+        {
+          "path": "crates/termrock-theme/src/downgrade.rs",
+          "line": 444,
+          "source": "p().set_fg(Role::Fg(FgStep::Primary))"
+        },
+        {
+          "path": "crates/termrock-theme/src/downgrade.rs",
+          "line": 451,
+          "source": "p().set_fg(Role::Fg(FgStep::Primary))"
+        },
+        {
+          "path": "crates/termrock-theme/src/downgrade.rs",
+          "line": 458,
+          "source": "p().set_fg(Role::Fg(FgStep::Primary))"
+        },
+        {
+          "path": "crates/termrock-theme/src/downgrade.rs",
+          "line": 516,
+          "source": ".set_bg(Role::Fg(FgStep::Primary))"
+        },
+        {
+          "path": "crates/termrock-theme/src/downgrade.rs",
+          "line": 533,
+          "source": ".set_bg(Role::Fg(FgStep::Primary))"
+        },
+        {
+          "path": "crates/termrock-theme/src/downgrade.rs",
+          "line": 546,
+          "source": ".set_bg(Role::Fg(FgStep::Primary))"
+        },
+        {
+          "path": "crates/termrock-theme/src/downgrade.rs",
+          "line": 591,
+          "source": ".set_bg(Role::Fg(FgStep::Primary))"
+        },
+        {
+          "path": "crates/termrock-theme/src/downgrade.rs",
+          "line": 604,
+          "source": ".set_bg(Role::Fg(FgStep::Primary))"
+        }
+      ]
+    },
+    {
+      "token": "fg[1]",
+      "role_expression": "Role::Fg(FgStep::Secondary)",
+      "frozen_field": "text_secondary",
+      "status": "Mapped for the stated component use",
+      "contract": "Text primary/secondary/muted/faint helpers and explicit component text styling; later legibility and backdrop transforms remain contextual.",
+      "frozen_outputs": {
+        "TrueColor": "#b3b3b3",
+        "Ansi256": "Indexed(249)",
+        "Ansi16": "Gray",
+        "Mono": "Gray"
+      },
+      "current_production_references": [
+        {
+          "path": "crates/holla-ui/src/app.rs",
+          "line": 226,
+          "source": ".set_fg(Role::Fg(FgStep::Secondary))"
+        },
+        {
+          "path": "crates/holla-ui/src/app.rs",
+          "line": 1165,
+          "source": "let secondary = ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Secondary)));"
+        },
+        {
+          "path": "crates/holla-ui/src/screens/activity.rs",
+          "line": 180,
+          "source": "_ => Role::Fg(FgStep::Secondary),"
+        },
+        {
+          "path": "crates/holla-ui/src/screens/activity.rs",
+          "line": 203,
+          "source": "Span::new(rest).role(Role::Fg(FgStep::Secondary)),"
+        },
+        {
+          "path": "crates/holla-ui/src/screens/activity.rs",
+          "line": 206,
+          "source": "vec![Span::new(line).role(Role::Fg(FgStep::Secondary))]"
+        },
+        {
+          "path": "crates/holla-ui/src/screens/home.rs",
+          "line": 678,
+          "source": ".set_underline(Role::Fg(FgStep::Secondary)),"
+        },
+        {
+          "path": "crates/holla-ui/src/screens/plan.rs",
+          "line": 191,
+          "source": "let secondary = ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Secondary)));"
+        },
+        {
+          "path": "crates/jackin-preview-app/src/app/historical_paint.rs",
+          "line": 175,
+          "source": ".set_fg(Role::Fg(FgStep::Secondary))"
+        },
+        {
+          "path": "crates/jackin-preview-app/src/app/historical_paint.rs",
+          "line": 182,
+          "source": ".set_fg(Role::Fg(FgStep::Secondary))"
+        },
+        {
+          "path": "crates/jackin-preview-app/src/app/historical_paint.rs",
+          "line": 189,
+          "source": ".set_fg(Role::Fg(FgStep::Secondary))"
+        },
+        {
+          "path": "crates/jackin-preview-app/src/app/historical_paint.rs",
+          "line": 196,
+          "source": ".set_fg(Role::Fg(FgStep::Secondary))"
+        },
+        {
+          "path": "crates/jackin-preview-app/src/app/historical_paint.rs",
+          "line": 203,
+          "source": ".set_fg(Role::Fg(FgStep::Secondary))"
+        },
+        {
+          "path": "crates/jackin-preview-sim/src/changes.rs",
+          "line": 124,
+          "source": "Self::Renamed { .. } => Role::Fg(FgStep::Secondary),"
+        },
+        {
+          "path": "crates/jackin-preview-sim/src/pty.rs",
+          "line": 339,
+          "source": "Self::Secondary => Role::Fg(FgStep::Secondary),"
+        },
+        {
+          "path": "crates/showcase-demos/src/pages/overview.rs",
+          "line": 30,
+          "source": ".set_fg(Role::Fg(FgStep::Secondary))"
+        },
+        {
+          "path": "crates/showcase-demos/src/pages/trees.rs",
+          "line": 19,
+          "source": ".set_fg(Role::Fg(FgStep::Secondary))"
+        },
+        {
+          "path": "crates/termrock-editors/src/diff.rs",
+          "line": 44,
+          "source": "Role::Fg(FgStep::Secondary)"
+        },
+        {
+          "path": "crates/termrock-editors/src/diff.rs",
+          "line": 407,
+          "source": "let row = (Some(old), Some(new), \" \", Role::Fg(FgStep::Secondary));"
+        },
+        {
+          "path": "crates/termrock-editors/src/diff.rs",
+          "line": 481,
+          "source": "Role::Fg(FgStep::Secondary),"
+        },
+        {
+          "path": "crates/termrock-editors/src/diff.rs",
+          "line": 490,
+          "source": "Role::Fg(FgStep::Secondary),"
+        },
+        {
+          "path": "crates/termrock-feedback/src/meter.rs",
+          "line": 361,
+          "source": "StylePatch::new().set_fg(Role::Fg(FgStep::Secondary)),"
+        },
+        {
+          "path": "crates/termrock-grid/src/grid.rs",
+          "line": 2960,
+          "source": "Role::Fg(FgStep::Secondary)"
+        },
+        {
+          "path": "crates/termrock-grid/src/grid.rs",
+          "line": 2967,
+          "source": ".set_fg(decor.tone.unwrap_or(Role::Fg(FgStep::Secondary)))"
+        },
+        {
+          "path": "crates/termrock-overlays/src/dialog.rs",
+          "line": 693,
+          "source": ".set_fg(Role::Fg(FgStep::Secondary))"
+        },
+        {
+          "path": "crates/termrock-theme/src/builtin/junie.rs",
+          "line": 204,
+          "source": ".when(StateFlags::BUSY, p().set_fg(Role::Fg(FgStep::Secondary)))"
+        },
+        {
+          "path": "crates/termrock-theme/src/builtin/mod.rs",
+          "line": 31,
+          "source": ".when(StateFlags::BUSY, p().set_fg(Role::Fg(FgStep::Secondary)))"
+        },
+        {
+          "path": "crates/termrock-theme/src/builtin/mod.rs",
+          "line": 67,
+          "source": "p().set_fg(Role::Fg(FgStep::Secondary)).add(Modifier::BOLD),"
+        },
+        {
+          "path": "crates/termrock-theme/src/builtin/mod.rs",
+          "line": 81,
+          "source": ".when(StateFlags::HOVERED, p().set_fg(Role::Fg(FgStep::Secondary)))"
+        },
+        {
+          "path": "crates/termrock-theme/src/builtin/mod.rs",
+          "line": 84,
+          "source": "part(m, Part::ICON, p().set_fg(Role::Fg(FgStep::Secondary)));"
+        },
+        {
+          "path": "crates/termrock-theme/src/builtin/mod.rs",
+          "line": 128,
+          "source": "p().set_fg(Role::Fg(FgStep::Secondary))"
+        },
+        {
+          "path": "crates/termrock-theme/src/builtin/mod.rs",
+          "line": 213,
+          "source": "part(m, Part::LABEL, p().set_fg(Role::Fg(FgStep::Secondary)))"
+        },
+        {
+          "path": "crates/termrock-theme/src/builtin/mod.rs",
+          "line": 267,
+          "source": "part(m, Part::DETAIL, p().set_fg(Role::Fg(FgStep::Secondary)));"
+        },
+        {
+          "path": "crates/termrock-theme/src/builtin/mod.rs",
+          "line": 293,
+          "source": "part(m, Part::TAB, p().set_fg(Role::Fg(FgStep::Secondary)))"
+        },
+        {
+          "path": "crates/termrock-theme/src/builtin/mod.rs",
+          "line": 360,
+          "source": "p().set_fg(Role::Fg(FgStep::Secondary)),"
+        },
+        {
+          "path": "crates/termrock-theme/src/builtin/mod.rs",
+          "line": 418,
+          "source": ".when(StateFlags::HOVERED, p().set_fg(Role::Fg(FgStep::Secondary)))"
+        },
+        {
+          "path": "crates/termrock-theme/src/builtin/mod.rs",
+          "line": 460,
+          "source": "p().set_fg(Role::Fg(FgStep::Secondary))"
+        },
+        {
+          "path": "crates/termrock-theme/src/builtin/mod.rs",
+          "line": 491,
+          "source": "part(m, Part::LABEL, p().set_fg(Role::Fg(FgStep::Secondary)));"
+        },
+        {
+          "path": "crates/termrock-theme/src/builtin/mod.rs",
+          "line": 504,
+          "source": "p().set_fg(Role::Fg(FgStep::Secondary))"
+        },
+        {
+          "path": "crates/termrock-theme/src/builtin/mod.rs",
+          "line": 540,
+          "source": "part(m, Part::DETAIL, p().set_fg(Role::Fg(FgStep::Secondary)));"
+        },
+        {
+          "path": "crates/termrock-theme/src/builtin/mod.rs",
+          "line": 606,
+          "source": "part(m, Part::ACTIONS, p().set_fg(Role::Fg(FgStep::Secondary)));"
+        },
+        {
+          "path": "crates/termrock-theme/src/builtin/mod.rs",
+          "line": 711,
+          "source": "p().set_fg(Role::Fg(FgStep::Secondary))"
+        }
+      ]
+    },
+    {
+      "token": "fg[2]",
+      "role_expression": "Role::Fg(FgStep::Muted)",
+      "frozen_field": "text_muted",
+      "status": "Mapped for the stated component use",
+      "contract": "Text primary/secondary/muted/faint helpers and explicit component text styling; later legibility and backdrop transforms remain contextual.",
+      "frozen_outputs": {
+        "TrueColor": "#8a8a8a",
+        "Ansi256": "Indexed(245)",
+        "Ansi16": "Gray",
+        "Mono": "Gray"
+      },
+      "current_production_references": [
+        {
+          "path": "crates/holla-ui/src/screens/activity.rs",
+          "line": 146,
+          "source": "ActivityState::Succeeded => Role::Fg(FgStep::Muted),"
+        },
+        {
+          "path": "crates/holla-ui/src/screens/cleanup.rs",
+          "line": 13,
+          "source": "let muted = ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Muted)));"
+        },
+        {
+          "path": "crates/holla-ui/src/screens/disk.rs",
+          "line": 46,
+          "source": "let style = ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Muted)));"
+        },
+        {
+          "path": "crates/holla-ui/src/screens/finder.rs",
+          "line": 16,
+          "source": "let muted = ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Muted)));"
+        },
+        {
+          "path": "crates/holla-ui/src/screens/home.rs",
+          "line": 594,
+          "source": "let style = ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Muted)));"
+        },
+        {
+          "path": "crates/holla-ui/src/screens/plan.rs",
+          "line": 218,
+          "source": "StepState::Pending => (\"\u00b7\", Role::Fg(FgStep::Muted)),"
+        },
+        {
+          "path": "crates/holla-ui/src/screens/plan.rs",
+          "line": 220,
+          "source": "(\"\u2212\", Role::Fg(FgStep::Muted))"
+        },
+        {
+          "path": "crates/holla-ui/src/screens/plan.rs",
+          "line": 266,
+          "source": "StepState::Pending => (step.command.clone(), Role::Fg(FgStep::Muted)),"
+        },
+        {
+          "path": "crates/holla-ui/src/screens/plan.rs",
+          "line": 267,
+          "source": "StepState::Excluded => (\"excluded \u00b7 Space restores\".into(), Role::Fg(FgStep::Muted)),"
+        },
+        {
+          "path": "crates/holla-ui/src/screens/plan.rs",
+          "line": 269,
+          "source": "(why.clone(), Role::Fg(FgStep::Muted))"
+        },
+        {
+          "path": "crates/jackin-preview-app/src/app/historical_paint.rs",
+          "line": 105,
+          "source": ".set_fg(Role::Fg(FgStep::Muted))"
+        },
+        {
+          "path": "crates/jackin-preview-app/src/app/historical_paint.rs",
+          "line": 112,
+          "source": ".set_fg(Role::Fg(FgStep::Muted))"
+        },
+        {
+          "path": "crates/jackin-preview-sim/src/pty.rs",
+          "line": 338,
+          "source": "Self::Muted => Role::Fg(FgStep::Muted),"
+        },
+        {
+          "path": "crates/termrock-editors/src/diff.rs",
+          "line": 185,
+          "source": "Role::Fg(FgStep::Muted),"
+        },
+        {
+          "path": "crates/termrock-editors/src/diff.rs",
+          "line": 357,
+          "source": "Role::Fg(FgStep::Muted),"
+        },
+        {
+          "path": "crates/termrock-editors/src/diff.rs",
+          "line": 401,
+          "source": "Role::Fg(FgStep::Muted),"
+        },
+        {
+          "path": "crates/termrock-editors/src/diff.rs",
+          "line": 438,
+          "source": "Role::Fg(FgStep::Muted),"
+        },
+        {
+          "path": "crates/termrock-editors/src/diff.rs",
+          "line": 470,
+          "source": "Role::Fg(FgStep::Muted),"
+        },
+        {
+          "path": "crates/termrock-editors/src/diff.rs",
+          "line": 513,
+          "source": "Role::Fg(FgStep::Muted),"
+        },
+        {
+          "path": "crates/termrock-feedback/src/section.rs",
+          "line": 34,
+          "source": "text_patch: StylePatch::new().set_fg(Role::Fg(FgStep::Muted)),"
+        },
+        {
+          "path": "crates/termrock-theme/src/builtin/mod.rs",
+          "line": 63,
+          "source": "part(m, Part::META, p().set_fg(Role::Fg(FgStep::Muted)));"
+        },
+        {
+          "path": "crates/termrock-theme/src/builtin/mod.rs",
+          "line": 78,
+          "source": "p().set_fg(Role::Fg(FgStep::Muted))"
+        },
+        {
+          "path": "crates/termrock-theme/src/builtin/mod.rs",
+          "line": 83,
+          "source": "part(m, Part::EMPTY, p().set_fg(Role::Fg(FgStep::Muted)));"
+        },
+        {
+          "path": "crates/termrock-theme/src/builtin/mod.rs",
+          "line": 211,
+          "source": "part(m, Part::PLACEHOLDER, p().set_fg(Role::Fg(FgStep::Muted)))"
+        },
+        {
+          "path": "crates/termrock-theme/src/builtin/mod.rs",
+          "line": 222,
+          "source": "part(m, Part::HELP, p().set_fg(Role::Fg(FgStep::Muted)))"
+        },
+        {
+          "path": "crates/termrock-theme/src/builtin/mod.rs",
+          "line": 244,
+          "source": "p().set_fg(Role::Fg(FgStep::Muted))"
+        },
+        {
+          "path": "crates/termrock-theme/src/builtin/mod.rs",
+          "line": 277,
+          "source": "part(m, Part::HELP, p().set_fg(Role::Fg(FgStep::Muted)));"
+        },
+        {
+          "path": "crates/termrock-theme/src/builtin/mod.rs",
+          "line": 318,
+          "source": "part(m, Part::OVERFLOW, p().set_fg(Role::Fg(FgStep::Muted)));"
+        },
+        {
+          "path": "crates/termrock-theme/src/builtin/mod.rs",
+          "line": 322,
+          "source": "p().set_fg(Role::Fg(FgStep::Muted))"
+        },
+        {
+          "path": "crates/termrock-theme/src/builtin/mod.rs",
+          "line": 356,
+          "source": "part(m, Part::KEY, p().set_fg(Role::Fg(FgStep::Muted)));"
+        },
+        {
+          "path": "crates/termrock-theme/src/builtin/mod.rs",
+          "line": 451,
+          "source": "p().set_fg(Role::Fg(FgStep::Muted))"
+        },
+        {
+          "path": "crates/termrock-theme/src/builtin/mod.rs",
+          "line": 468,
+          "source": "part(m, Part::ACTION, p().set_fg(Role::Fg(FgStep::Muted)));"
+        },
+        {
+          "path": "crates/termrock-theme/src/builtin/mod.rs",
+          "line": 487,
+          "source": "part(m, Part::ACTION, p().set_fg(Role::Fg(FgStep::Muted)));"
+        },
+        {
+          "path": "crates/termrock-theme/src/builtin/mod.rs",
+          "line": 507,
+          "source": "part(m, Part::META, p().set_fg(Role::Fg(FgStep::Muted)));"
+        },
+        {
+          "path": "crates/termrock-theme/src/builtin/mod.rs",
+          "line": 511,
+          "source": "part(m, Part::TITLE, p().set_fg(Role::Fg(FgStep::Muted)));"
+        },
+        {
+          "path": "crates/termrock-theme/src/builtin/mod.rs",
+          "line": 525,
+          "source": "part(m, Part::META, p().set_fg(Role::Fg(FgStep::Muted)));"
+        },
+        {
+          "path": "crates/termrock-theme/src/builtin/mod.rs",
+          "line": 541,
+          "source": "part(m, Part::HELP, p().set_fg(Role::Fg(FgStep::Muted)));"
+        },
+        {
+          "path": "crates/termrock-theme/src/builtin/mod.rs",
+          "line": 605,
+          "source": "part(m, Part::OVERFLOW, p().set_fg(Role::Fg(FgStep::Muted)));"
+        },
+        {
+          "path": "crates/termrock-theme/src/builtin/mod.rs",
+          "line": 614,
+          "source": "p().set_fg(Role::Fg(FgStep::Muted))"
+        },
+        {
+          "path": "crates/termrock-theme/src/builtin/mod.rs",
+          "line": 631,
+          "source": "part(m, Part::ICON, p().set_fg(Role::Fg(FgStep::Muted)));"
+        },
+        {
+          "path": "crates/termrock-theme/src/builtin/mod.rs",
+          "line": 632,
+          "source": "part(m, Part::META, p().set_fg(Role::Fg(FgStep::Muted)));"
+        },
+        {
+          "path": "crates/termrock-theme/src/builtin/mod.rs",
+          "line": 642,
+          "source": "p().set_fg(Role::Fg(FgStep::Muted))"
+        }
+      ]
+    },
+    {
+      "token": "fg[3]",
+      "role_expression": "Role::Fg(FgStep::Faint)",
+      "frozen_field": "text_faint",
+      "status": "Mapped for the stated component use",
+      "contract": "Text primary/secondary/muted/faint helpers and explicit component text styling; later legibility and backdrop transforms remain contextual.",
+      "frozen_outputs": {
+        "TrueColor": "#737373",
+        "Ansi256": "Indexed(242)",
+        "Ansi16": "Gray",
+        "Mono": "Gray"
+      },
+      "current_production_references": [
+        {
+          "path": "crates/holla-ui/src/app.rs",
+          "line": 1596,
+          "source": "let faint = ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Faint)));"
+        },
+        {
+          "path": "crates/holla-ui/src/screens/activity.rs",
+          "line": 123,
+          "source": "let faint = ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Faint)));"
+        },
+        {
+          "path": "crates/holla-ui/src/screens/activity.rs",
+          "line": 148,
+          "source": "ActivityState::Detached => Role::Fg(FgStep::Faint),"
+        },
+        {
+          "path": "crates/holla-ui/src/screens/activity.rs",
+          "line": 202,
+          "source": "Span::new(\" | \").role(Role::Fg(FgStep::Faint)),"
+        },
+        {
+          "path": "crates/holla-ui/src/screens/home.rs",
+          "line": 641,
+          "source": "Role::Fg(FgStep::Faint),"
+        },
+        {
+          "path": "crates/holla-ui/src/screens/home.rs",
+          "line": 804,
+          "source": ".paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Faint)))"
+        },
+        {
+          "path": "crates/holla-ui/src/screens/plan.rs",
+          "line": 118,
+          "source": "let faint = ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Faint)));"
+        },
+        {
+          "path": "crates/holla-ui/src/screens/plan.rs",
+          "line": 253,
+          "source": ".paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Faint)))"
+        },
+        {
+          "path": "crates/tablepro-domain/src/domain.rs",
+          "line": 676,
+          "source": ".then_some(Role::Fg(FgStep::Faint)),"
+        },
+        {
+          "path": "crates/termrock-editors/src/diff.rs",
+          "line": 424,
+          "source": "OwnedRun::role(gutter(old_no, digits), Role::Fg(FgStep::Faint)),"
+        },
+        {
+          "path": "crates/termrock-editors/src/diff.rs",
+          "line": 426,
+          "source": "OwnedRun::role(gutter(new_no, digits), Role::Fg(FgStep::Faint)),"
+        },
+        {
+          "path": "crates/termrock-editors/src/diff.rs",
+          "line": 461,
+          "source": "Role::Fg(FgStep::Faint),"
+        },
+        {
+          "path": "crates/termrock-editors/src/diff.rs",
+          "line": 486,
+          "source": "line.push(OwnedRun::role(\" \u2502 \", Role::Fg(FgStep::Faint)));"
+        },
+        {
+          "path": "crates/termrock-editors/src/diff.rs",
+          "line": 564,
+          "source": "line.push(OwnedRun::role(\" \u2502 \", Role::Fg(FgStep::Faint)));"
+        },
+        {
+          "path": "crates/termrock-editors/src/diff.rs",
+          "line": 597,
+          "source": "Role::Fg(FgStep::Faint),"
+        },
+        {
+          "path": "crates/termrock-overlays/src/picker.rs",
+          "line": 532,
+          "source": ".set_fg(Role::Fg(FgStep::Faint))"
+        },
+        {
+          "path": "crates/termrock-theme/src/builtin/mod.rs",
+          "line": 314,
+          "source": "p().set_fg(Role::Fg(FgStep::Faint))"
+        },
+        {
+          "path": "crates/termrock-theme/src/builtin/mod.rs",
+          "line": 441,
+          "source": "part(m, Part::GUTTER, p().set_fg(Role::Fg(FgStep::Faint)));"
+        },
+        {
+          "path": "crates/termrock-theme/src/builtin/mod.rs",
+          "line": 512,
+          "source": "part(m, Part::HELP, p().set_fg(Role::Fg(FgStep::Faint)));"
+        },
+        {
+          "path": "crates/termrock-theme/src/builtin/mod.rs",
+          "line": 542,
+          "source": "part(m, Part::ACTIONS, p().set_fg(Role::Fg(FgStep::Faint)));"
+        },
+        {
+          "path": "crates/termrock-theme/src/builtin/mod.rs",
+          "line": 559,
+          "source": "p().set_fg(Role::Fg(FgStep::Faint))"
+        },
+        {
+          "path": "crates/termrock-theme/src/builtin/mod.rs",
+          "line": 574,
+          "source": "p().set_fg(Role::Fg(FgStep::Faint))"
+        }
+      ]
+    },
+    {
+      "token": "fg[4]",
+      "role_expression": "Role::Fg(FgStep::Ghost)",
+      "frozen_field": "text_ghost",
+      "status": "Mapped for the stated component use",
+      "contract": "Text primary/secondary/muted/faint helpers and explicit component text styling; later legibility and backdrop transforms remain contextual.",
+      "frozen_outputs": {
+        "TrueColor": "#262626",
+        "Ansi256": "Indexed(238)",
+        "Ansi16": "DarkGray",
+        "Mono": "DarkGray"
+      },
+      "current_production_references": [],
+      "current_reference_note": "No exact textual production reference found; resolve dispatch is not counted as a consumer. Aliased imports or direct ColorTokens field accesses must be audited before declaring permanently unused."
+    },
+    {
+      "token": "on_accent",
+      "role_expression": "Role::OnAccent",
+      "frozen_field": "text_on_accent",
+      "status": "Mapped for the stated component use",
+      "contract": "Primary Button label, frozen interactive PRIMARY foreground.",
+      "frozen_outputs": {
+        "TrueColor": "#19191c",
+        "Ansi256": "Indexed(232)",
+        "Ansi16": "Black",
+        "Mono": "Black"
+      },
+      "current_production_references": [
+        {
+          "path": "crates/termrock-feedback/src/meter.rs",
+          "line": 493,
+          "source": ".set_fg(Role::OnAccent)"
+        },
+        {
+          "path": "crates/termrock-theme/src/builtin/mod.rs",
+          "line": 92,
+          "source": "p().set_fg(Role::OnAccent)"
+        },
+        {
+          "path": "crates/termrock-theme/src/builtin/mod.rs",
+          "line": 271,
+          "source": "p().set_fg(Role::OnAccent)"
+        },
+        {
+          "path": "crates/termrock-theme/src/builtin/mod.rs",
+          "line": 328,
+          "source": "p().set_fg(Role::OnAccent)"
+        },
+        {
+          "path": "crates/termrock-theme/src/builtin/mod.rs",
+          "line": 472,
+          "source": "p().set_fg(Role::OnAccent)"
+        },
+        {
+          "path": "crates/termrock-theme/src/builtin/mod.rs",
+          "line": 520,
+          "source": "p().set_fg(Role::OnAccent)"
+        }
+      ]
+    },
+    {
+      "token": "on_danger",
+      "role_expression": "Role::OnDanger",
+      "frozen_field": "text_primary",
+      "status": "Mapped for the stated component use",
+      "contract": "Danger Button PRESSED foreground, frozen interactive danger_press branch.",
+      "frozen_outputs": {
+        "TrueColor": "#ffffff",
+        "Ansi256": "Indexed(231)",
+        "Ansi16": "White",
+        "Mono": "White"
+      },
+      "current_production_references": [
+        {
+          "path": "crates/termrock-theme/src/builtin/mod.rs",
+          "line": 117,
+          "source": "p().set_fg(Role::OnDanger).set_bg(Role::Danger),"
+        }
+      ]
+    },
+    {
+      "token": "on_surface_inverse",
+      "role_expression": "Role::OnSurfaceInverse",
+      "frozen_field": null,
+      "status": "Ambiguous or unconsumed: no global palette oracle",
+      "contract": "No production recipe use found beyond role resolution; no frozen default is justified.",
+      "frozen_outputs": null,
+      "current_production_references": [],
+      "current_reference_note": "No exact textual production reference found; resolve dispatch is not counted as a consumer. Aliased imports or direct ColorTokens field accesses must be audited before declaring permanently unused."
+    },
+    {
+      "token": "border_subtle",
+      "role_expression": "Role::BorderSubtle",
+      "frozen_field": "border_subtle",
+      "status": "Mapped for the stated component use",
+      "contract": "Panel/rule border use maps here; current generic TRACK also uses this role, but frozen scrollbar_track uses scroll_track, so that consumer needs distinct semantic mapping.",
+      "frozen_outputs": {
+        "TrueColor": "#3a3a3a",
+        "Ansi256": "Indexed(238)",
+        "Ansi16": "DarkGray",
+        "Mono": "DarkGray"
+      },
+      "current_production_references": [
+        {
+          "path": "crates/jackin-preview-app/src/app/historical_paint.rs",
+          "line": 168,
+          "source": ".set_fg(Role::BorderSubtle)"
+        },
+        {
+          "path": "crates/termrock-runtime/src/ui/paint.rs",
+          "line": 406,
+          "source": "let s = self.paint_patch(&crate::theme::StylePatch::new().set_fg(Role::BorderSubtle));"
+        },
+        {
+          "path": "crates/termrock-theme/src/builtin/mod.rs",
+          "line": 72,
+          "source": "p().set_fg(Role::BorderSubtle)"
+        },
+        {
+          "path": "crates/termrock-theme/src/builtin/mod.rs",
+          "line": 238,
+          "source": "p().set_fg(Role::BorderSubtle)"
+        },
+        {
+          "path": "crates/termrock-theme/src/builtin/mod.rs",
+          "line": 260,
+          "source": "part(m, Part::BORDER, p().set_fg(Role::BorderSubtle))"
+        },
+        {
+          "path": "crates/termrock-theme/src/builtin/mod.rs",
+          "line": 286,
+          "source": "p().set_fg(Role::BorderSubtle)"
+        },
+        {
+          "path": "crates/termrock-theme/src/builtin/mod.rs",
+          "line": 303,
+          "source": "p().set_fg(Role::BorderSubtle)"
+        },
+        {
+          "path": "crates/termrock-theme/src/builtin/mod.rs",
+          "line": 308,
+          "source": "p().set_fg(Role::BorderSubtle)"
+        },
+        {
+          "path": "crates/termrock-theme/src/builtin/mod.rs",
+          "line": 391,
+          "source": "part(&mut r.parts, Part::BORDER, p().set_fg(Role::BorderSubtle)).when("
+        },
+        {
+          "path": "crates/termrock-theme/src/builtin/mod.rs",
+          "line": 424,
+          "source": "part(m, Part::SEAM, p().set_fg(Role::BorderSubtle))"
+        },
+        {
+          "path": "crates/termrock-theme/src/builtin/mod.rs",
+          "line": 445,
+          "source": "p().set_fg(Role::BorderSubtle)"
+        }
+      ]
+    },
+    {
+      "token": "border_strong",
+      "role_expression": "Role::BorderStrong",
+      "frozen_field": "border_strong",
+      "status": "Mapped for the stated component use",
+      "contract": "Focused borders and edit/bracket underline, source theme.border and CodeEditor draw.",
+      "frozen_outputs": {
+        "TrueColor": "#4d4d4d",
+        "Ansi256": "Indexed(242)",
+        "Ansi16": "Gray",
+        "Mono": "Gray"
+      },
+      "current_production_references": [
+        {
+          "path": "crates/jackin-preview-app/src/app/historical_paint.rs",
+          "line": 49,
+          "source": ".set_fg(Role::BorderStrong)"
+        },
+        {
+          "path": "crates/jackin-preview-app/src/app/historical_paint.rs",
+          "line": 56,
+          "source": ".set_fg(Role::BorderStrong)"
+        },
+        {
+          "path": "crates/jackin-preview-app/src/app/historical_paint.rs",
+          "line": 63,
+          "source": ".set_fg(Role::BorderStrong)"
+        },
+        {
+          "path": "crates/termrock-overlays/src/dialog.rs",
+          "line": 688,
+          "source": ".set_fg(Role::BorderStrong)"
+        },
+        {
+          "path": "crates/termrock-theme/src/builtin/mod.rs",
+          "line": 261,
+          "source": ".when(StateFlags::FOCUSED, p().set_fg(Role::BorderStrong));"
+        },
+        {
+          "path": "crates/termrock-theme/src/builtin/mod.rs",
+          "line": 393,
+          "source": "p().set_fg(Role::BorderStrong).add(Modifier::BOLD),"
+        },
+        {
+          "path": "crates/termrock-theme/src/builtin/mod.rs",
+          "line": 425,
+          "source": ".when(StateFlags::HOVERED, p().set_fg(Role::BorderStrong))"
+        },
+        {
+          "path": "crates/termrock-theme/src/builtin/mod.rs",
+          "line": 617,
+          "source": "part(m, Part::BORDER, p().set_fg(Role::BorderStrong));"
+        }
+      ]
+    },
+    {
+      "token": "accent",
+      "role_expression": "Role::Accent",
+      "frozen_field": "accent",
+      "status": "Mapped for the stated component use",
+      "contract": "Active accents and primary rest; preserve semantic profile table, not raw conversion.",
+      "frozen_outputs": {
+        "TrueColor": "#48e054",
+        "Ansi256": "Indexed(78)",
+        "Ansi16": "LightGreen",
+        "Mono": "White"
+      },
+      "current_production_references": [
+        {
+          "path": "crates/holla-ui/src/app.rs",
+          "line": 2447,
+          "source": "let accent = ui.paint_patch(&StylePatch::new().set_fg(Role::Accent));"
+        },
+        {
+          "path": "crates/holla-ui/src/app.rs",
+          "line": 2497,
+          "source": "let accent = ui.paint_patch(&StylePatch::new().set_fg(Role::Accent));"
+        },
+        {
+          "path": "crates/jackin-preview-app/src/app/historical_paint.rs",
+          "line": 35,
+          "source": ".set_fg(Role::Accent)"
+        },
+        {
+          "path": "crates/jackin-preview-app/src/app/historical_paint.rs",
+          "line": 36,
+          "source": ".set_bg(Role::AccentTint)"
+        },
+        {
+          "path": "crates/jackin-preview-app/src/app/historical_paint.rs",
+          "line": 42,
+          "source": ".set_fg(Role::Accent)"
+        },
+        {
+          "path": "crates/jackin-preview-app/src/app/historical_paint.rs",
+          "line": 120,
+          "source": ".set_bg(Role::AccentTint)"
+        },
+        {
+          "path": "crates/showcase-demos/src/pages/author.rs",
+          "line": 7,
+          "source": "const AUTHOR_PATCH: StylePatch = StylePatch::new().set_fg(Role::Accent);"
+        },
+        {
+          "path": "crates/showcase-demos/src/pages/dialogs.rs",
+          "line": 15,
+          "source": ".set_fg(termrock::Role::Accent)"
+        },
+        {
+          "path": "crates/termrock-feedback/src/meter.rs",
+          "line": 303,
+          "source": "let icon = self.resolve_part(ui, Part::ICON, live, StylePatch::new().set_fg(Role::Accent));"
+        },
+        {
+          "path": "crates/termrock-grid/src/grid.rs",
+          "line": 2958,
+          "source": "Role::Accent"
+        },
+        {
+          "path": "crates/termrock-runtime/src/ui/paint.rs",
+          "line": 505,
+          "source": "Some(Role::Accent) => accent(theme, surface, 0, steps),"
+        },
+        {
+          "path": "crates/termrock-runtime/src/ui/paint.rs",
+          "line": 506,
+          "source": "Some(Role::AccentHover) => accent(theme, surface, 1, steps),"
+        },
+        {
+          "path": "crates/termrock-runtime/src/ui/paint.rs",
+          "line": 507,
+          "source": "Some(Role::AccentPressed) => accent(theme, surface, 2, steps),"
+        },
+        {
+          "path": "crates/termrock-runtime/src/ui/paint.rs",
+          "line": 567,
+          "source": "0 => Role::Accent,"
+        },
+        {
+          "path": "crates/termrock-runtime/src/ui/paint.rs",
+          "line": 568,
+          "source": "1 => Role::AccentHover,"
+        },
+        {
+          "path": "crates/termrock-runtime/src/ui/paint.rs",
+          "line": 569,
+          "source": "2 => Role::AccentPressed,"
+        },
+        {
+          "path": "crates/termrock-theme/src/builtin/junie.rs",
+          "line": 208,
+          "source": "p().set_bg(Role::AccentTint),"
+        },
+        {
+          "path": "crates/termrock-theme/src/builtin/mod.rs",
+          "line": 40,
+          "source": "p().set_bg(Role::AccentTint),"
+        },
+        {
+          "path": "crates/termrock-theme/src/builtin/mod.rs",
+          "line": 55,
+          "source": "p().set_glyph(GlyphRole::Chosen).set_fg(Role::Accent),"
+        },
+        {
+          "path": "crates/termrock-theme/src/builtin/mod.rs",
+          "line": 59,
+          "source": "p().set_glyph(GlyphRole::Checked).set_fg(Role::Accent),"
+        },
+        {
+          "path": "crates/termrock-theme/src/builtin/mod.rs",
+          "line": 93,
+          "source": ".set_bg(Role::Accent)"
+        },
+        {
+          "path": "crates/termrock-theme/src/builtin/mod.rs",
+          "line": 96,
+          "source": ".when(StateFlags::HOVERED, p().set_bg(Role::AccentHover))"
+        },
+        {
+          "path": "crates/termrock-theme/src/builtin/mod.rs",
+          "line": 97,
+          "source": ".when(StateFlags::PRESSED, p().set_bg(Role::AccentPressed))"
+        },
+        {
+          "path": "crates/termrock-theme/src/builtin/mod.rs",
+          "line": 272,
+          "source": ".set_bg(Role::Accent)"
+        },
+        {
+          "path": "crates/termrock-theme/src/builtin/mod.rs",
+          "line": 329,
+          "source": ".set_bg(Role::Accent)"
+        },
+        {
+          "path": "crates/termrock-theme/src/builtin/mod.rs",
+          "line": 420,
+          "source": ".when(StateFlags::PRESSED, p().set_fg(Role::Accent));"
+        },
+        {
+          "path": "crates/termrock-theme/src/builtin/mod.rs",
+          "line": 426,
+          "source": ".when(StateFlags::PRESSED, p().set_fg(Role::Accent));"
+        },
+        {
+          "path": "crates/termrock-theme/src/builtin/mod.rs",
+          "line": 473,
+          "source": ".set_bg(Role::Accent)"
+        },
+        {
+          "path": "crates/termrock-theme/src/builtin/mod.rs",
+          "line": 497,
+          "source": "part(m, Part::ICON, p().set_fg(Role::Accent))"
+        },
+        {
+          "path": "crates/termrock-theme/src/builtin/mod.rs",
+          "line": 513,
+          "source": "part(m, Part::ICON, p().set_fg(Role::Accent)).when(StateFlags::ERROR, p().set_fg(Role::Danger));"
+        },
+        {
+          "path": "crates/termrock-theme/src/builtin/mod.rs",
+          "line": 521,
+          "source": ".set_bg(Role::Accent)"
+        },
+        {
+          "path": "crates/termrock-theme/src/builtin/mod.rs",
+          "line": 524,
+          "source": ".when(StateFlags::HOVERED, p().set_bg(Role::AccentHover));"
+        },
+        {
+          "path": "crates/termrock-theme/src/builtin/mod.rs",
+          "line": 550,
+          "source": "p().set_glyph(GlyphRole::CheckboxOn).set_fg(Role::Accent),"
+        },
+        {
+          "path": "crates/termrock-theme/src/builtin/mod.rs",
+          "line": 554,
+          "source": "p().set_glyph(GlyphRole::Chosen).set_fg(Role::Accent),"
+        },
+        {
+          "path": "crates/termrock-theme/src/builtin/mod.rs",
+          "line": 569,
+          "source": "p().set_glyph(GlyphRole::Checked).set_fg(Role::Accent),"
+        },
+        {
+          "path": "crates/termrock-theme/src/builtin/mod.rs",
+          "line": 588,
+          "source": "p().set_bg(Role::AccentTint).add(Modifier::BOLD),"
+        },
+        {
+          "path": "crates/termrock-theme/src/builtin/mod.rs",
+          "line": 602,
+          "source": "p().add(Modifier::UNDERLINED).set_underline(Role::Accent),"
+        }
+      ]
+    },
+    {
+      "token": "accent_hover",
+      "role_expression": "Role::AccentHover",
+      "frozen_field": "accent_hover",
+      "status": "Mapped for the stated component use",
+      "contract": "Primary Button hover uses accent ladder.hover; same values as scalar field in all four frozen profiles.",
+      "frozen_outputs": {
+        "TrueColor": "#3ab343",
+        "Ansi256": "Indexed(71)",
+        "Ansi16": "Green",
+        "Mono": "White"
+      },
+      "current_production_references": [
+        {
+          "path": "crates/termrock-runtime/src/ui/paint.rs",
+          "line": 506,
+          "source": "Some(Role::AccentHover) => accent(theme, surface, 1, steps),"
+        },
+        {
+          "path": "crates/termrock-runtime/src/ui/paint.rs",
+          "line": 568,
+          "source": "1 => Role::AccentHover,"
+        },
+        {
+          "path": "crates/termrock-theme/src/builtin/mod.rs",
+          "line": 96,
+          "source": ".when(StateFlags::HOVERED, p().set_bg(Role::AccentHover))"
+        },
+        {
+          "path": "crates/termrock-theme/src/builtin/mod.rs",
+          "line": 524,
+          "source": ".when(StateFlags::HOVERED, p().set_bg(Role::AccentHover));"
+        }
+      ]
+    },
+    {
+      "token": "accent_pressed",
+      "role_expression": "Role::AccentPressed",
+      "frozen_field": null,
+      "status": "Ambiguous or unconsumed: no global palette oracle",
+      "contract": "Primary PRESSED uses ladders.accent.pressed, not scalar accent_pressed: TrueColor #2e9a38, Ansi25665, Ansi16 LightGreen, Mono White. Scalar apply_16 sets Green, proving name matching is insufficient.",
+      "frozen_outputs": null,
+      "current_production_references": [
+        {
+          "path": "crates/termrock-runtime/src/ui/paint.rs",
+          "line": 507,
+          "source": "Some(Role::AccentPressed) => accent(theme, surface, 2, steps),"
+        },
+        {
+          "path": "crates/termrock-runtime/src/ui/paint.rs",
+          "line": 569,
+          "source": "2 => Role::AccentPressed,"
+        },
+        {
+          "path": "crates/termrock-theme/src/builtin/mod.rs",
+          "line": 97,
+          "source": ".when(StateFlags::PRESSED, p().set_bg(Role::AccentPressed))"
+        }
+      ]
+    },
+    {
+      "token": "accent_tint",
+      "role_expression": "Role::AccentTint",
+      "frozen_field": null,
+      "status": "Ambiguous or unconsumed: no global palette oracle",
+      "contract": "Row SELECTED uses accent_bg/hover; GRID ACTIVE uses cell_cursor contextual highlight. These are different frozen contracts; a single tint is ambiguous.",
+      "frozen_outputs": null,
+      "current_production_references": [
+        {
+          "path": "crates/jackin-preview-app/src/app/historical_paint.rs",
+          "line": 36,
+          "source": ".set_bg(Role::AccentTint)"
+        },
+        {
+          "path": "crates/jackin-preview-app/src/app/historical_paint.rs",
+          "line": 120,
+          "source": ".set_bg(Role::AccentTint)"
+        },
+        {
+          "path": "crates/termrock-theme/src/builtin/junie.rs",
+          "line": 208,
+          "source": "p().set_bg(Role::AccentTint),"
+        },
+        {
+          "path": "crates/termrock-theme/src/builtin/mod.rs",
+          "line": 40,
+          "source": "p().set_bg(Role::AccentTint),"
+        },
+        {
+          "path": "crates/termrock-theme/src/builtin/mod.rs",
+          "line": 588,
+          "source": "p().set_bg(Role::AccentTint).add(Modifier::BOLD),"
+        }
+      ]
+    },
+    {
+      "token": "focus",
+      "role_expression": "Role::Focus",
+      "frozen_field": "focus",
+      "status": "Mapped for the stated component use",
+      "contract": "Keyboard gutter indicator; frozen interactive gutter uses focus except primary contrast treatment.",
+      "frozen_outputs": {
+        "TrueColor": "#48e054",
+        "Ansi256": "Indexed(78)",
+        "Ansi16": "LightGreen",
+        "Mono": "White"
+      },
+      "current_production_references": [
+        {
+          "path": "crates/showcase-demos/src/pages/lists.rs",
+          "line": 15,
+          "source": "StylePatch::new().set_glyph(GlyphRole::FocusBar),"
+        },
+        {
+          "path": "crates/showcase-demos/src/pages/trees.rs",
+          "line": 14,
+          "source": "StylePatch::new().set_glyph(GlyphRole::FocusBar),"
+        },
+        {
+          "path": "crates/showcase-ui/src/app.rs",
+          "line": 1623,
+          "source": "ui.glyph(Rect::new(row.x, row.y, 1, 1), GlyphRole::FocusBar, gutter);"
+        },
+        {
+          "path": "crates/termrock-controls/src/panel.rs",
+          "line": 298,
+          "source": "ui.glyph(gutter, GlyphRole::FocusBar, g.style);"
+        },
+        {
+          "path": "crates/termrock-controls/src/split.rs",
+          "line": 699,
+          "source": "ui.glyph_str(GlyphRole::FocusBar)"
+        },
+        {
+          "path": "crates/termrock-editors/src/code.rs",
+          "line": 1426,
+          "source": "ui.glyph(cell_at(row, row.x), GlyphRole::FocusBar, gutter_style);"
+        },
+        {
+          "path": "crates/termrock-forms/src/wizard.rs",
+          "line": 310,
+          "source": "crate::theme::GlyphRole::FocusBar,"
+        },
+        {
+          "path": "crates/termrock-grid/src/grid.rs",
+          "line": 2952,
+          "source": "let mut focus = StylePatch::new().set_glyph(GlyphRole::FocusBar);"
+        },
+        {
+          "path": "crates/termrock-grid/src/grid.rs",
+          "line": 2954,
+          "source": "focus = focus.set_fg(Role::Focus);"
+        },
+        {
+          "path": "crates/termrock-grid/src/grid.rs",
+          "line": 3127,
+          "source": "ui.glyph(super::cell_at(band, band.x), GlyphRole::FocusBar, row_style);"
+        },
+        {
+          "path": "crates/termrock-overlays/src/help.rs",
+          "line": 613,
+          "source": "GlyphRole::FocusBar,"
+        },
+        {
+          "path": "crates/termrock-runtime/src/ui/paint.rs",
+          "line": 467,
+          "source": "let focus_bar = theme.design.glyphs.get(crate::theme::GlyphRole::FocusBar);"
+        },
+        {
+          "path": "crates/termrock-theme/src/builtin/mod.rs",
+          "line": 50,
+          "source": "p().set_glyph(GlyphRole::FocusBar).set_fg(Role::Focus),"
+        },
+        {
+          "path": "crates/termrock-theme/src/builtin/mod.rs",
+          "line": 176,
+          "source": "Role::Focus"
+        },
+        {
+          "path": "crates/termrock-theme/src/builtin/mod.rs",
+          "line": 185,
+          "source": "p().set_glyph(GlyphRole::FocusBar)"
+        },
+        {
+          "path": "crates/termrock-theme/src/builtin/mod.rs",
+          "line": 232,
+          "source": "p().set_glyph(GlyphRole::FocusBar).set_fg(Role::Focus),"
+        },
+        {
+          "path": "crates/termrock-theme/src/builtin/mod.rs",
+          "line": 629,
+          "source": "p().set_fg(Role::Focus).add(Modifier::UNDERLINED),"
+        },
+        {
+          "path": "crates/termrock-theme/src/builtin/mod.rs",
+          "line": 648,
+          "source": "p().set_glyph(GlyphRole::FocusBar)"
+        },
+        {
+          "path": "crates/termrock-theme/src/builtin/mod.rs",
+          "line": 649,
+          "source": ".set_fg(Role::Focus)"
+        },
+        {
+          "path": "crates/termrock-theme/src/downgrade.rs",
+          "line": 398,
+          "source": "p().set_glyph(GlyphRole::FocusBar),"
+        },
+        {
+          "path": "crates/termrock-theme/src/glyph.rs",
+          "line": 51,
+          "source": "GlyphRole::FocusBar,"
+        },
+        {
+          "path": "crates/termrock-viewport/src/viewport.rs",
+          "line": 1306,
+          "source": "ui.glyph(r, GlyphRole::FocusBar, g.style);"
+        }
+      ]
+    },
+    {
+      "token": "focus_ring",
+      "role_expression": "Role::FocusRing",
+      "frozen_field": null,
+      "status": "Ambiguous or unconsumed: no global palette oracle",
+      "contract": "No production recipe use found beyond role resolution; frozen focus indicator is not a GREEN_60 ring.",
+      "frozen_outputs": null,
+      "current_production_references": [],
+      "current_reference_note": "No exact textual production reference found; resolve dispatch is not counted as a consumer. Aliased imports or direct ColorTokens field accesses must be audited before declaring permanently unused."
+    },
+    {
+      "token": "selection_bg",
+      "role_expression": "Role::SelectionBg",
+      "frozen_field": "selection_bg",
+      "status": "Mapped for the stated component use",
+      "contract": "Text selection only: frozen selection() uses selection_bg plus REVERSED in16/Mono. Do not reuse for list chosen/active cell backgrounds.",
+      "frozen_outputs": {
+        "TrueColor": "#1f3460",
+        "Ansi256": "Indexed(17)",
+        "Ansi16": "Black",
+        "Mono": "DarkGray"
+      },
+      "current_production_references": [
+        {
+          "path": "crates/termrock-theme/src/builtin/mod.rs",
+          "line": 249,
+          "source": "p().set_bg(Role::SelectionBg).set_fg(Role::SelectionFg),"
+        },
+        {
+          "path": "crates/termrock-theme/src/builtin/mod.rs",
+          "line": 439,
+          "source": "p().set_bg(Role::SelectionBg).set_fg(Role::SelectionFg),"
+        }
+      ]
+    },
+    {
+      "token": "selection_fg",
+      "role_expression": "Role::SelectionFg",
+      "frozen_field": "text_primary",
+      "status": "Mapped for the stated component use",
+      "contract": "Text selection() foreground; full modifier/contrast contract still required.",
+      "frozen_outputs": {
+        "TrueColor": "#ffffff",
+        "Ansi256": "Indexed(231)",
+        "Ansi16": "White",
+        "Mono": "White"
+      },
+      "current_production_references": [
+        {
+          "path": "crates/termrock-theme/src/builtin/mod.rs",
+          "line": 249,
+          "source": "p().set_bg(Role::SelectionBg).set_fg(Role::SelectionFg),"
+        },
+        {
+          "path": "crates/termrock-theme/src/builtin/mod.rs",
+          "line": 439,
+          "source": "p().set_bg(Role::SelectionBg).set_fg(Role::SelectionFg),"
+        }
+      ]
+    },
+    {
+      "token": "highlight_bg",
+      "role_expression": "Role::HighlightBg",
+      "frozen_field": "highlight",
+      "status": "Mapped for the stated component use",
+      "contract": "CursorRow Fill focused body uses Plane::Highlight; hover/press require its ladder.",
+      "frozen_outputs": {
+        "TrueColor": "#2f5aa8",
+        "Ansi256": "Indexed(25)",
+        "Ansi16": "Blue",
+        "Mono": "DarkGray"
+      },
+      "current_production_references": [
+        {
+          "path": "crates/termrock-runtime/src/rowui.rs",
+          "line": 37,
+          "source": ".set_bg(Role::HighlightBg)"
+        },
+        {
+          "path": "crates/termrock-runtime/src/rowui.rs",
+          "line": 45,
+          "source": ".set_bg(Role::HighlightBg)"
+        },
+        {
+          "path": "crates/termrock-runtime/src/rowui.rs",
+          "line": 286,
+          "source": ".set_fg(Role::HighlightBg)"
+        },
+        {
+          "path": "crates/termrock-runtime/src/rowui.rs",
+          "line": 287,
+          "source": ".set_bg(Role::HighlightBg)"
+        },
+        {
+          "path": "crates/termrock-theme/src/builtin/mod.rs",
+          "line": 340,
+          "source": "p().set_bg(Role::HighlightBg).set_fg(Role::HighlightFg),"
+        },
+        {
+          "path": "crates/termrock-theme/src/builtin/mod.rs",
+          "line": 344,
+          "source": "p().set_bg(Role::HighlightBg).set_fg(Role::HighlightFg),"
+        }
+      ]
+    },
+    {
+      "token": "highlight_fg",
+      "role_expression": "Role::HighlightFg",
+      "frozen_field": "text_primary",
+      "status": "Mapped for the stated component use",
+      "contract": "CursorRow Fill uses primary ink followed by legible(); modifiers depend on fill/profile.",
+      "frozen_outputs": {
+        "TrueColor": "#ffffff",
+        "Ansi256": "Indexed(231)",
+        "Ansi16": "White",
+        "Mono": "White"
+      },
+      "current_production_references": [
+        {
+          "path": "crates/termrock-runtime/src/rowui.rs",
+          "line": 38,
+          "source": ".set_fg(Role::HighlightFg)"
+        },
+        {
+          "path": "crates/termrock-runtime/src/rowui.rs",
+          "line": 46,
+          "source": ".set_fg(Role::HighlightFg)"
+        },
+        {
+          "path": "crates/termrock-theme/src/builtin/mod.rs",
+          "line": 340,
+          "source": "p().set_bg(Role::HighlightBg).set_fg(Role::HighlightFg),"
+        },
+        {
+          "path": "crates/termrock-theme/src/builtin/mod.rs",
+          "line": 344,
+          "source": "p().set_bg(Role::HighlightBg).set_fg(Role::HighlightFg),"
+        }
+      ]
+    },
+    {
+      "token": "highlight_danger_bg",
+      "role_expression": "Role::HighlightDangerBg",
+      "frozen_field": "highlight_danger",
+      "status": "Mapped for the stated component use",
+      "contract": "Error CursorRow Fill body uses Plane::HighlightDanger; ladder states separate.",
+      "frozen_outputs": {
+        "TrueColor": "#7a2a2a",
+        "Ansi256": "Indexed(88)",
+        "Ansi16": "Red",
+        "Mono": "DarkGray"
+      },
+      "current_production_references": [
+        {
+          "path": "crates/termrock-theme/src/builtin/mod.rs",
+          "line": 378,
+          "source": "p().set_bg(Role::HighlightDangerBg)"
+        }
+      ]
+    },
+    {
+      "token": "highlight_danger_fg",
+      "role_expression": "Role::HighlightDangerFg",
+      "frozen_field": "text_primary",
+      "status": "Mapped for the stated component use",
+      "contract": "Error filled cursor row still uses text_primary and legible(), not error ink.",
+      "frozen_outputs": {
+        "TrueColor": "#ffffff",
+        "Ansi256": "Indexed(231)",
+        "Ansi16": "White",
+        "Mono": "White"
+      },
+      "current_production_references": [
+        {
+          "path": "crates/termrock-theme/src/builtin/mod.rs",
+          "line": 379,
+          "source": ".set_fg(Role::HighlightDangerFg),"
+        }
+      ]
+    },
+    {
+      "token": "backdrop_fg",
+      "role_expression": "Role::BackdropFg",
+      "frozen_field": null,
+      "status": "Ambiguous or unconsumed: no global palette oracle",
+      "contract": "Runtime backdrop painter uses this single token; frozen backdrop(style) transforms source ink/background with contrast and blank/reverse handling. No constant field mapping.",
+      "frozen_outputs": null,
+      "current_production_references": [
+        {
+          "path": "crates/termrock-runtime/src/ui/paint.rs",
+          "line": 498,
+          "source": "let backdrop_text = crate::theme::resolve::bind_role(theme, Role::BackdropFg, surface);"
+        },
+        {
+          "path": "crates/termrock-theme/src/builtin/mod.rs",
+          "line": 281,
+          "source": "p().set_fg(Role::BackdropFg).set_bg(Role::BackdropBg),"
+        }
+      ]
+    },
+    {
+      "token": "backdrop_bg",
+      "role_expression": "Role::BackdropBg",
+      "frozen_field": null,
+      "status": "Ambiguous or unconsumed: no global palette oracle",
+      "contract": "Frozen backdrop preserves canvas/surface/card, maps fields to card, other planes to overlay; a constant canvas token cannot express this.",
+      "frozen_outputs": null,
+      "current_production_references": [
+        {
+          "path": "crates/termrock-runtime/src/ui/paint.rs",
+          "line": 499,
+          "source": "let backdrop_fill = crate::theme::resolve::bind_role(theme, Role::BackdropBg, surface);"
+        },
+        {
+          "path": "crates/termrock-theme/src/builtin/mod.rs",
+          "line": 281,
+          "source": "p().set_fg(Role::BackdropFg).set_bg(Role::BackdropBg),"
+        }
+      ]
+    },
+    {
+      "token": "danger",
+      "role_expression": "Role::Danger",
+      "frozen_field": null,
+      "status": "Ambiguous or unconsumed: no global palette oracle",
+      "contract": "Used for error text and pressed danger fill. Frozen error, danger_label and ladders.danger.pressed differ; split recipe uses before choosing palette.",
+      "frozen_outputs": null,
+      "current_production_references": [
+        {
+          "path": "crates/holla-ui/src/screens/activity.rs",
+          "line": 147,
+          "source": "ActivityState::Failed => Role::Danger,"
+        },
+        {
+          "path": "crates/holla-ui/src/screens/plan.rs",
+          "line": 223,
+          "source": "StepState::Failed(_) => (\"\u2717\", Role::Danger),"
+        },
+        {
+          "path": "crates/holla-ui/src/screens/plan.rs",
+          "line": 272,
+          "source": "StepState::Failed(why) => (why.clone(), Role::Danger),"
+        },
+        {
+          "path": "crates/jackin-preview-app/src/app/historical_paint.rs",
+          "line": 84,
+          "source": ".set_fg(Role::Danger)"
+        },
+        {
+          "path": "crates/jackin-preview-sim/src/changes.rs",
+          "line": 55,
+          "source": "DiffLineKind::Remove => Role::Danger,"
+        },
+        {
+          "path": "crates/jackin-preview-sim/src/changes.rs",
+          "line": 123,
+          "source": "Self::Deleted => Role::Danger,"
+        },
+        {
+          "path": "crates/jackin-preview-sim/src/pty.rs",
+          "line": 341,
+          "source": "Self::Error => Role::Danger,"
+        },
+        {
+          "path": "crates/termrock-editors/src/diff.rs",
+          "line": 418,
+          "source": "let row = (Some(old), None, \"-\", Role::Danger);"
+        },
+        {
+          "path": "crates/termrock-editors/src/diff.rs",
+          "line": 561,
+          "source": "Some(text) => side(*old, text, Role::Danger, text_width, changed, digits),"
+        },
+        {
+          "path": "crates/termrock-theme/src/builtin/junie.rs",
+          "line": 203,
+          "source": ".when(StateFlags::ERROR, p().set_fg(Role::Danger))"
+        },
+        {
+          "path": "crates/termrock-theme/src/builtin/mod.rs",
+          "line": 32,
+          "source": ".when(StateFlags::ERROR, p().set_fg(Role::Danger))"
+        },
+        {
+          "path": "crates/termrock-theme/src/builtin/mod.rs",
+          "line": 117,
+          "source": "p().set_fg(Role::OnDanger).set_bg(Role::Danger),"
+        },
+        {
+          "path": "crates/termrock-theme/src/builtin/mod.rs",
+          "line": 223,
+          "source": ".when(StateFlags::ERROR, p().set_fg(Role::Danger));"
+        },
+        {
+          "path": "crates/termrock-theme/src/builtin/mod.rs",
+          "line": 227,
+          "source": ".set_fg(Role::Danger)"
+        },
+        {
+          "path": "crates/termrock-theme/src/builtin/mod.rs",
+          "line": 374,
+          "source": "p().set_fg(Role::DangerSoft),"
+        },
+        {
+          "path": "crates/termrock-theme/src/builtin/mod.rs",
+          "line": 477,
+          "source": ".when(StateFlags::ERROR, p().set_fg(Role::Danger))"
+        },
+        {
+          "path": "crates/termrock-theme/src/builtin/mod.rs",
+          "line": 500,
+          "source": "p().set_fg(Role::Danger).set_glyph(GlyphRole::Error),"
+        },
+        {
+          "path": "crates/termrock-theme/src/builtin/mod.rs",
+          "line": 513,
+          "source": "part(m, Part::ICON, p().set_fg(Role::Accent)).when(StateFlags::ERROR, p().set_fg(Role::Danger));"
+        },
+        {
+          "path": "crates/termrock-theme/src/builtin/mod.rs",
+          "line": 590,
+          "source": ".when(StateFlags::ERROR, p().set_fg(Role::Danger))"
+        },
+        {
+          "path": "crates/termrock-theme/src/builtin/mod.rs",
+          "line": 604,
+          "source": ".when(StateFlags::ERROR, p().set_underline(Role::Danger));"
+        },
+        {
+          "path": "crates/termrock-theme/src/builtin/mod.rs",
+          "line": 707,
+          "source": "p().set_fg(Role::Danger).set_glyph(GlyphRole::Error),"
+        }
+      ]
+    },
+    {
+      "token": "danger_soft",
+      "role_expression": "Role::DangerSoft",
+      "frozen_field": "error_soft",
+      "status": "Mapped for the stated component use",
+      "contract": "Soft error text candidate; confirm each consumer, preserve separate danger_label/error_strong roles when needed.",
+      "frozen_outputs": {
+        "TrueColor": "#e8a0a0",
+        "Ansi256": "Indexed(174)",
+        "Ansi16": "LightRed",
+        "Mono": "White"
+      },
+      "current_production_references": [
+        {
+          "path": "crates/termrock-theme/src/builtin/mod.rs",
+          "line": 374,
+          "source": "p().set_fg(Role::DangerSoft),"
+        }
+      ]
+    },
+    {
+      "token": "danger_tint",
+      "role_expression": "Role::DangerTint",
+      "frozen_field": null,
+      "status": "Ambiguous or unconsumed: no global palette oracle",
+      "contract": "No production builtin use beyond resolution; frozen error_bg is a candidate only after a real consuming recipe is identified.",
+      "frozen_outputs": null,
+      "current_production_references": [],
+      "current_reference_note": "No exact textual production reference found; resolve dispatch is not counted as a consumer. Aliased imports or direct ColorTokens field accesses must be audited before declaring permanently unused."
+    },
+    {
+      "token": "warning",
+      "role_expression": "Role::Warning",
+      "frozen_field": "warning",
+      "status": "Mapped for the stated component use",
+      "contract": "Warning text/diagnostic underline and meter medium; source theme.syntax diagnostic draw/progress paint.",
+      "frozen_outputs": {
+        "TrueColor": "#f59e09",
+        "Ansi256": "Indexed(214)",
+        "Ansi16": "Yellow",
+        "Mono": "Gray"
+      },
+      "current_production_references": [
+        {
+          "path": "crates/holla-ui/src/screens/activity.rs",
+          "line": 145,
+          "source": "ActivityState::Waiting => Role::Warning,"
+        },
+        {
+          "path": "crates/holla-ui/src/screens/activity.rs",
+          "line": 178,
+          "source": "1 => Role::Warning,"
+        },
+        {
+          "path": "crates/holla-ui/src/screens/home.rs",
+          "line": 646,
+          "source": "Role::Warning,"
+        },
+        {
+          "path": "crates/holla-ui/src/screens/home.rs",
+          "line": 780,
+          "source": ".set_fg(Role::Warning)"
+        },
+        {
+          "path": "crates/holla-ui/src/screens/plan.rs",
+          "line": 215,
+          "source": "(\"\u25b2\", Role::Warning)"
+        },
+        {
+          "path": "crates/holla-ui/src/screens/plan.rs",
+          "line": 263,
+          "source": "(format!(\"needs {dependency}\"), Role::Warning)"
+        },
+        {
+          "path": "crates/jackin-preview-app/src/app/historical_paint.rs",
+          "line": 210,
+          "source": ".set_fg(Role::Warning)"
+        },
+        {
+          "path": "crates/jackin-preview-sim/src/changes.rs",
+          "line": 122,
+          "source": "Self::Modified => Role::Warning,"
+        },
+        {
+          "path": "crates/jackin-preview-sim/src/pty.rs",
+          "line": 342,
+          "source": "Self::Warning => Role::Warning,"
+        },
+        {
+          "path": "crates/showcase-demos/src/pages/grid.rs",
+          "line": 143,
+          "source": "result.tone = Some(Role::Warning);"
+        },
+        {
+          "path": "crates/termrock-navigation/src/steps.rs",
+          "line": 74,
+          "source": "StepState::Blocked => Some(GlyphRole::WarningMark),"
+        },
+        {
+          "path": "crates/termrock-test-support/src/conformance/driver.rs",
+          "line": 624,
+          "source": "termrock::StylePatch::new().set_fg(termrock::Role::Warning),"
+        },
+        {
+          "path": "crates/termrock-theme/src/builtin/mod.rs",
+          "line": 478,
+          "source": ".when(StateFlags::WARNING, p().set_fg(Role::Warning));"
+        },
+        {
+          "path": "crates/termrock-theme/src/builtin/mod.rs",
+          "line": 591,
+          "source": ".when(StateFlags::DIRTY, p().set_fg(Role::Warning))"
+        },
+        {
+          "path": "crates/termrock-theme/src/glyph.rs",
+          "line": 63,
+          "source": "GlyphRole::WarningMark,"
+        }
+      ]
+    },
+    {
+      "token": "warning_tint",
+      "role_expression": "Role::WarningTint",
+      "frozen_field": null,
+      "status": "Ambiguous or unconsumed: no global palette oracle",
+      "contract": "No production builtin use beyond resolution. Frozen has no warning-tint field; extension default requires an explicit documented policy.",
+      "frozen_outputs": null,
+      "current_production_references": [],
+      "current_reference_note": "No exact textual production reference found; resolve dispatch is not counted as a consumer. Aliased imports or direct ColorTokens field accesses must be audited before declaring permanently unused."
+    },
+    {
+      "token": "success",
+      "role_expression": "Role::Success",
+      "frozen_field": "success",
+      "status": "Mapped for the stated component use",
+      "contract": "Status/progress Done success ink; frozen strong success is a different contextual contrast fallback.",
+      "frozen_outputs": {
+        "TrueColor": "#3fb950",
+        "Ansi256": "Indexed(71)",
+        "Ansi16": "Green",
+        "Mono": "White"
+      },
+      "current_production_references": [
+        {
+          "path": "crates/holla-ui/src/screens/activity.rs",
+          "line": 144,
+          "source": "ActivityState::Running => Role::Success,"
+        },
+        {
+          "path": "crates/holla-ui/src/screens/activity.rs",
+          "line": 177,
+          "source": "0 => Role::Success,"
+        },
+        {
+          "path": "crates/holla-ui/src/screens/plan.rs",
+          "line": 222,
+          "source": "StepState::Succeeded => (\"\u2713\", Role::Success),"
+        },
+        {
+          "path": "crates/holla-ui/src/screens/plan.rs",
+          "line": 271,
+          "source": "StepState::Succeeded => (\"done\".into(), Role::Success),"
+        },
+        {
+          "path": "crates/jackin-preview-sim/src/changes.rs",
+          "line": 54,
+          "source": "DiffLineKind::Add => Role::Success,"
+        },
+        {
+          "path": "crates/jackin-preview-sim/src/changes.rs",
+          "line": 121,
+          "source": "Self::Added => Role::Success,"
+        },
+        {
+          "path": "crates/jackin-preview-sim/src/pty.rs",
+          "line": 340,
+          "source": "Self::Success => Role::Success,"
+        },
+        {
+          "path": "crates/termrock-editors/src/diff.rs",
+          "line": 413,
+          "source": "let row = (None, Some(new), \"+\", Role::Success);"
+        },
+        {
+          "path": "crates/termrock-editors/src/diff.rs",
+          "line": 566,
+          "source": "Some(text) => side(*new, text, Role::Success, text_width, changed, digits),"
+        }
+      ]
+    },
+    {
+      "token": "info",
+      "role_expression": "Role::Info",
+      "frozen_field": "info",
+      "status": "Mapped for the stated component use",
+      "contract": "Information text and frozen meter low color; #79b8ff,111,LightBlue, generic Mono Gray.",
+      "frozen_outputs": {
+        "TrueColor": "#79b8ff",
+        "Ansi256": "Indexed(111)",
+        "Ansi16": "LightBlue",
+        "Mono": "Gray"
+      },
+      "current_production_references": [],
+      "current_reference_note": "No exact textual production reference found; resolve dispatch is not counted as a consumer. Aliased imports or direct ColorTokens field accesses must be audited before declaring permanently unused."
+    },
+    {
+      "token": "disabled_fg",
+      "role_expression": "Role::DisabledFg",
+      "frozen_field": "disabled",
+      "status": "Mapped for the stated component use",
+      "contract": "interactive DISABLED ink, with text_muted+DIM fallback when equal to background.",
+      "frozen_outputs": {
+        "TrueColor": "#4d4d4d",
+        "Ansi256": "Indexed(239)",
+        "Ansi16": "DarkGray",
+        "Mono": "DarkGray"
+      },
+      "current_production_references": [
+        {
+          "path": "crates/termrock-theme/src/builtin/junie.rs",
+          "line": 197,
+          "source": ".set_fg(Role::DisabledFg)"
+        },
+        {
+          "path": "crates/termrock-theme/src/builtin/mod.rs",
+          "line": 35,
+          "source": "p().set_fg(Role::DisabledFg).remove(Modifier::BOLD),"
+        },
+        {
+          "path": "crates/termrock-theme/src/builtin/mod.rs",
+          "line": 61,
+          "source": ".when(StateFlags::DISABLED, p().set_fg(Role::DisabledFg));"
+        },
+        {
+          "path": "crates/termrock-theme/src/builtin/mod.rs",
+          "line": 62,
+          "source": "part(m, Part::LABEL, p()).when(StateFlags::DISABLED, p().set_fg(Role::DisabledFg));"
+        },
+        {
+          "path": "crates/termrock-theme/src/builtin/mod.rs",
+          "line": 100,
+          "source": "p().set_fg(Role::DisabledFg)"
+        },
+        {
+          "path": "crates/termrock-theme/src/builtin/mod.rs",
+          "line": 121,
+          "source": "p().set_fg(Role::DisabledFg)"
+        },
+        {
+          "path": "crates/termrock-theme/src/builtin/mod.rs",
+          "line": 147,
+          "source": "p().set_fg(Role::DisabledFg).remove(Modifier::BOLD),"
+        },
+        {
+          "path": "crates/termrock-theme/src/builtin/mod.rs",
+          "line": 167,
+          "source": "p().set_fg(Role::DisabledFg)"
+        },
+        {
+          "path": "crates/termrock-theme/src/builtin/mod.rs",
+          "line": 209,
+          "source": ".when(StateFlags::DISABLED, p().set_fg(Role::DisabledFg));"
+        },
+        {
+          "path": "crates/termrock-theme/src/builtin/mod.rs",
+          "line": 212,
+          "source": ".when(StateFlags::DISABLED, p().set_fg(Role::DisabledFg));"
+        },
+        {
+          "path": "crates/termrock-theme/src/builtin/mod.rs",
+          "line": 220,
+          "source": "p().set_fg(Role::DisabledFg).remove(Modifier::BOLD),"
+        }
+      ]
+    },
+    {
+      "token": "disabled_bg",
+      "role_expression": "Role::DisabledBg",
+      "frozen_field": null,
+      "status": "Ambiguous or unconsumed: no global palette oracle",
+      "contract": "interactive DISABLED background depends on incoming plane and kind, notably raised rest for filled Buttons; no one constant fits fields and all buttons.",
+      "frozen_outputs": null,
+      "current_production_references": [
+        {
+          "path": "crates/termrock-theme/src/builtin/mod.rs",
+          "line": 101,
+          "source": ".set_bg(Role::DisabledBg)"
+        },
+        {
+          "path": "crates/termrock-theme/src/builtin/mod.rs",
+          "line": 122,
+          "source": ".set_bg(Role::DisabledBg)"
+        },
+        {
+          "path": "crates/termrock-theme/src/builtin/mod.rs",
+          "line": 168,
+          "source": ".set_bg(Role::DisabledBg)"
+        }
+      ]
+    },
+    {
+      "token": "read_only_fg",
+      "role_expression": "Role::ReadOnlyFg",
+      "frozen_field": null,
+      "status": "Ambiguous or unconsumed: no global palette oracle",
+      "contract": "Current field_like READ_ONLY ink; frozen CodeEditor line numbers use text_faint, ordinary input text has its own readonly contract. Not a global secondary ink rule.",
+      "frozen_outputs": null,
+      "current_production_references": [
+        {
+          "path": "crates/termrock-theme/src/builtin/mod.rs",
+          "line": 208,
+          "source": ".when(StateFlags::READ_ONLY, p().set_fg(Role::ReadOnlyFg))"
+        }
+      ]
+    },
+    {
+      "token": "syntax.keyword",
+      "role_expression": "Role::Syntax(SyntaxRole::Keyword)",
+      "frozen_field": "syntax_keyword",
+      "status": "Mapped for the stated component use",
+      "contract": "Frozen theme.syntax at2084-2103, or CodeEditor diagnostics/bracket underline at1175-1206. Invalid mapping is diagnostic error use only, not an invented syntax class.",
+      "frozen_outputs": {
+        "TrueColor": "#79b8ff",
+        "Ansi256": "Indexed(111)",
+        "Ansi16": "LightBlue",
+        "Mono": "Gray"
+      },
+      "current_production_references": [],
+      "current_reference_note": "No exact textual production reference found; resolve dispatch is not counted as a consumer. Aliased imports or direct ColorTokens field accesses must be audited before declaring permanently unused."
+    },
+    {
+      "token": "syntax.ident",
+      "role_expression": "Role::Syntax(SyntaxRole::Ident)",
+      "frozen_field": "text_primary",
+      "status": "Mapped for the stated component use",
+      "contract": "Frozen theme.syntax at2084-2103, or CodeEditor diagnostics/bracket underline at1175-1206. Invalid mapping is diagnostic error use only, not an invented syntax class.",
+      "frozen_outputs": {
+        "TrueColor": "#ffffff",
+        "Ansi256": "Indexed(231)",
+        "Ansi16": "White",
+        "Mono": "White"
+      },
+      "current_production_references": [],
+      "current_reference_note": "No exact textual production reference found; resolve dispatch is not counted as a consumer. Aliased imports or direct ColorTokens field accesses must be audited before declaring permanently unused."
+    },
+    {
+      "token": "syntax.string",
+      "role_expression": "Role::Syntax(SyntaxRole::Str)",
+      "frozen_field": "syntax_string",
+      "status": "Mapped for the stated component use",
+      "contract": "Frozen theme.syntax at2084-2103, or CodeEditor diagnostics/bracket underline at1175-1206. Invalid mapping is diagnostic error use only, not an invented syntax class.",
+      "frozen_outputs": {
+        "TrueColor": "#8bd5ca",
+        "Ansi256": "Indexed(116)",
+        "Ansi16": "Cyan",
+        "Mono": "Gray"
+      },
+      "current_production_references": [],
+      "current_reference_note": "No exact textual production reference found; resolve dispatch is not counted as a consumer. Aliased imports or direct ColorTokens field accesses must be audited before declaring permanently unused."
+    },
+    {
+      "token": "syntax.number",
+      "role_expression": "Role::Syntax(SyntaxRole::Number)",
+      "frozen_field": "syntax_literal",
+      "status": "Mapped for the stated component use",
+      "contract": "Frozen theme.syntax at2084-2103, or CodeEditor diagnostics/bracket underline at1175-1206. Invalid mapping is diagnostic error use only, not an invented syntax class.",
+      "frozen_outputs": {
+        "TrueColor": "#c6a0f6",
+        "Ansi256": "Indexed(183)",
+        "Ansi16": "LightMagenta",
+        "Mono": "White"
+      },
+      "current_production_references": [],
+      "current_reference_note": "No exact textual production reference found; resolve dispatch is not counted as a consumer. Aliased imports or direct ColorTokens field accesses must be audited before declaring permanently unused."
+    },
+    {
+      "token": "syntax.operator",
+      "role_expression": "Role::Syntax(SyntaxRole::Operator)",
+      "frozen_field": "text_muted",
+      "status": "Mapped for the stated component use",
+      "contract": "Frozen theme.syntax at2084-2103, or CodeEditor diagnostics/bracket underline at1175-1206. Invalid mapping is diagnostic error use only, not an invented syntax class.",
+      "frozen_outputs": {
+        "TrueColor": "#8a8a8a",
+        "Ansi256": "Indexed(245)",
+        "Ansi16": "Gray",
+        "Mono": "Gray"
+      },
+      "current_production_references": [],
+      "current_reference_note": "No exact textual production reference found; resolve dispatch is not counted as a consumer. Aliased imports or direct ColorTokens field accesses must be audited before declaring permanently unused."
+    },
+    {
+      "token": "syntax.punct",
+      "role_expression": "Role::Syntax(SyntaxRole::Punct)",
+      "frozen_field": "text_muted",
+      "status": "Mapped for the stated component use",
+      "contract": "Frozen theme.syntax at2084-2103, or CodeEditor diagnostics/bracket underline at1175-1206. Invalid mapping is diagnostic error use only, not an invented syntax class.",
+      "frozen_outputs": {
+        "TrueColor": "#8a8a8a",
+        "Ansi256": "Indexed(245)",
+        "Ansi16": "Gray",
+        "Mono": "Gray"
+      },
+      "current_production_references": [],
+      "current_reference_note": "No exact textual production reference found; resolve dispatch is not counted as a consumer. Aliased imports or direct ColorTokens field accesses must be audited before declaring permanently unused."
+    },
+    {
+      "token": "syntax.comment",
+      "role_expression": "Role::Syntax(SyntaxRole::Comment)",
+      "frozen_field": "text_faint",
+      "status": "Mapped for the stated component use",
+      "contract": "Frozen theme.syntax at2084-2103, or CodeEditor diagnostics/bracket underline at1175-1206. Invalid mapping is diagnostic error use only, not an invented syntax class.",
+      "frozen_outputs": {
+        "TrueColor": "#737373",
+        "Ansi256": "Indexed(242)",
+        "Ansi16": "Gray",
+        "Mono": "Gray"
+      },
+      "current_production_references": [],
+      "current_reference_note": "No exact textual production reference found; resolve dispatch is not counted as a consumer. Aliased imports or direct ColorTokens field accesses must be audited before declaring permanently unused."
+    },
+    {
+      "token": "syntax.plain",
+      "role_expression": "Role::Syntax(SyntaxRole::Plain)",
+      "frozen_field": "text_primary",
+      "status": "Mapped for the stated component use",
+      "contract": "Frozen theme.syntax at2084-2103, or CodeEditor diagnostics/bracket underline at1175-1206. Invalid mapping is diagnostic error use only, not an invented syntax class.",
+      "frozen_outputs": {
+        "TrueColor": "#ffffff",
+        "Ansi256": "Indexed(231)",
+        "Ansi16": "White",
+        "Mono": "White"
+      },
+      "current_production_references": [],
+      "current_reference_note": "No exact textual production reference found; resolve dispatch is not counted as a consumer. Aliased imports or direct ColorTokens field accesses must be audited before declaring permanently unused."
+    },
+    {
+      "token": "syntax.type_name",
+      "role_expression": "Role::Syntax(SyntaxRole::TypeName)",
+      "frozen_field": null,
+      "status": "Extension or contextual use: no direct frozen token",
+      "contract": "Frozen syntax classes do not include this class; find matches use non-current UNDERLINED border_strong, current match_current() uses accent + text_on_accent + BOLD (Mono reversed). Per-consumer mapping required.",
+      "frozen_outputs": null,
+      "current_production_references": [],
+      "current_reference_note": "No exact textual production reference found; resolve dispatch is not counted as a consumer. Aliased imports or direct ColorTokens field accesses must be audited before declaring permanently unused."
+    },
+    {
+      "token": "syntax.function",
+      "role_expression": "Role::Syntax(SyntaxRole::Function)",
+      "frozen_field": null,
+      "status": "Extension or contextual use: no direct frozen token",
+      "contract": "Frozen syntax classes do not include this class; find matches use non-current UNDERLINED border_strong, current match_current() uses accent + text_on_accent + BOLD (Mono reversed). Per-consumer mapping required.",
+      "frozen_outputs": null,
+      "current_production_references": [],
+      "current_reference_note": "No exact textual production reference found; resolve dispatch is not counted as a consumer. Aliased imports or direct ColorTokens field accesses must be audited before declaring permanently unused."
+    },
+    {
+      "token": "syntax.constant",
+      "role_expression": "Role::Syntax(SyntaxRole::Constant)",
+      "frozen_field": null,
+      "status": "Extension or contextual use: no direct frozen token",
+      "contract": "Frozen syntax classes do not include this class; find matches use non-current UNDERLINED border_strong, current match_current() uses accent + text_on_accent + BOLD (Mono reversed). Per-consumer mapping required.",
+      "frozen_outputs": null,
+      "current_production_references": [],
+      "current_reference_note": "No exact textual production reference found; resolve dispatch is not counted as a consumer. Aliased imports or direct ColorTokens field accesses must be audited before declaring permanently unused."
+    },
+    {
+      "token": "syntax.invalid",
+      "role_expression": "Role::Syntax(SyntaxRole::Invalid)",
+      "frozen_field": "error",
+      "status": "Mapped for the stated component use",
+      "contract": "Frozen theme.syntax at2084-2103, or CodeEditor diagnostics/bracket underline at1175-1206. Invalid mapping is diagnostic error use only, not an invented syntax class.",
+      "frozen_outputs": {
+        "TrueColor": "#f05d5d",
+        "Ansi256": "Indexed(203)",
+        "Ansi16": "LightRed",
+        "Mono": "White"
+      },
+      "current_production_references": [],
+      "current_reference_note": "No exact textual production reference found; resolve dispatch is not counted as a consumer. Aliased imports or direct ColorTokens field accesses must be audited before declaring permanently unused."
+    },
+    {
+      "token": "syntax.deprecated",
+      "role_expression": "Role::Syntax(SyntaxRole::Deprecated)",
+      "frozen_field": null,
+      "status": "Extension or contextual use: no direct frozen token",
+      "contract": "Frozen syntax classes do not include this class; find matches use non-current UNDERLINED border_strong, current match_current() uses accent + text_on_accent + BOLD (Mono reversed). Per-consumer mapping required.",
+      "frozen_outputs": null,
+      "current_production_references": [],
+      "current_reference_note": "No exact textual production reference found; resolve dispatch is not counted as a consumer. Aliased imports or direct ColorTokens field accesses must be audited before declaring permanently unused."
+    },
+    {
+      "token": "syntax.match_bg",
+      "role_expression": "Role::Syntax(SyntaxRole::MatchBg)",
+      "frozen_field": null,
+      "status": "Extension or contextual use: no direct frozen token",
+      "contract": "Frozen syntax classes do not include this class; find matches use non-current UNDERLINED border_strong, current match_current() uses accent + text_on_accent + BOLD (Mono reversed). Per-consumer mapping required.",
+      "frozen_outputs": null,
+      "current_production_references": [],
+      "current_reference_note": "No exact textual production reference found; resolve dispatch is not counted as a consumer. Aliased imports or direct ColorTokens field accesses must be audited before declaring permanently unused."
+    },
+    {
+      "token": "syntax.match_current_bg",
+      "role_expression": "Role::Syntax(SyntaxRole::MatchCurrentBg)",
+      "frozen_field": null,
+      "status": "Extension or contextual use: no direct frozen token",
+      "contract": "Frozen syntax classes do not include this class; find matches use non-current UNDERLINED border_strong, current match_current() uses accent + text_on_accent + BOLD (Mono reversed). Per-consumer mapping required.",
+      "frozen_outputs": null,
+      "current_production_references": [],
+      "current_reference_note": "No exact textual production reference found; resolve dispatch is not counted as a consumer. Aliased imports or direct ColorTokens field accesses must be audited before declaring permanently unused."
+    },
+    {
+      "token": "syntax.bracket_match",
+      "role_expression": "Role::Syntax(SyntaxRole::BracketMatch)",
+      "frozen_field": "border_strong",
+      "status": "Mapped for the stated component use",
+      "contract": "Frozen theme.syntax at2084-2103, or CodeEditor diagnostics/bracket underline at1175-1206. Invalid mapping is diagnostic error use only, not an invented syntax class.",
+      "frozen_outputs": {
+        "TrueColor": "#4d4d4d",
+        "Ansi256": "Indexed(242)",
+        "Ansi16": "Gray",
+        "Mono": "Gray"
+      },
+      "current_production_references": [],
+      "current_reference_note": "No exact textual production reference found; resolve dispatch is not counted as a consumer. Aliased imports or direct ColorTokens field accesses must be audited before declaring permanently unused."
+    },
+    {
+      "token": "syntax.diagnostic_error",
+      "role_expression": "Role::Syntax(SyntaxRole::DiagError)",
+      "frozen_field": "error",
+      "status": "Mapped for the stated component use",
+      "contract": "Frozen theme.syntax at2084-2103, or CodeEditor diagnostics/bracket underline at1175-1206. Invalid mapping is diagnostic error use only, not an invented syntax class.",
+      "frozen_outputs": {
+        "TrueColor": "#f05d5d",
+        "Ansi256": "Indexed(203)",
+        "Ansi16": "LightRed",
+        "Mono": "White"
+      },
+      "current_production_references": [],
+      "current_reference_note": "No exact textual production reference found; resolve dispatch is not counted as a consumer. Aliased imports or direct ColorTokens field accesses must be audited before declaring permanently unused."
+    },
+    {
+      "token": "syntax.diagnostic_warning",
+      "role_expression": "Role::Syntax(SyntaxRole::DiagWarning)",
+      "frozen_field": "warning",
+      "status": "Mapped for the stated component use",
+      "contract": "Frozen theme.syntax at2084-2103, or CodeEditor diagnostics/bracket underline at1175-1206. Invalid mapping is diagnostic error use only, not an invented syntax class.",
+      "frozen_outputs": {
+        "TrueColor": "#f59e09",
+        "Ansi256": "Indexed(214)",
+        "Ansi16": "Yellow",
+        "Mono": "Gray"
+      },
+      "current_production_references": [],
+      "current_reference_note": "No exact textual production reference found; resolve dispatch is not counted as a consumer. Aliased imports or direct ColorTokens field accesses must be audited before declaring permanently unused."
+    },
+    {
+      "token": "syntax.diagnostic_info",
+      "role_expression": "Role::Syntax(SyntaxRole::DiagInfo)",
+      "frozen_field": null,
+      "status": "Extension or contextual use: no direct frozen token",
+      "contract": "Frozen syntax classes do not include this class; find matches use non-current UNDERLINED border_strong, current match_current() uses accent + text_on_accent + BOLD (Mono reversed). Per-consumer mapping required.",
+      "frozen_outputs": null,
+      "current_production_references": [],
+      "current_reference_note": "No exact textual production reference found; resolve dispatch is not counted as a consumer. Aliased imports or direct ColorTokens field accesses must be audited before declaring permanently unused."
+    },
+    {
+      "token": "meter.low",
+      "role_expression": "Role::Meter(MeterRole::Low)",
+      "frozen_field": "info",
+      "status": "Mapped for the stated component use",
+      "contract": "Frozen progress.rs:350-410 and452-510: low=info, medium=warning, high=error; line-track border_subtle; stale Faint uses text_faint but default Dashed text uses text_muted; unknown text_faint. FillRest is contextual Theme::lift(bg), not a Color.",
+      "frozen_outputs": {
+        "TrueColor": "#79b8ff",
+        "Ansi256": "Indexed(111)",
+        "Ansi16": "LightBlue",
+        "Mono": "Gray"
+      },
+      "current_production_references": [],
+      "current_reference_note": "No exact textual production reference found; resolve dispatch is not counted as a consumer. Aliased imports or direct ColorTokens field accesses must be audited before declaring permanently unused."
+    },
+    {
+      "token": "meter.medium",
+      "role_expression": "Role::Meter(MeterRole::Medium)",
+      "frozen_field": "warning",
+      "status": "Mapped for the stated component use",
+      "contract": "Frozen progress.rs:350-410 and452-510: low=info, medium=warning, high=error; line-track border_subtle; stale Faint uses text_faint but default Dashed text uses text_muted; unknown text_faint. FillRest is contextual Theme::lift(bg), not a Color.",
+      "frozen_outputs": {
+        "TrueColor": "#f59e09",
+        "Ansi256": "Indexed(214)",
+        "Ansi16": "Yellow",
+        "Mono": "Gray"
+      },
+      "current_production_references": [],
+      "current_reference_note": "No exact textual production reference found; resolve dispatch is not counted as a consumer. Aliased imports or direct ColorTokens field accesses must be audited before declaring permanently unused."
+    },
+    {
+      "token": "meter.high",
+      "role_expression": "Role::Meter(MeterRole::High)",
+      "frozen_field": "error",
+      "status": "Mapped for the stated component use",
+      "contract": "Frozen progress.rs:350-410 and452-510: low=info, medium=warning, high=error; line-track border_subtle; stale Faint uses text_faint but default Dashed text uses text_muted; unknown text_faint. FillRest is contextual Theme::lift(bg), not a Color.",
+      "frozen_outputs": {
+        "TrueColor": "#f05d5d",
+        "Ansi256": "Indexed(203)",
+        "Ansi16": "LightRed",
+        "Mono": "White"
+      },
+      "current_production_references": [],
+      "current_reference_note": "No exact textual production reference found; resolve dispatch is not counted as a consumer. Aliased imports or direct ColorTokens field accesses must be audited before declaring permanently unused."
+    },
+    {
+      "token": "meter.track",
+      "role_expression": "Role::Meter(MeterRole::Track)",
+      "frozen_field": "border_subtle",
+      "status": "Mapped for the stated component use",
+      "contract": "Frozen progress.rs:350-410 and452-510: low=info, medium=warning, high=error; line-track border_subtle; stale Faint uses text_faint but default Dashed text uses text_muted; unknown text_faint. FillRest is contextual Theme::lift(bg), not a Color.",
+      "frozen_outputs": {
+        "TrueColor": "#3a3a3a",
+        "Ansi256": "Indexed(238)",
+        "Ansi16": "DarkGray",
+        "Mono": "DarkGray"
+      },
+      "current_production_references": [
+        {
+          "path": "crates/termrock-feedback/src/meter.rs",
+          "line": 415,
+          "source": "StylePatch::new().set_fg(Role::Meter(MeterRole::Track)),"
+        },
+        {
+          "path": "crates/termrock-feedback/src/meter.rs",
+          "line": 470,
+          "source": ".set_fg(Role::Meter(MeterRole::Track))"
+        }
+      ]
+    },
+    {
+      "token": "meter.fill_rest",
+      "role_expression": "Role::Meter(MeterRole::FillRest)",
+      "frozen_field": null,
+      "status": "Contextual non-color semantic slot",
+      "contract": "ReferenceLift must remain contextual Theme::lift(bg), including input and current surface. No global color.",
+      "frozen_outputs": null,
+      "current_production_references": [
+        {
+          "path": "crates/termrock-feedback/src/meter.rs",
+          "line": 471,
+          "source": ".set_bg(Role::Meter(MeterRole::FillRest)),"
+        }
+      ]
+    },
+    {
+      "token": "meter.stale",
+      "role_expression": "Role::Meter(MeterRole::Stale)",
+      "frozen_field": "text_faint",
+      "status": "Mapped for the stated component use",
+      "contract": "Frozen progress.rs:350-410 and452-510: low=info, medium=warning, high=error; line-track border_subtle; stale Faint uses text_faint but default Dashed text uses text_muted; unknown text_faint. FillRest is contextual Theme::lift(bg), not a Color.",
+      "frozen_outputs": {
+        "TrueColor": "#737373",
+        "Ansi256": "Indexed(242)",
+        "Ansi16": "Gray",
+        "Mono": "Gray"
+      },
+      "current_production_references": [],
+      "current_reference_note": "No exact textual production reference found; resolve dispatch is not counted as a consumer. Aliased imports or direct ColorTokens field accesses must be audited before declaring permanently unused."
+    },
+    {
+      "token": "meter.unknown",
+      "role_expression": "Role::Meter(MeterRole::Unknown)",
+      "frozen_field": "text_faint",
+      "status": "Mapped for the stated component use",
+      "contract": "Frozen progress.rs:350-410 and452-510: low=info, medium=warning, high=error; line-track border_subtle; stale Faint uses text_faint but default Dashed text uses text_muted; unknown text_faint. FillRest is contextual Theme::lift(bg), not a Color.",
+      "frozen_outputs": {
+        "TrueColor": "#737373",
+        "Ansi256": "Indexed(242)",
+        "Ansi16": "Gray",
+        "Mono": "Gray"
+      },
+      "current_production_references": [],
+      "current_reference_note": "No exact textual production reference found; resolve dispatch is not counted as a consumer. Aliased imports or direct ColorTokens field accesses must be audited before declaring permanently unused."
+    },
+    {
+      "token": "meter.series[0]",
+      "role_expression": "Role::Meter(MeterRole::Series(0))",
+      "frozen_field": null,
+      "status": "Extension: no frozen global series slot",
+      "contract": "No frozen six-entry library palette; series colors are supplied by the real model/chart caller. Keep as optional extension pending actual baseline consumer mapping.",
+      "frozen_outputs": null,
+      "current_production_references": [],
+      "current_reference_note": "No exact textual production reference found; resolve dispatch is not counted as a consumer. Aliased imports or direct ColorTokens field accesses must be audited before declaring permanently unused."
+    },
+    {
+      "token": "meter.series[1]",
+      "role_expression": "Role::Meter(MeterRole::Series(1))",
+      "frozen_field": null,
+      "status": "Extension: no frozen global series slot",
+      "contract": "No frozen six-entry library palette; series colors are supplied by the real model/chart caller. Keep as optional extension pending actual baseline consumer mapping.",
+      "frozen_outputs": null,
+      "current_production_references": [],
+      "current_reference_note": "No exact textual production reference found; resolve dispatch is not counted as a consumer. Aliased imports or direct ColorTokens field accesses must be audited before declaring permanently unused."
+    },
+    {
+      "token": "meter.series[2]",
+      "role_expression": "Role::Meter(MeterRole::Series(2))",
+      "frozen_field": null,
+      "status": "Extension: no frozen global series slot",
+      "contract": "No frozen six-entry library palette; series colors are supplied by the real model/chart caller. Keep as optional extension pending actual baseline consumer mapping.",
+      "frozen_outputs": null,
+      "current_production_references": [],
+      "current_reference_note": "No exact textual production reference found; resolve dispatch is not counted as a consumer. Aliased imports or direct ColorTokens field accesses must be audited before declaring permanently unused."
+    },
+    {
+      "token": "meter.series[3]",
+      "role_expression": "Role::Meter(MeterRole::Series(3))",
+      "frozen_field": null,
+      "status": "Extension: no frozen global series slot",
+      "contract": "No frozen six-entry library palette; series colors are supplied by the real model/chart caller. Keep as optional extension pending actual baseline consumer mapping.",
+      "frozen_outputs": null,
+      "current_production_references": [],
+      "current_reference_note": "No exact textual production reference found; resolve dispatch is not counted as a consumer. Aliased imports or direct ColorTokens field accesses must be audited before declaring permanently unused."
+    },
+    {
+      "token": "meter.series[4]",
+      "role_expression": "Role::Meter(MeterRole::Series(4))",
+      "frozen_field": null,
+      "status": "Extension: no frozen global series slot",
+      "contract": "No frozen six-entry library palette; series colors are supplied by the real model/chart caller. Keep as optional extension pending actual baseline consumer mapping.",
+      "frozen_outputs": null,
+      "current_production_references": [],
+      "current_reference_note": "No exact textual production reference found; resolve dispatch is not counted as a consumer. Aliased imports or direct ColorTokens field accesses must be audited before declaring permanently unused."
+    },
+    {
+      "token": "meter.series[5]",
+      "role_expression": "Role::Meter(MeterRole::Series(5))",
+      "frozen_field": null,
+      "status": "Extension: no frozen global series slot",
+      "contract": "No frozen six-entry library palette; series colors are supplied by the real model/chart caller. Keep as optional extension pending actual baseline consumer mapping.",
+      "frozen_outputs": null,
+      "current_production_references": [],
+      "current_reference_note": "No exact textual production reference found; resolve dispatch is not counted as a consumer. Aliased imports or direct ColorTokens field accesses must be audited before declaring permanently unused."
+    }
+  ],
+  "critical_decisions": [
+    "The all_73 test using raw projection plus only three semantic overrides is not a frozen semantic oracle. It mixes authored palette contracts and arbitrary raw color conversion. Preserve its failed output as historical evidence, then split generic quantizer tests from explicit semantically proven palette tests.",
+    "Do not bless all current palette entries: current field_hover TrueColor differs from frozen INPUT_HOVER; accent_pressed/focus_ring/tints and syntax colors also have existing mismatches. Any correction requires component recipe regression evidence and frozen profile output proof.",
+    "A token may be used by incompatible reference contexts. Fix recipe ownership or introduce an additive semantic role when justified; changing one global color cannot repair all consumers.",
+    "Syntax correctness includes BOLD/ITALIC/UNDERLINED/reverse modifiers, not colors alone. Meter stale variants and backdrop transformations are similarly contextual."
+  ],
+  "staged_plan": [
+    "Freeze pure raw-color conversion independently, retaining16M quantizer evidence and custom-role provenance tests. Do not modify authored palette defaults in that increment merely to make all_73 green.",
+    "Correct small proven recipe cohorts with authored profile values and actual buffer tests: first Button primary rest/hover/pressed and focus marker, then field hover, then syntax classes. Include explicit custom overrides and repeated/chained downgrade.",
+    "Resolve ambiguous backdrop, disabled backgrounds, active Grid cells and selection through separate component contracts. Preserve unresolved rows in the migration matrix; no claimed full palette or app parity.",
+    "Replace all_73 equality with independently documented profile fixtures for mapped semantics plus extension/default-policy tests. Do not copy candidate palette tables into expected output."
+  ]
+}
