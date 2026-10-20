@@ -200,6 +200,14 @@ fn render(ui: &mut Ui) { for cell in FRAME_PIECES { ui.paint(cell.x, cell.y, cel
         self.assertTrue(any(row["path"] == "crates/termrock-core/src/tests/mod.rs" for row in report["source_inputs"]))
         self.assertTrue(any(item["file"] == "crates/termrock-core/src/tests/mod.rs" for item in report["findings"]))
 
+    def test_actual_cargo_target_directory_symlink_is_pruned(self) -> None:
+        write(self.root / "target/generated.rs", "// captured terminal frame\n")
+        link = self.root / "crates/termrock-core/src/target"
+        link.symlink_to(self.root / "target", target_is_directory=True)
+        report = self.run_gate()
+        self.assertTrue(report["architecture_checks_passed"], report["errors"])
+        self.assertFalse(any("target/generated.rs" in row["path"] for row in report["source_inputs"]))
+
     def test_custom_build_target_outside_src_is_hashed_and_unresolved(self) -> None:
         write(self.root / "crates/termrock-core/Cargo.toml", '[package]\nname="termrock-core"\nversion="0.1.0"\nedition="2024"\nbuild="build/custom.rs"\n')
         write(self.root / "crates/termrock-core/build/custom.rs", "fn main() {}\n")

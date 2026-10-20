@@ -108,8 +108,10 @@ def production_files(
                 logical_path = logical_dir / entry.name
                 try:
                     resolved = logical_path.resolve(strict=True)
-                    resolved.relative_to(root)
                     is_dir = logical_path.is_dir()
+                    if is_dir and resolved in excluded_dirs:
+                        continue
+                    resolved.relative_to(root)
                 except (OSError, ValueError) as exc:
                     errors.append(f"unreadable or out-of-root production input {logical_path.relative_to(root)}: {exc}")
                     continue
