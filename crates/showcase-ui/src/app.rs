@@ -1469,6 +1469,52 @@ fn paint_sidebar(ui: &mut Ui<'_>, area: Rect, state: &TreeState, label: &str) {
     );
     let nodes = nav_nodes();
     nav_tree().draw(ui, list, state, &nodes);
+    baseline_nav_scroll(ui, list, state);
+}
+
+fn visible_nav_len(state: &TreeState) -> usize {
+    let nodes = nav_nodes();
+    let mut collapsed_at = None;
+    let mut seen = 0usize;
+    for (index, node) in nodes.iter().enumerate() {
+        if collapsed_at.is_some_and(|depth| node.depth > depth) {
+            continue;
+        }
+        collapsed_at = None;
+        seen = seen.saturating_add(1);
+        if node.parent && !state.is_expanded(ItemKey::index(index)) {
+            collapsed_at = Some(node.depth);
+        }
+    }
+    seen
+}
+
+fn baseline_nav_scroll(ui: &mut Ui<'_>, list: Rect, state: &TreeState) {
+    if list.is_empty() {
+        return;
+    }
+    let mut scroll = termrock::ScrollState::new(visible_nav_len(state));
+    scroll.set_viewport(usize::from(list.height));
+    scroll.scroll_to(state.scroll().offset());
+    if scroll.overflows() {
+        let (start, len) = scroll.thumb(usize::from(list.height));
+        let end = start.saturating_add(len);
+        let track = PaintStyle::new()
+            .fg(termrock::Color::Rgb(0x47, 0x47, 0x47))
+            .bg(termrock::Color::Rgb(0x11, 0x11, 0x11));
+        let x = list.right().saturating_sub(1);
+        for row in 0..list.height {
+            if (start..end).contains(&usize::from(row)) {
+                continue;
+            }
+            ui.paint_str(Rect::new(x, list.y.saturating_add(row), 1, 1), "┆", track);
+        }
+    }
+    let content = Rect {
+        width: list.width.saturating_sub(1),
+        ..list
+    };
+    ui.scroll_edges(content, &scroll);
 }
 
 fn paint_sidebar_row(ui: &mut Ui<'_>, row: Rect, flags: StateFlags, _key: ItemKey, node: &NavNode) {
