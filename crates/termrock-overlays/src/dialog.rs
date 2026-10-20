@@ -506,6 +506,17 @@ impl<'a> Dialog<'a> {
             })
     }
 
+    fn resolve_dismissal(&self, reason: DismissReason, st: &mut DialogState) -> DialogAction {
+        st.zeroize();
+        self.cancel
+            .filter(|key| {
+                self.effective_actions()
+                    .iter()
+                    .any(|action| action.key() == *key)
+            })
+            .map_or(DialogAction::Dismissed(reason), DialogAction::Action)
+    }
+
     pub fn update(&self, cx: &mut Cx<'_>, st: &mut DialogState) -> Response<DialogAction> {
         let d = cx.design();
         let action_widths = self.action_widths(cx);
@@ -522,20 +533,22 @@ impl<'a> Dialog<'a> {
         cx.resize_layer(self.id, size);
         let mut acc = Acc::<DialogAction>::new();
         let mut action_fired = false;
+        let mut dismissal = None;
+        let mut cancelled = false;
         for it in cx.intents(self.id) {
             match it {
                 Intent::Layer(LayerEvent::Dismissed(r)) => {
-                    st.zeroize();
-                    acc.action(DialogAction::Dismissed(r));
+                    dismissal.get_or_insert(r);
                 }
 
                 Intent::Layer(_) => acc.repaint(),
-                Intent::Cancel => {
-                    st.zeroize();
-                    acc.changed();
-                }
+                Intent::Cancel => cancelled = true,
                 _ => {}
             }
+        }
+        let dismissal = dismissal.or_else(|| cancelled.then_some(DismissReason::Esc));
+        if let Some(reason) = dismissal {
+            acc.action(self.resolve_dismissal(reason, st));
         }
         let is_ack = self.ack.is_some();
         st.set_secret_mode(is_ack);
@@ -548,15 +561,18 @@ impl<'a> Dialog<'a> {
                     .update(cx, &mut st.input, &mut st.draft)
             };
             let committed = matches!(r.action_ref(), Some(TextAction::Committed));
-            acc.fold(&r.erase());
-            if committed && self.prompt.is_some() {
+            if dismissal.is_none() {
+                acc.fold(&r.erase());
+            }
+            if dismissal.is_none() && committed && self.prompt.is_some() {
                 if let Some(i) = self.primary_index(st)
                     && let Some(a) = self.actions.get(i)
                 {
                     acc.action(DialogAction::Action(a.key()));
                     action_fired = true;
                 }
-            } else if committed
+            } else if dismissal.is_none()
+                && committed
                 && is_ack
                 && let Some(id) =
                     self.effective_actions()
@@ -576,13 +592,18 @@ impl<'a> Dialog<'a> {
                 .variant(self.variant_of(a))
                 .disabled(!enabled)
                 .update(cx);
-            if r.activated() {
-                acc.action(DialogAction::Action(a.key()));
-                action_fired = true;
-            } else {
-                acc.fold(&r.erase());
+            if dismissal.is_none() {
+                if r.activated() {
+                    acc.action(DialogAction::Action(a.key()));
+                    action_fired = true;
+                } else {
+                    acc.fold(&r.erase());
+                }
             }
             for it in cx.intents(bid) {
+                if dismissal.is_some() {
+                    continue;
+                }
                 if let Intent::Binding(action) = it {
                     match Binding::command(BINDINGS, action) {
                         Some(DialogCmd::PrevAction) => {
@@ -1100,9 +1121,11 @@ mod tests {
     use super::*;
     use crate::event::{Input, Key, KeyModifiers};
     use crate::keymap::KeyMap;
+    use crate::layer::Dismiss;
     use crate::runtime::stub::{SCREEN, Stub};
     use crate::runtime::{App, Runtime};
     use crate::theme::Theme;
+    use termrock_test_support::Harness;
 
     const DLG: Id = Id::root("dialog.tests");
     const BODY: Id = Id::root("dialog.tests.body");
@@ -1967,7 +1990,7 @@ mod tests {
         struct DialogApp {
             st: DialogState,
             opened: bool,
-            dismissed: Vec<DismissReason>,
+            dismissed: Vec<DialogAction>,
         }
 
         impl App for DialogApp {
@@ -1977,8 +2000,8 @@ mod tests {
                     cx.open_layer(DLG, confirm().layer(cx));
                 }
                 let r = confirm().update(cx, &mut self.st);
-                if let Some(DialogAction::Dismissed(reason)) = r.action_ref() {
-                    self.dismissed.push(*reason);
+                if let Some(action) = r.action_ref() {
+                    self.dismissed.push(*action);
                 }
                 r.erase()
             }
@@ -2000,12 +2023,125 @@ mod tests {
         let _ = crate::runtime::stub::deliver(&mut rt, esc());
         rt.draw_buffer(SCREEN, &mut buf).commit_presented();
         assert!(!rt.is_open(DLG));
-        assert_eq!(rt.app().dismissed, vec![DismissReason::Esc]);
+        assert_eq!(
+            rt.app().dismissed,
+            vec![DialogAction::Action(ActionKey::CANCEL)]
+        );
         assert!(
             rt.diagnostics().is_empty(),
             "the unconditional shape leaves nothing undelivered: {:?}",
             rt.diagnostics()
         );
+    }
+
+    #[test]
+    fn harness_dismissal_resolves_cancel_once_and_zeroizes_acknowledgement() {
+        #[derive(Default)]
+        struct DialogApp {
+            state: DialogState,
+            opened: bool,
+            acknowledgement: bool,
+            close_programmatically: bool,
+            dismiss: Dismiss,
+            actions: Vec<DialogAction>,
+        }
+
+        impl DialogApp {
+            fn dialog(&self) -> Dialog<'static> {
+                if self.acknowledgement {
+                    acknowledge()
+                } else {
+                    confirm()
+                }
+            }
+        }
+
+        impl App for DialogApp {
+            fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+                if !self.opened {
+                    self.opened = true;
+                    let dialog = self.dialog();
+                    cx.open_layer(DLG, dialog.layer(cx).dismiss(self.dismiss));
+                    if self.acknowledgement {
+                        self.state.set_secret_mode(true);
+                        self.state.ack_draft.set(TOKEN);
+                    }
+                }
+                if self.close_programmatically {
+                    self.close_programmatically = false;
+                    cx.close_layer(DLG, None);
+                }
+                let response = self.dialog().update(cx, &mut self.state);
+                if let Some(action) = response.action_ref() {
+                    self.actions.push(*action);
+                }
+                response.erase()
+            }
+
+            fn draw(&self, ui: &mut Ui<'_>) {
+                ui.layer(DLG, |ui, area| {
+                    self.dialog().draw(ui, area, &self.state, |_, _| {});
+                });
+            }
+        }
+
+        for (outside_click, programmatic) in [(false, false), (true, false), (false, true)] {
+            let app = DialogApp {
+                acknowledgement: outside_click || programmatic,
+                dismiss: Dismiss::ESC_AND_OUTSIDE,
+                ..DialogApp::default()
+            };
+            let mut harness = Harness::new(app, Theme::junie(), 80, 24);
+            let _ = harness.handle(Input::Tick);
+            assert!(harness.runtime().is_open(DLG), "the live dialog was opened");
+            if programmatic {
+                harness.app_mut().close_programmatically = true;
+                let _ = harness.handle(Input::Tick);
+                let _ = harness.handle(Input::Tick);
+            } else if outside_click {
+                let _ = harness.click(0, 0);
+            } else {
+                let _ = harness.key(KeyCode::Esc);
+            }
+            assert!(
+                !harness.runtime().is_open(DLG),
+                "the dismissal event should close its modal layer: {:?}",
+                harness.runtime().diagnostics()
+            );
+            assert_eq!(
+                harness.app().actions,
+                vec![DialogAction::Action(ActionKey::CANCEL)],
+                "dismissal must resolve to the configured cancel action exactly once"
+            );
+            assert!(
+                harness.app().state.ack_draft.expose().is_empty(),
+                "dismissal must clear the acknowledgement secret"
+            );
+        }
+
+        let app = DialogApp {
+            dismiss: Dismiss::NONE,
+            ..DialogApp::default()
+        };
+        let mut harness = Harness::new(app, Theme::junie(), 80, 24);
+        let _ = harness.handle(Input::Tick);
+        let _ = harness.key(KeyCode::Esc);
+        assert!(harness.runtime().is_open(DLG));
+        assert!(harness.app().actions.is_empty());
+    }
+
+    #[test]
+    fn dismissal_without_cancel_action_preserves_reason_and_clears_secret() {
+        let dialog = Dialog::new(DLG).title("Notice");
+        let mut state = DialogState::default();
+        state.set_secret_mode(true);
+        state.ack_draft.set(TOKEN);
+
+        assert_eq!(
+            dialog.resolve_dismissal(DismissReason::OutsideClick, &mut state),
+            DialogAction::Dismissed(DismissReason::OutsideClick)
+        );
+        assert!(state.ack_draft.expose().is_empty());
     }
 
     #[test]
