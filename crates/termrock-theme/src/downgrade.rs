@@ -104,20 +104,6 @@ fn nearest_256(rgb: (u8, u8, u8)) -> u8 {
     best.0
 }
 
-/// Junie inks whose 256-color frames use the baseline palette index, not the
-/// nearest gray. One RGB that baseline splits across two indexes stays on
-/// `nearest_256` so a role palette can tell the indexes apart.
-fn authored_256(rgb: (u8, u8, u8)) -> Option<u8> {
-    match rgb {
-        (0x3a, 0x3a, 0x3a) => Some(238),
-        (0x73, 0x73, 0x73) => Some(242),
-        (0x47, 0x47, 0x47) => Some(239),
-        (0x80, 0x80, 0x80) => Some(245),
-        (0x17, 0x3f, 0x1c) => Some(22),
-        _ => None,
-    }
-}
-
 fn to_lin(c: u8) -> f64 {
     let v = f64::from(c) / 255.0;
     if v <= 0.040_45 {
@@ -209,7 +195,7 @@ pub fn downgrade_color(c: Color, level: ColorLevel) -> Color {
     match level {
         ColorLevel::TrueColor => c,
         ColorLevel::Ansi256 => match c {
-            Color::Rgb(..) => Color::Indexed(authored_256(rgb).unwrap_or_else(|| nearest_256(rgb))),
+            Color::Rgb(..) => Color::Indexed(nearest_256(rgb)),
             other => other,
         },
         ColorLevel::Ansi16 => match c {
@@ -663,25 +649,27 @@ mod tests {
             downgrade_color(Color::Rgb(0x48, 0xe0, 0x54), ColorLevel::Ansi256),
             Color::Indexed(77)
         );
+        // Custom RGB values use nearest-color conversion. Semantic Junie roles
+        // get their frozen indexes from `CapabilityPalettes`, not this generic path.
         assert_eq!(
             downgrade_color(Color::Rgb(0x3a, 0x3a, 0x3a), ColorLevel::Ansi256),
-            Color::Indexed(238)
+            Color::Indexed(237)
         );
         assert_eq!(
             downgrade_color(Color::Rgb(0x73, 0x73, 0x73), ColorLevel::Ansi256),
-            Color::Indexed(242)
+            Color::Indexed(243)
         );
         assert_eq!(
             downgrade_color(Color::Rgb(0x47, 0x47, 0x47), ColorLevel::Ansi256),
-            Color::Indexed(239)
+            Color::Indexed(238)
         );
         assert_eq!(
             downgrade_color(Color::Rgb(0x80, 0x80, 0x80), ColorLevel::Ansi256),
-            Color::Indexed(245)
+            Color::Indexed(244)
         );
         assert_eq!(
             downgrade_color(Color::Rgb(0x17, 0x3f, 0x1c), ColorLevel::Ansi256),
-            Color::Indexed(22)
+            Color::Indexed(235)
         );
 
         assert_eq!(
