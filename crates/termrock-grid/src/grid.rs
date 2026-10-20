@@ -5451,47 +5451,59 @@ mod tests {
 
     #[test]
     fn inline_editor_theme_clear_resets_prepaint_without_input_underline() {
-        let theme = Theme::junie().define_family(Family::GRID, |recipe| {
-            recipe.part(Part::CELL).base(
-                StylePatch::new()
-                    .set_underline(Role::Custom(ratatui_core::style::Color::Yellow))
-                    .add(Modifier::UNDERLINED),
+        for level in [
+            crate::theme::ColorLevel::TrueColor,
+            crate::theme::ColorLevel::Ansi256,
+            crate::theme::ColorLevel::Ansi16,
+            crate::theme::ColorLevel::Mono,
+        ] {
+            let theme = Theme::junie()
+                .for_level(level)
+                .define_family(Family::GRID, |recipe| {
+                    recipe.part(Part::CELL).base(
+                        StylePatch::new()
+                            .set_underline(Role::Custom(ratatui_core::style::Color::Yellow))
+                            .add(Modifier::UNDERLINED),
+                    );
+                    let mut clear = StylePatch::new();
+                    clear.underline = crate::theme::Slot::Clear;
+                    recipe.part(Part::TEXT).base(clear);
+                });
+            let (mut runtime, mut buffer) = runtime(Model::two(), true);
+            runtime.set_theme(theme);
+            let _ = crate::runtime::stub::deliver(&mut runtime, key(KeyCode::Enter));
+            runtime.draw_buffer(AREA, &mut buffer).commit_presented();
+            let underlined = buffer
+                .content()
+                .iter()
+                .filter(|cell| cell.modifier.contains(Modifier::UNDERLINED))
+                .collect::<Vec<_>>();
+            assert!(
+                !underlined.is_empty(),
+                "the host cell has underline styling at {level:?}"
             );
-            let mut clear = StylePatch::new();
-            clear.underline = crate::theme::Slot::Clear;
-            recipe.part(Part::TEXT).base(clear);
-        });
-        let (mut runtime, mut buffer) = runtime(Model::two(), true);
-        runtime.set_theme(theme);
-        let _ = crate::runtime::stub::deliver(&mut runtime, key(KeyCode::Enter));
-        runtime.draw_buffer(AREA, &mut buffer).commit_presented();
-        let underlined = buffer
-            .content()
-            .iter()
-            .filter(|cell| cell.modifier.contains(Modifier::UNDERLINED))
-            .collect::<Vec<_>>();
-        assert!(
-            !underlined.is_empty(),
-            "the host cell has underline styling"
-        );
-        let rows = buffer.content().chunks(AREA.width as usize);
-        let alpha = rows
-            .clone()
-            .flat_map(|row| row.windows(5))
-            .find(|cells| cells.iter().map(|cell| cell.symbol()).collect::<String>() == "alpha")
-            .expect("edited value is visible");
-        assert!(
-            alpha
-                .iter()
-                .all(|cell| cell.underline_color == ratatui_core::style::Color::Reset),
-            "host Clear must reset the edited cell's prepainted underline without an input default"
-        );
-        assert!(
-            underlined
-                .iter()
-                .any(|cell| cell.underline_color == ratatui_core::style::Color::Yellow),
-            "the non-edited cell retains its own underline"
-        );
+            let rows = buffer.content().chunks(AREA.width as usize);
+            let alpha = rows
+                .clone()
+                .flat_map(|row| row.windows(5))
+                .find(|cells| cells.iter().map(|cell| cell.symbol()).collect::<String>() == "alpha")
+                .expect("edited value is visible");
+            assert!(
+                alpha
+                    .iter()
+                    .all(|cell| cell.underline_color == ratatui_core::style::Color::Reset),
+                "host Clear must reset the edited cell's prepainted underline without an input default at {level:?}"
+            );
+            assert!(
+                rows.clone().flat_map(|row| row.windows(4)).any(|cells| {
+                    cells.iter().map(|cell| cell.symbol()).collect::<String>() == "beta"
+                        && cells
+                            .iter()
+                            .all(|cell| cell.modifier.contains(Modifier::UNDERLINED))
+                }),
+                "the non-edited cell retains its own underline at {level:?}"
+            );
+        }
     }
 
     fn inline_edit_underline_samples(
