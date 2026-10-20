@@ -103,3 +103,39 @@ Validation on merged source `941061f45`:
 - `rustfmt --edition 2024 --check` on all 10 changed Rust files and `git diff --check` — passed.
 - Workspace `cargo fmt --all --check` — blocked by existing formatting differences in untouched `crates/showcase-demos/src/pages/chrome.rs`.
 - Independent review of the exact integrated collision resolution remains pending. This increment does not establish application parity or full library acceptance.
+
+## Dialog container channel follow-up
+
+Independent external-consumer review of `e61c16a06d28e6f68e37055923b605de6cd44f16`
+found that the preserved Dialog backdrop branch still replaced explicit
+container foreground with sampled backdrop ink and cleared container
+modifiers. The external `tuiscotti` consumer probes at
+`/tmp/shared-style-external-e61/src/lib.rs` reproduced both defects: 1/3 pass,
+with the theme and instance Dialog-channel cases failing. The frozen-background
+and focus suppression cases passed.
+
+Changed `overlay_chrome` to resolve Picker and Dialog backdrop containers
+through one `ResolvedStyle` path. Both retain sampled backdrop ink for inherited
+foreground, card background and neutralized underlay modifiers; explicit
+theme, overlay, and instance channels then apply with shared precedence. Added
+unit coverage for instance fg/bg/underline/modifier channels, theme-overlay-
+instance precedence including `Inherit`, and `Clear` resets. No cursor, focus,
+or application-specific branch was added.
+
+Post-fix evidence:
+
+- Runtime support tests `dialog_chrome_*` — 3 passed, 0 failed. Coverage checks
+  instance fg/bg/underline/modifiers; theme, overlay, and instance precedence;
+  and explicit clear behavior. On `e61c16a06`, the external actual-Dialog probes
+  failed for instance and theme channels before this fix.
+- External consumer rebuilt against this source — 4 passed, 0 skipped: actual
+  Dialog instance channels, actual Dialog theme channels, actual Picker
+  channels, and unchanged modal focus-color suppression with ordinary content
+  retained.
+- Combined focused runtime set, including Picker and
+  `warmed_modal_snapshot_projection_performs_zero_allocations` — 7 passed,
+  0 failed; modal projection remains allocation-free.
+- Strict `cargo clippy -p termrock-runtime --all-targets -- -D warnings`,
+  `rustfmt --edition 2024 --check crates/termrock-runtime/src/support.rs`, and
+  `git diff --check` — passed.
+- PR #38 source integration and full application parity remain pending.
