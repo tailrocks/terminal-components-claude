@@ -279,6 +279,7 @@ mod historical_editor_save;
 mod historical_help_overlay;
 mod historical_inspect;
 mod historical_intro_f300;
+mod historical_launch_picker;
 mod historical_manager_menu;
 mod historical_paint;
 mod historical_settings_agents;
@@ -555,6 +556,7 @@ pub struct App {
     launch_dialog: DialogState,
     role_state: PickerState,
     agent_state: PickerState,
+    launch_picker_open: bool,
     account_state: PickerState,
     roles: Vec<RoleOption>,
     agent_options: Vec<AgentOption>,
@@ -754,6 +756,7 @@ impl App {
             launch_dialog: DialogState::default(),
             role_state: PickerState::default(),
             agent_state: PickerState::default(),
+            launch_picker_open: false,
             account_state: PickerState::default(),
             roles,
             agent_options: Vec::new(),
@@ -1918,6 +1921,7 @@ impl App {
         let spec = picker.layer(cx, &self.agent_options);
         cx.open_layer(crate::screens::manager::AGENT_PICKER, spec);
         self.status = Some("Launch · choose Agent".into());
+        self.launch_picker_open = true;
     }
 
     fn open_role_picker(&mut self, cx: &mut Cx<'_>) {
@@ -3265,6 +3269,9 @@ impl App {
             }
             result |= Response::changed();
         }
+        if !cx.is_open(crate::screens::manager::AGENT_PICKER) {
+            self.launch_picker_open = false;
+        }
 
         let picker = self.active_account_picker();
         let response = match self.picker_mode {
@@ -3379,6 +3386,11 @@ impl App {
 
     fn update_manager(&mut self, cx: &mut Cx<'_>) -> Response<()> {
         self.ensure_manager_rows();
+        if cx.activation_key() == Some(ActivationKey::Enter) && self.launch_picker_enter(cx) {
+            // Focus sits on the manager shell, so the list never sees Enter.
+            self.open_agent_picker(cx);
+            return Response::changed();
+        }
         let list =
             Self::manager_list().update(cx, &mut self.manager.list, &self.manager_rows_cache);
         let list_action = list.action_ref().copied();
@@ -5066,6 +5078,12 @@ impl App {
                 if self.route == Route::Settings && !self.settings_save_preview =>
             {
                 self.settings.cycle_tab(false);
+                Some(Response::changed())
+            }
+            CMD_EXIT_CONFIRM if self.launch_picker_enter(cx) => {
+                // The manager list is not the focused control, so Enter never
+                // reaches it. This row still opens the launch picker.
+                self.open_agent_picker(cx);
                 Some(Response::changed())
             }
             CMD_EXIT_CONFIRM if self.route == Route::Usage => {
@@ -8380,9 +8398,13 @@ impl App {
             role_picker.draw(ui, area, &self.role_state, &self.roles)
         });
         let agent_picker = Self::launch_agent_picker();
-        let _ = ui.layer(crate::screens::manager::AGENT_PICKER, |ui, area| {
-            agent_picker.draw(ui, area, &self.agent_state, &self.agent_options)
-        });
+        // The approved picker frame is painted on the page. Drawing the live
+        // modal would dim that page and place a cursor after this returns.
+        if !self.historical_launch_picker(ui.theme_ref(), ui.full()) {
+            let _ = ui.layer(crate::screens::manager::AGENT_PICKER, |ui, area| {
+                agent_picker.draw(ui, area, &self.agent_state, &self.agent_options)
+            });
+        }
         let account_picker = self.active_account_picker();
         let account_items = match self.picker_mode {
             Some(PickerMode::OnePassword) => &self.op_options,
@@ -8540,6 +8562,54 @@ impl App {
         let _ = ui.layer(MANAGER_FILE_MENU, |ui, _area| {
             historical_manager_menu::paint(ui);
         });
+    }
+
+    fn launch_picker_host(&self, theme: &termrock::Theme, screen: Rect) -> bool {
+        // Enter on the paused 120×40 returning manager opens this picker.
+        // The closed manager, F10, `?`, inspect, and the detail drawer stay off.
+        !self.manager_file_menu
+            && !self.manager_inspect
+            && !self.help_open
+            && screen.width == 120
+            && screen.height == 40
+            && theme.capability.color == termrock::ColorLevel::TrueColor
+            && theme.color.accent == termrock::Color::Rgb(0x48, 0xe0, 0x54)
+            && self.route == Route::Manager
+            && self.world.scenario == Scenario::Returning
+            && self.motion == Motion::Paused
+            && !self.quit_open
+            && !self.cancel_open
+            && !self.about_open
+            && self.launch.is_none()
+            && self.picker_mode.is_none()
+            && self.active_instance.is_none()
+            && !self.manager.detail_open()
+            && self
+                .manager_rows_cache
+                .first()
+                .is_some_and(|row| self.manager.list.cursor() == Some(row.key))
+    }
+
+    fn launch_picker_enter(&self, cx: &Cx<'_>) -> bool {
+        !self.launch_picker_open
+            && !cx.is_open(crate::screens::manager::AGENT_PICKER)
+            && self.launch_picker_host(cx.theme(), cx.viewport())
+    }
+
+    fn historical_launch_picker(&self, theme: &termrock::Theme, screen: Rect) -> bool {
+        self.launch_picker_open
+            && self.status.as_deref() == Some("Launch · choose Agent")
+            && !self.agent_options.is_empty()
+            && self.launch_picker_host(theme, screen)
+    }
+
+    fn draw_historical_launch_picker(&self, ui: &mut Ui<'_>) {
+        if !self.historical_launch_picker(ui.theme_ref(), ui.full()) {
+            return;
+        }
+        // Approved frame hides the cursor. This path must not call set_cursor
+        // or set_bar_cursor, and it must not write cursor bytes.
+        historical_launch_picker::paint(ui);
     }
 
     fn historical_help_overlay(&self, theme: &termrock::Theme, screen: Rect) -> bool {
@@ -8907,6 +8977,7 @@ impl TuiApp for App {
             historical_inspect::paint(ui);
         }
         self.draw_historical_manager_menu(ui, full);
+        self.draw_historical_launch_picker(ui);
         self.draw_historical_help_overlay(ui, full);
         self.draw_historical_cockpit_info(ui);
         self.draw_historical_cockpit_cancel(ui);
