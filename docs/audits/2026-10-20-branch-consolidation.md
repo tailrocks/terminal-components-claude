@@ -1,6 +1,6 @@
 # Branch consolidation audit (in progress)
 
-Inventory snapshot: **96 remote branches**, observed 2026-10-20 16:07:32 UTC. The JSON companion records each exact starting SHA and audit assignment. A–E reports now cover all 96 starting branches exactly once. A fresh remote inventory found one additional branch, `wip/pr38-palette-reviewed-20261020` at `636028fa130b2a0f841badb3ba93aa2330b907d6`, protected after the original inventory; its attribution remains pending. PR #38 advanced from `6bcdc421` to `abfff94e`; run 39455259301 was in progress when recorded.
+Inventory snapshot: **96 remote branches**, observed 2026-10-20 16:07:32 UTC. The JSON companion records each exact starting SHA and audit assignment. A–E reports now cover all 96 starting branches exactly once. A fresh remote inventory found one additional branch, `wip/pr38-palette-reviewed-20261020` at `636028fa130b2a0f841badb3ba93aa2330b907d6`, protected after the original inventory; its source review and base attribution are complete; PR #38 integration remains pending. PR #38 advanced from `6bcdc421` to `abfff94e`; run 39455259301 was in progress when recorded.
 
 The external companion at `E-ci-reference-catchall.json` contains all 97 live branch rows, the exact 96-branch starting inventory, and the A–E reports. It preserves each reviewer’s branch-level status and evidence. Reviewed sources can still be blocked, red, superseded, or pending integration; review does not equal merge or acceptance.
 
@@ -20,7 +20,7 @@ PR #38 already pins Velnor Actions **0.1.29** at source commit `e7b2f088715379c2
 | `main` | `a97e351d` | Protected base | No direct integration. Main's workflow upgrade is tracked separately in PR #39. |
 | `parity/ci-planning-fix-20261020` | `8beaf286` | Duplicate, generated output obsolete | Symlink configuration and frozen CLI helper exclusion already exist in PR #38. Its generated output targets Velnor 0.1.16 and the older tree. |
 | `parity/runtime-crate-timeout-15-20261020` | `4d0df770` | Already integrated | Branch tip is an ancestor of the PR #38 inventory head; 15-minute crate timeout is present. |
-| `parity/termrock-visual-baseline` | `6bcdc421` | Integration target | Target itself; advanced to `0cd5edb8` during the audit. |
+| `parity/termrock-visual-baseline` | `6bcdc421` | Integration target | Target itself; advanced through historical intermediate `0cd5edb8` to `abfff94e` during the audit. |
 | `parity/velnor-design-upgrade-20261020` | `85333445` | Reference duplicate | Generated for the design branch's tree. PR #38 has its own 0.1.29 output and crate graph. |
 | `parity/velnor-parity-20261020` | `e7961cee` | Superseded duplicate | Earlier 0.1.29 generation. Its older config would drop PR #38's current 15-minute timeout and discovery exclusions. |
 | `wip/shared-design-working-tree-20261020` | `1d7fdb22` | Exclude and preserve | Snapshot based on design reference; 163 changed files and 12,624 deletions against design head. Not safe to merge. Keep branch pending its own disposition. |
