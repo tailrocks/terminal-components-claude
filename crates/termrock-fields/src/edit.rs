@@ -5,6 +5,7 @@ use crate::id::{Id, PartRef};
 use crate::input::EditorDraft;
 use crate::text::EditAction;
 use crate::ui::Cx;
+use termrock_runtime::layer::{FocusContinuationOutcome, LayerOpening};
 
 /// Editing operation offered by a field's contextual edit menu.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -109,4 +110,46 @@ pub(crate) fn execute(
         }
         _ => false,
     }
+}
+
+/// Stage and acknowledge the exact layer opening that temporarily moves focus
+/// away from a field. The field state is updated before the runtime records the
+/// acknowledgement.
+pub(crate) fn retain_focus_continuation(
+    cx: &mut Cx<'_>,
+    owner: Id,
+    to: Option<Id>,
+    pending: &mut Option<LayerOpening>,
+) -> bool {
+    let Some(to) = to else {
+        *pending = None;
+        return false;
+    };
+    let Some(opening) = cx.focus_continuation_opening(owner, to) else {
+        *pending = None;
+        return false;
+    };
+    *pending = Some(opening);
+    if cx.acknowledge_focus_continuation(owner, to) {
+        true
+    } else {
+        *pending = None;
+        false
+    }
+}
+
+pub(crate) fn continuation_result(
+    cx: &mut Cx<'_>,
+    owner: Id,
+    opening: LayerOpening,
+) -> Option<FocusContinuationOutcome> {
+    cx.focus_continuation_result(opening, owner)
+}
+
+pub(crate) fn acknowledge_continuation_result(
+    cx: &mut Cx<'_>,
+    owner: Id,
+    opening: LayerOpening,
+) -> bool {
+    cx.acknowledge_focus_continuation_result(opening, owner)
 }

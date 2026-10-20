@@ -20,6 +20,7 @@ use crate::theme::{Family, GlyphRole, Slot, StylePatch, Variant};
 use crate::ui::{Cx, FrameRead, Ui};
 use crate::validate::{FieldError, NoValidate, Validate};
 use termrock_runtime::Status;
+use termrock_runtime::layer::LayerOpening;
 use termrock_runtime::rowui::CellUi;
 
 mod text_target {
@@ -577,6 +578,7 @@ pub struct TextInputState {
     sensitivity: Option<bool>,
     edit_menu_request: Option<EditMenuRequest>,
     pointer_anchor: Option<usize>,
+    focus_continuation: Option<LayerOpening>,
 }
 
 impl Clone for TextInputState {
@@ -589,6 +591,7 @@ impl Clone for TextInputState {
             sensitivity: self.sensitivity,
             edit_menu_request: self.edit_menu_request,
             pointer_anchor: self.pointer_anchor,
+            focus_continuation: self.focus_continuation,
         }
     }
 }
@@ -599,12 +602,14 @@ impl PartialEq for TextInputState {
             self.is_sensitive() == other.is_sensitive()
                 && self.phase == other.phase
                 && self.pointer_anchor == other.pointer_anchor
+                && self.focus_continuation == other.focus_continuation
                 && self.error.as_ref().map(ErrorState::is_sensitive)
                     == other.error.as_ref().map(ErrorState::is_sensitive)
         } else {
             self.draft.same(&other.draft)
                 && self.phase == other.phase
                 && self.pointer_anchor == other.pointer_anchor
+                && self.focus_continuation == other.focus_continuation
                 && match (&self.error, &other.error) {
                     (Some(left), Some(right)) => left.same(right),
                     (None, None) => true,
@@ -626,6 +631,7 @@ impl fmt::Debug for TextInputState {
             .field("redacted_snapshot", &self.redacted_snapshot)
             .field("sensitivity", &self.sensitivity)
             .field("pointer_anchor", &self.pointer_anchor)
+            .field("focus_continuation", &self.focus_continuation)
             .field("sensitive", &self.is_sensitive())
             .finish()
     }
@@ -1160,16 +1166,25 @@ impl<'a> TextInput<'a> {
                         st.begin(value.expose());
                     }
                 }
-                Intent::FocusOut { .. } => {
+                Intent::FocusOut { to } => {
                     if st.is_editing() {
-                        let policy = self.blur;
-                        let _ = st.blur_target(value, &self.validator(), policy);
-                        match policy {
-                            BlurPolicy::CommitAndValidate | BlurPolicy::Commit => {
-                                acc.action(TextAction::Committed);
+                        if crate::edit::retain_focus_continuation(
+                            cx,
+                            self.id,
+                            to,
+                            &mut st.focus_continuation,
+                        ) {
+                            acc.consumed();
+                        } else {
+                            let policy = self.blur;
+                            let _ = st.blur_target(value, &self.validator(), policy);
+                            match policy {
+                                BlurPolicy::CommitAndValidate | BlurPolicy::Commit => {
+                                    acc.action(TextAction::Committed);
+                                }
+                                BlurPolicy::Cancel => acc.action(TextAction::Cancelled),
+                                BlurPolicy::Keep => {}
                             }
-                            BlurPolicy::Cancel => acc.action(TextAction::Cancelled),
-                            BlurPolicy::Keep => {}
                         }
                     }
                 }
@@ -1294,6 +1309,27 @@ impl<'a> TextInput<'a> {
         {
             let w = Self::inner_width(a.width);
             st.draft.scroll_into_view(w);
+        }
+        if let Some(opening) = st.focus_continuation
+            && let Some(outcome) = crate::edit::continuation_result(cx, self.id, opening)
+        {
+            st.focus_continuation = None;
+            let restored = outcome.restored_focus() == Some(self.id);
+            if !(outcome.continued() && restored) && st.is_editing() {
+                let policy = self.blur;
+                let _ = st.blur_target(value, &self.validator(), policy);
+                match policy {
+                    BlurPolicy::CommitAndValidate | BlurPolicy::Commit => {
+                        acc.action(TextAction::Committed);
+                    }
+                    BlurPolicy::Cancel => acc.action(TextAction::Cancelled),
+                    BlurPolicy::Keep => {}
+                }
+                if restored && editable {
+                    st.begin(value.expose());
+                }
+            }
+            let _ = crate::edit::acknowledge_continuation_result(cx, self.id, opening);
         }
         acc.finish(self.id)
     }
@@ -1806,8 +1842,20 @@ mod tests {
     use crate::runtime::Runtime;
     use crate::runtime::stub::{SCREEN, Stub, deliver};
     use crate::theme::Theme;
+    use crate::ui::layer::{Anchor, LayerOpening, LayerSize, LayerSpec};
 
     const ID: Id = Id::root("input.tests");
+    const CONTEXT_LAYER: Id = Id::root("input.context-layer");
+    const CONTEXT_TARGET: Id = Id::root("input.context-target");
+    const REDIRECT_TARGET: Id = Id::root("input.redirect-target");
+
+    struct ContinuationInputApp {
+        state: TextInputState,
+        value: String,
+        opening: Option<LayerOpening>,
+        redirect_on_close: bool,
+        committed_actions: usize,
+    }
 
     struct PointerSelectApp {
         state: TextInputState,
@@ -1844,6 +1892,97 @@ mod tests {
         value: String,
         result: bool,
         copied: Option<String>,
+    }
+
+    impl App for ContinuationInputApp {
+        fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+            let response = TextInput::new(ID).blur(BlurPolicy::Commit).update(
+                cx,
+                &mut self.state,
+                &mut self.value,
+            );
+            if matches!(response.action_ref(), Some(TextAction::Committed)) {
+                self.committed_actions = self.committed_actions.saturating_add(1);
+            }
+            if self.state.take_edit_menu_request().is_some() {
+                self.opening = cx.open_layer_with_token(
+                    CONTEXT_LAYER,
+                    LayerSpec::popover(CONTEXT_LAYER, Anchor::Point(Position::new(3, 0)))
+                        .size(LayerSize::Fixed(10, 3))
+                        .initial_focus(CONTEXT_TARGET)
+                        .continues_focus(ID),
+                );
+            }
+            if cx
+                .intents(CONTEXT_TARGET)
+                .any(|intent| matches!(intent, Intent::Key(key) if key.code == KeyCode::Char('x')))
+            {
+                cx.close_layer(CONTEXT_LAYER, None);
+                if self.redirect_on_close {
+                    cx.focus(REDIRECT_TARGET);
+                }
+            }
+            if let Some(opening) = self.opening
+                && cx.take_layer_completion(opening).is_some()
+            {
+                self.opening = None;
+            }
+            response.erase()
+        }
+
+        fn draw(&self, ui: &mut Ui<'_>) {
+            TextInput::new(ID)
+                .value(&self.value)
+                .blur(BlurPolicy::Commit)
+                .draw(ui, SCREEN, &self.state);
+            ui.register_control(
+                REDIRECT_TARGET,
+                Rect::new(0, SCREEN.bottom().saturating_sub(1), 1, 1),
+                Focusability::Focusable,
+            );
+            let _ = ui.layer(CONTEXT_LAYER, |ui, area| {
+                ui.register_control(CONTEXT_TARGET, area, Focusability::Focusable);
+            });
+        }
+    }
+
+    fn publish<A: App>(runtime: &mut Runtime<A>) {
+        let mut buffer = Buffer::empty(SCREEN);
+        for _ in 0..24 {
+            if runtime.needs_settle() {
+                let _ = runtime.settle();
+                continue;
+            }
+            if runtime.needs_present() {
+                runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
+                continue;
+            }
+            return;
+        }
+        panic!("field continuation runtime did not settle");
+    }
+
+    fn open_context_menu(runtime: &mut Runtime<ContinuationInputApp>) {
+        let _ = deliver(
+            runtime,
+            Input::Mouse(crate::event::Mouse {
+                kind: crate::event::MouseKind::Secondary,
+                pos: Position::new(3, 0),
+                mods: KeyModifiers::NONE,
+            }),
+        );
+        publish(runtime);
+    }
+
+    fn close_context_menu(runtime: &mut Runtime<ContinuationInputApp>) {
+        let _ = deliver(
+            runtime,
+            Input::Key(Key {
+                code: KeyCode::Char('x'),
+                mods: KeyModifiers::NONE,
+            }),
+        );
+        publish(runtime);
     }
 
     impl App for IdleReadOnlySelectAllApp {
@@ -2432,6 +2571,65 @@ mod tests {
                 assert_eq!(runtime.app().state.draft_text(), Some(expected));
             }
         }
+    }
+
+    #[test]
+    fn continued_edit_menu_restoration_preserves_field_draft_and_selection() {
+        let mut state = TextInputState::default();
+        state.begin("value");
+        state.draft.select_range(1, 4);
+        let mut runtime = Runtime::new(
+            ContinuationInputApp {
+                state,
+                value: "value".to_owned(),
+                opening: None,
+                redirect_on_close: false,
+                committed_actions: 0,
+            },
+            Theme::junie(),
+        );
+        let _ = runtime.initialize();
+        publish(&mut runtime);
+        open_context_menu(&mut runtime);
+        assert!(runtime.app().state.is_editing());
+        assert_eq!(runtime.app().state.selection(), Some(1..4));
+        assert!(runtime.app().opening.is_some());
+
+        close_context_menu(&mut runtime);
+        assert!(runtime.app().state.is_editing());
+        assert_eq!(runtime.app().state.selection(), Some(1..4));
+        assert_eq!(runtime.app().value, "value");
+        assert_eq!(runtime.app().committed_actions, 0);
+    }
+
+    #[test]
+    fn redirected_edit_menu_closure_blurs_the_held_draft_once() {
+        let mut state = TextInputState::default();
+        state.begin("value");
+        let _ = state.apply(EditAction::Insert('!'));
+        let mut runtime = Runtime::new(
+            ContinuationInputApp {
+                state,
+                value: "value".to_owned(),
+                opening: None,
+                redirect_on_close: true,
+                committed_actions: 0,
+            },
+            Theme::junie(),
+        );
+        let _ = runtime.initialize();
+        publish(&mut runtime);
+        open_context_menu(&mut runtime);
+        assert!(runtime.app().state.is_editing());
+
+        close_context_menu(&mut runtime);
+        assert!(!runtime.app().state.is_editing());
+        assert_eq!(runtime.app().value, "value!");
+        assert_eq!(runtime.app().committed_actions, 1);
+
+        publish(&mut runtime);
+        assert_eq!(runtime.app().committed_actions, 1);
+        assert_eq!(runtime.app().value, "value!");
     }
 
     #[test]
