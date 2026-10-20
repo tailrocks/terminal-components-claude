@@ -842,7 +842,10 @@ impl<T: AsItem, R: RowFn<T>> FilterList<'_, T, R> {
             live,
         );
         // A focused picker container is bold. Filling it covers backdrop-sampled ink.
-        if !surface_already_opaque(ui, area) {
+        if !self.preserve_surface
+            || !surface_already_opaque(ui, area)
+            || self.ov.part_patch(Part::CONTAINER).is_some()
+        {
             ui.fill(area, container.style);
         }
         let identity = !st.initialized && st.query.is_empty();
@@ -900,7 +903,7 @@ mod tests {
     use crate::Acc;
     use termrock_core::id::{Id, ItemKey, Part};
     use termrock_core::response::StateFlags;
-    use termrock_theme::Theme;
+    use termrock_theme::{Role, StylePatch, Theme};
 
     use crate::item::{AsItem, Item, ItemRow};
     use ratatui_core::buffer::Buffer;
@@ -1024,5 +1027,38 @@ mod tests {
                 .readiness_area(ui, AREA, StateFlags::LOADING)
         });
         assert_eq!(slotted[(AREA.x, AREA.y)].symbol(), "#");
+    }
+
+    #[test]
+    fn explicit_container_patch_reaches_an_opaque_preserved_surface() {
+        let theme = Theme::junie();
+        let patch = [(Part::CONTAINER, StylePatch::new().set_bg(Role::Danger))];
+        let (_, page) = with_ui(|ui| {
+            let surface = ui.surface_style();
+            ui.fill(AREA, surface);
+            FilterList::<Item<'_>>::new(Id::root("filter-list.opaque-patch"))
+                .searchable(false)
+                .preserve_surface(true)
+                .patch_part(&patch)
+                .draw(ui, AREA, &FilterListState::default(), &[]);
+        });
+        assert_eq!(page[(AREA.x, AREA.y)].bg, theme.color.danger);
+    }
+
+    #[test]
+    fn container_fill_is_not_skipped_for_an_opaque_unpreserved_area() {
+        let (_, page) = with_ui(|ui| {
+            ui.fill(
+                AREA,
+                termrock_theme::PaintStyle::new().bg(ratatui_core::style::Color::Magenta),
+            );
+            FilterList::<Item<'_>>::new(Id::root("filter-list.opaque-fill"))
+                .searchable(false)
+                .draw(ui, AREA, &FilterListState::default(), &[]);
+        });
+        assert_ne!(
+            page[(AREA.x, AREA.y)].bg,
+            ratatui_core::style::Color::Magenta
+        );
     }
 }
