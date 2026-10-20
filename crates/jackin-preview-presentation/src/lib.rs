@@ -19,6 +19,7 @@
 
 pub mod capsule;
 pub mod launch_failure;
+pub mod launch_running;
 pub mod prelude;
 pub mod rain;
 
