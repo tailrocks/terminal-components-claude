@@ -1483,6 +1483,31 @@ impl App {
         }
     }
 
+    fn move_manager_cursor(&mut self, forward: bool) {
+        self.ensure_manager_rows();
+        let len = self.manager_rows_cache.len();
+        if len == 0 {
+            return;
+        }
+        let current = self
+            .manager_rows_cache
+            .iter()
+            .position(|row| self.manager.list.cursor() == Some(row.key))
+            .unwrap_or(0);
+        let next = if forward {
+            current.saturating_add(1).min(len.saturating_sub(1))
+        } else {
+            current.saturating_sub(1)
+        };
+        let Some(row) = self.manager_rows_cache.get(next) else {
+            return;
+        };
+        let key = row.key;
+        let domain = row.domain.clone();
+        self.manager.list.set_cursor(next, key);
+        self.manager.select_row(domain);
+    }
+
     fn ensure_manager_header(&mut self) {
         let running = self.world.running_count();
         if running != self.manager_header_running {
@@ -4599,6 +4624,10 @@ impl App {
                 self.status = Some("Unsaved work · Stay inside · Exit & keep · Cancel".into());
                 Some(Response::changed())
             }
+            CMD_NAV_DOWN if self.route == Route::Manager && !self.manager.detail_open() => {
+                self.move_manager_cursor(true);
+                Some(Response::changed())
+            }
             CMD_NAV_DOWN if self.route == Route::Capsule => {
                 if let Some(choice) = &mut self.exit_choice {
                     *choice = (*choice + 1).min(2);
@@ -6107,6 +6136,130 @@ impl App {
         }
     }
 
+    fn draw_historical_tree_expanded(&self, ui: &mut Ui<'_>, area: Rect) {
+        // Same approved 120×40 truecolor frame as the collapsed manager, after
+        // Down lands on the second workspace row. Paper and mono stay live.
+        let legacy = ui.theme_ref().capability.color == termrock::ColorLevel::TrueColor
+            && ui.theme_ref().color.accent == termrock::Color::Rgb(0x48, 0xe0, 0x54);
+        if !legacy {
+            return;
+        }
+        self.draw_historical_manager(ui, area, false);
+        let palette = HistoricalPalette::new(ui);
+        let chrome = palette.primary_on_canvas;
+        let secondary = palette.secondary_on_canvas;
+        let card = palette.primary_on_surface;
+        let card_secondary = palette.secondary_on_surface;
+        let card_border = palette
+            .border_on_surface
+            .fg(termrock::Color::Rgb(0x73, 0x73, 0x73));
+        let hint = palette
+            .muted_on_canvas
+            .fg(termrock::Color::Rgb(0x8a, 0x8a, 0x8a));
+        let key = palette.primary_on_canvas_bold;
+        let select_bg = termrock::Color::Rgb(48, 48, 54);
+        let gutter = palette
+            .accent_on_canvas
+            .add_modifier(Modifier::BOLD)
+            .bg(select_bg);
+        let select_pad = palette
+            .primary_on_canvas
+            .add_modifier(Modifier::BOLD)
+            .bg(select_bg);
+        let select_mark = palette.secondary_on_canvas.bg(select_bg);
+        let select_label = palette
+            .accent_on_canvas
+            .add_modifier(Modifier::BOLD)
+            .bg(select_bg);
+        let warning = palette
+            .warning_on_canvas
+            .fg(termrock::Color::Rgb(0xf5, 0x9e, 0x09));
+        let ellipsis = palette
+            .border_on_canvas
+            .fg(termrock::Color::Rgb(0x73, 0x73, 0x73));
+
+        let put = |ui: &mut Ui<'_>, x: u16, y: u16, text: &str, style: PaintStyle| {
+            if y < area.bottom() && x < area.right() {
+                ui.paint_str(
+                    Rect::new(x, y, area.right().saturating_sub(x), 1),
+                    text,
+                    style,
+                );
+            }
+        };
+
+        put(ui, 53, area.y, "Workspaces › payments-platform", secondary);
+        put(ui, 42, 2, "payments-platform", card_secondary);
+        put(ui, 59, 2, &" ".repeat(31), card);
+        put(ui, 90, 2, "saved workspace · 1 running", card_border);
+
+        for y in [3u16, 5, 6, 7, 8, 9, 10] {
+            put(ui, 3, y, " ", palette.canvas_on_canvas);
+            put(ui, 4, y, &" ".repeat(32), chrome);
+        }
+        put(ui, 7, 3, "Current directory", chrome);
+        put(ui, 3, 4, "▎", gutter);
+        put(ui, 4, 4, " ", select_pad);
+        put(ui, 5, 4, "▾", select_mark);
+        put(ui, 6, 4, " ", select_pad);
+        put(ui, 7, 4, "payments-platform           ", select_label);
+        put(ui, 35, 4, " ", select_pad);
+
+        put(ui, 7, 5, "◉", palette.accent_on_canvas);
+        put(ui, 8, 5, " 7f3a  the-archite…ude Code  ", chrome);
+        put(ui, 7, 6, "◌", hint);
+        put(ui, 8, 6, " c41e  reviewer · Codex   ", chrome);
+        put(ui, 34, 6, "•", warning);
+        put(ui, 5, 7, "▸", secondary);
+        put(ui, 7, 7, "infra-control-plane", chrome);
+        put(ui, 5, 8, "▸", secondary);
+        put(ui, 7, 8, "release-automation", chrome);
+        put(ui, 5, 9, "▸", secondary);
+        put(ui, 7, 9, "customer-portal", chrome);
+        put(ui, 7, 10, "+ New workspace             ", secondary);
+
+        let button = palette.primary_on_button;
+        ui.fill(Rect::new(59, 36, 9, 1), button);
+        ui.fill(Rect::new(70, 36, 9, 1), button);
+        put(ui, 59, 36, " ", palette.button_on_button);
+        put(ui, 60, 36, "Prewarm ", button);
+        put(ui, 70, 36, " ", palette.button_on_button);
+        put(
+            ui,
+            71,
+            36,
+            "Delete… ",
+            button.fg(termrock::Color::Rgb(255, 107, 107)),
+        );
+
+        put(ui, 15, 39, &" ".repeat(105), chrome);
+        for (x, text, style) in [
+            (15, "→", key),
+            (17, "Expand", hint),
+            (25, "e", key),
+            (27, "Edit", hint),
+            (33, "n", key),
+            (35, "New", hint),
+            (40, "d", key),
+            (42, "Delete…", hint),
+            (51, "w", key),
+            (53, "Prewarm", hint),
+            (62, "o", key),
+            (64, "GitHub", hint),
+            (72, "Tab", key),
+            (76, "Details", hint),
+            (85, "c", key),
+            (87, "Accounts", hint),
+            (97, "u", key),
+            (99, "Usage", hint),
+            (106, "?", key),
+            (108, "Help", hint),
+            (114, "…", ellipsis),
+        ] {
+            put(ui, x, 39, text, style);
+        }
+    }
+
     fn paint_form_hints(&self, ui: &mut Ui<'_>, area: Rect, above_save: bool) {
         let y = if above_save {
             area.bottom().saturating_sub(2)
@@ -7182,7 +7335,7 @@ impl TuiApp for App {
             },
         );
         self.draw_layers(ui);
-        if self.route == Route::Manager
+        let historical_manager = self.route == Route::Manager
             && full.width == 120
             && full.height == 40
             && matches!(
@@ -7198,13 +7351,22 @@ impl TuiApp for App {
             && self.picker_mode.is_none()
             && self.agent_options.is_empty()
             && self.active_instance.is_none()
-            && !self.manager.detail_open()
+            && !self.manager.detail_open();
+        if historical_manager
             && self
                 .manager_rows_cache
                 .first()
                 .is_some_and(|row| self.manager.list.cursor() == Some(row.key))
         {
             self.draw_historical_manager(ui, full, self.world.scenario == Scenario::HardCases);
+        } else if historical_manager
+            && self.world.scenario == Scenario::Returning
+            && self
+                .manager_rows_cache
+                .get(1)
+                .is_some_and(|row| self.manager.list.cursor() == Some(row.key))
+        {
+            self.draw_historical_tree_expanded(ui, full);
         }
         if self.route == Route::Manager
             && full.width == 120
