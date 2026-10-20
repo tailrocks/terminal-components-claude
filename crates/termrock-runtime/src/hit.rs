@@ -14,6 +14,33 @@ pub enum RegionKind {
     Part,
     Scroll,
     Decorative,
+    /// A light-dismiss backdrop registered behind a popup or modal.
+    Backdrop,
+}
+
+/// A scrollbar bar registered by its owning widget (ported from PR #26
+/// `src/core/hit.rs::Bar`, commit f4867e9b5).
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub struct Bar {
+    /// The bar's own id (the track / thumb control).
+    pub id: Id,
+    /// The widget the bar scrolls.
+    pub owner: Id,
+    /// Which axis the bar scrolls.
+    pub axis: Axis,
+    /// The track area, including the thumb.
+    pub track: Rect,
+}
+
+/// Whose release a widget accepts (ported from PR #26 `src/core/hit.rs::ReleaseFrom`,
+/// commit f4867e9b5): a drag that started on a widget keeps receiving
+/// releases, and a secondary-button release may be accepted while pressed.
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum ReleaseFrom {
+    /// The release of a press that started on `id`.
+    Press(Id),
+    /// A secondary (right button) release.
+    Secondary,
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
