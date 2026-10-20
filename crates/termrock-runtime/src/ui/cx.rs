@@ -771,6 +771,22 @@ impl<'f> Cx<'f> {
         Some(self.services.events.remove(pos))
     }
 
+    /// Claims the next exact layer event receipt and only its matching layer
+    /// intent. Unrelated intents owned by the layer remain available to their
+    /// component and continue to participate in undelivered-intent checks.
+    pub fn take_layer_intent_receipt(&mut self, id: Id) -> Option<LayerEventReceipt> {
+        let pos = self
+            .services
+            .events
+            .iter()
+            .position(|receipt| receipt.opening().id() == id)?;
+        let receipt = *self.services.events.get(pos)?;
+        if !self.intents.claim_next_layer_event(id, receipt.event()) {
+            return None;
+        }
+        Some(self.services.events.remove(pos))
+    }
+
     /// Returns the opaque identity of this application update callback.
     pub const fn update_token(&self) -> UpdateToken {
         self.update_token
