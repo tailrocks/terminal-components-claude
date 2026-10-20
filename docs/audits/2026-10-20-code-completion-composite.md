@@ -11,3 +11,5 @@ The editing key path checks effective bindings before inserting a printable char
 Focused integration coverage is in `crates/termrock-editors/tests/completing_code_editor.rs`. SQL-specific candidate generation remains consumer domain logic.
 
 The current runtime outside-click path dismisses the top layer and returns without forwarding the pointer to its owner (`crates/termrock-runtime/src/runtime.rs`, `outside_click`). Tests prove popup dismissal only. Owner click-through requires a shared backdrop-region API and remains a follow-up outside this editor-only change.
+
+Temporary Showcase coverage exception: this composition is not yet demonstrated in an application. Demonstrate it through the existing Query Workbench/SQL editor conversion, preserving the frozen screen and navigation, before claiming consumer acceptance. No additional Showcase screen is authorized. The exception ends with that conversion.
