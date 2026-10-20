@@ -286,6 +286,15 @@ impl HomeState {
         {
             return;
         }
+        if let Some(view) = catalogue::first_use_history_100x30_plate(
+            world,
+            ui.full().width,
+            ui.full().height,
+            self.history,
+        ) && paint_tag_list_plate(ui, rows_area, &view, 100, 30)
+        {
+            return;
+        }
         if let Some(view) = catalogue::monorepo_root_80x24_plate(
             world,
             ui.full().width,
