@@ -71,19 +71,16 @@ fn resolve_row_part(
         };
         // Built-in fill ink is highlight. An explicit owner role still wins.
         if !owner_ink(natural.style.fg_role) && !owner_ink(natural.style.bg_role) {
-            // The cursor fill supplies defaults. Explicit row-part styling stays
-            // above that fill for every style channel, including built-in roles.
-            let force = patch.map_or_else(
-                || selected_part_patch(part),
-                |patch| selected_part_patch(part).merge(patch),
-            );
+            // Cursor-fill styling is a default. Theme overrides and overlays
+            // must still resolve above it; only the row's explicit instance
+            // patch belongs at the top of the precedence stack.
             return ui.style_defaults(
                 family,
                 variant,
                 part,
                 flags,
-                crate::theme::StyleDefaults::new(selected_row_patch()),
-                Some(&force),
+                crate::theme::StyleDefaults::new(selected_part_patch(part)),
+                patch.as_ref(),
             );
         }
         return natural;
@@ -1090,6 +1087,41 @@ mod tests {
                 Rect::new(0, 0, 20, 1),
                 None,
                 Some(patch),
+            )
+            .with_cursor_style(CursorStyle::Fill);
+            row.label("danger");
+        }
+        let label = page.cell((0, 0)).expect("focused label");
+        assert_eq!(label.bg, theme.color.danger);
+        assert!(label.modifier.contains(Modifier::UNDERLINED));
+    }
+
+    #[test]
+    fn focused_fill_keeps_theme_family_override_above_fill_defaults() {
+        let theme = Theme::junie().override_family(Family::LIST, |recipe| {
+            recipe.part(Part::LABEL).base(
+                StylePatch::new()
+                    .set_bg(Role::Danger)
+                    .add(Modifier::UNDERLINED),
+            );
+        });
+        let mut frame = FrameState::default();
+        frame.reset(1, SCREEN);
+        let mut page = Buffer::empty(SCREEN);
+        let mut core = UiCore::default();
+        let last = LastFrame::default();
+        {
+            let mut ui = Ui::new(&mut frame, &mut page, &mut core, &theme, &last);
+            let mut row = RowUi::new_with_patches(
+                &mut ui,
+                OWNER,
+                Family::LIST,
+                Variant::DEFAULT,
+                StateFlags::FOCUSED,
+                ItemKey::index(0),
+                Rect::new(0, 0, 20, 1),
+                None,
+                None,
             )
             .with_cursor_style(CursorStyle::Fill);
             row.label("danger");
