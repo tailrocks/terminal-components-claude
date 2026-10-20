@@ -833,20 +833,32 @@ impl<T: AsItem, R: RowFn<T>> FilterList<'_, T, R> {
         ui.publish_bindings(self.id, live, self.bindings(BindingState { flags: live }));
         let mut live = PartStyle::flags(ui.state(self.id), self.status.flags());
         live.remove(StateFlags::PRESSED);
-        let container = self.ov.style(
+        let container_patch = self.ov.part_patch(Part::CONTAINER);
+        let detailed = ui.style_defaults_with_explicit(
+            Family::PICKER,
+            Variant::DEFAULT,
+            Part::CONTAINER,
+            live,
+            crate::theme::StyleDefaults::default(),
+            container_patch.as_ref(),
+        );
+        self.ov.note(
             ui,
             self.id,
             Family::PICKER,
             Variant::DEFAULT,
             Part::CONTAINER,
-            live,
+            detailed.resolved,
         );
-        // A focused picker container is bold. Filling it covers backdrop-sampled ink.
-        if !self.preserve_surface
-            || !surface_already_opaque(ui, area)
-            || self.ov.part_patch(Part::CONTAINER).is_some()
-        {
-            ui.fill(area, container.style);
+        if !self.preserve_surface || !surface_already_opaque(ui, area) {
+            ui.fill(area, detailed.resolved.style);
+        } else {
+            termrock_runtime::author::patch_style(
+                ui,
+                area,
+                detailed.resolved.style,
+                detailed.explicit,
+            );
         }
         let identity = !st.initialized && st.query.is_empty();
         let visible_len = if identity {
@@ -903,7 +915,7 @@ mod tests {
     use crate::Acc;
     use termrock_core::id::{Id, ItemKey, Part};
     use termrock_core::response::StateFlags;
-    use termrock_theme::{Role, StylePatch, Theme};
+    use termrock_theme::{Family, Role, StylePatch, Theme};
 
     use crate::item::{AsItem, Item, ItemRow};
     use ratatui_core::buffer::Buffer;
@@ -916,13 +928,17 @@ mod tests {
 
     fn with_ui<R>(f: impl FnOnce(&mut Ui<'_>) -> R) -> (R, Buffer) {
         let theme = Theme::junie();
+        with_ui_theme(&theme, f)
+    }
+
+    fn with_ui_theme<R>(theme: &Theme, f: impl FnOnce(&mut Ui<'_>) -> R) -> (R, Buffer) {
         let mut frame = FrameState::default();
         frame.reset(1, Rect::new(0, 0, 30, 8));
         let mut page = Buffer::empty(Rect::new(0, 0, 30, 8));
         let mut core = UiCore::default();
         let last = LastFrame::default();
         let out = {
-            let mut ui = Ui::new(&mut frame, &mut page, &mut core, &theme, &last);
+            let mut ui = Ui::new(&mut frame, &mut page, &mut core, theme, &last);
             f(&mut ui)
         };
         (out, page)
@@ -1043,6 +1059,31 @@ mod tests {
                 .draw(ui, AREA, &FilterListState::default(), &[]);
         });
         assert_eq!(page[(AREA.x, AREA.y)].bg, theme.color.danger);
+    }
+
+    #[test]
+    fn themed_container_channels_reach_an_opaque_preserved_surface() {
+        let theme = Theme::junie().override_family(Family::PICKER, |recipe| {
+            recipe.part(Part::CONTAINER).base(
+                StylePatch::new()
+                    .set_bg(Role::Danger)
+                    .add(ratatui_core::style::Modifier::UNDERLINED),
+            );
+        });
+        let (_, page) = with_ui_theme(&theme, |ui| {
+            let surface = ui.surface_style();
+            ui.fill(AREA, surface);
+            FilterList::<Item<'_>>::new(Id::root("filter-list.themed-opaque"))
+                .searchable(false)
+                .preserve_surface(true)
+                .draw(ui, AREA, &FilterListState::default(), &[]);
+        });
+        let cell = &page[(AREA.x, AREA.y)];
+        assert_eq!(cell.bg, theme.color.danger);
+        assert!(
+            cell.modifier
+                .contains(ratatui_core::style::Modifier::UNDERLINED)
+        );
     }
 
     #[test]
