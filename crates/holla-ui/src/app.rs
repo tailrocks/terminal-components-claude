@@ -21,8 +21,8 @@ use crate::{
 use termrock::{
     ActionKey, Binding, Brand, Chord, Color, Constraints, Cx, Dialog, FgStep, Focusability,
     FrameRead, Hint, HintBar, HintKey, HintLayer, Id, Intent, ItemKey, KeyCode, KeyMap, KeyPhase,
-    Menu, MenuAction, MenuBar, MenuItem, MenuState, Part, PartRef, Phase, Rect, Response, Role,
-    StylePatch, Surface, TooSmall, Ui,
+    Menu, MenuAction, MenuBar, MenuBarHoverScope, MenuItem, MenuState, Part, PartRef, Phase, Rect,
+    Response, Role, StylePatch, Surface, TooSmall, Ui,
 };
 
 const BRAND: Id = Id::root("holla.brand");
@@ -209,14 +209,10 @@ fn menu_bar() -> MenuBar<'static> {
         Menu::new(BAR_LABELS[1], GO),
         Menu::new(BAR_LABELS[2], HELP_MENU),
     ];
-    // Tag Kind::Title at rest is text_secondary (#b3b3b3), not primary.
-    const TITLE_TONE: &[(Part, StylePatch)] = &[(
-        Part::TITLE,
-        StylePatch::new().set_fg(Role::Fg(FgStep::Secondary)),
-    )];
+    // MenuBar styles the label and the tag's " {title} " pads as one title.
     MenuBar::new(MENU, MENUS)
         .chord_case(termrock::ChordCase::UppercaseAscii)
-        .patch_part(TITLE_TONE)
+        .hover_scope(MenuBarHoverScope::Title)
 }
 
 fn brand() -> Brand<'static> {
@@ -245,25 +241,6 @@ fn paint_disk_menu_titles(ui: &mut Ui<'_>, menu_x: u16, y: u16) {
         x = x.saturating_add(width);
         ui.paint_str(Rect::new(x, y, 1, 1), " ", gap);
         x = x.saturating_add(1);
-    }
-}
-
-fn paint_menu_title_pads(ui: &mut Ui<'_>, menu_x: u16, y: u16, menu_right: u16) {
-    // MenuBar paints the label only. The tag's " {title} " pads use the same secondary ink.
-    let style = ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Secondary)));
-    let mut x = menu_x.saturating_add(1);
-    for label in BAR_LABELS {
-        let w = termrock::width(label).saturating_add(2);
-        if x.saturating_add(w) > menu_right {
-            break;
-        }
-        ui.paint_str(Rect::new(x, y, 1, 1), " ", style);
-        ui.paint_str(
-            Rect::new(x.saturating_add(w).saturating_sub(1), y, 1, 1),
-            " ",
-            style,
-        );
-        x = x.saturating_add(w).saturating_add(1);
     }
 }
 
@@ -456,6 +433,24 @@ fn parity_cargo_tag_plate(world: &World, width: u16, height: u16) -> bool {
         || crate::sim::catalogue::parity_cargo_120x40_plate(world, width, height).is_some()
 }
 
+/// 80×24 and 100×30 `parity-git-batch` clip the last hint. 120×40 keeps every hint and a short status.
+/// Cargo, git-current, and every other size stay off.
+fn parity_git_batch_clipped_plate(world: &World, width: u16, height: u16) -> bool {
+    crate::sim::catalogue::parity_git_batch_80x24_plate(world, width, height).is_some()
+        || crate::sim::catalogue::parity_git_batch_100x30_plate(world, width, height).is_some()
+}
+
+/// 80×24, 100×30, and 120×40 `parity-git-batch`. Cargo, git-current, browser, files, history, discovery, and every other size stay off.
+fn parity_git_batch_tag_plate(world: &World, width: u16, height: u16) -> bool {
+    parity_git_batch_clipped_plate(world, width, height)
+        || crate::sim::catalogue::parity_git_batch_120x40_plate(world, width, height).is_some()
+}
+
+/// 80×24 `parity-task-sources` only. Other sizes, git-batch, cargo, git-current, browser, files, history, and discovery stay off.
+fn parity_task_sources_tag_plate(world: &World, width: u16, height: u16) -> bool {
+    crate::sim::catalogue::parity_task_sources_80x24_plate(world, width, height).is_some()
+}
+
 /// Tag parity-browser status at 80×24, 100×30, and 120×40: cwd, then the size label. No branch.
 fn paint_parity_browser_status(ui: &mut Ui<'_>, area: Rect) {
     if area.is_empty() {
@@ -513,6 +508,40 @@ fn paint_parity_cargo_status(ui: &mut Ui<'_>, area: Rect) {
         "main",
         STATUS_GREY,
         false,
+    );
+    let _ = paint_size_label(ui, area);
+}
+
+/// Tag parity-task-sources status at 80×24: cwd, then the size label. No branch.
+fn paint_parity_task_sources_status(ui: &mut Ui<'_>, area: Rect) {
+    if area.is_empty() {
+        return;
+    }
+    ui.fill(area, status_ink(ui, STATUS_FG, false));
+    let _ = paint_status_text(
+        ui,
+        area,
+        area.x.saturating_add(STATUS_EDGE),
+        "~/work/poly",
+        STATUS_FG,
+        true,
+    );
+    let _ = paint_size_label(ui, area);
+}
+
+/// Tag parity-git-batch status at 80×24, 100×30, and 120×40: cwd, then the size label. No branch.
+fn paint_parity_git_batch_status(ui: &mut Ui<'_>, area: Rect) {
+    if area.is_empty() {
+        return;
+    }
+    ui.fill(area, status_ink(ui, STATUS_FG, false));
+    let _ = paint_status_text(
+        ui,
+        area,
+        area.x.saturating_add(STATUS_EDGE),
+        "~/work/repos",
+        STATUS_FG,
+        true,
     );
     let _ = paint_size_label(ui, area);
 }
@@ -1590,7 +1619,6 @@ impl App {
             .0
             .min(menu_room);
         menu.draw(ui, Rect::new(menu_x, header.y, menu_width, 1), &self.menu);
-        paint_menu_title_pads(ui, menu_x, header.y, menu_x.saturating_add(menu_width));
         // A disk plate has no query, so the bar would keep focus and bold its titles.
         if (self.route == Route::Disk && crate::sim::catalogue::disk_cleanup_tag_frame(&self.world))
             || launch_failure_plate_open(&self.world, ui)
@@ -1698,6 +1726,10 @@ impl App {
             paint_parity_git_current_status(ui, status);
         } else if parity_cargo_tag_plate(&self.world, ui.full().width, ui.full().height) {
             paint_parity_cargo_status(ui, status);
+        } else if parity_git_batch_tag_plate(&self.world, ui.full().width, ui.full().height) {
+            paint_parity_git_batch_status(ui, status);
+        } else if parity_task_sources_tag_plate(&self.world, ui.full().width, ui.full().height) {
+            paint_parity_task_sources_status(ui, status);
         } else if launch_failure_plate_open(&self.world, ui) {
             paint_launch_failure_status(ui, status);
         } else if self.route == Route::Disk
@@ -1818,6 +1850,17 @@ impl App {
         } else if parity_git_current_tag_plate(&self.world, ui.full().width, ui.full().height) {
             Some(("Open", None))
         } else if parity_cargo_tag_plate(&self.world, ui.full().width, ui.full().height) {
+            Some(("Run", None))
+        } else if parity_git_batch_tag_plate(&self.world, ui.full().width, ui.full().height) {
+            let wide = crate::sim::catalogue::parity_git_batch_120x40_plate(
+                &self.world,
+                ui.full().width,
+                ui.full().height,
+            )
+            .is_some();
+            // The wide card keeps every hint. The title is cut to the ten cells left of the edge.
+            Some(("Open", wide.then_some("Status ac…")))
+        } else if parity_task_sources_tag_plate(&self.world, ui.full().width, ui.full().height) {
             Some(("Run", None))
         } else {
             None
@@ -1941,6 +1984,10 @@ impl App {
                 parity_git_current_clipped_plate(&self.world, ui.full().width, ui.full().height);
             let cargo_plate =
                 parity_cargo_clipped_plate(&self.world, ui.full().width, ui.full().height);
+            let git_batch_plate =
+                parity_git_batch_clipped_plate(&self.world, ui.full().width, ui.full().height);
+            let task_sources_plate =
+                parity_task_sources_tag_plate(&self.world, ui.full().width, ui.full().height);
             let parts = if monorepo_child_mid
                 || remote_host_mid
                 || first_use_mid
@@ -1952,6 +1999,8 @@ impl App {
                 || browser_plate
                 || git_current_plate
                 || cargo_plate
+                || git_batch_plate
+                || task_sources_plate
                 || (narrow
                     && (crate::sim::catalogue::first_use_tag_frame(&self.world)
                         || crate::sim::catalogue::monorepo_root_tag_frame(&self.world)
@@ -2574,6 +2623,33 @@ mod tests {
             120,
             40,
         )
+    }
+    #[test]
+    fn menu_bar_pointer_hover_changes_only_the_file_title_and_clears_on_exit() {
+        let mut scene = app(Scenario::FirstUse);
+        let before = scene.snapshot();
+        let (file_x, file_y) = scene.find("File").expect("menu bar File title");
+        assert_eq!(file_y, 0);
+        assert!(file_x > 0);
+        let x = file_x - 1;
+        let _ = scene.mouse(termrock::MouseKind::Move, file_x, file_y);
+
+        for column in x..x + 6 {
+            let cell = scene.cell(column, file_y);
+            assert_eq!(cell.bg, Color::Rgb(0x1c, 0x1c, 0x1f), "column {column}");
+            assert_eq!(cell.fg, Color::Rgb(255, 255, 255), "column {column}");
+        }
+        for column in 0..120 {
+            if !(x..x + 6).contains(&column) {
+                let expected = before.buffer().cell((column, file_y)).unwrap();
+                assert_eq!(scene.cell(column, file_y), expected, "column {column}");
+            }
+        }
+
+        let cursor = scene.cursor();
+        let _ = scene.mouse(termrock::MouseKind::Move, 119, 39);
+        assert_eq!(scene.snapshot().buffer(), before.buffer());
+        assert_eq!(scene.cursor(), cursor);
     }
     #[test]
     fn discovery_boot_paints_the_here_band_above_the_filter() {

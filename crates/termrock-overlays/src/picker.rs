@@ -7,7 +7,7 @@ use crate::id::{Id, ItemKey, Part};
 use crate::layer::{Anchor, LayerSize, LayerSpec, ScreenAlign};
 use crate::response::{Response, StateFlags};
 use crate::text::width;
-use crate::theme::{Family, StylePatch, Surface, Variant};
+use crate::theme::{CursorStyle, Family, FgStep, GlyphRole, Role, StylePatch, Surface, Variant};
 use crate::ui::{Cx, FrameRead, Ui};
 use termrock_navigation::filter_list::{
     FilterList, FilterListAction, FilterListState, FilterPolicy,
@@ -81,12 +81,16 @@ pub struct Picker<'a, T, R = ItemRow> {
     searchable: bool,
     filter: FilterPolicy,
     placeholder: &'a str,
+    hints: &'a str,
     scopes: &'a [ScopeKey],
     requested_size: Option<LayerSize>,
     align: Option<ScreenAlign>,
     empty: Option<EmptyState<'a>>,
     row: R,
     item_layout: ItemRowLayout,
+    surface: Surface,
+    cursor_style: CursorStyle,
+    metadata_gap: u16,
     patch: Option<&'a StylePatch>,
     parts: &'a [(Part, StylePatch)],
     ov: PartStyle<'a>,
@@ -116,12 +120,16 @@ impl<T> Picker<'_, T, ItemRow> {
             searchable: true,
             filter: FilterPolicy::Label,
             placeholder: "Type to search…",
+            hints: "",
             scopes: &[],
             requested_size: None,
             align: None,
             empty: None,
             row: ItemRow,
             item_layout: ItemRowLayout::Compact,
+            surface: Surface::Overlay,
+            cursor_style: CursorStyle::Bar,
+            metadata_gap: 1,
             patch: None,
             parts: &[],
             ov: PartStyle::new(),
@@ -157,6 +165,21 @@ impl<'a, T, R> Picker<'a, T, R> {
         self.id
     }
     #[must_use]
+    pub const fn surface(mut self, surface: Surface) -> Self {
+        self.surface = surface;
+        self
+    }
+    #[must_use]
+    pub const fn cursor_style(mut self, style: CursorStyle) -> Self {
+        self.cursor_style = style;
+        self
+    }
+    #[must_use]
+    pub const fn metadata_gap(mut self, gap: u16) -> Self {
+        self.metadata_gap = gap;
+        self
+    }
+    #[must_use]
     pub const fn title(mut self, title: &'a str) -> Self {
         self.title = title;
         self
@@ -184,6 +207,11 @@ impl<'a, T, R> Picker<'a, T, R> {
     #[must_use]
     pub const fn placeholder(mut self, placeholder: &'a str) -> Self {
         self.placeholder = placeholder;
+        self
+    }
+    #[must_use]
+    pub const fn hints(mut self, hints: &'a str) -> Self {
+        self.hints = hints;
         self
     }
     #[must_use]
@@ -215,12 +243,16 @@ impl<'a, T, R> Picker<'a, T, R> {
             searchable: self.searchable,
             filter: self.filter,
             placeholder: self.placeholder,
+            hints: self.hints,
             scopes: self.scopes,
             requested_size: self.requested_size,
             align: self.align,
             empty: self.empty,
             row,
             item_layout: ItemRowLayout::Compact,
+            surface: self.surface,
+            cursor_style: self.cursor_style,
+            metadata_gap: self.metadata_gap,
             patch: self.patch,
             parts: self.parts,
             ov: self.ov,
@@ -261,7 +293,10 @@ impl<T: AsItem, R: RowFn<T>> Picker<'_, T, R> {
             .searchable(self.searchable)
             .filter(self.filter)
             .row(BorrowedRow(&self.row))
-            .with_item_layout(self.item_layout);
+            .with_item_layout(self.item_layout)
+            .cursor_style(self.cursor_style)
+            .metadata_gap(self.metadata_gap)
+            .preserve_surface(true);
         if let Some(empty) = self.empty {
             list = list.empty(empty);
         }
@@ -387,7 +422,7 @@ impl<T: AsItem, R: RowFn<T>> Picker<'_, T, R> {
             self.id,
             area,
             Family::PICKER,
-            Surface::Overlay,
+            self.surface,
             self.ov,
             live,
             live,
@@ -461,10 +496,38 @@ impl<T: AsItem, R: RowFn<T>> Picker<'_, T, R> {
                         live | StateFlags::EDITING,
                     );
                     ui.fill(query, query_style.style);
-                    let text = if st.query().is_empty() {
+                    let gutter_style = self.ov.style(
+                        ui,
+                        self.id,
+                        Family::PICKER,
+                        Variant::DEFAULT,
+                        Part::GUTTER,
+                        live | StateFlags::FOCUSED | StateFlags::EDITING,
+                    );
+                    ui.glyph(
+                        Rect { width: 1, ..query },
+                        GlyphRole::FocusBar,
+                        gutter_style.style,
+                    );
+                    let empty_query = st.query().is_empty();
+                    let text = if empty_query {
                         self.placeholder
                     } else {
                         st.query()
+                    };
+                    let text_style = if empty_query {
+                        self.ov
+                            .style(
+                                ui,
+                                self.id,
+                                Family::PICKER,
+                                Variant::DEFAULT,
+                                Part::PLACEHOLDER,
+                                live | StateFlags::EDITING,
+                            )
+                            .style
+                    } else {
+                        query_style.style
                     };
                     ui.paint_str(
                         Rect {
@@ -473,24 +536,42 @@ impl<T: AsItem, R: RowFn<T>> Picker<'_, T, R> {
                             ..query
                         },
                         text,
-                        query_style.style,
+                        text_style,
                     );
-                    ui.set_cursor(
-                        self.id,
-                        Position::new(
-                            query.x.saturating_add(2).saturating_add(width(st.query())),
-                            query.y,
-                        ),
+                    let caret = Position::new(
+                        query.x.saturating_add(2).saturating_add(width(st.query())),
+                        query.y,
                     );
+                    // The query caret is a bar even when the result rows use a fill cursor.
+                    ui.set_bar_cursor(self.id, caret);
                 }
 
+                let show_hint = !self.hints.is_empty();
+                if show_hint {
+                    let hint_area = Rect {
+                        y: content.y.saturating_add(content.height.saturating_sub(1)),
+                        height: 1,
+                        ..content
+                    };
+                    // Baseline hint ink is faint, including the cells the string covers.
+                    let hint_style = ui.paint_patch(
+                        &StylePatch::new()
+                            .set_fg(Role::Fg(FgStep::Faint))
+                            .set_bg(Role::CurrentSurface),
+                    );
+                    ui.paint_str(hint_area, self.hints, hint_style);
+                }
                 let list = Rect {
                     y: content
                         .y
                         .saturating_add(if self.searchable { 3 } else { 1 }),
                     height: content
                         .height
-                        .saturating_sub(if self.searchable { 3 } else { 2 }),
+                        .saturating_sub(match (self.searchable, show_hint) {
+                            (true, true) => 4,
+                            (true, false) => 3,
+                            (false, _) => 2,
+                        }),
                     ..content
                 };
                 self.list().draw(ui, list, &st.list, items);

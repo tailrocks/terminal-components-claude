@@ -5,6 +5,10 @@ use ratatui_core::layout::{Position, Rect};
 use ratatui_core::style::Modifier;
 
 use super::{Acc, PartStyle, SlotFn, cell_at, first_row};
+use crate::completion::{
+    COMPLETION_NEXT_FOCUS_CHORD, COMPLETION_PREV_FOCUS_CHORD, CompletingCodeEditor,
+    CompletionProvider,
+};
 use crate::event::{Chord, KeyCode, KeyModifiers};
 use crate::focus::Focusability;
 use crate::id::{Id, Part, PartRef};
@@ -152,6 +156,10 @@ pub enum CodeCmd {
     FindNext(bool),
 
     Block(bool),
+
+    FocusNext,
+
+    FocusPrevious,
 }
 
 const fn b(chord: Chord, cmd: CodeCmd, label: &'static str, visible: bool) -> Binding<CodeCmd> {
@@ -166,6 +174,18 @@ const fn b(chord: Chord, cmd: CodeCmd, label: &'static str, visible: bool) -> Bi
 }
 
 const NAV_BINDINGS: &[Binding<CodeCmd>] = &[
+    b(
+        COMPLETION_PREV_FOCUS_CHORD,
+        CodeCmd::FocusPrevious,
+        "focus.previous",
+        false,
+    ),
+    b(
+        COMPLETION_NEXT_FOCUS_CHORD,
+        CodeCmd::FocusNext,
+        "focus.next",
+        false,
+    ),
     b(
         Chord::key(KeyCode::Enter),
         CodeCmd::InsertMode,
@@ -296,6 +316,24 @@ const NAV_BINDINGS: &[Binding<CodeCmd>] = &[
 ];
 
 const EDIT_BINDINGS: &[Binding<CodeCmd>] = &[
+    b(
+        COMPLETION_PREV_FOCUS_CHORD,
+        CodeCmd::FocusPrevious,
+        "focus.previous",
+        false,
+    ),
+    b(
+        COMPLETION_NEXT_FOCUS_CHORD,
+        CodeCmd::FocusNext,
+        "focus.next",
+        false,
+    ),
+    b(
+        Chord::with(KeyCode::Char('f'), CTRL),
+        CodeCmd::Find,
+        "Find",
+        true,
+    ),
     b(Chord::key(KeyCode::Esc), CodeCmd::Commit, "Done", true),
     b(
         Chord::key(KeyCode::Enter),
@@ -547,6 +585,11 @@ impl CodeEditorState {
         self.editing
     }
 
+    /// Whether the Find bar is currently accepting query text.
+    pub fn is_find_typing(&self) -> bool {
+        self.find.as_ref().is_some_and(|find| find.typing)
+    }
+
     pub const fn scroll(&self) -> &ScrollState {
         &self.scroll
     }
@@ -557,6 +600,19 @@ impl CodeEditorState {
 
     pub fn selected_text(&self) -> Option<&str> {
         self.editor.selected_text()
+    }
+
+    /// Replace `replace_len` bytes immediately before the cursor with a completion.
+    ///
+    /// The editor snaps the replacement range to its existing grapheme boundaries,
+    /// then applies the edit through the normal generation, find, and scroll path.
+    pub fn splice_completion(&mut self, replace_len: usize, insertion: &str) -> bool {
+        let end = self.editor.cursor_offset();
+        let start = end.saturating_sub(replace_len);
+        self.editor.select_range(start, end);
+        let outcome = self.editor.apply(EditAction::Paste(insertion));
+        self.after_edit(outcome);
+        outcome.changed()
     }
 
     pub fn set_diagnostics(&mut self, mut diagnostics: Vec<CodeDiagnostic>) {
@@ -757,6 +813,23 @@ impl<'a> CodeEditor<'a> {
         }
     }
 
+    pub fn with_completion(
+        self,
+        popup_id: Id,
+        provider: &'a dyn CompletionProvider,
+    ) -> CompletingCodeEditor<'a> {
+        let id = self.id;
+        CompletingCodeEditor::new(self, id, popup_id, provider)
+    }
+
+    pub(crate) const fn is_read_only(&self) -> bool {
+        self.read_only
+    }
+
+    pub(crate) const fn is_disabled(&self) -> bool {
+        self.disabled
+    }
+
     #[must_use]
     pub const fn highlighter(mut self, highlighter: &'a dyn Highlighter) -> Self {
         self.highlighter = Some(highlighter);
@@ -917,14 +990,29 @@ impl<'a> CodeEditor<'a> {
                         if st.find.as_ref().is_some_and(|find| find.typing) {
                             Self::find_command(st, command, &mut acc);
                         } else {
-                            self.command(st, command, page, &mut acc);
+                            self.dispatch_command(cx, st, command, page, &mut acc);
                         }
                     }
                 }
                 Intent::Key(key)
                     if st.editing || st.find.as_ref().is_some_and(|find| find.typing) =>
                 {
-                    if let Some(c) = key.bare_char() {
+                    let command = Self::active_bindings(st).iter().find(|binding| {
+                        cx.effective_chord(self.id, binding.action, binding.chord)
+                            .is_some_and(|chord| chord.matches(&key))
+                    });
+                    if let Some(binding) = command {
+                        let already_dispatched = cx.intents(self.id).any(|intent| {
+                            matches!(intent, Intent::Binding(action) if action == binding.action)
+                        });
+                        if !already_dispatched {
+                            if st.find.as_ref().is_some_and(|find| find.typing) {
+                                Self::find_command(st, binding.cmd, &mut acc);
+                            } else {
+                                self.dispatch_command(cx, st, binding.cmd, page, &mut acc);
+                            }
+                        }
+                    } else if let Some(c) = key.bare_char() {
                         if let Some(find) = st.find.as_mut().filter(|find| find.typing) {
                             find.needle.push(c);
                             st.refind();
@@ -988,6 +1076,29 @@ impl<'a> CodeEditor<'a> {
             }
         }
         acc.finish(self.id)
+    }
+
+    fn dispatch_command(
+        &self,
+        cx: &mut Cx<'_>,
+        st: &mut CodeEditorState,
+        command: CodeCmd,
+        page: usize,
+        acc: &mut Acc<CodeAction>,
+    ) {
+        match command {
+            CodeCmd::FocusNext => {
+                st.commit();
+                cx.focus_next();
+                acc.action(CodeAction::Leave { backward: false });
+            }
+            CodeCmd::FocusPrevious => {
+                st.commit();
+                cx.focus_prev();
+                acc.action(CodeAction::Leave { backward: true });
+            }
+            command => self.command(st, command, page, acc),
+        }
     }
 
     fn command(
@@ -1635,6 +1746,64 @@ mod tests {
             })
             .commit_presented();
         assert_eq!(calls.get(), 2);
+    }
+
+    #[test]
+    fn completion_splice_replaces_bytes_before_cursor_and_preserves_suffix() {
+        let mut state = CodeEditorState::new("SELECT nXme");
+        state.jump_to(9);
+        state.begin_edit();
+        let generation = state.edit_generation;
+
+        assert!(state.splice_completion(2, "na"));
+        assert_eq!(state.text(), "SELECT name");
+        assert_eq!(state.cursor_offset(), 9);
+        assert!(state.is_editing());
+        assert_eq!(state.edit_generation, generation + 1);
+    }
+
+    #[test]
+    fn completion_splice_uses_byte_lengths_and_grapheme_safe_ranges() {
+        let mut state = CodeEditorState::new("λx хвост");
+        state.jump_to("λx".len());
+        assert!(state.splice_completion("λx".len(), "界表"));
+        assert_eq!(state.text(), "界表 хвост");
+        assert_eq!(state.cursor_offset(), "界表".len());
+
+        let mut partial_grapheme = CodeEditorState::new("λtail");
+        partial_grapheme.jump_to("λ".len());
+        assert!(partial_grapheme.splice_completion(1, "X"));
+        assert_eq!(partial_grapheme.text(), "Xtail");
+    }
+
+    #[test]
+    fn completion_splice_clamps_to_document_start_and_keeps_diagnostics() {
+        let mut state = CodeEditorState::new("λtail");
+        state.jump_to("λ".len());
+        state.set_diagnostics(vec![CodeDiagnostic::new(
+            0..2,
+            CodeSeverity::Warning,
+            "kept through completion",
+        )]);
+        state.find = Some(FindState {
+            needle: "done".to_owned(),
+            matches: Vec::new(),
+            current: 0,
+            typing: false,
+        });
+
+        assert!(state.splice_completion(usize::MAX, "done"));
+        assert_eq!(state.text(), "donetail");
+        assert_eq!(state.diagnostics().len(), 1);
+        let matches = &state.find.as_ref().unwrap().matches;
+        assert_eq!(matches.len(), 1);
+        assert_eq!(matches[0], 0..4);
+
+        let mut empty = CodeEditorState::new("done");
+        empty.jump_to(4);
+        let generation = empty.edit_generation;
+        assert!(!empty.splice_completion(0, ""));
+        assert_eq!(empty.edit_generation, generation);
     }
 
     #[test]

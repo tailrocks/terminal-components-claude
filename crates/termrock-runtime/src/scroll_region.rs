@@ -1,6 +1,7 @@
 use core::fmt;
 
 use ratatui_core::layout::{Position, Rect};
+use ratatui_core::style::Modifier;
 
 use super::{PartStyle, SlotFn};
 use crate::hit::Axes;
@@ -16,6 +17,7 @@ pub struct ScrollRegion<'a> {
     id: Id,
     family: Family,
     scrollbar_visible: bool,
+    preserve_underlay: bool,
     ov: PartStyle<'a>,
 }
 
@@ -47,6 +49,7 @@ impl<'a> ScrollRegion<'a> {
             id,
             family: Family::SCROLLBAR,
             scrollbar_visible: true,
+            preserve_underlay: false,
             ov: PartStyle::new(),
         }
     }
@@ -54,6 +57,13 @@ impl<'a> ScrollRegion<'a> {
     #[must_use]
     pub const fn scrollbar_visible(mut self, visible: bool) -> Self {
         self.scrollbar_visible = visible;
+        self
+    }
+
+    /// Leave cells the caller already painted. The picker card samples backdrop ink first.
+    #[must_use]
+    pub const fn preserve_underlay(mut self, preserve: bool) -> Self {
+        self.preserve_underlay = preserve;
         self
     }
 
@@ -216,7 +226,9 @@ impl<'a> ScrollRegion<'a> {
             Part::CONTAINER,
             StateFlags::empty(),
         );
-        ui.fill(area, container.style);
+        if !self.preserve_underlay {
+            ui.fill(area, container.style);
+        }
         ui.report_layout(
             self.id,
             LayoutFacts::new(
@@ -251,27 +263,47 @@ impl<'a> ScrollRegion<'a> {
         let (start, len) = view.thumb(track_len);
         let ov = self.ov;
         let part_live = StateFlags::empty();
-        let track = ov.style(
+        let track_patch = ov.part_patch(Part::TRACK);
+        let track_resolved = ui.style_defaults_with_explicit(
+            self.family,
+            Variant::DEFAULT,
+            Part::TRACK,
+            part_live,
+            crate::theme::StyleDefaults::default(),
+            track_patch.as_ref(),
+        );
+        ov.note(
             ui,
             self.id,
             self.family,
             Variant::DEFAULT,
             Part::TRACK,
-            part_live,
+            track_resolved.resolved,
         );
+        let track = track_resolved.resolved;
         let thumb_live = if ui.pressed_part(self.id) == Some(PartRef::of(Part::THUMB)) {
             part_live | StateFlags::PRESSED
         } else {
             part_live
         };
-        let thumb = ov.style(
+        let thumb_patch = ov.part_patch(Part::THUMB);
+        let thumb_resolved = ui.style_defaults_with_explicit(
+            self.family,
+            Variant::DEFAULT,
+            Part::THUMB,
+            thumb_live,
+            crate::theme::StyleDefaults::default(),
+            thumb_patch.as_ref(),
+        );
+        ov.note(
             ui,
             self.id,
             self.family,
             Variant::DEFAULT,
             Part::THUMB,
-            thumb_live,
+            thumb_resolved.resolved,
         );
+        let thumb = thumb_resolved.resolved;
         let thumb_rect = Rect {
             y: track_rect
                 .y
@@ -279,27 +311,30 @@ impl<'a> ScrollRegion<'a> {
             height: len.min(usize::from(u16::MAX)) as u16,
             ..track_rect
         };
+        // `set_style` unions modifiers, so a bold cell under the bar stays bold unless subtracted.
+        let track_style = without_inherited_bold(track.style, track_resolved.explicit);
+        let thumb_style = without_inherited_bold(thumb.style, thumb_resolved.explicit);
         if let Some(f) = ov.slot_for(Part::TRACK) {
             f(ui, bar);
         } else {
             match track.glyph {
                 Slot::Set(glyph) if glyph != GlyphRole::ScrollTrack => {
                     for row in bar.rows() {
-                        ui.glyph(row, glyph, track.style);
+                        ui.glyph(row, glyph, track_style);
                     }
                 }
-                Slot::Clear => ui.fill(bar, track.style),
+                Slot::Clear => ui.fill(bar, track_style),
                 Slot::Inherit | Slot::Set(_) => {
                     for row in track_rect.rows() {
-                        ui.glyph(row, GlyphRole::ScrollTrack, track.style);
+                        ui.glyph(row, GlyphRole::ScrollTrack, track_style);
                     }
                     let set = ui.design().glyphs.scrollbar();
-                    ui.paint_cell(Position::new(bar.x, bar.y), set.begin, track.style);
+                    ui.paint_cell(Position::new(bar.x, bar.y), set.begin, track_style);
                     if bar.height > 1 {
                         ui.paint_cell(
                             Position::new(bar.x, bar.bottom().saturating_sub(1)),
                             set.end,
-                            track.style,
+                            track_style,
                         );
                     }
                 }
@@ -315,9 +350,9 @@ impl<'a> ScrollRegion<'a> {
             };
             for row in thumb_rect.rows() {
                 if let Some(g) = glyph {
-                    ui.glyph(row, g, thumb.style);
+                    ui.glyph(row, g, thumb_style);
                 } else {
-                    ui.fill(row, thumb.style);
+                    ui.fill(row, thumb_style);
                 }
             }
         }
@@ -331,6 +366,19 @@ impl<'a> ScrollRegion<'a> {
             preferred: c.max,
         }
         .fit(c)
+    }
+}
+
+fn without_inherited_bold(
+    style: crate::theme::PaintStyle,
+    explicit: StylePatch,
+) -> crate::theme::PaintStyle {
+    // Ratatui's set_style unions modifiers with the underlay. Clear underlay
+    // bold unless a theme, overlay, or instance style explicitly supplies it.
+    if explicit.add.contains(Modifier::BOLD) {
+        style
+    } else {
+        style.remove_modifier(Modifier::BOLD)
     }
 }
 
@@ -502,5 +550,64 @@ mod tests {
                 "unexpected slot behavior for {part:?}"
             );
         }
+    }
+
+    #[test]
+    fn scrollbar_drops_bold_inherited_from_the_cell_under_it() {
+        let mut rt = Runtime::new(Stub::default(), Theme::junie());
+        let mut buf = Buffer::empty(SCREEN);
+        let area = Rect::new(0, 0, 5, 6);
+        let under =
+            ratatui_core::style::Style::new().add_modifier(Modifier::BOLD | Modifier::ITALIC);
+        for y in area.y..area.bottom() {
+            if let Some(cell) = buf.cell_mut(Position::new(area.right() - 1, y)) {
+                cell.set_symbol("X").set_style(under);
+            }
+        }
+        let mut st = ScrollState::new(100);
+        st.set_viewport(6);
+        st.scroll_to(47);
+        rt.draw_scene(SCREEN, &mut buf, |ui, _| {
+            ScrollRegion::new(ID).draw(ui, area, &st, 100);
+        })
+        .commit_presented();
+        for y in area.y..area.bottom() {
+            let Some(cell) = buf.cell(Position::new(area.right() - 1, y)) else {
+                panic!("bar cell missing at y={y}");
+            };
+            assert_ne!(cell.symbol(), "X", "bar did not paint over y={y}");
+            assert!(
+                !cell.modifier.contains(Modifier::BOLD),
+                "bar kept bold at y={y}"
+            );
+            assert!(
+                cell.modifier.contains(Modifier::ITALIC),
+                "bar wiped italic at y={y}"
+            );
+        }
+    }
+
+    #[test]
+    fn scrollbar_preserves_resolved_theme_bold() {
+        let theme = Theme::junie().override_family(Family::SCROLLBAR, |recipe| {
+            recipe
+                .part(Part::TRACK)
+                .base(StylePatch::new().add(Modifier::BOLD));
+        });
+        let mut rt = Runtime::new(Stub::default(), theme);
+        let mut buf = Buffer::empty(SCREEN);
+        let area = Rect::new(0, 0, 5, 6);
+        let mut st = ScrollState::new(100);
+        st.set_viewport(6);
+        st.scroll_to(47);
+        rt.draw_scene(SCREEN, &mut buf, |ui, _| {
+            ScrollRegion::new(ID).draw(ui, area, &st, 100);
+        })
+        .commit_presented();
+        assert!(
+            buf.cell(Position::new(area.right() - 1, area.y))
+                .is_some_and(|cell| cell.modifier.contains(Modifier::BOLD)),
+            "theme-level track bold is part of the resolved scrollbar style"
+        );
     }
 }
