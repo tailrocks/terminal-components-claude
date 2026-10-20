@@ -14,7 +14,7 @@ use crate::measure::{Constraints, Size};
 use crate::response::{Response, StateFlags};
 use crate::secret::{Secret, SecretPolicy};
 use crate::text::{width, wrap, wrapped_rows};
-use crate::theme::{DesignTokens, Family, StylePatch, Surface, Variant};
+use crate::theme::{DesignTokens, Family, FgStep, Modifier, Role, StylePatch, Surface, Variant};
 use crate::ui::{Cx, FrameRead, Ui};
 use termrock_controls::button::Button;
 use termrock_feedback::keyhint::ChordText;
@@ -520,9 +520,56 @@ impl<'a> Dialog<'a> {
     }
 
     fn inner_width(&self, d: &DesignTokens) -> u16 {
-        self.measured_width(d)
-            .saturating_sub(2)
-            .saturating_sub(d.space.dialog_inset.saturating_mul(2))
+        // Baseline pad is 2 columns inside the border: width - 2 * (1 + 2).
+        self.measured_width(d).saturating_sub(2 * (1 + 2))
+    }
+
+    fn paint_close(&self, ui: &mut Ui<'_>, outer: Rect) {
+        if outer.width < 8 || outer.height < 3 {
+            return;
+        }
+        let x = outer.right().saturating_sub(5);
+        let y = outer.y;
+        let border = ui.paint_patch(
+            &StylePatch::new()
+                .set_fg(Role::BorderStrong)
+                .set_bg(Role::Surface(Surface::Elevated)),
+        );
+        let mark = ui.paint_patch(
+            &StylePatch::new()
+                .set_fg(Role::Fg(FgStep::Secondary))
+                .set_bg(Role::Surface(Surface::Elevated)),
+        );
+        ui.paint_str(
+            Rect {
+                x,
+                y,
+                width: 1,
+                height: 1,
+            },
+            " ",
+            border,
+        );
+        ui.paint_str(
+            Rect {
+                x: x.saturating_add(1),
+                y,
+                width: 1,
+                height: 1,
+            },
+            "×",
+            mark,
+        );
+        ui.paint_str(
+            Rect {
+                x: x.saturating_add(2),
+                y,
+                width: 1,
+                height: 1,
+            },
+            " ",
+            border,
+        );
     }
 
     fn input_rows(&self, d: &DesignTokens) -> u16 {
@@ -547,8 +594,11 @@ impl<'a> Dialog<'a> {
     pub fn measured_height(&self, d: &DesignTokens) -> u16 {
         let inner = self.inner_width(d);
         let desc = self.description.map_or(0, |s| wrapped_rows(s, inner));
-        let actions: u16 = if self.actions.is_empty() { 0 } else { 2 };
-        3u16.saturating_add(desc)
+        // Borders, title, the gap under the title, the gap above the buttons,
+        // and one row of padding above and below (pad.y = 1).
+        let actions: u16 = if self.actions.is_empty() { 0 } else { 1 };
+        5u16.saturating_add(2)
+            .saturating_add(desc)
             .saturating_add(self.input_rows(d))
             .saturating_add(self.body_block(d))
             .saturating_add(actions)
@@ -604,7 +654,7 @@ impl<'a> Dialog<'a> {
         let id = self.id;
 
         let live = StateFlags::empty();
-        overlay_chrome(
+        let painted = overlay_chrome(
             ui,
             id,
             chrome,
@@ -621,14 +671,15 @@ impl<'a> Dialog<'a> {
                     ov.style(ui, id, Family::DIALOG, Variant::DEFAULT, part, flags | live)
                 };
 
-                let pad = ui.design().space.dialog_inset;
+                let pad_x = 2u16;
+                let pad_y = 1u16;
                 let inner = crate::layout::inset(
                     framed,
                     crate::layout::Insets {
-                        l: pad,
-                        t: 0,
-                        r: pad,
-                        b: 0,
+                        l: pad_x,
+                        t: pad_y,
+                        r: pad_x,
+                        b: pad_y,
                     },
                 );
                 if inner.is_empty() {
@@ -645,7 +696,7 @@ impl<'a> Dialog<'a> {
                     ui.paint_str(row, t, ts.style);
                     ui.register_decor(id, PartRef::of(Part::TITLE), row);
                 }
-                y = y.saturating_add(1);
+                y = y.saturating_add(if self.title.is_some() { 2 } else { 1 });
                 let actions_y = if self.actions.is_empty() {
                     inner.bottom()
                 } else {
@@ -735,7 +786,7 @@ impl<'a> Dialog<'a> {
                             *slot = w;
                         }
                     }
-                    let rects = action_row(row, widths.get(..n).unwrap_or(&[]), 1, RowAlign::End);
+                    let rects = action_row(row, widths.get(..n).unwrap_or(&[]), 2, RowAlign::End);
                     for ((i, a), r) in actions.iter().enumerate().zip(rects) {
                         let action_id = self.action_id(i);
                         let enabled = self.enabled(i, a, st);
@@ -743,6 +794,29 @@ impl<'a> Dialog<'a> {
                             .variant(self.variant_of(a))
                             .disabled(!enabled)
                             .draw(ui, r);
+                        if let Some(ch) = a.label().chars().next() {
+                            let mut patch = StylePatch::new()
+                                .set_bg(Role::Surface(Surface::Overlay))
+                                .add(Modifier::UNDERLINED);
+                            if a.key() == ActionKey::CANCEL {
+                                patch = patch.set_fg(Role::Fg(FgStep::Primary)).add(Modifier::BOLD);
+                            } else {
+                                patch = patch.set_fg(Role::Custom(
+                                    ratatui_core::style::Color::Rgb(0xff, 0x6b, 0x6b),
+                                ));
+                            }
+                            let mark = ui.paint_patch(&patch);
+                            ui.paint_str(
+                                Rect {
+                                    x: r.x.saturating_add(1),
+                                    y: r.y,
+                                    width: 1,
+                                    height: 1,
+                                },
+                                &ch.to_string(),
+                                mark,
+                            );
+                        }
                         if enabled {
                             ui.publish_dynamic_bindings(
                                 action_id,
@@ -773,7 +847,9 @@ impl<'a> Dialog<'a> {
                 }
                 out
             },
-        )
+        );
+        self.paint_close(ui, chrome);
+        painted
     }
 
     pub fn measure(&self, ui: &Ui<'_>, c: Constraints) -> Size {

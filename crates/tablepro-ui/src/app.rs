@@ -2,15 +2,15 @@ use std::cell::RefCell;
 
 use termrock::author::{PaintStyle, StyleDefaults};
 use termrock::{
-    Action, ActionKey, Align, App, CellAction, CellUi, Chord, ColumnKey, Cx, Dialog, DialogAction,
-    DialogState, FgStep, Field, Focusability, Form, FormAction, FormState, FrameRead, GlyphRole,
-    Grid, GridAction, GridCell, GridColumnFit, GridEditor, GridGutter, GridModel,
+    Action, ActionKey, Align, Anchor, App, CellAction, CellUi, Chord, ColumnKey, Cx, Dialog,
+    DialogAction, DialogState, FgStep, Field, Focusability, Form, FormAction, FormState, FrameRead,
+    GlyphRole, Grid, GridAction, GridCell, GridColumnFit, GridEditor, GridGutter, GridModel,
     GridSortIndicator, Id, Intent, ItemKey, KeyCode, KeyMap, KeyModifiers, KeyPhase, LayerId,
-    Maximized, Modifier, Panel, PanelKind, Part, Phase, PickerAction, Position, Response, Role,
-    RowDecor, RowTotal, RowUi, Size, SortDir, Span, SplitAxis, SplitPane, SplitPaneState,
-    StateFlags, StylePatch, Tabs, TabsAction, TabsState, TextAction, TextInput, TextInputState,
-    Theme, Tree, TreeAction, TreeBranchActivation, TreeNode, TreeState, Ui, UpdateCause, truncate,
-    truncate_middle, width, wrap,
+    LayerSize, LayerSpec, Maximized, Modifier, Panel, PanelKind, Part, Phase, PickerAction,
+    Position, Response, Role, RowDecor, RowTotal, RowUi, Size, SortDir, Span, SplitAxis, SplitPane,
+    SplitPaneState, StateFlags, StylePatch, Tabs, TabsAction, TabsState, TextAction, TextInput,
+    TextInputState, Theme, Tree, TreeAction, TreeBranchActivation, TreeNode, TreeState, Ui,
+    UpdateCause, truncate, truncate_middle, width, wrap,
 };
 
 use crate::quick_switcher::{self, QuickSwitcher};
@@ -20,7 +20,6 @@ use crate::tabs::{ExplorerItem, GridView, Tab, TabKey, TabRecord};
 use crate::workbench::Workbench;
 
 mod historical_close_confirm;
-mod historical_delete_dialog;
 mod historical_filter_editor;
 mod historical_form_advanced;
 mod historical_form_new;
@@ -65,6 +64,7 @@ const DISCARD_ROWS: ActionKey = ActionKey::application("tablepro.discard-rows");
 const QUIT: ActionKey = ActionKey::application("tablepro.quit");
 const CANCEL_OR_QUIT: ActionKey = ActionKey::application("tablepro.cancel-or-quit");
 const QUIT_DIALOG: Id = Id::root("tablepro.quit-dialog");
+const DELETE_DIALOG: Id = Id::root("tablepro.delete-connection");
 const QUIT_ACTIONS: [Action<'static>; 2] = [
     Action::new(ActionKey::CANCEL, "Cancel"),
     Action::danger(ActionKey::CONFIRM, "Quit"),
@@ -610,6 +610,8 @@ pub struct TableProApp {
     form_actions: Box<[Action<'static>]>,
     form_open: bool,
     connection_delete: ConnectionDelete,
+    delete_question: String,
+    delete_state: DialogState,
     motion: Motion,
     tick: u64,
     explorer_pin: u8,
@@ -735,6 +737,8 @@ impl TableProApp {
             form_actions: Box::from(connections::form_actions()),
             form_open: false,
             connection_delete: ConnectionDelete::Closed,
+            delete_question: String::new(),
+            delete_state: DialogState::default(),
             motion: Motion::Full,
             tick: 0,
             explorer_pin: 0,
@@ -1694,22 +1698,6 @@ impl TableProApp {
         "Duplicated".clone_into(&mut self.status);
     }
 
-    fn production_connection_selected(&self) -> bool {
-        let Some(connection) = self
-            .connections_screen
-            .connections
-            .get(self.connections_screen.selected)
-        else {
-            return false;
-        };
-        connection.name == "Production"
-            && connection.host == "prod-db-1.acme.io"
-            && connection.user == "acme_ops"
-            && connection.database == "acme_prod"
-            && self.connections.len() == 6
-            && self.connections_screen.connections.len() == 6
-    }
-
     fn duplicate_active_row(&mut self) {
         if self
             .workbench
@@ -1829,6 +1817,96 @@ impl TableProApp {
         // Direct assign. set_surface(SafeModePicker) forces SafeFull.
         self.surface = Surface::SafeModePicker;
         true
+    }
+
+    fn delete_dialog(&self) -> Dialog<'_> {
+        Dialog::destructive(DELETE_DIALOG, "Delete connection?", &self.delete_question).width(54)
+    }
+
+    fn open_delete_dialog(&mut self, cx: &mut Cx<'_>) -> bool {
+        if self.screen != Screen::Connections
+            || self.form_open
+            || self.connection_filter_editing
+            || self.destructive_intent.is_some()
+            || cx.is_open(DELETE_DIALOG)
+        {
+            return false;
+        }
+        let Some(connection) = self
+            .connections_screen
+            .connections
+            .get(self.connections_screen.selected)
+        else {
+            return false;
+        };
+        self.delete_question = format!(
+            "{} ({}@{}) will be removed from connections.json. Its password stays in the keychain until you remove it there.",
+            connection.name, connection.user, connection.host
+        );
+        let dialog = self.delete_dialog();
+        let design = cx.design();
+        let width = dialog.measured_width(design);
+        let height = dialog.measured_height(design);
+        let screen = cx.viewport();
+        let top = 2u16;
+        let bottom = 1u16;
+        let bounds_h = screen.height.saturating_sub(top.saturating_add(bottom));
+        let y = screen
+            .y
+            .saturating_add(top)
+            .saturating_add(bounds_h.saturating_sub(height) / 2);
+        let x = screen
+            .x
+            .saturating_add(screen.width.saturating_sub(width) / 2);
+        cx.open_layer(
+            DELETE_DIALOG,
+            LayerSpec::modal(DELETE_DIALOG)
+                .anchor(Anchor::Point(Position::new(x, y.saturating_sub(1))))
+                .initial_focus(dialog.action_id(0))
+                .size(LayerSize::Fixed(width, height)),
+        );
+        self.delete_state = DialogState::default();
+        self.connection_delete = ConnectionDelete::Open;
+        true
+    }
+
+    fn update_delete_dialog(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+        if self.connection_delete != ConnectionDelete::Open || !cx.is_open(DELETE_DIALOG) {
+            return Response::ignored();
+        }
+        let question = self.delete_question.clone();
+        let response = Dialog::destructive(DELETE_DIALOG, "Delete connection?", &question)
+            .width(54)
+            .update(cx, &mut self.delete_state);
+        let close = match response.action_ref() {
+            Some(DialogAction::Dismissed(_) | DialogAction::Action(ActionKey::CANCEL)) => true,
+            Some(DialogAction::Action(ActionKey::CONFIRM)) => {
+                self.remove_selected_connection();
+                true
+            }
+            _ => false,
+        };
+        if close {
+            cx.close_layer(DELETE_DIALOG, None);
+            self.connection_delete = ConnectionDelete::Closed;
+            self.delete_question.clear();
+        }
+        response.erase()
+    }
+
+    fn remove_selected_connection(&mut self) {
+        let index = self.connections_screen.selected;
+        if self.connections.get(index).is_none() {
+            return;
+        }
+        self.connections.remove(index);
+        self.connections_screen.connections.remove(index);
+        if self.connections.is_empty() {
+            self.connections_screen.selected = 0;
+        } else if index >= self.connections.len() {
+            self.connections_screen.selected = self.connections.len().saturating_sub(1);
+        }
+        self.connection_nodes = build_connection_nodes(&self.connections);
     }
 
     fn open_help(&mut self, cx: &mut Cx<'_>) -> bool {
@@ -2657,6 +2735,28 @@ impl TableProApp {
         let inner = panel.inner(ui, list_area);
         let body = legacy_tree_body(inner);
         panel.draw(ui, list_area, |_, _| {});
+        if self.connection_delete == ConnectionDelete::Open {
+            // The dialog takes focus. Baseline draws that title as secondary,
+            // which the backdrop then dims to faint. The border stays strong.
+            let title = " Connections ";
+            let style = ui.surface_style().patch(
+                ui.paint_patch(
+                    &StylePatch::new()
+                        .set_fg(Role::Fg(FgStep::Secondary))
+                        .remove(Modifier::BOLD),
+                ),
+            );
+            ui.paint_str(
+                termrock::Rect {
+                    x: list_area.x.saturating_add(2),
+                    y: list_area.y,
+                    width: width(title),
+                    height: 1,
+                },
+                title,
+                style,
+            );
+        }
         paint_frame_title_tail(ui, list_area, " Connections ", Role::BorderStrong);
         paint_panel_tail(ui, list_area, Role::BorderStrong);
         self.paint_connection_browser(ui, body, inner);
@@ -7026,9 +7126,9 @@ fn draw_header(ui: &mut Ui<'_>, area: termrock::Rect, app: &TableProApp) {
                 area,
                 &[
                     Span::new("  "),
-                    Span::new("▪").role(LEGACY_FAINT),
+                    Span::new("▪").role(Role::Accent),
                     Span::new(" "),
-                    Span::new(" TablePro "),
+                    Span::new(" TablePro ").bold(),
                     Span::new(" "),
                     Span::new("Connections").role(Role::Fg(FgStep::Secondary)),
                     Span::new("  "),
@@ -7042,9 +7142,9 @@ fn draw_header(ui: &mut Ui<'_>, area: termrock::Rect, app: &TableProApp) {
                 area,
                 &[
                     Span::new("  "),
-                    Span::new("▪").role(LEGACY_FAINT),
+                    Span::new("▪").role(Role::Accent),
                     Span::new(" "),
-                    Span::new(" TablePro "),
+                    Span::new(" TablePro ").bold(),
                     Span::new(" "),
                     Span::new("Connections").role(Role::Fg(FgStep::Secondary)),
                     Span::new(&surface).role(Role::Fg(FgStep::Secondary)),
@@ -7069,9 +7169,9 @@ fn draw_header(ui: &mut Ui<'_>, area: termrock::Rect, app: &TableProApp) {
             area,
             &[
                 Span::new("  "),
-                Span::new("▪").role(LEGACY_FAINT),
+                Span::new("▪").role(Role::Accent),
                 Span::new(" "),
-                Span::new(" TablePro  "),
+                Span::new(" TablePro  ").bold(),
                 Span::new(&app.connection.name),
                 Span::new(" "),
                 Span::new(" "),
@@ -7672,6 +7772,28 @@ fn paint_connection_filter_footer(ui: &mut Ui<'_>, area: termrock::Rect) {
     );
 }
 
+fn paint_delete_footer(ui: &mut Ui<'_>, area: termrock::Rect) {
+    let base = ui.surface_style();
+    ui.paint_spans(
+        area,
+        &[
+            Span::new(" "),
+            Span::new("←→").bold(),
+            Span::new(" "),
+            Span::new("Choose").role(TAG_CHROME_FG),
+            Span::new("  "),
+            Span::new("Enter").bold(),
+            Span::new(" "),
+            Span::new("Cancel").role(TAG_CHROME_FG),
+            Span::new("  "),
+            Span::new("Esc").bold(),
+            Span::new(" "),
+            Span::new("Cancel").role(TAG_CHROME_FG),
+        ],
+        base,
+    );
+}
+
 fn paint_help_footer(ui: &mut Ui<'_>, area: termrock::Rect) {
     let base = ui.surface_style();
     ui.paint_spans(
@@ -7749,6 +7871,8 @@ fn draw_footer(ui: &mut Ui<'_>, area: termrock::Rect, app: &TableProApp) {
         paint_picker_move_footer(ui, area);
     } else if app.surface == Surface::HelpDialog {
         paint_help_footer(ui, area);
+    } else if app.connection_delete == ConnectionDelete::Open {
+        paint_delete_footer(ui, area);
     } else if app.screen == Screen::Connections && app.connection_filter_editing {
         paint_connection_filter_footer(ui, area);
         return;
@@ -8203,15 +8327,6 @@ impl TableProApp {
         true
     }
 
-    fn paint_historical_delete_dialog(&self, ui: &mut Ui<'_>) -> bool {
-        if !self.historical_delete_dialog_frame(ui) {
-            return false;
-        }
-        // Trailer is ESC[?25l. Do not set a bar cursor and do not write cursor bytes.
-        historical_delete_dialog::paint(ui);
-        true
-    }
-
     fn paint_historical_close_confirm(&self, ui: &mut Ui<'_>) -> bool {
         if !self.historical_close_confirm_frame(ui) {
             return false;
@@ -8267,31 +8382,6 @@ impl TableProApp {
             .draft_text()
             .unwrap_or(query.query.as_str())
             == "x"
-    }
-
-    fn historical_delete_dialog_frame(&self, ui: &Ui<'_>) -> bool {
-        let area = ui.full();
-        // The approved card is the PTY frame. Unit tests have no tty, but
-        // `d` still has to land on the approved cell or its check fails.
-        let on_terminal = std::io::IsTerminal::is_terminal(&std::io::stdout());
-        if area.width != 120 || area.height != 40 || !(on_terminal || cfg!(test)) {
-            return false;
-        }
-        let theme = ui.theme_ref();
-        if theme.capability.color != termrock::ColorLevel::TrueColor
-            || theme.color.accent != termrock::Color::Rgb(0x48, 0xe0, 0x54)
-        {
-            return false;
-        }
-        // Help, safe mode, the tab list, the picker, dirty rows, table data,
-        // the filter editor, and the plain connections list are other cards.
-        self.connection_delete == ConnectionDelete::Open
-            && self.screen == Screen::Connections
-            && self.surface == Surface::Connections
-            && !self.form_open
-            && !self.connection_filter_editing
-            && self.destructive_intent.is_none()
-            && self.production_connection_selected()
     }
 
     fn paint_historical_filter_editor(&self, ui: &mut Ui<'_>) -> bool {
@@ -9028,6 +9118,7 @@ impl App for TableProApp {
         response |= self.update_tab_list(cx);
         response |= self.update_safe_mode(cx);
         response |= self.update_help(cx);
+        response |= self.update_delete_dialog(cx);
         if switcher_was_open {
             return response;
         }
@@ -9157,14 +9248,7 @@ impl App for TableProApp {
                     self.sync_active_tab();
                     response |= Response::changed();
                 }
-                c if c == DELETE_CONNECTION
-                    && self.screen == Screen::Connections
-                    && !self.form_open
-                    && !self.connection_filter_editing
-                    && self.destructive_intent.is_none()
-                    && self.production_connection_selected() =>
-                {
-                    self.connection_delete = ConnectionDelete::Open;
+                c if c == DELETE_CONNECTION && self.open_delete_dialog(cx) => {
                     response |= Response::changed();
                 }
                 c if c == FORM => {
@@ -9411,7 +9495,6 @@ impl App for TableProApp {
             || self.paint_historical_table_scrolled_right(ui)
             || self.paint_historical_history_tab(ui)
             || self.paint_historical_filter_editor(ui)
-            || self.paint_historical_delete_dialog(ui)
             || self.paint_historical_close_confirm(ui)
         {
             return;
@@ -9492,6 +9575,12 @@ impl App for TableProApp {
         ui.layer(crate::help_keys::ID, |ui, area| {
             crate::help_keys::draw(ui, area, &self.help_state);
         });
+        if self.connection_delete == ConnectionDelete::Open {
+            ui.layer(DELETE_DIALOG, |ui, area| {
+                self.delete_dialog()
+                    .draw(ui, area, &self.delete_state, |_, _| {});
+            });
+        }
         if let Some(intent) = self.destructive_intent.as_ref() {
             ui.layer(QUIT_DIALOG, |ui, area| {
                 intent.dialog().draw(ui, area, &self.quit_state, |_, _| {});

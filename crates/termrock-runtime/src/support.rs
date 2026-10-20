@@ -31,7 +31,7 @@ pub fn overlay_chrome<R>(
             return ui.with_area(area, |ui| body(ui, area));
         }
         let container = ov.style(ui, id, family, Variant::DEFAULT, Part::CONTAINER, live);
-        if family == Family::PICKER {
+        if family == Family::PICKER || family == Family::DIALOG {
             // Baseline fills the popup in the same buffer the backdrop dimmed.
             // Copy each page cell through that mapping, then paint the card bg.
             let resolved = container.style.into_style();
