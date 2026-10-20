@@ -65,6 +65,15 @@ FRESH_PLAN_SCHEMA = "termrock.frozen-cli-fresh-capture-plan"
 FRESH_PLAN_VERSION = 1
 FRESH_PLAN_FILE = "fresh-capture-plan.json"
 FRESH_PLAN_MAX_TIMEOUT = 225
+FRESH_RUNTIME_ENV_KEYS = tuple(sorted({
+    "PATH", "HOME", "CARGO_HOME", "RUSTUP_HOME", "RUSTUP_TOOLCHAIN", "RUSTC", "RUSTDOC", "CARGO_TARGET_DIR",
+    "NEXTEST_EXPERIMENTAL_LIBTEST_JSON",
+    "RUSTC_BOOTSTRAP", "CARGO_BUILD_JOBS", "CARGO_NET_OFFLINE", "CARGO_HTTP_MULTIPLEXING",
+    "CC", "CXX", "AR", "CFLAGS", "CXXFLAGS", "LDFLAGS", "LIBRARY_PATH", "CPATH",
+    "PKG_CONFIG_PATH", "SDKROOT", "DEVELOPER_DIR", "MACOSX_DEPLOYMENT_TARGET", "DYLD_LIBRARY_PATH",
+    "LANG", "LC_ALL", "LC_CTYPE", "TZ", "TERM", "COLORTERM", "NO_COLOR", "CLICOLOR", "CLICOLOR_FORCE",
+    "TERMINFO", "TERMINFO_DIRS", "TMPDIR", "TMP", "TEMP", "XDG_CONFIG_HOME", "XDG_CACHE_HOME", "XDG_DATA_HOME",
+}))
 BUILD_PROVENANCE_FILE = "build-provenance.json"
 BUILD_PROVENANCE_SCHEMA = "termrock.frozen-build-provenance"
 BUILD_PROVENANCE_VERSION = 1
@@ -835,8 +844,12 @@ def prepare_live_source(
         "live_snapshots_sha256": digest_tree(live / "snapshots"),
         "changed_files": sorted(changed),
     }
-    env = clean_env()
+    env = fresh_clean_env() if fresh_cohort is not None else clean_env()
     env["CARGO_TARGET_DIR"] = str(root / "live-target")
+    if fresh_cohort is not None:
+        env["NEXTEST_EXPERIMENTAL_LIBTEST_JSON"] = "1"
+        info["preparation_environment"] = fresh_environment_fingerprint(env)
+        info["preparation_tool_observation"] = fresh_tool_observation(live, env)
     inventory = nextest_inventory(live, timeout, env, extension_manifest)
     original_inventory, _ = validate_extension_inventory(inventory, extension_manifest)
     info["test_inventory_sha256"] = inventory_digest(inventory)
@@ -890,6 +903,12 @@ def verify_live_source(
         "frozen_snapshots_sha256": digest_tree(source / "snapshots"),
         "live_snapshots_sha256": digest_tree(live / "snapshots"),
     }
+    if fresh_cohort_id is not None:
+        env = fresh_clean_env()
+        env["CARGO_TARGET_DIR"] = str(root / "live-target")
+        env["NEXTEST_EXPERIMENTAL_LIBTEST_JSON"] = "1"
+        current["preparation_environment"] = fresh_environment_fingerprint(env)
+        current["preparation_tool_observation"] = fresh_tool_observation(live, env)
     for key, value in current.items():
         if recorded.get(key) != value:
             raise RunnerError(f"live source provenance changed: {key}")
@@ -1036,6 +1055,33 @@ def toolchain_provenance(source: Path, env: dict[str, str]) -> dict[str, object]
         "sdk_version": sdk_version,
         "xcode_developer_directory": selected_xcode,
         "link_invocation": "not captured; cargo config and available linker identities are recorded as observations",
+    }
+
+
+def _selected_executable_observation(name: str, env: dict[str, str], version_args: list[str], cwd: Path, override: str | None = None) -> dict[str, object]:
+    entry = override or shutil.which(name, path=env.get("PATH"))
+    if not entry:
+        raise RunnerError(f"fresh execution tool is unavailable: {name}")
+    resolved = Path(entry).resolve(strict=True)
+    digest, identity = stable_private_binary(resolved, f"selected fresh execution tool {name}")
+    version = _captured_output([str(resolved), *version_args], cwd=cwd, env=env)
+    if not version:
+        raise RunnerError(f"selected fresh execution tool did not report its version: {name}")
+    return {"path": str(resolved), "sha256": digest, "file_identity": identity, "version": version}
+
+
+def fresh_tool_observation(source: Path, env: dict[str, str]) -> dict[str, object]:
+    """Capture selected executable identities and compiler/linker metadata without storing binary bytes."""
+    invocation = {
+        "cargo": _selected_executable_observation("cargo", env, ["--version", "--verbose"], source),
+        "rustc_path_entry": _selected_executable_observation("rustc", env, ["-vV"], source, env.get("RUSTC")),
+        "cargo_nextest": _selected_executable_observation("cargo-nextest", env, ["--version"], source),
+        "python": _selected_executable_observation("python", env, ["--version"], source, sys.executable),
+    }
+    return {
+        "host": {"system": platform.system(), "release": platform.release(), "machine": platform.machine()},
+        "invocation_tools": invocation,
+        "selected_toolchain": toolchain_provenance(source, env),
     }
 
 
@@ -1590,6 +1636,27 @@ def clean_env() -> dict[str, str]:
     blocked = {"BLESS", "COMBO_FILTER", "MIDTEST_BUILD", "PRINT_PAGES", "REACH_DUMP", "RUSTFLAGS", "RUSTDOCFLAGS", "CARGO_ENCODED_RUSTFLAGS", "RUSTC_WRAPPER", "RUSTC_WORKSPACE_WRAPPER", "CARGO_BUILD_TARGET"}
     blocked_prefixes = ("VISUAL_", "TERMROCK_PAIR_", "UPDATE_", "NEXTEST_", "NEXTTEST_", "DUMP_", "SHOWCASE_", "INSTA_", "SNAPSHOT", "TUISNAP", "TUISCOTTI", "JUNIE_TUI_", "CARGO_PROFILE_")
     return {key: value for key, value in os.environ.items() if key not in blocked and not key.startswith(blocked_prefixes)}
+
+
+def fresh_clean_env() -> dict[str, str]:
+    """Use only the explicit fresh-runner environment allowlist."""
+    base = clean_env()
+    return {key: value for key, value in base.items() if key in FRESH_RUNTIME_ENV_KEYS}
+
+
+def fresh_environment_fingerprint(env: dict[str, str]) -> dict[str, object]:
+    observed = {
+        key: {"present": key in env, "value_sha256": hashlib.sha256(env[key].encode()).hexdigest() if key in env else None}
+        for key in FRESH_RUNTIME_ENV_KEYS
+    }
+    return {
+        "policy": "only-explicit-allowlisted-keys-passed; omitted-parent-keys-are-removed",
+        "keys": list(FRESH_RUNTIME_ENV_KEYS),
+        "values": observed,
+        "sha256": canonical_json_digest(observed),
+        "raw_values_recorded": False,
+        "unknown_parent_environment_values_recorded": False,
+    }
 
 
 TERM_PROFILES = {"xterm-256color", "linux", "dumb", "unset"}
@@ -2313,12 +2380,15 @@ def build_fresh_plan_payload(
             ],
         },
     ]
-    env = clean_env()
+    live = root / "live-source"
+    env = fresh_clean_env()
+    env["CARGO_TARGET_DIR"] = str(root / "live-target")
+    env["NEXTEST_EXPERIMENTAL_LIBTEST_JSON"] = "1"
     runtime_env = {
-        "policy": "runner-clean-env-with-explicit-controlled-overrides",
-        "allowlisted_value_hashes": build_environment_fingerprint(env),
+        "policy": "fresh-clean-env-with-explicit-runtime-allowlist",
+        "effective_environment": fresh_environment_fingerprint(env),
+        "selected_tools": fresh_tool_observation(live, env),
         "overrides": {
-            "NEXTEST_EXPERIMENTAL_LIBTEST_JSON": "1",
             "VISUAL_FULL": "1",
             "VISUAL_REVIEW": "0",
             "VISUAL_BIN_DIR": cohort["binaries"][APPS[0]]["path"].rsplit(os.sep, 1)[0],
@@ -2444,7 +2514,7 @@ def validate_fresh_plan_document(document: object) -> dict[str, object]:
     for field, digest in document["runner_inputs"].items():
         if not isinstance(digest, str) or not re.fullmatch(r"[0-9a-f]{64}", digest):
             raise RunnerError(f"fresh plan runner input digest is invalid: {field}")
-    if not isinstance(document["runtime"], dict) or set(document["runtime"]) != {"policy", "allowlisted_value_hashes", "overrides", "child_time_policy", "controlled_clock", "terminal_profile", "font_profile", "unknown_parent_environment_values_recorded"}:
+    if not isinstance(document["runtime"], dict) or set(document["runtime"]) != {"policy", "effective_environment", "selected_tools", "overrides", "child_time_policy", "controlled_clock", "terminal_profile", "font_profile", "unknown_parent_environment_values_recorded"}:
         raise RunnerError("fresh plan runtime fields are invalid")
     inventory = document["inventory"]
     if not isinstance(inventory, dict) or set(inventory) != {"sha256", "full_sorted", "visual_original", "visual_extensions", "visual_selected", "ordinary_selected", "ordinary_source_only", "ordinary_baseline_cli", "visual_count", "original_visual_count", "extension_visual_count", "ordinary_count", "case_terminal_inputs", "checkpoint_obligations"}:
@@ -2506,7 +2576,7 @@ def validate_fresh_plan_document(document: object) -> dict[str, object]:
     runtime = document["runtime"]
     if not isinstance(runtime, dict) or runtime.get("font_profile") != {"name": "pinned-tuiscotti-VENDORED_FACES", "tuiscotti_rev": TUISCOTTI_REV}:
         raise RunnerError("fresh plan font or Tuiscotti profile is invalid")
-    if runtime.get("unknown_parent_environment_values_recorded") is not False or not isinstance(runtime.get("allowlisted_value_hashes"), dict):
+    if runtime.get("policy") != "fresh-clean-env-with-explicit-runtime-allowlist" or runtime.get("unknown_parent_environment_values_recorded") is not False or not isinstance(runtime.get("effective_environment"), dict) or not isinstance(runtime.get("selected_tools"), dict):
         raise RunnerError("fresh plan environment disclosure policy is invalid")
     if runtime.get("child_time_policy") != "fixed by pinned frozen scenario harness; no clock override bytes are stored in plan":
         raise RunnerError("fresh plan time control policy is invalid")
@@ -2521,7 +2591,7 @@ def validate_fresh_plan_document(document: object) -> dict[str, object]:
     return document
 
 
-def _read_self_sealed_plan(path: Path) -> dict[str, object]:
+def _read_self_sealed_plan(path: Path, expected_sha256: str | None = None) -> dict[str, object]:
     try:
         before = path.lstat()
         if stat.S_ISLNK(before.st_mode) or not stat.S_ISREG(before.st_mode):
@@ -2548,8 +2618,12 @@ def _read_self_sealed_plan(path: Path) -> dict[str, object]:
                 raise RunnerError(f"duplicate fresh plan JSON field: {key}")
             result[key] = value
         return result
+    raw = b"".join(chunks)
+    if expected_sha256 is not None:
+        if not re.fullmatch(r"[0-9a-f]{64}", expected_sha256) or hashlib.sha256(raw).hexdigest() != expected_sha256:
+            raise RunnerError("fresh plan does not match the externally retained creation digest")
     try:
-        parsed = json.loads(b"".join(chunks), object_pairs_hook=strict_object)
+        parsed = json.loads(raw, object_pairs_hook=strict_object)
     except json.JSONDecodeError as error:
         raise RunnerError("fresh plan is not valid JSON") from error
     return validate_fresh_plan_document(parsed)
@@ -2595,7 +2669,7 @@ def create_fresh_plan(
     capture = require_capture_eligible_cohort(repo, cohort_id, baseline_bin_dir.resolve())
     live, live_record = verify_live_source(repo, root, source, timeout, fresh_cohort_id=cohort_id, baseline_bin_dir=baseline_bin_dir)
     extension_manifest = load_extension_manifest(repo / EXTENSION_MANIFEST)
-    env = clean_env()
+    env = fresh_clean_env()
     env.update({"CARGO_TARGET_DIR": str(root / "live-target"), "NEXTEST_EXPERIMENTAL_LIBTEST_JSON": "1"})
     inventory = nextest_inventory(live, timeout, env, extension_manifest)
     require_inventory_matches(inventory, str(live_record.get("test_inventory_sha256")))
@@ -2609,23 +2683,23 @@ def create_fresh_plan(
     plan_path = root / FRESH_PLAN_FILE
     _atomic_create_plan(plan_path, plan)
     _read_self_sealed_plan(plan_path)
-    print(json.dumps({"plan_path": str(plan_path), "plan_sha256": plan["plan_sha256"], "status": plan["status"], "visual_cases": plan["inventory"]["visual_count"], "ordinary_checks": plan["inventory"]["ordinary_count"]}, indent=2))
+    print(json.dumps({"plan_path": str(plan_path), "plan_sha256": plan["plan_sha256"], "creation_file_sha256": sha256(plan_path), "status": plan["status"], "visual_cases": plan["inventory"]["visual_count"], "ordinary_checks": plan["inventory"]["ordinary_count"]}, indent=2))
     return plan
 
 
-def verify_fresh_plan(repo: Path, root: Path, cohort_id: str, baseline_bin_dir: Path, timeout: int) -> dict[str, object]:
+def verify_fresh_plan(repo: Path, root: Path, cohort_id: str, baseline_bin_dir: Path, timeout: int, expected_plan_sha256: str) -> dict[str, object]:
     if timeout > FRESH_PLAN_MAX_TIMEOUT:
         raise RunnerError(f"fresh plan verification timeout must be <= {FRESH_PLAN_MAX_TIMEOUT} seconds")
     repo, root, source = paths(repo, root)
     plan_path = root / FRESH_PLAN_FILE
-    plan = _read_self_sealed_plan(plan_path)
+    plan = _read_self_sealed_plan(plan_path, expected_plan_sha256)
     if plan["cohort"].get("cohort_id") != cohort_id:
         raise RunnerError("fresh plan belongs to another reviewed executable cohort")
     verify_source(root, source)
     capture = require_capture_eligible_cohort(repo, cohort_id, baseline_bin_dir.resolve())
     live, live_record = verify_live_source(repo, root, source, timeout, fresh_cohort_id=cohort_id, baseline_bin_dir=baseline_bin_dir)
     extension_manifest = load_extension_manifest(repo / EXTENSION_MANIFEST)
-    env = clean_env()
+    env = fresh_clean_env()
     env.update({"CARGO_TARGET_DIR": str(root / "live-target"), "NEXTEST_EXPERIMENTAL_LIBTEST_JSON": "1"})
     inventory = nextest_inventory(live, timeout, env, extension_manifest)
     regenerated = build_fresh_plan_payload(
@@ -2636,7 +2710,7 @@ def verify_fresh_plan(repo: Path, root: Path, cohort_id: str, baseline_bin_dir: 
     )
     if regenerated != plan:
         raise RunnerError("fresh plan no longer matches source, tool, cohort, environment, or complete test inventory pins")
-    print(json.dumps({"plan_sha256": plan["plan_sha256"], "status": plan["status"], "verified": True}, indent=2))
+    print(json.dumps({"plan_sha256": plan["plan_sha256"], "creation_file_sha256": expected_plan_sha256, "status": plan["status"], "verified": True}, indent=2))
     return plan
 
 
@@ -3103,8 +3177,11 @@ def parser() -> argparse.ArgumentParser:
     plan.add_argument("--chunk-size", type=int, default=DEFAULT_CHUNK_SIZE)
     plan.add_argument("--term-profile", choices=sorted(TERM_PROFILES), default=None)
     verify_plan = sub.add_parser("verify-fresh-plan")
+    verify_plan.set_defaults(timeout=min(MAX_TIMEOUT, FRESH_PLAN_MAX_TIMEOUT))
     verify_plan.add_argument("--cohort", required=True)
     verify_plan.add_argument("--baseline-bin-dir", type=Path, required=True)
+    verify_plan.add_argument("--expected-plan-sha256", required=True, help="digest retained from fresh-plan creation; self-digest alone is not an approval anchor")
+    plan.set_defaults(timeout=min(MAX_TIMEOUT, FRESH_PLAN_MAX_TIMEOUT))
     sub.add_parser("build")
     candidate_build = sub.add_parser("build-candidate")
     candidate_build.add_argument("--target-dir", type=Path)
@@ -3147,7 +3224,7 @@ def main() -> int:
         elif args.command == "fresh-plan":
             create_fresh_plan(args.repo, args.root, args.cohort, args.baseline_bin_dir, args.timeout, args.chunk_size, args.term_profile)
         elif args.command == "verify-fresh-plan":
-            verify_fresh_plan(args.repo, args.root, args.cohort, args.baseline_bin_dir, args.timeout)
+            verify_fresh_plan(args.repo, args.root, args.cohort, args.baseline_bin_dir, args.timeout, args.expected_plan_sha256)
         elif args.command == "build":
             build(args.repo, args.root, args.timeout)
         elif args.command == "build-candidate":
