@@ -396,7 +396,12 @@ fn paint_size_label(ui: &mut Ui<'_>, area: Rect) -> u16 {
     size_x
 }
 
-/// Tag parity-history status at 100×30: cwd, branch, then the size label. No ahead count.
+fn parity_history_tag_plate(world: &World, width: u16, height: u16) -> bool {
+    crate::sim::catalogue::parity_history_80x24_plate(world, width, height).is_some()
+        || crate::sim::catalogue::parity_history_100x30_plate(world, width, height).is_some()
+}
+
+/// Tag parity-history status at 80×24 and 100×30: cwd, branch, then the size label. No ahead count.
 fn paint_parity_history_status(ui: &mut Ui<'_>, area: Rect) {
     if area.is_empty() {
         return;
@@ -1550,13 +1555,7 @@ impl App {
             paint_remote_host_status(ui, status);
         } else if crate::sim::catalogue::hard_cases_tag_frame(&self.world) {
             paint_hard_cases_status(ui, status);
-        } else if crate::sim::catalogue::parity_history_100x30_plate(
-            &self.world,
-            ui.full().width,
-            ui.full().height,
-        )
-        .is_some()
-        {
+        } else if parity_history_tag_plate(&self.world, ui.full().width, ui.full().height) {
             paint_parity_history_status(ui, status);
         } else if launch_failure_plate_open(&self.world, ui) {
             paint_launch_failure_status(ui, status);
@@ -1669,13 +1668,7 @@ impl App {
             ))
         } else if crate::sim::catalogue::hard_cases_tag_frame(&self.world) {
             Some(("Open", None))
-        } else if crate::sim::catalogue::parity_history_100x30_plate(
-            &self.world,
-            ui.full().width,
-            ui.full().height,
-        )
-        .is_some()
-        {
+        } else if parity_history_tag_plate(&self.world, ui.full().width, ui.full().height) {
             Some(("Run", None))
         } else {
             None
@@ -1789,19 +1782,15 @@ impl App {
                 ui.full().height,
             )
             .is_some();
-            let history_mid = crate::sim::catalogue::parity_history_100x30_plate(
-                &self.world,
-                ui.full().width,
-                ui.full().height,
-            )
-            .is_some();
+            let history_plate =
+                parity_history_tag_plate(&self.world, ui.full().width, ui.full().height);
             let parts = if monorepo_child_mid
                 || remote_host_mid
                 || first_use_mid
                 || monorepo_root_mid
                 || hard_cases_mid
                 || discovery_mid
-                || history_mid
+                || history_plate
                 || (narrow
                     && (crate::sim::catalogue::first_use_tag_frame(&self.world)
                         || crate::sim::catalogue::monorepo_root_tag_frame(&self.world)
