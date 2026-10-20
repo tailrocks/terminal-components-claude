@@ -2420,8 +2420,26 @@ pub fn activities_multi_80x24_plate(
     if history || width != 80 || height != 24 {
         return None;
     }
+    activities_multi_collapsed(w)
+}
+
+/// 100×30 no-history `activities-multi` plate. Not the 80×24 plate and not the 120×40 card.
+/// Later seeks and other sizes stay off it. History keeps the wide card.
+pub fn activities_multi_100x30_plate(
+    w: &World,
+    width: u16,
+    height: u16,
+    history: bool,
+) -> Option<ParityDiscovery> {
+    if history || width != 100 || height != 30 {
+        return None;
+    }
+    activities_multi_collapsed(w)
+}
+
+/// Shared collapsed rows. `node` would paint `n…` at 80×24; the frozen row is `sqlx-cli`.
+fn activities_multi_collapsed(w: &World) -> Option<ParityDiscovery> {
     let wide = activities_multi_tag(w)?;
-    // Narrow label keeps one letter of the tool. `node` would paint `n…`; the frozen row is `s…`.
     let mut lines = wide.lines;
     for line in &mut lines {
         if let FinderLine::Row(row) = line
