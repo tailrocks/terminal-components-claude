@@ -374,6 +374,12 @@ impl HomeState {
             return;
         }
         if let Some(view) =
+            catalogue::hard_cases_100x30_plate(world, ui.full().width, ui.full().height)
+            && paint_tag_list_plate(ui, rows_area, &view, 100, 30)
+        {
+            return;
+        }
+        if let Some(view) =
             catalogue::parity_discovery_80x24_plate(world, ui.full().width, ui.full().height)
             && paint_first_use_80x24(ui, rows_area, &view)
         {
