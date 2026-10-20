@@ -1527,6 +1527,11 @@ impl<'a> Form<'a> {
         }
     }
 
+    /// Estimates size without consulting [`FormData`].
+    ///
+    /// This compatibility method cannot account for data-dependent visibility,
+    /// radio option counts, or the row pairing used when `columns(2)` is set.
+    /// Consumers with form data should use [`Self::measure_with_data`].
     pub fn measure(&self, ui: &Ui<'_>, constraints: Constraints) -> Size {
         let rows = self
             .fields
@@ -1536,6 +1541,27 @@ impl<'a> Form<'a> {
                 sum.saturating_add(Self::field_height(field, ui.design()))
             })
             .saturating_add(u16::from(!self.actions.is_empty()));
+        Size {
+            min: (8, rows.min(1)),
+            preferred: (constraints.max.0, rows),
+        }
+        .fit(constraints)
+    }
+
+    /// Measures the visible fields using the same placement plan as update and draw.
+    ///
+    /// Measurement reads visibility and option data only. It does not update
+    /// controls, validate values, invoke domain handlers, or mutate form state.
+    pub fn measure_with_data<D: FormData + ?Sized>(
+        &self,
+        ui: &Ui<'_>,
+        constraints: Constraints,
+        data: &D,
+    ) -> Size {
+        let rows = Self::content_rows(self.placements(ui.design(), constraints.max.0), data)
+            .saturating_add(usize::from(!self.actions.is_empty()))
+            .try_into()
+            .unwrap_or(u16::MAX);
         Size {
             min: (8, rows.min(1)),
             preferred: (constraints.max.0, rows),
