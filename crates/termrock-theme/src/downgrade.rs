@@ -213,6 +213,47 @@ fn mono(rgb: (u8, u8, u8)) -> Color {
     }
 }
 
+/// Baseline `--color none` ink for one raw RGB cell.
+///
+/// `menu_row` is the top brand chip. That chip keeps the reverse attribute.
+/// The same green elsewhere becomes black on white without reverse.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct LegacyMono {
+    pub fg: Color,
+    pub bg: Color,
+    pub underline: bool,
+    pub reverse: bool,
+}
+
+pub fn legacy_mono(fg: Color, bg: Color, menu_row: bool) -> Option<LegacyMono> {
+    let fg_rgb = rgb_of(fg)?;
+    let bg_rgb = rgb_of(bg)?;
+    let (out_fg, out_bg, underline, reverse) = match (fg_rgb, bg_rgb) {
+        ((0x19, 0x19, 0x1c), (0x48, 0xe0, 0x54)) => (Color::Black, Color::White, false, menu_row),
+        ((0x79, 0xb8, 0xff), (0, 0, 0)) => (Color::Gray, Color::Black, true, false),
+        ((0xff, 0xff, 0xff), (0x27, 0x27, 0x2a)) => (Color::Black, Color::DarkGray, false, false),
+        ((0x27, 0x27, 0x2a), (0x27, 0x27, 0x2a)) => {
+            (Color::DarkGray, Color::DarkGray, false, false)
+        }
+        ((0x26, 0x26, 0x26), (0, 0, 0)) => (Color::DarkGray, Color::Black, false, false),
+        ((0x8a, 0x8a, 0x8a) | (0xb3, 0xb3, 0xb3) | (0x73, 0x73, 0x73), (0, 0, 0)) => {
+            (Color::Gray, Color::Black, false, false)
+        }
+        ((0x48, 0xe0, 0x54) | (0x3f, 0xb9, 0x50), (0, 0, 0)) => {
+            (Color::White, Color::Black, false, false)
+        }
+        ((0xff, 0xff, 0xff), (0, 0, 0)) => (Color::White, Color::Black, false, false),
+        ((0, 0, 0), (0, 0, 0)) => (Color::Black, Color::Black, false, false),
+        _ => return None,
+    };
+    Some(LegacyMono {
+        fg: out_fg,
+        bg: out_bg,
+        underline,
+        reverse,
+    })
+}
+
 /// Downgrade a painted pair. On 16 colors, white on dark gray becomes black
 /// so the label keeps the baseline contrast.
 pub fn downgrade_pair(fg: Color, bg: Color, level: ColorLevel) -> (Color, Color) {
@@ -766,6 +807,45 @@ mod tests {
         assert_eq!(rgb_of_index(232), (8, 8, 8));
         assert_eq!(rgb_of_index(16), (0, 0, 0));
         assert_eq!(rgb_of_index(231), (255, 255, 255));
+    }
+
+    #[test]
+    fn legacy_mono_matches_the_frozen_launch_inks() {
+        let ink = |fg: Color, bg: Color, menu: bool| legacy_mono(fg, bg, menu).expect("known ink");
+        let brand = ink(
+            Color::Rgb(0x19, 0x19, 0x1c),
+            Color::Rgb(0x48, 0xe0, 0x54),
+            true,
+        );
+        assert_eq!(brand.fg, Color::Black);
+        assert_eq!(brand.bg, Color::White);
+        assert!(brand.reverse);
+        assert!(
+            !ink(
+                Color::Rgb(0x19, 0x19, 0x1c),
+                Color::Rgb(0x48, 0xe0, 0x54),
+                false
+            )
+            .reverse
+        );
+        let trace = ink(Color::Rgb(0x79, 0xb8, 0xff), Color::Rgb(0, 0, 0), false);
+        assert_eq!(trace.fg, Color::Gray);
+        assert!(trace.underline);
+        assert_eq!(
+            ink(Color::Rgb(0xb3, 0xb3, 0xb3), Color::Rgb(0, 0, 0), false).fg,
+            Color::Gray
+        );
+        assert_eq!(
+            ink(Color::Rgb(0x26, 0x26, 0x26), Color::Rgb(0, 0, 0), false).fg,
+            Color::DarkGray
+        );
+        let button = ink(
+            Color::Rgb(0xff, 0xff, 0xff),
+            Color::Rgb(0x27, 0x27, 0x2a),
+            false,
+        );
+        assert_eq!(button.fg, Color::Black);
+        assert_eq!(button.bg, Color::DarkGray);
     }
 
     #[test]
