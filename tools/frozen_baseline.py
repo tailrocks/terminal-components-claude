@@ -61,6 +61,10 @@ CAPTURE_REVIEW_EVIDENCE_INDEX = Path("docs/audits/2026-10-21-fresh-baseline-capt
 CAPTURE_REVIEW_EVIDENCE_INDEX_SHA256 = "7333d762ddbbc25f7fafbc78fd49fe016358b787123dbfdabce422172121ba2c"
 CAPTURE_REVIEW_CONTRACT = Path("docs/audits/2026-10-21-fresh-capture-resumable-runner-contract.json")
 CAPTURE_REVIEW_CONTRACT_SHA256 = "81df800e4b16a8240acf7c569a9c5c9472fa1678c96aa78947928ca7a082ebfb"
+FRESH_PLAN_SCHEMA = "termrock.frozen-cli-fresh-capture-plan"
+FRESH_PLAN_VERSION = 1
+FRESH_PLAN_FILE = "fresh-capture-plan.json"
+FRESH_PLAN_MAX_TIMEOUT = 225
 BUILD_PROVENANCE_FILE = "build-provenance.json"
 BUILD_PROVENANCE_SCHEMA = "termrock.frozen-build-provenance"
 BUILD_PROVENANCE_VERSION = 1
@@ -738,7 +742,38 @@ def verify_source(root: Path, source: Path) -> str:
     return current
 
 
-def prepare_live_source(repo: Path, root: Path, source: Path, timeout: int) -> dict[str, object]:
+def _fresh_cohort_source_record(repo: Path, cohort_id: str, binary_dir: Path) -> dict[str, object]:
+    capture = require_capture_eligible_cohort(repo, cohort_id, binary_dir)
+    hashes: dict[str, str] = {}
+    identities: dict[str, dict[str, int]] = {}
+    for app in APPS:
+        hashes[app], identities[app] = stable_private_binary(binary_dir / app, f"fresh-capture baseline binary {app}")
+    if hashes != {app: item["sha256"] for app, item in capture["binaries"].items()}:
+        raise RunnerError("capture cohort binary hashes changed during source preparation")
+    return {
+        "cohort_id": cohort_id,
+        "cohort_registry_sha256": capture["cohort_registry_sha256"],
+        "review_registry_sha256": capture["review_registry_sha256"],
+        "decision_sha256": capture["decision_sha256"],
+        "evidence_index_sha256": capture["evidence_index_sha256"],
+        "binary_sha256": hashes,
+        "binary_file_identity": identities,
+        "binary_dir": str(binary_dir.resolve()),
+        "candidate_comparison_eligible": False,
+        "checkpoint_reference_approval": "none",
+        "product_acceptance_eligible": False,
+    }
+
+
+def prepare_live_source(
+    repo: Path,
+    root: Path,
+    source: Path,
+    timeout: int,
+    *,
+    fresh_cohort_id: str | None = None,
+    baseline_bin_dir: Path | None = None,
+) -> dict[str, object]:
     live = root / "live-source"
     if live.exists():
         raise RunnerError(f"refusing to replace prepared live source: {live}")
@@ -753,7 +788,16 @@ def prepare_live_source(repo: Path, root: Path, source: Path, timeout: int) -> d
     if sha256(extension_manifest_path) != EXTENSION_MANIFEST_SHA256 or sha256(extension_source_path) != EXTENSION_SOURCE_SHA256:
         raise RunnerError("visual extension manifest or Rust module differs from the pinned extension revision")
     extension_manifest = load_extension_manifest(extension_manifest_path)
-    _, reference_decision_hash = load_reference_decisions(repo, root, source)
+    if fresh_cohort_id is None:
+        if baseline_bin_dir is not None:
+            raise RunnerError("baseline binary directory requires explicit fresh cohort mode")
+        _, reference_decision_hash = load_reference_decisions(repo, root, source)
+        fresh_cohort = None
+    else:
+        if baseline_bin_dir is None:
+            raise RunnerError("fresh cohort mode requires its sealed baseline binary directory")
+        fresh_cohort = _fresh_cohort_source_record(repo, fresh_cohort_id, baseline_bin_dir.resolve())
+        reference_decision_hash = None
     before = file_manifest(source)
     shutil.copytree(source, live, ignore=shutil.ignore_patterns("target"), symlinks=True)
     snapshot_hash = digest_tree(source / "snapshots")
@@ -785,6 +829,7 @@ def prepare_live_source(repo: Path, root: Path, source: Path, timeout: int) -> d
         "extension_module_sha256": sha256(extension_module),
         "extension_case_count": len(extension_manifest["generated_case_ids"]),
         "reference_decisions_sha256": reference_decision_hash,
+        "fresh_capture_cohort": fresh_cohort,
         "extension_inventory_sha256": hashlib.sha256(json.dumps(extension_manifest["generated_case_ids"], separators=(",", ":")).encode()).hexdigest(),
         "frozen_snapshots_sha256": snapshot_hash,
         "live_snapshots_sha256": digest_tree(live / "snapshots"),
@@ -803,18 +848,33 @@ def prepare_live_source(repo: Path, root: Path, source: Path, timeout: int) -> d
     return info
 
 
-def verify_live_source(repo: Path, root: Path, source: Path, timeout: int) -> tuple[Path, dict[str, object]]:
+def verify_live_source(
+    repo: Path,
+    root: Path,
+    source: Path,
+    timeout: int,
+    *,
+    fresh_cohort_id: str | None = None,
+    baseline_bin_dir: Path | None = None,
+) -> tuple[Path, dict[str, object]]:
     live = root / "live-source"
     manifest_path = root / "live-source.json"
     if not live.is_dir() or not manifest_path.is_file():
         raise RunnerError("live source missing; run prepare-live first")
     recorded = json.loads(manifest_path.read_text())
+    recorded_fresh = recorded.get("fresh_capture_cohort")
+    if fresh_cohort_id is None:
+        if recorded_fresh is not None or baseline_bin_dir is not None:
+            raise RunnerError("prepared source requires its explicit fresh cohort verification mode")
+    else:
+        if baseline_bin_dir is None or not isinstance(recorded_fresh, dict) or recorded_fresh.get("cohort_id") != fresh_cohort_id:
+            raise RunnerError("prepared source does not match the requested fresh cohort")
     patch = repo / "tools" / "frozen_cli_pair.patch"
     helper = repo / "tools" / "frozen-cli-frame-support" / "src" / "lib.rs"
     extension_manifest = repo / EXTENSION_MANIFEST
     extension_source = repo / EXTENSION_SOURCE
     reference_path = repo / REFERENCE_DECISIONS
-    reference_decision_hash = sha256(reference_path) if reference_path.is_file() and not reference_path.is_symlink() else ""
+    reference_decision_hash = sha256(reference_path) if fresh_cohort_id is None and reference_path.is_file() and not reference_path.is_symlink() else None
     current = {
         "frozen_source_sha256": digest_source(source),
         "live_source_sha256": digest_source(live),
@@ -826,15 +886,19 @@ def verify_live_source(repo: Path, root: Path, source: Path, timeout: int) -> tu
         "extension_module_sha256": sha256(live / "tests" / "visual_baseline" / "frozen_cli_extensions.rs"),
         "extension_manifest_copy_sha256": sha256(live / "tests" / "visual_baseline" / "frozen_cli_extensions.json"),
         "reference_decisions_sha256": reference_decision_hash,
+        "fresh_capture_cohort": _fresh_cohort_source_record(repo, fresh_cohort_id, baseline_bin_dir.resolve()) if fresh_cohort_id is not None and baseline_bin_dir is not None else None,
         "frozen_snapshots_sha256": digest_tree(source / "snapshots"),
         "live_snapshots_sha256": digest_tree(live / "snapshots"),
     }
     for key, value in current.items():
         if recorded.get(key) != value:
             raise RunnerError(f"live source provenance changed: {key}")
-    _, validated_reference_hash = load_reference_decisions(repo, root, source)
-    if validated_reference_hash != current["reference_decisions_sha256"]:
-        raise RunnerError("reference decision provenance changed")
+    if fresh_cohort_id is None:
+        _, validated_reference_hash = load_reference_decisions(repo, root, source)
+        if validated_reference_hash != current["reference_decisions_sha256"]:
+            raise RunnerError("reference decision provenance changed")
+    elif current["reference_decisions_sha256"] is not None:
+        raise RunnerError("fresh cohort source unexpectedly depends on legacy checkpoint decisions")
     if current["extension_manifest_sha256"] != EXTENSION_MANIFEST_SHA256 or current["extension_source_sha256"] != EXTENSION_SOURCE_SHA256:
         raise RunnerError("visual extension inputs differ from the pinned extension revision")
     if current["patch_sha256"] != EXTENSION_PATCH_SHA256:
@@ -2182,6 +2246,400 @@ def scenario_chunks(names: list[str], size: int) -> list[list[str]]:
     return chunks
 
 
+def _visual_case_conditions(names: list[str]) -> dict[str, dict[str, object]]:
+    conditions: dict[str, dict[str, object]] = {}
+    for name in names:
+        parts = name.rsplit("::", 2)
+        if len(parts) != 3 or not re.fullmatch(r"[0-9]+x[0-9]+", parts[1]) or parts[2] not in {"truecolor", "256", "16", "none", "nocolor"}:
+            raise RunnerError(f"visual scenario does not encode a supported terminal size and color mode: {name}")
+        cols, rows = (int(value) for value in parts[1].split("x", 1))
+        if cols < 1 or rows < 1:
+            raise RunnerError(f"visual scenario encodes a zero-sized terminal: {name}")
+        conditions[name] = {"cols": cols, "rows": rows, "color_mode": parts[2]}
+    return conditions
+
+
+def _chunk_records(names: list[str], size: int) -> list[dict[str, object]]:
+    return [
+        {"index": index, "selected_cases": chunk}
+        for index, chunk in enumerate(scenario_chunks(names, size))
+    ]
+
+
+def build_fresh_plan_payload(
+    *,
+    repo: Path,
+    root: Path,
+    cohort: dict[str, object],
+    live_record: dict[str, object],
+    inventory: dict[str, bool],
+    extension_manifest: dict[str, object],
+    chunk_size: int,
+    term_profile: str | None,
+    plan_id: str,
+    created_at: str,
+) -> dict[str, object]:
+    if not 1 <= chunk_size <= DEFAULT_CHUNK_SIZE:
+        raise RunnerError(f"fresh plan chunk size must be 1..{DEFAULT_CHUNK_SIZE}")
+    original_inventory, extension_ids = validate_extension_inventory(inventory, extension_manifest)
+    require_inventory_matches(inventory, str(live_record.get("test_inventory_sha256")))
+    visual = sorted(name for name, ignored in inventory.items() if ignored)
+    source_only, baseline_cli = ordinary_test_groups(inventory)
+    if len(visual) != EXPECTED_SCENARIOS + len(extension_ids) or len(source_only) + len(baseline_cli) != EXPECTED_ORDINARY_TESTS:
+        raise RunnerError("fresh plan selection is incomplete or includes a zero-case group")
+    conditions = _visual_case_conditions(visual)
+    extension_obligations = extension_manifest["checkpoint_obligations"]
+    if set(extension_obligations) != set(extension_ids):
+        raise RunnerError("fresh plan extension checkpoint obligations are incomplete")
+    obligations: dict[str, dict[str, object]] = {}
+    for name in visual:
+        if name in extension_obligations:
+            obligations[name] = {"kind": "exact", "checkpoints": extension_obligations[name]}
+        else:
+            obligations[name] = {
+                "kind": "pinned-harness-nonempty-ordered-receipts",
+                "harness_sha256": live_record["module_sha256"],
+                "scenario_test_id": name,
+            }
+    visual_chunks = _chunk_records(visual, chunk_size)
+    phases = [
+        {"name": "baseline-capture", "chunks": visual_chunks},
+        {"name": "baseline-replay", "chunks": visual_chunks},
+        {
+            "name": "baseline-ordinary-checks",
+            "groups": [
+                {"name": "source-only", "chunks": _chunk_records(source_only, chunk_size)},
+                {"name": "baseline-cli", "chunks": _chunk_records(baseline_cli, chunk_size)},
+            ],
+        },
+    ]
+    env = clean_env()
+    runtime_env = {
+        "policy": "runner-clean-env-with-explicit-controlled-overrides",
+        "allowlisted_value_hashes": build_environment_fingerprint(env),
+        "overrides": {
+            "NEXTEST_EXPERIMENTAL_LIBTEST_JSON": "1",
+            "VISUAL_FULL": "1",
+            "VISUAL_REVIEW": "0",
+            "VISUAL_BIN_DIR": cohort["binaries"][APPS[0]]["path"].rsplit(os.sep, 1)[0],
+        },
+        "child_time_policy": "fixed by pinned frozen scenario harness; no clock override bytes are stored in plan",
+        "controlled_clock": {
+            "extension_cases": {"TUISCOTTI_FIXED_TIME": "2026-01-01T00:00:00Z"},
+            "original_cases": "use only the clock policy declared by the pinned frozen scenario harness",
+        },
+        "terminal_profile": apply_term_profile(clean_env(), term_profile),
+        "font_profile": {"name": "pinned-tuiscotti-VENDORED_FACES", "tuiscotti_rev": TUISCOTTI_REV},
+        "unknown_parent_environment_values_recorded": False,
+    }
+    source = root / "source"
+    live = root / "live-source"
+    extension_path = repo / EXTENSION_MANIFEST
+    patch_path = repo / "tools" / "frozen_cli_pair.patch"
+    helper_path = repo / "tools" / "frozen-cli-frame-support" / "src" / "lib.rs"
+    runner_path = Path(__file__).resolve()
+    payload: dict[str, object] = {
+        "schema": FRESH_PLAN_SCHEMA,
+        "schema_version": FRESH_PLAN_VERSION,
+        "status": "prepared-not-executed",
+        "plan_id": plan_id,
+        "created_at_utc": created_at,
+        "cohort": cohort,
+        "source": {
+            "tag": BASELINE_TAG,
+            "tag_object": BASELINE_TAG_OBJECT,
+            "commit": BASELINE_COMMIT,
+            "tree": BASELINE_TREE,
+            "tuiscotti_rev": TUISCOTTI_REV,
+            "source_path": str(source.resolve()),
+            "source_sha256": digest_source(source),
+            "source_tree_sha256": digest_tree(source),
+            "cargo_lock_sha256": sha256(source / "Cargo.lock"),
+            "rust_toolchain_sha256": sha256(source / "rust-toolchain.toml"),
+            "visual_test_tree_sha256": digest_tree(source / "tests" / "visual_baseline"),
+            "snapshots_sha256": digest_tree(source / "snapshots"),
+            "live_source_path": str(live.resolve()),
+            "live_source_sha256": digest_source(live),
+            "live_test_tree_sha256": digest_tree(live / "tests" / "visual_baseline"),
+        },
+        "runner_inputs": {
+            "runner_sha256": sha256(runner_path),
+            "harness_patch_sha256": sha256(patch_path),
+            "frame_helper_sha256": sha256(helper_path),
+            "extension_manifest_sha256": sha256(extension_path),
+            "extension_source_sha256": sha256(repo / EXTENSION_SOURCE),
+            "frozen_test_harness_sha256": digest_tree(live / "tests" / "visual_baseline"),
+            "frozen_source_manifest_sha256": sha256(root / "provenance.json"),
+            "live_source_manifest_sha256": sha256(root / "live-source.json"),
+            "capture_decision_sha256": cohort["decision_sha256"],
+            "capture_evidence_index_sha256": cohort["evidence_index_sha256"],
+            "cohort_registry_sha256": cohort["cohort_registry_sha256"],
+            "cohort_review_registry_sha256": cohort["review_registry_sha256"],
+            "resumable_contract_sha256": CAPTURE_REVIEW_CONTRACT_SHA256,
+        },
+        "runtime": runtime_env,
+        "inventory": {
+            "sha256": inventory_digest(inventory),
+            "full_sorted": [{"name": name, "ignored": inventory[name]} for name in sorted(inventory)],
+            "visual_original": sorted(name for name, ignored in original_inventory.items() if ignored),
+            "visual_extensions": extension_ids,
+            "visual_selected": visual,
+            "ordinary_selected": sorted(name for name, ignored in inventory.items() if not ignored),
+            "ordinary_source_only": source_only,
+            "ordinary_baseline_cli": baseline_cli,
+            "visual_count": len(visual),
+            "original_visual_count": EXPECTED_SCENARIOS,
+            "extension_visual_count": len(extension_ids),
+            "ordinary_count": len(source_only) + len(baseline_cli),
+            "case_terminal_inputs": conditions,
+            "checkpoint_obligations": obligations,
+        },
+        "execution": {
+            "timeout_seconds_per_advance": FRESH_PLAN_MAX_TIMEOUT,
+            "chunk_size": chunk_size,
+            "phases": phases,
+            "candidate_phase": None,
+            "candidate_comparison_eligible": False,
+            "checkpoint_reference_approval": "none",
+            "product_acceptance": False,
+            "artifact_roots": {
+                "run_root": str((root / "fresh-capture" / plan_id).resolve()),
+                "baseline_capture": str((root / "fresh-capture" / plan_id / "baseline-capture").resolve()),
+                "baseline_replay": str((root / "fresh-capture" / plan_id / "baseline-replay").resolve()),
+                "ordinary_checks": str((root / "fresh-capture" / plan_id / "baseline-ordinary-checks").resolve()),
+            },
+            "receipt_secret": "not stored in plan; generated only by a future per-step process and never passed to application env",
+        },
+    }
+    plan = {**payload, "plan_sha256": canonical_json_digest(payload)}
+    validate_fresh_plan_document(plan)
+    return plan
+
+
+def validate_fresh_plan_document(document: object) -> dict[str, object]:
+    fields = {"schema", "schema_version", "status", "plan_id", "created_at_utc", "cohort", "source", "runner_inputs", "runtime", "inventory", "execution", "plan_sha256"}
+    if not isinstance(document, dict) or set(document) != fields:
+        raise RunnerError("fresh plan fields differ from schema version 1")
+    if document["schema"] != FRESH_PLAN_SCHEMA or type(document["schema_version"]) is not int or document["schema_version"] != FRESH_PLAN_VERSION or document["status"] != "prepared-not-executed":
+        raise RunnerError("fresh plan schema or execution status is invalid")
+    if not isinstance(document["plan_id"], str) or not re.fullmatch(r"[0-9a-f]{32}", document["plan_id"]):
+        raise RunnerError("fresh plan id is invalid")
+    cohort = document["cohort"]
+    if not isinstance(cohort, dict) or set(cohort) != {"cohort_id", "cohort_registry_sha256", "review_registry_sha256", "decision_sha256", "evidence_index_sha256", "status", "source", "tools", "binaries", "fresh_baseline_capture_eligible", "baseline_replay_eligible", "candidate_comparison_eligible", "checkpoint_reference_approval", "product_acceptance_eligible", "acceptance_complete"}:
+        raise RunnerError("fresh plan cohort identity fields are invalid")
+    if cohort.get("fresh_baseline_capture_eligible") is not True or cohort.get("baseline_replay_eligible") is not True:
+        raise RunnerError("fresh plan cohort is not eligible for capture and replay")
+    if cohort.get("candidate_comparison_eligible") is not False or cohort.get("checkpoint_reference_approval") != "none" or cohort.get("product_acceptance_eligible") is not False or cohort.get("acceptance_complete") is not False:
+        raise RunnerError("fresh plan cohort grants forbidden candidate or reference privileges")
+    for field in ("cohort_registry_sha256", "review_registry_sha256", "decision_sha256", "evidence_index_sha256"):
+        if not isinstance(cohort.get(field), str) or not re.fullmatch(r"[0-9a-f]{64}", cohort[field]):
+            raise RunnerError(f"fresh plan cohort digest is invalid: {field}")
+    if not isinstance(document["source"], dict) or set(document["source"]) != {"tag", "tag_object", "commit", "tree", "tuiscotti_rev", "source_path", "source_sha256", "source_tree_sha256", "cargo_lock_sha256", "rust_toolchain_sha256", "visual_test_tree_sha256", "snapshots_sha256", "live_source_path", "live_source_sha256", "live_test_tree_sha256"}:
+        raise RunnerError("fresh plan source identity fields are invalid")
+    source = document["source"]
+    if (source.get("tag"), source.get("tag_object"), source.get("commit"), source.get("tree"), source.get("tuiscotti_rev")) != (BASELINE_TAG, BASELINE_TAG_OBJECT, BASELINE_COMMIT, BASELINE_TREE, TUISCOTTI_REV):
+        raise RunnerError("fresh plan source pins differ from the fixed reference")
+    if not isinstance(document["runner_inputs"], dict) or set(document["runner_inputs"]) != {"runner_sha256", "harness_patch_sha256", "frame_helper_sha256", "extension_manifest_sha256", "extension_source_sha256", "frozen_test_harness_sha256", "frozen_source_manifest_sha256", "live_source_manifest_sha256", "capture_decision_sha256", "capture_evidence_index_sha256", "cohort_registry_sha256", "cohort_review_registry_sha256", "resumable_contract_sha256"}:
+        raise RunnerError("fresh plan runner input fields are invalid")
+    for field, digest in document["runner_inputs"].items():
+        if not isinstance(digest, str) or not re.fullmatch(r"[0-9a-f]{64}", digest):
+            raise RunnerError(f"fresh plan runner input digest is invalid: {field}")
+    if not isinstance(document["runtime"], dict) or set(document["runtime"]) != {"policy", "allowlisted_value_hashes", "overrides", "child_time_policy", "controlled_clock", "terminal_profile", "font_profile", "unknown_parent_environment_values_recorded"}:
+        raise RunnerError("fresh plan runtime fields are invalid")
+    inventory = document["inventory"]
+    if not isinstance(inventory, dict) or set(inventory) != {"sha256", "full_sorted", "visual_original", "visual_extensions", "visual_selected", "ordinary_selected", "ordinary_source_only", "ordinary_baseline_cli", "visual_count", "original_visual_count", "extension_visual_count", "ordinary_count", "case_terminal_inputs", "checkpoint_obligations"}:
+        raise RunnerError("fresh plan inventory fields are invalid")
+    rows = inventory["full_sorted"]
+    if not isinstance(rows, list) or not rows or any(not isinstance(row, dict) or set(row) != {"name", "ignored"} or not isinstance(row["name"], str) or type(row["ignored"]) is not bool for row in rows):
+        raise RunnerError("fresh plan inventory rows are invalid")
+    names = [row["name"] for row in rows]
+    if names != sorted(names) or len(names) != len(set(names)) or inventory["sha256"] != inventory_digest({row["name"]: row["ignored"] for row in rows}):
+        raise RunnerError("fresh plan inventory is unsorted, duplicated, or has a false digest")
+    visual = [row["name"] for row in rows if row["ignored"]]
+    ordinary = [row["name"] for row in rows if not row["ignored"]]
+    if visual != inventory["visual_selected"] or ordinary != inventory["ordinary_selected"]:
+        raise RunnerError("fresh plan inventory selection differs from complete registered inventory")
+    extensions = inventory["visual_extensions"]
+    if not isinstance(extensions, list) or extensions != sorted(set(extensions)) or any(name not in visual for name in extensions):
+        raise RunnerError("fresh plan extension case inventory is invalid")
+    if len(visual) != EXPECTED_SCENARIOS + len(extensions) or len(ordinary) != EXPECTED_ORDINARY_TESTS:
+        raise RunnerError("fresh plan visual or ordinary inventory count is incomplete")
+    if inventory["visual_original"] != sorted(set(visual) - set(extensions)):
+        raise RunnerError("fresh plan original visual selection differs from extension inventory")
+    if (inventory["visual_count"], inventory["original_visual_count"], inventory["extension_visual_count"], inventory["ordinary_count"]) != (
+        len(visual), EXPECTED_SCENARIOS, len(extensions), len(ordinary)
+    ):
+        raise RunnerError("fresh plan declared counts differ from the complete inventory")
+    source_only = inventory["ordinary_source_only"]
+    baseline_cli = inventory["ordinary_baseline_cli"]
+    if not isinstance(source_only, list) or not isinstance(baseline_cli, list) or source_only != sorted(set(source_only)) or baseline_cli != sorted(set(baseline_cli)):
+        raise RunnerError("fresh plan ordinary groups are invalid")
+    if sorted(source_only + baseline_cli) != ordinary or set(source_only) & set(baseline_cli):
+        raise RunnerError("fresh plan ordinary groups omit or duplicate registered checks")
+    if set(inventory["case_terminal_inputs"]) != set(visual) or set(inventory["checkpoint_obligations"]) != set(visual):
+        raise RunnerError("fresh plan case inputs or checkpoint obligations are incomplete")
+    for name, condition in inventory["case_terminal_inputs"].items():
+        if not isinstance(condition, dict) or set(condition) != {"cols", "rows", "color_mode"} or type(condition["cols"]) is not int or type(condition["rows"]) is not int or min(condition["cols"], condition["rows"]) < 1 or condition["color_mode"] not in {"truecolor", "256", "16", "none", "nocolor"}:
+            raise RunnerError(f"fresh plan has invalid terminal inputs for {name}")
+    execution = document["execution"]
+    if not isinstance(execution, dict) or set(execution) != {"timeout_seconds_per_advance", "chunk_size", "phases", "candidate_phase", "candidate_comparison_eligible", "checkpoint_reference_approval", "product_acceptance", "artifact_roots", "receipt_secret"} or execution.get("candidate_phase") is not None or execution.get("candidate_comparison_eligible") is not False or execution.get("checkpoint_reference_approval") != "none" or execution.get("product_acceptance") is not False:
+        raise RunnerError("fresh plan execution scope enables a forbidden phase")
+    if type(execution.get("chunk_size")) is not int or not 1 <= execution["chunk_size"] <= DEFAULT_CHUNK_SIZE or execution.get("timeout_seconds_per_advance") != FRESH_PLAN_MAX_TIMEOUT:
+        raise RunnerError("fresh plan chunk or timeout bounds are invalid")
+    if not isinstance(execution.get("phases"), list) or len(execution["phases"]) != 3 or any(not isinstance(phase, dict) for phase in execution["phases"]):
+        raise RunnerError("fresh plan phase records are malformed")
+    phase_names = [phase.get("name") for phase in execution["phases"]]
+    if phase_names != ["baseline-capture", "baseline-replay", "baseline-ordinary-checks"]:
+        raise RunnerError("fresh plan phase inventory is incomplete or out of order")
+    visual_chunks = _chunk_records(visual, execution.get("chunk_size"))
+    for phase in execution["phases"][:2]:
+        if phase != {"name": phase["name"], "chunks": visual_chunks}:
+            raise RunnerError("fresh plan visual phase chunk membership differs from inventory")
+    ordinary_groups = execution["phases"][2].get("groups") if isinstance(execution["phases"][2], dict) else None
+    if not isinstance(ordinary_groups, list) or [group.get("name") for group in ordinary_groups if isinstance(group, dict)] != ["source-only", "baseline-cli"]:
+        raise RunnerError("fresh plan ordinary group order is invalid")
+    if ordinary_groups != [
+        {"name": "source-only", "chunks": _chunk_records(source_only, execution["chunk_size"])},
+        {"name": "baseline-cli", "chunks": _chunk_records(baseline_cli, execution["chunk_size"])},
+    ]:
+        raise RunnerError("fresh plan ordinary chunk membership differs from inventory")
+    runtime = document["runtime"]
+    if not isinstance(runtime, dict) or runtime.get("font_profile") != {"name": "pinned-tuiscotti-VENDORED_FACES", "tuiscotti_rev": TUISCOTTI_REV}:
+        raise RunnerError("fresh plan font or Tuiscotti profile is invalid")
+    if runtime.get("unknown_parent_environment_values_recorded") is not False or not isinstance(runtime.get("allowlisted_value_hashes"), dict):
+        raise RunnerError("fresh plan environment disclosure policy is invalid")
+    if runtime.get("child_time_policy") != "fixed by pinned frozen scenario harness; no clock override bytes are stored in plan":
+        raise RunnerError("fresh plan time control policy is invalid")
+    if runtime.get("controlled_clock") != {
+        "extension_cases": {"TUISCOTTI_FIXED_TIME": "2026-01-01T00:00:00Z"},
+        "original_cases": "use only the clock policy declared by the pinned frozen scenario harness",
+    }:
+        raise RunnerError("fresh plan controlled clock inputs are invalid")
+    payload = {key: value for key, value in document.items() if key != "plan_sha256"}
+    if not isinstance(document["plan_sha256"], str) or document["plan_sha256"] != canonical_json_digest(payload):
+        raise RunnerError("fresh plan content digest mismatch")
+    return document
+
+
+def _read_self_sealed_plan(path: Path) -> dict[str, object]:
+    try:
+        before = path.lstat()
+        if stat.S_ISLNK(before.st_mode) or not stat.S_ISREG(before.st_mode):
+            raise RunnerError("fresh plan is symlinked or non-regular")
+        fd = os.open(path, os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0))
+        try:
+            opened = os.fstat(fd)
+            chunks: list[bytes] = []
+            while chunk := os.read(fd, 1024 * 1024):
+                chunks.append(chunk)
+            after_fd = os.fstat(fd)
+        finally:
+            os.close(fd)
+        after = path.lstat()
+    except OSError as error:
+        raise RunnerError(f"fresh plan cannot be safely read: {error}") from error
+    identity = lambda value: (value.st_dev, value.st_ino, value.st_mode, value.st_size, value.st_mtime_ns, value.st_ctime_ns, value.st_nlink)
+    if identity(before) != identity(opened) or identity(opened) != identity(after_fd) or identity(after_fd) != identity(after):
+        raise RunnerError("fresh plan changed during read")
+    def strict_object(pairs: list[tuple[str, object]]) -> dict[str, object]:
+        result: dict[str, object] = {}
+        for key, value in pairs:
+            if key in result:
+                raise RunnerError(f"duplicate fresh plan JSON field: {key}")
+            result[key] = value
+        return result
+    try:
+        parsed = json.loads(b"".join(chunks), object_pairs_hook=strict_object)
+    except json.JSONDecodeError as error:
+        raise RunnerError("fresh plan is not valid JSON") from error
+    return validate_fresh_plan_document(parsed)
+
+
+def _atomic_create_plan(path: Path, document: dict[str, object]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    payload = (json.dumps(document, ensure_ascii=False, sort_keys=True, separators=(",", ":")) + "\n").encode()
+    fd, temporary_name = tempfile.mkstemp(prefix=f".{path.name}.", dir=path.parent)
+    temporary = Path(temporary_name)
+    try:
+        os.fchmod(fd, 0o400)
+        with os.fdopen(fd, "wb") as stream:
+            stream.write(payload)
+            stream.flush()
+            os.fsync(stream.fileno())
+        try:
+            os.link(temporary, path, follow_symlinks=False)
+        except FileExistsError as error:
+            raise RunnerError(f"refusing to replace immutable fresh plan: {path}") from error
+        directory_fd = os.open(path.parent, os.O_RDONLY)
+        try:
+            os.fsync(directory_fd)
+        finally:
+            os.close(directory_fd)
+    finally:
+        temporary.unlink(missing_ok=True)
+
+
+def create_fresh_plan(
+    repo: Path,
+    root: Path,
+    cohort_id: str,
+    baseline_bin_dir: Path,
+    timeout: int,
+    chunk_size: int,
+    term_profile: str | None,
+) -> dict[str, object]:
+    if timeout > FRESH_PLAN_MAX_TIMEOUT:
+        raise RunnerError(f"fresh plan command timeout must be <= {FRESH_PLAN_MAX_TIMEOUT} seconds")
+    repo, root, source = paths(repo, root)
+    verify_source(root, source)
+    capture = require_capture_eligible_cohort(repo, cohort_id, baseline_bin_dir.resolve())
+    live, live_record = verify_live_source(repo, root, source, timeout, fresh_cohort_id=cohort_id, baseline_bin_dir=baseline_bin_dir)
+    extension_manifest = load_extension_manifest(repo / EXTENSION_MANIFEST)
+    env = clean_env()
+    env.update({"CARGO_TARGET_DIR": str(root / "live-target"), "NEXTEST_EXPERIMENTAL_LIBTEST_JSON": "1"})
+    inventory = nextest_inventory(live, timeout, env, extension_manifest)
+    require_inventory_matches(inventory, str(live_record.get("test_inventory_sha256")))
+    run_id = secrets.token_hex(16)
+    created_at = datetime.now(timezone.utc).isoformat()
+    plan = build_fresh_plan_payload(
+        repo=repo, root=root, cohort=capture, live_record=live_record, inventory=inventory,
+        extension_manifest=extension_manifest, chunk_size=chunk_size, term_profile=term_profile,
+        plan_id=run_id, created_at=created_at,
+    )
+    plan_path = root / FRESH_PLAN_FILE
+    _atomic_create_plan(plan_path, plan)
+    _read_self_sealed_plan(plan_path)
+    print(json.dumps({"plan_path": str(plan_path), "plan_sha256": plan["plan_sha256"], "status": plan["status"], "visual_cases": plan["inventory"]["visual_count"], "ordinary_checks": plan["inventory"]["ordinary_count"]}, indent=2))
+    return plan
+
+
+def verify_fresh_plan(repo: Path, root: Path, cohort_id: str, baseline_bin_dir: Path, timeout: int) -> dict[str, object]:
+    if timeout > FRESH_PLAN_MAX_TIMEOUT:
+        raise RunnerError(f"fresh plan verification timeout must be <= {FRESH_PLAN_MAX_TIMEOUT} seconds")
+    repo, root, source = paths(repo, root)
+    plan_path = root / FRESH_PLAN_FILE
+    plan = _read_self_sealed_plan(plan_path)
+    if plan["cohort"].get("cohort_id") != cohort_id:
+        raise RunnerError("fresh plan belongs to another reviewed executable cohort")
+    verify_source(root, source)
+    capture = require_capture_eligible_cohort(repo, cohort_id, baseline_bin_dir.resolve())
+    live, live_record = verify_live_source(repo, root, source, timeout, fresh_cohort_id=cohort_id, baseline_bin_dir=baseline_bin_dir)
+    extension_manifest = load_extension_manifest(repo / EXTENSION_MANIFEST)
+    env = clean_env()
+    env.update({"CARGO_TARGET_DIR": str(root / "live-target"), "NEXTEST_EXPERIMENTAL_LIBTEST_JSON": "1"})
+    inventory = nextest_inventory(live, timeout, env, extension_manifest)
+    regenerated = build_fresh_plan_payload(
+        repo=repo, root=root, cohort=capture, live_record=live_record, inventory=inventory,
+        extension_manifest=extension_manifest, chunk_size=plan["execution"]["chunk_size"],
+        term_profile=None if plan["runtime"]["terminal_profile"]["profile"] == "harness-default" else plan["runtime"]["terminal_profile"]["profile"],
+        plan_id=plan["plan_id"], created_at=plan["created_at_utc"],
+    )
+    if regenerated != plan:
+        raise RunnerError("fresh plan no longer matches source, tool, cohort, environment, or complete test inventory pins")
+    print(json.dumps({"plan_sha256": plan["plan_sha256"], "status": plan["status"], "verified": True}, indent=2))
+    return plan
+
+
 def validate_chunk_coverage(selected: list[str], records: list[dict[str, object]], size: int) -> None:
     expected = scenario_chunks(selected, size)
     actual_ids = [record.get("chunk") for record in records]
@@ -2633,7 +3091,20 @@ def parser() -> argparse.ArgumentParser:
     ap.add_argument("--timeout", type=int, default=MAX_TIMEOUT)
     sub = ap.add_subparsers(dest="command", required=True)
     sub.add_parser("prepare")
-    sub.add_parser("prepare-live")
+    prepare_live = sub.add_parser("prepare-live")
+    prepare_live.add_argument("--fresh-cohort", help="explicit reviewed fresh-capture cohort; bypasses legacy build.json/tuple approval path")
+    prepare_live.add_argument("--baseline-bin-dir", type=Path, help="sealed application directory required with --fresh-cohort")
+    verify_live = sub.add_parser("verify-live")
+    verify_live.add_argument("--fresh-cohort", required=True)
+    verify_live.add_argument("--baseline-bin-dir", type=Path, required=True)
+    plan = sub.add_parser("fresh-plan")
+    plan.add_argument("--cohort", required=True)
+    plan.add_argument("--baseline-bin-dir", type=Path, required=True)
+    plan.add_argument("--chunk-size", type=int, default=DEFAULT_CHUNK_SIZE)
+    plan.add_argument("--term-profile", choices=sorted(TERM_PROFILES), default=None)
+    verify_plan = sub.add_parser("verify-fresh-plan")
+    verify_plan.add_argument("--cohort", required=True)
+    verify_plan.add_argument("--baseline-bin-dir", type=Path, required=True)
     sub.add_parser("build")
     candidate_build = sub.add_parser("build-candidate")
     candidate_build.add_argument("--target-dir", type=Path)
@@ -2662,8 +3133,21 @@ def main() -> int:
         elif args.command == "prepare-live":
             repo, root, source = paths(args.repo, args.root)
             verify_source(root, source)
-            record = prepare_live_source(repo, root, source, args.timeout)
+            if args.fresh_cohort is None and args.baseline_bin_dir is not None:
+                raise RunnerError("--baseline-bin-dir requires --fresh-cohort")
+            if args.fresh_cohort is not None and args.baseline_bin_dir is None:
+                raise RunnerError("--fresh-cohort requires --baseline-bin-dir")
+            record = prepare_live_source(repo, root, source, args.timeout, fresh_cohort_id=args.fresh_cohort, baseline_bin_dir=args.baseline_bin_dir)
             print(json.dumps(record, indent=2))
+        elif args.command == "verify-live":
+            repo, root, source = paths(args.repo, args.root)
+            verify_source(root, source)
+            live, record = verify_live_source(repo, root, source, args.timeout, fresh_cohort_id=args.fresh_cohort, baseline_bin_dir=args.baseline_bin_dir)
+            print(json.dumps({"live_source": str(live), "verified": True, "record": record}, indent=2))
+        elif args.command == "fresh-plan":
+            create_fresh_plan(args.repo, args.root, args.cohort, args.baseline_bin_dir, args.timeout, args.chunk_size, args.term_profile)
+        elif args.command == "verify-fresh-plan":
+            verify_fresh_plan(args.repo, args.root, args.cohort, args.baseline_bin_dir, args.timeout)
         elif args.command == "build":
             build(args.repo, args.root, args.timeout)
         elif args.command == "build-candidate":
