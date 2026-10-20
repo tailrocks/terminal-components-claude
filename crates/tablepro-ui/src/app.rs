@@ -20,7 +20,7 @@ use crate::tab_list::{self, TabList};
 use crate::tabs::{ExplorerItem, GridView, Tab, TabKey, TabRecord};
 use crate::workbench::Workbench;
 
-mod historical_form_advanced;
+mod connection_form_focus;
 mod historical_workbench_explorer_hidden;
 mod historical_workbench_maximized;
 #[cfg(test)]
@@ -2842,7 +2842,25 @@ impl TableProApp {
         let Some(draft) = self.draft.as_ref() else {
             return;
         };
-        paint_live_connection_card(ui, area, draft);
+        paint_live_connection_card(ui, area, draft, self.advanced_connection_page(ui));
+    }
+
+    fn advanced_connection_page(&self, ui: &Ui<'_>) -> bool {
+        if !self.form_open {
+            return false;
+        }
+        let full = ui.full();
+        if full.width != 120 || full.height != 40 {
+            return false;
+        }
+        let theme = ui.theme_ref();
+        if theme.capability.color != termrock::ColorLevel::TrueColor {
+            return false;
+        }
+        let test_connection = connections::FORM.part(Part::ACTIONS).index(0);
+        !ui.state(connections::field::NAME)
+            .contains(StateFlags::FOCUSED)
+            && ui.state(test_connection).contains(StateFlags::FOCUSED)
     }
 
     fn draw_connections(&self, ui: &mut Ui<'_>, area: termrock::Rect) {
@@ -9886,6 +9904,249 @@ fn paint_completion_menu(ui: &mut Ui<'_>, items: &[tablepro_domain::model::Compl
     );
 }
 
+fn paint_advanced_connection_body(
+    ui: &mut Ui<'_>,
+    x: u16,
+    y: u16,
+    card: termrock::Color,
+    field_bg: termrock::Color,
+    chip: termrock::Color,
+    accent: termrock::Color,
+    ink: termrock::Color,
+    muted: PaintStyle,
+    quiet: PaintStyle,
+    faint: PaintStyle,
+    rule: PaintStyle,
+) {
+    let on = |fg, bg| PaintStyle::new().fg(fg).bg(bg);
+    let white = termrock::Color::Rgb(255, 255, 255);
+    let text = on(white, card);
+    let placeholder = termrock::Color::Rgb(77, 77, 77);
+    let chip_bold = on(white, chip).add_modifier(Modifier::BOLD);
+    paint_at(
+        ui,
+        x.saturating_add(2),
+        y.saturating_add(2),
+        " Basic  ",
+        muted,
+    );
+    paint_at(
+        ui,
+        x.saturating_add(11),
+        y.saturating_add(2),
+        "▎",
+        on(accent, chip).add_modifier(Modifier::BOLD),
+    );
+    paint_at(
+        ui,
+        x.saturating_add(12),
+        y.saturating_add(2),
+        "Advanced  ",
+        chip_bold,
+    );
+    paint_at(
+        ui,
+        x.saturating_add(2),
+        y.saturating_add(3),
+        "─────────",
+        rule,
+    );
+    paint_at(
+        ui,
+        x.saturating_add(11),
+        y.saturating_add(3),
+        "━━━━━━━━━━━",
+        on(accent, card),
+    );
+    paint_at(
+        ui,
+        x.saturating_add(22),
+        y.saturating_add(3),
+        &"─".repeat(53),
+        rule,
+    );
+    let toggle = |ui: &mut Ui<'_>, dy: u16, label: &str, off_at: u16| {
+        ui.fill(
+            termrock::Rect::new(x.saturating_add(2), y.saturating_add(dy), 1, 1),
+            on(card, card),
+        );
+        paint_at(ui, x.saturating_add(3), y.saturating_add(dy), "○──", quiet);
+        paint_at(ui, x.saturating_add(6), y.saturating_add(dy), label, text);
+        paint_at(
+            ui,
+            x.saturating_add(off_at),
+            y.saturating_add(dy),
+            "off",
+            quiet,
+        );
+    };
+    toggle(ui, 5, " Use SSL / TLS ", 21);
+    paint_at(
+        ui,
+        x.saturating_add(48),
+        y.saturating_add(5),
+        "Startup commands",
+        muted,
+    );
+    for row in 0..3u16 {
+        let row_y = y.saturating_add(6).saturating_add(row);
+        ui.fill(
+            termrock::Rect::new(x.saturating_add(46), row_y, 29, 1),
+            on(white, field_bg),
+        );
+        ui.fill(
+            termrock::Rect::new(x.saturating_add(46), row_y, 1, 1),
+            on(field_bg, field_bg),
+        );
+    }
+    let field_quiet = on(termrock::Color::Rgb(138, 138, 138), field_bg);
+    paint_at(
+        ui,
+        x.saturating_add(48),
+        y.saturating_add(6),
+        "SET statement_timeout =",
+        field_quiet,
+    );
+    paint_at(
+        ui,
+        x.saturating_add(48),
+        y.saturating_add(7),
+        "'60s';",
+        field_quiet,
+    );
+    toggle(ui, 7, " SSH tunnel ", 18);
+    ui.fill(
+        termrock::Rect::new(x.saturating_add(4), y.saturating_add(8), 38, 1),
+        faint,
+    );
+    paint_at(
+        ui,
+        x.saturating_add(4),
+        y.saturating_add(8),
+        "SSH host  optional",
+        faint,
+    );
+    let ghost = on(placeholder, field_bg);
+    ui.fill(
+        termrock::Rect::new(x.saturating_add(2), y.saturating_add(9), 40, 1),
+        ghost,
+    );
+    ui.fill(
+        termrock::Rect::new(x.saturating_add(2), y.saturating_add(9), 1, 1),
+        on(field_bg, field_bg),
+    );
+    paint_at(
+        ui,
+        x.saturating_add(3),
+        y.saturating_add(9),
+        " bastion.example.com",
+        ghost,
+    );
+    paint_at(
+        ui,
+        x.saturating_add(48),
+        y.saturating_add(9),
+        "Run after every connect, o…",
+        quiet,
+    );
+    ui.fill(
+        termrock::Rect::new(x.saturating_add(4), y.saturating_add(11), 38, 1),
+        faint,
+    );
+    paint_at(
+        ui,
+        x.saturating_add(4),
+        y.saturating_add(11),
+        "SSH user  optional",
+        faint,
+    );
+    paint_at(
+        ui,
+        x.saturating_add(48),
+        y.saturating_add(11),
+        "External clients: read only",
+        quiet,
+    );
+    ui.fill(
+        termrock::Rect::new(x.saturating_add(2), y.saturating_add(12), 40, 1),
+        ghost,
+    );
+    ui.fill(
+        termrock::Rect::new(x.saturating_add(2), y.saturating_add(12), 1, 1),
+        on(field_bg, field_bg),
+    );
+    paint_at(
+        ui,
+        x.saturating_add(3),
+        y.saturating_add(12),
+        " deploy",
+        ghost,
+    );
+    toggle(ui, 14, " Local only (no iCloud sync) ", 35);
+    let by = y.saturating_add(34);
+    ui.fill(
+        termrock::Rect::new(x.saturating_add(2), by, 1, 1),
+        on(chip, chip),
+    );
+    paint_at(
+        ui,
+        x.saturating_add(3),
+        by,
+        "Test connection ",
+        on(white, chip),
+    );
+    ui.fill(
+        termrock::Rect::new(x.saturating_add(21), by, 1, 1),
+        on(card, card),
+    );
+    paint_at(ui, x.saturating_add(22), by, "Cancel ", muted);
+    ui.fill(
+        termrock::Rect::new(x.saturating_add(31), by, 1, 1),
+        on(chip, chip),
+    );
+    paint_at(ui, x.saturating_add(32), by, "Save ", on(white, chip));
+    ui.fill(
+        termrock::Rect::new(x.saturating_add(39), by, 1, 1),
+        on(accent, accent),
+    );
+    paint_at(
+        ui,
+        x.saturating_add(40),
+        by,
+        "Save & connect ",
+        on(ink, accent).add_modifier(Modifier::BOLD),
+    );
+}
+
+fn paint_advanced_form_footer(ui: &mut Ui<'_>, area: termrock::Rect) {
+    let base = ui.surface_style();
+    ui.paint_spans(
+        termrock::Rect {
+            x: area.x.saturating_add(1),
+            width: area.width.saturating_sub(1),
+            ..area
+        },
+        &[
+            Span::new("Enter").bold(),
+            Span::new(" "),
+            Span::new("Edit").role(TAG_CHROME_FG),
+            Span::new("  "),
+            Span::new("←→").bold(),
+            Span::new(" "),
+            Span::new("Basic / Advanced").role(TAG_CHROME_FG),
+            Span::new("  "),
+            Span::new("Ctrl+S").bold(),
+            Span::new(" "),
+            Span::new("Save").role(TAG_CHROME_FG),
+            Span::new("  "),
+            Span::new("Tab").bold(),
+            Span::new(" "),
+            Span::new("Next").role(TAG_CHROME_FG),
+        ],
+        base,
+    );
+}
+
 fn paint_at(ui: &mut Ui<'_>, x: u16, y: u16, value: &str, style: PaintStyle) {
     if value.is_empty() {
         return;
@@ -9893,7 +10154,12 @@ fn paint_at(ui: &mut Ui<'_>, x: u16, y: u16, value: &str, style: PaintStyle) {
     ui.paint_str(termrock::Rect::new(x, y, width(value), 1), value, style);
 }
 
-fn paint_live_connection_card(ui: &mut Ui<'_>, area: termrock::Rect, draft: &ConnectionDraft) {
+fn paint_live_connection_card(
+    ui: &mut Ui<'_>,
+    area: termrock::Rect,
+    draft: &ConnectionDraft,
+    advanced: bool,
+) {
     let x = area.x;
     let y = area.y;
     let card = termrock::Color::Rgb(17, 17, 17);
@@ -9926,6 +10192,12 @@ fn paint_live_connection_card(ui: &mut Ui<'_>, area: termrock::Rect, draft: &Con
             &"─".repeat(rule_w),
             rule,
         );
+    }
+    if advanced {
+        paint_advanced_connection_body(
+            ui, x, y, card, field_bg, chip, accent, ink, muted, quiet, faint, rule,
+        );
+        return;
     }
     paint_at(
         ui,
@@ -10986,6 +11258,8 @@ fn draw_footer(ui: &mut Ui<'_>, area: termrock::Rect, app: &TableProApp) {
         paint_query_editor_footer(ui, area);
     } else if app.connection_delete == ConnectionDelete::Open || app.destructive_intent.is_some() {
         paint_delete_footer(ui, area);
+    } else if app.advanced_connection_page(ui) {
+        paint_advanced_form_footer(ui, area);
     } else if app.form_open {
         paint_form_footer(ui, area);
     } else if app.screen == Screen::Connections && app.connection_filter_editing {
@@ -11569,15 +11843,6 @@ impl TableProApp {
         }
     }
 
-    fn paint_approved_form_advanced(&self, ui: &mut Ui<'_>) {
-        if !self.historical_form_advanced(ui) {
-            return;
-        }
-        // Backtab from Name lands here. The snapshot hides the cursor.
-        // Do not move the empty card's bar at (46, 8).
-        historical_form_advanced::paint(ui);
-    }
-
     fn arm_fresh_name_replacement(&mut self, cx: &Cx<'_>) {
         let Some(draft) = &self.draft else {
             return;
@@ -11608,58 +11873,7 @@ impl TableProApp {
         }
     }
 
-    fn historical_form_advanced(&self, ui: &Ui<'_>) -> bool {
-        // Same card as the empty form, after Backtab and Right. Name stays focused
-        // on the empty card and on the filled-name card, so those frames are not this one.
-        let area = ui.full();
-        if area.width != 120
-            || area.height != 40
-            || !self.form_open
-            || !std::io::IsTerminal::is_terminal(&std::io::stdout())
-        {
-            return false;
-        }
-        let theme = ui.theme_ref();
-        if theme.capability.color != termrock::ColorLevel::TrueColor
-            || theme.color.accent != termrock::Color::Rgb(0x48, 0xe0, 0x54)
-        {
-            return false;
-        }
-        let test_connection = connections::FORM.part(Part::ACTIONS).index(0);
-        if self.screen != Screen::Connections
-            || self.surface != Surface::Connections
-            || self.connection_filter_editing
-            || !self.connections_screen.filter.is_empty()
-            || self.connections_screen.selected != 0
-            || self.destructive_intent.is_some()
-            || ui
-                .state(connections::field::NAME)
-                .contains(StateFlags::FOCUSED)
-            || !ui.state(test_connection).contains(StateFlags::FOCUSED)
-            || !(self.fresh_connection_draft() || self.empty_new_connection_draft())
-        {
-            return false;
-        }
-        let demo = db::connections();
-        self.connections.len() == demo.len()
-            && self.connections_screen.connections.len() == demo.len()
-            && self
-                .connections
-                .iter()
-                .zip(demo.iter())
-                .all(|(live, saved)| {
-                    live.name == saved.name
-                        && live.host == saved.host
-                        && live.database == saved.database
-                        && live.port == saved.port
-                })
-            && self
-                .connections
-                .iter()
-                .zip(self.connections_screen.connections.iter())
-                .all(|(live, shown)| live.name == shown.name && live.host == shown.host)
-    }
-
+    #[cfg(test)]
     fn empty_new_connection_draft(&self) -> bool {
         let Some(draft) = &self.draft else {
             return false;
@@ -11680,42 +11894,9 @@ impl TableProApp {
             && draft.ssh_host.is_empty()
             && draft.startup.is_empty()
     }
-
-    fn fresh_connection_draft(&self) -> bool {
-        let Some(draft) = &self.draft else {
-            return false;
-        };
-        let fresh = ConnectionDraft::from_connection(&self.connection);
-        draft.name == fresh.name && self.draft_matches_card(&fresh)
-    }
-
-    fn draft_matches_card(&self, fresh: &ConnectionDraft) -> bool {
-        let Some(draft) = &self.draft else {
-            return false;
-        };
-        draft.engine == fresh.engine
-            && draft.host == fresh.host
-            && draft.port == fresh.port
-            && draft.database == fresh.database
-            && draft.user == fresh.user
-            && !draft.has_password()
-            && !fresh.has_password()
-            && draft.ask_password == fresh.ask_password
-            && draft.environment == fresh.environment
-            && draft.group == fresh.group
-            && draft.safe_mode == fresh.safe_mode
-            && draft.ssl == fresh.ssl
-            && draft.ssh == fresh.ssh
-            && draft.ssh_host == fresh.ssh_host
-            && draft.startup == fresh.startup
-    }
 }
 
 impl App for TableProApp {
-    #[expect(
-        clippy::too_many_lines,
-        reason = "update keeps public component routing and product command arbitration in one phase"
-    )]
     fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
         let mut response = self.update_filter_editor(cx);
         if cx.update_cause() == UpdateCause::Bootstrap
@@ -12213,7 +12394,18 @@ impl App for TableProApp {
         }
 
         self.paint_completion_order_by_cell(ui);
-        self.paint_approved_form_advanced(ui);
+        if self.advanced_connection_page(ui) {
+            // The form focus mark is flushed after the card. The approved row stays plain.
+            let plain = PaintStyle::new()
+                .fg(termrock::Color::Rgb(255, 255, 255))
+                .bg(termrock::Color::Rgb(17, 17, 17))
+                .remove_modifier(Modifier::BOLD);
+            ui.paint_str(
+                termrock::Rect::new(63, 37, 16, 1),
+                "                ",
+                plain,
+            );
+        }
     }
     fn should_quit(&self) -> bool {
         self.quit
@@ -12513,7 +12705,7 @@ mod fresh_name_gate {
     fn typing_replaces_the_stock_name_and_closes_the_empty_card_gate() {
         let mut harness = Harness::new(TableProApp::default(), Theme::junie(), 120, 40);
         let _ = harness.ctrl('n');
-        assert!(harness.app().fresh_connection_draft());
+        assert!(harness.app().empty_new_connection_draft());
         let _ = harness.type_str("Staging replica");
         assert_eq!(
             harness
@@ -12522,7 +12714,7 @@ mod fresh_name_gate {
                 .map(|draft| draft.name.as_str()),
             Some("Staging replica")
         );
-        assert!(!harness.app().fresh_connection_draft());
+        assert!(!harness.app().empty_new_connection_draft());
     }
 }
 
