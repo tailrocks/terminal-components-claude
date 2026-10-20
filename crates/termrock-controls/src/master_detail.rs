@@ -25,41 +25,39 @@ const OPEN_DETAIL: &[Binding<MasterDetailCmd>] = &[Binding {
     visible: true,
 }];
 
-const CLOSE_DETAIL: &[Binding<MasterDetailCmd>] = &[Binding {
-    action: ActionKey::custom("master_detail.close_detail"),
-    chord: Some(Chord::key(KeyCode::Esc)),
-    cmd: MasterDetailCmd::CloseDetail,
-    label: "Back",
-    priority: 40,
-    visible: true,
-}];
-
-const CLOSE_DETAIL_LEFT: &[Binding<MasterDetailCmd>] = &[Binding {
-    action: ActionKey::custom("master_detail.close_detail_left"),
-    chord: Some(Chord::key(KeyCode::Left)),
-    cmd: MasterDetailCmd::CloseDetail,
-    label: "Back",
-    priority: 40,
-    visible: true,
-}];
-
-const CLOSE_DETAIL_BACKTAB: &[Binding<MasterDetailCmd>] = &[Binding {
-    action: ActionKey::custom("master_detail.close_detail_backtab"),
-    chord: Some(Chord::key(KeyCode::BackTab)),
-    cmd: MasterDetailCmd::CloseDetail,
-    label: "Back",
-    priority: 40,
-    visible: true,
-}];
+const CLOSE_DETAIL: &[Binding<MasterDetailCmd>] = &[
+    Binding {
+        action: ActionKey::custom("master_detail.close_detail"),
+        chord: Some(Chord::key(KeyCode::Esc)),
+        cmd: MasterDetailCmd::CloseDetail,
+        label: "Back",
+        priority: 40,
+        visible: true,
+    },
+    Binding {
+        action: ActionKey::custom("master_detail.close_detail_left"),
+        chord: Some(Chord::key(KeyCode::Left)),
+        cmd: MasterDetailCmd::CloseDetail,
+        label: "Back",
+        priority: 40,
+        visible: true,
+    },
+    Binding {
+        action: ActionKey::custom("master_detail.close_detail_backtab"),
+        chord: Some(Chord::key(KeyCode::BackTab)),
+        cmd: MasterDetailCmd::CloseDetail,
+        label: "Back",
+        priority: 40,
+        visible: true,
+    },
+];
 
 fn is_open_detail(action: ActionKey) -> bool {
     Binding::command(OPEN_DETAIL, action) == Some(MasterDetailCmd::OpenDetail)
 }
 
 fn is_close_detail(action: ActionKey) -> bool {
-    [CLOSE_DETAIL, CLOSE_DETAIL_LEFT, CLOSE_DETAIL_BACKTAB]
-        .into_iter()
-        .any(|table| Binding::command(table, action) == Some(MasterDetailCmd::CloseDetail))
+    Binding::command(CLOSE_DETAIL, action) == Some(MasterDetailCmd::CloseDetail)
 }
 
 /// Responsive presentation chosen for a master/detail container.
@@ -375,25 +373,11 @@ impl MasterDetail {
 
     fn publish_navigation_bindings(&self, ui: &mut Ui<'_>) {
         let master = ui.state(self.master);
-        ui.publish_dynamic_bindings(
-            self.master,
-            master,
-            OPEN_DETAIL
-                .iter()
-                .map(|binding| (binding.action, binding.chord)),
-        );
+        ui.publish_additional_bindings(self.master, master, OPEN_DETAIL);
         if self.esc_returns {
             for owner in self.detail_owners.iter().copied().chain([self.detail]) {
                 let live = ui.state(owner);
-                ui.publish_dynamic_bindings(
-                    owner,
-                    live,
-                    CLOSE_DETAIL
-                        .iter()
-                        .chain(CLOSE_DETAIL_LEFT)
-                        .chain(CLOSE_DETAIL_BACKTAB)
-                        .map(|binding| (binding.action, binding.chord)),
-                );
+                ui.publish_additional_bindings(owner, live, CLOSE_DETAIL);
             }
         }
     }
@@ -418,7 +402,11 @@ mod tests {
     use crate::runtime::{App, Runtime};
     use crate::theme::Theme;
     use crate::ui::Ui;
-    use crate::{event::KeyCode, keymap::KeyMap, response::Response};
+    use crate::{
+        event::KeyCode,
+        keymap::{Hint, HintKey, KeyMap},
+        response::Response,
+    };
 
     const MD: MasterDetail = MasterDetail::new(
         Id::root("master-detail.test"),
@@ -589,6 +577,7 @@ mod tests {
         child_tab_seen: bool,
         child_tab_binding: bool,
         keymap: KeyMap,
+        hints: std::cell::RefCell<Vec<Hint>>,
     }
 
     impl App for WideNavigationApp {
@@ -606,6 +595,9 @@ mod tests {
                 if layout.mode == MasterDetailMode::Split && self.child_tab_binding {
                     ui.publish_bindings(MD.master, ui.state(MD.master), MASTER_CHILD_BINDINGS);
                 }
+            });
+            let _ = ui.with_focused_hints(|_, hints| {
+                self.hints.replace(hints.hints.clone());
             });
         }
 
@@ -678,6 +670,7 @@ mod tests {
                 child_tab_seen: false,
                 child_tab_binding: false,
                 keymap: KeyMap::new(),
+                hints: std::cell::RefCell::default(),
             },
             Theme::junie(),
         );
@@ -688,6 +681,9 @@ mod tests {
         buffer = ratatui_core::buffer::Buffer::empty(area);
         runtime.draw_buffer(area, &mut buffer).commit_presented();
         assert_eq!(runtime.focus(), Some(MD.master));
+        assert!(runtime.app().hints.borrow().iter().any(|hint| {
+            hint.label == "Show details" && hint.key == HintKey::Chord(Chord::key(KeyCode::Tab))
+        }));
 
         let _ = deliver(&mut runtime, key(KeyCode::Tab));
         assert_eq!(runtime.focus(), Some(MD.detail));
@@ -697,6 +693,11 @@ mod tests {
         for close in [KeyCode::BackTab, KeyCode::Left, KeyCode::Esc] {
             buffer = ratatui_core::buffer::Buffer::empty(area);
             runtime.draw_buffer(area, &mut buffer).commit_presented();
+            for close_chord in [KeyCode::Esc, KeyCode::Left, KeyCode::BackTab] {
+                assert!(runtime.app().hints.borrow().iter().any(|hint| {
+                    hint.label == "Back" && hint.key == HintKey::Chord(Chord::key(close_chord))
+                }));
+            }
             let _ = deliver(&mut runtime, key(close));
             assert_eq!(runtime.focus(), Some(MD.master), "close key {close:?}");
             assert!(!runtime.app().state.drawer_open(), "close key {close:?}");
@@ -716,6 +717,7 @@ mod tests {
                 child_tab_seen: false,
                 child_tab_binding: true,
                 keymap: KeyMap::new(),
+                hints: std::cell::RefCell::default(),
             },
             Theme::junie(),
         );
@@ -730,6 +732,13 @@ mod tests {
         assert!(runtime.app().child_tab_seen);
         assert_eq!(runtime.focus(), Some(MD.master));
         assert!(!runtime.app().state.drawer_open());
+        assert!(runtime.app().hints.borrow().iter().any(|hint| {
+            hint.label == "Next master control"
+                && hint.key == HintKey::Chord(Chord::key(KeyCode::Tab))
+        }));
+        assert!(!runtime.app().hints.borrow().iter().any(|hint| {
+            hint.label == "Show details" && hint.key == HintKey::Chord(Chord::key(KeyCode::Tab))
+        }));
     }
 
     #[test]
@@ -748,6 +757,7 @@ mod tests {
                 child_tab_seen: false,
                 child_tab_binding: false,
                 keymap,
+                hints: std::cell::RefCell::default(),
             },
             Theme::junie(),
         );
@@ -759,11 +769,33 @@ mod tests {
         runtime.draw_buffer(area, &mut buffer).commit_presented();
         let _ = deliver(&mut runtime, key(KeyCode::Tab));
         assert_eq!(runtime.focus(), Some(MD.detail));
+        buffer = ratatui_core::buffer::Buffer::empty(area);
+        runtime.draw_buffer(area, &mut buffer).commit_presented();
+        assert!(runtime.app().hints.borrow().iter().any(|hint| {
+            hint.label == "Back" && hint.key == HintKey::Chord(Chord::key(KeyCode::Backspace))
+        }));
+        assert!(!runtime.app().hints.borrow().iter().any(|hint| {
+            hint.label == "Back" && hint.key == HintKey::Chord(Chord::key(KeyCode::Esc))
+        }));
+
+        runtime
+            .app_mut()
+            .keymap
+            .remove_component(MD.detail, ActionKey::custom("master_detail.close_detail"));
+        let _ = deliver(&mut runtime, key(KeyCode::Backspace));
+        buffer = ratatui_core::buffer::Buffer::empty(area);
+        runtime.draw_buffer(area, &mut buffer).commit_presented();
+        assert!(!runtime.app().hints.borrow().iter().any(|hint| {
+            hint.label == "Back" && hint.key == HintKey::Chord(Chord::key(KeyCode::Esc))
+        }));
+        assert!(!runtime.app().hints.borrow().iter().any(|hint| {
+            hint.label == "Back" && hint.key == HintKey::Chord(Chord::key(KeyCode::Backspace))
+        }));
 
         let _ = deliver(&mut runtime, key(KeyCode::Esc));
         assert_eq!(runtime.focus(), Some(MD.detail));
         let _ = deliver(&mut runtime, key(KeyCode::Backspace));
-        assert_eq!(runtime.focus(), Some(MD.master));
+        assert_eq!(runtime.focus(), Some(MD.detail));
     }
 
     #[test]

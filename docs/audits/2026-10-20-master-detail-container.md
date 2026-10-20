@@ -15,7 +15,10 @@ the explicit drawer flag is false. Tab opens details and returns focus to the
 detail pane at every terminal width. Escape, Left, and BackTab return focus
 from detail to master at every width. Commands are published through the
 focused child's binding table so child bindings remain available and take
-precedence on collisions. Explicit open/close methods use the shared `Cx` API.
+precedence on collisions. The additive binding API keeps each command's
+visibility, label, and priority while applying user remaps, so the displayed
+hint matches the command that will run. Explicit open/close methods use the
+shared `Cx` API.
 The roster split at 150 columns belongs to a future reusable library block;
 it must not become private geometry in the Jackin consumer.
 
