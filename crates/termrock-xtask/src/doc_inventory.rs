@@ -321,6 +321,7 @@ fn scan_rust_source(path: &str, source: &str, report: &mut Report) {
     let mut in_block = false;
     let mut in_regular_block = false;
     let mut raw_string_hashes = None;
+    let mut in_cooked_string = false;
     let mut attribute: Option<(usize, String, i32)> = None;
     for (index, line) in source.lines().enumerate() {
         let line_number = index + 1;
@@ -334,6 +335,12 @@ fn scan_rust_source(path: &str, source: &str, report: &mut Report) {
             if position + close.len() < line.len() {
                 continue;
             }
+        }
+        if in_cooked_string {
+            if cooked_string_closes(line) {
+                in_cooked_string = false;
+            }
+            continue;
         }
         if in_regular_block {
             if trimmed.contains("*/") {
@@ -409,6 +416,10 @@ fn scan_rust_source(path: &str, source: &str, report: &mut Report) {
             }
             continue;
         }
+        if cooked_string_continues(line) {
+            in_cooked_string = true;
+            continue;
+        }
         if let Some((start_line, mut content, mut depth)) = attribute.take() {
             content.push('\n');
             content.push_str(line);
@@ -464,6 +475,39 @@ fn raw_string_start(line: &str) -> Option<(usize, usize)> {
         index += 1;
     }
     None
+}
+
+fn cooked_string_continues(line: &str) -> bool {
+    let mut in_string = false;
+    let mut escaped = false;
+    for character in line.chars() {
+        if !in_string {
+            if character == '"' {
+                in_string = true;
+            }
+        } else if escaped {
+            escaped = false;
+        } else if character == '\\' {
+            escaped = true;
+        } else if character == '"' {
+            in_string = false;
+        }
+    }
+    in_string && line.trim_end().ends_with('\\')
+}
+
+fn cooked_string_closes(line: &str) -> bool {
+    let mut escaped = false;
+    for character in line.chars() {
+        if escaped {
+            escaped = false;
+        } else if character == '\\' {
+            escaped = true;
+        } else if character == '"' {
+            return true;
+        }
+    }
+    false
 }
 
 fn looks_like_doc_attribute(line: &str) -> bool {
@@ -699,6 +743,17 @@ fn looks_like_rust(body: &str) -> bool {
     ]
     .iter()
     .any(|token| trimmed.contains(token))
+        || trimmed.lines().any(|line| {
+            let line = line.trim();
+            let expression = line.contains('(')
+                && line.contains(')')
+                && (line.ends_with(';') || line.contains("::") || line.contains('.'));
+            expression
+                && line
+                    .chars()
+                    .next()
+                    .is_some_and(|character| character.is_ascii_alphabetic() || character == '_')
+        })
         || trimmed
             .lines()
             .any(|line| line.trim_start().starts_with("///"))
