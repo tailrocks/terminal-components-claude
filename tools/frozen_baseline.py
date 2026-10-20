@@ -31,6 +31,14 @@ APPS = ("showcase", "tablepro", "jackin-preview", "holla")
 MAX_TIMEOUT = 230
 EXPECTED_SCENARIOS = 28_895
 EXPECTED_ORDINARY_TESTS = 20
+EXTENSION_MANIFEST = Path("tools/frozen_cli_extensions.json")
+EXTENSION_SOURCE = Path("tools/frozen_cli_extensions.rs")
+EXTENSION_CASE_PREFIX = "termrock_extensions::showcase::table_sort::"
+EXTENSION_MANIFEST_SHA256 = "1b1fe1921461b16b5d7c69796540c54f123795d644281e322a33b0da55fa7b27"
+EXTENSION_SOURCE_SHA256 = "9a9bfd1d38d66c593584727ad47732351c37c5a03202f3099a6af250bd8bf966"
+EXTENSION_PATCH_SHA256 = "e6e09049d418e82bd5d838986217dac249e80f13a95214b1ff217d37e5fa4e8c"
+EXTENSION_SIZES = ((72, 20), (80, 24), (100, 30), (120, 40), (160, 50), (40, 12), (60, 18))
+EXTENSION_COLORS = ("truecolor", "256", "16", "none", "nocolor")
 EXPECTED_CLI_ORDINARY_TESTS = frozenset({
     "isolation::env_isolation",
     "modes::showcase_boot_sets_terminal_modes",
@@ -288,8 +296,15 @@ def prepare_live_source(repo: Path, root: Path, source: Path, timeout: int) -> d
         raise RunnerError(f"refusing to replace prepared live source: {live}")
     patch_path = repo / "tools" / "frozen_cli_pair.patch"
     helper_path = repo / "tools" / "frozen-cli-frame-support" / "src" / "lib.rs"
-    if not patch_path.is_file() or not helper_path.is_file():
-        raise RunnerError("live harness patch or frame helper missing from candidate checkout")
+    extension_manifest_path = repo / EXTENSION_MANIFEST
+    extension_source_path = repo / EXTENSION_SOURCE
+    if not patch_path.is_file() or not helper_path.is_file() or not extension_manifest_path.is_file() or not extension_source_path.is_file():
+        raise RunnerError("live harness patch, frame helper, or visual extension inputs missing from candidate checkout")
+    if sha256(patch_path) != EXTENSION_PATCH_SHA256:
+        raise RunnerError("visual extension test patch differs from the pinned extension revision")
+    if sha256(extension_manifest_path) != EXTENSION_MANIFEST_SHA256 or sha256(extension_source_path) != EXTENSION_SOURCE_SHA256:
+        raise RunnerError("visual extension manifest or Rust module differs from the pinned extension revision")
+    extension_manifest = load_extension_manifest(extension_manifest_path)
     before = file_manifest(source)
     shutil.copytree(source, live, ignore=shutil.ignore_patterns("target"), symlinks=True)
     snapshot_hash = digest_tree(source / "snapshots")
@@ -298,8 +313,12 @@ def prepare_live_source(repo: Path, root: Path, source: Path, timeout: int) -> d
     freeze_tree_readonly(live / "snapshots")
     run(["patch", "--batch", "--forward", "-p1", "-i", str(patch_path.resolve())], cwd=live, timeout=timeout, quiet=True)
     module = live / "tests" / "visual_baseline" / "frozen_cli_pair.rs"
+    extension_module = live / "tests" / "visual_baseline" / "frozen_cli_extensions.rs"
+    extension_manifest_copy = live / "tests" / "visual_baseline" / "frozen_cli_extensions.json"
     shutil.copyfile(helper_path, module)
-    expected = {"tests/visual_baseline/main.rs", "tests/visual_baseline/support.rs", "tests/visual_baseline/scenarios/mod.rs", "tests/visual_baseline/frozen_cli_pair.rs"}
+    shutil.copyfile(extension_source_path, extension_module)
+    shutil.copyfile(extension_manifest_path, extension_manifest_copy)
+    expected = {"tests/visual_baseline/main.rs", "tests/visual_baseline/support.rs", "tests/visual_baseline/scenarios/mod.rs", "tests/visual_baseline/frozen_cli_pair.rs", "tests/visual_baseline/frozen_cli_extensions.rs", "tests/visual_baseline/frozen_cli_extensions.json"}
     after = file_manifest(live)
     changed = {name for name in set(before) | set(after) if before.get(name) != after.get(name)}
     if changed != expected:
@@ -311,16 +330,25 @@ def prepare_live_source(repo: Path, root: Path, source: Path, timeout: int) -> d
         "patch_sha256": sha256(patch_path),
         "helper_sha256": sha256(helper_path),
         "module_sha256": sha256(module),
+        "extension_manifest_sha256": sha256(extension_manifest_path),
+        "extension_manifest_copy_sha256": sha256(extension_manifest_copy),
+        "extension_source_sha256": sha256(extension_source_path),
+        "extension_module_sha256": sha256(extension_module),
+        "extension_case_count": len(extension_manifest["generated_case_ids"]),
+        "extension_inventory_sha256": hashlib.sha256(json.dumps(extension_manifest["generated_case_ids"], separators=(",", ":")).encode()).hexdigest(),
         "frozen_snapshots_sha256": snapshot_hash,
         "live_snapshots_sha256": digest_tree(live / "snapshots"),
         "changed_files": sorted(changed),
     }
     env = clean_env()
     env["CARGO_TARGET_DIR"] = str(root / "live-target")
-    inventory = nextest_inventory(live, timeout, env)
+    inventory = nextest_inventory(live, timeout, env, extension_manifest)
+    original_inventory, _ = validate_extension_inventory(inventory, extension_manifest)
     info["test_inventory_sha256"] = inventory_digest(inventory)
-    info["registered_scenarios"] = sum(inventory.values())
-    info["ordinary_checks"] = len(inventory) - sum(inventory.values())
+    info["original_test_inventory_sha256"] = inventory_digest(original_inventory)
+    info["registered_scenarios"] = EXPECTED_SCENARIOS
+    info["extension_scenarios"] = len(extension_manifest["generated_case_ids"])
+    info["ordinary_checks"] = EXPECTED_ORDINARY_TESTS
     (root / "live-source.json").write_text(json.dumps(info, indent=2) + "\n")
     return info
 
@@ -333,18 +361,28 @@ def verify_live_source(repo: Path, root: Path, source: Path, timeout: int) -> tu
     recorded = json.loads(manifest_path.read_text())
     patch = repo / "tools" / "frozen_cli_pair.patch"
     helper = repo / "tools" / "frozen-cli-frame-support" / "src" / "lib.rs"
+    extension_manifest = repo / EXTENSION_MANIFEST
+    extension_source = repo / EXTENSION_SOURCE
     current = {
         "frozen_source_sha256": digest_source(source),
         "live_source_sha256": digest_source(live),
         "patch_sha256": sha256(patch),
         "helper_sha256": sha256(helper),
         "module_sha256": sha256(live / "tests" / "visual_baseline" / "frozen_cli_pair.rs"),
+        "extension_manifest_sha256": sha256(extension_manifest),
+        "extension_source_sha256": sha256(extension_source),
+        "extension_module_sha256": sha256(live / "tests" / "visual_baseline" / "frozen_cli_extensions.rs"),
+        "extension_manifest_copy_sha256": sha256(live / "tests" / "visual_baseline" / "frozen_cli_extensions.json"),
         "frozen_snapshots_sha256": digest_tree(source / "snapshots"),
         "live_snapshots_sha256": digest_tree(live / "snapshots"),
     }
     for key, value in current.items():
         if recorded.get(key) != value:
             raise RunnerError(f"live source provenance changed: {key}")
+    if current["extension_manifest_sha256"] != EXTENSION_MANIFEST_SHA256 or current["extension_source_sha256"] != EXTENSION_SOURCE_SHA256:
+        raise RunnerError("visual extension inputs differ from the pinned extension revision")
+    if current["patch_sha256"] != EXTENSION_PATCH_SHA256:
+        raise RunnerError("visual extension test patch differs from the pinned extension revision")
     return live, recorded
 
 
@@ -447,7 +485,7 @@ def nextest_selection(source: Path, root: Path, selector: str | None, all_cases:
     return expression, len(selected)
 
 
-def nextest_inventory(source: Path, timeout: int, env: dict[str, str]) -> dict[str, bool]:
+def nextest_inventory(source: Path, timeout: int, env: dict[str, str], extension_manifest: dict[str, object] | None = None) -> dict[str, bool]:
     command = ["cargo", "nextest", "list", "--locked", "--manifest-path", str(source / "Cargo.toml"), "-p", TEST_PACKAGE, "--test", TEST_TARGET, "--message-format", "json"]
     listing = run(command, cwd=source, timeout=timeout, env=env, quiet=True)
     try:
@@ -465,13 +503,120 @@ def nextest_inventory(source: Path, timeout: int, env: dict[str, str]) -> dict[s
                 inventory[name] = bool(record.get("ignored"))
     except (ValueError, KeyError, TypeError) as error:
         raise RunnerError("could not parse complete Nextest JSON test inventory") from error
-    if len(inventory) != EXPECTED_SCENARIOS + EXPECTED_ORDINARY_TESTS:
-        raise RunnerError(f"registered case inventory changed: {len(inventory)}; expected {EXPECTED_SCENARIOS + EXPECTED_ORDINARY_TESTS}")
-    scenarios = sum(inventory.values())
-    ordinary = len(inventory) - scenarios
-    if (scenarios, ordinary) != (EXPECTED_SCENARIOS, EXPECTED_ORDINARY_TESTS):
-        raise RunnerError(f"registered coverage changed: {scenarios} scenarios and {ordinary} ordinary; expected {EXPECTED_SCENARIOS} and {EXPECTED_ORDINARY_TESTS}")
+    if extension_manifest is None:
+        scenarios = sum(inventory.values())
+        ordinary = len(inventory) - scenarios
+        if (scenarios, ordinary) != (EXPECTED_SCENARIOS, EXPECTED_ORDINARY_TESTS):
+            raise RunnerError(f"registered coverage changed: {scenarios} scenarios and {ordinary} ordinary; expected {EXPECTED_SCENARIOS} and {EXPECTED_ORDINARY_TESTS}")
+    else:
+        validate_extension_inventory(inventory, extension_manifest)
     return inventory
+
+
+def load_extension_manifest(path: Path) -> dict[str, object]:
+    try:
+        manifest = json.loads(path.read_text())
+    except (OSError, ValueError) as error:
+        raise RunnerError(f"could not read extension manifest: {path}") from error
+    if not isinstance(manifest, dict) or manifest.get("schema_version") != 1:
+        raise RunnerError("unsupported extension manifest schema")
+    if set(manifest) != {"schema_version", "extension_id_prefix", "journeys", "sizes", "color_modes", "generated_cases"}:
+        raise RunnerError("extension manifest fields differ from schema version 1")
+    if manifest.get("extension_id_prefix") != EXTENSION_CASE_PREFIX:
+        raise RunnerError("extension manifest ID prefix changed")
+    journeys = manifest.get("journeys")
+    sizes = manifest.get("sizes")
+    colors = manifest.get("color_modes")
+    generated = manifest.get("generated_cases")
+    if not isinstance(journeys, list) or not journeys or not isinstance(sizes, list) or not sizes or not isinstance(colors, list) or not colors or not isinstance(generated, list) or not generated:
+        raise RunnerError("extension manifest has empty or invalid journeys, sizes, color modes, or generated cases")
+    journey_checkpoints: dict[str, list[str]] = {}
+    journey_ids: set[str] = set()
+    for journey in journeys:
+        if not isinstance(journey, dict) or set(journey) != {"id", "title", "checkpoints"} or not isinstance(journey.get("id"), str) or not journey["id"] or not isinstance(journey.get("title"), str):
+            raise RunnerError("invalid extension journey")
+        journey_id = journey["id"]
+        if journey_id in journey_ids:
+            raise RunnerError(f"duplicate extension journey: {journey_id}")
+        journey_ids.add(journey_id)
+        checkpoints = journey.get("checkpoints")
+        if not isinstance(checkpoints, list) or not checkpoints or any(not isinstance(item, str) or not item for item in checkpoints) or len(set(checkpoints)) != len(checkpoints):
+            raise RunnerError(f"invalid ordered checkpoints for extension journey: {journey_id}")
+        journey_checkpoints[journey_id] = checkpoints
+    size_pairs: set[tuple[int, int]] = set()
+    narrow_sizes = {(40, 12), (60, 18)}
+    for size in sizes:
+        if not isinstance(size, dict) or set(size) != {"cols", "rows", "allow_narrow_fallback"} or type(size.get("cols")) is not int or type(size.get("rows")) is not int or size["cols"] < 1 or size["rows"] < 1 or not isinstance(size.get("allow_narrow_fallback"), bool):
+            raise RunnerError("invalid extension terminal size")
+        pair = (size["cols"], size["rows"])
+        if pair in size_pairs:
+            raise RunnerError(f"duplicate extension terminal size: {pair}")
+        if size["allow_narrow_fallback"] != (pair in narrow_sizes):
+            raise RunnerError(f"incorrect narrow fallback policy for extension terminal size: {pair}")
+        size_pairs.add(pair)
+    if size_pairs != set(EXTENSION_SIZES):
+        raise RunnerError("extension terminal-size inventory changed")
+    if any(not isinstance(color, str) for color in colors) or len(set(colors)) != len(colors) or any(color not in {"truecolor", "256", "16", "none", "nocolor"} for color in colors):
+        raise RunnerError("invalid or duplicate extension color mode")
+    if tuple(colors) != EXTENSION_COLORS:
+        raise RunnerError("extension color-mode inventory or order changed")
+    generated_ids: set[str] = set()
+    generated_combinations: set[tuple[str, int, int, str]] = set()
+    for case in generated:
+        if not isinstance(case, dict) or set(case) != {"id", "journey_id", "cols", "rows", "color_mode", "checkpoints"} or not isinstance(case.get("id"), str) or not case["id"].startswith(EXTENSION_CASE_PREFIX) or not isinstance(case.get("journey_id"), str):
+            raise RunnerError("extension case ID is missing the reserved prefix")
+        case_id = case["id"]
+        if case_id in generated_ids:
+            raise RunnerError(f"duplicate extension case ID: {case_id}")
+        generated_ids.add(case_id)
+        journey_id = case.get("journey_id")
+        if journey_id not in journey_checkpoints:
+            raise RunnerError(f"extension case references unknown journey: {journey_id}")
+        if type(case.get("cols")) is not int or type(case.get("rows")) is not int or (case["cols"], case["rows"]) not in size_pairs:
+            raise RunnerError(f"extension case references unknown terminal size: {case_id}")
+        if case.get("color_mode") not in colors:
+            raise RunnerError(f"extension case references unknown color mode: {case_id}")
+        width, height = case["cols"], case["rows"]
+        expected_suffix = f"{journey_id}::{width}x{height}::{case['color_mode']}"
+        if case_id != EXTENSION_CASE_PREFIX + expected_suffix:
+            raise RunnerError(f"extension case ID does not encode its declared inputs: {case_id}")
+        generated_combinations.add((journey_id, width, height, case["color_mode"]))
+        expected_checkpoints = journey_checkpoints[journey_id]
+        if (width, height) in narrow_sizes:
+            if not expected_checkpoints or expected_checkpoints[0] != "initial":
+                raise RunnerError(f"narrow extension journey must begin with initial checkpoint: {journey_id}")
+            expected_checkpoints = ["initial", "narrow_revealed_80x24", *expected_checkpoints[1:]]
+        if case.get("checkpoints") != expected_checkpoints:
+            raise RunnerError(f"extension case checkpoint obligations differ from journey order: {case_id}")
+    expected_combinations = {
+        (journey_id, width, height, color)
+        for journey_id in journey_ids
+        for width, height in EXTENSION_SIZES
+        for color in (("truecolor", "nocolor") if (width, height) in narrow_sizes else EXTENSION_COLORS)
+    }
+    if generated_combinations != expected_combinations:
+        raise RunnerError(f"extension case matrix incomplete: missing={sorted(expected_combinations - generated_combinations)[:5]}, extra={sorted(generated_combinations - expected_combinations)[:5]}")
+    return {**manifest, "generated_case_ids": sorted(generated_ids), "checkpoint_obligations": {case["id"]: case["checkpoints"] for case in generated}}
+
+
+def validate_extension_inventory(inventory: dict[str, bool], manifest: dict[str, object]) -> tuple[dict[str, bool], list[str]]:
+    extension_ids = set(manifest["generated_case_ids"])
+    if len(inventory) != EXPECTED_SCENARIOS + EXPECTED_ORDINARY_TESTS + len(extension_ids):
+        raise RunnerError("registered inventory count differs from original inventory plus declared extensions")
+    extension_inventory = {name: inventory[name] for name in inventory if name in extension_ids}
+    missing = extension_ids - set(extension_inventory)
+    if missing:
+        raise RunnerError(f"extension manifest cases missing from Nextest inventory: {sorted(missing)[:5]}")
+    if any(not ignored for ignored in extension_inventory.values()):
+        raise RunnerError("extension visual cases must be ignored Nextest scenarios")
+    original = {name: ignored for name, ignored in inventory.items() if name not in extension_ids}
+    if len(original) != EXPECTED_SCENARIOS + EXPECTED_ORDINARY_TESTS:
+        raise RunnerError("extension IDs overlap or alter the original registered inventory")
+    scenarios = sum(original.values())
+    ordinary = len(original) - scenarios
+    if (scenarios, ordinary) != (EXPECTED_SCENARIOS, EXPECTED_ORDINARY_TESTS):
+        raise RunnerError(f"original registered coverage changed: {scenarios} scenarios and {ordinary} ordinary")
+    return original, sorted(extension_ids)
 
 
 def inventory_digest(inventory: dict[str, bool]) -> str:
@@ -822,6 +967,19 @@ def exact_receipt_differences(left: dict[tuple[str, int, str], str], right: dict
     return differences
 
 
+def validate_extension_checkpoint_receipts(selected: list[str], receipts: dict[tuple[str, int, str], str], extension_manifest: dict[str, object]) -> list[str]:
+    obligations = extension_manifest["checkpoint_obligations"]
+    extension_ids = set(extension_manifest["generated_case_ids"])
+    for test_name in sorted(set(selected) & extension_ids):
+        case = scenario_case_id(test_name)
+        actual = [(ordinal, logical) for receipt_case, ordinal, logical in receipts if receipt_case == case]
+        actual.sort()
+        expected = list(enumerate(obligations[test_name]))
+        if actual != expected:
+            raise RunnerError(f"extension checkpoint obligations differ for {test_name}: expected={expected}, got={actual}")
+    return []
+
+
 def scenario_chunks(names: list[str], size: int) -> list[list[str]]:
     if not 1 <= size <= 512:
         raise RunnerError("chunk size must be 1..512 cases")
@@ -916,7 +1074,7 @@ def run_live_chunk(live: Path, root: Path, run_root: Path, phase: str, bins: Pat
     return record
 
 
-def phase_receipts(run_root: Path, phase: str, selected: list[str], expected_root: Path) -> dict[tuple[str, int, str], str]:
+def phase_receipts(run_root: Path, phase: str, selected: list[str], expected_root: Path, extension_manifest: dict[str, object] | None = None) -> dict[tuple[str, int, str], str]:
     combined: dict[tuple[str, int, str], str] = {}
     for chunk in sorted((run_root / phase).glob("chunk-*")):
         names = json.loads((chunk / "report.json").read_text())["selected_cases"]
@@ -938,6 +1096,8 @@ def phase_receipts(run_root: Path, phase: str, selected: list[str], expected_roo
     _, actual_files = flat_sealed_store(expected_root, "runtime expected")
     if actual_files != expected_files:
         raise RunnerError(f"runtime expected frame inventory mismatch: missing={sorted(expected_files - actual_files)[:3]}, extra={sorted(actual_files - expected_files)[:3]}")
+    if extension_manifest is not None:
+        validate_extension_checkpoint_receipts(selected, combined, extension_manifest)
     return combined
 
 
@@ -991,10 +1151,18 @@ def compare_live(repo: Path, candidate_repo: Path, root: Path, baseline_bins: Pa
     candidate_repo = candidate_repo.resolve()
     _, candidate = baseline_and_candidate_records(candidate_repo, root, baseline_bins, candidate_bins, timeout)
     live, live_record = verify_live_source(repo, root, source, timeout)
+    extension_manifest_path = repo / EXTENSION_MANIFEST
+    extension_manifest = load_extension_manifest(extension_manifest_path)
+    extension_manifest_hash = sha256(extension_manifest_path)
+    if live_record.get("extension_manifest_sha256") != extension_manifest_hash:
+        raise RunnerError("extension manifest changed after live-source preparation")
     env = clean_env()
     env.update({"CARGO_TARGET_DIR": str(root / "live-target"), "NEXTEST_EXPERIMENTAL_LIBTEST_JSON": "1"})
-    inventory = nextest_inventory(live, timeout, env)
+    inventory = nextest_inventory(live, timeout, env, extension_manifest)
     require_inventory_matches(inventory, str(live_record.get("test_inventory_sha256")))
+    original_inventory, extension_ids = validate_extension_inventory(inventory, extension_manifest)
+    if inventory_digest(original_inventory) != live_record.get("original_test_inventory_sha256"):
+        raise RunnerError("original 28,895-scenario/20-check inventory changed")
     all_names = sorted(name for name, ignored in inventory.items() if ignored)
     if all_cases == (selectors is not None):
         raise RunnerError("choose exactly one: --all or one or more --case selectors")
@@ -1047,7 +1215,7 @@ def compare_live(repo: Path, candidate_repo: Path, root: Path, baseline_bins: Pa
         try:
             if phase != "baseline-capture" and flat_sealed_store(expected_root, "runtime expected")[0] != expected_before:
                 raise RunnerError(f"{phase} modified runtime expected frames")
-            phase_summary["receipts"] = phase_receipts(run_root, phase, selected, expected_root)
+            phase_summary["receipts"] = phase_receipts(run_root, phase, selected, expected_root, extension_manifest)
             phase_summary["runtime_expected_sha256"] = flat_sealed_store(expected_root, "runtime expected")[0]
             verify_source(root, source)
             current_live, current_live_record = verify_live_source(repo, root, source, timeout)
@@ -1121,6 +1289,11 @@ def compare_live(repo: Path, candidate_repo: Path, root: Path, baseline_bins: Pa
         "case_selection": "all registered scenarios" if all_cases else "explicit cases",
         "selection_completeness": "complete" if coverage_complete else "partial",
         "expected_registered_scenarios": EXPECTED_SCENARIOS,
+        "expected_extension_scenarios": len(extension_ids),
+        "extension_manifest_sha256": extension_manifest_hash,
+        "extension_inventory_sha256": live_record["extension_inventory_sha256"],
+        "selected_original_scenario_count": sum(name in original_inventory and inventory[name] for name in selected),
+        "selected_extension_scenario_count": sum(name in extension_ids for name in selected),
         "test_inventory_sha256": inventory_digest(inventory),
         "selected_scenario_count": len(selected),
         "ordinary_checks": ordinary,
