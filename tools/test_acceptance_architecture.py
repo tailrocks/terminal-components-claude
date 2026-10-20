@@ -182,6 +182,24 @@ fn render(ui: &mut Ui) { for cell in FRAME_PIECES { ui.paint(cell.x, cell.y, cel
         self.assertTrue(any(row["path"] == "crates/termrock-core/other.rs" for row in report["source_inputs"]))
         self.assertTrue(any(item["file"] == "crates/termrock-core/other.rs" for item in report["findings"]))
 
+    def test_custom_target_explicit_tests_module_is_scanned(self) -> None:
+        write(self.root / "crates/termrock-core/Cargo.toml", '[package]\nname="termrock-core"\nversion="0.1.0"\nedition="2024"\n[lib]\npath="other.rs"\n')
+        write(self.root / "crates/termrock-core/other.rs", "pub mod tests;\n")
+        write(self.root / "crates/termrock-core/tests/mod.rs", "// captured terminal frame\n")
+        subprocess.run(["git", "add", "-A"], cwd=self.root, check=True)
+        report = self.run_gate()
+        self.assertFalse(report["architecture_checks_passed"])
+        self.assertTrue(any(row["path"] == "crates/termrock-core/tests/mod.rs" for row in report["source_inputs"]))
+        self.assertTrue(any(item["file"] == "crates/termrock-core/tests/mod.rs" for item in report["findings"]))
+
+    def test_untracked_tests_module_under_src_is_scanned(self) -> None:
+        write(self.root / "crates/termrock-core/src/lib.rs", "pub mod tests;\n")
+        write(self.root / "crates/termrock-core/src/tests/mod.rs", "// captured terminal frame\n")
+        report = self.run_gate()
+        self.assertFalse(report["architecture_checks_passed"])
+        self.assertTrue(any(row["path"] == "crates/termrock-core/src/tests/mod.rs" for row in report["source_inputs"]))
+        self.assertTrue(any(item["file"] == "crates/termrock-core/src/tests/mod.rs" for item in report["findings"]))
+
     def test_custom_build_target_outside_src_is_hashed_and_unresolved(self) -> None:
         write(self.root / "crates/termrock-core/Cargo.toml", '[package]\nname="termrock-core"\nversion="0.1.0"\nedition="2024"\nbuild="build/custom.rs"\n')
         write(self.root / "crates/termrock-core/build/custom.rs", "fn main() {}\n")
