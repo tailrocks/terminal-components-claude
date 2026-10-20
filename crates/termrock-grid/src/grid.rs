@@ -802,6 +802,10 @@ impl GridState {
         self.col_offset
     }
 
+    pub(crate) fn set_col_offset(&mut self, offset: usize) {
+        self.col_offset = offset;
+    }
+
     pub fn visible_rows(&self, total: usize) -> core::ops::Range<usize> {
         let scroll = self.core.scroll();
         let start = scroll.offset().min(total);
@@ -986,6 +990,7 @@ pub struct Grid<'a> {
     columns: &'a [Column<'a>],
     nav: NavUnit,
     row_nav_scrolls_columns: bool,
+    row_nav_scroll_limit: Option<usize>,
     sort_current_column: bool,
     column_gap: u16,
     gutter: GridGutter,
@@ -1046,6 +1051,7 @@ impl<'a> Grid<'a> {
             columns,
             nav: NavUnit::Cell,
             row_nav_scrolls_columns: false,
+            row_nav_scroll_limit: None,
             sort_current_column: false,
             column_gap: 1,
             gutter: GridGutter::Compact,
@@ -1129,6 +1135,11 @@ impl<'a> Grid<'a> {
     #[must_use]
     pub(crate) const fn row_nav_scrolls_columns(mut self, enabled: bool) -> Self {
         self.row_nav_scrolls_columns = enabled;
+        self
+    }
+
+    pub(crate) const fn row_nav_scroll_limit(mut self, limit: usize) -> Self {
+        self.row_nav_scroll_limit = Some(limit);
         self
     }
 
@@ -2194,7 +2205,11 @@ impl Grid<'_> {
                         Some(GridCmd::Right)
                             if matches!(self.nav, NavUnit::Row) && self.row_nav_scrolls_columns =>
                         {
-                            if st.col_offset.saturating_add(1) < column_count {
+                            if st.col_offset
+                                < self
+                                    .row_nav_scroll_limit
+                                    .unwrap_or_else(|| column_count.saturating_sub(1))
+                            {
                                 st.col_offset = st.col_offset.saturating_add(1);
                                 acc.changed();
                             } else {

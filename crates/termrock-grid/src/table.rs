@@ -8,8 +8,11 @@ use crate::grid::{
     NavUnit, SortDir,
 };
 use crate::id::{Id, ItemKey, Part, PartRef};
+use crate::intent::{Intent, Phase};
 use crate::response::Response;
+use crate::response::StateFlags;
 use crate::ui::{Cx, FrameRead, Ui};
+use termrock_collections::ScrollState;
 use termrock_collections::collection::KeySet;
 use termrock_runtime::decor::{CellDecor, RowDecor};
 use termrock_runtime::empty::RowTotal;
@@ -65,6 +68,7 @@ pub struct TableState {
     model_keys: Vec<ItemKey>,
     model_revision: Option<u64>,
     model_revision_seen: bool,
+    horizontal_scroll: ScrollState,
 }
 
 impl TableState {
@@ -152,6 +156,10 @@ impl<'a> Table<'a> {
         format!("{sort} · {}–{} of {total}", range.start + 1, range.end)
     }
 
+    fn horizontal_scroll_id(&self) -> Id {
+        self.id.sub("horizontal-scrollbar")
+    }
+
     fn grid_columns<M: GridModel + ?Sized>(
         &self,
         area: Rect,
@@ -218,7 +226,7 @@ impl<'a> Table<'a> {
                     *width = width.saturating_add(available);
                 }
             }
-            let hidden = end < self.columns.len();
+            let hidden = offset > 0 || end < self.columns.len();
             let result = self
                 .columns
                 .iter()
@@ -243,7 +251,7 @@ impl<'a> Table<'a> {
         (Vec::new(), horizontal, vertical, 0)
     }
 
-    fn grid<'b>(&self, columns: &'b [Column<'a>]) -> Grid<'b> {
+    fn grid<'b>(&self, columns: &'b [Column<'a>], max_offset: usize) -> Grid<'b> {
         Grid::new(self.id, columns)
             .nav(NavUnit::Row)
             .gutter(GridGutter::Detailed {
@@ -253,6 +261,7 @@ impl<'a> Table<'a> {
             .right_reserve(2)
             .column_gap(2)
             .row_nav_scrolls_columns(true)
+            .row_nav_scroll_limit(max_offset)
             .sort_current_column(true)
     }
 
@@ -299,22 +308,86 @@ impl<'a> Table<'a> {
     ) -> Response<TableAction> {
         state.sync_model(model);
         let mut area = cx.area(self.id).unwrap_or_default();
+        let bar_id = self.horizontal_scroll_id();
         if cx
-            .area_of_part(self.id, PartRef::of(Part::TRACK))
-            .is_some_and(|track| track.height == 1 && track.width > 1)
+            .area_of_part(bar_id, PartRef::of(Part::TRACK))
+            .is_some_and(|track| track.height == 1)
         {
             area.height = area.height.saturating_add(1);
         }
-        let (columns, _horizontal, _vertical, _) = self.grid_columns(area, state, model);
-        let grid = self.grid(&columns);
+        let (columns, horizontal, vertical, visible) = self.grid_columns(area, state, model);
+        let max_offset = self.columns.len().saturating_sub(visible.max(1));
+        state.horizontal_scroll.set_content(self.columns.len());
+        state.horizontal_scroll.set_viewport(visible.max(1));
+        state
+            .horizontal_scroll
+            .scroll_to(state.grid.col_offset().min(max_offset));
+        let mut horizontal_input = false;
+        let mut horizontal_changed = false;
+        if horizontal {
+            let intents = cx.intents(bar_id).collect::<Vec<_>>();
+            for intent in intents {
+                let Intent::Pointer {
+                    phase, part, pos, ..
+                } = intent
+                else {
+                    continue;
+                };
+                if !matches!(part.part, Part::TRACK | Part::THUMB) {
+                    continue;
+                }
+                horizontal_input = true;
+                let before = state.horizontal_scroll.offset();
+                let track_pos = usize::from(pos.x.saturating_sub(area.x.saturating_add(3)));
+                match phase {
+                    Phase::Press if part.part == Part::THUMB => {
+                        let _ = cx.capture(bar_id, PartRef::of(Part::THUMB));
+                        state.horizontal_scroll.press_track(
+                            track_pos,
+                            usize::from(area.width.saturating_sub(5 + u16::from(vertical))),
+                        );
+                    }
+                    Phase::Press => state.horizontal_scroll.press_track(
+                        track_pos,
+                        usize::from(area.width.saturating_sub(5 + u16::from(vertical))),
+                    ),
+                    Phase::Drag => state.horizontal_scroll.drag_track(
+                        track_pos,
+                        usize::from(area.width.saturating_sub(5 + u16::from(vertical))),
+                    ),
+                    Phase::Release | Phase::DragEnd => {
+                        state.horizontal_scroll.release_track();
+                        if cx.capture_owner() == Some(bar_id) {
+                            cx.release_capture();
+                        }
+                    }
+                    _ => {}
+                }
+                horizontal_changed |= before != state.horizontal_scroll.offset();
+            }
+            state.grid.set_col_offset(state.horizontal_scroll.offset());
+        }
+        let grid = self.grid(&columns, max_offset);
         state.order = self.ordered_rows(model, state.sort);
-        let response = {
+        let mut response = {
             let ordered = OrderedModel {
                 source: model,
                 order: &state.order,
             };
             grid.update(cx, &mut state.grid, &ordered)
         };
+        if horizontal_changed {
+            response = response.repaint();
+        } else if horizontal_input && !response.is_consumed() {
+            response = Response::consumed();
+        }
+        state.grid.set_col_offset(
+            state
+                .grid
+                .col_offset()
+                .min(state.horizontal_scroll.max_offset()),
+        );
+        state.horizontal_scroll.scroll_to(state.grid.col_offset());
 
         if let Some(GridAction::Sort(key, _)) = response.action_ref() {
             let key = *key;
@@ -350,7 +423,7 @@ impl<'a> Table<'a> {
         model: &M,
     ) -> Rect {
         let (columns, horizontal, vertical, visible) = self.grid_columns(area, state, model);
-        let grid = self.grid(&columns);
+        let grid = self.grid(&columns, self.columns.len().saturating_sub(visible.max(1)));
         let order = self.ordered_rows(model, state.sort);
         let ordered = OrderedModel {
             source: model,
@@ -366,7 +439,11 @@ impl<'a> Table<'a> {
         };
         let drawn = grid.draw(ui, grid_area, &state.grid, &ordered);
         if horizontal {
-            self.draw_horizontal_bar(ui, area, state, visible, vertical);
+            let mut scroll = state.horizontal_scroll;
+            scroll.set_content(self.columns.len());
+            scroll.set_viewport(visible.max(1));
+            scroll.scroll_to(state.grid.col_offset());
+            self.draw_horizontal_bar(ui, area, &scroll, vertical);
         }
         drawn
     }
@@ -375,8 +452,7 @@ impl<'a> Table<'a> {
         &self,
         ui: &mut Ui<'_>,
         area: Rect,
-        state: &TableState,
-        visible: usize,
+        scroll: &ScrollState,
         vertical: bool,
     ) {
         if area.is_empty() || area.height == 0 {
@@ -388,34 +464,36 @@ impl<'a> Table<'a> {
             width: area.width.saturating_sub(5 + u16::from(vertical)),
             height: 1,
         };
+        let bar_id = self.horizontal_scroll_id();
+        let track_flags = if ui.pressed_part(bar_id) == Some(PartRef::of(Part::TRACK)) {
+            StateFlags::PRESSED
+        } else if ui.hovered_part(bar_id) == Some(PartRef::of(Part::TRACK)) {
+            StateFlags::HOVERED
+        } else {
+            StateFlags::empty()
+        };
+        let thumb_flags = if ui.pressed_part(bar_id) == Some(PartRef::of(Part::THUMB)) {
+            StateFlags::PRESSED
+        } else if ui.hovered_part(bar_id) == Some(PartRef::of(Part::THUMB)) {
+            StateFlags::HOVERED
+        } else {
+            StateFlags::empty()
+        };
         let track = ui.style(
             Family::SCROLLBAR,
             Variant::DEFAULT,
             Part::TRACK,
-            crate::response::StateFlags::empty(),
+            track_flags,
         );
         let thumb = ui.style(
             Family::SCROLLBAR,
             Variant::DEFAULT,
             Part::THUMB,
-            crate::response::StateFlags::empty(),
+            thumb_flags,
         );
-        ui.glyph(track_area, GlyphRole::ScrollTrack, track.style);
-        let total = self.columns.len();
-        let thumb_width = usize::from(track_area.width)
-            .saturating_mul(visible.max(1))
-            .checked_div(total.max(1))
-            .unwrap_or(0)
-            .max(1)
-            .min(usize::from(track_area.width));
-        let travel = usize::from(track_area.width).saturating_sub(thumb_width);
-        let max_offset = total.saturating_sub(visible.max(1));
-        let left = state
-            .grid
-            .col_offset()
-            .saturating_mul(travel)
-            .checked_div(max_offset.max(1))
-            .unwrap_or(0);
+        let track_glyph = ui.glyph_str(GlyphRole::ScrollTrack);
+        paint_repeated_glyph(ui, track_area, track_glyph, track.style);
+        let (left, thumb_width) = scroll.thumb(usize::from(track_area.width));
         let thumb_area = Rect {
             x: track_area
                 .x
@@ -423,10 +501,26 @@ impl<'a> Table<'a> {
             width: thumb_width.min(usize::from(u16::MAX)) as u16,
             ..track_area
         };
-        ui.glyph(thumb_area, GlyphRole::ScrollThumb, thumb.style);
-        ui.register_part(self.id, PartRef::of(Part::TRACK), track_area);
-        ui.register_part(self.id, PartRef::of(Part::THUMB), thumb_area);
+        let thumb_glyph = ui.glyph_str(GlyphRole::ScrollThumb);
+        paint_repeated_glyph(ui, thumb_area, thumb_glyph, thumb.style);
+        ui.register_part(bar_id, PartRef::of(Part::TRACK), track_area);
+        ui.register_part(bar_id, PartRef::of(Part::THUMB), thumb_area);
     }
+}
+
+fn paint_repeated_glyph(
+    ui: &mut Ui<'_>,
+    area: Rect,
+    glyph: &str,
+    style: termrock_theme::PaintStyle,
+) {
+    let glyph_width = crate::text::width(glyph);
+    if area.is_empty() || glyph_width == 0 {
+        return;
+    }
+    let repetitions = usize::from(area.width).div_ceil(usize::from(glyph_width));
+    let pattern = glyph.repeat(repetitions);
+    ui.paint_str(area, &pattern, style);
 }
 
 struct OrderedModel<'a, M: ?Sized> {
@@ -572,5 +666,131 @@ mod tests {
         assert!(!horizontal);
         assert!(vertical);
         assert_eq!(visible, 7);
+
+        let mut scrolled = TableState::default();
+        scrolled.grid.set_col_offset(2);
+        let (_, horizontal, _, visible) =
+            table.grid_columns(Rect::new(0, 0, 88, 22), &scrolled, &model);
+        assert!(horizontal, "hidden columns left require the bar too");
+        assert_eq!(visible, 5);
+        assert_eq!(columns.len().saturating_sub(visible), 2);
+    }
+
+    #[test]
+    fn horizontal_bar_repeats_wide_glyphs_across_full_track_and_thumb() {
+        use termrock_test_support::Scene;
+        use termrock_theme::ColorLevel;
+
+        let mut theme = termrock_theme::Theme::junie();
+        theme.design.glyphs.set(GlyphRole::ScrollTrack, "界");
+        theme.design.glyphs.set(GlyphRole::ScrollThumb, "田");
+        let columns = columns();
+        let table = Table::new(Id::root("table.wide-scrollbar"), &columns);
+        let mut state = TableState::default();
+        state.grid.set_col_offset(1);
+        let mut scene = Scene::new("table_wide_scrollbar", theme, ColorLevel::TrueColor, 88, 22);
+        scene.draw(|ui, _| {
+            table.draw(ui, Rect::new(0, 0, 88, 22), &state, &Rows);
+        });
+
+        let symbols = (3..85)
+            .filter_map(|x| scene.buffer().cell((x, 21)).map(|cell| cell.symbol()))
+            .collect::<Vec<_>>();
+        assert_eq!(
+            symbols.iter().filter(|symbol| **symbol == "界").count(),
+            12,
+            "{symbols:?}"
+        );
+        assert_eq!(
+            symbols.iter().filter(|symbol| **symbol == "田").count(),
+            29,
+            "{symbols:?}"
+        );
+    }
+
+    #[test]
+    fn horizontal_scroll_uses_independent_pointer_owner_and_clamps_keyboard_offset() {
+        use crate::event::{KeyCode, MouseKind};
+        use crate::runtime::stub::{key, mouse};
+        use crate::runtime::{App, Runtime};
+        use ratatui_core::buffer::Buffer;
+        use termrock_runtime::{Cx, Ui};
+        use termrock_theme::Theme;
+
+        struct TableApp {
+            columns: [TableColumn<'static>; 7],
+            state: TableState,
+        }
+        impl App for TableApp {
+            fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+                Table::new(Id::root("table.pointer"), &self.columns)
+                    .update(cx, &mut self.state, &Rows)
+                    .erase()
+            }
+            fn draw(&self, ui: &mut Ui<'_>) {
+                Table::new(Id::root("table.pointer"), &self.columns).draw(
+                    ui,
+                    Rect::new(0, 0, 88, 22),
+                    &self.state,
+                    &Rows,
+                );
+            }
+        }
+
+        let mut runtime = Runtime::new(
+            TableApp {
+                columns: columns(),
+                state: TableState::default(),
+            },
+            Theme::junie(),
+        );
+        let _ = runtime.initialize();
+        let mut buffer = Buffer::empty(Rect::new(0, 0, 88, 22));
+        runtime
+            .draw_buffer(Rect::new(0, 0, 88, 22), &mut buffer)
+            .commit_presented();
+        runtime
+            .draw_buffer(Rect::new(0, 0, 88, 22), &mut buffer)
+            .commit_presented();
+        let table_id = Id::root("table.pointer");
+        let bar_id = table_id.sub("horizontal-scrollbar");
+        for _ in 0..5 {
+            let _ = crate::runtime::stub::deliver(&mut runtime, key(KeyCode::Right));
+        }
+        assert_eq!(runtime.app().state.grid.col_offset(), 2);
+        assert!(
+            runtime
+                .area_of_part(bar_id, PartRef::of(Part::TRACK))
+                .is_some()
+        );
+        assert!(
+            runtime
+                .area_of_part(table_id, PartRef::of(Part::TRACK))
+                .is_some()
+        );
+
+        let track = runtime
+            .area_of_part(bar_id, PartRef::of(Part::TRACK))
+            .expect("horizontal track registered under its own owner");
+        let _ = crate::runtime::stub::deliver(
+            &mut runtime,
+            mouse(MouseKind::Down, track.right().saturating_sub(1), track.y),
+        );
+        let _ = crate::runtime::stub::deliver(
+            &mut runtime,
+            mouse(MouseKind::Up, track.right().saturating_sub(1), track.y),
+        );
+        assert_eq!(runtime.app().state.grid.col_offset(), 2);
+
+        let thumb = runtime
+            .area_of_part(bar_id, PartRef::of(Part::THUMB))
+            .expect("horizontal thumb registered");
+        let start_x = thumb.x.saturating_add(thumb.width / 2);
+        let _ =
+            crate::runtime::stub::deliver(&mut runtime, mouse(MouseKind::Down, start_x, thumb.y));
+        let _ =
+            crate::runtime::stub::deliver(&mut runtime, mouse(MouseKind::Move, track.x, track.y));
+        let _ = crate::runtime::stub::deliver(&mut runtime, mouse(MouseKind::Up, track.x, track.y));
+        assert_eq!(runtime.app().state.grid.col_offset(), 0);
     }
 }
