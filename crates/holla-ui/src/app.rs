@@ -408,7 +408,13 @@ fn parity_history_clipped_plate(world: &World, width: u16, height: u16) -> bool 
         || crate::sim::catalogue::parity_history_100x30_plate(world, width, height).is_some()
 }
 
-/// Tag parity-files status at 100×30: cwd, then the size label. No branch.
+/// 80×24 and 100×30 `parity-files` plates. Other sizes stay off both.
+fn parity_files_tag_plate(world: &World, width: u16, height: u16) -> bool {
+    crate::sim::catalogue::parity_files_80x24_plate(world, width, height).is_some()
+        || crate::sim::catalogue::parity_files_100x30_plate(world, width, height).is_some()
+}
+
+/// Tag parity-files status at 80×24 and 100×30: cwd, then the size label. No branch.
 fn paint_parity_files_status(ui: &mut Ui<'_>, area: Rect) {
     if area.is_empty() {
         return;
@@ -1581,13 +1587,7 @@ impl App {
             paint_hard_cases_status(ui, status);
         } else if parity_history_tag_plate(&self.world, ui.full().width, ui.full().height) {
             paint_parity_history_status(ui, status);
-        } else if crate::sim::catalogue::parity_files_100x30_plate(
-            &self.world,
-            ui.full().width,
-            ui.full().height,
-        )
-        .is_some()
-        {
+        } else if parity_files_tag_plate(&self.world, ui.full().width, ui.full().height) {
             paint_parity_files_status(ui, status);
         } else if launch_failure_plate_open(&self.world, ui) {
             paint_launch_failure_status(ui, status);
@@ -1702,13 +1702,7 @@ impl App {
             Some(("Open", None))
         } else if parity_history_tag_plate(&self.world, ui.full().width, ui.full().height) {
             Some(("Run", None))
-        } else if crate::sim::catalogue::parity_files_100x30_plate(
-            &self.world,
-            ui.full().width,
-            ui.full().height,
-        )
-        .is_some()
-        {
+        } else if parity_files_tag_plate(&self.world, ui.full().width, ui.full().height) {
             Some(("Open", None))
         } else {
             None
@@ -1824,12 +1818,8 @@ impl App {
             .is_some();
             let history_plate =
                 parity_history_clipped_plate(&self.world, ui.full().width, ui.full().height);
-            let files_plate = crate::sim::catalogue::parity_files_100x30_plate(
-                &self.world,
-                ui.full().width,
-                ui.full().height,
-            )
-            .is_some();
+            let files_plate =
+                parity_files_tag_plate(&self.world, ui.full().width, ui.full().height);
             let parts = if monorepo_child_mid
                 || remote_host_mid
                 || first_use_mid

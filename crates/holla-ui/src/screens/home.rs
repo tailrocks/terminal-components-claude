@@ -258,6 +258,14 @@ impl HomeState {
             area.height.saturating_sub(2),
         );
         if let Some(view) =
+            catalogue::parity_files_80x24_plate(world, ui.full().width, ui.full().height)
+            && paint_parity_files_80x24(ui, rows_area, &view)
+        {
+            // Steady bar on the placeholder. CUP 5;4. Do not write cursor bytes.
+            ui.set_bar_cursor(QUERY, termrock::Position::new(3, 4));
+            return;
+        }
+        if let Some(view) =
             catalogue::parity_files_100x30_plate(world, ui.full().width, ui.full().height)
             && paint_parity_files_100x30(ui, rows_area, &view)
         {
@@ -899,13 +907,34 @@ fn paint_parity_history_80x24(
 }
 
 /// Frozen columns. The explore chips keep the accent fill. The system row does not.
+/// Only the 80×24 frame reaches this painter, so the 100×30 plate stays on its own.
+fn paint_parity_files_80x24(
+    ui: &mut Ui<'_>,
+    area: Rect,
+    view: &catalogue::ParityDiscovery,
+) -> bool {
+    paint_parity_files_plate(ui, area, view, 80, 24)
+}
+
+/// Frozen columns. The explore chips keep the accent fill. The system row does not.
+/// Only the 100×30 frame reaches this painter.
 fn paint_parity_files_100x30(
     ui: &mut Ui<'_>,
     area: Rect,
     view: &catalogue::ParityDiscovery,
 ) -> bool {
+    paint_parity_files_plate(ui, area, view, 100, 30)
+}
+
+fn paint_parity_files_plate(
+    ui: &mut Ui<'_>,
+    area: Rect,
+    view: &catalogue::ParityDiscovery,
+    width: u16,
+    height: u16,
+) -> bool {
     let full = ui.full();
-    if full.width != 100 || full.height != 30 || area.is_empty() {
+    if full.width != width || full.height != height || area.is_empty() {
         return false;
     }
     let Some(text) = narrow_action_line(view) else {
