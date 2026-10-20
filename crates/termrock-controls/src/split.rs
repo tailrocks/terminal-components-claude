@@ -251,6 +251,22 @@ impl<'a> SplitPane<'a> {
         model.required_extent_with_basis_points(self.gap, state.basis_points, first, second)
     }
 
+    /// Return the child constraints for the pane rectangles resolved from the
+    /// supplied root constraints and current state. Consumers can measure pane
+    /// content at its actual split width without reproducing split arithmetic.
+    pub fn pane_constraints(
+        &self,
+        state: &SplitPaneState,
+        constraints: Constraints,
+    ) -> (Constraints, Constraints) {
+        let root = Rect::new(0, 0, constraints.max.0, constraints.max.1);
+        let (first, second) = self.panes(*state, root);
+        (
+            Constraints::loose(first.width, first.height),
+            Constraints::loose(second.width, second.height),
+        )
+    }
+
     #[must_use]
     pub const fn gap(mut self, g: u16) -> Self {
         self.gap = g;

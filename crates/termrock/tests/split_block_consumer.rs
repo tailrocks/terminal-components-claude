@@ -24,6 +24,20 @@ const ROWS: [Id; 10] = [
 ];
 const MINIMUM_SPLIT: Id = Id::root("consumer.minimum.split");
 const MINIMUM_SECOND: Id = Id::root("consumer.minimum.second");
+const WRAPPED_SPLIT: Id = Id::root("consumer.wrap.split");
+const WRAPPED_SECOND: Id = Id::root("consumer.wrap.second");
+const WRAPPED: [Id; 10] = [
+    Id::root("consumer.wrap.0"),
+    Id::root("consumer.wrap.1"),
+    Id::root("consumer.wrap.2"),
+    Id::root("consumer.wrap.3"),
+    Id::root("consumer.wrap.4"),
+    Id::root("consumer.wrap.5"),
+    Id::root("consumer.wrap.6"),
+    Id::root("consumer.wrap.7"),
+    Id::root("consumer.wrap.8"),
+    Id::root("consumer.wrap.9"),
+];
 
 struct WorkspaceConsumer {
     split_state: SplitPaneState,
@@ -202,4 +216,96 @@ fn measured_split_minimum_preserves_children_at_the_current_ratio() {
         .area_of(MINIMUM_SECOND)
         .expect("the second pane remains visible at the advertised minimum");
     assert!(first.bottom() <= second.y);
+}
+
+struct WrapConsumer {
+    state: SplitPaneState,
+}
+
+impl App for WrapConsumer {
+    fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+        SplitBlock::new(SplitPane::new(WRAPPED_SPLIT, SplitAxis::Horizontal).resizable(true))
+            .update(cx, &mut self.state)
+            .erase()
+    }
+
+    fn draw(&self, ui: &mut termrock::Ui<'_>) {
+        let buttons = WRAPPED.map(|id| Button::new(id, "Action"));
+        let first = Group::wrap(
+            buttons
+                .iter()
+                .map(composition::button)
+                .map(|button| button.min(10, 1)),
+        );
+        let second_button = Button::new(WRAPPED_SECOND, "Details");
+        let second = Group::column([composition::button(&second_button)]);
+        let block =
+            SplitBlock::new(SplitPane::new(WRAPPED_SPLIT, SplitAxis::Horizontal).resizable(true))
+                .first(&first)
+                .second(&second);
+        let measured = block
+            .measure(
+                ui,
+                &self.state,
+                Constraints::loose(ui.full().width, ui.full().height),
+            )
+            .expect("the public groups have valid measurements");
+        assert_eq!(
+            measured.preferred.1, 4,
+            "first group wraps at its live pane width"
+        );
+        block
+            .show(ui, &self.state)
+            .expect("both groups fit the supported depth");
+    }
+}
+
+#[test]
+fn measured_split_uses_allocated_width_for_wrapping_groups() {
+    let area = Rect::new(0, 0, 80, 4);
+    let mut runtime = Runtime::new(
+        WrapConsumer {
+            state: SplitPaneState::new(38),
+        },
+        Theme::junie(),
+    );
+    let mut terminal = Terminal::new(TestBackend::new(area.width, area.height)).unwrap();
+    render(&mut runtime, &mut terminal, area);
+
+    for id in WRAPPED {
+        assert!(
+            runtime.area_of(id).is_some(),
+            "wrapped control {id:?} remains visible"
+        );
+    }
+}
+
+struct DeepMeasureConsumer;
+
+impl App for DeepMeasureConsumer {
+    fn update(&mut self, _cx: &mut Cx<'_>) -> Response<()> {
+        Response::ignored()
+    }
+
+    fn draw(&self, ui: &mut termrock::Ui<'_>) {
+        let mut nested = Group::wrap(std::iter::empty());
+        for _ in 0..8_000 {
+            nested = Group::row([nested.into_child()]);
+        }
+        assert_eq!(
+            nested.measure(ui, Constraints::loose(10, 4)),
+            Err(composition::CompositionError::DepthExceeded {
+                depth: 8_001,
+                maximum: 128,
+            })
+        );
+    }
+}
+
+#[test]
+fn over_depth_group_measure_rejects_before_recursive_conversion() {
+    let area = Rect::new(0, 0, 10, 4);
+    let mut runtime = Runtime::new(DeepMeasureConsumer, Theme::junie());
+    let mut terminal = Terminal::new(TestBackend::new(area.width, area.height)).unwrap();
+    render(&mut runtime, &mut terminal, area);
 }
