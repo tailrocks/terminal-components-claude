@@ -3682,6 +3682,7 @@ mod tests {
     struct CallbackPaddingApp {
         state: GridState,
         callback: bool,
+        dim_after: bool,
     }
 
     impl App for CallbackPaddingApp {
@@ -3714,6 +3715,9 @@ mod tests {
                 );
             } else {
                 grid.draw(ui, Rect::new(0, 0, 20, 4), &self.state, &NumericCellModel);
+            }
+            if self.dim_after {
+                ui.dim_layer(Rect::new(0, 0, 20, 4), 2);
             }
         }
     }
@@ -4329,47 +4333,63 @@ mod tests {
 
     #[test]
     fn identity_cell_callback_preserves_right_aligned_padding_style() {
-        let mut buffers = Vec::new();
-        for callback in [false, true] {
-            let mut runtime = Runtime::new(
-                CallbackPaddingApp {
-                    state: GridState::default(),
-                    callback,
-                },
-                Theme::junie(),
-            );
-            let _ = runtime.initialize();
-            runtime.set_focus(Some(CALLBACK_ID));
-            let _ = runtime.settle();
-            let area = Rect::new(0, 0, 20, 4);
-            let mut buffer = Buffer::empty(area);
-            runtime.draw_buffer(area, &mut buffer).commit_presented();
-            buffers.push(buffer);
-        }
+        for level in [
+            crate::theme::ColorLevel::TrueColor,
+            crate::theme::ColorLevel::Ansi256,
+            crate::theme::ColorLevel::Ansi16,
+            crate::theme::ColorLevel::Mono,
+        ] {
+            let theme = Theme::junie()
+                .override_family(Family::GRID, |recipe| {
+                    recipe.part(Part::ROW).when(
+                        StateFlags::FOCUSED,
+                        StylePatch::new().set_bg(Role::HighlightBg),
+                    );
+                })
+                .for_level(level);
+            let mut buffers = Vec::new();
+            for callback in [false, true] {
+                let mut runtime = Runtime::new(
+                    CallbackPaddingApp {
+                        state: GridState::default(),
+                        callback,
+                        dim_after: true,
+                    },
+                    theme.clone(),
+                );
+                let _ = runtime.initialize();
+                runtime.set_focus(Some(CALLBACK_ID));
+                let _ = runtime.settle();
+                let area = Rect::new(0, 0, 20, 4);
+                let mut buffer = Buffer::empty(area);
+                runtime.draw_buffer(area, &mut buffer).commit_presented();
+                buffers.push(buffer);
+            }
 
-        let [default, callback] = buffers.as_slice() else {
-            panic!("both grid renderings were captured");
-        };
-        for x in 0..15 {
-            let expected = default.cell(Position::new(x, 1)).expect("default cell");
-            let actual = callback.cell(Position::new(x, 1)).expect("callback cell");
-            assert_eq!(
-                (
-                    actual.symbol(),
-                    actual.fg,
-                    actual.bg,
-                    actual.modifier,
-                    actual.underline_color
-                ),
-                (
-                    expected.symbol(),
-                    expected.fg,
-                    expected.bg,
-                    expected.modifier,
-                    expected.underline_color
-                ),
-                "identity callback changed the aligned cell or its padding at x={x}"
-            );
+            let [default, callback] = buffers.as_slice() else {
+                panic!("both grid renderings were captured");
+            };
+            for x in 0..15 {
+                let expected = default.cell(Position::new(x, 1)).expect("default cell");
+                let actual = callback.cell(Position::new(x, 1)).expect("callback cell");
+                assert_eq!(
+                    (
+                        actual.symbol(),
+                        actual.fg,
+                        actual.bg,
+                        actual.modifier,
+                        actual.underline_color
+                    ),
+                    (
+                        expected.symbol(),
+                        expected.fg,
+                        expected.bg,
+                        expected.modifier,
+                        expected.underline_color
+                    ),
+                    "identity callback changed the aligned cell or its padding at {x} in {level:?}"
+                );
+            }
         }
     }
 
