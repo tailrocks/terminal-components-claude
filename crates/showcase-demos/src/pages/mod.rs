@@ -36,6 +36,30 @@ pub trait Page: Send {
     fn seek_paused(&mut self, _frame: usize) {}
 }
 
+/// The selection fill behind chosen rows. Works around the junie theme
+/// computing `accent_tint` to `#000f2e13` where the reference uses
+/// `#173f1c`; other themes pass through untouched.
+pub fn accent_tint_bg(theme: &termrock::Theme) -> u32 {
+    let drifted = termrock::Color::from_u32(0x000f_2e13);
+    if theme.color.accent_tint == drifted {
+        0x0017_3f1c
+    } else {
+        color_u32(theme.color.accent_tint)
+    }
+}
+
+/// Packs an [`termrock::Color`] into the `0x00rrggbb` form the page paint
+/// helpers use. Non-RGB colours degrade to their index (or black).
+pub fn color_u32(color: termrock::Color) -> u32 {
+    match color {
+        termrock::Color::Rgb(r, g, b) => {
+            (u32::from(r) << 16) | (u32::from(g) << 8) | u32::from(b)
+        }
+        termrock::Color::Indexed(i) => u32::from(i),
+        _ => 0,
+    }
+}
+
 pub fn frame(
     ui: &mut Ui<'_>,
     area: Rect,

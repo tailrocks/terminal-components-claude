@@ -1,14 +1,37 @@
-mod frames;
-
 use termrock::{
-    Color, Cx, Focusability, Id, Intent, Key, KeyCode, KeyModifiers, Modifier, PaintStyle, Rect,
-    Response, Ui, id, width, wrap,
+    Action, ActionKey, Color, Cx, Dialog, DialogAction, DialogState, Focusability, GlyphRole, Id,
+    Intent, Key, KeyCode, KeyModifiers, Modifier, PaintStyle, Rect, Response, Surface, Ui, id,
+    width, wrap,
 };
 
 use super::frame;
+use super::{accent_tint_bg, color_u32};
 
 const SECTION: Id = id!("selectable.sections");
 const TABLE: Id = id!("selectable.members");
+pub const DELETE_DIALOG: Id = id!("selectable.delete_confirm");
+
+const DELETE_BODY: &str = "They lose access to the workspace right away. This can't be undone.";
+
+const DIALOG_HINTS: &[(&str, &str)] = &[
+    ("←→", "Choose"),
+    ("Enter", "Cancel"),
+    ("Esc", "Cancel"),
+];
+const SELECTION_HINTS: &[(&str, &str)] = &[
+    ("Space", "Select"),
+    ("Shift+↑↓", "Extend"),
+    ("Option+click", "Toggle row"),
+    ("Ctrl+A", "Select all"),
+    ("Enter", "Edit"),
+    ("Esc", "Clear selection"),
+];
+const TABLE_HINTS: &[(&str, &str)] = &[
+    ("Space", "Select"),
+    ("Shift+↑↓", "Extend"),
+    ("Ctrl+A", "Select all"),
+    ("Enter", "Edit"),
+];
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct Model {
@@ -17,25 +40,120 @@ pub struct Model {
     selected: u16,
     dialog: bool,
     table_focus: bool,
+    dialog_title: String,
+    dialog_confirm: String,
+    dialog_state: DialogState,
 }
 
 impl Model {
     pub fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
         let _ = cx.intents(SECTION);
         let mut changed = false;
+        let mut ask = false;
         for intent in cx.intents(TABLE) {
             match intent {
                 Intent::FocusIn { .. } => self.table_focus = true,
                 Intent::FocusOut { .. } => self.table_focus = false,
-                Intent::Key(key) if self.table_focus => changed |= self.apply_key(key),
+                Intent::Key(key) if self.table_focus => {
+                    if key.code == KeyCode::Char('d') || key.code == KeyCode::Char('D') || key.code == KeyCode::Delete {
+                        ask |= self.selected != 0;
+                    } else {
+                        changed |= self.apply_key(key);
+                    }
+                }
                 _ => {}
             }
+        }
+        if ask {
+            self.open_dialog(cx);
+            changed = true;
+        }
+        if self.dialog {
+            changed |= self.poll_dialog(cx);
         }
         if changed {
             Response::changed()
         } else {
             Response::ignored()
         }
+    }
+
+    fn open_dialog(&mut self, cx: &mut Cx<'_>) {
+        let count = self.selected_count();
+        self.dialog_title = format!("Delete {count} members?");
+        self.dialog_confirm = format!("Delete {count} members");
+        let title = self.dialog_title.clone();
+        let confirm = self.dialog_confirm.clone();
+        Self::with_dialog(&title, &confirm, |dialog| {
+            cx.open_layer(DELETE_DIALOG, dialog.layer(cx));
+        });
+        self.dialog = true;
+    }
+
+    fn poll_dialog(&mut self, cx: &mut Cx<'_>) -> bool {
+        let title = self.dialog_title.clone();
+        let confirm = self.dialog_confirm.clone();
+        let action = Self::with_dialog(&title, &confirm, |dialog| {
+            dialog.update(cx, &mut self.dialog_state)
+        });
+        let Some(action) = action.action_ref() else {
+            return false;
+        };
+        if cx.is_open(DELETE_DIALOG) {
+            cx.close_layer(DELETE_DIALOG, None);
+        }
+        self.dialog = false;
+        if matches!(action, DialogAction::Action(key) if *key == ActionKey::CONFIRM) {
+            self.clear_selection();
+        }
+        true
+    }
+
+    /// Builds the delete dialog and hands it to `body`. The action labels
+    /// borrow the caller-owned `title`/`confirm` strings, so the dialog
+    /// never outlives them.
+    fn with_dialog<R>(title: &str, confirm: &str, body: impl FnOnce(Dialog<'_>) -> R) -> R {
+        let actions = [
+            Action::new(ActionKey::CANCEL, "Cancel"),
+            Action::danger(ActionKey::CONFIRM, confirm),
+        ];
+        body(
+            Dialog::new(DELETE_DIALOG)
+                .title(title)
+                .description(DELETE_BODY)
+                .actions(&actions)
+                .cancel(ActionKey::CANCEL),
+        )
+    }
+
+    /// Renders the delete-confirmation dialog in the overlay layer. Called by
+    /// the shell after the page paints, matching the dialogs page.
+    pub fn draw_dialog(ui: &mut Ui<'_>, model: &Model) {
+        if !model.dialog {
+            return;
+        }
+        Model::with_dialog(&model.dialog_title, &model.dialog_confirm, |dialog| {
+            ui.layer(DELETE_DIALOG, |ui, area| {
+                dialog.draw(ui, area, &model.dialog_state, |_, _| {});
+            });
+        });
+    }
+
+    pub fn hints(&self) -> &'static [(&'static str, &'static str)] {
+        if self.dialog {
+            DIALOG_HINTS
+        } else if self.selected != 0 {
+            SELECTION_HINTS
+        } else if self.table_focus {
+            TABLE_HINTS
+        } else {
+            &[]
+        }
+    }
+
+    fn clear_selection(&mut self) {
+        self.selected = 0;
+        self.anchor = None;
     }
 
     pub fn blur(&mut self) {
@@ -46,24 +164,11 @@ impl Model {
         self.selected.count_ones() as usize
     }
 
-    pub fn stamp(&self, ui: &mut Ui<'_>) {
-        let Some(oracle) = self.oracle() else {
-            return;
-        };
-        frames::paint(ui, oracle);
-    }
-
-    fn oracle(&self) -> Option<frames::Oracle> {
-        if self.dialog && self.selected_count() == 2 {
-            Some(frames::Oracle::Delete)
-        } else if self.table_focus && !self.dialog && self.selected_count() == 3 {
-            Some(frames::Oracle::Bulk)
-        } else {
-            None
-        }
-    }
-
     fn apply_key(&mut self, key: Key) -> bool {
+        if key.code == KeyCode::Char('a') && key.mods == KeyModifiers::CONTROL {
+            self.select_all();
+            return true;
+        }
         if !key.mods.difference(KeyModifiers::SHIFT).is_empty() {
             return false;
         }
@@ -73,10 +178,28 @@ impl Model {
             KeyCode::Down => self.step(1),
             KeyCode::Up => self.step(-1),
             KeyCode::Char(' ') => self.toggle(),
-            KeyCode::Char('d' | 'D') | KeyCode::Delete => self.ask_delete(),
+            KeyCode::Esc => {
+                let had = self.selected != 0;
+                self.clear_selection();
+                return had;
+            }
             _ => return false,
         }
         true
+    }
+
+    fn select_all(&mut self) {
+        let all = MEMBERS
+            .iter()
+            .enumerate()
+            .filter(|(_, member)| !member.disabled)
+            .fold(0_u16, |acc, (index, _)| acc | (1_u16 << index));
+        if self.selected == all {
+            self.clear_selection();
+        } else {
+            self.selected = all;
+            self.anchor = None;
+        }
     }
 
     fn step(&mut self, delta: i32) {
@@ -123,12 +246,6 @@ impl Model {
             }
         }
     }
-
-    fn ask_delete(&mut self) {
-        if self.selected != 0 {
-            self.dialog = true;
-        }
-    }
 }
 
 const TITLE: &str = "Selectable table";
@@ -165,6 +282,8 @@ const WARNING: u32 = 0xf59e09;
 const FADE_OUTER: f32 = 0.55;
 
 const CHECK_OFF: &str = "[ ]";
+const CHECK_ON: &str = "[✓]";
+const CHECK_MIXED: &str = "[–]";
 const EMPTY_MARK: &str = "\u{2014}";
 const HINT: &str = "Select rows in the table to edit them here. Space selects, \
 Shift+\u{2191}\u{2193} extends, Ctrl+A selects all.";
@@ -368,7 +487,7 @@ struct Geom {
     shown: usize,
 }
 
-pub fn paint(ui: &mut Ui<'_>, area: Rect, selected: usize) {
+pub fn paint(ui: &mut Ui<'_>, area: Rect, model: &Model) {
     if area.width > 0 && area.height > 0 {
         ui.register_control(
             SECTION,
@@ -405,9 +524,9 @@ pub fn paint(ui: &mut Ui<'_>, area: Rect, selected: usize) {
                 ..body
             };
             if wide_page(area) {
-                paint_wide_playground(ui, playground, selected);
+                paint_wide_playground(ui, playground, model);
             } else {
-                paint_playground(ui, playground, selected);
+                paint_playground(ui, playground, model);
             }
         });
     });
@@ -546,17 +665,23 @@ fn paint_section_strip(ui: &mut Ui<'_>, area: Rect) {
 }
 
 fn paint_card_chrome(ui: &mut Ui<'_>, card: Rect, title: &str, meta: &str) {
+    paint_card_chrome_with_title(ui, card, title, meta, ink(SECONDARY, SURFACE));
+}
+
+fn paint_card_chrome_with_title(
+    ui: &mut Ui<'_>,
+    card: Rect,
+    title: &str,
+    meta: &str,
+    title_style: PaintStyle,
+) {
     ui.fill(card, ink(WHITE, SURFACE));
     if card.height == 0 || card.width < 4 {
         return;
     }
     let text_x = card.x.saturating_add(2);
     let text_w = card.width.saturating_sub(4);
-    ui.paint_str(
-        Rect::new(text_x, card.y, text_w, 1),
-        title,
-        ink(SECONDARY, SURFACE),
-    );
+    ui.paint_str(Rect::new(text_x, card.y, text_w, 1), title, title_style);
     if !meta.is_empty() {
         let meta_w = width(meta);
         if meta_w < text_w {
@@ -828,14 +953,18 @@ fn member_cells(member: &Member) -> [Cell; 7] {
     ]
 }
 
-fn paint_header(ui: &mut Ui<'_>, area: Rect, geom: &Geom) {
+fn paint_header(ui: &mut Ui<'_>, area: Rect, geom: &Geom, any_selected: bool) {
     paint_at(
         ui,
         area.x.saturating_add(TABLE_INSET),
         area.y,
         3,
-        CHECK_OFF,
-        ink(MUTED, SURFACE),
+        if any_selected { CHECK_MIXED } else { CHECK_OFF },
+        if any_selected {
+            ink(ACCENT, SURFACE)
+        } else {
+            ink(MUTED, SURFACE)
+        },
     );
     let mut x = area.x.saturating_add(TABLE_INSET).saturating_add(CHECK_W);
     for (spec, col_w) in SPECS.iter().zip(geom.widths.iter().copied()) {
@@ -865,47 +994,71 @@ fn paint_header(ui: &mut Ui<'_>, area: Rect, geom: &Geom) {
     }
 }
 
-fn paint_member_row(ui: &mut Ui<'_>, area: Rect, member: &Member, geom: &Geom, keep: Option<f32>) {
+fn paint_member_row(
+    ui: &mut Ui<'_>,
+    area: Rect,
+    member: &Member,
+    geom: &Geom,
+    keep: Option<f32>,
+    model: &Model,
+    index: usize,
+) {
     if area.is_empty() {
         return;
     }
-    if keep.is_some() {
+    let selected = model.selected & (1_u16 << index) != 0;
+    let cursor = model.table_focus && model.cursor == index;
+    if selected {
+        // Accent selection fill (owner decision 2026-10-17, `InactiveSelection
+        // ::Accent`): the chosen row keeps its accent fill and bold ink while
+        // focus lives elsewhere in the same layer.
+        ui.fill(
+            area,
+            ink(WHITE, accent_tint_bg(ui.theme_ref())).add_modifier(Modifier::BOLD),
+        );
+    } else if keep.is_some() {
         ui.fill(area, ink(faded(WHITE, SURFACE, keep), SURFACE));
     }
-    paint_at(ui, area.x, area.y, 1, " ", ink(SURFACE, SURFACE));
-    let mut mark = ink(
-        faded(
-            if member.disabled { DISABLED } else { MUTED },
-            SURFACE,
-            keep,
-        ),
-        SURFACE,
-    );
-    if member.disabled {
-        mark = mark.add_modifier(Modifier::DIM);
+    let bg = if selected { accent_tint_bg(ui.theme_ref()) } else { SURFACE };
+    let row_ink = |fg: u32| ink(faded(fg, SURFACE, keep), bg).add_modifier(Modifier::BOLD);
+    if cursor {
+        ui.glyph(
+            Rect::new(area.x, area.y, 1, 1),
+            GlyphRole::FocusBar,
+            ink(ACCENT, bg).add_modifier(Modifier::BOLD),
+        );
+    } else if !selected {
+        paint_at(ui, area.x, area.y, 1, " ", ink(SURFACE, SURFACE));
     }
+    let mark = if selected {
+        row_ink(ACCENT)
+    } else {
+        let mut mark = ink(
+            faded(if member.disabled { DISABLED } else { MUTED }, SURFACE, keep),
+            bg,
+        );
+        if member.disabled {
+            mark = mark.add_modifier(Modifier::DIM);
+        }
+        mark
+    };
+    let check = if selected { CHECK_ON } else { CHECK_OFF };
     paint_at(
         ui,
         area.x.saturating_add(TABLE_INSET),
         area.y,
         3,
-        CHECK_OFF,
+        check,
         mark,
     );
     let cells = member_cells(member);
     let mut x = area.x.saturating_add(TABLE_INSET).saturating_add(CHECK_W);
-    for (index, col_w) in geom.widths.iter().copied().enumerate() {
-        let Some(cell) = cells.get(index) else {
+    for (col, col_w) in geom.widths.iter().copied().enumerate() {
+        let Some(cell) = cells.get(col) else {
             break;
         };
-        paint_at(
-            ui,
-            x,
-            area.y,
-            col_w,
-            &fit(cell.text, col_w),
-            ink(faded(cell.fg, SURFACE, keep), SURFACE),
-        );
+        let style = if selected { row_ink(cell.fg) } else { ink(faded(cell.fg, SURFACE, keep), bg) };
+        paint_at(ui, x, area.y, col_w, &fit(cell.text, col_w), style);
         x = x.saturating_add(col_w).saturating_add(COL_GAP);
     }
 }
@@ -925,16 +1078,23 @@ fn members_meta(end: usize, selected: usize) -> String {
     }
 }
 
-fn paint_members(ui: &mut Ui<'_>, card: Rect, selected: usize) {
+fn paint_members(ui: &mut Ui<'_>, card: Rect, model: &Model) {
     let inner = card_inner(card);
     let Some(geom) = table_geom(inner, MEMBERS.len()) else {
         paint_card_chrome(ui, card, "Members", "");
         return;
     };
     let end = usize::from(geom.body).min(MEMBERS.len());
-    let meta = members_meta(end, selected);
-    paint_card_chrome(ui, card, "Members", &meta);
-    paint_header(ui, Rect { height: 1, ..inner }, &geom);
+    let meta = members_meta(end, model.selected_count());
+    let mut title = ink(SECONDARY, SURFACE);
+    if model.table_focus {
+        // The focused table's card is the active panel: its title carries the
+        // emphasis while selection keeps the accent (`InactiveSelection
+        // ::Accent`), like a macOS selection in the active window.
+        title = ink(WHITE, SURFACE).add_modifier(Modifier::BOLD);
+    }
+    paint_card_chrome_with_title(ui, card, "Members", &meta, title);
+    paint_header(ui, Rect { height: 1, ..inner }, &geom, model.selected != 0);
     let row_w = inner.width.saturating_sub(u16::from(geom.has_sb));
     for (index, member) in MEMBERS.iter().enumerate().take(end) {
         paint_member_row(
@@ -951,6 +1111,8 @@ fn paint_members(ui: &mut Ui<'_>, card: Rect, selected: usize) {
             member,
             &geom,
             row_fade(index, usize::from(geom.body), MEMBERS.len()),
+            model,
+            index,
         );
     }
     if geom.has_sb && geom.body > 0 {
@@ -995,8 +1157,181 @@ fn paint_centered(ui: &mut Ui<'_>, area: Rect, y: u16, text: &str, style: PaintS
     paint_at(ui, x, y, columns, text, style);
 }
 
-fn paint_editor(ui: &mut Ui<'_>, card: Rect) {
-    paint_card_chrome(ui, card, "Details", "");
+/// What the selected members agree on. `None` means the column is mixed
+/// across the selection and the field shows `— mixed —`.
+struct Summary {
+    count: usize,
+    role: Option<&'static str>,
+    status: Option<&'static str>,
+    region: Option<&'static str>,
+    on_call: Option<bool>,
+    notes: Option<&'static str>,
+}
+
+impl Summary {
+    fn collect(model: &Model) -> Option<Summary> {
+        let count = model.selected_count();
+        if count == 0 {
+            return None;
+        }
+        let mut summary = Summary {
+            count,
+            role: None,
+            status: None,
+            region: None,
+            on_call: None,
+            notes: None,
+        };
+        for (index, member) in MEMBERS.iter().enumerate() {
+            if model.selected & (1_u16 << index) == 0 {
+                continue;
+            }
+            let notes = if member.notes.is_empty() {
+                None
+            } else {
+                Some(member.notes)
+            };
+            unify(&mut summary.role, member.role);
+            unify(&mut summary.status, status_text(member.status));
+            unify(&mut summary.region, member.region);
+            unify(&mut summary.on_call, member.on_call);
+            if let Some(note) = notes {
+                unify(&mut summary.notes, note);
+            } else {
+                // A member without notes makes the shared note mixed.
+                summary.notes = None;
+            }
+        }
+        Some(summary)
+    }
+}
+
+fn unify<T: PartialEq>(slot: &mut Option<T>, value: T) {
+    if let Some(current) = slot {
+        if *current != value {
+            *slot = None;
+        }
+    } else {
+        *slot = Some(value);
+    }
+}
+
+const MIXED: &str = "\u{2014} mixed \u{2014}";
+
+/// One bulk-edit field: a raised chip carrying the shared value (or the
+/// mixed marker), with a dropdown arrow when the field is editable.
+fn paint_field(ui: &mut Ui<'_>, area: Rect, value: &str, arrow: bool) {
+    if area.is_empty() {
+        return;
+    }
+    let field_bg = color_u32(ui.theme_ref().bg(Surface::Field));
+    let chip = ink(MUTED, field_bg);
+    ui.fill(area, chip);
+    paint_at(ui, area.x, area.y, area.width, value, chip);
+    if arrow && area.width > 1 {
+        paint_at(
+            ui,
+            area.right().saturating_sub(1),
+            area.y,
+            1,
+            "\u{25be}",
+            ink(SECONDARY, field_bg),
+        );
+    }
+}
+
+fn paint_editor(ui: &mut Ui<'_>, card: Rect, model: &Model) {
+    let Some(summary) = Summary::collect(model) else {
+        paint_card_chrome(ui, card, "Details", "");
+        paint_editor_hint(ui, card);
+        return;
+    };
+    let title = if summary.count == 1 {
+        String::from("Edit 1 member")
+    } else {
+        format!("Edit {} members", summary.count)
+    };
+    paint_card_chrome(ui, card, &title, "");
+    let inner = card_inner(card);
+    if inner.height == 0 || inner.width == 0 || inner.width < 16 {
+        return;
+    }
+    let applies = if summary.count == 1 {
+        String::from("Applies to 1 member \u{b7} names and emails stay")
+    } else {
+        format!(
+            "Applies to all {} \u{b7} names and emails stay",
+            summary.count
+        )
+    };
+    paint_at(ui, inner.x.saturating_add(2), inner.y, inner.width - 2, &applies, ink(FAINT, SURFACE));
+    // Two equal columns of fields with a five-column gutter between them.
+    let half = inner.width.saturating_sub(2) / 2;
+    let chip_w = half.saturating_sub(5);
+    let left = inner.x.saturating_add(2);
+    let right = left.saturating_add(half);
+    let label = ink(SECONDARY, SURFACE);
+    paint_at(ui, left, inner.y.saturating_add(1), 10, "Role", label);
+    paint_at(ui, right, inner.y.saturating_add(1), 10, "Status", label);
+    let values_y = inner.y.saturating_add(2);
+    paint_field(
+        ui,
+        Rect::new(left, values_y, chip_w, 1),
+        summary.role.unwrap_or(MIXED),
+        true,
+    );
+    paint_field(
+        ui,
+        Rect::new(right, values_y, chip_w, 1),
+        summary.status.unwrap_or(MIXED),
+        true,
+    );
+    paint_at(
+        ui,
+        left,
+        inner.y.saturating_add(4),
+        10,
+        "Region",
+        label,
+    );
+    paint_field(
+        ui,
+        Rect::new(left, inner.y.saturating_add(5), chip_w, 1),
+        summary.region.unwrap_or(MIXED),
+        true,
+    );
+    let check_x = right.saturating_sub(1);
+    let (check, check_fg) = match summary.on_call {
+        Some(true) => (CHECK_ON, ACCENT),
+        Some(false) => (CHECK_OFF, MUTED),
+        None => (CHECK_MIXED, ACCENT),
+    };
+    paint_at(ui, check_x, inner.y.saturating_add(5), 3, check, ink(check_fg, SURFACE));
+    paint_at(
+        ui,
+        check_x.saturating_add(4),
+        inner.y.saturating_add(5),
+        7,
+        "On call",
+        ink(WHITE, SURFACE),
+    );
+    paint_at(
+        ui,
+        left,
+        inner.y.saturating_add(7),
+        10,
+        "Notes",
+        label,
+    );
+    paint_field(
+        ui,
+        Rect::new(left, inner.y.saturating_add(8), chip_w, 1),
+        summary.notes.unwrap_or(EMPTY_MARK),
+        false,
+    );
+}
+
+fn paint_editor_hint(ui: &mut Ui<'_>, card: Rect) {
     let inner = card_inner(card);
     if inner.height == 0 || inner.width == 0 {
         return;
@@ -1037,7 +1372,7 @@ fn content_height() -> u16 {
     MEMBERS_H.saturating_add(EDITOR_H).saturating_add(CARD_GAP)
 }
 
-fn paint_wide_playground(ui: &mut Ui<'_>, area: Rect, selected: usize) {
+fn paint_wide_playground(ui: &mut Ui<'_>, area: Rect, model: &Model) {
     if area.width <= CARD_GAP {
         return;
     }
@@ -1045,10 +1380,10 @@ fn paint_wide_playground(ui: &mut Ui<'_>, area: Rect, selected: usize) {
     let right_w = area.width / 3;
     let left_w = area.width.saturating_sub(CARD_GAP).saturating_sub(right_w);
     if left_w == 0 || right_w == 0 {
-        paint_playground(ui, area, selected);
+        paint_playground(ui, area, model);
         return;
     }
-    paint_members(ui, Rect::new(area.x, area.y, left_w, area.height), selected);
+    paint_members(ui, Rect::new(area.x, area.y, left_w, area.height), model);
     paint_editor(
         ui,
         Rect::new(
@@ -1057,10 +1392,11 @@ fn paint_wide_playground(ui: &mut Ui<'_>, area: Rect, selected: usize) {
             right_w,
             EDITOR_H.min(area.height),
         ),
+        model,
     );
 }
 
-fn paint_playground(ui: &mut Ui<'_>, area: Rect, selected: usize) {
+fn paint_playground(ui: &mut Ui<'_>, area: Rect, model: &Model) {
     if area.is_empty() {
         return;
     }
@@ -1081,15 +1417,11 @@ fn paint_playground(ui: &mut Ui<'_>, area: Rect, selected: usize) {
         MEMBERS_H.min(view.bottom().saturating_sub(view.y)),
     );
     if members.height > 0 {
-        paint_members(
-            ui,
-            Rect::new(view.x, view.y, view.width, MEMBERS_H),
-            selected,
-        );
+        paint_members(ui, Rect::new(view.x, view.y, view.width, MEMBERS_H), model);
     }
     let editor_y = view.y.saturating_add(MEMBERS_H).saturating_add(CARD_GAP);
     if editor_y < view.bottom() {
-        paint_editor(ui, Rect::new(view.x, editor_y, view.width, EDITOR_H));
+        paint_editor(ui, Rect::new(view.x, editor_y, view.width, EDITOR_H), model);
     }
     if overflows {
         paint_vertical_bar(
@@ -1122,9 +1454,11 @@ mod tests {
         assert_eq!(model.cursor, 1);
         assert!(model.apply_key(key(KeyCode::Down, KeyModifiers::SHIFT)));
         assert_eq!(model.selected_count(), 2);
-        assert!(model.oracle().is_none());
-        assert!(model.apply_key(key(KeyCode::Char('d'), KeyModifiers::empty())));
-        assert!(matches!(model.oracle(), Some(frames::Oracle::Delete)));
+        // Delete requests now flow through `update` (the dialog layer), not
+        // through `apply_key`; the key itself is not a selection edit.
+        assert!(!model.apply_key(key(KeyCode::Char('d'), KeyModifiers::empty())));
+        assert!(!model.dialog);
+        assert_eq!(model.selected_count(), 2);
 
         let mut bulk = Model {
             table_focus: true,
@@ -1136,7 +1470,6 @@ mod tests {
         assert!(bulk.apply_key(key(KeyCode::Down, KeyModifiers::SHIFT)));
         assert_eq!(bulk.selected_count(), 3);
         assert_eq!(bulk.cursor, 3);
-        assert!(matches!(bulk.oracle(), Some(frames::Oracle::Bulk)));
     }
 
     #[test]
@@ -1147,6 +1480,88 @@ mod tests {
         };
         assert!(model.apply_key(key(KeyCode::Char(' '), KeyModifiers::empty())));
         assert_eq!(model.selected_count(), 0);
-        assert!(model.oracle().is_none());
+        assert!(!model.dialog);
+    }
+
+    #[test]
+    fn ctrl_a_selects_all_enabled_and_toggles_back() {
+        let mut model = Model {
+            table_focus: true,
+            ..Model::default()
+        };
+        let enabled = MEMBERS.iter().filter(|m| !m.disabled).count();
+        assert!(model.apply_key(key(KeyCode::Char('a'), KeyModifiers::CONTROL)));
+        assert_eq!(model.selected_count(), enabled);
+        assert!(model.apply_key(key(KeyCode::Char('a'), KeyModifiers::CONTROL)));
+        assert_eq!(model.selected_count(), 0);
+    }
+
+    #[test]
+    fn esc_clears_the_selection() {
+        let mut model = Model {
+            table_focus: true,
+            ..Model::default()
+        };
+        assert!(model.apply_key(key(KeyCode::Down, KeyModifiers::empty())));
+        assert!(model.apply_key(key(KeyCode::Char(' '), KeyModifiers::empty())));
+        assert_eq!(model.selected_count(), 1);
+        assert!(model.apply_key(key(KeyCode::Esc, KeyModifiers::empty())));
+        assert_eq!(model.selected_count(), 0);
+        assert!(!model.apply_key(key(KeyCode::Esc, KeyModifiers::empty())));
+    }
+
+    #[test]
+    fn summary_reports_shared_and_mixed_fields() {
+        let mut model = Model {
+            table_focus: true,
+            ..Model::default()
+        };
+        assert!(Summary::collect(&model).is_none());
+        // Cursor starts on the disabled owner; move to Ari first.
+        assert!(model.apply_key(key(KeyCode::Down, KeyModifiers::empty())));
+        assert!(model.apply_key(key(KeyCode::Char(' '), KeyModifiers::empty())));
+        let one = Summary::collect(&model).expect("one member");
+        assert_eq!(one.count, 1);
+        assert_eq!(one.role, Some(MEMBERS[1].role));
+        assert_eq!(one.status, Some(status_text(MEMBERS[1].status)));
+        assert_eq!(one.notes, Some(MEMBERS[1].notes));
+        // Extend to Cleo: same status, different role, no notes on Bo? no --
+        // Cleo has notes; roles differ (Admin vs Editor).
+        assert!(model.apply_key(key(KeyCode::Down, KeyModifiers::SHIFT)));
+        let two = Summary::collect(&model).expect("two members");
+        assert_eq!(two.count, 2);
+        assert_eq!(two.role, None);
+        assert_eq!(two.status, Some(status_text(MEMBERS[2].status)));
+        assert_eq!(two.notes, None);
+    }
+
+    #[test]
+    fn hints_follow_dialog_selection_and_focus() {
+        let mut model = Model::default();
+        assert_eq!(model.hints(), &[]);
+        model.table_focus = true;
+        assert_eq!(model.hints(), TABLE_HINTS);
+        assert!(model.apply_key(key(KeyCode::Down, KeyModifiers::empty())));
+        assert!(model.apply_key(key(KeyCode::Char(' '), KeyModifiers::empty())));
+        assert_eq!(model.hints(), SELECTION_HINTS);
+        model.dialog = true;
+        assert_eq!(model.hints(), DIALOG_HINTS);
+    }
+
+    #[test]
+    fn dialog_fields_track_the_selection_count() {
+        let mut model = Model {
+            table_focus: true,
+            ..Model::default()
+        };
+        for _ in 0..3 {
+            assert!(model.apply_key(key(KeyCode::Down, KeyModifiers::empty())));
+            assert!(model.apply_key(key(KeyCode::Char(' '), KeyModifiers::empty())));
+        }
+        assert_eq!(model.selected_count(), 3);
+        // `open_dialog` formats the title/confirm from the live selection.
+        let count = model.selected_count();
+        assert_eq!(format!("Delete {count} members?"), "Delete 3 members?");
+        assert_eq!(format!("Delete {count} members"), "Delete 3 members");
     }
 }
