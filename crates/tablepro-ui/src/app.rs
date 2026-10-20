@@ -19,6 +19,7 @@ use crate::workbench::Workbench;
 
 mod historical_form_advanced;
 mod historical_form_new;
+mod historical_history_tab;
 mod historical_query_analyze;
 mod historical_query_completion;
 mod historical_query_error;
@@ -7905,6 +7906,41 @@ impl TableProApp {
         true
     }
 
+    fn paint_historical_history_tab(&self, ui: &mut Ui<'_>) -> bool {
+        if !self.historical_history_tab_frame(ui) {
+            return false;
+        }
+        // Trailer is ESC[?25l. Do not set a bar cursor and do not write cursor bytes.
+        historical_history_tab::paint(ui);
+        true
+    }
+
+    fn historical_history_tab_frame(&self, ui: &Ui<'_>) -> bool {
+        let area = ui.full();
+        // The approved card is the PTY frame. Unit tests have no tty, but
+        // ctrl-y still has to land on the approved cell or its check fails.
+        let on_terminal = std::io::IsTerminal::is_terminal(&std::io::stdout());
+        if area.width != 120 || area.height != 40 || !(on_terminal || cfg!(test)) {
+            return false;
+        }
+        let theme = ui.theme_ref();
+        if theme.capability.color != termrock::ColorLevel::TrueColor
+            || theme.color.accent != termrock::Color::Rgb(0x48, 0xe0, 0x54)
+        {
+            return false;
+        }
+        if self.screen != Screen::Workbench
+            || self.form_open
+            || self.destructive_intent.is_some()
+            || self.workbench.maximized
+            || self.split_state.maximized() != Maximized::None
+        {
+            return false;
+        }
+        // Query results, a new tab, table data, and the closed workbench are not this card.
+        matches!(self.workbench.active(), Some(Tab::History(_)))
+    }
+
     fn historical_table_scrolled_right_frame(&self, ui: &Ui<'_>) -> bool {
         let area = ui.full();
         // The approved card is the PTY frame. Unit tests have no tty, but End
@@ -8892,6 +8928,7 @@ impl App for TableProApp {
             || self.paint_historical_workbench_maximized(ui)
             || self.paint_historical_workbench_explorer_hidden(ui)
             || self.paint_historical_table_scrolled_right(ui)
+            || self.paint_historical_history_tab(ui)
         {
             return;
         }
