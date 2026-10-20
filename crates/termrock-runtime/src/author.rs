@@ -1,5 +1,8 @@
 use core::fmt;
 
+mod window;
+pub use window::{VerticalWindow, VerticalWindowError};
+
 /// Publish low-priority bindings for a real focus scope. These bindings are
 /// considered only after the focused control has declined the same key.
 pub fn publish_scope_bindings<C: Copy + 'static>(
