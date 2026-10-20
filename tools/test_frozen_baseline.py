@@ -694,6 +694,52 @@ class RunnerGuards(unittest.TestCase):
         with self.assertRaisesRegex(runner.RunnerError, "chunk size"):
             runner.scenario_chunks(names, 513)
 
+    def test_fresh_expected_chunk_digest_binds_modes_and_rejects_aliases(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp) / "expected"
+            root.mkdir()
+            (root / "checkpoint.ansi").write_bytes(b"frame")
+            first = runner._fresh_expected_tree_sha256(root)
+            (root / "checkpoint.ansi").chmod(0o444)
+            second = runner._fresh_expected_tree_sha256(root)
+            self.assertNotEqual(first, second)
+            link = root / "linked.ansi"
+            link.symlink_to(root / "checkpoint.ansi")
+            with self.assertRaisesRegex(runner.RunnerError, "aliased or non-regular"):
+                runner._fresh_expected_tree_sha256(root)
+
+    def test_fresh_journal_publish_is_immutable_and_rejects_symlink_root(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            run_root = Path(temp) / "run"
+            run_root.mkdir(mode=0o700)
+            envelope = {"receipt": {"ordinal": 0}, "hmac_sha256": "a" * 64}
+            published = runner._fresh_journal_append(run_root, envelope, 0)
+            self.assertEqual(published.stat().st_mode & 0o777, 0o400)
+            self.assertEqual(runner._fresh_journal_envelopes(run_root), [envelope])
+            with self.assertRaisesRegex(runner.RunnerError, "refusing to replace"):
+                runner._fresh_journal_append(run_root, envelope, 0)
+            outside = Path(temp) / "outside"
+            outside.mkdir(mode=0o700)
+            runner.shutil.rmtree(run_root / "journal")
+            (run_root / "journal").symlink_to(outside, target_is_directory=True)
+            with self.assertRaisesRegex(runner.RunnerError, "journal directory is unsafe"):
+                runner._fresh_journal_append(run_root, envelope, 1)
+
+    def test_fresh_advance_cli_is_capture_replay_only_and_bounded(self) -> None:
+        parsed = runner.parser().parse_args([
+            "--timeout", "225", "fresh-run-advance", "--cohort", "frozen-cohort",
+            "--baseline-bin-dir", "/sealed", "--expected-plan-sha256", "a" * 64,
+            "--key-path", "/private/key",
+        ])
+        self.assertEqual(parsed.command, "fresh-run-advance")
+        self.assertEqual(parsed.timeout, 225)
+        self.assertFalse(hasattr(parsed, "phase"))
+        with self.assertRaises(SystemExit):
+            runner.parser().parse_args([
+                "fresh-run-advance", "--cohort", "frozen-cohort", "--baseline-bin-dir", "/sealed",
+                "--expected-plan-sha256", "a" * 64, "--key-path", "/private/key", "--phase", "candidate",
+            ])
+
     def _fresh_plan_fixture(self, root: Path) -> dict[str, object]:
         repo = root / "repo"
         source = root / "source"
@@ -912,7 +958,7 @@ class RunnerGuards(unittest.TestCase):
             plan_path = root / runner.FRESH_PLAN_FILE
             creation_digest = runner._atomic_create_plan(plan_path, plan)
             key_path = Path(temp).resolve() / "private-custody" / "run.key"
-            with patch.object(runner, "verify_fresh_plan", return_value=plan), patch.object(runner, "paths", return_value=(Path(temp) / "repo", root, root / "source")), patch.object(runner, "_git_metadata_paths", return_value=set()):
+            with patch.object(runner, "verify_fresh_plan", return_value=plan), patch.object(runner, "paths", return_value=(Path(temp) / "repo", root, root / "source")), patch.object(runner, "_git_metadata_paths", return_value=set()), patch.object(runner, "EXPECTED_SCENARIOS", 1), patch.object(runner, "EXPECTED_ORDINARY_TESTS", 2), patch.object(runner, "ordinary_test_groups", return_value=(['source_only::fixture'], ['modes::showcase_boot_sets_terminal_modes'])):
                 manifest = runner.create_fresh_run(Path(temp) / "repo", root, "fixture-cohort", root / "bins", 30, creation_digest, key_path)
                 self.assertFalse(manifest["executed"])
                 self.assertFalse(manifest["candidate_comparison_eligible"])
@@ -1043,10 +1089,18 @@ class RunnerGuards(unittest.TestCase):
                 loaded_plan = runner._read_self_sealed_plan(plan_path, creation_digest)
                 planned = runner._fresh_plan_steps(loaded_plan)
             def signed(step: dict[str, object], ordinal: int, previous: str | None, **changes: object) -> dict[str, object]:
+                expected_hash = "a" * 64
                 receipt = {
-                    "schema": "termrock.frozen-cli-fresh-run-receipt-v1", "ordinal": ordinal,
+                    "schema": "termrock.frozen-cli-fresh-run-receipt-v2", "ordinal": ordinal,
                     **step, "status": "passed", "checkpoint_count": 1 if step["phase"] != "baseline-ordinary-checks" else 0,
                     "ordinary_check_count": 1 if step["phase"] == "baseline-ordinary-checks" else 0,
+                    "process_receipt_count": 1 if step["phase"] != "baseline-ordinary-checks" else 0,
+                    "process_receipt_inventory_sha256": "b" * 64,
+                    "process_pid_count": 1 if step["phase"] != "baseline-ordinary-checks" else 0,
+                    "checkpoint_inventory_sha256": "c" * 64,
+                    "artifacts_sha256": "d" * 64,
+                    "committed_chunk_sha256": "e" * 64,
+                    "expected_chunk_sha256": expected_hash,
                     "run_id": manifest["run_id"], "plan_creation_sha256": creation_digest,
                     "plan_self_sha256": plan["plan_sha256"], "cohort_id": manifest["cohort_id"],
                     "binary_hashes": manifest["binary_hashes"], "source_sha256": manifest["source"]["source_sha256"],
@@ -1056,11 +1110,13 @@ class RunnerGuards(unittest.TestCase):
                 return {"receipt": receipt, "hmac_sha256": runner.hmac.new(key, runner.canonical_receipt_json(receipt), runner.hashlib.sha256).hexdigest()}
             chain = []
             previous = None
-            for ordinal, step in enumerate(planned):
+            visual_planned = [step for step in planned if step["phase"] != "baseline-ordinary-checks"]
+            for ordinal, step in enumerate(visual_planned):
                 envelope = signed(step, ordinal, previous)
                 chain.append(envelope)
                 previous = runner.hashlib.sha256(runner.canonical_receipt_json(envelope)).hexdigest()
             first, second, third = chain[:3]
+            altered_replay_hash = signed(visual_planned[2], 2, runner.hashlib.sha256(runner.canonical_receipt_json(second)).hexdigest(), expected_chunk_sha256="0" * 64)
             with patch.object(runner, "EXPECTED_SCENARIOS", 1), patch.object(runner, "EXPECTED_ORDINARY_TESTS", 2), patch.object(runner, "ordinary_test_groups", return_value=(["source_only::fixture"], ["modes::showcase_boot_sets_terminal_modes"])):
                 empty = runner.validate_fresh_run_journal([], key, manifest_envelope, plan_path, creation_digest)
                 self.assertFalse(empty["complete"])
@@ -1072,6 +1128,9 @@ class RunnerGuards(unittest.TestCase):
                     runner.validate_fresh_run_journal([], key, forged_manifest, plan_path, creation_digest)
                 prefix = runner.validate_fresh_run_journal([first], key, manifest_envelope, plan_path, creation_digest)
                 complete = runner.validate_fresh_run_journal(chain, key, manifest_envelope, plan_path, creation_digest)
+                ordinary_receipt = signed(planned[len(chain)], len(chain), previous)
+                with self.assertRaisesRegex(runner.RunnerError, "unsupported phase"):
+                    runner.validate_fresh_run_journal([*chain, ordinary_receipt], key, manifest_envelope, plan_path, creation_digest)
                 forged = json.loads(json.dumps(loaded_plan))
                 forged["execution"]["phases"][0]["chunks"][0]["selected_cases"] = ["arbitrary::not-in-inventory"]
                 forged["plan_sha256"] = runner.canonical_json_digest({field: value for field, value in forged.items() if field != "plan_sha256"})
@@ -1088,7 +1147,8 @@ class RunnerGuards(unittest.TestCase):
                     runner.validate_fresh_run_journal([first], key, manifest_envelope, other_path, other_digest)
             self.assertFalse(prefix["complete"])
             self.assertFalse(prefix["candidate_comparison_eligible"])
-            self.assertTrue(complete["complete"])
+            self.assertTrue(complete["visual_capture_replay_complete"])
+            self.assertFalse(complete["complete"])
             for bad in (
                 [chain[1], chain[0], *chain[2:]],
                 [chain[0], chain[0], *chain[2:]],
@@ -1097,6 +1157,7 @@ class RunnerGuards(unittest.TestCase):
                 [{"receipt": first["receipt"], "hmac_sha256": "0" * 64}],
                 [signed(planned[0], 0, None, status="skipped")],
                 [signed(planned[0], 0, None, checkpoint_count=0)],
+                [first, second, altered_replay_hash],
                 [signed(planned[0], 0, None, run_id="stale-run")],
                 [signed(planned[0], 1, None)],
             ):
