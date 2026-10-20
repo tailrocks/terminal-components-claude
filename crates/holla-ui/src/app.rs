@@ -1247,6 +1247,29 @@ mod tests {
         assert_eq!(before.fg, Color::Rgb(0xff, 0xff, 0xff));
     }
     #[test]
+    fn discovery_frame_40_shows_pull_and_the_preview_plate() {
+        let harness = harness(
+            App::for_scenario(Scenario::ParityDiscovery, Motion::Paused, 40),
+            Theme::junie(),
+            120,
+            40,
+        );
+        let text = harness.text();
+        assert!(text.contains("Pull"), "{text}");
+        assert!(text.contains("move every .idea"), "{text}");
+        assert!(!text.contains("Monitor this host"), "{text}");
+        let (x, y) = harness.find("Pull").expect("pull row");
+        assert_eq!((x, y), (4, 7));
+        let plate = harness.cell(79, 6);
+        assert_eq!(plate.bg, Color::Rgb(0x11, 0x11, 0x11));
+        assert_eq!(plate.symbol(), " ");
+        assert!(
+            harness.diagnostics().is_empty(),
+            "{:?}",
+            harness.diagnostics()
+        );
+    }
+    #[test]
     fn paused_clock_step_advances_world_time_by_1100_ms() {
         let mut paused = App::for_scenario(Scenario::FirstUse, Motion::Paused, 0);
         let start = paused.world.now_ms();
