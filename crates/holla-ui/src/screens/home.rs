@@ -234,6 +234,11 @@ impl HomeState {
             rows_area.y = rows_area.y.saturating_add(used);
             rows_area.height = rows_area.height.saturating_sub(used);
         }
+        if let Some(view) = catalogue::parity_discovery(world)
+            && paint_parity_discovery(ui, rows_area, &view)
+        {
+            return;
+        }
         if rows.is_empty() {
             let note = if self.query().trim().is_empty() {
                 self.scope.map_or_else(
@@ -460,6 +465,435 @@ fn paint_action(ui: &mut Ui<'_>, area: Rect, flags: StateFlags, _key: ItemKey, r
             muted,
         );
     }
+}
+
+const PREVIEW_BG: Color = Color::Rgb(0x11, 0x11, 0x11);
+const SELECT_BG: Color = Color::Rgb(0x2f, 0x5a, 0xa8);
+const TAG_GREY_FG: Color = Color::Rgb(0x8a, 0x8a, 0x8a);
+const SECONDARY_FG: Color = Color::Rgb(0xb3, 0xb3, 0xb3);
+const META_FG: Color = Color::Rgb(0x73, 0x73, 0x73);
+const RULE_FG: Color = Color::Rgb(0x3a, 0x3a, 0x3a);
+const DANGER_FG: Color = Color::Rgb(0xf0, 0x5d, 0x5d);
+const WHITE: Color = Color::Rgb(0xff, 0xff, 0xff);
+const BLACK: Color = Color::Rgb(0, 0, 0);
+
+struct TagCols {
+    label: u16,
+    kind: u16,
+    scope: u16,
+    reason: u16,
+}
+
+fn ink(ui: &Ui<'_>, fg: Color, bg: Color, bold: bool) -> termrock::author::PaintStyle {
+    let patch = StylePatch::new()
+        .set_fg(Role::Custom(fg))
+        .set_bg(Role::Custom(bg));
+    let patch = if bold {
+        patch.add(termrock::Modifier::BOLD)
+    } else {
+        patch.remove(termrock::Modifier::BOLD)
+    };
+    ui.paint_patch(&patch)
+}
+
+fn fit_cells(text: &str, width: u16) -> String {
+    let fitted = termrock::truncate(text, width);
+    let pad = usize::from(width.saturating_sub(termrock::width(&fitted)));
+    format!("{fitted}{}", " ".repeat(pad))
+}
+
+fn truncate_sep(text: &str, max: u16) -> String {
+    if termrock::width(text) <= max {
+        return text.to_owned();
+    }
+    if max < 4 {
+        return termrock::truncate(text, max);
+    }
+    let mut best: Option<usize> = None;
+    let mut pos = 0usize;
+    while let Some(found) = text[pos..].find(" · ") {
+        let at = pos.saturating_add(found);
+        let width = termrock::width(text.get(..at).unwrap_or(""));
+        if width < max && width.saturating_mul(3) >= max {
+            best = Some(at);
+        }
+        if width.saturating_add(1) > max {
+            break;
+        }
+        pos = at.saturating_add(3);
+    }
+    match best.and_then(|at| text.get(..at)) {
+        Some(head) => format!("{head}…"),
+        None => termrock::truncate(text, max),
+    }
+}
+
+fn wrap_words(text: &str, width: u16) -> Vec<String> {
+    let width = usize::from(width.max(1));
+    let mut lines = Vec::new();
+    let mut line = String::new();
+    let mut used = 0usize;
+    for word in text.split(' ') {
+        let word_w = usize::from(termrock::width(word));
+        if line.is_empty() {
+            if word_w <= width {
+                line = word.to_owned();
+                used = word_w;
+            } else {
+                lines.push(termrock::truncate(
+                    word,
+                    u16::try_from(width).unwrap_or(u16::MAX),
+                ));
+            }
+        } else if used.saturating_add(1).saturating_add(word_w) <= width {
+            line.push(' ');
+            line.push_str(word);
+            used = used.saturating_add(1).saturating_add(word_w);
+        } else {
+            lines.push(std::mem::take(&mut line));
+            used = 0;
+            if word_w <= width {
+                line = word.to_owned();
+                used = word_w;
+            } else {
+                lines.push(termrock::truncate(
+                    word,
+                    u16::try_from(width).unwrap_or(u16::MAX),
+                ));
+            }
+        }
+    }
+    lines.push(line);
+    lines
+}
+
+fn tag_columns(rows: &[&catalogue::TagRow], content_w: u16) -> TagCols {
+    let max_label = rows
+        .iter()
+        .map(|row| termrock::width(&row.title))
+        .max()
+        .unwrap_or(14);
+    let kind = rows
+        .iter()
+        .map(|row| termrock::width(row.kind))
+        .max()
+        .unwrap_or(4);
+    let scope = rows
+        .iter()
+        .map(|row| termrock::width(row.scope_word))
+        .max()
+        .unwrap_or(4);
+    let risk = rows
+        .iter()
+        .filter_map(|row| row.risk)
+        .map(termrock::width)
+        .max()
+        .unwrap_or(0);
+    let label_cap = max_label.min(content_w.saturating_mul(36) / 100).max(14);
+    let gaps = 2u16.saturating_mul(3u16.saturating_add(u16::from(risk > 0)));
+    let mut label = label_cap;
+    let fixed = label
+        .saturating_add(kind)
+        .saturating_add(scope)
+        .saturating_add(risk)
+        .saturating_add(gaps);
+    let need = fixed.saturating_add(12);
+    if need > content_w {
+        label = label.saturating_sub(need.saturating_sub(content_w));
+    }
+    let reason = content_w.saturating_sub(
+        label
+            .saturating_add(kind)
+            .saturating_add(scope)
+            .saturating_add(risk)
+            .saturating_add(gaps),
+    );
+    TagCols {
+        label,
+        kind,
+        scope,
+        reason,
+    }
+}
+
+fn split_detail(area: Rect) -> Option<(Rect, Rect)> {
+    if area.width < 80 || area.height == 0 {
+        return None;
+    }
+    let detail_w = u16::try_from(u32::from(area.width).saturating_mul(34) / 100).unwrap_or(0);
+    let detail_w = detail_w.clamp(34, 48);
+    let gap = 2u16;
+    let master_w = area.width.saturating_sub(detail_w.saturating_add(gap));
+    if master_w < 20 {
+        return None;
+    }
+    Some((
+        Rect::new(area.x, area.y, master_w, area.height),
+        Rect::new(
+            area.x.saturating_add(master_w).saturating_add(gap),
+            area.y,
+            detail_w,
+            area.height,
+        ),
+    ))
+}
+
+fn paint_parity_discovery(ui: &mut Ui<'_>, area: Rect, view: &catalogue::ParityDiscovery) -> bool {
+    let Some((master, detail)) = split_detail(area) else {
+        return false;
+    };
+    let rows: Vec<&catalogue::TagRow> = view
+        .lines
+        .iter()
+        .filter_map(|line| match line {
+            catalogue::FinderLine::Row(row) => Some(row),
+            _ => None,
+        })
+        .collect();
+    let cols = tag_columns(&rows, master.width.saturating_sub(4));
+    let mut y = master.y;
+    for line in &view.lines {
+        if y >= master.bottom() {
+            break;
+        }
+        match line {
+            catalogue::FinderLine::Heading(text) => paint_tag_heading(ui, master, y, text),
+            catalogue::FinderLine::Blank => {}
+            catalogue::FinderLine::Chips(labels) => paint_tag_chips(ui, master, y, labels),
+            catalogue::FinderLine::Row(row) => paint_tag_row(ui, master, y, row, &cols),
+        }
+        y = y.saturating_add(1);
+    }
+    paint_tag_preview(ui, detail, view, &rows);
+    true
+}
+
+fn paint_tag_heading(ui: &mut Ui<'_>, master: Rect, y: u16, text: &str) {
+    let style = ink(ui, TAG_GREY_FG, BLACK, false);
+    ui.paint_str(
+        Rect::new(master.x.saturating_add(3), y, termrock::width(text), 1),
+        text,
+        style,
+    );
+}
+
+fn paint_tag_chips(ui: &mut Ui<'_>, master: Rect, y: u16, labels: &[&str]) {
+    // Unfocused explore gutter is ink-on-ink, so the cell reads as an empty black column.
+    ui.paint_str(
+        Rect::new(master.x, y, 1, 1),
+        " ",
+        ink(ui, BLACK, BLACK, false),
+    );
+    let style = ink(ui, WHITE, BLACK, false);
+    let mut x = master.x.saturating_add(3);
+    for label in labels {
+        let label_w = termrock::width(label);
+        if x.saturating_add(label_w) >= master.right() {
+            break;
+        }
+        ui.paint_str(Rect::new(x.saturating_add(1), y, label_w, 1), label, style);
+        x = x.saturating_add(label_w).saturating_add(3);
+    }
+}
+
+fn paint_tag_row(ui: &mut Ui<'_>, master: Rect, y: u16, row: &catalogue::TagRow, cols: &TagCols) {
+    let bg = if row.selected { SELECT_BG } else { BLACK };
+    let title_style = ink(ui, WHITE, bg, row.selected);
+    if row.selected {
+        ui.fill(Rect::new(master.x, y, master.width, 1), title_style);
+        ui.paint_str(
+            Rect::new(master.x.saturating_add(1), y, 1, 1),
+            "›",
+            title_style,
+        );
+    }
+    let mut x = master.x.saturating_add(3);
+    let title = termrock::truncate(&row.title, cols.label);
+    ui.paint_str(
+        Rect::new(x, y, termrock::width(&title).max(1), 1),
+        &title,
+        title_style,
+    );
+    x = x.saturating_add(cols.label).saturating_add(2);
+    // Tag row chrome bolds only the label. Kind, scope, reason, and risk stay plain.
+    let plain = ink(ui, WHITE, bg, false);
+    let kind_style = if row.selected {
+        plain
+    } else {
+        ink(ui, TAG_GREY_FG, BLACK, false)
+    };
+    ui.paint_str(
+        Rect::new(x, y, cols.kind, 1),
+        &fit_cells(row.kind, cols.kind),
+        kind_style,
+    );
+    x = x.saturating_add(cols.kind).saturating_add(2);
+    let scope_fg = if row.selected {
+        WHITE
+    } else if row.here {
+        TAG_GREY_FG
+    } else {
+        SECONDARY_FG
+    };
+    let scope_style = if row.selected {
+        plain
+    } else {
+        ink(ui, scope_fg, BLACK, false)
+    };
+    ui.paint_str(
+        Rect::new(x, y, cols.scope, 1),
+        &fit_cells(row.scope_word, cols.scope),
+        scope_style,
+    );
+    x = x.saturating_add(cols.scope).saturating_add(2);
+    if cols.reason > 0 {
+        let reason = truncate_sep(&row.reason, cols.reason);
+        let reason_style = if row.selected {
+            plain
+        } else {
+            ink(ui, TAG_GREY_FG, BLACK, false)
+        };
+        ui.paint_str(
+            Rect::new(x, y, termrock::width(&reason).max(1), 1),
+            &reason,
+            reason_style,
+        );
+    }
+    if let Some(risk) = row.risk {
+        let risk_w = termrock::width(risk);
+        let risk_x = master.right().saturating_sub(risk_w.saturating_add(1));
+        let risk_style = if row.selected {
+            plain
+        } else {
+            ink(ui, SECONDARY_FG, BLACK, false)
+        };
+        ui.paint_str(Rect::new(risk_x, y, risk_w, 1), risk, risk_style);
+    }
+}
+
+fn paint_tag_preview(
+    ui: &mut Ui<'_>,
+    detail: Rect,
+    view: &catalogue::ParityDiscovery,
+    rows: &[&catalogue::TagRow],
+) {
+    if detail.width < 8 || detail.height == 0 {
+        return;
+    }
+    let label_w = view
+        .preview
+        .iter()
+        .map(|line| termrock::width(line.label))
+        .max()
+        .unwrap_or(4)
+        .saturating_add(2);
+    let inner_w = detail.width.saturating_sub(4);
+    let value_w = inner_w.saturating_sub(label_w.saturating_add(1));
+    if value_w == 0 {
+        return;
+    }
+    let flat = flatten_preview(&view.preview, value_w);
+    let card_h = u16::try_from(flat.len())
+        .unwrap_or(u16::MAX)
+        .saturating_add(3)
+        .min(detail.height);
+    let card = Rect::new(detail.x, detail.y, detail.width, card_h);
+    let canvas = ink(ui, WHITE, PREVIEW_BG, false);
+    ui.fill(card, canvas);
+    let inner_x = detail.x.saturating_add(2);
+    let title = rows
+        .iter()
+        .find(|row| row.selected)
+        .map(|row| row.title.as_str())
+        .unwrap_or("");
+    let meta_w = termrock::width(&view.preview_meta);
+    let title_w = inner_w.saturating_sub(meta_w).saturating_sub(1);
+    let title = termrock::truncate(title, title_w);
+    ui.paint_str(
+        Rect::new(inner_x, detail.y, termrock::width(&title).max(1), 1),
+        &title,
+        ink(ui, SECONDARY_FG, PREVIEW_BG, false),
+    );
+    if meta_w > 0 {
+        ui.paint_str(
+            Rect::new(
+                inner_x.saturating_add(inner_w).saturating_sub(meta_w),
+                detail.y,
+                meta_w,
+                1,
+            ),
+            &view.preview_meta,
+            ink(ui, META_FG, PREVIEW_BG, false),
+        );
+    }
+    let rule_y = detail.y.saturating_add(1);
+    if rule_y < card.bottom() {
+        ui.paint_str(
+            Rect::new(inner_x, rule_y, inner_w, 1),
+            &"─".repeat(usize::from(inner_w)),
+            ink(ui, RULE_FG, PREVIEW_BG, false),
+        );
+    }
+    let value_x = inner_x.saturating_add(label_w);
+    for (index, (label, value, tone)) in flat.iter().enumerate() {
+        let y = detail
+            .y
+            .saturating_add(2)
+            .saturating_add(u16::try_from(index).unwrap_or(u16::MAX));
+        if y >= card.bottom() {
+            break;
+        }
+        if !label.is_empty() {
+            ui.paint_str(
+                Rect::new(inner_x, y, termrock::width(label), 1),
+                label,
+                ink(ui, TAG_GREY_FG, PREVIEW_BG, false),
+            );
+        }
+        if value.is_empty() {
+            continue;
+        }
+        let fg = match tone {
+            catalogue::PreviewTone::Text => WHITE,
+            catalogue::PreviewTone::Muted => TAG_GREY_FG,
+            catalogue::PreviewTone::Danger => DANGER_FG,
+        };
+        ui.paint_str(
+            Rect::new(value_x, y, termrock::width(value).max(1), 1),
+            value,
+            ink(ui, fg, PREVIEW_BG, false),
+        );
+    }
+}
+
+fn flatten_preview(
+    lines: &[catalogue::PreviewLine],
+    value_w: u16,
+) -> Vec<(String, String, catalogue::PreviewTone)> {
+    let mut flat = Vec::new();
+    for line in lines {
+        if line.wraps {
+            let parts = wrap_words(&line.value, value_w);
+            for (index, part) in parts.into_iter().enumerate() {
+                flat.push((
+                    if index == 0 {
+                        line.label.to_owned()
+                    } else {
+                        String::new()
+                    },
+                    part,
+                    line.tone,
+                ));
+            }
+        } else {
+            flat.push((
+                line.label.to_owned(),
+                termrock::truncate(&line.value, value_w),
+                line.tone,
+            ));
+        }
+    }
+    flat
 }
 
 #[cfg(test)]
