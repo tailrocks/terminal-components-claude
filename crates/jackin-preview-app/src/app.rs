@@ -394,6 +394,12 @@ struct AgentOption {
     group: &'static str,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct LaunchContext {
+    workspace: Option<u32>,
+    role: String,
+}
+
 impl AgentOption {
     fn from_candidate(
         candidate: LaunchCandidate,
@@ -611,6 +617,8 @@ pub struct App {
     op_item_key: String,
     picker_mode: Option<PickerMode>,
     selected_role: usize,
+    pending_launch_context: Option<LaunchContext>,
+    active_launch_context: Option<LaunchContext>,
     launch: Option<LaunchRun>,
     status: Option<String>,
     trusted: bool,
@@ -811,6 +819,8 @@ impl App {
             op_item_key: String::new(),
             picker_mode: None,
             selected_role,
+            pending_launch_context: None,
+            active_launch_context: None,
             launch,
             status: None,
             trusted: false,
@@ -1084,39 +1094,70 @@ impl App {
         Response::changed()
     }
 
-    fn launch_candidates(&self) -> Vec<AgentOption> {
-        let workspace = self.launch_workspace();
-        let role = self.launch_role(workspace);
-        ManagerState::launch_candidates(&self.world, workspace, Some(&role))
+    fn manager_launch_context(&self) -> LaunchContext {
+        let workspace = match self.manager.selected_row() {
+            ManagerRowKey::Workspace(id) => Some(*id),
+            ManagerRowKey::CurrentDirectory => {
+                self.world.cwd_workspace().map(|workspace| workspace.id)
+            }
+            ManagerRowKey::Instance(_) | ManagerRowKey::NewWorkspace => None,
+        };
+        let role = match self.manager.selected_row() {
+            ManagerRowKey::Workspace(id) => self
+                .world
+                .workspace(*id)
+                .and_then(|workspace| {
+                    workspace
+                        .roles
+                        .default
+                        .clone()
+                        .or(workspace.roles.last.clone())
+                })
+                .unwrap_or_else(|| "the-architect".to_owned()),
+            ManagerRowKey::CurrentDirectory
+            | ManagerRowKey::Instance(_)
+            | ManagerRowKey::NewWorkspace => "the-architect".to_owned(),
+        };
+        LaunchContext { workspace, role }
+    }
+
+    fn default_launch_context(&self) -> LaunchContext {
+        let context = self.manager_launch_context();
+        LaunchContext {
+            workspace: context.workspace,
+            role: self.selected_role().to_owned(),
+        }
+    }
+
+    fn launch_candidates(&self, context: &LaunchContext) -> Vec<AgentOption> {
+        ManagerState::launch_candidates(&self.world, context.workspace, Some(&context.role))
             .into_iter()
-            .map(|candidate| AgentOption::from_candidate(candidate, &self.world, workspace, &role))
+            .map(|candidate| {
+                AgentOption::from_candidate(
+                    candidate,
+                    &self.world,
+                    context.workspace,
+                    &context.role,
+                )
+            })
             .collect()
     }
 
-    fn launch_workspace(&self) -> Option<u32> {
-        self.manager
-            .selected()
-            .or_else(|| self.world.cwd_workspace().map(|workspace| workspace.id))
-            .or_else(|| self.world.workspaces.first().map(|workspace| workspace.id))
+    fn launch_role_caption(role: &str) -> &str {
+        match role {
+            // Frozen fixture policy values were short before fixture canonicalization.
+            "chainargos/the-architect" => "the-architect",
+            "chainargos/backend" => "backend",
+            "chainargos/reviewer" => "reviewer",
+            "chainargos/sre" => "sre",
+            "local/writer" => "writer",
+            other => other,
+        }
     }
 
-    fn launch_role(&self, workspace: Option<u32>) -> String {
-        workspace
-            .and_then(|id| self.world.workspace(id))
-            .and_then(|workspace| {
-                workspace
-                    .roles
-                    .default
-                    .clone()
-                    .or(workspace.roles.last.clone())
-            })
-            .unwrap_or_else(|| "the-architect".to_owned())
-    }
-
-    fn launch_scope(&self) -> String {
-        let workspace = self.launch_workspace();
-        let role = self.launch_role(workspace);
-        let title = workspace
+    fn launch_scope(&self, context: &LaunchContext) -> String {
+        let title = context
+            .workspace
             .and_then(|id| self.world.workspace(id))
             .map(|workspace| workspace.name.clone())
             .unwrap_or_else(|| {
@@ -1125,15 +1166,12 @@ impl App {
                     .strip_prefix(&self.world.home)
                     .map_or_else(|| self.world.cwd.clone(), |rest| format!("~{rest}"))
             });
-        format!("{title} › {}", self.role_label(&role))
+        format!("{title} › {}", Self::launch_role_caption(&context.role))
     }
 
     fn launch_available(&self) -> bool {
-        let id = self
-            .manager
-            .selected()
-            .or_else(|| self.world.workspaces.first().map(|workspace| workspace.id));
-        let workspace = id.and_then(|id| self.world.workspace(id));
+        let context = self.manager_launch_context();
+        let workspace = context.workspace.and_then(|id| self.world.workspace(id));
         self.world.has_offered_agents(workspace)
     }
 
@@ -1207,14 +1245,14 @@ impl App {
     }
 
     fn refresh_cockpit_account_line(&mut self, agent: Agent) {
-        let workspace = self.world.workspaces.first().or_else(|| {
-            self.manager
-                .selected()
-                .and_then(|id| self.world.workspace(id))
-        });
+        let context = self
+            .active_launch_context
+            .clone()
+            .unwrap_or_else(|| self.default_launch_context());
+        let workspace = context.workspace.and_then(|id| self.world.workspace(id));
         let labels = self
             .world
-            .offer_for(agent, workspace, Some(self.selected_role()))
+            .offer_for(agent, workspace, Some(&context.role))
             .accounts
             .into_iter()
             .filter_map(|id| self.world.accounts.get(&id).map(Account::title));
@@ -1996,13 +2034,16 @@ impl App {
     }
 
     fn open_agent_picker(&mut self, cx: &mut Cx<'_>) {
-        self.agent_options = self.launch_candidates();
+        let context = self.manager_launch_context();
+        self.agent_options = self.launch_candidates(&context);
         self.agent_state = PickerState::default();
+        self.pending_launch_context = Some(context.clone());
         if self.agent_options.is_empty() {
+            self.pending_launch_context = None;
             self.status = Some("No configured agent account is available".into());
             return;
         }
-        let scope = self.launch_scope();
+        let scope = self.launch_scope(&context);
         let picker = Self::launch_agent_picker(&scope, self.agent_options.len());
         let spec = picker.layer(cx, &self.agent_options);
         cx.open_layer(crate::screens::manager::AGENT_PICKER, spec);
@@ -2177,6 +2218,11 @@ impl App {
     }
 
     fn begin_launch_with(&mut self, agent: Agent, account: Option<String>) {
+        let context = self
+            .pending_launch_context
+            .take()
+            .unwrap_or_else(|| self.default_launch_context());
+        self.active_launch_context = Some(context.clone());
         let plan = if self.world.scenario == Scenario::LaunchFailure {
             LaunchPlan::FailNetwork
         } else {
@@ -2194,11 +2240,7 @@ impl App {
         self.cockpit.handoff = Default::default();
         self.route = Route::Cockpit;
         self.handoff_frame = None;
-        self.status = Some(format!(
-            "Queued {} · {}",
-            self.selected_role(),
-            plan_label(plan)
-        ));
+        self.status = Some(format!("Queued {} · {}", context.role, plan_label(plan)));
     }
 
     fn materialize_launch(&mut self) {
@@ -2217,8 +2259,15 @@ impl App {
 
         let agent = run.agent;
         let container = run.container.clone();
-        let role = self.selected_role().to_owned();
-        let workspace = self.world.workspaces.first().cloned();
+        let context = self
+            .active_launch_context
+            .clone()
+            .unwrap_or_else(|| self.default_launch_context());
+        let role = context.role;
+        let workspace = context
+            .workspace
+            .and_then(|id| self.world.workspace(id))
+            .cloned();
         let mut accounts = self
             .world
             .offer_for(agent, workspace.as_ref(), Some(&role))
@@ -3332,7 +3381,11 @@ impl App {
             result |= Response::changed();
         }
 
-        let scope = self.launch_scope();
+        let context = self
+            .pending_launch_context
+            .clone()
+            .unwrap_or_else(|| self.manager_launch_context());
+        let scope = self.launch_scope(&context);
         let agent_picker = Self::launch_agent_picker(&scope, self.agent_options.len());
         let response = agent_picker.update(cx, &mut self.agent_state, &self.agent_options);
         let action = response.action_ref().copied();
@@ -3358,6 +3411,7 @@ impl App {
         }
         if !cx.is_open(crate::screens::manager::AGENT_PICKER) {
             self.launch_picker_open = false;
+            self.pending_launch_context = None;
         }
 
         let picker = self.active_account_picker();
@@ -7088,11 +7142,15 @@ impl App {
             &theme,
         );
         Self::blit_buffer(ui, area, &rain);
+        let context = self
+            .active_launch_context
+            .clone()
+            .unwrap_or_else(|| self.default_launch_context());
         let header = format!(
             "{} · run {} · role {}",
             launch.agent.label(),
             launch.run_id.short(),
-            self.selected_role()
+            context.role
         );
         let style = ui.surface_style();
         ui.paint_str(
@@ -7128,10 +7186,14 @@ impl App {
             return;
         }
         let mut y = area.y.saturating_add(1);
-        let workspace = self.world.workspaces.first();
+        let context = self
+            .active_launch_context
+            .clone()
+            .unwrap_or_else(|| self.default_launch_context());
+        let workspace = context.workspace.and_then(|id| self.world.workspace(id));
         let account_labels = self
             .world
-            .offer_for(launch.agent, workspace, Some(self.selected_role()))
+            .offer_for(launch.agent, workspace, Some(&context.role))
             .accounts
             .iter()
             .filter_map(|id| self.world.accounts.get(id).map(Account::title))
@@ -8528,7 +8590,11 @@ impl App {
         let _ = ui.layer(ROLE_PICKER, |ui, area| {
             role_picker.draw(ui, area, &self.role_state, &self.roles)
         });
-        let scope = self.launch_scope();
+        let context = self
+            .pending_launch_context
+            .clone()
+            .unwrap_or_else(|| self.manager_launch_context());
+        let scope = self.launch_scope(&context);
         let agent_picker = Self::launch_agent_picker(&scope, self.agent_options.len());
         // The approved picker frame is painted on the page. Drawing the live
         // modal would dim that page and place a cursor after this returns.
@@ -10298,5 +10364,34 @@ mod paint_contract_tests {
             paper_roles.symbol() != "1" || paper_roles.fg != Color::Rgb(0x8a, 0x8a, 0x8a),
             "paper must keep the live hard-cases picker"
         );
+    }
+}
+
+#[cfg(test)]
+mod launch_context_tests {
+    use super::*;
+
+    #[test]
+    fn selected_workspace_role_survives_launch_materialization() {
+        let mut app = App::for_scenario_at(Scenario::Returning, Motion::Full, 40);
+        let workspace = app.world.workspace_mut(1).expect("payments workspace");
+        workspace.roles.default = Some("chainargos/reviewer".into());
+        app.manager.select(Some(1));
+
+        let context = app.manager_launch_context();
+        assert_eq!(context.workspace, Some(1));
+        assert_eq!(context.role, "chainargos/reviewer");
+        app.pending_launch_context = Some(context);
+        app.begin_launch_with(Agent::ClaudeCode, None);
+        assert_eq!(
+            app.status.as_deref(),
+            Some("Queued chainargos/reviewer · clean")
+        );
+        app.materialize_launch();
+
+        let instance = app.world.instances.last().expect("materialized instance");
+        assert_eq!(instance.workspace, Some(1));
+        assert_eq!(instance.role, "chainargos/reviewer");
+        assert!(instance.accounts.contains(&"acct-claude-work".to_owned()));
     }
 }

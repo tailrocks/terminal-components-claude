@@ -2008,6 +2008,57 @@ fn manager_launch_picker_scope_uses_the_role_display_name() {
 }
 
 #[test]
+fn manager_launch_picker_current_directory_uses_only_a_matching_workspace() {
+    let mut h = H::new(Scenario::Returning, Motion::Paused, 40, 120, 40);
+    h.app_mut().manager.select(None);
+    h.app_mut().world.cwd = "/tmp/unmatched-launch-directory".into();
+    h.key(KeyCode::Enter);
+    assert!(
+        h.text()
+            .contains("/tmp/unmatched-launch-directory › the-architect"),
+        "{}",
+        h.text()
+    );
+    assert!(!h.text().contains("payments-platform ›"), "{}", h.text());
+}
+
+#[test]
+fn manager_launch_picker_current_directory_uses_literal_architect_role() {
+    let mut h = H::new(Scenario::Returning, Motion::Paused, 40, 120, 40);
+    h.app_mut()
+        .world
+        .workspace_mut(1)
+        .expect("payments workspace")
+        .roles
+        .default = Some("chainargos/backend".into());
+    h.app_mut().manager.select(None);
+    h.key(KeyCode::Enter);
+    assert!(
+        h.text().contains("payments-platform › the-architect"),
+        "{}",
+        h.text()
+    );
+}
+
+#[test]
+fn manager_launch_picker_preserves_unrecognized_namespaced_role_caption() {
+    let mut h = H::new(Scenario::Returning, Motion::Paused, 40, 120, 40);
+    h.app_mut()
+        .world
+        .workspace_mut(1)
+        .expect("payments workspace")
+        .roles
+        .default = Some("vendor/custom-role".into());
+    h.app_mut().manager.select(Some(1));
+    h.key(KeyCode::Enter);
+    assert!(
+        h.text().contains("payments-platform › vendor/custom-role"),
+        "{}",
+        h.text()
+    );
+}
+
+#[test]
 fn manager_launch_picker_escape_dismisses_without_launching() {
     let mut h = H::new(Scenario::Returning, Motion::Paused, 40, 120, 40);
     h.key(KeyCode::Enter);

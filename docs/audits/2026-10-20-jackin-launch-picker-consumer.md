@@ -8,7 +8,7 @@ The Jackin manager consumer now projects each launch candidate into the shared P
 
 Application regression coverage exercises Escape dismissal without launch and Down followed by Enter launching the selected Codex agent. The latter passes with the default Jackin keymap intact. An earlier hypothesis that the global Down binding intercepted Picker navigation was not confirmed and was removed; no shared routing change is justified by the current test.
 
-The 120×40 full-cell assertion remains red: the live title cell at `(20,16)` has background `Rgb(39,39,42)` while the frozen expected background is `Rgb(24,24,27)`. The frozen ANSI frame has no row focus gutter: `(20,17)` is blank and `(21,17)` is `▪`. The new live assertion fails because `(20,17)` contains `▎`. Live row columns also differ: Claude detail clips to `provider d…` while the frozen row clips to `provider …`; the ItemColumns offsets differ as well. These are shared Picker style/layout gaps; no screen-local rendering workaround is acceptable. The legacy `historical_launch_picker` source file remains in the worktree, but its app wiring is currently removed in this uncommitted, failing experiment. Do not commit that removal until the shared Picker owns an exact full-cell match. No parity completion is claimed.
+The 120×40 individual-cell assertions remain red (they do not constitute a full-frame comparison): the live title cell at `(20,16)` has background `Rgb(39,39,42)` while the frozen expected background is `Rgb(24,24,27)`. The frozen ANSI frame has no row focus gutter: `(20,17)` is blank and `(21,17)` is `▪`. The live row assertion fails because `(20,17)` contains `▎`. Live row columns also differ: Claude detail clips to `provider d…` while the frozen row clips to `provider …`; the ItemColumns offsets differ as well. These are shared Picker style/layout gaps; no screen-local rendering workaround is acceptable. The legacy `historical_launch_picker` source file remains in the worktree, but its app wiring is currently removed in this uncommitted, failing experiment. Do not commit that removal until the shared Picker owns an exact full-cell match. No parity completion is claimed.
 
 Checks run:
 
@@ -30,3 +30,10 @@ VISUAL_FULL=1 VISUAL_BIN_DIR=/path/to/migrated/target/debug cargo nextest run -p
 ```
 
 Repeat for `jackin::manager::hard_launch_picker`. The ignored scenario trials require `--run-ignored all`; both runs use the frozen snapshot root and same fixed PTY setup. Do not approve or regenerate snapshots to make the migrated run pass. The frozen baseline source commit and tuiscotti commit remain fixed above.
+
+
+## Domain-context review corrections
+
+A review found that the first migrated projection could fall back to the first workspace for an unmatched current directory and could derive the current-directory role from a mutable workspace default. Both are corrected: current-directory context now uses only `World::cwd_workspace()` and the literal `the-architect`; an unmatched directory has no workspace. Picker captions reverse only the fixture's known canonical aliases and preserve arbitrary namespaced role names. Launch context is carried through account selection and materialization so the chosen workspace and role determine offered accounts and the resulting instance.
+
+Focused regressions passed for an unmatched current directory, a current directory whose workspace default differs from `the-architect`, an unrecognized `vendor/custom-role` caption, and selected-workspace role/account propagation through launch materialization. These checks do not resolve the shared Picker surface, gutter, or column frame differences above.
