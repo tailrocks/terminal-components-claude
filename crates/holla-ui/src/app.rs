@@ -456,9 +456,10 @@ fn parity_cargo_tag_plate(world: &World, width: u16, height: u16) -> bool {
         || crate::sim::catalogue::parity_cargo_120x40_plate(world, width, height).is_some()
 }
 
-/// 80×24 `parity-git-batch` clips the last hint. Cargo, git-current, and every other size stay off.
+/// 80×24 and 100×30 `parity-git-batch` clip the last hint. Cargo, git-current, and every other size stay off.
 fn parity_git_batch_clipped_plate(world: &World, width: u16, height: u16) -> bool {
     crate::sim::catalogue::parity_git_batch_80x24_plate(world, width, height).is_some()
+        || crate::sim::catalogue::parity_git_batch_100x30_plate(world, width, height).is_some()
 }
 
 /// Tag parity-browser status at 80×24, 100×30, and 120×40: cwd, then the size label. No branch.
@@ -522,7 +523,7 @@ fn paint_parity_cargo_status(ui: &mut Ui<'_>, area: Rect) {
     let _ = paint_size_label(ui, area);
 }
 
-/// Tag parity-git-batch status at 80×24: cwd, then the size label. No branch.
+/// Tag parity-git-batch status at 80×24 and 100×30: cwd, then the size label. No branch.
 fn paint_parity_git_batch_status(ui: &mut Ui<'_>, area: Rect) {
     if area.is_empty() {
         return;
