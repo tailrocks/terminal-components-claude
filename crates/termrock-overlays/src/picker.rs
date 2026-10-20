@@ -78,7 +78,7 @@ pub struct Picker<'a, T, R = ItemRow> {
     title: &'a str,
     scope_label: Option<&'a str>,
     width: Option<u16>,
-    max_rows: u16,
+    max_rows: Option<u16>,
     searchable: bool,
     filter: FilterPolicy,
     placeholder: &'a str,
@@ -89,7 +89,7 @@ pub struct Picker<'a, T, R = ItemRow> {
     row: R,
     item_layout: ItemRowLayout,
     surface: Surface,
-    cursor_style: CursorStyle,
+    cursor_style: Option<CursorStyle>,
     metadata_gap: u16,
     patch: Option<&'a StylePatch>,
     parts: &'a [(Part, StylePatch)],
@@ -117,7 +117,7 @@ impl<T> Picker<'_, T, ItemRow> {
             title: "Choose",
             scope_label: None,
             width: None,
-            max_rows: 12,
+            max_rows: None,
             searchable: true,
             filter: FilterPolicy::Label,
             placeholder: "Type to search…",
@@ -128,7 +128,7 @@ impl<T> Picker<'_, T, ItemRow> {
             row: ItemRow,
             item_layout: ItemRowLayout::Compact,
             surface: Surface::Overlay,
-            cursor_style: CursorStyle::Bar,
+            cursor_style: None,
             metadata_gap: 1,
             patch: None,
             parts: &[],
@@ -171,7 +171,7 @@ impl<'a, T, R> Picker<'a, T, R> {
     }
     #[must_use]
     pub const fn cursor_style(mut self, style: CursorStyle) -> Self {
-        self.cursor_style = style;
+        self.cursor_style = Some(style);
         self
     }
     #[must_use]
@@ -196,7 +196,7 @@ impl<'a, T, R> Picker<'a, T, R> {
     }
     #[must_use]
     pub const fn max_rows(mut self, rows: u16) -> Self {
-        self.max_rows = if rows == 0 { 1 } else { rows };
+        self.max_rows = Some(if rows == 0 { 1 } else { rows });
         self
     }
     #[must_use]
@@ -295,7 +295,11 @@ impl<T: AsItem, R: RowFn<T>> Picker<'_, T, R> {
             .filter(self.filter)
             .row(BorrowedRow(&self.row))
             .with_item_layout(self.item_layout)
-            .cursor_style(self.cursor_style)
+            .cursor_style(self.cursor_style.unwrap_or(if self.searchable {
+                CursorStyle::Fill
+            } else {
+                CursorStyle::Bar
+            }))
             .metadata_gap(self.metadata_gap);
         if let Some(empty) = self.empty {
             list = list.empty(empty);
@@ -316,9 +320,10 @@ impl<T: AsItem, R: RowFn<T>> Picker<'_, T, R> {
             FilterList::<T, BorrowedRow<'_, R>>::semantic_width(items)
                 .clamp(d.size.popup_min_width, d.size.popup_max_width)
         });
+        let max_rows = self.max_rows.unwrap_or(d.size.popup_max_rows).max(1);
         let rows = items
             .len()
-            .min(usize::from(self.max_rows))
+            .min(usize::from(max_rows))
             .max(1)
             .min(usize::from(u16::MAX)) as u16;
 
@@ -695,48 +700,129 @@ mod tests {
     }
 
     #[test]
-    fn max_rows_overrides_the_design_popup_row_limit() {
+    fn max_rows_defaults_to_theme_and_explicit_value_overrides_it() {
         struct MeasureApp {
-            max_rows: u16,
+            max_rows: Option<u16>,
             items: Vec<Item<'static>>,
             measured: Option<LayerSize>,
         }
         impl termrock_runtime::runtime::App for MeasureApp {
             fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
-                self.measured = Some(
-                    Picker::<Item<'static>>::new(Id::root("picker.max-rows"))
-                        .max_rows(self.max_rows)
-                        .measured_size(cx, &self.items),
-                );
+                let mut picker = Picker::<Item<'static>>::new(Id::root("picker.max-rows"));
+                if let Some(max_rows) = self.max_rows {
+                    picker = picker.max_rows(max_rows);
+                }
+                self.measured = Some(picker.measured_size(cx, &self.items));
                 Response::ignored()
             }
 
             fn draw(&self, _ui: &mut Ui<'_>) {}
         }
 
-        let items = (0..20)
+        let items: Vec<_> = (0..20)
             .map(|index| Item::new(ItemKey::num(index), "row"))
             .collect();
+        let measure = |popup_max_rows, max_rows| {
+            let mut theme = Theme::junie();
+            theme.design.size.popup_max_rows = popup_max_rows;
+            let mut runtime = termrock_runtime::runtime::Runtime::new(
+                MeasureApp {
+                    max_rows,
+                    items: items.clone(),
+                    measured: None,
+                },
+                theme,
+            );
+            let _ = runtime.initialize();
+            let area = Rect::new(0, 0, 120, 40);
+            let mut buffer = ratatui_core::buffer::Buffer::empty(area);
+            runtime.draw_buffer(area, &mut buffer).commit_presented();
+            let _ = termrock_runtime::runtime::stub::deliver(
+                &mut runtime,
+                termrock_runtime::event::Input::Tick,
+            );
+            runtime.app().measured.expect("measured_size ran")
+        };
+        assert_eq!(measure(5, None), LayerSize::Fixed(12, 10));
+        assert_eq!(measure(5, Some(3)), LayerSize::Fixed(12, 8));
+    }
+
+    #[test]
+    fn searchable_picker_fills_cursor_row_while_query_owns_cursor() {
+        const ID: Id = Id::root("picker.single-focus-marker");
+
+        struct FocusApp {
+            state: PickerState,
+            items: Vec<Item<'static>>,
+        }
+
+        impl termrock_runtime::runtime::App for FocusApp {
+            fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+                let picker = Picker::<Item<'static>>::new(ID).size(LayerSize::Fixed(20, 8));
+                if cx.update_cause() == termrock_runtime::runtime::UpdateCause::Bootstrap {
+                    cx.open_layer(ID, picker.layer(cx, &self.items));
+                }
+                picker.update(cx, &mut self.state, &self.items).erase()
+            }
+
+            fn draw(&self, ui: &mut Ui<'_>) {
+                let picker = Picker::<Item<'static>>::new(ID).size(LayerSize::Fixed(20, 8));
+                ui.layer(ID, |ui, area| {
+                    picker.draw(ui, area, &self.state, &self.items)
+                });
+            }
+        }
+
         let mut runtime = termrock_runtime::runtime::Runtime::new(
-            MeasureApp {
-                max_rows: 12,
-                items,
-                measured: None,
+            FocusApp {
+                state: PickerState::default(),
+                items: vec![
+                    Item::new(ItemKey::num(1), "first"),
+                    Item::new(ItemKey::num(2), "second"),
+                ],
             },
             Theme::junie(),
         );
         let _ = runtime.initialize();
-        let area = Rect::new(0, 0, 120, 40);
-        let mut buffer = ratatui_core::buffer::Buffer::empty(area);
-        runtime.draw_buffer(area, &mut buffer).commit_presented();
         let _ = termrock_runtime::runtime::stub::deliver(
             &mut runtime,
-            termrock_runtime::event::Input::Tick,
+            termrock_runtime::runtime::stub::key(termrock_runtime::event::KeyCode::Char('s')),
         );
-        assert!(matches!(
-            runtime.app().measured,
-            Some(LayerSize::Fixed(_, 17))
-        ));
+        let area = Rect::new(0, 0, 30, 12);
+        let mut buffer = ratatui_core::buffer::Buffer::empty(area);
+        runtime.draw_buffer(area, &mut buffer).commit_presented();
+        let find_label = |label: &str| {
+            (0..area.height).find_map(|y| {
+                (0..area.width).find_map(|x| {
+                    let matches = label.chars().enumerate().all(|(offset, ch)| {
+                        buffer
+                            .content
+                            .get(
+                                usize::from(y) * usize::from(area.width)
+                                    + usize::from(x).saturating_add(offset),
+                            )
+                            .is_some_and(|cell| cell.symbol() == ch.to_string())
+                    });
+                    matches.then_some((x, y))
+                })
+            })
+        };
+        let (first_x, first_y) = find_label("first").expect("first row is visible");
+        let (second_x, second_y) = find_label("second").expect("second row is visible");
+        assert!(
+            runtime.cursor_position().is_some(),
+            "query owns a terminal cursor"
+        );
+        assert_ne!(
+            buffer[(first_x.saturating_sub(1), first_y)].symbol(),
+            "▎",
+            "cursor row uses a fill instead of a second focus gutter"
+        );
+        assert_ne!(
+            buffer[(first_x, first_y)].bg,
+            buffer[(second_x, second_y)].bg,
+            "focused cursor row receives its fill"
+        );
     }
 
     #[test]
