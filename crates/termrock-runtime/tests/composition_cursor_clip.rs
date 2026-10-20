@@ -51,7 +51,7 @@ impl App for Page {
 }
 
 #[test]
-fn real_text_input_cursor_stays_inside_its_resolved_visible_bounds() {
+fn clipped_text_input_does_not_relocate_its_offscreen_caret() {
     let value = String::from("abcd");
     let mut state = TextInputState::default();
     state.begin(&value);
@@ -61,10 +61,8 @@ fn real_text_input_cursor_stays_inside_its_resolved_visible_bounds() {
 
     assert_eq!(harness.focus(), Some(INPUT));
     let visible = harness.area_of(INPUT).expect("visible input area");
-    let cursor = harness.cursor().expect("editing cursor");
     assert!(
-        visible.contains(cursor),
-        "resolved input area {visible:?} does not contain cursor {cursor:?}"
+        harness.cursor().is_none(),
+        "offscreen caret must not be relocated into visible area {visible:?}"
     );
-    assert_eq!(cursor, ratatui_core::layout::Position::new(9, 0));
 }
