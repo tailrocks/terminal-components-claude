@@ -1,3 +1,4 @@
+pub mod clipboard;
 pub(crate) mod feedback;
 #[cfg(feature = "crossterm")]
 mod time;
@@ -89,6 +90,16 @@ struct Press {
     area: Rect,
     dragging: bool,
     pos: Position,
+    click_count: u8,
+}
+
+#[derive(Clone, Copy, Debug)]
+struct LastClick {
+    owner: Id,
+    part: PartRef,
+    at: Moment,
+    pos: Position,
+    count: u8,
 }
 
 #[derive(Clone, Copy, Debug, Default)]
@@ -98,7 +109,7 @@ struct Interaction {
     hover_suppressed: bool,
     hover_passes: u8,
     press: Option<Press>,
-    last_click: Option<(Id, PartRef, Moment)>,
+    last_click: Option<LastClick>,
     last_input_key: bool,
 }
 
@@ -281,6 +292,7 @@ struct FocusRestore {
 pub struct Runtime<A: App> {
     app: A,
     theme: Theme,
+    pointer_click_slop: u16,
     last: LastFrame,
     focus: FocusState,
     services: FrameServices,
@@ -337,6 +349,7 @@ impl<A: App> Runtime<A> {
         Runtime {
             app,
             theme,
+            pointer_click_slop: 1,
             last: LastFrame::default(),
             focus: FocusState::default(),
             services: FrameServices {
@@ -368,6 +381,14 @@ impl<A: App> Runtime<A> {
             #[cfg(feature = "testing")]
             projection: None,
         }
+    }
+
+    /// Set app-wide pointer click slop in terminal cells.
+    ///
+    /// Defaults to one cell, matching the frozen visual baseline. The click window remains
+    /// configurable through `Theme::design.motion.double_click_ms`.
+    pub fn set_pointer_click_slop(&mut self, cells: u16) {
+        self.pointer_click_slop = cells;
     }
 
     pub const fn app(&self) -> &A {
@@ -724,6 +745,7 @@ impl<A: App> Runtime<A> {
     }
 
     fn enqueue_mouse(&mut self, m: Mouse) {
+        self.services.pointer_press_count = None;
         self.inter.pointer_position = Some(m.pos);
         if m.kind == MouseKind::Up {
             self.services.press_pos = None;
@@ -844,12 +866,24 @@ impl<A: App> Runtime<A> {
             return;
         }
         let area = self.region_area(h);
+        let window = self.theme.design.motion.double_click_ms;
+        let count = self.inter.last_click.filter(|last| {
+            last.owner == h.owner
+                && last.part == h.part
+                && self.now().saturating_duration_since(last.at)
+                    <= core::time::Duration::from_millis(window)
+                && last.pos.x.abs_diff(m.pos.x) <= self.pointer_click_slop
+                && last.pos.y.abs_diff(m.pos.y) <= self.pointer_click_slop
+        });
+        let count = count.map_or(1, |last| last.count.saturating_add(1));
+        self.services.pointer_press_count = Some((h.owner, h.part, count));
         self.inter.press = Some(Press {
             owner: h.owner,
             part: h.part,
             area,
             dragging: false,
             pos: m.pos,
+            click_count: count,
         });
         self.services.press_pos = Some(m.pos);
         self.last.snapshot.pressed = Some((h.owner, h.part));
@@ -868,6 +902,7 @@ impl<A: App> Runtime<A> {
 
     fn pointer_up(&mut self, p: Press, hit: Option<Hit>, m: Mouse) {
         self.last.snapshot.pressed = None;
+        self.services.pointer_press_count = Some((p.owner, p.part, p.click_count));
         let local = Self::local_in(p.area, m.pos);
         self.intents
             .pointer(p.owner, Phase::Release, p.part, m.pos, local, m.mods);
@@ -880,23 +915,19 @@ impl<A: App> Runtime<A> {
         if !same {
             return;
         }
-        let window = self.theme.design.motion.double_click_ms;
-        let double = self.inter.last_click.is_some_and(|(o, part, at)| {
-            o == p.owner
-                && part == p.part
-                && self.now().saturating_duration_since(at)
-                    <= core::time::Duration::from_millis(window)
-        });
+        let double = p.click_count.is_multiple_of(2);
         let phase = if double {
             Phase::DoubleClick
         } else {
             Phase::Click
         };
-        self.inter.last_click = if double {
-            None
-        } else {
-            Some((p.owner, p.part, self.now()))
-        };
+        self.inter.last_click = Some(LastClick {
+            owner: p.owner,
+            part: p.part,
+            at: self.now(),
+            pos: p.pos,
+            count: p.click_count,
+        });
         self.intents
             .pointer(p.owner, phase, p.part, m.pos, local, m.mods);
         let flash = self.theme.design.motion.press_flash_ms;
@@ -2060,6 +2091,7 @@ mod tests {
     use super::*;
     use crate::event::MouseKind;
     use crate::focus::Focusability;
+    use crate::intent::Intent;
     use crate::layer::LayerSpec;
 
     const A: Id = Id::root("a");
@@ -2331,6 +2363,127 @@ mod tests {
             undelivered.iter().all(|o| *o == dlg),
             "{:?}",
             rt.diagnostics()
+        );
+    }
+
+    #[derive(Default)]
+    struct PressCountProbe {
+        counts: Vec<(Phase, u8)>,
+        phases: Vec<Phase>,
+    }
+
+    impl App for PressCountProbe {
+        fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+            for owner in [A, B] {
+                for intent in cx.intents(owner) {
+                    if let Intent::Pointer { phase, part, .. } = intent {
+                        self.phases.push(phase);
+                        if matches!(
+                            phase,
+                            Phase::Press | Phase::Release | Phase::Click | Phase::DoubleClick
+                        ) {
+                            self.counts.push((
+                                phase,
+                                cx.pointer_click_count(owner, part)
+                                    .expect("click count belongs to this pointer intent"),
+                            ));
+                        }
+                    }
+                }
+            }
+            Response::ignored()
+        }
+
+        fn draw(&self, ui: &mut Ui<'_>) {
+            let area = Rect::new(0, 0, 8, 2);
+            ui.register_control(A, area, Focusability::Focusable);
+            ui.register_part(A, PartRef::of(Part::LABEL), area);
+            let other = Rect::new(10, 0, 8, 2);
+            ui.register_control(B, other, Focusability::Focusable);
+            ui.register_part(B, PartRef::of(Part::LABEL), other);
+        }
+    }
+
+    #[test]
+    fn pointer_press_count_tracks_triples_and_keeps_double_click_phase() {
+        let mut rt = Runtime::new(PressCountProbe::default(), Theme::junie());
+        let _ = rt.initialize();
+        let mut buf = Buffer::empty(SCREEN);
+        for _ in 0..8 {
+            rt.draw_buffer(SCREEN, &mut buf).commit_presented();
+            if !rt.needs_settle() {
+                break;
+            }
+            let _ = rt.settle();
+        }
+
+        for _ in 0..3 {
+            let _ = deliver(&mut rt, super::stub::mouse(MouseKind::Down, 2, 0));
+            rt.draw_buffer(SCREEN, &mut buf).commit_presented();
+            let _ = deliver(&mut rt, super::stub::mouse(MouseKind::Up, 2, 0));
+            rt.draw_buffer(SCREEN, &mut buf).commit_presented();
+            rt.advance_to(
+                rt.now()
+                    .saturating_add(core::time::Duration::from_millis(100)),
+            )
+            .unwrap();
+        }
+
+        assert_eq!(
+            rt.app().counts,
+            [
+                (Phase::Press, 1),
+                (Phase::Release, 1),
+                (Phase::Click, 1),
+                (Phase::Press, 2),
+                (Phase::Release, 2),
+                (Phase::DoubleClick, 2),
+                (Phase::Press, 3),
+                (Phase::Release, 3),
+                (Phase::Click, 3),
+            ]
+        );
+        assert_eq!(
+            rt.app()
+                .phases
+                .iter()
+                .filter(|phase| **phase == Phase::DoubleClick)
+                .count(),
+            1,
+            "existing second-click phase remains available"
+        );
+    }
+
+    #[test]
+    fn pointer_press_count_resets_after_slop_and_target_change() {
+        let mut rt = Runtime::new(PressCountProbe::default(), Theme::junie());
+        let _ = rt.initialize();
+        let mut buf = Buffer::empty(SCREEN);
+        for _ in 0..8 {
+            rt.draw_buffer(SCREEN, &mut buf).commit_presented();
+            if !rt.needs_settle() {
+                break;
+            }
+            let _ = rt.settle();
+        }
+        for x in [2, 4, 12, 2] {
+            let _ = deliver(&mut rt, super::stub::mouse(MouseKind::Down, x, 0));
+            rt.draw_buffer(SCREEN, &mut buf).commit_presented();
+            let _ = deliver(&mut rt, super::stub::mouse(MouseKind::Up, x, 0));
+            rt.draw_buffer(SCREEN, &mut buf).commit_presented();
+        }
+        rt.set_pointer_click_slop(2);
+        let _ = deliver(&mut rt, super::stub::mouse(MouseKind::Down, 4, 0));
+        rt.draw_buffer(SCREEN, &mut buf).commit_presented();
+        let _ = deliver(&mut rt, super::stub::mouse(MouseKind::Up, 4, 0));
+        rt.draw_buffer(SCREEN, &mut buf).commit_presented();
+        assert_eq!(
+            rt.app()
+                .counts
+                .iter()
+                .filter_map(|(phase, count)| (*phase == Phase::Press).then_some(*count))
+                .collect::<Vec<_>>(),
+            [1, 1, 1, 1, 2]
         );
     }
 }
