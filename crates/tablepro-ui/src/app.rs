@@ -7559,21 +7559,6 @@ fn draw_painted_grid(
     let grid = result_grid(id, draw_specs);
     grid.draw(ui, area, state, &PaintedGrid { inner: model });
     paint_grid_focus_bar(ui, area, state, model);
-    if !calm_header
-        && let Some((key, _)) = state.cursor()
-        && let Some(row) = (0..model.row_count()).find(|row| GridModel::row_key(model, *row) == key)
-    {
-        let bold = PaintStyle::new().add_modifier(Modifier::BOLD);
-        ui.paint_style(
-            termrock::Rect {
-                x: area.x.saturating_add(1),
-                y: area.y.saturating_add(1).saturating_add(row as u16),
-                width: area.width.saturating_sub(1),
-                height: 1,
-            },
-            bold,
-        );
-    }
     let visible = usize::from(area.height.saturating_sub(1)).min(model.row_count());
     let observed = GRID_SEEN_ROW.with(|slot| slot.borrow().unwrap_or(0));
     let origin = presented_row_origin(model, state, visible, observed);
@@ -7585,7 +7570,6 @@ fn draw_painted_grid(
     });
     GRID_SCROLL.with(|slot| *slot.borrow_mut() = Some((area, model.row_count(), origin)));
     paint_row_numbers(ui, area, model, cursor, origin);
-    paint_column_gap(ui, area);
     paint_bottom_fade(ui, area, model, origin);
     paint_grid_header(
         ui,
@@ -8042,36 +8026,6 @@ fn visible_explorer_count(nodes: &[ExplorerNode], state: &TreeState) -> usize {
         }
     }
     count
-}
-
-fn paint_column_gap(ui: &mut Ui<'_>, area: termrock::Rect) {
-    let Some(chrome) = GRID_CHROME.with(|chrome| chrome.borrow().clone()) else {
-        return;
-    };
-    if chrome.hidden_left > 0 {
-        return;
-    }
-    let Some(place) = chrome.places.get(1) else {
-        return;
-    };
-    let width = 5.min(place.width);
-    if width == 0 {
-        return;
-    }
-    let style = ui.surface_style();
-    let rows = usize::from(area.height.saturating_sub(1));
-    let x = area.x.saturating_add(chrome.gutter).saturating_add(place.x);
-    for row in 0..rows {
-        ui.paint_style(
-            termrock::Rect {
-                x,
-                y: area.y.saturating_add(1).saturating_add(row as u16),
-                width,
-                height: 1,
-            },
-            style,
-        );
-    }
 }
 
 fn paint_explorer_outside(
