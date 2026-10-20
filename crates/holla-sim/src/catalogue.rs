@@ -3,6 +3,7 @@ use crate::domain::docker::Health;
 use crate::domain::human_bytes;
 use crate::domain::mise::Trust;
 use crate::domain::ranking::Memory;
+use crate::scenario::Scenario;
 use crate::world::{Domain, World};
 
 pub struct Section {
@@ -11,6 +12,9 @@ pub struct Section {
 }
 
 pub fn catalogue(w: &World) -> Vec<Action> {
+    if let Some(view) = parity_discovery(w) {
+        return view.actions;
+    }
     let mut out = vec![];
     mise_actions(w, &mut out);
     git_actions(w, &mut out);
@@ -26,6 +30,30 @@ pub fn catalogue(w: &World) -> Vec<Action> {
 }
 
 pub fn sections(w: &World) -> Vec<Section> {
+    if let Some(view) = parity_discovery(w) {
+        let suggested = view
+            .actions
+            .iter()
+            .take(view.suggested_len)
+            .cloned()
+            .collect();
+        let explore = view
+            .actions
+            .iter()
+            .skip(view.suggested_len)
+            .cloned()
+            .collect();
+        return vec![
+            Section {
+                name: "Suggested here",
+                actions: suggested,
+            },
+            Section {
+                name: "Explore",
+                actions: explore,
+            },
+        ];
+    }
     let mut all = catalogue(w);
     rank(w, &mut all);
 
@@ -762,6 +790,283 @@ pub fn visible(
         .collect()
 }
 
+/// Tag finder row. `here` is false when the scope word uses secondary ink.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct TagRow {
+    pub title: String,
+    pub kind: &'static str,
+    pub scope_word: &'static str,
+    pub here: bool,
+    pub reason: String,
+    pub risk: Option<&'static str>,
+    pub selected: bool,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum PreviewTone {
+    Text,
+    Muted,
+    Danger,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct PreviewLine {
+    pub label: &'static str,
+    pub value: String,
+    pub tone: PreviewTone,
+    pub wraps: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum FinderLine {
+    Heading(&'static str),
+    Blank,
+    Chips(&'static [&'static str]),
+    Row(TagRow),
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ParityDiscovery {
+    pub lines: Vec<FinderLine>,
+    pub preview: Vec<PreviewLine>,
+    pub preview_meta: String,
+    pub actions: Vec<Action>,
+    pub suggested_len: usize,
+}
+
+/// Tag `parity-discovery` at fixture tick 40.
+///
+/// `--frame 40` seeks 80 ms. Every tag source for this fixture is done by tick 40,
+/// so the port shows that catalogue once the seek has reached 80 ms.
+pub fn parity_discovery(w: &World) -> Option<ParityDiscovery> {
+    if w.scenario != Scenario::ParityDiscovery || w.now_ms() < 80 {
+        return None;
+    }
+    let cwd = w.cwd.clone();
+    let host = w.host.name.clone();
+    let suggested = vec![
+        tag_row(
+            "Pull",
+            "git",
+            "here",
+            true,
+            "branch is 1 commits behind",
+            None,
+            false,
+        ),
+        tag_row(
+            format!("Clean IntelliJ metadata under {cwd} · 3 B"),
+            "idea",
+            "here",
+            true,
+            "1 candidates",
+            Some("destructive"),
+            true,
+        ),
+        tag_row(
+            "Deploy",
+            "custom",
+            "here",
+            true,
+            "Current folder · trusted",
+            None,
+            false,
+        ),
+        tag_row(
+            "Run tests",
+            "task",
+            "here",
+            true,
+            format!("defined by {cwd}/mise.toml"),
+            None,
+            false,
+        ),
+        tag_row(
+            "Show git status",
+            "git",
+            "here",
+            true,
+            "on main",
+            None,
+            false,
+        ),
+    ];
+    let explore = vec![tag_row(
+        format!("System · {host}"),
+        "explore",
+        "host",
+        false,
+        "available on this host",
+        None,
+        false,
+    )];
+    let mut lines = Vec::new();
+    lines.push(FinderLine::Heading("Suggested here"));
+    for row in &suggested {
+        lines.push(FinderLine::Row(row.clone()));
+    }
+    lines.push(FinderLine::Blank);
+    lines.push(FinderLine::Heading("Recent here"));
+    lines.push(FinderLine::Heading("nothing used here yet"));
+    lines.push(FinderLine::Blank);
+    lines.push(FinderLine::Heading("Explore"));
+    lines.push(FinderLine::Chips(&[
+        "Tasks", "Git", "Files", "Disk", "Services", "System",
+    ]));
+    for row in &explore {
+        lines.push(FinderLine::Row(row.clone()));
+    }
+    let preview = vec![
+        PreviewLine {
+            label: "Does",
+            value: "move every .idea directory and lowercase .iml file below this folder (depth 5, no symlinks, no node_modules, nothing nested) to the Trash · 1 candidates · no IDE shutdown step exists in the baseline".into(),
+            tone: PreviewTone::Text,
+            wraps: true,
+        },
+        PreviewLine {
+            label: "Runs",
+            value: "no command · opens inside holla".into(),
+            tone: PreviewTone::Muted,
+            wraps: true,
+        },
+        PreviewLine {
+            label: "In",
+            value: cwd,
+            tone: PreviewTone::Text,
+            wraps: false,
+        },
+        PreviewLine {
+            label: "Host",
+            value: w.host.identity(),
+            tone: PreviewTone::Text,
+            wraps: true,
+        },
+        PreviewLine {
+            label: "Scope",
+            value: "here".into(),
+            tone: PreviewTone::Text,
+            wraps: false,
+        },
+        PreviewLine {
+            label: "Why",
+            value: "1 candidates".into(),
+            tone: PreviewTone::Text,
+            wraps: true,
+        },
+        PreviewLine {
+            label: "Changes",
+            value: "see the command".into(),
+            tone: PreviewTone::Text,
+            wraps: true,
+        },
+        PreviewLine {
+            label: "Risk",
+            value: "destructive".into(),
+            tone: PreviewTone::Danger,
+            wraps: true,
+        },
+        PreviewLine {
+            label: "Data",
+            value: "live · 0 s ago".into(),
+            tone: PreviewTone::Muted,
+            wraps: true,
+        },
+        PreviewLine {
+            label: "Gate",
+            value: "opens a review · the deletion is gated there (typed phrase)".into(),
+            tone: PreviewTone::Text,
+            wraps: true,
+        },
+        PreviewLine {
+            label: "Alt+Enter",
+            value: "Pin · Alias · Why here?".into(),
+            tone: PreviewTone::Muted,
+            wraps: true,
+        },
+    ];
+    let suggested_len = suggested.len();
+    let actions = parity_actions(&suggested, &explore, &w.cwd);
+    Some(ParityDiscovery {
+        lines,
+        preview,
+        preview_meta: "idea · here".into(),
+        actions,
+        suggested_len,
+    })
+}
+
+fn tag_row(
+    title: impl Into<String>,
+    kind: &'static str,
+    scope_word: &'static str,
+    here: bool,
+    reason: impl Into<String>,
+    risk: Option<&'static str>,
+    selected: bool,
+) -> TagRow {
+    TagRow {
+        title: title.into(),
+        kind,
+        scope_word,
+        here,
+        reason: reason.into(),
+        risk,
+        selected,
+    }
+}
+
+fn parity_actions(suggested: &[TagRow], explore: &[TagRow], cwd: &str) -> Vec<Action> {
+    let specs = [
+        (
+            "git.pull",
+            ActionKind::Git,
+            Scope::Here,
+            Risk::Bounded,
+            "git pull",
+        ),
+        ("idea.clean", ActionKind::Flow, Scope::Here, Risk::Broad, ""),
+        (
+            "deploy",
+            ActionKind::Task,
+            Scope::Here,
+            Risk::Bounded,
+            "tools/deploy.sh",
+        ),
+        (
+            "mise.task.test",
+            ActionKind::Task,
+            Scope::Here,
+            Risk::ReadOnly,
+            "mise run test",
+        ),
+        (
+            "git.status",
+            ActionKind::Git,
+            Scope::Here,
+            Risk::ReadOnly,
+            "git status",
+        ),
+        (
+            "scope.system",
+            ActionKind::System,
+            Scope::Host,
+            Risk::ReadOnly,
+            "",
+        ),
+    ];
+    let rows: Vec<&TagRow> = suggested.iter().chain(explore.iter()).collect();
+    specs
+        .into_iter()
+        .zip(rows)
+        .map(|((id, kind, scope, risk, command), row)| {
+            let mut action =
+                Action::new(id, &row.title, kind, scope, &row.reason, risk, cwd, command);
+            action.keywords = row.kind.into();
+            action
+        })
+        .collect()
+}
+
 #[cfg(test)]
 #[expect(
     clippy::indexing_slicing,
@@ -775,6 +1080,49 @@ mod tests {
         ranking::{Pin, Usage},
     };
     use crate::scenario::Scenario;
+
+    #[test]
+    fn parity_discovery_frame_40_seeds_pull_and_the_idea_preview() {
+        let mut early = fixtures::world_for(Scenario::ParityDiscovery);
+        assert!(parity_discovery(&early).is_none());
+        early.seek(40);
+        assert_eq!(early.now_ms(), 80);
+        let view = parity_discovery(&early).expect("tick 40 catalogue");
+        let titles: Vec<&str> = view
+            .lines
+            .iter()
+            .filter_map(|line| match line {
+                FinderLine::Row(row) => Some(row.title.as_str()),
+                _ => None,
+            })
+            .collect();
+        assert_eq!(titles[0], "Pull");
+        assert!(titles[1].starts_with("Clean IntelliJ metadata under "));
+        assert!(titles[1].contains("~/work/probe"));
+        assert_eq!(titles[5], "System · mbp");
+        assert!(
+            view.lines
+                .iter()
+                .any(|line| matches!(line, FinderLine::Heading("nothing used here yet")))
+        );
+        let does = view
+            .preview
+            .iter()
+            .find(|line| line.label == "Does")
+            .unwrap();
+        assert!(does.value.contains("move every .idea"));
+        assert!(
+            does.value
+                .contains("no IDE shutdown step exists in the baseline")
+        );
+        assert_eq!(view.preview_meta, "idea · here");
+        assert_eq!(view.actions[0].id, "git.pull");
+        assert_eq!(view.actions[1].id, "idea.clean");
+        assert!(view.lines.iter().any(|line| matches!(
+            line,
+            FinderLine::Row(row) if row.selected && row.kind == "idea"
+        )));
+    }
 
     fn settled(scenario: Scenario) -> World {
         let mut world = fixtures::world_for(scenario);
