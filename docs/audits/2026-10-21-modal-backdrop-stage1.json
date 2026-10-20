@@ -7,7 +7,7 @@
   "integration": {
     "branch": "wip/runtime-modal-backdrop-20261021",
     "base_pr38": "49da9ae391582b783cd7aeeec745294c1c2f2f64",
-    "merged_pr38_tip_observed": "49da9ae391582b783cd7aeeec745294c1c2f2f64",
+    "merged_pr38_tip_observed": "efda9593a905e3d462a62852748cf43254276dca",
     "parent_wip": "91f280307e8f84caa79d30ce3f126e2fd4a8340d",
     "parent_wip_parent": "c84a883826ed54418664eb680255492ab8424cab",
     "forms_stage1": "ae32d3ff812aa436eb5d6c15eb155d9b8d59502a"
@@ -24,11 +24,22 @@
     ]
   },
   "checks": {
-    "runtime_all_targets": "360 tests run, 360 passed, 3 skipped",
-    "theme_all_targets": "139 passed, 1 failed: termrock-theme::capability_palettes::all_73_junie_slots_match_reference_capability_output; failure was not changed, waived, or independently established as pre-existing",
-    "theme_and_runtime_scoped_clippy": "passed on merged PR38 HEAD 49da9ae391582b783cd7aeeec745294c1c2f2f64 source plus modal change",
-    "changed_file_rustfmt": "passed: rustfmt --check --edition 2024 on three changed Rust files"
+    "runtime_all_targets": "363 tests run, 363 passed, 3 skipped after latest PR38 merge and reviewer fixes",
+    "theme_all_targets": "139 passed, 1 failed: termrock-theme::capability_palettes::all_73_junie_slots_match_reference_capability_output; mismatch remains unresolved and was not modified/approved",
+    "theme_and_runtime_scoped_clippy": "passed on latest merged PR38 source plus reviewer fixes",
+    "changed_file_rustfmt": "passed on the three owned Rust files after formatting"
   },
   "working_tree_note": "Nextest exposed approximately 1303 deleted tracked files under crates/termrock-conformance/target/tuiscotti-actuals. They were left untouched and unstaged as unrelated existing/worktree artifacts.",
-  "coverage_gap": "This shared runtime change has no claim of full application visual/functional acceptance. Theme::backdrop_style is public and requires catalog/showcase coverage review; catalog and showcase files were outside this bounded ownership assignment, so the required catalogue/demo follow-up remains open."
+  "coverage_gap": "This shared runtime change has no claim of full application visual/functional acceptance. Theme::backdrop_style is public and requires catalog/showcase coverage review; catalog and showcase files were outside this bounded ownership assignment, so the required catalogue/demo follow-up remains open.",
+  "independent_review_followup": {
+    "reviewed_commit": "95d21da73f0a826e31114cffd2c5b4131de6d0e2",
+    "decision": "Fixes are in the author WIP and request re-review; no approval yet",
+    "packet_sha256": "9c066cdc6d42da749f0c4ac35212efc7d29a0ca6bcf5148bcebf5bb315c0bfcc",
+    "findings": [
+      "Ansi16/Mono had retained faint ink instead of frozen muted ink plus DIM",
+      "Collision fallback erased the original mapped foreground/background collision before the DIM decision"
+    ],
+    "red": "Pinned independent public consumer run against pre-fix commit: 4 tests, 1 passed, 3 failed (both defects and actual Harness reduced modal cell).",
+    "green": "Independent public consumer, unchanged after adding repo regressions: 4 passed, 0 failed. Repo Harness tests: 3 passed (all color profiles/custom tokens, mapped collision, blank cells, modifier replacement, plus unchanged zero-allocation test)."
+  }
 }
