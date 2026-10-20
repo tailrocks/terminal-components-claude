@@ -3,6 +3,28 @@ use core::ops::Range;
 use crate::response::Response;
 use termrock_core::geometry::Headroom;
 
+/// How a view follows its cursor (ported from PR #26 `src/core/scroll.rs`,
+/// commit f4867e9b5).
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
+pub enum FollowCursor {
+    /// Reveal the cursor when it moves; a wheeled view stays put until then.
+    #[default]
+    OnMove,
+    /// Keep the cursor pinned in view on every pass.
+    Always,
+}
+
+/// What clicking a scrollbar track away from the thumb does (ported from
+/// PR #26 `src/core/scroll.rs`, commit f4867e9b5).
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
+pub enum TrackClick {
+    /// Jump so the thumb centers under the pointer.
+    Jump,
+    /// Move one viewport toward the pointer (macOS, Windows).
+    #[default]
+    Page,
+}
+
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
 pub struct ScrollState {
     offset: usize,
@@ -10,6 +32,15 @@ pub struct ScrollState {
     viewport_len: usize,
     reveal: Option<usize>,
     grab: Option<usize>,
+    /// Rows of context kept visible around a revealed index.
+    context: usize,
+    /// The next `ensure_visible` keeps no context (a pointer-driven reveal).
+    exact: bool,
+    follow_cursor: FollowCursor,
+    /// The last `(cursor, viewport)` `follow` revealed, for the dedupe.
+    followed: Option<(usize, usize)>,
+    /// A paging track press is in progress; drags page instead of jumping.
+    paging: bool,
 }
 
 impl ScrollState {
@@ -20,7 +51,34 @@ impl ScrollState {
             viewport_len: 0,
             reveal: None,
             grab: None,
+            context: 0,
+            exact: false,
+            follow_cursor: FollowCursor::OnMove,
+            followed: None,
+            paging: false,
         }
+    }
+
+    /// Set the rows of context kept around a revealed index.
+    pub const fn with_context(mut self, rows: usize) -> Self {
+        self.context = rows;
+        self
+    }
+
+    /// The rows of context kept around a revealed index.
+    pub const fn context(&self) -> usize {
+        self.context
+    }
+
+    /// Set how the view follows its cursor.
+    pub const fn with_follow_cursor(mut self, follow: FollowCursor) -> Self {
+        self.follow_cursor = follow;
+        self
+    }
+
+    /// How the view follows its cursor.
+    pub const fn follow_cursor(&self) -> FollowCursor {
+        self.follow_cursor
     }
 
     pub const fn offset(&self) -> usize {
@@ -93,16 +151,75 @@ impl ScrollState {
         self.offset = self.max_offset();
     }
 
-    pub fn ensure_visible(&mut self, index: usize) {
+    pub fn ensure_visible(&mut self, index: usize) -> bool {
+        let exact = core::mem::take(&mut self.exact);
         if self.viewport_len == 0 {
-            return;
+            return false;
         }
-        if index < self.offset {
-            self.offset = index;
-        } else if index >= self.offset.saturating_add(self.viewport_len) {
-            self.offset = index.saturating_add(1).saturating_sub(self.viewport_len);
+        let before = self.offset;
+        // Rows of context kept around the revealed index. A pointer-driven
+        // reveal (`pointer_move`) centers exactly, with no context.
+        let ctx = if !exact && self.viewport_len > 2 * self.context {
+            self.context
+        } else {
+            0
+        };
+        if index < self.offset + ctx {
+            self.offset = index.saturating_sub(ctx);
+        } else if index + ctx >= self.offset.saturating_add(self.viewport_len) {
+            self.offset = index
+                .saturating_add(ctx)
+                .saturating_add(1)
+                .saturating_sub(self.viewport_len);
         }
         self.clamp();
+        self.offset != before
+    }
+
+    /// A pointer-driven reveal: center the row exactly, with no context.
+    pub fn pointer_move(&mut self) {
+        self.exact = true;
+    }
+
+    /// Reveal a span of `len` rows starting at `start`, keeping `context`
+    /// rows of context visible when the viewport allows it. A span at least
+    /// as long as the viewport aligns its start with the top (ported from
+    /// PR #26 `src/core/scroll.rs::reveal_span`).
+    pub fn reveal_span(&mut self, start: usize, len: usize) -> bool {
+        if self.viewport_len == 0 {
+            return false;
+        }
+        let len = len.max(1);
+        let before = self.offset;
+        if len >= self.viewport_len {
+            self.offset = start;
+        } else {
+            let ctx = if self.viewport_len >= len + 2 * self.context {
+                self.context
+            } else {
+                0
+            };
+            if start < self.offset + ctx {
+                self.offset = start.saturating_sub(ctx);
+            } else if start + len + ctx > self.offset + self.viewport_len {
+                self.offset = start + len + ctx - self.viewport_len;
+            }
+        }
+        self.clamp();
+        self.offset != before
+    }
+
+    /// Reveal the cursor according to the follow policy. With
+    /// [`FollowCursor::OnMove`], repeating the same cursor in the same
+    /// viewport is a no-op, so a repaint never snaps a wheeled view back
+    /// (ported from PR #26 `src/core/scroll.rs::follow`).
+    pub fn follow(&mut self, cursor: usize) -> bool {
+        let key = (cursor, self.viewport_len);
+        if self.follow_cursor == FollowCursor::OnMove && self.followed == Some(key) {
+            return false;
+        }
+        self.followed = Some(key);
+        self.ensure_visible(cursor)
     }
 
     pub fn ensure_visible_on_next_layout(&mut self, index: usize) {
@@ -194,34 +311,67 @@ impl ScrollState {
             .unwrap_or(0)
     }
 
-    pub fn press_track(&mut self, pos: usize, track_len: usize) {
+    pub fn press_track(&mut self, pos: usize, track_len: usize) -> bool {
+        self.paging = false;
         if !self.overflows() || track_len == 0 {
             self.grab = None;
-            return;
+            return false;
         }
         let (start, len) = self.thumb(track_len);
         if (start..start + len).contains(&pos) {
             self.grab = Some(pos - start);
-            return;
+            return false;
         }
         self.grab = Some(len / 2);
+        let before = self.offset;
         self.scroll_to(self.offset_for_track_pos(pos, track_len));
+        self.offset != before
     }
 
-    pub fn drag_track(&mut self, pos: usize, track_len: usize) {
+    /// Press the track with an explicit [`TrackClick`] policy: `Jump` puts
+    /// the thumb under the pointer, `Page` moves one viewport toward the
+    /// pointer and starts a paging drag (ported from PR #26
+    /// `src/core/scroll.rs::press_track_with`).
+    pub fn press_track_with(&mut self, pos: usize, track_len: usize, click: TrackClick) -> bool {
+        if click == TrackClick::Jump || !self.overflows() || track_len == 0 {
+            return self.press_track(pos, track_len);
+        }
+        let (start, len) = self.thumb(track_len);
+        if (start..start + len).contains(&pos) {
+            self.grab = Some(pos - start);
+            return false;
+        }
+        self.grab = None;
+        self.paging = true;
+        let before = self.offset;
+        if pos < start {
+            self.page_up();
+        } else {
+            self.page_down();
+        }
+        self.offset != before
+    }
+
+    pub fn drag_track(&mut self, pos: usize, track_len: usize) -> bool {
         if !self.overflows() || track_len == 0 {
-            return;
+            return false;
         }
         let Some(grab) = self.grab else {
-            self.press_track(pos, track_len);
-            return;
+            // A paging drag keeps paging; an idle drag picks the thumb up.
+            if self.paging {
+                return false;
+            }
+            return self.press_track(pos, track_len);
         };
+        let before = self.offset;
         let target = self.offset_for_thumb_start(pos.saturating_sub(grab), track_len);
         self.scroll_to(target);
+        self.offset != before
     }
 
     pub fn release_track(&mut self) {
         self.grab = None;
+        self.paging = false;
     }
 
     pub fn offset_for_track_pos(&self, pos: usize, track_len: usize) -> usize {
@@ -400,5 +550,112 @@ mod tests {
         assert_eq!(s.offset(), 0);
         s.release_track();
         assert_eq!(s.offset(), 0);
+    }
+
+    #[test]
+    fn a_paging_track_press_moves_one_viewport_toward_the_pointer() {
+        let mut s = ScrollState::new(100);
+        s.set_viewport(10);
+
+        assert_eq!(TrackClick::default(), TrackClick::Page, "macOS, Windows");
+        assert!(s.press_track_with(9, 10, TrackClick::Page));
+        assert_eq!(s.offset(), 10, "one page right, not a jump to the end");
+        assert!(s.press_track_with(0, 10, TrackClick::Page));
+        assert_eq!(s.offset(), 0);
+        let (start, _) = s.thumb(10);
+        assert!(!s.press_track_with(start, 10, TrackClick::Page));
+    }
+
+    #[test]
+    fn motion_after_a_paging_press_never_jumps_the_thumb() {
+        let mut s = ScrollState::new(100);
+        s.set_viewport(10);
+        assert!(s.press_track_with(9, 10, TrackClick::Page));
+        assert_eq!(s.offset(), 10);
+
+        assert!(!s.drag_track(8, 10));
+        assert_eq!(s.offset(), 10);
+
+        s.release_track();
+        assert!(s.press_track_with(9, 10, TrackClick::Jump));
+        assert!(s.drag_track(0, 10));
+        assert_eq!(s.offset(), 0);
+    }
+
+    #[test]
+    fn follow_on_move_leaves_a_wheeled_view_alone_until_the_cursor_moves() {
+        let mut s = ScrollState::new(50).with_context(1);
+        s.set_viewport(10);
+        s.follow(3);
+        assert_eq!(s.offset(), 0);
+
+        s.scroll_by(20);
+        s.follow(3);
+        assert_eq!(s.offset(), 20, "a repaint must not snap back");
+
+        s.follow(4);
+        assert_eq!(s.offset(), 3);
+
+        s.scroll_by(20);
+        s.set_viewport(8);
+        s.follow(4);
+        assert_eq!(s.offset(), 3);
+    }
+
+    #[test]
+    fn follow_always_pins_the_cursor() {
+        let mut s = ScrollState::new(50)
+            .with_context(1)
+            .with_follow_cursor(FollowCursor::Always);
+        s.set_viewport(10);
+        s.follow(3);
+        s.scroll_by(20);
+        s.follow(3);
+        assert_eq!(s.offset(), 2, "pinned with the default row of context");
+    }
+
+    #[test]
+    fn reveal_span_keeps_context_and_aligns_a_long_span_to_the_top() {
+        let mut s = ScrollState::new(100).with_context(2);
+        s.set_viewport(10);
+        // A span below the view: reveal it with its context above.
+        assert!(s.reveal_span(40, 3));
+        assert_eq!(
+            s.offset(),
+            35,
+            "the span lands at the bottom, context above"
+        );
+        // A span above the view: reveal it with its context below.
+        assert!(s.reveal_span(10, 3));
+        assert_eq!(s.offset(), 10 - 2);
+        // The same visible span again moves nothing.
+        assert!(!s.reveal_span(10, 3));
+        // A span as long as the viewport aligns its start to the top.
+        assert!(s.reveal_span(30, 10));
+        assert_eq!(s.offset(), 30);
+        // No viewport, nothing happens.
+        let mut empty = ScrollState::new(10);
+        assert!(!empty.reveal_span(0, 1));
+    }
+
+    #[test]
+    fn a_zero_context_keeps_the_frozen_minimal_reveal() {
+        let mut s = ScrollState::new(50);
+        s.set_viewport(10);
+        s.ensure_visible(25);
+        assert_eq!(s.offset(), 16);
+        s.ensure_visible(5);
+        assert_eq!(s.offset(), 5);
+        s.ensure_visible(7);
+        assert_eq!(s.offset(), 5);
+    }
+
+    #[test]
+    fn pointer_move_centers_exactly_without_context() {
+        let mut s = ScrollState::new(50).with_context(1);
+        s.set_viewport(10);
+        s.pointer_move();
+        s.ensure_visible(25);
+        assert_eq!(s.offset(), 16, "an exact reveal keeps no context rows");
     }
 }
