@@ -10,6 +10,7 @@ pub use typing::TypingPolicy;
 use ratatui_core::buffer::Buffer;
 use ratatui_core::layout::{Position, Rect};
 use ratatui_core::terminal::Frame;
+use std::sync::atomic::{AtomicU64, Ordering};
 
 use crate::action::ActionKey;
 use crate::capture::Capture;
@@ -31,6 +32,16 @@ use crate::response::{Invalidate, Response};
 use crate::theme::Theme;
 use crate::ui::cx::{FrameServices, LastFrame};
 use crate::ui::{Cx, FrameState, Ui, UiCore};
+
+static NEXT_RUNTIME_ID: AtomicU64 = AtomicU64::new(1);
+
+fn next_runtime_id() -> u64 {
+    NEXT_RUNTIME_ID
+        .try_update(Ordering::Relaxed, Ordering::Relaxed, |next| {
+            next.checked_add(1)
+        })
+        .expect("runtime identity space exhausted")
+}
 
 pub trait App {
     fn update(&mut self, cx: &mut Cx<'_>) -> Response<()>;
@@ -246,6 +257,46 @@ impl core::fmt::Debug for PendingInput {
     }
 }
 
+/// Opaque identity for one runtime-prepared terminal frame.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub struct PreparedFrame {
+    runtime: u64,
+    generation: u64,
+    area: Rect,
+}
+
+impl PreparedFrame {
+    pub const fn area(self) -> Rect {
+        self.area
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum PreparedFrameError {
+    Stale,
+    AreaChanged { expected: Rect, actual: Rect },
+}
+
+impl core::fmt::Display for PreparedFrameError {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        match self {
+            Self::Stale => f.write_str("prepared terminal frame is stale"),
+            Self::AreaChanged { expected, actual } => {
+                write!(f, "prepared frame area {expected:?} changed to {actual:?}")
+            }
+        }
+    }
+}
+
+impl core::error::Error for PreparedFrameError {}
+
+struct PreparedOutput {
+    token: PreparedFrame,
+    buffer: Buffer,
+    cursor: Option<Position>,
+    cursor_bar: bool,
+}
+
 #[must_use = "commit only after successful output; dropping aborts publication"]
 pub struct PaintedFrame<'a, A: App> {
     runtime: &'a mut Runtime<A>,
@@ -315,6 +366,8 @@ pub struct Runtime<A: App> {
     unsettled: usize,
     bootstrapped: bool,
     presented: bool,
+    prepared: Option<PreparedOutput>,
+    prepared_generation: u64,
     painted_cursor: Option<Position>,
     painted_cursor_bar: bool,
     cache_snapshot: Option<std::sync::Arc<()>>,
@@ -346,6 +399,7 @@ impl<A: App> Runtime<A> {
     pub fn new_with_feedback_clock(app: A, theme: Theme, clock: FeedbackClock) -> Self {
         let mut core = UiCore::default();
         core.keymap.clone_from(app.keymap());
+        let runtime_id = next_runtime_id();
         Runtime {
             app,
             theme,
@@ -353,6 +407,7 @@ impl<A: App> Runtime<A> {
             last: LastFrame::default(),
             focus: FocusState::default(),
             services: FrameServices {
+                runtime_id,
                 feedback: feedback::FeedbackState::new(clock),
                 ..FrameServices::default()
             },
@@ -375,6 +430,8 @@ impl<A: App> Runtime<A> {
             unsettled: 0,
             bootstrapped: false,
             presented: false,
+            prepared: None,
+            prepared_generation: 0,
             painted_cursor: None,
             painted_cursor_bar: false,
             cache_snapshot: None,
@@ -1195,6 +1252,92 @@ impl<A: App> Runtime<A> {
 
     pub const fn needs_present(&self) -> bool {
         !self.presented
+    }
+
+    /// Settle runtime focus and update work against the supplied area and retain one final frame.
+    /// No terminal output is performed here.
+    pub fn prepare(&mut self, area: Rect) -> Result<PreparedFrame, PreparedFrameError> {
+        if !self.bootstrapped {
+            let _ = self.initialize();
+        }
+        for _ in 0..MAX_FOCUS_PASSES {
+            while self.needs_settle() {
+                let _ = self.settle();
+            }
+            let mut buffer = Buffer::empty(area);
+            self.draw_with_buffer(area, &mut buffer, None, A::draw);
+            self.commit_frame();
+            if self.needs_settle() {
+                continue;
+            }
+            self.prepared_generation = self.prepared_generation.wrapping_add(1);
+            let token = PreparedFrame {
+                runtime: self.services.runtime_id,
+                generation: self.prepared_generation,
+                area,
+            };
+            self.prepared = Some(PreparedOutput {
+                token,
+                buffer,
+                cursor: self.painted_cursor,
+                cursor_bar: self.painted_cursor_bar,
+            });
+            // Geometry is published and focus has settled; input remains blocked until output is
+            // acknowledged by the session after a successful terminal flush.
+            self.presented = false;
+            return Ok(token);
+        }
+        self.prepared = None;
+        self.presented = false;
+        Err(PreparedFrameError::Stale)
+    }
+
+    /// Copy a prepared frame into Ratatui's callback buffer without running application code.
+    pub fn draw_prepared(
+        &mut self,
+        token: PreparedFrame,
+        frame: &mut Frame<'_>,
+    ) -> Result<bool, PreparedFrameError> {
+        let actual = frame.area();
+        let Some(output) = self.prepared.as_ref() else {
+            return Err(PreparedFrameError::Stale);
+        };
+        if token.runtime != self.services.runtime_id
+            || token != output.token
+            || token.generation != self.prepared_generation
+        {
+            return Err(PreparedFrameError::Stale);
+        }
+        if token.area != actual {
+            self.prepared = None;
+            self.presented = false;
+            return Err(PreparedFrameError::AreaChanged {
+                expected: token.area,
+                actual,
+            });
+        }
+        let output = self.prepared.as_ref().expect("validated prepared frame");
+        frame.buffer_mut().merge(&output.buffer);
+        if let Some(cursor) = output.cursor {
+            frame.set_cursor_position(cursor);
+        }
+        Ok(output.cursor_bar)
+    }
+
+    /// Mark a prepared frame as physically presented after the terminal backend succeeds.
+    pub fn acknowledge_presented(
+        &mut self,
+        token: PreparedFrame,
+    ) -> Result<(), PreparedFrameError> {
+        let Some(output) = self.prepared.as_ref() else {
+            return Err(PreparedFrameError::Stale);
+        };
+        if token.runtime != self.services.runtime_id || token != output.token {
+            return Err(PreparedFrameError::Stale);
+        }
+        let _ = self.prepared.take();
+        self.presented = true;
+        Ok(())
     }
 
     pub fn settle(&mut self) -> Response<()> {
@@ -2175,6 +2318,36 @@ mod tests {
         rt.draw_buffer(SCREEN, &mut buf).commit_presented();
         assert_eq!(rt.app().causes, vec![UpdateCause::Bootstrap]);
         assert_eq!(rt.clock_ms(), 0);
+    }
+
+    #[test]
+    fn prepared_frame_publishes_geometry_but_blocks_input_until_acknowledged() {
+        let mut rt = Runtime::new(BootstrapProbe::default(), Theme::junie());
+        let token = rt.prepare(SCREEN).expect("frame prepares");
+        assert_eq!(token.area(), SCREEN);
+        assert!(rt.needs_present());
+        assert!(rt.handle(key(KeyCode::Enter)).is_err());
+
+        rt.acknowledge_presented(token)
+            .expect("successful output can be acknowledged");
+        assert!(!rt.needs_present());
+        assert!(rt.handle(key(KeyCode::Enter)).is_ok());
+    }
+
+    #[test]
+    fn prepared_frame_tokens_are_runtime_and_generation_scoped() {
+        let mut first = Runtime::new(BootstrapProbe::default(), Theme::junie());
+        let mut second = Runtime::new(BootstrapProbe::default(), Theme::junie());
+        let stale = first.prepare(SCREEN).expect("first frame prepares");
+        let _ = first
+            .prepare(SCREEN)
+            .expect("reprepare advances generation");
+        let current = second.prepare(SCREEN).expect("second runtime prepares");
+        assert!(first.acknowledge_presented(stale).is_err());
+        assert!(second.acknowledge_presented(stale).is_err());
+        second
+            .acknowledge_presented(current)
+            .expect("current token is accepted");
     }
 
     #[derive(Default)]
