@@ -280,10 +280,18 @@ impl<'a, T, R> Picker<'a, T, R> {
 
 fn clamp_fixed_width(size: LayerSize, viewport_width: u16) -> LayerSize {
     match size {
-        LayerSize::Fixed(width, height) if viewport_width > 4 => {
-            LayerSize::Fixed(width.min(viewport_width.saturating_sub(4)), height)
+        LayerSize::Fixed(width, height) => {
+            LayerSize::Fixed(clamp_width(width, viewport_width), height)
         }
         other => other,
+    }
+}
+
+fn clamp_width(width: u16, viewport_width: u16) -> u16 {
+    if viewport_width > 4 {
+        width.min(viewport_width.saturating_sub(4))
+    } else {
+        width
     }
 }
 
@@ -320,6 +328,7 @@ impl<T: AsItem, R: RowFn<T>> Picker<'_, T, R> {
             FilterList::<T, BorrowedRow<'_, R>>::semantic_width(items)
                 .clamp(d.size.popup_min_width, d.size.popup_max_width)
         });
+        let width = clamp_width(width, cx.viewport().width);
         let max_rows = self.max_rows.unwrap_or(d.size.popup_max_rows).max(1);
         let rows = items
             .len()
@@ -327,14 +336,19 @@ impl<T: AsItem, R: RowFn<T>> Picker<'_, T, R> {
             .max(1)
             .min(usize::from(u16::MAX)) as u16;
 
-        LayerSize::Fixed(width, rows.saturating_add(5))
+        // Match the picker's content contract: border + title + searchable
+        // query/gap + rows + two trailing content cells. Non-searchable
+        // pickers omit the query and its gap.
+        let chrome_rows = if self.searchable { 7 } else { 5 };
+        LayerSize::Fixed(width, rows.saturating_add(chrome_rows))
     }
 
     pub fn layer(&self, cx: &Cx<'_>, items: &[T]) -> LayerSpec {
+        // The frozen Picker defaults to geometric centering. An explicit
+        // alignment is passed through unchanged for runtime-level control.
+        let align = self.align.unwrap_or(ScreenAlign::GeometricCenter);
         LayerSpec::modal(self.id)
-            .anchor(Anchor::Screen(
-                self.align.unwrap_or(ScreenAlign::UpperThird),
-            ))
+            .anchor(Anchor::Screen(align))
             .initial_focus(self.id)
             .size(self.measured_size(cx, items))
     }
@@ -447,14 +461,12 @@ impl<T: AsItem, R: RowFn<T>> Picker<'_, T, R> {
                     return area;
                 }
 
-                let content = if self.requested_size.is_some() {
-                    Rect {
-                        x: inner.x.saturating_add(1),
-                        width: inner.width.saturating_sub(2),
-                        ..inner
-                    }
-                } else {
-                    inner
+                // Preserve the picker's second horizontal content inset in
+                // addition to the shared frame border.
+                let content = Rect {
+                    x: inner.x.saturating_add(1),
+                    width: inner.width.saturating_sub(2),
+                    ..inner
                 };
                 if content.is_empty() {
                     return area;
@@ -513,7 +525,7 @@ impl<T: AsItem, R: RowFn<T>> Picker<'_, T, R> {
                         .saturating_add(if self.searchable { 3 } else { 1 }),
                     height: content
                         .height
-                        .saturating_sub(if self.searchable { 3 } else { 2 }),
+                        .saturating_sub(if self.searchable { 4 } else { 3 }),
                     ..content
                 };
                 self.list().draw(ui, list, &st.list, items);
@@ -646,11 +658,11 @@ mod tests {
         let themed = render(0, true, true);
         let patched = render(2, true, true);
         let globally_patched = render(1, false, false);
-        assert_eq!(plain[(9, 2)].symbol(), "X");
-        assert_ne!(plain[(9, 2)].fg, base_theme[(9, 2)].fg);
-        assert_ne!(base_theme[(9, 2)].fg, themed[(9, 2)].fg);
-        assert_ne!(themed[(9, 2)].fg, patched[(9, 2)].fg);
-        assert_ne!(plain[(9, 2)].bg, globally_patched[(9, 2)].bg);
+        assert_eq!(plain[(9, 4)].symbol(), "X");
+        assert_ne!(plain[(9, 4)].fg, base_theme[(9, 4)].fg);
+        assert_ne!(base_theme[(9, 4)].fg, themed[(9, 4)].fg);
+        assert_ne!(themed[(9, 4)].fg, patched[(9, 4)].fg);
+        assert_ne!(plain[(9, 4)].bg, globally_patched[(9, 4)].bg);
     }
 
     fn measured_at(size: LayerSize, viewport_width: u16) -> LayerSize {
@@ -743,8 +755,264 @@ mod tests {
             );
             runtime.app().measured.expect("measured_size ran")
         };
-        assert_eq!(measure(5, None), LayerSize::Fixed(12, 10));
-        assert_eq!(measure(5, Some(3)), LayerSize::Fixed(12, 8));
+        assert_eq!(measure(5, None), LayerSize::Fixed(12, 12));
+        assert_eq!(measure(5, Some(3)), LayerSize::Fixed(12, 10));
+    }
+
+    #[test]
+    fn searchable_picker_measures_and_centers_its_complete_content_area() {
+        const ID: Id = Id::root("picker.centered-content-geometry");
+
+        struct PickerApp {
+            state: PickerState,
+            items: Vec<Item<'static>>,
+        }
+
+        impl termrock_runtime::runtime::App for PickerApp {
+            fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+                let picker = Picker::<Item<'static>>::new(ID)
+                    .title("Open tabs")
+                    .width(64);
+                if cx.update_cause() == termrock_runtime::runtime::UpdateCause::Bootstrap {
+                    cx.open_layer(ID, picker.layer(cx, &self.items));
+                }
+                picker.update(cx, &mut self.state, &self.items).erase()
+            }
+
+            fn draw(&self, ui: &mut Ui<'_>) {
+                let picker = Picker::<Item<'static>>::new(ID)
+                    .title("Open tabs")
+                    .width(64);
+                ui.layer(ID, |ui, area| {
+                    picker.draw(ui, area, &self.state, &self.items)
+                });
+            }
+        }
+
+        let mut runtime = termrock_runtime::runtime::Runtime::new(
+            PickerApp {
+                state: PickerState::default(),
+                items: vec![Item::new(ItemKey::num(1), "orders")],
+            },
+            Theme::junie(),
+        );
+        let _ = runtime.initialize();
+
+        let render = |runtime: &mut termrock_runtime::runtime::Runtime<PickerApp>, area| {
+            let mut buffer = ratatui_core::buffer::Buffer::empty(area);
+            runtime.draw_buffer(area, &mut buffer).commit_presented();
+            buffer
+        };
+
+        let screen = Rect::new(0, 0, 120, 40);
+        let frame = render(&mut runtime, screen);
+        assert_eq!(
+            runtime.layer_area(ID),
+            Some(Rect::new(28, 16, 64, 8)),
+            "center uses the full resolved viewport and includes the frozen searchable height"
+        );
+        assert_eq!(
+            frame[(30, 17)].symbol(),
+            "O",
+            "title starts one cell inside the border"
+        );
+        let row_origin = (0..screen.height).find_map(|y| {
+            (0..screen.width).find_map(|x| {
+                let matches = "orders".chars().enumerate().all(|(offset, ch)| {
+                    frame
+                        .content
+                        .get(usize::from(y) * usize::from(screen.width) + usize::from(x) + offset)
+                        .is_some_and(|cell| cell.symbol() == ch.to_string())
+                });
+                matches.then_some((x, y))
+            })
+        });
+        assert_eq!(
+            row_origin.map(|(_, y)| y),
+            Some(20),
+            "the row follows the query and one-row gap"
+        );
+
+        let resized = Rect::new(0, 0, 80, 24);
+        let _ = termrock_runtime::runtime::stub::deliver(
+            &mut runtime,
+            termrock_runtime::event::Input::Resize(resized.width, resized.height),
+        );
+        let _ = render(&mut runtime, resized);
+        assert_eq!(runtime.layer_area(ID), Some(Rect::new(8, 8, 64, 8)));
+
+        let narrow = Rect::new(0, 0, 40, 12);
+        let _ = termrock_runtime::runtime::stub::deliver(
+            &mut runtime,
+            termrock_runtime::event::Input::Resize(narrow.width, narrow.height),
+        );
+        let _ = render(&mut runtime, narrow);
+        assert_eq!(runtime.layer_area(ID), Some(Rect::new(2, 2, 36, 8)));
+    }
+
+    #[test]
+    fn picker_height_tracks_visible_capacity_policy_for_empty_and_many_items() {
+        struct MeasureApp {
+            items: Vec<Item<'static>>,
+            searchable: bool,
+            measured: Option<LayerSize>,
+        }
+        impl termrock_runtime::runtime::App for MeasureApp {
+            fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+                self.measured = Some(
+                    Picker::<Item<'static>>::new(Id::root("picker.height-policy"))
+                        .width(20)
+                        .max_rows(12)
+                        .searchable(self.searchable)
+                        .measured_size(cx, &self.items),
+                );
+                Response::ignored()
+            }
+            fn draw(&self, _ui: &mut Ui<'_>) {}
+        }
+
+        let measure = |items, searchable| {
+            let mut runtime = termrock_runtime::runtime::Runtime::new(
+                MeasureApp {
+                    items,
+                    searchable,
+                    measured: None,
+                },
+                Theme::junie(),
+            );
+            let _ = runtime.initialize();
+            let screen = Rect::new(0, 0, 120, 40);
+            let mut buffer = ratatui_core::buffer::Buffer::empty(screen);
+            runtime.draw_buffer(screen, &mut buffer).commit_presented();
+            let _ = termrock_runtime::runtime::stub::deliver(
+                &mut runtime,
+                termrock_runtime::event::Input::Tick,
+            );
+            runtime.app().measured.expect("measurement ran")
+        };
+
+        assert_eq!(measure(vec![], true), LayerSize::Fixed(20, 8));
+        assert_eq!(
+            measure(
+                (0..30)
+                    .map(|index| Item::new(ItemKey::num(index), "row"))
+                    .collect(),
+                true
+            ),
+            LayerSize::Fixed(20, 19)
+        );
+        assert_eq!(measure(vec![], false), LayerSize::Fixed(20, 6));
+    }
+
+    #[test]
+    fn default_picker_centers_but_explicit_screen_alignment_is_preserved() {
+        const ID: Id = Id::root("picker.alignment-contract");
+        struct AlignmentApp {
+            anchors: Vec<Anchor>,
+        }
+        impl termrock_runtime::runtime::App for AlignmentApp {
+            fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+                if cx.update_cause() == termrock_runtime::runtime::UpdateCause::Bootstrap {
+                    self.anchors
+                        .push(Picker::<Item<'static>>::new(ID).layer(cx, &[]).anchor);
+                    self.anchors.push(
+                        Picker::<Item<'static>>::new(ID)
+                            .align(ScreenAlign::Center)
+                            .layer(cx, &[])
+                            .anchor,
+                    );
+                    self.anchors.push(
+                        Picker::<Item<'static>>::new(ID)
+                            .align(ScreenAlign::GeometricCenter)
+                            .layer(cx, &[])
+                            .anchor,
+                    );
+                }
+                Response::ignored()
+            }
+            fn draw(&self, _ui: &mut Ui<'_>) {}
+        }
+
+        let mut runtime = termrock_runtime::runtime::Runtime::new(
+            AlignmentApp {
+                anchors: Vec::new(),
+            },
+            Theme::junie(),
+        );
+        let _ = runtime.initialize();
+        assert_eq!(
+            runtime.app().anchors,
+            vec![
+                Anchor::Screen(ScreenAlign::GeometricCenter),
+                Anchor::Screen(ScreenAlign::Center),
+                Anchor::Screen(ScreenAlign::GeometricCenter),
+            ]
+        );
+    }
+
+    #[test]
+    fn filtering_changes_rows_without_changing_the_picker_geometry_policy() {
+        const ID: Id = Id::root("picker.filtered-geometry");
+        struct FilteredApp {
+            state: PickerState,
+            items: Vec<Item<'static>>,
+        }
+        impl termrock_runtime::runtime::App for FilteredApp {
+            fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+                let picker = Picker::<Item<'static>>::new(ID)
+                    .title("Open tabs")
+                    .width(40)
+                    .max_rows(6)
+                    .align(ScreenAlign::GeometricCenter);
+                picker.reconcile(&mut self.state, &self.items);
+                if cx.update_cause() == termrock_runtime::runtime::UpdateCause::Bootstrap {
+                    cx.open_layer(ID, picker.layer(cx, &self.items));
+                }
+                picker.update(cx, &mut self.state, &self.items).erase()
+            }
+            fn draw(&self, ui: &mut Ui<'_>) {
+                let picker = Picker::<Item<'static>>::new(ID)
+                    .title("Open tabs")
+                    .width(40)
+                    .max_rows(6)
+                    .align(ScreenAlign::GeometricCenter);
+                ui.layer(ID, |ui, area| {
+                    picker.draw(ui, area, &self.state, &self.items)
+                });
+            }
+        }
+
+        let mut state = PickerState::default();
+        state.set_query("beta");
+        let mut runtime = termrock_runtime::runtime::Runtime::new(
+            FilteredApp {
+                state,
+                items: vec![
+                    Item::new(ItemKey::num(1), "alpha"),
+                    Item::new(ItemKey::num(2), "beta"),
+                    Item::new(ItemKey::num(3), "gamma"),
+                ],
+            },
+            Theme::junie(),
+        );
+        let _ = runtime.initialize();
+        let screen = Rect::new(0, 0, 120, 40);
+        let mut frame = ratatui_core::buffer::Buffer::empty(screen);
+        runtime.draw_buffer(screen, &mut frame).commit_presented();
+
+        assert_eq!(runtime.app().state.query(), "beta");
+        assert_eq!(runtime.layer_area(ID), Some(Rect::new(40, 15, 40, 10)));
+        let contains = |label: &str| {
+            frame.content.windows(label.len()).any(|cells| {
+                cells
+                    .iter()
+                    .zip(label.chars())
+                    .all(|(cell, ch)| cell.symbol() == ch.to_string())
+            })
+        };
+        assert!(contains("beta"), "the matching row remains rendered");
+        assert!(!contains("alpha"), "nonmatching rows are filtered out");
+        assert!(!contains("gamma"), "nonmatching rows are filtered out");
     }
 
     #[test]
