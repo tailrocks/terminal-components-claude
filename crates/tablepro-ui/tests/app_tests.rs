@@ -421,26 +421,59 @@ fn query_editor_keeps_multiline_unicode_and_cursor_through_resize() {
         harness.cursor().is_some(),
         "the nonmodal completion popup preserves the rendered editor caret"
     );
+    assert!(
+        harness.cursor_bar(),
+        "completion retains the editor's frozen steady-bar cursor shape"
+    );
     let popup_cursor = harness.cursor().expect("visible completion caret");
+    assert!(
+        harness
+            .area_of(query_id)
+            .is_some_and(|area| area.contains(popup_cursor)),
+        "the retained caret is the live editor's resolved cursor"
+    );
+    let popup_area = harness.layer_area(query_id.sub("completion")).unwrap();
+    let first_item_y = popup_area.y.saturating_add(1);
+    let first_item = (popup_area.x..popup_area.right())
+        .map(|x| harness.cell(x, first_item_y))
+        .collect::<Vec<_>>();
+    assert!(
+        first_item.iter().any(|cell| cell.symbol() == "T"),
+        "the shared completion row renders its live table-kind glyph"
+    );
+    let label_start = usize::from(popup_area.x.saturating_add(2));
+    assert!(
+        format!(
+            "{:?}",
+            harness
+                .cell(u16::try_from(label_start).unwrap(), first_item_y)
+                .modifier
+        )
+        .contains("BOLD"),
+        "the provider's matched grapheme is emphasized in the real popup"
+    );
     assert!(
         harness.diagnostics().is_empty(),
         "popup cursor retention must not create duplicate controls: {:?}",
         harness.diagnostics()
     );
-    if harness.is_open(query_id.sub("completion")) {
-        let _ = harness.key(KeyCode::Esc);
-    }
+    let _ = harness.resize(96, 28);
+    assert!(
+        harness.is_open(query_id.sub("completion")),
+        "resizing preserves the open completion popup"
+    );
+    assert_eq!(harness.focus(), Some(query_id));
+    assert!(harness.cursor_bar(), "resize preserves the bar caret");
+    assert!(harness.cursor().is_some());
+    assert!(harness.text().contains("customers"));
+    let resized_popup_cursor = harness.cursor();
+    let _ = harness.key(KeyCode::Esc);
     assert!(
         harness.cursor().is_some(),
         "the rendered editor owns its cursor"
     );
-    assert_eq!(
-        harness.cursor(),
-        Some(popup_cursor),
-        "dismissing the completion popup leaves the editor caret in place"
-    );
+    assert_eq!(harness.cursor(), resized_popup_cursor);
 
-    let _ = harness.resize(96, 28);
     assert_eq!(harness.app().query(), "SELECT '界🙂'\nFROM customers");
     assert!(
         harness.cursor().is_some(),

@@ -374,6 +374,10 @@ impl<A: App> Harness<A> {
         self.rt.cursor()
     }
 
+    pub fn cursor_bar(&self) -> bool {
+        self.rt.cursor_bar()
+    }
+
     pub fn snapshot(&self) -> Scene {
         Scene::from_buffer(
             "harness",
