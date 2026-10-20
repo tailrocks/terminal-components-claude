@@ -2033,25 +2033,30 @@ impl TableProApp {
                 Role::BorderStrong
             },
         );
-        if let Some(Tab::Table(table)) = self.workbench.active()
-            && !table.is_structure()
-        {
+        if let Some(Tab::Table(table)) = self.workbench.active() {
+            let x = area
+                .x
+                .saturating_add(area.width)
+                .saturating_sub(ui.design().space.frame_inset);
             let quiet = ui
                 .surface_style()
                 .patch(ui.paint_patch(&StylePatch::new().set_fg(TAG_RULE_FG)));
-            ui.paint_str(
-                termrock::Rect {
-                    x: area
-                        .x
-                        .saturating_add(area.width)
-                        .saturating_sub(ui.design().space.frame_inset),
-                    y: area.y.saturating_add(2),
-                    width: 1,
-                    height: 1,
-                },
-                "─",
-                quiet,
-            );
+            if table.is_structure() {
+                for y in [area.y.saturating_add(2), area.y.saturating_add(5)] {
+                    ui.paint_str(termrock::Rect::new(x, y, 1, 1), "─", quiet);
+                }
+                ui.paint_str(
+                    termrock::Rect::new(x, area.y.saturating_add(8), 1, 1),
+                    " ",
+                    ui.surface_style().add_modifier(Modifier::BOLD),
+                );
+            } else {
+                ui.paint_str(
+                    termrock::Rect::new(x, area.y.saturating_add(2), 1, 1),
+                    "─",
+                    quiet,
+                );
+            }
         }
         if let Some((grid_area, rows)) = GRID_SCROLL.with(|slot| *slot.borrow()) {
             paint_grid_scrollbar(ui, grid_area, rows);
@@ -2118,7 +2123,10 @@ impl TableProApp {
             }
             Some(Tab::Table(table)) => {
                 if table.is_structure() {
-                    ui.paint_str(inner, "Structure", ui.surface_style());
+                    if let Some(key) = self.workbench.active_key() {
+                        ui.register_control(key.control("data"), inner, Focusability::Focusable);
+                    }
+                    paint_structure_view(ui, inner, &table.table);
                 } else {
                     self.draw_table_data(ui, inner);
                 }
@@ -4173,6 +4181,373 @@ fn paint_explorer_collapse(ui: &mut Ui<'_>, area: termrock::Rect) {
     );
 }
 
+const STRUCTURE_SECTIONS: &[&str] = &[
+    "Columns",
+    "Indexes",
+    "Foreign keys",
+    "Constraints",
+    "Triggers",
+    "DDL",
+];
+
+const STRUCTURE_FIELDS: &[(&str, u16)] = &[
+    ("Name", 20),
+    ("Type", 14),
+    ("Nullable", 8),
+    ("Default", 22),
+    ("Key", 6),
+];
+
+fn paint_structure_view(ui: &mut Ui<'_>, inner: termrock::Rect, table: &db::Table) {
+    paint_structure_mode(ui, inner);
+    if inner.height >= 5 {
+        paint_structure_sections(ui, inner);
+    }
+    if inner.height >= 8 {
+        paint_structure_columns(ui, inner, table);
+    }
+}
+
+fn paint_structure_mode(ui: &mut Ui<'_>, inner: termrock::Rect) {
+    if inner.height < 2 || inner.width == 0 {
+        return;
+    }
+    let rest = ui
+        .surface_style()
+        .patch(ui.paint_patch(&StylePatch::new().set_fg(TAG_PATH_FG)));
+    let chip = ui.surface_style().patch(
+        ui.paint_patch(
+            &StylePatch::new()
+                .set_bg(Role::Surface(termrock::Surface::Overlay))
+                .set_fg(Role::Fg(FgStep::Primary))
+                .add(Modifier::BOLD),
+        ),
+    );
+    let plain = ui.surface_style().remove_modifier(Modifier::BOLD);
+    ui.paint_str(
+        termrock::Rect {
+            x: inner.x.saturating_add(1),
+            width: inner.width.saturating_sub(1),
+            height: 1,
+            ..inner
+        },
+        "Data    Structure  ",
+        rest,
+    );
+    ui.paint_str(
+        termrock::Rect {
+            width: 1.min(inner.width),
+            height: 1,
+            ..inner
+        },
+        " ",
+        rest,
+    );
+    ui.paint_str(
+        termrock::Rect {
+            x: inner.x.saturating_add(7),
+            width: 1,
+            height: 1,
+            ..inner
+        },
+        " ",
+        plain,
+    );
+    let structure_x = inner.x.saturating_add(8);
+    if structure_x < inner.right() {
+        ui.paint_str(
+            termrock::Rect {
+                x: structure_x,
+                width: 12.min(inner.right().saturating_sub(structure_x)),
+                height: 1,
+                ..inner
+            },
+            " Structure  ",
+            chip,
+        );
+    }
+    let rule = termrock::Rect {
+        y: inner.y.saturating_add(1),
+        height: 1,
+        ..inner
+    };
+    let active = ui
+        .surface_style()
+        .patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Accent)));
+    let quiet = ui
+        .surface_style()
+        .patch(ui.paint_patch(&StylePatch::new().set_fg(TAG_RULE_FG)));
+    if rule.width > 0 {
+        ui.paint_str(rule, &"─".repeat(usize::from(rule.width)), quiet);
+    }
+    if rule.width > 8 {
+        ui.paint_str(
+            termrock::Rect {
+                x: rule.x.saturating_add(8),
+                width: 12.min(rule.width.saturating_sub(8)),
+                ..rule
+            },
+            "━━━━━━━━━━━━",
+            active,
+        );
+    }
+}
+
+fn paint_structure_sections(ui: &mut Ui<'_>, inner: termrock::Rect) {
+    let row = termrock::Rect {
+        y: inner.y.saturating_add(3),
+        height: 1,
+        ..inner
+    };
+    let rest = ui
+        .surface_style()
+        .patch(ui.paint_patch(&StylePatch::new().set_fg(TAG_PATH_FG)));
+    let chip = ui.surface_style().patch(
+        ui.paint_patch(
+            &StylePatch::new()
+                .set_bg(Role::Surface(termrock::Surface::Overlay))
+                .set_fg(Role::Fg(FgStep::Primary))
+                .add(Modifier::BOLD),
+        ),
+    );
+    let mut x = row.x;
+    let mut active_width = 0u16;
+    for (index, label) in STRUCTURE_SECTIONS.iter().enumerate() {
+        if x >= row.right() {
+            break;
+        }
+        let text = format!(" {label}  ");
+        let text_width = width(&text);
+        let slot = text_width.min(row.right().saturating_sub(x));
+        if index == 0 {
+            active_width = slot;
+        }
+        ui.paint_str(
+            termrock::Rect {
+                x,
+                y: row.y,
+                width: slot,
+                height: 1,
+            },
+            &text,
+            if index == 0 { chip } else { rest },
+        );
+        x = x.saturating_add(slot).saturating_add(1);
+    }
+    let rule = termrock::Rect {
+        y: row.y.saturating_add(1),
+        height: 1,
+        ..inner
+    };
+    if rule.y >= inner.bottom() || rule.width == 0 {
+        return;
+    }
+    let active = ui
+        .surface_style()
+        .patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Accent)));
+    let quiet = ui
+        .surface_style()
+        .patch(ui.paint_patch(&StylePatch::new().set_fg(TAG_RULE_FG)));
+    ui.paint_str(rule, &"─".repeat(usize::from(rule.width)), quiet);
+    if active_width > 0 {
+        ui.paint_str(
+            termrock::Rect {
+                width: active_width.min(rule.width),
+                ..rule
+            },
+            &"━".repeat(usize::from(active_width.min(rule.width))),
+            active,
+        );
+    }
+}
+
+fn paint_structure_columns(ui: &mut Ui<'_>, inner: termrock::Rect, table: &db::Table) {
+    let header_y = inner.y.saturating_add(6);
+    let status_y = inner.bottom().saturating_sub(1);
+    if header_y >= status_y {
+        return;
+    }
+    let header = ui
+        .surface_style()
+        .patch(ui.paint_patch(&StylePatch::new().set_fg(TAG_CHROME_FG)));
+    paint_structure_header(ui, inner, header_y, header);
+    paint_structure_rows(ui, inner, table, header_y, status_y);
+    let count = table.columns.len();
+    let status = format!("{count} columns · read from the catalog · changes are queued until Save");
+    ui.paint_str(
+        termrock::Rect {
+            x: inner.x.saturating_add(1),
+            y: status_y,
+            width: inner.width.saturating_sub(1),
+            height: 1,
+        },
+        &status,
+        header,
+    );
+}
+
+fn paint_structure_header(ui: &mut Ui<'_>, inner: termrock::Rect, y: u16, style: PaintStyle) {
+    let mut x = inner.x.saturating_add(3);
+    let mut fields = STRUCTURE_FIELDS.iter().peekable();
+    while let Some((title, slot)) = fields.next() {
+        if x >= inner.right() {
+            break;
+        }
+        let slot = (*slot).min(inner.right().saturating_sub(x));
+        ui.paint_str(
+            termrock::Rect {
+                x,
+                y,
+                width: slot,
+                height: 1,
+            },
+            &fit_cols(title, slot),
+            style,
+        );
+        x = x.saturating_add(slot);
+        if fields.peek().is_some() {
+            x = x.saturating_add(2);
+        }
+    }
+}
+
+fn paint_structure_rows(
+    ui: &mut Ui<'_>,
+    inner: termrock::Rect,
+    table: &db::Table,
+    header_y: u16,
+    status_y: u16,
+) {
+    let plain = ui.surface_style();
+    let bold = plain.add_modifier(Modifier::BOLD);
+    let mut y = header_y.saturating_add(1);
+    for (index, column) in table.columns.iter().enumerate() {
+        if y >= status_y {
+            break;
+        }
+        let selected = index == 0;
+        paint_structure_gutter(ui, inner.x, y, selected);
+        ui.paint_str(
+            termrock::Rect {
+                x: inner.x.saturating_add(1),
+                y,
+                width: 2.min(inner.width.saturating_sub(1)),
+                height: 1,
+            },
+            "  ",
+            if selected { bold } else { plain },
+        );
+        let values = structure_values(column);
+        let mut x = inner.x.saturating_add(3);
+        let mut fields = values.iter().zip(STRUCTURE_FIELDS).peekable();
+        while let Some(((text, role), (_, slot))) = fields.next() {
+            if x >= inner.right() {
+                break;
+            }
+            let slot = (*slot).min(inner.right().saturating_sub(x));
+            let mut patch = StylePatch::new().set_fg(*role);
+            if selected {
+                patch = patch.add(Modifier::BOLD);
+            }
+            let style = ui.surface_style().patch(ui.paint_patch(&patch));
+            ui.paint_str(
+                termrock::Rect {
+                    x,
+                    y,
+                    width: slot,
+                    height: 1,
+                },
+                &fit_cols(text, slot),
+                style,
+            );
+            x = x.saturating_add(slot);
+            if fields.peek().is_some() {
+                let gap = 2.min(inner.right().saturating_sub(x));
+                if gap > 0 {
+                    ui.paint_str(
+                        termrock::Rect {
+                            x,
+                            y,
+                            width: gap,
+                            height: 1,
+                        },
+                        "  ",
+                        if selected { bold } else { plain },
+                    );
+                }
+                x = x.saturating_add(2);
+            }
+        }
+        if selected {
+            let end = inner.right().saturating_add(1);
+            if x < end {
+                let span = end.saturating_sub(x);
+                ui.paint_str(
+                    termrock::Rect {
+                        x,
+                        y,
+                        width: span,
+                        height: 1,
+                    },
+                    &" ".repeat(usize::from(span)),
+                    bold,
+                );
+            }
+        }
+        y = y.saturating_add(1);
+    }
+}
+
+fn paint_structure_gutter(ui: &mut Ui<'_>, x: u16, y: u16, selected: bool) {
+    if selected {
+        let caret = ui
+            .surface_style()
+            .patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Accent).add(Modifier::BOLD)));
+        ui.paint_str(termrock::Rect::new(x, y, 1, 1), "▎", caret);
+        return;
+    }
+    let blank = ui.surface_style().patch(
+        ui.paint_patch(&StylePatch::new().set_fg(Role::Custom(termrock::Color::from_u32(0)))),
+    );
+    ui.paint_str(termrock::Rect::new(x, y, 1, 1), " ", blank);
+}
+
+fn structure_values(column: &db::Column) -> [(String, Role); 5] {
+    let key = if column.primary {
+        "PK"
+    } else if column.references.is_some() {
+        "FK"
+    } else {
+        ""
+    };
+    let nullable_role = if column.nullable {
+        TAG_CHROME_FG
+    } else {
+        TAG_PATH_FG
+    };
+    [
+        (column.name.clone(), Role::Fg(FgStep::Primary)),
+        (column.ty.sql().to_owned(), TAG_PATH_FG),
+        (
+            if column.nullable { "yes" } else { "no" }.to_owned(),
+            nullable_role,
+        ),
+        (
+            column.default.clone().unwrap_or_else(|| "—".to_owned()),
+            TAG_CHROME_FG,
+        ),
+        (key.to_owned(), TAG_PATH_FG),
+    ]
+}
+
+fn fit_cols(text: &str, cols: u16) -> String {
+    let clipped = truncate(text, cols);
+    let extra = usize::from(cols.saturating_sub(width(&clipped)));
+    let mut out = clipped;
+    out.extend(std::iter::repeat_n(' ', extra));
+    out
+}
+
 fn paint_data_mode(ui: &mut Ui<'_>, inner: termrock::Rect) {
     if inner.height < 2 {
         return;
@@ -4541,6 +4916,20 @@ fn with_footer_spans(
         paint(&explorer_footer_spans());
     } else {
         match app.workbench.active() {
+            Some(Tab::Table(table)) if table.is_structure() => paint(&[
+                Span::new(" "),
+                Span::new("↑↓").bold(),
+                Span::new(" "),
+                Span::new("Move").role(TAG_CHROME_FG),
+                Span::new("  "),
+                Span::new("Ctrl+D").bold(),
+                Span::new(" "),
+                Span::new("Data / Structure").role(TAG_CHROME_FG),
+                Span::new("  "),
+                Span::new("Tab").bold(),
+                Span::new(" "),
+                Span::new("Next").role(TAG_CHROME_FG),
+            ]),
             Some(Tab::Table(_)) => paint(&[
                 Span::new(" "),
                 Span::new("↑↓←→").bold(),
@@ -4635,7 +5024,8 @@ fn draw_footer(ui: &mut Ui<'_>, area: termrock::Rect, app: &TableProApp) {
         ui.fill(right, base);
         ui.paint_str(right, notice, base);
     } else if app.screen == Screen::Workbench {
-        let checked = app.surface == Surface::TableGrid || explorer_focused;
+        let checked =
+            matches!(app.surface, Surface::TableGrid | Surface::StructureView) || explorer_focused;
         let prefix = if checked {
             "✓ Connected to "
         } else {
