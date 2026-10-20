@@ -2,6 +2,26 @@
 
 Updated: 2026-10-20. Status: **in progress; all four applications incomplete**. This is the current migration record. Older audit reports remain evidence, not a complete inventory or acceptance declaration.
 
+## Reviewed palette integration — 2026-10-20
+
+Integration started from PR #38 source `1d7b8eb291e37cb4806ce1369a8a0abab08a81ac`.
+The independent review of `737ecc836fc40d77b51d797bda9c3927b12eeee7` and
+`95cdc7bdb111dc1b683a638b421dae718bb29643` cleared three shared Junie palette
+corrections: ANSI-256 muted/faint indices 245/242 and Mono faint `Gray`.
+Frozen `4169783` explicitly assigns those values in `src/theme.rs`; only
+these three palette entries changed, and existing capability tests remain
+byte-identical. The unchanged regression failed before the correction and
+the complete capability suite passed 9/9 in the independent review.
+
+Independent evidence is retained at `/tmp/termrock-palette-review-95cdc` and
+`/tmp/termrock-palette-prechange-regression.log`; the implementation audit is
+[recorded separately](../audits/2026-10-20-junie-ansi256-palette.md).
+The all-73 test proves current projection consistency, not complete literal
+equivalence of every frozen application token. Product parity, complete native
+gates, and the unresolved empty-owner and nested-layer failures remain open.
+Final integration checks are recorded with the delivery commit; no golden
+frames, expected hashes, application renderers, or frozen references changed.
+
 ## Fixed sources and starting tips
 
 | Source | Identity recorded before this work | Use |
