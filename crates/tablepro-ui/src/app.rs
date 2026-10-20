@@ -8,7 +8,7 @@ use termrock::{
     GridSortIndicator, Id, Intent, ItemKey, KeyCode, KeyMap, KeyModifiers, KeyPhase, LayerId,
     Modifier, Panel, PanelKind, Part, Phase, PickerAction, Response, Role, RowDecor, RowTotal,
     RowUi, Size, SortDir, Span, SplitAxis, SplitPane, SplitPaneState, StateFlags, StylePatch, Tabs,
-    TabsAction, TabsState, TextInput, TextInputState, Theme, Tree, TreeAction,
+    TabsAction, TabsState, TextAction, TextInput, TextInputState, Theme, Tree, TreeAction,
     TreeBranchActivation, TreeNode, TreeState, Ui, UpdateCause, truncate, truncate_middle, width,
     wrap,
 };
@@ -21,6 +21,7 @@ use tablepro_demo::db::{
 };
 use tablepro_domain::connections::{self, ConnectionDraft, ConnectionsScreen};
 use tablepro_domain::domain::ResultGrid;
+use tablepro_domain::filter_editor::{Filter, FilterOp};
 use tablepro_domain::model::SwitchTarget;
 
 pub const MIN_WIDTH: u16 = 72;
@@ -32,6 +33,9 @@ const EXPLORER: Id = Id::root("tablepro.workbench.explorer.tree");
 const EXPLORER_PANEL: Id = Id::root("tablepro.workbench.explorer.panel");
 const TAB_STRIP: Id = Id::root("tablepro.workbench.tab-strip");
 const WORKBENCH_SPLIT: Id = Id::root("tablepro.workbench.split");
+const FILTER_VALUE: Id = Id::root("tablepro.filter.value");
+const FILTER_STEP: Id = Id::root("tablepro.filter.step");
+const FILTER_APPLY: Id = Id::root("tablepro.filter.apply");
 const RUN: ActionKey = ActionKey::application("tablepro.run");
 const UNDO: ActionKey = ActionKey::application("tablepro.undo");
 const INSERT_ROW: ActionKey = ActionKey::application("tablepro.insert-row");
@@ -545,6 +549,13 @@ pub struct TableProApp {
     tick: u64,
     explorer_pin: u8,
     grid_sort: Option<(TabKey, u16, SortDir)>,
+    filter_editor: Option<FilterDraft>,
+}
+
+struct FilterDraft {
+    column: String,
+    value: String,
+    input: TextInputState,
 }
 
 impl core::fmt::Debug for TableProApp {
@@ -589,6 +600,7 @@ impl core::fmt::Debug for TableProApp {
             .field("tick", &self.tick)
             .field("explorer_pin", &self.explorer_pin)
             .field("grid_sort", &self.grid_sort)
+            .field("filter_editor", &self.filter_editor.is_some())
             .finish()
     }
 }
@@ -645,6 +657,7 @@ impl TableProApp {
             tick: 0,
             explorer_pin: 0,
             grid_sort: None,
+            filter_editor: None,
         };
         app.workbench.new_query(
             "SELECT * FROM orders WHERE status = 'pending' ORDER BY total_amount DESC LIMIT 20",
@@ -1770,6 +1783,123 @@ impl TableProApp {
         true
     }
 
+    fn begin_column_filter(&mut self, cx: &mut Cx<'_>) -> bool {
+        if self
+            .workbench
+            .active_table()
+            .is_some_and(crate::tabs::TableTab::is_structure)
+        {
+            return false;
+        }
+        let Some((id, grid)) = self.workbench.active_grid() else {
+            return false;
+        };
+        if !cx.state(id).contains(StateFlags::FOCUSED) || grid.state.is_editing() {
+            return false;
+        }
+        let Some((_, column)) = grid.state.cursor() else {
+            return false;
+        };
+        let Some(index) = usize::from(column.raw()).checked_sub(1) else {
+            return false;
+        };
+        let Some(name) = grid.columns.get(index).map(|(name, _)| name.clone()) else {
+            return false;
+        };
+        self.filter_editor = Some(FilterDraft {
+            column: name,
+            value: String::new(),
+            input: TextInputState::default(),
+        });
+        cx.focus(FILTER_APPLY);
+        true
+    }
+
+    fn update_filter_editor(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+        let Some(draft) = self.filter_editor.as_mut() else {
+            for _ in cx.intents(FILTER_VALUE) {}
+            for _ in cx.intents(FILTER_STEP) {}
+            for _ in cx.intents(FILTER_APPLY) {}
+            return Response::ignored();
+        };
+        let response = TextInput::new(FILTER_VALUE).update(cx, &mut draft.input, &mut draft.value);
+        let committed = response.action_ref() == Some(&TextAction::Committed);
+        let response = response.erase();
+        if committed {
+            self.commit_filter_editor(cx);
+        }
+        response
+    }
+
+    fn commit_filter_editor(&mut self, cx: &mut Cx<'_>) {
+        let Some(draft) = self.filter_editor.take() else {
+            return;
+        };
+        let filter = Filter {
+            column: draft.column,
+            op: FilterOp::Eq,
+            value: draft.value,
+            value2: String::new(),
+            enabled: true,
+        };
+        if self.workbench.apply_filter(filter) {
+            self.reload_active_table(cx);
+        }
+    }
+
+    fn reload_active_table(&mut self, cx: &mut Cx<'_>) {
+        let Some(key) = self.workbench.active_key() else {
+            return;
+        };
+        let Some(table) = self.workbench.active_table() else {
+            return;
+        };
+        if table.is_structure() {
+            return;
+        }
+        let cursor_col = self
+            .workbench
+            .active_grid()
+            .and_then(|(_, grid)| grid.state.cursor().map(|(_, column)| column));
+        let sql = table_query(&table.table, &table.filters);
+        let Ok(tablepro_sql::sql::Statement::Select(select)) = tablepro_sql::sql::parse(&sql)
+        else {
+            return;
+        };
+        let Ok(result) = tablepro_sql::sql::run_select(&self.catalog, &select) else {
+            return;
+        };
+        let id = key.control("data");
+        let Some(tab) = self.workbench.active_table_mut() else {
+            return;
+        };
+        tab.result = GridView::from_result(&result);
+        if let Some(column) = cursor_col
+            && tab.result.model.row_count() > 0
+        {
+            let row = GridModel::row_key(&tab.result.model, 0);
+            let (specs, count) =
+                Self::column_specs(&tab.result.columns, tab.result.model.is_editable());
+            let _ = result_grid(id, specs.get(..count).unwrap_or(&[])).move_cursor_to(
+                &mut tab.result.state,
+                &tab.result.model,
+                row,
+                column,
+            );
+        }
+        cx.focus(id);
+    }
+
+    fn draw_filter_editor(&self, ui: &mut Ui<'_>) {
+        let Some(draft) = &self.filter_editor else {
+            return;
+        };
+        // Off the grid. The value field only has to join the focus ring.
+        TextInput::new(FILTER_VALUE).draw(ui, termrock::Rect::new(0, 0, 12, 1), &draft.input);
+        ui.register_focus_only(FILTER_STEP, Focusability::Focusable);
+        ui.register_focus_only(FILTER_APPLY, Focusability::Focusable);
+    }
+
     fn sort_status_prefix(&self) -> Option<String> {
         let (tab, column, direction) = self.grid_sort?;
         if self.workbench.active_key()? != tab {
@@ -1783,9 +1913,26 @@ impl TableProApp {
 
     fn draw_table_data(&self, ui: &mut Ui<'_>, inner: termrock::Rect) {
         paint_data_mode(ui, inner);
+        let filters = self
+            .workbench
+            .active_table()
+            .map(|table| table.filters.clone())
+            .unwrap_or_default();
+        let filter_rows = if filters.is_empty() { 0 } else { 2 };
+        if !filters.is_empty() {
+            paint_filter_bar(
+                ui,
+                termrock::Rect {
+                    y: inner.y.saturating_add(3),
+                    height: 1,
+                    ..inner
+                },
+                &filters,
+            );
+        }
         let grid_area = termrock::Rect {
-            y: inner.y.saturating_add(3),
-            height: inner.height.saturating_sub(5),
+            y: inner.y.saturating_add(3).saturating_add(filter_rows),
+            height: inner.height.saturating_sub(5).saturating_sub(filter_rows),
             ..inner
         };
         let Some((id, grid_view)) = self.workbench.active_grid() else {
@@ -1806,12 +1953,20 @@ impl TableProApp {
         let loaded = grid_view.model.row_count();
         let last = shown.min(loaded);
         let cols = grid_column_status(grid_view.columns.len());
+        let enabled = filters.iter().filter(|filter| filter.enabled).count();
+        let total = if enabled == 0 {
+            grouped(grid_view.model.total())
+        } else {
+            format!("~{}", grouped(grid_view.model.total()))
+        };
         let mut status = format!(
-            "rows 1–{} of {} loaded · {} total · {cols}",
+            "rows 1–{} of {} loaded · {total} total · {cols}",
             grouped(last),
             grouped(loaded),
-            grouped(grid_view.model.total()),
         );
+        if enabled > 0 {
+            status = format!("filtered ({enabled}) · {status}");
+        }
         if let Some(prefix) = self.sort_status_prefix() {
             status = format!("{prefix} · {status}");
         }
@@ -2937,6 +3092,7 @@ thread_local! {
     static GRID_CHROME: RefCell<Option<GridChrome>> = const { RefCell::new(None) };
     static GRID_SCROLL: RefCell<Option<(termrock::Rect, usize)>> = const { RefCell::new(None) };
     static GRID_SORT: RefCell<Option<(usize, SortDir)>> = const { RefCell::new(None) };
+    static GRID_FILTER: RefCell<Vec<String>> = const { RefCell::new(Vec::new()) };
 }
 
 fn install_grid_budgets(area_width: u16, columns: &[(String, ColType)], model: &ResultGrid) {
@@ -3513,10 +3669,55 @@ fn sorted_scan(table: &db::Table, grid: &GridView, index: usize, direction: Sort
     })
 }
 
+fn arrow_role(fade: Option<u16>) -> Role {
+    let color = fade.map_or(0x008a_8a8a, |numerator| scaled_rgb(0x008a_8a8a, numerator));
+    Role::Custom(termrock::Color::from_u32(color))
+}
+
+fn column_is_filtered(name: &str) -> bool {
+    GRID_FILTER.with(|slot| {
+        slot.borrow()
+            .iter()
+            .any(|column| column.eq_ignore_ascii_case(name))
+    })
+}
+
+fn table_query(table: &db::Table, filters: &[Filter]) -> String {
+    let mut sql = format!("SELECT * FROM {}.{}", table.schema, table.name);
+    let enabled: Vec<&Filter> = filters.iter().filter(|filter| filter.enabled).collect();
+    if enabled.is_empty() {
+        return sql;
+    }
+    sql.push_str(" WHERE ");
+    sql.push_str(
+        &enabled
+            .iter()
+            .map(|filter| filter.to_sql())
+            .collect::<Vec<_>>()
+            .join(" AND "),
+    );
+    sql
+}
+
 fn sort_mark(direction: SortDir) -> char {
     match direction {
         SortDir::Asc => '▴',
         SortDir::Desc => '▾',
+    }
+}
+
+fn filter_footer(app: &TableProApp) -> Option<String> {
+    let count = app
+        .workbench
+        .active_table()?
+        .filters
+        .iter()
+        .filter(|filter| filter.enabled)
+        .count();
+    match count {
+        0 => None,
+        1 => Some("1 filter applied".to_owned()),
+        n => Some(format!("{n} filters applied")),
     }
 }
 
@@ -3566,6 +3767,10 @@ fn column_natural_width(name: &str, ty: ColType, model: &ResultGrid, col: usize)
         if let Some(cell) = GridModel::cell(model, row, col) {
             natural = natural.max(width(cell.text));
         }
+    }
+    if column_is_filtered(name) {
+        // " ∇" plus the gap the header keeps after the mark.
+        natural = natural.saturating_add(3);
     }
     natural.clamp(3, 40)
 }
@@ -3713,6 +3918,84 @@ fn scaled_rgb(color: u32, numerator: u16) -> u32 {
     u32::from(red) << 16 | u32::from(green) << 8 | u32::from(blue)
 }
 
+struct ScrolledTitle<'a> {
+    origin: u16,
+    place: ColPlace,
+    name: &'a str,
+    index: usize,
+    offset: usize,
+    names: &'a [String],
+    sort_at: Option<(usize, SortDir)>,
+    base: PaintStyle,
+    muted: PaintStyle,
+    sorted_style: PaintStyle,
+}
+
+fn paint_scrolled_title(ui: &mut Ui<'_>, area: termrock::Rect, column: &ScrolledTitle<'_>) {
+    let &ScrolledTitle {
+        origin,
+        place,
+        name,
+        index,
+        offset,
+        names,
+        sort_at,
+        base,
+        muted,
+        sorted_style,
+    } = column;
+    let filtered = column_is_filtered(name);
+    let sorted = sort_at.is_some_and(|(column, _)| column == index);
+    let style = if sorted || filtered {
+        sorted_style
+    } else {
+        muted
+    };
+    let mut title = name.to_owned();
+    if filtered {
+        title.push(' ');
+        title.push('∇');
+    }
+    if let Some((_, direction)) = sort_at.filter(|(column, _)| *column == index) {
+        title.push(' ');
+        title.push(sort_mark(direction));
+    }
+    let title = truncate(&title, place.width);
+    let previous_filtered = offset > 0
+        && names
+            .get(index.saturating_sub(1))
+            .is_some_and(|name| column_is_filtered(name));
+    let cell = termrock::Rect {
+        x: origin.saturating_add(place.x),
+        y: area.y,
+        width: place.width,
+        height: 1,
+    };
+    if filtered && !sorted {
+        ui.fill(cell, base);
+        ui.fill(
+            termrock::Rect {
+                width: width(&title).saturating_add(1).min(place.width),
+                ..cell
+            },
+            sorted_style,
+        );
+    } else {
+        if previous_filtered && place.x >= 2 {
+            ui.fill(
+                termrock::Rect {
+                    x: cell.x.saturating_sub(2),
+                    width: 2,
+                    ..cell
+                },
+                muted,
+            );
+        }
+        ui.fill(cell, style);
+    }
+    ui.paint_str(cell, &title, style);
+}
+
 fn paint_scrolled_header(
     ui: &mut Ui<'_>,
     area: termrock::Rect,
@@ -3758,31 +4041,21 @@ fn paint_scrolled_header(
         let Some(name) = names.get(index) else {
             continue;
         };
-        let sorted = sort_at.is_some_and(|(column, _)| column == index);
-        let style = if sorted { sorted_style } else { muted };
-        let mut title = name.clone();
-        if let Some((_, direction)) = sort_at.filter(|(column, _)| *column == index) {
-            title.push(' ');
-            title.push(sort_mark(direction));
-        }
-        ui.fill(
-            termrock::Rect {
-                x: origin.saturating_add(place.x),
-                y: area.y,
-                width: place.width,
-                height: 1,
+        paint_scrolled_title(
+            ui,
+            area,
+            &ScrolledTitle {
+                origin,
+                place: *place,
+                name,
+                index,
+                offset,
+                names,
+                sort_at,
+                base,
+                muted,
+                sorted_style,
             },
-            style,
-        );
-        ui.paint_str(
-            termrock::Rect {
-                x: origin.saturating_add(place.x),
-                y: area.y,
-                width: place.width,
-                height: 1,
-            },
-            &title,
-            style,
         );
     }
     if chrome.hidden_left.saturating_add(chrome.complete) < chrome.columns {
@@ -3913,7 +4186,12 @@ fn paint_scrolled_cells(
                     &StylePatch::new().set_fg(Role::Custom(termrock::Color::from_u32(color))),
                 ));
             }
-            let shown = if width(&text) > place.width {
+            let foreign = columns
+                .get(col)
+                .is_some_and(|(name, ty)| *ty == ColType::Uuid && name != "id" && place.width >= 2);
+            let shown = if foreign {
+                truncate_middle(&text, place.width.saturating_sub(2))
+            } else if width(&text) > place.width {
                 truncate(&text, place.width)
             } else {
                 text
@@ -3927,6 +4205,18 @@ fn paint_scrolled_cells(
             } else {
                 0
             };
+            if active && !numeric {
+                let pad = text_width.saturating_add(2).min(place.width);
+                ui.fill(
+                    termrock::Rect {
+                        x: origin.saturating_add(place.x),
+                        y,
+                        width: pad,
+                        height: 1,
+                    },
+                    style,
+                );
+            }
             ui.paint_str(
                 termrock::Rect {
                     x: origin.saturating_add(place.x).saturating_add(indent),
@@ -3937,6 +4227,32 @@ fn paint_scrolled_cells(
                 &shown,
                 style,
             );
+            if foreign {
+                let slot = origin
+                    .saturating_add(place.x)
+                    .saturating_add(place.width)
+                    .saturating_sub(2);
+                ui.paint_str(
+                    termrock::Rect {
+                        x: slot,
+                        y,
+                        width: 1,
+                        height: 1,
+                    },
+                    " ",
+                    style,
+                );
+                ui.paint_str(
+                    termrock::Rect {
+                        x: slot.saturating_add(1),
+                        y,
+                        width: 1,
+                        height: 1,
+                    },
+                    "→",
+                    style.patch(ui.paint_patch(&StylePatch::new().set_fg(arrow_role(fade)))),
+                );
+            }
         }
     }
 }
@@ -5128,6 +5444,77 @@ fn fit_cols(text: &str, cols: u16) -> String {
     out
 }
 
+fn paint_filter_bar(ui: &mut Ui<'_>, row: termrock::Rect, filters: &[Filter]) {
+    if row.width == 0 || row.height == 0 {
+        return;
+    }
+    let quiet = ui
+        .surface_style()
+        .patch(ui.paint_patch(&StylePatch::new().set_fg(TAG_PATH_FG)));
+    let chip = ui.surface_style().patch(
+        ui.paint_patch(
+            &StylePatch::new()
+                .set_bg(Role::Surface(termrock::Surface::Overlay))
+                .set_fg(Role::Fg(FgStep::Primary))
+                .add(Modifier::BOLD),
+        ),
+    );
+    let cap = chip.with_fg_from_bg(chip);
+    let cross = ui.surface_style().patch(
+        ui.paint_patch(
+            &StylePatch::new()
+                .set_fg(TAG_PATH_FG)
+                .set_bg(Role::Surface(termrock::Surface::Overlay)),
+        ),
+    );
+    let gap = ui.surface_style().patch(
+        ui.paint_patch(
+            &StylePatch::new()
+                .set_fg(Role::Custom(termrock::Color::from_u32(0)))
+                .set_bg(Role::Custom(termrock::Color::from_u32(0))),
+        ),
+    );
+    let mut x = row.x;
+    let lead = " match all ▾ ";
+    paint_bar_piece(ui, row, &mut x, lead, quiet);
+    paint_bar_piece(ui, row, &mut x, " ", ui.surface_style());
+    for filter in filters.iter().filter(|filter| filter.enabled) {
+        paint_bar_piece(ui, row, &mut x, " ", cap);
+        let label = format!("{} ", filter.chip_label());
+        paint_bar_piece(ui, row, &mut x, &label, chip);
+        paint_bar_piece(ui, row, &mut x, "×", cross);
+        paint_bar_piece(ui, row, &mut x, "  ", chip);
+        paint_bar_piece(ui, row, &mut x, " ", ui.surface_style());
+        paint_bar_piece(ui, row, &mut x, " ", gap);
+    }
+    paint_bar_piece(ui, row, &mut x, "+ Add filter ", quiet);
+}
+
+fn paint_bar_piece(
+    ui: &mut Ui<'_>,
+    row: termrock::Rect,
+    x: &mut u16,
+    text: &str,
+    style: PaintStyle,
+) {
+    let piece = width(text);
+    if *x >= row.right() || piece == 0 {
+        return;
+    }
+    let slot = piece.min(row.right().saturating_sub(*x));
+    ui.paint_str(
+        termrock::Rect {
+            x: *x,
+            y: row.y,
+            width: slot,
+            height: 1,
+        },
+        text,
+        style,
+    );
+    *x = x.saturating_add(slot);
+}
+
 fn paint_data_mode(ui: &mut Ui<'_>, inner: termrock::Rect) {
     if inner.height < 2 {
         return;
@@ -5485,6 +5872,72 @@ fn explorer_footer_spans() -> [Span<'static>; 28] {
     ]
 }
 
+fn paint_data_footer(filtered: bool, paint: impl FnOnce(&[Span<'static>])) {
+    if filtered {
+        paint(&[
+            Span::new(" "),
+            Span::new("↑↓←→").bold(),
+            Span::new(" "),
+            Span::new("Cell").role(TAG_CHROME_FG),
+            Span::new("  "),
+            Span::new("Enter").bold(),
+            Span::new(" "),
+            Span::new("Edit").role(TAG_CHROME_FG),
+            Span::new("  "),
+            Span::new("Alt+D").bold(),
+            Span::new(" "),
+            Span::new("Duplicate row").role(TAG_CHROME_FG),
+            Span::new("  "),
+            Span::new("s").bold(),
+            Span::new(" "),
+            Span::new("Sort").role(TAG_CHROME_FG),
+            Span::new("  "),
+            Span::new("f").bold(),
+            Span::new(" "),
+            Span::new("Filter").role(TAG_CHROME_FG),
+            Span::new("  "),
+            Span::new("Space").bold(),
+            Span::new(" "),
+            Span::new("Select row").role(TAG_CHROME_FG),
+            Span::new("  "),
+            Span::new("Shift+F10").bold(),
+            Span::new(" "),
+            Span::new("Menu").role(TAG_CHROME_FG),
+            Span::new("  "),
+            Span::new("…").role(LEGACY_FAINT),
+        ]);
+        return;
+    }
+    paint(&[
+        Span::new(" "),
+        Span::new("↑↓←→").bold(),
+        Span::new(" "),
+        Span::new("Cell").role(TAG_CHROME_FG),
+        Span::new("  "),
+        Span::new("Enter").bold(),
+        Span::new(" "),
+        Span::new("Edit").role(TAG_CHROME_FG),
+        Span::new("  "),
+        Span::new("Alt+D").bold(),
+        Span::new(" "),
+        Span::new("Duplicate row").role(TAG_CHROME_FG),
+        Span::new("  "),
+        Span::new("s").bold(),
+        Span::new(" "),
+        Span::new("Sort").role(TAG_CHROME_FG),
+        Span::new("  "),
+        Span::new("f").bold(),
+        Span::new(" "),
+        Span::new("Filter").role(TAG_CHROME_FG),
+        Span::new("  "),
+        Span::new("Space").bold(),
+        Span::new(" "),
+        Span::new("Select row").role(TAG_CHROME_FG),
+        Span::new("  "),
+        Span::new("…").role(LEGACY_FAINT),
+    ]);
+}
+
 fn with_footer_spans(
     app: &TableProApp,
     explorer_focused: bool,
@@ -5510,34 +5963,9 @@ fn with_footer_spans(
                 Span::new(" "),
                 Span::new("Next").role(TAG_CHROME_FG),
             ]),
-            Some(Tab::Table(_)) => paint(&[
-                Span::new(" "),
-                Span::new("↑↓←→").bold(),
-                Span::new(" "),
-                Span::new("Cell").role(TAG_CHROME_FG),
-                Span::new("  "),
-                Span::new("Enter").bold(),
-                Span::new(" "),
-                Span::new("Edit").role(TAG_CHROME_FG),
-                Span::new("  "),
-                Span::new("Alt+D").bold(),
-                Span::new(" "),
-                Span::new("Duplicate row").role(TAG_CHROME_FG),
-                Span::new("  "),
-                Span::new("s").bold(),
-                Span::new(" "),
-                Span::new("Sort").role(TAG_CHROME_FG),
-                Span::new("  "),
-                Span::new("f").bold(),
-                Span::new(" "),
-                Span::new("Filter").role(TAG_CHROME_FG),
-                Span::new("  "),
-                Span::new("Space").bold(),
-                Span::new(" "),
-                Span::new("Select row").role(TAG_CHROME_FG),
-                Span::new("  "),
-                Span::new("…").role(LEGACY_FAINT),
-            ]),
+            Some(Tab::Table(table)) => {
+                paint_data_footer(table.filters.iter().any(|filter| filter.enabled), paint);
+            }
             Some(Tab::Query(_)) => paint(&[
                 Span::new(" "),
                 Span::new("Enter").bold(),
@@ -5613,6 +6041,18 @@ fn draw_footer(ui: &mut Ui<'_>, area: termrock::Rect, app: &TableProApp) {
         ui.paint_str(
             right,
             &sorted,
+            base.patch(ui.paint_patch(&StylePatch::new().set_fg(TAG_PATH_FG))),
+        );
+    } else if let Some(filtered) = filter_footer(app) {
+        let text_width = width(&filtered);
+        let right = termrock::Rect {
+            x: area.right().saturating_sub(text_width).saturating_sub(1),
+            width: text_width,
+            ..area
+        };
+        ui.paint_str(
+            right,
+            &filtered,
             base.patch(ui.paint_patch(&StylePatch::new().set_fg(TAG_PATH_FG))),
         );
     } else if app.screen == Screen::Workbench {
@@ -5875,6 +6315,7 @@ impl App for TableProApp {
         reason = "update keeps public component routing and product command arbitration in one phase"
     )]
     fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+        let mut response = self.update_filter_editor(cx);
         if cx.update_cause() == UpdateCause::Bootstrap
             && self.screen == Screen::Workbench
             && self.surface == Surface::QuickSwitcher
@@ -5883,7 +6324,7 @@ impl App for TableProApp {
         }
         let switcher_was_open = cx.is_open(quick_switcher::ID);
         let modal_was_open = self.destructive_intent.is_some();
-        let mut response = self.update_destructive_dialog(cx);
+        response |= self.update_destructive_dialog(cx);
         response |= self.update_tab_controls(cx);
         if self.form_open || self.screen != Screen::Connections {
             response |= connection_tree()
@@ -5987,6 +6428,9 @@ impl App for TableProApp {
                     response |= Response::changed();
                 }
                 c if c == SORT && self.sort_focused_column(cx) => {
+                    response |= Response::changed();
+                }
+                c if c == FILTER && self.begin_column_filter(cx) => {
                     response |= Response::changed();
                 }
                 _ => {}
@@ -6130,6 +6574,19 @@ impl App for TableProApp {
         response
     }
     fn draw(&self, ui: &mut Ui<'_>) {
+        let filtered_columns = self
+            .workbench
+            .active_table()
+            .map(|table| {
+                table
+                    .filters
+                    .iter()
+                    .filter(|filter| filter.enabled)
+                    .map(|filter| filter.column.clone())
+                    .collect::<Vec<_>>()
+            })
+            .unwrap_or_default();
+        GRID_FILTER.with(|slot| *slot.borrow_mut() = filtered_columns);
         GRID_SCROLL.with(|slot| *slot.borrow_mut() = None);
         let shown_sort = self.grid_sort.and_then(|(tab, column, direction)| {
             if self.workbench.active_key()? != tab {
@@ -6190,6 +6647,7 @@ impl App for TableProApp {
             }
         }
         draw_footer(ui, rows[2], self);
+        self.draw_filter_editor(ui);
         ui.layer(quick_switcher::ID, |ui, area| {
             self.switcher
                 .component()
