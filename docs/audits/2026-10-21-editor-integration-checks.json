@@ -30,10 +30,11 @@
   "affected_package_formatting_passed": true,
   "expanded_clippy_blocker": {
     "path": "crates/tablepro-domain/src/model.rs",
-    "function": "ResultGrid::seeded",
+    "function": "History::seeded",
     "diagnostic": "this function has too many lines (169/100)",
     "source_byte_identical_to_base": true,
-    "function_sha256": "1b4cc0ba246c9e4f023a8576a97afca6cf9a45420bd8008652bc934b5e606388"
+    "function_sha256": "1b4cc0ba246c9e4f023a8576a97afca6cf9a45420bd8008652bc934b5e606388",
+    "attribution_correction": "The earlier record incorrectly named ResultGrid::seeded. The emitted model.rs path, exact function byte hash and unchanged-source attribution remain correct; the containing type is History."
   },
   "logs": {
     "tablepro": {
