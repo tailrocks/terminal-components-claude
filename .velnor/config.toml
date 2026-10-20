@@ -47,20 +47,13 @@ release_pr = true
 tag_name = "{{ package }}-v{{ version }}"
 
 [stacks.rust.binary_release]
-enabled = false
 manifest_path = "Cargo.toml"
-package = ""
-bin = ""
-
-[stacks.rust.binary_release.preview]
-enabled = false
-versioning = "package-preview-commit-count-sha7"
+version_package = ""
 version_env = ""
-environment = "preview-publish"
 products = []
 companions = []
 
-[stacks.rust.binary_release.preview.producer]
+[stacks.rust.binary_release.producer]
 task = ""
 output_directory = "dist/preview"
 manifest = "dist/preview/package-output.json"
@@ -70,12 +63,22 @@ runner = "linux-x64"
 timeout_minutes = 5
 build_jobs = 2
 
-[stacks.rust.binary_release.preview.producer.source]
+[stacks.rust.binary_release.producer.source]
 mise_config = "mise.toml"
 working_directory = "."
 
-[stacks.rust.binary_release.preview.evidence]
+[stacks.rust.binary_release.evidence]
 profile = "signed-sbom-v1"
+
+[stacks.rust.binary_release.preview]
+enabled = false
+versioning = "package-preview-commit-count-sha7"
+environment = "preview-publish"
+release_id = 0
+
+[stacks.rust.binary_release.stable]
+enabled = false
+environment = "release"
 
 [discovery]
 exclude = ["xtask/fixtures/**", "tools/termrock-visibility-publisher/**", "tools/frozen-cli-frame-support/**", "crates/termrock-e2e/**", "crates/termrock-visibility-tests/**", "crates/showcase-data/**", "crates/holla-catalog/**", "crates/holla-plan/**"]
