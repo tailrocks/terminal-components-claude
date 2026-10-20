@@ -4315,6 +4315,7 @@ fn paint_legacy_tabs(
     area: termrock::Rect,
     tabs: &[TabRecord],
     active: Option<ItemKey>,
+    accent_rule: bool,
 ) {
     if area.height < 2 || tabs.is_empty() {
         return;
@@ -4325,7 +4326,8 @@ fn paint_legacy_tabs(
         ui.paint_patch(
             &StylePatch::new()
                 .set_bg(Role::Surface(termrock::Surface::Overlay))
-                .set_fg(Role::Fg(FgStep::Primary)),
+                .set_fg(Role::Fg(FgStep::Primary))
+                .add(Modifier::BOLD),
         ),
     );
     let prefix_idle = base.patch(ui.paint_patch(&StylePatch::new().set_fg(TAG_CHROME_FG)));
@@ -4405,7 +4407,11 @@ fn paint_legacy_tabs(
         x = x.saturating_add(1);
     }
     let quiet = base.patch(ui.paint_patch(&StylePatch::new().set_fg(TAG_RULE_FG)));
-    let hot = base.patch(ui.paint_patch(&StylePatch::new().set_fg(Role::BorderSubtle)));
+    let hot = base.patch(ui.paint_patch(&StylePatch::new().set_fg(if accent_rule {
+        Role::Accent
+    } else {
+        Role::BorderSubtle
+    })));
     let rule = termrock::Rect {
         y: area.y.saturating_add(1),
         height: 1,
@@ -7321,6 +7327,7 @@ fn draw_header(ui: &mut Ui<'_>, area: termrock::Rect, app: &TableProApp) {
             Environment::Local | Environment::Development => "·",
         };
         let environment = app.connection.environment.label();
+        let env_role = legacy_environment_role(app.connection.environment);
         let path = format!(
             " {} ",
             qualified_label("", &app.connection.database, app.workbench.current_schema())
@@ -7332,12 +7339,12 @@ fn draw_header(ui: &mut Ui<'_>, area: termrock::Rect, app: &TableProApp) {
                 Span::new("▪").role(Role::Accent),
                 Span::new(" "),
                 Span::new(" TablePro  ").bold(),
-                Span::new(&app.connection.name),
+                Span::new(&app.connection.name).bold(),
+                Span::new(" ").bold(),
                 Span::new(" "),
-                Span::new(" "),
-                Span::new(glyph).role(LEGACY_FAINT),
-                Span::new(" ").role(LEGACY_FAINT),
-                Span::new(environment).role(LEGACY_FAINT),
+                Span::new(glyph).role(env_role).bold(),
+                Span::new(" ").role(env_role).bold(),
+                Span::new(environment).role(env_role).bold(),
                 Span::new(" "),
                 Span::new(&path).role(TAG_PATH_FG),
                 safe_mode_mark(app.safe_mode),
@@ -9882,11 +9889,23 @@ impl App for TableProApp {
                 &self.tabs_state,
                 self.workbench.tabs(),
             );
+            let tab_accent = self.destructive_intent.is_none()
+                && self.connection_delete != ConnectionDelete::Open
+                && !matches!(
+                    self.surface,
+                    Surface::FilterEditor
+                        | Surface::HelpDialog
+                        | Surface::QuickSwitcher
+                        | Surface::TabListPicker
+                        | Surface::SafeModePicker
+                        | Surface::SafetyDialogTypedAck
+                );
             paint_legacy_tabs(
                 ui,
                 workbench_rows[0],
                 self.workbench.tabs(),
                 self.tabs_state.active(),
+                tab_accent,
             );
             if self.workbench.maximized {
                 self.draw_content(ui, workbench_rows[1]);
