@@ -1891,7 +1891,7 @@ impl TableProApp {
     }
 
     fn update_delete_dialog(&mut self, cx: &mut Cx<'_>) -> Response<()> {
-        if self.connection_delete != ConnectionDelete::Open || !cx.is_open(DELETE_DIALOG) {
+        if self.connection_delete != ConnectionDelete::Open {
             return Response::ignored();
         }
         let question = self.delete_question.clone();
