@@ -248,26 +248,52 @@ class RunnerGuards(unittest.TestCase):
             with self.assertRaises(runner.RunnerError):
                 runner.validate_reference_decision_document(altered)
 
-    def test_reference_receipt_is_exact_and_rejects_ascii_or_cursor_diff(self) -> None:
+    def test_reference_receipts_validate_only_selected_pins_collectively(self) -> None:
         decisions = runner.validate_reference_decision_document(json.loads((Path(runner.__file__).resolve().parent / "frozen_cli_references.json").read_text()))
-        for decision in decisions:
-            test_id = decision["tuple"]["test_id"]
-            key = (decision["tuple"]["case_id"], decision["tuple"]["ordinal"], decision["tuple"]["logical_name"])
-            reference = decision["live_frame"]
-            correct = {key: (reference["ansi_sha256"], reference["semantic_frame_sha256"], runner.REFERENCE_DECISIONS_SHA256)}
-            runner.validate_reference_receipts(correct, [test_id], "baseline-capture", decision, runner.REFERENCE_DECISIONS_SHA256)
-            wrong_ascii = {key: ("0" * 64, reference["semantic_frame_sha256"], runner.REFERENCE_DECISIONS_SHA256)}
-            wrong_cursor = {key: (reference["ansi_sha256"], "0" * 64, runner.REFERENCE_DECISIONS_SHA256)}
-            for altered in (wrong_ascii, wrong_cursor):
-                with self.subTest(test_id=test_id, altered=altered), self.assertRaisesRegex(runner.RunnerError, "reviewed live-frame reference mismatch"):
-                    runner.validate_reference_receipts(altered, [test_id], "baseline-capture", decision, runner.REFERENCE_DECISIONS_SHA256)
-            with self.assertRaisesRegex(runner.RunnerError, "reference decision receipt binding"):
-                runner.validate_reference_receipts({key: (reference["ansi_sha256"], reference["semantic_frame_sha256"], None)}, [test_id], "baseline-capture", decision, runner.REFERENCE_DECISIONS_SHA256)
-            # The same pinned reference frame is mandatory in replay and candidate phases,
-            # but neither phase may claim the capture-only decision receipt.
-            strict = {key: (reference["ansi_sha256"], reference["semantic_frame_sha256"], None)}
-            runner.validate_reference_receipts(strict, [test_id], "baseline-check", decision, runner.REFERENCE_DECISIONS_SHA256)
-            runner.validate_reference_receipts(strict, [test_id], "candidate-check", decision, runner.REFERENCE_DECISIONS_SHA256)
+        decision_hash = runner.REFERENCE_DECISIONS_SHA256
+
+        def key_for(decision: dict[str, object]) -> tuple[str, int, str]:
+            value = decision["tuple"]
+            return (value["case_id"], value["ordinal"], value["logical_name"])
+
+        def receipt_for(decision: dict[str, object], phase: str) -> dict[tuple[str, int, str], tuple[str, str, str | None]]:
+            frame = decision["live_frame"]
+            claim = decision_hash if phase == "baseline-capture" else None
+            return {key_for(decision): (frame["ansi_sha256"], frame["semantic_frame_sha256"], claim)}
+
+        # Each pinned case runs in its own chunk; an inactive decision must not
+        # reject the active decision's legitimate capture receipt.
+        chunks = runner.scenario_chunks([runner.REFERENCE_CASE, "middle", runner.BUTTONS_REFERENCE_CASE], 2)
+        self.assertEqual(chunks, [["middle"], [runner.REFERENCE_CASE], [runner.BUTTONS_REFERENCE_CASE]])
+        by_id = {decision["tuple"]["test_id"]: decision for decision in decisions}
+        for test_id in (runner.REFERENCE_CASE, runner.BUTTONS_REFERENCE_CASE):
+            decision = by_id[test_id]
+            selected = [test_id]
+            runner.validate_reference_receipts(receipt_for(decision, "baseline-capture"), selected, "baseline-capture", decisions, decision_hash)
+            for phase in ("baseline-check", "candidate-check"):
+                runner.validate_reference_receipts(receipt_for(decision, phase), selected, phase, decisions, decision_hash)
+
+            correct = receipt_for(decision, "baseline-capture")
+            frame = decision["live_frame"]
+            key = key_for(decision)
+            for altered in (
+                {key: ("0" * 64, frame["semantic_frame_sha256"], decision_hash)},
+                {key: (frame["ansi_sha256"], "0" * 64, decision_hash)},
+                {key: (frame["ansi_sha256"], frame["semantic_frame_sha256"], None)},
+            ):
+                with self.subTest(test_id=test_id, altered=altered), self.assertRaises(runner.RunnerError):
+                    runner.validate_reference_receipts(altered, selected, "baseline-capture", decisions, decision_hash)
+
+        # The registered partition keeps both reference cases in separate
+        # chunks while every chunk still sees the full decision registry.
+        self.assertEqual(chunks[-2:], [[runner.REFERENCE_CASE], [runner.BUTTONS_REFERENCE_CASE]])
+
+        unrelated = {("showcase/other", 0, "showcase/other"): ("0" * 64, "0" * 64, decision_hash)}
+        with self.assertRaisesRegex(runner.RunnerError, "unselected or unrelated checkpoint"):
+            runner.validate_reference_receipts(unrelated, ["ordinary::case"], "baseline-capture", decisions, decision_hash)
+        unrelated_with_selected = receipt_for(by_id[runner.REFERENCE_CASE], "baseline-capture") | unrelated
+        with self.assertRaisesRegex(runner.RunnerError, "unselected or unrelated checkpoint"):
+            runner.validate_reference_receipts(unrelated_with_selected, [runner.REFERENCE_CASE], "baseline-capture", decisions, decision_hash)
 
     def test_checkpoint_paths_remain_below_portable_filename_limit(self) -> None:
         case = "holla/activities/activities-multi-with-history/120x40/truecolor"
