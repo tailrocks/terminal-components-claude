@@ -169,6 +169,11 @@ const LABEL_W: u16 = 14;
 const LOADED: usize = 40;
 const CONTENT_ROWS: usize = 41;
 const ALL_COLS: usize = 9;
+const WIDE_GRID: u16 = 70;
+const PREVIEW_MIN: u16 = 6;
+const SHOWN_ROWS: usize = 21;
+const NARROW_TRACK: u16 = 75;
+const STRING: u32 = 0x8bd5ca;
 
 const CANVAS: u32 = 0x000000;
 const SURFACE: u32 = 0x111111;
@@ -207,57 +212,93 @@ const NAMES: [&str; 16] = [
 const PLANS: [&str; 4] = ["free", "pro", "team", "enterprise"];
 const SEATS: [u32; 8] = [1, 3, 5, 12, 25, 40, 80, 150];
 
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum ColKind {
+    Text,
+    Primary,
+    Literal,
+    Nullable,
+    Link,
+    Json,
+}
+
 struct Col {
     title: &'static str,
     width: u16,
     right: bool,
-    primary: bool,
-    literal: bool,
+    kind: ColKind,
 }
 
-const GRID_COLS: [Col; 6] = [
+const GRID_COLS: [Col; 9] = [
     Col {
         title: "id",
         width: 9,
         right: false,
-        primary: true,
-        literal: false,
+        kind: ColKind::Primary,
     },
     Col {
         title: "customer",
         width: 25,
         right: false,
-        primary: false,
-        literal: false,
+        kind: ColKind::Text,
     },
     Col {
         title: "plan",
         width: 10,
         right: false,
-        primary: false,
-        literal: false,
+        kind: ColKind::Text,
     },
     Col {
         title: "seats",
         width: 7,
         right: true,
-        primary: false,
-        literal: false,
+        kind: ColKind::Text,
     },
     Col {
         title: "mrr",
         width: 7,
         right: true,
-        primary: false,
-        literal: false,
+        kind: ColKind::Text,
     },
     Col {
         title: "active",
         width: 8,
         right: false,
-        primary: false,
-        literal: true,
+        kind: ColKind::Literal,
     },
+    Col {
+        title: "renewed_at",
+        width: 12,
+        right: false,
+        kind: ColKind::Nullable,
+    },
+    Col {
+        title: "account_id",
+        width: 12,
+        right: true,
+        kind: ColKind::Link,
+    },
+    Col {
+        title: "notes",
+        width: 27,
+        right: false,
+        kind: ColKind::Json,
+    },
+];
+
+const SCHEMA: [(&str, &str); 9] = [
+    ("id", "Id · integer · primary key · not null · read-only"),
+    ("customer", "Text · text · not null"),
+    (
+        "plan",
+        "Enum · plan_tier · not null · one of free, pro, team, enterprise · ▾ picks from a fixed set",
+    ),
+    ("seats", "Number · integer · not null"),
+    ("mrr", "Number · numeric(10,2) · read-only"),
+    ("active", "Bool · boolean · not null"),
+    ("renewed_at", "Timestamp · date"),
+    ("account_id", "Number · integer · references accounts"),
+    ("notes", "Text · jsonb"),
 ];
 
 fn rgb(hex: u32) -> Color {
@@ -338,15 +379,29 @@ fn paint_blurb(ui: &mut Ui<'_>, body: Rect) {
     if body.width <= title_w.saturating_add(4) {
         return;
     }
+    let meta = Rect::new(
+        body.x.saturating_add(title_w).saturating_add(2),
+        body.y.saturating_sub(2),
+        body.width.saturating_sub(title_w).saturating_sub(3),
+        1,
+    );
+    let style = ink(MUTED, CANVAS);
+    if width(BLURB) <= meta.width {
+        ui.paint_str(meta, BLURB, style);
+        return;
+    }
+    if meta.width == 0 {
+        return;
+    }
+    let budget = Rect {
+        width: meta.width.saturating_sub(1),
+        ..meta
+    };
+    let used = ui.paint_str(budget, BLURB, style);
     ui.paint_str(
-        Rect::new(
-            body.x.saturating_add(title_w).saturating_add(2),
-            body.y.saturating_sub(2),
-            body.width.saturating_sub(title_w).saturating_sub(3),
-            1,
-        ),
-        BLURB,
-        ink(MUTED, CANVAS),
+        Rect::new(meta.x.saturating_add(used), meta.y, 1, 1),
+        "…",
+        style,
     );
 }
 
@@ -407,31 +462,33 @@ fn paint_section_strip(ui: &mut Ui<'_>, area: Rect) {
     );
 }
 
-fn paint_card_chrome(ui: &mut Ui<'_>, card: Rect, title: &str, meta: &str) {
+fn paint_card_chrome(ui: &mut Ui<'_>, card: Rect, title: &str, meta: &str, right_inset: u16) {
     ui.fill(card, ink(WHITE, SURFACE));
     if card.height == 0 || card.width < 4 {
         return;
     }
     let text_x = card.x.saturating_add(2);
-    let text_w = card.width.saturating_sub(4);
+    let text_w = card.width.saturating_sub(2).saturating_sub(right_inset);
     ui.paint_str(
         Rect::new(text_x, card.y, text_w, 1),
         title,
         ink(SECONDARY, SURFACE),
     );
-    if !meta.is_empty() {
+    if !meta.is_empty() && text_w > 0 {
         let meta_w = width(meta);
-        if meta_w < text_w {
+        let title_w = width(title);
+        let min_x = text_x.saturating_add(title_w.saturating_mul(2));
+        let fitted = text_w >= meta_w;
+        let right_x = text_x.saturating_add(text_w.saturating_sub(meta_w));
+        if fitted && right_x >= min_x {
             ui.paint_str(
-                Rect::new(
-                    text_x.saturating_add(text_w.saturating_sub(meta_w)),
-                    card.y,
-                    meta_w,
-                    1,
-                ),
+                Rect::new(right_x, card.y, meta_w, 1),
                 meta,
                 ink(FAINT, SURFACE),
             );
+        } else if min_x < text_x.saturating_add(text_w) {
+            let room = text_x.saturating_add(text_w).saturating_sub(min_x);
+            ui.paint_str(Rect::new(min_x, card.y, room, 1), meta, ink(FAINT, SURFACE));
         }
     }
     if card.height > 1 && text_w > 0 {
@@ -440,15 +497,6 @@ fn paint_card_chrome(ui: &mut Ui<'_>, card: Rect, title: &str, meta: &str) {
             &"─".repeat(usize::from(text_w)),
             ink(RULE, SURFACE),
         );
-    }
-}
-
-fn card_inner(card: Rect) -> Rect {
-    Rect {
-        x: card.x.saturating_add(2),
-        y: card.y.saturating_add(2),
-        width: card.width.saturating_sub(4),
-        height: card.height.saturating_sub(3),
     }
 }
 
@@ -470,7 +518,7 @@ fn paint_vertical_bar(ui: &mut Ui<'_>, area: Rect, rows: usize, viewport: u16, b
     }
 }
 
-fn paint_horizontal_bar(ui: &mut Ui<'_>, area: Rect, shown: usize, columns: usize) {
+fn paint_horizontal_bar(ui: &mut Ui<'_>, area: Rect, shown: usize, columns: usize, bg: u32) {
     if area.is_empty() {
         return;
     }
@@ -483,11 +531,7 @@ fn paint_horizontal_bar(ui: &mut Ui<'_>, area: Rect, shown: usize, columns: usiz
             area.y,
             1,
             if on { "━" } else { "┄" },
-            if on {
-                ink(THUMB, SURFACE)
-            } else {
-                ink(TRACK, SURFACE)
-            },
+            if on { ink(THUMB, bg) } else { ink(TRACK, bg) },
         );
     }
 }
@@ -524,24 +568,6 @@ fn content_height() -> u16 {
         .saturating_add(CARD_GAP.saturating_mul(3))
 }
 
-fn columns_fit(avail: u16) -> usize {
-    let mut used = 0u16;
-    let mut fit = 0usize;
-    for col in &GRID_COLS {
-        let need = if fit == 0 {
-            col.width
-        } else {
-            col.width.saturating_add(COL_GAP)
-        };
-        if used.saturating_add(need) > avail {
-            break;
-        }
-        used = used.saturating_add(need);
-        fit += 1;
-    }
-    fit
-}
-
 fn customer_name(index: usize) -> String {
     let suffix = if index >= NAMES.len() {
         format!(" {}", index / NAMES.len() + 1)
@@ -569,6 +595,23 @@ fn mrr_of(plan: &str, seats: u32) -> String {
     format!("{:.2}", rate * f64::from(seats))
 }
 
+fn renewed_at(index: usize) -> String {
+    if index % 4 == 3 {
+        return "NULL".to_owned();
+    }
+    let month = (index % 12) + 1;
+    let day = (index * 3) % 28 + 1;
+    format!("2026-{month:02}-{day:02}")
+}
+
+fn notes_of(index: usize, seats: u32) -> String {
+    if index % 4 == 0 {
+        format!("{{\"owner\":\"mira\",\"seats\":{seats}}}")
+    } else {
+        "NULL".to_owned()
+    }
+}
+
 fn cell_text(index: usize, col: usize) -> String {
     let plan = plan_of(index);
     let seats = seats_of(index);
@@ -578,60 +621,196 @@ fn cell_text(index: usize, col: usize) -> String {
         2 => plan.to_owned(),
         3 => seats.to_string(),
         4 => mrr_of(plan, seats),
-        _ => (index % 5 != 3).to_string(),
+        5 => (index % 5 != 3).to_string(),
+        6 => renewed_at(index),
+        7 => (201 + (index % 4)).to_string(),
+        _ => notes_of(index, seats),
     }
 }
 
-fn cell_color(col: &Col) -> u32 {
-    if col.literal {
-        LITERAL
-    } else if col.primary {
-        SECONDARY
+fn cell_style(col: &Col, text: &str) -> PaintStyle {
+    let (fg, italic) = match col.kind {
+        ColKind::Primary => (SECONDARY, false),
+        ColKind::Literal => (LITERAL, true),
+        ColKind::Nullable | ColKind::Json if text == "NULL" => (LITERAL, true),
+        ColKind::Json => (STRING, false),
+        ColKind::Text | ColKind::Link | ColKind::Nullable => (WHITE, false),
+    };
+    let mut style = ink(fg, SURFACE);
+    if italic {
+        style = style.add_modifier(Modifier::ITALIC);
+    }
+    style
+}
+
+struct ColBudget {
+    cols_w: u16,
+    complete: usize,
+    preview: u16,
+}
+
+fn column_budget(cols_w: u16, preview_min: u16) -> ColBudget {
+    let mut used = 0u16;
+    let mut complete = 0usize;
+    for col in &GRID_COLS {
+        let need = if complete == 0 {
+            col.width
+        } else {
+            col.width.saturating_add(COL_GAP)
+        };
+        if used.saturating_add(need) > cols_w {
+            break;
+        }
+        used = used.saturating_add(need);
+        complete += 1;
+    }
+    let preview = if complete < GRID_COLS.len() {
+        let gap = u16::from(complete > 0).saturating_mul(COL_GAP);
+        let rest = cols_w.saturating_sub(used).saturating_sub(gap);
+        if rest >= preview_min { rest } else { 0 }
     } else {
-        WHITE
+        0
+    };
+    ColBudget {
+        cols_w,
+        complete,
+        preview,
     }
 }
 
-fn paint_grid_header(ui: &mut Ui<'_>, inner: Rect, cols_w: u16, shown: usize) {
-    let mut x = inner.x.saturating_add(GUTTER_W);
-    for col in GRID_COLS.iter().take(shown) {
-        let title = if col.primary {
+fn paint_clipped(
+    ui: &mut Ui<'_>,
+    x: u16,
+    y: u16,
+    columns: u16,
+    text: &str,
+    style: PaintStyle,
+    ellipsis: bool,
+) {
+    if columns == 0 {
+        return;
+    }
+    if width(text) <= columns {
+        paint_at(ui, x, y, columns, &fit(text, columns, false), style);
+        return;
+    }
+    if ellipsis {
+        paint_at(ui, x, y, columns, &termrock::truncate(text, columns), style);
+        return;
+    }
+    ui.paint_str(Rect::new(x, y, columns, 1), text, style);
+}
+
+fn paint_column(
+    ui: &mut Ui<'_>,
+    x: u16,
+    y: u16,
+    col: &Col,
+    text: &str,
+    columns: u16,
+    ellipsis: bool,
+    keep: Option<f32>,
+) {
+    if col.kind == ColKind::Link {
+        let num_w = columns.saturating_sub(2);
+        let style = ink(faded(WHITE, SURFACE, keep), SURFACE);
+        paint_at(ui, x, y, num_w, &fit(text, num_w, true), style);
+        if columns > 0 {
+            paint_at(
+                ui,
+                x.saturating_add(columns).saturating_sub(1),
+                y,
+                1,
+                "→",
+                ink(faded(MUTED, SURFACE, keep), SURFACE),
+            );
+        }
+        return;
+    }
+    let base = cell_style(col, text);
+    let style = ink(faded(color_of(base), SURFACE, keep), SURFACE);
+    let style = if base.as_style().add_modifier.contains(Modifier::ITALIC) {
+        style.add_modifier(Modifier::ITALIC)
+    } else {
+        style
+    };
+    if col.right && width(text) <= columns {
+        paint_at(ui, x, y, columns, &fit(text, columns, true), style);
+        return;
+    }
+    paint_clipped(ui, x, y, columns, text, style, ellipsis);
+}
+
+fn color_of(style: PaintStyle) -> u32 {
+    match style.as_style().fg {
+        Some(termrock::Color::Rgb(r, g, b)) => {
+            (u32::from(r) << 16) | (u32::from(g) << 8) | u32::from(b)
+        }
+        _ => WHITE,
+    }
+}
+
+fn paint_grid_header(ui: &mut Ui<'_>, origin_x: u16, y: u16, budget: &ColBudget, badge: bool) {
+    let mut x = origin_x;
+    for col in GRID_COLS.iter().take(budget.complete) {
+        let title = if col.kind == ColKind::Primary {
             format!("  {}", col.title)
         } else {
             col.title.to_owned()
         };
-        paint_at(
-            ui,
-            x,
-            inner.y,
-            col.width,
-            &fit(&title, col.width, col.right),
-            ink(MUTED, SURFACE),
-        );
-        if col.primary {
-            paint_at(ui, x, inner.y, 1, "⚷", ink(FAINT, SURFACE));
+        if col.right {
+            paint_at(
+                ui,
+                x,
+                y,
+                col.width,
+                &fit(&title, col.width, true),
+                ink(MUTED, SURFACE),
+            );
+        } else {
+            paint_clipped(ui, x, y, col.width, &title, ink(MUTED, SURFACE), false);
+        }
+        if col.kind == ColKind::Primary {
+            paint_at(ui, x, y, 1, "⚷", ink(FAINT, SURFACE));
         }
         x = x.saturating_add(col.width).saturating_add(COL_GAP);
     }
-    let hidden = ALL_COLS.saturating_sub(shown);
-    if hidden > 0 {
-        let badge = format!("{hidden}›");
-        paint_at(
+    if budget.preview > 0
+        && let Some(col) = GRID_COLS.get(budget.complete)
+    {
+        paint_clipped(
             ui,
-            inner
-                .x
-                .saturating_add(GUTTER_W)
-                .saturating_add(cols_w)
-                .saturating_add(1),
-            inner.y,
-            width(&badge),
-            &badge,
-            ink(SECONDARY, SURFACE),
+            x,
+            y,
+            budget.preview,
+            col.title,
+            ink(MUTED, SURFACE),
+            budget.preview >= PREVIEW_MIN,
         );
+    }
+    if badge {
+        let hidden = ALL_COLS.saturating_sub(budget.complete);
+        if hidden > 0 {
+            let label = format!("{hidden}›");
+            paint_at(
+                ui,
+                origin_x.saturating_add(budget.cols_w).saturating_add(1),
+                y,
+                width(&label),
+                &label,
+                ink(SECONDARY, SURFACE),
+            );
+        }
     }
 }
 
-fn paint_grid_row(ui: &mut Ui<'_>, area: Rect, index: usize, shown: usize, keep: Option<f32>) {
+fn paint_grid_row(
+    ui: &mut Ui<'_>,
+    area: Rect,
+    index: usize,
+    budget: &ColBudget,
+    keep: Option<f32>,
+) {
     if area.is_empty() {
         return;
     }
@@ -653,94 +832,137 @@ fn paint_grid_row(ui: &mut Ui<'_>, area: Rect, index: usize, shown: usize, keep:
         ink(faded(FAINT, SURFACE, keep), SURFACE),
     );
     let mut x = area.x.saturating_add(GUTTER_W);
-    for (col_index, col) in GRID_COLS.iter().take(shown).enumerate() {
-        let mut style = ink(faded(cell_color(col), SURFACE, keep), SURFACE);
-        if col.literal {
-            style = style.add_modifier(Modifier::ITALIC);
-        }
-        paint_at(
+    for (col_index, col) in GRID_COLS.iter().take(budget.complete).enumerate() {
+        paint_column(
             ui,
             x,
             area.y,
+            col,
+            &cell_text(index, col_index),
             col.width,
-            &fit(&cell_text(index, col_index), col.width, col.right),
-            style,
+            true,
+            keep,
         );
         x = x.saturating_add(col.width).saturating_add(COL_GAP);
     }
+    if budget.preview > 0
+        && let Some(col) = GRID_COLS.get(budget.complete)
+    {
+        paint_column(
+            ui,
+            x,
+            area.y,
+            col,
+            &cell_text(index, budget.complete),
+            budget.preview,
+            budget.preview >= PREVIEW_MIN,
+            keep,
+        );
+    }
 }
 
-fn paint_customers(ui: &mut Ui<'_>, card: Rect) {
-    let inner_probe = card_inner(card);
-    let has_room =
-        inner_probe.height > 2 && inner_probe.width > GUTTER_W.saturating_add(COL_RESERVE);
-    let mut cols_w = inner_probe
-        .width
-        .saturating_sub(GUTTER_W)
-        .saturating_sub(COL_RESERVE)
-        .saturating_sub(1);
-    let mut shown = columns_fit(cols_w);
-    let has_sb = has_room && CONTENT_ROWS > usize::from(inner_probe.height.saturating_sub(2));
-    if !has_sb {
-        cols_w = inner_probe
-            .width
+fn paint_customers(ui: &mut Ui<'_>, card: Rect, wide: bool, inside_bar: bool) {
+    let right_inset = u16::from(wide).saturating_mul(2);
+    let cols_w = if wide {
+        card.width
+            .saturating_sub(4)
             .saturating_sub(GUTTER_W)
-            .saturating_sub(COL_RESERVE);
-        shown = columns_fit(cols_w);
-    }
-    let body_rows = inner_probe.height.saturating_sub(2);
-    let shown_rows = usize::from(body_rows).min(LOADED);
+            .saturating_sub(COL_RESERVE)
+            .saturating_sub(1)
+    } else {
+        card.width.saturating_sub(2).saturating_sub(GUTTER_W)
+    };
+    let preview_min = if wide { PREVIEW_MIN } else { 1 };
+    let budget = column_budget(cols_w, preview_min);
     let meta = format!(
-        "rows 1–{shown_rows} of {LOADED} loaded · ~4,812 total · cols 1–{shown} of {ALL_COLS}"
+        "rows 1–{SHOWN_ROWS} of {LOADED} loaded · ~4,812 total · cols 1–{} of {ALL_COLS}",
+        budget.complete
     );
-    paint_card_chrome(ui, card, "customers", &meta);
-    let inner = card_inner(card);
-    if inner.height < 2 || shown == 0 {
+    paint_card_chrome(ui, card, "customers", &meta, right_inset);
+    if card.height < 4 || budget.complete == 0 {
         return;
     }
-    paint_grid_header(ui, inner, cols_w, shown);
-    let row_w = inner.width.saturating_sub(u16::from(has_sb));
-    for index in 0..usize::from(body_rows).min(LOADED) {
-        let y = inner
-            .y
+    let origin_x = card.x.saturating_add(2).saturating_add(GUTTER_W);
+    let header_y = card.y.saturating_add(2);
+    paint_grid_header(ui, origin_x, header_y, &budget, wide);
+    let data_rows = if wide && inside_bar {
+        usize::from(card.height.saturating_sub(5)).min(LOADED)
+    } else {
+        usize::from(card.height.saturating_sub(3)).min(LOADED)
+    };
+    let row_w = if wide {
+        card.width.saturating_sub(4).saturating_sub(1)
+    } else {
+        card.width.saturating_sub(2)
+    };
+    for index in 0..data_rows {
+        let y = header_y
             .saturating_add(1)
             .saturating_add(u16::try_from(index).unwrap_or(u16::MAX));
         paint_grid_row(
             ui,
-            Rect::new(inner.x, y, row_w, 1),
+            Rect::new(card.x.saturating_add(2), y, row_w, 1),
             index,
-            shown,
-            row_fade(index, usize::from(body_rows)),
+            &budget,
+            row_fade(index, SHOWN_ROWS),
         );
     }
-    if has_sb && body_rows > 0 {
+    if wide && data_rows > 0 {
+        let inner_right = card.x.saturating_add(card.width).saturating_sub(2);
         paint_vertical_bar(
             ui,
             Rect::new(
-                inner.right().saturating_sub(1),
-                inner.y.saturating_add(1),
+                inner_right.saturating_sub(1),
+                header_y.saturating_add(1),
                 1,
-                body_rows,
+                u16::try_from(data_rows).unwrap_or(u16::MAX),
             ),
             CONTENT_ROWS,
-            body_rows,
+            u16::try_from(data_rows).unwrap_or(u16::MAX),
             SURFACE,
         );
     }
-    if shown < ALL_COLS && body_rows > 0 {
-        let x = inner.x.saturating_add(GUTTER_W);
-        let right = inner.right().saturating_sub(u16::from(has_sb));
+    if inside_bar && budget.complete < ALL_COLS && data_rows > 0 {
+        let x = origin_x;
+        let bar_w = cols_w.saturating_add(COL_RESERVE);
         paint_horizontal_bar(
             ui,
             Rect::new(
                 x,
-                inner.y.saturating_add(1).saturating_add(body_rows),
-                right.saturating_sub(x),
+                header_y
+                    .saturating_add(1)
+                    .saturating_add(u16::try_from(data_rows).unwrap_or(u16::MAX)),
+                bar_w,
                 1,
             ),
-            shown,
+            budget.complete,
             ALL_COLS,
+            SURFACE,
         );
+    }
+}
+
+fn paint_schema(ui: &mut Ui<'_>, card: Rect) {
+    paint_card_chrome(ui, card, "Schema", "", 2);
+    if card.height < 3 {
+        return;
+    }
+    let x = card.x.saturating_add(2);
+    let label_w = 12u16;
+    let value_x = x.saturating_add(label_w);
+    let value_w = card.width.saturating_sub(4).saturating_sub(label_w);
+    for (index, (label, value)) in SCHEMA.iter().enumerate() {
+        let Ok(offset) = u16::try_from(index) else {
+            break;
+        };
+        let y = card.y.saturating_add(2).saturating_add(offset);
+        if y >= card.bottom() {
+            break;
+        }
+        paint_at(ui, x, y, label_w, label, ink(MUTED, SURFACE));
+        if value_w > 0 {
+            paint_clipped(ui, value_x, y, value_w, value, ink(WHITE, SURFACE), true);
+        }
     }
 }
 
@@ -782,6 +1004,7 @@ fn paint_playground(ui: &mut Ui<'_>, area: Rect) {
     }
     let content_h = content_height();
     let overflows = area.width > SCROLL_ROOM && content_h > area.height;
+    let wide = area.width >= WIDE_GRID;
     let view = if overflows {
         Rect {
             width: area.width.saturating_sub(SCROLL_ROOM),
@@ -790,9 +1013,30 @@ fn paint_playground(ui: &mut Ui<'_>, area: Rect) {
     } else {
         area
     };
-    let card_h = GRID_H.min(view.height);
+    let narrow_bar = overflows && !wide && view.height > 1;
+    let card_h = if narrow_bar {
+        view.height.saturating_sub(1)
+    } else {
+        GRID_H.min(view.height)
+    };
+    let inside_bar = wide && card_h >= GRID_H;
     if card_h > 0 {
-        paint_customers(ui, Rect::new(view.x, view.y, view.width, card_h));
+        paint_customers(
+            ui,
+            Rect::new(view.x, view.y, view.width, card_h),
+            wide,
+            inside_bar,
+        );
+    }
+    if narrow_bar && card_h > 0 {
+        let track = view.width.saturating_add(1);
+        paint_horizontal_bar(
+            ui,
+            Rect::new(view.x, view.y.saturating_add(card_h), track, 1),
+            usize::from(view.width),
+            usize::from(NARROW_TRACK),
+            CANVAS,
+        );
     }
     let legend_y = view.y.saturating_add(GRID_H).saturating_add(CARD_GAP);
     if legend_y < view.bottom() {
@@ -806,10 +1050,27 @@ fn paint_playground(ui: &mut Ui<'_>, area: Rect) {
             ),
         );
     }
+    let schema_y = legend_y.saturating_add(LEGEND_H).saturating_add(CARD_GAP);
+    if schema_y < view.bottom() {
+        paint_schema(
+            ui,
+            Rect::new(
+                view.x,
+                schema_y,
+                view.width,
+                view.bottom().saturating_sub(schema_y).min(SCHEMA_H),
+            ),
+        );
+    }
     if overflows {
+        let bar_h = if narrow_bar {
+            area.height.saturating_sub(1)
+        } else {
+            area.height
+        };
         paint_page_scrollbar(
             ui,
-            Rect::new(area.right().saturating_sub(1), area.y, 1, area.height),
+            Rect::new(area.right().saturating_sub(1), area.y, 1, bar_h),
             content_h,
         );
     }
