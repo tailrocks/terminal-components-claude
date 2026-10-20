@@ -361,6 +361,15 @@ fn paint_filters(ui: &mut Ui<'_>, view: Rect, card: Rect, last: &str) {
         paint_chip(ui, view, x, y, &chip);
         x = x.saturating_add(chip_width(&chip)).saturating_add(1);
     }
+    let add = "+ Add filter";
+    let add_w = width(add).saturating_add(2);
+    let inner_right = card.x.saturating_add(card.width).saturating_sub(CARD_PAD);
+    if x.saturating_add(add_w) <= inner_right {
+        let body = ink(SECONDARY, SURFACE);
+        fill_in(ui, view, Rect::new(x, y, add_w, 1), body);
+        paint_in(ui, view, x, y, " ", ink(SURFACE, SURFACE));
+        paint_in(ui, view, x.saturating_add(1), y, add, body);
+    }
     paint_in(
         ui,
         view,
@@ -426,10 +435,9 @@ fn paint_field(
         value,
         ink(value_fg, FIELD_BG),
     );
-    if !disabled {
-        let chevron = field.right().saturating_sub(2);
-        paint_in(ui, view, chevron, field.y, "▾", ink(SECONDARY, FIELD_BG));
-    }
+    let chevron = field.right().saturating_sub(2);
+    let chevron_fg = if disabled { DISABLED } else { SECONDARY };
+    paint_in(ui, view, chevron, field.y, "▾", ink(chevron_fg, FIELD_BG));
     if cell.height >= 3 && !help.is_empty() {
         paint_in(
             ui,
@@ -649,8 +657,157 @@ fn paint_strip(ui: &mut Ui<'_>, view: Rect, card: Rect) {
     );
 }
 
-fn place(origin: Rect, y: u16, height: u16) -> Rect {
-    Rect::new(origin.x, origin.y.saturating_add(y), CONTENT_W, height)
+fn place(origin: Rect, y: u16, height: u16, width: u16) -> Rect {
+    Rect::new(origin.x, origin.y.saturating_add(y), width, height)
+}
+
+fn wrap_words(text: &str, columns: usize) -> Vec<String> {
+    let columns = columns.max(1);
+    let mut lines = Vec::new();
+    let mut line = String::new();
+    let mut line_w = 0u16;
+    for word in text.split_whitespace() {
+        let word_w = width(word);
+        if line.is_empty() {
+            line = word.to_owned();
+            line_w = word_w;
+            continue;
+        }
+        if usize::from(line_w.saturating_add(1).saturating_add(word_w)) <= columns {
+            line.push(' ');
+            line.push_str(word);
+            line_w = line_w.saturating_add(1).saturating_add(word_w);
+        } else {
+            lines.push(std::mem::take(&mut line));
+            line = word.to_owned();
+            line_w = word_w;
+        }
+    }
+    if !line.is_empty() {
+        lines.push(line);
+    }
+    lines
+}
+
+fn pair_widths(total: u16) -> (u16, u16) {
+    let share = total.saturating_sub(2) / 2;
+    let right = total.saturating_sub(2).saturating_sub(share);
+    (share, right)
+}
+
+fn paint_centered(ui: &mut Ui<'_>, view: Rect, area: Rect, y: u16, text: &str, style: PaintStyle) {
+    let text_w = width(text);
+    let x = area.x.saturating_add(area.width.saturating_sub(text_w) / 2);
+    paint_in(ui, view, x, y, text, style);
+}
+
+fn paint_props(ui: &mut Ui<'_>, view: Rect, card: Rect) {
+    paint_card(ui, view, card, "Properties", "");
+    let content_x = card.x.saturating_add(CARD_PAD);
+    let mut y = card.y.saturating_add(2);
+    let content_w = card.width.saturating_sub(CARD_PAD.saturating_mul(2));
+    if content_w == 0 {
+        return;
+    }
+    let labels = ["Engine", "Host", "Environment", "Safe Mode", "Last used"];
+    let mut label_w = 2u16;
+    for label in labels {
+        label_w = label_w.max(width(label).saturating_add(2));
+    }
+    let value_columns = usize::from(content_w.saturating_sub(label_w)).max(4);
+    let facts = [
+        ("Engine", "PostgreSQL 16.3", false, false),
+        ("Host", "prod-db-1.acme.io:5432", false, false),
+        ("Environment", "production", false, false),
+        (
+            "Safe Mode",
+            "Writes ask for confirmation and a deliberate acknowledgement.",
+            true,
+            false,
+        ),
+        ("Last used", "1 hour ago", false, true),
+    ];
+    for (label, value, wraps, muted) in facts {
+        let value_fg = if muted { MUTED } else { WHITE };
+        let lines = if wraps {
+            wrap_words(value, value_columns)
+        } else {
+            vec![value.to_owned()]
+        };
+        for (index, line) in lines.iter().enumerate() {
+            if index == 0 {
+                paint_in(ui, view, content_x, y, label, ink(MUTED, SURFACE));
+            }
+            paint_in(
+                ui,
+                view,
+                content_x.saturating_add(label_w),
+                y,
+                line,
+                ink(value_fg, SURFACE),
+            );
+            y = y.saturating_add(1);
+        }
+    }
+}
+
+fn paint_empty(ui: &mut Ui<'_>, view: Rect, card: Rect) {
+    paint_card(ui, view, card, "Empty state", "");
+    let content = Rect::new(
+        card.x.saturating_add(CARD_PAD),
+        card.y.saturating_add(2),
+        card.width.saturating_sub(CARD_PAD.saturating_mul(2)),
+        card.height.saturating_sub(3),
+    );
+    if content.is_empty() {
+        return;
+    }
+    let title = "No results yet";
+    let hint = "A title and one hint, centred in whatever is left";
+    let hints = wrap_words(hint, usize::from(content.width.saturating_sub(4).max(8)));
+    let total = 1u16.saturating_add(hints.len() as u16).saturating_add(1);
+    let y0 = content
+        .y
+        .saturating_add(content.height.saturating_sub(total) / 2);
+    paint_centered(ui, view, content, y0, title, ink(MUTED, SURFACE));
+    for (index, line) in hints.iter().enumerate() {
+        paint_centered(
+            ui,
+            view,
+            content,
+            y0.saturating_add(2).saturating_add(index as u16),
+            line,
+            ink(FAINT, SURFACE),
+        );
+    }
+}
+
+fn paint_blurb(ui: &mut Ui<'_>, area: Rect) {
+    let title_w = width("Chips & selects");
+    if area.width <= title_w.saturating_add(4) {
+        return;
+    }
+    let meta = Rect::new(
+        area.x.saturating_add(title_w).saturating_add(2),
+        area.y,
+        area.width.saturating_sub(title_w).saturating_sub(3),
+        1,
+    );
+    let style = ink(MUTED, CANVAS);
+    if width(BLURB) <= meta.width {
+        ui.paint_str(meta, BLURB, style);
+        return;
+    }
+    let budget = Rect {
+        width: meta.width.saturating_sub(1),
+        ..meta
+    };
+    let used = ui.paint_str(budget, BLURB, style);
+    ui.paint_str(
+        Rect::new(meta.x.saturating_add(used), meta.y, 1, 1),
+        "…",
+        style,
+    );
 }
 
 fn paint_playground(ui: &mut Ui<'_>, area: Rect, last: &str) {
@@ -659,10 +816,29 @@ fn paint_playground(ui: &mut Ui<'_>, area: Rect, last: &str) {
     }
     let split = scroll_split(area);
     let view = split.view;
-    paint_filters(ui, view, place(view, 0, 6), last);
-    paint_streams(ui, view, place(view, 7, 5));
-    paint_selects(ui, view, place(view, 13, 8));
-    paint_strip(ui, view, place(view, 22, 7));
+    let card_w = if split.horizontal {
+        CONTENT_W
+    } else {
+        view.width.max(CONTENT_W)
+    };
+    paint_filters(ui, view, place(view, 0, 6, card_w), last);
+    paint_streams(ui, view, place(view, 7, 5, card_w));
+    paint_selects(ui, view, place(view, 13, 8, card_w));
+    paint_strip(ui, view, place(view, 22, 7, card_w));
+    let (left_w, right_w) = pair_widths(card_w);
+    paint_props(ui, view, place(view, 30, 9, left_w));
+    if right_w > 0 {
+        paint_empty(
+            ui,
+            view,
+            Rect::new(
+                view.x.saturating_add(left_w).saturating_add(2),
+                view.y.saturating_add(30),
+                right_w,
+                9,
+            ),
+        );
+    }
     paint_scrollbars(ui, area, &split);
 }
 
@@ -724,19 +900,7 @@ impl Page for ChipsPage {
             self.title(),
             bold(WHITE, CANVAS),
         );
-        let title_w = width(self.title());
-        if area.width > title_w.saturating_add(4) {
-            ui.paint_str(
-                Rect::new(
-                    area.x.saturating_add(title_w).saturating_add(2),
-                    area.y,
-                    area.width.saturating_sub(title_w).saturating_sub(3),
-                    1,
-                ),
-                BLURB,
-                ink(MUTED, CANVAS),
-            );
-        }
+        paint_blurb(ui, area);
         if area.height < 3 {
             return;
         }
@@ -786,5 +950,56 @@ impl Page for ChipsPage {
         } else {
             &[]
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{ChipsPage, Page};
+    use termrock::{App, Color, Cx, Response, Theme, Ui};
+    use termrock_test_support::Harness;
+
+    struct Host;
+
+    impl App for Host {
+        fn update(&mut self, _cx: &mut Cx<'_>) -> Response<()> {
+            Response::ignored()
+        }
+
+        fn draw(&self, ui: &mut Ui<'_>) {
+            ChipsPage::new().draw(ui, ui.full());
+        }
+    }
+
+    #[test]
+    fn narrow_blurb_ends_on_the_ellipsis() {
+        let h = Harness::new(Host, Theme::junie(), 51, 6);
+        assert_eq!(h.cell(48, 0).symbol(), ",");
+        assert_eq!(h.cell(49, 0).symbol(), "…");
+        assert_eq!(h.cell(49, 0).fg, Color::Rgb(0x8a, 0x8a, 0x8a));
+        assert_eq!(h.cell(49, 0).bg, Color::Rgb(0, 0, 0));
+        assert_eq!(h.cell(50, 0).symbol(), " ");
+    }
+
+    #[test]
+    fn wide_playground_shows_the_lower_cards_and_add_stop() {
+        let h = Harness::new(Host, Theme::junie(), 134, 46);
+        let text = h.text();
+        assert!(text.contains("+ Add filter"), "{text}");
+        assert!(text.contains("3 active"), "{text}");
+        assert!(text.contains("Properties"), "{text}");
+        assert!(text.contains("Empty state"), "{text}");
+        assert!(text.contains("No results yet"), "{text}");
+        assert!(text.contains("acknowledgement."), "{text}");
+        let (x, y) = h.find("No results yet").expect("empty title");
+        assert_eq!(h.cell(x, y).fg, Color::Rgb(0x8a, 0x8a, 0x8a));
+        assert_eq!(h.cell(x, y).bg, Color::Rgb(0x11, 0x11, 0x11));
+        let (px, py) = h.find("PostgreSQL").expect("engine value");
+        let chevron = (px..134)
+            .map(|x| h.cell(x, py))
+            .find(|cell| cell.symbol() == "▾");
+        let chevron = chevron.expect("disabled chevron");
+        assert_eq!(chevron.fg, Color::Rgb(0x4d, 0x4d, 0x4d));
+        assert_eq!(chevron.bg, Color::Rgb(0x1e, 0x1e, 0x22));
     }
 }
