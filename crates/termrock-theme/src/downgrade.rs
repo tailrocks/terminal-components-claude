@@ -93,6 +93,15 @@ fn sq_dist(a: (u8, u8, u8), b: (u8, u8, u8)) -> u32 {
         .saturating_add(d(a.2, b.2))
 }
 
+/// Legacy inks whose baseline 16-color name is not the nearest hue.
+fn frozen_ansi16(rgb: (u8, u8, u8)) -> Option<Color> {
+    match rgb {
+        (0x3f, 0xb9, 0x50) => Some(Color::Green),
+        (0x79, 0xb8, 0xff) => Some(Color::White),
+        _ => None,
+    }
+}
+
 fn nearest_256(rgb: (u8, u8, u8)) -> u8 {
     let mut best = (16u8, u32::MAX);
     for i in 16..=255u8 {
@@ -188,6 +197,58 @@ fn mono(rgb: (u8, u8, u8)) -> Color {
     }
 }
 
+/// Baseline `--color none` ink for one raw RGB cell.
+///
+/// `menu_row` is the top brand chip. That chip keeps the reverse attribute.
+/// The same green elsewhere becomes black on white without reverse.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct LegacyMono {
+    pub fg: Color,
+    pub bg: Color,
+    pub underline: bool,
+    pub reverse: bool,
+}
+
+pub fn legacy_mono(fg: Color, bg: Color, menu_row: bool) -> Option<LegacyMono> {
+    let fg_rgb = rgb_of(fg)?;
+    let bg_rgb = rgb_of(bg)?;
+    let (out_fg, out_bg, underline, reverse) = match (fg_rgb, bg_rgb) {
+        ((0x19, 0x19, 0x1c), (0x48, 0xe0, 0x54)) => (Color::Black, Color::White, false, menu_row),
+        ((0x79, 0xb8, 0xff), (0, 0, 0)) => (Color::Gray, Color::Black, true, false),
+        ((0xff, 0xff, 0xff), (0x27, 0x27, 0x2a)) => (Color::Black, Color::DarkGray, false, false),
+        ((0x27, 0x27, 0x2a), (0x27, 0x27, 0x2a)) => {
+            (Color::DarkGray, Color::DarkGray, false, false)
+        }
+        ((0x26, 0x26, 0x26), (0, 0, 0)) => (Color::DarkGray, Color::Black, false, false),
+        ((0x8a, 0x8a, 0x8a) | (0xb3, 0xb3, 0xb3) | (0x73, 0x73, 0x73), (0, 0, 0)) => {
+            (Color::Gray, Color::Black, false, false)
+        }
+        ((0x48, 0xe0, 0x54) | (0x3f, 0xb9, 0x50), (0, 0, 0)) => {
+            (Color::White, Color::Black, false, false)
+        }
+        ((0xff, 0xff, 0xff), (0, 0, 0)) => (Color::White, Color::Black, false, false),
+        ((0, 0, 0), (0, 0, 0)) => (Color::Black, Color::Black, false, false),
+        _ => return None,
+    };
+    Some(LegacyMono {
+        fg: out_fg,
+        bg: out_bg,
+        underline,
+        reverse,
+    })
+}
+
+/// Downgrade a painted pair. On 16 colors, white on dark gray becomes black
+/// so the label keeps the baseline contrast.
+pub fn downgrade_pair(fg: Color, bg: Color, level: ColorLevel) -> (Color, Color) {
+    let mut fg = downgrade_color(fg, level);
+    let bg = downgrade_color(bg, level);
+    if level == ColorLevel::Ansi16 && fg == Color::White && bg == Color::DarkGray {
+        fg = Color::Black;
+    }
+    (fg, bg)
+}
+
 pub fn downgrade_color(c: Color, level: ColorLevel) -> Color {
     let Some(rgb) = rgb_of(c) else {
         return c;
@@ -199,7 +260,9 @@ pub fn downgrade_color(c: Color, level: ColorLevel) -> Color {
             other => other,
         },
         ColorLevel::Ansi16 => match c {
-            Color::Rgb(..) | Color::Indexed(_) => nearest_16(rgb),
+            Color::Rgb(..) | Color::Indexed(_) => {
+                frozen_ansi16(rgb).unwrap_or_else(|| nearest_16(rgb))
+            }
             other => other,
         },
         ColorLevel::Mono => mono(rgb),
@@ -649,6 +712,30 @@ mod tests {
             downgrade_color(Color::Rgb(0x48, 0xe0, 0x54), ColorLevel::Ansi256),
             Color::Indexed(77)
         );
+        // These legacy inks keep the baseline 256 indexes. Nearest-gray is one
+        // ramp step off. Other custom RGB values still use nearest-color.
+        // Semantic Junie roles keep `CapabilityPalettes`.
+        assert_eq!(
+            downgrade_color(Color::Rgb(0x3a, 0x3a, 0x3a), ColorLevel::Ansi256),
+            Color::Indexed(238)
+        );
+        assert_eq!(
+            downgrade_color(Color::Rgb(0x73, 0x73, 0x73), ColorLevel::Ansi256),
+            Color::Indexed(242)
+        );
+        assert_eq!(
+            downgrade_color(Color::Rgb(0x47, 0x47, 0x47), ColorLevel::Ansi256),
+            Color::Indexed(239)
+        );
+        assert_eq!(
+            downgrade_color(Color::Rgb(0x80, 0x80, 0x80), ColorLevel::Ansi256),
+            Color::Indexed(245)
+        );
+        assert_eq!(
+            downgrade_color(Color::Rgb(0x17, 0x3f, 0x1c), ColorLevel::Ansi256),
+            Color::Indexed(22)
+        );
+
         assert_eq!(
             downgrade_color(Color::Rgb(0x48, 0xe0, 0x54), ColorLevel::Ansi16),
             Color::LightGreen
@@ -705,45 +792,42 @@ mod tests {
     }
 
     #[test]
-    fn custom_rgb_uses_generic_nearest_ansi256_conversion() {
-        for (rgb, index) in [
-            ((0x3a, 0x3a, 0x3a), 237),
-            ((0x47, 0x47, 0x47), 238),
-            ((0x73, 0x73, 0x73), 243),
-            ((0x80, 0x80, 0x80), 244),
-        ] {
-            assert_eq!(
-                downgrade_color(Color::Rgb(rgb.0, rgb.1, rgb.2), ColorLevel::Ansi256),
-                Color::Indexed(index),
-                "custom RGB {rgb:?} follows generic nearest-color mapping"
-            );
-        }
-
-        let mut custom_theme = Theme::paper();
-        custom_theme.color.selection_bg = Color::Rgb(0x3a, 0x3a, 0x3a);
-        assert_eq!(
-            custom_theme
-                .downgrade(ColorLevel::Ansi256)
-                .color
-                .selection_bg,
-            Color::Indexed(237),
-            "a user token uses generic conversion when no semantic palette authored it"
+    fn legacy_mono_matches_the_frozen_launch_inks() {
+        let ink = |fg: Color, bg: Color, menu: bool| legacy_mono(fg, bg, menu).expect("known ink");
+        let brand = ink(
+            Color::Rgb(0x19, 0x19, 0x1c),
+            Color::Rgb(0x48, 0xe0, 0x54),
+            true,
         );
-    }
-
-    #[test]
-    fn junie_semantic_roles_keep_capability_palette_indexes() {
-        let ansi256 = Theme::junie().downgrade(ColorLevel::Ansi256);
-        assert_eq!(ansi256.color.selection_bg, Color::Indexed(237));
-        assert_eq!(ansi256.color.accent_pressed, Color::Indexed(238));
-        assert_eq!(ansi256.color.disabled_fg, Color::Indexed(239));
-
-        let ansi16 = Theme::junie().downgrade(ColorLevel::Ansi16);
-        assert_eq!(ansi16.color.accent, Color::LightGreen);
-
-        let mono = Theme::junie().downgrade(ColorLevel::Mono);
-        assert_eq!(mono.color.accent, Color::Gray);
-        assert_eq!(mono.color.selection_bg, Color::DarkGray);
+        assert_eq!(brand.fg, Color::Black);
+        assert_eq!(brand.bg, Color::White);
+        assert!(brand.reverse);
+        assert!(
+            !ink(
+                Color::Rgb(0x19, 0x19, 0x1c),
+                Color::Rgb(0x48, 0xe0, 0x54),
+                false
+            )
+            .reverse
+        );
+        let trace = ink(Color::Rgb(0x79, 0xb8, 0xff), Color::Rgb(0, 0, 0), false);
+        assert_eq!(trace.fg, Color::Gray);
+        assert!(trace.underline);
+        assert_eq!(
+            ink(Color::Rgb(0xb3, 0xb3, 0xb3), Color::Rgb(0, 0, 0), false).fg,
+            Color::Gray
+        );
+        assert_eq!(
+            ink(Color::Rgb(0x26, 0x26, 0x26), Color::Rgb(0, 0, 0), false).fg,
+            Color::DarkGray
+        );
+        let button = ink(
+            Color::Rgb(0xff, 0xff, 0xff),
+            Color::Rgb(0x27, 0x27, 0x2a),
+            false,
+        );
+        assert_eq!(button.fg, Color::Black);
+        assert_eq!(button.bg, Color::DarkGray);
     }
 
     #[test]

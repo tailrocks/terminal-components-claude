@@ -52,9 +52,15 @@ EXECUTABLE_COHORT_VERSION = 1
 DIAGNOSTIC_COHORT_STATUS = "reproduced-diagnostic-not-reference-approved"
 CAPTURE_ELIGIBLE_COHORT_STATUS = "reviewed-capture-eligible"
 COHORT_REVIEWS = Path("tools/frozen_cli_build_cohort_reviews.json")
-COHORT_REVIEWS_SHA256 = "18d497515fb2a1b68e85d9672d2236ff4d143b578c3e3e4f428cefcc6e21454d"
+COHORT_REVIEWS_SHA256 = "65d1343138d5c817186bbd9486e6149ef554fc0fd4b3a96bf70cb916f0883718"
 COHORT_REVIEWS_SCHEMA = "termrock.frozen-cli-build-cohort-reviews"
-COHORT_REVIEWS_VERSION = 1
+COHORT_REVIEWS_VERSION = 2
+CAPTURE_REVIEW_DECISION = Path("docs/audits/2026-10-21-fresh-baseline-capture-eligibility.json")
+CAPTURE_REVIEW_DECISION_SHA256 = "446273ce18d3caaea939263b37687be5aec770cf1ab54c62110f6c945ec9c2f6"
+CAPTURE_REVIEW_EVIDENCE_INDEX = Path("docs/audits/2026-10-21-fresh-baseline-capture-evidence-index.json")
+CAPTURE_REVIEW_EVIDENCE_INDEX_SHA256 = "7333d762ddbbc25f7fafbc78fd49fe016358b787123dbfdabce422172121ba2c"
+CAPTURE_REVIEW_CONTRACT = Path("docs/audits/2026-10-21-fresh-capture-resumable-runner-contract.json")
+CAPTURE_REVIEW_CONTRACT_SHA256 = "81df800e4b16a8240acf7c569a9c5c9472fa1678c96aa78947928ca7a082ebfb"
 BUILD_PROVENANCE_FILE = "build-provenance.json"
 BUILD_PROVENANCE_SCHEMA = "termrock.frozen-build-provenance"
 BUILD_PROVENANCE_VERSION = 1
@@ -245,7 +251,93 @@ def _read_pinned_json(repo: Path, relative: Path, expected_sha256: str, label: s
         raise RunnerError(f"{label} JSON is invalid: {error}") from error
 
 
-def validate_cohort_reviews(document: object, registry_sha256: str, cohorts: dict[str, object]) -> dict[str, dict[str, object]]:
+def _capture_review_documents(repo: Path) -> tuple[dict[str, object], str, dict[str, object], str, dict[str, object], str]:
+    decision, decision_sha256 = _read_pinned_json(repo, CAPTURE_REVIEW_DECISION, CAPTURE_REVIEW_DECISION_SHA256, "fresh capture eligibility decision")
+    index, index_sha256 = _read_pinned_json(repo, CAPTURE_REVIEW_EVIDENCE_INDEX, CAPTURE_REVIEW_EVIDENCE_INDEX_SHA256, "fresh capture evidence index")
+    contract, contract_sha256 = _read_pinned_json(repo, CAPTURE_REVIEW_CONTRACT, CAPTURE_REVIEW_CONTRACT_SHA256, "fresh capture resumable-runner contract")
+    if not isinstance(decision, dict) or decision.get("schema") != "termrock.independent-executable-cohort-capture-review" or type(decision.get("schema_version")) is not int or decision["schema_version"] != 1:
+        raise RunnerError("fresh capture eligibility decision schema is unsupported")
+    if decision.get("decision") != "eligible-for-fresh-baseline-capture-and-baseline-replay-only" or decision.get("scope") != "executable-cohort-capture-eligibility":
+        raise RunnerError("fresh capture eligibility decision has an unexpected scope")
+    permitted = decision.get("permitted")
+    forbidden = decision.get("not_permitted")
+    if not isinstance(permitted, dict) or permitted != {
+        "fresh_baseline_capture": True,
+        "baseline_replay_against_fresh_immutable_capture": True,
+        "collect_reference_conflict_evidence_without_prior_tuple_approval": True,
+    } or any(type(value) is not bool or value is not True for value in permitted.values()):
+        raise RunnerError("fresh capture decision does not authorize only the recorded baseline phases")
+    if not isinstance(forbidden, dict) or forbidden != {
+        "candidate_comparison_eligible": False,
+        "checkpoint_reference_approval": "none",
+        "old_v1_exception_transferred": False,
+        "product_acceptance": False,
+        "unconditional_general_build_admission": False,
+    }:
+        raise RunnerError("fresh capture decision contains forbidden candidate or reference approval")
+    if any(type(forbidden[key]) is not bool for key in ("candidate_comparison_eligible", "old_v1_exception_transferred", "product_acceptance", "unconditional_general_build_admission")):
+        raise RunnerError("fresh capture decision boolean claims have invalid types")
+    if decision.get("legacy_decision", {}).get("path") != REFERENCE_DECISIONS.as_posix() or decision.get("legacy_decision", {}).get("sha256") != REFERENCE_DECISIONS_SHA256:
+        raise RunnerError("fresh capture decision is not isolated from the pinned legacy checkpoint decision")
+    if decision.get("current_state") != {
+        "production_review_registry_empty": True,
+        "no_capture_executed_in_this_review": True,
+        "candidate_acceptance_blocked": True,
+    }:
+        raise RunnerError("fresh capture decision historical-state record differs from the reviewed state")
+    if not isinstance(index, dict) or index.get("schema") != "termrock.frozen-cli-capture-eligibility-evidence-index" or type(index.get("schema_version")) is not int or index["schema_version"] != 1:
+        raise RunnerError("fresh capture evidence index schema is unsupported")
+    if set(index) != {"schema", "schema_version", "record_kind", "cohort_id", "decision_sha256", "reviewed_integration_commit", "source", "binary_sha256", "artifacts", "external_build_evidence", "capture_scope", "historical_state_note", "evidence_limitations"}:
+        raise RunnerError("fresh capture evidence index fields differ from schema version 1")
+    if index.get("decision_sha256") != decision_sha256 or index.get("cohort_id") != decision.get("cohort_id") or index.get("reviewed_integration_commit") != decision.get("integration_commit_reviewed") or index.get("source") != decision.get("source") or index.get("binary_sha256") != decision.get("binary_sha256"):
+        raise RunnerError("fresh capture evidence index is not bound to the reviewed decision")
+    artifacts = index.get("artifacts")
+    if not isinstance(artifacts, dict) or not artifacts:
+        raise RunnerError("fresh capture evidence index has no artifact map")
+    for key, item in artifacts.items():
+        if not isinstance(key, str) or not isinstance(item, dict) or set(item) != {"repository_path", "source_path", "sha256", "bytes", "copied_byte_for_byte"}:
+            raise RunnerError("fresh capture evidence index artifact entry is malformed")
+        relative = PurePosixPath(item["repository_path"]) if isinstance(item["repository_path"], str) else PurePosixPath("/")
+        if relative.is_absolute() or len(relative.parts) < 2 or ".." in relative.parts or not isinstance(item["source_path"], str) or not Path(item["source_path"]).is_absolute() or not isinstance(item["sha256"], str) or not re.fullmatch(r"[0-9a-f]{64}", item["sha256"]) or type(item["bytes"]) is not int or item["bytes"] < 1 or item["copied_byte_for_byte"] is not True:
+            raise RunnerError("fresh capture evidence index artifact identity is invalid")
+        _artifact, artifact_digest = _read_pinned_json(repo, Path(relative.as_posix()), item["sha256"], f"fresh capture evidence artifact {key}")
+        if (repo / relative).stat().st_size != item["bytes"] or artifact_digest != item["sha256"]:
+            raise RunnerError(f"fresh capture evidence artifact differs from its index: {key}")
+    for key, path, digest in (
+        ("capture_eligibility_decision", CAPTURE_REVIEW_DECISION, decision_sha256),
+        ("evidence_recheck", Path("docs/audits/2026-10-21-fresh-baseline-capture-evidence-recheck.json"), decision.get("evidence", {}).get("recheck_sha256")),
+        ("resumable_runner_contract", CAPTURE_REVIEW_CONTRACT, contract_sha256),
+    ):
+        item = artifacts.get(key)
+        if not isinstance(item, dict) or item.get("repository_path") != path.as_posix() or item.get("sha256") != digest or item.get("copied_byte_for_byte") is not True:
+            raise RunnerError(f"fresh capture evidence index artifact binding is invalid: {key}")
+    _recheck, recheck_digest = _read_pinned_json(
+        repo,
+        Path("docs/audits/2026-10-21-fresh-baseline-capture-evidence-recheck.json"),
+        str(decision.get("evidence", {}).get("recheck_sha256")),
+        "fresh capture evidence recheck",
+    )
+    if recheck_digest != decision.get("evidence", {}).get("recheck_sha256"):
+        raise RunnerError("fresh capture evidence recheck digest differs from the decision")
+    if not isinstance(contract, dict) or contract.get("schema") != "termrock.reviewed-fresh-capture-resumable-contract" or type(contract.get("schema_version")) is not int or contract["schema_version"] != 1 or contract.get("status") != "proposed-implementation-contract-not-executed":
+        raise RunnerError("fresh capture runner contract is not the reviewed unexecuted contract")
+    if contract.get("basis_commit") != decision.get("integration_commit_reviewed") or contract.get("inventory", {}).get("visual_scenarios_total") != EXPECTED_SCENARIOS + 174 or contract.get("inventory", {}).get("ordinary_checks") != EXPECTED_ORDINARY_TESTS:
+        raise RunnerError("fresh capture runner contract differs from the reviewed source or inventory")
+    scope = index.get("capture_scope")
+    expected_scope = {
+        "fresh_baseline_capture": True,
+        "baseline_replay": True,
+        "collect_reference_conflicts_without_prior_tuple_approval": True,
+        "candidate_comparison_eligible": False,
+        "checkpoint_reference_approval": "none",
+        "product_acceptance": False,
+    }
+    if scope != expected_scope or any(type(scope[key]) is not bool for key in ("fresh_baseline_capture", "baseline_replay", "collect_reference_conflicts_without_prior_tuple_approval", "candidate_comparison_eligible", "product_acceptance")):
+        raise RunnerError("fresh capture evidence index grants an invalid scope")
+    return decision, decision_sha256, index, index_sha256, contract, contract_sha256
+
+
+def validate_cohort_reviews(document: object, registry_sha256: str, cohorts: dict[str, object], decision: dict[str, object], decision_sha256: str, evidence_index_sha256: str) -> dict[str, dict[str, object]]:
     if not isinstance(document, dict) or set(document) != {"schema", "schema_version", "reviews"}:
         raise RunnerError("cohort review registry fields differ from schema version 1")
     if document["schema"] != COHORT_REVIEWS_SCHEMA or type(document["schema_version"]) is not int or document["schema_version"] != COHORT_REVIEWS_VERSION:
@@ -255,7 +347,7 @@ def validate_cohort_reviews(document: object, registry_sha256: str, cohorts: dic
         raise RunnerError("cohort review registry reviews must be an array")
     by_id: dict[str, dict[str, object]] = {}
     for review in reviews:
-        fields = {"cohort_id", "status", "cohort_registry_sha256", "binary_sha256", "source", "evidence", "candidate_comparison_eligible", "checkpoint_reference_approval"}
+        fields = {"cohort_id", "status", "cohort_registry_sha256", "binary_sha256", "source", "evidence", "decision_sha256", "evidence_index_sha256", "integration_commit_reviewed", "fresh_baseline_capture_eligible", "baseline_replay_eligible", "candidate_comparison_eligible", "checkpoint_reference_approval", "product_acceptance_eligible"}
         if not isinstance(review, dict) or set(review) != fields:
             raise RunnerError("cohort review fields differ from schema version 1")
         cohort_id = review["cohort_id"]
@@ -264,14 +356,19 @@ def validate_cohort_reviews(document: object, registry_sha256: str, cohorts: dic
             raise RunnerError("cohort review identifies an unknown or duplicate cohort")
         if review["status"] != CAPTURE_ELIGIBLE_COHORT_STATUS or review["cohort_registry_sha256"] != registry_sha256:
             raise RunnerError("cohort review is not bound to the pinned capture-eligible registry")
+        if (review["decision_sha256"], review["evidence_index_sha256"], review["integration_commit_reviewed"]) != (decision_sha256, evidence_index_sha256, decision.get("integration_commit_reviewed")):
+            raise RunnerError("cohort review does not bind the pinned decision, evidence index, and reviewed integration commit")
         expected_hashes = {app: cohort["binaries"][app]["sha256"] for app in APPS}
         if review["binary_sha256"] != expected_hashes:
             raise RunnerError("cohort review binary inventory differs from the pinned cohort")
         if review["source"] != cohort["source"]:
             raise RunnerError("cohort review source identity differs from the pinned cohort")
+        if decision.get("cohort_id") != cohort_id or decision.get("binary_sha256") != expected_hashes or decision.get("source") != cohort["source"]:
+            raise RunnerError("pinned independent decision source or binary identity differs from the reviewed cohort")
         evidence = review["evidence"]
-        if not isinstance(evidence, list) or not evidence:
-            raise RunnerError("capture eligibility requires independent review evidence")
+        expected_evidence = [{"reviewer": decision.get("reviewer"), "scope": decision.get("scope"), "report_sha256": decision_sha256}]
+        if evidence != expected_evidence:
+            raise RunnerError("capture eligibility evidence differs from the pinned independent decision")
         reviewers: set[str] = set()
         for item in evidence:
             if not isinstance(item, dict) or set(item) != {"reviewer", "scope", "report_sha256"}:
@@ -281,9 +378,14 @@ def validate_cohort_reviews(document: object, registry_sha256: str, cohorts: dic
             if item["scope"] != "executable-cohort-capture-eligibility" or not isinstance(item["report_sha256"], str) or not re.fullmatch(r"[0-9a-f]{64}", item["report_sha256"]):
                 raise RunnerError("cohort review evidence scope or digest is invalid")
             reviewers.add(item["reviewer"])
+        for field in ("fresh_baseline_capture_eligible", "baseline_replay_eligible", "candidate_comparison_eligible", "product_acceptance_eligible"):
+            if type(review[field]) is not bool:
+                raise RunnerError(f"cohort review {field} claim has an invalid boolean type")
+        if review["fresh_baseline_capture_eligible"] is not True or review["baseline_replay_eligible"] is not True:
+            raise RunnerError("cohort review does not authorize fresh capture and baseline replay")
         if type(review["candidate_comparison_eligible"]) is not bool or review["candidate_comparison_eligible"] is not False:
             raise RunnerError("fresh baseline capture review cannot approve candidate comparison")
-        if review["checkpoint_reference_approval"] != "none":
+        if review["checkpoint_reference_approval"] != "none" or review["product_acceptance_eligible"] is not False:
             raise RunnerError("fresh baseline capture review cannot approve checkpoint references")
         by_id[cohort_id] = review
     return by_id
@@ -291,8 +393,11 @@ def validate_cohort_reviews(document: object, registry_sha256: str, cohorts: dic
 
 def load_cohort_review_registry(repo: Path, cohort_document: dict[str, object], cohort_registry_sha256: str) -> tuple[dict[str, dict[str, object]], str]:
     document, digest = _read_pinned_json(repo, COHORT_REVIEWS, COHORT_REVIEWS_SHA256, "cohort review registry")
+    decision, decision_digest, _index, index_digest, _contract, _contract_digest = _capture_review_documents(repo)
     cohorts = {cohort["id"]: cohort for cohort in cohort_document["cohorts"]}
-    return validate_cohort_reviews(document, cohort_registry_sha256, cohorts), digest
+    if decision.get("cohort_registry_sha256") != cohort_registry_sha256:
+        raise RunnerError("fresh capture decision is bound to a different executable cohort registry")
+    return validate_cohort_reviews(document, cohort_registry_sha256, cohorts, decision, decision_digest, index_digest), digest
 
 
 def _verify_cohort_binaries(cohort: dict[str, object], binary_root: Path, context: str) -> dict[str, Path]:
@@ -343,11 +448,16 @@ def require_capture_eligible_cohort(repo: Path, cohort_id: str, binary_root: Pat
         "cohort_registry_sha256": registry_sha256,
         "review_registry_sha256": reviews_sha256,
         "status": review["status"],
+        "decision_sha256": review["decision_sha256"],
+        "evidence_index_sha256": review["evidence_index_sha256"],
         "source": cohort["source"],
         "tools": cohort["tools"],
         "binaries": {app: {"path": str(path.resolve()), "sha256": cohort["binaries"][app]["sha256"]} for app, path in binaries.items()},
+        "fresh_baseline_capture_eligible": True,
+        "baseline_replay_eligible": True,
         "candidate_comparison_eligible": False,
         "checkpoint_reference_approval": "none",
+        "product_acceptance_eligible": False,
         "acceptance_complete": False,
     }
 

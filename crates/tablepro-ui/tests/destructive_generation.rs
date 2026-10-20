@@ -1,3 +1,6 @@
+#[path = "common/tab_navigation.rs"]
+mod tab_navigation;
+
 use tablepro_ui::{QueryTab, Screen, Tab, TableProApp, Value};
 use termrock::{App, GridEditor, Id, KeyCode, Theme};
 use termrock_test_support::Harness;
@@ -99,7 +102,10 @@ fn quit_and_close_refuse_replaced_work_until_a_fresh_review() {
         if quit {
             let _ = h.ctrl('q');
         } else {
-            assert!(h.tab_to(Id::root("tablepro.workbench.tab-strip")));
+            assert!(tab_navigation::tab_to(
+                &mut h,
+                Id::root("tablepro.workbench.tab-strip")
+            ));
             let _ = h.key(KeyCode::Char('x'));
         }
         replace_payload(h.app_mut());
@@ -111,7 +117,10 @@ fn quit_and_close_refuse_replaced_work_until_a_fresh_review() {
         if quit {
             let _ = h.ctrl('q');
         } else {
-            assert!(h.tab_to(Id::root("tablepro.workbench.tab-strip")));
+            assert!(tab_navigation::tab_to(
+                &mut h,
+                Id::root("tablepro.workbench.tab-strip")
+            ));
             let _ = h.key(KeyCode::Char('x'));
         }
         confirm(&mut h);
@@ -131,7 +140,10 @@ fn close_only_binds_target_but_quit_binds_every_tab() {
         if quit {
             let _ = h.ctrl('q');
         } else {
-            assert!(h.tab_to(Id::root("tablepro.workbench.tab-strip")));
+            assert!(tab_navigation::tab_to(
+                &mut h,
+                Id::root("tablepro.workbench.tab-strip")
+            ));
             let _ = h.key(KeyCode::Char('x'));
         }
         let _ = h.app_mut().workbench.new_query("new neighboring work");
@@ -184,7 +196,10 @@ fn whole_workbench_replacement_cannot_reuse_destructive_authorization() {
                 let _ = h.click_id(Id::root("tablepro.connections.details"));
             }
             2 => {
-                assert!(h.tab_to(Id::root("tablepro.workbench.tab-strip")));
+                assert!(tab_navigation::tab_to(
+                    &mut h,
+                    Id::root("tablepro.workbench.tab-strip")
+                ));
                 let _ = h.key(KeyCode::Char('x'));
             }
             _ => {

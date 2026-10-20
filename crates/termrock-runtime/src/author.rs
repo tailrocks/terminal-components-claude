@@ -1,5 +1,17 @@
 use core::fmt;
 
+/// Publish low-priority bindings for a real focus scope. These bindings are
+/// considered only after the focused control has declined the same key.
+pub fn publish_scope_bindings<C: Copy + 'static>(
+    ui: &mut crate::ui::Ui<'_>,
+    scope: crate::focus::ScopeId,
+    owner: crate::id::Id,
+    flags: crate::response::StateFlags,
+    table: &'static [crate::keymap::Binding<C>],
+) {
+    ui.publish_scope_bindings(scope, owner, flags, table);
+}
+
 mod composition;
 pub use composition::{ClosureLeaf, CompositionLeaf, composition_leaf};
 
