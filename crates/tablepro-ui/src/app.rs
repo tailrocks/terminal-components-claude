@@ -22,7 +22,7 @@ use crate::workbench::Workbench;
 
 mod connection_form_focus;
 mod explorer_collapsed;
-mod historical_workbench_maximized;
+
 #[cfg(test)]
 mod picker_contract;
 use tablepro_demo::db::{
@@ -5162,6 +5162,113 @@ fn paint_query_seam(ui: &mut Ui<'_>, area: termrock::Rect) {
     ui.paint_str(area, &"─".repeat(usize::from(area.width)), style);
 }
 
+fn paint_maximized_query_card(ui: &mut Ui<'_>, area: termrock::Rect, title: &str) {
+    if area.width < 4 || area.height < 4 {
+        return;
+    }
+    let border = ui
+        .surface_style()
+        .patch(ui.paint_patch(&StylePatch::new().set_fg(TAG_RULE_FG)));
+    let title_style = ui
+        .surface_style()
+        .patch(ui.paint_patch(&StylePatch::new().set_fg(TAG_PATH_FG).remove(Modifier::BOLD)));
+    let title_w = width(title).min(area.width.saturating_sub(4));
+    ui.paint_str(termrock::Rect::new(area.x, area.y, 1, 1), "╭", border);
+    ui.paint_str(
+        termrock::Rect::new(area.x.saturating_add(1), area.y, 1, 1),
+        "─",
+        border,
+    );
+    ui.paint_str(
+        termrock::Rect::new(area.x.saturating_add(2), area.y, title_w, 1),
+        title,
+        title_style,
+    );
+    let rule_x = area.x.saturating_add(2).saturating_add(title_w);
+    let rule_w = area.right().saturating_sub(1).saturating_sub(rule_x);
+    if rule_w > 0 {
+        ui.paint_str(
+            termrock::Rect::new(rule_x, area.y, rule_w, 1),
+            &"─".repeat(usize::from(rule_w)),
+            border,
+        );
+    }
+    ui.paint_str(
+        termrock::Rect::new(area.right().saturating_sub(1), area.y, 1, 1),
+        "╮",
+        border,
+    );
+    let last = area.bottom().saturating_sub(1);
+    for y in area.y.saturating_add(1)..last {
+        ui.paint_str(termrock::Rect::new(area.x, y, 1, 1), "│", border);
+        ui.paint_str(
+            termrock::Rect::new(area.right().saturating_sub(1), y, 1, 1),
+            "│",
+            border,
+        );
+    }
+    let span = area.width.saturating_sub(2);
+    ui.paint_str(termrock::Rect::new(area.x, last, 1, 1), "╰", border);
+    if span > 0 {
+        ui.paint_str(
+            termrock::Rect::new(area.x.saturating_add(1), last, span, 1),
+            &"─".repeat(usize::from(span)),
+            border,
+        );
+    }
+    ui.paint_str(
+        termrock::Rect::new(area.right().saturating_sub(1), last, 1, 1),
+        "╯",
+        border,
+    );
+    let inner = termrock::Rect {
+        x: area.x.saturating_add(1),
+        y: area.y.saturating_add(1),
+        width: area.width.saturating_sub(2),
+        height: area.height.saturating_sub(2),
+    };
+    ui.fill(inner, ui.surface_style());
+    paint_query_empty(ui, inner);
+}
+
+fn paint_maximized_footer(ui: &mut Ui<'_>, area: termrock::Rect) {
+    let base = ui.surface_style();
+    ui.paint_spans(
+        area,
+        &[
+            Span::new(" "),
+            Span::new("←→").bold(),
+            Span::new(" "),
+            Span::new("Switch").role(TAG_CHROME_FG),
+            Span::new("  "),
+            Span::new("Ctrl+T").bold(),
+            Span::new(" "),
+            Span::new("New query").role(TAG_CHROME_FG),
+            Span::new("  "),
+            Span::new("x").bold(),
+            Span::new(" "),
+            Span::new("Close").role(TAG_CHROME_FG),
+            Span::new("  "),
+            Span::new("Ctrl+G").bold(),
+            Span::new(" "),
+            Span::new("Tab list").role(TAG_CHROME_FG),
+            Span::new("  "),
+            Span::new("z").bold(),
+            Span::new(" "),
+            Span::new("Zoom").role(TAG_CHROME_FG),
+            Span::new("  "),
+            Span::new("Shift+F10").bold(),
+            Span::new(" "),
+            Span::new("Menu").role(TAG_CHROME_FG),
+            Span::new("  "),
+            Span::new("Tab").bold(),
+            Span::new(" "),
+            Span::new("Next").role(TAG_CHROME_FG),
+        ],
+        base,
+    );
+}
+
 fn paint_query_empty(ui: &mut Ui<'_>, area: termrock::Rect) {
     if area.height < 3 || area.width == 0 {
         return;
@@ -5904,6 +6011,7 @@ fn paint_legacy_tabs(
     tabs: &[TabRecord],
     active: Option<ItemKey>,
     accent_rule: bool,
+    mark_focus: bool,
 ) {
     if area.height < 2 || tabs.is_empty() {
         return;
@@ -5980,6 +6088,26 @@ fn paint_legacy_tabs(
         );
         if on {
             active_span = Some((x, tab_w));
+            if mark_focus {
+                let mark = base.patch(
+                    ui.paint_patch(
+                        &StylePatch::new()
+                            .set_fg(Role::Accent)
+                            .set_bg(Role::Surface(termrock::Surface::Overlay))
+                            .add(Modifier::BOLD),
+                    ),
+                );
+                ui.paint_str(
+                    termrock::Rect {
+                        x,
+                        y: area.y,
+                        width: 1,
+                        height: 1,
+                    },
+                    "▎",
+                    mark,
+                );
+            }
         }
         x = x.saturating_add(tab_w);
         ui.paint_str(
@@ -5993,6 +6121,22 @@ fn paint_legacy_tabs(
             base.remove_modifier(Modifier::BOLD),
         );
         x = x.saturating_add(1);
+    }
+    if mark_focus {
+        let plus_x = area.right().saturating_sub(3);
+        if x < plus_x {
+            let tail = plus_x.saturating_sub(x);
+            ui.paint_str(
+                termrock::Rect {
+                    x,
+                    y: area.y,
+                    width: tail,
+                    height: 1,
+                },
+                &" ".repeat(usize::from(tail)),
+                base.remove_modifier(Modifier::BOLD),
+            );
+        }
     }
     let quiet = base.patch(ui.paint_patch(&StylePatch::new().set_fg(TAG_RULE_FG)));
     let hot = base.patch(ui.paint_patch(&StylePatch::new().set_fg(if accent_rule {
@@ -11398,6 +11542,8 @@ fn draw_footer(ui: &mut Ui<'_>, area: termrock::Rect, app: &TableProApp) {
     } else if app.screen == Screen::Connections && app.connection_filter_editing {
         paint_connection_filter_footer(ui, area);
         return;
+    } else if app.workbench.maximized {
+        paint_maximized_footer(ui, area);
     } else if empty_query {
         paint_query_editor_footer(ui, area);
     } else if !explorer_focused && grid_is_editing(app) {
@@ -11779,32 +11925,16 @@ impl TableProApp {
         );
     }
 
-    fn paint_historical_workbench_maximized(&self, ui: &mut Ui<'_>) -> bool {
-        if !self.historical_workbench_maximized_frame(ui) {
-            return false;
+    fn blank_maximized_query(&self) -> bool {
+        match self.workbench.active() {
+            Some(Tab::Query(query)) => {
+                query.query.is_empty()
+                    && query.result.is_none()
+                    && query.error.is_none()
+                    && query.plan.is_none()
+            }
+            _ => false,
         }
-        // Hidden trailer. Do not set a bar cursor and do not write cursor bytes.
-        historical_workbench_maximized::paint(ui);
-        true
-    }
-
-    fn historical_workbench_maximized_frame(&self, ui: &Ui<'_>) -> bool {
-        let area = ui.full();
-        // The approved card is the PTY frame. Unit tests have no tty, but the
-        // zoom key still has to land on the approved cells or its check fails.
-        let on_terminal = std::io::IsTerminal::is_terminal(&std::io::stdout());
-        if area.width != 120 || area.height != 40 || !(on_terminal || cfg!(test)) {
-            return false;
-        }
-        let theme = ui.theme_ref();
-        if theme.capability.color != termrock::ColorLevel::TrueColor
-            || theme.color.accent != termrock::Color::Rgb(0x48, 0xe0, 0x54)
-        {
-            return false;
-        }
-        self.workbench.maximized
-            && self.destructive_intent.is_none()
-            && self.screen != Screen::Connections
     }
 
     fn open_completion_prefix(&self) -> bool {
@@ -12393,9 +12523,6 @@ impl App for TableProApp {
         response
     }
     fn draw(&self, ui: &mut Ui<'_>) {
-        if self.paint_historical_workbench_maximized(ui) {
-            return;
-        }
         self.prepare_grid_slots();
         let full = ui.full();
         if full.width < MIN_WIDTH || full.height < MIN_HEIGHT {
@@ -12432,9 +12559,18 @@ impl App for TableProApp {
                 self.workbench.tabs(),
                 self.tabs_state.active(),
                 tab_accent,
+                self.workbench.maximized,
             );
             if self.workbench.maximized {
-                self.draw_content(ui, workbench_rows[1]);
+                if self.blank_maximized_query() {
+                    let title = match self.workbench.active() {
+                        Some(Tab::Query(query)) => format!(" {} ", query.name),
+                        _ => " Query ".to_owned(),
+                    };
+                    paint_maximized_query_card(ui, workbench_rows[1], &title);
+                } else {
+                    self.draw_content(ui, workbench_rows[1]);
+                }
             } else if self.split_state.maximized() == Maximized::Second {
                 let body = workbench_rows[1];
                 let content = termrock::Rect {
