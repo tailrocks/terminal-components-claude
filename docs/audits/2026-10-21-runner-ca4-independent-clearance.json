@@ -1,0 +1,43 @@
+{
+  "task": "Read-only independent review and test of fresh-run failure-preservation fix.",
+  "reviewed_implementation_commit": "ca4aff6fb5c0dc22416e88e6a1d6d90abea34375",
+  "delivered_merge_commit": "482cdaf48c42d8355a173e1faeee74e159c46d0b",
+  "ca4_parent": "dce6910c49378aa297f2943fa852b3ebcfb32e33",
+  "previous_runner_commit": "310a56de62e0d2e87a647ffd58b9b5cec9c0a744",
+  "merge_proof": "git merge-base --is-ancestor ca4 482cd returned 0; merge commit parents are ca4 and 49da9ae391582b783cd7aeeec745294c1c2f2f64.",
+  "reviewed_source_blobs": {
+    "tools/frozen_baseline.py": "d057a8a6c8bffc4d3763368fcc66720b2bfd8c89",
+    "tools/test_frozen_baseline.py": "521b202296a036fee601df6b8ebcb6b2320d8110",
+    "docs/audits/2026-10-21-fresh-run-advance-failure-integrity.md": "196ddd71eabdfc351b178050b11975db86bb4715"
+  },
+  "tests": [
+    {
+      "command": "python3 -m unittest tools.test_frozen_baseline.RunnerGuards.test_fresh_advance_failed_child_and_timeout_keep_attempt_and_retry_same_ordinal tools.test_frozen_baseline.RunnerGuards.test_fresh_advance_mutated_artifact_is_retained_as_failed_attempt tools.test_frozen_baseline.RunnerGuards.test_fresh_advance_postrename_verification_failure_rolls_back_to_attempt tools.test_frozen_baseline.RunnerGuards.test_fresh_advance_journal_failure_rolls_back_and_keeps_ordinal_zero tools.test_frozen_baseline.RunnerGuards.test_fresh_advance_exception_after_receipt_publication_keeps_committed_step",
+      "source": "exact ca4 tools/frozen_baseline.py + test_frozen_baseline.py and tracked tools/docs from ca4 archive under /tmp/termrock-fresh-advance-review/new",
+      "result": "PASS: 5 test methods, 5 passed (2.379s); child and timeout are separate subtests."
+    },
+    {
+      "command": "python3 -m unittest tools.test_frozen_baseline",
+      "source": "same exact ca4 archive under /tmp/termrock-fresh-advance-review/new",
+      "result": "PASS: 75 tests in 3.009s."
+    },
+    {
+      "command": "python3 -m unittest tools.test_frozen_baseline",
+      "source": "310a frozen_baseline.py with the unchanged candidate test_frozen_baseline.py, plus 310a tracked tools/docs archive, under /tmp/termrock-fresh-advance-review/old",
+      "result": "EXPECTED REGRESSION DETECTED: 75 tests, 4 failures + 2 errors (3.147s); relevant failure tests expose missing marker mode, artifact/post-rename/journal rollback, and append-after-publication handling. The source before ca4 has no 5 new tests; candidate tests were overlaid only in this temporary counterfactual to prove red-before/green-after."
+    },
+    {
+      "command": "git diff --check 310a56de62e0d2e87a647ffd58b9b5cec9c0a744 ca4aff6fb5c0dc22416e88e6a1d6d90abea34375 -- tools/frozen_baseline.py tools/test_frozen_baseline.py docs/audits/2026-10-21-fresh-run-advance-failure-integrity.md",
+      "result": "PASS, exit 0."
+    }
+  ],
+  "integrity_analysis": {
+    "real_process_coverage": "The failed-child and timeout regression calls advance_fresh_run -> production run_live_chunk -> production run/Popen and actual temporary fake cargo executable. It verifies nonzero child exit, actual timeout/process-group termination (pid cannot be signalled), stdout/stderr/report preservation, no receipt/success JSON/final chunk, prefix completed_steps 0, and a subsequent successful retry at ordinal 0.",
+    "injected_boundaries": "Most identity/trust boundaries (plan/build/source verification, binary hashing, extension inventory) are mocked for fixture isolation. Artifact mutation, post-rename verification failure, and journal-before-publication failure inject at the verifier/publisher boundary; those are not claims of end-to-end filesystem corruption or real Tuiscotti application launch.",
+    "post_receipt_failure": "append_then_raise invokes the real immutable journal append, then raises. Test validates exact signed receipt + committed tree remain, completed_steps=1, no candidate eligibility, external untrusted-failed-publication marker exists, and a subsequent advance is blocked before invoking child or creating the next chunk. This is deliberately truthful: ordinal did commit even though invocation returned failure."
+  },
+  "findings": "No blocking code/test defect found in the scoped fix. _verify_fresh_staged_chunk validates before publication; post-rename checks now roll unreceipted chunks back to original attempt, and outer exception writes untrusted failure evidence. Existing journaled artifacts are revalidated before next step. Append-after-receipt is fail-closed and accurately blocks automatic continuation. No test failure was hidden.",
+  "qualification_prior_jackin_review": "Updated earlier packet: reduced-color assignment replacing modifiers is not independently a proven defect because frozen baseline src/ui/ctx.rs 658-688 uses replacement backdrop modifiers. Prior severity now says documentation ambiguity only unless frame evidence disproves baseline behavior. Revised packet SHA256 e65e5520777699f86373b4032501206d1af09e987b0d676b435e832c2e32fccd.",
+  "gaps": "Python runner tests only; no real baseline application capture/replay, Tuiscotti application run, full visual inventory, candidate comparison, or acceptance result. No cargo nextest needed for this Python-only change; no Rust tests run. Reviewer copy showed pre-existing missing tracked target/tuiscotti artifact files; all exact-source runner tests ran from isolated /tmp archives and did not modify that copy.",
+  "scope": "Read-only Git inspection; execution used only source files extracted from exact Git object into task-owned /tmp directories. No source edits, no shared capture root, plan, key, journal or receipt mutation."
+}
