@@ -292,8 +292,8 @@ impl<'a> ScrollRegion<'a> {
             ..track_rect
         };
         // `set_style` unions modifiers, so a bold cell under the bar stays bold unless subtracted.
-        let track_style = without_bold(track.style);
-        let thumb_style = without_bold(thumb.style);
+        let track_style = without_bold(track.style, ov.part_patch(Part::TRACK));
+        let thumb_style = without_bold(thumb.style, ov.part_patch(Part::THUMB));
         if let Some(f) = ov.slot_for(Part::TRACK) {
             f(ui, bar);
         } else {
@@ -349,8 +349,16 @@ impl<'a> ScrollRegion<'a> {
     }
 }
 
-fn without_bold(style: crate::theme::PaintStyle) -> crate::theme::PaintStyle {
-    style.remove_modifier(Modifier::BOLD)
+fn without_bold(
+    style: crate::theme::PaintStyle,
+    patch: Option<StylePatch>,
+) -> crate::theme::PaintStyle {
+    let style = style.remove_modifier(Modifier::BOLD);
+    if patch.is_some_and(|patch| patch.add.contains(Modifier::BOLD)) {
+        style.add_modifier(Modifier::BOLD)
+    } else {
+        style
+    }
 }
 
 const fn moved(yes: bool) -> Response<()> {
