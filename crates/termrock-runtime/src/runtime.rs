@@ -2040,6 +2040,7 @@ impl<A: App> Runtime<A> {
             &self.frame.cursors,
             self.frame.top,
             cursor_owner,
+            self.frame.typing_resolved.owner,
             &mut self.frame.diagnostics,
             &self.frame.typing,
         );
@@ -3006,6 +3007,7 @@ mod tests {
                 &frame.cursors,
                 frame.top,
                 Some(EDITOR),
+                frame.typing_resolved.owner,
                 &mut frame.diagnostics,
                 &frame.typing,
             ),
