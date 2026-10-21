@@ -3,12 +3,15 @@ use std::borrow::Cow;
 
 use crate::action::ActionKey;
 use crate::diagnostics::Diagnostic;
+use crate::event::KeyModifiers;
 use crate::event::{Chord, Key};
 use crate::focus::ScopeId;
 use crate::id::Id;
 use crate::response::StateFlags;
 
+pub use termrock_core::keys::KeyCode;
 pub use termrock_core::keys::KeyPhase;
+pub use termrock_core::platform::ClientPlatform;
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
 pub struct BindingState {
@@ -823,6 +826,86 @@ impl HintLayer {
             status: None,
             centered: false,
         }
+    }
+}
+
+/// Human-readable chord labels, per client platform.
+///
+/// Ported from PR #26 `KeyBinding::label_on` (src/core/keymap.rs:298,
+/// commit `f4867e9b5`). macOS names Super as `⌘`; everything else says
+/// `Super+`. Hint layers can adopt this so a hint never advertises a key
+/// the terminal cannot deliver (`termrock_core::keys::keyboard::
+/// label_deliverable` answers the delivery half).
+pub trait LabelOn {
+    /// The label this chord carries under `platform`.
+    fn label_on(&self, platform: ClientPlatform) -> String;
+
+    /// The label under the detected client platform.
+    fn label(&self) -> String;
+}
+
+impl LabelOn for Chord {
+    fn label_on(&self, platform: ClientPlatform) -> String {
+        let mut out = String::new();
+        let char_shift =
+            self.mods.contains(KeyModifiers::SHIFT) && matches!(self.code, KeyCode::Char(_));
+        if self.mods.contains(KeyModifiers::SUPER) {
+            if platform.is_macos() {
+                out.push_str(if self.mods.contains(KeyModifiers::SHIFT) {
+                    "⇧⌘"
+                } else {
+                    "⌘"
+                });
+            } else {
+                out.push_str("Super+");
+            }
+        }
+        if self.mods.contains(KeyModifiers::CONTROL) {
+            out.push_str("Ctrl+");
+        }
+        if self.mods.contains(KeyModifiers::ALT) {
+            out.push_str("Alt+");
+        }
+        let ctrl_or_alt = self
+            .mods
+            .intersects(KeyModifiers::CONTROL | KeyModifiers::ALT | KeyModifiers::SUPER);
+        let mac_cmd = self.mods.contains(KeyModifiers::SUPER) && platform.is_macos();
+
+        let back_tab = self.code == KeyCode::BackTab;
+        if self.mods.contains(KeyModifiers::SHIFT)
+            && !mac_cmd
+            && !back_tab
+            && (!char_shift || ctrl_or_alt)
+        {
+            out.push_str("Shift+");
+        }
+        match self.code {
+            KeyCode::Char(' ') => out.push_str("Space"),
+            KeyCode::Char(c) if ctrl_or_alt => out.extend(c.to_uppercase()),
+            KeyCode::Char(c) => out.push(c),
+            KeyCode::Enter => out.push_str("Enter"),
+            KeyCode::Esc => out.push_str("Esc"),
+            KeyCode::Tab => out.push_str("Tab"),
+            KeyCode::BackTab => out.push_str("Shift+Tab"),
+            KeyCode::Backspace => out.push_str("Backspace"),
+            KeyCode::Delete => out.push_str("Delete"),
+            KeyCode::Insert => out.push_str("Ins"),
+            KeyCode::Up => out.push('↑'),
+            KeyCode::Down => out.push('↓'),
+            KeyCode::Left => out.push('←'),
+            KeyCode::Right => out.push('→'),
+            KeyCode::Home => out.push_str("Home"),
+            KeyCode::End => out.push_str("End"),
+            KeyCode::PageUp => out.push_str("PgUp"),
+            KeyCode::PageDown => out.push_str("PgDn"),
+            KeyCode::F(n) => out.push_str(&format!("F{n}")),
+            other => out.push_str(&format!("{other:?}")),
+        }
+        out
+    }
+
+    fn label(&self) -> String {
+        self.label_on(ClientPlatform::current())
     }
 }
 
@@ -1750,5 +1833,83 @@ mod tests {
 
         assert_eq!(focused.layer.hints.len(), 1);
         assert_eq!(focused.layer.hints[0].label, "Back");
+    }
+}
+
+#[cfg(test)]
+mod label_on_tests {
+    use super::*;
+
+    fn chord(code: KeyCode, mods: KeyModifiers) -> Chord {
+        Chord { code, mods }
+    }
+
+    #[test]
+    fn labels_follow_the_pr26_rules() {
+        assert_eq!(
+            chord(KeyCode::Char('s'), KeyModifiers::CONTROL).label_on(ClientPlatform::Other),
+            "Ctrl+S"
+        );
+        assert_eq!(
+            chord(KeyCode::Delete, KeyModifiers::NONE).label_on(ClientPlatform::Other),
+            "Delete"
+        );
+        assert_eq!(
+            chord(KeyCode::Char(' '), KeyModifiers::NONE).label_on(ClientPlatform::Other),
+            "Space"
+        );
+        assert_eq!(
+            chord(KeyCode::BackTab, KeyModifiers::SHIFT).label_on(ClientPlatform::Other),
+            "Shift+Tab",
+            "BackTab is named once"
+        );
+        assert_eq!(
+            chord(KeyCode::Left, KeyModifiers::NONE).label_on(ClientPlatform::Other),
+            "←"
+        );
+        assert_eq!(
+            chord(
+                KeyCode::Char('a'),
+                KeyModifiers::CONTROL | KeyModifiers::SHIFT
+            )
+            .label_on(ClientPlatform::Other),
+            "Ctrl+Shift+A"
+        );
+        assert_eq!(
+            chord(KeyCode::F(2), KeyModifiers::NONE).label_on(ClientPlatform::Other),
+            "F2"
+        );
+    }
+
+    #[test]
+    fn super_labels_per_platform() {
+        let cmd_a = chord(KeyCode::Char('a'), KeyModifiers::SUPER);
+        assert_eq!(cmd_a.label_on(ClientPlatform::MacOs), "⌘A");
+        assert_eq!(cmd_a.label_on(ClientPlatform::Other), "Super+A");
+        let shift_cmd = chord(
+            KeyCode::Char('a'),
+            KeyModifiers::SUPER | KeyModifiers::SHIFT,
+        );
+        assert_eq!(shift_cmd.label_on(ClientPlatform::MacOs), "⇧⌘A");
+        assert_eq!(shift_cmd.label_on(ClientPlatform::Other), "Super+Shift+A");
+        let alt_cmd = chord(KeyCode::Char('a'), KeyModifiers::SUPER | KeyModifiers::ALT);
+        assert_eq!(
+            alt_cmd.label_on(ClientPlatform::MacOs),
+            "⌘Alt+A",
+            "only Super is named with the symbol; Alt stays textual"
+        );
+    }
+
+    #[test]
+    fn shift_is_part_of_the_char_it_names() {
+        assert_eq!(
+            chord(KeyCode::Char('a'), KeyModifiers::SHIFT).label_on(ClientPlatform::Other),
+            "a",
+            "Shift+A carries the shifted character, no Shift+ prefix"
+        );
+        assert_eq!(
+            chord(KeyCode::Up, KeyModifiers::SHIFT).label_on(ClientPlatform::Other),
+            "Shift+↑"
+        );
     }
 }
