@@ -340,17 +340,31 @@ impl<'a> CompositionSlots<'a> {
 
     /// Resolve from the framework root, then draw each visible leaf once.
     pub fn draw(&self, ui: &mut Ui<'_>) -> Result<(), CompositionError> {
+        let root = ui.full();
+        self.draw_at(ui, root)
+    }
+
+    /// Draw this composition into a component-owned logical root while
+    /// retaining the current `Ui` clip for visible drawing and registration.
+    ///
+    /// Component adapters use this when a decorated component has logical
+    /// bounds larger than the visible portion inherited from its parent.
+    /// Ordinary application composition should use [`Self::draw`].
+    pub fn draw_at(&self, ui: &mut Ui<'_>, logical_root: Rect) -> Result<(), CompositionError> {
         if self.depth > MAX_COMPOSITION_DEPTH {
             return Err(CompositionError::DepthExceeded {
                 depth: self.depth,
                 maximum: MAX_COMPOSITION_DEPTH,
             });
         }
-        let root = ui.full();
-        let mut measured = self.measure_tree(ui, Constraints::loose(root.width, root.height));
-        let first = self.resolve(root, &measured.children);
+        let clip = ui.full();
+        let mut measured = self.measure_tree(
+            ui,
+            Constraints::loose(logical_root.width, logical_root.height),
+        );
+        let first = self.resolve(logical_root, &measured.children);
         self.remeasure_resolved(ui, &mut measured, &first, first.content.height);
-        let resolved = self.resolve_final(&measured, root, root);
+        let resolved = self.resolve_final(&measured, logical_root, clip);
         self.draw_resolved(ui, &resolved);
         Ok(())
     }
@@ -630,6 +644,51 @@ mod tests {
                 width: 4,
                 height: 1
             }
+        );
+    }
+
+    #[test]
+    fn component_logical_root_reflows_before_intersecting_parent_clip() {
+        let drawn = RefCell::new(Vec::new());
+        let leaf = composition_leaf(
+            |_: &Ui<'_>, constraints: Constraints| Size::exact(8, 1).fit(constraints),
+            |ui: &mut Ui<'_>, logical| drawn.borrow_mut().push((logical, ui.full())),
+        );
+        let slots =
+            super::CompositionSlots::row([super::ContentSlot::new(&leaf, ChildPolicy::default())]);
+        let logical = Rect::new(10, 4, 20, 5);
+        let parent_clip = Rect::new(14, 4, 5, 5);
+        let (_, _) = with_ui(Rect::new(10, 4, 20, 5), |ui| {
+            ui.with_area(parent_clip, |ui| {
+                slots.draw_at(ui, logical).expect("valid component root");
+            });
+        });
+
+        let actual = drawn
+            .borrow()
+            .first()
+            .copied()
+            .expect("composition draws the visible leaf once");
+        assert_eq!(drawn.borrow().len(), 1);
+        assert_eq!(
+            actual.0,
+            Rect {
+                x: 10,
+                y: 4,
+                width: 8,
+                height: 5,
+            },
+            "layout retains the full logical root"
+        );
+        assert_eq!(
+            actual.1,
+            Rect {
+                x: 14,
+                y: 4,
+                width: 4,
+                height: 5,
+            },
+            "drawing receives the parent's visible intersection"
         );
     }
 
