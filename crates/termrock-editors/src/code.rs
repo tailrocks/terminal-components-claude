@@ -19,7 +19,7 @@ use crate::response::{Response, StateFlags};
 use crate::scroll::ScrollState;
 use crate::text::measure::{grapheme_width, graphemes};
 use crate::text::{EditAction, EditOutcome, Extend, Motion, TextEditorCore, width};
-use crate::theme::{Family, GlyphRole, Role, Slot, StylePatch, SyntaxRole, Variant};
+use crate::theme::{Family, FgStep, GlyphRole, Role, Slot, StylePatch, SyntaxRole, Variant};
 use crate::ui::{Cx, FrameRead, Ui};
 use termrock_core::edit_entry::EditEntry;
 use termrock_runtime::scroll_region::ScrollRegion;
@@ -1512,9 +1512,20 @@ impl<'a> CodeEditor<'a> {
         let view = ScrollRegion::view(&st.scroll, content, lines);
         let text_style = style(ui, Part::TEXT, live).style;
         let selected_style = style(ui, Part::ROW, live | StateFlags::SELECTED).style;
-        let number_style = style(ui, Part::META, live).style;
         let marker_style = style(ui, Part::MARKER, live).style;
         let gutter_style = style(ui, Part::GUTTER, live).style;
+        // Line numbers follow the baseline code gutter: the focused cursor
+        // line is primary and bold, the current block is secondary, and every
+        // other line is muted. Read-only editors use faint for all of them.
+        let meta = style(ui, Part::META, live).style;
+        let number_ink = |ui: &mut Ui<'_>, step: FgStep| {
+            meta.patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(step))))
+        };
+        let block = if st.editor.selection().is_none() {
+            self.current_block(st)
+        } else {
+            None
+        };
         let visible = view.visible_range();
         let first_offset = cache
             .line_starts
@@ -1547,29 +1558,43 @@ impl<'a> CodeEditor<'a> {
                     height: 1,
                     ..content
                 };
-                if live.contains(StateFlags::FOCUSED) && line_index == cursor.line {
-                    match self.ov.slot_for(Part::GUTTER) {
-                        Some(slot) => slot(ui, cell_at(row, row.x)),
-                        None => match self
-                            .ov
-                            .style(
-                                ui,
-                                self.id,
-                                Family::CODE,
-                                Variant::DEFAULT,
-                                Part::GUTTER,
-                                live,
-                            )
-                            .glyph
-                        {
-                            Slot::Set(glyph) => {
-                                ui.glyph(cell_at(row, row.x), glyph, gutter_style);
-                            }
-                            Slot::Inherit => {
-                                ui.glyph(cell_at(row, row.x), GlyphRole::FocusBar, gutter_style);
-                            }
-                            Slot::Clear => {}
-                        },
+                if line_index == cursor.line {
+                    if live.contains(StateFlags::FOCUSED) {
+                        match self.ov.slot_for(Part::GUTTER) {
+                            Some(slot) => slot(ui, cell_at(row, row.x)),
+                            None => match self
+                                .ov
+                                .style(
+                                    ui,
+                                    self.id,
+                                    Family::CODE,
+                                    Variant::DEFAULT,
+                                    Part::GUTTER,
+                                    live,
+                                )
+                                .glyph
+                            {
+                                Slot::Set(glyph) => {
+                                    ui.glyph(cell_at(row, row.x), glyph, gutter_style);
+                                }
+                                Slot::Inherit => {
+                                    ui.glyph(
+                                        cell_at(row, row.x),
+                                        GlyphRole::FocusBar,
+                                        gutter_style,
+                                    );
+                                }
+                                Slot::Clear => {}
+                            },
+                        }
+                    } else {
+                        // An unfocused cursor line keeps a blank gutter cell.
+                        // A modal backdrop then lifts field-on-field to the card.
+                        ui.paint_str(
+                            cell_at(row, row.x),
+                            " ",
+                            container.style.with_fg_from_bg(container.style),
+                        );
                     }
                 }
                 let marker = cell_at(row, row.x.saturating_add(1));
@@ -1589,6 +1614,20 @@ impl<'a> CodeEditor<'a> {
                     } else {
                         ui.paint_str(marker, "!", marker_style);
                     }
+                } else if block
+                    .as_ref()
+                    .is_some_and(|range| range.start >= global && range.start <= line_end)
+                {
+                    let ink = if live.contains(StateFlags::FOCUSED) {
+                        Role::Fg(FgStep::Primary)
+                    } else {
+                        Role::Fg(FgStep::Secondary)
+                    };
+                    ui.paint_str(
+                        marker,
+                        "›",
+                        marker_style.patch(ui.paint_patch(&StylePatch::new().set_fg(ink))),
+                    );
                 } else if st
                     .running
                     .as_ref()
@@ -1614,12 +1653,41 @@ impl<'a> CodeEditor<'a> {
                     ..row
                 }
                 .intersection(row);
+                let line_start = global;
+                let line_span_end = global.saturating_add(code_line.len());
+                let in_block = block
+                    .as_ref()
+                    .is_some_and(|range| line_span_end >= range.start && line_start <= range.end);
+                let focused_line = live.contains(StateFlags::FOCUSED) && line_index == cursor.line;
+                let number_style = if self.read_only {
+                    number_ink(ui, FgStep::Faint)
+                } else if focused_line {
+                    number_ink(ui, FgStep::Primary).add_modifier(Modifier::BOLD)
+                } else if in_block {
+                    number_ink(ui, FgStep::Secondary)
+                } else {
+                    number_ink(ui, FgStep::Muted)
+                };
                 let mut digits = [0u8; 20];
                 let number_text = usize_text(line_index.saturating_add(1), &mut digits);
                 let number_width = width(number_text).min(number.width);
+                let pad = number.width.saturating_sub(number_width);
+                let mut digit_x = number.x;
+                for _ in 0..pad {
+                    ui.paint_str(
+                        Rect {
+                            x: digit_x,
+                            width: 1,
+                            ..number
+                        },
+                        " ",
+                        number_style,
+                    );
+                    digit_x = digit_x.saturating_add(1);
+                }
                 ui.paint_str(
                     Rect {
-                        x: number.right().saturating_sub(number_width),
+                        x: digit_x,
                         width: number_width,
                         ..number
                     },
@@ -1658,6 +1726,9 @@ impl<'a> CodeEditor<'a> {
                     {
                         painted = painted
                             .patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Syntax(role))));
+                        if role == SyntaxRole::Keyword {
+                            painted = painted.add_modifier(Modifier::BOLD);
+                        }
                     }
                     if selection
                         .as_ref()
@@ -1705,6 +1776,17 @@ impl<'a> CodeEditor<'a> {
                         painted = painted
                             .patch(ui.paint_patch(&StylePatch::new().set_bg(Role::Syntax(role))));
                     }
+                    if st.editing
+                        && line_index == cursor.line
+                        && !painted
+                            .as_style()
+                            .add_modifier
+                            .contains(Modifier::UNDERLINED)
+                    {
+                        painted = painted.add_modifier(Modifier::UNDERLINED).patch(
+                            ui.paint_patch(&StylePatch::new().set_underline(Role::BorderStrong)),
+                        );
+                    }
                     ui.paint_str(
                         Rect {
                             x,
@@ -1718,11 +1800,25 @@ impl<'a> CodeEditor<'a> {
                     x = x.saturating_add(cells.min(usize::from(u16::MAX)) as u16);
                     column = column.saturating_add(cells);
                 }
+                if st.editing && line_index == cursor.line && x < text_area.right() {
+                    ui.paint_style(
+                        Rect {
+                            x,
+                            y,
+                            width: text_area.right().saturating_sub(x),
+                            height: 1,
+                        },
+                        ui.paint_patch(
+                            &StylePatch::new()
+                                .add(Modifier::UNDERLINED)
+                                .set_underline(Role::BorderStrong),
+                        ),
+                    );
+                }
             }
         }
         *ui.cache::<HighlightCache>(self.id) = cache;
         if st.text().is_empty()
-            && !st.editing
             && let Some(placeholder) = self.placeholder
         {
             let row = first_row(text_area);
@@ -1757,9 +1853,51 @@ impl<'a> CodeEditor<'a> {
                     ui.set_bar_cursor(self.id, Position::new(x, footer.y));
                 }
             }
-        } else if let Some(diagnostic) = nearest_diagnostic(&st.diagnostics, st.cursor_offset()) {
-            let detail_style = style(ui, Part::DETAIL, live).style;
-            ui.paint_str(footer, &diagnostic.message, detail_style);
+        } else {
+            let show_pos = st.editing || live.contains(StateFlags::FOCUSED);
+            let pos = if show_pos {
+                format!(
+                    "ln {}/{} · col {}",
+                    cursor.line.saturating_add(1),
+                    lines.max(1),
+                    cursor.col.saturating_add(1)
+                )
+            } else {
+                String::new()
+            };
+            let right_pad = u16::from(footer.width > 1);
+            let room = footer.width.saturating_sub(right_pad);
+            let pos_width = width(&pos).min(room);
+            let pos_x = footer
+                .right()
+                .saturating_sub(pos_width.saturating_add(right_pad))
+                .max(footer.x);
+            if let Some(diagnostic) = nearest_diagnostic(&st.diagnostics, st.cursor_offset()) {
+                let detail_style = style(ui, Part::DETAIL, live).style;
+                let message_width = pos_x.saturating_sub(footer.x);
+                ui.paint_str(
+                    Rect {
+                        width: message_width,
+                        ..footer
+                    },
+                    &diagnostic.message,
+                    detail_style,
+                );
+            }
+            if pos_width > 0 {
+                let pos_style = style(ui, Part::META, live)
+                    .style
+                    .patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Faint))));
+                ui.paint_str(
+                    Rect {
+                        x: pos_x,
+                        width: pos_width,
+                        ..footer
+                    },
+                    &pos,
+                    pos_style,
+                );
+            }
         }
         if live.contains(StateFlags::FOCUSED)
             && !self.read_only
@@ -2727,6 +2865,56 @@ mod tests {
         assert_eq!(
             visible_cursor(Rect::new(2, 3, 4, 1), 3, 0, 0),
             Some(Position::new(5, 3))
+        );
+    }
+
+    #[test]
+    fn editing_empty_line_keeps_placeholder_underline_and_position() {
+        let theme = Theme::junie();
+        let area = Rect::new(0, 0, 40, 5);
+        let mut runtime = Runtime::new(Stub::default(), theme.clone());
+        let mut buffer = Buffer::empty(area);
+        let mut state = CodeEditorState::new("");
+        state.begin_edit();
+        runtime
+            .draw_scene(area, &mut buffer, |ui, rect| {
+                CodeEditor::new(ID, 5)
+                    .placeholder("Type")
+                    .draw(ui, rect, &state);
+            })
+            .commit_presented();
+        let text = runtime
+            .area_of_part(ID, PartRef::of(Part::TEXT))
+            .expect("text part");
+        let head = buffer
+            .cell(ratatui_core::layout::Position::new(text.x, text.y))
+            .expect("placeholder head");
+        assert_eq!(head.symbol(), "T", "editing still shows the placeholder");
+        assert_eq!(head.fg, theme.color.fg[2]);
+        assert!(head.modifier.contains(Modifier::UNDERLINED));
+        assert_eq!(head.underline_color, theme.color.border_strong);
+        let tail = buffer
+            .cell(ratatui_core::layout::Position::new(
+                text.right().saturating_sub(1),
+                text.y,
+            ))
+            .expect("editing tail");
+        assert_eq!(tail.symbol(), " ");
+        assert!(tail.modifier.contains(Modifier::UNDERLINED));
+        assert_eq!(tail.underline_color, theme.color.border_strong);
+        let mut label = String::new();
+        let footer_y = area.bottom().saturating_sub(1);
+        for x in 0..area.width {
+            label.push_str(
+                buffer
+                    .cell(ratatui_core::layout::Position::new(x, footer_y))
+                    .expect("footer")
+                    .symbol(),
+            );
+        }
+        assert!(
+            label.contains("ln 1/1 · col 1"),
+            "position label missing: {label}"
         );
     }
 }
