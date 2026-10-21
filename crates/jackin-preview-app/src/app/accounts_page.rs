@@ -429,9 +429,7 @@ fn paint_wide(app: &App, ui: &mut Ui<'_>, area: Rect, tree: &Tree) {
     let rows = pane_rows(app, tree, &names);
     let summary = list_summary(app);
     let title = list_title(app, &selection, &summary);
-    let crumb = crumb(app, &selection);
-    let status = header_status(app);
-    let running = format!("{} running", app.world.running_count());
+    let (crumb, status, running, note) = header_parts(app, area, &selection, true);
     let panel = panel_for(app, &selection);
     let buttons: Vec<DrawerButton<'_>> = panel
         .buttons
@@ -460,12 +458,6 @@ fn paint_wide(app: &App, ui: &mut Ui<'_>, area: Rect, tree: &Tree) {
         Selection::Overview => &OVERVIEW_HINTS,
     };
     let overflow = if app.accounts.drawer_open { "" } else { "…" };
-    // The open drawer keeps the header bare: the panel owns the row.
-    let (crumb, status, running, note) = if app.accounts.drawer_open {
-        (String::new(), String::new(), String::new(), String::new())
-    } else {
-        (crumb, status, running, "inside the Construct".to_owned())
-    };
     let page = AccountsDrawer {
         brand: "jackin❯",
         menus: &["File", "Go", "Help"],
@@ -513,8 +505,7 @@ fn paint_narrow(app: &App, ui: &mut Ui<'_>, area: Rect, tree: &Tree) {
         .collect();
     let fact_lines: Vec<DetailLine<'_>> = spans.iter().map(|spans| DetailLine { spans }).collect();
     let (heading, heading_meta) = narrow_heading(app, &selection);
-    let crumb = crumb(app, &selection);
-    let status = header_status(app);
+    let (crumb, status, _running, _note) = header_parts(app, area, &selection, false);
     let summary = format!(
         " {} · {} ▲ · {} ! · {}\u{2013}{} of {} ",
         app.world.accounts.accounts.len(),
@@ -575,6 +566,43 @@ fn register_add_row(ui: &mut Ui<'_>, area: Rect, tree: &Tree) {
         Rect::new(area.x.saturating_add(1).saturating_add(name_x), y, 20, 1),
         termrock::Focusability::Focusable,
     );
+}
+
+/// The header of the page: the crumb, the status, and the cluster.
+///
+/// The crumb carries the app message, so a saved account or a help note stays
+/// visible. The status and the cluster follow it when they still fit; a crumb
+/// that does not fit the header at all drops the whole right side.
+fn header_parts(
+    app: &App,
+    area: Rect,
+    selection: &Selection,
+    cluster: bool,
+) -> (String, String, String, String) {
+    let tree_crumb = crumb(app, selection);
+    let crumb = app.status.clone().unwrap_or(tree_crumb);
+    let status = header_status(app);
+    let note = "inside the Construct".to_owned();
+    let value = format!("{} running", app.world.running_count());
+    // The brand and the menus take the left of the header.
+    let left = 30;
+    let crumb_w = text_width(&crumb);
+    if left + crumb_w + 2 > usize::from(area.width) {
+        return (String::new(), String::new(), String::new(), String::new());
+    }
+    let mut rest = text_width(&status) + 2;
+    if cluster {
+        rest += text_width(&note) + text_width(&value) + 4;
+    }
+    if left + crumb_w + rest > usize::from(area.width) {
+        return (crumb, String::new(), String::new(), String::new());
+    }
+    (crumb, status, value, note)
+}
+
+/// The column width of a text.
+fn text_width(text: &str) -> usize {
+    text.chars().count()
 }
 
 /// The area of the list pane.
@@ -1629,11 +1657,6 @@ fn crumb(app: &App, selection: &Selection) -> String {
 /// A transient app message takes the slot; otherwise the slot shows how many
 /// accounts are refreshing.
 fn header_status(app: &App) -> String {
-    if let Some(status) = app.status.as_deref()
-        && !status.starts_with("Accounts ›")
-    {
-        return status.to_owned();
-    }
     let refreshing = app
         .world
         .accounts
