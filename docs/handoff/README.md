@@ -1,3 +1,18 @@
+# 2026-10-22: showcase false-parity lane complete; Button focus-visible hold owed
+
+Audit record: `docs/audits/2026-10-22-showcase-false-parity-audit.md` (commit `d972ae4` on
+`parity/termrock-visual-baseline`, tip `7e2597710a` + doc). Showcase streams
+(`showcase`, `showcase-ui`, `showcase-demos`, `showcase-data`) hold zero production
+replay mechanisms; the last exact-size screens went out in `7e2597710a` and are proven
+byte-neutral (473 paired scenario captures, identical sets, zero frame diffs).
+
+Owed owner decision: Button pressed-vs-focus-visible. `37f55475f7` added a
+`!PRESSED` guard to the `Always` focus-visibility promotion in
+`crates/termrock-controls/src/button.rs`, so four `button_contract` tests now fail
+(`Set(RuleQuiet)` vs `Set(FocusBar)`); the conformance `control_states` suite is green
+only because the same commit rewrote W02-01 and `components.txt`. Fixing either side
+edits expected output; adjudicate before touching code.
+
 =======
 # 2026-10-23: owner decision owed — danger-token reference package
 
