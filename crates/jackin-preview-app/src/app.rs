@@ -7202,18 +7202,6 @@ impl App {
         area.width == 120 && area.height == 40 && self.paused_launch_scene()
     }
 
-    fn responsive_launch_cockpit(&self, area: Rect) -> bool {
-        self.launch_cockpit_scene() && !(area.width == 120 && area.height == 40)
-    }
-
-    /// Info or cancel is painted on the page, so the live modal layer must not
-    /// dim that page a second time.
-    fn launch_dialog_on_page(&self, area: Rect) -> bool {
-        self.launch_cockpit_scene()
-            && (self.cockpit_info_open || self.cancel_open)
-            && (self.responsive_launch_cockpit(area) || (area.width == 120 && area.height == 40))
-    }
-
     fn paint_cockpit_trace(&self, ui: &mut Ui<'_>, screen: Rect) {
         let Some(label) = self
             .launch
@@ -8783,9 +8771,13 @@ impl App {
             let quit = Self::quit_dialog(&self.quit_body);
             quit.draw(ui, area, &self.quit_state, |_, _| {})
         });
-        // The approved cancel frame is painted on the page. Drawing the live
-        // modal would dim that page after this function returns.
-        if !(self.launch_dialog_on_page(ui.full()) && self.cancel_open) {
+        // Reduced color levels still read the approved cancel frame off the
+        // page until the shared capability ladders reproduce the frozen dialog
+        // inks (ghost 238 and danger 203 at 256, the 16-color card dim).
+        if !(self.launch_cockpit_scene()
+            && self.cancel_open
+            && ui.theme_ref().capability.color != termrock::ColorLevel::TrueColor)
+        {
             let cancel_launch = Self::cockpit_cancel_dialog();
             let _ = ui.layer(CANCEL_LAUNCH_DIALOG, |ui, area| {
                 cancel_launch.draw(ui, area, &self.cancel_state, |_, _| {})
@@ -8798,9 +8790,10 @@ impl App {
                 paint_lines(ui, body, &failure_lines)
             })
         });
-        // The approved info frame is painted on the page. Drawing the live
-        // modal would dim that page after this function returns.
-        if !(self.launch_dialog_on_page(ui.full()) && self.cockpit_info_open) {
+        // The approved info frame is painted on the page until the info dialog
+        // renders through the real layer flow. Drawing the live modal would dim
+        // that page a second time.
+        if !(self.launch_cockpit_scene() && self.cockpit_info_open) {
             let cockpit_info = Self::cockpit_info_dialog();
             let _ = ui.layer(COCKPIT_INFO_DIALOG, |ui, area| {
                 let lines = self.cockpit_info_lines();
@@ -9378,6 +9371,20 @@ impl TuiApp for App {
                 ..full
             },
         );
+        // The paused launch pages are page content: they must land before the
+        // layer pass so dialog chrome maps the real underlay ink.
+        let truecolor = ui.theme_ref().capability.color == termrock::ColorLevel::TrueColor;
+        let presentation_page = full.width == 120
+            && full.height == 40
+            && self.launch_cockpit_scene()
+            && (self.historical_launch_running_frame(full)
+                || self.cockpit_info_open
+                || (self.cancel_open && !truecolor));
+        if presentation_page {
+            self.draw_historical_launch_running(ui);
+        } else if self.launch_cockpit_scene() {
+            launch_cockpit::paint(self, ui);
+        }
         self.draw_layers(ui);
         let historical_manager = self.route == Route::Manager
             && full.width == 120
@@ -9558,54 +9565,37 @@ impl TuiApp for App {
         if self.historical_launch_failure_frame(full) {
             self.draw_historical_launch_failure(ui);
         }
-        if self.historical_launch_running_frame(full) {
-            self.draw_historical_launch_running(ui);
-        } else if self.responsive_launch_cockpit(full) {
-            launch_cockpit::paint(self, ui);
-            if self.cockpit_info_open {
-                let facts = self.info_facts();
-                let shown: Vec<termrock::overlays::info_card::Fact<'_>> = facts
-                    .iter()
-                    .map(|(label, value)| termrock::overlays::info_card::Fact { label, value })
-                    .collect();
-                launch_dialog_plate::paint_info(ui, &shown);
-            } else if self.cancel_open {
-                launch_dialog_plate::paint_cancel(ui);
-            }
-            // The stage-rail column stays undimmed through the dialog, same
-            // as the 120×40 presentation frame. Truecolor and 256 already match.
+        if self.launch_cockpit_scene() && self.cockpit_info_open {
+            let facts = self.info_facts();
+            let shown: Vec<termrock::overlays::info_card::Fact<'_>> = facts
+                .iter()
+                .map(|(label, value)| termrock::overlays::info_card::Fact { label, value })
+                .collect();
+            launch_dialog_plate::paint_info(ui, &shown);
             let reduced = matches!(
                 ui.theme_ref().capability.color,
                 termrock::ColorLevel::Ansi16 | termrock::ColorLevel::Mono
             ) || std::env::var_os("NO_COLOR").is_some();
-            if reduced
-                && (self.cockpit_info_open || self.cancel_open)
-                && let Some(column) = launch_cockpit::stage_rail_left(full)
-            {
+            if full.width == 120 && full.height == 40 {
+                if let Some(column) = launch_cockpit::stage_rail_left(full) {
+                    ui.clear_dim(column);
+                }
+                launch_cockpit::paint_open_footer(ui, false);
+            } else if reduced && let Some(column) = launch_cockpit::stage_rail_left(full) {
                 ui.clear_dim(column);
             }
-        } else if full.width == 120
-            && full.height == 40
-            && self.launch_cockpit_scene()
-            && (self.cockpit_info_open || self.cancel_open)
+        }
+        if self.launch_cockpit_scene()
+            && self.cancel_open
+            && ui.theme_ref().capability.color != termrock::ColorLevel::TrueColor
         {
-            // Every color level starts from the launch-running presentation
-            // frame. The dialog dims that frame and paints on top.
-            self.draw_historical_launch_running(ui);
-            if self.cockpit_info_open {
-                let facts = self.info_facts();
-                let shown: Vec<termrock::overlays::info_card::Fact<'_>> = facts
-                    .iter()
-                    .map(|(label, value)| termrock::overlays::info_card::Fact { label, value })
-                    .collect();
-                launch_dialog_plate::paint_info(ui, &shown);
-            } else {
-                launch_dialog_plate::paint_cancel(ui);
-            }
+            launch_dialog_plate::paint_cancel(ui);
             if let Some(column) = launch_cockpit::stage_rail_left(full) {
                 ui.clear_dim(column);
             }
-            launch_cockpit::paint_open_footer(ui, self.cancel_open);
+            if full.width == 120 && full.height == 40 {
+                launch_cockpit::paint_open_footer(ui, true);
+            }
         }
         if self.cockpit_trace_open {
             self.paint_cockpit_trace(ui, full);
