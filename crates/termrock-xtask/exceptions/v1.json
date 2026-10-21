@@ -162,20 +162,6 @@
       "rule": "OWN-02"
     },
     {
-      "max": 3,
-      "path": "crates/showcase-demos/src/pages/editor.rs",
-      "reason": "Demo-page chrome painters and responsive/pause switches (FIX-005 showcase audit); ratcheted G1 corpus.",
-      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
-      "rule": "OWN-02"
-    },
-    {
-      "max": 1,
-      "path": "crates/showcase-demos/src/pages/editor.rs",
-      "reason": "Demo-page chrome painters and responsive/pause switches (FIX-005 showcase audit); ratcheted G1 corpus.",
-      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
-      "rule": "OWN-11"
-    },
-    {
       "max": 26,
       "path": "crates/showcase-demos/src/pages/forms.rs",
       "reason": "Demo-page chrome painters and responsive/pause switches (FIX-005 showcase audit); ratcheted G1 corpus.",
@@ -547,13 +533,6 @@
       "rule": "OWN-11"
     },
     {
-      "max": 1,
-      "path": "crates/showcase-demos/src/pages/editor.rs",
-      "reason": "Integration re-baseline: the adopted target content is the governance baseline at the split merge; growth beyond this stays gated (recovery ledger R-42).",
-      "review": "Split-merge integration baseline",
-      "rule": "OWN-04"
-    },
-    {
       "max": 8,
       "path": "crates/showcase-demos/src/pages/grid.rs",
       "reason": "Integration re-baseline: the adopted target content is the governance baseline at the split merge; growth beyond this stays gated (recovery ledger R-42).",
@@ -691,6 +670,20 @@
       "path": "tools/refactor-proof/src/json_util.rs",
       "reason": "Integration re-baseline: the adopted target content is the governance baseline at the split merge; growth beyond this stays gated (recovery ledger R-42).",
       "review": "Split-merge integration baseline",
+      "rule": "OWN-14"
+    },
+    {
+      "max": 2,
+      "path": "crates/termrock-shell/src/nav.rs",
+      "reason": "Router invariant: the active tab always exists \u2014 the constructor seeds tab 0, open_tab only pushes, close_tab refuses the last tab. The expects state the invariant next to the code that maintains it (OWN-14 precedent: derived.rs derived-cache slot).",
+      "review": "Q16-style reviewed permanent allowance; coordinator 2026-10-21, independent review still owed with the shell integration review",
+      "rule": "OWN-14"
+    },
+    {
+      "max": 1,
+      "path": "crates/termrock-shell/src/reach.rs",
+      "reason": "testing-feature probe harness only (module is cfg(testing), never compiled into production builds); the expect turns an unreachable runtime rejection into a test failure.",
+      "review": "Coordinator 2026-10-21; reach.rs is test support misclassified as production by path scope",
       "rule": "OWN-14"
     }
   ],
