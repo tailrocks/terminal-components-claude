@@ -1030,7 +1030,8 @@ impl<'a> ContextMenu<'a> {
             StateFlags::FOCUSED
                 | StateFlags::FOCUS_VISIBLE
                 | StateFlags::HOVERED
-                | StateFlags::PRESSED,
+                | StateFlags::PRESSED
+                | StateFlags::ACTIVE,
         );
         if !item.disabled
             && !st.hover_suppressed
