@@ -2909,31 +2909,17 @@ fn first_use_collapsed(w: &World) -> Option<ParityDiscovery> {
     })
 }
 
-/// 80×24 `first-use` plate. Not the 120×40 plate. Later seeks and other sizes stay off it.
-pub fn first_use_80x24_plate(
-    w: &World,
-    width: u16,
-    height: u16,
-    history: bool,
-) -> Option<ParityDiscovery> {
-    if history || width != 80 || height != 24 {
+/// Single-column no-history and history views in the 80–119 band.
+/// The wide card keeps the preview. Other sizes stay off it.
+pub fn first_use_view(w: &World, width: u16, history: bool) -> Option<ParityDiscovery> {
+    if !(80..120).contains(&width) {
         return None;
     }
-    first_use_collapsed(w)
-}
-
-/// 100×30 no-history `first-use` plate. Not the 80×24 plate and not the 120×40 card.
-/// Later seeks and other sizes stay off it. History uses the history plate.
-pub fn first_use_100x30_plate(
-    w: &World,
-    width: u16,
-    height: u16,
-    history: bool,
-) -> Option<ParityDiscovery> {
-    if history || width != 100 || height != 30 {
-        return None;
+    if history {
+        first_use_history_list(w)
+    } else {
+        first_use_collapsed(w)
     }
-    first_use_collapsed(w)
 }
 
 /// No-history `first-use` plate. History does not change this projection.
@@ -3210,34 +3196,6 @@ pub fn first_use_history_tag(w: &World) -> Option<ParityDiscovery> {
     })
 }
 
-/// 80×24 history `first-use` plate. Not the 100×30 plate and not the 120×40 card.
-/// Later seeks and other sizes stay off it. History off stays on the no-history plate.
-pub fn first_use_history_80x24_plate(
-    w: &World,
-    width: u16,
-    height: u16,
-    history: bool,
-) -> Option<ParityDiscovery> {
-    if !history || width != 80 || height != 24 {
-        return None;
-    }
-    first_use_history_list(w)
-}
-
-/// 100×30 history `first-use` plate. Not the 80×24 plate and not the 120×40 card.
-/// Later seeks and other sizes stay off it. History off stays on the no-history plate.
-pub fn first_use_history_100x30_plate(
-    w: &World,
-    width: u16,
-    height: u16,
-    history: bool,
-) -> Option<ParityDiscovery> {
-    if !history || width != 100 || height != 30 {
-        return None;
-    }
-    first_use_history_list(w)
-}
-
 /// Collapsed history rows. The wide card keeps the preview.
 fn first_use_history_list(w: &World) -> Option<ParityDiscovery> {
     let wide = first_use_history_tag(w)?;
@@ -3277,33 +3235,6 @@ pub fn monorepo_root_plate(w: &World, history: bool) -> Option<ParityDiscovery> 
     } else {
         monorepo_root_tag(w)
     }
-}
-
-/// 80×24 `monorepo-root` plate. Not the 120×40 plate. Later seeks and other sizes stay off it.
-pub fn monorepo_root_80x24_plate(
-    w: &World,
-    width: u16,
-    height: u16,
-    history: bool,
-) -> Option<ParityDiscovery> {
-    if history || width != 80 || height != 24 {
-        return None;
-    }
-    monorepo_root_collapsed(w)
-}
-
-/// 100×30 no-history `monorepo-root` plate. Not the 80×24 plate and not the 120×40 card.
-/// Later seeks and other sizes stay off it. History keeps the wide card.
-pub fn monorepo_root_100x30_plate(
-    w: &World,
-    width: u16,
-    height: u16,
-    history: bool,
-) -> Option<ParityDiscovery> {
-    if history || width != 100 || height != 30 {
-        return None;
-    }
-    monorepo_root_collapsed(w)
 }
 
 /// Collapsed no-history rows. The wide card keeps the preview.
@@ -3347,34 +3278,6 @@ fn monorepo_root_collapsed(w: &World) -> Option<ParityDiscovery> {
     })
 }
 
-/// 80×24 history `monorepo-root` plate. Not the 120×40 plate. Later seeks and other sizes stay off it.
-/// History off stays on the no-history plate.
-pub fn monorepo_root_history_80x24_plate(
-    w: &World,
-    width: u16,
-    height: u16,
-    history: bool,
-) -> Option<ParityDiscovery> {
-    if !history || width != 80 || height != 24 {
-        return None;
-    }
-    monorepo_root_history_collapsed(w)
-}
-
-/// 100×30 history `monorepo-root` plate. Not the 80×24 plate and not the 120×40 card.
-/// Later seeks and other sizes stay off it. History off stays on the no-history plate.
-pub fn monorepo_root_history_100x30_plate(
-    w: &World,
-    width: u16,
-    height: u16,
-    history: bool,
-) -> Option<ParityDiscovery> {
-    if !history || width != 100 || height != 30 {
-        return None;
-    }
-    monorepo_root_history_collapsed(w)
-}
-
 /// Collapsed history rows. The wide card keeps the preview.
 /// Narrow label keeps one letter of the tool. `node` would paint `n…`; the frozen row is `s…`.
 fn monorepo_root_history_collapsed(w: &World) -> Option<ParityDiscovery> {
@@ -3414,6 +3317,19 @@ fn monorepo_root_history_collapsed(w: &World) -> Option<ParityDiscovery> {
         actions: Vec::new(),
         suggested_len: wide.suggested_len,
     })
+}
+
+/// Single-column no-history and history views in the 80–119 band.
+/// The wide card keeps the preview. Other sizes stay off it.
+pub fn monorepo_root_view(w: &World, width: u16, history: bool) -> Option<ParityDiscovery> {
+    if !(80..120).contains(&width) {
+        return None;
+    }
+    if history {
+        monorepo_root_history_collapsed(w)
+    } else {
+        monorepo_root_collapsed(w)
+    }
 }
 
 pub fn monorepo_root_tag(w: &World) -> Option<ParityDiscovery> {
@@ -3764,6 +3680,22 @@ pub fn activities_multi_plate(w: &World, history: bool) -> Option<ParityDiscover
         activities_multi_history_tag(w)
     } else {
         activities_multi_tag(w)
+    }
+}
+
+/// Single-column no-history view in the 80–119 band. History has only the mid
+/// view from 100 up; the narrow 80-column band keeps the concept home.
+pub fn activities_multi_view(w: &World, width: u16, history: bool) -> Option<ParityDiscovery> {
+    if !(80..120).contains(&width) {
+        return None;
+    }
+    if !history {
+        return activities_multi_collapsed(w);
+    }
+    if (100..120).contains(&width) {
+        activities_multi_history_collapsed(w)
+    } else {
+        None
     }
 }
 
@@ -4195,47 +4127,6 @@ pub fn activities_multi_history_tag(w: &World) -> Option<ParityDiscovery> {
     })
 }
 
-/// 80×24 no-history `activities-multi` plate. Not the 120×40 plate. Later seeks and other sizes stay off it.
-pub fn activities_multi_80x24_plate(
-    w: &World,
-    width: u16,
-    height: u16,
-    history: bool,
-) -> Option<ParityDiscovery> {
-    if history || width != 80 || height != 24 {
-        return None;
-    }
-    activities_multi_collapsed(w)
-}
-
-/// 100×30 no-history `activities-multi` plate. Not the 80×24 plate and not the 120×40 card.
-/// Later seeks and other sizes stay off it. History uses the history plate.
-pub fn activities_multi_100x30_plate(
-    w: &World,
-    width: u16,
-    height: u16,
-    history: bool,
-) -> Option<ParityDiscovery> {
-    if history || width != 100 || height != 30 {
-        return None;
-    }
-    activities_multi_collapsed(w)
-}
-
-/// 100×30 history `activities-multi` plate. Not the 80×24 plate and not the 120×40 card.
-/// Later seeks and other sizes stay off it. History off stays on the no-history plate.
-pub fn activities_multi_history_100x30_plate(
-    w: &World,
-    width: u16,
-    height: u16,
-    history: bool,
-) -> Option<ParityDiscovery> {
-    if !history || width != 100 || height != 30 {
-        return None;
-    }
-    activities_multi_history_collapsed(w)
-}
-
 /// Collapsed history rows. The wide card keeps the truncated preview.
 /// `node` would paint `n…`; the frozen row is `sqlx-cli`.
 fn activities_multi_history_collapsed(w: &World) -> Option<ParityDiscovery> {
@@ -4317,11 +4208,8 @@ fn activities_multi_collapsed(w: &World) -> Option<ParityDiscovery> {
     })
 }
 
-/// 80×24 `monorepo-child` plate. Not the 120×40 plate. Later seeks and other sizes stay off it.
-pub fn monorepo_child_80x24_plate(w: &World, width: u16, height: u16) -> Option<ParityDiscovery> {
-    if width != 80 || height != 24 {
-        return None;
-    }
+/// Collapsed `monorepo-child` rows. The wide card keeps the preview.
+fn monorepo_child_list(w: &World) -> Option<ParityDiscovery> {
     let wide = monorepo_child_tag(w)?;
     let preview = vec![
         PreviewLine {
@@ -4352,39 +4240,13 @@ pub fn monorepo_child_80x24_plate(w: &World, width: u16, height: u16) -> Option<
     })
 }
 
-/// 100×30 `monorepo-child` plate. Not the 80×24 plate and not the 120×40 card.
-pub fn monorepo_child_100x30_plate(w: &World, width: u16, height: u16) -> Option<ParityDiscovery> {
-    if width != 100 || height != 30 {
-        return None;
+/// Single-column view in the 80–119 band. The wide card keeps the preview.
+pub fn monorepo_child_view(w: &World, width: u16) -> Option<ParityDiscovery> {
+    if (80..120).contains(&width) {
+        monorepo_child_list(w)
+    } else {
+        None
     }
-    let wide = monorepo_child_tag(w)?;
-    let preview = vec![
-        PreviewLine {
-            label: "Runs",
-            value: "'holla disk analyze --artifacts'".into(),
-            tone: PreviewTone::Secondary,
-            wraps: false,
-        },
-        PreviewLine {
-            label: "Scope",
-            value: "here".into(),
-            tone: PreviewTone::Text,
-            wraps: false,
-        },
-        PreviewLine {
-            label: "Risk",
-            value: "read-only".into(),
-            tone: PreviewTone::Meta,
-            wraps: false,
-        },
-    ];
-    Some(ParityDiscovery {
-        lines: wide.lines,
-        preview,
-        preview_meta: String::new(),
-        actions: Vec::new(),
-        suggested_len: wide.suggested_len,
-    })
 }
 
 pub fn monorepo_child_tag(w: &World) -> Option<ParityDiscovery> {
@@ -4577,6 +4439,25 @@ pub fn monorepo_child_tag(w: &World) -> Option<ParityDiscovery> {
     })
 }
 
+/// Single-column view in the 80–119 band. The wide card keeps the preview.
+/// The blocker age is 4 min from 100 up, not the wide card's 41.
+pub fn remote_host_view(w: &World, width: u16) -> Option<ParityDiscovery> {
+    if !(80..120).contains(&width) {
+        return None;
+    }
+    let mut plate = remote_host_list_plate(remote_host_tag(w)?);
+    if (100..120).contains(&width) {
+        for line in &mut plate.lines {
+            if let FinderLine::Row(row) = line
+                && row.title == "Who is blocking the database?"
+            {
+                row.reason = "2 sessions blocked for 4 min".to_owned();
+            }
+        }
+    }
+    Some(plate)
+}
+
 /// No-history `remote-host` plate. Only tick 40.
 pub fn remote_host_tag(w: &World) -> Option<ParityDiscovery> {
     if !remote_host_tag_frame(w) {
@@ -4729,33 +4610,6 @@ pub fn remote_host_tag(w: &World) -> Option<ParityDiscovery> {
         actions: Vec::new(),
         suggested_len: suggested.len(),
     })
-}
-
-/// 80×24 `remote-host` plate. Not the 120×40 plate. Later seeks and other sizes stay off it.
-pub fn remote_host_80x24_plate(w: &World, width: u16, height: u16) -> Option<ParityDiscovery> {
-    if width != 80 || height != 24 {
-        return None;
-    }
-    let wide = remote_host_tag(w)?;
-    Some(remote_host_list_plate(wide))
-}
-
-/// 100×30 `remote-host` plate. Not the 80×24 plate and not the 120×40 card.
-/// Later seeks and other sizes stay off it. The blocker age is 4 min, not the wide card's 41.
-pub fn remote_host_100x30_plate(w: &World, width: u16, height: u16) -> Option<ParityDiscovery> {
-    if width != 100 || height != 30 {
-        return None;
-    }
-    let wide = remote_host_tag(w)?;
-    let mut plate = remote_host_list_plate(wide);
-    for line in &mut plate.lines {
-        if let FinderLine::Row(row) = line
-            && row.title == "Who is blocking the database?"
-        {
-            row.reason = "2 sessions blocked for 4 min".to_owned();
-        }
-    }
-    Some(plate)
 }
 
 fn remote_host_list_plate(wide: ParityDiscovery) -> ParityDiscovery {
@@ -4962,16 +4816,18 @@ pub fn hard_cases_tag(w: &World) -> Option<ParityDiscovery> {
     })
 }
 
-/// 80×24 `docker-cleanup` plate. Not the 120×40 plate. Later seeks and other sizes stay off it.
-pub fn docker_cleanup_80x24_plate(w: &World, width: u16, height: u16) -> Option<ParityDiscovery> {
-    if width != 80 || height != 24 {
-        return None;
-    }
+/// Collapsed `docker-cleanup` rows. The Runs line truncates per width band.
+fn docker_cleanup_list(w: &World, width: u16) -> Option<ParityDiscovery> {
     let wide = docker_cleanup_tag(w)?;
+    let runs = if (80..100).contains(&width) {
+        "docker stop acme-api-1 acme-wor…-1 acme-redis-1"
+    } else {
+        "docker stop acme-api-1 acme-worker-1 acme-sc…acme-db-1 acme-redis-1"
+    };
     let preview = vec![
         PreviewLine {
             label: "Runs",
-            value: "docker stop acme-api-1 acme-wor…-1 acme-redis-1".into(),
+            value: runs.into(),
             tone: PreviewTone::Secondary,
             wraps: false,
         },
@@ -4997,39 +4853,13 @@ pub fn docker_cleanup_80x24_plate(w: &World, width: u16, height: u16) -> Option<
     })
 }
 
-/// 100×30 `docker-cleanup` plate. Not the 80×24 plate and not the 120×40 card.
-pub fn docker_cleanup_100x30_plate(w: &World, width: u16, height: u16) -> Option<ParityDiscovery> {
-    if width != 100 || height != 30 {
-        return None;
+/// Single-column view in the 80–119 band. The wide card keeps the preview.
+pub fn docker_cleanup_view(w: &World, width: u16) -> Option<ParityDiscovery> {
+    if (80..120).contains(&width) {
+        docker_cleanup_list(w, width)
+    } else {
+        None
     }
-    let wide = docker_cleanup_tag(w)?;
-    let preview = vec![
-        PreviewLine {
-            label: "Runs",
-            value: "docker stop acme-api-1 acme-worker-1 acme-sc…acme-db-1 acme-redis-1".into(),
-            tone: PreviewTone::Secondary,
-            wraps: false,
-        },
-        PreviewLine {
-            label: "Scope",
-            value: "on devbox".into(),
-            tone: PreviewTone::Text,
-            wraps: false,
-        },
-        PreviewLine {
-            label: "Risk",
-            value: "destructive".into(),
-            tone: PreviewTone::Danger,
-            wraps: false,
-        },
-    ];
-    Some(ParityDiscovery {
-        lines: wide.lines,
-        preview,
-        preview_meta: String::new(),
-        actions: Vec::new(),
-        suggested_len: wide.suggested_len,
-    })
 }
 
 pub fn docker_cleanup_tag(w: &World) -> Option<ParityDiscovery> {
@@ -6525,35 +6355,59 @@ mod tests {
         world.seek(4_000);
         assert!(first_use_tag(&world).is_none());
         assert!(first_use_plate(&world, false).is_none());
-        assert!(first_use_80x24_plate(&world, 80, 24, false).is_none());
+        assert!(!first_use_tag_frame(&world));
     }
 
     #[test]
-    fn first_use_80x24_plate_is_only_the_narrow_tick_40_frame() {
+    fn first_use_view_bands_are_only_the_paused_tick_40_frame() {
         let mut world = fixtures::world_for(Scenario::FirstUse);
-        assert!(first_use_80x24_plate(&world, 80, 24, false).is_none());
+        assert!(first_use_view(&world, 80, false).is_none());
+        assert!(!first_use_tag_frame(&world));
         world.seek(40);
-        assert!(first_use_80x24_plate(&world, 120, 40, false).is_none());
-        assert!(first_use_80x24_plate(&world, 80, 40, false).is_none());
-        assert!(first_use_80x24_plate(&world, 81, 24, false).is_none());
-        assert!(first_use_80x24_plate(&world, 80, 24, true).is_none());
-        let view = first_use_80x24_plate(&world, 80, 24, false).expect("80x24 plate");
-        assert!(view.lines.iter().any(|line| matches!(
+        assert!(first_use_tag_frame(&world));
+        let narrow = first_use_view(&world, 80, false).expect("narrow view");
+        assert!(narrow.lines.iter().any(|line| matches!(
             line,
             FinderLine::Row(row) if row.selected && row.title == "Analyze disk usage" && row.here
         )));
-        assert_ne!(first_use_plate(&world, false).as_ref(), Some(&view));
-        let runs = view
+        let runs = narrow
             .preview
             .iter()
             .find(|line| line.label == "Runs")
             .unwrap();
         assert_eq!(runs.value, "'holla disk analyze'");
+        assert_ne!(first_use_tag(&world).as_ref(), Some(&narrow));
+        let mid = first_use_view(&world, 100, false).expect("mid view");
+        assert_eq!(mid.lines, narrow.lines);
+        assert_eq!(mid.preview, narrow.preview);
+        assert!(first_use_view(&world, 120, false).is_none());
+        let history = first_use_view(&world, 80, true).expect("narrow history view");
+        assert!(history.lines.iter().any(|line| matches!(
+            line,
+            FinderLine::Row(row) if row.selected && row.title == "Show system resources"
+        )));
+        assert!(history.lines.iter().any(|line| matches!(
+            line,
+            FinderLine::Heading("everything used here is suggested above")
+        )));
+        let runs = history
+            .preview
+            .iter()
+            .find(|line| line.label == "Runs")
+            .unwrap();
+        assert_eq!(runs.value, "'holla snapshot system'");
+        assert_ne!(first_use_history_tag(&world).as_ref(), Some(&history));
+        let mid_history = first_use_view(&world, 100, true).expect("mid history view");
+        assert_eq!(mid_history.lines, history.lines);
+        assert_eq!(mid_history.preview, history.preview);
         world.seek(4_000);
-        assert!(first_use_80x24_plate(&world, 80, 24, false).is_none());
+        assert!(!first_use_tag_frame(&world));
+        assert!(first_use_view(&world, 80, false).is_none());
+        assert!(first_use_view(&world, 100, true).is_none());
         let mut other = fixtures::world_for(Scenario::HardCases);
         other.seek(40);
-        assert!(first_use_80x24_plate(&other, 80, 24, false).is_none());
+        assert!(first_use_view(&other, 80, false).is_none());
+        assert!(first_use_view(&other, 100, true).is_none());
     }
 
     #[test]
@@ -6591,78 +6445,6 @@ mod tests {
     }
 
     #[test]
-    fn first_use_history_80x24_plate_is_only_the_narrow_tick_40_frame() {
-        let mut world = fixtures::world_for(Scenario::FirstUse);
-        assert!(first_use_history_80x24_plate(&world, 80, 24, true).is_none());
-        world.seek(40);
-        assert!(first_use_history_80x24_plate(&world, 120, 40, true).is_none());
-        assert!(first_use_history_80x24_plate(&world, 80, 40, true).is_none());
-        assert!(first_use_history_80x24_plate(&world, 81, 24, true).is_none());
-        assert!(first_use_history_80x24_plate(&world, 100, 30, true).is_none());
-        assert!(first_use_history_80x24_plate(&world, 80, 24, false).is_none());
-        let view =
-            first_use_history_80x24_plate(&world, 80, 24, true).expect("80x24 history plate");
-        assert!(view.lines.iter().any(|line| matches!(
-            line,
-            FinderLine::Row(row) if row.selected && row.title == "Show system resources"
-        )));
-        assert!(view.lines.iter().any(|line| matches!(
-            line,
-            FinderLine::Heading("everything used here is suggested above")
-        )));
-        let runs = view
-            .preview
-            .iter()
-            .find(|line| line.label == "Runs")
-            .unwrap();
-        assert_eq!(runs.value, "'holla snapshot system'");
-        assert_ne!(first_use_history_tag(&world).as_ref(), Some(&view));
-        assert!(first_use_80x24_plate(&world, 80, 24, true).is_none());
-        world.seek(4_000);
-        assert!(first_use_history_80x24_plate(&world, 80, 24, true).is_none());
-        let mut other = fixtures::world_for(Scenario::HardCases);
-        other.seek(40);
-        assert!(first_use_history_80x24_plate(&other, 80, 24, true).is_none());
-    }
-
-    #[test]
-    fn first_use_history_100x30_plate_is_only_the_mid_tick_40_frame() {
-        let mut world = fixtures::world_for(Scenario::FirstUse);
-        assert!(first_use_history_100x30_plate(&world, 100, 30, true).is_none());
-        world.seek(40);
-        assert!(first_use_history_100x30_plate(&world, 80, 24, true).is_none());
-        assert!(first_use_history_100x30_plate(&world, 120, 40, true).is_none());
-        assert!(first_use_history_100x30_plate(&world, 100, 31, true).is_none());
-        assert!(first_use_history_100x30_plate(&world, 99, 30, true).is_none());
-        assert!(first_use_history_100x30_plate(&world, 100, 30, false).is_none());
-        assert!(first_use_100x30_plate(&world, 100, 30, true).is_none());
-        let view =
-            first_use_history_100x30_plate(&world, 100, 30, true).expect("100x30 history plate");
-        assert!(view.lines.iter().any(|line| matches!(
-            line,
-            FinderLine::Row(row) if row.selected && row.title == "Show system resources"
-        )));
-        assert!(view.lines.iter().any(|line| matches!(
-            line,
-            FinderLine::Heading("everything used here is suggested above")
-        )));
-        let runs = view
-            .preview
-            .iter()
-            .find(|line| line.label == "Runs")
-            .expect("runs line");
-        assert_eq!(runs.value, "'holla snapshot system'");
-        assert_eq!(view.preview_meta, "");
-        assert_ne!(first_use_history_tag(&world).as_ref(), Some(&view));
-        assert!(first_use_history_80x24_plate(&world, 100, 30, true).is_none());
-        world.seek(4_000);
-        assert!(first_use_history_100x30_plate(&world, 100, 30, true).is_none());
-        let mut other = fixtures::world_for(Scenario::HardCases);
-        other.seek(40);
-        assert!(first_use_history_100x30_plate(&other, 100, 30, true).is_none());
-    }
-
-    #[test]
     fn monorepo_root_tag_exists_only_at_tick_40() {
         let mut world = fixtures::world_for(Scenario::MonorepoRoot);
         assert!(monorepo_root_tag(&world).is_none());
@@ -6682,40 +6464,64 @@ mod tests {
         world.seek(4_000);
         assert!(monorepo_root_tag(&world).is_none());
         assert!(monorepo_root_plate(&world, false).is_none());
-        assert!(monorepo_root_80x24_plate(&world, 80, 24, false).is_none());
+        assert!(!monorepo_root_tag_frame(&world));
     }
 
     #[test]
-    fn monorepo_root_80x24_plate_is_only_the_narrow_tick_40_frame() {
+    fn monorepo_root_view_bands_are_only_the_paused_tick_40_frame() {
         let mut world = fixtures::world_for(Scenario::MonorepoRoot);
-        assert!(monorepo_root_80x24_plate(&world, 80, 24, false).is_none());
+        assert!(monorepo_root_view(&world, 80, false).is_none());
+        assert!(!monorepo_root_tag_frame(&world));
         world.seek(40);
-        assert!(monorepo_root_80x24_plate(&world, 120, 40, false).is_none());
-        assert!(monorepo_root_80x24_plate(&world, 80, 40, false).is_none());
-        assert!(monorepo_root_80x24_plate(&world, 81, 24, false).is_none());
-        assert!(monorepo_root_80x24_plate(&world, 100, 30, false).is_none());
-        assert!(monorepo_root_80x24_plate(&world, 80, 24, true).is_none());
-        let view = monorepo_root_80x24_plate(&world, 80, 24, false).expect("80x24 plate");
-        assert!(view.lines.iter().any(|line| matches!(
+        assert!(monorepo_root_tag_frame(&world));
+        let narrow = monorepo_root_view(&world, 80, false).expect("narrow view");
+        assert!(narrow.lines.iter().any(|line| matches!(
             line,
             FinderLine::Row(row) if row.selected && row.title.starts_with("Inspect 10 GB")
         )));
-        assert!(view.lines.iter().any(|line| matches!(
+        assert!(narrow.lines.iter().any(|line| matches!(
             line,
             FinderLine::Row(row) if row.title == "Install missing tools · sqlx-cli"
         )));
-        let runs = view
+        let runs = narrow
             .preview
             .iter()
             .find(|line| line.label == "Runs")
             .unwrap();
         assert_eq!(runs.value, "'holla disk analyze --artifacts'");
-        assert_ne!(monorepo_root_tag(&world).as_ref(), Some(&view));
+        assert_ne!(monorepo_root_tag(&world).as_ref(), Some(&narrow));
+        let mid = monorepo_root_view(&world, 100, false).expect("mid view");
+        assert_eq!(mid.lines, narrow.lines);
+        assert_eq!(mid.preview, narrow.preview);
+        assert!(monorepo_root_view(&world, 120, false).is_none());
+        let history = monorepo_root_view(&world, 80, true).expect("narrow history view");
+        assert!(history.lines.iter().any(|line| matches!(
+            line,
+            FinderLine::Row(row) if row.selected && row.title == "Deploy preview"
+        )));
+        assert!(history.lines.iter().any(|line| matches!(
+            line,
+            FinderLine::Row(row) if row.title == "Pull" && row.reason == "used 20 times on mbp"
+        )));
+        let runs = history
+            .preview
+            .iter()
+            .find(|line| line.label == "Runs")
+            .expect("runs line");
+        assert_eq!(runs.value, "tools/deploy-preview.sh --env preview");
+        assert_eq!(history.preview_meta, "");
+        assert_ne!(monorepo_root_history_tag(&world).as_ref(), Some(&history));
+        let mid_history = monorepo_root_view(&world, 100, true).expect("mid history view");
+        assert_eq!(mid_history.lines, history.lines);
+        assert_eq!(mid_history.preview, history.preview);
         world.seek(4_000);
-        assert!(monorepo_root_80x24_plate(&world, 80, 24, false).is_none());
+        assert!(!monorepo_root_tag_frame(&world));
+        assert!(monorepo_root_view(&world, 80, false).is_none());
+        assert!(monorepo_root_view(&world, 100, true).is_none());
         let mut other = fixtures::world_for(Scenario::FirstUse);
         other.seek(40);
-        assert!(monorepo_root_80x24_plate(&other, 80, 24, false).is_none());
+        assert!(monorepo_root_view(&other, 80, false).is_none());
+        assert!(monorepo_root_view(&other, 100, true).is_none());
     }
 
     #[test]
@@ -6755,89 +6561,8 @@ mod tests {
         world.seek(4_000);
         assert!(monorepo_root_history_tag(&world).is_none());
         assert!(monorepo_root_plate(&world, true).is_none());
-        assert!(monorepo_root_history_80x24_plate(&world, 80, 24, true).is_none());
         assert!(!monorepo_root_tag_frame(&world));
-    }
-
-    #[test]
-    fn monorepo_root_history_80x24_plate_is_only_the_narrow_tick_40_frame() {
-        let mut world = fixtures::world_for(Scenario::MonorepoRoot);
-        assert!(monorepo_root_history_80x24_plate(&world, 80, 24, true).is_none());
-        world.seek(40);
-        assert!(monorepo_root_history_80x24_plate(&world, 120, 40, true).is_none());
-        assert!(monorepo_root_history_80x24_plate(&world, 80, 40, true).is_none());
-        assert!(monorepo_root_history_80x24_plate(&world, 81, 24, true).is_none());
-        assert!(monorepo_root_history_80x24_plate(&world, 100, 30, true).is_none());
-        assert!(monorepo_root_history_80x24_plate(&world, 80, 24, false).is_none());
-        let view =
-            monorepo_root_history_80x24_plate(&world, 80, 24, true).expect("80x24 history plate");
-        assert!(view.lines.iter().any(|line| matches!(
-            line,
-            FinderLine::Row(row) if row.selected && row.title == "Deploy preview"
-        )));
-        assert!(view.lines.iter().any(|line| matches!(
-            line,
-            FinderLine::Row(row) if row.title == "Install missing tools · sqlx-cli"
-        )));
-        assert!(view.lines.iter().any(|line| matches!(
-            line,
-            FinderLine::Row(row) if row.title == "Pull" && row.reason == "used 20 times on mbp"
-        )));
-        let runs = view
-            .preview
-            .iter()
-            .find(|line| line.label == "Runs")
-            .expect("runs line");
-        assert_eq!(runs.value, "tools/deploy-preview.sh --env preview");
-        assert_eq!(view.preview_meta, "");
-        assert_ne!(monorepo_root_history_tag(&world).as_ref(), Some(&view));
-        assert!(monorepo_root_80x24_plate(&world, 80, 24, true).is_none());
-        world.seek(4_000);
-        assert!(monorepo_root_history_80x24_plate(&world, 80, 24, true).is_none());
-        let mut other = fixtures::world_for(Scenario::FirstUse);
-        other.seek(40);
-        assert!(monorepo_root_history_80x24_plate(&other, 80, 24, true).is_none());
-    }
-
-    #[test]
-    fn monorepo_root_history_100x30_plate_is_only_the_mid_tick_40_frame() {
-        let mut world = fixtures::world_for(Scenario::MonorepoRoot);
-        assert!(monorepo_root_history_100x30_plate(&world, 100, 30, true).is_none());
-        world.seek(40);
-        assert!(monorepo_root_history_100x30_plate(&world, 80, 24, true).is_none());
-        assert!(monorepo_root_history_100x30_plate(&world, 120, 40, true).is_none());
-        assert!(monorepo_root_history_100x30_plate(&world, 100, 31, true).is_none());
-        assert!(monorepo_root_history_100x30_plate(&world, 99, 30, true).is_none());
-        assert!(monorepo_root_history_100x30_plate(&world, 100, 30, false).is_none());
-        assert!(monorepo_root_100x30_plate(&world, 100, 30, true).is_none());
-        let view = monorepo_root_history_100x30_plate(&world, 100, 30, true)
-            .expect("100x30 history plate");
-        assert!(view.lines.iter().any(|line| matches!(
-            line,
-            FinderLine::Row(row) if row.selected && row.title == "Deploy preview"
-        )));
-        assert!(view.lines.iter().any(|line| matches!(
-            line,
-            FinderLine::Row(row) if row.title == "Install missing tools · sqlx-cli"
-        )));
-        assert!(view.lines.iter().any(|line| matches!(
-            line,
-            FinderLine::Row(row) if row.title == "Pull" && row.reason == "used 20 times on mbp"
-        )));
-        let runs = view
-            .preview
-            .iter()
-            .find(|line| line.label == "Runs")
-            .expect("runs line");
-        assert_eq!(runs.value, "tools/deploy-preview.sh --env preview");
-        assert_eq!(view.preview_meta, "");
-        assert_ne!(monorepo_root_history_tag(&world).as_ref(), Some(&view));
-        assert!(monorepo_root_history_80x24_plate(&world, 100, 30, true).is_none());
-        world.seek(4_000);
-        assert!(monorepo_root_history_100x30_plate(&world, 100, 30, true).is_none());
-        let mut other = fixtures::world_for(Scenario::FirstUse);
-        other.seek(40);
-        assert!(monorepo_root_history_100x30_plate(&other, 100, 30, true).is_none());
+        assert!(!monorepo_root_tag_frame(&world));
     }
 
     #[test]
@@ -6871,36 +6596,32 @@ mod tests {
         world.seek(4_000);
         assert!(activities_multi_tag(&world).is_none());
         assert!(activities_multi_plate(&world, false).is_none());
-        assert!(activities_multi_80x24_plate(&world, 80, 24, false).is_none());
         assert!(!activities_multi_tag_frame(&world));
     }
 
     #[test]
-    fn activities_multi_80x24_plate_is_only_the_narrow_tick_40_frame() {
+    fn activities_multi_view_bands_are_only_the_paused_tick_40_frame() {
         let mut world = fixtures::world_for(Scenario::ActivitiesMulti);
-        assert!(activities_multi_80x24_plate(&world, 80, 24, false).is_none());
+        assert!(activities_multi_view(&world, 80, false).is_none());
+        assert!(!activities_multi_tag_frame(&world));
         world.seek(40);
-        assert!(activities_multi_80x24_plate(&world, 120, 40, false).is_none());
-        assert!(activities_multi_80x24_plate(&world, 80, 40, false).is_none());
-        assert!(activities_multi_80x24_plate(&world, 81, 24, false).is_none());
-        assert!(activities_multi_80x24_plate(&world, 100, 30, false).is_none());
-        assert!(activities_multi_80x24_plate(&world, 80, 24, true).is_none());
-        let view = activities_multi_80x24_plate(&world, 80, 24, false).expect("80x24 plate");
-        assert!(view.lines.iter().any(|line| matches!(
+        assert!(activities_multi_tag_frame(&world));
+        let narrow = activities_multi_view(&world, 80, false).expect("narrow view");
+        assert!(narrow.lines.iter().any(|line| matches!(
             line,
             FinderLine::Row(row) if row.selected && row.title.starts_with("Inspect 10 GB")
         )));
-        assert!(view.lines.iter().any(|line| matches!(
+        assert!(narrow.lines.iter().any(|line| matches!(
             line,
             FinderLine::Row(row) if row.title == "Install missing tools · sqlx-cli"
         )));
-        let runs = view
+        let runs = narrow
             .preview
             .iter()
             .find(|line| line.label == "Runs")
             .unwrap();
         assert_eq!(runs.value, "'holla disk analyze --artifacts'");
-        assert_ne!(activities_multi_tag(&world).as_ref(), Some(&view));
+        assert_ne!(activities_multi_tag(&world).as_ref(), Some(&narrow));
         assert!(activities_multi_tag(&world).is_some_and(|wide| {
             wide.lines.iter().any(|line| {
                 matches!(
@@ -6909,11 +6630,39 @@ mod tests {
                 )
             })
         }));
+        let mid = activities_multi_view(&world, 100, false).expect("mid view");
+        assert_eq!(mid.lines, narrow.lines);
+        assert_eq!(mid.preview, narrow.preview);
+        assert!(activities_multi_view(&world, 120, false).is_none());
+        assert!(activities_multi_view(&world, 80, true).is_none());
+        let mid_history = activities_multi_view(&world, 100, true).expect("mid history view");
+        assert!(mid_history.lines.iter().any(|line| matches!(
+            line,
+            FinderLine::Row(row) if row.selected && row.title == "Deploy preview"
+        )));
+        assert!(mid_history.lines.iter().any(|line| matches!(
+            line,
+            FinderLine::Row(row) if row.title == "Pull" && row.reason == "used 20 times on mbp"
+        )));
+        let runs = mid_history
+            .preview
+            .iter()
+            .find(|line| line.label == "Runs")
+            .expect("runs line");
+        assert_eq!(runs.value, "tools/deploy-preview.sh --env preview");
+        assert_eq!(mid_history.preview_meta, "");
+        assert_ne!(
+            activities_multi_history_tag(&world).as_ref(),
+            Some(&mid_history)
+        );
         world.seek(4_000);
-        assert!(activities_multi_80x24_plate(&world, 80, 24, false).is_none());
+        assert!(!activities_multi_tag_frame(&world));
+        assert!(activities_multi_view(&world, 80, false).is_none());
+        assert!(activities_multi_view(&world, 100, true).is_none());
         let mut other = fixtures::world_for(Scenario::RemoteHost);
         other.seek(40);
-        assert!(activities_multi_80x24_plate(&other, 80, 24, false).is_none());
+        assert!(activities_multi_view(&other, 80, false).is_none());
+        assert!(activities_multi_view(&other, 100, true).is_none());
     }
 
     #[test]
@@ -6969,47 +6718,6 @@ mod tests {
     }
 
     #[test]
-    fn activities_multi_history_100x30_plate_is_only_the_mid_tick_40_frame() {
-        let mut world = fixtures::world_for(Scenario::ActivitiesMulti);
-        assert!(activities_multi_history_100x30_plate(&world, 100, 30, true).is_none());
-        world.seek(40);
-        assert!(activities_multi_history_100x30_plate(&world, 80, 24, true).is_none());
-        assert!(activities_multi_history_100x30_plate(&world, 120, 40, true).is_none());
-        assert!(activities_multi_history_100x30_plate(&world, 100, 31, true).is_none());
-        assert!(activities_multi_history_100x30_plate(&world, 99, 30, true).is_none());
-        assert!(activities_multi_history_100x30_plate(&world, 100, 30, false).is_none());
-        assert!(activities_multi_100x30_plate(&world, 100, 30, true).is_none());
-        let view = activities_multi_history_100x30_plate(&world, 100, 30, true)
-            .expect("100x30 history plate");
-        assert!(view.lines.iter().any(|line| matches!(
-            line,
-            FinderLine::Row(row) if row.selected && row.title == "Deploy preview"
-        )));
-        assert!(view.lines.iter().any(|line| matches!(
-            line,
-            FinderLine::Row(row) if row.title == "Install missing tools · sqlx-cli"
-        )));
-        assert!(view.lines.iter().any(|line| matches!(
-            line,
-            FinderLine::Row(row) if row.title == "Pull" && row.reason == "used 20 times on mbp"
-        )));
-        let runs = view
-            .preview
-            .iter()
-            .find(|line| line.label == "Runs")
-            .expect("runs line");
-        assert_eq!(runs.value, "tools/deploy-preview.sh --env preview");
-        assert_eq!(view.preview_meta, "");
-        assert_ne!(activities_multi_history_tag(&world).as_ref(), Some(&view));
-        assert!(activities_multi_80x24_plate(&world, 80, 24, true).is_none());
-        world.seek(4_000);
-        assert!(activities_multi_history_100x30_plate(&world, 100, 30, true).is_none());
-        let mut other = fixtures::world_for(Scenario::RemoteHost);
-        other.seek(40);
-        assert!(activities_multi_history_100x30_plate(&other, 100, 30, true).is_none());
-    }
-
-    #[test]
     fn monorepo_child_tag_exists_only_at_tick_40() {
         let mut world = fixtures::world_for(Scenario::MonorepoChild);
         assert!(monorepo_child_tag(&world).is_none());
@@ -7043,65 +6751,43 @@ mod tests {
         );
         world.seek(4_000);
         assert!(monorepo_child_tag(&world).is_none());
-        assert!(monorepo_child_80x24_plate(&world, 80, 24).is_none());
+        assert!(!monorepo_child_tag_frame(&world));
     }
 
     #[test]
-    fn monorepo_child_80x24_plate_is_only_the_narrow_tick_40_frame() {
+    fn monorepo_child_view_bands_are_only_the_paused_tick_40_frame() {
         let mut world = fixtures::world_for(Scenario::MonorepoChild);
-        assert!(monorepo_child_80x24_plate(&world, 80, 24).is_none());
+        assert!(monorepo_child_view(&world, 80).is_none());
+        assert!(!monorepo_child_tag_frame(&world));
         world.seek(40);
-        assert!(monorepo_child_80x24_plate(&world, 120, 40).is_none());
-        assert!(monorepo_child_80x24_plate(&world, 80, 40).is_none());
-        assert!(monorepo_child_80x24_plate(&world, 81, 24).is_none());
-        assert!(monorepo_child_80x24_plate(&world, 100, 30).is_none());
-        let view = monorepo_child_80x24_plate(&world, 80, 24).expect("80x24 plate");
-        assert!(view.lines.iter().any(|line| matches!(
+        assert!(monorepo_child_tag_frame(&world));
+        let narrow = monorepo_child_view(&world, 80).expect("narrow view");
+        assert!(narrow.lines.iter().any(|line| matches!(
             line,
             FinderLine::Row(row) if row.selected && row.title.starts_with("Inspect 3 GB")
         )));
-        assert!(view.lines.iter().any(|line| matches!(
+        assert!(narrow.lines.iter().any(|line| matches!(
             line,
             FinderLine::Row(row) if row.title == "Install missing tools · sqlx-cli"
         )));
-        let runs = view
+        let runs = narrow
             .preview
             .iter()
             .find(|line| line.label == "Runs")
             .expect("runs");
         assert_eq!(runs.value, "'holla disk analyze --artifacts'");
-        assert_ne!(monorepo_child_tag(&world).as_ref(), Some(&view));
+        assert_ne!(monorepo_child_tag(&world).as_ref(), Some(&narrow));
+        let mid = monorepo_child_view(&world, 100).expect("mid view");
+        assert_eq!(mid.lines, narrow.lines);
+        assert_eq!(mid.preview, narrow.preview);
+        assert!(monorepo_child_view(&world, 120).is_none());
         world.seek(4_000);
-        assert!(monorepo_child_80x24_plate(&world, 80, 24).is_none());
+        assert!(!monorepo_child_tag_frame(&world));
+        assert!(monorepo_child_view(&world, 80).is_none());
+        assert!(monorepo_child_view(&world, 100).is_none());
         let mut other = fixtures::world_for(Scenario::FirstUse);
         other.seek(40);
-        assert!(monorepo_child_80x24_plate(&other, 80, 24).is_none());
-    }
-
-    #[test]
-    fn monorepo_child_100x30_plate_is_only_the_mid_tick_40_frame() {
-        let mut world = fixtures::world_for(Scenario::MonorepoChild);
-        assert!(monorepo_child_100x30_plate(&world, 100, 30).is_none());
-        world.seek(40);
-        assert!(monorepo_child_100x30_plate(&world, 80, 24).is_none());
-        assert!(monorepo_child_100x30_plate(&world, 120, 40).is_none());
-        assert!(monorepo_child_100x30_plate(&world, 80, 40).is_none());
-        assert!(monorepo_child_100x30_plate(&world, 100, 31).is_none());
-        assert!(monorepo_child_100x30_plate(&world, 99, 30).is_none());
-        let view = monorepo_child_100x30_plate(&world, 100, 30).expect("100x30 plate");
-        let runs = view
-            .preview
-            .iter()
-            .find(|line| line.label == "Runs")
-            .expect("runs");
-        assert_eq!(runs.value, "'holla disk analyze --artifacts'");
-        assert_ne!(monorepo_child_tag(&world).as_ref(), Some(&view));
-        assert!(monorepo_child_80x24_plate(&world, 80, 24).is_some());
-        world.seek(4_000);
-        assert!(monorepo_child_100x30_plate(&world, 100, 30).is_none());
-        let mut other = fixtures::world_for(Scenario::FirstUse);
-        other.seek(40);
-        assert!(monorepo_child_100x30_plate(&other, 100, 30).is_none());
+        assert!(monorepo_child_view(&other, 80).is_none());
     }
 
     #[test]
@@ -7126,24 +6812,22 @@ mod tests {
         assert!(view.preview.iter().any(|line| line.label == "Alt+Enter"));
         world.seek(4_000);
         assert!(docker_cleanup_tag(&world).is_none());
-        assert!(docker_cleanup_80x24_plate(&world, 80, 24).is_none());
+        assert!(!docker_cleanup_tag_frame(&world));
     }
 
     #[test]
-    fn docker_cleanup_80x24_plate_is_only_the_narrow_tick_40_frame() {
+    fn docker_cleanup_view_bands_are_only_the_paused_tick_40_frame() {
         let mut world = fixtures::world_for(Scenario::DockerCleanup);
-        assert!(docker_cleanup_80x24_plate(&world, 80, 24).is_none());
+        assert!(docker_cleanup_view(&world, 80).is_none());
+        assert!(!docker_cleanup_tag_frame(&world));
         world.seek(40);
-        assert!(docker_cleanup_80x24_plate(&world, 120, 40).is_none());
-        assert!(docker_cleanup_80x24_plate(&world, 80, 40).is_none());
-        assert!(docker_cleanup_80x24_plate(&world, 81, 24).is_none());
-        assert!(docker_cleanup_80x24_plate(&world, 100, 30).is_none());
-        let view = docker_cleanup_80x24_plate(&world, 80, 24).expect("80x24 plate");
-        assert!(view.lines.iter().any(|line| matches!(
+        assert!(docker_cleanup_tag_frame(&world));
+        let narrow = docker_cleanup_view(&world, 80).expect("narrow view");
+        assert!(narrow.lines.iter().any(|line| matches!(
             line,
             FinderLine::Row(row) if row.selected && row.title == "Clean Docker completely"
         )));
-        let runs = view
+        let runs = narrow
             .preview
             .iter()
             .find(|line| line.label == "Runs")
@@ -7152,26 +6836,9 @@ mod tests {
             runs.value,
             "docker stop acme-api-1 acme-wor…-1 acme-redis-1"
         );
-        assert_ne!(docker_cleanup_tag(&world).as_ref(), Some(&view));
-        world.seek(4_000);
-        assert!(docker_cleanup_80x24_plate(&world, 80, 24).is_none());
-        let mut other = fixtures::world_for(Scenario::FirstUse);
-        other.seek(40);
-        assert!(docker_cleanup_80x24_plate(&other, 80, 24).is_none());
-    }
-
-    #[test]
-    fn docker_cleanup_100x30_plate_is_only_the_mid_tick_40_frame() {
-        let mut world = fixtures::world_for(Scenario::DockerCleanup);
-        assert!(docker_cleanup_100x30_plate(&world, 100, 30).is_none());
-        world.seek(40);
-        assert!(docker_cleanup_100x30_plate(&world, 80, 24).is_none());
-        assert!(docker_cleanup_100x30_plate(&world, 120, 40).is_none());
-        assert!(docker_cleanup_100x30_plate(&world, 80, 40).is_none());
-        assert!(docker_cleanup_100x30_plate(&world, 100, 31).is_none());
-        assert!(docker_cleanup_100x30_plate(&world, 99, 30).is_none());
-        let view = docker_cleanup_100x30_plate(&world, 100, 30).expect("100x30 plate");
-        let runs = view
+        assert_ne!(docker_cleanup_tag(&world).as_ref(), Some(&narrow));
+        let mid = docker_cleanup_view(&world, 100).expect("mid view");
+        let runs = mid
             .preview
             .iter()
             .find(|line| line.label == "Runs")
@@ -7180,13 +6847,15 @@ mod tests {
             runs.value,
             "docker stop acme-api-1 acme-worker-1 acme-sc…acme-db-1 acme-redis-1"
         );
-        assert_ne!(docker_cleanup_tag(&world).as_ref(), Some(&view));
-        assert!(docker_cleanup_80x24_plate(&world, 80, 24).is_some());
+        assert_ne!(docker_cleanup_tag(&world).as_ref(), Some(&mid));
+        assert!(docker_cleanup_view(&world, 120).is_none());
         world.seek(4_000);
-        assert!(docker_cleanup_100x30_plate(&world, 100, 30).is_none());
+        assert!(!docker_cleanup_tag_frame(&world));
+        assert!(docker_cleanup_view(&world, 80).is_none());
+        assert!(docker_cleanup_view(&world, 100).is_none());
         let mut other = fixtures::world_for(Scenario::FirstUse);
         other.seek(40);
-        assert!(docker_cleanup_100x30_plate(&other, 100, 30).is_none());
+        assert!(docker_cleanup_view(&other, 80).is_none());
     }
 
     #[test]
@@ -7209,7 +6878,6 @@ mod tests {
             && !line.wraps));
         world.seek(4_000);
         assert!(remote_host_tag(&world).is_none());
-        assert!(remote_host_80x24_plate(&world, 80, 24).is_none());
         assert!(!remote_host_tag_frame(&world));
         for scenario in [
             Scenario::ActivitiesMulti,
@@ -7225,75 +6893,45 @@ mod tests {
     }
 
     #[test]
-    fn remote_host_80x24_plate_is_only_the_narrow_tick_40_frame() {
+    fn remote_host_view_bands_are_only_the_paused_tick_40_frame() {
         let mut world = fixtures::world_for(Scenario::RemoteHost);
-        assert!(remote_host_80x24_plate(&world, 80, 24).is_none());
+        assert!(remote_host_view(&world, 80).is_none());
+        assert!(!remote_host_tag_frame(&world));
         world.seek(40);
-        assert!(remote_host_80x24_plate(&world, 120, 40).is_none());
-        assert!(remote_host_80x24_plate(&world, 80, 40).is_none());
-        assert!(remote_host_80x24_plate(&world, 81, 24).is_none());
-        assert!(remote_host_80x24_plate(&world, 100, 30).is_none());
-        assert!(remote_host_100x30_plate(&world, 80, 24).is_none());
-        let view = remote_host_80x24_plate(&world, 80, 24).expect("80x24 plate");
-        assert!(view.lines.iter().any(|line| matches!(
+        assert!(remote_host_tag_frame(&world));
+        let narrow = remote_host_view(&world, 80).expect("narrow view");
+        assert!(narrow.lines.iter().any(|line| matches!(
             line,
             FinderLine::Row(row) if row.selected && row.title == "Follow payments-worker journal"
         )));
-        let runs = view
+        assert!(narrow.lines.iter().all(|line| !matches!(
+            line,
+            FinderLine::Row(row) if row.title == "Who is blocking the database?"
+                && row.reason == "2 sessions blocked for 4 min"
+        )));
+        let runs = narrow
             .preview
             .iter()
             .find(|line| line.label == "Runs")
             .unwrap();
         assert_eq!(runs.value, "journalctl -u payments-worker -f -n 200");
-        assert_ne!(remote_host_tag(&world).as_ref(), Some(&view));
-        world.seek(4_000);
-        assert!(remote_host_80x24_plate(&world, 80, 24).is_none());
-        let mut other = fixtures::world_for(Scenario::HardCases);
-        other.seek(40);
-        assert!(remote_host_80x24_plate(&other, 80, 24).is_none());
-    }
-
-    #[test]
-    fn remote_host_100x30_plate_is_only_the_mid_tick_40_frame() {
-        let mut world = fixtures::world_for(Scenario::RemoteHost);
-        assert!(remote_host_100x30_plate(&world, 100, 30).is_none());
-        world.seek(40);
-        assert!(remote_host_100x30_plate(&world, 80, 24).is_none());
-        assert!(remote_host_100x30_plate(&world, 120, 40).is_none());
-        assert!(remote_host_100x30_plate(&world, 80, 40).is_none());
-        assert!(remote_host_100x30_plate(&world, 100, 31).is_none());
-        assert!(remote_host_100x30_plate(&world, 99, 30).is_none());
-        let view = remote_host_100x30_plate(&world, 100, 30).expect("100x30 plate");
-        assert!(view.lines.iter().any(|line| matches!(
+        assert_ne!(remote_host_tag(&world).as_ref(), Some(&narrow));
+        let mid = remote_host_view(&world, 100).expect("mid view");
+        assert!(mid.lines.iter().any(|line| matches!(
             line,
             FinderLine::Row(row) if row.title == "Who is blocking the database?"
                 && row.reason == "2 sessions blocked for 4 min"
         )));
-        assert!(remote_host_tag(&world).is_some_and(|wide| {
-            wide.lines.iter().any(|line| {
-                matches!(
-                    line,
-                    FinderLine::Row(row) if row.reason == "2 sessions blocked for 41 min"
-                )
-            })
-        }));
-        let runs = view
-            .preview
-            .iter()
-            .find(|line| line.label == "Runs")
-            .expect("runs line");
-        assert_eq!(runs.value, "journalctl -u payments-worker -f -n 200");
-        assert!(view.preview_meta.is_empty());
-        assert_ne!(remote_host_tag(&world).as_ref(), Some(&view));
-        assert_ne!(
-            remote_host_80x24_plate(&world, 80, 24).as_ref(),
-            Some(&view)
-        );
+        assert_ne!(mid.lines, narrow.lines);
+        assert_ne!(remote_host_tag(&world).as_ref(), Some(&mid));
+        assert!(remote_host_view(&world, 120).is_none());
         world.seek(4_000);
-        assert!(remote_host_100x30_plate(&world, 100, 30).is_none());
+        assert!(!remote_host_tag_frame(&world));
+        assert!(remote_host_view(&world, 80).is_none());
+        assert!(remote_host_view(&world, 100).is_none());
         let mut other = fixtures::world_for(Scenario::HardCases);
         other.seek(40);
-        assert!(remote_host_100x30_plate(&other, 100, 30).is_none());
+        assert!(remote_host_view(&other, 80).is_none());
     }
 
     #[test]
