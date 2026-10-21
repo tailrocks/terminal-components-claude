@@ -280,10 +280,12 @@ pub fn keyboard_and_mouse_activation_are_equivalent<C: Conformance>() {
         C::NAME
     );
     let mut mouse = harness::<C>(Fixture::default());
-    assert!(mouse.tab_to(C::control_id()), "{}: cannot focus", C::NAME);
-    if has::<C>(Caps::OVERLAY) && C::activation_id() != C::control_id() {
+    if has::<C>(Caps::OVERLAY)
+        && (C::opener_id() != C::control_id() || C::activation_id() != C::control_id())
+    {
         let _ = open_component_layer::<C>(&mut mouse);
     }
+    assert!(mouse.tab_to(C::control_id()), "{}: cannot focus", C::NAME);
     let area = part_area::<C>(&mouse);
     let (x, y) = centre(area);
     let _ = activate_at::<C>(&mut mouse, x, y);
@@ -297,10 +299,12 @@ pub fn keyboard_and_mouse_activation_are_equivalent<C: Conformance>() {
     );
     for chord in chords {
         let mut kb = harness::<C>(Fixture::default());
-        assert!(kb.tab_to(C::control_id()));
-        if has::<C>(Caps::OVERLAY) && C::activation_id() != C::control_id() {
+        if has::<C>(Caps::OVERLAY)
+            && (C::opener_id() != C::control_id() || C::activation_id() != C::control_id())
+        {
             let _ = open_component_layer::<C>(&mut kb);
         }
+        assert!(kb.tab_to(C::control_id()));
         let _ = kb.key_mod(chord.code, chord.mods);
         let by_key = kb.app_mut().last.take();
         assert_eq!(
@@ -1308,6 +1312,11 @@ fn dynamic_bindings_follow_keymap<C: Conformance>(
     for (action, chord) in dynamic {
         let owner = C::dynamic_binding_id(*action);
         let mut default = harness::<C>(fixture.clone());
+        if has::<C>(Caps::OVERLAY)
+            && (C::opener_id() != C::control_id() || C::activation_id() != C::control_id())
+        {
+            let _ = open_component_layer::<C>(&mut default);
+        }
         assert!(default.tab_to(owner));
         assert!(
             default.key_mod(chord.code, chord.mods).is_consumed(),
@@ -1317,6 +1326,11 @@ fn dynamic_bindings_follow_keymap<C: Conformance>(
 
         let replacement = Chord::key(KeyCode::F(11));
         let mut remapped = harness::<C>(fixture.clone());
+        if has::<C>(Caps::OVERLAY)
+            && (C::opener_id() != C::control_id() || C::activation_id() != C::control_id())
+        {
+            let _ = open_component_layer::<C>(&mut remapped);
+        }
         assert!(remapped.tab_to(owner));
         remapped
             .app_mut()
@@ -1331,6 +1345,11 @@ fn dynamic_bindings_follow_keymap<C: Conformance>(
         );
 
         let mut removed = harness::<C>(fixture.clone());
+        if has::<C>(Caps::OVERLAY)
+            && (C::opener_id() != C::control_id() || C::activation_id() != C::control_id())
+        {
+            let _ = open_component_layer::<C>(&mut removed);
+        }
         assert!(removed.tab_to(owner));
         removed.app_mut().keymap.remove_component(owner, *action);
         assert!(
@@ -1362,10 +1381,12 @@ pub fn bindings_match_handled_keys<C: Conformance>() {
 
         for b in table {
             let mut h = harness::<C>(Fixture::default());
-            assert!(h.tab_to(C::control_id()));
-            if has::<C>(Caps::OVERLAY) && C::activation_id() != C::control_id() {
+            if has::<C>(Caps::OVERLAY)
+                && (C::opener_id() != C::control_id() || C::activation_id() != C::control_id())
+            {
                 let _ = open_component_layer::<C>(&mut h);
             }
+            assert!(h.tab_to(C::control_id()));
             let chord = if let Some(chord) = b.chord {
                 chord
             } else {
@@ -1392,6 +1413,11 @@ pub fn bindings_match_handled_keys<C: Conformance>() {
                 continue;
             }
             let mut h = harness::<C>(Fixture::default());
+            if has::<C>(Caps::OVERLAY)
+                && (C::opener_id() != C::control_id() || C::activation_id() != C::control_id())
+            {
+                let _ = open_component_layer::<C>(&mut h);
+            }
             let owner = dynamic
                 .iter()
                 .find_map(|(action, declared)| {
@@ -1404,9 +1430,6 @@ pub fn bindings_match_handled_keys<C: Conformance>() {
                 })
                 .unwrap_or_else(C::control_id);
             assert!(h.tab_to(owner));
-            if has::<C>(Caps::OVERLAY) && C::activation_id() != C::control_id() {
-                let _ = open_component_layer::<C>(&mut h);
-            }
             let r = h.key_mod(chord.code, chord.mods);
             if r.is_consumed() {
                 let key = termrock::Key {
