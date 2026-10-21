@@ -1,4 +1,4 @@
-use termrock_core::event::KeyCode;
+use termrock_core::event::{KeyCode, KeyModifiers};
 use termrock_core::id::{Id, ItemKey};
 use termrock_core::response::Response;
 use termrock_navigation::{FilterPolicy, SelectionPolicy};
@@ -171,6 +171,22 @@ fn back_tab_wraps_scopes_and_resets_to_first_enabled_match() {
     assert_eq!(h.app().state.scope(SCOPES), Some(ScopeKey::new(0)));
     assert_eq!(h.app().state.query(), "public");
     assert_eq!(h.app().state.cursor(), Some(ItemKey::num(20)));
+    assert!(h.diagnostics().is_empty(), "{:?}", h.diagnostics());
+}
+
+#[test]
+fn shifted_back_tab_is_routed_to_previous_picker_scope() {
+    let mut h = page_with_selection(
+        FilterPolicy::Caller,
+        SelectionPolicy::FirstEnabledOnFilterChange,
+    );
+    let _ = h.type_str("public");
+    assert_eq!(h.app().state.query(), "public");
+
+    let _ = h.key_mod(KeyCode::BackTab, KeyModifiers::SHIFT);
+    assert_eq!(h.app().state.scope(SCOPES), Some(ScopeKey::new(3)));
+    assert_eq!(h.app().state.query(), "public");
+    assert_eq!(h.app().state.cursor(), Some(ItemKey::num(10)));
     assert!(h.diagnostics().is_empty(), "{:?}", h.diagnostics());
 }
 
