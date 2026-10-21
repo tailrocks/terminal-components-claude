@@ -1,5 +1,5 @@
 use std::cell::RefCell;
-use std::time::Instant;
+use std::time::{Duration, Instant};
 
 use termrock::author::{PaintStyle, StyleDefaults};
 use termrock::editors::{
@@ -12,7 +12,7 @@ use termrock::{
     DialogState, EnterPolicy, FgStep, Focusability, Form, FormAction, FormState, FrameRead,
     GlyphRole, Grid, GridAction, GridCell, GridColumnFit, GridEditor, GridGutter, GridModel,
     GridSortIndicator, Id, Intent, ItemKey, KeyCode, KeyMap, KeyModifiers, KeyPhase, LayerId,
-    LayerSize, LayerSpec, Maximized, Modifier, Panel, PanelKind, Part, Phase, PickerAction,
+    LayerSize, LayerSpec, Maximized, Modifier, Moment, Panel, PanelKind, Part, Phase, PickerAction,
     PickerSlotExt, Position, Response, Role, RowDecor, RowTotal, RowUi, ScreenAlign, Size, SortDir,
     Span, SplitAxis, SplitPane, SplitPaneState, StateFlags, StylePatch, Tabs, TabsAction,
     TabsState, TextAction, TextInput, TextInputState, Theme, Tree, TreeAction,
@@ -679,6 +679,10 @@ pub struct TableProApp {
     safe_mode: SafeMode,
     empty_result: ResultGrid,
     status: String,
+    /// When the connect line was armed. `None` after the five-second ttl.
+    connection_status_at: Option<Moment>,
+    /// `connect` has no clock. The next update stamps `connection_status_at`.
+    connection_status_arm: bool,
     quit: bool,
     destructive_intent: Option<DestructiveRequest>,
     destructive_notice: Option<&'static str>,
@@ -808,6 +812,8 @@ impl TableProApp {
             keymap: keymap(),
             empty_result: ResultGrid::empty(),
             status: "Ready · Ctrl+R runs · Ctrl+Q quits".to_owned(),
+            connection_status_at: None,
+            connection_status_arm: false,
             quit: false,
             destructive_intent: None,
             destructive_notice: None,
@@ -1353,6 +1359,7 @@ impl TableProApp {
         self.explorer_pin = 2;
         self.split_state = SplitPaneState::new(25);
         self.status = format!("Connected to {}", connection.name);
+        self.connection_status_arm = true;
         true
     }
 
@@ -1577,12 +1584,7 @@ impl TableProApp {
         }
     }
 
-    fn record_query_status(
-        &mut self,
-        key: TabKey,
-        outcome: &QueryOutcome,
-        elapsed: std::time::Duration,
-    ) {
+    fn record_query_status(&mut self, key: TabKey, outcome: &QueryOutcome, elapsed: Duration) {
         let succeeded = match outcome {
             QueryOutcome::Executed { .. } => true,
             QueryOutcome::Rejected { .. } => false,
@@ -3385,6 +3387,40 @@ pub enum QueryOutcome {
     Denied { summary: String },
 
     Rejected { message: String },
+}
+
+const CONNECTION_STATUS_TTL: Duration = Duration::from_millis(5_000);
+
+impl TableProApp {
+    /// The connect line is success ink. It expires after five seconds, and a
+    /// tick is scheduled so a waiting frame can see the hints take its place.
+    fn roll_connection_status(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+        if self.connection_status_arm {
+            self.connection_status_arm = false;
+            self.connection_status_at = Some(cx.now());
+        }
+        let Some(at) = self.connection_status_at else {
+            return Response::ignored();
+        };
+        let due = at.saturating_add(CONNECTION_STATUS_TTL);
+        if cx.now() >= due {
+            self.connection_status_at = None;
+            return Response::changed();
+        }
+        // A wide row already shows Explain beside the status. Waking at the
+        // deadline would drop the status after the snapshot was taken. A narrow
+        // row hides Explain until the line expires, so that frame has to wake.
+        let view = cx.viewport();
+        if view.width > 0 {
+            let costs = [12u16, 12, 15, 16, 8, 10];
+            let status_width = width(&format!("✓ Connected to {}", self.connection.name));
+            let (keep, _, _) = fit_workbench_hints(&costs, view.width, status_width);
+            if keep < 4 {
+                cx.request_repaint_at(due);
+            }
+        }
+        Response::ignored()
+    }
 }
 
 fn outcome_message(outcome: &QueryOutcome) -> String {
@@ -5245,7 +5281,9 @@ fn install_grid_budgets(area_width: u16, columns: &[(String, ColType)], model: &
         if !places.is_empty() && needed > avail {
             let room = avail.saturating_sub(used).saturating_sub(gap);
             if room >= 4 {
-                let arrow = foreign;
+                // A reference mark needs a cell of its own. Width 6 is the
+                // whole value, the way the baseline grid skips the arrow.
+                let arrow = foreign && room > 6;
                 let text = room.saturating_sub(if arrow { 2 } else { 0 });
                 budgets.push(ColBudget { kind, text, arrow });
                 places.push(ColPlace {
@@ -6365,6 +6403,7 @@ fn paint_grid_header(
                 primary,
             );
         } else {
+            let shown = truncate(name, place.width);
             ui.paint_str(
                 termrock::Rect {
                     x: origin,
@@ -6372,7 +6411,7 @@ fn paint_grid_header(
                     width: place.width,
                     height: 1,
                 },
-                name,
+                &shown,
                 muted,
             );
         }
@@ -6461,15 +6500,24 @@ fn paint_row_numbers(
         };
         let fade = visible.saturating_sub(row);
         let truecolor = ui.theme().capability.color == termrock::ColorLevel::TrueColor;
-        // A two-row body is the whole viewport. Keep it solid, as the baseline does.
-        let edge = visible > 2;
+        // Baseline scroll edges: under four rows stay solid, under twelve
+        // fade only the outer row, and twelve or more fade two rows.
+        let depth = if visible >= 12 {
+            2
+        } else if visible >= 4 {
+            1
+        } else {
+            0
+        };
+        let far = depth >= 1 && (fade == 1 || (origin > 0 && row == 0));
+        let near = depth >= 2 && (fade == 2 || (origin > 0 && row == 1));
         // These two pads sit in the grid body. The edge fade already ran.
         // Repainting them in primary ink hides the bottom (and top) fade.
-        let pad = if truecolor && edge && (fade == 1 || (origin > 0 && row == 0)) {
+        let pad = if truecolor && far {
             gutter.patch(ui.paint_patch(
                 &StylePatch::new().set_fg(Role::Custom(termrock::Color::from_u32(0x008c_8c8c))),
             ))
-        } else if truecolor && edge && (fade == 2 || (origin > 0 && row == 1)) {
+        } else if truecolor && near {
             gutter.patch(ui.paint_patch(
                 &StylePatch::new().set_fg(Role::Custom(termrock::Color::from_u32(0x00cc_cccc))),
             ))
@@ -6494,13 +6542,9 @@ fn paint_row_numbers(
             } else {
                 LEGACY_FAINT
             }
-        } else if edge && origin > 0 && row == 0 {
+        } else if far && (row == 0 || fade == 1) {
             Role::Custom(termrock::Color::from_u32(0x003f_3f3f))
-        } else if edge && origin > 0 && row == 1 {
-            Role::Custom(termrock::Color::from_u32(0x005c_5c5c))
-        } else if edge && fade == 1 {
-            Role::Custom(termrock::Color::from_u32(0x003f_3f3f))
-        } else if edge && fade == 2 {
+        } else if near {
             Role::Custom(termrock::Color::from_u32(0x005c_5c5c))
         } else if cursor == Some(model_row) {
             TAG_PATH_FG
@@ -9604,17 +9648,22 @@ fn hint_group_costs(spans: &[Span<'_>]) -> Vec<u16> {
     costs
 }
 
-/// Keep every hint when the status fits beside them. If the status would cover
-/// a hint other than the last one, drop the status and keep the hints.
+/// Reserve the status first, then keep the hints that fit beside it.
+/// A zero `status_width` means the line has expired, so the hints use the row.
 pub(crate) fn fit_workbench_hints(
     group_costs: &[u16],
     area_width: u16,
     status_width: u16,
 ) -> (usize, bool, bool) {
     const START: u16 = 1;
-    let room_with = area_width
-        .saturating_sub(status_width.saturating_add(3))
-        .saturating_sub(START);
+    let show_status = status_width > 0;
+    let room = if show_status {
+        area_width
+            .saturating_sub(status_width.saturating_add(3))
+            .saturating_sub(START)
+    } else {
+        area_width.saturating_sub(START)
+    };
     let cost = |count: usize| -> u16 {
         group_costs
             .iter()
@@ -9622,19 +9671,11 @@ pub(crate) fn fit_workbench_hints(
             .fold(0u16, |sum, item| sum.saturating_add(*item))
     };
     let all = group_costs.len();
-    if all > 0 && cost(all) <= room_with {
-        return (all, true, false);
-    }
-    let core = all.saturating_sub(1);
-    if core > 0 && cost(core) <= room_with {
-        return (core, true, true);
-    }
-    let room = area_width.saturating_sub(START);
     let mut keep = 0;
     while keep < all && cost(keep.saturating_add(1)) <= room {
         keep = keep.saturating_add(1);
     }
-    (keep, false, keep < all)
+    (keep, show_status, keep < all)
 }
 
 fn paint_fitted_workbench_hints(
@@ -9739,8 +9780,11 @@ fn draw_footer(ui: &mut Ui<'_>, area: termrock::Rect, app: &TableProApp) {
     let base = ui.surface_style();
     let explorer_focused = ui.state(EXPLORER).contains(StateFlags::FOCUSED);
     let empty_query = app.blank_sql() && query_editor_focused(ui, app);
-    let connection_status_width =
-        width(&connection_status_label(app, explorer_focused, empty_query));
+    let connection_status_width = if app.connection_status_at.is_some() {
+        width(&connection_status_label(app, explorer_focused, empty_query))
+    } else {
+        0
+    };
     let mut show_connection_status = true;
     ui.fill(area, base);
     if matches!(app.surface, Surface::QuickSwitcher | Surface::TabListPicker) {
@@ -9775,13 +9819,12 @@ fn draw_footer(ui: &mut Ui<'_>, area: termrock::Rect, app: &TableProApp) {
             && sort_footer(app).is_none()
             && filter_footer(app).is_none()
             && app.screen == Screen::Workbench;
-        let status_label = connection_status_label(app, explorer_focused, empty_query);
         with_footer_spans(app, explorer_focused, |spans| {
             if app.screen == Screen::Connections {
                 paint_connection_hints(ui, area, spans, notice, base);
             } else if status_wins {
                 show_connection_status =
-                    paint_fitted_workbench_hints(ui, area, spans, width(&status_label), base);
+                    paint_fitted_workbench_hints(ui, area, spans, connection_status_width, base);
             } else {
                 ui.paint_spans(area, spans, base);
             }
@@ -9832,7 +9875,10 @@ fn draw_footer(ui: &mut Ui<'_>, area: termrock::Rect, app: &TableProApp) {
             notice,
             base.patch(ui.paint_patch(&StylePatch::new().set_fg(TAG_PATH_FG))),
         );
-    } else if app.screen == Screen::Workbench && show_connection_status {
+    } else if app.screen == Screen::Workbench
+        && show_connection_status
+        && app.connection_status_at.is_some()
+    {
         let right_text = connection_status_label(app, explorer_focused, empty_query);
         let checked = right_text.starts_with('✓');
         let text_width = width(&right_text);
@@ -10176,7 +10222,13 @@ impl TableProApp {
 
 impl App for TableProApp {
     fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
-        let mut response = self.update_filter_editor(cx);
+        let mut response = self.roll_connection_status(cx);
+        // A status tick must not run the grid. Its first update steals focus
+        // onto the result row, and the baseline frame keeps the editor focused.
+        if cx.update_cause() == UpdateCause::Tick {
+            return response;
+        }
+        response |= self.update_filter_editor(cx);
         if cx.update_cause() == UpdateCause::Bootstrap
             && self.screen == Screen::Workbench
             && self.surface == Surface::QuickSwitcher
