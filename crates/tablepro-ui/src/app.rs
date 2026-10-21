@@ -2742,9 +2742,7 @@ impl TableProApp {
         if let Some(prefix) = self.sort_status_prefix() {
             status = format!("{prefix} · {status}");
         }
-        let status_area = viewport.status;
-        let paint_width = status_area.width.saturating_sub(1);
-        if width(&status) > paint_width
+        if !viewport.status_text_fits(width(&status))
             && let Some((head, _)) = status.rsplit_once(" · ")
         {
             // The column window is the clause that drops once a sort prefix lands.
@@ -2761,10 +2759,10 @@ impl TableProApp {
     }
 
     fn draw_result_grid(&self, ui: &mut Ui<'_>, area: termrock::Rect) {
-        if area.height < 2 {
+        let viewport = termrock::grid::solve_grid_viewport(area, &GRID_RESULT_VIEWPORT);
+        if !viewport.has_grid_body() {
             return;
         }
-        let viewport = termrock::grid::solve_grid_viewport(area, &GRID_RESULT_VIEWPORT);
         if let Some((id, grid)) = self.workbench.active_grid() {
             let (columns, count) = Self::column_specs(&grid.columns, grid.model.is_editable());
             draw_painted_grid(
