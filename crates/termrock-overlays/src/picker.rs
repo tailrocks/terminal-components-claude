@@ -46,6 +46,106 @@ pub enum PickerAction {
     QueryChanged,
 }
 
+/// Geometry policy for a picker card.
+///
+/// [`PickerLayout::default`] preserves the original picker sizing and drawing
+/// rules. [`PickerLayout::card`] provides a centered-card policy with explicit
+/// viewport margins and content spacing. Apply `Picker::layout` before
+/// `Picker::max_rows`; the latter overrides the policy row limit. Applying a
+/// layout later replaces earlier picker-level row-limit configuration.
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub struct PickerLayout {
+    legacy: bool,
+    max_rows: Option<u16>,
+    inner_padding_x: Option<u16>,
+    query_gap: u16,
+    footer_rows: Option<u16>,
+    spare_rows: u16,
+    viewport_margin: Option<(u16, u16)>,
+}
+
+impl PickerLayout {
+    const fn compatibility() -> Self {
+        Self {
+            legacy: true,
+            max_rows: None,
+            inner_padding_x: None,
+            query_gap: 1,
+            footer_rows: None,
+            spare_rows: 0,
+            viewport_margin: None,
+        }
+    }
+
+    /// Return a centered card policy with room for a border, query, footer,
+    /// and one additional visible result row.
+    pub const fn card() -> Self {
+        Self {
+            legacy: false,
+            max_rows: Some(12),
+            inner_padding_x: Some(1),
+            query_gap: 1,
+            footer_rows: Some(1),
+            spare_rows: 1,
+            viewport_margin: Some((4, 2)),
+        }
+    }
+
+    #[must_use]
+    pub const fn max_rows(mut self, rows: u16) -> Self {
+        self.max_rows = Some(rows);
+        self
+    }
+
+    #[must_use]
+    pub const fn inner_padding_x(mut self, cells: u16) -> Self {
+        self.inner_padding_x = Some(cells);
+        self.legacy = false;
+        self
+    }
+
+    #[must_use]
+    pub const fn query_gap(mut self, rows: u16) -> Self {
+        self.query_gap = rows;
+        self.legacy = false;
+        self
+    }
+
+    #[must_use]
+    pub const fn footer_rows(mut self, rows: u16) -> Self {
+        self.footer_rows = Some(rows);
+        self.legacy = false;
+        self
+    }
+
+    #[must_use]
+    pub const fn spare_rows(mut self, rows: u16) -> Self {
+        self.spare_rows = rows;
+        self.legacy = false;
+        self
+    }
+
+    #[must_use]
+    pub const fn viewport_margin(mut self, horizontal: u16, vertical: u16) -> Self {
+        self.viewport_margin = Some((horizontal, vertical));
+        self.legacy = false;
+        self
+    }
+
+    const fn margins(self) -> (u16, u16) {
+        match self.viewport_margin {
+            Some(margins) => margins,
+            None => (0, 0),
+        }
+    }
+}
+
+impl Default for PickerLayout {
+    fn default() -> Self {
+        Self::compatibility()
+    }
+}
+
 #[derive(Clone, PartialEq, Eq, Debug, Default)]
 pub struct PickerState {
     list: FilterListState,
@@ -106,6 +206,7 @@ pub struct Picker<'a, T, R = ItemRow> {
     /// Blank rows kept under the list, inside the card.
     tail: u16,
     selection_policy: SelectionPolicy,
+    layout: PickerLayout,
     patch: Option<&'a StylePatch>,
     parts: &'a [(Part, StylePatch)],
     ov: PartStyle<'a>,
@@ -121,6 +222,7 @@ impl<T, R> core::fmt::Debug for Picker<'_, T, R> {
             .field("searchable", &self.searchable)
             .field("requested_size", &self.requested_size)
             .field("align", &self.align)
+            .field("layout", &self.layout)
             .finish_non_exhaustive()
     }
 }
@@ -148,6 +250,7 @@ impl<T> Picker<'_, T, ItemRow> {
             metadata_gap: 1,
             tail: 0,
             selection_policy: SelectionPolicy::Preserve,
+            layout: PickerLayout::compatibility(),
             patch: None,
             parts: &[],
             ov: PartStyle::new(),
@@ -200,6 +303,20 @@ impl<'a, T, R> Picker<'a, T, R> {
     #[must_use]
     pub const fn metadata_gap(mut self, gap: u16) -> Self {
         self.metadata_gap = gap;
+        self
+    }
+
+    /// Use the same layout policy for layer sizing and picker content.
+    #[must_use]
+    pub const fn layout(mut self, layout: PickerLayout) -> Self {
+        self.layout = layout;
+        self
+    }
+
+    /// Set the maximum visible result rows, overriding the current layout policy.
+    #[must_use]
+    pub const fn max_rows(mut self, rows: u16) -> Self {
+        self.layout = self.layout.max_rows(rows);
         self
     }
     /// Keep this many card rows blank under the results.
@@ -292,6 +409,7 @@ impl<'a, T, R> Picker<'a, T, R> {
             metadata_gap: self.metadata_gap,
             tail: self.tail,
             selection_policy: self.selection_policy,
+            layout: self.layout,
             patch: self.patch,
             parts: self.parts,
             ov: self.ov,
@@ -350,21 +468,58 @@ impl<T: AsItem, R: RowFn<T>> Picker<'_, T, R> {
     }
 
     pub fn measured_size(&self, cx: &Cx<'_>, items: &[T]) -> LayerSize {
-        if let Some(size) = self.requested_size {
-            return clamp_fixed_width(size, cx.viewport().width);
-        }
         let d = cx.design();
-        let width = self.width.unwrap_or_else(|| {
+        let rows = items
+            .len()
+            .min(usize::from(
+                self.layout.max_rows.unwrap_or(d.size.popup_max_rows),
+            ))
+            .max(1)
+            .min(usize::from(u16::MAX)) as u16;
+        let viewport = cx.viewport();
+        let (margin_x, margin_y) = self.layout.margins();
+        if let Some(size) = self.requested_size {
+            return match size {
+                LayerSize::Fixed(_, _) if self.layout.legacy => {
+                    clamp_fixed_width(size, viewport.width)
+                }
+                LayerSize::Fixed(width, height) => LayerSize::Fixed(
+                    width.min(viewport.width.saturating_sub(margin_x).max(1)),
+                    height.min(viewport.height.saturating_sub(margin_y).max(1)),
+                ),
+                LayerSize::Fill => LayerSize::Fill,
+                other => other,
+            };
+        }
+        let desired_width = self.width.unwrap_or_else(|| {
             FilterList::<T, BorrowedRow<'_, R>>::semantic_width(items)
                 .clamp(d.size.popup_min_width, d.size.popup_max_width)
         });
-        let rows = items
-            .len()
-            .min(usize::from(d.size.popup_max_rows))
-            .max(1)
-            .min(usize::from(u16::MAX)) as u16;
+        let width = if self.layout.legacy {
+            desired_width
+        } else {
+            desired_width.min(viewport.width.saturating_sub(margin_x).max(1))
+        };
+        if self.layout.legacy {
+            return LayerSize::Fixed(width, rows.saturating_add(5));
+        }
 
-        LayerSize::Fixed(width, rows.saturating_add(5))
+        let query = if self.searchable {
+            1u16.saturating_add(self.layout.query_gap)
+        } else {
+            0
+        };
+        let footer = self.layout.footer_rows.unwrap_or(0);
+        let height = 2u16
+            .saturating_add(1)
+            .saturating_add(query)
+            .saturating_add(rows)
+            .saturating_add(self.layout.spare_rows)
+            .saturating_add(footer);
+        LayerSize::Fixed(
+            width,
+            height.min(viewport.height.saturating_sub(margin_y).max(1)),
+        )
     }
 
     pub fn layer(&self, cx: &Cx<'_>, items: &[T]) -> LayerSpec {
@@ -379,6 +534,7 @@ impl<T: AsItem, R: RowFn<T>> Picker<'_, T, R> {
                 self.align.unwrap_or(ScreenAlign::UpperThird),
             ))
             .initial_focus(self.id)
+            .viewport_margin(self.layout.margins().0, self.layout.margins().1)
             .size(self.measured_size(cx, items))
     }
 
@@ -504,14 +660,14 @@ impl<T: AsItem, R: RowFn<T>> Picker<'_, T, R> {
                     return area;
                 }
 
-                let content = if self.requested_size.is_some() {
-                    Rect {
-                        x: inner.x.saturating_add(1),
-                        width: inner.width.saturating_sub(2),
-                        ..inner
-                    }
-                } else {
-                    inner
+                let padding = self
+                    .layout
+                    .inner_padding_x
+                    .unwrap_or_else(|| if self.requested_size.is_some() { 1 } else { 0 });
+                let content = Rect {
+                    x: inner.x.saturating_add(padding),
+                    width: inner.width.saturating_sub(padding.saturating_mul(2)),
+                    ..inner
                 };
                 if content.is_empty() {
                     return area;
@@ -579,14 +735,29 @@ impl<T: AsItem, R: RowFn<T>> Picker<'_, T, R> {
                     ui.paint_str(hint_area, self.hints, hint_style);
                 }
                 let list = Rect {
-                    y: content
-                        .y
-                        .saturating_add(if self.searchable { 3 } else { 1 }),
+                    y: content.y.saturating_add(if self.layout.legacy {
+                        if self.searchable { 3 } else { 1 }
+                    } else {
+                        1u16.saturating_add(if self.searchable {
+                            1u16.saturating_add(self.layout.query_gap)
+                        } else {
+                            0
+                        })
+                    }),
                     height: content.height.saturating_sub(
-                        match (self.searchable, show_hint) {
-                            (true, true) => 4u16,
-                            (true, false) => 3,
-                            (false, _) => 2,
+                        if self.layout.legacy {
+                            match (self.searchable, show_hint) {
+                                (true, true) => 4u16,
+                                (true, false) => 3,
+                                (false, _) => 2,
+                            }
+                        } else {
+                            1u16.saturating_add(if self.searchable {
+                                1u16.saturating_add(self.layout.query_gap)
+                            } else {
+                                0
+                            })
+                            .saturating_add(self.layout.footer_rows.unwrap_or(u16::from(show_hint)))
                         }
                         .saturating_add(self.tail),
                     ),
