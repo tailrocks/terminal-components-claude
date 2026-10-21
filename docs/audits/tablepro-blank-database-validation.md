@@ -15,3 +15,9 @@ Checks on this source:
 - `cargo fmt --check` is blocked by pre-existing formatting in incoming `crates/jackin-preview-app/src/app.rs:261`; the two owned Rust files were formatted directly with `rustfmt --edition 2024`.
 
 Separate source-established discrepancies remain open: candidate Port accepts `0`, while frozen TablePro accepts only empty or `1..=65535`; candidate `to_connection` does not trim Name like the frozen implementation. Neither was changed here. This source correction and its widget tests do not establish real-CLI or `tuiscotti` parity.
+
+## Strict Clippy test cleanup
+
+At parent integration checkpoint `0354d2d0640b228b5ec9c4613fad13a8a7535a72`, strict Clippy for `tablepro-domain` and `tablepro-ui` exposed only test-code findings in this increment: an emptiness assertion, two `unwrap_err` calls, and one `expect` for the active draft. Replaced these with value equality, structural error-field matching, and a fallible test result. No production behavior or expected output changed.
+
+`rustfmt --check --edition 2024` passes for both edited files. Focused Nextest cases pass: `name_and_port_remain_required_validation_fields` (1/1) and `new_connection_starts_with_blank_identity_fields_and_driver_defaults` (1/1). Strict `cargo clippy -p tablepro-domain -p tablepro-ui --all-targets --no-deps -- -Dwarnings` passes. The full package Nextest run reports 209 passed, 1 failed, 0 skipped; the remaining `tablepro-ui::form_radio::form_radio_enter_submits` fixture is the separately tracked radio mismatch and is not cleared by this lint-only change. Workspace formatting remains blocked by incoming `crates/jackin-preview-app/src/app.rs:261`.

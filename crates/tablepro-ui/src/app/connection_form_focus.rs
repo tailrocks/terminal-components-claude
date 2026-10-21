@@ -6,7 +6,8 @@ mod tests {
     use super::super::TableProApp;
 
     #[test]
-    fn new_connection_starts_with_blank_identity_fields_and_driver_defaults() {
+    fn new_connection_starts_with_blank_identity_fields_and_driver_defaults() -> Result<(), String>
+    {
         let mut harness = Harness::new(TableProApp::default(), Theme::junie(), 120, 40);
         let active_connection = harness.app().workbench().connection.clone();
         let edit_draft = super::super::ConnectionDraft::from_connection(&active_connection);
@@ -18,7 +19,7 @@ mod tests {
         let draft = harness
             .app()
             .connection_draft()
-            .expect("new connection form should own a draft");
+            .ok_or_else(|| "new connection form should own a draft".to_owned())?;
         assert_eq!(draft.name, "");
         assert_eq!(draft.database, "");
         assert_eq!(draft.user, "");
@@ -26,6 +27,7 @@ mod tests {
         assert_eq!(draft.host, "localhost");
         assert_eq!(draft.port, "5432");
         assert_eq!(harness.app().workbench().connection, active_connection);
+        Ok(())
     }
 
     #[test]
