@@ -140,3 +140,15 @@ Next: land the bounded domain validation fix after independent review, keeping N
 ## Parent preservation refs retired (2026-10-21)
 
 The parent Picker and blank-draft WIP refs listed above are fully integrated and were retired with independently reviewed exact-tip atomic leases. Their source and records remain in PR38; do not recreate these completed preservation refs. See the current migration matrix and committed cleanup result. Remaining active component WIPs and the user working-tree backup remain preserved.
+## Visible terminal caret retention (2026-10-21)
+
+- WIP branch: `wip/visible-terminal-cursor-20261021`; implementation commit `df88318015e580cae57130693c651b01b7bedc22`, rebased onto PR #38 source `4f40bb294da89bbfcb2a6716c88a3158427aa0b2` (original isolated base was `5b9cffdb05fb257f7416dc872e24e75865ad98c2`).
+- Scope: additive `TextViewport::caret_when_unfocused`, `ContextMenu::retain_cursor`, and `Ui::retain_visible_owner_cursor`; strict existing retention contract unchanged. Includes a real public-API log-console integration flow, runtime owner/layer/typing tests, and [audit](../audits/visible-terminal-cursor-retention-20261021.md).
+- Verification: scoped nextest 563/563 passed with 3 skipped; scoped Clippy, format check, and diff check passed. A deliberate temporary restoration of legacy cursor-owner selection made `real_editable_overlay_typing_suppresses_retained_owner_when_caret_is_absent` fail by selecting the retained terminal cursor; implementation restoration passed. The paired baseline/CLI capture gate was not run.
+- State: commit is local only because the shared push lock is currently owned by `wip/menu-danger-profile-20261021` at `2026-10-21T02:42:11Z`. No lock was removed or modified.
+- Repository-wide `cargo fmt --check` after the rebase reports one unrelated formatting-only blank line in `crates/jackin-preview-app/src/app.rs:261`; the scoped format check for the three owned packages passes. This WIP did not change that application file.
+- Next: wait for lock release, fetch/rebase normally if the remote WIP exists, rerun focused gates on the exact head, push and verify remote SHA. Obtain independent review before integrating into PR #38. This work does not claim Showcase coverage or four-application parity.
+
+## Visible-caret current integration status (2026-10-21)
+
+The author checkpoint above is historical. Source `8be128f073c19076a2977e349e8732cd74f08821` is already published on its WIP and independently cleared for the additive runtime contract. Parent integration now awaits exact-head checks and PR38 publication. Do not repeat the old lock wait or claim application adoption; the original workspace formatting claim is corrected in the audit.

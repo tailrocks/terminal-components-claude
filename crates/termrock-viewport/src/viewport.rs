@@ -766,6 +766,7 @@ fn shift(p: &mut CellPos, dropped: usize) {
 pub struct TextViewport<'a> {
     id: Id,
     wrap: bool,
+    caret_when_unfocused: bool,
     click_selects_word: bool,
     patch: Option<&'a StylePatch>,
     parts: &'a [(Part, StylePatch)],
@@ -779,6 +780,7 @@ impl fmt::Debug for TextViewport<'_> {
         f.debug_struct("TextViewport")
             .field("id", &self.id)
             .field("wrap", &self.wrap)
+            .field("caret_when_unfocused", &self.caret_when_unfocused)
             .field("click_selects_word", &self.click_selects_word)
             .field("slot", &self.slot.map(|(p, _)| p))
             .finish_non_exhaustive()
@@ -800,6 +802,7 @@ impl<'a> TextViewport<'a> {
         TextViewport {
             id,
             wrap: false,
+            caret_when_unfocused: false,
             click_selects_word: false,
             patch: None,
             parts: &[],
@@ -842,6 +845,16 @@ impl<'a> TextViewport<'a> {
     #[must_use]
     pub const fn wrap(mut self, yes: bool) -> Self {
         self.wrap = yes;
+        self
+    }
+
+    /// Allows this viewport to publish its state caret while it lacks
+    /// keyboard focus. The caret remains subject to follow, selection,
+    /// viewport and clipping rules; this setting does not make the viewport
+    /// editable or change its focus styles.
+    #[must_use]
+    pub const fn caret_when_unfocused(mut self, enabled: bool) -> Self {
+        self.caret_when_unfocused = enabled;
         self
     }
 
@@ -1355,7 +1368,9 @@ impl<'a> TextViewport<'a> {
     ) {
         let (width, offset, line_start) = view;
         let Some(c) = st.caret else { return };
-        if !live.contains(StateFlags::FOCUSED) {
+        if !live.contains(StateFlags::FOCUSED)
+            && !(self.caret_when_unfocused && st.follow() && st.selection().is_none())
+        {
             return;
         }
         let Some(at) = lines.get(c.line) else {
