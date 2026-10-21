@@ -2028,3 +2028,49 @@ OWN-02 and OWN-11 match nothing.
 
 The complete finding list is preserved at
 [docs/audits/evidence/2026-10-21-session-consolidation/ownership-findings-7649ee7ed.txt](../audits/evidence/2026-10-21-session-consolidation/ownership-findings-7649ee7ed.txt).
+
+### Root cause of the mass component-digest failure (bisected)
+
+`git bisect` over `032e9faa3..300a97bf8` with the single case
+`termrock-conformance::render_components render::components::toggle::default`
+gives:
+
+- last good: `1a947a251ab9b045610b47729bf481419b9fca8d` ("docs: freeze reference
+  delivery boundaries and record CI evidence")
+- first bad: `a848219fd858ed6352fcb403b2cc5d5953083e6f` ("fix: match tablepro
+  quick-open and tab list to the baseline", 2026-10-20)
+
+The bisect log is preserved at
+[docs/audits/evidence/2026-10-21-session-consolidation/conformance-digest-bisect.log](../audits/evidence/2026-10-21-session-consolidation/conformance-digest-bisect.log).
+
+What that commit changed in the shared theme:
+
+- `crates/termrock-theme/src/builtin/junie.rs`: the foreground ramp became
+  `fg: [WHITE, WHITE_70, TEXT_MUTED(0x8a8a8a), TEXT_FAINT(0x737373), WHITE_15]`,
+  replacing `WHITE_50 (0x808080)` and `WHITE_30 (0x4d4d4d)`, and the scrollbar
+  track glyph changed from `│` to `┆`.
+- `crates/termrock-theme/src/builtin/mod.rs` and `src/lib.rs`: recipe changes.
+
+Both changes are global: they alter every component that draws muted or faint
+text or a scrollbar, which is why the failure is systemic (≈300 of the 324
+failing cases) rather than component-specific.
+
+Classification: this is a deliberate correction made to match the frozen
+reference (the commit title states it matches the visual baseline for the
+TablePro quick-open and tab-list frames). The recorded component digests in
+`crates/termrock-conformance/tests/baselines/components.txt` were captured at
+the crate split, before that correction, so they are now stale relative to the
+corrected theme.
+
+Required remedy, and what is NOT allowed:
+1. The correction itself must be confirmed against the frozen oracle with the
+   paired runner (frozen capture → frozen replay → candidate comparison) on
+   scenarios that exercise the changed inks and the scrollbar track. Until that
+   comparison exists, the correction is unproven.
+2. If it is confirmed, the component digests are re-blessed as a documented
+   decision (the old digests and the new ones are both preserved, the change is
+   classified against §20.10, and the decision gets independent review) — not
+   silently overwritten from the candidate output.
+3. If the paired comparison contradicts it, the theme correction is reverted
+   instead. Either way, writing new expected values from the candidate without
+   that evidence is not acceptable.
