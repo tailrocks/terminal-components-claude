@@ -1314,7 +1314,11 @@ impl<'a> CodeEditor<'a> {
                         .take_while(|byte| **byte == b' ')
                         .count();
                     if count > 0 {
-                        removals.push(start..start.saturating_add(count));
+                        let removal_start = grapheme_floor_boundary(text, start);
+                        let removal_end = grapheme_ceil_boundary(text, start.saturating_add(count));
+                        if removal_start < removal_end {
+                            removals.push(removal_start..removal_end);
+                        }
                     }
                 }
                 if removals.is_empty() {
@@ -1813,6 +1817,26 @@ fn floor_boundary(text: &str, mut offset: usize) -> usize {
     offset
 }
 
+fn grapheme_floor_boundary(text: &str, offset: usize) -> usize {
+    let offset = offset.min(text.len());
+    graphemes(text)
+        .map(|(at, _)| at)
+        .take_while(|at| *at <= offset)
+        .last()
+        .unwrap_or(0)
+}
+
+fn grapheme_ceil_boundary(text: &str, offset: usize) -> usize {
+    let offset = offset.min(text.len());
+    if offset == text.len() {
+        return text.len();
+    }
+    graphemes(text)
+        .map(|(at, _)| at)
+        .find(|at| *at >= offset)
+        .unwrap_or(text.len())
+}
+
 fn line_col(text: &str, offset: usize) -> (usize, usize) {
     let prefix = text.get(..offset).unwrap_or("");
     let line = prefix.bytes().filter(|b| *b == b'\n').count();
@@ -2013,6 +2037,48 @@ mod tests {
         assert_eq!(runtime.app().state.text(), "λ界suffix");
         assert_eq!(runtime.app().state.cursor_offset(), "λ界".len());
         assert_eq!(runtime.app().state.selected_text(), None);
+    }
+
+    #[test]
+    fn backtab_dedents_attached_combining_graphemes_on_cursor_line() {
+        for (text, indent) in [(" \u{301}value", 1), ("  \u{301}value", 2)] {
+            let (mut runtime, mut buffer) = focused_runtime_with_config(
+                text,
+                false,
+                false,
+                indent,
+                TabBehavior::Indent,
+                EditEntry::Explicit,
+            );
+            runtime.app_mut().state.begin_edit();
+            runtime.app_mut().state.jump_to(text.len());
+            let generation = runtime.app().state.edit_generation;
+
+            let response = send_backtab(&mut runtime, &mut buffer);
+
+            assert!(response.is_changed(), "{text:?}");
+            assert_eq!(runtime.app().state.text(), "value", "{text:?}");
+            assert_eq!(runtime.app().state.cursor_offset(), "value".len());
+            assert_eq!(runtime.app().state.edit_generation, generation + 1);
+        }
+    }
+
+    #[test]
+    fn backtab_dedents_attached_combining_graphemes_in_reversed_selection() {
+        let text = " \u{301}one\n  \u{301}two";
+        let (mut runtime, mut buffer) =
+            focused_runtime_with_entry(text, false, EditEntry::Explicit);
+        runtime.app_mut().state.begin_edit();
+        runtime.app_mut().state.editor.select_range(text.len(), 0);
+        let generation = runtime.app().state.edit_generation;
+
+        let response = send_backtab(&mut runtime, &mut buffer);
+
+        assert!(response.is_changed());
+        assert_eq!(runtime.app().state.text(), "one\ntwo");
+        assert_eq!(runtime.app().state.cursor_offset(), 0);
+        assert_eq!(runtime.app().state.selected_text(), Some("one\ntwo"));
+        assert_eq!(runtime.app().state.edit_generation, generation + 1);
     }
 
     #[test]
