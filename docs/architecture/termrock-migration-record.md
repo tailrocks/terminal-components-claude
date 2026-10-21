@@ -136,7 +136,46 @@ The remaining ignores are journeys, pointer, audit and support checks.
 
 ## Coverage gaps
 
-Filled from the audit round; see the sections below.
+### False-parity inventory (read-only audit, revision `40bc297e5`)
+
+No production code replays a captured ANSI frame and no production code
+loads a snapshot at runtime. The replay is source-level: literal cell tables
+copied from the approved snapshot, and screen-selection guards keyed on
+exact size, fixture label, captured clock or theme identity.
+
+Ranked by remaining false-parity surface:
+
+| Rank | Application | Surface |
+| --- | --- | --- |
+| 1 | jackin-preview | ~20 exact-size/paused/accent-identity screen gates, 4 raw absolute-coordinate screen painters, 6 hard-coded data modules, 2 correction painters, 3 harness-needle hacks, 1 baseline colour index table |
+| 2 | holla | 17 captured-clock (`now_ms() == 80`) tag frames, 14 hard-coded row builders, 13 width-band plate predicates, 18 hard-coded status painters, 2 exact-size plates that replace whole screens |
+| 3 | showcase | 11 literal cell tables (~2200 cells) copied from the approved snapshot or oracle, 11 exact page-rect size branches selecting 4 different screens per page, a `Tick`-timed settled switch |
+| 4 | tablepro | one exact-size focus branch; no cell tables, no clock gates, no snapshot replay |
+
+Root causes, in order of leverage:
+
+- **Captured clock.** `holla-sim` selects screens when `w.now_ms() == 80`,
+  the harness tick. Every holla plate and tag frame hangs off it.
+- **Theme identity as a selector.** Every jackin guard asserts
+  `theme.color.accent == Color::Rgb(0x48, 0xe0, 0x54)` in addition to the
+  size. A colour level is a capability; a specific RGB value is an identity
+  of one frozen capture, and it must never select a screen.
+- **Size as a selector.** Exact `120x40` / `100x30` / `80x24` comparisons
+  select a screen instead of a layout policy. The policy must be a width
+  band or an explicit breakpoint, owned by the layout component.
+- **Harness needles.** `draw_accounts_boot_needle*` paints `jackin❯` at
+  (0,0) only so a test can find it. The brand chip must come from the
+  theme and the real header.
+- **Frozen geometry in the library.**
+  `crates/termrock-feedback/src/manager_split.rs` paints the brand chip and
+  a card at `Rect::new(40, y+2, w-41, 36)` and buttons at row 36 — the
+  120x40 frame baked into a shared component.
+
+What stays: live catalogue data built from the world, legitimate width-band
+breakpoints that still paint real widgets, real terminal-content viewers
+with live scrollback, the demo table data, and the test-only harness code
+under `crates/termrock-e2e`, `crates/termrock-conformance` and
+`crates/visual-harness`.
 
 ## Decisions
 
