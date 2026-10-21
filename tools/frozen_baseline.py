@@ -3491,14 +3491,15 @@ def validate_fresh_plan_document(document: object, *, check_work: Callable[[], N
     return document
 
 
-def _read_self_sealed_plan(path: Path, expected_sha256: str | None = None, *, check_work: Callable[[], None] | None = None) -> dict[str, object]:
+def _read_self_sealed_plan(path: Path, expected_sha256: str | None = None, *, check_work: Callable[[], None] | None = None, directory_fd: int | None = None) -> dict[str, object]:
     if check_work is not None:
         check_work()
     try:
-        before = path.lstat()
+        before = os.stat(path.name, dir_fd=directory_fd, follow_symlinks=False) if directory_fd is not None else path.lstat()
         if stat.S_ISLNK(before.st_mode) or not stat.S_ISREG(before.st_mode):
             raise RunnerError("fresh plan is symlinked or non-regular")
-        fd = os.open(path, os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0))
+        flags = os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0)
+        fd = os.open(path.name, flags, dir_fd=directory_fd) if directory_fd is not None else os.open(path, flags)
         try:
             opened = os.fstat(fd)
             chunks: list[bytes] = []
@@ -3509,7 +3510,7 @@ def _read_self_sealed_plan(path: Path, expected_sha256: str | None = None, *, ch
             after_fd = os.fstat(fd)
         finally:
             os.close(fd)
-        after = path.lstat()
+        after = os.stat(path.name, dir_fd=directory_fd, follow_symlinks=False) if directory_fd is not None else path.lstat()
     except OSError as error:
         raise RunnerError(f"fresh plan cannot be safely read: {error}") from error
     identity = lambda value: (value.st_dev, value.st_ino, value.st_mode, value.st_size, value.st_mtime_ns, value.st_ctime_ns, value.st_nlink)
@@ -3598,6 +3599,42 @@ def _external_commitment_destination(path: Path, root: Path) -> Path:
     return destination
 
 
+def _owned_root_binding(root: Path, *, check_work: Callable[[], None]) -> dict[str, str]:
+    """Bind the caller's root pathname to one real directory identity at a check point."""
+    check_work()
+    lexical = Path(os.path.abspath(os.fspath(root)))
+    try:
+        before = lexical.lstat()
+        if stat.S_ISLNK(before.st_mode) or not stat.S_ISDIR(before.st_mode):
+            raise RunnerError("owned fresh plan root must be a real directory, not a symlink")
+        canonical = lexical.resolve(strict=True)
+        directory_fd, opened = _open_directory_chain(canonical)
+        try:
+            after = lexical.lstat()
+            canonical_after = lexical.resolve(strict=True)
+        finally:
+            os.close(directory_fd)
+    except OSError as error:
+        raise RunnerError(f"owned fresh plan root cannot be safely opened: {error}") from error
+    identity = lambda value: (value.st_dev, value.st_ino, stat.S_IFMT(value.st_mode))
+    if canonical != canonical_after or identity(before) != identity(opened) or identity(opened) != identity(after):
+        raise RunnerError("owned fresh plan root pathname or directory identity changed")
+    check_work()
+    return {
+        "plan_root_path": str(lexical),
+        "plan_root_canonical_path": str(canonical),
+        "plan_root_device": str(opened.st_dev),
+        "plan_root_inode": str(opened.st_ino),
+    }
+
+
+def _check_owned_root_binding(root_binding: dict[str, str], *, check_work: Callable[[], None]) -> Path:
+    current = _owned_root_binding(Path(root_binding["plan_root_path"]), check_work=check_work)
+    if current != root_binding:
+        raise RunnerError("owned fresh plan root pathname or directory identity no longer matches its pinned identity")
+    return Path(root_binding["plan_root_canonical_path"])
+
+
 def _atomic_create_creation_commitment(path: Path, document: dict[str, object], *, check_work: Callable[[], None]) -> str:
     """Publish an immutable external creation anchor before the plan."""
     check_work()
@@ -3679,13 +3716,14 @@ def _read_creation_commitment(path: Path, expected_sha256: str, *, check_work: C
     required = {
         "schema_version", "plan_id", "plan_basename", "plan_creation_sha256",
         "plan_self_sha256", "cohort_id", "frozen_source_sha256", "inventory_sha256",
+        "plan_root_path", "plan_root_canonical_path", "plan_root_device", "plan_root_inode",
     }
     if set(document) != required or any(not isinstance(document.get(key), str) for key in required):
         raise RunnerError("fresh plan creation commitment fields are malformed")
     if not re.fullmatch(r"[0-9a-f]{32}", document["plan_id"]) or any(
         not re.fullmatch(r"[0-9a-f]{64}", document[key])
         for key in ("plan_creation_sha256", "plan_self_sha256", "frozen_source_sha256", "inventory_sha256")
-    ):
+    ) or any(not document[key].isdigit() for key in ("plan_root_device", "plan_root_inode")):
         raise RunnerError("fresh plan creation commitment identity or digest is malformed")
     return document
 
@@ -3728,7 +3766,8 @@ def _read_pending_receipt(path: Path, *, check_work: Callable[[], None]) -> dict
         raise RunnerError("fresh plan pending receipt is not canonical JSON")
     required = {
         "schema_version", "status", "creation_commitment_sha256", "plan_id", "plan_basename",
-        "plan_creation_sha256", "cohort_id",
+        "plan_creation_sha256", "cohort_id", "plan_root_path", "plan_root_canonical_path",
+        "plan_root_device", "plan_root_inode",
     }
     if set(document) != required or any(not isinstance(document.get(key), str) for key in required):
         raise RunnerError("fresh plan pending receipt fields are malformed")
@@ -3747,13 +3786,15 @@ def recover_fresh_plan_creation_anchor(
     execution: PrepareExecution,
 ) -> dict[str, object]:
     """Recover only the original plan creation digest; later full verification remains required."""
-    execution.check_work()
-    root = root.resolve()
+    root_binding = _owned_root_binding(root, check_work=execution.check_work)
+    root = Path(root_binding["plan_root_canonical_path"])
     commitment_path = _external_commitment_destination(commitment_path, root)
     pending_receipt_path = _external_commitment_destination(pending_receipt_path, root)
     if pending_receipt_path == commitment_path:
         raise RunnerError("fresh plan pending receipt and creation commitment must use distinct files")
     commitment = _read_creation_commitment(commitment_path, expected_commitment_sha256, check_work=execution.check_work)
+    if any(commitment.get(key) != value for key, value in root_binding.items()):
+        raise RunnerError("fresh plan creation commitment binds a different root pathname or directory identity")
     pending = _read_pending_receipt(pending_receipt_path, check_work=execution.check_work)
     expected_pending = {
         "schema_version": "termrock-fresh-plan-pending-receipt.v1",
@@ -3763,6 +3804,7 @@ def recover_fresh_plan_creation_anchor(
         "plan_basename": commitment["plan_basename"],
         "plan_creation_sha256": commitment["plan_creation_sha256"],
         "cohort_id": commitment["cohort_id"],
+        **root_binding,
     }
     if pending != expected_pending:
         raise RunnerError("durable fresh plan pending receipt does not match the pinned creation commitment")
@@ -3770,13 +3812,15 @@ def recover_fresh_plan_creation_anchor(
     if not isinstance(creation_sha256, str) or not re.fullmatch(r"[0-9a-f]{64}", creation_sha256):
         raise RunnerError("fresh plan creation commitment plan digest is malformed")
     plan_path = root / FRESH_PLAN_FILE
+    root_fd, root_info = _open_directory_chain(root)
     try:
-        plan_entry = plan_path.lstat()
-    except OSError as error:
-        raise RunnerError(f"fresh plan cannot be safely read: {error}") from error
-    if stat.S_ISLNK(plan_entry.st_mode) or not stat.S_ISREG(plan_entry.st_mode) or plan_entry.st_nlink != 1:
-        raise RunnerError("fresh plan is symlinked, linked, or non-regular")
-    plan = _read_self_sealed_plan(plan_path, creation_sha256, check_work=execution.check_work)
+        if (str(root_info.st_dev), str(root_info.st_ino)) != (root_binding["plan_root_device"], root_binding["plan_root_inode"]):
+            raise RunnerError("fresh plan root directory identity changed before plan read")
+        plan = _read_self_sealed_plan(plan_path, creation_sha256, check_work=execution.check_work, directory_fd=root_fd)
+    finally:
+        os.close(root_fd)
+    if _owned_root_binding(Path(root_binding["plan_root_path"]), check_work=execution.check_work) != root_binding:
+        raise RunnerError("fresh plan root pathname or directory identity changed during recovery")
     expected_fields = {
         "plan_id": plan["plan_id"],
         "plan_basename": FRESH_PLAN_FILE,
@@ -3796,8 +3840,10 @@ def recover_fresh_plan_creation_anchor(
         "product_acceptance": False,
     }
     execution.check_work()
+    _check_owned_root_binding(root_binding, check_work=execution.check_work)
     print(json.dumps(receipt, indent=2), flush=True)
     execution.check_work()
+    _check_owned_root_binding(root_binding, check_work=execution.check_work)
     return receipt
 
 
@@ -3815,6 +3861,7 @@ def create_fresh_plan(
     pending_receipt_path: Path | None = None,
 ) -> dict[str, object]:
     check_work = execution.check_work if execution is not None else None
+    root_binding = _owned_root_binding(root, check_work=check_work) if check_work is not None else None
     if check_work is not None:
         check_work()
     if timeout > FRESH_PLAN_MAX_TIMEOUT:
@@ -3822,6 +3869,9 @@ def create_fresh_plan(
     repo, root, source = paths(repo, root)
     if check_work is not None:
         check_work()
+        if root_binding is None or root != Path(root_binding["plan_root_canonical_path"]):
+            raise RunnerError("owned fresh plan root canonical pathname changed during path resolution")
+        _check_owned_root_binding(root_binding, check_work=check_work)
         verify_source(root, source, check_work=check_work)
         capture = require_capture_eligible_cohort(repo, cohort_id, baseline_bin_dir.resolve(), check_work=check_work)
     else:
@@ -3845,9 +3895,13 @@ def create_fresh_plan(
         advance_budget_seconds=execution.work_budget if execution is not None else FRESH_PLAN_MAX_TIMEOUT,
         execution=execution,
     )
+    if check_work is not None:
+        assert root_binding is not None
+        _check_owned_root_binding(root_binding, check_work=check_work)
     plan_path = root / FRESH_PLAN_FILE
     commitment_sha256: str | None = None
     if check_work is not None:
+        assert root_binding is not None
         if commitment_path is None:
             raise RunnerError("owned fresh-plan creation requires an external --creation-commitment-path")
         if pending_receipt_path is None:
@@ -3861,6 +3915,7 @@ def create_fresh_plan(
         plan_creation_sha256 = hashlib.sha256(plan_bytes).hexdigest()
         commitment = {
             "schema_version": "termrock-fresh-plan-creation-commitment.v1",
+            **root_binding,
             "plan_id": plan["plan_id"],
             "plan_basename": FRESH_PLAN_FILE,
             "plan_creation_sha256": plan_creation_sha256,
@@ -3874,6 +3929,7 @@ def create_fresh_plan(
             "schema_version": "termrock-fresh-plan-pending-receipt.v1",
             "status": "pending-plan-publication",
             "creation_commitment_sha256": commitment_sha256,
+            **root_binding,
             "plan_id": plan["plan_id"],
             "plan_basename": FRESH_PLAN_FILE,
             "plan_creation_sha256": plan_creation_sha256,
@@ -3884,6 +3940,7 @@ def create_fresh_plan(
         if durable_pending != pending:
             raise RunnerError("durable fresh plan pending receipt changed before plan publication")
         check_work()
+        _check_owned_root_binding(root_binding, check_work=check_work)
         print(json.dumps({
             **pending,
             "pending_receipt_path": str(pending_receipt_path),
@@ -3895,8 +3952,21 @@ def create_fresh_plan(
             "product_acceptance": False,
         }, separators=(",", ":"), sort_keys=True), flush=True)
         check_work()
+        _check_owned_root_binding(root_binding, check_work=check_work)
     creation_file_sha256 = _atomic_create_plan(plan_path, plan, check_work=check_work) if check_work is not None else _atomic_create_plan(plan_path, plan)
-    _read_self_sealed_plan(plan_path, creation_file_sha256, check_work=check_work) if check_work is not None else _read_self_sealed_plan(plan_path, creation_file_sha256)
+    if check_work is not None:
+        assert root_binding is not None
+        _check_owned_root_binding(root_binding, check_work=check_work)
+        root_fd, root_info = _open_directory_chain(Path(root_binding["plan_root_canonical_path"]))
+        try:
+            if (str(root_info.st_dev), str(root_info.st_ino)) != (root_binding["plan_root_device"], root_binding["plan_root_inode"]):
+                raise RunnerError("fresh plan root directory identity changed after publication")
+            _read_self_sealed_plan(plan_path, creation_file_sha256, check_work=check_work, directory_fd=root_fd)
+        finally:
+            os.close(root_fd)
+        _check_owned_root_binding(root_binding, check_work=check_work)
+    else:
+        _read_self_sealed_plan(plan_path, creation_file_sha256)
     success_record = {"plan_path": str(plan_path), "plan_sha256": plan["plan_sha256"], "creation_file_sha256": creation_file_sha256, "status": plan["status"], "visual_cases": plan["inventory"]["visual_count"], "ordinary_checks": plan["inventory"]["ordinary_count"]}
     if check_work is not None:
         success_record["creation_commitment_path"] = str(commitment_path)
@@ -3904,8 +3974,11 @@ def create_fresh_plan(
     success = json.dumps(success_record, indent=2)
     if check_work is not None:
         check_work()
+        assert root_binding is not None
+        _check_owned_root_binding(root_binding, check_work=check_work)
         print(success, flush=True)
         check_work()
+        _check_owned_root_binding(root_binding, check_work=check_work)
     else:
         print(success)
     return plan

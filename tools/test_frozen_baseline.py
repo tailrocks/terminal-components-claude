@@ -979,8 +979,11 @@ class RunnerGuards(unittest.TestCase):
         plan_path = root / runner.FRESH_PLAN_FILE
         plan_digest = runner._atomic_create_plan(plan_path, plan)
         commitment_path = root.parent / f"{root.name}-creation.json"
+        with runner.PrepareExecution(20) as execution:
+            root_binding = runner._owned_root_binding(root, check_work=execution.check_work)
         commitment = {
             "schema_version": "termrock-fresh-plan-creation-commitment.v1",
+            **root_binding,
             "plan_id": plan["plan_id"],
             "plan_basename": runner.FRESH_PLAN_FILE,
             "plan_creation_sha256": plan_digest,
@@ -996,6 +999,7 @@ class RunnerGuards(unittest.TestCase):
                 "schema_version": "termrock-fresh-plan-pending-receipt.v1",
                 "status": "pending-plan-publication",
                 "creation_commitment_sha256": commitment_digest,
+                **root_binding,
                 "plan_id": commitment["plan_id"],
                 "plan_basename": commitment["plan_basename"],
                 "plan_creation_sha256": commitment["plan_creation_sha256"],
@@ -1082,6 +1086,46 @@ class RunnerGuards(unittest.TestCase):
             receipt.write_bytes(runner._canonical_document_bytes(altered))
             with runner.PrepareExecution(20) as execution, self.assertRaisesRegex(runner.RunnerError, "durable fresh plan pending receipt"):
                 runner.recover_fresh_plan_creation_anchor(root, plan["cohort"]["cohort_id"], commitment, commitment_digest, pending_receipt_path=Path(f"{commitment}.pending"), execution=execution)
+
+    def test_recovery_rejects_replaced_root_path_symlink_and_directory(self) -> None:
+        for replacement in ("symlink", "directory"):
+            with self.subTest(replacement=replacement), tempfile.TemporaryDirectory() as temp:
+                base = Path(temp).resolve()
+                root = base / "plan-root"
+                root.mkdir()
+                _, commitment, commitment_digest, plan = self._publish_recovery_fixture(root)
+                moved = base / "moved-original-root"
+                root.rename(moved)
+                if replacement == "symlink":
+                    root.symlink_to(moved, target_is_directory=True)
+                else:
+                    root.mkdir()
+                with runner.PrepareExecution(20) as execution, self.assertRaisesRegex(runner.RunnerError, "symlink|identity|pathname"):
+                    runner.recover_fresh_plan_creation_anchor(
+                        root, plan["cohort"]["cohort_id"], commitment, commitment_digest,
+                        pending_receipt_path=Path(f"{commitment}.pending"), execution=execution,
+                    )
+
+    def test_recovery_detects_root_replacement_during_dirfd_plan_read(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            base = Path(temp).resolve()
+            root = base / "plan-root"
+            root.mkdir()
+            _, commitment, commitment_digest, plan = self._publish_recovery_fixture(root)
+            moved = base / "moved-original-root"
+            real_read = runner._read_self_sealed_plan
+
+            def replace_after_read(path: Path, expected_sha256: str, *, check_work=None, directory_fd=None):
+                result = real_read(path, expected_sha256, check_work=check_work, directory_fd=directory_fd)
+                root.rename(moved)
+                root.symlink_to(moved, target_is_directory=True)
+                return result
+
+            with patch.object(runner, "EXPECTED_SCENARIOS", 1), patch.object(runner, "EXPECTED_ORDINARY_TESTS", 2), patch.object(runner, "_read_self_sealed_plan", side_effect=replace_after_read), runner.PrepareExecution(20) as execution, self.assertRaisesRegex(runner.RunnerError, "symlink|root pathname|directory identity"):
+                runner.recover_fresh_plan_creation_anchor(
+                    root, plan["cohort"]["cohort_id"], commitment, commitment_digest,
+                    pending_receipt_path=Path(f"{commitment}.pending"), execution=execution,
+                )
 
     def test_owned_fresh_plan_commitment_and_plan_collisions_preserve_existing_entries(self) -> None:
         for collision in ("file", "symlink"):
@@ -1231,6 +1275,48 @@ class RunnerGuards(unittest.TestCase):
             self.assertEqual(receipt_path.read_bytes(), b"operator-owned receipt")
             self.assertTrue(commitment_path.is_file())
             self.assertFalse((root / runner.FRESH_PLAN_FILE).exists())
+
+    def test_owned_fresh_plan_path_replacement_during_link_emits_no_success(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            base = Path(temp).resolve()
+            root = base / "plan-root"
+            root.mkdir()
+            repo = root / "repo"
+            moved = base / "moved-original-root"
+            commitment_path = base / "creation.json"
+            receipt_path = base / "creation.json.pending"
+            original_publish = runner._atomic_create_plan
+            executions: list[runner.PrepareExecution] = []
+
+            def replace_before_link(path: Path, document: dict[str, object], *, check_work=None) -> str:
+                root.rename(moved)
+                root.symlink_to(moved, target_is_directory=True)
+                return original_publish(path, document, check_work=check_work)
+
+            def inventory(execution, expected):
+                self.assertIsNotNone(execution)
+                executions.append(execution)
+                execution.check_work()
+                return expected
+
+            with ExitStack() as stack:
+                self._owned_plan_cli_inputs(root, stack, executions, inventory)
+                stack.enter_context(patch.object(runner, "_atomic_create_plan", side_effect=replace_before_link))
+                argv = [
+                    "frozen_baseline.py", "--repo", str(repo), "--root", str(root), "fresh-plan",
+                    "--cohort", runner.PREPARE_LIVE_OWNED_COHORT, "--baseline-bin-dir", str(root / "bins"),
+                    "--owned-lifecycle", "--owned-budget", "20",
+                    "--creation-commitment-path", str(commitment_path),
+                    "--pending-receipt-path", str(receipt_path),
+                ]
+                with patch.object(sys, "argv", argv), redirect_stdout(io.StringIO()) as output, redirect_stderr(io.StringIO()) as errors:
+                    self.assertEqual(runner.main(), 1)
+            lines = output.getvalue().splitlines()
+            self.assertEqual(len(lines), 1, errors.getvalue())
+            self.assertEqual(json.loads(lines[0])["status"], "pending-plan-publication")
+            self.assertTrue(root.is_symlink())
+            self.assertTrue((moved / runner.FRESH_PLAN_FILE).is_file())
+            self.assertIn("symlink", errors.getvalue())
 
     def test_owned_fresh_plan_sigterm_during_receipt_fsync_never_links_plan(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
