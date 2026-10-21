@@ -8247,7 +8247,16 @@ impl App {
             && screen.height >= 20
             && (Self::junie_truecolor(theme)
                 || (theme.capability.color == termrock::ColorLevel::Ansi256
-                    && theme.color.accent == termrock::Color::Indexed(78)))
+                    && theme.color.accent == termrock::Color::Indexed(78))
+                || (theme.capability.color == termrock::ColorLevel::Ansi16
+                    && theme.color.accent == termrock::Color::LightGreen)
+                || (theme.capability.color == termrock::ColorLevel::Mono
+                    && theme.color.accent == termrock::Color::Gray
+                    && theme
+                        .color
+                        .surfaces
+                        .first()
+                        .is_some_and(|color| *color == termrock::Color::Black)))
             && self.route == Route::Capsule
             && self.world.scenario == Scenario::CapsuleMulti
             && self.motion == Motion::Paused
@@ -8818,6 +8827,12 @@ impl App {
                 // Card fills keep truecolor RGB. The shell already uses the
                 // baseline index ladder.
                 ui.recolor_rgb(full, capsule_split_view::baseline_256);
+            }
+            if matches!(
+                ui.theme_ref().capability.color,
+                termrock::ColorLevel::Ansi16 | termrock::ColorLevel::Mono
+            ) {
+                capsule_split_view::finish_reduced(ui);
             }
             let cursor = capsule_split_view::search_cursor(full);
             ui.set_undrawn_top_bar_cursor(
@@ -9653,7 +9668,15 @@ impl App {
             ),
             (
                 Part::OVERFLOW,
-                termrock::StylePatch::new().set_fg(termrock::Role::Fg(termrock::FgStep::Faint)),
+                termrock::StylePatch::new().set_fg(
+                    if ui.theme_ref().capability.color == termrock::ColorLevel::Ansi16 {
+                        // 16-color faint is dark gray. The frozen hint ellipsis
+                        // stays the light gray.
+                        termrock::Role::Custom(termrock::Color::Gray)
+                    } else {
+                        termrock::Role::Fg(termrock::FgStep::Faint)
+                    },
+                ),
             ),
         ];
         HintBar::new(APP.sub("capsule-hint"), &layer)
@@ -10990,11 +11013,22 @@ impl TuiApp for App {
             return;
         }
         if self.route == Route::Capsule {
-            let baseline_256 = ui.theme_ref().capability.color == termrock::ColorLevel::Ansi256
-                && self.capsule_agent_picker_frame(ui.theme_ref(), full);
-            if baseline_256 {
+            let picker = self.capsule_agent_picker_frame(ui.theme_ref(), full);
+            let baseline_256 =
+                ui.theme_ref().capability.color == termrock::ColorLevel::Ansi256 && picker;
+            let mono_chip = ui.theme_ref().capability.color == termrock::ColorLevel::Mono && picker;
+            if baseline_256 || mono_chip {
                 let mut theme = ui.theme_ref().clone();
-                capsule_split_view::apply_baseline_ladder(&mut theme);
+                if baseline_256 {
+                    capsule_split_view::apply_baseline_ladder(&mut theme);
+                }
+                if mono_chip {
+                    // The mono palette's overlay is black. The frozen brand
+                    // and active tab keep the dark-gray chip.
+                    if let Some(overlay) = theme.color.surfaces.get_mut(3) {
+                        *overlay = termrock::Color::Indexed(8);
+                    }
+                }
                 ui.with_theme(&theme, |ui| self.draw_capsule_scene(ui, full));
             } else {
                 self.draw_capsule_scene(ui, full);
