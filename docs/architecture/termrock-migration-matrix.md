@@ -1148,3 +1148,6 @@ quick_switcher_contract --test tab_list_contract` 19/19, full
 `cargo nextest run -p tablepro-ui` 194/194 (visual baseline included),
 `cargo clippy --all-targets -p tablepro-ui` exit 0, `cargo fmt --check`
 exit 0.
+
+
+Integrated source correction `b2bcf918cd013874199b4aaaa8d53d9aa43966ab` for the new empty Shell doctest jobs. Independent review confirms eight doc guards, 48 Shell tests, strict checks and metadata with doctests disabled. The new guard mutates only an in-memory fixture derived from real library source. Official isolated 0.1.31 generation removes exactly the two empty Shell doctest tasks, 452 to 450, without changing common task definitions. Review SHA-256 `d3886e975594de180e36283f3399221c4aacdfd412c664ba47b06b0e6b2b4b82` is preserved. The combined source/tool upgrade still requires synchronized regeneration, exact checks, push and remote verification; no hosted CI or product acceptance is claimed.
