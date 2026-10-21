@@ -1666,11 +1666,19 @@ impl App {
             )
             .is_some();
             if collapsed_activities {
-                paint_activities_multi_80x24_band(ui, area);
+                termrock_shell::ScopeBand::new("Here")
+                    .gutter(ACTIVITY_GUTTER)
+                    .chips(ACTIVITY_CHIPS)
+                    .marker(termrock_shell::BandMarker::new("  2\u{203a}", "+2"))
+                    .draw(ui, area);
             } else {
-                paint_here_band(ui, area);
+                termrock_shell::ScopeBand::new("Here").draw(ui, area);
                 if crate::sim::catalogue::activities_multi_tag_frame(&self.world) {
-                    paint_activities_multi_chips(ui, area);
+                    termrock_shell::ScopeBand::new("Here")
+                        .draw_tab(false)
+                        .rule(false)
+                        .chips(ACTIVITY_CHIPS)
+                        .draw(ui, area);
                 }
             }
         }
@@ -2267,7 +2275,11 @@ impl termrock::App for App {
             .regions(area);
         let body = regions.body;
         match self.route {
-            Route::Home => self.home.draw(&self.world, ui, home_body(body)),
+            Route::Home => self.home.draw(
+                &self.world,
+                ui,
+                termrock_shell::FinderGrid::new().area(body),
+            ),
             Route::Plan => {
                 if let Some(plan) = &self.plan {
                     plan.draw(ui, body);
@@ -2354,186 +2366,7 @@ fn too_small(area: Rect) -> bool {
 }
 
 /// Tag body starts under a 4-row header. `body` is the port's y+2 frame, so Home drops two more rows for the band and one for the tag footer gap.
-fn home_body(body: Rect) -> Rect {
-    Rect::new(
-        body.x,
-        body.y.saturating_add(2),
-        body.width,
-        body.height.saturating_sub(3),
-    )
-}
-
 /// Tag `Tabs` active item for this boot: width `1 + label + 2`, bold primary on `#27272a`, accent `━`, then `#3a3a3a` `─`.
-fn paint_here_band(ui: &mut Ui<'_>, area: Rect) {
-    let width = area.width.saturating_sub(2);
-    if width == 0 || area.height < 4 {
-        return;
-    }
-    let x = area.x.saturating_add(1);
-    let y = area.y.saturating_add(2);
-    let tab_w = 1u16
-        .saturating_add(termrock::width("Here"))
-        .saturating_add(2)
-        .min(width);
-    let plate = ui.paint_patch(
-        &StylePatch::new()
-            .set_fg(Role::Fg(FgStep::Primary))
-            .set_bg(Role::Surface(Surface::Overlay))
-            .add(termrock::Modifier::BOLD),
-    );
-    let tab = Rect::new(x, y, tab_w, 1);
-    ui.fill(tab, plate);
-    ui.paint_str(tab, " Here", plate);
-    let accent = ui.paint_patch(&StylePatch::new().set_fg(Role::Accent));
-    // Tag `border_subtle` is `#3a3a3a`. The port `BorderSubtle` token is `#262626`.
-    let rule =
-        ui.paint_patch(&StylePatch::new().set_fg(Role::Custom(Color::Rgb(0x3a, 0x3a, 0x3a))));
-    let under = y.saturating_add(1);
-    ui.paint_str(
-        Rect::new(x, under, tab_w, 1),
-        &"━".repeat(usize::from(tab_w)),
-        accent,
-    );
-    let rest = width.saturating_sub(tab_w);
-    if rest > 0 {
-        ui.paint_str(
-            Rect::new(x.saturating_add(tab_w), under, rest, 1),
-            &"─".repeat(usize::from(rest)),
-            rule,
-        );
-    }
-}
-
-/// Collapsed activities band. Here sits four columns in. Two chips stay off-screen as `2›` and `+2`.
-/// 80×24 and 100×30 share the three visible chips. The markers sit nine columns from the right.
-fn paint_activities_multi_80x24_band(ui: &mut Ui<'_>, area: Rect) {
-    let width = area.width.saturating_sub(2);
-    if width == 0 || area.height < 4 {
-        return;
-    }
-    let x = area.x.saturating_add(1);
-    let y = area.y.saturating_add(2);
-    let gutter = 4u16.min(width);
-    let meta = ui.paint_patch(
-        &StylePatch::new()
-            .set_fg(Role::Custom(Color::Rgb(0x73, 0x73, 0x73)))
-            .remove(termrock::Modifier::BOLD),
-    );
-    ui.paint_str(Rect::new(x, y, gutter, 1), "    ", meta);
-    let tab_w = 1u16
-        .saturating_add(termrock::width("Here"))
-        .saturating_add(2)
-        .min(width.saturating_sub(gutter));
-    let plate = ui.paint_patch(
-        &StylePatch::new()
-            .set_fg(Role::Fg(FgStep::Primary))
-            .set_bg(Role::Surface(Surface::Overlay))
-            .add(termrock::Modifier::BOLD),
-    );
-    let tab_x = x.saturating_add(gutter);
-    let tab = Rect::new(tab_x, y, tab_w, 1);
-    ui.fill(tab, plate);
-    ui.paint_str(tab, " Here", plate);
-    let accent = ui.paint_patch(&StylePatch::new().set_fg(Role::Accent));
-    let rule =
-        ui.paint_patch(&StylePatch::new().set_fg(Role::Custom(Color::Rgb(0x3a, 0x3a, 0x3a))));
-    let under = y.saturating_add(1);
-    ui.paint_str(
-        Rect::new(x, under, gutter, 1),
-        &"─".repeat(usize::from(gutter)),
-        rule,
-    );
-    ui.paint_str(
-        Rect::new(tab_x, under, tab_w, 1),
-        &"━".repeat(usize::from(tab_w)),
-        accent,
-    );
-    let rest = width.saturating_sub(gutter).saturating_sub(tab_w);
-    if rest > 0 {
-        ui.paint_str(
-            Rect::new(tab_x.saturating_add(tab_w), under, rest, 1),
-            &"─".repeat(usize::from(rest)),
-            rule,
-        );
-    }
-    let marker = area.x.saturating_add(area.width.saturating_sub(9));
-    let clip = Rect {
-        x: area.x,
-        y: area.y,
-        width: marker.saturating_sub(area.x),
-        height: area.height,
-    };
-    paint_activities_multi_chips_from(ui, clip, y, tab.right().saturating_add(1));
-    let label = activity_tab_label(ui);
-    ui.paint_str(Rect::new(marker, y, 4, 1), "  2›", label);
-    ui.paint_str(Rect::new(marker.saturating_add(5), y, 2, 1), "+2", label);
-}
-
-/// Tag activity chips sit on the Here row. The live strip stays on the row above for later seeks.
-fn paint_activities_multi_chips(ui: &mut Ui<'_>, area: Rect) {
-    let width = area.width.saturating_sub(2);
-    if width == 0 || area.height < 4 {
-        return;
-    }
-    let y = area.y.saturating_add(2);
-    let tab_w = 1u16
-        .saturating_add(termrock::width("Here"))
-        .saturating_add(2)
-        .min(width);
-    let x = area
-        .x
-        .saturating_add(1)
-        .saturating_add(tab_w)
-        .saturating_add(1);
-    paint_activities_multi_chips_from(ui, area, y, x);
-}
-
-fn activity_tab_label(ui: &Ui<'_>) -> termrock::PaintStyle {
-    ui.paint_patch(
-        &StylePatch::new()
-            .set_fg(Role::Custom(Color::Rgb(0xb3, 0xb3, 0xb3)))
-            .set_bg(Role::Custom(Color::Rgb(0, 0, 0)))
-            .remove(termrock::Modifier::BOLD),
-    )
-}
-
-fn paint_activities_multi_chips_from(ui: &mut Ui<'_>, area: Rect, y: u16, mut x: u16) {
-    let label = activity_tab_label(ui);
-    let chips = [
-        ("frontend dev", "⠋", Color::Rgb(0x48, 0xe0, 0x54)),
-        ("api dev", "⠋", Color::Rgb(0x48, 0xe0, 0x54)),
-        ("api tests", "✓", Color::Rgb(0x3f, 0xb9, 0x50)),
-        (
-            "logs · api worker sched…",
-            "⠋",
-            Color::Rgb(0x48, 0xe0, 0x54),
-        ),
-        ("btm", "○", Color::Rgb(0x8a, 0x8a, 0x8a)),
-    ];
-    for (name, mark, mark_fg) in chips {
-        let text = format!(" {name} ");
-        let text_w = termrock::width(&text);
-        let mark_w = termrock::width(mark);
-        let close_w = termrock::width(" ×  ");
-        let need = text_w.saturating_add(mark_w).saturating_add(close_w);
-        if x.saturating_add(need) > area.right() {
-            break;
-        }
-        ui.paint_str(Rect::new(x, y, text_w, 1), &text, label);
-        x = x.saturating_add(text_w);
-        let mark_style = ui.paint_patch(
-            &StylePatch::new()
-                .set_fg(Role::Custom(mark_fg))
-                .set_bg(Role::Custom(Color::Rgb(0, 0, 0)))
-                .remove(termrock::Modifier::BOLD),
-        );
-        ui.paint_str(Rect::new(x, y, mark_w, 1), mark, mark_style);
-        x = x.saturating_add(mark_w);
-        ui.paint_str(Rect::new(x, y, close_w, 1), " ×  ", label);
-        x = x.saturating_add(close_w).saturating_add(1);
-    }
-}
-
 #[cfg(test)]
 #[expect(
     clippy::unwrap_used,
@@ -6264,5 +6097,289 @@ mod independent_draw_review {
         }
         debug_assert!(count > 0, "no cases drawn");
         let _ = count;
+    }
+}
+
+/// The gutter of the activity band: the meta column before the scope tab.
+const ACTIVITY_GUTTER: &str = "    ";
+
+/// The chips of the activity band.
+const ACTIVITY_CHIPS: &[termrock_shell::BandChip] = &[
+    termrock_shell::BandChip::new("frontend dev", "\u{280b}", Color::Rgb(0x48, 0xe0, 0x54)),
+    termrock_shell::BandChip::new("api dev", "\u{280b}", Color::Rgb(0x48, 0xe0, 0x54)),
+    termrock_shell::BandChip::new("api tests", "\u{2713}", Color::Rgb(0x3f, 0xb9, 0x50)),
+    termrock_shell::BandChip::new(
+        "logs \u{b7} api worker sched\u{2026}",
+        "\u{280b}",
+        Color::Rgb(0x48, 0xe0, 0x54),
+    ),
+    termrock_shell::BandChip::new("btm", "\u{25cb}", Color::Rgb(0x8a, 0x8a, 0x8a)),
+];
+
+/// The pre-refactor scope band painters.
+///
+/// They are the frozen oracle of the shared scope band: the frame-equality
+/// test renders these and the shared [`termrock_shell::ScopeBand`] and
+/// compares the cells, the styles and the cursor.
+#[cfg(test)]
+mod band_legacy {
+    use termrock::{Color, FgStep, Rect, Role, StylePatch, Surface, Ui};
+
+    fn paint_here_band(ui: &mut Ui<'_>, area: Rect) {
+        let width = area.width.saturating_sub(2);
+        if width == 0 || area.height < 4 {
+            return;
+        }
+        let x = area.x.saturating_add(1);
+        let y = area.y.saturating_add(2);
+        let tab_w = 1u16
+            .saturating_add(termrock::width("Here"))
+            .saturating_add(2)
+            .min(width);
+        let plate = ui.paint_patch(
+            &StylePatch::new()
+                .set_fg(Role::Fg(FgStep::Primary))
+                .set_bg(Role::Surface(Surface::Overlay))
+                .add(termrock::Modifier::BOLD),
+        );
+        let tab = Rect::new(x, y, tab_w, 1);
+        ui.fill(tab, plate);
+        ui.paint_str(tab, " Here", plate);
+        let accent = ui.paint_patch(&StylePatch::new().set_fg(Role::Accent));
+        // Tag `border_subtle` is `#3a3a3a`. The port `BorderSubtle` token is `#262626`.
+        let rule =
+            ui.paint_patch(&StylePatch::new().set_fg(Role::Custom(Color::Rgb(0x3a, 0x3a, 0x3a))));
+        let under = y.saturating_add(1);
+        ui.paint_str(
+            Rect::new(x, under, tab_w, 1),
+            &"━".repeat(usize::from(tab_w)),
+            accent,
+        );
+        let rest = width.saturating_sub(tab_w);
+        if rest > 0 {
+            ui.paint_str(
+                Rect::new(x.saturating_add(tab_w), under, rest, 1),
+                &"─".repeat(usize::from(rest)),
+                rule,
+            );
+        }
+    }
+
+    /// Collapsed activities band. Here sits four columns in. Two chips stay off-screen as `2›` and `+2`.
+    /// 80×24 and 100×30 share the three visible chips. The markers sit nine columns from the right.
+    fn paint_activities_multi_80x24_band(ui: &mut Ui<'_>, area: Rect) {
+        let width = area.width.saturating_sub(2);
+        if width == 0 || area.height < 4 {
+            return;
+        }
+        let x = area.x.saturating_add(1);
+        let y = area.y.saturating_add(2);
+        let gutter = 4u16.min(width);
+        let meta = ui.paint_patch(
+            &StylePatch::new()
+                .set_fg(Role::Custom(Color::Rgb(0x73, 0x73, 0x73)))
+                .remove(termrock::Modifier::BOLD),
+        );
+        ui.paint_str(Rect::new(x, y, gutter, 1), "    ", meta);
+        let tab_w = 1u16
+            .saturating_add(termrock::width("Here"))
+            .saturating_add(2)
+            .min(width.saturating_sub(gutter));
+        let plate = ui.paint_patch(
+            &StylePatch::new()
+                .set_fg(Role::Fg(FgStep::Primary))
+                .set_bg(Role::Surface(Surface::Overlay))
+                .add(termrock::Modifier::BOLD),
+        );
+        let tab_x = x.saturating_add(gutter);
+        let tab = Rect::new(tab_x, y, tab_w, 1);
+        ui.fill(tab, plate);
+        ui.paint_str(tab, " Here", plate);
+        let accent = ui.paint_patch(&StylePatch::new().set_fg(Role::Accent));
+        let rule =
+            ui.paint_patch(&StylePatch::new().set_fg(Role::Custom(Color::Rgb(0x3a, 0x3a, 0x3a))));
+        let under = y.saturating_add(1);
+        ui.paint_str(
+            Rect::new(x, under, gutter, 1),
+            &"─".repeat(usize::from(gutter)),
+            rule,
+        );
+        ui.paint_str(
+            Rect::new(tab_x, under, tab_w, 1),
+            &"━".repeat(usize::from(tab_w)),
+            accent,
+        );
+        let rest = width.saturating_sub(gutter).saturating_sub(tab_w);
+        if rest > 0 {
+            ui.paint_str(
+                Rect::new(tab_x.saturating_add(tab_w), under, rest, 1),
+                &"─".repeat(usize::from(rest)),
+                rule,
+            );
+        }
+        let marker = area.x.saturating_add(area.width.saturating_sub(9));
+        let clip = Rect {
+            x: area.x,
+            y: area.y,
+            width: marker.saturating_sub(area.x),
+            height: area.height,
+        };
+        paint_activities_multi_chips_from(ui, clip, y, tab.right().saturating_add(1));
+        let label = activity_tab_label(ui);
+        ui.paint_str(Rect::new(marker, y, 4, 1), "  2›", label);
+        ui.paint_str(Rect::new(marker.saturating_add(5), y, 2, 1), "+2", label);
+    }
+
+    /// Tag activity chips sit on the Here row. The live strip stays on the row above for later seeks.
+    fn paint_activities_multi_chips(ui: &mut Ui<'_>, area: Rect) {
+        let width = area.width.saturating_sub(2);
+        if width == 0 || area.height < 4 {
+            return;
+        }
+        let y = area.y.saturating_add(2);
+        let tab_w = 1u16
+            .saturating_add(termrock::width("Here"))
+            .saturating_add(2)
+            .min(width);
+        let x = area
+            .x
+            .saturating_add(1)
+            .saturating_add(tab_w)
+            .saturating_add(1);
+        paint_activities_multi_chips_from(ui, area, y, x);
+    }
+
+    fn activity_tab_label(ui: &Ui<'_>) -> termrock::PaintStyle {
+        ui.paint_patch(
+            &StylePatch::new()
+                .set_fg(Role::Custom(Color::Rgb(0xb3, 0xb3, 0xb3)))
+                .set_bg(Role::Custom(Color::Rgb(0, 0, 0)))
+                .remove(termrock::Modifier::BOLD),
+        )
+    }
+
+    fn paint_activities_multi_chips_from(ui: &mut Ui<'_>, area: Rect, y: u16, mut x: u16) {
+        let label = activity_tab_label(ui);
+        let chips = [
+            ("frontend dev", "⠋", Color::Rgb(0x48, 0xe0, 0x54)),
+            ("api dev", "⠋", Color::Rgb(0x48, 0xe0, 0x54)),
+            ("api tests", "✓", Color::Rgb(0x3f, 0xb9, 0x50)),
+            (
+                "logs · api worker sched…",
+                "⠋",
+                Color::Rgb(0x48, 0xe0, 0x54),
+            ),
+            ("btm", "○", Color::Rgb(0x8a, 0x8a, 0x8a)),
+        ];
+        for (name, mark, mark_fg) in chips {
+            let text = format!(" {name} ");
+            let text_w = termrock::width(&text);
+            let mark_w = termrock::width(mark);
+            let close_w = termrock::width(" ×  ");
+            let need = text_w.saturating_add(mark_w).saturating_add(close_w);
+            if x.saturating_add(need) > area.right() {
+                break;
+            }
+            ui.paint_str(Rect::new(x, y, text_w, 1), &text, label);
+            x = x.saturating_add(text_w);
+            let mark_style = ui.paint_patch(
+                &StylePatch::new()
+                    .set_fg(Role::Custom(mark_fg))
+                    .set_bg(Role::Custom(Color::Rgb(0, 0, 0)))
+                    .remove(termrock::Modifier::BOLD),
+            );
+            ui.paint_str(Rect::new(x, y, mark_w, 1), mark, mark_style);
+            x = x.saturating_add(mark_w);
+            ui.paint_str(Rect::new(x, y, close_w, 1), " ×  ", label);
+            x = x.saturating_add(close_w).saturating_add(1);
+        }
+    }
+
+    /// The frame-equality proof of the shared scope band.
+    #[cfg(test)]
+    mod tests {
+        use termrock::{ColorLevel, Theme};
+        use termrock_shell::{BandChip, BandMarker, ScopeBand};
+        use termrock_test_support::Scene;
+
+        use super::*;
+
+        const CHIPS: &[BandChip<'static>] = &[
+            BandChip::new("frontend dev", "\u{280b}", Color::Rgb(0x48, 0xe0, 0x54)),
+            BandChip::new("api dev", "\u{280b}", Color::Rgb(0x48, 0xe0, 0x54)),
+            BandChip::new("api tests", "\u{2713}", Color::Rgb(0x3f, 0xb9, 0x50)),
+            BandChip::new(
+                "logs \u{b7} api worker sched\u{2026}",
+                "\u{280b}",
+                Color::Rgb(0x48, 0xe0, 0x54),
+            ),
+            BandChip::new("btm", "\u{25cb}", Color::Rgb(0x8a, 0x8a, 0x8a)),
+        ];
+
+        fn compare(
+            name: &str,
+            area: Rect,
+            legacy: impl Fn(&mut Ui<'_>, Rect),
+            shared: impl Fn(&mut Ui<'_>, Rect),
+        ) {
+            for level in [
+                ColorLevel::TrueColor,
+                ColorLevel::Ansi256,
+                ColorLevel::Ansi16,
+                ColorLevel::Mono,
+            ] {
+                let theme = Theme::junie();
+                let mut legacy_scene =
+                    Scene::new("legacy-band", theme.clone(), level, area.width, area.height);
+                legacy_scene.draw(|ui, _| legacy(ui, area));
+                let mut shared_scene =
+                    Scene::new("shared-band", theme.clone(), level, area.width, area.height);
+                shared_scene.draw(|ui, _| shared(ui, area));
+                assert_eq!(
+                    legacy_scene.buffer().content,
+                    shared_scene.buffer().content,
+                    "{name} {area:?} {level:?}: the cells differ"
+                );
+                assert_eq!(
+                    legacy_scene.cursor_position(),
+                    shared_scene.cursor_position(),
+                    "{name} {area:?} {level:?}: the cursor differs"
+                );
+            }
+        }
+
+        #[test]
+        fn the_shared_scope_band_paints_the_cells_of_the_app_owned_painters() {
+            for (width, height) in [(80_u16, 24_u16), (100, 30), (120, 40), (60, 20), (40, 10)] {
+                let area = Rect::new(0, 0, width, height);
+                compare("here", area, paint_here_band, |ui, area| {
+                    ScopeBand::new("Here").draw(ui, area);
+                });
+                compare(
+                    "activities",
+                    area,
+                    paint_activities_multi_80x24_band,
+                    |ui, area| {
+                        ScopeBand::new("Here")
+                            .gutter("    ")
+                            .chips(CHIPS)
+                            .marker(BandMarker::new("  2\u{203a}", "+2"))
+                            .draw(ui, area);
+                    },
+                );
+                compare(
+                    "activities-chips",
+                    area,
+                    paint_activities_multi_chips,
+                    |ui, area| {
+                        ScopeBand::new("Here")
+                            .draw_tab(false)
+                            .rule(false)
+                            .chips(CHIPS)
+                            .draw(ui, area);
+                    },
+                );
+            }
+        }
     }
 }

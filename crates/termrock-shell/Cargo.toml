@@ -15,6 +15,7 @@ testing = []
 
 [dependencies]
 termrock-core.workspace = true
+termrock-fields.workspace = true
 termrock-layout.workspace = true
 termrock-theme.workspace = true
 termrock-runtime.workspace = true
