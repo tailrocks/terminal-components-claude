@@ -63,7 +63,6 @@ name = "nav_list_composition_consumer"
 required-features = ["testing"]
 
 [[test]]
-[[test]]
 name = "select_composition_consumer"
 required-features = ["testing"]
 
