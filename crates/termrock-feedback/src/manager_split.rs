@@ -124,6 +124,73 @@ pub fn paint_manager_split(ui: &mut Ui<'_>, area: Rect, frame: &ManagerSplit<'_>
     paint_hints(ui, area, frame, &ink);
 }
 
+/// Detail-drawer presentation over the saved split: focus moves to the
+/// detail title (the accent gutter sits beside it), the workspace list
+/// keeps its selected fill without a second focus bar, the box drops to
+/// the rule grey, and the hint row becomes the drawer hints. Supply the
+/// saved frame (`SplitMode::Saved`); every cell comes from the live split
+/// data. Like the split painter's baseline columns, the approved frame
+/// pins the box rows (3..37) and the hint row (39).
+pub fn paint_manager_detail_drawer(ui: &mut Ui<'_>, area: Rect, frame: &ManagerSplit<'_>) {
+    paint_manager_split(ui, area, frame);
+    let ink = ink_from(ui);
+    let rule_style = plain(ink.rule, ink.canvas);
+    // Box top: the label loses the bold primary and the border cells drop
+    // to the rule grey. The running-count badge keeps its split paint.
+    let summary = format!(" {} running ", frame.running);
+    let (line, _badge_x) = box_top(&summary);
+    let chars: Vec<char> = line.chars().collect();
+    if chars.len() >= 2 {
+        let tail = chars.len() - 2;
+        let seg = |from: usize, to: usize| chars[from..to].iter().collect::<String>();
+        put(ui, area, 1, 2, &seg(0, 2), rule_style);
+        if tail >= 14 {
+            put(ui, area, 3, 2, &seg(2, 14), plain(ink.secondary, ink.canvas));
+            put(ui, area, 15, 2, &seg(14, tail), rule_style);
+        }
+        let tail_x = u16::try_from(1 + tail).unwrap_or(36);
+        put(ui, area, tail_x, 2, &seg(tail, chars.len()), rule_style);
+    }
+    for y in 3..37 {
+        put(ui, area, 1, y, "│", rule_style);
+        put(ui, area, 37, y, "│", rule_style);
+    }
+    put(
+        ui,
+        area,
+        1,
+        37,
+        "╰───────────────────────────────────╯",
+        rule_style,
+    );
+    // Focus moves to the detail title: the accent gutter sits beside it and
+    // the title takes the primary bold.
+    put(ui, area, 41, 2, "▎", plain(ink.accent, ink.card));
+    put(
+        ui,
+        area,
+        42,
+        2,
+        &format!("Current directory · {}", frame.workspace_name),
+        bold(ink.primary, ink.card),
+    );
+    // The list selection keeps its fill without the focus bar; the single
+    // focus indicator is the title gutter above.
+    put(ui, area, 3, 3, " ", bold(ink.select_bg, ink.select_bg));
+    put(ui, area, 5, 3, " ", plain(ink.primary, ink.select_bg));
+    // Drawer hints replace the manager hint row.
+    let key = bold(ink.primary, ink.canvas);
+    let hint = plain(ink.muted, ink.canvas);
+    let y = 39;
+    ui.fill(Rect::new(1, y, 89, 1), plain(ink.primary, ink.canvas));
+    put(ui, area, 1, y, "↑↓", key);
+    put(ui, area, 4, y, "Move", hint);
+    put(ui, area, 10, y, "Tab", key);
+    put(ui, area, 14, y, "Actions", hint);
+    put(ui, area, 23, y, "Esc", key);
+    put(ui, area, 27, y, "Back", hint);
+}
+
 fn ink_from(ui: &Ui<'_>) -> Ink {
     let theme = ui.theme_ref();
     let level = theme.capability.color;

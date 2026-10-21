@@ -53,7 +53,7 @@ pub use keyhint::{ChordText, HintText, KeyHint};
 pub use manager_frame::{ManagerFrame, ManagerLeaf, paint_manager_frame};
 pub use manager_split::{
     ManagerSplit, SplitAlert, SplitInstance, SplitMode, SplitMount, SplitWorkspace,
-    paint_manager_split,
+    paint_manager_detail_drawer, paint_manager_split,
 };
 pub use meter::{Meter, MeterTone, MeterVisual};
 pub use progress::{ProgressBar, Spinner};
