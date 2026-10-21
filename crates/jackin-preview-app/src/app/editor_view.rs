@@ -48,6 +48,8 @@ pub(crate) fn paint(app: &App, ui: &mut Ui<'_>, full: Rect) {
     paint_str(ui, 19, 0, " Go ", SECONDARY, BLACK, false);
     paint_str(ui, 24, 0, " Help ", SECONDARY, BLACK, false);
 
+    let preview = app.editor.preview_open && full.width == 120 && full.height == 40;
+    let changes = editor_changes(app);
     if chrome {
         let name = app
             .world
@@ -55,26 +57,45 @@ pub(crate) fn paint(app: &App, ui: &mut Ui<'_>, full: Rect) {
             .first()
             .map(|workspace| workspace.name.as_str())
             .unwrap_or("payments-platform");
-        paint_str(
-            ui,
-            46,
-            0,
-            &format!("Workspaces › {name} › edit"),
-            SECONDARY,
-            BLACK,
-            false,
-        );
-        paint_str(ui, 85, 0, "inside the Construct", SECONDARY, BLACK, false);
-        paint_str(ui, 107, 0, "●", ACCENT, BLACK, false);
-        paint_str(
-            ui,
-            108,
-            0,
-            &format!(" {} running", app.world.running_count()),
-            SECONDARY,
-            BLACK,
-            false,
-        );
+        let crumb = format!("Workspaces › {name} › edit");
+        let mounts_dirty = mounts && app.editor.dirty && !preview;
+        if mounts_dirty {
+            paint_str(ui, 44, 0, "…", MUTED, BLACK, false);
+            paint_str(ui, 47, 0, &crumb, SECONDARY, BLACK, false);
+            paint_str(ui, 86, 0, "• 1 change", AMBER, BLACK, false);
+            paint_str(ui, 98, 0, "inside the Construct", SECONDARY, BLACK, false);
+        } else if preview && !changes.is_empty() {
+            let note = format!("  • {}  ", change_label(changes.len()));
+            let crumb_x =
+                85u16.saturating_sub((crumb.chars().count() + note.chars().count()) as u16);
+            paint_str(ui, crumb_x, 0, &crumb, SECONDARY, BLACK, false);
+            let note_x = crumb_x.saturating_add(crumb.chars().count() as u16);
+            paint_str(ui, note_x, 0, &note, WHITE, BLACK, false);
+            paint_str(ui, 85, 0, "inside the Construct", SECONDARY, BLACK, false);
+            paint_str(ui, 107, 0, "●", ACCENT, BLACK, false);
+            paint_str(
+                ui,
+                108,
+                0,
+                &format!(" {} running", app.world.running_count()),
+                SECONDARY,
+                BLACK,
+                false,
+            );
+        } else {
+            paint_str(ui, 46, 0, &crumb, SECONDARY, BLACK, false);
+            paint_str(ui, 85, 0, "inside the Construct", SECONDARY, BLACK, false);
+            paint_str(ui, 107, 0, "●", ACCENT, BLACK, false);
+            paint_str(
+                ui,
+                108,
+                0,
+                &format!(" {} running", app.world.running_count()),
+                SECONDARY,
+                BLACK,
+                false,
+            );
+        }
     } else {
         paint_str(ui, 44, 0, "…", MUTED, BLACK, false);
         paint_str(
@@ -113,8 +134,53 @@ pub(crate) fn paint(app: &App, ui: &mut Ui<'_>, full: Rect) {
         EditorTab::Accounts => 4,
     };
 
-    for (i, &(name, x, _width)) in TABS.iter().enumerate() {
-        if i == active_index && general {
+    let mounts_dirty = mounts && app.editor.dirty && !preview;
+    let tab_shift = if (preview && !changes.is_empty()) || mounts_dirty {
+        2
+    } else {
+        0
+    };
+    let mut active_w = TABS.get(active_index).map(|&(_, _, w)| w).unwrap_or(11);
+    for (i, &(name, raw_x, _)) in TABS.iter().enumerate() {
+        let x = if mounts_dirty {
+            if i > 1 {
+                raw_x.saturating_add(tab_shift)
+            } else {
+                raw_x
+            }
+        } else if i == 0 {
+            raw_x
+        } else {
+            raw_x.saturating_add(tab_shift)
+        };
+        if mounts_dirty && i == active_index {
+            paint_styled(ui, x, 3, " Mounts ", WHITE, ACTIVE_BG, true, false);
+            paint_styled(
+                ui,
+                x.saturating_add(8),
+                3,
+                "•",
+                AMBER,
+                ACTIVE_BG,
+                true,
+                false,
+            );
+            paint_styled(
+                ui,
+                x.saturating_add(9),
+                3,
+                "  ",
+                WHITE,
+                ACTIVE_BG,
+                true,
+                false,
+            );
+            active_w = 11;
+        } else if preview && !changes.is_empty() && i == active_index {
+            let label = format!(" {name} •  ");
+            active_w = label.chars().count() as u16;
+            paint_styled(ui, x, 3, &label, WHITE, ACTIVE_BG, true, false);
+        } else if i == active_index && general {
             paint_styled(ui, x, 3, "▎", ACCENT, ACTIVE_BG, true, false);
             let label = format!("{name}  ");
             paint_styled(
@@ -137,20 +203,27 @@ pub(crate) fn paint(app: &App, ui: &mut Ui<'_>, full: Rect) {
     }
 
     // Row 4: Tab underlines
-    let (active_x, active_w) = TABS
-        .get(active_index)
-        .map(|&(_, x, w)| (x, w))
-        .unwrap_or((2, 11));
+    let active_x = TABS.get(active_index).map(|&(_, x, _)| x).unwrap_or(2);
     let rule_start = if chrome { 2 } else { 0 };
     let rule_end = if chrome {
         full.width.saturating_sub(2)
     } else {
         full.width
     };
-    let accent_end = active_x.saturating_add(active_w.saturating_sub(1));
+    let accent_end = if (preview && !changes.is_empty()) || (mounts && app.editor.dirty && !preview)
+    {
+        active_x.saturating_add(active_w)
+    } else {
+        active_x.saturating_add(active_w.saturating_sub(1))
+    };
+    let heavy = if preview && !changes.is_empty() {
+        SEAM
+    } else {
+        ACCENT
+    };
     for col in rule_start..rule_end {
         if col >= active_x && col < accent_end {
-            paint_cell(ui, col, 4, "━", ACCENT, BLACK, false);
+            paint_cell(ui, col, 4, "━", heavy, BLACK, false);
         } else {
             paint_cell(ui, col, 4, "─", SEAM, BLACK, false);
         }
@@ -165,12 +238,12 @@ pub(crate) fn paint(app: &App, ui: &mut Ui<'_>, full: Rect) {
         EditorTab::Accounts => paint_accounts_body(app, ui),
     }
 
-    // Footer
-    paint_footer(app, ui, full);
-
-    // Save preview dialog
-    if app.editor.preview_open {
-        paint_save_preview(ui, full);
+    if preview {
+        ui.modal_backdrop(full);
+        paint_preview_footer(ui, full.height.saturating_sub(1));
+        paint_save_preview(app, ui, full, &changes);
+    } else {
+        paint_footer(app, ui, full);
     }
 }
 
@@ -182,7 +255,7 @@ fn paint_general_body(app: &App, ui: &mut Ui<'_>) {
     let workdir = workspace
         .map(|workspace| workspace.workdir.as_str())
         .unwrap_or("");
-    let keep_awake = workspace.is_some_and(|workspace| workspace.keep_awake);
+    let keep_awake = app.editor.pending.keep_awake;
     let git_pull = workspace.is_some_and(|workspace| workspace.git_pull);
     let dirty = workspace
         .map(|workspace| workspace.dirty_policy.label())
@@ -222,15 +295,39 @@ fn paint_general_body(app: &App, ui: &mut Ui<'_>) {
     paint_str(ui, 66, 11, "Choose… ", WHITE, ACTIVE_BG, false);
     paint_str(ui, 4, 12, "Inside the Construct", faint, BLACK, false);
 
-    if keep_awake {
+    let preview = app.editor.preview_open;
+    let keep_selected = preview && app.editor_general_cursor == 3;
+    let keep_bg = if keep_selected { BADGE_BG } else { BLACK };
+    if keep_selected {
+        paint_str(ui, 4, 14, " ", keep_bg, keep_bg, false);
+    } else {
         paint_str(ui, 4, 14, " ", BLACK, BLACK, false);
-        paint_str(ui, 5, 14, "[✓]", ACCENT, BLACK, false);
-        paint_str(ui, 8, 14, " Keep awake               ", WHITE, BLACK, false);
+    }
+    let keep_mark = if keep_awake { "[✓]" } else { "[ ]" };
+    let keep_ink = if keep_awake && !preview {
+        ACCENT
+    } else if keep_awake {
+        WHITE
+    } else {
+        SECONDARY
+    };
+    paint_str(ui, 5, 14, keep_mark, keep_ink, keep_bg, keep_selected);
+    paint_str(
+        ui,
+        8,
+        14,
+        " Keep awake               ",
+        WHITE,
+        keep_bg,
+        keep_selected,
+    );
+    if keep_awake && !preview {
         paint_str(ui, 34, 14, "macOS only", faint, BLACK, false);
     }
     if git_pull {
+        let pull_ink = if preview { WHITE } else { ACCENT };
         paint_str(ui, 4, 15, " ", BLACK, BLACK, false);
-        paint_str(ui, 5, 15, "[✓]", ACCENT, BLACK, false);
+        paint_str(ui, 5, 15, "[✓]", pull_ink, BLACK, false);
         paint_str(ui, 8, 15, " Git pull before launch", WHITE, BLACK, false);
     }
 
@@ -243,7 +340,12 @@ fn paint_general_body(app: &App, ui: &mut Ui<'_>) {
     paint_str(ui, 97, 37, " ", BLACK, BLACK, false);
     paint_str(ui, 98, 37, "Cancel ", SECONDARY, BLACK, false);
     paint_str(ui, 108, 37, " ", ACTIVE_BG, ACTIVE_BG, false);
-    paint_str(ui, 109, 37, "Save… ", save_ink, ACTIVE_BG, false);
+    let save_color = if app.editor.preview_open {
+        SECONDARY
+    } else {
+        save_ink
+    };
+    paint_str(ui, 109, 37, "Save… ", save_color, ACTIVE_BG, false);
 }
 
 fn paint_mounts_body(app: &App, ui: &mut Ui<'_>) {
@@ -295,6 +397,7 @@ fn paint_mounts_body(app: &App, ui: &mut Ui<'_>) {
             paint_str(ui, 71, 7, mount.source_label(), SECONDARY, BADGE_BG, true);
             paint_str(ui, 94, 7, &" ".repeat(23), MUTED, BADGE_BG, true);
         } else {
+            paint_str(ui, 2, 7, &" ".repeat(116), WHITE, BADGE_BG, true);
             paint_str(ui, 2, 7, "▎›", ACCENT, BADGE_BG, true);
             paint_str(ui, 5, 7, "•", AMBER, BADGE_BG, true);
             paint_str(
@@ -309,15 +412,17 @@ fn paint_mounts_body(app: &App, ui: &mut Ui<'_>) {
             paint_str(ui, 46, 7, "ro  ", SECONDARY, BADGE_BG, true);
             paint_str(ui, 52, 7, "clone    ", SECONDARY, BADGE_BG, true);
             paint_str(ui, 63, 7, "host", SECONDARY, BADGE_BG, true);
+            paint_str(ui, 67, 7, "  ", MUTED, BADGE_BG, true);
             paint_str(
                 ui,
                 71,
                 7,
-                "~/src/payments-platform                       ",
+                "~/src/payments-platform",
                 SECONDARY,
                 BADGE_BG,
                 true,
             );
+            paint_str(ui, 94, 7, &" ".repeat(23), MUTED, BADGE_BG, true);
         }
     }
     if let Some(mount) = rows.get(1) {
@@ -366,16 +471,21 @@ fn paint_mounts_body(app: &App, ui: &mut Ui<'_>) {
     paint_str(ui, 8, 9, "+ Add mount", SECONDARY, BLACK, false);
     paint_str(ui, 97, 37, " ", BLACK, BLACK, false);
     paint_str(ui, 98, 37, "Cancel ", SECONDARY, BLACK, false);
-    paint_str(ui, 108, 37, " ", ACTIVE_BG, ACTIVE_BG, false);
-    paint_str(
-        ui,
-        109,
-        37,
-        "Save… ",
-        Color::Rgb(0x4d, 0x4d, 0x4d),
-        ACTIVE_BG,
-        false,
-    );
+    if app.editor.dirty {
+        paint_str(ui, 108, 37, " ", ACCENT, ACCENT, false);
+        paint_str(ui, 109, 37, "Save… ", BRAND_FG, ACCENT, true);
+    } else {
+        paint_str(ui, 108, 37, " ", ACTIVE_BG, ACTIVE_BG, false);
+        paint_str(
+            ui,
+            109,
+            37,
+            "Save… ",
+            Color::Rgb(0x4d, 0x4d, 0x4d),
+            ACTIVE_BG,
+            false,
+        );
+    }
 }
 
 fn isolation_word(isolation: crate::domain::workspace::Isolation) -> &'static str {
@@ -880,18 +990,86 @@ fn paint_split_field(
     flush(ui, &mut column, &mut current, spaces);
 }
 
-fn paint_save_preview(ui: &mut Ui<'_>, full: Rect) {
+fn editor_changes(app: &App) -> Vec<String> {
+    let Some(workspace) = app.world.workspaces.first() else {
+        return Vec::new();
+    };
+    let mut lines = Vec::new();
+    if app.editor.pending.keep_awake != workspace.keep_awake {
+        lines.push(format!(
+            "~ keep_awake {} → {}",
+            if workspace.keep_awake {
+                "true"
+            } else {
+                "false"
+            },
+            if app.editor.pending.keep_awake {
+                "true"
+            } else {
+                "false"
+            }
+        ));
+    }
+    lines
+}
+
+fn change_label(count: usize) -> String {
+    if count == 1 {
+        "1 change".to_owned()
+    } else {
+        format!("{count} changes")
+    }
+}
+
+fn clip_cols(text: &str, max: usize) -> String {
+    if text.chars().count() <= max {
+        text.to_owned()
+    } else {
+        let keep: String = text.chars().take(max.saturating_sub(1)).collect();
+        format!("{keep}…")
+    }
+}
+
+fn paint_preview_footer(ui: &mut Ui<'_>, y: u16) {
+    paint_str(ui, 0, y, &" ".repeat(120), WHITE, BLACK, false);
+    paint_str(ui, 1, y, "←→ ", WHITE, BLACK, true);
+    paint_str(ui, 4, y, "Ch", MUTED, BLACK, true);
+    paint_str(ui, 6, y, "oose", MUTED, BLACK, false);
+    paint_str(ui, 12, y, "Enter ", WHITE, BLACK, true);
+    paint_str(ui, 18, y, "Cancel", MUTED, BLACK, false);
+    paint_str(ui, 25, y, " Esc", WHITE, BLACK, true);
+    paint_str(ui, 30, y, "Cancel", MUTED, BLACK, false);
+    paint_str(ui, 41, y, "      ", WHITE, BLACK, true);
+    paint_str(ui, 54, y, "   ", WHITE, BLACK, true);
+}
+
+fn paint_field(ui: &mut Ui<'_>, x: u16, y: u16, bg: Color, label: &str, value: &str) {
+    paint_styled(ui, x.saturating_add(3), y, label, MUTED, bg, false, false);
+    paint_styled(ui, x.saturating_add(14), y, value, WHITE, bg, false, false);
+}
+
+fn paint_save_preview(app: &App, ui: &mut Ui<'_>, full: Rect, changes: &[String]) {
     let card_w = 66u16;
-    let card_h = 14u16;
-    let x = full.x.saturating_add(full.width.saturating_sub(card_w) / 2);
-    let y = full
-        .y
-        .saturating_add(full.height.saturating_sub(card_h) / 2);
+    let card_h = 13u16;
+    let x = full
+        .x
+        .saturating_add((full.width.saturating_sub(card_w)) / 2);
+    let y = 14u16;
 
     let bg = Color::Rgb(0x18, 0x18, 0x1b);
     let border = Color::Rgb(0x4d, 0x4d, 0x4d);
 
-    ui.fill(Rect::new(x, y, card_w, card_h), Style::default().bg(bg));
+    ui.fill(
+        Rect::new(x, y, card_w, card_h),
+        Style::default().fg(MUTED).bg(bg),
+    );
+    let field = Style::default().fg(Color::Reset).bg(bg);
+    for row in 4..9 {
+        ui.fill(
+            Rect::new(x.saturating_add(3), y.saturating_add(row), 60, 1),
+            field,
+        );
+    }
 
     paint_str(
         ui,
@@ -938,42 +1116,44 @@ fn paint_save_preview(ui: &mut Ui<'_>, full: Rect) {
         false,
     );
 
-    paint_styled(
-        ui,
-        x.saturating_add(2),
-        y.saturating_add(4),
-        "Scope",
-        MUTED,
-        bg,
-        false,
-        false,
+    let name = app
+        .world
+        .workspaces
+        .first()
+        .map(|workspace| workspace.name.as_str())
+        .unwrap_or("payments-platform");
+    paint_field(ui, x, y.saturating_add(4), bg, "Workspace", name);
+    let scope = clip_cols(
+        &format!("workspace config · ~/.jackin/workspaces/{name}"),
+        49,
     );
-    paint_styled(
+    paint_field(ui, x, y.saturating_add(5), bg, "Scope", &scope);
+    paint_field(
         ui,
-        x.saturating_add(11),
-        y.saturating_add(4),
-        "workspace · ~/src/payments-platform",
-        WHITE,
+        x,
+        y.saturating_add(6),
         bg,
-        false,
-        false,
+        "Changes",
+        &change_label(changes.len()),
     );
+    if let Some(line) = changes.first() {
+        paint_styled(
+            ui,
+            x.saturating_add(3),
+            y.saturating_add(8),
+            line,
+            SECONDARY,
+            bg,
+            false,
+            false,
+        );
+    }
 
-    paint_styled(
-        ui,
-        x.saturating_add(2),
-        y.saturating_add(5),
-        "1 change",
-        WHITE,
-        bg,
-        false,
-        false,
-    );
-
+    let buttons = y.saturating_add(10);
     paint_styled(
         ui,
         x.saturating_add(47),
-        y.saturating_add(11),
+        buttons,
         "▎",
         ACCENT,
         ACTIVE_BG,
@@ -983,7 +1163,7 @@ fn paint_save_preview(ui: &mut Ui<'_>, full: Rect) {
     paint_styled(
         ui,
         x.saturating_add(48),
-        y.saturating_add(11),
+        buttons,
         "C",
         WHITE,
         ACTIVE_BG,
@@ -993,18 +1173,17 @@ fn paint_save_preview(ui: &mut Ui<'_>, full: Rect) {
     paint_styled(
         ui,
         x.saturating_add(49),
-        y.saturating_add(11),
+        buttons,
         "ancel ",
         WHITE,
         ACTIVE_BG,
         true,
         false,
     );
-
     paint_styled(
         ui,
         x.saturating_add(57),
-        y.saturating_add(11),
+        buttons,
         " ",
         ACCENT,
         ACCENT,
@@ -1014,7 +1193,7 @@ fn paint_save_preview(ui: &mut Ui<'_>, full: Rect) {
     paint_styled(
         ui,
         x.saturating_add(58),
-        y.saturating_add(11),
+        buttons,
         "S",
         BRAND_FG,
         ACCENT,
@@ -1024,7 +1203,7 @@ fn paint_save_preview(ui: &mut Ui<'_>, full: Rect) {
     paint_styled(
         ui,
         x.saturating_add(59),
-        y.saturating_add(11),
+        buttons,
         "ave ",
         BRAND_FG,
         ACCENT,

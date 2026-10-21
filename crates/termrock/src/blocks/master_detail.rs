@@ -10,7 +10,8 @@ use termrock_runtime::author::{self, CompositionLeaf};
 use termrock_runtime::focus::{ScopeId, ScopeMode};
 use termrock_runtime::keymap::Binding;
 use termrock_runtime::{
-    CompositionSlots, ContentSlot, Cx, FrameRead, LayoutFacts, Measure, Response, Ui,
+    CompositionSlots, ContentSlot, Cx, FrameRead, LayoutFacts, MAX_COMPOSITION_DEPTH, Measure,
+    Response, Ui,
 };
 
 use crate::composition::{CompositionError, Group};
@@ -244,6 +245,32 @@ impl<'a> MasterDetail<'a> {
     pub fn detail_owns(mut self, ids: &[crate::Id]) -> Self {
         self.detail_owners = ids.to_vec();
         self
+    }
+
+    pub(crate) fn validate_composition(&self) -> Result<(), MasterDetailError> {
+        let master = self.master.ok_or(MasterDetailError::MissingMaster)?;
+        let detail = self.detail.ok_or(MasterDetailError::MissingDetail)?;
+        master.validate_depth()?;
+        detail.validate_depth()?;
+        if let Some(summary) = self.summary {
+            summary.validate_depth()?;
+        }
+        let depth = self.composition_depth();
+        if depth > MAX_COMPOSITION_DEPTH {
+            return Err(CompositionError::DepthExceeded {
+                depth,
+                maximum: MAX_COMPOSITION_DEPTH,
+            }
+            .into());
+        }
+        Ok(())
+    }
+
+    pub(crate) fn composition_depth(&self) -> usize {
+        let master = self.master.map(Group::composition_depth).unwrap_or(0);
+        let detail = self.detail.map(Group::composition_depth).unwrap_or(0);
+        let summary = self.summary.map(Group::composition_depth).unwrap_or(0);
+        1 + master.max(detail).max(summary)
     }
 
     /// Open the narrow detail drawer and move focus to its configured owner.

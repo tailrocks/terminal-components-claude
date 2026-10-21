@@ -368,7 +368,9 @@ fn menu(r: &mut Recipe) {
     part(m, Part::ROW, p())
         .when(
             StateFlags::ACTIVE,
-            p().set_bg(Role::HighlightBg).set_fg(Role::HighlightFg),
+            p().set_bg(Role::HighlightBg)
+                .set_fg(Role::HighlightFg)
+                .add(Modifier::BOLD),
         )
         .when(
             StateFlags::HOVERED,
@@ -380,11 +382,25 @@ fn menu(r: &mut Recipe) {
                 .set_bg(Role::Fg(FgStep::Primary))
                 .add(Modifier::BOLD),
         );
-    part(m, Part::TITLE, p()).when(
+    part(m, Part::LABEL, p()).when(
+        StateFlags::ACTIVE,
+        p().set_bg(Role::HighlightBg)
+            .set_fg(Role::HighlightFg)
+            .add(Modifier::BOLD),
+    );
+    part(
+        m,
+        Part::TITLE,
+        p().set_fg(Role::Fg(FgStep::Muted)).add(Modifier::BOLD),
+    )
+    .when(
         StateFlags::PRESSED,
         p().set_glyph(GlyphRole::PressLeft).add(Modifier::BOLD),
     );
-    part(m, Part::KEY, p().set_fg(Role::Fg(FgStep::Muted)));
+    part(m, Part::KEY, p().set_fg(Role::Fg(FgStep::Secondary))).when(
+        StateFlags::ACTIVE,
+        p().set_fg(Role::HighlightFg).remove(Modifier::BOLD),
+    );
     part(m, Part::HELP, p().set_fg(Role::Fg(FgStep::Muted)));
     part(
         r.variant_mut(Variant::custom("termrock.menu-bar-title")),
@@ -660,8 +676,24 @@ fn picker(m: &mut PartMap<PartRecipe>) {
         StateFlags::ACTIVE | StateFlags::FOCUSED,
         p().set_fg(Role::Focus).add(Modifier::UNDERLINED),
     );
-    part(m, Part::ICON, p().set_fg(Role::Fg(FgStep::Muted)));
-    part(m, Part::META, p().set_fg(Role::Fg(FgStep::Muted)));
+    part(
+        m,
+        Part::ICON,
+        p().set_fg(Role::Fg(FgStep::Muted)).remove(Modifier::BOLD),
+    )
+    .when(
+        StateFlags::FOCUSED,
+        p().set_fg(Role::Fg(FgStep::Primary)).remove(Modifier::BOLD),
+    );
+    part(
+        m,
+        Part::META,
+        p().set_fg(Role::Fg(FgStep::Muted)).remove(Modifier::BOLD),
+    )
+    .when(
+        StateFlags::FOCUSED,
+        p().set_fg(Role::Fg(FgStep::Primary)).remove(Modifier::BOLD),
+    );
     part(
         m,
         Part::QUERY,

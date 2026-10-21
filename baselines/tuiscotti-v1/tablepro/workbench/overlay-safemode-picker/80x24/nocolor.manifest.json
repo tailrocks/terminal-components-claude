@@ -1,40 +1,40 @@
 {
-  "ansi_sha256": "d98fbf940b0ba8e03cdd9c9e5e4ab24d61afb79a2cfbca6cd4daea64eef72584",
+  "ansi_sha256": "6dffd43f49a34ded8bc4f934e394e02585425b315a4edf78a05b681f0222b3db",
   "artifacts": {
     "ansi": {
-      "bytes": 2879,
+      "bytes": 3281,
       "file": "tablepro/workbench/overlay-safemode-picker/80x24/nocolor.ansi",
-      "sha256": "d98fbf940b0ba8e03cdd9c9e5e4ab24d61afb79a2cfbca6cd4daea64eef72584"
+      "sha256": "6dffd43f49a34ded8bc4f934e394e02585425b315a4edf78a05b681f0222b3db"
     },
     "ascii": {
-      "bytes": 1759,
+      "bytes": 1758,
       "file": "tablepro/workbench/overlay-safemode-picker/80x24/nocolor.ascii",
-      "sha256": "25725b2d465605a5b035441c6ae4182220d03541bb3473e708e3da556047cf8f"
+      "sha256": "f4f054efcaf497252995d72b18f528de9bbd4f98e99c6afbf6050631391bcd3b"
     },
     "ascii_loss_json": {
-      "bytes": 36267,
+      "bytes": 40410,
       "file": "tablepro/workbench/overlay-safemode-picker/80x24/nocolor.ascii.loss.json",
-      "sha256": "1fc9d4b2b6c9b00ebc91393e696ccc8ec4f2d96d8dda6c93a75e99c104dd52a1"
+      "sha256": "0b70100961d9d35ca10d1161d45cca79a2338976b2341f63ec8c4be142cabee4"
     },
     "frame_json": {
-      "bytes": 430006,
+      "bytes": 428195,
       "file": "tablepro/workbench/overlay-safemode-picker/80x24/nocolor.frame.json",
-      "sha256": "7c33d46e8e43a113d1e3c0165a60695299210b78d48fb8abb984f2727d25ce6b"
+      "sha256": "7492dc0776ab29f9caaecf1cce5b7ee5dd3fd24276b9ae897c947b16f2c615b7"
     },
     "html": {
-      "bytes": 351723,
+      "bytes": 325336,
       "file": "tablepro/workbench/overlay-safemode-picker/80x24/nocolor.html",
-      "sha256": "a523eb5be80c17b53863a44737a70e7687c61deabcfb1bf0c2ec6401416eef6e"
+      "sha256": "1c265a483967b9daab73e2dc2b27b07c62ac06eb9ef0f0e4963d04addcc7039f"
     },
     "observations_json": {
       "bytes": 484,
       "file": "tablepro/workbench/overlay-safemode-picker/80x24/nocolor.observations.json",
-      "sha256": "91ab31f524b25936262f95751e463c21804886c40bdabf65f10750f68b410796"
+      "sha256": "9d80d011607ef8cab93d7e52492f7aae52e1ad4f17a61bbdf3171505a2789151"
     },
     "png": {
-      "bytes": 257382,
+      "bytes": 236477,
       "file": "tablepro/workbench/overlay-safemode-picker/80x24/nocolor.png",
-      "sha256": "ccc901374cccf25ecfc773c098195aa9502bc1de11fecb4f4b9782f178120dbd"
+      "sha256": "d5fd70765cdb58d243165b370510f822e7c8cdee0bc78bfba4701596ef223a92"
     },
     "png_fidelity_json": {
       "bytes": 276,
@@ -42,26 +42,26 @@
       "sha256": "b93b5e43d193775e0ae963bec8da72c25c0030de2ae9b20aff8d75951bf2256f"
     },
     "txt": {
-      "bytes": 2538,
+      "bytes": 2627,
       "file": "tablepro/workbench/overlay-safemode-picker/80x24/nocolor.txt",
-      "sha256": "44467d9dd04bf202f084ef6cf610afe903dc51c425959c42db8b19c73c5cbd89"
+      "sha256": "295bb1f49961bd2ae8efcb03e289c147e8c5d98114ab450aa6a898f7bab7f188"
     }
   },
-  "ascii_substitutions_count": 392,
+  "ascii_substitutions_count": 437,
   "complete": true,
   "dimensions": {
     "cols": 80,
     "rows": 24
   },
-  "frame_digest": 4491399979245664799,
-  "frame_sha256": "7c33d46e8e43a113d1e3c0165a60695299210b78d48fb8abb984f2727d25ce6b",
-  "generation": "a2cef572280ee9de83e03501e978595a0e79d847cb7f25d02ec158b6f2f7ad16",
-  "html_sha256": "a523eb5be80c17b53863a44737a70e7687c61deabcfb1bf0c2ec6401416eef6e",
+  "frame_digest": 358292456438079631,
+  "frame_sha256": "7492dc0776ab29f9caaecf1cce5b7ee5dd3fd24276b9ae897c947b16f2c615b7",
+  "generation": "fa5ac34a9b9a618ca171eb27b13c4ffdefdf92f8654e06c29a526ca1191fef5d",
+  "html_sha256": "1c265a483967b9daab73e2dc2b27b07c62ac06eb9ef0f0e4963d04addcc7039f",
   "legacy_name": "tablepro/overlays/safemode_picker/80x24/nocolor",
   "name": "tablepro/workbench/overlay-safemode-picker/80x24/nocolor",
-  "png_sha256": "ccc901374cccf25ecfc773c098195aa9502bc1de11fecb4f4b9782f178120dbd",
+  "png_sha256": "d5fd70765cdb58d243165b370510f822e7c8cdee0bc78bfba4701596ef223a92",
   "profile": "tuiscotti-default",
   "schema_version": 1,
-  "timestamp_utc": "2026-10-03T22:09:13Z",
-  "txt_sha256": "44467d9dd04bf202f084ef6cf610afe903dc51c425959c42db8b19c73c5cbd89"
+  "timestamp_utc": "2026-10-21T00:00:00Z",
+  "txt_sha256": "295bb1f49961bd2ae8efcb03e289c147e8c5d98114ab450aa6a898f7bab7f188"
 }

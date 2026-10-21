@@ -46,7 +46,7 @@ fn capsule_has_a_menu_bar_and_a_status_bar_instead_of_the_identity_line() {
     let status = row(&h, 38);
     assert!(status.contains("PR #482"), "{status}");
     assert!(
-        status.contains('%') && status.contains("━"),
+        status.contains('%') && (status.contains("━") || status.contains("╍")),
         "usage meter missing: {status}"
     );
     assert!(last_row(&h).contains("Ctrl+B"), "{}", last_row(&h));
