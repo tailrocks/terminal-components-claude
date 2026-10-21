@@ -68,25 +68,33 @@ mod tests {
     }
 
     #[test]
-    fn footer_keeps_explain_when_the_status_does_not_fit() {
-        let costs = [12u16, 12, 15, 16, 8, 10];
+    fn footer_drops_the_groups_that_fall_off_the_right_end() {
+        use crate::footer::{Hint, plan};
+        use termrock::Rect;
+
+        let groups = [
+            Hint::new("Ctrl+R", "Run"),
+            Hint::new("Alt+R", "Run all"),
+            Hint::new("Ctrl+Space", "Complete"),
+            Hint::new("Tab", "Indent"),
+            Hint::new("F6", "Leave"),
+            Hint::new("Esc", "Done"),
+        ];
+        let area = Rect::new(0, 0, 100, 1);
         let status = 25u16;
-        assert_eq!(
-            super::super::fit_workbench_hints(&costs, 72, status),
-            (5, false, true)
-        );
-        assert_eq!(
-            super::super::fit_workbench_hints(&costs, 80, status),
-            (6, false, false)
-        );
-        assert_eq!(
-            super::super::fit_workbench_hints(&costs, 100, status),
-            (5, true, true)
-        );
-        assert_eq!(
-            super::super::fit_workbench_hints(&costs, 120, status),
-            (6, true, false)
-        );
+
+        // The status owns the right edge; the groups fill what is left. The
+        // pinned `Esc` group survives the cut, and the overflow marker takes
+        // the columns the dropped groups left behind.
+        let narrow = plan(&groups, area, status, 0);
+        assert_eq!(narrow.groups, vec![0, 1, 2, 5]);
+        assert_eq!(narrow.overflow_at, Some(59));
+
+        // A wider row keeps every group.
+        let wide = Rect::new(0, 0, 120, 1);
+        let wide = plan(&groups, wide, status, 0);
+        assert_eq!(wide.groups, vec![0, 1, 2, 3, 4, 5]);
+        assert_eq!(wide.overflow_at, None);
     }
 
     #[test]
