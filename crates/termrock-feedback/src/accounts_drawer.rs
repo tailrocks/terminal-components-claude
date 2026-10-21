@@ -83,6 +83,14 @@ pub enum DrawerLine<'a> {
     Blank,
 }
 
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub enum PaneChrome {
+    /// Open drawer. The list rule is quiet and selection has no focus bar.
+    Drawer,
+    /// Detail with the drawer closed. The list keeps the strong border and the focus bar.
+    Detail,
+}
+
 pub struct AccountsDrawer<'a> {
     pub brand: &'a str,
     pub menus: &'a [&'a str],
@@ -94,6 +102,8 @@ pub struct AccountsDrawer<'a> {
     pub rows: &'a [PaneRow<'a>],
     pub lines: &'a [DrawerLine<'a>],
     pub hints: &'a [FilterHint<'a>],
+    pub hint_overflow: &'a str,
+    pub chrome: PaneChrome,
 }
 
 struct Ink {
@@ -145,17 +155,26 @@ pub fn paint_accounts_drawer(ui: &mut Ui<'_>, area: Rect, page: &AccountsDrawer<
     let list_right = list_x.saturating_add(LIST_W).saturating_sub(1);
     let box_top = area.y.saturating_add(2);
     let box_bottom = area.bottom().saturating_sub(3);
-    paint_list_top(ui, area, box_top, list_x, list_right, page, &ink);
+    paint_list_top(
+        ui,
+        area,
+        box_top,
+        list_x,
+        list_right,
+        page,
+        &ink,
+        page.chrome,
+    );
     let mut y = box_top.saturating_add(1);
     for row in page.rows {
         if y >= box_bottom {
             break;
         }
-        paint_pane_row(ui, area, y, list_x, list_right, row, &ink);
+        paint_pane_row(ui, area, y, list_x, list_right, row, &ink, page.chrome);
         y = y.saturating_add(1);
     }
     while y < box_bottom {
-        paint_pane_edges(ui, area, y, list_x, list_right, &ink);
+        paint_pane_edges(ui, area, y, list_x, list_right, &ink, page.chrome);
         y = y.saturating_add(1);
     }
     let dashes = "─".repeat(usize::from(LIST_W.saturating_sub(2)));
@@ -165,7 +184,7 @@ pub fn paint_accounts_drawer(ui: &mut Ui<'_>, area: Rect, page: &AccountsDrawer<
         list_x,
         box_bottom,
         &format!("╰{dashes}╯"),
-        plain(RULE, ink.canvas),
+        list_edge(page.chrome, &ink),
     );
     let drawer_x = list_right.saturating_add(2);
     let content_x = drawer_x.saturating_add(1);
@@ -191,7 +210,7 @@ pub fn paint_accounts_drawer(ui: &mut Ui<'_>, area: Rect, page: &AccountsDrawer<
             "│",
             plain(ink.border, ink.canvas),
         );
-        paint_line(ui, area, line_y, content_x, line, &ink);
+        paint_line(ui, area, line_y, content_x, line, &ink, page.chrome);
         line_y = line_y.saturating_add(1);
     }
     paint_hints(ui, area, page, &ink);
@@ -279,18 +298,17 @@ fn paint_list_top(
     list_right: u16,
     page: &AccountsDrawer<'_>,
     ink: &Ink,
+    chrome: PaneChrome,
 ) {
-    let edge = plain(RULE, ink.canvas);
+    let edge = list_edge(chrome, ink);
     put(ui, area, list_x, y, "╭─", edge);
     let title_x = list_x.saturating_add(2);
-    put(
-        ui,
-        area,
-        title_x,
-        y,
-        page.title,
-        plain(ink.secondary, ink.canvas),
-    );
+    let title_style = if chrome == PaneChrome::Detail {
+        bold(ink.primary, ink.canvas)
+    } else {
+        plain(ink.secondary, ink.canvas)
+    };
+    put(ui, area, title_x, y, page.title, title_style);
     let summary_x = list_right
         .saturating_sub(1)
         .saturating_sub(width(page.summary));
@@ -316,8 +334,27 @@ fn paint_list_top(
     put(ui, area, list_right.saturating_sub(1), y, "─╮", edge);
 }
 
-fn paint_pane_edges(ui: &mut Ui<'_>, area: Rect, y: u16, list_x: u16, list_right: u16, ink: &Ink) {
-    let edge = plain(RULE, ink.canvas);
+fn list_edge(chrome: PaneChrome, ink: &Ink) -> PaintStyle {
+    plain(
+        if chrome == PaneChrome::Detail {
+            ink.border
+        } else {
+            RULE
+        },
+        ink.canvas,
+    )
+}
+
+fn paint_pane_edges(
+    ui: &mut Ui<'_>,
+    area: Rect,
+    y: u16,
+    list_x: u16,
+    list_right: u16,
+    ink: &Ink,
+    chrome: PaneChrome,
+) {
+    let edge = list_edge(chrome, ink);
     put(ui, area, list_x, y, "│", edge);
     put(ui, area, list_right, y, "│", edge);
 }
@@ -330,14 +367,15 @@ fn paint_pane_row(
     list_right: u16,
     row: &PaneRow<'_>,
     ink: &Ink,
+    chrome: PaneChrome,
 ) {
-    paint_pane_edges(ui, area, y, list_x, list_right, ink);
+    paint_pane_edges(ui, area, y, list_x, list_right, ink, chrome);
     if row.empty {
         return;
     }
     let gutter = list_x.saturating_add(2);
     if row.selected {
-        paint_selected_row(ui, area, y, gutter, list_right, row, ink);
+        paint_selected_row(ui, area, y, gutter, list_right, row, ink, chrome);
         return;
     }
     put(ui, area, gutter, y, " ", plain(ink.canvas, ink.canvas));
@@ -400,6 +438,7 @@ fn paint_selected_row(
     list_right: u16,
     row: &PaneRow<'_>,
     ink: &Ink,
+    chrome: PaneChrome,
 ) {
     let fill_end = list_right.saturating_sub(1);
     ui.fill(
@@ -411,7 +450,11 @@ fn paint_selected_row(
         },
         bold(ink.primary, SELECT_BG),
     );
-    put(ui, area, gutter, y, " ", bold(SELECT_BG, SELECT_BG));
+    if chrome == PaneChrome::Detail {
+        put(ui, area, gutter, y, "▎", bold(ink.accent, SELECT_BG));
+    } else {
+        put(ui, area, gutter, y, " ", bold(SELECT_BG, SELECT_BG));
+    }
     let (mark_x, name_x) = slots(row.role, gutter);
     put(
         ui,
@@ -456,26 +499,27 @@ fn paint_line(
     content_x: u16,
     line: &DrawerLine<'_>,
     ink: &Ink,
+    chrome: PaneChrome,
 ) {
     let align = area.right().saturating_sub(3);
     match line {
         DrawerLine::Title { title, meta } => {
-            put(
-                ui,
-                area,
-                content_x.saturating_add(1),
-                y,
-                "▎",
-                plain(ink.accent, ink.chrome),
-            );
-            put(
-                ui,
-                area,
-                content_x.saturating_add(2),
-                y,
-                title,
-                bold(ink.primary, ink.chrome),
-            );
+            if chrome == PaneChrome::Drawer {
+                put(
+                    ui,
+                    area,
+                    content_x.saturating_add(1),
+                    y,
+                    "▎",
+                    plain(ink.accent, ink.chrome),
+                );
+            }
+            let title_style = if chrome == PaneChrome::Drawer {
+                bold(ink.primary, ink.chrome)
+            } else {
+                plain(ink.secondary, ink.chrome)
+            };
+            put(ui, area, content_x.saturating_add(2), y, title, title_style);
             put(
                 ui,
                 area,
@@ -653,6 +697,14 @@ fn paint_hints(ui: &mut Ui<'_>, area: Rect, page: &AccountsDrawer<'_>, ink: &Ink
         put(ui, area, x, y, hint.action, plain(ink.muted, ink.canvas));
         x = x.saturating_add(width(hint.action)).saturating_add(2);
     }
+    put(
+        ui,
+        area,
+        x,
+        y,
+        page.hint_overflow,
+        plain(ink.faint, ink.canvas),
+    );
 }
 
 fn tone_color(tone: DrawerInk, ink: &Ink) -> Color {

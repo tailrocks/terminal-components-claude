@@ -1,10 +1,19 @@
 use termrock::Ui;
 use termrock::feedback::{
     AccountRole, AccountsDrawer, DetailAlert, DetailHint, DetailInk, DetailLine, DetailSpan,
-    DrawerButton, DrawerInk, DrawerLine, DrawerMeter, DrawerTone, PaneRow, SettingsCluster,
+    DrawerButton, DrawerInk, DrawerLine, DrawerMeter, DrawerTone, PaneChrome, PaneRow,
+    SettingsCluster,
 };
 
 pub(super) fn paint(ui: &mut Ui<'_>) {
+    paint_page(ui, PaneChrome::Drawer);
+}
+
+pub(super) fn paint_detail(ui: &mut Ui<'_>) {
+    paint_page(ui, PaneChrome::Detail);
+}
+
+fn paint_page(ui: &mut Ui<'_>, chrome: PaneChrome) {
     let mut rows = vec![
         pane(
             AccountRole::Root,
@@ -356,7 +365,7 @@ pub(super) fn paint(ui: &mut Ui<'_>) {
         ]),
         DrawerLine::Blank,
     ];
-    let hints = [
+    let drawer_hints = [
         DetailHint {
             key: "↑↓",
             action: "Scroll",
@@ -364,6 +373,48 @@ pub(super) fn paint(ui: &mut Ui<'_>) {
         DetailHint {
             key: "Tab",
             action: "Actions",
+        },
+        DetailHint {
+            key: "Esc",
+            action: "Back",
+        },
+    ];
+    let detail_hints = [
+        DetailHint {
+            key: "Enter",
+            action: "Details",
+        },
+        DetailHint {
+            key: "r",
+            action: "Refresh",
+        },
+        DetailHint {
+            key: "e",
+            action: "Edit…",
+        },
+        DetailHint {
+            key: "Space",
+            action: "Default",
+        },
+        DetailHint {
+            key: "t",
+            action: "Disable",
+        },
+        DetailHint {
+            key: "v",
+            action: "Validate",
+        },
+        DetailHint {
+            key: "d",
+            action: "Remove…",
+        },
+        DetailHint {
+            key: "a",
+            action: "Add…",
+        },
+        DetailHint {
+            key: "/",
+            action: "Filter",
         },
         DetailHint {
             key: "Esc",
@@ -387,7 +438,17 @@ pub(super) fn paint(ui: &mut Ui<'_>) {
             summary: " 12 · 4 ▲ · 4 ! ",
             rows: &rows,
             lines: &lines,
-            hints: &hints,
+            hints: if chrome == PaneChrome::Detail {
+                &detail_hints
+            } else {
+                &drawer_hints
+            },
+            hint_overflow: if chrome == PaneChrome::Detail {
+                "…"
+            } else {
+                ""
+            },
+            chrome,
         },
     );
 }
