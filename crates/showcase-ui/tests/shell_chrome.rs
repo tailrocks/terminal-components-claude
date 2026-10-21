@@ -56,7 +56,18 @@ const CHROME_FRAMES: &[(PageId, u16, u16, bool, &str, u64)] = &[
     // src/theme.rs:1009-1010). The previous digest (0x297069b2_b57e2db6) came
     // from the older faint/ghost indices; it is preserved in the migration
     // record.
-    (PageId::Overview, 100, 30, false, "16", 0xe8d99bc6_c7e1eff2),
+    // The 16-colour frame follows the frozen `apply_16` table and the
+    // reference-derived source inks, so it moves whenever a source ink is
+    // restored. The previous values (0x297069b2_b57e2db6 and
+    // 0xe8d99bc6_c7e1eff2) are preserved in the migration record.
+    (
+        PageId::Overview,
+        100,
+        30,
+        false,
+        "16",
+        0x4d15_7397_66ef_41b7,
+    ),
 ];
 
 fn frame_digest(page: PageId, width: u16, height: u16, inspector: bool, level: ColorLevel) -> u64 {

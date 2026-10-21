@@ -82,6 +82,12 @@ fn all_73_junie_slots_match_reference_capability_output() {
             // (visual-baseline src/theme.rs:961), and the frozen TablePro
             // capture paints the SQL keyword at 38;5;111.
             expected.syntax.keyword = Color::Indexed(111);
+            // The frozen `apply_256` table declares the string ink as 116, the
+            // literal ink as 183 and the error ink as 203
+            // (visual-baseline src/theme.rs:956,962-963).
+            expected.syntax.string = Color::Indexed(116);
+            expected.syntax.number = Color::Indexed(183);
+            expected.syntax.diagnostic_error = Color::Indexed(203);
             expected.syntax.match_bg = Color::Indexed(233);
             // The menu-row highlight is the generic cube of the Junie
             // highlight ink; the frozen corpus paints the selected chrome
