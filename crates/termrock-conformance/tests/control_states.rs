@@ -556,31 +556,43 @@ const LEVELS: [ColorLevel; 4] = [
 
 #[test]
 fn w02_button_variants_all_states_and_focus_gutter() {
+    use termrock::controls::ButtonFocusVisibility as Bfv;
+
     for level in LEVELS {
         let theme = Theme::junie().downgrade(level);
         for variant in BUTTON_VARIANTS {
-            for (focused, disabled, expected) in [(true, false, "▎"), (false, false, " ")] {
-                let state = if focused {
-                    ReferenceState::FOCUSED
-                } else {
-                    ReferenceState::default()
-                };
+            // The gutter recipe keys on FOCUS_VISIBLE (decision recorded in
+            // docs/audits/2026-10-21-button-shared-contract.md): the default
+            // `Always` visibility policy derives it from FOCUSED, a focused
+            // button under `KeyboardOnly` stays gutter-free until the
+            // reference itself carries FOCUS_VISIBLE, and an unfocused button
+            // never paints it.
+            for (visibility, state, expected) in [
+                (None, ReferenceState::FOCUSED, "▎"),
+                (Some(Bfv::KeyboardOnly), ReferenceState::FOCUSED, " "),
+                (
+                    Some(Bfv::KeyboardOnly),
+                    ReferenceState::FOCUSED.union(ReferenceState::FOCUS_VISIBLE),
+                    "▎",
+                ),
+                (None, ReferenceState::default(), " "),
+            ] {
                 let buf = paint(BUTTON_AREA, theme.clone(), |ui, area| {
                     ui.reference(Some(ReferenceTarget::new(BUTTON, state)), |ui| {
-                        Button::new(BUTTON, "Action")
-                            .variant(variant)
-                            .disabled(disabled)
-                            .draw(ui, area);
+                        let mut button = Button::new(BUTTON, "Action").variant(variant);
+                        if let Some(visibility) = visibility {
+                            button = button.focus_visible(visibility);
+                        }
+                        button.draw(ui, area);
                     });
                 });
                 assert_eq!(
                     cell_symbol(&buf, 0, 0),
                     expected,
-                    "W02-01 {level:?} {variant:?}: focused={focused}, disabled={disabled}"
+                    "W02-01 {level:?} {variant:?}: visibility={visibility:?}, state={state:?}"
                 );
-                assert_eq!(
-                    cell_dim(&buf, 1, 0),
-                    disabled && level == ColorLevel::Mono,
+                assert!(
+                    !cell_dim(&buf, 1, 0),
                     "W02-01 {level:?} {variant:?}: mono DIM marks disabled only"
                 );
             }
@@ -2459,6 +2471,11 @@ fn w08_input_masked_clicks_follow_display() {
         Some(Position::new(2, 0)),
         "W08-02: target maps the second mask cell onto the wide grapheme"
     );
+    // The two target cells sit one apart, inside the default
+    // `pointer_click_slop` of 1, so an intervening far click resets the
+    // press count and both probes stay single clicks (decision recorded in
+    // docs/audits/2026-10-20-picker-family-contracts.md).
+    let _ = rig.app.click(0, 0);
     let _ = rig.app.click(4, 0);
     assert_eq!(
         rig.app.cursor(),
@@ -2467,6 +2484,7 @@ fn w08_input_masked_clicks_follow_display() {
     );
 }
 
+#[test]
 #[test]
 fn w08_input_down_only_does_not_edit() {
     let mut rig = InputRig::new("original");
@@ -4942,6 +4960,13 @@ fn w13_filter_backspace_removes_grapheme() {
         rig.query.borrow().as_str(),
         "a",
         "W13-02: backspace removes grapheme cluster, got {:?}",
+        rig.query.borrow()
+    );
+    let _ = rig.app.key(KeyCode::Backspace);
+    assert_eq!(
+        rig.query.borrow().as_str(),
+        "",
+        "W13-02: the second backspace must consume the rest of the query with no dangling ZWJ, got {:?}",
         rig.query.borrow()
     );
 }
