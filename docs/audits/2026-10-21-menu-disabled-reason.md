@@ -103,8 +103,10 @@ At the four unchanged public probes in
 `incoming-e4eae58e-independent-review-20261021/review.json`, the pre-fix source
 failed `underlay_keeps_chord`, `underlay_keeps_disabled_style`,
 `underlay_honors_border_patch`, and `underlay_keeps_underline_ink` (4/8 passed,
-4 failed). After this menu-only change, 7/8 pass: the three menu behavior
-failures now pass, as does the nested lower-layer foreground probe. The
+4 failed). After this menu-only change, the three menu behavior failures pass.
+The reported nested lower-layer foreground pass is invalid evidence: its
+fixture ignored an error from `Runtime::handle(Tick)` and never opened the upper
+layer. Do not credit that result for the nearest-lower-layer contract. The
 unchanged runtime-only `underlay_keeps_underline_ink` still fails because
 `Ui::fill_keep_ink` clears the underline channel; its runtime owner is handling
 that separately. No runtime source was edited here, and this menu change does
@@ -131,7 +133,34 @@ narrow-width resize safety from zero through 40 columns. Package validation is
 `cargo nextest run -p termrock-overlays --all-targets --no-fail-fast` (141/141),
 `cargo clippy -p termrock-overlays --all-targets -- -D warnings`,
 `cargo fmt --check --package termrock-overlays`, and `git diff --check`, all
-green. The unchanged external consumer remains 7/8 solely because the
-runtime-owned underline-color preservation fix is pending. Product parity,
-actual Capsule configuration, and the frozen CLI comparison remain
-outstanding.
+green. The external consumer's nested-layer result is not credited; Runtime
+review also records an admitted nearest-lower-layer failure and an in-place
+`ForcedWidth`/ordinary-space metadata failure. Runtime review status is HOLD,
+not acceptance. Product parity, actual Capsule configuration, and the frozen
+CLI comparison remain outstanding.
+
+## Independent review correction (2026-10-21)
+
+The immutable review
+`menu-underlay-7ab3d12e-independent-review-20261021/review.json`
+(SHA-256 `54a0994471b177e1d91c04719282ea407666c8927b3dcafa1e91f5c07c98ab5b`)
+found that `clear_on_leave(true)` hid the row highlight but Enter/Space still
+activated the stored cursor. The menu now consumes these keyboard activation
+bindings while the highlight is hidden; pointer activation remains unchanged,
+and keyboard navigation restores the highlight before activation. The frozen
+source at `4169783ae883788186d161af09ba9c481bd84e5c:src/widgets/menu.rs:463`
+guards Enter/Space when `highlighted()` is absent, while checking explicit item
+accelerators before that guard. The real `Harness` regression failed before the
+fix with `Chosen(RUN)` after pointer leave and passes after it, including both
+Enter and Space and subsequent Home/Enter activation. This is a shared widget
+contract fix, not baseline artifact approval.
+
+The same review rejects the earlier nested lower-layer pass because the old
+fixture swallowed a rejected `Tick` and never opened `UPPER`. The independent
+Runtime 860 review
+`runtime-underlay-860529a3-independent-review-20261021/review.json` (SHA-256
+`750216794edc36d3d981fdff9edd3f6ec6cbea0d51d2eb95d99059121abc51df`) confirms
+the strengthened admitted upper-layer fixture is red and separately records
+the in-place `ForcedWidth(4)` space metadata defect as red. Neither Runtime
+finding is in this menu-only scope; both remain unresolved and no nested
+underlay correctness is claimed here.
