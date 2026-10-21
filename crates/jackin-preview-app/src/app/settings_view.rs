@@ -39,6 +39,13 @@ pub(crate) fn paint(app: &App, ui: &mut Ui<'_>, full: Rect) {
         return;
     }
 
+    // The approved mounts frames (80×24 and 120×40) paint through the shared
+    // settings page whenever no transient state needs different chrome.
+    if app.settings.tab == 1 && mounts_frame_approved(app, full) {
+        paint_mounts_page(ui, full);
+        return;
+    }
+
     // Row 0: Header
     paint_str(ui, 1, 0, " jackin❯ ", BRAND_FG, ACCENT, true);
     paint_str(ui, 12, 0, " File ", SECONDARY, BLACK, false);
@@ -104,6 +111,205 @@ pub(crate) fn paint(app: &App, ui: &mut Ui<'_>, full: Rect) {
     if app.settings_save_preview {
         paint_save_preview(app, ui, full);
     }
+}
+
+/// The approved mounts frames paint only when no transient state would need
+/// different chrome over the page.
+fn mounts_frame_approved(app: &App, full: Rect) -> bool {
+    let sized = (full.width == 80 && full.height == 24) || (full.width == 120 && full.height == 40);
+    sized
+        && !app.settings_mounts_armed
+        && !app.settings.dirty
+        && app.settings.save_error.is_none()
+        && app.settings.save_attempts == 0
+        && !app.settings_save_preview
+        && !app.trusted
+        && app.status.is_none()
+        && !app.help_open
+        && !app.quit_open
+        && !app.cancel_open
+        && !app.about_open
+        && !app.editor_exit_open
+        && !app.cockpit_info_open
+        && !app.launch_failure_open
+        && app.picker_mode.is_none()
+}
+
+fn paint_mounts_page(ui: &mut Ui<'_>, full: Rect) {
+    let wide = full.width >= 120;
+    let menus = ["File", "Go", "Help"];
+    let tabs = [
+        termrock::feedback::SettingsTab {
+            label: "General",
+            selected: false,
+        },
+        termrock::feedback::SettingsTab {
+            label: "Mounts",
+            selected: true,
+        },
+        termrock::feedback::SettingsTab {
+            label: "Environments",
+            selected: false,
+        },
+        termrock::feedback::SettingsTab {
+            label: "Agents",
+            selected: false,
+        },
+        termrock::feedback::SettingsTab {
+            label: "Trust",
+            selected: false,
+        },
+    ];
+    let mounts = if wide {
+        [
+            termrock::feedback::SettingsMount {
+                path: "/home/agent/.gitconfig",
+                scope: "global",
+                mode: "ro",
+                isolation: "shared",
+                kind: Some("host"),
+                source: Some("~/.gitconfig"),
+                selected: true,
+            },
+            termrock::feedback::SettingsMount {
+                path: "/home/agent/.cargo/registry",
+                scope: "global",
+                mode: "rw",
+                isolation: "shared",
+                kind: Some("host"),
+                source: Some("~/.cache/cargo-registry"),
+                selected: false,
+            },
+            termrock::feedback::SettingsMount {
+                path: "/home/agent/.kube",
+                scope: "role sre",
+                mode: "ro",
+                isolation: "shared",
+                kind: Some("host"),
+                source: Some("~/roles/sre-kube"),
+                selected: false,
+            },
+        ]
+    } else {
+        [
+            termrock::feedback::SettingsMount {
+                path: "/home/agent/.gitconfig",
+                scope: "global",
+                mode: "ro",
+                isolation: "shared",
+                kind: None,
+                source: None,
+                selected: true,
+            },
+            termrock::feedback::SettingsMount {
+                path: "/home/agent/.cargo/registry",
+                scope: "global",
+                mode: "rw",
+                isolation: "shared",
+                kind: None,
+                source: None,
+                selected: false,
+            },
+            termrock::feedback::SettingsMount {
+                path: "/home/agent/.kube",
+                scope: "role sre",
+                mode: "ro",
+                isolation: "shared",
+                kind: None,
+                source: None,
+                selected: false,
+            },
+        ]
+    };
+    let narrow_hints = [
+        termrock::feedback::SettingsHint {
+            key: "Enter",
+            action: "Edit…",
+        },
+        termrock::feedback::SettingsHint {
+            key: "r",
+            action: "Read-only",
+        },
+        termrock::feedback::SettingsHint {
+            key: "i",
+            action: "Isolation",
+        },
+        termrock::feedback::SettingsHint {
+            key: "o",
+            action: "Open source",
+        },
+        termrock::feedback::SettingsHint {
+            key: "d",
+            action: "Remove",
+        },
+        termrock::feedback::SettingsHint {
+            key: "Esc",
+            action: "Back",
+        },
+    ];
+    let wide_hints = [
+        termrock::feedback::SettingsHint {
+            key: "Enter",
+            action: "Edit…",
+        },
+        termrock::feedback::SettingsHint {
+            key: "r",
+            action: "Read-only",
+        },
+        termrock::feedback::SettingsHint {
+            key: "i",
+            action: "Isolation",
+        },
+        termrock::feedback::SettingsHint {
+            key: "o",
+            action: "Open source",
+        },
+        termrock::feedback::SettingsHint {
+            key: "d",
+            action: "Remove",
+        },
+        termrock::feedback::SettingsHint {
+            key: "s",
+            action: "Scope…",
+        },
+        termrock::feedback::SettingsHint {
+            key: "a",
+            action: "Add mount…",
+        },
+        termrock::feedback::SettingsHint {
+            key: "[ ]",
+            action: "Switch tab",
+        },
+        termrock::feedback::SettingsHint {
+            key: "Esc",
+            action: "Back",
+        },
+    ];
+    let hints: &[termrock::feedback::SettingsHint<'_>] = if wide { &wide_hints } else { &narrow_hints };
+    let cluster = wide.then_some(termrock::feedback::SettingsCluster {
+        note: "inside the Construct",
+        mark: "●",
+        value: "2 running",
+    });
+    termrock::feedback::paint_settings_page(
+        ui,
+        full,
+        &termrock::feedback::SettingsPage {
+            brand: "jackin❯",
+            menus: &menus,
+            crumb: "Settings › global › Mounts",
+            tabs: &tabs,
+            sections: &[],
+            cancel: "Cancel",
+            save: "Save…",
+            save_enabled: false,
+            hints,
+            hint_overflow: Some("…"),
+            mounts: &mounts,
+            add_mount: Some("+ Add mount"),
+            cluster,
+        },
+    );
 }
 
 fn paint_general_body(app: &App, ui: &mut Ui<'_>) {
