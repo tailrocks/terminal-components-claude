@@ -3425,7 +3425,7 @@ fn paint_idle_query(
         height: inner.height,
     };
     let top = idle_query_top(inner.height);
-    let editor_rows = top.saturating_sub(2);
+    let editor_rows = query_editor_rows(top);
     paint_query_toolbar(ui, termrock::Rect { height: 1, ..body });
     // The frame paints a gap and a border on the last two columns. The
     // baseline editor stops before that chrome, so the position label and
@@ -3479,7 +3479,7 @@ fn paint_query_plan(
         height: inner.height,
     };
     let top = idle_query_top(inner.height);
-    let editor_rows = top.saturating_sub(2);
+    let editor_rows = query_editor_rows(top);
     paint_query_toolbar(ui, termrock::Rect { height: 1, ..body });
     // The frame paints a gap and a border on the last two columns.
     let editor = termrock::Rect {
@@ -3788,7 +3788,7 @@ fn paint_query_results_chrome(
         height: inner.height,
     };
     let top = idle_query_top(inner.height);
-    let editor_rows = top.saturating_sub(2);
+    let editor_rows = query_editor_rows(top);
     paint_query_toolbar(ui, termrock::Rect { height: 1, ..body });
     // The frame paints a gap and a border on the last two columns.
     let editor = termrock::Rect {
@@ -3917,7 +3917,7 @@ fn paint_query_error(
         height: inner.height,
     };
     let top = idle_query_top(inner.height);
-    let editor_rows = top.saturating_sub(2);
+    let editor_rows = query_editor_rows(top);
     paint_query_toolbar(ui, termrock::Rect { height: 1, ..body });
     // The frame paints a gap and a border on the last two columns.
     let editor = termrock::Rect {
@@ -4128,6 +4128,15 @@ fn idle_query_top(height: u16) -> u16 {
     ratio.max(4).min(height.saturating_sub(6).max(4))
 }
 
+/// Rows for the editor under the toolbar.
+///
+/// A top pane of 4 still keeps a code line, the horizontal bar, and the
+/// position footer. Wider panes keep the existing `top - 2` height.
+fn query_editor_rows(top: u16) -> u16 {
+    let rows = top.saturating_sub(2);
+    if top > 3 { rows.max(3) } else { rows }
+}
+
 fn paint_query_toolbar(ui: &mut Ui<'_>, area: termrock::Rect) {
     let plain = ui.surface_style().remove_modifier(Modifier::BOLD);
     let mut button = plain.patch(
@@ -4242,7 +4251,7 @@ fn idle_editor_rect(
         width: area.width.saturating_sub(inset),
         height: inner.height,
     };
-    let editor_rows = idle_query_top(inner.height).saturating_sub(2);
+    let editor_rows = query_editor_rows(idle_query_top(inner.height));
     Some(termrock::Rect {
         y: body.y.saturating_add(1),
         height: editor_rows,
@@ -4261,7 +4270,7 @@ fn extend_query_plan_edge(
     }
     let body_y = inner.y;
     let top = idle_query_top(inner.height);
-    let editor_rows = top.saturating_sub(2);
+    let editor_rows = query_editor_rows(top);
     let editor_y = body_y.saturating_add(1);
     let x = inner.right();
     let field = ui.surface_style().patch(
@@ -4334,7 +4343,7 @@ fn extend_query_results_edge(ui: &mut Ui<'_>, inner: termrock::Rect) {
         return;
     }
     let top = idle_query_top(inner.height);
-    let editor_rows = top.saturating_sub(2);
+    let editor_rows = query_editor_rows(top);
     let editor_y = inner.y.saturating_add(1);
     let x = inner.right();
     let field = ui.surface_style().patch(
@@ -4379,7 +4388,7 @@ fn extend_query_error_edge(ui: &mut Ui<'_>, area: termrock::Rect, inner: termroc
     }
     let body_y = inner.y;
     let top = idle_query_top(inner.height);
-    let editor_rows = top.saturating_sub(2);
+    let editor_rows = query_editor_rows(top);
     let editor_y = body_y.saturating_add(1);
     let x = inner.right();
     let field = ui.surface_style().patch(
@@ -6452,13 +6461,15 @@ fn paint_row_numbers(
         };
         let fade = visible.saturating_sub(row);
         let truecolor = ui.theme().capability.color == termrock::ColorLevel::TrueColor;
+        // A two-row body is the whole viewport. Keep it solid, as the baseline does.
+        let edge = visible > 2;
         // These two pads sit in the grid body. The edge fade already ran.
         // Repainting them in primary ink hides the bottom (and top) fade.
-        let pad = if truecolor && (fade == 1 || (origin > 0 && row == 0)) {
+        let pad = if truecolor && edge && (fade == 1 || (origin > 0 && row == 0)) {
             gutter.patch(ui.paint_patch(
                 &StylePatch::new().set_fg(Role::Custom(termrock::Color::from_u32(0x008c_8c8c))),
             ))
-        } else if truecolor && (fade == 2 || (origin > 0 && row == 1)) {
+        } else if truecolor && edge && (fade == 2 || (origin > 0 && row == 1)) {
             gutter.patch(ui.paint_patch(
                 &StylePatch::new().set_fg(Role::Custom(termrock::Color::from_u32(0x00cc_cccc))),
             ))
@@ -6483,13 +6494,13 @@ fn paint_row_numbers(
             } else {
                 LEGACY_FAINT
             }
-        } else if origin > 0 && row == 0 {
+        } else if edge && origin > 0 && row == 0 {
             Role::Custom(termrock::Color::from_u32(0x003f_3f3f))
-        } else if origin > 0 && row == 1 {
+        } else if edge && origin > 0 && row == 1 {
             Role::Custom(termrock::Color::from_u32(0x005c_5c5c))
-        } else if fade == 1 {
+        } else if edge && fade == 1 {
             Role::Custom(termrock::Color::from_u32(0x003f_3f3f))
-        } else if fade == 2 {
+        } else if edge && fade == 2 {
             Role::Custom(termrock::Color::from_u32(0x005c_5c5c))
         } else if cursor == Some(model_row) {
             TAG_PATH_FG
@@ -7819,6 +7830,111 @@ fn grouped(n: usize) -> String {
     out.chars().rev().collect()
 }
 
+/// Which right-hand header pieces survive, plus the overflow column.
+///
+/// `None` means every piece fits and the existing cluster paint stays.
+/// The column is relative to `area.x`. Priorities match the baseline strip:
+/// the size badge is 1 and `? help` is 4, so the badge drops first.
+pub(crate) fn header_overflow(
+    area_width: u16,
+    left: &[u16],
+    left_priority: &[u8],
+    right: &[u16],
+    right_priority: &[u8],
+) -> Option<(Vec<bool>, u16)> {
+    const EDGE: u16 = 2;
+    const SEP: u16 = 2;
+    let mut keep_left = vec![true; left.len()];
+    let mut keep_right = vec![true; right.len()];
+    let total = |keep_left: &[bool], keep_right: &[bool]| -> u16 {
+        let left_width: u16 = left
+            .iter()
+            .zip(keep_left)
+            .filter(|(_, keep)| **keep)
+            .map(|(piece, _)| piece.saturating_add(SEP))
+            .sum();
+        let right_width: u16 = right
+            .iter()
+            .zip(keep_right)
+            .filter(|(_, keep)| **keep)
+            .map(|(piece, _)| piece.saturating_add(SEP))
+            .sum();
+        let dropped = keep_left.iter().chain(keep_right).any(|keep| !keep);
+        let more = if dropped { 1 + SEP } else { 0 };
+        left_width
+            .saturating_add(right_width)
+            .saturating_add(more)
+            .saturating_sub(SEP)
+            .saturating_add(EDGE.saturating_mul(2))
+    };
+    while total(&keep_left, &keep_right) > area_width {
+        let mut best: Option<(u8, bool, usize)> = None;
+        for (index, priority) in left_priority.iter().copied().enumerate() {
+            if keep_left[index] && best.is_none_or(|(rank, _, _)| priority < rank) {
+                best = Some((priority, true, index));
+            }
+        }
+        for (index, priority) in right_priority.iter().copied().enumerate() {
+            if keep_right[index] && best.is_none_or(|(rank, _, _)| priority <= rank) {
+                best = Some((priority, false, index));
+            }
+        }
+        match best {
+            Some((_, true, index)) => keep_left[index] = false,
+            Some((_, false, index)) => keep_right[index] = false,
+            None => break,
+        }
+    }
+    if keep_right.iter().all(|keep| *keep) && keep_left.iter().all(|keep| *keep) {
+        return None;
+    }
+    let mut cursor = area_width.saturating_sub(EDGE);
+    for (piece, keep) in right.iter().zip(&keep_right).rev() {
+        if !keep {
+            continue;
+        }
+        cursor = cursor.saturating_sub(*piece).saturating_sub(SEP);
+    }
+    let ellipsis = cursor.saturating_sub(1).max(EDGE);
+    Some((keep_right, ellipsis))
+}
+
+fn workbench_header_pieces(
+    app: &TableProApp,
+    capability: &str,
+    term_width: u16,
+    term_height: u16,
+) -> (Vec<u16>, Vec<u16>) {
+    let name_width = width(&app.connection.name).min(18);
+    let glyph = match app.connection.environment {
+        Environment::Production => "◆",
+        Environment::Staging => "◇",
+        Environment::Local | Environment::Development => "·",
+    };
+    let environment = format!("{glyph} {}", app.connection.environment.label());
+    let scope = format!(
+        "{} › {}",
+        app.connection.database,
+        app.workbench.current_schema()
+    );
+    let safe = match app.safe_mode {
+        SafeMode::Safe | SafeMode::SafeFull => "✓ safe".to_owned(),
+        _ => app.safe_mode.token().to_owned(),
+    };
+    let badge = format!("{capability} · {term_width}×{term_height}");
+    (
+        vec![
+            1,
+            width("TablePro"),
+            name_width,
+            width(&environment),
+            width(&scope),
+            width(&safe),
+        ],
+        vec![width(&badge), width("? help")],
+    )
+}
+
 fn draw_header(ui: &mut Ui<'_>, area: termrock::Rect, app: &TableProApp) {
     let base = ui.surface_style();
     ui.fill(area, base);
@@ -7897,28 +8013,61 @@ fn draw_header(ui: &mut Ui<'_>, area: termrock::Rect, app: &TableProApp) {
 
     let capability = ui.theme().capability.color.label();
     let dimensions = format!("{}×{}", area.width, ui.full().height);
-    let right_width = width(capability)
-        .saturating_add(3)
-        .saturating_add(width(&dimensions))
-        .saturating_add(1)
-        .saturating_add(8);
-    let right = termrock::Rect {
-        x: area.right().saturating_sub(right_width).saturating_sub(1),
-        width: right_width.saturating_add(1),
-        ..area
+    let overflow = if app.screen == Screen::Workbench {
+        let (left, right) = workbench_header_pieces(app, capability, area.width, ui.full().height);
+        header_overflow(area.width, &left, &[9, 9, 9, 8, 7, 8], &right, &[1, 4])
+    } else {
+        None
     };
-    ui.paint_spans(
-        right,
-        &[
-            Span::new(capability).role(TAG_CHROME_FG),
-            Span::new(" · ").role(TAG_CHROME_FG),
-            Span::new(&dimensions).role(TAG_CHROME_FG),
-            Span::new(" "),
-            Span::new(" ? help ").role(TAG_CHROME_FG),
-        ],
-        base,
-    );
-    paint_header_pending(ui, area, right.x, pending_label.as_deref(), base);
+    if let Some((keep_right, ellipsis)) = overflow {
+        let help = "? help";
+        if keep_right.last().copied().unwrap_or(false) {
+            let help_x = area.right().saturating_sub(2).saturating_sub(width(help));
+            ui.paint_str(
+                termrock::Rect {
+                    x: help_x,
+                    width: width(help),
+                    ..area
+                },
+                help,
+                base.patch(ui.paint_patch(&StylePatch::new().set_fg(TAG_CHROME_FG))),
+            );
+        }
+        ui.paint_str(
+            termrock::Rect {
+                x: area.x.saturating_add(ellipsis),
+                width: 1,
+                ..area
+            },
+            "…",
+            base.patch(ui.paint_patch(&StylePatch::new().set_fg(TAG_CHROME_FG))),
+        );
+        let cluster_x = area.x.saturating_add(ellipsis);
+        paint_header_pending(ui, area, cluster_x, pending_label.as_deref(), base);
+    } else {
+        let right_width = width(capability)
+            .saturating_add(3)
+            .saturating_add(width(&dimensions))
+            .saturating_add(1)
+            .saturating_add(8);
+        let right = termrock::Rect {
+            x: area.right().saturating_sub(right_width).saturating_sub(1),
+            width: right_width.saturating_add(1),
+            ..area
+        };
+        ui.paint_spans(
+            right,
+            &[
+                Span::new(capability).role(TAG_CHROME_FG),
+                Span::new(" · ").role(TAG_CHROME_FG),
+                Span::new(&dimensions).role(TAG_CHROME_FG),
+                Span::new(" "),
+                Span::new(" ? help ").role(TAG_CHROME_FG),
+            ],
+            base,
+        );
+        paint_header_pending(ui, area, right.x, pending_label.as_deref(), base);
+    }
 }
 
 fn workbench_pending_label(app: &TableProApp) -> Option<String> {
@@ -9324,10 +9473,159 @@ fn paint_picker_layer_footer(ui: &mut Ui<'_>, area: termrock::Rect) {
     );
 }
 
+fn hint_group_costs(spans: &[Span<'_>]) -> Vec<u16> {
+    let mut index = usize::from(spans.first().is_some_and(|span| span.text == " "));
+    let mut costs = Vec::new();
+    while index < spans.len() {
+        let mut group = 0u16;
+        while index < spans.len() && spans[index].text != "  " {
+            group = group.saturating_add(width(spans[index].text));
+            index = index.saturating_add(1);
+        }
+        if index < spans.len() && spans[index].text == "  " {
+            index = index.saturating_add(1);
+        }
+        costs.push(group.saturating_add(2));
+    }
+    costs
+}
+
+/// Keep every hint when the status fits beside them. If the status would cover
+/// a hint other than the last one, drop the status and keep the hints.
+pub(crate) fn fit_workbench_hints(
+    group_costs: &[u16],
+    area_width: u16,
+    status_width: u16,
+) -> (usize, bool, bool) {
+    const START: u16 = 1;
+    let room_with = area_width
+        .saturating_sub(status_width.saturating_add(3))
+        .saturating_sub(START);
+    let cost = |count: usize| -> u16 {
+        group_costs
+            .iter()
+            .take(count)
+            .fold(0u16, |sum, item| sum.saturating_add(*item))
+    };
+    let all = group_costs.len();
+    if all > 0 && cost(all) <= room_with {
+        return (all, true, false);
+    }
+    let core = all.saturating_sub(1);
+    if core > 0 && cost(core) <= room_with {
+        return (core, true, true);
+    }
+    let room = area_width.saturating_sub(START);
+    let mut keep = 0;
+    while keep < all && cost(keep.saturating_add(1)) <= room {
+        keep = keep.saturating_add(1);
+    }
+    (keep, false, keep < all)
+}
+
+fn paint_fitted_workbench_hints(
+    ui: &mut Ui<'_>,
+    area: termrock::Rect,
+    spans: &[Span<'_>],
+    status_width: u16,
+    base: PaintStyle,
+) -> bool {
+    let costs = hint_group_costs(spans);
+    let (keep, status, ellipsis) = fit_workbench_hints(&costs, area.width, status_width);
+    if keep == costs.len() && !ellipsis {
+        ui.paint_spans(area, spans, base);
+        return status;
+    }
+    let mut index = 0;
+    let mut x = area.x;
+    if spans.first().is_some_and(|span| span.text == " ") {
+        let span_width = width(spans[0].text);
+        ui.paint_str(
+            termrock::Rect {
+                x,
+                width: span_width,
+                ..area
+            },
+            spans[0].text,
+            span_paint(ui, base, &spans[0]),
+        );
+        x = x.saturating_add(span_width);
+        index = 1;
+    }
+    let mut painted = 0usize;
+    while index < spans.len() && painted < keep {
+        while index < spans.len() && spans[index].text != "  " {
+            let span_width = width(spans[index].text);
+            ui.paint_str(
+                termrock::Rect {
+                    x,
+                    width: span_width,
+                    ..area
+                },
+                spans[index].text,
+                span_paint(ui, base, &spans[index]),
+            );
+            x = x.saturating_add(span_width);
+            index = index.saturating_add(1);
+        }
+        if index < spans.len() && spans[index].text == "  " {
+            x = x.saturating_add(width(spans[index].text));
+            index = index.saturating_add(1);
+        }
+        painted = painted.saturating_add(1);
+    }
+    if ellipsis {
+        ui.paint_str(
+            termrock::Rect {
+                x,
+                width: 1,
+                ..area
+            },
+            "…",
+            base.patch(ui.paint_patch(&StylePatch::new().set_fg(LEGACY_FAINT))),
+        );
+    }
+    status
+}
+
+fn connection_status_label(app: &TableProApp, explorer_focused: bool, empty_query: bool) -> String {
+    let checked = matches!(
+        app.surface,
+        Surface::TableGrid | Surface::StructureView | Surface::HistoryTab
+    ) || explorer_focused
+        || empty_query
+        || query_completion_open(app)
+        || (app.blank_sql()
+            && matches!(
+                app.surface,
+                Surface::QuickSwitcher
+                    | Surface::TabListPicker
+                    | Surface::SafeModePicker
+                    | Surface::HelpDialog
+            ))
+        || app.destructive_intent.is_some()
+        || app.surface == Surface::FilterEditor
+        || matches!(
+            app.workbench.active(),
+            Some(Tab::Query(query))
+                if query.error.is_some() || query.plan.is_some() || query.result.is_some()
+        );
+    let prefix = if checked {
+        "✓ Connected to "
+    } else {
+        "Connected to "
+    };
+    let mut text = String::with_capacity(prefix.len().saturating_add(app.connection.name.len()));
+    text.push_str(prefix);
+    text.push_str(&app.connection.name);
+    text
+}
+
 fn draw_footer(ui: &mut Ui<'_>, area: termrock::Rect, app: &TableProApp) {
     let base = ui.surface_style();
     let explorer_focused = ui.state(EXPLORER).contains(StateFlags::FOCUSED);
     let empty_query = app.blank_sql() && query_editor_focused(ui, app);
+    let mut show_connection_status = true;
     ui.fill(area, base);
     if matches!(app.surface, Surface::QuickSwitcher | Surface::TabListPicker) {
         paint_picker_layer_footer(ui, area);
@@ -9356,9 +9654,18 @@ fn draw_footer(ui: &mut Ui<'_>, area: termrock::Rect, app: &TableProApp) {
         paint_cell_edit_footer(ui, area);
     } else {
         let notice = connection_duplicated_notice(app);
+        let status_wins = notice.is_none()
+            && app.destructive_notice.is_none()
+            && sort_footer(app).is_none()
+            && filter_footer(app).is_none()
+            && app.screen == Screen::Workbench;
+        let status_label = connection_status_label(app, explorer_focused, empty_query);
         with_footer_spans(app, explorer_focused, |spans| {
             if app.screen == Screen::Connections {
                 paint_connection_hints(ui, area, spans, notice, base);
+            } else if status_wins {
+                show_connection_status =
+                    paint_fitted_workbench_hints(ui, area, spans, width(&status_label), base);
             } else {
                 ui.paint_spans(area, spans, base);
             }
@@ -9409,37 +9716,9 @@ fn draw_footer(ui: &mut Ui<'_>, area: termrock::Rect, app: &TableProApp) {
             notice,
             base.patch(ui.paint_patch(&StylePatch::new().set_fg(TAG_PATH_FG))),
         );
-    } else if app.screen == Screen::Workbench {
-        let checked = matches!(
-            app.surface,
-            Surface::TableGrid | Surface::StructureView | Surface::HistoryTab
-        ) || explorer_focused
-            || empty_query
-            || query_completion_open(app)
-            || (app.blank_sql()
-                && matches!(
-                    app.surface,
-                    Surface::QuickSwitcher
-                        | Surface::TabListPicker
-                        | Surface::SafeModePicker
-                        | Surface::HelpDialog
-                ))
-            || app.destructive_intent.is_some()
-            || app.surface == Surface::FilterEditor
-            || matches!(
-                app.workbench.active(),
-                Some(Tab::Query(query))
-                    if query.error.is_some() || query.plan.is_some() || query.result.is_some()
-            );
-        let prefix = if checked {
-            "✓ Connected to "
-        } else {
-            "Connected to "
-        };
-        let mut right_text =
-            String::with_capacity(prefix.len().saturating_add(app.connection.name.len()));
-        right_text.push_str(prefix);
-        right_text.push_str(&app.connection.name);
+    } else if app.screen == Screen::Workbench && show_connection_status {
+        let right_text = connection_status_label(app, explorer_focused, empty_query);
+        let checked = right_text.starts_with('✓');
         let text_width = width(&right_text);
         let right = termrock::Rect {
             x: area.right().saturating_sub(text_width).saturating_sub(1),
@@ -10250,25 +10529,38 @@ impl App for TableProApp {
                 } else {
                     self.draw_content(ui, workbench_rows[1]);
                 }
-            } else if self.split_state.maximized() == Maximized::Second {
-                let body = workbench_rows[1];
-                let content = termrock::Rect {
-                    x: body.x.saturating_add(2),
-                    width: body.width.saturating_sub(2),
-                    ..body
-                };
-                self.draw_content(ui, content);
-                self.paint_collapsed_explorer(ui, body);
             } else {
-                workbench_split().draw(
-                    ui,
-                    workbench_rows[1],
-                    &self.split_state,
-                    |ui, explorer_area, content_area| {
-                        self.draw_explorer(ui, explorer_area);
-                        self.draw_content(ui, content_area);
-                    },
-                );
+                let body = workbench_rows[1];
+                // Baseline collapses the explorer when the page is under 100
+                // columns, unless that tree itself has focus.
+                let narrow = body.width < 100;
+                let explorer_focused = ui.state(EXPLORER).contains(StateFlags::FOCUSED);
+                let user_collapsed = self.split_state.maximized() == Maximized::Second;
+                if user_collapsed || (narrow && !explorer_focused) {
+                    let content = termrock::Rect {
+                        x: body.x.saturating_add(2),
+                        width: body.width.saturating_sub(2),
+                        ..body
+                    };
+                    self.draw_content(ui, content);
+                    self.paint_collapsed_explorer(ui, body);
+                } else if narrow {
+                    // The query is not on screen, but Tab still lands on its editor.
+                    self.draw_explorer(ui, body);
+                    if let Some(id) = self.query_id() {
+                        ui.register_focus_only(id, Focusability::Focusable);
+                    }
+                } else {
+                    workbench_split().draw(
+                        ui,
+                        body,
+                        &self.split_state,
+                        |ui, explorer_area, content_area| {
+                            self.draw_explorer(ui, explorer_area);
+                            self.draw_content(ui, content_area);
+                        },
+                    );
+                }
             }
         }
         draw_footer(ui, rows[2], self);
