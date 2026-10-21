@@ -930,6 +930,8 @@ mod activation_probe_guards {
         let _ = after.recipes.get_mut(Family::BUTTON);
         assert_eq!(before, after);
         assert_ne!(before.fingerprint(), after.fingerprint());
+    }
+}
 
 #[test]
 fn dialog_prompt_renders_caller_owned_error_in_the_field() {
