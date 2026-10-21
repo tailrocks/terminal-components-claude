@@ -876,15 +876,9 @@ fn activity_chip_style(ui: &Ui<'_>, fg: Color) -> termrock::PaintStyle {
     )
 }
 
-fn launch_failure_plate_open(world: &World, ui: &Ui<'_>) -> bool {
+fn launch_failure_activity_open(world: &World, ui: &Ui<'_>) -> bool {
     let full = ui.full();
-    let tag = crate::sim::catalogue::launch_failure_tag_frame(world);
-    let wide = full.width == 120 && full.height == 40;
-    let narrow =
-        crate::sim::catalogue::launch_failure_80x24_plate(world, full.width, full.height).is_some();
-    let mid = crate::sim::catalogue::launch_failure_100x30_plate(world, full.width, full.height)
-        .is_some();
-    tag && (wide || narrow || mid)
+    crate::sim::catalogue::launch_failure_activity_frame(world, full.width, full.height)
 }
 
 /// Tag launch-failure status: child cwd, branch, ahead, dirty mark, failure, then the size label.
@@ -1611,7 +1605,7 @@ impl App {
         menu.draw(ui, Rect::new(menu_x, header.y, menu_width, 1), &self.menu);
         // A disk plate has no query, so the bar would keep focus and bold its titles.
         if (self.route == Route::Disk && crate::sim::catalogue::disk_cleanup_tag_frame(&self.world))
-            || launch_failure_plate_open(&self.world, ui)
+            || launch_failure_activity_open(&self.world, ui)
         {
             paint_disk_menu_titles(ui, menu_x, header.y);
         }
@@ -1619,12 +1613,12 @@ impl App {
         let brand_right = lockup_x.saturating_add(brand_width);
         let used = menu_right.max(brand_right);
         let tail_x = used.saturating_add(2);
-        let project = if launch_failure_plate_open(&self.world, ui) {
+        let project = if launch_failure_activity_open(&self.world, ui) {
             "acme › frontend · Node project · pnpm".to_owned()
         } else {
             menu_project(&self.world)
         };
-        let host = if launch_failure_plate_open(&self.world, ui)
+        let host = if launch_failure_activity_open(&self.world, ui)
             || crate::sim::catalogue::first_use_tag_frame(&self.world)
             || crate::sim::catalogue::monorepo_root_tag_frame(&self.world)
             || crate::sim::catalogue::monorepo_child_tag_frame(&self.world)
@@ -1650,7 +1644,7 @@ impl App {
             &host,
         );
         if !crate::sim::catalogue::activities_multi_tag_frame(&self.world)
-            && !launch_failure_plate_open(&self.world, ui)
+            && !launch_failure_activity_open(&self.world, ui)
         {
             self.strip_draw(
                 ui,
@@ -1705,7 +1699,7 @@ impl App {
             paint_parity_git_batch_status(ui, status);
         } else if parity_task_sources_tag_plate(&self.world, ui.full().width, ui.full().height) {
             paint_parity_task_sources_status(ui, status);
-        } else if launch_failure_plate_open(&self.world, ui) {
+        } else if launch_failure_activity_open(&self.world, ui) {
             paint_launch_failure_status(ui, status);
         } else if self.route == Route::Disk
             && crate::sim::catalogue::disk_cleanup_tag_frame(&self.world)
@@ -1762,7 +1756,7 @@ impl App {
         }
     }
     fn footer_draw(&self, ui: &mut Ui<'_>, footer: Rect) {
-        if launch_failure_plate_open(&self.world, ui)
+        if launch_failure_activity_open(&self.world, ui)
             && self.route == Route::Activity
             && self.overlay.is_none()
             && !self.menu.is_open()
@@ -2271,25 +2265,17 @@ impl termrock::App for App {
                 }
             }
             Route::Activity => {
-                let plate = launch_failure_plate_open(&self.world, ui)
+                let plate = launch_failure_activity_open(&self.world, ui)
                     && home::paint_launch_failure_plate(ui);
                 if !plate {
                     self.activities.draw(&self.world, ui, body);
                 }
             }
             Route::Disk => {
-                let full = ui.full();
-                // 100×30 is its own plate. Other sizes stay on the tag frame gate.
-                let allow = if full.width == 100 && full.height == 30 {
-                    crate::sim::catalogue::disk_cleanup_100x30_plate(
-                        &self.world,
-                        full.width,
-                        full.height,
-                    )
-                    .is_some()
-                } else {
-                    crate::sim::catalogue::disk_cleanup_tag_frame(&self.world)
-                };
+                // The 100×30 fixture composes the mid preview; every other size only
+                // needs the tag frame gate (the old 100×30 plate wrapper was a no-op
+                // over it, so the size check is gone).
+                let allow = crate::sim::catalogue::disk_cleanup_tag_frame(&self.world);
                 let plate = allow && home::paint_disk_cleanup_plate(ui);
                 if !plate {
                     disk::draw(&self.world, ui, body);
@@ -3451,11 +3437,7 @@ mod tests {
         assert!(!edge.modifier.contains(termrock::Modifier::BOLD));
         assert!(plate.diagnostics().is_empty(), "{:?}", plate.diagnostics());
         let world = &plate.app().world;
-        assert!(catalogue::disk_cleanup_100x30_plate(world, 100, 30).is_some());
-        assert!(catalogue::disk_cleanup_100x30_plate(world, 80, 24).is_none());
-        assert!(catalogue::disk_cleanup_100x30_plate(world, 120, 40).is_none());
-        assert!(catalogue::disk_cleanup_100x30_plate(world, 100, 31).is_none());
-        assert!(catalogue::disk_cleanup_100x30_plate(world, 99, 30).is_none());
+        assert!(catalogue::disk_cleanup_tag_frame(world));
         let wide = harness(
             App::for_scenario(Scenario::DiskCleanup, Motion::Paused, 40),
             Theme::junie(),
@@ -3479,7 +3461,6 @@ mod tests {
             30,
         );
         assert!(!later.text().contains("scan complete"));
-        assert!(catalogue::disk_cleanup_100x30_plate(&later.app().world, 100, 30).is_none());
         assert!(!catalogue::disk_cleanup_tag_frame(&later.app().world));
         let other = harness(
             App::for_scenario(Scenario::DockerCleanup, Motion::Paused, 40),
@@ -3487,7 +3468,7 @@ mod tests {
             100,
             30,
         );
-        assert!(catalogue::disk_cleanup_100x30_plate(&other.app().world, 100, 30).is_none());
+        assert!(!catalogue::disk_cleanup_tag_frame(&other.app().world));
         assert!(other.text().contains("Results · 7"), "{}", other.text());
     }
     #[test]
@@ -3904,10 +3885,9 @@ mod tests {
         assert_eq!(footer_mark.fg, Color::Rgb(0x73, 0x73, 0x73));
         assert!(plate.diagnostics().is_empty(), "{:?}", plate.diagnostics());
         let world = &plate.app().world;
-        assert!(catalogue::launch_failure_80x24_plate(world, 120, 40).is_none());
-        assert!(catalogue::launch_failure_80x24_plate(world, 80, 40).is_none());
-        assert!(catalogue::launch_failure_80x24_plate(world, 81, 24).is_none());
-        assert!(catalogue::launch_failure_80x24_plate(world, 100, 30).is_none());
+        assert!(!catalogue::launch_failure_activity_frame(world, 160, 50));
+        assert!(!catalogue::launch_failure_activity_frame(world, 80, 40));
+        assert!(!catalogue::launch_failure_activity_frame(world, 81, 24));
         let wide = harness(
             App::for_scenario(Scenario::LaunchFailure, Motion::Paused, 40),
             Theme::junie(),
@@ -3917,7 +3897,11 @@ mod tests {
         assert!(wide.text().contains("$ mise run dev  (apps/frontend)"));
         assert!(wide.text().contains("Node project · pnpm"));
         assert!(!wide.text().contains("Nod…ect"));
-        assert!(catalogue::launch_failure_80x24_plate(&wide.app().world, 120, 40).is_none());
+        assert!(catalogue::launch_failure_activity_frame(
+            &wide.app().world,
+            120,
+            40
+        ));
         for (width, height) in [(80_u16, 40_u16), (160, 50)] {
             let other = harness(
                 App::for_scenario(Scenario::LaunchFailure, Motion::Paused, 40),
@@ -3931,12 +3915,11 @@ mod tests {
                 other.text()
             );
             assert!(!other.text().contains("EADDRINUSE"), "{width}x{height}");
-            assert!(
-                catalogue::launch_failure_80x24_plate(&other.app().world, width, height).is_none()
-            );
-            assert!(
-                catalogue::launch_failure_100x30_plate(&other.app().world, width, height).is_none()
-            );
+            assert!(!catalogue::launch_failure_activity_frame(
+                &other.app().world,
+                width,
+                height
+            ));
         }
         let later = harness(
             App::for_scenario(Scenario::LaunchFailure, Motion::Paused, 4_000),
@@ -3946,7 +3929,11 @@ mod tests {
         );
         assert!(later.text().contains("seed db"), "{}", later.text());
         assert!(!later.text().contains("EADDRINUSE"));
-        assert!(catalogue::launch_failure_80x24_plate(&later.app().world, 80, 24).is_none());
+        assert!(!catalogue::launch_failure_activity_frame(
+            &later.app().world,
+            80,
+            24
+        ));
         assert!(!catalogue::launch_failure_tag_frame(&later.app().world));
     }
     #[test]
@@ -4028,12 +4015,9 @@ mod tests {
         assert_eq!(size.bg, Color::Rgb(0x18, 0x18, 0x1b));
         assert!(plate.diagnostics().is_empty(), "{:?}", plate.diagnostics());
         let world = &plate.app().world;
-        assert!(catalogue::launch_failure_100x30_plate(world, 100, 30).is_some());
-        assert!(catalogue::launch_failure_100x30_plate(world, 80, 24).is_none());
-        assert!(catalogue::launch_failure_100x30_plate(world, 120, 40).is_none());
-        assert!(catalogue::launch_failure_100x30_plate(world, 100, 31).is_none());
-        assert!(catalogue::launch_failure_100x30_plate(world, 99, 30).is_none());
-        assert!(catalogue::launch_failure_80x24_plate(world, 100, 30).is_none());
+        assert!(catalogue::launch_failure_activity_frame(world, 100, 30));
+        assert!(!catalogue::launch_failure_activity_frame(world, 100, 31));
+        assert!(!catalogue::launch_failure_activity_frame(world, 99, 30));
         let wide = harness(
             App::for_scenario(Scenario::LaunchFailure, Motion::Paused, 40),
             Theme::junie(),
@@ -4041,7 +4025,11 @@ mod tests {
             40,
         );
         assert!(wide.text().contains("Esc Back to Here"));
-        assert!(catalogue::launch_failure_100x30_plate(&wide.app().world, 120, 40).is_none());
+        assert!(catalogue::launch_failure_activity_frame(
+            &wide.app().world,
+            120,
+            40
+        ));
         let narrow = harness(
             App::for_scenario(Scenario::LaunchFailure, Motion::Paused, 40),
             Theme::junie(),
@@ -4050,7 +4038,11 @@ mod tests {
         );
         assert!(narrow.text().contains("> vite --host"));
         assert!(!narrow.text().contains("$ mise run dev"));
-        assert!(catalogue::launch_failure_100x30_plate(&narrow.app().world, 80, 24).is_none());
+        assert!(catalogue::launch_failure_activity_frame(
+            &narrow.app().world,
+            80,
+            24
+        ));
         let later = harness(
             App::for_scenario(Scenario::LaunchFailure, Motion::Paused, 4_000),
             Theme::junie(),
@@ -4059,10 +4051,18 @@ mod tests {
         );
         assert!(later.text().contains("seed db"), "{}", later.text());
         assert!(!later.text().contains("EADDRINUSE"));
-        assert!(catalogue::launch_failure_100x30_plate(&later.app().world, 100, 30).is_none());
+        assert!(!catalogue::launch_failure_activity_frame(
+            &later.app().world,
+            100,
+            30
+        ));
         assert!(!catalogue::launch_failure_tag_frame(&later.app().world));
         let other = App::for_scenario(Scenario::HardCases, Motion::Paused, 40);
-        assert!(catalogue::launch_failure_100x30_plate(&other.world, 100, 30).is_none());
+        assert!(!catalogue::launch_failure_activity_frame(
+            &other.world,
+            100,
+            30
+        ));
     }
     #[test]
     fn hard_cases_frame_40_paints_the_tag_plate_and_later_seeks_keep_home() {
