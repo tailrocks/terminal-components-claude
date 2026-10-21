@@ -258,10 +258,11 @@ const CAPSULE_COMMANDS: &[Item<'static>] = &[
 const TICK_MS: u64 = crate::rain::TICK_MS;
 
 mod accounts_detail_view;
+mod accounts_drawer_view;
 mod editor_view;
 mod historical_accounts_add_form;
 mod historical_accounts_detail;
-mod historical_accounts_drawer;
+
 mod historical_accounts_filter;
 
 mod capsule_menu_view;
@@ -7690,7 +7691,7 @@ impl App {
             return;
         }
         // Approved frame hides the cursor. No owner writes one.
-        historical_accounts_drawer::paint(ui);
+        accounts_drawer_view::paint(ui);
     }
 
     fn historical_usage_overview(&self, theme: &termrock::Theme, screen: Rect) -> bool {
