@@ -417,13 +417,16 @@ gate returns to 89 passed / 231 failed, and the reference decision request
 in `docs/audits/2026-10-22-component-digest-reference-decision.md` states
 why the gate stays red until an independent decision lands.
 
-### D-010 — The component digests stay red until a reference decision lands
+### D-010 — The component digests were never stale; the palette was
 
 The expected digests in `crates/termrock-conformance/tests/baselines/components.txt`
-encode a palette the frozen source contradicts. Re-deriving them from the
-candidate output is forbidden by the task and by this repository's own
-record, so the gate is left intentionally red and the decision is escalated
-rather than taken.
+are byte-identical to `032e9faa3` and were never updated. The 231 failing
+component digests were caused by the palette drifting away from the frozen
+source. With the theme aligned to the frozen source (`ec783f6c5`) the
+component render gate reports **320 tests run: 318 passed, 2 failed**, and
+no expected value was updated, no baseline was re-blessed and `BLESS=1` was
+never used. `docs/audits/2026-10-22-component-digest-reference-decision.md`
+records the evidence and the two remaining failures.
 
 ### Independent review: UI/UX (verdict HELD)
 
@@ -467,6 +470,34 @@ guard greps three literal strings; the showcase page paints its own
 scrollbar with hard-coded inks and no states.
 
 Measured fidelity table and the command list are in the review report.
+
+### Workspace gate, final measurement this round
+
+`cargo nextest run --all-targets --workspace --no-fail-fast` on the
+coordinator source: **4768 tests run: 4740 passed, 28 failed, 29516
+skipped**. The session started at 4687 run, 4357 passed, 330 failed, so
+302 tests moved from red to green.
+
+The 28 remaining failures, by crate:
+
+| Crate | Failures |
+| --- | --- |
+| showcase-ui | 6 (`editor_playground_keeps_live_find_completion_and_run_contracts`, two `editor_shell_completion_*`, two `page_headings::*`, `showcase_visual_baseline`) |
+| tablepro-ui | 4 (`query_editor_keeps_multiline_unicode_and_cursor_through_resize`, two `perf::frame_*`, `tablepro_visual_baseline`) |
+| holla-ui / holla | 3 (`menu_bar_pointer_hover_changes_only_the_file_title_and_clears_on_exit`, `holla_visual_baseline`, `holla_pty::a_bounded_input_flood_is_drained_fairly_and_a_quit_behind_it_is_honoured`) |
+| jackin-preview-app | 1 (`jackin_visual_baseline`) |
+| termrock-controls | 3 (button focus-visibility policies) |
+| termrock-overlays | 3 (context menu danger profile ×2, picker query field) |
+| termrock-conformance | 2 (`render::components::picker_chain::pressed`, `::disabled`) |
+| termrock-theme | 1 (`empty_style_inheritance::standalone_empty_cells_match_pre_inheritance_reference`) |
+| termrock-navigation | 1 (`item_row_columns::constructor_defaults_match_the_pre_policy_full_cell_fixture`) |
+| termrock-feedback | 1 (`meter_semantic_tokens::low_and_stale_tokens_match_reference_roles_but_custom_colors_remain_authoritative`) |
+| termrock-xtask | 1 (`ownership_check_passes_on_workspace`) |
+| visual-harness | 2 (`determinism::sources_are_deterministic`, `overlay_sites`) |
+
+The four `*_visual_baseline` failures are the per-application visual
+baselines, and they are the ones the reference comparison measures at
+application level.
 
 ## Coverage gaps
 
