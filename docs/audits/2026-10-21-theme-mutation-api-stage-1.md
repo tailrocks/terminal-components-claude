@@ -34,3 +34,22 @@ MenuBar precedence HOLD, or application parity.
 - `cargo fmt --check` — passed.
 
 No expected output or frozen baseline artifacts were changed.
+
+## Independent review and PR #38 synchronization
+
+Independent review `CLEAR_BOUNDED_STAGE_1` covers exact implementation commit
+`312b8f38a7d946edddddf640e32db47cbde99e24`; its evidence is preserved in
+[`independent-review.json`](evidence/2026-10-21-theme-typed-slots/independent-review.json)
+(SHA-256 `46cdc54359662c37ac2edc0c70928a884f306aeae48c53808c00a1930882a2be`).
+The reviewer notes there is no public runtime output test for `size_slot`; its
+three slot values have unit coverage, while a public runtime size contract is
+follow-up work. The review does not clear raw mutation retirement, MenuBar
+precedence, application parity, or the full acceptance requirements.
+
+This WIP was synchronized by a normal merge of PR #38 source
+`bfefea9ce4b3ab91f846239d5f315534ccc2ff43` into stage-1 commit 312b. That
+preserves a fast-forward path back to PR #38. All seven held expectation blobs
+in `docs/audits/evidence/2026-10-21-form-dialog-integration/held-expectations.json`
+were checked at the merge tree and matched their pinned object IDs exactly;
+no candidate expectation was refreshed. The source synchronization itself
+does not imply independent review of the incoming PR #38 changes.
