@@ -1346,6 +1346,12 @@ fn overview_header_crumb_omits_foundations_and_idle_nav_rows_omit_the_gutter() {
     let diff_screen = diff.text();
     let diff_header = diff_screen.lines().next().unwrap_or("").to_owned();
     assert!(diff_header.contains("/ Components / Diff"), "{diff_header}");
+    let editors = Harness::new(App::for_page_name("celleditors"), Theme::junie(), 100, 30);
+    let editors_header = editors.text().lines().next().unwrap_or("").to_owned();
+    assert!(
+        editors_header.contains("/ Components / Cell editors"),
+        "{editors_header}"
+    );
     assert_eq!(diff.app().page(), PageId::Overview);
     let diff_row = diff_screen
         .lines()
