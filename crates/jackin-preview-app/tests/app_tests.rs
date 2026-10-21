@@ -1804,6 +1804,29 @@ fn accounts_drawer_enter_paints_the_approved_work_drawer() {
 }
 
 #[test]
+fn usage_overview_80_paints_the_narrow_account_tree() {
+    let mut h = H::new(Scenario::AccountsMixed, Motion::Paused, 40, 80, 24);
+    h.key(KeyCode::Char('u'));
+    assert_eq!(h.app().route(), Route::Usage);
+    let ellipsis = h.buffer().cell((37, 0)).expect("crumb ellipsis");
+    assert_eq!(ellipsis.symbol(), "…");
+    assert_eq!(ellipsis.fg, termrock::Color::Rgb(0x8a, 0x8a, 0x8a));
+    let gutter = h.buffer().cell((4, 3)).expect("overview gutter");
+    assert_eq!(gutter.symbol(), "▎");
+    assert_eq!(gutter.fg, termrock::Color::Rgb(0x48, 0xe0, 0x54));
+    assert_eq!(gutter.bg, termrock::Color::Rgb(0x17, 0x3f, 0x1c));
+    let title = h.buffer().cell((7, 3)).expect("overview label");
+    assert_eq!(title.symbol(), "O");
+    assert!(h.text().contains("disabled"), "{}", h.text());
+    assert!(h.text().contains("Esc Close"), "{}", h.text());
+    assert!(
+        !h.text().contains("Jackin Preview"),
+        "the narrow usage page keeps the jackin menu: {}",
+        h.text()
+    );
+}
+
+#[test]
 fn usage_overview_u_paints_the_approved_overview_frame() {
     let mut h = H::new(Scenario::AccountsMixed, Motion::Paused, 40, 120, 40);
     assert!(
