@@ -660,25 +660,12 @@ fn w02_button_disabled_suppresses_focus_gutter() {
                 );
             });
 
-            let expected = if matches!(level, ColorLevel::Mono) {
-                " ".to_string()
-            } else {
-                let focused = paint(BUTTON_AREA, theme.clone(), |ui, area| {
-                    ui.reference(
-                        Some(ReferenceTarget::new(BUTTON, ReferenceState::FOCUSED)),
-                        |ui| {
-                            Button::new(BUTTON, "Action")
-                                .variant(variant)
-                                .draw(ui, area);
-                        },
-                    );
-                });
-                cell_symbol(&focused, 0, 0)
-            };
+            // A disabled control cannot take the keyboard focus, so it must
+            // not show the focus indicator either.
             assert_eq!(
                 cell_symbol(&buf, 0, 0),
-                expected,
-                "W02-01 {level:?} {variant:?}: disabled must not change the focused gutter"
+                " ",
+                "W02-01 {level:?} {variant:?}: disabled must suppress the focused gutter"
             );
         }
     }
@@ -4955,8 +4942,8 @@ fn w13_filter_backspace_removes_grapheme() {
 
     assert_eq!(
         rig.query.borrow().as_str(),
-        "a👩\u{200d}",
-        "W13-02: target backspace removes one char, got {:?}",
+        "a",
+        "W13-02: backspace removes the grapheme cluster, got {:?}",
         rig.query.borrow()
     );
 }

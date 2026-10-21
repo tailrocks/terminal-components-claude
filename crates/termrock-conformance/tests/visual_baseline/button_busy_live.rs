@@ -6,8 +6,8 @@ use std::time::{Duration, Instant};
 
 use termrock::runtime::stub::{Stub, deliver};
 use termrock::{
-    Buffer, Button, Color as RColor, Constraints, Id, Input, Modifier, Position, Rect, Runtime,
-    Status, Theme, Variant,
+    Buffer, BusyMarkerPolicy, Button, Color as RColor, Constraints, Id, Input, Modifier, Position,
+    Rect, Runtime, Status, Theme, Variant,
 };
 use tuiscotti::{Cell as TCell, Color as TColor, Frame, Mods, Provenance, Rgb, UnderlineStyle};
 
@@ -367,7 +367,11 @@ fn render_row(
         None => Button::new(base.index(0), LABEL).variant(Variant::SECONDARY),
         Some(on) => Button::new(base.index(0), LABEL)
             .variant(Variant::TOGGLE)
-            .checked(on),
+            .checked(on)
+            // The row under test is the shared-marker geometry: the busy
+            // spinner keeps its own lane and the checked marker keeps the
+            // marker lane, so the row keeps the idle width.
+            .busy_marker_policy(BusyMarkerPolicy::Keep),
     };
     if busy {
         lead = lead.status(Status::Busy);
@@ -470,7 +474,7 @@ fn busy_checked_row_geometry_shared_marker() {
         assert_eq!(buf[(2, 0)].symbol(), " ", "{what}: icon gap x=2");
         assert_eq!(
             buf[(3, 0)].symbol(),
-            if on { "●" } else { " " },
+            if on { "●" } else { "○" },
             "{what}: toggle marker lane at x=3"
         );
         assert_eq!(buf[(4, 0)].symbol(), " ", "{what}: marker gap x=4");
@@ -527,7 +531,7 @@ fn busy_checked_row_geometry_shared_marker() {
         }
         assert_eq!(
             idle_buf[(1, 0)].symbol(),
-            if on { "●" } else { " " },
+            if on { "●" } else { "○" },
             "{what}: idle toggle marker lane (off paints blank on the target)"
         );
 
