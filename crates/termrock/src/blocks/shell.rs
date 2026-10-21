@@ -1,51 +1,12 @@
-//! The app shell block: one header, one body, one footer, laid out through
-//! the shared composition machinery or chrome regions.
+//! Compatibility exports for the shared shell block.
 //!
-//! Header and footer strips keep their chrome rows, the body flexes, gap
-//! and inset travel through the composition spec. No second layout system;
-//! the runtime keeps focus, pointer and modals.
-//!
-//! `Chrome`, `Regions` and `AppShell` are re-exports of
-//! [`termrock_shell`]: the shell crate is the single source of truth for
-//! the shell's geometry and slot layout, and this block adds only the
-//! facade conveniences ([`EmptyLeaf`] and [`AppShellSlots`]) on top.
+//! `termrock-shell` owns shell geometry and composition. The facade re-exports
+//! those same types so consumers cannot accidentally select a second shell
+//! implementation.
 
-use ratatui_core::layout::Rect;
+pub use termrock_shell::{AppShell, AppShellSlots, Chrome, EmptyLeaf, Regions, ShellSlots};
+
 use termrock_runtime::author::CompositionLeaf;
-use termrock_runtime::composition::{CompositionError, CompositionSlots};
-use termrock_runtime::{Measure, Ui};
-
-pub use termrock_shell::chrome::{Chrome, Regions};
-pub use termrock_shell::shell::AppShell;
-
-/// An empty leaf for omitted header, body, or footer slots.
-#[derive(Debug, Clone, Copy, Default)]
-pub struct EmptyLeaf;
-
-impl Measure for EmptyLeaf {
-    fn measure(
-        &self,
-        _ui: &Ui<'_>,
-        _constraints: termrock_layout::Constraints,
-    ) -> termrock_layout::Size {
-        termrock_layout::Size {
-            min: (0, 0),
-            preferred: (0, 0),
-        }
-    }
-}
-
-impl CompositionLeaf for EmptyLeaf {
-    fn draw(&self, _ui: &mut Ui<'_>, _logical: Rect) {}
-}
-
-/// An app shell builder holding slot leaves.
-pub struct AppShellSlots<'a> {
-    shell: AppShell,
-    header: Option<&'a dyn CompositionLeaf>,
-    body: Option<&'a dyn CompositionLeaf>,
-    footer: Option<&'a dyn CompositionLeaf>,
-}
 
 /// The facade's slot-builder conveniences on [`AppShell`], so apps can
 /// attach header/body/footer leaves inline. The shell crate's own
@@ -66,67 +27,26 @@ pub trait AppShellExt: Sized {
 
 impl AppShellExt for AppShell {
     fn with_slots<'a>(self) -> AppShellSlots<'a> {
-        AppShellSlots {
-            shell: self,
-            header: None,
-            body: None,
-            footer: None,
-        }
+        AppShell::with_slots(self)
     }
 
     fn header_slot<'a>(self, leaf: &'a dyn CompositionLeaf) -> AppShellSlots<'a> {
-        self.with_slots().header(leaf)
+        AppShell::header_slot(self, leaf)
     }
 
     fn body_slot<'a>(self, leaf: &'a dyn CompositionLeaf) -> AppShellSlots<'a> {
-        self.with_slots().body(leaf)
+        AppShell::body_slot(self, leaf)
     }
 
     fn footer_slot<'a>(self, leaf: &'a dyn CompositionLeaf) -> AppShellSlots<'a> {
-        self.with_slots().footer(leaf)
+        AppShell::footer_slot(self, leaf)
     }
 }
 
-impl<'a> AppShellSlots<'a> {
-    /// Attach the header leaf.
-    #[must_use]
-    pub const fn header(mut self, leaf: &'a dyn CompositionLeaf) -> Self {
-        self.header = Some(leaf);
-        self
-    }
-
-    /// Attach the body leaf.
-    #[must_use]
-    pub const fn body(mut self, leaf: &'a dyn CompositionLeaf) -> Self {
-        self.body = Some(leaf);
-        self
-    }
-
-    /// Attach the footer leaf.
-    #[must_use]
-    pub const fn footer(mut self, leaf: &'a dyn CompositionLeaf) -> Self {
-        self.footer = Some(leaf);
-        self
-    }
-
-    /// Resolve the slots and draw the frame.
-    pub fn show(self, ui: &mut Ui<'_>) -> Result<(), CompositionError> {
-        let empty = EmptyLeaf;
-        let header = self.header.unwrap_or(&empty);
-        let body = self.body.unwrap_or(&empty);
-        let footer = self.footer.unwrap_or(&empty);
-        self.shell.show(ui, header, body, footer)
-    }
-
-    /// Obtain the underlying composition slots.
-    pub fn slots(&self) -> CompositionSlots<'a> {
-        static EMPTY: EmptyLeaf = EmptyLeaf;
-        let header = self.header.unwrap_or(&EMPTY);
-        let body = self.body.unwrap_or(&EMPTY);
-        let footer = self.footer.unwrap_or(&EMPTY);
-        self.shell.slots(header, body, footer)
-    }
-}
+#[cfg(test)]
+use ratatui_core::layout::Rect;
+#[cfg(test)]
+use termrock_runtime::{Measure, Ui};
 
 #[cfg(test)]
 mod tests {
