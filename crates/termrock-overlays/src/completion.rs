@@ -162,17 +162,19 @@ fn paint_completion_row(
     }
 }
 
+/// Baseline menus size to the longest label plus the longest detail.
+/// Those two strings may sit on different rows.
 fn popup_width<T: AsItem>(cx: &Cx<'_>, items: &[T]) -> u16 {
-    items
-        .iter()
-        .map(|item| {
-            let item = item.as_item();
-            crate::text::width(item.label)
-                .saturating_add(crate::text::width(item.detail))
-                .saturating_add(8)
-        })
-        .max()
-        .unwrap_or(24)
+    let mut label_w = 0u16;
+    let mut detail_w = 0u16;
+    for item in items {
+        let item = item.as_item();
+        label_w = label_w.max(crate::text::width(item.label));
+        detail_w = detail_w.max(crate::text::width(item.detail));
+    }
+    label_w
+        .saturating_add(detail_w)
+        .saturating_add(8)
         .clamp(24, 48)
         .min(cx.design().size.popup_max_width)
 }
@@ -590,17 +592,7 @@ impl<T: AsItem, R: RowFn<T>> Completion<'_, T, R> {
     }
 
     pub fn measured_size(&self, cx: &Cx<'_>, items: &[T]) -> LayerSize {
-        let width = items
-            .iter()
-            .map(|item| {
-                crate::text::width(item.as_item().label)
-                    .saturating_add(crate::text::width(item.as_item().detail))
-                    .saturating_add(8)
-            })
-            .max()
-            .unwrap_or(24)
-            .clamp(24, 48)
-            .min(cx.design().size.popup_max_width);
+        let width = popup_width(cx, items);
         let rows = items
             .len()
             .min(usize::from(self.max_rows))
@@ -766,6 +758,10 @@ impl<T: AsItem, R: RowFn<T>> Completion<'_, T, R> {
                 paint_completion_row(ui, row, semantic, chosen, pressed);
                 ui.register_part(self.id, row_part, row);
             }
+            // Baseline option lists fade the last visible row when more items sit below.
+            let mut faded = *state.core.scroll();
+            faded.apply_layout(usize::from(content.height), items.len());
+            ui.scroll_edges(content, &faded);
             area
         })
     }
@@ -775,5 +771,63 @@ impl<T, R> Bindings for Completion<'_, T, R> {
     type Cmd = CompletionCmd;
     fn bindings(&self, _state: BindingState) -> &'static [Binding<Self::Cmd>] {
         BINDINGS
+    }
+}
+
+#[cfg(test)]
+mod width_tests {
+    use ratatui_core::buffer::Buffer;
+    use ratatui_core::layout::Rect;
+    use termrock_runtime::event::Input;
+    use termrock_runtime::response::Response;
+    use termrock_runtime::runtime::stub;
+    use termrock_runtime::runtime::{App, Runtime};
+    use termrock_theme::Theme;
+
+    use super::Completion;
+    use crate::id::{Id, ItemKey};
+    use crate::layer::LayerSize;
+    use crate::picker::Item;
+    use crate::ui::{Cx, Ui};
+
+    const SPLIT: [Item<'static>; 2] = [
+        Item::new(ItemKey::num(1), "shipped_at").detail("timestamptz · null"),
+        Item::new(ItemKey::num(2), "shipping_address").detail("json"),
+    ];
+
+    #[test]
+    fn width_adds_the_longest_label_to_the_longest_detail() {
+        assert_eq!(measure(&SPLIT), LayerSize::Fixed(42, 4));
+    }
+
+    fn measure(items: &'static [Item<'static>]) -> LayerSize {
+        struct MeasureApp {
+            items: &'static [Item<'static>],
+            measured: Option<LayerSize>,
+        }
+        impl App for MeasureApp {
+            fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+                self.measured = Some(
+                    Completion::<Item<'static>>::new(Id::root("completion.width"))
+                        .measured_size(cx, self.items),
+                );
+                Response::ignored()
+            }
+
+            fn draw(&self, _ui: &mut Ui<'_>) {}
+        }
+        let area = Rect::new(0, 0, 100, 30);
+        let mut runtime = Runtime::new(
+            MeasureApp {
+                items,
+                measured: None,
+            },
+            Theme::junie(),
+        );
+        let _ = runtime.initialize();
+        let mut buffer = Buffer::empty(area);
+        runtime.draw_buffer(area, &mut buffer).commit_presented();
+        let _ = stub::deliver(&mut runtime, Input::Tick);
+        runtime.app().measured.unwrap_or(LayerSize::Fixed(0, 0))
     }
 }
