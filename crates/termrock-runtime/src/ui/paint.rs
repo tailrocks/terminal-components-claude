@@ -473,9 +473,21 @@ impl Ui<'_> {
                     self.mark(pos, Some(PaintStyle::new().bg(bg)));
                 }
                 Target::Layer(index) => {
+                    // Copy the page ink now. A later raw() edit drops the
+                    // replay, and the cleared cell would keep the terminal
+                    // default foreground.
+                    let ink = self
+                        .page
+                        .cell(pos)
+                        .map(|cell| (cell.fg, cell.underline_color, cell.modifier));
                     if let Some(cell) = self.buffer().cell_mut(pos) {
                         cell.reset();
                         cell.set_symbol(" ");
+                        if let Some((fg, underline_color, modifier)) = ink {
+                            cell.fg = fg;
+                            cell.underline_color = underline_color;
+                            cell.modifier = modifier;
+                        }
                         cell.bg = bg;
                         cell.set_diff_option(CellDiffOption::None);
                     }
