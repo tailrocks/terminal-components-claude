@@ -162,10 +162,12 @@ fn junie_16() -> ColorTokens {
         .downgrade(ColorLevel::Ansi16)
         .color;
     tokens.field_hover = Color::DarkGray;
-    // Frozen corpus faint/chrome ink: the 0x4d4d4d-sourced slots render
-    // DarkGray at 16 in every tier frame; the current 0x737373 source would
-    // generically land on Gray.
-    tokens.fg[3] = Color::DarkGray;
+    // Frozen apply_16 (`self.text_faint = Gray`): the dimmed faint hint ink
+    // paints Gray, not the DarkGray the generic rule derives from 0x4d4d4d.
+    tokens.fg[3] = Color::Gray;
+    // Frozen apply_16 (`self.border_strong = Gray`): the dimmed popup border
+    // paints Gray, not the DarkGray the generic rule derives from 0x4d4d4d.
+    tokens.border_strong = Color::Gray;
     // Frozen apply_16 (`self.success = Green`): base ladder slot, not bright.
     tokens.success = Color::Green;
     tokens.meter.stale = Color::DarkGray;
@@ -196,7 +198,10 @@ const fn junie_mono() -> ColorTokens {
         on_danger: Color::White,
         on_surface_inverse: Color::Black,
         border_subtle: Color::Black,
-        border_strong: Color::DarkGray,
+        // Frozen apply_mono (`self.border_strong = Gray`): the dimmed popup
+        // border paints Gray, not the DarkGray the generic rule derives from
+        // 0x4d4d4d.
+        border_strong: Color::Gray,
         accent: Color::Gray,
         accent_hover: Color::DarkGray,
         accent_pressed: Color::DarkGray,
