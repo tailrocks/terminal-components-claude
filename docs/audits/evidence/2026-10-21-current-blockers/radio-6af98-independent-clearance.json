@@ -1,0 +1,376 @@
+{
+  "schema": 1,
+  "reviewed_at": "2026-10-21T03:03:48.280270+00:00",
+  "reviewer": "/root/list_multiline_independent_reviewer",
+  "source_commit": "6af98cff33ae4810cdc51bca706f0b88040d25d8",
+  "before_commit": "e8b65260555a3d46b389f97a2f443f42f8404aef",
+  "decision": "Focused same-cursor correction cleared; strict integration lint and public capability coverage remain incomplete",
+  "prior_finding": {
+    "id": "RADIO-IMMEDIATE-SAME-CURSOR-01",
+    "status": "closed",
+    "prior_packet": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/branch-consolidation/radio-navigation-review-e8b6526-20261021/review.json",
+    "prior_packet_sha256": "cd90b7d4df218976dfcd7a565cd2ccadbf3f46436c47b45a64791ea22fd36179",
+    "evidence": "Same unchanged public two mixed pointer/keyboard regressions fail on exacte8 parent and pass on6af. PointerDown C followed by outsideUp leavesvalueA/cursorC; End orDown now choosesC. Three unchanged TablePro contract probes and existing defaultDown remain green."
+  },
+  "findings": [
+    {
+      "id": "RADIO-TEST-LINT-01",
+      "severity": "P2",
+      "path": "crates/tablepro-ui/tests/form_radio.rs:84",
+      "problem": "Strict all-target Clippy fails the113line regression function and its safe/save similar_names at167. These test changes are part of the Radio series and remain identical to the immediate parent e8; they are not introduced by the small6af correction.",
+      "action": "Split the test into cohesive scenario helpers/tests and give the Save action binding a distinct name. Preserve all valid-data Enter, explicitSave andCtrlS assertions; do not silence lint broadly."
+    },
+    {
+      "id": "RADIO-PREREQUISITE-LINT-02",
+      "severity": "P2",
+      "path": "crates/tablepro-ui/src/app/connection_form_focus.rs:18",
+      "problem": "The inherited blank-draft test uses expect() under deny(expect_used). Both exact revisions independently fail strictClippy.",
+      "action": "Retain the newer already-reviewed parent assertion implementation when integrating the blank-draft prerequisite; do not replace it with this older WIP test."
+    },
+    {
+      "id": "RADIO-SHOWCASE-03",
+      "severity": "P2",
+      "path": "crates/termrock-controls/src/choice.rs:35",
+      "problem": "New public RadioNavigation and Deferred capability still lack an executable Showcase demonstration/catalog entry or a documented baseline-safe exception. Prior finding explicitly remains unresolved in the audit.",
+      "action": "Complete the public coverage decision with compiled consumer evidence and a baseline-safe Showcase/allowlist record before architecture acceptance. Do not alter frozen reference screens to demonstrate an optional extension."
+    }
+  ],
+  "source_review": {
+    "diff_from_immediate_parent": [
+      "crates/termrock-controls/src/choice.rs",
+      "docs/audits/2026-10-21-radio-navigation-contract.md"
+    ],
+    "mechanism": "Immediate navigation compares destination with controlled chosen value first. A different chosen value emitsChose even when cursor already points at destination; a repeated navigation to an already chosen unchanged cursor is consumed. Deferred retains cursor-only change/consume behavior.",
+    "api": "No additional public API change in6af. Earlier RadioNavigation builder/default andkey/row/form adapters preserve the policy; controls andfacade exports exist.",
+    "ownership_and_errors": "No unsafe code, new allocation, concurrency, error recovery or ownership mechanism added. Existing editable guards gate both binding andpointer dispatch. Empty input is consumed before indexing.",
+    "tablepro": "Existing shared Form update/draw contracts remain; onlyTablePro commonfactory opts into EnterPolicy::Never fromearlier series. Before/afterTablePro code byte-identical across6af; validform radioEnter, Savebutton andCtrlS tests pass.",
+    "copy_clean": true
+  },
+  "executed": {
+    "after-conformance": {
+      "command": [
+        "cargo",
+        "nextest",
+        "run",
+        "-p",
+        "termrock-conformance",
+        "--test",
+        "control_states",
+        "--no-fail-fast"
+      ],
+      "exit": 100,
+      "seconds": 7.237145374994725
+    },
+    "after-controls-forms-clippy": {
+      "command": [
+        "cargo",
+        "clippy",
+        "-p",
+        "termrock-controls",
+        "-p",
+        "termrock-forms",
+        "--all-targets",
+        "--no-deps",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "exit": 0,
+      "seconds": 0.14664945896947756
+    },
+    "after-unchanged-consumer": {
+      "command": [
+        "cargo",
+        "nextest",
+        "run",
+        "--manifest-path",
+        "/Users/donbeave/Projects/termrock-cli-evidence-20261021/radio-navigation-independent-review-6af98cf/consumer-after/Cargo.toml",
+        "--all-targets",
+        "--no-fail-fast"
+      ],
+      "exit": 0,
+      "seconds": 5.975819875020534
+    },
+    "before-tablepro-clippy": {
+      "command": [
+        "cargo",
+        "clippy",
+        "-p",
+        "tablepro-ui",
+        "--all-targets",
+        "--no-deps",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "exit": 101,
+      "seconds": 2.4722060000058264
+    },
+    "before-unchanged-consumer": {
+      "command": [
+        "cargo",
+        "nextest",
+        "run",
+        "--manifest-path",
+        "/Users/donbeave/Projects/termrock-cli-evidence-20261021/radio-navigation-independent-review-6af98cf/consumer-before/Cargo.toml",
+        "--all-targets",
+        "--no-fail-fast"
+      ],
+      "exit": 100,
+      "seconds": 7.748942583042663
+    },
+    "diff-check": {
+      "command": [
+        "git",
+        "diff",
+        "--check"
+      ],
+      "exit": 0,
+      "seconds": 0.97931724996306
+    },
+    "independent-boundary": {
+      "command": [
+        "cargo",
+        "nextest",
+        "run",
+        "--manifest-path",
+        "/Users/donbeave/Projects/termrock-cli-evidence-20261021/radio-navigation-independent-review-6af98cf/consumer-after/Cargo.toml",
+        "--test",
+        "independent_boundary",
+        "--no-fail-fast"
+      ],
+      "exit": 0,
+      "seconds": 1.0248975420254283
+    },
+    "native-controls-forms": {
+      "command": [
+        "cargo",
+        "nextest",
+        "run",
+        "-p",
+        "termrock-controls",
+        "-p",
+        "termrock-forms",
+        "--all-targets",
+        "--no-fail-fast"
+      ],
+      "exit": 0,
+      "seconds": 5.28626558301039
+    },
+    "scoped-clippy": {
+      "command": [
+        "cargo",
+        "clippy",
+        "-p",
+        "termrock-controls",
+        "-p",
+        "termrock-forms",
+        "-p",
+        "tablepro-ui",
+        "--all-targets",
+        "--no-deps",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "exit": 101,
+      "seconds": 2.5427904169773683
+    },
+    "scoped-fmt": {
+      "command": [
+        "cargo",
+        "fmt",
+        "--check",
+        "--package",
+        "termrock-controls",
+        "--package",
+        "termrock-forms",
+        "--package",
+        "termrock",
+        "--package",
+        "tablepro-ui"
+      ],
+      "exit": 0,
+      "seconds": 0.23953416699077934
+    },
+    "tablepro-radio": {
+      "command": [
+        "cargo",
+        "nextest",
+        "run",
+        "-p",
+        "tablepro-ui",
+        "--test",
+        "form_radio",
+        "--no-fail-fast"
+      ],
+      "exit": 0,
+      "seconds": 2.0590415420010686
+    }
+  },
+  "results": {
+    "paired_unchanged_consumers": "before6run4pass2fail0skip;after6run6pass0skip",
+    "independent_additional": "5run5pass0skip: no duplicate action after accepted boundarychoice/repeatedHomeEndUpDown; missingNone/vanished controlled value chooses unchangedcursor; Deferred cancellation/boundary navigation does notchooseuntilSpace orpointerrelease; disabled/readOnly/empty/zero safety; stablekeyreordering.",
+    "native_controls_forms": "230run230pass0skip",
+    "tablepro_form_radio": "11run11pass0skip",
+    "strict_controls_forms_clippy": "pass alltargets--no-deps -Dwarnings",
+    "strict_including_tablepro_clippy": "fail3errors; same3 independently reproduced on exacte8parent",
+    "format_diff": "Scopedcontrols/forms/facade/tableprofmt anddiffcheck pass",
+    "conformance": "107run104pass3fail1skip. Same names as prior independently reviewed e8: w02_button_variants_all_states_and_focus_gutter,w08_input_masked_clicks_follow_display,w13_filter_backspace_removes_grapheme. Skip is not a pass."
+  },
+  "source_hashes": {
+    "crates/termrock-controls/src/choice.rs": "3c05b9b64badae7fa6f4145882035a2628cbfc4744ce127f5999756d1815fda7",
+    "crates/termrock-forms/src/form.rs": "b9870c74bdc8c69dd830db80826e189041623151703bc748742ca166a5dea54e",
+    "crates/tablepro-ui/src/app.rs": "71dee6d31a34b37faf564d243cb169d280b59879eac0d96c24318133b1b617b3",
+    "crates/tablepro-ui/tests/form_radio.rs": "ec8500d7f3faec9c4730db3e496a933361d2486575034e3919a5cc539ffd9596",
+    "crates/tablepro-ui/src/app/connection_form_focus.rs": "84801b3973ec43f77d8ec12f3ec77e128d5d7e664edff080ff78b36f90626d64",
+    "crates/termrock-controls/src/lib.rs": "e76d0b981da74254afcd2bb4927c57cdd075e48972c2f314e3eb0afdbe858197",
+    "crates/termrock/src/lib.rs": "1eca83dfadc45c20020d3fb74969143aec2a731d5a5dc6f7c8d2945b7b51ce67",
+    "crates/termrock-conformance/tests/control_states.rs": "5df38e3024f672c6e13c8358766f0a39599ccb660877c00a83139877b7f3e516"
+  },
+  "unchanged_probes": {
+    "navigation.rs": {
+      "before_sha256": "babadcce31a42a1cd80411210ecb28cc2dea58b788c7a564a0369b1945385adc",
+      "after_sha256": "babadcce31a42a1cd80411210ecb28cc2dea58b788c7a564a0369b1945385adc",
+      "equal_to_prior": true
+    },
+    "frozen_radio.rs": {
+      "before_sha256": "be25ea5cb54a22a6b0e63104ede7ebabda88db0ed6ab98f6e07f1987cab9f469",
+      "after_sha256": "be25ea5cb54a22a6b0e63104ede7ebabda88db0ed6ab98f6e07f1987cab9f469",
+      "equal_to_prior": true
+    }
+  },
+  "limitations": [
+    "No realCLI/tuiscotti/frozen executable comparison, expected artifact change, or productparity acceptance.",
+    "No complete library/publiccoverage acceptance; findings above remain unresolved.",
+    "Native conformance still has3known failures1skip; not a green gate.",
+    "External unchanged probes emit must_use warnings; strictClippy proof applies only to stated repository package scopes.",
+    "Before/after Cargo target directories are distinct. External manifests differ only in local dependency paths; test source bytes are unchanged."
+  ],
+  "evidence": {
+    "after-conformance.json": {
+      "sha256": "6d04b6068273240ba84ce078889db214df2c0db533903e94ef9430c75cb40196",
+      "bytes": 204
+    },
+    "after-conformance.log": {
+      "sha256": "7d4a4c77d42835cf1244965d6ee350ab5119d0664c96401224a531f0c5e37070",
+      "bytes": 24682
+    },
+    "after-controls-forms-clippy.json": {
+      "sha256": "1ac2bad8c74599108b2af94eefce711bdd5c2f939a6702c250449a18a87aa656",
+      "bytes": 237
+    },
+    "after-controls-forms-clippy.log": {
+      "sha256": "8c233a54790c4800d3dd585436af679aa838da259bfdb129412e2d51cdb75cdc",
+      "bytes": 72
+    },
+    "after-unchanged-consumer.json": {
+      "sha256": "d371587e64e590af1c9bd3518f7760eb0c11028826fae52ea9b580b45610df88",
+      "bytes": 305
+    },
+    "after-unchanged-consumer.log": {
+      "sha256": "20e35c6448b1386e1746be1da0ec02f751c352003d605c170b809e410a1bab1d",
+      "bytes": 10416
+    },
+    "before-tablepro-clippy.json": {
+      "sha256": "e8ca93f723edc36a90d53b6178838adff0408a85ba77e043a0dc0c8fcc01ad7c",
+      "bytes": 200
+    },
+    "before-tablepro-clippy.log": {
+      "sha256": "e3a1837e280b604e9e4ac4bc5bc0757d92776e04de5fc3ec2794cb408470256e",
+      "bytes": 6567
+    },
+    "before-unchanged-consumer.json": {
+      "sha256": "018eb8a591334dbd07d38778d3d8188906557a5709bcf1f664ad5d220d28e603",
+      "bytes": 308
+    },
+    "before-unchanged-consumer.log": {
+      "sha256": "9054fa1df33d84ec5c7a6ef61916deb23dacf3d6402a7be4e901415229f53c43",
+      "bytes": 12163
+    },
+    "consumer-after/Cargo.lock": {
+      "sha256": "3b222d4222f66f51b996741c8a4d4ee71ccbfdf8549650b7015bb98e5da52633",
+      "bytes": 50208
+    },
+    "consumer-after/Cargo.toml": {
+      "sha256": "6ff18bdd1caa6e4abaacc6c695fd0e5e94275cf5902cabe5cce4489d0f015986",
+      "bytes": 396
+    },
+    "consumer-after/tests/frozen_radio.rs": {
+      "sha256": "be25ea5cb54a22a6b0e63104ede7ebabda88db0ed6ab98f6e07f1987cab9f469",
+      "bytes": 2122
+    },
+    "consumer-after/tests/independent_boundary.rs": {
+      "sha256": "1e28fbd02920333d8b4f39a36e91354f6d0283f3501b54eddf4e8c70aa715f40",
+      "bytes": 4036
+    },
+    "consumer-after/tests/navigation.rs": {
+      "sha256": "babadcce31a42a1cd80411210ecb28cc2dea58b788c7a564a0369b1945385adc",
+      "bytes": 1546
+    },
+    "consumer-before/Cargo.lock": {
+      "sha256": "3b222d4222f66f51b996741c8a4d4ee71ccbfdf8549650b7015bb98e5da52633",
+      "bytes": 50208
+    },
+    "consumer-before/Cargo.toml": {
+      "sha256": "c4bf940e31a4052a9071bf29052cbe97c6ee1aedc14410f5e74277111fc15efb",
+      "bytes": 396
+    },
+    "consumer-before/tests/frozen_radio.rs": {
+      "sha256": "be25ea5cb54a22a6b0e63104ede7ebabda88db0ed6ab98f6e07f1987cab9f469",
+      "bytes": 2122
+    },
+    "consumer-before/tests/navigation.rs": {
+      "sha256": "babadcce31a42a1cd80411210ecb28cc2dea58b788c7a564a0369b1945385adc",
+      "bytes": 1546
+    },
+    "diff-check.json": {
+      "sha256": "75ab2b7aec542aa56218294a5aa4aff7c1606219b9e4063935828d9415157422",
+      "bytes": 104
+    },
+    "diff-check.log": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    "independent-boundary.json": {
+      "sha256": "d0ead019395d4933662b0e0c2494fd4568ded8bfd6f50527341208b69f85268e",
+      "bytes": 327
+    },
+    "independent-boundary.log": {
+      "sha256": "13da47e974dc66c78ca96aa140f0c2aa24825e4b5d067ca20f058e6fbf57c071",
+      "bytes": 18965
+    },
+    "native-controls-forms.json": {
+      "sha256": "255e0a625eefc5f704515ce57826bd92a3c0d4457e029df0b046818cc1b73c2e",
+      "bytes": 215
+    },
+    "native-controls-forms.log": {
+      "sha256": "6bd8677c76c8f7b6679b62ffd3d1a8ef298a2035b96d0caa368437a7fa8de871",
+      "bytes": 33133
+    },
+    "scoped-clippy.json": {
+      "sha256": "e5673dcfde2b9c3c465bbddba2e3f7dc9884d04b97746bf08dada6423383a726",
+      "bytes": 267
+    },
+    "scoped-clippy.log": {
+      "sha256": "497424c53da10d0aa5fa1e3a53947405a29d81b09cc32a6ed85060f15332788d",
+      "bytes": 7028
+    },
+    "scoped-fmt.json": {
+      "sha256": "5bc3d8a954f13e1faefa366e7ffefd0b53dbf3efc82f5048e5c454492c4c7e45",
+      "bytes": 258
+    },
+    "scoped-fmt.log": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    "tablepro-radio.json": {
+      "sha256": "157caf4ffdba10bf433876fb71ee5b08f56c4487e49349a5d97c0a0ce41cf217",
+      "bytes": 190
+    },
+    "tablepro-radio.log": {
+      "sha256": "1ff945213bce54914d6b7d12d9adf169990b9397c9bf5c3916f198b5cb2abc23",
+      "bytes": 1999
+    }
+  }
+}
