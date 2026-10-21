@@ -70,6 +70,22 @@ fn recolor(ui: &mut Ui<'_>, width: u16, height: u16, y_bias: u16) {
             let mono = ui.theme_ref().capability.color == ColorLevel::Mono;
             if mono {
                 ui.recolor_pair(card, |fg, bg| {
+                    // Two card pairs miss the frozen table and land on
+                    // Black-on-Black through the pair ladder, which is
+                    // unreadable (danger label) or invisible (border). Keep
+                    // the shipped readable inks for exactly these pairs.
+                    if matches!(
+                        (fg, bg),
+                        (Color::Rgb(0x4d, 0x4d, 0x4d), Color::Rgb(0x18, 0x18, 0x1b))
+                    ) {
+                        return (Color::Gray, Color::Black);
+                    }
+                    if matches!(
+                        (fg, bg),
+                        (Color::Rgb(0xff, 0x6b, 0x6b), Color::Rgb(0x27, 0x27, 0x2a))
+                    ) {
+                        return (Color::Gray, Color::DarkGray);
+                    }
                     termrock::theme::legacy_mono(fg, bg, false)
                         .map(|ink| (ink.fg, ink.bg))
                         .unwrap_or_else(|| {

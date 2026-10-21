@@ -8079,12 +8079,11 @@ impl App {
     }
 
     fn draw_capsule_zoom(&self, ui: &mut Ui<'_>, screen: Rect) {
+        // Gap: the zoom frame draws no input row, so no real field owns
+        // the caret. The cursor stays absent until a later wave draws the
+        // field; no fixed cell is forced (same for the 80-col zoom).
         if self.capsule_zoom_frame(ui.theme_ref(), screen) {
             capsule_zoom_view::paint(ui);
-            // Gap: the zoom frame draws no input row, so no real field owns
-            // the caret. The cursor stays absent until a later wave draws the
-            // field; no fixed cell is forced (same for the 80-col zoom).
-            return;
         }
     }
 
@@ -11610,7 +11609,7 @@ mod paint_contract_tests {
 
     #[test]
     fn capsule_zoom_paints_the_approved_120x40_frame() {
-        use termrock::{Color, KeyCode, Modifier, Position, Theme};
+        use termrock::{Color, KeyCode, Modifier, Theme};
         use termrock_test_support::Harness;
         let mut zoom = Harness::new(
             App::for_scenario(Scenario::CapsuleMulti, Motion::Paused),
@@ -11644,7 +11643,9 @@ mod paint_contract_tests {
         assert_eq!(usage.bg, Color::Rgb(0x18, 0x18, 0x1b));
         assert!(usage.modifier.contains(Modifier::ITALIC));
         assert!(!usage.modifier.contains(Modifier::BOLD));
-        assert_eq!(zoom.cursor(), Some(Position::new(3, 34)));
+        // The zoom frame draws no input row, so no field owns the caret:
+        // the deleted forced cursor stays deleted, and the gate asserts None.
+        assert_eq!(zoom.cursor(), None);
 
         let bare = Harness::new(
             App::for_scenario(Scenario::CapsuleMulti, Motion::Paused),
