@@ -306,6 +306,7 @@ mod capsule_zoom_view;
 mod launch_cockpit;
 mod launch_dialog_plate;
 mod manager_help;
+mod manager_locked_view;
 mod settings_view;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -10265,99 +10266,6 @@ impl App {
             && self.hard_launch_picker_host(cx.theme(), cx.viewport())
     }
 
-    fn historical_hard_launch_locked(&self, theme: &termrock::Theme, screen: Rect) -> bool {
-        // Five Downs, Space, Down, and Enter on the paused 120×40 hard-cases
-        // manager land on auth-service. Space is captured and does not expand.
-        // The picker, the returning picker, F10, `?`, and the closed manager stay off.
-        !self.manager_file_menu
-            && !self.manager_inspect
-            && !self.help_open
-            && screen.width == 120
-            && screen.height == 40
-            && theme.capability.color == termrock::ColorLevel::TrueColor
-            && theme.color.accent == termrock::Color::Rgb(0x48, 0xe0, 0x54)
-            && self.route == Route::Manager
-            && self.world.scenario == Scenario::HardCases
-            && self.motion == Motion::Paused
-            && self.status.is_none()
-            && !self.quit_open
-            && !self.cancel_open
-            && !self.about_open
-            && self.launch.is_none()
-            && self.picker_mode.is_none()
-            && !self.launch_picker_open
-            && self.agent_options.is_empty()
-            && self.active_instance.is_none()
-            && !self.manager.detail_open()
-            && self.manager.selected_row() == &ManagerRowKey::Workspace(12)
-    }
-
-    fn draw_historical_hard_launch_locked(&self, ui: &mut Ui<'_>) {
-        if !self.historical_hard_launch_locked(ui.theme_ref(), ui.full()) {
-            return;
-        }
-        // Approved frame hides the cursor. This path must not call set_cursor
-        // or set_bar_cursor, and it must not write cursor bytes.
-        let screen = ui.full();
-        let menus = [
-            termrock::feedback::SessionMenu {
-                label: "File",
-                focused: true,
-            },
-            termrock::feedback::SessionMenu {
-                label: "Edit",
-                focused: false,
-            },
-            termrock::feedback::SessionMenu {
-                label: "View",
-                focused: false,
-            },
-            termrock::feedback::SessionMenu {
-                label: "Session",
-                focused: false,
-            },
-            termrock::feedback::SessionMenu {
-                label: "Help",
-                focused: false,
-            },
-        ];
-        let hints = [
-            termrock::feedback::SessionHint {
-                key: "Ctrl+B",
-                action: "Pane commands…",
-            },
-            termrock::feedback::SessionHint {
-                key: "F10",
-                action: "Menu",
-            },
-            termrock::feedback::SessionHint {
-                key: "Ctrl+\\",
-                action: "Palette",
-            },
-            termrock::feedback::SessionHint {
-                key: "Alt+Shift+↑↓←→",
-                action: "Resize",
-            },
-        ];
-        termrock::feedback::paint_session_chrome(
-            ui,
-            screen,
-            &termrock::feedback::SessionChrome {
-                brand: "jackin❯",
-                menus: &menus,
-                crumb: "› backend",
-                instance: "jackin-data-pipeline-e0e0",
-                instances: "3 instances",
-                branch: "main",
-                state: "clean",
-                account: "no account · shell",
-                hints: &hints,
-                overflow: "…",
-                attached: "Attached to  · tabs and panes restored",
-            },
-        );
-    }
-
     fn historical_hard_cases_80(&self, theme: &termrock::Theme, screen: Rect) -> bool {
         // Paused 80×24 hard-cases manager. The 120×40 manager, picker, locked
         // launch, menu, and help stay on their own frames.
@@ -11432,7 +11340,7 @@ impl TuiApp for App {
         self.draw_usage_overview_narrow(ui, full);
         self.draw_usage_detail_live(ui, full);
 
-        self.draw_historical_hard_launch_locked(ui);
+        manager_locked_view::paint(self, ui, full);
         self.draw_historical_hard_cases_80(ui);
         self.draw_historical_help_overlay(ui, full);
     }
