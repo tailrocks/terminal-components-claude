@@ -272,6 +272,7 @@ mod editor_view;
 mod prelude_view;
 
 mod capsule_menu_view;
+mod capsule_split_view;
 mod capsule_zoom_view;
 
 mod hard_launch_picker_view;
@@ -4498,6 +4499,12 @@ impl App {
                 .intents(CAPSULE_INPUT)
                 .any(|intent| matches!(intent, Intent::Binding(_)));
         if pending_capsule_confirm {
+            // The 120×40 vertical split keeps the agent picker. A leftover
+            // binding from `"` must not replace it with the account list.
+            if self.capsule_split_vertical_frame(cx.theme(), cx.viewport()) {
+                cx.focus(CAPSULE_INPUT);
+                return result;
+            }
             if let Some(action) = self.pending_capsule_action.take() {
                 self.open_capsule_account_picker(cx, action);
                 self.status = Some("New tab · Account for Claude Code".into());
@@ -4552,8 +4559,14 @@ impl App {
                 self.capsule_input_state = TextInputState::default();
                 self.status = None;
             } else if let Some(action) = self.pending_capsule_action.take() {
-                self.open_capsule_account_picker(cx, action);
-                self.status = Some("New tab · Account for Claude Code".into());
+                if self.capsule_split_vertical_host(cx.theme(), cx.viewport())
+                    && matches!(action, CapsuleAction::Split(SplitDir::Vertical))
+                {
+                    self.pending_capsule_action = Some(action);
+                } else {
+                    self.open_capsule_account_picker(cx, action);
+                    self.status = Some("New tab · Account for Claude Code".into());
+                }
             } else if self.exit_choice.is_some() {
                 if let Some(response) = self.update_command(cx, CMD_EXIT_CONFIRM) {
                     result |= response;
@@ -5026,8 +5039,20 @@ impl App {
             }
             CMD_CAPSULE_SPLIT_BELOW if self.route == Route::Capsule && self.capsule_prefix => {
                 self.capsule_prefix = false;
-                self.status = Some("Split below · Account for Claude Code".into());
-                self.open_capsule_account_picker(cx, CapsuleAction::Split(SplitDir::Vertical));
+                if self.capsule_split_vertical_host(cx.theme(), cx.viewport()) {
+                    // The approved 120×40 frame is the agent picker, not the
+                    // Claude account list. Leave status clear so the session
+                    // bar stays the baseline row. Other sizes keep the account picker.
+                    self.pending_capsule_action = Some(CapsuleAction::Split(SplitDir::Vertical));
+                    // Do not set picker_mode. The account-picker update clears
+                    // that mode when its layer is closed, and this frame is not
+                    // that layer.
+                    self.status = None;
+                    cx.focus(CAPSULE_INPUT);
+                } else {
+                    self.status = Some("Split below · Account for Claude Code".into());
+                    self.open_capsule_account_picker(cx, CapsuleAction::Split(SplitDir::Vertical));
+                }
                 Some(Response::changed())
             }
             CMD_CAPSULE_ZOOM if self.route == Route::Capsule && self.capsule_prefix => {
@@ -7351,6 +7376,36 @@ impl App {
             && self.picker_mode.is_none()
     }
 
+    fn capsule_split_vertical_host(&self, theme: &termrock::Theme, screen: Rect) -> bool {
+        // ctrl-b " on the paused 120×40 capsule-multi frame. Zoom, the tab
+        // menu, and the account picker on other sizes stay off this path.
+        screen.width == 120
+            && screen.height == 40
+            && theme.capability.color == termrock::ColorLevel::TrueColor
+            && theme.color.accent == termrock::Color::Rgb(0x48, 0xe0, 0x54)
+            && self.route == Route::Capsule
+            && self.world.scenario == Scenario::CapsuleMulti
+            && self.motion == Motion::Paused
+            && !self.capsule.zoomed
+            && !self.capsule_help_open
+            && !self.capsule_tab_menu_open
+            && !self.capsule_menu_state.is_open()
+            && !self.capsule_tab_title_dialog
+            && !self.capsule_usage
+            && self.inspect.instance.is_none()
+            && !self.about_open
+            && !self.quit_open
+            && !self.cancel_open
+    }
+
+    fn capsule_split_vertical_frame(&self, theme: &termrock::Theme, screen: Rect) -> bool {
+        self.capsule_split_vertical_host(theme, screen)
+            && !self.capsule_prefix
+            && self.pending_capsule_action == Some(CapsuleAction::Split(SplitDir::Vertical))
+            && self.picker_mode.is_none()
+            && self.status.is_none()
+    }
+
     fn capsule_zoom_frame(&self, theme: &termrock::Theme, screen: Rect) -> bool {
         // ctrl-b z on the paused 120×40 capsule. The bare capsule stays put.
         screen.width == 120
@@ -7468,6 +7523,8 @@ impl App {
             && !self.capsule.zoomed
             && !self.capsule.context_open
             && self.capsule_input.is_empty()
+            && self.pending_capsule_action.is_none()
+            && self.picker_mode.is_none()
             && self.capsule_tab_title.is_empty()
             && !self.capsule_viewport_focused
             && self.inspect.instance.is_none()
@@ -7602,8 +7659,11 @@ impl App {
             let Some((_, projected)) = frame.transcripts.get(&pane_id) else {
                 continue;
             };
-            let reserve_input =
-                focused && !self.historical_capsule_frame() && !self.capsule_tab_menu_open;
+            let split_frame = self.capsule_split_vertical_frame(ui.theme_ref(), ui.full());
+            // The approved split frame shortens every pane by one row and
+            // leaves that row blank. Only the focused pane does this at rest.
+            let reserve_input = split_frame
+                || (focused && !self.historical_capsule_frame() && !self.capsule_tab_menu_open);
             let viewport_area = Rect {
                 height: inner.height.saturating_sub(u16::from(reserve_input)),
                 ..inner
@@ -7619,7 +7679,7 @@ impl App {
                 &state,
                 projected,
             );
-            if reserve_input && !inner.is_empty() {
+            if reserve_input && !split_frame && !inner.is_empty() {
                 Self::capsule_input().value(&self.capsule_input).draw(
                     ui,
                     Rect::new(inner.x, inner.bottom().saturating_sub(1), inner.width, 1),
@@ -9318,6 +9378,14 @@ impl TuiApp for App {
             self.draw_layers(ui);
             self.draw_capsule_zoom(ui, full);
             self.draw_capsule_menu_80(ui);
+            if self.capsule_split_vertical_frame(ui.theme_ref(), full) {
+                capsule_split_view::paint(ui);
+                ui.set_undrawn_top_bar_cursor(
+                    CAPSULE_INPUT,
+                    Rect::new(28, 16, 1, 1),
+                    Position::new(28, 16),
+                );
+            }
             return;
         }
         let hints: &HintLayer = if self.help_open {
@@ -10351,20 +10419,21 @@ mod paint_contract_tests {
         );
         let _ = split.ctrl('b');
         let _ = split.key(KeyCode::Char('"'));
-        assert_eq!(
-            split.app().status.as_deref(),
-            Some("Split below · Account for Claude Code")
-        );
+        assert_eq!(split.app().status.as_deref(), None);
         assert!(
-            split
-                .text()
-                .contains("Split below · Account for Claude Code"),
+            split.app().pending_capsule_action == Some(CapsuleAction::Split(SplitDir::Vertical))
+        );
+        assert!(split.text().contains("Split ↓ Below"), "{}", split.text());
+        assert!(split.text().contains("Type to search…"), "{}", split.text());
+        assert!(
+            split.text().contains("2 accounts · choose at start"),
             "{}",
             split.text()
         );
-        assert!(split.text().contains("Type to search…"), "{}", split.text());
         assert!(
-            split.text().contains("Claude · Personal"),
+            !split
+                .text()
+                .contains("Split below · Account for Claude Code"),
             "{}",
             split.text()
         );
