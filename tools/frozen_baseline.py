@@ -41,6 +41,7 @@ PREPARE_OWNED_MAX_BUDGET = 200
 PREPARE_OWNED_CLEANUP_RESERVE = 15
 PREPARE_OWNED_HARD_MAX = 220
 PREPARE_OWNED_TERM_GRACE = 2.0
+OWNED_PROCESS_LIST_COMMAND = "/bin/ps"
 EXPECTED_SCENARIOS = 28_895
 EXPECTED_ORDINARY_TESTS = 20
 EXTENSION_MANIFEST = Path("tools/frozen_cli_extensions.json")
@@ -542,7 +543,7 @@ def _owned_group_members(pgid: int, anchor_pid: int, timeout: float) -> set[int]
         raise RunnerError("owned process-group observation exceeded the cleanup deadline")
     try:
         result = subprocess.run(
-            ["ps", "-axo", "pid=,pgid=,stat="],
+            [OWNED_PROCESS_LIST_COMMAND, "-axo", "pid=,pgid=,stat="],
             check=False,
             capture_output=True,
             text=True,
@@ -557,7 +558,7 @@ def _owned_group_members(pgid: int, anchor_pid: int, timeout: float) -> set[int]
     for line in result.stdout.splitlines():
         fields = line.split()
         if len(fields) != 3:
-            continue
+            raise RunnerError("process-group membership output was malformed")
         try:
             pid, observed_pgid = map(int, fields[:2])
         except ValueError:
@@ -681,6 +682,26 @@ def _owned_broker_orphan_cleanup(process: subprocess.Popen[bytes] | None) -> Non
         try:
             members = _owned_group_members(anchor_pid, anchor_pid, max(0.01, remaining))
         except RunnerError:
+            # Observation failure cannot release the live command. This broker
+            # is its own session and process-group leader, so while that
+            # invariant still holds the exact group id is anchored against
+            # reuse. TERM gets a bounded cooperative window; KILL is the
+            # fail-closed last resort and intentionally kills this broker too.
+            if os.getpgrp() != anchor_pid:
+                raise RunnerError("owned broker lost its process-group anchor; cleanup cannot be verified")
+            try:
+                os.killpg(anchor_pid, signal.SIGTERM)
+            except ProcessLookupError as error:
+                raise RunnerError("owned broker group disappeared during fail-closed cleanup") from error
+            term_deadline = time.monotonic() + PREPARE_OWNED_TERM_GRACE
+            while time.monotonic() < term_deadline:
+                time.sleep(min(0.02, term_deadline - time.monotonic()))
+            if os.getpgrp() != anchor_pid:
+                raise RunnerError("owned broker lost its process-group anchor before final cleanup")
+            try:
+                os.killpg(anchor_pid, signal.SIGKILL)
+            except ProcessLookupError as error:
+                raise RunnerError("owned broker group disappeared before fail-closed KILL") from error
             return
         if members == {anchor_pid}:
             if process is not None:
@@ -1149,12 +1170,23 @@ def safe_extract(tar: tarfile.TarFile, destination: Path, *, check_work: Callabl
             if link.is_absolute() or ".." in link.parts or (resolved != root and root not in resolved.parents):
                 raise RunnerError(f"unsafe archive link: {member.name}")
         members.append(member)
-    for member in members:
-        if check_work is not None:
+    if check_work is None:
+        # Keep the legacy tarfile behavior, including delayed directory mode
+        # and timestamp application after children have been extracted.
+        tar.extractall(destination, members=members)
+        return
+
+    def checked_members() -> Any:
+        for member in members:
             check_work()
-        tar.extract(member, destination)
-        if check_work is not None:
-            check_work()
+            yield member
+
+    check_work()
+    # Wrap the member iterator instead of overriding tarfile's extraction
+    # filter. This preserves the runtime's legacy default filter and its
+    # delayed directory metadata handling while checking between members.
+    tar.extractall(destination, members=checked_members())
+    check_work()
 
 
 def paths(repo: Path, root: Path) -> tuple[Path, Path, Path]:
