@@ -66,13 +66,12 @@ const fn junie_256() -> ColorTokens {
         fg: [
             Color::Indexed(231),
             Color::Indexed(249),
-            // Frozen corpus muted ink (baselines/tuiscotti-v1): 0x808080 fg
-            // renders 244 in every tier frame (1_011_55+ cells). The generic
-            // cube rule on the current 0x8a8a8a source would give 245.
-            Color::Indexed(244),
-            // Frozen corpus faint/chrome ink: 0x4d4d4d fg renders 238
-            // (cancel-confirm 120x40 borders and every dim shell strip).
-            Color::Indexed(238),
+            // The frozen source at 4169783 paints text_muted in MUTED
+            // (0x8a8a8a), which the cube rule renders as 245, and text_faint
+            // in WHITE_43 (0x737373), which renders as 242. The approved 256
+            // frames use those indices.
+            Color::Indexed(245),
+            Color::Indexed(242),
             Color::Indexed(235),
         ],
         on_accent: Color::Indexed(233),
@@ -108,13 +107,16 @@ const fn junie_256() -> ColorTokens {
         read_only_fg: Color::Indexed(249),
 
         syntax: SyntaxTokens {
-            keyword: Color::Indexed(231),
+            // The frozen source at 4169783 sets the 256-tier keyword to
+            // i(111), the string to i(116) and the literal to i(183); the
+            // approved 256 frames paint the operator in 245.
+            keyword: Color::Indexed(111),
             ident: Color::Indexed(231),
-            string: Color::Indexed(249),
-            number: Color::Indexed(249),
-            operator: Color::Indexed(244),
-            punct: Color::Indexed(244),
-            comment: Color::Indexed(238),
+            string: Color::Indexed(116),
+            number: Color::Indexed(183),
+            operator: Color::Indexed(245),
+            punct: Color::Indexed(245),
+            comment: Color::Indexed(242),
             plain: Color::Indexed(231),
             type_name: Color::Indexed(231),
             function: Color::Indexed(231),
@@ -124,7 +126,7 @@ const fn junie_256() -> ColorTokens {
             match_bg: Color::Indexed(233),
             match_current_bg: Color::Indexed(55),
             bracket_match: Color::Indexed(78),
-            diagnostic_error: Color::Indexed(167),
+            diagnostic_error: Color::Indexed(210),
             diagnostic_warning: Color::Indexed(214),
             diagnostic_info: Color::Indexed(147),
         },
@@ -214,10 +216,13 @@ const fn junie_mono() -> ColorTokens {
         read_only_fg: Color::Gray,
 
         syntax: SyntaxTokens {
-            keyword: Color::White,
+            // The mono tier is the luma projection of the truecolor syntax
+            // tokens: the keyword, the string and the operator land on Gray,
+            // the literal on White and the comment on DarkGray.
+            keyword: Color::Gray,
             ident: Color::White,
             string: Color::Gray,
-            number: Color::Gray,
+            number: Color::White,
             operator: Color::Gray,
             punct: Color::Gray,
             comment: Color::DarkGray,
