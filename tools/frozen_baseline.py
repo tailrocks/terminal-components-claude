@@ -15,6 +15,7 @@ from pathlib import Path, PurePosixPath
 import platform
 import re
 import secrets
+import select
 import shutil
 import signal
 import stat
@@ -22,7 +23,9 @@ import subprocess
 import sys
 import tarfile
 import tempfile
+import threading
 import time
+from typing import Any, Callable
 
 
 BASELINE_TAG = "visual-baseline"
@@ -34,6 +37,11 @@ TEST_TARGET = "visual_baseline"
 TEST_PACKAGE = "junie-tui"
 APPS = ("showcase", "tablepro", "jackin-preview", "holla")
 MAX_TIMEOUT = 230
+PREPARE_OWNED_MAX_BUDGET = 200
+PREPARE_OWNED_CLEANUP_RESERVE = 15
+PREPARE_OWNED_HARD_MAX = 220
+PREPARE_OWNED_TERM_GRACE = 2.0
+OWNED_PROCESS_LIST_COMMAND = "/bin/ps"
 EXPECTED_SCENARIOS = 28_895
 EXPECTED_ORDINARY_TESTS = 20
 EXTENSION_MANIFEST = Path("tools/frozen_cli_extensions.json")
@@ -529,6 +537,467 @@ def run(command: list[str], *, cwd: Path, timeout: int, env: dict[str, str] | No
     return output + ("\n" + errors if include_stderr else "")
 
 
+def _owned_group_members(pgid: int, anchor_pid: int, timeout: float) -> set[int]:
+    """Observe one anchored process group; caller must retain its unreaped anchor."""
+    if timeout <= 0:
+        raise RunnerError("owned process-group observation exceeded the cleanup deadline")
+    try:
+        result = subprocess.run(
+            [OWNED_PROCESS_LIST_COMMAND, "-axo", "pid=,pgid=,stat="],
+            check=False,
+            capture_output=True,
+            text=True,
+            timeout=min(timeout, 1.0),
+            start_new_session=True,
+        )
+    except (OSError, subprocess.SubprocessError) as error:
+        raise RunnerError(f"could not verify anchored process-group membership: {error}") from error
+    if result.returncode:
+        raise RunnerError(f"process-group membership command failed ({result.returncode})")
+    members: set[int] = set()
+    for line in result.stdout.splitlines():
+        fields = line.split()
+        if len(fields) != 3:
+            raise RunnerError("process-group membership output was malformed")
+        try:
+            pid, observed_pgid = map(int, fields[:2])
+        except ValueError:
+            raise RunnerError("process-group membership output was malformed") from None
+        if observed_pgid == pgid:
+            if pid == anchor_pid and fields[2].startswith("Z"):
+                raise RunnerError("owned process-group anchor exited before cleanup verification")
+            if not fields[2].startswith("Z"):
+                members.add(pid)
+    if anchor_pid not in members or pgid != anchor_pid:
+        raise RunnerError("owned process-group anchor disappeared before cleanup verification")
+    return members
+
+
+def _write_owned_status(path: Path, document: dict[str, object]) -> None:
+    payload = json.dumps(document, sort_keys=True, separators=(",", ":")).encode()
+    if len(payload) > 4096:
+        raise RunnerError("owned subprocess status exceeded its fixed size limit")
+    temporary = path.with_suffix(".tmp")
+    with temporary.open("xb") as stream:
+        stream.write(payload)
+        stream.flush()
+        os.fsync(stream.fileno())
+    os.replace(temporary, path)
+
+
+def _owned_broker_main(spec_path: Path, control_fd: int) -> int:
+    """Launch one command in this anchored session and await parent cleanup."""
+    term_requested = False
+
+    def record_term(_signum: int, _frame: object) -> None:
+        nonlocal term_requested
+        term_requested = True
+
+    signal.signal(signal.SIGTERM, record_term)
+    signal.signal(signal.SIGINT, record_term)
+    ready_path: Path | None = None
+    result_path: Path | None = None
+    process: subprocess.Popen[bytes] | None = None
+    status: dict[str, object]
+    try:
+        spec = json.loads(spec_path.read_text())
+        if not isinstance(spec, dict) or set(spec) != {"argv", "cwd", "stdout_fd", "stderr_fd", "status_path", "ready_path"}:
+            raise RunnerError("owned subprocess specification fields were invalid")
+        argv, cwd = spec["argv"], spec["cwd"]
+        stdout_fd, stderr_fd = spec["stdout_fd"], spec["stderr_fd"]
+        result_path = Path(spec["status_path"])
+        ready_path = Path(spec["ready_path"])
+        if (
+            not isinstance(argv, list)
+            or not argv
+            or any(not isinstance(part, str) or "\0" in part for part in argv)
+            or not isinstance(cwd, str)
+            or type(stdout_fd) is not int
+            or type(stderr_fd) is not int
+            or stdout_fd < 0
+            or stderr_fd < 0
+        ):
+            raise RunnerError("owned subprocess specification values were invalid")
+        _write_owned_status(ready_path, {"schema": 1, "anchor_pid": os.getpid()})
+        ready, _, _ = select.select([control_fd], [], [], 0)
+        if ready and os.read(control_fd, 1) == b"":
+            return 2
+        started = time.monotonic()
+        process = subprocess.Popen(
+            argv,
+            cwd=cwd,
+            stdin=subprocess.DEVNULL,
+            stdout=stdout_fd,
+            stderr=stderr_fd,
+            close_fds=True,
+            start_new_session=False,
+        )
+        # Caught handlers reset to SIG_DFL on exec. Thus the broker can remain
+        # an anchor while the owned command still receives ordinary SIGTERM.
+        if term_requested:
+            # A TERM can arrive while Popen constructs the child. Re-send after
+            # registration so the newly created child cannot miss cancellation.
+            os.killpg(os.getpid(), signal.SIGTERM)
+        while process.poll() is None:
+            ready, _, _ = select.select([control_fd], [], [], 0.05)
+            if ready and os.read(control_fd, 1) == b"":
+                _owned_broker_orphan_cleanup(process)
+                return 2
+        status = {"schema": 1, "returncode": process.returncode, "elapsed_seconds": time.monotonic() - started}
+    except BaseException as error:
+        status = {
+            "schema": 1,
+            "returncode": None,
+            "error": f"{type(error).__name__}: {str(error)[:512]}",
+        }
+    try:
+        if result_path is None:
+            raise RunnerError("owned subprocess result path was not established")
+        _write_owned_status(result_path, status)
+        while True:
+            ready, _, _ = select.select([control_fd], [], [], 0.1)
+            if not ready:
+                continue
+            command = os.read(control_fd, 1)
+            if command == b"R":
+                return 0
+            if command == b"":
+                _owned_broker_orphan_cleanup(process)
+                return 2
+            raise RunnerError("owned subprocess parent sent an invalid release command")
+    except BaseException:
+        _owned_broker_orphan_cleanup(process)
+        return 2
+
+
+def _owned_broker_orphan_cleanup(process: subprocess.Popen[bytes] | None) -> None:
+    """Fail closed on parent loss; never claim descendant cleanup as success."""
+    anchor_pid = os.getpid()
+    deadline = time.monotonic() + PREPARE_OWNED_TERM_GRACE
+    term_sent = False
+    while True:
+        if process is not None:
+            process.poll()
+        remaining = deadline - time.monotonic()
+        try:
+            members = _owned_group_members(anchor_pid, anchor_pid, max(0.01, remaining))
+        except RunnerError:
+            # Observation failure cannot release the live command. This broker
+            # is its own session and process-group leader, so while that
+            # invariant still holds the exact group id is anchored against
+            # reuse. TERM gets a bounded cooperative window; KILL is the
+            # fail-closed last resort and intentionally kills this broker too.
+            if os.getpgrp() != anchor_pid:
+                raise RunnerError("owned broker lost its process-group anchor; cleanup cannot be verified")
+            try:
+                os.killpg(anchor_pid, signal.SIGTERM)
+            except ProcessLookupError as error:
+                raise RunnerError("owned broker group disappeared during fail-closed cleanup") from error
+            term_deadline = time.monotonic() + PREPARE_OWNED_TERM_GRACE
+            while True:
+                grace_remaining = term_deadline - time.monotonic()
+                if grace_remaining <= 0:
+                    break
+                time.sleep(min(0.02, grace_remaining))
+            if os.getpgrp() != anchor_pid:
+                raise RunnerError("owned broker lost its process-group anchor before final cleanup")
+            try:
+                os.killpg(anchor_pid, signal.SIGKILL)
+            except ProcessLookupError as error:
+                raise RunnerError("owned broker group disappeared before fail-closed KILL") from error
+            return
+        if members == {anchor_pid}:
+            if process is not None:
+                try:
+                    process.wait(timeout=0.5)
+                except subprocess.TimeoutExpired:
+                    pass
+            return
+        if not term_sent:
+            try:
+                os.killpg(anchor_pid, signal.SIGTERM)
+            except ProcessLookupError:
+                return
+            term_sent = True
+        elif remaining <= 0:
+            try:
+                os.killpg(anchor_pid, signal.SIGKILL)
+            except ProcessLookupError:
+                pass
+            return
+        time.sleep(min(0.02, max(0.001, remaining)))
+
+
+class PrepareExecution:
+    """Opt-in stage-one deadline and anchored subprocess ownership.
+
+    This scope is for the canonical fixed Git commands. A child that starts a
+    new session escapes the owned process group and is outside this contract.
+    """
+
+    def __init__(self, work_budget: int, *, cleanup_reserve: int = PREPARE_OWNED_CLEANUP_RESERVE):
+        if type(work_budget) is not int or not 1 <= work_budget <= PREPARE_OWNED_MAX_BUDGET:
+            raise RunnerError(f"owned prepare budget must be 1..{PREPARE_OWNED_MAX_BUDGET} seconds")
+        if cleanup_reserve != PREPARE_OWNED_CLEANUP_RESERVE:
+            raise RunnerError("owned prepare cleanup reserve is fixed")
+        if work_budget + cleanup_reserve > PREPARE_OWNED_HARD_MAX:
+            raise RunnerError("owned prepare budget exceeds its hard supervisor deadline")
+        self.started = time.monotonic()
+        self.work_deadline = self.started + work_budget
+        self.hard_deadline = self.work_deadline + cleanup_reserve
+        self.cancel_signal: int | None = None
+        self._previous_handlers: dict[int, object] = {}
+        self._children: dict[int, subprocess.Popen[bytes]] = {}
+        self._retired_anchors: set[int] = set()
+
+    def __enter__(self) -> PrepareExecution:
+        if threading.current_thread() is not threading.main_thread():
+            raise RunnerError("owned prepare signal handling requires the main thread")
+        try:
+            for signum in (signal.SIGINT, signal.SIGTERM):
+                self._previous_handlers[signum] = signal.getsignal(signum)
+                signal.signal(signum, self._record_cancellation)
+            self.check_work()
+        except BaseException:
+            for signum, handler in self._previous_handlers.items():
+                signal.signal(signum, handler)
+            self._previous_handlers.clear()
+            raise
+        return self
+
+    def __exit__(self, _exc_type: object, _exc: object, _traceback: object) -> None:
+        for signum, handler in self._previous_handlers.items():
+            signal.signal(signum, handler)
+        self._previous_handlers.clear()
+
+    def _record_cancellation(self, signum: int, _frame: object) -> None:
+        if self.cancel_signal is None:
+            self.cancel_signal = signum
+
+    def check_work(self) -> None:
+        if self.cancel_signal is not None:
+            raise RunnerError(f"owned prepare cancelled by signal {self.cancel_signal}")
+        if time.monotonic() >= self.work_deadline:
+            raise RunnerError("owned prepare work deadline expired")
+
+    def _remaining_hard(self) -> float:
+        remaining = self.hard_deadline - time.monotonic()
+        if remaining <= 0:
+            raise RunnerError("owned prepare cleanup deadline expired")
+        return remaining
+
+    def run(self, command: list[str], *, cwd: Path, stdout_file: object | None = None, capture_stdout: bool = True, env: dict[str, str] | None = None, quiet: bool = False, show_command: bool = True) -> tuple[str, str]:
+        self.check_work()
+        if not command or any(not isinstance(part, str) or "\0" in part for part in command):
+            raise RunnerError("owned prepare command argv was invalid")
+        status_dir = Path(tempfile.mkdtemp(prefix="termrock-prepare-owned-"))
+        stdout_tmp = tempfile.NamedTemporaryFile(mode="w+b", prefix="stdout-", dir=status_dir, delete=False) if stdout_file is None else stdout_file
+        stderr_tmp = tempfile.NamedTemporaryFile(mode="w+b", prefix="stderr-", dir=status_dir, delete=False)
+        owns_stdout = stdout_file is None
+        control_read, control_write = os.pipe()
+        os.set_inheritable(control_read, True)
+        status_path = status_dir / "status.json"
+        ready_path = status_dir / "anchor-ready.json"
+        spec_path = status_dir / "spec.json"
+        spec = {
+            "argv": command,
+            "cwd": str(cwd),
+            "stdout_fd": stdout_tmp.fileno(),
+            "stderr_fd": stderr_tmp.fileno(),
+            "status_path": str(status_path),
+            "ready_path": str(ready_path),
+        }
+        spec_path.write_text(json.dumps(spec, separators=(",", ":")))
+        broker_argv = [sys.executable, str(Path(__file__).resolve()), "--_owned-prepare-broker", str(spec_path), str(control_read)]
+        broker: subprocess.Popen[bytes] | None = None
+        registered = False
+        released = False
+        succeeded = False
+        cleanup_error: RunnerError | None = None
+        result: dict[str, object] | None = None
+        try:
+            broker = subprocess.Popen(
+                broker_argv,
+                stdin=subprocess.DEVNULL,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                close_fds=True,
+                pass_fds=(control_read, stdout_tmp.fileno(), stderr_tmp.fileno()),
+                start_new_session=True,
+                env=env,
+            )
+            # Signal handlers only record cancellation, so this registration
+            # immediately follows Popen without a signal-interruptible gap.
+            self._children[broker.pid] = broker
+            registered = True
+            os.close(control_read)
+            control_read = -1
+            if show_command:
+                print("+", " ".join(command), flush=True)
+            while not ready_path.exists():
+                if self.cancel_signal is not None or time.monotonic() >= self.work_deadline:
+                    # Before the anchor-ready receipt, EOF makes the broker
+                    # exit before it starts the Git child. No group operation
+                    # is authorized until the receipt exists.
+                    os.close(control_write)
+                    control_write = -1
+                    try:
+                        broker.wait(timeout=self._remaining_hard())
+                    except subprocess.TimeoutExpired as error:
+                        raise RunnerError("owned prepare broker did not stop before its anchor became ready") from error
+                    self._retired_anchors.add(broker.pid)
+                    if self.cancel_signal is not None:
+                        raise RunnerError(f"owned prepare cancelled by signal {self.cancel_signal}")
+                    raise RunnerError("owned prepare work deadline expired")
+                if not self._anchor_exists(broker.pid):
+                    raise RunnerError("owned prepare broker exited before its anchor-ready receipt")
+                time.sleep(min(0.01, max(0.0, self.work_deadline - time.monotonic())))
+            while not status_path.exists():
+                if self.cancel_signal is not None or time.monotonic() >= self.work_deadline:
+                    break
+                if not self._anchor_exists(broker.pid):
+                    break
+                time.sleep(min(0.02, max(0.0, self.work_deadline - time.monotonic())))
+            if status_path.exists():
+                result = self._read_status(status_path)
+            try:
+                self._cleanup_group(broker, control_write, status_path)
+                released = True
+                control_write = -1
+            except RunnerError as error:
+                cleanup_error = error
+            if cleanup_error is not None:
+                raise cleanup_error
+            if self.cancel_signal is not None:
+                raise RunnerError(f"owned prepare cancelled by signal {self.cancel_signal}")
+            if time.monotonic() >= self.work_deadline:
+                raise RunnerError("owned prepare work deadline expired")
+            if result is None:
+                raise RunnerError("owned prepare broker exited without a bounded status record")
+            if result.get("returncode") is None:
+                raise RunnerError(f"owned prepare command could not start: {result.get('error', 'unknown broker error')}")
+            stdout_tmp.seek(0)
+            stderr_tmp.seek(0)
+            output = stdout_tmp.read().decode(errors="replace") if capture_stdout else ""
+            errors = stderr_tmp.read().decode(errors="replace")
+            if not quiet:
+                print(errors, end="", file=sys.stderr, flush=True)
+                print(output, end="", flush=True)
+            returncode = result.get("returncode")
+            if type(returncode) is not int:
+                raise RunnerError("owned prepare broker returned no command status")
+            if returncode:
+                detail = (output + "\n" + errors)[-6000:]
+                raise RunnerError(f"command exited {returncode}: {' '.join(command)}\n{detail}")
+            succeeded = True
+            return output, errors
+        finally:
+            if broker is not None and registered and not released:
+                try:
+                    if broker.pid not in self._retired_anchors:
+                        self._cleanup_group(broker, control_write, status_path)
+                    released = True
+                    control_write = -1
+                except RunnerError:
+                    pass
+            if control_read >= 0:
+                os.close(control_read)
+            if control_write >= 0:
+                os.close(control_write)
+                control_write = -1
+            if broker is not None and registered:
+                try:
+                    remaining = max(0.0, self.hard_deadline - time.monotonic())
+                    broker.wait(timeout=remaining)
+                except subprocess.TimeoutExpired:
+                    # No group signal follows this point unless the live
+                    # anchor was verified by _cleanup_group above.
+                    pass
+                self._children.pop(broker.pid, None)
+            if owns_stdout:
+                stdout_tmp.close()
+            stderr_tmp.close()
+            if succeeded:
+                shutil.rmtree(status_dir)
+            else:
+                print(f"owned prepare failure logs preserved: {status_dir}", file=sys.stderr, flush=True)
+
+    @staticmethod
+    def _anchor_exists(anchor_pid: int) -> bool:
+        try:
+            os.kill(anchor_pid, 0)
+        except ProcessLookupError:
+            return False
+        return True
+
+    @staticmethod
+    def _read_status(path: Path) -> dict[str, object]:
+        try:
+            info = path.lstat()
+            if not stat.S_ISREG(info.st_mode) or info.st_size > 4096:
+                raise RunnerError("owned prepare broker status was unsafe or oversized")
+            status = json.loads(path.read_text())
+        except (OSError, json.JSONDecodeError) as error:
+            raise RunnerError(f"owned prepare broker status could not be read: {error}") from error
+        if not isinstance(status, dict) or status.get("schema") != 1:
+            raise RunnerError("owned prepare broker status schema was invalid")
+        return status
+
+    def _cleanup_group(self, broker: subprocess.Popen[bytes], control_write: int, status_path: Path) -> None:
+        anchor_pid = broker.pid
+        if anchor_pid in self._retired_anchors:
+            raise RunnerError("owned prepare anchor was already reaped; no further group operations are allowed")
+        term_sent = False
+        term_deadline = self.hard_deadline
+        while True:
+            remaining = self._remaining_hard()
+            if not self._anchor_exists(anchor_pid):
+                try:
+                    broker.wait(timeout=remaining)
+                except subprocess.TimeoutExpired as error:
+                    raise RunnerError("owned prepare broker could not be reaped within cleanup reserve") from error
+                self._retired_anchors.add(anchor_pid)
+                raise RunnerError("owned prepare anchor exited before cleanup could be verified")
+            members = _owned_group_members(anchor_pid, anchor_pid, remaining)
+            if members == {anchor_pid} and status_path.exists():
+                try:
+                    os.write(control_write, b"R")
+                except OSError as error:
+                    raise RunnerError(f"owned prepare broker release failed: {error}") from error
+                try:
+                    broker_code = broker.wait(timeout=self._remaining_hard())
+                except subprocess.TimeoutExpired as error:
+                    raise RunnerError("owned prepare broker did not exit after verified cleanup") from error
+                self._retired_anchors.add(anchor_pid)
+                if broker_code != 0:
+                    raise RunnerError(f"owned prepare broker rejected its cleanup release ({broker_code})")
+                if status_path.exists():
+                    self._read_status(status_path)
+                return
+            if not term_sent:
+                try:
+                    os.killpg(anchor_pid, signal.SIGTERM)
+                except ProcessLookupError as error:
+                    raise RunnerError("owned prepare process group disappeared before TERM") from error
+                term_sent = True
+                term_deadline = min(self.hard_deadline, time.monotonic() + PREPARE_OWNED_TERM_GRACE)
+            elif time.monotonic() >= term_deadline:
+                # This signal is sent only while the unreaped anchor still
+                # owns the PGID. Cleanup after this point is unverified, so
+                # caller must fail and publish no successful preparation.
+                try:
+                    os.killpg(anchor_pid, signal.SIGKILL)
+                except ProcessLookupError as error:
+                    raise RunnerError("owned prepare process group disappeared before KILL") from error
+                try:
+                    broker.wait(timeout=self._remaining_hard())
+                except subprocess.TimeoutExpired as error:
+                    raise RunnerError("owned prepare broker KILL could not be reaped within cleanup reserve") from error
+                self._retired_anchors.add(anchor_pid)
+                raise RunnerError("owned prepare cleanup unverified after SIGKILL")
+            time.sleep(min(0.02, max(0.0, term_deadline - time.monotonic()), remaining))
+
+
 def sha256(path: Path) -> str:
     h = hashlib.sha256()
     with path.open("rb") as stream:
@@ -580,12 +1049,28 @@ def phase_binary_hashes(bins: Path) -> dict[str, str]:
     return result
 
 
-def digest_tree(path: Path) -> str:
+def _digest_file_bytes(hasher: Any, path: Path, check_work: Callable[[], None] | None = None) -> None:
+    with path.open("rb") as stream:
+        while chunk := stream.read(1024 * 1024):
+            if check_work is not None:
+                check_work()
+            hasher.update(chunk)
+
+
+def digest_tree(path: Path, *, check_work: Callable[[], None] | None = None) -> str:
     h = hashlib.sha256()
-    for file in sorted(p for p in path.rglob("*") if p.is_file()):
+    files = []
+    for item in path.rglob("*"):
+        if check_work is not None:
+            check_work()
+        if item.is_file():
+            files.append(item)
+    for file in sorted(files):
+        if check_work is not None:
+            check_work()
         h.update(file.relative_to(path).as_posix().encode())
         h.update(b"\0")
-        h.update(file.read_bytes())
+        _digest_file_bytes(h, file, check_work)
         h.update(b"\0")
     return h.hexdigest()
 
@@ -624,12 +1109,20 @@ def flat_sealed_store(path: Path, label: str) -> tuple[str, set[str]]:
     return digest, entries
 
 
-def digest_source(path: Path) -> str:
+def digest_source(path: Path, *, check_work: Callable[[], None] | None = None) -> str:
     h = hashlib.sha256()
-    for file in sorted(p for p in path.rglob("*") if p.is_file() and not {"target", "snapshots"}.intersection(p.relative_to(path).parts)):
+    files = []
+    for item in path.rglob("*"):
+        if check_work is not None:
+            check_work()
+        if item.is_file() and not {"target", "snapshots"}.intersection(item.relative_to(path).parts):
+            files.append(item)
+    for file in sorted(files):
+        if check_work is not None:
+            check_work()
         h.update(file.relative_to(path).as_posix().encode())
         h.update(b"\0")
-        h.update(file.read_bytes())
+        _digest_file_bytes(h, file, check_work)
         h.update(b"\0")
     return h.hexdigest()
 
@@ -662,9 +1155,12 @@ def freeze_tree_readonly(path: Path) -> None:
         directory.chmod(0o555)
 
 
-def safe_extract(tar: tarfile.TarFile, destination: Path) -> None:
+def safe_extract(tar: tarfile.TarFile, destination: Path, *, check_work: Callable[[], None] | None = None) -> None:
     root = destination.resolve()
-    for member in tar.getmembers():
+    members = []
+    for member in tar:
+        if check_work is not None:
+            check_work()
         name = PurePosixPath(member.name)
         if name.is_absolute() or ".." in name.parts:
             raise RunnerError(f"unsafe archive path: {member.name}")
@@ -676,7 +1172,24 @@ def safe_extract(tar: tarfile.TarFile, destination: Path) -> None:
             resolved = (target.parent / Path(*link.parts)).resolve()
             if link.is_absolute() or ".." in link.parts or (resolved != root and root not in resolved.parents):
                 raise RunnerError(f"unsafe archive link: {member.name}")
-    tar.extractall(destination)
+        members.append(member)
+    if check_work is None:
+        # Keep the legacy tarfile behavior, including delayed directory mode
+        # and timestamp application after children have been extracted.
+        tar.extractall(destination, members=members)
+        return
+
+    def checked_members() -> Any:
+        for member in members:
+            check_work()
+            yield member
+
+    check_work()
+    # Wrap the member iterator instead of overriding tarfile's extraction
+    # filter. This preserves the runtime's legacy default filter and its
+    # delayed directory metadata handling while checking between members.
+    tar.extractall(destination, members=checked_members())
+    check_work()
 
 
 def paths(repo: Path, root: Path) -> tuple[Path, Path, Path]:
@@ -689,55 +1202,71 @@ def paths(repo: Path, root: Path) -> tuple[Path, Path, Path]:
     return repo, root, source
 
 
-def prepare(repo: Path, root: Path, timeout: int) -> None:
+def prepare(repo: Path, root: Path, timeout: int, *, execution: PrepareExecution | None = None) -> None:
     repo = repo.resolve()
     root = root.resolve()
     source = root / "source"
     if source.exists():
         raise RunnerError(f"refusing to replace frozen source: {source}")
-    tag_obj = run(["git", "rev-parse", f"{BASELINE_TAG}^{{tag}}"], cwd=repo, timeout=timeout).strip()
-    commit = run(["git", "rev-parse", f"{BASELINE_TAG}^{{commit}}"], cwd=repo, timeout=timeout).strip()
+    def prepare_run(command: list[str], *, stdout_file: object | None = None, capture_stdout: bool = True, show_command: bool = True, quiet: bool = False) -> str:
+        if execution is None:
+            if stdout_file is not None:
+                raise RunnerError("legacy prepare cannot direct command output to an external file")
+            return run(command, cwd=repo, timeout=timeout).strip()
+        output, _errors = execution.run(command, cwd=repo, stdout_file=stdout_file, capture_stdout=capture_stdout, show_command=show_command, quiet=quiet)
+        execution.check_work()
+        return output.strip()
+
+    tag_obj = prepare_run(["git", "rev-parse", f"{BASELINE_TAG}^{{tag}}"])
+    commit = prepare_run(["git", "rev-parse", f"{BASELINE_TAG}^{{commit}}"])
     if tag_obj != BASELINE_TAG_OBJECT or commit != BASELINE_COMMIT:
         raise RunnerError(f"tag identity mismatch: object={tag_obj}, commit={commit}")
     root.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryFile() as bundle:
-        archive = subprocess.Popen(
-            ["git", "archive", "--format=tar", BASELINE_COMMIT],
-            cwd=repo,
-            stdout=bundle,
-            stderr=subprocess.PIPE,
-            start_new_session=True,
-        )
-        try:
-            _, stderr = archive.communicate(timeout=timeout)
-        except subprocess.TimeoutExpired as error:
-            os.killpg(archive.pid, signal.SIGTERM)
+        if execution is None:
+            archive = subprocess.Popen(
+                ["git", "archive", "--format=tar", BASELINE_COMMIT],
+                cwd=repo,
+                stdout=bundle,
+                stderr=subprocess.PIPE,
+                start_new_session=True,
+            )
             try:
-                archive.communicate(timeout=3)
-            except subprocess.TimeoutExpired:
-                os.killpg(archive.pid, signal.SIGKILL)
-                archive.communicate()
-            raise RunnerError(f"git archive timed out after {timeout}s") from error
-        if archive.returncode:
-            raise RunnerError(f"git archive failed ({archive.returncode}): {stderr.decode(errors='replace')}")
+                _, stderr = archive.communicate(timeout=timeout)
+            except subprocess.TimeoutExpired as error:
+                os.killpg(archive.pid, signal.SIGTERM)
+                try:
+                    archive.communicate(timeout=3)
+                except subprocess.TimeoutExpired:
+                    os.killpg(archive.pid, signal.SIGKILL)
+                    archive.communicate()
+                raise RunnerError(f"git archive timed out after {timeout}s") from error
+            if archive.returncode:
+                raise RunnerError(f"git archive failed ({archive.returncode}): {stderr.decode(errors='replace')}")
+        else:
+            prepare_run(["git", "archive", "--format=tar", BASELINE_COMMIT], stdout_file=bundle, capture_stdout=False, show_command=False, quiet=True)
         source.mkdir()
         bundle.seek(0)
         with tarfile.open(fileobj=bundle, mode="r:") as tar:
-            safe_extract(tar, source)
+            safe_extract(tar, source, check_work=execution.check_work if execution is not None else None)
     lock = (source / "Cargo.lock").read_text()
+    if execution is not None:
+        execution.check_work()
     if f'rev = "{TUISCOTTI_REV}"' not in lock and TUISCOTTI_REV not in lock:
         raise RunnerError(f"frozen Cargo.lock does not record tuiscotti {TUISCOTTI_REV}")
-    tree = run(["git", "rev-parse", f"{commit}^{{tree}}"], cwd=repo, timeout=timeout).strip()
+    tree = prepare_run(["git", "rev-parse", f"{commit}^{{tree}}"])
     if tree != BASELINE_TREE:
         raise RunnerError(f"frozen tree mismatch: {tree}")
+    if execution is not None:
+        execution.check_work()
     manifest = {
         "tag": BASELINE_TAG,
         "tag_object": tag_obj,
         "source_commit": commit,
         "source_tree": tree,
         "tuiscotti_rev": TUISCOTTI_REV,
-        "source_sha256": digest_source(source),
-        "snapshots_sha256": digest_tree(source / "snapshots"),
+        "source_sha256": digest_source(source, check_work=execution.check_work if execution is not None else None),
+        "snapshots_sha256": digest_tree(source / "snapshots", check_work=execution.check_work if execution is not None else None),
     }
     (root / "provenance.json").write_text(json.dumps(manifest, indent=2) + "\n")
     print(json.dumps(manifest, indent=2))
@@ -3928,7 +4457,9 @@ def parser() -> argparse.ArgumentParser:
     ap.add_argument("--root", type=Path, default=Path("target/frozen-baseline"))
     ap.add_argument("--timeout", type=int, default=MAX_TIMEOUT)
     sub = ap.add_subparsers(dest="command", required=True)
-    sub.add_parser("prepare")
+    prepare_parser = sub.add_parser("prepare")
+    prepare_parser.add_argument("--owned-lifecycle", action="store_true", help="use one cancellation-safe stage-one deadline and anchored child cleanup")
+    prepare_parser.add_argument("--owned-budget", type=int, default=PREPARE_OWNED_MAX_BUDGET, help="work seconds for --owned-lifecycle; cleanup reserve is additional and fixed")
     prepare_live = sub.add_parser("prepare-live")
     prepare_live.add_argument("--fresh-cohort", help="explicit reviewed fresh-capture cohort; bypasses legacy build.json/tuple approval path")
     prepare_live.add_argument("--baseline-bin-dir", type=Path, help="sealed application directory required with --fresh-cohort")
@@ -3987,10 +4518,22 @@ def parser() -> argparse.ArgumentParser:
 
 
 def main() -> int:
+    if len(sys.argv) == 4 and sys.argv[1] == "--_owned-prepare-broker":
+        try:
+            return _owned_broker_main(Path(sys.argv[2]), int(sys.argv[3]))
+        except (RunnerError, OSError, subprocess.SubprocessError, json.JSONDecodeError, ValueError) as error:
+            print(f"frozen-baseline owned broker: {error}", file=sys.stderr)
+            return 2
     args = parser().parse_args()
     try:
         if args.command == "prepare":
-            prepare(args.repo, args.root, args.timeout)
+            if args.owned_lifecycle:
+                with PrepareExecution(args.owned_budget) as execution:
+                    prepare(args.repo, args.root, args.timeout, execution=execution)
+            else:
+                if args.owned_budget != PREPARE_OWNED_MAX_BUDGET:
+                    raise RunnerError("--owned-budget requires --owned-lifecycle")
+                prepare(args.repo, args.root, args.timeout)
         elif args.command == "prepare-live":
             repo, root, source = paths(args.repo, args.root)
             verify_source(root, source)

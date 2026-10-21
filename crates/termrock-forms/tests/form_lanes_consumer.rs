@@ -2,7 +2,7 @@ use core::cell::Cell;
 
 use ratatui_core::buffer::Buffer;
 use ratatui_core::layout::Rect;
-use termrock_controls::choice::LabelRadio;
+use termrock_controls::choice::{LabelRadio, RadioNavigation};
 use termrock_core::action::{Action, ActionKey};
 use termrock_core::event::{Input, Key, KeyCode, KeyModifiers, MouseKind};
 use termrock_core::id::{Id, ItemKey, Part, PartRef};
@@ -243,7 +243,7 @@ impl ClippedRadioConsumer {
             FieldSpec::new(
                 TRANSPORT,
                 "Transport",
-                FieldKind::Radio(LabelRadio::new(TRANSPORT)),
+                FieldKind::Radio(LabelRadio::new(TRANSPORT).navigation(RadioNavigation::Deferred)),
             ),
             FieldSpec::new(
                 DESTINATION,
@@ -814,6 +814,94 @@ fn clipped_radio_row_pointer_activates_through_the_real_form() {
     );
     present(&mut runtime, area);
     assert_eq!(runtime.app().data.transport, 9);
+}
+
+struct ImmediateRadioForm {
+    state: FormState,
+    data: Notifications,
+    lanes: bool,
+}
+
+impl ImmediateRadioForm {
+    fn update_form(&mut self, cx: &mut Cx<'_>) -> Response<FormAction> {
+        let fields = [FieldSpec::new(
+            TRANSPORT,
+            "Transport",
+            FieldKind::Radio(LabelRadio::new(TRANSPORT)),
+        )];
+        if self.lanes {
+            const ROWS: &[FormRow] = &[FormRow::Field(TRANSPORT)];
+            const LANES: &[FormLane<'static>] = &[FormLane::new(LANE_LEFT, ROWS)];
+            Form::new(FORM, &fields)
+                .try_layout(&FormLayout::new(LANES))
+                .expect("valid one-radio lane")
+                .update(cx, &mut self.state, &mut self.data)
+        } else {
+            Form::new(FORM, &fields).update(cx, &mut self.state, &mut self.data)
+        }
+    }
+
+    fn draw_form(&self, ui: &mut Ui<'_>) {
+        let fields = [FieldSpec::new(
+            TRANSPORT,
+            "Transport",
+            FieldKind::Radio(LabelRadio::new(TRANSPORT)),
+        )];
+        if self.lanes {
+            const ROWS: &[FormRow] = &[FormRow::Field(TRANSPORT)];
+            const LANES: &[FormLane<'static>] = &[FormLane::new(LANE_LEFT, ROWS)];
+            let layout = FormLayout::new(LANES);
+            let form = Form::new(FORM, &fields)
+                .try_layout(&layout)
+                .expect("valid one-radio lane");
+            form.draw(ui, ui.full(), &self.state, &self.data);
+        } else {
+            Form::new(FORM, &fields).draw(ui, ui.full(), &self.state, &self.data);
+        }
+    }
+}
+
+impl App for ImmediateRadioForm {
+    fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+        self.update_form(cx).erase()
+    }
+
+    fn draw(&self, ui: &mut Ui<'_>) {
+        self.draw_form(ui);
+    }
+}
+
+#[test]
+fn immediate_radio_navigation_updates_values_through_flat_and_lane_forms() {
+    let area = Rect::new(0, 0, 60, 16);
+    for lanes in [false, true] {
+        let mut runtime = Runtime::new(
+            ImmediateRadioForm {
+                state: FormState::default(),
+                data: Notifications::default(),
+                lanes,
+            },
+            Theme::junie(),
+        );
+        let _ = runtime.initialize();
+        let mut buffer = Buffer::empty(area);
+        runtime.draw_buffer(area, &mut buffer).commit_presented();
+        runtime.set_focus(Some(TRANSPORT));
+        let _ = termrock_runtime::runtime::stub::deliver(&mut runtime, Input::Tick);
+        let _ = termrock_runtime::runtime::stub::deliver(
+            &mut runtime,
+            Input::Key(Key {
+                code: KeyCode::Down,
+                mods: KeyModifiers::NONE,
+            }),
+        );
+        assert_eq!(
+            runtime.app().data.transport,
+            1,
+            "keyboard navigation selects through {} Form update",
+            if lanes { "lane" } else { "flat" }
+        );
+    }
 }
 
 #[test]
