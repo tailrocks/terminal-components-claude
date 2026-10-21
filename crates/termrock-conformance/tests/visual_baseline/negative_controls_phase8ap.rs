@@ -456,7 +456,7 @@ fn render_button(focus: bool, hover: bool, disabled: bool) -> Frame {
     let mut buf = Buffer::empty(view);
     let mut state = ReferenceState::default();
     if focus {
-        state = state.union(ReferenceState::FOCUSED);
+        state = state.union(ReferenceState::FOCUSED | ReferenceState::FOCUS_VISIBLE);
     }
     if hover {
         state = state.union(ReferenceState::HOVERED);

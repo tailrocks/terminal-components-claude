@@ -438,8 +438,8 @@ impl EditorDraft {
     pub(crate) fn pointer_select(&mut self, line: usize, col: usize, click_count: u8) -> usize {
         let offset = self.offset_at(line, col);
         match click_count {
-            3.. => self.select_line_at(offset),
-            2 => self.select_word_at(offset),
+            3.. if !self.is_sensitive() => self.select_line_at(offset),
+            2 if !self.is_sensitive() => self.select_word_at(offset),
             _ => self.set_cursor_line_col(line, col),
         }
         self.selection()
