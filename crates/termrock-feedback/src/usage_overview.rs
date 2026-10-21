@@ -42,6 +42,42 @@ pub struct UsageHint<'a> {
     pub action: &'a str,
 }
 
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub enum UsageInk {
+    Plain,
+    Muted,
+    Faint,
+    Secondary,
+    Danger,
+    DangerBold,
+    Warning,
+    Info,
+    Success,
+}
+
+pub struct UsageSpan {
+    pub text: String,
+    pub ink: UsageInk,
+}
+
+pub struct UsageProvider {
+    pub name: String,
+    pub accounts: String,
+    pub window: String,
+    pub pct: Option<u8>,
+    pub meter: UsageInk,
+    pub marker: &'static str,
+    pub italic: bool,
+    pub status_mark: String,
+    pub status: String,
+    pub status_ink: UsageInk,
+}
+
+pub enum UsageDetailLine {
+    Spans(Vec<UsageSpan>),
+    Provider(UsageProvider),
+}
+
 pub struct UsageTrail<'a> {
     pub mark: Option<&'a str>,
     pub text: &'a str,
@@ -58,6 +94,9 @@ pub struct UsageOverview<'a> {
     pub status: &'a str,
     pub rows: &'a [UsageLine],
     pub hints: &'a [UsageHint<'a>],
+    pub detail_title: &'a str,
+    pub detail_meta: &'a str,
+    pub detail: &'a [UsageDetailLine],
 }
 
 struct Ink {
@@ -79,7 +118,9 @@ struct Seg {
 }
 
 pub fn paint_usage_overview(ui: &mut Ui<'_>, area: Rect, page: &UsageOverview<'_>) {
-    if area.width >= 100 || area.width < 40 || area.height < 16 {
+    // Chrome insets the body by one column. Baseline keeps a single list
+    // until that body is at least 100 columns wide.
+    if area.width < 40 || area.height < 16 {
         return;
     }
     let theme = ui.theme_ref();
@@ -98,8 +139,12 @@ pub fn paint_usage_overview(ui: &mut Ui<'_>, area: Rect, page: &UsageOverview<'_
     paint_identity(ui, area, used, page, &ink);
     let panel = panel_rect(area);
     paint_frame(ui, panel, page, &ink);
-    let list = list_rect(panel);
-    paint_rows(ui, list, page.rows, &ink);
+    let content = list_rect(panel);
+    if area.width.saturating_sub(2) >= 100 {
+        paint_split(ui, content, page, &ink);
+    } else {
+        paint_rows(ui, content, page.rows, &ink);
+    }
     paint_hints(ui, area, page, &ink);
 }
 
@@ -386,7 +431,11 @@ fn paint_account(ui: &mut Ui<'_>, list: Rect, y: u16, row_w: u16, row: &UsageLin
         .saturating_sub(text_at)
         .saturating_sub(reserve)
         .saturating_sub(2);
-    let label = crate::text::truncate(&row.label, label_room);
+    let mut label = crate::text::truncate(&row.label, label_room);
+    let pad = label_room.saturating_sub(width(&label));
+    if pad > 0 {
+        label.push_str(&" ".repeat(usize::from(pad)));
+    }
     let label_fg = if row.muted { ink.muted } else { fg };
     let label_style = if row.selected {
         bold(label_fg, bg)
@@ -494,6 +543,218 @@ fn paint_bar(ui: &mut Ui<'_>, list: Rect, viewport: u16, content: u16, canvas: C
             plain(color, canvas),
         );
     }
+}
+
+fn paint_split(ui: &mut Ui<'_>, content: Rect, page: &UsageOverview<'_>, ink: &Ink) {
+    let list_w = (u32::from(content.width) * 34 / 100)
+        .clamp(28, 40)
+        .min(u32::from(content.width));
+    let list_w = u16::try_from(list_w).unwrap_or(40);
+    let list = Rect {
+        width: list_w,
+        ..content
+    };
+    paint_rows(ui, list, page.rows, ink);
+    let detail_x = content.x.saturating_add(list_w).saturating_add(2);
+    if detail_x >= content.right() {
+        return;
+    }
+    let detail = Rect::new(
+        detail_x,
+        content.y,
+        content.right().saturating_sub(detail_x),
+        content.height,
+    );
+    put(
+        ui,
+        detail,
+        detail.x,
+        detail.y,
+        page.detail_title,
+        bold(ink.primary, ink.canvas),
+    );
+    if !page.detail_meta.is_empty() {
+        let meta_x = detail.right().saturating_sub(width(page.detail_meta));
+        put(
+            ui,
+            detail,
+            meta_x,
+            detail.y,
+            page.detail_meta,
+            plain(ink.faint, ink.canvas),
+        );
+    }
+    let mut y = detail.y.saturating_add(2);
+    for line in page.detail {
+        if y >= detail.bottom() {
+            break;
+        }
+        match line {
+            UsageDetailLine::Spans(spans) => paint_spans(ui, detail, y, spans, ink),
+            UsageDetailLine::Provider(row) => paint_provider(ui, detail, y, row, ink),
+        }
+        y = y.saturating_add(1);
+    }
+}
+
+fn ink_style(ink: &Ink, which: UsageInk, bold_text: bool) -> PaintStyle {
+    let (fg, bg) = match which {
+        UsageInk::Plain => (ink.primary, ink.canvas),
+        UsageInk::Muted => (ink.muted, ink.canvas),
+        UsageInk::Faint => (ink.faint, ink.canvas),
+        UsageInk::Secondary => (ink.secondary, ink.canvas),
+        UsageInk::Danger | UsageInk::DangerBold => (DANGER, ink.canvas),
+        UsageInk::Warning => (WARNING, ink.canvas),
+        UsageInk::Info => (INFO, ink.canvas),
+        UsageInk::Success => (SUCCESS, ink.canvas),
+    };
+    let face = plain(fg, bg);
+    if bold_text || which == UsageInk::DangerBold {
+        face.add_modifier(Modifier::BOLD)
+    } else {
+        face
+    }
+}
+
+const INFO: Color = Color::Rgb(0x79, 0xb8, 0xff);
+const SUCCESS: Color = Color::Rgb(0x3f, 0xb9, 0x50);
+
+fn paint_spans(ui: &mut Ui<'_>, area: Rect, y: u16, spans: &[UsageSpan], ink: &Ink) {
+    let mut x = area.x;
+    let limit = area.right();
+    for span in spans {
+        if x >= limit || span.text.is_empty() {
+            continue;
+        }
+        let room = limit.saturating_sub(x);
+        let columns = width(&span.text);
+        if columns > room {
+            let cut = crate::text::truncate(&span.text, room);
+            put(ui, area, x, y, &cut, ink_style(ink, span.ink, false));
+            break;
+        }
+        put(ui, area, x, y, &span.text, ink_style(ink, span.ink, false));
+        x = x.saturating_add(columns);
+    }
+}
+
+fn paint_provider(ui: &mut Ui<'_>, area: Rect, y: u16, row: &UsageProvider, ink: &Ink) {
+    let put_fit = |ui: &mut Ui<'_>, x: u16, cols: u16, text: &str, style: PaintStyle| {
+        if x >= area.right() || cols == 0 {
+            return;
+        }
+        let room = cols.min(area.right().saturating_sub(x));
+        let mut shown = crate::text::truncate(text, room);
+        let pad = room.saturating_sub(width(&shown));
+        if pad > 0 {
+            shown.push_str(&" ".repeat(usize::from(pad)));
+        }
+        put(ui, area, x, y, &shown, style);
+    };
+    let name_style = if row.name == "—" {
+        plain(ink.muted, ink.canvas)
+    } else {
+        plain(ink.primary, ink.canvas)
+    };
+    let accounts_style = if row.accounts == "—" {
+        plain(ink.muted, ink.canvas)
+    } else {
+        plain(ink.secondary, ink.canvas)
+    };
+    put_fit(ui, area.x, 12, &row.name, name_style);
+    put_fit(
+        ui,
+        area.x.saturating_add(13),
+        9,
+        &row.accounts,
+        accounts_style,
+    );
+    let window_x = area.x.saturating_add(23);
+    if let Some(pct) = row.pct {
+        put_fit(
+            ui,
+            window_x,
+            10,
+            &row.window,
+            plain(ink.secondary, ink.canvas),
+        );
+        paint_meter(ui, area, window_x.saturating_add(11), y, pct, row, ink);
+    } else {
+        put_fit(ui, window_x, 26, &row.window, plain(ink.muted, ink.canvas));
+    }
+    let status_x = area.x.saturating_add(50);
+    if status_x >= area.right() {
+        return;
+    }
+    let mut x = status_x;
+    if !row.status_mark.is_empty() {
+        put(
+            ui,
+            area,
+            x,
+            y,
+            &row.status_mark,
+            ink_style(ink, row.status_ink, row.status_ink == UsageInk::Danger),
+        );
+        x = x.saturating_add(width(&row.status_mark));
+    }
+    put_fit(
+        ui,
+        x,
+        area.right().saturating_sub(x),
+        &row.status,
+        ink_style(ink, row.status_ink, false),
+    );
+}
+
+fn paint_meter(
+    ui: &mut Ui<'_>,
+    area: Rect,
+    x: u16,
+    y: u16,
+    pct: u8,
+    row: &UsageProvider,
+    ink: &Ink,
+) {
+    let bg = match row.meter {
+        UsageInk::Danger => DANGER,
+        UsageInk::Warning => WARNING,
+        _ => INFO,
+    };
+    let track = Color::Rgb(0x1c, 0x1c, 0x1f);
+    let label = format!(" {pct:>3}%");
+    let mut glyphs: Vec<char> = label.chars().collect();
+    while glyphs.len() < 13 {
+        glyphs.push(' ');
+    }
+    let fill = usize::try_from((u32::from(pct) * 13 + 50) / 100).unwrap_or(13);
+    let mut filled = bold(Color::Rgb(0, 0, 0), bg);
+    let mut empty = plain(ink.primary, track);
+    if row.italic {
+        filled = filled.add_modifier(Modifier::ITALIC);
+        empty = plain(ink.muted, track).add_modifier(Modifier::ITALIC);
+    }
+    for (index, glyph) in glyphs.iter().take(13).enumerate() {
+        let style = if index < fill { filled } else { empty };
+        put(
+            ui,
+            area,
+            x.saturating_add(u16::try_from(index).unwrap_or(0)),
+            y,
+            &glyph.to_string(),
+            style,
+        );
+    }
+    let marker = if row.marker.is_empty() {
+        "  "
+    } else {
+        row.marker
+    };
+    let mut marker_style = plain(bg, ink.canvas);
+    if row.meter == UsageInk::Danger {
+        marker_style = marker_style.add_modifier(Modifier::BOLD);
+    }
+    put(ui, area, x.saturating_add(13), y, marker, marker_style);
 }
 
 fn paint_hints(ui: &mut Ui<'_>, area: Rect, page: &UsageOverview<'_>, ink: &Ink) {
