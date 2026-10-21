@@ -8,14 +8,15 @@ use std::{
 use termrock::author::PaintStyle;
 
 use termrock::{
-    Action, ActionKey, ActivationKey, App as TuiApp, AsItem, Brand, Button, Chord, ContextMenu, Cx,
-    Dialog, DialogAction, DialogState, FrameRead, HelpAction, HelpOverlay, HelpOverlayState,
-    HelpSection, Hint, HintBar, HintLayer, Id, Intent, Item, ItemKey, KeyCode, KeyMap,
-    KeyModifiers, KeyPhase, List, ListAction, ListState, Menu, MenuAction, MenuBar, MenuItem,
-    MenuState, Modifier, Moment, Panel, Part, PartRef, Phase, Picker, PickerAction, PickerState,
-    Position, ProjectedText, Reconcile, Rect, Response, SecretPolicy, StatusBar, StatusItem, Tabs,
-    TabsAction, TabsState, TextAction, TextInput, TextInputState, TextViewport, TooSmall, Ui,
-    UpdateCause, Variant, ViewportAction, ViewportLine, ViewportState,
+    Action, ActionKey, ActivationKey, Anchor, App as TuiApp, AsItem, Brand, Button, Chord,
+    ContextMenu, CrossAlign, Cx, Dialog, DialogAction, DialogState, FrameRead, HelpAction,
+    HelpOverlay, HelpOverlayState, HelpSection, Hint, HintBar, HintLayer, Id, Intent, Item,
+    ItemKey, KeyCode, KeyMap, KeyModifiers, KeyPhase, List, ListAction, ListState, Menu,
+    MenuAction, MenuBar, MenuItem, MenuState, Modifier, Moment, Panel, Part, PartRef, Phase,
+    Picker, PickerAction, PickerState, Position, ProjectedText, Reconcile, Rect, Response,
+    SecretPolicy, Side, StatusBar, StatusItem, Tabs, TabsAction, TabsState, TextAction, TextInput,
+    TextInputState, TextViewport, TooSmall, Ui, UpdateCause, Variant, ViewportAction, ViewportLine,
+    ViewportState,
 };
 
 use crate::domain::account::{
@@ -87,6 +88,7 @@ pub const LAUNCH_CANCEL: Id = APP.sub("launch-cancel");
 pub const LAUNCH_RETRY: Id = APP.sub("launch-retry");
 const CAPSULE_MENU_BAR: Id = APP.sub("capsule-menu-bar");
 const CAPSULE_TAB_MENU: Id = APP.sub("capsule-tab-menu");
+const CAPSULE_CLOSE_DIALOG: Id = APP.sub("capsule-close-dialog");
 const CAPSULE_COMMAND_PALETTE: Id = APP.sub("capsule-command-palette");
 const CAPSULE_CONTAINER_INFO: Id = APP.sub("capsule-container-info");
 const ABOUT_DIALOG: Id = APP.sub("about");
@@ -183,6 +185,18 @@ const EDITOR_EXIT_ACTIONS: [Action<'static>; 3] = [
 ];
 const CMD_TAB_RENAME: ActionKey = ActionKey::application("jackin.capsule.tab-rename");
 const CMD_TAB_CLOSE: ActionKey = ActionKey::application("jackin.capsule.tab-close");
+const CMD_CAPSULE_PASTE: ActionKey = ActionKey::application("jackin.capsule.paste");
+const CMD_CAPSULE_CLEAR_SELECTION: ActionKey =
+    ActionKey::application("jackin.capsule.clear-selection");
+const CMD_CAPSULE_CLOSE_PANE: ActionKey = ActionKey::application("jackin.capsule.close-pane");
+const CAPSULE_CLOSE_TAB_ACTIONS: [Action<'static>; 2] = [
+    Action::quiet(ActionKey::CANCEL, "Cancel"),
+    Action::danger(ActionKey::CONFIRM, "Close tab"),
+];
+const CAPSULE_CLOSE_PANE_ACTIONS: [Action<'static>; 2] = [
+    Action::quiet(ActionKey::CANCEL, "Cancel"),
+    Action::danger(ActionKey::CONFIRM, "Close pane"),
+];
 const CMD_INSPECT_CHANGES: ActionKey = ActionKey::application("jackin.capsule.inspect-changes");
 const CMD_COPY_SELECTION: ActionKey = ActionKey::application("jackin.capsule.copy-selection");
 const CMD_CAPSULE_EXPORT_FILE: ActionKey = ActionKey::application("jackin.capsule.export-file");
@@ -236,8 +250,13 @@ const CAPSULE_MENUS: &[Menu<'static>] = &[
     Menu::new("Help", CAPSULE_HELP_ITEMS),
 ];
 const CAPSULE_TAB_ITEMS: &[MenuItem<'static>] = &[
-    MenuItem::new(CMD_TAB_RENAME, "Change title…"),
-    MenuItem::new(CMD_TAB_CLOSE, "Close tab"),
+    MenuItem::new(CMD_TAB_RENAME, "Change title…").hint("2×click"),
+    MenuItem::new(CMD_CAPSULE_SPLIT_RIGHT, "Split right")
+        .hint("Ctrl+B %")
+        .separator(),
+    MenuItem::new(CMD_TAB_CLOSE, "Close tab")
+        .hint("Ctrl+B &")
+        .danger(),
 ];
 const CAPSULE_COMMANDS: &[Item<'static>] = &[
     Item::new(ItemKey::num(1), "New tab"),
@@ -263,7 +282,6 @@ mod accounts_filter_view;
 mod accounts_filter_wide;
 mod editor_view;
 
-mod capsule_menu_view;
 mod capsule_zoom_view;
 
 mod hard_launch_picker_view;
@@ -358,6 +376,12 @@ enum PickerMode {
 enum CapsuleAction {
     NewTab,
     Split(SplitDir),
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum CapsuleCloseTarget {
+    Tab(usize),
+    Pane(PaneId),
 }
 
 impl AsItem for AccountOption {
@@ -538,6 +562,9 @@ pub struct App {
     capsule_tab_menu_state: MenuState,
     capsule_tab_menu_pos: Position,
     capsule_tab_menu_open: bool,
+    capsule_menu_pane: Option<PaneId>,
+    capsule_close_state: DialogState,
+    capsule_close_target: Option<CapsuleCloseTarget>,
     capsule_palette_state: PickerState,
     tabs_state: TabsState,
     launch_dialog: DialogState,
@@ -741,6 +768,9 @@ impl App {
             capsule_tab_menu_state: MenuState::default(),
             capsule_tab_menu_pos: Position::new(0, 0),
             capsule_tab_menu_open: false,
+            capsule_menu_pane: None,
+            capsule_close_state: DialogState::default(),
+            capsule_close_target: None,
             capsule_palette_state: PickerState::default(),
             tabs_state: TabsState::default(),
             launch_dialog: DialogState::default(),
@@ -1327,8 +1357,135 @@ impl App {
         MenuBar::new(CAPSULE_MENU_BAR, CAPSULE_MENUS)
     }
 
-    fn capsule_tab_context(position: Position) -> ContextMenu<'static> {
-        ContextMenu::at(CAPSULE_TAB_MENU, CAPSULE_TAB_ITEMS, position).title("Tab")
+    fn capsule_tab_context<'a>(title: &'a str, index: usize, cursor_owner: Id) -> ContextMenu<'a> {
+        ContextMenu::new(
+            CAPSULE_TAB_MENU,
+            CAPSULE_TAB_ITEMS,
+            Anchor::Point(Position::new(0, 0)),
+        )
+        .anchor_to_part(
+            CAPSULE_TABS,
+            PartRef::item(Part::TAB, ItemKey::index(index)),
+            Side::Below,
+            CrossAlign::Start,
+        )
+        .title(title)
+        .retain_cursor(cursor_owner)
+    }
+
+    fn capsule_pane_context<'a>(
+        items: &'a [MenuItem<'a>],
+        position: Position,
+        cursor_owner: Id,
+    ) -> ContextMenu<'a> {
+        ContextMenu::at(CAPSULE_TAB_MENU, items, position).retain_cursor(cursor_owner)
+    }
+
+    fn capsule_tab_label(&self, index: usize) -> String {
+        if index == self.capsule_tab_title_index && !self.capsule_tab_title.is_empty() {
+            return self.capsule_tab_title.clone();
+        }
+        let Some(daemon) = self
+            .active_running_instance_id()
+            .and_then(|id| self.world.daemons.get(&id))
+        else {
+            return String::new();
+        };
+        daemon.tabs.get(index).map_or_else(String::new, |tab| {
+            daemon.tab_label(tab, &|pane| {
+                pane.proc
+                    .account
+                    .as_ref()
+                    .and_then(|id| self.world.accounts.get(id))
+                    .map(|account| account.display_name.clone())
+            })
+        })
+    }
+
+    fn capsule_tab_cursor_owner(&self, index: usize) -> Id {
+        let pane_id = self
+            .active_running_instance_id()
+            .and_then(|id| self.world.daemons.get(&id))
+            .and_then(|daemon| daemon.tabs.get(index))
+            .map_or(0, |tab| tab.focused);
+        Self::capsule_viewport_id(pane_id)
+    }
+
+    fn capsule_pane_menu_items(&self, pane_id: PaneId) -> Vec<MenuItem<'static>> {
+        let selected = self
+            .capsule_viewports
+            .get(&pane_id)
+            .is_some_and(|viewport| viewport.selection().is_some());
+        let clipboard_available = self.world.clipboard.is_some();
+        let (pane_count, zoomed) = self
+            .active_running_instance_id()
+            .and_then(|id| self.world.daemons.get(&id))
+            .and_then(Daemon::active_tab)
+            .map_or((0, false), |tab| (tab.leaf_count(), tab.zoomed.is_some()));
+        let copy = MenuItem::new(CMD_COPY_SELECTION, "Copy selection")
+            .hint(if selected { "y" } else { "Select text first" })
+            .disabled(!selected);
+        let paste = if clipboard_available {
+            MenuItem::new(CMD_CAPSULE_PASTE, "Paste clipboard")
+        } else {
+            MenuItem::new(CMD_CAPSULE_PASTE, "Paste clipboard")
+                .hint("The clipboard is empty")
+                .disabled(true)
+        };
+        let clear = MenuItem::new(CMD_CAPSULE_CLEAR_SELECTION, "Clear selection")
+            .hint(if selected {
+                "Esc"
+            } else {
+                "Nothing is selected"
+            })
+            .disabled(!selected)
+            .separator();
+        let zoom_enabled = zoomed || pane_count >= 2;
+        let zoom = MenuItem::new(
+            CMD_CAPSULE_ZOOM,
+            if zoomed { "Unzoom pane" } else { "Zoom pane" },
+        )
+        .hint(if zoom_enabled { "Ctrl+B z" } else { "One pane" })
+        .disabled(!zoom_enabled)
+        .separator();
+        vec![
+            copy,
+            paste,
+            clear,
+            MenuItem::new(CMD_CAPSULE_SPLIT_RIGHT, "Split right").hint("Ctrl+B %"),
+            MenuItem::new(CMD_CAPSULE_SPLIT_BELOW, "Split below").hint("Ctrl+B \""),
+            zoom,
+            MenuItem::new(CMD_CAPSULE_CLOSE_PANE, "Close pane")
+                .hint("Ctrl+B x")
+                .danger(),
+        ]
+    }
+
+    fn open_capsule_tab_context(&mut self, cx: &mut Cx<'_>, index: usize) -> bool {
+        let title = self.capsule_tab_label(index);
+        let menu = Self::capsule_tab_context(&title, index, self.capsule_tab_cursor_owner(index));
+        let Some(layer) = menu.try_layer(cx) else {
+            self.capsule_prefix = false;
+            return false;
+        };
+        self.capsule_prefix = false;
+        self.capsule_tab_title_index = index;
+        self.capsule_menu_pane = None;
+        self.capsule_tab_menu_open = true;
+        self.capsule_tab_menu_state = MenuState::default();
+        cx.open_layer(CAPSULE_TAB_MENU, layer);
+        true
+    }
+
+    fn open_capsule_pane_context(&mut self, cx: &mut Cx<'_>, pane_id: PaneId, position: Position) {
+        self.set_capsule_focused_pane(pane_id);
+        self.capsule_menu_pane = Some(pane_id);
+        self.capsule_tab_menu_pos = position;
+        self.capsule_tab_menu_open = true;
+        self.capsule_tab_menu_state = MenuState::default();
+        let items = self.capsule_pane_menu_items(pane_id);
+        let menu = Self::capsule_pane_context(&items, position, Self::capsule_viewport_id(pane_id));
+        cx.open_layer(CAPSULE_TAB_MENU, menu.layer(cx));
     }
 
     fn capsule_command_palette() -> Picker<'static, Item<'static>> {
@@ -1339,6 +1496,101 @@ impl App {
 
     fn container_info_dialog() -> Dialog<'static> {
         Dialog::info(CAPSULE_CONTAINER_INFO, "Container info").body_rows(9)
+    }
+
+    fn capsule_close_dialog(tab: bool) -> Dialog<'static> {
+        let (title, description, actions) = if tab {
+            (
+                "Close tab?",
+                "Reap every pane in this tab. Unsaved state across all panes is lost.",
+                &CAPSULE_CLOSE_TAB_ACTIONS,
+            )
+        } else {
+            (
+                "Close pane?",
+                "Reap the focused pane's agent. Unsaved state in that pane is lost.",
+                &CAPSULE_CLOSE_PANE_ACTIONS,
+            )
+        };
+        Dialog::destructive(CAPSULE_CLOSE_DIALOG, title, description).actions(actions)
+    }
+
+    fn capsule_close_target_is_tab(&self, target: CapsuleCloseTarget) -> bool {
+        let pane_id = match target {
+            CapsuleCloseTarget::Tab(_) => return true,
+            CapsuleCloseTarget::Pane(pane_id) => pane_id,
+        };
+        self.active_running_instance_id()
+            .and_then(|id| self.world.daemons.get(&id))
+            .and_then(|daemon| {
+                daemon
+                    .tabs
+                    .iter()
+                    .find(|tab| tab.leaves().contains(&pane_id))
+            })
+            .is_some_and(|tab| tab.leaf_count() == 1)
+    }
+
+    fn open_capsule_close(&mut self, cx: &mut Cx<'_>, target: CapsuleCloseTarget) {
+        self.capsule_close_state = DialogState::default();
+        self.capsule_close_target = Some(target);
+        if !cx.is_open(CAPSULE_CLOSE_DIALOG) {
+            let tab = self.capsule_close_target_is_tab(target);
+            cx.open_layer(
+                CAPSULE_CLOSE_DIALOG,
+                Self::capsule_close_dialog(tab).layer(cx),
+            );
+        }
+    }
+
+    fn apply_capsule_close(&mut self, cx: &mut Cx<'_>, target: CapsuleCloseTarget) {
+        let Some(instance_id) = self.active_running_instance_id() else {
+            self.status = Some("Capsule unavailable · no running instance".into());
+            return;
+        };
+        let (snapshot, empty, status) = {
+            let Some(daemon) = self.world.daemons.get_mut(&instance_id) else {
+                self.status = Some("Capsule unavailable · daemon not connected".into());
+                return;
+            };
+            let status = match target {
+                CapsuleCloseTarget::Tab(index) => {
+                    if !daemon.tabs.is_empty() {
+                        let active = index.min(daemon.tabs.len().saturating_sub(1));
+                        daemon.active = active;
+                        daemon.close_tab(active);
+                    }
+                    "Tab closed"
+                }
+                CapsuleCloseTarget::Pane(pane_id) => {
+                    if daemon.close_pane(pane_id) {
+                        "Tab closed"
+                    } else {
+                        "Pane closed"
+                    }
+                }
+            };
+            (daemon.snapshot(), daemon.tabs.is_empty(), status)
+        };
+        if let Some(instance) = self.world.instance_mut(&instance_id) {
+            instance.daemon = snapshot;
+            if empty && instance.status == InstanceStatus::Running {
+                instance.status = InstanceStatus::CleanExited;
+            }
+        }
+        self.world.sync_arbiter();
+        self.manager_rows_cache.clear();
+        if empty {
+            self.status = Some("Last session ended · the Capsule shuts down".into());
+            self.active_instance = None;
+            self.route = Route::Manager;
+            self.reset_manager_cursor();
+            cx.focus(MANAGER_LIST);
+        } else {
+            self.status = Some(status.into());
+        }
+        self.capsule_viewport_focused = false;
+        self.capsule_menu_pane = None;
     }
 
     fn container_info_lines(&self) -> Vec<String> {
@@ -2255,7 +2507,9 @@ impl App {
     }
 
     fn capsule_viewport(pane_id: PaneId) -> TextViewport<'static> {
-        TextViewport::new(CAPSULE_PANES.item(ItemKey::num(pane_id))).click_selects_word(true)
+        TextViewport::new(CAPSULE_PANES.item(ItemKey::num(pane_id)))
+            .click_selects_word(true)
+            .caret_when_unfocused(true)
     }
 
     fn role_choose_button(&self) -> Button<'_> {
@@ -2433,16 +2687,12 @@ impl App {
 
     fn capsule_prefix_key(&mut self, cx: &mut Cx<'_>, key: char) -> Response<()> {
         if key == 'm' {
-            self.capsule_prefix = false;
-            self.capsule_tab_title_index = self.active_capsule_tab_index();
-            self.capsule_tab_menu_open = true;
-            self.capsule_tab_menu_state = MenuState::default();
-            self.capsule_tab_menu_pos = Position::new(1, 2);
-            cx.open_layer(
-                CAPSULE_TAB_MENU,
-                Self::capsule_tab_context(self.capsule_tab_menu_pos).layer(cx),
-            );
-            return Response::changed();
+            let index = self.active_capsule_tab_index();
+            return if self.open_capsule_tab_context(cx, index) {
+                Response::changed()
+            } else {
+                Response::ignored()
+            };
         }
         let command = match key {
             'c' => Some(CMD_CAPSULE),
@@ -2500,6 +2750,40 @@ impl App {
                     .collect()
             })
             .unwrap_or_default()
+    }
+
+    fn paste_capsule_clipboard(&mut self) -> Response<()> {
+        let Some(text) = self.world.clipboard.clone() else {
+            self.status = Some("Preview clipboard is empty".into());
+            return Response::changed();
+        };
+        let Some(instance_id) = self.active_running_instance_id() else {
+            self.status = Some("Capsule unavailable · no running instance".into());
+            return Response::changed();
+        };
+        let now_ms = self.world.now_ms();
+        let observed_secs = self.world.now_secs();
+        let snapshot = {
+            let Some(daemon) = self.world.daemons.get_mut(&instance_id) else {
+                self.status = Some("Capsule unavailable · daemon not connected".into());
+                return Response::changed();
+            };
+            let workspace = daemon.workspace.clone();
+            if let Some(pane_id) = daemon.focused_pane()
+                && let Some(pane) = daemon.pane_mut(pane_id)
+            {
+                for character in text.chars().take(200) {
+                    pane.type_char(character, now_ms, &workspace);
+                }
+            }
+            daemon.snapshot()
+        };
+        if let Some(instance) = self.world.instance_mut(&instance_id) {
+            instance.daemon = snapshot;
+            instance.last_seen_secs = observed_secs;
+        }
+        self.status = Some("Pasted into the focused pane".into());
+        Response::changed()
     }
 
     fn set_capsule_focused_pane(&mut self, pane_id: PaneId) {
@@ -2883,6 +3167,7 @@ impl App {
                         pane_id,
                         pane.term.lines.len(),
                         pane.term.caret,
+                        pane.term.caret_visible,
                         tab.focused == pane_id,
                         pane.term.revision(),
                         pane.term.retained(),
@@ -2909,7 +3194,7 @@ impl App {
             .retain(|pane_id, _| pane_ids.contains(pane_id));
 
         let mut focused_pane = None;
-        for (pane_id, line_count, caret, focused, revision, retained) in sources {
+        for (pane_id, line_count, caret, caret_visible, focused, revision, retained) in sources {
             let id = Self::capsule_viewport_id(pane_id);
             let clicked = cx.intents(id).any(|intent| {
                 matches!(
@@ -2942,7 +3227,13 @@ impl App {
             if previous_revision.is_some_and(|previous| previous != revision) {
                 state.invalidate();
             }
-            state.set_caret(focused.then_some(caret).flatten());
+            state.set_caret(
+                if focused && caret_visible && self.capsule_viewport_focused {
+                    caret
+                } else {
+                    None
+                },
+            );
             let frame = self.capsule_frame.borrow();
             let Some((_, projected)) = frame.transcripts.get(&pane_id) else {
                 continue;
@@ -3014,6 +3305,47 @@ impl App {
 
     fn update_overlays(&mut self, cx: &mut Cx<'_>) -> Response<()> {
         let mut result = Response::ignored();
+
+        if let Some(target) = self.capsule_close_target {
+            let tab = self.capsule_close_target_is_tab(target);
+            if !cx.is_open(CAPSULE_CLOSE_DIALOG) {
+                self.capsule_close_state = DialogState::default();
+                cx.open_layer(
+                    CAPSULE_CLOSE_DIALOG,
+                    Self::capsule_close_dialog(tab).layer(cx),
+                );
+                result |= Response::changed();
+            }
+            let dialog = Self::capsule_close_dialog(tab);
+            let response = dialog.update(cx, &mut self.capsule_close_state);
+            let action = response.action_ref().copied();
+            result |= response.erase();
+            match action {
+                Some(DialogAction::Action(ActionKey::CONFIRM)) => {
+                    if cx.is_open(CAPSULE_CLOSE_DIALOG) {
+                        cx.close_layer(CAPSULE_CLOSE_DIALOG, Some(ActionKey::CONFIRM));
+                    }
+                    self.capsule_close_target = None;
+                    self.capsule_close_state = DialogState::default();
+                    self.apply_capsule_close(cx, target);
+                    result |= Response::changed();
+                }
+                Some(DialogAction::Action(ActionKey::CANCEL) | DialogAction::Dismissed(_)) => {
+                    if cx.is_open(CAPSULE_CLOSE_DIALOG) {
+                        cx.close_layer(CAPSULE_CLOSE_DIALOG, Some(ActionKey::CANCEL));
+                    }
+                    self.capsule_close_target = None;
+                    self.capsule_close_state = DialogState::default();
+                    result |= Response::changed();
+                }
+                None if !cx.is_open(CAPSULE_CLOSE_DIALOG) => {
+                    self.capsule_close_target = None;
+                    self.capsule_close_state = DialogState::default();
+                    result |= Response::changed();
+                }
+                Some(DialogAction::Action(_)) | None => {}
+            }
+        }
 
         if self
             .launch
@@ -4208,10 +4540,25 @@ impl App {
             }
         }
         if self.capsule_tab_menu_open && !cx.is_open(CAPSULE_TAB_MENU) {
-            cx.open_layer(
-                CAPSULE_TAB_MENU,
-                Self::capsule_tab_context(self.capsule_tab_menu_pos).layer(cx),
-            );
+            if let Some(pane_id) = self.capsule_menu_pane {
+                let items = self.capsule_pane_menu_items(pane_id);
+                let menu = Self::capsule_pane_context(
+                    &items,
+                    self.capsule_tab_menu_pos,
+                    Self::capsule_viewport_id(pane_id),
+                );
+                cx.open_layer(CAPSULE_TAB_MENU, menu.layer(cx));
+            } else {
+                let index = self.capsule_tab_title_index;
+                let title = self.capsule_tab_label(index);
+                let menu =
+                    Self::capsule_tab_context(&title, index, self.capsule_tab_cursor_owner(index));
+                if let Some(layer) = menu.try_layer(cx) {
+                    cx.open_layer(CAPSULE_TAB_MENU, layer);
+                } else {
+                    self.capsule_tab_menu_open = false;
+                }
+            }
         }
         let menu = Self::capsule_menu_bar();
         let menu_intents = cx.intents(CAPSULE_MENU_BAR).collect::<Vec<_>>();
@@ -4249,20 +4596,46 @@ impl App {
         }
         result |= menu_response.erase();
 
-        let context = Self::capsule_tab_context(self.capsule_tab_menu_pos);
+        let context_items = self.capsule_menu_pane.map_or_else(
+            || CAPSULE_TAB_ITEMS.to_vec(),
+            |pane| self.capsule_pane_menu_items(pane),
+        );
+        let context_title = self
+            .capsule_menu_pane
+            .is_none()
+            .then(|| self.capsule_tab_label(self.capsule_tab_title_index));
+        let context = if let Some(pane_id) = self.capsule_menu_pane {
+            Self::capsule_pane_context(
+                &context_items,
+                self.capsule_tab_menu_pos,
+                Self::capsule_viewport_id(pane_id),
+            )
+        } else {
+            Self::capsule_tab_context(
+                context_title.as_deref().unwrap_or_default(),
+                self.capsule_tab_title_index,
+                self.capsule_tab_cursor_owner(self.capsule_tab_title_index),
+            )
+        };
         let context_response = context.update(cx, &mut self.capsule_tab_menu_state);
         match context_response.action_ref().copied() {
             Some(MenuAction::Chosen(action)) => {
+                let pane_target = self.capsule_menu_pane;
                 self.capsule_tab_menu_open = false;
                 self.capsule_tab_menu_state = MenuState::default();
+                cx.close_layer(CAPSULE_TAB_MENU, None);
+                if let Some(pane_id) = pane_target {
+                    self.set_capsule_focused_pane(pane_id);
+                }
                 if let Some(response) = self.update_command(cx, action) {
                     result |= response;
                 }
-                cx.close_layer(CAPSULE_TAB_MENU, None);
+                self.capsule_menu_pane = None;
             }
             Some(MenuAction::Closed(_)) => {
                 self.capsule_tab_menu_open = false;
                 self.capsule_tab_menu_state = MenuState::default();
+                self.capsule_menu_pane = None;
             }
             _ => {}
         }
@@ -4279,36 +4652,29 @@ impl App {
                             phase: Phase::Secondary,
                             pos,
                             ..
-                        } => Some(pos),
+                        } => Some((pos, pane_id)),
                         _ => None,
                     })
                 });
             let tab_context = cx.intents(CAPSULE_TABS).find_map(|intent| match intent {
                 Intent::Pointer {
                     phase: Phase::Secondary,
-                    pos,
+                    pos: _pos,
                     part:
                         PartRef {
                             part: Part::TAB,
                             item: Some(ItemKey::Index(index)),
                         },
                     ..
-                } => Some((pos, index)),
+                } => Some(index),
                 _ => None,
             });
-            if let Some(pos) = pane_context {
-                self.capsule_tab_title_index = self.active_capsule_tab_index();
-                self.capsule_tab_menu_pos = pos;
-                self.capsule_tab_menu_open = true;
-                self.capsule_tab_menu_state = MenuState::default();
-                cx.open_layer(CAPSULE_TAB_MENU, Self::capsule_tab_context(pos).layer(cx));
+            if let Some((pos, pane_id)) = pane_context {
+                self.open_capsule_pane_context(cx, pane_id, pos);
                 result |= Response::changed();
-            } else if let Some((pos, index)) = tab_context {
-                self.capsule_tab_title_index = index;
-                self.capsule_tab_menu_pos = pos;
-                self.capsule_tab_menu_open = true;
-                self.capsule_tab_menu_state = MenuState::default();
-                cx.open_layer(CAPSULE_TAB_MENU, Self::capsule_tab_context(pos).layer(cx));
+            } else if let Some(index) = tab_context
+                && self.open_capsule_tab_context(cx, index)
+            {
                 result |= Response::changed();
             }
         }
@@ -4740,7 +5106,7 @@ impl App {
                         MANAGER_FILE_MENU,
                         termrock::LayerSpec::popover(
                             MANAGER_FILE_MENU,
-                            termrock::Anchor::Screen(termrock::ScreenAlign::Center),
+                            Anchor::Screen(termrock::ScreenAlign::Center),
                         )
                         .backdrop(termrock::Backdrop::None),
                     );
@@ -4796,7 +5162,34 @@ impl App {
                 Some(Response::changed())
             }
             CMD_TAB_CLOSE if self.route == Route::Capsule => {
-                self.status = Some("Close tab? · Enter confirm · Esc cancel".into());
+                self.open_capsule_close(cx, CapsuleCloseTarget::Tab(self.capsule_tab_title_index));
+                Some(Response::changed())
+            }
+            CMD_CAPSULE_PASTE if self.route == Route::Capsule => {
+                Some(self.paste_capsule_clipboard())
+            }
+            CMD_CAPSULE_CLEAR_SELECTION if self.route == Route::Capsule => {
+                let pane_id = self.capsule_menu_pane.or_else(|| {
+                    self.active_running_instance_id()
+                        .and_then(|id| self.world.daemons.get(&id))
+                        .and_then(Daemon::focused_pane)
+                });
+                if let Some(pane_id) = pane_id
+                    && let Some(viewport) = self.capsule_viewports.get_mut(&pane_id)
+                {
+                    viewport.clear_selection();
+                }
+                Some(Response::changed())
+            }
+            CMD_CAPSULE_CLOSE_PANE if self.route == Route::Capsule => {
+                let pane_id = self.capsule_menu_pane.or_else(|| {
+                    self.active_running_instance_id()
+                        .and_then(|id| self.world.daemons.get(&id))
+                        .and_then(Daemon::focused_pane)
+                });
+                if let Some(pane_id) = pane_id {
+                    self.open_capsule_close(cx, CapsuleCloseTarget::Pane(pane_id));
+                }
                 Some(Response::changed())
             }
             CMD_COCKPIT_LOG if matches!(self.route, Route::Launch | Route::Cockpit) => {
@@ -4901,19 +5294,19 @@ impl App {
                 cx.focus(MANAGER_LIST);
                 Some(Response::changed())
             }
-            CMD_CAPSULE_SPLIT_RIGHT if self.route == Route::Capsule && self.capsule_prefix => {
+            CMD_CAPSULE_SPLIT_RIGHT if self.route == Route::Capsule => {
                 self.capsule_prefix = false;
                 self.status = Some("Split right · Account for Claude Code".into());
                 self.open_capsule_account_picker(cx, CapsuleAction::Split(SplitDir::Horizontal));
                 Some(Response::changed())
             }
-            CMD_CAPSULE_SPLIT_BELOW if self.route == Route::Capsule && self.capsule_prefix => {
+            CMD_CAPSULE_SPLIT_BELOW if self.route == Route::Capsule => {
                 self.capsule_prefix = false;
                 self.status = Some("Split below · Account for Claude Code".into());
                 self.open_capsule_account_picker(cx, CapsuleAction::Split(SplitDir::Vertical));
                 Some(Response::changed())
             }
-            CMD_CAPSULE_ZOOM if self.route == Route::Capsule && self.capsule_prefix => {
+            CMD_CAPSULE_ZOOM if self.route == Route::Capsule => {
                 self.capsule_prefix = false;
                 if let Some(instance_id) = self.active_running_instance_id()
                     && let Some(daemon) = self.world.daemons.get_mut(&instance_id)
@@ -4937,7 +5330,7 @@ impl App {
                 }
                 Some(Response::changed())
             }
-            CMD_CAPSULE_FOCUS_LEFT if self.route == Route::Capsule && self.capsule_prefix => {
+            CMD_CAPSULE_FOCUS_LEFT if self.route == Route::Capsule => {
                 self.capsule_prefix = false;
                 if let Some(instance_id) = self.active_running_instance_id()
                     && let Some(daemon) = self.world.daemons.get_mut(&instance_id)
@@ -7660,44 +8053,6 @@ impl App {
         ui.set_cursor(CAPSULE_INPUT, Position::new(3, 34));
     }
 
-    fn capsule_menu_80(&self, theme: &termrock::Theme, screen: Rect) -> bool {
-        // ctrl-b m on the paused 80×24 capsule. The 120×40 menu, new tab,
-        // palette, zoom, and split stay on their own frames.
-        screen.width == 80
-            && screen.height == 24
-            && theme.capability.color == termrock::ColorLevel::TrueColor
-            && theme.color.accent == termrock::Color::Rgb(0x48, 0xe0, 0x54)
-            && self.route == Route::Capsule
-            && self.world.scenario == Scenario::CapsuleMulti
-            && self.motion == Motion::Paused
-            && self.capsule_tab_menu_open
-            && self.capsule_tab_menu_pos == Position::new(1, 2)
-            && !self.capsule_prefix
-            && !self.capsule.zoomed
-            && self.pending_capsule_action.is_none()
-            && self.picker_mode.is_none()
-            && !self.capsule_help_open
-            && !self.capsule_menu_state.is_open()
-            && !self.capsule_tab_title_dialog
-            && !self.capsule_usage
-            && self.capsule_input.is_empty()
-            && self.capsule_tab_title.is_empty()
-            && self.inspect.instance.is_none()
-            && !self.about_open
-            && !self.quit_open
-            && !self.cancel_open
-            && self.exit_choice.is_none()
-    }
-
-    fn draw_capsule_menu_80(&self, ui: &mut Ui<'_>) {
-        if !self.capsule_menu_80(ui.theme_ref(), ui.full()) {
-            return;
-        }
-        capsule_menu_view::paint(ui);
-        // The bar sits on the capsule line, outside the popup clip. Record it
-        // on the open menu layer or the runtime hides the cursor.
-        ui.set_undrawn_top_bar_cursor(CAPSULE_TAB_MENU, ui.full(), Position::new(3, 19));
-    }
     fn open_capsule_command_palette(&mut self, cx: &mut Cx<'_>) -> Option<Response<()>> {
         self.capsule_prefix = false;
         self.capsule_palette_state = PickerState::default();
@@ -7708,29 +8063,6 @@ impl App {
             .erase();
         self.status = Some("Command palette · type an action".into());
         Some(Response::changed())
-    }
-
-    fn historical_capsule_frame(&self) -> bool {
-        self.route == Route::Capsule
-            && self.world.scenario == Scenario::CapsuleMulti
-            && self.motion == Motion::Paused
-            && self.status.is_none()
-            && !self.capsule_help_open
-            && !self.capsule_tab_menu_open
-            && !self.capsule_menu_state.is_open()
-            && !self.capsule_tab_title_dialog
-            && !self.capsule_usage
-            && !self.capsule_prefix
-            && self.capsule.tab == 0
-            && !self.capsule.zoomed
-            && !self.capsule.context_open
-            && self.capsule_input.is_empty()
-            && self.capsule_tab_title.is_empty()
-            && !self.capsule_viewport_focused
-            && self.inspect.instance.is_none()
-            && !self.about_open
-            && !self.quit_open
-            && !self.cancel_open
     }
 
     fn draw_capsule_panes(&self, ui: &mut Ui<'_>, area: Rect) {
@@ -7767,7 +8099,6 @@ impl App {
             if daemon.pane(pane_id).is_none() {
                 continue;
             }
-            let focused = tab.focused == pane_id;
             let inner = if framed {
                 let inner = ui.frame(pane_area, style);
                 let Some((_, title)) = frame.titles.get(&pane_id) else {
@@ -7793,28 +8124,12 @@ impl App {
             let Some((_, projected)) = frame.transcripts.get(&pane_id) else {
                 continue;
             };
-            let viewport_area = Rect {
-                height: inner.height.saturating_sub(u16::from(focused)),
-                ..inner
-            };
             let state = self
                 .capsule_viewports
                 .get(&pane_id)
                 .cloned()
                 .unwrap_or_default();
-            Self::capsule_viewport(pane_id).draw_projected(ui, viewport_area, &state, projected);
-            if focused && !inner.is_empty() {
-                let input_y = if self.historical_capsule_frame() {
-                    inner.bottom().saturating_sub(3)
-                } else {
-                    inner.bottom().saturating_sub(1)
-                };
-                Self::capsule_input().value(&self.capsule_input).draw(
-                    ui,
-                    Rect::new(inner.x, input_y, inner.width, 1),
-                    &self.capsule_input_state,
-                );
-            }
+            Self::capsule_viewport(pane_id).draw_projected(ui, inner, &state, projected);
         }
     }
 
@@ -8024,17 +8339,29 @@ impl App {
                 help.draw(ui, area, &self.capsule_help_state)
             })
         });
-        // ui.full() inside the layer is the popup clip, so decide out here.
-        let screen = ui.full();
-        let menu_80 = self.capsule_menu_80(ui.theme_ref(), screen);
         let _ = ui.layer(CAPSULE_TAB_MENU, |ui, area| {
-            let menu = Self::capsule_tab_context(self.capsule_tab_menu_pos);
+            let items = self.capsule_menu_pane.map_or_else(
+                || CAPSULE_TAB_ITEMS.to_vec(),
+                |pane| self.capsule_pane_menu_items(pane),
+            );
+            let title = self
+                .capsule_menu_pane
+                .is_none()
+                .then(|| self.capsule_tab_label(self.capsule_tab_title_index));
+            let menu = if let Some(pane_id) = self.capsule_menu_pane {
+                Self::capsule_pane_context(
+                    &items,
+                    self.capsule_tab_menu_pos,
+                    Self::capsule_viewport_id(pane_id),
+                )
+            } else {
+                Self::capsule_tab_context(
+                    title.as_deref().unwrap_or_default(),
+                    self.capsule_tab_title_index,
+                    self.capsule_tab_cursor_owner(self.capsule_tab_title_index),
+                )
+            };
             menu.draw(ui, area, &self.capsule_tab_menu_state);
-            if menu_80 {
-                // The popup clip is the live menu. Paint with the screen rect so
-                // only overlapping menu cells replace that buffer.
-                capsule_menu_view::paint_at(ui, screen);
-            }
         });
         let _ = ui.layer(CAPSULE_COMMAND_PALETTE, |ui, area| {
             Self::capsule_command_palette().draw(
@@ -8057,6 +8384,17 @@ impl App {
             about.draw(ui, area, &self.about_state, |ui, body| {
                 paint_lines(ui, body, &about_lines)
             })
+        });
+        let close_tab = self
+            .capsule_close_target
+            .is_some_and(|target| self.capsule_close_target_is_tab(target));
+        let _ = ui.layer(CAPSULE_CLOSE_DIALOG, |ui, area| {
+            Self::capsule_close_dialog(close_tab).draw(
+                ui,
+                area,
+                &self.capsule_close_state,
+                |_, _| {},
+            )
         });
         let _ = ui.layer(QUIT_DIALOG, |ui, area| {
             let quit = Self::quit_dialog(&self.quit_body);
@@ -9216,7 +9554,6 @@ impl TuiApp for App {
             self.draw_capsule_shell(ui, full);
             self.draw_layers(ui);
             self.draw_capsule_zoom(ui, full);
-            self.draw_capsule_menu_80(ui);
             return;
         }
         let hints: &HintLayer = if self.help_open {
@@ -10731,37 +11068,147 @@ mod paint_contract_tests {
     }
 
     #[test]
-    fn capsule_menu_80_paints_the_approved_frame() {
-        use termrock::{Color, KeyCode, Modifier, Position, Theme};
+    fn capsule_tab_menu_uses_live_tab_data_and_real_actions() {
+        use termrock::{KeyCode, Theme};
         use termrock_test_support::Harness;
-        let mut menu = Harness::new(
-            App::for_scenario(Scenario::CapsuleMulti, Motion::Paused),
-            Theme::junie(),
-            80,
-            24,
-        );
-        let _ = menu.ctrl('b');
-        let _ = menu.key(KeyCode::Char('m'));
-        assert!(menu.app().capsule_tab_menu_open);
-        let ellipsis = menu.cell(77, 0);
-        assert_eq!(ellipsis.symbol(), "…");
-        assert_eq!(ellipsis.fg, Color::Rgb(0x8a, 0x8a, 0x8a));
-        assert_eq!(ellipsis.bg, Color::Rgb(0x00, 0x00, 0x00));
-        assert!(!ellipsis.modifier.contains(Modifier::BOLD));
-        assert!(!ellipsis.modifier.contains(Modifier::ITALIC));
-        assert_eq!(menu.cursor(), Some(Position::new(3, 19)));
-        assert!(menu.runtime().cursor_bar());
+        for (width, height, theme) in [(80, 24, Theme::junie()), (120, 40, Theme::paper())] {
+            let mut menu = Harness::new(
+                App::for_scenario(Scenario::CapsuleMulti, Motion::Paused),
+                theme,
+                width,
+                height,
+            );
+            let instance_id = menu
+                .app()
+                .active_running_instance_id()
+                .expect("Capsule scenario has a running instance")
+                .to_owned();
+            let daemon = menu
+                .app_mut()
+                .world
+                .daemons
+                .get_mut(&instance_id)
+                .expect("scenario daemon exists");
+            daemon.tabs[0].custom_label = Some("Live selected tab".into());
+            let snapshot = daemon.snapshot();
+            menu.app_mut()
+                .world
+                .instance_mut(&instance_id)
+                .expect("scenario instance exists")
+                .daemon = snapshot;
 
-        let mut wide = Harness::new(
+            let _ = menu.ctrl('b');
+            let _ = menu.key(KeyCode::Char('m'));
+            assert!(menu.is_open(CAPSULE_TAB_MENU));
+            assert!(menu.text().contains("Live selected tab"));
+            assert!(menu.text().contains("Change title…"));
+            assert!(menu.text().contains("Split right"));
+            assert!(menu.text().contains("Close tab"));
+            assert_eq!(CAPSULE_TAB_ITEMS.len(), 3);
+
+            let _ = menu.key(KeyCode::Down);
+            let _ = menu.key(KeyCode::Enter);
+            assert!(menu.is_open(ACCOUNT_PICKER));
+            assert_eq!(
+                menu.app().pending_capsule_action,
+                Some(CapsuleAction::Split(SplitDir::Horizontal))
+            );
+        }
+    }
+
+    #[test]
+    fn capsule_pane_context_uses_viewport_owner_and_live_availability() {
+        use termrock::{CellPos, KeyCode, Theme};
+        use termrock_test_support::Harness;
+
+        let mut menu = Harness::new(
             App::for_scenario(Scenario::CapsuleMulti, Motion::Paused),
             Theme::junie(),
             120,
             40,
         );
-        let _ = wide.ctrl('b');
-        let _ = wide.key(KeyCode::Char('m'));
-        assert_ne!(wide.cell(77, 0).symbol(), "…");
-        assert_ne!(wide.cursor(), Some(Position::new(3, 19)));
+        let instance_id = menu
+            .app()
+            .active_running_instance_id()
+            .expect("Capsule scenario has a running instance");
+        let pane_id = menu
+            .app()
+            .world
+            .daemons
+            .get(&instance_id)
+            .and_then(Daemon::focused_pane)
+            .expect("Capsule scenario has a focused pane");
+        let owner = App::capsule_viewport_id(pane_id);
+        let area = menu.area_of(owner).expect("live pane viewport is rendered");
+        {
+            let daemon = menu
+                .app_mut()
+                .world
+                .daemons
+                .get_mut(&instance_id)
+                .expect("Capsule scenario daemon exists");
+            let pane = daemon.pane_mut(pane_id).expect("focused pane exists");
+            pane.term.caret = Some(CellPos::new(0, 2));
+            pane.term.caret_visible = true;
+        }
+        let _ = menu.click(area.x.saturating_add(2), area.y.saturating_add(2));
+        let caret = menu.cursor();
+        assert!(
+            caret.is_some(),
+            "the rendered viewport owns its terminal caret"
+        );
+        let _ = menu.secondary(area.x.saturating_add(2), area.y.saturating_add(2));
+
+        assert!(menu.is_open(CAPSULE_TAB_MENU));
+        assert_eq!(menu.app().capsule_menu_pane, Some(pane_id));
+        assert!(menu.text().contains("Copy selection"));
+        assert!(menu.text().contains("Select text first"));
+        assert!(menu.text().contains("Paste clipboard"));
+        assert!(menu.text().contains("The clipboard is empty"));
+        assert!(menu.text().contains("Split right"));
+        assert!(menu.text().contains("Close pane"));
+        assert_eq!(
+            menu.cursor(),
+            caret,
+            "context menu retains the live cursor owner"
+        );
+
+        let items = menu.app().capsule_pane_menu_items(pane_id);
+        assert_eq!(items.len(), 7);
+        assert!(items[0].is_disabled());
+        assert!(items[1].is_disabled());
+        assert!(items[2].is_disabled());
+
+        let _ = menu.key(KeyCode::Esc);
+        menu.app_mut().world.clipboard = Some("echo live".into());
+        menu.app_mut()
+            .capsule_viewports
+            .entry(pane_id)
+            .or_default()
+            .select(CellPos::new(0, 0), CellPos::new(0, 2));
+        let items = menu.app().capsule_pane_menu_items(pane_id);
+        assert!(!items[0].is_disabled());
+        assert!(!items[1].is_disabled());
+        assert!(!items[2].is_disabled());
+
+        let area = menu.area_of(owner).expect("pane viewport remains rendered");
+        let _ = menu.secondary(area.x.saturating_add(2), area.y.saturating_add(2));
+        let (x, y) = menu
+            .find("Close pane")
+            .expect("pane close action is rendered");
+        let _ = menu.click(x, y);
+        assert!(menu.is_open(CAPSULE_CLOSE_DIALOG));
+        assert!(menu.text().contains("Close pane?"));
+        let _ = menu.key(KeyCode::Right);
+        let _ = menu.key(KeyCode::Enter);
+        let leaves = menu
+            .app()
+            .active_running_instance_id()
+            .and_then(|id| menu.app().world.daemons.get(&id))
+            .and_then(Daemon::active_tab)
+            .map(Tab::leaf_count)
+            .expect("remaining tab exists");
+        assert_eq!(leaves, 2);
     }
 
     #[test]
