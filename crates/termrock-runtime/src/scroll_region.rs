@@ -649,7 +649,9 @@ fn without_inherited_bold(
 ) -> crate::theme::PaintStyle {
     // Ratatui's set_style unions modifiers with the underlay. Clear underlay
     // bold unless a theme, overlay, or instance style explicitly supplies it.
-    if explicit.add.contains(Modifier::BOLD) {
+    if explicit.add.contains(Modifier::BOLD)
+        || style.as_style().add_modifier.contains(Modifier::BOLD)
+    {
         style
     } else {
         style.remove_modifier(Modifier::BOLD)
