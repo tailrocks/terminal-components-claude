@@ -1,0 +1,114 @@
+{
+  "schema": "termrock.canonical-stage1-owned.final-independent-review.v1",
+  "reviewer": "/root/runner_atomic_step_architect",
+  "created_at_utc": "2026-10-21T02:36:15.816900+00:00",
+  "source_commit": "a46842108149a1421030e4a040c890fadecc671e",
+  "parent_commit": "d6b2edb66bc11f60c3a9e8ecfae1dd8bf3af1d9b",
+  "decision": "CLEARED for the exact opt-in owned stage1 preparation implementation only. All four prior required findings are resolved. This does not authorize the old legacy prepare argv, stages2-7, actual capture, candidate comparison or product acceptance. Operational execution still requires publication and a separately reviewed supervisor/readiness update pinned to this source.",
+  "scope": "Separate31-file exact-commit source/resource copy. Python synthetic tests, owned fake commands, fake Git/archive fixtures, and deterministic clock probes only.",
+  "artifacts": [
+    {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/canonical-stage1-independent-review-a4684210/tools/frozen_baseline.py",
+      "sha256": "00f967a0b603997875bc712ae5d5969c32486aec17a83e1f6317e941f217bc06"
+    },
+    {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/canonical-stage1-independent-review-a4684210/tools/test_frozen_baseline.py",
+      "sha256": "6cce5da213127d025ca62a05980ef4e334bf56f17d5a63b63eca67410f0efe64"
+    },
+    {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/canonical-stage1-independent-review-a4684210/unchanged-full-suite.log",
+      "sha256": "993226b52153d528061e83632705d76587bd0f74a52f74a4697101ccfc89cee2"
+    },
+    {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/canonical-stage1-independent-review-a4684210/orphan-grace-boundary-final-probe.json",
+      "sha256": "e230cef745d468bf8e8a969bfea5bcf99a28853661dee031ed8a0b2d0a2f70b6"
+    },
+    {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/canonical-stage1-independent-review-a4684210/eof-negative-final-probes.json",
+      "sha256": "88f6c1bd68737dd638c7e17967cbd97e9c1b6bb22f4173002c6667d7e70c02bf"
+    },
+    {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/canonical-stage1-independent-review-a4684210/legacy-tar-negative-final-probes.json",
+      "sha256": "57aae34f314b7e29852130acbdca0a36a689c7417268a0de697d7dee8883f6be"
+    },
+    {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/canonical-stage1-independent-review-a4684210/focused-eof-repeat-results.json",
+      "sha256": "89b9d243a2ef1029152868b9077b221257b4197f861a8cd92c079f4937f908b0"
+    }
+  ],
+  "required_findings": [
+    {
+      "id": "OWNED-1",
+      "status": "RESOLVED",
+      "evidence": "Repeated unchanged original PATH-ps fault mechanism on final source, plus isolated malformed-output and observer-timeout faults. All3 real synthetic brokers terminated their owned command and received no post-reap group signal. Explicit observer faults fail closed by killing the still-self-anchored group; no success is reported."
+    },
+    {
+      "id": "OWNED-2",
+      "status": "RESOLVED",
+      "evidence": "The original parent extraction function and final default/checked paths match directory timestamp, mode and file bytes in3 synthetic archives with directory modes0755,0000,0500. The checked iterator preserves tar.extractall default filtering and delayed directory attributes."
+    },
+    {
+      "id": "OWNED-3",
+      "status": "RESOLVED",
+      "evidence": "The unchanged independent clock sequence[0,0,0,1.99,2.01] now returns without ValueError and records mockTERM then mockKILL. No actual signal was sent by the deterministic probe."
+    },
+    {
+      "id": "OWNED-4",
+      "status": "RESOLVED",
+      "evidence": "Helper publishes readiness only after installing SIGTERM handler; launcher waits for it before PID/status exposure, and test asserts readiness before EOF. Five independent consecutive unchanged focused test invocations exited0; the full suite also passes."
+    }
+  ],
+  "verification": {
+    "full_suite": {
+      "command": "python3 -m unittest tools.test_frozen_baseline",
+      "exit_status": 0,
+      "tests": 95,
+      "elapsed_seconds": 6.892,
+      "skipped": 0
+    },
+    "focused_repeats": {
+      "test": "tools.test_frozen_baseline.RunnerGuards.test_owned_prepare_eof_with_observation_failure_kills_anchored_group",
+      "invocations": 5,
+      "all_exit_zero": true
+    },
+    "additional_independent_probes": {
+      "eof_fault_cases": 3,
+      "archive_mode_comparisons": 3,
+      "grace_clock_regression": 1,
+      "all_pass": true
+    },
+    "covered_existing_cases": [
+      "Synthetic real Git archive/source/provenance equivalence versus legacy",
+      "Binary archive-style output and captured stdout/stderr preservation",
+      "Default child SIGTERM while broker survives as anchor",
+      "Signal cancellation during broker registration",
+      "Same-group helper cleanup before release",
+      "Foreign unrelated session remains alive",
+      "TERM-resistant group yields unverified failure afterKILL",
+      "Spawn failure and parent control-pipeEOF",
+      "Work deadline plus fixed cleanup reserve",
+      "No post-retirement group signals in the reviewed lifecycle"
+    ]
+  },
+  "ownership_conclusion": "The exact source has a live broker/session leader that retains PGID identity during same-group membership observation and cleanup. Parent signals only that owned group while anchor is retained, then releases/reaps it and retires its identity. Orphan-observation failures now check their own PGID invariant before bounded TERM/KILL. No process-name kill or Darwin ancestry polling authorizes these signals.",
+  "budget_conclusion": "Opt-in work budget is bounded1..200seconds with fixed15seconds cleanup reserve. Work checks cover member extraction and source/snapshot digest loops. Kernel/filesystem operations that do not return remain an explicit limit; no absolute uninterruptible-process guarantee is claimed.",
+  "legacy_conclusion": "Default prepare remains the legacy path. Shared safe_extract metadata regression is repaired. Passing existing95 tests and independent archive comparisons supports the stated scope; it does not prove all arbitrary archive cases or production product parity.",
+  "operational_preconditions": [
+    "Publish and verify the reviewed commit through the authorized repository process.",
+    "Update external readiness and supervisor runner SHA to00f967a0b603997875bc712ae5d5969c32486aec17a83e1f6317e941f217bc06.",
+    "Stage1 argv must explicitly include prepare --owned-lifecycle --owned-budgetN with1<=N<=200. Old readiness argv without these flags uses the unchanged legacy path and is not covered by this clearance.",
+    "External inclusive220-second supervisor must leave room for the canonical15-second cleanup reserve and its own finalization. Derive N from actual remaining budget when necessary rather than assuming prechecks cost zero.",
+    "Retain exact482 driver-input repository, fixed baseline/Tuiscotti/binary cohort, input hashes, controlled environment/tools, exclusive evidence and official-only key custody.",
+    "Do not enable external stages2-7 or capture merely because owned stage1 is cleared. Their compiler/probe/PTY application subprocess scopes are unchanged and need independent contracts."
+  ],
+  "not_performed": [
+    "Actual frozen prepare or source extraction",
+    "New plan or custody key creation",
+    "Actual receipt-key access or authentication",
+    "Capture, replay, candidate comparison or any application parity verification"
+  ],
+  "approved_implementation_scope": [
+    "Canonical opt-in stage1 fixed Git commands and same-session children"
+  ],
+  "approved_actual_invocations": []
+}
