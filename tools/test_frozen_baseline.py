@@ -7,12 +7,15 @@ import io
 import json
 import os
 import selectors
+import signal
 import sys
 import subprocess
 import tarfile
 import tempfile
+import threading
+import time
 import unittest
-from contextlib import ExitStack
+from contextlib import ExitStack, redirect_stderr, redirect_stdout
 from pathlib import Path
 from unittest.mock import patch
 
@@ -2264,6 +2267,316 @@ class RunnerGuards(unittest.TestCase):
                 separate_hash.assert_not_called()
             self.assertEqual(loaded["cohorts"][0]["status"], runner.DIAGNOSTIC_COHORT_STATUS)
             self.assertEqual(path.read_bytes(), original)
+
+    def test_owned_prepare_cli_is_opt_in_and_budget_is_bounded(self) -> None:
+        legacy = runner.parser().parse_args(["prepare"])
+        owned = runner.parser().parse_args(["prepare", "--owned-lifecycle", "--owned-budget", "37"])
+        self.assertFalse(legacy.owned_lifecycle)
+        self.assertEqual(legacy.timeout, runner.MAX_TIMEOUT)
+        self.assertEqual(owned.owned_budget, 37)
+        with self.assertRaisesRegex(runner.RunnerError, "owned prepare budget"):
+            runner.PrepareExecution(runner.PREPARE_OWNED_MAX_BUDGET + 1)
+
+    def test_owned_prepare_synthetic_git_archive_and_provenance_match_legacy(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            repo = root / "repo"
+            repo.mkdir()
+            (repo / "Cargo.lock").write_text('source = "fixture-revision"\n')
+            (repo / "src").mkdir()
+            (repo / "src" / "main.rs").write_text("fn main() {}\n")
+            (repo / "snapshots").mkdir()
+            (repo / "snapshots" / "frame.ansi").write_bytes(b"synthetic-frame\0")
+
+            def git(*args: str) -> str:
+                return subprocess.run(
+                    ["git", "-C", str(repo), *args],
+                    check=True,
+                    capture_output=True,
+                    text=True,
+                    timeout=10,
+                ).stdout.strip()
+
+            git("init")
+            git("config", "user.email", "fixture@example.invalid")
+            git("config", "user.name", "fixture")
+            git("add", "Cargo.lock", "src/main.rs", "snapshots/frame.ansi")
+            git("commit", "-m", "fixture")
+            git("tag", "-a", "fixture", "-m", "fixture")
+            commit = git("rev-parse", "fixture^{commit}")
+            tag_object = git("rev-parse", "fixture^{tag}")
+            tree = git("rev-parse", f"{commit}^{{tree}}")
+            with patch.object(runner, "BASELINE_TAG", "fixture"), patch.object(runner, "BASELINE_TAG_OBJECT", tag_object), patch.object(runner, "BASELINE_COMMIT", commit), patch.object(runner, "BASELINE_TREE", tree), patch.object(runner, "TUISCOTTI_REV", "fixture-revision"):
+                legacy_root = root / "legacy"
+                owned_root = root / "owned"
+                with redirect_stdout(io.StringIO()), redirect_stderr(io.StringIO()):
+                    runner.prepare(repo, legacy_root, 10)
+                    with runner.PrepareExecution(20) as execution:
+                        runner.prepare(repo, owned_root, 20, execution=execution)
+                self.assertEqual((legacy_root / "provenance.json").read_bytes(), (owned_root / "provenance.json").read_bytes())
+                self.assertEqual(runner.digest_source(legacy_root / "source"), runner.digest_source(owned_root / "source"))
+                self.assertEqual(runner.digest_tree(legacy_root / "source" / "snapshots"), runner.digest_tree(owned_root / "source" / "snapshots"))
+
+    def test_owned_prepare_command_preserves_captured_streams_and_cleans_group(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            with runner.PrepareExecution(10) as execution:
+                stdout, stderr = execution.run(
+                    [sys.executable, "-c", "import sys; print('captured-out'); print('captured-err', file=sys.stderr)"],
+                    cwd=root,
+                    quiet=True,
+                )
+            self.assertEqual(stdout, "captured-out\n")
+            self.assertEqual(stderr, "captured-err\n")
+
+    def test_owned_prepare_archive_stream_is_byte_exact(self) -> None:
+        payload = b"git-archive-equivalent\0\xff\n"
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            archive = tempfile.TemporaryFile()
+            try:
+                with runner.PrepareExecution(10) as execution:
+                    stdout, _stderr = execution.run(
+                        [sys.executable, "-c", "import os,sys; os.write(1, bytes.fromhex(sys.argv[1]))", payload.hex()],
+                        cwd=root,
+                        stdout_file=archive,
+                        capture_stdout=False,
+                        quiet=True,
+                        show_command=False,
+                    )
+                self.assertEqual(stdout, "")
+                archive.seek(0)
+                self.assertEqual(archive.read(), payload)
+            finally:
+                archive.close()
+
+    def test_owned_prepare_checked_digest_and_extraction_preserve_results(self) -> None:
+        checks: list[int] = []
+
+        def check_work() -> None:
+            checks.append(1)
+
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            archive_path = root / "input.tar"
+            original = root / "original"
+            checked = root / "checked"
+            original.mkdir()
+            checked.mkdir()
+            with tarfile.open(archive_path, "w") as archive:
+                payload = root / "payload.txt"
+                payload.write_text("pinned source bytes\n")
+                archive.add(payload, arcname="nested/payload.txt")
+            for destination in (original, checked):
+                with tarfile.open(archive_path, "r:") as archive:
+                    runner.safe_extract(archive, destination, check_work=check_work if destination == checked else None)
+            self.assertGreater(len(checks), 0)
+            self.assertEqual(runner.digest_source(original), runner.digest_source(checked))
+            counted: list[int] = []
+            checked_digest = runner.digest_source(checked, check_work=lambda: counted.append(1))
+            self.assertEqual(checked_digest, runner.digest_source(checked))
+            self.assertGreater(len(counted), 0)
+
+    def test_owned_prepare_removes_cooperative_same_group_helper_before_release(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            helper = "import signal,sys,time; signal.signal(signal.SIGTERM, lambda *_: sys.exit(0)); time.sleep(30)"
+            command = [
+                sys.executable,
+                "-c",
+                "import subprocess,sys; subprocess.Popen([sys.executable, '-c', sys.argv[1]])",
+                helper,
+            ]
+            with runner.PrepareExecution(10) as execution:
+                stdout, _stderr = execution.run(command, cwd=root, quiet=True)
+            self.assertEqual(stdout, "")
+
+    def test_owned_prepare_cancellation_is_recorded_and_child_gets_default_term(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            marker = root / "started"
+            original_handler = signal.getsignal(signal.SIGTERM)
+            calls: list[int] = []
+            original_killpg = runner.os.killpg
+            unrelated = subprocess.Popen(
+                [sys.executable, "-c", "import time; time.sleep(30)"],
+                stdin=subprocess.DEVNULL,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                start_new_session=True,
+            )
+
+            def killpg(pgid: int, signum: int) -> None:
+                calls.append(signum)
+                original_killpg(pgid, signum)
+
+            def signal_runner() -> None:
+                deadline = time.monotonic() + 5
+                while not marker.exists() and time.monotonic() < deadline:
+                    time.sleep(0.005)
+                if marker.exists():
+                    os.kill(os.getpid(), signal.SIGTERM)
+
+            sender = threading.Thread(target=signal_runner)
+            sender.start()
+            try:
+                with patch.object(runner.os, "killpg", side_effect=killpg):
+                    with self.assertRaisesRegex(runner.RunnerError, "cancelled by signal"):
+                        with runner.PrepareExecution(10) as execution:
+                            execution.run(
+                                [sys.executable, "-c", "import pathlib,sys,time; pathlib.Path(sys.argv[1]).touch(); time.sleep(30)", str(marker)],
+                                cwd=root,
+                                quiet=True,
+                            )
+                sender.join(timeout=5)
+                self.assertFalse(sender.is_alive())
+                unrelated.poll()
+                self.assertIsNone(unrelated.returncode, "owned cleanup signalled an unrelated session")
+                self.assertIn(signal.SIGTERM, calls)
+                self.assertNotIn(signal.SIGKILL, calls)
+                self.assertIs(signal.getsignal(signal.SIGTERM), original_handler)
+            finally:
+                sender.join(timeout=5)
+                if unrelated.poll() is None:
+                    unrelated.terminate()
+                unrelated.wait(timeout=5)
+
+    def test_owned_prepare_cancellation_during_broker_registration_is_deferred(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            marker = root / "command-started"
+            original_handler = signal.getsignal(signal.SIGTERM)
+            original_popen = runner.subprocess.Popen
+            calls: list[int] = []
+            original_killpg = runner.os.killpg
+
+            def popen(*args: object, **kwargs: object) -> subprocess.Popen[bytes]:
+                child = original_popen(*args, **kwargs)
+                argv = args[0] if args else kwargs.get("args")
+                if isinstance(argv, list) and "--_owned-prepare-broker" in argv:
+                    os.kill(os.getpid(), signal.SIGTERM)
+                return child
+
+            def killpg(pgid: int, signum: int) -> None:
+                calls.append(signum)
+                original_killpg(pgid, signum)
+
+            with patch.object(runner.subprocess, "Popen", side_effect=popen), patch.object(runner.os, "killpg", side_effect=killpg):
+                with self.assertRaisesRegex(runner.RunnerError, "cancelled by signal"):
+                    with runner.PrepareExecution(10) as execution:
+                        execution.run(
+                            [sys.executable, "-c", "import pathlib,sys,time; pathlib.Path(sys.argv[1]).touch(); time.sleep(30)", str(marker)],
+                            cwd=root,
+                            quiet=True,
+                        )
+            self.assertNotIn(signal.SIGTERM, calls)
+            self.assertNotIn(signal.SIGKILL, calls)
+            self.assertFalse(marker.exists(), "cancellation before anchor readiness must prevent command launch")
+            self.assertIs(signal.getsignal(signal.SIGTERM), original_handler)
+
+    def test_owned_prepare_work_deadline_uses_reserved_cleanup(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            calls: list[int] = []
+            original_killpg = runner.os.killpg
+
+            def killpg(pgid: int, signum: int) -> None:
+                calls.append(signum)
+                original_killpg(pgid, signum)
+
+            with patch.object(runner.os, "killpg", side_effect=killpg):
+                with self.assertRaisesRegex(runner.RunnerError, "work deadline expired"):
+                    with runner.PrepareExecution(1) as execution:
+                        execution.run([sys.executable, "-c", "import time; time.sleep(30)"], cwd=root, quiet=True)
+            self.assertIn(signal.SIGTERM, calls)
+            self.assertNotIn(signal.SIGKILL, calls)
+
+    def test_owned_prepare_term_resistant_command_fails_cleanup_without_success(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            marker = root / "term-ignored"
+            calls: list[int] = []
+            original_killpg = runner.os.killpg
+
+            def killpg(pgid: int, signum: int) -> None:
+                calls.append(signum)
+                original_killpg(pgid, signum)
+
+            def cancel_after_handler_installed() -> None:
+                deadline = time.monotonic() + 5
+                while not marker.exists() and time.monotonic() < deadline:
+                    time.sleep(0.005)
+                if marker.exists():
+                    os.kill(os.getpid(), signal.SIGTERM)
+
+            sender = threading.Thread(target=cancel_after_handler_installed)
+            sender.start()
+            with patch.object(runner.os, "killpg", side_effect=killpg):
+                with self.assertRaisesRegex(runner.RunnerError, "cleanup unverified after SIGKILL"):
+                    with runner.PrepareExecution(10) as execution:
+                        execution.run(
+                            [sys.executable, "-c", "import pathlib,signal,sys,time; signal.signal(signal.SIGTERM, signal.SIG_IGN); pathlib.Path(sys.argv[1]).touch(); time.sleep(30)", str(marker)],
+                            cwd=root,
+                            quiet=True,
+                        )
+            sender.join(timeout=5)
+            self.assertFalse(sender.is_alive())
+            self.assertIn(signal.SIGTERM, calls)
+            self.assertIn(signal.SIGKILL, calls)
+            self.assertEqual(calls[-1], signal.SIGKILL)
+
+    def test_owned_prepare_spawn_failure_is_recorded_and_reaped(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            with runner.PrepareExecution(10) as execution:
+                with self.assertRaisesRegex(runner.RunnerError, "could not start"):
+                    execution.run([str(root / "missing-command")], cwd=root, quiet=True)
+                self.assertFalse(execution._children)
+
+    def test_owned_prepare_parent_pipe_eof_fails_closed(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            stdout_path = root / "stdout"
+            stderr_path = root / "stderr"
+            status_path = root / "status.json"
+            ready_path = root / "anchor-ready.json"
+            spec_path = root / "spec.json"
+            with stdout_path.open("w+b") as stdout, stderr_path.open("w+b") as stderr:
+                helper = "import signal,sys,time; signal.signal(signal.SIGTERM, lambda *_: sys.exit(0)); time.sleep(30)"
+                spec_path.write_text(json.dumps({
+                    "argv": [sys.executable, "-c", "import subprocess,sys; subprocess.Popen([sys.executable, '-c', sys.argv[1]])", helper],
+                    "cwd": str(root),
+                    "stdout_fd": stdout.fileno(),
+                    "stderr_fd": stderr.fileno(),
+                    "status_path": str(status_path),
+                    "ready_path": str(ready_path),
+                }))
+                control_read, control_write = os.pipe()
+                os.set_inheritable(control_read, True)
+                broker = subprocess.Popen(
+                    [sys.executable, str(Path(runner.__file__).resolve()), "--_owned-prepare-broker", str(spec_path), str(control_read)],
+                    stdin=subprocess.DEVNULL,
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL,
+                    close_fds=True,
+                    pass_fds=(control_read, stdout.fileno(), stderr.fileno()),
+                    start_new_session=True,
+                )
+                os.close(control_read)
+                try:
+                    deadline = time.monotonic() + 5
+                    while not status_path.exists() and broker.poll() is None and time.monotonic() < deadline:
+                        time.sleep(0.01)
+                    self.assertTrue(status_path.exists(), "broker did not publish its bounded command status")
+                    os.close(control_write)
+                    control_write = -1
+                    self.assertEqual(broker.wait(timeout=5), 2)
+                finally:
+                    if control_write >= 0:
+                        os.close(control_write)
+                    if broker.poll() is None:
+                        os.killpg(broker.pid, signal.SIGKILL)
+                        broker.wait(timeout=5)
 
 
 if __name__ == "__main__":
