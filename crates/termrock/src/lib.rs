@@ -160,8 +160,8 @@ pub use termrock_controls::{
     Brand, BusyMarkerPolicy, Button, ButtonCmd, Checkbox, ChoiceCmd, Empty, LabelRadio,
     MasterDetailCmd, MasterDetailLayout, MasterDetailMode, Panel, PanelKind, Props, PropsAction,
     PropsCmd, PropsList, PropsRow, PropsState, PropsValue, RadioField, RadioGroup,
-    RadioGroupAction, RadioGroupState, ResetPolicy, SplitAction, SplitCmd, SplitPane,
-    SplitPaneState, Toggle, TooSmall,
+    RadioGroupAction, RadioGroupState, RadioNavigation, ResetPolicy, SplitAction, SplitCmd,
+    SplitPane, SplitPaneState, Toggle, TooSmall,
 };
 
 pub use termrock_fields::{
@@ -214,8 +214,8 @@ pub use termrock_editors::{
 };
 
 pub use termrock_forms::{
-    FieldKind, FieldMut, FieldRef, FieldSpan, FieldSpec, Form, FormAction, FormData, FormState,
-    GroupKey, Wizard, WizardAction, WizardCmd, WizardState, WizardStep,
+    EnterPolicy, FieldKind, FieldMut, FieldRef, FieldSpan, FieldSpec, Form, FormAction, FormData,
+    FormState, GroupKey, Wizard, WizardAction, WizardCmd, WizardState, WizardStep,
 };
 
 pub use termrock_render::{TerminalCell, TerminalCursor, TerminalSource};

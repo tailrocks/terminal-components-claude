@@ -31,6 +31,16 @@ pub enum RadioGroupAction {
     Chose(ItemKey),
 }
 
+/// Controls whether keyboard navigation also chooses the focused radio option.
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
+pub enum RadioNavigation {
+    /// Arrow, Home, and End navigation immediately choose the destination.
+    #[default]
+    Immediate,
+    /// Navigation moves the cursor; Space or Enter chooses the destination.
+    Deferred,
+}
+
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum ChoiceCmd {
     Choose,
@@ -684,6 +694,7 @@ pub struct RadioGroup<'a, T, K = ByIndex, R = DefaultRow> {
     key: K,
     row: R,
     value: Option<ItemKey>,
+    navigation: RadioNavigation,
     read_only: bool,
     disabled: bool,
     ov: PartStyle<'a>,
@@ -695,6 +706,7 @@ impl<T, K, R> fmt::Debug for RadioGroup<'_, T, K, R> {
         f.debug_struct("RadioGroup")
             .field("id", &self.id)
             .field("value", &self.value)
+            .field("navigation", &self.navigation)
             .field("read_only", &self.read_only)
             .field("disabled", &self.disabled)
             .finish_non_exhaustive()
@@ -708,6 +720,7 @@ impl<T> RadioGroup<'_, T, ByIndex, DefaultRow> {
             key: ByIndex,
             row: DefaultRow,
             value: None,
+            navigation: RadioNavigation::Immediate,
             read_only: false,
             disabled: false,
             ov: PartStyle::new(),
@@ -723,6 +736,7 @@ impl<'a> RadioGroup<'a, &'a str, ByIndex, DefaultRow> {
             key: ByIndex,
             row: DefaultRow,
             value: Some(ItemKey::index(value)),
+            navigation: self.navigation,
             read_only: self.read_only,
             disabled: self.disabled || inherited_disabled,
             ov: self.ov,
@@ -793,6 +807,7 @@ impl<'a, T, K, R> RadioGroup<'a, T, K, R> {
             key: k,
             row: self.row,
             value: self.value,
+            navigation: self.navigation,
             read_only: self.read_only,
             disabled: self.disabled,
             ov: self.ov,
@@ -806,6 +821,7 @@ impl<'a, T, K, R> RadioGroup<'a, T, K, R> {
             key: self.key,
             row: r,
             value: self.value,
+            navigation: self.navigation,
             read_only: self.read_only,
             disabled: self.disabled,
             ov: self.ov,
@@ -816,6 +832,12 @@ impl<'a, T, K, R> RadioGroup<'a, T, K, R> {
     #[must_use]
     pub const fn value(mut self, k: ItemKey) -> Self {
         self.value = Some(k);
+        self
+    }
+
+    #[must_use]
+    pub const fn navigation(mut self, policy: RadioNavigation) -> Self {
+        self.navigation = policy;
         self
     }
 
@@ -906,6 +928,30 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> RadioGroup<'_, T, K, R> {
         acc.action(RadioGroupAction::Chose(key));
     }
 
+    fn navigate(
+        &self,
+        st: &mut RadioGroupState,
+        items: &[T],
+        to: usize,
+        acc: &mut Acc<RadioGroupAction>,
+    ) {
+        if items.is_empty() {
+            acc.consumed();
+            return;
+        }
+        let to = to.min(items.len().saturating_sub(1));
+        let key = self.key_at(items, to);
+        let previous = st.core.cursor();
+        st.core.set_cursor(to, key);
+        if previous == Some(key) {
+            acc.consumed();
+        } else if self.navigation == RadioNavigation::Immediate {
+            acc.action(RadioGroupAction::Chose(key));
+        } else {
+            acc.changed();
+        }
+    }
+
     pub fn update(
         &self,
         cx: &mut Cx<'_>,
@@ -932,14 +978,14 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> RadioGroup<'_, T, K, R> {
                     let cur = st.core.cursor_index();
                     match Binding::command(RADIO, action) {
                         Some(ChoiceCmd::Prev) => {
-                            self.move_cursor(st, items, cur.saturating_sub(1), &mut acc);
+                            self.navigate(st, items, cur.saturating_sub(1), &mut acc);
                         }
                         Some(ChoiceCmd::Next) => {
-                            self.move_cursor(st, items, cur.saturating_add(1), &mut acc);
+                            self.navigate(st, items, cur.saturating_add(1), &mut acc);
                         }
-                        Some(ChoiceCmd::First) => self.move_cursor(st, items, 0, &mut acc),
+                        Some(ChoiceCmd::First) => self.navigate(st, items, 0, &mut acc),
                         Some(ChoiceCmd::Last) => {
-                            self.move_cursor(st, items, usize::MAX, &mut acc);
+                            self.navigate(st, items, usize::MAX, &mut acc);
                         }
                         Some(ChoiceCmd::Choose) => self.choose(st, items, cur, &mut acc),
                         None => {}
@@ -1201,8 +1247,8 @@ impl<T, K, R> Bindings for RadioGroup<'_, T, K, R> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::event::Input;
-    use crate::runtime::stub::{SCREEN, Stub};
+    use crate::event::{Input, MouseKind};
+    use crate::runtime::stub::{SCREEN, Stub, key, mouse};
     use crate::runtime::{App, Runtime};
     use crate::theme::Theme;
     use ratatui_core::buffer::Buffer;
@@ -1226,21 +1272,33 @@ mod tests {
         fn draw(&self, _ui: &mut Ui<'_>) {}
     }
 
+    #[derive(Clone)]
     struct ControlledRadioApp {
         state: RadioGroupState,
         value: ItemKey,
+        navigation: RadioNavigation,
     }
 
     impl App for ControlledRadioApp {
         fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
             let items = ["a", "b", "c"];
-            RadioGroup::new(RG)
+            let response = RadioGroup::new(RG)
                 .value(self.value)
-                .update(cx, &mut self.state, &items)
-                .erase()
+                .navigation(self.navigation)
+                .update(cx, &mut self.state, &items);
+            if let Some(RadioGroupAction::Chose(key)) = response.action_ref() {
+                self.value = *key;
+            }
+            response.erase()
         }
 
-        fn draw(&self, _ui: &mut Ui<'_>) {}
+        fn draw(&self, ui: &mut Ui<'_>) {
+            let items = ["a", "b", "c"];
+            RadioGroup::new(RG)
+                .value(self.value)
+                .navigation(self.navigation)
+                .draw(ui, SCREEN, &self.state, &items);
+        }
     }
 
     fn draw_checkbox(checked: bool) -> Buffer {
@@ -1311,7 +1369,7 @@ mod tests {
     fn radio_group_separates_cursor_from_value() {
         let items = ["a", "b", "c"];
         let mut st = RadioGroupState::default();
-        let g: RadioGroup<'_, &str> = RadioGroup::new(RG);
+        let g: RadioGroup<'_, &str> = RadioGroup::new(RG).navigation(RadioNavigation::Deferred);
         let mut acc = Acc::<RadioGroupAction>::new();
         let _ = st.core.reconcile(3, |i| g.key_at(&items, i));
         st.set_cursor(0, ItemKey::index(0));
@@ -1334,7 +1392,9 @@ mod tests {
         );
 
         let mut fresh = RadioGroupState::default();
-        let valued: RadioGroup<'_, &str> = RadioGroup::new(RG).value(ItemKey::index(1));
+        let valued: RadioGroup<'_, &str> = RadioGroup::new(RG)
+            .navigation(RadioNavigation::Deferred)
+            .value(ItemKey::index(1));
         let _ = fresh.core.reconcile(3, |i| valued.key_at(&items, i));
         assert!(fresh.cursor().is_none());
         assert_eq!(valued.index_of(&items, ItemKey::index(1), None), Some(1));
@@ -1349,6 +1409,7 @@ mod tests {
             ControlledRadioApp {
                 state: RadioGroupState::default(),
                 value: selected,
+                navigation: RadioNavigation::Immediate,
             },
             Theme::junie(),
         );
@@ -1380,6 +1441,61 @@ mod tests {
                 .1,
             "choosing emits an action; it does not mutate the caller's value"
         );
+    }
+
+    #[test]
+    fn keyboard_navigation_selects_immediately_or_can_be_deferred() {
+        fn app_after_down(navigation: RadioNavigation) -> ControlledRadioApp {
+            let mut runtime = Runtime::new(
+                ControlledRadioApp {
+                    state: RadioGroupState::default(),
+                    value: ItemKey::index(0),
+                    navigation,
+                },
+                Theme::junie(),
+            );
+            let _ = runtime.initialize();
+            let mut buffer = Buffer::empty(SCREEN);
+            runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
+            let _ = crate::runtime::stub::deliver(&mut runtime, key(KeyCode::Tab));
+            assert_eq!(runtime.focus(), Some(RG));
+            let _ = crate::runtime::stub::deliver(&mut runtime, key(KeyCode::Down));
+            runtime.app().clone()
+        }
+
+        let immediate = app_after_down(RadioNavigation::Immediate);
+        assert_eq!(immediate.value, ItemKey::index(1));
+        assert_eq!(immediate.state.cursor(), Some(ItemKey::index(1)));
+
+        let deferred = app_after_down(RadioNavigation::Deferred);
+        assert_eq!(deferred.value, ItemKey::index(0));
+        assert_eq!(deferred.state.cursor(), Some(ItemKey::index(1)));
+    }
+
+    #[test]
+    fn immediate_pointer_press_moves_cursor_without_choosing_until_click() {
+        let mut runtime = Runtime::new(
+            ControlledRadioApp {
+                state: RadioGroupState::default(),
+                value: ItemKey::index(0),
+                navigation: RadioNavigation::Immediate,
+            },
+            Theme::junie(),
+        );
+        let _ = runtime.initialize();
+        let mut buffer = Buffer::empty(SCREEN);
+        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
+
+        let _ = crate::runtime::stub::deliver(&mut runtime, mouse(MouseKind::Down, 5, 1));
+        assert_eq!(runtime.app().value, ItemKey::index(0));
+        assert_eq!(runtime.app().state.cursor(), Some(ItemKey::index(1)));
+
+        let _ = crate::runtime::stub::deliver(&mut runtime, mouse(MouseKind::Up, 5, 5));
+        assert_eq!(runtime.app().value, ItemKey::index(0));
+
+        let _ = crate::runtime::stub::deliver(&mut runtime, mouse(MouseKind::Down, 5, 1));
+        let _ = crate::runtime::stub::deliver(&mut runtime, mouse(MouseKind::Up, 5, 1));
+        assert_eq!(runtime.app().value, ItemKey::index(1));
     }
 
     #[test]
