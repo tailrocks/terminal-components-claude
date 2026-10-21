@@ -15,6 +15,7 @@ pub mod recipe;
 pub mod resolve;
 pub mod role;
 pub mod tokens;
+pub mod visual;
 
 pub use ratatui_core::style::Modifier;
 use ratatui_core::style::{Color, Style};
@@ -37,6 +38,7 @@ pub use tokens::{
     Capability, ColorLevel, ColorTokens, Density, DesignTokens, MeterFillRest, MeterThresholds,
     MeterTokens, MotionTokens, SizeTokens, SpaceTokens, SyntaxTokens,
 };
+pub use visual::{COLOR_LEVELS, InactiveSelection, contrast_ratio};
 
 /// Rendering policy for the active row in a cursor-based list.
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Default)]
