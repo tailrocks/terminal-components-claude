@@ -206,3 +206,29 @@ Five workstreams stopped on an API rate limit at ~10:03 +0700. In-flight work pr
 - termrock-feedback (6): one class — redraw-allocation contract broken: `derived_hintbar_metadata.rs:185` (1 alloc per redraw), `feedback_clock.rs:466/:557` ((1,8) allocs/copies), plus a distinct sync bug `feedback_clock.rs:313` (sync returns stale `Moment(80ms)` vs `140ms`, equal-time not idempotent) and `:466` freeze path. Also `termrock-test-support::perf frame_showcase_buttons_120x40` — same counter. Fix lane: find the redraw allocation introduced by the landing wave (runtime/Ui/cx suspects), restore zero-alloc redraw; fix the Moment sync atomicity.
 - termrock-xtask (2): doc_inventory unregistered examples + ownership_check — likely new crates/termrock-shell + examples not registered in xtask inventories. Fix lane: register, not weaken.
 - visual-harness (2): determinism::sources_are_deterministic + overlay_sites — inspect after backdrop regen lands.
+
+## Holla plate removal landed (2026-10-21)
+
+`parity/termrock-visual-baseline` @ `5b1b3bf9b` supersedes the parallel
+2a0cd21f6 plate elimination (which drifted 35 of 87 paired git/cargo/task
+cases from the tip reference). Holla production code has no `*_plate`
+dispatch, no fixed frame tables, no `include_str!`/`include_bytes!` frame
+data: rendering is `*_tag_frame` paused-tick-40 predicates plus width-band
+view builders over semantic `ParityDiscovery`, painted by shared painters.
+Paired-harness proof: 261/261 reference cases byte-identical (87
+git-batch/git-current/task-sources, 58 browser/discovery, 29 files, 29
+history, 29 hard-cases, 29 hard-cases concept). Holla gate on the pushed HEAD:
+225/225 nextest (`holla_visual_baseline` excluded — pre-existing branch red,
+unchanged), clippy clean, fmt clean. Details and preserved reference quirks:
+`docs/audits/2026-10-21-holla-plate-removal.md`.
+
+Resume points: (1) 15 parity families (brew-services, cleanup-results,
+custom-actions, delete-safety, disk-navigation, disk-scan, docker, executor,
+gradle, idea, insights, platforms, platforms-linux, task-input,
+upgrade-managers) have no tip reference captures — capture them, then extend
+the same paired proof; (2) full frozen-corpus Holla live-compare acceptance
+still open; (3) the pre-existing `holla_visual_baseline` digest red
+(de673f212d89ea84 vs e30768d9339a0fb9) still needs its recorded decision.
+Worktree `/private/tmp/termrock-holla-20261021` stays on branch
+`holla-plates-view` (= pushed tip); the protected wip line remains on
+`wip/holla-rate-limit-20261021` @ `098fcfcda` for history.
