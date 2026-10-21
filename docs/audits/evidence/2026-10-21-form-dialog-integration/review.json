@@ -1,0 +1,198 @@
+{
+  "schema": 1,
+  "commit": "7c46c63f0c6e99d26c872758fc941a3ffa270f23",
+  "source": "/private/tmp/form-dialog-7c46c63f-independent-20261021",
+  "source_clean": true,
+  "decision": "SCOPED CLEAR: FormDialog/chrome gap correction and public composition contract only",
+  "closed_hold": {
+    "commit": "4a4c0a90791c946b79c6d836bcf003de3ec21f70",
+    "packet_sha256": "0ba24059e6ba6d233b2f9a0ce3255799ce2f2b2290d4ab45288ce88c8ecd168d",
+    "finding": "Chrome empty-footer natural action gap",
+    "before_height": 10,
+    "after_height": 9,
+    "same_external_test": "PASS unchanged"
+  },
+  "checks": {
+    "public_unchanged_eight": {
+      "pass": 8,
+      "fail": 0,
+      "skip": 0
+    },
+    "after_external_total": {
+      "pass": 9,
+      "fail": 0,
+      "skip": 0
+    },
+    "legacy_reference_driver": {
+      "pass": 1,
+      "filtered": 8,
+      "source_commit": "4a4c0a90791c946b79c6d836bcf003de3ec21f70"
+    },
+    "legacy_comparison": {
+      "before_cases": 64,
+      "after_cases": 64,
+      "complete_bytes_identical": true,
+      "different_case_indices": [],
+      "before_sha256": "086d7adb36c4e21237e38c9781cba1a7288ec1186a2002057735b15843c61171",
+      "after_sha256": "086d7adb36c4e21237e38c9781cba1a7288ec1186a2002057735b15843c61171",
+      "bytes": 8577778,
+      "scope": "Complete Ratatui Cell representations, all registry regions, focus entries, cursor and diagnostics; not decoded terminal modes/cleanup"
+    },
+    "native_forms_overlays_lib": {
+      "pass": 148,
+      "fail": 1,
+      "skip": 0,
+      "failure": "Known inherited MenuBar default-variant overlay precedence, unchanged from4a"
+    },
+    "strict_clippy": "PASS forms+overlays all-targets --no-deps -D warnings",
+    "format": "PASS cargo fmt --all --check"
+  },
+  "approved_scope": [
+    "Form owns sole field/action state, update and validation mechanics",
+    "Dialog::chrome reserves no empty action row or natural footer gap; no BODY focus stop",
+    "Default Dialog complete cells/registry/focus/cursor match4a across64 bounded initial-state cases",
+    "Compiled independent facade consumer uses public FormDialogSlotExt with different data",
+    "Unicode Changed/Committed and controlled data, Invalid then valid pointer acceptance, cancellation tested",
+    "Close rest/hover/press differ; ClickOnly no Tab stop; repeated close emits once and opener focus restores",
+    "Child Escape precedes modal dismissal; outside dismissal remains off",
+    "Resize72x20\u219218x10\u219280x24 preserves staged Unicode and real cursor bounds",
+    "Body measurement uses shared design/data core without input/domain effects by source inspection"
+  ],
+  "not_approved": [
+    "Incoming f375 expected-output refreshes are excluded; no artifact/source pin is changed",
+    "No acceptance of unrelated source changes merged from PR38",
+    "Known MenuBar failure remains unresolved; no e18/65b integration approval",
+    "Actual Jackin Accounts and Showcase adoption still absent",
+    "No frozen four-application real-CLI frame inventory or twice-complete comparison",
+    "Legacy comparison covers initial widget states only, not every interaction or terminal mode/cleanup",
+    "No full field-kind/state/profile matrix; Chose and all nested chooser variants not independently exhaustively covered"
+  ],
+  "reference_correction": "Frozen FormDialog footer is a single row (form_dialog.rs945\u2013958 row_layout_right); prior wrapping claim is superseded, not a new prerequisite for reference parity. Optional wrapping capability remains separate.",
+  "artifacts": [
+    {
+      "path": "after.json",
+      "sha256": "a9ab2c0105c442d73f836aeb0c412c48cee1ff9ce4313eb681737965adb48882",
+      "bytes": 311
+    },
+    {
+      "path": "after.log",
+      "sha256": "1b9903ec322b539cd748b6b30ac77e8a7901263ef23f44f7a084189149a7deae",
+      "bytes": 4306
+    },
+    {
+      "path": "before-consumer/Cargo.lock",
+      "sha256": "ba77c1740a03082930af56e8044458de1b40d07b772912d7fc8cd718e69ca013",
+      "bytes": 49809
+    },
+    {
+      "path": "before-consumer/Cargo.toml",
+      "sha256": "3c7401861db051283f6b6ef00d958854fed84a4f3e10f1a77eea6c4bba2115a6",
+      "bytes": 335
+    },
+    {
+      "path": "before-consumer/tests/composition.rs",
+      "sha256": "a1c1d5a39555d4a6879a6089d4a10b746202a0eaae3ce91896268ba6130934c8",
+      "bytes": 8081
+    },
+    {
+      "path": "before.json",
+      "sha256": "2a61d64cf0b760d705a34cc756211365922dc4f6063b04ef16c64f30862ae53b",
+      "bytes": 394
+    },
+    {
+      "path": "before.log",
+      "sha256": "9667c28ddb87621ad71cdb9ebbf039b32b593a909d8ef0d8fb30b3c9b3b227a9",
+      "bytes": 5579
+    },
+    {
+      "path": "clippy.json",
+      "sha256": "3ce86f762a7907ff57cd2c9436eb598dbad220c1adeeee0d902c6cf39371f10e",
+      "bytes": 286
+    },
+    {
+      "path": "clippy.log",
+      "sha256": "f4491eea7be94be90b2c3938486db0aeee3897404202ebce34e42bda57fe75f3",
+      "bytes": 4250
+    },
+    {
+      "path": "consumer/Cargo.lock",
+      "sha256": "63b5e5789bb01df6a75773392397adb94496e9f4d48a872390a0501af83adfa3",
+      "bytes": 49807
+    },
+    {
+      "path": "consumer/Cargo.toml",
+      "sha256": "5db10dc0908f51703855aa6260cdf43690a6e0579c585e5a7febf65382597a91",
+      "bytes": 333
+    },
+    {
+      "path": "consumer/tests/composition.rs",
+      "sha256": "a1c1d5a39555d4a6879a6089d4a10b746202a0eaae3ce91896268ba6130934c8",
+      "bytes": 8081
+    },
+    {
+      "path": "dialog-correction.diff",
+      "sha256": "8958030e1f2dee754aed3b995718dbca8bf74484daa4021f66d3cbd5c18fdd6e",
+      "bytes": 3316
+    },
+    {
+      "path": "expected-artifact-exclusions.json",
+      "sha256": "b7ced009df842603e56874678d28c8b855d305c47bee5bcd31a0cd323b6c3bdc",
+      "bytes": 2298
+    },
+    {
+      "path": "format.json",
+      "sha256": "00f664a7730a780f427413b608c47709c4cc48e0ebe5433c34ceb6199660b851",
+      "bytes": 155
+    },
+    {
+      "path": "format.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "legacy-after.txt",
+      "sha256": "086d7adb36c4e21237e38c9781cba1a7288ec1186a2002057735b15843c61171",
+      "bytes": 8577778
+    },
+    {
+      "path": "legacy-after.txt.gz",
+      "sha256": "fb0b56391d9bc74be0cc06c1ba9b8a7a0ae6aa1bebfd8791ed4674c96c22cfac",
+      "bytes": 61671
+    },
+    {
+      "path": "legacy-before.txt",
+      "sha256": "086d7adb36c4e21237e38c9781cba1a7288ec1186a2002057735b15843c61171",
+      "bytes": 8577778
+    },
+    {
+      "path": "legacy-before.txt.gz",
+      "sha256": "fb0b56391d9bc74be0cc06c1ba9b8a7a0ae6aa1bebfd8791ed4674c96c22cfac",
+      "bytes": 61671
+    },
+    {
+      "path": "legacy-comparison.json",
+      "sha256": "bf193462c58c7e3815c172082f34ee761c54037c47ba06aa1606d2538a39abb5",
+      "bytes": 456
+    },
+    {
+      "path": "native.json",
+      "sha256": "54fce7e4ef6f524ea361f9cc7c6199dd6a2cbb2fc8eedefe9bb0da9e937eeada",
+      "bytes": 262
+    },
+    {
+      "path": "native.log",
+      "sha256": "ed6a04ea381408f0b232024c20cb7bfae1409f61f3acb2673527a0cd2bacd6f7",
+      "bytes": 23992
+    },
+    {
+      "path": "scope-source-difference.txt",
+      "sha256": "021611ed79dfc022df35753113dc28da6b0515f363237d082199ab957161a9cd",
+      "bytes": 129
+    },
+    {
+      "path": "unchanged-eight.rs",
+      "sha256": "04c5fab21f8a87dbc8fcb489d40ff8a2166c4500c7ba9eb229ba5e806ceb0f1f",
+      "bytes": 6242
+    }
+  ]
+}
