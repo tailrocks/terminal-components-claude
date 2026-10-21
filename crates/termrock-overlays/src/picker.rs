@@ -276,6 +276,7 @@ impl<'a, T, R> Picker<'a, T, R> {
         Part::BORDER,
         Part::TITLE,
         Part::QUERY,
+        Part::PLACEHOLDER,
         Part::GUTTER,
         Part::ICON,
         Part::ROW,

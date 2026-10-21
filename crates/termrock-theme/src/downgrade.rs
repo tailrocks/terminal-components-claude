@@ -514,126 +514,125 @@ fn mono_rules_extra() -> [MonoRule; 5] {
 
 pub const MONO_RULES_PER_FAMILY: usize = 20;
 
-fn viewport_mono_rules() -> [MonoRule; 1] {
-    [(
-        Part::TEXT,
-        StateFlags::SELECTED,
+pub(crate) static VIEWPORT_MONO_RULES: [MonoRule; 1] = [(
+    Part::TEXT,
+    StateFlags::SELECTED,
+    StylePatch::new()
+        .set_fg(Role::Surface(Surface::Canvas))
+        .set_bg(Role::Fg(FgStep::Primary))
+        .add(Modifier::UNDERLINED),
+)];
+
+pub(crate) static GRID_MONO_RULES: [MonoRule; 2] = [
+    (
+        Part::CELL,
+        StateFlags::ERROR,
+        StylePatch::new().add(Modifier::UNDERLINED),
+    ),
+    (
+        Part::ROW,
+        StateFlags::PRESSED,
         StylePatch::new()
             .set_fg(Role::Surface(Surface::Canvas))
             .set_bg(Role::Fg(FgStep::Primary))
-            .add(Modifier::UNDERLINED),
-    )]
-}
+            .add(Modifier::BOLD),
+    ),
+];
 
-fn grid_mono_rules() -> [MonoRule; 2] {
-    [
-        (
-            Part::CELL,
-            StateFlags::ERROR,
-            StylePatch::new().add(Modifier::UNDERLINED),
-        ),
-        (
-            Part::ROW,
-            StateFlags::PRESSED,
-            StylePatch::new()
-                .set_fg(Role::Surface(Surface::Canvas))
-                .set_bg(Role::Fg(FgStep::Primary))
-                .add(Modifier::BOLD),
-        ),
-    ]
-}
+pub(crate) static MENU_MONO_RULES: [MonoRule; 2] = [
+    (
+        Part::ROW,
+        StateFlags::PRESSED,
+        StylePatch::new()
+            .set_fg(Role::Surface(Surface::Canvas))
+            .set_bg(Role::Fg(FgStep::Primary))
+            .add(Modifier::BOLD),
+    ),
+    (
+        Part::TITLE,
+        StateFlags::PRESSED,
+        StylePatch::new()
+            .set_glyph(GlyphRole::PressLeft)
+            .add(Modifier::BOLD),
+    ),
+];
 
-fn menu_mono_rules() -> [MonoRule; 2] {
-    [
-        (
-            Part::ROW,
-            StateFlags::PRESSED,
-            StylePatch::new()
-                .set_fg(Role::Surface(Surface::Canvas))
-                .set_bg(Role::Fg(FgStep::Primary))
-                .add(Modifier::BOLD),
-        ),
-        (
-            Part::TITLE,
-            StateFlags::PRESSED,
-            StylePatch::new()
-                .set_glyph(GlyphRole::PressLeft)
-                .add(Modifier::BOLD),
-        ),
-    ]
-}
+pub(crate) static HELP_MONO_RULES: [MonoRule; 2] = [
+    (
+        Part::BORDER,
+        StateFlags::FOCUSED,
+        StylePatch::new().add(Modifier::BOLD),
+    ),
+    (
+        Part::TITLE,
+        StateFlags::FOCUSED,
+        StylePatch::new().add(Modifier::UNDERLINED),
+    ),
+];
 
-fn help_mono_rules() -> [MonoRule; 2] {
-    [
-        (
-            Part::BORDER,
-            StateFlags::FOCUSED,
-            StylePatch::new().add(Modifier::BOLD),
-        ),
-        (
-            Part::TITLE,
-            StateFlags::FOCUSED,
-            StylePatch::new().add(Modifier::UNDERLINED),
-        ),
-    ]
-}
-
-fn picker_mono_rules() -> [MonoRule; 3] {
-    [
-        (
-            Part::GUTTER,
-            StateFlags::ERROR,
-            StylePatch::new().set_glyph(GlyphRole::Error),
-        ),
-        (
-            Part::GUTTER,
-            StateFlags::BUSY,
-            StylePatch::new().set_glyph(GlyphRole::MoreRows),
-        ),
-        (
-            Part::LABEL,
-            StateFlags::PRESSED,
-            StylePatch::new()
-                .set_fg(Role::Surface(Surface::Canvas))
-                .set_bg(Role::Fg(FgStep::Primary))
-                .add(Modifier::BOLD | Modifier::UNDERLINED),
-        ),
-    ]
-}
-
-fn select_mono_rules() -> [MonoRule; 3] {
-    [
-        (
-            Part::FIELD,
-            StateFlags::PRESSED,
-            StylePatch::new()
-                .set_fg(Role::Surface(Surface::Canvas))
-                .set_bg(Role::Fg(FgStep::Primary))
-                .add(Modifier::BOLD),
-        ),
-        (
-            Part::GUTTER,
-            StateFlags::PRESSED,
-            StylePatch::new()
-                .set_glyph(GlyphRole::PressLeft)
-                .add(Modifier::BOLD),
-        ),
-        (
-            Part::MARKER,
-            StateFlags::PRESSED,
-            StylePatch::new()
-                .set_glyph(GlyphRole::PressRight)
-                .add(Modifier::BOLD),
-        ),
-    ]
-}
-
-fn button_mono_rules() -> [MonoRule; 1] {
-    [(
+pub(crate) static PICKER_MONO_RULES: [MonoRule; 3] = [
+    (
         Part::GUTTER,
-        StateFlags::FOCUS_VISIBLE,
-        StylePatch::new().set_glyph(GlyphRole::FocusBar),
-    )]
+        StateFlags::ERROR,
+        StylePatch::new().set_glyph(GlyphRole::Error),
+    ),
+    (
+        Part::GUTTER,
+        StateFlags::BUSY,
+        StylePatch::new().set_glyph(GlyphRole::MoreRows),
+    ),
+    (
+        Part::LABEL,
+        StateFlags::PRESSED,
+        StylePatch::new()
+            .set_fg(Role::Surface(Surface::Canvas))
+            .set_bg(Role::Fg(FgStep::Primary))
+            .add(Modifier::BOLD.union(Modifier::UNDERLINED)),
+    ),
+];
+
+pub(crate) static SELECT_MONO_RULES: [MonoRule; 3] = [
+    (
+        Part::FIELD,
+        StateFlags::PRESSED,
+        StylePatch::new()
+            .set_fg(Role::Surface(Surface::Canvas))
+            .set_bg(Role::Fg(FgStep::Primary))
+            .add(Modifier::BOLD),
+    ),
+    (
+        Part::GUTTER,
+        StateFlags::PRESSED,
+        StylePatch::new()
+            .set_glyph(GlyphRole::PressLeft)
+            .add(Modifier::BOLD),
+    ),
+    (
+        Part::MARKER,
+        StateFlags::PRESSED,
+        StylePatch::new()
+            .set_glyph(GlyphRole::PressRight)
+            .add(Modifier::BOLD),
+    ),
+];
+
+pub(crate) static BUTTON_MONO_RULES: [MonoRule; 1] = [(
+    Part::GUTTER,
+    StateFlags::FOCUS_VISIBLE,
+    StylePatch::new().set_glyph(GlyphRole::FocusBar),
+)];
+
+pub(crate) fn builtin_family_mono_rules(family: Family) -> &'static [MonoRule] {
+    match family {
+        Family::BUTTON => &BUTTON_MONO_RULES,
+        Family::VIEWPORT => &VIEWPORT_MONO_RULES,
+        Family::GRID => &GRID_MONO_RULES,
+        Family::MENU => &MENU_MONO_RULES,
+        Family::HELP => &HELP_MONO_RULES,
+        Family::PICKER => &PICKER_MONO_RULES,
+        Family::SELECT => &SELECT_MONO_RULES,
+        _ => &[],
+    }
 }
 
 pub(crate) fn apply_mono_fallback(
@@ -656,19 +655,12 @@ pub(crate) fn apply_mono_with_defaults(
 ) -> StylePatch {
     let rules = mono_rules();
     let extra = mono_rules_extra();
-    let button = button_mono_rules();
-    let builtin: &[MonoRule] = match family {
-        Family::BUTTON => &button,
-        Family::VIEWPORT => &viewport_mono_rules(),
-        Family::GRID => &grid_mono_rules(),
-        Family::MENU => &menu_mono_rules(),
-        Family::HELP => &help_mono_rules(),
-        Family::PICKER => &picker_mono_rules(),
-        Family::SELECT => &select_mono_rules(),
-        _ => &[],
-    };
+    let builtin: &'static [MonoRule] = builtin_family_mono_rules(family);
 
-    let targeted: &[MonoRule] = recipes.mono_rules(family).or(authored).unwrap_or(builtin);
+    let targeted: &[MonoRule] = recipes
+        .mono_rules(family)
+        .or(authored.filter(|rules| !rules.is_empty()))
+        .unwrap_or(builtin);
     for (rule_part, when, patch) in rules.iter().chain(extra.iter()) {
         if family == Family::BUTTON && *rule_part == Part::GUTTER && *when == StateFlags::FOCUSED {
             continue;
