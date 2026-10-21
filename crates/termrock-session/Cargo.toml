@@ -13,6 +13,7 @@ termrock-theme.workspace = true
 ratatui.workspace = true
 ratatui-core.workspace = true
 ratatui-crossterm.workspace = true
+libc = "0.2.191"
 
 # Rust documentation examples are guarded by the workspace doc inventory test.
 [lib]
