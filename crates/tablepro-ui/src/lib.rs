@@ -1,4 +1,16 @@
 #![forbid(unsafe_code)]
+#![expect(
+    clippy::pedantic,
+    reason = "fixture and rendering code favors explicit deterministic data"
+)]
+#![expect(
+    clippy::arithmetic_side_effects,
+    reason = "all arithmetic is over bounded deterministic fixture values"
+)]
+#![expect(
+    clippy::too_many_lines,
+    reason = "application rendering functions are organized by screen and component"
+)]
 
 pub mod app;
 pub mod cli;
