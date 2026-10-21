@@ -575,11 +575,18 @@ fn query_editor_keeps_multiline_unicode_and_cursor_through_resize() {
         harness
             .cell(popup_area.x.saturating_add(2), second_item_y)
             .symbol(),
+        "V",
+        "the unselected completion row renders its view-kind glyph"
+    );
+    assert_eq!(
+        harness
+            .cell(popup_area.x.saturating_add(4), second_item_y)
+            .symbol(),
         "a"
     );
     assert_eq!(
         harness
-            .cell(popup_area.x.saturating_add(9), second_item_y)
+            .cell(popup_area.x.saturating_add(11), second_item_y)
             .symbol(),
         "c"
     );
@@ -587,7 +594,7 @@ fn query_editor_keeps_multiline_unicode_and_cursor_through_resize() {
         !format!(
             "{:?}",
             harness
-                .cell(popup_area.x.saturating_add(2), second_item_y)
+                .cell(popup_area.x.saturating_add(4), second_item_y)
                 .modifier
         )
         .contains("BOLD"),
@@ -597,7 +604,7 @@ fn query_editor_keeps_multiline_unicode_and_cursor_through_resize() {
         format!(
             "{:?}",
             harness
-                .cell(popup_area.x.saturating_add(9), second_item_y)
+                .cell(popup_area.x.saturating_add(11), second_item_y)
                 .modifier
         )
         .contains("BOLD"),
