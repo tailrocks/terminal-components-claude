@@ -52,7 +52,7 @@ use termrock_runtime::{Measure, Ui};
 mod tests {
     use super::*;
     use termrock_layout::{ChildPolicy, Composition, Insets};
-    use termrock_runtime::composition::ContentSlot;
+    use termrock_runtime::composition::{CompositionSlots, ContentSlot};
 
     struct Blank;
 
