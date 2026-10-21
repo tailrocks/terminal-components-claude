@@ -1,53 +1,20 @@
 use termrock::author::PaintStyle;
 use termrock::{
-    Brand, Chord, Color, ColorLevel, DerivedHintBar, Empty, EmptyState, FgStep, FieldSpec, Form,
-    HelpOverlay, HelpOverlayState, HelpSection, Hint, HintBar, HintLayer, Id, ItemKey, KeyCode,
-    KeyHint, Meter, Modifier, Panel, PanelKind, Part, Props, PropsList, PropsRow, PropsState, Rect,
-    Role, ScrollRegion, SplitAxis, SplitPane, StylePatch, TooSmall, Ui, Wizard, width, wrap,
+    Brand, Chord, Color, ColorLevel, HelpOverlay, HelpOverlayState, HelpSection, Hint, HintLayer,
+    Id, ItemKey, KeyCode, Modifier, PropsList, PropsRow, PropsState, Rect, Ui, width, wrap,
 };
 
 use super::{Page, PageUpdate, author::AuthorBadge, frame};
 
 const BRAND: Id = termrock::Id::root("showcase_ui::pages::overview::overview.brand");
 const AUTHOR: Id = termrock::Id::root("showcase_ui::pages::overview::overview.author");
-const EMPTY: Id = termrock::Id::root("showcase_ui::pages::overview::overview.empty");
-const KEY_HINT: Id = termrock::Id::root("showcase_ui::pages::overview::overview.key-hint");
-const HINT_BAR: Id = termrock::Id::root("showcase_ui::pages::overview::overview.hint-bar");
-const DERIVED_HINT_BAR: Id =
-    termrock::Id::root("showcase_ui::pages::overview::overview.derived-hint-bar");
 const HELP: Id = termrock::Id::root("showcase_ui::pages::overview::overview.help");
-const TOO_SMALL: Id = termrock::Id::root("showcase_ui::pages::overview::overview.too-small");
 const PROPS_LIST: Id = termrock::Id::root("showcase_ui::pages::overview::overview.props-list");
-const TOKENS: Id = termrock::Id::root("showcase_ui::pages::overview::overview.tokens");
-const PRINCIPLES: Id = termrock::Id::root("showcase_ui::pages::overview::overview.principles");
-const STATE_LANGUAGE: Id =
-    termrock::Id::root("showcase_ui::pages::overview::overview.state-language");
-const COMPONENT_ROSTER: Id =
-    termrock::Id::root("showcase_ui::pages::overview::overview.component-roster");
-const OVERVIEW_PANEL_PARTS: &[(Part, StylePatch)] = &[(
-    Part::TITLE,
-    StylePatch::new()
-        .set_fg(Role::Fg(FgStep::Secondary))
-        .remove(termrock::Modifier::BOLD),
-)];
 const PROPS_LIST_ROWS: [PropsRow<'static>; 3] = [
     PropsRow::new(ItemKey::num(1), "Library", "junie-tui"),
     PropsRow::new(ItemKey::num(2), "Ownership", "application state"),
     PropsRow::new(ItemKey::num(3), "Rendering", "public Ui facade"),
 ];
-const PROPS_ROWS: [(&str, &str); 3] = [
-    ("Library", "junie-tui"),
-    ("Ownership", "application state"),
-    ("Rendering", "public Ui facade"),
-];
-
-fn component_roster() {
-    let _ = Form::new(COMPONENT_ROSTER, &[] as &[FieldSpec<'static>]);
-    let _ = Meter::new(COMPONENT_ROSTER);
-    let _ = ScrollRegion::new(COMPONENT_ROSTER);
-    let _ = SplitPane::new(COMPONENT_ROSTER, SplitAxis::Horizontal);
-    let _ = Wizard::new(COMPONENT_ROSTER, &[]);
-}
 
 fn brand() -> Brand<'static> {
     Brand::new(BRAND, "Junie").tagline("component showcase")
@@ -66,38 +33,8 @@ fn inventory_hints() -> HintLayer {
     }
 }
 
-fn derived_hint_bar() -> DerivedHintBar<'static> {
-    let derived: DerivedHintBar<'static> = HintBar::derived(DERIVED_HINT_BAR);
-    derived
-}
-
 fn props_list() -> PropsList<'static> {
     PropsList::new(PROPS_LIST)
-}
-
-fn props() -> Props<'static> {
-    Props::new(&PROPS_ROWS)
-}
-
-fn tokens_panel() -> Panel<'static> {
-    Panel::new(TOKENS)
-        .kind(PanelKind::Card)
-        .title("Tokens")
-        .patch_part(OVERVIEW_PANEL_PARTS)
-}
-
-fn principles_panel() -> Panel<'static> {
-    Panel::new(PRINCIPLES)
-        .kind(PanelKind::Card)
-        .title("Principles")
-        .patch_part(OVERVIEW_PANEL_PARTS)
-}
-
-fn state_language_panel() -> Panel<'static> {
-    Panel::new(STATE_LANGUAGE)
-        .kind(PanelKind::Card)
-        .title("State language")
-        .patch_part(OVERVIEW_PANEL_PARTS)
 }
 
 #[derive(Debug)]
@@ -139,29 +76,10 @@ impl Page for OverviewPage {
         response |= props_list()
             .update(cx, &mut self.props_state, &PROPS_LIST_ROWS)
             .erase();
-        let _ = props();
-        let _ = tokens_panel();
-        let _ = principles_panel();
-        let _ = state_language_panel();
-        let _ = Empty::new(
-            EMPTY,
-            EmptyState::Empty {
-                title: "No optional content",
-                hint: Some("the app owns this empty state"),
-            },
-        );
-        let _ = KeyHint::new(KEY_HINT, Chord::key(KeyCode::Char('i')), "inspect");
-        let _ = HintBar::new(HINT_BAR, &hints);
-        let _ = derived_hint_bar();
-        let _ = TooSmall::new(TOO_SMALL, "showcase");
         response.into()
     }
 
     fn draw(&self, ui: &mut Ui<'_>, area: Rect) {
-        component_roster();
-        let _ = brand();
-        let _ = props_list();
-        let _ = props().draw(ui, Rect::ZERO);
         frame(ui, area, self.title(), "", |ui, body| {
             paint_blurb(ui, area);
             paint_section_strip(ui, body);

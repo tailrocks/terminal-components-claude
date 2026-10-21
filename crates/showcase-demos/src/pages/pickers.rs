@@ -1419,15 +1419,6 @@ impl Page for PickersPage {
 
     fn draw(&self, ui: &mut Ui<'_>, area: Rect) {
         frame(ui, area, self.title(), "", |ui, body| {
-            // Reference widgets frame the body. Draw them off-screen so the boot
-            // card stays the approved playground and the widgets stay mounted.
-            ui.reference(None, |ui| {
-                let hidden = Rect::new(body.x, body.bottom(), 0, 0);
-                filter_list().draw(ui, hidden, &self.filter_state, REFERENCE_ITEMS);
-                picker_chain().draw(ui, hidden, &self.chain_state);
-                menu_bar().draw(ui, hidden, &self.menu_state);
-                context_menu().draw(ui, hidden, &self.context_state);
-            });
             ui.fill(body, ink(WHITE, CANVAS).remove_modifier(Modifier::all()));
             paint_blurb(ui, body);
             if body.height > 2 {
