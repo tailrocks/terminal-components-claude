@@ -15,27 +15,27 @@ use termrock::author::{
     Response, ScrollState, StateFlags, StylePatch, Ui, Variant,
 };
 use termrock::{
-    Action, ActionKey, Anchor, Brand, Button, ButtonCmd, CellDecor, CellPos, CellRef, Checkbox,
-    ChipBar, ChipBarAction, ChipBarCmd, ChoiceCmd, CodeAction, CodeCmd, CodeEditor,
+    Action, ActionKey, Anchor, App, Brand, Button, ButtonCmd, CellDecor, CellPos, CellRef,
+    Checkbox, ChipBar, ChipBarAction, ChipBarCmd, ChoiceCmd, CodeAction, CodeCmd, CodeEditor,
     CodeEditorState, Column, ColumnKey, Completion, CompletionAction, CompletionCmd,
     CompletionController, CompletionState, ContextMenu, Diagnostic, Dialog, DialogAction,
     DiffLineKind, DiffRow, DiffSource, DiffView, DiffViewState, EditIntent, Empty, EmptyState,
     Field, FieldError, FieldKind, FieldMut, FieldRef, FieldSpec, FilterList, FilterListAction,
     FilterListCmd, FilterListState, Form, FormAction, FormData, FormState, Grid, GridAction,
     GridCmd, GridEditor, GridModel, GridState, HelpAction, HelpCmd, HelpOverlay, HelpOverlayState,
-    HelpSection, Hint, HintBar, HintLayer, Item, KeyHint, KeyPhase, LayerSize, LayerSpec, List,
-    ListAction, ListCmd, Menu, MenuAction, MenuBar, MenuCmd, MenuItem, MenuState, Meter, NavList,
-    NavListAction, NavListCmd, NavListState, NavUnit, Panel, Picker, PickerAction, PickerChain,
-    PickerChainAction, PickerChainCmd, PickerChainState, PickerStage, PickerState, ProgressBar,
-    Props, PropsAction, PropsCmd, PropsList, PropsRow, PropsState, RadioGroup, RadioGroupAction,
-    RadioGroupState, Role, RowUi, ScreenAlign, ScrollRegion, Secret, SecretPolicy, Select,
-    SelectAction, SelectCmd, SelectMode, SelectState, Slot, Span, Spinner, SplitAction, SplitAxis,
-    SplitCmd, SplitPane, SplitPaneState, Status, StatusAction, StatusBar, StatusItem, StepState,
-    Steps, StepsAction, StepsCmd, StepsState, Tabs, TabsAction, TabsCmd, TextAction, TextArea,
-    TextAreaState, TextCmd, TextInput, TextInputState, TextViewport, Theme, Toggle, TooSmall, Tree,
-    TreeAction, TreeCmd, TreeNode, TreeState, ViewportAction, ViewportCmd, ViewportLine,
-    ViewportState, Wizard, WizardAction, WizardCmd, WizardState, WizardStep, binding_conflicts,
-    resolve_anchor,
+    HelpSection, Hint, HintBar, HintLayer, Item, KeyHint, KeyMap, KeyPhase, LayerSize, LayerSpec,
+    List, ListAction, ListCmd, Menu, MenuAction, MenuBar, MenuCmd, MenuItem, MenuState, Meter,
+    NavList, NavListAction, NavListCmd, NavListState, NavUnit, Panel, Picker, PickerAction,
+    PickerChain, PickerChainAction, PickerChainCmd, PickerChainState, PickerStage, PickerState,
+    ProgressBar, Props, PropsAction, PropsCmd, PropsList, PropsRow, PropsState, RadioGroup,
+    RadioGroupAction, RadioGroupState, Role, RowUi, ScreenAlign, ScrollRegion, Secret,
+    SecretPolicy, Select, SelectAction, SelectCmd, SelectMode, SelectState, Slot, Span, Spinner,
+    SplitAction, SplitAxis, SplitCmd, SplitPane, SplitPaneState, Status, StatusAction, StatusBar,
+    StatusItem, StepState, Steps, StepsAction, StepsCmd, StepsState, Tabs, TabsAction, TabsCmd,
+    TextAction, TextArea, TextAreaState, TextCmd, TextInput, TextInputState, TextViewport, Theme,
+    Toggle, TooSmall, Tree, TreeAction, TreeCmd, TreeNode, TreeState, ViewportAction, ViewportCmd,
+    ViewportLine, ViewportState, Wizard, WizardAction, WizardCmd, WizardState, WizardStep,
+    binding_conflicts, resolve_anchor,
 };
 use termrock_test_support::conformance::{
     Caps, Conformance, Fixture, FixtureRow, PointerGesture, mono_states_required_by,
@@ -45,37 +45,6 @@ use termrock_test_support::{Harness, Scene, conformance_suite};
 const PROBE: Id = Id::root("conformance.probe");
 
 const CONTEXT_MENU_LEGACY_CHORDS: &[Chord] = &[
-    Chord::with(KeyCode::F(10), KeyModifiers::SHIFT),
-    Chord::key(KeyCode::Menu),
-];
-
-const CODE_EDITOR_LEGACY_CHORDS: &[Chord] = &[
-    Chord::with(KeyCode::Char('f'), KeyModifiers::CONTROL),
-    Chord::with(KeyCode::Char('u'), KeyModifiers::CONTROL),
-    Chord::with(KeyCode::Char('k'), KeyModifiers::CONTROL),
-    Chord::key(KeyCode::Backspace),
-    Chord::with(KeyCode::Backspace, KeyModifiers::CONTROL),
-    Chord::with(KeyCode::Backspace, KeyModifiers::ALT),
-    Chord::key(KeyCode::Delete),
-    Chord::key(KeyCode::Tab),
-    Chord::with(KeyCode::BackTab, KeyModifiers::SHIFT),
-    Chord::key(KeyCode::Enter),
-    Chord::key(KeyCode::Left),
-    Chord::key(KeyCode::Right),
-    Chord::key(KeyCode::Up),
-    Chord::key(KeyCode::Down),
-    Chord::with(KeyCode::Left, KeyModifiers::SHIFT),
-    Chord::with(KeyCode::Right, KeyModifiers::SHIFT),
-    Chord::with(KeyCode::Up, KeyModifiers::SHIFT),
-    Chord::with(KeyCode::Down, KeyModifiers::SHIFT),
-    Chord::with(KeyCode::Left, KeyModifiers::CONTROL),
-    Chord::with(KeyCode::Right, KeyModifiers::CONTROL),
-    Chord::with(KeyCode::Left, KeyModifiers::ALT),
-    Chord::with(KeyCode::Right, KeyModifiers::ALT),
-    Chord::key(KeyCode::PageUp),
-    Chord::key(KeyCode::PageDown),
-    Chord::key(KeyCode::Home),
-    Chord::key(KeyCode::End),
     Chord::with(KeyCode::F(10), KeyModifiers::SHIFT),
     Chord::key(KeyCode::Menu),
 ];
@@ -2596,8 +2565,13 @@ impl Conformance for CodeEditorCase {
         CodeEditor::new(CODE_EDITOR, 6).bindings(state)
     }
 
-    fn legacy_key_chords() -> &'static [Chord] {
-        CODE_EDITOR_LEGACY_CHORDS
+    fn binding_states() -> &'static [BindingState] {
+        static STATES: std::sync::OnceLock<[BindingState; 1]> = std::sync::OnceLock::new();
+        STATES.get_or_init(|| {
+            [BindingState {
+                flags: StateFlags::FOCUSED | StateFlags::EDITING,
+            }]
+        })
     }
 
     fn mono_setup_chords(state: StateFlags) -> &'static [Chord] {
@@ -4242,6 +4216,134 @@ conformance_suite!(
     wizard => WizardCase,
     form => FormCase,
 );
+
+struct CodeEditorAuditApp {
+    state: CodeEditorState,
+    keymap: KeyMap,
+}
+
+impl App for CodeEditorAuditApp {
+    fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+        CodeEditor::new(CODE_EDITOR, 6)
+            .update(cx, &mut self.state)
+            .on_action(|_| ())
+    }
+
+    fn draw(&self, ui: &mut Ui<'_>) {
+        CodeEditor::new(CODE_EDITOR, 6).draw(ui, Rect::new(2, 2, 30, 6), &self.state);
+    }
+
+    fn keymap(&self) -> &KeyMap {
+        &self.keymap
+    }
+}
+
+#[test]
+fn code_editor_ctrl_u_deletes_to_line_start_in_real_runtime() {
+    let mut h = Harness::new(
+        CodeEditorAuditApp {
+            state: CodeEditorState::new("abc"),
+            keymap: KeyMap::new(),
+        },
+        Theme::junie(),
+        40,
+        12,
+    );
+    assert!(h.tab_to(CODE_EDITOR));
+    assert_eq!(h.focus(), Some(CODE_EDITOR));
+    assert_eq!(h.app().state.text(), "abc");
+    assert!(
+        h.find("abc").is_some(),
+        "editor text should render before editing"
+    );
+
+    assert!(h.key(KeyCode::End).is_consumed());
+    let line_end = h.cursor().expect("editing focus should publish a cursor");
+    assert_eq!(line_end.y, 2);
+    assert!(h.ctrl('u').is_consumed());
+    assert_eq!(h.focus(), Some(CODE_EDITOR));
+    assert_eq!(h.app().state.text(), "");
+    assert!(
+        h.find("abc").is_none(),
+        "Ctrl+U should remove the rendered text"
+    );
+    assert_eq!(
+        h.cursor(),
+        Some(Position::new(line_end.x.saturating_sub(3), line_end.y)),
+        "deleting three characters should move the cursor to line start",
+    );
+}
+
+struct CodeEditorMissingDeleteToStart;
+
+impl Conformance for CodeEditorMissingDeleteToStart {
+    const NAME: &'static str = "code_editor_missing_delete_to_start";
+    const FAMILY: Family = Family::CODE;
+    const PARTS: &'static [Part] = CodeEditor::PARTS;
+    type State = CodeEditorCaseState;
+    type Action = CodeAction;
+    type Cmd = CodeCmd;
+
+    fn caps() -> Caps {
+        CodeEditorCase::caps()
+    }
+
+    fn id() -> Id {
+        Id::root("conformance.code_editor.negative_control")
+    }
+
+    fn update(cx: &mut Cx<'_>, st: &mut Self::State, f: &Fixture) -> Response<CodeAction> {
+        CodeEditor::new(Self::id(), 6)
+            .disabled(f.disabled)
+            .read_only(f.read_only)
+            .update(cx, &mut st.0)
+    }
+
+    fn draw(ui: &mut Ui<'_>, area: Rect, st: &Self::State, f: &Fixture) {
+        CodeEditor::new(Self::id(), 6)
+            .disabled(f.disabled)
+            .read_only(f.read_only)
+            .draw(ui, area, &st.0);
+    }
+
+    fn bindings(state: BindingState) -> &'static [Binding<CodeCmd>] {
+        static OMITTED: std::sync::OnceLock<Vec<Binding<CodeCmd>>> = std::sync::OnceLock::new();
+        OMITTED
+            .get_or_init(|| {
+                CodeEditor::new(Self::id(), 6)
+                    .bindings(state)
+                    .iter()
+                    .copied()
+                    .filter(|binding| binding.cmd != CodeCmd::DeleteToLineStart)
+                    .collect()
+            })
+            .as_slice()
+    }
+
+    fn binding_states() -> &'static [BindingState] {
+        CodeEditorCase::binding_states()
+    }
+}
+
+#[test]
+fn code_editor_binding_audit_rejects_omitted_ctrl_u_even_when_real_editor_deletes() {
+    let result = std::panic::catch_unwind(|| {
+        termrock_test_support::conformance::driver::bindings_match_handled_keys::<
+            CodeEditorMissingDeleteToStart,
+        >();
+    });
+    let panic = result.expect_err("the audit accepted an omitted published Ctrl+U action");
+    let message = panic
+        .downcast_ref::<String>()
+        .map(String::as_str)
+        .or_else(|| panic.downcast_ref::<&str>().copied())
+        .unwrap_or("unexpected audit panic");
+    assert!(
+        message.contains("consumed Ctrl+u which is not in the binding table or legacy set"),
+        "expected the omitted Ctrl+u chord to be rejected, got: {message}"
+    );
+    assert!(CodeEditorCase::legacy_key_chords().is_empty());
+}
 
 #[test]
 fn mono_states_required_by_is_a_union() {

@@ -848,6 +848,177 @@ unchanged. Rebased log: `tablepro-rebase-nextest-de6.log`, SHA-256
 `e19af003b69740e2a27d76232f97cffa01e1149503d27ff88768459906acf53f`.
 
 
+### CodeEditor editing binding audit repair (2026-10-22)
+
+The CodeEditor conformance case now audits its `FOCUSED | EDITING` binding
+table and no longer exempts its ordinary editing/navigation chords as legacy.
+A test-only negative control removes the published `DeleteToLineStart`
+declaration while keeping the real CodeEditor runtime; the shared audit rejects
+consumed Ctrl+U as absent from the table. A separate real-runtime regression
+confirms Ctrl+U removes rendered text and returns the cursor to line start.
+
+Focused evidence on `bb4bbb6eb9c7d4f546283d5db2f978964a335f9b` plus this change:
+
+- `cargo nextest run --locked -p termrock-conformance --test conformance code_editor::bindings_match_handled_keys code_editor_binding_audit_rejects_omitted_ctrl_u_even_when_real_editor_deletes code_editor_ctrl_u_deletes_to_line_start_in_real_runtime`: 3 passed.
+- `cargo fmt --check`: passed.
+- `cargo clippy --locked -p termrock-conformance --test conformance`: passed.
+
+This closes only the CodeEditor portion of the binding-coverage finding. The
+shared driver still accepts owner-declared legacy chords, and query-editor
+composition exceptions remain for a later owner-specific repair. Full workspace
+and application acceptance remain incomplete.
+
+Independent review of isolated author commit `ba95d5bb2db0ee9010ed51fdde12dc4c73ca7ca4` resolved both proof findings: the regression checks actual text and focus after Ctrl+U, and the negative control requires the exact omitted Ctrl+U identity. The independent locked nextest run passed all three focused tests. Review: `code-editor-binding-audit-independent-review/REVIEW-ba95d5bb.md` in the external review root, SHA-256 `fc8aca04964420c4b3261b3b1a3712ce6e90a02c73f1e93fd794a31e39195eb0`.
+
+
+Existing checks on live base `de6b004f6ca4697f04b768b7aa6be8d91f47d88d` are recorded separately: workspace formatting fails in unchanged `crates/tablepro-ui/src/app.rs:4706`, and scoped conformance clippy fails on an unchanged redundant `u16::from` conversion in that file at line 3732. The changed conformance file passes `rustfmt --check --edition 2024`. A first cold focused nextest build reached its 220-second limit before executing tests; the bounded failure log is preserved. None of these results is a full workspace pass.
+
+The rebased focused retry on `de6b004f6ca4697f04b768b7aa6be8d91f47d88d` plus the exact
+conformance change passed all three selected tests (939 filtered), nextest run
+`74a92830-12da-42a3-ae07-6cca4b378b80`. Log:
+`code-editor-binding-audit-independent-review/rebased-de6b004f/nextest-warm-retry.log`, SHA-256
+`2378e47e23dd185f2522cfedd5483b65ceb33f5a39334b820800e70dbc13a35f`. The subsequent base
+`ef23c3303cba9f05e5bbd1a370a56128244ab79e` differs only in TablePro expected data and this
+migration record; Rust source and Cargo inputs are unchanged. This focused result does not
+replace the outstanding workspace checks.
+
+
+After rebasing onto remote `92d7f753868cb174dac0612cb0fccd39b20d334b`, isolated candidate
+`7f73fbd410cbb0e7bb22b14a916b68c216743362` passed the same three focused locked nextest tests
+(939 filtered), run `86cefa6f-9f9e-4f51-b00e-dd450a8160dd`, and workspace formatting. Its
+conformance source remains SHA-256
+`9e5cbbb9cdaea5a14d47570f5caafbcfa8c0c078938d8b3239d0afd435ce3c25`; Cargo.lock remains
+unchanged. The exact test log is
+`code-editor-binding-audit-independent-review/rebased-de6b004f/7f73-nextest.log`, SHA-256
+`d21d36cda1a7ccd920d0823eb264d1e79ce165a2058c9f6fda574b8228667147`. Concurrent commit
+`7e2597710` already contains the independently reviewed TablePro formatting and
+redundant-conversion repairs; duplicate local repair commits are excluded. This preserves the
+initial base-failure history rather than claiming it never occurred.
+
+
+The final scoped conformance clippy check on candidate
+`7f73fbd410cbb0e7bb22b14a916b68c216743362` also passed (157.890 seconds under its 215-second
+bound). Log: `code-editor-binding-audit-independent-review/rebased-de6b004f/7f73-clippy.log`,
+SHA-256 `7f858df2a960c2b5dd6744f40693115dc28e0878119f53ec5d3438f0c4f21493`. Thus the rebased
+increment passed its three focused tests, workspace formatting, and scoped lint. Full workspace
+tests, complete application comparisons, and architecture acceptance remain open.
+
+
+After a second remote advance, isolated candidate `fc2923bd2de96deecccd8b71992520f3201b4394` on
+parent `2b9ab242d6b399b3650e3b1087f47a9ad8f57f01` passed the same three focused tests (197.495
+seconds), workspace formatting (20.504 seconds), and scoped conformance clippy (145.318
+seconds). Independent receipt:
+`code-editor-binding-audit-independent-review/rebased-de6b004f/REVIEW-fc2923.md`, SHA-256
+`0b4ef456afafb87ce0e80d49e67fbeb3777d13ac7447d1edb9630f63b1bc463a`. The first bounded cold-build
+timeout remains preserved. Clippy emitted one non-blocking parent-base `needless_question_mark`
+warning at `crates/termrock-session/src/esc_bridge.rs:149`; a separate isolated repair owns that
+finding. This is not a warning-free or full-workspace test claim.
+
+Publication was initially held because the live source guard found 169 branch names against the frozen
+156-head cohort (13 additions, six moved refs). The fixed references remain unchanged. The exact
+prompt requires refresh before consolidation publication; independent contract reviews found no
+repair exception. Reports: `a070-live-source-guard-decision-20261022.json` (SHA-256
+`512e9aa88fe92e4f231b9f32d9f78cf04532f7f1e2ab9f97ce1d53cc1ac8de98`),
+`refresh-guard-contract-independent-review-20261022.md`
+(`4775959f586b31a42417b576c5b86f97937bf6a3561225932bb1326cd6b429d7`), and
+`refresh-guard-publication-scope-supplement-20261022.md`
+(`46e59a064ebf7af625601f9f4c7313ddc13209805b13bcb4deea91a92b31e270`). The local tested repair
+and all prior frozen evidence remain preserved while a separately reviewed capture and proof
+refresh proceeds. No export, packet transfer, branch cleanup, or acceptance is authorized by
+these results.
+
+
+
+### Refresh preparation and independent proof limits (2026-10-22)
+
+The later stable capture contains 171 heads, 15 additions and six moved refs relative to the
+156-head cohort. It retains 198 branch obligations and requires 195 target reviews. The previous
+169-head observation and all old-cohort results remain historical evidence. Independent review
+cleared the exact generator-input conversion, not a generator execution or branch decision:
+`refresh171-generator-input-adapter-independent-review-20261022.md`, SHA-256
+`d618158a741cf35ab1ad0562e5d304fd690d569b21ac8b54a8cd4d72e3eaf6f1`.
+The proposed 419-root manifest preserves all 375 old roots. Exactly 21 new commits and their
+21 trees are absent from the archival pools and present in the original store. Independent
+report `refresh171-required-roots-independent-review-20261022.md` has SHA-256
+`91d166e67389365b958c0d964814b59ba669702d9c233f6fc0fb56e4b13545b7`.
+Object presence is not closure, backup, import, or source-guard proof. Consolidation transfer remains held.
+
+The separate runtime prototype at `1334782b649e9a3cde4f15b02d103f961be45f97` has 299 passing
+author tests and scoped independent source/log review, without an independent Rust rerun or
+integration approval. The captured-tip compatibility review identifies an unresolved interaction:
+additional paint-only wakeups can trigger the existing ESC bridge's timeout flush earlier.
+`visual-deadline-captured-tip-compatibility-plan/PLAN.md` has SHA-256
+`542b5592bd0aea1bfff4e49476ba8ad97c85b70cbe312c86603e76a29d959971`.
+The earlier external-consumer review (SHA-256
+`0797219551606ec80bd967e3c0f4afad5d6b58973875b8cdc7ea61cf04d37b6e`) required full-buffer
+equality, durable logs, a Cargo graph and a defined aggregate-hash encoding. Those consumer
+packet gaps are now resolved in isolated commit `ded3591bb9e4c7f2e33dc9dc075b6b00c5d5ddc8`.
+Independent rerun passed two tests with zero skips in 53.406 seconds, run ID
+`c5f8e46f-c10e-4169-919e-e3e5a7c6a9fb`. The actual dependency graph has seven library crates
+plus the separate consumer and no applications. All 2,111 frozen snapshot files remain unchanged;
+the complete snapshot was reconstructed from its tracked tar because ignored fixture entries were
+absent from commit extraction. Final report
+`visual-deadline-external-consumer-repair-independent-ded3591/REVIEW.md` has SHA-256
+`57f64a6e7fb55bafcea1ba45381cf927a6023c1911227e2bb60a22c2ea9d146a`.
+Formatting and Clippy evidence were inspected, not independently rerun. Neither isolated
+prototype nor consumer proves reference parity or library acceptance.
+
+The old-store 16-blob representation calibration independently passed its exact native full-fsck
+checks. Its thin-pack parser metadata is inaccurate despite the native external-base rejection;
+no full-store conversion or timing extrapolation is approved. Independent report
+`native-pack-calibration-independent-review-20261022.md` has SHA-256
+`d494271c8f0540ebb9f3720a5bbfc7642292caa3a4ae963a9089661b90475d17`.
+Git 2.56 source research confirms that command-local `core.deltaBaseCacheLimit` affects full
+packed-object verification without omitting checks. A cache experiment is feasibility research,
+not a replacement for refreshed full integrity checks. All detailed artifacts above remain in
+the external review root; the frozen prompt and materials are unchanged.
+
+
+
+The private no-hardlinks seed clone completed in 51.36 seconds. Its complete pack, index and
+reverse-index bytes match the old donor, with distinct inodes and unchanged observed metadata.
+All 1,833 refs and 375 old roots match. The missing immediate-preclone full-pack observation
+remains explicit; earlier observations were not relabeled. Independent clone execution review
+`refresh171-clone-execution-independent-review-20261022.md` has SHA-256
+`2d206c4ef45d21383ffe0c6d1446586454e8168a09160d46ce617c106ef8a043`.
+Exact public acquisition of the 21 missing commits is a separate bounded increment. No refreshed
+full native integrity, bundle, restore, export or publication gate is complete.
+
+The cache-only old-store full-fsck experiment timed out after 210.067 seconds; wrapper exit 124,
+owned process group quiesced, store identities unchanged. Report
+`fsck-cache-preflight-20261022/cache512-busy-integrity-attempt-20261022.md` has SHA-256
+`05075d227f4ae2933d178ba4ddf8a2efa9e5903512535c18e0d3955ae8453506`.
+The busy host prevents causal performance inference. No integrity pass follows from the attempt.
+
+At `2026-10-21T23:36:30Z`, the live PR head was
+`6d9e34b3b8f51d83e7f4de3ee9514b83fc3826a7`, distinct from both the captured cohort and this
+unpublished increment. PR #38 was draft and blocked: two successful checks, 94 pending checks,
+and failed DCO. No submitted GitHub reviews were returned; required-check policy could not be
+confirmed. DCO reported 149 failing historical commits. This local increment already has its own
+sign-off, which does not clear the live failure. Detailed raw evidence is in
+`pr38-ci-snapshot-20261022/` and `pr38-dco-detail-20261022/`. No other authors' certifications,
+branch protection, reference revisions or expected values were changed.
+
+
+
+### Incremental publication instruction decision (2026-10-22)
+
+The earlier publication-scope interpretation was too broad and is superseded for verified progress
+commits. After requesting the consolidation prompt, the user explicitly instructed frequent
+commits, pushes and pulls on `parity/termrock-visual-baseline` so concurrent agents can see fixes.
+That later direct instruction controls the conflicting earlier file restriction for incremental
+updates to PR #38. This is a documented instruction override, not an exception invented in the
+frozen prompt. Independent cross-check
+`publication-scope-independent-crosscheck-20261022.md` has SHA-256
+`f7996c2539d2c3b18b94473d413b3dfbe77d2148b9895c7c4dacd8d2c0c57335`.
+
+Ordinary fixes still require fetch/rebase, focused exact-head checks, independent review, a normal
+push and remote commit verification. This decision does not approve historical source transfers,
+branch or PR cleanup, rewritten expected output, final acceptance, or merging to main. All
+source-quality, preservation, application, architecture and repository review gates remain open.
+Earlier hold reports are preserved as historical decisions, not silently rewritten.
+
+
 ## Evidence index
 
 Populated as increments land.
@@ -883,3 +1054,92 @@ Pre-existing live failures (reproduced on clean base, not regressions):
 overlays theme placeholder test, fields note muted, tablepro query-editor
 unicode + visual + 2 perf, holla menu hover + visual, showcase 3 editor
 tests, conformance bindings/mono sets.
+
+
+### CodeEditor gate recovery and refreshed preservation status (2026-10-22)
+
+The CodeEditor increment was rebased cleanly onto published D010 correction
+`e2ba67866eed212a72bd6ea82adcd5151eb321c1`. The correction remains part of its
+history. Publication is still pending focused execution; formatting, metadata and scoped
+Clippy passed on the preceding exact source revision, but no current focused test pass is
+claimed. The first bounded attempts exhausted compilation or scheduler admission time;
+another encountered a disappearing shared target path. A subsequent attempt with documented
+`MBX_TARGET_VIEWS=0` retained its local target but exhausted its 210-second compilation
+budget. Its original cleanup error and later empty owned-process observation remain separate
+receipts. These are infrastructure failures, not passing tests or proven source regressions.
+
+Nextest supports separating binary compilation from execution with
+`list --list-type binaries-only --message-format json` and `run --binaries-metadata`.
+Independent research selected that recovery without changing the default build profile,
+mandatory runner, selected tests or expected output. Source, configuration, metadata and binary
+identities must remain bound across both commands. Installed Nextest is 0.9.149, whereas the
+repository pin is 0.9.148; that mismatch is recorded rather than treated as pinned-tool proof.
+Detailed evidence remains in `code-editor-binding-audit-independent-review/`.
+
+The refreshed 171-head private preservation mirror now contains all 419 required root objects
+and the independently checked 2,411-reference transaction. Its native full fsck remains
+incomplete: an owned observer stopped the command after 32.331 seconds at its configured
+memory guard, before packed-object checking completed. References and required object bodies
+remained unchanged. The external observer's exit-race repair passed independent diagnostics,
+but initial pressure and stop-overshoot evidence remain unresolved. No native-integrity pass,
+new-cohort bundle/restore proof, source-transfer approval or fsck retry is implied. See
+`refresh171-native-full-fsck-independent-20261022/RUN-REPORT.md` and
+`memory-observer-independent-review-20261022/V8-independent-review-addon.md`.
+
+
+The first split compilation also exhausted 210.071 seconds before producing binary metadata;
+therefore its execution phase did not run. Source, lock, configuration and helper identities
+remained unchanged and its owned process group quiesced. The additive report is
+`code-editor-binding-audit-independent-review/rebased-de6b004f/REVIEW-4deca263-split.md`,
+SHA-256 `ac7844daf4350983121b551c84ef0bd9278d1364a8654fd40a10cc0b134fc61f`.
+The local target is preserved while independent investigation checks durable compilation
+progress and a smaller build partition. Repeated failure is not treated as verification.
+
+The isolated ESC fixture at `e59a8ccdf9257ac7e185297d055101638fdc6bb3` now enforces
+child completion and exact stable cleanup before classifying timing or behavior. Actual send
+calls are bracketed, and negative controls reject cleanup defects and delayed/reversed send
+intervals. Independent source and receipt review approved those repairs and the narrow
+captured-bridge poll-partition characterization; it performed no independent test rerun.
+The third and final contract attempt was measured and intentionally failed its contract
+assertion. No further contract attempt is authorized by this record. This does not establish
+an application or visual-scheduler regression. Review:
+`esc-hardened-fixture-independent-review-e59a8cc/REVIEW.md`, SHA-256
+`a90364ada81bd29af6de17b086204720e79fbff1f35c90867d19090693e9a6ae`.
+
+A fresh read-only GitHub snapshot at 2026-10-22 00:24:49–00:25:22 UTC found stable PR
+head `e2ba67866eed212a72bd6ea82adcd5151eb321c1`: 16 successful checks, 19 running,
+56 queued, five failed and one DCO action required, with none skipped. DCO reported 146
+incorrectly signed-off commits; no submitted reviews were returned. The active main ruleset
+names required status context `Required`, which was not among the 97 returned check-run
+names. No successful acceptance or protection waiver is inferred. Raw responses and receipts
+are preserved in `pr38-live-ci-scout-20261022/`; checks JSON SHA-256 is
+`39f3969edd402e5be5d8f9db3ce1f768a0b857e273a61dbf2eb318779f9ecf3e`.
+This supersedes the earlier CI snapshot only for that observed head and time.
+
+
+### CodeEditor focused gate completed (2026-10-22)
+
+The infrastructure-blocked focused gate above is now superseded by a successful bounded
+build and real execution on exact revision `4deca26388193a3894875ee8412ceefa2b03f6b9`.
+Independent diagnosis identified local incremental-compilation profile drift; explicitly fixing
+`CARGO_INCREMENTAL=0` retained the existing default debug/assertion/feature settings and
+allowed completed dependencies to remain reusable. The first controlled build spent 193.670
+seconds on dependencies and gave the final test target only 16.410 seconds before timeout.
+One independently justified dependency-warm completion then built the selected binary in
+40.561 seconds. The separate run completed all three expected CodeEditor tests through the
+mandatory MBX runner: run `81f7287d-d01b-49c6-b1a2-2ace43b2d68f`, default profile,
+zero selected failures or skips, and 939 tests filtered out. Earlier failures remain preserved.
+
+Binary metadata SHA-256 is
+`8b9e0f4a327afb9b4b9354d8000b4d8716c0697286f551d8ab75b55f6332e22c`;
+test executable SHA-256 is
+`f152c065b0a9aaba85e130872ed00885e187e559e5b5b23377fe4c236b5fe2b8`.
+Source, configuration, locked Cargo metadata, binary metadata and executable hashes remained
+unchanged after execution. Final independent report
+`code-editor-binding-audit-independent-review/rebased-de6b004f/REVIEW-4deca263-finaltarget-pass.md`
+has SHA-256 `d966641381b31965b752bc8ddec68d879214d9ea2ef48c418adf72f4552f7786`.
+Formatting and scoped Clippy had passed on those same source inputs. Independent comparison
+of the rebased increment found only documentation changes from that tested revision; it does
+not claim the later commit itself was executed. The coordinator also reran scoped formatting
+on the rebased checkout. No application, complete conformance, pinned-toolchain, full CI or
+final acceptance claim follows from this focused result.
