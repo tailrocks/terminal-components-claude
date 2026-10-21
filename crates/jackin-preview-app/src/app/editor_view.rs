@@ -33,8 +33,10 @@ pub(crate) fn paint(app: &App, ui: &mut Ui<'_>, full: Rect) {
     }
     let general = matches!(app.editor.tab, EditorTab::General);
     let mounts = matches!(app.editor.tab, EditorTab::Mounts);
+    let roles = matches!(app.editor.tab, EditorTab::Roles);
+    let chrome = general || mounts || roles;
     // The live shell is surface ink. These approved pages are canvas.
-    if general || mounts {
+    if chrome {
         ui.fill(full, canvas());
     }
 
@@ -44,7 +46,7 @@ pub(crate) fn paint(app: &App, ui: &mut Ui<'_>, full: Rect) {
     paint_str(ui, 19, 0, " Go ", SECONDARY, BLACK, false);
     paint_str(ui, 24, 0, " Help ", SECONDARY, BLACK, false);
 
-    if general || mounts {
+    if chrome {
         let name = app
             .world
             .workspaces
@@ -110,7 +112,7 @@ pub(crate) fn paint(app: &App, ui: &mut Ui<'_>, full: Rect) {
     };
 
     for (i, &(name, x, _width)) in TABS.iter().enumerate() {
-        if i == active_index && !mounts {
+        if i == active_index && general {
             paint_styled(ui, x, 3, "▎", ACCENT, ACTIVE_BG, true, false);
             let label = format!("{name}  ");
             paint_styled(
@@ -137,8 +139,8 @@ pub(crate) fn paint(app: &App, ui: &mut Ui<'_>, full: Rect) {
         .get(active_index)
         .map(|&(_, x, w)| (x, w))
         .unwrap_or((2, 11));
-    let rule_start = if general || mounts { 2 } else { 0 };
-    let rule_end = if general || mounts {
+    let rule_start = if chrome { 2 } else { 0 };
+    let rule_end = if chrome {
         full.width.saturating_sub(2)
     } else {
         full.width
@@ -156,7 +158,7 @@ pub(crate) fn paint(app: &App, ui: &mut Ui<'_>, full: Rect) {
     match app.editor.tab {
         EditorTab::General => paint_general_body(app, ui),
         EditorTab::Mounts => paint_mounts_body(app, ui),
-        EditorTab::Roles => paint_roles_body(ui),
+        EditorTab::Roles => paint_roles_body(app, ui),
         EditorTab::Environments => paint_env_body(ui),
         EditorTab::Accounts => paint_accounts_body(ui),
     }
@@ -382,47 +384,162 @@ fn isolation_word(isolation: crate::domain::workspace::Isolation) -> &'static st
     }
 }
 
-fn paint_roles_body(ui: &mut Ui<'_>) {
-    paint_str(ui, 4, 6, "Allowed roles  3 of 46", SECONDARY, BLACK, true);
+fn paint_roles_body(app: &App, ui: &mut Ui<'_>) {
+    let workspace = app.world.workspaces.first();
+    let default_leaf = workspace
+        .and_then(|workspace| workspace.roles.default.as_deref())
+        .map(role_leaf)
+        .unwrap_or("");
+    let allowed_count = match workspace.map(|workspace| &workspace.roles.allowed) {
+        Some(crate::domain::workspace::AllowedRoles::Custom(list)) => list.len(),
+        Some(crate::domain::workspace::AllowedRoles::All) => app.world.roles.len(),
+        None => 0,
+    };
+    paint_str(
+        ui,
+        4,
+        6,
+        &format!(
+            "Allowed roles  {allowed_count} of {}",
+            app.world.roles.len()
+        ),
+        SECONDARY,
+        BLACK,
+        true,
+    );
     paint_str(
         ui,
         93,
         6,
-        "default ★ the-architect",
+        &format!("default ★ {default_leaf}"),
         DARK_MUTED,
         BLACK,
         false,
     );
 
-    paint_str(ui, 2, 7, "▎›", ACCENT, BADGE_BG, true);
-    paint_str(
-        ui,
-        6,
-        7,
-        " [✓] the-architect                    ★ default",
-        WHITE,
-        BADGE_BG,
-        true,
-    );
+    let visible = 29usize;
+    let thumb = 17usize;
+    for (index, role) in app.world.roles.iter().take(visible).enumerate() {
+        let y = 7 + index as u16;
+        let selected = index == 0;
+        let checked = workspace.is_some_and(|workspace| {
+            workspace.roles.allows(&role.full_name()) || workspace.roles.allows(&role.name)
+        });
+        paint_role_row(ui, y, role, checked, selected, default_leaf);
+        let bar = if index < thumb { "┃" } else { "┆" };
+        let bar_ink = if index < thumb {
+            Color::Rgb(0x80, 0x80, 0x80)
+        } else {
+            Color::Rgb(0x47, 0x47, 0x47)
+        };
+        paint_str(ui, 117, y, bar, bar_ink, BLACK, false);
+    }
+    // Overflow list: inner edge keeps 0.8, outer edge keeps 0.55. The bar
+    // column stays out of the rect so the track glyph is not blended.
+    let mut scroll = termrock::ScrollState::new(app.world.roles.len());
+    scroll.set_viewport(visible);
+    ui.scroll_edges(Rect::new(2, 7, 115, visible as u16), &scroll);
 
+    paint_str(ui, 97, 37, " ", BLACK, BLACK, false);
+    paint_str(ui, 98, 37, "Cancel ", SECONDARY, BLACK, false);
+    paint_str(ui, 108, 37, " ", ACTIVE_BG, ACTIVE_BG, false);
     paint_str(
         ui,
-        6,
-        8,
-        " [✓] frontend-developer               ",
-        WHITE,
-        BLACK,
+        109,
+        37,
+        "Save… ",
+        Color::Rgb(0x4d, 0x4d, 0x4d),
+        ACTIVE_BG,
         false,
     );
-    paint_str(
-        ui,
-        6,
-        9,
-        " [✓] backend-developer                ",
-        WHITE,
-        BLACK,
-        false,
-    );
+}
+
+fn paint_role_row(
+    ui: &mut Ui<'_>,
+    y: u16,
+    role: &crate::domain::workspace::RoleEntry,
+    checked: bool,
+    selected: bool,
+    default_leaf: &str,
+) {
+    let bg = if selected { BADGE_BG } else { BLACK };
+    let bold = selected;
+    if selected {
+        paint_str(ui, 2, y, &" ".repeat(115), WHITE, bg, true);
+        paint_str(ui, 2, y, "▎›", ACCENT, bg, true);
+    } else {
+        paint_str(ui, 2, y, " ", BLACK, BLACK, false);
+        paint_str(ui, 3, y, " ", SECONDARY, BLACK, false);
+    }
+    paint_str(ui, 5, y, " ", AMBER, bg, bold);
+    if checked {
+        let star = if selected && role.name == default_leaf {
+            " ★"
+        } else {
+            ""
+        };
+        let label = format!(" [{}] {}{star}", "✓", role.name);
+        let width = if selected { 22 } else { 19 };
+        paint_str(ui, 6, y, &format!("{label:<width$}"), WHITE, bg, bold);
+    } else {
+        paint_str(ui, 7, y, "[ ]", MUTED, bg, bold);
+        paint_str(ui, 10, y, &format!(" {:<14}", role.name), WHITE, bg, bold);
+    }
+    if !selected {
+        paint_str(ui, 25, y, " ", SECONDARY, bg, bold);
+    }
+    let (meta, tone) = role_meta(role);
+    if selected {
+        paint_role_meta(ui, 28, y, &meta, bg);
+    } else {
+        paint_str(ui, 28, y, &meta, tone, bg, bold);
+    }
+}
+
+fn role_meta(role: &crate::domain::workspace::RoleEntry) -> (String, Color) {
+    if let Some(error) = &role.load_error {
+        return (
+            format!("! load error · {error}"),
+            Color::Rgb(0xf0, 0x5d, 0x5d),
+        );
+    }
+    if !role.in_registry {
+        let path = match &role.source {
+            crate::domain::workspace::RoleSource::Local { path } => path.as_str(),
+            crate::domain::workspace::RoleSource::Git { url, .. } => url.as_str(),
+        };
+        return (format!("{path} · not in registry"), AMBER);
+    }
+    let trust = if role.trusted { "trusted" } else { "untrusted" };
+    (format!("registry · {trust} · {}", role.description), MUTED)
+}
+
+fn paint_role_meta(ui: &mut Ui<'_>, x: u16, y: u16, meta: &str, bg: Color) {
+    let mut column = x;
+    let mut word = String::new();
+    let flush = |ui: &mut Ui<'_>, column: &mut u16, word: &mut String| {
+        if word.is_empty() {
+            return;
+        }
+        paint_str(ui, *column, y, word, SECONDARY, bg, true);
+        *column = column.saturating_add(word.chars().count() as u16);
+        word.clear();
+    };
+    for ch in meta.chars() {
+        if ch == ' ' || ch == '·' {
+            flush(ui, &mut column, &mut word);
+            let tone = if ch == '·' { SECONDARY } else { MUTED };
+            paint_str(ui, column, y, &ch.to_string(), tone, bg, true);
+            column = column.saturating_add(1);
+        } else {
+            word.push(ch);
+        }
+    }
+    flush(ui, &mut column, &mut word);
+}
+
+fn role_leaf(role: &str) -> &str {
+    role.rsplit('/').next().unwrap_or(role)
 }
 
 fn paint_env_body(ui: &mut Ui<'_>) {
