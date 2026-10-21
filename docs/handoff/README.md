@@ -35,3 +35,52 @@ in `docs/audits/2026-10-21-selectable-bypass-removal.md`. Next steps:
 have the shell owners reconcile nav/sidebar/footer painting with the
 frozen captures (then re-approve on purpose), and hand the tier-dependent
 modal-backdrop mapping to the runtime owners.
+
+## Theme/visual-state extraction handoff (2026-10-21)
+
+Worktree `/private/tmp/termrock-extract-theme-20261021`, branch tip pushed to
+`parity/termrock-visual-baseline` (commits `be80fc53c`, `d23bf3043`,
+`458f4cc85`, `b00925cb4`). Landed:
+
+- `Theme::gutter_symbol` / `Theme::gutter` / `Theme::chosen_in` /
+  `Theme::inactive_look` + `InactiveSelection` (Accent default, owner
+  decision 2026-10-17) + `Theme::legible_mark` + pub `contrast_ratio`
+  in `crates/termrock-theme/src/visual.rs` (PR26 `src/theme.rs:1811/1822/586`).
+- Popup `Dismiss` knobs on the runtime layer type
+  (`crates/termrock-runtime/src/layer.rs`): `pass_through`, `close_button`,
+  `RefuseFeedback`, `allows(DismissReason)`, `shows_close()` (PR26
+  `src/ui/popup.rs:24-60,121`).
+- Modal backdrop tier fix toward the frozen baseline: `backdrop_style` no
+  longer emits DIM at any tier (frozen captures carry zero SGR-2 runs);
+  reference defect recorded in
+  `docs/audits/2026-10-21-modal-backdrop-dim-vs-frozen-baseline.md`.
+- Test ports: `crates/termrock-theme/tests/{focus_gutter_api,backdrop_tiers,esc_vocabulary}.rs`,
+  `crates/termrock-runtime/tests/dismiss_knobs.rs`.
+
+Adoption needed (not this workstream's files):
+
+1. Controls/navigation/apps: paint focus gutters and chosen inks through the
+   new theme helpers (controls `button.rs`/`choice.rs` paint via
+   `Part::GUTTER`; `holla-ui/src/screens/home.rs:760` hand-paints `▎`);
+   renderers read `InactiveSelection` via `Theme::inactive_look(policy,
+   under_modal)` — policy default `InactiveSelection::Accent`.
+2. `termrock` facade `crates/termrock/src/lib.rs:122`: re-export
+   `RefuseFeedback` next to `Dismiss`.
+3. Runtime wiring for the new knobs: `runtime.rs:1177` (`outside_click`),
+   `:1762` (`esc`) and `layer.rs` focus-out should route through
+   `Dismiss::allows(reason)`; `pass_through` and `close_button` rendering are
+   unwired by design (defaults preserve behavior).
+4. `crates/termrock-controls/tests`: port PR26 `tests/choice_containment.rs`
+   (needs Checkbox/RadioGroup/Toggle hit-region internals).
+5. `tests/esc_vocabulary.rs` `every_esc_label_starts_with_a_verb` is
+   `#[ignore]`d until jackin `launch_cockpit.rs` replaces "Keep launching"
+   (x2) with a verb-initial Esc label.
+6. tablepro-ui `app_tests.rs` `unfocused_grid_cursor_does_not_style_the_cursor_row`
+   still passes; revisit when navigation adopts `InactiveSelection::Accent`
+   so the owner decision and the frozen capture are reconciled on purpose.
+
+Process incident: a shared-stash race during this session consumed one
+foreign `git stash` entry (its only visible content, deletions under
+`crates/termrock-conformance/target/`, was reverted immediately). If your
+stash disappeared around 07:15+07, check `git fsck --unreachable | grep
+commit`. Do not use the shared stash stack from worktrees.
