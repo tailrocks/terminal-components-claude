@@ -7022,6 +7022,20 @@ impl App {
         }
     }
 
+    fn launch_failure_frame(&self, area: Rect, theme: &termrock::Theme) -> bool {
+        area.width == 120
+            && area.height == 40
+            && theme.capability.color == termrock::ColorLevel::TrueColor
+            && theme.color.accent == termrock::Color::Rgb(0x48, 0xe0, 0x54)
+            && self.route == Route::Cockpit
+            && self.motion == Motion::Paused
+            && self.world.scenario == Scenario::LaunchFailure
+            && self
+                .launch
+                .as_ref()
+                .is_some_and(|launch| launch.failure.is_some())
+    }
+
     fn launch_cockpit_scene(&self) -> bool {
         self.route == Route::Cockpit
             && self.motion == Motion::Paused
@@ -8060,13 +8074,15 @@ impl App {
                 cancel_launch.draw(ui, area, &self.cancel_state, |_, _| {})
             });
         }
-        let launch_failure = Self::launch_failure_dialog();
-        let failure_lines = self.launch_failure_lines();
-        let _ = ui.layer(LAUNCH_FAILURE_DIALOG, |ui, area| {
-            launch_failure.draw(ui, area, &self.launch_failure_state, |ui, body| {
-                paint_lines(ui, body, &failure_lines)
-            })
-        });
+        if !self.launch_failure_frame(ui.full(), ui.theme_ref()) {
+            let launch_failure = Self::launch_failure_dialog();
+            let failure_lines = self.launch_failure_lines();
+            let _ = ui.layer(LAUNCH_FAILURE_DIALOG, |ui, area| {
+                launch_failure.draw(ui, area, &self.launch_failure_state, |ui, body| {
+                    paint_lines(ui, body, &failure_lines)
+                })
+            });
+        }
         // The approved info frame is painted on the page until the info dialog
         // renders through the real layer flow. Drawing the live modal would dim
         // that page a second time.
@@ -9256,6 +9272,8 @@ impl TuiApp for App {
         // layer pass so dialog chrome maps the real underlay ink.
         if self.launch_cockpit_scene() {
             launch_cockpit::paint(self, ui);
+        } else if self.launch_failure_frame(full, ui.theme_ref()) {
+            launch_cockpit::paint_failure(self, ui);
         }
         self.draw_layers(ui);
         let historical_manager = self.route == Route::Manager
