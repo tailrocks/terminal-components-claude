@@ -1,0 +1,179 @@
+{
+  "status": "Read-only bounded API plan; no production edits or new public API implemented.",
+  "candidate": "7a104258b020f717625848e7582d19ea6bdaf6ed",
+  "baseline": "4169783ae883788186d161af09ba9c481bd84e5c",
+  "decision": "Add only a geometry-free consumer wrapper over existing focus_scope and scoped Bubble publication. Parent accepted the no-flags method shape.",
+  "api": {
+    "signature": "pub fn command_scope<C: Copy + 'static, R>(&mut self, owner: Id, table: &'static [Binding<C>], render: impl FnOnce(&mut Ui<'_>) -> R) -> R",
+    "implementation_sequence": [
+      "Enter existing self.focus_scope(owner, ScopeMode::Normal, ...).",
+      "Invoke render exactly once with the same Ui, preserving clipping, full area, layer, identity and focus bounds.",
+      "Publish existing ui.publish_scope_bindings(ScopeId::new(owner), owner, StateFlags::empty(), table) while still inside that real focus scope.",
+      "Return render result; reuse existing FocusScopeGuard restoration. Do not register a control or region for scope owner."
+    ],
+    "consumer_domain": "Drain Intent::Binding(action) from cx.intents(owner), map Binding::command(the_same_table, action) into the application-owned Copy enum, then handle typed commands outside the immutable intent borrow. Return Response::changed/consumed only for an action actually handled; decline with Response::ignored to preserve outer/global fallback.",
+    "configuration": "Use one stable container owner distinct from child component IDs and one static typed table shared between update and draw. Select an empty static slice when domain availability disables commands; no flags argument or implicit DISABLED/BUSY eligibility system.",
+    "remapping": "Existing KeyMap::remap_component/remove_component(owner, action) already controls effective scoped chords through component_binding. Retain those contracts.",
+    "invariants": [
+      "No input dispatch, domain effect, component update, or measurement in drawing/publication.",
+      "No new input stack, scope resolver, Capture phase, raw geometry, buffer painting, global-modal flag, or invisible focus control.",
+      "No scope action without an actual focused descendant in the current top layer; empty/no-focus modal must block background scopes.",
+      "Use stable unique owner IDs. Existing registration suppression prevents inert/reference content from publishing live scope bindings.",
+      "Existing global Capture and Bubble behavior remains unchanged; callers must remove route-local global entries when adopting scope ownership."
+    ]
+  },
+  "source_evidence": [
+    {
+      "path": "crates/termrock-runtime/src/ui/mod.rs:632-648",
+      "evidence": "focus_scope creates the existing Normal scope, uses existing RAII guard and preserves Ui context."
+    },
+    {
+      "path": "crates/termrock-runtime/src/ui/mod.rs:744-770",
+      "evidence": "publish_scope_bindings checks registration suppression/current scope layer, publishes typed descriptors and records existing ScopedBubbleBinding."
+    },
+    {
+      "path": "crates/termrock-runtime/src/author.rs:6-15",
+      "evidence": "A public component-author publication bridge already exists; consumer wrapper must not reimplement it."
+    },
+    {
+      "path": "crates/termrock-runtime/src/runtime.rs:1687-1701",
+      "evidence": "Owner-bound before_typing and global Capture occur before focused component dispatch. An app-global cockpit i/x action therefore bypasses an open PropsList modal."
+    },
+    {
+      "path": "crates/termrock-runtime/src/runtime.rs:1716-1778",
+      "evidence": "Focused update runs first; scoped Bubble follows only when declined. Input layer/focus is rechecked before and after each scope callback. Global Bubble remains unscoped afterward."
+    },
+    {
+      "path": "crates/termrock-runtime/src/runtime.rs:1796-1873",
+      "evidence": "Scope candidates require current focused entry on top layer and descendant scope membership; inner depth wins and bindings are revalidated against remapping/current scope."
+    },
+    {
+      "path": "crates/termrock-runtime/src/keymap.rs:19-43,213-227,353-357",
+      "evidence": "Existing Binding<C>, Binding::command, component_binding and ScopedBubbleBinding supply typed action conversion and current descriptor state."
+    },
+    {
+      "path": "crates/termrock-runtime/src/runtime.rs:1289-1321,2030-2077",
+      "evidence": "Modal closure saves restoration target; presentation reconciles against real current focus ring. Scope wrapper must not alter focus restoration."
+    },
+    {
+      "path": "crates/termrock/src/blocks/master_detail.rs:301-314",
+      "evidence": "An existing consumer already wraps a real detail scope and publishes scoped Bubble bindings through author API."
+    },
+    {
+      "path": "baseline src/shell/router.rs:400-419; src/bin/jackin_preview/app.rs:2042-2060,1212-1230",
+      "evidence": "Frozen routing delivers to an open layer before route commands; unhandled modal keys are consumed rather than falling into background cockpit."
+    },
+    {
+      "path": "baseline src/widgets/info_dialog.rs:202-308",
+      "evidence": "PropsList handles navigation/copy first; actual actions/close and Tab/ShiftTab/Esc follow; all other keys are consumed by modal."
+    },
+    {
+      "path": "baseline src/bin/jackin_preview/screens/cockpit.rs:588-645",
+      "evidence": "Without a modal, cockpit handles log-owned keys and viewport first, then bare i/x domain commands. Scope migration must respect the log overlay/content context."
+    },
+    {
+      "path": "crates/jackin-preview-app/src/app.rs:1030-1045,4818-4854",
+      "evidence": "Current cockpit i/x/d/t are app-global Capture entries. i toggles info, and x opens cancel under an already-open info modal; removing only rendering plates cannot fix this routing."
+    }
+  ],
+  "executed_probes": {
+    "command": "cargo nextest run --offline --test scope_research --no-fail-fast -E \"test(global_) | test(existing_scoped_)\"",
+    "exit": 100,
+    "selected_tests": 3,
+    "passed": 1,
+    "failed": 2,
+    "explicitly_filtered": 7,
+    "results": [
+      "Global Capture i/x through real Dialog+PropsList: actual 2 domain actions versus required 0, intentional RED.",
+      "Global Bubble i/x through the same modal: actual 2 versus required 0, intentional RED.",
+      "Existing focus_scope plus author scoped-publication primitive: 0 background actions with real PropsList modal and with truly no-focus empty-body modal; asserted Runtime::focus()==None in the latter. GREEN."
+    ],
+    "limits": "These are real public runtime/widget probes, not frozen CLI application parity or an implementation of the proposed public wrapper. The seven filtered fixture tests are not counted as passed."
+  },
+  "required_tests_for_author": [
+    {
+      "test": "Geometry-free public consumer compiles and uses real Button/TextInput/PropsList/typed Dialog; no author imports in ordinary App::draw.",
+      "proof": "New method unavailable before addition is an API compile failure only; do not call this a behavioral RED/GREEN proof."
+    },
+    {
+      "test": "Focused TextInput consumes i/x as edits; route action remains zero. A real non-typing child that declines triggers the typed route action exactly once.",
+      "proof": "Use actual rendered controls, focus and changed text/counters; compare complete frames and all regions against the existing author primitive."
+    },
+    {
+      "test": "Nested scopes: consumed inner stops; declined inner reaches outer; both declined reaches unchanged global Bubble/on_esc.",
+      "proof": "Retain existing runtime decline tests and run new wrapper through equivalent real rendered descendants."
+    },
+    {
+      "test": "Opening/closing a modal or moving focus in leaf/inner action suppresses stale outer/global actions for that same physical key.",
+      "proof": "Reuse exact existing runtime stale-scope regressions; never redispatch into newly opened/restored scope."
+    },
+    {
+      "test": "Open modal with PropsList, unknown i/x, Down/copy, Tab/ShiftTab/Esc, two reopen cycles and restored real opener focus. Include empty/no-focus modal and nested layers.",
+      "proof": "No background action even if modal widgets decline. Verify full cells/styles/ALL regions/focus/cursor after each event, four profiles."
+    },
+    {
+      "test": "Component remapping i to another chord; remove_component disables action; empty table disables all scoped commands.",
+      "proof": "Old/default chord does not fire; effective remapped chord fires exactly once; typed enum and stable owner unchanged."
+    },
+    {
+      "test": "Unrendered/hidden scope, sibling scope focus, zero region, resize before presentation, inert/reference content.",
+      "proof": "No phantom bindings or controls; before-redraw input stays Pending; method itself adds no focusable entry, hit region, cursor or pixels."
+    }
+  ],
+  "application_red_green": {
+    "red": "Keep an unchanged real Jackin App/CLI regression that opens info then presses i/x and asserts info remains open, no cancel dialog/background action and unchanged relevant frame. Current app-global Capture path should fail.",
+    "green": "After new wrapper adoption around actually rendered cockpit content, remove corresponding global route-local keymap entries and map typed scoped intents to existing domain handlers. The same App/CLI test must pass and frozen paired capture must agree.",
+    "separate_scope": "The wrapper increment alone intentionally does not fix every current application global binding or establish baseline parity; d/t/build-log/cockpit quit/help precedence must be inventoried and migrated separately where frozen requires. Do not silently blanket-block all global commands in runtime."
+  },
+  "adoption_dependency": {
+    "baseline": "CockpitScreen::enter/primary_focus selects real RAIL (cockpit.rs:556-562); draw registers its rendered rail at1002 through ctx.control(..., disabled=false), which actually registers a focus-ring entry (ctx.rs:335-343). StepRail.selectable(false) suppresses selection mechanics and its own focus styling, not this screen-owned real rail focus target.",
+    "candidate": "Shared Steps::draw currently maps navigable=false to ClickOnly (steps.rs:686-693); it supplies no focus-ring entry. Current private cockpit painters do not establish equivalent shared focused descendants.",
+    "required": "Before using command_scope for cockpit i/x, render a genuine shared focusable control matching frozen RAIL, or separately review a Steps contract that decouples focusability from navigation and matches frozen appearance. Never add a dummy one-cell/focus-only control, whole-app callback, or no-focus route fallback as a workaround.",
+    "appearance": "Frozen nonselectable rail does not show selectable-row focus styling. Any real shared focusability adapter must preserve both keyboard ownership and visible baseline focus behavior."
+  },
+  "ownership": [
+    {
+      "owner": "Runtime command-scope implementer",
+      "files": [
+        "crates/termrock-runtime/src/ui/command_scope.rs (new)",
+        "crates/termrock-runtime/src/ui/mod.rs (one module declaration)",
+        "runtime/public facade command-scope tests and minimal required-features test registration",
+        "focused audit"
+      ],
+      "limits": "No runtime.rs/keymap.rs/core input changes expected. Request a reproduced required issue and review before extending routing. No Jackin app.rs, Steps, theme, metadata painters or overlays changes."
+    },
+    {
+      "owner": "Separate Steps/focus contract author if required",
+      "files": [
+        "crates/termrock-navigation/src/steps.rs",
+        "focused real component tests/audit"
+      ],
+      "limits": "Agree actual frozen focus/non-navigation behavior before implementing; keep all other navigation defaults."
+    },
+    {
+      "owner": "Existing sole Jackin application writer after API/focus reviews",
+      "files": [
+        "crates/jackin-preview-app/src/app.rs",
+        "actual Jackin real-App/paired CLI tests",
+        "migration matrix"
+      ],
+      "limits": "Adopt typed Dialog/PropsList with live domain values and existing clipboard service. Remove matching static InfoCard/replay path and global route Capture entries in the same verified series. No private focus/renderer patch."
+    }
+  ],
+  "preservation": {
+    "source_edits": false,
+    "author_copy": "Untouched",
+    "review_copy_head": "7a104258b020f717625848e7582d19ea6bdaf6ed",
+    "fixed_refs": "Not mutated; only normal fetch performed."
+  },
+  "artifacts": [
+    {
+      "path": "/private/tmp/termrock-command-scope-research-7a104258b/tests/scope_research.rs",
+      "sha256": "535aeab9724278e159868f325422cac6d75727bfcb8b9c64338042db5c0bb799"
+    },
+    {
+      "path": "/private/tmp/termrock-command-scope-research-7a104258b-final.log",
+      "sha256": "3d825491b71ffc0f1a55023a0b4c67dd99bfee34338d63c6450beb75183cd7c5"
+    }
+  ]
+}
