@@ -17,6 +17,7 @@ Expanded component gate at `7f819a779`: 872 run, 869 pass, three fail, three exi
 # 2026-10-21: external public consumer demonstrated
 
 - `9203efba5` lands `external-consumer-demo/` as a standalone (non-member) crate: facade-only imports enforced by a contract test, unrelated domain data, real widget update/draw/measure through the runtime; 9/9 nextest green, clippy/fmt clean, workspace untouched. Matrix "External public consumer" row updated RED→GREEN (API demonstration; not application parity).
+- Incident: coordinator commit `096decc61` accidentally truncated the migration matrix (worktree raced a concurrent prune mid-edit); repaired in the next commit which restores the tip matrix byte-for-byte plus only the row edit.
 
 # 2026-10-21 second rate-limit stop (coordinator) — resumes 19:40:57 +0700
 
