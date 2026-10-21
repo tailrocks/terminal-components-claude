@@ -1,0 +1,152 @@
+{
+  "schema": "termrock.independent-review.v1",
+  "decision": "CLEAR_BOUNDED_COMPONENT_INCREMENT",
+  "findings": [],
+  "reviewed_source_commit": "4b47f57055df9a6ed818b791113f70ab3d29b9f6",
+  "exact_local_normal_merge_tested": "bb50fff66bddb9eee66d927687c60978ab0c20a6",
+  "exact_before_commit_tested": "cf9f5cac09d70a96221dc358f165450bd4d7d5fb",
+  "publication_status": "The assignment supplied bb50 as a local immutable tip awaiting parent publication. This review does not assert that it has been pushed. Parent owns WIP publication and PR38 integration.",
+  "source_blob_identical_4b47_and_bb50": "d2a1ee9f004c71d504046ee936c319f64bc28db2",
+  "scope": "Separate detached sparse before/after worktrees; distinct per-revision Cargo targets; all test and lint commands process-group bounded to200s work plus10sTERM/4sKILL cleanup. No author/parent source or original reviewer fixture changes; no helpers, source edits or pushes.",
+  "review_findings_closed": [
+    {
+      "id": "T1",
+      "prior_packet": "terminal-view-input-independent-review-177a3d44-20261021/review.json",
+      "status": "closed",
+      "evidence": "Original unchanged ordinary inside drag probe still preserves full range, release clears selecting and runtime capture."
+    },
+    {
+      "id": "T2",
+      "prior_packet": "terminal-view-input-independent-review-177a3d44-20261021/review.json",
+      "status": "closed",
+      "evidence": "Original unchanged releasedclick probe still leaves selectingfalse."
+    },
+    {
+      "id": "T3",
+      "prior_packet": "terminal-view-drag-independent-review-33e4eb75-20261021/review.json",
+      "status": "closed",
+      "evidence": "ActualRuntime emitsRelease,DragEnd,Click on captured release. TerminalView now classifies completed drag before invokinglink_resolver. Unchangeddrag-to-link probe failscf9 and passesbb50; noOpenLink on captured drag completion."
+    }
+  ],
+  "checks": {
+    "original_thirteen": {
+      "source_fixture_sha256": "88cae31d6d0cf289c800f1c7c086fb074586c6a36cc60f686fda1c78915c6c15",
+      "unchanged_before_after": true,
+      "command": [
+        "cargo",
+        "nextest",
+        "run",
+        "--no-fail-fast"
+      ],
+      "before": "10passed3failed0skipped",
+      "after": "13passed0failed0skipped",
+      "before_failure_names": [
+        "dragging_onto_link_never_activates_it",
+        "click_link_still_activates",
+        "link_click_after_prior_selection_still_opens_once"
+      ],
+      "meaning": "The fix suppresses drag activation and changes genuine link activation from duplicatePress+Click dispatch to exactly oneClick action, including after an earlier selection."
+    },
+    "expanded_twenty_one": {
+      "source_fixture_sha256": "9f0a5d2032adcfa1c516dde7df39fa6b858468a532120d25a0f7d0807fd5d269",
+      "unchanged_before_after": true,
+      "before": "14passed7failed0skipped",
+      "after": "21passed0failed0skipped",
+      "additional_boundaries": [
+        "Control-modified genuine link click opensonce",
+        "Link press then drag-away cancels activation",
+        "Link press then outside release cancels activation",
+        "Repeated drags preserve latest range without link activation",
+        "Hover after release does not extend range",
+        "A held terminal selection becomes inert under a modal; capture released and modalowns paste",
+        "Focus elsewhere blocks terminaltyping and paste",
+        "Switch toReadOnly duringcapture blocks typing/selection extension and release finishes capture/selecting"
+      ]
+    },
+    "native": {
+      "command": [
+        "cargo",
+        "nextest",
+        "run",
+        "-p",
+        "termrock-terminal",
+        "--all-targets",
+        "--features",
+        "termrock-runtime/testing",
+        "--no-fail-fast"
+      ],
+      "before": "9passed0failed0skipped",
+      "after": "11passed0failed0skipped"
+    },
+    "strict_clippy": {
+      "command": [
+        "cargo",
+        "clippy",
+        "-p",
+        "termrock-terminal",
+        "--all-targets",
+        "--features",
+        "termrock-runtime/testing",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "exit": 0
+    },
+    "workspace_formatting": {
+      "command": [
+        "cargo",
+        "fmt",
+        "--all",
+        "--",
+        "--check"
+      ],
+      "exit": 0
+    },
+    "diff_whitespace": "git diff --check cf9f5cac09 bb50fff66 -- crates/termrock-terminal/src/terminal_view.rs exits0"
+  },
+  "architecture_api_review": {
+    "input_routing": "Uses actual publicRuntime/Harness physical input dispatch; no synthetic direct handler phase ordering, application workaround, second input system or new editor draftbuffer.",
+    "press_drag_release": "Guard precedes resolver; genuine linkPress records the point without selection/capture or action. GenuineClick opensonce. A completed selection dragClick returns without activation or range reset. Pressing elsewhere begins a new range, so prior selection does not suppress a later genuine linkClick.",
+    "ownership": "Interactive views retain existing sharedregister_editor/EDITING ownership. ReadOnly andSelectionOnly never own paste typing. Modal owns top-layer paste/cursor and closing it restores terminalfocus/paste. No hidden control or cursor-cell repaint reintroduced.",
+    "compatibility": "No publicfields, fieldtypes, publicmethodsignatures or action/token types changed; exhaustiveTerminalViewState literal still compiles through publicfacade.",
+    "safety_errors_concurrency": "No new unsafe code or concurrency primitive; no actionable error-handling or concurrency finding identified in this bounded patch."
+  },
+  "explicit_limits": [
+    "This clears only the reviewed sharedTerminalView input-owner/lifecycle increment; full reusable-library and exact-product acceptance remain incomplete.",
+    "No frozenCapsule application adoption, actualCLI/Tuiscotti paired capture, wholeworkspaceNextest/Clippy or hostedCI acceptance performed.",
+    "TerminalCursor still has no source-selectedshape API. Existing runtimeBlockrequest only; no frozenBarcursor parity claim.",
+    "Full selection/render/scroll/follow/cancellation, Unicodecell/grapheme selection, inherited duplicatedselectionoverride/state and sharedViewport reuse remain outside this increment.",
+    "TerminalView has no dedicated publicdisabled builder; ReadOnly transition and modalinertness were tested. This report does not claim every disabled/cancellation lifecycle capability exists.",
+    "Incoming262 replay/painter/Viewport issues and independent795 clipped-wrapped pointerfinding are separate and remain unaccepted by this component clearance.",
+    "External fixture unusedResponse warnings are preserved; production scopedClippy is distinct and passes. No tests, expectedframes or sourcepins were weakened."
+  ],
+  "evidence_files": {
+    "after-clippy.log": "3dbfb5018508d0bbc38c895b8b37f88f2a1712c98959955d105f8298fc4a95f6",
+    "after-consumer-Cargo.toml": "d804f7a4eda24c117e5830a32478c411c06e2fc918c1300bef3bda9911be8f1f",
+    "after-consumer.log": "09a90e5dec614790a244748d258fa64f7b024f052b7d797fac4182aea5184d4d",
+    "after-consumer.rs": "88cae31d6d0cf289c800f1c7c086fb074586c6a36cc60f686fda1c78915c6c15",
+    "after-extended-20-consumer.log": "1aab05244362a8e4b4595d123c6ed5ebe7f63af844d09e9b615d7e6baff48e43",
+    "after-extended-consumer-Cargo.toml": "d804f7a4eda24c117e5830a32478c411c06e2fc918c1300bef3bda9911be8f1f",
+    "after-extended-consumer.log": "abd47ab51688fa56bde2172fa03370feb89d3a61b362f3cc114fe63065d39669",
+    "after-extended-consumer.rs": "9f0a5d2032adcfa1c516dde7df39fa6b858468a532120d25a0f7d0807fd5d269",
+    "after-fmt.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "after-nextest.log": "ae3b22ee935f626e8a2190cf53562458a7241dfaae21fb5966a9f4c524e153f3",
+    "before-consumer-Cargo.toml": "bfe1459b5a6c30f28a674266500b73ec50239ac9233fcd7b83b074a11006f920",
+    "before-consumer.log": "6b04ce674dedb2b97ef2df211346bd8bf90bdbe3230774c06cbee00f82b34e15",
+    "before-consumer.rs": "88cae31d6d0cf289c800f1c7c086fb074586c6a36cc60f686fda1c78915c6c15",
+    "before-extended-20-consumer.log": "7c5ffd4c0f0b28837b1e56e51b91a4109373e2282a9c7bdb42e9f555c76758e4",
+    "before-extended-consumer-Cargo.toml": "bfe1459b5a6c30f28a674266500b73ec50239ac9233fcd7b83b074a11006f920",
+    "before-extended-consumer.log": "50b9688a8e8b1da3417f0740264e1ec712431ac7b2eb02c42d02937b79e480dd",
+    "before-extended-consumer.rs": "9f0a5d2032adcfa1c516dde7df39fa6b858468a532120d25a0f7d0807fd5d269",
+    "before-nextest.log": "7903fda0ecf15ddf05fa3cb842fb83f539507e5d390f0ba7e8b61ff0d69ba746",
+    "clippy-status.json": "dfe50a8d5492f6cbf6e957f190b884172173854aacf7c0728d2046627c08a3a0",
+    "consumer-run.py": "d5855b3f3166862c697f71243f83aa0fe989c852147180339bcc820d7a11b04d",
+    "consumer-status.json": "73db26b59590a27091bd73697949fde40a395ed6979420c32bfaace8a72c55a4",
+    "extended-consumer-status.json": "1f4823f9463927588cf33249a4b0aaa431b88747286eebd94975a44c23f872ae",
+    "extended-run.py": "281c197691b4cb1bb39a6ba58d65144d0d61213af2c1f72a45c07bda4899537b",
+    "fmt-status.json": "804a66c86f286e36c37037668f30433df33684ce678d7e690d13f23df818f280",
+    "native-run.py": "e77a7a1a54e4f9281a0f39590f33a6123d1b12a7bbdbab3963a81720bd1cda8b",
+    "native-status.json": "5e35a6fff4aae0e71cf8f3a09dd71d4913e71f03e5e387508c25cedd0e1cb779"
+  }
+}
