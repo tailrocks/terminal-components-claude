@@ -467,6 +467,12 @@ impl<'a> Dialog<'a> {
     }
 
     #[must_use]
+    pub const fn primary(mut self, k: ActionKey) -> Self {
+        self.primary = Some(k);
+        self
+    }
+
+    #[must_use]
     pub const fn width(mut self, w: u16) -> Self {
         self.width = Some(w);
         self
