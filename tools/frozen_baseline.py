@@ -4831,13 +4831,15 @@ def main() -> int:
                 record = prepare_live_source(repo, root, source, args.timeout, fresh_cohort_id=args.fresh_cohort, baseline_bin_dir=args.baseline_bin_dir)
             print(json.dumps(record, indent=2))
         elif args.command == "verify-live":
-            repo, root, source = paths(args.repo, args.root)
             if args.owned_lifecycle:
                 if args.fresh_cohort != PREPARE_LIVE_OWNED_COHORT:
                     raise RunnerError(
                         "--owned-lifecycle requires the pinned frozen-20261021-serial-nonincr-r1-r2 cohort"
                     )
                 with PrepareExecution(args.owned_budget) as execution:
+                    execution.check_work()
+                    repo, root, source = paths(args.repo, args.root)
+                    execution.check_work()
                     verify_source(root, source, check_work=execution.check_work)
                     live, record = verify_live_source(
                         repo,
@@ -4848,11 +4850,14 @@ def main() -> int:
                         baseline_bin_dir=args.baseline_bin_dir,
                         execution=execution,
                     )
+                    success = json.dumps({"live_source": str(live), "verified": True, "record": record}, indent=2)
                     execution.check_work()
-                    print(json.dumps({"live_source": str(live), "verified": True, "record": record}, indent=2))
+                    print(success, flush=True)
+                    execution.check_work()
             else:
                 if args.owned_budget != PREPARE_OWNED_MAX_BUDGET:
                     raise RunnerError("--owned-budget requires --owned-lifecycle")
+                repo, root, source = paths(args.repo, args.root)
                 verify_source(root, source)
                 live, record = verify_live_source(
                     repo,
