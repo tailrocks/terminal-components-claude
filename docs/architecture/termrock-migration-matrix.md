@@ -2166,3 +2166,51 @@ not a silent update of expected output):
 After the merge, `cargo nextest run -p tablepro-ui -p termrock-grid --all-targets`
 is 364 passed, 0 failed, including `tablepro_visual_baseline`. This is a
 per-application result; it is not product acceptance for TablePro as a whole.
+
+### Recorded reference defect: the Junie Ansi256 slot table conflicts with the product corpus
+
+The Holla workstream restored the frozen menu title ink and the reduced-tier
+palette (`crates/termrock-theme/src/builtin/mod.rs`,
+`crates/termrock-theme/src/palettes.rs`). Its evidence is the frozen corpus:
+the Holla visual baseline went from 1072 mismatching keys out of 1088 to 0,
+and the Showcase mismatch count dropped from 218 to 62.
+
+That correction conflicts with two recorded expectations, and the conflict is
+recorded here rather than resolved by choosing whichever side is convenient:
+
+1. `termrock-theme::capability_palettes all_73_junie_slots_match_reference_capability_output`
+   (now red). Its expected Ansi256 slots are documented in the test as
+   corpus-derived: `expected.fg[2] = Indexed(244)`, `expected.fg[3] = Indexed(238)`,
+   `expected.on_accent = Indexed(233)`, `expected.border_strong = Indexed(238)`.
+   The restored theme now yields `fg[2] = 245`, `fg[3] = 242`, `on_accent = 232`,
+   `border_strong = 242`.
+2. `termrock-theme::empty_style_inheritance standalone_empty_cells_match_pre_inheritance_reference`
+   (now red; a digest of an empty-cell frame).
+
+The third source is the pinned reference source itself:
+`visual-baseline:src/theme.rs` lines 925-948 declare, in its `apply_256`
+mapping, `text_muted = i(245)`, `text_faint = i(242)`, `text_ghost = i(238)`,
+`text_on_accent = i(232)`, `border_subtle = i(238)`, `border_strong = i(242)`.
+Those values match the restored theme and contradict the test's slot table,
+whose comment claims the corpus renders 244/238 for the muted and faint roles.
+
+Both sides are preserved:
+- the product-corpus side (Holla 1088/1088 frames matching the frozen oracle
+  after the restoration, Showcase mismatches 218 → 62), and
+- the recorded-expectation side (the theme slot table and the empty-cell
+  digest, still in the tree, still failing).
+
+What is NOT done in this session: rewriting the theme slot table or the
+empty-cell expectation from the candidate output, and re-pinning the Showcase
+shell-chrome frame digests that the same theme change moved. Those are the
+reference-owner decisions the acceptance rules require, and they need
+independent review of this conflict first. The Showcase shell-chrome pin
+(`crates/showcase-ui/tests/shell_chrome.rs`) is therefore left red and visible
+rather than silently re-pinned.
+
+Open question for the adjudication: which reference slot the new token model's
+`fg[2]`/`fg[3]` correspond to. The pre-refactor application and the refactored
+token model may simply name the same ink differently, in which case the slot
+table is stale; or the restored theme may be wrong for the roles that the
+corpus renders at 244/238, in which case the Holla restoration must be
+narrowed.
