@@ -4,9 +4,11 @@ use ratatui_core::layout::Rect;
 use ratatui_core::style::{Color, Style};
 use termrock_controls::{PropsList, PropsRow, PropsState};
 use termrock_core::id::ItemKey;
-use termrock_runtime::{App, Cx, Id, Response, Ui, UpdateCause};
+use termrock_runtime::{App, Cx, Id, Response, StateFlags, Ui, UpdateCause};
 use termrock_test_support::{Harness, Scene};
-use termrock_theme::{ColorLevel, Part, Role, StylePatch, Theme};
+use termrock_theme::{
+    ColorLevel, Family, Overlay, OverlayRule, Part, Role, StylePatch, Theme, Variant,
+};
 
 const ID: Id = Id::root("props.sheet.regressions");
 
@@ -272,38 +274,64 @@ fn explicit_value_set_and_clear_keep_canonical_precedence() {
 #[test]
 fn explicit_container_foreground_is_inherited_when_label_clears_foreground() {
     let rows = [PropsRow::new(ItemKey::num(7), "A", "value")];
-    let patches = [
-        (
-            Part::CONTAINER,
-            StylePatch::new().set_fg(Role::Custom(Color::Cyan)),
-        ),
-        (Part::LABEL, StylePatch::new().clear_fg()),
-    ];
-    let mut scene = Scene::new(
-        "props_container_inheritance",
-        Theme::junie(),
-        ColorLevel::TrueColor,
-        40,
-        3,
-    );
-    scene.draw_over(
-        |buf| {
-            for cell in &mut buf.content {
-                cell.set_style(Style::new().fg(Color::Magenta));
-            }
-        },
-        |ui, area| {
-            PropsList::new(ID).sheet().patch_part(&patches).draw(
-                ui,
-                area,
-                &PropsState::default(),
-                &rows,
-            );
-        },
-    );
-    assert_eq!(
-        scene.buffer().cell((7, 0)).unwrap().fg,
-        Color::Cyan,
-        "a default row clear must not erase the explicit container foreground"
-    );
+    const OVERLAY: [OverlayRule; 1] = [(
+        Family::PROPS,
+        Variant::DEFAULT,
+        Part::CONTAINER,
+        StateFlags::empty(),
+        StylePatch::new().set_fg(Role::Custom(Color::Cyan)),
+    )];
+    for source in ["theme", "overlay", "instance"] {
+        let theme = if source == "theme" {
+            Theme::junie().override_family(Family::PROPS, |family| {
+                family
+                    .part(Part::CONTAINER)
+                    .base(StylePatch::new().set_fg(Role::Custom(Color::Cyan)));
+            })
+        } else {
+            Theme::junie()
+        };
+        let mut patches = vec![(Part::LABEL, StylePatch::new().clear_fg())];
+        if source == "instance" {
+            patches.push((
+                Part::CONTAINER,
+                StylePatch::new().set_fg(Role::Custom(Color::Cyan)),
+            ));
+        }
+        let overlay = Overlay::new(&OVERLAY);
+        let mut scene = Scene::new(
+            "props_container_inheritance",
+            theme,
+            ColorLevel::TrueColor,
+            40,
+            3,
+        );
+        scene.draw_over(
+            |buf| {
+                for cell in &mut buf.content {
+                    cell.set_style(Style::new().fg(Color::Magenta));
+                }
+            },
+            |ui, area| {
+                let draw = |ui: &mut Ui<'_>| {
+                    PropsList::new(ID).sheet().patch_part(&patches).draw(
+                        ui,
+                        area,
+                        &PropsState::default(),
+                        &rows,
+                    );
+                };
+                if source == "overlay" {
+                    ui.with_overlay(&overlay, draw);
+                } else {
+                    draw(ui);
+                }
+            },
+        );
+        assert_eq!(
+            scene.buffer().cell((7, 0)).unwrap().fg,
+            Color::Cyan,
+            "default row clear must preserve the explicit {source} container foreground"
+        );
+    }
 }
