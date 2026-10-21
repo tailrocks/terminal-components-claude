@@ -2684,8 +2684,11 @@ mod tests {
 
         for width in [119, 120, 121] {
             for level in [TrueColor, Ansi256, Ansi16, Mono] {
-                let app =
-                    crate::App::for_scenario(Scenario::RustDirty, crate::Motion::Paused, 2_000);
+                let app = crate::App::for_scenario_without_history(
+                    Scenario::RustDirty,
+                    crate::Motion::Paused,
+                    2_000,
+                );
                 let initial = u64::try_from(app.fixture_time_ms())
                     .expect("simulation fixture time is nonnegative");
                 let mut harness = Harness::new_with_feedback_clock(
