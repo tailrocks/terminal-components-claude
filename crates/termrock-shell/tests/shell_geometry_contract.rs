@@ -2,7 +2,7 @@ use ratatui_core::buffer::Buffer;
 use ratatui_core::layout::{Position, Rect};
 use termrock_core::{Id, Input, KeyModifiers, Mouse, MouseKind, Response};
 use termrock_layout::{Constraints, Size};
-use termrock_runtime::author::{Measure, composition_leaf};
+use termrock_runtime::author::composition_leaf;
 use termrock_runtime::{App, Cx, Focusability, Runtime, Ui};
 use termrock_shell::{AppShell, Chrome, Page, Stakes, page_leaf};
 use termrock_theme::Theme;
@@ -68,11 +68,9 @@ impl App for ShellProbe {
         let body = page_leaf(&page);
         let shell = AppShell::new().chrome(self.chrome);
         let slots = shell.slots(&header, &body, &footer);
-        let measured = Measure::measure(
-            &slots,
-            ui,
-            Constraints::loose(ui.full().width, ui.full().height),
-        );
+        let measured = slots
+            .measure(ui, Constraints::loose(ui.full().width, ui.full().height))
+            .unwrap();
         assert!(
             measured.min.1 <= ui.full().height,
             "a filling page must not claim the reserved shell height as mandatory"

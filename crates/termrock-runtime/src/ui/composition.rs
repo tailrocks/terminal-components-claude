@@ -48,6 +48,7 @@ impl fmt::Display for CompositionError {
 
 enum Content<'a> {
     Leaf(&'a dyn CompositionLeaf),
+    Owned(Box<dyn CompositionLeaf + 'a>),
     Group(Box<CompositionSlots<'a>>),
 }
 
@@ -56,6 +57,19 @@ impl<'a> ContentSlot<'a> {
     pub const fn new(component: &'a dyn CompositionLeaf, policy: ChildPolicy) -> Self {
         Self {
             content: Content::Leaf(component),
+            policy,
+        }
+    }
+
+    /// Place an owned component leaf in a composition group.
+    ///
+    /// Owned leaves use the same pure measurement, resolved geometry,
+    /// clipping, and drawing paths as borrowed leaves. This lets a block
+    /// adapt an owned view leaf without introducing another layout engine.
+    /// This form allocates one box; the leaf is dropped once with its group.
+    pub fn owned(component: impl CompositionLeaf + 'a, policy: ChildPolicy) -> Self {
+        Self {
+            content: Content::Owned(Box::new(component)),
             policy,
         }
     }
@@ -126,7 +140,7 @@ impl<'a> CompositionSlots<'a> {
             .iter()
             .filter_map(|slot| match &slot.content {
                 Content::Group(group) => Some(group.depth),
-                Content::Leaf(_) => None,
+                Content::Leaf(_) | Content::Owned(_) => None,
             })
             .max()
             .unwrap_or(0);
@@ -155,6 +169,10 @@ impl<'a> CompositionSlots<'a> {
             .map(|slot| match &slot.content {
                 Content::Leaf(leaf) => MeasuredNode {
                     size: Measure::measure(*leaf, ui, content),
+                    children: None,
+                },
+                Content::Owned(leaf) => MeasuredNode {
+                    size: Measure::measure(leaf.as_ref(), ui, content),
                     children: None,
                 },
                 Content::Group(group) => {
@@ -236,6 +254,16 @@ impl<'a> CompositionSlots<'a> {
                         node.size = Measure::measure(*leaf, ui, constraints);
                     }
                 }
+                Content::Owned(leaf) => {
+                    if resolved.logical.width != node.size.preferred.0 {
+                        let constraints = Constraints {
+                            max: (resolved.logical.width, available_height),
+                            tight_w: true,
+                            tight_h: false,
+                        };
+                        node.size = Measure::measure(leaf.as_ref(), ui, constraints);
+                    }
+                }
                 Content::Group(nested) => {
                     if let Some(nested_measured) = node.children.as_deref_mut() {
                         let available = Rect {
@@ -298,6 +326,9 @@ impl<'a> CompositionSlots<'a> {
             }
             match &slot.content {
                 Content::Leaf(leaf) => ui.with_area(node.visible, |ui| leaf.draw(ui, node.logical)),
+                Content::Owned(leaf) => {
+                    ui.with_area(node.visible, |ui| leaf.draw(ui, node.logical));
+                }
                 Content::Group(group) => {
                     if let Some(nested) = node.nested.as_deref() {
                         ui.with_area(node.visible, |ui| group.draw_resolved(ui, nested));
