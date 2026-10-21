@@ -1,0 +1,130 @@
+{
+  "schema": "termrock.architecture-plan-independent-review.v1",
+  "reviewer": "/root/tree_adapter_independent_review",
+  "review_effort": "medium",
+  "created_utc": "2026-10-21T06:20:44.006579+00:00",
+  "reviewed_source": "1e6957cc51d1a7c0e1a7212b4ad042cb71239c20",
+  "reviewed_contract": {
+    "path": "../manager-shared-contract-671923ea2-20261021/contract.json",
+    "sha256": "a8de2ca179b3951a705b7c8564edc9536850553931161fcbe7ae7a9c35d7da16"
+  },
+  "decision": "RETAIN_CONTRACT_WITH_SEQUENCE_CORRECTIONS; application adoption and false-parity removal remain HOLD",
+  "method": "Read-only immutable git-show/diff review. No product edits, application executions, Rust tests, pushes, reference decisions, or helper agents in this follow-up.",
+  "tree_correction": {
+    "commit": "92c4ac9b712e2b81214048adacf5472f286ef3ea",
+    "previously_reviewed": "12e011659e1f55a727de85fc6e6cfc17074bd35a",
+    "verified_unchanged": [
+      "crates/termrock/src/composition.rs",
+      "crates/termrock/Cargo.toml",
+      "crates/termrock/tests/tree_composition_consumer.rs"
+    ],
+    "P3": "CLOSED: audit explicitly distinguishes development starting point48c5fc33, publication base25d2a361, and reviewed source12e011659 parent.",
+    "scope_warning": "The aggregate12e\u219292 comparison also includes unrelated Jackin editor_view.rs changes and migration matrix edits. Those incoming changes are not approved by this review.",
+    "tests": "No broad rerun: adapter, Cargo target and test source byte-identical to previously tested source."
+  },
+  "findings": [
+    {
+      "priority": "P1",
+      "kind": "plan_dependency",
+      "path": "crates/termrock/src/composition.rs:443; crates/termrock/src/blocks/master_detail.rs:369; crates/termrock-shell/src/shell.rs:96",
+      "issue": "Group exposes measure/show and private slots, but does not implement CompositionLeaf. MasterDetail has state-dependent measure/show using ui.full(), not a public borrowed leaf. AppShell accepts CompositionLeaf. The packet names all blocks but does not yet provide a compiled, geometry-free path connecting them.",
+      "action": "First add borrowed adapters/interop in the existing facade/block families that delegate their existing shared renderer within the resolver-owned area. Do not make the application implement CompositionLeaf, call ui.with_area with its own geometry, or create a second layout engine. Prove nested shell\u2192master/detail\u2192group measurement/draw/input bounds using an external consumer."
+    },
+    {
+      "priority": "P1",
+      "kind": "migration_atomicity",
+      "path": "crates/jackin-preview-host-ui/src/screens/manager.rs:58; crates/jackin-preview-app/src/app.rs:1721,3504,5944,9741",
+      "issue": "The proposed early app tree-owner migration cannot leave the current Manager painter and flat-list update path live without either breaking them or mirroring ListState/TreeState and selected_row. Existing render selectors and commands read manager.list. Partial hidden adoption would add another owner and would not prove the visible component.",
+      "action": "Prepare shared APIs and semantic application view-data first without shadow runtime state. Switch Manager update, draw, state and selector removal in the same final adoption increment. Never keep a second mutable cursor/expansion/drawer value to satisfy the old painter."
+    },
+    {
+      "priority": "P2",
+      "kind": "missing_semantic_row_policy",
+      "path": "crates/termrock-navigation/src/item.rs:246; crates/termrock-navigation/src/tree.rs:1860; frozen src/bin/jackin_preview/screens/manager.rs:1052",
+      "issue": "ItemRow currently unconditionally emits a gutter and available tag/detail; Tree already owns its row chrome. It does not express the frozen metadata threshold44, middle truncation, trailing reservation and exact metadata gap. A whole historical row callback or app remaining-width arithmetic would bypass component ownership.",
+      "action": "Prove the missing policies through public component tests, then extend the existing semantic row family with explicit general layout/truncation/metadata visibility policy. Tree must retain sole gutter/disclosure/hit/selection/scroll ownership. Demonstrate a second consumer; no Manager-named variant."
+    },
+    {
+      "priority": "P2",
+      "kind": "current_scope_expansion",
+      "path": "crates/termrock-feedback/src/manager_split.rs:1; crates/jackin-preview-app/src/app.rs:5983,9044,9741",
+      "issue": "The current private Manager painter is720 lines, not the previous646. Detail drawer and help underlay now call paint_pinned_split. Deleting only the initial Manager caller leaves production bypasses.",
+      "action": "Use call-site inventory at the adoption commit. Remove the whole module/exports and every caller after real underlay composition is available; retain help overlay mechanics in Overlays. Audit manager_frame and session_chrome separately rather than claim their removal through this one module."
+    }
+  ],
+  "ownership": {
+    "application_domain": [
+      "World, clock and account/workspace/instance eligibility stay outside Termrock.",
+      "ManagerRowKey and reversible stable ItemKey mapping identify current-directory/workspace/instance/new-workspace nodes.",
+      "Build a full semantic hierarchy in frozen order; do not preflatten only expanded rows. Current source places workspaces before current-directory and omits NewWorkspace, unlike frozen contract.",
+      "Domain actions map typed Tree/Button/Menu actions to launch, route, inspect and world mutations."
+    ],
+    "single_state_owners": [
+      "TreeState solely owns cursor, chosen value where needed, expansion and tree scroll. Remove ManagerState.list and expanded Vec; selected domain identity is derived from the stable-key mapping.",
+      "MasterDetailState solely owns drawer and master split. Remove detail_open bool; no shadow state.",
+      "PropsState or an existing shared scrollable detail component owns detail selection/scroll; application stores its public state, not key navigation mechanics.",
+      "Button owns hit/press/keyboard action; shared scope/container owns horizontal focus routing.",
+      "Existing runtime owns focus, pointer capture, layer scope and caret. Preserve actual visible control ownership; do not register an invisible DETAIL control."
+    ],
+    "library_files": [
+      "Facade composition/block adapters and tests: one writer.",
+      "Navigation tree/item semantic row contract and tests: one separate writer only after shared API agreement; do not overlap ongoing Tabs/NavList writer files.",
+      "Controls detail/action alignment or focusable panel/content APIs only if a concrete frozen-contract probe proves current API insufficient.",
+      "Jackin app.rs and host-ui Manager state: one serialized adoption writer after prerequisites; no parallel overlapping app writer."
+    ]
+  },
+  "bounded_sequence": [
+    {
+      "step": 1,
+      "atomic_increment": "Existing-block interoperability only. Add a borrowed Group leaf and stateful MasterDetail adapter (or equivalent direct shared API interoperability) needed by actual shell consumers; keep AppShell, resolver and existing renderers as sole implementations. Compile the nested external consumer, test offset/clipped/zero/resize bounds and measurement purity. No app migration or false-parity claim.",
+      "reason": "The approved Tree leaf is already available; a second tree implementation or more screen-specific renderer is unnecessary."
+    },
+    {
+      "step": 2,
+      "atomic_increment": "Semantic row contract in Navigation, driven by frozen row measurements. Test metadata visibility at43/44/45, depth/label cell-width budget, trailing mark, custom content slots, disabled/hover/selected/focus/press, first-click choose/second-click activate and disclosure width2. Preserve default Tree behavior and public API. Demonstrate different inventory data."
+    },
+    {
+      "step": 3,
+      "atomic_increment": "Complete general detail/summary/action content composition using existing Panel, PropsRow.wrap, shared text/status sections, measured Group::wrap buttons and MasterDetail. Add only missing borrowed component adapters and layout/focus policies. Support width100 collapse and nested roster split at150 through shared responsive policy, not app Rect arithmetic. Prove bottom actions never overlap content and empty/overflow safe.",
+      "needs_explicit_proof": [
+        "Props row wrapping/scroll and section heading behavior match frozen details, including instances, mounts, accounts, policy and clock.ago values.",
+        "Detail and narrow summary are real visible shared focusable content; selected pane/actions route baseline Tab/BackTab/Esc/Left/Right consistently.",
+        "Responsive nested roster is composable through shared APIs without application viewport if branches choosing alternate implementation.",
+        "Shell header/footer widgets have public composition adapters; Brand/MenuBar/status/hints use existing component paint and scope."
+      ]
+    },
+    {
+      "step": 4,
+      "atomic_increment": "Single actual Manager adoption/removal change after shared capabilities pass. Replace old list/update/private navigation, expansion, drawer and selection ownership; compose all Manager modes from the same AppShell/MasterDetail/Tree/Panel/Props/Button implementation; remove paint_pinned_split, ManagerSplit and SplitMode/SplitMount/SplitWorkspace/SplitInstance/SplitAlert family, all Manager-only historical callers/selector branches, and fake cursor/control patches together. Preserve legitimate domain actions/data.",
+      "must_include": [
+        "Changed workspace names/order and empty/large hierarchy; no payments-platform lookup/fallback.",
+        "Current directory first, expanded workspace instances and new-workspace semantic rows in frozen order.",
+        "Repeated drawer/help/menu/launch open-close using actual same underlay, no scenario/paused-clock/exact-color/120x40 render path.",
+        "Continuous resize across99/100/101 and149/150/151 with shared draw/hit/focus bounds, seam capture/reset and focus restoration."
+      ]
+    },
+    {
+      "step": 5,
+      "atomic_increment": "Independent review plus real pinned tuiscotti frozen capture/replay/candidate checks at ordered nonzero input/resize/time checkpoints, including meaningful intermediate hover/press/scroll/focus states and deliberate visual/action defects. No image-only acceptance. Run all required workspace/hosted CI and twice-complete four-app gates separately."
+    }
+  ],
+  "first_safe_atomic_change": "Add and compile the missing borrowed composition/block interop in existing Termrock facade, with a genuine external shell/master-detail/tree consumer and no Jackin production edits. If another active writer already owns this bridge, use that implementation rather than duplicate it.",
+  "limits": [
+    "Tree adapter clearance proves a reusable leaf, not actual Manager use.",
+    "No whole-screen Manager block, simulation model in Termrock, copied renderer, correction painter, application-specific flag or exact test-size selector is acceptable.",
+    "Current incoming1e source, including unrelated editor rendering, is not independently approved by this plan.",
+    "All four application product and library acceptance gates remain incomplete."
+  ],
+  "source_sha256": {
+    "crates/jackin-preview-app/src/app.rs": "9dc9ad0df73d8ae1b747c440cdade3d364b57aa7fadc332f83b02b71f84ce657",
+    "crates/jackin-preview-host-ui/src/screens/manager.rs": "5ea942a755d9a88076407bbcb1798157bf9fbe50c753d18ee5af5f76cfda621d",
+    "crates/termrock-feedback/src/manager_split.rs": "a5614c25b1a6202f0875270acda97364f9ca1fc08f50816cdd5a0752d263f82c",
+    "crates/termrock/src/composition.rs": "a0d577ea00ae2b49bc8568d667fe173f2e4cd18d4efdff217652977254206c2a",
+    "crates/termrock/src/blocks/master_detail.rs": "a0f1eb6bff2e0ec9fb861f25447e2cbdf7964442f1829ec17a668ca5748f5e79",
+    "crates/termrock/src/blocks/shell.rs": "61e06bdf51e56561b6fb78989eb40c9bf81942d6983bfdfe66d783a92236b927",
+    "crates/termrock-navigation/src/tree.rs": "a5d65b01d3e80d5ed10f7e80e3786431706e816dc2e37620393c8d2189cbc4f4",
+    "crates/termrock-navigation/src/item.rs": "11e737b578b969c12a84211d8fd8801a88f601c59c62dfd0739fcf61a77f9812",
+    "crates/termrock-controls/src/props.rs": "5efb5cc4b76d6959ea04333fac8b47fb85647f1cf6b0cf62c62ad5959f56a9ce",
+    "crates/termrock-shell/src/shell.rs": "875e0a9d2a93d579ebc763ad4299271570560632f92029a3adbd4c6983124d6b"
+  }
+}
