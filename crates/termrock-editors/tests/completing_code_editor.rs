@@ -80,6 +80,7 @@ struct EditorApp {
     read_only: bool,
     disabled: bool,
     commit_on_blur: bool,
+    draw_width: u16,
 }
 
 impl App for EditorApp {
@@ -102,7 +103,7 @@ impl App for EditorApp {
             .disabled(self.disabled)
             .with_completion(POPUP, &self.provider)
             .commit_on_blur(self.commit_on_blur)
-            .draw(ui, Rect::new(0, 0, 80, 8), &self.state);
+            .draw(ui, Rect::new(0, 0, self.draw_width, 8), &self.state);
         ui.register_focus_only(NEXT, Focusability::Focusable);
     }
 
@@ -131,6 +132,7 @@ fn runtime_with(text: &str, mode: ProviderMode) -> Runtime<EditorApp> {
             read_only: false,
             disabled: false,
             commit_on_blur: true,
+            draw_width: 80,
         },
         Theme::junie(),
     );
@@ -198,6 +200,29 @@ fn click(runtime: &mut Runtime<EditorApp>, x: u16, y: u16) {
         let mut buffer = Buffer::empty(AREA);
         runtime.draw_buffer(AREA, &mut buffer).commit_presented();
     }
+}
+
+#[test]
+fn completion_opens_when_the_cursor_sits_one_column_past_a_narrow_field() {
+    let prefix = "a".repeat(20);
+    let mut runtime = runtime(&format!("{prefix} c"));
+    runtime.app_mut().draw_width = 20;
+    let mut buffer = Buffer::empty(AREA);
+    runtime.draw_buffer(AREA, &mut buffer).commit_presented();
+
+    send(&mut runtime, KeyCode::Char('o'), KeyModifiers::NONE);
+    assert!(
+        runtime.app().state.is_completion_open(),
+        "end-of-line caret one column past the field must still anchor completion"
+    );
+    assert_eq!(runtime.app().state.editor().text(), format!("{prefix} co"));
+
+    send(&mut runtime, KeyCode::Tab, KeyModifiers::NONE);
+    assert_eq!(
+        runtime.app().state.editor().text(),
+        format!("{prefix} count")
+    );
+    assert!(!runtime.app().state.is_completion_open());
 }
 
 #[test]
