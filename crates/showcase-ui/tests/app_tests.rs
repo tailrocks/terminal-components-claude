@@ -317,6 +317,16 @@ fn exercise_page_state(h: &mut Harness<App>, page: PageId) {
             press(h, KeyCode::Esc);
             assert_eq!(h.top_layer(), LayerId::PAGE);
         }
+        PageId::CellEditors => {
+            press(h, KeyCode::Tab);
+            press(h, KeyCode::Tab);
+            press(h, KeyCode::Enter);
+            assert!(
+                h.text().contains("Disaster recovery"),
+                "env select did not open: {}",
+                h.text()
+            );
+        }
         PageId::TaskRunner => {
             press(h, KeyCode::Char('r'));
             assert!(h.text().contains("Pipeline · running"));
@@ -667,7 +677,7 @@ fn launches_and_renders_shell() {
     assert!(text.contains("Playground"));
     assert!(text.contains("Tokens and principles behind every component"));
     assert_eq!(NAV_ENTRIES.len(), 54);
-    assert_eq!(PageId::ALL.len(), 22);
+    assert_eq!(PageId::ALL.len(), 23);
 }
 
 #[test]
