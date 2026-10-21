@@ -243,6 +243,16 @@ Five workstreams stopped on an API rate limit at ~10:03 +0700. In-flight work pr
 
 ## Holla plate removal landed (2026-10-21)
 
+Update, later the same day: the last size-keyed plate gates are folded —
+`disk_cleanup_100x30_plate` (no-op over `disk_cleanup_tag_frame`) and the two
+launch-failure plates (now one `launch_failure_activity_frame` predicate).
+Byte-neutral on a 696-id paired capture (reverted-vs-edited holla, same
+shared base); gate 227/227. The 12 concept families fail the frozen oracle
+like the 15 parity families (342/348 red; pre-tag home redesign plus header
+bold; 6 passes remain in `disk-cleanup` and `launch-failure`) — recorded in
+`docs/audits/2026-10-21-holla-plate-removal.md`. Remaining `*_plate` names
+are semantic dispatchers without size keys.
+
 `parity/termrock-visual-baseline` @ `5b1b3bf9b` supersedes the parallel
 2a0cd21f6 plate elimination (which drifted 35 of 87 paired git/cargo/task
 cases from the tip reference). Holla production code has no `*_plate`
