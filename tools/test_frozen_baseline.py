@@ -991,6 +991,17 @@ class RunnerGuards(unittest.TestCase):
         }
         with runner.PrepareExecution(20) as execution:
             commitment_digest = runner._atomic_create_creation_commitment(commitment_path, commitment, check_work=execution.check_work)
+            pending_path = Path(f"{commitment_path}.pending")
+            pending = {
+                "schema_version": "termrock-fresh-plan-pending-receipt.v1",
+                "status": "pending-plan-publication",
+                "creation_commitment_sha256": commitment_digest,
+                "plan_id": commitment["plan_id"],
+                "plan_basename": commitment["plan_basename"],
+                "plan_creation_sha256": commitment["plan_creation_sha256"],
+                "cohort_id": commitment["cohort_id"],
+            }
+            runner._atomic_create_pending_receipt(pending_path, pending, check_work=execution.check_work)
         return plan_path, commitment_path, commitment_digest, plan
 
     def test_recover_creation_anchor_requires_external_hash_and_keeps_full_verify_mandatory(self) -> None:
@@ -1007,7 +1018,7 @@ class RunnerGuards(unittest.TestCase):
                 patch.object(runner.sys, "stdout", stdout),
                 runner.PrepareExecution(20) as execution,
             ):
-                recovered = runner.recover_fresh_plan_creation_anchor(root, plan["cohort"]["cohort_id"], commitment_path, commitment_digest, execution=execution)
+                recovered = runner.recover_fresh_plan_creation_anchor(root, plan["cohort"]["cohort_id"], commitment_path, commitment_digest, pending_receipt_path=Path(f"{commitment_path}.pending"), execution=execution)
             self.assertEqual(recovered["status"], "creation-anchor-recovered")
             self.assertEqual(recovered["creation_file_sha256"], runner.sha256(plan_path))
             self.assertFalse(recovered["verified"])
@@ -1015,7 +1026,7 @@ class RunnerGuards(unittest.TestCase):
             self.assertFalse(recovered["candidate_comparison_eligible"])
             self.assertFalse(recovered["product_acceptance"])
             with runner.PrepareExecution(20) as execution, self.assertRaisesRegex(runner.RunnerError, "externally pinned digest"):
-                runner.recover_fresh_plan_creation_anchor(root, plan["cohort"]["cohort_id"], commitment_path, "0" * 64, execution=execution)
+                runner.recover_fresh_plan_creation_anchor(root, plan["cohort"]["cohort_id"], commitment_path, "0" * 64, pending_receipt_path=Path(f"{commitment_path}.pending"), execution=execution)
 
     def test_recovery_fails_closed_for_missing_symlinked_hardlinked_or_replaced_commitment(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
@@ -1026,22 +1037,22 @@ class RunnerGuards(unittest.TestCase):
             runner._atomic_create_plan(plan_path, plan)
             missing = root.parent / "missing-commitment.json"
             with runner.PrepareExecution(20) as execution, self.assertRaisesRegex(runner.RunnerError, "cannot be safely read"):
-                runner.recover_fresh_plan_creation_anchor(root, plan["cohort"]["cohort_id"], missing, "0" * 64, execution=execution)
+                runner.recover_fresh_plan_creation_anchor(root, plan["cohort"]["cohort_id"], missing, "0" * 64, pending_receipt_path=Path(f"{missing}.pending"), execution=execution)
 
             _, commitment, commitment_digest, plan = self._publish_recovery_fixture(root.parent / "valid-plan-root")
             valid_root = commitment.parent / "valid-plan-root"
             with patch.object(runner, "EXPECTED_SCENARIOS", 1), patch.object(runner, "EXPECTED_ORDINARY_TESTS", 2), runner.PrepareExecution(20) as execution, self.assertRaisesRegex(runner.RunnerError, "identity or pinned metadata"):
-                runner.recover_fresh_plan_creation_anchor(valid_root, "other-cohort", commitment, commitment_digest, execution=execution)
+                runner.recover_fresh_plan_creation_anchor(valid_root, "other-cohort", commitment, commitment_digest, pending_receipt_path=Path(f"{commitment}.pending"), execution=execution)
 
             symlink = commitment.parent / "symlink-commitment.json"
             symlink.symlink_to(commitment)
             with runner.PrepareExecution(20) as execution, self.assertRaisesRegex(runner.RunnerError, "symlinked, linked"):
-                runner.recover_fresh_plan_creation_anchor(valid_root, plan["cohort"]["cohort_id"], symlink, commitment_digest, execution=execution)
+                runner.recover_fresh_plan_creation_anchor(valid_root, plan["cohort"]["cohort_id"], symlink, commitment_digest, pending_receipt_path=Path(f"{commitment}.pending"), execution=execution)
 
             hardlink = commitment.parent / "hardlink-commitment.json"
             os.link(commitment, hardlink)
             with runner.PrepareExecution(20) as execution, self.assertRaisesRegex(runner.RunnerError, "symlinked, linked"):
-                runner.recover_fresh_plan_creation_anchor(valid_root, plan["cohort"]["cohort_id"], hardlink, commitment_digest, execution=execution)
+                runner.recover_fresh_plan_creation_anchor(valid_root, plan["cohort"]["cohort_id"], hardlink, commitment_digest, pending_receipt_path=Path(f"{commitment}.pending"), execution=execution)
             hardlink.unlink()
 
             commitment.chmod(0o600)
@@ -1049,10 +1060,28 @@ class RunnerGuards(unittest.TestCase):
             changed["plan_id"] = "9" * 32
             commitment.write_bytes(runner._canonical_document_bytes(changed))
             with runner.PrepareExecution(20) as execution, self.assertRaisesRegex(runner.RunnerError, "externally pinned digest"):
-                runner.recover_fresh_plan_creation_anchor(valid_root, plan["cohort"]["cohort_id"], commitment, commitment_digest, execution=execution)
+                runner.recover_fresh_plan_creation_anchor(valid_root, plan["cohort"]["cohort_id"], commitment, commitment_digest, pending_receipt_path=Path(f"{commitment}.pending"), execution=execution)
             replacement_digest = runner.sha256(commitment)
-            with patch.object(runner, "EXPECTED_SCENARIOS", 1), patch.object(runner, "EXPECTED_ORDINARY_TESTS", 2), runner.PrepareExecution(20) as execution, self.assertRaisesRegex(runner.RunnerError, "identity or pinned metadata"):
-                runner.recover_fresh_plan_creation_anchor(valid_root, plan["cohort"]["cohort_id"], commitment, replacement_digest, execution=execution)
+            with patch.object(runner, "EXPECTED_SCENARIOS", 1), patch.object(runner, "EXPECTED_ORDINARY_TESTS", 2), runner.PrepareExecution(20) as execution, self.assertRaisesRegex(runner.RunnerError, "durable fresh plan pending receipt"):
+                runner.recover_fresh_plan_creation_anchor(valid_root, plan["cohort"]["cohort_id"], commitment, replacement_digest, pending_receipt_path=Path(f"{commitment}.pending"), execution=execution)
+
+    def test_recovery_requires_matching_external_durable_pending_receipt(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp).resolve() / "plan-root"
+            root.mkdir()
+            _, commitment, commitment_digest, plan = self._publish_recovery_fixture(root)
+            receipt = Path(f"{commitment}.pending")
+            symlink = Path(f"{receipt}.symlink")
+            symlink.symlink_to(receipt)
+            with runner.PrepareExecution(20) as execution, self.assertRaisesRegex(runner.RunnerError, "symlinked, linked"):
+                runner.recover_fresh_plan_creation_anchor(root, plan["cohort"]["cohort_id"], commitment, commitment_digest, pending_receipt_path=symlink, execution=execution)
+
+            receipt.chmod(0o600)
+            altered = json.loads(receipt.read_text())
+            altered["plan_id"] = "f" * 32
+            receipt.write_bytes(runner._canonical_document_bytes(altered))
+            with runner.PrepareExecution(20) as execution, self.assertRaisesRegex(runner.RunnerError, "durable fresh plan pending receipt"):
+                runner.recover_fresh_plan_creation_anchor(root, plan["cohort"]["cohort_id"], commitment, commitment_digest, pending_receipt_path=Path(f"{commitment}.pending"), execution=execution)
 
     def test_owned_fresh_plan_commitment_and_plan_collisions_preserve_existing_entries(self) -> None:
         for collision in ("file", "symlink"):
@@ -1082,6 +1111,7 @@ class RunnerGuards(unittest.TestCase):
                         "frozen_baseline.py", "--repo", str(repo), "--root", str(root), "fresh-plan",
                         "--cohort", runner.PREPARE_LIVE_OWNED_COHORT, "--baseline-bin-dir", str(root / "bins"),
                         "--owned-lifecycle", "--owned-budget", "20", "--creation-commitment-path", str(commitment_path),
+                        "--pending-receipt-path", str(Path(f"{commitment_path}.pending")),
                     ]
                     with patch.object(sys, "argv", argv), redirect_stdout(io.StringIO()) as output, redirect_stderr(io.StringIO()) as errors:
                         self.assertEqual(runner.main(), 1)
@@ -1114,6 +1144,7 @@ class RunnerGuards(unittest.TestCase):
                     "frozen_baseline.py", "--repo", str(repo), "--root", str(root), "fresh-plan",
                     "--cohort", runner.PREPARE_LIVE_OWNED_COHORT, "--baseline-bin-dir", str(root / "bins"),
                     "--owned-lifecycle", "--owned-budget", "20", "--creation-commitment-path", str(commitment_path),
+                    "--pending-receipt-path", str(Path(f"{commitment_path}.pending")),
                 ]
                 with patch.object(sys, "argv", argv), redirect_stdout(io.StringIO()) as output, redirect_stderr(io.StringIO()) as errors:
                     self.assertEqual(runner.main(), 1)
@@ -1122,7 +1153,166 @@ class RunnerGuards(unittest.TestCase):
             self.assertIn("refusing to replace immutable fresh plan", errors.getvalue())
             self.assertEqual(plan_path.read_bytes(), b"preserve-existing-plan")
             with runner.PrepareExecution(20) as execution, self.assertRaisesRegex(runner.RunnerError, "externally retained creation digest"):
-                runner.recover_fresh_plan_creation_anchor(root, runner.PREPARE_LIVE_OWNED_COHORT, commitment_path, pending["creation_commitment_sha256"], execution=execution)
+                runner.recover_fresh_plan_creation_anchor(root, runner.PREPARE_LIVE_OWNED_COHORT, commitment_path, pending["creation_commitment_sha256"], pending_receipt_path=Path(pending["pending_receipt_path"]), execution=execution)
+
+
+    def test_owned_fresh_plan_receipt_persistence_faults_never_link_the_plan(self) -> None:
+        for fail_on, expected_receipt in ((3, False), (4, True)):
+            with self.subTest(fail_on_fsync=fail_on), tempfile.TemporaryDirectory() as temp:
+                root = Path(temp).resolve()
+                repo = root / "repo"
+                commitment_path = root.parent / f"{root.name}-creation.json"
+                receipt_path = Path(f"{commitment_path}.pending")
+                calls = 0
+                real_fsync = runner.os.fsync
+
+                def fail_receipt_sync(fd: int) -> None:
+                    nonlocal calls
+                    calls += 1
+                    if calls == fail_on:
+                        raise OSError("injected durable receipt fsync failure")
+                    real_fsync(fd)
+
+                executions: list[runner.PrepareExecution] = []
+
+                def inventory(execution, expected):
+                    self.assertIsNotNone(execution)
+                    executions.append(execution)
+                    execution.check_work()
+                    return expected
+
+                with ExitStack() as stack:
+                    self._owned_plan_cli_inputs(root, stack, executions, inventory)
+                    stack.enter_context(patch.object(runner.os, "fsync", side_effect=fail_receipt_sync))
+                    argv = [
+                        "frozen_baseline.py", "--repo", str(repo), "--root", str(root), "fresh-plan",
+                        "--cohort", runner.PREPARE_LIVE_OWNED_COHORT, "--baseline-bin-dir", str(root / "bins"),
+                        "--owned-lifecycle", "--owned-budget", "20",
+                        "--creation-commitment-path", str(commitment_path),
+                        "--pending-receipt-path", str(receipt_path),
+                    ]
+                    with patch.object(sys, "argv", argv), redirect_stdout(io.StringIO()) as output, redirect_stderr(io.StringIO()) as errors:
+                        self.assertEqual(runner.main(), 1)
+                self.assertEqual(calls, fail_on)
+                self.assertEqual(output.getvalue(), "")
+                self.assertIn("injected durable receipt fsync failure", errors.getvalue())
+                self.assertTrue(commitment_path.is_file())
+                self.assertEqual(receipt_path.is_file(), expected_receipt)
+                self.assertFalse((root / runner.FRESH_PLAN_FILE).exists())
+
+    def test_owned_fresh_plan_pending_receipt_collision_is_preserved_and_blocks_plan(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp).resolve()
+            repo = root / "repo"
+            commitment_path = root.parent / f"{root.name}-creation.json"
+            receipt_path = Path(f"{commitment_path}.pending")
+            receipt_path.write_bytes(b"operator-owned receipt")
+            executions: list[runner.PrepareExecution] = []
+
+            def inventory(execution, expected):
+                self.assertIsNotNone(execution)
+                executions.append(execution)
+                execution.check_work()
+                return expected
+
+            with ExitStack() as stack:
+                self._owned_plan_cli_inputs(root, stack, executions, inventory)
+                argv = [
+                    "frozen_baseline.py", "--repo", str(repo), "--root", str(root), "fresh-plan",
+                    "--cohort", runner.PREPARE_LIVE_OWNED_COHORT, "--baseline-bin-dir", str(root / "bins"),
+                    "--owned-lifecycle", "--owned-budget", "20",
+                    "--creation-commitment-path", str(commitment_path),
+                    "--pending-receipt-path", str(receipt_path),
+                ]
+                with patch.object(sys, "argv", argv), redirect_stdout(io.StringIO()) as output, redirect_stderr(io.StringIO()) as errors:
+                    self.assertEqual(runner.main(), 1)
+            self.assertEqual(output.getvalue(), "")
+            self.assertIn("refusing to replace immutable fresh plan creation commitment", errors.getvalue())
+            self.assertEqual(receipt_path.read_bytes(), b"operator-owned receipt")
+            self.assertTrue(commitment_path.is_file())
+            self.assertFalse((root / runner.FRESH_PLAN_FILE).exists())
+
+    def test_owned_fresh_plan_sigterm_during_receipt_fsync_never_links_plan(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp).resolve()
+            repo = root / "repo"
+            commitment_path = root.parent / f"{root.name}-creation.json"
+            receipt_path = Path(f"{commitment_path}.pending")
+            calls = 0
+            real_fsync = runner.os.fsync
+            executions: list[runner.PrepareExecution] = []
+
+            def signal_during_receipt_sync(fd: int) -> None:
+                nonlocal calls
+                calls += 1
+                real_fsync(fd)
+                if calls == 3:
+                    signal.raise_signal(signal.SIGTERM)
+
+            def inventory(execution, expected):
+                self.assertIsNotNone(execution)
+                executions.append(execution)
+                execution.check_work()
+                return expected
+
+            with ExitStack() as stack:
+                self._owned_plan_cli_inputs(root, stack, executions, inventory)
+                stack.enter_context(patch.object(runner.os, "fsync", side_effect=signal_during_receipt_sync))
+                argv = [
+                    "frozen_baseline.py", "--repo", str(repo), "--root", str(root), "fresh-plan",
+                    "--cohort", runner.PREPARE_LIVE_OWNED_COHORT, "--baseline-bin-dir", str(root / "bins"),
+                    "--owned-lifecycle", "--owned-budget", "20",
+                    "--creation-commitment-path", str(commitment_path),
+                    "--pending-receipt-path", str(receipt_path),
+                ]
+                with patch.object(sys, "argv", argv), redirect_stdout(io.StringIO()) as output, redirect_stderr(io.StringIO()) as errors:
+                    self.assertEqual(runner.main(), 1)
+            self.assertEqual(calls, 3)
+            self.assertEqual(output.getvalue(), "")
+            self.assertIn("cancelled by signal", errors.getvalue())
+            self.assertFalse(receipt_path.exists())
+            self.assertFalse((root / runner.FRESH_PLAN_FILE).exists())
+
+    def test_owned_fresh_plan_deadline_during_receipt_fsync_never_links_plan(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp).resolve()
+            repo = root / "repo"
+            commitment_path = root.parent / f"{root.name}-creation.json"
+            receipt_path = Path(f"{commitment_path}.pending")
+            calls = 0
+            real_fsync = runner.os.fsync
+            executions: list[runner.PrepareExecution] = []
+
+            def expire_during_receipt_sync(fd: int) -> None:
+                nonlocal calls
+                calls += 1
+                real_fsync(fd)
+                if calls == 3:
+                    time.sleep(1.05)
+
+            def inventory(execution, expected):
+                self.assertIsNotNone(execution)
+                executions.append(execution)
+                execution.check_work()
+                return expected
+
+            with ExitStack() as stack:
+                self._owned_plan_cli_inputs(root, stack, executions, inventory)
+                stack.enter_context(patch.object(runner.os, "fsync", side_effect=expire_during_receipt_sync))
+                argv = [
+                    "frozen_baseline.py", "--repo", str(repo), "--root", str(root), "fresh-plan",
+                    "--cohort", runner.PREPARE_LIVE_OWNED_COHORT, "--baseline-bin-dir", str(root / "bins"),
+                    "--owned-lifecycle", "--owned-budget", "1",
+                    "--creation-commitment-path", str(commitment_path),
+                    "--pending-receipt-path", str(receipt_path),
+                ]
+                with patch.object(sys, "argv", argv), redirect_stdout(io.StringIO()) as output, redirect_stderr(io.StringIO()) as errors:
+                    self.assertEqual(runner.main(), 1)
+            self.assertEqual(calls, 3)
+            self.assertEqual(output.getvalue(), "")
+            self.assertIn("work deadline expired", errors.getvalue())
+            self.assertFalse(receipt_path.exists())
+            self.assertFalse((root / runner.FRESH_PLAN_FILE).exists())
 
     def _fresh_advance_fixture(self, base: Path, *, chunk_size: int = 1) -> dict[str, object]:
         base = base.resolve()
@@ -1476,11 +1666,14 @@ class RunnerGuards(unittest.TestCase):
         owned = runner.parser().parse_args([
             "fresh-plan", "--cohort", "fixture", "--baseline-bin-dir", "/bins", "--owned-lifecycle",
             "--creation-commitment-path", "/outside/creation.json",
+            "--pending-receipt-path", "/outside/creation.json.pending",
         ])
         self.assertTrue(owned.owned_lifecycle)
         self.assertEqual(owned.creation_commitment_path, Path("/outside/creation.json"))
+        self.assertEqual(owned.pending_receipt_path, Path("/outside/creation.json.pending"))
         recovered = runner.parser().parse_args([
             "recover-fresh-plan", "--cohort", "fixture", "--creation-commitment-path", "/outside/creation.json",
+            "--pending-receipt-path", "/outside/creation.json.pending",
             "--expected-commitment-sha256", "a" * 64, "--owned-lifecycle",
         ])
         self.assertTrue(recovered.owned_lifecycle)
@@ -1525,6 +1718,7 @@ class RunnerGuards(unittest.TestCase):
                             "frozen_baseline.py", "--repo", str(repo), "--root", str(root), command,
                             "--cohort", runner.PREPARE_LIVE_OWNED_COHORT, "--baseline-bin-dir", str(root / "bins"),
                             "--owned-lifecycle", "--owned-budget", "20", "--creation-commitment-path", str(root.parent / f"{root.name}-creation.json"),
+                            "--pending-receipt-path", str(Path(f"{root.parent / f'{root.name}-creation.json'}.pending")),
                         ]
                     else:
                         # Creation in this synthetic fixture uses the same CLI path and budget.
@@ -1532,6 +1726,7 @@ class RunnerGuards(unittest.TestCase):
                             "frozen_baseline.py", "--repo", str(repo), "--root", str(root), "fresh-plan",
                             "--cohort", runner.PREPARE_LIVE_OWNED_COHORT, "--baseline-bin-dir", str(root / "bins"),
                             "--owned-lifecycle", "--owned-budget", "20", "--creation-commitment-path", str(root.parent / f"{root.name}-creation.json"),
+                            "--pending-receipt-path", str(Path(f"{root.parent / f'{root.name}-creation.json'}.pending")),
                         ]
                         with patch.object(sys, "argv", create_argv), redirect_stdout(io.StringIO()):
                             self.assertEqual(runner.main(), 0)
@@ -1554,6 +1749,7 @@ class RunnerGuards(unittest.TestCase):
                             "frozen_baseline.py", "--repo", str(repo), "--root", str(root), "recover-fresh-plan",
                             "--cohort", runner.PREPARE_LIVE_OWNED_COHORT,
                             "--creation-commitment-path", str(root.parent / f"{root.name}-creation.json"),
+                            "--pending-receipt-path", str(Path(f"{root.parent / f'{root.name}-creation.json'}.pending")),
                             "--expected-commitment-sha256", pending["creation_commitment_sha256"],
                             "--owned-lifecycle", "--owned-budget", "20",
                         ]
@@ -1597,6 +1793,7 @@ class RunnerGuards(unittest.TestCase):
                     "frozen_baseline.py", "--repo", str(repo), "--root", str(root), "fresh-plan",
                     "--cohort", runner.PREPARE_LIVE_OWNED_COHORT, "--baseline-bin-dir", str(root / "bins"),
                     "--owned-lifecycle", "--owned-budget", "1", "--creation-commitment-path", str(root.parent / f"{root.name}-creation.json"),
+                    "--pending-receipt-path", str(Path(f"{root.parent / f'{root.name}-creation.json'}.pending")),
                 ]
                 with patch.object(sys, "argv", argv), redirect_stdout(io.StringIO()) as output, redirect_stderr(io.StringIO()) as errors:
                     started = time.monotonic()
@@ -1647,6 +1844,7 @@ class RunnerGuards(unittest.TestCase):
                     "frozen_baseline.py", "--repo", str(repo), "--root", str(root), "fresh-plan",
                     "--cohort", runner.PREPARE_LIVE_OWNED_COHORT, "--baseline-bin-dir", str(root / "bins"),
                     "--owned-lifecycle", "--owned-budget", "1", "--creation-commitment-path", str(root.parent / f"{root.name}-creation.json"),
+                    "--pending-receipt-path", str(Path(f"{root.parent / f'{root.name}-creation.json'}.pending")),
                 ]
                 with patch.object(sys, "argv", argv), redirect_stdout(io.StringIO()) as output, redirect_stderr(io.StringIO()) as errors:
                     self.assertEqual(runner.main(), 1)
@@ -1681,6 +1879,7 @@ class RunnerGuards(unittest.TestCase):
                     "frozen_baseline.py", "--repo", str(repo), "--root", str(root), "fresh-plan",
                     "--cohort", runner.PREPARE_LIVE_OWNED_COHORT, "--baseline-bin-dir", str(root / "bins"),
                     "--owned-lifecycle", "--owned-budget", "1", "--creation-commitment-path", str(root.parent / f"{root.name}-creation.json"),
+                    "--pending-receipt-path", str(Path(f"{root.parent / f'{root.name}-creation.json'}.pending")),
                 ]
                 with patch.object(sys, "argv", argv), redirect_stdout(io.StringIO()) as output, redirect_stderr(io.StringIO()) as errors:
                     self.assertEqual(runner.main(), 1)
@@ -1694,7 +1893,7 @@ class RunnerGuards(unittest.TestCase):
             with patch.object(runner, "EXPECTED_SCENARIOS", 1), patch.object(runner, "EXPECTED_ORDINARY_TESTS", 2), redirect_stdout(io.StringIO()) as recovered_output, runner.PrepareExecution(20) as execution:
                 recovered = runner.recover_fresh_plan_creation_anchor(
                     root, runner.PREPARE_LIVE_OWNED_COHORT, Path(pending["creation_commitment_path"]),
-                    pending["creation_commitment_sha256"], execution=execution,
+                    pending["creation_commitment_sha256"], pending_receipt_path=Path(pending["pending_receipt_path"]), execution=execution,
                 )
             self.assertEqual(recovered["creation_file_sha256"], runner.sha256(root / runner.FRESH_PLAN_FILE))
             self.assertFalse(recovered["verified"])
@@ -1744,6 +1943,7 @@ class RunnerGuards(unittest.TestCase):
                     "frozen_baseline.py", "--repo", str(repo), "--root", str(root), "fresh-plan",
                     "--cohort", runner.PREPARE_LIVE_OWNED_COHORT, "--baseline-bin-dir", str(root / "bins"),
                     "--owned-lifecycle", "--owned-budget", "20", "--creation-commitment-path", str(root.parent / f"{root.name}-creation.json"),
+                    "--pending-receipt-path", str(Path(f"{root.parent / f'{root.name}-creation.json'}.pending")),
                 ]
                 with patch.object(sys, "argv", argv), redirect_stdout(io.StringIO()) as output, redirect_stderr(io.StringIO()) as errors:
                     self.assertEqual(runner.main(), 1)
@@ -1754,7 +1954,7 @@ class RunnerGuards(unittest.TestCase):
             with patch.object(runner, "EXPECTED_SCENARIOS", 1), patch.object(runner, "EXPECTED_ORDINARY_TESTS", 2), redirect_stdout(io.StringIO()), runner.PrepareExecution(20) as execution:
                 recovered = runner.recover_fresh_plan_creation_anchor(
                     root, runner.PREPARE_LIVE_OWNED_COHORT, Path(pending["creation_commitment_path"]),
-                    pending["creation_commitment_sha256"], execution=execution,
+                    pending["creation_commitment_sha256"], pending_receipt_path=Path(pending["pending_receipt_path"]), execution=execution,
                 )
             self.assertEqual(recovered["creation_file_sha256"], runner.sha256(root / runner.FRESH_PLAN_FILE))
             self.assertFalse(recovered["verified"])
@@ -1786,6 +1986,7 @@ class RunnerGuards(unittest.TestCase):
                     "frozen_baseline.py", "--repo", str(repo), "--root", str(root), "fresh-plan",
                     "--cohort", runner.PREPARE_LIVE_OWNED_COHORT, "--baseline-bin-dir", str(root / "bins"),
                     "--owned-lifecycle", "--owned-budget", "20", "--creation-commitment-path", str(commitment_path),
+                    "--pending-receipt-path", str(Path(f"{commitment_path}.pending")),
                 ]
                 with patch.object(sys, "argv", argv), redirect_stdout(io.StringIO()) as output, redirect_stderr(io.StringIO()) as errors:
                     self.assertEqual(runner.main(), 1)
@@ -1796,7 +1997,7 @@ class RunnerGuards(unittest.TestCase):
             commitment_digest = runner.sha256(commitment_path)
             with runner.PrepareExecution(20) as execution, self.assertRaisesRegex(runner.RunnerError, "cannot be safely read"):
                 runner.recover_fresh_plan_creation_anchor(
-                    root, runner.PREPARE_LIVE_OWNED_COHORT, commitment_path, commitment_digest, execution=execution,
+                    root, runner.PREPARE_LIVE_OWNED_COHORT, commitment_path, commitment_digest, pending_receipt_path=Path(f"{commitment_path}.pending"), execution=execution,
                 )
 
     def test_owned_fresh_plan_deadline_after_pending_receipt_before_plan_link_fails_closed(self) -> None:
@@ -1826,6 +2027,7 @@ class RunnerGuards(unittest.TestCase):
                     "frozen_baseline.py", "--repo", str(repo), "--root", str(root), "fresh-plan",
                     "--cohort", runner.PREPARE_LIVE_OWNED_COHORT, "--baseline-bin-dir", str(root / "bins"),
                     "--owned-lifecycle", "--owned-budget", "1", "--creation-commitment-path", str(commitment_path),
+                    "--pending-receipt-path", str(Path(f"{commitment_path}.pending")),
                 ]
                 with patch.object(sys, "argv", argv), redirect_stdout(io.StringIO()) as output, redirect_stderr(io.StringIO()) as errors:
                     self.assertEqual(runner.main(), 1)
@@ -1835,7 +2037,7 @@ class RunnerGuards(unittest.TestCase):
             self.assertTrue(commitment_path.is_file())
             self.assertFalse((root / runner.FRESH_PLAN_FILE).exists())
             with runner.PrepareExecution(20) as execution, self.assertRaisesRegex(runner.RunnerError, "cannot be safely read"):
-                runner.recover_fresh_plan_creation_anchor(root, runner.PREPARE_LIVE_OWNED_COHORT, commitment_path, pending["creation_commitment_sha256"], execution=execution)
+                runner.recover_fresh_plan_creation_anchor(root, runner.PREPARE_LIVE_OWNED_COHORT, commitment_path, pending["creation_commitment_sha256"], pending_receipt_path=Path(pending["pending_receipt_path"]), execution=execution)
 
     def test_owned_fresh_plan_sigterm_after_pending_receipt_before_plan_link_fails_closed(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
@@ -1864,6 +2066,7 @@ class RunnerGuards(unittest.TestCase):
                     "frozen_baseline.py", "--repo", str(repo), "--root", str(root), "fresh-plan",
                     "--cohort", runner.PREPARE_LIVE_OWNED_COHORT, "--baseline-bin-dir", str(root / "bins"),
                     "--owned-lifecycle", "--owned-budget", "20", "--creation-commitment-path", str(commitment_path),
+                    "--pending-receipt-path", str(Path(f"{commitment_path}.pending")),
                 ]
                 with patch.object(sys, "argv", argv), redirect_stdout(io.StringIO()) as output, redirect_stderr(io.StringIO()) as errors:
                     self.assertEqual(runner.main(), 1)
@@ -1873,7 +2076,7 @@ class RunnerGuards(unittest.TestCase):
             self.assertTrue(commitment_path.is_file())
             self.assertFalse((root / runner.FRESH_PLAN_FILE).exists())
             with runner.PrepareExecution(20) as execution, self.assertRaisesRegex(runner.RunnerError, "cannot be safely read"):
-                runner.recover_fresh_plan_creation_anchor(root, runner.PREPARE_LIVE_OWNED_COHORT, commitment_path, pending["creation_commitment_sha256"], execution=execution)
+                runner.recover_fresh_plan_creation_anchor(root, runner.PREPARE_LIVE_OWNED_COHORT, commitment_path, pending["creation_commitment_sha256"], pending_receipt_path=Path(pending["pending_receipt_path"]), execution=execution)
 
     def test_fresh_plan_creation_digest_is_precomputed_before_publish_race(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
