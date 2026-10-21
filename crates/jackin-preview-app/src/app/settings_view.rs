@@ -1,8 +1,8 @@
 //! Live settings screen rendering with termrock widgets and components.
 //! Replaces historical_settings_*.rs replay modules.
 
-use termrock::author::PaintStyle;
-use termrock::{Color, Modifier, Position, Rect, Style, Ui};
+use termrock::author::{PaintStyle, put_cell, put_fill, put_fill_in, put_text};
+use termrock::{Color, Modifier, Rect, Style, Ui};
 
 use super::App;
 
@@ -579,7 +579,7 @@ fn paint_settings_chrome(
     tab_note: Option<&str>,
     crumb_note: Option<&str>,
 ) {
-    ui.fill(full, env_canvas());
+    put_fill_in(ui, full, env_canvas());
     let Some(tab) = TABS.get(active) else {
         return;
     };
@@ -849,11 +849,11 @@ fn env_paint(ui: &mut Ui<'_>, x: u16, y: u16, text: &str, fg: Color, bg: Color, 
     if bold {
         style = style.add_modifier(Modifier::BOLD);
     }
-    ui.paint_str(Rect::new(x, y, text.chars().count() as u16, 1), text, style);
+    put_text(ui, x, y, text, style);
 }
 
 fn env_cell(ui: &mut Ui<'_>, x: u16, y: u16, symbol: &str, fg: Color, bg: Color) {
-    ui.paint_cell(Position::new(x, y), symbol, env_canvas().fg(fg).bg(bg));
+    put_cell(ui, x, y, symbol, env_canvas().fg(fg).bg(bg));
 }
 
 fn paint_env_body(ui: &mut Ui<'_>) {
@@ -1384,18 +1384,12 @@ fn paint_save_preview(app: &App, ui: &mut Ui<'_>, full: Rect) {
     let bg = Color::Rgb(0x18, 0x18, 0x1b);
     let border = Color::Rgb(0x4d, 0x4d, 0x4d);
 
-    ui.fill(
-        Rect::new(x, y, card_w, card_h),
-        Style::default().fg(MUTED).bg(bg),
-    );
+    put_fill(ui, x, y, card_w, card_h, Style::default().fg(MUTED).bg(bg));
     // Body rows keep two muted columns on each side. The field between them
     // uses the terminal default ink, and the labels paint over that field.
     let field = Style::default().fg(Color::Reset).bg(bg);
     for row in 4..10 {
-        ui.fill(
-            Rect::new(x.saturating_add(3), y.saturating_add(row), 60, 1),
-            field,
-        );
+        put_fill(ui, x.saturating_add(3), y.saturating_add(row), 60, 1, field);
     }
 
     // Top border (y)
@@ -1613,7 +1607,7 @@ fn paint_str(ui: &mut Ui<'_>, x: u16, y: u16, text: &str, fg: Color, bg: Color, 
     if bold {
         style = style.add_modifier(Modifier::BOLD);
     }
-    ui.paint_str(Rect::new(x, y, text.chars().count() as u16, 1), text, style);
+    put_text(ui, x, y, text, style);
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -1638,7 +1632,7 @@ fn paint_styled(
     if !modifier.is_empty() {
         style = style.add_modifier(modifier);
     }
-    ui.paint_str(Rect::new(x, y, text.chars().count() as u16, 1), text, style);
+    put_text(ui, x, y, text, style);
 }
 
 fn paint_cell(ui: &mut Ui<'_>, x: u16, y: u16, symbol: &str, fg: Color, bg: Color, bold: bool) {
@@ -1646,5 +1640,5 @@ fn paint_cell(ui: &mut Ui<'_>, x: u16, y: u16, symbol: &str, fg: Color, bg: Colo
     if bold {
         style = style.add_modifier(Modifier::BOLD);
     }
-    ui.paint_cell(Position::new(x, y), symbol, style);
+    put_cell(ui, x, y, symbol, style);
 }
