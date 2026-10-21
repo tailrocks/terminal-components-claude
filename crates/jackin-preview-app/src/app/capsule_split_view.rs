@@ -73,16 +73,60 @@ fn paint_120(ui: &mut Ui<'_>, title: &str) {
     paint_footer(ui, full.height.saturating_sub(1));
 }
 
+/// Some 120 repairs are one step brighter at 256 than their truecolor role.
+/// Rules and menu gaps stay on the truecolor role.
+fn lift_256(ui: &Ui<'_>, color: Color) -> Color {
+    if ui.theme_ref().capability.color != termrock::ColorLevel::Ansi256 {
+        return color;
+    }
+    if color == FAINT {
+        MUTED
+    } else if color == GHOST {
+        FAINT
+    } else {
+        color
+    }
+}
+
 fn repair_underlay(ui: &mut Ui<'_>) {
     // Menu gaps and pane padding dim as faint. The live primary ink dims
     // to muted, so put the frozen faint back on those cells.
     for x in [12, 17, 19, 24, 26, 31, 33, 41, 43, 48] {
         paint_cell(ui, x, 0, " ", FAINT, BLACK, false);
     }
-    paint_str(ui, 1, 3, &"━".repeat(14), GHOST, BLACK, false);
-    paint_str(ui, 61, 5, "  running 24 tests", GHOST, BLACK, false);
-    paint_str(ui, 79, 5, &" ".repeat(39), FAINT, BLACK, false);
-    paint_str(ui, 105, 6, &" ".repeat(13), FAINT, BLACK, false);
+    let rule_ink = if ui.theme_ref().capability.color == termrock::ColorLevel::Ansi256 {
+        BORDER
+    } else {
+        GHOST
+    };
+    paint_str(ui, 1, 3, &"━".repeat(14), rule_ink, BLACK, false);
+    paint_str(
+        ui,
+        61,
+        5,
+        "  running 24 tests",
+        lift_256(ui, GHOST),
+        BLACK,
+        false,
+    );
+    paint_str(
+        ui,
+        79,
+        5,
+        &" ".repeat(39),
+        lift_256(ui, FAINT),
+        BLACK,
+        false,
+    );
+    paint_str(
+        ui,
+        105,
+        6,
+        &" ".repeat(13),
+        lift_256(ui, FAINT),
+        BLACK,
+        false,
+    );
     paint_str(ui, 103, 7, "FAILED", MUTED, BLACK, false);
     paint_cell(ui, 75, 9, "1", MUTED, BLACK, false);
     paint_cell(ui, 76, 9, " ", MUTED, BLACK, false);
@@ -90,11 +134,27 @@ fn repair_underlay(ui: &mut Ui<'_>) {
     paint_str(ui, 1, 21, "  ", MUTED, BLACK, false);
     paint_cell(ui, 3, 21, "-", MUTED, BLACK, false);
     paint_str(ui, 4, 21, "  ", MUTED, BLACK, false);
-    paint_str(ui, 96, 22, ":00Z", GHOST, BLACK, false);
-    paint_cell(ui, 100, 22, " ", GHOST, BLACK, false);
-    paint_str(ui, 101, 22, "====", GHOST, BLACK, false);
-    paint_str(ui, 105, 22, &" ".repeat(13), FAINT, BLACK, false);
-    paint_str(ui, 96, 23, &" ".repeat(22), FAINT, BLACK, false);
+    paint_str(ui, 96, 22, ":00Z", lift_256(ui, GHOST), BLACK, false);
+    paint_cell(ui, 100, 22, " ", lift_256(ui, GHOST), BLACK, false);
+    paint_str(ui, 101, 22, "====", lift_256(ui, GHOST), BLACK, false);
+    paint_str(
+        ui,
+        105,
+        22,
+        &" ".repeat(13),
+        lift_256(ui, FAINT),
+        BLACK,
+        false,
+    );
+    paint_str(
+        ui,
+        96,
+        23,
+        &" ".repeat(22),
+        lift_256(ui, FAINT),
+        BLACK,
+        false,
+    );
     paint_str(ui, 96, 18, &"━".repeat(21), FAINT, BLACK, false);
     paint_cell(ui, 117, 18, "┄", GHOST, BLACK, false);
     paint_str(ui, 61, 36, &"━".repeat(43), FAINT, BLACK, false);
@@ -104,8 +164,16 @@ fn repair_underlay(ui: &mut Ui<'_>) {
 
 fn repair_card_pad(ui: &mut Ui<'_>) {
     paint_cell(ui, 94, 18, " ", FAINT, CARD, false);
-    paint_cell(ui, 94, 22, " ", GHOST, CARD, false);
-    paint_str(ui, 81, 23, &" ".repeat(14), FAINT, CARD, false);
+    paint_cell(ui, 94, 22, " ", lift_256(ui, GHOST), CARD, false);
+    paint_str(
+        ui,
+        81,
+        23,
+        &" ".repeat(14),
+        lift_256(ui, FAINT),
+        CARD,
+        false,
+    );
 }
 
 fn paint_fitted(ui: &mut Ui<'_>, title: &str) {
@@ -337,18 +405,17 @@ fn repair_fitted_underlay(ui: &mut Ui<'_>, width: u16) {
             paint_cell(ui, x, 0, " ", FAINT, BLACK, false);
         }
     }
-    // The first tab rule run is ghost, not the live muted rule.
+    // The first tab rule run is ghost in truecolor. At 256 the same run is
+    // the strong border index, because that ink still clears the contrast
+    // floor and the backdrop lifts it.
     let rule = 14.min(width.saturating_sub(1));
     if rule > 0 {
-        paint_str(
-            ui,
-            1,
-            3,
-            &"━".repeat(usize::from(rule)),
-            GHOST,
-            BLACK,
-            false,
-        );
+        let ink = if ui.theme_ref().capability.color == termrock::ColorLevel::Ansi256 {
+            BORDER
+        } else {
+            GHOST
+        };
+        paint_str(ui, 1, 3, &"━".repeat(usize::from(rule)), ink, BLACK, false);
     }
 }
 
@@ -500,7 +567,54 @@ fn paint_footer(ui: &mut Ui<'_>, y: u16) {
     paint_str(ui, 119, y, " ", WHITE, BLACK, false);
 }
 
-fn ink(fg: Color, bg: Color, bold: bool) -> PaintStyle {
+/// Baseline `apply_256` text and border ladder.
+///
+/// The shared 256 palette uses darker faint and ghost indexes. Backdrop
+/// contrast then lifts faint text to muted and leaves strong borders on
+/// ghost. This frame paints with the baseline indexes so the lift matches
+/// the frozen picker.
+pub(super) fn apply_baseline_ladder(theme: &mut termrock::Theme) {
+    if let Some(slot) = theme.color.fg.get_mut(2) {
+        *slot = Color::Indexed(245);
+    }
+    if let Some(slot) = theme.color.fg.get_mut(3) {
+        *slot = Color::Indexed(242);
+    }
+    if let Some(slot) = theme.color.fg.get_mut(4) {
+        *slot = Color::Indexed(238);
+    }
+    theme.color.border_strong = Color::Indexed(242);
+    theme.color.border_subtle = Color::Indexed(238);
+    theme.color.backdrop_fg = Color::Indexed(238);
+}
+
+pub(super) fn baseline_256(color: Color) -> Color {
+    match color {
+        Color::Rgb(0x18, 0x18, 0x1b) => Color::Indexed(233),
+        Color::Rgb(0x1e, 0x1e, 0x22) => Color::Indexed(234),
+        Color::Rgb(0x2f, 0x5a, 0xa8) => Color::Indexed(25),
+        Color::Rgb(0x4d, 0x4d, 0x4d) | Color::Rgb(0x73, 0x73, 0x73) => Color::Indexed(242),
+        Color::Rgb(0x8a, 0x8a, 0x8a) => Color::Indexed(245),
+        Color::Rgb(0xb3, 0xb3, 0xb3) => Color::Indexed(249),
+        Color::Rgb(0xff, 0xff, 0xff) => Color::Indexed(231),
+        Color::Rgb(0x48, 0xe0, 0x54) => Color::Indexed(78),
+        Color::Rgb(0x26, 0x26, 0x26) => Color::Indexed(238),
+        Color::Rgb(0x27, 0x27, 0x2a) => Color::Indexed(235),
+        Color::Rgb(0x19, 0x19, 0x1c) => Color::Indexed(232),
+        Color::Rgb(0x00, 0x00, 0x00) => Color::Indexed(16),
+        Color::Rgb(_, _, _) => {
+            termrock::theme::downgrade_color(color, termrock::ColorLevel::Ansi256)
+        }
+        other => other,
+    }
+}
+
+fn ink(ui: &Ui<'_>, fg: Color, bg: Color, bold: bool) -> PaintStyle {
+    let (fg, bg) = if ui.theme_ref().capability.color == termrock::ColorLevel::Ansi256 {
+        (baseline_256(fg), baseline_256(bg))
+    } else {
+        (fg, bg)
+    };
     let mut style = PaintStyle::new()
         .fg(fg)
         .bg(bg)
@@ -515,10 +629,10 @@ fn paint_str(ui: &mut Ui<'_>, x: u16, y: u16, text: &str, fg: Color, bg: Color, 
     ui.paint_str(
         Rect::new(x, y, text.chars().count() as u16, 1),
         text,
-        ink(fg, bg, bold),
+        ink(ui, fg, bg, bold),
     );
 }
 
 fn paint_cell(ui: &mut Ui<'_>, x: u16, y: u16, symbol: &str, fg: Color, bg: Color, bold: bool) {
-    ui.paint_cell(Position::new(x, y), symbol, ink(fg, bg, bold));
+    ui.paint_cell(Position::new(x, y), symbol, ink(ui, fg, bg, bold));
 }

@@ -8019,8 +8019,9 @@ impl App {
         // Zoom, the tab menu, and non-junie themes stay off this path.
         screen.width >= 72
             && screen.height >= 20
-            && theme.capability.color == termrock::ColorLevel::TrueColor
-            && theme.color.accent == termrock::Color::Rgb(0x48, 0xe0, 0x54)
+            && (Self::junie_truecolor(theme)
+                || (theme.capability.color == termrock::ColorLevel::Ansi256
+                    && theme.color.accent == termrock::Color::Indexed(78)))
             && self.route == Route::Capsule
             && self.world.scenario == Scenario::CapsuleMulti
             && self.motion == Motion::Paused
@@ -8567,6 +8568,36 @@ impl App {
                 Rect::new(area.x, area.bottom().saturating_sub(1), area.width, 1),
                 "prefix… New tab · Split right · Copy selection · Detach",
                 ui.surface_style(),
+            );
+        }
+    }
+
+    fn draw_capsule_scene(&self, ui: &mut Ui<'_>, full: Rect) {
+        self.draw_capsule_shell(ui, full);
+        self.draw_layers(ui);
+        if self.capsule_palette_open {
+            // Accent on the tab rule dims to faint. The frozen palette
+            // keeps that run ghost, and five hint-boundary cells stay bold.
+            finish_capsule_palette_chrome(ui);
+        }
+        self.draw_capsule_zoom(ui, full);
+        self.draw_capsule_menu_80(ui);
+        if self.capsule_agent_picker_frame(ui.theme_ref(), full) {
+            let title = match self.pending_capsule_action {
+                Some(CapsuleAction::NewTab) => "New tab",
+                _ => "Split ↓ Below",
+            };
+            capsule_split_view::paint(ui, title);
+            if ui.theme_ref().capability.color == termrock::ColorLevel::Ansi256 {
+                // Card fills keep truecolor RGB. The shell already uses the
+                // baseline index ladder.
+                ui.recolor_rgb(full, capsule_split_view::baseline_256);
+            }
+            let cursor = capsule_split_view::search_cursor(full);
+            ui.set_undrawn_top_bar_cursor(
+                CAPSULE_INPUT,
+                Rect::new(cursor.x, cursor.y, 1, 1),
+                cursor,
             );
         }
     }
@@ -10735,27 +10766,14 @@ impl TuiApp for App {
             return;
         }
         if self.route == Route::Capsule {
-            self.draw_capsule_shell(ui, full);
-            self.draw_layers(ui);
-            if self.capsule_palette_open {
-                // Accent on the tab rule dims to faint. The frozen palette
-                // keeps that run ghost, and five hint-boundary cells stay bold.
-                finish_capsule_palette_chrome(ui);
-            }
-            self.draw_capsule_zoom(ui, full);
-            self.draw_capsule_menu_80(ui);
-            if self.capsule_agent_picker_frame(ui.theme_ref(), full) {
-                let title = match self.pending_capsule_action {
-                    Some(CapsuleAction::NewTab) => "New tab",
-                    _ => "Split ↓ Below",
-                };
-                capsule_split_view::paint(ui, title);
-                let cursor = capsule_split_view::search_cursor(full);
-                ui.set_undrawn_top_bar_cursor(
-                    CAPSULE_INPUT,
-                    Rect::new(cursor.x, cursor.y, 1, 1),
-                    cursor,
-                );
+            let baseline_256 = ui.theme_ref().capability.color == termrock::ColorLevel::Ansi256
+                && self.capsule_agent_picker_frame(ui.theme_ref(), full);
+            if baseline_256 {
+                let mut theme = ui.theme_ref().clone();
+                capsule_split_view::apply_baseline_ladder(&mut theme);
+                ui.with_theme(&theme, |ui| self.draw_capsule_scene(ui, full));
+            } else {
+                self.draw_capsule_scene(ui, full);
             }
             return;
         }
