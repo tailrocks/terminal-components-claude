@@ -3473,6 +3473,18 @@ strings, the hint group costs are collected into a stack buffer instead of a
 of once per use. The frame is back to 99 allocations with the same rendering,
 and the test passes without any budget change.
 
+The attribution was measured with a temporary counting-allocator probe, not
+inferred. The frame cost 99 allocations per frame at the pre-merge commit
+`511f8e127` and 114 after the merge `8c41412c3`. The per-region deltas are
+`draw_header` +12, `draw_footer` +3 and the grid body +0, which rules out
+`query_editor_rows` (pure `u16` arithmetic, not on the grid path) and the
+`grid_viewport`/`grid_chrome` edge guards (style only, and the grid body
+region measured identical at 97 to 97). Inside the merged header, the
+`workbench_header_pieces` formatting and `Vec` growth cost 10 allocations
+and the two `Vec<bool>` in `header_overflow` cost 2; inside the merged
+footer, `hint_group_costs` cost 2 and the doubly built connection status
+label cost 1.
+
 The same pass clears the strict clippy gate for `tablepro-ui`: the hint group
 walk and the hint painter use safe span access, and the header overflow test
 asserts the whole result instead of unwrapping it. `cargo clippy -p
