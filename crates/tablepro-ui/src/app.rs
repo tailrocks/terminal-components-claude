@@ -128,11 +128,19 @@ fn query_editor(
     provider: &dyn CompletionProvider,
     commit_on_blur: bool,
 ) -> CompletingCodeEditor<'_> {
+    // The query surface is the field color. A modal backdrop then lifts that
+    // field to the elevated card. Canvas black never lifts, so the open
+    // picker and help frames lose the card.
+    const PARTS: &[(Part, StylePatch)] = &[(
+        Part::CONTAINER,
+        StylePatch::new().set_bg(Role::Surface(termrock::Surface::Field)),
+    )];
     CodeEditor::new(id, rows)
         .fill_height(true)
         .highlighter(&highlight_sql)
         .segmenter(&segment_sql)
         .placeholder(QUERY_EDITOR_PLACEHOLDER)
+        .patch_part(PARTS)
         .with_completion(id.sub("completion"), provider)
         .commit_on_blur(commit_on_blur)
 }
@@ -9301,6 +9309,14 @@ fn draw_footer(ui: &mut Ui<'_>, area: termrock::Rect, app: &TableProApp) {
             Surface::TableGrid | Surface::StructureView | Surface::HistoryTab
         ) || explorer_focused
             || empty_query
+            || (app.blank_sql()
+                && matches!(
+                    app.surface,
+                    Surface::QuickSwitcher
+                        | Surface::TabListPicker
+                        | Surface::SafeModePicker
+                        | Surface::HelpDialog
+                ))
             || app.destructive_intent.is_some()
             || app.surface == Surface::FilterEditor
             || matches!(
