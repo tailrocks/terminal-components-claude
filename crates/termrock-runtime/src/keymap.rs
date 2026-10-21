@@ -147,7 +147,7 @@ impl KeyMap {
 
     pub fn remove_before_typing(&mut self, owner: Id, chord: Chord) {
         self.typing
-            .retain(|entry| entry.owner != owner || entry.chord != chord);
+            .retain(|entry| entry.owner != owner || !entry.chord.effective_eq(&chord));
     }
 
     pub(crate) fn before_typing(&self, owner: Id, key: &Key) -> Option<ActionKey> {
@@ -159,12 +159,12 @@ impl KeyMap {
 
     pub fn remove(&mut self, phase: KeyPhase, chord: Chord) {
         self.entries
-            .retain(|e| !(e.phase == phase && e.chord == chord));
+            .retain(|e| !(e.phase == phase && e.chord.effective_eq(&chord)));
     }
 
     pub fn remap(&mut self, phase: KeyPhase, from: Chord, to: Chord) {
         for e in &mut self.entries {
-            if e.phase == phase && e.chord == from {
+            if e.phase == phase && e.chord.effective_eq(&from) {
                 e.chord = to;
             }
         }
@@ -981,6 +981,48 @@ mod tests {
     }
 
     #[test]
+    fn global_keymap_mutations_use_effective_chord_identity() {
+        let shifted_back_tab = Chord::with(KeyCode::BackTab, KeyModifiers::SHIFT);
+        let bare_back_tab = Chord::key(KeyCode::BackTab);
+        let key = Key {
+            code: KeyCode::BackTab,
+            mods: KeyModifiers::SHIFT,
+        };
+
+        let mut removed = KeyMap::new().bind(
+            KeyPhase::Bubble,
+            bare_back_tab,
+            ActionKey::custom("keymap.back-tab"),
+        );
+        // A true modifier remains distinct from the intrinsic Shift on BackTab.
+        removed.remove(
+            KeyPhase::Bubble,
+            Chord::with(KeyCode::BackTab, KeyModifiers::ALT),
+        );
+        assert_eq!(
+            removed.lookup(KeyPhase::Bubble, &key, false),
+            Some(ActionKey::custom("keymap.back-tab"))
+        );
+        removed.remove(KeyPhase::Bubble, shifted_back_tab);
+        assert_eq!(removed.lookup(KeyPhase::Bubble, &key, false), None);
+
+        let action = ActionKey::custom("keymap.back-tab-remap");
+        let mut remapped = KeyMap::new().bind(KeyPhase::Bubble, bare_back_tab, action);
+        remapped.remap(KeyPhase::Bubble, shifted_back_tab, Chord::key(KeyCode::Up));
+        assert_eq!(
+            remapped.lookup(KeyPhase::Bubble, &k(KeyCode::Up), false),
+            Some(action)
+        );
+        assert_eq!(remapped.lookup(KeyPhase::Bubble, &key, false), None);
+
+        const OWNER: Id = Id::root("keymap.back-tab-typing");
+        let mut typing = KeyMap::new().bind_before_typing(OWNER, bare_back_tab, action);
+        assert_eq!(typing.before_typing(OWNER, &key), Some(action));
+        typing.remove_before_typing(OWNER, shifted_back_tab);
+        assert_eq!(typing.before_typing(OWNER, &key), None);
+    }
+
+    #[test]
     fn hints_derive_from_visible_bindings_by_priority() {
         #[derive(Clone, Copy)]
         enum Cmd {
@@ -1596,6 +1638,16 @@ mod tests {
             (
                 Chord::key(KeyCode::Up),
                 Chord::with(KeyCode::Up, KeyModifiers::SHIFT),
+                0,
+            ),
+            (
+                Chord::key(KeyCode::BackTab),
+                Chord::with(KeyCode::BackTab, KeyModifiers::SHIFT),
+                1,
+            ),
+            (
+                Chord::key(KeyCode::BackTab),
+                Chord::with(KeyCode::BackTab, KeyModifiers::ALT),
                 0,
             ),
             (
