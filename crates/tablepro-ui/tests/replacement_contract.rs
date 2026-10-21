@@ -181,6 +181,16 @@ fn save_connect_from_workbench_form_requires_guard_and_cancel_keeps_work() {
     let key = h.app().workbench.active_key();
     let _ = h.ctrl('n');
     assert!(h.app().connection_form_open());
+    let name = termrock::Id::root("tablepro.connections.form.name");
+    assert!(tab_navigation::tab_to(&mut h, name));
+    for ch in "Unsaved guard draft".chars() {
+        let _ = h.key(KeyCode::Char(ch));
+    }
+    assert_eq!(
+        h.app().connection_draft().map(|draft| draft.name.as_str()),
+        Some("Unsaved guard draft"),
+        "the reconnect fixture must supply its required Name through the visible field"
+    );
     let save = termrock::Id::root("tablepro.connections.form")
         .part(termrock::Part::ACTIONS)
         .index(3);
