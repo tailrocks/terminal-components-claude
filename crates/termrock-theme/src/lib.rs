@@ -38,7 +38,7 @@ pub use tokens::{
     Capability, ColorLevel, ColorTokens, Density, DesignTokens, MeterFillRest, MeterThresholds,
     MeterTokens, MotionTokens, SizeTokens, SpaceTokens, SyntaxTokens,
 };
-pub use visual::{COLOR_LEVELS, InactiveSelection, contrast_ratio};
+pub use visual::{COLOR_LEVELS, FOCUS_BAR_POLICIES, FocusBarPolicy, InactiveSelection, contrast_ratio};
 
 /// Rendering policy for the active row in a cursor-based list.
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Default)]
