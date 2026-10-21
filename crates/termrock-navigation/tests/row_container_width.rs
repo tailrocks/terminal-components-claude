@@ -1,14 +1,18 @@
 use std::cell::RefCell;
 
 use ratatui_core::layout::Rect;
-use termrock_core::{Id, ItemKey, StateFlags, Variant};
-use termrock_navigation::{Tree, TreeNode, TreeState};
+use termrock_core::{Id, ItemKey, KeyCode, StateFlags, Variant};
+use termrock_navigation::{
+    FilterList, FilterListState, FilterPolicy, Item, List, ListState, Tree, TreeNode, TreeState,
+};
 use termrock_runtime::{App, Cx, Family, Response, Ui};
 use termrock_test_support::Scene;
 use termrock_theme::{ColorLevel, GlyphRole, StylePatch, Theme};
 
 const TREE: Id = Id::root("row-container-width.tree");
 const AUTHOR: Id = Id::root("row-container-width.author");
+const LIST: Id = Id::root("row-container-width.list");
+const FILTER: Id = Id::root("row-container-width.filter");
 
 #[derive(Clone, Copy)]
 struct Node {
@@ -174,4 +178,213 @@ fn zero_width_author_row_reports_zero_without_panicking() {
     );
     scene.draw(|ui, _| page.draw(ui));
     assert_eq!(*observed.borrow(), Some((0, Rect::new(9, 3, 0, 1))));
+}
+
+struct ListPage {
+    state: ListState,
+    items: Vec<Node>,
+    width: u16,
+    height: u16,
+    seen: RefCell<Vec<(ItemKey, Observation)>>,
+}
+
+fn node_key(value: &Node) -> ItemKey {
+    ItemKey::text(value.key)
+}
+
+impl App for ListPage {
+    fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+        let row = |item: &Node, row: &mut termrock_runtime::RowUi<'_>| row.label(item.label);
+        List::new(LIST)
+            .key(node_key)
+            .row(row)
+            .update(cx, &mut self.state, &self.items)
+            .erase()
+    }
+
+    fn draw(&self, ui: &mut Ui<'_>) {
+        self.seen.borrow_mut().clear();
+        let seen = &self.seen;
+        let row = move |item: &Node, row: &mut termrock_runtime::RowUi<'_>| {
+            seen.borrow_mut().push((
+                node_key(item),
+                Observation {
+                    width: row.container_width(),
+                    area: row.area(),
+                },
+            ));
+            row.label(item.label);
+        };
+        List::new(LIST).key(node_key).row(row).draw(
+            ui,
+            Rect::new(7, 2, self.width, self.height),
+            &self.state,
+            &self.items,
+        );
+    }
+}
+
+fn list_harness(width: u16, height: u16) -> termrock_test_support::Harness<ListPage> {
+    termrock_test_support::Harness::new(
+        ListPage {
+            state: ListState::default(),
+            items: vec![
+                Node {
+                    key: "alpha",
+                    label: "alpha",
+                    depth: 0,
+                },
+                Node {
+                    key: "beta",
+                    label: "beta",
+                    depth: 0,
+                },
+                Node {
+                    key: "gamma",
+                    label: "gamma",
+                    depth: 0,
+                },
+            ],
+            width,
+            height,
+            seen: RefCell::new(Vec::new()),
+        },
+        Theme::junie(),
+        64,
+        8,
+    )
+}
+
+#[test]
+fn list_container_width_excludes_scrollbar_before_internal_columns_and_survives_scroll_reorder() {
+    for width in [43, 44, 45] {
+        let mut harness = list_harness(width, 1);
+        assert_eq!(harness.app().seen.borrow().len(), 1);
+        let (key, observation) = harness.app().seen.borrow()[0];
+        assert_eq!(observation.width, width - 1);
+        assert!(observation.area.width < observation.width);
+        assert!(observation.area.right() < 7 + width);
+        let _ = harness.key(KeyCode::End);
+        harness.draw();
+        assert_eq!(harness.app().seen.borrow().len(), 1);
+        assert_eq!(harness.app().seen.borrow()[0].0, ItemKey::text("gamma"));
+        assert_eq!(harness.app().seen.borrow()[0].1.width, width - 1);
+
+        harness.app_mut().items.swap(1, 2);
+        let _ = harness.tick();
+        assert_eq!(harness.app().seen.borrow().len(), 1);
+        assert_eq!(harness.app().seen.borrow()[0].1.width, width - 1);
+        assert_ne!(key, harness.app().seen.borrow()[0].0);
+    }
+
+    let no_scrollbar = list_harness(43, 3);
+    assert_eq!(no_scrollbar.app().seen.borrow()[0].1.width, 43);
+    for width in [0, 1, 2, 3, 4] {
+        let narrow = list_harness(width, 1);
+        assert!(
+            narrow
+                .app()
+                .seen
+                .borrow()
+                .iter()
+                .all(|(_, row)| row.area.width <= row.width)
+        );
+    }
+}
+
+struct FilterPage {
+    state: FilterListState,
+    items: Vec<Item<'static>>,
+    width: u16,
+    height: u16,
+    seen: RefCell<Vec<(ItemKey, Observation)>>,
+}
+
+impl App for FilterPage {
+    fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+        let row = |item: &Item<'static>, row: &mut termrock_runtime::RowUi<'_>| {
+            row.label(item.label);
+        };
+        FilterList::new(FILTER)
+            .searchable(true)
+            .filter(FilterPolicy::Label)
+            .row(row)
+            .update(cx, &mut self.state, &self.items)
+            .erase()
+    }
+
+    fn draw(&self, ui: &mut Ui<'_>) {
+        self.seen.borrow_mut().clear();
+        let seen = &self.seen;
+        let row = move |item: &Item<'static>, row: &mut termrock_runtime::RowUi<'_>| {
+            seen.borrow_mut().push((
+                item.key,
+                Observation {
+                    width: row.container_width(),
+                    area: row.area(),
+                },
+            ));
+            row.label(item.label);
+        };
+        FilterList::new(FILTER)
+            .searchable(true)
+            .filter(FilterPolicy::Label)
+            .row(row)
+            .draw(
+                ui,
+                Rect::new(7, 2, self.width, self.height),
+                &self.state,
+                &self.items,
+            );
+    }
+}
+
+fn filter_harness(width: u16, height: u16) -> termrock_test_support::Harness<FilterPage> {
+    termrock_test_support::Harness::new(
+        FilterPage {
+            state: FilterListState::default(),
+            items: vec![
+                Item::new(ItemKey::text("delta"), "delta"),
+                Item::new(ItemKey::text("epsilon"), "epsilon"),
+                Item::new(ItemKey::text("zeta"), "zeta"),
+            ],
+            width,
+            height,
+            seen: RefCell::new(Vec::new()),
+        },
+        Theme::junie(),
+        64,
+        8,
+    )
+}
+
+#[test]
+fn filter_list_width_tracks_scrollbar_and_filtering_not_internal_layout() {
+    for width in [43, 44, 45] {
+        let mut harness = filter_harness(width, 2);
+        assert_eq!(harness.app().seen.borrow().len(), 2);
+        let first = harness.app().seen.borrow()[0].1;
+        assert_eq!(first.width, width - 1);
+        assert_eq!(first.area.width, first.width);
+        assert!(first.area.right() < 7 + width);
+
+        harness.app_mut().state.set_query("zeta");
+        let _ = harness.tick();
+        assert_eq!(harness.app().seen.borrow().len(), 1);
+        let filtered = harness.app().seen.borrow()[0];
+        assert_eq!(filtered.0, ItemKey::text("zeta"));
+        assert_eq!(filtered.1.width, width);
+    }
+
+    for width in [0, 1, 2, 3, 4] {
+        let narrow = filter_harness(width, 1);
+        assert!(
+            narrow
+                .app()
+                .seen
+                .borrow()
+                .iter()
+                .all(|(_, row)| row.area.width <= row.width)
+        );
+    }
 }
