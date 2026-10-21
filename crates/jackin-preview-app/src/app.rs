@@ -257,10 +257,10 @@ const CAPSULE_COMMANDS: &[Item<'static>] = &[
 ];
 const TICK_MS: u64 = crate::rain::TICK_MS;
 
+mod accounts_detail_view;
 mod editor_view;
 mod historical_accounts_add_form;
 mod historical_accounts_detail;
-mod historical_accounts_detail_80;
 mod historical_accounts_drawer;
 mod historical_accounts_filter;
 
@@ -7620,7 +7620,7 @@ impl App {
         }
         // Approved frame hides the cursor. This path must not call set_cursor
         // or set_bar_cursor, and it must not write cursor bytes.
-        historical_accounts_detail_80::paint(ui);
+        accounts_detail_view::paint(ui);
     }
 
     fn accounts_work_drawer_enter(&self) -> bool {
