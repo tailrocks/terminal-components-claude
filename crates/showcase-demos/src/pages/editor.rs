@@ -655,7 +655,7 @@ impl Page for EditorPage {
                     Group::wrap([editor_child, details]).spec(LayoutComposition::new().gap(2));
                 ui.with_area(body, |ui| {
                     let _ = playground.show(ui);
-                    ui.publish_bindings(EDITOR, ui.state(EDITOR), RUN_BINDINGS);
+                    ui.publish_additional_bindings(EDITOR, ui.state(EDITOR), RUN_BINDINGS);
                 });
             },
         );
