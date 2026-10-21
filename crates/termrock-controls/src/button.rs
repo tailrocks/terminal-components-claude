@@ -78,6 +78,7 @@ pub struct Button<'a> {
     label: &'a str,
     variant: Variant,
     focus_visibility: ButtonFocusVisibility,
+    focusability: Focusability,
     disabled: bool,
     icon: Option<GlyphRole>,
     autofocus: bool,
@@ -94,6 +95,7 @@ impl fmt::Debug for Button<'_> {
             .field("label", &self.label)
             .field("variant", &self.variant)
             .field("focus_visibility", &self.focus_visibility)
+            .field("focusability", &self.focusability)
             .field("disabled", &self.disabled)
             .field("status", &self.status)
             .field("checked", &self.checked)
@@ -118,6 +120,7 @@ impl<'a> Button<'a> {
             label,
             variant: Variant::DEFAULT,
             focus_visibility: ButtonFocusVisibility::Always,
+            focusability: Focusability::Focusable,
             disabled: false,
             icon: None,
             autofocus: false,
@@ -141,6 +144,16 @@ impl<'a> Button<'a> {
     #[must_use]
     pub const fn focus_visible(mut self, visibility: ButtonFocusVisibility) -> Self {
         self.focus_visibility = visibility;
+        self
+    }
+
+    /// Set whether the button participates in keyboard focus.
+    ///
+    /// `ClickOnly` keeps the button hit-testable and pointer-activatable while
+    /// excluding it from keyboard traversal and keyboard activation.
+    #[must_use]
+    pub const fn focusability(mut self, focusability: Focusability) -> Self {
+        self.focusability = focusability;
         self
     }
 
@@ -212,6 +225,7 @@ impl<'a> Button<'a> {
             label: self.label,
             variant: self.variant,
             focus_visibility: self.focus_visibility,
+            focusability: self.focusability,
             disabled: self.disabled || inherited,
             icon: self.icon,
             autofocus: self.autofocus,
@@ -228,11 +242,12 @@ impl<'a> Button<'a> {
         let can = self.can_activate();
         for it in cx.intents(self.id) {
             match it {
-                Intent::Binding(action) => {
+                Intent::Binding(action) if self.focusability != Focusability::ClickOnly => {
                     if can && Binding::command(BINDINGS, action).is_some() {
                         r = Response::action(Activated);
                     }
                 }
+                Intent::Binding(_) => {}
                 Intent::Pointer {
                     phase: Phase::Click | Phase::DoubleClick,
                     ..
@@ -273,7 +288,7 @@ impl<'a> Button<'a> {
     }
 
     fn autofocus_once(&self, cx: &mut Cx<'_>) {
-        if !self.autofocus {
+        if !self.autofocus || self.focusability == Focusability::ClickOnly {
             return;
         }
         let latch = cx.cache::<Autofocus>(self.id);
@@ -331,7 +346,7 @@ impl<'a> Button<'a> {
             let f = if self.disabled {
                 Focusability::Disabled
             } else {
-                Focusability::Focusable
+                self.focusability
             };
             ui.register_control(self.id, area, f);
         }
@@ -347,6 +362,9 @@ impl<'a> Button<'a> {
             derived |= StateFlags::CHECKED | StateFlags::SELECTED;
         }
         let mut live = PartStyle::flags(ui.state(self.id), derived);
+        if self.focusability == Focusability::ClickOnly {
+            live = live.difference(StateFlags::FOCUSED | StateFlags::FOCUS_VISIBLE);
+        }
         if self.checked != Some(true) {
             live = live.difference(StateFlags::SELECTED);
         }
@@ -358,7 +376,7 @@ impl<'a> Button<'a> {
         }
         // Bindings consume the actual runtime focus state. The focus-visibility
         // policy below only adapts state for style resolution.
-        if !ui.is_inert() {
+        if !ui.is_inert() && self.focusability != Focusability::ClickOnly {
             ui.publish_bindings(self.id, live, BINDINGS);
         }
         let mut style_flags = live;
