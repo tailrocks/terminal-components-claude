@@ -1,12 +1,12 @@
 {
-  "gates/clippy.log": "a00b1584c6d319f00ddd0a3eb3039c73e9367a3f54771335f7b63a54fb95460e",
-  "gates/facade-lib.log": "716a35aa9133e3093d61f5ac8ddf0742927e4036fb9f4c65d800f81ab903c6cd",
+  "gates/clippy.log": "c5cf63453e92fbc5f8470343c4838497537e71f401a92ae07a15fa373d88fea5",
+  "gates/facade-lib.log": "bf1ad7a79e4642a77e32830d44278fb2f4d4c1f3855c2b5635909e6460d379ab",
   "gates/fmt.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-  "gates/item-row-columns.log": "540abd7f03992532a456b2b9b1a1aece00c6bfd333e8c46030b2d5d105e98766",
-  "gates/navigation-lib.log": "0276fef8b0664798944a06283d84f99e1cce903e61a01c2eef0308fbaa188775",
-  "gates/public-example-check.log": "520a2dfdec7786fd380c2ba4d4a0c5f0b1cb1b39a1783b8a6bbf09dd0c7a25da",
-  "gates/public-example-run.log": "1235cd652cc7f41b31a31e26472742e1385697bfd293d5d5b6204de41968c48e",
-  "gates/runtime-lib.log": "e5bfcc48a43edbfa4b2976021b9fde058effa75be86b7b3f16145de5bba26270",
+  "gates/item-row-columns.log": "51d4690a408bbe770616cb6eb7cde0040d8fe1c55d85a4eb11681e7230042bf2",
+  "gates/navigation-lib.log": "30b7dbab24e9289354a398f0bf1748b2c5c7e60beb68c471bb5fe800c793e6af",
+  "gates/public-example-check.log": "f50d91ff9ad1201bd946c21d36dba61bfb2e9ce68854cbe1fdcd3f139a67a3e6",
+  "gates/public-example-run.log": "68d9dc5aaf0033890909a3a1f1ba9e1a2d6a69a14f66eba51bc0547e25235b3a",
+  "gates/runtime-lib.log": "9908eac192e0e1eb45f9b2f1b5daa27cc0aee47c26d977c59c0d991ec2521c48",
   "held-expectations.json": "a51aea9741ddb3478682c7724f0aab6a0ef3c11e80e864089fafbaf1c17d9930",
   "independent-review/clippy-receipt.json": "f442135ae407233df356dc955764d7139fd5196cc1ed2e827c3be8637c3eae23",
   "independent-review/clippy.log": "604cba06e01f3388372b9fe288a89ff15f0d3b6701dcbf5b3b076c6c02898a39",
@@ -32,6 +32,6 @@
   "independent-review/unchanged-global-receipt.json": "702451342a9b04be746a3cd08c693d807846c3916a1b4c0528db9d35add0a54a",
   "independent-review/unchanged-global.log": "a243911a61ac193a4330a7c991d826c147d30bbab6d94fc1ee6021fcbac4b8a6",
   "independent-review-sha256.txt": "9ba69c9e8501ec33ec8e4d3c16834ffbe000b556fce7b4ecf83d527bd58bdf00",
-  "integration-gates.json": "cf7b19a891b9744d74d4da33d3a8a6c59741a182f4abe15ce0c92af2f29ce691",
-  "reference-inventory-delta.json": "7d84d06a4d29f2d7560f09dfd5cfca3ee5e92476aa0c4978f79a5175c007035c"
+  "integration-gates.json": "998dc25e813fc1855c70f62136f66f8a5e2ab1185a41904a0db70ea4fb84610b",
+  "reference-inventory-delta.json": "2db7c4d326685b652a6a5d320fa591786e405a660b72ba1927409aad1f57acd7"
 }
