@@ -9723,24 +9723,6 @@ impl TableProApp {
         }
     }
 
-    fn arm_fresh_name_replacement(&mut self, cx: &Cx<'_>) {
-        let Some(draft) = &self.draft else {
-            return;
-        };
-        if draft.name != self.connection.name {
-            return;
-        }
-        let name = connections::field::NAME;
-        let typing = cx.intents(name).any(|intent| match intent {
-            Intent::Key(key) => key.bare_char().is_some(),
-            Intent::Paste(_) => true,
-            _ => false,
-        });
-        if typing && self.form_state.editing_text(name) == Some(self.connection.name.as_str()) {
-            self.form_state.select_editing_text(name);
-        }
-    }
-
     fn mirror_name_edit(&mut self) {
         let Some(text) = self.form_state.editing_text(connections::field::NAME) else {
             return;
@@ -10017,7 +9999,6 @@ impl App for TableProApp {
                 _ => {}
             }
         }
-        self.arm_fresh_name_replacement(cx);
         let form_was_open = self.form_open;
         if self.draft.is_some() {
             let fields = &self.form_fields;
