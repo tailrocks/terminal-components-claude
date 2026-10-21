@@ -3345,11 +3345,13 @@ impl Grid<'_> {
             let actions = model.actions(row, i);
             cflags |= cdecor.flags();
             let cs = self.cell_style(ui, cflags, cell_defaults);
-            if cflags.contains(StateFlags::ACTIVE) && !actions.is_empty() {
-                // A cell action is a full-cell affordance. Ordinary values
-                // keep the focused row surface in their unused cell padding;
-                // their visible text is painted with the independent cursor
-                // style below.
+            if cflags.contains(StateFlags::ACTIVE)
+                && (!actions.is_empty() || cell.text.is_empty())
+            {
+                // Actions and empty values need a full-cell cursor surface.
+                // Nonempty ordinary values keep the focused row surface in
+                // unused padding and paint their independent cursor style
+                // on the visible text below.
                 ui.fill(rect, active_cell_style(ui, row_style, cs, decor.strike));
             }
             if !cs.explicit.is_empty() {
@@ -4715,6 +4717,28 @@ mod tests {
         let active = buffer
             .cell(Position::new(2, 1))
             .expect("empty active cell exists");
+        assert!(!active.modifier.contains(Modifier::ITALIC));
+        assert_ne!(active.fg, ratatui_core::style::Color::Red);
+    }
+
+    #[test]
+    fn active_empty_string_cell_replaces_focused_row_style() {
+        let theme = Theme::junie().override_family(Family::GRID, |recipe| {
+            recipe.part(Part::ROW).when(
+                StateFlags::FOCUSED,
+                StylePatch::new()
+                    .set_fg(Role::Custom(ratatui_core::style::Color::Red))
+                    .add(Modifier::ITALIC),
+            );
+        });
+        let model = Model {
+            rows: vec![(ItemKey::num(10), ["", "1"])],
+            ..Model::default()
+        };
+        let buffer = focused_grid_buffer_with_model(theme, model);
+        let active = buffer
+            .cell(Position::new(2, 1))
+            .expect("empty-string active cell exists");
         assert!(!active.modifier.contains(Modifier::ITALIC));
         assert_ne!(active.fg, ratatui_core::style::Color::Red);
     }

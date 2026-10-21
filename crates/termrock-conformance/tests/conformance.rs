@@ -961,6 +961,101 @@ impl Conformance for DialogCase {
     }
 }
 
+#[cfg(test)]
+mod activation_probe_guards {
+    use super::*;
+    use termrock_test_support::conformance::driver;
+
+    struct DialogProbe<const FAULT: u8>;
+
+    impl<const FAULT: u8> Conformance for DialogProbe<FAULT> {
+        const NAME: &'static str = "dialog-probe-guard";
+        const FAMILY: Family = DialogCase::FAMILY;
+        const PARTS: &'static [Part] = DialogCase::PARTS;
+        type State = termrock::DialogState;
+        type Action = DialogAction;
+        type Cmd = ButtonCmd;
+
+        fn caps() -> Caps {
+            DialogCase::caps()
+        }
+        fn id() -> Id {
+            DialogCase::id()
+        }
+        fn control_id() -> Id {
+            DialogCase::control_id()
+        }
+        fn opener_id() -> Id {
+            DialogCase::opener_id()
+        }
+        fn opener_action() -> Option<Self::Action> {
+            DialogCase::opener_action()
+        }
+        fn activation_requires_overlay() -> bool {
+            true
+        }
+        fn activation_chords() -> &'static [Chord] {
+            DialogCase::activation_chords()
+        }
+        fn open_chord() -> Option<Chord> {
+            DialogCase::open_chord()
+        }
+        fn layer_id() -> Option<Id> {
+            DialogCase::layer_id()
+        }
+        fn open_overlay(_: &mut Cx<'_>, _: &mut Self::State, _: &Fixture) -> bool {
+            // Fault 2 claims the hook opened the layer, but leaves it closed.
+            FAULT == 2
+        }
+        fn update(cx: &mut Cx<'_>, st: &mut Self::State, f: &Fixture) -> Response<Self::Action> {
+            let response = DialogCase::update(cx, st, f);
+            let activated = response.action_ref().is_some_and(|action| {
+                action != &DialogAction::Action(K_OPEN)
+            });
+            if activated && FAULT == 1 {
+                Response::ignored()
+            } else if activated && FAULT == 3 {
+                Response::action(DialogAction::Action(K_OPEN))
+            } else {
+                response
+            }
+        }
+        fn draw(ui: &mut Ui<'_>, area: Rect, st: &Self::State, f: &Fixture) {
+            DialogCase::draw(ui, area, st, f);
+        }
+    }
+
+    #[test]
+    fn real_modal_activation_passes_the_probe() {
+        driver::keyboard_and_mouse_activation_are_equivalent::<DialogProbe<0>>();
+    }
+
+    #[test]
+    #[should_panic(expected = "over the activation part did nothing")]
+    fn discarded_modal_response_is_rejected() {
+        driver::keyboard_and_mouse_activation_are_equivalent::<DialogProbe<1>>();
+    }
+
+    #[test]
+    #[should_panic(expected = "activation setup did not open layer")]
+    fn unopened_modal_is_rejected() {
+        driver::keyboard_and_mouse_activation_are_equivalent::<DialogProbe<2>>();
+    }
+
+    #[test]
+    #[should_panic(expected = "activation reused the opener response")]
+    fn repeated_opener_response_is_rejected() {
+        driver::keyboard_and_mouse_activation_are_equivalent::<DialogProbe<3>>();
+    }
+
+    #[test]
+    fn theme_probe_fingerprint_retains_recipe_revision() {
+        let before = Theme::junie();
+        let mut after = before.clone();
+        let _ = after.recipes.get_mut(Family::BUTTON);
+        assert_eq!(before, after);
+        assert_ne!(before.fingerprint(), after.fingerprint());
+
 #[test]
 fn dialog_prompt_renders_caller_owned_error_in_the_field() {
     const ERROR: &str = "Name cannot be empty";
