@@ -104,8 +104,9 @@ fn focused_readonly_code_editor_keeps_its_published_bar_caret() {
 
 #[test]
 fn readonly_fields_without_an_ordinary_cursor_request_do_not_gain_a_caret() {
-    for target in [FocusTarget::Input, FocusTarget::Other] {
+    for (target, expected_focus) in [(FocusTarget::Input, INPUT), (FocusTarget::Other, OTHER)] {
         let rt = runtime(target, false);
+        assert_eq!(rt.focus(), Some(expected_focus));
         assert_eq!(
             rt.cursor_position(),
             None,
