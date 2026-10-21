@@ -1086,15 +1086,41 @@ fn paint_narrow_label_bar(
         settled(WHITE, SURFACE, false),
     );
     let track_x = x.saturating_add(field);
-    paint_narrow_bar(
-        ui,
-        track_x,
-        y,
-        card.right().saturating_sub(track_x),
-        ratio,
-        kind,
-        frame,
-    );
+    let avail = card.right().saturating_sub(track_x);
+    if let Some(ratio) = ratio
+        && card.width >= 54
+    {
+        let pct_str = format!(" {}", pct_field(ratio));
+        let pct_w = u16::try_from(pct_str.chars().count()).unwrap_or(0);
+        let suf = suffix(kind);
+        let suf_w = u16::try_from(suf.chars().count()).unwrap_or(0);
+        let text_w = pct_w.saturating_add(suf_w);
+        if avail > text_w {
+            let bar_w = avail.saturating_sub(text_w);
+            paint_narrow_bar(ui, track_x, y, bar_w, Some(ratio), kind, frame);
+            let _ = ui.paint_str(
+                Rect::new(track_x.saturating_add(bar_w), y, pct_w, 1),
+                &pct_str,
+                settled(SECONDARY, SURFACE, false),
+            );
+            if suf_w > 0 {
+                let _ = ui.paint_str(
+                    Rect::new(
+                        track_x.saturating_add(bar_w).saturating_add(pct_w),
+                        y,
+                        suf_w,
+                        1,
+                    ),
+                    suf,
+                    settled(fill_color(kind), SURFACE, false),
+                );
+            }
+        } else {
+            paint_narrow_bar(ui, track_x, y, avail, Some(ratio), kind, frame);
+        }
+    } else {
+        paint_narrow_bar(ui, track_x, y, avail, None, kind, frame);
+    }
 }
 
 fn paint_narrow_button(ui: &mut Ui<'_>, button: Button<'_>, area: Rect, label: &str) -> Rect {
