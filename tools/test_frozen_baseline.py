@@ -2502,6 +2502,54 @@ class RunnerGuards(unittest.TestCase):
             with patch.object(runner, "verify_fresh_plan", return_value=plan), self.assertRaisesRegex(runner.RunnerError, "failed-init evidence"):
                 runner.verify_fresh_run(root / "repo", root, "fixture-cohort", root / "bins", 30, plan["source"]["source_sha256"], key_path)
 
+    def test_owned_fresh_run_init_does_not_mutate_replacement_root_on_failure(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            base = Path(temp).resolve()
+            root = base / "runner-root"
+            root.mkdir()
+            _plan_path, commitment_path, commitment_sha256, plan = self._publish_recovery_fixture(root)
+            plan_digest = runner.sha256(_plan_path)
+            pending_path = Path(f"{commitment_path}.pending")
+            key_path = base / "private-custody" / "run.key"
+            original_atomic_create = runner._atomic_create_bytes
+            moved = base / "moved-root"
+            replacement_run = root / "fresh-runs" / str(plan["plan_id"])
+            replacement_before: dict[str, tuple[int, bytes | None]] = {}
+
+            def publish_manifest_then_replace_root(path, payload, mode=0o400, *, check_work=None):
+                result = original_atomic_create(path, payload, mode, check_work=check_work)
+                if path.name == runner.FRESH_RUN_MANIFEST_FILE:
+                    root.rename(moved)
+                    replacement_run.mkdir(parents=True, mode=0o700)
+                    (replacement_run / "preserve.txt").write_text("replacement-owned-by-test\n")
+                    replacement_before.update({item.relative_to(root).as_posix(): (item.stat().st_mode, item.read_bytes() if item.is_file() else None) for item in root.rglob("*")})
+                return result
+
+            output = io.StringIO()
+            with (
+                patch.object(runner, "verify_fresh_plan", return_value=plan),
+                patch.object(runner, "_git_metadata_paths", return_value=set()),
+                patch.object(runner, "_atomic_create_bytes", side_effect=publish_manifest_then_replace_root),
+                patch.object(runner.sys, "stdout", output),
+                runner.PrepareExecution(20) as execution,
+                self.assertRaisesRegex(runner.RunnerError, "root pathname|symlink"),
+            ):
+                runner.create_fresh_run(
+                    root / "repo", root, "fixture-cohort", root / "bins", 30,
+                    plan_digest, key_path, execution=execution,
+                    commitment_path=commitment_path, expected_commitment_sha256=commitment_sha256,
+                    pending_receipt_path=pending_path,
+                )
+
+            after = {item.relative_to(root).as_posix(): (item.stat().st_mode, item.read_bytes() if item.is_file() else None) for item in root.rglob("*")}
+            self.assertEqual(after, replacement_before)
+            self.assertEqual((replacement_run / "preserve.txt").read_text(), "replacement-owned-by-test\n")
+            self.assertEqual(sorted(item.name for item in replacement_run.iterdir()), ["preserve.txt"])
+            self.assertFalse((replacement_run / "init-failure.json").exists())
+            self.assertFalse((moved / "fresh-runs" / str(plan["plan_id"]) / "init-failure.json").exists())
+            self.assertTrue((moved / "fresh-runs" / str(plan["plan_id"]) / runner.FRESH_RUN_MANIFEST_FILE).is_file())
+            self.assertEqual(output.getvalue(), "")
+
     def test_owned_fresh_run_init_cancellation_deadline_and_root_swap_fail_before_key(self) -> None:
         for failure in ("deadline", "signal", "root-swap"):
             with self.subTest(failure=failure), tempfile.TemporaryDirectory() as temp:
