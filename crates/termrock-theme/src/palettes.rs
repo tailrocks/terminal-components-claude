@@ -122,7 +122,7 @@ const fn junie_256() -> ColorTokens {
             invalid: Color::Indexed(167),
             deprecated: Color::Indexed(244),
             match_bg: Color::Indexed(233),
-            match_current_bg: Color::Indexed(67),
+            match_current_bg: Color::Indexed(55),
             bracket_match: Color::Indexed(78),
             diagnostic_error: Color::Indexed(167),
             diagnostic_warning: Color::Indexed(214),
@@ -134,8 +134,8 @@ const fn junie_256() -> ColorTokens {
             high: Color::Indexed(167),
             track: Color::Indexed(235),
             fill_rest: crate::theme::MeterFillRest::ReferenceLift,
-            stale: Color::Indexed(242),
-            unknown: Color::Indexed(242),
+            stale: Color::Indexed(238),
+            unknown: Color::Indexed(238),
             series: [
                 Color::Indexed(78),
                 Color::Indexed(214),
@@ -156,6 +156,10 @@ fn junie_16() -> ColorTokens {
         .downgrade(ColorLevel::Ansi16)
         .color;
     tokens.field_hover = Color::DarkGray;
+    // Frozen corpus faint/chrome ink: the 0x4d4d4d-sourced slots render
+    // DarkGray at 16 in every tier frame; the current 0x737373 source would
+    // generically land on Gray.
+    tokens.fg[3] = Color::DarkGray;
     tokens
 }
 
