@@ -8816,7 +8816,10 @@ impl App {
                 area,
                 &self.capsule_palette_state,
                 CAPSULE_COMMANDS,
-            )
+            );
+            // The card covers the tab rule. That pad is on this layer, so a
+            // screen edit after composite cannot see it.
+            ghost_covered_tab_rule(ui);
         });
         let info = Self::container_info_dialog();
         let _ = ui.layer(CAPSULE_CONTAINER_INFO, |ui, area| {
@@ -9538,6 +9541,25 @@ fn paint_capsule_tab_rule(ui: &mut Ui<'_>, rule: Rect) {
     )));
     for x in rule.x..rule.right() {
         ui.paint_str(Rect::new(x, rule.y, 1, 1), "─", style);
+    }
+}
+
+fn ghost_covered_tab_rule(ui: &mut Ui<'_>) {
+    let (buf, clip) = ui.raw();
+    let ghost = termrock::Color::Rgb(0x26, 0x26, 0x26);
+    let faint = termrock::Color::Rgb(0x73, 0x73, 0x73);
+    let card = termrock::Color::Rgb(0x18, 0x18, 0x1b);
+    for pos in clip.positions() {
+        if pos.y != 3 {
+            continue;
+        }
+        if let Some(cell) = buf.cell_mut(pos)
+            && cell.symbol() == " "
+            && cell.fg == faint
+            && cell.bg == card
+        {
+            cell.fg = ghost;
+        }
     }
 }
 
