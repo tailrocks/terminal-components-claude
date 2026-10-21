@@ -45,6 +45,7 @@ pub(crate) fn resolve_requests(
     requests: &[CursorRequest],
     top: LayerId,
     owner: Option<Id>,
+    typing_owner: Option<Id>,
     diagnostics: &mut Diagnostics,
     typing: &[crate::runtime::typing::TypingDeclaration],
 ) -> Option<(Position, CursorShape)> {
@@ -66,7 +67,7 @@ pub(crate) fn resolve_requests(
                 });
                 continue;
             }
-            if request.layer != top || owner != Some(request.owner) {
+            if request.layer != top || typing_owner != Some(request.owner) {
                 continue;
             }
         }
@@ -176,6 +177,7 @@ mod tests {
                 &frame.cursors,
                 LayerId::PAGE,
                 Some(focused),
+                None,
                 &mut diagnostics,
                 &frame.typing,
             )
@@ -214,5 +216,34 @@ mod tests {
                 layer: LayerId::PAGE
             }
         );
+    }
+
+    #[test]
+    fn ordinary_cursor_does_not_authorize_a_typing_offer_for_a_readonly_owner() {
+        let ordinary = req(LayerId(1), false);
+        let offer = CursorRequest {
+            pos: Position::new(9, 3),
+            typing_offer: true,
+            ..ordinary
+        };
+        let typing = [crate::runtime::typing::TypingDeclaration {
+            owner: OWNER,
+            layer: LayerId(1),
+            cursor: true,
+        }];
+        let mut diagnostics = Diagnostics::default();
+
+        assert_eq!(
+            resolve_requests(
+                &[ordinary, offer],
+                LayerId(1),
+                Some(OWNER),
+                None,
+                &mut diagnostics,
+                &typing,
+            ),
+            Some((ordinary.pos, ordinary.shape))
+        );
+        assert!(diagnostics.items().is_empty());
     }
 }
