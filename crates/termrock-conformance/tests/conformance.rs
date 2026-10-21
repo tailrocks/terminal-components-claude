@@ -11,8 +11,8 @@
 
 use termrock::author::{
     Activated, Binding, BindingState, Bindings, Chord, Cx, Family, FgStep, Focusability, FrameRead,
-    GlyphRole, Id, Intent, ItemKey, KeyCode, Part, PartRef, Phase, Position, Rect, Response,
-    ScrollState, StateFlags, StylePatch, Ui, Variant,
+    GlyphRole, Id, Intent, ItemKey, KeyCode, KeyModifiers, Part, PartRef, Phase, Position, Rect,
+    Response, ScrollState, StateFlags, StylePatch, Ui, Variant,
 };
 use termrock::{
     Action, ActionKey, Anchor, Brand, Button, ButtonCmd, CellDecor, CellPos, CellRef, Checkbox,
@@ -43,6 +43,105 @@ use termrock_test_support::conformance::{
 use termrock_test_support::{Harness, Scene, conformance_suite};
 
 const PROBE: Id = Id::root("conformance.probe");
+
+const CONTEXT_MENU_LEGACY_CHORDS: &[Chord] = &[
+    Chord::with(KeyCode::F(10), KeyModifiers::SHIFT),
+    Chord::key(KeyCode::Menu),
+];
+
+const CODE_EDITOR_LEGACY_CHORDS: &[Chord] = &[
+    Chord::with(KeyCode::Char('f'), KeyModifiers::CONTROL),
+    Chord::with(KeyCode::Char('u'), KeyModifiers::CONTROL),
+    Chord::with(KeyCode::Char('k'), KeyModifiers::CONTROL),
+    Chord::key(KeyCode::Backspace),
+    Chord::with(KeyCode::Backspace, KeyModifiers::CONTROL),
+    Chord::with(KeyCode::Backspace, KeyModifiers::ALT),
+    Chord::key(KeyCode::Delete),
+    Chord::key(KeyCode::Tab),
+    Chord::with(KeyCode::BackTab, KeyModifiers::SHIFT),
+    Chord::key(KeyCode::Enter),
+    Chord::key(KeyCode::Left),
+    Chord::key(KeyCode::Right),
+    Chord::key(KeyCode::Up),
+    Chord::key(KeyCode::Down),
+    Chord::with(KeyCode::Left, KeyModifiers::SHIFT),
+    Chord::with(KeyCode::Right, KeyModifiers::SHIFT),
+    Chord::with(KeyCode::Up, KeyModifiers::SHIFT),
+    Chord::with(KeyCode::Down, KeyModifiers::SHIFT),
+    Chord::with(KeyCode::Left, KeyModifiers::CONTROL),
+    Chord::with(KeyCode::Right, KeyModifiers::CONTROL),
+    Chord::with(KeyCode::Left, KeyModifiers::ALT),
+    Chord::with(KeyCode::Right, KeyModifiers::ALT),
+    Chord::key(KeyCode::PageUp),
+    Chord::key(KeyCode::PageDown),
+    Chord::key(KeyCode::Home),
+    Chord::key(KeyCode::End),
+    Chord::with(KeyCode::F(10), KeyModifiers::SHIFT),
+    Chord::key(KeyCode::Menu),
+];
+
+const QUERY_LEGACY_CHORDS: &[Chord] = &[
+    Chord::key(KeyCode::Left),
+    Chord::key(KeyCode::Right),
+    Chord::with(KeyCode::Left, KeyModifiers::SHIFT),
+    Chord::with(KeyCode::Right, KeyModifiers::SHIFT),
+    Chord::with(KeyCode::Left, KeyModifiers::CONTROL),
+    Chord::with(KeyCode::Right, KeyModifiers::CONTROL),
+    Chord::with(KeyCode::Left, KeyModifiers::ALT),
+    Chord::with(KeyCode::Right, KeyModifiers::ALT),
+    Chord::key(KeyCode::Home),
+    Chord::key(KeyCode::End),
+    Chord::with(KeyCode::Home, KeyModifiers::SHIFT),
+    Chord::with(KeyCode::End, KeyModifiers::SHIFT),
+    Chord::with(KeyCode::Home, KeyModifiers::CONTROL),
+    Chord::with(KeyCode::End, KeyModifiers::CONTROL),
+    Chord::key(KeyCode::Backspace),
+    Chord::with(KeyCode::Backspace, KeyModifiers::CONTROL),
+    Chord::with(KeyCode::Backspace, KeyModifiers::ALT),
+    Chord::key(KeyCode::Delete),
+    Chord::with(KeyCode::Char('a'), KeyModifiers::CONTROL),
+    Chord::with(KeyCode::Char('e'), KeyModifiers::CONTROL),
+    Chord::with(KeyCode::Char('u'), KeyModifiers::CONTROL),
+    Chord::with(KeyCode::Char('k'), KeyModifiers::CONTROL),
+    Chord::with(KeyCode::Char('w'), KeyModifiers::CONTROL),
+    Chord::with(KeyCode::Char('l'), KeyModifiers::CONTROL),
+    Chord::with(KeyCode::Char('b'), KeyModifiers::ALT),
+    Chord::with(KeyCode::Char('f'), KeyModifiers::ALT),
+    Chord::with(KeyCode::F(10), KeyModifiers::SHIFT),
+    Chord::key(KeyCode::Menu),
+];
+
+const PICKER_LEGACY_CHORDS: &[Chord] = &[
+    Chord::key(KeyCode::F(4)),
+    Chord::key(KeyCode::Left),
+    Chord::key(KeyCode::Right),
+    Chord::with(KeyCode::Left, KeyModifiers::SHIFT),
+    Chord::with(KeyCode::Right, KeyModifiers::SHIFT),
+    Chord::with(KeyCode::Left, KeyModifiers::CONTROL),
+    Chord::with(KeyCode::Right, KeyModifiers::CONTROL),
+    Chord::with(KeyCode::Left, KeyModifiers::ALT),
+    Chord::with(KeyCode::Right, KeyModifiers::ALT),
+    Chord::key(KeyCode::Home),
+    Chord::key(KeyCode::End),
+    Chord::with(KeyCode::Home, KeyModifiers::SHIFT),
+    Chord::with(KeyCode::End, KeyModifiers::SHIFT),
+    Chord::with(KeyCode::Home, KeyModifiers::CONTROL),
+    Chord::with(KeyCode::End, KeyModifiers::CONTROL),
+    Chord::key(KeyCode::Backspace),
+    Chord::with(KeyCode::Backspace, KeyModifiers::CONTROL),
+    Chord::with(KeyCode::Backspace, KeyModifiers::ALT),
+    Chord::key(KeyCode::Delete),
+    Chord::with(KeyCode::Char('a'), KeyModifiers::CONTROL),
+    Chord::with(KeyCode::Char('e'), KeyModifiers::CONTROL),
+    Chord::with(KeyCode::Char('u'), KeyModifiers::CONTROL),
+    Chord::with(KeyCode::Char('k'), KeyModifiers::CONTROL),
+    Chord::with(KeyCode::Char('w'), KeyModifiers::CONTROL),
+    Chord::with(KeyCode::Char('l'), KeyModifiers::CONTROL),
+    Chord::with(KeyCode::Char('b'), KeyModifiers::ALT),
+    Chord::with(KeyCode::Char('f'), KeyModifiers::ALT),
+    Chord::with(KeyCode::F(10), KeyModifiers::SHIFT),
+    Chord::key(KeyCode::Menu),
+];
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum ProbeCmd {
@@ -350,6 +449,10 @@ impl Conformance for TextInputCase {
         TextInput::new(INPUT).bindings(s)
     }
 
+    fn legacy_key_chords() -> &'static [Chord] {
+        CONTEXT_MENU_LEGACY_CHORDS
+    }
+
     fn mono_setup_chords(state: StateFlags) -> &'static [Chord] {
         const EDIT: &[Chord] = &[Chord::key(KeyCode::Char('x'))];
         if state.contains(StateFlags::EDITING) {
@@ -418,6 +521,10 @@ impl Conformance for FieldCase {
 
     fn bindings(s: BindingState) -> &'static [Binding<TextCmd>] {
         TextInput::new(FIELD_INPUT).bindings(s)
+    }
+
+    fn legacy_key_chords() -> &'static [Chord] {
+        CONTEXT_MENU_LEGACY_CHORDS
     }
 
     fn mono_setup_chords(state: StateFlags) -> &'static [Chord] {
@@ -717,8 +824,21 @@ impl Conformance for DialogCase {
         DLG.part(Part::ACTIONS).index(0)
     }
 
+    fn activation_id() -> Id {
+        DLG.part(Part::ACTIONS).index(0)
+    }
+
+    fn activation_part() -> PartRef {
+        PartRef::of(Part::CONTAINER)
+    }
+
     fn opener_id() -> Id {
         LAUNCH
+    }
+
+    fn open_overlay(cx: &mut Cx<'_>, _st: &mut Self::State, f: &Fixture) -> bool {
+        cx.open_layer(DLG, dialog(f).layer(cx));
+        true
     }
 
     fn update(
@@ -729,6 +849,9 @@ impl Conformance for DialogCase {
         let launch = Button::new(LAUNCH, "Open").update(cx);
         let open = launch.activated()
             || cx.intents(LAUNCH).any(
+                |intent| matches!(intent, Intent::Key(key) if Chord::key(KeyCode::F(4)).matches(&key)),
+            )
+            || cx.intents(DLG.part(Part::ACTIONS).index(0)).any(
                 |intent| matches!(intent, Intent::Key(key) if Chord::key(KeyCode::F(4)).matches(&key)),
             );
         if open {
@@ -783,6 +906,16 @@ impl Conformance for DialogCase {
 
     fn bindings(s: BindingState) -> &'static [Binding<ButtonCmd>] {
         Button::new(LAUNCH, "").bindings(s)
+    }
+
+    fn legacy_key_chords() -> &'static [Chord] {
+        const CHORDS: &[Chord] = &[
+            Chord::key(KeyCode::Esc),
+            Chord::key(KeyCode::F(4)),
+            Chord::with(KeyCode::F(10), KeyModifiers::SHIFT),
+            Chord::key(KeyCode::Menu),
+        ];
+        CHORDS
     }
 
     fn dynamic_bindings(_fixture: &Fixture) -> Vec<(ActionKey, Chord)> {
@@ -1118,6 +1251,10 @@ impl Conformance for TextAreaCase {
 
     fn bindings(s: BindingState) -> &'static [Binding<TextCmd>] {
         TextArea::new(TEXT_AREA, 4).bindings(s)
+    }
+
+    fn legacy_key_chords() -> &'static [Chord] {
+        CONTEXT_MENU_LEGACY_CHORDS
     }
 
     fn mono_setup_chords(state: StateFlags) -> &'static [Chord] {
@@ -2356,6 +2493,10 @@ impl Conformance for CodeEditorCase {
         CodeEditor::new(CODE_EDITOR, 6).bindings(state)
     }
 
+    fn legacy_key_chords() -> &'static [Chord] {
+        CODE_EDITOR_LEGACY_CHORDS
+    }
+
     fn mono_setup_chords(state: StateFlags) -> &'static [Chord] {
         const EDIT: &[Chord] = &[Chord::key(KeyCode::Enter)];
         if state.contains(StateFlags::EDITING) {
@@ -3175,6 +3316,9 @@ impl Conformance for FilterListCase {
     fn bindings(state: BindingState) -> &'static [Binding<Self::Cmd>] {
         FilterList::<Item<'static>>::new(FILTER_LIST).bindings(state)
     }
+    fn legacy_key_chords() -> &'static [Chord] {
+        QUERY_LEGACY_CHORDS
+    }
     fn item_keys(f: &Fixture) -> Vec<ItemKey> {
         f.rows.iter().map(|r| r.key).collect()
     }
@@ -3263,12 +3407,24 @@ impl Conformance for PickerCase {
     fn layer_id() -> Option<Id> {
         Some(PICKER)
     }
+    fn scroll_id() -> Id {
+        PICKER.sub("results")
+    }
+    fn prepare_scroll_fixture(fixture: &mut Fixture) {
+        for value in 5..15 {
+            fixture.rows.push(FixtureRow {
+                key: ItemKey::num(100 + value),
+                label: format!("row {value}"),
+                meta: format!("meta {value}"),
+                disabled: false,
+            });
+        }
+    }
     fn bindings(state: BindingState) -> &'static [Binding<Self::Cmd>] {
         FilterList::<Item<'static>>::new(PICKER).bindings(state)
     }
     fn legacy_key_chords() -> &'static [Chord] {
-        const CHORDS: &[Chord] = &[Chord::key(KeyCode::F(4))];
-        CHORDS
+        PICKER_LEGACY_CHORDS
     }
     fn item_keys(f: &Fixture) -> Vec<ItemKey> {
         f.rows.iter().map(|r| r.key).collect()
@@ -3605,6 +3761,7 @@ impl Conformance for HelpOverlayCase {
         Some(HELP_OVERLAY)
     }
     fn prepare_scroll_fixture(fixture: &mut Fixture) {
+        fixture.area.height = 10;
         for value in 5..12 {
             fixture.rows.push(FixtureRow {
                 key: ItemKey::num(100 + value),
@@ -3891,6 +4048,10 @@ impl Conformance for FormCase {
         TextInput::new(FORM_SECRET)
             .secret(SecretPolicy::default())
             .bindings(state)
+    }
+
+    fn legacy_key_chords() -> &'static [Chord] {
+        CONTEXT_MENU_LEGACY_CHORDS
     }
 
     fn prepare_scroll_fixture(fixture: &mut Fixture) {
