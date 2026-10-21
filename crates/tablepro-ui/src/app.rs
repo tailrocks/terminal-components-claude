@@ -3406,9 +3406,13 @@ fn paint_idle_query(
     let top = idle_query_top(inner.height);
     let editor_rows = top.saturating_sub(2);
     paint_query_toolbar(ui, termrock::Rect { height: 1, ..body });
+    // The frame paints a gap and a border on the last two columns. The
+    // baseline editor stops before that chrome, so the position label and
+    // the editing underline end on the field.
     let editor = termrock::Rect {
         y: body.y.saturating_add(1),
         height: editor_rows,
+        width: body.width.saturating_sub(2),
         ..body
     };
     let seam_y = editor.y.saturating_add(editor.height);
@@ -5123,10 +5127,12 @@ const KIND_OTHER: u8 = 0;
 const KIND_PRIMARY: u8 = 1;
 const KIND_FOREIGN: u8 = 2;
 
+type GridScrollSnapshot = (termrock::Rect, usize, usize, Option<usize>);
+
 thread_local! {
     static COL_BUDGETS: RefCell<Vec<ColBudget>> = const { RefCell::new(Vec::new()) };
     static GRID_CHROME: RefCell<Option<GridChrome>> = const { RefCell::new(None) };
-    static GRID_SCROLL: RefCell<Option<(termrock::Rect, usize, usize, Option<usize>)>> =
+    static GRID_SCROLL: RefCell<Option<GridScrollSnapshot>> =
         const { RefCell::new(None) };
     static GRID_SEEN_ROW: RefCell<Option<usize>> = const { RefCell::new(None) };
     static GRID_SORT: RefCell<Option<(usize, SortDir)>> = const { RefCell::new(None) };

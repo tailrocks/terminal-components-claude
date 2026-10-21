@@ -740,8 +740,22 @@ pub(super) fn baseline_256(color: Color) -> Color {
 }
 
 fn ink(ui: &Ui<'_>, fg: Color, bg: Color, bold: bool) -> PaintStyle {
-    let (fg, bg) = if ui.theme_ref().capability.color == termrock::ColorLevel::Ansi256 {
+    let level = ui.theme_ref().capability.color;
+    let (fg, bg) = if level == termrock::ColorLevel::Ansi256 {
         (baseline_256(fg), baseline_256(bg))
+    } else if level == termrock::ColorLevel::Mono {
+        let fg_mono = termrock::theme::downgrade_color(fg, level);
+        let bg_mono = termrock::theme::downgrade_color(bg, level);
+        let fg_final = if fg_mono == bg_mono {
+            if bg_mono == Color::Black {
+                Color::White
+            } else {
+                Color::Black
+            }
+        } else {
+            fg_mono
+        };
+        (fg_final, bg_mono)
     } else {
         (fg, bg)
     };
