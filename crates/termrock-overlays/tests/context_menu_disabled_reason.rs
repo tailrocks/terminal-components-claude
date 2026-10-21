@@ -93,6 +93,42 @@ fn public_consumer_gets_reason_without_binding_or_activation() {
 }
 
 #[test]
+fn hidden_highlight_cannot_activate_until_keyboard_navigation_restores_it() {
+    let mut harness = Harness::new(
+        Consumer {
+            state: MenuState::default(),
+            chosen: None,
+        },
+        Theme::junie(),
+        40,
+        7,
+    );
+
+    let _ = harness.mouse(MouseKind::Move, 4, 1);
+    assert!(harness.text().contains("Run"));
+    let selected_bg = harness.cell(4, 1).bg;
+    let _ = harness.mouse(MouseKind::Move, 0, 0);
+    assert_ne!(harness.cell(4, 1).bg, selected_bg);
+
+    let _ = harness.key(KeyCode::Enter);
+    assert_eq!(
+        harness.app().chosen,
+        None,
+        "Enter cannot activate a hidden row"
+    );
+    let _ = harness.key(KeyCode::Char(' '));
+    assert_eq!(
+        harness.app().chosen,
+        None,
+        "Space cannot activate a hidden row"
+    );
+
+    let _ = harness.key(KeyCode::Home);
+    let _ = harness.key(KeyCode::Enter);
+    assert_eq!(harness.app().chosen, Some(RUN));
+}
+
+#[test]
 fn disabled_reason_row_does_not_change_while_pointer_is_held_or_dragged() {
     for color in [
         ColorLevel::TrueColor,
