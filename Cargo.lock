@@ -3691,6 +3691,7 @@ dependencies = [
  "termrock-core",
  "termrock-layout",
  "termrock-runtime",
+ "termrock-shell",
  "termrock-theme",
 ]
 
