@@ -3677,6 +3677,7 @@ dependencies = [
  "ratatui-crossterm",
  "termrock-core",
  "termrock-runtime",
+ "termrock-terminal",
  "termrock-theme",
 ]
 
@@ -3690,6 +3691,7 @@ dependencies = [
  "termrock-core",
  "termrock-layout",
  "termrock-runtime",
+ "termrock-shell",
  "termrock-theme",
 ]
 
