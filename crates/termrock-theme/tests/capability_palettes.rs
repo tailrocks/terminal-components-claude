@@ -110,6 +110,8 @@ fn all_73_junie_slots_match_reference_capability_output() {
             // Corpus faint ink renders DarkGray at 16; the current 0x737373
             // source would generically land on Gray.
             expected.fg[3] = Color::DarkGray;
+            // Frozen apply_16 (`self.border_strong = Gray`).
+            expected.border_strong = Color::Gray;
             // Frozen apply_16 (`self.success = Green`): base ladder slot.
             expected.success = Color::Green;
             expected.meter.stale = Color::DarkGray;

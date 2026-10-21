@@ -2388,7 +2388,10 @@ fn paint_here_band(ui: &mut Ui<'_>, area: Rect) {
         .min(width);
     let plate = ui.paint_patch(
         &StylePatch::new()
-            .set_fg(Role::Fg(FgStep::Primary))
+            .set_fg(termrock::theme::filled_tab_fg(
+                ui.theme().capability.color,
+                Role::Fg(FgStep::Primary),
+            ))
             .set_bg(Role::Surface(Surface::Overlay))
             .add(termrock::Modifier::BOLD),
     );
@@ -2437,7 +2440,10 @@ fn paint_activities_multi_80x24_band(ui: &mut Ui<'_>, area: Rect) {
         .min(width.saturating_sub(gutter));
     let plate = ui.paint_patch(
         &StylePatch::new()
-            .set_fg(Role::Fg(FgStep::Primary))
+            .set_fg(termrock::theme::filled_tab_fg(
+                ui.theme().capability.color,
+                Role::Fg(FgStep::Primary),
+            ))
             .set_bg(Role::Surface(Surface::Overlay))
             .add(termrock::Modifier::BOLD),
     );

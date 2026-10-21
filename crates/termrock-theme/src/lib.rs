@@ -23,7 +23,8 @@ use ratatui_core::style::{Color, Style};
 pub use border::BorderSet;
 pub use builder::ThemeBuilder;
 pub use downgrade::{
-    LegacyMono, MONO_RULES_PER_FAMILY, MonoRule, downgrade_color, downgrade_pair, legacy_mono,
+    LegacyMono, MONO_RULES_PER_FAMILY, MonoRule, downgrade_color, downgrade_pair, filled_tab_fg,
+    legacy_mono,
 };
 pub use glyph::{GlyphRole, GlyphSet};
 pub use palettes::{CapabilityPalettes, baseline_faint, baseline_muted};
