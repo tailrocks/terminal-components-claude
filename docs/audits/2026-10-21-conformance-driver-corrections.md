@@ -1,0 +1,41 @@
+# Conformance driver corrections — 2026-10-21
+
+This increment corrects three conformance-fixture mismatches, not product
+behavior. The starting source was `5b3097acab788ed4e189bc7e6aab27f1b6a6ee65`.
+The existing before-fix diagnostic is preserved at
+`/Users/donbeave/Projects/termrock-cli-evidence-20261021/branch-consolidation/conformance-68-cause-review-52e1572/review.json`
+(SHA-256 `4d591a1959b2203664042c225b3991630fb797a534633f54d414005416523732`).
+That packet records the original failing probes against source
+`52e1572caaf7d9effd0265bbfdf6edcd0e57533b` and must remain historical evidence;
+it is not a baseline approval.
+
+The test driver now compares `Theme` values semantically rather than their
+fingerprints. `Theme` equality excludes the generated recipe revision while
+preserving the resolved patch-effect and sibling-isolation assertions. Dialog
+activation explicitly follows its actual route: focus the visible opener, open
+the modal, then focus/click the action inside it. The CodeEditor binding audit
+uses the real `FOCUSED | EDITING` state, because focusing this editor enters its
+immediate editing mode; it no longer evaluates Ctrl+F against the navigation
+table while the live editor is editing. Default binding-state samples for all
+other cases are unchanged.
+
+Focused post-change nextest runs passed: Brand and Completion semantic-theme
+checks, Dialog keyboard/mouse activation, and CodeEditor handled-key bindings
+(4/4; run `a94911b9-fda6-45b0-bc0c-96c8028755e3`); all activation equivalence
+cases (44/44; `e774e602-68fd-4861-8028-1fdd81c2f868`); formatting passed with
+`cargo fmt --check --all`. A wider binding scan is not green: 17 of the first
+22 tests passed and five failed—Dialog dynamic F6 not consumed, HelpOverlay
+unable to focus its control, FilterList consuming Ctrl+A outside its declared
+bindings, and Form and Field consuming Shift+F10 outside their declared
+bindings. Nextest fail-fast left 22 cases unrun. These failures are outside the
+changed setup paths; they remain unresolved and no complete conformance-suite
+result is claimed. Full output is preserved with the focused results under
+[`evidence/2026-10-21-conformance-driver-corrections`](evidence/2026-10-21-conformance-driver-corrections/).
+The prior targeted red packet and current unrelated failures remain visible;
+no assertions or expected values were suppressed or edited.
+
+This evidence does not establish full 68-case conformance, application parity,
+or lifecycle acceptance. The independently confirmed Grid and ScrollRegion
+rendering failures from the earlier packet remain real and untouched. No
+Grid/Scroll source, production application behavior, snapshots, or expected
+outputs were changed.
