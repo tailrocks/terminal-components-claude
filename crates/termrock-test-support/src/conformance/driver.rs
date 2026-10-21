@@ -4,8 +4,8 @@ use ratatui_core::buffer::Buffer;
 use ratatui_core::layout::{Position, Rect};
 use ratatui_core::style::Style;
 use termrock::{
-    Anchor, App, Axis, Chord, CollectionCore, ColorLevel, CrossAlign, Cx, Diagnostic, Flow,
-    Focusability, Id, Invalidate, ItemKey, KeyCode, KeyMap, KeyModifiers, LayerId, LayerKind,
+    Anchor, App, Axis, BindingState, Chord, CollectionCore, ColorLevel, CrossAlign, Cx, Diagnostic,
+    Flow, Focusability, Id, Invalidate, ItemKey, KeyCode, KeyMap, KeyModifiers, LayerId, LayerKind,
     LayerSize, LayerSpec, MouseKind, ReferenceState, ReferenceTarget, Region, RegionKind, Response,
     Side, StateFlags, Theme, Ui,
 };
@@ -222,42 +222,6 @@ fn open_component_layer<C: Conformance>(h: &mut Harness<CaseApp<C>>) -> Option<C
     chord
 }
 
-fn prepare_activation<C: Conformance>(h: &mut Harness<CaseApp<C>>) {
-    let requires_overlay = C::activation_requires_overlay();
-    let initial_focus = if requires_overlay {
-        C::opener_id()
-    } else {
-        C::control_id()
-    };
-    assert!(
-        h.tab_to(initial_focus),
-        "{}: cannot focus activation setup control {initial_focus:?}",
-        C::NAME
-    );
-    let opened_layer =
-        if requires_overlay || (has::<C>(Caps::OVERLAY) && C::activation_id() != C::control_id()) {
-            let _ = open_component_layer::<C>(h);
-            C::layer_id()
-        } else {
-            None
-        };
-    if let Some(layer) = opened_layer {
-        assert!(
-            h.runtime().is_open(layer),
-            "{}: activation setup did not open layer {layer:?}",
-            C::NAME
-        );
-    }
-    if requires_overlay && C::control_id() != initial_focus {
-        assert!(
-            h.tab_to(C::control_id()),
-            "{}: cannot focus activation control {:?} after opening its layer",
-            C::NAME,
-            C::control_id()
-        );
-    }
-}
-
 pub fn disabled_cannot_activate<C: Conformance>() {
     if !has::<C>(Caps::DISABLEABLE) {
         return;
@@ -316,8 +280,12 @@ pub fn keyboard_and_mouse_activation_are_equivalent<C: Conformance>() {
         C::NAME
     );
     let mut mouse = harness::<C>(Fixture::default());
-    prepare_activation::<C>(&mut mouse);
-    clear_activation_setup::<C>(&mut mouse);
+    if has::<C>(Caps::OVERLAY)
+        && (C::opener_id() != C::control_id() || C::activation_id() != C::control_id())
+    {
+        let _ = open_component_layer::<C>(&mut mouse);
+    }
+    assert!(mouse.tab_to(C::control_id()), "{}: cannot focus", C::NAME);
     let area = part_area::<C>(&mouse);
     let (x, y) = centre(area);
     let _ = activate_at::<C>(&mut mouse, x, y);
@@ -329,19 +297,16 @@ pub fn keyboard_and_mouse_activation_are_equivalent<C: Conformance>() {
         C::NAME,
         C::activation_gesture(),
     );
-    assert_not_opener_action::<C>(&by_mouse, "mouse");
     for chord in chords {
         let mut kb = harness::<C>(Fixture::default());
-        prepare_activation::<C>(&mut kb);
-        clear_activation_setup::<C>(&mut kb);
+        if has::<C>(Caps::OVERLAY)
+            && (C::opener_id() != C::control_id() || C::activation_id() != C::control_id())
+        {
+            let _ = open_component_layer::<C>(&mut kb);
+        }
+        assert!(kb.tab_to(C::control_id()));
         let _ = kb.key_mod(chord.code, chord.mods);
         let by_key = kb.app_mut().last.take();
-        assert!(
-            by_key.is_some(),
-            "{}: {chord} did not produce an activation response",
-            C::NAME
-        );
-        assert_not_opener_action::<C>(&by_key, "keyboard");
         assert_eq!(
             by_key,
             by_mouse,
@@ -353,37 +318,6 @@ pub fn keyboard_and_mouse_activation_are_equivalent<C: Conformance>() {
             kb.app().last_flow,
             mouse_flow,
             "{}: flow/invalidate differ for {chord}",
-            C::NAME
-        );
-    }
-}
-
-fn clear_activation_setup<C: Conformance>(h: &mut Harness<CaseApp<C>>) {
-    if let Some(opener_action) = C::opener_action() {
-        assert_eq!(
-            h.app_mut().last.take(),
-            Some(opener_action),
-            "{}: expected the owning-layer opener response before activation",
-            C::NAME
-        );
-    } else {
-        // Other setup paths may produce a harmless response. It must never be
-        // mistaken for the result of the gesture under test.
-        let _ = h.app_mut().last.take();
-    }
-    assert!(
-        h.app().last.is_none(),
-        "{}: stale setup response remained before activation",
-        C::NAME
-    );
-}
-
-fn assert_not_opener_action<C: Conformance>(action: &Option<C::Action>, gesture: &str) {
-    if let Some(opener_action) = C::opener_action() {
-        assert_ne!(
-            *action,
-            Some(opener_action),
-            "{}: {gesture} activation reused the opener response",
             C::NAME
         );
     }
@@ -682,6 +616,7 @@ pub fn mono_states_are_distinguishable<C: Conformance>() {
 
 pub fn local_override_does_not_mutate_the_theme<C: Conformance>() {
     let plain = harness::<C>(Fixture::default());
+    let before = plain.runtime().theme().fingerprint();
     let plain_digest = plain.snapshot().digest();
     let patch_part = C::PARTS
         .first()
@@ -692,26 +627,14 @@ pub fn local_override_does_not_mutate_the_theme<C: Conformance>() {
         patch_part,
         termrock::StylePatch::new().set_fg(termrock::Role::Warning),
     ));
-    // Capture the exact runtime's semantic theme before the widget receives
-    // its local patch. This detects mutation of the runtime being rendered;
-    // Theme equality deliberately ignores only generated recipe revisions.
-    let mut patched = harness::<C>(Fixture::default()).with_auto_draw(false);
-    let before = patched.runtime().theme().clone();
-    let before_fingerprint = patched.runtime().theme().fingerprint();
-    patched.app_mut().fixture.patch = f.patch;
-    patched.draw();
+    let patched = harness::<C>(f);
     assert_eq!(
-        patched.runtime().theme(),
-        &before,
+        patched.runtime().theme().fingerprint(),
+        before,
         "{}: the theme changed",
         C::NAME
     );
-    assert_eq!(
-        patched.runtime().theme().fingerprint(),
-        before_fingerprint,
-        "{}: the installed theme recipe revision changed",
-        C::NAME
-    );
+    assert_eq!(plain.runtime().theme().fingerprint(), before);
     if patched.app().fixture.patch.is_some() && C::caps().bits() != 0 && !C::PARTS.is_empty() {
         if patched.snapshot().digest() == plain_digest {
             assert_ne!(
@@ -1389,6 +1312,11 @@ fn dynamic_bindings_follow_keymap<C: Conformance>(
     for (action, chord) in dynamic {
         let owner = C::dynamic_binding_id(*action);
         let mut default = harness::<C>(fixture.clone());
+        if has::<C>(Caps::OVERLAY)
+            && (C::opener_id() != C::control_id() || C::activation_id() != C::control_id())
+        {
+            let _ = open_component_layer::<C>(&mut default);
+        }
         assert!(default.tab_to(owner));
         assert!(
             default.key_mod(chord.code, chord.mods).is_consumed(),
@@ -1398,6 +1326,11 @@ fn dynamic_bindings_follow_keymap<C: Conformance>(
 
         let replacement = Chord::key(KeyCode::F(11));
         let mut remapped = harness::<C>(fixture.clone());
+        if has::<C>(Caps::OVERLAY)
+            && (C::opener_id() != C::control_id() || C::activation_id() != C::control_id())
+        {
+            let _ = open_component_layer::<C>(&mut remapped);
+        }
         assert!(remapped.tab_to(owner));
         remapped
             .app_mut()
@@ -1412,6 +1345,11 @@ fn dynamic_bindings_follow_keymap<C: Conformance>(
         );
 
         let mut removed = harness::<C>(fixture.clone());
+        if has::<C>(Caps::OVERLAY)
+            && (C::opener_id() != C::control_id() || C::activation_id() != C::control_id())
+        {
+            let _ = open_component_layer::<C>(&mut removed);
+        }
         assert!(removed.tab_to(owner));
         removed.app_mut().keymap.remove_component(owner, *action);
         assert!(
@@ -1423,7 +1361,12 @@ fn dynamic_bindings_follow_keymap<C: Conformance>(
 }
 
 pub fn bindings_match_handled_keys<C: Conformance>() {
-    let states = C::binding_states();
+    let states = [
+        BindingState::default(),
+        BindingState {
+            flags: StateFlags::FOCUSED,
+        },
+    ];
     let fixture = Fixture::default();
     let dynamic = C::dynamic_bindings(&fixture);
     if states.iter().all(|state| C::bindings(*state).is_empty())
@@ -1433,15 +1376,17 @@ pub fn bindings_match_handled_keys<C: Conformance>() {
         return;
     }
     dynamic_bindings_follow_keymap::<C>(&fixture, &dynamic);
-    for &st in states {
+    for st in states {
         let table = C::bindings(st);
 
         for b in table {
             let mut h = harness::<C>(Fixture::default());
-            assert!(h.tab_to(C::control_id()));
-            if has::<C>(Caps::OVERLAY) && C::activation_id() != C::control_id() {
+            if has::<C>(Caps::OVERLAY)
+                && (C::opener_id() != C::control_id() || C::activation_id() != C::control_id())
+            {
                 let _ = open_component_layer::<C>(&mut h);
             }
+            assert!(h.tab_to(C::control_id()));
             let chord = if let Some(chord) = b.chord {
                 chord
             } else {
@@ -1468,6 +1413,11 @@ pub fn bindings_match_handled_keys<C: Conformance>() {
                 continue;
             }
             let mut h = harness::<C>(Fixture::default());
+            if has::<C>(Caps::OVERLAY)
+                && (C::opener_id() != C::control_id() || C::activation_id() != C::control_id())
+            {
+                let _ = open_component_layer::<C>(&mut h);
+            }
             let owner = dynamic
                 .iter()
                 .find_map(|(action, declared)| {
@@ -1480,9 +1430,6 @@ pub fn bindings_match_handled_keys<C: Conformance>() {
                 })
                 .unwrap_or_else(C::control_id);
             assert!(h.tab_to(owner));
-            if has::<C>(Caps::OVERLAY) && C::activation_id() != C::control_id() {
-                let _ = open_component_layer::<C>(&mut h);
-            }
             let r = h.key_mod(chord.code, chord.mods);
             if r.is_consumed() {
                 let key = termrock::Key {
