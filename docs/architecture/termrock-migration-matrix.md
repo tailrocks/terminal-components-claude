@@ -1871,3 +1871,7 @@ the candidate missing or differently-mapping the dimmed backdrop. That is
 the app/theme streams' still-open parity gap to close in source; the
 regenerated frames are correct against the frozen oracle and need no
 further edits when it lands.
+
+### Incoming Jackin expectation protection
+
+Remote commit `7649ee7ed8e8645e49f859a171ea0193fccc1e82` changed 23 existing Jackin digest expectations without an independently reviewed frozen-reference decision. Independent review requires restoring all 23 values: one Accounts, eight Capsule, three Hard Cases, eight Outro and three Returning values. The protected baseline blob remains `0e45e5d0caaef4af0706b1dd5db92fd3b2ca40cf`; incoming source changes are not approved by synchronization. [Per-key review](../audits/evidence/2026-10-21-incoming-jackin-expectations/independent-review.json) preserves both results and dispositions. Exact application parity remains incomplete.
