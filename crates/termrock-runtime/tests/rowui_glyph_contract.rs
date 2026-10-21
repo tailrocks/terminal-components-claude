@@ -9,9 +9,9 @@ const ROW: Rect = Rect::new(2, 0, 12, 1);
 const PART_WIDTH: u16 = 6;
 
 fn theme_with_glyph(part: Part, glyph: Slot<GlyphRole>) -> Theme {
-    let mut theme = Theme::junie();
-    theme.recipes.get_mut(Family::LIST).parts.entry(part).glyph = glyph;
-    theme
+    Theme::junie().define_family(Family::LIST, |edit| {
+        edit.part(part).glyph_slot(glyph);
+    })
 }
 
 fn cell_symbol(scene: &Scene, x: u16) -> &str {
