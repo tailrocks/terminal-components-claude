@@ -22,6 +22,7 @@ pub mod hintbar;
 pub mod inspector_body;
 pub mod keyhint;
 pub mod manager_frame;
+pub mod manager_split;
 pub mod meter;
 pub mod progress;
 pub mod section;
@@ -49,6 +50,9 @@ pub use hintbar::{DerivedHintBar, HintBar};
 pub use inspector_body::{InspectLine, InspectSpan, InspectTone, paint_inspector_body};
 pub use keyhint::{ChordText, HintText, KeyHint};
 pub use manager_frame::{ManagerFrame, ManagerLeaf, paint_manager_frame};
+pub use manager_split::{
+    ManagerSplit, SplitInstance, SplitMode, SplitMount, SplitWorkspace, paint_manager_split,
+};
 pub use meter::{Meter, MeterTone, MeterVisual};
 pub use progress::{ProgressBar, Spinner};
 pub use section::TextSection;
