@@ -602,6 +602,23 @@ impl Ui<'_> {
         }
     }
 
+    /// Dim composed modal-layer content the way the frozen renderer does at
+    /// low color levels: every cell gains `dim` while fg/bg/bold are
+    /// preserved, and bright black (indexed 8) is lifted to indexed 7 so a
+    /// dimmed grey stays readable on the 16-color ladder.
+    pub fn dim_modal_content(&mut self, area: Rect, lift_bright_black: bool) {
+        let area = area.intersection(self.frame.screen);
+        let page = &mut *self.page;
+        for pos in area.positions() {
+            if let Some(cell) = page.cell_mut(pos) {
+                cell.modifier.insert(Modifier::DIM);
+                if lift_bright_black && matches!(cell.fg, Color::Indexed(8) | Color::DarkGray) {
+                    cell.fg = Color::Indexed(7);
+                }
+            }
+        }
+    }
+
     pub fn dim_layer(&mut self, area: Rect, steps: u8) {
         if steps == 0 {
             return;
