@@ -180,7 +180,9 @@ const fn junie_mono() -> ColorTokens {
             Color::White,
             Color::Gray,
             Color::Gray,
-            Color::Gray,
+            // Frozen `--color none` faint ink is DarkGray (#666666). The
+            // 16-color profile already maps the 0x4d4d4d slot there.
+            Color::DarkGray,
             Color::Black,
         ],
         on_accent: Color::Black,
@@ -251,5 +253,25 @@ const fn junie_mono() -> ColorTokens {
                 Color::Gray,
             ],
         },
+    }
+}
+
+/// Frozen showcase chrome ink. Truecolor is `0x808080`; mono and 16 stay gray
+/// so `--color none` still captures as `#e5e5e5`.
+pub fn baseline_muted(level: crate::ColorLevel) -> Color {
+    match level {
+        crate::ColorLevel::TrueColor => Color::from_u32(0x0080_8080),
+        crate::ColorLevel::Ansi256 => Color::Indexed(244),
+        crate::ColorLevel::Ansi16 | crate::ColorLevel::Mono => Color::Gray,
+    }
+}
+
+/// Frozen showcase faint ink. Truecolor is `0x4d4d4d`; mono and 16 are dark gray
+/// (`#666666`).
+pub fn baseline_faint(level: crate::ColorLevel) -> Color {
+    match level {
+        crate::ColorLevel::TrueColor => Color::from_u32(0x004d_4d4d),
+        crate::ColorLevel::Ansi256 => Color::Indexed(238),
+        crate::ColorLevel::Ansi16 | crate::ColorLevel::Mono => Color::DarkGray,
     }
 }
