@@ -1071,12 +1071,7 @@ fn shell_layout(area: Rect, inspector: bool) -> ShellLayout {
     } else {
         0
     };
-    let panes = [
-        Pane::Sidebar,
-        Pane::Main,
-        Pane::Spacer,
-        Pane::Inspector,
-    ];
+    let panes = [Pane::Sidebar, Pane::Main, Pane::Spacer, Pane::Inspector];
     let children = [
         termrock::layout::Child::new(&panes[0], fixed_pane(sidebar_width)),
         termrock::layout::Child::new(&panes[1], flexible_pane()),
@@ -2344,7 +2339,9 @@ mod shell_layout_contract {
     #[test]
     fn shared_layout_keeps_all_visible_regions_at_width_boundaries() {
         for (x, y) in [(0, 0), (5, 3)] {
-            for width in [72, 73, 79, 80, 99, 100, 101, 109, 110, 111, 119, 120, 121, 160] {
+            for width in [
+                72, 73, 79, 80, 99, 100, 101, 109, 110, 111, 119, 120, 121, 160,
+            ] {
                 for height in [20, 24, 40] {
                     for inspector in [false, true] {
                         let area = Rect::new(x, y, width, height);
@@ -2353,7 +2350,10 @@ mod shell_layout_contract {
                         assert_eq!(new.header, old.header, "header {area:?} {inspector}");
                         assert_eq!(new.sidebar, old.sidebar, "sidebar {area:?} {inspector}");
                         assert_eq!(new.main, old.main, "main {area:?} {inspector}");
-                        assert_eq!(new.inspector, old.inspector, "inspector {area:?} {inspector}");
+                        assert_eq!(
+                            new.inspector, old.inspector,
+                            "inspector {area:?} {inspector}"
+                        );
                         assert_eq!(new.footer, old.footer, "footer {area:?} {inspector}");
                     }
                 }

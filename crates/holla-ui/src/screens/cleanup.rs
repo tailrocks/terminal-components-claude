@@ -22,16 +22,13 @@ pub(crate) fn draw(world: &World, ui: &mut Ui<'_>, area: Rect) {
     } else {
         String::new()
     };
-    let body = disk
-        .candidates
-        .iter()
-        .map(|candidate| {
-            format!(
-                "{} · {}",
-                candidate.family.label(),
-                candidate.freshness.label()
-            )
-        });
+    let body = disk.candidates.iter().map(|candidate| {
+        format!(
+            "{} · {}",
+            candidate.family.label(),
+            candidate.freshness.label()
+        )
+    });
     TextReport::new().draw_rows(
         ui,
         area,

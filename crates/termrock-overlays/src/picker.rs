@@ -1141,7 +1141,6 @@ mod tests {
         assert_eq!(measured_at(LayerSize::Fill, 72), LayerSize::Fill);
     }
 
-
     #[test]
     fn query_field_resolves_picker_family_theme_and_part_patch() {
         const ID: Id = Id::root("picker.query-presentation");
@@ -1248,15 +1247,11 @@ mod tests {
     fn scope_navigation_wraps_and_handles_shorter_or_empty_scope_lists() {
         use ratatui::crossterm::event as backend;
         use termrock_runtime::event::{Input, KeyCode};
-        use termrock_runtime::runtime::{App, Runtime, UpdateCause};
         use termrock_runtime::runtime::stub::{deliver, key};
+        use termrock_runtime::runtime::{App, Runtime, UpdateCause};
 
         const ID: Id = Id::root("picker.scope-navigation");
-        const SCOPES: &[ScopeKey] = &[
-            ScopeKey::new(1),
-            ScopeKey::new(2),
-            ScopeKey::new(3),
-        ];
+        const SCOPES: &[ScopeKey] = &[ScopeKey::new(1), ScopeKey::new(2), ScopeKey::new(3)];
         struct ScopeApp {
             state: PickerState,
             count: usize,
@@ -1278,7 +1273,9 @@ mod tests {
                 picker.update(cx, &mut self.state, &[]).erase()
             }
             fn draw(&self, ui: &mut Ui<'_>) {
-                ui.layer(ID, |ui, area| self.picker().draw(ui, area, &self.state, &[]));
+                ui.layer(ID, |ui, area| {
+                    self.picker().draw(ui, area, &self.state, &[])
+                });
             }
         }
         let shifted_backtab = || {
@@ -1320,7 +1317,11 @@ mod tests {
             let _ = deliver(&mut runtime, Input::Tick);
             runtime.draw_buffer(area, &mut buffer).commit_presented();
             assert_eq!(runtime.app().state.scope(&[]), None);
-            assert!(runtime.diagnostics().is_empty(), "{:?}", runtime.diagnostics());
+            assert!(
+                runtime.diagnostics().is_empty(),
+                "{:?}",
+                runtime.diagnostics()
+            );
         }
     }
 }
