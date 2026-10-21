@@ -18,8 +18,6 @@ pub(crate) struct HomeState {
     editor: TextInputState,
     rows: NavListState,
     pub(crate) scope: Option<Scope>,
-    /// `docker clean` was seeded for the tick-40 plate. A later seek clears it.
-    tag_query: bool,
     /// History-on tag plates. Set from `HOLLA_NO_HISTORY=0`.
     pub(crate) history: bool,
 }
@@ -33,7 +31,6 @@ impl Default for HomeState {
             editor,
             rows: NavListState::default(),
             scope: None,
-            tag_query: false,
             history: false,
         }
     }
@@ -95,27 +92,9 @@ impl HomeState {
     }
 
     pub(crate) fn clear_query(&mut self) {
-        self.tag_query = false;
         self.value.clear();
         self.editor.cancel();
         self.editor.begin("");
-    }
-
-    pub(crate) fn seed_query(&mut self, text: &str) {
-        self.value = text.to_owned();
-        self.editor.cancel();
-        self.editor.begin(text);
-        self.tag_query = true;
-    }
-
-    /// Drop the seeded docker query once the clock leaves tick 40.
-    pub(crate) fn release_tag_query(&mut self, world: &World) {
-        if self.tag_query && self.query() != catalogue::DOCKER_CLEANUP_QUERY {
-            self.tag_query = false;
-        }
-        if self.tag_query && !catalogue::docker_cleanup_tag_frame(world) {
-            self.clear_query();
-        }
     }
 
     pub(crate) fn rows(&self, world: &World) -> Vec<HomeRow> {
@@ -304,8 +283,6 @@ impl HomeState {
         if let Some(view) = catalogue::parity_files_view(world, ui.full().width)
             && paint_parity_files(ui, rows_area, &view)
         {
-            // Steady bar on the placeholder. CUP 5;4. Do not write cursor bytes.
-            ui.set_bar_cursor(QUERY, termrock::Position::new(3, 4));
             return;
         }
         if self.query().trim().is_empty() && world.scenario.boot_title() == super::finder::RECENT {
@@ -351,43 +328,31 @@ impl HomeState {
         if let Some(view) = catalogue::parity_history_view(world, ui.full().width)
             && paint_parity_history(ui, rows_area, &view)
         {
-            // Steady bar on the placeholder. CUP 5;4. Do not write cursor bytes.
-            ui.set_bar_cursor(QUERY, termrock::Position::new(3, 4));
             return;
         }
         if let Some(view) = catalogue::parity_browser_view(world, ui.full().width)
             && paint_parity_browser(ui, rows_area, &view)
         {
-            // Steady bar on the placeholder. CUP 5;4. Do not write cursor bytes.
-            ui.set_bar_cursor(QUERY, termrock::Position::new(3, 4));
             return;
         }
         if let Some(view) = catalogue::parity_git_current_view(world, ui.full().width)
             && paint_parity_git_current(ui, rows_area, &view)
         {
-            // Steady bar on the placeholder. CUP 5;4. Do not write cursor bytes.
-            ui.set_bar_cursor(QUERY, termrock::Position::new(3, 4));
             return;
         }
         if let Some(view) = catalogue::parity_git_batch_view(world, ui.full().width)
             && paint_parity_git_batch(ui, rows_area, &view)
         {
-            // Steady bar on the placeholder. CUP 5;4. Do not write cursor bytes.
-            ui.set_bar_cursor(QUERY, termrock::Position::new(3, 4));
             return;
         }
         if let Some(view) = catalogue::parity_task_sources_view(world, ui.full().width)
             && paint_parity_task_sources(ui, rows_area, &view)
         {
-            // Steady bar on the placeholder. CUP 5;4. Do not write cursor bytes.
-            ui.set_bar_cursor(QUERY, termrock::Position::new(3, 4));
             return;
         }
         if let Some(view) = catalogue::parity_cargo_view(world, ui.full().width)
             && paint_parity_cargo(ui, rows_area, &view)
         {
-            // Steady bar on the placeholder. CUP 5;4. Do not write cursor bytes.
-            ui.set_bar_cursor(QUERY, termrock::Position::new(3, 4));
             return;
         }
         if let Some(view) = catalogue::parity_discovery(world)
