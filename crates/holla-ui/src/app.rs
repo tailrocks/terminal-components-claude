@@ -1962,12 +1962,7 @@ impl App {
                     self.home.history,
                 )
                 .is_some();
-            let hard_cases_mid = crate::sim::catalogue::hard_cases_100x30_plate(
-                &self.world,
-                ui.full().width,
-                ui.full().height,
-            )
-            .is_some();
+            let hard_cases_mid = mid && crate::sim::catalogue::hard_cases_tag_frame(&self.world);
             let discovery_mid = crate::sim::catalogue::parity_discovery_100x30_plate(
                 &self.world,
                 ui.full().width,
@@ -4230,7 +4225,7 @@ mod tests {
         }
     }
     #[test]
-    fn hard_cases_80x24_frame_40_paints_the_narrow_plate_and_later_seeks_keep_home() {
+    fn hard_cases_80x24_frame_40_paints_the_narrow_tag_list_and_later_seeks_keep_home() {
         let plate = harness(
             App::for_scenario(Scenario::HardCases, Motion::Paused, 40),
             Theme::junie(),
@@ -4285,10 +4280,7 @@ mod tests {
             lines[23]
         );
         let world = &plate.app().world;
-        assert!(catalogue::hard_cases_80x24_plate(world, 120, 40).is_none());
-        assert!(catalogue::hard_cases_80x24_plate(world, 80, 40).is_none());
-        assert!(catalogue::hard_cases_80x24_plate(world, 81, 24).is_none());
-        assert!(catalogue::hard_cases_80x24_plate(world, 100, 30).is_none());
+        assert!(catalogue::hard_cases_tag_frame(world));
         let wide = harness(
             App::for_scenario(Scenario::HardCases, Motion::Paused, 40),
             Theme::junie(),
@@ -4301,7 +4293,6 @@ mod tests {
             wide.text()
         );
         assert!(wide.text().contains("↓14 ↑3"), "{}", wide.text());
-        assert!(catalogue::hard_cases_80x24_plate(&wide.app().world, 120, 40).is_none());
         let later = harness(
             App::for_scenario(Scenario::HardCases, Motion::Paused, 4_000),
             Theme::junie(),
@@ -4313,11 +4304,10 @@ mod tests {
             "{}",
             later.text()
         );
-        assert!(catalogue::hard_cases_80x24_plate(&later.app().world, 80, 24).is_none());
         assert!(!catalogue::hard_cases_tag_frame(&later.app().world));
     }
     #[test]
-    fn hard_cases_100x30_frame_40_paints_the_mid_plate_and_later_seeks_keep_home() {
+    fn hard_cases_100x30_frame_40_paints_the_mid_tag_list_and_later_seeks_keep_home() {
         let plate = harness(
             App::for_scenario(Scenario::HardCases, Motion::Paused, 40),
             Theme::junie(),
@@ -4391,13 +4381,7 @@ mod tests {
         assert_eq!(footer_mark.fg, Color::Rgb(0x73, 0x73, 0x73));
         assert!(plate.diagnostics().is_empty(), "{:?}", plate.diagnostics());
         let world = &plate.app().world;
-        let view = catalogue::hard_cases_100x30_plate(world, 100, 30).expect("100x30 plate");
-        assert_eq!(catalogue::hard_cases_tag(world), Some(view));
-        assert!(catalogue::hard_cases_100x30_plate(world, 80, 24).is_none());
-        assert!(catalogue::hard_cases_100x30_plate(world, 120, 40).is_none());
-        assert!(catalogue::hard_cases_100x30_plate(world, 100, 31).is_none());
-        assert!(catalogue::hard_cases_100x30_plate(world, 99, 30).is_none());
-        assert!(catalogue::hard_cases_80x24_plate(world, 100, 30).is_none());
+        assert!(catalogue::hard_cases_tag_frame(world));
         let wide = harness(
             App::for_scenario(Scenario::HardCases, Motion::Paused, 40),
             Theme::junie(),
@@ -4413,7 +4397,6 @@ mod tests {
             "{}",
             wide_lines[39]
         );
-        assert!(catalogue::hard_cases_100x30_plate(&wide.app().world, 120, 40).is_none());
         let narrow = harness(
             App::for_scenario(Scenario::HardCases, Motion::Paused, 40),
             Theme::junie(),
@@ -4423,7 +4406,7 @@ mod tests {
         let narrow_text = narrow.text();
         let narrow_lines: Vec<&str> = narrow_text.lines().collect();
         assert!(!narrow_lines[22].contains("↓14"), "{}", narrow_lines[22]);
-        assert!(catalogue::hard_cases_100x30_plate(&narrow.app().world, 80, 24).is_none());
+        assert!(catalogue::hard_cases_tag_frame(&narrow.app().world));
         let later = harness(
             App::for_scenario(Scenario::HardCases, Motion::Paused, 4_000),
             Theme::junie(),
@@ -4435,10 +4418,9 @@ mod tests {
             "{}",
             later.text()
         );
-        assert!(catalogue::hard_cases_100x30_plate(&later.app().world, 100, 30).is_none());
         assert!(!catalogue::hard_cases_tag_frame(&later.app().world));
         let other = App::for_scenario(Scenario::FirstUse, Motion::Paused, 40);
-        assert!(catalogue::hard_cases_100x30_plate(&other.world, 100, 30).is_none());
+        assert!(!catalogue::hard_cases_tag_frame(&other.world));
     }
     #[test]
     fn activities_multi_frame_40_paints_the_tag_plate_and_later_seeks_keep_home() {

@@ -419,18 +419,6 @@ impl HomeState {
             return;
         }
         if let Some(view) =
-            catalogue::hard_cases_80x24_plate(world, ui.full().width, ui.full().height)
-            && paint_first_use_80x24(ui, rows_area, &view)
-        {
-            return;
-        }
-        if let Some(view) =
-            catalogue::hard_cases_100x30_plate(world, ui.full().width, ui.full().height)
-            && paint_tag_list_plate(ui, rows_area, &view, 100, 30)
-        {
-            return;
-        }
-        if let Some(view) =
             catalogue::parity_discovery_80x24_plate(world, ui.full().width, ui.full().height)
             && paint_first_use_80x24(ui, rows_area, &view)
         {
@@ -577,8 +565,12 @@ impl HomeState {
             .or_else(|| catalogue::activities_multi_plate(world, self.history))
             .or_else(|| catalogue::remote_host_tag(world))
             .or_else(|| catalogue::docker_cleanup_tag(world))
-            .or_else(|| catalogue::hard_cases_tag(world))
             && paint_parity_discovery(ui, rows_area, &view)
+        {
+            return;
+        }
+        if let Some(view) = catalogue::hard_cases_tag(world)
+            && paint_hard_cases_discovery(ui, rows_area, &view)
         {
             return;
         }
@@ -1491,7 +1483,21 @@ fn paint_tag_list_plate_at(
     columns: Option<TagCols>,
 ) -> bool {
     let full = ui.full();
-    if full.width != width || full.height != height || area.is_empty() {
+    if full.width != width || full.height != height {
+        return false;
+    }
+    paint_tag_list(ui, area, view, columns)
+}
+
+/// Size-free single-column body. `paint_tag_list_plate_at` keeps the exact-frame
+/// gate; callers below the plates use this directly with their own layout policy.
+fn paint_tag_list(
+    ui: &mut Ui<'_>,
+    area: Rect,
+    view: &catalogue::ParityDiscovery,
+    columns: Option<TagCols>,
+) -> bool {
+    if area.is_empty() {
         return false;
     }
     let Some(text) = narrow_action_line(view) else {
@@ -1576,6 +1582,20 @@ fn narrow_action_line(view: &catalogue::ParityDiscovery) -> Option<String> {
         value("Scope")?,
         value("Risk")?
     ))
+}
+
+/// `hard-cases` body. Below the 120-wide breakpoint the view keeps its single-column
+/// tag list; from 120 up it uses the split master/detail card.
+fn paint_hard_cases_discovery(
+    ui: &mut Ui<'_>,
+    area: Rect,
+    view: &catalogue::ParityDiscovery,
+) -> bool {
+    let full = ui.full();
+    if full.width >= 80 && full.width < 120 && paint_tag_list(ui, area, view, None) {
+        return true;
+    }
+    paint_parity_discovery(ui, area, view)
 }
 
 fn paint_parity_discovery(ui: &mut Ui<'_>, area: Rect, view: &catalogue::ParityDiscovery) -> bool {

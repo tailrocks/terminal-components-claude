@@ -5192,23 +5192,6 @@ fn remote_host_list_plate(wide: ParityDiscovery) -> ParityDiscovery {
     }
 }
 
-/// 80×24 `hard-cases` plate. Not the 120×40 plate. Later seeks and other sizes stay off it.
-pub fn hard_cases_80x24_plate(w: &World, width: u16, height: u16) -> Option<ParityDiscovery> {
-    if width != 80 || height != 24 {
-        return None;
-    }
-    hard_cases_tag(w)
-}
-
-/// 100×30 `hard-cases` plate. Not the 80×24 plate and not the 120×40 card.
-/// Later seeks and other sizes stay off it.
-pub fn hard_cases_100x30_plate(w: &World, width: u16, height: u16) -> Option<ParityDiscovery> {
-    if width != 100 || height != 30 {
-        return None;
-    }
-    hard_cases_tag(w)
-}
-
 /// No-history `hard-cases` plate. Only tick 40.
 pub fn hard_cases_tag(w: &World) -> Option<ParityDiscovery> {
     if !hard_cases_tag_frame(w) {
@@ -8128,24 +8111,6 @@ mod tests {
             other.seek(40);
             assert!(!launch_failure_tag_frame(&other), "{}", scenario.name());
         }
-    }
-
-    #[test]
-    fn hard_cases_80x24_plate_is_only_the_narrow_tick_40_frame() {
-        let mut world = fixtures::world_for(Scenario::HardCases);
-        assert!(hard_cases_80x24_plate(&world, 80, 24).is_none());
-        world.seek(40);
-        assert!(hard_cases_80x24_plate(&world, 120, 40).is_none());
-        assert!(hard_cases_80x24_plate(&world, 80, 40).is_none());
-        assert!(hard_cases_80x24_plate(&world, 81, 24).is_none());
-        assert!(hard_cases_80x24_plate(&world, 100, 30).is_none());
-        let view = hard_cases_80x24_plate(&world, 80, 24).expect("80x24 plate");
-        assert_eq!(hard_cases_tag(&world), Some(view));
-        world.seek(4_000);
-        assert!(hard_cases_80x24_plate(&world, 80, 24).is_none());
-        let mut other = fixtures::world_for(Scenario::LaunchFailure);
-        other.seek(40);
-        assert!(hard_cases_80x24_plate(&other, 80, 24).is_none());
     }
 
     #[test]
