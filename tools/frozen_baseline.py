@@ -41,6 +41,11 @@ PREPARE_OWNED_MAX_BUDGET = 200
 PREPARE_OWNED_CLEANUP_RESERVE = 15
 PREPARE_OWNED_HARD_MAX = 220
 PREPARE_OWNED_TERM_GRACE = 2.0
+OWNED_NEXTTEST_READ_BYTES = 64 * 1024
+OWNED_NEXTTEST_MAX_LINE_BYTES = 1 * 1024 * 1024
+OWNED_NEXTTEST_MAX_FILE_BYTES = 64 * 1024 * 1024
+OWNED_RECEIPT_MAX_BYTES = 1024 * 1024
+OWNED_FRAME_MAX_BYTES = 64 * 1024 * 1024
 PREPARE_LIVE_OWNED_COHORT = "frozen-20261021-serial-nonincr-r1-r2"
 OWNED_PROCESS_LIST_COMMAND = "/bin/ps"
 EXPECTED_SCENARIOS = 28_895
@@ -591,6 +596,39 @@ def _write_owned_status(path: Path, document: dict[str, object]) -> None:
     os.replace(temporary, path)
 
 
+def _read_captured_stream(stream: object, *, check_work: Callable[[], None]) -> str:
+    """Read a legacy captured stream completely, with budget checks around the read."""
+    check_work()
+    stream.seek(0)  # type: ignore[attr-defined]
+    payload = stream.read()  # type: ignore[attr-defined]
+    check_work()
+    if not isinstance(payload, bytes):
+        raise RunnerError("owned subprocess capture stream returned non-byte data")
+    return payload.decode(errors="replace")
+
+
+def _read_diagnostic_tail(stream: object, *, check_work: Callable[[], None], limit: int = 6000) -> str:
+    """Read at most the last fixed-size diagnostic tail without moving the stream cursor."""
+    check_work()
+    if type(limit) is not int or not 1 <= limit <= 6000:
+        raise RunnerError("owned subprocess diagnostic tail limit is invalid")
+    try:
+        descriptor = stream.fileno()  # type: ignore[attr-defined]
+        before = os.fstat(descriptor)
+        if not stat.S_ISREG(before.st_mode):
+            return ""
+        size = before.st_size
+        length = min(size, limit)
+        payload = os.pread(descriptor, length, size - length)
+        after = os.fstat(descriptor)
+    except OSError:
+        return ""
+    check_work()
+    if (before.st_dev, before.st_ino) != (after.st_dev, after.st_ino) or after.st_size < size or len(payload) != length:
+        raise RunnerError("owned subprocess diagnostic stream changed during bounded tail read")
+    return payload.decode(errors="replace")
+
+
 def _owned_broker_main(spec_path: Path, control_fd: int) -> int:
     """Launch one command in this anchored session and await parent cleanup."""
     term_requested = False
@@ -652,7 +690,14 @@ def _owned_broker_main(spec_path: Path, control_fd: int) -> int:
             if ready and os.read(control_fd, 1) == b"":
                 _owned_broker_orphan_cleanup(process)
                 return 2
-        status = {"schema": 1, "returncode": process.returncode, "elapsed_seconds": time.monotonic() - started}
+        try:
+            for descriptor in (stdout_fd, stderr_fd):
+                if stat.S_ISREG(os.fstat(descriptor).st_mode):
+                    os.fsync(descriptor)
+        except OSError as error:
+            status = {"schema": 1, "returncode": process.returncode, "elapsed_seconds": time.monotonic() - started, "logs_fsynced": False, "log_flush_error": f"{type(error).__name__}: {str(error)[:512]}"}
+        else:
+            status = {"schema": 1, "returncode": process.returncode, "elapsed_seconds": time.monotonic() - started, "logs_fsynced": True}
     except BaseException as error:
         status = {
             "schema": 1,
@@ -803,7 +848,7 @@ class PrepareExecution:
         self.check_work()
         return self.work_deadline - time.monotonic()
 
-    def run(self, command: list[str], *, cwd: Path, stdout_file: object | None = None, capture_stdout: bool = True, env: dict[str, str] | None = None, quiet: bool = False, show_command: bool = True, command_timeout: float | None = None, optional_failure: bool = False) -> tuple[str, str] | None:
+    def run(self, command: list[str], *, cwd: Path, stdout_file: object | None = None, stderr_file: object | None = None, capture_stdout: bool = True, capture_stderr: bool = True, env: dict[str, str] | None = None, quiet: bool = False, show_command: bool = True, command_timeout: float | None = None, optional_failure: bool = False) -> tuple[str, str] | None:
         self.check_work()
         if command_timeout is not None and (not isinstance(command_timeout, (int, float)) or command_timeout <= 0):
             raise RunnerError("owned command timeout must be positive")
@@ -813,8 +858,9 @@ class PrepareExecution:
             raise RunnerError("owned prepare command argv was invalid")
         status_dir = Path(tempfile.mkdtemp(prefix="termrock-prepare-owned-"))
         stdout_tmp = tempfile.NamedTemporaryFile(mode="w+b", prefix="stdout-", dir=status_dir, delete=False) if stdout_file is None else stdout_file
-        stderr_tmp = tempfile.NamedTemporaryFile(mode="w+b", prefix="stderr-", dir=status_dir, delete=False)
+        stderr_tmp = tempfile.NamedTemporaryFile(mode="w+b", prefix="stderr-", dir=status_dir, delete=False) if stderr_file is None else stderr_file
         owns_stdout = stdout_file is None
+        owns_stderr = stderr_file is None
         control_read, control_write = os.pipe()
         os.set_inheritable(control_read, True)
         status_path = status_dir / "status.json"
@@ -928,6 +974,8 @@ class PrepareExecution:
                 raise RunnerError("owned prepare work deadline expired")
             if result is None:
                 raise RunnerError("owned prepare broker exited without a bounded status record")
+            if isinstance(result.get("log_flush_error"), str):
+                raise RunnerError(f"owned subprocess logs were not durably flushed: {result['log_flush_error']}")
             if result.get("returncode") is None:
                 if optional_failure:
                     if result.get("spawn_failure") is True:
@@ -939,16 +987,16 @@ class PrepareExecution:
             returncode = result.get("returncode")
             if type(returncode) is not int:
                 raise RunnerError("owned prepare broker returned no command status")
+            if result.get("logs_fsynced") is not True:
+                raise RunnerError("owned prepare broker did not confirm durable regular-file logs")
             if local_timeout_hit:
                 if optional_failure:
                     self.check_work()
                     succeeded = True
                     return None
                 raise RunnerError("owned command timed out")
-            stdout_tmp.seek(0)
-            stderr_tmp.seek(0)
-            output = stdout_tmp.read().decode(errors="replace") if capture_stdout else ""
-            errors = stderr_tmp.read().decode(errors="replace")
+            output = _read_captured_stream(stdout_tmp, check_work=self.check_work) if capture_stdout else ""
+            errors = _read_captured_stream(stderr_tmp, check_work=self.check_work) if capture_stderr else ""
             if not quiet:
                 print(errors, end="", file=sys.stderr, flush=True)
                 print(output, end="", flush=True)
@@ -957,7 +1005,9 @@ class PrepareExecution:
                     self.check_work()
                     succeeded = True
                     return None
-                detail = (output + "\n" + errors)[-6000:]
+                diagnostic_output = output if capture_stdout else _read_diagnostic_tail(stdout_tmp, check_work=self.check_work)
+                diagnostic_errors = errors if capture_stderr else _read_diagnostic_tail(stderr_tmp, check_work=self.check_work)
+                detail = (diagnostic_output + "\n" + diagnostic_errors)[-6000:]
                 raise RunnerError(f"command exited {returncode}: {' '.join(command)}\n{detail}")
             succeeded = True
             self.check_work()
@@ -987,7 +1037,8 @@ class PrepareExecution:
                 self._children.pop(broker.pid, None)
             if owns_stdout:
                 stdout_tmp.close()
-            stderr_tmp.close()
+            if owns_stderr:
+                stderr_tmp.close()
             if succeeded:
                 shutil.rmtree(status_dir)
             else:
@@ -1083,6 +1134,43 @@ def sha256(path: Path, *, check_work: Callable[[], None] | None = None) -> str:
     return h.hexdigest()
 
 
+def _read_bounded_file(path: Path, max_bytes: int, label: str, *, check_work: Callable[[], None]) -> bytes:
+    """Read one unaliased regular file in checked blocks under an explicit size cap."""
+    check_work()
+    if type(max_bytes) is not int or max_bytes < 0:
+        raise RunnerError(f"{label} size limit is invalid")
+    try:
+        before = path.lstat()
+        if stat.S_ISLNK(before.st_mode) or not stat.S_ISREG(before.st_mode) or before.st_nlink != 1 or before.st_size > max_bytes:
+            raise RunnerError(f"{label} is unsafe or exceeds its size limit: {path}")
+        fd = os.open(path, os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0))
+        try:
+            opened = os.fstat(fd)
+            if (opened.st_dev, opened.st_ino, opened.st_size) != (before.st_dev, before.st_ino, before.st_size):
+                raise RunnerError(f"{label} changed while opening: {path}")
+            content = bytearray()
+            while True:
+                check_work()
+                chunk = os.read(fd, min(OWNED_NEXTTEST_READ_BYTES, max_bytes - len(content) + 1))
+                check_work()
+                if not chunk:
+                    break
+                content.extend(chunk)
+                if len(content) > max_bytes:
+                    raise RunnerError(f"{label} grew beyond its size limit: {path}")
+            after_fd = os.fstat(fd)
+        finally:
+            os.close(fd)
+        after = path.lstat()
+    except OSError as error:
+        raise RunnerError(f"{label} could not be safely read: {path}: {error}") from error
+    check_work()
+    identity = lambda value: (value.st_dev, value.st_ino, value.st_size, value.st_mtime_ns, value.st_ctime_ns, value.st_nlink)
+    if identity(before) != identity(opened) or identity(opened) != identity(after_fd) or identity(after_fd) != identity(after):
+        raise RunnerError(f"{label} changed during bounded read: {path}")
+    return bytes(content)
+
+
 def stable_private_binary(path: Path, label: str, *, check_work: Callable[[], None] | None = None) -> tuple[str, dict[str, int]]:
     """Hash one unchanged, unaliased executable through a no-follow file descriptor."""
     if check_work is not None:
@@ -1118,15 +1206,22 @@ def stable_private_binary(path: Path, label: str, *, check_work: Callable[[], No
     }
 
 
-def phase_binary_hashes(bins: Path) -> dict[str, str]:
+def phase_binary_hashes(bins: Path, *, check_work: Callable[[], None] | None = None) -> dict[str, str]:
+    if check_work is not None:
+        check_work()
     if bins.is_symlink() or not bins.is_dir():
         raise RunnerError(f"paired phase binary directory is missing or unsafe: {bins}")
     result = {}
     for app in APPS:
+        if check_work is not None:
+            check_work()
         binary = bins / app
         if binary.is_symlink() or not binary.is_file() or binary.stat().st_nlink != 1:
             raise RunnerError(f"paired phase executable is missing or unsafe: {binary}")
-        result[app] = sha256(binary)
+        if check_work is None:
+            result[app] = sha256(binary)
+        else:
+            result[app] = stable_private_binary(binary, f"paired phase executable {app}", check_work=check_work)[0]
     return result
 
 
@@ -1156,14 +1251,20 @@ def digest_tree(path: Path, *, check_work: Callable[[], None] | None = None) -> 
     return h.hexdigest()
 
 
-def sealed_tree(path: Path) -> tuple[str, set[str]]:
+def sealed_tree(path: Path, *, check_work: Callable[[], None] | None = None) -> tuple[str, set[str]]:
+    if check_work is not None:
+        check_work()
     if path.is_symlink() or not path.is_dir():
         raise RunnerError(f"sealed store root must be a real directory: {path}")
     entries: set[str] = set()
     digest = hashlib.sha256()
     for current, directories, files in os.walk(path, followlinks=False):
+        if check_work is not None:
+            check_work()
         current_path = Path(current)
         for name in directories:
+            if check_work is not None:
+                check_work()
             item = current_path / name
             if item.is_symlink() or not stat.S_ISDIR(item.lstat().st_mode):
                 raise RunnerError(f"sealed store contains non-directory or symlink: {item}")
@@ -1171,19 +1272,21 @@ def sealed_tree(path: Path) -> tuple[str, set[str]]:
             entries.add(relative)
             digest.update(b"dir\0" + relative.encode() + b"\0")
         for name in files:
+            if check_work is not None:
+                check_work()
             item = current_path / name
             if item.is_symlink() or not stat.S_ISREG(item.lstat().st_mode):
                 raise RunnerError(f"sealed store contains non-regular file or symlink: {item}")
             relative = item.relative_to(path).as_posix()
             entries.add(relative)
             digest.update(b"file\0" + relative.encode() + b"\0")
-            digest.update(bytes.fromhex(sha256(item)))
+            digest.update(bytes.fromhex(sha256(item, check_work=check_work)))
             digest.update(b"\0")
     return digest.hexdigest(), entries
 
 
-def flat_sealed_store(path: Path, label: str) -> tuple[str, set[str]]:
-    digest, entries = sealed_tree(path)
+def flat_sealed_store(path: Path, label: str, *, check_work: Callable[[], None] | None = None) -> tuple[str, set[str]]:
+    digest, entries = sealed_tree(path, check_work=check_work)
     directories = sorted(name for name in entries if name.endswith("/"))
     if directories:
         raise RunnerError(f"{label} store contains unexpected directory: {directories[:3]}")
@@ -2467,6 +2570,155 @@ def nextest_events(stdout: str, selected: list[str]) -> dict[str, str]:
     return events
 
 
+def nextest_events_stream(
+    stream: object,
+    selected: list[str],
+    *,
+    check_work: Callable[[], None],
+    max_line_bytes: int = OWNED_NEXTTEST_MAX_LINE_BYTES,
+    max_file_bytes: int = OWNED_NEXTTEST_MAX_FILE_BYTES,
+    read_bytes: int = OWNED_NEXTTEST_READ_BYTES,
+) -> dict[str, str]:
+    """Validate exact Nextest terminal events from bounded JSONL reads."""
+    if not selected or any(not isinstance(name, str) or not name for name in selected) or len(set(selected)) != len(selected):
+        raise RunnerError("owned Nextest selection must be a nonempty unique test inventory")
+    if (
+        type(max_line_bytes) is not int or max_line_bytes < 1
+        or type(max_file_bytes) is not int or max_file_bytes < 1
+        or type(read_bytes) is not int or not 1 <= read_bytes <= OWNED_NEXTTEST_READ_BYTES
+    ):
+        raise RunnerError("owned Nextest stream limits are invalid")
+    prefix = f"{TEST_PACKAGE}::{TEST_TARGET}$"
+    expected = {prefix + name for name in selected}
+    events: dict[str, str] = {}
+    pending = bytearray()
+    total = 0
+
+    def consume(line: bytes) -> None:
+        check_work()
+        stripped = line.strip()
+        if not stripped.startswith(b"{"):
+            check_work()
+            return
+        try:
+            event = json.loads(stripped)
+        except (UnicodeDecodeError, ValueError) as error:
+            raise RunnerError("invalid JSON event on owned Nextest stdout") from error
+        if not isinstance(event, dict):
+            raise RunnerError("owned Nextest JSON event is not an object")
+        kind, result = event.get("type"), event.get("event")
+        if kind == "test" and isinstance(result, str) and result in {"ok", "failed", "ignored", "timeout", "exec-failed"}:
+            name = event.get("name")
+            if name not in expected:
+                raise RunnerError(f"owned Nextest emitted an unselected terminal test event: {name}")
+            if name in events:
+                raise RunnerError(f"owned Nextest emitted a duplicate terminal test event: {name}")
+            events[name] = result
+        check_work()
+
+    while True:
+        check_work()
+        remaining = max_file_bytes - total
+        chunk = stream.read(min(read_bytes, remaining + 1))  # type: ignore[attr-defined]
+        check_work()
+        if not isinstance(chunk, bytes):
+            raise RunnerError("owned Nextest stdout stream returned non-byte data")
+        if not chunk:
+            break
+        total += len(chunk)
+        if total > max_file_bytes:
+            raise RunnerError("owned Nextest stdout exceeded its file-size limit")
+        pending.extend(chunk)
+        while True:
+            newline = pending.find(b"\n")
+            if newline < 0:
+                if len(pending) > max_line_bytes:
+                    raise RunnerError("owned Nextest JSONL line exceeded its size limit")
+                break
+            if newline > max_line_bytes:
+                raise RunnerError("owned Nextest JSONL line exceeded its size limit")
+            line = bytes(pending[:newline])
+            del pending[:newline + 1]
+            consume(line)
+    if pending:
+        if len(pending) > max_line_bytes:
+            raise RunnerError("owned Nextest final JSONL line exceeded its size limit")
+        consume(bytes(pending))
+    if set(events) != expected:
+        missing = sorted(expected - set(events))
+        extra = sorted(set(events) - expected)
+        raise RunnerError(f"owned Nextest terminal event coverage mismatch: missing={missing[:3]}, extra={extra[:3]}")
+    failed = sorted(name for name, result in events.items() if result != "ok")
+    if failed:
+        raise RunnerError(f"owned Nextest selected tests did not all pass: {failed[:5]}")
+    check_work()
+    # Keep the checked inventory in the caller's stable selected-case order;
+    # Nextest may report terminal events in completion order.
+    return {prefix + name: events[prefix + name] for name in selected}
+
+
+def _selected_check_command(live: Path, selected: list[str]) -> list[str]:
+    expression = selected_expression(selected)
+    return ["cargo", "nextest", "run", "--locked", "--manifest-path", str(live / "Cargo.toml"), "-p", TEST_PACKAGE, "--test", TEST_TARGET, "--run-ignored", "only", "--filter-expr", expression, "--message-format", "libtest-json-plus", "--no-fail-fast"]
+
+
+def _run_selected_check_chunk(
+    live: Path,
+    selected: list[str],
+    logs: Path,
+    env: dict[str, str],
+    *,
+    execution: PrepareExecution | None = None,
+    timeout: int,
+    command_kind: str,
+) -> dict[str, str]:
+    """Run only pinned baseline visual checks; the owned branch streams to durable files."""
+    if command_kind not in {"baseline-capture", "baseline-replay"}:
+        raise RunnerError("selected-check runner does not admit candidate or ordinary command kinds")
+    command = _selected_check_command(live, selected)
+    stdout_path, stderr_path = logs / "stdout.jsonl", logs / "stderr.log"
+    if execution is None:
+        stdout = run(command, cwd=live, timeout=timeout, env=env, quiet=True, stdout_path=stdout_path, stderr_path=stderr_path)
+        return nextest_events(stdout, selected)
+    execution.check_work()
+    logs.mkdir(parents=True, mode=0o700, exist_ok=False)
+    for path in (logs,):
+        info = path.lstat()
+        if stat.S_ISLNK(info.st_mode) or not stat.S_ISDIR(info.st_mode) or info.st_uid != os.geteuid() or stat.S_IMODE(info.st_mode) != 0o700:
+            raise RunnerError("owned selected-check log directory is unsafe")
+    with stdout_path.open("x+b") as stdout_file, stderr_path.open("x+b") as stderr_file:
+        run_error: BaseException | None = None
+        try:
+            execution.run(
+                command, cwd=live, stdout_file=stdout_file, stderr_file=stderr_file,
+                capture_stdout=False, capture_stderr=False, env=env, quiet=True,
+                show_command=False,
+            )
+        except BaseException as error:
+            run_error = error
+        sync_error: OSError | None = None
+        try:
+            for output in (stdout_file, stderr_file):
+                output.flush()
+                os.fsync(output.fileno())
+            directory_fd = os.open(logs, os.O_RDONLY | getattr(os, "O_DIRECTORY", 0) | getattr(os, "O_NOFOLLOW", 0))
+            try:
+                os.fsync(directory_fd)
+            finally:
+                os.close(directory_fd)
+        except OSError as error:
+            sync_error = error
+        if run_error is not None:
+            raise run_error
+        if sync_error is not None:
+            raise RunnerError(f"owned selected-check logs could not be durably flushed: {sync_error}") from sync_error
+        execution.check_work()
+    with stdout_path.open("rb") as stream:
+        events = nextest_events_stream(stream, selected, check_work=execution.check_work)
+    execution.check_work()
+    return events
+
+
 def clean_env() -> dict[str, str]:
     blocked = {"BLESS", "COMBO_FILTER", "MIDTEST_BUILD", "PRINT_PAGES", "REACH_DUMP", "RUSTFLAGS", "RUSTDOCFLAGS", "CARGO_ENCODED_RUSTFLAGS", "RUSTC_WRAPPER", "RUSTC_WORKSPACE_WRAPPER", "CARGO_BUILD_TARGET"}
     blocked_prefixes = ("VISUAL_", "TERMROCK_PAIR_", "UPDATE_", "NEXTEST_", "NEXTTEST_", "DUMP_", "SHOWCASE_", "INSTA_", "SNAPSHOT", "TUISNAP", "TUISCOTTI", "JUNIE_TUI_", "CARGO_PROFILE_")
@@ -2524,8 +2776,13 @@ def validate_reference_term_profile(decisions: list[dict[str, object]], selected
                 raise RunnerError("the pinned grown-reference exception was reviewed with the harness-default child TERM; profiled runs must exclude that case")
 
 
-def tree_digest_or_empty(path: Path) -> str:
-    return digest_tree(path) if path.exists() else hashlib.sha256(b"").hexdigest()
+def tree_digest_or_empty(path: Path, *, check_work: Callable[[], None] | None = None) -> str:
+    if check_work is not None:
+        check_work()
+    result = digest_tree(path, check_work=check_work) if path.exists() else hashlib.sha256(b"").hexdigest()
+    if check_work is not None:
+        check_work()
+    return result
 
 
 def archive_artifacts(source: Path, run_root: Path, phase: str) -> Path:
@@ -2540,7 +2797,59 @@ def archive_artifacts(source: Path, run_root: Path, phase: str) -> Path:
     return dest
 
 
-def archive_live_artifacts(source: Path, chunk_root: Path, receipt_root: Path) -> Path:
+def _copy_tree_checked(source: Path, destination: Path, *, check_work: Callable[[], None]) -> None:
+    check_work()
+    if source.is_symlink() or not source.is_dir():
+        raise RunnerError(f"artifact source is not a real directory: {source}")
+    destination.mkdir(mode=0o700, parents=True, exist_ok=False)
+    directories: list[Path] = []
+    for current, child_directories, files in os.walk(source, followlinks=False):
+        check_work()
+        current_path = Path(current)
+        relative = current_path.relative_to(source)
+        target_directory = destination / relative
+        if relative != Path("."):
+            target_directory.mkdir(mode=0o700, parents=True, exist_ok=False)
+        directories.append(target_directory)
+        for name in child_directories:
+            check_work()
+            item = current_path / name
+            if item.is_symlink() or not stat.S_ISDIR(item.lstat().st_mode):
+                raise RunnerError(f"artifact tree contains a non-directory or symlink: {item}")
+        for name in files:
+            check_work()
+            item = current_path / name
+            info = item.lstat()
+            if stat.S_ISLNK(info.st_mode) or not stat.S_ISREG(info.st_mode) or info.st_nlink != 1:
+                raise RunnerError(f"artifact tree contains a non-regular or aliased file: {item}")
+            copied = target_directory / name
+            with item.open("rb") as input_stream, copied.open("xb") as output_stream:
+                while True:
+                    check_work()
+                    block = input_stream.read(OWNED_NEXTTEST_READ_BYTES)
+                    check_work()
+                    if not block:
+                        break
+                    output_stream.write(block)
+                output_stream.flush()
+                os.fsync(output_stream.fileno())
+            after = item.lstat()
+            if (info.st_dev, info.st_ino, info.st_size, info.st_mtime_ns, info.st_ctime_ns) != (after.st_dev, after.st_ino, after.st_size, after.st_mtime_ns, after.st_ctime_ns):
+                raise RunnerError(f"artifact file changed while it was copied: {item}")
+            check_work()
+    for directory in reversed(directories):
+        check_work()
+        fd = os.open(directory, os.O_RDONLY | getattr(os, "O_DIRECTORY", 0) | getattr(os, "O_NOFOLLOW", 0))
+        try:
+            os.fsync(fd)
+        finally:
+            os.close(fd)
+    check_work()
+
+
+def archive_live_artifacts(source: Path, chunk_root: Path, receipt_root: Path, *, check_work: Callable[[], None] | None = None) -> Path:
+    if check_work is not None:
+        check_work()
     dest = chunk_root / "artifacts"
     if dest.exists():
         raise RunnerError(f"refusing to overwrite saved live artifacts: {dest}")
@@ -2555,25 +2864,43 @@ def archive_live_artifacts(source: Path, chunk_root: Path, receipt_root: Path) -
         ("original-diff", receipt_root.with_name(receipt_root.name + ".original-diff")),
     )
     for name, path in candidates:
+        if check_work is not None:
+            check_work()
         if path.exists() or path.is_symlink():
             if path.is_symlink():
                 raise RunnerError(f"artifact root is a symlink: {path}")
-            shutil.copytree(path, dest / name, symlinks=True)
+            if check_work is None:
+                shutil.copytree(path, dest / name, symlinks=True)
+            else:
+                _copy_tree_checked(path, dest / name, check_work=check_work)
+    if check_work is not None:
+        check_work()
     return dest
 
 
-def frame_artifacts(path: Path) -> dict[str, bytes]:
+def frame_artifacts(path: Path, *, check_work: Callable[[], None] | None = None) -> dict[str, bytes]:
+    if check_work is not None:
+        check_work()
     result = {}
+    total = 0
     actual = path / "actual"
     for file in actual.rglob("*") if actual.is_dir() else ():
+        if check_work is not None:
+            check_work()
         if file.is_file() and (file.name.endswith(".ansi") or file.name.endswith(".frame.json")):
-            result[file.relative_to(actual).as_posix()] = file.read_bytes()
+            content = _read_bounded_file(file, OWNED_FRAME_MAX_BYTES, "frame artifact", check_work=check_work) if check_work is not None else file.read_bytes()
+            total += len(content)
+            if total > OWNED_NEXTTEST_MAX_FILE_BYTES:
+                raise RunnerError("frame artifact inventory exceeded its aggregate size limit")
+            result[file.relative_to(actual).as_posix()] = content
+    if check_work is not None:
+        check_work()
     return result
 
 
-def exact_frame_differences(baseline: Path, candidate: Path) -> list[str]:
-    left = frame_artifacts(baseline)
-    right = frame_artifacts(candidate)
+def exact_frame_differences(baseline: Path, candidate: Path, *, check_work: Callable[[], None] | None = None) -> list[str]:
+    left = frame_artifacts(baseline, check_work=check_work)
+    right = frame_artifacts(candidate, check_work=check_work)
     differences = []
     for name in sorted(set(left) | set(right)):
         if name not in left:
@@ -2587,9 +2914,11 @@ def exact_frame_differences(baseline: Path, candidate: Path) -> list[str]:
     return differences
 
 
-def frame_digest(path: Path) -> str:
+def frame_digest(path: Path, *, check_work: Callable[[], None] | None = None) -> str:
     h = hashlib.sha256()
-    for name, content in sorted(frame_artifacts(path).items()):
+    for name, content in sorted(frame_artifacts(path, check_work=check_work).items()):
+        if check_work is not None:
+            check_work()
         h.update(name.encode())
         h.update(b"\0")
         h.update(content)
@@ -2610,10 +2939,12 @@ def valid_color(value: object) -> bool:
     return False
 
 
-def validate_semantic_frame_file(path: Path, digest: str) -> dict[str, object]:
+def validate_semantic_frame_file(path: Path, digest: str, *, check_work: Callable[[], None] | None = None) -> dict[str, object]:
+    if check_work is not None:
+        check_work()
     if path.is_symlink() or not path.is_file() or path.stat().st_nlink != 1:
         raise RunnerError(f"semantic frame missing or not an isolated regular file: {path}")
-    payload = path.read_bytes()
+    payload = _read_bounded_file(path, OWNED_FRAME_MAX_BYTES, "semantic frame", check_work=check_work) if check_work is not None else path.read_bytes()
     if digest and hashlib.sha256(payload).hexdigest() != digest:
         raise RunnerError(f"semantic frame hash mismatch: {path}")
     try:
@@ -2629,6 +2960,8 @@ def validate_semantic_frame_file(path: Path, digest: str) -> dict[str, object]:
     if not isinstance(cells, list) or len(cells) != cols * rows:
         raise RunnerError(f"semantic frame cell inventory mismatch: {path}")
     for index, cell in enumerate(cells):
+        if check_work is not None:
+            check_work()
         x, y = index % cols, index // cols
         required_cell_fields = {"x", "y", "symbol", "width", "continuation", "fg", "bg", "mods"}
         allowed_cell_fields = (required_cell_fields, required_cell_fields | {"underline_color"})
@@ -2639,11 +2972,13 @@ def validate_semantic_frame_file(path: Path, digest: str) -> dict[str, object]:
         raise RunnerError(f"invalid semantic frame cursor: {path}")
     if cursor["x"] >= cols or cursor["y"] >= rows or not isinstance(frame["provenance"], dict):
         raise RunnerError(f"invalid semantic frame cursor bounds or provenance: {path}")
+    if check_work is not None:
+        check_work()
     return frame
 
 
-def actual_semantic_digest(path: Path) -> str:
-    frame = validate_semantic_frame_file(path, "")
+def actual_semantic_digest(path: Path, *, check_work: Callable[[], None] | None = None) -> str:
+    frame = validate_semantic_frame_file(path, "", check_work=check_work)
     frame["provenance"] = {
         "tool": "tuiscotti",
         "tool_version": "0.2.0",
@@ -2656,23 +2991,28 @@ def actual_semantic_digest(path: Path) -> str:
     return hashlib.sha256(canonical).hexdigest()
 
 
-def read_receipts(receipt_root: Path, selected: list[str], expected_root: Path) -> dict[tuple[str, int, str], tuple[str, str, str | None]]:
-    _, receipt_entries = sealed_tree(receipt_root)
+def read_receipts(receipt_root: Path, selected: list[str], expected_root: Path, *, check_work: Callable[[], None] | None = None) -> dict[tuple[str, int, str], tuple[str, str, str | None]]:
+    if check_work is not None:
+        check_work()
+    _, receipt_entries = sealed_tree(receipt_root, check_work=check_work)
     checkpoint_entries = {entry for entry in receipt_entries if not entry.startswith("process/") and entry != "process/"}
     actual_root = receipt_root.with_name(receipt_root.name + ".actual")
-    _, actual_entries = flat_sealed_store(actual_root, "runtime actual")
+    _, actual_entries = flat_sealed_store(actual_root, "runtime actual", check_work=check_work)
     semantic_actual_root = receipt_root.with_name(receipt_root.name + ".semantic-actual")
-    _, semantic_actual_entries = flat_sealed_store(semantic_actual_root, "runtime semantic actual")
+    _, semantic_actual_entries = flat_sealed_store(semantic_actual_root, "runtime semantic actual", check_work=check_work)
     receipts: dict[tuple[str, int, str], tuple[str, str, str | None]] = {}
     expected_receipt_entries: set[str] = set()
     expected_actual_entries: set[str] = set()
     expected_semantic_actual_entries: set[str] = set()
     expected_cases = set(selected)
     for path in sorted(receipt_root.rglob("*.json")):
+        if check_work is not None:
+            check_work()
         if path.relative_to(receipt_root).parts[0] == "process":
             continue
         try:
-            record = json.loads(path.read_text())
+            record_bytes = _read_bounded_file(path, OWNED_RECEIPT_MAX_BYTES, "checkpoint receipt", check_work=check_work) if check_work is not None else path.read_bytes()
+            record = json.loads(record_bytes)
             case = record["case_id"]
             ordinal = record["ordinal"]
             logical = record["logical_name"]
@@ -2698,18 +3038,18 @@ def read_receipts(receipt_root: Path, selected: list[str], expected_root: Path) 
             raise RunnerError(f"checkpoint receipt path does not match its identity: {path}")
         expected_receipt_entries.add(path.relative_to(receipt_root).as_posix())
         expected_ansi = expected_root / f"{checkpoint}.ansi"
-        if expected_ansi.is_symlink() or not expected_ansi.is_file() or expected_ansi.stat().st_nlink != 1 or sha256(expected_ansi) != ansi_digest:
+        if expected_ansi.is_symlink() or not expected_ansi.is_file() or expected_ansi.stat().st_nlink != 1 or sha256(expected_ansi, check_work=check_work) != ansi_digest:
             raise RunnerError(f"receipt ANSI frame missing or hash mismatch: {expected_ansi}")
         expected_semantic = expected_root / f"{checkpoint}.frame.json"
-        validate_semantic_frame_file(expected_semantic, semantic_digest)
+        validate_semantic_frame_file(expected_semantic, semantic_digest, check_work=check_work)
         actual_semantic = actual_root / f"{checkpoint}.frame.json"
         if actual_semantic.exists() or actual_semantic.is_symlink():
-            if actual_semantic.is_symlink() or not actual_semantic.is_file() or actual_semantic.stat().st_nlink != 1 or actual_semantic_digest(actual_semantic) != semantic_digest:
+            if actual_semantic.is_symlink() or not actual_semantic.is_file() or actual_semantic.stat().st_nlink != 1 or actual_semantic_digest(actual_semantic, check_work=check_work) != semantic_digest:
                 raise RunnerError(f"actual semantic frame hash mismatch or unsafe: {actual_semantic}")
         semantic_actual = semantic_actual_root / f"{checkpoint}.frame.json"
-        validate_semantic_frame_file(semantic_actual, semantic_digest)
+        validate_semantic_frame_file(semantic_actual, semantic_digest, check_work=check_work)
         actual_ansi = actual_root / f"{checkpoint}.ansi"
-        if actual_ansi.is_symlink() or not actual_ansi.is_file() or actual_ansi.stat().st_nlink != 1 or sha256(actual_ansi) != ansi_digest:
+        if actual_ansi.is_symlink() or not actual_ansi.is_file() or actual_ansi.stat().st_nlink != 1 or sha256(actual_ansi, check_work=check_work) != ansi_digest:
             raise RunnerError(f"actual ANSI frame missing or hash mismatch: {actual_ansi}")
         expected_actual_entries.add(actual_ansi.name)
         if actual_semantic.is_file():
@@ -2737,6 +3077,8 @@ def read_receipts(receipt_root: Path, selected: list[str], expected_root: Path) 
         raise RunnerError(f"runtime semantic actual inventory mismatch: extra={sorted(semantic_actual_entries - expected_semantic_actual_entries)[:3]}, missing={sorted(expected_semantic_actual_entries - semantic_actual_entries)[:3]}")
     if not receipts:
         raise RunnerError("phase produced no checkpoint receipts")
+    if check_work is not None:
+        check_work()
     return receipts
 
 
@@ -2767,12 +3109,16 @@ def verify_process_receipts(
     run_id: str,
     key_hex: str,
     checkpoint_receipts: dict[tuple[str, int, str], tuple[str, str, str | None]],
+    *,
+    check_work: Callable[[], None] | None = None,
 ) -> tuple[dict[str, list[str]], dict[str, object]]:
+    if check_work is not None:
+        check_work()
     if not re.fullmatch(r"[0-9a-f]{64}", key_hex):
         raise RunnerError("paired process receipt key is invalid")
     key = bytes.fromhex(key_hex)
     process_root = receipt_root / "process"
-    _, entries = sealed_tree(process_root)
+    _, entries = sealed_tree(process_root, check_work=check_work)
     selected_ids = [scenario_receipt_id(name, extension_manifest) for name in selected]
     expected = {case: process_app_for_case(name, extension_manifest) for name, case in zip(selected, selected_ids, strict=True)}
     launches: dict[str, list[tuple[int, dict[str, object], str]]] = {case: [] for case in selected_ids}
@@ -2785,9 +3131,11 @@ def verify_process_receipts(
     known_close_fields = {"case_id", "launch_receipt_sha256", "ordinal", "phase", "run_id", "schema", "hmac_sha256"}
 
     def read_signed(path: Path, fields: set[str]) -> dict[str, object]:
+        if check_work is not None:
+            check_work()
         if path.is_symlink() or not path.is_file() or path.stat().st_nlink != 1:
             raise RunnerError(f"process receipt is not an isolated regular file: {path}")
-        raw = path.read_bytes()
+        raw = _read_bounded_file(path, OWNED_RECEIPT_MAX_BYTES, "process receipt", check_work=check_work) if check_work is not None else path.read_bytes()
         try:
             record = json.loads(raw)
         except (UnicodeDecodeError, ValueError) as error:
@@ -2802,10 +3150,14 @@ def verify_process_receipts(
         expected_signature = hmac.new(key, canonical_receipt_json(payload), hashlib.sha256).hexdigest()
         if not hmac.compare_digest(signature, expected_signature):
             raise RunnerError(f"process receipt authentication failed: {path}")
+        if check_work is not None:
+            check_work()
         return record
 
     expected_entries: set[str] = set()
     for case in selected_ids:
+        if check_work is not None:
+            check_work()
         case_hash = hashlib.sha256(case.encode()).hexdigest()
         launch_dir = process_root / case_hash
         for kind in ("launch", "closed"):
@@ -2900,16 +3252,103 @@ def verify_process_receipts(
             raise RunnerError(f"checkpoint receipt is not linked to its launched process: {path}")
     if not checkpoint_receipts or linked_checkpoints != set(checkpoint_receipts):
         raise RunnerError("process receipts cannot pass without the complete checkpoint receipt inventory")
-    digest, _ = sealed_tree(process_root)
+    digest, _ = sealed_tree(process_root, check_work=check_work)
+    if check_work is not None:
+        check_work()
     return process_links, {"receipt_count": sum(map(len, process_links.values())), "inventory_sha256": digest, "pid_count": len(all_pids)}
 
 
-def clear_runtime_artifacts(source: Path) -> None:
+def _remove_tree_checked(path: Path, *, check_work: Callable[[], None]) -> None:
+    check_work()
+    if path.is_symlink() or not path.is_dir():
+        raise RunnerError(f"runtime artifact cleanup root is unsafe: {path}")
+    for current, directories, files in os.walk(path, topdown=False, followlinks=False):
+        check_work()
+        current_path = Path(current)
+        for name in files:
+            check_work()
+            item = current_path / name
+            info = item.lstat()
+            if stat.S_ISLNK(info.st_mode) or not stat.S_ISREG(info.st_mode):
+                raise RunnerError(f"runtime artifact cleanup encountered an unsafe file: {item}")
+            item.unlink()
+        for name in directories:
+            check_work()
+            item = current_path / name
+            info = item.lstat()
+            if stat.S_ISLNK(info.st_mode) or not stat.S_ISDIR(info.st_mode):
+                raise RunnerError(f"runtime artifact cleanup encountered an unsafe directory: {item}")
+            item.rmdir()
+    check_work()
+    path.rmdir()
+    check_work()
+
+
+def clear_runtime_artifacts(source: Path, *, check_work: Callable[[], None] | None = None) -> None:
+    if check_work is not None:
+        check_work()
     runtime = source / "target" / "tuiscotti"
     for name in ("actual", "diff"):
+        if check_work is not None:
+            check_work()
         path = runtime / name
+        if check_work is not None and path.is_symlink():
+            raise RunnerError(f"runtime artifact cleanup path is a symlink: {path}")
         if path.exists():
-            shutil.rmtree(path)
+            if check_work is None:
+                shutil.rmtree(path)
+            else:
+                _remove_tree_checked(path, check_work=check_work)
+    if check_work is not None:
+        check_work()
+
+
+def _compress_file_checked(source: Path, destination: Path, *, check_work: Callable[[], None]) -> None:
+    check_work()
+    with source.open("rb") as input_stream, destination.open("xb") as raw_output:
+        with gzip.GzipFile(fileobj=raw_output, mode="wb", compresslevel=6) as compressed:
+            while True:
+                check_work()
+                block = input_stream.read(OWNED_NEXTTEST_READ_BYTES)
+                check_work()
+                if not block:
+                    break
+                compressed.write(block)
+                check_work()
+        raw_output.flush()
+        os.fsync(raw_output.fileno())
+    check_work()
+    directory_fd = os.open(destination.parent, os.O_RDONLY | getattr(os, "O_DIRECTORY", 0) | getattr(os, "O_NOFOLLOW", 0))
+    try:
+        os.fsync(directory_fd)
+    finally:
+        os.close(directory_fd)
+    check_work()
+
+
+def _write_checked_report(path: Path, payload: bytes, *, check_work: Callable[[], None]) -> None:
+    if len(payload) > OWNED_RECEIPT_MAX_BYTES:
+        raise RunnerError("owned chunk report exceeds its size limit")
+    check_work()
+    fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, "O_NOFOLLOW", 0), 0o600)
+    try:
+        remaining = memoryview(payload)
+        while remaining:
+            check_work()
+            written = os.write(fd, remaining[:OWNED_NEXTTEST_READ_BYTES])
+            if written <= 0:
+                raise RunnerError("owned chunk report write made no progress")
+            remaining = remaining[written:]
+        os.fsync(fd)
+    finally:
+        os.close(fd)
+    check_work()
+    directory_fd = os.open(path.parent, os.O_RDONLY | getattr(os, "O_DIRECTORY", 0) | getattr(os, "O_NOFOLLOW", 0))
+    try:
+        os.fsync(directory_fd)
+    finally:
+        os.close(directory_fd)
+    check_work()
 
 
 def paired_report(source_hash: str, snapshots_hash: str, snapshots_tree_hash: str, harness_hash: str, expected_path: Path, selection: str, expected_count: int, candidate: dict[str, object], phases: list[dict[str, object]]) -> dict[str, object]:
@@ -5420,13 +5859,22 @@ def paired_reference_report(decisions: list[dict[str, object]], selected: list[s
     return output
 
 
-def run_live_chunk(live: Path, root: Path, run_root: Path, phase: str, bins: Path, expected_root: Path, selected: list[str], index: int, timeout: int, expected_binary_hashes: dict[str, str], extension_manifest: dict[str, object] | None = None, reference_decisions: list[dict[str, object]] | None = None, reference_decision_sha256: str | None = None, term_profile: str | None = None) -> dict[str, object]:
+def run_live_chunk(live: Path, root: Path, run_root: Path, phase: str, bins: Path, expected_root: Path, selected: list[str], index: int, timeout: int, expected_binary_hashes: dict[str, str], extension_manifest: dict[str, object] | None = None, reference_decisions: list[dict[str, object]] | None = None, reference_decision_sha256: str | None = None, term_profile: str | None = None, *, execution: PrepareExecution | None = None) -> dict[str, object]:
+    check_work = execution.check_work if execution is not None else None
+    if execution is not None:
+        execution.check_work()
+        if phase not in {"baseline-capture", "baseline-replay"}:
+            raise RunnerError("owned selected-check chunks do not admit candidate or ordinary phases")
     chunk_name = f"chunk-{index:05}"
     chunk_root = run_root / phase / chunk_name
     receipt_root = chunk_root / "receipts"
     logs = chunk_root / "logs"
+    if check_work is not None:
+        check_work()
     receipt_root.mkdir(parents=True, exist_ok=False)
-    initial_binary_hashes = phase_binary_hashes(bins)
+    if check_work is not None:
+        check_work()
+    initial_binary_hashes = phase_binary_hashes(bins, check_work=check_work)
     if initial_binary_hashes != expected_binary_hashes:
         raise RunnerError(f"{phase} binaries changed before paired chunk: {bins}")
     process_receipt_key = secrets.token_hex(32)
@@ -5467,20 +5915,27 @@ def run_live_chunk(live: Path, root: Path, run_root: Path, phase: str, bins: Pat
         })
     elif any(name.startswith("TERMROCK_PAIR_REFERENCE_") for name in env):
         raise RunnerError("reference env unexpectedly survived clean environment")
-    expression = selected_expression(selected)
-    command = ["cargo", "nextest", "run", "--locked", "--manifest-path", str(live / "Cargo.toml"), "-p", TEST_PACKAGE, "--test", TEST_TARGET, "--run-ignored", "only", "--filter-expr", expression, "--message-format", "libtest-json-plus", "--no-fail-fast"]
-    clear_runtime_artifacts(live)
+    command = _selected_check_command(live, selected) if execution is None else None
+    clear_runtime_artifacts(live, check_work=check_work)
+    if execution is not None:
+        execution.check_work()
     started = time.monotonic()
     failure = None
     events: dict[str, str] = {}
     try:
-        stdout_path, stderr_path = logs / "stdout.jsonl", logs / "stderr.log"
-        stdout = run(command, cwd=live, timeout=timeout, env=env, quiet=True, stdout_path=stdout_path, stderr_path=stderr_path)
-        events = nextest_events(stdout, selected)
+        if execution is None:
+            assert command is not None
+            stdout_path, stderr_path = logs / "stdout.jsonl", logs / "stderr.log"
+            stdout = run(command, cwd=live, timeout=timeout, env=env, quiet=True, stdout_path=stdout_path, stderr_path=stderr_path)
+            events = nextest_events(stdout, selected)
+        else:
+            events = _run_selected_check_chunk(
+                live, selected, logs, env, execution=execution, timeout=timeout, command_kind=phase,
+            )
     except RunnerError as error:
         failure = str(error)
     try:
-        final_binary_hashes = phase_binary_hashes(bins)
+        final_binary_hashes = phase_binary_hashes(bins, check_work=check_work)
         if final_binary_hashes != initial_binary_hashes or final_binary_hashes != expected_binary_hashes:
             raise RunnerError(f"{phase} binaries changed during paired chunk: {bins}")
     except RunnerError as error:
@@ -5488,11 +5943,16 @@ def run_live_chunk(live: Path, root: Path, run_root: Path, phase: str, bins: Pat
     stdout_path = logs / "stdout.jsonl"
     stdout_gzip = logs / "stdout.jsonl.gz"
     if stdout_path.is_file():
-        with stdout_path.open("rb") as source_stream, gzip.open(stdout_gzip, "wb", compresslevel=6) as compressed:
-            shutil.copyfileobj(source_stream, compressed)
+        if check_work is None:
+            with stdout_path.open("rb") as source_stream, gzip.open(stdout_gzip, "wb", compresslevel=6) as compressed:
+                shutil.copyfileobj(source_stream, compressed)
+        else:
+            _compress_file_checked(stdout_path, stdout_gzip, check_work=check_work)
         stdout_path.unlink()
+        if check_work is not None:
+            check_work()
     try:
-        artifacts = archive_live_artifacts(live, chunk_root, receipt_root)
+        artifacts = archive_live_artifacts(live, chunk_root, receipt_root, check_work=check_work)
     except RunnerError as error:
         failure = f"{failure}; {error}" if failure else str(error)
         artifacts = chunk_root / "artifacts"
@@ -5500,21 +5960,25 @@ def run_live_chunk(live: Path, root: Path, run_root: Path, phase: str, bins: Pat
     process_summary: dict[str, object] = {"receipt_count": 0, "inventory_sha256": None, "pid_count": 0}
     if failure is None:
         try:
-            receipts = read_receipts(receipt_root, [scenario_receipt_id(name, extension_manifest) for name in selected], expected_root)
+            receipts = read_receipts(receipt_root, [scenario_receipt_id(name, extension_manifest) for name in selected], expected_root, check_work=check_work)
             _, process_summary = verify_process_receipts(
                 receipt_root, selected, phase, bins, expected_binary_hashes, extension_manifest,
-                process_receipt_run_id, process_receipt_key, receipts,
+                process_receipt_run_id, process_receipt_key, receipts, check_work=check_work,
             )
             for decision in reference_decisions:
+                if check_work is not None:
+                    check_work()
                 validate_reference_receipts(receipts, [scenario_receipt_id(name, extension_manifest) for name in selected], phase, decision, reference_decision_sha256 or "")
         except RunnerError as error:
             failure = str(error)
     artifact_digest = None
     if artifacts.is_dir() and not artifacts.is_symlink():
         try:
-            artifact_digest = sealed_tree(artifacts)[0]
+            artifact_digest = sealed_tree(artifacts, check_work=check_work)[0]
         except RunnerError as error:
             failure = f"{failure}; {error}" if failure else str(error)
+    if check_work is not None:
+        check_work()
     record = {
         "phase": phase,
         "chunk": index,
@@ -5533,11 +5997,19 @@ def run_live_chunk(live: Path, root: Path, run_root: Path, phase: str, bins: Pat
         "artifact_dir": str(artifacts),
         "elapsed_seconds": round(time.monotonic() - started, 2),
         "artifacts_sha256": artifact_digest,
-        "stdout_sha256": sha256(stdout_gzip) if stdout_gzip.is_file() else None,
-        "stderr_sha256": sha256(logs / "stderr.log") if (logs / "stderr.log").is_file() else None,
+        "stdout_sha256": sha256(stdout_gzip, check_work=check_work) if stdout_gzip.is_file() else None,
+        "stderr_sha256": sha256(logs / "stderr.log", check_work=check_work) if (logs / "stderr.log").is_file() else None,
     }
+    if check_work is not None:
+        check_work()
     chunk_root.mkdir(parents=True, exist_ok=True)
-    (chunk_root / "report.json").write_text(json.dumps(record, indent=2) + "\n")
+    report_bytes = (json.dumps(record, indent=2) + "\n").encode()
+    report_path = chunk_root / "report.json"
+    if check_work is None:
+        report_path.write_bytes(report_bytes)
+    else:
+        _write_checked_report(report_path, report_bytes, check_work=check_work)
+        check_work()
     if failure:
         raise RunnerError(f"{phase} {chunk_name} failed; report and artifacts saved: {failure}")
     return record

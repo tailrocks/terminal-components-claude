@@ -432,8 +432,10 @@ class RunnerGuards(unittest.TestCase):
             actual_with_host_provenance["provenance"]["source"] = "ansi"
             (actual_root / f"{stem}.frame.json").write_text(json.dumps(actual_with_host_provenance, separators=(",", ":")))
             (semantic_actual_root / f"{stem}.frame.json").write_bytes(semantic)
-            found = runner.read_receipts(receipt_root, [case], expected)
+            checks: list[int] = []
+            found = runner.read_receipts(receipt_root, [case], expected, check_work=lambda: checks.append(1))
             self.assertEqual(found, {(case, 0, logical): (receipt["sha256"], receipt["semantic_frame_sha256"], None)})
+            self.assertGreater(len(checks), 10)
             (expected / f"{stem}.ansi").write_bytes(b"changed")
             with self.assertRaisesRegex(runner.RunnerError, "ANSI frame missing or hash mismatch"):
                 runner.read_receipts(receipt_root, [case], expected)
@@ -624,6 +626,9 @@ class RunnerGuards(unittest.TestCase):
             path.write_text(json.dumps(frame, separators=(",", ":")))
             with self.assertRaisesRegex(runner.RunnerError, "invalid semantic frame cell"):
                 runner.validate_semantic_frame_file(path, "")
+            path.write_bytes(b"x" * 65)
+            with patch.object(runner, "OWNED_FRAME_MAX_BYTES", 64), self.assertRaisesRegex(runner.RunnerError, "size limit"):
+                runner.validate_semantic_frame_file(path, "", check_work=lambda: None)
 
     def test_semantic_frame_accepts_default_and_indexed_colors(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
@@ -4113,6 +4118,197 @@ class RunnerGuards(unittest.TestCase):
                 )
             self.assertEqual(stdout, "captured-out\n")
             self.assertEqual(stderr, "captured-err\n")
+
+    def test_owned_prepare_file_backed_streams_do_not_materialize_and_keep_large_output(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            stdout_path, stderr_path = root / "stdout.jsonl", root / "stderr.log"
+            script = "import os; os.write(1, b'x' * (2 * 1024 * 1024)); os.write(2, b'e' * (3 * 1024 * 1024))"
+            with stdout_path.open("x+b") as stdout_file, stderr_path.open("x+b") as stderr_file:
+                with runner.PrepareExecution(10) as execution, patch.object(runner, "_read_captured_stream", side_effect=AssertionError("stream must not be materialized")):
+                    result = execution.run(
+                        [sys.executable, "-c", script], cwd=root,
+                        stdout_file=stdout_file, stderr_file=stderr_file,
+                        capture_stdout=False, capture_stderr=False,
+                        quiet=True, show_command=False,
+                    )
+            self.assertEqual(result, ("", ""))
+            self.assertEqual(stdout_path.stat().st_size, 2 * 1024 * 1024)
+            self.assertEqual(stderr_path.stat().st_size, 3 * 1024 * 1024)
+
+            failed_stdout, failed_stderr = root / "failed-stdout", root / "failed-stderr"
+            failure_script = "import os,sys; os.write(1, b'o'*(2*1024*1024)); os.write(2, b'e'*(3*1024*1024) + b'bounded-tail-marker'); sys.exit(7)"
+            with failed_stdout.open("x+b") as stdout_file, failed_stderr.open("x+b") as stderr_file:
+                with runner.PrepareExecution(10) as execution, patch.object(runner, "_read_captured_stream", side_effect=AssertionError("failed file-backed stream must not be materialized")):
+                    with self.assertRaisesRegex(runner.RunnerError, "command exited 7") as failure:
+                        execution.run(
+                            [sys.executable, "-c", failure_script], cwd=root,
+                            stdout_file=stdout_file, stderr_file=stderr_file,
+                            capture_stdout=False, capture_stderr=False,
+                            quiet=True, show_command=False,
+                        )
+            self.assertIn("bounded-tail-marker", str(failure.exception))
+            self.assertLess(len(str(failure.exception).split("\n", 1)[-1]), 6100)
+
+    def test_owned_prepare_file_backed_deadline_and_sigterm_reap_and_preserve_logs(self) -> None:
+        for failure in ("deadline", "signal"):
+            with self.subTest(failure=failure), tempfile.TemporaryDirectory() as temp:
+                root = Path(temp)
+                stdout_path, stderr_path, started_path = root / "stdout.log", root / "stderr.log", root / "child-started"
+                script = "import pathlib,sys,time; pathlib.Path(sys.argv[1]).write_text(str(__import__('os').getpid())); print('out-before-wait', flush=True); print('err-before-wait', file=sys.stderr, flush=True); time.sleep(30)"
+                signal_sender: threading.Thread | None = None
+                budget = 1 if failure == "deadline" else 10
+                with runner.PrepareExecution(budget) as execution:
+                    with stdout_path.open("x+b") as stdout_file, stderr_path.open("x+b") as stderr_file:
+                        if failure == "signal":
+                            def send_term() -> None:
+                                deadline = time.monotonic() + 3
+                                while time.monotonic() < deadline and not started_path.exists():
+                                    time.sleep(0.01)
+                                if started_path.exists():
+                                    os.kill(os.getpid(), signal.SIGTERM)
+                            signal_sender = threading.Thread(target=send_term, daemon=True)
+                            signal_sender.start()
+                        with self.assertRaisesRegex(runner.RunnerError, "deadline expired|cancelled by signal"):
+                            execution.run(
+                                [sys.executable, "-c", script, str(started_path)], cwd=root,
+                                stdout_file=stdout_file, stderr_file=stderr_file,
+                                capture_stdout=False, capture_stderr=False,
+                                quiet=True, show_command=False,
+                            )
+                    if signal_sender is not None:
+                        signal_sender.join(timeout=3)
+                    self.assertFalse(execution._children)
+                self.assertTrue(started_path.is_file())
+                self.assertIn(b"out-before-wait", stdout_path.read_bytes())
+                self.assertIn(b"err-before-wait", stderr_path.read_bytes())
+
+    def test_owned_nextest_stream_is_bounded_and_rejects_inexact_events(self) -> None:
+        selected = ["module::first", "module::second"]
+        names = [f"{runner.TEST_PACKAGE}::{runner.TEST_TARGET}${name}" for name in selected]
+        payload = (
+            b"ignored diagnostic line\n"
+            + (b"n" * 2048) + b"\n"
+            + b'{"type":"test","event":"ok","name":"' + names[1].encode() + b'"}\n'
+            + b'{"type":"test","event":"ok","name":"' + names[0].encode() + b'"}'
+        )
+
+        class TrackingStream(io.BytesIO):
+            reads: list[int]
+
+            def __init__(self, data: bytes):
+                super().__init__(data)
+                self.reads = []
+
+            def read(self, size: int = -1) -> bytes:
+                self.reads.append(size)
+                return super().read(size)
+
+        stream = TrackingStream(payload)
+        checks: list[int] = []
+        events = runner.nextest_events_stream(stream, selected, check_work=lambda: checks.append(1), read_bytes=64)
+        self.assertEqual(list(events), names)
+        self.assertEqual(list(events.values()), ["ok", "ok"])
+        self.assertTrue(stream.reads)
+        self.assertTrue(all(0 < size <= 64 for size in stream.reads))
+        self.assertGreater(len(checks), len(stream.reads))
+
+        cancelled_checks = 0
+
+        def cancel_during_read() -> None:
+            nonlocal cancelled_checks
+            cancelled_checks += 1
+            if cancelled_checks == 5:
+                raise runner.RunnerError("fixture cancellation during bounded JSONL read")
+
+        cancelled_stream = TrackingStream(payload)
+        with self.assertRaisesRegex(runner.RunnerError, "fixture cancellation"):
+            runner.nextest_events_stream(cancelled_stream, selected, check_work=cancel_during_read, read_bytes=64)
+        self.assertTrue(all(0 < size <= 64 for size in cancelled_stream.reads))
+
+        bad_streams = (
+            (b'{"type":"test","event":"ok","name":"' + names[0].encode() + b'"}\n', selected, {}, "coverage mismatch"),
+            ((b'{"type":"test","event":"ok","name":"' + names[0].encode() + b'"}\n') * 2, [selected[0]], {}, "duplicate"),
+            (b'{"type":"test","event":"ignored","name":"' + names[0].encode() + b'"}\n', [selected[0]], {}, "did not all pass"),
+            (b'{"type":"test","event":"ignored","name":"' + names[1].encode() + b'"}\n', [selected[0]], {}, "unselected"),
+            (b'{"type":"test","event":"ok","name":"other::case"}\n', [selected[0]], {}, "unselected"),
+            (b'{"type":"test","event":"failed","name":"' + names[0].encode() + b'"}\n', [selected[0]], {}, "did not all pass"),
+            (b'{"type":"test","event":[],"name":"' + names[0].encode() + b'"}\n', [selected[0]], {}, "coverage mismatch"),
+            (b"x" * 33, [selected[0]], {"max_line_bytes": 32}, "line exceeded"),
+            (payload, selected, {"max_file_bytes": 32}, "file-size limit"),
+        )
+        for data, chosen, limits, message in bad_streams:
+            with self.subTest(message=message), self.assertRaisesRegex(runner.RunnerError, message):
+                runner.nextest_events_stream(io.BytesIO(data), chosen, check_work=lambda: None, **limits)
+
+    def test_owned_selected_check_uses_broker_and_rejects_zero_checkpoint_output(self) -> None:
+        selected = ["module::first", "module::second"]
+        names = [f"{runner.TEST_PACKAGE}::{runner.TEST_TARGET}${name}" for name in selected]
+        script = (
+            "import json,os,sys; os.write(1, b'noise\\n' + b'x'*2048 + b'\\n'); "
+            "os.write(2, b'e' * (2 * 1024 * 1024)); "
+            "sys.stdout.write(json.dumps({'type':'test','event':'ok','name':sys.argv[1]}) + '\\n'); "
+            "sys.stdout.write(json.dumps({'type':'test','event':'ok','name':sys.argv[2]}))"
+        )
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            live = root / "live"
+            live.mkdir()
+            logs = root / "logs"
+            env = {"PATH": os.environ.get("PATH", ""), "TERM": "dumb"}
+            command = [sys.executable, "-c", script, *names]
+            with runner.PrepareExecution(20) as execution, patch.object(runner, "_selected_check_command", return_value=command), patch.object(runner, "_read_captured_stream", side_effect=AssertionError("owned stdout and stderr must stay file-backed")):
+                events = runner._run_selected_check_chunk(live, selected, logs, env, execution=execution, timeout=20, command_kind="baseline-capture")
+            self.assertEqual(set(events), set(names))
+            self.assertEqual((logs / "stderr.log").stat().st_size, 2 * 1024 * 1024)
+            self.assertEqual((logs / "stdout.jsonl").read_bytes()[-1:], b"}")
+
+            candidate_logs = root / "candidate-logs"
+            with runner.PrepareExecution(1) as execution, self.assertRaisesRegex(runner.RunnerError, "does not admit candidate"):
+                runner._run_selected_check_chunk(live, selected, candidate_logs, env, execution=execution, timeout=20, command_kind="candidate-check")
+            self.assertFalse(candidate_logs.exists())
+
+            receipt_root = root / "receipts"
+            (receipt_root / "process").mkdir(parents=True)
+            (root / "receipts.actual").mkdir()
+            (root / "receipts.semantic-actual").mkdir()
+            expected_root = root / "expected"
+            expected_root.mkdir()
+            with self.assertRaisesRegex(runner.RunnerError, "missing checkpoint receipts"):
+                runner.read_receipts(receipt_root, [runner.scenario_receipt_id(name) for name in selected], expected_root)
+
+    def test_owned_artifact_copy_compression_and_report_cancel_between_bounded_blocks(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            source = root / "source"
+            source.mkdir()
+            (source / "large.bin").write_bytes(b"a" * (256 * 1024))
+            copied = root / "copied"
+            source_file = source / "large.bin"
+            compressed = root / "large.gz"
+
+            def cancel_after(limit: int) -> Callable[[], None]:
+                calls = 0
+
+                def check_work() -> None:
+                    nonlocal calls
+                    calls += 1
+                    if calls == limit:
+                        raise runner.RunnerError("fixture cancellation during checked I/O")
+
+                return check_work
+
+            with self.assertRaisesRegex(runner.RunnerError, "fixture cancellation"):
+                runner._copy_tree_checked(source, copied, check_work=cancel_after(6))
+            self.assertTrue(copied.is_dir())
+            with self.assertRaisesRegex(runner.RunnerError, "fixture cancellation"):
+                runner._compress_file_checked(source_file, compressed, check_work=cancel_after(3))
+            self.assertTrue(compressed.exists())
+            report = root / "report.json"
+            with self.assertRaisesRegex(runner.RunnerError, "fixture cancellation"):
+                runner._write_checked_report(report, b"report-data", check_work=cancel_after(2))
+            self.assertTrue(report.exists())
+            self.assertNotEqual(report.read_bytes(), b"report-data")
 
     def test_owned_prepare_archive_stream_is_byte_exact(self) -> None:
         payload = b"git-archive-equivalent\0\xff\n"
