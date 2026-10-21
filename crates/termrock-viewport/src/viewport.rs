@@ -1018,16 +1018,26 @@ impl<'a> TextViewport<'a> {
         st: &mut ViewportState,
         lines: LineSet<'_>,
     ) -> Response<ViewportAction> {
-        let area = cx.area(self.id).unwrap_or(Rect::ZERO);
-        let text = cx
+        let layout = cx.layout(self.id);
+        let area = layout
+            .and_then(|layout| layout.logical_area)
+            .or_else(|| cx.area(self.id))
+            .unwrap_or(Rect::ZERO);
+        let width = layout.map_or_else(
+            || Self::text_width(area.width, self.reserve_gutter, self.scroll_gap),
+            |layout| layout.cols,
+        );
+        let logical_text = self.text_area(area, width);
+        let hit_text = cx
             .area_of_part(self.id, PartRef::of(Part::TEXT))
-            .unwrap_or_else(|| {
-                self.text_area(
-                    area,
-                    Self::text_width(area.width, self.reserve_gutter, self.scroll_gap),
-                )
-            });
-        let width = text.width;
+            .unwrap_or(logical_text);
+        // The registry clips the hit area. Keep its horizontal visible origin for pointer
+        // mapping, while retaining the logical row origin and wrapping width from draw.
+        let pointer_text = Rect {
+            x: hit_text.x,
+            y: logical_text.y,
+            ..logical_text
+        };
         let key = self.layout_key(st, width);
         let (total, indexed) = {
             let layout = cx.cache::<ViewportLayout>(self.id);
@@ -1068,7 +1078,7 @@ impl<'a> TextViewport<'a> {
                     cx,
                     st,
                     lines,
-                    (area, text, key),
+                    (area, pointer_text, hit_text, key),
                     (phase, pos),
                     &mut acc,
                 ),
@@ -1086,18 +1096,18 @@ impl<'a> TextViewport<'a> {
         cx: &mut Cx<'_>,
         st: &mut ViewportState,
         lines: LineSet<'_>,
-        geometry: (Rect, Rect, LayoutKey),
+        geometry: (Rect, Rect, Rect, LayoutKey),
         pointer: (Phase, Position),
         acc: &mut Acc<ViewportAction>,
     ) {
-        let (area, text, key) = geometry;
+        let (area, logical_text, hit_text, key) = geometry;
         let (phase, pos) = pointer;
         match phase {
             Phase::Press | Phase::DragStart => {
                 cx.focus(self.id);
                 let _ = cx.capture(self.id, PartRef::of(Part::TEXT));
                 let had = st.selection.take().is_some();
-                st.anchor = self.pos_at(cx, lines, (text, key, st.scroll.offset()), pos);
+                st.anchor = self.pos_at(cx, lines, (logical_text, key, st.scroll.offset()), pos);
                 if had {
                     acc.action(ViewportAction::SelectionChanged);
                 } else {
@@ -1116,13 +1126,21 @@ impl<'a> TextViewport<'a> {
                         FollowCursor::OnMove
                     };
                 }
-                let clamped = Position::new(
-                    pos.x
-                        .clamp(text.x, text.right().saturating_sub(1).max(text.x)),
-                    pos.y
-                        .clamp(text.y, text.bottom().saturating_sub(1).max(text.y)),
-                );
-                let at = self.pos_at(cx, lines, (text, key, st.scroll.offset()), clamped);
+                let clamped = if hit_text.is_empty() {
+                    pos
+                } else {
+                    Position::new(
+                        pos.x.clamp(
+                            hit_text.x,
+                            hit_text.right().saturating_sub(1).max(hit_text.x),
+                        ),
+                        pos.y.clamp(
+                            hit_text.y,
+                            hit_text.bottom().saturating_sub(1).max(hit_text.y),
+                        ),
+                    )
+                };
+                let at = self.pos_at(cx, lines, (logical_text, key, st.scroll.offset()), clamped);
                 match (st.anchor, at) {
                     (Some(anchor), Some(head)) => {
                         st.selection = Some((anchor, head));
@@ -1137,7 +1155,7 @@ impl<'a> TextViewport<'a> {
             }
             Phase::Click | Phase::DoubleClick => {
                 cx.focus(self.id);
-                let at = self.pos_at(cx, lines, (text, key, st.scroll.offset()), pos);
+                let at = self.pos_at(cx, lines, (logical_text, key, st.scroll.offset()), pos);
                 match at.and_then(|p| {
                     lines
                         .get(p.line)
@@ -1311,7 +1329,10 @@ impl<'a> TextViewport<'a> {
             width: desired_text.width.min(content.width),
             ..desired_text
         };
-        ui.report_layout(id, LayoutFacts::new(usize::from(rows), total, rows, text_w));
+        ui.report_layout(
+            id,
+            LayoutFacts::new(usize::from(rows), total, rows, text_w).with_logical_area(area),
+        );
         if text.is_empty() {
             return text;
         }
@@ -1689,6 +1710,66 @@ mod tests {
 
     struct ExtremeGapViewportApp {
         state: ViewportState,
+    }
+
+    struct ClippedWrappedViewportApp {
+        state: ViewportState,
+        clip: Rect,
+    }
+
+    struct ClippedWordViewportApp {
+        state: ViewportState,
+        clip: Rect,
+    }
+
+    const CLIPPED_WRAPPED_AREA: Rect = Rect::new(0, 0, 24, 4);
+    const CLIPPED_WRAPPED_LINES: [ViewportLine<'static>; 1] =
+        [ViewportLine::Plain("abcdefghijklmnopqrstuv WORD")];
+    const CLIPPED_WORD_AREA: Rect = Rect::new(0, 0, 12, 4);
+    const CLIPPED_WORD_LINES: [ViewportLine<'static>; 1] = [ViewportLine::Plain("aa bb")];
+
+    impl App for ClippedWrappedViewportApp {
+        fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+            TextViewport::new(ID)
+                .wrap(true)
+                .click_selects_word(true)
+                .update(cx, &mut self.state, &CLIPPED_WRAPPED_LINES)
+                .erase()
+        }
+
+        fn draw(&self, ui: &mut Ui<'_>) {
+            ui.with_area(self.clip, |ui| {
+                TextViewport::new(ID)
+                    .wrap(true)
+                    .click_selects_word(true)
+                    .draw(
+                        ui,
+                        CLIPPED_WRAPPED_AREA,
+                        &self.state,
+                        &CLIPPED_WRAPPED_LINES,
+                    );
+            });
+        }
+    }
+
+    impl App for ClippedWordViewportApp {
+        fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+            TextViewport::new(ID)
+                .click_selects_word(true)
+                .update(cx, &mut self.state, &CLIPPED_WORD_LINES)
+                .erase()
+        }
+
+        fn draw(&self, ui: &mut Ui<'_>) {
+            ui.with_area(self.clip, |ui| {
+                TextViewport::new(ID).click_selects_word(true).draw(
+                    ui,
+                    CLIPPED_WORD_AREA,
+                    &self.state,
+                    &CLIPPED_WORD_LINES,
+                );
+            });
+        }
     }
 
     impl App for ExtremeGapViewportApp {
@@ -2413,6 +2494,89 @@ mod tests {
                 runtime.app().state.selection(),
                 Some((CellPos::new(0, 3), CellPos::new(0, 5))),
                 "hit mapping changed at {level:?}"
+            );
+        }
+    }
+
+    #[test]
+    fn clipped_wrapped_pointer_uses_the_logical_draw_layout() {
+        for level in [
+            ColorLevel::TrueColor,
+            ColorLevel::Ansi256,
+            ColorLevel::Ansi16,
+            ColorLevel::Mono,
+        ] {
+            for clip in [Rect::new(0, 0, 10, 4), Rect::new(0, 1, 10, 3)] {
+                let mut state = ViewportState::default();
+                state.set_follow(false);
+                let mut runtime = Runtime::new(
+                    ClippedWrappedViewportApp { state, clip },
+                    Theme::junie().downgrade(level),
+                );
+                let _ = runtime.initialize();
+                let mut buffer = Buffer::empty(SCREEN);
+                runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
+
+                assert_eq!(
+                    buffer.cell(Position::new(2, 1)).map(Cell::symbol),
+                    Some("W"),
+                    "the visible W must be in the second visual row ({level:?}, {clip:?})"
+                );
+                let visible_text = runtime
+                    .area_of_part(ID, PartRef::of(Part::TEXT))
+                    .expect("the visible text hit area must be registered");
+                assert_eq!(visible_text, clip.intersection(Rect::new(1, 0, 22, 4)));
+
+                let _ = crate::runtime::stub::deliver(&mut runtime, mouse(MouseKind::Down, 2, 1));
+                let _ = crate::runtime::stub::deliver(&mut runtime, mouse(MouseKind::Up, 2, 1));
+
+                assert_eq!(
+                    runtime.app().state.selection(),
+                    Some((CellPos::new(0, 23), CellPos::new(0, 27))),
+                    "the clipped hit must map through the logical wrapped layout ({level:?}, {clip:?})"
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn horizontally_clipped_pointer_uses_the_logical_text_origin() {
+        for level in [
+            ColorLevel::TrueColor,
+            ColorLevel::Ansi256,
+            ColorLevel::Ansi16,
+            ColorLevel::Mono,
+        ] {
+            let mut state = ViewportState::default();
+            state.set_follow(false);
+            let mut runtime = Runtime::new(
+                ClippedWordViewportApp {
+                    state,
+                    clip: Rect::new(4, 0, 4, 4),
+                },
+                Theme::junie().downgrade(level),
+            );
+            let _ = runtime.initialize();
+            let mut buffer = Buffer::empty(SCREEN);
+            runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
+
+            assert_eq!(
+                buffer.cell(Position::new(4, 0)).map(Cell::symbol),
+                Some("a"),
+                "the clipped draw origin must remain visible ({level:?})"
+            );
+            let visible_text = runtime
+                .area_of_part(ID, PartRef::of(Part::TEXT))
+                .expect("the clipped text hit area must be registered");
+            assert_eq!(visible_text, Rect::new(4, 0, 4, 4));
+
+            let _ = crate::runtime::stub::deliver(&mut runtime, mouse(MouseKind::Down, 4, 0));
+            let _ = crate::runtime::stub::deliver(&mut runtime, mouse(MouseKind::Up, 4, 0));
+
+            assert_eq!(
+                runtime.app().state.selection(),
+                Some((CellPos::new(0, 0), CellPos::new(0, 2))),
+                "the visible hit must retain the logical column offset ({level:?})"
             );
         }
     }
