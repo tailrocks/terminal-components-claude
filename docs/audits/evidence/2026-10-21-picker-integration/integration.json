@@ -1,0 +1,105 @@
+{
+  "schema": 1,
+  "base_commit": "c6dfab74d6d7f22490ae0195a6b9a0a218331b0a",
+  "source_branch_tip_before_normal_merge": "c6dfab74d6d7f22490ae0195a6b9a0a218331b0a",
+  "merged_pr38_remote": "a71388ec365b5f6613550594c1acc6a4081f9b14",
+  "merge_base": "8e7480415a065eac03c0fdfbdd0810edeb85b186",
+  "source_changes_in_picker_increment": [],
+  "incoming_unreviewed_source_preserved": [
+    "crates/termrock-xtask/exceptions/v1.json"
+  ],
+  "held_expectations": [
+    {
+      "path": "crates/showcase-ui/tests/baselines/showcase.txt",
+      "sha1_git_blob": "6de3fa5a291c4427a360eabab99b39f2c2b95909",
+      "held_sha1_git_blob": "6de3fa5a291c4427a360eabab99b39f2c2b95909",
+      "matches_52e_expectation_manifest": true
+    },
+    {
+      "path": "crates/holla-ui/tests/baselines/app.txt",
+      "sha1_git_blob": "863944e34816bbe3cb5f2482f413ab48ae10ebc1",
+      "held_sha1_git_blob": "863944e34816bbe3cb5f2482f413ab48ae10ebc1",
+      "matches_52e_expectation_manifest": true
+    },
+    {
+      "path": "crates/showcase-ui/tests/fixtures/holla-page-headings.tsv",
+      "sha1_git_blob": "937469be55bff7007cfac8c036dc0909f0ad8647",
+      "held_sha1_git_blob": "937469be55bff7007cfac8c036dc0909f0ad8647",
+      "matches_52e_expectation_manifest": true
+    },
+    {
+      "path": "crates/showcase-ui/tests/fixtures/holla-shell-headers.tsv",
+      "sha1_git_blob": "6e6cebb12984f023ccdeab6d80f59dbb19267a9f",
+      "held_sha1_git_blob": "6e6cebb12984f023ccdeab6d80f59dbb19267a9f",
+      "matches_52e_expectation_manifest": true
+    },
+    {
+      "path": "crates/jackin-preview-app/tests/baselines/jackin.txt",
+      "sha1_git_blob": "0e45e5d0caaef4af0706b1dd5db92fd3b2ca40cf",
+      "held_sha1_git_blob": "0e45e5d0caaef4af0706b1dd5db92fd3b2ca40cf",
+      "matches_52e_expectation_manifest": true
+    },
+    {
+      "path": "crates/showcase-ui/tests/page_headings.rs",
+      "sha1_git_blob": "48729f448c73823cc58ee5eb1a06640b348355a3",
+      "held_sha1_git_blob": "48729f448c73823cc58ee5eb1a06640b348355a3",
+      "matches_52e_expectation_manifest": true
+    },
+    {
+      "path": "crates/tablepro-ui/tests/baselines/tablepro.txt",
+      "sha1_git_blob": "e4c7211e95ba021bc88cf4fd039133051dac56ae",
+      "held_sha1_git_blob": "e4c7211e95ba021bc88cf4fd039133051dac56ae",
+      "matches_52e_expectation_manifest": true
+    }
+  ],
+  "review_packet_sha256": "aad3119d5626be0654611d7469d4dae75d182ec1f93fe90b8bb68b704a13239e",
+  "branch_census_sha256": "287464f695a7a524b209f313ccc41e51b259bb85d32fae9530b1ce5e525d977b",
+  "gates": {
+    "navigation_runtime_facade_libs": {
+      "tests": 384,
+      "passed": 384,
+      "failed": 0,
+      "skipped": 0
+    },
+    "item_row_columns": {
+      "tests": 15,
+      "passed": 14,
+      "failed": 1,
+      "skipped": 0,
+      "known_failure": "constructor_defaults_match_the_pre_policy_full_cell_fixture"
+    },
+    "picker_row_defaults_example_check": "passed",
+    "picker_row_defaults_example_run": "passed",
+    "strict_scoped_clippy": "passed",
+    "cargo_fmt_all_check": "passed"
+  },
+  "scope_limit": "This integration and its library gates do not establish full application parity, full branch review, workspace acceptance or PR acceptance.",
+  "test_partitions": {
+    "termrock-navigation --lib": {
+      "tests": 112,
+      "passed": 112,
+      "failed": 0,
+      "skipped": 0
+    },
+    "termrock-runtime --lib": {
+      "tests": 261,
+      "passed": 261,
+      "failed": 0,
+      "skipped": 0
+    },
+    "termrock --lib": {
+      "tests": 11,
+      "passed": 11,
+      "failed": 0,
+      "skipped": 0
+    }
+  },
+  "isolated_target": "/Users/donbeave/Library/Caches/termrock-picker-target-20261021-1819",
+  "test_binary_sha256": {
+    "item_row_columns-dfe6f36b98134627": "012c0ed750646664386f0153d8d7b2034948f50dc9215a73a4859d19d6f9fd39",
+    "termrock-32ab0471032a11a8": "9dc264bc294a6183a08b7efc6442333b1f9e23ad4cf84a03c2152ad02189b193",
+    "termrock-8e279da0d02e80be": "7391619f0231dc1988ddd3c35a5a362ed2672d2448c6700ce18eb9cb2b76c745",
+    "termrock_navigation-cc25ce838a83c9be": "ac5efb9ebbc3817535d385d1c83f7669a68d04309b9fa39830d62f94c8682dd8",
+    "termrock_runtime-cd173764ebead258": "8731d196a4a71f9645709d7126ee35f41a9db34b7d38c20fb5851b86cedc5440"
+  }
+}
