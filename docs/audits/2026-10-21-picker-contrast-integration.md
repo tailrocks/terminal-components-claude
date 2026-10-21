@@ -1,6 +1,6 @@
 # Picker authored-background contrast integration
 
-Integration base: PR #38 `8e502d7fb9e40420b844964ec933bac497ebb2ae` (root FormDialog integration, fetched before this merge). Incoming WIP tip: `c932adb5ee29ef8ed9f90cc022c39cb9c0472e5d`. The incoming branch has three commits unique from merge base `bb3db3542933e1927376967c280fa920c92f8fdb`; it is integrated by a normal no-ff merge to retain branch history. The sole source conflict was the `termrock-navigation/src/item.rs` import hunk. Resolution takes the union of the current middle-parts/Unicode imports and the WIP theme/style imports plus its `picker_ink` helper; no behavior or API was changed by the resolution.
+Integration base: PR #38 `8e502d7fb9e40420b844964ec933bac497ebb2ae` (root FormDialog integration, fetched before this merge). Incoming WIP tip: `c932adb5ee29ef8ed9f90cc022c39cb9c0472e5d`. The incoming branch has three commits unique from merge base `bb3db3542933e1927376967c280fa920c92f8fdb`; it is integrated by a normal no-ff merge to retain branch history. The sole source conflict was the `termrock-navigation/src/item.rs` import hunk. Resolution takes the union of the current middle-parts/Unicode imports and the WIP theme/style imports plus its `picker_ink` helper; no behavior or API was changed by the resolution. The later remote source `bfefea9ce4b3ab91f846239d5f315534ccc2ff43` was then merged normally and preserved. Its Session/Alt behavior is unreviewed and explicitly not accepted by this Picker integration; see the root's separate Session review.
 
 The correction uses resolved explicit-background provenance to scope generated Picker ICON/META contrast repair. It leaves inherited default colors unchanged and preserves explicitly authored foregrounds, including same-valued foregrounds. It does not approve the previous `cd1af58` change or update expected output.
 
@@ -16,7 +16,7 @@ The independent review reports native navigation/runtime all-targets 646 pass, 1
 
 ## Current integration gates
 
-On the normal-merge result plus the import-union resolution, using exclusive `CARGO_TARGET_DIR=/private/tmp/pr38-picker-contrast-target-20261021`:
+On final local integration head `7ca251723a6783a9fffca79acebb5bf0c4fff731` (Picker merge plus normally merged remote `bfefea9ce4b3ab91f846239d5f315534ccc2ff43`), using exclusive `CARGO_TARGET_DIR=/private/tmp/pr38-picker-contrast-target-20261021`:
 
 - `cargo nextest run -p termrock-navigation --lib`: 112 passed, zero skipped.
 - `cargo nextest run -p termrock-navigation --test item_row_columns --no-fail-fast`: 14 passed, one failed, zero skipped. The sole failure is the unchanged `constructor_defaults_match_the_pre_policy_full_cell_fixture` at line 483; its expected value was not edited or waived.
@@ -25,4 +25,4 @@ On the normal-merge result plus the import-union resolution, using exclusive `CA
 - The public different-data consumer example `cargo check -p termrock --example picker_row_defaults` and `cargo run -p termrock --example picker_row_defaults` both passed.
 - `cargo clippy -p termrock-runtime -p termrock-navigation -p termrock --all-targets -- -D warnings`, `cargo fmt --all --check`, and `git diff --check` passed.
 
-Full logs are in [gates](evidence/2026-10-21-picker-contrast-integration/gates/). No application flows, visual inventories, or paired baseline comparisons were run here. Known historical fixture failures and other product parity gaps remain open; no tests or expectations were weakened to obtain a green result.
+Full logs are in [gates](evidence/2026-10-21-picker-contrast-integration/gates/). Results only cover these named package/test/example checks and do not approve the unreviewed Session/Alt change or any other incoming application behavior. No application flows, visual inventories, or paired baseline comparisons were run here. Known historical fixture failures and other product parity gaps remain open; no tests or expectations were weakened to obtain a green result.
