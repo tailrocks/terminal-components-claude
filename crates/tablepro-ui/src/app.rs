@@ -7844,31 +7844,78 @@ fn grouped(n: usize) -> String {
 /// `None` means every piece fits and the existing cluster paint stays.
 /// The column is relative to `area.x`. Priorities match the baseline strip:
 /// the size badge is 1 and `? help` is 4, so the badge drops first.
+/// Keep/drop flags for header pieces, stack allocated so the workbench
+/// header stays allocation free on the per-frame draw path.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub(crate) struct HeaderKeep {
+    keep: [bool; 16],
+    len: usize,
+}
+
+impl HeaderKeep {
+    fn all(len: usize) -> Self {
+        Self {
+            keep: [true; 16],
+            len,
+        }
+    }
+
+    /// The kept flags in piece order; empty when `len` runs past the
+    /// fixed backing array.
+    fn kept(&self) -> &[bool] {
+        self.keep.get(..self.len).unwrap_or(&[])
+    }
+
+    fn get(&self, index: usize) -> Option<bool> {
+        self.keep.get(index).copied()
+    }
+
+    fn last(&self) -> Option<bool> {
+        self.get(self.len.checked_sub(1)?)
+    }
+
+    fn set(&mut self, index: usize, value: bool) {
+        if let Some(slot) = self.keep.get_mut(index) {
+            *slot = value;
+        }
+    }
+
+    fn all_kept(&self) -> bool {
+        self.kept().iter().all(|keep| *keep)
+    }
+}
+
+/// Which header pieces survive at `area_width`. Stack resident; the
+/// per-frame workbench draw path calls this directly.
 pub(crate) fn header_overflow(
     area_width: u16,
     left: &[u16],
     left_priority: &[u8],
     right: &[u16],
     right_priority: &[u8],
-) -> Option<(Vec<bool>, u16)> {
+) -> Option<(HeaderKeep, u16)> {
     const EDGE: u16 = 2;
     const SEP: u16 = 2;
-    let mut keep_left = vec![true; left.len()];
-    let mut keep_right = vec![true; right.len()];
-    let total = |keep_left: &[bool], keep_right: &[bool]| -> u16 {
+    let mut keep_left = HeaderKeep::all(left.len());
+    let mut keep_right = HeaderKeep::all(right.len());
+    let total = |keep_left: &HeaderKeep, keep_right: &HeaderKeep| -> u16 {
         let left_width: u16 = left
             .iter()
-            .zip(keep_left)
+            .zip(keep_left.kept())
             .filter(|(_, keep)| **keep)
             .map(|(piece, _)| piece.saturating_add(SEP))
             .sum();
         let right_width: u16 = right
             .iter()
-            .zip(keep_right)
+            .zip(keep_right.kept())
             .filter(|(_, keep)| **keep)
             .map(|(piece, _)| piece.saturating_add(SEP))
             .sum();
-        let dropped = keep_left.iter().chain(keep_right).any(|keep| !keep);
+        let dropped = keep_left
+            .kept()
+            .iter()
+            .chain(keep_right.kept())
+            .any(|keep| !keep);
         let more = if dropped { 1 + SEP } else { 0 };
         left_width
             .saturating_add(right_width)
@@ -7880,38 +7927,41 @@ pub(crate) fn header_overflow(
         let mut best: Option<(u8, bool, usize)> = None;
         // Priorities run parallel to their piece slice; zip keeps the index in
         // bounds even if a caller passes mismatched lengths.
-        for ((index, priority), keep) in left_priority.iter().copied().enumerate().zip(&keep_left) {
+        for ((index, priority), keep) in left_priority
+            .iter()
+            .copied()
+            .enumerate()
+            .zip(keep_left.kept())
+        {
             if *keep && best.is_none_or(|(rank, _, _)| priority < rank) {
                 best = Some((priority, true, index));
             }
         }
-        for ((index, priority), keep) in right_priority.iter().copied().enumerate().zip(&keep_right)
+        for ((index, priority), keep) in right_priority
+            .iter()
+            .copied()
+            .enumerate()
+            .zip(keep_right.kept())
         {
             if *keep && best.is_none_or(|(rank, _, _)| priority <= rank) {
                 best = Some((priority, false, index));
             }
         }
         match best {
-            // The index came from zipping the same vec, so it is in bounds and
-            // the get_mut always hits.
             Some((_, true, index)) => {
-                if let Some(keep) = keep_left.get_mut(index) {
-                    *keep = false;
-                }
+                keep_left.set(index, false);
             }
             Some((_, false, index)) => {
-                if let Some(keep) = keep_right.get_mut(index) {
-                    *keep = false;
-                }
+                keep_right.set(index, false);
             }
             None => break,
         }
     }
-    if keep_right.iter().all(|keep| *keep) && keep_left.iter().all(|keep| *keep) {
+    if keep_right.all_kept() && keep_left.all_kept() {
         return None;
     }
     let mut cursor = area_width.saturating_sub(EDGE);
-    for (piece, keep) in right.iter().zip(&keep_right).rev() {
+    for (piece, keep) in right.iter().zip(keep_right.kept()).rev() {
         if !keep {
             continue;
         }
@@ -7920,43 +7970,57 @@ pub(crate) fn header_overflow(
     let ellipsis = cursor.saturating_sub(1).max(EDGE);
     Some((keep_right, ellipsis))
 }
-
-fn workbench_header_pieces(
+/// Per-frame workbench header widths. The measured strings are never
+/// painted on this path, so each width is computed from borrowed pieces
+/// and the draw stays allocation free.
+fn workbench_header_widths(
     app: &TableProApp,
     capability: &str,
     term_width: u16,
     term_height: u16,
-) -> (Vec<u16>, Vec<u16>) {
+) -> ([u16; 6], [u16; 2]) {
     let name_width = width(&app.connection.name).min(18);
-    let glyph = match app.connection.environment {
-        Environment::Production => "◆",
-        Environment::Staging => "◇",
-        Environment::Local | Environment::Development => "·",
+    // "{glyph} {label}" with a single-width environment glyph.
+    let environment_width = 2u16.saturating_add(width(app.connection.environment.label()));
+    // "{database} > {schema}" separator: space, chevron, space.
+    let scope_width = width(&app.connection.database)
+        .saturating_add(3)
+        .saturating_add(width(app.workbench.current_schema()));
+    let safe_width = match app.safe_mode {
+        SafeMode::Safe | SafeMode::SafeFull => width("✓ safe"),
+        _ => width(app.safe_mode.token()),
     };
-    let environment = format!("{glyph} {}", app.connection.environment.label());
-    let scope = format!(
-        "{} › {}",
-        app.connection.database,
-        app.workbench.current_schema()
-    );
-    let safe = match app.safe_mode {
-        SafeMode::Safe | SafeMode::SafeFull => "✓ safe".to_owned(),
-        _ => app.safe_mode.token().to_owned(),
-    };
-    let badge = format!("{capability} · {term_width}×{term_height}");
+    // "{capability} . {term_width}x{term_height}" with single-width
+    // middle dot and multiplication sign.
+    let badge_width = width(capability)
+        .saturating_add(3)
+        .saturating_add(decimal_digits(term_width))
+        .saturating_add(1)
+        .saturating_add(decimal_digits(term_height));
     (
-        vec![
+        [
             1,
             width("TablePro"),
             name_width,
-            width(&environment),
-            width(&scope),
-            width(&safe),
+            environment_width,
+            scope_width,
+            safe_width,
         ],
-        vec![width(&badge), width("? help")],
+        [badge_width, width("? help")],
     )
 }
 
+/// Decimal digit count used to size the "{width}x{height}" badge without
+/// formatting it.
+fn decimal_digits(value: u16) -> u16 {
+    let mut digits = 1u16;
+    let mut rest = value / 10;
+    while rest > 0 {
+        digits = digits.saturating_add(1);
+        rest /= 10;
+    }
+    digits
+}
 fn draw_header(ui: &mut Ui<'_>, area: termrock::Rect, app: &TableProApp) {
     let base = ui.surface_style();
     ui.fill(area, base);
@@ -8036,14 +8100,14 @@ fn draw_header(ui: &mut Ui<'_>, area: termrock::Rect, app: &TableProApp) {
     let capability = ui.theme().capability.color.label();
     let dimensions = format!("{}×{}", area.width, ui.full().height);
     let overflow = if app.screen == Screen::Workbench {
-        let (left, right) = workbench_header_pieces(app, capability, area.width, ui.full().height);
+        let (left, right) = workbench_header_widths(app, capability, area.width, ui.full().height);
         header_overflow(area.width, &left, &[9, 9, 9, 8, 7, 8], &right, &[1, 4])
     } else {
         None
     };
     if let Some((keep_right, ellipsis)) = overflow {
         let help = "? help";
-        if keep_right.last().copied().unwrap_or(false) {
+        if keep_right.last().unwrap_or(false) {
             let help_x = area.right().saturating_sub(2).saturating_sub(width(help));
             ui.paint_str(
                 termrock::Rect {
