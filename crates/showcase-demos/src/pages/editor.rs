@@ -331,13 +331,10 @@ impl EditorPage {
         let cursor = state.cursor_pos();
         let component = code_editor();
         let all_blocks = component.blocks(state);
-        let block = component
-            .current_block(state)
-            .and_then(|current| {
-                all_blocks
-                    .iter()
-                    .position(|candidate| candidate == &current)
-            })
+        let cursor_offset = state.cursor_offset();
+        let block = all_blocks
+            .iter()
+            .position(|range| range.start <= cursor_offset && cursor_offset <= range.end)
             .map_or_else(
                 || "between blocks".to_owned(),
                 |index| format!("{} of {}", index.saturating_add(1), all_blocks.len()),
@@ -447,7 +444,7 @@ impl EditorPage {
         if let Some(block_range) = block_range {
             let text = self.state.editor().text();
             let block = text.get(block_range.clone()).unwrap_or_default();
-            let mut diagnostics = Vec::new();
+            let mut diagnostics = self.state.editor().diagnostics().to_vec();
             if let Some(position) = block.find(".unwrap()") {
                 let start = block_range.start.saturating_add(position).saturating_add(1);
                 diagnostics.push(CodeDiagnostic::new(
