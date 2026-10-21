@@ -4122,9 +4122,11 @@ def _open_directory_chain(path: Path) -> tuple[int, os.stat_result]:
         raise
 
 
-def _private_custody_directory(path: Path, *, create: bool) -> tuple[int, os.stat_result, Path]:
+def _private_custody_directory(path: Path, *, create: bool, check_work: Callable[[], None] | None = None) -> tuple[int, os.stat_result, Path]:
     """Open an owned 0700 custody directory; existing unsafe directories are never chmodded."""
     path = path.absolute()
+    if check_work is not None:
+        check_work()
     parent = path.parent
     try:
         canonical_parent = parent.resolve(strict=True)
@@ -4137,6 +4139,8 @@ def _private_custody_directory(path: Path, *, create: bool) -> tuple[int, os.sta
         if create:
             created = False
             try:
+                if check_work is not None:
+                    check_work()
                 os.mkdir(path.name, mode=0o700, dir_fd=parent_fd)
                 created = True
             except FileExistsError:
@@ -4146,35 +4150,53 @@ def _private_custody_directory(path: Path, *, create: bool) -> tuple[int, os.sta
             if created:
                 created_fd = os.open(path.name, os.O_RDONLY | getattr(os, "O_DIRECTORY", 0) | getattr(os, "O_NOFOLLOW", 0), dir_fd=parent_fd)
                 try:
+                    if check_work is not None:
+                        check_work()
                     os.fchmod(created_fd, 0o700)
                 finally:
                     os.close(created_fd)
     finally:
         os.close(parent_fd)
+    fd = -1
     try:
         canonical = path.resolve(strict=True)
         if canonical != path:
             raise RunnerError("fresh run custody path contains a symlinked ancestor")
         fd, info = _open_directory_chain(canonical)
         if create and created:
+            if check_work is not None:
+                check_work()
             os.fchmod(fd, 0o700)
             info = os.fstat(fd)
         if not stat.S_ISDIR(info.st_mode) or info.st_uid != os.geteuid() or stat.S_IMODE(info.st_mode) != 0o700:
             os.close(fd)
+            fd = -1
             raise RunnerError("fresh run custody directory must be owned by this user and mode 0700")
-        return fd, info, canonical
+        if check_work is not None:
+            check_work()
+        result = fd, info, canonical
+        fd = -1
+        return result
     except OSError as error:
+        if fd >= 0:
+            os.close(fd)
         raise RunnerError(f"fresh run custody directory is unsafe: {error}") from error
+    except BaseException:
+        if fd >= 0:
+            os.close(fd)
+        raise
 
 
-def _stable_secret_key(path: Path, *, create: bool = False) -> tuple[bytes, tuple[int, int, int, int], Path]:
+def _stable_secret_key(path: Path, *, create: bool = False, check_work: Callable[[], None] | None = None) -> tuple[bytes, tuple[int, int, int, int], Path]:
     """Read or exclusively create a private per-run HMAC key relative to a stable 0700 dirfd."""
-    dir_fd, dir_info, custody_path = _private_custody_directory(path.parent, create=create)
+    dir_fd, dir_info, custody_path = _private_custody_directory(path.parent, create=create, check_work=check_work)
     name = path.name
     try:
         if create:
             flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, "O_NOFOLLOW", 0)
             try:
+                if check_work is not None:
+                    check_work()
                 fd = os.open(name, flags, 0o600, dir_fd=dir_fd)
             except FileExistsError as error:
                 raise RunnerError("fresh run key already exists") from error
@@ -4182,7 +4204,11 @@ def _stable_secret_key(path: Path, *, create: bool = False) -> tuple[bytes, tupl
             try:
                 view = memoryview(key)
                 while view:
+                    if check_work is not None:
+                        check_work()
                     view = view[os.write(fd, view):]
+                if check_work is not None:
+                    check_work()
                 os.fsync(fd)
             finally:
                 os.close(fd)
@@ -4195,6 +4221,8 @@ def _stable_secret_key(path: Path, *, create: bool = False) -> tuple[bytes, tupl
                 opened = os.fstat(fd)
                 chunks: list[bytes] = []
                 while chunk := os.read(fd, 4096):
+                    if check_work is not None:
+                        check_work()
                     chunks.append(chunk)
                 after_fd = os.fstat(fd)
             finally:
@@ -4211,50 +4239,80 @@ def _stable_secret_key(path: Path, *, create: bool = False) -> tuple[bytes, tupl
         key = b"".join(chunks)
         if len(key) != 32:
             raise RunnerError("fresh run key must contain exactly 32 bytes")
+        if check_work is not None:
+            check_work()
         return key, (after.st_dev, after.st_ino, after.st_size, stat.S_IMODE(after.st_mode)), custody_path / name
     finally:
         os.close(dir_fd)
 
 
-def _git_metadata_paths(repo: Path) -> set[Path]:
+def _git_metadata_paths(repo: Path, *, execution: PrepareExecution | None = None) -> set[Path]:
     """Return resolved worktree and common Git metadata roots, including linked worktrees."""
     paths: set[Path] = set()
     for option in ("--absolute-git-dir", "--git-common-dir"):
         try:
-            result = subprocess.run(["git", "-C", str(repo), "rev-parse", "--path-format=absolute", option], check=True, capture_output=True, text=True, timeout=10)
+            command = ["git", "-C", str(repo), "rev-parse", "--path-format=absolute", option]
+            if execution is None:
+                result = subprocess.run(command, check=True, capture_output=True, text=True, timeout=10)
+                value = result.stdout.strip()
+            else:
+                result = execution.run(command, cwd=repo, quiet=True, show_command=False, command_timeout=10)
+                if result is None:
+                    raise RunnerError("owned Git metadata probe produced no result")
+                value = result[0].strip()
         except (OSError, subprocess.SubprocessError) as error:
             raise RunnerError(f"cannot identify Git metadata path for key-custody check: {error}") from error
-        value = result.stdout.strip()
         if not value:
             raise RunnerError("Git returned an empty metadata path")
+        if execution is not None:
+            execution.check_work()
         paths.add(Path(value).resolve())
     return paths
 
 
-def _atomic_create_bytes(path: Path, payload: bytes, mode: int = 0o400) -> None:
+def _atomic_create_bytes(path: Path, payload: bytes, mode: int = 0o400, *, check_work: Callable[[], None] | None = None) -> None:
+    if check_work is not None:
+        check_work()
     path.parent.mkdir(parents=True, exist_ok=True)
+    if check_work is not None:
+        check_work()
     fd, temporary_name = tempfile.mkstemp(prefix=f".{path.name}.", dir=path.parent)
     temporary = Path(temporary_name)
     try:
+        if check_work is not None:
+            check_work()
         os.fchmod(fd, mode)
         with os.fdopen(fd, "wb") as stream:
-            stream.write(payload)
+            for offset in range(0, len(payload), 1024 * 1024):
+                if check_work is not None:
+                    check_work()
+                stream.write(payload[offset:offset + 1024 * 1024])
             stream.flush()
+            if check_work is not None:
+                check_work()
             os.fsync(stream.fileno())
+        if check_work is not None:
+            check_work()
         try:
             os.link(temporary, path, follow_symlinks=False)
         except FileExistsError as error:
             raise RunnerError(f"refusing to replace immutable fresh run metadata: {path}") from error
-        dir_fd = os.open(path.parent, os.O_RDONLY)
+        dir_fd = os.open(path.parent, os.O_RDONLY | getattr(os, "O_DIRECTORY", 0))
         try:
             os.fsync(dir_fd)
         finally:
             os.close(dir_fd)
+        if check_work is not None:
+            check_work()
     finally:
         temporary.unlink(missing_ok=True)
+    if check_work is not None:
+        check_work()
 
 
-def _read_stable_json(path: Path, label: str) -> tuple[dict[str, object], bytes]:
+def _read_stable_json(path: Path, label: str, *, check_work: Callable[[], None] | None = None) -> tuple[dict[str, object], bytes]:
+    if check_work is not None:
+        check_work()
     try:
         before = path.lstat()
         if stat.S_ISLNK(before.st_mode) or not stat.S_ISREG(before.st_mode) or before.st_nlink != 1:
@@ -4264,6 +4322,8 @@ def _read_stable_json(path: Path, label: str) -> tuple[dict[str, object], bytes]
             opened = os.fstat(fd)
             chunks: list[bytes] = []
             while chunk := os.read(fd, 1024 * 1024):
+                if check_work is not None:
+                    check_work()
                 chunks.append(chunk)
             after_fd = os.fstat(fd)
         finally:
@@ -4275,6 +4335,8 @@ def _read_stable_json(path: Path, label: str) -> tuple[dict[str, object], bytes]
     if identity(before) != identity(opened) or identity(opened) != identity(after_fd) or identity(after_fd) != identity(after):
         raise RunnerError(f"{label} changed during read")
     raw = b"".join(chunks)
+    if check_work is not None:
+        check_work()
     def strict_object(pairs: list[tuple[str, object]]) -> dict[str, object]:
         result: dict[str, object] = {}
         for key, value in pairs:
@@ -4306,8 +4368,28 @@ def _authenticate_fresh_run_manifest(envelope: object, key: bytes) -> dict[str, 
     return manifest
 
 
-def create_fresh_run(repo: Path, root: Path, cohort_id: str, baseline_bin_dir: Path, timeout: int, expected_plan_sha256: str, key_path: Path) -> dict[str, object]:
+def create_fresh_run(
+    repo: Path,
+    root: Path,
+    cohort_id: str,
+    baseline_bin_dir: Path,
+    timeout: int,
+    expected_plan_sha256: str,
+    key_path: Path,
+    *,
+    execution: PrepareExecution | None = None,
+    commitment_path: Path | None = None,
+    expected_commitment_sha256: str | None = None,
+    pending_receipt_path: Path | None = None,
+) -> dict[str, object]:
     """Create authenticated PREPARED metadata only; this command never launches an application."""
+    if execution is not None:
+        return _create_fresh_run_owned(
+            repo, root, cohort_id, baseline_bin_dir, timeout, expected_plan_sha256, key_path,
+            execution=execution, commitment_path=commitment_path,
+            expected_commitment_sha256=expected_commitment_sha256,
+            pending_receipt_path=pending_receipt_path,
+        )
     plan = verify_fresh_plan(repo, root, cohort_id, baseline_bin_dir, timeout, expected_plan_sha256)
     repo, root, _source = paths(repo, root)
     key_path = key_path.absolute()
@@ -4358,11 +4440,133 @@ def create_fresh_run(repo: Path, root: Path, cohort_id: str, baseline_bin_dir: P
     return manifest
 
 
+def _create_fresh_run_owned(
+    repo: Path,
+    root: Path,
+    cohort_id: str,
+    baseline_bin_dir: Path,
+    timeout: int,
+    expected_plan_sha256: str,
+    key_path: Path,
+    *,
+    execution: PrepareExecution,
+    commitment_path: Path | None,
+    expected_commitment_sha256: str | None,
+    pending_receipt_path: Path | None,
+) -> dict[str, object]:
+    """Initialize PREPARED metadata under the same owner and root binding as full plan verification."""
+    execution.check_work()
+    if commitment_path is None or expected_commitment_sha256 is None or pending_receipt_path is None:
+        raise RunnerError("owned fresh-run initialization requires the pinned creation commitment and durable pending receipt")
+    root_binding = _owned_root_binding(root, check_work=execution.check_work)
+    root = Path(root_binding["plan_root_canonical_path"])
+    plan = verify_fresh_plan(
+        repo, root, cohort_id, baseline_bin_dir, timeout, expected_plan_sha256,
+        execution=execution, commitment_path=commitment_path,
+        expected_commitment_sha256=expected_commitment_sha256,
+        pending_receipt_path=pending_receipt_path,
+    )
+    execution.check_work()
+    _check_owned_root_binding(root_binding, check_work=execution.check_work)
+    repo, root, _source = paths(repo, root)
+    if root != Path(root_binding["plan_root_canonical_path"]):
+        raise RunnerError("owned fresh-run initialization resolved a different plan root")
+    key_path = key_path.absolute()
+    protected = [repo.resolve(), root.resolve(), Path(plan["source"]["source_path"]).resolve(), Path(plan["source"]["live_source_path"]).resolve(), Path(plan["execution"]["artifact_roots"]["run_root"]).resolve(), Path(plan["cohort"]["binaries"][APPS[0]]["path"]).resolve().parent]
+    git_paths = _git_metadata_paths(repo, execution=execution)
+    protected.extend(git_paths)
+    if any(key_path == item or item in key_path.parents for item in protected):
+        raise RunnerError("fresh run key custody must be outside Git, source, binaries, and artifact roots")
+    execution.check_work()
+    _check_owned_root_binding(root_binding, check_work=execution.check_work)
+    custody_fd, _custody_info, key_path_parent = _private_custody_directory(key_path.parent, create=True, check_work=execution.check_work)
+    os.close(custody_fd)
+    key_path = key_path_parent / key_path.name
+    if any(key_path == item or item in key_path.parents for item in protected):
+        raise RunnerError("fresh run key custody must be outside Git, source, binaries, and artifact roots")
+    run_root = root / "fresh-runs" / str(plan["plan_id"])
+    execution.check_work()
+    _check_owned_root_binding(root_binding, check_work=execution.check_work)
+    try:
+        run_root.mkdir(parents=True, exist_ok=False, mode=0o700)
+    except FileExistsError as error:
+        raise RunnerError("fresh run directory already exists; refusing to reuse or clean evidence") from error
+
+    stage = "key-create"
+    key_may_exist = False
+    try:
+        execution.check_work()
+        _check_owned_root_binding(root_binding, check_work=execution.check_work)
+        # The key writer may create the entry before a later fsync/read/check
+        # fails, so failure evidence must conservatively say it may exist.
+        key_may_exist = True
+        key, key_identity, key_path = _stable_secret_key(key_path, create=True, check_work=execution.check_work)
+        execution.check_work()
+        _check_owned_root_binding(root_binding, check_work=execution.check_work)
+        manifest: dict[str, object] = {
+            "schema": FRESH_RUN_MANIFEST_SCHEMA,
+            "schema_version": FRESH_RUN_MANIFEST_VERSION,
+            "status": "prepared-metadata-only",
+            "run_id": secrets.token_hex(16),
+            "plan_id": plan["plan_id"],
+            "plan_creation_sha256": expected_plan_sha256,
+            "plan_self_sha256": plan["plan_sha256"],
+            "cohort_id": plan["cohort"]["cohort_id"],
+            "binary_hashes": {app: plan["cohort"]["binaries"][app]["sha256"] for app in APPS},
+            "source": plan["source"],
+            "runner_inputs": plan["runner_inputs"],
+            "runtime": plan["runtime"],
+            "inventory_sha256": plan["inventory"]["sha256"],
+            "visual_count": plan["inventory"]["visual_count"],
+            "ordinary_count": plan["inventory"]["ordinary_count"],
+            "candidate_comparison_eligible": False,
+            "checkpoint_reference_approval": "none",
+            "product_acceptance": False,
+            "executed": False,
+            "key_custody": {"path": str(key_path), "device": key_identity[0], "inode": key_identity[1], "bytes": key_identity[2], "mode": key_identity[3]},
+        }
+        body = canonical_receipt_json(manifest)
+        envelope = {"manifest": manifest, "hmac_sha256": hmac.new(key, body, hashlib.sha256).hexdigest()}
+        stage = "manifest-publication"
+        execution.check_work()
+        _check_owned_root_binding(root_binding, check_work=execution.check_work)
+        _atomic_create_bytes(run_root / FRESH_RUN_MANIFEST_FILE, canonical_receipt_json(envelope), check_work=execution.check_work)
+        execution.check_work()
+        _check_owned_root_binding(root_binding, check_work=execution.check_work)
+        stage = "success-output"
+        success = json.dumps({"run_root": str(run_root), "run_id": manifest["run_id"], "status": manifest["status"], "executed": False}, indent=2)
+        execution.check_work()
+        _check_owned_root_binding(root_binding, check_work=execution.check_work)
+        print(success, flush=True)
+        execution.check_work()
+        _check_owned_root_binding(root_binding, check_work=execution.check_work)
+        return manifest
+    except Exception as error:
+        failure = {
+            "schema": "termrock-fresh-run-init-failure.v1",
+            "status": "untrusted-failed-init",
+            "plan_id": plan["plan_id"],
+            "stage": stage,
+            "error_type": type(error).__name__,
+            "error": str(error),
+            "key_material_may_exist": key_may_exist,
+            "executed": False,
+        }
+        marker = run_root / "init-failure.json"
+        try:
+            _atomic_create_bytes(marker, canonical_receipt_json(failure))
+        except Exception as marker_error:
+            raise RunnerError(f"{error}; failed to preserve nonsecret fresh-run initialization failure evidence: {marker_error}") from error
+        raise
+
+
 def verify_fresh_run(repo: Path, root: Path, cohort_id: str, baseline_bin_dir: Path, timeout: int, expected_plan_sha256: str, key_path: Path) -> dict[str, object]:
     """Revalidate current plan/source/tool inputs and authenticate PREPARED metadata."""
     plan = verify_fresh_plan(repo, root, cohort_id, baseline_bin_dir, timeout, expected_plan_sha256)
     _repo, root, _source = paths(repo, root)
     run_root = (root / "fresh-runs" / str(plan["plan_id"])).absolute()
+    if (run_root / "init-failure.json").exists() or (run_root / "init-failure.json").is_symlink():
+        raise RunnerError("fresh run initialization has preserved failed-init evidence and cannot be reused")
     key_path = key_path.absolute()
     git_paths = _git_metadata_paths(repo)
     protected = [repo.resolve(), root.resolve(), Path(plan["source"]["source_path"]).resolve(), Path(plan["source"]["live_source_path"]).resolve(), Path(plan["execution"]["artifact_roots"]["run_root"]).resolve(), Path(plan["cohort"]["binaries"][APPS[0]]["path"]).resolve().parent, *git_paths]
@@ -5373,6 +5577,11 @@ def parser() -> argparse.ArgumentParser:
     fresh_run_init.add_argument("--baseline-bin-dir", type=Path, required=True)
     fresh_run_init.add_argument("--expected-plan-sha256", required=True)
     fresh_run_init.add_argument("--key-path", type=Path, required=True, help="private 0600 key path outside Git, source, binaries, and artifacts")
+    fresh_run_init.add_argument("--owned-lifecycle", action="store_true", help="use one cancellation-safe owned budget for plan verification and prepared-run initialization")
+    fresh_run_init.add_argument("--owned-budget", type=int, default=PREPARE_OWNED_MAX_BUDGET)
+    fresh_run_init.add_argument("--creation-commitment-path", type=Path)
+    fresh_run_init.add_argument("--expected-commitment-sha256")
+    fresh_run_init.add_argument("--pending-receipt-path", type=Path)
     fresh_run_verify = sub.add_parser("fresh-run-verify", help="verify authenticated PREPARED metadata only; launches no application")
     fresh_run_verify.add_argument("--cohort", required=True)
     fresh_run_verify.add_argument("--baseline-bin-dir", type=Path, required=True)
@@ -5541,7 +5750,23 @@ def main() -> int:
                 execution.check_work()
                 recover_fresh_plan_creation_anchor(args.root, args.cohort, args.creation_commitment_path, args.expected_commitment_sha256, pending_receipt_path=args.pending_receipt_path, execution=execution)
         elif args.command == "fresh-run-init":
-            create_fresh_run(args.repo, args.root, args.cohort, args.baseline_bin_dir, args.timeout, args.expected_plan_sha256, args.key_path)
+            if args.owned_lifecycle:
+                if args.cohort != PREPARE_LIVE_OWNED_COHORT:
+                    raise RunnerError("--owned-lifecycle requires the pinned fresh-capture cohort")
+                if args.creation_commitment_path is None or args.expected_commitment_sha256 is None or args.pending_receipt_path is None:
+                    raise RunnerError("--owned-lifecycle requires the externally pinned creation commitment and durable pending receipt")
+                with PrepareExecution(args.owned_budget) as execution:
+                    create_fresh_run(
+                        args.repo, args.root, args.cohort, args.baseline_bin_dir, args.timeout,
+                        args.expected_plan_sha256, args.key_path, execution=execution,
+                        commitment_path=args.creation_commitment_path,
+                        expected_commitment_sha256=args.expected_commitment_sha256,
+                        pending_receipt_path=args.pending_receipt_path,
+                    )
+            else:
+                if args.owned_budget != PREPARE_OWNED_MAX_BUDGET or args.creation_commitment_path is not None or args.expected_commitment_sha256 is not None or args.pending_receipt_path is not None:
+                    raise RunnerError("owned fresh-run options require --owned-lifecycle")
+                create_fresh_run(args.repo, args.root, args.cohort, args.baseline_bin_dir, args.timeout, args.expected_plan_sha256, args.key_path)
         elif args.command == "fresh-run-verify":
             verify_fresh_run(args.repo, args.root, args.cohort, args.baseline_bin_dir, args.timeout, args.expected_plan_sha256, args.key_path)
         elif args.command == "fresh-run-advance":
