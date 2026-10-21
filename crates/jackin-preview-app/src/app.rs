@@ -273,7 +273,6 @@ mod historical_capsule_split_vertical;
 mod historical_capsule_zoom;
 mod historical_hard_launch_picker;
 mod historical_inspect;
-mod historical_intro_f300;
 mod historical_launch_picker;
 mod historical_manager_menu;
 mod historical_paint;
@@ -5544,25 +5543,6 @@ impl App {
         Self::blit_buffer(ui, area, &buf);
     }
 
-    fn historical_intro_f300(&self, area: Rect) -> bool {
-        area.width == 120
-            && area.height == 40
-            && self.motion == Motion::Paused
-            && self.world.scenario == Scenario::FirstUse
-            && self.intro.tick == 300
-    }
-
-    fn draw_historical_intro_f300(&self, ui: &mut Ui<'_>, area: Rect) {
-        // Approved paused intro at frame 300 is this warp.
-        // Frame 400 stays the empty manager. Other colour levels keep the live field.
-        let legacy = ui.theme_ref().capability.color == termrock::ColorLevel::TrueColor
-            && ui.theme_ref().color.accent == termrock::Color::Rgb(0x48, 0xe0, 0x54);
-        if !legacy {
-            return;
-        }
-        historical_intro_f300::paint(ui, area);
-    }
-
     fn draw_prelude(&self, ui: &mut Ui<'_>, area: Rect) {
         let step = self.prelude.step();
         let source = self.prelude.source();
@@ -9642,9 +9622,6 @@ impl TuiApp for App {
         if self.route == Route::Intro {
             self.draw_intro(ui, full);
             self.draw_layers(ui);
-            if self.historical_intro_f300(full) {
-                self.draw_historical_intro_f300(ui, full);
-            }
             return;
         }
         if self.route == Route::Outro {
@@ -9856,9 +9833,6 @@ impl TuiApp for App {
         }
         if self.cockpit_trace_open {
             self.paint_cockpit_trace(ui, full);
-        }
-        if self.historical_intro_f300(full) {
-            self.draw_historical_intro_f300(ui, full);
         }
         self.draw_accounts_boot_needle(ui, full);
         self.draw_accounts_boot_needle_80(ui, full);
