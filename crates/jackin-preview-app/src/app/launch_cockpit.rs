@@ -20,7 +20,8 @@ const CREDENTIALS: &str = "credentials  5 accounts · Claude · Work (1Password)
 const CREDENTIAL_VALUE: &str = "quota readable · session choice";
 const SPINNER: &str = "⠋";
 
-/// Left column of the stage rail. The baseline dim leaves this column undimmed.
+/// Left column of the stage rail. The 120×40 info frame keeps this column
+/// undimmed.
 pub(super) fn stage_rail_left(screen: Rect) -> Option<Rect> {
     let body = body_rect(screen);
     let rail_h = 11u16.min(body.height.saturating_sub(9));
@@ -33,8 +34,8 @@ pub(super) fn stage_rail_left(screen: Rect) -> Option<Rect> {
     Some(Rect::new(rail_x, y, 1, rail_h))
 }
 
-/// Footer for the 120×40 info and cancel frames. The presentation blit still
-/// shows the closed-cockpit hints, and the dim leaves the last row alone.
+/// Footer for the 120×40 info frame. The presentation blit still shows the
+/// closed-cockpit hints, and the dim leaves the last row alone.
 pub(super) fn paint_open_footer(ui: &mut Ui<'_>, cancel: bool) {
     let screen = ui.full();
     if screen.height == 0 {

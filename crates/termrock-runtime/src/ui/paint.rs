@@ -239,29 +239,58 @@ impl Ui<'_> {
     fn majority_bg(&mut self, area: Rect) -> Color {
         let mut entries: [(Color, usize); 8] = [(Color::Reset, 0); 8];
         let mut count_entries = 0;
+        let mut overflowed = false;
         for pos in area.positions() {
             if !self.cell_written(pos) {
                 continue;
             }
             let bg = self.buffer().cell(pos).map_or(Color::Reset, |cell| cell.bg);
-            let mut found = false;
-            for entry in &mut entries[..count_entries] {
-                if entry.0 == bg {
-                    entry.1 = entry.1.saturating_add(1);
-                    found = true;
-                    break;
-                }
+
+            if overflowed {
+                let order = self.core.majority_bg_counts.len();
+                self.core
+                    .majority_bg_counts
+                    .entry(bg)
+                    .and_modify(|(count, _)| *count = count.saturating_add(1))
+                    .or_insert((1, order));
+                continue;
             }
-            if !found && count_entries < entries.len() {
+
+            if let Some(entry) = entries[..count_entries]
+                .iter_mut()
+                .find(|entry| entry.0 == bg)
+            {
+                entry.1 = entry.1.saturating_add(1);
+            } else if count_entries < entries.len() {
                 entries[count_entries] = (bg, 1);
                 count_entries += 1;
+            } else {
+                // Preserve the allocation-free fast path for ordinary areas.
+                // Once more than eight distinct backgrounds appear, count all
+                // remaining colors in UiCore-owned storage and resolve ties by
+                // their first-seen order.
+                let counts = &mut self.core.majority_bg_counts;
+                counts.clear();
+                for (order, (color, count)) in entries[..count_entries].iter().enumerate() {
+                    counts.insert(*color, (*count, order));
+                }
+                counts.insert(bg, (1, count_entries));
+                overflowed = true;
             }
         }
 
-        entries[..count_entries]
-            .iter()
-            .max_by_key(|(_, count)| *count)
-            .map_or(Color::Reset, |(bg, _)| *bg)
+        if overflowed {
+            self.core
+                .majority_bg_counts
+                .iter()
+                .max_by_key(|(_, (count, order))| (*count, *order))
+                .map_or(Color::Reset, |(bg, _)| *bg)
+        } else {
+            entries[..count_entries]
+                .iter()
+                .max_by_key(|(_, count)| *count)
+                .map_or(Color::Reset, |(bg, _)| *bg)
+        }
     }
 
     fn fade_edge_row(&mut self, area: Rect, y: u16, keep: f32, container: Color) {
