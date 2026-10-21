@@ -53,7 +53,7 @@ Its "5 at 256" is the corpus number.)
 `target/frozen-baseline/source/src/theme.rs` (`Theme::backdrop`, :1243; dim
 branch at :1310 in the extracted tree):
 
-```rust
+```text
 if !blank && (fg == bg || matches!(self.level, ColorLevel::Ansi16 | ColorLevel::Mono)) {
     ...
     return Style::new().fg(ink).bg(bg).add_modifier(Modifier::DIM);
@@ -185,7 +185,7 @@ No code fix. The follow-up work is data, and it is owner-gated:
 
 ## Reproduction commands
 
-```
+```sh
 python3 tools/frozen_baseline.py prepare
 python3 tools/frozen_baseline.py build          # ~1 min after warm cache; mise trust the extracted mise.toml
 BIN=target/frozen-baseline/cargo-target/debug/showcase tools/capture.sh start 80 24 -- $BIN -c 16 -p dialogs
