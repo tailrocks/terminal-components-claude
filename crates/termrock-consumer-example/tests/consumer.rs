@@ -25,15 +25,23 @@ const SCREEN: Rect = Rect::new(0, 0, 96, 24);
 type Consumer = Runtime<RecipeBox>;
 
 fn consumer() -> (Consumer, Terminal<TestBackend>) {
+    consumer_with(SCREEN)
+}
+
+fn consumer_with(area: Rect) -> (Consumer, Terminal<TestBackend>) {
     let runtime = Runtime::new(RecipeBox::default(), Theme::junie());
     let terminal =
-        Terminal::new(TestBackend::new(SCREEN.width, SCREEN.height)).expect("test terminal starts");
+        Terminal::new(TestBackend::new(area.width, area.height)).expect("test terminal starts");
     (runtime, terminal)
 }
 
 /// Render the runtime through the public production path.
 fn present(runtime: &mut Consumer, terminal: &mut Terminal<TestBackend>) {
-    let prepared = runtime.prepare(SCREEN).expect("runtime prepares the frame");
+    present_in(runtime, terminal, SCREEN);
+}
+
+fn present_in(runtime: &mut Consumer, terminal: &mut Terminal<TestBackend>, area: Rect) {
+    let prepared = runtime.prepare(area).expect("runtime prepares the frame");
     terminal
         .draw(|frame| {
             runtime
@@ -217,6 +225,24 @@ fn external_consumer_status_bar_reports_a_typed_action() {
         Some(Action::StatusChosen(NOTE_ITEM)),
         "the status bar answers with its own typed action"
     );
+}
+
+#[test]
+fn external_consumer_collapses_to_one_pane_on_a_narrow_terminal() {
+    let narrow = Rect::new(0, 0, 48, 12);
+    let (mut runtime, mut terminal) = consumer_with(narrow);
+    present_in(&mut runtime, &mut terminal, narrow);
+
+    let list = runtime
+        .area_of(RECIPE_LIST)
+        .expect("the recipe list keeps its bounds when the layout collapses");
+    assert!(list.right() <= narrow.right(), "{list:?}");
+    assert!(
+        runtime.area_of(RECIPE_FACTS).is_none(),
+        "the layout block collapses the detail pane on a narrow terminal"
+    );
+    let text = rendered_text(terminal.backend().buffer());
+    assert!(text.contains("Miso Butter Ramen"), "{text:?}");
 }
 
 #[test]
