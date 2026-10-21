@@ -6,6 +6,7 @@ use super::glyph::GlyphRole;
 use super::patch::{Slot, StateRule, StylePatch};
 use crate::id::{Part, fnv1a};
 use crate::response::StateFlags;
+use crate::role::Surface;
 use crate::theme::ColorLevel;
 
 const FNV_OFFSET: u64 = 0xcbf2_9ce4_8422_2325;
@@ -316,11 +317,23 @@ impl PartialEq for Recipes {
 
 impl Eq for Recipes {}
 
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub(crate) struct LevelProfileKey {
+    pub level: ColorLevel,
+    pub family: Family,
+    pub variant: Option<Variant>,
+    pub surface: Option<Surface>,
+}
+
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub(crate) struct LevelFamilyRecipe {
     pub level: ColorLevel,
     pub family: Family,
+    pub variant: Option<Variant>,
+    pub surface: Option<Surface>,
     pub seed: Recipe,
+    pub seed_source_tokens: super::ColorTokens,
+    pub seed_level_tokens: super::ColorTokens,
     pub parts: PartMap<PartRecipe>,
 }
 
@@ -429,34 +442,45 @@ impl Recipes {
         &self,
         level: ColorLevel,
         family: Family,
+        variant: Option<Variant>,
+        surface: Option<Surface>,
     ) -> Option<&LevelFamilyRecipe> {
-        self.level_families
-            .iter()
-            .find(|entry| entry.level == level && entry.family == family)
+        self.level_families.iter().find(|entry| {
+            entry.level == level
+                && entry.family == family
+                && entry.variant == variant
+                && entry.surface == surface
+        })
     }
 
     pub(crate) fn define_level_family(
         &mut self,
-        level: ColorLevel,
-        family: Family,
+        key: LevelProfileKey,
         parts: PartMap<PartRecipe>,
+        seed_source_tokens: super::ColorTokens,
+        seed_level_tokens: super::ColorTokens,
     ) {
         self.revision = next_recipe_revision();
-        if let Some(existing) = self
-            .level_families
-            .iter_mut()
-            .find(|entry| entry.level == level && entry.family == family)
-        {
+        if let Some(existing) = self.level_families.iter_mut().find(|entry| {
+            entry.level == key.level
+                && entry.family == key.family
+                && entry.variant == key.variant
+                && entry.surface == key.surface
+        }) {
             for (part, recipe) in parts.iter() {
                 existing.parts.entry(part).merge_from(recipe);
             }
             return;
         }
-        let seed = self.get_or_neutral(family).clone();
+        let seed = self.get_or_neutral(key.family).clone();
         self.level_families.push(LevelFamilyRecipe {
-            level,
-            family,
+            level: key.level,
+            family: key.family,
+            variant: key.variant,
+            surface: key.surface,
             seed,
+            seed_source_tokens,
+            seed_level_tokens,
             parts,
         });
     }
