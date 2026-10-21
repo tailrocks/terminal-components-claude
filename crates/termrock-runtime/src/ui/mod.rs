@@ -1264,14 +1264,12 @@ impl<'f> Ui<'f> {
         if !self.clip.contains(src) || !self.clip.contains(dst) {
             return;
         }
-        let roles = match self.target {
-            Target::Page => self.roles_at(src),
-            Target::Layer(i) => self
-                .frame
-                .layers
-                .active()
-                .get(i)
-                .map_or_else(CellRoles::default, |d| d.roles_at(src)),
+        let (roles, underlay) = match self.target {
+            Target::Page => (self.roles_at(src), None),
+            Target::Layer(i) => self.frame.layers.active().get(i).map_or_else(
+                || (CellRoles::default(), None),
+                |d| (d.roles_at(src), d.underlay_at(src).cloned()),
+            ),
         };
         if let Some(cell) = self.buffer().cell(src).cloned() {
             if let Some(target) = self.buffer().cell_mut(dst) {
@@ -1289,6 +1287,7 @@ impl<'f> Ui<'f> {
                 Target::Layer(i) => {
                     if let Some(d) = self.frame.layers.active_mut().get_mut(i) {
                         d.set_roles(dst, roles);
+                        d.set_underlay(dst, underlay);
                     }
                 }
             }
@@ -1313,6 +1312,11 @@ impl<'f> Ui<'f> {
             // Clearing roles here makes later visual passes (such as dimming)
             // treat padding differently from the row it belongs to.
             self.mark(src, Some(reset));
+            if let Target::Layer(i) = self.target
+                && let Some(d) = self.frame.layers.active_mut().get_mut(i)
+            {
+                d.reset_source_underlay(src, reset);
+            }
         }
     }
 
