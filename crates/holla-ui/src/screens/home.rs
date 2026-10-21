@@ -446,17 +446,8 @@ impl HomeState {
             ui.set_bar_cursor(QUERY, termrock::Position::new(3, 4));
             return;
         }
-        if let Some(view) =
-            catalogue::parity_browser_80x24_plate(world, ui.full().width, ui.full().height)
-            && paint_parity_browser_80x24(ui, rows_area, &view)
-        {
-            // Steady bar on the placeholder. CUP 5;4. Do not write cursor bytes.
-            ui.set_bar_cursor(QUERY, termrock::Position::new(3, 4));
-            return;
-        }
-        if let Some(view) =
-            catalogue::parity_browser_100x30_plate(world, ui.full().width, ui.full().height)
-            && paint_parity_browser_100x30(ui, rows_area, &view)
+        if let Some(view) = catalogue::parity_browser_view(world, ui.full().width)
+            && paint_parity_browser(ui, rows_area, &view)
         {
             // Steady bar on the placeholder. CUP 5;4. Do not write cursor bytes.
             ui.set_bar_cursor(QUERY, termrock::Position::new(3, 4));
@@ -537,14 +528,6 @@ impl HomeState {
         if let Some(view) =
             catalogue::parity_git_current_120x40_plate(world, ui.full().width, ui.full().height)
             && paint_parity_git_current_120x40(ui, rows_area, &view)
-        {
-            // Steady bar on the placeholder. CUP 5;4. Do not write cursor bytes.
-            ui.set_bar_cursor(QUERY, termrock::Position::new(3, 4));
-            return;
-        }
-        if let Some(view) =
-            catalogue::parity_browser_120x40_plate(world, ui.full().width, ui.full().height)
-            && paint_parity_browser_120x40(ui, rows_area, &view)
         {
             // Steady bar on the placeholder. CUP 5;4. Do not write cursor bytes.
             ui.set_bar_cursor(QUERY, termrock::Position::new(3, 4));
@@ -1173,22 +1156,24 @@ fn paint_parity_history_100x30(
     )
 }
 
-/// Frozen columns. Only the 80×24 browser frame reaches this painter, so the 100×30 plate stays off.
-fn paint_parity_browser_80x24(
-    ui: &mut Ui<'_>,
-    area: Rect,
-    view: &catalogue::ParityDiscovery,
-) -> bool {
-    paint_parity_browser_plate(ui, area, view, 80, 24)
-}
-
-/// Frozen columns. Only the 100×30 browser frame reaches this painter, so the 80×24 plate stays off.
-fn paint_parity_browser_100x30(
-    ui: &mut Ui<'_>,
-    area: Rect,
-    view: &catalogue::ParityDiscovery,
-) -> bool {
-    paint_parity_browser_plate(ui, area, view, 100, 30)
+/// `parity-browser` body. The single-column bands keep the frozen columns; the
+/// 120 band keeps the wide card; from 160 up the reference shows the plain
+/// action list, so the view painter steps aside.
+fn paint_parity_browser(ui: &mut Ui<'_>, area: Rect, view: &catalogue::ParityDiscovery) -> bool {
+    let full = ui.full();
+    let cols = TagCols {
+        label: 12,
+        kind: 7,
+        scope: 4,
+        reason: 65,
+    };
+    if (80..120).contains(&full.width) {
+        return paint_tag_list(ui, area, view, Some(cols));
+    }
+    if (120..160).contains(&full.width) {
+        return paint_parity_card(ui, area, view, cols);
+    }
+    false
 }
 
 /// Default tag columns. Only the 80×24 git-batch frame reaches this painter.
@@ -1392,51 +1377,6 @@ fn paint_parity_git_current_120x40(
         area,
         view,
         tag_columns(&rows, master.width.saturating_sub(4)),
-    )
-}
-
-/// Wide card. Only the 120×40 browser frame reaches this painter, so the 80 and 100 plates stay single-column.
-fn paint_parity_browser_120x40(
-    ui: &mut Ui<'_>,
-    area: Rect,
-    view: &catalogue::ParityDiscovery,
-) -> bool {
-    let full = ui.full();
-    if full.width != 120 || full.height != 40 {
-        return false;
-    }
-    paint_parity_card(
-        ui,
-        area,
-        view,
-        TagCols {
-            label: 12,
-            kind: 7,
-            scope: 4,
-            reason: 65,
-        },
-    )
-}
-
-fn paint_parity_browser_plate(
-    ui: &mut Ui<'_>,
-    area: Rect,
-    view: &catalogue::ParityDiscovery,
-    width: u16,
-    height: u16,
-) -> bool {
-    paint_tag_list_plate_at(
-        ui,
-        area,
-        view,
-        width,
-        height,
-        Some(TagCols {
-            label: 12,
-            kind: 7,
-            scope: 4,
-            reason: 65,
-        }),
     )
 }
 

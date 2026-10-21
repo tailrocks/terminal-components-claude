@@ -397,16 +397,15 @@ fn parity_files_tag_plate(world: &World, width: u16, height: u16) -> bool {
         || crate::sim::catalogue::parity_files_120x40_plate(world, width, height).is_some()
 }
 
-/// 80×24 and 100×30 clip the last hint. 120×40 fits every hint, so it keeps the wide parts.
-fn parity_browser_clipped_plate(world: &World, width: u16, height: u16) -> bool {
-    crate::sim::catalogue::parity_browser_80x24_plate(world, width, height).is_some()
-        || crate::sim::catalogue::parity_browser_100x30_plate(world, width, height).is_some()
+/// Below 120 the single-column browser clips the last hint. 120 and up keep the wide parts.
+fn parity_browser_clipped_plate(world: &World, width: u16, _height: u16) -> bool {
+    crate::sim::catalogue::parity_browser_tag_frame(world) && (80..120).contains(&width)
 }
 
-/// 80×24, 100×30, and 120×40 `parity-browser` plates. Files plates and every other size stay off.
-fn parity_browser_tag_plate(world: &World, width: u16, height: u16) -> bool {
-    parity_browser_clipped_plate(world, width, height)
-        || crate::sim::catalogue::parity_browser_120x40_plate(world, width, height).is_some()
+/// The `parity-browser` bands with their own body: single-column below 120, the
+/// wide card from 120 up to 160. Files plates and every other size stay off.
+fn parity_browser_tag_plate(world: &World, width: u16, _height: u16) -> bool {
+    crate::sim::catalogue::parity_browser_tag_frame(world) && (80..160).contains(&width)
 }
 
 /// 80×24 and 100×30 clip the last hint. 120×40 fits every hint, so it keeps the wide parts.
