@@ -19,8 +19,8 @@ fn approved(app: &App, ui: &Ui<'_>, screen: Rect) -> bool {
     app.help_open
         && !app.manager_file_menu
         && !app.manager_inspect
-        && screen.width == 120
-        && screen.height == 40
+        && screen.width >= 80
+        && screen.height >= 24
         && theme.capability.color == ColorLevel::TrueColor
         && theme.color.accent == termrock::Color::Rgb(0x48, 0xe0, 0x54)
         && app.route == Route::Manager
