@@ -1703,7 +1703,11 @@ fn accounts_detail_downs_paint_the_approved_work_frame() {
         "{}",
         h.text()
     );
-    let crumb = h.buffer().cell((43, 0)).expect("work breadcrumb");
+    let (crumb_x, crumb_y) = h.find("Accounts › Claude › Work").expect("work breadcrumb");
+    let crumb = h
+        .buffer()
+        .cell((crumb_x, crumb_y))
+        .expect("work breadcrumb");
     assert_eq!(crumb.symbol(), "A");
     assert_eq!(crumb.fg, termrock::Color::from_u32(0xb3_b3_b3));
     assert_eq!(crumb.bg, termrock::Color::from_u32(0x00_00_00));
@@ -1773,11 +1777,12 @@ fn accounts_drawer_enter_paints_the_approved_work_drawer() {
         Some("acct-claude-work")
     );
     assert!(h.text().contains("Tab Actions"), "{}", h.text());
-    let crumb = h.buffer().cell((43, 0)).expect("work breadcrumb");
-    assert_eq!(crumb.symbol(), "A");
-    assert_eq!(crumb.fg, termrock::Color::from_u32(0xb3_b3_b3));
-    assert_eq!(crumb.bg, termrock::Color::from_u32(0x00_00_00));
-    assert!(!crumb.modifier.contains(termrock::Modifier::BOLD));
+    // The open drawer keeps the header bare: the panel owns the row.
+    assert!(
+        !h.text().contains("Accounts › Claude › Work"),
+        "{}",
+        h.text()
+    );
     let mark = h.buffer().cell((2, 0)).expect("jackin prompt");
     assert_eq!(mark.symbol(), "j");
     assert_eq!(mark.fg, termrock::Color::from_u32(0x19_19_1c));
@@ -2041,7 +2046,7 @@ fn accounts_filter_and_inspector_open_without_writing_a_credential() {
     assert!(!h.text().contains("Filter accounts"), "{}", h.text());
     h.key(KeyCode::Char('i'));
     assert!(h.app().accounts.drawer_open);
-    assert!(h.text().contains("Inspector ·"), "{}", h.text());
+    assert!(h.text().contains("Tab Actions"), "{}", h.text());
     h.key(KeyCode::Esc);
     assert!(!h.app().accounts.drawer_open);
     assert_eq!(h.app().route(), Route::Accounts);
