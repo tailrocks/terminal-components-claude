@@ -499,6 +499,60 @@ The four `*_visual_baseline` failures are the per-application visual
 baselines, and they are the ones the reference comparison measures at
 application level.
 
+### Independent reviews: runtime correctness, API boundaries, test integrity
+
+Three more independent reviewers worked in separate read-only worktrees
+against `bea5350ec9`:
+
+| Reviewer | Branch | Verdict |
+| --- | --- | --- |
+| Runtime correctness | `wip/review-runtime-correctness-20261022` | HELD, 33 findings (5 blockers, 14 majors, 12 minors, 2 nits) |
+| API boundaries | `wip/review-api-boundaries-20261022` | see the review report |
+| Test integrity | `wip/review-test-integrity-20261022` | HELD, 4 blockers and 4 majors |
+
+The runtime review's blockers are all in the jackin accounts page and the
+holla history default, and are being repaired:
+
+1. the accounts tree hit regions are off by one row, because the list owner
+   is drawn at `area.y + 2` while the painter starts at `area.y + 3`;
+2. the narrow accounts list never scrolls, so the painter ignores the scroll
+   offset and the cursor at index 20 still shows rows 1-11;
+3. the range indicator is unclamped and reads "16-26 of 23";
+4. after a filter query is committed the accounts list is key-dead, because
+   `filtering` stays true and `update_accounts` returns early;
+5. the accounts page regresses three oracle-approved frames.
+
+The theme change in `ec783f6c5` was itself raised as a blocker by the
+runtime reviewer, on the strength of the converted corpus. The converted
+corpus is not the oracle: its own index records
+`acquisition_method: legacy_replayed_conversion` and it disagrees with the
+frozen source and the approved frames. An independent adjudication stream
+is running to settle the conflict with both results preserved, and this
+record states the conflict rather than resolving it unilaterally.
+
+The test-integrity review's blockers:
+
+1. the 8 re-blessed `accounts-mixed` digests in
+   `crates/jackin-preview-app/tests/baselines/jackin.txt` have no
+   frozen-oracle counterpart;
+2. the new accounts page regresses the oracle-approved
+   `jackin::accounts::detail/120x40/truecolor` frame, which the old
+   application rendered digest-identical to the oracle;
+3. the holla harness moved to `for_scenario_without_history` without the
+   digest baseline being re-blessed;
+4. the holla width-band change made the architecture gate report
+   `architecture_checks_passed: false`.
+
+Findings 3 and 4 are fixed in this round: the history default is restored to
+the reference behaviour, off unless the environment asks for it, and the two
+holla comments that tripped the gate's frame-marker rule are reworded on the
+delivery tip. The gate now reports 0 findings and 0 dependency violations.
+
+The test-integrity review also ran the detection experiments: the new
+`accounts_page.rs` test fails on the pre-increment parent (3 of 4 fail) and
+the new `no_false_parity.rs` test fails on its parent (3 of 7 fail), so the
+new tests do detect the old behaviour.
+
 ## Coverage gaps
 
 ### False-parity inventory (read-only audit, revision `40bc297e5`)
