@@ -740,19 +740,14 @@ fn wide_and_combining_labels_clip_at_narrow_widths() {
     }
 }
 
-#[derive(Default)]
 struct ClickOnlyPage {
-    click_only: bool,
+    focusability: Focusability,
     activations: usize,
 }
 
 impl ClickOnlyPage {
     fn button(&self) -> Button<'static> {
-        Button::new(CLICK_ONLY_BUTTON, "Close").focusability(if self.click_only {
-            Focusability::ClickOnly
-        } else {
-            Focusability::Focusable
-        })
+        Button::new(CLICK_ONLY_BUTTON, "Close").focusability(self.focusability)
     }
 }
 
@@ -775,12 +770,20 @@ const CLICK_ONLY_BUTTON: Id = Id::root("button.contract.click-only");
 
 #[test]
 fn click_only_button_loses_keyboard_focus_but_keeps_pointer_activation() {
-    let mut h = Harness::new(ClickOnlyPage::default(), focus_theme(), 20, 1);
+    let mut h = Harness::new(
+        ClickOnlyPage {
+            focusability: Focusability::Focusable,
+            activations: 0,
+        },
+        focus_theme(),
+        20,
+        1,
+    );
     assert!(h.ring().is_registered(CLICK_ONLY_BUTTON));
     let _ = h.key(termrock_core::keys::KeyCode::Tab);
     assert_eq!(h.focus(), Some(CLICK_ONLY_BUTTON));
 
-    h.app_mut().click_only = true;
+    h.app_mut().focusability = Focusability::ClickOnly;
     let _ = h.tick();
     assert!(!h.ring().is_registered(CLICK_ONLY_BUTTON));
     assert_ne!(h.focus(), Some(CLICK_ONLY_BUTTON));
@@ -811,4 +814,148 @@ fn click_only_button_loses_keyboard_focus_but_keeps_pointer_activation() {
         1,
         "the rendered control remains clickable"
     );
+}
+
+struct DisabledPolicyPage {
+    target: Focusability,
+    focusability: Focusability,
+    autofocus: bool,
+    activations: usize,
+}
+
+impl DisabledPolicyPage {
+    fn button(&self) -> Button<'static> {
+        let button = Button::new(DISABLED_POLICY_BUTTON, "Go").focusability(self.focusability);
+        if self.autofocus {
+            button.autofocus()
+        } else {
+            button
+        }
+    }
+}
+
+impl App for DisabledPolicyPage {
+    fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+        if cx.intents(DISABLED_POLICY_BUTTON).any(|intent| {
+            matches!(
+                intent,
+                termrock_core::Intent::Binding(_)
+                    | termrock_core::Intent::Pointer {
+                        phase: termrock_core::Phase::Click,
+                        ..
+                    }
+            )
+        }) {
+            self.focusability = self.target;
+        }
+        if self.button().update(cx).activated() {
+            self.activations += 1;
+            Response::changed()
+        } else {
+            Response::ignored()
+        }
+    }
+
+    fn draw(&self, ui: &mut Ui<'_>) {
+        self.button().draw(ui, AREA);
+    }
+}
+
+const DISABLED_POLICY_BUTTON: Id = Id::root("button.contract.disabled-policy");
+
+#[test]
+fn disabled_focusability_rejects_already_routed_keyboard_activation() {
+    let mut h = Harness::new(
+        DisabledPolicyPage {
+            target: Focusability::Disabled,
+            focusability: Focusability::Focusable,
+            autofocus: false,
+            activations: 0,
+        },
+        focus_theme(),
+        20,
+        1,
+    );
+    assert_eq!(h.focus(), Some(DISABLED_POLICY_BUTTON));
+
+    let _ = h.key(termrock_core::keys::KeyCode::Enter);
+    assert_eq!(
+        h.app().activations,
+        0,
+        "Disabled focusability must reject an Enter already routed to this button"
+    );
+    assert!(!h.ring().contains(DISABLED_POLICY_BUTTON));
+    assert!(
+        h.ring()
+            .entry(DISABLED_POLICY_BUTTON)
+            .is_some_and(|entry| entry.disabled)
+    );
+    assert_ne!(
+        h.resolved(DISABLED_POLICY_BUTTON, Part::GUTTER).glyph,
+        termrock_theme::Slot::Set(GlyphRole::FocusBar),
+        "Disabled focusability must suppress stale focus styling"
+    );
+}
+
+#[test]
+fn disabled_focusability_rejects_already_routed_pointer_activation() {
+    let mut h = Harness::new(
+        DisabledPolicyPage {
+            target: Focusability::Disabled,
+            focusability: Focusability::Focusable,
+            autofocus: false,
+            activations: 0,
+        },
+        focus_theme(),
+        20,
+        1,
+    );
+    let _ = h.mouse(termrock_core::event::MouseKind::Down, 2, 0);
+    let _ = h.mouse(termrock_core::event::MouseKind::Up, 2, 0);
+    assert_eq!(
+        h.app().activations,
+        0,
+        "Disabled focusability must reject a click already routed to this button"
+    );
+    assert!(!h.ring().contains(DISABLED_POLICY_BUTTON));
+}
+
+#[test]
+fn click_only_focusability_rejects_routed_key_but_accepts_routed_pointer_click() {
+    let mut h = Harness::new(
+        DisabledPolicyPage {
+            target: Focusability::ClickOnly,
+            focusability: Focusability::Focusable,
+            autofocus: false,
+            activations: 0,
+        },
+        focus_theme(),
+        20,
+        1,
+    );
+    assert_eq!(h.focus(), Some(DISABLED_POLICY_BUTTON));
+    let _ = h.key(termrock_core::keys::KeyCode::Enter);
+    assert_eq!(h.app().activations, 0);
+
+    let _ = h.mouse(termrock_core::event::MouseKind::Down, 2, 0);
+    let _ = h.mouse(termrock_core::event::MouseKind::Up, 2, 0);
+    assert_eq!(h.app().activations, 1);
+    assert_ne!(h.focus(), Some(DISABLED_POLICY_BUTTON));
+}
+
+#[test]
+fn disabled_focusability_never_takes_autofocus() {
+    let h = Harness::new(
+        DisabledPolicyPage {
+            target: Focusability::Disabled,
+            focusability: Focusability::Disabled,
+            autofocus: true,
+            activations: 0,
+        },
+        focus_theme(),
+        20,
+        1,
+    );
+    assert_ne!(h.focus(), Some(DISABLED_POLICY_BUTTON));
+    assert!(!h.ring().contains(DISABLED_POLICY_BUTTON));
 }
