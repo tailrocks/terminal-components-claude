@@ -25,6 +25,24 @@ const DANGER_INK: &[(Part, termrock::StylePatch)] = &[(
     termrock::StylePatch::new().set_fg(termrock::Role::Danger),
 )];
 
+const DISABLED_PLATE: &[(Part, termrock::StylePatch)] = &[(
+    Part::CONTAINER,
+    termrock::StylePatch::new().set_bg(termrock::Role::Custom(termrock::Color::from_u32(
+        0x0011_1111,
+    ))),
+)];
+
+const PRESSED_BOLD: &[(Part, termrock::StylePatch)] = &[
+    (
+        Part::CONTAINER,
+        termrock::StylePatch::new().add(termrock::Modifier::BOLD),
+    ),
+    (
+        Part::LABEL,
+        termrock::StylePatch::new().add(termrock::Modifier::BOLD),
+    ),
+];
+
 fn playground_panel() -> Panel<'static> {
     Panel::new(PLAYGROUND_PANEL)
         .kind(PanelKind::Card)
@@ -122,7 +140,12 @@ const MATRIX_STATES: [(&str, StateFlags); 6] = [
             .union(StateFlags::FOCUS_VISIBLE)
             .union(StateFlags::HOVERED),
     ),
-    ("pressed", StateFlags::PRESSED.union(StateFlags::FOCUSED)),
+    (
+        "pressed",
+        StateFlags::PRESSED
+            .union(StateFlags::FOCUSED)
+            .union(StateFlags::FOCUS_VISIBLE),
+    ),
     ("disabled", StateFlags::DISABLED),
 ];
 
@@ -318,11 +341,17 @@ impl Page for ButtonsPage {
                 } else {
                     matrix_panel().draw(ui, matrix_area, Self::draw_matrix);
                 }
-                if let Some(status) = regions.get(3).copied()
-                    && let Some(last) = &self.last
-                {
-                    let text = format!("last: {last} · {} activations", self.clicks);
-                    let _ = ui.paint_str(status, &text, ui.surface_style());
+                if let Some(status) = regions.get(3).copied() {
+                    if let Some(last) = &self.last {
+                        let text = format!("last: {last} · {} activations", self.clicks);
+                        let _ = ui.paint_str(status, &text, ui.surface_style());
+                    } else if !status.is_empty() {
+                        ui.fill(
+                            status,
+                            ui.surface_style()
+                                .bg(termrock::Color::from_u32(0x0011_1111)),
+                        );
+                    }
                 }
             },
         );
@@ -434,7 +463,14 @@ impl ButtonsPage {
                         .variant(*variant)
                         .disabled(flags.contains(StateFlags::DISABLED))
                         .busy_marker_policy(BusyMarkerPolicy::Replace);
-                    if *variant == Variant::DANGER {
+                    if *variant == Variant::SUBTLE && flags.contains(StateFlags::DISABLED) {
+                        button = button.patch_part(DISABLED_PLATE);
+                    } else if *variant == Variant::PRIMARY && flags.contains(StateFlags::PRESSED) {
+                        button = button.patch_part(PRESSED_BOLD);
+                    } else if *variant == Variant::DANGER
+                        && !flags.contains(StateFlags::PRESSED)
+                        && !flags.contains(StateFlags::DISABLED)
+                    {
                         button = button.patch_part(DANGER_INK);
                     }
                     button.draw(
