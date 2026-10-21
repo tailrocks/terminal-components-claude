@@ -2560,3 +2560,30 @@ and `holla-ui/src/screens/home.rs` still asks the catalogue whether the finder
 leads with the recent list (`world.scenario.boot_title() == "Recent here"`),
 which is the last scenario-driven behaviour in the migrated family. Both need
 `crates/holla-sim/**`, which this session's streams did not own.
+
+#### The DCO rewrite, rehearsed and proven content-preserving
+
+The rewrite was rehearsed end to end in a throwaway clone of this repository
+(`/private/tmp/dco-rewrite-test`, a `--no-hardlinks` clone, never pushed):
+
+```text
+git filter-repo --force \
+  --commit-callback 'if b"Signed-off-by:" not in commit.message: commit.message = commit.message.rstrip(b"\n") + b"\n\nSigned-off-by: Alexey Zhokhov <alexey@zhokhov.com>\n"' \
+  --refs refs/remotes/origin/parity/termrock-visual-baseline
+```
+
+Measured on the clone:
+
+| | before | after |
+| --- | --- | --- |
+| tip commit | `5b3097acab788ed4e189bc7e6aab27f1b6a6ee65` | `80294c3a946fc944da6e0804a1c66009083be65f` |
+| tip tree | `82196d62a96750829b0d6faa5699dde114002fb6` | `82196d62a96750829b0d6faa5699dde114002fb6` (identical) |
+| commits in `origin/main..tip` | 2241 | 2241 |
+| commits without a `Signed-off-by` trailer | 1309 | 0 |
+
+The tree hash is unchanged, so the rewrite moves no content: it only adds the
+DCO trailer to the messages of the commits that lack it. The rewrite still has
+to be executed on the real branch by the branch owner, as one announced
+force-push with `--force-with-lease` against the pre-rewrite tip, with no other
+stream pushing, and every open work branch rebased onto the rewritten tip
+afterwards.
