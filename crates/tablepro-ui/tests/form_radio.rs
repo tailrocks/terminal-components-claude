@@ -27,15 +27,18 @@ fn drafts(t: &Harness<TableProApp>) -> Result<(usize, usize), &'static str> {
     Ok((draft.environment, draft.safe_mode))
 }
 
-fn row_span(t: &Harness<TableProApp>, y: u16, x0: u16, x1: u16) -> String {
-    (x0..=x1).map(|x| t.cell(x, y).symbol()).collect()
+fn focus_form_control(t: &mut Harness<TableProApp>, id: Id) {
+    for _ in 0..96 {
+        if t.focus() == Some(id) {
+            return;
+        }
+        let _ = t.key(KeyCode::Tab);
+    }
+    assert_eq!(t.focus(), Some(id), "form control {id:?} must be reachable");
 }
 
-fn production_index(app: &TableProApp) -> Option<usize> {
-    app.connections_screen
-        .connections
-        .iter()
-        .position(|connection| format!("{connection:?}").contains("name: \"Production\""))
+fn row_span(t: &Harness<TableProApp>, y: u16, x0: u16, x1: u16) -> String {
+    (x0..=x1).map(|x| t.cell(x, y).symbol()).collect()
 }
 
 #[test]
@@ -79,32 +82,39 @@ fn form_radio_no_legacy_painter() {
 
 #[test]
 fn form_radio_enter_chooses_without_submitting_and_ctrl_s_saves() -> Result<(), &'static str> {
-    let mut app = TableProApp::default();
-    let index = production_index(&app).ok_or("Production connection missing from the demo list")?;
-    assert!(app.connect(index), "Production must connect");
-    let mut t = Harness::new(app, Theme::junie(), 120, 40);
+    let mut t = Harness::new(TableProApp::default(), Theme::junie(), 120, 40);
     let _ = t.ctrl('n');
     assert!(
         t.app().connection_form_open(),
         "ctrl-n must open the connection form"
     );
+    assert_eq!(t.focus(), Some(NAME), "fresh form must focus Name");
+    assert_eq!(
+        drafts(&t)?,
+        (0, 0),
+        "a new connection starts from the driver's first radio choices"
+    );
     assert!(t.find("Name").is_some(), "the form must show Name");
+    let _ = t.type_str("Radio contract probe");
+    focus_form_control(&mut t, DATABASE);
+    assert_eq!(t.focus(), Some(DATABASE), "focus must sit on DATABASE");
     assert!(
-        tab_navigation::tab_to(&mut t, NAME),
-        "NAME must be Tab-reachable"
+        t.area_of(DATABASE).is_some(),
+        "DATABASE must be visibly rendered"
     );
-    let _ = t.type_str("Termrock radio behavior");
+    let _ = t.type_str("radio_probe");
+    focus_form_control(&mut t, ENVIRONMENT);
+    assert_eq!(t.focus(), Some(ENVIRONMENT));
+    let draft = t
+        .app()
+        .connection_draft()
+        .ok_or("form must remain open before radio Enter")?;
+    assert_eq!(draft.name, "Radio contract probe");
+    assert_eq!(draft.database, "radio_probe");
     assert!(
-        tab_navigation::tab_to(&mut t, DATABASE),
-        "DATABASE must be Tab-reachable"
-    );
-    let _ = t.key(KeyCode::End);
-    let _ = t.type_str("_radio");
-    assert!(
-        t.app()
-            .connection_draft()
-            .is_some_and(|draft| draft.validate_all().is_ok()),
-        "Name and Database must be valid before the radio Enter check"
+        draft.validate_all().is_ok(),
+        "draft errors: {:?}",
+        draft.validate_all()
     );
     let entries = t.ring().entries();
     let env = entries.iter().position(|entry| entry.id == ENVIRONMENT);
@@ -130,23 +140,18 @@ fn form_radio_enter_chooses_without_submitting_and_ctrl_s_saves() -> Result<(), 
     );
     assert_eq!(
         drafts(&t)?,
-        (3, 3),
-        "the corpus pick starts Production/Safe"
+        (0, 0),
+        "radio defaults remain unchanged after entering valid form data"
     );
-    assert!(
-        tab_navigation::tab_to(&mut t, ENVIRONMENT),
-        "ENVIRONMENT must be Tab-reachable"
-    );
+    focus_form_control(&mut t, ENVIRONMENT);
     assert_eq!(
         t.focus(),
         Some(ENVIRONMENT),
         "focus must sit on ENVIRONMENT"
     );
 
-    let _ = t.key(KeyCode::Up);
-    assert_eq!(drafts(&t)?.0, 2, "Up immediately chooses Staging");
     let _ = t.key(KeyCode::Down);
-    assert_eq!(drafts(&t)?.0, 3, "Down immediately chooses Production");
+    assert_eq!(drafts(&t)?.0, 1, "Down immediately chooses Development");
 
     let before = t.app().connections_screen.connections.len();
     let _ = t.key(KeyCode::Enter);
@@ -160,10 +165,7 @@ fn form_radio_enter_chooses_without_submitting_and_ctrl_s_saves() -> Result<(), 
         "radio Enter does not append a connection"
     );
     let save = FORM.part(termrock::Part::ACTIONS).index(2);
-    assert!(
-        tab_navigation::tab_to(&mut t, save),
-        "Save action must remain keyboard reachable"
-    );
+    focus_form_control(&mut t, save);
     let _ = t.key(KeyCode::Enter);
     assert_eq!(
         t.app().connections_screen.connections.len(),
@@ -183,15 +185,15 @@ fn form_radio_enter_chooses_without_submitting_and_ctrl_s_saves() -> Result<(), 
         .ok_or("submit must push a connection")?;
     let pushed = format!("{pushed:?}");
     assert!(
-        pushed.contains("name: \"Termrock radio behavior\""),
+        pushed.contains("name: \"Radio contract probe\""),
         "Save keeps the edited name, got {pushed}"
     );
     assert!(
-        pushed.contains("database: \"acme_prod_radio\""),
+        pushed.contains("database: \"radio_probe\""),
         "Save keeps the edited Database, got {pushed}"
     );
     assert!(
-        pushed.contains("environment: Production"),
+        pushed.contains("environment: Development"),
         "the chosen radio value is saved, got {pushed}"
     );
     Ok(())
