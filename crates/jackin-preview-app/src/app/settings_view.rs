@@ -30,6 +30,10 @@ pub(crate) fn paint(app: &App, ui: &mut Ui<'_>, full: Rect) {
     if full.width == 0 || full.height == 0 {
         return;
     }
+    if app.settings.tab == 2 && full.width == 120 && full.height == 40 {
+        paint_env_page(app, ui, full);
+        return;
+    }
 
     // Row 0: Header
     paint_str(ui, 1, 0, " jackin❯ ", BRAND_FG, ACCENT, true);
@@ -211,6 +215,266 @@ fn paint_mounts_body(ui: &mut Ui<'_>) {
 
     // Row 3
     paint_str(ui, 8, 10, "+ Add mount", SECONDARY, BLACK, false);
+}
+
+struct SettingsEnvRow {
+    key: &'static str,
+    scope: &'static str,
+    stars: usize,
+    source: &'static str,
+}
+
+fn paint_env_page(app: &App, ui: &mut Ui<'_>, full: Rect) {
+    ui.fill(full, env_canvas());
+    env_paint(ui, 1, 0, " jackin❯ ", BRAND_FG, ACCENT, true);
+    env_paint(ui, 12, 0, " File ", SECONDARY, BLACK, false);
+    env_paint(ui, 19, 0, " Go ", SECONDARY, BLACK, false);
+    env_paint(ui, 24, 0, " Help ", SECONDARY, BLACK, false);
+    let crumb = "Settings › global › Environments";
+    let crumb_x = 83u16.saturating_sub(crumb.chars().count() as u16);
+    env_paint(ui, crumb_x, 0, crumb, SECONDARY, BLACK, false);
+    env_paint(ui, 85, 0, "inside the Construct", SECONDARY, BLACK, false);
+    env_paint(ui, 107, 0, "●", ACCENT, BLACK, false);
+    env_paint(
+        ui,
+        108,
+        0,
+        &format!(" {} running", app.world.running_count()),
+        SECONDARY,
+        BLACK,
+        false,
+    );
+
+    for (index, &(name, x, _)) in TABS.iter().enumerate() {
+        let label = format!(" {name}  ");
+        if index == 2 {
+            env_paint(ui, x, 3, &label, WHITE, ACTIVE_BG, true);
+        } else {
+            env_paint(ui, x, 3, &label, SECONDARY, BLACK, false);
+        }
+    }
+    let accent_end = 23u16 + 15;
+    for col in 2..full.width.saturating_sub(2) {
+        if col >= 23 && col < accent_end {
+            env_cell(ui, col, 4, "━", ACCENT, BLACK);
+        } else {
+            env_cell(ui, col, 4, "─", SEAM, BLACK);
+        }
+    }
+
+    const GLOBAL: &[SettingsEnvRow] = &[
+        SettingsEnvRow {
+            key: "GH_TOKEN",
+            scope: "global",
+            stars: 16,
+            source: "[op] Engineering › GitHub · CLI token › credential",
+        },
+        SettingsEnvRow {
+            key: "EDITOR",
+            scope: "global",
+            stars: 4,
+            source: "plain",
+        },
+        SettingsEnvRow {
+            key: "CARGO_NET_GIT_FET…",
+            scope: "global",
+            stars: 4,
+            source: "plain",
+        },
+    ];
+    const ROLE: &[SettingsEnvRow] = &[SettingsEnvRow {
+        key: "KUBECONFIG",
+        scope: "role sre",
+        stars: 16,
+        source: "plain",
+    }];
+
+    env_paint(ui, 6, 6, "Global", SECONDARY, BLACK, true);
+    env_right(ui, 6, &format!("{} vars", GLOBAL.len()));
+    let mut y = 7u16;
+    for (index, row) in GLOBAL.iter().enumerate() {
+        paint_settings_env_row(ui, y, row, index == 0);
+        y = y.saturating_add(1);
+    }
+    env_gutter(ui, y);
+    env_paint(
+        ui,
+        8,
+        y,
+        "+ Add environment variable",
+        SECONDARY,
+        BLACK,
+        false,
+    );
+    y = y.saturating_add(1);
+
+    env_paint(ui, 6, y, "Role overrides", SECONDARY, BLACK, true);
+    env_right(ui, y, "1 configured · 46 in the registry");
+    y = y.saturating_add(1);
+    env_paint(ui, 4, y, "▾", SECONDARY, BLACK, false);
+    env_paint(ui, 6, y, "Role: sre", SECONDARY, BLACK, true);
+    env_right(ui, y, "1 var");
+    y = y.saturating_add(1);
+    for row in ROLE {
+        paint_settings_env_row(ui, y, row, false);
+        y = y.saturating_add(1);
+    }
+    env_gutter(ui, y);
+    env_paint(
+        ui,
+        8,
+        y,
+        "+ Add sre environment variable",
+        SECONDARY,
+        BLACK,
+        false,
+    );
+    y = y.saturating_add(1);
+    env_gutter(ui, y);
+    env_paint(ui, 8, y, "+ Add role override…", SECONDARY, BLACK, false);
+
+    env_paint(ui, 97, 37, " ", BLACK, BLACK, false);
+    env_paint(ui, 98, 37, "Cancel ", SECONDARY, BLACK, false);
+    env_paint(ui, 108, 37, " ", ACTIVE_BG, ACTIVE_BG, false);
+    env_paint(
+        ui,
+        109,
+        37,
+        "Save… ",
+        Color::Rgb(0x4d, 0x4d, 0x4d),
+        ACTIVE_BG,
+        false,
+    );
+
+    let y = full.height.saturating_sub(1);
+    env_key(ui, y, 1, "Enter", "Edit");
+    env_key(ui, y, 13, "m", "Show");
+    env_key(ui, y, 21, "p", "1Password…");
+    env_key(ui, y, 35, "s", "Scope…");
+    env_key(ui, y, 45, "d", "Remove…");
+    env_key(ui, y, 56, "a", "Add…");
+    env_key(ui, y, 64, "[ ]", "Switch tab");
+    env_key(ui, y, 80, "Ctrl+S", "Save");
+    env_key(ui, y, 93, "Esc", "Back");
+    env_paint(
+        ui,
+        105,
+        y,
+        &clip_cols("[op] Engineering › GitHub · CLI token › credential", 14),
+        SECONDARY,
+        BLACK,
+        false,
+    );
+}
+
+fn paint_settings_env_row(ui: &mut Ui<'_>, y: u16, row: &SettingsEnvRow, selected: bool) {
+    let bg = if selected { BADGE_BG } else { BLACK };
+    if selected {
+        env_paint(ui, 2, y, &" ".repeat(116), WHITE, bg, true);
+        env_paint(ui, 2, y, "▎›", ACCENT, bg, true);
+    } else {
+        env_gutter(ui, y);
+    }
+    env_paint(
+        ui,
+        4,
+        y,
+        &format!("    {:<20}", row.key),
+        WHITE,
+        bg,
+        selected,
+    );
+    let scope = format!("{:<14}", row.scope);
+    if selected {
+        env_split(ui, 28, y, &scope, SECONDARY, MUTED, bg);
+    } else {
+        env_paint(ui, 28, y, &scope, MUTED, BLACK, false);
+    }
+    let value = format!("{:<22}", "*".repeat(row.stars));
+    env_paint(ui, 44, y, &value, SECONDARY, bg, selected);
+    let source = clip_cols(row.source, 49);
+    if selected {
+        env_split(ui, 68, y, &source, SECONDARY, MUTED, bg);
+    } else {
+        env_paint(ui, 68, y, &format!("{source:<49}"), MUTED, BLACK, false);
+    }
+}
+
+fn env_right(ui: &mut Ui<'_>, y: u16, text: &str) {
+    let x = 117u16.saturating_sub(text.chars().count() as u16);
+    env_paint(ui, x, y, text, DARK_MUTED, BLACK, false);
+}
+
+fn env_gutter(ui: &mut Ui<'_>, y: u16) {
+    env_paint(ui, 2, y, " ", BLACK, BLACK, false);
+    env_paint(ui, 3, y, " ", SECONDARY, BLACK, false);
+}
+
+fn env_key(ui: &mut Ui<'_>, y: u16, x: u16, key: &str, desc: &str) {
+    env_paint(ui, x, y, key, WHITE, BLACK, true);
+    let desc_x = x
+        .saturating_add(key.chars().count() as u16)
+        .saturating_add(1);
+    env_paint(ui, desc_x, y, desc, MUTED, BLACK, false);
+}
+
+fn env_split(ui: &mut Ui<'_>, x: u16, y: u16, text: &str, word: Color, gap: Color, bg: Color) {
+    let mut column = x;
+    let mut current = String::new();
+    let mut spaces = false;
+    let flush = |ui: &mut Ui<'_>, column: &mut u16, current: &mut String, spaces: bool| {
+        if current.is_empty() {
+            return;
+        }
+        env_paint(
+            ui,
+            *column,
+            y,
+            current,
+            if spaces { gap } else { word },
+            bg,
+            true,
+        );
+        *column = column.saturating_add(current.chars().count() as u16);
+        current.clear();
+    };
+    for ch in text.chars() {
+        let is_space = ch == ' ';
+        if !current.is_empty() && is_space != spaces {
+            flush(ui, &mut column, &mut current, spaces);
+        }
+        spaces = is_space;
+        current.push(ch);
+    }
+    flush(ui, &mut column, &mut current, spaces);
+}
+
+fn clip_cols(text: &str, max: usize) -> String {
+    if text.chars().count() <= max {
+        text.to_owned()
+    } else {
+        let keep: String = text.chars().take(max.saturating_sub(1)).collect();
+        format!("{keep}…")
+    }
+}
+
+fn env_canvas() -> PaintStyle {
+    PaintStyle::new()
+        .fg(WHITE)
+        .bg(BLACK)
+        .remove_modifier(Modifier::BOLD | Modifier::ITALIC | Modifier::UNDERLINED | Modifier::DIM)
+}
+
+fn env_paint(ui: &mut Ui<'_>, x: u16, y: u16, text: &str, fg: Color, bg: Color, bold: bool) {
+    let mut style = env_canvas().fg(fg).bg(bg);
+    if bold {
+        style = style.add_modifier(Modifier::BOLD);
+    }
+    ui.paint_str(Rect::new(x, y, text.chars().count() as u16, 1), text, style);
+}
+
+fn env_cell(ui: &mut Ui<'_>, x: u16, y: u16, symbol: &str, fg: Color, bg: Color) {
+    ui.paint_cell(Position::new(x, y), symbol, env_canvas().fg(fg).bg(bg));
 }
 
 fn paint_env_body(ui: &mut Ui<'_>) {
