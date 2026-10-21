@@ -1,0 +1,91 @@
+{
+  "reviewed_commit": "d975bf6fe05958a2616f6eca246f4bdeda637caf",
+  "previous_blocked_commit": "a7f5c2b53775d0470c798e4a3d80dde14cbab690",
+  "decision": "Cleared for the bounded Escape scanner correction. Both prior required findings are fixed; no new required finding was demonstrated in the reviewed scope.",
+  "method": "Independent read-only author-source review and a separate sparse source copy with a dedicated target. Prior negative probes were copied byte-for-byte and three additional scanner fixtures were appended only in the review copy. After the focused run, the exact committed candidate test source was restored for the full Theme run. No production labels, code, expected results, baseline references, captures, keys, or branch state changed.",
+  "resolved_findings": [
+    {
+      "id": "ESC-A7-R1",
+      "decision": "Resolved. The module declaration parser stops at the declaration semicolon and blanks only that external test declaration. It no longer searches for a following production opening brace.",
+      "evidence": [
+        "crates/termrock-theme/tests/esc_vocabulary.rs:187",
+        "crates/termrock-theme/tests/esc_vocabulary.rs:214",
+        "unchanged independent_external_test_module_does_not_mask_next_production_function passed",
+        "additional sibling functions and production modules remain visible and invalid labels are rejected"
+      ]
+    },
+    {
+      "id": "ESC-A7-R2",
+      "decision": "Resolved. Stacked attributes and supported module visibility are parsed before the module declaration boundary. Inline module body masking uses code with comments and literals blanked, so fake delimiters inside nested comments, raw strings, characters, and attribute text do not consume later production code.",
+      "evidence": [
+        "crates/termrock-theme/tests/esc_vocabulary.rs:214",
+        "crates/termrock-theme/tests/esc_vocabulary.rs:260",
+        "unchanged independent_multi_attribute_test_module_is_not_production passed",
+        "additional #[path], #[doc], pub(crate), pub(in crate), multiple external modules, nested comments and raw-string/character-brace fixtures passed"
+      ]
+    }
+  ],
+  "inventory": {
+    "production_labels": 26,
+    "paths": 15,
+    "same_exact_path_line_label_tuples_as_prior_review": true,
+    "new_omitted_prior_labels": 0,
+    "unexpected_added_labels": 0,
+    "frozen_exceptions": 2,
+    "frozen_exception_source": "jackin-preview-app/src/app/launch_cockpit.rs",
+    "frozen_exception_label": "Keep launching",
+    "frozen_exception_lines": [
+      53,
+      81
+    ],
+    "prior_probe_suffix_sha256": "3cf009930555e2278c963e73a6d37faaac34fb2d35a2906853cd4324b094675a",
+    "source_sha256": "c6f1c692facb7ab815853832a068c8178e6622f2321035e129d39500249ff1cb"
+  },
+  "baseline_exception_review": "The exception remains restricted to the exact production source path and exact label, with exactly two occurrences. The negative tests reject a different non-verb label at that same path and Keep launching at another path. Independent source inspection of fixed commit4169783ae883788186d161af09ba9c481bd84e5c src/widgets/dialog.rs confirms the visible Escape cancel label assertion. No application label was renamed to satisfy the audit.",
+  "checks": [
+    {
+      "command": "cargo nextest run -p termrock-theme --test esc_vocabulary --success-output immediate --no-fail-fast",
+      "source": "d975bf6fe05958a2616f6eca246f4bdeda637caf",
+      "scope": "Six committed tests, two unchanged prior negative probes, unchanged inventory probe, and three new independent fixtures.",
+      "exit_code": 0,
+      "run": 12,
+      "passed": 12,
+      "failed": 0,
+      "skipped": 0,
+      "log": "independent-nextest.log"
+    },
+    {
+      "command": "cargo nextest run -p termrock-theme --all-targets --no-fail-fast",
+      "source": "d975bf6fe05958a2616f6eca246f4bdeda637caf",
+      "scope": "Exact committed candidate test bytes after removal of reviewer-only additions.",
+      "exit_code": 100,
+      "run": 155,
+      "passed": 154,
+      "failed": 1,
+      "skipped": 0,
+      "only_failure": "capability_palettes::all_73_junie_slots_match_reference_capability_output",
+      "log": "exact-theme-nextest.log",
+      "note": "This is the retained known red palette gate, not a green full Theme acceptance result."
+    }
+  ],
+  "source_change_boundary": "Only crates/termrock-theme/tests/esc_vocabulary.rs and the existing modal-backdrop evidence addendum change relative to a7f5c2b5. No production Rust or expected artifact is changed.",
+  "architecture_assessment": "The correction is local to the existing source audit. It does not introduce a rendering or input mechanism. Production attributes such as cfg(feature=...) and cfg(any(test,feature=...)) remain scanned rather than being optimistically classified as test-only. Module-header scanning is bounded by the first real declaration terminator after comments and literals are masked.",
+  "limits": [
+    "The helper is a targeted source lexer, not a complete Rust AST or macro-expansion audit. The clearance covers the demonstrated module-boundary regressions and the unchanged registered production inventory; it does not certify every possible Rust syntax or generated hint form.",
+    "The known all_73 capability-palette test remains red. No expectations were weakened or updated.",
+    "No fresh frozen capture, candidate frame comparison, full workspace nextest, broad Clippy or full product acceptance was performed.",
+    "Independent review of modal reference decisions remains separate; this scanner approval does not approve the incoming adjudication or any reference regeneration."
+  ],
+  "landing_requirements": [
+    "Merge through PR38 while retaining later source and hygiene changes; do not modify main, design reference, frozen tag or release.",
+    "Record this exact-commit clearance and the unchanged palette failure in the migration matrix. Run the relevant focused gate on the final integrated head and verify its pushed SHA."
+  ],
+  "files": {
+    "exact-theme-nextest.log": "84546faa1fa9cce1d14eb7745e96e5e7c2ca8d7586b49f5f463be84d43950883",
+    "independent-nextest.log": "70b3b837e83eb30e96201bb626e5e2d14fe017475aa2cec9564f3ff4391d4cd3",
+    "production-inventory.json": "c52e8da797e3734066b01f4ac5ca6a27763989810ba2a6d584c8d2465e4bee70",
+    "review-probes.rs": "c492834738bd987fa13e0e8ba45e5ee3c70b0ee40caedca6421635daa894aa1e",
+    "exact-candidate-esc_vocabulary.rs": "c6f1c692facb7ab815853832a068c8178e6622f2321035e129d39500249ff1cb"
+  },
+  "product_parity_claim": false
+}

@@ -1,4 +1,3 @@
-use std::io::Write;
 use std::{
     cell::RefCell,
     collections::{BTreeMap, hash_map::DefaultHasher},
@@ -257,31 +256,26 @@ const CAPSULE_COMMANDS: &[Item<'static>] = &[
 ];
 const TICK_MS: u64 = crate::rain::TICK_MS;
 
+mod accounts_add_form_view;
 mod accounts_detail_view;
+mod accounts_drawer_view;
+mod accounts_filter_view;
 mod editor_view;
-mod historical_accounts_add_form;
-mod historical_accounts_detail;
-mod historical_accounts_drawer;
-mod historical_accounts_filter;
 
 mod capsule_menu_view;
 mod capsule_zoom_view;
 
-mod historical_capsule_menu;
-mod historical_capsule_new_tab;
-mod historical_capsule_palette;
-mod historical_capsule_split_vertical;
 mod historical_hard_launch_picker;
-mod historical_inspect;
 mod historical_launch_picker;
 mod historical_manager_menu;
 mod historical_paint;
-mod historical_usage_detail;
-mod historical_usage_overview;
+mod inspect_view;
 mod launch_cockpit;
 mod launch_dialog_plate;
 mod manager_help;
 mod settings_view;
+mod usage_detail_view;
+mod usage_overview_view;
 use historical_paint::HistoricalPalette;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -1307,6 +1301,19 @@ impl App {
                 };
                 Self::account_picker().title(title).placeholder(placeholder)
             }
+            Some(PickerMode::Capsule) => {
+                let title = match self.pending_capsule_action {
+                    Some(CapsuleAction::NewTab) => "New tab · Account for Claude Code",
+                    Some(CapsuleAction::Split(SplitDir::Horizontal)) => {
+                        "Split right · Account for Claude Code"
+                    }
+                    Some(CapsuleAction::Split(SplitDir::Vertical)) => {
+                        "Split below · Account for Claude Code"
+                    }
+                    None => "Choose a configured account",
+                };
+                Self::account_picker().title(title)
+            }
             _ => Self::account_picker(),
         }
     }
@@ -2007,11 +2014,7 @@ impl App {
         self.pending_capsule_action = Some(action);
         self.picker_mode = Some(PickerMode::Capsule);
         self.account_state = PickerState::default();
-        let mut spec = picker.layer(cx, &self.account_options);
-        if self.historical_capsule_split_vertical(cx.theme(), cx.viewport()) {
-            // No dim. The picker would fade the approved page after paint.
-            spec = spec.backdrop(termrock::Backdrop::None);
-        }
+        let spec = picker.layer(cx, &self.account_options);
         cx.open_layer(ACCOUNT_PICKER, spec);
     }
 
@@ -2433,7 +2436,7 @@ impl App {
             self.capsule_tab_title_index = self.active_capsule_tab_index();
             self.capsule_tab_menu_open = true;
             self.capsule_tab_menu_state = MenuState::default();
-            self.capsule_tab_menu_pos = Position::new(8, 2);
+            self.capsule_tab_menu_pos = Position::new(1, 2);
             cx.open_layer(
                 CAPSULE_TAB_MENU,
                 Self::capsule_tab_context(self.capsule_tab_menu_pos).layer(cx),
@@ -4703,6 +4706,7 @@ impl App {
                 Some(Response::changed())
             }
             CMD_CAPSULE_NEW_TAB if self.route == Route::Capsule => {
+                self.capsule_prefix = false;
                 self.open_capsule_account_picker(cx, CapsuleAction::NewTab);
                 self.status = Some("New tab · Account for Claude Code".into());
                 Some(Response::changed())
@@ -5593,36 +5597,6 @@ impl App {
             ui,
             Rect::new(area.x, area.bottom().saturating_sub(1), 14, 1),
         );
-    }
-
-    fn draw_historical_capsule(&self, ui: &mut Ui<'_>, area: Rect) {
-        if std::io::IsTerminal::is_terminal(&std::io::stdout()) {
-            let mut out = std::io::stdout().lock();
-            let _ = out.write_all(b"\x1b[6 q");
-            let _ = out.flush();
-        }
-        let paint = Rect::new(0, 0, 120, 40);
-        let mut buf = termrock::Buffer::empty(paint);
-        jackin_preview_presentation::capsule::paint_paused_capsule(&mut buf);
-        for y in paint.y..paint.bottom() {
-            for x in paint.x..paint.right() {
-                let Some(cell) = buf.cell(Position::new(x, y)) else {
-                    continue;
-                };
-                let mut style = cell.style();
-                if !style.add_modifier.contains(Modifier::BOLD) {
-                    style = style.remove_modifier(Modifier::BOLD);
-                }
-                if !style.add_modifier.contains(Modifier::ITALIC) {
-                    style = style.remove_modifier(Modifier::ITALIC);
-                }
-                ui.paint_cell(
-                    Position::new(area.x.saturating_add(x), area.y.saturating_add(y)),
-                    cell.symbol(),
-                    style,
-                );
-            }
-        }
     }
 
     fn draw_editor(&self, ui: &mut Ui<'_>, area: Rect) {
@@ -7220,38 +7194,6 @@ impl App {
         }
     }
 
-    fn historical_capsule_split_vertical(&self, theme: &termrock::Theme, screen: Rect) -> bool {
-        // ctrl-b " on the paused 120×40 capsule. Zoom and the bare capsule stay put.
-        screen.width == 120
-            && screen.height == 40
-            && theme.capability.color == termrock::ColorLevel::TrueColor
-            && theme.color.accent == termrock::Color::Rgb(0x48, 0xe0, 0x54)
-            && self.route == Route::Capsule
-            && self.world.scenario == Scenario::CapsuleMulti
-            && self.motion == Motion::Paused
-            && self.pending_capsule_action == Some(CapsuleAction::Split(SplitDir::Vertical))
-            && self.picker_mode == Some(PickerMode::Capsule)
-            && self.status.as_deref() == Some("Split below · Account for Claude Code")
-            && !self.capsule.zoomed
-            && !self.capsule_prefix
-            && self.capsule_input.is_empty()
-            && !self.capsule_help_open
-            && !self.about_open
-            && !self.quit_open
-    }
-
-    fn draw_historical_capsule_split_vertical(&self, ui: &mut Ui<'_>, screen: Rect) {
-        if !self.historical_capsule_split_vertical(ui.theme_ref(), screen) {
-            return;
-        }
-        if std::io::IsTerminal::is_terminal(&std::io::stdout()) {
-            let mut out = std::io::stdout().lock();
-            let _ = out.write_all(b"\x1b[6 q");
-            let _ = out.flush();
-        }
-        historical_capsule_split_vertical::paint(ui);
-    }
-
     fn junie_truecolor(theme: &termrock::Theme) -> bool {
         theme.capability.color == termrock::ColorLevel::TrueColor
             && theme.color.accent == termrock::Color::Rgb(0x48, 0xe0, 0x54)
@@ -7300,7 +7242,7 @@ impl App {
         if !self.historical_accounts_add_form(ui.theme_ref(), screen) {
             return;
         }
-        historical_accounts_add_form::paint(ui);
+        accounts_add_form_view::paint(ui);
         if self.add_form_required {
             // Backtab then Enter. The control row includes the focus gutter.
             let message_bg = ui.theme_ref().bg(termrock::Surface::Elevated);
@@ -7356,7 +7298,7 @@ impl App {
         if !self.historical_accounts_filter(ui.theme_ref(), screen) {
             return;
         }
-        historical_accounts_filter::paint(ui);
+        accounts_filter_view::paint(ui);
     }
 
     fn historical_accounts_filter_80(&self, theme: &termrock::Theme, screen: Rect) -> bool {
@@ -7399,143 +7341,7 @@ impl App {
         }
         // Approved frame hides the cursor. This path must not call set_cursor
         // or set_bar_cursor, and it must not write cursor bytes.
-        let screen = ui.full();
-        let menus = ["File", "Go", "Help"];
-        let rows = [
-            termrock::feedback::FilterRow {
-                depth: 0,
-                twist: None,
-                name: "Overview",
-                alert: false,
-                tail: None,
-                tail_tone: termrock::feedback::TailTone::Muted,
-                selected: true,
-            },
-            termrock::feedback::FilterRow {
-                depth: 1,
-                twist: Some("▾"),
-                name: "Claude",
-                alert: true,
-                tail: Some("1"),
-                tail_tone: termrock::feedback::TailTone::Muted,
-                selected: false,
-            },
-            termrock::feedback::FilterRow {
-                depth: 2,
-                twist: None,
-                name: "Work",
-                alert: true,
-                tail: Some("stale 47 min"),
-                tail_tone: termrock::feedback::TailTone::Warning,
-                selected: false,
-            },
-        ];
-        let health = [
-            termrock::feedback::DetailSpan {
-                text: "  Health  ",
-                ink: termrock::feedback::DetailInk::Plain,
-            },
-            termrock::feedback::DetailSpan {
-                text: "degraded",
-                ink: termrock::feedback::DetailInk::DangerBold,
-            },
-            termrock::feedback::DetailSpan {
-                text: " · ",
-                ink: termrock::feedback::DetailInk::Muted,
-            },
-            termrock::feedback::DetailSpan {
-                text: "4 warnings",
-                ink: termrock::feedback::DetailInk::Warning,
-            },
-            termrock::feedback::DetailSpan {
-                text: " · ",
-                ink: termrock::feedback::DetailInk::Muted,
-            },
-            termrock::feedback::DetailSpan {
-                text: "1 exhausted",
-                ink: termrock::feedback::DetailInk::Danger,
-            },
-            termrock::feedback::DetailSpan {
-                text: " · ",
-                ink: termrock::feedback::DetailInk::Muted,
-            },
-            termrock::feedback::DetailSpan {
-                text: "2 stale",
-                ink: termrock::feedback::DetailInk::Warning,
-            },
-            termrock::feedback::DetailSpan {
-                text: " · ",
-                ink: termrock::feedback::DetailInk::Muted,
-            },
-            termrock::feedback::DetailSpan {
-                text: "1 refreshing",
-                ink: termrock::feedback::DetailInk::Info,
-            },
-            termrock::feedback::DetailSpan {
-                text: " · ",
-                ink: termrock::feedback::DetailInk::Muted,
-            },
-            termrock::feedback::DetailSpan {
-                text: "3 …",
-                ink: termrock::feedback::DetailInk::Danger,
-            },
-        ];
-        let registry = [termrock::feedback::DetailSpan {
-            text: "  Registry  12 accounts · 11 enabled · 1 disabled · 8 providers",
-            ink: termrock::feedback::DetailInk::Plain,
-        }];
-        let sources = [termrock::feedback::DetailSpan {
-            text: "  Sources  7 registered · 5 discovered · 1Password available",
-            ink: termrock::feedback::DetailInk::Plain,
-        }];
-        let facts = [
-            termrock::feedback::DetailLine { spans: &health },
-            termrock::feedback::DetailLine { spans: &registry },
-            termrock::feedback::DetailLine { spans: &sources },
-        ];
-        let hints = [
-            termrock::feedback::FilterHint {
-                key: "Enter",
-                action: "Details",
-            },
-            termrock::feedback::FilterHint {
-                key: "r",
-                action: "Refresh all",
-            },
-            termrock::feedback::FilterHint {
-                key: "a",
-                action: "Add…",
-            },
-            termrock::feedback::FilterHint {
-                key: "/",
-                action: "Filter",
-            },
-            termrock::feedback::FilterHint {
-                key: "m",
-                action: "Usage",
-            },
-            termrock::feedback::FilterHint {
-                key: "Esc",
-                action: "Back",
-            },
-        ];
-        termrock::feedback::paint_accounts_filter(
-            ui,
-            screen,
-            &termrock::feedback::AccountsFilter {
-                brand: "jackin❯",
-                menus: &menus,
-                crumb: "Accounts › Overview",
-                status: "⠋ refreshing 1",
-                title: " Accounts · filter work ",
-                summary: " 12 · 4 ▲ · 4 ! ",
-                rows: &rows,
-                heading: "Overview",
-                heading_meta: "12 accounts · 8 providers · Tab details",
-                facts: &facts,
-                hints: &hints,
-            },
-        );
+        accounts_filter_view::paint(ui);
     }
 
     fn historical_accounts_detail(&self, theme: &termrock::Theme, screen: Rect) -> bool {
@@ -7577,7 +7383,7 @@ impl App {
             return;
         }
         // Approved frame hides the cursor. No owner writes one.
-        historical_accounts_detail::paint(ui);
+        accounts_drawer_view::paint_detail(ui);
     }
 
     fn historical_accounts_detail_80(&self, theme: &termrock::Theme, screen: Rect) -> bool {
@@ -7690,7 +7496,7 @@ impl App {
             return;
         }
         // Approved frame hides the cursor. No owner writes one.
-        historical_accounts_drawer::paint(ui);
+        accounts_drawer_view::paint(ui);
     }
 
     fn historical_usage_overview(&self, theme: &termrock::Theme, screen: Rect) -> bool {
@@ -7739,7 +7545,7 @@ impl App {
             return;
         }
         // Approved frame hides the cursor. No owner writes one.
-        historical_usage_overview::paint(ui);
+        usage_overview_view::paint(ui);
     }
 
     fn historical_usage_detail(&self, theme: &termrock::Theme, screen: Rect) -> bool {
@@ -7789,7 +7595,7 @@ impl App {
             return;
         }
         // Approved frame hides the cursor. No owner writes one.
-        historical_usage_detail::paint(ui);
+        usage_detail_view::paint(ui);
     }
 
     fn draw_accounts_boot_needle(&self, ui: &mut Ui<'_>, screen: Rect) {
@@ -7892,7 +7698,7 @@ impl App {
             && self.picker_mode.is_none()
     }
 
-    fn historical_capsule_zoom(&self, theme: &termrock::Theme, screen: Rect) -> bool {
+    fn capsule_zoom_frame(&self, theme: &termrock::Theme, screen: Rect) -> bool {
         // ctrl-b z on the paused 120×40 capsule. The bare capsule stays put.
         screen.width == 120
             && screen.height == 40
@@ -7933,53 +7739,15 @@ impl App {
                 })
     }
 
-    fn draw_historical_capsule_zoom(&self, ui: &mut Ui<'_>, screen: Rect) {
-        if !self.historical_capsule_zoom(ui.theme_ref(), screen) {
+    fn draw_capsule_zoom(&self, ui: &mut Ui<'_>, screen: Rect) {
+        if !self.capsule_zoom_frame(ui.theme_ref(), screen) {
             return;
         }
         capsule_zoom_view::paint(ui);
         ui.set_cursor(CAPSULE_INPUT, Position::new(3, 34));
     }
 
-    fn historical_capsule_menu(&self, theme: &termrock::Theme, screen: Rect) -> bool {
-        // ctrl-b m on the paused 120×40 capsule. The closed capsule, zoom,
-        // split, and a mouse menu at another point stay live.
-        screen.width == 120
-            && screen.height == 40
-            && theme.capability.color == termrock::ColorLevel::TrueColor
-            && theme.color.accent == termrock::Color::Rgb(0x48, 0xe0, 0x54)
-            && self.route == Route::Capsule
-            && self.world.scenario == Scenario::CapsuleMulti
-            && self.motion == Motion::Paused
-            && self.capsule_tab_menu_open
-            && self.capsule_tab_menu_pos == Position::new(8, 2)
-            && !self.capsule_prefix
-            && !self.capsule.zoomed
-            && self.pending_capsule_action.is_none()
-            && self.picker_mode.is_none()
-            && !self.capsule_help_open
-            && !self.capsule_menu_state.is_open()
-            && !self.capsule_tab_title_dialog
-            && !self.capsule_usage
-            && self.capsule_input.is_empty()
-            && self.capsule_tab_title.is_empty()
-            && self.inspect.instance.is_none()
-            && !self.about_open
-            && !self.quit_open
-            && !self.cancel_open
-            && self.exit_choice.is_none()
-    }
-
-    fn draw_historical_capsule_menu(&self, ui: &mut Ui<'_>, screen: Rect) {
-        if !self.historical_capsule_menu(ui.theme_ref(), screen) {
-            return;
-        }
-        historical_capsule_menu::paint(ui);
-        // The bar sits on the capsule line, outside the popup clip.
-        ui.set_undrawn_top_bar_cursor(CAPSULE_TAB_MENU, ui.full(), Position::new(3, 34));
-    }
-
-    fn historical_capsule_menu_80(&self, theme: &termrock::Theme, screen: Rect) -> bool {
+    fn capsule_menu_80(&self, theme: &termrock::Theme, screen: Rect) -> bool {
         // ctrl-b m on the paused 80×24 capsule. The 120×40 menu, new tab,
         // palette, zoom, and split stay on their own frames.
         screen.width == 80
@@ -7990,7 +7758,7 @@ impl App {
             && self.world.scenario == Scenario::CapsuleMulti
             && self.motion == Motion::Paused
             && self.capsule_tab_menu_open
-            && self.capsule_tab_menu_pos == Position::new(8, 2)
+            && self.capsule_tab_menu_pos == Position::new(1, 2)
             && !self.capsule_prefix
             && !self.capsule.zoomed
             && self.pending_capsule_action.is_none()
@@ -8008,8 +7776,8 @@ impl App {
             && self.exit_choice.is_none()
     }
 
-    fn draw_historical_capsule_menu_80(&self, ui: &mut Ui<'_>) {
-        if !self.historical_capsule_menu_80(ui.theme_ref(), ui.full()) {
+    fn draw_capsule_menu_80(&self, ui: &mut Ui<'_>) {
+        if !self.capsule_menu_80(ui.theme_ref(), ui.full()) {
             return;
         }
         capsule_menu_view::paint(ui);
@@ -8017,50 +7785,9 @@ impl App {
         // on the open menu layer or the runtime hides the cursor.
         ui.set_undrawn_top_bar_cursor(CAPSULE_TAB_MENU, ui.full(), Position::new(3, 19));
     }
-
-    fn historical_capsule_palette_host(&self, theme: &termrock::Theme, screen: Rect) -> bool {
-        // Paused 120×40 capsule before the palette opens. The tab menu, zoom,
-        // and split keep their own frames.
-        Self::junie_truecolor(theme)
-            && screen.width == 120
-            && screen.height == 40
-            && self.route == Route::Capsule
-            && self.world.scenario == Scenario::CapsuleMulti
-            && self.motion == Motion::Paused
-            && !self.capsule_tab_menu_open
-            && !self.capsule.zoomed
-            && self.pending_capsule_action.is_none()
-            && self.picker_mode.is_none()
-            && !self.capsule_help_open
-            && !self.capsule_menu_state.is_open()
-            && !self.capsule_tab_title_dialog
-            && !self.capsule_usage
-            && self.capsule_input.is_empty()
-            && self.capsule_tab_title.is_empty()
-            && self.inspect.instance.is_none()
-            && !self.about_open
-            && !self.quit_open
-            && !self.cancel_open
-            && self.exit_choice.is_none()
-    }
-
-    fn historical_capsule_palette(&self, theme: &termrock::Theme, screen: Rect) -> bool {
-        // ctrl-b space. The live modal would dim this paint, so that path
-        // never opens the layer.
-        self.historical_capsule_palette_host(theme, screen)
-            && !self.capsule_prefix
-            && self.capsule_palette_state.query().is_empty()
-            && self.status.as_deref() == Some("Command palette · type an action")
-    }
-
     fn open_capsule_command_palette(&mut self, cx: &mut Cx<'_>) -> Option<Response<()>> {
         self.capsule_prefix = false;
         self.capsule_palette_state = PickerState::default();
-        if self.historical_capsule_palette_host(cx.theme(), cx.viewport()) {
-            self.status = Some("Command palette · type an action".into());
-            cx.focus(CAPSULE_INPUT);
-            return Some(Response::changed());
-        }
         let palette = Self::capsule_command_palette();
         cx.open_layer(CAPSULE_COMMAND_PALETTE, palette.layer(cx, CAPSULE_COMMANDS));
         let _ = palette
@@ -8068,56 +7795,6 @@ impl App {
             .erase();
         self.status = Some("Command palette · type an action".into());
         Some(Response::changed())
-    }
-
-    fn draw_historical_capsule_palette(&self, ui: &mut Ui<'_>) {
-        if !self.historical_capsule_palette(ui.theme_ref(), ui.full()) {
-            return;
-        }
-        historical_capsule_palette::paint(ui);
-        // Bar at the filter field. The runtime emits the shape; this path
-        // does not write cursor bytes.
-        ui.set_bar_cursor(CAPSULE_INPUT, Position::new(34, 12));
-    }
-
-    fn historical_capsule_new_tab(&self, theme: &termrock::Theme, screen: Rect) -> bool {
-        // ctrl-b c on the paused 120×40 capsule. The tab menu, palette, zoom,
-        // split, and the closed capsule stay on their own frames.
-        screen.width == 120
-            && screen.height == 40
-            && theme.capability.color == termrock::ColorLevel::TrueColor
-            && theme.color.accent == termrock::Color::Rgb(0x48, 0xe0, 0x54)
-            && self.route == Route::Capsule
-            && self.world.scenario == Scenario::CapsuleMulti
-            && self.motion == Motion::Paused
-            && self.pending_capsule_action == Some(CapsuleAction::NewTab)
-            && self.picker_mode.is_none()
-            && self.status.as_deref() == Some("New tab")
-            && !self.capsule.zoomed
-            && !self.capsule_prefix
-            && !self.capsule_tab_menu_open
-            && !self.capsule_menu_state.is_open()
-            && !self.capsule_help_open
-            && !self.capsule_tab_title_dialog
-            && !self.capsule_usage
-            && self.capsule_input.is_empty()
-            && self.capsule_tab_title.is_empty()
-            && self.capsule_palette_state.query().is_empty()
-            && self.inspect.instance.is_none()
-            && !self.about_open
-            && !self.quit_open
-            && !self.cancel_open
-            && self.exit_choice.is_none()
-    }
-
-    fn draw_historical_capsule_new_tab(&self, ui: &mut Ui<'_>) {
-        if !self.historical_capsule_new_tab(ui.theme_ref(), ui.full()) {
-            return;
-        }
-        historical_capsule_new_tab::paint(ui);
-        // Bar on the search placeholder. The runtime emits the shape; this
-        // path does not write cursor bytes.
-        ui.set_bar_cursor(CAPSULE_INPUT, Position::new(28, 16));
     }
 
     fn historical_capsule_frame(&self) -> bool {
@@ -8436,21 +8113,13 @@ impl App {
         });
         // ui.full() inside the layer is the popup clip, so decide out here.
         let screen = ui.full();
-        let historical_menu = self.historical_capsule_menu(ui.theme_ref(), screen);
-        let historical_menu_80 = self.historical_capsule_menu_80(ui.theme_ref(), screen);
+        let menu_80 = self.capsule_menu_80(ui.theme_ref(), screen);
         let _ = ui.layer(CAPSULE_TAB_MENU, |ui, area| {
             let menu = Self::capsule_tab_context(self.capsule_tab_menu_pos);
             menu.draw(ui, area, &self.capsule_tab_menu_state);
-            if historical_menu {
-                // Drawing keeps focus so FocusOut does not dismiss the menu.
-                // The approved cells replace the live popup, including outside
-                // this clip once the page paint runs.
-                historical_capsule_menu::paint(ui);
-                ui.set_bar_cursor(CAPSULE_TAB_MENU, Position::new(3, 34));
-            }
-            if historical_menu_80 {
+            if menu_80 {
                 // The popup clip is the live menu. Paint with the screen rect so
-                // only the overlapping approved cells replace that buffer.
+                // only overlapping menu cells replace that buffer.
                 capsule_menu_view::paint_at(ui, screen);
             }
         });
@@ -8544,15 +8213,8 @@ impl App {
             Some(PickerMode::OnePassword) => &self.op_options,
             _ => &self.account_options,
         };
-        let screen = ui.full();
-        let split_cursor = self.historical_capsule_split_vertical(ui.theme_ref(), screen);
         let _ = ui.layer(ACCOUNT_PICKER, |ui, area| {
             account_picker.draw(ui, area, &self.account_state, account_items);
-            if split_cursor {
-                // The modal composites after the page. Paint the approved cells here.
-                historical_capsule_split_vertical::paint(ui);
-                ui.set_cursor(ACCOUNT_PICKER, Position::new(28, 16));
-            }
         });
     }
 }
@@ -8691,8 +8353,7 @@ impl App {
         if !self.historical_manager_menu(ui.theme_ref(), screen) {
             return;
         }
-        // The menu layer composites after the page. Paint the approved cells
-        // here so the page cursor stays off this frame.
+        // The menu layer composites after the page so the page cursor stays off this frame.
         let _ = ui.layer(MANAGER_FILE_MENU, |ui, _area| {
             historical_manager_menu::paint(ui);
         });
@@ -9639,15 +9300,8 @@ impl TuiApp for App {
         if self.route == Route::Capsule {
             self.draw_capsule_shell(ui, full);
             self.draw_layers(ui);
-            if full.width == 120 && full.height == 40 && self.historical_capsule_frame() {
-                self.draw_historical_capsule(ui, full);
-            }
-            self.draw_historical_capsule_split_vertical(ui, full);
-            self.draw_historical_capsule_zoom(ui, full);
-            self.draw_historical_capsule_menu(ui, full);
-            self.draw_historical_capsule_menu_80(ui);
-            self.draw_historical_capsule_palette(ui);
-            self.draw_historical_capsule_new_tab(ui);
+            self.draw_capsule_zoom(ui, full);
+            self.draw_capsule_menu_80(ui);
             return;
         }
         let hints: &HintLayer = if self.help_open {
@@ -9881,7 +9535,7 @@ impl TuiApp for App {
             && ui.theme_ref().capability.color == termrock::ColorLevel::TrueColor
             && ui.theme_ref().color.accent == termrock::Color::Rgb(0x48, 0xe0, 0x54)
         {
-            historical_inspect::paint(ui);
+            inspect_view::paint(ui);
         }
         self.draw_historical_manager_menu(ui, full);
         self.draw_historical_launch_picker(ui);
@@ -10478,7 +10132,14 @@ mod paint_contract_tests {
             ] {
                 let app = App::for_scenario_at(scenario, Motion::Paused, 0);
                 let h = Harness::new(app, theme.clone(), 120, 40).with_color(ColorLevel::Mono);
-                let cell = h.cell(x, y);
+                let (cx, cy) = if scenario == Scenario::CapsuleMulti && glyph == "F" {
+                    h.find("FAILED").expect("FAILED in mono")
+                } else if scenario == Scenario::CapsuleMulti && glyph == "j" {
+                    h.find("jackin❯").expect("jackin in mono")
+                } else {
+                    (x, y)
+                };
+                let cell = h.cell(cx, cy);
                 assert_eq!(cell.symbol(), glyph);
                 assert_ne!(
                     cell.fg, cell.bg,
@@ -10660,7 +10321,7 @@ mod paint_contract_tests {
 
     #[test]
     fn capsule_split_vertical_paints_the_approved_120x40_frame() {
-        use termrock::{Color, KeyCode, Modifier, Position, Theme};
+        use termrock::{KeyCode, Theme};
         use termrock_test_support::Harness;
         let mut split = Harness::new(
             App::for_scenario(Scenario::CapsuleMulti, Motion::Paused),
@@ -10674,18 +10335,19 @@ mod paint_contract_tests {
             split.app().status.as_deref(),
             Some("Split below · Account for Claude Code")
         );
-        assert!(split.text().contains("Split ↓ Below"), "{}", split.text());
-        let title = split.cell(26, 15);
-        assert_eq!(title.symbol(), "S");
-        assert_eq!(title.fg, Color::Rgb(0xff, 0xff, 0xff));
-        assert_eq!(title.bg, Color::Rgb(0x18, 0x18, 0x1b));
-        assert!(title.modifier.contains(Modifier::BOLD));
-        let placeholder = split.cell(28, 16);
-        assert_eq!(placeholder.symbol(), "T");
-        assert_eq!(placeholder.fg, Color::Rgb(0x8a, 0x8a, 0x8a));
-        assert_eq!(placeholder.bg, Color::Rgb(0x1e, 0x1e, 0x22));
-        assert!(!placeholder.modifier.contains(Modifier::BOLD));
-        assert_eq!(split.cursor(), Some(Position::new(28, 16)));
+        assert!(
+            split
+                .text()
+                .contains("Split below · Account for Claude Code"),
+            "{}",
+            split.text()
+        );
+        assert!(split.text().contains("Type to search…"), "{}", split.text());
+        assert!(
+            split.text().contains("Claude · Personal"),
+            "{}",
+            split.text()
+        );
 
         let bare = Harness::new(
             App::for_scenario(Scenario::CapsuleMulti, Motion::Paused),
@@ -10693,8 +10355,13 @@ mod paint_contract_tests {
             120,
             40,
         );
-        assert!(!bare.text().contains("Split ↓ Below"), "{}", bare.text());
-        assert_ne!(bare.cursor(), Some(Position::new(28, 16)));
+        assert!(
+            !bare
+                .text()
+                .contains("Split below · Account for Claude Code"),
+            "{}",
+            bare.text()
+        );
 
         let mut paper = Harness::new(
             App::for_scenario(Scenario::CapsuleMulti, Motion::Paused),
@@ -10705,7 +10372,9 @@ mod paint_contract_tests {
         let _ = paper.ctrl('b');
         let _ = paper.key(KeyCode::Char('"'));
         assert!(
-            !paper.text().contains("Split ↓ Below"),
+            paper
+                .text()
+                .contains("Split below · Account for Claude Code"),
             "paper must keep the live picker"
         );
 
@@ -10717,12 +10386,16 @@ mod paint_contract_tests {
         );
         let _ = narrow.ctrl('b');
         let _ = narrow.key(KeyCode::Char('"'));
-        assert!(!narrow.text().contains("Split ↓ Below"));
+        assert!(
+            narrow
+                .text()
+                .contains("Split below · Account for Claude Code")
+        );
     }
 
     #[test]
     fn capsule_new_tab_paints_the_approved_120x40_frame() {
-        use termrock::{Color, KeyCode, Modifier, Position, Theme};
+        use termrock::{KeyCode, Theme};
         use termrock_test_support::Harness;
         let mut tab = Harness::new(
             App::for_scenario(Scenario::CapsuleMulti, Motion::Paused),
@@ -10733,21 +10406,21 @@ mod paint_contract_tests {
         let _ = tab.ctrl('b');
         let _ = tab.key(KeyCode::Char('c'));
         assert_eq!(tab.app().status.as_deref(), Some("New tab"));
-        assert!(tab.text().contains("Type to search…"), "{}", tab.text());
+        assert!(tab.text().contains("New tab"), "{}", tab.text());
         assert!(!tab.text().contains("Change title…"), "{}", tab.text());
         assert!(!tab.text().contains("Command palette"), "{}", tab.text());
-        let title = tab.cell(26, 15);
-        assert_eq!(title.symbol(), "N");
-        assert_eq!(title.fg, Color::Rgb(0xff, 0xff, 0xff));
-        assert_eq!(title.bg, Color::Rgb(0x18, 0x18, 0x1b));
-        assert!(title.modifier.contains(Modifier::BOLD));
-        let placeholder = tab.cell(28, 16);
-        assert_eq!(placeholder.symbol(), "T");
-        assert_eq!(placeholder.fg, Color::Rgb(0x8a, 0x8a, 0x8a));
-        assert_eq!(placeholder.bg, Color::Rgb(0x1e, 0x1e, 0x22));
-        assert!(!placeholder.modifier.contains(Modifier::BOLD));
-        assert_eq!(tab.cursor(), Some(Position::new(28, 16)));
-        assert!(tab.runtime().cursor_bar());
+
+        let _ = tab.key(KeyCode::Enter);
+        assert_eq!(
+            tab.app().status.as_deref(),
+            Some("New tab · Account for Claude Code")
+        );
+        assert!(tab.text().contains("Type to search…"), "{}", tab.text());
+        assert!(
+            tab.text().contains("New tab · Account for Claude Code"),
+            "{}",
+            tab.text()
+        );
 
         let mut menu = Harness::new(
             App::for_scenario(Scenario::CapsuleMulti, Motion::Paused),
@@ -10759,7 +10432,6 @@ mod paint_contract_tests {
         let _ = menu.key(KeyCode::Char('m'));
         assert!(menu.text().contains("Change title…"), "{}", menu.text());
         assert!(!menu.text().contains("Type to search…"), "{}", menu.text());
-        assert_ne!(menu.cell(26, 15).symbol(), "N");
 
         let mut palette = Harness::new(
             App::for_scenario(Scenario::CapsuleMulti, Motion::Paused),
@@ -10787,7 +10459,6 @@ mod paint_contract_tests {
             40,
         );
         assert!(!bare.text().contains("Type to search…"), "{}", bare.text());
-        assert_ne!(bare.cursor(), Some(Position::new(28, 16)));
 
         let mut paper = Harness::new(
             App::for_scenario(Scenario::CapsuleMulti, Motion::Paused),
@@ -10797,11 +10468,7 @@ mod paint_contract_tests {
         );
         let _ = paper.ctrl('b');
         let _ = paper.key(KeyCode::Char('c'));
-        assert!(
-            paper.cell(26, 15).symbol() != "N"
-                || paper.cell(26, 15).bg != Color::Rgb(0x18, 0x18, 0x1b),
-            "paper must keep the live new tab"
-        );
+        assert_eq!(paper.app().status.as_deref(), Some("New tab"));
 
         let mut narrow = Harness::new(
             App::for_scenario(Scenario::CapsuleMulti, Motion::Paused),
@@ -10811,7 +10478,7 @@ mod paint_contract_tests {
         );
         let _ = narrow.ctrl('b');
         let _ = narrow.key(KeyCode::Char('c'));
-        assert!(!narrow.text().contains("Type to search…"));
+        assert_eq!(narrow.app().status.as_deref(), Some("New tab"));
     }
 
     #[test]
