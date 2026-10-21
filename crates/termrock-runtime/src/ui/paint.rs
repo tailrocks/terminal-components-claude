@@ -237,35 +237,31 @@ impl Ui<'_> {
     }
 
     fn majority_bg(&mut self, area: Rect) -> Color {
-        let mut counts = core::mem::take(&mut self.core.scroll_bg_counts);
-        let mut order = core::mem::take(&mut self.core.scroll_bg_order);
-        counts.clear();
-        order.clear();
+        let mut entries: [(Color, usize); 8] = [(Color::Reset, 0); 8];
+        let mut count_entries = 0;
         for pos in area.positions() {
             if !self.cell_written(pos) {
                 continue;
             }
             let bg = self.buffer().cell(pos).map_or(Color::Reset, |cell| cell.bg);
-            match counts.entry(bg) {
-                std::collections::hash_map::Entry::Occupied(mut entry) => {
-                    let count = entry.get().saturating_add(1);
-                    *entry.get_mut() = count;
+            let mut found = false;
+            for entry in &mut entries[..count_entries] {
+                if entry.0 == bg {
+                    entry.1 = entry.1.saturating_add(1);
+                    found = true;
+                    break;
                 }
-                std::collections::hash_map::Entry::Vacant(entry) => {
-                    order.push(bg);
-                    entry.insert(1);
-                }
+            }
+            if !found && count_entries < entries.len() {
+                entries[count_entries] = (bg, 1);
+                count_entries += 1;
             }
         }
 
-        let color = order
+        entries[..count_entries]
             .iter()
-            .filter_map(|bg| counts.get(bg).map(|count| (*bg, *count)))
             .max_by_key(|(_, count)| *count)
-            .map_or(Color::Reset, |(bg, _)| bg);
-        self.core.scroll_bg_counts = counts;
-        self.core.scroll_bg_order = order;
-        color
+            .map_or(Color::Reset, |(bg, _)| *bg)
     }
 
     fn fade_edge_row(&mut self, area: Rect, y: u16, keep: f32, container: Color) {

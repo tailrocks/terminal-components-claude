@@ -2031,6 +2031,9 @@ impl Grid<'_> {
             return Err(GridCursorError::Editing);
         }
         self.move_to(st, model, row_index, col_index, false, &mut Acc::new());
+        st.core
+            .scroll_mut()
+            .ensure_visible_on_next_layout(row_index);
         Ok(())
     }
 
