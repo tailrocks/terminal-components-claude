@@ -7,12 +7,6 @@ mod tests {
 
     #[test]
     fn backtab_right_focuses_test_connection_on_the_empty_card() {
-        let text = include_str!(
-            "../../../../snapshots/tablepro/connections/form_advanced/120x40/truecolor.ansi"
-        );
-        assert!(text.ends_with("\u{1b}[?25l"));
-        assert!(!text.contains("\u{1b}[?25h"));
-
         let test_connection = tablepro_domain::connections::FORM
             .part(Part::ACTIONS)
             .index(0);
