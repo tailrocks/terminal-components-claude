@@ -106,21 +106,21 @@
       "rule": "OWN-02"
     },
     {
-      "max": 11,
+      "max": 4,
       "path": "crates/showcase-demos/src/pages/buttons.rs",
       "reason": "Demo-page chrome painters and responsive/pause switches (FIX-005 showcase audit); ratcheted G1 corpus.",
       "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
       "rule": "OWN-02"
     },
     {
-      "max": 4,
+      "max": 1,
       "path": "crates/showcase-demos/src/pages/buttons.rs",
       "reason": "Demo-page chrome painters and responsive/pause switches (FIX-005 showcase audit); ratcheted G1 corpus.",
       "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
       "rule": "OWN-04"
     },
     {
-      "max": 2,
+      "max": 1,
       "path": "crates/showcase-demos/src/pages/buttons.rs",
       "reason": "Demo-page chrome painters and responsive/pause switches (FIX-005 showcase audit); ratcheted G1 corpus.",
       "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
@@ -162,42 +162,42 @@
       "rule": "OWN-02"
     },
     {
-      "max": 26,
+      "max": 15,
       "path": "crates/showcase-demos/src/pages/forms.rs",
       "reason": "Demo-page chrome painters and responsive/pause switches (FIX-005 showcase audit); ratcheted G1 corpus.",
       "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
       "rule": "OWN-02"
     },
     {
-      "max": 19,
+      "max": 18,
       "path": "crates/showcase-demos/src/pages/forms.rs",
       "reason": "Demo-page chrome painters and responsive/pause switches (FIX-005 showcase audit); ratcheted G1 corpus.",
       "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
       "rule": "OWN-04"
     },
     {
-      "max": 7,
+      "max": 4,
       "path": "crates/showcase-demos/src/pages/forms.rs",
       "reason": "Demo-page chrome painters and responsive/pause switches (FIX-005 showcase audit); ratcheted G1 corpus.",
       "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
       "rule": "OWN-11"
     },
     {
-      "max": 8,
+      "max": 4,
       "path": "crates/showcase-demos/src/pages/inputs.rs",
       "reason": "Demo-page chrome painters and responsive/pause switches (FIX-005 showcase audit); ratcheted G1 corpus.",
       "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
       "rule": "OWN-02"
     },
     {
-      "max": 15,
+      "max": 14,
       "path": "crates/showcase-demos/src/pages/inputs.rs",
       "reason": "Demo-page chrome painters and responsive/pause switches (FIX-005 showcase audit); ratcheted G1 corpus.",
       "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
       "rule": "OWN-04"
     },
     {
-      "max": 11,
+      "max": 6,
       "path": "crates/showcase-demos/src/pages/inputs.rs",
       "reason": "Demo-page chrome painters and responsive/pause switches (FIX-005 showcase audit); ratcheted G1 corpus.",
       "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
@@ -220,20 +220,6 @@
     {
       "max": 12,
       "path": "crates/showcase-demos/src/pages/lists.rs",
-      "reason": "Demo-page chrome painters and responsive/pause switches (FIX-005 showcase audit); ratcheted G1 corpus.",
-      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
-      "rule": "OWN-11"
-    },
-    {
-      "max": 6,
-      "path": "crates/showcase-demos/src/pages/mod.rs",
-      "reason": "Demo-page chrome painters and responsive/pause switches (FIX-005 showcase audit); ratcheted G1 corpus.",
-      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
-      "rule": "OWN-02"
-    },
-    {
-      "max": 11,
-      "path": "crates/showcase-demos/src/pages/mod.rs",
       "reason": "Demo-page chrome painters and responsive/pause switches (FIX-005 showcase audit); ratcheted G1 corpus.",
       "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
       "rule": "OWN-11"
@@ -372,14 +358,14 @@
       "rule": "OWN-02"
     },
     {
-      "max": 8,
+      "max": 7,
       "path": "crates/showcase-demos/src/pages/textareas.rs",
       "reason": "Demo-page chrome painters and responsive/pause switches (FIX-005 showcase audit); ratcheted G1 corpus.",
       "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
       "rule": "OWN-04"
     },
     {
-      "max": 11,
+      "max": 3,
       "path": "crates/showcase-demos/src/pages/textareas.rs",
       "reason": "Demo-page chrome painters and responsive/pause switches (FIX-005 showcase audit); ratcheted G1 corpus.",
       "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
@@ -519,7 +505,7 @@
       "rule": "OWN-11"
     },
     {
-      "max": 3,
+      "max": 2,
       "path": "crates/showcase-demos/src/pages/editable.rs",
       "reason": "Integration re-baseline: the adopted target content is the governance baseline at the split merge; growth beyond this stays gated (recovery ledger R-42).",
       "review": "Split-merge integration baseline",
@@ -554,13 +540,6 @@
       "rule": "OWN-11"
     },
     {
-      "max": 1,
-      "path": "crates/showcase-demos/src/pages/mod.rs",
-      "reason": "Integration re-baseline: the adopted target content is the governance baseline at the split merge; growth beyond this stays gated (recovery ledger R-42).",
-      "review": "Split-merge integration baseline",
-      "rule": "OWN-04"
-    },
-    {
       "max": 24,
       "path": "crates/showcase-demos/src/pages/pickers.rs",
       "reason": "Integration re-baseline: the adopted target content is the governance baseline at the split merge; growth beyond this stays gated (recovery ledger R-42).",
@@ -568,7 +547,7 @@
       "rule": "OWN-02"
     },
     {
-      "max": 23,
+      "max": 12,
       "path": "crates/showcase-demos/src/pages/pickers.rs",
       "reason": "Integration re-baseline: the adopted target content is the governance baseline at the split merge; growth beyond this stays gated (recovery ledger R-42).",
       "review": "Split-merge integration baseline",

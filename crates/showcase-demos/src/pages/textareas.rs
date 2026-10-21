@@ -3,7 +3,8 @@ use termrock::{
     TextArea, TextAreaState, Track, Ui, Variant, layout, truncate,
 };
 
-use super::{Page, PageUpdate, frame};
+use super::{Page, PageUpdate};
+use termrock::feedback::PageFrame;
 
 const BODY: Id = termrock::Id::root("showcase_ui::pages::textareas::textareas.body");
 const NOTES: Id = termrock::Id::root("showcase_ui::pages::textareas::textareas.notes");
@@ -230,70 +231,72 @@ impl Page for TextAreasPage {
 
     fn draw(&self, ui: &mut Ui<'_>, area: Rect) {
         let meta = "Multi-line editing, wrapping cursor motion, scroll position";
-        frame(ui, area, self.title(), meta, |ui, body| {
-            let regions =
-                layout::rows(body, &[Track::Fixed(13), Track::Fixed(1), Track::Fixed(10)]);
-            let playground = regions.first().copied().unwrap_or(body);
-            let playground = if body.width < 70 {
-                Rect {
-                    width: playground.width.saturating_sub(1),
-                    ..playground
-                }
-            } else {
-                playground
-            };
-            playground_panel(if body.width < 70 {
-                "Enter Edit · Esc Done · Tab Next"
-            } else {
-                "Enter Edit · Esc Done · Tab Next "
-            })
-            .draw(ui, playground, |ui, inner| {
-                let columns = layout::columns(inner, &[Track::Flex(1), Track::Flex(1)], 3);
-                let task = {
-                    let area = columns.first().copied().unwrap_or(inner);
+        PageFrame::new(self.title())
+            .meta(meta)
+            .draw_with(ui, area, |ui, body| {
+                let regions =
+                    layout::rows(body, &[Track::Fixed(13), Track::Fixed(1), Track::Fixed(10)]);
+                let playground = regions.first().copied().unwrap_or(body);
+                let playground = if body.width < 70 {
                     Rect {
-                        width: area.width.saturating_sub(1),
-                        ..area
+                        width: playground.width.saturating_sub(1),
+                        ..playground
                     }
+                } else {
+                    playground
                 };
-                task_field(&self.value).draw(ui, task, &self.state);
-                legacy_field_gutter(
-                    ui,
-                    Rect {
-                        y: task.y.saturating_add(1),
-                        height: 8,
-                        ..task
-                    },
-                    StateFlags::empty(),
-                );
-                legacy_scroll_help(ui, task);
-                let notes = {
-                    let area = columns.get(1).copied().unwrap_or(inner);
-                    Rect {
-                        width: area.width.saturating_sub(u16::from(body.width >= 70)),
-                        ..area
-                    }
-                };
-                ui.reference(None, |ui| {
-                    notes_field().draw(ui, notes, &TextAreaState::default());
-                    legacy_textarea_placeholder(ui, notes, "Anything the agent should know…");
+                playground_panel(if body.width < 70 {
+                    "Enter Edit · Esc Done · Tab Next"
+                } else {
+                    "Enter Edit · Esc Done · Tab Next "
+                })
+                .draw(ui, playground, |ui, inner| {
+                    let columns = layout::columns(inner, &[Track::Flex(1), Track::Flex(1)], 3);
+                    let task = {
+                        let area = columns.first().copied().unwrap_or(inner);
+                        Rect {
+                            width: area.width.saturating_sub(1),
+                            ..area
+                        }
+                    };
+                    task_field(&self.value).draw(ui, task, &self.state);
                     legacy_field_gutter(
                         ui,
                         Rect {
-                            y: notes.y.saturating_add(1),
+                            y: task.y.saturating_add(1),
                             height: 8,
-                            ..notes
+                            ..task
                         },
                         StateFlags::empty(),
                     );
+                    legacy_scroll_help(ui, task);
+                    let notes = {
+                        let area = columns.get(1).copied().unwrap_or(inner);
+                        Rect {
+                            width: area.width.saturating_sub(u16::from(body.width >= 70)),
+                            ..area
+                        }
+                    };
+                    ui.reference(None, |ui| {
+                        notes_field().draw(ui, notes, &TextAreaState::default());
+                        legacy_textarea_placeholder(ui, notes, "Anything the agent should know…");
+                        legacy_field_gutter(
+                            ui,
+                            Rect {
+                                y: notes.y.saturating_add(1),
+                                height: 8,
+                                ..notes
+                            },
+                            StateFlags::empty(),
+                        );
+                    });
                 });
+                if let Some(states) = regions.get(2).copied() {
+                    states_panel().draw(ui, states, |ui, inner| {
+                        Self::draw_states(ui, inner);
+                    });
+                }
             });
-            if let Some(states) = regions.get(2).copied() {
-                states_panel().draw(ui, states, |ui, inner| {
-                    Self::draw_states(ui, inner);
-                });
-            }
-        });
     }
 
     fn hints(&self, _ui: &Ui<'_>) -> &'static [(&'static str, &'static str)] {

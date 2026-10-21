@@ -7,7 +7,8 @@ use termrock::{
     Ui, Variant, layout, width,
 };
 
-use super::{Page, PageUpdate, frame};
+use super::{Page, PageUpdate};
+use termrock::feedback::PageFrame;
 
 const RUN: Id = termrock::Id::root("showcase_ui::pages::taskrunner::taskrunner.run");
 const CANCEL: Id = termrock::Id::root("showcase_ui::pages::taskrunner::taskrunner.cancel");
@@ -436,12 +437,9 @@ impl Page for TaskRunnerPage {
     }
 
     fn draw(&self, ui: &mut Ui<'_>, area: Rect) {
-        frame(
-            ui,
-            area,
-            self.title(),
-            "Composed: tree, live progress, following log, busy states",
-            |ui, body| {
+        PageFrame::new(self.title())
+            .meta("Composed: tree, live progress, following log, busy states")
+            .draw_with(ui, area, |ui, body| {
                 if !self.running && self.message == "pipeline idle" {
                     // 59×20 is the page rect inside the 80×24 shell.
                     if area.width == 59 && area.height == 20 {
@@ -488,8 +486,7 @@ impl Page for TaskRunnerPage {
                     ],
                 );
                 paint_historical(ui, body, self.running, self.frame, self.message);
-            },
-        );
+            });
         ui.layer(CANCEL_DIALOG, |ui, layer| {
             cancel_dialog().draw(ui, layer, &self.cancel_state, |ui, body| {
                 let _ = ui.paint_str(body, "Enter confirms · Esc resumes", ui.surface_style());

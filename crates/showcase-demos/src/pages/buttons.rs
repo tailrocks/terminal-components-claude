@@ -6,7 +6,8 @@ use termrock::{
     Variant, layout,
 };
 
-use super::{Page, PageStatus, PageUpdate, frame};
+use super::{Page, PageStatus, PageUpdate};
+use termrock::feedback::PageFrame;
 
 const BUTTONS: Id = termrock::Id::root("showcase_ui::pages::buttons::buttons");
 const PLAYGROUND_PANEL: Id = termrock::Id::root("showcase_ui::pages::buttons::buttons.playground");
@@ -192,12 +193,9 @@ impl Page for ButtonsPage {
     }
 
     fn draw(&self, ui: &mut Ui<'_>, area: Rect) {
-        frame(
-            ui,
-            area,
-            self.title(),
-            "Primary, secondary, subtle, danger, toggle, disabled, busy",
-            |ui, body| {
+        PageFrame::new(self.title())
+            .meta("Primary, secondary, subtle, danger, toggle, disabled, busy")
+            .draw_with(ui, area, |ui, body| {
                 let regions = layout::rows(
                     body,
                     &[
@@ -233,8 +231,7 @@ impl Page for ButtonsPage {
                     let text = format!("last: {last} · {} activations", self.clicks);
                     let _ = ui.paint_str(status, &text, ui.surface_style());
                 }
-            },
-        );
+            });
     }
 }
 
