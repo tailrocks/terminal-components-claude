@@ -1204,13 +1204,10 @@ mod tests {
             [
                 Color::from_u32(0xffffff),
                 Color::from_u32(0xb3b3b3),
-                // The frozen rendered reference paints the muted and faint inks
-                // as 0x808080 and 0x4d4d4d. Across the approved corpus at
-                // 120x40, 0x8a8a8a and 0x737373 never occur, while 0x808080
-                // occurs 254268 times in truecolor and 0x4d4d4d 60552 times
-                // as ANSI-256 index 238, with index 244 for 0x808080.
-                Color::from_u32(0x808080),
-                Color::from_u32(0x4d4d4d),
+                // TablePro results use muted #8a8a8a and faint #737373.
+                // Showcase chrome keeps #808080 and #4d4d4d on baseline_muted.
+                Color::from_u32(0x8a8a8a),
+                Color::from_u32(0x737373),
                 Color::from_u32(0x262626)
             ]
         );
