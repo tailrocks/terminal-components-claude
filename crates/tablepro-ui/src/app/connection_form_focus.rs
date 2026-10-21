@@ -70,4 +70,133 @@ mod tests {
         );
         assert!(!filled.app().blank_new_connection_draft());
     }
+
+    #[test]
+    fn typing_active_name_as_prefix_does_not_replace_it_on_the_next_character() {
+        let mut harness = Harness::new(TableProApp::default(), Theme::junie(), 120, 40);
+        let active_name = harness.app().workbench().connection.name.clone();
+        let expected = format!("{active_name} replica");
+
+        let _ = harness.ctrl('n');
+        let _ = harness.type_str(&active_name);
+        let _ = harness.type_str(" replica");
+
+        assert_eq!(
+            harness
+                .app()
+                .connection_draft()
+                .map(|draft| draft.name.as_str()),
+            Some(expected.as_str())
+        );
+        assert_name_field_is_visible_and_focused(&harness, &expected);
+    }
+
+    #[test]
+    fn pasting_after_active_name_prefix_keeps_the_prefix() {
+        let mut harness = Harness::new(TableProApp::default(), Theme::junie(), 120, 40);
+        let active_name = harness.app().workbench().connection.name.clone();
+        let expected = format!("{active_name} replica");
+
+        let _ = harness.ctrl('n');
+        let _ = harness.type_str(&active_name);
+        let _ = harness.paste(" replica");
+
+        assert_eq!(
+            harness
+                .app()
+                .connection_draft()
+                .map(|draft| draft.name.as_str()),
+            Some(expected.as_str())
+        );
+        assert_name_field_is_visible_and_focused(&harness, &expected);
+    }
+
+    #[test]
+    fn unicode_active_name_prefix_and_reopen_preserve_text_and_focus() {
+        let mut app = TableProApp::default();
+        app.connection.name = "東京 e\u{301} 🧪".to_owned();
+        app.workbench.connection.name = app.connection.name.clone();
+        let mut harness = Harness::new(app, Theme::junie(), 120, 40);
+        let active_name = harness.app().connection.name.clone();
+        let expected = format!("{active_name} レプリカ界");
+
+        let _ = harness.ctrl('n');
+        let _ = harness.type_str(&active_name);
+        let _ = harness.paste(" レプリカ界");
+        assert_eq!(
+            harness
+                .app()
+                .connection_draft()
+                .map(|draft| draft.name.as_str()),
+            Some(expected.as_str())
+        );
+        assert_name_field_is_visible_and_focused(&harness, &expected);
+
+        let cancel = tablepro_domain::connections::FORM
+            .part(Part::ACTIONS)
+            .index(1);
+        let _ = harness.click_id(cancel);
+        assert!(!harness.app().connection_form_open());
+        let _ = harness.ctrl('n');
+        assert_eq!(
+            harness.focus(),
+            Some(tablepro_domain::connections::field::NAME)
+        );
+        assert_eq!(
+            harness
+                .app()
+                .connection_draft()
+                .map(|draft| draft.name.as_str()),
+            Some("")
+        );
+        let _ = harness.type_str(&expected);
+        assert_eq!(
+            harness
+                .app()
+                .connection_draft()
+                .map(|draft| draft.name.as_str()),
+            Some(expected.as_str())
+        );
+        assert_name_field_is_visible_and_focused(&harness, &expected);
+    }
+
+    #[test]
+    fn explicit_select_all_and_save_keep_typed_name_as_domain_data() {
+        let mut harness = Harness::new(TableProApp::default(), Theme::junie(), 120, 40);
+        let active_name = harness.app().connection.name.clone();
+        let expected = format!("{active_name} replica");
+
+        let _ = harness.ctrl('n');
+        let _ = harness.type_str("temporary");
+        let _ = harness.ctrl('l');
+        let _ = harness.type_str(&expected);
+        if let Some(draft) = harness.app_mut().draft.as_mut() {
+            draft.database = "example_db".to_owned();
+        }
+        let save = tablepro_domain::connections::FORM
+            .part(Part::ACTIONS)
+            .index(2);
+        let _ = harness.click_id(save);
+
+        assert!(
+            harness
+                .app()
+                .connections
+                .iter()
+                .any(|connection| connection.name == expected),
+            "saved domain connection should keep the typed field value"
+        );
+    }
+
+    fn assert_name_field_is_visible_and_focused(harness: &Harness<TableProApp>, expected: &str) {
+        let name = tablepro_domain::connections::field::NAME;
+        assert_eq!(harness.focus(), Some(name));
+        let area = harness.area_of(name).unwrap_or_default();
+        let cursor = harness.cursor().unwrap_or_default();
+        assert!(area.contains(cursor), "cursor {cursor:?} outside {area:?}");
+        assert!(
+            harness.snapshot().text().contains(expected),
+            "rendered name field does not contain {expected:?}"
+        );
+    }
 }

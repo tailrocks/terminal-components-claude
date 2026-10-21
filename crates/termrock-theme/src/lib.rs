@@ -74,12 +74,13 @@ impl Theme {
         };
         use crate::id::Part;
         use crate::recipe::Family;
+        use crate::recipe::Variant;
         use crate::response::StateFlags;
-        use crate::role::Role;
+        use crate::role::{FgStep, Role};
         use ColorLevel::{Ansi16, Ansi256, Mono, TrueColor};
         use ratatui_core::style::Color;
 
-        [
+        let profiled_theme = [
             (
                 TrueColor,
                 Color::from_u32(0x00_4d_4d_4d),
@@ -99,6 +100,96 @@ impl Theme {
                         StateFlags::HOVERED,
                         StylePatch::new().set_fg(Role::Custom(hover)),
                     );
+            })
+        });
+
+        [
+            (
+                TrueColor,
+                Color::Rgb(122, 42, 42),
+                Color::Rgb(140, 48, 48),
+                Color::Rgb(90, 31, 31),
+            ),
+            (
+                Ansi256,
+                Color::Indexed(88),
+                Color::Indexed(124),
+                Color::Indexed(52),
+            ),
+            (Ansi16, Color::Red, Color::Red, Color::Red),
+            (Mono, Color::DarkGray, Color::DarkGray, Color::DarkGray),
+        ]
+        .into_iter()
+        .fold(profiled_theme, |theme, (level, rest, hover, pressed)| {
+            let active_modifiers = if level == Mono {
+                Modifier::REVERSED
+            } else {
+                Modifier::empty()
+            };
+            let hover_modifiers = if matches!(level, Ansi16 | Mono) {
+                Modifier::UNDERLINED
+            } else {
+                Modifier::empty()
+            };
+            let pressed_modifiers = match level {
+                Ansi16 => Modifier::REVERSED,
+                Mono => Modifier::UNDERLINED,
+                TrueColor | Ansi256 => Modifier::empty(),
+            };
+            let disabled_ink = Role::DisabledFg;
+            let disabled_modifiers = if level == Mono {
+                Modifier::DIM
+            } else {
+                Modifier::empty()
+            };
+            theme.define_variant_for_level(level, Family::MENU, Variant::DANGER, |recipe| {
+                let disabled_style = StylePatch::new()
+                    .set_fg(disabled_ink)
+                    .set_bg(Role::CurrentSurface)
+                    .add(disabled_modifiers)
+                    .remove(
+                        Modifier::BOLD | active_modifiers | hover_modifiers | pressed_modifiers,
+                    );
+                let row = recipe.part(Part::ROW);
+                row.when(
+                    StateFlags::ACTIVE,
+                    StylePatch::new()
+                        .set_fg(Role::HighlightDangerFg)
+                        .set_bg(Role::Custom(rest))
+                        .add(active_modifiers),
+                )
+                .when(
+                    StateFlags::HOVERED,
+                    StylePatch::new()
+                        .set_fg(Role::HighlightFg)
+                        .set_bg(Role::HighlightBg)
+                        .add(hover_modifiers),
+                )
+                .when(
+                    StateFlags::PRESSED,
+                    StylePatch::new()
+                        .set_fg(Role::Surface(Surface::Canvas))
+                        .set_bg(Role::Fg(FgStep::Primary))
+                        .add(Modifier::BOLD),
+                )
+                .when(
+                    StateFlags::ACTIVE | StateFlags::HOVERED,
+                    StylePatch::new().set_bg(Role::Custom(hover)),
+                )
+                .when(
+                    StateFlags::ACTIVE | StateFlags::PRESSED,
+                    StylePatch::new()
+                        .set_fg(Role::Fg(FgStep::Primary))
+                        .set_bg(Role::Custom(pressed))
+                        .remove(hover_modifiers | active_modifiers)
+                        .add(pressed_modifiers),
+                )
+                .when(StateFlags::DISABLED, disabled_style)
+                .when(StateFlags::ACTIVE | StateFlags::DISABLED, disabled_style);
+                recipe
+                    .part(Part::LABEL)
+                    .when(StateFlags::DISABLED, disabled_style)
+                    .when(StateFlags::ACTIVE | StateFlags::DISABLED, disabled_style);
             })
         })
     }
