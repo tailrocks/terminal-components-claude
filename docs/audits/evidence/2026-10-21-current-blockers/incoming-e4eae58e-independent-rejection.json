@@ -1,0 +1,174 @@
+{
+  "schema": "termrock.independent-review.v1",
+  "created_utc": "2026-10-21T05:22:29.758608+00:00",
+  "reviewer": "/root/semantic_tabs_independent_review",
+  "reviewed_commit": "e4eae58e1b105f51d8e2ed7f580885498397ff2a",
+  "before_commit": "4335ffb225627b0460ed8519ae4af62b648e721e",
+  "decision": "HOLD",
+  "scope": "Exact incoming delta only, separate detached sparse before/after trees and revision-specific targets. Existing 262 findings remain separately recorded and are not classified as introduced by e4.",
+  "findings": [
+    {
+      "id": "E4-R1",
+      "priority": "P2",
+      "path": "crates/termrock-overlays/src/menu.rs",
+      "lines": [
+        885,
+        955,
+        964
+      ],
+      "title": "Underlay mode discards disabled, hover, pressed and focus style inputs",
+      "evidence": "draw_row computes full derived flags and danger variant, then keep_underlay returns through draw_underlay_row without passing those flags. The new painter considers only active index and danger. Exact public consumer default_keeps_disabled_style passes; underlay_keeps_disabled_style fails because disabled and enabled row buffers are identical. Hover/pressed/focus loss is a source finding from the same omission, not an independent interaction test.",
+      "repair": "Use the canonical row renderer and state resolver for every mode. Configure underlay fill independently of semantic state; supply documented generic variants for baseline state appearance instead of a second baseline-specific row implementation."
+    },
+    {
+      "id": "E4-R2",
+      "priority": "P2",
+      "path": "crates/termrock-overlays/src/menu.rs",
+      "lines": [
+        722,
+        728,
+        770,
+        812,
+        971,
+        995
+      ],
+      "title": "Underlay mode bypasses public theme/part overrides and content slots",
+      "evidence": "Border is forced to RGB(58,58,58), danger text RGB(232,160,160); title/row/key resolve ad hoc paint patches instead of Family::MENU recipes and consumer part patches. RULE slot is skipped entirely by keep_underlay branch. Exact public default_honors_border_patch passes with Magenta; underlay_honors_border_patch fails, actual RGB(58,58,58).",
+      "repair": "Resolve all colors/glyphs/state combinations through shared MENU variant/parts and honor part patches and slots in both modes. Keep generic fill/separator policy separate from theme resolution; remove fixed RGB literals from this behavioral option."
+    },
+    {
+      "id": "E4-R3",
+      "priority": "P2",
+      "path": "crates/termrock-overlays/src/menu.rs",
+      "lines": [
+        983,
+        894,
+        1021
+      ],
+      "title": "Measured shortcuts and submenu affordances disappear in underlay drawing",
+      "evidence": "natural_width still resolves effective chords and reserves submenu space, but draw_underlay_row uses only item.hint, never effective_chord/ChordText, and does not render submenu marker. Exact public default_keeps_chord passes for configured x; underlay_keeps_chord fails. The submenu omission is source evidence, not a separate mouse submenu test.",
+      "repair": "Reuse the existing effective chord/case/keymap fallback and submenu marker/slot path. Underlay retention must not change item content or measurement/drawing agreement."
+    },
+    {
+      "id": "E4-R4",
+      "priority": "P2",
+      "path": "crates/termrock-runtime/src/ui/paint.rs",
+      "lines": [
+        434,
+        440,
+        444,
+        449
+      ],
+      "title": "Background-only layer fill drops underline color",
+      "evidence": "fill_keep_ink copies foreground and modifiers into an initially empty layer cell but omits underline_color. Real public Runtime layer probe starts page Red foreground, Green underline_color and UNDERLINED modifier. Outside page stays Green; filled layer cell retains Red and UNDERLINED but underline_color becomes Reset. Exact external underlay_keeps_underline_ink fails. self.mark(pos,None) also clears semantic role metadata; no independent dimming regression is claimed for that source observation.",
+      "repair": "Preserve all unaffected cell style channels and appropriate semantic role metadata when copying underlay ink, then override only requested background/symbol. Add real layer underline/color/attribute and role-aware dimming tests."
+    }
+  ],
+  "native_checks": {
+    "command": "cargo nextest run -p jackin-preview-app -p termrock-overlays -p termrock-runtime --all-targets --no-fail-fast",
+    "before": {
+      "exit": 100,
+      "run": 706,
+      "passed": 700,
+      "failed": 6,
+      "skipped": 3,
+      "log": "before-native.log",
+      "target": "/private/tmp/incoming-e4-before-target"
+    },
+    "after": {
+      "exit": 100,
+      "run": 706,
+      "passed": 700,
+      "failed": 6,
+      "skipped": 3,
+      "log": "after-native.log",
+      "target": "/private/tmp/incoming-e4-after-target"
+    },
+    "new_failures": [],
+    "same_existing_failures": [
+      "app::paint_contract_tests::historical_failure_and_action_labels_remain_readable_in_mono",
+      "capsule_has_a_menu_bar_and_a_status_bar_instead_of_the_identity_line",
+      "tab_context_menu_renames_and_closes_by_mouse_and_keyboard",
+      "every_named_scenario_renders_a_deterministic_frame",
+      "menu::tests::default_menu_bar_scope_keeps_title_patches_off_the_padding_cells",
+      "jackin_visual_baseline"
+    ],
+    "qualification": "Same failure identities do not establish lossless output or fixed-baseline parity. Three existing ignored tests were skipped; required full verification is incomplete."
+  },
+  "external_checks": {
+    "command": "cargo nextest run --manifest-path /private/tmp/incoming-e4-consumer-20261021/Cargo.toml --no-fail-fast",
+    "exit": 100,
+    "run": 8,
+    "passed": 4,
+    "failed": 4,
+    "skipped": 0,
+    "log": "consumer-final.log",
+    "target": "/private/tmp/incoming-e4-after-external-target",
+    "passed_tests": [
+      "default_keeps_chord",
+      "default_keeps_disabled_style",
+      "default_honors_border_patch",
+      "underlay_keeps_nearest_lower_layer_ink"
+    ],
+    "failed_tests": [
+      "underlay_keeps_chord",
+      "underlay_keeps_disabled_style",
+      "underlay_honors_border_patch",
+      "underlay_keeps_underline_ink"
+    ],
+    "fixture_note": "The first added underline fixture incorrectly called unwrap on Runtime::initialize Response and did not compile (consumer-expanded.log). Corrected fixture discards Response; accepted final log explicitly asserts original outside-page underline color before checking filled cell. Earlier six-test consumer log is preserved."
+  },
+  "nested_overlay_diagnosis": "The proposed self.page/nearest-layer issue was investigated, not assumed. A real public Runtime lower-layer/upper-layer probe passes: lower Blue ink is visible before opening upper, then upper fill_keep_ink retains Blue rather than base-page Red. Do not report a demonstrated nested-layer foreground bug from this review.",
+  "lint_format": {
+    "strict_command": "cargo clippy -p jackin-preview-app -p termrock-overlays -p termrock-runtime --all-targets -- -D warnings",
+    "before_exit": 101,
+    "after_exit": 101,
+    "same_diagnostic_categories": {
+      "needless_borrow": 1,
+      "unused_enumerate_index": 1,
+      "indexing_slicing": 18
+    },
+    "before_log": "before-clippy.log",
+    "after_log": "strict-clippy.log",
+    "new_lint_regression_identified": false,
+    "fmt_exit": 0,
+    "diff_check_exit": 0
+  },
+  "architecture_and_overlap": {
+    "retain": "Frozen screens/capsule.rs369-373 confirms Change title\u2026 / 2\u00d7click, Split right / Ctrl+B % with separator, and danger Close tab / Ctrl+B &; dynamic daemon-derived tab menu title is useful view data. Preserve those contracts.",
+    "replace": "keep_underlay currently bundles underlay retention with an alternate baseline-style painter. Shared library placement does not satisfy the one-implementation/theme/override contract. Application must continue using the actual shared menu after repair.",
+    "not_new_e4": "80x24 TrueColor/accent/scenario-selected capsule_menu_80 painting, undrawn top bar cursor override and other replay paths remain in production; e4 did not remove them. Existing 262 tab repaint/input/viewport/cursor findings are not resolved by this patch.",
+    "menu_reason_overlap": "ContextMenu fields/constructor/draw/draw_row paths overlap the MenuReason WIP. Merge semantics explicitly: keep one row-state derivation and renderer, reason independent of shortcut width, existing effective chords and parts retained. Do not resolve conflicts by taking either whole menu.rs.",
+    "terminal_view_overlap": "Application reserve_input now also suppresses TextInput while tab menu is open, and ContextMenu retains the actual pane viewport cursor. This does not establish the pane typing/cursor ownership contract; coordinate shared TerminalView adoption and remove hidden/scenario input paths only with real functional proof.",
+    "api_boundary": "fill_keep_ink is another low-level public Ui painting method, not a high-level consumer composition adapter. Treat it as a component-author service and do not use it to spread application correction painters."
+  },
+  "minimal_repair_sequence": [
+    "Preserve the frozen tab-menu item data and dynamic title; record e4 as unapproved despite remote ancestry.",
+    "Shared Overlays owner combines MenuReason and underlay policy through one canonical row renderer, theme variants/parts and measured content path; honor disabled/focus/hover/pressed, chords, submenu glyphs and content slots.",
+    "Shared Runtime owner fixes partial-fill attribute/semantic-role preservation with real-layer regression tests.",
+    "Rerun all four external failures unchanged plus native scopes and strict lint; attribute existing failures separately.",
+    "Then remove affected application replay/cursor/geometry bypasses through public APIs and run pinned frozen/candidate Tuiscotti flows across adjacent sizes/profiles; no snapshot approval updates from candidate."
+  ],
+  "limitations": [
+    "No frozen/candidate paired CLI or Tuiscotti capture executed.",
+    "No full workspace gate, required hosted CI, complete scenario inventory or twice-complete application comparison.",
+    "No claim of complete cursor shape/focus restoration/input correctness from this source audit.",
+    "No unsafe code or new thread/concurrency mechanism in inspected delta."
+  ],
+  "workspace_integrity": "No product source edits, commits, pushes, reference changes or expected artifact changes. Separate read-only sparse trees at exact4335/e4. All review scripts/subprocess groups bounded under220s and reaped.",
+  "artifacts": {
+    "after-native.log": "c2b87da0552096d9a3de00403ccf5ea9d90ca2616029749747b764bd20201bef",
+    "before-clippy.log": "bbfebd53e5daf9238b3bd2ef03082acf36fa45eaf5c1dc0cb0a1fb47fc701e10",
+    "before-native.log": "48e90cbe4bf37f342419a8ca2333c22c0cfd1940b5b4fbde9c35a05ee1ec3910",
+    "consumer-Cargo.lock": "2a96426ac6812855ae6a1099e77d2c89b9a11fb61e676410ab0b88eb93f040bd",
+    "consumer-Cargo.toml": "48cb63ac77070d9aed5c202258feefd7a09c3a214b43631e1d4b6ee014083b8b",
+    "consumer-correct-fixture.log": "4bb44e66ec24ac6bef40adc19515ac468cd1f0b557cab63f8897c3f4b7ff0a9c",
+    "consumer-expanded.log": "94bdfe3dbb982564e19412b045cdf4159cf179524b188e79f3976b6621630c93",
+    "consumer-final.log": "76fd1b62363f6a0e6031ab9ec41fad924c8a1956c450a61afffa51a7830a82d0",
+    "consumer.log": "f70a528430fa08cdbc6e93e54b5a39cac2236bbcb2275bdddb99e2aeb2cb2710",
+    "consumer.rs": "02c5236dc53278a659311eac47eab3ad826113b29f32ba6ea67a1948e70b0c82",
+    "fmt.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "source.diff": "4987f85c7fd6f346b2aeb5df1a64ace8ac2966eab60d4b4a71b163703b4d71bc",
+    "strict-clippy.log": "a7ab69b3037613a80605191ca4ad8417b53732538aca7ebdb175ca5613f4ff9b"
+  }
+}
