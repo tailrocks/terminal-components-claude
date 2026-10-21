@@ -7511,27 +7511,14 @@ impl App {
         );
     }
 
+    /// Enter on the accounts list opens the drawer of the selected account.
     fn accounts_work_drawer_enter(&self) -> bool {
         self.route == Route::Accounts
-            && self.world.scenario == Scenario::AccountsMixed
-            && self.motion == Motion::Paused
             && !self.accounts.form_open
-            && !self.accounts.started
-            && self.accounts.editing.is_none()
-            && self.accounts.draft_name.is_empty()
-            && self.accounts.masked_input.is_empty()
-            && self.accounts.selected_op.is_none()
-            && self.accounts.op_stage == 0
-            && self.accounts.provider_index == 0
-            && self.accounts.source_index == 0
-            && self.accounts.selected_id.as_deref() == Some("acct-claude-work")
-            && self.accounts.list.cursor() == Some(ItemKey::index(4))
-            && self.accounts.pending_refresh.is_none()
-            && self.accounts.remove_confirmation.is_none()
+            && !self.accounts.drawer_open
             && !self.accounts.filtering
             && self.accounts.filter_query.is_empty()
-            && !self.accounts.drawer_open
-            && self.status.as_deref() == Some("Accounts › Claude › Work")
+            && self.accounts.selected_id.is_some()
             && !self.help_open
             && !self.quit_open
             && !self.cancel_open
@@ -10829,12 +10816,10 @@ impl TuiApp for App {
                 return self.route_changed();
             }
             if self.accounts.form_open {
+                // Cancelling the form returns to the list it came from.
                 self.accounts.close();
-                if self.world.scenario == Scenario::AccountsMixed {
-                    self.route = Route::Editor;
-                } else {
-                    self.status = Some("Cancelled account registration".into());
-                }
+                self.status = Some("Cancelled account registration".into());
+                cx.focus(ACCOUNTS_LIST);
                 return self.route_changed();
             }
             self.route = Route::Manager;
