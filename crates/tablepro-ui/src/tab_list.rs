@@ -32,11 +32,13 @@ impl AsItem for TabRow {
 pub(crate) struct TabList {
     pub(crate) state: PickerState,
     pub(crate) rows: Vec<TabRow>,
+    pub(crate) owner: std::sync::Weak<()>,
 }
 
 impl TabList {
     pub(crate) fn open(&mut self, workbench: &Workbench) {
         self.state = PickerState::default();
+        self.owner = workbench.owner_token();
         self.rows = rows(workbench);
         if let Some((index, row)) = self
             .rows
