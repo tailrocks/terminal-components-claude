@@ -121,6 +121,7 @@ const CMD_CAPSULE: ActionKey = ActionKey::application("jackin.capsule");
 const CMD_CAPSULE_NEW_TAB: ActionKey = ActionKey::application("jackin.capsule.new-tab");
 const CMD_NEW_WORKSPACE: ActionKey = ActionKey::application("jackin.new-workspace");
 const CMD_EDITOR_NEXT: ActionKey = ActionKey::application("jackin.editor.next-tab");
+const CMD_EDITOR_FIELD: ActionKey = ActionKey::application("jackin.editor.field");
 const CMD_EDITOR_PREVIOUS: ActionKey = ActionKey::application("jackin.editor.previous-tab");
 const CMD_EDITOR_ENV: ActionKey = ActionKey::application("jackin.editor.environments");
 const CMD_SAVE: ActionKey = ActionKey::application("jackin.save");
@@ -534,6 +535,7 @@ pub struct App {
     editor_exit_open: bool,
     editor_exit_state: DialogState,
     editor_leaf_focused: bool,
+    editor_general_cursor: u8,
     editor_mounts_armed: bool,
     editor_roles_armed: bool,
     settings_mounts_armed: bool,
@@ -740,6 +742,7 @@ impl App {
             editor_exit_open: false,
             editor_exit_state: DialogState::default(),
             editor_leaf_focused: false,
+            editor_general_cursor: 0,
             editor_mounts_armed: false,
             editor_roles_armed: false,
             settings_mounts_armed: false,
@@ -923,6 +926,18 @@ impl App {
         self.keymap.remove(KeyPhase::Capture, backtab);
         self.keymap.remove(KeyPhase::Capture, backtab_shift);
         self.keymap.remove(KeyPhase::Capture, shift_tab);
+        let field_tab = Chord::key(KeyCode::Tab);
+        self.keymap.remove(KeyPhase::Bubble, field_tab);
+        self.keymap.remove(KeyPhase::Capture, field_tab);
+        if self.route == Route::Editor
+            && self.editor.tab == EditorTab::General
+            && !self.editor.env_form_open
+            && !self.editor.preview_open
+        {
+            // Three Tabs land on Keep awake. Capture beats focus traversal.
+            self.keymap
+                .add(KeyPhase::Capture, field_tab, CMD_EDITOR_FIELD);
+        }
         if self.add_form_key_host() && !self.add_form_required {
             // The shell tab before the start button is Capsule. Backtab must
             // stay on the empty dialog so Enter can show Required.
@@ -4976,6 +4991,7 @@ impl App {
                 self.editor_role_picker = false;
                 self.editor_env_role = None;
                 self.editor_leaf_focused = false;
+                self.editor_general_cursor = 0;
                 Some(Response::changed())
             }
             CMD_CAPSULE_PREFIX if self.route == Route::Capsule => {
@@ -5256,6 +5272,17 @@ impl App {
                 Some(Response::changed())
             }
             CMD_PRELUDE_SPACE
+                if self.route == Route::Editor
+                    && self.editor.tab == EditorTab::General
+                    && self.editor_general_cursor == 3 =>
+            {
+                if cx.update_cause() == UpdateCause::Event {
+                    self.editor.pending.keep_awake = !self.editor.pending.keep_awake;
+                    self.editor.mark_dirty();
+                }
+                Some(Response::changed())
+            }
+            CMD_PRELUDE_SPACE
                 if self.route == Route::Editor && self.editor.tab == EditorTab::Accounts =>
             {
                 if cx.update_cause() == UpdateCause::Event {
@@ -5275,6 +5302,15 @@ impl App {
                     && !self.editor.env_form_open =>
             {
                 cx.focus(EDITOR_ROLE_LOAD);
+                Some(Response::changed())
+            }
+            CMD_EDITOR_FIELD
+                if self.route == Route::Editor && self.editor.tab == EditorTab::General =>
+            {
+                if cx.update_cause() == UpdateCause::Event {
+                    self.editor_general_cursor =
+                        self.editor_general_cursor.saturating_add(1).min(3);
+                }
                 Some(Response::changed())
             }
             CMD_EDITOR_NEXT if self.route == Route::Editor => {
