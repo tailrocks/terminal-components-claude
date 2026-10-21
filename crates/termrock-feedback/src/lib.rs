@@ -34,8 +34,8 @@ pub use accounts_detail::{
     paint_accounts_detail,
 };
 pub use accounts_drawer::{
-    AccountsDrawer, DrawerButton, DrawerInk, DrawerLine, DrawerMeter, DrawerTone, PaneRow,
-    paint_accounts_drawer,
+    AccountsDrawer, DrawerButton, DrawerInk, DrawerLine, DrawerMeter, DrawerTone, PaneChrome,
+    PaneRow, paint_accounts_drawer,
 };
 pub use accounts_filter::{
     AccountsFilter, DetailInk, DetailLine, DetailSpan, FilterHint, FilterRow, TailTone,
