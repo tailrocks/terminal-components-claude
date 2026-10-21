@@ -4,6 +4,8 @@ use termrock::{
     PickerState, ScreenAlign, Surface,
 };
 
+use crate::workbench::Workbench;
+
 pub(crate) const ID: Id = Id::root("tablepro.safe-mode");
 
 pub(crate) struct SafeRow {
@@ -30,11 +32,13 @@ impl AsItem for SafeRow {
 pub(crate) struct SafeModePicker {
     pub(crate) state: PickerState,
     pub(crate) rows: Vec<SafeRow>,
+    pub(crate) owner: std::sync::Weak<()>,
 }
 
 impl SafeModePicker {
-    pub(crate) fn open(&mut self, current: SafeMode) {
+    pub(crate) fn open(&mut self, workbench: &Workbench, current: SafeMode) {
         self.rows = rows(current);
+        self.owner = workbench.owner_token();
         self.state = PickerState::default();
         if let Some(row) = self.rows.iter().find(|row| row.tag.is_some()) {
             self.state
