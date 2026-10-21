@@ -48,7 +48,7 @@ pub(crate) fn paint(app: &App, ui: &mut Ui<'_>, full: Rect) {
     paint_str(ui, 19, 0, " Go ", SECONDARY, BLACK, false);
     paint_str(ui, 24, 0, " Help ", SECONDARY, BLACK, false);
 
-    let preview = app.editor.preview_open && full.width == 120 && full.height == 40;
+    let preview = app.editor.preview_open;
     let changes = editor_changes(app);
     if chrome {
         let name = app

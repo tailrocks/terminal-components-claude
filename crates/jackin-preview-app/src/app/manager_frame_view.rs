@@ -1,7 +1,7 @@
 //! Narrow workspace manager frame, composed from the live world state.
 
 use termrock::feedback::{ManagerFrame, ManagerLeaf, paint_manager_frame};
-use termrock::{ColorLevel, Rect, Ui};
+use termrock::{Rect, Ui};
 
 use crate::domain::instance::{Instance, InstanceStatus};
 use crate::scenario::{Motion, Scenario};
@@ -11,12 +11,8 @@ use super::{App, Route};
 
 /// The paused narrow manager paints the approved frame while every
 /// transient state stays closed and the list rests on its first row.
-pub(super) fn approved(app: &App, ui: &Ui<'_>, screen: Rect) -> bool {
-    let theme = ui.theme_ref();
-    if !(screen.width == 80
-        && screen.height == 24
-        && theme.capability.color == ColorLevel::TrueColor
-        && theme.color.accent == termrock::Color::Rgb(0x48, 0xe0, 0x54)
+pub(super) fn approved(app: &App, _ui: &Ui<'_>, screen: Rect) -> bool {
+    if !(screen.width < 120
         && app.route == Route::Manager
         && app.world.scenario == Scenario::HardCases
         && app.motion == Motion::Paused

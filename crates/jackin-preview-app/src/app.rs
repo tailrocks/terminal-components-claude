@@ -10497,8 +10497,7 @@ impl TuiApp for App {
         }
         self.draw_layers(ui);
         let manager_paused_120 = self.route == Route::Manager
-            && full.width == 120
-            && full.height == 40
+            && full.width >= 120
             && matches!(
                 self.world.scenario,
                 Scenario::Returning | Scenario::HardCases
@@ -10544,8 +10543,7 @@ impl TuiApp for App {
             self.paint_pinned_split(ui, full, termrock::feedback::SplitMode::Expanded, true);
         }
         if self.route == Route::Manager
-            && full.width == 120
-            && full.height == 40
+            && full.width >= 120
             && self.world.scenario == Scenario::FirstUse
             && self.motion == Motion::Paused
             && self.status.is_none()
@@ -10561,8 +10559,7 @@ impl TuiApp for App {
             self.paint_pinned_split(ui, full, termrock::feedback::SplitMode::Empty, true);
         }
         if self.route == Route::Prelude
-            && full.width == 120
-            && full.height == 40
+            && full.width >= 120
             && self.world.scenario == Scenario::FirstUse
             && self.motion == Motion::Paused
             && self.prelude.step() == 1
@@ -10581,8 +10578,7 @@ impl TuiApp for App {
                     .as_deref()
                     .is_some_and(|status| status.starts_with("Save workspace")));
         if self.route == Route::Editor
-            && full.width == 120
-            && full.height == 40
+            && full.width >= 120
             && self.world.scenario == Scenario::Returning
             && self.motion == Motion::Paused
             && ui.theme_ref().capability.color == termrock::ColorLevel::TrueColor
@@ -10610,7 +10606,7 @@ impl TuiApp for App {
                     .collect();
                 launch_dialog_plate::paint_info(ui, &shown);
             }
-            let dim_clear = full.width == 120 && full.height == 40
+            let dim_clear = full.width >= 120
                 || (reduced
                     && matches!(
                         ui.theme_ref().capability.color,
@@ -10620,7 +10616,7 @@ impl TuiApp for App {
             if dim_clear && let Some(column) = launch_cockpit::stage_rail_left(full) {
                 ui.clear_dim(column);
             }
-            if full.width == 120 && full.height == 40 {
+            if full.width >= 120 {
                 launch_cockpit::paint_open_footer(ui, false);
             }
         }
@@ -10632,7 +10628,7 @@ impl TuiApp for App {
             if let Some(column) = launch_cockpit::stage_rail_left(full) {
                 ui.clear_dim(column);
             }
-            if full.width == 120 && full.height == 40 {
+            if full.width >= 120 {
                 launch_cockpit::paint_open_footer(ui, true);
             }
         }
