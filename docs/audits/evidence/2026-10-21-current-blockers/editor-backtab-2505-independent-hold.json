@@ -1,0 +1,110 @@
+{
+  "status": "HOLD",
+  "reviewer": "/root/editor_backtab_independent_review",
+  "reviewed_commit": "2505fec7a4041154e8d7ff1c1ccd26c9efcd51dd",
+  "parent": "160cd7006f82c55e285e54fe1c23e3ee0d8c7775",
+  "frozen": "4169783ae883788186d161af09ba9c481bd84e5c",
+  "findings": [
+    {
+      "priority": "P2",
+      "path": "crates/termrock-editors/src/code.rs",
+      "lines": [
+        1311,
+        1317,
+        1325,
+        1340
+      ],
+      "title": "Dedent byte ranges must be expanded to grapheme boundaries before deletion and cursor mapping",
+      "evidence": "A leading ASCII space followed by U+0301 forms one grapheme. count=1 creates 0..1, but TextEditorCore::select_range floors both ends, collapsing selection to 0..0. Paste(\"\") deletes nothing, while the implementation maps cursor offsets as if one byte was removed and increments generation. Independent real-Runtime test on candidate fails: source=\" \\u{301}value\", actual unchanged, expected \"value\". Frozen TextBuffer::remove_range expands its end with ceil_boundary; the exact frozen primitive source and dedent loop pass all three combining-indentation cases. Two spaces followed by a combining mark also require using actual expanded range lengths for mapping.",
+      "requested_fix": "Construct actual grapheme-safe removal ranges matching frozen floor/ceil semantics before mapping original cursor/anchor. Apply edits through the existing core. Add real-Runtime regressions for one/two spaces with attached combining marks, multiline selections and unselected cursor lines, preserving selection direction, generation and cursor offsets."
+    }
+  ],
+  "checks": [
+    {
+      "command": "cargo nextest run --all-targets (external public consumer, unchanged five tests)",
+      "before_exit": 100,
+      "before_result": "1 passed, 4 failed, 0 skipped",
+      "after_exit": 0,
+      "after_result": "5 passed, 0 skipped"
+    },
+    {
+      "command": "cargo nextest run --all-targets combining_mark_attached",
+      "exit": 100,
+      "result": "0 passed, 1 failed, 5 filtered by explicit negative probe selector"
+    },
+    {
+      "command": "cargo nextest run -p termrock-editors --all-targets",
+      "exit": 0,
+      "result": "67 passed, 0 skipped"
+    },
+    {
+      "command": "cargo clippy -p termrock-editors --all-targets -- -D warnings",
+      "exit": 0
+    },
+    {
+      "command": "cargo fmt --all --check",
+      "exit": 0
+    },
+    {
+      "command": "cargo nextest run --all-targets exact_frozen_remove_range",
+      "exit": 0,
+      "result": "1 passed, 14 unrelated frozen primitive tests filtered; not a complete frozen application run"
+    }
+  ],
+  "notes": [
+    "No production source edits. Separate sparse detached copies and distinct targets per revision. No helpers, expected-output changes, application launches or reference writes. Every command group had an explicit 205-second work timeout plus bounded owned-process cleanup.",
+    "The initial external probe incorrectly assumed Shift-End or Control-Shift-End selected a document; those keys are not present in current editing bindings. Input changed to supported repeated Shift-Left/Right before the recorded unchanged before/after comparison. Those initial failed harness attempts are not implementation findings.",
+    "External probe artifact emits unused Response warnings; strict Clippy result refers to unchanged candidate production/all-target code, not this temporary consumer.",
+    "No new public APIs, dependencies, unsafe code or concurrent state ownership added. General ordinary tests pass, but the demonstrated Unicode mismatch blocks this increment. Full real-CLI parity and global acceptance remain unverified."
+  ],
+  "artifacts": {
+    "public-probes.rs": {
+      "sha256": "2ad3a0ab2c7239fd426907154e3609bb03838027e81a2216ebf54e72dd3a715a",
+      "bytes": 4246
+    },
+    "public-probes-before.rs": {
+      "sha256": "2ad3a0ab2c7239fd426907154e3609bb03838027e81a2216ebf54e72dd3a715a",
+      "bytes": 4246
+    },
+    "before.log": {
+      "sha256": "3fbfbf76116fa1eb3122c3d71c94fcc0209fd2a5785a1dd8c5d5fb90717dff75",
+      "bytes": 8796
+    },
+    "after.log": {
+      "sha256": "51c6525387598d9e1322a3afabccb74a5404f0c33a9f22e122f663c4f575b857",
+      "bytes": 6243
+    },
+    "combining-negative.log": {
+      "sha256": "1992d8f39064a1d708737e2b2cd7215e4e4a4370f1ff834acdc4ec384addee32",
+      "bytes": 6482
+    },
+    "native.log": {
+      "sha256": "d2f7071fcf43e11394d9264e9efe2baaca201fb142e8ee64b58eaf31ed434120",
+      "bytes": 12602
+    },
+    "clippy.log": {
+      "sha256": "a742c5a8bc1b6c4e71af377e92eeb1cc7df9b07aa3a7ae4b51b88b445ec48689",
+      "bytes": 3487
+    },
+    "fmt.log": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    "frozen-combining.log": {
+      "sha256": "69176ae61b121eadb930e000e7cbf6d45f8e86d3e556845496de8d9f98abcfeb",
+      "bytes": 1840
+    },
+    "frozen-text.rs": {
+      "sha256": "bb5c2420c38bd66425d0ddea135eda0c34b9b016a4ec46ccff65b99b65c6c506",
+      "bytes": 22973
+    },
+    "frozen-oracle.rs": {
+      "sha256": "8cbb50276496c020fc2b428ebe312f33b8857def5ddcb1f10c824176e666278e",
+      "bytes": 565
+    },
+    "source.diff": {
+      "sha256": "19f0c459a565d4904c97ffa1ed51b1c27a68b69cea9c8f521f8d60f17df11a66",
+      "bytes": 14279
+    }
+  }
+}
