@@ -1777,9 +1777,9 @@ fn accounts_drawer_enter_paints_the_approved_work_drawer() {
         Some("acct-claude-work")
     );
     assert!(h.text().contains("Tab Actions"), "{}", h.text());
-    // The open drawer keeps the header bare: the panel owns the row.
+    // The open drawer keeps the crumb: the selection is still the account.
     assert!(
-        !h.text().contains("Accounts › Claude › Work"),
+        h.text().contains("Accounts › Claude › Work"),
         "{}",
         h.text()
     );
