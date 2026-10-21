@@ -448,7 +448,9 @@ fn mono_rules() -> [MonoRule; 15] {
         (
             Part::LABEL,
             StateFlags::DISABLED,
-            p().set_fg(Role::Fg(FgStep::Primary))
+            // Frozen `--color none` disabled ink is dark gray plus dim
+            // (index 8), not primary white plus dim.
+            p().set_fg(Role::DisabledFg)
                 .remove(Modifier::all())
                 .add(Modifier::DIM),
         ),

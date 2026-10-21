@@ -26,7 +26,7 @@ pub use downgrade::{
     LegacyMono, MONO_RULES_PER_FAMILY, MonoRule, downgrade_color, downgrade_pair, legacy_mono,
 };
 pub use glyph::{GlyphRole, GlyphSet};
-pub use palettes::CapabilityPalettes;
+pub use palettes::{CapabilityPalettes, baseline_faint, baseline_muted};
 pub use patch::{Slot, StateRule, StylePatch};
 pub use recipe::{
     Family, Overlay, OverlayRule, PartEdit, PartMap, PartRecipe, Recipe, RecipeEdit, Recipes,
