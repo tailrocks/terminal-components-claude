@@ -103,6 +103,62 @@ impl Theme {
             })
         });
 
+        let profiled_theme =
+            [TrueColor, Ansi256, Ansi16, Mono]
+                .into_iter()
+                .fold(profiled_theme, |theme, level| {
+                    let active = Modifier::BOLD
+                        | if level == Mono {
+                            Modifier::REVERSED
+                        } else {
+                            Modifier::empty()
+                        };
+                    let hovered = active
+                        | if matches!(level, Ansi16 | Mono) {
+                            Modifier::UNDERLINED
+                        } else {
+                            Modifier::empty()
+                        };
+                    let disabled = StylePatch::new().remove(active | Modifier::UNDERLINED);
+                    theme.define_variant_for_level(
+                        level,
+                        Family::MENU,
+                        Variant::DEFAULT,
+                        |recipe| {
+                            recipe
+                                .part(Part::ROW)
+                                .when(StateFlags::ACTIVE, StylePatch::new().add(active))
+                                .when(StateFlags::HOVERED, StylePatch::new().add(hovered))
+                                .when(
+                                    StateFlags::ACTIVE | StateFlags::HOVERED,
+                                    StylePatch::new().add(hovered),
+                                )
+                                .when(StateFlags::DISABLED, disabled)
+                                .when(StateFlags::ACTIVE | StateFlags::DISABLED, disabled)
+                                .when(StateFlags::HOVERED | StateFlags::DISABLED, disabled)
+                                .when(
+                                    StateFlags::ACTIVE | StateFlags::HOVERED | StateFlags::DISABLED,
+                                    disabled,
+                                );
+                            recipe
+                                .part(Part::LABEL)
+                                .when(StateFlags::ACTIVE, StylePatch::new().add(active))
+                                .when(StateFlags::HOVERED, StylePatch::new().add(hovered))
+                                .when(
+                                    StateFlags::ACTIVE | StateFlags::HOVERED,
+                                    StylePatch::new().add(hovered),
+                                )
+                                .when(StateFlags::DISABLED, disabled)
+                                .when(StateFlags::ACTIVE | StateFlags::DISABLED, disabled)
+                                .when(StateFlags::HOVERED | StateFlags::DISABLED, disabled)
+                                .when(
+                                    StateFlags::ACTIVE | StateFlags::HOVERED | StateFlags::DISABLED,
+                                    disabled,
+                                );
+                        },
+                    )
+                });
+
         let profiled_theme = [
             (
                 TrueColor,
