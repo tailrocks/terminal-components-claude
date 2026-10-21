@@ -1,3 +1,6 @@
+use termrock::RowUi;
+use termrock::layout::{ColumnSpec, Track, solve_columns};
+use termrock::theme::CursorStyle;
 use termrock::{
     BlurPolicy, Chord, Color, Cx, Family, FgStep, FrameRead, Hint, HintKey, HintLayer, Id, ItemKey,
     KeyCode, KeyModifiers, NavList, NavListAction, NavListState, Part, Rect, Response, Role,
@@ -39,6 +42,45 @@ impl Default for HomeState {
 pub(crate) struct HomeRow {
     section: &'static str,
     action: Action,
+    columns: ActionColumns,
+}
+
+#[derive(Clone, Copy, Default)]
+struct ActionColumns {
+    title: u16,
+    kind: u16,
+    scope: u16,
+    risk: u16,
+}
+
+impl ActionColumns {
+    fn apply(rows: &mut [HomeRow]) {
+        let columns = Self {
+            title: rows
+                .iter()
+                .map(|row| termrock::width(&row.action.title))
+                .max()
+                .unwrap_or(14),
+            kind: rows
+                .iter()
+                .map(|row| termrock::width(action_kind_label(row.action.kind)))
+                .max()
+                .unwrap_or(4),
+            scope: rows
+                .iter()
+                .map(|row| termrock::width(&scope_text(&row.action)))
+                .max()
+                .unwrap_or(4),
+            risk: rows
+                .iter()
+                .map(|row| termrock::width(&risk_text(&row.action)))
+                .max()
+                .unwrap_or(0),
+        };
+        for row in rows {
+            row.columns = columns;
+        }
+    }
 }
 
 impl std::fmt::Display for HomeRow {
@@ -98,6 +140,7 @@ impl HomeState {
                 .map(move |action| HomeRow {
                     section: name,
                     action,
+                    columns: ActionColumns::default(),
                 })
             })
             .collect()
@@ -250,7 +293,8 @@ impl HomeState {
             &scope_label,
             scope_style,
         );
-        let rows = self.rows(world);
+        let mut rows = self.rows(world);
+        ActionColumns::apply(&mut rows);
         let mut rows_area = Rect::new(
             area.x,
             area.y.saturating_add(2),
@@ -383,9 +427,7 @@ impl HomeState {
                 style,
             );
         } else {
-            nav_list()
-                .render_row(&paint_action)
-                .draw(ui, rows_area, &self.rows, &rows);
+            nav_list().draw(ui, rows_area, &self.rows, &rows);
         }
         let groups = rows
             .iter()
@@ -476,8 +518,10 @@ fn query_input() -> TextInput<'static> {
 fn section(row: &HomeRow) -> &str {
     row.section
 }
-fn nav_list() -> NavList<'static, HomeRow, impl Fn(&HomeRow) -> ItemKey> {
+fn nav_list()
+-> NavList<'static, HomeRow, impl Fn(&HomeRow) -> ItemKey, impl Fn(&HomeRow, &mut RowUi<'_>)> {
     NavList::new(ROWS)
+        .cursor_style(CursorStyle::Fill)
         .scrollable(true)
         .leave_at_boundary(true)
         .header_indent(SECTION_INDENT)
@@ -485,79 +529,129 @@ fn nav_list() -> NavList<'static, HomeRow, impl Fn(&HomeRow) -> ItemKey> {
         .patch_part(HEADER_PARTS)
         .header_text_patch(&HEADER_TEXT)
         .key(row_key)
+        .row(paint_action)
 }
 fn row_key(row: &HomeRow) -> ItemKey {
     ItemKey::text(&row.action.id)
 }
 
-fn paint_action(ui: &mut Ui<'_>, area: Rect, flags: StateFlags, _key: ItemKey, row: &HomeRow) {
-    let style = ui
-        .style(Family::LIST, Variant::DEFAULT, Part::ROW, flags)
-        .style;
-    ui.fill(area, style);
-    let gutter = ui
-        .style(Family::LIST, Variant::DEFAULT, Part::GUTTER, flags)
-        .style;
-    ui.paint_str(Rect::new(area.x, area.y, 1, 1), "▎", gutter);
+fn paint_action(row: &HomeRow, cells: &mut RowUi<'_>) {
     let action = &row.action;
-    let mut x = area.x.saturating_add(2);
-    let title_width = termrock::width(&action.title);
-    if x.saturating_add(title_width) < area.right() {
-        ui.paint_str(Rect::new(x, area.y, title_width, 1), &action.title, style);
-        x = x.saturating_add(title_width);
-    } else {
-        let budget = area.right().saturating_sub(x).saturating_sub(1);
-        ui.paint_str(
-            Rect::new(x, area.y, budget, 1),
-            &termrock::truncate(&action.title, budget),
-            style,
-        );
-        return;
+    let kind = action_kind_label(action.kind);
+    let scope = scope_text(action);
+    let risk = risk_text(action);
+
+    // Use the row owner's full allocation to keep optional columns responsive
+    // when NavList reserves a scrollbar or its leading slots.
+    let content_width = cells.remaining_width().min(cells.container_width());
+    let title_width = row
+        .columns
+        .title
+        .min((content_width.saturating_mul(36) / 100).max(14));
+    let kind_width = row.columns.kind;
+    let scope_width = row.columns.scope;
+    let risk_width = row.columns.risk;
+    let specs = [
+        ColumnSpec::new(
+            title_width.max(1),
+            title_width.max(1),
+            title_width.max(1),
+            0,
+            None,
+        ),
+        ColumnSpec::new(0, kind_width, kind_width, 0, Some(2)),
+        ColumnSpec::new(0, scope_width, scope_width, 0, Some(1)),
+        ColumnSpec::new(12, 12, u16::MAX, 1, Some(2)),
+        ColumnSpec::new(0, risk_width, risk_width, 0, Some(0)),
+    ];
+    let resolved = solve_columns(&specs, content_width, 2);
+    let tracks = (0..resolved.len())
+        .map(|index| Track::Fixed(resolved.width(index).unwrap_or_default()))
+        .collect::<Vec<_>>();
+    let mut columns = cells.columns_with_gap(&tracks, 2);
+    columns
+        .cell_part(0, Part::LABEL)
+        .text_matched(&action.title, &[]);
+    if !kind.is_empty() {
+        columns
+            .cell_part(1, Part::META)
+            .tone(Role::Fg(FgStep::Muted))
+            .text_matched(kind, &[]);
     }
-    if !matches!(action.availability, Availability::Ready) && x.saturating_add(2) < area.right() {
-        let warning = ui
-            .paint_patch(
-                &StylePatch::new()
-                    .set_fg(Role::Warning)
-                    .add(termrock::Modifier::BOLD),
-            )
-            .with_bg_from(style);
-        ui.paint_str(Rect::new(x.saturating_add(1), area.y, 1, 1), "▲", warning);
-        x = x.saturating_add(2);
-    }
-    let reason_width = termrock::width(&action.reason);
-    let reason_x = if area.width > reason_width.saturating_add(24)
-        && area.right() > x.saturating_add(2).saturating_add(reason_width)
-    {
-        area.right().saturating_sub(reason_width.saturating_add(1))
-    } else {
-        area.right()
-    };
-    if action.scope != Scope::Here {
-        let tag = if action.scope_label.is_empty() {
-            format!("· {}", action.scope.label())
+    if !scope.is_empty() {
+        let scope_tone = if action.scope == Scope::Here {
+            Role::Fg(FgStep::Muted)
         } else {
-            format!("· {} {}", action.scope.label(), action.scope_label)
+            Role::Fg(FgStep::Secondary)
         };
-        let budget = reason_x.saturating_sub(x.saturating_add(3));
-        if budget >= 10 {
-            let faint = ui
-                .paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Faint)))
-                .with_bg_from(style);
-            ui.paint_str(
-                Rect::new(x.saturating_add(1), area.y, budget, 1),
-                &termrock::truncate_middle(&tag, budget),
-                faint,
-            );
+        columns
+            .cell_part(2, Part::META)
+            .tone(scope_tone)
+            .text_matched(&scope, &[]);
+    }
+    if !action.reason.is_empty() {
+        columns
+            .cell_part(3, Part::META)
+            .patch(&TAG_GREY)
+            .text_matched(&action.reason, &[]);
+    }
+    if !risk.is_empty() {
+        let mut risk_cell = columns.cell_part(4, Part::META);
+        if !matches!(action.availability, Availability::Ready) {
+            risk_cell
+                .patch(
+                    &StylePatch::new()
+                        .set_fg(Role::Warning)
+                        .add(termrock::Modifier::BOLD),
+                )
+                .text_matched(&risk, &[]);
+        } else {
+            risk_cell
+                .tone(Role::Fg(FgStep::Secondary))
+                .text_matched(&risk, &[]);
         }
     }
-    if reason_x < area.right() {
-        let muted = ui.paint_patch(&TAG_GREY).with_bg_from(style);
-        ui.paint_str(
-            Rect::new(reason_x, area.y, reason_width, 1),
-            &action.reason,
-            muted,
-        );
+}
+
+fn action_kind_label(kind: crate::domain::action::ActionKind) -> &'static str {
+    use crate::domain::action::ActionKind;
+
+    match kind {
+        ActionKind::Task => "task",
+        ActionKind::Git => "git",
+        ActionKind::Plan => "plan",
+        ActionKind::Connect => "connect",
+        ActionKind::Flow => "flow",
+        ActionKind::Clone => "clone",
+        ActionKind::System => "system",
+    }
+}
+
+fn scope_text(action: &Action) -> String {
+    if action.scope_label.is_empty() {
+        action.scope.label().to_owned()
+    } else {
+        format!("{} {}", action.scope.label(), action.scope_label)
+    }
+}
+
+fn risk_text(action: &Action) -> String {
+    match action.availability {
+        Availability::Ready => risk_label(action.risk).to_owned(),
+        Availability::NeedsTrust(_) => {
+            format!("▲ untrusted config · {}", risk_label(action.risk))
+        }
+        Availability::Blocked(_) => format!("▲ blocked · {}", risk_label(action.risk)),
+    }
+}
+
+fn risk_label(risk: crate::domain::action::Risk) -> &'static str {
+    use crate::domain::action::Risk;
+
+    match risk {
+        Risk::ReadOnly => "read only",
+        Risk::Bounded => "bounded",
+        Risk::Broad => "broad",
     }
 }
 
@@ -2580,6 +2674,38 @@ mod tests {
     }
 
     #[test]
+    fn shared_action_row_keeps_live_semantic_fields_and_owner_focus() {
+        let mut harness = Harness::new(fixture(Scenario::LaunchFailure), Theme::junie(), 120, 40);
+        let action = harness
+            .app()
+            .home
+            .rows(&harness.app().world)
+            .into_iter()
+            .find(|row| !row.action.reason.is_empty())
+            .expect("fixture has a live action with a reason")
+            .action;
+        assert!(harness.find(&action.title).is_some());
+        assert!(harness.find(action_kind_label(action.kind)).is_some());
+        assert!(harness.find(action.scope.label()).is_some());
+        assert!(harness.find(risk_label(action.risk)).is_some());
+        assert!(harness.find(&action.reason).is_some());
+
+        let rows_bounds = harness.area_of(ROWS).expect("Home NavList is registered");
+        assert!(harness.tab_to(ROWS));
+        assert_eq!(harness.focus(), Some(ROWS));
+        assert_eq!(
+            (rows_bounds.y..rows_bounds.bottom())
+                .flat_map(|y| (rows_bounds.x..rows_bounds.right()).map(move |x| (x, y)))
+                .filter(|(x, y)| harness.cell(*x, *y).symbol() == "▎")
+                .count(),
+            0,
+            "shared Fill cursor must not add a second focus gutter"
+        );
+        let _ = harness.key(KeyCode::Down);
+        assert!(harness.diagnostics().is_empty());
+    }
+
+    #[test]
     fn section_headers_use_nav_list_text_policy_across_widths_and_color_levels() {
         use termrock::ColorLevel::{Ansi16, Ansi256, Mono, TrueColor};
 
@@ -2720,9 +2846,14 @@ mod tests {
                 );
                 assert_ne!(before_padding[0].0, before_text.0);
 
-                // Home's renderer still emits 15 white row gutters in this
-                // fixture. Keep that independent defect visible in the audit;
-                // this header test checks runtime focus ownership, not glyph count.
+                assert_eq!(
+                    (rows_bounds.y..rows_bounds.bottom())
+                        .flat_map(|y| (rows_bounds.x..rows_bounds.right()).map(move |x| (x, y)))
+                        .filter(|(x, y)| harness.cell(*x, *y).symbol() == "▎")
+                        .count(),
+                    0,
+                    "Home rows must not paint an application-owned focus gutter"
+                );
                 let _ = harness.key(KeyCode::F(10));
                 assert_eq!(harness.focus(), Some(Id::root("holla.menu")));
                 assert!(harness.text().contains("Quit"));
@@ -2741,6 +2872,14 @@ mod tests {
                 let overlay_text = style(&harness, text_x, overlay_header_y);
                 assert_eq!(overlay_padding, before_padding);
                 assert_eq!(overlay_text, before_text);
+                assert_eq!(
+                    (rows_bounds.y..rows_bounds.bottom())
+                        .flat_map(|y| (rows_bounds.x..rows_bounds.right()).map(move |x| (x, y)))
+                        .filter(|(x, y)| harness.cell(*x, *y).symbol() == "▎")
+                        .count(),
+                    0,
+                    "inactive Home rows must not retain focus under the menu"
+                );
 
                 let _ = harness.key(KeyCode::Esc);
                 assert_eq!(harness.focus(), home_focus);
