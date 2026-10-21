@@ -41,6 +41,7 @@ PREPARE_OWNED_MAX_BUDGET = 200
 PREPARE_OWNED_CLEANUP_RESERVE = 15
 PREPARE_OWNED_HARD_MAX = 220
 PREPARE_OWNED_TERM_GRACE = 2.0
+PREPARE_LIVE_OWNED_COHORT = "frozen-20261021-serial-nonincr-r1-r2"
 OWNED_PROCESS_LIST_COMMAND = "/bin/ps"
 EXPECTED_SCENARIOS = 28_895
 EXPECTED_ORDINARY_TESTS = 20
@@ -238,7 +239,7 @@ def load_executable_cohorts(repo: Path) -> dict[str, object]:
         raise RunnerError(f"executable cohort registry cannot be read: {error}") from error
 
 
-def _read_pinned_json(repo: Path, relative: Path, expected_sha256: str, label: str) -> tuple[object, str]:
+def _read_pinned_json(repo: Path, relative: Path, expected_sha256: str, label: str, *, check_work: Callable[[], None] | None = None) -> tuple[object, str]:
     path = repo / relative
     try:
         before = path.lstat()
@@ -249,6 +250,8 @@ def _read_pinned_json(repo: Path, relative: Path, expected_sha256: str, label: s
             opened = os.fstat(fd)
             chunks: list[bytes] = []
             while chunk := os.read(fd, 1024 * 1024):
+                if check_work is not None:
+                    check_work()
                 chunks.append(chunk)
             after_fd = os.fstat(fd)
         finally:
@@ -276,10 +279,10 @@ def _read_pinned_json(repo: Path, relative: Path, expected_sha256: str, label: s
         raise RunnerError(f"{label} JSON is invalid: {error}") from error
 
 
-def _capture_review_documents(repo: Path) -> tuple[dict[str, object], str, dict[str, object], str, dict[str, object], str]:
-    decision, decision_sha256 = _read_pinned_json(repo, CAPTURE_REVIEW_DECISION, CAPTURE_REVIEW_DECISION_SHA256, "fresh capture eligibility decision")
-    index, index_sha256 = _read_pinned_json(repo, CAPTURE_REVIEW_EVIDENCE_INDEX, CAPTURE_REVIEW_EVIDENCE_INDEX_SHA256, "fresh capture evidence index")
-    contract, contract_sha256 = _read_pinned_json(repo, CAPTURE_REVIEW_CONTRACT, CAPTURE_REVIEW_CONTRACT_SHA256, "fresh capture resumable-runner contract")
+def _capture_review_documents(repo: Path, *, check_work: Callable[[], None] | None = None) -> tuple[dict[str, object], str, dict[str, object], str, dict[str, object], str]:
+    decision, decision_sha256 = _read_pinned_json(repo, CAPTURE_REVIEW_DECISION, CAPTURE_REVIEW_DECISION_SHA256, "fresh capture eligibility decision", check_work=check_work)
+    index, index_sha256 = _read_pinned_json(repo, CAPTURE_REVIEW_EVIDENCE_INDEX, CAPTURE_REVIEW_EVIDENCE_INDEX_SHA256, "fresh capture evidence index", check_work=check_work)
+    contract, contract_sha256 = _read_pinned_json(repo, CAPTURE_REVIEW_CONTRACT, CAPTURE_REVIEW_CONTRACT_SHA256, "fresh capture resumable-runner contract", check_work=check_work)
     if not isinstance(decision, dict) or decision.get("schema") != "termrock.independent-executable-cohort-capture-review" or type(decision.get("schema_version")) is not int or decision["schema_version"] != 1:
         raise RunnerError("fresh capture eligibility decision schema is unsupported")
     if decision.get("decision") != "eligible-for-fresh-baseline-capture-and-baseline-replay-only" or decision.get("scope") != "executable-cohort-capture-eligibility":
@@ -325,7 +328,7 @@ def _capture_review_documents(repo: Path) -> tuple[dict[str, object], str, dict[
         relative = PurePosixPath(item["repository_path"]) if isinstance(item["repository_path"], str) else PurePosixPath("/")
         if relative.is_absolute() or len(relative.parts) < 2 or ".." in relative.parts or not isinstance(item["source_path"], str) or not Path(item["source_path"]).is_absolute() or not isinstance(item["sha256"], str) or not re.fullmatch(r"[0-9a-f]{64}", item["sha256"]) or type(item["bytes"]) is not int or item["bytes"] < 1 or item["copied_byte_for_byte"] is not True:
             raise RunnerError("fresh capture evidence index artifact identity is invalid")
-        _artifact, artifact_digest = _read_pinned_json(repo, Path(relative.as_posix()), item["sha256"], f"fresh capture evidence artifact {key}")
+        _artifact, artifact_digest = _read_pinned_json(repo, Path(relative.as_posix()), item["sha256"], f"fresh capture evidence artifact {key}", check_work=check_work)
         if (repo / relative).stat().st_size != item["bytes"] or artifact_digest != item["sha256"]:
             raise RunnerError(f"fresh capture evidence artifact differs from its index: {key}")
     for key, path, digest in (
@@ -341,6 +344,7 @@ def _capture_review_documents(repo: Path) -> tuple[dict[str, object], str, dict[
         Path("docs/audits/2026-10-21-fresh-baseline-capture-evidence-recheck.json"),
         str(decision.get("evidence", {}).get("recheck_sha256")),
         "fresh capture evidence recheck",
+        check_work=check_work,
     )
     if recheck_digest != decision.get("evidence", {}).get("recheck_sha256"):
         raise RunnerError("fresh capture evidence recheck digest differs from the decision")
@@ -416,16 +420,16 @@ def validate_cohort_reviews(document: object, registry_sha256: str, cohorts: dic
     return by_id
 
 
-def load_cohort_review_registry(repo: Path, cohort_document: dict[str, object], cohort_registry_sha256: str) -> tuple[dict[str, dict[str, object]], str]:
-    document, digest = _read_pinned_json(repo, COHORT_REVIEWS, COHORT_REVIEWS_SHA256, "cohort review registry")
-    decision, decision_digest, _index, index_digest, _contract, _contract_digest = _capture_review_documents(repo)
+def load_cohort_review_registry(repo: Path, cohort_document: dict[str, object], cohort_registry_sha256: str, *, check_work: Callable[[], None] | None = None) -> tuple[dict[str, dict[str, object]], str]:
+    document, digest = _read_pinned_json(repo, COHORT_REVIEWS, COHORT_REVIEWS_SHA256, "cohort review registry", check_work=check_work)
+    decision, decision_digest, _index, index_digest, _contract, _contract_digest = _capture_review_documents(repo, check_work=check_work)
     cohorts = {cohort["id"]: cohort for cohort in cohort_document["cohorts"]}
     if decision.get("cohort_registry_sha256") != cohort_registry_sha256:
         raise RunnerError("fresh capture decision is bound to a different executable cohort registry")
     return validate_cohort_reviews(document, cohort_registry_sha256, cohorts, decision, decision_digest, index_digest), digest
 
 
-def _verify_cohort_binaries(cohort: dict[str, object], binary_root: Path, context: str) -> dict[str, Path]:
+def _verify_cohort_binaries(cohort: dict[str, object], binary_root: Path, context: str, *, check_work: Callable[[], None] | None = None) -> dict[str, Path]:
     if cohort.get("status") != DIAGNOSTIC_COHORT_STATUS:
         raise RunnerError(f"{context} verification only accepts the recorded diagnostic cohort")
     expected = cohort.get("binaries")
@@ -433,6 +437,8 @@ def _verify_cohort_binaries(cohort: dict[str, object], binary_root: Path, contex
         raise RunnerError(f"{context} binary inventory is incomplete")
     verified: dict[str, Path] = {}
     for app in APPS:
+        if check_work is not None:
+            check_work()
         record = expected[app]
         if not isinstance(record, dict) or set(record) != {"path", "sha256"}:
             raise RunnerError(f"{context} binary path is invalid: {app}")
@@ -442,7 +448,7 @@ def _verify_cohort_binaries(cohort: dict[str, object], binary_root: Path, contex
         if record["path"] != app:
             raise RunnerError(f"{context} binary path is invalid: {app}")
         path = binary_root / relative.parts[0]
-        actual, _identity = stable_private_binary(path, f"{context} binary {app}")
+        actual, _identity = stable_private_binary(path, f"{context} binary {app}", check_work=check_work) if check_work is not None else stable_private_binary(path, f"{context} binary {app}")
         if actual != record["sha256"]:
             raise RunnerError(f"{context} binary hash mismatch: {app}")
         verified[app] = path
@@ -458,16 +464,16 @@ def verify_diagnostic_cohort_binaries(repo: Path, cohort_id: str, binary_root: P
     return _verify_cohort_binaries(cohort, binary_root, "diagnostic cohort")
 
 
-def require_capture_eligible_cohort(repo: Path, cohort_id: str, binary_root: Path) -> dict[str, object]:
+def require_capture_eligible_cohort(repo: Path, cohort_id: str, binary_root: Path, *, check_work: Callable[[], None] | None = None) -> dict[str, object]:
     """Resolve a separately reviewed cohort for fresh baseline capture only."""
-    cohort_document, registry_sha256 = _read_pinned_json(repo, EXECUTABLE_COHORTS, EXECUTABLE_COHORTS_SHA256, "executable cohort registry")
+    cohort_document, registry_sha256 = _read_pinned_json(repo, EXECUTABLE_COHORTS, EXECUTABLE_COHORTS_SHA256, "executable cohort registry", check_work=check_work)
     cohort_document = validate_executable_cohorts(cohort_document)
-    review_map, reviews_sha256 = load_cohort_review_registry(repo, cohort_document, registry_sha256)
+    review_map, reviews_sha256 = load_cohort_review_registry(repo, cohort_document, registry_sha256, check_work=check_work)
     cohort = next((item for item in cohort_document["cohorts"] if item["id"] == cohort_id), None)
     review = review_map.get(cohort_id)
     if cohort is None or review is None:
         raise RunnerError("executable cohort has no separately reviewed fresh-capture eligibility")
-    binaries = _verify_cohort_binaries(cohort, binary_root, "capture-eligible cohort")
+    binaries = _verify_cohort_binaries(cohort, binary_root, "capture-eligible cohort", check_work=check_work)
     return {
         "cohort_id": cohort_id,
         "cohort_registry_sha256": registry_sha256,
@@ -598,6 +604,7 @@ def _owned_broker_main(spec_path: Path, control_fd: int) -> int:
     ready_path: Path | None = None
     result_path: Path | None = None
     process: subprocess.Popen[bytes] | None = None
+    command_spawn_pending = False
     status: dict[str, object]
     try:
         spec = json.loads(spec_path.read_text())
@@ -623,6 +630,7 @@ def _owned_broker_main(spec_path: Path, control_fd: int) -> int:
         if ready and os.read(control_fd, 1) == b"":
             return 2
         started = time.monotonic()
+        command_spawn_pending = True
         process = subprocess.Popen(
             argv,
             cwd=cwd,
@@ -632,6 +640,7 @@ def _owned_broker_main(spec_path: Path, control_fd: int) -> int:
             close_fds=True,
             start_new_session=False,
         )
+        command_spawn_pending = False
         # Caught handlers reset to SIG_DFL on exec. Thus the broker can remain
         # an anchor while the owned command still receives ordinary SIGTERM.
         if term_requested:
@@ -650,6 +659,8 @@ def _owned_broker_main(spec_path: Path, control_fd: int) -> int:
             "returncode": None,
             "error": f"{type(error).__name__}: {str(error)[:512]}",
         }
+        if command_spawn_pending and isinstance(error, OSError):
+            status["spawn_failure"] = True
     try:
         if result_path is None:
             raise RunnerError("owned subprocess result path was not established")
@@ -729,7 +740,7 @@ def _owned_broker_orphan_cleanup(process: subprocess.Popen[bytes] | None) -> Non
 
 
 class PrepareExecution:
-    """Opt-in stage-one deadline and anchored subprocess ownership.
+    """Opt-in prepare lifecycle deadline and anchored subprocess ownership.
 
     This scope is for the canonical fixed Git commands. A child that starts a
     new session escapes the owned process group and is outside this contract.
@@ -786,8 +797,17 @@ class PrepareExecution:
             raise RunnerError("owned prepare cleanup deadline expired")
         return remaining
 
-    def run(self, command: list[str], *, cwd: Path, stdout_file: object | None = None, capture_stdout: bool = True, env: dict[str, str] | None = None, quiet: bool = False, show_command: bool = True) -> tuple[str, str]:
+    @property
+    def remaining_work(self) -> float:
         self.check_work()
+        return self.work_deadline - time.monotonic()
+
+    def run(self, command: list[str], *, cwd: Path, stdout_file: object | None = None, capture_stdout: bool = True, env: dict[str, str] | None = None, quiet: bool = False, show_command: bool = True, command_timeout: float | None = None, optional_failure: bool = False) -> tuple[str, str] | None:
+        self.check_work()
+        if command_timeout is not None and (not isinstance(command_timeout, (int, float)) or command_timeout <= 0):
+            raise RunnerError("owned command timeout must be positive")
+        if command_timeout is not None and command_timeout > 12:
+            raise RunnerError("owned optional probe timeout exceeds 12 seconds")
         if not command or any(not isinstance(part, str) or "\0" in part for part in command):
             raise RunnerError("owned prepare command argv was invalid")
         status_dir = Path(tempfile.mkdtemp(prefix="termrock-prepare-owned-"))
@@ -815,6 +835,8 @@ class PrepareExecution:
         succeeded = False
         cleanup_error: RunnerError | None = None
         result: dict[str, object] | None = None
+        local_timeout_hit = False
+        command_deadline = min(self.work_deadline, time.monotonic() + command_timeout) if command_timeout is not None else self.work_deadline
         try:
             broker = subprocess.Popen(
                 broker_argv,
@@ -849,11 +871,37 @@ class PrepareExecution:
                     if self.cancel_signal is not None:
                         raise RunnerError(f"owned prepare cancelled by signal {self.cancel_signal}")
                     raise RunnerError("owned prepare work deadline expired")
+                if time.monotonic() >= command_deadline:
+                    os.close(control_write)
+                    control_write = -1
+                    try:
+                        broker.wait(timeout=self._remaining_hard())
+                    except subprocess.TimeoutExpired as error:
+                        raise RunnerError("owned prepare broker did not stop after local probe timeout") from error
+                    self._retired_anchors.add(broker.pid)
+                    if broker.returncode != 2:
+                        raise RunnerError("owned prepare broker failed before anchor readiness")
+                    if status_path.exists():
+                        status = self._read_status(status_path)
+                        if not (status.get("spawn_failure") is True and status.get("returncode") is None):
+                            raise RunnerError("owned prepare broker reported an error before anchor readiness")
+                    if self.cancel_signal is not None:
+                        raise RunnerError(f"owned prepare cancelled by signal {self.cancel_signal}")
+                    if time.monotonic() >= self.work_deadline:
+                        raise RunnerError("owned prepare work deadline expired")
+                    if optional_failure:
+                        self.check_work()
+                        succeeded = True
+                        return None
+                    raise RunnerError("owned command timed out before its anchor became ready")
                 if not self._anchor_exists(broker.pid):
                     raise RunnerError("owned prepare broker exited before its anchor-ready receipt")
                 time.sleep(min(0.01, max(0.0, self.work_deadline - time.monotonic())))
             while not status_path.exists():
                 if self.cancel_signal is not None or time.monotonic() >= self.work_deadline:
+                    break
+                if time.monotonic() >= command_deadline:
+                    local_timeout_hit = command_timeout is not None
                     break
                 if not self._anchor_exists(broker.pid):
                     break
@@ -868,6 +916,11 @@ class PrepareExecution:
                 cleanup_error = error
             if cleanup_error is not None:
                 raise cleanup_error
+            # Cleanup may be the point where a delayed broker failure becomes
+            # observable. Classify its final receipt before treating a local
+            # optional-probe timeout as an ordinary missing result.
+            if status_path.exists():
+                result = self._read_status(status_path)
             if self.cancel_signal is not None:
                 raise RunnerError(f"owned prepare cancelled by signal {self.cancel_signal}")
             if time.monotonic() >= self.work_deadline:
@@ -875,7 +928,22 @@ class PrepareExecution:
             if result is None:
                 raise RunnerError("owned prepare broker exited without a bounded status record")
             if result.get("returncode") is None:
+                if optional_failure:
+                    if result.get("spawn_failure") is True:
+                        self.check_work()
+                        succeeded = True
+                        return None
+                    raise RunnerError(f"owned prepare broker failed before command completion: {result.get('error', 'unknown broker error')}")
                 raise RunnerError(f"owned prepare command could not start: {result.get('error', 'unknown broker error')}")
+            returncode = result.get("returncode")
+            if type(returncode) is not int:
+                raise RunnerError("owned prepare broker returned no command status")
+            if local_timeout_hit:
+                if optional_failure:
+                    self.check_work()
+                    succeeded = True
+                    return None
+                raise RunnerError("owned command timed out")
             stdout_tmp.seek(0)
             stderr_tmp.seek(0)
             output = stdout_tmp.read().decode(errors="replace") if capture_stdout else ""
@@ -883,13 +951,15 @@ class PrepareExecution:
             if not quiet:
                 print(errors, end="", file=sys.stderr, flush=True)
                 print(output, end="", flush=True)
-            returncode = result.get("returncode")
-            if type(returncode) is not int:
-                raise RunnerError("owned prepare broker returned no command status")
             if returncode:
+                if optional_failure:
+                    self.check_work()
+                    succeeded = True
+                    return None
                 detail = (output + "\n" + errors)[-6000:]
                 raise RunnerError(f"command exited {returncode}: {' '.join(command)}\n{detail}")
             succeeded = True
+            self.check_work()
             return output, errors
         finally:
             if broker is not None and registered and not released:
@@ -998,16 +1068,24 @@ class PrepareExecution:
             time.sleep(min(0.02, max(0.0, term_deadline - time.monotonic()), remaining))
 
 
-def sha256(path: Path) -> str:
+def sha256(path: Path, *, check_work: Callable[[], None] | None = None) -> str:
+    if check_work is not None:
+        check_work()
     h = hashlib.sha256()
     with path.open("rb") as stream:
         for chunk in iter(lambda: stream.read(1024 * 1024), b""):
+            if check_work is not None:
+                check_work()
             h.update(chunk)
+    if check_work is not None:
+        check_work()
     return h.hexdigest()
 
 
-def stable_private_binary(path: Path, label: str) -> tuple[str, dict[str, int]]:
+def stable_private_binary(path: Path, label: str, *, check_work: Callable[[], None] | None = None) -> tuple[str, dict[str, int]]:
     """Hash one unchanged, unaliased executable through a no-follow file descriptor."""
+    if check_work is not None:
+        check_work()
     try:
         before = path.lstat()
         if stat.S_ISLNK(before.st_mode) or not stat.S_ISREG(before.st_mode) or before.st_nlink != 1 or not before.st_mode & (stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH):
@@ -1017,6 +1095,8 @@ def stable_private_binary(path: Path, label: str) -> tuple[str, dict[str, int]]:
             opened = os.fstat(fd)
             digest = hashlib.sha256()
             while chunk := os.read(fd, 1024 * 1024):
+                if check_work is not None:
+                    check_work()
                 digest.update(chunk)
             after_fd = os.fstat(fd)
         finally:
@@ -1127,19 +1207,26 @@ def digest_source(path: Path, *, check_work: Callable[[], None] | None = None) -
     return h.hexdigest()
 
 
-def file_manifest(path: Path) -> dict[str, str]:
+def file_manifest(path: Path, *, check_work: Callable[[], None] | None = None) -> dict[str, str]:
+    files = []
+    for file in path.rglob("*"):
+        if check_work is not None:
+            check_work()
+        if file.is_file() and not {"target", "snapshots"}.intersection(file.relative_to(path).parts):
+            files.append(file)
     return {
-        file.relative_to(path).as_posix(): sha256(file)
-        for file in sorted(path.rglob("*"))
-        if file.is_file() and not {"target", "snapshots"}.intersection(file.relative_to(path).parts)
+        file.relative_to(path).as_posix(): sha256(file, check_work=check_work) if check_work is not None else sha256(file)
+        for file in sorted(files)
     }
 
 
-def freeze_tree_readonly(path: Path) -> None:
+def freeze_tree_readonly(path: Path, *, check_work: Callable[[], None] | None = None) -> None:
     if path.is_symlink() or not path.is_dir():
         raise RunnerError(f"frozen copy must be a real directory: {path}")
     directories = []
     for current, child_dirs, files in os.walk(path, followlinks=False):
+        if check_work is not None:
+            check_work()
         current_path = Path(current)
         directories.append(current_path)
         for name in child_dirs:
@@ -1147,12 +1234,18 @@ def freeze_tree_readonly(path: Path) -> None:
             if item.is_symlink() or not stat.S_ISDIR(item.lstat().st_mode):
                 raise RunnerError(f"frozen copy contains non-directory or symlink: {item}")
         for name in files:
+            if check_work is not None:
+                check_work()
             item = current_path / name
             if item.is_symlink() or not stat.S_ISREG(item.lstat().st_mode):
                 raise RunnerError(f"frozen copy contains non-regular file or symlink: {item}")
             item.chmod(0o444)
     for directory in reversed(directories):
+        if check_work is not None:
+            check_work()
         directory.chmod(0o555)
+        if check_work is not None:
+            check_work()
 
 
 def safe_extract(tar: tarfile.TarFile, destination: Path, *, check_work: Callable[[], None] | None = None) -> None:
@@ -1272,24 +1365,29 @@ def prepare(repo: Path, root: Path, timeout: int, *, execution: PrepareExecution
     print(json.dumps(manifest, indent=2))
 
 
-def verify_source(root: Path, source: Path) -> str:
+def verify_source(root: Path, source: Path, *, check_work: Callable[[], None] | None = None) -> str:
     manifest = json.loads((root / "provenance.json").read_text())
     if manifest.get("source_commit") != BASELINE_COMMIT or manifest.get("tag_object") != BASELINE_TAG_OBJECT or manifest.get("source_tree") != BASELINE_TREE:
         raise RunnerError("frozen provenance identity mismatch")
-    current = digest_source(source)
+    current = digest_source(source, check_work=check_work) if check_work is not None else digest_source(source)
     if current != manifest.get("source_sha256"):
         raise RunnerError("frozen source was modified after extraction")
-    if digest_tree(source / "snapshots") != manifest.get("snapshots_sha256"):
+    current_snapshots = digest_tree(source / "snapshots", check_work=check_work) if check_work is not None else digest_tree(source / "snapshots")
+    if current_snapshots != manifest.get("snapshots_sha256"):
         raise RunnerError("frozen snapshots were modified after extraction")
     return current
 
 
-def _fresh_cohort_source_record(repo: Path, cohort_id: str, binary_dir: Path) -> dict[str, object]:
-    capture = require_capture_eligible_cohort(repo, cohort_id, binary_dir)
+def _fresh_cohort_source_record(repo: Path, cohort_id: str, binary_dir: Path, *, check_work: Callable[[], None] | None = None) -> dict[str, object]:
+    if check_work is not None:
+        check_work()
+    capture = require_capture_eligible_cohort(repo, cohort_id, binary_dir, check_work=check_work)
     hashes: dict[str, str] = {}
     identities: dict[str, dict[str, int]] = {}
     for app in APPS:
-        hashes[app], identities[app] = stable_private_binary(binary_dir / app, f"fresh-capture baseline binary {app}")
+        if check_work is not None:
+            check_work()
+        hashes[app], identities[app] = stable_private_binary(binary_dir / app, f"fresh-capture baseline binary {app}", check_work=check_work)
     if hashes != {app: item["sha256"] for app, item in capture["binaries"].items()}:
         raise RunnerError("capture cohort binary hashes changed during source preparation")
     return {
@@ -1307,6 +1405,62 @@ def _fresh_cohort_source_record(repo: Path, cohort_id: str, binary_dir: Path) ->
     }
 
 
+def _path_entry_exists(path: Path) -> bool:
+    try:
+        path.lstat()
+    except FileNotFoundError:
+        return False
+    return True
+
+
+def _publish_live_source_manifest(root: Path, manifest_path: Path, info: dict[str, object], *, check_work: Callable[[], None] | None = None) -> None:
+    temporary = root / ".live-source.json.tmp"
+    if _path_entry_exists(temporary):
+        raise RunnerError("refusing to replace live source manifest temporary entry")
+    if _path_entry_exists(manifest_path):
+        raise RunnerError("refusing to replace live source manifest entry")
+
+    nofollow = getattr(os, "O_NOFOLLOW", None)
+    if nofollow is None:
+        raise RunnerError("platform lacks no-follow support for live source manifest creation")
+    flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL | nofollow
+    try:
+        descriptor = os.open(temporary, flags, 0o644)
+    except FileExistsError as error:
+        raise RunnerError("refusing to replace live source manifest temporary entry") from error
+    try:
+        created = os.fstat(descriptor)
+        if not stat.S_ISREG(created.st_mode):
+            raise RunnerError("live source manifest temporary was not a regular file")
+        with os.fdopen(descriptor, "wb") as stream:
+            descriptor = -1
+            stream.write((json.dumps(info, indent=2) + "\n").encode())
+            stream.flush()
+            os.fsync(stream.fileno())
+        if check_work is not None:
+            check_work()
+        temporary_entry = temporary.lstat()
+        if not stat.S_ISREG(temporary_entry.st_mode) or (temporary_entry.st_dev, temporary_entry.st_ino) != (created.st_dev, created.st_ino):
+            raise RunnerError("live source manifest temporary entry changed during publication")
+        try:
+            # A same-filesystem hard-link publishes atomically and refuses an
+            # existing file or symlink, including a dangling symlink.
+            os.link(temporary, manifest_path, follow_symlinks=False)
+        except FileExistsError as error:
+            raise RunnerError("refusing to replace live source manifest entry") from error
+        published = manifest_path.lstat()
+        if not stat.S_ISREG(published.st_mode) or (published.st_dev, published.st_ino) != (created.st_dev, created.st_ino):
+            raise RunnerError("published live source manifest was not the owned regular file")
+        temporary_after = temporary.lstat()
+        if not stat.S_ISREG(temporary_after.st_mode) or (temporary_after.st_dev, temporary_after.st_ino) != (created.st_dev, created.st_ino):
+            raise RunnerError("live source manifest temporary entry changed before cleanup")
+        temporary.unlink()
+    except BaseException:
+        if descriptor >= 0:
+            os.close(descriptor)
+        raise
+
+
 def prepare_live_source(
     repo: Path,
     root: Path,
@@ -1315,19 +1469,31 @@ def prepare_live_source(
     *,
     fresh_cohort_id: str | None = None,
     baseline_bin_dir: Path | None = None,
+    execution: PrepareExecution | None = None,
 ) -> dict[str, object]:
     live = root / "live-source"
-    if live.exists():
+    manifest_path = root / "live-source.json"
+    if execution is not None and (fresh_cohort_id is None or baseline_bin_dir is None):
+        raise RunnerError("owned prepare-live requires explicit fresh cohort and baseline binaries")
+    if execution is not None and fresh_cohort_id != PREPARE_LIVE_OWNED_COHORT:
+        raise RunnerError("owned prepare-live requires the pinned frozen-20261021-serial-nonincr-r1-r2 cohort")
+    if _path_entry_exists(live) or _path_entry_exists(manifest_path):
         raise RunnerError(f"refusing to replace prepared live source: {live}")
+    check_work = execution.check_work if execution is not None else None
+    if check_work is not None:
+        check_work()
     patch_path = repo / "tools" / "frozen_cli_pair.patch"
     helper_path = repo / "tools" / "frozen-cli-frame-support" / "src" / "lib.rs"
     extension_manifest_path = repo / EXTENSION_MANIFEST
     extension_source_path = repo / EXTENSION_SOURCE
     if not patch_path.is_file() or not helper_path.is_file() or not extension_manifest_path.is_file() or not extension_source_path.is_file():
         raise RunnerError("live harness patch, frame helper, or visual extension inputs missing from candidate checkout")
-    if sha256(patch_path) != EXTENSION_PATCH_SHA256:
+    patch_digest = sha256(patch_path, check_work=check_work) if check_work is not None else sha256(patch_path)
+    if patch_digest != EXTENSION_PATCH_SHA256:
         raise RunnerError("visual extension test patch differs from the pinned extension revision")
-    if sha256(extension_manifest_path) != EXTENSION_MANIFEST_SHA256 or sha256(extension_source_path) != EXTENSION_SOURCE_SHA256:
+    extension_manifest_digest = sha256(extension_manifest_path, check_work=check_work) if check_work is not None else sha256(extension_manifest_path)
+    extension_source_digest = sha256(extension_source_path, check_work=check_work) if check_work is not None else sha256(extension_source_path)
+    if extension_manifest_digest != EXTENSION_MANIFEST_SHA256 or extension_source_digest != EXTENSION_SOURCE_SHA256:
         raise RunnerError("visual extension manifest or Rust module differs from the pinned extension revision")
     extension_manifest = load_extension_manifest(extension_manifest_path)
     if fresh_cohort_id is None:
@@ -1338,43 +1504,78 @@ def prepare_live_source(
     else:
         if baseline_bin_dir is None:
             raise RunnerError("fresh cohort mode requires its sealed baseline binary directory")
-        fresh_cohort = _fresh_cohort_source_record(repo, fresh_cohort_id, baseline_bin_dir.resolve())
+        fresh_cohort = _fresh_cohort_source_record(repo, fresh_cohort_id, baseline_bin_dir.resolve(), check_work=check_work) if check_work is not None else _fresh_cohort_source_record(repo, fresh_cohort_id, baseline_bin_dir.resolve())
         reference_decision_hash = None
-    before = file_manifest(source)
-    shutil.copytree(source, live, ignore=shutil.ignore_patterns("target"), symlinks=True)
-    snapshot_hash = digest_tree(source / "snapshots")
-    if digest_tree(live / "snapshots") != snapshot_hash:
+
+    def checked_copy2(src: str, dst: str, *, follow_symlinks: bool = True) -> str:
+        if check_work is not None:
+            check_work()
+        copied = shutil.copy2(src, dst, follow_symlinks=follow_symlinks)
+        if check_work is not None:
+            check_work()
+        return copied
+
+    def checked_copyfile(src: str | os.PathLike[str], dst: str | os.PathLike[str]) -> str:
+        if check_work is not None:
+            check_work()
+        copied = shutil.copyfile(src, dst)
+        if check_work is not None:
+            check_work()
+        return copied
+
+    before = file_manifest(source, check_work=check_work) if check_work is not None else file_manifest(source)
+    if check_work is not None:
+        check_work()
+    shutil.copytree(source, live, ignore=shutil.ignore_patterns("target"), symlinks=True, copy_function=checked_copy2)
+    if check_work is not None:
+        check_work()
+    snapshot_hash = digest_tree(source / "snapshots", check_work=check_work) if check_work is not None else digest_tree(source / "snapshots")
+    copied_snapshot_hash = digest_tree(live / "snapshots", check_work=check_work) if check_work is not None else digest_tree(live / "snapshots")
+    if copied_snapshot_hash != snapshot_hash:
         raise RunnerError("live source snapshot copy differs from frozen snapshots")
-    freeze_tree_readonly(live / "snapshots")
-    run(["patch", "--batch", "--forward", "-V", "none", "-p1", "-i", str(patch_path.resolve())], cwd=live, timeout=timeout, quiet=True)
+    freeze_tree_readonly(live / "snapshots", check_work=check_work)
+    if execution is None:
+        run(["patch", "--batch", "--forward", "-V", "none", "-p1", "-i", str(patch_path.resolve())], cwd=live, timeout=timeout, quiet=True)
+    else:
+        execution.run(["patch", "--batch", "--forward", "-V", "none", "-p1", "-i", str(patch_path.resolve())], cwd=live, env=fresh_clean_env(), quiet=True)
+        execution.check_work()
     module = live / "tests" / "visual_baseline" / "frozen_cli_pair.rs"
     extension_module = live / "tests" / "visual_baseline" / "frozen_cli_extensions.rs"
     extension_manifest_copy = live / "tests" / "visual_baseline" / "frozen_cli_extensions.json"
-    shutil.copyfile(helper_path, module)
-    shutil.copyfile(extension_source_path, extension_module)
-    shutil.copyfile(extension_manifest_path, extension_manifest_copy)
+    checked_copyfile(helper_path, module)
+    checked_copyfile(extension_source_path, extension_module)
+    checked_copyfile(extension_manifest_path, extension_manifest_copy)
     expected = {"tests/visual_baseline/main.rs", "tests/visual_baseline/support.rs", "tests/visual_baseline/scenarios/mod.rs", "tests/visual_baseline/scenarios/interact.rs", "tests/visual_baseline/frozen_cli_pair.rs", "tests/visual_baseline/frozen_cli_extensions.rs", "tests/visual_baseline/frozen_cli_extensions.json"}
-    after = file_manifest(live)
+    after = file_manifest(live, check_work=check_work) if check_work is not None else file_manifest(live)
     changed = {name for name in set(before) | set(after) if before.get(name) != after.get(name)}
     if changed != expected:
         raise RunnerError(f"live harness patch changed unexpected frozen source files: {sorted(changed)}")
-    live_hash = digest_source(live)
+    live_hash = digest_source(live, check_work=check_work) if check_work is not None else digest_source(live)
+    frozen_source_hash = digest_source(source, check_work=check_work) if check_work is not None else digest_source(source)
+    patch_file_hash = sha256(patch_path, check_work=check_work) if check_work is not None else sha256(patch_path)
+    helper_file_hash = sha256(helper_path, check_work=check_work) if check_work is not None else sha256(helper_path)
+    module_file_hash = sha256(module, check_work=check_work) if check_work is not None else sha256(module)
+    extension_manifest_file_hash = sha256(extension_manifest_path, check_work=check_work) if check_work is not None else sha256(extension_manifest_path)
+    extension_manifest_copy_hash = sha256(extension_manifest_copy, check_work=check_work) if check_work is not None else sha256(extension_manifest_copy)
+    extension_source_file_hash = sha256(extension_source_path, check_work=check_work) if check_work is not None else sha256(extension_source_path)
+    extension_module_file_hash = sha256(extension_module, check_work=check_work) if check_work is not None else sha256(extension_module)
+    live_snapshot_hash = digest_tree(live / "snapshots", check_work=check_work) if check_work is not None else digest_tree(live / "snapshots")
     info = {
-        "frozen_source_sha256": digest_source(source),
+        "frozen_source_sha256": frozen_source_hash,
         "live_source_sha256": live_hash,
-        "patch_sha256": sha256(patch_path),
-        "helper_sha256": sha256(helper_path),
-        "module_sha256": sha256(module),
-        "extension_manifest_sha256": sha256(extension_manifest_path),
-        "extension_manifest_copy_sha256": sha256(extension_manifest_copy),
-        "extension_source_sha256": sha256(extension_source_path),
-        "extension_module_sha256": sha256(extension_module),
+        "patch_sha256": patch_file_hash,
+        "helper_sha256": helper_file_hash,
+        "module_sha256": module_file_hash,
+        "extension_manifest_sha256": extension_manifest_file_hash,
+        "extension_manifest_copy_sha256": extension_manifest_copy_hash,
+        "extension_source_sha256": extension_source_file_hash,
+        "extension_module_sha256": extension_module_file_hash,
         "extension_case_count": len(extension_manifest["generated_case_ids"]),
         "reference_decisions_sha256": reference_decision_hash,
         "fresh_capture_cohort": fresh_cohort,
         "extension_inventory_sha256": hashlib.sha256(json.dumps(extension_manifest["generated_case_ids"], separators=(",", ":")).encode()).hexdigest(),
         "frozen_snapshots_sha256": snapshot_hash,
-        "live_snapshots_sha256": digest_tree(live / "snapshots"),
+        "live_snapshots_sha256": live_snapshot_hash,
         "changed_files": sorted(changed),
     }
     env = fresh_clean_env() if fresh_cohort is not None else clean_env()
@@ -1382,15 +1583,17 @@ def prepare_live_source(
     if fresh_cohort is not None:
         env["NEXTEST_EXPERIMENTAL_LIBTEST_JSON"] = "1"
         info["preparation_environment"] = fresh_environment_fingerprint(env)
-        info["preparation_tool_observation"] = fresh_tool_observation(live, env)
-    inventory = nextest_inventory(live, timeout, env, extension_manifest)
+        info["preparation_tool_observation"] = fresh_tool_observation(live, env, execution=execution) if execution is not None else fresh_tool_observation(live, env)
+    inventory = nextest_inventory(live, timeout, env, extension_manifest, execution=execution) if execution is not None else nextest_inventory(live, timeout, env, extension_manifest)
     original_inventory, _ = validate_extension_inventory(inventory, extension_manifest)
     info["test_inventory_sha256"] = inventory_digest(inventory)
     info["original_test_inventory_sha256"] = inventory_digest(original_inventory)
     info["registered_scenarios"] = EXPECTED_SCENARIOS
     info["extension_scenarios"] = len(extension_manifest["generated_case_ids"])
     info["ordinary_checks"] = EXPECTED_ORDINARY_TESTS
-    (root / "live-source.json").write_text(json.dumps(info, indent=2) + "\n")
+    if check_work is not None:
+        check_work()
+    _publish_live_source_manifest(root, manifest_path, info, check_work=check_work)
     return info
 
 
@@ -1499,7 +1702,11 @@ def build_environment_fingerprint(env: dict[str, str]) -> dict[str, object]:
     }
 
 
-def _captured_output(command: list[str], *, cwd: Path, env: dict[str, str], timeout: int = 12) -> str | None:
+def _captured_output(command: list[str], *, cwd: Path, env: dict[str, str], timeout: int = 12, execution: PrepareExecution | None = None) -> str | None:
+    if execution is not None:
+        bounded_timeout = min(float(timeout), 12.0, execution.remaining_work)
+        result = execution.run(command, cwd=cwd, env=env, quiet=True, command_timeout=bounded_timeout, optional_failure=True)
+        return result[0].strip() if result is not None else None
     try:
         result = subprocess.run(command, cwd=cwd, env=env, capture_output=True, text=True, timeout=timeout, check=False)
     except (OSError, subprocess.TimeoutExpired):
@@ -1509,7 +1716,9 @@ def _captured_output(command: list[str], *, cwd: Path, env: dict[str, str], time
     return result.stdout.strip()
 
 
-def _executable_metadata(path: str | None, *, env: dict[str, str], version_args: list[str], cwd: Path) -> dict[str, object]:
+def _executable_metadata(path: str | None, *, env: dict[str, str], version_args: list[str], cwd: Path, execution: PrepareExecution | None = None) -> dict[str, object]:
+    if execution is not None:
+        execution.check_work()
     if not path:
         return {"available": False, "path": None, "sha256": None, "version": None}
     entry = Path(path)
@@ -1521,21 +1730,30 @@ def _executable_metadata(path: str | None, *, env: dict[str, str], version_args:
         return {"available": False, "path": str(entry), "sha256": None, "version": None}
     if not resolved.is_file():
         return {"available": False, "path": str(resolved), "sha256": None, "version": None}
+    executable_hash = sha256(resolved, check_work=execution.check_work) if execution is not None else sha256(resolved)
+    version = _captured_output([str(resolved), *version_args], cwd=cwd, env=env, execution=execution) if execution is not None else _captured_output([str(resolved), *version_args], cwd=cwd, env=env)
     return {
         "available": True,
         "path": str(resolved),
-        "sha256": sha256(resolved),
-        "version": _captured_output([str(resolved), *version_args], cwd=cwd, env=env),
+        "sha256": executable_hash,
+        "version": version,
     }
 
 
-def toolchain_provenance(source: Path, env: dict[str, str]) -> dict[str, object]:
+def toolchain_provenance(source: Path, env: dict[str, str], *, execution: PrepareExecution | None = None) -> dict[str, object]:
+    def probe(command: list[str] | None) -> str | None:
+        if execution is not None:
+            execution.check_work()
+        if not command:
+            return None
+        return _captured_output(command, cwd=source, env=env, execution=execution) if execution is not None else _captured_output(command, cwd=source, env=env)
+
     cargo_entry = shutil.which("cargo", path=env.get("PATH"))
     rustup_entry = shutil.which("rustup", path=env.get("PATH"))
     rustc_entry = env.get("RUSTC") or shutil.which("rustc", path=env.get("PATH"))
     if rustup_entry:
-        selected_rustc = _captured_output([rustup_entry, "which", "rustc"], cwd=source, env=env)
-        selected_cargo = _captured_output([rustup_entry, "which", "cargo"], cwd=source, env=env)
+        selected_rustc = probe([rustup_entry, "which", "rustc"])
+        selected_cargo = probe([rustup_entry, "which", "cargo"])
         if selected_rustc:
             rustc_entry = selected_rustc
     else:
@@ -1546,11 +1764,11 @@ def toolchain_provenance(source: Path, env: dict[str, str]) -> dict[str, object]
     linker = shutil.which("ld", path=env.get("PATH"))
     xcrun = shutil.which("xcrun", path=env.get("PATH"))
     xcode_select = shutil.which("xcode-select", path=env.get("PATH"))
-    sdk_path = _captured_output([xcrun, "--show-sdk-path"], cwd=source, env=env) if xcrun else None
-    sdk_version = _captured_output([xcrun, "--show-sdk-version"], cwd=source, env=env) if xcrun else None
-    selected_xcode = _captured_output([xcode_select, "-p"], cwd=source, env=env) if xcode_select else None
-    active_toolchain = _captured_output([rustup_entry, "show", "active-toolchain"], cwd=source, env=env) if rustup_entry else None
-    rustc_metadata = _executable_metadata(rustc_entry, env=env, version_args=["-vV"], cwd=source)
+    sdk_path = probe([xcrun, "--show-sdk-path"] if xcrun else None)
+    sdk_version = probe([xcrun, "--show-sdk-version"] if xcrun else None)
+    selected_xcode = probe([xcode_select, "-p"] if xcode_select else None)
+    active_toolchain = probe([rustup_entry, "show", "active-toolchain"] if rustup_entry else None)
+    rustc_metadata = _executable_metadata(rustc_entry, env=env, version_args=["-vV"], cwd=source, execution=execution)
     rustc_version = rustc_metadata.get("version")
     host_triple = None
     llvm_version = None
@@ -1560,18 +1778,21 @@ def toolchain_provenance(source: Path, env: dict[str, str]) -> dict[str, object]
                 host_triple = line.partition(": ")[2]
             elif line.startswith("LLVM version: "):
                 llvm_version = line.partition(": ")[2]
-    sysroot = _captured_output([rustc_entry, "--print", "sysroot"], cwd=source, env=env) if rustc_entry else None
+    sysroot = probe([rustc_entry, "--print", "sysroot"] if rustc_entry else None)
     sysroot_files = []
     if sysroot:
         for relative in ("lib/rustlib/components", "lib/rustlib/manifest-rustc", "lib/rustlib/multirust-channel-manifest.toml"):
+            if execution is not None:
+                execution.check_work()
             path = Path(sysroot) / relative
             if path.is_file() and not path.is_symlink():
-                sysroot_files.append({"path": str(path), "sha256": sha256(path)})
+                sysroot_hash = sha256(path, check_work=execution.check_work) if execution is not None else sha256(path)
+                sysroot_files.append({"path": str(path), "sha256": sysroot_hash})
     return {
-        "cargo_path_entry": _executable_metadata(cargo_entry, env=env, version_args=["--version", "--verbose"], cwd=source),
-        "cargo_selected_toolchain": _executable_metadata(cargo_selected, env=env, version_args=["--version", "--verbose"], cwd=source),
+        "cargo_path_entry": _executable_metadata(cargo_entry, env=env, version_args=["--version", "--verbose"], cwd=source, execution=execution),
+        "cargo_selected_toolchain": _executable_metadata(cargo_selected, env=env, version_args=["--version", "--verbose"], cwd=source, execution=execution),
         "cargo_selection_method": "rustup which from frozen-source cwd" if selected_cargo else "PATH entry only; toolchain selection unresolved",
-        "rustup": _executable_metadata(rustup_entry, env=env, version_args=["--version"], cwd=source),
+        "rustup": _executable_metadata(rustup_entry, env=env, version_args=["--version"], cwd=source, execution=execution),
         "active_toolchain": active_toolchain,
         "rustc_selected_toolchain": rustc_metadata,
         "rustc_selection_method": "RUSTC environment path" if env.get("RUSTC") else "rustup which from frozen-source cwd" if rustup_entry else "PATH entry only; toolchain selection unresolved",
@@ -1579,11 +1800,11 @@ def toolchain_provenance(source: Path, env: dict[str, str]) -> dict[str, object]
         "llvm_version": llvm_version,
         "rustc_sysroot": sysroot,
         "rustc_sysroot_identity_files": sysroot_files,
-        "cc": _executable_metadata(compiler, env=env, version_args=["--version"], cwd=source),
-        "clang": _executable_metadata(clang, env=env, version_args=["--version"], cwd=source),
-        "linker": _executable_metadata(linker, env=env, version_args=["-v"], cwd=source),
-        "xcrun": _executable_metadata(xcrun, env=env, version_args=["--version"], cwd=source),
-        "xcode_select": _executable_metadata(xcode_select, env=env, version_args=["-version"], cwd=source),
+        "cc": _executable_metadata(compiler, env=env, version_args=["--version"], cwd=source, execution=execution),
+        "clang": _executable_metadata(clang, env=env, version_args=["--version"], cwd=source, execution=execution),
+        "linker": _executable_metadata(linker, env=env, version_args=["-v"], cwd=source, execution=execution),
+        "xcrun": _executable_metadata(xcrun, env=env, version_args=["--version"], cwd=source, execution=execution),
+        "xcode_select": _executable_metadata(xcode_select, env=env, version_args=["-version"], cwd=source, execution=execution),
         "sdk_path": sdk_path,
         "sdk_version": sdk_version,
         "xcode_developer_directory": selected_xcode,
@@ -1591,30 +1812,32 @@ def toolchain_provenance(source: Path, env: dict[str, str]) -> dict[str, object]
     }
 
 
-def _selected_executable_observation(name: str, env: dict[str, str], version_args: list[str], cwd: Path, override: str | None = None) -> dict[str, object]:
+def _selected_executable_observation(name: str, env: dict[str, str], version_args: list[str], cwd: Path, override: str | None = None, *, execution: PrepareExecution | None = None) -> dict[str, object]:
+    if execution is not None:
+        execution.check_work()
     entry = override or shutil.which(name, path=env.get("PATH"))
     if not entry:
         raise RunnerError(f"fresh execution tool is unavailable: {name}")
     resolved = Path(entry).resolve(strict=True)
-    digest, identity = stable_private_binary(resolved, f"selected fresh execution tool {name}")
-    version = _captured_output([str(resolved), *version_args], cwd=cwd, env=env)
+    digest, identity = stable_private_binary(resolved, f"selected fresh execution tool {name}", check_work=execution.check_work) if execution is not None else stable_private_binary(resolved, f"selected fresh execution tool {name}")
+    version = _captured_output([str(resolved), *version_args], cwd=cwd, env=env, execution=execution) if execution is not None else _captured_output([str(resolved), *version_args], cwd=cwd, env=env)
     if not version:
         raise RunnerError(f"selected fresh execution tool did not report its version: {name}")
     return {"path": str(resolved), "sha256": digest, "file_identity": identity, "version": version}
 
 
-def fresh_tool_observation(source: Path, env: dict[str, str]) -> dict[str, object]:
+def fresh_tool_observation(source: Path, env: dict[str, str], *, execution: PrepareExecution | None = None) -> dict[str, object]:
     """Capture selected executable identities and compiler/linker metadata without storing binary bytes."""
     invocation = {
-        "cargo": _selected_executable_observation("cargo", env, ["--version", "--verbose"], source),
-        "rustc_path_entry": _selected_executable_observation("rustc", env, ["-vV"], source, env.get("RUSTC")),
-        "cargo_nextest": _selected_executable_observation("cargo-nextest", env, ["--version"], source),
-        "python": _selected_executable_observation("python", env, ["--version"], source, sys.executable),
+        "cargo": _selected_executable_observation("cargo", env, ["--version", "--verbose"], source, execution=execution) if execution is not None else _selected_executable_observation("cargo", env, ["--version", "--verbose"], source),
+        "rustc_path_entry": _selected_executable_observation("rustc", env, ["-vV"], source, env.get("RUSTC"), execution=execution) if execution is not None else _selected_executable_observation("rustc", env, ["-vV"], source, env.get("RUSTC")),
+        "cargo_nextest": _selected_executable_observation("cargo-nextest", env, ["--version"], source, execution=execution) if execution is not None else _selected_executable_observation("cargo-nextest", env, ["--version"], source),
+        "python": _selected_executable_observation("python", env, ["--version"], source, sys.executable, execution=execution) if execution is not None else _selected_executable_observation("python", env, ["--version"], source, sys.executable),
     }
     return {
         "host": {"system": platform.system(), "release": platform.release(), "machine": platform.machine()},
         "invocation_tools": invocation,
-        "selected_toolchain": toolchain_provenance(source, env),
+        "selected_toolchain": toolchain_provenance(source, env, execution=execution) if execution is not None else toolchain_provenance(source, env),
     }
 
 
@@ -1865,9 +2088,18 @@ def nextest_selection(source: Path, root: Path, selector: str | None, all_cases:
     return expression, len(selected)
 
 
-def nextest_inventory(source: Path, timeout: int, env: dict[str, str], extension_manifest: dict[str, object] | None = None) -> dict[str, bool]:
+def nextest_inventory(source: Path, timeout: int, env: dict[str, str], extension_manifest: dict[str, object] | None = None, *, execution: PrepareExecution | None = None) -> dict[str, bool]:
     command = ["cargo", "nextest", "list", "--locked", "--manifest-path", str(source / "Cargo.toml"), "-p", TEST_PACKAGE, "--test", TEST_TARGET, "--message-format", "json"]
-    listing = run(command, cwd=source, timeout=timeout, env=env, quiet=True)
+    if execution is None:
+        listing = run(command, cwd=source, timeout=timeout, env=env, quiet=True)
+    else:
+        execution.check_work()
+        inventory_env = dict(env)
+        inventory_env.pop("VISUAL_TOOL", None)
+        owned_output = execution.run(command, cwd=source, env=inventory_env, quiet=True)
+        assert owned_output is not None
+        listing = owned_output[0]
+        execution.check_work()
     try:
         data = json.loads(listing)
         suites = data["rust-suites"]
@@ -1883,6 +2115,8 @@ def nextest_inventory(source: Path, timeout: int, env: dict[str, str], extension
                 inventory[name] = bool(record.get("ignored"))
     except (ValueError, KeyError, TypeError) as error:
         raise RunnerError("could not parse complete Nextest JSON test inventory") from error
+    if execution is not None:
+        execution.check_work()
     if extension_manifest is None:
         scenarios = sum(inventory.values())
         ordinary = len(inventory) - scenarios
@@ -4461,6 +4695,8 @@ def parser() -> argparse.ArgumentParser:
     prepare_parser.add_argument("--owned-lifecycle", action="store_true", help="use one cancellation-safe stage-one deadline and anchored child cleanup")
     prepare_parser.add_argument("--owned-budget", type=int, default=PREPARE_OWNED_MAX_BUDGET, help="work seconds for --owned-lifecycle; cleanup reserve is additional and fixed")
     prepare_live = sub.add_parser("prepare-live")
+    prepare_live.add_argument("--owned-lifecycle", action="store_true", help="use one cancellation-safe deadline and anchored child cleanup for live-source preparation")
+    prepare_live.add_argument("--owned-budget", type=int, default=PREPARE_OWNED_MAX_BUDGET, help="work seconds for --owned-lifecycle; cleanup reserve is additional and fixed")
     prepare_live.add_argument("--fresh-cohort", help="explicit reviewed fresh-capture cohort; bypasses legacy build.json/tuple approval path")
     prepare_live.add_argument("--baseline-bin-dir", type=Path, help="sealed application directory required with --fresh-cohort")
     verify_live = sub.add_parser("verify-live")
@@ -4536,12 +4772,21 @@ def main() -> int:
                 prepare(args.repo, args.root, args.timeout)
         elif args.command == "prepare-live":
             repo, root, source = paths(args.repo, args.root)
-            verify_source(root, source)
             if args.fresh_cohort is None and args.baseline_bin_dir is not None:
                 raise RunnerError("--baseline-bin-dir requires --fresh-cohort")
             if args.fresh_cohort is not None and args.baseline_bin_dir is None:
                 raise RunnerError("--fresh-cohort requires --baseline-bin-dir")
-            record = prepare_live_source(repo, root, source, args.timeout, fresh_cohort_id=args.fresh_cohort, baseline_bin_dir=args.baseline_bin_dir)
+            if args.owned_lifecycle:
+                if args.fresh_cohort is None or args.baseline_bin_dir is None:
+                    raise RunnerError("--owned-lifecycle requires explicit --fresh-cohort and --baseline-bin-dir")
+                with PrepareExecution(args.owned_budget) as execution:
+                    verify_source(root, source, check_work=execution.check_work)
+                    record = prepare_live_source(repo, root, source, args.timeout, fresh_cohort_id=args.fresh_cohort, baseline_bin_dir=args.baseline_bin_dir, execution=execution)
+            else:
+                if args.owned_budget != PREPARE_OWNED_MAX_BUDGET:
+                    raise RunnerError("--owned-budget requires --owned-lifecycle")
+                verify_source(root, source)
+                record = prepare_live_source(repo, root, source, args.timeout, fresh_cohort_id=args.fresh_cohort, baseline_bin_dir=args.baseline_bin_dir)
             print(json.dumps(record, indent=2))
         elif args.command == "verify-live":
             repo, root, source = paths(args.repo, args.root)
