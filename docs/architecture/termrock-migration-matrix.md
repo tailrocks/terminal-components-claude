@@ -2004,3 +2004,27 @@ Re-measured on this session's base commit with a repository-wide source scan:
   is the open question assigned to the independent audit workstream, and it
   must be settled with paired-runner evidence against the frozen oracle, not by
   writing new expected values.
+
+### Architecture gate: ownership scanner findings at `7649ee7ed`
+
+`cargo nextest run -p termrock-xtask --no-fail-fast -E 'test(ownership)'` fails at
+the parity tip: 388 files scanned, 3067 findings, 108 problems. The scanner is
+the machine-checkable form of the architecture requirement, so these findings
+are the acceptance work list, not a stylistic complaint:
+
+| Rule | Meaning | Worst offenders at `7649ee7ed` |
+| --- | --- | --- |
+| OWN-01 | preview code imports a raw ratatui buffer/cell type | `jackin-preview-app/src/app/launch_cockpit.rs` (1) |
+| OWN-02 | preview code calls a cell-writing paint method | `tablepro-ui/src/app.rs` 267 (max 100), `showcase-demos/src/pages/home.rs`-style pages, `holla-ui/src/screens/home.rs` 143 |
+| OWN-03 | preview code escapes to the raw buffer via `Ui::raw`/`peek` | `jackin-preview-app/src/app.rs` (4) |
+| OWN-04 | preview code calls a local paint-wrapper fn | `jackin-preview-app/src/app/settings_view.rs` 209, `editor_view.rs` 197, `holla-ui/src/app.rs` 70 unexcepted, `showcase-demos/src/pages/selectable.rs` 36 |
+| OWN-09 | preview code keys behaviour off paused state | `showcase-ui/src/app.rs` 12 (max 10) |
+| OWN-10 | preview code selects behaviour by scenario id | `jackin-preview-app/src/app.rs` 42, `holla-sim/src/catalogue.rs` 19 (max 1) |
+| OWN-11 | preview code selects behaviour by width/height comparison | `tablepro-ui/src/app.rs` 47 (max 17), `holla-ui/src/screens/home.rs` 21, `showcase-demos/src/pages/*` growth on nearly every page |
+| OWN-14 | production code names `expect` outside the allowed place | `termrock-navigation/src/tabs.rs` 6, `termrock/src/composition.rs` 4, `termrock-runtime/src/runtime.rs` 3, `termrock-shell/src/nav.rs` 2, `termrock-runtime/src/ui/cx.rs` 1, `termrock-session/src/session.rs` 1, `termrock-shell/src/reach.rs` 1, `tablepro-ui/src/app/picker_contract.rs` 1 |
+
+Two stale exceptions also have to go: `crates/showcase-demos/src/pages/editor.rs`
+OWN-02 and OWN-11 match nothing.
+
+The complete finding list is preserved at
+[docs/audits/evidence/2026-10-21-session-consolidation/ownership-findings-7649ee7ed.txt](../audits/evidence/2026-10-21-session-consolidation/ownership-findings-7649ee7ed.txt).
