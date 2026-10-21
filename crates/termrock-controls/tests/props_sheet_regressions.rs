@@ -15,6 +15,7 @@ struct Model {
     width: u16,
     height: u16,
     rows: Vec<PropsRow<'static>>,
+    sheet: bool,
 }
 
 impl App for Model {
@@ -22,14 +23,15 @@ impl App for Model {
         if cx.update_cause() == UpdateCause::Bootstrap {
             cx.focus(ID);
         }
-        PropsList::new(ID)
-            .sheet()
+        let props = PropsList::new(ID);
+        if self.sheet { props.sheet() } else { props }
             .update(cx, &mut self.state, &self.rows)
             .erase()
     }
 
     fn draw(&self, ui: &mut Ui<'_>) {
-        PropsList::new(ID).sheet().draw(
+        let props = PropsList::new(ID);
+        if self.sheet { props.sheet() } else { props }.draw(
             ui,
             Rect::new(10, 1, self.width, self.height),
             &self.state,
@@ -44,6 +46,7 @@ fn model(width: u16, height: u16, rows: Vec<PropsRow<'static>>) -> Model {
         width,
         height,
         rows,
+        sheet: true,
     }
 }
 
@@ -125,6 +128,38 @@ fn wrapped_value_is_clipped_at_the_component_bottom() {
 }
 
 #[test]
+fn wrapped_continuation_survives_scroll_reveal() {
+    for level in [
+        ColorLevel::TrueColor,
+        ColorLevel::Ansi256,
+        ColorLevel::Ansi16,
+        ColorLevel::Mono,
+    ] {
+        let mut app = model(
+            8,
+            4,
+            vec![
+                PropsRow::new(ItemKey::num(12), "Key", "one two three four five six seven")
+                    .wrap()
+                    .copyable(),
+                PropsRow::new(ItemKey::num(13), "界", "e\u{301} 👩\u{200d}💻 tail").wrap(),
+            ],
+        );
+        // The frozen default-column rendering must keep its full logical row
+        // wrapping while scroll reveal clips the already-resolved rows.
+        app.sheet = false;
+        let mut harness = Harness::new(app, Theme::junie(), 72, 8).with_color(level);
+        let _ = harness.key(termrock_runtime::KeyCode::Char('!'));
+        let _ = harness.key(termrock_runtime::KeyCode::Down);
+        assert_eq!(
+            harness.buffer().cell((15, 1)).unwrap().symbol(),
+            "e",
+            "scroll reveal restarted logical wrapping at the clip edge for {level:?}"
+        );
+    }
+}
+
+#[test]
 fn only_the_current_copyable_row_reserves_hint_width() {
     let harness = Harness::new(
         model(
@@ -176,9 +211,12 @@ fn measured_full_label_is_kept_when_the_minimum_value_room_fits() {
 #[test]
 fn explicit_value_set_and_clear_keep_canonical_precedence() {
     for theme in [Theme::junie(), Theme::paper()] {
-        // This assertion checks explicit RGB style precedence. The separate
-        // copy-hint clipping regression exercises every supported profile.
-        for level in [ColorLevel::TrueColor] {
+        for level in [
+            ColorLevel::TrueColor,
+            ColorLevel::Ansi256,
+            ColorLevel::Ansi16,
+            ColorLevel::Mono,
+        ] {
             for clear_fg in [false, true] {
                 let rows = [PropsRow::new(ItemKey::num(6), "A", "value").tone(Role::Danger)];
                 let patch = [(
@@ -219,11 +257,53 @@ fn explicit_value_set_and_clear_keep_canonical_precedence() {
                 } else {
                     assert_eq!(
                         cell.fg,
-                        termrock_theme::downgrade::downgrade_color(Color::Cyan, level),
+                        match termrock_theme::downgrade::downgrade_color(Color::Cyan, level) {
+                            Color::Reset => Color::Magenta,
+                            color => color,
+                        },
                         "explicit Set must beat row tone"
                     );
                 }
             }
         }
     }
+}
+
+#[test]
+fn explicit_container_foreground_is_inherited_when_label_clears_foreground() {
+    let rows = [PropsRow::new(ItemKey::num(7), "A", "value")];
+    let patches = [
+        (
+            Part::CONTAINER,
+            StylePatch::new().set_fg(Role::Custom(Color::Cyan)),
+        ),
+        (Part::LABEL, StylePatch::new().clear_fg()),
+    ];
+    let mut scene = Scene::new(
+        "props_container_inheritance",
+        Theme::junie(),
+        ColorLevel::TrueColor,
+        40,
+        3,
+    );
+    scene.draw_over(
+        |buf| {
+            for cell in &mut buf.content {
+                cell.set_style(Style::new().fg(Color::Magenta));
+            }
+        },
+        |ui, area| {
+            PropsList::new(ID).sheet().patch_part(&patches).draw(
+                ui,
+                area,
+                &PropsState::default(),
+                &rows,
+            );
+        },
+    );
+    assert_eq!(
+        scene.buffer().cell((7, 0)).unwrap().fg,
+        Color::Cyan,
+        "a default row clear must not erase the explicit container foreground"
+    );
 }
