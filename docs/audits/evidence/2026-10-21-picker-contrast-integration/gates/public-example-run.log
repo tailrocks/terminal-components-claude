@@ -1,0 +1,72 @@
+   Compiling unicode-segmentation v1.13.3
+   Compiling cfg-if v1.0.5
+   Compiling foldhash v0.2.0
+   Compiling equivalent v1.0.3
+   Compiling bitflags v2.13.2
+   Compiling allocator-api2 v0.2.21
+   Compiling either v1.19.0
+   Compiling unicode-width v0.2.2
+   Compiling static_assertions v1.1.0
+   Compiling ryu v1.0.23
+   Compiling itoa v1.0.18
+   Compiling libc v0.2.191
+   Compiling critical-section v1.2.0
+   Compiling castaway v0.2.4
+   Compiling smallvec v1.16.3
+   Compiling scopeguard v1.2.0
+   Compiling log v0.4.34
+   Compiling thiserror v2.0.21
+   Compiling strum v0.28.0
+   Compiling time-core v0.1.9
+   Compiling powerfmt v0.2.1
+   Compiling itertools v0.14.0
+   Compiling num-conv v0.2.2
+   Compiling deranged v0.5.9
+   Compiling line-clipping v0.3.8
+   Compiling compact_str v0.9.1
+   Compiling lock_api v0.4.14
+   Compiling hashbrown v0.17.1
+   Compiling convert_case v0.10.0
+   Compiling derive_more-impl v2.1.1
+   Compiling errno v0.3.14
+   Compiling parking_lot_core v0.9.12
+   Compiling mio v1.2.4
+   Compiling num_threads v0.1.8
+   Compiling lru v0.18.5
+   Compiling kasuari v0.4.13
+   Compiling signal-hook-registry v1.4.8
+   Compiling rustix v1.1.5
+   Compiling derive_more v2.1.1
+   Compiling signal-hook v0.3.18
+   Compiling parking_lot v0.12.5
+   Compiling time v0.3.55
+   Compiling signal-hook-mio v0.2.5
+   Compiling crossterm v0.29.0
+   Compiling unicode-truncate v2.0.1
+   Compiling ratatui-core v0.1.2
+   Compiling ratatui-crossterm v0.1.2
+   Compiling ratatui-widgets v0.3.2
+   Compiling termrock-core v0.1.0 (/private/tmp/pr38-picker-contrast-integrate-20261021/crates/termrock-core)
+   Compiling termrock-theme v0.1.0 (/private/tmp/pr38-picker-contrast-integrate-20261021/crates/termrock-theme)
+   Compiling ratatui-macros v0.7.2
+   Compiling ratatui v0.30.2
+   Compiling termrock-layout v0.1.0 (/private/tmp/pr38-picker-contrast-integrate-20261021/crates/termrock-layout)
+   Compiling termrock-text v0.1.0 (/private/tmp/pr38-picker-contrast-integrate-20261021/crates/termrock-text)
+   Compiling termrock-render v0.1.0 (/private/tmp/pr38-picker-contrast-integrate-20261021/crates/termrock-render)
+   Compiling termrock-collections v0.1.0 (/private/tmp/pr38-picker-contrast-integrate-20261021/crates/termrock-collections)
+   Compiling termrock-runtime v0.1.0 (/private/tmp/pr38-picker-contrast-integrate-20261021/crates/termrock-runtime)
+   Compiling termrock-controls v0.1.0 (/private/tmp/pr38-picker-contrast-integrate-20261021/crates/termrock-controls)
+   Compiling termrock-shell v0.1.0 (/private/tmp/pr38-picker-contrast-integrate-20261021/crates/termrock-shell)
+   Compiling termrock-viewport v0.1.0 (/private/tmp/pr38-picker-contrast-integrate-20261021/crates/termrock-viewport)
+   Compiling termrock-feedback v0.1.0 (/private/tmp/pr38-picker-contrast-integrate-20261021/crates/termrock-feedback)
+   Compiling termrock-fields v0.1.0 (/private/tmp/pr38-picker-contrast-integrate-20261021/crates/termrock-fields)
+   Compiling termrock-terminal v0.1.0 (/private/tmp/pr38-picker-contrast-integrate-20261021/crates/termrock-terminal)
+   Compiling termrock-session v0.1.0 (/private/tmp/pr38-picker-contrast-integrate-20261021/crates/termrock-session)
+   Compiling termrock-navigation v0.1.0 (/private/tmp/pr38-picker-contrast-integrate-20261021/crates/termrock-navigation)
+   Compiling termrock-overlays v0.1.0 (/private/tmp/pr38-picker-contrast-integrate-20261021/crates/termrock-overlays)
+   Compiling termrock-grid v0.1.0 (/private/tmp/pr38-picker-contrast-integrate-20261021/crates/termrock-grid)
+   Compiling termrock-forms v0.1.0 (/private/tmp/pr38-picker-contrast-integrate-20261021/crates/termrock-forms)
+   Compiling termrock-editors v0.1.0 (/private/tmp/pr38-picker-contrast-integrate-20261021/crates/termrock-editors)
+   Compiling termrock v0.1.0 (/private/tmp/pr38-picker-contrast-integrate-20261021/crates/termrock)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 32.25s
+     Running `/private/tmp/pr38-picker-contrast-target-20261021/debug/examples/picker_row_defaults`
