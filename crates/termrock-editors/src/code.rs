@@ -795,6 +795,7 @@ pub struct CodeEditor<'a> {
     read_only: bool,
     disabled: bool,
     edit_entry: Option<EditEntry>,
+    commit_on_blur: bool,
     ov: PartStyle<'a>,
 }
 
@@ -812,6 +813,7 @@ impl fmt::Debug for CodeEditor<'_> {
             .field("read_only", &self.read_only)
             .field("disabled", &self.disabled)
             .field("edit_entry", &self.edit_entry)
+            .field("commit_on_blur", &self.commit_on_blur)
             .finish_non_exhaustive()
     }
 }
@@ -845,6 +847,7 @@ impl<'a> CodeEditor<'a> {
             read_only: false,
             disabled: false,
             edit_entry: None,
+            commit_on_blur: true,
             ov: PartStyle::new(),
         }
     }
@@ -922,6 +925,17 @@ impl<'a> CodeEditor<'a> {
     #[must_use]
     pub const fn edit_entry(mut self, entry: EditEntry) -> Self {
         self.edit_entry = Some(entry);
+        self
+    }
+
+    /// Commit the edit session when focus leaves this editor.
+    ///
+    /// Defaults to `true`. Set to `false` when the owning view temporarily removes the editor
+    /// while preserving its edit session, such as switching to another document tab. Explicit
+    /// cancel and editor commands that leave focus continue to commit independently.
+    #[must_use]
+    pub const fn commit_on_blur(mut self, commit: bool) -> Self {
+        self.commit_on_blur = commit;
         self
     }
 
@@ -1058,7 +1072,12 @@ impl<'a> CodeEditor<'a> {
                         acc.changed();
                     }
                 }
-                Intent::FocusOut { .. } | Intent::Cancel if st.editing => {
+                Intent::FocusOut { .. } if st.editing && self.commit_on_blur => {
+                    st.commit();
+                    acc.action(CodeAction::Committed);
+                }
+                Intent::FocusOut { .. } if st.editing => acc.consumed(),
+                Intent::Cancel if st.editing => {
                     st.commit();
                     acc.action(CodeAction::Committed);
                 }
@@ -1877,6 +1896,7 @@ mod tests {
         state: CodeEditorState,
         read_only: bool,
         disabled: bool,
+        commit_on_blur: bool,
         indent: u8,
         tab_behavior: TabBehavior,
         last_action: Option<CodeAction>,
@@ -1892,6 +1912,7 @@ mod tests {
             let editor = CodeEditor::new(ID, 5)
                 .read_only(self.read_only)
                 .disabled(self.disabled)
+                .commit_on_blur(self.commit_on_blur)
                 .indent(self.indent)
                 .tab_behavior(self.tab_behavior);
             let editor = if let Some(entry) = self.widget_entry {
@@ -1908,6 +1929,7 @@ mod tests {
             let editor = CodeEditor::new(ID, 5)
                 .read_only(self.read_only)
                 .disabled(self.disabled)
+                .commit_on_blur(self.commit_on_blur)
                 .indent(self.indent)
                 .tab_behavior(self.tab_behavior);
             let editor = if let Some(entry) = self.widget_entry {
@@ -1949,6 +1971,7 @@ mod tests {
                 state: CodeEditorState::new(text),
                 read_only,
                 disabled,
+                commit_on_blur: true,
                 indent,
                 tab_behavior,
                 last_action: None,
@@ -2186,6 +2209,71 @@ mod tests {
     }
 
     #[test]
+    fn focus_out_commits_by_default_but_can_preserve_the_edit_session() {
+        let text = "東京 e\u{301}";
+        let (mut committing, mut committing_buffer) = focused_runtime(text, false);
+        committing
+            .app_mut()
+            .state
+            .editor
+            .select_range(0, "東京".len());
+        assert_eq!(committing.app().state.selected_text(), Some("東京"));
+
+        committing.set_focus(None);
+        let _ = committing.settle();
+        committing
+            .draw_buffer(committing_buffer.area, &mut committing_buffer)
+            .commit_presented();
+
+        assert!(!committing.app().state.is_editing());
+        assert_eq!(committing.app().state.selected_text(), None);
+        assert_eq!(committing.app().last_action, Some(CodeAction::Committed));
+
+        let (mut retaining, mut retaining_buffer) = focused_runtime(text, false);
+        retaining.app_mut().commit_on_blur = false;
+        retaining
+            .app_mut()
+            .state
+            .editor
+            .select_range(0, "東京".len());
+        let before = retaining.app().state.clone();
+
+        retaining.set_focus(None);
+        let _ = retaining.settle();
+        retaining
+            .draw_buffer(retaining_buffer.area, &mut retaining_buffer)
+            .commit_presented();
+
+        assert!(retaining.app().state.is_editing());
+        assert_eq!(retaining.app().state.text(), before.text());
+        assert_eq!(
+            retaining.app().state.selected_text(),
+            before.selected_text()
+        );
+        assert_eq!(
+            retaining.app().state.cursor_offset(),
+            before.cursor_offset()
+        );
+        assert_eq!(
+            retaining.app().state.edit_generation,
+            before.edit_generation
+        );
+        assert_ne!(retaining.app().last_action, Some(CodeAction::Committed));
+        assert!(retaining.diagnostics().is_empty());
+    }
+
+    #[test]
+    fn explicit_cancel_commits_even_when_blur_retains_editing() {
+        let (mut runtime, mut buffer) = focused_runtime("draft", false);
+        runtime.app_mut().commit_on_blur = false;
+
+        send_key(&mut runtime, &mut buffer, KeyCode::Esc);
+
+        assert!(!runtime.app().state.is_editing());
+        assert_eq!(runtime.app().last_action, Some(CodeAction::Committed));
+    }
+
+    #[test]
     fn editor_override_takes_precedence_over_app_edit_entry_policy() {
         let area = Rect::new(0, 0, 40, 5);
         let mut runtime = Runtime::new(
@@ -2193,6 +2281,7 @@ mod tests {
                 state: CodeEditorState::new("query"),
                 read_only: false,
                 disabled: false,
+                commit_on_blur: true,
                 indent: 2,
                 tab_behavior: TabBehavior::Indent,
                 last_action: None,
@@ -2217,6 +2306,7 @@ mod tests {
                 state: CodeEditorState::new(""),
                 read_only: false,
                 disabled: false,
+                commit_on_blur: true,
                 indent: 2,
                 tab_behavior: TabBehavior::Indent,
                 last_action: None,
