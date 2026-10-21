@@ -41,6 +41,123 @@ fn row_span(t: &Harness<TableProApp>, y: u16, x0: u16, x1: u16) -> String {
     (x0..=x1).map(|x| t.cell(x, y).symbol()).collect()
 }
 
+fn open_valid_radio_draft() -> Result<Harness<TableProApp>, &'static str> {
+    let mut t = Harness::new(TableProApp::default(), Theme::junie(), 120, 40);
+    let _ = t.ctrl('n');
+    assert!(
+        t.app().connection_form_open(),
+        "ctrl-n must open the connection form"
+    );
+    assert_eq!(t.focus(), Some(NAME), "fresh form must focus Name");
+    assert_eq!(
+        drafts(&t)?,
+        (0, 0),
+        "a new connection starts from the driver's first radio choices"
+    );
+    assert!(t.find("Name").is_some(), "the form must show Name");
+    let _ = t.type_str("Radio contract probe");
+    focus_form_control(&mut t, DATABASE);
+    assert_eq!(t.focus(), Some(DATABASE), "focus must sit on DATABASE");
+    assert!(
+        t.area_of(DATABASE).is_some(),
+        "DATABASE must be visibly rendered"
+    );
+    let _ = t.type_str("radio_probe");
+    focus_form_control(&mut t, ENVIRONMENT);
+    assert_eq!(t.focus(), Some(ENVIRONMENT));
+    let draft = t
+        .app()
+        .connection_draft()
+        .ok_or("form must remain open before radio Enter")?;
+    assert_eq!(draft.name, "Radio contract probe");
+    assert_eq!(draft.database, "radio_probe");
+    assert!(
+        draft.validate_all().is_ok(),
+        "draft errors: {:?}",
+        draft.validate_all()
+    );
+    assert_radio_stops(&t)?;
+    assert_eq!(
+        drafts(&t)?,
+        (0, 0),
+        "radio defaults remain unchanged after entering valid form data"
+    );
+    focus_form_control(&mut t, ENVIRONMENT);
+    assert_eq!(
+        t.focus(),
+        Some(ENVIRONMENT),
+        "focus must sit on ENVIRONMENT"
+    );
+    Ok(t)
+}
+
+fn assert_radio_stops(t: &Harness<TableProApp>) -> Result<(), &'static str> {
+    let entries = t.ring().entries();
+    let env_index = entries.iter().position(|entry| entry.id == ENVIRONMENT);
+    let group_index = entries.iter().position(|entry| entry.id == GROUP);
+    let safe_index = entries.iter().position(|entry| entry.id == SAFE_MODE);
+    assert!(env_index.is_some(), "ENVIRONMENT must be registered");
+    assert!(group_index.is_some(), "GROUP must be registered");
+    assert!(safe_index.is_some(), "SAFE_MODE must be registered");
+    let (Some(env_index), Some(group_index), Some(safe_index)) =
+        (env_index, group_index, safe_index)
+    else {
+        return Err("radio stops must be registered");
+    };
+    assert!(
+        entries.get(env_index).is_some_and(|entry| !entry.disabled),
+        "ENVIRONMENT stop must be enabled"
+    );
+    assert!(
+        entries.get(safe_index).is_some_and(|entry| !entry.disabled),
+        "SAFE_MODE stop must be enabled"
+    );
+    assert!(
+        env_index < group_index && group_index < safe_index,
+        "stops must register in draw order ENVIRONMENT < GROUP < SAFE_MODE"
+    );
+    Ok(())
+}
+
+fn submit_with_save_action(
+    t: &mut Harness<TableProApp>,
+    before: usize,
+) -> Result<(), &'static str> {
+    let save_action = FORM.part(termrock::Part::ACTIONS).index(2);
+    focus_form_control(t, save_action);
+    let _ = t.key(KeyCode::Enter);
+    assert_eq!(
+        t.app().connections_screen.connections.len(),
+        before.saturating_add(1),
+        "Enter on the Save action reaches the typed Save action"
+    );
+    let _ = t.ctrl('s');
+    assert!(
+        t.app().connections_screen.connections.len() > before.saturating_add(1),
+        "Ctrl+S reaches the configured Save action"
+    );
+    let pushed = t
+        .app()
+        .connections_screen
+        .connections
+        .last()
+        .ok_or("submit must push a connection")?;
+    let pushed = format!("{pushed:?}");
+    assert!(
+        pushed.contains("name: \"Radio contract probe\""),
+        "Save keeps the edited name, got {pushed}"
+    );
+    assert!(
+        pushed.contains("database: \"radio_probe\""),
+        "Save keeps the edited Database, got {pushed}"
+    );
+    assert!(
+        pushed.contains("environment: Development"),
+        "the chosen radio value is saved, got {pushed}"
+    );
+    Ok(())
+}
+
 #[test]
 fn form_radio_commit_changes_draft() -> Result<(), &'static str> {
     let mut t = open_new_form(120, 40);
@@ -82,73 +199,7 @@ fn form_radio_no_legacy_painter() {
 
 #[test]
 fn form_radio_enter_chooses_without_submitting_and_ctrl_s_saves() -> Result<(), &'static str> {
-    let mut t = Harness::new(TableProApp::default(), Theme::junie(), 120, 40);
-    let _ = t.ctrl('n');
-    assert!(
-        t.app().connection_form_open(),
-        "ctrl-n must open the connection form"
-    );
-    assert_eq!(t.focus(), Some(NAME), "fresh form must focus Name");
-    assert_eq!(
-        drafts(&t)?,
-        (0, 0),
-        "a new connection starts from the driver's first radio choices"
-    );
-    assert!(t.find("Name").is_some(), "the form must show Name");
-    let _ = t.type_str("Radio contract probe");
-    focus_form_control(&mut t, DATABASE);
-    assert_eq!(t.focus(), Some(DATABASE), "focus must sit on DATABASE");
-    assert!(
-        t.area_of(DATABASE).is_some(),
-        "DATABASE must be visibly rendered"
-    );
-    let _ = t.type_str("radio_probe");
-    focus_form_control(&mut t, ENVIRONMENT);
-    assert_eq!(t.focus(), Some(ENVIRONMENT));
-    let draft = t
-        .app()
-        .connection_draft()
-        .ok_or("form must remain open before radio Enter")?;
-    assert_eq!(draft.name, "Radio contract probe");
-    assert_eq!(draft.database, "radio_probe");
-    assert!(
-        draft.validate_all().is_ok(),
-        "draft errors: {:?}",
-        draft.validate_all()
-    );
-    let entries = t.ring().entries();
-    let env = entries.iter().position(|entry| entry.id == ENVIRONMENT);
-    let group = entries.iter().position(|entry| entry.id == GROUP);
-    let safe = entries.iter().position(|entry| entry.id == SAFE_MODE);
-    assert!(env.is_some(), "ENVIRONMENT must be registered");
-    assert!(group.is_some(), "GROUP must be registered");
-    assert!(safe.is_some(), "SAFE_MODE must be registered");
-    let (Some(env), Some(group), Some(safe)) = (env, group, safe) else {
-        return Err("radio stops must be registered");
-    };
-    assert!(
-        entries.get(env).is_some_and(|entry| !entry.disabled),
-        "ENVIRONMENT stop must be enabled"
-    );
-    assert!(
-        entries.get(safe).is_some_and(|entry| !entry.disabled),
-        "SAFE_MODE stop must be enabled"
-    );
-    assert!(
-        env < group && group < safe,
-        "stops must register in draw order ENVIRONMENT < GROUP < SAFE_MODE"
-    );
-    assert_eq!(
-        drafts(&t)?,
-        (0, 0),
-        "radio defaults remain unchanged after entering valid form data"
-    );
-    focus_form_control(&mut t, ENVIRONMENT);
-    assert_eq!(
-        t.focus(),
-        Some(ENVIRONMENT),
-        "focus must sit on ENVIRONMENT"
-    );
+    let mut t = open_valid_radio_draft()?;
 
     let _ = t.key(KeyCode::Down);
     assert_eq!(drafts(&t)?.0, 1, "Down immediately chooses Development");
@@ -164,38 +215,7 @@ fn form_radio_enter_chooses_without_submitting_and_ctrl_s_saves() -> Result<(), 
         before,
         "radio Enter does not append a connection"
     );
-    let save = FORM.part(termrock::Part::ACTIONS).index(2);
-    focus_form_control(&mut t, save);
-    let _ = t.key(KeyCode::Enter);
-    assert_eq!(
-        t.app().connections_screen.connections.len(),
-        before + 1,
-        "Enter on the Save action reaches the typed Save action"
-    );
-    let _ = t.ctrl('s');
-    assert!(
-        t.app().connections_screen.connections.len() > before + 1,
-        "Ctrl+S reaches the configured Save action"
-    );
-    let pushed = t
-        .app()
-        .connections_screen
-        .connections
-        .last()
-        .ok_or("submit must push a connection")?;
-    let pushed = format!("{pushed:?}");
-    assert!(
-        pushed.contains("name: \"Radio contract probe\""),
-        "Save keeps the edited name, got {pushed}"
-    );
-    assert!(
-        pushed.contains("database: \"radio_probe\""),
-        "Save keeps the edited Database, got {pushed}"
-    );
-    assert!(
-        pushed.contains("environment: Development"),
-        "the chosen radio value is saved, got {pushed}"
-    );
+    submit_with_save_action(&mut t, before)?;
     Ok(())
 }
 
