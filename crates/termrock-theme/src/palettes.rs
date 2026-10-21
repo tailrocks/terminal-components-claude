@@ -66,7 +66,20 @@ const fn junie_256() -> ColorTokens {
         fg: [
             Color::Indexed(231),
             Color::Indexed(249),
+            // Muted ink. The frozen `apply_256` table declares `text_muted =
+            // i(245)` (visual-baseline src/theme.rs:939) and the frozen
+            // corpus paints the muted source ink 0x8a8a8a at 38;5;245 in
+            // visual-baseline snapshots/tablepro/workbench/quit_confirm/120x40/
+            // 256.ansi, matched cell by cell against its truecolor frame.
+            // The index 244 is the generic nearest-match grey of 0x808080 and
+            // survives only in the frozen corpus frames captured before the
+            // explicit 256 tables existed.
             Color::Indexed(245),
+            // Faint ink. The frozen `apply_256` table declares `text_faint =
+            // i(242)` (visual-baseline src/theme.rs:940) and the frozen
+            // corpus paints the faint source ink 0x737373 at 38;5;242 in
+            // visual-baseline snapshots/tablepro/workbench/quit_confirm/120x40/
+            // 256.ansi.
             Color::Indexed(242),
             Color::Indexed(235),
         ],
@@ -74,6 +87,14 @@ const fn junie_256() -> ColorTokens {
         on_danger: Color::Indexed(231),
         on_surface_inverse: Color::Indexed(16),
         border_subtle: Color::Indexed(235),
+        // Strong border. The frozen `apply_256` table declares
+        // `border_strong = i(242)` (visual-baseline src/theme.rs:935) and the
+        // frozen corpus paints the strong border source ink 0x4d4d4d at
+        // 38;5;242 in visual-baseline
+        // snapshots/tablepro/workbench/quit_confirm/120x40/256.ansi. The
+        // index 238 is the generic nearest-match grey of the same ink and
+        // survives only in the corpus frames captured before the explicit
+        // 256 tables existed.
         border_strong: Color::Indexed(242),
         accent: Color::Indexed(78),
         accent_hover: Color::Indexed(77),
@@ -83,13 +104,20 @@ const fn junie_256() -> ColorTokens {
         focus_ring: Color::Indexed(238),
         selection_bg: Color::Indexed(237),
         selection_fg: Color::Indexed(231),
-        // The menu-row highlight is the generic cube of the Junie highlight
-        // ink 0x2f5aa8, which is 67; the frozen corpus paints the selected
-        // chrome menu item at 48;5;67
-        // (visual-baseline snapshots/showcase/flows/chrome/menu/120x40/256.ansi).
-        // The tag's `highlight = i(25)` is the list/tree selection role, a
-        // different slot in the refactored token model.
-        highlight_bg: Color::Indexed(67),
+        // The highlight plate is the tag's `highlight` plane, which the frozen
+        // `apply_256` table declares as 25 (visual-baseline src/theme.rs:931,
+        // `self.highlight = i(25)`), and the frozen corpus paints the plate
+        // there: the highlight ink 0x2f5aa8 renders at 48;5;25 in
+        // visual-baseline snapshots/holla/audit/rust/100x30/256.ansi, matched
+        // cell by cell against its truecolor frame
+        // (snapshots/holla/audit/rust/100x30/truecolor.ansi).
+        // The index 67 is the *generic* nearest-match cube of the same ink
+        // (nearest_256 in the pre-`apply_256` tag source, src/theme.rs:3017
+        // at the historical oracle 4a79c0a2). It survives only in the frozen
+        // corpus frames that predate the explicit 256 tables
+        // (snapshots/showcase/flows/chrome/menu/120x40/256.ansi), which is a
+        // reference defect, not the reference.
+        highlight_bg: Color::Indexed(25),
         highlight_fg: Color::Indexed(231),
         // Frozen `apply_256` danger highlight plate (`self.highlight_danger =
         // i(88)`).
