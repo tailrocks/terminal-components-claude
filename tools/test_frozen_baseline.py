@@ -11,7 +11,6 @@ import sys
 import subprocess
 import tarfile
 import tempfile
-import time
 import unittest
 from contextlib import ExitStack
 from pathlib import Path
@@ -817,14 +816,15 @@ class RunnerGuards(unittest.TestCase):
             child_code = (
                 "import sys; from pathlib import Path; "
                 f"sys.path.insert(0, {str(source_dir)!r}); import frozen_baseline as r; "
-                "print('launch-marker', flush=True); "
+                "print('launch-marker', flush=True); sys.stdin.readline(); "
                 "\ntry:\n fd = r._fresh_run_lock(Path(sys.argv[1]))\n"
                 "except r.RunnerError as error:\n print('blocked:' + str(error), flush=True)\n"
                 "else:\n r.fcntl.flock(fd, r.fcntl.LOCK_UN); r.os.close(fd); print('acquired', flush=True)"
             )
             child = subprocess.Popen(
                 [sys.executable, "-c", child_code, str(run_root)],
-                stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, start_new_session=True,
+                stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                text=True, start_new_session=True,
             )
 
             def read_line() -> str:
@@ -840,6 +840,9 @@ class RunnerGuards(unittest.TestCase):
 
             try:
                 self.assertEqual(read_line(), "launch-marker")
+                assert child.stdin is not None
+                child.stdin.write("attempt\n")
+                child.stdin.flush()
                 self.assertIn("blocked:another fresh run chunk advance is active", read_line())
                 self.assertEqual(child.wait(timeout=5), 0)
             finally:
@@ -850,6 +853,8 @@ class RunnerGuards(unittest.TestCase):
                     child.stdout.close()
                 if child.stderr is not None:
                     child.stderr.close()
+                if child.stdin is not None:
+                    child.stdin.close()
                 runner.fcntl.flock(owner_fd, runner.fcntl.LOCK_UN)
                 runner.os.close(owner_fd)
 
