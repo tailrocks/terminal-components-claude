@@ -1,0 +1,25 @@
+# The frozen corpus is a historical oracle, not the tag
+
+baselines/tuiscotti-v1/corpus-index.json:
+  "generated_at": "2026-10-03T22:09:44Z",
+  "historical_oracle_commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b",
+  "historical_oracle_tag": "visual-baseline",
+
+ancestry: 4a79c0a2 -> 4169783a (tag tip):
+967
+
+the corpus-era theme source has no apply_256 table:
+0
+it downgrades every token with nearest_256 (src/theme.rs:597 and :3017):
+fn downgrade(c: Color, level: ColorLevel) -> Color {
+    let Color::Rgb(r, g, b) = c else { return c };
+    match level {
+        ColorLevel::TrueColor => c,
+        ColorLevel::Ansi256 => Color::Indexed(nearest_256(r, g, b)),
+        ColorLevel::Ansi16 => nearest_16(r, g, b),
+        ColorLevel::Mono => match (r as u32 + g as u32 + b as u32) / 3 {
+            0..=40 => Color::Black,
+
+the explicit 256 tables land later, in e40c2c08f:
+e40c2c08f2095bee2554057537b889df8d614ed7 Fri Oct 16 12:58:07 2026 +0700 fix(theme): explicit 256, 16-colour and monochrome token tables
+e40c2c08f is an ancestor of the tag tip

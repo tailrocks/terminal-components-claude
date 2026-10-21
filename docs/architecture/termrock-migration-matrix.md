@@ -3244,3 +3244,118 @@ Two consequences are recorded for their owners rather than fixed here:
   `Indexed(237)` where the reference declares the `border_subtle` slot
   `Indexed(238)`, and the mono rule ink is `Black` on `Black` where the
   reference paints `DarkGray` on `Black`.
+
+### The Junie 256-colour palette adjudication, settled against the frozen tag
+
+Branch `wip/theme-palette-adjudication-20261021`, base `ed458571f`. Two
+adjudications of the Junie 256-colour capability palette disagreed and produced
+different rendered output. The conflict is settled here against the frozen tag
+`visual-baseline` (tag object `2718a6b8127a522a3d351d0b4bdb7542fc8da542`, tip
+commit `4169783ae883788186d161af09ba9c481bd84e5c`) and the frozen corpus
+frames. The full evidence, with the tag source lines and the corpus frame
+paths, is in
+[the adjudication record](../audits/evidence/2026-10-21-theme-palette-adjudication/adjudication.md).
+
+**The decisive finding.** The frozen material is not of one age. Commit
+`e40c2c08f` ("fix(theme): explicit 256, 16-colour and monochrome token
+tables", an ancestor of the tag tip) added the hand-picked `apply_256` table
+(`visual-baseline` `src/theme.rs:921`), applied *after* the nearest-match
+fallback (`src/theme.rs:821-832`). The frozen corpus
+`baselines/tuiscotti-v1` was captured at `4a79c0a2`, 967 commits before the tag
+tip, from a source that has no `apply_256` table at all and downgrades every
+token with the generic `nearest_256` quantiser. The tag's own snapshot corpus
+is mixed-era: 330 showcase frames still carry the pre-`e40c2c08f` inks. Where
+the tag's `apply_256` table is explicit, it is the reference; the generic
+conversion is what the tag replaced.
+
+**The winning adjudication, per slot.**
+
+| Slot | Value | Evidence |
+| --- | --- | --- |
+| muted foreground | `Indexed(245)` | `src/theme.rs:939`; corpus `snapshots/tablepro/workbench/quit_confirm/120x40/256.ansi` paints the muted ink `0x8a8a8a` at `38;5;245` |
+| faint foreground | `Indexed(242)` | `src/theme.rs:940`; the same corpus frame paints the faint ink `0x737373` at `38;5;242` |
+| strong border | `Indexed(242)` | `src/theme.rs:935`; the same corpus frame paints the strong-border ink `0x4d4d4d` at `38;5;242` |
+| highlight plate | `Indexed(25)` | `src/theme.rs:931`; corpus `snapshots/holla/audit/rust/100x30/256.ansi` paints the highlight ink `0x2f5aa8` at `48;5;25` |
+| syntax keyword | `Indexed(111)` | `src/theme.rs:961`; corpus `snapshots/showcase/pages/codeeditor/120x40/256.ansi` paints the keyword ink `0x79b8ff` at `38;5;111` |
+| syntax string | `Indexed(116)` | `src/theme.rs:962`; the same corpus frame paints the string ink `0x8bd5ca` at `38;5;116` |
+| syntax literal | `Indexed(183)` | `src/theme.rs:963`; the same corpus frame paints the literal ink `0xc6a0f6` at `38;5;183` |
+| on-accent ink | `Indexed(232)` | `src/theme.rs:942`; corpus `snapshots/holla/audit/rust/100x30/256.ansi` paints the on-accent ink `0x19191c` at `38;5;232` |
+| error ink | `Indexed(203)` | `src/theme.rs:956` |
+
+The tag-table adjudication wins every slot it claimed except the highlight
+plate; the corpus adjudication wins the highlight plate and loses the rest.
+Neither side was adopted wholesale. The one value this branch changes is the
+highlight plate, from `Indexed(67)` to `Indexed(25)`: 67 is the *generic*
+nearest-match cube of the highlight ink and survives only in the frozen corpus
+frames captured before the explicit 256 tables existed.
+
+**Reference defects, both results preserved.**
+
+1. The frozen corpus `baselines/tuiscotti-v1` is a historical oracle, not the
+   tag. Its `244` muted ink and `238` chrome ink are the generic
+   nearest-match renders of `0x808080` and `0x4d4d4d`. Preserved in
+   [the evidence directory](../audits/evidence/2026-10-21-theme-palette-adjudication/corpus-era.txt).
+2. The tag's own snapshot corpus is mixed-era. The selected chrome menu item
+   really is `48;5;67` in `snapshots/showcase/flows/chrome/menu/120x40/256.ansi`,
+   and the highlight plate really is `48;5;25` in
+   `snapshots/holla/audit/rust/100x30/256.ansi`. Both are preserved; neither is
+   discarded.
+3. The recorded component digests were stale. The previous re-bless
+   (`18c8f694c`) was taken on a different tree and against a different palette:
+   the component subset was still red with 193 failures on that very commit.
+
+**The digest drift is not explained by the palette adjudication.** Measured
+with `cargo nextest run -p termrock-conformance --all-targets -E
+'test(render::components)'`:
+
+| Tree | Failed |
+| --- | --- |
+| `18c8f694c^` (before the previous re-bless) | 224 |
+| `18c8f694c` (the previous re-bless commit) | 193 |
+| `707b12c76^` (before the source-ink restoration) | 231 |
+| `707b12c76` (the source-ink restoration) | 231 |
+| `ed458571f` (this branch's base) | 202 |
+
+The source-ink restoration moves no component digest at all, and
+`git bisect` between `18c8f694c` and `ed458571f` names
+`e2b1727fc` ("fix(overlays): honor configured prompt primary action") as the
+first commit that moves one. The drift is caused by the behaviour and theme
+changes that landed after the previous re-bless, not by the palette.
+
+**The component digest re-bless, with its scope and its limits.** Because the
+recorded baseline is stale, `crates/termrock-conformance/tests/baselines/components.txt`
+is re-blessed on this tree: 891 of its 2562 keys changed (528 truecolor, 363
+mono), no key was added or removed. Every previous value is preserved in the
+branch history (the file before this re-bless is at `18c8f694c`) and in
+[the old-to-new table](../audits/evidence/2026-10-21-theme-palette-adjudication/components-digests-old-to-new.txt).
+
+The re-bless has to run single-threaded. `Baseline::bless` re-reads the file and
+rewrites it (`crates/termrock-test-support/src/digest.rs:370-387`), so under
+nextest's process-per-test execution the parallel blesses lose each other's
+writes: a parallel `BLESS=1` run recorded only 117 of the changed keys and left
+the suite redder than before (257 failures). The serial
+`BLESS=1 cargo nextest run -p termrock-conformance --test-threads=1` run
+records all of them.
+
+`cargo nextest run -p termrock-conformance --all-targets --no-fail-fast`, this
+branch: 1462 tests run, 1387 passed, 75 failed, 616 skipped. The 204
+digest-pinned failures are gone, no new failure appears, and the 75 remaining
+failures are the semantic families that already failed at the parity tip
+(`local_override_does_not_mutate_the_theme`, `bindings_match_handled_keys`,
+`registry::declared_parts_are_the_parts_actually_styled`, the scroll-region
+mono distinctness check, the picker checks, the tiny-rect help overlay and
+the two visual-baseline negative controls). They are semantic checks, not
+digest pins, and they stay the next work item.
+
+What this re-bless is: the recorded expectation caught up with the tree it
+lives on, after the palette conflict was settled against the frozen tag.
+What it is not: it is not a paired-runner proof that the component suite now
+matches the frozen oracle. That proof is still owed, exactly as it was owed
+after the previous re-bless.
+
+**Deliberately not settled here.** The `fg[4]` (ghost) slot is `Indexed(235)`
+while the tag renders the ghost ink `0x262626` at `38;5;238`
+(`src/theme.rs:941`), and the ANSI16 and mono tiers keep a derived projection
+rather than the tag's `apply_16` / `apply_mono` tables (`src/theme.rs:983`,
+`:1053`). Both are outside the disputed 256-colour set and neither has a
+recorded adjudication; both need independent review before they are changed.

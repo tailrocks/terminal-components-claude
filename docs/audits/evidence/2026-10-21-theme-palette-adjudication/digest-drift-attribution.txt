@@ -1,0 +1,24 @@
+# The digest-drift attribution, measured
+
+Command: cargo nextest run -p termrock-conformance --all-targets -E 'test(render::components)' --no-fail-fast
+
+tree | tests run | passed | failed
+--- | --- | --- | ---
+18c8f694c^ (before the previous re-bless) | 320 | 96 | 224
+18c8f694c (the previous re-bless commit) | 320 | 127 | 193
+707b12c76^ (before the source-ink restoration) | 320 | 89 | 231
+707b12c76 (the source-ink restoration) | 320 | 89 | 231
+ed458571f (this branch's base) | 320 | 118 | 202
+
+The source-ink restoration moves no component digest: the count is identical
+before and after 707b12c76. The recorded baseline was already stale on the
+tree it was committed on (193 failures at 18c8f694c).
+
+git bisect, good 18c8f694c, bad ed458571f:
+first bad commit: e2b1727fcb04f4b8579ce771f8a5c99b1e910d4a
+  fix(overlays): honor configured prompt primary action
+  crates/termrock-overlays/src/dialog.rs | 12 +-
+
+The first commit that moves a component digest is an overlay behaviour change,
+not a palette change. The palette adjudication is therefore not the cause of
+the recorded drift.
