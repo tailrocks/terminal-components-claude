@@ -262,6 +262,53 @@ the frozen colour contract), `Chrome::fit` (it would move every dialog
 inside the frozen frames), the PR #26 `Splitter`, `Grid` and `Table`
 widgets wholesale, and the PR #26 specimen and coverage harness.
 
+## Candidate comparison, established and measured
+
+The reference side is now reproducible on this machine and the candidate side
+compares against it cell by cell.
+
+Reference side:
+- `prepare` extracted the frozen source from tag `visual-baseline` and
+  verified the tag object, commit `4169783ae`, tree `ad0f7cf8` and the
+  tuiscotti rev in the frozen `Cargo.lock`.
+- The admitted cohort binaries are present and byte-identical to
+  `tools/frozen_cli_build_cohorts.json`:
+  `/Users/donbeave/Projects/termrock-cli-evidence-20261021/controlled-baseline-serial-incremental-off-archive/run-1/sealed-bin/`
+  (showcase `d54a104c…`, tablepro `212cc16c…`, jackin-preview `60b2c311…`,
+  holla `62d5f4c7…`).
+- `prepare-live --fresh-cohort frozen-20261021-serial-nonincr-r1-r2` succeeded
+  and recorded 28 895 registered scenarios, 174 extension scenarios and 20
+  ordinary checks.
+
+Candidate side:
+- `build-candidate --target-dir <absent dir>` built the four application
+  binaries from the candidate checkout and sealed the revision and the
+  dirty fingerprint.
+
+Comparison:
+- `tools/frozen_baseline.py compare --candidate-bin-dir <dir> --case <name>`
+  runs the frozen harness twice, once against the reference binaries and once
+  against the candidate binaries, and compares the captured frames cell by
+  cell, including colours, attributes and cursor state. The harness also
+  compares each capture against the committed approved snapshot in
+  `source/snapshots/`.
+- The full ignored inventory of the frozen source is 28 895 cases:
+  showcase 14 549, jackin 5 818, holla 5 766, tablepro 2 762, named
+  `<app>::<screen>::<variant>::<size>::<colour>`.
+- `live-compare` remains unavailable for the candidate phase: it requires the
+  reviewed four-binary set pinned in `tools/frozen_cli_references.json`
+  (showcase `21e8b1c1…`), which is not reproducible on this machine, and the
+  cohort path `fresh-run-advance` stops before the candidate phase by
+  design. This is a recorded tooling gap, not a silent skip.
+
+First measured case, `showcase::resize::overview_grown::120x40::truecolor`:
+the reference phase passed and the candidate phase failed with the known
+stale-approval delta (approved 18 474 bytes, actual 19 454 bytes; first
+difference at byte 263; sidebar background `#000000` against `#111111`).
+That delta is the single case already documented in
+`tools/frozen_cli_references.json` as
+`one_exact_stale_approval_live_pair_reference`.
+
 ## Coverage gaps
 
 ### False-parity inventory (read-only audit, revision `40bc297e5`)
