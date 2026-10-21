@@ -253,7 +253,7 @@ fn paint_failure_dialog(buf: &mut Buffer, launch: &LaunchRun) {
         buf,
         top.saturating_add(4),
         "Stage",
-        &failure.stage.label(),
+        failure.stage.label(),
         true,
     );
     let run = launch.trace_label.clone();
