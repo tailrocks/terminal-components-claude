@@ -1489,9 +1489,12 @@ impl<'a> MenuBar<'a> {
                         defaults = recipe.apply(defaults, flags);
                     }
                     let local = self.ov.part_patch(Part::TITLE);
+                    // The menu-bar variant is a component fallback. Resolve the
+                    // family default variant here so authored variants and their
+                    // overlays keep the shared precedence before this local patch.
                     let style = ui.style_defaults(
                         Family::MENU,
-                        MENU_BAR_TITLE_VARIANT,
+                        Variant::DEFAULT,
                         Part::TITLE,
                         flags,
                         crate::theme::StyleDefaults::new(defaults),
@@ -1707,13 +1710,20 @@ mod tests {
         )];
         const MENUS: [Menu<'static>; 1] = [Menu::new("File", &ITEMS)];
 
-        let theme = Theme::junie().define_variant(Family::MENU, VARIANT, |recipe| {
-            recipe.default_variant(VARIANT);
-            recipe.part(Part::TITLE).when(
-                StateFlags::HOVERED,
-                StylePatch::new().add(crate::theme::Modifier::ITALIC),
-            );
-        });
+        let theme = Theme::junie()
+            .define_variant(Family::MENU, VARIANT, |recipe| {
+                recipe.default_variant(VARIANT);
+                recipe.part(Part::TITLE).when(
+                    StateFlags::HOVERED,
+                    StylePatch::new().add(crate::theme::Modifier::ITALIC),
+                );
+            })
+            .define_variant(Family::MENU, MENU_BAR_TITLE_VARIANT, |recipe| {
+                recipe.part(Part::TITLE).when(
+                    StateFlags::HOVERED,
+                    StylePatch::new().add(crate::theme::Modifier::UNDERLINED),
+                );
+            });
         let area = Rect::new(0, 0, 20, 2);
         for scope in [MenuBarHoverScope::Bar, MenuBarHoverScope::Title] {
             let mut runtime = Runtime::new(crate::runtime::stub::Stub::default(), theme.clone());
@@ -1752,6 +1762,12 @@ mod tests {
                 title.modifier.contains(crate::theme::Modifier::ITALIC),
                 "family default variant with {scope:?}"
             );
+            if scope == MenuBarHoverScope::Title {
+                assert!(
+                    title.modifier.contains(crate::theme::Modifier::UNDERLINED),
+                    "menu-bar title variant with {scope:?}"
+                );
+            }
         }
     }
 
