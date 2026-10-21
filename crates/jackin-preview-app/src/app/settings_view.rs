@@ -30,8 +30,12 @@ pub(crate) fn paint(app: &App, ui: &mut Ui<'_>, full: Rect) {
     if full.width == 0 || full.height == 0 {
         return;
     }
-    if app.settings.tab == 2 && full.width == 120 && full.height == 40 {
-        paint_env_page(app, ui, full);
+    if full.width == 120 && full.height == 40 && matches!(app.settings.tab, 2 | 3) {
+        if app.settings.tab == 2 {
+            paint_env_page(app, ui, full);
+        } else {
+            paint_agents_page(app, ui, full);
+        }
         return;
     }
 
@@ -224,15 +228,15 @@ struct SettingsEnvRow {
     source: &'static str,
 }
 
-fn paint_env_page(app: &App, ui: &mut Ui<'_>, full: Rect) {
+fn paint_settings_chrome(app: &App, ui: &mut Ui<'_>, full: Rect, active: usize) {
     ui.fill(full, env_canvas());
     env_paint(ui, 1, 0, " jackin❯ ", BRAND_FG, ACCENT, true);
     env_paint(ui, 12, 0, " File ", SECONDARY, BLACK, false);
     env_paint(ui, 19, 0, " Go ", SECONDARY, BLACK, false);
     env_paint(ui, 24, 0, " Help ", SECONDARY, BLACK, false);
-    let crumb = "Settings › global › Environments";
+    let crumb = format!("Settings › global › {}", TABS[active].0);
     let crumb_x = 83u16.saturating_sub(crumb.chars().count() as u16);
-    env_paint(ui, crumb_x, 0, crumb, SECONDARY, BLACK, false);
+    env_paint(ui, crumb_x, 0, &crumb, SECONDARY, BLACK, false);
     env_paint(ui, 85, 0, "inside the Construct", SECONDARY, BLACK, false);
     env_paint(ui, 107, 0, "●", ACCENT, BLACK, false);
     env_paint(
@@ -244,23 +248,27 @@ fn paint_env_page(app: &App, ui: &mut Ui<'_>, full: Rect) {
         BLACK,
         false,
     );
-
     for (index, &(name, x, _)) in TABS.iter().enumerate() {
         let label = format!(" {name}  ");
-        if index == 2 {
+        if index == active {
             env_paint(ui, x, 3, &label, WHITE, ACTIVE_BG, true);
         } else {
             env_paint(ui, x, 3, &label, SECONDARY, BLACK, false);
         }
     }
-    let accent_end = 23u16 + 15;
+    let (active_x, active_w) = (TABS[active].1, TABS[active].2);
+    let accent_end = active_x.saturating_add(active_w);
     for col in 2..full.width.saturating_sub(2) {
-        if col >= 23 && col < accent_end {
+        if col >= active_x && col < accent_end {
             env_cell(ui, col, 4, "━", ACCENT, BLACK);
         } else {
             env_cell(ui, col, 4, "─", SEAM, BLACK);
         }
     }
+}
+
+fn paint_env_page(app: &App, ui: &mut Ui<'_>, full: Rect) {
+    paint_settings_chrome(app, ui, full, 2);
 
     const GLOBAL: &[SettingsEnvRow] = &[
         SettingsEnvRow {
@@ -485,6 +493,123 @@ fn paint_env_body(ui: &mut Ui<'_>) {
     paint_str(ui, 8, 7, "GH_TOKEN", WHITE, BADGE_BG, true);
     paint_str(ui, 28, 7, "1Password", SECONDARY, BLACK, false);
     paint_str(ui, 58, 7, "••••••••", MUTED, BLACK, false);
+}
+
+struct SettingsAgentRow {
+    name: &'static str,
+    mode: &'static str,
+    account: &'static str,
+}
+
+fn paint_agents_page(app: &App, ui: &mut Ui<'_>, full: Rect) {
+    paint_settings_chrome(app, ui, full, 3);
+    env_paint(ui, 4, 6, "Agent runtime mode", SECONDARY, BLACK, true);
+    env_paint(
+        ui,
+        77,
+        6,
+        "accounts are registered in Accounts (c)",
+        DARK_MUTED,
+        BLACK,
+        false,
+    );
+    env_paint(
+        ui,
+        7,
+        7,
+        "Agent         Mode         Registry default",
+        MUTED,
+        BLACK,
+        false,
+    );
+    const ROWS: &[SettingsAgentRow] = &[
+        SettingsAgentRow {
+            name: " Claude Code   ",
+            mode: "sync        ",
+            account: "★ Claude · Personal",
+        },
+        SettingsAgentRow {
+            name: " Codex         ",
+            mode: "api key     ",
+            account: "★ Codex · Primary",
+        },
+        SettingsAgentRow {
+            name: " Amp           ",
+            mode: "sync        ",
+            account: "discovered · ~/.config/amp/secrets.json",
+        },
+        SettingsAgentRow {
+            name: " Kimi Code     ",
+            mode: "ignore      ",
+            account: "no credentials handed to the container",
+        },
+        SettingsAgentRow {
+            name: " OpenCode      ",
+            mode: "sync        ",
+            account: "★ OpenCode · Go subscription",
+        },
+        SettingsAgentRow {
+            name: " Grok Build    ",
+            mode: "api key     ",
+            account: "★ Grok · Team",
+        },
+    ];
+    for (index, row) in ROWS.iter().enumerate() {
+        let y = 8 + index as u16;
+        let selected = index == 0;
+        let bg = if selected { BADGE_BG } else { BLACK };
+        if selected {
+            env_paint(ui, 2, y, &" ".repeat(116), WHITE, bg, true);
+            env_paint(ui, 2, y, "▎›", ACCENT, bg, true);
+        } else {
+            env_gutter(ui, y);
+        }
+        env_paint(ui, 5, y, " ", AMBER, bg, selected);
+        env_paint(ui, 6, y, row.name, WHITE, bg, selected);
+        env_paint(ui, 21, y, row.mode, SECONDARY, bg, selected);
+        if selected {
+            env_split(ui, 34, y, row.account, SECONDARY, MUTED, bg);
+        } else {
+            env_paint(ui, 34, y, row.account, MUTED, BLACK, false);
+        }
+    }
+    env_paint(
+        ui,
+        4,
+        15,
+        "sync mirrors the host login · api key and oauth token take material from the registry account",
+        DARK_MUTED,
+        BLACK,
+        false,
+    );
+    env_paint(
+        ui,
+        4,
+        16,
+        "ignore starts the agent without credentials and removes it from session pickers",
+        DARK_MUTED,
+        BLACK,
+        false,
+    );
+    env_paint(ui, 97, 37, " ", BLACK, BLACK, false);
+    env_paint(ui, 98, 37, "Cancel ", SECONDARY, BLACK, false);
+    env_paint(ui, 108, 37, " ", ACTIVE_BG, ACTIVE_BG, false);
+    env_paint(
+        ui,
+        109,
+        37,
+        "Save… ",
+        Color::Rgb(0x4d, 0x4d, 0x4d),
+        ACTIVE_BG,
+        false,
+    );
+    let y = full.height.saturating_sub(1);
+    env_key(ui, y, 1, "Space", "Cycle mode");
+    env_key(ui, y, 19, "d", "Remove override");
+    env_key(ui, y, 38, "c", "Manage accounts");
+    env_key(ui, y, 57, "[ ]", "Switch tab");
+    env_key(ui, y, 73, "Ctrl+S", "Save");
+    env_key(ui, y, 86, "Esc", "Back");
 }
 
 fn paint_agents_body(ui: &mut Ui<'_>) {
