@@ -287,7 +287,12 @@ impl<'a> Button<'a> {
         } else if r.activated() {
             // An activation can synchronously move application data into Busy
             // state; request one tick so the next update observes that state.
-            cx.request_repaint_after(Duration::from_millis(tick_ms));
+            // The observation wake never lands before the press flash ends:
+            // `next_deadline` must keep reporting the flash expiry, and the
+            // spinner phase it schedules is aligned to `tick_ms` either way.
+            cx.request_repaint_after(Duration::from_millis(
+                tick_ms.max(cx.design().motion.press_flash_ms),
+            ));
         }
         r.for_id(self.id)
     }
