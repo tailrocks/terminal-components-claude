@@ -552,6 +552,65 @@ fn editor_shell_help_layer_blocks_the_page_run_binding() {
 }
 
 #[test]
+fn editor_run_clock_does_not_advance_for_pointer_events() {
+    let mut h = harness(PageId::Editor);
+    assert!(h.tab_to(EDITOR));
+    control(&mut h, 'r');
+    assert!(h.text().contains("running"), "{}", h.text());
+
+    for _ in 0..20 {
+        move_mouse(&mut h, 0, 0);
+    }
+
+    assert!(
+        h.text().contains("running"),
+        "pointer input must not advance the run clock: {}",
+        h.text()
+    );
+    assert!(h.text().contains("Runs         0"), "{}", h.text());
+}
+
+#[test]
+fn editor_run_diagnoses_the_block_submitted_before_cursor_movement() {
+    let mut h = harness(PageId::Editor);
+    assert!(h.tab_to(EDITOR));
+    for _ in 0..17 {
+        press(&mut h, KeyCode::Down);
+    }
+    assert!(h.text().contains("Block        2 of 3"), "{}", h.text());
+    control(&mut h, 'r');
+    assert!(h.text().contains("running"), "{}", h.text());
+    for _ in 0..17 {
+        press(&mut h, KeyCode::Up);
+    }
+    assert!(h.text().contains("Block        1 of 3"), "{}", h.text());
+
+    for _ in 0..12 {
+        let _ = h.tick();
+    }
+    assert!(
+        h.text().contains("unwrap() panics on Err"),
+        "diagnostics must belong to the submitted second block: {}",
+        h.text()
+    );
+}
+
+#[test]
+fn editor_manual_empty_completion_keeps_frozen_alphabetic_choice() {
+    let mut h = harness(PageId::Editor);
+    assert!(h.tab_to(EDITOR));
+    control(&mut h, ' ');
+    assert!(h.text().contains("Completion   open"), "{}", h.text());
+    press(&mut h, KeyCode::Enter);
+
+    assert!(
+        h.text().contains("Body// Retry"),
+        "empty manual completion must choose the alphabetically first label: {}",
+        h.text()
+    );
+}
+
+#[test]
 fn launches_and_renders_shell() {
     let h = harness(PageId::Overview);
     let text = h.text();
