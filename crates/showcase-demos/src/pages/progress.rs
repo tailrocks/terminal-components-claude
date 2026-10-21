@@ -2,7 +2,8 @@ use std::time::Duration;
 
 use termrock::{Button, Color, Cx, Id, Modifier, PaintStyle, Rect, Response, Ui, Variant, width};
 
-use super::{Page, PageStatus, PageUpdate, frame};
+use super::{Page, PageStatus, PageUpdate, chrome_ink};
+use termrock::feedback::{PageFrame, SectionStrip};
 
 const RESTART: Id = termrock::Id::root("showcase_ui::pages::progress::progress.restart");
 const PAUSE: Id = termrock::Id::root("showcase_ui::pages::progress::progress.pause");
@@ -31,7 +32,6 @@ const SUCCESS: u32 = 0x3fb950;
 const ERROR: u32 = 0xf05d5d;
 const WARNING: u32 = 0xf59e09;
 const INFO: u32 = 0x79b8ff;
-const TAB_ACTIVE: u32 = 0x27272a;
 const BUTTON_BG: u32 = 0x27272a;
 const THUMB: u32 = 0x808080;
 const TRACK: u32 = 0x474747;
@@ -135,10 +135,6 @@ fn face(fg: u32, bg: u32, modifier: Modifier) -> PaintStyle {
         .remove_modifier(Modifier::all().difference(modifier))
 }
 
-fn tab_width(label: &str) -> u16 {
-    width(label).saturating_add(3)
-}
-
 fn narrow_page(area: Rect) -> bool {
     area.width == NARROW_PAGE_W && area.height == NARROW_PAGE_H
 }
@@ -165,63 +161,6 @@ fn paint_blurb(ui: &mut Ui<'_>, body: Rect) {
         ),
         BLURB,
         ink(MUTED, CANVAS),
-    );
-}
-
-fn paint_section_strip(ui: &mut Ui<'_>, area: Rect) {
-    if area.is_empty() {
-        return;
-    }
-    let mut x = area.x;
-    let mut tab_end = area.x;
-    for (index, label) in SECTIONS.iter().enumerate() {
-        let w = tab_width(label);
-        if x.saturating_add(w) > area.right() {
-            break;
-        }
-        let style = if index == 0 {
-            ink(WHITE, TAB_ACTIVE).add_modifier(Modifier::BOLD)
-        } else {
-            ink(SECONDARY, CANVAS)
-        };
-        ui.fill(Rect::new(x, area.y, w, 1), style);
-        let _ = ui.paint_str(
-            Rect::new(x.saturating_add(1), area.y, w.saturating_sub(1), 1),
-            label,
-            style,
-        );
-        tab_end = x.saturating_add(w);
-        x = tab_end.saturating_add(1);
-    }
-    if area.width >= SECTION_WIDE {
-        let caption_width = width(SECTION_CAPTION);
-        let caption_x = area.right().saturating_sub(caption_width.saturating_add(1));
-        if caption_x > tab_end.saturating_add(2) {
-            let _ = ui.paint_str(
-                Rect::new(caption_x, area.y, caption_width, 1),
-                SECTION_CAPTION,
-                ink(FAINT, CANVAS),
-            );
-        }
-    }
-    if area.height < 2 {
-        return;
-    }
-    let rule_y = area.y.saturating_add(1);
-    let _ = ui.paint_str(
-        Rect {
-            y: rule_y,
-            height: 1,
-            ..area
-        },
-        &"─".repeat(usize::from(area.width)),
-        ink(RULE, CANVAS),
-    );
-    let active = tab_width(SECTIONS[0]).min(area.width);
-    let _ = ui.paint_str(
-        Rect::new(area.x, rule_y, active, 1),
-        &"━".repeat(usize::from(active)),
-        ink(ACCENT, CANVAS),
     );
 }
 
@@ -1185,13 +1124,17 @@ fn paint_narrow_scroll(ui: &mut Ui<'_>, view: Rect) {
 
 fn paint_narrow(ui: &mut Ui<'_>, body: Rect, build: f64, paused: bool, frame: usize) {
     paint_narrow_blurb(ui, body);
-    paint_section_strip(
-        ui,
-        Rect {
-            height: 2.min(body.height),
-            ..body
-        },
-    );
+    SectionStrip::new(&SECTIONS)
+        .caption(SECTION_CAPTION)
+        .caption_min_width(SECTION_WIDE)
+        .ink(chrome_ink())
+        .draw(
+            ui,
+            Rect {
+                height: 2.min(body.height),
+                ..body
+            },
+        );
     let top = body.y.saturating_add(3);
     if top >= body.bottom() {
         return;
@@ -1356,83 +1299,89 @@ impl Page for ProgressPage {
     }
 
     fn draw(&self, ui: &mut Ui<'_>, area: Rect) {
-        frame(ui, area, self.title(), "", |ui, body| {
-            if narrow_page(area) {
-                paint_narrow(ui, body, self.build, self.paused, self.frame);
-                return;
-            }
-            // 51×16 is the page rect inside the 72×20 shell.
-            if compact_page(area) {
-                paint_narrow(ui, body, self.build, self.paused, self.frame);
-                return;
-            }
-            paint_blurb(ui, body);
-            paint_section_strip(
-                ui,
-                Rect {
-                    height: 2.min(body.height),
+        PageFrame::new(self.title())
+            .meta("")
+            .draw_with(ui, area, |ui, body| {
+                if narrow_page(area) {
+                    paint_narrow(ui, body, self.build, self.paused, self.frame);
+                    return;
+                }
+                // 51×16 is the page rect inside the 72×20 shell.
+                if compact_page(area) {
+                    paint_narrow(ui, body, self.build, self.paused, self.frame);
+                    return;
+                }
+                paint_blurb(ui, body);
+                SectionStrip::new(&SECTIONS)
+                    .caption(SECTION_CAPTION)
+                    .caption_min_width(SECTION_WIDE)
+                    .ink(chrome_ink())
+                    .draw(
+                        ui,
+                        Rect {
+                            height: 2.min(body.height),
+                            ..body
+                        },
+                    );
+                let top = body.y.saturating_add(3);
+                if top >= body.bottom() {
+                    return;
+                }
+                let view = Rect {
+                    y: top,
+                    height: body.bottom().saturating_sub(top),
                     ..body
-                },
-            );
-            let top = body.y.saturating_add(3);
-            if top >= body.bottom() {
-                return;
-            }
-            let view = Rect {
-                y: top,
-                height: body.bottom().saturating_sub(top),
-                ..body
-            };
-            let scrolling = CONTENT_H > view.height;
-            let cards = Rect {
-                width: if scrolling {
-                    view.width.saturating_sub(2)
-                } else {
-                    view.width
-                },
-                ..view
-            };
-            if scrolling {
-                paint_scrollbar(
+                };
+                let scrolling = CONTENT_H > view.height;
+                let cards = Rect {
+                    width: if scrolling {
+                        view.width.saturating_sub(2)
+                    } else {
+                        view.width
+                    },
+                    ..view
+                };
+                if scrolling {
+                    paint_scrollbar(
+                        ui,
+                        Rect::new(view.right().saturating_sub(1), view.y, 1, view.height),
+                        CONTENT_H,
+                    );
+                }
+                paint_live(
                     ui,
-                    Rect::new(view.right().saturating_sub(1), view.y, 1, view.height),
-                    CONTENT_H,
+                    cards,
+                    Rect {
+                        height: LIVE_H,
+                        ..cards
+                    },
+                    self.build,
+                    self.paused,
+                    self.frame,
                 );
-            }
-            paint_live(
-                ui,
-                cards,
-                Rect {
-                    height: LIVE_H,
-                    ..cards
-                },
-                self.build,
-                self.paused,
-                self.frame,
-            );
-            let jobs_y = cards.y.saturating_add(LIVE_H).saturating_add(1);
-            paint_jobs(
-                ui,
-                cards,
-                Rect::new(cards.x, jobs_y, cards.width, JOBS_H),
-                self.frame,
-            );
-            let meters_y = jobs_y.saturating_add(JOBS_H).saturating_add(1);
-            paint_meters(
-                ui,
-                cards,
-                Rect::new(cards.x, meters_y, cards.width, METERS_H),
-            );
-            // 134×46 is the page rect inside the 160×50 shell.
-            if wide_page(area) {
-                paint_wide_meters(
+                let jobs_y = cards.y.saturating_add(LIVE_H).saturating_add(1);
+                paint_jobs(
+                    ui,
+                    cards,
+                    Rect::new(cards.x, jobs_y, cards.width, JOBS_H),
+                    self.frame,
+                );
+                let meters_y = jobs_y.saturating_add(JOBS_H).saturating_add(1);
+                paint_meters(
                     ui,
                     cards,
                     Rect::new(cards.x, meters_y, cards.width, METERS_H),
-                    self.frame,
                 );
-            }
-        });
+                // 134×46 is the page rect inside the 160×50 shell.
+                if wide_page(area) {
+                    paint_wide_meters(
+                        ui,
+                        cards,
+                        Rect::new(cards.x, meters_y, cards.width, METERS_H),
+                        self.frame,
+                    );
+                }
+            });
     }
 
     fn hints(&self, _ui: &Ui<'_>) -> &'static [(&'static str, &'static str)] {

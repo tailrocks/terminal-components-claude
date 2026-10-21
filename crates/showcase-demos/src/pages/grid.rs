@@ -3,7 +3,8 @@ use termrock::{
     ItemKey, Modifier, NavUnit, PaintStyle, Rect, Role, RowDecor, Ui, width,
 };
 
-use super::{Page, PageUpdate, frame};
+use super::{Page, PageUpdate, chrome_ink};
+use termrock::feedback::{PageFrame, SectionStrip};
 
 const METRICS: Id = termrock::Id::root("showcase_ui::pages::grid::grid.metrics");
 const COLUMNS: [Column<'static>; 4] = [
@@ -182,8 +183,6 @@ const SECONDARY: u32 = 0xb3b3b3;
 const MUTED: u32 = 0x8a8a8a;
 const FAINT: u32 = 0x737373;
 const RULE: u32 = 0x3a3a3a;
-const ACCENT: u32 = 0x48e054;
-const TAB_ACTIVE: u32 = 0x27272a;
 const THUMB: u32 = 0x808080;
 const TRACK: u32 = 0x474747;
 const LITERAL: u32 = 0xc6a0f6;
@@ -370,10 +369,6 @@ fn paint_at(ui: &mut Ui<'_>, x: u16, y: u16, columns: u16, text: &str, style: Pa
     ui.paint_str(Rect::new(x, y, columns, 1), text, style);
 }
 
-fn tab_width(label: &str) -> u16 {
-    width(label).saturating_add(3)
-}
-
 fn paint_blurb(ui: &mut Ui<'_>, body: Rect) {
     let title_w = width("Data grid");
     if body.width <= title_w.saturating_add(4) {
@@ -402,63 +397,6 @@ fn paint_blurb(ui: &mut Ui<'_>, body: Rect) {
         Rect::new(meta.x.saturating_add(used), meta.y, 1, 1),
         "…",
         style,
-    );
-}
-
-fn paint_section_strip(ui: &mut Ui<'_>, area: Rect) {
-    if area.is_empty() {
-        return;
-    }
-    let mut x = area.x;
-    let mut tab_end = area.x;
-    for (index, label) in SECTIONS.iter().enumerate() {
-        let w = tab_width(label);
-        if x.saturating_add(w) > area.right() {
-            break;
-        }
-        let style = if index == 0 {
-            ink(WHITE, TAB_ACTIVE).add_modifier(Modifier::BOLD)
-        } else {
-            ink(SECONDARY, CANVAS)
-        };
-        ui.fill(Rect::new(x, area.y, w, 1), style);
-        ui.paint_str(
-            Rect::new(x.saturating_add(1), area.y, w.saturating_sub(1), 1),
-            label,
-            style,
-        );
-        tab_end = x.saturating_add(w);
-        x = tab_end.saturating_add(1);
-    }
-    if area.width >= SECTION_WIDE {
-        let caption_width = width(SECTION_CAPTION);
-        let caption_x = area.right().saturating_sub(caption_width.saturating_add(1));
-        if caption_x > tab_end.saturating_add(2) {
-            ui.paint_str(
-                Rect::new(caption_x, area.y, caption_width, 1),
-                SECTION_CAPTION,
-                ink(FAINT, CANVAS),
-            );
-        }
-    }
-    if area.height < 2 {
-        return;
-    }
-    let rule_y = area.y.saturating_add(1);
-    ui.paint_str(
-        Rect {
-            y: rule_y,
-            height: 1,
-            ..area
-        },
-        &"─".repeat(usize::from(area.width)),
-        ink(RULE, CANVAS),
-    );
-    let active = tab_width(SECTIONS[0]).min(area.width);
-    ui.paint_str(
-        Rect::new(area.x, rule_y, active, 1),
-        &"━".repeat(usize::from(active)),
-        ink(ACCENT, CANVAS),
     );
 }
 
@@ -1101,33 +1039,39 @@ impl Page for GridPage {
         action.erase().into()
     }
     fn draw(&self, ui: &mut Ui<'_>, area: Rect) {
-        frame(ui, area, self.title(), "", |ui, body| {
-            paint_blurb(ui, body);
-            paint_section_strip(
-                ui,
-                Rect {
-                    height: 2.min(body.height),
-                    ..body
-                },
-            );
-            let content = Rect {
-                y: body.y.saturating_add(3),
-                height: body.height.saturating_sub(3),
-                ..body
-            };
-            paint_playground(ui, content);
-            if let Some(key) = self.selected {
-                let row = content.bottom().saturating_sub(1);
-                if row >= content.y && row < body.bottom() {
-                    let selected = format!("selected metric: {key:?}");
-                    ui.paint_str(
-                        Rect::new(content.x, row, content.width, 1),
-                        &selected,
-                        ui.surface_style(),
+        PageFrame::new(self.title())
+            .meta("")
+            .draw_with(ui, area, |ui, body| {
+                paint_blurb(ui, body);
+                SectionStrip::new(&SECTIONS)
+                    .caption(SECTION_CAPTION)
+                    .caption_min_width(SECTION_WIDE)
+                    .ink(chrome_ink())
+                    .draw(
+                        ui,
+                        Rect {
+                            height: 2.min(body.height),
+                            ..body
+                        },
                     );
+                let content = Rect {
+                    y: body.y.saturating_add(3),
+                    height: body.height.saturating_sub(3),
+                    ..body
+                };
+                paint_playground(ui, content);
+                if let Some(key) = self.selected {
+                    let row = content.bottom().saturating_sub(1);
+                    if row >= content.y && row < body.bottom() {
+                        let selected = format!("selected metric: {key:?}");
+                        ui.paint_str(
+                            Rect::new(content.x, row, content.width, 1),
+                            &selected,
+                            ui.surface_style(),
+                        );
+                    }
                 }
-            }
-        });
+            });
     }
 
     fn hints(&self, _ui: &Ui<'_>) -> &'static [(&'static str, &'static str)] {
