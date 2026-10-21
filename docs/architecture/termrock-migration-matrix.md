@@ -1911,3 +1911,24 @@ subagents carries `Signed-off-by: Alexey Zhokhov <alexey@zhokhov.com>`.
 The Jackin stream, the frozen paired runner and the theme/palette decisions
 stay with the stream that owns them; this session does not re-bless component
 or application digests.
+
+### Reference-state verification and dependency-graph evidence
+
+- The frozen oracle is intact and untouched by this session: tag object
+  `2718a6b8127a522a3d351d0b4bdb7542fc8da542`, tag commit
+  `4169783ae883788186d161af09ba9c481bd84e5c`.
+- Reference decision (recorded, no revision changed): the fixed PR #26 revision
+  `f4867e9b5f8a08a3bb61ce80d644198a29f51984` remains the reference for the
+  reference application code. The `design/interaction-polish` branch has since
+  advanced to `f2f6eb716c4a512be3dc9423742fa06e86879b32`; `f4867e9b` is an
+  ancestor of that tip and the diff between them touches no path under
+  `crates/` (empty `git diff --stat ... -- crates`), so the reference
+  applications are byte-identical to the fixed revision. The advancing commits
+  are CI, documentation and shared test-suite publication only.
+- Reference-frame leakage check (partial, this session): for the four
+  application binaries `showcase`, `jackin-preview`, `tablepro` and `holla`,
+  `cargo tree -p <app> --edges normal,build` and `--edges dev` list no
+  `termrock-e2e`, `visual-harness`, frozen-baseline or reference-frame
+  dependency. A production binary therefore has no dependency edge to the
+  reference-frame machinery. A fuller generated-code and build-script trace is
+  still owed by the ownership audit workstream.
