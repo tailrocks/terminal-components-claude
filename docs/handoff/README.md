@@ -49,9 +49,9 @@ Resume points:
 ## PropsList sheet contract correction (2026-10-21)
 
 - Branch: `wip/props-dialog-contract-stage1-20261021`
-- Exact local tip: `7c738acca9c0f51758e6a4331075ba5aba4775e8`
+- Exact implementation tip: `386b895597b220d949304e506bd5c629792b8b25`
 - Worktree: `/private/tmp/termrock-props-dialog-stage1-20261021`
-- State: implementation correction is commit `386b895597b220d949304e506bd5c629792b8b25`; this handoff is committed at the tip above. The author attempted the shared push lock once and found it owned by `termrock-fix-findings workstream 2026-10-21`. No fetch, rebase, push, or lock modification was performed. Parent assumed publication and was sent the implementation SHA.
+- State: implementation correction is committed; this handoff is committed on its branch. The author attempted the shared push lock once and found it owned by `termrock-fix-findings workstream 2026-10-21`. No fetch, rebase, push, or lock modification was performed. Parent assumed publication and was sent both exact local commit IDs.
 - Focused regression: `cargo nextest run -p termrock-controls --test props_sheet_regressions --target-dir /tmp/termrock-props-stage-target` — 5 passed, run `b83f3be9-3ad4-40e5-9474-cbf8be8ccf17`.
 - Full affected crate: `cargo nextest run -p termrock-controls --target-dir /tmp/termrock-props-stage-target` — 151 passed, 0 skipped, run `24ccb375-63a4-4635-810c-79163d92b911`.
 - Scoped strict Clippy, `rustfmt --edition 2024 --check` on touched Rust files, and `git diff --check` passed before the implementation commit.
