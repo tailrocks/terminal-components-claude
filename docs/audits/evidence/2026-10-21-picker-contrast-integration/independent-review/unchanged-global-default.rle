@@ -1,0 +1,584 @@
+CASE TrueColor/Bar
+initial cursor=None focus=Some(independent.contrast-picker) ring=FocusRing { entries: [FocusEntry { id: independent.contrast-picker, scope: ScopeId(tui.focus.root), disabled: false, area: Rect { x: 0, y: 0, width: 60, height: 12 }, layer: LayerId(0), swallows_typing: false }], scopes: [ScopeRecord { id: ScopeId(tui.focus.root), parent: None, mode: Normal, layer: LayerId(0) }], open: [ScopeId(tui.focus.root)] } state=FilterListState { query: "", query_input: TextInputState { draft: "[redacted]", draft_len: 0, phase: Idle, error: None, redacted_snapshot: false, sensitivity: None, pointer_anchor: None, focus_continuation: None, sensitive: false }, query_edit_menu: None, core: CollectionCore { cursor: Some(Num(17)), cursor_index: 0, checked: Only([]), scroll: ScrollState { offset: 0, content_len: 2, viewport_len: 0, reveal: Some(0), grab: None, context: 0, exact: false, follow_cursor: OnMove, followed: None, paging: false }, stamp: Some(Stamp { len: 2, first: Some(Num(17)), last: Some(Num(98)) }) }, matches: [0, 1], initialized: true, last_query: None, reset_selection: false }
+1 Cell { symbol: Some("▎"), fg: Rgb(72, 224, 84), bg: Rgb(0, 0, 0), underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+1 Cell { symbol: Some("R"), fg: Rgb(255, 255, 255), bg: Rgb(0, 0, 0), underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some("O"), fg: Rgb(255, 255, 255), bg: Rgb(0, 0, 0), underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some("W"), fg: Rgb(255, 255, 255), bg: Rgb(0, 0, 0), underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+51 Cell { symbol: Some(" "), fg: Rgb(138, 138, 138), bg: Rgb(0, 0, 0), underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+1 Cell { symbol: Some("I"), fg: Rgb(255, 255, 255), bg: Rgb(0, 0, 0), underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some(" "), fg: Rgb(138, 138, 138), bg: Rgb(0, 0, 0), underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+1 Cell { symbol: Some("D"), fg: Rgb(138, 138, 138), bg: Rgb(0, 0, 0), underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some(" "), fg: Rgb(138, 138, 138), bg: Rgb(0, 0, 0), underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+1 Cell { symbol: Some("T"), fg: Rgb(179, 179, 179), bg: Rgb(0, 0, 0), underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some(" "), fg: Rgb(138, 138, 138), bg: Rgb(0, 0, 0), underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+1 Cell { symbol: Some("O"), fg: Rgb(255, 255, 255), bg: Rgb(0, 0, 0), underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some("T"), fg: Rgb(255, 255, 255), bg: Rgb(0, 0, 0), underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some("H"), fg: Rgb(255, 255, 255), bg: Rgb(0, 0, 0), underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some("E"), fg: Rgb(255, 255, 255), bg: Rgb(0, 0, 0), underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some("R"), fg: Rgb(255, 255, 255), bg: Rgb(0, 0, 0), underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+49 Cell { symbol: Some(" "), fg: Rgb(138, 138, 138), bg: Rgb(0, 0, 0), underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+1 Cell { symbol: Some("J"), fg: Rgb(138, 138, 138), bg: Rgb(0, 0, 0), underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some(" "), fg: Rgb(138, 138, 138), bg: Rgb(0, 0, 0), underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+1 Cell { symbol: Some("E"), fg: Rgb(138, 138, 138), bg: Rgb(0, 0, 0), underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some(" "), fg: Rgb(138, 138, 138), bg: Rgb(0, 0, 0), underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+1 Cell { symbol: Some("U"), fg: Rgb(179, 179, 179), bg: Rgb(0, 0, 0), underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+600 Cell { symbol: Some(" "), fg: Rgb(138, 138, 138), bg: Rgb(0, 0, 0), underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+down cursor=None focus=Some(independent.contrast-picker) ring=FocusRing { entries: [FocusEntry { id: independent.contrast-picker, scope: ScopeId(tui.focus.root), disabled: false, area: Rect { x: 0, y: 0, width: 60, height: 12 }, layer: LayerId(0), swallows_typing: false }], scopes: [ScopeRecord { id: ScopeId(tui.focus.root), parent: None, mode: Normal, layer: LayerId(0) }], open: [ScopeId(tui.focus.root)] } state=FilterListState { query: "", query_input: TextInputState { draft: "[redacted]", draft_len: 0, phase: Idle, error: None, redacted_snapshot: false, sensitivity: None, pointer_anchor: None, focus_continuation: None, sensitive: false }, query_edit_menu: None, core: CollectionCore { cursor: Some(Num(98)), cursor_index: 1, checked: Only([]), scroll: ScrollState { offset: 0, content_len: 2, viewport_len: 12, reveal: Some(1), grab: None, context: 0, exact: false, follow_cursor: OnMove, followed: None, paging: false }, stamp: Some(Stamp { len: 2, first: Some(Num(17)), last: Some(Num(98)) }) }, matches: [0, 1], initialized: true, last_query: None, reset_selection: false }
+1 Cell { symbol: Some(" "), fg: Rgb(138, 138, 138), bg: Rgb(0, 0, 0), underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+1 Cell { symbol: Some("R"), fg: Rgb(255, 255, 255), bg: Rgb(0, 0, 0), underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some("O"), fg: Rgb(255, 255, 255), bg: Rgb(0, 0, 0), underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some("W"), fg: Rgb(255, 255, 255), bg: Rgb(0, 0, 0), underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+51 Cell { symbol: Some(" "), fg: Rgb(138, 138, 138), bg: Rgb(0, 0, 0), underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+1 Cell { symbol: Some("I"), fg: Rgb(138, 138, 138), bg: Rgb(0, 0, 0), underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some(" "), fg: Rgb(138, 138, 138), bg: Rgb(0, 0, 0), underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+1 Cell { symbol: Some("D"), fg: Rgb(138, 138, 138), bg: Rgb(0, 0, 0), underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some(" "), fg: Rgb(138, 138, 138), bg: Rgb(0, 0, 0), underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+1 Cell { symbol: Some("T"), fg: Rgb(179, 179, 179), bg: Rgb(0, 0, 0), underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some("▎"), fg: Rgb(72, 224, 84), bg: Rgb(0, 0, 0), underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+1 Cell { symbol: Some("O"), fg: Rgb(255, 255, 255), bg: Rgb(0, 0, 0), underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some("T"), fg: Rgb(255, 255, 255), bg: Rgb(0, 0, 0), underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some("H"), fg: Rgb(255, 255, 255), bg: Rgb(0, 0, 0), underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some("E"), fg: Rgb(255, 255, 255), bg: Rgb(0, 0, 0), underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some("R"), fg: Rgb(255, 255, 255), bg: Rgb(0, 0, 0), underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+49 Cell { symbol: Some(" "), fg: Rgb(138, 138, 138), bg: Rgb(0, 0, 0), underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+1 Cell { symbol: Some("J"), fg: Rgb(255, 255, 255), bg: Rgb(0, 0, 0), underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some(" "), fg: Rgb(138, 138, 138), bg: Rgb(0, 0, 0), underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+1 Cell { symbol: Some("E"), fg: Rgb(138, 138, 138), bg: Rgb(0, 0, 0), underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some(" "), fg: Rgb(138, 138, 138), bg: Rgb(0, 0, 0), underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+1 Cell { symbol: Some("U"), fg: Rgb(179, 179, 179), bg: Rgb(0, 0, 0), underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+600 Cell { symbol: Some(" "), fg: Rgb(138, 138, 138), bg: Rgb(0, 0, 0), underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+resized cursor=None focus=Some(independent.contrast-picker) ring=FocusRing { entries: [FocusEntry { id: independent.contrast-picker, scope: ScopeId(tui.focus.root), disabled: false, area: Rect { x: 0, y: 0, width: 29, height: 5 }, layer: LayerId(0), swallows_typing: false }], scopes: [ScopeRecord { id: ScopeId(tui.focus.root), parent: None, mode: Normal, layer: LayerId(0) }], open: [ScopeId(tui.focus.root)] } state=FilterListState { query: "", query_input: TextInputState { draft: "[redacted]", draft_len: 0, phase: Idle, error: None, redacted_snapshot: false, sensitivity: None, pointer_anchor: None, focus_continuation: None, sensitive: false }, query_edit_menu: None, core: CollectionCore { cursor: Some(Num(98)), cursor_index: 1, checked: Only([]), scroll: ScrollState { offset: 0, content_len: 2, viewport_len: 12, reveal: None, grab: None, context: 0, exact: false, follow_cursor: OnMove, followed: None, paging: false }, stamp: Some(Stamp { len: 2, first: Some(Num(17)), last: Some(Num(98)) }) }, matches: [0, 1], initialized: true, last_query: None, reset_selection: false }
+1 Cell { symbol: Some(" "), fg: Rgb(138, 138, 138), bg: Rgb(0, 0, 0), underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+1 Cell { symbol: Some("R"), fg: Rgb(255, 255, 255), bg: Rgb(0, 0, 0), underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some("O"), fg: Rgb(255, 255, 255), bg: Rgb(0, 0, 0), underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some("W"), fg: Rgb(255, 255, 255), bg: Rgb(0, 0, 0), underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+20 Cell { symbol: Some(" "), fg: Rgb(138, 138, 138), bg: Rgb(0, 0, 0), underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+1 Cell { symbol: Some("I"), fg: Rgb(138, 138, 138), bg: Rgb(0, 0, 0), underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some(" "), fg: Rgb(138, 138, 138), bg: Rgb(0, 0, 0), underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+1 Cell { symbol: Some("D"), fg: Rgb(138, 138, 138), bg: Rgb(0, 0, 0), underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some(" "), fg: Rgb(138, 138, 138), bg: Rgb(0, 0, 0), underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+1 Cell { symbol: Some("T"), fg: Rgb(179, 179, 179), bg: Rgb(0, 0, 0), underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some("▎"), fg: Rgb(72, 224, 84), bg: Rgb(0, 0, 0), underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+1 Cell { symbol: Some("O"), fg: Rgb(255, 255, 255), bg: Rgb(0, 0, 0), underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some("T"), fg: Rgb(255, 255, 255), bg: Rgb(0, 0, 0), underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some("H"), fg: Rgb(255, 255, 255), bg: Rgb(0, 0, 0), underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some("E"), fg: Rgb(255, 255, 255), bg: Rgb(0, 0, 0), underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some("R"), fg: Rgb(255, 255, 255), bg: Rgb(0, 0, 0), underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+18 Cell { symbol: Some(" "), fg: Rgb(138, 138, 138), bg: Rgb(0, 0, 0), underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+1 Cell { symbol: Some("J"), fg: Rgb(255, 255, 255), bg: Rgb(0, 0, 0), underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some(" "), fg: Rgb(138, 138, 138), bg: Rgb(0, 0, 0), underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+1 Cell { symbol: Some("E"), fg: Rgb(138, 138, 138), bg: Rgb(0, 0, 0), underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some(" "), fg: Rgb(138, 138, 138), bg: Rgb(0, 0, 0), underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+1 Cell { symbol: Some("U"), fg: Rgb(179, 179, 179), bg: Rgb(0, 0, 0), underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+87 Cell { symbol: Some(" "), fg: Rgb(138, 138, 138), bg: Rgb(0, 0, 0), underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+CASE TrueColor/Fill
+initial cursor=None focus=Some(independent.contrast-picker) ring=FocusRing { entries: [FocusEntry { id: independent.contrast-picker, scope: ScopeId(tui.focus.root), disabled: false, area: Rect { x: 0, y: 0, width: 60, height: 12 }, layer: LayerId(0), swallows_typing: false }], scopes: [ScopeRecord { id: ScopeId(tui.focus.root), parent: None, mode: Normal, layer: LayerId(0) }], open: [ScopeId(tui.focus.root)] } state=FilterListState { query: "", query_input: TextInputState { draft: "[redacted]", draft_len: 0, phase: Idle, error: None, redacted_snapshot: false, sensitivity: None, pointer_anchor: None, focus_continuation: None, sensitive: false }, query_edit_menu: None, core: CollectionCore { cursor: Some(Num(17)), cursor_index: 0, checked: Only([]), scroll: ScrollState { offset: 0, content_len: 2, viewport_len: 0, reveal: Some(0), grab: None, context: 0, exact: false, follow_cursor: OnMove, followed: None, paging: false }, stamp: Some(Stamp { len: 2, first: Some(Num(17)), last: Some(Num(98)) }) }, matches: [0, 1], initialized: true, last_query: None, reset_selection: false }
+1 Cell { symbol: Some(" "), fg: Rgb(47, 90, 168), bg: Rgb(47, 90, 168), underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+1 Cell { symbol: Some("R"), fg: Rgb(255, 255, 255), bg: Rgb(47, 90, 168), underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some("O"), fg: Rgb(255, 255, 255), bg: Rgb(47, 90, 168), underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some("W"), fg: Rgb(255, 255, 255), bg: Rgb(47, 90, 168), underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+51 Cell { symbol: Some(" "), fg: Rgb(255, 255, 255), bg: Rgb(47, 90, 168), underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+1 Cell { symbol: Some("I"), fg: Rgb(255, 255, 255), bg: Rgb(47, 90, 168), underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some(" "), fg: Rgb(255, 255, 255), bg: Rgb(47, 90, 168), underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+1 Cell { symbol: Some("D"), fg: Rgb(255, 255, 255), bg: Rgb(47, 90, 168), underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some(" "), fg: Rgb(255, 255, 255), bg: Rgb(47, 90, 168), underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+1 Cell { symbol: Some("T"), fg: Rgb(255, 255, 255), bg: Rgb(47, 90, 168), underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some(" "), fg: Rgb(0, 0, 0), bg: Rgb(0, 0, 0), underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some("O"), fg: Rgb(255, 255, 255), bg: Rgb(0, 0, 0), underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some("T"), fg: Rgb(255, 255, 255), bg: Rgb(0, 0, 0), underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some("H"), fg: Rgb(255, 255, 255), bg: Rgb(0, 0, 0), underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some("E"), fg: Rgb(255, 255, 255), bg: Rgb(0, 0, 0), underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some("R"), fg: Rgb(255, 255, 255), bg: Rgb(0, 0, 0), underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+49 Cell { symbol: Some(" "), fg: Rgb(255, 255, 255), bg: Rgb(0, 0, 0), underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some("J"), fg: Rgb(138, 138, 138), bg: Rgb(0, 0, 0), underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some(" "), fg: Rgb(255, 255, 255), bg: Rgb(0, 0, 0), underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some("E"), fg: Rgb(138, 138, 138), bg: Rgb(0, 0, 0), underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some(" "), fg: Rgb(255, 255, 255), bg: Rgb(0, 0, 0), underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some("U"), fg: Rgb(179, 179, 179), bg: Rgb(0, 0, 0), underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+600 Cell { symbol: Some(" "), fg: Rgb(138, 138, 138), bg: Rgb(0, 0, 0), underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+down cursor=None focus=Some(independent.contrast-picker) ring=FocusRing { entries: [FocusEntry { id: independent.contrast-picker, scope: ScopeId(tui.focus.root), disabled: false, area: Rect { x: 0, y: 0, width: 60, height: 12 }, layer: LayerId(0), swallows_typing: false }], scopes: [ScopeRecord { id: ScopeId(tui.focus.root), parent: None, mode: Normal, layer: LayerId(0) }], open: [ScopeId(tui.focus.root)] } state=FilterListState { query: "", query_input: TextInputState { draft: "[redacted]", draft_len: 0, phase: Idle, error: None, redacted_snapshot: false, sensitivity: None, pointer_anchor: None, focus_continuation: None, sensitive: false }, query_edit_menu: None, core: CollectionCore { cursor: Some(Num(98)), cursor_index: 1, checked: Only([]), scroll: ScrollState { offset: 0, content_len: 2, viewport_len: 12, reveal: Some(1), grab: None, context: 0, exact: false, follow_cursor: OnMove, followed: None, paging: false }, stamp: Some(Stamp { len: 2, first: Some(Num(17)), last: Some(Num(98)) }) }, matches: [0, 1], initialized: true, last_query: None, reset_selection: false }
+1 Cell { symbol: Some(" "), fg: Rgb(0, 0, 0), bg: Rgb(0, 0, 0), underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some("R"), fg: Rgb(255, 255, 255), bg: Rgb(0, 0, 0), underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some("O"), fg: Rgb(255, 255, 255), bg: Rgb(0, 0, 0), underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some("W"), fg: Rgb(255, 255, 255), bg: Rgb(0, 0, 0), underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+51 Cell { symbol: Some(" "), fg: Rgb(255, 255, 255), bg: Rgb(0, 0, 0), underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some("I"), fg: Rgb(138, 138, 138), bg: Rgb(0, 0, 0), underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some(" "), fg: Rgb(255, 255, 255), bg: Rgb(0, 0, 0), underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some("D"), fg: Rgb(138, 138, 138), bg: Rgb(0, 0, 0), underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some(" "), fg: Rgb(255, 255, 255), bg: Rgb(0, 0, 0), underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some("T"), fg: Rgb(179, 179, 179), bg: Rgb(0, 0, 0), underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some(" "), fg: Rgb(47, 90, 168), bg: Rgb(47, 90, 168), underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+1 Cell { symbol: Some("O"), fg: Rgb(255, 255, 255), bg: Rgb(47, 90, 168), underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some("T"), fg: Rgb(255, 255, 255), bg: Rgb(47, 90, 168), underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some("H"), fg: Rgb(255, 255, 255), bg: Rgb(47, 90, 168), underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some("E"), fg: Rgb(255, 255, 255), bg: Rgb(47, 90, 168), underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some("R"), fg: Rgb(255, 255, 255), bg: Rgb(47, 90, 168), underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+49 Cell { symbol: Some(" "), fg: Rgb(255, 255, 255), bg: Rgb(47, 90, 168), underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+1 Cell { symbol: Some("J"), fg: Rgb(255, 255, 255), bg: Rgb(47, 90, 168), underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some(" "), fg: Rgb(255, 255, 255), bg: Rgb(47, 90, 168), underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+1 Cell { symbol: Some("E"), fg: Rgb(255, 255, 255), bg: Rgb(47, 90, 168), underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some(" "), fg: Rgb(255, 255, 255), bg: Rgb(47, 90, 168), underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+1 Cell { symbol: Some("U"), fg: Rgb(255, 255, 255), bg: Rgb(47, 90, 168), underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+600 Cell { symbol: Some(" "), fg: Rgb(138, 138, 138), bg: Rgb(0, 0, 0), underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+resized cursor=None focus=Some(independent.contrast-picker) ring=FocusRing { entries: [FocusEntry { id: independent.contrast-picker, scope: ScopeId(tui.focus.root), disabled: false, area: Rect { x: 0, y: 0, width: 29, height: 5 }, layer: LayerId(0), swallows_typing: false }], scopes: [ScopeRecord { id: ScopeId(tui.focus.root), parent: None, mode: Normal, layer: LayerId(0) }], open: [ScopeId(tui.focus.root)] } state=FilterListState { query: "", query_input: TextInputState { draft: "[redacted]", draft_len: 0, phase: Idle, error: None, redacted_snapshot: false, sensitivity: None, pointer_anchor: None, focus_continuation: None, sensitive: false }, query_edit_menu: None, core: CollectionCore { cursor: Some(Num(98)), cursor_index: 1, checked: Only([]), scroll: ScrollState { offset: 0, content_len: 2, viewport_len: 12, reveal: None, grab: None, context: 0, exact: false, follow_cursor: OnMove, followed: None, paging: false }, stamp: Some(Stamp { len: 2, first: Some(Num(17)), last: Some(Num(98)) }) }, matches: [0, 1], initialized: true, last_query: None, reset_selection: false }
+1 Cell { symbol: Some(" "), fg: Rgb(0, 0, 0), bg: Rgb(0, 0, 0), underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some("R"), fg: Rgb(255, 255, 255), bg: Rgb(0, 0, 0), underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some("O"), fg: Rgb(255, 255, 255), bg: Rgb(0, 0, 0), underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some("W"), fg: Rgb(255, 255, 255), bg: Rgb(0, 0, 0), underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+20 Cell { symbol: Some(" "), fg: Rgb(255, 255, 255), bg: Rgb(0, 0, 0), underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some("I"), fg: Rgb(138, 138, 138), bg: Rgb(0, 0, 0), underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some(" "), fg: Rgb(255, 255, 255), bg: Rgb(0, 0, 0), underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some("D"), fg: Rgb(138, 138, 138), bg: Rgb(0, 0, 0), underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some(" "), fg: Rgb(255, 255, 255), bg: Rgb(0, 0, 0), underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some("T"), fg: Rgb(179, 179, 179), bg: Rgb(0, 0, 0), underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some(" "), fg: Rgb(47, 90, 168), bg: Rgb(47, 90, 168), underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+1 Cell { symbol: Some("O"), fg: Rgb(255, 255, 255), bg: Rgb(47, 90, 168), underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some("T"), fg: Rgb(255, 255, 255), bg: Rgb(47, 90, 168), underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some("H"), fg: Rgb(255, 255, 255), bg: Rgb(47, 90, 168), underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some("E"), fg: Rgb(255, 255, 255), bg: Rgb(47, 90, 168), underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some("R"), fg: Rgb(255, 255, 255), bg: Rgb(47, 90, 168), underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+18 Cell { symbol: Some(" "), fg: Rgb(255, 255, 255), bg: Rgb(47, 90, 168), underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+1 Cell { symbol: Some("J"), fg: Rgb(255, 255, 255), bg: Rgb(47, 90, 168), underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some(" "), fg: Rgb(255, 255, 255), bg: Rgb(47, 90, 168), underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+1 Cell { symbol: Some("E"), fg: Rgb(255, 255, 255), bg: Rgb(47, 90, 168), underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some(" "), fg: Rgb(255, 255, 255), bg: Rgb(47, 90, 168), underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+1 Cell { symbol: Some("U"), fg: Rgb(255, 255, 255), bg: Rgb(47, 90, 168), underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+87 Cell { symbol: Some(" "), fg: Rgb(138, 138, 138), bg: Rgb(0, 0, 0), underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+CASE Ansi256/Bar
+initial cursor=None focus=Some(independent.contrast-picker) ring=FocusRing { entries: [FocusEntry { id: independent.contrast-picker, scope: ScopeId(tui.focus.root), disabled: false, area: Rect { x: 0, y: 0, width: 60, height: 12 }, layer: LayerId(0), swallows_typing: false }], scopes: [ScopeRecord { id: ScopeId(tui.focus.root), parent: None, mode: Normal, layer: LayerId(0) }], open: [ScopeId(tui.focus.root)] } state=FilterListState { query: "", query_input: TextInputState { draft: "[redacted]", draft_len: 0, phase: Idle, error: None, redacted_snapshot: false, sensitivity: None, pointer_anchor: None, focus_continuation: None, sensitive: false }, query_edit_menu: None, core: CollectionCore { cursor: Some(Num(17)), cursor_index: 0, checked: Only([]), scroll: ScrollState { offset: 0, content_len: 2, viewport_len: 0, reveal: Some(0), grab: None, context: 0, exact: false, follow_cursor: OnMove, followed: None, paging: false }, stamp: Some(Stamp { len: 2, first: Some(Num(17)), last: Some(Num(98)) }) }, matches: [0, 1], initialized: true, last_query: None, reset_selection: false }
+1 Cell { symbol: Some("▎"), fg: Indexed(78), bg: Indexed(16), underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+1 Cell { symbol: Some("R"), fg: Indexed(231), bg: Indexed(16), underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some("O"), fg: Indexed(231), bg: Indexed(16), underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some("W"), fg: Indexed(231), bg: Indexed(16), underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+51 Cell { symbol: Some(" "), fg: Indexed(244), bg: Indexed(16), underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+1 Cell { symbol: Some("I"), fg: Indexed(231), bg: Indexed(16), underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some(" "), fg: Indexed(244), bg: Indexed(16), underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+1 Cell { symbol: Some("D"), fg: Indexed(244), bg: Indexed(16), underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some(" "), fg: Indexed(244), bg: Indexed(16), underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+1 Cell { symbol: Some("T"), fg: Indexed(249), bg: Indexed(16), underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some(" "), fg: Indexed(244), bg: Indexed(16), underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+1 Cell { symbol: Some("O"), fg: Indexed(231), bg: Indexed(16), underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some("T"), fg: Indexed(231), bg: Indexed(16), underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some("H"), fg: Indexed(231), bg: Indexed(16), underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some("E"), fg: Indexed(231), bg: Indexed(16), underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some("R"), fg: Indexed(231), bg: Indexed(16), underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+49 Cell { symbol: Some(" "), fg: Indexed(244), bg: Indexed(16), underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+1 Cell { symbol: Some("J"), fg: Indexed(244), bg: Indexed(16), underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some(" "), fg: Indexed(244), bg: Indexed(16), underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+1 Cell { symbol: Some("E"), fg: Indexed(244), bg: Indexed(16), underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some(" "), fg: Indexed(244), bg: Indexed(16), underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+1 Cell { symbol: Some("U"), fg: Indexed(249), bg: Indexed(16), underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+600 Cell { symbol: Some(" "), fg: Indexed(244), bg: Indexed(16), underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+down cursor=None focus=Some(independent.contrast-picker) ring=FocusRing { entries: [FocusEntry { id: independent.contrast-picker, scope: ScopeId(tui.focus.root), disabled: false, area: Rect { x: 0, y: 0, width: 60, height: 12 }, layer: LayerId(0), swallows_typing: false }], scopes: [ScopeRecord { id: ScopeId(tui.focus.root), parent: None, mode: Normal, layer: LayerId(0) }], open: [ScopeId(tui.focus.root)] } state=FilterListState { query: "", query_input: TextInputState { draft: "[redacted]", draft_len: 0, phase: Idle, error: None, redacted_snapshot: false, sensitivity: None, pointer_anchor: None, focus_continuation: None, sensitive: false }, query_edit_menu: None, core: CollectionCore { cursor: Some(Num(98)), cursor_index: 1, checked: Only([]), scroll: ScrollState { offset: 0, content_len: 2, viewport_len: 12, reveal: Some(1), grab: None, context: 0, exact: false, follow_cursor: OnMove, followed: None, paging: false }, stamp: Some(Stamp { len: 2, first: Some(Num(17)), last: Some(Num(98)) }) }, matches: [0, 1], initialized: true, last_query: None, reset_selection: false }
+1 Cell { symbol: Some(" "), fg: Indexed(244), bg: Indexed(16), underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+1 Cell { symbol: Some("R"), fg: Indexed(231), bg: Indexed(16), underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some("O"), fg: Indexed(231), bg: Indexed(16), underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some("W"), fg: Indexed(231), bg: Indexed(16), underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+51 Cell { symbol: Some(" "), fg: Indexed(244), bg: Indexed(16), underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+1 Cell { symbol: Some("I"), fg: Indexed(244), bg: Indexed(16), underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some(" "), fg: Indexed(244), bg: Indexed(16), underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+1 Cell { symbol: Some("D"), fg: Indexed(244), bg: Indexed(16), underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some(" "), fg: Indexed(244), bg: Indexed(16), underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+1 Cell { symbol: Some("T"), fg: Indexed(249), bg: Indexed(16), underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some("▎"), fg: Indexed(78), bg: Indexed(16), underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+1 Cell { symbol: Some("O"), fg: Indexed(231), bg: Indexed(16), underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some("T"), fg: Indexed(231), bg: Indexed(16), underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some("H"), fg: Indexed(231), bg: Indexed(16), underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some("E"), fg: Indexed(231), bg: Indexed(16), underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some("R"), fg: Indexed(231), bg: Indexed(16), underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+49 Cell { symbol: Some(" "), fg: Indexed(244), bg: Indexed(16), underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+1 Cell { symbol: Some("J"), fg: Indexed(231), bg: Indexed(16), underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some(" "), fg: Indexed(244), bg: Indexed(16), underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+1 Cell { symbol: Some("E"), fg: Indexed(244), bg: Indexed(16), underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some(" "), fg: Indexed(244), bg: Indexed(16), underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+1 Cell { symbol: Some("U"), fg: Indexed(249), bg: Indexed(16), underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+600 Cell { symbol: Some(" "), fg: Indexed(244), bg: Indexed(16), underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+resized cursor=None focus=Some(independent.contrast-picker) ring=FocusRing { entries: [FocusEntry { id: independent.contrast-picker, scope: ScopeId(tui.focus.root), disabled: false, area: Rect { x: 0, y: 0, width: 29, height: 5 }, layer: LayerId(0), swallows_typing: false }], scopes: [ScopeRecord { id: ScopeId(tui.focus.root), parent: None, mode: Normal, layer: LayerId(0) }], open: [ScopeId(tui.focus.root)] } state=FilterListState { query: "", query_input: TextInputState { draft: "[redacted]", draft_len: 0, phase: Idle, error: None, redacted_snapshot: false, sensitivity: None, pointer_anchor: None, focus_continuation: None, sensitive: false }, query_edit_menu: None, core: CollectionCore { cursor: Some(Num(98)), cursor_index: 1, checked: Only([]), scroll: ScrollState { offset: 0, content_len: 2, viewport_len: 12, reveal: None, grab: None, context: 0, exact: false, follow_cursor: OnMove, followed: None, paging: false }, stamp: Some(Stamp { len: 2, first: Some(Num(17)), last: Some(Num(98)) }) }, matches: [0, 1], initialized: true, last_query: None, reset_selection: false }
+1 Cell { symbol: Some(" "), fg: Indexed(244), bg: Indexed(16), underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+1 Cell { symbol: Some("R"), fg: Indexed(231), bg: Indexed(16), underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some("O"), fg: Indexed(231), bg: Indexed(16), underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some("W"), fg: Indexed(231), bg: Indexed(16), underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+20 Cell { symbol: Some(" "), fg: Indexed(244), bg: Indexed(16), underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+1 Cell { symbol: Some("I"), fg: Indexed(244), bg: Indexed(16), underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some(" "), fg: Indexed(244), bg: Indexed(16), underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+1 Cell { symbol: Some("D"), fg: Indexed(244), bg: Indexed(16), underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some(" "), fg: Indexed(244), bg: Indexed(16), underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+1 Cell { symbol: Some("T"), fg: Indexed(249), bg: Indexed(16), underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some("▎"), fg: Indexed(78), bg: Indexed(16), underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+1 Cell { symbol: Some("O"), fg: Indexed(231), bg: Indexed(16), underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some("T"), fg: Indexed(231), bg: Indexed(16), underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some("H"), fg: Indexed(231), bg: Indexed(16), underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some("E"), fg: Indexed(231), bg: Indexed(16), underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some("R"), fg: Indexed(231), bg: Indexed(16), underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+18 Cell { symbol: Some(" "), fg: Indexed(244), bg: Indexed(16), underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+1 Cell { symbol: Some("J"), fg: Indexed(231), bg: Indexed(16), underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some(" "), fg: Indexed(244), bg: Indexed(16), underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+1 Cell { symbol: Some("E"), fg: Indexed(244), bg: Indexed(16), underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some(" "), fg: Indexed(244), bg: Indexed(16), underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+1 Cell { symbol: Some("U"), fg: Indexed(249), bg: Indexed(16), underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+87 Cell { symbol: Some(" "), fg: Indexed(244), bg: Indexed(16), underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+CASE Ansi256/Fill
+initial cursor=None focus=Some(independent.contrast-picker) ring=FocusRing { entries: [FocusEntry { id: independent.contrast-picker, scope: ScopeId(tui.focus.root), disabled: false, area: Rect { x: 0, y: 0, width: 60, height: 12 }, layer: LayerId(0), swallows_typing: false }], scopes: [ScopeRecord { id: ScopeId(tui.focus.root), parent: None, mode: Normal, layer: LayerId(0) }], open: [ScopeId(tui.focus.root)] } state=FilterListState { query: "", query_input: TextInputState { draft: "[redacted]", draft_len: 0, phase: Idle, error: None, redacted_snapshot: false, sensitivity: None, pointer_anchor: None, focus_continuation: None, sensitive: false }, query_edit_menu: None, core: CollectionCore { cursor: Some(Num(17)), cursor_index: 0, checked: Only([]), scroll: ScrollState { offset: 0, content_len: 2, viewport_len: 0, reveal: Some(0), grab: None, context: 0, exact: false, follow_cursor: OnMove, followed: None, paging: false }, stamp: Some(Stamp { len: 2, first: Some(Num(17)), last: Some(Num(98)) }) }, matches: [0, 1], initialized: true, last_query: None, reset_selection: false }
+1 Cell { symbol: Some(" "), fg: Indexed(25), bg: Indexed(25), underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+1 Cell { symbol: Some("R"), fg: Indexed(231), bg: Indexed(25), underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some("O"), fg: Indexed(231), bg: Indexed(25), underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some("W"), fg: Indexed(231), bg: Indexed(25), underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+51 Cell { symbol: Some(" "), fg: Indexed(231), bg: Indexed(25), underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+1 Cell { symbol: Some("I"), fg: Indexed(231), bg: Indexed(25), underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some(" "), fg: Indexed(231), bg: Indexed(25), underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+1 Cell { symbol: Some("D"), fg: Indexed(231), bg: Indexed(25), underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some(" "), fg: Indexed(231), bg: Indexed(25), underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+1 Cell { symbol: Some("T"), fg: Indexed(231), bg: Indexed(25), underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some(" "), fg: Indexed(16), bg: Indexed(16), underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some("O"), fg: Indexed(231), bg: Indexed(16), underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some("T"), fg: Indexed(231), bg: Indexed(16), underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some("H"), fg: Indexed(231), bg: Indexed(16), underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some("E"), fg: Indexed(231), bg: Indexed(16), underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some("R"), fg: Indexed(231), bg: Indexed(16), underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+49 Cell { symbol: Some(" "), fg: Indexed(231), bg: Indexed(16), underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some("J"), fg: Indexed(244), bg: Indexed(16), underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some(" "), fg: Indexed(231), bg: Indexed(16), underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some("E"), fg: Indexed(244), bg: Indexed(16), underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some(" "), fg: Indexed(231), bg: Indexed(16), underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some("U"), fg: Indexed(249), bg: Indexed(16), underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+600 Cell { symbol: Some(" "), fg: Indexed(244), bg: Indexed(16), underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+down cursor=None focus=Some(independent.contrast-picker) ring=FocusRing { entries: [FocusEntry { id: independent.contrast-picker, scope: ScopeId(tui.focus.root), disabled: false, area: Rect { x: 0, y: 0, width: 60, height: 12 }, layer: LayerId(0), swallows_typing: false }], scopes: [ScopeRecord { id: ScopeId(tui.focus.root), parent: None, mode: Normal, layer: LayerId(0) }], open: [ScopeId(tui.focus.root)] } state=FilterListState { query: "", query_input: TextInputState { draft: "[redacted]", draft_len: 0, phase: Idle, error: None, redacted_snapshot: false, sensitivity: None, pointer_anchor: None, focus_continuation: None, sensitive: false }, query_edit_menu: None, core: CollectionCore { cursor: Some(Num(98)), cursor_index: 1, checked: Only([]), scroll: ScrollState { offset: 0, content_len: 2, viewport_len: 12, reveal: Some(1), grab: None, context: 0, exact: false, follow_cursor: OnMove, followed: None, paging: false }, stamp: Some(Stamp { len: 2, first: Some(Num(17)), last: Some(Num(98)) }) }, matches: [0, 1], initialized: true, last_query: None, reset_selection: false }
+1 Cell { symbol: Some(" "), fg: Indexed(16), bg: Indexed(16), underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some("R"), fg: Indexed(231), bg: Indexed(16), underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some("O"), fg: Indexed(231), bg: Indexed(16), underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some("W"), fg: Indexed(231), bg: Indexed(16), underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+51 Cell { symbol: Some(" "), fg: Indexed(231), bg: Indexed(16), underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some("I"), fg: Indexed(244), bg: Indexed(16), underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some(" "), fg: Indexed(231), bg: Indexed(16), underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some("D"), fg: Indexed(244), bg: Indexed(16), underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some(" "), fg: Indexed(231), bg: Indexed(16), underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some("T"), fg: Indexed(249), bg: Indexed(16), underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some(" "), fg: Indexed(25), bg: Indexed(25), underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+1 Cell { symbol: Some("O"), fg: Indexed(231), bg: Indexed(25), underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some("T"), fg: Indexed(231), bg: Indexed(25), underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some("H"), fg: Indexed(231), bg: Indexed(25), underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some("E"), fg: Indexed(231), bg: Indexed(25), underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some("R"), fg: Indexed(231), bg: Indexed(25), underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+49 Cell { symbol: Some(" "), fg: Indexed(231), bg: Indexed(25), underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+1 Cell { symbol: Some("J"), fg: Indexed(231), bg: Indexed(25), underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some(" "), fg: Indexed(231), bg: Indexed(25), underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+1 Cell { symbol: Some("E"), fg: Indexed(231), bg: Indexed(25), underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some(" "), fg: Indexed(231), bg: Indexed(25), underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+1 Cell { symbol: Some("U"), fg: Indexed(231), bg: Indexed(25), underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+600 Cell { symbol: Some(" "), fg: Indexed(244), bg: Indexed(16), underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+resized cursor=None focus=Some(independent.contrast-picker) ring=FocusRing { entries: [FocusEntry { id: independent.contrast-picker, scope: ScopeId(tui.focus.root), disabled: false, area: Rect { x: 0, y: 0, width: 29, height: 5 }, layer: LayerId(0), swallows_typing: false }], scopes: [ScopeRecord { id: ScopeId(tui.focus.root), parent: None, mode: Normal, layer: LayerId(0) }], open: [ScopeId(tui.focus.root)] } state=FilterListState { query: "", query_input: TextInputState { draft: "[redacted]", draft_len: 0, phase: Idle, error: None, redacted_snapshot: false, sensitivity: None, pointer_anchor: None, focus_continuation: None, sensitive: false }, query_edit_menu: None, core: CollectionCore { cursor: Some(Num(98)), cursor_index: 1, checked: Only([]), scroll: ScrollState { offset: 0, content_len: 2, viewport_len: 12, reveal: None, grab: None, context: 0, exact: false, follow_cursor: OnMove, followed: None, paging: false }, stamp: Some(Stamp { len: 2, first: Some(Num(17)), last: Some(Num(98)) }) }, matches: [0, 1], initialized: true, last_query: None, reset_selection: false }
+1 Cell { symbol: Some(" "), fg: Indexed(16), bg: Indexed(16), underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some("R"), fg: Indexed(231), bg: Indexed(16), underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some("O"), fg: Indexed(231), bg: Indexed(16), underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some("W"), fg: Indexed(231), bg: Indexed(16), underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+20 Cell { symbol: Some(" "), fg: Indexed(231), bg: Indexed(16), underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some("I"), fg: Indexed(244), bg: Indexed(16), underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some(" "), fg: Indexed(231), bg: Indexed(16), underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some("D"), fg: Indexed(244), bg: Indexed(16), underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some(" "), fg: Indexed(231), bg: Indexed(16), underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some("T"), fg: Indexed(249), bg: Indexed(16), underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some(" "), fg: Indexed(25), bg: Indexed(25), underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+1 Cell { symbol: Some("O"), fg: Indexed(231), bg: Indexed(25), underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some("T"), fg: Indexed(231), bg: Indexed(25), underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some("H"), fg: Indexed(231), bg: Indexed(25), underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some("E"), fg: Indexed(231), bg: Indexed(25), underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some("R"), fg: Indexed(231), bg: Indexed(25), underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+18 Cell { symbol: Some(" "), fg: Indexed(231), bg: Indexed(25), underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+1 Cell { symbol: Some("J"), fg: Indexed(231), bg: Indexed(25), underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some(" "), fg: Indexed(231), bg: Indexed(25), underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+1 Cell { symbol: Some("E"), fg: Indexed(231), bg: Indexed(25), underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some(" "), fg: Indexed(231), bg: Indexed(25), underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+1 Cell { symbol: Some("U"), fg: Indexed(231), bg: Indexed(25), underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+87 Cell { symbol: Some(" "), fg: Indexed(244), bg: Indexed(16), underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+CASE Ansi16/Bar
+initial cursor=None focus=Some(independent.contrast-picker) ring=FocusRing { entries: [FocusEntry { id: independent.contrast-picker, scope: ScopeId(tui.focus.root), disabled: false, area: Rect { x: 0, y: 0, width: 60, height: 12 }, layer: LayerId(0), swallows_typing: false }], scopes: [ScopeRecord { id: ScopeId(tui.focus.root), parent: None, mode: Normal, layer: LayerId(0) }], open: [ScopeId(tui.focus.root)] } state=FilterListState { query: "", query_input: TextInputState { draft: "[redacted]", draft_len: 0, phase: Idle, error: None, redacted_snapshot: false, sensitivity: None, pointer_anchor: None, focus_continuation: None, sensitive: false }, query_edit_menu: None, core: CollectionCore { cursor: Some(Num(17)), cursor_index: 0, checked: Only([]), scroll: ScrollState { offset: 0, content_len: 2, viewport_len: 0, reveal: Some(0), grab: None, context: 0, exact: false, follow_cursor: OnMove, followed: None, paging: false }, stamp: Some(Stamp { len: 2, first: Some(Num(17)), last: Some(Num(98)) }) }, matches: [0, 1], initialized: true, last_query: None, reset_selection: false }
+1 Cell { symbol: Some("▎"), fg: LightGreen, bg: Black, underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+1 Cell { symbol: Some("R"), fg: White, bg: Black, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some("O"), fg: White, bg: Black, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some("W"), fg: White, bg: Black, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+51 Cell { symbol: Some(" "), fg: Gray, bg: Black, underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+1 Cell { symbol: Some("I"), fg: White, bg: Black, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some(" "), fg: Gray, bg: Black, underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+1 Cell { symbol: Some("D"), fg: Gray, bg: Black, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some(" "), fg: Gray, bg: Black, underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+1 Cell { symbol: Some("T"), fg: Gray, bg: Black, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some(" "), fg: Gray, bg: Black, underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+1 Cell { symbol: Some("O"), fg: White, bg: Black, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some("T"), fg: White, bg: Black, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some("H"), fg: White, bg: Black, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some("E"), fg: White, bg: Black, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some("R"), fg: White, bg: Black, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+49 Cell { symbol: Some(" "), fg: Gray, bg: Black, underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+1 Cell { symbol: Some("J"), fg: Gray, bg: Black, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some(" "), fg: Gray, bg: Black, underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+1 Cell { symbol: Some("E"), fg: Gray, bg: Black, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some(" "), fg: Gray, bg: Black, underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+1 Cell { symbol: Some("U"), fg: Gray, bg: Black, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+600 Cell { symbol: Some(" "), fg: Gray, bg: Black, underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+down cursor=None focus=Some(independent.contrast-picker) ring=FocusRing { entries: [FocusEntry { id: independent.contrast-picker, scope: ScopeId(tui.focus.root), disabled: false, area: Rect { x: 0, y: 0, width: 60, height: 12 }, layer: LayerId(0), swallows_typing: false }], scopes: [ScopeRecord { id: ScopeId(tui.focus.root), parent: None, mode: Normal, layer: LayerId(0) }], open: [ScopeId(tui.focus.root)] } state=FilterListState { query: "", query_input: TextInputState { draft: "[redacted]", draft_len: 0, phase: Idle, error: None, redacted_snapshot: false, sensitivity: None, pointer_anchor: None, focus_continuation: None, sensitive: false }, query_edit_menu: None, core: CollectionCore { cursor: Some(Num(98)), cursor_index: 1, checked: Only([]), scroll: ScrollState { offset: 0, content_len: 2, viewport_len: 12, reveal: Some(1), grab: None, context: 0, exact: false, follow_cursor: OnMove, followed: None, paging: false }, stamp: Some(Stamp { len: 2, first: Some(Num(17)), last: Some(Num(98)) }) }, matches: [0, 1], initialized: true, last_query: None, reset_selection: false }
+1 Cell { symbol: Some(" "), fg: Gray, bg: Black, underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+1 Cell { symbol: Some("R"), fg: White, bg: Black, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some("O"), fg: White, bg: Black, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some("W"), fg: White, bg: Black, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+51 Cell { symbol: Some(" "), fg: Gray, bg: Black, underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+1 Cell { symbol: Some("I"), fg: Gray, bg: Black, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some(" "), fg: Gray, bg: Black, underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+1 Cell { symbol: Some("D"), fg: Gray, bg: Black, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some(" "), fg: Gray, bg: Black, underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+1 Cell { symbol: Some("T"), fg: Gray, bg: Black, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some("▎"), fg: LightGreen, bg: Black, underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+1 Cell { symbol: Some("O"), fg: White, bg: Black, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some("T"), fg: White, bg: Black, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some("H"), fg: White, bg: Black, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some("E"), fg: White, bg: Black, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some("R"), fg: White, bg: Black, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+49 Cell { symbol: Some(" "), fg: Gray, bg: Black, underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+1 Cell { symbol: Some("J"), fg: White, bg: Black, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some(" "), fg: Gray, bg: Black, underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+1 Cell { symbol: Some("E"), fg: Gray, bg: Black, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some(" "), fg: Gray, bg: Black, underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+1 Cell { symbol: Some("U"), fg: Gray, bg: Black, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+600 Cell { symbol: Some(" "), fg: Gray, bg: Black, underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+resized cursor=None focus=Some(independent.contrast-picker) ring=FocusRing { entries: [FocusEntry { id: independent.contrast-picker, scope: ScopeId(tui.focus.root), disabled: false, area: Rect { x: 0, y: 0, width: 29, height: 5 }, layer: LayerId(0), swallows_typing: false }], scopes: [ScopeRecord { id: ScopeId(tui.focus.root), parent: None, mode: Normal, layer: LayerId(0) }], open: [ScopeId(tui.focus.root)] } state=FilterListState { query: "", query_input: TextInputState { draft: "[redacted]", draft_len: 0, phase: Idle, error: None, redacted_snapshot: false, sensitivity: None, pointer_anchor: None, focus_continuation: None, sensitive: false }, query_edit_menu: None, core: CollectionCore { cursor: Some(Num(98)), cursor_index: 1, checked: Only([]), scroll: ScrollState { offset: 0, content_len: 2, viewport_len: 12, reveal: None, grab: None, context: 0, exact: false, follow_cursor: OnMove, followed: None, paging: false }, stamp: Some(Stamp { len: 2, first: Some(Num(17)), last: Some(Num(98)) }) }, matches: [0, 1], initialized: true, last_query: None, reset_selection: false }
+1 Cell { symbol: Some(" "), fg: Gray, bg: Black, underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+1 Cell { symbol: Some("R"), fg: White, bg: Black, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some("O"), fg: White, bg: Black, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some("W"), fg: White, bg: Black, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+20 Cell { symbol: Some(" "), fg: Gray, bg: Black, underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+1 Cell { symbol: Some("I"), fg: Gray, bg: Black, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some(" "), fg: Gray, bg: Black, underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+1 Cell { symbol: Some("D"), fg: Gray, bg: Black, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some(" "), fg: Gray, bg: Black, underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+1 Cell { symbol: Some("T"), fg: Gray, bg: Black, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some("▎"), fg: LightGreen, bg: Black, underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+1 Cell { symbol: Some("O"), fg: White, bg: Black, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some("T"), fg: White, bg: Black, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some("H"), fg: White, bg: Black, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some("E"), fg: White, bg: Black, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some("R"), fg: White, bg: Black, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+18 Cell { symbol: Some(" "), fg: Gray, bg: Black, underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+1 Cell { symbol: Some("J"), fg: White, bg: Black, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some(" "), fg: Gray, bg: Black, underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+1 Cell { symbol: Some("E"), fg: Gray, bg: Black, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some(" "), fg: Gray, bg: Black, underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+1 Cell { symbol: Some("U"), fg: Gray, bg: Black, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+87 Cell { symbol: Some(" "), fg: Gray, bg: Black, underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+CASE Ansi16/Fill
+initial cursor=None focus=Some(independent.contrast-picker) ring=FocusRing { entries: [FocusEntry { id: independent.contrast-picker, scope: ScopeId(tui.focus.root), disabled: false, area: Rect { x: 0, y: 0, width: 60, height: 12 }, layer: LayerId(0), swallows_typing: false }], scopes: [ScopeRecord { id: ScopeId(tui.focus.root), parent: None, mode: Normal, layer: LayerId(0) }], open: [ScopeId(tui.focus.root)] } state=FilterListState { query: "", query_input: TextInputState { draft: "[redacted]", draft_len: 0, phase: Idle, error: None, redacted_snapshot: false, sensitivity: None, pointer_anchor: None, focus_continuation: None, sensitive: false }, query_edit_menu: None, core: CollectionCore { cursor: Some(Num(17)), cursor_index: 0, checked: Only([]), scroll: ScrollState { offset: 0, content_len: 2, viewport_len: 0, reveal: Some(0), grab: None, context: 0, exact: false, follow_cursor: OnMove, followed: None, paging: false }, stamp: Some(Stamp { len: 2, first: Some(Num(17)), last: Some(Num(98)) }) }, matches: [0, 1], initialized: true, last_query: None, reset_selection: false }
+1 Cell { symbol: Some(" "), fg: Blue, bg: Blue, underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+1 Cell { symbol: Some("R"), fg: White, bg: Blue, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some("O"), fg: White, bg: Blue, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some("W"), fg: White, bg: Blue, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+51 Cell { symbol: Some(" "), fg: White, bg: Blue, underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+1 Cell { symbol: Some("I"), fg: White, bg: Blue, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some(" "), fg: White, bg: Blue, underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+1 Cell { symbol: Some("D"), fg: White, bg: Blue, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some(" "), fg: White, bg: Blue, underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+1 Cell { symbol: Some("T"), fg: White, bg: Blue, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some(" "), fg: Black, bg: Black, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some("O"), fg: White, bg: Black, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some("T"), fg: White, bg: Black, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some("H"), fg: White, bg: Black, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some("E"), fg: White, bg: Black, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some("R"), fg: White, bg: Black, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+49 Cell { symbol: Some(" "), fg: White, bg: Black, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some("J"), fg: Gray, bg: Black, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some(" "), fg: White, bg: Black, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some("E"), fg: Gray, bg: Black, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some(" "), fg: White, bg: Black, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some("U"), fg: Gray, bg: Black, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+600 Cell { symbol: Some(" "), fg: Gray, bg: Black, underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+down cursor=None focus=Some(independent.contrast-picker) ring=FocusRing { entries: [FocusEntry { id: independent.contrast-picker, scope: ScopeId(tui.focus.root), disabled: false, area: Rect { x: 0, y: 0, width: 60, height: 12 }, layer: LayerId(0), swallows_typing: false }], scopes: [ScopeRecord { id: ScopeId(tui.focus.root), parent: None, mode: Normal, layer: LayerId(0) }], open: [ScopeId(tui.focus.root)] } state=FilterListState { query: "", query_input: TextInputState { draft: "[redacted]", draft_len: 0, phase: Idle, error: None, redacted_snapshot: false, sensitivity: None, pointer_anchor: None, focus_continuation: None, sensitive: false }, query_edit_menu: None, core: CollectionCore { cursor: Some(Num(98)), cursor_index: 1, checked: Only([]), scroll: ScrollState { offset: 0, content_len: 2, viewport_len: 12, reveal: Some(1), grab: None, context: 0, exact: false, follow_cursor: OnMove, followed: None, paging: false }, stamp: Some(Stamp { len: 2, first: Some(Num(17)), last: Some(Num(98)) }) }, matches: [0, 1], initialized: true, last_query: None, reset_selection: false }
+1 Cell { symbol: Some(" "), fg: Black, bg: Black, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some("R"), fg: White, bg: Black, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some("O"), fg: White, bg: Black, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some("W"), fg: White, bg: Black, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+51 Cell { symbol: Some(" "), fg: White, bg: Black, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some("I"), fg: Gray, bg: Black, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some(" "), fg: White, bg: Black, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some("D"), fg: Gray, bg: Black, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some(" "), fg: White, bg: Black, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some("T"), fg: Gray, bg: Black, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some(" "), fg: Blue, bg: Blue, underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+1 Cell { symbol: Some("O"), fg: White, bg: Blue, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some("T"), fg: White, bg: Blue, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some("H"), fg: White, bg: Blue, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some("E"), fg: White, bg: Blue, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some("R"), fg: White, bg: Blue, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+49 Cell { symbol: Some(" "), fg: White, bg: Blue, underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+1 Cell { symbol: Some("J"), fg: White, bg: Blue, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some(" "), fg: White, bg: Blue, underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+1 Cell { symbol: Some("E"), fg: White, bg: Blue, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some(" "), fg: White, bg: Blue, underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+1 Cell { symbol: Some("U"), fg: White, bg: Blue, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+600 Cell { symbol: Some(" "), fg: Gray, bg: Black, underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+resized cursor=None focus=Some(independent.contrast-picker) ring=FocusRing { entries: [FocusEntry { id: independent.contrast-picker, scope: ScopeId(tui.focus.root), disabled: false, area: Rect { x: 0, y: 0, width: 29, height: 5 }, layer: LayerId(0), swallows_typing: false }], scopes: [ScopeRecord { id: ScopeId(tui.focus.root), parent: None, mode: Normal, layer: LayerId(0) }], open: [ScopeId(tui.focus.root)] } state=FilterListState { query: "", query_input: TextInputState { draft: "[redacted]", draft_len: 0, phase: Idle, error: None, redacted_snapshot: false, sensitivity: None, pointer_anchor: None, focus_continuation: None, sensitive: false }, query_edit_menu: None, core: CollectionCore { cursor: Some(Num(98)), cursor_index: 1, checked: Only([]), scroll: ScrollState { offset: 0, content_len: 2, viewport_len: 12, reveal: None, grab: None, context: 0, exact: false, follow_cursor: OnMove, followed: None, paging: false }, stamp: Some(Stamp { len: 2, first: Some(Num(17)), last: Some(Num(98)) }) }, matches: [0, 1], initialized: true, last_query: None, reset_selection: false }
+1 Cell { symbol: Some(" "), fg: Black, bg: Black, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some("R"), fg: White, bg: Black, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some("O"), fg: White, bg: Black, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some("W"), fg: White, bg: Black, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+20 Cell { symbol: Some(" "), fg: White, bg: Black, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some("I"), fg: Gray, bg: Black, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some(" "), fg: White, bg: Black, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some("D"), fg: Gray, bg: Black, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some(" "), fg: White, bg: Black, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some("T"), fg: Gray, bg: Black, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some(" "), fg: Blue, bg: Blue, underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+1 Cell { symbol: Some("O"), fg: White, bg: Blue, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some("T"), fg: White, bg: Blue, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some("H"), fg: White, bg: Blue, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some("E"), fg: White, bg: Blue, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some("R"), fg: White, bg: Blue, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+18 Cell { symbol: Some(" "), fg: White, bg: Blue, underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+1 Cell { symbol: Some("J"), fg: White, bg: Blue, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some(" "), fg: White, bg: Blue, underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+1 Cell { symbol: Some("E"), fg: White, bg: Blue, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some(" "), fg: White, bg: Blue, underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+1 Cell { symbol: Some("U"), fg: White, bg: Blue, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+87 Cell { symbol: Some(" "), fg: Gray, bg: Black, underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+CASE Mono/Bar
+initial cursor=None focus=Some(independent.contrast-picker) ring=FocusRing { entries: [FocusEntry { id: independent.contrast-picker, scope: ScopeId(tui.focus.root), disabled: false, area: Rect { x: 0, y: 0, width: 60, height: 12 }, layer: LayerId(0), swallows_typing: false }], scopes: [ScopeRecord { id: ScopeId(tui.focus.root), parent: None, mode: Normal, layer: LayerId(0) }], open: [ScopeId(tui.focus.root)] } state=FilterListState { query: "", query_input: TextInputState { draft: "[redacted]", draft_len: 0, phase: Idle, error: None, redacted_snapshot: false, sensitivity: None, pointer_anchor: None, focus_continuation: None, sensitive: false }, query_edit_menu: None, core: CollectionCore { cursor: Some(Num(17)), cursor_index: 0, checked: Only([]), scroll: ScrollState { offset: 0, content_len: 2, viewport_len: 0, reveal: Some(0), grab: None, context: 0, exact: false, follow_cursor: OnMove, followed: None, paging: false }, stamp: Some(Stamp { len: 2, first: Some(Num(17)), last: Some(Num(98)) }) }, matches: [0, 1], initialized: true, last_query: None, reset_selection: false }
+1 Cell { symbol: Some("▎"), fg: Gray, bg: Black, underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+1 Cell { symbol: Some("R"), fg: White, bg: Black, underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+1 Cell { symbol: Some("O"), fg: White, bg: Black, underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+1 Cell { symbol: Some("W"), fg: White, bg: Black, underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+51 Cell { symbol: Some(" "), fg: Gray, bg: Black, underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+1 Cell { symbol: Some("I"), fg: White, bg: Black, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some(" "), fg: Gray, bg: Black, underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+1 Cell { symbol: Some("D"), fg: Gray, bg: Black, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some(" "), fg: Gray, bg: Black, underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+1 Cell { symbol: Some("T"), fg: Gray, bg: Black, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some(" "), fg: Gray, bg: Black, underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+1 Cell { symbol: Some("O"), fg: White, bg: Black, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some("T"), fg: White, bg: Black, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some("H"), fg: White, bg: Black, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some("E"), fg: White, bg: Black, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some("R"), fg: White, bg: Black, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+49 Cell { symbol: Some(" "), fg: Gray, bg: Black, underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+1 Cell { symbol: Some("J"), fg: Gray, bg: Black, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some(" "), fg: Gray, bg: Black, underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+1 Cell { symbol: Some("E"), fg: Gray, bg: Black, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some(" "), fg: Gray, bg: Black, underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+1 Cell { symbol: Some("U"), fg: Gray, bg: Black, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+600 Cell { symbol: Some(" "), fg: Gray, bg: Black, underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+down cursor=None focus=Some(independent.contrast-picker) ring=FocusRing { entries: [FocusEntry { id: independent.contrast-picker, scope: ScopeId(tui.focus.root), disabled: false, area: Rect { x: 0, y: 0, width: 60, height: 12 }, layer: LayerId(0), swallows_typing: false }], scopes: [ScopeRecord { id: ScopeId(tui.focus.root), parent: None, mode: Normal, layer: LayerId(0) }], open: [ScopeId(tui.focus.root)] } state=FilterListState { query: "", query_input: TextInputState { draft: "[redacted]", draft_len: 0, phase: Idle, error: None, redacted_snapshot: false, sensitivity: None, pointer_anchor: None, focus_continuation: None, sensitive: false }, query_edit_menu: None, core: CollectionCore { cursor: Some(Num(98)), cursor_index: 1, checked: Only([]), scroll: ScrollState { offset: 0, content_len: 2, viewport_len: 12, reveal: Some(1), grab: None, context: 0, exact: false, follow_cursor: OnMove, followed: None, paging: false }, stamp: Some(Stamp { len: 2, first: Some(Num(17)), last: Some(Num(98)) }) }, matches: [0, 1], initialized: true, last_query: None, reset_selection: false }
+1 Cell { symbol: Some(" "), fg: Gray, bg: Black, underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+1 Cell { symbol: Some("R"), fg: White, bg: Black, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some("O"), fg: White, bg: Black, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some("W"), fg: White, bg: Black, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+51 Cell { symbol: Some(" "), fg: Gray, bg: Black, underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+1 Cell { symbol: Some("I"), fg: Gray, bg: Black, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some(" "), fg: Gray, bg: Black, underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+1 Cell { symbol: Some("D"), fg: Gray, bg: Black, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some(" "), fg: Gray, bg: Black, underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+1 Cell { symbol: Some("T"), fg: Gray, bg: Black, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some("▎"), fg: Gray, bg: Black, underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+1 Cell { symbol: Some("O"), fg: White, bg: Black, underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+1 Cell { symbol: Some("T"), fg: White, bg: Black, underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+1 Cell { symbol: Some("H"), fg: White, bg: Black, underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+1 Cell { symbol: Some("E"), fg: White, bg: Black, underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+1 Cell { symbol: Some("R"), fg: White, bg: Black, underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+49 Cell { symbol: Some(" "), fg: Gray, bg: Black, underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+1 Cell { symbol: Some("J"), fg: White, bg: Black, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some(" "), fg: Gray, bg: Black, underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+1 Cell { symbol: Some("E"), fg: Gray, bg: Black, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some(" "), fg: Gray, bg: Black, underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+1 Cell { symbol: Some("U"), fg: Gray, bg: Black, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+600 Cell { symbol: Some(" "), fg: Gray, bg: Black, underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+resized cursor=None focus=Some(independent.contrast-picker) ring=FocusRing { entries: [FocusEntry { id: independent.contrast-picker, scope: ScopeId(tui.focus.root), disabled: false, area: Rect { x: 0, y: 0, width: 29, height: 5 }, layer: LayerId(0), swallows_typing: false }], scopes: [ScopeRecord { id: ScopeId(tui.focus.root), parent: None, mode: Normal, layer: LayerId(0) }], open: [ScopeId(tui.focus.root)] } state=FilterListState { query: "", query_input: TextInputState { draft: "[redacted]", draft_len: 0, phase: Idle, error: None, redacted_snapshot: false, sensitivity: None, pointer_anchor: None, focus_continuation: None, sensitive: false }, query_edit_menu: None, core: CollectionCore { cursor: Some(Num(98)), cursor_index: 1, checked: Only([]), scroll: ScrollState { offset: 0, content_len: 2, viewport_len: 12, reveal: None, grab: None, context: 0, exact: false, follow_cursor: OnMove, followed: None, paging: false }, stamp: Some(Stamp { len: 2, first: Some(Num(17)), last: Some(Num(98)) }) }, matches: [0, 1], initialized: true, last_query: None, reset_selection: false }
+1 Cell { symbol: Some(" "), fg: Gray, bg: Black, underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+1 Cell { symbol: Some("R"), fg: White, bg: Black, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some("O"), fg: White, bg: Black, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some("W"), fg: White, bg: Black, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+20 Cell { symbol: Some(" "), fg: Gray, bg: Black, underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+1 Cell { symbol: Some("I"), fg: Gray, bg: Black, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some(" "), fg: Gray, bg: Black, underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+1 Cell { symbol: Some("D"), fg: Gray, bg: Black, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some(" "), fg: Gray, bg: Black, underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+1 Cell { symbol: Some("T"), fg: Gray, bg: Black, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some("▎"), fg: Gray, bg: Black, underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+1 Cell { symbol: Some("O"), fg: White, bg: Black, underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+1 Cell { symbol: Some("T"), fg: White, bg: Black, underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+1 Cell { symbol: Some("H"), fg: White, bg: Black, underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+1 Cell { symbol: Some("E"), fg: White, bg: Black, underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+1 Cell { symbol: Some("R"), fg: White, bg: Black, underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+18 Cell { symbol: Some(" "), fg: Gray, bg: Black, underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+1 Cell { symbol: Some("J"), fg: White, bg: Black, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some(" "), fg: Gray, bg: Black, underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+1 Cell { symbol: Some("E"), fg: Gray, bg: Black, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some(" "), fg: Gray, bg: Black, underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+1 Cell { symbol: Some("U"), fg: Gray, bg: Black, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+87 Cell { symbol: Some(" "), fg: Gray, bg: Black, underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+CASE Mono/Fill
+initial cursor=None focus=Some(independent.contrast-picker) ring=FocusRing { entries: [FocusEntry { id: independent.contrast-picker, scope: ScopeId(tui.focus.root), disabled: false, area: Rect { x: 0, y: 0, width: 60, height: 12 }, layer: LayerId(0), swallows_typing: false }], scopes: [ScopeRecord { id: ScopeId(tui.focus.root), parent: None, mode: Normal, layer: LayerId(0) }], open: [ScopeId(tui.focus.root)] } state=FilterListState { query: "", query_input: TextInputState { draft: "[redacted]", draft_len: 0, phase: Idle, error: None, redacted_snapshot: false, sensitivity: None, pointer_anchor: None, focus_continuation: None, sensitive: false }, query_edit_menu: None, core: CollectionCore { cursor: Some(Num(17)), cursor_index: 0, checked: Only([]), scroll: ScrollState { offset: 0, content_len: 2, viewport_len: 0, reveal: Some(0), grab: None, context: 0, exact: false, follow_cursor: OnMove, followed: None, paging: false }, stamp: Some(Stamp { len: 2, first: Some(Num(17)), last: Some(Num(98)) }) }, matches: [0, 1], initialized: true, last_query: None, reset_selection: false }
+1 Cell { symbol: Some(" "), fg: DarkGray, bg: DarkGray, underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+1 Cell { symbol: Some("R"), fg: White, bg: DarkGray, underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+1 Cell { symbol: Some("O"), fg: White, bg: DarkGray, underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+1 Cell { symbol: Some("W"), fg: White, bg: DarkGray, underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+51 Cell { symbol: Some(" "), fg: White, bg: DarkGray, underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+1 Cell { symbol: Some("I"), fg: White, bg: DarkGray, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some(" "), fg: White, bg: DarkGray, underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+1 Cell { symbol: Some("D"), fg: White, bg: DarkGray, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some(" "), fg: White, bg: DarkGray, underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+1 Cell { symbol: Some("T"), fg: White, bg: DarkGray, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some(" "), fg: Black, bg: Black, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some("O"), fg: White, bg: Black, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some("T"), fg: White, bg: Black, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some("H"), fg: White, bg: Black, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some("E"), fg: White, bg: Black, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some("R"), fg: White, bg: Black, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+49 Cell { symbol: Some(" "), fg: White, bg: Black, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some("J"), fg: Gray, bg: Black, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some(" "), fg: White, bg: Black, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some("E"), fg: Gray, bg: Black, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some(" "), fg: White, bg: Black, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some("U"), fg: Gray, bg: Black, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+600 Cell { symbol: Some(" "), fg: Gray, bg: Black, underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+down cursor=None focus=Some(independent.contrast-picker) ring=FocusRing { entries: [FocusEntry { id: independent.contrast-picker, scope: ScopeId(tui.focus.root), disabled: false, area: Rect { x: 0, y: 0, width: 60, height: 12 }, layer: LayerId(0), swallows_typing: false }], scopes: [ScopeRecord { id: ScopeId(tui.focus.root), parent: None, mode: Normal, layer: LayerId(0) }], open: [ScopeId(tui.focus.root)] } state=FilterListState { query: "", query_input: TextInputState { draft: "[redacted]", draft_len: 0, phase: Idle, error: None, redacted_snapshot: false, sensitivity: None, pointer_anchor: None, focus_continuation: None, sensitive: false }, query_edit_menu: None, core: CollectionCore { cursor: Some(Num(98)), cursor_index: 1, checked: Only([]), scroll: ScrollState { offset: 0, content_len: 2, viewport_len: 12, reveal: Some(1), grab: None, context: 0, exact: false, follow_cursor: OnMove, followed: None, paging: false }, stamp: Some(Stamp { len: 2, first: Some(Num(17)), last: Some(Num(98)) }) }, matches: [0, 1], initialized: true, last_query: None, reset_selection: false }
+1 Cell { symbol: Some(" "), fg: Black, bg: Black, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some("R"), fg: White, bg: Black, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some("O"), fg: White, bg: Black, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some("W"), fg: White, bg: Black, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+51 Cell { symbol: Some(" "), fg: White, bg: Black, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some("I"), fg: Gray, bg: Black, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some(" "), fg: White, bg: Black, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some("D"), fg: Gray, bg: Black, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some(" "), fg: White, bg: Black, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some("T"), fg: Gray, bg: Black, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some(" "), fg: DarkGray, bg: DarkGray, underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+1 Cell { symbol: Some("O"), fg: White, bg: DarkGray, underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+1 Cell { symbol: Some("T"), fg: White, bg: DarkGray, underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+1 Cell { symbol: Some("H"), fg: White, bg: DarkGray, underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+1 Cell { symbol: Some("E"), fg: White, bg: DarkGray, underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+1 Cell { symbol: Some("R"), fg: White, bg: DarkGray, underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+49 Cell { symbol: Some(" "), fg: White, bg: DarkGray, underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+1 Cell { symbol: Some("J"), fg: White, bg: DarkGray, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some(" "), fg: White, bg: DarkGray, underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+1 Cell { symbol: Some("E"), fg: White, bg: DarkGray, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some(" "), fg: White, bg: DarkGray, underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+1 Cell { symbol: Some("U"), fg: White, bg: DarkGray, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+600 Cell { symbol: Some(" "), fg: Gray, bg: Black, underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+resized cursor=None focus=Some(independent.contrast-picker) ring=FocusRing { entries: [FocusEntry { id: independent.contrast-picker, scope: ScopeId(tui.focus.root), disabled: false, area: Rect { x: 0, y: 0, width: 29, height: 5 }, layer: LayerId(0), swallows_typing: false }], scopes: [ScopeRecord { id: ScopeId(tui.focus.root), parent: None, mode: Normal, layer: LayerId(0) }], open: [ScopeId(tui.focus.root)] } state=FilterListState { query: "", query_input: TextInputState { draft: "[redacted]", draft_len: 0, phase: Idle, error: None, redacted_snapshot: false, sensitivity: None, pointer_anchor: None, focus_continuation: None, sensitive: false }, query_edit_menu: None, core: CollectionCore { cursor: Some(Num(98)), cursor_index: 1, checked: Only([]), scroll: ScrollState { offset: 0, content_len: 2, viewport_len: 12, reveal: None, grab: None, context: 0, exact: false, follow_cursor: OnMove, followed: None, paging: false }, stamp: Some(Stamp { len: 2, first: Some(Num(17)), last: Some(Num(98)) }) }, matches: [0, 1], initialized: true, last_query: None, reset_selection: false }
+1 Cell { symbol: Some(" "), fg: Black, bg: Black, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some("R"), fg: White, bg: Black, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some("O"), fg: White, bg: Black, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some("W"), fg: White, bg: Black, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+20 Cell { symbol: Some(" "), fg: White, bg: Black, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some("I"), fg: Gray, bg: Black, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some(" "), fg: White, bg: Black, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some("D"), fg: Gray, bg: Black, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some(" "), fg: White, bg: Black, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some("T"), fg: Gray, bg: Black, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some(" "), fg: DarkGray, bg: DarkGray, underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+1 Cell { symbol: Some("O"), fg: White, bg: DarkGray, underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+1 Cell { symbol: Some("T"), fg: White, bg: DarkGray, underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+1 Cell { symbol: Some("H"), fg: White, bg: DarkGray, underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+1 Cell { symbol: Some("E"), fg: White, bg: DarkGray, underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+1 Cell { symbol: Some("R"), fg: White, bg: DarkGray, underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+18 Cell { symbol: Some(" "), fg: White, bg: DarkGray, underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+1 Cell { symbol: Some("J"), fg: White, bg: DarkGray, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some(" "), fg: White, bg: DarkGray, underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+1 Cell { symbol: Some("E"), fg: White, bg: DarkGray, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+1 Cell { symbol: Some(" "), fg: White, bg: DarkGray, underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+1 Cell { symbol: Some("U"), fg: White, bg: DarkGray, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+87 Cell { symbol: Some(" "), fg: Gray, bg: Black, underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
