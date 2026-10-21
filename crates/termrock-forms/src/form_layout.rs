@@ -1,6 +1,6 @@
 //! Borrowed semantic layout descriptions for [`Form`](crate::Form).
 //!
-//! A layout names fields by their stable [`Id`](termrock_core::id::Id). It
+//! A layout names fields by their stable [`Id`]. It
 //! contains no terminal rectangles and owns no field values or widget state.
 
 use core::fmt;
