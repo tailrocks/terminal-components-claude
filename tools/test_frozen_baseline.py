@@ -1561,7 +1561,7 @@ class RunnerGuards(unittest.TestCase):
             inventory = {"showcase::pages::fixture::80x24::truecolor": True, extension_case: True}
             capture = {"cohort_id": "fixture-cohort", "fresh_baseline_capture_eligible": True}
 
-            def fake_digest(path: Path) -> str:
+            def fake_digest(path: Path, **_kwargs: object) -> str:
                 if path == patch_path:
                     return runner.EXTENSION_PATCH_SHA256
                 if path == extension_manifest_path:
@@ -2745,6 +2745,236 @@ class RunnerGuards(unittest.TestCase):
         self.assertEqual(signals, [(1234, signal.SIGTERM), (1234, signal.SIGKILL)])
         self.assertEqual(len(sleep.call_args_list), 1)
         self.assertAlmostEqual(sleep.call_args.args[0], 0.01)
+
+    def _make_owned_live_fixture(self, root: Path) -> tuple[Path, Path, Path, Path, Path]:
+        repo = root / "repo"
+        frozen_root = root / "frozen"
+        source = frozen_root / "source"
+        (source / "tests" / "visual_baseline" / "scenarios").mkdir(parents=True)
+        (source / "snapshots").mkdir()
+        (source / "Cargo.toml").write_text("[workspace]\n")
+        (source / "snapshots" / "frame.ansi").write_bytes(b"immutable reference input\n")
+        for relative in (
+            "tests/visual_baseline/main.rs",
+            "tests/visual_baseline/support.rs",
+            "tests/visual_baseline/scenarios/mod.rs",
+            "tests/visual_baseline/scenarios/interact.rs",
+        ):
+            path = source / relative
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text("frozen\n")
+        repo.mkdir()
+        (repo / "tools" / "frozen-cli-frame-support" / "src").mkdir(parents=True)
+        (repo / "tools" / "frozen-cli-frame-support" / "src" / "lib.rs").write_text("helper\n")
+        (repo / runner.EXTENSION_MANIFEST).parent.mkdir(parents=True, exist_ok=True)
+        (repo / runner.EXTENSION_MANIFEST).write_text("{}\n")
+        (repo / runner.EXTENSION_SOURCE).write_text("extension\n")
+        patch_lines = []
+        for relative in (
+            "tests/visual_baseline/main.rs",
+            "tests/visual_baseline/support.rs",
+            "tests/visual_baseline/scenarios/mod.rs",
+            "tests/visual_baseline/scenarios/interact.rs",
+        ):
+            patch_lines.extend((
+                f"--- a/{relative}\n",
+                f"+++ b/{relative}\n",
+                "@@ -1 +1 @@\n",
+                "-frozen\n",
+                "+live\n",
+            ))
+        (repo / "tools").mkdir(exist_ok=True)
+        patch_path = repo / "tools" / "frozen_cli_pair.patch"
+        patch_path.write_text("".join(patch_lines))
+        return repo, frozen_root, source, patch_path, repo / runner.EXTENSION_MANIFEST
+
+    def _owned_live_patches(self, repo: Path, patch_path: Path, manifest_path: Path):
+        extension_source = repo / runner.EXTENSION_SOURCE
+        helper = repo / "tools" / "frozen-cli-frame-support" / "src" / "lib.rs"
+        return {
+            "extension_manifest": patch.object(runner, "EXTENSION_MANIFEST", manifest_path.relative_to(repo)),
+            "extension_source": patch.object(runner, "EXTENSION_SOURCE", extension_source.relative_to(repo)),
+            "patch_hash": patch.object(runner, "EXTENSION_PATCH_SHA256", runner.sha256(patch_path)),
+            "manifest_hash": patch.object(runner, "EXTENSION_MANIFEST_SHA256", runner.sha256(manifest_path)),
+            "source_hash": patch.object(runner, "EXTENSION_SOURCE_SHA256", runner.sha256(extension_source)),
+            "load_manifest": patch.object(runner, "load_extension_manifest", return_value={"generated_case_ids": []}),
+            "cohort": patch.object(runner, "_fresh_cohort_source_record", return_value={"cohort_id": "fixture", "candidate_comparison_eligible": False, "checkpoint_reference_approval": "none", "product_acceptance_eligible": False}),
+        }
+
+    def test_prepare_live_owned_uses_one_execution_and_writes_manifest_only_after_inventory(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            repo, frozen_root, source, patch_path, manifest_path = self._make_owned_live_fixture(root)
+            extensions = self._owned_live_patches(repo, patch_path, manifest_path)
+            execution_seen: list[runner.PrepareExecution] = []
+
+            def observe(_source: Path, _env: dict[str, str], *, execution: runner.PrepareExecution | None = None) -> dict[str, object]:
+                self.assertIsNotNone(execution)
+                execution_seen.append(execution)
+                return {"synthetic": True}
+
+            def inventory(_source: Path, _timeout: int, env: dict[str, str], _manifest: dict[str, object], *, execution: runner.PrepareExecution | None = None) -> dict[str, bool]:
+                self.assertIsNotNone(execution)
+                execution_seen.append(execution)
+                return {"scenario::listed": True, "ordinary::listed": False}
+
+            contexts = [
+                *extensions.values(),
+                patch.object(runner, "fresh_clean_env", return_value={"PATH": os.environ["PATH"], "VISUAL_TOOL": "must-be-removed"}),
+                patch.object(runner, "fresh_tool_observation", side_effect=observe),
+                patch.object(runner, "nextest_inventory", side_effect=inventory),
+                patch.object(runner, "validate_extension_inventory", side_effect=lambda rows, _manifest: (rows, [])),
+                patch.object(runner, "EXPECTED_SCENARIOS", 1),
+                patch.object(runner, "EXPECTED_ORDINARY_TESTS", 1),
+            ]
+            with ExitStack() as stack:
+                for context in contexts:
+                    stack.enter_context(context)
+                with runner.PrepareExecution(30) as execution, redirect_stdout(io.StringIO()), redirect_stderr(io.StringIO()):
+                    record = runner.prepare_live_source(repo, frozen_root, source, 20, fresh_cohort_id="fixture", baseline_bin_dir=root / "bins", execution=execution)
+            self.assertEqual(execution_seen, [execution, execution])
+            self.assertEqual(record["changed_files"], sorted({
+                "tests/visual_baseline/main.rs",
+                "tests/visual_baseline/support.rs",
+                "tests/visual_baseline/scenarios/mod.rs",
+                "tests/visual_baseline/scenarios/interact.rs",
+                "tests/visual_baseline/frozen_cli_pair.rs",
+                "tests/visual_baseline/frozen_cli_extensions.rs",
+                "tests/visual_baseline/frozen_cli_extensions.json",
+            }))
+            self.assertEqual(record["registered_scenarios"], 1)
+            self.assertEqual(record["ordinary_checks"], 1)
+            self.assertTrue((frozen_root / "live-source.json").is_file())
+            self.assertEqual((source / "snapshots" / "frame.ansi").stat().st_mode & 0o777, 0o644)
+            self.assertEqual((frozen_root / "live-source" / "snapshots" / "frame.ansi").stat().st_mode & 0o222, 0)
+
+    def test_prepare_live_owned_inventory_failure_preserves_partial_and_no_manifest(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            repo, frozen_root, source, patch_path, manifest_path = self._make_owned_live_fixture(root)
+            extensions = self._owned_live_patches(repo, patch_path, manifest_path)
+            contexts = [
+                *extensions.values(),
+                patch.object(runner, "fresh_clean_env", return_value={"PATH": os.environ["PATH"]}),
+                patch.object(runner, "fresh_tool_observation", return_value={"synthetic": True}),
+                patch.object(runner, "nextest_inventory", side_effect=runner.RunnerError("synthetic inventory failure")),
+                patch.object(runner, "EXPECTED_SCENARIOS", 1),
+                patch.object(runner, "EXPECTED_ORDINARY_TESTS", 1),
+            ]
+            with ExitStack() as stack:
+                for context in contexts:
+                    stack.enter_context(context)
+                with runner.PrepareExecution(30) as execution, redirect_stdout(io.StringIO()), redirect_stderr(io.StringIO()):
+                    with self.assertRaisesRegex(runner.RunnerError, "synthetic inventory failure"):
+                        runner.prepare_live_source(repo, frozen_root, source, 20, fresh_cohort_id="fixture", baseline_bin_dir=root / "bins", execution=execution)
+            self.assertTrue((frozen_root / "live-source").is_dir())
+            self.assertFalse((frozen_root / "live-source.json").exists())
+
+    def test_owned_probe_nonzero_and_local_timeout_are_optional_but_scope_failures_propagate(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            env = dict(os.environ)
+            with runner.PrepareExecution(20) as execution:
+                self.assertIsNone(runner._captured_output([sys.executable, "-c", "raise SystemExit(9)"], cwd=root, env=env, execution=execution))
+                self.assertIsNone(runner._captured_output([sys.executable, "-c", "import time; time.sleep(4)"], cwd=root, env=env, timeout=0.1, execution=execution))
+                execution.cancel_signal = signal.SIGINT
+                with self.assertRaisesRegex(runner.RunnerError, "cancelled by signal"):
+                    runner._captured_output([sys.executable, "-c", "pass"], cwd=root, env=env, execution=execution)
+            with runner.PrepareExecution(20) as execution:
+                execution.work_deadline = time.monotonic() - 1
+                with self.assertRaisesRegex(runner.RunnerError, "work deadline expired"):
+                    runner._captured_output([sys.executable, "-c", "pass"], cwd=root, env=env, execution=execution)
+
+    def test_owned_optional_probe_cannot_hide_unverified_timeout_cleanup(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            with runner.PrepareExecution(15) as execution:
+                with self.assertRaisesRegex(runner.RunnerError, "cleanup unverified after SIGKILL"):
+                    runner._captured_output(
+                        [sys.executable, "-c", "import signal,time; signal.signal(signal.SIGTERM, signal.SIG_IGN); time.sleep(10)"],
+                        cwd=root,
+                        env=dict(os.environ),
+                        timeout=0.1,
+                        execution=execution,
+                    )
+
+    def test_owned_optional_probe_timeout_is_capped_at_twelve_seconds(self) -> None:
+        with tempfile.TemporaryDirectory() as temp, runner.PrepareExecution(30) as execution:
+            seen: dict[str, object] = {}
+
+            def fake_run(_command: list[str], **kwargs: object) -> tuple[str, str]:
+                seen.update(kwargs)
+                return "probe version\n", ""
+
+            with patch.object(execution, "run", side_effect=fake_run):
+                result = runner._captured_output(["fixture-tool", "--version"], cwd=Path(temp), env={"PATH": "/tools"}, timeout=99, execution=execution)
+            self.assertEqual(result, "probe version")
+            self.assertEqual(seen["command_timeout"], 12.0)
+            self.assertTrue(seen["optional_failure"])
+
+    def test_nextest_owned_inventory_lists_without_visual_environment_or_run_command(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            tools = root / "bin"
+            tools.mkdir()
+            driver = root / "driver"
+            driver.write_text(
+                "#!" + sys.executable + "\n"
+                "import os,sys,pathlib\n"
+                "pathlib.Path(os.environ['DRIVER_CALLS']).write_text(' '.join(sys.argv[1:]))\n"
+                "if '--list' not in sys.argv or '--format' not in sys.argv: pathlib.Path(os.environ['BODY_RAN']).touch()\n"
+                "print('scenario::listed: test')\nprint('ordinary::listed: test')\n"
+            )
+            driver.chmod(0o755)
+            cargo = tools / "cargo"
+            cargo.write_text(
+                "#!" + sys.executable + "\n"
+                "import json,os,subprocess,sys,pathlib\n"
+                "if len(sys.argv) < 3 or sys.argv[1:3] != ['nextest','list']: sys.exit(87)\n"
+                "listed=subprocess.run([os.environ['DRIVER'], '--list','--format','terse'],check=True,capture_output=True,text=True).stdout\n"
+                "pathlib.Path(os.environ['LISTED_NAMES']).write_text(listed)\n"
+                "if 'VISUAL_TOOL' in os.environ: sys.exit(88)\n"
+                "print(json.dumps({'rust-suites':[{'testcases':{'scenario::listed':{'ignored':True},'ordinary::listed':{'ignored':False}}}]}))\n"
+            )
+            cargo.chmod(0o755)
+            calls = root / "calls"
+            names = root / "names"
+            body = root / "body-ran"
+            env = {"PATH": f"{tools}:{os.environ['PATH']}", "DRIVER": str(driver), "DRIVER_CALLS": str(calls), "LISTED_NAMES": str(names), "BODY_RAN": str(body), "VISUAL_TOOL": "must-be-removed"}
+            with patch.object(runner, "EXPECTED_SCENARIOS", 1), patch.object(runner, "EXPECTED_ORDINARY_TESTS", 1), runner.PrepareExecution(20) as execution:
+                inventory = runner.nextest_inventory(root, 10, env, execution=execution)
+            self.assertEqual(inventory, {"scenario::listed": True, "ordinary::listed": False})
+            self.assertEqual(calls.read_text(), "--list --format terse")
+            self.assertIn("scenario::listed", names.read_text())
+            self.assertFalse(body.exists())
+
+    def test_prepare_live_owned_flags_are_opt_in_and_require_fixed_cohort(self) -> None:
+        legacy = runner.parser().parse_args(["prepare-live"])
+        owned = runner.parser().parse_args([
+            "prepare-live", "--owned-lifecycle", "--owned-budget", "37",
+            "--fresh-cohort", "frozen-20261021-serial-nonincr-r1-r2",
+            "--baseline-bin-dir", "/sealed/bin",
+        ])
+        self.assertFalse(legacy.owned_lifecycle)
+        self.assertEqual(legacy.owned_budget, runner.PREPARE_OWNED_MAX_BUDGET)
+        self.assertTrue(owned.owned_lifecycle)
+        self.assertEqual(owned.owned_budget, 37)
+
+    def test_prepare_live_owned_cli_rejects_missing_fixed_cohort_before_preparation(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            repo = root / "repo"
+            source = root / "root" / "source"
+            repo.mkdir()
+            source.mkdir(parents=True)
+            (source / "Cargo.toml").write_text("[workspace]\n")
+            argv = [
+                "frozen_baseline.py", "--repo", str(repo), "--root", str(source.parent),
+                "prepare-live", "--owned-lifecycle",
+            ]
+            with patch.object(sys, "argv", argv), redirect_stderr(io.StringIO()) as errors:
+                self.assertEqual(runner.main(), 1)
+            self.assertIn("requires explicit --fresh-cohort and --baseline-bin-dir", errors.getvalue())
 
 
 if __name__ == "__main__":
