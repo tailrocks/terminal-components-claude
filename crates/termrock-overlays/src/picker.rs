@@ -77,8 +77,9 @@ impl PickerLayout {
         }
     }
 
-    /// Return a centered card policy with room for a border, query, footer,
-    /// and one additional visible result row.
+    /// Return a card policy with room for a border, query, footer, and one
+    /// additional visible result row. Alignment remains controlled by
+    /// [`Picker::align`]; this policy does not change the picker's anchor.
     pub const fn card() -> Self {
         Self {
             legacy: false,
@@ -112,6 +113,8 @@ impl PickerLayout {
     }
 
     #[must_use]
+    /// Reserve footer rows for the hint line. A zero-row footer explicitly
+    /// disables hint painting while retaining the configured hint string.
     pub const fn footer_rows(mut self, rows: u16) -> Self {
         self.footer_rows = Some(rows);
         self.legacy = false;
@@ -719,7 +722,11 @@ impl<T: AsItem, R: RowFn<T>> Picker<'_, T, R> {
                     self.list().draw_query(ui, query, &st.list);
                 }
 
-                let show_hint = !self.hints.is_empty();
+                // An explicit zero-row footer disables hint painting. Keeping
+                // the hint data on the picker remains useful when a caller
+                // changes its layout policy, but it must not overlap results.
+                let show_hint = !self.hints.is_empty()
+                    && (self.layout.legacy || self.layout.footer_rows != Some(0));
                 if show_hint {
                     let hint_area = Rect {
                         y: content.y.saturating_add(content.height.saturating_sub(1)),
