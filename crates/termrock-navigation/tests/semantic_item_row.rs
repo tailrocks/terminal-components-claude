@@ -54,7 +54,7 @@ fn tree(
     Tree::new(TREE)
         .key(|item: &Item<'static>| item.key)
         .node(&tree_node)
-        .row(row)
+        .row_adapter(row)
 }
 
 struct Page {
