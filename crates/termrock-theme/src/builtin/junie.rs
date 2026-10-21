@@ -35,10 +35,6 @@ const RED_45: Color = Color::from_u32(0x7a_2a_2a);
 const AMBER: Color = Color::from_u32(0xf5_9e_09);
 const AMBER_TINT: Color = Color::from_u32(0x2c_22_10);
 const PURPLE: Color = Color::from_u32(0x87_87_ff);
-const BLUE_INFO: Color = Color::from_u32(0x79_b8_ff);
-const SYNTAX_STRING: Color = Color::from_u32(0x8b_d5_ca);
-const SYNTAX_NUMBER: Color = Color::from_u32(0xc6_a0_f6);
-const DIAGNOSTIC_ERROR: Color = Color::from_u32(0xf0_5d_5d);
 
 pub(crate) const fn tokens() -> ColorTokens {
     ColorTokens {
@@ -77,12 +73,14 @@ pub(crate) const fn tokens() -> ColorTokens {
         read_only_fg: WHITE_70,
 
         syntax: SyntaxTokens {
-            keyword: BLUE_INFO,
+            // The frozen corpus paints SQL keywords bold white and the
+            // operator glyph in the mid grey; a blue keyword is not in it.
+            keyword: WHITE,
             ident: WHITE,
-            string: SYNTAX_STRING,
-            number: SYNTAX_NUMBER,
-            operator: TEXT_MUTED,
-            punct: TEXT_MUTED,
+            string: WHITE_70,
+            number: WHITE_70,
+            operator: WHITE_50,
+            punct: WHITE_50,
             comment: WHITE_30,
             plain: WHITE,
             type_name: WHITE,
@@ -93,7 +91,7 @@ pub(crate) const fn tokens() -> ColorTokens {
             match_bg: GREEN_20,
             match_current_bg: HIGHLIGHT,
             bracket_match: GREEN,
-            diagnostic_error: DIAGNOSTIC_ERROR,
+            diagnostic_error: RED,
             diagnostic_warning: AMBER,
             diagnostic_info: PURPLE,
         },
