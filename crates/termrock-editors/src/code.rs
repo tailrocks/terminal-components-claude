@@ -23,6 +23,7 @@ use crate::theme::{Family, GlyphRole, Role, Slot, StylePatch, SyntaxRole, Varian
 use crate::ui::{Cx, FrameRead, Ui};
 use termrock_core::edit_entry::EditEntry;
 use termrock_runtime::scroll_region::ScrollRegion;
+use termrock_text::CursorPos;
 
 const CTRL: KeyModifiers = KeyModifiers::CONTROL;
 const ALT: KeyModifiers = KeyModifiers::ALT;
@@ -517,6 +518,19 @@ struct FindState {
     typing: bool,
 }
 
+/// Read-only summary of the editor's current find operation.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct CodeFindInfo<'a> {
+    /// Current search text.
+    pub query: &'a str,
+    /// Zero-based current match index, or `None` when there are no matches.
+    pub current: Option<usize>,
+    /// Number of matches in the document.
+    pub matches: usize,
+    /// Whether the find bar is accepting query input.
+    pub typing: bool,
+}
+
 #[derive(Clone, PartialEq, Eq)]
 pub struct CodeEditorState {
     editor: TextEditorCore,
@@ -597,6 +611,21 @@ impl CodeEditorState {
 
     pub const fn cursor_offset(&self) -> usize {
         self.editor.cursor_offset()
+    }
+
+    /// Current cursor position, with `col` measured in terminal cells.
+    pub fn cursor_pos(&self) -> CursorPos {
+        self.editor.cursor_pos()
+    }
+
+    /// Current find query and match position, when a find operation is open.
+    pub fn find_info(&self) -> Option<CodeFindInfo<'_>> {
+        self.find.as_ref().map(|find| CodeFindInfo {
+            query: &find.needle,
+            current: (!find.matches.is_empty()).then_some(find.current),
+            matches: find.matches.len(),
+            typing: find.typing,
+        })
     }
 
     pub fn selected_text(&self) -> Option<&str> {
@@ -992,6 +1021,22 @@ impl<'a> CodeEditor<'a> {
         })
     }
 
+    /// Open the find bar and focus this editor.
+    ///
+    /// Find remains available for read-only editors. Disabled editors ignore the request.
+    pub fn open_find(&self, cx: &mut Cx<'_>, st: &mut CodeEditorState) -> Response<CodeAction> {
+        if self.disabled {
+            return Response::ignored();
+        }
+        self.begin_find(cx, st);
+        Response::changed()
+    }
+
+    fn begin_find(&self, cx: &mut Cx<'_>, st: &mut CodeEditorState) {
+        st.open_find();
+        cx.focus(self.id);
+    }
+
     pub fn update(&self, cx: &mut Cx<'_>, st: &mut CodeEditorState) -> Response<CodeAction> {
         if self.disabled {
             return Response::ignored();
@@ -1128,6 +1173,10 @@ impl<'a> CodeEditor<'a> {
         acc: &mut Acc<CodeAction>,
     ) {
         match command {
+            CodeCmd::Find => {
+                self.begin_find(cx, st);
+                acc.changed();
+            }
             CodeCmd::FocusNext => {
                 st.commit();
                 cx.focus_next();
@@ -1181,10 +1230,7 @@ impl<'a> CodeEditor<'a> {
                 st.commit();
                 acc.action(CodeAction::Committed);
             }
-            CodeCmd::Find => {
-                st.open_find();
-                acc.changed();
-            }
+            CodeCmd::Find => acc.consumed(),
             CodeCmd::FindNext(previous) => {
                 st.goto_match(previous);
                 acc.action(CodeAction::CursorMoved);
