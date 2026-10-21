@@ -1,0 +1,146 @@
+{
+  "schema": "termrock.nav-list-header-gutter.independent-review.v1",
+  "decision": "CLEAR bounded NavList header-text, marker-spacing and shared ScrollbarGutter implementation from f9f07b7988e22a26254bd4b84d13b10ca2f11c57 as retained unchanged at exact WIP tip ee669114e8ade4ba1ad7f882085741eeaa259f5f. No actionable findings in this scope; no application migration or product parity acceptance.",
+  "findings": [],
+  "source_commit": "f9f07b7988e22a26254bd4b84d13b10ca2f11c57",
+  "reviewed_tip": "ee669114e8ade4ba1ad7f882085741eeaa259f5f",
+  "before_revision": "4cc10c3a7158123500fbe38435f2b68874b50561",
+  "remote_observation": "ee669114e8ade4ba1ad7f882085741eeaa259f5f\trefs/heads/wip/shared-column-spec-20261021",
+  "source_hashes": {
+    "crates/termrock-navigation/src/lib.rs": "73c1880919090a8feae3aa8864407788103eeb70dfdf44cf598f5f8d06392fe8",
+    "crates/termrock-navigation/src/nav_list.rs": "82fcad90ec7f4381fbf9d0c2d6e6d6330af18b5171626a8ebca04d30f7e58464",
+    "crates/termrock-runtime/src/scroll_region.rs": "3c11f19f0106b1a0b638a917a5fda4af7332d27dfa0784de89343f7907812379",
+    "crates/termrock/src/lib.rs": "a4a3cf76acef7d0228ec2385d6f4039607622cdf6e8dff7be6ac9f3e76de58eb"
+  },
+  "evidence_index": {
+    "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/branch-consolidation/nav-header-gutter-independent-review-ee669114-20261021/evidence-index.json",
+    "sha256": "5aa4c47ecfc644cdb5b64a17e451e8b576511093087202f891d60131b3c73a28"
+  },
+  "method": "Independent read-only source review in separate detached sparse before/after worktrees; distinct Cargo target directories per revision; public external consumer with different keyed Unicode/long/empty data; cargo nextest only for Rust test execution. Reviewed source worktrees stayed clean. No application source imports or source edits, no push, no helper agents.",
+  "default_compatibility": {
+    "checkpoints_per_revision": 5760,
+    "complete_receipt_bytes": 9349081,
+    "before_after_sha256": "458a4840121ee022a9924d598c205adb16dcb69e23009436c94c8343e2a00cbc",
+    "compared": "Byte-identical complete ratatui Buffer debug cells, projected complete hit registry, complete focus ring entries/bounds, runtime focus/focus-visible, cursor visibility/position/bar flag and projected cursor. Live versus projected buffers also equal at each checkpoint.",
+    "dimensions": {
+      "color_profiles": [
+        "TrueColor",
+        "Ansi256",
+        "Ansi16",
+        "Mono"
+      ],
+      "widths": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        8,
+        12,
+        24,
+        41
+      ],
+      "heights": [
+        0,
+        1,
+        2,
+        3,
+        5,
+        9
+      ],
+      "data_lengths": [
+        0,
+        2,
+        9
+      ],
+      "scrollable": [
+        false,
+        true
+      ],
+      "compact": [
+        false,
+        true
+      ],
+      "disabled": [
+        false,
+        true
+      ]
+    },
+    "data": "Different domain keys and sections, wide/combining labels, long labels, selected item distinct from cursor where populated. Existing public API compiles on both revisions.",
+    "default_source_reasoning": "header_text_patch defaults None and retains the exact original paint_str(h.style) branch; marker_gap defaults0 and preserves draw/measure positions; ScrollbarGutter defaults Auto and is equivalent to the prior visible-and-overflow condition. New fields are forwarded through key/row type transitions."
+  },
+  "new_contract_proof": {
+    "external_after_tests": 4,
+    "external_skips": 0,
+    "header_text": "Four-profile public consumer confirms header label-only styling, inherited global bold plus text italic, and unchanged left/right padding. Native whole-header slot test confirms slot precedence over text patch; source returns before text patch for all profiles. PartStyle.part_patch merges global and named overrides before text patch, so existing channels are retained.",
+    "gutter_geometry_configurations": 2160,
+    "gutter_geometry": "Public ScrollRegion across four profiles,width0..8,height0..4,empty/fitting/overflow lengths,hidden/visible bar and Auto/Stable. Assert exactly one reserved column when requested, no reservation when hidden/empty area, track only for overflow, all hit rectangles within area.",
+    "marker_configurations": 832,
+    "marker_geometry": "Public NavList across four profiles,width0..12,gaps0/1/3/u16::MAX, fitting/overflow and Auto/Stable. Assert icon position when it fits, complete row hit width after gutter reservation, clipping and empty-width safety. Native tests additionally drive stable-gutter keyboard and pointer activation.",
+    "api": "Only public Termrock facade/component-author APIs used by external fixture; no application source imports or copied widget implementation. Generic borrowed StylePatch, additive builders, new public Auto/Stable enum and private fields preserve old consumer signatures. No new domain or application-specific rendering branch.",
+    "runtime": "Single existing ScrollRegion draw/update and NavList row/part machinery retained; no second input/render system, input during measurement, new unsafe code, background task or shared mutable global introduced."
+  },
+  "validation": {
+    "native_nextest": {
+      "command": "cargo nextest run --locked -p termrock-navigation -p termrock-runtime --all-targets",
+      "passed": 610,
+      "skipped": 3,
+      "test_duration_seconds": 3.498,
+      "whole_command_seconds": 74.505,
+      "log": {
+        "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/branch-consolidation/nav-header-gutter-independent-review-ee669114-20261021/native.log",
+        "sha256": "288a896b543e35bc9b208df3b0693a2f5d39893ab5ffbb0bc3d9612ed29414d8",
+        "bytes": 82172
+      }
+    },
+    "before_public_consumer": {
+      "passed": 1,
+      "skipped": 0,
+      "log": {
+        "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/branch-consolidation/nav-header-gutter-independent-review-ee669114-20261021/before-consumer-attempt2.log",
+        "sha256": "9cb9519aa8ed15402a7848e98d13d50bf0ed941c58b70e19b373665c90c502dd",
+        "bytes": 6374
+      }
+    },
+    "after_public_consumer": {
+      "passed": 4,
+      "skipped": 0,
+      "log": {
+        "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/branch-consolidation/nav-header-gutter-independent-review-ee669114-20261021/after-consumer-attempt4.log",
+        "sha256": "6f54261e428f9387f5d0715c8eda497244772ea5bb51c72bc5b804d0d4f20290",
+        "bytes": 4055
+      }
+    },
+    "strict_clippy": {
+      "command": "cargo clippy --locked -p termrock-navigation -p termrock-runtime -p termrock --all-targets -- -D warnings",
+      "exit_status": 0,
+      "whole_command_seconds": 15.957,
+      "log": {
+        "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/branch-consolidation/nav-header-gutter-independent-review-ee669114-20261021/clippy.log",
+        "sha256": "7fcbf9e38d7cb4e4c65e4da331e603aab7318b6ae4c85d44f5a157c31ec5c75f",
+        "bytes": 4563
+      }
+    },
+    "format": {
+      "command": "cargo fmt --all -- --check",
+      "exit_status": 0,
+      "log": {
+        "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/branch-consolidation/nav-header-gutter-independent-review-ee669114-20261021/format.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "bytes": 0
+      }
+    },
+    "git_diff_check": {
+      "exit_status": 0
+    }
+  },
+  "coverage_limits": [
+    "Three pre-existing real-PTY fixture tests remain skipped in the native default suite. The author reported two forced fixtures fail with Device not configured; this reviewer did not rerun forced ignored tests or count them green.",
+    "External consumer fixtures compile with unused/dead-code warnings; strict Clippy clearance applies to the specified production packages, not those ad hoc fixtures.",
+    "The initial external launch failed metadata probing because an unrelated /private/tmp/Cargo.toml was treated as an ancestor workspace. Adding [workspace] only to the external consumer isolated it; failed logs are preserved. A later attempt to reuse an exclusive log filename stopped before execution; no source or expected output was modified.",
+    "Before/after proof compares the candidate parent and reviewed change, not the frozen application baseline. No tuiscotti real-CLI capture, terminal-mode/cleanup proof, application adoption, complete workspace gate, or repeated full product comparison was performed.",
+    "Only the four listed shared library files and their focused tests are cleared. Unrelated incoming Jackin/Viewport/composition changes in merge tip ee669114 are outside this review and receive no approval.",
+    "The generic contract remains to be adopted and verified in actual Holla/Showcase flows before library or product acceptance."
+  ]
+}
