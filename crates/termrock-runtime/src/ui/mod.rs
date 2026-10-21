@@ -508,6 +508,24 @@ impl<'f> Ui<'f> {
         )
     }
 
+    pub fn style_with_fallback_variant(
+        &self,
+        (family, fallback, variant, part): (Family, Variant, Variant, Part),
+        flags: StateFlags,
+        defaults: crate::theme::StyleDefaults<'_>,
+        local: Option<&crate::theme::StylePatch>,
+    ) -> Resolved {
+        crate::theme::resolve::bind_fallback_variant(
+            self.theme,
+            (family, fallback, variant, part),
+            flags,
+            &self.core.overlays,
+            self.surface,
+            defaults,
+            local,
+        )
+    }
+
     pub fn style_defaults_with_explicit(
         &self,
         family: Family,

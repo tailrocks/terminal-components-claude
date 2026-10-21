@@ -71,5 +71,6 @@ pub(crate) fn theme() -> Theme {
         .density(Density::Compact)
         .build();
     t.recipes.get_mut(Family::BUTTON).default_variant = Variant::SECONDARY;
+    t.recipes.mark_builtin();
     t
 }
