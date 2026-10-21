@@ -140,12 +140,19 @@ impl Theme {
                 Ansi16 | Mono => Role::Fg(FgStep::Muted),
                 TrueColor | Ansi256 => Role::DisabledFg,
             };
-            let disabled_modifiers = if level == Mono {
+            let disabled_modifiers = if matches!(level, Ansi16 | Mono) {
                 Modifier::DIM
             } else {
                 Modifier::empty()
             };
             theme.define_variant_for_level(level, Family::MENU, Variant::DANGER, |recipe| {
+                let disabled_style = StylePatch::new()
+                    .set_fg(disabled_ink)
+                    .set_bg(Role::CurrentSurface)
+                    .add(disabled_modifiers)
+                    .remove(
+                        Modifier::BOLD | active_modifiers | hover_modifiers | pressed_modifiers,
+                    );
                 let row = recipe.part(Part::ROW);
                 row.when(
                     StateFlags::ACTIVE,
@@ -180,25 +187,12 @@ impl Theme {
                         .remove(hover_modifiers | active_modifiers)
                         .add(pressed_modifiers),
                 )
-                .when(
-                    StateFlags::DISABLED,
-                    StylePatch::new()
-                        .set_fg(Role::DangerSoft)
-                        .clear_bg()
-                        .remove(
-                            Modifier::BOLD | active_modifiers | hover_modifiers | pressed_modifiers,
-                        ),
-                )
-                .when(
-                    StateFlags::ACTIVE | StateFlags::DISABLED,
-                    StylePatch::new()
-                        .set_fg(disabled_ink)
-                        .set_bg(Role::CurrentSurface)
-                        .add(disabled_modifiers)
-                        .remove(
-                            Modifier::BOLD | active_modifiers | hover_modifiers | pressed_modifiers,
-                        ),
-                );
+                .when(StateFlags::DISABLED, disabled_style)
+                .when(StateFlags::ACTIVE | StateFlags::DISABLED, disabled_style);
+                recipe
+                    .part(Part::LABEL)
+                    .when(StateFlags::DISABLED, disabled_style)
+                    .when(StateFlags::ACTIVE | StateFlags::DISABLED, disabled_style);
             })
         })
     }

@@ -274,12 +274,33 @@ fn theme_replacement_invalidates_cached_danger_profile_resolution() {
 
 #[test]
 fn disabled_active_danger_profile_returns_to_popover_surface() {
-    for level in [
-        ColorLevel::TrueColor,
-        ColorLevel::Ansi256,
-        ColorLevel::Ansi16,
-        ColorLevel::Mono,
-    ] {
+    let cases = [
+        (
+            ColorLevel::TrueColor,
+            Color::Rgb(77, 77, 77),
+            Color::Rgb(63, 63, 70),
+            Modifier::empty(),
+        ),
+        (
+            ColorLevel::Ansi256,
+            Color::Indexed(239),
+            Color::Indexed(237),
+            Modifier::empty(),
+        ),
+        (
+            ColorLevel::Ansi16,
+            Color::Gray,
+            Color::DarkGray,
+            Modifier::DIM,
+        ),
+        (
+            ColorLevel::Mono,
+            Color::Gray,
+            Color::DarkGray,
+            Modifier::DIM,
+        ),
+    ];
+    for (level, expected_fg, expected_bg, expected_modifiers) in cases {
         let theme = Theme::junie().downgrade(level);
         let resolved = theme.resolve(
             Family::MENU,
@@ -288,16 +309,9 @@ fn disabled_active_danger_profile_returns_to_popover_surface() {
             StateFlags::ACTIVE | StateFlags::DISABLED,
             Surface::Popover,
         );
-        let bg = theme.bg(Surface::Popover);
-        let disabled = theme.color.disabled_fg;
-        let expected_fg = if disabled == bg {
-            theme.color.fg[2]
-        } else {
-            disabled
-        };
         assert_eq!(
             resolved.style.as_style().bg,
-            Some(bg),
+            Some(expected_bg),
             "disabled row surface {level:?}"
         );
         assert_eq!(
@@ -305,11 +319,6 @@ fn disabled_active_danger_profile_returns_to_popover_surface() {
             Some(expected_fg),
             "disabled row ink {level:?}"
         );
-        let expected_modifiers = if level == ColorLevel::Mono {
-            Modifier::DIM
-        } else {
-            Modifier::empty()
-        };
         assert_eq!(
             resolved.style.as_style().add_modifier,
             expected_modifiers,
@@ -328,6 +337,7 @@ fn disabled_active_danger_profile_returns_to_popover_surface() {
             StateFlags::DISABLED | StateFlags::HOVERED,
             StateFlags::DISABLED | StateFlags::PRESSED,
             StateFlags::DISABLED | StateFlags::HOVERED | StateFlags::PRESSED,
+            StateFlags::ACTIVE | StateFlags::DISABLED | StateFlags::HOVERED | StateFlags::PRESSED,
         ] {
             let pointer_state = theme.resolve(
                 Family::MENU,
@@ -340,6 +350,66 @@ fn disabled_active_danger_profile_returns_to_popover_surface() {
                 pointer_state.style, disabled_only.style,
                 "disabled row ignores pointer states {ignored_pointer_state:?} at {level:?}"
             );
+            let label_state = theme.resolve(
+                Family::MENU,
+                Variant::DANGER,
+                Part::LABEL,
+                ignored_pointer_state,
+                Surface::Popover,
+            );
+            assert_eq!(
+                label_state.style, disabled_only.style,
+                "disabled label ignores pointer states {ignored_pointer_state:?} at {level:?}"
+            );
+        }
+    }
+}
+
+#[test]
+fn disabled_danger_row_matches_frozen_cells_at_rest_hover_and_press() {
+    let cases = [
+        (
+            ColorLevel::TrueColor,
+            Color::Rgb(77, 77, 77),
+            Color::Rgb(63, 63, 70),
+            Modifier::empty(),
+        ),
+        (
+            ColorLevel::Ansi256,
+            Color::Indexed(239),
+            Color::Indexed(237),
+            Modifier::empty(),
+        ),
+        (
+            ColorLevel::Ansi16,
+            Color::Gray,
+            Color::DarkGray,
+            Modifier::DIM,
+        ),
+        (
+            ColorLevel::Mono,
+            Color::Gray,
+            Color::DarkGray,
+            Modifier::DIM,
+        ),
+    ];
+    for (level, fg, bg, modifier) in cases {
+        for pointer in [MouseKind::Move, MouseKind::Down] {
+            let mut harness = focused_danger(level);
+            let (x, y) = harness
+                .find("Disabled remove")
+                .expect("disabled danger label drawn");
+            let _ = harness.mouse(pointer, x, y);
+            assert_eq!(harness.app().state.cursor(), 1, "disabled row is skipped");
+            for column in x - 2..x + "Disabled remove".len() as u16 {
+                let cell = harness.cell(column, y);
+                assert_eq!(cell.fg, fg, "disabled row ink {level:?} {pointer:?}");
+                assert_eq!(cell.bg, bg, "disabled row surface {level:?} {pointer:?}");
+                assert_eq!(
+                    cell.modifier, modifier,
+                    "disabled row modifiers {level:?} {pointer:?}"
+                );
+            }
         }
     }
 }
