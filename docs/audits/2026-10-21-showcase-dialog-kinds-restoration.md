@@ -46,3 +46,35 @@ root cause and ownership contract are established. Then rerun all three
 DialogKinds tests, the Showcase coverage gate, and relevant formatting and
 Clippy checks before the next WIP checkpoint. Do not integrate this app WIP
 into PR #38 while the chooser regression is red.
+
+## Layer and form-state trace (diagnostic only)
+
+The failure was repeated with `DIALOG_KINDS_TRACE=1` in a temporary,
+environment-gated diagnostic in the Showcase page. That instrumentation was
+removed after capture. The full unmodified test log is preserved outside the
+repository at
+`/Users/donbeave/Projects/termrock-cli-evidence-20261021/showcase-dialog-kinds-trace-260a.log`
+(SHA-256 `fde6f703902285bedabee687d0c19abaf23fa2c584ba7d8f41db76c5bdabbd72`).
+
+The trace distinguishes the outer layer from the inner scroll hold:
+
+- Before chooser Down, the layer is `Rect { x: 29, y: 2, width: 62,
+  height: 33 }`. Its content has grown from 26 to 29 rows after toggling the
+  tunnel; the scroll offset remains 0.
+- On Down, `FormState.pointer_hold` becomes the chooser field ID. In the
+  immediately following app update, the modal remains `Rect { x: 32, y: 6,
+  width: 56, height: 27 }` and the chooser remains at y=27. The form has
+  content length 29 and viewport length 26; pending form reveal is `None`.
+- After that update is published, before Tick, the layer is now `Rect { x: 32,
+  y: 5, width: 56, height: 30 }`, body viewport/content are both 29 rows, and
+  the chooser is y=26. Pointer hold remains active and inner scroll offset is
+  still 0. Tick and Up keep this expanded geometry; Up correctly does not emit
+  `Click` because it is no longer over the pressed target.
+
+This evidence points to outer FormDialog layer remeasurement/reanchoring when
+the previously hidden conditional field becomes visible, rather than the
+inner Form scroll reveal consuming a pending request. That is a source-based
+hypothesis, not a confirmed fix. The independently reviewed b40 native test
+does not invalidate its Down frame before measuring; it starts with the
+conditional field already visible and therefore does not cover this dynamic
+layer-size transition. No shared source was changed based on this hypothesis.
