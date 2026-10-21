@@ -1,3 +1,19 @@
+# Current coordinator checkpoint: PR #38 remains incomplete (2026-10-21)
+
+This checkpoint supersedes earlier green/acceptance claims below where they conflict with the current migration matrix. Published PR #38 tip `b7daf8f529c504487c119020aafe444c1de5bd46` integrates corrected Holla header tests and independently reviewed generic Picker card layout. All four applications—Showcase, Jackin Preview, TablePro and Holla—remain incomplete for exact product parity and thin-consumer architecture. Main, design and frozen references are unchanged. The original design checkout is clean and the six user-requested folders are absent; no backup was created.
+
+Resume from [the migration matrix](../architecture/termrock-migration-matrix.md), not earlier claims that re-blessed frames or narrow architecture checks prove acceptance. Parent source and evidence are on the PR branch; no parent-only source work requires a new preservation branch.
+
+Pending tasks and exact next actions:
+
+- Holla MenuBar precedence writer: isolated `/private/tmp/holla-menu-patch-precedence-20261021`, based on `7f819a779`. Existing regression reproduces overlay background being shadowed by `MENU_BAR_TITLE_VARIANT`. Finish shared defaults repair, gates, WIP publication, independent review, then integration.
+- Dialog primary writer: `wip/dialog-primary-action-20261021`, local `e2b1727fcb04f4b8579ce771f8a5c99b1e910d4a` is held by independent Unicode draft-loss probes. Preserve commit-on-blur while distinguishing it from submission; rerun author seven plus independent two, publish corrected WIP and re-review. Preserve the unrelated baseline artifact in that writer's checkout.
+- Forms field presentation writer: isolated shared `termrock-forms` increment for intrinsic note rows/roles and trailing chooser layout. Finish before/after regressions, compatible policy, WIP publication and independent review. Subsequent reusable FormDialog and atomic real Accounts adoption remain required.
+- Picker semantic-default contrast writer: base `f46caa2c` remains held. Actual white-background metadata cells fail contrast across profiles. Preserve authored foreground precedence while resolving readable fallback defaults; test before/after and independently review.
+- Picker short-footer regression writer: add native empty/one-item coverage, because 100 rows can overwrite an incorrectly painted hint. Keep the independently reviewed zero-disables-hints policy and footer-one positive controls. Publish WIP and integrate after review.
+
+Expanded component gate at `7f819a779`: 872 run, 869 pass, three fail, three existing skips. Two navigation failures and the incoming MenuBar precedence regression remain open. Holla all-target gate at the preceding header source: 144 run, 142 pass, hover and visual baseline failures. Focused merged Holla and Picker tests, scoped strict Clippy, public Picker consumer and formatting pass; this does not establish the full gate. Full twice-repeated pinned real-binary comparisons, all-branch consolidation, required CI and repository reviews remain missing.
+
 
 # 2026-10-21: theme palettes, visual baselines, and master-detail composition landed
 
