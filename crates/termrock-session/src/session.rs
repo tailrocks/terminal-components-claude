@@ -179,6 +179,14 @@ fn write_str(out: &mut impl Write, sequence: &str) -> io::Result<()> {
     out.flush()
 }
 
+/// Run the terminal's keyboard capability probe once.
+///
+/// The probe is consumed by its first call. A repeated call reports no
+/// keyboard support instead of aborting the session.
+fn detect_keyboard_support<D: FnOnce() -> bool>(detect: &mut Option<D>) -> bool {
+    detect.take().map(|probe| probe()).unwrap_or(false)
+}
+
 fn enter_terminal_modes(
     out: &mut impl Write,
     cursor_shape: SessionCursorShape,
@@ -321,7 +329,7 @@ impl TerminalSession {
                 enable_raw_mode()?;
                 let mut out = stdout();
                 let push = keyboard.enter(&mut out, keyboard_protocol, || {
-                    keyboard_probe.take().expect("detect runs once")()
+                    detect_keyboard_support(&mut keyboard_probe)
                 });
                 if let Ok(true) = push {
                     enter_keyboard_pushed.store(true, Ordering::Relaxed);
@@ -577,6 +585,13 @@ mod tests {
     use super::*;
     use std::cell::Cell;
     use std::sync::{Arc, Mutex};
+
+    #[test]
+    fn the_keyboard_probe_runs_once_and_reports_no_support_afterwards() {
+        let mut probe = Some(|| true);
+        assert!(detect_keyboard_support(&mut probe));
+        assert!(!detect_keyboard_support(&mut probe));
+    }
 
     #[test]
     fn startup_delay_precedes_discard_and_drain_errors_are_ignored() {
