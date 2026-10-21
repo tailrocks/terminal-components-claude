@@ -2214,3 +2214,30 @@ token model may simply name the same ink differently, in which case the slot
 table is stale; or the restored theme may be wrong for the roles that the
 corpus renders at 244/238, in which case the Holla restoration must be
 narrowed.
+
+### Integration status of this session's branch
+
+Branch `wip/session-consolidation-20261021` (remote tip `0d87742cc6b1cce1a2f7102d6e05e8563ad6bb4a`)
+holds this session's integrated work:
+
+- `fix(termrock-overlays)`: the lost dialog clip test restored, workspace clippy green.
+- `merge(consumer)`: `crates/termrock-consumer-example` and the public component contract tests.
+- `merge(showcase)`: shell chrome on the shared layout plan, typed `Route`, repaint and phantom constructions removed.
+- `merge(tablepro)`: the grid viewport geometry moved into `crates/termrock-grid`, plus the reviewed six-key digest re-bless with oracle evidence.
+- `merge(holla)`: the shared text report block, the disk and cleanup screens on it, the frozen menu title and reduced-tier ink restoration, the discovery footer band fix, and the `expect` removal in the shell router and the reach probe.
+
+It is deliberately NOT merged into `parity/termrock-visual-baseline` yet. The
+Holla merge carries the shared theme restoration whose reference conflict is
+recorded above, and it currently leaves three checks red (two theme reference
+checks and the Showcase shell-chrome pin). Merging that into the PR branch
+would trade a documented, adjudicable conflict for an unexplained red on the
+delivery path. The order is: adjudicate the conflict, resolve the three reds
+with evidence, then merge this branch into `parity/termrock-visual-baseline`
+under the push lock, and only then perform the DCO history rewrite as the last
+step.
+
+Measured ownership-scanner effect of the integrated work so far: the problem
+count moved 108 → 101 (Showcase 108 → 106 with its own work, the Holla work
+brought the total to 101 with `holla-ui/src/screens/disk.rs`,
+`holla-ui/src/screens/cleanup.rs`, `termrock-shell/src/nav.rs` and
+`termrock-shell/src/reach.rs` at zero findings). No count grew anywhere.
