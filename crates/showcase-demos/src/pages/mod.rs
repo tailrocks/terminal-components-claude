@@ -152,6 +152,7 @@ pub mod author;
 pub mod buttons;
 pub mod chips;
 pub mod chrome;
+pub mod dialog_kinds;
 pub mod dialogs;
 pub mod editable;
 pub mod editor;
