@@ -8,15 +8,15 @@ use termrock::editors::{
 };
 use termrock::{
     Action, ActionKey, Align, Anchor, App, CellAction, CellUi, Chord, CodeAction, CodeEditor,
-    ColumnKey, CompletingCodeEditor, Cx, Dialog, DialogAction, DialogState, FgStep, Focusability,
-    Form, FormAction, FormState, FrameRead, GlyphRole, Grid, GridAction, GridCell, GridColumnFit,
-    GridEditor, GridGutter, GridModel, GridSortIndicator, Id, Intent, ItemKey, KeyCode, KeyMap,
-    KeyModifiers, KeyPhase, LayerId, LayerSize, LayerSpec, Maximized, Modifier, Panel, PanelKind,
-    Part, Phase, PickerAction, PickerSlotExt, Position, Response, Role, RowDecor, RowTotal, RowUi,
-    ScreenAlign, Size, SortDir, Span, SplitAxis, SplitPane, SplitPaneState, StateFlags, StylePatch,
-    Tabs, TabsAction, TabsState, TextAction, TextInput, TextInputState, Theme, Tree, TreeAction,
-    TreeBranchActivation, TreeNode, TreeState, Ui, UpdateCause, truncate, truncate_middle, width,
-    wrap,
+    ColumnKey, CompletingCodeEditor, Cx, Dialog, DialogAction, DialogState, EnterPolicy, FgStep,
+    Focusability, Form, FormAction, FormState, FrameRead, GlyphRole, Grid, GridAction, GridCell,
+    GridColumnFit, GridEditor, GridGutter, GridModel, GridSortIndicator, Id, Intent, ItemKey,
+    KeyCode, KeyMap, KeyModifiers, KeyPhase, LayerId, LayerSize, LayerSpec, Maximized, Modifier,
+    Panel, PanelKind, Part, Phase, PickerAction, PickerSlotExt, Position, Response, Role, RowDecor,
+    RowTotal, RowUi, ScreenAlign, Size, SortDir, Span, SplitAxis, SplitPane, SplitPaneState,
+    StateFlags, StylePatch, Tabs, TabsAction, TabsState, TextAction, TextInput, TextInputState,
+    Theme, Tree, TreeAction, TreeBranchActivation, TreeNode, TreeState, Ui, UpdateCause, truncate,
+    truncate_middle, width, wrap,
 };
 
 use crate::quick_switcher::{self, QuickSwitcher};
@@ -1566,6 +1566,7 @@ impl TableProApp {
         Form::new(connections::FORM, fields)
             .actions(actions)
             .submit(connections::SAVE_CONNECT)
+            .enter(EnterPolicy::Never)
     }
     fn handle_grid(status: &mut String, action: &GridAction) {
         match action {
