@@ -730,7 +730,6 @@ impl<'a> ContextMenu<'a> {
             MenuCmd::Next => moved(self.step(st, 1)),
             MenuCmd::First => set_cursor(st, self.navigation_cursor(true)),
             MenuCmd::Last => set_cursor(st, self.navigation_cursor(false)),
-            MenuCmd::Activate if st.highlight_hidden => Response::consumed(),
             MenuCmd::Activate => self
                 .activate(st)
                 .map_or_else(Response::consumed, Response::action),
@@ -870,7 +869,11 @@ impl<'a> ContextMenu<'a> {
                 }
                 Intent::Binding(action) => {
                     let navigation = self.is_navigation_binding(action);
-                    let response = self.binding_response(st, action);
+                    let response = if st.highlight_hidden && cx.activation_key().is_some() {
+                        Response::consumed()
+                    } else {
+                        self.binding_response(st, action)
+                    };
                     if navigation {
                         self.after_keyboard_navigation(st, cx);
                     }
