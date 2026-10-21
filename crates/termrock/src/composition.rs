@@ -7,7 +7,7 @@
 use core::fmt;
 
 use termrock_collections::KeyFn;
-use termrock_controls::{Button, PropsList, PropsRow, PropsState};
+use termrock_controls::{Button, Panel, PropsList, PropsRow, PropsState};
 use termrock_editors::{
     CodeEditor, CodeEditorState, CompletingCodeEditor, CompletingCodeEditorState,
 };
@@ -31,6 +31,7 @@ pub struct Child<'a> {
 enum ChildContent<'a> {
     Leaf(Box<dyn CompositionLeaf + 'a>),
     Group(Box<Group<'a>>),
+    Panel(Box<PanelLeaf<'a>>),
 }
 
 impl fmt::Debug for Child<'_> {
@@ -42,6 +43,7 @@ impl fmt::Debug for Child<'_> {
                 &match &self.content {
                     ChildContent::Leaf(_) => "leaf",
                     ChildContent::Group(_) => "group",
+                    ChildContent::Panel(_) => "panel",
                 },
             )
             .finish_non_exhaustive()
@@ -79,6 +81,50 @@ where
     Child {
         content: ChildContent::Leaf(Box::new(ButtonLeaf(component))),
         policy: ChildPolicy::default(),
+    }
+}
+
+/// Place a panel around one reusable component or composition group.
+///
+/// The panel retains its normal chrome and body geometry. Its child keeps
+/// the child’s identity, measurement, and interaction implementation.
+pub fn panel<'a, 'config>(component: &'a Panel<'config>, body: Child<'a>) -> Child<'a>
+where
+    'config: 'a,
+{
+    let body = Group::column([body]).into_child();
+    let component: &'a Panel<'a> = component;
+    Child {
+        content: ChildContent::Panel(Box::new(PanelLeaf { component, body })),
+        policy: ChildPolicy::default(),
+    }
+}
+
+struct PanelLeaf<'a> {
+    component: &'a Panel<'a>,
+    body: Child<'a>,
+}
+
+impl Measure for PanelLeaf<'_> {
+    fn measure(&self, ui: &Ui<'_>, constraints: Constraints) -> Size {
+        self.component
+            .measure_with_body(ui, constraints, |body_constraints| {
+                self.body.measure_validated(ui, body_constraints)
+            })
+    }
+}
+
+impl CompositionLeaf for PanelLeaf<'_> {
+    fn draw(&self, ui: &mut Ui<'_>, logical: ratatui_core::layout::Rect) {
+        self.component.draw(ui, logical, |ui, body_area| {
+            self.body.draw_validated(ui, body_area);
+        });
+    }
+}
+
+impl PanelLeaf<'_> {
+    fn nested_depth(&self) -> usize {
+        self.body.nested_depth().saturating_add(1)
     }
 }
 
@@ -340,17 +386,12 @@ impl Drop for Group<'_> {
     fn drop(&mut self) {
         // Deep invalid groups must remain safely destructible after the
         // depth guard rejects them. Drain descendants iteratively.
-        let mut pending = Vec::new();
-        for child in self.children.drain(..) {
-            if let ChildContent::Group(group) = child.content {
-                pending.push(group);
-            }
-        }
-        while let Some(mut group) = pending.pop() {
-            for child in group.children.drain(..) {
-                if let ChildContent::Group(nested) = child.content {
-                    pending.push(nested);
-                }
+        let mut pending = core::mem::take(&mut self.children);
+        while let Some(child) = pending.pop() {
+            match child.content {
+                ChildContent::Group(mut group) => pending.append(&mut group.children),
+                ChildContent::Panel(panel) => pending.push(panel.body),
+                ChildContent::Leaf(_) => {}
             }
         }
     }
@@ -394,11 +435,23 @@ impl<'a> Group<'a> {
         ui.compose(&self.slots())
     }
 
+    fn draw_at_validated(&self, ui: &mut Ui<'_>, logical: ratatui_core::layout::Rect) {
+        self.slots()
+            .draw_at(ui, logical)
+            .expect("facade composition validates nested depth before drawing");
+    }
+
     /// Measure intrinsic size through the shared layout resolver without
     /// dispatching input, drawing, or changing component state.
     pub fn measure(&self, ui: &Ui<'_>, constraints: Constraints) -> Result<Size, CompositionError> {
         self.validate_depth()?;
         self.slots().measure(ui, constraints)
+    }
+
+    fn measure_validated(&self, ui: &Ui<'_>, constraints: Constraints) -> Size {
+        self.slots()
+            .measure(ui, constraints)
+            .expect("facade composition validates nested depth before measuring")
     }
 
     pub(crate) fn validate_depth(&self) -> Result<(), CompositionError> {
@@ -439,6 +492,23 @@ impl Child<'_> {
         match &self.content {
             ChildContent::Leaf(_) => 0,
             ChildContent::Group(group) => group.depth,
+            ChildContent::Panel(panel) => panel.nested_depth(),
+        }
+    }
+
+    fn measure_validated(&self, ui: &Ui<'_>, constraints: Constraints) -> Size {
+        match &self.content {
+            ChildContent::Leaf(leaf) => leaf.measure(ui, constraints),
+            ChildContent::Group(group) => group.measure_validated(ui, constraints),
+            ChildContent::Panel(panel) => panel.measure(ui, constraints),
+        }
+    }
+
+    fn draw_validated(&self, ui: &mut Ui<'_>, logical: ratatui_core::layout::Rect) {
+        match &self.content {
+            ChildContent::Leaf(leaf) => leaf.draw(ui, logical),
+            ChildContent::Group(group) => group.draw_at_validated(ui, logical),
+            ChildContent::Panel(panel) => panel.draw(ui, logical),
         }
     }
 
@@ -446,6 +516,7 @@ impl Child<'_> {
         match &self.content {
             ChildContent::Leaf(leaf) => ContentSlot::new(leaf.as_ref(), self.policy),
             ChildContent::Group(group) => ContentSlot::nested(group.slots(), self.policy),
+            ChildContent::Panel(panel) => ContentSlot::new(panel.as_ref(), self.policy),
         }
     }
 }
