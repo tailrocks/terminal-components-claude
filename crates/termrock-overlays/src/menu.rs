@@ -513,7 +513,7 @@ impl<'a> ContextMenu<'a> {
             } else if let Some(chord) = effective(item.action, item.chord) {
                 label_width
                     .saturating_add(width(ChordText::with_case(chord, self.chord_case).as_str()))
-                    .saturating_add(2)
+                    .saturating_add(3)
             } else {
                 label_width
             };
@@ -1632,6 +1632,9 @@ mod tests {
         const PLAIN: [MenuItem<'static>; 1] = [MenuItem::new(OPEN, "0123456789")];
         const SHORTCUT: [MenuItem<'static>; 1] =
             [MenuItem::new(OPEN, "0123456789").chord(Chord::key(KeyCode::Char('o')))];
+        const LONG_SHORTCUT: [MenuItem<'static>; 1] =
+            [MenuItem::new(OPEN, "012345678901234567890123456789")
+                .chord(Chord::key(KeyCode::Char('o')))];
 
         let plain = ContextMenu::at(
             Id::root("menu.tests.plain-width"),
@@ -1645,7 +1648,13 @@ mod tests {
         );
 
         assert_eq!(plain.natural_width(|_, chord| chord), 16);
-        assert!(shortcut.natural_width(|_, chord| chord) > plain.natural_width(|_, chord| chord));
+        assert_eq!(shortcut.natural_width(|_, chord| chord), 20);
+        let long_shortcut = ContextMenu::at(
+            Id::root("menu.tests.long-shortcut-width"),
+            &LONG_SHORTCUT,
+            Position::new(0, 0),
+        );
+        assert_eq!(long_shortcut.natural_width(|_, chord| chord), 40);
     }
 
     const ANCHOR_OWNER: Id = Id::root("menu.anchor.owner");
