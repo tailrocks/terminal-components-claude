@@ -913,6 +913,10 @@ impl<'a> PropsList<'a> {
                 flags |= StateFlags::PRESSED;
             }
             let visible_area = row_area.intersection(content);
+            let container_has_explicit_fg = self
+                .ov
+                .part_patch(Part::CONTAINER)
+                .is_some_and(|patch| patch.fg.speaks());
             if self.presentation == PropsPresentation::Sheet {
                 {
                     let mut row_ui = RowUi::new_with_author_style_and_container_patch(
@@ -924,7 +928,11 @@ impl<'a> PropsList<'a> {
                         row.key,
                         visible_area,
                         self.ov,
-                        StylePatch::new().clear_fg(),
+                        if container_has_explicit_fg {
+                            StylePatch::new()
+                        } else {
+                            StylePatch::new().clear_fg()
+                        },
                     )
                     .with_cursor_style(CursorStyle::Bar)
                     .with_author_parts(Self::PARTS);
@@ -991,13 +999,9 @@ impl<'a> PropsList<'a> {
                     .style(ui, self.id, Family::PROPS, self.variant, Part::LABEL, flags);
             let value_style =
                 self.style_defaults(ui, Part::LABEL, flags, StyleDefaults::new(value_defaults));
-            paint_value(
-                ui,
-                value_area.intersection(visible_area),
-                row,
-                value_style,
-                None,
-            );
+            ui.with_area(visible_area, |ui| {
+                paint_value(ui, value_area, row, value_style, None);
+            });
             if self.presentation == PropsPresentation::Sheet
                 && flags.contains(StateFlags::FOCUSED)
                 && row.can_copy()
