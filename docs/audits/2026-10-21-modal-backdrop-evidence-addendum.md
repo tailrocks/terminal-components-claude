@@ -23,6 +23,8 @@ The updated gate scans production `src/` files, excluding comments, documentatio
 
 Validation on this source: the focused `esc_vocabulary` nextest target passed 5/5, including both negative fixtures. The full `termrock-theme` nextest run produced 153 passes and the known failure `capability_palettes::all_73_junie_slots_match_reference_capability_output` (0 skipped); this work does not refresh or approve those palette expectations. Strict package Clippy and `rustfmt --check` passed.
 
+The first independent review of the gate change found two scanner defects: an external `#[cfg(test)] mod tests;` could mask the following production item, and a stacked attribute could leave an inline test module visible to the scanner. Both are corrected in the follow-up. The scanner now bounds parsing to the module header, masks external declarations only through their semicolon, and handles stacked attributes and visibility before masking an inline module. The corrected focused nextest target passes 6/6, including the external-module negative case and the stacked-attribute fixture. The full theme run produced 154 passes and only the known palette failure (0 skipped); strict package Clippy and formatting checks passed. Independent review of this correction remains pending.
+
 ## Remaining evidence gap
 
 Fresh, repeated CLI captures of the fixed frozen binaries and candidate binaries remain required before any application parity claim. Preserve stored artifacts and their hashes; do not rewrite them to resolve this provenance gap.
