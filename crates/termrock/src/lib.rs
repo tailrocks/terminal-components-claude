@@ -197,8 +197,8 @@ pub use termrock_overlays::{
     CompletionState, ContextMenu, Dialog, DialogAction, DialogCmd, DialogState, HelpAction,
     HelpCmd, HelpOverlay, HelpOverlayState, HelpSection, LabelSelect, Menu, MenuAction, MenuBar,
     MenuBarHoverScope, MenuCmd, MenuItem, MenuState, Picker, PickerAction, PickerChain,
-    PickerChainAction, PickerChainCmd, PickerChainState, PickerStage, PickerState, ScopeKey,
-    Select, SelectAction, SelectCmd, SelectField, SelectState,
+    PickerChainAction, PickerChainCmd, PickerChainState, PickerLayout, PickerStage, PickerState,
+    ScopeKey, Select, SelectAction, SelectCmd, SelectField, SelectState,
 };
 
 pub use termrock_grid::{
