@@ -391,6 +391,11 @@ impl Theme {
 
 pub type MonoRule = (Part, StateFlags, StylePatch);
 
+const BUTTON_GENERIC_MARKER_GLYPH_RULES: [(Part, StateFlags); 2] = [
+    (Part::MARKER, StateFlags::SELECTED),
+    (Part::MARKER, StateFlags::CHECKED),
+];
+
 fn mono_rules() -> [MonoRule; 15] {
     let p = StylePatch::new;
     [
@@ -666,6 +671,15 @@ pub(crate) fn apply_mono_with_defaults(
     let targeted: &[MonoRule] = recipes.mono_rules(family).or(authored).unwrap_or(builtin);
     for (rule_part, when, patch) in rules.iter().chain(extra.iter()) {
         if family == Family::BUTTON && *rule_part == Part::GUTTER && *when == StateFlags::FOCUSED {
+            continue;
+        }
+        // Buttons use the semantic DotOn/DotOff roles for their checked
+        // marker. The generic mono marker glyphs are intended for checkbox
+        // and selection controls; applying them here replaces an authored
+        // button glyph (and turns the frozen dot into a checkmark).
+        if family == Family::BUTTON
+            && BUTTON_GENERIC_MARKER_GLYPH_RULES.contains(&(*rule_part, *when))
+        {
             continue;
         }
         let applies = family != Family::SCROLLBAR
@@ -1291,8 +1305,14 @@ mod tests {
         }
     }
 
-    fn responding_pairs(recipes: &Recipes, f: Family) -> usize {
-        let mut pairs: Vec<(Part, StateFlags)> = mono_rules()
+    fn sorted_rule_pairs(mut pairs: Vec<(Part, StateFlags)>) -> Vec<(Part, StateFlags)> {
+        pairs.sort_by_key(|(part, when)| (part.raw(), when.bits()));
+        pairs.dedup();
+        pairs
+    }
+
+    fn responding_rule_pairs(recipes: &Recipes, f: Family) -> Vec<(Part, StateFlags)> {
+        let pairs: Vec<(Part, StateFlags)> = mono_rules()
             .iter()
             .chain(mono_rules_extra().iter())
             .chain(button_mono_rules().iter())
@@ -1304,15 +1324,18 @@ mod tests {
             .chain(select_mono_rules().iter())
             .map(|(part, when, _)| (*part, *when))
             .collect();
-        pairs.sort_by_key(|(part, when)| (part.raw(), when.bits()));
-        pairs.dedup();
-        pairs
+        sorted_rule_pairs(pairs)
             .iter()
             .filter(|(part, when)| {
                 apply_mono_fallback(StylePatch::new(), recipes, f, *part, *when)
                     != StylePatch::new()
             })
-            .count()
+            .copied()
+            .collect()
+    }
+
+    fn responding_pairs(recipes: &Recipes, f: Family) -> usize {
+        responding_rule_pairs(recipes, f).len()
     }
 
     #[test]
@@ -1323,7 +1346,72 @@ mod tests {
         );
         let r = Theme::junie().recipes;
 
-        assert_eq!(responding_pairs(&r, Family::BUTTON), MONO_RULES_PER_FAMILY);
+        assert_eq!(
+            BUTTON_GENERIC_MARKER_GLYPH_RULES,
+            [
+                (Part::MARKER, StateFlags::SELECTED),
+                (Part::MARKER, StateFlags::CHECKED),
+            ]
+        );
+        let generic = sorted_rule_pairs(
+            mono_rules()
+                .iter()
+                .chain(mono_rules_extra().iter())
+                .map(|(part, when, _)| (*part, *when))
+                .collect(),
+        );
+        assert_eq!(
+            generic,
+            sorted_rule_pairs(vec![
+                (Part::GUTTER, StateFlags::FOCUSED),
+                (Part::LABEL, StateFlags::FOCUSED),
+                (Part::MARKER, StateFlags::SELECTED),
+                (Part::MARKER, StateFlags::CHECKED),
+                (Part::CONTAINER, StateFlags::PRESSED),
+                (Part::LABEL, StateFlags::PRESSED),
+                (Part::GUTTER, StateFlags::DISABLED),
+                (Part::MARKER, StateFlags::DISABLED),
+                (Part::LABEL, StateFlags::DISABLED),
+                (Part::FIELD, StateFlags::DISABLED),
+                (Part::TEXT, StateFlags::DISABLED),
+                (Part::MARKER, StateFlags::ERROR),
+                (Part::FIELD, StateFlags::ERROR),
+                (Part::MARKER, StateFlags::WARNING),
+                (Part::TEXT, StateFlags::EDITING),
+                (Part::MARKER, StateFlags::DIRTY),
+                (Part::RULE, StateFlags::ACTIVE),
+                (Part::LABEL, StateFlags::ACTIVE),
+                (Part::ICON, StateFlags::LOADING),
+                (Part::THUMB, StateFlags::PRESSED),
+            ])
+        );
+        assert_eq!(
+            responding_rule_pairs(&r, Family::BUTTON),
+            sorted_rule_pairs(vec![
+                (Part::LABEL, StateFlags::FOCUSED),
+                (Part::CONTAINER, StateFlags::PRESSED),
+                (Part::LABEL, StateFlags::PRESSED),
+                (Part::GUTTER, StateFlags::DISABLED),
+                (Part::MARKER, StateFlags::DISABLED),
+                (Part::LABEL, StateFlags::DISABLED),
+                (Part::FIELD, StateFlags::DISABLED),
+                (Part::TEXT, StateFlags::DISABLED),
+                (Part::MARKER, StateFlags::ERROR),
+                (Part::FIELD, StateFlags::ERROR),
+                (Part::MARKER, StateFlags::WARNING),
+                (Part::TEXT, StateFlags::EDITING),
+                (Part::MARKER, StateFlags::DIRTY),
+                (Part::RULE, StateFlags::ACTIVE),
+                (Part::LABEL, StateFlags::ACTIVE),
+                (Part::ICON, StateFlags::LOADING),
+                (Part::THUMB, StateFlags::PRESSED),
+                (Part::GUTTER, StateFlags::FOCUS_VISIBLE),
+            ])
+        );
+        assert_eq!(
+            responding_pairs(&r, Family::BUTTON),
+            MONO_RULES_PER_FAMILY - 2
+        );
         assert_eq!(
             responding_pairs(&r, Family::custom("seg")),
             MONO_RULES_PER_FAMILY
