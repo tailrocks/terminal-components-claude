@@ -11347,7 +11347,7 @@ mod tests {
 mod paint_contract_tests {
     use super::*;
     #[test]
-    fn historical_failure_and_action_labels_remain_readable_in_mono() {
+    fn failure_and_action_labels_remain_readable_in_mono() {
         use termrock::{ColorLevel, Theme};
         use termrock_test_support::Harness;
         for theme in [Theme::junie(), Theme::paper()] {
