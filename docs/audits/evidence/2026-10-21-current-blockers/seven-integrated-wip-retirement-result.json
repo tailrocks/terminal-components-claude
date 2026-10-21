@@ -1,0 +1,18 @@
+{
+  "schema": "termrock.integrated-wip-retirement.v1",
+  "deleted_exact_tips": {
+    "wip/canonical-stage1-owned-20261021": "9cd3f9f733065b452d13926ca0ae28049c0840dd",
+    "wip/canonical-stage2-owned-20261021": "4e04be07a15377f902316633e859c41a9ba50d58",
+    "wip/editor-live-contract-20261021": "3133b9a984daa6a4dd2d03cf2aaf3397a8453a18",
+    "wip/menu-danger-profile-20261021": "6e8c90fc23da761cfbdc7d73a09cfa92b21082a7",
+    "wip/panel-composition-20261021": "ef7e04a91713739e99460bc4839d5c0fb066d855",
+    "wip/visible-terminal-cursor-20261021": "8be128f073c19076a2977e349e8732cd74f08821",
+    "wip/master-detail-policy-20261021": "f861b24518132a0f8e1ba177fab88f67da82a188"
+  },
+  "verified_absent": true,
+  "source_head_before_docs": "7b3a6d0e6c6ba0a44062be7dc28fde3fb19870b7",
+  "independent_review_sha256": "4387e6976b43f76d44ff7b188b5561c49164a0224234c0802413adb77f10c61f",
+  "local_branches_worktrees_and_evidence_preserved": true,
+  "history_rewritten": false,
+  "protected_or_reference_branches_changed": false
+}

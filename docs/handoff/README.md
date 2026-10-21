@@ -152,3 +152,7 @@ The parent Picker and blank-draft WIP refs listed above are fully integrated and
 ## Visible-caret current integration status (2026-10-21)
 
 The author checkpoint above is historical. Source `8be128f073c19076a2977e349e8732cd74f08821` is already published on its WIP and independently cleared for the additive runtime contract. Parent integration now awaits exact-head checks and PR38 publication. Do not repeat the old lock wait or claim application adoption; the original workspace formatting claim is corrected in the audit.
+
+## Seven integrated component WIPs retired (2026-10-21)
+
+The canonical prepare stages one/two, Editor live API, Menu danger profile, Panel composition, visible cursor and master-detail policy remote WIPs are fully integrated and independently retired with exact-tip atomic leases. Preserve their local worktrees and evidence, but do not recreate their obsolete remote refs. See the current migration matrix and seven-ref retirement result for exact identities. Active BackTab, Button profile, Showcase Editor and other unreviewed work remain protected.
