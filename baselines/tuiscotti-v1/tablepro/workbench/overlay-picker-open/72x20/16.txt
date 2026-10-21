@@ -1,20 +1,20 @@
- ▪  TablePro  Production  ◆ production  acme_prod › public  safe
+  ▪  TablePro  Production  ◆ production  acme_prod › public  ✓ safe  …
   ╭──────────────────────────────────────────────────────────────────╮
   │ Open Quickly                                     All · Tab scope │
  ━│ ▎ Search tables, views, schemas, tabs, queries…                  │─
- ╭│                                                                  │╮
- ││ ▎T change_log                    audit ·…       Tables         ┃ ││
- ││  T customers                     public …                      ┃ ││
- ││  T daily_revenue                 analyti…                      ┃ ││
- ││  T events                        analyti…                      ┃ ││
- ││  T login_attempts                audit ·…                      ┃ ││
- ││  T order_items                   public …                      ┃ ││
- ││  T orders                        public …                      │ ││
- ││  T organizations                 public …                      │ ││
- ││  T payments                      public …                      │ ││
- ││  T products                      public …                      │ ││
- ││  T subscriptions                 public …                      │ ││
- ││  V active_customers              public …       Views          │ ││
- ╰│ ↑↓ Move · Enter Open · Alt+Enter New tab · Tab Scope · Esc Clea… │╯
+ ›│                                                                  │╮
+  │  T change_log              audit · Prod…        Tables         ┃ ││
+ E│  T customers               public · Pro…                       ┃ ││
+ x│  T daily_revenue           analytics · …                       ┃ ││
+ p│  T events                  analytics · …                       ┃ ││
+ l│  T login_attempts          audit · Prod…                       ┃ ││
+ o│  T order_items             public · Pro…                       ┃ ││
+ r│  T orders                  public · Pro…                       ┆ ││
+ e│  T organizations           public · Pro…                       ┆ ││
+ r│  T payments                public · Pro…                       ┆ ││
+  │  T products                public · Pro…                       ┆ ││
+  │  T subscriptions           public · Pro…                       ┆ ││
+  │  V active_customers        public · Pro…        Views          ┆ ││
+  │ ↑↓ Move · Enter Open · Alt+Enter New tab · Tab Scope · Esc Clea… │╯
   ╰──────────────────────────────────────────────────────────────────╯
-                                                Connected to Production
+ Type Filter  ↑↓ Move  Esc Cancel  …          ✓ Connected to Production

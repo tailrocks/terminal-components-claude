@@ -1,40 +1,40 @@
 {
-  "ansi_sha256": "ba99fde0056abd20650f0abec449e96efa0c87f464833fb767a2fdd668c5773c",
+  "ansi_sha256": "9a0db2a7120104fd586c4f332a606b949896349c717d6ee3e3653adca9900f3f",
   "artifacts": {
     "ansi": {
-      "bytes": 5288,
+      "bytes": 4920,
       "file": "tablepro/workbench/overlay-picker-open/72x20/16.ansi",
-      "sha256": "ba99fde0056abd20650f0abec449e96efa0c87f464833fb767a2fdd668c5773c"
+      "sha256": "9a0db2a7120104fd586c4f332a606b949896349c717d6ee3e3653adca9900f3f"
     },
     "ascii": {
-      "bytes": 1429,
+      "bytes": 1435,
       "file": "tablepro/workbench/overlay-picker-open/72x20/16.ascii",
-      "sha256": "1233697876a3d0a7ea9b581c851fbb1237fa5c15df7ace968ec8f10e58dd15c6"
+      "sha256": "453bf6a9496d57a196564edf69df705b07e619ecba5425a36ddcfeb323b5d34b"
     },
     "ascii_loss_json": {
-      "bytes": 22032,
+      "bytes": 22223,
       "file": "tablepro/workbench/overlay-picker-open/72x20/16.ascii.loss.json",
-      "sha256": "a8f70bd04eb13563181e89c2c91b7a2cc7ed4d2b82e1676192d6838a74114f21"
+      "sha256": "45726f6a1d8ea72ca025c0f4689da3426edf5c36ad47ffd34d33b6b719de642d"
     },
     "frame_json": {
-      "bytes": 334456,
+      "bytes": 333093,
       "file": "tablepro/workbench/overlay-picker-open/72x20/16.frame.json",
-      "sha256": "fe2f80246ef7df81eb13b860482c45b92e2dac059870cc24d3967baae3d89028"
+      "sha256": "6491ae78dd1f2eb65f926a01f92219d1e39643a51f644b13cb95128f348e6981"
     },
     "html": {
-      "bytes": 280577,
+      "bytes": 308203,
       "file": "tablepro/workbench/overlay-picker-open/72x20/16.html",
-      "sha256": "2b7d274b35aac46d7f08c13ded8533856ea723b1442d1c924cc56419b4768be0"
+      "sha256": "1af52d55e38ffc2be2cd6faa17fc5096a6a25617ebe896186656098f5e72e59e"
     },
     "observations_json": {
-      "bytes": 465,
+      "bytes": 468,
       "file": "tablepro/workbench/overlay-picker-open/72x20/16.observations.json",
-      "sha256": "30d497e206bedd155f2bc7ae66646002b72aee2799b87d05011bd23fe36f13b6"
+      "sha256": "55ddbe54b0e57dba88abfa1b1eae70360a300b1b609d1690b56d32fe6a324d1a"
     },
     "png": {
-      "bytes": 198927,
+      "bytes": 220457,
       "file": "tablepro/workbench/overlay-picker-open/72x20/16.png",
-      "sha256": "daf6ed4b347d2bd29363301cbb0272b76bad141ae155a088c0b8418b2ca3e525"
+      "sha256": "507ab1fdad7eceb384b1e656d74dba7c6d9d8934f0198ab55c6f029b59daf8f7"
     },
     "png_fidelity_json": {
       "bytes": 276,
@@ -44,24 +44,24 @@
     "txt": {
       "bytes": 1898,
       "file": "tablepro/workbench/overlay-picker-open/72x20/16.txt",
-      "sha256": "6653d0eee5aa563b3b547c7624705c5fd4804105cff167c50da359faa50691dd"
+      "sha256": "699c4da5095d225b909307a18199e4578ac8419d3b11df832ed562d21c6165ab"
     }
   },
-  "ascii_substitutions_count": 238,
+  "ascii_substitutions_count": 240,
   "complete": true,
   "dimensions": {
     "cols": 72,
     "rows": 20
   },
-  "frame_digest": 577334869338341093,
-  "frame_sha256": "fe2f80246ef7df81eb13b860482c45b92e2dac059870cc24d3967baae3d89028",
-  "generation": "574736c03342818d7a5a71f2ae83c832463a7fa37cb3a8ce568942eb71233391",
-  "html_sha256": "2b7d274b35aac46d7f08c13ded8533856ea723b1442d1c924cc56419b4768be0",
+  "frame_digest": 14527437481293093862,
+  "frame_sha256": "6491ae78dd1f2eb65f926a01f92219d1e39643a51f644b13cb95128f348e6981",
+  "generation": "bc48e803071cfcb31d92f14896a2ec42e9f93756466ffeabd5d5e62df3f4e111",
+  "html_sha256": "1af52d55e38ffc2be2cd6faa17fc5096a6a25617ebe896186656098f5e72e59e",
   "legacy_name": "tablepro/overlays/picker_open/72x20/16",
   "name": "tablepro/workbench/overlay-picker-open/72x20/16",
-  "png_sha256": "daf6ed4b347d2bd29363301cbb0272b76bad141ae155a088c0b8418b2ca3e525",
+  "png_sha256": "507ab1fdad7eceb384b1e656d74dba7c6d9d8934f0198ab55c6f029b59daf8f7",
   "profile": "tuiscotti-default",
   "schema_version": 1,
-  "timestamp_utc": "2026-10-03T22:11:16Z",
-  "txt_sha256": "6653d0eee5aa563b3b547c7624705c5fd4804105cff167c50da359faa50691dd"
+  "timestamp_utc": "2026-10-21T00:00:00Z",
+  "txt_sha256": "699c4da5095d225b909307a18199e4578ac8419d3b11df832ed562d21c6165ab"
 }

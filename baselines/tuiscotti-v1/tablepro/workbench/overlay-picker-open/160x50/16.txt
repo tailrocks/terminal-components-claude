@@ -1,50 +1,50 @@
- ▪  TablePro  Production  ◆ production  acme_prod › public  safe                                                                     16 colors · 160×50  ? help
+  ▪  TablePro  Production  ◆ production  acme_prod › public  ✓ safe                                                                 16 colors · 160×50  ? help
 
   ≡ Query 1 ×                                                                                                                                               +
  ━━━━━━━━━━━━━━────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
- ╭─ Explorer ───────────────── public ─╮ ╭─ Query 1 ───────────────────────────────────────────────────────────────────────────────────────────────────────  ─╮
- │                                     │ │      1 Type SQL. Ctrl+R runs the statement under the cursor.                                                       │
- │   Filter objects                    │ │                                                                                                                    │
- │  ▾ D acme_prod                      │ │                                                                                                                    │
- │ ▎  ▾ S public                       │ │                                                                                                                    │
- │      ▾ Tables                    7  │ │                                                                                                                    │
- │        ▸ T organizations     1.2 ╭──────────────────────────────────────────────────────────────────────────────────────╮                                  │
- │        ▸ T customers        48.9 │ Open Quickly                                                         All · Tab scope │                                  │
- │        ▸ T products            31│ ▎ Search tables, views, schemas, tabs, queries…                                      │                                  │
- │        ▸ T orders            1.2 │                                                                                      │                                  │
- │        ▸ T order_items       3.8 │ ▎T change_log                             audit · Production        Tables         ┃ │                                  │
- │        ▸ T payments          1.2 │  T customers                              public · Production                      ┃ │                                  │
- │        ▸ T subscriptions     1.1 │  T daily_revenue                          analytics · Produc…                      ┃ │                                  │
- │      ▸ Views                     │  T events                                 analytics · Produc…                      ┃ │                                  │
- │      ▸ Functions                 │  T login_attempts                         audit · Production                       ┃ │                                  │
- │      ▸ Sequences                 │  T order_items                            public · Production                      ┃ │                                  │
- │    ▸ S analytics                 │  T orders                                 public · Production                      ┃ │                                  │
- │    ▸ S audit                     │  T organizations                          public · Production                      │ │                                  │
- │                                  │  T payments                               public · Production                      │ │                                  │
- │                                  │  T products                               public · Production                      │ │                                  │
- │                                  │  T subscriptions                          public · Production                      │ │                                  │
- │                                  │  V active_customers                       public · Production       Views          │ │                                  │
- │                                  │  V cohort_retention                       analytics · Produc…                      │ │                                  │
+ ╭─ Explorer ───────────── public   ‹ ─╮│╭─ Query 1 ──────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+ │                                     │││   Run   Run all   Explain                                                                                          │
+ │   Filter objects                    │││      1 Type SQL. Ctrl+R runs the statement under the cursor.                                                       │
+ │  ▾ D acme_prod                      │││                                                                                                                    │
+ │    ▾ S public                       │││                                                                                                                    │
+ │      ▾ Tables                    7  │││                                                                                                                    │
+ │        ▸ T organizations     1.2 k  │││                                                                                                                    │
+ │        ▸ T customers        48.9 k  │││                                                                                                                    │
+ │        ▸ T products            312  │││                                                                                                                    │
+ │        ▸ T orders            1.2 M  │││                                                                                                                    │
+ │        ▸ T order_items       3.8 M  │││                                                                                                                    │
+ │        ▸ T payments          1.2 ╭──────────────────────────────────────────────────────────────────────────────────────╮                                  │
+ │        ▸ T subscriptions     1.1 │ Open Quickly                                                         All · Tab scope │                                  │
+ │      ▸ Views                     │ ▎ Search tables, views, schemas, tabs, queries…                                      │                                  │
+ │      ▸ Functions                 │                                                                                      │                                  │
+ │      ▸ Sequences                 │  T change_log                        audit · Production             Tables         ┃ │                                  │
+ │    ▸ S analytics                 │  T customers                         public · Production                           ┃ │───────────────────────────────── │
+ │    ▸ S audit                     │  T daily_revenue                     analytics · Production                        ┃ │                                  │
+ │                                  │  T events                            analytics · Production                        ┃ │                                  │
+ │                                  │  T login_attempts                    audit · Production                            ┃ │                                  │
+ │                                  │  T order_items                       public · Production                           ┃ │                                  │
+ │                                  │  T orders                            public · Production                           ┃ │                                  │
+ │                                  │  T organizations                     public · Production                           ┆ │                                  │
+ │                                  │  T payments                          public · Production                           ┆ │                                  │
+ │                                  │  T products                          public · Production                           ┆ │                                  │
+ │                                  │  T subscriptions                     public · Production                           ┆ │                                  │
+ │                                  │  V active_customers                  public · Production            Views          ┆ │                                  │
+ │                                  │  V cohort_retention                  analytics · Production                        ┆ │                                  │
  │                                  │ ↑↓ Move · Enter Open · Alt+Enter New tab · Tab Scope · Esc Clear / Close             │                                  │
  │                                  ╰──────────────────────────────────────────────────────────────────────────────────────╯                                  │
- │                                     │ │                                                                                                                    │
- │                                     │ │                                                                                                                    │
- │                                     │ │                                                                                                                    │
- │                                     │ │                                                   No results yet                                                   │
- │                                     │ │                                                                                                                    │
- │                                     │ │                             Ctrl+R runs the statement under the cursor · Alt+R runs all                            │
- │                                     │ │                                                                                                                    │
- │                                     │ │                                                                                                                    │
- │                                     │ │                                                                                                                    │
- │                                     │ │                                                                                                                    │
- │                                     │ │                                                                                                                    │
- │                                     │ │                                                                                                                    │
- │                                     │ │                                                                                                                    │
- │                                     │ │                                                                                                                    │
- │                                     │ │                                                                                                                    │
- │                                     │ │                                                                                                                    │
- │                                     │ │                                                                                                                    │
- │                                     │ │                                                                                                                    │
- ╰─────────────────────────────────────╯ ╰────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+ │                                     │││                             Ctrl+R runs the statement under the cursor · Alt+R runs all                            │
+ │                                     │││                                                                                                                    │
+ │                                     │││                                                                                                                    │
+ │                                     │││                                                                                                                    │
+ │                                     │││                                                                                                                    │
+ │                                     │││                                                                                                                    │
+ │                                     │││                                                                                                                    │
+ │                                     │││                                                                                                                    │
+ │                                     │││                                                                                                                    │
+ │                                     │││                                                                                                                    │
+ │                                     │││                                                                                                                    │
+ │                                     │││                                                                                                                    │
+ │                                     │││                                                                                                                    │
+ ╰─────────────────────────────────────╯│╰────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
 
-                                                                                                                                        Connected to Production
+ Type Filter  ↑↓ Move  Enter Choose  Esc Cancel                                                                                       ✓ Connected to Production
