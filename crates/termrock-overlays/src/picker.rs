@@ -743,7 +743,11 @@ impl<T: AsItem, R: RowFn<T>> Picker<'_, T, R> {
                             .set_fg(Role::Fg(FgStep::Faint))
                             .set_bg(Role::CurrentSurface),
                     );
-                    ui.paint_str(hint_area, self.hints, hint_style);
+                    // The frozen renderer elides an over-long hint line to the
+                    // content width with a trailing ellipsis instead of hard
+                    // clipping it at the popup edge.
+                    let line = termrock_text::truncate(self.hints, hint_area.width);
+                    ui.paint_str(hint_area, &line, hint_style);
                 }
                 let list = Rect {
                     y: content.y.saturating_add(if self.layout.legacy {
