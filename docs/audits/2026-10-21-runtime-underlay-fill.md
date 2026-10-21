@@ -1,6 +1,6 @@
 # Runtime underlay fill repair
 
-Status: second runtime repair is implemented on `wip/menu-underlay-fill-20261021`; focused regressions pass locally. Final full gate and independent review are pending. Menu integration and all application acceptance gates remain incomplete.
+Status: ordered underlay style operations are implemented on `wip/menu-underlay-fill-20261021`; scoped runtime tests, strict runtime Clippy, formatting, and diff checks pass locally. Independent review of the resulting commit is pending. Menu integration and all application acceptance gates remain incomplete.
 
 ## Superseded finding
 
@@ -40,5 +40,18 @@ Follow-up evidence for the independent review of `bb012956690d08381b16aa28985b47
 - The strengthened stacked-color fade fixture also runs at the unchanged pre-fix `bb012956690d08381b16aa28985b474ad7501d1c` and fails (red/blue foreground mismatch, missing fade modifiers); it passes on the repaired WIP. Evidence: [stacked-fade-before-red.log](/Users/donbeave/Projects/termrock-cli-evidence-20261021/branch-consolidation/runtime-underlay-28a5d232-regression-20261021/stacked-fade-before-red.log), SHA-256 `dfcbef811083e1bd3a7c07741bdab8f90d8b241b95f685e99f509042397471c0`; [stacked-fade-after-green.log](/Users/donbeave/Projects/termrock-cli-evidence-20261021/branch-consolidation/runtime-underlay-28a5d232-regression-20261021/stacked-fade-after-green.log), SHA-256 `0a6e225f84b24dc373e4afc74cc51ca2a03a87f3c8acbb5d5c08124aef0d3e4c`.
 - Follow-up `cargo nextest run -p termrock-runtime --all-targets` — 406 passed, 3 skipped; `cargo clippy -p termrock-runtime --all-targets -- -D warnings`, `cargo fmt --check`, and `git diff --check` pass. No performance benchmark was run, so the sparse-storage/no-destination-clone change is a structural allocation reduction only; no measured performance claim is made.
 - The review's full 260-test native suite passed on `bb012956690d08381b16aa28985b474ad7501d1c`, and the three new public fixtures failed there. Full suite, scoped Clippy and strict formatting on this follow-up remain pending.
+
+## Ordered-operation follow-up
+
+The independent review of `5ac1ae24b9f0548bc064d6609de26245e62695ea` (packet `runtime-underlay-5ac1ae24-independent-review-20261021/review.json`, SHA-256 `95db7806e8092f26a364959aea39f73d54163a0b7be4a1b1d5e86c235d6ec708`) found that a single deferred fade and post-hoc modifier/channel aggregation did not preserve supported painter call order. It supplied public-runtime differential cases for remove-wins overlap against inherited BOLD, background and REVERSED changes after fading, and repeated RGB fading. These were kept as consumer tests and extended with fade-then-remove-DIM, explicit foreground, and semantic foreground patch cases.
+
+`CellUnderlayStyle` now keeps an ordered list of private paint, patch, fade, and source-reset operations. Composition starts from the nearest actual lower-layer cell, substitutes the explicit fill background (and its role replacement), then replays those operations in order. This preserves Ratatui paint remove-wins behavior and `StylePatch` remove-then-add behavior without guessing from color differences. The existing sparse optional map remains lazy; the no-intent compositor path avoids cloning the destination cell. No performance benchmark was run, so this is only a structural fast-path claim. A focused internal test caught that the replacement background must clear the inherited background semantic role; that role replacement is now explicitly asserted by the existing compositor test.
+
+- Red/green proof used the same copied public-runtime test file at exact base `5ac1ae24b9f0548bc064d6609de26245e62695ea` and this working source, with separate targets. The eight ordered-operation cases yielded 1 pass / 7 failures on the base (the repeated non-RGB fade control passed) and 8 passes on this source across TrueColor, ANSI-256, ANSI-16, and Mono. Logs are in the external review packet: `ordered-before-red.log` SHA-256 `f5f81836b64d0448f45e2296929e306a6a0d062a65452d897c4f41056048c241`; `ordered-after-green/results.log` SHA-256 `5735e8b4917fd3f3d49969ff5691c110743620252a6745a898bb3868881a2170`.
+- `cargo nextest run -p termrock-runtime --test underlay_stack` — 14 passed.
+- `cargo nextest run -p termrock-runtime --lib underlay_fill_defers_ink_inheritance_until_composition` — 1 passed.
+- `cargo nextest run -p termrock-runtime --all-targets` — 414 passed, 3 skipped.
+- `cargo clippy -p termrock-runtime --all-targets -- -D warnings`, `cargo fmt --all -- --check`, and `git diff --check` — passed.
+- No public API, app, menu, theme, input-dispatch, or capture-frame code changed. No measured performance claim is made. Full public-consumer suite, independent review of the new commit, application parity, and menu integration remain outstanding.
 
 Remaining runtime evidence: independent review of the final commit and deeper backdrop/profile behavior. Full paired Tuiscotti application parity, menu unification, and all four app acceptance gates are still unverified and incomplete.

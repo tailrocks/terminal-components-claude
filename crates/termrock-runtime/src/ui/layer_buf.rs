@@ -14,14 +14,18 @@ struct UnderlayChannel {
     role: Option<Role>,
 }
 
-#[derive(Clone, Copy, Debug, Default, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq)]
 pub(crate) struct CellUnderlayStyle {
-    fg: Option<UnderlayChannel>,
     bg: Option<UnderlayChannel>,
-    underline: Option<Color>,
-    add: Modifier,
-    remove: Modifier,
-    fade: Option<UnderlayFade>,
+    operations: Vec<UnderlayOp>,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+enum UnderlayOp {
+    Paint(PaintStyle),
+    Patch(PaintStyle, StylePatch),
+    Fade(UnderlayFade),
+    ResetSourceInk(PaintStyle),
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -33,133 +37,131 @@ struct UnderlayFade {
 
 impl CellUnderlayStyle {
     fn apply_paint(&mut self, paint: PaintStyle) {
-        let style = paint.as_style();
-        if let Some(color) = style.fg {
-            self.fg = Some(UnderlayChannel {
-                color,
-                role: paint.fg_role.map(|(role, surface)| role.painted(surface)),
-            });
-            self.fade = None;
-        }
-        if let Some(color) = style.bg {
-            self.bg = Some(UnderlayChannel {
-                color,
-                role: paint.bg_role.map(|(role, surface)| role.painted(surface)),
-            });
-        }
-        if let Some(color) = style.underline_color {
-            self.underline = Some(color);
-        } else if paint.underline_cleared() {
-            self.underline = Some(Color::Reset);
-        }
-        self.apply_paint_modifiers(style.add_modifier, style.sub_modifier);
+        self.operations.push(UnderlayOp::Paint(paint));
     }
 
     fn apply_patch(&mut self, paint: PaintStyle, explicit: StylePatch) {
-        let style = paint.as_style();
-        match explicit.fg {
-            Slot::Inherit => {}
-            Slot::Set(_) => {
-                self.fg = Some(UnderlayChannel {
-                    color: style.fg.unwrap_or(Color::Reset),
-                    role: paint.fg_role.map(|(role, surface)| role.painted(surface)),
-                });
-                self.fade = None;
-            }
-            Slot::Clear => {
-                self.fg = Some(UnderlayChannel {
-                    color: Color::Reset,
-                    role: None,
-                });
-                self.fade = None;
-            }
-        }
-        match explicit.bg {
-            Slot::Inherit => {}
-            Slot::Set(_) => {
-                self.bg = Some(UnderlayChannel {
-                    color: style.bg.unwrap_or(Color::Reset),
-                    role: paint.bg_role.map(|(role, surface)| role.painted(surface)),
-                });
-            }
-            Slot::Clear => {
-                self.bg = Some(UnderlayChannel {
-                    color: Color::Reset,
-                    role: None,
-                });
-            }
-        }
-        match explicit.underline {
-            Slot::Inherit => {}
-            Slot::Set(_) => self.underline = Some(style.underline_color.unwrap_or(Color::Reset)),
-            Slot::Clear => self.underline = Some(Color::Reset),
-        }
-        self.apply_patch_modifiers(explicit.add, explicit.remove);
-    }
-
-    fn apply_paint_modifiers(&mut self, add: Modifier, remove: Modifier) {
-        // Ratatui `Cell::set_style` adds first, then removes. If a modifier is
-        // present in both fields, removal wins.
-        self.apply_modifier_op(add.difference(remove), remove.difference(add));
-    }
-
-    fn apply_patch_modifiers(&mut self, add: Modifier, remove: Modifier) {
-        // StylePatch applies removals first, then additions. If a modifier is
-        // present in both fields, addition wins.
-        self.apply_modifier_op(add, remove.difference(add));
-    }
-
-    fn apply_modifier_op(&mut self, add: Modifier, remove: Modifier) {
-        let touched = add.union(remove);
-        self.add = self.add.difference(touched).union(add);
-        self.remove = self.remove.difference(touched).union(remove);
+        self.operations.push(UnderlayOp::Patch(paint, explicit));
     }
 
     pub(crate) fn defer_fade(&mut self, container: Color, keep: f32, outer: bool) {
-        self.fade = Some(UnderlayFade {
+        self.operations.push(UnderlayOp::Fade(UnderlayFade {
             container,
             keep,
             outer,
-        });
+        }));
     }
 
     pub(crate) fn reset_source_ink(&mut self, reset: PaintStyle) {
-        let style = reset.as_style();
-        self.underline = Some(style.underline_color.unwrap_or(Color::Reset));
-        let modifiers = style.add_modifier.difference(style.sub_modifier);
-        self.add = modifiers;
-        self.remove = Modifier::all().difference(modifiers);
-        self.fade = None;
+        self.operations.push(UnderlayOp::ResetSourceInk(reset));
     }
 
     fn composite(
-        self,
+        &self,
         underlay: &ratatui_core::buffer::Cell,
         underlay_roles: CellRoles,
         output: &mut ratatui_core::buffer::Cell,
     ) -> CellRoles {
-        output.fg = self.fg.map_or(underlay.fg, |channel| channel.color);
+        output.fg = underlay.fg;
         output.bg = self.bg.map_or(underlay.bg, |channel| channel.color);
-        output.underline_color = self.underline.unwrap_or(underlay.underline_color);
-        output.modifier = underlay.modifier.difference(self.remove).union(self.add);
-        if let Some(fade) = self.fade
-            && output.bg == fade.container
-            && !output.modifier.contains(Modifier::REVERSED)
-        {
-            match crate::theme::builder::fade_mix(output.fg, fade.container, fade.keep) {
-                crate::theme::builder::FadeOutcome::Blended(color) => output.fg = color,
-                crate::theme::builder::FadeOutcome::ApplyDim if fade.outer => {
-                    output.modifier.insert(Modifier::DIM);
+        output.underline_color = underlay.underline_color;
+        output.modifier = underlay.modifier;
+        let mut roles = underlay_roles;
+        if let Some(bg) = self.bg {
+            roles.bg = bg.role;
+        }
+        for operation in &self.operations {
+            match *operation {
+                UnderlayOp::Paint(paint) => apply_paint(paint, output, &mut roles),
+                UnderlayOp::Patch(paint, explicit) => {
+                    apply_patch(paint, explicit, output, &mut roles);
                 }
-                crate::theme::builder::FadeOutcome::Unchanged
-                | crate::theme::builder::FadeOutcome::ApplyDim => {}
+                UnderlayOp::Fade(fade) => apply_fade(fade, output),
+                UnderlayOp::ResetSourceInk(reset) => reset_source_ink(reset, output),
             }
         }
-        CellRoles {
-            fg: self.fg.map_or(underlay_roles.fg, |channel| channel.role),
-            bg: self.bg.map_or(underlay_roles.bg, |channel| channel.role),
+        roles
+    }
+}
+
+fn apply_paint(paint: PaintStyle, output: &mut ratatui_core::buffer::Cell, roles: &mut CellRoles) {
+    let style = paint.as_style();
+    if let Some(color) = style.fg {
+        output.fg = color;
+        roles.fg = paint.fg_role.map(|(role, surface)| role.painted(surface));
+    }
+    if let Some(color) = style.bg {
+        output.bg = color;
+        roles.bg = paint.bg_role.map(|(role, surface)| role.painted(surface));
+    }
+    if let Some(color) = style.underline_color {
+        output.underline_color = color;
+    } else if paint.underline_cleared() {
+        output.underline_color = Color::Reset;
+    }
+    // This mirrors Ratatui Cell::set_style: removal wins for a modifier that
+    // appears in both fields.
+    output.modifier.insert(style.add_modifier);
+    output.modifier.remove(style.sub_modifier);
+}
+
+fn apply_patch(
+    paint: PaintStyle,
+    explicit: StylePatch,
+    output: &mut ratatui_core::buffer::Cell,
+    roles: &mut CellRoles,
+) {
+    let style = paint.as_style();
+    match explicit.fg {
+        Slot::Inherit => {}
+        Slot::Set(_) => {
+            output.fg = style.fg.unwrap_or(Color::Reset);
+            roles.fg = paint.fg_role.map(|(role, surface)| role.painted(surface));
+        }
+        Slot::Clear => {
+            output.fg = Color::Reset;
+            roles.fg = None;
         }
     }
+    match explicit.bg {
+        Slot::Inherit => {}
+        Slot::Set(_) => {
+            output.bg = style.bg.unwrap_or(Color::Reset);
+            roles.bg = paint.bg_role.map(|(role, surface)| role.painted(surface));
+        }
+        Slot::Clear => {
+            output.bg = Color::Reset;
+            roles.bg = None;
+        }
+    }
+    match explicit.underline {
+        Slot::Inherit => {}
+        Slot::Set(_) => output.underline_color = style.underline_color.unwrap_or(Color::Reset),
+        Slot::Clear => output.underline_color = Color::Reset,
+    }
+    // StylePatch applies remove first, then add, so addition wins overlaps.
+    output.modifier.remove(explicit.remove);
+    output.modifier.insert(explicit.add);
+}
+
+fn apply_fade(fade: UnderlayFade, output: &mut ratatui_core::buffer::Cell) {
+    if output.bg != fade.container || output.modifier.contains(Modifier::REVERSED) {
+        return;
+    }
+    match crate::theme::builder::fade_mix(output.fg, fade.container, fade.keep) {
+        crate::theme::builder::FadeOutcome::Blended(color) => output.fg = color,
+        crate::theme::builder::FadeOutcome::ApplyDim if fade.outer => {
+            output.modifier.insert(Modifier::DIM);
+        }
+        crate::theme::builder::FadeOutcome::Unchanged
+        | crate::theme::builder::FadeOutcome::ApplyDim => {}
+    }
+}
+
+fn reset_source_ink(reset: PaintStyle, output: &mut ratatui_core::buffer::Cell) {
+    let style = reset.as_style();
+    output.underline_color = style.underline_color.unwrap_or(Color::Reset);
+    output.modifier = style.add_modifier.difference(style.sub_modifier);
 }
 
 #[derive(Debug, Clone)]
@@ -260,8 +262,13 @@ impl LayerDraw {
         if self.underlay.is_none() {
             self.underlay = Some(HashMap::new());
         }
-        let mut style = CellUnderlayStyle::default();
-        style.apply_paint(PaintStyle::new().bg(bg));
+        let style = CellUnderlayStyle {
+            bg: Some(UnderlayChannel {
+                color: bg,
+                role: None,
+            }),
+            ..CellUnderlayStyle::default()
+        };
         if let Some(underlay) = &mut self.underlay {
             underlay.insert(i, style);
         }
@@ -270,10 +277,9 @@ impl LayerDraw {
         }
     }
 
-    pub(crate) fn underlay_at(&self, pos: Position) -> Option<CellUnderlayStyle> {
+    pub(crate) fn underlay_at(&self, pos: Position) -> Option<&CellUnderlayStyle> {
         self.index(pos)
             .and_then(|index| self.underlay.as_ref()?.get(&index))
-            .copied()
     }
 
     pub(crate) fn has_underlay(&self, pos: Position) -> bool {
