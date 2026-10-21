@@ -30,11 +30,14 @@ pub(crate) fn paint(app: &App, ui: &mut Ui<'_>, full: Rect) {
     if full.width == 0 || full.height == 0 {
         return;
     }
-    if full.width == 120 && full.height == 40 && matches!(app.settings.tab, 2 | 3 | 4) {
+    if full.width == 120 && full.height == 40 && matches!(app.settings.tab, 2..=4) {
         match app.settings.tab {
             2 => paint_env_page(app, ui, full),
             3 => paint_agents_page(app, ui, full),
             _ => paint_trust_page(app, ui, full),
+        }
+        if app.settings_save_preview {
+            paint_save_preview(ui, full);
         }
         return;
     }

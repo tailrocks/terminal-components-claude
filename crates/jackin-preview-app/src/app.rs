@@ -2289,7 +2289,7 @@ impl App {
         TextInput::new(CAPSULE_INPUT).placeholder("Type a command")
     }
 
-    fn capsule_viewport(pane_id: PaneId) -> TextViewport<'static> {
+    fn capsule_viewport(pane_id: PaneId, focused: bool) -> TextViewport<'static> {
         static PARTS: std::sync::OnceLock<[(Part, termrock::StylePatch); 2]> =
             std::sync::OnceLock::new();
         let parts = PARTS.get_or_init(|| {
@@ -2312,7 +2312,7 @@ impl App {
             .click_selects_word(true)
             .reserve_gutter(false)
             .scroll_gap(1)
-            .caret_when_unfocused(true)
+            .caret_when_unfocused(focused)
             .bar_cursor(true)
             .patch_part(parts)
     }
@@ -2760,8 +2760,7 @@ impl App {
                 daemon
                     .tabs
                     .iter()
-                    .enumerate()
-                    .map(|(_index, tab)| {
+                    .map(|tab| {
                         let mut label = daemon.tab_label(tab, &|pane| {
                             pane.proc
                                 .account
@@ -3024,7 +3023,7 @@ impl App {
                 continue;
             };
             let viewport_response =
-                Self::capsule_viewport(pane_id).update_projected(cx, state, projected);
+                Self::capsule_viewport(pane_id, focused).update_projected(cx, state, projected);
             let owns_focus = clicked || viewport_response.focused();
             let viewport_action = viewport_response.action_ref().cloned();
             *result |= viewport_response.erase();
@@ -7403,7 +7402,10 @@ impl App {
 
     fn historical_capsule_frame(&self) -> bool {
         self.route == Route::Capsule
-            && self.world.scenario == Scenario::CapsuleMulti
+            && matches!(
+                self.world.scenario,
+                Scenario::CapsuleMulti | Scenario::OutroLast
+            )
             && self.motion == Motion::Paused
             && self.status.is_none()
             && !self.capsule_help_open
@@ -7561,7 +7563,12 @@ impl App {
                 .get(&pane_id)
                 .cloned()
                 .unwrap_or_default();
-            Self::capsule_viewport(pane_id).draw_projected(ui, viewport_area, &state, projected);
+            Self::capsule_viewport(pane_id, focused).draw_projected(
+                ui,
+                viewport_area,
+                &state,
+                projected,
+            );
             if reserve_input && !inner.is_empty() {
                 Self::capsule_input().value(&self.capsule_input).draw(
                     ui,
@@ -7875,14 +7882,19 @@ impl App {
         }
         let mut x = area.x;
         for (index, tab) in daemon.tabs.iter().enumerate() {
-            let label = daemon.tab_label(tab, &|pane| {
-                pane.proc.account.as_ref().and_then(|id| {
-                    self.world
-                        .accounts
-                        .get(id)
-                        .map(|account| account.display_name.clone())
-                })
-            });
+            let label =
+                if !self.capsule_tab_title.is_empty() && index == self.capsule_tab_title_index {
+                    self.capsule_tab_title.clone()
+                } else {
+                    daemon.tab_label(tab, &|pane| {
+                        pane.proc.account.as_ref().and_then(|id| {
+                            self.world
+                                .accounts
+                                .get(id)
+                                .map(|account| account.display_name.clone())
+                        })
+                    })
+                };
             let prefix = if index < 10 {
                 Some(if index == 9 {
                     "0".to_owned()
@@ -9623,9 +9635,9 @@ fn wrap_account_lines(joined: &str) -> Vec<String> {
 fn capsule_span_role(tone: crate::sim::pty::Tone) -> termrock::Role {
     use crate::sim::pty::Tone;
     match tone {
-        // Baseline success and danger are not the port tokens.
+        // Baseline success is not the port token.
         Tone::Success => termrock::Role::Custom(termrock::Color::Rgb(0x3f, 0xb9, 0x50)),
-        Tone::Error => termrock::Role::Custom(termrock::Color::Rgb(0xf0, 0x5d, 0x5d)),
+        Tone::Error => termrock::Role::Danger,
         other => other.role(),
     }
 }
@@ -10517,6 +10529,8 @@ mod paint_contract_tests {
                     h.find("FAILED").expect("FAILED in mono")
                 } else if scenario == Scenario::CapsuleMulti && glyph == "j" {
                     h.find("jackin❯").expect("jackin in mono")
+                } else if scenario == Scenario::Returning && glyph == "L" {
+                    h.find("Launch").expect("Launch in mono")
                 } else {
                     (x, y)
                 };
