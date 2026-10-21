@@ -10,6 +10,10 @@ const SCROLL_LIST: Id = Id::root("showcase_ui::pages::scrolling::scrolling.list"
 const APP_NAV: Id = Id::root("showcase_ui::app::navigation");
 const CHROME_BRAND: Id = Id::root("showcase_ui::pages::chrome::chrome.brand");
 const SIDEBAR_CONTENT: Id = Id::root("showcase_ui::pages::sidebars::sidebars.content");
+const EDITOR: Id = Id::root("showcase_ui::pages::editor::editor.code");
+const EDITOR_FIND: Id = Id::root("showcase_ui::pages::editor::editor.find");
+const EDITOR_RUN: Id = Id::root("showcase_ui::pages::editor::editor.run");
+const EDITOR_STATE_LIST: Id = Id::root("showcase_ui::pages::editor::editor.state.list");
 
 fn harness(page: PageId) -> Harness<App> {
     Harness::new(App::with_page(page), Theme::junie(), 120, 40)
@@ -326,6 +330,105 @@ fn exercise_page_state(h: &mut Harness<App>, page: PageId) {
             assert!(h.text().contains("compile started"));
         }
     }
+}
+
+#[test]
+fn editor_playground_keeps_live_find_completion_and_run_contracts() {
+    let mut h = harness(PageId::Editor);
+    assert!(
+        h.area_of(EDITOR_STATE_LIST).is_some(),
+        "state list lacks layout: {}",
+        h.text()
+    );
+    let editor_area = require(h.area_of(EDITOR), "editor viewport");
+    wheel(
+        &mut h,
+        Axis::V,
+        16,
+        editor_area.x.saturating_add(1),
+        editor_area.y.saturating_add(1),
+    );
+    assert!(h.text().contains("gzip(true)"), "{}", h.text());
+    assert!(
+        h.text().contains("Find"),
+        "Find action absent: {}",
+        h.text()
+    );
+    assert!(
+        h.text().contains("Run block"),
+        "Run action absent: {}",
+        h.text()
+    );
+
+    assert!(h.tab_to(EDITOR_FIND));
+    press(&mut h, KeyCode::Enter);
+    assert_eq!(h.focus(), Some(EDITOR));
+    type_text(&mut h, "delay");
+    assert!(h.text().contains("“delay” · 1 of 3"), "{}", h.text());
+    press(&mut h, KeyCode::Esc);
+    assert!(h.text().contains("Find         closed"), "{}", h.text());
+
+    assert!(h.tab_to(EDITOR));
+    press(&mut h, KeyCode::Char('i'));
+    press(&mut h, KeyCode::Backspace);
+    type_text(&mut h, "fe");
+    assert!(h.text().contains("Completion   open"), "{}", h.text());
+    assert!(
+        h.text().contains("async fn (url: &str)"),
+        "completion popup missing: {}",
+        h.text()
+    );
+    press(&mut h, KeyCode::Esc);
+    assert!(h.text().contains("Completion   closed"), "{}", h.text());
+
+    let mut h = harness(PageId::Editor);
+    assert!(h.tab_to(EDITOR));
+    for _ in 0..17 {
+        press(&mut h, KeyCode::Down);
+    }
+    assert!(h.text().contains("Block        2 of 3"), "{}", h.text());
+    control(&mut h, 'r');
+    assert!(
+        h.text().contains("running"),
+        "shortcut run state missing: {}",
+        h.text()
+    );
+    for _ in 0..12 {
+        let _ = h.tick();
+    }
+    assert!(
+        h.text().contains("Runs         1"),
+        "run count missing: {}",
+        h.text()
+    );
+    assert!(
+        h.text().contains("unwrap() panics on Err"),
+        "live run diagnostics missing: {}",
+        h.text()
+    );
+    assert!(
+        h.text().contains("Block ran in"),
+        "run status missing: {}",
+        h.text()
+    );
+
+    let mut h = harness(PageId::Editor);
+    assert!(h.tab_to(EDITOR_RUN));
+    press(&mut h, KeyCode::Enter);
+    assert!(
+        h.text().contains("running"),
+        "run state missing: {}",
+        h.text()
+    );
+    for _ in 0..12 {
+        let _ = h.tick();
+    }
+    assert!(
+        h.text().contains("Runs         1"),
+        "run count missing: {}",
+        h.text()
+    );
+    assert!(h.text().contains("Block ran in"), "{}", h.text());
 }
 
 #[test]
