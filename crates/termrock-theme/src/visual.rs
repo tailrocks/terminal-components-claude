@@ -110,6 +110,25 @@ impl GutterCell {
     pub const ALL: [GutterCell; 2] = [GutterCell::Inherit, GutterCell::Fill];
 }
 
+/// How chosen-item ink reacts to a modal or popup backdrop.
+///
+/// The reference default sends inactive selections neutral under a backdrop.
+/// The frozen checked markers (checkbox on, radio on, toggle on) keep their
+/// accent ink under a backdrop, so that behaviour stays selectable; the
+/// default is not flipped.
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Default)]
+pub enum BackdropSelection {
+    /// A modal or popup backdrop neutralizes an accent selection.
+    #[default]
+    Neutral,
+    /// Checked and chosen marks keep their accent ink under a backdrop.
+    Accent,
+}
+
+impl BackdropSelection {
+    pub const ALL: [BackdropSelection; 2] = [BackdropSelection::Neutral, BackdropSelection::Accent];
+}
+
 impl Theme {
     /// The glyph painted in an item's gutter column for the given state.
     ///
@@ -191,8 +210,23 @@ impl Theme {
         under_modal: bool,
         flags: StateFlags,
     ) -> Color {
+        self.chosen_in_with(policy, under_modal, BackdropSelection::Neutral, flags)
+    }
+
+    /// Ink for a chosen item with an explicit [`BackdropSelection`].
+    ///
+    /// [`BackdropSelection::Accent`] reproduces the frozen checked markers,
+    /// which keep the accent under a modal or popup backdrop.
+    #[must_use]
+    pub fn chosen_in_with(
+        &self,
+        policy: InactiveSelection,
+        under_modal: bool,
+        backdrop: BackdropSelection,
+        flags: StateFlags,
+    ) -> Color {
         if flags.contains(StateFlags::FOCUSED)
-            || self.inactive_look(policy, under_modal) == InactiveSelection::Accent
+            || self.inactive_look_with(policy, under_modal, backdrop) == InactiveSelection::Accent
         {
             self.color.accent
         } else {
@@ -207,9 +241,27 @@ impl Theme {
     /// every other policy passes through.
     #[must_use]
     pub fn inactive_look(&self, policy: InactiveSelection, under_modal: bool) -> InactiveSelection {
+        self.inactive_look_with(policy, under_modal, BackdropSelection::Neutral)
+    }
+
+    /// Resolve the effective inactive-selection look under an explicit
+    /// [`BackdropSelection`].
+    ///
+    /// Only the [`InactiveSelection::Accent`] policy reacts to a backdrop, and
+    /// only with [`BackdropSelection::Neutral`]; every other combination
+    /// passes through.
+    #[must_use]
+    pub fn inactive_look_with(
+        &self,
+        policy: InactiveSelection,
+        under_modal: bool,
+        backdrop: BackdropSelection,
+    ) -> InactiveSelection {
         let _ = self;
         match policy {
-            InactiveSelection::Accent if under_modal => InactiveSelection::Neutral,
+            InactiveSelection::Accent if under_modal && backdrop == BackdropSelection::Neutral => {
+                InactiveSelection::Neutral
+            }
             look => look,
         }
     }
@@ -287,3 +339,6 @@ pub const FOCUS_BAR_POLICIES: [FocusBarPolicy; 3] = FocusBarPolicy::ALL;
 
 /// Every gutter-cell fill mode, for exhaustive tests.
 pub const GUTTER_CELLS: [GutterCell; 2] = GutterCell::ALL;
+
+/// Every backdrop-selection policy, for exhaustive tests.
+pub const BACKDROP_SELECTIONS: [BackdropSelection; 2] = BackdropSelection::ALL;
