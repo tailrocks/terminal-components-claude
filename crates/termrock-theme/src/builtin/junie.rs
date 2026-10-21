@@ -32,6 +32,8 @@ const GREEN_60: Color = Color::from_u32(0x002b_8632);
 const GREEN_20: Color = Color::from_u32(0x0f_2e_13);
 const ON_GREEN: Color = Color::from_u32(0x19_19_1c);
 const RED: Color = Color::from_u32(0xe4_45_45);
+/// TablePro SQL diagnostics. Danger stays `#e44545`.
+const DIAGNOSTIC_ERROR: Color = Color::from_u32(0xf0_5d_5d);
 const RED_20: Color = Color::from_u32(0x2e_0f_0f);
 const RED_SOFT: Color = Color::from_u32(0xd9_8a_8a);
 const RED_45: Color = Color::from_u32(0x7a_2a_2a);
@@ -94,7 +96,7 @@ pub(crate) const fn tokens() -> ColorTokens {
             match_bg: GREEN_20,
             match_current_bg: HIGHLIGHT,
             bracket_match: GREEN,
-            diagnostic_error: RED,
+            diagnostic_error: DIAGNOSTIC_ERROR,
             diagnostic_warning: AMBER,
             diagnostic_info: PURPLE,
         },

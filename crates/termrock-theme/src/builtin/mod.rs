@@ -1219,6 +1219,7 @@ mod tests {
         assert_eq!(c.highlight_bg, Color::from_u32(0x2f5aa8));
         assert_eq!(c.highlight_danger_bg, Color::from_u32(0x7a2a2a));
         assert_eq!(c.danger, Color::from_u32(0xe44545));
+        assert_eq!(c.syntax.diagnostic_error, Color::from_u32(0xf05d5d));
         assert_eq!(c.danger_soft, Color::from_u32(0xd98a8a));
         assert_eq!(c.danger_tint, Color::from_u32(0x2e0f0f));
         assert_eq!(c.warning, Color::from_u32(0xf59e09));
