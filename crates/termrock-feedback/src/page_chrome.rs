@@ -13,7 +13,7 @@ use ratatui_core::style::{Color, Modifier};
 use crate::id::Part;
 use crate::response::StateFlags;
 use crate::text::width;
-use crate::theme::{Family, PaintStyle, Variant};
+use crate::theme::{ColorLevel, Family, PaintStyle, Variant, downgrade_color, legacy_mono};
 use crate::ui::Ui;
 
 /// The colours the chrome paints with.
@@ -74,6 +74,29 @@ impl ChromeInk {
         let mut style = PaintStyle::new();
         style = style.fg(fg);
         style.bg(bg)
+    }
+
+    /// The pair style the chrome paints with, at the given colour level.
+    ///
+    /// The palette is authored in truecolour. A terminal with fewer colours
+    /// cannot show those inks, so the block reduces them before it paints:
+    /// the colour maps to the nearest entry of the level's palette, the way
+    /// the frozen reference derives its own reduced inks
+    /// (`visual-baseline:src/theme.rs`, `nearest_16` and `nearest_256`). The
+    /// `--color none` tier uses the frozen mono table, which carries the
+    /// reference's own ink for every Junie colour the chrome paints.
+    ///
+    /// The 16-colour result follows the reference's declared table: the faint
+    /// ink is Gray and the ghost ink is DarkGray
+    /// (`visual-baseline:src/theme.rs:1009-1010`).
+    fn pair_at(&self, level: ColorLevel, fg: Color, bg: Color) -> PaintStyle {
+        let (fg, bg) = match level {
+            ColorLevel::Mono => legacy_mono(fg, bg, false)
+                .map(|mono| (mono.fg, mono.bg))
+                .unwrap_or_else(|| (downgrade_color(fg, level), downgrade_color(bg, level))),
+            _ => (downgrade_color(fg, level), downgrade_color(bg, level)),
+        };
+        self.pair(fg, bg)
     }
 }
 
@@ -307,6 +330,7 @@ impl<'a> SectionStrip<'a> {
         if area.is_empty() {
             return;
         }
+        let level = ui.theme_ref().capability.color;
         let mut x = area.x;
         let mut tab_end = area.x;
         for (index, label) in self.tabs.iter().enumerate() {
@@ -316,10 +340,11 @@ impl<'a> SectionStrip<'a> {
             }
             let style = if index == self.active {
                 self.ink
-                    .pair(self.ink.ink, self.ink.tab_active)
+                    .pair_at(level, self.ink.ink, self.ink.tab_active)
                     .add_modifier(Modifier::BOLD)
             } else {
-                self.ink.pair(self.ink.secondary, self.ink.canvas)
+                self.ink
+                    .pair_at(level, self.ink.secondary, self.ink.canvas)
             };
             ui.fill(Rect::new(x, area.y, tab_width, 1), style);
             let _ = ui.paint_str(
@@ -340,7 +365,7 @@ impl<'a> SectionStrip<'a> {
                 let _ = ui.paint_str(
                     Rect::new(caption_x, area.y, caption_width, 1),
                     caption,
-                    self.ink.pair(self.ink.faint, self.ink.canvas),
+                    self.ink.pair_at(level, self.ink.faint, self.ink.canvas),
                 );
             }
         }
@@ -355,7 +380,7 @@ impl<'a> SectionStrip<'a> {
                 ..area
             },
             &"─".repeat(usize::from(area.width)),
-            self.ink.pair(self.ink.rule, self.ink.canvas),
+            self.ink.pair_at(level, self.ink.rule, self.ink.canvas),
         );
         let active = self
             .tabs
@@ -366,7 +391,7 @@ impl<'a> SectionStrip<'a> {
         let _ = ui.paint_str(
             Rect::new(area.x, rule_y, active, 1),
             &"━".repeat(usize::from(active)),
-            self.ink.pair(self.ink.accent, self.ink.canvas),
+            self.ink.pair_at(level, self.ink.accent, self.ink.canvas),
         );
     }
 }
@@ -495,9 +520,10 @@ impl<'a> CardChrome<'a> {
 
     /// Paints the card chrome and returns the text column of the card.
     pub fn draw(&self, ui: &mut Ui<'_>, card: Rect) -> Rect {
+        let level = ui.theme_ref().capability.color;
         let surface = match self.surface_style {
             Some(style) => style,
-            None => self.ink.pair(self.ink.ink, self.ink.surface),
+            None => self.ink.pair_at(level, self.ink.ink, self.ink.surface),
         };
         ui.fill(card, surface);
         if card.height == 0 || card.width < 4 {
@@ -510,7 +536,7 @@ impl<'a> CardChrome<'a> {
             .saturating_sub(self.right_inset);
         let title_style = match self.title_style {
             Some(style) => style,
-            None => self.ink.pair(self.ink.secondary, self.ink.surface),
+            None => self.ink.pair_at(level, self.ink.secondary, self.ink.surface),
         };
         let _ = ui.paint_str(
             Rect::new(text_x, card.y, text_w, 1),
@@ -518,7 +544,7 @@ impl<'a> CardChrome<'a> {
             title_style,
         );
         if !self.meta.is_empty() {
-            let meta_style = self.ink.pair(self.ink.faint, self.ink.surface);
+            let meta_style = self.ink.pair_at(level, self.ink.faint, self.ink.surface);
             match self.meta_layout {
                 CardMeta::Right => {
                     let meta_w = width(self.meta);
@@ -564,7 +590,7 @@ impl<'a> CardChrome<'a> {
             let _ = ui.paint_str(
                 Rect::new(text_x, card.y.saturating_add(1), text_w, 1),
                 &"─".repeat(usize::from(text_w)),
-                self.ink.pair(self.ink.rule, self.ink.surface),
+                self.ink.pair_at(level, self.ink.rule, self.ink.surface),
             );
         }
         Rect {
