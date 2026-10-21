@@ -1,0 +1,84 @@
+{
+  "reviewed_commit": "6b73822c361e3a253709ad71fe6c885693fd1135",
+  "implementation_parent": "7c94b00331413350f37365c7a3a34151dc952e38",
+  "handoff_commit": "5f559939f",
+  "prior_review_commit": "b521748360a2a056d95c79090707ded595f53a6a",
+  "status": "changes required; geometry clearance withheld",
+  "method": "Independent API and crate-boundary review in a separate 52 MB source copy, with a dedicated Cargo target. The author worktree was read-only and remained clean. Production source hashes in the copy matched the exact reviewed commit. Added tests exist only in the reviewer copy and preserved evidence packet. The before measurement run restored exact parent source files in the reviewer copy and finally restored all reviewed source bytes.",
+  "findings": [
+    {
+      "id": "SHELL-GEOMETRY-1",
+      "severity": "high",
+      "location": "crates/termrock-shell/src/shell.rs:192",
+      "title": "The new ShellSlots minimum omits required chrome gaps and strip reservations.",
+      "detail": "Measure sums only the three child minima. With three one-row-minimum leaves and default Chrome, public slots.measure reports minimum height 3 even though rendering needs 5 rows: header1, gap1, body1, gap1, footer1. The same unchanged measurement probe passes on parent 7c94b003 and fails on 6b73822 (left3, right5). A second public runtime probe nests ShellSlots beside a sibling with preferred height7 and minimum0 in a 10-row outer composition. The shell receives only3 rows and its BODY control disappears, although shell5 plus sibling5 is feasible. Thus this is a live reusable-layout regression, not merely a preferred-size disagreement. Configured strips larger than their child minimum are also omitted from the reported minimum.",
+      "required_change": "Compute a constraints-clamped minimum that includes the configured reserved strip budgets and conditional chrome gaps needed by the resolver, plus the body minimum. Keep drawing on the same Chrome resolver. Add these public measurement and nested-registration tests unchanged; test oversized configured strips, omitted strips, and zero/narrow constraints."
+    },
+    {
+      "id": "SHELL-GEOMETRY-2",
+      "severity": "medium",
+      "location": "crates/termrock-shell/src/shell.rs:96",
+      "title": "The slots return-type migration is source-breaking and is not called out in the migration record.",
+      "detail": "AppShell::slots and facade AppShellSlots::slots formerly returned CompositionSlots; now both return ShellSlots. Existing draw and inherent measure call shapes remain usable, but explicit CompositionSlots type annotations, .spec(...), and direct ContentSlot::nested(shell.slots(...), policy) callers no longer compile. The new leaf supports nesting through ContentSlot::new, which is a useful deliberate contract, but it is not the previous API. The geometry audit describes compatibility exports without documenting this exception.",
+      "required_change": "Record an explicit source-compatibility decision and migration examples, or provide a compatibility adapter for any supported old composition call shapes. Compile a public external consumer using canonical facade/shell aliases and the chosen supported nesting API. Do not duplicate the old geometry engine to preserve the old type."
+    }
+  ],
+  "resolved_findings": [
+    "Prior SHELL-API-1 is resolved structurally: the facade file now reexports canonical termrock-shell types; there is one Chrome/Regions/AppShell owner.",
+    "Prior SHELL-API-2 draw-time geometry disagreement is repaired: ShellSlots is a CompositionLeaf and each child draw is bounded by the exact Chrome::regions result through Ui::with_area. Header/footer are not globally inset and omitted strips use the same conditional-gap policy.",
+    "The original PageLeaf full-root minimum is replaced by (0,0), and additive Page::draw_in passes logical body bounds while preserving old Page::draw implementations by default. Measurement does not call update or domain handlers. The new ShellSlots intrinsic-minimum regression prevents complete clearance of prior SHELL-API-3."
+  ],
+  "tests": [
+    {
+      "command": "cargo nextest run -p termrock-shell --test api_review_measure --test shell_geometry_contract --no-fail-fast",
+      "source": "6b73822c361e3a253709ad71fe6c885693fd1135",
+      "exit_code": 100,
+      "run": 4,
+      "passed": 2,
+      "failed": 2,
+      "skipped": 0,
+      "log": "after-nextest.log",
+      "details": "Both author-authored real runtime geometry tests passed. Both independent measurement/nested-registration probes failed. Dedicated target: /private/tmp/termrock-shell-api-review-target-20261021."
+    },
+    {
+      "command": "cargo nextest run -p termrock-shell --test api_review_measure --no-fail-fast",
+      "source": "7c94b00331413350f37365c7a3a34151dc952e38",
+      "exit_code": 0,
+      "run": 1,
+      "passed": 1,
+      "failed": 0,
+      "skipped": 0,
+      "log": "before-nextest.log",
+      "details": "The unchanged first public probe uses slots.measure(...).unwrap() and passes before the change. The second probe requires the new ShellSlots CompositionLeaf contract, so it is not claimed as a before-source comparison."
+    }
+  ],
+  "test_inventory_audit": {
+    "shell_before_count_reported": 48,
+    "shell_after_count_reported": 47,
+    "source_explanation": "The commit removes exactly 3 shell.rs unit tests and adds exactly 2 shell_geometry_contract.rs integration tests. The old tests inspected private policies or created and discarded slots without rendering them. Canonical chrome.rs geometry tests remain. The facade also removes duplicate tests together with the removed duplicate implementation. No ignored or skipped tests were added. The 48-to-47 difference is accounted for and is not by itself evidence of test weakening.",
+    "limitation": "This review did not rerun all 47 shell tests or the facade 10-test slots suite; author reports are not substituted for independent full-suite validation."
+  },
+  "coverage_assessment": [
+    "The new author tests meaningfully inspect runtime area_of, focus, cursor position/bar state, and pointer hover, so they improve on the discarded-slot tests.",
+    "The min-height assertion in ShellProbe only checks <= root height, which is guaranteed by the final clamp and misses missing required gaps. The independent tests demonstrate the uncovered failure.",
+    "The author tests draw a new zero-size root but do not establish resize-event-before-input behavior. Independent runtime review remains required for resize/clipping/cursor edge cases.",
+    "No real application screen, cursor parity, or terminal-frame comparison was run or approved by this review."
+  ],
+  "still_open_outside_increment": [
+    "Raw KeyHost routing versus runtime command scopes (prior SHELL-API-4).",
+    "Unconditional production runtime/testing dependency and public reach harness (prior SHELL-API-5).",
+    "Live thin app adoption, widget-backed slots, Showcase coverage and interaction CI examples (prior SHELL-API-6)."
+  ],
+  "staged_next_steps": [
+    "Repair ShellSlots intrinsic minimum in the canonical shell implementation and retain both independent probes as regression tests.",
+    "Document or adapt the slots return-type migration and compile an unrelated external public-API consumer.",
+    "Rerun exact shell/facade focused suites and independent API/runtime review on the corrected commit.",
+    "After that narrow clearance, integrate and push through PR38 with exact remote verification. Keep all broader shell input, dependency and application acceptance findings open."
+  ],
+  "evidence_sha256": {
+    "before-nextest.log": "1ca38620e8f728169160a3dd87123e9c90dc49b8aec992210749a5efbed21c70",
+    "api_review_measure.rs": "0c93f58947b2c37b371b968ffcba2644d46c0cbc3ff89ae216d2f3178a71461f",
+    "after-nextest.log": "a711a3f37c5c88a4c3b640ac05faffe02cc8b0593e394a7587d487774324078f"
+  },
+  "product_parity_claim": false
+}
