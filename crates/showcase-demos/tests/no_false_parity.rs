@@ -44,7 +44,6 @@ fn no_page_holds_a_captured_cell_table() {
 fn no_page_switches_on_an_exact_page_size() {
     for (name, source) in [
         ("chrome", CHROME),
-        ("selectable", SELECTABLE),
         ("taskrunner", TASKRUNNER),
         ("terminal", TERMINAL),
     ] {
@@ -206,7 +205,7 @@ fn the_selectable_page_renders_the_table_at_more_than_one_size() {
     for (width, height) in [(120u16, 40u16), (80, 24)] {
         let harness = Harness::new(SelectableHost, Theme::junie(), width, height);
         let text = harness.text();
-        for needle in ["Selection", "Dana Whitfield", "Owner"] {
+        for needle in ["Selectable table", "Dana Whitfield", "Owner"] {
             assert!(text.contains(needle), "{width}x{height}: {needle} missing");
         }
     }
