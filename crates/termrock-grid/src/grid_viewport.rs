@@ -59,21 +59,6 @@ pub struct GridViewport {
     pub status_text: Rect,
 }
 
-impl GridViewport {
-    /// Whether the viewport has a grid body to draw.
-    ///
-    /// A host that draws a grid in a region too short for a body and its bar
-    /// row asks the viewport instead of comparing sizes itself.
-    pub fn has_grid_body(&self) -> bool {
-        self.grid.height > 0
-    }
-
-    /// Whether a text of `text_width` columns fits the status text area.
-    pub fn status_text_fits(&self, text_width: u16) -> bool {
-        text_width <= self.status_text.width
-    }
-}
-
 /// Carve a grid viewport out of `area`.
 ///
 /// The grid body takes the rows that are left once the header band, the
@@ -232,6 +217,7 @@ pub fn paint_grid_vertical_bar(
     chrome: &GridContentChrome,
     rows: usize,
     origin: usize,
+    focused: Option<usize>,
     policy: &GridBarPolicy,
 ) {
     if area.height < 2 || area.width == 0 {
@@ -290,7 +276,13 @@ pub fn paint_grid_vertical_bar(
         } else if from_end == 1 || (from_start && offset == 1) {
             plain.patch(ui.paint_patch(&StylePatch::new().set_fg(policy.cover_near)))
         } else {
-            plain
+            // The focused row stays bold through the cover cell. Edge rows
+            // keep the fade colour and do not take that bold.
+            if focused == Some(offset) {
+                plain.add_modifier(Modifier::BOLD)
+            } else {
+                plain
+            }
         };
         ui.paint_str(
             Rect {

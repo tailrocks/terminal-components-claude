@@ -49,8 +49,8 @@ pub use menu::{
     ContextMenu, Menu, MenuAction, MenuBar, MenuBarHoverScope, MenuCmd, MenuItem, MenuState,
 };
 pub use picker::{
-    AsItem, CommandPalette, Item, ItemRow, ItemRowLayout, Picker, PickerAction, PickerState,
-    ScopeKey,
+    AsItem, CommandPalette, Item, ItemRow, ItemRowLayout, Picker, PickerAction, PickerLayout,
+    PickerState, ScopeKey,
 };
 pub use picker_chain::{
     PickerChain, PickerChainAction, PickerChainCmd, PickerChainState, PickerStage,

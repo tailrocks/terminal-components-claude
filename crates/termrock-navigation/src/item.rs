@@ -5,7 +5,8 @@ use termrock_core::response::StateFlags;
 use termrock_layout::layout::Track;
 use termrock_layout::{ColumnSpec, solve_columns_first};
 use termrock_runtime::rowui::{RowFn, RowUi};
-use termrock_text::width;
+use termrock_text::{measure::middle_parts, width};
+use unicode_segmentation::UnicodeSegmentation;
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct Item<'i> {
@@ -263,5 +264,162 @@ impl<T: AsItem> RowFn<T> for ItemRow {
             row.part(Part::ICON, 1).text(item.glyph);
         }
         row.label_matched(item.label, item.matched);
+    }
+}
+
+/// Label overflow used by [`SemanticItemRow`].
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
+pub enum ItemLabelOverflow {
+    /// Keep the start of a label and show an ellipsis at the end.
+    End,
+    /// Keep both ends of a label and put an ellipsis in the middle.
+    #[default]
+    Middle,
+}
+
+/// A semantic item row for containers that own their own gutter and row chrome.
+///
+/// Unlike [`ItemRow`], this adapter does not paint a gutter. Trees, lists, and
+/// similar containers retain ownership of their disclosure, focus, hit region,
+/// and selection geometry. Metadata is admitted only at the configured content
+/// width and is laid out from the trailing edge inward.
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub struct SemanticItemRow {
+    metadata_min_width: u16,
+    metadata_gap: u16,
+    minimum_label_width: u16,
+    label_overflow: ItemLabelOverflow,
+}
+
+impl Default for SemanticItemRow {
+    fn default() -> Self {
+        Self {
+            metadata_min_width: 44,
+            metadata_gap: 2,
+            minimum_label_width: 12,
+            label_overflow: ItemLabelOverflow::Middle,
+        }
+    }
+}
+
+impl SemanticItemRow {
+    pub const fn new() -> Self {
+        Self {
+            metadata_min_width: 44,
+            metadata_gap: 2,
+            minimum_label_width: 12,
+            label_overflow: ItemLabelOverflow::Middle,
+        }
+    }
+
+    #[must_use]
+    pub const fn metadata_min_width(mut self, width: u16) -> Self {
+        self.metadata_min_width = width;
+        self
+    }
+
+    #[must_use]
+    pub const fn metadata_gap(mut self, gap: u16) -> Self {
+        self.metadata_gap = gap;
+        self
+    }
+
+    #[must_use]
+    pub const fn minimum_label_width(mut self, width: u16) -> Self {
+        self.minimum_label_width = width;
+        self
+    }
+
+    #[must_use]
+    pub const fn label_overflow(mut self, overflow: ItemLabelOverflow) -> Self {
+        self.label_overflow = overflow;
+        self
+    }
+}
+
+impl<T: AsItem> RowFn<T> for SemanticItemRow {
+    fn row(&self, value: &T, row: &mut RowUi<'_>) {
+        let item = value.as_item();
+        let content_width = row.remaining_width();
+        row.leading_part(Part::ICON, 1, 1, |cell| {
+            cell.text(if item.glyph.is_empty() {
+                " "
+            } else {
+                item.glyph
+            });
+        });
+
+        if content_width >= self.metadata_min_width {
+            let mut metadata = [None; 3];
+            let mut budget = row
+                .remaining_width()
+                .saturating_sub(self.minimum_label_width);
+
+            // Allocate from the right edge inward. This keeps the application
+            // identity label's minimum width before optional metadata can grow.
+            for (slot, text) in [
+                (2usize, item.group.unwrap_or("")),
+                (1usize, item.tag.unwrap_or("")),
+                (0usize, item.detail),
+            ] {
+                if text.is_empty() {
+                    continue;
+                }
+                let text_width = width(text);
+                let field_budget = budget.saturating_sub(self.metadata_gap).saturating_sub(1);
+                if field_budget == 0 {
+                    continue;
+                }
+                let field_width = text_width.min(field_budget);
+                metadata[slot] = Some((text, field_width));
+                budget = budget
+                    .saturating_sub(field_width)
+                    .saturating_sub(self.metadata_gap);
+            }
+
+            for field in metadata.into_iter().rev().flatten() {
+                let (text, field_width) = field;
+                if width(text) > field_width {
+                    let truncated = termrock_text::truncate_middle(text, field_width);
+                    row.meta_with_gap(&truncated, self.metadata_gap);
+                } else {
+                    row.meta_with_gap(text, self.metadata_gap);
+                }
+            }
+        }
+
+        if self.label_overflow == ItemLabelOverflow::End {
+            row.label_matched(item.label, item.matched);
+            return;
+        }
+
+        let available = row.remaining_width();
+        let parts = middle_parts(item.label, available);
+        if parts[1].is_empty() {
+            row.label_matched(item.label, item.matched);
+            return;
+        }
+
+        let head_count = parts[0].graphemes(true).count();
+        let tail_count = parts[2].graphemes(true).count();
+        let total_count = item.label.graphemes(true).count();
+        let tail_start = total_count.saturating_sub(tail_count);
+        let mut matched = Vec::with_capacity(item.matched.len());
+        for index in item.matched.iter().copied() {
+            if index < head_count {
+                matched.push(index);
+            } else if index >= tail_start {
+                matched.push(
+                    head_count
+                        .saturating_add(1)
+                        .saturating_add(index - tail_start),
+                );
+            }
+        }
+        let mut label = String::with_capacity(parts.iter().map(|part| part.len()).sum());
+        for part in parts {
+            label.push_str(part);
+        }
+        row.label_matched(&label, &matched);
     }
 }

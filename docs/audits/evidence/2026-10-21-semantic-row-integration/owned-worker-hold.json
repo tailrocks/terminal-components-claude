@@ -1,0 +1,56 @@
+{
+  "review": "HOLD",
+  "source_commit": "09e0c3b5a849588eb3e5ee3db28b98e1533b1357",
+  "parent_commit": "65796fa5a04ef02d6ee1f9379525fb74fd5c6e2b",
+  "source_worktree": "/private/tmp/owned-worker-09e0-review-20261021",
+  "review_copy": "/private/tmp/owned-worker-09e0-review-20261021",
+  "working_copy_status": "detached exact commit, clean before tests; no tracked source edits",
+  "finding": {
+    "severity": "P1",
+    "summary": "A nested destination parent can be detached from the pinned root after its descriptor is opened. The worker then publishes under that held descriptor and returns exit 0 plus a success receipt even though the receipt path is absent under the current root.",
+    "source_locations": [
+      "tools/frozen_baseline.py:4151-4188 (_owned_worker_open_parent opens and checks each component, then returns only the terminal parent FD)",
+      "tools/frozen_baseline.py:4274-4279 (checks only plan-root identity, then links through the held parent FD)",
+      "tools/frozen_baseline.py:4323-4350 (final root binding check and receipt do not bind/verify parent directory chain)"
+    ],
+    "independent_reproduction": {
+      "method": "Called _owned_fs_worker_main directly with only synthetic temporary directories and a synthetic payload/request. Patched os.link to rename root/attempt to a sibling path and create a replacement root/attempt immediately before delegating to the original os.link.",
+      "observed": "worker_exit=0; success receipt relative_path=attempt/report.bin; moved/report.bin contains payload; current root/attempt/report.bin is absent; caller-pinned root binding still matches.",
+      "operational_data_access": "none; no operational plan, key, run, capture, or replay"
+    },
+    "required_regression": "Add deterministic fault injection at the open-parent-to-link boundary for rename/replacement and symlink substitutions. Require no successful receipt for a parent no longer reachable as the same parent under the pinned root; cleanup may remove only the exact worker-created inode through the held FD after identity checks, and must preserve ambiguous artifacts rather than delete attacker/preexisting data. Document remaining platform/kernel race limits; do not claim portable atomic prevention absent an OS primitive that provides it."
+  },
+  "tests": {
+    "candidate": {
+      "command": "python3 -m unittest -q test_frozen_baseline (Python 3.15; alarm 180s)",
+      "result": "156 tests passed, 0 skipped, 59.656s",
+      "notes": "Includes synthetic root replacement, static symlink/path escape, immutable collision, result-attestation tests, and existing owned PrepareExecution deadline/SIGTERM coverage. No test covers nested-parent replacement."
+    },
+    "parent": {
+      "command": "python3 -m unittest -q test_frozen_baseline (Python 3.15; alarm 150s)",
+      "result": "152 tests, 1 failure, 47.685s",
+      "failure": "test_owned_prepare_file_backed_deadline_and_sigterm_reap_and_preserve_logs subtest failure='deadline': started_path was not present before deadline assertion.",
+      "classification": "Observed on parent commit 65796fa5; appears timing-sensitive; candidate full suite passed. Not evidence of regression from this commit."
+    }
+  },
+  "architecture_review": {
+    "positive": [
+      "The filesystem worker is dispatched through the existing PrepareExecution broker; it does not create a second supervisor.",
+      "The caller explicitly passes the root FD in pass_fds; broker validates it as a directory and rejects descriptor aliasing with control/stdout/stderr.",
+      "Request/payload/result sizes are bounded, request and payload digests are checked, output is exclusive/no-follow and linked without replacement, file and containing directory fsyncs occur, final bytes and inode identity are re-read, and ambiguous post-publication failures preserve evidence rather than retrying blindly.",
+      "Worker deadline checks are present during bounded reads/writes, fsync boundaries, link/unlink, verification reads, and result output; actual cleanup/reaping remains handled by PrepareExecution.run/broker.",
+      "Legacy behavior remains guarded by owned_root_fd=None default; the parent suite exercised existing paths, with one timing-sensitive failure also observed at parent."
+    ],
+    "limits": [
+      "No claim of universal filesystem atomicity; semantics depend on supported dir_fd/O_NOFOLLOW/link/fsync behavior.",
+      "No live lifecycle operation was attempted; this is limited to the publication worker and existing synthetic tests.",
+      "The full acceptance lifecycle remains unreviewed/incomplete; this finding blocks admitting this worker as safe rooted publication."
+    ]
+  },
+  "commands_and_evidence": [
+    "git rev-parse HEAD => 09e0c3b5a849588eb3e5ee3db28b98e1533b1357",
+    "git show -s --format='%H %P %s' => 09e0c3b5a849588eb3e5ee3db28b98e1533b1357 65796fa5a04ef02d6ee1f9379525fb74fd5c6e2b feat(runner): add brokered rooted file publication",
+    "candidate and parent test commands above",
+    "synthetic inline race reproduction (not persisted as a helper/source file)"
+  ]
+}

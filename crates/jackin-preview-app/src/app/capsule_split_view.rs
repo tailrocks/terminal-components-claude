@@ -589,6 +589,135 @@ pub(super) fn apply_baseline_ladder(theme: &mut termrock::Theme) {
     theme.color.backdrop_fg = Color::Indexed(238);
 }
 
+/// 16-color and mono picker. The card is painted in truecolor RGB.
+/// The frozen frames use the ANSI ladder, dim the underlay, and reverse
+/// the mono selection.
+pub(super) fn finish_reduced(ui: &mut Ui<'_>) {
+    let ansi16 = ui.theme_ref().capability.color == termrock::ColorLevel::Ansi16;
+    let full = ui.full();
+    let underlay = Rect {
+        height: full.height.saturating_sub(1),
+        ..full
+    };
+    let card = card_rect(full);
+    let selected_y = card.y.saturating_add(4);
+    let selected = Color::Rgb(0x2f, 0x5a, 0xa8);
+    if !ansi16 {
+        let (buf, _) = ui.raw();
+        let left = card.x.saturating_add(1);
+        let right = card.x.saturating_add(card.width).saturating_sub(1);
+        for x in left..right {
+            let Some(cell) = buf.cell_mut(Position::new(x, selected_y)) else {
+                continue;
+            };
+            if cell.bg != selected {
+                continue;
+            }
+            cell.modifier.insert(Modifier::REVERSED);
+            if cell.modifier.contains(Modifier::BOLD) && cell.fg == WHITE {
+                cell.set_fg(Color::Indexed(0));
+            }
+        }
+    }
+    ui.recolor_pair(underlay, move |fg, bg| {
+        (reduced_ink(fg, ansi16), reduced_ink(bg, ansi16))
+    });
+    if !ansi16 {
+        // Mono turns the seam gray into black. The frozen rules stay gray.
+        // A direct fg write is overwritten by the cell's paint role, so
+        // paint the same glyph again.
+        let mut rules = Vec::new();
+        {
+            let gutter_x = card.x.saturating_add(2);
+            let option_top = card.y.saturating_add(4);
+            let option_bottom = card.y.saturating_add(8);
+            let (buf, _) = ui.raw();
+            for pos in underlay.positions() {
+                let Some(cell) = buf.cell(pos) else {
+                    continue;
+                };
+                let option_gutter = cell.symbol() == " "
+                    && pos.x == gutter_x
+                    && (option_top..=option_bottom).contains(&pos.y);
+                if is_black(cell.fg) && is_black(cell.bg) && !option_gutter {
+                    rules.push((pos, cell.symbol().to_owned()));
+                }
+            }
+        }
+        let style = PaintStyle::new()
+            .fg(Color::Indexed(7))
+            .bg(Color::Indexed(0));
+        for (pos, symbol) in rules {
+            ui.paint_cell(pos, &symbol, style);
+        }
+    }
+    ui.add_dim(underlay);
+    // Footer repairs paint truecolor RGB on the undimmed hint row.
+    let hint = Rect {
+        y: full.bottom().saturating_sub(1),
+        height: 1,
+        ..full
+    };
+    ui.recolor_pair(hint, |fg, bg| (hint_ink(fg), hint_ink(bg)));
+}
+
+fn hint_ink(color: Color) -> Color {
+    match color {
+        Color::Rgb(0xff, 0xff, 0xff) => Color::Indexed(15),
+        Color::Rgb(0x00, 0x00, 0x00) => Color::Indexed(0),
+        Color::Rgb(0xb3, 0xb3, 0xb3)
+        | Color::Rgb(0x8a, 0x8a, 0x8a)
+        | Color::Rgb(0x73, 0x73, 0x73) => Color::Gray,
+        other => other,
+    }
+}
+
+fn is_black(color: Color) -> bool {
+    matches!(
+        color,
+        Color::Black | Color::Indexed(0) | Color::Rgb(0, 0, 0)
+    )
+}
+
+fn reduced_ink(color: Color, ansi16: bool) -> Color {
+    let index = match color {
+        Color::Rgb(0x18, 0x18, 0x1b) | Color::Rgb(0x1e, 0x1e, 0x22) | Color::Rgb(0, 0, 0) => 0,
+        Color::Rgb(0x2f, 0x5a, 0xa8) => {
+            if ansi16 {
+                4
+            } else {
+                8
+            }
+        }
+        Color::Rgb(0xff, 0xff, 0xff) => 15,
+        Color::Rgb(0x48, 0xe0, 0x54) => {
+            if ansi16 {
+                10
+            } else {
+                15
+            }
+        }
+        Color::Rgb(0x27, 0x27, 0x2a) => 8,
+        Color::Rgb(0x8a, 0x8a, 0x8a)
+        | Color::Rgb(0x73, 0x73, 0x73)
+        | Color::Rgb(0xb3, 0xb3, 0xb3)
+        | Color::Rgb(0x4d, 0x4d, 0x4d)
+        | Color::Rgb(0x26, 0x26, 0x26) => 7,
+        Color::Rgb(_, _, _) => {
+            return termrock::theme::downgrade_color(
+                color,
+                if ansi16 {
+                    termrock::ColorLevel::Ansi16
+                } else {
+                    termrock::ColorLevel::Mono
+                },
+            );
+        }
+        other => return other,
+    };
+    Color::Indexed(index)
+}
+
 pub(super) fn baseline_256(color: Color) -> Color {
     match color {
         Color::Rgb(0x18, 0x18, 0x1b) => Color::Indexed(233),

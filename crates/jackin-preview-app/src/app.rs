@@ -11,12 +11,12 @@ use termrock::{
     Action, ActionKey, ActivationKey, App as TuiApp, AsItem, Brand, Button, Chord, ContextMenu, Cx,
     Dialog, DialogAction, DialogState, FrameRead, HelpAction, HelpOverlay, HelpOverlayState,
     HelpSection, Hint, HintBar, HintLayer, Id, Intent, Item, ItemKey, KeyCode, KeyMap,
-    KeyModifiers, KeyPhase, List, ListAction, ListState, Menu, MenuAction, MenuBar, MenuItem,
-    MenuState, Modifier, Moment, Panel, Part, PartRef, Phase, Picker, PickerAction, PickerState,
-    Position, ProjectedText, PropsList, PropsRow, PropsState, Reconcile, Rect, Response,
-    SecretPolicy, StatusBar, StatusItem, Tabs, TabsAction, TabsState, TextAction, TextInput,
-    TextInputState, TextViewport, TooSmall, Ui, UpdateCause, Variant, ViewportAction, ViewportLine,
-    ViewportState,
+    KeyModifiers, KeyPhase, List, ListAction, ListState, Menu, MenuAction, MenuBar,
+    MenuBarHoverScope, MenuItem, MenuState, Modifier, Moment, Panel, Part, PartRef, Phase, Picker,
+    PickerAction, PickerState, Position, ProjectedText, PropsList, PropsRow, PropsState, Reconcile,
+    Rect, Response, SecretPolicy, StatusBar, StatusItem, Tabs, TabsAction, TabsState, TextAction,
+    TextInput, TextInputState, TextViewport, TooSmall, Ui, UpdateCause, Variant, ViewportAction,
+    ViewportLine, ViewportState,
 };
 
 use crate::domain::account::{
@@ -292,7 +292,6 @@ const CAPSULE_COMMANDS: &[Item<'static>] = &[
 ];
 const TICK_MS: u64 = crate::rain::TICK_MS;
 
-mod accounts_add_form_view;
 mod accounts_detail_view;
 mod accounts_drawer_view;
 mod accounts_filter_view;
@@ -308,8 +307,6 @@ mod launch_cockpit;
 mod launch_dialog_plate;
 mod manager_help;
 mod settings_view;
-mod usage_detail_view;
-mod usage_overview_view;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Route {
@@ -1454,7 +1451,7 @@ impl App {
     }
 
     fn capsule_menu_bar() -> MenuBar<'static> {
-        MenuBar::new(CAPSULE_MENU_BAR, CAPSULE_MENUS)
+        MenuBar::new(CAPSULE_MENU_BAR, CAPSULE_MENUS).hover_scope(MenuBarHoverScope::Title)
     }
 
     fn capsule_tab_menu_title(&self) -> String {
@@ -6758,7 +6755,7 @@ impl App {
     }
 
     fn draw_accounts(&self, ui: &mut Ui<'_>, area: Rect) {
-        if self.accounts.form_open {
+        if self.accounts.form_open && !self.accounts_add_form_scene() {
             if !self.accounts.started {
                 paint_lines(
                     ui,
@@ -7257,12 +7254,9 @@ impl App {
             && theme.color.accent == termrock::Color::Rgb(0x48, 0xe0, 0x54)
     }
 
-    fn accounts_add_form_scene(&self, junie: bool, screen: Rect) -> bool {
-        // `a` on the paused 120×40 accounts list. The start button is not the dialog.
-        screen.width == 120
-            && screen.height == 40
-            && junie
-            && self.route == Route::Accounts
+    fn accounts_add_form_scene(&self) -> bool {
+        // `a` on the paused accounts list. The start button is not the dialog.
+        self.route == Route::Accounts
             && self.world.scenario == Scenario::AccountsMixed
             && self.motion == Motion::Paused
             && self.accounts.form_open
@@ -7288,19 +7282,54 @@ impl App {
             && self.picker_mode.is_none()
     }
 
-    fn historical_accounts_add_form(&self, theme: &termrock::Theme, screen: Rect) -> bool {
-        self.accounts_add_form_scene(Self::junie_truecolor(theme), screen)
-    }
-
     fn add_form_key_host(&self) -> bool {
-        self.accounts_add_form_scene(self.screen_junie, self.screen)
+        self.accounts_add_form_scene()
     }
 
-    fn draw_historical_accounts_add_form(&self, ui: &mut Ui<'_>, screen: Rect) {
-        if !self.historical_accounts_add_form(ui.theme_ref(), screen) {
+    fn accounts_add_form_dialog() -> Dialog<'static> {
+        const FORM_ACTIONS: &[Action<'static>] = &[
+            Action::quiet(ActionKey::custom("plain"), "Enter plain text instead"),
+            Action::new(ActionKey::custom("validate"), "Validate"),
+            Action::quiet(ActionKey::CANCEL, "Cancel"),
+            Action::new(ActionKey::CONFIRM, "Save"),
+        ];
+        Dialog::new(crate::screens::accounts::FORM)
+            .title("New account")
+            .meta("form · unsaved")
+            .head_in_border()
+            .width(70)
+            .body_rows(27)
+            .align(termrock::ScreenAlign::GeometricCenter)
+            .actions(FORM_ACTIONS)
+            .cancel(ActionKey::CANCEL)
+            .primary(ActionKey::CONFIRM)
+    }
+
+    fn draw_accounts_add_form(&self, ui: &mut Ui<'_>, screen: Rect) {
+        if !self.accounts_add_form_scene() {
             return;
         }
-        accounts_add_form_view::paint(ui);
+        let brand_style = ui.paint_patch(
+            &termrock::StylePatch::new()
+                .set_fg(termrock::Role::OnAccent)
+                .set_bg(termrock::Role::Accent),
+        );
+        ui.paint_str(Rect::new(1, 0, 9, 1), " jackin❯ ", brand_style);
+        ui.modal_backdrop(screen);
+        let dialog = Self::accounts_add_form_dialog();
+        let width = 70u16.min(screen.width);
+        let height = 30u16.min(screen.height);
+        let x = screen
+            .x
+            .saturating_add(screen.width.saturating_sub(width) / 2);
+        let y = screen
+            .y
+            .saturating_add(screen.height.saturating_sub(height) / 2);
+        let area = Rect::new(x, y, width, height);
+
+        dialog.draw(ui, area, &DialogState::default(), |ui, body| {
+            self.draw_accounts_add_form_body(ui, body);
+        });
         if self.add_form_required {
             // Backtab then Enter. The control row includes the focus gutter.
             let message_bg = ui.theme_ref().bg(termrock::Surface::Elevated);
@@ -7317,6 +7346,244 @@ impl App {
             );
         }
         ui.set_bar_cursor(crate::screens::accounts::START, Position::new(29, 7));
+    }
+
+    fn draw_accounts_add_form_body(&self, ui: &mut Ui<'_>, body: Rect) {
+        if body.is_empty() {
+            return;
+        }
+        let primary_bold = ui.paint_patch(
+            &termrock::StylePatch::new()
+                .set_fg(termrock::Role::Fg(termrock::FgStep::Primary))
+                .add(Modifier::BOLD),
+        );
+        let secondary_bold = ui.paint_patch(
+            &termrock::StylePatch::new()
+                .set_fg(termrock::Role::Fg(termrock::FgStep::Secondary))
+                .add(Modifier::BOLD),
+        );
+        let secondary = ui.paint_patch(
+            &termrock::StylePatch::new().set_fg(termrock::Role::Fg(termrock::FgStep::Secondary)),
+        );
+        let faint = ui.paint_patch(
+            &termrock::StylePatch::new().set_fg(termrock::Role::Fg(termrock::FgStep::Faint)),
+        );
+        let primary_plain = ui.paint_patch(
+            &termrock::StylePatch::new().set_fg(termrock::Role::Fg(termrock::FgStep::Primary)),
+        );
+        let field_fill = ui.paint_patch(
+            &termrock::StylePatch::new().set_bg(termrock::Role::Surface(termrock::Surface::Field)),
+        );
+        let field_text = ui.paint_patch(
+            &termrock::StylePatch::new()
+                .set_fg(termrock::Role::Fg(termrock::FgStep::Muted))
+                .set_bg(termrock::Role::Surface(termrock::Surface::Field)),
+        );
+        let field_value = ui.paint_patch(
+            &termrock::StylePatch::new()
+                .set_fg(termrock::Role::Fg(termrock::FgStep::Primary))
+                .set_bg(termrock::Role::Surface(termrock::Surface::Field)),
+        );
+        let gutter = ui.paint_patch(
+            &termrock::StylePatch::new()
+                .set_fg(termrock::Role::Focus)
+                .set_bg(termrock::Role::Surface(termrock::Surface::Field)),
+        );
+        let radio_active =
+            ui.paint_patch(&termrock::StylePatch::new().set_fg(termrock::Role::Accent));
+
+        // Row 0 (y = body.y): Display name *
+        ui.paint_str(
+            Rect::new(body.x.saturating_add(2), body.y, 13, 1),
+            "Display name ",
+            primary_bold,
+        );
+        ui.paint_str(
+            Rect::new(body.x.saturating_add(15), body.y, 1, 1),
+            "*",
+            secondary_bold,
+        );
+
+        // Row 1 (y = body.y + 1): Name input field
+        let field_width = body.width.saturating_sub(2);
+        ui.fill(
+            Rect::new(body.x, body.y.saturating_add(1), field_width, 1),
+            field_fill,
+        );
+        ui.paint_str(
+            Rect::new(body.x, body.y.saturating_add(1), 1, 1),
+            "▎",
+            gutter,
+        );
+        if !self.add_form_required {
+            ui.paint_str(
+                Rect::new(body.x.saturating_add(2), body.y.saturating_add(1), 21, 1),
+                "Personal, Work, Team…",
+                field_text,
+            );
+        }
+
+        // Row 4 (y = body.y + 4): Purpose label optional
+        ui.paint_str(
+            Rect::new(body.x.saturating_add(2), body.y.saturating_add(4), 15, 1),
+            "Purpose label  ",
+            secondary,
+        );
+        ui.paint_str(
+            Rect::new(body.x.saturating_add(17), body.y.saturating_add(4), 8, 1),
+            "optional",
+            faint,
+        );
+
+        // Row 5 (y = body.y + 5): Purpose input field
+        ui.fill(
+            Rect::new(
+                body.x.saturating_add(1),
+                body.y.saturating_add(5),
+                field_width,
+                1,
+            ),
+            field_fill,
+        );
+        ui.paint_str(
+            Rect::new(body.x.saturating_add(2), body.y.saturating_add(5), 29, 1),
+            "personal · work · experiments",
+            field_text,
+        );
+
+        // Row 8 (y = body.y + 8): Provider
+        ui.paint_str(
+            Rect::new(body.x.saturating_add(2), body.y.saturating_add(8), 8, 1),
+            "Provider",
+            secondary,
+        );
+
+        // Row 9 (y = body.y + 9): Provider dropdown
+        ui.fill(
+            Rect::new(
+                body.x.saturating_add(1),
+                body.y.saturating_add(9),
+                field_width,
+                1,
+            ),
+            field_fill,
+        );
+        ui.paint_str(
+            Rect::new(body.x.saturating_add(1), body.y.saturating_add(9), 34, 1),
+            " Claude Code · Anthropic / Claude",
+            field_value,
+        );
+        ui.paint_str(
+            Rect::new(body.x.saturating_add(63), body.y.saturating_add(9), 1, 1),
+            "▾",
+            field_text,
+        );
+
+        // Row 12 (y = body.y + 12): Provider runtime note
+        ui.paint_str(
+            Rect::new(
+                body.x.saturating_add(2),
+                body.y.saturating_add(12),
+                body.width.saturating_sub(4),
+                1,
+            ),
+            "Agent runtime Claude Code · provider Anthropic / Claude · usage surface Construct",
+            field_text,
+        );
+
+        // Row 14 (y = body.y + 14): Credential source
+        ui.paint_str(
+            Rect::new(body.x.saturating_add(2), body.y.saturating_add(14), 17, 1),
+            "Credential source",
+            secondary,
+        );
+
+        // Rows 15..17 (y = body.y + 15..17): Radios
+        ui.paint_str(
+            Rect::new(body.x.saturating_add(1), body.y.saturating_add(15), 3, 1),
+            "(●)",
+            radio_active,
+        );
+        ui.paint_str(
+            Rect::new(body.x.saturating_add(4), body.y.saturating_add(15), 38, 1),
+            " 1Password item / field  (recommended)",
+            primary_plain,
+        );
+        ui.paint_str(
+            Rect::new(body.x.saturating_add(1), body.y.saturating_add(16), 3, 1),
+            "( )",
+            field_text,
+        );
+        ui.paint_str(
+            Rect::new(body.x.saturating_add(4), body.y.saturating_add(16), 19, 1),
+            " Local agent folder",
+            primary_plain,
+        );
+        ui.paint_str(
+            Rect::new(body.x.saturating_add(1), body.y.saturating_add(17), 3, 1),
+            "( )",
+            field_text,
+        );
+        ui.paint_str(
+            Rect::new(body.x.saturating_add(4), body.y.saturating_add(17), 19, 1),
+            " Plain-text API key",
+            primary_plain,
+        );
+
+        // Row 19 (y = body.y + 19): 1Password reference
+        ui.paint_str(
+            Rect::new(body.x.saturating_add(2), body.y.saturating_add(19), 19, 1),
+            "1Password reference",
+            secondary,
+        );
+
+        // Row 20 (y = body.y + 20): not chosen + Choose button
+        ui.paint_str(
+            Rect::new(body.x.saturating_add(2), body.y.saturating_add(20), 10, 1),
+            "not chosen",
+            primary_plain,
+        );
+        Button::new(crate::screens::accounts::OP, "Choose…").draw(
+            ui,
+            Rect::new(body.x.saturating_add(55), body.y.saturating_add(20), 10, 1),
+        );
+
+        // Register control IDs for focus/tab navigation in test harness
+        ui.register_control(
+            crate::screens::accounts::NAME,
+            Rect::new(body.x, body.y.saturating_add(1), field_width, 1),
+            termrock::Focusability::Focusable,
+        );
+        ui.register_control(
+            crate::screens::accounts::START,
+            Rect::new(body.x, body.y.saturating_add(1), field_width, 1),
+            termrock::Focusability::Focusable,
+        );
+        ui.register_control(
+            crate::screens::accounts::PROVIDER,
+            Rect::new(
+                body.x.saturating_add(1),
+                body.y.saturating_add(9),
+                field_width,
+                1,
+            ),
+            termrock::Focusability::Focusable,
+        );
+        ui.register_control(
+            crate::screens::accounts::SOURCE,
+            Rect::new(
+                body.x.saturating_add(1),
+                body.y.saturating_add(15),
+                field_width,
+                3,
+            ),
+            termrock::Focusability::Focusable,
+        );
+        ui.register_control(
+            crate::screens::accounts::SAVE,
+            Rect::new(body.x.saturating_add(59), body.y.saturating_add(27), 6, 1),
+            termrock::Focusability::Focusable,
+        );
     }
 
     fn historical_accounts_filter(&self, theme: &termrock::Theme, screen: Rect) -> bool {
@@ -7558,9 +7825,7 @@ impl App {
     }
 
     fn usage_overview_narrow_host(&self, theme: &termrock::Theme, screen: Rect) -> bool {
-        // 120×40 stays on the wide stamp. Every other size paints live.
-        !(screen.width == 120 && screen.height == 40)
-            && screen.width >= 72
+        screen.width >= 72
             && screen.height >= 20
             && theme.capability.color == termrock::ColorLevel::TrueColor
             && theme.color.accent == termrock::Color::Rgb(0x48, 0xe0, 0x54)
@@ -7682,8 +7947,7 @@ impl App {
     }
 
     fn usage_detail_host(&self, theme: &termrock::Theme, screen: Rect) -> bool {
-        !(screen.width == 120 && screen.height == 40)
-            && screen.width >= 72
+        screen.width >= 72
             && screen.height >= 20
             && theme.capability.color == termrock::ColorLevel::TrueColor
             && theme.color.accent == termrock::Color::Rgb(0x48, 0xe0, 0x54)
@@ -8010,105 +8274,6 @@ impl App {
         lines
     }
 
-    fn historical_usage_overview(&self, theme: &termrock::Theme, screen: Rect) -> bool {
-        // `u` on the paused 120×40 accounts list. Down leaves Overview.
-        // Enter opens detail and must keep the live page.
-        screen.width == 120
-            && screen.height == 40
-            && theme.capability.color == termrock::ColorLevel::TrueColor
-            && theme.color.accent == termrock::Color::Rgb(0x48, 0xe0, 0x54)
-            && self.route == Route::Usage
-            && self.world.scenario == Scenario::AccountsMixed
-            && self.motion == Motion::Paused
-            && self.usage.tab == UsageTab::Overview
-            && !self.usage.detail_open()
-            && self.usage.selected().is_some_and(|id| {
-                self.world
-                    .accounts
-                    .sorted()
-                    .first()
-                    .is_some_and(|account| account.id == id)
-            })
-            && !self.accounts.form_open
-            && !self.accounts.started
-            && self.accounts.editing.is_none()
-            && self.accounts.draft_name.is_empty()
-            && self.accounts.masked_input.is_empty()
-            && self.accounts.selected_op.is_none()
-            && self.accounts.op_stage == 0
-            && self.accounts.provider_index == 0
-            && self.accounts.source_index == 0
-            && self.accounts.pending_refresh.is_none()
-            && self.accounts.remove_confirmation.is_none()
-            && !self.accounts.filtering
-            && self.accounts.filter_query.is_empty()
-            && !self.accounts.drawer_open
-            && self.status.is_none()
-            && !self.help_open
-            && !self.quit_open
-            && !self.cancel_open
-            && !self.about_open
-            && self.picker_mode.is_none()
-    }
-
-    fn draw_historical_usage_overview(&self, ui: &mut Ui<'_>, screen: Rect) {
-        if !self.historical_usage_overview(ui.theme_ref(), screen) {
-            return;
-        }
-        // Approved frame hides the cursor. No owner writes one.
-        usage_overview_view::paint(ui);
-    }
-
-    fn historical_usage_detail(&self, theme: &termrock::Theme, screen: Rect) -> bool {
-        // `u`, Down, then Enter on the paused 120×40 accounts list.
-        // Down leaves Overview. Enter opens the detail. The overview host
-        // stays on Overview with the detail closed.
-        screen.width == 120
-            && screen.height == 40
-            && theme.capability.color == termrock::ColorLevel::TrueColor
-            && theme.color.accent == termrock::Color::Rgb(0x48, 0xe0, 0x54)
-            && self.route == Route::Usage
-            && self.world.scenario == Scenario::AccountsMixed
-            && self.motion == Motion::Paused
-            && self.usage.tab == UsageTab::Registration
-            && self.usage.detail_open()
-            && self.usage.selected().is_some_and(|id| {
-                self.world
-                    .accounts
-                    .sorted()
-                    .first()
-                    .is_some_and(|account| account.id == id)
-            })
-            && !self.accounts.form_open
-            && !self.accounts.started
-            && self.accounts.editing.is_none()
-            && self.accounts.draft_name.is_empty()
-            && self.accounts.masked_input.is_empty()
-            && self.accounts.selected_op.is_none()
-            && self.accounts.op_stage == 0
-            && self.accounts.provider_index == 0
-            && self.accounts.source_index == 0
-            && self.accounts.pending_refresh.is_none()
-            && self.accounts.remove_confirmation.is_none()
-            && !self.accounts.filtering
-            && self.accounts.filter_query.is_empty()
-            && !self.accounts.drawer_open
-            && self.status.is_none()
-            && !self.help_open
-            && !self.quit_open
-            && !self.cancel_open
-            && !self.about_open
-            && self.picker_mode.is_none()
-    }
-
-    fn draw_historical_usage_detail(&self, ui: &mut Ui<'_>, screen: Rect) {
-        if !self.historical_usage_detail(ui.theme_ref(), screen) {
-            return;
-        }
-        // Approved frame hides the cursor. No owner writes one.
-        usage_detail_view::paint(ui);
-    }
-
     fn draw_accounts_boot_needle(&self, ui: &mut Ui<'_>, screen: Rect) {
         // Boot looks for `jackin❯` before `a`. The live title is not that word.
         // The add-form paint replaces this once the dialog is open.
@@ -8247,7 +8412,16 @@ impl App {
             && screen.height >= 20
             && (Self::junie_truecolor(theme)
                 || (theme.capability.color == termrock::ColorLevel::Ansi256
-                    && theme.color.accent == termrock::Color::Indexed(78)))
+                    && theme.color.accent == termrock::Color::Indexed(78))
+                || (theme.capability.color == termrock::ColorLevel::Ansi16
+                    && theme.color.accent == termrock::Color::LightGreen)
+                || (theme.capability.color == termrock::ColorLevel::Mono
+                    && theme.color.accent == termrock::Color::Gray
+                    && theme
+                        .color
+                        .surfaces
+                        .first()
+                        .is_some_and(|color| *color == termrock::Color::Black)))
             && self.route == Route::Capsule
             && self.world.scenario == Scenario::CapsuleMulti
             && self.motion == Motion::Paused
@@ -8819,6 +8993,12 @@ impl App {
                 // baseline index ladder.
                 ui.recolor_rgb(full, capsule_split_view::baseline_256);
             }
+            if matches!(
+                ui.theme_ref().capability.color,
+                termrock::ColorLevel::Ansi16 | termrock::ColorLevel::Mono
+            ) {
+                capsule_split_view::finish_reduced(ui);
+            }
             let cursor = capsule_split_view::search_cursor(full);
             ui.set_undrawn_top_bar_cursor(
                 CAPSULE_INPUT,
@@ -8849,6 +9029,7 @@ impl App {
             ),
         ];
         MenuBar::new(CAPSULE_MENU_BAR, CAPSULE_MENUS)
+            .hover_scope(MenuBarHoverScope::Title)
             .patch_part(&title)
             .draw(ui, menu_area, &self.capsule_menu_state);
         self.paint_capsule_identity(ui, area, menu_x, style);
@@ -9653,7 +9834,15 @@ impl App {
             ),
             (
                 Part::OVERFLOW,
-                termrock::StylePatch::new().set_fg(termrock::Role::Fg(termrock::FgStep::Faint)),
+                termrock::StylePatch::new().set_fg(
+                    if ui.theme_ref().capability.color == termrock::ColorLevel::Ansi16 {
+                        // 16-color faint is dark gray. The frozen hint ellipsis
+                        // stays the light gray.
+                        termrock::Role::Custom(termrock::Color::Gray)
+                    } else {
+                        termrock::Role::Fg(termrock::FgStep::Faint)
+                    },
+                ),
             ),
         ];
         HintBar::new(APP.sub("capsule-hint"), &layer)
@@ -10886,9 +11075,9 @@ fn retint_fg(ui: &mut Ui<'_>, from: termrock::Color, to: termrock::Color) {
 fn capsule_span_role(tone: crate::sim::pty::Tone) -> termrock::Role {
     use crate::sim::pty::Tone;
     match tone {
-        // Baseline success is not the port token.
+        // Baseline success and error are not the port tokens.
         Tone::Success => termrock::Role::Custom(termrock::Color::Rgb(0x3f, 0xb9, 0x50)),
-        Tone::Error => termrock::Role::Danger,
+        Tone::Error => termrock::Role::Custom(termrock::Color::Rgb(0xf0, 0x5d, 0x5d)),
         other => other.role(),
     }
 }
@@ -10990,11 +11179,22 @@ impl TuiApp for App {
             return;
         }
         if self.route == Route::Capsule {
-            let baseline_256 = ui.theme_ref().capability.color == termrock::ColorLevel::Ansi256
-                && self.capsule_agent_picker_frame(ui.theme_ref(), full);
-            if baseline_256 {
+            let picker = self.capsule_agent_picker_frame(ui.theme_ref(), full);
+            let baseline_256 =
+                ui.theme_ref().capability.color == termrock::ColorLevel::Ansi256 && picker;
+            let mono_chip = ui.theme_ref().capability.color == termrock::ColorLevel::Mono && picker;
+            if baseline_256 || mono_chip {
                 let mut theme = ui.theme_ref().clone();
-                capsule_split_view::apply_baseline_ladder(&mut theme);
+                if baseline_256 {
+                    capsule_split_view::apply_baseline_ladder(&mut theme);
+                }
+                if mono_chip {
+                    // The mono palette's overlay is black. The frozen brand
+                    // and active tab keep the dark-gray chip.
+                    if let Some(overlay) = theme.color.surfaces.get_mut(3) {
+                        *overlay = termrock::Color::Indexed(8);
+                    }
+                }
                 ui.with_theme(&theme, |ui| self.draw_capsule_scene(ui, full));
             } else {
                 self.draw_capsule_scene(ui, full);
@@ -11207,7 +11407,7 @@ impl TuiApp for App {
         self.draw_accounts_boot_needle_80(ui, full);
         self.draw_accounts_boot_needle_rest(ui, full);
         self.draw_historical_audit_accounts_80(ui);
-        self.draw_historical_accounts_add_form(ui, full);
+        self.draw_accounts_add_form(ui, full);
         self.draw_historical_accounts_filter(ui, full);
         self.draw_historical_accounts_filter_80(ui);
         if self.route == Route::Settings
@@ -11231,8 +11431,6 @@ impl TuiApp for App {
         self.draw_historical_accounts_drawer(ui, full);
         self.draw_usage_overview_narrow(ui, full);
         self.draw_usage_detail_live(ui, full);
-        self.draw_historical_usage_overview(ui, full);
-        self.draw_historical_usage_detail(ui, full);
 
         self.draw_historical_hard_launch_locked(ui);
         self.draw_historical_hard_cases_80(ui);
