@@ -16,6 +16,30 @@
 //! parity branch's editor component work
 //! (`crates/termrock-editors/src/code.rs`, `crates/termrock-text/src/editor.rs`)
 //! changed that page's content.
+//!
+//! On 2026-10-21 eleven of the 66 frames moved again on the coordinator
+//! branch `wip/session-consolidation-20261021` (tip `7bdf030be`), and only
+//! those eleven were re-recorded. The other 55 frames still match and were
+//! not touched. The replaced expectations are kept here:
+//!
+//! | page | size | old expectation | new expectation | why the frame moved |
+//! |---|---|---|---|---|
+//! | `Terminal` | 120x40 | `16713486997613533058` | `12091092990789374470` | the parity tip's live painting, `493f9054f` ("refactor(showcase): paint the task runner and terminal pages live") |
+//! | `Terminal` | 94x36 | `10834531301898289047` | `8184877221315921020` | the same commit |
+//! | `Terminal` | 72x24 | `11799924430438265034` | `4229742379486465606` | the same commit |
+//! | `Editor` | 120x40 | `10239041618864639653` | `15610765835887739655` | the editor component work in `crates/termrock-editors/src/code.rs` and `crates/termrock-text/src/editor.rs` |
+//! | `Editor` | 94x36 | `6170852880661038913` | `4868041224282338403` | the same editor component work |
+//! | `Editor` | 72x24 | `12056232630236239551` | `5215519107767830525` | the same editor component work |
+//! | `Chrome` | 94x36 | `12973512990952065289` | `10251090740853605838` | the coordinator ported the page back onto the shared `PageFrame` / `SectionStrip` blocks after the parity tip reintroduced a local `frame()` painter |
+//! | `Chrome` | 72x24 | `5752365008248186575` | `3355673242098926672` | the same shared-block port |
+//! | `TaskRunner` | 120x40 | `10967000064222126980` | `16690605467633323836` | the coordinator ported the page back onto the shared `PageFrame` / `SectionStrip` blocks after the parity tip reintroduced a local `frame()` painter |
+//! | `TaskRunner` | 94x36 | `15039339211887828337` | `255653077748407026` | the same shared-block port |
+//! | `TaskRunner` | 72x24 | `7704215100529900226` | `16483843579805231724` | the same shared-block port |
+//!
+//! `Chrome` at 120x40 kept its frame, because the shared-block port is
+//! pixel-preserving at that size. The classification of the move against the
+//! frozen tag `visual-baseline`, and the full evidence, are in
+//! `docs/audits/evidence/2026-10-21-showcase-baseline-rebless/`.
 
 use showcase_ui::{App, PageId};
 use termrock::Theme;
@@ -96,12 +120,12 @@ const EXPECTED: &[(PageId, u16, u16, u64)] = &[
     (PageId::Scrolling, 120, 40, 4614399495368316958),
     (PageId::Scrolling, 94, 36, 17012135215139101156),
     (PageId::Scrolling, 72, 24, 11657862346163018909),
-    (PageId::Terminal, 120, 40, 16713486997613533058),
-    (PageId::Terminal, 94, 36, 10834531301898289047),
-    (PageId::Terminal, 72, 24, 11799924430438265034),
-    (PageId::Editor, 120, 40, 10239041618864639653),
-    (PageId::Editor, 94, 36, 6170852880661038913),
-    (PageId::Editor, 72, 24, 12056232630236239551),
+    (PageId::Terminal, 120, 40, 12091092990789374470),
+    (PageId::Terminal, 94, 36, 8184877221315921020),
+    (PageId::Terminal, 72, 24, 4229742379486465606),
+    (PageId::Editor, 120, 40, 15610765835887739655),
+    (PageId::Editor, 94, 36, 4868041224282338403),
+    (PageId::Editor, 72, 24, 5215519107767830525),
     (PageId::Grid, 120, 40, 3666620698203807582),
     (PageId::Grid, 94, 36, 12334150473228131772),
     (PageId::Grid, 72, 24, 11661855356404301741),
@@ -112,14 +136,14 @@ const EXPECTED: &[(PageId, u16, u16, u64)] = &[
     (PageId::Pickers, 94, 36, 4127470860857909736),
     (PageId::Pickers, 72, 24, 4621388847621274409),
     (PageId::Chrome, 120, 40, 6700263497163196119),
-    (PageId::Chrome, 94, 36, 12973512990952065289),
-    (PageId::Chrome, 72, 24, 5752365008248186575),
+    (PageId::Chrome, 94, 36, 10251090740853605838),
+    (PageId::Chrome, 72, 24, 3355673242098926672),
     (PageId::Settings, 120, 40, 15374202353337629242),
     (PageId::Settings, 94, 36, 1249960723064850096),
     (PageId::Settings, 72, 24, 6807115167094579370),
-    (PageId::TaskRunner, 120, 40, 10967000064222126980),
-    (PageId::TaskRunner, 94, 36, 15039339211887828337),
-    (PageId::TaskRunner, 72, 24, 7704215100529900226),
+    (PageId::TaskRunner, 120, 40, 16690605467633323836),
+    (PageId::TaskRunner, 94, 36, 255653077748407026),
+    (PageId::TaskRunner, 72, 24, 16483843579805231724),
 ];
 
 fn dump() {
