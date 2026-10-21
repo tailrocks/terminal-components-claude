@@ -553,6 +553,38 @@ The test-integrity review also ran the detection experiments: the new
 the new `no_false_parity.rs` test fails on its parent (3 of 7 fail), so the
 new tests do detect the old behaviour.
 
+### Independent review: API boundaries (verdict HELD)
+
+Reviewer: an independent read-only reviewer on
+`wip/review-api-boundaries-20261022`, tip `93cda321db`, report at
+`docs/audits/evidence/2026-10-22-api-boundaries-review/report.md`. Reviewed
+sha `bea5350ec9`.
+
+Measured, parent to head, per application crate: **no crate grew**.
+`holla-ui` 221 to 216 raw geometry sites, `showcase-ui` 39 to 33,
+`showcase-demos` 675 to 400, `jackin-preview-app` 190 to 96, `tablepro-ui`
+296 to 252. `ui.raw()` stays at 6, all in jackin.
+
+Findings: 2 blockers (the architecture gate failing at the reviewed sha on
+the two holla comments, both since reworded upstream), 6 majors and 9
+minors. The majors are the ownership re-derivations in the new jackin
+accounts page: a local `truncate` beside `termrock::text::truncate`, local
+`visible_rows` and `list_offset` beside `ScrollState`, a local `LIST_PANE_W`
+beside the shared `termrock-feedback` width, a local `name_column` beside
+the shared slots, and app-owned tree hit regions. The minors are the split
+Holla width-band policy (one new enum plus 48 surviving raw predicates that
+disagree at width 120), the environment read in `holla-sim`, the duplicated
+showcase section strip, the narrow guard test, the accounts hint bar
+advertising unbound keys, and the inline filter replacing the shared dialog.
+
+Also reported: no production `termrock-*` crate depends on an application
+crate; the four pre-existing inverted edges (`showcase-data`,
+`tablepro-domain`, `jackin-preview-domain`, `jackin-preview-sim` depending
+on widget types) are unchanged, and `holla-domain` still declares an unused
+`ratatui` and `termrock-core`. All 28 `crates/termrock-*/Cargo.toml` lack
+`[lints] workspace = true`, with 985 `expect`, 217 `unwrap` and 66 `panic!`
+in library sources.
+
 ## Coverage gaps
 
 ### False-parity inventory (read-only audit, revision `40bc297e5`)
