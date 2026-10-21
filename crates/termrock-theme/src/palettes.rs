@@ -66,20 +66,17 @@ const fn junie_256() -> ColorTokens {
         fg: [
             Color::Indexed(231),
             Color::Indexed(249),
-            // Frozen corpus muted ink (baselines/tuiscotti-v1): 0x808080 fg
-            // renders 244 in every tier frame (1_011_55+ cells). The generic
-            // cube rule on the current 0x8a8a8a source would give 245.
-            Color::Indexed(244),
-            // Frozen corpus faint/chrome ink: 0x4d4d4d fg renders 238
-            // (cancel-confirm 120x40 borders and every dim shell strip).
-            Color::Indexed(238),
+            // Baseline apply_256 text_muted. #8a8a8a is gray 245.
+            Color::Indexed(245),
+            // Baseline apply_256 text_faint. #737373 is gray 242.
+            Color::Indexed(242),
             Color::Indexed(235),
         ],
-        on_accent: Color::Indexed(233),
+        on_accent: Color::Indexed(232),
         on_danger: Color::Indexed(231),
         on_surface_inverse: Color::Indexed(16),
         border_subtle: Color::Indexed(235),
-        border_strong: Color::Indexed(238),
+        border_strong: Color::Indexed(242),
         accent: Color::Indexed(78),
         accent_hover: Color::Indexed(77),
         accent_pressed: Color::Indexed(238),
@@ -101,19 +98,19 @@ const fn junie_256() -> ColorTokens {
         danger_tint: Color::Indexed(52),
         warning: Color::Indexed(214),
         warning_tint: Color::Indexed(234),
-        success: Color::Indexed(78),
+        success: Color::Indexed(71),
         info: Color::Indexed(147),
         disabled_fg: Color::Indexed(239),
         disabled_bg: Color::Indexed(235),
         read_only_fg: Color::Indexed(249),
 
         syntax: SyntaxTokens {
-            keyword: Color::Indexed(231),
+            keyword: Color::Indexed(111),
             ident: Color::Indexed(231),
-            string: Color::Indexed(249),
-            number: Color::Indexed(249),
-            operator: Color::Indexed(244),
-            punct: Color::Indexed(244),
+            string: Color::Indexed(116),
+            number: Color::Indexed(183),
+            operator: Color::Indexed(245),
+            punct: Color::Indexed(245),
             comment: Color::Indexed(238),
             plain: Color::Indexed(231),
             type_name: Color::Indexed(231),
@@ -124,7 +121,7 @@ const fn junie_256() -> ColorTokens {
             match_bg: Color::Indexed(233),
             match_current_bg: Color::Indexed(55),
             bracket_match: Color::Indexed(78),
-            diagnostic_error: Color::Indexed(167),
+            diagnostic_error: Color::Indexed(203),
             diagnostic_warning: Color::Indexed(214),
             diagnostic_info: Color::Indexed(147),
         },
