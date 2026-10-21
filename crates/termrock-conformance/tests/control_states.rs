@@ -2471,6 +2471,11 @@ fn w08_input_masked_clicks_follow_display() {
         Some(Position::new(2, 0)),
         "W08-02: target maps the second mask cell onto the wide grapheme"
     );
+    // The two target cells sit one apart, inside the default
+    // `pointer_click_slop` of 1, so an intervening far click resets the
+    // press count and both probes stay single clicks (decision recorded in
+    // docs/audits/2026-10-20-picker-family-contracts.md).
+    let _ = rig.app.click(0, 0);
     let _ = rig.app.click(4, 0);
     assert_eq!(
         rig.app.cursor(),
