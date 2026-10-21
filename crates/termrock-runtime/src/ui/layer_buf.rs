@@ -1,10 +1,111 @@
 use ratatui_core::buffer::Buffer;
 use ratatui_core::layout::{Position, Rect};
+use ratatui_core::style::{Color, Modifier};
 
 use super::CellRoles;
 use crate::id::Id;
 use crate::layer::{LayerId, LayerSpec};
-use crate::theme::PaintStyle;
+use crate::theme::{PaintStyle, Role, Slot, StylePatch};
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+struct UnderlayChannel {
+    color: Color,
+    role: Option<Role>,
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub(crate) struct CellUnderlayStyle {
+    fg: Option<UnderlayChannel>,
+    bg: Option<UnderlayChannel>,
+    underline: Option<Color>,
+    add: Modifier,
+    remove: Modifier,
+}
+
+impl CellUnderlayStyle {
+    fn apply_paint(&mut self, paint: PaintStyle) {
+        let style = paint.as_style();
+        if let Some(color) = style.fg {
+            self.fg = Some(UnderlayChannel {
+                color,
+                role: paint.fg_role.map(|(role, surface)| role.painted(surface)),
+            });
+        }
+        if let Some(color) = style.bg {
+            self.bg = Some(UnderlayChannel {
+                color,
+                role: paint.bg_role.map(|(role, surface)| role.painted(surface)),
+            });
+        }
+        if let Some(color) = style.underline_color {
+            self.underline = Some(color);
+        } else if paint.underline_cleared() {
+            self.underline = Some(Color::Reset);
+        }
+        self.apply_modifiers(style.add_modifier, style.sub_modifier);
+    }
+
+    fn apply_patch(&mut self, paint: PaintStyle, explicit: StylePatch) {
+        let style = paint.as_style();
+        match explicit.fg {
+            Slot::Inherit => {}
+            Slot::Set(_) => {
+                self.fg = Some(UnderlayChannel {
+                    color: style.fg.unwrap_or(Color::Reset),
+                    role: paint.fg_role.map(|(role, surface)| role.painted(surface)),
+                });
+            }
+            Slot::Clear => {
+                self.fg = Some(UnderlayChannel {
+                    color: Color::Reset,
+                    role: None,
+                });
+            }
+        }
+        match explicit.bg {
+            Slot::Inherit => {}
+            Slot::Set(_) => {
+                self.bg = Some(UnderlayChannel {
+                    color: style.bg.unwrap_or(Color::Reset),
+                    role: paint.bg_role.map(|(role, surface)| role.painted(surface)),
+                });
+            }
+            Slot::Clear => {
+                self.bg = Some(UnderlayChannel {
+                    color: Color::Reset,
+                    role: None,
+                });
+            }
+        }
+        match explicit.underline {
+            Slot::Inherit => {}
+            Slot::Set(_) => self.underline = Some(style.underline_color.unwrap_or(Color::Reset)),
+            Slot::Clear => self.underline = Some(Color::Reset),
+        }
+        self.apply_modifiers(explicit.add, explicit.remove);
+    }
+
+    fn apply_modifiers(&mut self, add: Modifier, remove: Modifier) {
+        self.add = self.add.difference(remove).union(add);
+        self.remove = self.remove.difference(add).union(remove);
+    }
+
+    fn composite(
+        self,
+        underlay: &ratatui_core::buffer::Cell,
+        underlay_roles: CellRoles,
+        output: &mut ratatui_core::buffer::Cell,
+    ) -> CellRoles {
+        output.fg = self.fg.map_or(underlay.fg, |channel| channel.color);
+        output.bg = self.bg.map_or(underlay.bg, |channel| channel.color);
+        output.underline_color = self.underline.unwrap_or(underlay.underline_color);
+        output.modifier = underlay.modifier.difference(self.remove).union(self.add);
+        CellRoles {
+            fg: self.fg.map_or(underlay_roles.fg, |channel| channel.role),
+            bg: self.bg.map_or(underlay_roles.bg, |channel| channel.role),
+        }
+    }
+}
 
 #[derive(Debug, Clone)]
 pub(crate) struct LayerDraw {
@@ -15,6 +116,7 @@ pub(crate) struct LayerDraw {
     pub(crate) buf: Buffer,
     pub(crate) written: Vec<bool>,
     roles: Vec<CellRoles>,
+    underlay: Vec<Option<CellUnderlayStyle>>,
     pub(crate) drawn: bool,
 }
 
@@ -28,6 +130,7 @@ impl LayerDraw {
             buf: Buffer::empty(screen),
             written: vec![false; screen.area() as usize],
             roles: vec![CellRoles::default(); screen.area() as usize],
+            underlay: vec![None; screen.area() as usize],
             drawn: false,
         }
     }
@@ -56,6 +159,8 @@ impl LayerDraw {
         self.roles.clear();
         self.roles
             .resize(screen.area() as usize, CellRoles::default());
+        self.underlay.clear();
+        self.underlay.resize(screen.area() as usize, None);
     }
 
     fn index(&self, pos: Position) -> Option<usize> {
@@ -73,9 +178,64 @@ impl LayerDraw {
             && let Some(w) = self.written.get_mut(i)
         {
             *w = true;
+            if let Some(intent) = self.underlay.get_mut(i) {
+                match (intent.as_mut(), style) {
+                    (Some(intent), Some(style)) => intent.apply_paint(style),
+                    (Some(_), None) => *intent = None,
+                    _ => {}
+                }
+            }
             if let Some(roles) = self.roles.get_mut(i) {
                 *roles = roles.patch(style);
             }
+        }
+    }
+
+    pub(crate) fn begin_underlay(&mut self, pos: Position, bg: Color) {
+        let Some(i) = self.index(pos) else {
+            return;
+        };
+        let Some(written) = self.written.get_mut(i) else {
+            return;
+        };
+        *written = true;
+        if let Some(intent) = self.underlay.get_mut(i) {
+            let mut style = CellUnderlayStyle::default();
+            style.apply_paint(PaintStyle::new().bg(bg));
+            *intent = Some(style);
+        }
+        if let Some(roles) = self.roles.get_mut(i) {
+            *roles = CellRoles::default();
+        }
+    }
+
+    pub(crate) fn underlay_at(&self, pos: Position) -> Option<CellUnderlayStyle> {
+        self.index(pos)
+            .and_then(|index| self.underlay.get(index))
+            .copied()
+            .flatten()
+    }
+
+    pub(crate) fn set_underlay(&mut self, pos: Position, intent: Option<CellUnderlayStyle>) {
+        if let Some(index) = self.index(pos)
+            && let Some(target) = self.underlay.get_mut(index)
+        {
+            *target = intent;
+        }
+    }
+
+    pub(crate) fn patch_underlay(
+        &mut self,
+        pos: Position,
+        paint: PaintStyle,
+        explicit: StylePatch,
+    ) {
+        if let Some(intent) = self
+            .index(pos)
+            .and_then(|index| self.underlay.get_mut(index))
+            .and_then(Option::as_mut)
+        {
+            intent.apply_patch(paint, explicit);
         }
     }
 
@@ -116,12 +276,19 @@ impl LayerDraw {
                 continue;
             }
             if let (Some(src), Some(dst)) = (self.buf.cell(pos), page.cell_mut(pos)) {
-                *dst = src.clone();
                 let index = usize::from(pos.y.saturating_sub(screen.y))
                     .saturating_mul(usize::from(screen.width))
                     .saturating_add(usize::from(pos.x.saturating_sub(screen.x)));
+                let intent = self.underlay_at(pos);
+                let underlay = (*dst).clone();
+                let underlay_roles = roles.get(index).copied().unwrap_or_default();
+                *dst = src.clone();
                 if let Some(target) = roles.get_mut(index) {
-                    *target = self.roles_at(pos);
+                    *target = if let Some(intent) = intent {
+                        intent.composite(&underlay, underlay_roles, dst)
+                    } else {
+                        self.roles_at(pos)
+                    };
                 }
             }
         }
