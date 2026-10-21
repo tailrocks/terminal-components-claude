@@ -18,6 +18,64 @@ fn all_shell_headers_match_reference_captures_and_visibility_thresholds()
     compare_reference_rows(fixture, 0)
 }
 
+/// The shell header is the frozen `visual-baseline` capture, verbatim.
+///
+/// Reference: `visual-baseline:snapshots/showcase/pages/chrome/100x30/16.ansi`,
+/// first line of the frame:
+///
+/// ```text
+///  ▪ Junie Design system  App shell › Chrome               16 colors · 100×30   i Inspector   ? Help
+/// ```
+///
+/// The brand lockup, the `group › page` crumb and the right-hand capability,
+/// inspector and help affordances all come from that capture.
+#[test]
+fn the_shell_header_matches_the_visual_baseline_capture() -> Result<(), Box<dyn std::error::Error>>
+{
+    let h = Harness::new(App::with_page(PageId::Chrome), Theme::junie(), 100, 30)
+        .with_color(ColorLevel::Ansi16);
+    assert_eq!(
+        h.text().lines().next().unwrap_or_default().trim_end(),
+        " ▪ Junie Design system  App shell › Chrome               16 colors · 100×30   i Inspector   ? Help"
+    );
+    Ok(())
+}
+
+/// The capability hint clears the crumb at the width the reference guard sets.
+///
+/// Reference: `visual-baseline:src/bin/showcase/app.rs:1809` draws the
+/// capability only when `rx > x + crumb_w + cw + 2`. With the Overview crumb
+/// (`Overview`, no group) that guard opens at 76 columns, so 75 columns hides
+/// the hint and 76 columns shows it. The frozen captures agree:
+/// `visual-baseline:snapshots/showcase/pages/overview/72x20/truecolor.ansi`
+/// has no capability and
+/// `visual-baseline:snapshots/showcase/pages/overview/80x24/truecolor.ansi`
+/// has `truecolor · 80×24`.
+#[test]
+fn the_capability_hint_clears_the_crumb_at_the_reference_threshold()
+-> Result<(), Box<dyn std::error::Error>> {
+    let header = |width: u16| -> String {
+        let h = Harness::new(App::with_page(PageId::Overview), Theme::junie(), width, 24)
+            .with_color(ColorLevel::TrueColor);
+        h.text()
+            .lines()
+            .next()
+            .unwrap_or_default()
+            .trim_end()
+            .to_owned()
+    };
+    assert!(
+        !header(75).contains("truecolor"),
+        "the hint stays hidden below the clearance width: {:?}",
+        header(75)
+    );
+    assert_eq!(
+        header(76),
+        " ▪ Junie Design system  Overview  truecolor · 76×24   i Inspector   ? Help"
+    );
+    Ok(())
+}
+
 fn compare_reference_rows(fixture: &str, row: usize) -> Result<(), Box<dyn std::error::Error>> {
     for line in fixture.lines() {
         let mut fields = line.splitn(5, '\t');
