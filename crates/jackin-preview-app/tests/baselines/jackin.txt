@@ -1,12 +1,12 @@
 # digest baseline: name w h theme color hash — regenerate with BLESS=1, review like source
-accounts-mixed 100 30 junie mono d68fe3e37c0a3773
-accounts-mixed 100 30 junie truecolor 1078e1535637988f
-accounts-mixed 100 30 paper mono 9007719c55efd4d5
-accounts-mixed 100 30 paper truecolor 7c664b34a0b52c26
-accounts-mixed 120 40 junie mono 22fd79a7962d44f7
-accounts-mixed 120 40 junie truecolor 07968c32697796fd
-accounts-mixed 120 40 paper mono 657dc79ffbd55329
-accounts-mixed 120 40 paper truecolor 344c61c2dac9dcf6
+accounts-mixed 100 30 junie mono 24de4845abdc063a
+accounts-mixed 100 30 junie truecolor be7cc5dcb1dd422b
+accounts-mixed 100 30 paper mono b1c92c9addf9ef98
+accounts-mixed 100 30 paper truecolor fc0a175d7945aa8a
+accounts-mixed 120 40 junie mono 054bbebc2d8558c1
+accounts-mixed 120 40 junie truecolor 84a815016d3be882
+accounts-mixed 120 40 paper mono 1e19666d63b05015
+accounts-mixed 120 40 paper truecolor 0a4ca062147c790e
 capsule-multi 100 30 junie mono b5519ff44ddf4f35
 capsule-multi 100 30 junie truecolor 74506c127684005e
 capsule-multi 100 30 paper mono 5e26c1b42ab38bf3
