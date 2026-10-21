@@ -44,12 +44,13 @@ Queue integration onto `parity/termrock-visual-baseline` is complete through ste
 Resume points:
 
 1. `parity/buttons-reference-decision-20261020` executable pins: re-advance the Buttons reference decision through the cohort-review machinery (six reviewed audit docs pin `frozen_cli_references.json` at `2a43fb11…`; branch pins `d5d8d648…`). Docs commits already landed.
-2. `parity/tablepro-picker-live-20261020`: re-port 10 commits from the old `query_editor` model onto the landed `query_input` filter-list design, then run its frozen tab-picker geometry assertions; land only if green.
+2. `parity/tablepro-picker-live-20261020`: DONE 2026-10-21. Re-ported onto the landed `query_input` design; both frozen tab-picker geometry cases pass at both sizes via the real shared Picker path. Three live contracts landed in `quick_switcher_contract.rs`; the branch's dirty-delete confirm flow is superseded by the recorded landed discard decision and its chosen-tab-focus test was already covered by `tab_list_contract`. Record: [migration matrix, "tablepro-picker-live re-port"](../architecture/termrock-migration-matrix.md).
 3. Still held per queue: `wip/textarea-fields-stage3-20261021`, `wip/steps-shared-contract-20261021`.
 
 ## wip/termrock-extract-shell-20261021 (shell-layer extraction, 2026-10-21)
 
+LANDED 2026-10-21: merged as `70229e698` onto then-origin tip `01ed92ca9` and pushed to `parity/termrock-visual-baseline` as `fab2e44dd` (48/48 shell tests, clippy/fmt clean, `cargo check --workspace` exit 0 on the exact pushed HEAD). Nothing left to resume; record in the [migration matrix](../architecture/termrock-migration-matrix.md).
+
 - Tip: see `git log origin/wip/termrock-extract-shell-20261021 -1` (13 commits on top of `origin/parity/termrock-visual-baseline`).
 - Item: PR #26 shell layer (commit `f4867e9b5`) ported into the new `crates/termrock-shell` — nav/Router, chrome, status, quit guard, keyboard deliverability, key router, page contract, AppShell slots, footer compose rules, reach harness, esc vocabulary, `shell_consumer` example, additive `termrock::shell` facade re-export, matrix rows.
 - State: complete and gated (nextest 48/48, clippy clean, fmt clean, workspace `cargo check` exit 0, rebased onto `origin/parity/termrock-visual-baseline` at rebase time); no app crate or shared-crate source touched.
-- Exact next steps: acquire `push.lock` (owner file was held by the showcase-selection agent since 07:12), `git fetch origin`, rebase onto `origin/parity/termrock-visual-baseline`, re-run `cargo nextest run -p termrock-shell && cargo clippy --all-targets -p termrock-shell && cargo fmt --check -p termrock-shell && cargo check --workspace`, push `HEAD:parity/termrock-visual-baseline`, `rm -rf` the lock.

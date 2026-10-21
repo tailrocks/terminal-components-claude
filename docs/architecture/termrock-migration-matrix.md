@@ -993,7 +993,7 @@ Holds:
 
 - `parity/buttons-reference-decision-20261020` executable pins (`0f93b80b1`, `88bc8cdf2`): the branch pins `tools/frozen_cli_references.json` at `d5d8d648…` and adds the Buttons reference decision validator, but the landed cohort-review architecture freezes the same file at `2a43fb11…` inside six reviewed audit documents (`fresh-baseline-capture-eligibility`, `fresh-baseline-capture-evidence-recheck`, `cohort-capture-metadata-de156-review`, `baseline-cohort-adapter-review`, `baseline-cohort-schema-review`, `baseline-adapter-source-equivalence`), several themselves hash-pinned in `frozen_baseline.py`. Landing would rewrite frozen review records. The branch's pure-docs commits (paired Buttons CLI proof, TablePro delete-dialog parity proof) are landed. The Buttons pin must be re-advanced through the cohort-review machinery, not by editing reviewed decisions.
 - `parity/frozen-table-workflows-20261020` (`b6d75a22d`): only its audit note landed; the executable table-sort extension content is byte-identical to content already at the tip (superseded), verified by hash.
-- `parity/tablepro-picker-live-20261020` (10 commits): not mechanical — `crates/termrock-navigation/src/filter_list.rs` diverged structurally (landed `query_input` model vs branch's `query_editor` model). Requires a re-port against the landed design before its frozen tab-picker geometry assertions can run; recorded as known WIP.
+- `parity/tablepro-picker-live-20261020` (10 commits): resolved 2026-10-21 by re-port, not a merge — see "tablepro-picker-live re-port" below. The hold is cleared.
 - Per queue: `wip/textarea-fields-stage3-20261021` and `wip/steps-shared-contract-20261021` remain held.
 
 
@@ -1083,3 +1083,68 @@ Props `8ff521660eb9297791264f7858fa3eeb493be4b2` clears all seven independently 
 Two earlier external style assertions expected raw Blue/Cyan through Mono conversion. Independent source qualification confirms canonical downgrade to Black or Reset/inherited style; separate corrected probes pass across all four profiles while the original two failures remain preserved as test-reference defects. No frozen artifact or production palette is changed to satisfy them. Final Props clearance SHA-256 `0653c1f37408b3ff713771211e52d3985c2bf900efb9559fbf249d8367e77058` and both intervening blocked reviews are preserved. Publication and exact synchronized integration checks remain pending; no application parity is claimed.
 
 The incoming runtime/TablePro behavior review now has unchanged before/after execution: prior `5f82c4d35d12e0fb77b0f580a8ef200240661602` passes both probes, integrated `34f73e3066da7a77eac2d4719a697dc085906dda` fails both, with no skipped cases. Scroll fading leaves foreground 255 instead of 140; New connection copies active Name/Database/User instead of blanks. Packet SHA-256 `f9f30a36ace1b7aca6639a0a8a0abf3679e6313cc9d1e928a3f889bdb6874963` is preserved. A shared runtime correction is assigned; other TablePro findings remain unresolved.
+
+The following incoming workstream report is preserved for provenance. Its native visual-baseline and CLI claims are author-reported sample checks, not frozen paired-run or independent architecture acceptance; the independent blockers and current acceptance status above remain controlling.
+
+## 2026-10-21: shell extraction landing and tablepro-picker-live re-port
+
+### Shell-layer extraction landed
+
+`wip/termrock-extract-shell-20261021` (13 commits, tip `9892d22a0`) merged into
+`parity/termrock-visual-baseline` as merge `70229e698` onto the then-origin tip
+`01ed92ca9`, pushed as `fab2e44dd`. Adds `crates/termrock-shell` (nav router,
+chrome, status line, quit guard, keyboard deliverability, tiered key router,
+page contract, AppShell slots, footer compose rules, reach harness, Esc
+vocabulary, `shell_consumer` example) plus the additive `termrock::shell`
+facade re-export and the matrix shell rows from `6b4248812`. No shared-crate
+render path and no app crate source changed.
+
+Gate on the exact pushed HEAD: `cargo nextest run -p termrock-shell` 48/48,
+`cargo clippy --all-targets -p termrock-shell` clean, `cargo fmt --check`
+clean, `cargo check --workspace` exit 0.
+
+Note: an interim run of the tablepro visual baseline on the pre-`01ed92ca9`
+base (`5f82c4d35` + shell merge) failed the frozen digest; the digest passes
+at `01ed92ca9` and at the pushed HEAD, so the red belonged to the superseded
+base, not to the shell merge. Evidence: `--test visual` PASS at `01ed92ca9`
+and `fab2e44dd`, FAIL reproduced only at the stale base.
+
+### tablepro-picker-live re-port
+
+`parity/tablepro-picker-live-20261020` (10 commits) was re-ported onto the
+landed `query_input` design per the hold note above. The branch's shared-Picker
+intent for TablePro's tab list had already landed through the hosted-query-
+ownership lineage (`tab_list.rs` shared `Picker`, `Ctrl+G` surface, picker
+Delete reopen, focus-to-editor); the port therefore landed the branch's
+missing live contracts rather than its `query_editor` internals:
+
+- Landed in `crates/tablepro-ui/tests/quick_switcher_contract.rs` (commit
+  `fab2e44dd`, test commit on top of merge `70229e698`):
+  `tab_list_picker_uses_stable_tab_keys_for_filter_activation_and_delete`
+  (includes the three-tab frozen geometry `(28, 15, 64, 10)`),
+  `query_tab_metadata_uses_the_latest_domain_execution_summary` (adapted from
+  the branch's `history.push` fixture to the landed `run_query` ->
+  `last_status` mechanism; asserts `ok · ` and `error` in the picker text),
+  and `tab_list_picker_keeps_the_frozen_single_tab_geometry`
+  (`(28, 16, 64, 8)`). Both frozen geometry cases pass at both sizes through
+  the real shared Picker path: no size, theme, or tick special-casing and no
+  expected-frame updates.
+- Dropped as duplicate: `chosen_query_tab_moves_focus_to_its_live_editor` —
+  covered by
+  `tab_list_contract::choosing_a_query_tab_moves_focus_to_its_editor`.
+- Dropped as superseded: `deleting_a_dirty_query_uses_the_domain_confirmation_flow`
+  — the branch's destructive-confirm flow for picker Delete contradicts the
+  recorded landed decision that picker Delete discards dirty edits
+  unconditionally (`docs/audits/2026-10-20-tablepro-live-contracts.md`,
+  commit `c5d60225a`); the landed
+  `delete_discards_dirty_query_tab_from_picker` contract stays authoritative.
+- Discarded branch internals superseded by landed work: the `query_editor`
+  filter-list model (branch commits `5e0981dae`, `06750c565`, `34d1ecd12`
+  theme/repaint halves owned by the theme lineage), and `d11975020`
+  viewport-margin layer constraint (runtime/layer.rs, not ported here).
+
+Gate on the exact pushed HEAD: `cargo nextest run -p tablepro-ui --test
+quick_switcher_contract --test tab_list_contract` 19/19, full
+`cargo nextest run -p tablepro-ui` 194/194 (visual baseline included),
+`cargo clippy --all-targets -p tablepro-ui` exit 0, `cargo fmt --check`
+exit 0.
