@@ -11077,7 +11077,7 @@ fn capsule_span_role(tone: crate::sim::pty::Tone) -> termrock::Role {
     match tone {
         // Baseline success and error are not the port tokens.
         Tone::Success => termrock::Role::Custom(termrock::Color::Rgb(0x3f, 0xb9, 0x50)),
-        Tone::Error => termrock::Role::Custom(termrock::Color::Rgb(0xf0, 0x5d, 0x5d)),
+        Tone::Error => termrock::Role::Danger,
         other => other.role(),
     }
 }
