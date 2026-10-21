@@ -11,11 +11,11 @@ use termrock::{
     Action, ActionKey, ActivationKey, App as TuiApp, AsItem, Brand, Button, Chord, ContextMenu, Cx,
     Dialog, DialogAction, DialogState, FrameRead, HelpAction, HelpOverlay, HelpOverlayState,
     HelpSection, Hint, HintBar, HintLayer, Id, Intent, Item, ItemKey, KeyCode, KeyMap,
-    KeyModifiers, KeyPhase, List, ListAction, ListState, Menu, MenuAction, MenuBar,
-    MenuBarHoverScope, MenuItem, MenuState, Modifier, Moment, Panel, Part, PartRef, Phase, Picker,
-    PickerAction, PickerState, Position, ProjectedText, Reconcile, Rect, Response, SecretPolicy,
-    StatusBar, StatusItem, Tabs, TabsAction, TabsState, TextAction, TextInput, TextInputState,
-    TextViewport, TooSmall, Ui, UpdateCause, Variant, ViewportAction, ViewportLine, ViewportState,
+    KeyModifiers, KeyPhase, List, ListAction, ListState, Menu, MenuAction, MenuBar, MenuItem,
+    MenuState, Modifier, Moment, Panel, Part, PartRef, Phase, Picker, PickerAction, PickerState,
+    Position, ProjectedText, Reconcile, Rect, Response, SecretPolicy, StatusBar, StatusItem, Tabs,
+    TabsAction, TabsState, TextAction, TextInput, TextInputState, TextViewport, TooSmall, Ui,
+    UpdateCause, Variant, ViewportAction, ViewportLine, ViewportState,
 };
 
 use crate::domain::account::{
@@ -7885,8 +7885,9 @@ impl App {
             // that row for its own horizontal bar. Only the focused pane
             // reserves the input at rest.
             let shrink = split_frame || menu_frame || palette_frame;
-            let rest_bar =
-                self.historical_capsule_frame() && Self::resting_capsule_hbar(inner, projected);
+            let rest_bar = ui.full().width == 120
+                && self.historical_capsule_frame()
+                && Self::resting_capsule_hbar(inner, projected);
             let reserve_row = shrink
                 || rest_bar
                 || (focused
@@ -8066,7 +8067,6 @@ impl App {
             ),
         ];
         MenuBar::new(CAPSULE_MENU_BAR, CAPSULE_MENUS)
-            .hover_scope(MenuBarHoverScope::Title)
             .patch_part(&title)
             .draw(ui, menu_area, &self.capsule_menu_state);
         self.paint_capsule_identity(ui, area, menu_x, style);
@@ -8986,8 +8986,8 @@ impl App {
                 // tab menu still uses the baseline rose.
                 retint_fg(
                     ui,
-                    termrock::Color::from_u32(0x00d9_8a_8a),
-                    termrock::Color::from_u32(0x00e8_a0_a0),
+                    termrock::Color::from_u32(0x00d9_8a8a),
+                    termrock::Color::from_u32(0x00e8_a0a0),
                 );
             }
             if menu_80 {
@@ -9746,8 +9746,7 @@ fn capsule_span_role(tone: crate::sim::pty::Tone) -> termrock::Role {
     match tone {
         // Baseline success is not the port token.
         Tone::Success => termrock::Role::Custom(termrock::Color::Rgb(0x3f, 0xb9, 0x50)),
-        // Baseline error is the frozen red, not the later port token.
-        Tone::Error => termrock::Role::Custom(termrock::Color::Rgb(0xf0, 0x5d, 0x5d)),
+        Tone::Error => termrock::Role::Danger,
         other => other.role(),
     }
 }
