@@ -1308,6 +1308,9 @@ fn dynamic_bindings_follow_keymap<C: Conformance>(
     for (action, chord) in dynamic {
         let owner = C::dynamic_binding_id(*action);
         let mut default = harness::<C>(fixture.clone());
+        if has::<C>(Caps::OVERLAY) && C::activation_id() != C::control_id() {
+            let _ = open_component_layer::<C>(&mut default);
+        }
         assert!(default.tab_to(owner));
         assert!(
             default.key_mod(chord.code, chord.mods).is_consumed(),
@@ -1317,6 +1320,9 @@ fn dynamic_bindings_follow_keymap<C: Conformance>(
 
         let replacement = Chord::key(KeyCode::F(11));
         let mut remapped = harness::<C>(fixture.clone());
+        if has::<C>(Caps::OVERLAY) && C::activation_id() != C::control_id() {
+            let _ = open_component_layer::<C>(&mut remapped);
+        }
         assert!(remapped.tab_to(owner));
         remapped
             .app_mut()
@@ -1331,6 +1337,9 @@ fn dynamic_bindings_follow_keymap<C: Conformance>(
         );
 
         let mut removed = harness::<C>(fixture.clone());
+        if has::<C>(Caps::OVERLAY) && C::activation_id() != C::control_id() {
+            let _ = open_component_layer::<C>(&mut removed);
+        }
         assert!(removed.tab_to(owner));
         removed.app_mut().keymap.remove_component(owner, *action);
         assert!(
