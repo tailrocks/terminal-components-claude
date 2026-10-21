@@ -373,16 +373,14 @@ fn paint_size_label(ui: &mut Ui<'_>, area: Rect) -> u16 {
     size_x
 }
 
-fn parity_history_tag_plate(world: &World, width: u16, height: u16) -> bool {
-    crate::sim::catalogue::parity_history_80x24_plate(world, width, height).is_some()
-        || crate::sim::catalogue::parity_history_100x30_plate(world, width, height).is_some()
-        || crate::sim::catalogue::parity_history_120x40_plate(world, width, height).is_some()
+/// The `parity-history` bands with their own body: single-column below 160.
+fn parity_history_tag_plate(world: &World, width: u16, _height: u16) -> bool {
+    crate::sim::catalogue::parity_history_tag_frame(world) && (80..160).contains(&width)
 }
 
-/// 80×24 and 100×30 clip the last hint. 120×40 fits every hint, so it keeps the wide parts.
-fn parity_history_clipped_plate(world: &World, width: u16, height: u16) -> bool {
-    crate::sim::catalogue::parity_history_80x24_plate(world, width, height).is_some()
-        || crate::sim::catalogue::parity_history_100x30_plate(world, width, height).is_some()
+/// Below 120 the single-column history clips the last hint. 120 and up keep the wide parts.
+fn parity_history_clipped_plate(world: &World, width: u16, _height: u16) -> bool {
+    crate::sim::catalogue::parity_history_tag_frame(world) && (80..120).contains(&width)
 }
 
 /// 80×24 and 100×30 clip the last hint. 120×40 fits every hint, so it keeps the wide parts.

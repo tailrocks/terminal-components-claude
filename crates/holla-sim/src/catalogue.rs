@@ -1134,17 +1134,29 @@ pub fn parity_discovery_view(w: &World, width: u16) -> Option<ParityDiscovery> {
     Some(view)
 }
 
-/// 100×30 `parity-history` plate. Only a paused tick-40 frame.
-/// 80×24, 120×40, 160×50, later seeks, and every other scenario stay off it.
-pub fn parity_history_100x30_plate(w: &World, width: u16, height: u16) -> Option<ParityDiscovery> {
-    if w.scenario != Scenario::ParityHistory
-        || w.clock.running
-        || width != 100
-        || height != 30
-        || w.now_ms() != 80
-    {
+/// Paused tick-40 `parity-history` frame predicate.
+/// Later seeks (the clock runs again) and every other scenario stay off it.
+pub fn parity_history_tag_frame(w: &World) -> bool {
+    w.scenario == Scenario::ParityHistory && !w.clock.running && w.now_ms() == 80
+}
+
+/// `parity-history` rows for the body width. The single-column bands keep the
+/// short preview; only the wide card band (120 up to 160) carries the full
+/// detail preview, which cannot fit in one column.
+pub fn parity_history_view(w: &World, width: u16) -> Option<ParityDiscovery> {
+    if !parity_history_tag_frame(w) {
         return None;
     }
+    let mut view = parity_history_rows()?;
+    if (120..160).contains(&width) {
+        view.preview = wide_history_preview();
+        view.preview_meta = "task · here".into();
+    }
+    Some(view)
+}
+
+/// Paused tick-40 `parity-history` rows: task list and the short preview.
+fn parity_history_rows() -> Option<ParityDiscovery> {
     let suggested = vec![
         tag_row(
             "Run check",
@@ -1246,202 +1258,9 @@ pub fn parity_history_100x30_plate(w: &World, width: u16, height: u16) -> Option
     })
 }
 
-/// 80×24 `parity-history` plate. Only a paused tick-40 frame.
-/// 100×30, 120×40, 160×50, later seeks, and every other scenario stay off it.
-pub fn parity_history_80x24_plate(w: &World, width: u16, height: u16) -> Option<ParityDiscovery> {
-    if w.scenario != Scenario::ParityHistory
-        || w.clock.running
-        || width != 80
-        || height != 24
-        || w.now_ms() != 80
-    {
-        return None;
-    }
-    let suggested = vec![
-        tag_row(
-            "Run check",
-            "task",
-            "here",
-            true,
-            "defined by ~/work/holla/mise.toml",
-            None,
-            true,
-        ),
-        tag_row(
-            "Run fmt",
-            "task",
-            "here",
-            true,
-            "defined by ~/work/holla/mise.toml",
-            None,
-            false,
-        ),
-        tag_row(
-            "Run lint",
-            "task",
-            "here",
-            true,
-            "defined by ~/work/holla/mise.toml",
-            None,
-            false,
-        ),
-        tag_row(
-            "Run shots",
-            "task",
-            "here",
-            true,
-            "defined by ~/work/holla/mise.toml",
-            None,
-            false,
-        ),
-        tag_row(
-            "Run tests",
-            "task",
-            "here",
-            true,
-            "defined by ~/work/holla/mise.toml",
-            None,
-            false,
-        ),
-    ];
-    let explore = vec![tag_row(
-        "System · mbp",
-        "explore",
-        "host",
-        false,
-        "available on this host",
-        None,
-        false,
-    )];
-    let mut lines = Vec::new();
-    lines.push(FinderLine::Heading("Suggested here"));
-    for row in &suggested {
-        lines.push(FinderLine::Row(row.clone()));
-    }
-    lines.push(FinderLine::Blank);
-    lines.push(FinderLine::Heading("Recent here"));
-    lines.push(FinderLine::Heading("nothing used here yet"));
-    lines.push(FinderLine::Blank);
-    lines.push(FinderLine::Heading("Explore"));
-    lines.push(FinderLine::Chips(&[
-        "Tasks", "Git", "Files", "Disk", "Services", "System",
-    ]));
-    for row in &explore {
-        lines.push(FinderLine::Row(row.clone()));
-    }
-    let preview = vec![
-        PreviewLine {
-            label: "Runs",
-            value: "mise run check".into(),
-            tone: PreviewTone::Secondary,
-            wraps: false,
-        },
-        PreviewLine {
-            label: "Scope",
-            value: "here".into(),
-            tone: PreviewTone::Text,
-            wraps: false,
-        },
-        PreviewLine {
-            label: "Risk",
-            value: "mutating".into(),
-            tone: PreviewTone::Meta,
-            wraps: false,
-        },
-    ];
-    Some(ParityDiscovery {
-        lines,
-        preview,
-        preview_meta: String::new(),
-        actions: Vec::new(),
-        suggested_len: suggested.len(),
-    })
-}
-
-/// 120×40 `parity-history` plate. Only a paused tick-40 frame.
-/// 80×24, 100×30, 160×50, later seeks, and every other scenario stay off it.
-pub fn parity_history_120x40_plate(w: &World, width: u16, height: u16) -> Option<ParityDiscovery> {
-    if w.scenario != Scenario::ParityHistory
-        || w.clock.running
-        || width != 120
-        || height != 40
-        || w.now_ms() != 80
-    {
-        return None;
-    }
-    let suggested = vec![
-        tag_row(
-            "Run check",
-            "task",
-            "here",
-            true,
-            "defined by ~/work/holla/mise.toml",
-            None,
-            true,
-        ),
-        tag_row(
-            "Run fmt",
-            "task",
-            "here",
-            true,
-            "defined by ~/work/holla/mise.toml",
-            None,
-            false,
-        ),
-        tag_row(
-            "Run lint",
-            "task",
-            "here",
-            true,
-            "defined by ~/work/holla/mise.toml",
-            None,
-            false,
-        ),
-        tag_row(
-            "Run shots",
-            "task",
-            "here",
-            true,
-            "defined by ~/work/holla/mise.toml",
-            None,
-            false,
-        ),
-        tag_row(
-            "Run tests",
-            "task",
-            "here",
-            true,
-            "defined by ~/work/holla/mise.toml",
-            None,
-            false,
-        ),
-    ];
-    let explore = vec![tag_row(
-        "System · mbp",
-        "explore",
-        "host",
-        false,
-        "available on this host",
-        None,
-        false,
-    )];
-    let mut lines = Vec::new();
-    lines.push(FinderLine::Heading("Suggested here"));
-    for row in &suggested {
-        lines.push(FinderLine::Row(row.clone()));
-    }
-    lines.push(FinderLine::Blank);
-    lines.push(FinderLine::Heading("Recent here"));
-    lines.push(FinderLine::Heading("nothing used here yet"));
-    lines.push(FinderLine::Blank);
-    lines.push(FinderLine::Heading("Explore"));
-    lines.push(FinderLine::Chips(&[
-        "Tasks", "Git", "Files", "Disk", "Services", "System",
-    ]));
-    for row in &explore {
-        lines.push(FinderLine::Row(row.clone()));
-    }
-    let preview = vec![
+/// Wide detail preview. The single-column bands show only `Runs`/`Scope`/`Risk`.
+fn wide_history_preview() -> Vec<PreviewLine> {
+    vec![
         PreviewLine {
             label: "Does",
             value: "type-check every target · runs in ~/work/holla".into(),
@@ -1508,14 +1327,7 @@ pub fn parity_history_120x40_plate(w: &World, width: u16, height: u16) -> Option
             tone: PreviewTone::Muted,
             wraps: true,
         },
-    ];
-    Some(ParityDiscovery {
-        lines,
-        preview,
-        preview_meta: "task · here".into(),
-        actions: Vec::new(),
-        suggested_len: suggested.len(),
-    })
+    ]
 }
 
 /// 100×30 `parity-files` plate. Only a paused tick-40 frame.
@@ -5662,132 +5474,49 @@ mod tests {
     }
 
     #[test]
-    fn parity_history_100x30_plate_is_only_the_mid_tick_40_frame() {
+    fn parity_history_view_bands_are_only_the_paused_tick_40_frame() {
         let mut world = fixtures::world_for(Scenario::ParityHistory);
-        assert!(parity_history_100x30_plate(&world, 100, 30).is_none());
+        assert!(parity_history_view(&world, 80).is_none());
+        assert!(!parity_history_tag_frame(&world));
         world.seek(40);
         assert!(world.clock.running);
-        assert!(parity_history_100x30_plate(&world, 100, 30).is_none());
+        assert!(!parity_history_tag_frame(&world));
+        assert!(parity_history_view(&world, 80).is_none());
         world.clock.running = false;
-        assert!(parity_history_100x30_plate(&world, 80, 24).is_none());
-        assert!(parity_history_100x30_plate(&world, 120, 40).is_none());
-        assert!(parity_history_100x30_plate(&world, 160, 50).is_none());
-        assert!(parity_history_100x30_plate(&world, 100, 31).is_none());
-        assert!(parity_history_100x30_plate(&world, 99, 30).is_none());
-        let view = parity_history_100x30_plate(&world, 100, 30).expect("100x30 plate");
-        assert!(view.lines.iter().any(|line| matches!(
+        assert_eq!(world.now_ms(), 80);
+        assert!(parity_history_tag_frame(&world));
+        let single = parity_history_view(&world, 80).expect("single-column view");
+        assert!(single.lines.iter().any(|line| matches!(
             line,
             FinderLine::Row(row) if row.selected && row.title == "Run check"
         )));
-        assert!(view.lines.iter().any(|line| matches!(
+        assert!(single.lines.iter().any(|line| matches!(
             line,
             FinderLine::Row(row) if row.title == "Run tests" && !row.selected
         )));
-        let runs = view
-            .preview
-            .iter()
-            .find(|line| line.label == "Runs")
-            .expect("runs line");
-        assert_eq!(runs.value, "mise run check");
-        world.seek(4_000);
-        world.clock.running = false;
-        assert!(parity_history_100x30_plate(&world, 100, 30).is_none());
-        for scenario in [
-            Scenario::ParityDiscovery,
-            Scenario::ParityFiles,
-            Scenario::FirstUse,
-            Scenario::ActivitiesMulti,
-        ] {
-            let mut other = fixtures::world_for(scenario);
-            other.seek(40);
-            other.clock.running = false;
-            assert!(parity_history_100x30_plate(&other, 100, 30).is_none());
-        }
-    }
-
-    #[test]
-    fn parity_history_80x24_plate_is_only_the_mid_tick_40_frame() {
-        let mut world = fixtures::world_for(Scenario::ParityHistory);
-        assert!(parity_history_80x24_plate(&world, 80, 24).is_none());
-        world.seek(40);
-        assert!(world.clock.running);
-        assert!(parity_history_80x24_plate(&world, 80, 24).is_none());
-        world.clock.running = false;
-        assert!(parity_history_80x24_plate(&world, 100, 30).is_none());
-        assert!(parity_history_80x24_plate(&world, 120, 40).is_none());
-        assert!(parity_history_80x24_plate(&world, 160, 50).is_none());
-        assert!(parity_history_80x24_plate(&world, 80, 23).is_none());
-        assert!(parity_history_80x24_plate(&world, 81, 24).is_none());
-        assert!(parity_history_100x30_plate(&world, 80, 24).is_none());
-        let view = parity_history_80x24_plate(&world, 80, 24).expect("80x24 plate");
-        assert!(view.lines.iter().any(|line| matches!(
-            line,
-            FinderLine::Row(row) if row.selected && row.title == "Run check"
-        )));
-        assert!(view.lines.iter().any(|line| matches!(
-            line,
-            FinderLine::Row(row) if row.title == "Run tests" && !row.selected
-        )));
-        assert!(view.lines.iter().any(|line| matches!(
+        assert!(single.lines.iter().any(|line| matches!(
             line,
             FinderLine::Row(row) if row.title == "System · mbp" && row.scope_word == "host" && !row.here
         )));
-        let runs = view
+        let runs = single
             .preview
             .iter()
             .find(|line| line.label == "Runs")
             .expect("runs line");
         assert_eq!(runs.value, "mise run check");
-        world.seek(4_000);
-        world.clock.running = false;
-        assert!(parity_history_80x24_plate(&world, 80, 24).is_none());
-        for scenario in [
-            Scenario::ParityDiscovery,
-            Scenario::ParityFiles,
-            Scenario::FirstUse,
-            Scenario::ActivitiesMulti,
-        ] {
-            let mut other = fixtures::world_for(scenario);
-            other.seek(40);
-            other.clock.running = false;
-            assert!(parity_history_80x24_plate(&other, 80, 24).is_none());
-            assert!(parity_history_100x30_plate(&other, 80, 24).is_none());
-        }
-    }
-
-    #[test]
-    fn parity_history_120x40_plate_is_only_the_mid_tick_40_frame() {
-        let mut world = fixtures::world_for(Scenario::ParityHistory);
-        assert!(parity_history_120x40_plate(&world, 120, 40).is_none());
-        world.seek(40);
-        assert!(world.clock.running);
-        assert!(parity_history_120x40_plate(&world, 120, 40).is_none());
-        world.clock.running = false;
-        assert_eq!(world.now_ms(), 80);
-        assert!(parity_history_80x24_plate(&world, 120, 40).is_none());
-        assert!(parity_history_100x30_plate(&world, 120, 40).is_none());
-        assert!(parity_history_120x40_plate(&world, 80, 24).is_none());
-        assert!(parity_history_120x40_plate(&world, 100, 30).is_none());
-        assert!(parity_history_120x40_plate(&world, 160, 50).is_none());
-        assert!(parity_history_120x40_plate(&world, 120, 39).is_none());
-        assert!(parity_history_120x40_plate(&world, 119, 40).is_none());
-        let view = parity_history_120x40_plate(&world, 120, 40).expect("120x40 plate");
-        assert!(view.lines.iter().any(|line| matches!(
-            line,
-            FinderLine::Row(row) if row.selected && row.title == "Run check"
-        )));
-        assert!(view.lines.iter().any(|line| matches!(
-            line,
-            FinderLine::Row(row) if row.title == "Run tests" && !row.selected
-        )));
-        assert_eq!(view.preview_meta, "task · here");
-        let runs = view
+        let mid = parity_history_view(&world, 100).expect("mid view");
+        assert_eq!(mid.lines, single.lines);
+        assert_eq!(mid.preview, single.preview);
+        let card = parity_history_view(&world, 120).expect("card view");
+        assert_eq!(card.lines, single.lines);
+        assert_eq!(card.preview_meta, "task · here");
+        let runs = card
             .preview
             .iter()
             .find(|line| line.label == "Runs")
             .expect("runs line");
         assert_eq!(runs.value, "mise run check");
-        let does = view
+        let does = card
             .preview
             .iter()
             .find(|line| line.label == "Does")
@@ -5796,7 +5525,8 @@ mod tests {
         assert!(does.value.contains("type-check every target"));
         world.seek(4_000);
         world.clock.running = false;
-        assert!(parity_history_120x40_plate(&world, 120, 40).is_none());
+        assert!(!parity_history_tag_frame(&world));
+        assert!(parity_history_view(&world, 120).is_none());
         for scenario in [
             Scenario::ParityDiscovery,
             Scenario::ParityFiles,
@@ -5806,9 +5536,9 @@ mod tests {
             let mut other = fixtures::world_for(scenario);
             other.seek(40);
             other.clock.running = false;
-            assert!(parity_history_120x40_plate(&other, 120, 40).is_none());
-            assert!(parity_history_80x24_plate(&other, 120, 40).is_none());
-            assert!(parity_history_100x30_plate(&other, 120, 40).is_none());
+            assert!(!parity_history_tag_frame(&other));
+            assert!(parity_history_view(&other, 80).is_none());
+            assert!(parity_history_view(&other, 120).is_none());
         }
     }
 
@@ -5826,9 +5556,7 @@ mod tests {
         assert!(parity_files_100x30_plate(&world, 160, 50).is_none());
         assert!(parity_files_100x30_plate(&world, 100, 31).is_none());
         assert!(parity_files_100x30_plate(&world, 99, 30).is_none());
-        assert!(parity_history_80x24_plate(&world, 100, 30).is_none());
-        assert!(parity_history_100x30_plate(&world, 100, 30).is_none());
-        assert!(parity_history_120x40_plate(&world, 100, 30).is_none());
+        assert!(!parity_history_tag_frame(&world));
         let view = parity_files_100x30_plate(&world, 100, 30).expect("100x30 plate");
         assert!(
             view.lines
@@ -5876,9 +5604,7 @@ mod tests {
         assert!(parity_files_80x24_plate(&world, 80, 23).is_none());
         assert!(parity_files_80x24_plate(&world, 81, 24).is_none());
         assert!(parity_files_100x30_plate(&world, 80, 24).is_none());
-        assert!(parity_history_80x24_plate(&world, 80, 24).is_none());
-        assert!(parity_history_100x30_plate(&world, 80, 24).is_none());
-        assert!(parity_history_120x40_plate(&world, 80, 24).is_none());
+        assert!(!parity_history_tag_frame(&world));
         let view = parity_files_80x24_plate(&world, 80, 24).expect("80x24 plate");
         assert!(
             view.lines
@@ -5928,9 +5654,7 @@ mod tests {
         assert!(parity_files_120x40_plate(&world, 119, 40).is_none());
         assert!(parity_files_80x24_plate(&world, 120, 40).is_none());
         assert!(parity_files_100x30_plate(&world, 120, 40).is_none());
-        assert!(parity_history_80x24_plate(&world, 120, 40).is_none());
-        assert!(parity_history_100x30_plate(&world, 120, 40).is_none());
-        assert!(parity_history_120x40_plate(&world, 120, 40).is_none());
+        assert!(!parity_history_tag_frame(&world));
         let view = parity_files_120x40_plate(&world, 120, 40).expect("120x40 plate");
         assert!(view.lines.iter().any(|line| matches!(
             line,
@@ -6075,9 +5799,7 @@ mod tests {
         assert!(parity_files_80x24_plate(&world, 100, 30).is_none());
         assert!(parity_files_100x30_plate(&world, 100, 30).is_none());
         assert!(parity_files_120x40_plate(&world, 100, 30).is_none());
-        assert!(parity_history_80x24_plate(&world, 100, 30).is_none());
-        assert!(parity_history_100x30_plate(&world, 100, 30).is_none());
-        assert!(parity_history_120x40_plate(&world, 100, 30).is_none());
+        assert!(!parity_history_tag_frame(&world));
         assert!(!parity_discovery_tag_frame(&world));
         let view = parity_git_current_100x30_plate(&world, 100, 30).expect("100x30 plate");
         assert!(view.lines.iter().any(|line| matches!(
@@ -6148,9 +5870,7 @@ mod tests {
         assert!(parity_files_80x24_plate(&world, 80, 24).is_none());
         assert!(parity_files_100x30_plate(&world, 80, 24).is_none());
         assert!(parity_files_120x40_plate(&world, 80, 24).is_none());
-        assert!(parity_history_80x24_plate(&world, 80, 24).is_none());
-        assert!(parity_history_100x30_plate(&world, 80, 24).is_none());
-        assert!(parity_history_120x40_plate(&world, 80, 24).is_none());
+        assert!(!parity_history_tag_frame(&world));
         assert!(!parity_discovery_tag_frame(&world));
         let view = parity_git_current_80x24_plate(&world, 80, 24).expect("80x24 plate");
         assert!(view.lines.iter().any(|line| matches!(
@@ -6229,9 +5949,7 @@ mod tests {
         assert!(parity_files_80x24_plate(&world, 80, 24).is_none());
         assert!(parity_files_100x30_plate(&world, 80, 24).is_none());
         assert!(parity_files_120x40_plate(&world, 80, 24).is_none());
-        assert!(parity_history_80x24_plate(&world, 80, 24).is_none());
-        assert!(parity_history_100x30_plate(&world, 80, 24).is_none());
-        assert!(parity_history_120x40_plate(&world, 80, 24).is_none());
+        assert!(!parity_history_tag_frame(&world));
         assert!(!parity_discovery_tag_frame(&world));
         let view = parity_task_sources_80x24_plate(&world, 80, 24).expect("80x24 plate");
         assert!(view.lines.iter().any(|line| matches!(
@@ -6327,9 +6045,7 @@ mod tests {
         assert!(parity_files_80x24_plate(&world, 80, 24).is_none());
         assert!(parity_files_100x30_plate(&world, 80, 24).is_none());
         assert!(parity_files_120x40_plate(&world, 80, 24).is_none());
-        assert!(parity_history_80x24_plate(&world, 80, 24).is_none());
-        assert!(parity_history_100x30_plate(&world, 80, 24).is_none());
-        assert!(parity_history_120x40_plate(&world, 80, 24).is_none());
+        assert!(!parity_history_tag_frame(&world));
         assert!(!parity_discovery_tag_frame(&world));
         let view = parity_cargo_80x24_plate(&world, 80, 24).expect("80x24 plate");
         assert!(view.lines.iter().any(|line| matches!(
@@ -6419,9 +6135,7 @@ mod tests {
         assert!(parity_files_80x24_plate(&world, 80, 24).is_none());
         assert!(parity_files_100x30_plate(&world, 80, 24).is_none());
         assert!(parity_files_120x40_plate(&world, 80, 24).is_none());
-        assert!(parity_history_80x24_plate(&world, 80, 24).is_none());
-        assert!(parity_history_100x30_plate(&world, 80, 24).is_none());
-        assert!(parity_history_120x40_plate(&world, 80, 24).is_none());
+        assert!(!parity_history_tag_frame(&world));
         assert!(!parity_discovery_tag_frame(&world));
         let view = parity_git_batch_80x24_plate(&world, 80, 24).expect("80x24 plate");
         assert!(view.lines.iter().any(|line| matches!(
@@ -6518,9 +6232,7 @@ mod tests {
         assert!(parity_files_80x24_plate(&world, 100, 30).is_none());
         assert!(parity_files_100x30_plate(&world, 100, 30).is_none());
         assert!(parity_files_120x40_plate(&world, 100, 30).is_none());
-        assert!(parity_history_80x24_plate(&world, 100, 30).is_none());
-        assert!(parity_history_100x30_plate(&world, 100, 30).is_none());
-        assert!(parity_history_120x40_plate(&world, 100, 30).is_none());
+        assert!(!parity_history_tag_frame(&world));
         assert!(!parity_discovery_tag_frame(&world));
         let view = parity_git_batch_100x30_plate(&world, 100, 30).expect("100x30 plate");
         assert!(view.lines.iter().any(|line| matches!(
@@ -6619,9 +6331,7 @@ mod tests {
         assert!(parity_files_80x24_plate(&world, 120, 40).is_none());
         assert!(parity_files_100x30_plate(&world, 120, 40).is_none());
         assert!(parity_files_120x40_plate(&world, 120, 40).is_none());
-        assert!(parity_history_80x24_plate(&world, 120, 40).is_none());
-        assert!(parity_history_100x30_plate(&world, 120, 40).is_none());
-        assert!(parity_history_120x40_plate(&world, 120, 40).is_none());
+        assert!(!parity_history_tag_frame(&world));
         assert!(!parity_discovery_tag_frame(&world));
         let view = parity_git_batch_120x40_plate(&world, 120, 40).expect("120x40 plate");
         assert!(view.lines.iter().any(|line| matches!(
@@ -6733,9 +6443,7 @@ mod tests {
         assert!(parity_files_80x24_plate(&world, 100, 30).is_none());
         assert!(parity_files_100x30_plate(&world, 100, 30).is_none());
         assert!(parity_files_120x40_plate(&world, 100, 30).is_none());
-        assert!(parity_history_80x24_plate(&world, 100, 30).is_none());
-        assert!(parity_history_100x30_plate(&world, 100, 30).is_none());
-        assert!(parity_history_120x40_plate(&world, 100, 30).is_none());
+        assert!(!parity_history_tag_frame(&world));
         assert!(!parity_discovery_tag_frame(&world));
         let view = parity_cargo_100x30_plate(&world, 100, 30).expect("100x30 plate");
         assert!(view.lines.iter().any(|line| matches!(
@@ -6825,9 +6533,7 @@ mod tests {
         assert!(parity_files_80x24_plate(&world, 120, 40).is_none());
         assert!(parity_files_100x30_plate(&world, 120, 40).is_none());
         assert!(parity_files_120x40_plate(&world, 120, 40).is_none());
-        assert!(parity_history_80x24_plate(&world, 120, 40).is_none());
-        assert!(parity_history_100x30_plate(&world, 120, 40).is_none());
-        assert!(parity_history_120x40_plate(&world, 120, 40).is_none());
+        assert!(!parity_history_tag_frame(&world));
         assert!(!parity_discovery_tag_frame(&world));
         let view = parity_cargo_120x40_plate(&world, 120, 40).expect("120x40 plate");
         assert!(view.lines.iter().any(|line| matches!(
@@ -6929,9 +6635,7 @@ mod tests {
         assert!(parity_files_80x24_plate(&world, 120, 40).is_none());
         assert!(parity_files_100x30_plate(&world, 120, 40).is_none());
         assert!(parity_files_120x40_plate(&world, 120, 40).is_none());
-        assert!(parity_history_80x24_plate(&world, 120, 40).is_none());
-        assert!(parity_history_100x30_plate(&world, 120, 40).is_none());
-        assert!(parity_history_120x40_plate(&world, 120, 40).is_none());
+        assert!(!parity_history_tag_frame(&world));
         assert!(!parity_discovery_tag_frame(&world));
         let view = parity_git_current_120x40_plate(&world, 120, 40).expect("120x40 plate");
         assert!(view.lines.iter().any(|line| matches!(
