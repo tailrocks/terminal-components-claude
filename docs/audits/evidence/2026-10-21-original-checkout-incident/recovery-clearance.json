@@ -1,0 +1,13 @@
+{
+  "created_utc": "2026-10-21T11:19:18.560655+00:00",
+  "reviewer": "tree_adapter_independent_review",
+  "decision": "PASS_LOGICAL_RECOVERY_AND_PRE_CLEANUP_PRESERVATION",
+  "supersedes_decision_only": {
+    "path": "/private/tmp/original-partial-checkout-independent-recovery-20261021/post-recovery-verification.json",
+    "sha256": "242bf3bb40cd537081f13cf34901f78eb37bed70de8a7e667c9328c02318a4f7"
+  },
+  "verified": "All1136 restored tracked blobs/modes including78 symlinks equal frozen originalHEAD; all13795 index path/blob/mode/stage entries unchanged and equalHEAD; originalHEAD/symbolic branch unchanged; trackedstatus clean; all66317 inventoried untracked paths physically present with unchanged metadata at11:18:13UTC before any later authorized cleanup.",
+  "raw_index_temporal_qualification": "Reviewer observed later raw index SHA a4ea1e380d85f7ab5b092971eabae755e9ef66edfda63d7353d5a0a973c267e5 differing original manifest. Parent reports its immediately-at-restore-completion raw bytes unchanged before later userGitstatus. Reviewer cannot independently attribute the later hash change, and it is not evidence of a staged/source delta because every index entry is unchanged. Ordinary index stat/cache refresh is compatible with these facts. No source-loss finding remains.",
+  "later_cleanup": "This receipt proves preservation before cleanup; subsequent explicitly authorized removal requires its own scoped classification and postcleanup tracked-state verification.",
+  "no_product_writes_or_user_content_backups_by_reviewer": true
+}

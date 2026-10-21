@@ -1,8 +1,8 @@
-use ratatui_core::buffer::{Buffer, CellWidth};
+use ratatui_core::buffer::{Buffer, CellDiffOption, CellWidth};
 use ratatui_core::layout::{Position, Rect};
 use ratatui_core::style::{Color, Modifier, Style};
 
-use super::Ui;
+use super::{Target, Ui};
 use crate::scroll::ScrollState;
 use crate::text::Span;
 use crate::text::clusters::ClusterFeed;
@@ -16,7 +16,8 @@ impl Ui<'_> {
         if area.is_empty() {
             return;
         }
-        let style = style.into_style();
+        let paint = style;
+        let style = paint.into_style();
         for pos in area.positions() {
             let Some(cell) = self.buffer().cell_mut(pos) else {
                 continue;
@@ -42,6 +43,11 @@ impl Ui<'_> {
                 .modifier
                 .difference(explicit.remove)
                 .union(explicit.add);
+            if let Target::Layer(index) = self.target
+                && let Some(layer) = self.frame.layers.active_mut().get_mut(index)
+            {
+                layer.patch_underlay(pos, paint, explicit);
+            }
         }
     }
 
@@ -301,6 +307,15 @@ impl Ui<'_> {
             if !self.cell_written(pos) {
                 continue;
             }
+            if let Target::Layer(index) = self.target
+                && let Some(layer) = self.frame.layers.active_mut().get_mut(index)
+                && layer.has_underlay(pos)
+            {
+                // The actual foreground and backdrop may come from lower
+                // layers. Defer the transform until this layer is composed.
+                layer.defer_fade(pos, container, keep, outer);
+                continue;
+            }
             if let Some(cell) = self.buffer().cell_mut(pos)
                 && cell.bg == container
                 && !cell.modifier.contains(Modifier::REVERSED)
@@ -426,27 +441,61 @@ impl Ui<'_> {
         self.mark_area(area, Some(s));
     }
 
-    /// Space-fill `bg` while keeping the page cell's foreground and modifiers.
-    ///
-    /// Baseline popup fill calls `set_style` with a background only, so the
-    /// glyph becomes a space and the ink underneath stays. Layer buffers start
-    /// empty, so this copies that ink from the page before later paints patch it.
+    /// Space-fill `bg`, preserving the current foreground, underline, and
+    /// modifiers. For a layer, those channels are inherited from the live
+    /// destination when the layer is composited, so stacked overlays inherit
+    /// from the nearest visible lower layer. The supplied raw background has
+    /// no semantic role and replaces any existing background role.
     pub fn fill_keep_ink(&mut self, area: Rect, bg: Color) {
         let area = area.intersection(self.clip);
         if area.is_empty() {
             return;
         }
         for pos in area.positions() {
-            let ink = self.page.cell(pos).map(|cell| (cell.fg, cell.modifier));
-            if let Some(cell) = self.buffer().cell_mut(pos) {
-                cell.set_symbol(" ");
-                if let Some((fg, modifier)) = ink {
-                    cell.fg = fg;
-                    cell.modifier = modifier;
+            match self.target {
+                Target::Page => {
+                    let Some((fg, underline_color, modifier)) = self
+                        .page
+                        .cell(pos)
+                        .map(|cell| (cell.fg, cell.underline_color, cell.modifier))
+                    else {
+                        continue;
+                    };
+                    if let Some(cell) = self.page.cell_mut(pos) {
+                        cell.reset();
+                        cell.set_symbol(" ");
+                        cell.fg = fg;
+                        cell.bg = bg;
+                        cell.underline_color = underline_color;
+                        cell.modifier = modifier;
+                        cell.set_diff_option(CellDiffOption::None);
+                    }
+                    self.mark(pos, Some(PaintStyle::new().bg(bg)));
                 }
-                cell.bg = bg;
+                Target::Layer(index) => {
+                    // Copy the page ink now. A later raw() edit drops the
+                    // replay, and the cleared cell would keep the terminal
+                    // default foreground.
+                    let ink = self
+                        .page
+                        .cell(pos)
+                        .map(|cell| (cell.fg, cell.underline_color, cell.modifier));
+                    if let Some(cell) = self.buffer().cell_mut(pos) {
+                        cell.reset();
+                        cell.set_symbol(" ");
+                        if let Some((fg, underline_color, modifier)) = ink {
+                            cell.fg = fg;
+                            cell.underline_color = underline_color;
+                            cell.modifier = modifier;
+                        }
+                        cell.bg = bg;
+                        cell.set_diff_option(CellDiffOption::None);
+                    }
+                    if let Some(layer) = self.frame.layers.active_mut().get_mut(index) {
+                        layer.begin_underlay(pos, bg);
+                    }
+                }
             }
-            self.mark(pos, None);
         }
     }
 
@@ -649,14 +698,16 @@ const fn index_to_step(i: usize) -> FgStep {
 
 #[cfg(test)]
 mod tests {
-    use ratatui_core::buffer::Buffer;
+    use ratatui_core::buffer::{Buffer, CellDiffOption};
     use ratatui_core::layout::{Position, Rect};
     use ratatui_core::style::{Color, Modifier, Style};
 
     use super::super::cx::LastFrame;
-    use super::super::{FrameState, Ui, UiCore};
+    use super::super::{CellRoles, FrameState, Ui, UiCore};
+    use crate::id::Id;
+    use crate::layer::{Anchor, LayerId, LayerSpec};
     use crate::scroll::ScrollState;
-    use crate::theme::{FgStep, Role, Surface, Theme};
+    use crate::theme::{FgStep, PaintStyle, Role, StylePatch, Surface, Theme};
 
     const SCREEN: Rect = Rect {
         x: 0,
@@ -676,6 +727,166 @@ mod tests {
             f(&mut ui)
         };
         (out, page)
+    }
+
+    #[test]
+    fn underlay_fill_defers_ink_inheritance_until_composition() {
+        const POPUP: Id = Id::root("paint.underlay-fill");
+        let theme = Theme::junie();
+        let mut frame = FrameState::default();
+        frame.reset(1, SCREEN);
+        frame.layers.begin();
+        frame.layers.push(
+            POPUP,
+            LayerId(1),
+            LayerSpec::popover(POPUP, Anchor::Point(Position::new(2, 0))),
+            Rect::new(2, 0, 3, 1),
+            SCREEN,
+        );
+        frame.top = LayerId(1);
+        let mut page = Buffer::empty(SCREEN);
+        let mut core = UiCore::default();
+        let last = LastFrame::default();
+        let target = Position::new(4, 0);
+        let before_roles;
+        {
+            let mut ui = Ui::new(&mut frame, &mut page, &mut core, &theme, &last);
+            let underlay = ui
+                .paint_patch(
+                    &StylePatch::new()
+                        .set_fg(Role::Fg(FgStep::Primary))
+                        .set_bg(Role::CurrentSurface),
+                )
+                .underline_color(Color::Green)
+                .add_modifier(Modifier::UNDERLINED | Modifier::BOLD | Modifier::ITALIC);
+            ui.fill(SCREEN, underlay);
+            ui.paint_str(Rect::new(1, 0, 2, 1), "界", underlay);
+            if let Some(cell) = ui.page_mut().cell_mut(target) {
+                cell.set_diff_option(CellDiffOption::Skip);
+            }
+            let reset_target = Position::new(4, 0);
+            if let Some(cell) = ui.page_mut().cell_mut(reset_target) {
+                cell.fg = Color::Reset;
+                cell.underline_color = Color::Reset;
+                cell.modifier = Modifier::empty();
+            }
+            before_roles = ui.roles_at(target);
+            let _ = ui.layer(POPUP, |ui, area| {
+                ui.fill_keep_ink(area, Color::Black);
+                ui.patch_style(
+                    Rect::new(3, 0, 1, 1),
+                    PaintStyle::new(),
+                    StylePatch {
+                        underline: crate::theme::Slot::Clear,
+                        remove: Modifier::BOLD,
+                        ..StylePatch::new()
+                    },
+                );
+            });
+        }
+
+        let Some(layer) = frame.layers.active().first() else {
+            panic!("underlay layer was registered");
+        };
+        let Some(cell) = layer.buf.cell(target) else {
+            panic!("filled cell exists");
+        };
+        assert_eq!(cell.symbol(), " ");
+        assert_eq!(
+            cell.fg,
+            Color::Reset,
+            "layer closure must not sample the page"
+        );
+        assert_eq!(cell.bg, Color::Black);
+        assert_eq!(cell.underline_color, Color::Reset);
+        assert_eq!(cell.modifier, Modifier::empty());
+        assert_eq!(layer.roles_at(target), CellRoles::default());
+        assert_eq!(cell.diff_option, CellDiffOption::None);
+        let Some(reset_cell) = layer.buf.cell(Position::new(4, 0)) else {
+            panic!("last filled cell exists");
+        };
+        assert_eq!(reset_cell.symbol(), " ");
+        assert_eq!(reset_cell.fg, Color::Reset);
+        assert_eq!(reset_cell.bg, Color::Black);
+        assert_eq!(reset_cell.underline_color, Color::Reset);
+        assert_eq!(reset_cell.modifier, Modifier::empty());
+        assert_eq!(
+            page.cell(Position::new(1, 0)).map(|cell| cell.symbol()),
+            Some("界"),
+            "a partial wide grapheme stays outside the clipped layer buffer"
+        );
+        assert!(layer.is_written(Position::new(4, 0)));
+        assert!(
+            !layer.is_written(Position::new(5, 0)),
+            "filling must not expand beyond the layer's clipped area"
+        );
+
+        let expected_ink = page
+            .cell(target)
+            .map(|cell| (cell.fg, cell.underline_color, cell.modifier));
+        layer.composite_onto(&mut page, &mut frame.roles);
+        let composed = page.cell(target).expect("composited cell is present");
+        assert_eq!(
+            Some((composed.fg, composed.underline_color, composed.modifier)),
+            expected_ink
+        );
+        assert_eq!(composed.bg, Color::Black);
+        assert_eq!(
+            frame.roles.get(frame.role_index(target).unwrap()),
+            Some(&CellRoles {
+                fg: before_roles.fg,
+                bg: None,
+            })
+        );
+        let patched = page.cell(Position::new(3, 0)).expect("patched cell exists");
+        assert_eq!(patched.underline_color, Color::Reset);
+        assert!(!patched.modifier.contains(Modifier::BOLD));
+        assert!(patched.modifier.contains(Modifier::UNDERLINED));
+    }
+
+    #[test]
+    fn move_cell_transfers_underlay_intent_with_the_moved_cell() {
+        const POPUP: Id = Id::root("paint.underlay-move");
+        let theme = Theme::junie();
+        let mut frame = FrameState::default();
+        frame.reset(1, SCREEN);
+        frame.layers.begin();
+        frame.layers.push(
+            POPUP,
+            LayerId(1),
+            LayerSpec::popover(POPUP, Anchor::Point(Position::new(0, 0))),
+            SCREEN,
+            SCREEN,
+        );
+        frame.top = LayerId(1);
+        let mut page = Buffer::empty(SCREEN);
+        page.set_style(SCREEN, Style::new().fg(Color::Blue));
+        let mut core = UiCore::default();
+        let last = LastFrame::default();
+        let source = Position::new(1, 0);
+        let destination = Position::new(3, 0);
+        {
+            let mut ui = Ui::new(&mut frame, &mut page, &mut core, &theme, &last);
+            let _ = ui.layer(POPUP, |ui, area| {
+                ui.fill_keep_ink(area, Color::Black);
+                ui.paint_str(
+                    Rect::new(source.x, source.y, 1, 1),
+                    "X",
+                    Style::new().fg(Color::Yellow),
+                );
+                ui.move_cell(source, destination, PaintStyle::new());
+            });
+        }
+        let layer = frame.layers.active().first().expect("popup exists");
+        layer.composite_onto(&mut page, &mut frame.roles);
+        let moved = page.cell(destination).expect("destination exists");
+        assert_eq!(moved.symbol(), "X");
+        assert_eq!(moved.fg, Color::Yellow);
+        assert_eq!(moved.bg, Color::Black);
+        let reset = page.cell(source).expect("source exists");
+        assert_eq!(reset.symbol(), " ");
+        assert_eq!(reset.fg, Color::Yellow);
+        assert_eq!(reset.bg, Color::Black);
     }
 
     #[test]

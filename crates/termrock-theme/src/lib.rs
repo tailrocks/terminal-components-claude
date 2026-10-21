@@ -53,6 +53,65 @@ pub enum CursorStyle {
     Fill,
 }
 
+fn menu_cursor_modifiers(level: ColorLevel) -> (Modifier, Modifier, Modifier, Modifier) {
+    let active = Modifier::BOLD
+        | if level == ColorLevel::Mono {
+            Modifier::REVERSED
+        } else {
+            Modifier::empty()
+        };
+    let hovered = active
+        | if matches!(level, ColorLevel::Ansi16 | ColorLevel::Mono) {
+            Modifier::UNDERLINED
+        } else {
+            Modifier::empty()
+        };
+    let pressed = Modifier::BOLD
+        | match level {
+            ColorLevel::Ansi16 => Modifier::REVERSED,
+            ColorLevel::Mono => Modifier::UNDERLINED,
+            ColorLevel::TrueColor | ColorLevel::Ansi256 => Modifier::empty(),
+        };
+    let disabled = if matches!(level, ColorLevel::Ansi16 | ColorLevel::Mono) {
+        Modifier::DIM
+    } else {
+        Modifier::empty()
+    };
+    (active, hovered, pressed, disabled)
+}
+
+fn add_menu_cursor_profile(recipe: &mut RecipeEdit, level: ColorLevel) {
+    let (active, hovered, pressed, disabled) = menu_cursor_modifiers(level);
+    let cursor_modifiers = active | hovered | pressed;
+    let active_style = StylePatch::new().add(active);
+    let hover_style = StylePatch::new().add(hovered);
+    let pressed_style = StylePatch::new().remove(active | hovered).add(pressed);
+    let disabled_style = StylePatch::new().remove(cursor_modifiers).add(disabled);
+
+    for part in [Part::ROW, Part::LABEL] {
+        let style = recipe.part(part);
+        style
+            .base(StylePatch::new().remove(cursor_modifiers))
+            .when(StateFlags::ACTIVE, active_style)
+            .when(StateFlags::HOVERED, hover_style)
+            .when(StateFlags::ACTIVE | StateFlags::HOVERED, hover_style)
+            .when(StateFlags::PRESSED, pressed_style)
+            .when(StateFlags::ACTIVE | StateFlags::PRESSED, pressed_style)
+            .when(StateFlags::HOVERED | StateFlags::PRESSED, pressed_style)
+            .when(
+                StateFlags::ACTIVE | StateFlags::HOVERED | StateFlags::PRESSED,
+                pressed_style,
+            )
+            .when(StateFlags::DISABLED, disabled_style)
+            .when(StateFlags::ACTIVE | StateFlags::DISABLED, disabled_style)
+            .when(StateFlags::HOVERED | StateFlags::DISABLED, disabled_style)
+            .when(
+                StateFlags::ACTIVE | StateFlags::HOVERED | StateFlags::DISABLED,
+                disabled_style,
+            );
+    }
+}
+
 use self::recipe::GlobalOverride;
 
 #[derive(Clone, PartialEq, Eq, Debug)]
@@ -106,6 +165,20 @@ impl Theme {
             })
         });
 
+        let profiled_theme =
+            [TrueColor, Ansi256, Ansi16, Mono]
+                .into_iter()
+                .fold(profiled_theme, |theme, level| {
+                    theme.define_variant_for_level(
+                        level,
+                        Family::MENU,
+                        Variant::DEFAULT,
+                        |recipe| {
+                            add_menu_cursor_profile(recipe, level);
+                        },
+                    )
+                });
+
         let profiled_theme = [
             (
                 TrueColor,
@@ -124,28 +197,11 @@ impl Theme {
         ]
         .into_iter()
         .fold(profiled_theme, |theme, (level, rest, hover, pressed)| {
-            let active_modifiers = if level == Mono {
-                Modifier::BOLD | Modifier::REVERSED
-            } else {
-                Modifier::BOLD
-            };
-            let hover_modifiers = match level {
-                Mono => Modifier::BOLD | Modifier::REVERSED | Modifier::UNDERLINED,
-                Ansi16 => Modifier::BOLD | Modifier::UNDERLINED,
-                TrueColor | Ansi256 => Modifier::BOLD,
-            };
-            let pressed_modifiers = match level {
-                Mono => Modifier::BOLD | Modifier::UNDERLINED,
-                Ansi16 => Modifier::BOLD | Modifier::REVERSED,
-                TrueColor | Ansi256 => Modifier::BOLD,
-            };
+            let (active_modifiers, hover_modifiers, pressed_modifiers, disabled_modifiers) =
+                menu_cursor_modifiers(level);
             let disabled_ink = Role::DisabledFg;
-            let disabled_modifiers = if level == Mono {
-                Modifier::DIM
-            } else {
-                Modifier::empty()
-            };
             theme.define_variant_for_level(level, Family::MENU, Variant::DANGER, |recipe| {
+                add_menu_cursor_profile(recipe, level);
                 let disabled_style = StylePatch::new()
                     .set_fg(disabled_ink)
                     .set_bg(Role::CurrentSurface)

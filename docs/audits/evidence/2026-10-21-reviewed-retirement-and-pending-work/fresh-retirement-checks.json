@@ -1,0 +1,37 @@
+[
+  {
+    "ref": "refs/heads/wip/menu-underlay-fill-20261021",
+    "sha": "098aacd5035a94eb739ed08ac17cc4fd279d95ff",
+    "protected": false,
+    "prs": [],
+    "ancestor_of_local_head": true
+  },
+  {
+    "ref": "refs/heads/wip/menu-cursor-theme-contract-20261021",
+    "sha": "02dde9678d3d2d3a6940659025a6551735bdb8d7",
+    "protected": false,
+    "prs": [],
+    "ancestor_of_local_head": true
+  },
+  {
+    "ref": "refs/heads/wip/terminal-view-input-owner-20261021",
+    "sha": "eb068f3a53b20ed12ab86d52aee73042948b940e",
+    "protected": false,
+    "prs": [],
+    "ancestor_of_local_head": true
+  },
+  {
+    "ref": "refs/heads/wip/viewport-contract-repair-20261021",
+    "sha": "8a817200815d73fbc7ecc440c7e27011c5d52b10",
+    "protected": false,
+    "prs": [],
+    "ancestor_of_local_head": true
+  },
+  {
+    "ref": "refs/heads/wip/tree-composition-adapter-20261021",
+    "sha": "92c4ac9b712e2b81214048adacf5472f286ef3ea",
+    "protected": false,
+    "prs": [],
+    "ancestor_of_local_head": true
+  }
+]
