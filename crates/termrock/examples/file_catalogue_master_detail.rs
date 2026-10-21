@@ -1,7 +1,7 @@
 use ratatui::Terminal;
 use ratatui::backend::TestBackend;
 use ratatui_core::layout::Rect;
-use termrock::blocks::{MasterDetail, MasterDetailAction, MasterDetailPolicy, MasterDetailState};
+use termrock::blocks::{MasterDetail, MasterDetailPolicy, MasterDetailState};
 use termrock::composition::{self, Group};
 use termrock::controls::Button;
 use termrock::editors::{CodeEditor, CodeEditorState};
@@ -44,7 +44,7 @@ pub struct FileCatalogue {
     layout: MasterDetailState,
     editor: CodeEditorState,
     policy: MasterDetailPolicy,
-    last_layout_action: Option<MasterDetailAction>,
+    last_layout_changed: bool,
 }
 
 impl Default for FileCatalogue {
@@ -59,7 +59,7 @@ impl Default for FileCatalogue {
                 .gap(2)
                 .collapse_below(60)
                 .summary_rows(1),
-            last_layout_action: None,
+            last_layout_changed: false,
         }
     }
 }
@@ -68,7 +68,7 @@ impl FileCatalogue {
     pub fn with_policy(policy: MasterDetailPolicy) -> Self {
         Self {
             policy,
-            last_layout_action: None,
+            last_layout_changed: false,
             ..Self::default()
         }
     }
@@ -86,7 +86,7 @@ impl FileCatalogue {
                 documents.first().map_or("", |document| document.contents),
             ),
             policy,
-            last_layout_action: None,
+            last_layout_changed: false,
         }
     }
 
@@ -108,8 +108,8 @@ impl FileCatalogue {
         self.layout.split().map(|split| split.basis_points())
     }
 
-    pub const fn last_layout_action(&self) -> Option<MasterDetailAction> {
-        self.last_layout_action
+    pub const fn last_layout_changed(&self) -> bool {
+        self.last_layout_changed
     }
 
     pub fn preview_text(&self) -> &str {
@@ -174,8 +174,8 @@ impl App for FileCatalogue {
             .map_or(README, |document| document.id);
         let block = MasterDetail::new(WORKSPACE, master_owner, PREVIEW).policy(self.policy);
         let dismissed = block.update(cx, &mut self.layout);
-        if let Some(action) = dismissed.action_ref().copied() {
-            self.last_layout_action = Some(action);
+        if dismissed.is_changed() {
+            self.last_layout_changed = true;
         }
         if dismissed.is_consumed() {
             return dismissed.erase();
