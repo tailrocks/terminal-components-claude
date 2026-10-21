@@ -2615,6 +2615,26 @@ mod tests {
     }
 
     #[test]
+    fn retained_editing_cursor_requires_focus_and_returns_after_focus() {
+        let (mut runtime, mut buffer) = focused_runtime("alpha", false);
+        runtime.app_mut().commit_on_blur = false;
+        assert!(runtime.app().state.is_editing());
+        assert!(runtime.cursor().is_some());
+        runtime.set_focus(None);
+        let _ = runtime.settle();
+        runtime.draw_buffer(buffer.area, &mut buffer).commit_presented();
+        assert!(runtime.app().state.is_editing());
+        assert_eq!(runtime.cursor(), None);
+        assert!(runtime.diagnostics().is_empty());
+        runtime.set_focus(Some(ID));
+        let _ = runtime.settle();
+        runtime.draw_buffer(buffer.area, &mut buffer).commit_presented();
+        assert!(runtime.app().state.is_editing());
+        assert!(runtime.cursor().is_some());
+        assert!(runtime.diagnostics().is_empty());
+    }
+
+    #[test]
     fn editor_override_takes_precedence_over_app_edit_entry_policy() {
         let area = Rect::new(0, 0, 40, 5);
         let mut runtime = Runtime::new(

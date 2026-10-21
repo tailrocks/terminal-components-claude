@@ -79,6 +79,21 @@ pub enum BlurPolicy {
     Keep,
 }
 
+/// Initial selection policy when an idle text input first receives focus.
+///
+/// Pointer focus leaves placement and selection to the pointer gesture. A draft
+/// retained across a blur also keeps its existing caret and selection.
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
+pub enum FocusSelect {
+    /// Place the caret at the start when a new edit session begins.
+    CaretStart,
+    /// Keep the editor's normal initial caret position (the end of the value).
+    #[default]
+    CaretEnd,
+    /// Select the complete value when focus starts a new edit session.
+    SelectAll,
+}
+
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
 pub enum EditPhase {
     #[default]
@@ -676,8 +691,7 @@ impl TextInputState {
     }
 
     pub fn select_all(&mut self) {
-        let editing = self.draft_text().is_some();
-        if editing {
+        if self.is_editing() {
             let _ = self.apply(EditAction::SelectAll);
         }
     }
@@ -933,6 +947,7 @@ pub struct TextInput<'a> {
     placeholder_while_editing: bool,
     validate: Option<&'a dyn Validate>,
     blur: BlurPolicy,
+    focus_select: FocusSelect,
     typing_policy: crate::TypingPolicy,
     secret: Option<SecretPolicy>,
     read_only: bool,
@@ -961,6 +976,7 @@ impl fmt::Debug for TextInput<'_> {
             .field("value", &self.value.map(|_| "[redacted]"))
             .field("placeholder", &self.placeholder)
             .field("blur", &self.blur)
+            .field("focus_select", &self.focus_select)
             .field("typing_policy", &self.typing_policy)
             .field("secret", &self.secret)
             .field("read_only", &self.read_only)
@@ -990,6 +1006,7 @@ impl<'a> TextInput<'a> {
             placeholder_while_editing: false,
             validate: None,
             blur: BlurPolicy::CommitAndValidate,
+            focus_select: FocusSelect::CaretEnd,
             typing_policy: crate::TypingPolicy::Focused,
             secret: None,
             read_only: false,
@@ -1032,6 +1049,13 @@ impl<'a> TextInput<'a> {
     #[must_use]
     pub const fn blur(mut self, p: BlurPolicy) -> Self {
         self.blur = p;
+        self
+    }
+
+    /// Choose how a fresh non-pointer edit session initializes selection.
+    #[must_use]
+    pub const fn focus_select(mut self, policy: FocusSelect) -> Self {
+        self.focus_select = policy;
         self
     }
 
@@ -1161,6 +1185,7 @@ impl<'a> TextInput<'a> {
             placeholder_while_editing: self.placeholder_while_editing,
             validate: self.validate,
             blur: self.blur,
+            focus_select: self.focus_select,
             typing_policy: self.typing_policy,
             secret: self.secret,
             read_only: self.read_only,
@@ -1307,9 +1332,31 @@ impl<'a> TextInput<'a> {
         st.edit_menu_request = None;
         for it in cx.intents(self.id) {
             match it {
-                Intent::FocusIn { .. } => {
+                Intent::FocusIn { via } => {
                     if editable {
+                        let starts_edit = !st.is_editing();
                         st.begin(value.expose());
+                        if starts_edit
+                            && matches!(
+                                via,
+                                crate::intent::FocusVia::Keyboard
+                                    | crate::intent::FocusVia::Programmatic
+                                    | crate::intent::FocusVia::Restore
+                            )
+                        {
+                            match self.focus_select {
+                                FocusSelect::CaretStart => {
+                                    let _ = st.apply(EditAction::Move(Motion::Home, Extend::No));
+                                }
+                                FocusSelect::CaretEnd => {}
+                                FocusSelect::SelectAll => {
+                                    // Apply to the private editor draft so sensitive
+                                    // values receive the same selection without ever
+                                    // exposing their text through the public view API.
+                                    st.select_all();
+                                }
+                            }
+                        }
                     }
                 }
                 Intent::FocusOut { to } => {
@@ -2523,6 +2570,18 @@ mod tests {
 
         st.begin("other");
         assert_eq!(st.draft.text(), "hello!");
+    }
+
+    #[test]
+    fn select_all_tracks_secret_draft_without_exposing_text() {
+        const SECRET: &str = "billing-orders-production";
+        let mut state = TextInputState::sensitive();
+        state.begin(SECRET);
+        state.select_all();
+
+        assert_eq!(state.selection(), Some(0..SECRET.len()));
+        assert_eq!(state.draft_text(), None);
+        assert!(!format!("{state:?}").contains(SECRET));
     }
 
     #[test]

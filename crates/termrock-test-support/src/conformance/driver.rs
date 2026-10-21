@@ -211,6 +211,11 @@ fn activate_part<C: Conformance>(
     activate_at::<C>(h, x, y)
 }
 
+fn needs_layer_opened<C: Conformance>() -> bool {
+    has::<C>(Caps::OVERLAY)
+        && (C::activation_id() != C::control_id() || C::opener_id() != C::control_id())
+}
+
 fn open_component_layer<C: Conformance>(h: &mut Harness<CaseApp<C>>) -> Option<Chord> {
     h.app_mut().open_component = true;
     let _ = h.tick();
@@ -262,7 +267,7 @@ pub fn disabled_cannot_activate<C: Conformance>() {
     if !has::<C>(Caps::DISABLEABLE) {
         return;
     }
-    let mut f = Fixture::default();
+    let mut f = C::fixture();
     f.disabled = true;
     let mut h = harness::<C>(f);
     let before = h.app().st.clone();
@@ -315,7 +320,7 @@ pub fn keyboard_and_mouse_activation_are_equivalent<C: Conformance>() {
         "{}: ACTIVATES without activation chords",
         C::NAME
     );
-    let mut mouse = harness::<C>(Fixture::default());
+    let mut mouse = harness::<C>(C::fixture());
     prepare_activation::<C>(&mut mouse);
     clear_activation_setup::<C>(&mut mouse);
     let area = part_area::<C>(&mouse);
@@ -331,7 +336,7 @@ pub fn keyboard_and_mouse_activation_are_equivalent<C: Conformance>() {
     );
     assert_not_opener_action::<C>(&by_mouse, "mouse");
     for chord in chords {
-        let mut kb = harness::<C>(Fixture::default());
+        let mut kb = harness::<C>(C::fixture());
         prepare_activation::<C>(&mut kb);
         clear_activation_setup::<C>(&mut kb);
         let _ = kb.key_mod(chord.code, chord.mods);
@@ -389,11 +394,42 @@ fn assert_not_opener_action<C: Conformance>(action: &Option<C::Action>, gesture:
     }
 }
 
+fn clear_activation_setup<C: Conformance>(h: &mut Harness<CaseApp<C>>) {
+    if let Some(opener_action) = C::opener_action() {
+        assert_eq!(
+            h.app_mut().last.take(),
+            Some(opener_action),
+            "{}: expected the owning-layer opener response before activation",
+            C::NAME
+        );
+    } else {
+        // Other setup paths may produce a harmless response. It must never be
+        // mistaken for the result of the gesture under test.
+        let _ = h.app_mut().last.take();
+    }
+    assert!(
+        h.app().last.is_none(),
+        "{}: stale setup response remained before activation",
+        C::NAME
+    );
+}
+
+fn assert_not_opener_action<C: Conformance>(action: &Option<C::Action>, gesture: &str) {
+    if let Some(opener_action) = C::opener_action() {
+        assert_ne!(
+            *action,
+            Some(opener_action),
+            "{}: {gesture} activation reused the opener response",
+            C::NAME
+        );
+    }
+}
+
 pub fn traversal_order_is_registration_order<C: Conformance>() {
     if !has::<C>(Caps::FOCUSABLE) {
         return;
     }
-    let mut app = CaseApp::<C>::new(Fixture::default());
+    let mut app = CaseApp::<C>::new(C::fixture());
     app.sentinels = true;
     let h = Harness::new(app, Theme::junie(), 40, 12);
     let ids: Vec<Id> = h.ring().reachable().map(|e| e.id).collect();
@@ -412,7 +448,7 @@ pub fn traversal_order_is_registration_order<C: Conformance>() {
 }
 
 pub fn hover_does_not_steal_focus<C: Conformance>() {
-    let mut app = CaseApp::<C>::new(Fixture::default());
+    let mut app = CaseApp::<C>::new(C::fixture());
     app.sentinels = true;
     let mut h = Harness::new(app, Theme::junie(), 40, 12);
     let focus = h.focus();
@@ -451,7 +487,7 @@ pub fn hover_does_not_steal_focus<C: Conformance>() {
 }
 
 pub fn draw_twice_is_byte_identical<C: Conformance>() {
-    let mut h = harness::<C>(Fixture::default()).with_auto_draw(false);
+    let mut h = harness::<C>(C::fixture()).with_auto_draw(false);
     h.draw();
     let a = h.buffer().clone();
     let ra = regions_of::<C>(&h);
@@ -464,8 +500,8 @@ pub fn draw_twice_is_byte_identical<C: Conformance>() {
 
 pub fn draw_twice_leaves_state_equal<C: Conformance>() {
     let variants: Vec<Fixture> = {
-        let mut v = vec![Fixture::default()];
-        let mut d = Fixture::default();
+        let mut v = vec![C::fixture()];
+        let mut d = C::fixture();
         d.disabled = true;
         v.push(d);
         v
@@ -496,7 +532,7 @@ pub fn draw_does_not_commit_or_cancel<C: Conformance>() {
     if !has::<C>(Caps::EDITS) {
         return;
     }
-    let mut h = harness::<C>(Fixture::default());
+    let mut h = harness::<C>(C::fixture());
     assert!(h.tab_to(C::control_id()));
     let _ = h.type_str("x");
     h.blur();
@@ -510,7 +546,7 @@ pub fn draw_does_not_commit_or_cancel<C: Conformance>() {
 }
 
 pub fn draw_stays_inside_its_area<C: Conformance>() {
-    let f = Fixture::default();
+    let f = C::fixture();
     let inner = f.area;
     let mut scene = crate::Scene::new(C::NAME, f.theme.clone(), f.color, 40, 12);
     let st = C::State::default();
@@ -681,13 +717,13 @@ pub fn mono_states_are_distinguishable<C: Conformance>() {
 }
 
 pub fn local_override_does_not_mutate_the_theme<C: Conformance>() {
-    let plain = harness::<C>(Fixture::default());
+    let plain = harness::<C>(C::fixture());
     let plain_digest = plain.snapshot().digest();
     let patch_part = C::PARTS
         .first()
         .copied()
         .unwrap_or(termrock::Part::CONTAINER);
-    let mut f = Fixture::default();
+    let mut f = C::fixture();
     f.patch = Some((
         patch_part,
         termrock::StylePatch::new().set_fg(termrock::Role::Warning),
@@ -695,7 +731,7 @@ pub fn local_override_does_not_mutate_the_theme<C: Conformance>() {
     // Capture the exact runtime's semantic theme before the widget receives
     // its local patch. This detects mutation of the runtime being rendered;
     // Theme equality deliberately ignores only generated recipe revisions.
-    let mut patched = harness::<C>(Fixture::default()).with_auto_draw(false);
+    let mut patched = harness::<C>(C::fixture()).with_auto_draw(false);
     let before = patched.runtime().theme().clone();
     let before_fingerprint = patched.runtime().theme().fingerprint();
     patched.app_mut().fixture.patch = f.patch;
@@ -736,7 +772,7 @@ pub fn local_override_does_not_mutate_the_theme<C: Conformance>() {
 }
 
 pub fn id_separator_collision_free<C: Conformance>() {
-    let h = harness::<C>(Fixture::default());
+    let h = harness::<C>(C::fixture());
     let dups = h
         .diagnostics()
         .iter()
@@ -768,7 +804,7 @@ pub fn item_identity_survives_reorder<C: Conformance>() {
     if !has::<C>(Caps::COLLECTION) {
         return;
     }
-    let mut h = harness::<C>(Fixture::default());
+    let mut h = harness::<C>(C::fixture());
     let keys = C::item_keys(&h.app().fixture);
     assert!(keys.len() >= 2, "{}: need at least two rows", C::NAME);
     if has::<C>(Caps::OVERLAY) {
@@ -913,7 +949,7 @@ pub fn focus_reconcile_follows_the_rule<C: Conformance>() {
     if !has::<C>(Caps::FOCUSABLE) {
         return;
     }
-    let mut app = CaseApp::<C>::new(Fixture::default());
+    let mut app = CaseApp::<C>::new(C::fixture());
     app.sentinels = true;
     let mut h = Harness::new(app, Theme::junie(), 40, 12);
     assert!(h.tab_to(C::control_id()));
@@ -970,7 +1006,7 @@ pub fn focus_trap_and_restore<C: Conformance>() {
     if !has::<C>(Caps::OVERLAY) {
         return;
     }
-    let mut app = CaseApp::<C>::new(Fixture::default());
+    let mut app = CaseApp::<C>::new(C::fixture());
     app.sentinels = true;
     let mut h = Harness::new(app, Theme::junie(), 40, 12);
     assert!(h.tab_to(C::opener_id()));
@@ -1108,7 +1144,7 @@ pub fn pointer_capture_delivers_drag_and_release<C: Conformance>() {
     if !has::<C>(Caps::CAPTURES) {
         return;
     }
-    let mut h = harness::<C>(Fixture::default());
+    let mut h = harness::<C>(C::fixture());
     let area = part_area::<C>(&h);
     let (x, y) = centre(area);
     let _ = h.mouse(MouseKind::Down, x, y);
@@ -1145,7 +1181,7 @@ pub fn wheel_at_boundary_is_consumed_without_repaint<C: Conformance>() {
     if !has::<C>(Caps::SCROLLS) {
         return;
     }
-    let mut fixture = Fixture::default();
+    let mut fixture = C::fixture();
     C::prepare_scroll_fixture(&mut fixture);
     let theme = fixture.theme.clone().downgrade(fixture.color);
     let mut app = CaseApp::<C>::new(fixture);
@@ -1205,7 +1241,7 @@ pub fn cursor_write_is_rejected_off_top_layer<C: Conformance>() {
     if !has::<C>(Caps::CURSOR) {
         return;
     }
-    let mut h = harness::<C>(Fixture::default());
+    let mut h = harness::<C>(C::fixture());
     assert!(h.tab_to(C::control_id()));
     assert!(
         h.cursor().is_some(),
@@ -1236,7 +1272,7 @@ pub fn secret_never_appears_in_debug<C: Conformance>() {
         "{}: SECRET without secret bytes",
         C::NAME
     );
-    let mut f = Fixture::default();
+    let mut f = C::fixture();
     f.secret = Some(secret);
     let mut h = harness::<C>(f);
     assert!(h.tab_to(C::control_id()));
@@ -1246,7 +1282,7 @@ pub fn secret_never_appears_in_debug<C: Conformance>() {
     assert!(!h.text().contains(secret), "{}: secret on screen", C::NAME);
     let d1 = h.snapshot().digest();
     let other: String = secret.chars().map(|_| 'z').collect();
-    let mut f2 = Fixture::default();
+    let mut f2 = C::fixture();
     f2.secret = Some(secret);
     let mut h2 = harness::<C>(f2);
     assert!(h2.tab_to(C::control_id()));
@@ -1262,7 +1298,7 @@ pub fn secret_never_appears_in_debug<C: Conformance>() {
 pub fn survives_tiny_rects_0x0_to_3x3<C: Conformance>() {
     for w in 0..=3u16 {
         for hgt in 0..=3u16 {
-            let mut f = Fixture::default();
+            let mut f = C::fixture();
             f.area = Rect::new(5, 5, w, hgt);
             let inner = f.area;
             let mut scene = crate::Scene::new(C::NAME, f.theme.clone(), f.color, 12, 12);
@@ -1314,7 +1350,7 @@ pub fn survives_tiny_rects_0x0_to_3x3<C: Conformance>() {
             C::layer_id().unwrap_or_else(|| panic!("{}: OVERLAY without a layer id", C::NAME));
         for width in 0..=3u16 {
             for height in 0..=3u16 {
-                let mut h = harness::<C>(Fixture::default());
+                let mut h = harness::<C>(C::fixture());
                 assert!(h.tab_to(C::opener_id()));
                 let _ = open_component_layer::<C>(&mut h);
                 assert!(h.is_open(layer), "{}: overlay did not open", C::NAME);
@@ -1390,6 +1426,9 @@ fn dynamic_bindings_follow_keymap<C: Conformance>(
         let owner = C::dynamic_binding_id(*action);
         let mut default = harness::<C>(fixture.clone());
         assert!(default.tab_to(owner));
+        if needs_layer_opened::<C>() {
+            let _ = open_component_layer::<C>(&mut default);
+        }
         assert!(
             default.key_mod(chord.code, chord.mods).is_consumed(),
             "{}: dynamic binding {chord} was not consumed",
@@ -1399,6 +1438,9 @@ fn dynamic_bindings_follow_keymap<C: Conformance>(
         let replacement = Chord::key(KeyCode::F(11));
         let mut remapped = harness::<C>(fixture.clone());
         assert!(remapped.tab_to(owner));
+        if needs_layer_opened::<C>() {
+            let _ = open_component_layer::<C>(&mut remapped);
+        }
         remapped
             .app_mut()
             .keymap
@@ -1413,6 +1455,9 @@ fn dynamic_bindings_follow_keymap<C: Conformance>(
 
         let mut removed = harness::<C>(fixture.clone());
         assert!(removed.tab_to(owner));
+        if needs_layer_opened::<C>() {
+            let _ = open_component_layer::<C>(&mut removed);
+        }
         removed.app_mut().keymap.remove_component(owner, *action);
         assert!(
             !removed.key_mod(chord.code, chord.mods).is_consumed(),
@@ -1424,7 +1469,7 @@ fn dynamic_bindings_follow_keymap<C: Conformance>(
 
 pub fn bindings_match_handled_keys<C: Conformance>() {
     let states = C::binding_states();
-    let fixture = Fixture::default();
+    let fixture = C::fixture();
     let dynamic = C::dynamic_bindings(&fixture);
     if states.iter().all(|state| C::bindings(*state).is_empty())
         && dynamic.is_empty()
@@ -1437,9 +1482,9 @@ pub fn bindings_match_handled_keys<C: Conformance>() {
         let table = C::bindings(st);
 
         for b in table {
-            let mut h = harness::<C>(Fixture::default());
+            let mut h = harness::<C>(C::fixture());
             assert!(h.tab_to(C::control_id()));
-            if has::<C>(Caps::OVERLAY) && C::activation_id() != C::control_id() {
+            if needs_layer_opened::<C>() {
                 let _ = open_component_layer::<C>(&mut h);
             }
             let chord = if let Some(chord) = b.chord {
@@ -1467,7 +1512,7 @@ pub fn bindings_match_handled_keys<C: Conformance>() {
             if has::<C>(Caps::TYPES) && chord.is_bare_char() {
                 continue;
             }
-            let mut h = harness::<C>(Fixture::default());
+            let mut h = harness::<C>(C::fixture());
             let owner = dynamic
                 .iter()
                 .find_map(|(action, declared)| {
@@ -1480,7 +1525,7 @@ pub fn bindings_match_handled_keys<C: Conformance>() {
                 })
                 .unwrap_or_else(C::control_id);
             assert!(h.tab_to(owner));
-            if has::<C>(Caps::OVERLAY) && C::activation_id() != C::control_id() {
+            if needs_layer_opened::<C>() {
                 let _ = open_component_layer::<C>(&mut h);
             }
             let r = h.key_mod(chord.code, chord.mods);
