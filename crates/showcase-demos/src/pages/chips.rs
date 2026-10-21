@@ -920,20 +920,21 @@ impl Page for ChipsPage {
         if top >= body.bottom() {
             return;
         }
+        let playground_area = Rect {
+            y: top,
+            height: body.bottom().saturating_sub(top),
+            ..body
+        };
+        let (chip_area, rest) = termrock::layout::split_v(playground_area, 4);
+        chips().draw(ui, chip_area, &self.chip_state, FILTERS);
+        let (select_area, _) = termrock::layout::split_v(rest, 3);
+        select().draw(ui, select_area, &self.select_state, LANGUAGES);
         let action = if self.last == "no filter selected" {
             "nothing yet"
         } else {
             self.last
         };
-        paint_playground(
-            ui,
-            Rect {
-                y: top,
-                height: body.bottom().saturating_sub(top),
-                ..body
-            },
-            action,
-        );
+        paint_playground(ui, playground_area, action);
     }
 
     fn hints(&self, ui: &Ui<'_>) -> &'static [(&'static str, &'static str)] {
