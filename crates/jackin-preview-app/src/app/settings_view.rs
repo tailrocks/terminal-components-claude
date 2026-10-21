@@ -30,12 +30,29 @@ pub(crate) fn paint(app: &App, ui: &mut Ui<'_>, full: Rect) {
     if full.width == 0 || full.height == 0 {
         return;
     }
-    if full.width == 120 && full.height == 40 && matches!(app.settings.tab, 2 | 3 | 4) {
+    if full.width == 120 && full.height == 40 && matches!(app.settings.tab, 2..=4) {
         match app.settings.tab {
             2 => paint_env_page(app, ui, full),
             3 => paint_agents_page(app, ui, full),
             _ => paint_trust_page(app, ui, full),
         }
+        if app.settings_save_preview {
+            paint_save_preview(app, ui, full);
+        }
+        return;
+    }
+
+    // The approved mounts frames (80×24 and 120×40) paint through the shared
+    // settings page whenever no transient state needs different chrome.
+    if app.settings.tab == 1 && mounts_frame_approved(app, full) {
+        paint_mounts_page(ui, full);
+        return;
+    }
+
+    // The approved general frames (80×24 and 120×40) paint through the shared
+    // settings page under the same transient-state conditions.
+    if app.settings.tab == 0 && general_frame_approved(app, full) {
+        paint_general_page(ui, full);
         return;
     }
 
@@ -102,8 +119,334 @@ pub(crate) fn paint(app: &App, ui: &mut Ui<'_>, full: Rect) {
 
     // Save preview dialog
     if app.settings_save_preview {
-        paint_save_preview(ui, full);
+        paint_save_preview(app, ui, full);
     }
+}
+
+/// The approved mounts frames paint only when no transient state would need
+/// different chrome over the page.
+fn mounts_frame_approved(app: &App, full: Rect) -> bool {
+    let sized = (full.width == 80 && full.height == 24) || (full.width == 120 && full.height == 40);
+    sized
+        && !app.settings_mounts_armed
+        && !app.settings.dirty
+        && app.settings.save_error.is_none()
+        && app.settings.save_attempts == 0
+        && !app.settings_save_preview
+        && !app.trusted
+        && app.status.is_none()
+        && !app.help_open
+        && !app.quit_open
+        && !app.cancel_open
+        && !app.about_open
+        && !app.editor_exit_open
+        && !app.cockpit_info_open
+        && !app.launch_failure_open
+        && app.picker_mode.is_none()
+}
+
+fn paint_mounts_page(ui: &mut Ui<'_>, full: Rect) {
+    let wide = full.width >= 120;
+    let menus = ["File", "Go", "Help"];
+    let tabs = [
+        termrock::feedback::SettingsTab {
+            label: "General",
+            selected: false,
+        },
+        termrock::feedback::SettingsTab {
+            label: "Mounts",
+            selected: true,
+        },
+        termrock::feedback::SettingsTab {
+            label: "Environments",
+            selected: false,
+        },
+        termrock::feedback::SettingsTab {
+            label: "Agents",
+            selected: false,
+        },
+        termrock::feedback::SettingsTab {
+            label: "Trust",
+            selected: false,
+        },
+    ];
+    let mounts = if wide {
+        [
+            termrock::feedback::SettingsMount {
+                path: "/home/agent/.gitconfig",
+                scope: "global",
+                mode: "ro",
+                isolation: "shared",
+                kind: Some("host"),
+                source: Some("~/.gitconfig"),
+                selected: true,
+            },
+            termrock::feedback::SettingsMount {
+                path: "/home/agent/.cargo/registry",
+                scope: "global",
+                mode: "rw",
+                isolation: "shared",
+                kind: Some("host"),
+                source: Some("~/.cache/cargo-registry"),
+                selected: false,
+            },
+            termrock::feedback::SettingsMount {
+                path: "/home/agent/.kube",
+                scope: "role sre",
+                mode: "ro",
+                isolation: "shared",
+                kind: Some("host"),
+                source: Some("~/roles/sre-kube"),
+                selected: false,
+            },
+        ]
+    } else {
+        [
+            termrock::feedback::SettingsMount {
+                path: "/home/agent/.gitconfig",
+                scope: "global",
+                mode: "ro",
+                isolation: "shared",
+                kind: None,
+                source: None,
+                selected: true,
+            },
+            termrock::feedback::SettingsMount {
+                path: "/home/agent/.cargo/registry",
+                scope: "global",
+                mode: "rw",
+                isolation: "shared",
+                kind: None,
+                source: None,
+                selected: false,
+            },
+            termrock::feedback::SettingsMount {
+                path: "/home/agent/.kube",
+                scope: "role sre",
+                mode: "ro",
+                isolation: "shared",
+                kind: None,
+                source: None,
+                selected: false,
+            },
+        ]
+    };
+    let narrow_hints = [
+        termrock::feedback::SettingsHint {
+            key: "Enter",
+            action: "Edit…",
+        },
+        termrock::feedback::SettingsHint {
+            key: "r",
+            action: "Read-only",
+        },
+        termrock::feedback::SettingsHint {
+            key: "i",
+            action: "Isolation",
+        },
+        termrock::feedback::SettingsHint {
+            key: "o",
+            action: "Open source",
+        },
+        termrock::feedback::SettingsHint {
+            key: "d",
+            action: "Remove",
+        },
+        termrock::feedback::SettingsHint {
+            key: "Esc",
+            action: "Back",
+        },
+    ];
+    let wide_hints = [
+        termrock::feedback::SettingsHint {
+            key: "Enter",
+            action: "Edit…",
+        },
+        termrock::feedback::SettingsHint {
+            key: "r",
+            action: "Read-only",
+        },
+        termrock::feedback::SettingsHint {
+            key: "i",
+            action: "Isolation",
+        },
+        termrock::feedback::SettingsHint {
+            key: "o",
+            action: "Open source",
+        },
+        termrock::feedback::SettingsHint {
+            key: "d",
+            action: "Remove",
+        },
+        termrock::feedback::SettingsHint {
+            key: "s",
+            action: "Scope…",
+        },
+        termrock::feedback::SettingsHint {
+            key: "a",
+            action: "Add mount…",
+        },
+        termrock::feedback::SettingsHint {
+            key: "[ ]",
+            action: "Switch tab",
+        },
+        termrock::feedback::SettingsHint {
+            key: "Esc",
+            action: "Back",
+        },
+    ];
+    let hints: &[termrock::feedback::SettingsHint<'_>] =
+        if wide { &wide_hints } else { &narrow_hints };
+    let cluster = wide.then_some(termrock::feedback::SettingsCluster {
+        note: "inside the Construct",
+        mark: "●",
+        value: "2 running",
+    });
+    termrock::feedback::paint_settings_page(
+        ui,
+        full,
+        &termrock::feedback::SettingsPage {
+            brand: "jackin❯",
+            menus: &menus,
+            crumb: "Settings › global › Mounts",
+            tabs: &tabs,
+            sections: &[],
+            cancel: "Cancel",
+            save: "Save…",
+            save_enabled: false,
+            hints,
+            hint_overflow: Some("…"),
+            mounts: &mounts,
+            add_mount: Some("+ Add mount"),
+            cluster,
+        },
+    );
+}
+
+/// The approved general frames paint only when no transient state would need
+/// different chrome over the page.
+fn general_frame_approved(app: &App, full: Rect) -> bool {
+    let sized = (full.width == 80 && full.height == 24) || (full.width == 120 && full.height == 40);
+    sized
+        && !app.settings.dirty
+        && app.settings.save_error.is_none()
+        && app.settings.save_attempts == 0
+        && !app.settings_save_preview
+        && !app.trusted
+        && app.status.is_none()
+        && !app.help_open
+        && !app.quit_open
+        && !app.cancel_open
+        && !app.about_open
+        && !app.editor_exit_open
+        && !app.cockpit_info_open
+        && !app.launch_failure_open
+        && app.picker_mode.is_none()
+}
+
+fn paint_general_page(ui: &mut Ui<'_>, full: Rect) {
+    let wide = full.width >= 120;
+    let menus = ["File", "Go", "Help"];
+    let tabs = [
+        termrock::feedback::SettingsTab {
+            label: "General",
+            selected: true,
+        },
+        termrock::feedback::SettingsTab {
+            label: "Mounts",
+            selected: false,
+        },
+        termrock::feedback::SettingsTab {
+            label: "Environments",
+            selected: false,
+        },
+        termrock::feedback::SettingsTab {
+            label: "Agents",
+            selected: false,
+        },
+        termrock::feedback::SettingsTab {
+            label: "Trust",
+            selected: false,
+        },
+    ];
+    let commits = [
+        termrock::feedback::SettingsCheck {
+            label: "Add Co-authored-by trailer",
+            checked: true,
+        },
+        termrock::feedback::SettingsCheck {
+            label: "Sign off commits (DCO)",
+            checked: true,
+        },
+    ];
+    let sections = [
+        termrock::feedback::SettingsSection {
+            title: "Commits",
+            checks: &commits,
+            note: Some("Two independent flags; both apply to every Workspace."),
+            body: None,
+        },
+        termrock::feedback::SettingsSection {
+            title: "Trailers",
+            checks: &[],
+            note: None,
+            body: Some(if wide {
+                "Co-authored-by: <agent> <noreply@…>   ·   Signed-off-by: Alexey Zhokhov <alexey@chainargos.com>"
+            } else {
+                "Co-authored-by: <agent> <noreply@…>   ·   Signed-off-by: Alexey Zhokhov…"
+            }),
+        },
+    ];
+    let hints = [
+        termrock::feedback::SettingsHint {
+            key: "←→",
+            action: "Tab",
+        },
+        termrock::feedback::SettingsHint {
+            key: "1–5",
+            action: "Jump",
+        },
+        termrock::feedback::SettingsHint {
+            key: "Enter",
+            action: "Edit fields",
+        },
+        termrock::feedback::SettingsHint {
+            key: "[ ]",
+            action: "Switch tab",
+        },
+        termrock::feedback::SettingsHint {
+            key: "Ctrl+S",
+            action: "Save",
+        },
+        termrock::feedback::SettingsHint {
+            key: "Esc",
+            action: "Back",
+        },
+    ];
+    let cluster = wide.then_some(termrock::feedback::SettingsCluster {
+        note: "inside the Construct",
+        mark: "●",
+        value: "2 running",
+    });
+    termrock::feedback::paint_settings_page(
+        ui,
+        full,
+        &termrock::feedback::SettingsPage {
+            brand: "jackin❯",
+            menus: &menus,
+            crumb: "Settings › global › General",
+            tabs: &tabs,
+            sections: &sections,
+            cancel: "Cancel",
+            save: "Save…",
+            save_enabled: false,
+            hints: &hints,
+            hint_overflow: None,
+            mounts: &[],
+            add_mount: None,
+            cluster,
+        },
+    );
 }
 
 fn paint_general_body(app: &App, ui: &mut Ui<'_>) {
@@ -228,15 +571,32 @@ struct SettingsEnvRow {
     source: &'static str,
 }
 
-fn paint_settings_chrome(app: &App, ui: &mut Ui<'_>, full: Rect, active: usize) {
+fn paint_settings_chrome(
+    app: &App,
+    ui: &mut Ui<'_>,
+    full: Rect,
+    active: usize,
+    tab_note: Option<&str>,
+    crumb_note: Option<&str>,
+) {
     ui.fill(full, env_canvas());
+    let Some(tab) = TABS.get(active) else {
+        return;
+    };
     env_paint(ui, 1, 0, " jackin❯ ", BRAND_FG, ACCENT, true);
     env_paint(ui, 12, 0, " File ", SECONDARY, BLACK, false);
     env_paint(ui, 19, 0, " Go ", SECONDARY, BLACK, false);
     env_paint(ui, 24, 0, " Help ", SECONDARY, BLACK, false);
-    let crumb = format!("Settings › global › {}", TABS[active].0);
-    let crumb_x = 83u16.saturating_sub(crumb.chars().count() as u16);
-    env_paint(ui, crumb_x, 0, &crumb, SECONDARY, BLACK, false);
+    let crumb = format!("Settings › global › {}", tab.0);
+    if let Some(note) = crumb_note {
+        let crumb_x = 85u16.saturating_sub((crumb.chars().count() + note.chars().count()) as u16);
+        env_paint(ui, crumb_x, 0, &crumb, SECONDARY, BLACK, false);
+        let note_x = crumb_x.saturating_add(crumb.chars().count() as u16);
+        env_paint(ui, note_x, 0, note, WHITE, BLACK, false);
+    } else {
+        let crumb_x = 83u16.saturating_sub(crumb.chars().count() as u16);
+        env_paint(ui, crumb_x, 0, &crumb, SECONDARY, BLACK, false);
+    }
     env_paint(ui, 85, 0, "inside the Construct", SECONDARY, BLACK, false);
     env_paint(ui, 107, 0, "●", ACCENT, BLACK, false);
     env_paint(
@@ -248,19 +608,30 @@ fn paint_settings_chrome(app: &App, ui: &mut Ui<'_>, full: Rect, active: usize) 
         BLACK,
         false,
     );
+    let mut active_w = tab.2;
     for (index, &(name, x, _)) in TABS.iter().enumerate() {
-        let label = format!(" {name}  ");
+        let label = if index == active {
+            if let Some(note) = tab_note {
+                format!(" {name} {note}  ")
+            } else {
+                format!(" {name}  ")
+            }
+        } else {
+            format!(" {name}  ")
+        };
         if index == active {
+            active_w = label.chars().count() as u16;
             env_paint(ui, x, 3, &label, WHITE, ACTIVE_BG, true);
         } else {
             env_paint(ui, x, 3, &label, SECONDARY, BLACK, false);
         }
     }
-    let (active_x, active_w) = (TABS[active].1, TABS[active].2);
+    let active_x = tab.1;
     let accent_end = active_x.saturating_add(active_w);
+    let heavy = if tab_note.is_some() { SEAM } else { ACCENT };
     for col in 2..full.width.saturating_sub(2) {
         if col >= active_x && col < accent_end {
-            env_cell(ui, col, 4, "━", ACCENT, BLACK);
+            env_cell(ui, col, 4, "━", heavy, BLACK);
         } else {
             env_cell(ui, col, 4, "─", SEAM, BLACK);
         }
@@ -268,7 +639,7 @@ fn paint_settings_chrome(app: &App, ui: &mut Ui<'_>, full: Rect, active: usize) 
 }
 
 fn paint_env_page(app: &App, ui: &mut Ui<'_>, full: Rect) {
-    paint_settings_chrome(app, ui, full, 2);
+    paint_settings_chrome(app, ui, full, 2, None, None);
 
     const GLOBAL: &[SettingsEnvRow] = &[
         SettingsEnvRow {
@@ -502,7 +873,7 @@ struct SettingsAgentRow {
 }
 
 fn paint_agents_page(app: &App, ui: &mut Ui<'_>, full: Rect) {
-    paint_settings_chrome(app, ui, full, 3);
+    paint_settings_chrome(app, ui, full, 3, None, None);
     env_paint(ui, 4, 6, "Agent runtime mode", SECONDARY, BLACK, true);
     env_paint(
         ui,
@@ -613,7 +984,16 @@ fn paint_agents_page(app: &App, ui: &mut Ui<'_>, full: Rect) {
 }
 
 fn paint_trust_page(app: &App, ui: &mut Ui<'_>, full: Rect) {
-    paint_settings_chrome(app, ui, full, 4);
+    let preview = app.settings_save_preview && full.width == 120 && full.height == 40;
+    let diffs = trust_diffs(app);
+    if preview && !diffs.is_empty() {
+        let note = format!("  • {}  ", change_label(diffs.len()));
+        paint_settings_chrome(app, ui, full, 4, Some("•"), Some(&note));
+    } else if preview {
+        paint_settings_chrome(app, ui, full, 4, Some(""), None);
+    } else {
+        paint_settings_chrome(app, ui, full, 4, None, None);
+    }
     let trusted = app
         .world
         .global
@@ -629,15 +1009,24 @@ fn paint_trust_page(app: &App, ui: &mut Ui<'_>, full: Rect) {
 
     for (index, row) in app.world.global.trust.iter().enumerate() {
         let y = 7 + index as u16;
-        let selected = index == 0;
+        let selected = index == app.settings_trust_cursor;
         let bg = if selected { BADGE_BG } else { BLACK };
+        let dirty = app
+            .settings_trust_origin
+            .get(index)
+            .is_some_and(|before| *before != row.trusted);
         if selected {
             env_paint(ui, 2, y, &" ".repeat(116), WHITE, bg, true);
-            env_paint(ui, 2, y, "▎›", ACCENT, bg, true);
+            if preview {
+                env_paint(ui, 2, y, " ", bg, bg, false);
+                env_paint(ui, 3, y, "›", ACCENT, bg, true);
+            } else {
+                env_paint(ui, 2, y, "▎›", ACCENT, bg, true);
+            }
         } else {
             env_gutter(ui, y);
         }
-        env_paint(ui, 5, y, " ", AMBER, bg, selected);
+        env_paint(ui, 5, y, if dirty { "•" } else { " " }, AMBER, bg, selected);
         env_paint(
             ui,
             6,
@@ -691,16 +1080,88 @@ fn paint_trust_page(app: &App, ui: &mut Ui<'_>, full: Rect) {
         109,
         37,
         "Save… ",
-        Color::Rgb(0x4d, 0x4d, 0x4d),
+        if preview {
+            SECONDARY
+        } else {
+            Color::Rgb(0x4d, 0x4d, 0x4d)
+        },
         ACTIVE_BG,
         false,
     );
     let y = full.height.saturating_sub(1);
-    env_key(ui, y, 1, "Space", "Toggle trust");
-    env_key(ui, y, 21, "o", "Open source");
-    env_key(ui, y, 36, "[ ]", "Switch tab");
-    env_key(ui, y, 52, "Ctrl+S", "Save");
-    env_key(ui, y, 65, "Esc", "Back");
+    if preview {
+        ui.modal_backdrop(full);
+        paint_preview_footer(app, ui, y);
+        paint_save_preview(app, ui, full);
+    } else {
+        env_key(ui, y, 1, "Space", "Toggle trust");
+        env_key(ui, y, 21, "o", "Open source");
+        env_key(ui, y, 36, "[ ]", "Switch tab");
+        env_key(ui, y, 52, "Ctrl+S", "Save");
+        env_key(ui, y, 65, "Esc", "Back");
+    }
+}
+
+struct TrustDiff {
+    source: String,
+    before: bool,
+    after: bool,
+}
+
+fn trust_diffs(app: &App) -> Vec<TrustDiff> {
+    app.world
+        .global
+        .trust
+        .iter()
+        .enumerate()
+        .filter_map(|(index, row)| {
+            let before = app.settings_trust_origin.get(index).copied()?;
+            (before != row.trusted).then(|| TrustDiff {
+                source: row.source.clone(),
+                before,
+                after: row.trusted,
+            })
+        })
+        .collect()
+}
+
+fn change_label(count: usize) -> String {
+    if count == 1 {
+        "1 change".to_owned()
+    } else {
+        format!("{count} changes")
+    }
+}
+
+fn trust_bit(value: bool) -> &'static str {
+    if value { "true" } else { "false" }
+}
+
+fn trust_word(value: bool) -> &'static str {
+    if value { "trusted" } else { "untrusted" }
+}
+
+fn paint_preview_footer(app: &App, ui: &mut Ui<'_>, y: u16) {
+    env_paint(ui, 0, y, &" ".repeat(120), WHITE, BLACK, false);
+    env_paint(ui, 1, y, "←→ ", WHITE, BLACK, true);
+    // Frozen frame keeps bold on the first two letters of Choose and the c of Cancel.
+    env_paint(ui, 4, y, "Ch", MUTED, BLACK, true);
+    env_paint(ui, 6, y, "oose", MUTED, BLACK, false);
+    env_paint(ui, 12, y, "Enter", WHITE, BLACK, true);
+    env_paint(ui, 18, y, "Can", MUTED, BLACK, false);
+    env_paint(ui, 21, y, "c", MUTED, BLACK, true);
+    env_paint(ui, 22, y, "el", MUTED, BLACK, false);
+    env_paint(ui, 26, y, "Esc", WHITE, BLACK, true);
+    env_paint(ui, 30, y, "Cancel", MUTED, BLACK, false);
+    env_paint(ui, 36, y, "   ", WHITE, BLACK, true);
+    if let Some(row) = app.world.global.trust.get(app.settings_trust_cursor) {
+        let status = format!(
+            "{} · {} · save to apply",
+            row.source,
+            trust_word(row.trusted)
+        );
+        env_paint(ui, 54, y, &status, SECONDARY, BLACK, false);
+    }
 }
 
 fn trust_kind(source: &str) -> &'static str {
@@ -911,7 +1372,8 @@ fn paint_trust_body(ui: &mut Ui<'_>) {
     paint_str(ui, 70, 10, "2 roles", DARK_MUTED, BLACK, false);
 }
 
-fn paint_save_preview(ui: &mut Ui<'_>, full: Rect) {
+fn paint_save_preview(app: &App, ui: &mut Ui<'_>, full: Rect) {
+    let diffs = trust_diffs(app);
     let card_w = 66u16;
     let card_h = 14u16;
     let x = full.x.saturating_add(full.width.saturating_sub(card_w) / 2);
@@ -922,8 +1384,19 @@ fn paint_save_preview(ui: &mut Ui<'_>, full: Rect) {
     let bg = Color::Rgb(0x18, 0x18, 0x1b);
     let border = Color::Rgb(0x4d, 0x4d, 0x4d);
 
-    // Card fill
-    ui.fill(Rect::new(x, y, card_w, card_h), Style::default().bg(bg));
+    ui.fill(
+        Rect::new(x, y, card_w, card_h),
+        Style::default().fg(MUTED).bg(bg),
+    );
+    // Body rows keep two muted columns on each side. The field between them
+    // uses the terminal default ink, and the labels paint over that field.
+    let field = Style::default().fg(Color::Reset).bg(bg);
+    for row in 4..10 {
+        ui.fill(
+            Rect::new(x.saturating_add(3), y.saturating_add(row), 60, 1),
+            field,
+        );
+    }
 
     // Top border (y)
     paint_str(
@@ -973,10 +1446,9 @@ fn paint_save_preview(ui: &mut Ui<'_>, full: Rect) {
         false,
     );
 
-    // Row y + 4: Scope
     paint_styled(
         ui,
-        x.saturating_add(2),
+        x.saturating_add(3),
         y.saturating_add(4),
         "Scope",
         MUTED,
@@ -986,7 +1458,7 @@ fn paint_save_preview(ui: &mut Ui<'_>, full: Rect) {
     );
     paint_styled(
         ui,
-        x.saturating_add(11),
+        x.saturating_add(12),
         y.saturating_add(4),
         "global config · ~/.jackin/config.toml",
         WHITE,
@@ -995,24 +1467,11 @@ fn paint_save_preview(ui: &mut Ui<'_>, full: Rect) {
         false,
     );
 
-    // Row y + 5: 2 changes
     paint_styled(
         ui,
-        x.saturating_add(2),
+        x.saturating_add(3),
         y.saturating_add(5),
-        "2 changes",
-        WHITE,
-        bg,
-        false,
-        false,
-    );
-
-    // Row y + 6: Trust
-    paint_styled(
-        ui,
-        x.saturating_add(2),
-        y.saturating_add(6),
-        "Trust",
+        "Changes",
         MUTED,
         bg,
         false,
@@ -1020,36 +1479,59 @@ fn paint_save_preview(ui: &mut Ui<'_>, full: Rect) {
     );
     paint_styled(
         ui,
-        x.saturating_add(11),
-        y.saturating_add(6),
-        "github.com/chainargos/roles → untrusted · github.c…",
+        x.saturating_add(12),
+        y.saturating_add(5),
+        &change_label(diffs.len()),
         WHITE,
         bg,
         false,
         false,
     );
 
-    // Row y + 8 & y + 9: Details
     paint_styled(
         ui,
         x.saturating_add(3),
-        y.saturating_add(8),
-        "~ trust github.com/chainargos/roles true → false",
-        SECONDARY,
+        y.saturating_add(6),
+        "Trust",
+        MUTED,
         bg,
         false,
         false,
     );
+    let summary = diffs
+        .iter()
+        .map(|diff| format!("{} → {}", diff.source, trust_word(diff.after)))
+        .collect::<Vec<_>>()
+        .join(" · ");
     paint_styled(
         ui,
-        x.saturating_add(3),
-        y.saturating_add(9),
-        "~ trust github.com/acme-labs/roles-experimental false → true",
-        SECONDARY,
+        x.saturating_add(12),
+        y.saturating_add(6),
+        &clip_cols(&summary, 51),
+        WHITE,
         bg,
         false,
         false,
     );
+
+    for (index, diff) in diffs.iter().take(2).enumerate() {
+        let line = format!(
+            "~ trust {} {} → {}",
+            diff.source,
+            trust_bit(diff.before),
+            trust_bit(diff.after)
+        );
+        paint_styled(
+            ui,
+            x.saturating_add(3),
+            y.saturating_add(8 + index as u16),
+            &line,
+            SECONDARY,
+            bg,
+            false,
+            false,
+        );
+    }
 
     // Row y + 11: Buttons
     paint_styled(
