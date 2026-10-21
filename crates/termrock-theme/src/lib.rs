@@ -482,7 +482,7 @@ impl Theme {
             muted
         } else if matches!(fg, Some(color) if color == tokens.accent || color == tokens.focus) {
             faint
-        } else if matches!(fg, Some(color) if color == primary || color == tokens.danger || color == tokens.warning)
+        } else if matches!(fg, Some(color) if color == primary || color == tokens.danger || color == Color::from_u32(0x00f0_5d5d) || color == tokens.warning)
         {
             muted
         } else if matches!(fg, Some(color) if color == secondary || color == tokens.on_accent) {
@@ -490,8 +490,12 @@ impl Theme {
         } else {
             ghost
         };
+        // The frozen capsule tab rule is seam `#3a3a3a`. It dims to ghost
+        // and stays there; the contrast lift would turn it faint.
+        let seam = Color::from_u32(0x003a_3a_3a);
         if let Some(color) = fg
             && !blank
+            && color != seam
             && reads(color, plane)
             && !reads(mapped, new_bg)
         {

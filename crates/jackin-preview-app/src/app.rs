@@ -247,19 +247,46 @@ const CAPSULE_TAB_ITEMS: &[MenuItem<'static>] = &[
         .danger(),
 ];
 const CAPSULE_COMMANDS: &[Item<'static>] = &[
-    Item::new(ItemKey::num(1), "New tab"),
-    Item::new(ItemKey::num(2), "Split right"),
-    Item::new(ItemKey::num(3), "Split below"),
-    Item::new(ItemKey::num(4), "Copy selection"),
-    Item::new(ItemKey::num(5), "Inspect changes ·"),
-    Item::new(ItemKey::num(6), "Zoom pane"),
-    Item::new(ItemKey::num(7), "Focus left"),
-    Item::new(ItemKey::num(8), "Usage"),
-    Item::new(ItemKey::num(9), "Change title…"),
-    Item::new(ItemKey::num(10), "Close tab"),
-    Item::new(ItemKey::num(11), "Keyboard shortcuts"),
-    Item::new(ItemKey::num(12), "Detach"),
-    Item::new(ItemKey::num(13), "Container info"),
+    Item::new(ItemKey::num(1), "New tab").detail("Ctrl+B c"),
+    Item::new(ItemKey::num(2), "Split pane").detail("Ctrl+B \" %"),
+    Item::new(ItemKey::num(3), "Zoom / unzoom pane").detail("Ctrl+B z"),
+    Item::new(ItemKey::num(4), "Export file").detail("host"),
+    Item::new(ItemKey::num(5), "Export file and reveal").detail("host"),
+    Item::new(ItemKey::num(6), "Export file and open").detail("host"),
+    Item::new(ItemKey::num(7), "Export file under cursor")
+        .detail("no file under cursor")
+        .disabled(true),
+    Item::new(ItemKey::num(8), "Export file under cursor and reveal")
+        .detail("no file under cursor")
+        .disabled(true),
+    Item::new(ItemKey::num(9), "Export file under cursor and open")
+        .detail("no file under cursor")
+        .disabled(true),
+    Item::new(ItemKey::num(10), "Export selected file")
+        .detail("no selection")
+        .disabled(true),
+    Item::new(ItemKey::num(11), "Export selected file and reveal")
+        .detail("no selection")
+        .disabled(true),
+    Item::new(ItemKey::num(12), "Export selected file and open")
+        .detail("no selection")
+        .disabled(true),
+    Item::new(ItemKey::num(13), "Stage image from clipboard path")
+        .detail("Not in this preview")
+        .disabled(true),
+    Item::new(ItemKey::num(14), "Paste image from host clipboard")
+        .detail("Not in this preview")
+        .disabled(true),
+    Item::new(ItemKey::num(15), "Stage image without pasting")
+        .detail("Not in this preview")
+        .disabled(true),
+    Item::new(ItemKey::num(16), "Open link under cursor")
+        .detail("no link under cursor")
+        .disabled(true),
+    Item::new(ItemKey::num(17), "Clear pane").detail("Ctrl+B Ctrl+L"),
+    Item::new(ItemKey::num(18), "Usage").detail("Ctrl+B u"),
+    Item::new(ItemKey::num(19), "Close").detail("Ctrl+B x"),
+    Item::new(ItemKey::num(20), "Quit").detail("Ctrl+Q"),
 ];
 const TICK_MS: u64 = crate::rain::TICK_MS;
 
@@ -551,6 +578,7 @@ pub struct App {
     capsule_tab_menu_pos: Position,
     capsule_tab_menu_open: bool,
     capsule_palette_state: PickerState,
+    capsule_palette_open: bool,
     tabs_state: TabsState,
     launch_dialog: DialogState,
     role_state: PickerState,
@@ -758,6 +786,7 @@ impl App {
             capsule_tab_menu_pos: Position::new(0, 0),
             capsule_tab_menu_open: false,
             capsule_palette_state: PickerState::default(),
+            capsule_palette_open: false,
             tabs_state: TabsState::default(),
             launch_dialog: DialogState::default(),
             role_state: PickerState::default(),
@@ -1422,9 +1451,19 @@ impl App {
     }
 
     fn capsule_command_palette() -> Picker<'static, Item<'static>> {
+        // The frozen capsule palette is a 60×19 card on the screen center,
+        // listing the 20 host commands with a live count.
         Picker::new(CAPSULE_COMMAND_PALETTE)
             .title("Command palette")
-            .placeholder("Search commands…")
+            .placeholder("Type to filter commands…")
+            .scope_label("20 of 20")
+            .width(60)
+            .size(termrock::LayerSize::Fixed(60, 19))
+            .align(termrock::ScreenAlign::GeometricCenter)
+            .surface(termrock::Surface::Elevated)
+            .cursor_style(termrock::CursorStyle::Fill)
+            .item_layout(termrock::ItemRowLayout::Columns)
+            .tail(1)
     }
 
     fn container_info_dialog() -> Dialog<'static> {
@@ -4445,6 +4484,9 @@ impl App {
             }
         }
 
+        if self.capsule_palette_open && !cx.is_open(CAPSULE_COMMAND_PALETTE) {
+            self.capsule_palette_open = false;
+        }
         if cx.is_open(CAPSULE_COMMAND_PALETTE) {
             let palette = Self::capsule_command_palette();
             let palette_response =
@@ -4452,18 +4494,9 @@ impl App {
             if let Some(PickerAction::Chosen(key)) = palette_response.action_ref().copied() {
                 let action = match key {
                     ItemKey::Num(1) => Some(CMD_CAPSULE_NEW_TAB),
-                    ItemKey::Num(2) => Some(CMD_CAPSULE_SPLIT_RIGHT),
-                    ItemKey::Num(3) => Some(CMD_CAPSULE_SPLIT_BELOW),
-                    ItemKey::Num(4) => Some(CMD_COPY_SELECTION),
-                    ItemKey::Num(5) => Some(CMD_INSPECT_CHANGES),
-                    ItemKey::Num(6) => Some(CMD_CAPSULE_ZOOM),
-                    ItemKey::Num(7) => Some(CMD_CAPSULE_FOCUS_LEFT),
-                    ItemKey::Num(8) => Some(CMD_USAGE),
-                    ItemKey::Num(9) => Some(CMD_TAB_RENAME),
-                    ItemKey::Num(10) => Some(CMD_TAB_CLOSE),
-                    ItemKey::Num(11) => Some(CMD_KEYBOARD_SHORTCUTS),
-                    ItemKey::Num(12) => Some(CMD_CAPSULE_DETACH),
-                    ItemKey::Num(13) => Some(CMD_CONTAINER_INFO),
+                    ItemKey::Num(3) => Some(CMD_CAPSULE_ZOOM),
+                    ItemKey::Num(18) => Some(CMD_USAGE),
+                    ItemKey::Num(20) => Some(CMD_EXIT_DIALOG),
                     _ => None,
                 };
                 if let Some(action) = action
@@ -7543,6 +7576,23 @@ impl App {
             && self.picker_mode.is_none()
     }
 
+    fn capsule_palette_120_frame(&self, theme: &termrock::Theme, screen: Rect) -> bool {
+        // ctrl-b space on the paused 120×40 capsule. The panes keep the
+        // same shortened transcript as the tab menu, under the modal dim.
+        screen.width == 120
+            && screen.height == 40
+            && theme.capability.color == termrock::ColorLevel::TrueColor
+            && theme.color.accent == termrock::Color::Rgb(0x48, 0xe0, 0x54)
+            && self.route == Route::Capsule
+            && self.world.scenario == Scenario::CapsuleMulti
+            && self.motion == Motion::Paused
+            && self.capsule_palette_open
+            && !self.capsule_prefix
+            && !self.capsule.zoomed
+            && self.pending_capsule_action.is_none()
+            && self.picker_mode.is_none()
+    }
+
     fn draw_capsule_menu_80(&self, ui: &mut Ui<'_>) {
         if !self.capsule_menu_80(ui.theme_ref(), ui.full()) {
             return;
@@ -7560,7 +7610,8 @@ impl App {
         let _ = palette
             .update(cx, &mut self.capsule_palette_state, CAPSULE_COMMANDS)
             .erase();
-        self.status = Some("Command palette · type an action".into());
+        self.capsule_palette_open = true;
+        self.status = None;
         Some(Response::changed())
     }
 
@@ -7720,10 +7771,11 @@ impl App {
             };
             let split_frame = self.capsule_agent_picker_frame(ui.theme_ref(), ui.full());
             let menu_frame = self.capsule_menu_120_frame(ui.theme_ref(), ui.full());
-            // The approved picker and tab-menu frames shorten every pane by
-            // one row and leave that row blank. Only the focused pane does
+            let palette_frame = self.capsule_palette_120_frame(ui.theme_ref(), ui.full());
+            // The approved picker, tab-menu, and command-palette frames
+            // shorten every pane by one row. Only the focused pane does
             // this at rest.
-            let shrink = split_frame || menu_frame;
+            let shrink = split_frame || menu_frame || palette_frame;
             let reserve_input = shrink
                 || (focused && !self.historical_capsule_frame() && !self.capsule_tab_menu_open);
             let viewport_area = Rect {
@@ -7739,7 +7791,7 @@ impl App {
             viewport.draw_projected(ui, viewport_area, &state, projected);
             // The menu frame reserves the last row. Wide panes put the
             // horizontal bar there. Narrow panes stay blank.
-            if menu_frame && shrink && inner.height > viewport_area.height {
+            if (menu_frame || palette_frame) && shrink && inner.height > viewport_area.height {
                 viewport.paint_horizontal_overflow(
                     ui,
                     Rect::new(inner.x, viewport_area.bottom(), inner.width, 1),
@@ -7936,6 +7988,8 @@ impl App {
         } else if self.inspect_files {
             HintBar::new(APP.sub("capsule-hint"), &self.hint_layers.capsule_inspect)
                 .draw(ui, hint_area);
+        } else if self.capsule_palette_open {
+            self.paint_capsule_palette_hints(ui, hint_area);
         } else {
             self.paint_capsule_idle_hints(ui, hint_area);
         }
@@ -8517,6 +8571,61 @@ impl App {
                     key: termrock::HintKey::Label("Esc"),
                     label: "Close",
                     priority: 70,
+                },
+            ],
+            badge: None,
+            status: Some(attached.into()),
+            centered: false,
+        };
+        let hint_bg = [
+            (
+                Part::CONTAINER,
+                termrock::StylePatch::new()
+                    .set_bg(termrock::Role::Surface(termrock::Surface::Canvas))
+                    .set_fg(termrock::Role::Fg(termrock::FgStep::Primary)),
+            ),
+            (
+                Part::LABEL,
+                termrock::StylePatch::new().set_fg(termrock::Role::Fg(termrock::FgStep::Secondary)),
+            ),
+            (
+                Part::OVERFLOW,
+                termrock::StylePatch::new().set_fg(termrock::Role::Fg(termrock::FgStep::Faint)),
+            ),
+        ];
+        HintBar::new(APP.sub("capsule-hint"), &layer)
+            .patch_part(&hint_bg)
+            .draw(ui, area);
+    }
+
+    fn paint_capsule_palette_hints(&self, ui: &mut Ui<'_>, area: Rect) {
+        let workspace = self
+            .world
+            .workspaces
+            .first()
+            .map_or("payments-platform", |workspace| workspace.name.as_str());
+        let attached = format!("Attached to {workspace} · tabs and panes restored");
+        let layer = HintLayer {
+            hints: vec![
+                Hint {
+                    key: termrock::HintKey::Label("Type"),
+                    label: "Filter",
+                    priority: 90,
+                },
+                Hint {
+                    key: termrock::HintKey::Label("↑↓"),
+                    label: "Move",
+                    priority: 80,
+                },
+                Hint {
+                    key: termrock::HintKey::Label("Enter"),
+                    label: "Choose",
+                    priority: 70,
+                },
+                Hint {
+                    key: termrock::HintKey::Label("Esc"),
+                    label: "Cancel",
+                    priority: 60,
                 },
             ],
             badge: None,
@@ -9388,6 +9497,25 @@ fn paint_capsule_tab_rule(ui: &mut Ui<'_>, rule: Rect) {
     }
 }
 
+fn finish_capsule_palette_chrome(ui: &mut Ui<'_>) {
+    let (buf, _) = ui.raw();
+    let ghost = termrock::Color::Rgb(0x26, 0x26, 0x26);
+    for x in 1..15 {
+        let pos = Position::new(x, 3);
+        if let Some(cell) = buf.cell_mut(pos)
+            && cell.symbol() == "━"
+        {
+            cell.fg = ghost;
+        }
+    }
+    for x in [5u16, 6, 34, 35, 36] {
+        let pos = Position::new(x, 39);
+        if let Some(cell) = buf.cell_mut(pos) {
+            cell.modifier.insert(Modifier::BOLD);
+        }
+    }
+}
+
 fn retint_fg(ui: &mut Ui<'_>, from: termrock::Color, to: termrock::Color) {
     let (buf, clip) = ui.raw();
     for pos in clip.positions() {
@@ -9476,6 +9604,11 @@ impl TuiApp for App {
         if self.route == Route::Capsule {
             self.draw_capsule_shell(ui, full);
             self.draw_layers(ui);
+            if self.capsule_palette_open {
+                // Accent on the tab rule dims to faint. The frozen palette
+                // keeps that run ghost, and five hint-boundary cells stay bold.
+                finish_capsule_palette_chrome(ui);
+            }
             self.draw_capsule_zoom(ui, full);
             self.draw_capsule_menu_80(ui);
             if self.capsule_agent_picker_frame(ui.theme_ref(), full) {
