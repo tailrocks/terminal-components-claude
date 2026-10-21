@@ -16,6 +16,7 @@ pub(crate) use termrock_runtime::{PartStyle, SlotFn, first_row, shift};
 
 pub mod hintbar;
 pub mod keyhint;
+pub mod manager_frame;
 pub mod meter;
 pub mod progress;
 pub mod section;
@@ -24,6 +25,7 @@ pub mod status;
 
 pub use hintbar::{DerivedHintBar, HintBar};
 pub use keyhint::{ChordText, HintText, KeyHint};
+pub use manager_frame::{ManagerFrame, ManagerLeaf, paint_manager_frame};
 pub use meter::{Meter, MeterTone, MeterVisual};
 pub use progress::{ProgressBar, Spinner};
 pub use section::TextSection;
