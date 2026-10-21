@@ -36,6 +36,47 @@ use crate::ui::{Cx, FrameState, Ui, UiCore};
 
 static NEXT_RUNTIME_ID: AtomicU64 = AtomicU64::new(1);
 
+fn select_cursor_owner(
+    frame: &FrameState,
+    retained_request: Option<crate::ui::RetainedCursorRequest>,
+    retained_cursor_owner: Option<Id>,
+    focus: Option<Id>,
+) -> Option<Id> {
+    let visible_retention = retained_request.is_some_and(|request| {
+        request.mode == crate::ui::CursorRetentionMode::VisibleOwner
+            && !request.ambiguous
+            && retained_cursor_owner == Some(request.owner)
+    });
+    if !visible_retention {
+        return frame.typing_resolved.cursor.or(retained_cursor_owner);
+    }
+
+    if frame.typing_resolved.owner.is_some() {
+        return frame.typing_resolved.cursor;
+    }
+
+    let focused_top_cursor_request = focus.and_then(|owner| {
+        frame
+            .cursors
+            .iter()
+            .enumerate()
+            .find(|(index, request)| {
+                Some(*index) != retained_request.map(|retained| retained.cursor_index)
+                    && request.owner == owner
+                    && request.layer == frame.top
+                    && !request.inert
+                    && (!request.typing_offer
+                        || frame.typing.iter().any(|declaration| {
+                            declaration.owner == owner
+                                && declaration.layer == request.layer
+                                && declaration.cursor
+                        }))
+            })
+            .map(|(_, request)| request.owner)
+    });
+    focused_top_cursor_request.or(retained_cursor_owner)
+}
+
 fn next_runtime_id() -> u64 {
     NEXT_RUNTIME_ID
         .try_update(Ordering::Relaxed, Ordering::Relaxed, |next| {
@@ -1959,10 +2000,12 @@ impl<A: App> Runtime<A> {
         let focus =
             snapshot.map_or_else(|| self.focus.current(), |value| value.last.snapshot.focus);
         self.frame.typing_resolved = typing::resolve(&mut self.frame, focus);
-        let retained_cursor_owner = self
-            .frame
-            .retained_cursor_request
+        let retained_request = self.frame.retained_cursor_request;
+        let retained_cursor_owner = retained_request
             .filter(|retained| {
+                if retained.ambiguous {
+                    return false;
+                }
                 let Some(top) = self.frame.layers.active().last() else {
                     return false;
                 };
@@ -1972,10 +2015,12 @@ impl<A: App> Runtime<A> {
                 let Some(area) = self.frame.registry.area_of(retained.owner) else {
                     return false;
                 };
-                focus == Some(retained.owner)
-                    && self.focus.current() == Some(retained.owner)
+                (retained.mode == crate::ui::CursorRetentionMode::VisibleOwner
+                    || (focus == Some(retained.owner)
+                        && self.focus.current() == Some(retained.owner)))
                     && self.frame.top == retained.overlay_layer
                     && top.layer == retained.overlay_layer
+                    && top.drawn
                     && top.spec.kind == crate::layer::LayerKind::Popover
                     && !top.spec.inert_below
                     && retained.parent_layer >= self.frame.inert_floor
@@ -1984,10 +2029,13 @@ impl<A: App> Runtime<A> {
                     && request.layer == retained.overlay_layer
                     && !request.inert
                     && !request.typing_offer
+                    && self.frame.screen.contains(request.pos)
+                    && !area.is_empty()
                     && area.contains(request.pos)
             })
             .map(|retained| retained.owner);
-        let cursor_owner = self.frame.typing_resolved.cursor.or(retained_cursor_owner);
+        let cursor_owner =
+            select_cursor_owner(&self.frame, retained_request, retained_cursor_owner, focus);
         let resolved = cursor::resolve_requests(
             &self.frame.cursors,
             self.frame.top,
@@ -2847,6 +2895,131 @@ mod tests {
     const RETIRED_FOCUS_CONTROL: Id = Id::root("retired-focus-control");
     const RETIRED_FOCUS_NEXT: Id = Id::root("retired-focus-next");
     const SELECTIVE_LAYER: Id = Id::root("selective-layer");
+
+    #[test]
+    fn visible_cursor_retention_respects_top_layer_cursor_owners() {
+        let mut frame = FrameState {
+            top: crate::layer::LayerId(2),
+            ..FrameState::default()
+        };
+        let retained = crate::ui::RetainedCursorRequest {
+            owner: A,
+            parent_layer: crate::layer::LayerId::PAGE,
+            overlay_layer: frame.top,
+            cursor_index: 0,
+            mode: crate::ui::CursorRetentionMode::VisibleOwner,
+            ambiguous: false,
+        };
+        frame.cursors.push(crate::cursor::CursorRequest {
+            layer: frame.top,
+            owner: A,
+            pos: Position::new(1, 1),
+            inert: false,
+            typing_offer: false,
+            shape: crate::cursor::CursorShape::Bar,
+        });
+
+        // A real editor owns typing in the overlay even when its caret is hidden.
+        frame.typing_resolved.owner = Some(B);
+        assert_eq!(
+            select_cursor_owner(&frame, Some(retained), Some(A), Some(A)),
+            None
+        );
+
+        // A visible ordinary cursor in the focused overlay has precedence.
+        frame.typing_resolved = typing::TypingResolved::default();
+        frame.cursors.push(crate::cursor::CursorRequest {
+            layer: frame.top,
+            owner: B,
+            pos: Position::new(2, 1),
+            inert: false,
+            typing_offer: false,
+            shape: crate::cursor::CursorShape::Bar,
+        });
+        assert_eq!(
+            select_cursor_owner(&frame, Some(retained), Some(A), Some(B)),
+            Some(B)
+        );
+
+        // Preserve strict retention precedence for the pre-existing API.
+        let strict = crate::ui::RetainedCursorRequest {
+            mode: crate::ui::CursorRetentionMode::FocusedOwner,
+            ..retained
+        };
+        assert_eq!(
+            select_cursor_owner(&frame, Some(strict), Some(A), Some(B)),
+            Some(A)
+        );
+    }
+
+    #[test]
+    fn real_editable_overlay_typing_suppresses_retained_owner_when_caret_is_absent() {
+        use crate::layer::{Anchor, LayerKind, LayerSpec, ScreenAlign};
+        use crate::response::StateFlags;
+        use crate::ui::UiCore;
+
+        const POPUP: Id = Id::root("cursor-hidden-editor-popup");
+        const TERMINAL: Id = Id::root("cursor-hidden-editor-terminal");
+        const EDITOR: Id = Id::root("cursor-hidden-editor-input");
+        let theme = Theme::junie();
+        let mut frame = FrameState::default();
+        frame.reset(1, SCREEN);
+        frame.top = crate::layer::LayerId(1);
+        frame.layers.push(
+            POPUP,
+            frame.top,
+            LayerSpec::popover(POPUP, Anchor::Screen(ScreenAlign::Center)),
+            SCREEN,
+            SCREEN,
+        );
+        let mut page = Buffer::empty(SCREEN);
+        let mut core = UiCore::default();
+        let last = LastFrame::default();
+        {
+            let mut ui = Ui::new(&mut frame, &mut page, &mut core, &theme, &last);
+            ui.register_control(TERMINAL, SCREEN, Focusability::FocusableReadOnly);
+            ui.set_bar_cursor(TERMINAL, Position::new(4, 1));
+            let _ = ui.layer(POPUP, |ui, _| {
+                assert!(ui.retain_visible_owner_cursor(TERMINAL));
+                // This is a real editable typing declaration in the actual top
+                // layer, but the editor intentionally has no cursor request.
+                ui.register_editor(EDITOR, SCREEN, Focusability::Focusable, StateFlags::EDITING);
+                ui.publish_typing_target::<u8>(EDITOR, &[], |_| true, false);
+            });
+        }
+
+        // The editable field is the live fallback typing target in this popup,
+        // although no control owns keyboard focus. This is the case where a
+        // retained cursor must not leak through an editor with no caret.
+        frame.typing_resolved = typing::resolve(&mut frame, None);
+        assert_eq!(frame.typing_resolved.owner, Some(EDITOR));
+        assert_eq!(frame.typing_resolved.cursor, None);
+        assert_eq!(frame.typing_resolved.fallback, Some(EDITOR));
+        assert_eq!(frame.cursors.len(), 1, "the editor published no caret");
+        assert_eq!(
+            select_cursor_owner(&frame, frame.retained_cursor_request, Some(TERMINAL), None,),
+            None,
+            "typing ownership in the live editable layer suppresses parent fallback"
+        );
+        assert_eq!(
+            cursor::resolve_requests(
+                &frame.cursors,
+                frame.top,
+                Some(EDITOR),
+                &mut frame.diagnostics,
+                &frame.typing,
+            ),
+            None,
+            "a hidden editor caret cannot reveal the retained terminal caret"
+        );
+        assert!(
+            frame
+                .layers
+                .active()
+                .last()
+                .is_some_and(|layer| { layer.spec.kind == LayerKind::Popover && layer.drawn })
+        );
+    }
 
     fn present<A: App>(rt: &mut Runtime<A>, token: PreparedFrame) {
         let mut terminal = Terminal::new(TestBackend::new(SCREEN.width, SCREEN.height))

@@ -352,6 +352,7 @@ pub struct ContextMenu<'a> {
     ov: PartStyle<'a>,
     chord_case: ChordCase,
     bar_navigation: Option<(usize, usize)>,
+    retained_cursor: Option<Id>,
 }
 
 impl fmt::Debug for ContextMenu<'_> {
@@ -362,6 +363,7 @@ impl fmt::Debug for ContextMenu<'_> {
             .field("anchor", &self.anchor)
             .field("title", &self.title)
             .field("bar_navigation", &self.bar_navigation)
+            .field("retained_cursor", &self.retained_cursor)
             .finish_non_exhaustive()
     }
 }
@@ -387,6 +389,7 @@ impl<'a> ContextMenu<'a> {
             ov: PartStyle::new(),
             chord_case: ChordCase::Preserve,
             bar_navigation: None,
+            retained_cursor: None,
         }
     }
 
@@ -403,6 +406,14 @@ impl<'a> ContextMenu<'a> {
     #[must_use]
     pub const fn chord_case(mut self, case: ChordCase) -> Self {
         self.chord_case = case;
+        self
+    }
+
+    /// Keeps a real rendered owner's visible caret through this nonmodal
+    /// context menu while the menu owns keyboard focus.
+    #[must_use]
+    pub const fn retain_cursor(mut self, owner: Id) -> Self {
+        self.retained_cursor = Some(owner);
         self
     }
 
@@ -705,6 +716,9 @@ impl<'a> ContextMenu<'a> {
                 }
             }
         });
+        if let Some(owner) = self.retained_cursor {
+            let _ = ui.retain_visible_owner_cursor(owner);
+        }
         area
     }
 
@@ -909,6 +923,7 @@ impl<'a> MenuBar<'a> {
             ov: self.ov,
             chord_case: self.chord_case,
             bar_navigation: Some((index, self.menus.len())),
+            retained_cursor: None,
         })
     }
 
@@ -1160,6 +1175,7 @@ impl<'a> MenuBar<'a> {
                 ov: self.ov,
                 chord_case: self.chord_case,
                 bar_navigation: Some((open, self.menus.len())),
+                retained_cursor: None,
             };
             let _ = ui.layer(self.id, |ui, layer| dropdown.draw(ui, layer, st));
         }
