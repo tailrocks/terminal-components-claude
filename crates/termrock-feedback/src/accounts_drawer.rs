@@ -290,6 +290,7 @@ fn paint_header(ui: &mut Ui<'_>, area: Rect, page: &AccountsDrawer<'_>, ink: &In
     put(ui, area, value_x, y, cluster.value, secondary);
 }
 
+#[allow(clippy::too_many_arguments)]
 fn paint_list_top(
     ui: &mut Ui<'_>,
     area: Rect,
@@ -359,6 +360,7 @@ fn paint_pane_edges(
     put(ui, area, list_right, y, "│", edge);
 }
 
+#[allow(clippy::too_many_arguments)]
 fn paint_pane_row(
     ui: &mut Ui<'_>,
     area: Rect,
@@ -430,6 +432,7 @@ fn paint_pane_row(
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 fn paint_selected_row(
     ui: &mut Ui<'_>,
     area: Rect,
@@ -465,19 +468,26 @@ fn paint_selected_row(
         plain(ink.secondary, SELECT_BG),
     );
     put(ui, area, name_x, y, row.name, bold(ink.accent, SELECT_BG));
-    let Some(alert) = row.alert else { return };
-    let alert_x = list_right.saturating_sub(4);
     let name_end = name_x.saturating_add(width(row.name));
-    if alert_x > name_end {
+    let alert_x = list_right.saturating_sub(4);
+    let pad_end = if row.alert.is_some() {
+        alert_x
+    } else {
+        list_right.saturating_sub(2)
+    };
+    if pad_end > name_end {
         put(
             ui,
             area,
             name_end,
             y,
-            &" ".repeat(usize::from(alert_x.saturating_sub(name_end))),
+            &" ".repeat(usize::from(pad_end.saturating_sub(name_end))),
             bold(ink.accent, SELECT_BG),
         );
     }
+    let Some(alert) = row.alert else {
+        return;
+    };
     put(ui, area, alert_x, y, alert, bold(ERROR_STRONG, SELECT_BG));
 }
 
