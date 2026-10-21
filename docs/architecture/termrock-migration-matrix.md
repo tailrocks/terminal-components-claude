@@ -3359,3 +3359,50 @@ while the tag renders the ghost ink `0x262626` at `38;5;238`
 rather than the tag's `apply_16` / `apply_mono` tables (`src/theme.rs:983`,
 `:1053`). Both are outside the disputed 256-colour set and neither has a
 recorded adjudication; both need independent review before they are changed.
+
+### Conformance semantic fixes (integrated)
+
+Branch `wip/conformance-semantic-fixes-20261021b`, tip
+`d202249bc`, integrated into this branch.
+
+Two semantic defects are fixed.
+
+`Theme::fingerprint` hashed the `Debug` output of `Theme`, and the derived
+`Debug` for `Recipes` printed the process-global `revision` counter. That
+counter is not theme content: `Recipes::PartialEq` already ignores it, and it
+is bumped for every recipe edit anywhere in the process. Two structurally
+equal themes therefore produced different fingerprints, so every
+`local_override_does_not_mutate_the_theme` case failed. `Recipes` now has a
+hand-written `Debug` that omits `revision`. The regression test also pins
+that a content change still moves the fingerprint, so the fix cannot be
+satisfied by making the fingerprint constant.
+
+`HelpOverlay::draw` returned early whenever the viewport was too small for
+the card, before it registered the control, published the bindings and
+reported the layout. A help overlay drawn into a 30x6 area therefore existed
+on screen but was invisible to focus, hover, the key map and the wheel: the
+focus ring never reached it, `Tab` could not land on it, its scroll state
+never saw a wheel, and its published key bindings were dropped because the
+runtime only publishes bindings for an owner whose live flags carry
+`FOCUSED`. The overlay now registers its control, publishes its bindings and
+reports its layout before the paint guard, and owns its scrollbar
+presentation so the runtime registers a scroll hit area. Six conformance
+cases fail before this change and pass after it.
+
+`cargo nextest run -p termrock-conformance --all-targets` is 1462 tests with
+1439 passing and 23 failing, down from 30 before this merge and 75 before the
+palette adjudication. The remaining families are the `bindings_match_handled_keys`
+family, `registry::declared_parts_are_the_parts_actually_styled`, the mono
+distinctness checks, the `control_states` cases, the scroll-region fixture
+and the two visual-baseline negative controls.
+
+### Combined packet patch applied to the fixed base (verified)
+
+The 17 candidate packets of the consolidation review were applied together to
+a detached trial tree at the fixed parity base
+`2c58386344d73b4ac3552498f776ba428603f8c8`. `git apply --check` passes and the
+application touches exactly the recorded candidate path list: 39 changed
+paths and 5 new paths, 44 paths in total, matching
+`parity-candidate-paths.txt` entry for entry. The application is recorded
+here as a verified application check against the fixed base, not as a
+published candidate.
