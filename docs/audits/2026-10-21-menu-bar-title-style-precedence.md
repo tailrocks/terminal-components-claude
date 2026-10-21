@@ -85,3 +85,91 @@ consumer's four probes pass. Theme, runtime and overlay library tests pass
 446/446; strict scoped Clippy, formatting and diff checks pass. The result is
 still a WIP pending independent review of raw ordering and broader application
 comparison; it is not an acceptance claim.
+
+## API contract limit — raw mutable recipe provenance
+
+### Evidence and current call sites
+
+At `crates/termrock-theme/src/recipe.rs:248-260`, `Recipe` exposes its
+`default_variant`, family `parts`, and `variants`; each `PartRecipe` also
+exposes style channels and state rules. `Recipes::get_mut` returns `&mut Recipe`
+(`recipe.rs:509-513`) and `iter_mut` yields `&mut Recipe` for each family
+(`recipe.rs:541-548`). `Theme::recipes` is public (`crates/termrock-theme/src/lib.rs:121`).
+Those signatures expose no field-write event or selection of family, default,
+variant, part, or channel. The tracked Theme builder methods at
+`lib.rs:311-392` already record declaration provenance for `override_family`,
+`override_variant`, `define_variant`, and `define_family`.
+
+Current in-repository raw production use is limited to built-in construction:
+`builtin/junie.rs:178-195` builds menu/list recipes and `builtin/paper.rs:68-74`
+sets the built-in button default before `mark_builtin`. The broad `iter_mut` in
+`builtin/mod.rs:890-895` is test-only. Other raw callers are tests/fixtures,
+including `termrock-runtime/src/rowui.rs:1499-1502` and the public consumer
+integration test `termrock-runtime/tests/rowui_glyph_contract.rs:11-14`.
+Those consumer sites need a tracked public authoring equivalent before raw
+mutation can be retired.
+
+Independent review of 65b (`/private/tmp/menubar-65b2d0e5-independent-evidence-20261021/review.json`)
+found that eager family provenance changes a no-op `get_mut`, a no-op `iter_mut`,
+and an unrelated META edit: untouched built-in Title foreground moves above an
+authored special-variant foreground. It also found that `Recipes::PartialEq`
+omits the output-affecting raw marker, and a typed special foreground added
+after raw access can lose to the raw ordinary-family tier. The same review
+qualified the older raw-base background assertion as invalid; this is not a
+product defect. Keep that qualification distinct from its five real failures.
+The review artifact SHA-256 is
+`5f7f65dc8fb638a8b3b0e3a569a93bf5eaa03b01bde77c4872944d87d81161a1`.
+
+The unchanged standalone consumer at
+`/private/tmp/menubar-fallback-consumer-20261021/tests/precedence.rs` uses the
+tracked `define_variant`/override API and therefore does not exercise or depend
+on the raw mutable accessors. It compiled and passed all four probes against
+65b. A third-party consumer that follows the in-repository RowUi fixture and
+mutates `Theme::recipes` directly would need a migration under the major API
+boundary option; the staged option can first deprecate those calls while
+shipping an equivalent public tracked author API.
+
+### Why the raw contract cannot be inferred
+
+For public `&mut Recipe` access, these operations have the same observable
+access trace and final `Recipe`: (1) obtain the mutable reference and do
+nothing; (2) assign a field its current value; and (3) edit a different field
+while leaving the field under consideration unchanged. The resolver receives
+only the final object and family-level access marker. Treating the family as
+authored promotes untouched built-in fields and breaks no-op/unrelated-edit
+invariants. Ignoring untouched values requires discovering which fields were
+written; equality against a snapshot is explicitly disallowed and still cannot
+distinguish a no-op from a same-value assignment. A plain `&mut` plus public
+fields cannot provide both field-level authored intent and no-op stability.
+
+### Available decisions and impact
+
+1. **Tracked authoring API, staged migration (recommended).** Add/complete
+   public declaration APIs that specify family versus variant, default
+   selection, part, and channel/state intent; extend `RecipeEdit` for the full
+   customization surface (including explicit channel clear/removal and
+   low-level state-rule management needed by component authors). Migrate the
+   in-repository runtime consumer test and any production caller, then
+   deprecate raw mutable access. Keep ordinary
+   legacy resolution behavior during a documented transition; fallback-aware
+   components accept provenance-tracked declarations only. This preserves
+   source compatibility initially, but users who mutate special fallback
+   recipes directly must migrate before relying on fallback resolution.
+2. **Major-version API boundary.** Make `Theme::recipes` read-only/private and
+   remove public `get_mut`/`iter_mut` (and/or make recipe fields private),
+   exposing only provenance-tracked authoring methods. This has the clearest
+   semantics and lets all resolvers enforce the same contract, but breaks
+   source compatibility for every external caller that reads through
+   `Theme::recipes` or mutates a recipe, including the checked-in RowUi fixture.
+3. **Legacy coarse/equality semantics.** Treat every mutable family access as
+   an authored whole-family declaration, or compare against a captured
+   baseline to infer changed values. Whole-family semantics are rejected by the
+   independent no-op/other-part evidence. Equality-delta semantics are rejected
+   by the project constraint and cannot preserve same-value write intent. Neither
+   is a valid acceptance path without an explicit change to the contract.
+
+No implementation can satisfy the no-op, unrelated-write, same-value-intent,
+public-`&mut`, and no-equality constraints simultaneously. This audit records the
+API boundary decision required before another code change; it does not silently
+weaken those requirements or claim fallback parity. The 65b implementation is
+superseded and remains unaccepted pending that decision.
