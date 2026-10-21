@@ -11,7 +11,14 @@
       "command": "cargo nextest run --locked --all-targets -p termrock-runtime -p termrock-editors -p termrock-fields -p termrock-terminal -p termrock-session",
       "result": "616 passed, 4 skipped",
       "exit_code": 0,
-      "sha256": "30d17142a10cd1ee379fd259d5254e4995aff0bdbe5c799dfcfa0b71d2159750"
+      "sha256": "30d17142a10cd1ee379fd259d5254e4995aff0bdbe5c799dfcfa0b71d2159750",
+      "skipped_tests": [
+        "termrock-runtime::monotonic idle_terminal_driver_fixture",
+        "termrock-runtime::monotonic immediate_rearm_terminal_input_fairness_fixture",
+        "termrock-runtime::pointer_publication hover_cycle_driver_queued_quit_fixture",
+        "termrock-session::terminal_cleanup terminal_cleanup_driver_fixture"
+      ],
+      "skip_detail_log_sha256": "d23bcf953a9a66f39f857904f62f87f322dc74b499bae9cbe6f092093fe265ea"
     },
     "clippy": {
       "command": "cargo clippy --locked --all-targets -p termrock-runtime -p termrock-editors -p termrock-fields -p termrock-terminal -p termrock-session -- -D warnings",
