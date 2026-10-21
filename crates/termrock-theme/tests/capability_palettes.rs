@@ -66,9 +66,13 @@ fn all_73_junie_slots_match_reference_capability_output() {
             //   highlight = i(25), highlight_danger = i(88),
             //   highlight_on_selection = i(55).
             // The frozen snapshots of the same tag render the muted role at
-            // `38;5;245` and never at 244 (for example
+            // `38;5;245` in the frames captured after the explicit 256
+            // tables landed (for example
             // snapshots/holla/audit/rust/80x24/256.ansi), so the tag's own
-            // rendered corpus and its declared table agree.
+            // rendered corpus and its declared table agree. The `38;5;244`
+            // muted ink survives only in the frozen corpus frames captured
+            // before that change; those frames are a recorded reference
+            // defect, not the reference.
             expected.fg[2] = Color::Indexed(245);
             expected.fg[3] = Color::Indexed(242);
             expected.on_accent = Color::Indexed(232);
@@ -89,10 +93,14 @@ fn all_73_junie_slots_match_reference_capability_output() {
             expected.syntax.number = Color::Indexed(183);
             expected.syntax.diagnostic_error = Color::Indexed(203);
             expected.syntax.match_bg = Color::Indexed(233);
-            // The menu-row highlight is the generic cube of the Junie
-            // highlight ink; the frozen corpus paints the selected chrome
-            // menu item at 48;5;67.
-            expected.highlight_bg = Color::Indexed(67);
+            // The highlight plate follows the frozen `apply_256` table, which
+            // declares `self.highlight = i(25)` (visual-baseline
+            // src/theme.rs:931). The frozen corpus paints the highlight ink
+            // 0x2f5aa8 at 48;5;25 in visual-baseline
+            // snapshots/holla/audit/rust/100x30/256.ansi. The index 67 is the
+            // generic nearest-match cube of the same ink and survives only in
+            // the corpus frames captured before the explicit 256 tables.
+            expected.highlight_bg = Color::Indexed(25);
             expected.syntax.match_current_bg = Color::Indexed(55);
             expected.highlight_danger_bg = Color::Indexed(88);
             // The stale and unknown meter ink share the faint foreground role
