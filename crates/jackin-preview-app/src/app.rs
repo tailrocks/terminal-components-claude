@@ -8081,18 +8081,10 @@ impl App {
     fn draw_capsule_zoom(&self, ui: &mut Ui<'_>, screen: Rect) {
         if self.capsule_zoom_frame(ui.theme_ref(), screen) {
             capsule_zoom_view::paint(ui);
-            ui.set_undrawn_top_bar_cursor(CAPSULE_INPUT, ui.full(), Position::new(3, 34));
+            // Gap: the zoom frame draws no input row, so no real field owns
+            // the caret. The cursor stays absent until a later wave draws the
+            // field; no fixed cell is forced (same for the 80-col zoom).
             return;
-        }
-        // The live 80-col zoom keeps the prompt caret on the last pane row.
-        // The input row is not drawn, so the caret has to be recorded here.
-        if self.capsule.zoomed
-            && screen.width == 80
-            && screen.height == 24
-            && ui.theme_ref().capability.color == termrock::ColorLevel::TrueColor
-            && ui.theme_ref().color.accent == termrock::Color::Rgb(0x48, 0xe0, 0x54)
-        {
-            ui.set_undrawn_top_bar_cursor(CAPSULE_INPUT, ui.full(), Position::new(3, 20));
         }
     }
 

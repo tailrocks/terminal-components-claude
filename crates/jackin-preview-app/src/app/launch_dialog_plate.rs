@@ -7,10 +7,10 @@
 //! real layer flow at every level.
 //!
 //! The 256-color remap uses the shared theme ladder
-//! (`termrock::theme::downgrade_color`). The 16-color and mono remap below is
-//! still an app-local shim: the theme crate has no per-ink ladder that follows
-//! the token ramp, so the accent would land on gray instead of the bright
-//! green the frozen frames carry.
+//! (`termrock::theme::downgrade_color`). The 16-color remap uses the shared
+//! pair ladder (`termrock::theme::downgrade_pair`), and mono prefers the
+//! frozen launch pair table (`termrock::theme::legacy_mono`) with the pair
+//! ladder as fallback.
 
 use termrock::{Color, ColorLevel, Rect, Ui};
 
@@ -57,65 +57,33 @@ fn recolor(ui: &mut Ui<'_>, width: u16, height: u16, y_bias: u16) {
         });
     }
     // 16-color and mono dim the whole card, including its title. `NO_COLOR`
-    // keeps the stripped inks and only sets `dim`.
+    // keeps the stripped inks and only sets `dim`. Mono prefers the frozen
+    // launch pair table; anything it does not list falls back to the pair
+    // ladder. Only colors are remapped here: no card pair needs the table's
+    // underline/reverse marks, and `add_dim` below owns the dim.
     if matches!(
         ui.theme_ref().capability.color,
         ColorLevel::Ansi16 | ColorLevel::Mono
     ) {
         let card = Rect::new(origin_x, origin_y, width, height);
         if std::env::var_os("NO_COLOR").is_none() {
-            let ansi16 = ui.theme_ref().capability.color == ColorLevel::Ansi16;
-            ui.recolor_pair(card, move |fg, bg| reduced_pair(fg, bg, ansi16));
+            let mono = ui.theme_ref().capability.color == ColorLevel::Mono;
+            if mono {
+                ui.recolor_pair(card, |fg, bg| {
+                    termrock::theme::legacy_mono(fg, bg, false)
+                        .map(|ink| (ink.fg, ink.bg))
+                        .unwrap_or_else(|| {
+                            termrock::theme::downgrade_pair(fg, bg, ColorLevel::Mono)
+                        })
+                });
+            } else {
+                ui.recolor_pair(card, |fg, bg| {
+                    termrock::theme::downgrade_pair(fg, bg, ColorLevel::Ansi16)
+                });
+            }
         }
         ui.add_dim(card);
     }
-}
-
-fn reduced_pair(fg: Color, bg: Color, ansi16: bool) -> (Color, Color) {
-    let button = matches!(
-        bg,
-        Color::Rgb(0x27, 0x27, 0x2a) | Color::Rgb(0x3f, 0x3f, 0x46)
-    );
-    let bg = if button {
-        Color::DarkGray
-    } else if matches!(bg, Color::Rgb(..)) {
-        Color::Black
-    } else {
-        bg
-    };
-    let fg = if button {
-        if matches!(fg, Color::Rgb(0x48, 0xe0, 0x54)) {
-            Color::White
-        } else if matches!(
-            fg,
-            Color::Rgb(0x18, 0x18, 0x1b) | Color::Rgb(0x27, 0x27, 0x2a) | Color::Rgb(0, 0, 0)
-        ) {
-            Color::DarkGray
-        } else {
-            Color::Black
-        }
-    } else if matches!(fg, Color::Rgb(0xff, 0xff, 0xff) | Color::White) {
-        Color::White
-    } else if matches!(fg, Color::Rgb(0x48, 0xe0, 0x54)) {
-        if ansi16 {
-            Color::Indexed(10)
-        } else {
-            Color::White
-        }
-    } else if matches!(
-        fg,
-        Color::Rgb(0x00, 0x00, 0x00)
-            | Color::Black
-            | Color::Rgb(0x18, 0x18, 0x1b)
-            | Color::Rgb(0x27, 0x27, 0x2a)
-    ) {
-        Color::Black
-    } else if matches!(fg, Color::Rgb(..)) {
-        Color::Gray
-    } else {
-        fg
-    };
-    (fg, bg)
 }
 
 fn on_black(color: Color) -> bool {
