@@ -1,0 +1,161 @@
+{
+  "schema": "termrock.independent-review.v1",
+  "created_utc": "2026-10-21T06:21:03.767569+00:00",
+  "reviewer": "/root/menu_reason_independent_review",
+  "reviewed_commit": "35cfdd8a8816400f6bb9a95ff20e904bcf9e5398",
+  "previous_commit": "4a39a666022e14ee8cd4233ffb2ccf21a653ae13",
+  "decision": "HOLD_BOUNDED_SOURCE: original remapped-item activation bypass is fixed, but a consumed physical activation routed to a navigation action still reveals the hidden cursor; an audit evidence pin is malformed. Mono/Runtime/application exclusions remain independent holds.",
+  "findings": [
+    {
+      "id": "MENU35-R1",
+      "priority": "P2",
+      "path": "crates/termrock-overlays/src/menu.rs",
+      "lines": [
+        870,
+        879
+      ],
+      "title": "Blocked physical navigation binding still restores the hidden highlight",
+      "evidence": "Configure clear_on_leave(true), remap menu.context.activate.space toF8 and menu.context.first tophysical Space. Real runtime probe verifies enabled hover followed by leave actually hides the row. PressSpace: the response branch is consumed, but navigation was computed before the guard and after_keyboard_navigation runs unconditionally, clearing highlight_hidden and restoring the row. A full-row Cell comparison is RED, and a separate unchanged-event probe Space followed by normal Enter emits Chosen(RUN) instead ofNone. The new test matrix includes both physical Enter/Space and four navigation actions; execution currently fails at its first Space/Home case, so remaining combinations are not falsely credited.",
+      "frozen_contract": "Frozen416 hidden Enter/Space guard returns consumed before accelerator or navigation handling, so a blocked physical activation must not execute navigation restoration effects.",
+      "required_fix": "Keep the navigation restoration path inside the allowed-dispatch branch, or otherwise ensure a blocked physical activation has no component navigation/highlight/hover side effects. Preserve valid navigation, ordinary letter and pointer actions, and explicitly remapped alternate activation commands.",
+      "artifacts": [
+        "navigation_guard.rs",
+        "external-nextest.log"
+      ]
+    },
+    {
+      "id": "MENU35-R2",
+      "priority": "P3",
+      "path": "docs/audits/2026-10-21-menu-disabled-reason.md",
+      "title": "Previous independent-review SHA256 pin is malformed",
+      "evidence": "The audit records61hex digits:3a96dfca5624d864c42099672d64949a55f18796e6e99d8838c818e2cf7ea. Actual immutable4a review SHA256 is3a96dfca5624d864c42099672d64949a55f18796e6e99d8838c818138e2cf7ea (64hex; missing138 in the audit).",
+      "required_fix": "Correct the exact immutable evidence pin without modifying the review packet."
+    }
+  ],
+  "closed_prior_findings": {
+    "MENU4A-R1": "The two original independent remapped-item physicalEnter/Space RED tests are unchanged and now GREEN: Cx::activation_key is checked before either command or item binding dispatch. The physical guard still needs MENU35-R1 to prevent its separate post-dispatch side effect.",
+    "MENU4A-R3": "Audit now correctly states frozen hidden Enter/Space guard precedes ordinary character accelerator dispatch; ordinary letters remain eligible because they do not match the guard. Source-order correction accepted."
+  },
+  "checks": [
+    {
+      "command": "cargo nextest run -p termrock-overlays --all-targets --no-fail-fast",
+      "exit": 0,
+      "passed": 145,
+      "failed": 0,
+      "skipped": 0,
+      "log": "native-nextest.log"
+    },
+    {
+      "command": "cargo nextest run --manifest-path /private/tmp/menu-unification-external-35cf-20261021/Cargo.toml --no-fail-fast",
+      "exit": 100,
+      "passed": 23,
+      "failed": 5,
+      "skipped": 0,
+      "log": "external-nextest.log",
+      "failures": [
+        "blocked_physical_navigation_binding_does_not_reveal_hidden_row",
+        "blocked_space_navigation_does_not_enable_following_enter",
+        "mono_pointer_leave_has_a_visible_highlight_transition (known inherited theme hold)",
+        "hidden_activation_navigation_letters_and_pointer_across_profiles (same known Mono hold)",
+        "underlay_keeps_underline_ink (known Runtime exclusion)"
+      ],
+      "invalid_pass_excluded_from_contract_credit": "Old underlay_keeps_nearest_lower_layer_ink fixture never opensUPPER; mechanical PASS is not nested correctness evidence."
+    },
+    {
+      "command": "cargo clippy -p termrock-overlays --all-targets -- -D warnings",
+      "exit": 0,
+      "log": "clippy-fmt.log"
+    },
+    {
+      "command": "cargo fmt --all -- --check",
+      "exit": 0,
+      "log": "clippy-fmt.log"
+    },
+    {
+      "command": "git diff --check",
+      "exit": 0,
+      "log": "clippy-fmt.log"
+    }
+  ],
+  "verified_behavior": {
+    "alternates": "Separate explicit alternate activation test passes bothF8 andF9 while hidden. Ordinary letter, valid pointer, normal Enter/Space suppression and Home-restoration tests remain green in the applicable completed scopes.",
+    "earlier_contracts": "Prior borrowed reason/fallback/disabled feedback, three original e4 Menu regressions, scoped/local part precedence, remappedF4/submenu,960paired RULE geometry/measurement configurations and520 empty/all-disabled/tiny Unicode configurations remain green.",
+    "state_scheduling": "Previously introduced independent actual-pointer-exit/unchanged-cursor Home presentation check remains green; no presentation scheduling defect claimed.",
+    "API_and_ownership": "No API break, new dependency, unsafe code, duplicate renderer, application edits, Runtime ownership changes or global palette changes found in35cf functional delta."
+  },
+  "default_compatibility": {
+    "frames": 32,
+    "profiles": [
+      "TrueColor",
+      "Ansi256",
+      "Ansi16",
+      "Mono"
+    ],
+    "cell_observations": 7680,
+    "bytes": 1023736,
+    "sha256": "1bf37c86f96c7fe4bca64a9411db5425b66e2efbd21855dab72d93a0365e5167",
+    "result": "Recorded default non-underlay full Cell-field frames identical to prior versions. This fixed sequence neither resolves the explicit remapped navigation case nor the Mono highlight gap."
+  },
+  "accepted_exclusions": {
+    "Mono": "MENU4A-R2 is explicitly recorded unresolved in the audit, with no palette change. All-profile visual-state acceptance remains incomplete; this review does not require pretending the known RED tests are green to assess a bounded source delta.",
+    "Runtime": "Underline/nearest-lower/ForcedWidth source gaps and later Runtimebb review remain outside this Menu increment; old invalid nested PASS is not credited.",
+    "applications": "No real CLI/Tuiscotti comparison, Capsule adoption, full inventory/functional flow comparison, full workspace gate or hosted CI approval."
+  },
+  "workspace_integrity": "Separate exact sparse detached copy and revision-specific Cargo targets. Original4a red probe sources copied unchanged; additional requested navigation-state probes added only to external test artifacts. No product edits, commits, pushes, reference changes or helper agents. All owned subprocesses completed within explicit210-second bounds.",
+  "source_sha256": "3c3179b6e3476cdeb2f936dc75bfb45ce6ecf4ec91484274e65181088161a6f4",
+  "audit_sha256": "0687622a7f524e5be08e2e1243bd6aa0b697570a161300678908332722e2dda6",
+  "artifacts": {
+    "activation_paths.rs": {
+      "sha256": "7cf2da7bee683b4911b7400a4d8f7531eead266b36adeae8c8cfd28ba8775538",
+      "bytes": 4961
+    },
+    "clippy-fmt.log": {
+      "sha256": "c1183f6ad20af4255a02aba7813b10f2dd7ce3350b99416794c328c98c828e38",
+      "bytes": 4959
+    },
+    "default-after-full-cells.txt": {
+      "sha256": "1bf37c86f96c7fe4bca64a9411db5425b66e2efbd21855dab72d93a0365e5167",
+      "bytes": 1023736
+    },
+    "default.rs": {
+      "sha256": "93aadc1598f71790ae1a6c7be19504536475dca3b3bfdac0e0664d70e8475e0c",
+      "bytes": 2702
+    },
+    "e4.rs": {
+      "sha256": "02c5236dc53278a659311eac47eab3ad826113b29f32ba6ea67a1948e70b0c82",
+      "bytes": 4765
+    },
+    "edges.rs": {
+      "sha256": "d5efb65520c29983744d0a94a2a4d670c0aaf2a3f748b5d2a34c0a058d8e7b8c",
+      "bytes": 1993
+    },
+    "external-nextest.log": {
+      "sha256": "4fa54c5458588726495f27cca654ea5fd7adec141968fc6a0e16f103c1646538",
+      "bytes": 44989
+    },
+    "hidden.rs": {
+      "sha256": "e0c128c297bd583877130e8f69c897ca261d13393e1a990acbd96a2d4ab566fb",
+      "bytes": 2016
+    },
+    "native-nextest.log": {
+      "sha256": "d03078376d83d545ac3fc589e6d6991359e57f34cff09683e72132b7b8f28615",
+      "bytes": 23469
+    },
+    "navigation_guard.rs": {
+      "sha256": "4f67d4c7e6cc90d9ba2b9232d355a1cd2aa5cbc04de169b9256e97105d665360",
+      "bytes": 3822
+    },
+    "reason.rs": {
+      "sha256": "0ebbcedf6e11fc52fac159eea2a3ae633eb8283e99f83443a34bf47a6987543f",
+      "bytes": 3574
+    },
+    "scoped.rs": {
+      "sha256": "837dc7d0e4f91caef0d2099898533f46899901d1262bf6e305045187ea3aa8d0",
+      "bytes": 1502
+    },
+    "unification.rs": {
+      "sha256": "d13539e9b6af692ae19a1992624cc3c611f15fa9e948e8a92206c77c310b263f",
+      "bytes": 3638
+    }
+  }
+}

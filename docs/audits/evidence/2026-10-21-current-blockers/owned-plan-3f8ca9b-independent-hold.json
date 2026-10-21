@@ -1,0 +1,48 @@
+{
+  "schema": "termrock-independent-review.v1",
+  "scope": "Independent read-only review of owned lifecycle correction at source commit 3f8ca9b9e75aacadedd8f10223fc6027ad022424, also present in merge commit 95c51f4817fc87802da918e5b0ba3ac50494685d.",
+  "result": "hold",
+  "reviewed_commit": "3f8ca9b9e75aacadedd8f10223fc6027ad022424",
+  "containing_merge": "95c51f4817fc87802da918e5b0ba3ac50494685d",
+  "branch": "wip/owned-fresh-plan-lifecycle-20261021",
+  "worktree": "/private/tmp/owned-plan-independent-review-3f8ca9b",
+  "worktree_clean": true,
+  "files": {
+    "tools/frozen_baseline.py": "9342c5fa61bf9e33ea1ea0720df491f58af88d7a4fc55c172d259dc07d583a3c",
+    "tools/test_frozen_baseline.py": "feb971103cc6851a093345b23bdd88dfc392d5c13dcf0a72d41cac1b708af617",
+    "docs/audits/2026-10-21-owned-fresh-plan-create-verify.md": "be333c8f397d91721aa5ee4fb5f4999328217aad2f625a69b1aa81736aeaf92b"
+  },
+  "verification": {
+    "command": "python3 -m unittest tools.test_frozen_baseline",
+    "result": "passed",
+    "tests": 125,
+    "skipped": 0,
+    "duration_seconds": 23.704,
+    "focused_recovery_and_prepare_live_cases": "8 passed, 0 skipped",
+    "py_compile": "passed",
+    "git_diff_check": "passed",
+    "distinct_source_checkout_and_test_outputs": true
+  },
+  "source_assessment": {
+    "prepare_live_owned_deadline_scope": "pass: path resolution, option checks, source verification, work, serialization, flushed output, and post-output cancellation/deadline checks share PrepareExecution; legacy output path remains unchanged",
+    "creation_commitment": "pass: exact canonical plan bytes and identity are committed in an exclusive external regular file, fsynced before publication; recovery requires caller-supplied SHA-256 and validates commitment identity against the complete immutable self-sealed plan",
+    "recovery_authority": "pass: recovery emits only creation-anchor-recovered with verified=false and candidate/product acceptance false; normal full verify remains a separate mandatory command",
+    "fail_closed_cases": "pass for missing plan/commitment, symlink/hardlink, changed commitment, digest mismatch, metadata mismatch, commitment/plan collisions, and signal/deadline before or after receipt and before plan publication",
+    "actual_lifecycle": "not run; no live plan, run key, capture, replay, ordinary check, or candidate comparison created or executed"
+  },
+  "findings": [
+    {
+      "severity": "P1",
+      "location": "tools/frozen_baseline.py:3796-3809, 5114-5120; docs/audits/2026-10-21-owned-fresh-plan-create-verify.md:16",
+      "title": "Prepublication receipt is flushed to stdout but is not durably persisted by this implementation",
+      "evidence": "Owned fresh-plan prints one pending-plan-publication JSON line with flush=true before _atomic_create_plan links the plan. There is no receipt path, append-only JSONL store, fsync of a receipt file, or caller acknowledgement before plan publication. Tests intercept print or use StringIO; they do not run an independent supervisor that durably stores the receipt and confirms persistence before the plan link. The audit explicitly says an external supervisor must persist this receipt and that this change does not implement that service.",
+      "impact": "If stdout is a pipe/terminal and the caller loses the line before persisting its commitment SHA, recovery intentionally fails closed. Therefore the requested durable-receipt-before-publication property is not established end to end; an immutable commitment alone is not an externally pinned trust anchor.",
+      "recommendation": "Keep plan creation/stage 4 blocked until the receipt persistence boundary is implemented or a concrete external supervisor is independently exercised. Require durable append/fsync and acknowledgement of the exact pending receipt before _atomic_create_plan can publish; retain failure-injection coverage for supervisor interruption and receipt persistence failure. Do not infer durability from print(flush=True)."
+    }
+  ],
+  "scope_limits": [
+    "The caller-pinned commitment and recovery validation are sound at the source boundary, subject to the missing durable receipt acknowledgement above.",
+    "No claim that fresh-run initialization, run verification, advance, ordinal guards, ordinary phase, end-to-end receipt lifecycle, or product acceptance is complete.",
+    "No Termrock application architecture or visual parity review was performed in this task."
+  ]
+}
