@@ -2,7 +2,9 @@
 
 use ratatui_core::layout::Rect;
 pub use termrock_controls::MasterDetailState;
-use termrock_controls::{MasterDetail as ResponsiveMasterDetail, SplitPane, SplitPaneState};
+use termrock_controls::{
+    MasterDetail as ResponsiveMasterDetail, SplitAction, SplitPane, SplitPaneState,
+};
 use termrock_layout::{ChildPolicy, Composition, Constraints, Size, SplitAxis};
 use termrock_runtime::author::{self, CompositionLeaf};
 use termrock_runtime::focus::{ScopeId, ScopeMode};
@@ -27,6 +29,7 @@ const DETAIL_BINDINGS: &[Binding<MasterDetailAction>] = &[Binding {
 /// Responsive layout policy for a reusable master/detail block.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct MasterDetailPolicy {
+    sizing: MasterDetailSizing,
     detail_share: u8,
     detail_min: u16,
     detail_max: u16,
@@ -35,9 +38,20 @@ pub struct MasterDetailPolicy {
     summary_rows: u16,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum MasterDetailSizing {
+    FixedDetail,
+    ResizableMaster {
+        initial_percent: u8,
+        min_master: u16,
+        min_detail: u16,
+    },
+}
+
 impl Default for MasterDetailPolicy {
     fn default() -> Self {
         Self {
+            sizing: MasterDetailSizing::FixedDetail,
             detail_share: 34,
             detail_min: 34,
             detail_max: 48,
@@ -52,9 +66,34 @@ impl MasterDetailPolicy {
     /// Set the desired percentage and inclusive bounds for the detail pane.
     #[must_use]
     pub const fn detail_share(mut self, percent: u8, min: u16, max: u16) -> Self {
+        self.sizing = MasterDetailSizing::FixedDetail;
         self.detail_share = if percent > 100 { 100 } else { percent };
         self.detail_min = if min < max { min } else { max };
         self.detail_max = if min > max { min } else { max };
+        self
+    }
+
+    /// Opt into a user-resizable master pane with a persistent initial share.
+    ///
+    /// The existing fixed-detail policy remains the default. The initial share
+    /// seeds state only before its split state has been initialized; resizing
+    /// and redraws preserve the consumer-owned [`MasterDetailState`].
+    #[must_use]
+    pub const fn resizable_master(
+        mut self,
+        initial_percent: u8,
+        min_master: u16,
+        min_detail: u16,
+    ) -> Self {
+        self.sizing = MasterDetailSizing::ResizableMaster {
+            initial_percent: if initial_percent > 100 {
+                100
+            } else {
+                initial_percent
+            },
+            min_master,
+            min_detail,
+        };
         self
     }
 
@@ -76,8 +115,23 @@ impl MasterDetailPolicy {
         self
     }
 
+    /// Return the configured percentage for fixed-detail sizing.
+    ///
+    /// This setting is retained when [`Self::resizable_master`] is selected;
+    /// it does not report that mode's initial master percentage.
     pub const fn detail_share_percent(self) -> u8 {
         self.detail_share
+    }
+
+    const fn resizable_master_config(self) -> Option<(u8, u16, u16)> {
+        match self.sizing {
+            MasterDetailSizing::FixedDetail => None,
+            MasterDetailSizing::ResizableMaster {
+                initial_percent,
+                min_master,
+                min_detail,
+            } => Some((initial_percent, min_master, min_detail)),
+        }
     }
 
     pub const fn is_collapsed(self, width: u16) -> bool {
@@ -90,6 +144,8 @@ impl MasterDetailPolicy {
 pub enum MasterDetailAction {
     DrawerOpened,
     DrawerClosed,
+    /// The opt-in resizable master pane changed to this share.
+    Resized(u8),
 }
 
 /// Missing content or a composition failure detected before rendering.
@@ -116,6 +172,7 @@ pub struct MasterDetail<'a> {
     master: Option<&'a Group<'a>>,
     detail: Option<&'a Group<'a>>,
     summary: Option<&'a Group<'a>>,
+    detail_owners: Vec<crate::Id>,
 }
 
 impl<'a> MasterDetail<'a> {
@@ -125,6 +182,7 @@ impl<'a> MasterDetail<'a> {
             master_owner,
             detail_owner,
             policy: MasterDetailPolicy {
+                sizing: MasterDetailSizing::FixedDetail,
                 detail_share: 34,
                 detail_min: 34,
                 detail_max: 48,
@@ -135,6 +193,7 @@ impl<'a> MasterDetail<'a> {
             master: None,
             detail: None,
             summary: None,
+            detail_owners: Vec::new(),
         }
     }
 
@@ -159,6 +218,13 @@ impl<'a> MasterDetail<'a> {
     #[must_use]
     pub fn summary(mut self, group: &'a Group<'a>) -> Self {
         self.summary = Some(group);
+        self
+    }
+
+    /// Identify focusable descendants owned by the detail group.
+    #[must_use]
+    pub fn detail_owns(mut self, ids: &[crate::Id]) -> Self {
+        self.detail_owners = ids.to_vec();
         self
     }
 
@@ -195,6 +261,22 @@ impl<'a> MasterDetail<'a> {
         cx: &mut Cx<'_>,
         state: &mut MasterDetailState,
     ) -> Response<MasterDetailAction> {
+        if self.policy.resizable_master_config().is_some() {
+            let was_open = state.drawer_open();
+            let response = self.responsive_engine().update(cx, state);
+            if state.drawer_open() != was_open {
+                return Response::action(if state.drawer_open() {
+                    MasterDetailAction::DrawerOpened
+                } else {
+                    MasterDetailAction::DrawerClosed
+                })
+                .for_id(self.id);
+            }
+            return response.map_action(|action| match action {
+                SplitAction::Resized(percent) => MasterDetailAction::Resized(percent),
+            });
+        }
+
         let scope = self.detail_scope();
         let responsive = self.responsive_engine();
         let narrow_drawer_is_active = state.drawer_open()
@@ -241,8 +323,9 @@ impl<'a> MasterDetail<'a> {
             state.drawer_open(),
         );
         if resolved.mode == termrock_controls::MasterDetailMode::Split {
+            let split_state = self.measure_split_state(state);
             self.wide_split(master, detail)
-                .measure(ui, &SplitPaneState::default(), constraints)
+                .measure(ui, &split_state, constraints)
                 .map_err(|error| match error {
                     crate::blocks::SplitBlockError::Composition(error) => {
                         MasterDetailError::Composition(error)
@@ -278,6 +361,14 @@ impl<'a> MasterDetail<'a> {
         }
 
         let area = ui.full();
+        if self.policy.resizable_master_config().is_some() {
+            return self
+                .responsive_engine()
+                .draw(ui, area, state, |ui, layout| {
+                    self.draw_resizable_regions(ui, layout, master, detail)
+                })
+                .map_err(Into::into);
+        }
         let resolved = self
             .responsive_engine()
             .resolve_responsive_layout(area, state.drawer_open());
@@ -318,9 +409,33 @@ impl<'a> MasterDetail<'a> {
     }
 
     fn responsive_engine(&self) -> ResponsiveMasterDetail {
-        ResponsiveMasterDetail::new(self.id, self.master_owner, self.detail_owner)
+        let summary_rows = match self.policy.resizable_master_config() {
+            Some(_) if self.summary.is_none() => 0,
+            _ => self.policy.summary_rows,
+        };
+        let engine = ResponsiveMasterDetail::new(self.id, self.master_owner, self.detail_owner)
             .collapse_below(self.policy.collapse_below)
-            .summary_rows(self.policy.summary_rows)
+            .summary_rows(summary_rows)
+            .detail_owns(&self.detail_owners);
+        match self.policy.resizable_master_config() {
+            Some((initial, min_master, min_detail)) => engine
+                .master_share(initial)
+                .min_master(min_master)
+                .min_detail(min_detail)
+                .gap(self.policy.gap),
+            None => engine,
+        }
+    }
+
+    fn measure_split_state(&self, state: &MasterDetailState) -> SplitPaneState {
+        self.policy.resizable_master_config().map_or_else(
+            SplitPaneState::default,
+            |(initial, _, _)| {
+                state
+                    .split()
+                    .unwrap_or_else(|| SplitPaneState::new(initial))
+            },
+        )
     }
 
     fn wide_split(
@@ -334,6 +449,9 @@ impl<'a> MasterDetail<'a> {
     }
 
     fn wide_pane(&self) -> SplitPane<'a> {
+        if self.policy.resizable_master_config().is_some() {
+            return self.responsive_engine().split_pane();
+        }
         SplitPane::new(self.id, SplitAxis::Horizontal)
             .gap(self.policy.gap)
             .min_first(1)
@@ -345,6 +463,37 @@ impl<'a> MasterDetail<'a> {
                 self.policy.detail_max,
             )
             .seam_start(0)
+    }
+
+    fn draw_resizable_regions(
+        &self,
+        ui: &mut Ui<'_>,
+        layout: termrock_controls::MasterDetailLayout,
+        master: &'a Group<'a>,
+        detail: &'a Group<'a>,
+    ) -> Result<(), CompositionError> {
+        match layout.mode {
+            termrock_controls::MasterDetailMode::Split => {
+                ui.with_area(layout.master, |ui| master.show(ui))?;
+                ui.with_area(layout.detail, |ui| {
+                    ui.focus_scope(self.detail_scope().id(), ScopeMode::Normal, |ui| {
+                        detail.show(ui)
+                    })
+                })
+            }
+            termrock_controls::MasterDetailMode::Drawer => {
+                ui.focus_scope(self.detail_scope().id(), ScopeMode::Normal, |ui| {
+                    detail.show(ui)
+                })
+            }
+            termrock_controls::MasterDetailMode::Master => {
+                ui.with_area(layout.master, |ui| master.show(ui))?;
+                if let (Some(summary), false) = (self.summary, layout.summary.is_empty()) {
+                    ui.with_area(layout.summary, |ui| summary.show(ui))?;
+                }
+                Ok(())
+            }
+        }
     }
 
     const fn detail_scope(&self) -> ScopeId {
