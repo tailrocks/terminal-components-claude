@@ -10,6 +10,10 @@ const SCROLL_LIST: Id = Id::root("showcase_ui::pages::scrolling::scrolling.list"
 const APP_NAV: Id = Id::root("showcase_ui::app::navigation");
 const CHROME_BRAND: Id = Id::root("showcase_ui::pages::chrome::chrome.brand");
 const SIDEBAR_CONTENT: Id = Id::root("showcase_ui::pages::sidebars::sidebars.content");
+const EDITOR: Id = Id::root("showcase_ui::pages::editor::editor.code");
+const EDITOR_FIND: Id = Id::root("showcase_ui::pages::editor::editor.find");
+const EDITOR_RUN: Id = Id::root("showcase_ui::pages::editor::editor.run");
+const EDITOR_STATE_LIST: Id = Id::root("showcase_ui::pages::editor::editor.state.list");
 
 fn harness(page: PageId) -> Harness<App> {
     Harness::new(App::with_page(page), Theme::junie(), 120, 40)
@@ -326,6 +330,331 @@ fn exercise_page_state(h: &mut Harness<App>, page: PageId) {
             assert!(h.text().contains("compile started"));
         }
     }
+}
+
+#[test]
+fn editor_playground_keeps_live_find_completion_and_run_contracts() {
+    let mut h = harness(PageId::Editor);
+    assert!(
+        h.area_of(EDITOR_STATE_LIST).is_some(),
+        "state list lacks layout: {}",
+        h.text()
+    );
+    let editor_area = require(h.area_of(EDITOR), "editor viewport");
+    wheel(
+        &mut h,
+        Axis::V,
+        16,
+        editor_area.x.saturating_add(1),
+        editor_area.y.saturating_add(1),
+    );
+    assert!(h.text().contains("gzip(true)"), "{}", h.text());
+    assert!(
+        h.text().contains("Find"),
+        "Find action absent: {}",
+        h.text()
+    );
+    assert!(
+        h.text().contains("Run block"),
+        "Run action absent: {}",
+        h.text()
+    );
+
+    assert!(h.tab_to(EDITOR));
+    press(&mut h, KeyCode::F(6));
+    assert_eq!(h.focus(), Some(EDITOR_FIND));
+    press(&mut h, KeyCode::Enter);
+    assert_eq!(h.focus(), Some(EDITOR));
+    type_text(&mut h, "delay");
+    assert!(h.text().contains("“delay” · 1 of 3"), "{}", h.text());
+    press(&mut h, KeyCode::Esc);
+    assert!(h.text().contains("Find         closed"), "{}", h.text());
+
+    assert!(h.tab_to(EDITOR));
+    press(&mut h, KeyCode::Char('i'));
+    press(&mut h, KeyCode::Backspace);
+    type_text(&mut h, "fe");
+    assert!(h.text().contains("Completion   open"), "{}", h.text());
+    assert!(
+        h.text().contains("async fn (url: &str)"),
+        "completion popup missing: {}",
+        h.text()
+    );
+    press(&mut h, KeyCode::Esc);
+    assert!(h.text().contains("Completion   closed"), "{}", h.text());
+
+    let mut h = harness(PageId::Editor);
+    assert!(h.tab_to(EDITOR));
+    for _ in 0..17 {
+        press(&mut h, KeyCode::Down);
+    }
+    assert!(h.text().contains("Block        2 of 3"), "{}", h.text());
+    control(&mut h, 'r');
+    assert!(
+        h.text().contains("running"),
+        "shortcut run state missing: {}",
+        h.text()
+    );
+    for _ in 0..12 {
+        let _ = h.tick();
+    }
+    assert!(
+        h.text().contains("Runs         1"),
+        "run count missing: {}",
+        h.text()
+    );
+    assert!(
+        h.text().contains("unwrap() panics on Err"),
+        "live run diagnostics missing: {}",
+        h.text()
+    );
+    assert!(
+        h.text().contains("Block ran in"),
+        "run status missing: {}",
+        h.text()
+    );
+
+    let mut h = harness(PageId::Editor);
+    assert!(h.tab_to(EDITOR));
+    press(&mut h, KeyCode::F(6));
+    assert_eq!(h.focus(), Some(EDITOR_FIND));
+    press(&mut h, KeyCode::Tab);
+    assert_eq!(h.focus(), Some(EDITOR_RUN));
+    press(&mut h, KeyCode::Enter);
+    assert!(
+        h.text().contains("running"),
+        "run state missing: {}",
+        h.text()
+    );
+    for _ in 0..12 {
+        let _ = h.tick();
+    }
+    assert!(
+        h.text().contains("Runs         1"),
+        "run count missing: {}",
+        h.text()
+    );
+    assert!(h.text().contains("Block ran in"), "{}", h.text());
+}
+
+#[test]
+fn editor_shell_tab_indents_without_leaving_editor_focus() {
+    let mut h = harness(PageId::Editor);
+    assert!(h.tab_to(EDITOR));
+    press(&mut h, KeyCode::Char('i'));
+    press(&mut h, KeyCode::Tab);
+
+    assert_eq!(
+        h.focus(),
+        Some(EDITOR),
+        "Tab indentation retains editor focus"
+    );
+    assert!(
+        h.text().contains("Cursor       ln 1 · col 6"),
+        "Tab must add the configured four spaces: {}",
+        h.text()
+    );
+}
+
+#[test]
+fn editor_shell_completion_accepts_enter_then_tab_indents() {
+    let mut h = harness(PageId::Editor);
+    assert!(h.tab_to(EDITOR));
+    press(&mut h, KeyCode::Char('i'));
+    press(&mut h, KeyCode::Backspace);
+    type_text(&mut h, "fe");
+    assert!(
+        h.text().contains("async fn (url: &str)"),
+        "the live completion row must render before acceptance: {}",
+        h.text()
+    );
+
+    press(&mut h, KeyCode::Enter);
+    assert!(
+        h.text().contains("fetch()"),
+        "Enter must accept fetch(): {}",
+        h.text()
+    );
+    assert!(h.text().contains("Completion   closed"), "{}", h.text());
+    assert_eq!(h.focus(), Some(EDITOR));
+
+    press(&mut h, KeyCode::Tab);
+    assert_eq!(
+        h.focus(),
+        Some(EDITOR),
+        "Tab after acceptance indents in place"
+    );
+    assert!(
+        h.text().contains("Cursor       ln 1 · col 12"),
+        "the following Tab must add four spaces after fetch(): {}",
+        h.text()
+    );
+}
+
+#[test]
+fn editor_shell_completion_accepts_tab_then_next_tab_indents() {
+    let mut h = harness(PageId::Editor);
+    assert!(h.tab_to(EDITOR));
+    press(&mut h, KeyCode::Char('i'));
+    press(&mut h, KeyCode::Backspace);
+    type_text(&mut h, "fe");
+    assert!(h.text().contains("async fn (url: &str)"), "{}", h.text());
+
+    press(&mut h, KeyCode::Tab);
+    assert!(
+        h.text().contains("fetch()"),
+        "Tab must accept fetch(): {}",
+        h.text()
+    );
+    assert!(h.text().contains("Completion   closed"), "{}", h.text());
+    assert_eq!(h.focus(), Some(EDITOR));
+
+    press(&mut h, KeyCode::Tab);
+    assert_eq!(
+        h.focus(),
+        Some(EDITOR),
+        "Tab after acceptance indents in place"
+    );
+    assert!(
+        h.text().contains("Cursor       ln 1 · col 12"),
+        "the following Tab must add four spaces after fetch(): {}",
+        h.text()
+    );
+}
+
+#[test]
+fn editor_shell_navigation_tab_moves_to_find_after_commit() {
+    let mut h = harness(PageId::Editor);
+    assert!(h.tab_to(EDITOR));
+    press(&mut h, KeyCode::Esc);
+    assert!(h.text().contains("Mode         navigating"), "{}", h.text());
+
+    press(&mut h, KeyCode::Tab);
+    assert_eq!(h.focus(), Some(EDITOR_FIND));
+}
+
+#[test]
+fn editor_shell_help_layer_blocks_the_page_run_binding() {
+    let mut h = harness(PageId::Editor);
+    assert!(h.tab_to(EDITOR));
+    press(&mut h, KeyCode::Esc);
+    press(&mut h, KeyCode::Char('?'));
+    assert!(h.top_layer().index() > LayerId::PAGE.index());
+
+    control(&mut h, 'r');
+    assert!(
+        !h.text().contains("Running block…"),
+        "the page Ctrl+R binding must not pass through help: {}",
+        h.text()
+    );
+    press(&mut h, KeyCode::Esc);
+    assert_eq!(h.top_layer(), LayerId::PAGE);
+}
+
+#[test]
+fn editor_run_clock_does_not_advance_for_pointer_events() {
+    let mut h = harness(PageId::Editor);
+    assert!(h.tab_to(EDITOR));
+    control(&mut h, 'r');
+    assert!(h.text().contains("running"), "{}", h.text());
+
+    for _ in 0..20 {
+        move_mouse(&mut h, 0, 0);
+    }
+
+    assert!(
+        h.text().contains("running"),
+        "pointer input must not advance the run clock: {}",
+        h.text()
+    );
+    assert!(h.text().contains("Runs         0"), "{}", h.text());
+}
+
+#[test]
+fn editor_run_diagnoses_the_block_submitted_before_cursor_movement() {
+    let mut h = harness(PageId::Editor);
+    assert!(h.tab_to(EDITOR));
+    for _ in 0..17 {
+        press(&mut h, KeyCode::Down);
+    }
+    assert!(h.text().contains("Block        2 of 3"), "{}", h.text());
+    control(&mut h, 'r');
+    assert!(h.text().contains("running"), "{}", h.text());
+    for _ in 0..17 {
+        press(&mut h, KeyCode::Up);
+    }
+    assert!(h.text().contains("Block        1 of 3"), "{}", h.text());
+
+    for _ in 0..12 {
+        let _ = h.tick();
+    }
+    assert!(
+        h.text().contains("unwrap() panics on Err"),
+        "diagnostics must belong to the submitted second block: {}",
+        h.text()
+    );
+}
+
+#[test]
+fn editor_manual_empty_completion_keeps_frozen_alphabetic_choice() {
+    let mut h = harness(PageId::Editor);
+    assert!(h.tab_to(EDITOR));
+    control(&mut h, ' ');
+    assert!(h.text().contains("Completion   open"), "{}", h.text());
+    press(&mut h, KeyCode::Enter);
+
+    assert!(
+        h.text().contains("Body// Retry"),
+        "empty manual completion must choose the alphabetically first label: {}",
+        h.text()
+    );
+}
+
+#[test]
+fn editor_repeated_runs_accumulate_diagnostics_until_text_changes() {
+    let mut h = harness(PageId::Editor);
+    assert!(h.tab_to(EDITOR));
+    for _ in 0..17 {
+        press(&mut h, KeyCode::Down);
+    }
+    assert!(h.text().contains("Block        2 of 3"), "{}", h.text());
+
+    control(&mut h, 'r');
+    h.ticks(10);
+    assert!(h.text().contains("Diagnostics  1"), "{}", h.text());
+
+    control(&mut h, 'r');
+    h.ticks(10);
+    assert!(h.text().contains("Runs         2"), "{}", h.text());
+    assert!(
+        h.text().contains("Diagnostics  2"),
+        "repeated unchanged runs retain the frozen accumulated diagnostics: {}",
+        h.text()
+    );
+
+    press(&mut h, KeyCode::Char('i'));
+    press(&mut h, KeyCode::Char('x'));
+    assert!(h.text().contains("Diagnostics  0"), "{}", h.text());
+}
+
+#[test]
+fn editor_blank_separator_readout_has_no_fallback_execution_block() {
+    let mut h = harness(PageId::Editor);
+    assert!(h.tab_to(EDITOR));
+    for _ in 0..16 {
+        press(&mut h, KeyCode::Down);
+    }
+
+    assert!(
+        h.text().contains("Cursor       ln 17 · col 1"),
+        "{}",
+        h.text()
+    );
+    assert!(
+        h.text().contains("between blocks"),
+        "readout uses exact cursor containment, while execution may fall back to the previous block: {}",
+        h.text()
+    );
 }
 
 #[test]
