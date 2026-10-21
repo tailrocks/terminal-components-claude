@@ -1951,3 +1951,26 @@ preparation (lease), no other stream may be pushing, and every open work branch
 must be rebased onto the rewritten tip afterwards. The rule against force-pushing
 shared branches is respected by making this a single, announced, owner-executed
 step at the end of the consolidation, not a routine push.
+
+### Remaining production replay / geometry paths (re-measured at the base)
+
+Re-measured on this session's base commit with a repository-wide source scan:
+
+- No `RUNS` array remains in any production crate, and no production crate
+  embeds a captured ANSI frame (`include_str!`/`include_bytes!` hits are only
+  the test-support registries, the xtask doc scanner and the ownership rule
+  that detects them).
+- The 41 `crates/jackin-preview-app/src/app/historical_*.rs` replay modules and
+  the Holla `*_plate` model dispatch are gone from the branch.
+- `crates/holla-ui/src/app/historical_tests.rs` is a `#[cfg(test)]` module
+  (`crates/holla-ui/src/app.rs:6156`), so it is test code, not a production
+  render path. Its name is historical only.
+- `crates/tablepro-ui` has no file whose name suggests a replay, plate or
+  captured-frame mechanism.
+- Open item: `crates/jackin-preview-app/src/app/launch_dialog_plate.rs` still
+  computes overlay card rectangles with `Rect::new` and applies a
+  reduced-color remap in application code. The card painting itself already
+  goes through the shared `termrock` overlays (`overlays::info_card`,
+  `overlays::cancel_card`), so the remaining violation is the app-owned
+  geometry and ink remap. It belongs to the Jackin stream that owns that
+  crate; this session did not edit it.
