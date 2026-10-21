@@ -35,11 +35,15 @@ pub fn set_alt_delivered(on: bool) {
     ALT.store(if on { 1 } else { 2 }, Ordering::SeqCst);
 }
 
-/// Observe real input: seeing a Super chord is proof the terminal delivers it.
+/// Observe real input: seeing a Super or Alt chord is proof the terminal
+/// delivers that modifier.
 pub fn observe(input: &Input) {
     let Input::Key(k) = input else { return };
     if k.mods.contains(KeyModifiers::SUPER) && SUPER.load(Ordering::SeqCst) != 2 {
         SUPER.store(3, Ordering::SeqCst);
+    }
+    if k.mods.contains(KeyModifiers::ALT) && ALT.load(Ordering::SeqCst) != 2 {
+        ALT.store(3, Ordering::SeqCst);
     }
 }
 
@@ -148,6 +152,24 @@ mod tests {
         observe(&key(KeyCode::Char('a'), KeyModifiers::SUPER));
         assert!(
             !super_delivered(),
+            "a refused answer stands even when a chord is observed"
+        );
+    }
+
+    #[test]
+    fn observing_an_alt_chord_proves_delivery_until_refused() {
+        let _env = lock();
+        ALT.store(0, Ordering::SeqCst);
+        assert!(!alt_delivered(), "undecided filters Alt hints");
+        observe(&key(KeyCode::Left, KeyModifiers::ALT));
+        assert!(
+            alt_delivered(),
+            "an observed Alt chord is proof, so filtered hints recover"
+        );
+        set_alt_delivered(false);
+        observe(&key(KeyCode::Left, KeyModifiers::ALT));
+        assert!(
+            !alt_delivered(),
             "a refused answer stands even when a chord is observed"
         );
     }

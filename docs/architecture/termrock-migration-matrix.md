@@ -1203,3 +1203,38 @@ Velnor Actions `0.1.32` supersedes the `0.1.31` tool pin. The release manifest, 
 
 
 Independent 0.1.32 review clears exact `bd517d7cda5a4178b84542d07fa7db7c61d48701`, with all 21 generated entries matching official output and preview, 450 semantic tasks unchanged, 75 runner tests, eight doc guards, 48 Shell tests and scoped strict checks passing. Exact diff repairs only three Rust documentation links beyond tool/generated inputs; no behavior or public API changes. Review SHA-256 `091b4b04b48deb91b580c8e1680aaa0f5c70bd0331462410394234b4a7f3a29a` is preserved. The isolated reviewer cache cleanup was rejected by its command guard and remains preserved; no user files were removed. Publication still requires fresh synchronization, generator freshness and exact-head checks; hosted CI and application gates remain incomplete.
+
+The next incoming workstream report is preserved as historical author-reported evidence. Current acceptance remains incomplete and separate independent review controls source acceptance.
+
+## 2026-10-21: reviewer-2 shell hygiene pass
+
+PR #38 review findings fixed on `crates/termrock-shell` and the facade's
+`blocks::shell`, behaviour-preserving, one commit per finding
+(`72d38dbc7`..`a7ebefdcf`):
+
+- Facade `blocks::shell` re-exports `termrock_shell::{Chrome, Regions,
+  AppShell}` instead of carrying a verbatim copy (two same-named
+  `AppShell` types existed); the header/gap/footer/inset chrome builders
+  moved into `termrock-shell`'s `AppShell`, and the facade keeps only
+  `EmptyLeaf`, `AppShellSlots` and the `AppShellExt` slot-builder trait.
+- `termrock-shell` no longer force-enables `termrock-runtime`'s
+  `testing` feature in `[dependencies]`; it is dev-only, so
+  `runtime::stub` stays out of production builds (`cargo tree -p
+  termrock -e features`: one `testing` edge before, none after).
+- `reach.rs` (the 723-line reachability harness) compiles only under the
+  crate's default-off `testing` feature; a self dev-dependency keeps the
+  crate's own 49 tests green under `cargo nextest run -p termrock-shell`.
+- `keyboard::observe` now ports PR26's Alt arm as well as Super, so
+  `alt_delivered()` can be proven by observed Alt chords (regression
+  test fails against the old observe: 4/5).
+- `KeyRouter::once` folds a passing layer's response with
+  `out | Response::consumed()` instead of returning a fresh consumed, so
+  the layer's invalidate/state payload survives; `route`'s doc no longer
+  claims hover suppression (the runtime owns hover on parity).
+- `PageLeaf::measure` follows the sibling `min: 0` convention instead of
+  `min: constraints.max`; no consumer relied on the outlier.
+
+Gate on the exact pushed HEAD (`a7ebefdcf`): `cargo nextest run -p
+termrock-shell -p termrock` 71/71, `cargo clippy --all-targets -p
+termrock -p termrock-shell` clean, `cargo fmt --check` exit 0,
+`cargo check --workspace` exit 0.
