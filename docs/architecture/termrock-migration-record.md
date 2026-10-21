@@ -194,6 +194,93 @@ library gap an application writer hits is recorded, not patched locally.
 The coordinator merges each stream into `parity/termrock-visual-baseline`
 under the shared push lock, and owns the final gates.
 
+## Verification infrastructure (audit, revision `40bc297e5`)
+
+The live paired runner is `tools/frozen_baseline.py live-compare`. The
+legacy `tools/parity_replay.py` / `tools/parity_approve.py` path (499
+recipes) is not the acceptance runner.
+
+Paired run, in order:
+
+```bash
+python3 tools/frozen_baseline.py prepare  --repo . --root target/frozen-baseline
+python3 tools/frozen_baseline.py build    --repo . --root target/frozen-baseline
+python3 tools/frozen_baseline.py build-candidate --repo . --root target/frozen-baseline \
+    --target-dir /abs/path/to/candidate-target
+python3 tools/frozen_baseline.py prepare-live --repo . --root target/frozen-baseline \
+    --fresh-cohort frozen-20261021-serial-nonincr-r1-r2 --baseline-bin-dir <sealed cohort bin>
+python3 tools/frozen_baseline.py live-compare --repo . --root target/frozen-baseline \
+    --candidate-bin-dir <candidate-target>/debug --candidate-repo <candidate checkout> \
+    --case 'showcase::pages::overview::120x40::truecolor' | --all
+```
+
+Phases: `baseline-capture` (frozen binary captures frames into a sealed
+expected store), `baseline-check` (frozen binary replays against the same
+store — determinism proof), `candidate-check` (candidate binary replays
+against the same store). Comparison is decoded cells, not ANSI bytes: each
+checkpoint carries an ANSI sha256 and a semantic `Frame::to_json()` digest
+covering every ordered cell plus cursor position, visibility, style and
+blink. SGR modifiers are compared cell by cell. A candidate that renders the
+same cells with a different cursor style still fails.
+
+`live-compare --all` loops every scenario in one command, which breaks the
+bounded-command rule. The resumable protocol is the guard:
+`fresh-plan` -> `verify-fresh-plan` -> `fresh-run-init` -> `fresh-run-verify`
+-> `fresh-run-advance`, each bound to an expected plan sha256.
+
+Runner guards: `python3 tools/test_frozen_baseline.py` (119 tests),
+`python3 tools/test_acceptance_architecture.py` (39 tests),
+`python3 tools/test_inventory/test_inventory.py` (13 tests). All green at
+`40bc297e5`.
+
+### Reference inventory is fragmented
+
+Nine parallel inventories exist and no cross-check asserts they agree:
+
+| Inventory | Count | Scope |
+| --- | --- | --- |
+| frozen CLI scenarios in the frozen source (`EXPECTED_SCENARIOS`) | 28 895 | the only one the paired runner enforces, and only via `--all` |
+| `tools/frozen_cli_extensions.json` | 174 | registered extension cases |
+| `baselines/tuiscotti-v1/` | 7 550 captures = 302 screens x 25 | the stored corpus |
+| `snapshots/` | 7 675 `.ansi` | visual-harness store |
+| `tests/conformance/required_cases.json` | 524 | 222-case `W*` vocabulary |
+| `crates/termrock-conformance/tests/visual_baseline/` | 473 cases + 41 variants | the runnable suite |
+| `parity/recipes.tsv` | 499 | legacy path; zero holla rows |
+| `crates/termrock-e2e/cases/registry.json` | 4 | one per app |
+| `tools/app-inventory.json` | app-level | themes, startup args, perf targets |
+
+The runnable conformance suite pins most scenarios at 120x40 truecolor only,
+so "5 sizes x 5 colours" coverage exists in the corpus and the extension
+manifest but not in the suite that runs.
+
+### Blockers to clear before acceptance
+
+1. `baselines/oracle/ORACLE.toml` is `pending = true`, version 0, zero
+   scenarios. The corpus was acquired by `legacy_replayed_conversion`, not by
+   live capture. The official oracle store is empty.
+2. `frozen-baseline corpus-check` is red in both modes: the corpus ANSI and
+   `frame.json` disagree on SGR modifiers, and the corpus disagrees with the
+   snapshot store. About 78 tier cases.
+3. The capture-eligible binary cohort is not admitted as a reference
+   (`tools/frozen_cli_build_cohorts.json` says
+   `reproduced-diagnostic-not-reference-approved`). The four app binaries
+   are not byte-reproducible across build roots, so no candidate comparison
+   has a legal baseline yet.
+4. No full paired comparison has ever been green. Latest recorded attempt:
+   240 scenarios red.
+5. CI runs none of the real gates. The generated `Plan` job's "Check
+   generated files" step is red, so every downstream Rust job is skipped and
+   `required` fails closed. The fix belongs in `.velnor/config.toml` plus a
+   regeneration, never in the generated workflow files.
+6. `crates/termrock-e2e`, `tools/frozen-cli-frame-support`,
+   `tools/visibility`, `tools/termrock-visibility-publisher`,
+   `crates/holla-catalog`, `crates/holla-plan` and `crates/showcase-data`
+   are excluded from velnor discovery and get no CI job at all.
+7. `cargo run -p termrock-xtask -- check-ownership` is red with about 100
+   findings owned by other streams.
+8. `tools/test_perf_workflow.py` cannot run: `.github/workflows/perf.yml`
+   does not exist in the generated workflow set.
+
 ## Decisions
 
 See `## Decisions log`.
@@ -222,6 +309,28 @@ component composition. They are not moved into Termrock and not renamed.
 Reference frames stay outside production dependencies. A production build
 must not be able to consume reference frames through source, generated code,
 resources or build scripts.
+
+### D-004 — A screen is never selected by identity
+
+A screen may be selected by logical application state and by a layout
+policy. It may never be selected by an exact terminal size, a fixture
+label, a captured clock value, or a specific theme colour value. A colour
+level is a capability; an exact RGB is the identity of one frozen capture.
+
+### D-005 — Reference defects are recorded, not papered over
+
+When a frozen frame and the live output genuinely conflict, both results
+are recorded, the case is marked as a reference defect, and the requirement
+that depends on it stays open until an independent review clears the
+conflict. The 15 holla no-reference parity families are the known instance:
+they fail the frozen oracle on both the reference and the candidate build.
+
+### D-006 — Missing library capabilities are reported, not forked
+
+An application stream that needs a Termrock capability records it with a
+proposed public API and the call site. The library stream implements it
+once. No application may fork a widget or hand-paint cells to work around a
+missing component.
 
 ## Evidence index
 
