@@ -1366,7 +1366,11 @@ def prepare(repo: Path, root: Path, timeout: int, *, execution: PrepareExecution
 
 
 def verify_source(root: Path, source: Path, *, check_work: Callable[[], None] | None = None) -> str:
+    if check_work is not None:
+        check_work()
     manifest = json.loads((root / "provenance.json").read_text())
+    if check_work is not None:
+        check_work()
     if manifest.get("source_commit") != BASELINE_COMMIT or manifest.get("tag_object") != BASELINE_TAG_OBJECT or manifest.get("source_tree") != BASELINE_TREE:
         raise RunnerError("frozen provenance identity mismatch")
     current = digest_source(source, check_work=check_work) if check_work is not None else digest_source(source)
@@ -1605,12 +1609,20 @@ def verify_live_source(
     *,
     fresh_cohort_id: str | None = None,
     baseline_bin_dir: Path | None = None,
+    execution: PrepareExecution | None = None,
 ) -> tuple[Path, dict[str, object]]:
+    check_work = execution.check_work if execution is not None else None
+    if check_work is not None:
+        check_work()
     live = root / "live-source"
     manifest_path = root / "live-source.json"
+    if check_work is not None:
+        check_work()
     if not live.is_dir() or not manifest_path.is_file():
         raise RunnerError("live source missing; run prepare-live first")
     recorded = json.loads(manifest_path.read_text())
+    if check_work is not None:
+        check_work()
     recorded_fresh = recorded.get("fresh_capture_cohort")
     if fresh_cohort_id is None:
         if recorded_fresh is not None or baseline_bin_dir is not None:
@@ -1623,29 +1635,55 @@ def verify_live_source(
     extension_manifest = repo / EXTENSION_MANIFEST
     extension_source = repo / EXTENSION_SOURCE
     reference_path = repo / REFERENCE_DECISIONS
-    reference_decision_hash = sha256(reference_path) if fresh_cohort_id is None and reference_path.is_file() and not reference_path.is_symlink() else None
+
+    def checked_digest(path: Path) -> str:
+        return sha256(path, check_work=check_work) if check_work is not None else sha256(path)
+
+    def checked_source_digest(path: Path) -> str:
+        return digest_source(path, check_work=check_work) if check_work is not None else digest_source(path)
+
+    def checked_tree_digest(path: Path) -> str:
+        return digest_tree(path, check_work=check_work) if check_work is not None else digest_tree(path)
+
+    if fresh_cohort_id is not None and baseline_bin_dir is not None:
+        if check_work is not None:
+            check_work()
+        fresh_cohort = (
+            _fresh_cohort_source_record(repo, fresh_cohort_id, baseline_bin_dir.resolve(), check_work=check_work)
+            if check_work is not None
+            else _fresh_cohort_source_record(repo, fresh_cohort_id, baseline_bin_dir.resolve())
+        )
+    else:
+        fresh_cohort = None
+    reference_decision_hash = checked_digest(reference_path) if fresh_cohort_id is None and reference_path.is_file() and not reference_path.is_symlink() else None
+    if check_work is not None:
+        check_work()
     current = {
-        "frozen_source_sha256": digest_source(source),
-        "live_source_sha256": digest_source(live),
-        "patch_sha256": sha256(patch),
-        "helper_sha256": sha256(helper),
-        "module_sha256": sha256(live / "tests" / "visual_baseline" / "frozen_cli_pair.rs"),
-        "extension_manifest_sha256": sha256(extension_manifest),
-        "extension_source_sha256": sha256(extension_source),
-        "extension_module_sha256": sha256(live / "tests" / "visual_baseline" / "frozen_cli_extensions.rs"),
-        "extension_manifest_copy_sha256": sha256(live / "tests" / "visual_baseline" / "frozen_cli_extensions.json"),
+        "frozen_source_sha256": checked_source_digest(source),
+        "live_source_sha256": checked_source_digest(live),
+        "patch_sha256": checked_digest(patch),
+        "helper_sha256": checked_digest(helper),
+        "module_sha256": checked_digest(live / "tests" / "visual_baseline" / "frozen_cli_pair.rs"),
+        "extension_manifest_sha256": checked_digest(extension_manifest),
+        "extension_source_sha256": checked_digest(extension_source),
+        "extension_module_sha256": checked_digest(live / "tests" / "visual_baseline" / "frozen_cli_extensions.rs"),
+        "extension_manifest_copy_sha256": checked_digest(live / "tests" / "visual_baseline" / "frozen_cli_extensions.json"),
         "reference_decisions_sha256": reference_decision_hash,
-        "fresh_capture_cohort": _fresh_cohort_source_record(repo, fresh_cohort_id, baseline_bin_dir.resolve()) if fresh_cohort_id is not None and baseline_bin_dir is not None else None,
-        "frozen_snapshots_sha256": digest_tree(source / "snapshots"),
-        "live_snapshots_sha256": digest_tree(live / "snapshots"),
+        "fresh_capture_cohort": fresh_cohort,
+        "frozen_snapshots_sha256": checked_tree_digest(source / "snapshots"),
+        "live_snapshots_sha256": checked_tree_digest(live / "snapshots"),
     }
+    if check_work is not None:
+        check_work()
     if fresh_cohort_id is not None:
         env = fresh_clean_env()
         env["CARGO_TARGET_DIR"] = str(root / "live-target")
         env["NEXTEST_EXPERIMENTAL_LIBTEST_JSON"] = "1"
         current["preparation_environment"] = fresh_environment_fingerprint(env)
-        current["preparation_tool_observation"] = fresh_tool_observation(live, env)
+        current["preparation_tool_observation"] = fresh_tool_observation(live, env, execution=execution) if execution is not None else fresh_tool_observation(live, env)
     for key, value in current.items():
+        if check_work is not None:
+            check_work()
         if recorded.get(key) != value:
             raise RunnerError(f"live source provenance changed: {key}")
     if fresh_cohort_id is None:
@@ -1658,6 +1696,8 @@ def verify_live_source(
         raise RunnerError("visual extension inputs differ from the pinned extension revision")
     if current["patch_sha256"] != EXTENSION_PATCH_SHA256:
         raise RunnerError("visual extension test patch differs from the pinned extension revision")
+    if check_work is not None:
+        check_work()
     return live, recorded
 
 
@@ -4702,6 +4742,8 @@ def parser() -> argparse.ArgumentParser:
     verify_live = sub.add_parser("verify-live")
     verify_live.add_argument("--fresh-cohort", required=True)
     verify_live.add_argument("--baseline-bin-dir", type=Path, required=True)
+    verify_live.add_argument("--owned-lifecycle", action="store_true", help="use one cancellation-safe deadline and anchored child cleanup for live-source verification")
+    verify_live.add_argument("--owned-budget", type=int, default=PREPARE_OWNED_MAX_BUDGET, help="work seconds for --owned-lifecycle; cleanup reserve is additional and fixed")
     plan = sub.add_parser("fresh-plan")
     plan.add_argument("--cohort", required=True)
     plan.add_argument("--baseline-bin-dir", type=Path, required=True)
@@ -4789,10 +4831,43 @@ def main() -> int:
                 record = prepare_live_source(repo, root, source, args.timeout, fresh_cohort_id=args.fresh_cohort, baseline_bin_dir=args.baseline_bin_dir)
             print(json.dumps(record, indent=2))
         elif args.command == "verify-live":
-            repo, root, source = paths(args.repo, args.root)
-            verify_source(root, source)
-            live, record = verify_live_source(repo, root, source, args.timeout, fresh_cohort_id=args.fresh_cohort, baseline_bin_dir=args.baseline_bin_dir)
-            print(json.dumps({"live_source": str(live), "verified": True, "record": record}, indent=2))
+            if args.owned_lifecycle:
+                if args.fresh_cohort != PREPARE_LIVE_OWNED_COHORT:
+                    raise RunnerError(
+                        "--owned-lifecycle requires the pinned frozen-20261021-serial-nonincr-r1-r2 cohort"
+                    )
+                with PrepareExecution(args.owned_budget) as execution:
+                    execution.check_work()
+                    repo, root, source = paths(args.repo, args.root)
+                    execution.check_work()
+                    verify_source(root, source, check_work=execution.check_work)
+                    live, record = verify_live_source(
+                        repo,
+                        root,
+                        source,
+                        args.timeout,
+                        fresh_cohort_id=args.fresh_cohort,
+                        baseline_bin_dir=args.baseline_bin_dir,
+                        execution=execution,
+                    )
+                    success = json.dumps({"live_source": str(live), "verified": True, "record": record}, indent=2)
+                    execution.check_work()
+                    print(success, flush=True)
+                    execution.check_work()
+            else:
+                if args.owned_budget != PREPARE_OWNED_MAX_BUDGET:
+                    raise RunnerError("--owned-budget requires --owned-lifecycle")
+                repo, root, source = paths(args.repo, args.root)
+                verify_source(root, source)
+                live, record = verify_live_source(
+                    repo,
+                    root,
+                    source,
+                    args.timeout,
+                    fresh_cohort_id=args.fresh_cohort,
+                    baseline_bin_dir=args.baseline_bin_dir,
+                )
+                print(json.dumps({"live_source": str(live), "verified": True, "record": record}, indent=2))
         elif args.command == "fresh-plan":
             create_fresh_plan(args.repo, args.root, args.cohort, args.baseline_bin_dir, args.timeout, args.chunk_size, args.term_profile)
         elif args.command == "verify-fresh-plan":
