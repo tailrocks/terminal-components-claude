@@ -978,3 +978,210 @@ fn owner_part_styles_win_over_painter_defaults_in_columns_mode() {
     }
     assert!(failures.is_empty(), "{}", failures.join("; "));
 }
+
+#[test]
+fn picker_component_ink_defaults_are_per_channel_and_below_authored_styles() {
+    use termrock_theme::{Family, FgStep, Role, StylePatch};
+
+    let item = Item::new(ItemKey::num(20), "row")
+        .glyph("X")
+        .detail("detail")
+        .tag("tag")
+        .group("group");
+    let items = vec![item];
+
+    for level in [
+        ColorLevel::TrueColor,
+        ColorLevel::Ansi256,
+        ColorLevel::Ansi16,
+        ColorLevel::Mono,
+    ] {
+        let base_theme = Theme::junie().for_level(level);
+        let mut bar = page_with_theme(
+            ItemRowLayout::Columns,
+            64,
+            2,
+            false,
+            Some(CursorStyle::Bar),
+            Some(1),
+            items.clone(),
+            base_theme.clone(),
+        );
+        bar.app_mut().state.set_cursor(0, ItemKey::num(20));
+        bar.draw();
+        let (icon_x, icon_y) = bar.find("X").expect("focused icon is rendered");
+        let icon = bar.cell(icon_x, icon_y);
+        assert_eq!(
+            icon.fg,
+            base_theme.color.fg[FgStep::Primary.index()],
+            "{level:?}"
+        );
+        assert!(!icon.modifier.contains(Modifier::BOLD), "{level:?}");
+        for (text, expected) in [
+            ("detail", FgStep::Muted),
+            ("tag", FgStep::Secondary),
+            ("group", FgStep::Muted),
+        ] {
+            let (x, y) = bar.find(text).expect("metadata is rendered");
+            assert_eq!(
+                bar.cell(x, y).fg,
+                base_theme.color.fg[expected.index()],
+                "{level:?} {text}"
+            );
+        }
+
+        let mut fill = page_with_theme(
+            ItemRowLayout::Columns,
+            64,
+            2,
+            false,
+            Some(CursorStyle::Fill),
+            Some(1),
+            items.clone(),
+            base_theme.clone(),
+        );
+        fill.app_mut().state.set_cursor(0, ItemKey::num(20));
+        fill.draw();
+        let (icon_x, icon_y) = fill.find("X").expect("focused icon is rendered");
+        assert_eq!(
+            fill.cell(icon_x, icon_y).fg,
+            base_theme.color.highlight_fg,
+            "{level:?} Fill icon follows on-fill ink"
+        );
+        for text in ["detail", "tag", "group"] {
+            let (x, y) = fill.find(text).expect("metadata is rendered");
+            assert_eq!(
+                fill.cell(x, y).fg,
+                base_theme.color.highlight_fg,
+                "{level:?} Fill {text} follows on-fill ink"
+            );
+        }
+
+        let same_value_theme = base_theme
+            .clone()
+            .override_family(Family::PICKER, |family| {
+                family
+                    .part(Part::ICON)
+                    .base(StylePatch::new().set_fg(Role::Fg(FgStep::Muted)));
+            });
+        let mut same_value = page_with_theme(
+            ItemRowLayout::Columns,
+            64,
+            2,
+            false,
+            Some(CursorStyle::Bar),
+            Some(1),
+            items.clone(),
+            same_value_theme.clone(),
+        );
+        same_value.app_mut().state.set_cursor(0, ItemKey::num(20));
+        same_value.draw();
+        let (icon_x, icon_y) = same_value.find("X").expect("focused icon is rendered");
+        assert_eq!(
+            same_value.cell(icon_x, icon_y).fg,
+            same_value_theme.color.fg[FgStep::Muted.index()],
+            "{level:?} same-value authored fg remains authoritative"
+        );
+
+        let custom_bg = base_theme
+            .clone()
+            .override_family(Family::PICKER, |family| {
+                family
+                    .part(Part::META)
+                    .base(StylePatch::new().set_bg(Role::Custom(OWNER_BG)));
+            });
+        let mut background_only = page_with_theme(
+            ItemRowLayout::Columns,
+            64,
+            2,
+            false,
+            Some(CursorStyle::Bar),
+            Some(1),
+            items.clone(),
+            custom_bg.clone(),
+        );
+        background_only
+            .app_mut()
+            .state
+            .set_cursor(0, ItemKey::num(20));
+        background_only.draw();
+        let expected_bg = custom_bg
+            .resolve(
+                Family::PICKER,
+                termrock_theme::Variant::DEFAULT,
+                Part::META,
+                termrock_runtime::StateFlags::FOCUSED,
+                termrock_theme::Surface::Canvas,
+            )
+            .style
+            .bg
+            .expect("owner background role resolves");
+        for text in ["detail", "tag"] {
+            let (x, y) = background_only.find(text).expect("metadata is rendered");
+            let cell = background_only.cell(x, y);
+            let ratio = |fg| termrock_theme::contrast_ratio(fg, expected_bg).unwrap_or(0.0);
+            assert!(
+                ratio(cell.fg) >= 4.5,
+                "{level:?} {text} fallback must remain readable on authored background: {:?} has {:.2}:1",
+                cell.fg,
+                ratio(cell.fg)
+            );
+            assert_eq!(cell.bg, expected_bg, "{level:?} {text}");
+        }
+
+        let mut fill_bg = page_with_theme(
+            ItemRowLayout::Columns,
+            64,
+            2,
+            false,
+            Some(CursorStyle::Fill),
+            Some(1),
+            items.clone(),
+            custom_bg.clone(),
+        );
+        fill_bg.app_mut().state.set_cursor(0, ItemKey::num(20));
+        fill_bg.draw();
+        let (x, y) = fill_bg.find("detail").expect("detail is rendered");
+        assert_eq!(
+            fill_bg.cell(x, y).fg,
+            custom_bg.color.highlight_fg,
+            "{level:?}"
+        );
+        assert_eq!(fill_bg.cell(x, y).bg, expected_bg, "{level:?}");
+
+        // An explicit foreground is the owner's decision, even when it is
+        // the semantic muted token and its contrast is below 4.5:1.
+        let explicit_muted = base_theme
+            .clone()
+            .override_family(Family::PICKER, |family| {
+                family.part(Part::META).base(
+                    StylePatch::new()
+                        .set_fg(Role::Fg(FgStep::Muted))
+                        .set_bg(Role::Custom(OWNER_BG)),
+                );
+            });
+        let mut authored_muted = page_with_theme(
+            ItemRowLayout::Columns,
+            64,
+            2,
+            false,
+            Some(CursorStyle::Bar),
+            Some(1),
+            items.clone(),
+            explicit_muted.clone(),
+        );
+        authored_muted
+            .app_mut()
+            .state
+            .set_cursor(0, ItemKey::num(20));
+        authored_muted.draw();
+        let (x, y) = authored_muted.find("detail").expect("detail is rendered");
+        let cell = authored_muted.cell(x, y);
+        assert_eq!(
+            cell.fg,
+            explicit_muted.color.fg[FgStep::Muted.index()],
+            "{level:?} explicit muted foreground remains authoritative"
+        );
+        assert_eq!(cell.bg, expected_bg, "{level:?}");
+    }
+}
