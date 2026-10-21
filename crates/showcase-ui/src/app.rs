@@ -642,7 +642,6 @@ fn nav_tree() -> Tree<'static, NavNode, ByIndex, impl RowFn<NavNode>> {
 }
 
 fn place_nav(state: &mut TreeState, entry: usize) {
-    state.collapse_all();
     let nodes = nav_nodes();
     let Some(source) = nodes.iter().position(|node| node.entry == Some(entry)) else {
         return;
