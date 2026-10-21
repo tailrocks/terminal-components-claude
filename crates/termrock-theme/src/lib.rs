@@ -38,7 +38,10 @@ pub use tokens::{
     Capability, ColorLevel, ColorTokens, Density, DesignTokens, MeterFillRest, MeterThresholds,
     MeterTokens, MotionTokens, SizeTokens, SpaceTokens, SyntaxTokens,
 };
-pub use visual::{COLOR_LEVELS, InactiveSelection, contrast_ratio};
+pub use visual::{
+    BACKDROP_SELECTIONS, BackdropSelection, COLOR_LEVELS, FOCUS_BAR_POLICIES, FocusBarPolicy,
+    GUTTER_CELLS, GutterCell, InactiveSelection, contrast_ratio,
+};
 
 /// Rendering policy for the active row in a cursor-based list.
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Default)]
@@ -76,7 +79,7 @@ impl Theme {
         use crate::recipe::Family;
         use crate::recipe::Variant;
         use crate::response::StateFlags;
-        use crate::role::{FgStep, Role};
+        use crate::role::Role;
         use ColorLevel::{Ansi16, Ansi256, Mono, TrueColor};
         use ratatui_core::style::Color;
 
@@ -122,19 +125,19 @@ impl Theme {
         .into_iter()
         .fold(profiled_theme, |theme, (level, rest, hover, pressed)| {
             let active_modifiers = if level == Mono {
-                Modifier::REVERSED
+                Modifier::BOLD | Modifier::REVERSED
             } else {
-                Modifier::empty()
+                Modifier::BOLD
             };
-            let hover_modifiers = if matches!(level, Ansi16 | Mono) {
-                Modifier::UNDERLINED
-            } else {
-                Modifier::empty()
+            let hover_modifiers = match level {
+                Mono => Modifier::BOLD | Modifier::REVERSED | Modifier::UNDERLINED,
+                Ansi16 => Modifier::BOLD | Modifier::UNDERLINED,
+                TrueColor | Ansi256 => Modifier::BOLD,
             };
             let pressed_modifiers = match level {
-                Ansi16 => Modifier::REVERSED,
-                Mono => Modifier::UNDERLINED,
-                TrueColor | Ansi256 => Modifier::empty(),
+                Mono => Modifier::BOLD | Modifier::UNDERLINED,
+                Ansi16 => Modifier::BOLD | Modifier::REVERSED,
+                TrueColor | Ansi256 => Modifier::BOLD,
             };
             let disabled_ink = Role::DisabledFg;
             let disabled_modifiers = if level == Mono {
@@ -150,44 +153,51 @@ impl Theme {
                     .remove(
                         Modifier::BOLD | active_modifiers | hover_modifiers | pressed_modifiers,
                     );
-                let row = recipe.part(Part::ROW);
-                row.when(
-                    StateFlags::ACTIVE,
-                    StylePatch::new()
-                        .set_fg(Role::HighlightDangerFg)
-                        .set_bg(Role::Custom(rest))
-                        .add(active_modifiers),
-                )
-                .when(
-                    StateFlags::HOVERED,
-                    StylePatch::new()
-                        .set_fg(Role::HighlightFg)
-                        .set_bg(Role::HighlightBg)
-                        .add(hover_modifiers),
-                )
-                .when(
-                    StateFlags::PRESSED,
-                    StylePatch::new()
-                        .set_fg(Role::Surface(Surface::Canvas))
-                        .set_bg(Role::Fg(FgStep::Primary))
-                        .add(Modifier::BOLD),
-                )
-                .when(
-                    StateFlags::ACTIVE | StateFlags::HOVERED,
-                    StylePatch::new().set_bg(Role::Custom(hover)),
-                )
-                .when(
-                    StateFlags::ACTIVE | StateFlags::PRESSED,
-                    StylePatch::new()
-                        .set_fg(Role::Fg(FgStep::Primary))
-                        .set_bg(Role::Custom(pressed))
-                        .remove(hover_modifiers | active_modifiers)
-                        .add(pressed_modifiers),
-                )
-                .when(StateFlags::DISABLED, disabled_style)
-                .when(StateFlags::ACTIVE | StateFlags::DISABLED, disabled_style);
+                let danger_active = StylePatch::new()
+                    .set_fg(Role::HighlightDangerFg)
+                    .set_bg(Role::Custom(rest))
+                    .add(active_modifiers);
+                let danger_hover = StylePatch::new()
+                    .set_fg(Role::HighlightDangerFg)
+                    .set_bg(Role::Custom(hover))
+                    .add(hover_modifiers);
+                let danger_press = StylePatch::new()
+                    .set_fg(Role::HighlightDangerFg)
+                    .set_bg(Role::Custom(pressed))
+                    .remove(hover_modifiers | active_modifiers)
+                    .add(pressed_modifiers);
+
+                recipe
+                    .part(Part::ROW)
+                    .when(StateFlags::ACTIVE, danger_active)
+                    .when(StateFlags::HOVERED, danger_hover)
+                    .when(StateFlags::PRESSED, danger_press)
+                    .when(StateFlags::ACTIVE | StateFlags::HOVERED, danger_hover)
+                    .when(StateFlags::ACTIVE | StateFlags::PRESSED, danger_press)
+                    .when(StateFlags::DISABLED, disabled_style)
+                    .when(StateFlags::ACTIVE | StateFlags::DISABLED, disabled_style);
+
+                let label_active = StylePatch::new()
+                    .set_fg(Role::HighlightDangerFg)
+                    .clear_bg()
+                    .add(active_modifiers);
+                let label_hover = StylePatch::new()
+                    .set_fg(Role::HighlightDangerFg)
+                    .clear_bg()
+                    .add(hover_modifiers);
+                let label_press = StylePatch::new()
+                    .set_fg(Role::HighlightDangerFg)
+                    .clear_bg()
+                    .remove(hover_modifiers | active_modifiers)
+                    .add(pressed_modifiers);
+
                 recipe
                     .part(Part::LABEL)
+                    .when(StateFlags::ACTIVE, label_active)
+                    .when(StateFlags::HOVERED, label_hover)
+                    .when(StateFlags::PRESSED, label_press)
+                    .when(StateFlags::ACTIVE | StateFlags::HOVERED, label_hover)
+                    .when(StateFlags::ACTIVE | StateFlags::PRESSED, label_press)
                     .when(StateFlags::DISABLED, disabled_style)
                     .when(StateFlags::ACTIVE | StateFlags::DISABLED, disabled_style);
             })
@@ -472,7 +482,7 @@ impl Theme {
             muted
         } else if matches!(fg, Some(color) if color == tokens.accent || color == tokens.focus) {
             faint
-        } else if matches!(fg, Some(color) if color == primary || color == tokens.danger || color == tokens.warning)
+        } else if matches!(fg, Some(color) if color == primary || color == tokens.danger || color == Color::from_u32(0x00f0_5d5d) || color == tokens.warning)
         {
             muted
         } else if matches!(fg, Some(color) if color == secondary || color == tokens.on_accent) {
@@ -480,8 +490,12 @@ impl Theme {
         } else {
             ghost
         };
+        // The frozen capsule tab rule is seam `#3a3a3a`. It dims to ghost
+        // and stays there; the contrast lift would turn it faint.
+        let seam = Color::from_u32(0x003a_3a3a);
         if let Some(color) = fg
             && !blank
+            && color != seam
             && reads(color, plane)
             && !reads(mapped, new_bg)
         {

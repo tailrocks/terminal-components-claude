@@ -17,10 +17,10 @@ fn junie_block_rest_matches_pinned_lift_on_every_surface_and_capability() {
         Color::Rgb(39, 39, 42),
         Color::Rgb(63, 63, 70),
         Color::Rgb(63, 63, 70),
-        Color::Rgb(35, 35, 40),
+        Color::Rgb(47, 47, 52),
         Color::Rgb(63, 63, 70),
     ];
-    let indexed = [233, 235, 235, 237, 237, 234, 234];
+    let indexed = [233, 235, 235, 237, 237, 237, 237];
     let ansi16 = [
         Color::Black,
         Color::Black,
@@ -245,7 +245,7 @@ fn quantized_aliases_follow_pinned_ordered_lift() {
         (
             ColorLevel::Ansi256,
             Surface::FieldHover,
-            Color::Indexed(234),
+            Color::Indexed(237),
         ),
         (ColorLevel::Mono, Surface::Overlay, Color::Black),
         (ColorLevel::Mono, Surface::FieldHover, Color::Black),

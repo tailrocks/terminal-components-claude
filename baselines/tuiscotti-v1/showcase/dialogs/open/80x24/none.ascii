@@ -1,24 +1,24 @@
- # Junie Design system / Components / Dialogs             i Inspector   ? Help
+ # Junie Design system  Overlays ? Dialogs                i Inspector   ? Help
 
-   Overview       ?  Dialogs  Focus is trapped, the page dims, Esc always canc.
-   Buttons        ?
-   Inputs         ?    Open a dialog
-   Text areas     ?
-   Forms          ?     Confirm run    Rename task.    Three choices.    Del.
-   Lists     +----------------------------------------------------+
-   Trees     |                                                    |n answer d.
-   Tables    |  Run task now?                                     |s, validat.
-   Editable t|                                                    | danger st.
-   Panels    |  Junie will check out chore/uuid-sessions, apply   |
-   Sidebars  |  the plan and run the test suite. You can pause    |
- ? Dialogs   |  at any step.                                      |
-   Progress  |                                                    |
-   Scrolling |                                     Cancel  ?Run   |
-   Terminal  |                                                    |
-   Code edito+----------------------------------------------------+
-   Diff           ?
-   Data grid      |
-   Chips & selec. |
-   Pickers        |
+ Components      54  Dialogs  Focus is trapped, the page dims, Esc always canc.
+ ------------------
+    Overview          Playground    Options    States
+  ? App shell        ?????????????----------------------------------------------
+  ? Inputs & forms
+  ? Tables   +------------------------------------------------ x -+            ?
+  ? Navigatio|                                                    |----------- ?
+  ? Overlays |  Run task now?                                     | Unsaved ch ?
+    ? Dialogs|                                                    |three actio ?
+      Pickers|  Junie will check out chore/uuid-sessions, apply   |            ?
+      Dialog |  the plan and run the test suite. You can pause    | Push faile ?
+      Popups |  at any step.                                      |Retry . For ?
+      File br|                                                    |            ?
+  ? Feedback |                                    Cancel   ?Run   |            ?
+  ? Layout   |                                                    |            ?
+  ? Text & co+----------------------------------------------------+----------- ?
+  ? Screens            Size        width 54 . max height none . body scroll on ?
+                       Place       Center . chrome 0+0 . margin 3x1            ?
+                       Backdrop    keeps 0 top . 1 bottom rows live            ?
+                     ??????????????????????????????????????????????????????????
 
- < > Choose  Enter Confirm  Esc Cancel  y / n Quick answer
+ <> Choose  Enter Run  Esc Cancel

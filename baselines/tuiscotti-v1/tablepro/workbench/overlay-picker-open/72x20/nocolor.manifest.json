@@ -1,40 +1,40 @@
 {
-  "ansi_sha256": "c907a717a2d602af9f2304c66e90c65d91deec8311506b91ac05d8ec6fd866d4",
+  "ansi_sha256": "7997268e56f3be4186cf4946424f208a128d332e424e0be1ae78147cda205c1d",
   "artifacts": {
     "ansi": {
-      "bytes": 2081,
+      "bytes": 2361,
       "file": "tablepro/workbench/overlay-picker-open/72x20/nocolor.ansi",
-      "sha256": "c907a717a2d602af9f2304c66e90c65d91deec8311506b91ac05d8ec6fd866d4"
+      "sha256": "7997268e56f3be4186cf4946424f208a128d332e424e0be1ae78147cda205c1d"
     },
     "ascii": {
-      "bytes": 1429,
+      "bytes": 1435,
       "file": "tablepro/workbench/overlay-picker-open/72x20/nocolor.ascii",
-      "sha256": "1233697876a3d0a7ea9b581c851fbb1237fa5c15df7ace968ec8f10e58dd15c6"
+      "sha256": "453bf6a9496d57a196564edf69df705b07e619ecba5425a36ddcfeb323b5d34b"
     },
     "ascii_loss_json": {
-      "bytes": 22032,
+      "bytes": 22223,
       "file": "tablepro/workbench/overlay-picker-open/72x20/nocolor.ascii.loss.json",
-      "sha256": "a8f70bd04eb13563181e89c2c91b7a2cc7ed4d2b82e1676192d6838a74114f21"
+      "sha256": "45726f6a1d8ea72ca025c0f4689da3426edf5c36ad47ffd34d33b6b719de642d"
     },
     "frame_json": {
-      "bytes": 322223,
+      "bytes": 320864,
       "file": "tablepro/workbench/overlay-picker-open/72x20/nocolor.frame.json",
-      "sha256": "a1f1e3d82c0e8d644c207e947e64062602cd60f0defef7fac03fdabc0da6f1cc"
+      "sha256": "0189b734d6ca48a029734ded31567a9f0a853613a30a6f81393fdf615138f972"
     },
     "html": {
-      "bytes": 274989,
+      "bytes": 299788,
       "file": "tablepro/workbench/overlay-picker-open/72x20/nocolor.html",
-      "sha256": "8db3bf61c80accd5c130f0e6571faf233dbf9c39b4dd42832bf7d0da91557135"
+      "sha256": "7db61ac820d76432347779f45cdb633cdecbfca5515b5585715226df388a9a9e"
     },
     "observations_json": {
       "bytes": 477,
       "file": "tablepro/workbench/overlay-picker-open/72x20/nocolor.observations.json",
-      "sha256": "28e45e6980dc3e05aaf8298893ab8c868b32a8899e6ae903a381e220e176d193"
+      "sha256": "f815f957ecc4ba027b8107bb85b3a18c8814774b7ea550b4dc524204b139557b"
     },
     "png": {
-      "bytes": 201007,
+      "bytes": 218472,
       "file": "tablepro/workbench/overlay-picker-open/72x20/nocolor.png",
-      "sha256": "17e4848cdc803e8b47449300386fcb247739f77437fbda3cbaeb4b54e4eb71d9"
+      "sha256": "703ea1b03da03981d0e2f21c3c8b919b5dcdad5ba2be7055b05cd983a39fa0f3"
     },
     "png_fidelity_json": {
       "bytes": 276,
@@ -44,24 +44,24 @@
     "txt": {
       "bytes": 1898,
       "file": "tablepro/workbench/overlay-picker-open/72x20/nocolor.txt",
-      "sha256": "6653d0eee5aa563b3b547c7624705c5fd4804105cff167c50da359faa50691dd"
+      "sha256": "699c4da5095d225b909307a18199e4578ac8419d3b11df832ed562d21c6165ab"
     }
   },
-  "ascii_substitutions_count": 238,
+  "ascii_substitutions_count": 240,
   "complete": true,
   "dimensions": {
     "cols": 72,
     "rows": 20
   },
-  "frame_digest": 11523008741892701400,
-  "frame_sha256": "a1f1e3d82c0e8d644c207e947e64062602cd60f0defef7fac03fdabc0da6f1cc",
-  "generation": "7749e77cb17f55d89f623f9ead1e87c9a568088097785cfcbbc6ea124715d81b",
-  "html_sha256": "8db3bf61c80accd5c130f0e6571faf233dbf9c39b4dd42832bf7d0da91557135",
+  "frame_digest": 4685438397630096699,
+  "frame_sha256": "0189b734d6ca48a029734ded31567a9f0a853613a30a6f81393fdf615138f972",
+  "generation": "6790acd742b55bc19a6eacbbed5161c0c6f46697252d90b5e73939a3d752dcda",
+  "html_sha256": "7db61ac820d76432347779f45cdb633cdecbfca5515b5585715226df388a9a9e",
   "legacy_name": "tablepro/overlays/picker_open/72x20/nocolor",
   "name": "tablepro/workbench/overlay-picker-open/72x20/nocolor",
-  "png_sha256": "17e4848cdc803e8b47449300386fcb247739f77437fbda3cbaeb4b54e4eb71d9",
+  "png_sha256": "703ea1b03da03981d0e2f21c3c8b919b5dcdad5ba2be7055b05cd983a39fa0f3",
   "profile": "tuiscotti-default",
   "schema_version": 1,
-  "timestamp_utc": "2026-10-03T22:11:17Z",
-  "txt_sha256": "6653d0eee5aa563b3b547c7624705c5fd4804105cff167c50da359faa50691dd"
+  "timestamp_utc": "2026-10-21T00:00:00Z",
+  "txt_sha256": "699c4da5095d225b909307a18199e4578ac8419d3b11df832ed562d21c6165ab"
 }

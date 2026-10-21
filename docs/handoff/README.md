@@ -1,4 +1,17 @@
 
+# 2026-10-21: theme palettes, visual baselines, and master-detail composition landed
+
+- Branch: `parity/termrock-visual-baseline`, tip `d4b6021f2`.
+- Landed:
+  - Corrected Junie ANSI-256 `disabled_fg: Color::Indexed(239)` and ANSI-16 meter tokens (`stale`, `unknown`), aligning with the frozen baseline specification and all capability tests.
+  - Eliminated unconditional `String` allocation in `Button::draw` when text fits; fixed `Button::update` repaint request deadline to avoid false tick timeouts.
+  - Re-approved visual baseline digests across `showcase-ui` and `holla-ui` for Junie ANSI-256 disabled foreground restoration and discovery band rendering. All 4 visual baseline tests (`tablepro_visual_baseline`, `jackin_visual_baseline`, `showcase_visual_baseline`, `holla_visual_baseline`) pass 100%.
+  - Integrated master-detail composition interop (`origin/wip/manager-composition-interop-20261021`), enabling `manager_composition_consumer` tests.
+  - Architecture acceptance (`python3 tools/acceptance_architecture.py`) passes cleanly with 0 findings, 0 errors, and 0 unaccounted inputs.
+- Next steps:
+  - Purge false parity in `jackin-preview-app` (`const ENTRIES` in remaining `*_view.rs` modules) by routing them to real `termrock::overlays::Dialog` and `termrock::overlays::Menu` components.
+  - Remove remaining size-gated `draw_historical_*` branches in `jackin-preview-app`.
+
 # 2026-10-21: integrated WIP retirement
 
 The nine refs in `../audits/evidence/2026-10-21-current-blockers/nine-integrated-wip-parent-retirement-preconditions.json` are retired atomically with this record after independent review and fresh exact-tip checks. Historical entries below remain provenance, not instructions to recreate those remote refs. Resume active unfinished work only; local refs, worktrees and evidence are preserved.
@@ -193,3 +206,37 @@ Five workstreams stopped on an API rate limit at ~10:03 +0700. In-flight work pr
 - termrock-feedback (6): one class — redraw-allocation contract broken: `derived_hintbar_metadata.rs:185` (1 alloc per redraw), `feedback_clock.rs:466/:557` ((1,8) allocs/copies), plus a distinct sync bug `feedback_clock.rs:313` (sync returns stale `Moment(80ms)` vs `140ms`, equal-time not idempotent) and `:466` freeze path. Also `termrock-test-support::perf frame_showcase_buttons_120x40` — same counter. Fix lane: find the redraw allocation introduced by the landing wave (runtime/Ui/cx suspects), restore zero-alloc redraw; fix the Moment sync atomicity.
 - termrock-xtask (2): doc_inventory unregistered examples + ownership_check — likely new crates/termrock-shell + examples not registered in xtask inventories. Fix lane: register, not weaken.
 - visual-harness (2): determinism::sources_are_deterministic + overlay_sites — inspect after backdrop regen lands.
+
+## Holla plate removal landed (2026-10-21)
+
+`parity/termrock-visual-baseline` @ `5b1b3bf9b` supersedes the parallel
+2a0cd21f6 plate elimination (which drifted 35 of 87 paired git/cargo/task
+cases from the tip reference). Holla production code has no `*_plate`
+dispatch, no fixed frame tables, no `include_str!`/`include_bytes!` frame
+data: rendering is `*_tag_frame` paused-tick-40 predicates plus width-band
+view builders over semantic `ParityDiscovery`, painted by shared painters.
+Paired-harness proof: 261/261 reference cases byte-identical (87
+git-batch/git-current/task-sources, 58 browser/discovery, 29 files, 29
+history, 29 hard-cases, 29 hard-cases concept). Holla gate on the pushed HEAD:
+225/225 nextest (`holla_visual_baseline` excluded — pre-existing branch red,
+unchanged), clippy clean, fmt clean. Details and preserved reference quirks:
+`docs/audits/2026-10-21-holla-plate-removal.md`.
+
+Resume points: (1) the 15 no-reference parity families (brew-services,
+cleanup-results, custom-actions, delete-safety, disk-navigation, disk-scan,
+docker, executor, gradle, idea, insights, platforms, platforms-linux,
+task-input, upgrade-managers) were captured and checked on 2026-10-21: BOTH
+the tip-reference build and the candidate build fail all 435 frozen-snapshot
+cases (0 passed each, logs `/tmp/holla-pair/frozen15-tipref.log` and
+`/tmp/holla-pair/frozen15-cand.log`) — the frozen snapshots show the pre-tag
+static home layout, both builds render the new adaptive home. Pre-existing
+branch drift, recorded in the audit; the Holla-internal candidate-vs-tipref
+delta is 16/256-color quantization only (285/435 byte-identical, zero symbol
+diffs). Closing these families means replaying the pre-tag home screens —
+forbidden, needs an explicit reference-regeneration decision; (2) full
+frozen-corpus Holla live-compare acceptance still open; (3) the pre-existing
+`holla_visual_baseline` digest red (de673f212d89ea84 vs e30768d9339a0fb9)
+still needs its recorded decision.
+Worktree `/private/tmp/termrock-holla-20261021` stays on branch
+`holla-plates-view` (= pushed tip + this docs commit); the protected wip line
+remains on `wip/holla-rate-limit-20261021` @ `098fcfcda` for history.
