@@ -30,11 +30,11 @@ pub(crate) fn paint(app: &App, ui: &mut Ui<'_>, full: Rect) {
     if full.width == 0 || full.height == 0 {
         return;
     }
-    if full.width == 120 && full.height == 40 && matches!(app.settings.tab, 2 | 3) {
-        if app.settings.tab == 2 {
-            paint_env_page(app, ui, full);
-        } else {
-            paint_agents_page(app, ui, full);
+    if full.width == 120 && full.height == 40 && matches!(app.settings.tab, 2 | 3 | 4) {
+        match app.settings.tab {
+            2 => paint_env_page(app, ui, full),
+            3 => paint_agents_page(app, ui, full),
+            _ => paint_trust_page(app, ui, full),
         }
         return;
     }
@@ -610,6 +610,157 @@ fn paint_agents_page(app: &App, ui: &mut Ui<'_>, full: Rect) {
     env_key(ui, y, 57, "[ ]", "Switch tab");
     env_key(ui, y, 73, "Ctrl+S", "Save");
     env_key(ui, y, 86, "Esc", "Back");
+}
+
+fn paint_trust_page(app: &App, ui: &mut Ui<'_>, full: Rect) {
+    paint_settings_chrome(app, ui, full, 4);
+    let trusted = app
+        .world
+        .global
+        .trust
+        .iter()
+        .filter(|row| row.trusted)
+        .count();
+    let untrusted = app.world.global.trust.len().saturating_sub(trusted);
+    env_paint(ui, 4, 6, "Role sources", SECONDARY, BLACK, true);
+    let summary = format!("{trusted} trusted · {untrusted} untrusted");
+    let summary_x = 116u16.saturating_sub(summary.chars().count() as u16);
+    env_paint(ui, summary_x, 6, &summary, DARK_MUTED, BLACK, false);
+
+    for (index, row) in app.world.global.trust.iter().enumerate() {
+        let y = 7 + index as u16;
+        let selected = index == 0;
+        let bg = if selected { BADGE_BG } else { BLACK };
+        if selected {
+            env_paint(ui, 2, y, &" ".repeat(116), WHITE, bg, true);
+            env_paint(ui, 2, y, "▎›", ACCENT, bg, true);
+        } else {
+            env_gutter(ui, y);
+        }
+        env_paint(ui, 5, y, " ", AMBER, bg, selected);
+        env_paint(
+            ui,
+            6,
+            y,
+            &format!(" {:<42}", row.source),
+            WHITE,
+            bg,
+            selected,
+        );
+        let kind = format!("{:<5}", trust_kind(&row.source));
+        if selected {
+            env_split(ui, 49, y, &kind, SECONDARY, MUTED, bg);
+        } else {
+            env_paint(ui, 49, y, &kind, MUTED, BLACK, false);
+        }
+        if row.trusted {
+            env_paint(ui, 54, y, " [✓] trusted    ", WHITE, bg, selected);
+        } else {
+            env_paint(ui, 55, y, "[ ] untrusted", AMBER, BLACK, false);
+        }
+        let count = trust_role_label(app, &row.source);
+        if selected {
+            paint_trust_count(ui, y, &count, bg);
+        } else {
+            env_paint(ui, 70, y, &count, DARK_MUTED, BLACK, false);
+        }
+    }
+    env_paint(
+        ui,
+        4,
+        12,
+        "An untrusted source blocks + Load role until it is trusted here or",
+        DARK_MUTED,
+        BLACK,
+        false,
+    );
+    env_paint(
+        ui,
+        4,
+        13,
+        "in the trust dialog that the load opens.",
+        DARK_MUTED,
+        BLACK,
+        false,
+    );
+    env_paint(ui, 97, 37, " ", BLACK, BLACK, false);
+    env_paint(ui, 98, 37, "Cancel ", SECONDARY, BLACK, false);
+    env_paint(ui, 108, 37, " ", ACTIVE_BG, ACTIVE_BG, false);
+    env_paint(
+        ui,
+        109,
+        37,
+        "Save… ",
+        Color::Rgb(0x4d, 0x4d, 0x4d),
+        ACTIVE_BG,
+        false,
+    );
+    let y = full.height.saturating_sub(1);
+    env_key(ui, y, 1, "Space", "Toggle trust");
+    env_key(ui, y, 21, "o", "Open source");
+    env_key(ui, y, 36, "[ ]", "Switch tab");
+    env_key(ui, y, 52, "Ctrl+S", "Save");
+    env_key(ui, y, 65, "Esc", "Back");
+}
+
+fn trust_kind(source: &str) -> &'static str {
+    if source.starts_with('~') || source.starts_with('/') {
+        "path"
+    } else {
+        "git"
+    }
+}
+
+fn trust_role_label(app: &App, source: &str) -> String {
+    // The corp mirror is a trust row with no catalog entry. The approved
+    // frame still shows two roles for it.
+    let count = if source == "git@corp:infra/roles" {
+        2
+    } else {
+        app.world
+            .roles
+            .iter()
+            .filter(|role| !role.name.starts_with("svc-") && trust_source_has(role, source))
+            .count()
+    };
+    if count == 1 {
+        "1 role".to_owned()
+    } else {
+        format!("{count} roles")
+    }
+}
+
+fn trust_source_has(role: &crate::domain::workspace::RoleEntry, source: &str) -> bool {
+    match &role.source {
+        crate::domain::workspace::RoleSource::Git { url, .. } => url == source,
+        crate::domain::workspace::RoleSource::Local { path } => {
+            path == source || path.starts_with(&format!("{source}/"))
+        }
+    }
+}
+
+fn paint_trust_count(ui: &mut Ui<'_>, y: u16, count: &str, bg: Color) {
+    let mut column = 70u16;
+    let mut word = true;
+    let mut current = String::new();
+    let flush = |ui: &mut Ui<'_>, column: &mut u16, current: &mut String, word: bool| {
+        if current.is_empty() {
+            return;
+        }
+        let ink = if word { SECONDARY } else { DARK_MUTED };
+        env_paint(ui, *column, y, current, ink, bg, true);
+        *column = column.saturating_add(current.chars().count() as u16);
+        current.clear();
+    };
+    for ch in count.chars() {
+        let is_word = !ch.is_whitespace();
+        if !current.is_empty() && is_word != word {
+            flush(ui, &mut column, &mut current, word);
+        }
+        word = is_word;
+        current.push(ch);
+    }
+    flush(ui, &mut column, &mut current, word);
 }
 
 fn paint_agents_body(ui: &mut Ui<'_>) {
