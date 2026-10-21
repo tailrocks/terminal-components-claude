@@ -8,7 +8,7 @@ fn fixture(
     width: u16,
     height: u16,
 ) -> Harness<App> {
-    let app = App::for_scenario(scenario, motion, frame);
+    let app = App::for_scenario_without_history(scenario, motion, frame);
     let frame = u64::try_from(app.fixture_time_ms());
     assert!(frame.is_ok(), "fixture time must be nonnegative");
     let initial = SimulationMoment::from_millis(frame.unwrap_or_default());

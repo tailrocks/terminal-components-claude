@@ -22,7 +22,7 @@ fn harness(
     height: u16,
     color: ColorLevel,
 ) -> Harness<App> {
-    let app = App::for_scenario(scenario, Motion::Paused, 4_000);
+    let app = App::for_scenario_without_history(scenario, Motion::Paused, 4_000);
     let initial = SimulationMoment::from_millis(app.fixture_time_ms() as u64);
     Harness::new_with_feedback_clock(
         app,
