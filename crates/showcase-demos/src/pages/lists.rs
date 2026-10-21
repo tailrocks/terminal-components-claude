@@ -7,7 +7,7 @@ use termrock::{
 use showcase_data::LANGUAGES;
 
 use super::{Page, PageUpdate, chrome_ink};
-use termrock::feedback::{PageFrame, SectionStrip};
+use termrock::feedback::{CardChrome, PageFrame, SectionStrip};
 
 const SINGLE: Id = termrock::Id::root("showcase_ui::pages::lists::lists.single");
 const MULTI: Id = termrock::Id::root("showcase_ui::pages::lists::lists.multi");
@@ -33,10 +33,8 @@ const FADE_INNER: f32 = 0.8;
 const CANVAS: u32 = 0x000000;
 const SURFACE: u32 = 0x111111;
 const WHITE: u32 = 0xffffff;
-const SECONDARY: u32 = 0xb3b3b3;
 const MUTED: u32 = 0x8a8a8a;
 const FAINT: u32 = 0x737373;
-const RULE: u32 = 0x3a3a3a;
 const ACCENT: u32 = 0x48e054;
 const ACCENT_BG: u32 = 0x173f1c;
 const THUMB: u32 = 0x808080;
@@ -372,42 +370,6 @@ fn paint_scrollbar(ui: &mut Ui<'_>, bar: Rect, content_h: u16) {
     }
 }
 
-fn paint_card_chrome(ui: &mut Ui<'_>, card: Rect, title: &str, meta: &str) {
-    ui.fill(card, ink(WHITE, SURFACE));
-    if card.height == 0 || card.width < 3 {
-        return;
-    }
-    let text_x = card.x.saturating_add(2);
-    let text_w = card.width.saturating_sub(4);
-    ui.paint_str(
-        Rect::new(text_x, card.y, text_w, 1),
-        title,
-        ink(SECONDARY, SURFACE),
-    );
-    if !meta.is_empty() {
-        let meta_w = width(meta);
-        if meta_w < text_w {
-            ui.paint_str(
-                Rect::new(
-                    text_x.saturating_add(text_w.saturating_sub(meta_w)),
-                    card.y,
-                    meta_w,
-                    1,
-                ),
-                meta,
-                ink(FAINT, SURFACE),
-            );
-        }
-    }
-    if card.height > 1 && text_w > 0 {
-        ui.paint_str(
-            Rect::new(text_x, card.y.saturating_add(1), text_w, 1),
-            &"─".repeat(usize::from(text_w)),
-            ink(RULE, SURFACE),
-        );
-    }
-}
-
 fn card_inner(card: Rect) -> Rect {
     Rect {
         x: card.x.saturating_add(2),
@@ -554,7 +516,10 @@ fn paint_language(ui: &mut Ui<'_>, card: Rect, chosen: &str, single: &ListState)
     let list_h = inner.height.saturating_sub(2);
     let scroll_offset = single.scroll().offset();
     let label = position_label(usize::from(list_h), LANGUAGES.len(), scroll_offset);
-    paint_card_chrome(ui, card, "Language", &label);
+    CardChrome::new("Language")
+        .meta(&label)
+        .ink(chrome_ink())
+        .draw(ui, card);
     if inner.is_empty() {
         return;
     }
@@ -635,7 +600,10 @@ fn paint_files(ui: &mut Ui<'_>, card: Rect, multi: &ListState) {
     let inner = card_inner(card);
     let list_h = inner.height.saturating_sub(2);
     let scroll_offset = multi.scroll().offset();
-    paint_card_chrome(ui, card, "Files to include", &format!("{count} selected"));
+    CardChrome::new("Files to include")
+        .meta(&format!("{count} selected"))
+        .ink(chrome_ink())
+        .draw(ui, card);
     if inner.is_empty() {
         return;
     }
@@ -707,7 +675,10 @@ fn paint_files(ui: &mut Ui<'_>, card: Rect, multi: &ListState) {
 }
 
 fn paint_search(ui: &mut Ui<'_>, card: Rect, center_title: bool) {
-    paint_card_chrome(ui, card, "Search results", "");
+    CardChrome::new("Search results")
+        .meta("")
+        .ink(chrome_ink())
+        .draw(ui, card);
     let inner = card_inner(card);
     if inner.height < 2 || inner.width == 0 {
         return;
