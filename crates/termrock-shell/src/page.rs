@@ -11,6 +11,7 @@
 //! Focus blur, ticks and messages arrive as intents here rather than as
 //! separate trait methods.
 
+use ratatui_core::layout::Rect;
 use termrock_runtime::author::{CompositionLeaf, Constraints, Measure, Size, composition_leaf};
 use termrock_runtime::cx::Cx;
 use termrock_runtime::event::{Key, KeyCode};
@@ -29,6 +30,16 @@ pub trait Page {
 
     /// Draw into the body region the shell hands over.
     fn draw(&self, ui: &mut Ui<'_>);
+
+    /// Draw into the shell-resolved body bounds.
+    ///
+    /// Existing pages keep their `draw` implementation. Pages that need
+    /// layout-relative cursor or control coordinates can override this hook
+    /// and use `body` for registration and drawing.
+    fn draw_in(&self, ui: &mut Ui<'_>, body: Rect) {
+        let _ = body;
+        self.draw(ui);
+    }
 
     /// The crumb segment naming this page.
     fn label(&self) -> String;
@@ -103,7 +114,7 @@ impl<P: Page> Measure for PageLeaf<'_, P> {
     fn measure(&self, _ui: &Ui<'_>, constraints: Constraints) -> Size {
         // A page fills whatever body region the shell hands it.
         Size {
-            min: constraints.max,
+            min: (0, 0),
             preferred: constraints.max,
         }
     }
@@ -111,8 +122,7 @@ impl<P: Page> Measure for PageLeaf<'_, P> {
 
 impl<P: Page> CompositionLeaf for PageLeaf<'_, P> {
     fn draw(&self, ui: &mut Ui<'_>, logical: ratatui_core::layout::Rect) {
-        let _ = logical;
-        self.0.draw(ui);
+        self.0.draw_in(ui, logical);
     }
 }
 

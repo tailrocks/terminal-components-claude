@@ -26,11 +26,11 @@ pub mod status;
 pub use chrome::{Chrome, Regions};
 pub use footer::{Footer, FooterStatus, HINT_AUTO, HINT_NORMAL, HINT_PINNED, Hint};
 pub use nav::{Crumb, Nav, PageKey, Router};
-pub use page::{Page, PageLeaf, rebuild_on_tick, replay_key};
+pub use page::{Page, PageLeaf, page_leaf, rebuild_on_tick, replay_key};
 pub use quit::{
     KeyContext, Leave, LeaveDialog, LeaveDialogKind, LeaveGuard, LeaveKey, QuitKeys, Resolved,
     Stakes,
 };
 pub use router::{KeyBinding, KeyHost, KeyRouter, ShellAction, ShellKeys, Tier, chord, lookup};
-pub use shell::AppShell;
+pub use shell::{AppShell, AppShellSlots, EmptyLeaf, ShellSlots};
 pub use status::{JobKey, StatusLine, TONE_ERROR, TONE_NORMAL, TONE_SECONDARY, TONE_SUCCESS};
