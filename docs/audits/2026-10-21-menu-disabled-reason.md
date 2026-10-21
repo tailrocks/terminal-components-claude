@@ -228,3 +228,36 @@ change and pass after it. Alternate activation commands, ordinary letter
 shortcuts, pointer activation, and normal Home restoration remain covered and
 green. The same audit corrects the prior review checksum to the immutable
 64-character SHA-256 `3a96dfca5624d864c42099672d64949a55f18796e6e99d8838c818138e2cf7ea`.
+
+## Frozen Menu cursor-theme contract (WIP)
+
+Independent fixed-reference diagnosis
+`menu-frozen-contract-3854e315-independent-diagnosis-20261021/review.json`
+(SHA-256 `c610d591dc64e5f04c535a33e9fbca879c47b8e95764107078bcfc7986b111a9`)
+compared actual public Menu cells from baseline commit
+`4169783ae883788186d161af09ba9c481bd84e5c` and the candidate. It found that
+an unowned active cursor must render BOLD in every profile; Mono adds REVERSED,
+Ansi16 and Mono hover adds UNDERLINED, and Mono hover retains REVERSED. The
+candidate was missing active BOLD in TrueColor, Ansi256, and Ansi16 and did not
+distinguish Mono active from hidden. The same missing active recipe caused the
+real Jackin Capsule “Change title” label to lose BOLD.
+
+`Theme::junie` now defines capability-specific `MENU/DEFAULT` cursor modifiers
+for `ROW` and `LABEL`. The canonical Menu painter supplies the same active,
+hover, and disabled state inputs as before; no app renderer, focus spoof, or
+RGB path was introduced. Disabled combinations remove cursor modifiers. New
+public Runtime and Harness regressions cover no-owner active rows, pointer
+hover/leave across all four profiles, and disabled active rows. They failed on
+the pre-fix source: the no-owner TrueColor label had no modifier and Ansi16
+hover lacked UNDERLINED. They pass after the shared theme change. The real
+Jackin test `capsule_prefix_m_paints_the_change_title_cell` also passes.
+
+The complete relevant nextest run currently reports 314/315 tests passing;
+the sole failure is the pre-existing
+`termrock-theme::capability_palettes::all_73_junie_slots_match_reference_capability_output`
+reference-data conflict. It reports Ansi256 token differences in `field_hover`,
+`accent_pressed`, `accent_tint`, `focus_ring`, `highlight_danger_bg`,
+`danger_tint`, and `syntax.match_bg`. This change did not edit scalar tokens or
+73-slot expectations. That conflict remains held for separate diagnosis and a
+documented reference decision. The shared Menu cursor fix is not full theme or
+product acceptance; independent review and PR #38 integration remain required.
