@@ -18,6 +18,7 @@ import time
 import unittest
 from contextlib import ExitStack, redirect_stderr, redirect_stdout
 from pathlib import Path
+from typing import Callable
 from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -1627,7 +1628,19 @@ class RunnerGuards(unittest.TestCase):
             }
             (root / "live-source.json").write_text(json.dumps(record))
 
-            def fake_sha(path: Path) -> str:
+            active_execution: list[runner.PrepareExecution] = []
+            checked_methods: list[Callable[[], None]] = []
+            observed_executions: list[runner.PrepareExecution | None] = []
+
+            def observe_check(check_fn: Callable[[], None] | None) -> None:
+                self.assertIsNotNone(check_fn)
+                self.assertIs(check_fn.__self__, active_execution[-1])
+                checked_methods.append(check_fn)
+                check_fn()
+
+            def fake_sha(path: Path, *, check_work: Callable[[], None] | None = None) -> str:
+                if active_execution:
+                    observe_check(check_work)
                 return {
                     patch_file: runner.EXTENSION_PATCH_SHA256,
                     helper: "helper",
@@ -1638,21 +1651,228 @@ class RunnerGuards(unittest.TestCase):
                     live_manifest_copy: "manifest-copy",
                 }.get(path, "unused")
 
+            def fake_source_digest(path: Path, *, check_work: Callable[[], None] | None = None) -> str:
+                if active_execution:
+                    observe_check(check_work)
+                return "frozen" if path == source else "live"
+
+            def fake_tree_digest(_path: Path, *, check_work: Callable[[], None] | None = None) -> str:
+                if active_execution:
+                    observe_check(check_work)
+                return "snapshots"
+
+            def observe_tools(_source: Path, _env: dict[str, str], *, execution: runner.PrepareExecution | None = None) -> dict[str, str]:
+                observed_executions.append(execution)
+                return {"cargo": "fixture"}
+
+            def observe_cohort(_repo: Path, _cohort: str, _bins: Path, *, check_work: Callable[[], None] | None = None) -> dict[str, object]:
+                if active_execution:
+                    observe_check(check_work)
+                return capture
+
             with (
                 patch.object(runner, "load_reference_decisions", side_effect=AssertionError("fresh source must not consult old tuple/build provenance")) as legacy,
-                patch.object(runner, "_fresh_cohort_source_record", return_value=capture),
-                patch.object(runner, "digest_source", side_effect=lambda path: "frozen" if path == source else "live"),
-                patch.object(runner, "digest_tree", return_value="snapshots"),
+                patch.object(runner, "_fresh_cohort_source_record", side_effect=observe_cohort),
+                patch.object(runner, "digest_source", side_effect=fake_source_digest),
+                patch.object(runner, "digest_tree", side_effect=fake_tree_digest),
                 patch.object(runner, "sha256", side_effect=fake_sha),
                 patch.object(runner, "fresh_clean_env", return_value={"PATH": "/tools", "LANG": "C"}),
-                patch.object(runner, "fresh_tool_observation", return_value={"cargo": "fixture"}),
+                patch.object(runner, "fresh_tool_observation", side_effect=observe_tools),
             ):
                 verified_live, verified_record = runner.verify_live_source(
                     repo, root, source, 10, fresh_cohort_id="fixture-cohort", baseline_bin_dir=root / "sealed",
                 )
+                with runner.PrepareExecution(20) as execution:
+                    active_execution.append(execution)
+                    owned_live, owned_record = runner.verify_live_source(
+                        repo, root, source, 10, fresh_cohort_id="fixture-cohort",
+                        baseline_bin_dir=root / "sealed", execution=execution,
+                    )
+                    execution.check_work()
             legacy.assert_not_called()
             self.assertEqual(verified_live, live)
             self.assertEqual(verified_record["fresh_capture_cohort"], capture)
+            self.assertEqual(owned_live, live)
+            self.assertEqual(owned_record["fresh_capture_cohort"], capture)
+            self.assertTrue(checked_methods)
+            self.assertTrue(all(method.__self__ is active_execution[-1] for method in checked_methods))
+            self.assertEqual(observed_executions, [None, active_execution[-1]])
+
+    def test_verify_live_owned_budget_requires_lifecycle_flag(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            repo = root / "repo"
+            frozen = root / "frozen"
+            repo.mkdir()
+            (frozen / "source").mkdir(parents=True)
+            (frozen / "source" / "Cargo.toml").write_text("[workspace]\n")
+            argv = [
+                "frozen_baseline.py", "--repo", str(repo), "--root", str(frozen),
+                "verify-live", "--fresh-cohort", runner.PREPARE_LIVE_OWNED_COHORT,
+                "--baseline-bin-dir", str(root / "sealed"), "--owned-budget", "20",
+            ]
+            with patch.object(sys, "argv", argv), redirect_stderr(io.StringIO()) as errors:
+                self.assertEqual(runner.main(), 1)
+            self.assertIn("--owned-budget requires --owned-lifecycle", errors.getvalue())
+
+    def test_verify_live_owned_cli_shares_execution_through_final_output(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            repo = root / "repo"
+            frozen = root / "frozen"
+            source = frozen / "source"
+            repo.mkdir()
+            source.mkdir(parents=True)
+            (source / "Cargo.toml").write_text("[workspace]\n")
+            live = frozen / "live-source"
+            checks: list[str] = []
+            active_execution: list[runner.PrepareExecution] = []
+            original_enter = runner.PrepareExecution.__enter__
+
+            def enter_execution(execution: runner.PrepareExecution) -> runner.PrepareExecution:
+                entered = original_enter(execution)
+                active_execution.append(execution)
+                return entered
+
+            def resolve_paths(_repo: Path, _root: Path) -> tuple[Path, Path, Path]:
+                self.assertTrue(active_execution, "owned path resolution must run inside PrepareExecution")
+                active_execution[-1].check_work()
+                checks.append("paths")
+                return repo, frozen, source
+
+            def verify_frozen(_root: Path, _source: Path, *, check_work: Callable[[], None] | None = None) -> None:
+                self.assertIsNotNone(check_work)
+                self.assertIs(check_work.__self__, active_execution[-1])
+                check_work()
+                checks.append("frozen")
+
+            def verify_live(
+                _repo: Path,
+                _root: Path,
+                _source: Path,
+                _timeout: int,
+                *,
+                fresh_cohort_id: str,
+                baseline_bin_dir: Path,
+                execution: Execution | None = None,
+            ) -> tuple[Path, dict[str, object]]:
+                self.assertEqual(fresh_cohort_id, runner.PREPARE_LIVE_OWNED_COHORT)
+                self.assertEqual(baseline_bin_dir, root / "sealed")
+                self.assertIs(execution, active_execution[-1])
+                execution.check_work()
+                checks.append("live")
+                return live, {"verified": True}
+
+            argv = [
+                "frozen_baseline.py", "--repo", str(repo), "--root", str(frozen),
+                "verify-live", "--fresh-cohort", runner.PREPARE_LIVE_OWNED_COHORT,
+                "--baseline-bin-dir", str(root / "sealed"), "--owned-lifecycle", "--owned-budget", "20",
+            ]
+            with (
+                patch.object(sys, "argv", argv),
+                patch.object(runner.PrepareExecution, "__enter__", enter_execution),
+                patch.object(runner, "paths", side_effect=resolve_paths),
+                patch.object(runner, "verify_source", side_effect=verify_frozen) as frozen_verify,
+                patch.object(runner, "verify_live_source", side_effect=verify_live) as live_verify,
+                redirect_stdout(io.StringIO()) as output,
+            ):
+                self.assertEqual(runner.main(), 0)
+            frozen_verify.assert_called_once()
+            live_verify.assert_called_once()
+            self.assertEqual(checks, ["paths", "frozen", "live"])
+            self.assertIn('"verified": true', output.getvalue())
+
+    def test_verify_live_owned_path_failure_stops_before_verification(self) -> None:
+        original_enter = runner.PrepareExecution.__enter__
+        for failure in ("deadline", "cancel"):
+            with self.subTest(failure=failure), tempfile.TemporaryDirectory() as temp:
+                root = Path(temp)
+                repo = root / "repo"
+                frozen = root / "frozen"
+                source = frozen / "source"
+                repo.mkdir()
+                source.mkdir(parents=True)
+                (source / "Cargo.toml").write_text("[workspace]\n")
+                active_execution: list[runner.PrepareExecution] = []
+
+                def enter_execution(execution: runner.PrepareExecution) -> runner.PrepareExecution:
+                    entered = original_enter(execution)
+                    active_execution.append(execution)
+                    return entered
+
+                def resolving_paths(_repo: Path, _root: Path) -> tuple[Path, Path, Path]:
+                    self.assertTrue(active_execution)
+                    if failure == "deadline":
+                        time.sleep(1.05)
+                    else:
+                        signal.raise_signal(signal.SIGTERM)
+                    return repo, frozen, source
+
+                argv = [
+                    "frozen_baseline.py", "--repo", str(repo), "--root", str(frozen),
+                    "verify-live", "--fresh-cohort", runner.PREPARE_LIVE_OWNED_COHORT,
+                    "--baseline-bin-dir", str(root / "sealed"), "--owned-lifecycle", "--owned-budget", "1",
+                ]
+                with (
+                    patch.object(sys, "argv", argv),
+                    patch.object(runner.PrepareExecution, "__enter__", enter_execution),
+                    patch.object(runner, "paths", side_effect=resolving_paths),
+                    patch.object(runner, "verify_source", side_effect=AssertionError("verification must not run")),
+                    patch.object(runner, "verify_live_source", side_effect=AssertionError("verification must not run")),
+                    redirect_stderr(io.StringIO()) as errors,
+                ):
+                    self.assertEqual(runner.main(), 1)
+                self.assertIn("owned prepare", errors.getvalue())
+
+    def test_verify_live_owned_final_output_deadline_and_cancellation_fail_closed(self) -> None:
+        original_enter = runner.PrepareExecution.__enter__
+        original_print = print
+        for failure in ("deadline", "cancel"):
+            with self.subTest(failure=failure), tempfile.TemporaryDirectory() as temp:
+                root = Path(temp)
+                repo = root / "repo"
+                frozen = root / "frozen"
+                source = frozen / "source"
+                repo.mkdir()
+                source.mkdir(parents=True)
+                (source / "Cargo.toml").write_text("[workspace]\n")
+                active_execution: list[runner.PrepareExecution] = []
+
+                def enter_execution(execution: runner.PrepareExecution) -> runner.PrepareExecution:
+                    entered = original_enter(execution)
+                    active_execution.append(execution)
+                    return entered
+
+                def emit(*args: object, **kwargs: object) -> None:
+                    if args and isinstance(args[0], str) and '"verified": true' in args[0]:
+                        self.assertTrue(kwargs.get("flush"), "owned success output must flush inside its deadline scope")
+                        self.assertTrue(active_execution)
+                        if failure == "deadline":
+                            time.sleep(1.05)
+                        else:
+                            signal.raise_signal(signal.SIGTERM)
+                    original_print(*args, **kwargs)
+
+                argv = [
+                    "frozen_baseline.py", "--repo", str(repo), "--root", str(frozen),
+                    "verify-live", "--fresh-cohort", runner.PREPARE_LIVE_OWNED_COHORT,
+                    "--baseline-bin-dir", str(root / "sealed"), "--owned-lifecycle", "--owned-budget", "1",
+                ]
+                with (
+                    patch.object(sys, "argv", argv),
+                    patch.object(runner.PrepareExecution, "__enter__", enter_execution),
+                    patch.object(runner, "paths", return_value=(repo, frozen, source)),
+                    patch.object(runner, "verify_source"),
+                    patch.object(runner, "verify_live_source", return_value=(frozen / "live-source", {"verified": True})),
+                    patch("builtins.print", side_effect=emit),
+                    redirect_stdout(io.StringIO()),
+                    redirect_stderr(io.StringIO()) as errors,
+                ):
+                    self.assertEqual(runner.main(), 1)
+                if failure == "deadline":
+                    self.assertIn("work deadline expired", errors.getvalue())
+                else:
+                    self.assertIn("cancelled by signal", errors.getvalue())
 
     def test_chunk_coverage_rejects_missing_duplicate_skipped_and_repartitioned(self) -> None:
         selected = [f"case::{index}" for index in range(5)]
@@ -2272,9 +2492,21 @@ class RunnerGuards(unittest.TestCase):
     def test_owned_prepare_cli_is_opt_in_and_budget_is_bounded(self) -> None:
         legacy = runner.parser().parse_args(["prepare"])
         owned = runner.parser().parse_args(["prepare", "--owned-lifecycle", "--owned-budget", "37"])
+        verify_legacy = runner.parser().parse_args([
+            "verify-live", "--fresh-cohort", runner.PREPARE_LIVE_OWNED_COHORT,
+            "--baseline-bin-dir", "/sealed/bin",
+        ])
+        verify_owned = runner.parser().parse_args([
+            "verify-live", "--fresh-cohort", runner.PREPARE_LIVE_OWNED_COHORT,
+            "--baseline-bin-dir", "/sealed/bin", "--owned-lifecycle", "--owned-budget", "37",
+        ])
         self.assertFalse(legacy.owned_lifecycle)
         self.assertEqual(legacy.timeout, runner.MAX_TIMEOUT)
         self.assertEqual(owned.owned_budget, 37)
+        self.assertFalse(verify_legacy.owned_lifecycle)
+        self.assertEqual(verify_legacy.owned_budget, runner.PREPARE_OWNED_MAX_BUDGET)
+        self.assertTrue(verify_owned.owned_lifecycle)
+        self.assertEqual(verify_owned.owned_budget, 37)
         with self.assertRaisesRegex(runner.RunnerError, "owned prepare budget"):
             runner.PrepareExecution(runner.PREPARE_OWNED_MAX_BUDGET + 1)
 
