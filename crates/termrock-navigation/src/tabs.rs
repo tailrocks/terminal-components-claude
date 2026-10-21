@@ -1251,10 +1251,9 @@ impl<T: fmt::Display, K: KeyFn<T>> Tabs<'_, T, K, DefaultRow> {
                 width: avail.saturating_sub(1),
                 height: 1,
             };
-            let visible_content = content.intersection(clip);
             let mut writer = SegmentWriter(Vec::new());
             let _ = fmt::write(&mut writer, format_args!("{item}"));
-            let label_extent = semantic_label_extent(&writer.0, visible_content.width).max(1);
+            let label_extent = semantic_label_extent(&writer.0, content, clip).max(1);
             let close_w: u16 = if self.closable { 2 } else { 0 };
             let tab_w = 1u16
                 .saturating_add(label_extent)
@@ -1372,13 +1371,34 @@ impl<T: fmt::Display, K: KeyFn<T>> Tabs<'_, T, K, DefaultRow> {
     }
 }
 
-fn semantic_label_extent(segments: &[String], max_width: u16) -> u16 {
-    let mut x = 0u16;
-    let mut last_nonblank = 0u16;
+fn semantic_label_extent(segments: &[String], content: Rect, clip: Rect) -> u16 {
+    // `RowUi::label_fmt` writes each Display segment independently. Each write
+    // clips from the current logical writer position, while the painter starts
+    // at the clipped left edge. Before the writer reaches that edge, successive
+    // segments can therefore overlap and replace cells. Model only those
+    // visible semantic cells; do not render into a scratch Buffer or inspect a
+    // Ui during measurement.
+    let visible = content.intersection(clip);
+    if visible.is_empty() {
+        return 0;
+    }
+
+    let mut cells = vec![false; usize::from(visible.width)];
+    let mut writer_x = content.x;
+    let content_right = content.right();
+
     for segment in segments {
-        if x >= max_width {
+        if writer_x >= content_right {
             break;
         }
+        let write_x = writer_x.max(clip.x).max(content.x);
+        let write_right = content_right.min(clip.right());
+        if write_x >= write_right || content.y < clip.y || content.y >= clip.bottom() {
+            continue;
+        }
+
+        let mut x = write_x;
+        let mut remaining = write_right.saturating_sub(write_x);
         for (_, grapheme) in termrock_text::measure::graphemes(segment) {
             if grapheme.contains(char::is_control) {
                 continue;
@@ -1387,19 +1407,34 @@ fn semantic_label_extent(segments: &[String], max_width: u16) -> u16 {
             if width == 0 {
                 continue;
             }
-            if x.saturating_add(width) > max_width {
+            let Some(next_remaining) = remaining.checked_sub(width) else {
                 break;
+            };
+
+            let offset = usize::from(x.saturating_sub(visible.x));
+            if let Some(cell) = cells.get_mut(offset) {
+                *cell = grapheme != " ";
             }
-            if grapheme != " " {
-                last_nonblank = x.saturating_add(1);
+            for continuation in 1..width {
+                let offset = usize::from(x.saturating_add(continuation).saturating_sub(visible.x));
+                if let Some(cell) = cells.get_mut(offset) {
+                    *cell = false;
+                }
             }
+
+            remaining = next_remaining;
             x = x.saturating_add(width);
-            if x == max_width {
+            if remaining == 0 {
                 break;
             }
         }
+        writer_x = writer_x.saturating_add(x.saturating_sub(write_x));
     }
-    last_nonblank
+
+    cells
+        .iter()
+        .rposition(|nonblank| *nonblank)
+        .map_or(0, |index| u16::try_from(index + 1).unwrap_or(u16::MAX))
 }
 
 fn painted_width(ui: &mut Ui<'_>, row: Rect) -> u16 {
@@ -1798,6 +1833,17 @@ mod tests {
         }
     }
 
+    struct PiecesDisplay(&'static [&'static str]);
+
+    impl fmt::Display for PiecesDisplay {
+        fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+            for piece in self.0 {
+                f.write_str(piece)?;
+            }
+            Ok(())
+        }
+    }
+
     struct CountingDisplay<'a>(&'a Cell<usize>);
 
     impl fmt::Display for CountingDisplay<'_> {
@@ -1861,6 +1907,41 @@ mod tests {
                 .map(BufferCell::symbol),
             Some("c")
         );
+    }
+
+    #[test]
+    fn semantic_layout_matches_legacy_for_left_clipped_segmented_labels() {
+        let area = Rect::new(0, 0, 30, 3);
+        let clip = Rect::new(5, 0, 20, 3);
+        let items = [PiecesDisplay(&["ab", "cd"]), PiecesDisplay(&["next"])];
+        let state = TabsState::default();
+        let tabs = Tabs::new(TABS).closable(true);
+        let layout = tabs.layout_default(area, clip, &state, &items, None);
+        let mut legacy_runtime = Runtime::new(Stub::default(), Theme::junie());
+        let mut semantic_runtime = Runtime::new(Stub::default(), Theme::junie());
+        let mut legacy = Buffer::empty(area);
+        let mut semantic = Buffer::empty(area);
+
+        legacy_runtime
+            .draw_scene(area, &mut legacy, |ui, _| {
+                ui.with_area(clip, |ui| tabs.draw(ui, area, &state, &items));
+            })
+            .commit_presented();
+        semantic_runtime
+            .draw_scene(area, &mut semantic, |ui, _| {
+                ui.with_area(clip, |ui| {
+                    tabs.draw_layout(ui, &layout)
+                        .expect("same tabs configuration draws its planned layout");
+                });
+            })
+            .commit_presented();
+
+        assert_eq!(semantic, legacy);
+        assert_eq!(
+            semantic_runtime.registry().regions(),
+            legacy_runtime.registry().regions()
+        );
+        assert_eq!(semantic_runtime.cursor(), legacy_runtime.cursor());
     }
 
     #[test]
