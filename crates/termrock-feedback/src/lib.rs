@@ -15,6 +15,7 @@ pub use termrock_core::action::ActionKey;
 pub(crate) use termrock_runtime::{PartStyle, SlotFn, first_row, shift};
 
 pub mod accounts_filter;
+pub mod capsule_menu;
 pub mod hintbar;
 pub mod keyhint;
 pub mod manager_frame;
@@ -29,6 +30,9 @@ pub mod zoom_pane;
 pub use accounts_filter::{
     AccountsFilter, DetailInk, DetailLine, DetailSpan, FilterHint, FilterRow, TailTone,
     paint_accounts_filter,
+};
+pub use capsule_menu::{
+    CapsuleMenu, CapsuleMenuFrame, ClipSpan, ClipTone, MenuEntry, paint_capsule_menu,
 };
 pub use hintbar::{DerivedHintBar, HintBar};
 pub use keyhint::{ChordText, HintText, KeyHint};
