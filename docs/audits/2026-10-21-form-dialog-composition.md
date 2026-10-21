@@ -27,3 +27,13 @@ This is a reusable component increment, not application migration or exact produ
 The full `termrock-overlays` lib run currently has an unrelated failure in `menu::tests::menu_bar_keeps_public_default_variant_overlay_and_local_patch_precedence` (`menu.rs:1746`, expected local patch background `Rgb(7, 8, 9)`, observed overlay background `Rgb(28, 28, 31)`). This change does not edit menu code; the focused Dialog regression passes. The failure remains unresolved and is not attributed as pre-existing without a baseline run.
 
 Showcase/catalog coverage for the new public `Dialog::chrome` option is not included in this worktree; project instructions require that follow-up before the API is accepted. No app migration or paired visual comparison was run.
+
+## Post-merge receipt
+
+FormDialog implementation commit: `4f12c155c`. Integrated latest PR #38 remote tip `52e1572ca` with merge commit `62f500b4a`. On the merged tree, `cargo nextest run -p termrock-overlays -p termrock-forms --lib` reported 145/146 (the single MenuBar failure above); all 61 Form tests passed. The focused chrome test passed, the standalone `termrock` facade example compiled, strict scoped Clippy passed for overlays/forms/facade all targets, formatting and diff checks passed. This receipt is incomplete for acceptance because of the unrelated test failure and missing showcase/catalog coverage.
+
+## Opt-in pointer close affordance
+
+Added `Dialog::close_button(ActionKey)` as an opt-in typed cancel action. Its control is a shared `Button` with `Focusability::ClickOnly`, drawn and hit-tested on the same three-cell rectangle at the existing frame offset. It is shown only at frame width >=16 and height >=4; the default Dialog and chrome-only Dialog keep their former decorative mark and no close hit region. FormDialog passes its configured cancel key, then closes through the existing modal lifecycle so nested field Escape handling remains first and focus restoration stays with the overlay runtime.
+
+Evidence: FormDialog runtime tests verify hover and pressed frame changes, pointer-only focus behavior, one `Cancelled` outcome on click, no repeated cancellation after close, and absence of the hit region below width 16. The chrome-only default regression asserts no close hit region. Focused command `cargo nextest run -p termrock-overlays -p termrock-forms chrome_mode_omits_empty_action_row_and_does_not_focus_the_body pointer_close --lib` passed 3/3. These tests do not replace showcase coverage or paired application parity verification.
