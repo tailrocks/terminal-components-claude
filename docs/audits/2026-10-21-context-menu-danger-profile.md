@@ -83,6 +83,12 @@ failed, and no tests were skipped. `cargo clippy -p termrock-theme
 `cargo fmt --all -- --check` passed. The 73-slot failure remains intentionally
 unblessed; this work did not update its expectations.
 
+After rebasing this WIP onto newer PR #38 commits, the changed files still pass
+`rustfmt --edition 2024 --check` and `git diff --check`. The workspace-wide
+`cargo fmt --all -- --check` currently reports only pre-existing formatting in
+the incoming `crates/jackin-preview-app/src/app.rs` blank line between module
+declarations; this WIP does not own or modify that file.
+
 This record establishes only the cited Junie menu-row contract. It does not
 clear the global 73-role inventory, prove application adoption, or establish
 any application's complete visual or functional parity.
