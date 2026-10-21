@@ -63,7 +63,12 @@ name = "select_composition_consumer"
 required-features = ["testing"]
 
 [[test]]
+[[test]]
 name = "tree_composition_consumer"
+required-features = ["testing"]
+
+[[test]]
+name = "manager_composition_consumer"
 required-features = ["testing"]
 
 # Rust documentation examples are guarded by the workspace doc inventory test.
