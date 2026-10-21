@@ -11,7 +11,8 @@ use termrock::{
 
 use showcase_data::log_lines;
 
-use super::{Page, PageUpdate, frame, lines};
+use super::{Page, PageUpdate};
+use termrock::feedback::{LineBlock, PageFrame};
 
 const OUTPUT: Id = termrock::Id::root("showcase_ui::pages::terminal::terminal.output");
 const OUTPUT_PANEL: Id = termrock::Id::root("showcase_ui::pages::terminal::terminal.output.panel");
@@ -284,12 +285,9 @@ impl Page for TerminalPage {
             paint_wide_settled(ui, area);
             return;
         }
-        frame(
-            ui,
-            area,
-            self.title(),
-            "Viewport with scrollback, selection and copy · drag the seam · step rail reports a job",
-            |ui, body| {
+        PageFrame::new(self.title())
+            .meta("Viewport with scrollback, selection and copy · drag the seam · step rail reports a job")
+            .draw_with(ui, area, |ui, body| {
                 let (left, right) = panes(body);
                 let wide = left.is_some();
                 if let Some(left) = left {
@@ -355,17 +353,17 @@ impl Page for TerminalPage {
                 });
 
                 if wide {
-                    lines(
+                    LineBlock::new(&[
+                        "Output remains borrowed by the public control.",
+                        "status: ready",
+                    ])
+                    .draw(
                         ui,
                         Rect {
                             y: body.bottom().saturating_sub(2),
                             height: 2,
                             ..body
                         },
-                        &[
-                            "Output remains borrowed by the public control.",
-                            "status: ready",
-                        ],
                     );
                 }
             },

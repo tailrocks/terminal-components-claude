@@ -4,8 +4,8 @@ use termrock::{
     width, wrap,
 };
 
-use super::frame;
-use super::{accent_tint_bg, color_u32};
+use super::{accent_tint_bg, chrome_ink, color_u32};
+use termrock::feedback::{PageFrame, SectionStrip};
 
 const SECTION: Id = id!("selectable.sections");
 const TABLE: Id = id!("selectable.members");
@@ -274,7 +274,6 @@ const MUTED: u32 = 0x8a8a8a;
 const FAINT: u32 = 0x737373;
 const RULE: u32 = 0x3a3a3a;
 const ACCENT: u32 = 0x48e054;
-const TAB_ACTIVE: u32 = 0x27272a;
 const THUMB: u32 = 0x808080;
 const TRACK: u32 = 0x474747;
 const DISABLED: u32 = 0x4d4d4d;
@@ -505,30 +504,36 @@ pub fn paint(ui: &mut Ui<'_>, area: Rect, model: &Model) {
         );
     }
     ui.with_area(area, |ui| {
-        frame(ui, area, TITLE, "", |ui, body| {
-            paint_blurb(ui, body);
-            paint_section_strip(
-                ui,
-                Rect {
-                    height: 2.min(body.height),
+        PageFrame::new(TITLE)
+            .meta("")
+            .draw_with(ui, area, |ui, body| {
+                paint_blurb(ui, body);
+                SectionStrip::new(&SECTIONS)
+                    .caption(SECTION_CAPTION)
+                    .caption_min_width(SECTION_WIDE)
+                    .ink(chrome_ink())
+                    .draw(
+                        ui,
+                        Rect {
+                            height: 2.min(body.height),
+                            ..body
+                        },
+                    );
+                let top = body.y.saturating_add(3);
+                if top >= body.bottom() {
+                    return;
+                }
+                let playground = Rect {
+                    y: top,
+                    height: body.bottom().saturating_sub(top),
                     ..body
-                },
-            );
-            let top = body.y.saturating_add(3);
-            if top >= body.bottom() {
-                return;
-            }
-            let playground = Rect {
-                y: top,
-                height: body.bottom().saturating_sub(top),
-                ..body
-            };
-            if wide_page(area) {
-                paint_wide_playground(ui, playground, model);
-            } else {
-                paint_playground(ui, playground, model);
-            }
-        });
+                };
+                if wide_page(area) {
+                    paint_wide_playground(ui, playground, model);
+                } else {
+                    paint_playground(ui, playground, model);
+                }
+            });
     });
 }
 
@@ -584,10 +589,6 @@ fn fit(text: &str, columns: u16) -> String {
     format!("{shown}{}", " ".repeat(pad))
 }
 
-fn tab_width(label: &str) -> u16 {
-    width(label).saturating_add(3)
-}
-
 fn paint_blurb(ui: &mut Ui<'_>, body: Rect) {
     let title_w = width(TITLE);
     if body.width <= title_w.saturating_add(4) {
@@ -617,51 +618,6 @@ fn paint_blurb(ui: &mut Ui<'_>, body: Rect) {
         "…",
         style,
     );
-}
-
-fn paint_section_strip(ui: &mut Ui<'_>, area: Rect) {
-    if area.is_empty() {
-        return;
-    }
-    let mut x = area.x;
-    let mut tab_end = area.x;
-    for (index, label) in SECTIONS.iter().enumerate() {
-        let w = tab_width(label);
-        if x.saturating_add(w) > area.right() {
-            break;
-        }
-        let style = if index == 0 {
-            ink(WHITE, TAB_ACTIVE).add_modifier(Modifier::BOLD)
-        } else {
-            ink(SECONDARY, CANVAS)
-        };
-        ui.fill(Rect::new(x, area.y, w, 1), style);
-        ui.paint_str(
-            Rect::new(x.saturating_add(1), area.y, w.saturating_sub(1), 1),
-            label,
-            style,
-        );
-        tab_end = x.saturating_add(w);
-        x = tab_end.saturating_add(1);
-    }
-    if area.width >= SECTION_WIDE {
-        let caption_width = width(SECTION_CAPTION);
-        let caption_x = area.right().saturating_sub(caption_width.saturating_add(1));
-        if caption_x > tab_end.saturating_add(2) {
-            ui.paint_str(
-                Rect::new(caption_x, area.y, caption_width, 1),
-                SECTION_CAPTION,
-                ink(FAINT, CANVAS),
-            );
-        }
-    }
-    if area.height < 2 {
-        return;
-    }
-    let rule_y = area.y.saturating_add(1);
-    paint_repeat(ui, area.x, rule_y, area.width, "─", ink(RULE, CANVAS));
-    let active = tab_width(SECTIONS[0]).min(area.width);
-    paint_repeat(ui, area.x, rule_y, active, "━", ink(ACCENT, CANVAS));
 }
 
 fn paint_card_chrome(ui: &mut Ui<'_>, card: Rect, title: &str, meta: &str) {

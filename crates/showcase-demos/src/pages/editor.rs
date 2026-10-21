@@ -10,7 +10,8 @@ use termrock::{
     PropsRow, PropsState, Rect, Response, SyntaxRole, TabBehavior, Ui, Variant,
 };
 
-use super::{Page, PageStatus, PageUpdate, frame};
+use super::{Page, PageStatus, PageUpdate};
+use termrock::feedback::PageFrame;
 
 const EDITOR: Id = Id::root("showcase_ui::pages::editor::editor.code");
 const EDITOR_PANEL: Id = Id::root("showcase_ui::pages::editor::editor.code.panel");
@@ -556,12 +557,9 @@ impl Page for EditorPage {
     }
 
     fn draw(&self, ui: &mut Ui<'_>, area: Rect) {
-        frame(
-            ui,
-            area,
-            self.title(),
-            "Blocks, tones, diagnostics and completion; the gutter says where you are",
-            |ui, body| {
+        PageFrame::new(self.title())
+            .meta("Blocks, tones, diagnostics and completion; the gutter says where you are")
+            .draw_with(ui, area, |ui, body| {
                 let component = editor();
                 let editor_meta = if self.run_ticks > 0 {
                     String::from("running")
@@ -637,8 +635,7 @@ impl Page for EditorPage {
                     let _ = playground.show(ui);
                     ui.publish_additional_bindings(EDITOR, ui.state(EDITOR), RUN_BINDINGS);
                 });
-            },
-        );
+            });
     }
 
     fn hints(&self, _ui: &Ui<'_>) -> &'static [(&'static str, &'static str)] {

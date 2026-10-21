@@ -24,6 +24,7 @@ pub mod keyhint;
 pub mod manager_frame;
 pub mod manager_split;
 pub mod meter;
+pub mod page_chrome;
 pub mod progress;
 pub mod section;
 pub mod session_chrome;
@@ -56,6 +57,7 @@ pub use manager_split::{
     paint_manager_split,
 };
 pub use meter::{Meter, MeterTone, MeterVisual};
+pub use page_chrome::{CardChrome, CardMeta, ChromeInk, LineBlock, PageFrame, SectionStrip};
 pub use progress::{ProgressBar, Spinner};
 pub use section::TextSection;
 pub use session_chrome::{SessionChrome, SessionHint, SessionMenu, paint_session_chrome};

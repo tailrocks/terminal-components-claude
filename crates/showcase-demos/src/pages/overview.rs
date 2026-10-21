@@ -2,11 +2,12 @@ use termrock::author::PaintStyle;
 use termrock::{
     Brand, Chord, Color, DerivedHintBar, Empty, EmptyState, FgStep, FieldSpec, Form, HelpOverlay,
     HelpOverlayState, HelpSection, Hint, HintBar, HintLayer, Id, ItemKey, KeyCode, KeyHint, Meter,
-    Modifier, Panel, PanelKind, Part, Props, PropsList, PropsRow, PropsState, Rect, Role,
-    ScrollRegion, SplitAxis, SplitPane, StylePatch, TooSmall, Ui, Wizard, width, wrap,
+    Panel, PanelKind, Part, Props, PropsList, PropsRow, PropsState, Rect, Role, ScrollRegion,
+    SplitAxis, SplitPane, StylePatch, TooSmall, Ui, Wizard, width, wrap,
 };
 
-use super::{Page, PageUpdate, author::AuthorBadge, frame};
+use super::{Page, PageUpdate, author::AuthorBadge, chrome_ink};
+use termrock::feedback::{PageFrame, SectionStrip};
 
 const BRAND: Id = termrock::Id::root("showcase_ui::pages::overview::overview.brand");
 const AUTHOR: Id = termrock::Id::root("showcase_ui::pages::overview::overview.author");
@@ -162,16 +163,22 @@ impl Page for OverviewPage {
         let _ = brand();
         let _ = props_list();
         let _ = props().draw(ui, Rect::ZERO);
-        frame(ui, area, self.title(), "", |ui, body| {
-            paint_blurb(ui, area);
-            paint_section_strip(ui, body);
-            let content = Rect {
-                y: body.y.saturating_add(3),
-                height: body.height.saturating_sub(3),
-                ..body
-            };
-            paint_playground(ui, content);
-        });
+        PageFrame::new(self.title())
+            .meta("")
+            .draw_with(ui, area, |ui, body| {
+                paint_blurb(ui, area);
+                SectionStrip::new(&SECTIONS)
+                    .caption(SECTION_CAPTION)
+                    .caption_min_width(SECTION_WIDE)
+                    .ink(chrome_ink())
+                    .draw(ui, body);
+                let content = Rect {
+                    y: body.y.saturating_add(3),
+                    height: body.height.saturating_sub(3),
+                    ..body
+                };
+                paint_playground(ui, content);
+            });
     }
 
     fn hints(&self, _ui: &Ui<'_>) -> &'static [(&'static str, &'static str)] {
@@ -197,8 +204,6 @@ const SECONDARY: u32 = 0xb3b3b3;
 const MUTED: u32 = 0x8a8a8a;
 const FAINT: u32 = 0x737373;
 const RULE: u32 = 0x3a3a3a;
-const ACCENT: u32 = 0x48e054;
-const TAB_ACTIVE: u32 = 0x27272a;
 const THUMB: u32 = 0x808080;
 const TRACK: u32 = 0x474747;
 
@@ -382,67 +387,6 @@ fn paint_blurb(ui: &mut Ui<'_>, area: Rect) {
         Rect::new(meta.x.saturating_add(used), meta.y, 1, 1),
         "…",
         style,
-    );
-}
-
-fn tab_width(label: &str) -> u16 {
-    width(label).saturating_add(3)
-}
-
-fn paint_section_strip(ui: &mut Ui<'_>, area: Rect) {
-    if area.is_empty() {
-        return;
-    }
-    let mut x = area.x;
-    let mut tab_end = area.x;
-    for (index, label) in SECTIONS.iter().enumerate() {
-        let w = tab_width(label);
-        if x.saturating_add(w) > area.right() {
-            break;
-        }
-        let style = if index == 0 {
-            ink(WHITE, TAB_ACTIVE).add_modifier(Modifier::BOLD)
-        } else {
-            ink(SECONDARY, CANVAS)
-        };
-        ui.fill(Rect::new(x, area.y, w, 1), style);
-        ui.paint_str(
-            Rect::new(x.saturating_add(1), area.y, w.saturating_sub(1), 1),
-            label,
-            style,
-        );
-        tab_end = x.saturating_add(w);
-        x = tab_end.saturating_add(1);
-    }
-    if area.width >= SECTION_WIDE {
-        let caption_width = width(SECTION_CAPTION);
-        let caption_x = area.right().saturating_sub(caption_width.saturating_add(1));
-        if caption_x > tab_end.saturating_add(2) {
-            ui.paint_str(
-                Rect::new(caption_x, area.y, caption_width, 1),
-                SECTION_CAPTION,
-                ink(FAINT, CANVAS),
-            );
-        }
-    }
-    if area.height < 2 {
-        return;
-    }
-    let rule_y = area.y.saturating_add(1);
-    ui.paint_str(
-        Rect {
-            y: rule_y,
-            height: 1,
-            ..area
-        },
-        &"─".repeat(usize::from(area.width)),
-        ink(RULE, CANVAS),
-    );
-    let active = tab_width(SECTIONS[0]).min(area.width);
-    ui.paint_str(
-        Rect::new(area.x, rule_y, active, 1),
-        &"━".repeat(usize::from(active)),
-        ink(ACCENT, CANVAS),
     );
 }
 

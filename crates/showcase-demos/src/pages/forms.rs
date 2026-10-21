@@ -6,7 +6,8 @@ use termrock::{
     WizardState, WizardStep, layout, truncate,
 };
 
-use super::{Page, PageUpdate, frame};
+use super::{Page, PageUpdate};
+use termrock::feedback::PageFrame;
 
 pub const SUBMIT: ActionKey = ActionKey::application("showcase.form.submit");
 
@@ -448,12 +449,9 @@ impl Page for FormsPage {
         let _ = Self::details();
         let _ = Self::confirmation();
         let panel_width = area.width.min(70);
-        frame(
-            ui,
-            area,
-            self.title(),
-            "Sections, required fields, validation, submission",
-            |ui, body| {
+        PageFrame::new(self.title())
+            .meta("Sections, required fields, validation, submission")
+            .draw_with(ui, area, |ui, body| {
                 let regions =
                     layout::rows(body, &[Track::Fixed(1), Track::Fixed(1), Track::Flex(1)]);
                 let steps = onboarding_steps();
@@ -466,8 +464,7 @@ impl Page for FormsPage {
                 if let Some(deploy_area) = slots.get(1).copied() {
                     self.draw_deploy_form(ui, deploy_area);
                 }
-            },
-        );
+            });
     }
 
     fn hints(&self, ui: &Ui<'_>) -> &'static [(&'static str, &'static str)] {
