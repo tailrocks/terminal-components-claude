@@ -14,6 +14,8 @@ const EDITOR: Id = Id::root("showcase_ui::pages::editor::editor.code");
 const EDITOR_FIND: Id = Id::root("showcase_ui::pages::editor::editor.find");
 const EDITOR_RUN: Id = Id::root("showcase_ui::pages::editor::editor.run");
 const EDITOR_STATE_LIST: Id = Id::root("showcase_ui::pages::editor::editor.state.list");
+const DIALOG_FORM: Id = Id::root("showcase_ui::pages::dialog_kinds::dialog_kinds.connection");
+const DIALOG_KEY: Id = DIALOG_FORM.part(Part::BODY).part(Part::FIELD).index(6);
 
 fn harness(page: PageId) -> Harness<App> {
     Harness::new(App::with_page(page), Theme::junie(), 120, 40)
@@ -234,6 +236,14 @@ fn exercise_page_state(h: &mut Harness<App>, page: PageId) {
             assert!(h.text().contains("Run task now?"));
             press(h, KeyCode::Esc);
             assert!(h.text().contains("Cancelled"));
+            assert_eq!(h.top_layer(), LayerId::PAGE);
+        }
+        PageId::DialogKinds => {
+            let (x, y) = require(h.find("Add connection…"), "Add connection opener");
+            click(h, x.saturating_add(1), y);
+            assert!(h.text().contains("Add connection"));
+            press(h, KeyCode::Esc);
+            assert!(h.text().contains("Form · Cancel"));
             assert_eq!(h.top_layer(), LayerId::PAGE);
         }
         PageId::Progress => {
@@ -667,7 +677,94 @@ fn launches_and_renders_shell() {
     assert!(text.contains("Playground"));
     assert!(text.contains("Tokens and principles behind every component"));
     assert_eq!(NAV_ENTRIES.len(), 54);
-    assert_eq!(PageId::ALL.len(), 22);
+    assert_eq!(PageId::ALL.len(), 23);
+}
+
+#[test]
+fn dialog_kinds_add_connection_uses_live_form_and_stacked_picker() {
+    let mut h = harness(PageId::DialogKinds);
+    let open = require(h.find("Add connection…"), "Add connection opener");
+    click(&mut h, open.0.saturating_add(1), open.1);
+    assert!(h.text().contains("Add connection"));
+    assert!(h.text().contains("orders-prod"));
+    assert!(h.text().contains("db.eu-west-1.internal"));
+    assert!(!h.text().contains("hunter2"));
+    assert!(
+        h.text()
+            .contains("postgres://db.eu-west-1.internal/orders-prod")
+    );
+
+    type_text(&mut h, "billing");
+    assert!(
+        h.text()
+            .contains("postgres://db.eu-west-1.internal/billing"),
+        "preview follows the live edit\n{}",
+        h.text()
+    );
+
+    let tunnel = require(h.find("Connect through an SSH tunnel"), "tunnel checkbox");
+    click(&mut h, tunnel.0, tunnel.1);
+    let _chooser = require(h.find("Choose…"), "visible SSH key chooser");
+    let _ = h.click_id(DIALOG_KEY);
+    assert!(
+        h.text().contains("~/keys/staging.pem"),
+        "picker did not open\n{}",
+        h.text()
+    );
+    press(&mut h, KeyCode::Down);
+    press(&mut h, KeyCode::Enter);
+    assert!(
+        h.text().contains("~/.ssh/prod_rsa"),
+        "chosen key not reflected\n{}",
+        h.text()
+    );
+
+    let test = require(h.find("Test connection"), "test action");
+    click(&mut h, test.0.saturating_add(1), test.1);
+    assert!(h.text().contains("Connected in 42 ms"));
+    assert_ne!(h.top_layer(), LayerId::PAGE);
+
+    let save = require(h.find("Save"), "save action");
+    click(&mut h, save.0.saturating_add(1), save.1);
+    assert_eq!(h.top_layer(), LayerId::PAGE);
+    assert!(h.text().contains("Form · Save · billing"));
+}
+
+#[test]
+fn dialog_kinds_save_button_uses_the_public_form_action() {
+    let mut h = harness(PageId::DialogKinds);
+    let open = require(h.find("Add connection…"), "Add connection opener");
+    click(&mut h, open.0.saturating_add(1), open.1);
+    let save = require(h.find("Save"), "Save form action");
+    click(&mut h, save.0.saturating_add(1), save.1);
+    assert_eq!(h.top_layer(), LayerId::PAGE);
+    assert!(h.text().contains("Form · Save · orders-prod"));
+}
+
+#[test]
+fn dialog_kinds_picker_escape_restores_form_then_cancel_discards_changes() {
+    let mut h = harness(PageId::DialogKinds);
+    let open = require(h.find("Add connection…"), "Add connection opener");
+    click(&mut h, open.0.saturating_add(1), open.1);
+    let tunnel = require(h.find("Connect through an SSH tunnel"), "tunnel checkbox");
+    click(&mut h, tunnel.0, tunnel.1);
+    let _chooser = require(h.find("Choose…"), "visible SSH key chooser");
+    let _ = h.click_id(DIALOG_KEY);
+    assert!(
+        h.text().contains("~/keys/staging.pem"),
+        "picker did not open\n{}",
+        h.text()
+    );
+    press(&mut h, KeyCode::Esc);
+    assert!(h.text().contains("Add connection"));
+    assert!(
+        h.text().contains("Choose…"),
+        "form returned without its chooser\n{}",
+        h.text()
+    );
+    press(&mut h, KeyCode::Esc);
+    assert!(h.text().contains("Form · Cancel"));
+    assert_eq!(h.top_layer(), LayerId::PAGE);
 }
 
 #[test]
