@@ -32,8 +32,9 @@ pub(crate) fn paint(app: &App, ui: &mut Ui<'_>, full: Rect) {
         return;
     }
     let general = matches!(app.editor.tab, EditorTab::General);
-    // The live shell is surface ink. The approved general page is canvas.
-    if general {
+    let mounts = matches!(app.editor.tab, EditorTab::Mounts);
+    // The live shell is surface ink. These approved pages are canvas.
+    if general || mounts {
         ui.fill(full, canvas());
     }
 
@@ -43,7 +44,7 @@ pub(crate) fn paint(app: &App, ui: &mut Ui<'_>, full: Rect) {
     paint_str(ui, 19, 0, " Go ", SECONDARY, BLACK, false);
     paint_str(ui, 24, 0, " Help ", SECONDARY, BLACK, false);
 
-    if general {
+    if general || mounts {
         let name = app
             .world
             .workspaces
@@ -109,7 +110,7 @@ pub(crate) fn paint(app: &App, ui: &mut Ui<'_>, full: Rect) {
     };
 
     for (i, &(name, x, _width)) in TABS.iter().enumerate() {
-        if i == active_index {
+        if i == active_index && !mounts {
             paint_styled(ui, x, 3, "▎", ACCENT, ACTIVE_BG, true, false);
             let label = format!("{name}  ");
             paint_styled(
@@ -122,6 +123,9 @@ pub(crate) fn paint(app: &App, ui: &mut Ui<'_>, full: Rect) {
                 true,
                 false,
             );
+        } else if i == active_index {
+            let label = format!(" {name}  ");
+            paint_styled(ui, x, 3, &label, WHITE, ACTIVE_BG, true, false);
         } else {
             let label = format!(" {name}  ");
             paint_styled(ui, x, 3, &label, SECONDARY, BLACK, false, false);
@@ -133,8 +137,8 @@ pub(crate) fn paint(app: &App, ui: &mut Ui<'_>, full: Rect) {
         .get(active_index)
         .map(|&(_, x, w)| (x, w))
         .unwrap_or((2, 11));
-    let rule_start = if general { 2 } else { 0 };
-    let rule_end = if general {
+    let rule_start = if general || mounts { 2 } else { 0 };
+    let rule_end = if general || mounts {
         full.width.saturating_sub(2)
     } else {
         full.width
@@ -245,93 +249,137 @@ fn paint_mounts_body(app: &App, ui: &mut Ui<'_>) {
     paint_str(ui, 63, 6, "Kind", MUTED, BLACK, false);
     paint_str(ui, 71, 6, "Source", MUTED, BLACK, false);
 
-    // Row 0 (selected)
-    paint_str(ui, 2, 7, "▎›", ACCENT, BADGE_BG, true);
-    if app.editor.dirty {
-        paint_str(ui, 5, 7, "•", AMBER, BADGE_BG, true);
-        paint_str(
-            ui,
-            6,
-            7,
-            "  /workspace/payments-platform          ",
-            WHITE,
-            BADGE_BG,
-            true,
-        );
-        paint_str(ui, 46, 7, "ro  ", SECONDARY, BADGE_BG, true);
-        paint_str(ui, 52, 7, "clone    ", SECONDARY, BADGE_BG, true);
-    } else {
+    let rows: Vec<_> = app
+        .world
+        .workspaces
+        .first()
+        .map(|workspace| workspace.mounts.clone())
+        .unwrap_or_default();
+    if let Some(mount) = rows.first() {
+        if !app.editor.dirty {
+            paint_str(ui, 2, 7, &" ".repeat(116), WHITE, BADGE_BG, true);
+            paint_str(ui, 2, 7, "▎›", ACCENT, BADGE_BG, true);
+            paint_str(
+                ui,
+                4,
+                7,
+                &format!("    {:<38}", mount.destination),
+                WHITE,
+                BADGE_BG,
+                true,
+            );
+            paint_str(
+                ui,
+                46,
+                7,
+                &format!("{:<4}", mount.mode_label()),
+                SECONDARY,
+                BADGE_BG,
+                true,
+            );
+            paint_str(
+                ui,
+                52,
+                7,
+                &format!("{:<9}", isolation_word(mount.isolation)),
+                SECONDARY,
+                BADGE_BG,
+                true,
+            );
+            paint_str(ui, 63, 7, "host", SECONDARY, BADGE_BG, true);
+            paint_str(ui, 67, 7, "  ", MUTED, BADGE_BG, true);
+            paint_str(ui, 71, 7, mount.source_label(), SECONDARY, BADGE_BG, true);
+            paint_str(ui, 94, 7, &" ".repeat(23), MUTED, BADGE_BG, true);
+        } else {
+            paint_str(ui, 2, 7, "▎›", ACCENT, BADGE_BG, true);
+            paint_str(ui, 5, 7, "•", AMBER, BADGE_BG, true);
+            paint_str(
+                ui,
+                6,
+                7,
+                "  /workspace/payments-platform          ",
+                WHITE,
+                BADGE_BG,
+                true,
+            );
+            paint_str(ui, 46, 7, "ro  ", SECONDARY, BADGE_BG, true);
+            paint_str(ui, 52, 7, "clone    ", SECONDARY, BADGE_BG, true);
+            paint_str(ui, 63, 7, "host", SECONDARY, BADGE_BG, true);
+            paint_str(
+                ui,
+                71,
+                7,
+                "~/src/payments-platform                       ",
+                SECONDARY,
+                BADGE_BG,
+                true,
+            );
+        }
+    }
+    if let Some(mount) = rows.get(1) {
+        paint_str(ui, 2, 8, " ", BLACK, BLACK, false);
+        paint_str(ui, 3, 8, " ", SECONDARY, BLACK, false);
         paint_str(
             ui,
             4,
-            7,
-            "    /workspace/payments-platform          ",
+            8,
+            &format!("    {:<38}", mount.destination),
             WHITE,
-            BADGE_BG,
-            true,
+            BLACK,
+            false,
         );
-        paint_str(ui, 46, 7, "rw  ", SECONDARY, BADGE_BG, true);
-        paint_str(ui, 52, 7, "worktree ", SECONDARY, BADGE_BG, true);
+        paint_str(
+            ui,
+            46,
+            8,
+            &format!("{:<4}", mount.mode_label()),
+            SECONDARY,
+            BLACK,
+            false,
+        );
+        paint_str(
+            ui,
+            52,
+            8,
+            &format!("{:<9}", isolation_word(mount.isolation)),
+            SECONDARY,
+            BLACK,
+            false,
+        );
+        paint_str(ui, 63, 8, "host  ", MUTED, BLACK, false);
+        paint_str(
+            ui,
+            71,
+            8,
+            &format!("{:<46}", mount.source_label()),
+            MUTED,
+            BLACK,
+            false,
+        );
     }
-    paint_str(ui, 63, 7, "host", SECONDARY, BADGE_BG, true);
+    paint_str(ui, 2, 9, " ", BLACK, BLACK, false);
+    paint_str(ui, 3, 9, " ", SECONDARY, BLACK, false);
+    paint_str(ui, 8, 9, "+ Add mount", SECONDARY, BLACK, false);
+    paint_str(ui, 97, 37, " ", BLACK, BLACK, false);
+    paint_str(ui, 98, 37, "Cancel ", SECONDARY, BLACK, false);
+    paint_str(ui, 108, 37, " ", ACTIVE_BG, ACTIVE_BG, false);
     paint_str(
         ui,
-        71,
-        7,
-        "~/src/payments-platform                       ",
-        SECONDARY,
-        BADGE_BG,
-        true,
+        109,
+        37,
+        "Save… ",
+        Color::Rgb(0x4d, 0x4d, 0x4d),
+        ACTIVE_BG,
+        false,
     );
+}
 
-    // Row 1
-    paint_str(
-        ui,
-        4,
-        8,
-        "    /home/agent/.cargo/registry           ",
-        WHITE,
-        BLACK,
-        false,
-    );
-    paint_str(ui, 46, 8, "rw  ", SECONDARY, BLACK, false);
-    paint_str(ui, 52, 8, "shared   ", SECONDARY, BLACK, false);
-    paint_str(ui, 63, 8, "host", MUTED, BLACK, false);
-    paint_str(
-        ui,
-        71,
-        8,
-        "~/.cache/cargo-registry                       ",
-        MUTED,
-        BLACK,
-        false,
-    );
-
-    // Row 2
-    paint_str(
-        ui,
-        4,
-        9,
-        "    /home/agent/.kube                     ",
-        WHITE,
-        BLACK,
-        false,
-    );
-    paint_str(ui, 46, 9, "ro  ", SECONDARY, BLACK, false);
-    paint_str(ui, 52, 9, "shared   ", SECONDARY, BLACK, false);
-    paint_str(ui, 63, 9, "host", MUTED, BLACK, false);
-    paint_str(
-        ui,
-        71,
-        9,
-        "~/roles/sre-kube                              ",
-        MUTED,
-        BLACK,
-        false,
-    );
-
-    // Row 3
-    paint_str(ui, 8, 10, "+ Add mount", SECONDARY, BLACK, false);
+fn isolation_word(isolation: crate::domain::workspace::Isolation) -> &'static str {
+    match isolation {
+        crate::domain::workspace::Isolation::Shared => "shared",
+        crate::domain::workspace::Isolation::Worktree => "worktree",
+        crate::domain::workspace::Isolation::Clone => "clone",
+    }
 }
 
 fn paint_roles_body(ui: &mut Ui<'_>) {
