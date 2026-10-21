@@ -3609,7 +3609,9 @@ def _atomic_create_creation_commitment(path: Path, document: dict[str, object], 
     try:
         check_work()
         os.fchmod(fd, 0o400)
-        with os.fdopen(fd, "wb") as stream:
+        stream = os.fdopen(fd, "wb")
+        fd = -1
+        with stream:
             stream.write(payload)
             stream.flush()
             check_work()
@@ -3629,7 +3631,11 @@ def _atomic_create_creation_commitment(path: Path, document: dict[str, object], 
             os.close(directory_fd)
         check_work()
     finally:
-        temporary.unlink(missing_ok=True)
+        try:
+            if fd >= 0:
+                os.close(fd)
+        finally:
+            temporary.unlink(missing_ok=True)
     check_work()
     return hashlib.sha256(payload).hexdigest()
 
@@ -3684,19 +3690,82 @@ def _read_creation_commitment(path: Path, expected_sha256: str, *, check_work: C
     return document
 
 
+def _atomic_create_pending_receipt(path: Path, document: dict[str, object], *, check_work: Callable[[], None]) -> str:
+    """Durably publish an external pending receipt before the plan link exists."""
+    return _atomic_create_creation_commitment(path, document, check_work=check_work)
+
+
+def _read_pending_receipt(path: Path, *, check_work: Callable[[], None]) -> dict[str, object]:
+    """Read one unchanged, canonical receipt file from its durable external path."""
+    check_work()
+    try:
+        before = path.lstat()
+        if stat.S_ISLNK(before.st_mode) or not stat.S_ISREG(before.st_mode) or before.st_nlink != 1:
+            raise RunnerError("fresh plan pending receipt is symlinked, linked, or non-regular")
+        fd = os.open(path, os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0))
+        try:
+            opened = os.fstat(fd)
+            chunks: list[bytes] = []
+            while chunk := os.read(fd, 1024 * 1024):
+                check_work()
+                chunks.append(chunk)
+            after_fd = os.fstat(fd)
+        finally:
+            os.close(fd)
+        after = path.lstat()
+    except OSError as error:
+        raise RunnerError(f"fresh plan pending receipt cannot be safely read: {error}") from error
+    identity = lambda value: (value.st_dev, value.st_ino, value.st_mode, value.st_size, value.st_mtime_ns, value.st_ctime_ns, value.st_nlink)
+    if identity(before) != identity(opened) or identity(opened) != identity(after_fd) or identity(after_fd) != identity(after):
+        raise RunnerError("fresh plan pending receipt changed during read")
+    raw = b"".join(chunks)
+    check_work()
+    try:
+        document = json.loads(raw)
+    except json.JSONDecodeError as error:
+        raise RunnerError("fresh plan pending receipt is not valid JSON") from error
+    if not isinstance(document, dict) or _canonical_document_bytes(document) != raw:
+        raise RunnerError("fresh plan pending receipt is not canonical JSON")
+    required = {
+        "schema_version", "status", "creation_commitment_sha256", "plan_id", "plan_basename",
+        "plan_creation_sha256", "cohort_id",
+    }
+    if set(document) != required or any(not isinstance(document.get(key), str) for key in required):
+        raise RunnerError("fresh plan pending receipt fields are malformed")
+    if document["schema_version"] != "termrock-fresh-plan-pending-receipt.v1" or document["status"] != "pending-plan-publication":
+        raise RunnerError("fresh plan pending receipt schema or state is unsupported")
+    return document
+
+
 def recover_fresh_plan_creation_anchor(
     root: Path,
     cohort_id: str,
     commitment_path: Path,
     expected_commitment_sha256: str,
     *,
+    pending_receipt_path: Path,
     execution: PrepareExecution,
 ) -> dict[str, object]:
     """Recover only the original plan creation digest; later full verification remains required."""
     execution.check_work()
     root = root.resolve()
     commitment_path = _external_commitment_destination(commitment_path, root)
+    pending_receipt_path = _external_commitment_destination(pending_receipt_path, root)
+    if pending_receipt_path == commitment_path:
+        raise RunnerError("fresh plan pending receipt and creation commitment must use distinct files")
     commitment = _read_creation_commitment(commitment_path, expected_commitment_sha256, check_work=execution.check_work)
+    pending = _read_pending_receipt(pending_receipt_path, check_work=execution.check_work)
+    expected_pending = {
+        "schema_version": "termrock-fresh-plan-pending-receipt.v1",
+        "status": "pending-plan-publication",
+        "creation_commitment_sha256": expected_commitment_sha256,
+        "plan_id": commitment["plan_id"],
+        "plan_basename": commitment["plan_basename"],
+        "plan_creation_sha256": commitment["plan_creation_sha256"],
+        "cohort_id": commitment["cohort_id"],
+    }
+    if pending != expected_pending:
+        raise RunnerError("durable fresh plan pending receipt does not match the pinned creation commitment")
     creation_sha256 = commitment.get("plan_creation_sha256")
     if not isinstance(creation_sha256, str) or not re.fullmatch(r"[0-9a-f]{64}", creation_sha256):
         raise RunnerError("fresh plan creation commitment plan digest is malformed")
@@ -3743,6 +3812,7 @@ def create_fresh_plan(
     *,
     execution: PrepareExecution | None = None,
     commitment_path: Path | None = None,
+    pending_receipt_path: Path | None = None,
 ) -> dict[str, object]:
     check_work = execution.check_work if execution is not None else None
     if check_work is not None:
@@ -3780,32 +3850,50 @@ def create_fresh_plan(
     if check_work is not None:
         if commitment_path is None:
             raise RunnerError("owned fresh-plan creation requires an external --creation-commitment-path")
+        if pending_receipt_path is None:
+            raise RunnerError("owned fresh-plan creation requires an external --pending-receipt-path")
         commitment_path = _external_commitment_destination(commitment_path, root)
+        pending_receipt_path = _external_commitment_destination(pending_receipt_path, root)
+        if pending_receipt_path == commitment_path:
+            raise RunnerError("fresh plan pending receipt and creation commitment must use distinct files")
         check_work()
         plan_bytes = _canonical_document_bytes(plan)
+        plan_creation_sha256 = hashlib.sha256(plan_bytes).hexdigest()
         commitment = {
             "schema_version": "termrock-fresh-plan-creation-commitment.v1",
             "plan_id": plan["plan_id"],
             "plan_basename": FRESH_PLAN_FILE,
-            "plan_creation_sha256": hashlib.sha256(plan_bytes).hexdigest(),
+            "plan_creation_sha256": plan_creation_sha256,
             "plan_self_sha256": plan["plan_sha256"],
             "cohort_id": cohort_id,
             "frozen_source_sha256": plan["source"]["source_sha256"],
             "inventory_sha256": plan["inventory"]["sha256"],
         }
         commitment_sha256 = _atomic_create_creation_commitment(commitment_path, commitment, check_work=check_work)
-        pending = json.dumps({
+        pending = {
+            "schema_version": "termrock-fresh-plan-pending-receipt.v1",
             "status": "pending-plan-publication",
-            "creation_commitment_path": str(commitment_path),
             "creation_commitment_sha256": commitment_sha256,
+            "plan_id": plan["plan_id"],
+            "plan_basename": FRESH_PLAN_FILE,
+            "plan_creation_sha256": plan_creation_sha256,
+            "cohort_id": cohort_id,
+        }
+        _atomic_create_pending_receipt(pending_receipt_path, pending, check_work=check_work)
+        durable_pending = _read_pending_receipt(pending_receipt_path, check_work=check_work)
+        if durable_pending != pending:
+            raise RunnerError("durable fresh plan pending receipt changed before plan publication")
+        check_work()
+        print(json.dumps({
+            **pending,
+            "pending_receipt_path": str(pending_receipt_path),
+            "creation_commitment_path": str(commitment_path),
             "plan_path": str(plan_path),
             "plan_published": False,
             "verified": False,
             "candidate_comparison_eligible": False,
             "product_acceptance": False,
-        }, separators=(",", ":"))
-        check_work()
-        print(pending, flush=True)
+        }, separators=(",", ":"), sort_keys=True), flush=True)
         check_work()
     creation_file_sha256 = _atomic_create_plan(plan_path, plan, check_work=check_work) if check_work is not None else _atomic_create_plan(plan_path, plan)
     _read_self_sealed_plan(plan_path, creation_file_sha256, check_work=check_work) if check_work is not None else _read_self_sealed_plan(plan_path, creation_file_sha256)
@@ -5115,6 +5203,7 @@ def parser() -> argparse.ArgumentParser:
     plan.add_argument("--owned-lifecycle", action="store_true", help="use one cancellation-safe deadline and anchored child cleanup for plan creation")
     plan.add_argument("--owned-budget", type=int, help="work seconds for --owned-lifecycle; cleanup reserve is additional and fixed")
     plan.add_argument("--creation-commitment-path", type=Path, help="external immutable creation anchor; required with --owned-lifecycle")
+    plan.add_argument("--pending-receipt-path", type=Path, help="external durable pending receipt; required with --owned-lifecycle")
     verify_plan = sub.add_parser("verify-fresh-plan")
     verify_plan.set_defaults(timeout=min(MAX_TIMEOUT, FRESH_PLAN_MAX_TIMEOUT))
     verify_plan.add_argument("--cohort", required=True)
@@ -5126,7 +5215,8 @@ def parser() -> argparse.ArgumentParser:
     recover_plan.set_defaults(timeout=min(MAX_TIMEOUT, FRESH_PLAN_MAX_TIMEOUT))
     recover_plan.add_argument("--cohort", required=True)
     recover_plan.add_argument("--creation-commitment-path", type=Path, required=True)
-    recover_plan.add_argument("--expected-commitment-sha256", required=True, help="digest pinned by the caller from the prepublication pending receipt")
+    recover_plan.add_argument("--pending-receipt-path", type=Path, required=True, help="durable external prepublication receipt")
+    recover_plan.add_argument("--expected-commitment-sha256", required=True, help="creation commitment digest pinned by the caller from the durable prepublication receipt")
     recover_plan.add_argument("--owned-lifecycle", action="store_true", required=True)
     recover_plan.add_argument("--owned-budget", type=int, default=PREPARE_OWNED_MAX_BUDGET)
     fresh_run_init = sub.add_parser("fresh-run-init", help="create authenticated PREPARED metadata only; launches no application")
@@ -5260,12 +5350,16 @@ def main() -> int:
                 with PrepareExecution(owned_budget) as execution:
                     if args.creation_commitment_path is None:
                         raise RunnerError("--owned-lifecycle requires --creation-commitment-path")
-                    create_fresh_plan(args.repo, args.root, args.cohort, args.baseline_bin_dir, args.timeout, args.chunk_size, args.term_profile, execution=execution, commitment_path=args.creation_commitment_path)
+                    if args.pending_receipt_path is None:
+                        raise RunnerError("--owned-lifecycle requires --pending-receipt-path")
+                    create_fresh_plan(args.repo, args.root, args.cohort, args.baseline_bin_dir, args.timeout, args.chunk_size, args.term_profile, execution=execution, commitment_path=args.creation_commitment_path, pending_receipt_path=args.pending_receipt_path)
             else:
                 if args.owned_budget is not None:
                     raise RunnerError("--owned-budget requires --owned-lifecycle")
                 if args.creation_commitment_path is not None:
                     raise RunnerError("--creation-commitment-path requires --owned-lifecycle")
+                if args.pending_receipt_path is not None:
+                    raise RunnerError("--pending-receipt-path requires --owned-lifecycle")
                 create_fresh_plan(args.repo, args.root, args.cohort, args.baseline_bin_dir, args.timeout, args.chunk_size, args.term_profile)
         elif args.command == "verify-fresh-plan":
             if args.owned_lifecycle:
@@ -5283,7 +5377,7 @@ def main() -> int:
                 raise RunnerError("--owned-lifecycle requires the pinned fresh-capture cohort")
             with PrepareExecution(args.owned_budget) as execution:
                 execution.check_work()
-                recover_fresh_plan_creation_anchor(args.root, args.cohort, args.creation_commitment_path, args.expected_commitment_sha256, execution=execution)
+                recover_fresh_plan_creation_anchor(args.root, args.cohort, args.creation_commitment_path, args.expected_commitment_sha256, pending_receipt_path=args.pending_receipt_path, execution=execution)
         elif args.command == "fresh-run-init":
             create_fresh_run(args.repo, args.root, args.cohort, args.baseline_bin_dir, args.timeout, args.expected_plan_sha256, args.key_path)
         elif args.command == "fresh-run-verify":
