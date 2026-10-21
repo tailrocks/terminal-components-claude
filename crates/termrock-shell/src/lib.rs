@@ -12,9 +12,8 @@
 //! composition slots ([`shell::AppShell`]) and returns vocabulary the app
 //! renders with existing components.
 //!
-//! The reachability harness ([`reach`]) is a test tool: it compiles only
-//! under the crate's default-off `testing` feature, so production builds
-//! never carry it.
+//! The `reach` module is a test tool compiled only with the crate's
+//! default-off `testing` feature, so production builds never carry it.
 
 pub mod chrome;
 pub mod footer;
