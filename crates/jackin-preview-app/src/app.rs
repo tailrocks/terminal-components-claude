@@ -916,7 +916,7 @@ impl App {
         self.keymap.remove(KeyPhase::Capture, enter);
         if self.route == Route::Usage && !self.usage.detail_open() {
             self.keymap.add(KeyPhase::Capture, enter, CMD_EXIT_CONFIRM);
-        } else if self.accounts_work_drawer_enter() {
+        } else if self.accounts_drawer_enter() {
             // The focused nav button would consume Enter before the bubble
             // binding. Capture it so this row opens the drawer.
             self.keymap.add(KeyPhase::Capture, enter, CMD_EXIT_CONFIRM);
@@ -5638,7 +5638,7 @@ impl App {
                 self.open_usage_detail();
                 Some(Response::changed())
             }
-            CMD_EXIT_CONFIRM if self.accounts_work_drawer_enter() => {
+            CMD_EXIT_CONFIRM if self.accounts_drawer_enter() => {
                 // Enter on this row opens the drawer. Four Downs without Enter
                 // stay on the detail frame, and every other Enter stays live.
                 self.accounts.drawer_open = true;
@@ -7512,7 +7512,7 @@ impl App {
     }
 
     /// Enter on the accounts list opens the drawer of the selected account.
-    fn accounts_work_drawer_enter(&self) -> bool {
+    fn accounts_drawer_enter(&self) -> bool {
         self.route == Route::Accounts
             && !self.accounts.form_open
             && !self.accounts.drawer_open
