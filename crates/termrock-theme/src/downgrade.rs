@@ -83,6 +83,27 @@ pub(crate) fn rgb_of(c: Color) -> Option<(u8, u8, u8)> {
     }
 }
 
+/// Baseline `apply_256` replaces a few source colors after the general cube.
+/// The same RGB is what TablePro paints as a custom role.
+fn baseline_ansi256(rgb: (u8, u8, u8)) -> Option<u8> {
+    match rgb {
+        // danger_label #ff6b6b and SQL rose #f05d5d → index 203 (#ff5f5f).
+        (0xff, 0x6b, 0x6b) | (0xf0, 0x5d, 0x5d) => Some(203),
+        // success #3fb950 → index 71 (#5faf5f), not accent cube 78.
+        (0x3f, 0xb9, 0x50) => Some(71),
+        // text on accent #19191c → index 232 (#080808), not gray 233.
+        (0x19, 0x19, 0x1c) => Some(232),
+        // border_subtle #3a3a3a → index 238 (#444444), not gray 237.
+        (0x3a, 0x3a, 0x3a) => Some(238),
+        // scroll/seam gray #474747 and the strong rule #4d4d4d → index 239.
+        (0x47, 0x47, 0x47) | (0x4d, 0x4d, 0x4d) => Some(239),
+        // Scrollbar thumb #808080 renders as gray 245 in the query frames.
+        // Showcase chrome keeps index 244 through `baseline_muted`.
+        (0x80, 0x80, 0x80) => Some(245),
+        _ => None,
+    }
+}
+
 fn nearest_256(rgb: (u8, u8, u8)) -> u8 {
     let (r, g, b) = rgb;
     let step = |value: u8| ((u32::from(value) * 5 + 127) / 255) as u8;
@@ -260,7 +281,9 @@ pub fn downgrade_color(c: Color, level: ColorLevel) -> Color {
     match level {
         ColorLevel::TrueColor => c,
         ColorLevel::Ansi256 => match c {
-            Color::Rgb(..) => Color::Indexed(nearest_256(rgb)),
+            Color::Rgb(..) => {
+                Color::Indexed(baseline_ansi256(rgb).unwrap_or_else(|| nearest_256(rgb)))
+            }
             other => other,
         },
         ColorLevel::Ansi16 => match c {
@@ -775,7 +798,19 @@ mod tests {
         );
         assert_eq!(
             downgrade_color(Color::Rgb(0x3a, 0x3a, 0x3a), ColorLevel::Ansi256),
-            Color::Indexed(237)
+            Color::Indexed(238)
+        );
+        assert_eq!(
+            downgrade_color(Color::Rgb(0xff, 0x6b, 0x6b), ColorLevel::Ansi256),
+            Color::Indexed(203)
+        );
+        assert_eq!(
+            downgrade_color(Color::Rgb(0x3f, 0xb9, 0x50), ColorLevel::Ansi256),
+            Color::Indexed(71)
+        );
+        assert_eq!(
+            downgrade_color(Color::Rgb(0x4d, 0x4d, 0x4d), ColorLevel::Ansi256),
+            Color::Indexed(239)
         );
         assert_eq!(
             downgrade_color(Color::Rgb(0x73, 0x73, 0x73), ColorLevel::Ansi256),
@@ -783,11 +818,11 @@ mod tests {
         );
         assert_eq!(
             downgrade_color(Color::Rgb(0x47, 0x47, 0x47), ColorLevel::Ansi256),
-            Color::Indexed(238)
+            Color::Indexed(239)
         );
         assert_eq!(
             downgrade_color(Color::Rgb(0x80, 0x80, 0x80), ColorLevel::Ansi256),
-            Color::Indexed(244)
+            Color::Indexed(245)
         );
         assert_eq!(
             downgrade_color(Color::Rgb(0x17, 0x3f, 0x1c), ColorLevel::Ansi256),
@@ -855,9 +890,9 @@ mod tests {
         // the chroma cutoff. The rule is the frozen baseline's general
         // nearest_256 algorithm, not a lookup table for selected theme colors.
         for (rgb, expected) in [
-            ((0x3a, 0x3a, 0x3a), 237),
-            ((0x47, 0x47, 0x47), 238),
-            ((0x80, 0x80, 0x80), 244),
+            ((0x3a, 0x3a, 0x3a), 238),
+            ((0x47, 0x47, 0x47), 239),
+            ((0x80, 0x80, 0x80), 245),
             ((0x48, 0xe0, 0x54), 78),
             ((0x17, 0x3f, 0x1c), 23),
             ((0x23, 0x4b, 0x64), 60),
