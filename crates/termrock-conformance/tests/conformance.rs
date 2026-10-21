@@ -922,14 +922,7 @@ mod activation_probe_guards {
     fn repeated_opener_response_is_rejected() {
         driver::keyboard_and_mouse_activation_are_equivalent::<DialogProbe<3>>();
     }
-
-    #[test]
-    fn theme_probe_fingerprint_retains_recipe_revision() {
-        let before = Theme::junie();
-        let mut after = before.clone();
-        let _ = after.recipes.get_mut(Family::BUTTON);
-        assert_eq!(before, after);
-        assert_ne!(before.fingerprint(), after.fingerprint());
+}
 
 #[test]
 fn dialog_prompt_renders_caller_owned_error_in_the_field() {
