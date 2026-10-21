@@ -422,19 +422,20 @@ fn constructor_defaults_match_the_pre_policy_full_cell_fixture() {
             );
 
             let mut corrected = legacy.buffer().clone();
-            let mut corrected_cells = 0;
             let mut muted_positions = Vec::new();
             for y in corrected.area.y..corrected.area.bottom() {
                 for x in corrected.area.x..corrected.area.right() {
                     let cell = &mut corrected[(x, y)];
                     if cell.fg == Color::Indexed(244) {
-                        cell.fg = Color::Indexed(245);
-                        corrected_cells += 1;
                         muted_positions.push((x, y));
                     }
                 }
             }
-            assert_eq!(corrected_cells, 174, "only muted foreground cells change");
+            assert_eq!(
+                muted_positions.len(),
+                174,
+                "only muted foreground cells change"
+            );
             let mut disabled_cells = 0;
             for y in disabled_row.y..disabled_row.bottom() {
                 for x in disabled_row.x..disabled_row.right() {
@@ -466,7 +467,7 @@ fn constructor_defaults_match_the_pre_policy_full_cell_fixture() {
             for (x, y) in muted_positions.iter().copied() {
                 let before = &corrected[(x, y)];
                 let cell = &mut wrong_muted[(x, y)];
-                assert_eq!(before.fg, Color::Indexed(245));
+                assert_eq!(before.fg, Color::Indexed(244));
                 assert_eq!(cell.symbol(), before.symbol());
                 assert_eq!(cell.bg, before.bg);
                 assert_eq!(cell.modifier, before.modifier);

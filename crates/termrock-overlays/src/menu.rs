@@ -1097,13 +1097,18 @@ impl<'a> ContextMenu<'a> {
         let label_style = self
             .ov
             .style(ui, self.id, Family::MENU, variant, Part::LABEL, flags);
+        let mut effective_label_style = label_style.over(style.style);
+        let label_has_patch = self.ov.parts.iter().any(|(p, _)| *p == Part::LABEL);
+        if !label_has_patch && let Some(fg) = style.style.as_style().fg {
+            effective_label_style = effective_label_style.fg(fg);
+        }
         paint_or_slot(
             ui,
             &self.ov,
             Part::LABEL,
             label,
             item.label,
-            label_style.style,
+            effective_label_style,
         );
         if hint_admitted && let Some(text) = hint {
             let key = Rect {
@@ -1114,7 +1119,14 @@ impl<'a> ContextMenu<'a> {
             let key_style = self
                 .ov
                 .style(ui, self.id, Family::MENU, variant, Part::KEY, flags);
-            paint_or_slot(ui, &self.ov, Part::KEY, key, text, key_style.style);
+            paint_or_slot(
+                ui,
+                &self.ov,
+                Part::KEY,
+                key,
+                text,
+                key_style.over(style.style),
+            );
         }
         ui.register_part(
             self.id,
