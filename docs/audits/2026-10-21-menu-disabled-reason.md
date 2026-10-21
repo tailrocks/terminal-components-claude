@@ -32,13 +32,15 @@ It reproduces at this WIP's base `6841e67ed4d240d9b39478b2e99f39ff48b8189b`,
 which contains incoming commit `262ac80ed138f14a204f8a1a32d4a48fe0cde111`.
 This establishes only that the failure exists at this task's base; it does not
 establish that it predates `262ac80`, nor that it is accepted globally.
-Independent review traced it to `262ac80`'s `MenuBar::draw` change at line
-1217: padding is added to the label string and receives the `Part::TITLE` style
-under the default title-only hover policy, violating the assertion that the
-default title patch applies only to title cells. This is outside the disabled
-reason contract and remains for its incoming-change owner to repair. The
-focused suite excluding this one test passes, as do scoped Clippy and
-formatting.
+Independent review traced it to `262ac80`'s `MenuBar::draw` change: padding was
+added to the label string and received the `Part::TITLE` style under the default
+title-only hover policy, violating the assertion that the default title patch
+applies only to title cells. A separate authorized fix restored painting the
+label through its inset rect, keeping padding outside the title part. The exact
+regression test was red at the WIP base and green after the fix; the complete
+80-test overlays library suite, scoped Clippy, and formatting all pass. This
+records the 262-introduced issue as fixed on this WIP, not as globally accepted
+until integration and review.
 
 **Not accepted as application parity:** Jackin/Capsule adoption, end-to-end CLI
 comparison, full frozen flow inventory, resize/reanchor behavior, all-disabled
