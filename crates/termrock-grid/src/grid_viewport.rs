@@ -217,6 +217,7 @@ pub fn paint_grid_vertical_bar(
     chrome: &GridContentChrome,
     rows: usize,
     origin: usize,
+    focused: Option<usize>,
     policy: &GridBarPolicy,
 ) {
     if area.height < 2 || area.width == 0 {
@@ -275,7 +276,13 @@ pub fn paint_grid_vertical_bar(
         } else if from_end == 1 || (from_start && offset == 1) {
             plain.patch(ui.paint_patch(&StylePatch::new().set_fg(policy.cover_near)))
         } else {
-            plain
+            // The focused row stays bold through the cover cell. Edge rows
+            // keep the fade colour and do not take that bold.
+            if focused == Some(offset) {
+                plain.add_modifier(Modifier::BOLD)
+            } else {
+                plain
+            }
         };
         ui.paint_str(
             Rect {
