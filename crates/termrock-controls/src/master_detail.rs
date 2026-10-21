@@ -7,7 +7,7 @@ use crate::intent::Intent;
 use crate::keymap::Binding;
 use crate::layout::SplitAxis;
 use crate::response::Response;
-use crate::split::{SplitAction, SplitPane, SplitPaneState};
+use crate::split::{ResetPolicy, SplitAction, SplitPane, SplitPaneState};
 use crate::ui::{Cx, FrameRead, LayoutFacts, Ui};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -137,6 +137,7 @@ pub struct MasterDetail {
     summary_rows: u16,
     esc_returns: bool,
     detail_owners: Vec<Id>,
+    reset_policy: ResetPolicy,
 }
 
 impl MasterDetail {
@@ -153,6 +154,7 @@ impl MasterDetail {
             summary_rows: 6,
             esc_returns: true,
             detail_owners: Vec::new(),
+            reset_policy: ResetPolicy::Balanced,
         }
     }
 
@@ -199,6 +201,15 @@ impl MasterDetail {
     #[must_use]
     pub const fn master_share(mut self, percent: u8) -> Self {
         self.master_share = percent;
+        self
+    }
+
+    /// Set the destination used when the split seam is reset.
+    ///
+    /// The default remains balanced to preserve the existing control contract.
+    #[must_use]
+    pub const fn reset_policy(mut self, policy: ResetPolicy) -> Self {
+        self.reset_policy = policy;
         self
     }
 
@@ -389,6 +400,7 @@ impl MasterDetail {
             .min_first(self.min_master)
             .min_second(self.min_detail)
             .resizable(true)
+            .reset_policy(self.reset_policy)
             .seam_at_offset(1, self.gap / 2)
     }
 }
