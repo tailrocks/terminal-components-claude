@@ -9,6 +9,7 @@ use termrock::{App, Cx, Response, Theme, Ui};
 use termrock_test_support::Harness;
 
 const CHROME: &str = include_str!("../src/pages/chrome.rs");
+const SELECTABLE: &str = include_str!("../src/pages/selectable.rs");
 const TASKRUNNER: &str = include_str!("../src/pages/taskrunner.rs");
 const TERMINAL: &str = include_str!("../src/pages/terminal.rs");
 
@@ -16,6 +17,7 @@ const TERMINAL: &str = include_str!("../src/pages/terminal.rs");
 fn no_page_holds_a_captured_cell_table() {
     for (name, source) in [
         ("chrome", CHROME),
+        ("selectable", SELECTABLE),
         ("taskrunner", TASKRUNNER),
         ("terminal", TERMINAL),
     ] {
@@ -31,6 +33,10 @@ fn no_page_holds_a_captured_cell_table() {
             !source.contains("Truecolor cells from the approved snapshot"),
             "{name}: a captured cell table is back"
         );
+        assert!(
+            !source.contains(".ansi"),
+            "{name}: an ansi frame bypass is back"
+        );
     }
 }
 
@@ -38,6 +44,7 @@ fn no_page_holds_a_captured_cell_table() {
 fn no_page_switches_on_an_exact_page_size() {
     for (name, source) in [
         ("chrome", CHROME),
+        ("selectable", SELECTABLE),
         ("taskrunner", TASKRUNNER),
         ("terminal", TERMINAL),
     ] {
@@ -56,6 +63,7 @@ fn no_page_switches_on_an_exact_page_size() {
 fn no_page_replays_a_historical_frame() {
     for (name, source) in [
         ("chrome", CHROME),
+        ("selectable", SELECTABLE),
         ("taskrunner", TASKRUNNER),
         ("terminal", TERMINAL),
     ] {
@@ -178,3 +186,29 @@ fn the_terminal_page_renders_the_viewport_and_the_rail_at_more_than_one_size() {
         }
     }
 }
+
+struct SelectableHost;
+
+impl App for SelectableHost {
+    fn update(&mut self, _cx: &mut Cx<'_>) -> Response<()> {
+        Response::ignored()
+    }
+
+    fn draw(&self, ui: &mut Ui<'_>) {
+        let model = showcase_demos::pages::selectable::Model::default();
+        showcase_demos::pages::selectable::paint(ui, ui.full(), &model);
+    }
+}
+
+/// The selectable page paints the selection table at every size without cell bypass.
+#[test]
+fn the_selectable_page_renders_the_table_at_more_than_one_size() {
+    for (width, height) in [(120u16, 40u16), (80, 24)] {
+        let harness = Harness::new(SelectableHost, Theme::junie(), width, height);
+        let text = harness.text();
+        for needle in ["Selection", "Dana Whitfield", "Owner"] {
+            assert!(text.contains(needle), "{width}x{height}: {needle} missing");
+        }
+    }
+}
+
