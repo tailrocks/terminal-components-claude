@@ -287,7 +287,9 @@ fn both_detail_buttons_return_consumed_repaint_before_the_next_frame() {
     for button_id in [SCALE_BUTTON, termrock_consumer_example::COOK_BUTTON] {
         let (mut runtime, mut terminal) = consumer();
         present(&mut runtime, &mut terminal);
-        let button = runtime.area_of(button_id).expect("detail button has bounds");
+        let button = runtime
+            .area_of(button_id)
+            .expect("detail button has bounds");
         let position = Position::new(button.x, button.y);
         runtime
             .handle(Input::Mouse(Mouse {
@@ -305,7 +307,10 @@ fn both_detail_buttons_return_consumed_repaint_before_the_next_frame() {
             }))
             .expect("button accepts release");
         assert!(response.is_consumed(), "{button_id:?}");
-        assert!(response.is_changed(), "domain action requests paint: {button_id:?}");
+        assert!(
+            response.is_changed(),
+            "domain action requests paint: {button_id:?}"
+        );
         let expected = if button_id == SCALE_BUTTON {
             Note::Scaled
         } else {
@@ -323,14 +328,20 @@ fn narrow_recipe_choice_opens_detail_and_escape_restores_the_list() {
     let (mut runtime, mut terminal) = consumer_with(narrow);
     present_in(&mut runtime, &mut terminal, narrow);
     runtime
-        .handle(Input::Key(Key { code: KeyCode::Enter, mods: KeyModifiers::NONE }))
+        .handle(Input::Key(Key {
+            code: KeyCode::Enter,
+            mods: KeyModifiers::NONE,
+        }))
         .expect("list accepts choice");
     present_in(&mut runtime, &mut terminal, narrow);
     assert_eq!(runtime.app().last_action(), Some(Action::DetailOpened));
     assert!(runtime.area_of(RECIPE_FACTS).is_some());
     assert_eq!(runtime.focus(), Some(RECIPE_FACTS));
     runtime
-        .handle(Input::Key(Key { code: KeyCode::Esc, mods: KeyModifiers::NONE }))
+        .handle(Input::Key(Key {
+            code: KeyCode::Esc,
+            mods: KeyModifiers::NONE,
+        }))
         .expect("detail accepts escape");
     present_in(&mut runtime, &mut terminal, narrow);
     assert_eq!(runtime.app().last_action(), Some(Action::DetailClosed));
