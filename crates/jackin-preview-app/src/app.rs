@@ -7904,6 +7904,19 @@ impl App {
                 .unwrap_or_default();
             let viewport = Self::capsule_viewport(pane_id, focused);
             viewport.draw_projected(ui, viewport_area, &state, projected);
+            if ui.theme_ref().capability.color == termrock::ColorLevel::Mono {
+                let (buf, clip) = ui.raw();
+                let area = viewport_area.intersection(clip);
+                for y in area.top()..area.bottom() {
+                    for x in area.left()..area.right() {
+                        if let Some(cell) = buf.cell_mut(Position::new(x, y))
+                            && cell.fg == cell.bg
+                        {
+                            cell.fg = termrock::Color::White;
+                        }
+                    }
+                }
+            }
             // The menu frame reserves the last row. Wide panes put the
             // horizontal bar there. Narrow panes stay blank. A resting
             // wide pane does the same on its own reserved row.
@@ -9746,7 +9759,6 @@ fn capsule_span_role(tone: crate::sim::pty::Tone) -> termrock::Role {
     match tone {
         // Baseline success is not the port token.
         Tone::Success => termrock::Role::Custom(termrock::Color::Rgb(0x3f, 0xb9, 0x50)),
-        // Baseline error is the frozen red, not the later port token.
         Tone::Error => termrock::Role::Custom(termrock::Color::Rgb(0xf0, 0x5d, 0x5d)),
         other => other.role(),
     }
