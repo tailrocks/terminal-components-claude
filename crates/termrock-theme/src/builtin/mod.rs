@@ -385,6 +385,7 @@ fn menu(r: &mut Recipe) {
         p().set_glyph(GlyphRole::PressLeft).add(Modifier::BOLD),
     );
     part(m, Part::KEY, p().set_fg(Role::Fg(FgStep::Muted)));
+    part(m, Part::HELP, p().set_fg(Role::Fg(FgStep::Muted)));
     part(
         r.variant_mut(Variant::custom("termrock.menu-bar-title")),
         Part::TITLE,
