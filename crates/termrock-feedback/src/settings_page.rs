@@ -40,6 +40,13 @@ pub struct SettingsMount<'a> {
     pub selected: bool,
 }
 
+#[derive(Clone, Copy)]
+pub struct SettingsCluster<'a> {
+    pub note: &'a str,
+    pub mark: &'a str,
+    pub value: &'a str,
+}
+
 pub struct SettingsPage<'a> {
     pub brand: &'a str,
     pub menus: &'a [&'a str],
@@ -53,6 +60,9 @@ pub struct SettingsPage<'a> {
     pub hint_overflow: Option<&'a str>,
     pub mounts: &'a [SettingsMount<'a>],
     pub add_mount: Option<&'a str>,
+    /// Wide header: crumb, note, mark, and value, packed from the right edge.
+    /// Absent on the narrow page, which keeps the ellipsis before the crumb.
+    pub cluster: Option<SettingsCluster<'a>>,
 }
 
 struct Ink {
@@ -145,6 +155,39 @@ fn paint_header(ui: &mut Ui<'_>, area: Rect, page: &SettingsPage<'_>, ink: &Ink)
         put(ui, area, x, y, &text, menu);
         x = x.saturating_add(width(&text)).saturating_add(1);
     }
+    let secondary = plain(ink.secondary, ink.canvas);
+    if let Some(cluster) = page.cluster {
+        let value_x = area
+            .right()
+            .saturating_sub(2)
+            .saturating_sub(width(cluster.value));
+        let mark_x = value_x
+            .saturating_sub(1)
+            .saturating_sub(width(cluster.mark));
+        let note_x = mark_x.saturating_sub(2).saturating_sub(width(cluster.note));
+        let crumb_x = note_x.saturating_sub(2).saturating_sub(width(page.crumb));
+        put(ui, area, crumb_x, y, page.crumb, secondary);
+        put(ui, area, note_x, y, cluster.note, secondary);
+        put(
+            ui,
+            area,
+            mark_x,
+            y,
+            cluster.mark,
+            plain(ink.accent, ink.canvas),
+        );
+        // The gap keeps the value ink. The mark is recolored on top of that run.
+        put(
+            ui,
+            area,
+            mark_x.saturating_add(width(cluster.mark)),
+            y,
+            " ",
+            secondary,
+        );
+        put(ui, area, value_x, y, cluster.value, secondary);
+        return;
+    }
     let crumb_w = width(page.crumb);
     let crumb_x = area.right().saturating_sub(2).saturating_sub(crumb_w);
     put(
@@ -155,14 +198,7 @@ fn paint_header(ui: &mut Ui<'_>, area: Rect, page: &SettingsPage<'_>, ink: &Ink)
         "…",
         plain(ink.muted, ink.canvas),
     );
-    put(
-        ui,
-        area,
-        crumb_x,
-        y,
-        page.crumb,
-        plain(ink.secondary, ink.canvas),
-    );
+    put(ui, area, crumb_x, y, page.crumb, secondary);
 }
 
 fn tab_span(label: &str) -> u16 {
