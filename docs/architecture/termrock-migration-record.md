@@ -366,6 +366,39 @@ the settings and prelude pages, the editor tab strip, the detail drawer
 correction painter, the harness boot needles and the `historical_*` name
 space.
 
+### The theme ramp drift, decided against the frozen rendered reference
+
+The component-digest failure was bisected by the session-consolidation
+stream to `a848219fd` ("fix: match tablepro quick-open and tab list to the
+baseline"), which changed the Junie foreground ramp from
+`0x808080 / 0x4d4d4d` to `0x8a8a8a / 0x737373` and the scrollbar track
+glyph from `│` to `┆`.
+
+That change is contradicted by the frozen rendered reference, measured
+directly from the approved corpus:
+
+| Evidence | Result |
+| --- | --- |
+| `0x8a8a8a` (ANSI-256 index 245) in the approved corpus at 120x40 | 0 occurrences |
+| `0x808080` (index 244) in the approved corpus at 120x40 | 254 268 occurrences |
+| `0x737373` (index 242) in the approved corpus at 120x40 | 0 occurrences |
+| `0x4d4d4d` (index 238) in the approved corpus at 120x40 | 60 552 occurrences |
+| scrollbar track `│` in the approved corpus at 120x40, every colour mode | 12 600 occurrences |
+| scrollbar track `┆` in the approved corpus at 120x40, every colour mode | 6 occurrences |
+
+The adjudication recorded on the session-consolidation branch states that
+"the reference values are 245, 242", but it also records that those values
+came from the tag's token TABLE and that the reviewer's own corpus check
+found no such rendering. The rendered reference is the oracle, so the ramp
+and the track glyph are restored to `0x808080 / 0x4d4d4d` and `│`, and the
+two expectations that pinned the drifted values are corrected with the
+measurement above.
+
+Effect: the component render gate went from 89 passed / 231 failed to
+178 passed / 142 failed. The remaining 142 failures are 99 truecolor and 43
+mono, spread over 15 component groups, so a second drift is still open and
+the bisect continues.
+
 ## Coverage gaps
 
 ### False-parity inventory (read-only audit, revision `40bc297e5`)
