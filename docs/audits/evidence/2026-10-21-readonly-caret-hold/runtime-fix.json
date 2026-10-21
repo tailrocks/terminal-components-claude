@@ -21,7 +21,7 @@
     "tested_readonly_caret_source_sha256": "25970f22890be4aabb0fa0ca985abf4a4cb55ce4df1b9b234f5dbb94ef0fb610",
     "target_dir": "/private/tmp/termrock-readonly-caret-target-20261021-agent894a",
     "log": "runtime-nextest.log",
-    "log_sha256": "52655f385573dd37c5079edb37028ceeaae0fe5666371e70cc81499c068673a1",
+    "log_sha256": "2332520785ec93f0d47a1b502e315f072ded8e04d5a58eb2c7235270eb1ce51a",
     "test_binary_sha256": {
       "readonly_caret-7f0b7241d4db6d75": "c8568f6d508358b04905e3554c059f985fa2153f1cb8906ddea8df7769222f71",
       "termrock_editors-692575cc453b480f": "ebec6285f454d93d8bb367b8cc024b7da601bcfaf018d19c4c559e74cb665267",
