@@ -1,7 +1,12 @@
 use termrock::{
-    BlurPolicy, Chord, Color, Cx, Family, FgStep, FrameRead, Hint, HintKey, HintLayer, Id, ItemKey,
+    BlurPolicy, Chord, Color, Cx, FgStep, FrameRead, Hint, HintKey, HintLayer, Id, ItemKey,
     KeyCode, KeyModifiers, NavList, NavListAction, NavListState, Part, Rect, Response, Role,
-    StateFlags, StylePatch, TextAction, TextInput, TextInputState, TypingPolicy, Ui, Variant,
+    StateFlags, StylePatch, TextAction, TextInput, TextInputState, TypingPolicy, Ui,
+};
+use termrock_shell::{
+    ActionRow, FINDER_GREY, FinderColumns, FinderContent, FinderGrid, FinderLayout, FinderLead,
+    FinderLine, FinderPlate, FinderPolicy, FinderPreview, FinderPreviewTitle, FinderRow,
+    FinderTone,
 };
 
 use crate::domain::action::{Action, Availability, Scope};
@@ -218,133 +223,171 @@ impl HomeState {
         if area.is_empty() {
             return;
         }
+        let grid = FinderGrid::new();
         let scope_name = self.scope.map_or("here", Scope::label);
         let scope_label = format!(" scope ‹ {scope_name} › ");
-        let scope_width = termrock::width(&scope_label);
-        let field = ui
-            .style(
-                Family::INPUT,
-                Variant::DEFAULT,
-                Part::FIELD,
-                StateFlags::empty(),
-            )
-            .style;
-        ui.fill(Rect::new(area.x, area.y, area.width, 1), field);
         let mut input = query_input();
         if catalogue::docker_cleanup_tag_frame(world) {
             input = input.patch_part(DOCKER_QUERY_PARTS);
         }
-        input.value(&self.value).draw(
+        grid.draw_query(
             ui,
-            Rect::new(area.x, area.y, area.width.saturating_sub(scope_width), 1),
+            grid.query_area(area),
+            input,
             &self.editor,
-        );
-        let scope_style = ui.paint_patch(&TAG_GREY).with_bg_from(field);
-        ui.paint_str(
-            Rect::new(
-                area.right().saturating_sub(scope_width),
-                area.y,
-                scope_width.min(area.width),
-                1,
-            ),
+            &self.value,
             &scope_label,
-            scope_style,
         );
         let rows = self.rows(world);
-        let mut rows_area = Rect::new(
-            area.x,
-            area.y.saturating_add(2),
-            area.width,
-            area.height.saturating_sub(2),
-        );
-        if let Some(view) = catalogue::parity_files_view(world, ui.full().width)
-            && paint_parity_files(ui, rows_area, &view)
-        {
-            // Steady bar on the placeholder. CUP 5;4. Do not write cursor bytes.
-            ui.set_bar_cursor(QUERY, termrock::Position::new(3, 4));
-            return;
+        let mut rows_area = grid.content_area(area);
+        if let Some(view) = catalogue::parity_files_view(world, ui.full().width) {
+            let content = plate_content(&view);
+            if FinderPlate::new()
+                .policy(FILES_POLICY)
+                .draw(ui, rows_area, &content)
+            {
+                // Steady bar on the placeholder. CUP 5;4. Do not write cursor bytes.
+                ui.set_bar_cursor(QUERY, termrock::Position::new(3, 4));
+                return;
+            }
         }
         if self.query().trim().is_empty() && world.scenario.boot_title() == super::finder::RECENT {
-            let used = super::finder::paint_recent_lead(ui, rows_area);
-            rows_area.y = rows_area.y.saturating_add(used);
-            rows_area.height = rows_area.height.saturating_sub(used);
+            let used = FinderLead::new(
+                super::finder::RECENT,
+                super::finder::RECENT_EMPTY,
+                super::finder::EXPLORE,
+            )
+            .draw(ui, rows_area);
+            rows_area = grid.content_below(area, used);
         }
-        if let Some(view) = catalogue::first_use_view(world, ui.full().width, self.history)
-            && paint_narrow_tag_list(ui, rows_area, &view)
-        {
-            return;
+        if let Some(view) = catalogue::first_use_view(world, ui.full().width, self.history) {
+            let content = plate_content(&view);
+            if FinderPlate::new()
+                .policy(NARROW_POLICY)
+                .draw(ui, rows_area, &content)
+            {
+                return;
+            }
         }
-        if let Some(view) = catalogue::monorepo_root_view(world, ui.full().width, self.history)
-            && paint_narrow_tag_list(ui, rows_area, &view)
-        {
-            return;
+        if let Some(view) = catalogue::monorepo_root_view(world, ui.full().width, self.history) {
+            let content = plate_content(&view);
+            if FinderPlate::new()
+                .policy(NARROW_POLICY)
+                .draw(ui, rows_area, &content)
+            {
+                return;
+            }
         }
-        if let Some(view) = catalogue::monorepo_child_view(world, ui.full().width)
-            && paint_narrow_tag_list(ui, rows_area, &view)
-        {
-            return;
+        if let Some(view) = catalogue::monorepo_child_view(world, ui.full().width) {
+            let content = plate_content(&view);
+            if FinderPlate::new()
+                .policy(NARROW_POLICY)
+                .draw(ui, rows_area, &content)
+            {
+                return;
+            }
         }
-        if let Some(view) = catalogue::docker_cleanup_view(world, ui.full().width)
-            && paint_narrow_tag_list(ui, rows_area, &view)
-        {
-            return;
+        if let Some(view) = catalogue::docker_cleanup_view(world, ui.full().width) {
+            let content = plate_content(&view);
+            if FinderPlate::new()
+                .policy(NARROW_POLICY)
+                .draw(ui, rows_area, &content)
+            {
+                return;
+            }
         }
-        if let Some(view) = catalogue::remote_host_view(world, ui.full().width)
-            && paint_narrow_tag_list(ui, rows_area, &view)
-        {
-            return;
+        if let Some(view) = catalogue::remote_host_view(world, ui.full().width) {
+            let content = plate_content(&view);
+            if FinderPlate::new()
+                .policy(NARROW_POLICY)
+                .draw(ui, rows_area, &content)
+            {
+                return;
+            }
         }
-        if let Some(view) = catalogue::activities_multi_view(world, ui.full().width, self.history)
-            && paint_narrow_tag_list(ui, rows_area, &view)
-        {
-            return;
+        if let Some(view) = catalogue::activities_multi_view(world, ui.full().width, self.history) {
+            let content = plate_content(&view);
+            if FinderPlate::new()
+                .policy(NARROW_POLICY)
+                .draw(ui, rows_area, &content)
+            {
+                return;
+            }
         }
-        if let Some(view) = catalogue::parity_discovery_view(world, ui.full().width)
-            && paint_parity_discovery_view(ui, rows_area, &view)
-        {
-            return;
+        if let Some(view) = catalogue::parity_discovery_view(world, ui.full().width) {
+            let content = plate_content(&view);
+            if FinderPlate::new()
+                .policy(DISCOVERY_VIEW_POLICY)
+                .draw(ui, rows_area, &content)
+            {
+                return;
+            }
         }
-        if let Some(view) = catalogue::parity_history_view(world, ui.full().width)
-            && paint_parity_history(ui, rows_area, &view)
-        {
-            // Steady bar on the placeholder. CUP 5;4. Do not write cursor bytes.
-            ui.set_bar_cursor(QUERY, termrock::Position::new(3, 4));
-            return;
+        if let Some(view) = catalogue::parity_history_view(world, ui.full().width) {
+            let content = plate_content(&view);
+            if FinderPlate::new()
+                .policy(HISTORY_POLICY)
+                .draw(ui, rows_area, &content)
+            {
+                // Steady bar on the placeholder. CUP 5;4. Do not write cursor bytes.
+                ui.set_bar_cursor(QUERY, termrock::Position::new(3, 4));
+                return;
+            }
         }
-        if let Some(view) = catalogue::parity_browser_view(world, ui.full().width)
-            && paint_parity_browser(ui, rows_area, &view)
-        {
-            // Steady bar on the placeholder. CUP 5;4. Do not write cursor bytes.
-            ui.set_bar_cursor(QUERY, termrock::Position::new(3, 4));
-            return;
+        if let Some(view) = catalogue::parity_browser_view(world, ui.full().width) {
+            let content = plate_content(&view);
+            if FinderPlate::new()
+                .policy(BROWSER_POLICY)
+                .draw(ui, rows_area, &content)
+            {
+                // Steady bar on the placeholder. CUP 5;4. Do not write cursor bytes.
+                ui.set_bar_cursor(QUERY, termrock::Position::new(3, 4));
+                return;
+            }
         }
-        if let Some(view) = catalogue::parity_git_current_view(world, ui.full().width)
-            && paint_parity_git_current(ui, rows_area, &view)
-        {
-            // Steady bar on the placeholder. CUP 5;4. Do not write cursor bytes.
-            ui.set_bar_cursor(QUERY, termrock::Position::new(3, 4));
-            return;
+        if let Some(view) = catalogue::parity_git_current_view(world, ui.full().width) {
+            let content = plate_content(&view);
+            if FinderPlate::new()
+                .policy(GIT_CURRENT_POLICY)
+                .draw(ui, rows_area, &content)
+            {
+                // Steady bar on the placeholder. CUP 5;4. Do not write cursor bytes.
+                ui.set_bar_cursor(QUERY, termrock::Position::new(3, 4));
+                return;
+            }
         }
-        if let Some(view) = catalogue::parity_git_batch_view(world, ui.full().width)
-            && paint_parity_git_batch(ui, rows_area, &view)
-        {
-            // Steady bar on the placeholder. CUP 5;4. Do not write cursor bytes.
-            ui.set_bar_cursor(QUERY, termrock::Position::new(3, 4));
-            return;
+        if let Some(view) = catalogue::parity_git_batch_view(world, ui.full().width) {
+            let content = plate_content(&view);
+            if FinderPlate::new()
+                .policy(GIT_BATCH_POLICY)
+                .draw(ui, rows_area, &content)
+            {
+                // Steady bar on the placeholder. CUP 5;4. Do not write cursor bytes.
+                ui.set_bar_cursor(QUERY, termrock::Position::new(3, 4));
+                return;
+            }
         }
-        if let Some(view) = catalogue::parity_task_sources_view(world, ui.full().width)
-            && paint_parity_task_sources(ui, rows_area, &view)
-        {
-            // Steady bar on the placeholder. CUP 5;4. Do not write cursor bytes.
-            ui.set_bar_cursor(QUERY, termrock::Position::new(3, 4));
-            return;
+        if let Some(view) = catalogue::parity_task_sources_view(world, ui.full().width) {
+            let content = plate_content(&view);
+            if FinderPlate::new()
+                .policy(TASK_SOURCES_POLICY)
+                .draw(ui, rows_area, &content)
+            {
+                // Steady bar on the placeholder. CUP 5;4. Do not write cursor bytes.
+                ui.set_bar_cursor(QUERY, termrock::Position::new(3, 4));
+                return;
+            }
         }
-        if let Some(view) = catalogue::parity_cargo_view(world, ui.full().width)
-            && paint_parity_cargo(ui, rows_area, &view)
-        {
-            // Steady bar on the placeholder. CUP 5;4. Do not write cursor bytes.
-            ui.set_bar_cursor(QUERY, termrock::Position::new(3, 4));
-            return;
+        if let Some(view) = catalogue::parity_cargo_view(world, ui.full().width) {
+            let content = plate_content(&view);
+            if FinderPlate::new()
+                .policy(CARGO_POLICY)
+                .draw(ui, rows_area, &content)
+            {
+                // Steady bar on the placeholder. CUP 5;4. Do not write cursor bytes.
+                ui.set_bar_cursor(QUERY, termrock::Position::new(3, 4));
+                return;
+            }
         }
         if let Some(view) = catalogue::parity_discovery(world)
             .or_else(|| catalogue::first_use_plate(world, self.history))
@@ -353,14 +396,23 @@ impl HomeState {
             .or_else(|| catalogue::activities_multi_plate(world, self.history))
             .or_else(|| catalogue::remote_host_tag(world))
             .or_else(|| catalogue::docker_cleanup_tag(world))
-            && paint_parity_discovery(ui, rows_area, &view)
         {
-            return;
+            let content = plate_content(&view);
+            if FinderPlate::new()
+                .policy(DISCOVERY_POLICY)
+                .draw(ui, rows_area, &content)
+            {
+                return;
+            }
         }
-        if let Some(view) = catalogue::hard_cases_tag(world)
-            && paint_hard_cases_discovery(ui, rows_area, &view)
-        {
-            return;
+        if let Some(view) = catalogue::hard_cases_tag(world) {
+            let content = plate_content(&view);
+            if FinderPlate::new()
+                .policy(HARD_CASES_POLICY)
+                .draw(ui, rows_area, &content)
+            {
+                return;
+            }
         }
         if rows.is_empty() {
             let note = if self.query().trim().is_empty() {
@@ -371,20 +423,10 @@ impl HomeState {
             } else {
                 format!("Nothing matches “{}” here", self.query().trim())
             };
-            let style = ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Muted)));
-            ui.paint_str(
-                Rect::new(
-                    rows_area.x.saturating_add(2),
-                    rows_area.y,
-                    rows_area.width.saturating_sub(4),
-                    1,
-                ),
-                &note,
-                style,
-            );
+            grid.draw_empty(ui, rows_area, &note, Role::Fg(FgStep::Muted));
         } else {
             nav_list()
-                .render_row(&paint_action)
+                .render_row(&paint_action_row)
                 .draw(ui, rows_area, &self.rows, &rows);
         }
         let groups = rows
@@ -400,55 +442,41 @@ impl HomeState {
         let occupied = rows
             .len()
             .saturating_add(groups.saturating_mul(2).saturating_sub(1));
-        if occupied.saturating_add(1) < usize::from(rows_area.height) {
-            let pending: Vec<_> = world
-                .discovery
-                .iter()
-                .filter(|item| !item.done && !item.failed)
-                .map(|item| item.domain.label())
-                .collect();
-            let failed: Vec<_> = world
-                .discovery
-                .iter()
-                .filter(|item| item.failed)
-                .map(|item| item.domain.label())
-                .collect();
-            let note = if !pending.is_empty() {
-                Some((
-                    format!("Scanning this folder… ({})", pending.join(", ")),
-                    Role::Fg(FgStep::Faint),
-                ))
-            } else if !failed.is_empty() {
-                Some((
-                    format!("▲ {}: discovery failed", failed.join(", ")),
-                    Role::Warning,
-                ))
-            } else {
-                None
-            };
-            if let Some((text, role)) = note {
-                let style = ui.paint_patch(&StylePatch::new().set_fg(role));
-                ui.paint_str(
-                    Rect::new(
-                        area.x.saturating_add(2),
-                        area.bottom().saturating_sub(1),
-                        area.width.saturating_sub(2),
-                        1,
-                    ),
-                    &text,
-                    style,
-                );
-            }
+        let pending: Vec<_> = world
+            .discovery
+            .iter()
+            .filter(|item| !item.done && !item.failed)
+            .map(|item| item.domain.label())
+            .collect();
+        let failed: Vec<_> = world
+            .discovery
+            .iter()
+            .filter(|item| item.failed)
+            .map(|item| item.domain.label())
+            .collect();
+        let note = if !pending.is_empty() {
+            Some((
+                format!("Scanning this folder… ({})", pending.join(", ")),
+                Role::Fg(FgStep::Faint),
+            ))
+        } else if !failed.is_empty() {
+            Some((
+                format!("▲ {}: discovery failed", failed.join(", ")),
+                Role::Warning,
+            ))
+        } else {
+            None
+        };
+        if let Some((text, role)) = note {
+            grid.draw_note(ui, rows_area, occupied, &text, role);
         }
     }
 }
 
-/// Tag finder grey. Junie `FgStep::Muted` is `#808080`.
-const TAG_GREY: StylePatch = StylePatch::new().set_fg(Role::Custom(Color::Rgb(0x8a, 0x8a, 0x8a)));
-const QUERY_PARTS: &[(Part, StylePatch)] = &[(Part::PLACEHOLDER, TAG_GREY)];
+const QUERY_PARTS: &[(Part, StylePatch)] = &[(Part::PLACEHOLDER, FINDER_GREY)];
 /// Focused tag query. The whole value is underlined in secondary, not only the caret.
 const DOCKER_QUERY_PARTS: &[(Part, StylePatch)] = &[
-    (Part::PLACEHOLDER, TAG_GREY),
+    (Part::PLACEHOLDER, FINDER_GREY),
     (
         Part::TEXT,
         StylePatch::new()
@@ -462,7 +490,7 @@ const SECTION_INDENT: u16 = 3;
 const HEADER_PAD: StylePatch = StylePatch::new()
     .set_fg(Role::Fg(FgStep::Primary))
     .remove(termrock::Modifier::BOLD);
-const HEADER_TEXT: StylePatch = TAG_GREY.remove(termrock::Modifier::BOLD);
+const HEADER_TEXT: StylePatch = FINDER_GREY.remove(termrock::Modifier::BOLD);
 const HEADER_PARTS: &[(Part, StylePatch)] = &[(Part::HEADER, HEADER_PAD)];
 
 fn query_input() -> TextInput<'static> {
@@ -490,79 +518,207 @@ fn row_key(row: &HomeRow) -> ItemKey {
     ItemKey::text(&row.action.id)
 }
 
-fn paint_action(ui: &mut Ui<'_>, area: Rect, flags: StateFlags, _key: ItemKey, row: &HomeRow) {
-    let style = ui
-        .style(Family::LIST, Variant::DEFAULT, Part::ROW, flags)
-        .style;
-    ui.fill(area, style);
-    let gutter = ui
-        .style(Family::LIST, Variant::DEFAULT, Part::GUTTER, flags)
-        .style;
-    ui.paint_str(Rect::new(area.x, area.y, 1, 1), "▎", gutter);
-    let action = &row.action;
-    let mut x = area.x.saturating_add(2);
-    let title_width = termrock::width(&action.title);
-    if x.saturating_add(title_width) < area.right() {
-        ui.paint_str(Rect::new(x, area.y, title_width, 1), &action.title, style);
-        x = x.saturating_add(title_width);
-    } else {
-        let budget = area.right().saturating_sub(x).saturating_sub(1);
-        ui.paint_str(
-            Rect::new(x, area.y, budget, 1),
-            &termrock::truncate(&action.title, budget),
-            style,
-        );
-        return;
-    }
-    if !matches!(action.availability, Availability::Ready) && x.saturating_add(2) < area.right() {
-        let warning = ui
-            .paint_patch(
-                &StylePatch::new()
-                    .set_fg(Role::Warning)
-                    .add(termrock::Modifier::BOLD),
-            )
-            .with_bg_from(style);
-        ui.paint_str(Rect::new(x.saturating_add(1), area.y, 1, 1), "▲", warning);
-        x = x.saturating_add(2);
-    }
-    let reason_width = termrock::width(&action.reason);
-    let reason_x = if area.width > reason_width.saturating_add(24)
-        && area.right() > x.saturating_add(2).saturating_add(reason_width)
-    {
-        area.right().saturating_sub(reason_width.saturating_add(1))
-    } else {
-        area.right()
-    };
-    if action.scope != Scope::Here {
-        let tag = if action.scope_label.is_empty() {
-            format!("· {}", action.scope.label())
-        } else {
-            format!("· {} {}", action.scope.label(), action.scope_label)
-        };
-        let budget = reason_x.saturating_sub(x.saturating_add(3));
-        if budget >= 10 {
-            let faint = ui
-                .paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Faint)))
-                .with_bg_from(style);
-            ui.paint_str(
-                Rect::new(x.saturating_add(1), area.y, budget, 1),
-                &termrock::truncate_middle(&tag, budget),
-                faint,
-            );
-        }
-    }
-    if reason_x < area.right() {
-        let muted = ui.paint_patch(&TAG_GREY).with_bg_from(style);
-        ui.paint_str(
-            Rect::new(reason_x, area.y, reason_width, 1),
-            &action.reason,
-            muted,
-        );
+/// The layout policies of the finder plates.
+///
+/// Each plate names the layout it uses in each band. The plate owns the
+/// geometry of the layout; the policy only names it.
+const FILES_POLICY: FinderPolicy = FinderPolicy::new()
+    .compact(FinderLayout::FileList {
+        columns: FinderColumns::Frozen,
+    })
+    .medium(FinderLayout::FileCard {
+        columns: FinderColumns::Frozen,
+    });
+
+/// The single-column plates of the concept home.
+const NARROW_POLICY: FinderPolicy = FinderPolicy::new().compact(FinderLayout::List {
+    columns: FinderColumns::Auto,
+});
+
+/// The `parity-discovery` plate: the single column in the compact band, the
+/// split card from the medium band up.
+const DISCOVERY_VIEW_POLICY: FinderPolicy = FinderPolicy::new()
+    .compact(FinderLayout::List {
+        columns: FinderColumns::Auto,
+    })
+    .compact_fallback(FinderLayout::Card {
+        columns: FinderColumns::Auto,
+        title: FinderPreviewTitle::SelectedRow,
+    })
+    .medium(FinderLayout::Card {
+        columns: FinderColumns::Auto,
+        title: FinderPreviewTitle::SelectedRow,
+    })
+    .wide(FinderLayout::Card {
+        columns: FinderColumns::Auto,
+        title: FinderPreviewTitle::SelectedRow,
+    });
+
+/// The `parity-history` plate: the frozen columns and the frozen card.
+const HISTORY_POLICY: FinderPolicy = FinderPolicy::new()
+    .compact(FinderLayout::List {
+        columns: FinderColumns::Frozen,
+    })
+    .medium(FinderLayout::Card {
+        columns: FinderColumns::Frozen,
+        title: FinderPreviewTitle::SelectedRow,
+    });
+
+/// The `parity-browser` plate: the frozen columns and the frozen card.
+const BROWSER_POLICY: FinderPolicy = FinderPolicy::new()
+    .compact(FinderLayout::List {
+        columns: FinderColumns::Frozen,
+    })
+    .medium(FinderLayout::Card {
+        columns: FinderColumns::Frozen,
+        title: FinderPreviewTitle::SelectedRow,
+    });
+
+/// The `parity-git-current` plate: the sized columns and the sized card.
+const GIT_CURRENT_POLICY: FinderPolicy = FinderPolicy::new()
+    .compact(FinderLayout::List {
+        columns: FinderColumns::Auto,
+    })
+    .medium(FinderLayout::Card {
+        columns: FinderColumns::Auto,
+        title: FinderPreviewTitle::SelectedRow,
+    });
+
+/// The `parity-git-batch` plate: the `Runs` value fits the narrow row.
+const GIT_BATCH_POLICY: FinderPolicy = FinderPolicy::new()
+    .compact(FinderLayout::FittedList {
+        columns: FinderColumns::Auto,
+    })
+    .medium(FinderLayout::Card {
+        columns: FinderColumns::Auto,
+        title: FinderPreviewTitle::SelectedRow,
+    });
+
+/// The `parity-task-sources` plate: the frozen columns, the narrow band only.
+const TASK_SOURCES_POLICY: FinderPolicy = FinderPolicy::new().compact(FinderLayout::List {
+    columns: FinderColumns::Frozen,
+});
+
+/// The `parity-cargo` plate: the sized columns and the sized card.
+const CARGO_POLICY: FinderPolicy = FinderPolicy::new()
+    .compact(FinderLayout::List {
+        columns: FinderColumns::Auto,
+    })
+    .medium(FinderLayout::Card {
+        columns: FinderColumns::Auto,
+        title: FinderPreviewTitle::SelectedRow,
+    });
+
+/// The split card of the concept home, in every band that carries one.
+const DISCOVERY_POLICY: FinderPolicy = FinderPolicy::new()
+    .compact(FinderLayout::Card {
+        columns: FinderColumns::Auto,
+        title: FinderPreviewTitle::SelectedRow,
+    })
+    .medium(FinderLayout::Card {
+        columns: FinderColumns::Auto,
+        title: FinderPreviewTitle::SelectedRow,
+    })
+    .wide(FinderLayout::Card {
+        columns: FinderColumns::Auto,
+        title: FinderPreviewTitle::SelectedRow,
+    });
+
+/// The `hard-cases` plate: the single column in the compact band, the split
+/// card from the medium band up.
+const HARD_CASES_POLICY: FinderPolicy = FinderPolicy::new()
+    .compact(FinderLayout::List {
+        columns: FinderColumns::Auto,
+    })
+    .compact_fallback(FinderLayout::Card {
+        columns: FinderColumns::Auto,
+        title: FinderPreviewTitle::SelectedRow,
+    })
+    .medium(FinderLayout::Card {
+        columns: FinderColumns::Auto,
+        title: FinderPreviewTitle::SelectedRow,
+    })
+    .wide(FinderLayout::Card {
+        columns: FinderColumns::Auto,
+        title: FinderPreviewTitle::SelectedRow,
+    });
+
+/// The catalogue rows as the shared plate content.
+fn plate_content(view: &catalogue::ParityDiscovery) -> FinderContent {
+    FinderContent {
+        lines: view
+            .lines
+            .iter()
+            .map(|line| match line {
+                catalogue::FinderLine::Heading(text) => FinderLine::heading(*text),
+                catalogue::FinderLine::Blank => FinderLine::Blank,
+                catalogue::FinderLine::Chips(labels) => FinderLine::chips(labels.iter().copied()),
+                catalogue::FinderLine::Row(row) => FinderLine::row(FinderRow {
+                    title: row.title.clone(),
+                    kind: row.kind.to_owned(),
+                    scope_word: row.scope_word.to_owned(),
+                    here: row.here,
+                    reason: row.reason.clone(),
+                    risk: row.risk.map(str::to_owned),
+                    selected: row.selected,
+                }),
+            })
+            .collect(),
+        preview: view
+            .preview
+            .iter()
+            .map(|line| FinderPreview {
+                label: line.label.to_owned(),
+                value: line.value.clone(),
+                tone: match line.tone {
+                    catalogue::PreviewTone::Text => FinderTone::Text,
+                    catalogue::PreviewTone::Muted => FinderTone::Muted,
+                    catalogue::PreviewTone::Secondary => FinderTone::Secondary,
+                    catalogue::PreviewTone::Meta => FinderTone::Meta,
+                    catalogue::PreviewTone::Danger => FinderTone::Danger,
+                },
+                wraps: line.wraps,
+            })
+            .collect(),
+        preview_meta: view.preview_meta.clone(),
     }
 }
 
+impl ActionRow for HomeRow {
+    fn title(&self) -> &str {
+        &self.action.title
+    }
+
+    fn reason(&self) -> &str {
+        &self.action.reason
+    }
+
+    fn ready(&self) -> bool {
+        matches!(self.action.availability, Availability::Ready)
+    }
+
+    fn scope_tag(&self) -> Option<String> {
+        if self.action.scope == Scope::Here {
+            return None;
+        }
+        if self.action.scope_label.is_empty() {
+            Some(format!("· {}", self.action.scope.label()))
+        } else {
+            Some(format!(
+                "· {} {}",
+                self.action.scope.label(),
+                self.action.scope_label
+            ))
+        }
+    }
+}
+
+/// The shared action row painter, bound to the home rows.
+fn paint_action_row(ui: &mut Ui<'_>, area: Rect, flags: StateFlags, key: ItemKey, row: &HomeRow) {
+    termrock_shell::paint_action_row(ui, area, flags, key, row);
+}
+
 const PREVIEW_BG: Color = Color::Rgb(0x11, 0x11, 0x11);
-const SELECT_BG: Color = Color::Rgb(0x2f, 0x5a, 0xa8);
 const TAG_GREY_FG: Color = Color::Rgb(0x8a, 0x8a, 0x8a);
 const SECONDARY_FG: Color = Color::Rgb(0xb3, 0xb3, 0xb3);
 const META_FG: Color = Color::Rgb(0x73, 0x73, 0x73);
@@ -570,13 +726,8 @@ const RULE_FG: Color = Color::Rgb(0x3a, 0x3a, 0x3a);
 const DANGER_FG: Color = Color::Rgb(0xf0, 0x5d, 0x5d);
 const WHITE: Color = Color::Rgb(0xff, 0xff, 0xff);
 const BLACK: Color = Color::Rgb(0, 0, 0);
-
-struct TagCols {
-    label: u16,
-    kind: u16,
-    scope: u16,
-    reason: u16,
-}
+const SCROLL_THUMB: Color = Color::Rgb(0x80, 0x80, 0x80);
+const SCROLL_TRACK: Color = Color::Rgb(0x47, 0x47, 0x47);
 
 fn ink(ui: &Ui<'_>, fg: Color, bg: Color, bold: bool) -> termrock::author::PaintStyle {
     let patch = StylePatch::new()
@@ -594,879 +745,6 @@ fn fit_cells(text: &str, width: u16) -> String {
     let fitted = termrock::truncate(text, width);
     let pad = usize::from(width.saturating_sub(termrock::width(&fitted)));
     format!("{fitted}{}", " ".repeat(pad))
-}
-
-fn truncate_sep(text: &str, max: u16) -> String {
-    if termrock::width(text) <= max {
-        return text.to_owned();
-    }
-    if max < 4 {
-        return termrock::truncate(text, max);
-    }
-    let mut best: Option<usize> = None;
-    let mut pos = 0usize;
-    while let Some(found) = text[pos..].find(" · ") {
-        let at = pos.saturating_add(found);
-        let width = termrock::width(text.get(..at).unwrap_or(""));
-        if width < max && width.saturating_mul(3) >= max {
-            best = Some(at);
-        }
-        if width.saturating_add(1) > max {
-            break;
-        }
-        pos = at.saturating_add(3);
-    }
-    match best.and_then(|at| text.get(..at)) {
-        Some(head) => format!("{head}…"),
-        None => termrock::truncate(text, max),
-    }
-}
-
-fn wrap_words(text: &str, width: u16) -> Vec<String> {
-    let width = usize::from(width.max(1));
-    let mut lines = Vec::new();
-    let mut line = String::new();
-    let mut used = 0usize;
-    for word in text.split(' ') {
-        let word_w = usize::from(termrock::width(word));
-        if line.is_empty() {
-            if word_w <= width {
-                line = word.to_owned();
-                used = word_w;
-            } else {
-                lines.push(termrock::truncate(
-                    word,
-                    u16::try_from(width).unwrap_or(u16::MAX),
-                ));
-            }
-        } else if used.saturating_add(1).saturating_add(word_w) <= width {
-            line.push(' ');
-            line.push_str(word);
-            used = used.saturating_add(1).saturating_add(word_w);
-        } else {
-            lines.push(std::mem::take(&mut line));
-            used = 0;
-            if word_w <= width {
-                line = word.to_owned();
-                used = word_w;
-            } else {
-                lines.push(termrock::truncate(
-                    word,
-                    u16::try_from(width).unwrap_or(u16::MAX),
-                ));
-            }
-        }
-    }
-    lines.push(line);
-    lines
-}
-
-fn tag_columns(rows: &[&catalogue::TagRow], content_w: u16) -> TagCols {
-    let max_label = rows
-        .iter()
-        .map(|row| termrock::width(&row.title))
-        .max()
-        .unwrap_or(14);
-    let kind = rows
-        .iter()
-        .map(|row| termrock::width(row.kind))
-        .max()
-        .unwrap_or(4);
-    let scope = rows
-        .iter()
-        .map(|row| termrock::width(row.scope_word))
-        .max()
-        .unwrap_or(4);
-    let risk = rows
-        .iter()
-        .filter_map(|row| row.risk)
-        .map(termrock::width)
-        .max()
-        .unwrap_or(0);
-    let label_cap = max_label.min(content_w.saturating_mul(36) / 100).max(14);
-    let gaps = 2u16.saturating_mul(3u16.saturating_add(u16::from(risk > 0)));
-    let mut label = label_cap;
-    let fixed = label
-        .saturating_add(kind)
-        .saturating_add(scope)
-        .saturating_add(risk)
-        .saturating_add(gaps);
-    let need = fixed.saturating_add(12);
-    if need > content_w {
-        label = label.saturating_sub(need.saturating_sub(content_w));
-    }
-    let reason = content_w.saturating_sub(
-        label
-            .saturating_add(kind)
-            .saturating_add(scope)
-            .saturating_add(risk)
-            .saturating_add(gaps),
-    );
-    TagCols {
-        label,
-        kind,
-        scope,
-        reason,
-    }
-}
-
-fn split_detail(area: Rect) -> Option<(Rect, Rect)> {
-    if area.width < 80 || area.height == 0 {
-        return None;
-    }
-    let detail_w = u16::try_from(u32::from(area.width).saturating_mul(34) / 100).unwrap_or(0);
-    let detail_w = detail_w.clamp(34, 48);
-    let gap = 2u16;
-    let master_w = area.width.saturating_sub(detail_w.saturating_add(gap));
-    if master_w < 20 {
-        return None;
-    }
-    Some((
-        Rect::new(area.x, area.y, master_w, area.height),
-        Rect::new(
-            area.x.saturating_add(master_w).saturating_add(gap),
-            area.y,
-            detail_w,
-            area.height,
-        ),
-    ))
-}
-
-/// Single-column band body for the concept screens. The 80–119 band replaces the
-/// frozen 80×24 and 100×30 plate frames; overflow gets a black thumb and the preview fade.
-fn paint_narrow_tag_list(ui: &mut Ui<'_>, area: Rect, view: &catalogue::ParityDiscovery) -> bool {
-    let full = ui.full();
-    (80..120).contains(&full.width) && paint_tag_list(ui, area, view, None)
-}
-
-/// Frozen columns. Same grid as 100×30. Only the 80×24 frame reaches this painter.
-/// `parity-history` body. Single-column tag list below 120 with the frozen
-/// columns, the wide card in the 120 band, and the plain action list from 160 up.
-fn paint_parity_history(ui: &mut Ui<'_>, area: Rect, view: &catalogue::ParityDiscovery) -> bool {
-    let full = ui.full();
-    let cols = TagCols {
-        label: 12,
-        kind: 7,
-        scope: 4,
-        reason: 65,
-    };
-    if (80..120).contains(&full.width) {
-        return paint_tag_list(ui, area, view, Some(cols));
-    }
-    if (120..160).contains(&full.width) {
-        return paint_parity_card(ui, area, view, cols);
-    }
-    false
-}
-
-/// Frozen columns. The explore chips keep the accent fill. The system row does not.
-/// Single-column in the 80–119 band, wide card from 120.
-fn paint_parity_files(ui: &mut Ui<'_>, area: Rect, view: &catalogue::ParityDiscovery) -> bool {
-    let full = ui.full();
-    if (80..120).contains(&full.width) {
-        return paint_parity_files_list(ui, area, view);
-    }
-    if (120..160).contains(&full.width) {
-        return paint_parity_files_card(ui, area, view);
-    }
-    false
-}
-
-/// Frozen columns. The explore chips keep the accent fill. The system row does not.
-fn paint_parity_files_list(ui: &mut Ui<'_>, area: Rect, view: &catalogue::ParityDiscovery) -> bool {
-    let full = ui.full();
-    if !(80..120).contains(&full.width) || area.is_empty() {
-        return false;
-    }
-    let Some(text) = narrow_action_line(view) else {
-        return false;
-    };
-    let cols = TagCols {
-        label: 12,
-        kind: 7,
-        scope: 4,
-        reason: 65,
-    };
-    let footer_y = area.bottom().saturating_sub(1);
-    let gap_y = footer_y.saturating_sub(1);
-    let mut y = area.y;
-    for line in &view.lines {
-        if y >= gap_y {
-            break;
-        }
-        match line {
-            catalogue::FinderLine::Heading(text) => paint_tag_heading(ui, area, y, text, None),
-            catalogue::FinderLine::Blank => {}
-            catalogue::FinderLine::Chips(labels) => paint_tag_chips_selected(ui, area, y, labels),
-            catalogue::FinderLine::Row(row) => paint_tag_row(ui, area, y, row, &cols, None),
-        }
-        y = y.saturating_add(1);
-    }
-    ui.paint_str(
-        Rect::new(
-            area.x.saturating_add(3),
-            footer_y,
-            area.width.saturating_sub(3),
-            1,
-        ),
-        &text,
-        ink(ui, TAG_GREY_FG, BLACK, false),
-    );
-    true
-}
-
-/// Wide card. Explore chips keep the accent fill. The system row does not.
-fn paint_parity_files_card(ui: &mut Ui<'_>, area: Rect, view: &catalogue::ParityDiscovery) -> bool {
-    let full = ui.full();
-    if !(120..160).contains(&full.width) || area.is_empty() {
-        return false;
-    }
-    let Some((master, detail)) = split_detail(area) else {
-        return false;
-    };
-    let rows: Vec<&catalogue::TagRow> = view
-        .lines
-        .iter()
-        .filter_map(|line| match line {
-            catalogue::FinderLine::Row(row) => Some(row),
-            _ => None,
-        })
-        .collect();
-    let cols = TagCols {
-        label: 12,
-        kind: 7,
-        scope: 4,
-        reason: 65,
-    };
-    let mut y = master.y;
-    for line in &view.lines {
-        if y >= master.bottom() {
-            break;
-        }
-        match line {
-            catalogue::FinderLine::Heading(text) => paint_tag_heading(ui, master, y, text, None),
-            catalogue::FinderLine::Blank => {}
-            catalogue::FinderLine::Chips(labels) => paint_tag_chips_selected(ui, master, y, labels),
-            catalogue::FinderLine::Row(row) => paint_tag_row(ui, master, y, row, &cols, None),
-        }
-        y = y.saturating_add(1);
-    }
-    let title = view
-        .lines
-        .iter()
-        .find_map(|line| match line {
-            catalogue::FinderLine::Chips(labels) => labels.first().copied(),
-            _ => None,
-        })
-        .unwrap_or("");
-    paint_tag_preview(ui, detail, view, &rows, Some(title));
-    true
-}
-
-/// Selected explore chips. The gutter is accent-on-accent. `›` sits in the gap before the first chip.
-fn paint_tag_chips_selected(ui: &mut Ui<'_>, master: Rect, y: u16, labels: &[&str]) {
-    let fill = ink(ui, WHITE, SELECT_BG, true);
-    ui.fill(Rect::new(master.x, y, master.width, 1), fill);
-    ui.paint_str(
-        Rect::new(master.x, y, 1, 1),
-        " ",
-        ink(ui, SELECT_BG, SELECT_BG, true),
-    );
-    ui.paint_str(Rect::new(master.x.saturating_add(3), y, 1, 1), "›", fill);
-    let mut x = master.x.saturating_add(3);
-    for label in labels {
-        let label_w = termrock::width(label);
-        if x.saturating_add(label_w) >= master.right() {
-            break;
-        }
-        ui.paint_str(Rect::new(x.saturating_add(1), y, label_w, 1), label, fill);
-        x = x.saturating_add(label_w).saturating_add(3);
-    }
-}
-
-/// `parity-browser` body. The single-column bands keep the frozen columns; the
-/// 120 band keeps the wide card; from 160 up the reference shows the plain
-/// action list, so the view painter steps aside.
-fn paint_parity_browser(ui: &mut Ui<'_>, area: Rect, view: &catalogue::ParityDiscovery) -> bool {
-    let full = ui.full();
-    let cols = TagCols {
-        label: 12,
-        kind: 7,
-        scope: 4,
-        reason: 65,
-    };
-    if (80..120).contains(&full.width) {
-        return paint_tag_list(ui, area, view, Some(cols));
-    }
-    if (120..160).contains(&full.width) {
-        return paint_parity_card(ui, area, view, cols);
-    }
-    false
-}
-
-/// Wide card band for the replay families. From 120 up the split card keeps
-/// the auto-sized tag columns.
-fn paint_parity_wide_card(ui: &mut Ui<'_>, area: Rect, view: &catalogue::ParityDiscovery) -> bool {
-    let full = ui.full();
-    if !(120..160).contains(&full.width) || area.is_empty() {
-        return false;
-    }
-    let Some((master, _)) = split_detail(area) else {
-        return false;
-    };
-    let rows: Vec<&catalogue::TagRow> = view
-        .lines
-        .iter()
-        .filter_map(|line| match line {
-            catalogue::FinderLine::Row(row) => Some(row),
-            _ => None,
-        })
-        .collect();
-    paint_parity_card(
-        ui,
-        area,
-        view,
-        tag_columns(&rows, master.width.saturating_sub(4)),
-    )
-}
-
-/// Default tag columns in the 80–119 band.
-/// The action row middle-truncates `Runs` below 100 so the line fits. Do not write cursor bytes.
-fn paint_parity_git_batch(ui: &mut Ui<'_>, area: Rect, view: &catalogue::ParityDiscovery) -> bool {
-    let full = ui.full();
-    if (80..120).contains(&full.width) {
-        if area.is_empty() {
-            return false;
-        }
-        let mut fitted = view.clone();
-        fit_narrow_runs(&mut fitted, area.width.saturating_sub(3));
-        return paint_tag_list(ui, area, &fitted, None);
-    }
-    paint_parity_wide_card(ui, area, view)
-}
-
-/// Shrink `Runs` so `→ {runs} · {scope} · {risk}` fits the action row.
-fn fit_narrow_runs(view: &mut catalogue::ParityDiscovery, room: u16) {
-    let scope = view
-        .preview
-        .iter()
-        .find(|line| line.label == "Scope")
-        .map(|line| line.value.clone());
-    let risk = view
-        .preview
-        .iter()
-        .find(|line| line.label == "Risk")
-        .map(|line| line.value.clone());
-    let (Some(scope), Some(risk)) = (scope, risk) else {
-        return;
-    };
-    let suffix_w = termrock::width("→ ")
-        .saturating_add(termrock::width(" · "))
-        .saturating_add(termrock::width(&scope))
-        .saturating_add(termrock::width(" · "))
-        .saturating_add(termrock::width(&risk));
-    let budget = room.saturating_sub(suffix_w);
-    if let Some(runs) = view.preview.iter_mut().find(|line| line.label == "Runs") {
-        runs.value = termrock::truncate_middle(&runs.value, budget);
-    }
-}
-
-/// Frozen columns in the 80–119 band.
-/// Git-batch, cargo, git-current, browser, files, history, discovery, and every other size stay off.
-/// Do not write cursor bytes.
-fn paint_parity_task_sources(
-    ui: &mut Ui<'_>,
-    area: Rect,
-    view: &catalogue::ParityDiscovery,
-) -> bool {
-    let full = ui.full();
-    if (80..120).contains(&full.width) {
-        return paint_tag_list(
-            ui,
-            area,
-            view,
-            Some(TagCols {
-                label: 12,
-                kind: 7,
-                scope: 4,
-                reason: 65,
-            }),
-        );
-    }
-    false
-}
-
-/// Default tag columns in the 80–119 band, wide card from 120.
-fn paint_parity_cargo(ui: &mut Ui<'_>, area: Rect, view: &catalogue::ParityDiscovery) -> bool {
-    let full = ui.full();
-    if (80..120).contains(&full.width) {
-        return paint_tag_list(ui, area, view, None);
-    }
-    paint_parity_wide_card(ui, area, view)
-}
-
-/// Default tag columns in the 80–119 band, wide card from 120.
-fn paint_parity_git_current(
-    ui: &mut Ui<'_>,
-    area: Rect,
-    view: &catalogue::ParityDiscovery,
-) -> bool {
-    let full = ui.full();
-    if (80..120).contains(&full.width) {
-        return paint_tag_list(ui, area, view, None);
-    }
-    paint_parity_wide_card(ui, area, view)
-}
-
-/// Size-free single-column body. Callers keep their own layout policy.
-fn paint_tag_list(
-    ui: &mut Ui<'_>,
-    area: Rect,
-    view: &catalogue::ParityDiscovery,
-    columns: Option<TagCols>,
-) -> bool {
-    if area.is_empty() {
-        return false;
-    }
-    let Some(text) = narrow_action_line(view) else {
-        return false;
-    };
-    let rows: Vec<&catalogue::TagRow> = view
-        .lines
-        .iter()
-        .filter_map(|line| match line {
-            catalogue::FinderLine::Row(row) => Some(row),
-            _ => None,
-        })
-        .collect();
-    let footer_y = area.bottom().saturating_sub(1);
-    // Short lists never reach this row. A longer list clips here instead of covering it.
-    let gap_y = footer_y.saturating_sub(1);
-    let slots = usize::from(gap_y.saturating_sub(area.y));
-    let overflow = slots > 0 && view.lines.len() > slots;
-    // The thumb owns the last column. Leave the cell before it blank, so a truncated reason stops one earlier.
-    let content_w = area.width.saturating_sub(if overflow { 5 } else { 4 });
-    let cols = columns.unwrap_or_else(|| tag_columns(&rows, content_w));
-    let shown = if overflow { slots } else { view.lines.len() };
-    let mut y = area.y;
-    for (index, line) in view.lines.iter().enumerate().take(shown) {
-        if y >= gap_y {
-            break;
-        }
-        let fade = if overflow {
-            preview_fade(index, shown)
-        } else {
-            None
-        };
-        if let Some((num, den)) = fade {
-            ui.fill(
-                Rect::new(area.x, y, area.width.saturating_sub(1), 1),
-                ink(ui, mix_on(WHITE, BLACK, num, den), BLACK, false),
-            );
-        }
-        match line {
-            catalogue::FinderLine::Heading(text) => paint_tag_heading(ui, area, y, text, fade),
-            catalogue::FinderLine::Blank => {}
-            catalogue::FinderLine::Chips(labels) => paint_tag_chips(ui, area, y, labels, fade),
-            catalogue::FinderLine::Row(row) => paint_tag_row(ui, area, y, row, &cols, fade),
-        }
-        y = y.saturating_add(1);
-    }
-    if overflow {
-        paint_narrow_scrollbar(
-            ui,
-            Rect::new(
-                area.right().saturating_sub(1),
-                area.y,
-                1,
-                u16::try_from(shown).unwrap_or(u16::MAX),
-            ),
-            view.lines.len(),
-        );
-    }
-    ui.paint_str(
-        Rect::new(
-            area.x.saturating_add(3),
-            footer_y,
-            area.width.saturating_sub(3),
-            1,
-        ),
-        &text,
-        ink(ui, TAG_GREY_FG, BLACK, false),
-    );
-    true
-}
-
-fn narrow_action_line(view: &catalogue::ParityDiscovery) -> Option<String> {
-    let value = |label: &str| {
-        view.preview
-            .iter()
-            .find(|line| line.label == label)
-            .map(|line| line.value.as_str())
-    };
-    Some(format!(
-        "→ {} · {} · {}",
-        value("Runs")?,
-        value("Scope")?,
-        value("Risk")?
-    ))
-}
-
-/// `hard-cases` body. Below the 120-wide breakpoint the view keeps its single-column
-/// tag list; from 120 up it uses the split master/detail card.
-fn paint_hard_cases_discovery(
-    ui: &mut Ui<'_>,
-    area: Rect,
-    view: &catalogue::ParityDiscovery,
-) -> bool {
-    let full = ui.full();
-    if full.width >= 80 && full.width < 120 && paint_tag_list(ui, area, view, None) {
-        return true;
-    }
-    paint_parity_discovery(ui, area, view)
-}
-
-/// `parity-discovery` body. Below the 120-wide breakpoint the view keeps its
-/// single-column tag list; from 120 up it uses the split master/detail card.
-fn paint_parity_discovery_view(
-    ui: &mut Ui<'_>,
-    area: Rect,
-    view: &catalogue::ParityDiscovery,
-) -> bool {
-    if (80..120).contains(&ui.full().width) && paint_tag_list(ui, area, view, None) {
-        return true;
-    }
-    paint_parity_discovery(ui, area, view)
-}
-
-fn paint_parity_discovery(ui: &mut Ui<'_>, area: Rect, view: &catalogue::ParityDiscovery) -> bool {
-    let Some((master, _)) = split_detail(area) else {
-        return false;
-    };
-    let rows: Vec<&catalogue::TagRow> = view
-        .lines
-        .iter()
-        .filter_map(|line| match line {
-            catalogue::FinderLine::Row(row) => Some(row),
-            _ => None,
-        })
-        .collect();
-    paint_parity_card(
-        ui,
-        area,
-        view,
-        tag_columns(&rows, master.width.saturating_sub(4)),
-    )
-}
-
-fn paint_parity_card(
-    ui: &mut Ui<'_>,
-    area: Rect,
-    view: &catalogue::ParityDiscovery,
-    cols: TagCols,
-) -> bool {
-    let Some((master, detail)) = split_detail(area) else {
-        return false;
-    };
-    let rows: Vec<&catalogue::TagRow> = view
-        .lines
-        .iter()
-        .filter_map(|line| match line {
-            catalogue::FinderLine::Row(row) => Some(row),
-            _ => None,
-        })
-        .collect();
-    let mut y = master.y;
-    for line in &view.lines {
-        if y >= master.bottom() {
-            break;
-        }
-        match line {
-            catalogue::FinderLine::Heading(text) => paint_tag_heading(ui, master, y, text, None),
-            catalogue::FinderLine::Blank => {}
-            catalogue::FinderLine::Chips(labels) => paint_tag_chips(ui, master, y, labels, None),
-            catalogue::FinderLine::Row(row) => paint_tag_row(ui, master, y, row, &cols, None),
-        }
-        y = y.saturating_add(1);
-    }
-    paint_tag_preview(ui, detail, view, &rows, None);
-    true
-}
-
-fn paint_tag_heading(ui: &mut Ui<'_>, master: Rect, y: u16, text: &str, fade: Option<(u32, u32)>) {
-    let style = ink(ui, faded(TAG_GREY_FG, fade), BLACK, false);
-    ui.paint_str(
-        Rect::new(master.x.saturating_add(3), y, termrock::width(text), 1),
-        text,
-        style,
-    );
-}
-
-fn paint_tag_chips(
-    ui: &mut Ui<'_>,
-    master: Rect,
-    y: u16,
-    labels: &[&str],
-    fade: Option<(u32, u32)>,
-) {
-    // Unfocused explore gutter is ink-on-ink, so the cell reads as an empty black column.
-    ui.paint_str(
-        Rect::new(master.x, y, 1, 1),
-        " ",
-        ink(ui, BLACK, BLACK, false),
-    );
-    let style = ink(ui, faded(WHITE, fade), BLACK, false);
-    let mut x = master.x.saturating_add(3);
-    for label in labels {
-        let label_w = termrock::width(label);
-        if x.saturating_add(label_w) >= master.right() {
-            break;
-        }
-        ui.paint_str(Rect::new(x.saturating_add(1), y, label_w, 1), label, style);
-        x = x.saturating_add(label_w).saturating_add(3);
-    }
-}
-
-fn paint_tag_row(
-    ui: &mut Ui<'_>,
-    master: Rect,
-    y: u16,
-    row: &catalogue::TagRow,
-    cols: &TagCols,
-    fade: Option<(u32, u32)>,
-) {
-    // A selected row keeps the solid accent. Fade is only the unselected tail.
-    let fade = if row.selected { None } else { fade };
-    let bg = if row.selected { SELECT_BG } else { BLACK };
-    let title_style = ink(ui, faded(WHITE, fade), bg, row.selected);
-    if row.selected {
-        ui.fill(Rect::new(master.x, y, master.width, 1), title_style);
-        ui.paint_str(
-            Rect::new(master.x.saturating_add(1), y, 1, 1),
-            "›",
-            title_style,
-        );
-    }
-    let mut x = master.x.saturating_add(3);
-    let title = termrock::truncate(&row.title, cols.label);
-    ui.paint_str(
-        Rect::new(x, y, termrock::width(&title).max(1), 1),
-        &title,
-        title_style,
-    );
-    x = x.saturating_add(cols.label).saturating_add(2);
-    // Tag row chrome bolds only the label. Kind, scope, reason, and risk stay plain.
-    let plain = ink(ui, faded(WHITE, fade), bg, false);
-    let kind_style = if row.selected {
-        plain
-    } else {
-        ink(ui, faded(TAG_GREY_FG, fade), BLACK, false)
-    };
-    ui.paint_str(
-        Rect::new(x, y, cols.kind, 1),
-        &fit_cells(row.kind, cols.kind),
-        kind_style,
-    );
-    x = x.saturating_add(cols.kind).saturating_add(2);
-    let scope_fg = if row.selected {
-        WHITE
-    } else if row.here {
-        TAG_GREY_FG
-    } else {
-        SECONDARY_FG
-    };
-    let scope_style = if row.selected {
-        plain
-    } else {
-        ink(ui, faded(scope_fg, fade), BLACK, false)
-    };
-    ui.paint_str(
-        Rect::new(x, y, cols.scope, 1),
-        &fit_cells(row.scope_word, cols.scope),
-        scope_style,
-    );
-    x = x.saturating_add(cols.scope).saturating_add(2);
-    if cols.reason > 0 {
-        let reason = truncate_sep(&row.reason, cols.reason);
-        let reason_style = if row.selected {
-            plain
-        } else {
-            ink(ui, faded(TAG_GREY_FG, fade), BLACK, false)
-        };
-        ui.paint_str(
-            Rect::new(x, y, termrock::width(&reason).max(1), 1),
-            &reason,
-            reason_style,
-        );
-    }
-    if let Some(risk) = row.risk {
-        let risk_w = termrock::width(risk);
-        let risk_x = master.right().saturating_sub(risk_w.saturating_add(1));
-        let risk_style = if row.selected {
-            plain
-        } else {
-            ink(ui, faded(SECONDARY_FG, fade), BLACK, false)
-        };
-        ui.paint_str(Rect::new(risk_x, y, risk_w, 1), risk, risk_style);
-    }
-}
-
-fn paint_tag_preview(
-    ui: &mut Ui<'_>,
-    detail: Rect,
-    view: &catalogue::ParityDiscovery,
-    rows: &[&catalogue::TagRow],
-    title_override: Option<&str>,
-) {
-    if detail.width < 8 || detail.height == 0 {
-        return;
-    }
-    let label_w = view
-        .preview
-        .iter()
-        .map(|line| termrock::width(line.label))
-        .max()
-        .unwrap_or(4)
-        .saturating_add(2);
-    let inner_w = detail.width.saturating_sub(4);
-    let value_w = inner_w.saturating_sub(label_w.saturating_add(1));
-    if value_w == 0 {
-        return;
-    }
-    let flat = flatten_preview(&view.preview, value_w);
-    let card_h = u16::try_from(flat.len())
-        .unwrap_or(u16::MAX)
-        .saturating_add(3)
-        .min(detail.height);
-    let card = Rect::new(detail.x, detail.y, detail.width, card_h);
-    let canvas = ink(ui, WHITE, PREVIEW_BG, false);
-    ui.fill(card, canvas);
-    let inner_x = detail.x.saturating_add(2);
-    let title = title_override.unwrap_or_else(|| {
-        rows.iter()
-            .find(|row| row.selected)
-            .map(|row| row.title.as_str())
-            .unwrap_or("")
-    });
-    let meta_w = termrock::width(&view.preview_meta);
-    let title_w = inner_w.saturating_sub(meta_w).saturating_sub(1);
-    let title = termrock::truncate(title, title_w);
-    ui.paint_str(
-        Rect::new(inner_x, detail.y, termrock::width(&title).max(1), 1),
-        &title,
-        ink(ui, SECONDARY_FG, PREVIEW_BG, false),
-    );
-    if meta_w > 0 {
-        ui.paint_str(
-            Rect::new(
-                inner_x.saturating_add(inner_w).saturating_sub(meta_w),
-                detail.y,
-                meta_w,
-                1,
-            ),
-            &view.preview_meta,
-            ink(ui, META_FG, PREVIEW_BG, false),
-        );
-    }
-    let rule_y = detail.y.saturating_add(1);
-    if rule_y < card.bottom() {
-        ui.paint_str(
-            Rect::new(inner_x, rule_y, inner_w, 1),
-            &"─".repeat(usize::from(inner_w)),
-            ink(ui, RULE_FG, PREVIEW_BG, false),
-        );
-    }
-    let slots = usize::from(card_h.saturating_sub(3));
-    let shown = flat.len().min(slots);
-    let overflow = flat.len() > slots && slots > 0;
-    let value_x = inner_x.saturating_add(label_w);
-    let content_w = inner_w.saturating_sub(u16::from(overflow));
-    for (index, (label, value, tone)) in flat.iter().enumerate().take(shown) {
-        let y = detail
-            .y
-            .saturating_add(2)
-            .saturating_add(u16::try_from(index).unwrap_or(u16::MAX));
-        if y >= card.bottom() {
-            break;
-        }
-        let fade = overflow.then(|| preview_fade(index, shown)).flatten();
-        if let Some((num, den)) = fade {
-            ui.fill(
-                Rect::new(inner_x, y, content_w, 1),
-                ink(ui, mix_color(WHITE, num, den), PREVIEW_BG, false),
-            );
-        }
-        if !label.is_empty() {
-            ui.paint_str(
-                Rect::new(inner_x, y, termrock::width(label), 1),
-                label,
-                ink(
-                    ui,
-                    mix_color(TAG_GREY_FG, fade_num(fade), fade_den(fade)),
-                    PREVIEW_BG,
-                    false,
-                ),
-            );
-        }
-        if value.is_empty() {
-            continue;
-        }
-        let fg = mix_color(tone_color(*tone), fade_num(fade), fade_den(fade));
-        ui.paint_str(
-            Rect::new(value_x, y, termrock::width(value).max(1), 1),
-            value,
-            ink(ui, fg, PREVIEW_BG, false),
-        );
-    }
-    if overflow {
-        paint_preview_scrollbar(
-            ui,
-            Rect::new(
-                detail.x.saturating_add(detail.width).saturating_sub(3),
-                detail.y.saturating_add(2),
-                1,
-                u16::try_from(shown).unwrap_or(u16::MAX),
-            ),
-            flat.len(),
-        );
-    }
-}
-
-fn fade_num(fade: Option<(u32, u32)>) -> u32 {
-    fade.map_or(1, |(num, _)| num)
-}
-
-fn fade_den(fade: Option<(u32, u32)>) -> u32 {
-    fade.map_or(1, |(_, den)| den)
-}
-
-fn tone_color(tone: catalogue::PreviewTone) -> Color {
-    match tone {
-        catalogue::PreviewTone::Text => WHITE,
-        catalogue::PreviewTone::Muted => TAG_GREY_FG,
-        catalogue::PreviewTone::Secondary => SECONDARY_FG,
-        catalogue::PreviewTone::Meta => META_FG,
-        catalogue::PreviewTone::Danger => DANGER_FG,
-    }
-}
-
-/// Bottom edge of an overflowing preview. `4/5` is the inner keep, `11/20` the outer.
-fn preview_fade(index: usize, shown: usize) -> Option<(u32, u32)> {
-    if shown < 4 {
-        return None;
-    }
-    let from_end = shown.saturating_sub(index);
-    if from_end == 1 {
-        Some((11, 20))
-    } else if shown >= 12 && from_end == 2 {
-        Some((4, 5))
-    } else {
-        None
-    }
-}
-
-fn mix_color(fg: Color, num: u32, den: u32) -> Color {
-    mix_on(fg, PREVIEW_BG, num, den)
 }
 
 fn mix_on(fg: Color, back: Color, num: u32, den: u32) -> Color {
@@ -1500,86 +778,6 @@ fn mix_channel(fg: u8, bg: u8, num: u32, den: u32) -> u8 {
         .saturating_add(u32::from(fg).saturating_mul(num));
     let rounded = mixed.saturating_add(den / 2) / den;
     u8::try_from(rounded.min(u32::from(u8::MAX))).unwrap_or(u8::MAX)
-}
-
-const SCROLL_THUMB: Color = Color::Rgb(0x80, 0x80, 0x80);
-const SCROLL_TRACK: Color = Color::Rgb(0x47, 0x47, 0x47);
-
-fn paint_preview_scrollbar(ui: &mut Ui<'_>, area: Rect, content_len: usize) {
-    if area.is_empty() {
-        return;
-    }
-    let mut scroll = termrock::ScrollState::new(content_len);
-    scroll.set_viewport(usize::from(area.height));
-    let (start, len) = scroll.thumb(usize::from(area.height));
-    let thumb_end = start.saturating_add(len);
-    for row in 0..area.height {
-        let on_thumb = (start..thumb_end).contains(&usize::from(row));
-        let (glyph, color) = if on_thumb {
-            ("┃", SCROLL_THUMB)
-        } else {
-            ("┆", SCROLL_TRACK)
-        };
-        ui.paint_str(
-            Rect::new(area.x, area.y.saturating_add(row), 1, 1),
-            glyph,
-            ink(ui, color, PREVIEW_BG, false),
-        );
-    }
-}
-
-/// List thumb on the narrow plate. Same geometry as the preview thumb, on black not `#111111`.
-fn paint_narrow_scrollbar(ui: &mut Ui<'_>, area: Rect, content_len: usize) {
-    if area.is_empty() {
-        return;
-    }
-    let mut scroll = termrock::ScrollState::new(content_len);
-    scroll.set_viewport(usize::from(area.height));
-    let (start, len) = scroll.thumb(usize::from(area.height));
-    let thumb_end = start.saturating_add(len);
-    for row in 0..area.height {
-        let on_thumb = (start..thumb_end).contains(&usize::from(row));
-        let (glyph, color) = if on_thumb {
-            ("┃", SCROLL_THUMB)
-        } else {
-            ("┆", SCROLL_TRACK)
-        };
-        ui.paint_str(
-            Rect::new(area.x, area.y.saturating_add(row), 1, 1),
-            glyph,
-            ink(ui, color, BLACK, false),
-        );
-    }
-}
-
-fn flatten_preview(
-    lines: &[catalogue::PreviewLine],
-    value_w: u16,
-) -> Vec<(String, String, catalogue::PreviewTone)> {
-    let mut flat = Vec::new();
-    for line in lines {
-        if line.wraps {
-            let parts = wrap_words(&line.value, value_w);
-            for (index, part) in parts.into_iter().enumerate() {
-                flat.push((
-                    if index == 0 {
-                        line.label.to_owned()
-                    } else {
-                        String::new()
-                    },
-                    part,
-                    line.tone,
-                ));
-            }
-        } else {
-            flat.push((
-                line.label.to_owned(),
-                termrock::truncate(&line.value, value_w),
-                line.tone,
-            ));
-        }
-    }
-    flat
 }
 
 const OVERLAY_BG: Color = Color::Rgb(0x27, 0x27, 0x2a);
@@ -2790,5 +1988,1466 @@ mod tests {
         assert!(harness.tab_to(QUERY));
         let _ = harness.key(KeyCode::Enter);
         assert_eq!(harness.app().invoked.as_ref().unwrap().id, expected);
+    }
+}
+
+/// The pre-refactor finder plate painters.
+///
+/// They are the frozen oracle of the shared plate: the frame-equality test
+/// renders these and the shared [`FinderPlate`] and compares the cells, the
+/// styles and the cursor.
+#[cfg(test)]
+mod plate_legacy {
+    use termrock::{
+        Color, Family, FgStep, ItemKey, Part, Rect, Role, StateFlags, StylePatch, Ui, Variant,
+    };
+
+    use crate::domain::action::{Availability, Scope};
+    use crate::screens::home::HomeRow;
+    use crate::sim::catalogue;
+
+    /// Tag finder grey. Junie `FgStep::Muted` is `#808080`.
+    const TAG_GREY: StylePatch =
+        StylePatch::new().set_fg(Role::Custom(Color::Rgb(0x8a, 0x8a, 0x8a)));
+
+    fn paint_action(ui: &mut Ui<'_>, area: Rect, flags: StateFlags, _key: ItemKey, row: &HomeRow) {
+        let style = ui
+            .style(Family::LIST, Variant::DEFAULT, Part::ROW, flags)
+            .style;
+        ui.fill(area, style);
+        let gutter = ui
+            .style(Family::LIST, Variant::DEFAULT, Part::GUTTER, flags)
+            .style;
+        ui.paint_str(Rect::new(area.x, area.y, 1, 1), "▎", gutter);
+        let action = &row.action;
+        let mut x = area.x.saturating_add(2);
+        let title_width = termrock::width(&action.title);
+        if x.saturating_add(title_width) < area.right() {
+            ui.paint_str(Rect::new(x, area.y, title_width, 1), &action.title, style);
+            x = x.saturating_add(title_width);
+        } else {
+            let budget = area.right().saturating_sub(x).saturating_sub(1);
+            ui.paint_str(
+                Rect::new(x, area.y, budget, 1),
+                &termrock::truncate(&action.title, budget),
+                style,
+            );
+            return;
+        }
+        if !matches!(action.availability, Availability::Ready) && x.saturating_add(2) < area.right()
+        {
+            let warning = ui
+                .paint_patch(
+                    &StylePatch::new()
+                        .set_fg(Role::Warning)
+                        .add(termrock::Modifier::BOLD),
+                )
+                .with_bg_from(style);
+            ui.paint_str(Rect::new(x.saturating_add(1), area.y, 1, 1), "▲", warning);
+            x = x.saturating_add(2);
+        }
+        let reason_width = termrock::width(&action.reason);
+        let reason_x = if area.width > reason_width.saturating_add(24)
+            && area.right() > x.saturating_add(2).saturating_add(reason_width)
+        {
+            area.right().saturating_sub(reason_width.saturating_add(1))
+        } else {
+            area.right()
+        };
+        if action.scope != Scope::Here {
+            let tag = if action.scope_label.is_empty() {
+                format!("· {}", action.scope.label())
+            } else {
+                format!("· {} {}", action.scope.label(), action.scope_label)
+            };
+            let budget = reason_x.saturating_sub(x.saturating_add(3));
+            if budget >= 10 {
+                let faint = ui
+                    .paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Faint)))
+                    .with_bg_from(style);
+                ui.paint_str(
+                    Rect::new(x.saturating_add(1), area.y, budget, 1),
+                    &termrock::truncate_middle(&tag, budget),
+                    faint,
+                );
+            }
+        }
+        if reason_x < area.right() {
+            let muted = ui.paint_patch(&TAG_GREY).with_bg_from(style);
+            ui.paint_str(
+                Rect::new(reason_x, area.y, reason_width, 1),
+                &action.reason,
+                muted,
+            );
+        }
+    }
+
+    const PREVIEW_BG: Color = Color::Rgb(0x11, 0x11, 0x11);
+    const SELECT_BG: Color = Color::Rgb(0x2f, 0x5a, 0xa8);
+    const TAG_GREY_FG: Color = Color::Rgb(0x8a, 0x8a, 0x8a);
+    const SECONDARY_FG: Color = Color::Rgb(0xb3, 0xb3, 0xb3);
+    const META_FG: Color = Color::Rgb(0x73, 0x73, 0x73);
+    const RULE_FG: Color = Color::Rgb(0x3a, 0x3a, 0x3a);
+    const DANGER_FG: Color = Color::Rgb(0xf0, 0x5d, 0x5d);
+    const WHITE: Color = Color::Rgb(0xff, 0xff, 0xff);
+    const BLACK: Color = Color::Rgb(0, 0, 0);
+
+    struct TagCols {
+        label: u16,
+        kind: u16,
+        scope: u16,
+        reason: u16,
+    }
+
+    fn ink(ui: &Ui<'_>, fg: Color, bg: Color, bold: bool) -> termrock::author::PaintStyle {
+        let patch = StylePatch::new()
+            .set_fg(Role::Custom(fg))
+            .set_bg(Role::Custom(bg));
+        let patch = if bold {
+            patch.add(termrock::Modifier::BOLD)
+        } else {
+            patch.remove(termrock::Modifier::BOLD)
+        };
+        ui.paint_patch(&patch)
+    }
+
+    fn fit_cells(text: &str, width: u16) -> String {
+        let fitted = termrock::truncate(text, width);
+        let pad = usize::from(width.saturating_sub(termrock::width(&fitted)));
+        format!("{fitted}{}", " ".repeat(pad))
+    }
+
+    fn truncate_sep(text: &str, max: u16) -> String {
+        if termrock::width(text) <= max {
+            return text.to_owned();
+        }
+        if max < 4 {
+            return termrock::truncate(text, max);
+        }
+        let mut best: Option<usize> = None;
+        let mut pos = 0usize;
+        while let Some(found) = text[pos..].find(" · ") {
+            let at = pos.saturating_add(found);
+            let width = termrock::width(text.get(..at).unwrap_or(""));
+            if width < max && width.saturating_mul(3) >= max {
+                best = Some(at);
+            }
+            if width.saturating_add(1) > max {
+                break;
+            }
+            pos = at.saturating_add(3);
+        }
+        match best.and_then(|at| text.get(..at)) {
+            Some(head) => format!("{head}…"),
+            None => termrock::truncate(text, max),
+        }
+    }
+
+    fn wrap_words(text: &str, width: u16) -> Vec<String> {
+        let width = usize::from(width.max(1));
+        let mut lines = Vec::new();
+        let mut line = String::new();
+        let mut used = 0usize;
+        for word in text.split(' ') {
+            let word_w = usize::from(termrock::width(word));
+            if line.is_empty() {
+                if word_w <= width {
+                    line = word.to_owned();
+                    used = word_w;
+                } else {
+                    lines.push(termrock::truncate(
+                        word,
+                        u16::try_from(width).unwrap_or(u16::MAX),
+                    ));
+                }
+            } else if used.saturating_add(1).saturating_add(word_w) <= width {
+                line.push(' ');
+                line.push_str(word);
+                used = used.saturating_add(1).saturating_add(word_w);
+            } else {
+                lines.push(std::mem::take(&mut line));
+                used = 0;
+                if word_w <= width {
+                    line = word.to_owned();
+                    used = word_w;
+                } else {
+                    lines.push(termrock::truncate(
+                        word,
+                        u16::try_from(width).unwrap_or(u16::MAX),
+                    ));
+                }
+            }
+        }
+        lines.push(line);
+        lines
+    }
+
+    fn tag_columns(rows: &[&catalogue::TagRow], content_w: u16) -> TagCols {
+        let max_label = rows
+            .iter()
+            .map(|row| termrock::width(&row.title))
+            .max()
+            .unwrap_or(14);
+        let kind = rows
+            .iter()
+            .map(|row| termrock::width(row.kind))
+            .max()
+            .unwrap_or(4);
+        let scope = rows
+            .iter()
+            .map(|row| termrock::width(row.scope_word))
+            .max()
+            .unwrap_or(4);
+        let risk = rows
+            .iter()
+            .filter_map(|row| row.risk)
+            .map(termrock::width)
+            .max()
+            .unwrap_or(0);
+        let label_cap = max_label.min(content_w.saturating_mul(36) / 100).max(14);
+        let gaps = 2u16.saturating_mul(3u16.saturating_add(u16::from(risk > 0)));
+        let mut label = label_cap;
+        let fixed = label
+            .saturating_add(kind)
+            .saturating_add(scope)
+            .saturating_add(risk)
+            .saturating_add(gaps);
+        let need = fixed.saturating_add(12);
+        if need > content_w {
+            label = label.saturating_sub(need.saturating_sub(content_w));
+        }
+        let reason = content_w.saturating_sub(
+            label
+                .saturating_add(kind)
+                .saturating_add(scope)
+                .saturating_add(risk)
+                .saturating_add(gaps),
+        );
+        TagCols {
+            label,
+            kind,
+            scope,
+            reason,
+        }
+    }
+
+    fn split_detail(area: Rect) -> Option<(Rect, Rect)> {
+        if area.width < 80 || area.height == 0 {
+            return None;
+        }
+        let detail_w = u16::try_from(u32::from(area.width).saturating_mul(34) / 100).unwrap_or(0);
+        let detail_w = detail_w.clamp(34, 48);
+        let gap = 2u16;
+        let master_w = area.width.saturating_sub(detail_w.saturating_add(gap));
+        if master_w < 20 {
+            return None;
+        }
+        Some((
+            Rect::new(area.x, area.y, master_w, area.height),
+            Rect::new(
+                area.x.saturating_add(master_w).saturating_add(gap),
+                area.y,
+                detail_w,
+                area.height,
+            ),
+        ))
+    }
+
+    /// Single-column band body for the concept screens. The 80–119 band replaces the
+    /// frozen 80×24 and 100×30 plate frames; overflow gets a black thumb and the preview fade.
+    fn paint_narrow_tag_list(
+        ui: &mut Ui<'_>,
+        area: Rect,
+        view: &catalogue::ParityDiscovery,
+    ) -> bool {
+        let full = ui.full();
+        (80..120).contains(&full.width) && paint_tag_list(ui, area, view, None)
+    }
+
+    /// Frozen columns. Same grid as 100×30. Only the 80×24 frame reaches this painter.
+    /// `parity-history` body. Single-column tag list below 120 with the frozen
+    /// columns, the wide card in the 120 band, and the plain action list from 160 up.
+    fn paint_parity_history(
+        ui: &mut Ui<'_>,
+        area: Rect,
+        view: &catalogue::ParityDiscovery,
+    ) -> bool {
+        let full = ui.full();
+        let cols = TagCols {
+            label: 12,
+            kind: 7,
+            scope: 4,
+            reason: 65,
+        };
+        if (80..120).contains(&full.width) {
+            return paint_tag_list(ui, area, view, Some(cols));
+        }
+        if (120..160).contains(&full.width) {
+            return paint_parity_card(ui, area, view, cols);
+        }
+        false
+    }
+
+    /// Frozen columns. The explore chips keep the accent fill. The system row does not.
+    /// Single-column in the 80–119 band, wide card from 120.
+    fn paint_parity_files(ui: &mut Ui<'_>, area: Rect, view: &catalogue::ParityDiscovery) -> bool {
+        let full = ui.full();
+        if (80..120).contains(&full.width) {
+            return paint_parity_files_list(ui, area, view);
+        }
+        if (120..160).contains(&full.width) {
+            return paint_parity_files_card(ui, area, view);
+        }
+        false
+    }
+
+    /// Frozen columns. The explore chips keep the accent fill. The system row does not.
+    fn paint_parity_files_list(
+        ui: &mut Ui<'_>,
+        area: Rect,
+        view: &catalogue::ParityDiscovery,
+    ) -> bool {
+        let full = ui.full();
+        if !(80..120).contains(&full.width) || area.is_empty() {
+            return false;
+        }
+        let Some(text) = narrow_action_line(view) else {
+            return false;
+        };
+        let cols = TagCols {
+            label: 12,
+            kind: 7,
+            scope: 4,
+            reason: 65,
+        };
+        let footer_y = area.bottom().saturating_sub(1);
+        let gap_y = footer_y.saturating_sub(1);
+        let mut y = area.y;
+        for line in &view.lines {
+            if y >= gap_y {
+                break;
+            }
+            match line {
+                catalogue::FinderLine::Heading(text) => paint_tag_heading(ui, area, y, text, None),
+                catalogue::FinderLine::Blank => {}
+                catalogue::FinderLine::Chips(labels) => {
+                    paint_tag_chips_selected(ui, area, y, labels)
+                }
+                catalogue::FinderLine::Row(row) => paint_tag_row(ui, area, y, row, &cols, None),
+            }
+            y = y.saturating_add(1);
+        }
+        ui.paint_str(
+            Rect::new(
+                area.x.saturating_add(3),
+                footer_y,
+                area.width.saturating_sub(3),
+                1,
+            ),
+            &text,
+            ink(ui, TAG_GREY_FG, BLACK, false),
+        );
+        true
+    }
+
+    /// Wide card. Explore chips keep the accent fill. The system row does not.
+    fn paint_parity_files_card(
+        ui: &mut Ui<'_>,
+        area: Rect,
+        view: &catalogue::ParityDiscovery,
+    ) -> bool {
+        let full = ui.full();
+        if !(120..160).contains(&full.width) || area.is_empty() {
+            return false;
+        }
+        let Some((master, detail)) = split_detail(area) else {
+            return false;
+        };
+        let rows: Vec<&catalogue::TagRow> = view
+            .lines
+            .iter()
+            .filter_map(|line| match line {
+                catalogue::FinderLine::Row(row) => Some(row),
+                _ => None,
+            })
+            .collect();
+        let cols = TagCols {
+            label: 12,
+            kind: 7,
+            scope: 4,
+            reason: 65,
+        };
+        let mut y = master.y;
+        for line in &view.lines {
+            if y >= master.bottom() {
+                break;
+            }
+            match line {
+                catalogue::FinderLine::Heading(text) => {
+                    paint_tag_heading(ui, master, y, text, None)
+                }
+                catalogue::FinderLine::Blank => {}
+                catalogue::FinderLine::Chips(labels) => {
+                    paint_tag_chips_selected(ui, master, y, labels)
+                }
+                catalogue::FinderLine::Row(row) => paint_tag_row(ui, master, y, row, &cols, None),
+            }
+            y = y.saturating_add(1);
+        }
+        let title = view
+            .lines
+            .iter()
+            .find_map(|line| match line {
+                catalogue::FinderLine::Chips(labels) => labels.first().copied(),
+                _ => None,
+            })
+            .unwrap_or("");
+        paint_tag_preview(ui, detail, view, &rows, Some(title));
+        true
+    }
+
+    /// Selected explore chips. The gutter is accent-on-accent. `›` sits in the gap before the first chip.
+    fn paint_tag_chips_selected(ui: &mut Ui<'_>, master: Rect, y: u16, labels: &[&str]) {
+        let fill = ink(ui, WHITE, SELECT_BG, true);
+        ui.fill(Rect::new(master.x, y, master.width, 1), fill);
+        ui.paint_str(
+            Rect::new(master.x, y, 1, 1),
+            " ",
+            ink(ui, SELECT_BG, SELECT_BG, true),
+        );
+        ui.paint_str(Rect::new(master.x.saturating_add(3), y, 1, 1), "›", fill);
+        let mut x = master.x.saturating_add(3);
+        for label in labels {
+            let label_w = termrock::width(label);
+            if x.saturating_add(label_w) >= master.right() {
+                break;
+            }
+            ui.paint_str(Rect::new(x.saturating_add(1), y, label_w, 1), label, fill);
+            x = x.saturating_add(label_w).saturating_add(3);
+        }
+    }
+
+    /// `parity-browser` body. The single-column bands keep the frozen columns; the
+    /// 120 band keeps the wide card; from 160 up the reference shows the plain
+    /// action list, so the view painter steps aside.
+    fn paint_parity_browser(
+        ui: &mut Ui<'_>,
+        area: Rect,
+        view: &catalogue::ParityDiscovery,
+    ) -> bool {
+        let full = ui.full();
+        let cols = TagCols {
+            label: 12,
+            kind: 7,
+            scope: 4,
+            reason: 65,
+        };
+        if (80..120).contains(&full.width) {
+            return paint_tag_list(ui, area, view, Some(cols));
+        }
+        if (120..160).contains(&full.width) {
+            return paint_parity_card(ui, area, view, cols);
+        }
+        false
+    }
+
+    /// Wide card band for the replay families. From 120 up the split card keeps
+    /// the auto-sized tag columns.
+    fn paint_parity_wide_card(
+        ui: &mut Ui<'_>,
+        area: Rect,
+        view: &catalogue::ParityDiscovery,
+    ) -> bool {
+        let full = ui.full();
+        if !(120..160).contains(&full.width) || area.is_empty() {
+            return false;
+        }
+        let Some((master, _)) = split_detail(area) else {
+            return false;
+        };
+        let rows: Vec<&catalogue::TagRow> = view
+            .lines
+            .iter()
+            .filter_map(|line| match line {
+                catalogue::FinderLine::Row(row) => Some(row),
+                _ => None,
+            })
+            .collect();
+        paint_parity_card(
+            ui,
+            area,
+            view,
+            tag_columns(&rows, master.width.saturating_sub(4)),
+        )
+    }
+
+    /// Default tag columns in the 80–119 band.
+    /// The action row middle-truncates `Runs` below 100 so the line fits. Do not write cursor bytes.
+    fn paint_parity_git_batch(
+        ui: &mut Ui<'_>,
+        area: Rect,
+        view: &catalogue::ParityDiscovery,
+    ) -> bool {
+        let full = ui.full();
+        if (80..120).contains(&full.width) {
+            if area.is_empty() {
+                return false;
+            }
+            let mut fitted = view.clone();
+            fit_narrow_runs(&mut fitted, area.width.saturating_sub(3));
+            return paint_tag_list(ui, area, &fitted, None);
+        }
+        paint_parity_wide_card(ui, area, view)
+    }
+
+    /// Shrink `Runs` so `→ {runs} · {scope} · {risk}` fits the action row.
+    fn fit_narrow_runs(view: &mut catalogue::ParityDiscovery, room: u16) {
+        let scope = view
+            .preview
+            .iter()
+            .find(|line| line.label == "Scope")
+            .map(|line| line.value.clone());
+        let risk = view
+            .preview
+            .iter()
+            .find(|line| line.label == "Risk")
+            .map(|line| line.value.clone());
+        let (Some(scope), Some(risk)) = (scope, risk) else {
+            return;
+        };
+        let suffix_w = termrock::width("→ ")
+            .saturating_add(termrock::width(" · "))
+            .saturating_add(termrock::width(&scope))
+            .saturating_add(termrock::width(" · "))
+            .saturating_add(termrock::width(&risk));
+        let budget = room.saturating_sub(suffix_w);
+        if let Some(runs) = view.preview.iter_mut().find(|line| line.label == "Runs") {
+            runs.value = termrock::truncate_middle(&runs.value, budget);
+        }
+    }
+
+    /// Frozen columns in the 80–119 band.
+    /// Git-batch, cargo, git-current, browser, files, history, discovery, and every other size stay off.
+    /// Do not write cursor bytes.
+    fn paint_parity_task_sources(
+        ui: &mut Ui<'_>,
+        area: Rect,
+        view: &catalogue::ParityDiscovery,
+    ) -> bool {
+        let full = ui.full();
+        if (80..120).contains(&full.width) {
+            return paint_tag_list(
+                ui,
+                area,
+                view,
+                Some(TagCols {
+                    label: 12,
+                    kind: 7,
+                    scope: 4,
+                    reason: 65,
+                }),
+            );
+        }
+        false
+    }
+
+    /// Default tag columns in the 80–119 band, wide card from 120.
+    fn paint_parity_cargo(ui: &mut Ui<'_>, area: Rect, view: &catalogue::ParityDiscovery) -> bool {
+        let full = ui.full();
+        if (80..120).contains(&full.width) {
+            return paint_tag_list(ui, area, view, None);
+        }
+        paint_parity_wide_card(ui, area, view)
+    }
+
+    /// Default tag columns in the 80–119 band, wide card from 120.
+    fn paint_parity_git_current(
+        ui: &mut Ui<'_>,
+        area: Rect,
+        view: &catalogue::ParityDiscovery,
+    ) -> bool {
+        let full = ui.full();
+        if (80..120).contains(&full.width) {
+            return paint_tag_list(ui, area, view, None);
+        }
+        paint_parity_wide_card(ui, area, view)
+    }
+
+    /// Size-free single-column body. Callers keep their own layout policy.
+    fn paint_tag_list(
+        ui: &mut Ui<'_>,
+        area: Rect,
+        view: &catalogue::ParityDiscovery,
+        columns: Option<TagCols>,
+    ) -> bool {
+        if area.is_empty() {
+            return false;
+        }
+        let Some(text) = narrow_action_line(view) else {
+            return false;
+        };
+        let rows: Vec<&catalogue::TagRow> = view
+            .lines
+            .iter()
+            .filter_map(|line| match line {
+                catalogue::FinderLine::Row(row) => Some(row),
+                _ => None,
+            })
+            .collect();
+        let footer_y = area.bottom().saturating_sub(1);
+        // Short lists never reach this row. A longer list clips here instead of covering it.
+        let gap_y = footer_y.saturating_sub(1);
+        let slots = usize::from(gap_y.saturating_sub(area.y));
+        let overflow = slots > 0 && view.lines.len() > slots;
+        // The thumb owns the last column. Leave the cell before it blank, so a truncated reason stops one earlier.
+        let content_w = area.width.saturating_sub(if overflow { 5 } else { 4 });
+        let cols = columns.unwrap_or_else(|| tag_columns(&rows, content_w));
+        let shown = if overflow { slots } else { view.lines.len() };
+        let mut y = area.y;
+        for (index, line) in view.lines.iter().enumerate().take(shown) {
+            if y >= gap_y {
+                break;
+            }
+            let fade = if overflow {
+                preview_fade(index, shown)
+            } else {
+                None
+            };
+            if let Some((num, den)) = fade {
+                ui.fill(
+                    Rect::new(area.x, y, area.width.saturating_sub(1), 1),
+                    ink(ui, mix_on(WHITE, BLACK, num, den), BLACK, false),
+                );
+            }
+            match line {
+                catalogue::FinderLine::Heading(text) => paint_tag_heading(ui, area, y, text, fade),
+                catalogue::FinderLine::Blank => {}
+                catalogue::FinderLine::Chips(labels) => paint_tag_chips(ui, area, y, labels, fade),
+                catalogue::FinderLine::Row(row) => paint_tag_row(ui, area, y, row, &cols, fade),
+            }
+            y = y.saturating_add(1);
+        }
+        if overflow {
+            paint_narrow_scrollbar(
+                ui,
+                Rect::new(
+                    area.right().saturating_sub(1),
+                    area.y,
+                    1,
+                    u16::try_from(shown).unwrap_or(u16::MAX),
+                ),
+                view.lines.len(),
+            );
+        }
+        ui.paint_str(
+            Rect::new(
+                area.x.saturating_add(3),
+                footer_y,
+                area.width.saturating_sub(3),
+                1,
+            ),
+            &text,
+            ink(ui, TAG_GREY_FG, BLACK, false),
+        );
+        true
+    }
+
+    fn narrow_action_line(view: &catalogue::ParityDiscovery) -> Option<String> {
+        let value = |label: &str| {
+            view.preview
+                .iter()
+                .find(|line| line.label == label)
+                .map(|line| line.value.as_str())
+        };
+        Some(format!(
+            "→ {} · {} · {}",
+            value("Runs")?,
+            value("Scope")?,
+            value("Risk")?
+        ))
+    }
+
+    /// `hard-cases` body. Below the 120-wide breakpoint the view keeps its single-column
+    /// tag list; from 120 up it uses the split master/detail card.
+    fn paint_hard_cases_discovery(
+        ui: &mut Ui<'_>,
+        area: Rect,
+        view: &catalogue::ParityDiscovery,
+    ) -> bool {
+        let full = ui.full();
+        if full.width >= 80 && full.width < 120 && paint_tag_list(ui, area, view, None) {
+            return true;
+        }
+        paint_parity_discovery(ui, area, view)
+    }
+
+    /// `parity-discovery` body. Below the 120-wide breakpoint the view keeps its
+    /// single-column tag list; from 120 up it uses the split master/detail card.
+    fn paint_parity_discovery_view(
+        ui: &mut Ui<'_>,
+        area: Rect,
+        view: &catalogue::ParityDiscovery,
+    ) -> bool {
+        if (80..120).contains(&ui.full().width) && paint_tag_list(ui, area, view, None) {
+            return true;
+        }
+        paint_parity_discovery(ui, area, view)
+    }
+
+    fn paint_parity_discovery(
+        ui: &mut Ui<'_>,
+        area: Rect,
+        view: &catalogue::ParityDiscovery,
+    ) -> bool {
+        let Some((master, _)) = split_detail(area) else {
+            return false;
+        };
+        let rows: Vec<&catalogue::TagRow> = view
+            .lines
+            .iter()
+            .filter_map(|line| match line {
+                catalogue::FinderLine::Row(row) => Some(row),
+                _ => None,
+            })
+            .collect();
+        paint_parity_card(
+            ui,
+            area,
+            view,
+            tag_columns(&rows, master.width.saturating_sub(4)),
+        )
+    }
+
+    fn paint_parity_card(
+        ui: &mut Ui<'_>,
+        area: Rect,
+        view: &catalogue::ParityDiscovery,
+        cols: TagCols,
+    ) -> bool {
+        let Some((master, detail)) = split_detail(area) else {
+            return false;
+        };
+        let rows: Vec<&catalogue::TagRow> = view
+            .lines
+            .iter()
+            .filter_map(|line| match line {
+                catalogue::FinderLine::Row(row) => Some(row),
+                _ => None,
+            })
+            .collect();
+        let mut y = master.y;
+        for line in &view.lines {
+            if y >= master.bottom() {
+                break;
+            }
+            match line {
+                catalogue::FinderLine::Heading(text) => {
+                    paint_tag_heading(ui, master, y, text, None)
+                }
+                catalogue::FinderLine::Blank => {}
+                catalogue::FinderLine::Chips(labels) => {
+                    paint_tag_chips(ui, master, y, labels, None)
+                }
+                catalogue::FinderLine::Row(row) => paint_tag_row(ui, master, y, row, &cols, None),
+            }
+            y = y.saturating_add(1);
+        }
+        paint_tag_preview(ui, detail, view, &rows, None);
+        true
+    }
+
+    fn paint_tag_heading(
+        ui: &mut Ui<'_>,
+        master: Rect,
+        y: u16,
+        text: &str,
+        fade: Option<(u32, u32)>,
+    ) {
+        let style = ink(ui, faded(TAG_GREY_FG, fade), BLACK, false);
+        ui.paint_str(
+            Rect::new(master.x.saturating_add(3), y, termrock::width(text), 1),
+            text,
+            style,
+        );
+    }
+
+    fn paint_tag_chips(
+        ui: &mut Ui<'_>,
+        master: Rect,
+        y: u16,
+        labels: &[&str],
+        fade: Option<(u32, u32)>,
+    ) {
+        // Unfocused explore gutter is ink-on-ink, so the cell reads as an empty black column.
+        ui.paint_str(
+            Rect::new(master.x, y, 1, 1),
+            " ",
+            ink(ui, BLACK, BLACK, false),
+        );
+        let style = ink(ui, faded(WHITE, fade), BLACK, false);
+        let mut x = master.x.saturating_add(3);
+        for label in labels {
+            let label_w = termrock::width(label);
+            if x.saturating_add(label_w) >= master.right() {
+                break;
+            }
+            ui.paint_str(Rect::new(x.saturating_add(1), y, label_w, 1), label, style);
+            x = x.saturating_add(label_w).saturating_add(3);
+        }
+    }
+
+    fn paint_tag_row(
+        ui: &mut Ui<'_>,
+        master: Rect,
+        y: u16,
+        row: &catalogue::TagRow,
+        cols: &TagCols,
+        fade: Option<(u32, u32)>,
+    ) {
+        // A selected row keeps the solid accent. Fade is only the unselected tail.
+        let fade = if row.selected { None } else { fade };
+        let bg = if row.selected { SELECT_BG } else { BLACK };
+        let title_style = ink(ui, faded(WHITE, fade), bg, row.selected);
+        if row.selected {
+            ui.fill(Rect::new(master.x, y, master.width, 1), title_style);
+            ui.paint_str(
+                Rect::new(master.x.saturating_add(1), y, 1, 1),
+                "›",
+                title_style,
+            );
+        }
+        let mut x = master.x.saturating_add(3);
+        let title = termrock::truncate(&row.title, cols.label);
+        ui.paint_str(
+            Rect::new(x, y, termrock::width(&title).max(1), 1),
+            &title,
+            title_style,
+        );
+        x = x.saturating_add(cols.label).saturating_add(2);
+        // Tag row chrome bolds only the label. Kind, scope, reason, and risk stay plain.
+        let plain = ink(ui, faded(WHITE, fade), bg, false);
+        let kind_style = if row.selected {
+            plain
+        } else {
+            ink(ui, faded(TAG_GREY_FG, fade), BLACK, false)
+        };
+        ui.paint_str(
+            Rect::new(x, y, cols.kind, 1),
+            &fit_cells(row.kind, cols.kind),
+            kind_style,
+        );
+        x = x.saturating_add(cols.kind).saturating_add(2);
+        let scope_fg = if row.selected {
+            WHITE
+        } else if row.here {
+            TAG_GREY_FG
+        } else {
+            SECONDARY_FG
+        };
+        let scope_style = if row.selected {
+            plain
+        } else {
+            ink(ui, faded(scope_fg, fade), BLACK, false)
+        };
+        ui.paint_str(
+            Rect::new(x, y, cols.scope, 1),
+            &fit_cells(row.scope_word, cols.scope),
+            scope_style,
+        );
+        x = x.saturating_add(cols.scope).saturating_add(2);
+        if cols.reason > 0 {
+            let reason = truncate_sep(&row.reason, cols.reason);
+            let reason_style = if row.selected {
+                plain
+            } else {
+                ink(ui, faded(TAG_GREY_FG, fade), BLACK, false)
+            };
+            ui.paint_str(
+                Rect::new(x, y, termrock::width(&reason).max(1), 1),
+                &reason,
+                reason_style,
+            );
+        }
+        if let Some(risk) = row.risk {
+            let risk_w = termrock::width(risk);
+            let risk_x = master.right().saturating_sub(risk_w.saturating_add(1));
+            let risk_style = if row.selected {
+                plain
+            } else {
+                ink(ui, faded(SECONDARY_FG, fade), BLACK, false)
+            };
+            ui.paint_str(Rect::new(risk_x, y, risk_w, 1), risk, risk_style);
+        }
+    }
+
+    fn paint_tag_preview(
+        ui: &mut Ui<'_>,
+        detail: Rect,
+        view: &catalogue::ParityDiscovery,
+        rows: &[&catalogue::TagRow],
+        title_override: Option<&str>,
+    ) {
+        if detail.width < 8 || detail.height == 0 {
+            return;
+        }
+        let label_w = view
+            .preview
+            .iter()
+            .map(|line| termrock::width(line.label))
+            .max()
+            .unwrap_or(4)
+            .saturating_add(2);
+        let inner_w = detail.width.saturating_sub(4);
+        let value_w = inner_w.saturating_sub(label_w.saturating_add(1));
+        if value_w == 0 {
+            return;
+        }
+        let flat = flatten_preview(&view.preview, value_w);
+        let card_h = u16::try_from(flat.len())
+            .unwrap_or(u16::MAX)
+            .saturating_add(3)
+            .min(detail.height);
+        let card = Rect::new(detail.x, detail.y, detail.width, card_h);
+        let canvas = ink(ui, WHITE, PREVIEW_BG, false);
+        ui.fill(card, canvas);
+        let inner_x = detail.x.saturating_add(2);
+        let title = title_override.unwrap_or_else(|| {
+            rows.iter()
+                .find(|row| row.selected)
+                .map(|row| row.title.as_str())
+                .unwrap_or("")
+        });
+        let meta_w = termrock::width(&view.preview_meta);
+        let title_w = inner_w.saturating_sub(meta_w).saturating_sub(1);
+        let title = termrock::truncate(title, title_w);
+        ui.paint_str(
+            Rect::new(inner_x, detail.y, termrock::width(&title).max(1), 1),
+            &title,
+            ink(ui, SECONDARY_FG, PREVIEW_BG, false),
+        );
+        if meta_w > 0 {
+            ui.paint_str(
+                Rect::new(
+                    inner_x.saturating_add(inner_w).saturating_sub(meta_w),
+                    detail.y,
+                    meta_w,
+                    1,
+                ),
+                &view.preview_meta,
+                ink(ui, META_FG, PREVIEW_BG, false),
+            );
+        }
+        let rule_y = detail.y.saturating_add(1);
+        if rule_y < card.bottom() {
+            ui.paint_str(
+                Rect::new(inner_x, rule_y, inner_w, 1),
+                &"─".repeat(usize::from(inner_w)),
+                ink(ui, RULE_FG, PREVIEW_BG, false),
+            );
+        }
+        let slots = usize::from(card_h.saturating_sub(3));
+        let shown = flat.len().min(slots);
+        let overflow = flat.len() > slots && slots > 0;
+        let value_x = inner_x.saturating_add(label_w);
+        let content_w = inner_w.saturating_sub(u16::from(overflow));
+        for (index, (label, value, tone)) in flat.iter().enumerate().take(shown) {
+            let y = detail
+                .y
+                .saturating_add(2)
+                .saturating_add(u16::try_from(index).unwrap_or(u16::MAX));
+            if y >= card.bottom() {
+                break;
+            }
+            let fade = overflow.then(|| preview_fade(index, shown)).flatten();
+            if let Some((num, den)) = fade {
+                ui.fill(
+                    Rect::new(inner_x, y, content_w, 1),
+                    ink(ui, mix_color(WHITE, num, den), PREVIEW_BG, false),
+                );
+            }
+            if !label.is_empty() {
+                ui.paint_str(
+                    Rect::new(inner_x, y, termrock::width(label), 1),
+                    label,
+                    ink(
+                        ui,
+                        mix_color(TAG_GREY_FG, fade_num(fade), fade_den(fade)),
+                        PREVIEW_BG,
+                        false,
+                    ),
+                );
+            }
+            if value.is_empty() {
+                continue;
+            }
+            let fg = mix_color(tone_color(*tone), fade_num(fade), fade_den(fade));
+            ui.paint_str(
+                Rect::new(value_x, y, termrock::width(value).max(1), 1),
+                value,
+                ink(ui, fg, PREVIEW_BG, false),
+            );
+        }
+        if overflow {
+            paint_preview_scrollbar(
+                ui,
+                Rect::new(
+                    detail.x.saturating_add(detail.width).saturating_sub(3),
+                    detail.y.saturating_add(2),
+                    1,
+                    u16::try_from(shown).unwrap_or(u16::MAX),
+                ),
+                flat.len(),
+            );
+        }
+    }
+
+    fn fade_num(fade: Option<(u32, u32)>) -> u32 {
+        fade.map_or(1, |(num, _)| num)
+    }
+
+    fn fade_den(fade: Option<(u32, u32)>) -> u32 {
+        fade.map_or(1, |(_, den)| den)
+    }
+
+    fn tone_color(tone: catalogue::PreviewTone) -> Color {
+        match tone {
+            catalogue::PreviewTone::Text => WHITE,
+            catalogue::PreviewTone::Muted => TAG_GREY_FG,
+            catalogue::PreviewTone::Secondary => SECONDARY_FG,
+            catalogue::PreviewTone::Meta => META_FG,
+            catalogue::PreviewTone::Danger => DANGER_FG,
+        }
+    }
+
+    /// Bottom edge of an overflowing preview. `4/5` is the inner keep, `11/20` the outer.
+    fn preview_fade(index: usize, shown: usize) -> Option<(u32, u32)> {
+        if shown < 4 {
+            return None;
+        }
+        let from_end = shown.saturating_sub(index);
+        if from_end == 1 {
+            Some((11, 20))
+        } else if shown >= 12 && from_end == 2 {
+            Some((4, 5))
+        } else {
+            None
+        }
+    }
+
+    fn mix_color(fg: Color, num: u32, den: u32) -> Color {
+        mix_on(fg, PREVIEW_BG, num, den)
+    }
+
+    fn mix_on(fg: Color, back: Color, num: u32, den: u32) -> Color {
+        if num == den {
+            return fg;
+        }
+        let Color::Rgb(red, green, blue) = fg else {
+            return fg;
+        };
+        let Color::Rgb(back_r, back_g, back_b) = back else {
+            return fg;
+        };
+        Color::Rgb(
+            mix_channel(red, back_r, num, den),
+            mix_channel(green, back_g, num, den),
+            mix_channel(blue, back_b, num, den),
+        )
+    }
+
+    fn faded(color: Color, fade: Option<(u32, u32)>) -> Color {
+        match fade {
+            Some((num, den)) => mix_on(color, BLACK, num, den),
+            None => color,
+        }
+    }
+
+    fn mix_channel(fg: u8, bg: u8, num: u32, den: u32) -> u8 {
+        let den = den.max(1);
+        let mixed = u32::from(bg)
+            .saturating_mul(den.saturating_sub(num))
+            .saturating_add(u32::from(fg).saturating_mul(num));
+        let rounded = mixed.saturating_add(den / 2) / den;
+        u8::try_from(rounded.min(u32::from(u8::MAX))).unwrap_or(u8::MAX)
+    }
+
+    const SCROLL_THUMB: Color = Color::Rgb(0x80, 0x80, 0x80);
+    const SCROLL_TRACK: Color = Color::Rgb(0x47, 0x47, 0x47);
+
+    fn paint_preview_scrollbar(ui: &mut Ui<'_>, area: Rect, content_len: usize) {
+        if area.is_empty() {
+            return;
+        }
+        let mut scroll = termrock::ScrollState::new(content_len);
+        scroll.set_viewport(usize::from(area.height));
+        let (start, len) = scroll.thumb(usize::from(area.height));
+        let thumb_end = start.saturating_add(len);
+        for row in 0..area.height {
+            let on_thumb = (start..thumb_end).contains(&usize::from(row));
+            let (glyph, color) = if on_thumb {
+                ("┃", SCROLL_THUMB)
+            } else {
+                ("┆", SCROLL_TRACK)
+            };
+            ui.paint_str(
+                Rect::new(area.x, area.y.saturating_add(row), 1, 1),
+                glyph,
+                ink(ui, color, PREVIEW_BG, false),
+            );
+        }
+    }
+
+    /// List thumb on the narrow plate. Same geometry as the preview thumb, on black not `#111111`.
+    fn paint_narrow_scrollbar(ui: &mut Ui<'_>, area: Rect, content_len: usize) {
+        if area.is_empty() {
+            return;
+        }
+        let mut scroll = termrock::ScrollState::new(content_len);
+        scroll.set_viewport(usize::from(area.height));
+        let (start, len) = scroll.thumb(usize::from(area.height));
+        let thumb_end = start.saturating_add(len);
+        for row in 0..area.height {
+            let on_thumb = (start..thumb_end).contains(&usize::from(row));
+            let (glyph, color) = if on_thumb {
+                ("┃", SCROLL_THUMB)
+            } else {
+                ("┆", SCROLL_TRACK)
+            };
+            ui.paint_str(
+                Rect::new(area.x, area.y.saturating_add(row), 1, 1),
+                glyph,
+                ink(ui, color, BLACK, false),
+            );
+        }
+    }
+
+    fn flatten_preview(
+        lines: &[catalogue::PreviewLine],
+        value_w: u16,
+    ) -> Vec<(String, String, catalogue::PreviewTone)> {
+        let mut flat = Vec::new();
+        for line in lines {
+            if line.wraps {
+                let parts = wrap_words(&line.value, value_w);
+                for (index, part) in parts.into_iter().enumerate() {
+                    flat.push((
+                        if index == 0 {
+                            line.label.to_owned()
+                        } else {
+                            String::new()
+                        },
+                        part,
+                        line.tone,
+                    ));
+                }
+            } else {
+                flat.push((
+                    line.label.to_owned(),
+                    termrock::truncate(&line.value, value_w),
+                    line.tone,
+                ));
+            }
+        }
+        flat
+    }
+
+    /// The frame-equality proof of the shared plate.
+    ///
+    /// Every plate the home screen can paint is rendered twice: once by the
+    /// app-owned painter that came before the migration and once by the shared
+    /// [`FinderPlate`]. The cells, the styles and the cursor must match.
+    #[cfg(test)]
+    mod tests {
+        use super::*;
+        use termrock::{ColorLevel, Theme};
+        use termrock_test_support::Scene;
+
+        use crate::domain::fixtures;
+        use crate::scenario::Scenario;
+        use crate::screens::home::{
+            BROWSER_POLICY, CARGO_POLICY, DISCOVERY_POLICY, DISCOVERY_VIEW_POLICY, FILES_POLICY,
+            GIT_BATCH_POLICY, GIT_CURRENT_POLICY, HARD_CASES_POLICY, HISTORY_POLICY, NARROW_POLICY,
+            TASK_SOURCES_POLICY, plate_content,
+        };
+        use crate::sim::world::World;
+        use termrock_shell::{FinderPlate, FinderPolicy};
+
+        /// The plates the home screen can paint, with the policy each one paints with.
+        fn plates(
+            world: &World,
+            width: u16,
+            history: bool,
+        ) -> Vec<(
+            &'static str,
+            FinderPolicy,
+            Option<catalogue::ParityDiscovery>,
+        )> {
+            vec![
+                (
+                    "files",
+                    FILES_POLICY,
+                    catalogue::parity_files_view(world, width),
+                ),
+                (
+                    "first-use",
+                    NARROW_POLICY,
+                    catalogue::first_use_view(world, width, history),
+                ),
+                (
+                    "monorepo-root",
+                    NARROW_POLICY,
+                    catalogue::monorepo_root_view(world, width, history),
+                ),
+                (
+                    "monorepo-child",
+                    NARROW_POLICY,
+                    catalogue::monorepo_child_view(world, width),
+                ),
+                (
+                    "docker-cleanup",
+                    NARROW_POLICY,
+                    catalogue::docker_cleanup_view(world, width),
+                ),
+                (
+                    "remote-host",
+                    NARROW_POLICY,
+                    catalogue::remote_host_view(world, width),
+                ),
+                (
+                    "activities-multi",
+                    NARROW_POLICY,
+                    catalogue::activities_multi_view(world, width, history),
+                ),
+                (
+                    "discovery-view",
+                    DISCOVERY_VIEW_POLICY,
+                    catalogue::parity_discovery_view(world, width),
+                ),
+                (
+                    "history",
+                    HISTORY_POLICY,
+                    catalogue::parity_history_view(world, width),
+                ),
+                (
+                    "browser",
+                    BROWSER_POLICY,
+                    catalogue::parity_browser_view(world, width),
+                ),
+                (
+                    "git-current",
+                    GIT_CURRENT_POLICY,
+                    catalogue::parity_git_current_view(world, width),
+                ),
+                (
+                    "git-batch",
+                    GIT_BATCH_POLICY,
+                    catalogue::parity_git_batch_view(world, width),
+                ),
+                (
+                    "task-sources",
+                    TASK_SOURCES_POLICY,
+                    catalogue::parity_task_sources_view(world, width),
+                ),
+                (
+                    "cargo",
+                    CARGO_POLICY,
+                    catalogue::parity_cargo_view(world, width),
+                ),
+                (
+                    "discovery",
+                    DISCOVERY_POLICY,
+                    catalogue::parity_discovery(world)
+                        .or_else(|| catalogue::first_use_plate(world, history))
+                        .or_else(|| catalogue::monorepo_root_plate(world, history))
+                        .or_else(|| catalogue::monorepo_child_tag(world))
+                        .or_else(|| catalogue::activities_multi_plate(world, history))
+                        .or_else(|| catalogue::remote_host_tag(world))
+                        .or_else(|| catalogue::docker_cleanup_tag(world)),
+                ),
+                (
+                    "hard-cases",
+                    HARD_CASES_POLICY,
+                    catalogue::hard_cases_tag(world),
+                ),
+            ]
+        }
+
+        /// The app-owned painter of a plate.
+        fn legacy_paint(
+            name: &str,
+            ui: &mut Ui<'_>,
+            area: Rect,
+            view: &catalogue::ParityDiscovery,
+        ) -> bool {
+            match name {
+                "files" => paint_parity_files(ui, area, view),
+                "first-use" | "monorepo-root" | "monorepo-child" | "docker-cleanup"
+                | "remote-host" | "activities-multi" => paint_narrow_tag_list(ui, area, view),
+                "discovery-view" => paint_parity_discovery_view(ui, area, view),
+                "history" => paint_parity_history(ui, area, view),
+                "browser" => paint_parity_browser(ui, area, view),
+                "git-current" => paint_parity_git_current(ui, area, view),
+                "git-batch" => paint_parity_git_batch(ui, area, view),
+                "task-sources" => paint_parity_task_sources(ui, area, view),
+                "cargo" => paint_parity_cargo(ui, area, view),
+                "discovery" => paint_parity_discovery(ui, area, view),
+                "hard-cases" => paint_hard_cases_discovery(ui, area, view),
+                other => panic!("unknown plate {other}"),
+            }
+        }
+
+        fn scenarios() -> Vec<Scenario> {
+            vec![
+                Scenario::FirstUse,
+                Scenario::MonorepoRoot,
+                Scenario::MonorepoChild,
+                Scenario::DockerCleanup,
+                Scenario::ActivitiesMulti,
+                Scenario::RemoteHost,
+                Scenario::HardCases,
+                Scenario::ParityDiscovery,
+                Scenario::ParityHistory,
+                Scenario::ParityFiles,
+                Scenario::ParityBrowser,
+                Scenario::ParityGitCurrent,
+                Scenario::ParityGitBatch,
+                Scenario::ParityTaskSources,
+                Scenario::ParityCargo,
+            ]
+        }
+
+        /// The frame-equality proof of the shared action row.
+        #[test]
+        fn the_shared_action_row_paints_the_cells_of_the_app_owned_painter() {
+            for scenario in scenarios() {
+                let mut world = fixtures::world_for(scenario);
+                world.seek(80);
+                let rows: Vec<HomeRow> = catalogue::sections(&world)
+                    .into_iter()
+                    .flat_map(|section| {
+                        let name = section.name;
+                        section.actions.into_iter().map(move |action| HomeRow {
+                            section: name,
+                            action,
+                        })
+                    })
+                    .collect();
+                for row in &rows {
+                    for flags in [StateFlags::empty(), StateFlags::FOCUSED] {
+                        for width in [40_u16, 80, 120] {
+                            let area = Rect::new(0, 0, width, 1);
+                            let theme = Theme::junie();
+                            let mut legacy = Scene::new(
+                                "legacy-row",
+                                theme.clone(),
+                                ColorLevel::TrueColor,
+                                width,
+                                1,
+                            );
+                            legacy.draw(|ui, _| {
+                                paint_action(ui, area, flags, ItemKey::text("row"), row);
+                            });
+                            let mut shared = Scene::new(
+                                "shared-row",
+                                theme.clone(),
+                                ColorLevel::TrueColor,
+                                width,
+                                1,
+                            );
+                            shared.draw(|ui, _| {
+                                crate::screens::home::paint_action_row(
+                                    ui,
+                                    area,
+                                    flags,
+                                    ItemKey::text("row"),
+                                    row,
+                                );
+                            });
+                            assert_eq!(
+                                legacy.buffer().content,
+                                shared.buffer().content,
+                                "{scenario:?} {:?} {width} {flags:?}: the cells differ",
+                                row.action.title
+                            );
+                            assert_eq!(
+                                legacy.cursor_position(),
+                                shared.cursor_position(),
+                                "{scenario:?} {:?} {width} {flags:?}: the cursor differs",
+                                row.action.title
+                            );
+                        }
+                    }
+                }
+            }
+        }
+
+        #[test]
+        fn the_shared_plate_paints_the_cells_of_the_app_owned_painters() {
+            for scenario in scenarios() {
+                for history in [false, true] {
+                    let mut world = fixtures::world_for(scenario);
+                    world.seek(80);
+                    world.clock.running = false;
+                    for width in [80_u16, 100, 119, 120, 159, 160] {
+                        for height in [24_u16, 30, 40] {
+                            let area =
+                                Rect::new(1, 4, width.saturating_sub(2), height.saturating_sub(6));
+                            for (name, policy, view) in plates(&world, width, history) {
+                                let Some(view) = view else { continue };
+                                for level in [
+                                    ColorLevel::TrueColor,
+                                    ColorLevel::Ansi256,
+                                    ColorLevel::Ansi16,
+                                    ColorLevel::Mono,
+                                ] {
+                                    let theme = Theme::junie();
+                                    let mut legacy = Scene::new(
+                                        "legacy-plate",
+                                        theme.clone(),
+                                        level,
+                                        width,
+                                        height,
+                                    );
+                                    let legacy_painted = std::cell::Cell::new(false);
+                                    legacy.draw(|ui, _| {
+                                        legacy_painted.set(legacy_paint(name, ui, area, &view));
+                                    });
+                                    let mut shared = Scene::new(
+                                        "shared-plate",
+                                        theme.clone(),
+                                        level,
+                                        width,
+                                        height,
+                                    );
+                                    let shared_painted = std::cell::Cell::new(false);
+                                    shared.draw(|ui, _| {
+                                        shared_painted.set(FinderPlate::new().policy(policy).draw(
+                                            ui,
+                                            area,
+                                            &plate_content(&view),
+                                        ));
+                                    });
+                                    assert_eq!(
+                                        legacy_painted.get(),
+                                        shared_painted.get(),
+                                        "{scenario:?} {name} {width}x{height} {level:?}: the plate paints differently"
+                                    );
+                                    assert_eq!(
+                                        legacy.buffer().content,
+                                        shared.buffer().content,
+                                        "{scenario:?} {name} {width}x{height} {level:?}: the cells differ"
+                                    );
+                                    assert_eq!(
+                                        legacy.cursor_position(),
+                                        shared.cursor_position(),
+                                        "{scenario:?} {name} {width}x{height} {level:?}: the cursor differs"
+                                    );
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 }
