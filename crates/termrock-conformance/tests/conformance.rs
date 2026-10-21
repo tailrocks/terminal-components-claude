@@ -721,6 +721,14 @@ impl Conformance for DialogCase {
         LAUNCH
     }
 
+    fn opener_action() -> Option<Self::Action> {
+        Some(DialogAction::Action(K_OPEN))
+    }
+
+    fn activation_requires_overlay() -> bool {
+        true
+    }
+
     fn update(
         cx: &mut Cx<'_>,
         st: &mut termrock::DialogState,
@@ -2354,6 +2362,18 @@ impl Conformance for CodeEditorCase {
 
     fn bindings(state: BindingState) -> &'static [Binding<CodeCmd>] {
         CodeEditor::new(CODE_EDITOR, 6).bindings(state)
+    }
+
+    fn binding_states() -> &'static [BindingState] {
+        static STATES: std::sync::OnceLock<[BindingState; 1]> = std::sync::OnceLock::new();
+        // CodeEditor's default Immediate edit policy enters editing as soon as
+        // the conformance harness focuses it, so the published table to audit
+        // here is the live focused editing table, not a nav-mode table.
+        STATES.get_or_init(|| {
+            [BindingState {
+                flags: StateFlags::FOCUSED | StateFlags::EDITING,
+            }]
+        })
     }
 
     fn mono_setup_chords(state: StateFlags) -> &'static [Chord] {

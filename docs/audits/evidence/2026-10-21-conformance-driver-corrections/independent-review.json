@@ -1,0 +1,171 @@
+{
+  "decision": "CLEAR_BOUNDED",
+  "commit": "22366ab816b95ed71be970b4ea541fc332cb8e86",
+  "task_change_commit": "04fd52fc8712776301dbb31a53886c0e1be093fa",
+  "prior_hold_sha256": "18723ccc7f883af45c8263b9e7b353dfe588e95a354d4eb66f545fedc75d0013",
+  "closed_findings": [
+    "P1 stale K_OPEN accepted absent modal actions",
+    "P2 semantic-only equality masked installed Theme revision mutation"
+  ],
+  "new_findings": [],
+  "source_unchanged": true,
+  "worktree_clean": true,
+  "worktree": "/Users/donbeave/Projects/termrock-review-conformance-22366-sparse-20261021",
+  "gates": {
+    "native47": {
+      "command": [
+        "rustup",
+        "run",
+        "1.99.1",
+        "cargo",
+        "nextest",
+        "run",
+        "-p",
+        "termrock-conformance",
+        "--test",
+        "conformance",
+        "-E",
+        "test(/(brand|completion)::local_override_does_not_mutate_the_theme/) | test(/keyboard_and_mouse_activation_are_equivalent/) | test(/code_editor::bindings_match_handled_keys/)",
+        "--no-fail-fast"
+      ],
+      "exit": 0,
+      "target": "/Users/donbeave/Projects/termrock-review-targets/conformance-22366-review-20261021",
+      "head": "22366ab816b95ed71be970b4ea541fc332cb8e86"
+    },
+    "negative-six": {
+      "command": [
+        "rustup",
+        "run",
+        "1.99.1",
+        "cargo",
+        "nextest",
+        "run",
+        "--manifest-path",
+        "/Users/donbeave/Projects/termrock-cli-evidence-20261021/branch-consolidation/conformance-driver-22366-independent-review/negative-control/Cargo.toml",
+        "--all-targets",
+        "--no-fail-fast"
+      ],
+      "exit": 0,
+      "target": "/Users/donbeave/Projects/termrock-review-targets/conformance-22366-review-20261021",
+      "head": "22366ab816b95ed71be970b4ea541fc332cb8e86"
+    },
+    "negative-six-reasons": {
+      "command": [
+        "rustup",
+        "run",
+        "1.99.1",
+        "cargo",
+        "nextest",
+        "run",
+        "--manifest-path",
+        "/Users/donbeave/Projects/termrock-cli-evidence-20261021/branch-consolidation/conformance-driver-22366-independent-review/negative-control/Cargo.toml",
+        "--all-targets",
+        "--no-fail-fast",
+        "--no-capture"
+      ],
+      "exit": 0,
+      "target": "/Users/donbeave/Projects/termrock-review-targets/conformance-22366-review-20261021",
+      "head": "22366ab816b95ed71be970b4ea541fc332cb8e86"
+    },
+    "fmt": {
+      "command": [
+        "rustup",
+        "run",
+        "1.99.1",
+        "cargo",
+        "fmt",
+        "--all",
+        "--check"
+      ],
+      "exit": 0,
+      "target": "/Users/donbeave/Projects/termrock-review-targets/conformance-22366-review-20261021",
+      "head": "22366ab816b95ed71be970b4ea541fc332cb8e86"
+    },
+    "clippy": {
+      "command": [
+        "rustup",
+        "run",
+        "1.99.1",
+        "cargo",
+        "clippy",
+        "-p",
+        "termrock-test-support",
+        "--lib",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "exit": 0,
+      "target": "/Users/donbeave/Projects/termrock-review-targets/conformance-22366-review-20261021",
+      "head": "22366ab816b95ed71be970b4ea541fc332cb8e86"
+    }
+  },
+  "native_result": "47 passed,888 skipped",
+  "negative_result": "six unchanged controls pass; no-capture repeat confirms intended failure causes",
+  "control_tests_unchanged": {
+    "src/lib.rs": {
+      "old_sha256": "70a80866811369c2961a66df8b3d4806ea9943daf30f65ceb07da63da42b3ada",
+      "new_sha256": "70a80866811369c2961a66df8b3d4806ea9943daf30f65ceb07da63da42b3ada",
+      "identical": true
+    },
+    "tests/negative.rs": {
+      "old_sha256": "06252bede7bf3b6a446ed9aa735a33c2ecef2fe529cf4951466c9c1fc32c878e",
+      "new_sha256": "06252bede7bf3b6a446ed9aa735a33c2ecef2fe529cf4951466c9c1fc32c878e",
+      "identical": true
+    }
+  },
+  "binary_receipts": [
+    {
+      "path": "/Users/donbeave/Projects/termrock-review-targets/conformance-22366-review-20261021/debug/deps/conformance-0cbf748414f4f650",
+      "sha256": "0c79fed531ac47e7bd6a3d3d2c20d510454138dcf6787297a188c0c7594a3f3a",
+      "size": 42301168
+    },
+    {
+      "path": "/Users/donbeave/Projects/termrock-review-targets/conformance-22366-review-20261021/debug/deps/negative-24c748722622913c",
+      "sha256": "72807fffdac0a20967aae7eeebbcc912c716ac56fe53192afddaf809ccc18354",
+      "size": 6970584
+    },
+    {
+      "path": "/Users/donbeave/Projects/termrock-review-targets/conformance-22366-review-20261021/debug/deps/conformance_negative_control_review-544feaa7827b2158",
+      "sha256": "e1cf9dc66c85c4838744d79986124647c00b3f9df1a200e6d5e559c1c9c089b3",
+      "size": 4929352
+    }
+  ],
+  "limitations": [
+    "Not full conformance or full68-failure closure",
+    "Earlier broad bindings13pass5fail26unrun remains incomplete",
+    "No application parity or final acceptance claim",
+    "Unrelated WIP merge changes not approved by this scoped review",
+    "External negative controls not claimed as CI additions"
+  ],
+  "evidence_sha256": {
+    "before.json": "704da3e5746bd40c8a2e725da862df26c4882126fb350b9877678e6a1754df50",
+    "run.py": "c7c26c28ce99f0bb7d5ea692c89a2f27513f4f33740d9f61a570d8b73e230e11",
+    "negative-six-reasons.log": "8a68ce2e2ebe22d7e7a1ba2d205a881e592d2f44b90c2b8e0a342f044ca8a78f",
+    "fmt.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "negative-six.json": "1eb5ddce1016fada9338d466847d44a2dbdc5014d1256a40f8642a68661c9881",
+    "clippy.json": "cf7e41e15270f28fc24d1fe720b19adf91c205e904907360b24d1e46598dda3c",
+    "negative-six.log": "0f25375c34ee220a24a688c6d5164fddf1b366d53ae196dacd475a4c2d0ac004",
+    "fmt.json": "4093950fd14b0c4eb8ee018963a41d9aea4a916da2c01d9c54122eb7f6cd57e3",
+    "clippy.log": "1b48a3c4798e61a62e42efe5b1e6dc02f67827a3ce3646cdfd8fb28d8d83e436",
+    "metadata.json": "19a0e10ea3f06fd908b1e6f6bad07dc0d9d499cf390ac134f0cb8efa42e8b219",
+    "native47.log": "41c073519487d48981965f70fa91d9b2d787ca8ca484bdb199d485402c9c4e1a",
+    "authored-fix.patch": "8302b511dfb63b0981a4c47e7ee3382534b95b017dfca119cb6ebeec0d4af175",
+    "after.json": "b70c1f993ec56981b4278b66f8cd142d1a9edf1cb1d83aa1e37b3552a2ee654a",
+    "binary-receipts.json": "57e54c57665f7e8a64a42111852ccb11ed5f92c588a0737daa7551b8bfbc06b1",
+    "control-source-comparison.json": "07de11cc02b192c019c0379d04d68e32f11e05aa8106de747dfcc8335fd9e474",
+    "revision_driver.rs.patch": "2cfc35973a5dab522bc3de182b0d25e42c8dc0e9c254d32a0ead11110f03b6b7",
+    "native-binary-receipt.json": "4308017f880b3bac59a8206e9f086b39049d20dfaae40910cb1aecf20376d1d6",
+    "negative-six-reasons.json": "10303595d6c0157b0ef404b0bc6d579bb7b99ca46b82fff82a078e289ad62b9b",
+    "native47.json": "385e85250828419033804c28f7a456c5ab3c565cc753b230a38da25923a1d4eb",
+    "mutated_driver.rs.patch": "5cf777bf01159d2cd827af467e480dc0744bf39f05aa7f9a6e1037a2238bb257",
+    "review.md": "fbc52f9030377efe06a7a619ab287d519b5e2a3f470710b0cc4ce20195d88467",
+    "negative-control/Cargo.toml": "fb26c52a40607abd209030c9cfd20f1b0d620ec750923a609456bf66a64b2d76",
+    "negative-control/Cargo.lock": "e2c9ad4e8db4a48bff6253550b1f682b17255d4c9717f55473ba11b57b486c60",
+    "negative-control/tests/negative.rs": "06252bede7bf3b6a446ed9aa735a33c2ecef2fe529cf4951466c9c1fc32c878e",
+    "negative-control/src/revision_driver.rs": "7a22a29f0df65fe80bc4004e12fec165c13fec950d94831d677a654d41691b08",
+    "negative-control/src/mutated_driver.rs": "54986fa8be22a488f17bf7387537a5ebefd61df70cfe8e61805eee35f56b07db",
+    "negative-control/src/lib.rs": "70a80866811369c2961a66df8b3d4806ea9943daf30f65ceb07da63da42b3ada",
+    "negative-control/src/pristine_driver.rs": "cf53128c4fcdb40c14e4475c597ad43a7ce659915f327ab224100748bd982b4f"
+  }
+}

@@ -171,11 +171,23 @@ pub trait Conformance: 'static {
     fn activation_id() -> Id {
         Self::control_id()
     }
+    /// Some controls are only actionable after their owning layer is opened.
+    /// The shared activation checks should exercise that real user flow even
+    /// when the action control itself is hidden before opening.
+    fn activation_requires_overlay() -> bool {
+        false
+    }
     fn scroll_id() -> Id {
         Self::id()
     }
     fn opener_id() -> Id {
         Self::control_id()
+    }
+    /// The action emitted while opening an owning layer, when it is distinct
+    /// from activating the control inside that layer. Conformance probes use
+    /// this to ensure setup responses cannot satisfy activation assertions.
+    fn opener_action() -> Option<Self::Action> {
+        None
     }
     fn update(cx: &mut Cx<'_>, st: &mut Self::State, f: &Fixture) -> Response<Self::Action>;
     fn draw(ui: &mut Ui<'_>, area: Rect, st: &Self::State, f: &Fixture);
@@ -191,6 +203,17 @@ pub trait Conformance: 'static {
     }
     fn bindings(_s: BindingState) -> &'static [Binding<Self::Cmd>] {
         &[]
+    }
+    fn binding_states() -> &'static [BindingState] {
+        const STATES: &[BindingState] = &[
+            BindingState {
+                flags: StateFlags::empty(),
+            },
+            BindingState {
+                flags: StateFlags::FOCUSED,
+            },
+        ];
+        STATES
     }
     fn legacy_key_chords() -> &'static [Chord] {
         &[]

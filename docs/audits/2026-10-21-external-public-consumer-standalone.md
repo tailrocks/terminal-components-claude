@@ -136,3 +136,7 @@ external-consumer-demo not listed — not a workspace member
 - `origin/wip/public-consumer-contracts-20261021` (`fc861e15a`):
   `crates/termrock/tests/public_component_contracts.rs` is owned by another
   workstream and is not landed or modified here.
+
+## Re-run on the recovered PR #38 integration (2026-10-21)
+
+The standalone crate was checked again after materializing the staged sparse-checkout paths in the isolated integration worktree. `cargo nextest run --locked --all-targets --manifest-path external-consumer-demo/Cargo.toml` passed 9/9 with zero skips; strict all-target Clippy and standalone formatting passed. Exact logs and source index tree are recorded in [the gate receipt](evidence/2026-10-21-external-consumer/receipt.json). Root workspace metadata does not include this crate. This clears the separate-consumer demonstration only; all four real applications still need shared-component adoption and paired parity proof.
