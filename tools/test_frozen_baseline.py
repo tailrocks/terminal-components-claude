@@ -1726,24 +1726,25 @@ class RunnerGuards(unittest.TestCase):
             (source / "Cargo.toml").write_text("[workspace]\n")
             live = frozen / "live-source"
             checks: list[str] = []
+            active_execution: list[runner.PrepareExecution] = []
+            original_enter = runner.PrepareExecution.__enter__
 
-            class Execution:
-                def check_work(self) -> None:
-                    checks.append("checked")
+            def enter_execution(execution: runner.PrepareExecution) -> runner.PrepareExecution:
+                entered = original_enter(execution)
+                active_execution.append(execution)
+                return entered
 
-            execution = Execution()
-            expected_execution = execution
-
-            class Scope:
-                def __enter__(self) -> Execution:
-                    return execution
-
-                def __exit__(self, *_args: object) -> None:
-                    return None
+            def resolve_paths(_repo: Path, _root: Path) -> tuple[Path, Path, Path]:
+                self.assertTrue(active_execution, "owned path resolution must run inside PrepareExecution")
+                active_execution[-1].check_work()
+                checks.append("paths")
+                return repo, frozen, source
 
             def verify_frozen(_root: Path, _source: Path, *, check_work: Callable[[], None] | None = None) -> None:
                 self.assertIsNotNone(check_work)
+                self.assertIs(check_work.__self__, active_execution[-1])
                 check_work()
+                checks.append("frozen")
 
             def verify_live(
                 _repo: Path,
@@ -1757,8 +1758,9 @@ class RunnerGuards(unittest.TestCase):
             ) -> tuple[Path, dict[str, object]]:
                 self.assertEqual(fresh_cohort_id, runner.PREPARE_LIVE_OWNED_COHORT)
                 self.assertEqual(baseline_bin_dir, root / "sealed")
-                self.assertIs(execution, expected_execution)
+                self.assertIs(execution, active_execution[-1])
                 execution.check_work()
+                checks.append("live")
                 return live, {"verified": True}
 
             argv = [
@@ -1768,7 +1770,8 @@ class RunnerGuards(unittest.TestCase):
             ]
             with (
                 patch.object(sys, "argv", argv),
-                patch.object(runner, "PrepareExecution", return_value=Scope()),
+                patch.object(runner.PrepareExecution, "__enter__", enter_execution),
+                patch.object(runner, "paths", side_effect=resolve_paths),
                 patch.object(runner, "verify_source", side_effect=verify_frozen) as frozen_verify,
                 patch.object(runner, "verify_live_source", side_effect=verify_live) as live_verify,
                 redirect_stdout(io.StringIO()) as output,
@@ -1776,8 +1779,100 @@ class RunnerGuards(unittest.TestCase):
                 self.assertEqual(runner.main(), 0)
             frozen_verify.assert_called_once()
             live_verify.assert_called_once()
-            self.assertEqual(len(checks), 3)
+            self.assertEqual(checks, ["paths", "frozen", "live"])
             self.assertIn('"verified": true', output.getvalue())
+
+    def test_verify_live_owned_path_failure_stops_before_verification(self) -> None:
+        original_enter = runner.PrepareExecution.__enter__
+        for failure in ("deadline", "cancel"):
+            with self.subTest(failure=failure), tempfile.TemporaryDirectory() as temp:
+                root = Path(temp)
+                repo = root / "repo"
+                frozen = root / "frozen"
+                source = frozen / "source"
+                repo.mkdir()
+                source.mkdir(parents=True)
+                (source / "Cargo.toml").write_text("[workspace]\n")
+                active_execution: list[runner.PrepareExecution] = []
+
+                def enter_execution(execution: runner.PrepareExecution) -> runner.PrepareExecution:
+                    entered = original_enter(execution)
+                    active_execution.append(execution)
+                    return entered
+
+                def resolving_paths(_repo: Path, _root: Path) -> tuple[Path, Path, Path]:
+                    self.assertTrue(active_execution)
+                    if failure == "deadline":
+                        time.sleep(1.05)
+                    else:
+                        signal.raise_signal(signal.SIGTERM)
+                    return repo, frozen, source
+
+                argv = [
+                    "frozen_baseline.py", "--repo", str(repo), "--root", str(frozen),
+                    "verify-live", "--fresh-cohort", runner.PREPARE_LIVE_OWNED_COHORT,
+                    "--baseline-bin-dir", str(root / "sealed"), "--owned-lifecycle", "--owned-budget", "1",
+                ]
+                with (
+                    patch.object(sys, "argv", argv),
+                    patch.object(runner.PrepareExecution, "__enter__", enter_execution),
+                    patch.object(runner, "paths", side_effect=resolving_paths),
+                    patch.object(runner, "verify_source", side_effect=AssertionError("verification must not run")),
+                    patch.object(runner, "verify_live_source", side_effect=AssertionError("verification must not run")),
+                    redirect_stderr(io.StringIO()) as errors,
+                ):
+                    self.assertEqual(runner.main(), 1)
+                self.assertIn("owned prepare", errors.getvalue())
+
+    def test_verify_live_owned_final_output_deadline_and_cancellation_fail_closed(self) -> None:
+        original_enter = runner.PrepareExecution.__enter__
+        original_print = print
+        for failure in ("deadline", "cancel"):
+            with self.subTest(failure=failure), tempfile.TemporaryDirectory() as temp:
+                root = Path(temp)
+                repo = root / "repo"
+                frozen = root / "frozen"
+                source = frozen / "source"
+                repo.mkdir()
+                source.mkdir(parents=True)
+                (source / "Cargo.toml").write_text("[workspace]\n")
+                active_execution: list[runner.PrepareExecution] = []
+
+                def enter_execution(execution: runner.PrepareExecution) -> runner.PrepareExecution:
+                    entered = original_enter(execution)
+                    active_execution.append(execution)
+                    return entered
+
+                def emit(*args: object, **kwargs: object) -> None:
+                    if args and isinstance(args[0], str) and '"verified": true' in args[0]:
+                        self.assertTrue(kwargs.get("flush"), "owned success output must flush inside its deadline scope")
+                        self.assertTrue(active_execution)
+                        if failure == "deadline":
+                            time.sleep(1.05)
+                        else:
+                            signal.raise_signal(signal.SIGTERM)
+                    original_print(*args, **kwargs)
+
+                argv = [
+                    "frozen_baseline.py", "--repo", str(repo), "--root", str(frozen),
+                    "verify-live", "--fresh-cohort", runner.PREPARE_LIVE_OWNED_COHORT,
+                    "--baseline-bin-dir", str(root / "sealed"), "--owned-lifecycle", "--owned-budget", "1",
+                ]
+                with (
+                    patch.object(sys, "argv", argv),
+                    patch.object(runner.PrepareExecution, "__enter__", enter_execution),
+                    patch.object(runner, "paths", return_value=(repo, frozen, source)),
+                    patch.object(runner, "verify_source"),
+                    patch.object(runner, "verify_live_source", return_value=(frozen / "live-source", {"verified": True})),
+                    patch("builtins.print", side_effect=emit),
+                    redirect_stdout(io.StringIO()),
+                    redirect_stderr(io.StringIO()) as errors,
+                ):
+                    self.assertEqual(runner.main(), 1)
+                if failure == "deadline":
+                    self.assertIn("work deadline expired", errors.getvalue())
+                else:
+                    self.assertIn("cancelled by signal", errors.getvalue())
 
     def test_chunk_coverage_rejects_missing_duplicate_skipped_and_repartitioned(self) -> None:
         selected = [f"case::{index}" for index in range(5)]
