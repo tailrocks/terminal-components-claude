@@ -168,6 +168,19 @@ pub struct ConnectionDraft {
 }
 
 impl ConnectionDraft {
+    /// Creates the blank draft used for a new connection.
+    ///
+    /// Driver defaults are retained while identity fields remain empty so the
+    /// user does not accidentally save the currently selected connection as a
+    /// duplicate.
+    pub fn new() -> Self {
+        Self {
+            host: "localhost".into(),
+            port: default_port(0).into(),
+            ..Self::default()
+        }
+    }
+
     pub fn from_connection(connection: &Connection) -> Self {
         Self {
             name: connection.name.clone(),
