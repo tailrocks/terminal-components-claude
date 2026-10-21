@@ -171,6 +171,12 @@ pub trait Conformance: 'static {
     fn activation_id() -> Id {
         Self::control_id()
     }
+    /// Some controls are only actionable after their owning layer is opened.
+    /// The shared activation checks should exercise that real user flow even
+    /// when the action control itself is hidden before opening.
+    fn activation_requires_overlay() -> bool {
+        false
+    }
     fn scroll_id() -> Id {
         Self::id()
     }
@@ -191,6 +197,17 @@ pub trait Conformance: 'static {
     }
     fn bindings(_s: BindingState) -> &'static [Binding<Self::Cmd>] {
         &[]
+    }
+    fn binding_states() -> &'static [BindingState] {
+        const STATES: &[BindingState] = &[
+            BindingState {
+                flags: StateFlags::empty(),
+            },
+            BindingState {
+                flags: StateFlags::FOCUSED,
+            },
+        ];
+        STATES
     }
     fn legacy_key_chords() -> &'static [Chord] {
         &[]
