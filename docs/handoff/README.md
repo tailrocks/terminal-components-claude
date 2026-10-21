@@ -110,9 +110,12 @@ Deliberately kept (recorded, not silently dropped):
   `jackin❯` so the frozen harness readiness needle fires on the Accounts
   route. Deleting them strands every frozen Accounts scenario at boot; they
   stay until the frozen reference is regenerated.
-- `manager_detail_drawer_view::paint` still overlays a fixed RUNS patch table
-  on `paint_pinned_split` (box seams, title ink, hint segments). Pixel-exact;
-  replacing patches with shared painters is follow-up work.
+
+Resolved follow-up (2026-10-23): the `manager_detail_drawer_view` fixed RUNS
+patch table is gone — the drawer paints through
+`termrock::feedback::paint_manager_detail_drawer` over the live saved split,
+byte-neutral 128/128 on the paired capture
+([audit](../audits/2026-10-23-jackin-drawer-painter.md)).
 
 Pre-existing reds on the pushed tip, reproduced at bare origin tip
 `384b818b2` with zero jackin commits — not this lane's:
