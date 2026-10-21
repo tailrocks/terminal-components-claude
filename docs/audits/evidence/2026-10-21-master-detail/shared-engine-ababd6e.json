@@ -1,0 +1,117 @@
+{
+  "review_type": "Independent bounded Rust/API review of master/detail shared responsive resolver and drawer state",
+  "candidate": "ababd6e737c8913ea718e4c37cb56117a3ddf8f3",
+  "review_copy": "/private/tmp/termrock-md2-ababd-review-20261021",
+  "decision": "Cleared for the bounded MD-2 consolidation delta. No new actionable correctness, compatibility, ownership, error-handling, concurrency or unsafe-code finding in the two changed implementation files. This is not application parity or full library acceptance.",
+  "findings": [],
+  "source_evidence": [
+    {
+      "path": "crates/termrock-controls/src/master_detail.rs:85",
+      "conclusion": "Canonical state now implements Copy and owns split, drawer_open and return_focus. Public facade state name reexports this type; existing constructor/default/Copy/drawer_open use remains available. No public fields removed."
+    },
+    {
+      "path": "crates/termrock-controls/src/master_detail.rs:306",
+      "conclusion": "Single responsive mode and summary-row resolver. Controls layout adds SplitPane geometry; draw consumes the same complete controls layout. The new method explicitly documents empty split rectangles; callers requiring complete geometry must use layout."
+    },
+    {
+      "path": "crates/termrock/src/blocks/master_detail.rs:168",
+      "conclusion": "Facade open/close delegate canonical state lifecycle and retain configured master focus restoration. Existing typed actions and already-open/already-closed responses preserved."
+    },
+    {
+      "path": "crates/termrock/src/blocks/master_detail.rs:193",
+      "conclusion": "Facade scoped Escape retains child-first routing and uses the shared resolver against framework logical-area facts. Controls owner bindings remain a separate intentional input policy; no facade adoption of controls Tab/Left/BackTab behavior."
+    },
+    {
+      "path": "crates/termrock/src/blocks/master_detail.rs:223",
+      "conclusion": "Measure/show use the shared responsive decision and summary clamp. Group/CompositionSlots remain content composition owners; fixed-share and resizable adapters both delegate actual split geometry to SplitPane. No input/domain effects added to measure/draw."
+    }
+  ],
+  "preserved_defaults": {
+    "controls": "Collapse100; master32%; minima28/40; gap2; summary6; resizable split; existing master/detail bindings",
+    "facade": "Collapse108; detail34% bounded34-48; gap2; summary1; fixed split; typed open-close and scoped Escape"
+  },
+  "native": {
+    "command": "cargo nextest run -p termrock-controls -p termrock --all-targets --features termrock/testing --no-fail-fast",
+    "exit": 0,
+    "passed": 177,
+    "skipped": 0,
+    "log": "/private/tmp/md2-ababd-native-0.log"
+  },
+  "strict_checks": [
+    {
+      "command": "cargo clippy -p termrock-controls -p termrock --all-targets --features termrock/testing -- -D warnings",
+      "exit": 0,
+      "log": "/private/tmp/md2-ababd-clippy.log"
+    },
+    {
+      "command": "cargo fmt -p termrock-controls -p termrock -- --check",
+      "exit": 0,
+      "log": "/private/tmp/md2-ababd-fmt.log"
+    }
+  ],
+  "public_probes": {
+    "unchanged_previous_probes": {
+      "original.rs": {
+        "sha256": "997d56e65f72a4ca27b6068192256d9342535923c10336d850af817e3fd3c380",
+        "all_three_byte_identical": true
+      },
+      "regions.rs": {
+        "sha256": "f4ab786000981fb13ae8036fe7cb85534f49072cfeac90f5f80020bdab6017fe",
+        "all_three_byte_identical": true
+      },
+      "open_order.rs": {
+        "sha256": "ebed6c2aab0747deb3d175eea6b1ac7e6871bb12056f878ec11cbcb699aa8c24",
+        "all_three_byte_identical": true
+      }
+    },
+    "candidate": "5/5 passed, zero skipped, including compatibility corpus",
+    "controlled_before": "5/5 passed, zero skipped",
+    "scope": "Actual Button draw-state purity; explicit drawer opener before update; real TextInput hit/cursor and pointer edit through resize; empty/narrow/breakpoint bounds. The original purity probe RED evidence remains the independently recorded f142ba9 pre-fix run in the prior912 packet; no new before-fix RED is claimed here."
+  },
+  "compatibility": {
+    "method": "Controlled counterfactual holds all incoming unrelated changes at exact candidate and substitutes only the two implementation files from912681032b137dc6aa91757fada4abe60c572840. It is intentionally not labeled an exact old-commit build or frozen-baseline comparison.",
+    "original_data": {
+      "checkpoints": 1008,
+      "complete_buffer_ordered_regions_focus_cursor_and_cursor_bar": "byte identical",
+      "bytes": 2100185,
+      "sha256": "8b5b46b671cc37b694ad1da866a3cbe0ee6a3a35451c95ab31e2cff2fd8a1f63"
+    },
+    "unicode_long_labels": {
+      "checkpoints": 1008,
+      "data": "Wide CJK and emoji, combining e + U+0301, long document labels and summaries",
+      "complete_buffer_ordered_regions_focus_cursor_and_cursor_bar": "byte identical",
+      "bytes": 2456309,
+      "sha256": "61390ac878696928105f14e16e2c3437603509194e0b43da739638a997497d72"
+    },
+    "matrix": "4 color profiles; widths0,1,42,59,60,99,100,104,107,108,109,120; heights0,1,2,3,4,9,24; initial/Enter/Escape checkpoints; simulation feedback clock fixed at zero.",
+    "limits": "This corpus checks state preservation and keyboard rendering with public example data. No frozen CLI/PTY, terminal modes, cleanup, complete drag/cancellation matrix, all overlays, or all application flows established."
+  },
+  "remaining_obligations": [
+    "Showcase source contains no MasterDetail consumer in the inspected candidate. The public file-catalogue example and tests are executable consumer evidence, but they do not satisfy the requested Showcase demonstration of every capability. Add a real shared-component demonstration or an explicit coverage decision before full acceptance.",
+    "The new public resolve_responsive_layout adapter method has no public API catalog/coverage declaration in this revision; no catalog.rs/coverage.rs exists in the inspected source tree. Re-establish executable public API coverage rather than claiming this missing gate passed.",
+    "No complete application replacement or frozen-baseline tuiscotti comparison was executed. Controls/facade compatibility does not clear Holla plates or other production bypasses.",
+    "The facade still composes Groups and a fixed SplitPane while the controls adapter exposes raw child rectangles and resizable SplitPane. These adapters are legitimate distinct public contracts after sharing state/mode/clamp; this review does not require erasing either API."
+  ],
+  "fixture_corrections": [
+    "First external build omitted its direct ratatui dependency required by the frozen public example. Both sides failed E0432/E0433 before execution; adding the same manifest dependency fixed this fixture error. Initial failure logs retained. No product source change was made."
+  ],
+  "custody": {
+    "author_copy_written": false,
+    "helpers_spawned": false,
+    "source_or_git_edits": false,
+    "review_fixtures_only": true,
+    "commands_total_deadline_seconds": 205,
+    "copy_limits": "Source archive excludes target/snapshot/baseline/.github paths and nonselected assets. Native scoped commands compile successfully; this is not full workspace/generated-file verification. Author preexisting tracked-target deletions were not restored or staged."
+  },
+  "logs": {
+    "/private/tmp/md2-ababd-native-0.log": "0f65e2fa1edaf0f5621c97c38dcd764293377fddc421bf4469966f4c7e17d7c6",
+    "/private/tmp/md2-after-unicode.log": "ac98bc7381d386ea52001c5a7fb4af1dde64d48e55b3ec7e32291ee3ae6e4a42",
+    "/private/tmp/md2-before-public-final.log": "d112c1a1d5343accfbd6ed2b33c1399f346bf775dbe9a9f2b5d4191d5c659773",
+    "/private/tmp/md2-before-unicode.log": "8a7ce0421750110cc3321a71681abdeb0c13d5f76049c645fb1c6bc0b1103ef9",
+    "/private/tmp/md2-after-public.log": "9df60ad386e3df53cbd476521d27d3c32d6c1112477ee5159561503b333f8920",
+    "/private/tmp/md2-before-public.log": "9e4837eb7771d4df5c302696816e3db35df1ea342d25713ee27c700c87b611d9",
+    "/private/tmp/md2-ababd-fmt.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "/private/tmp/md2-ababd-clippy.log": "67a490a7b233c5919f19e0cc71dff63a6b13b37a88b650f5cc738e9d8129a774",
+    "/private/tmp/md2-after-public-final.log": "52d6465a0441143d3880b0bebc60f535aab8e08f23091ed9efae2986d35df58d"
+  }
+}
