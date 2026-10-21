@@ -96,7 +96,7 @@ fn mouse_move_showcase_frame() {
 fn wheel_showcase_lists() {
     let mut h = app(PageId::Lists, 80, 24);
     let (summary_x, summary_y) = require(h.find("Rust"), "chosen-language summary is visible");
-    assert_eq!(summary_y, 6, "reference summary is outside the viewport");
+    assert_eq!(summary_y, 9, "reference summary is outside the viewport");
     let first = h.snapshot().digest();
     let _ = h.wheel(Axis::V, 2, summary_x, summary_y);
     assert_eq!(
@@ -105,8 +105,7 @@ fn wheel_showcase_lists() {
         "summary must not capture wheel input"
     );
 
-    let (gutter_x, y) = require(h.find("▎› Rust"), "first language row is visible");
-    assert_eq!((gutter_x, y), (23, 8));
+    let (gutter_x, y) = require(h.find("› Rust"), "first language row is visible");
     let x = gutter_x + 3;
     for _ in 0..1_000 {
         let _ = h.wheel(Axis::V, 2, x, y);

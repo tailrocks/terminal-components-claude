@@ -1,0 +1,83 @@
+{
+  "commit": "2ba9652954ee34479288a3d7aa65656e17fecce5",
+  "prior_review_commit": "f761f67b09c0a08fdcf7f9476e46b3175f532866",
+  "status": "Cleared for integration of the bounded Button Mono marker repair and exact rule-contract correction. No remaining actionable findings in this increment. Full library/product acceptance remains incomplete.",
+  "resolved_finding": {
+    "priority": "P2",
+    "previous": "The new marker behavior removed two Button generic Mono rule responses, but the unchanged count guard expected20 and failed.",
+    "correction": "The guard now explicitly pins every one of the20 generic rule identities, the two exact Button exclusions (MARKER,SELECTED) and (MARKER,CHECKED), and all18 retained Button response identities. Retained Button set includes the existing GUTTER FOCUS_VISIBLE substitution for FOCUSED. Other-family expected counts and public generic MONO_RULES_PER_FAMILY=20 remain intact.",
+    "integrity": "Expected identity vectors are explicit literals, not merely a relaxed threshold or a list derived from the implementation exception constant. The exception constant itself is independently compared to the exact two literal identities. No broad count relaxation or removed assertion found."
+  },
+  "production_qualification": "Production bytes are not literally unchanged: the same two exact part/state exclusions moved from a matches expression to a private two-tuple constant and contains lookup. This is semantically equivalent, introduces no allocation/API change, and affects no additional family/state rule. No color quantizer, semantic color selector, input, layout, or application code changed.",
+  "verification": {
+    "native": {
+      "command": "cargo nextest run -p termrock-theme -p termrock-controls --all-targets --offline --no-fail-fast",
+      "exit": 100,
+      "tests_run": 284,
+      "passed": 283,
+      "failed": 1,
+      "skipped": 0,
+      "only_failure": "termrock-theme::capability_palettes all_73_junie_slots_match_reference_capability_output",
+      "count_guard": "mono_rule_counts_match_the_documented_totals passes.",
+      "interpretation": "The retained palette failure remains open; this is not a fully green Theme/library gate. No expected palette data was changed or accepted."
+    },
+    "unchanged_external": {
+      "command": "cargo nextest run --offline --test mono_showcase --test matrix_inert --test button_contract_new --test marker_precedence --test scrollbar --no-fail-fast",
+      "exit": 0,
+      "passed": 17,
+      "failed": 0,
+      "skipped": 0,
+      "coverage": "The same17 probes and source bytes used for f761 review remain unchanged: real Showcase checked marker,24 inert visible state specimens,96 custom/theme/overlay/instance Set/Clear/slot combinations across four profiles and live/inert checked/unchecked states, generic LIST/custom-family markers, and scrollbar Mono regression."
+    },
+    "prior_defect_sensitivity": "Previous immutable review preserved exact immediate-parent3be RED for unchanged real Showcase and new Button marker probes, and f761 GREEN. The correction retains those17 GREEN probes and resolves the new count failure without broadening production exclusions.",
+    "strict_checks": [
+      {
+        "command": "cargo clippy -p termrock-theme -p termrock-controls --all-targets --offline -- -D warnings",
+        "exit": 0
+      },
+      {
+        "command": "cargo fmt --all -- --check",
+        "exit": 0
+      },
+      {
+        "command": "git diff --check f761f67b 2ba9652",
+        "exit": 0
+      }
+    ]
+  },
+  "remaining_open_work": [
+    "Known all73 semantic palette/reference-fixture failure remains unresolved and is not waived.",
+    "Older16-color pressed ladders, focus contract and unused SwitchOff ASCII findings remain separate open work.",
+    "No full four-application paired comparison, hosted CI or full-workspace nextest acceptance claimed.",
+    "Parent must publish, synchronize and run integration gates on the exact resulting remote commit; reviewer did not acquire/bypass any push lock."
+  ],
+  "prior_packet": {
+    "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/branch-consolidation/button-mono-marker-independent-review-f761f67b.json",
+    "sha256": "542660cdc99adb7cfaf0b2ffdd2152ba22446b7328ac09046a6bf504497d1185"
+  },
+  "preservation": {
+    "review_head": "2ba9652954ee34479288a3d7aa65656e17fecce5",
+    "author_copy": "Untouched, including its pre-existing tracked artifact deletions.",
+    "review_artifact_deletions_preserved": 1301,
+    "non_artifact_source_changes": [],
+    "remote_operations": "None; no push, branch deletion, PR closure or reference mutation."
+  },
+  "artifacts": [
+    {
+      "path": "/private/tmp/termrock-button-marker-2ba9652-native.log",
+      "sha256": "7b8c5e19c252cfcfe3dddf53eb7d3b534229d554ee36fad927c8d7ff6db1c391"
+    },
+    {
+      "path": "/private/tmp/termrock-button-marker-2ba9652-external.log",
+      "sha256": "79b2052c82569c1187dc03e0d0eba524b617ff59232fbb73ad1fae53f6def442"
+    },
+    {
+      "path": "/private/tmp/termrock-button-marker-2ba9652-clippy.log",
+      "sha256": "d972bb7bdb43f05faa3c71bec3ebf0cc25512e55bb76132e6022c5285f981bb1"
+    },
+    {
+      "path": "/private/tmp/termrock-button-marker-2ba9652-fullfmt.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ]
+}

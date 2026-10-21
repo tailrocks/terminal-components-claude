@@ -1,0 +1,92 @@
+{
+  "schema": 1,
+  "diagnostic_only": true,
+  "build_admitted": false,
+  "execution_authorized": false,
+  "pinned_rustc_commit": "58cf8f9c35b355199727627d07ae34a4e2846d67",
+  "pinned_cargo_commit": "5f94df4789f005f9a352888e8355ffc645b7ed0e",
+  "constructor_evidence": {
+    "source": "pinned-rust-source/util.rs",
+    "raw_lines": [
+      632,
+      636
+    ],
+    "result": "invocation_temp is generated with rand::rng().next_u32() only when sess.opts.incremental is Some. No save-temps, emit, or debuginfo condition disables that random generation."
+  },
+  "options": [
+    {
+      "name": "Disable incremental compilation with supported Cargo profile/environment control",
+      "control": "CARGO_INCREMENTAL=0 globally, or documented incremental=false profile settings",
+      "effect": "No rustc incremental path should be supplied, so the constructor produces None and does not append random invocation_temp suffix. Actual verbose rustc argv must verify no -C incremental.",
+      "preserve": [
+        "debug assertions",
+        "overflow checks",
+        "panic strategy",
+        "debug information",
+        "optimization and dependency overrides",
+        "intended codegen unit policy"
+      ],
+      "cautions": [
+        "Default codegen units change from256 incremental to16 nonincremental; a global256 override would also change external dependencies previously nonincremental.",
+        "The frozen manifest dependency opt-level=3 must remain unchanged.",
+        "Incremental compilation strategy can affect code generation and object layout. Retaining language-level settings is not proof of identical visual behavior; paired validation remains required."
+      ]
+    },
+    {
+      "name": "Standard profile strip=debuginfo",
+      "effect": "Documented Cargo control maps to rustc strip, independent of debug-assertions. On pinned Darwin rustc, link.rs1530\u20131535 invokes external rust-objcopy --strip-debug after linking.",
+      "cautions": [
+        "Adds an externally invoked tool requiring identity/pinning and raw receipt.",
+        "Changes debug-map/backtrace/debugger artifact semantics; no claim that this is acceptable for the reference build.",
+        "No post-hoc stripping of existing sealed binaries is authorized."
+      ]
+    },
+    {
+      "name": "save-temps or emit changes",
+      "effect": "Not a supported way to disable invocation_temp while incremental remains enabled.",
+      "cautions": [
+        "Object retention/output changes do not remove the constructor random branch.",
+        "Manual relinking, compiler patches, or binary normalization are outside the reviewed recipe."
+      ]
+    }
+  ],
+  "bundled_documentation": [
+    {
+      "source": "/Users/donbeave/.rustup/toolchains/1.99.1-aarch64-apple-darwin/share/doc/rust/html/cargo/reference/profiles.html",
+      "sha256": "2178bd9b63c5be9e3546b765d1ed6aad92efefee50923e4f54dc292b50954773",
+      "snippets": {
+        "CARGO_INCREMENTAL": "dependencies. \n The incremental value can be overridden globally with the  CARGO_INCREMENTAL \n environment variable  or the  build.incremental  config variable. \n codegen-units \n The  codegen-units  setting controls the  -C codegen-units  flag  which\ncontrols how many \u201ccode generation units\u201d a crate will be split into. More\ncode generation units allows more of a crate to be processed in parallel\npossibly reducing compile time, but may produce slower code. \n This option takes an integer greater than 0. \n The default is 256 for  incremental  builds, and 16 for\nnon-incremental builds. \n rpath \n The  rpath  setting contro",
+        "incremental": "he\ndependencies will also be forced to build with the  unwind  strategy. \n incremental \n The  incremental  setting controls the  -C incremental  flag  which controls\nwhether or not incremental compilation is enabled. Incremental compilation\ncauses  rustc  to save additional information to disk which will be reused\nwhen recompiling the crate, improving re-compile times. The additional\ninformation is stored in the  target  directory. \n The valid options are: \n \n true : enabled \n false : disabled \n \n Incremental compilation is only used for workspace members and \u201cpath\u201d\ndependencies. \n The incremental value can be overrid",
+        "strip": "tions of flags\nthus providing better debugging and developer experience. \n strip \n The  strip  option controls the  -C strip  flag , which directs rustc to\nstrip either symbols or debuginfo from a binary. This can be enabled like so: \n [package]\n# ...\n\n[profile.release]\nstrip = \"debuginfo\"\n \n Possible string values of  strip  are  \"none\" ,  \"debuginfo\" , and  \"symbols\" .\nThe default is  \"none\" . \n You can also configure this option with the boolean values  true  or  false .\n strip = true  is equivalent to  strip = \"symbols\" .  strip = false  is\nequivalent to  strip = \"none\"  and disables  strip  completely. \n debug-as",
+        "debug-assertions": "alse  is\nequivalent to  strip = \"none\"  and disables  strip  completely. \n debug-assertions \n The  debug-assertions  setting controls the  -C debug-assertions  flag  which\nturns  cfg(debug_assertions)   conditional compilation  on or off. Debug\nassertions are intended to include runtime validation which is only available\nin debug/development builds. These may be things that are too expensive or\notherwise undesirable in a release build. Debug assertions enables the\n debug_assert!  macro  in the standard library. \n The valid options are: \n \n true : enabled \n false : disabled \n \n overflow-checks \n The  overflow-checks  s"
+      }
+    },
+    {
+      "source": "/Users/donbeave/.rustup/toolchains/1.99.1-aarch64-apple-darwin/share/doc/rust/html/cargo/reference/environment-variables.html",
+      "sha256": "216e37a099fc1ad99e255509abb6b38a4af9f5fd29dbddc35b37d7192208dfc5",
+      "snippets": {
+        "CARGO_INCREMENTAL": "Unit Separator) to pass to all compiler invocations that Cargo performs. \n CARGO_INCREMENTAL  \u2014 If this is set to 1 then Cargo will force  incremental\ncompilation  to be enabled for the current compilation, and when set to 0 it\nwill force disabling it. If this env var isn\u2019t present then cargo\u2019s defaults\nwill otherwise be used. See also  build.incremental  config value. \n CARGO_CACHE_RUSTC_INFO  \u2014 If this is set to 0 then Cargo will not try to cache\ncompiler version information. \n HTTPS_PROXY  or  https_proxy  or  http_proxy  \u2014 The HTTP proxy to use, see\n http.proxy  for more detail. \n HTTP_TIMEOUT  \u2014 The HTTP timeout ",
+        "CARGO_PROFILE_": "fetch-with-cli . \n CARGO_NET_OFFLINE  \u2014 Offline mode, see  net.offline . \n CARGO_PROFILE_<name>_BUILD_OVERRIDE_<key>  \u2014 Override build script profile, see  profile.<name>.build-override . \n CARGO_PROFILE_<name>_CODEGEN_UNITS  \u2014 Set code generation units, see  profile.<name>.codegen-units . \n CARGO_PROFILE_<name>_DEBUG  \u2014 What kind of debug info to include, see  profile.<name>.debug . \n CARGO_PROFILE_<name>_DEBUG_ASSERTIONS  \u2014 Enable/disable debug assertions, see  profile.<name>.debug-assertions . \n CARGO_PROFILE_<name>_INCREMENTAL  \u2014 Enable/disable incremental compilation, see  profile.<name>.incremental . \n CARGO_PRO",
+        "incremental": "erforms. \n CARGO_INCREMENTAL  \u2014 If this is set to 1 then Cargo will force  incremental\ncompilation  to be enabled for the current compilation, and when set to 0 it\nwill force disabling it. If this env var isn\u2019t present then cargo\u2019s defaults\nwill otherwise be used. See also  build.incremental  config value. \n CARGO_CACHE_RUSTC_INFO  \u2014 If this is set to 0 then Cargo will not try to cache\ncompiler version information. \n HTTPS_PROXY  or  https_proxy  or  http_proxy  \u2014 The HTTP proxy to use, see\n http.proxy  for more detail. \n HTTP_TIMEOUT  \u2014 The HTTP timeout in seconds, see  http.timeout  for more\ndetail. \n TERM  \u2014 If thi",
+        "strip": " profile.<name>.split-debuginfo . \n CARGO_PROFILE_<name>_STRIP  \u2014 Controls stripping of symbols and/or debuginfos, see  profile.<name>.strip . \n CARGO_REGISTRIES_<name>_CREDENTIAL_PROVIDER  \u2014 Credential provider for a registry, see  registries.<name>.credential-provider . \n CARGO_REGISTRIES_<name>_INDEX  \u2014 URL of a registry index, see  registries.<name>.index . \n CARGO_REGISTRIES_<name>_TOKEN  \u2014 Authentication token of a registry, see  registries.<name>.token . \n CARGO_REGISTRIES_CRATES_IO_PROTOCOL  \u2014 The protocol used to access  crates.io , see  registries.crates-io.protocol . \n CARGO_REGISTRY_CREDENTIAL_PROVIDER  \u2014 ",
+        "debug-assertions": ">_DEBUG_ASSERTIONS  \u2014 Enable/disable debug assertions, see  profile.<name>.debug-assertions . \n CARGO_PROFILE_<name>_INCREMENTAL  \u2014 Enable/disable incremental compilation, see  profile.<name>.incremental . \n CARGO_PROFILE_<name>_LTO  \u2014 Link-time optimization, see  profile.<name>.lto . \n CARGO_PROFILE_<name>_OVERFLOW_CHECKS  \u2014 Enable/disable overflow checks, see  profile.<name>.overflow-checks . \n CARGO_PROFILE_<name>_OPT_LEVEL  \u2014 Set the optimization level, see  profile.<name>.opt-level . \n CARGO_PROFILE_<name>_PANIC  \u2014 The panic strategy to use, see  profile.<name>.panic . \n CARGO_PROFILE_<name>_RPATH  \u2014 The rpath li"
+      }
+    },
+    {
+      "source": "/Users/donbeave/.rustup/toolchains/1.99.1-aarch64-apple-darwin/share/doc/rust/html/rustc/codegen-options/index.html",
+      "sha256": "2f2fbf14ba0ca6541a90d4166084633eb0d4487c64fa261ae0703d9c9779fe6b",
+      "snippets": {
+        "incremental": "be slower to compile. \n The default value, if not specified, is 16 for non-incremental builds. For\nincremental builds the default is 256 which allows caching to be more granular. \n collapse-macro-debuginfo \n This flag controls whether code locations from a macro definition are collapsed into a single\nlocation associated with that macro\u2019s call site, when generating debuginfo for this crate. \n This option, if passed, overrides both default collapsing behavior and  #[collapse_debuginfo] \nattributes in code. \n \n y ,  yes ,  on ,  true : collapse code locations in debuginfo. \n n ,  no ,  off  or  false : do not collapse co",
+        "strip": " requires using the nightly channel\nwith the  -Z unstable-options  flag. \n strip \n The option  -C strip=val  controls stripping of debuginfo and similar auxiliary\ndata from binaries during linking. \n Supported values for this option are: \n \n none  - debuginfo and symbols are not modified. \n debuginfo  - debuginfo sections and debuginfo symbols from the symbol table\nsection are stripped at link time and are not copied to the produced binary.\nThis should leave backtraces mostly-intact but may make using a debugger like\ngdb or lldb ineffectual. Prior to 1.79, this unintentionally disabled the\ngeneration of  *.pdb  files ",
+        "save-temps": "platform-specific linker argument can be used to set the rpath directly. \n save-temps \n This flag controls whether temporary files generated during compilation are\ndeleted once compilation finishes. It takes one of the following values: \n \n y ,  yes ,  on ,  true  or no value: save temporary files. \n n ,  no ,  off  or  false : delete temporary files (the default). \n \n split-debuginfo \n This option controls the emission of \u201csplit debuginfo\u201d for debug information\nthat  rustc  generates. The default behavior of this option is\nplatform-specific, and not all possible values for this option work on all\nplatforms. Possible ",
+        "debug-assertions": "  no ,  off ,  false : do not enable Control Flow Guard (the default). \n \n debug-assertions \n This flag lets you turn  cfg(debug_assertions)   conditional\ncompilation  on\nor off. It takes one of the following values: \n \n y ,  yes ,  on ,  true , or no value: enable debug-assertions. \n n ,  no ,  off  or  false : disable debug-assertions. \n \n If not specified, debug assertions are automatically enabled only if the\n opt-level  is 0. \n debuginfo \n This flag controls the generation of debug information. It takes one of the\nfollowing values: \n \n 0  or  none : no debug info at all (the default). \n line-directives-only : lin"
+      }
+    }
+  ],
+  "upstream_cargo_source_limit": "Exact Cargo source URLs at5f94df4789f005f9a352888e8355ffc645b7ed0e returned404, preserved in pinned-rust-source/control-sources.json. Bundled documentation belongs to the selected toolchain distribution; do not claim direct Cargo source implementation verification.",
+  "serial_fixed_path_recipe_review": {
+    "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/serial-fixed-path-proposal.json",
+    "sha256": "a095304ca8dfd7528efa9e9fe385f15974d6d4c49c9542bc2817ee2fadb71caf",
+    "conclusion": "Honest narrow diagnostic recipe, not a guarantee of whole-file reproducibility while random invocation_temp remains enabled. No execution was started. It requires independent parent decision or an amended control recipe before second-run ownership proceeds."
+  }
+}

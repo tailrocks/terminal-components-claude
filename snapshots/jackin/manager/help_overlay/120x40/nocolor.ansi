@@ -1,0 +1,41 @@
+[0m[2m  jackin❯    File   Go   Help                                            Workspaces  inside the Construct  ● 2 running  [0m
+[0m[2m                                                                                                                        [0m
+[0m[2m ╭─ Workspaces ────────── 2 running ─╮ │  Current directory · payments-platform                       saved workspace   [0m
+[0m[2m │ [0m [0m[2m   Current directory             │ │  ───────────────────────────────────────────────────────────────────────────   [0m
+[0m[2m │ [0m [0m[2m ▸ payme╭─[0m[1;2m Keyboard shortcuts [0m[2m──────────────────────────────────────────────────────── 1–29 of 30 ─ × ─╮            [0m
+[0m[2m │ [0m [0m[2m ▸ infra│  [0m[1;2mWorkspaces[0m[2m                                   [0m[1;2mInstances[0m[2m                                     ┃│            [0m
+[0m[2m │ [0m [0m[2m ▸ relea│  [0m[1;2m↑↓ j k[0m[2m      move                             [0m[1;2mEnter r[0m[2m     reconnect / restore               ┃│            [0m
+[0m[2m │ [0m [0m[2m ▸ custo│  [0m[1;2m←→ h l[0m[2m      collapse / expand                [0m[1;2ma[0m[2m           new session                       ┃│            [0m
+[0m[2m │ [0m [0m[2m   + New│  [0m[1;2mSpace[0m[2m       fold workspace                   [0m[1;2mx[0m[2m           open shell                        ┃│            [0m
+[0m[2m │          │  [0m[1;2mEnter[0m[2m       launch                           [0m[1;2mi[0m[2m           inspect container                 ┃│y ★ ·       [0m
+[0m[2m │          │  [0m[1;2me[0m[2m           edit workspace                   [0m[1;2mt[0m[2m           stop                              ┃│            [0m
+[0m[2m │          │  [0m[1;2mn[0m[2m           new workspace                    [0m[1;2mp[0m[2m           purge…                            ┃│            [0m
+[0m[2m │          │  [0m[1;2md[0m[2m           delete…                                                                        ┃│            [0m
+[0m[2m │          │  [0m[1;2mw[0m[2m           prewarm                          [0m[1;2mEditor and Settings[0m[2m                           ┃│· 3 s ago   [0m
+[0m[2m │          │  [0m[1;2mo[0m[2m           open in GitHub                   [0m[1;2m←→ 1–5 [ ][0m[2m  switch tab                        ┃│            [0m
+[0m[2m │          │  [0m[1;2m* -[0m[2m         expand / collapse all            [0m[1;2mCtrl+S[0m[2m      save (preview first)              ┃│            [0m
+[0m[2m │          │  [0m[1;2mTab[0m[2m         details                          [0m[1;2mSpace[0m[2m       toggle / cycle                    ┃│            [0m
+[0m[2m │          │                                               [0m[1;2ma e d[0m[2m       add / edit / remove               ┃│            [0m
+[0m[2m │          │  [0m[1;2mEverywhere[0m[2m                                   [0m[1;2mm p s[0m[2m       mask · 1Password · scope          ┃│            [0m
+[0m[2m │          │  [0m[1;2mF5[0m[2m          refresh now                                                                    ┃│            [0m
+[0m[2m │          │                                               [0m[1;2mShell[0m[2m                                         ┃│            [0m
+[0m[2m │          │  [0m[1;2mMouse[0m[2m                                        [0m[1;2ms[0m[2m           Settings                          ┃│            [0m
+[0m[2m │          │  [0m[1;2mclick[0m[2m       select · 2× activates            [0m[1;2mc[0m[2m           Accounts                          ┃│            [0m
+[0m[2m │          │  [0m[1;2mwheel[0m[2m       scroll under pointer             [0m[1;2mu[0m[2m           Usage                             ┃│            [0m
+[0m[2m │          │  [0m[1;2mdrag[0m[2m        seam · scrollbar thumb           [0m[1;2mF1 ?[0m[2m        This reference                    ┃│            [0m
+[0m[2m │          │                                               [0m[1;2mF10 Ctrl+F2[0m[2m Menu bar                          ┃│            [0m
+[0m[2m │          │                                               [0m[1;2mCtrl+PgDn[0m[2m   Next page                         ┃│            [0m
+[0m[2m │          │                                               [0m[1;2mCtrl+PgUp[0m[2m   Previous page                     ┃│            [0m
+[0m[2m │          │                                               [0m[1;2mq[0m[2m           Leave this screen                 ┃│            [0m
+[0m[2m │          │                                               [0m[1;2mTab[0m[2m         Next control                      ┃│            [0m
+[0m[2m │          │                                               [0m[1;2mShift+Tab[0m[2m   Previous control                  ┃│            [0m
+[0m[2m │          │                                               [0m[1;2mEsc[0m[2m         Back                              ┃│            [0m
+[0m[2m │          │                                               [0m[1;2mCtrl+Q[0m[2m      Quit                              ┃│            [0m
+[0m[2m │          │                                               [0m[1;2mCtrl+C[0m[2m      Copy, else quit                   ┆│            [0m
+[0m[2m │          │                                                                                      ▎[0m[1;2mDone [0m[2m  │            [0m
+[0m[2m │          ╰──────────────────────────────────────────────────────────────────────────────────────────────╯            [0m
+[0m[2m │                                   │ │ [0m [0m[2mLaunch   [0m [0m[2mEdit                                                                [0m
+[0m[2m ╰───────────────────────────────────╯ │                                                                                [0m
+[0m[2m                                                                                                                        [0m
+ [0m[1m↑↓ Sc[0mroll  [0m[1mEsc [0mClose [0m[1m [0m       [0m[1m   [0m          [0m[1m [0m           [0m[1m [0m        [0m[1m [0m           [0m[1m [0m       [0m[1m [0m                                   [0m
+[?25l

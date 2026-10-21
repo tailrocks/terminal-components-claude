@@ -1,0 +1,38 @@
+{
+  "commit": "fcb0d8d2fb32859c2aea03c3135fbe42955e9a7b",
+  "tree": "recorded from exact local commit at review start",
+  "remote_published": true,
+  "remote_ref_verified": "origin/wip/nextest-doc-inventory-guard-20261021",
+  "scope": "Independent read-only review in a separate complete detached worktree. No source, manifest, workflow, or generated-file edits; no helper agent or app launched.",
+  "commands": [
+    {
+      "argv": "git worktree add --detach /private/tmp/termrock-nextest-docguard-review-fcb0d8 fcb0d8d2fb32859c2aea03c3135fbe42955e9a7b",
+      "result": "exit 0; complete 94,933-file worktree created"
+    },
+    {
+      "argv": "CARGO_TARGET_DIR=/private/tmp/termrock-docguard-target-fcb0d8 cargo nextest run --locked --offline --manifest-path crates/termrock-xtask/Cargo.toml --package termrock-xtask --test doc_inventory --no-tests fail",
+      "result": "exit 0; 7 passed, 0 skipped, including workspace inventory, prior cfg_attr trivia/include cases, fence and negative fixtures, and new inner/outer nested-doc fixture"
+    },
+    {
+      "argv": "git ls-remote origin refs/heads/wip/nextest-doc-inventory-guard-20261021",
+      "result": "fcb0d8d2fb32859c2aea03c3135fbe42955e9a7b (matches reviewed commit)"
+    }
+  ],
+  "reviewed_fix": "scan_rust_source now tracks nested regular/doc block depth separately; handles /*! as inner Rustdoc block as well as /** outer docs; doc examples survive nested block text; ordinary block comments remain ignored.",
+  "adversarial_coverage": [
+    "Prior cfg_attr newline/comment/nested-comment doc assignment regression fixtures still pass.",
+    "Direct, cfg_attr, multiline cfg_attr, macro-produced doc attribute fixtures still reject.",
+    "Tracked literal include recursion/non-RS .inc coverage exists in doc_inventory unit tests from exact source; dynamic include expressions reject.",
+    "New inner_and_outer_block_doc_examples_survive_nested_comments fixture proves both /*! and /** examples are detected while ordinary non-doc block comments are ignored.",
+    "README negative fixture covers Bash fence/prose; Rust source negatives cover raw and continued cooked strings.",
+    "Full workspace tracked documentation inventory test passes."
+  ],
+  "findings": [],
+  "bounded_decision": "The identified /*! scanner bypass is repaired, and reviewed guard is clear for the bounded doc-inventory objective. This does not approve doctest=false or changes to generated doctest tasks; any such metadata change still requires the separate planned proof/regeneration review. No full product acceptance was performed.",
+  "gaps": [
+    "No independent full xtask suite, strict Clippy, workspace formatting, or Velnor regeneration was run; parent reports exact-HEAD strict Clippy/fmt and 34-test checks.",
+    "No semantic compiled-doc policy decision made.",
+    "Did not reproduce pre-fix red fixture in this read-only review; inspected patch and ran regression test at repaired commit."
+  ],
+  "worktree": "clean and removed after review"
+}

@@ -1,40 +1,40 @@
- ▪  TablePro  Production  ◆ production  acme_prod › public  safe                             16 colors · 120×40  ? help
+  ▪  TablePro  Production  ◆ production  acme_prod › public  ✓ safe                         16 colors · 120×40  ? help
 
   ≡ Query 1 ×                                                                                                       +
  ━━━━━━━━━━━━━━────────────────────────────────────────────────────────────────────────────────────────────────────────
- ╭─ Explorer ─────── public ─╮ ╭─ Query 1 ─────────────────────────────────────────────────────────────────────────  ─╮
- │                           │ │      1 Type SQL. Ctrl+R runs the statement under the cursor.                         │
- │   Filter objects          │ │                                                                                      │
- │  ▾ D acme_pro╭──────────────────────────────────────────────────────────────────────────────────────╮              │
- │ ▎  ▾ S public│ Open Quickly                                                         All · Tab scope │              │
- │      ▾ Tables│ ▎ Search tables, views, schemas, tabs, queries…                                      │              │
+ ╭─ Explorer ─── public   ‹ ─╮│╭─ Query 1 ────────────────────────────────────────────────────────────────────────────╮
+ │                           │││   Run   Run all   Explain                                                            │
+ │   Filter objects          │││      1 Type SQL. Ctrl+R runs the statement under the cursor.                         │
+ │  ▾ D acme_prod            │││                                                                                      │
+ │    ▾ S public             │││                                                                                      │
+ │      ▾ Tables             │││                                                                                      │
+ │        ▸ T or╭──────────────────────────────────────────────────────────────────────────────────────╮              │
+ │        ▸ T cu│ Open Quickly                                                         All · Tab scope │              │
+ │        ▸ T pr│ ▎ Search tables, views, schemas, tabs, queries…                                      │              │
  │        ▸ T or│                                                                                      │              │
- │        ▸ T cu│ ▎T change_log                             audit · Production        Tables         ┃ │              │
- │        ▸ T pr│  T customers                              public · Production                      ┃ │              │
- │        ▸ T or│  T daily_revenue                          analytics · Produc…                      ┃ │              │
- │        ▸ T or│  T events                                 analytics · Produc…                      ┃ │              │
- │        ▸ T pa│  T login_attempts                         audit · Production                       ┃ │              │
- │        ▸ T su│  T order_items                            public · Production                      ┃ │              │
- │      ▸ Views │  T orders                                 public · Production                      ┃ │              │
- │      ▸ Functi│  T organizations                          public · Production                      │ │              │
- │      ▸ Sequen│  T payments                               public · Production                      │ │              │
- │    ▸ S analyt│  T products                               public · Production                      │ │              │
- │    ▸ S audit │  T subscriptions                          public · Production                      │ │              │
- │              │  V active_customers                       public · Production       Views          │ │              │
- │              │  V cohort_retention                       analytics · Produc…                      │ │              │
- │              │ ↑↓ Move · Enter Open · Alt+Enter New tab · Tab Scope · Esc Clear / Close             │              │
+ │        ▸ T or│  T change_log                        audit · Production             Tables         ┃ │              │
+ │        ▸ T pa│  T customers                         public · Production                           ┃ │              │
+ │        ▸ T su│  T daily_revenue                     analytics · Production                        ┃ │───────────── │
+ │      ▸ Views │  T events                            analytics · Production                        ┃ │              │
+ │      ▸ Functi│  T login_attempts                    audit · Production                            ┃ │              │
+ │      ▸ Sequen│  T order_items                       public · Production                           ┃ │              │
+ │    ▸ S analyt│  T orders                            public · Production                           ┃ │              │
+ │    ▸ S audit │  T organizations                     public · Production                           ┆ │              │
+ │              │  T payments                          public · Production                           ┆ │              │
+ │              │  T products                          public · Production                           ┆ │              │
+ │              │  T subscriptions                     public · Production                           ┆ │              │
+ │              │  V active_customers                  public · Production            Views          ┆ │              │
+ │              │  V cohort_retention                  analytics · Production                        ┆ │              │
+ │              │ ↑↓ Move · Enter Open · Alt+Enter New tab · Tab Scope · Esc Clear / Close             │l             │
  │              ╰──────────────────────────────────────────────────────────────────────────────────────╯              │
- │                           │ │                                                                                      │
- │                           │ │              Ctrl+R runs the statement under the cursor · Alt+R runs all             │
- │                           │ │                                                                                      │
- │                           │ │                                                                                      │
- │                           │ │                                                                                      │
- │                           │ │                                                                                      │
- │                           │ │                                                                                      │
- │                           │ │                                                                                      │
- │                           │ │                                                                                      │
- │                           │ │                                                                                      │
- │                           │ │                                                                                      │
- ╰───────────────────────────╯ ╰──────────────────────────────────────────────────────────────────────────────────────╯
+ │                           │││                                                                                      │
+ │                           │││                                                                                      │
+ │                           │││                                                                                      │
+ │                           │││                                                                                      │
+ │                           │││                                                                                      │
+ │                           │││                                                                                      │
+ │                           │││                                                                                      │
+ │                           │││                                                                                      │
+ ╰───────────────────────────╯│╰──────────────────────────────────────────────────────────────────────────────────────╯
 
-                                                                                                Connected to Production
+ Type Filter  ↑↓ Move  Enter Choose  Esc Cancel                                               ✓ Connected to Production

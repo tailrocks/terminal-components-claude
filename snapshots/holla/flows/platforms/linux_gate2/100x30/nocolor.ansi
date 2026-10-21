@@ -1,0 +1,31 @@
+[0m[2m  holla❯    File   Go   Help                                            no project  devbox · local  [0m
+[0m[2m  Here › Cleanup › Review                                                                           [0m
+[0m[2m  Here › Cl╭──────────────────────────────────────────────────────────────────────── × ─╮           [0m
+[0m[2m ━━━━━━━━━━│                                                                            │────────── [0m
+[0m[2m  Review · │  [0m[1;2mTrash 1 items · gate 2 of 2[0m[2m                                               │tely       [0m
+[0m[2m           │                                                                            │           [0m
+[0m[2m  Action   │  [0mAction        move to Trash 1 item under ~                              [0m[2m ┃│        ┃  [0m
+[0m[2m  Host     │  [0mHost          devbox · local                                            [0m[2m ┃│        ┃  [0m
+[0m[2m  Mode     │  [0mMode          Trash · no Trash backend · every item will fail, never    [0m[2m ┃│returns ┃  [0m
+[0m[2m           │  [0m              fall back · space returns after the Trash is emptied      [0m[2m ┃│        ┃  [0m
+[0m[2m  Estimate │  [0mEstimate      124.0 KiB allocated · APFS clones may overcount ·         [0m[2m ┃│d · not ┃  [0m
+[0m[2m           │  [0m              purgeable space excluded · not a free-space guarantee     [0m[2m ┃│        ┃  [0m
+[0m[2m  Denied   │  [0mDenied        none · every path passed the lexical, protected-root,     [0m[2m ┃│nk      ┃  [0m
+[0m[2m           │  [0m              user-data and symlink rules                               [0m[2m ┃│        ┃  [0m
+[0m[2m  Revision │  [0mRevision      c4d729e20ca0805b · any change to paths, mode or dry run   [0m[2m ┃│        ┃  [0m
+[0m[2m  Threat mo│  [0m              voids this review                                         [0m[2m ┃│ rename ┃  [0m
+[0m[2m           │  [0mThreat model  an unprivileged user · ancestors are re-resolved at commit[0m[2m ┃│        ┃  [0m
+[0m[2m  Paths    │  [0m              · a concurrent rename of the final path cannot be excluded[0m[2m ┃│        ┆  [0m
+[0m[2m  Recoverab│  [0mPaths         ~/Projects/app/node_modules                               [0m[2m ┃│        ┆  [0m
+[0m[2m           │  [0m                                                                        [0m[2m ┆│           [0m
+[0m[2m ╭─ Sequenc│  ↓ 1 more                                                                  │ copies ─╮ [0m
+[0m[2m │  01  tra│  [0m[1;2mType TRASH 1 UNDER /home/alex ON devbox to confirm                      [0m[2m  │         │ [0m
+[0m[2m │         │[0m[1;2;7m▎                                                                         [0m[2m  │         │ [0m
+[0m[2m │         │                                                                            │         │ [0m
+[0m[2m ╰─────────│                                                        Cancel    Execute   │─────────╯ [0m
+[0m[2m           │                                                                            │           [0m
+[0m[2m           ╰─────────────────────────────────────────────────────────────────[0m─[0m[2m─────────[0m─[0m[2m╯ontinue…   [0m
+[0m[2m                                                                                                    [0m
+[0m[2m ~/work/box                         review · gate 1 of 2                          no color · 100×30 [0m
+ [0m[1m EDIT [0m  [0m[1mEsc[0m Cancel [0m[1m …   [0m           [0m[1m   [0m       [0m[1m   [0m                       1 item selected · 124.0 KiB [0m
+[?25h[23;15H[6 q

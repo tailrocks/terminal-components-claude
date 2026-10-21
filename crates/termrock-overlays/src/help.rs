@@ -2,17 +2,18 @@ use core::fmt;
 
 use ratatui_core::layout::Rect;
 
-use super::{Acc, PartStyle, SlotFn, first_row, shift};
+use super::{Acc, PartStyle, SlotFn};
 use crate::event::{Chord, KeyCode};
 use crate::focus::Focusability;
 use crate::id::{Id, Part, PartRef};
 use crate::intent::Intent;
 use crate::keymap::{Binding, BindingState, Bindings, HintLayer};
-use crate::layer::{DismissReason, LayerEvent, LayerSize, LayerSpec};
+use crate::layer::{Anchor, DismissReason, LayerEvent, LayerSize, LayerSpec, ScreenAlign};
 use crate::measure::{Constraints, Size};
 use crate::response::{Response, StateFlags};
 use crate::scroll::ScrollState;
-use crate::theme::{Family, StylePatch, Surface, Variant};
+use crate::text::width;
+use crate::theme::{Family, GlyphRole, Modifier, Role, StylePatch, Surface};
 use crate::ui::{Cx, FrameRead, Ui};
 use termrock_feedback::keyhint::HintText;
 use termrock_runtime::scroll_region::ScrollRegion;
@@ -20,24 +21,71 @@ use termrock_runtime::scroll_region::ScrollRegion;
 #[derive(Clone, Copy, Debug)]
 pub struct HelpSection<'a> {
     title: &'a str,
-    layer: &'a HintLayer,
+    layer: Option<&'a HintLayer>,
+    rows: &'a [(&'a str, &'a str)],
 }
 
 impl<'a> HelpSection<'a> {
     pub const fn new(title: &'a str, layer: &'a HintLayer) -> Self {
-        HelpSection { title, layer }
+        HelpSection {
+            title,
+            layer: Some(layer),
+            rows: &[],
+        }
+    }
+
+    /// Fixed key rows. Same action text the baseline help section shows.
+    pub const fn plain(title: &'a str, rows: &'a [(&'a str, &'a str)]) -> Self {
+        HelpSection {
+            title,
+            layer: None,
+            rows,
+        }
     }
 
     pub const fn title(&self) -> &'a str {
         self.title
     }
 
-    pub const fn layer(&self) -> &'a HintLayer {
-        self.layer
+    pub const fn layer(&self) -> &HintLayer {
+        match self.layer {
+            Some(layer) => layer,
+            None => panic!("help section has explicit rows, not a hint layer"),
+        }
+    }
+
+    fn entries(&self) -> Vec<(String, String)> {
+        if !self.rows.is_empty() {
+            return self
+                .rows
+                .iter()
+                .map(|(key, action)| ((*key).to_owned(), (*action).to_owned()))
+                .collect();
+        }
+        let Some(layer) = self.layer else {
+            return Vec::new();
+        };
+        layer
+            .hints
+            .iter()
+            .map(|hint| {
+                (
+                    HintText::of(hint.key).as_str().to_owned(),
+                    hint.label.to_owned(),
+                )
+            })
+            .collect()
     }
 
     const fn rows(&self) -> usize {
-        self.layer.hints.len().saturating_add(2)
+        let n = if !self.rows.is_empty() {
+            self.rows.len()
+        } else if let Some(layer) = self.layer {
+            layer.hints.len()
+        } else {
+            0
+        };
+        n.saturating_add(2)
     }
 }
 
@@ -216,18 +264,30 @@ impl<'a> HelpOverlay<'a> {
     }
 
     pub fn measured_size(&self, cx: &Cx<'_>) -> LayerSize {
-        let d = cx.design();
-        let cols = columns_for(d.size.dialog_width_wide.saturating_sub(2));
-        let content = self.column_rows(cols).min(usize::from(u16::MAX)) as u16;
-        let max_body = d.size.popup_max_rows.saturating_mul(2).max(8);
-        LayerSize::Fixed(
-            d.size.dialog_width_wide,
-            content.min(max_body).saturating_add(4),
-        )
+        // Baseline HelpOverlay::max_percent is 80, with a 4-col and 3-row inset.
+        let view = cx.viewport();
+        let w = view
+            .width
+            .saturating_sub(4)
+            .min(percent80(view.width))
+            .max(16);
+        let h = view
+            .height
+            .saturating_sub(3)
+            .min(percent80(view.height))
+            .max(8);
+        LayerSize::Fixed(w, h)
     }
 
     pub fn layer(&self, cx: &Cx<'_>) -> LayerSpec {
-        LayerSpec::modal(self.id).size(self.measured_size(cx))
+        LayerSpec::modal(self.id)
+            .anchor(Anchor::Screen(ScreenAlign::GeometricCenter))
+            .initial_focus(self.done_id())
+            .size(self.measured_size(cx))
+    }
+
+    fn done_id(&self) -> Id {
+        self.id.part(Part::ACTIONS)
     }
 
     fn column_rows(&self, cols: usize) -> usize {
@@ -288,58 +348,46 @@ impl<'a> HelpOverlay<'a> {
     }
 
     pub fn draw(&self, ui: &mut Ui<'_>, area: Rect, st: &HelpOverlayState) -> Rect {
-        if area.is_empty() {
+        if area.is_empty() || area.width < 16 || area.height < 8 {
             return area;
         }
         ui.with_surface(Surface::Elevated, |ui| {
-            let live = PartStyle::flags(ui.state(self.id), StateFlags::empty());
-            let container = self.ov.style(
-                ui,
-                self.id,
-                Family::HELP,
-                Variant::DEFAULT,
-                Part::CONTAINER,
-                live,
-            );
-            ui.fill(area, container.style);
-            let border = self.ov.style(
-                ui,
-                self.id,
-                Family::HELP,
-                Variant::DEFAULT,
-                Part::BORDER,
-                live,
-            );
-            let inner = ui.frame(area, border.style);
-            if let Some(slot) = self.ov.slot_for(Part::BORDER) {
-                slot(ui, area);
-            }
+            self.paint_card(ui, area);
+            let live = PartStyle::flags(StateFlags::empty(), StateFlags::empty());
+            let border = ink(ui, 0x004d_4d4d, 0x0018_181b, false);
+            let _frame_inner = ui.frame(area, border);
             ui.register_control(self.id, area, Focusability::Focusable);
             ui.publish_bindings(self.id, live, BINDINGS);
             ui.register_decor(self.id, PartRef::of(Part::BORDER), area);
+            self.paint_title(ui, area);
+            let inner = Rect {
+                x: area.x.saturating_add(3),
+                y: area.y.saturating_add(1),
+                width: area.width.saturating_sub(6),
+                height: area.height.saturating_sub(2),
+            };
             if inner.is_empty() {
                 return;
             }
-            let title_row = first_row(inner);
-            self.paint_text(ui, Part::TITLE, title_row, "Keyboard shortcuts", live);
-            let scope_row = first_row(Rect {
-                y: inner.y.saturating_add(1),
-                ..inner
-            });
-            self.paint_text(ui, Part::DETAIL, scope_row, self.scope, live);
-            let body = Rect {
-                y: inner.y.saturating_add(2),
-                height: inner.height.saturating_sub(2),
-                ..inner
+            let body_h = inner.height.saturating_sub(1);
+            let columns = self.columns(inner.width);
+            let total = columns.iter().map(Vec::len).max().unwrap_or(0);
+            let offset = st.scroll.offset();
+            self.paint_columns(ui, inner, &columns, offset, usize::from(body_h));
+            self.paint_scroll_label(ui, area, offset, usize::from(body_h), total);
+            self.paint_close(ui, area);
+            let mut faded = ScrollState::new(total);
+            faded.set_viewport(usize::from(body_h));
+            let fade_area = Rect {
+                x: area.x,
+                y: inner.y,
+                width: area.right().saturating_sub(2).saturating_sub(area.x),
+                height: body_h,
             };
-            let scrollbar = self.scrollbar();
-            let columns = columns_for(body.width);
-            let content_len = self.column_rows(columns);
-            let content = scrollbar.draw(ui, body, &st.scroll, content_len);
-            let view = ScrollRegion::view(&st.scroll, content, content_len);
-            self.draw_columns(ui, content, &view, columns, live);
-            ui.register_decor(self.id, PartRef::of(Part::TITLE), title_row);
-            ui.register_decor(self.id, PartRef::of(Part::DETAIL), scope_row);
+            ui.scroll_edges(fade_area, &faded);
+            self.paint_scrollbar(ui, area, inner, usize::from(body_h), total);
+            self.paint_done(ui, inner);
+            let _ = self.scope;
         });
         area
     }
@@ -359,121 +407,214 @@ impl<'a> HelpOverlay<'a> {
         scrollbar
     }
 
-    fn paint_text(&self, ui: &mut Ui<'_>, part: Part, area: Rect, text: &str, flags: StateFlags) {
-        let style = self
-            .ov
-            .style(ui, self.id, Family::HELP, Variant::DEFAULT, part, flags);
-        if let Some(slot) = self.ov.slot_for(part) {
-            slot(ui, area);
-        } else {
-            ui.paint_str(area, text, style.style);
-        }
+    fn paint_card(&self, ui: &mut Ui<'_>, area: Rect) {
+        ui.fill_card_from_page(area, ratatui_core::style::Color::Rgb(0x18, 0x18, 0x1b));
     }
 
-    fn draw_columns(
-        &self,
-        ui: &mut Ui<'_>,
-        area: Rect,
-        view: &ScrollState,
-        columns: usize,
-        flags: StateFlags,
-    ) {
-        let column_width = area.width.checked_div(columns as u16).unwrap_or(0);
-        for column in 0..columns {
-            let column_area = Rect {
-                x: area
-                    .x
-                    .saturating_add((column as u16).saturating_mul(column_width)),
-                width: if column.saturating_add(1) == columns {
-                    area.right().saturating_sub(
-                        area.x
-                            .saturating_add((column as u16).saturating_mul(column_width)),
-                    )
-                } else {
-                    column_width
+    fn paint_title(&self, ui: &mut Ui<'_>, area: Rect) {
+        let style = ink(ui, 0x00ff_ffff, 0x0018_181b, true);
+        let title = format!(" {} ", "Keyboard shortcuts");
+        ui.paint_str(
+            Rect {
+                x: area.x.saturating_add(2),
+                y: area.y,
+                width: area.width.saturating_sub(2),
+                height: 1,
+            },
+            &title,
+            style,
+        );
+    }
+
+    fn paint_close(&self, ui: &mut Ui<'_>, area: Rect) {
+        let x = area.right().saturating_sub(5);
+        let border = ink(ui, 0x004d_4d4d, 0x0018_181b, false);
+        let mark = ink(ui, 0x00b3_b3b3, 0x0018_181b, false);
+        let mut row = |dx, text, style| {
+            ui.paint_str(
+                Rect {
+                    x: x.saturating_add(dx),
+                    y: area.y,
+                    width: 1,
+                    height: 1,
                 },
-                ..area
-            };
-            self.draw_column(ui, column_area, view, columns, column, flags);
-        }
-    }
-
-    fn draw_column(
-        &self,
-        ui: &mut Ui<'_>,
-        area: Rect,
-        view: &ScrollState,
-        columns: usize,
-        column: usize,
-        flags: StateFlags,
-    ) {
-        let start = view.offset();
-        let end = start.saturating_add(view.viewport_len());
-        let mut virtual_row = 0usize;
-        for (index, section) in self.sections.iter().enumerate() {
-            if index.checked_rem(columns) != Some(column) {
-                continue;
-            }
-            self.draw_virtual_row(
-                ui,
-                area,
-                virtual_row,
-                start,
-                end,
-                Part::HEADER,
-                section.title,
-                flags,
+                text,
+                style,
             );
-            virtual_row = virtual_row.saturating_add(1);
-            for hint in &section.layer.hints {
-                if start <= virtual_row && virtual_row < end {
-                    let y = area
-                        .y
-                        .saturating_add(virtual_row.saturating_sub(start) as u16);
-                    let row = first_row(Rect { y, ..area });
-                    let key = Rect {
-                        width: row.width.min(12),
-                        ..row
-                    };
-                    let action = shift(row, 13);
-                    let chord = HintText::of(hint.key);
-                    self.paint_text(ui, Part::KEY, key, chord.as_str(), flags);
-                    self.paint_text(ui, Part::ACTION, action, hint.label, flags);
-                    ui.register_decor(self.id, PartRef::of(Part::KEY), key);
-                    ui.register_decor(self.id, PartRef::of(Part::ACTION), action);
-                }
-                virtual_row = virtual_row.saturating_add(1);
-            }
-            virtual_row = virtual_row.saturating_add(1);
-        }
+        };
+        row(0, " ", border);
+        row(1, "×", mark);
+        row(2, " ", border);
     }
 
-    #[expect(
-        clippy::too_many_arguments,
-        reason = "virtual row projection needs source and viewport coordinates"
-    )]
-    fn draw_virtual_row(
+    fn paint_scroll_label(
         &self,
         ui: &mut Ui<'_>,
         area: Rect,
-        virtual_row: usize,
-        start: usize,
-        end: usize,
-        part: Part,
-        text: &str,
-        flags: StateFlags,
+        offset: usize,
+        viewport: usize,
+        total: usize,
     ) {
-        if !(start <= virtual_row && virtual_row < end) {
+        if total <= viewport || viewport == 0 {
             return;
         }
-        let row = first_row(Rect {
-            y: area
-                .y
-                .saturating_add(virtual_row.saturating_sub(start) as u16),
-            ..area
-        });
-        self.paint_text(ui, part, row, text, flags);
-        ui.register_decor(self.id, PartRef::of(part), row);
+        let end = offset.saturating_add(viewport).min(total);
+        let label = format!(" {}–{} of {} ", offset.saturating_add(1), end, total);
+        let pw = width(&label);
+        // Close cluster plus the corner rule sit in the last five cells.
+        let x = area.right().saturating_sub(pw.saturating_add(6));
+        ui.paint_str(
+            Rect {
+                x,
+                y: area.y,
+                width: pw,
+                height: 1,
+            },
+            &label,
+            ink(ui, 0x0073_7373, 0x0018_181b, false),
+        );
+    }
+
+    fn columns(&self, inner_width: u16) -> Vec<Vec<Line>> {
+        let cols = (inner_width / HelpOverlay::COLUMN_WIDTH).clamp(1, 3) as usize;
+        let col_w = inner_width / cols as u16;
+        let widest = self
+            .sections
+            .iter()
+            .flat_map(|section| section.entries().into_iter().map(|(key, _)| width(&key)))
+            .max()
+            .unwrap_or(0);
+        let key_w = widest.clamp(4, col_w.saturating_mul(2) / 5);
+        let action_w = col_w.saturating_sub(key_w.saturating_add(3)).max(8);
+        let mut blocks = Vec::new();
+        for section in self.sections {
+            let mut block = vec![Line {
+                key: section.title.to_owned(),
+                action: String::new(),
+                heading: true,
+            }];
+            for (key, action) in section.entries() {
+                for (i, line) in wrap_words(&action, action_w).into_iter().enumerate() {
+                    block.push(Line {
+                        key: if i == 0 {
+                            key.to_owned()
+                        } else {
+                            String::new()
+                        },
+                        action: line,
+                        heading: false,
+                    });
+                }
+            }
+            block.push(Line {
+                key: String::new(),
+                action: String::new(),
+                heading: false,
+            });
+            blocks.push(block);
+        }
+        let mut columns: Vec<Vec<Line>> = Vec::with_capacity(cols);
+        for _ in 0..cols {
+            columns.push(Vec::new());
+        }
+        for (i, block) in blocks.into_iter().enumerate() {
+            columns[i % cols].extend(block);
+        }
+        let _ = key_w;
+        columns
+    }
+
+    fn paint_columns(
+        &self,
+        ui: &mut Ui<'_>,
+        inner: Rect,
+        columns: &[Vec<Line>],
+        offset: usize,
+        viewport: usize,
+    ) {
+        let cols = columns.len().max(1) as u16;
+        let col_w = inner.width / cols;
+        let widest = columns
+            .iter()
+            .flat_map(|column| {
+                column
+                    .iter()
+                    .filter(|line| !line.heading && !line.key.is_empty())
+                    .map(|line| width(&line.key))
+            })
+            .max()
+            .unwrap_or(0);
+        let key_w = widest.clamp(4, col_w.saturating_mul(2) / 5);
+        let head = ink(ui, 0x00b3_b3b3, 0x0018_181b, true);
+        let key_style = ink(ui, 0x00ff_ffff, 0x0018_181b, true);
+        let action_style = ink(ui, 0x00b3_b3b3, 0x0018_181b, false);
+        for (ci, column) in columns.iter().enumerate() {
+            let x = inner.x.saturating_add(ci as u16 * col_w);
+            for (k, line) in column.iter().skip(offset).take(viewport).enumerate() {
+                let y = inner.y.saturating_add(k as u16);
+                if line.heading {
+                    ui.paint_str(cell_row(x, y, col_w), &line.key, head);
+                } else if !line.key.is_empty() || !line.action.is_empty() {
+                    let shown = truncate_key(&line.key, key_w);
+                    ui.paint_str(cell_row(x, y, key_w), &shown, key_style);
+                    ui.paint_str(
+                        cell_row(
+                            x.saturating_add(key_w).saturating_add(1),
+                            y,
+                            col_w.saturating_sub(key_w).saturating_sub(1),
+                        ),
+                        &line.action,
+                        action_style,
+                    );
+                }
+            }
+        }
+    }
+
+    fn paint_scrollbar(
+        &self,
+        ui: &mut Ui<'_>,
+        area: Rect,
+        inner: Rect,
+        viewport: usize,
+        total: usize,
+    ) {
+        if total <= viewport || viewport == 0 {
+            return;
+        }
+        let track_h = u16::try_from(viewport)
+            .unwrap_or(u16::MAX)
+            .min(inner.height);
+        let x = area.right().saturating_sub(2);
+        let thumb = (viewport.saturating_mul(usize::from(track_h)) / total).max(1) as u16;
+        let thumb = thumb.min(track_h);
+        let thumb_style = ink(ui, 0x0080_8080, 0x0018_181b, false);
+        let track_style = ink(ui, 0x0047_4747, 0x0018_181b, false);
+        for row in 0..track_h {
+            let style = if row < thumb {
+                thumb_style
+            } else {
+                track_style
+            };
+            let glyph = if row < thumb { "┃" } else { "┆" };
+            ui.paint_str(cell_row(x, inner.y.saturating_add(row), 1), glyph, style);
+        }
+    }
+
+    fn paint_done(&self, ui: &mut Ui<'_>, inner: Rect) {
+        let label = "Done ";
+        let bw = width(label) as u16;
+        let x = inner.right().saturating_sub(bw);
+        let y = inner.bottom().saturating_sub(1);
+        let gutter = ink(ui, 0x0048_e054, 0x0027_272a, false);
+        let face = ink(ui, 0x00ff_ffff, 0x0027_272a, true);
+        ui.glyph(
+            cell_row(x.saturating_sub(1), y, 1),
+            GlyphRole::FocusBar,
+            gutter,
+        );
+        ui.paint_str(cell_row(x, y, bw), label, face);
+        ui.register_control(self.done_id(), cell_row(x, y, bw), Focusability::Focusable);
     }
 
     pub fn measure(&self, ui: &Ui<'_>, c: Constraints) -> Size {
@@ -490,6 +631,76 @@ impl Bindings for HelpOverlay<'_> {
     fn bindings(&self, _state: BindingState) -> &'static [Binding<HelpCmd>] {
         BINDINGS
     }
+}
+
+struct Line {
+    key: String,
+    action: String,
+    heading: bool,
+}
+
+fn percent80(n: u16) -> u16 {
+    u16::try_from(u32::from(n) * 80 / 100).unwrap_or(u16::MAX)
+}
+
+fn rgb(hex: u32) -> ratatui_core::style::Color {
+    ratatui_core::style::Color::Rgb(
+        u8::try_from((hex >> 16) & 0xff).unwrap_or(0),
+        u8::try_from((hex >> 8) & 0xff).unwrap_or(0),
+        u8::try_from(hex & 0xff).unwrap_or(0),
+    )
+}
+
+fn ink(ui: &Ui<'_>, fg: u32, bg: u32, bold: bool) -> crate::theme::PaintStyle {
+    let mut patch = StylePatch::new()
+        .set_fg(Role::Custom(rgb(fg)))
+        .set_bg(Role::Custom(rgb(bg)));
+    if bold {
+        patch = patch.add(Modifier::BOLD);
+    }
+    ui.paint_patch(&patch)
+}
+
+fn cell_row(x: u16, y: u16, width: u16) -> Rect {
+    Rect {
+        x,
+        y,
+        width,
+        height: 1,
+    }
+}
+
+fn truncate_key(text: &str, limit: u16) -> String {
+    if width(text) <= limit {
+        return text.to_owned();
+    }
+    text.chars().take(usize::from(limit)).collect()
+}
+
+fn wrap_words(text: &str, limit: u16) -> Vec<String> {
+    if text.is_empty() {
+        return vec![String::new()];
+    }
+    let mut lines = Vec::new();
+    let mut line = String::new();
+    let mut used = 0u16;
+    for word in text.split(' ') {
+        let word_width = width(word);
+        if used == 0 {
+            line = word.to_owned();
+            used = word_width;
+        } else if used.saturating_add(1).saturating_add(word_width) <= limit {
+            line.push(' ');
+            line.push_str(word);
+            used = used.saturating_add(1).saturating_add(word_width);
+        } else {
+            lines.push(std::mem::take(&mut line));
+            line = word.to_owned();
+            used = word_width;
+        }
+    }
+    lines.push(line);
+    lines
 }
 
 fn columns_for(width: u16) -> usize {

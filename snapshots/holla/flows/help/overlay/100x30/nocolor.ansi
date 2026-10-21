@@ -1,0 +1,31 @@
+[0m[2m  holla❯    File   Go   Help                                     holla · Rust project  mbp · local  [0m
+[0m[2m                                                                                                    [0m
+[0m[2m  Here                                                                                              [0m
+[0m[2m ━━━━━━━──╭─[0m[1;2m Key reference [0m[2m───────────────────────────────────────────── 1–21 of 37 ─ × ─╮───────── [0m
+[0m[2m [0m [0m[2m Search │  [0m[1;2mFinder[0m[2m                               [0m[1;2mPages[0m[2m                                 ┃│‹ here ›  [0m
+[0m[2m          │  [0m[1;2mType[0m[2m           search actions and    [0m[1;2mDisk[0m[2m           ↑↓ move · Space        ┃│          [0m
+[0m[2m    Sugges│                 resources together ·                 select · a all ·       ┃│          [0m
+[0m[2m  › Inspec│                 @parent @children                    Enter drill · c        ┃│          [0m
+[0m[2m    Pull  │                 @system @all narrow                  cleanup plan · p       ┃│          [0m
+[0m[2m    Review│                 the scope                            details                ┃│          [0m
+[0m[2m    Run te│  [0m[1;2m↑↓[0m[2m             move · PgUp PgDn      [0m[1;2mPlan review[0m[2m    Space include or       ┃│          [0m
+[0m[2m    Who is│                 Home End                             exclude · u undo ·     ┃│          [0m
+[0m[2m          │  [0m[1;2mEnter[0m[2m          primary action ·                     Enter step facts · c   ┃│          [0m
+[0m[2m    Recent│                 destructive rows                     confirm                ┃│          [0m
+[0m[2m    nothin│                 open a review         [0m[1;2mGates[0m[2m          Gate 1 reviews facts   ┃│          [0m
+[0m[2m          │                 instead                              and the full           ┆│          [0m
+[0m[2m    Explor│  [0m[1;2mAlt+Enter[0m[2m      alternatives · run,                  sequence · Gate 2      ┆│          [0m
+[0m[2m [0m [0m[2m   Tasks│                 copy, insert,                        types the              ┆│          [0m
+[0m[2m    System│                 arguments, pin,                      target-bound phrase    ┆│          [0m
+[0m[2m          │                 alias, hide, why                                            ┆│          [0m
+[0m[2m          │  [0m[1;2mTab[0m[2m            preview › tab strip   [0m[1;2mEverywhere[0m[2m                            ┆│          [0m
+[0m[2m          │                 › finder              [0m[1;2mAlt+0[0m[2m          Here                   ┆│          [0m
+[0m[2m          │  [0m[1;2mCtrl+↑ / Ctrl…[0m[2m scope outward         [0m[1;2mCtrl+W[0m[2m         Close tab              ┆│          [0m
+[0m[2m          │                 (parent, system) /    [0m[1;2mCtrl+G[0m[2m         Activities             ┆│          [0m
+[0m[2m          │                 inward (children)     [0m[1;2mF1 ?[0m[2m           This reference         ┆│          [0m
+[0m[2m          │                                                                      ▎[0m[1;2mDone [0m[2m  │          [0m
+[0m[2m    → 'hol╰──────────────────────────────────────────────────────────────────────────────╯          [0m
+[0m[2m                                                                                                    [0m
+[0m[2m ~/work/holla   main   ↓3   • 5                                                   no color · 100×30 [0m
+ [0m[1m↑↓ S[0mcroll  [0m[1mEsc [0mClose  [0m[1m     [0m       [0m[1m         [0m                [0m[1m   [0m          [0m[1m       [0m                    [0m
+[?25l

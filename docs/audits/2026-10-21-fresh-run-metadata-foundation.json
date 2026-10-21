@@ -1,0 +1,53 @@
+{
+  "schema": "termrock.frozen-cli-fresh-run-metadata-foundation",
+  "schema_version": 1,
+  "status": "review-findings-fixed-awaiting-independent-rereview-no-capture-performed",
+  "scope": "Stage 3A metadata and receipt-validation foundation only. No application was launched; no baseline frame or ordinary check was captured or replayed.",
+  "plan_binding": {
+    "required_creation_digest": "Externally supplied SHA-256 from fresh-plan publication; plan bytes are revalidated through the no-follow stable reader and current source/tool/inventory verification.",
+    "manifest_bindings": ["plan creation and self digests", "cohort ID and four binary digests", "frozen source paths and digests", "runner and harness input digests", "runtime environment/tool fingerprint", "inventory digest and counts"],
+    "manifest_status": "prepared-metadata-only",
+    "execution_privileges": {"executed": false, "candidate_comparison_eligible": false, "checkpoint_reference_approval": "none", "product_acceptance": false}
+  },
+  "custody": {
+    "key": "32 random bytes created with O_EXCL and O_NOFOLLOW, mode 0600, single-link regular file inside an owned mode-0700 custody directory outside Git, source, binaries, and capture artifacts.",
+    "directory_access": "Custody path components are opened without following links; directory ownership, mode, and identity are checked on create and verify. The owned custody directory is mode 0700 and the key is mode 0600. Existing unsafe directories fail closed and are not chmodded.",
+    "git_boundary": "Both the worktree Git directory and actual Git common directory are discovered with git rev-parse and excluded, including linked worktrees.",
+    "disclosure": "Key bytes are absent from manifest, logs, environment, and receipt output. Verification checks stable file and directory identity and permissions.",
+    "publication": "Run directory is claimed with exclusive mkdir; manifest is published atomically without replacement and directory-fsynced. Existing run roots and keys are preserved and rejected."
+  },
+  "receipt_validation": {
+    "implemented": "Pure HMAC receipt-chain validator securely reads the externally anchored immutable plan, derives the nonempty ordered phases/chunks/cases from its complete inventory, checks the manifest plan and inventory binding, then checks no duplicate or skipped cases, predecessor digests, current run/cohort/source/binary/runtime bindings, and nonzero visual checkpoints or ordinary assertions. An empty receipt prefix remains incomplete even if a malformed caller proposes no steps.",
+    "trust_boundary": "No CLI command accepts or signs arbitrary outcomes. No journal writer, phase advance, capture, replay, or finalization command is exposed in this increment.",
+    "partial_prefix": "A valid authenticated prefix reports incomplete and cannot imply full inventory completion or acceptance. Failed, skipped, zero-checkpoint, stale, malformed, or reordered receipts are rejected."
+  },
+  "verification": {
+    "python_unittest": "python3 -m unittest tools.test_frozen_baseline — 67 passed",
+    "py_compile": "python3 -m py_compile tools/frozen_baseline.py tools/test_frozen_baseline.py — passed",
+    "cli_help": ["fresh-run-init", "fresh-run-verify"],
+    "diff_check": "git diff --check — passed"
+  },
+  "remaining_gates": [
+    "Independent exact-commit review is required before any phase advancement implementation.",
+    "Future advancement must use the pinned tuiscotti harness and verify signed per-process launch and close receipts, nonzero ordered checkpoints, expected artifact immutability, and pre/post source/binary/environment identities.",
+    "The fresh capture cohort grants no candidate comparison or checkpoint reference approval; existing reference conflicts remain unresolved and red."
+  ],
+  "independent_review_followup": {
+    "reviewed_commit": "ee879b2fc97ca1cf37b5ce010f218c72beed17c6",
+    "review_packet_sha256": "b67e932efbfa55721237cd5398d1466ca69f8ac3abd716a4a591cb08523ad3f5",
+    "fixed_findings": ["enforce owned stable 0700 custody and 0600 key; exclude actual worktree/common Git directories", "derive authenticated journal steps from externally anchored immutable plan and inventory; reject empty or arbitrary completion claims"],
+    "repaired_commit_actual_prepare_only_evidence": {
+      "path": "external:stage3a-custody-fix-7ecf70/actual-prepare-proof.json",
+      "sha256": "d39dd5a7daad225acdca56773c1f77bf8a06eb73a5c5f099d943fa419ac9cb20",
+      "runner_commit": "7ecf708de7652306adaaaa6fbe05e7724876b208",
+      "plan_creation_sha256": "e572938fe1f9d9545d42fa6250bcbab6b75752bdbc7ee259cd2246f73abec908",
+      "plan_sha256": "c51fb157f5bb29e68c1ae1f7abbd149fa3ee9cb135bdf417b827b7a441272f6a",
+      "run_manifest_sha256": "df4f84f0edff220d69f0e023300b16e7306f5836a145ee3a29267fc5a20198c2",
+      "visual_cases": 29069,
+      "ordinary_checks": 20,
+      "application_launches": 0,
+      "candidate_comparison_eligible": false,
+      "checkpoint_reference_approval": "none"
+    }
+  }
+}

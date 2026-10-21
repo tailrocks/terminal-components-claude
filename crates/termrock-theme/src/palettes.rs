@@ -48,6 +48,7 @@ impl CapabilityPalettes {
 pub(crate) fn junie() -> CapabilityPalettes {
     CapabilityPalettes::new(super::builtin::junie::tokens())
         .with(ColorLevel::Ansi256, junie_256())
+        .with(ColorLevel::Ansi16, junie_16())
         .with(ColorLevel::Mono, junie_mono())
 }
 
@@ -61,11 +62,16 @@ const fn junie_256() -> ColorTokens {
             Color::Indexed(237),
         ],
         field: Color::Indexed(234),
-        field_hover: Color::Indexed(234),
+        field_hover: Color::Indexed(237),
         fg: [
             Color::Indexed(231),
             Color::Indexed(249),
+            // Frozen corpus muted ink (baselines/tuiscotti-v1): 0x808080 fg
+            // renders 244 in every tier frame (1_011_55+ cells). The generic
+            // cube rule on the current 0x8a8a8a source would give 245.
             Color::Indexed(244),
+            // Frozen corpus faint/chrome ink: 0x4d4d4d fg renders 238
+            // (cancel-confirm 120x40 borders and every dim shell strip).
             Color::Indexed(238),
             Color::Indexed(235),
         ],
@@ -82,20 +88,22 @@ const fn junie_256() -> ColorTokens {
         focus_ring: Color::Indexed(238),
         selection_bg: Color::Indexed(237),
         selection_fg: Color::Indexed(231),
-        highlight_bg: Color::Indexed(67),
+        highlight_bg: Color::Indexed(25),
         highlight_fg: Color::Indexed(231),
-        highlight_danger_bg: Color::Indexed(238),
+        // Frozen ladder highlight danger plate (baseline apply_256
+        // `highlight_danger = i(88)`); the corpus never renders this slot.
+        highlight_danger_bg: Color::Indexed(88),
         highlight_danger_fg: Color::Indexed(231),
         backdrop_fg: Color::Indexed(235),
         backdrop_bg: Color::Indexed(16),
         danger: Color::Indexed(167),
         danger_soft: Color::Indexed(181),
-        danger_tint: Color::Indexed(233),
+        danger_tint: Color::Indexed(52),
         warning: Color::Indexed(214),
         warning_tint: Color::Indexed(234),
         success: Color::Indexed(78),
         info: Color::Indexed(147),
-        disabled_fg: Color::Indexed(238),
+        disabled_fg: Color::Indexed(239),
         disabled_bg: Color::Indexed(235),
         read_only_fg: Color::Indexed(249),
 
@@ -114,7 +122,7 @@ const fn junie_256() -> ColorTokens {
             invalid: Color::Indexed(167),
             deprecated: Color::Indexed(244),
             match_bg: Color::Indexed(233),
-            match_current_bg: Color::Indexed(67),
+            match_current_bg: Color::Indexed(55),
             bracket_match: Color::Indexed(78),
             diagnostic_error: Color::Indexed(167),
             diagnostic_warning: Color::Indexed(214),
@@ -140,6 +148,23 @@ const fn junie_256() -> ColorTokens {
     }
 }
 
+fn junie_16() -> ColorTokens {
+    // Start with the existing generic ANSI16 projection for every token, then
+    // author only the source-qualified FieldHover surface. This is a profile
+    // derivation, not a frozen-output table for unrelated semantic roles.
+    let mut tokens = super::Theme::from_tokens(super::builtin::junie::tokens())
+        .downgrade(ColorLevel::Ansi16)
+        .color;
+    tokens.field_hover = Color::DarkGray;
+    // Frozen corpus faint/chrome ink: the 0x4d4d4d-sourced slots render
+    // DarkGray at 16 in every tier frame; the current 0x737373 source would
+    // generically land on Gray.
+    tokens.fg[3] = Color::DarkGray;
+    tokens.meter.stale = Color::DarkGray;
+    tokens.meter.unknown = Color::DarkGray;
+    tokens
+}
+
 const fn junie_mono() -> ColorTokens {
     ColorTokens {
         surfaces: [
@@ -155,7 +180,7 @@ const fn junie_mono() -> ColorTokens {
             Color::White,
             Color::Gray,
             Color::Gray,
-            Color::DarkGray,
+            Color::Gray,
             Color::Black,
         ],
         on_accent: Color::Black,
@@ -215,8 +240,8 @@ const fn junie_mono() -> ColorTokens {
             high: Color::Gray,
             track: Color::Black,
             fill_rest: crate::theme::MeterFillRest::ReferenceLift,
-            stale: Color::DarkGray,
-            unknown: Color::DarkGray,
+            stale: Color::Gray,
+            unknown: Color::Gray,
             series: [
                 Color::Gray,
                 Color::Gray,

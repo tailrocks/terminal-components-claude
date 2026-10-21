@@ -1,0 +1,31 @@
+[0m[2m  jackin❯    File   Go   Help       …  Workspaces › payments-platform › 7f3a  inside the Construct  [0m
+[0m[2m                                                                                                    [0m
+[0m[2m ╭─ Workspaces ─────────────────────────────────────────────────────────────────────── 2 running ─╮ [0m
+[0m[2m │ [0m [0m[2m   Current directory                                              saved as payments-platform  │ [0m
+[0m[2m │ [0m [0m[2m ▾ payments-platform                                                               1 running  │ [0m
+[0m[2m │ [0m [0m[2m   ◉ 7f3a  the-architect · Claude Code                                    running 2 h 14 min  │ [0m
+[0m[2m │ [0m [0m[2m   ◌ c41e  reviewer · Codex                                              preserved · dirty •  │ [0m
+[0m[2m │ [0m [0m[2m ▸ infra-control-plane                                                             1 running  │ [0m
+[0m[2m │ [0m [0m[2m ▸ release-au╭─[0m[1;2m Container 7f3a [0m[2m─────────────────────────────── read-only ─ × ─╮     ! failed  │ [0m
+[0m[2m │ [0m [0m[2m ▸ customer-p│ [0m[1;2m▎ [0m[2mContainer[0m[1;2m  jackin-payments-platform-7f3a            [0m[2my copy[0m[1;2m [0m[2m  │     ! failed  │ [0m
+[0m[2m │ [0m [0m[2m   + New work│   Image      jackin/derived:payments-platform-7f3a             │               │ [0m
+[0m[2m │               │   Workspace  payments-platform › role the-architect            │               │ [0m
+[0m[2m │               │   Agent      Claude Code · account Claude · Personal           │               │ [0m
+[0m[2m │               │   Target     /workspace/payments-platform · 2 mounts           │               │ [0m
+[0m[2m │               │   Run id     run-7f3a                                          │               │ [0m
+[0m[2m │               │   Lifecycle  running                                           │               │ [0m
+[0m[2m │               │   Daemon     attached · 3 tabs · 3 s ago                       │               │ [0m
+[0m[2m │               │                                                                │               │ [0m
+[0m[2m │               │                                                                │               │ [0m
+[0m[2m │               │                                                                │               │ [0m
+[0m[2m ╰───────────────│                                                        Close   │───────────────╯ [0m
+[0m[2m                 ╰────────────────────────────────────────────────────────────────╯                 [0m
+[0m[2m   Instance 7f3a                                                                      Tab details   [0m
+[0m[2m   ──────────────────────────────────────────────────────────────────────────────────────────────   [0m
+[0m[2m   the-architect · Claude Code · running · 2 uncommitted · 1 unpushed                               [0m
+[0m[2m   daemon · 3 tabs · 5 panes                                                                        [0m
+[0m[2m                                                                                                    [0m
+[0m[2m                                                                                                    [0m
+[0m[2m                                                                                                    [0m
+ [0m[1m↑↓ Mo[0mve  [0m[1my[0m Copy  [0m[1mEsc[0m Close      [0m[1m [0m             [0m[1m [0m       [0m[1m [0m          [0m[1m [0m         [0m[1m [0m       [0m[1m [0m               [0m
+[?25l

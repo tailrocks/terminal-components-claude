@@ -1,0 +1,12 @@
+{
+  "date": "2026-10-21T01:54:28.132745",
+  "branch": "wip/ci-testing-features-20261021",
+  "deleted_tip": "9576b24e96f383590b9b621bfe43ff0154577acd",
+  "integration_head": "562d0c88be2b2c79cf8b359f57256bc1010901db",
+  "literal_ancestor": true,
+  "protected": false,
+  "open_pr": false,
+  "writer_released": true,
+  "review": "CI configuration independently reviewed before PR38 delivery25f579; this deletes only its integrated protection ref.",
+  "remote_absence_verified": true
+}

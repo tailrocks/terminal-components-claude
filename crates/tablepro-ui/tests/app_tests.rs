@@ -7,12 +7,15 @@
     clippy::panic
 )]
 
+#[path = "common/tab_navigation.rs"]
+mod tab_navigation;
+
 use tablepro_ui::{
     CONNECTION_NAME, Catalog, Decision, Filter, FilterOp, History, HistoryTab, PendingEdits,
     QueryOutcome, ResultGrid, SafeMode, Screen, Surface, Tab, TableProApp, Value, complete,
     form_fields, gate, parse, preview_for,
 };
-use termrock::{Axis, GridEditor, KeyCode, Theme};
+use termrock::{Axis, GridEditor, KeyCode, MouseKind, Part, PartRef, Theme};
 use termrock_test_support::Harness;
 
 fn connected() -> TableProApp {
@@ -22,13 +25,70 @@ fn connected() -> TableProApp {
 }
 
 #[test]
+fn ctrl_t_focuses_the_empty_query_editor_at_120x40() {
+    let mut harness = Harness::new(TableProApp::default(), Theme::junie(), 120, 40);
+    let _ = harness.key(KeyCode::Enter);
+    let _ = harness.ctrl('t');
+    let query = harness.app().query_id().expect("query tab");
+    assert_eq!(harness.focus(), Some(query));
+    assert_eq!(harness.app().surface(), Surface::QueryEditing);
+    let Some(Tab::Query(tab)) = harness.app().workbench.active() else {
+        panic!("the newly opened tab is a query")
+    };
+    assert!(tab.editor_state.editor().is_editing());
+    assert_eq!(tab.editor_state.editor().text(), "");
+
+    let _ = harness.key(KeyCode::Char('x'));
+    let Some(Tab::Query(tab)) = harness.app().workbench.active() else {
+        panic!("the query tab remains active")
+    };
+    assert!(tab.editor_state.editor().is_editing());
+    assert_eq!(harness.app().query(), "x");
+}
+
+#[test]
+fn preloaded_and_replaced_query_stays_unedited_until_component_focus() {
+    let mut app = connected();
+    let key = app
+        .workbench
+        .new_query("SELECT * FROM orders")
+        .expect("query tab");
+    let Some(Tab::Query(tab)) = app.workbench.tab(key) else {
+        panic!("new query is present")
+    };
+    assert!(!tab.editor_state.editor().is_editing());
+    assert_eq!(tab.editor_state.editor().text(), "SELECT * FROM orders");
+
+    let Some(Tab::Query(tab)) = app.workbench.tab_mut(key) else {
+        panic!("new query is present")
+    };
+    tab.replace_query("SELECT * FROM customers");
+    assert!(!tab.editor_state.editor().is_editing());
+    assert_eq!(tab.editor_state.editor().text(), "SELECT * FROM customers");
+
+    let mut harness = Harness::new(app, Theme::junie(), 120, 40);
+    let Some(id) = harness.app().query_id() else {
+        panic!("preloaded query remains available")
+    };
+    assert!(tab_navigation::tab_to(&mut harness, id));
+    let Some(Tab::Query(tab)) = harness.app().workbench.active() else {
+        panic!("the preloaded query is active")
+    };
+    assert!(tab.editor_state.editor().is_editing());
+}
+
+#[test]
 fn connections_screen_lists_and_connects_with_keyboard() {
     let mut harness = Harness::new(TableProApp::default(), Theme::junie(), 120, 40);
     assert!(harness.find("Connections").is_some());
     let _ = harness.key(KeyCode::Enter);
     assert_eq!(harness.app().screen(), Screen::Workbench);
     assert_eq!(harness.app().surface(), Surface::WorkbenchDefault);
-    assert!(harness.diagnostics().is_empty());
+    assert!(
+        harness.diagnostics().is_empty(),
+        "{:?}",
+        harness.diagnostics()
+    );
 }
 #[test]
 fn failed_connection_shows_error_and_retry() {
@@ -45,6 +105,180 @@ fn explorer_opens_table_and_grid_navigates() {
     let tab = app.workbench.active_table().expect("table tab");
     assert_eq!(tab.result.row_count(), 500);
     assert_eq!(tab.table.name, "orders");
+}
+
+#[test]
+fn unfocused_grid_cursor_does_not_style_the_cursor_row() {
+    let mut app = connected();
+    assert!(app.workbench.open_table("orders"));
+    let harness = Harness::new(app, Theme::junie(), 120, 40);
+    assert_eq!(harness.app().surface(), Surface::WorkbenchDefault);
+    let (x, y) = harness
+        .find("1d9f28fc-3e09-4488-bae7-d3aeb39b01c4")
+        .expect("the first result row is rendered");
+    assert!(
+        !harness
+            .cell(x, y)
+            .modifier
+            .contains(termrock::Modifier::BOLD),
+        "unfocused result cells must not be presented as the cursor row"
+    );
+}
+
+#[test]
+fn vertically_scrolled_grid_does_not_repaint_top_rows_after_horizontal_scroll() {
+    let mut harness = Harness::new(connected(), Theme::junie(), 120, 40);
+    for _ in 0..5 {
+        let _ = harness.key(KeyCode::Down);
+    }
+    let _ = harness.key(KeyCode::Enter);
+    assert!(harness.text().contains("public › orders"));
+
+    let _ = harness.key(KeyCode::PageDown);
+    let _ = harness.key(KeyCode::End);
+
+    let (grid_id, cursor_row, row_one_key, created_at, row_zero_prefix, row_one_prefix) = {
+        let (grid_id, view) = harness
+            .app()
+            .workbench
+            .active_grid()
+            .expect("active orders grid");
+        let (cursor_key, _) = view.state.cursor().expect("grid cursor");
+        let cursor_row = (0..view.model.row_count())
+            .find(|&row| termrock::GridModel::row_key(&view.model, row) == cursor_key)
+            .expect("cursor row is in the model");
+        assert!(cursor_row > 0, "PageDown moved to row {cursor_row}");
+        assert!(view.state.col_offset() > 0, "End scrolled horizontally");
+
+        let created_at = view
+            .columns
+            .iter()
+            .position(|(name, _)| name == "created_at")
+            .expect("created_at column");
+        let row_zero = termrock::GridModel::cell(&view.model, 0, created_at)
+            .expect("first row timestamp")
+            .text;
+        let row_one = termrock::GridModel::cell(&view.model, 1, created_at)
+            .expect("second row timestamp")
+            .text;
+        (
+            grid_id,
+            cursor_row,
+            termrock::GridModel::row_key(&view.model, 1),
+            created_at,
+            row_zero.chars().take(10).collect::<String>(),
+            row_one.chars().take(10).collect::<String>(),
+        )
+    };
+    let column_key = created_at.saturating_add(1);
+    let header = harness
+        .area_of_part(
+            grid_id,
+            PartRef::item(Part::HEADER, termrock::ItemKey::num(column_key as u64)),
+        )
+        .expect("visible created_at header hit region");
+    let top_data_y = header.y.saturating_add(1);
+    assert!(
+        harness.find(&row_zero_prefix).is_none(),
+        "row zero value {row_zero_prefix:?} was painted into a viewport whose cursor is row {cursor_row}:\n{}",
+        harness.text()
+    );
+    assert_eq!(
+        harness.find(&row_one_prefix).map(|(_, y)| y),
+        Some(top_data_y),
+        "the top cell's contents must come from the resolved first visible row:\n{}",
+        harness.text()
+    );
+
+    let _ = harness.mouse(MouseKind::Down, header.x.saturating_add(1), top_data_y);
+    let _ = harness.mouse(MouseKind::Up, header.x.saturating_add(1), top_data_y);
+    let (_, view) = harness
+        .app()
+        .workbench
+        .active_grid()
+        .expect("active orders grid after pointer input");
+    assert_eq!(
+        view.state.cursor(),
+        Some((
+            row_one_key,
+            termrock::ColumnKey::num((created_at as u16).saturating_add(1)),
+        )),
+        "the top cell hit region must stay on its real model row and column"
+    );
+}
+
+#[test]
+fn slash_filters_connections_and_keeps_the_open_detail() {
+    let mut harness = Harness::new(TableProApp::default(), Theme::junie(), 120, 40);
+    let _ = harness.key(KeyCode::Char('/'));
+    for ch in ['s', 't', 'a', 'g'] {
+        let _ = harness.key(KeyCode::Char(ch));
+    }
+    let text = harness.text();
+    assert!(text.contains("stag"), "{text}");
+    assert!(text.contains("Staging"), "{text}");
+    assert!(text.contains("Acme"), "{text}");
+    assert!(!text.contains("Production"), "{text}");
+    assert!(text.contains("Local PostgreSQL"), "{text}");
+    assert!(text.contains("Type Filter"), "{text}");
+    assert!(text.contains("6 saved"), "{text}");
+    assert!(
+        harness.diagnostics().is_empty(),
+        "{:?}",
+        harness.diagnostics()
+    );
+}
+
+#[test]
+fn alt_d_duplicates_the_selected_connection_and_keeps_the_cursor() {
+    let mut harness = Harness::new(TableProApp::default(), Theme::junie(), 120, 40);
+    for _ in 0..7 {
+        let _ = harness.key(KeyCode::Down);
+    }
+    let _ = harness.alt('d');
+    let text = harness.text();
+    assert!(text.contains("7 saved"), "{text}");
+    assert!(text.contains("Production (Copy)"), "{text}");
+    assert!(text.contains("Duplicated"), "{text}");
+    assert!(text.contains("✓ on"), "{text}");
+    let cursor = text
+        .lines()
+        .find(|line| line.contains('▎') && line.contains("Production"))
+        .expect("cursor row");
+    assert!(
+        !cursor.contains("(Copy)"),
+        "cursor moved onto the copy: {cursor}"
+    );
+    assert_eq!(harness.app().connections_screen.connections.len(), 7);
+    assert!(
+        harness.diagnostics().is_empty(),
+        "{:?}",
+        harness.diagnostics()
+    );
+}
+
+#[test]
+fn alt_d_duplicates_orders_and_scrolls_the_inserted_row_just_out_of_view() {
+    let mut app = TableProApp::default();
+    let index = app
+        .connections_screen
+        .connections
+        .iter()
+        .position(|connection| connection.name == "Production")
+        .expect("production");
+    assert!(app.connect(index));
+    let mut h = Harness::new(app, Theme::junie(), 120, 40);
+    for _ in 0..5 {
+        let _ = h.key(KeyCode::Down);
+    }
+    let _ = h.key(KeyCode::Enter);
+    let _ = h.alt('d');
+    let text = h.text();
+    assert!(text.contains("rows 477–500 of 501"), "{text}");
+    assert!(text.contains("1 insert"), "{text}");
+    assert!(text.contains("92e3ff9a"), "{text}");
+    assert!(!text.contains("DEFAULT"), "{text}");
+    assert!(h.diagnostics().is_empty(), "{:?}", h.diagnostics());
 }
 #[test]
 fn sort_and_filter_on_table_tab() {
@@ -281,12 +515,126 @@ fn keyboard_flow_full_journey() {
     let mut harness = Harness::new(TableProApp::default(), Theme::junie(), 120, 40);
     let _ = harness.key(KeyCode::Enter);
     let _ = harness.ctrl('t');
-    assert!(harness.tab_to(harness.app().query_id().expect("query id")));
+    let query_id = harness.app().query_id().expect("query id");
+    assert!(tab_navigation::tab_to(&mut harness, query_id));
     let _ = harness.type_str("SELECT * FROM customers LIMIT 3");
     let _ = harness.ctrl('r');
     assert!(harness.app().query().contains("customers"));
     assert!(harness.app().status().contains("Loaded 3 rows"));
-    assert!(harness.diagnostics().is_empty());
+    assert!(
+        harness.diagnostics().is_empty(),
+        "{:?}",
+        harness.diagnostics()
+    );
+}
+
+#[test]
+fn query_editor_keeps_multiline_unicode_and_cursor_through_resize() {
+    let mut harness = Harness::new(TableProApp::default(), Theme::junie(), 120, 40);
+    let _ = harness.key(KeyCode::Enter);
+    let _ = harness.ctrl('t');
+    let query_id = harness.app().query_id().expect("new query editor");
+    assert!(tab_navigation::tab_to(&mut harness, query_id));
+
+    let _ = harness.type_str("SELECT '界🙂'");
+    let _ = harness.key(KeyCode::Enter);
+    let _ = harness.type_str("FROM customers");
+    assert_eq!(harness.app().query(), "SELECT '界🙂'\nFROM customers");
+    assert!(harness.text().contains("界🙂"));
+    assert!(
+        harness.is_open(query_id.sub("completion")),
+        "the live completion popup remains open for this checkpoint"
+    );
+    assert_eq!(harness.focus(), Some(query_id));
+    assert!(
+        harness.cursor().is_some(),
+        "the nonmodal completion popup preserves the rendered editor caret"
+    );
+    assert!(
+        harness.cursor_bar(),
+        "completion retains the editor's frozen steady-bar cursor shape"
+    );
+    let popup_cursor = harness.cursor().expect("visible completion caret");
+    assert!(
+        harness
+            .area_of(query_id)
+            .is_some_and(|area| area.contains(popup_cursor)),
+        "the retained caret is the live editor's resolved cursor"
+    );
+    let popup_area = harness.layer_area(query_id.sub("completion")).unwrap();
+    let first_item_y = popup_area.y.saturating_add(1);
+    let first_item = (popup_area.x..popup_area.right())
+        .map(|x| harness.cell(x, first_item_y))
+        .collect::<Vec<_>>();
+    assert!(
+        first_item.iter().any(|cell| cell.symbol() == "T"),
+        "the shared completion row renders its live table-kind glyph"
+    );
+    let second_item_y = first_item_y.saturating_add(1);
+    assert_eq!(
+        harness
+            .cell(popup_area.x.saturating_add(2), second_item_y)
+            .symbol(),
+        "a"
+    );
+    assert_eq!(
+        harness
+            .cell(popup_area.x.saturating_add(9), second_item_y)
+            .symbol(),
+        "c"
+    );
+    assert!(
+        !format!(
+            "{:?}",
+            harness
+                .cell(popup_area.x.saturating_add(2), second_item_y)
+                .modifier
+        )
+        .contains("BOLD"),
+        "the second, unselected completion remains plain before its fuzzy match"
+    );
+    assert!(
+        format!(
+            "{:?}",
+            harness
+                .cell(popup_area.x.saturating_add(9), second_item_y)
+                .modifier
+        )
+        .contains("BOLD"),
+        "the provider's matched grapheme is emphasized in the unselected popup row"
+    );
+    assert!(
+        harness.diagnostics().is_empty(),
+        "popup cursor retention must not create duplicate controls: {:?}",
+        harness.diagnostics()
+    );
+    let _ = harness.resize(96, 28);
+    assert!(
+        harness.is_open(query_id.sub("completion")),
+        "resizing preserves the open completion popup"
+    );
+    assert_eq!(harness.focus(), Some(query_id));
+    assert!(harness.cursor_bar(), "resize preserves the bar caret");
+    assert!(harness.cursor().is_some());
+    assert!(harness.text().contains("customers"));
+    let resized_popup_cursor = harness.cursor();
+    let _ = harness.key(KeyCode::Esc);
+    assert!(
+        harness.cursor().is_some(),
+        "the rendered editor owns its cursor"
+    );
+    assert_eq!(harness.cursor(), resized_popup_cursor);
+
+    assert_eq!(harness.app().query(), "SELECT '界🙂'\nFROM customers");
+    assert!(
+        harness.cursor().is_some(),
+        "resize preserves the visible editor cursor"
+    );
+    assert!(
+        harness.diagnostics().is_empty(),
+        "{:?}",
+        harness.diagnostics()
+    );
 }
 #[test]
 fn mouse_flow_full_journey() {
@@ -310,7 +658,7 @@ fn connection_form_keyboard_and_mouse_reach_every_field() {
     for (index, field) in fields.iter().enumerate() {
         let mut reached = false;
         for _ in 0..32 {
-            if harness.tab_to(field.id) {
+            if tab_navigation::tab_to(&mut harness, field.id) {
                 reached = true;
                 break;
             }
@@ -336,7 +684,7 @@ fn connection_password_is_masked_and_absent_from_the_frame() {
     let mut harness = Harness::new(TableProApp::default(), Theme::junie(), 120, 40);
     let _ = harness.ctrl('n');
     let fields = form_fields();
-    assert!(harness.tab_to(fields[6].id));
+    assert!(tab_navigation::tab_to(&mut harness, fields[6].id));
     let _ = harness.type_str("hunter2");
     assert!(!harness.text().contains("hunter2"));
     assert!(harness.diagnostics().is_empty());
@@ -364,7 +712,7 @@ fn focus_is_restored_after_every_overlay_closes() {
         "first Esc cancels the focused field, matching reference794b095"
     );
     let cancel = termrock::Id::root("tablepro.connections.form")
-        .part(termrock::Part::ACTIONS)
+        .part(Part::ACTIONS)
         .index(1);
 
     for _ in 0..64 {
@@ -391,7 +739,8 @@ fn no_diagnostics_are_emitted_during_the_journey() {
     let mut harness = Harness::new(TableProApp::default(), Theme::junie(), 120, 40);
     let _ = harness.key(KeyCode::Enter);
     let _ = harness.ctrl('t');
-    assert!(harness.tab_to(harness.app().query_id().expect("query id")));
+    let query_id = harness.app().query_id().expect("query id");
+    assert!(tab_navigation::tab_to(&mut harness, query_id));
     let _ = harness.type_str("SELECT * FROM orders LIMIT 1");
     let _ = harness.ctrl('r');
     let _ = harness.resize(96, 28);

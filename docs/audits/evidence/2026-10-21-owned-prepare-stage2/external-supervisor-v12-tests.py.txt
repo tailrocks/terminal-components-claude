@@ -1,0 +1,598 @@
+#!/usr/bin/env python3
+"""Synthetic-only tests for the external stage-two supervisor v12."""
+from __future__ import annotations
+import importlib.util
+import json
+import os
+import signal
+import subprocess
+import tempfile
+import time
+import unittest
+from unittest.mock import patch
+from pathlib import Path
+
+SOURCE = Path('/Users/donbeave/Projects/termrock-cli-evidence-20261021/fresh-plan-stage3d-atomic-supervisor-v12-stage2-20261021.py')
+spec = importlib.util.spec_from_file_location('stage3d_supervisor_v12_stage2', SOURCE)
+mod = importlib.util.module_from_spec(spec)
+assert spec and spec.loader
+spec.loader.exec_module(mod)
+
+
+class FakeProcess:
+    def __init__(self, pid=9876, exit_after_signal=0, kill_exit=-9, never_reap=False):
+        self.pid = pid
+        self._code = None
+        self.exit_after_signal = exit_after_signal
+        self.kill_exit = kill_exit
+        self.never_reap = never_reap
+        self.signals = []
+        self.killed = False
+    def poll(self):
+        return self._code
+    def wait(self, timeout=None):
+        if self.never_reap:
+            raise subprocess.TimeoutExpired('fake', timeout)
+        if self._code is None:
+            if self.killed:
+                self._code = self.kill_exit
+            elif self.signals:
+                self._code = self.exit_after_signal
+            else:
+                raise subprocess.TimeoutExpired('fake', timeout)
+        return self._code
+    def send_signal(self, sig):
+        self.signals.append(sig)
+        if not self.never_reap:
+            self._code = self.exit_after_signal
+    def kill(self):
+        self.killed = True
+
+
+class SupervisorV12Stage2Tests(unittest.TestCase):
+    def _main_with_synthetic_stdout(self, io_patch):
+        read_fd, write_fd = os.pipe()
+        class PipeOutput:
+            def fileno(self): return write_fd
+        now = time.monotonic_ns()
+        event = {'success': True, 'event_receipt_rule': mod.EVENT_RECEIPT_RULE,
+                 'application_acceptance': False}
+        try:
+            with patch.object(mod, 'START_NS', now), patch.object(mod, 'TOTAL_SECONDS', 0.03), \
+                 patch.object(mod, 'run_stage', return_value=event), \
+                 patch.object(mod.sys, 'stdout', PipeOutput()), io_patch:
+                status = mod.main(['--stage', '2', '--run-id', 'synthetic'])
+        finally:
+            os.close(write_fd)
+        data = os.read(read_fd, 4096)
+        os.close(read_fd)
+        return status, data
+
+    def test_main_delayed_final_write_returns_nonzero(self):
+        real_write = os.write
+        def delayed_write(fd, data):
+            time.sleep(0.04)
+            return real_write(fd, data)
+        status, output = self._main_with_synthetic_stdout(
+            patch.object(mod.os, 'write', side_effect=delayed_write))
+        self.assertEqual(status, 124)
+        event = json.loads(output)
+        self.assertTrue(event['success'])
+        self.assertIn('wrapper exit status 0', event['event_receipt_rule'])
+        self.assertFalse(event['application_acceptance'])
+
+    def test_main_delayed_flag_restoration_returns_nonzero(self):
+        real_fcntl = mod.fcntl.fcntl
+        restored = []
+        def delayed_restore(fd, command, *args):
+            if command == mod.fcntl.F_SETFL and args and not args[0] & os.O_NONBLOCK:
+                time.sleep(0.04)
+                restored.append(True)
+            return real_fcntl(fd, command, *args)
+        status, output = self._main_with_synthetic_stdout(
+            patch.object(mod.fcntl, 'fcntl', side_effect=delayed_restore))
+        self.assertEqual(status, 124)
+        self.assertEqual(restored, [True])
+        event = json.loads(output)
+        self.assertTrue(event['success'])
+        self.assertIn('wrapper exit status 0', event['event_receipt_rule'])
+        self.assertFalse(event['application_acceptance'])
+
+    def test_exact_official_stage2_argv_and_budget(self):
+        argv = mod.official_argv(2, 177)
+        self.assertEqual(argv, [str(mod.PYTHON), str(mod.RUNNER), '--repo', str(mod.REPO),
+            '--root', str(mod.ROOT), '--timeout', '177', 'prepare-live', '--owned-lifecycle',
+            '--owned-budget', '177', '--fresh-cohort', mod.COHORT,
+            '--baseline-bin-dir', str(mod.BIN_DIR)])
+        for stage in (1, 3, 4, 5, 6, 7, 8):
+            with self.subTest(stage=stage), self.assertRaises(ValueError):
+                mod.official_argv(stage, 177)
+        for bad in (0, 201, True, 1.5):
+            with self.assertRaises(ValueError):
+                mod.official_argv(2, bad)
+
+    def test_stage1_and_stages3_to8_hard_disabled_before_any_preflight(self):
+        for stage in (1, 3, 4, 5, 6, 7, 8):
+            with self.subTest(stage=stage), self.assertRaisesRegex(RuntimeError, 'stage 1 and stages 3–8 are disabled'):
+                mod.run_stage(stage, 'synthetic')
+
+    def test_stage1_admission_requires_exact_source_tree_and_absent_outputs(self):
+        with tempfile.TemporaryDirectory() as td:
+            base=Path(td); root=base/'root'; root.mkdir(); (root/'source').mkdir()
+            provenance={'tag_object':'2718a6b8127a522a3d351d0b4bdb7542fc8da542',
+                'source_commit':'4169783ae883788186d161af09ba9c481bd84e5c',
+                'source_tree':'ad0f7cf8899df8c5fea3ced3f60adf0ac9a2d297',
+                'tuiscotti_rev':'a1ea27f757d75d07b05499276cd932e9f8e067ad',
+                'source_sha256':mod.EXPECTED_SOURCE_SHA256,
+                'snapshots_sha256':mod.EXPECTED_SNAPSHOTS_SHA256}
+            pp=root/'provenance.json'; pp.write_text(json.dumps(provenance, indent=2)+'\n')
+            refs={'tag':'visual-baseline','tag_object':provenance['tag_object'],
+                'source_commit':provenance['source_commit'],'source_tree':provenance['source_tree'],
+                'tuiscotti_rev':provenance['tuiscotti_rev']}
+            admission={'schema':'termrock.stage3d.stage1-operational-result.independent-review.v1',
+                'decision':'ADMIT stage1 source preparation only.',
+                'operation':{'reported_wrapper_exit_status':0,'timed_out':False,
+                    'reaped_direct_child':True,'inclusive_supervisor_budget_seconds':220},
+                'source_admission':{'new_root':str(root),
+                    'independent_source_digest':{'sha256':mod.EXPECTED_SOURCE_SHA256},
+                    'independent_snapshots_digest':{'sha256':mod.EXPECTED_SNAPSHOTS_SHA256},
+                    'matches_new_manifest':True,'matches_old_fixed_plan':True,
+                    'fixed_reference_tuple':refs},
+                'implementation_binding':{'supervisor_sha256':mod.STAGE1_SUPERVISOR_SHA256,
+                    'supervisor_independent_review_sha256':mod.STAGE1_SUPERVISOR_REVIEW_SHA256,
+                    'canonical_runner_sha256':mod.STAGE1_CANONICAL_SHA256,
+                    'canonical_clearance_sha256':mod.STAGE1_CANONICAL_REVIEW_SHA256,
+                    'reviewed_source_commit':'a46842108149a1421030e4a040c890fadecc671e'}}
+            evidence={'schema':'termrock.stage3d.stage1-result.independent-evidence.v1',
+                'source_digest':{'sha256':mod.EXPECTED_SOURCE_SHA256},
+                'snapshot_digest':{'sha256':mod.EXPECTED_SNAPSHOTS_SHA256},
+                'old_plan_run_changed':False,'key_bytes_read':False,
+                'actual_operational_commands_invoked':False}
+            files={}
+            for label,payload in [('admission',admission),('evidence',evidence)]:
+                path=base/f'{label}.json'; path.write_text(json.dumps(payload))
+                files[label]=path
+            event=base/'event.json'; event.write_text('event')
+            log=base/'event.log'; log.write_text('log')
+            old={name:getattr(mod,name) for name in (
+                'STAGE1_ADMISSION_PATH','STAGE1_ADMISSION_SHA256','STAGE1_EVIDENCE_PATH',
+                'STAGE1_EVIDENCE_SHA256','STAGE1_EVENT_PATH','STAGE1_EVENT_SHA256',
+                'STAGE1_LOG_PATH','STAGE1_LOG_SHA256','STAGE1_PROVENANCE_SHA256',
+                'PLAN_PATH','KEY_PATH')}
+            mod.STAGE1_ADMISSION_PATH=files['admission']; mod.STAGE1_ADMISSION_SHA256=mod._sha256_file(files['admission'],time.monotonic_ns()+10_000_000_000)
+            mod.STAGE1_EVIDENCE_PATH=files['evidence']; mod.STAGE1_EVIDENCE_SHA256=mod._sha256_file(files['evidence'],time.monotonic_ns()+10_000_000_000)
+            mod.STAGE1_EVENT_PATH=event; mod.STAGE1_EVENT_SHA256=mod._sha256_file(event,time.monotonic_ns()+10_000_000_000)
+            mod.STAGE1_LOG_PATH=log; mod.STAGE1_LOG_SHA256=mod._sha256_file(log,time.monotonic_ns()+10_000_000_000)
+            mod.STAGE1_PROVENANCE_SHA256=mod._sha256_file(pp,time.monotonic_ns()+10_000_000_000)
+            mod.PLAN_PATH=base/'plan.json'; mod.KEY_PATH=base/'private-key'
+            try:
+                result=mod.validate_admitted_stage1(root,time.monotonic_ns()+10_000_000_000)
+                self.assertEqual(result['root_entries'],['provenance.json','source'])
+                self.assertTrue(result['stage2_outputs_absent'])
+                self.assertFalse(result['key_read_or_created'])
+                for name in ('live-source','live-source.json','live-target'):
+                    p=root/name
+                    if name.endswith('.json'): p.write_text('{}')
+                    else: p.mkdir()
+                    with self.subTest(existing=name), self.assertRaises(RuntimeError):
+                        mod.validate_admitted_stage1(root,time.monotonic_ns()+10_000_000_000)
+                    if p.is_dir(): p.rmdir()
+                    else: p.unlink()
+                mod.KEY_PATH.write_text('must remain untouched')
+                with self.assertRaisesRegex(RuntimeError,'refusing to overwrite or resume'):
+                    mod.validate_admitted_stage1(root,time.monotonic_ns()+10_000_000_000)
+                self.assertEqual(mod.KEY_PATH.read_text(),'must remain untouched')
+                mod.KEY_PATH.unlink()
+                mod.PLAN_PATH.write_text('must remain untouched')
+                with self.assertRaisesRegex(RuntimeError,'refusing to overwrite or resume'):
+                    mod.validate_admitted_stage1(root,time.monotonic_ns()+10_000_000_000)
+                self.assertEqual(mod.PLAN_PATH.read_text(),'must remain untouched')
+                mod.PLAN_PATH.unlink()
+                pp.write_text('{}')
+                with self.assertRaisesRegex(RuntimeError,'stage-one provenance digest mismatch'):
+                    mod.validate_admitted_stage1(root,time.monotonic_ns()+10_000_000_000)
+            finally:
+                for name,value in old.items(): setattr(mod,name,value)
+
+    def test_immutable_actual_stage1_evidence_hash_schema_and_read_only_validation(self):
+        deadline=time.monotonic_ns()+10_000_000_000
+        evidence_path=mod.STAGE1_EVIDENCE_PATH
+        self.assertFalse(evidence_path.is_symlink())
+        self.assertTrue(evidence_path.is_file())
+        self.assertEqual(mod._sha256_file(evidence_path,deadline),
+                         'c0410c096b9d44aa61af3e3373a9251a9efecd10cbf6392629b7f50929e77dea')
+        evidence=json.loads(evidence_path.read_text())
+        self.assertEqual(evidence['schema'],
+                         'termrock.stage3d.stage1-result.independent-evidence.v1')
+        before=sorted(path.name for path in mod.ROOT.iterdir())
+        result=mod.validate_admitted_stage1(mod.ROOT,deadline)
+        after=sorted(path.name for path in mod.ROOT.iterdir())
+        self.assertEqual(before,['provenance.json','source'])
+        self.assertEqual(after,before)
+        self.assertEqual(result['evidence_sha256'],'c0410c096b9d44aa61af3e3373a9251a9efecd10cbf6392629b7f50929e77dea')
+        self.assertTrue(result['stage2_outputs_absent'])
+        self.assertFalse(result['key_read_or_created'])
+
+    def test_stage2_runner_and_independent_clearance_pins(self):
+        self.assertEqual(mod.RUNNER_SHA256,'e97361a954743231716a228646dd96f8fcf5b951780459a36e1842b08e0cfd80')
+        self.assertEqual(mod.CANONICAL_REVIEW_SHA256,'15feeaf89d5b07cbf6b9204299b6f9170a2552fd8070e33ad901a20367da5090')
+        self.assertEqual(mod._sha256_file(mod.RUNNER,time.monotonic_ns()+10_000_000_000),mod.RUNNER_SHA256)
+        self.assertEqual(mod._sha256_file(mod.CANONICAL_REVIEW_PATH,time.monotonic_ns()+10_000_000_000),mod.CANONICAL_REVIEW_SHA256)
+        review=json.loads(mod.CANONICAL_REVIEW_PATH.read_text())
+        self.assertEqual(review['source_commit'],'4e04be07a15377f902316633e859c41a9ba50d58')
+        self.assertTrue(review['decision'].startswith('CLEAR exact canonical opt-in owned prepare-live source'))
+        self.assertEqual(review['scope'].split('.')[0], 'Stage2 live-source preparation and inventory discovery only')
+        self.assertIn('No sealed fresh plan, key, capture, replay, ordinary CLI execution',review['scope'])
+        self.assertTrue(any('Only after that approval perform one bounded owned prepare-live' in step
+                            for step in review['required_next_steps']))
+
+    def test_v7_source_and_tests_remain_byte_identical(self):
+        prior_source=mod.BASE/'fresh-plan-stage3d-atomic-supervisor-v7-20261021.py'
+        prior_tests=mod.BASE/'test_fresh_plan_stage3d_atomic_supervisor_v7-20261021.py'
+        self.assertEqual(mod._sha256_file(prior_source,time.monotonic_ns()+10_000_000_000),
+                         '30bb46c94af9590712d176e9e958978980d06969afe47ded23012d4a76dcd000')
+        self.assertEqual(mod._sha256_file(prior_tests,time.monotonic_ns()+10_000_000_000),
+                         'd6569d262c7bc29ef2995fc92778fccea1e17b79d60ed33e095888a740814106')
+
+    def test_event_identity_uses_exact_external_supervisor_bytes(self):
+        identity=mod.supervisor_identity(time.monotonic_ns()+10_000_000_000)
+        self.assertEqual(identity['path'],str(SOURCE.resolve()))
+        self.assertEqual(identity['sha256'],mod._sha256_file(SOURCE,time.monotonic_ns()+10_000_000_000))
+
+    def test_controlled_environment_is_allowlisted_and_new_target_only(self):
+        expected = {'keys': ['A', 'CARGO_TARGET_DIR', 'NEXTEST_EXPERIMENTAL_LIBTEST_JSON', 'SECRET'],
+                    'values': {'A': {'present': True, 'value_sha256': mod.hashlib.sha256(b'ok').hexdigest()},
+                               'CARGO_TARGET_DIR': {'present': True, 'value_sha256': 'ignored'},
+                               'NEXTEST_EXPERIMENTAL_LIBTEST_JSON': {'present': True, 'value_sha256': mod.hashlib.sha256(b'1').hexdigest()},
+                               'SECRET': {'present': False, 'value_sha256': None}}}
+        env = mod.build_controlled_env(expected, time.monotonic_ns()+30_000_000_000,
+             ambient={'A':'ok','SECRET':'must-not-pass'}, target_dir=Path('/synthetic/target'))
+        self.assertEqual(env['CARGO_TARGET_DIR'], '/synthetic/target')
+        self.assertEqual(env['NEXTEST_EXPERIMENTAL_LIBTEST_JSON'], '1')
+        self.assertNotIn('SECRET', env)
+        self.assertEqual(set(env), {'A','CARGO_TARGET_DIR','NEXTEST_EXPERIMENTAL_LIBTEST_JSON','VISUAL_BIN_DIR','VISUAL_FULL','VISUAL_REVIEW'})
+
+    def test_environment_difference_rejected_without_value_disclosure(self):
+        expected = {'keys':['A'], 'values': {'A': {'present':True, 'value_sha256':mod.hashlib.sha256(b'expected').hexdigest()}}}
+        with self.assertRaisesRegex(RuntimeError, 'keys: A'):
+            mod.compare_environment({'A':'different'}, expected)
+
+    def test_success_requires_zero_exit_no_timeout_and_reaped(self):
+        with tempfile.TemporaryDirectory() as td:
+            path=Path(td)/'log'
+            f=FakeProcess(exit_after_signal=0); f._code=0
+            event=mod.run_supervised(['fake'], log_path=path, deadline_ns=time.monotonic_ns()+30_000_000_000,
+                                     env={}, worker_timeout=1, popen_factory=lambda *a,**k:f)
+            self.assertTrue(event['success'])
+            self.assertTrue(event['direct_worker_reaped'])
+            self.assertTrue(event['canonical_owned_cleanup_reported_success'])
+            self.assertFalse(event['universal_descendant_containment_claimed'])
+
+    def test_nonzero_exit_never_succeeds(self):
+        with tempfile.TemporaryDirectory() as td:
+            path=Path(td)/'log'
+            f=FakeProcess(); f._code=7
+            event=mod.run_supervised(['fake'], log_path=path, deadline_ns=time.monotonic_ns()+30_000_000_000,
+                                     env={}, worker_timeout=1, popen_factory=lambda *a,**k:f)
+            self.assertFalse(event['success'])
+            self.assertEqual(event['exit_status'],7)
+
+    def test_timeout_cooperatively_signals_exact_direct_child_and_fails_closed(self):
+        with tempfile.TemporaryDirectory() as td:
+            path=Path(td)/'log'
+            f=FakeProcess(exit_after_signal=1)
+            event=mod.run_supervised(['fake'], log_path=path, deadline_ns=time.monotonic_ns()+30_000_000_000,
+                                     env={}, worker_timeout=0, popen_factory=lambda *a,**k:f)
+            self.assertEqual(f.signals,[signal.SIGTERM])
+            self.assertTrue(event['timed_out'])
+            self.assertFalse(event['success'])
+            self.assertTrue(event['direct_child_reaped'])
+
+    def test_unreaped_direct_child_never_claims_success(self):
+        with tempfile.TemporaryDirectory() as td:
+            path=Path(td)/'log'
+            f=FakeProcess(never_reap=True)
+            event=mod.run_supervised(['fake'], log_path=path, deadline_ns=time.monotonic_ns()+30_000_000_000,
+                                     env={}, worker_timeout=0, popen_factory=lambda *a,**k:f)
+            self.assertTrue(f.killed)
+            self.assertFalse(event['direct_worker_reaped'])
+            self.assertFalse(event['success'])
+
+    def test_log_is_exclusive(self):
+        with tempfile.TemporaryDirectory() as td:
+            path=Path(td)/'log'; path.write_text('keep')
+            with self.assertRaises(FileExistsError):
+                mod.run_supervised(['fake'], log_path=path, deadline_ns=time.monotonic_ns()+30_000_000_000,
+                                   env={}, worker_timeout=1, popen_factory=lambda *a,**k:self.fail('must not spawn'))
+            self.assertEqual(path.read_text(),'keep')
+
+    def test_fake_subprocess_term_cleanup(self):
+        with tempfile.TemporaryDirectory() as td:
+            path=Path(td)/'log'
+            code='import signal,time,sys; signal.signal(signal.SIGTERM,lambda *_:sys.exit(4)); print("synthetic-ready",flush=True); time.sleep(3)'
+            event=mod.run_supervised([os.environ.get('PYTHON','python3'),'-c',code], log_path=path,
+                 deadline_ns=time.monotonic_ns()+30_000_000_000, env={'PATH':os.environ.get('PATH','/usr/bin:/bin'),'LANG':'C'}, worker_timeout=0.2)
+            self.assertTrue(event['timed_out'])
+            self.assertFalse(event['success'])
+            self.assertTrue(event['direct_worker_reaped'])
+            self.assertIn('synthetic-ready',path.read_text())
+
+    def test_inclusive_220_budget_reserves_cleanup_and_finalization(self):
+        self.assertEqual(mod.calculate_work_budget(220.0), 200)
+        self.assertEqual(mod.calculate_work_budget(100.9), 80)
+        with self.assertRaises(TimeoutError):
+            mod.calculate_work_budget(20.9)
+        self.assertEqual(mod.CLEANUP_RESERVE_SECONDS, 15)
+        self.assertEqual(mod.FINALIZATION_RESERVE_SECONDS, 5)
+
+    def test_all_nine_driver_inputs_are_hash_checked_with_fake_git(self):
+        with tempfile.TemporaryDirectory() as td:
+            repo=Path(td)
+            files={f'input-{i}.dat':f'payload-{i}'.encode() for i in range(9)}
+            expected={name:{'sha256':mod.hashlib.sha256(data).hexdigest(),
+                            'present_in_guard_worktree':False} for name,data in files.items()}
+            blobs={name:f'blob{i}'.encode() for i,name in enumerate(files)}
+            def fake_git(args, timeout):
+                if args[0]=='ls-tree':
+                    return subprocess.CompletedProcess(args,0,b''.join(
+                        b'100644 blob '+blobs[name]+b'\t'+name.encode()+b'\0' for name in files),b'')
+                if args[0]=='cat-file':
+                    name=args[-1].split(':',1)[1]
+                    return subprocess.CompletedProcess(args,0,files[name],b'')
+                raise AssertionError(args)
+            result=mod.validate_harness_inputs(repo,expected,time.monotonic_ns()+10_000_000_000,fake_git)
+            self.assertEqual(len(result),9)
+            self.assertTrue(all(record['worktree']=='sparse-absent' for record in result.values()))
+            expected['input-4.dat']['sha256']='0'*64
+            with self.assertRaisesRegex(RuntimeError,'committed frozen input digest mismatch: input-4.dat'):
+                mod.validate_harness_inputs(repo,expected,time.monotonic_ns()+10_000_000_000,fake_git)
+
+    def test_input_and_review_hashes_are_fixed(self):
+        self.assertEqual(mod.RUNNER_SHA256,'e97361a954743231716a228646dd96f8fcf5b951780459a36e1842b08e0cfd80')
+        self.assertEqual(mod.CANONICAL_REVIEW_SHA256,'15feeaf89d5b07cbf6b9204299b6f9170a2552fd8070e33ad901a20367da5090')
+        packet=json.loads(mod.READINESS_PATH.read_text())
+        self.assertEqual(len(packet['project_inputs']['files']),9)
+        self.assertEqual(packet['proposed_new_paths']['root'],str(mod.ROOT))
+        self.assertTrue(all(len(item['sha256']) == 64 for item in packet['project_inputs']['files'].values()))
+        admission=json.loads(mod.STAGE1_ADMISSION_PATH.read_text())
+        self.assertEqual(admission['admitted_scope'], ['Stage1 frozen source preparation'])
+        self.assertFalse(admission['application_acceptance'])
+        self.assertEqual(mod.STAGE1_ADMISSION_SHA256,'ae23cdeb2a7cf4b1e7db63b975d919a5fa6668700e9245362f4053c00d623ce0')
+
+    def _tool_observation(self, root, rustc_link):
+        target = root / 'rustup-real'
+        target.write_text('#!/bin/sh\nexit 0\n')
+        target.chmod(0o700)
+        expected_rustc = root / 'rustc-expected'
+        expected_rustc.symlink_to(target)
+        cargo = root / 'cargo'; cargo.write_text('cargo'); cargo.chmod(0o700)
+        nextest = root / 'cargo-nextest'; nextest.write_text('nextest'); nextest.chmod(0o700)
+        cc = root / 'cc'; cc.write_text('cc'); cc.chmod(0o700)
+        clang = root / 'clang'; clang.write_text('clang'); clang.chmod(0o700)
+        ld = root / 'ld'; ld.write_text('ld'); ld.chmod(0o700)
+        lookups = {'cargo':str(cargo), 'rustc':str(rustc_link),
+                   'cargo-nextest':str(nextest), 'cc':str(cc),
+                   'clang':str(clang), 'ld':str(ld)}
+        def record(path):
+            return {'path':str(path), 'sha256':mod._sha256_file(path, time.monotonic_ns()+30_000_000_000)}
+        expected = {
+            'host': {'system':mod.platform.system(), 'machine':mod.platform.machine(), 'release':mod.platform.release()},
+            'invocation_tools': {'python':record(Path(mod.sys.executable).resolve()),
+                'cargo':record(cargo), 'rustc_path_entry':record(expected_rustc),
+                'cargo_nextest':record(nextest)},
+            'selected_toolchain': {'cc':record(cc), 'clang':record(clang), 'linker':record(ld)},
+        }
+        return expected, lookups
+
+    def _verify_lookups(self, expected, lookups):
+        with patch.object(mod.subprocess, 'run', side_effect=lambda argv, **kwargs:
+                subprocess.CompletedProcess(argv, 0, lookups[argv[1]], '')):
+            return mod.verify_selected_tools(expected, time.monotonic_ns()+30_000_000_000, {'PATH':'synthetic'})
+
+    def test_tool_lookup_accepts_distinct_symlink_to_same_resolved_executable(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td); target = root/'rustup-real'; target.write_text('rustup'); target.chmod(0o700)
+            actual_link=root/'rustc-actual'
+            expected, lookups=self._tool_observation(root, actual_link)
+            actual_link.symlink_to(target)
+            self.assertNotEqual(lookups['rustc'], expected['invocation_tools']['rustc_path_entry']['path'])
+            report=self._verify_lookups(expected, lookups)
+            self.assertTrue(report['tool_lookup_targets_match'])
+
+    def test_tool_lookup_rejects_wrong_symlink_target(self):
+        with tempfile.TemporaryDirectory() as td:
+            root=Path(td); wrong=root/'wrong'; wrong.write_text('wrong'); wrong.chmod(0o700)
+            actual=root/'rustc-actual'; actual.symlink_to(wrong)
+            expected, lookups=self._tool_observation(root, actual)
+            with self.assertRaisesRegex(RuntimeError, 'tool lookup target differs.*rustc'):
+                self._verify_lookups(expected, lookups)
+
+    def test_tool_lookup_rejects_dangling_symlink(self):
+        with tempfile.TemporaryDirectory() as td:
+            root=Path(td); dangling=root/'rustc-dangling'; dangling.symlink_to(root/'missing-target')
+            expected, lookups=self._tool_observation(root, dangling)
+            with self.assertRaisesRegex(RuntimeError, 'missing or dangling.*rustc'):
+                self._verify_lookups(expected, lookups)
+
+    def test_wait_observer_exception_waits_for_real_three_second_term_cleanup(self):
+        with tempfile.TemporaryDirectory() as td:
+            root=Path(td); marker=root/'ready'; log=root/'log'; holder={}
+            code=('import pathlib,signal,sys,time; marker=pathlib.Path(sys.argv[1]); '
+                  'signal.signal(signal.SIGTERM,lambda *_:(time.sleep(3),sys.exit(0))); '
+                  'marker.write_text("ready"); print("synthetic-ready",flush=True); signal.pause()')
+            command=[str(Path(mod.sys.executable)),'-c',code,str(marker)]
+            class WaitFault:
+                def __init__(self, inner): self.inner=inner; self.raised=False
+                @property
+                def pid(self): return self.inner.pid
+                def poll(self): return self.inner.poll()
+                def wait(self, timeout=None):
+                    if not self.raised:
+                        self.raised=True
+                        raise RuntimeError('synthetic wait observer fault')
+                    return self.inner.wait(timeout=timeout)
+                def send_signal(self,sig): return self.inner.send_signal(sig)
+                def kill(self): return self.inner.kill()
+            def factory(argv,**kwargs):
+                proc=subprocess.Popen(argv,**kwargs); holder['proc']=proc
+                limit=time.monotonic()+5
+                while time.monotonic()<limit and not marker.exists(): time.sleep(.01)
+                if not marker.exists():
+                    proc.kill(); proc.wait(timeout=2)
+                    raise AssertionError('synthetic child failed readiness')
+                return WaitFault(proc)
+            began=time.monotonic()
+            event=mod.run_supervised(command,log_path=log,deadline_ns=time.monotonic_ns()+30_000_000_000,
+                env={'PATH':os.environ.get('PATH','/usr/bin:/bin'),'LANG':'C'},worker_timeout=10,popen_factory=factory)
+            elapsed=time.monotonic()-began
+            self.assertGreaterEqual(elapsed,2.8)
+            self.assertIn('supervision_exception',event)
+            self.assertEqual(event['supervision_exception']['type'],'RuntimeError')
+            self.assertTrue(event['direct_worker_reaped'])
+            self.assertEqual(event['exit_status'],0)
+            self.assertFalse(event['success'])
+            self.assertIsNotNone(holder['proc'].poll())
+            self.assertIn('synthetic-ready',log.read_text())
+
+    def test_keyboard_interrupt_from_wait_still_reaps_owned_direct_child(self):
+        with tempfile.TemporaryDirectory() as td:
+            log=Path(td)/'log'
+            class InterruptingWait(FakeProcess):
+                def wait(self, timeout=None):
+                    if not getattr(self,'interrupted',False):
+                        self.interrupted=True
+                        raise KeyboardInterrupt()
+                    return super().wait(timeout)
+            child=InterruptingWait(exit_after_signal=0)
+            event=mod.run_supervised(['synthetic'],log_path=log,
+                deadline_ns=time.monotonic_ns()+30_000_000_000,env={},worker_timeout=5,
+                popen_factory=lambda *_a,**_k:child)
+            self.assertEqual(event['supervision_exception']['type'],'KeyboardInterrupt')
+            self.assertEqual(child.signals,[signal.SIGTERM])
+            self.assertTrue(event['direct_worker_reaped'])
+            self.assertEqual(event['exit_status'],0)
+            self.assertFalse(event['success'])
+
+    def test_poll_observer_exception_signals_and_reaps_owned_child(self):
+        with tempfile.TemporaryDirectory() as td:
+            root=Path(td); marker=root/'ready'; log=root/'log'; holder={}
+            code=('import pathlib,signal,sys; signal.signal(signal.SIGTERM,lambda *_:sys.exit(0)); '
+                  'pathlib.Path(sys.argv[1]).write_text("ready"); print("synthetic-ready",flush=True); signal.pause()')
+            command=[str(Path(mod.sys.executable)),'-c',code,str(marker)]
+            class PollFault:
+                def __init__(self,inner): self.inner=inner; self.raised=False
+                @property
+                def pid(self): return self.inner.pid
+                def poll(self):
+                    if not self.raised:
+                        self.raised=True
+                        raise RuntimeError('synthetic poll observer fault')
+                    return self.inner.poll()
+                def wait(self,timeout=None): return self.inner.wait(timeout=timeout)
+                def send_signal(self,sig): return self.inner.send_signal(sig)
+                def kill(self): return self.inner.kill()
+            def factory(argv,**kwargs):
+                proc=subprocess.Popen(argv,**kwargs); holder['proc']=proc
+                limit=time.monotonic()+5
+                while time.monotonic()<limit and not marker.exists(): time.sleep(.01)
+                if not marker.exists():
+                    proc.kill(); proc.wait(timeout=2)
+                    raise AssertionError('synthetic child failed readiness')
+                return PollFault(proc)
+            event=mod.run_supervised(command,log_path=log,
+                deadline_ns=time.monotonic_ns()+30_000_000_000,
+                env={'PATH':os.environ.get('PATH','/usr/bin:/bin'),'LANG':'C'},
+                worker_timeout=5,popen_factory=factory)
+            self.assertEqual(event['supervision_exception']['message'],'synthetic poll observer fault')
+            self.assertTrue(event['direct_worker_reaped'])
+            self.assertEqual(event['exit_status'],0)
+            self.assertFalse(event['success'])
+            self.assertIsNotNone(holder['proc'].poll())
+
+    def test_sigterm_resistant_real_child_is_killed_and_reaped(self):
+        with tempfile.TemporaryDirectory() as td:
+            root=Path(td); marker=root/'ready'; log=root/'log'; holder={}
+            code=('import pathlib,signal,sys,time; signal.signal(signal.SIGTERM,signal.SIG_IGN); '
+                  'pathlib.Path(sys.argv[1]).write_text("ready"); print("synthetic-ready",flush=True); '
+                  'exec("while True: time.sleep(.05)")')
+            command=[str(Path(mod.sys.executable)),'-c',code,str(marker)]
+            def factory(argv,**kwargs):
+                proc=subprocess.Popen(argv,**kwargs); holder['proc']=proc
+                limit=time.monotonic()+5
+                while time.monotonic()<limit and not marker.exists(): time.sleep(.01)
+                if not marker.exists():
+                    proc.kill(); proc.wait(timeout=2)
+                    raise AssertionError('synthetic child failed readiness')
+                return proc
+            event=mod.run_supervised(command,log_path=log,deadline_ns=time.monotonic_ns()+30_000_000_000,
+                env={'PATH':os.environ.get('PATH','/usr/bin:/bin'),'LANG':'C'},worker_timeout=0,popen_factory=factory)
+            self.assertTrue(event['timed_out'])
+            self.assertTrue(event['direct_worker_reaped'])
+            self.assertEqual(event['exit_status'],-signal.SIGKILL)
+            self.assertIn('SIGKILL fallback',event['timeout_cleanup'])
+            self.assertFalse(event['success'])
+            self.assertIsNotNone(holder['proc'].poll())
+
+    def test_spawn_observer_and_event_finalization_fail_closed(self):
+        with tempfile.TemporaryDirectory() as td:
+            root=Path(td); log=root/'log'
+            event=mod.run_supervised(['never-launched'],log_path=log,
+                deadline_ns=time.monotonic_ns()+30_000_000_000,env={},worker_timeout=1,
+                popen_factory=lambda *_a,**_k: (_ for _ in ()).throw(OSError('synthetic spawn failure')))
+            self.assertFalse(event['worker_started'])
+            self.assertFalse(event['success'])
+            self.assertEqual(event['spawn_exception']['type'],'OSError')
+            self.assertIsNotNone(event['log_sha256'])
+            evidence=root/'event.json'
+            mod._exclusive_json(evidence,event,time.monotonic_ns()+10_000_000_000)
+            original=evidence.read_bytes()
+            with self.assertRaises(FileExistsError):
+                mod._exclusive_json(evidence,{'success':True},time.monotonic_ns()+10_000_000_000)
+            self.assertEqual(evidence.read_bytes(),original)
+            with self.assertRaises(TimeoutError):
+                mod._exclusive_json(root/'expired.json',event,time.monotonic_ns()-1)
+            self.assertFalse((root/'expired.json').exists())
+            read_fd,write_fd=os.pipe()
+            try:
+                with self.assertRaises(TimeoutError):
+                    mod.write_fd_bounded(write_fd,b'event',time.monotonic_ns()-1)
+            finally:
+                os.close(write_fd); os.close(read_fd)
+
+    def test_log_hash_failure_never_produces_successful_event(self):
+        with tempfile.TemporaryDirectory() as td:
+            root=Path(td); log=root/'log'; event_path=root/'event.json'
+            child=FakeProcess(); child._code=0
+            original=mod._sha256_file
+            def fail_log_hash(path,deadline_ns,**kwargs):
+                if Path(path)==log: raise TimeoutError('synthetic log finalization deadline')
+                return original(path,deadline_ns,**kwargs)
+            with patch.object(mod,'_sha256_file',side_effect=fail_log_hash):
+                event=mod.run_supervised(['synthetic'],log_path=log,
+                    deadline_ns=time.monotonic_ns()+30_000_000_000,env={},worker_timeout=1,
+                    popen_factory=lambda *_a,**_k:child)
+            self.assertEqual(event['exit_status'],0)
+            self.assertTrue(event['direct_worker_reaped'])
+            self.assertIn('log_hash_exception',event)
+            self.assertFalse(event['success'])
+            mod._exclusive_json(event_path,event,time.monotonic_ns()+10_000_000_000)
+            self.assertFalse(json.loads(event_path.read_text())['success'])
+
+    def test_synthetic_slow_evidence_sink_finishing_after_deadline_fails_closed(self):
+        self.assertIn('wrapper exit status 0',mod.EVENT_RECEIPT_RULE)
+        self.assertIn('never product acceptance',mod.EVENT_RECEIPT_RULE)
+        completed=[]
+        deadline=time.monotonic_ns()+20_000_000
+        def synthetic_sink():
+            time.sleep(0.04)
+            completed.append('write-flush-sync-close-returned')
+        began=time.monotonic()
+        with self.assertRaisesRegex(TimeoutError,'expired during evidence finalization'):
+            mod._run_finalizer(deadline,synthetic_sink)
+        self.assertEqual(completed,['write-flush-sync-close-returned'])
+        self.assertGreaterEqual(time.monotonic()-began,0.035)
+        self.assertLessEqual(mod.remaining(deadline),0)
+        # A delayed sink has no event receipt and therefore cannot be accepted.
+
+if __name__ == '__main__':
+    unittest.main(verbosity=2)

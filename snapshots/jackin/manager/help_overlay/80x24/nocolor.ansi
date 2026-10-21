@@ -1,0 +1,25 @@
+[0m[2m  jackin❯    File   Go   Help              …  Workspaces  inside the Construct  [0m
+[0m[2m                                                                                [0m
+[0m[2m ╭─ Work╭─[0m[1;2m Keyboard shortcuts [0m[2m──────────────────────── 1–16 of 51 ─ × ─╮ning ─╮ [0m
+[0m[2m │ [0m [0m[2m   C│  [0m[1;2mWorkspaces[0m[2m                                                 ┃│form  │ [0m
+[0m[2m │ [0m [0m[2m ▸ p│  [0m[1;2m↑↓ j k[0m[2m      move                                           ┃│ning  │ [0m
+[0m[2m │ [0m [0m[2m ▸ i│  [0m[1;2m←→ h l[0m[2m      collapse / expand                              ┃│ning  │ [0m
+[0m[2m │ [0m [0m[2m ▸ r│  [0m[1;2mSpace[0m[2m       fold workspace                                 ┃│iled  │ [0m
+[0m[2m │ [0m [0m[2m ▸ c│  [0m[1;2mEnter[0m[2m       launch                                         ┃│iled  │ [0m
+[0m[2m │ [0m [0m[2m   +│  [0m[1;2me[0m[2m           edit workspace                                 ┆│      │ [0m
+[0m[2m │      │  [0m[1;2mn[0m[2m           new workspace                                  ┆│      │ [0m
+[0m[2m │      │  [0m[1;2md[0m[2m           delete…                                        ┆│      │ [0m
+[0m[2m │      │  [0m[1;2mw[0m[2m           prewarm                                        ┆│      │ [0m
+[0m[2m │      │  [0m[1;2mo[0m[2m           open in GitHub                                 ┆│      │ [0m
+[0m[2m │      │  [0m[1;2m* -[0m[2m         expand / collapse all                          ┆│      │ [0m
+[0m[2m ╰──────│  [0m[1;2mTab[0m[2m         details                                        ┆│──────╯ [0m
+[0m[2m        │                                                             ┆│        [0m
+[0m[2m   Curre│  [0m[1;2mInstances[0m[2m                                                  ┆│tails   [0m
+[0m[2m   ─────│  [0m[1;2mEnter r[0m[2m     reconnect / restore                            ┆│─────   [0m
+[0m[2m   /work│  [0m[1;2ma[0m[2m           new session                                    ┆│        [0m
+[0m[2m   Roles│                                                      ▎[0m[1;2mDone [0m[2m  │        [0m
+[0m[2m   ◉ 7f3╰──────────────────────────────────────────────────────────────╯        [0m
+[0m[2m                                                                                [0m
+[0m[2m                                                                                [0m
+ [0m[1m↑↓ Sc[0mroll  [0m[1mEsc [0mClose [0m[1m [0m       [0m[1m   [0m          [0m[1m [0m           [0m[1m [0m        [0m[1m [0m               [0m
+[?25l

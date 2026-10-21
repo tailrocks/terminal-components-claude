@@ -1,0 +1,20 @@
+{
+  "schema": "termrock.stage2.parent-invocation-observation.v1",
+  "recorded_at_utc": "2026-10-21T04:13:30.117387+00:00",
+  "source_sha256": "a28fe81fc0214c230f3ec147ee546f4a57c3c9bb12d0f963cea7e5fa938765d3",
+  "independent_review_sha256": "438a9994031d9e6f9736a250c6cb2d8c7979924534d37a7f4ea72fca385502ff",
+  "argv": [
+    "/Users/donbeave/.local/share/mise/installs/python/3.15.0/bin/python3.15",
+    "/Users/donbeave/Projects/termrock-cli-evidence-20261021/fresh-plan-stage3d-atomic-supervisor-v11-stage2-20261021.py",
+    "--stage",
+    "2",
+    "--run-id",
+    "parent-v11-stage2-20261021-0416"
+  ],
+  "exit_code": 2,
+  "stderr": {
+    "error": "RuntimeError",
+    "message": "stage-one independent evidence does not match admission"
+  },
+  "scope": "Refused during admission before prepare-live. This is a coordinator observation of tool output, not an authenticated successful operation receipt. No capture, replay, candidate comparison, or key access occurred."
+}

@@ -234,6 +234,12 @@ impl Workbench {
         self.close_tab_confirmed(tab.key())
     }
 
+    /// Close a tab chosen for deletion from the tab picker, discarding its
+    /// unsaved query or result-grid edits as the reference picker does.
+    pub fn close_tab_from_picker(&mut self, key: TabKey) -> bool {
+        self.close_tab_confirmed(key)
+    }
+
     pub(crate) fn close_tab_confirmed(&mut self, key: TabKey) -> bool {
         let Some(index) = self.tabs.iter().position(|tab| tab.key() == key) else {
             return false;

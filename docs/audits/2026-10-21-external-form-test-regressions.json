@@ -1,0 +1,59 @@
+{
+  "schema": 1,
+  "candidate_commit": "2a741b37878002d6f6cb32e8d624764a56635352",
+  "new_external_source": "cf9133c21a73b4bfe73a02e713a243614126a62a",
+  "comparison_base": "5902a59053e4af4601d880c8419cb180adc5f661",
+  "command": [
+    "cargo",
+    "nextest",
+    "run",
+    "--locked",
+    "-p",
+    "tablepro-ui",
+    "--all-targets",
+    "--no-fail-fast"
+  ],
+  "candidate_result": {
+    "run": 181,
+    "passed": 160,
+    "failed": 21,
+    "skipped": 0
+  },
+  "base_result": {
+    "run": 181,
+    "passed": 170,
+    "failed": 11,
+    "skipped": 0
+  },
+  "existing_failure_names": [
+    "tablepro-ui app::query_result_keys::explain_orders_shows_a_plan_cell_the_error_frame_hides",
+    "tablepro-ui::close_contract query_and_inline_drafts_survive_cancel_without_commit",
+    "tablepro-ui::destructive_generation close_only_binds_target_but_quit_binds_every_tab",
+    "tablepro-ui::perf frame_tablepro_grid_500x14_120x40",
+    "tablepro-ui::replacement_contract result_confirmation_cancel_preserves_inline_draft_and_confirm_targets_captured_tab",
+    "tablepro-ui::replacement_contract result_confirmation_rejects_changed_sql_and_vanished_target_is_noop",
+    "tablepro-ui::row_actions_contract inserting_after_five_hundred_rows_reveals_the_new_owned_record",
+    "tablepro-ui::row_actions_contract uppercase_u_requires_confirmation_and_preserves_sql_and_other_tab",
+    "tablepro-ui::tab_ownership focused_query_identity_and_draft_survive_earlier_insert_close_and_reorder",
+    "tablepro-ui::undo_contract plain_u_in_sql_editor_is_text_and_leaves_inactive_table_pending",
+    "tablepro-ui::visual tablepro_visual_baseline"
+  ],
+  "new_failure_names": [
+    "tablepro-ui app::fresh_name_gate::typing_replaces_the_stock_name_and_closes_the_empty_card_gate",
+    "tablepro-ui::footer_unicode connection_form_names_preserve_footer_grapheme_boundaries",
+    "tablepro-ui::form_radio form_radio_commit_changes_draft",
+    "tablepro-ui::form_radio form_radio_enter_submits",
+    "tablepro-ui::form_radio form_radio_focus_bolds_the_painted_row",
+    "tablepro-ui::form_radio form_radio_narrow_frames_clip_the_environment_field",
+    "tablepro-ui::form_radio form_radio_off_marker_uses_the_hollow_circle",
+    "tablepro-ui::form_radio form_radio_right_card_pins_miss_the_stock_form",
+    "tablepro-ui::perf frame_tablepro_connection_form_120x40",
+    "tablepro-ui::replacement_contract save_connect_from_workbench_form_requires_guard_and_cancel_keeps_work"
+  ],
+  "missing_old_failure_names": [],
+  "raw_logs": {
+    "/tmp/tablepro-grid-exact-base-5902.log": "554c3e2da43aedf8a56039d2a9310f2aaf53cb1a36267757eaa35bff11d99da2",
+    "/private/tmp/termrock-tablepro-base-2a741-all-targets-20261021.log": "7690ae9ec389a29b6b7bbb9cf8a6d64663f0663ae7fd6086e943b366a8364135"
+  },
+  "attribution_limit": "The only production difference from bd4248782 to 2a741b378 is external cf9133c21; remaining differences are documentation. The table records exact observed test names, not an independent source diagnosis or frozen product comparison. No failures were removed or expectations updated."
+}

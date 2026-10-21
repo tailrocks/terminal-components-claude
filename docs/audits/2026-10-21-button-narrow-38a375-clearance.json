@@ -1,0 +1,44 @@
+{
+  "source_revision": "38a375bb4fbd0bd6f083bce9254fe181d96f8444",
+  "source_publication_status": "Reviewed as a local common Git object. This review does not independently establish a remote tip.",
+  "parent_revision": "57ca512b3796b04e518a73b5fdfe7391f312c6f3",
+  "disposition": "Cleared for the bounded default Button label fitting correction, with the audit typo fixed in afd1caca3471cfa361f4e29cf0a9d3fae7f075bc. No product source finding remains in this increment.",
+  "source_evidence": [
+    {
+      "path": "crates/termrock-controls/src/button.rs:403",
+      "decision": "The default LABEL renderer uses the existing shared grapheme-aware cell-width truncate operation and fills the same resolved label rectangle before painting. Registration, state derivation, bindings, marker/icon slots, geometry, cursor behavior, and measurement are unchanged. Explicit LABEL callbacks remain outside the default truncation and padding branch."
+    },
+    {
+      "reference": "4169783ae883788186d161af09ba9c481bd84e5c:src/widgets/button.rs:208",
+      "decision": "The frozen Button calls ui::text::fit with the label cell width. The fixed design revision contains the identical call."
+    },
+    {
+      "reference": "4169783ae883788186d161af09ba9c481bd84e5c:src/ui/text.rs:92,214",
+      "decision": "Frozen truncate iterates graphemes, reserves one cell for ellipsis, and does not split wide graphemes. fit pads the resulting content to the allocated width. Shared candidate truncate plus resolved label fill follows that contract."
+    }
+  ],
+  "runs": [
+    {
+      "revision": "57ca512b3796b04e518a73b5fdfe7391f312c6f3",
+      "result": "The unchanged external real Harness consumer fails the narrow wide-label regression: a blank at x=3 instead of the required ellipsis. One test run, one failure, ten tests filtered.",
+      "log": "/tmp/button-narrow-parent57ca-independent.log",
+      "log_sha256": "bc345739602785fe24cca88763a67bfd5c43d72c0db5dd4568ad03d9d7ec4774"
+    },
+    {
+      "revision": "38a375bb4fbd0bd6f083bce9254fe181d96f8444",
+      "result": "Four unchanged external public consumer tests pass. Covers \u4e16\u754c at width 5, combining graphemes, emoji, checked markers, empty and zero-to-three-cell extents, custom LABEL slot ownership, and all four color profiles. Seven other tests filtered.",
+      "log": "/tmp/button-narrow-38a-independent.log",
+      "log_sha256": "f94cf9155651815f99a54bbeaea9e5fc026f6635901fcf0efb7f69f6f1dbb3ff"
+    },
+    {
+      "revision": "38a375bb4fbd0bd6f083bce9254fe181d96f8444",
+      "result": "Independent cargo nextest run --locked -p termrock-controls --all-targets: 124 passed, zero skipped.",
+      "log": "/tmp/button-narrow-38a-native-alltargets.log",
+      "log_sha256": "23499ee09457797acd0c474321c3ecaefc925d259dbe584fefe0cf2fc20e3ac5"
+    }
+  ],
+  "review_consumer": "/private/tmp/button-narrow-38a-independent/tests/contract.rs",
+  "resolved_finding": "The authored audit used an incorrect baseline hash suffix e5e. Independent inspection confirms afd1caca3471cfa361f4e29cf0a9d3fae7f075bc changes only that text to the required e5c; product files are unchanged.",
+  "limits": "Author strict Clippy and scoped formatting evidence is reported, not independently rerun in this packet. No full application parity, broader Button contract, frozen reference conflict resolution, semantic all_73 palette clearance, runtime measurement fixture clearance, or hosted CI acceptance is claimed. Initial external harness setup hit an unrelated /private/tmp parent workspace manifest; adding an explicit standalone workspace declaration fixed harness setup without changing any product source or test body.",
+  "review_consumer_sha256": "3d342a5d853bd7b4b6ef625ea48099a86cdd46bf2b09e2f8d2f55b8d9439b0eb"
+}

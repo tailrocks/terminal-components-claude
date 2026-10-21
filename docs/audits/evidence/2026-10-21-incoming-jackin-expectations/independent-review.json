@@ -1,0 +1,182 @@
+{
+  "created_utc": "2026-10-21T11:37:47.070126+00:00",
+  "reviewer": "tree_adapter_independent_review",
+  "before_commit": "a9807e3420f331da0d2f32b40e82c195fead225d",
+  "after_commit": "a1a3f91ca995fbe2f998393fabf353bc0a5af718",
+  "source_commit": "7649ee7ed8e8645e49f859a171ea0193fccc1e82",
+  "path": "crates/jackin-preview-app/tests/baselines/jackin.txt",
+  "protected_blob": "0e45e5d0caaef4af0706b1dd5db92fd3b2ca40cf",
+  "incoming_blob": "e5014e84d4c15efd239fe9b370731606ee93017e",
+  "decision": "RESTORE_ALL23_CHANGED_EXPECTATIONS_TO_PROTECTED0e45_BLOB",
+  "unchanged_key_count": 41,
+  "changed_key_count": 23,
+  "added_or_removed_keys": 0,
+  "per_key_disposition": [
+    {
+      "key": "accounts-mixed 100 30 junie truecolor",
+      "protected_expected": "1078e1535637988f",
+      "incoming_expected": "4427ad1b1eabafb3",
+      "disposition": "RESTORE_PROTECTED_EXPECTED",
+      "reason": "No explicit independent frozen-reference decision authorizes changing this protected key."
+    },
+    {
+      "key": "capsule-multi 100 30 junie mono",
+      "protected_expected": "b5519ff44ddf4f35",
+      "incoming_expected": "b41b0773aa27756c",
+      "disposition": "RESTORE_PROTECTED_EXPECTED",
+      "reason": "No explicit independent frozen-reference decision authorizes changing this protected key."
+    },
+    {
+      "key": "capsule-multi 100 30 junie truecolor",
+      "protected_expected": "74506c127684005e",
+      "incoming_expected": "39d8d0fb4ea19823",
+      "disposition": "RESTORE_PROTECTED_EXPECTED",
+      "reason": "No explicit independent frozen-reference decision authorizes changing this protected key."
+    },
+    {
+      "key": "capsule-multi 100 30 paper mono",
+      "protected_expected": "5e26c1b42ab38bf3",
+      "incoming_expected": "e7d5c9d14f238964",
+      "disposition": "RESTORE_PROTECTED_EXPECTED",
+      "reason": "No explicit independent frozen-reference decision authorizes changing this protected key."
+    },
+    {
+      "key": "capsule-multi 100 30 paper truecolor",
+      "protected_expected": "c9c4a131429bff6a",
+      "incoming_expected": "eff31fad1b0de9ce",
+      "disposition": "RESTORE_PROTECTED_EXPECTED",
+      "reason": "No explicit independent frozen-reference decision authorizes changing this protected key."
+    },
+    {
+      "key": "capsule-multi 120 40 junie mono",
+      "protected_expected": "858523b61b8956da",
+      "incoming_expected": "9b66272a8a433927",
+      "disposition": "RESTORE_PROTECTED_EXPECTED",
+      "reason": "No explicit independent frozen-reference decision authorizes changing this protected key."
+    },
+    {
+      "key": "capsule-multi 120 40 junie truecolor",
+      "protected_expected": "de16e66c68e1e2b2",
+      "incoming_expected": "51ec6cc41c18e93a",
+      "disposition": "RESTORE_PROTECTED_EXPECTED",
+      "reason": "No explicit independent frozen-reference decision authorizes changing this protected key."
+    },
+    {
+      "key": "capsule-multi 120 40 paper mono",
+      "protected_expected": "40522e1a790d21d0",
+      "incoming_expected": "b262c3f106995373",
+      "disposition": "RESTORE_PROTECTED_EXPECTED",
+      "reason": "No explicit independent frozen-reference decision authorizes changing this protected key."
+    },
+    {
+      "key": "capsule-multi 120 40 paper truecolor",
+      "protected_expected": "02282e8117d750ae",
+      "incoming_expected": "57d9bd601197fbf1",
+      "disposition": "RESTORE_PROTECTED_EXPECTED",
+      "reason": "No explicit independent frozen-reference decision authorizes changing this protected key."
+    },
+    {
+      "key": "hard-cases 120 40 junie mono",
+      "protected_expected": "ec0d2382edf449ef",
+      "incoming_expected": "b88a570365153e91",
+      "disposition": "RESTORE_PROTECTED_EXPECTED",
+      "reason": "No explicit independent frozen-reference decision authorizes changing this protected key."
+    },
+    {
+      "key": "hard-cases 120 40 paper mono",
+      "protected_expected": "4cac6d09b116c973",
+      "incoming_expected": "93cde6f1342da80b",
+      "disposition": "RESTORE_PROTECTED_EXPECTED",
+      "reason": "No explicit independent frozen-reference decision authorizes changing this protected key."
+    },
+    {
+      "key": "hard-cases 120 40 paper truecolor",
+      "protected_expected": "2bd2cb74e6623e1c",
+      "incoming_expected": "e8344f5dd1c99ae0",
+      "disposition": "RESTORE_PROTECTED_EXPECTED",
+      "reason": "No explicit independent frozen-reference decision authorizes changing this protected key."
+    },
+    {
+      "key": "outro-last 100 30 junie mono",
+      "protected_expected": "9f318a91941658c9",
+      "incoming_expected": "b41b0773aa27756c",
+      "disposition": "RESTORE_PROTECTED_EXPECTED",
+      "reason": "No explicit independent frozen-reference decision authorizes changing this protected key."
+    },
+    {
+      "key": "outro-last 100 30 junie truecolor",
+      "protected_expected": "4674c1c78a56d9d3",
+      "incoming_expected": "39d8d0fb4ea19823",
+      "disposition": "RESTORE_PROTECTED_EXPECTED",
+      "reason": "No explicit independent frozen-reference decision authorizes changing this protected key."
+    },
+    {
+      "key": "outro-last 100 30 paper mono",
+      "protected_expected": "76fd660410c6911d",
+      "incoming_expected": "e7d5c9d14f238964",
+      "disposition": "RESTORE_PROTECTED_EXPECTED",
+      "reason": "No explicit independent frozen-reference decision authorizes changing this protected key."
+    },
+    {
+      "key": "outro-last 100 30 paper truecolor",
+      "protected_expected": "9b04651ff481bae8",
+      "incoming_expected": "eff31fad1b0de9ce",
+      "disposition": "RESTORE_PROTECTED_EXPECTED",
+      "reason": "No explicit independent frozen-reference decision authorizes changing this protected key."
+    },
+    {
+      "key": "outro-last 120 40 junie mono",
+      "protected_expected": "ff654d7db699e8c2",
+      "incoming_expected": "9b66272a8a433927",
+      "disposition": "RESTORE_PROTECTED_EXPECTED",
+      "reason": "No explicit independent frozen-reference decision authorizes changing this protected key."
+    },
+    {
+      "key": "outro-last 120 40 junie truecolor",
+      "protected_expected": "11b7e06fd1c792bd",
+      "incoming_expected": "51ec6cc41c18e93a",
+      "disposition": "RESTORE_PROTECTED_EXPECTED",
+      "reason": "No explicit independent frozen-reference decision authorizes changing this protected key."
+    },
+    {
+      "key": "outro-last 120 40 paper mono",
+      "protected_expected": "64f71099c0f7cae6",
+      "incoming_expected": "b262c3f106995373",
+      "disposition": "RESTORE_PROTECTED_EXPECTED",
+      "reason": "No explicit independent frozen-reference decision authorizes changing this protected key."
+    },
+    {
+      "key": "outro-last 120 40 paper truecolor",
+      "protected_expected": "a175117492d12275",
+      "incoming_expected": "57d9bd601197fbf1",
+      "disposition": "RESTORE_PROTECTED_EXPECTED",
+      "reason": "No explicit independent frozen-reference decision authorizes changing this protected key."
+    },
+    {
+      "key": "returning 120 40 junie mono",
+      "protected_expected": "78a2b61980bc2587",
+      "incoming_expected": "61e65d72e68acdd7",
+      "disposition": "RESTORE_PROTECTED_EXPECTED",
+      "reason": "No explicit independent frozen-reference decision authorizes changing this protected key."
+    },
+    {
+      "key": "returning 120 40 paper mono",
+      "protected_expected": "88d630b9c82893bd",
+      "incoming_expected": "9767b755cc1a5d65",
+      "disposition": "RESTORE_PROTECTED_EXPECTED",
+      "reason": "No explicit independent frozen-reference decision authorizes changing this protected key."
+    },
+    {
+      "key": "returning 120 40 paper truecolor",
+      "protected_expected": "d0d60d05ee0bfd73",
+      "incoming_expected": "1186c0d969af510b",
+      "disposition": "RESTORE_PROTECTED_EXPECTED",
+      "reason": "No explicit independent frozen-reference decision authorizes changing this protected key."
+    }
+  ],
+  "source_scope": "commit 7649ee7ed8e8645e49f859a171ea0193fccc1e82\nAuthor:     Alexey Zhokhov <alexey@zhokhov.com>\nAuthorDate: Wed Oct 21 18:27:30 2026 +0700\nCommit:     Alexey Zhokhov <alexey@zhokhov.com>\nCommitDate: Wed Oct 21 18:27:30 2026 +0700\n\n    fix(jackin): allow clippy arguments on split view and align visual baseline digests\n    \n    Signed-off-by: Alexey Zhokhov <alexey@zhokhov.com>\n    Co-Authored-By: Claude Code <noreply@anthropic.com>\n\n .../src/app/capsule_split_view.rs                  |  1 +\n .../jackin-preview-app/tests/baselines/jackin.txt  | 46 +++++++++++-----------\n 2 files changed, 24 insertions(+), 23 deletions(-)",
+  "rationale": "Incoming commit modifies the Clippy argument allowance and stored native Jackin digest approvals. No reference-data defect diagnosis or independent frozen-baseline decision is included in that commit. Matching current candidate output does not authorize replacing expected reference data. Prior protected blob also matches2ce39f5cc.",
+  "minimal_action": "Restore the entire Jackin baseline file to exact protected blob0e45e5d0caaef4af0706b1dd5db92fd3b2ca40cf; there are no approved differences in this file to retain. Keep code changes and their reviews separate. Preserve incoming commit/blob IDs in migration record as rejected expectation edits.",
+  "limits": "This is expectation-integrity review only, not independent baseline re-capture, diagnosis of all23 appearance differences, or approval/rejection of capsule rendering source.",
+  "no_repository_edits": true
+}

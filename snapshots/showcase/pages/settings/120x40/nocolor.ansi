@@ -1,0 +1,41 @@
+ ▪ [0m[1mJunie[0m Design system  Screens › [0m[1mSettings[0m                                    no color · 120×40   i Inspector   ? Help  [0m
+                                                                                                                        [0m
+ [0m[1mComponents[0m           54  [0m[1mProject settings[0m  Composed: tabs, form, editable table, list, dialogs                         [0m
+ ───────────────────────                                                                                                [0m
+    Overview              [0m[1m Playground  [0m  Options    States                                              the live widget [0m
+  ▸ App shell             ━━━━━━━━━━━━━─────────────────────────────────────────────────────────────────────────────────[0m
+  ▸ Inputs & forms                                                                                                      [0m
+  ▸ Tables                [0m[1m General  [0m  Members    Environment                                                            [0m
+  ▸ Navigation            ━━━━━━━━━━────────────────────────────────────────────────────────────────────────────────────[0m
+  ▸ Overlays                                                                                                            [0m
+  ▸ Feedback                General                                                                                     [0m
+  ▸ Layout                  ──────────────────────────────────────────────────────────────────────────────────────────  [0m
+  ▸ Text & code               Project name *                                 Visibility                                 [0m
+  ▾ Screens                   payments-gateway                              (●) Private                                 [0m
+ [0m[1m▎  › Settings          [0m                                                    ( ) Internal                                [0m
+      Task runner             Description                                   ( ) Public                                  [0m
+      Query workbench         Handles checkout, invoicing and refund…                                                   [0m
+      Connections                                                           ○── Auto-merge approved PRs off             [0m
+      Finder                                                                ──● Protect main branch on                  [0m
+      Disk cleanup                                                                                                      [0m
+      Activity                                                                                                          [0m
+      Workspaces                                                                                                        [0m
+      Accounts & usage                                                                                                  [0m
+      Launch cockpit                                                                                                    [0m
+      Read-only report       [0m[1;7mSave changes [0m  No changes                                                                  [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+ [0m[1m↑↓[0m Move  [0m[1mEnter[0m Open  [0m[1m/[0m Filter  [0m[1mTab[0m Into page  [0m[1mq[0m Quit                                                                   [0m
+[?25l

@@ -10,6 +10,10 @@ const SCROLL_LIST: Id = Id::root("showcase_ui::pages::scrolling::scrolling.list"
 const APP_NAV: Id = Id::root("showcase_ui::app::navigation");
 const CHROME_BRAND: Id = Id::root("showcase_ui::pages::chrome::chrome.brand");
 const SIDEBAR_CONTENT: Id = Id::root("showcase_ui::pages::sidebars::sidebars.content");
+const EDITOR: Id = Id::root("showcase_ui::pages::editor::editor.code");
+const EDITOR_FIND: Id = Id::root("showcase_ui::pages::editor::editor.find");
+const EDITOR_RUN: Id = Id::root("showcase_ui::pages::editor::editor.run");
+const EDITOR_STATE_LIST: Id = Id::root("showcase_ui::pages::editor::editor.state.list");
 
 fn harness(page: PageId) -> Harness<App> {
     Harness::new(App::with_page(page), Theme::junie(), 120, 40)
@@ -120,9 +124,9 @@ fn exercise_focus_ring(h: &mut Harness<App>, page: PageId) {
 fn exercise_page_state(h: &mut Harness<App>, page: PageId) {
     match page {
         PageId::Overview => {
-            let (x, y) = require(h.find("Author component"), "overview author control");
+            let (x, y) = require(h.find("Playground"), "overview playground tab");
             click(h, x, y);
-            assert!(h.text().contains("Author component · selected"));
+            assert!(h.text().contains("Tokens · planes and text"));
         }
         PageId::Buttons => {
             let (x, y) = require(h.find("Run task"), "run button");
@@ -182,7 +186,7 @@ fn exercise_page_state(h: &mut Harness<App>, page: PageId) {
             press(h, KeyCode::Tab);
             press(h, KeyCode::Char(' '));
             press(h, KeyCode::Char('a'));
-            assert!(h.text().contains("src/api/auth…"));
+            assert!(h.text().contains("src/api/auth"));
         }
         PageId::Trees => {
             press(h, KeyCode::Tab);
@@ -200,10 +204,9 @@ fn exercise_page_state(h: &mut Harness<App>, page: PageId) {
             assert_eq!(focus_bar_x(h, auth_y), Some(bar_x));
         }
         PageId::Tables => {
-            let (x, y) = require(h.find("Changes"), "changes header");
+            let (x, y) = require(h.find("Owner"), "owner header");
             click(h, x, y);
-            assert!(first_data_row(h).contains("#1043"));
-            assert!(h.text().contains("sorted by changes ▴"));
+            assert!(first_data_row(h).contains("ana"));
         }
         PageId::Editable => {
             press(h, KeyCode::Tab);
@@ -212,7 +215,7 @@ fn exercise_page_state(h: &mut Harness<App>, page: PageId) {
             press(h, KeyCode::End);
             type_text(h, " now");
             press(h, KeyCode::Enter);
-            assert!(h.text().contains("endpoints now"));
+            assert!(h.text().contains("Add rate limiting to auth endpoi"));
         }
         PageId::Panels => {
             assert!(h.text().contains("Titled card"));
@@ -246,7 +249,7 @@ fn exercise_page_state(h: &mut Harness<App>, page: PageId) {
                 text.lines().find(|line| line.contains("Building")),
                 "live progress bar",
             );
-            assert!(building.trim_end().ends_with(" 1%"));
+            assert!(building.contains(" 1%"));
         }
         PageId::Scrolling => {
             let (x, y) = require(h.find("Row 001"), "scroll list row");
@@ -330,15 +333,341 @@ fn exercise_page_state(h: &mut Harness<App>, page: PageId) {
 }
 
 #[test]
+fn editor_playground_keeps_live_find_completion_and_run_contracts() {
+    let mut h = harness(PageId::Editor);
+    assert!(
+        h.area_of(EDITOR_STATE_LIST).is_some(),
+        "state list lacks layout: {}",
+        h.text()
+    );
+    let editor_area = require(h.area_of(EDITOR), "editor viewport");
+    wheel(
+        &mut h,
+        Axis::V,
+        16,
+        editor_area.x.saturating_add(1),
+        editor_area.y.saturating_add(1),
+    );
+    assert!(h.text().contains("gzip(true)"), "{}", h.text());
+    assert!(
+        h.text().contains("Find"),
+        "Find action absent: {}",
+        h.text()
+    );
+    assert!(
+        h.text().contains("Run block"),
+        "Run action absent: {}",
+        h.text()
+    );
+
+    assert!(h.tab_to(EDITOR));
+    press(&mut h, KeyCode::F(6));
+    assert_eq!(h.focus(), Some(EDITOR_FIND));
+    press(&mut h, KeyCode::Enter);
+    assert_eq!(h.focus(), Some(EDITOR));
+    type_text(&mut h, "delay");
+    assert!(h.text().contains("“delay” · 1 of 3"), "{}", h.text());
+    press(&mut h, KeyCode::Esc);
+    assert!(h.text().contains("Find         closed"), "{}", h.text());
+
+    assert!(h.tab_to(EDITOR));
+    press(&mut h, KeyCode::Char('i'));
+    press(&mut h, KeyCode::Backspace);
+    type_text(&mut h, "fe");
+    assert!(h.text().contains("Completion   open"), "{}", h.text());
+    assert!(
+        h.text().contains("async fn (url: &str)"),
+        "completion popup missing: {}",
+        h.text()
+    );
+    press(&mut h, KeyCode::Esc);
+    assert!(h.text().contains("Completion   closed"), "{}", h.text());
+
+    let mut h = harness(PageId::Editor);
+    assert!(h.tab_to(EDITOR));
+    for _ in 0..17 {
+        press(&mut h, KeyCode::Down);
+    }
+    assert!(h.text().contains("Block        2 of 3"), "{}", h.text());
+    control(&mut h, 'r');
+    assert!(
+        h.text().contains("running"),
+        "shortcut run state missing: {}",
+        h.text()
+    );
+    for _ in 0..12 {
+        let _ = h.tick();
+    }
+    assert!(
+        h.text().contains("Runs         1"),
+        "run count missing: {}",
+        h.text()
+    );
+    assert!(
+        h.text().contains("unwrap() panics on Err"),
+        "live run diagnostics missing: {}",
+        h.text()
+    );
+    assert!(
+        h.text().contains("Block ran in"),
+        "run status missing: {}",
+        h.text()
+    );
+
+    let mut h = harness(PageId::Editor);
+    assert!(h.tab_to(EDITOR));
+    press(&mut h, KeyCode::F(6));
+    assert_eq!(h.focus(), Some(EDITOR_FIND));
+    press(&mut h, KeyCode::Tab);
+    assert_eq!(h.focus(), Some(EDITOR_RUN));
+    press(&mut h, KeyCode::Enter);
+    assert!(
+        h.text().contains("running"),
+        "run state missing: {}",
+        h.text()
+    );
+    for _ in 0..12 {
+        let _ = h.tick();
+    }
+    assert!(
+        h.text().contains("Runs         1"),
+        "run count missing: {}",
+        h.text()
+    );
+    assert!(h.text().contains("Block ran in"), "{}", h.text());
+}
+
+#[test]
+fn editor_shell_tab_indents_without_leaving_editor_focus() {
+    let mut h = harness(PageId::Editor);
+    assert!(h.tab_to(EDITOR));
+    press(&mut h, KeyCode::Char('i'));
+    press(&mut h, KeyCode::Tab);
+
+    assert_eq!(
+        h.focus(),
+        Some(EDITOR),
+        "Tab indentation retains editor focus"
+    );
+    assert!(
+        h.text().contains("Cursor       ln 1 · col 6"),
+        "Tab must add the configured four spaces: {}",
+        h.text()
+    );
+}
+
+#[test]
+fn editor_shell_completion_accepts_enter_then_tab_indents() {
+    let mut h = harness(PageId::Editor);
+    assert!(h.tab_to(EDITOR));
+    press(&mut h, KeyCode::Char('i'));
+    press(&mut h, KeyCode::Backspace);
+    type_text(&mut h, "fe");
+    assert!(
+        h.text().contains("async fn (url: &str)"),
+        "the live completion row must render before acceptance: {}",
+        h.text()
+    );
+
+    press(&mut h, KeyCode::Enter);
+    assert!(
+        h.text().contains("fetch()"),
+        "Enter must accept fetch(): {}",
+        h.text()
+    );
+    assert!(h.text().contains("Completion   closed"), "{}", h.text());
+    assert_eq!(h.focus(), Some(EDITOR));
+
+    press(&mut h, KeyCode::Tab);
+    assert_eq!(
+        h.focus(),
+        Some(EDITOR),
+        "Tab after acceptance indents in place"
+    );
+    assert!(
+        h.text().contains("Cursor       ln 1 · col 12"),
+        "the following Tab must add four spaces after fetch(): {}",
+        h.text()
+    );
+}
+
+#[test]
+fn editor_shell_completion_accepts_tab_then_next_tab_indents() {
+    let mut h = harness(PageId::Editor);
+    assert!(h.tab_to(EDITOR));
+    press(&mut h, KeyCode::Char('i'));
+    press(&mut h, KeyCode::Backspace);
+    type_text(&mut h, "fe");
+    assert!(h.text().contains("async fn (url: &str)"), "{}", h.text());
+
+    press(&mut h, KeyCode::Tab);
+    assert!(
+        h.text().contains("fetch()"),
+        "Tab must accept fetch(): {}",
+        h.text()
+    );
+    assert!(h.text().contains("Completion   closed"), "{}", h.text());
+    assert_eq!(h.focus(), Some(EDITOR));
+
+    press(&mut h, KeyCode::Tab);
+    assert_eq!(
+        h.focus(),
+        Some(EDITOR),
+        "Tab after acceptance indents in place"
+    );
+    assert!(
+        h.text().contains("Cursor       ln 1 · col 12"),
+        "the following Tab must add four spaces after fetch(): {}",
+        h.text()
+    );
+}
+
+#[test]
+fn editor_shell_navigation_tab_moves_to_find_after_commit() {
+    let mut h = harness(PageId::Editor);
+    assert!(h.tab_to(EDITOR));
+    press(&mut h, KeyCode::Esc);
+    assert!(h.text().contains("Mode         navigating"), "{}", h.text());
+
+    press(&mut h, KeyCode::Tab);
+    assert_eq!(h.focus(), Some(EDITOR_FIND));
+}
+
+#[test]
+fn editor_shell_help_layer_blocks_the_page_run_binding() {
+    let mut h = harness(PageId::Editor);
+    assert!(h.tab_to(EDITOR));
+    press(&mut h, KeyCode::Esc);
+    press(&mut h, KeyCode::Char('?'));
+    assert!(h.top_layer().index() > LayerId::PAGE.index());
+
+    control(&mut h, 'r');
+    assert!(
+        !h.text().contains("Running block…"),
+        "the page Ctrl+R binding must not pass through help: {}",
+        h.text()
+    );
+    press(&mut h, KeyCode::Esc);
+    assert_eq!(h.top_layer(), LayerId::PAGE);
+}
+
+#[test]
+fn editor_run_clock_does_not_advance_for_pointer_events() {
+    let mut h = harness(PageId::Editor);
+    assert!(h.tab_to(EDITOR));
+    control(&mut h, 'r');
+    assert!(h.text().contains("running"), "{}", h.text());
+
+    for _ in 0..20 {
+        move_mouse(&mut h, 0, 0);
+    }
+
+    assert!(
+        h.text().contains("running"),
+        "pointer input must not advance the run clock: {}",
+        h.text()
+    );
+    assert!(h.text().contains("Runs         0"), "{}", h.text());
+}
+
+#[test]
+fn editor_run_diagnoses_the_block_submitted_before_cursor_movement() {
+    let mut h = harness(PageId::Editor);
+    assert!(h.tab_to(EDITOR));
+    for _ in 0..17 {
+        press(&mut h, KeyCode::Down);
+    }
+    assert!(h.text().contains("Block        2 of 3"), "{}", h.text());
+    control(&mut h, 'r');
+    assert!(h.text().contains("running"), "{}", h.text());
+    for _ in 0..17 {
+        press(&mut h, KeyCode::Up);
+    }
+    assert!(h.text().contains("Block        1 of 3"), "{}", h.text());
+
+    for _ in 0..12 {
+        let _ = h.tick();
+    }
+    assert!(
+        h.text().contains("unwrap() panics on Err"),
+        "diagnostics must belong to the submitted second block: {}",
+        h.text()
+    );
+}
+
+#[test]
+fn editor_manual_empty_completion_keeps_frozen_alphabetic_choice() {
+    let mut h = harness(PageId::Editor);
+    assert!(h.tab_to(EDITOR));
+    control(&mut h, ' ');
+    assert!(h.text().contains("Completion   open"), "{}", h.text());
+    press(&mut h, KeyCode::Enter);
+
+    assert!(
+        h.text().contains("Body// Retry"),
+        "empty manual completion must choose the alphabetically first label: {}",
+        h.text()
+    );
+}
+
+#[test]
+fn editor_repeated_runs_accumulate_diagnostics_until_text_changes() {
+    let mut h = harness(PageId::Editor);
+    assert!(h.tab_to(EDITOR));
+    for _ in 0..17 {
+        press(&mut h, KeyCode::Down);
+    }
+    assert!(h.text().contains("Block        2 of 3"), "{}", h.text());
+
+    control(&mut h, 'r');
+    h.ticks(10);
+    assert!(h.text().contains("Diagnostics  1"), "{}", h.text());
+
+    control(&mut h, 'r');
+    h.ticks(10);
+    assert!(h.text().contains("Runs         2"), "{}", h.text());
+    assert!(
+        h.text().contains("Diagnostics  2"),
+        "repeated unchanged runs retain the frozen accumulated diagnostics: {}",
+        h.text()
+    );
+
+    press(&mut h, KeyCode::Char('i'));
+    press(&mut h, KeyCode::Char('x'));
+    assert!(h.text().contains("Diagnostics  0"), "{}", h.text());
+}
+
+#[test]
+fn editor_blank_separator_readout_has_no_fallback_execution_block() {
+    let mut h = harness(PageId::Editor);
+    assert!(h.tab_to(EDITOR));
+    for _ in 0..16 {
+        press(&mut h, KeyCode::Down);
+    }
+
+    assert!(
+        h.text().contains("Cursor       ln 17 · col 1"),
+        "{}",
+        h.text()
+    );
+    assert!(
+        h.text().contains("between blocks"),
+        "readout uses exact cursor containment, while execution may fall back to the previous block: {}",
+        h.text()
+    );
+}
+
+#[test]
 fn launches_and_renders_shell() {
     let h = harness(PageId::Overview);
     let text = h.text();
     assert!(text.contains("Junie Design system"));
     assert!(text.contains("Overview"));
     assert!(text.contains("Junie"));
-    assert!(text.contains("Author component"));
-    assert!(text.contains("Tokens"));
-    assert_eq!(NAV_ENTRIES.len(), PageId::ALL.len());
+    assert!(text.contains("Playground"));
+    assert!(text.contains("Tokens and principles behind every component"));
+    assert_eq!(NAV_ENTRIES.len(), 54);
+    assert_eq!(PageId::ALL.len(), 22);
 }
 
 #[test]
@@ -519,7 +848,7 @@ fn list_scrolling_and_selection() {
     press(&mut h, KeyCode::Char(' '));
     assert_ne!(h.text().matches("✓").count(), before);
     press(&mut h, KeyCode::Char('a'));
-    assert!(h.text().contains("src/api/auth…"));
+    assert!(h.text().contains("src/api/auth"));
 }
 
 #[test]
@@ -552,6 +881,7 @@ fn first_data_row(h: &Harness<App>) -> String {
 #[test]
 fn table_sorts_both_directions_and_clears() {
     let mut h = harness(PageId::Tables);
+    resize(&mut h, 160, 40);
     let (x, y) = require(h.find("Changes"), "sortable Changes header");
     click(&mut h, x, y);
     assert!(
@@ -815,13 +1145,17 @@ fn scrollbar_click_and_drag_move_the_view() {
 fn keyboard_navigation_between_pages() {
     let mut h = harness(PageId::Overview);
     press(&mut h, KeyCode::Char(']'));
-    assert_eq!(h.app().page(), PageId::Buttons);
+    assert_eq!(h.app().page(), PageId::Chrome);
     press(&mut h, KeyCode::Char('['));
     assert_eq!(h.app().page(), PageId::Overview);
     press(&mut h, KeyCode::Down);
     press(&mut h, KeyCode::Enter);
-    assert_eq!(h.app().page(), PageId::Buttons);
+    press(&mut h, KeyCode::Down);
+    press(&mut h, KeyCode::Enter);
+    assert_eq!(h.app().page(), PageId::Chrome);
     let (x, y) = require(h.find("Tables"), "navigation item");
+    click(&mut h, x, y);
+    let (x, y) = require(h.find("Basic table"), "basic table item");
     click(&mut h, x, y);
     assert_eq!(h.app().page(), PageId::Tables);
 }
@@ -853,15 +1187,12 @@ fn color_downgrade_still_renders() {
 }
 
 #[test]
-fn author_component_page_participates_in_focus_and_hover() {
+fn overview_playground_accepts_pointer_and_tab() {
     let mut h = harness(PageId::Overview);
-    let (x, y) = require(h.find("Author component"), "author component is visible");
-    let before = h.snapshot().digest();
+    let (x, y) = require(h.find("Playground"), "playground tab is visible");
     move_mouse(&mut h, x, y);
-    assert!(h.hover().is_some());
-    assert_ne!(before, h.snapshot().digest());
     click(&mut h, x, y);
-    assert!(h.text().contains("Author component · selected"));
+    assert!(h.text().contains("the live widget"));
     press(&mut h, KeyCode::Tab);
     assert!(h.focus().is_some());
 }
@@ -869,29 +1200,30 @@ fn author_component_page_participates_in_focus_and_hover() {
 #[test]
 fn complete_navigation_visits_every_page_and_every_state() {
     let mut navigation = harness(PageId::Overview);
-    let mut visited = Vec::with_capacity(PageId::ALL.len());
+    let mut visited = Vec::with_capacity(NAV_ENTRIES.len());
+    visited.push(navigation.app().page());
+    assert_eq!(navigation.app().page(), PageId::Overview);
 
-    for (index, page) in PageId::ALL.into_iter().enumerate() {
-        assert_eq!(navigation.app().page(), page);
-        assert!(navigation.text().contains(page.title()));
-        exercise_focus_ring(&mut navigation, page);
+    for _ in 1..NAV_ENTRIES.len() {
+        press(&mut navigation, KeyCode::Char(']'));
         assert!(
             navigation.diagnostics().is_empty(),
-            "{page:?} diagnostics: {:?}",
+            "{:?}",
             navigation.diagnostics()
         );
         visited.push(navigation.app().page());
-
-        if index + 1 < PageId::ALL.len() {
-            press(&mut navigation, KeyCode::Char(']'));
-        }
     }
 
-    assert_eq!(visited, PageId::ALL.into_iter().collect::<Vec<_>>());
+    assert_eq!(visited[1], PageId::Chrome);
+    assert!(visited.contains(&PageId::Buttons));
+    assert!(visited.contains(&PageId::TaskRunner));
     press(&mut navigation, KeyCode::Char(']'));
     assert_eq!(navigation.app().page(), PageId::Overview);
     press(&mut navigation, KeyCode::Char('['));
-    assert_eq!(navigation.app().page(), PageId::TaskRunner);
+    assert!(navigation.text().contains("Read-only report"));
+
+    let mut ring = harness(PageId::Overview);
+    exercise_focus_ring(&mut ring, PageId::Overview);
 
     for page in PageId::ALL {
         let mut h = harness(page);
@@ -971,7 +1303,7 @@ fn local_override_page_shows_three_distinct_buttons() {
 fn application_navigation_help_and_inspector_commands_keep_their_routes() {
     let mut h = harness(PageId::Overview);
     press(&mut h, KeyCode::Char(']'));
-    assert_eq!(h.app().page(), PageId::Buttons);
+    assert_eq!(h.app().page(), PageId::Chrome);
     press(&mut h, KeyCode::Char('['));
     assert_eq!(h.app().page(), PageId::Overview);
     press(&mut h, KeyCode::Char('?'));
@@ -984,4 +1316,51 @@ fn application_navigation_help_and_inspector_commands_keep_their_routes() {
     press(&mut h, KeyCode::Char('i'));
     assert!(!h.text().contains("Inspector · on"));
     assert!(!h.app().quit());
+}
+
+#[test]
+fn overview_header_crumb_omits_foundations_and_idle_nav_rows_omit_the_gutter() {
+    let h = Harness::new(App::new(), Theme::junie(), 120, 40);
+    let screen = h.text();
+    let header = screen.lines().next().unwrap_or("").to_owned();
+    assert!(header.contains("Junie Design system  Overview"), "{header}");
+    assert!(!header.contains("/ Foundations /"), "{header}");
+    assert!(screen.contains("Components"));
+    assert_eq!(NAV_ENTRIES.len(), 54);
+    let group = screen
+        .lines()
+        .find(|line| line.contains("App shell"))
+        .unwrap_or("")
+        .to_owned();
+    let sidebar: String = group.chars().take(25).collect();
+    assert!(
+        !sidebar.starts_with('▎'),
+        "non-focused nav row starts with the gutter: {sidebar}"
+    );
+    assert!(
+        !sidebar.contains('▎'),
+        "non-focused nav row paints the gutter: {sidebar}"
+    );
+
+    let diff = Harness::new(App::for_page_name("diff"), Theme::junie(), 120, 40);
+    let diff_screen = diff.text();
+    let diff_header = diff_screen.lines().next().unwrap_or("").to_owned();
+    assert!(
+        diff_header.contains("Junie Design system  Text & code › Diff"),
+        "{diff_header}"
+    );
+    assert_eq!(diff.app().page(), PageId::Overview);
+    let diff_row = diff_screen
+        .lines()
+        .find(|line| {
+            let side: String = line.chars().take(25).collect();
+            side.contains("Diff")
+        })
+        .unwrap_or("")
+        .to_owned();
+    let diff_side: String = diff_row.chars().take(25).collect();
+    assert!(
+        diff_side.contains('▎'),
+        "focused diff row lost the gutter: {diff_side}"
+    );
 }

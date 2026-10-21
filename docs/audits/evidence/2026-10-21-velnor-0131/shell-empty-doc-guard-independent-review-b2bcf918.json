@@ -1,0 +1,98 @@
+{
+  "created_utc": "2026-10-21T01:01:25Z",
+  "limitations": [
+    "The author commit itself still carries the 0.1.30 release pin; exact 0.1.31 comparison was run in scratch with the current PR38 0.1.31 tool/release manifests copied in. Parent must regenerate after integrating both workflow upgrade and source fix.",
+    "No hosted CI run or application visual/functional parity is established."
+  ],
+  "official_generator": {
+    "added_tasks": [],
+    "after_manifest_sha256": "73cd92b17e3608a9d2dc4e7064a866a25b6e869f40e04119a82bf7089ec785af",
+    "artifact_hashes": {
+      "after-ci.yml": "c815611bd95bdde83536d125fa3cc5586acc21729fe1e0fbbe5b63eba7632bfd",
+      "after-task-manifest-0.1.31.json": "73cd92b17e3608a9d2dc4e7064a866a25b6e869f40e04119a82bf7089ec785af",
+      "before-ci.yml": "41ebcf9b26da661e19dbbd3908b1f16762f40ec90ccd23e1ba95a61b08777949",
+      "before-task-manifest-0.1.31.json": "8143785f3bad5874f1f11e136804cf6eb99f6e79612737d7909420cde9445c57",
+      "plan-after.txt": "00463388ebc5c804331963036b337c49aeb7aaa70b25735a7665d7bcd4fb976a"
+    },
+    "before_manifest_sha256": "8143785f3bad5874f1f11e136804cf6eb99f6e79612737d7909420cde9445c57",
+    "binary": "/Users/donbeave/.local/share/mise/installs/github-tailrocks-velnor-new/0.1.31/velnor-actions",
+    "changed_common_task_definitions": [],
+    "generate_command": "velnor-actions generate",
+    "generate_exit": 0,
+    "mode": "isolated detached worktree at exact fix commit; copied only mise.toml and .velnor/release-manifest.json from the current PR38 0.1.31 input copy to satisfy release-version pin. Then ran official plan and generate. No parent/author worktree, lock, or generated output was touched.",
+    "plan_command": "velnor-actions plan",
+    "plan_exit": 0,
+    "plan_note": "Lists shell doc tasks and marks both doctest variants ineligible: no test targets; no test command emitted.",
+    "plan_sha256": "00463388ebc5c804331963036b337c49aeb7aaa70b25735a7665d7bcd4fb976a",
+    "preserved_generated_evidence_dir": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/shell-empty-doc-guard-review-b2bcf918",
+    "removed_tasks": [
+      "stack/rust/crates/termrock-shell/doctest/default",
+      "stack/rust/crates/termrock-shell/doctest/testing"
+    ],
+    "task_counts": {
+      "after": 450,
+      "before": 452
+    },
+    "version": "0.1.31",
+    "workflow_diff": "Only the two `Doctests` steps were removed from default/testing shell jobs; other generated files were byte-identical."
+  },
+  "review_scope": "Empty termrock-shell doctest target, fail-closed doc inventory regression, official Velnor 0.1.31 generation impact. No product parity or hosted CI review.",
+  "reviewed_commit": "b2bcf918cd013874199b4aaaa8d53d9aa43966ab",
+  "schema": "termrock-ci-doctest-guard-independent-review-v1",
+  "source": {
+    "cargo_metadata_targets": [
+      {
+        "doctest": false,
+        "kind": "lib",
+        "name": "termrock_shell"
+      },
+      {
+        "doctest": false,
+        "kind": "example",
+        "name": "shell_consumer"
+      },
+      {
+        "doctest": false,
+        "kind": "test",
+        "name": "esc_vocabulary"
+      }
+    ],
+    "changed_source_files": [
+      "crates/termrock-shell/Cargo.toml",
+      "crates/termrock-xtask/tests/doc_inventory.rs",
+      "docs/audits/2026-10-21-termrock-shell-empty-doctest.md"
+    ],
+    "clean_at_review": true,
+    "manifest_fix": "[lib] doctest=false; no runnable Rustdoc blocks exist in termrock-shell/src/lib.rs.",
+    "regression": "Uses include_str! on the actual shell lib source, appends a Rustdoc example to an in-memory string, and verifies inspect_fixture rejects it; no source file is written. Full workspace scanner reads tracked Rust sources and is covered by the inventory nextest test.",
+    "worktree": "/private/tmp/termrock-shell-empty-doc-guard-20261021"
+  },
+  "verdict": "CLEARED for the focused source change and generated task-set effect; parent integration/regeneration still required.",
+  "verification": [
+    {
+      "cmd": "CARGO_TARGET_DIR=/private/tmp/termrock-shell-doctest-review-b2bc-target cargo nextest run --locked --offline --manifest-path crates/termrock-xtask/Cargo.toml --package termrock-xtask --test doc_inventory --no-tests fail",
+      "exit": 0,
+      "result": "8 passed, 0 skipped",
+      "run_id": "5910af11-f5d2-437a-8ca4-3697e1cd2c44"
+    },
+    {
+      "cmd": "CARGO_TARGET_DIR=/private/tmp/termrock-shell-doctest-review-b2bc-target cargo nextest run --locked --offline --manifest-path crates/termrock-shell/Cargo.toml --package termrock-shell --all-targets --no-tests fail",
+      "exit": 0,
+      "result": "48 passed, 0 skipped",
+      "run_id": "8619dbb2-71ac-4efb-97e4-dacd5b51d76b"
+    },
+    {
+      "cmd": "CARGO_TARGET_DIR=/private/tmp/termrock-shell-doctest-review-b2bc-target cargo clippy --locked --offline --manifest-path Cargo.toml -p termrock-shell -p termrock-xtask --all-targets -- -D warnings",
+      "exit": 0
+    },
+    {
+      "cmd": "cargo fmt --manifest-path Cargo.toml --package termrock-shell --package termrock-xtask -- --check",
+      "exit": 0
+    },
+    {
+      "cmd": "cargo metadata --manifest-path Cargo.toml --locked --offline --no-deps --format-version 1",
+      "exit": 0,
+      "result": "termrock_shell doctest=false"
+    }
+  ]
+}

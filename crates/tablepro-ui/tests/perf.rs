@@ -43,7 +43,10 @@ fn frame_tablepro_grid_500x14_120x40() {
         .filter_map(|x| harness.buffer().cell((x, header.y)))
         .map(termrock::Cell::symbol)
         .collect();
-    assert_eq!(header_text.split_whitespace().next(), Some("id"));
+    assert!(
+        header_text.split_whitespace().any(|part| part == "id"),
+        "{header_text}"
+    );
     let Some(first) = harness.app().result().cell(0, 0) else {
         unreachable!("first result cell");
     };

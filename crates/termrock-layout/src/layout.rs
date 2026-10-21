@@ -387,6 +387,181 @@ impl SplitModel {
     }
 
     pub fn layout(&self, area: Rect, gap: u16) -> (Rect, Rect) {
+        self.layout_with_ratio(area, gap, u32::from(self.percent), 100)
+    }
+
+    /// Resolve this split using a precise first-pane ratio in basis points.
+    ///
+    /// The public `percent` field remains the coarse compatibility value. This
+    /// adapter lets stateful controls retain a cell-accurate ratio while a
+    /// split is resized, without adding a required field to `SplitModel`.
+    pub fn layout_with_basis_points(
+        &self,
+        area: Rect,
+        gap: u16,
+        basis_points: u16,
+    ) -> (Rect, Rect) {
+        self.layout_with_ratio(area, gap, u32::from(basis_points.clamp(500, 9_500)), 10_000)
+    }
+
+    /// Resolve this split from a fixed percentage of the full extent for the
+    /// second pane. The requested second extent is floored, then clamped to
+    /// its configured bounds and the first pane's minimum. The ordinary
+    /// basis-point resolver remains the default for resizable splits.
+    pub fn layout_with_second_share(
+        &self,
+        area: Rect,
+        gap: u16,
+        percent: u8,
+        min_second: u16,
+        max_second: u16,
+    ) -> (Rect, Rect) {
+        match self.maximized {
+            Maximized::First => return (area, self.collapsed(area, true)),
+            Maximized::Second => return (self.collapsed(area, false), area),
+            Maximized::None => {}
+        }
+
+        let extent = self.length(area);
+        let usable = extent.saturating_sub(gap);
+        if usable < self.min_first.saturating_add(self.min_second) {
+            return (area, self.collapsed(area, true));
+        }
+        let requested = (u32::from(extent).saturating_mul(u32::from(percent.min(100))) / 100)
+            .min(u32::from(u16::MAX)) as u16;
+        let second = requested
+            .clamp(min_second.min(max_second), max_second.max(min_second))
+            .min(usable.saturating_sub(self.min_first))
+            .max(self.min_second);
+        let first = usable.saturating_sub(second);
+        match self.axis {
+            SplitAxis::Vertical => {
+                let (first, rest) = split_v(area, first);
+                let (_, second) = split_v(rest, gap.min(rest.height));
+                (first, second)
+            }
+            SplitAxis::Horizontal => {
+                let (first, rest) = split_h(area, first);
+                let (_, second) = split_h(rest, gap.min(rest.width));
+                (first, second)
+            }
+        }
+    }
+
+    /// Return the smallest extent whose resolved panes can hold both requested
+    /// along-axis sizes at this precise ratio. This calls the same canonical
+    /// split resolver as rendering, so rounding and pane minima stay aligned.
+    pub fn required_extent_with_basis_points(
+        self,
+        gap: u16,
+        basis_points: u16,
+        first: u16,
+        second: u16,
+    ) -> u16 {
+        if self.maximized == Maximized::First {
+            return first;
+        }
+        if self.maximized == Maximized::Second {
+            return second;
+        }
+
+        let usable_min = u32::from(first).saturating_add(u32::from(second));
+        let mut low = usable_min
+            .saturating_add(u32::from(gap))
+            .min(u32::from(u16::MAX)) as u16;
+        let fits = |extent: u16| {
+            let area = match self.axis {
+                SplitAxis::Vertical => Rect::new(0, 0, 1, extent),
+                SplitAxis::Horizontal => Rect::new(0, 0, extent, 1),
+            };
+            let (first_area, second_area) = self.layout_with_basis_points(area, gap, basis_points);
+            let (first_extent, second_extent) = match self.axis {
+                SplitAxis::Vertical => (first_area.height, second_area.height),
+                SplitAxis::Horizontal => (first_area.width, second_area.width),
+            };
+            first_extent >= first && second_extent >= second
+        };
+
+        if fits(low) {
+            return low;
+        }
+        if !fits(u16::MAX) {
+            return u16::MAX;
+        }
+        let mut high = u16::MAX;
+        while low < high {
+            let middle = low + (high - low) / 2;
+            if fits(middle) {
+                high = middle;
+            } else {
+                low = middle.saturating_add(1);
+            }
+        }
+        low
+    }
+
+    /// Return the smallest extent whose fixed second-share layout can hold
+    /// both requested pane extents. Uses `layout_with_second_share` as the
+    /// canonical resolver so measurement and drawing share rounding rules.
+    pub fn required_extent_with_second_share(
+        self,
+        gap: u16,
+        percent: u8,
+        min_second: u16,
+        max_second: u16,
+        first: u16,
+        second: u16,
+    ) -> u16 {
+        if self.maximized == Maximized::First {
+            return first;
+        }
+        if self.maximized == Maximized::Second {
+            return second;
+        }
+
+        let mut low = u32::from(first)
+            .saturating_add(u32::from(second))
+            .saturating_add(u32::from(gap))
+            .min(u32::from(u16::MAX)) as u16;
+        let fits = |extent: u16| {
+            let area = match self.axis {
+                SplitAxis::Vertical => Rect::new(0, 0, 1, extent),
+                SplitAxis::Horizontal => Rect::new(0, 0, extent, 1),
+            };
+            let (first_area, second_area) =
+                self.layout_with_second_share(area, gap, percent, min_second, max_second);
+            let (first_extent, second_extent) = match self.axis {
+                SplitAxis::Vertical => (first_area.height, second_area.height),
+                SplitAxis::Horizontal => (first_area.width, second_area.width),
+            };
+            first_extent >= first && second_extent >= second
+        };
+
+        if fits(low) {
+            return low;
+        }
+        if !fits(u16::MAX) {
+            return u16::MAX;
+        }
+        let mut high = u16::MAX;
+        while low < high {
+            let middle = low + (high - low) / 2;
+            if fits(middle) {
+                high = middle;
+            } else {
+                low = middle.saturating_add(1);
+            }
+        }
+        low
+    }
+
+    fn layout_with_ratio(
+        &self,
+        area: Rect,
+        gap: u16,
+        numerator: u32,
+        denominator: u32,
+    ) -> (Rect, Rect) {
         let split = |at: u16| match self.axis {
             SplitAxis::Vertical => {
                 let (a, rest) = split_v(area, at);
@@ -407,8 +582,7 @@ impl SplitModel {
                 if usable < self.min_first.saturating_add(self.min_second) {
                     return (area, self.collapsed(area, true));
                 }
-                let first =
-                    (u32::from(usable).saturating_mul(u32::from(self.percent)) / 100) as u16;
+                let first = (u32::from(usable).saturating_mul(numerator) / denominator) as u16;
                 let first = first.clamp(self.min_first, usable.saturating_sub(self.min_second));
                 split(first)
             }
@@ -453,6 +627,57 @@ impl SplitModel {
         let changed = percent != self.percent;
         self.percent = percent;
         changed
+    }
+
+    /// Update the split using an exact cell position and retain its ratio in
+    /// basis points for later resizes.
+    pub fn drag_to_with_basis_points(
+        &mut self,
+        area: Rect,
+        gap: u16,
+        pos: Position,
+        basis_points: &mut u16,
+    ) -> bool {
+        let usable = self.length(area).saturating_sub(gap);
+        let offset = match self.axis {
+            SplitAxis::Vertical => pos.y.saturating_sub(area.y),
+            SplitAxis::Horizontal => pos.x.saturating_sub(area.x),
+        };
+        if usable == 0 || usable < self.min_first.saturating_add(self.min_second) {
+            return false;
+        }
+        let first = offset.clamp(self.min_first, usable.saturating_sub(self.min_second));
+        // Choose the smallest ratio whose floored layout reaches the pointer
+        // cell. Rounding to nearest can leave the seam one cell short.
+        let precise = (u32::from(first)
+            .saturating_mul(10_000)
+            .saturating_add(u32::from(usable).saturating_sub(1)))
+        .checked_div(u32::from(usable))
+        .unwrap_or(0)
+        .clamp(500, 9_500) as u16;
+        let percent = clamp_percent(((u32::from(precise) + 50) / 100) as u8);
+        let changed = percent != self.percent || precise != *basis_points;
+        self.percent = percent;
+        *basis_points = precise;
+        changed
+    }
+
+    /// Move the first pane by one cell while retaining its precise ratio.
+    pub fn nudge_with_basis_points(
+        &mut self,
+        area: Rect,
+        gap: u16,
+        delta: i16,
+        basis_points: &mut u16,
+    ) -> bool {
+        let (first, _) = self.layout_with_basis_points(area, gap, *basis_points);
+        let cur = i32::from(self.length(first));
+        let target = cur.saturating_add(i32::from(delta)).max(0) as u16;
+        let pos = match self.axis {
+            SplitAxis::Vertical => Position::new(area.x, area.y.saturating_add(target)),
+            SplitAxis::Horizontal => Position::new(area.x.saturating_add(target), area.y),
+        };
+        self.drag_to_with_basis_points(area, gap, pos, basis_points)
     }
 
     pub fn nudge(&mut self, area: Rect, gap: u16, delta: i16) {
@@ -733,6 +958,200 @@ mod tests {
         m.toggle_max(Maximized::Second);
         let (a, b) = m.layout(Rect::new(0, 0, 80, 30), 1);
         assert!(a.is_empty() && b.height == 30);
+    }
+
+    #[test]
+    fn fixed_second_share_uses_full_extent_and_shared_minimum_solver() {
+        let model = SplitModel::new(SplitAxis::Horizontal, 50, 1, 1);
+        let expected = [(107, 36), (108, 36), (109, 37), (120, 40), (160, 48)];
+        for (width, detail_width) in expected {
+            let (master, detail) =
+                model.layout_with_second_share(Rect::new(0, 0, width, 8), 2, 34, 34, 48);
+            assert_eq!(detail.width, detail_width, "width={width}");
+            assert_eq!(master.width + 2 + detail.width, width);
+            assert_eq!(detail.x, master.right() + 2);
+        }
+
+        let (master, detail) = model.layout_with_second_share(Rect::new(0, 0, 0, 0), 2, 34, 34, 48);
+        assert!(master.is_empty() && detail.is_empty());
+
+        let required = model.required_extent_with_second_share(2, 34, 34, 48, 70, 36);
+        assert_eq!(required, 108);
+        let (master, detail) =
+            model.layout_with_second_share(Rect::new(0, 0, required, 1), 2, 34, 34, 48);
+        assert!(master.width >= 70 && detail.width >= 36);
+    }
+
+    #[test]
+    fn precise_split_drag_retains_cell_position_across_resize() {
+        let mut model = SplitModel::new(SplitAxis::Vertical, 38, 4, 6);
+        let area = Rect::new(2, 3, 18, 35);
+        let mut basis_points = 3_800;
+        let changed = model.drag_to_with_basis_points(
+            area,
+            1,
+            Position::new(area.x, area.y + 13),
+            &mut basis_points,
+        );
+        assert!(changed);
+        assert_eq!(model.percent, 38);
+        assert_eq!(basis_points, 3_824);
+        assert_eq!(
+            model
+                .layout_with_basis_points(area, 1, basis_points)
+                .0
+                .height,
+            13
+        );
+
+        let resized = Rect::new(2, 3, 18, 45);
+        assert_eq!(
+            model
+                .layout_with_basis_points(resized, 1, basis_points)
+                .0
+                .height,
+            16
+        );
+    }
+
+    #[test]
+    fn precise_split_drag_reaches_each_feasible_cell_on_both_axes() {
+        for axis in [SplitAxis::Vertical, SplitAxis::Horizontal] {
+            let area = match axis {
+                SplitAxis::Vertical => Rect::new(7, 11, 20, 35),
+                SplitAxis::Horizontal => Rect::new(7, 11, 35, 20),
+            };
+            let mut model = SplitModel::new(axis, 38, 4, 6);
+            for target in 4..=28 {
+                let pos = match axis {
+                    SplitAxis::Vertical => Position::new(area.x, area.y + target),
+                    SplitAxis::Horizontal => Position::new(area.x + target, area.y),
+                };
+                let mut basis_points = 3_800;
+                model.drag_to_with_basis_points(area, 1, pos, &mut basis_points);
+                let (first, _) = model.layout_with_basis_points(area, 1, basis_points);
+                let actual = match axis {
+                    SplitAxis::Vertical => first.height,
+                    SplitAxis::Horizontal => first.width,
+                };
+                assert_eq!(
+                    actual, target,
+                    "axis={axis:?}, target={target}, ratio={basis_points}"
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn required_split_extent_uses_the_same_ratio_and_rounding_as_layout() {
+        let model = SplitModel::new(SplitAxis::Vertical, 38, 4, 6);
+        for first in 1..=20 {
+            for second in 1..=20 {
+                let extent = model.required_extent_with_basis_points(1, 3_800, first, second);
+                let area = Rect::new(0, 0, 1, extent);
+                let (first_area, second_area) = model.layout_with_basis_points(area, 1, 3_800);
+                assert!(first_area.height >= first, "first={first}, second={second}");
+                assert!(
+                    second_area.height >= second,
+                    "first={first}, second={second}"
+                );
+                if extent > 0 {
+                    let smaller = Rect::new(0, 0, 1, extent - 1);
+                    let (first_area, second_area) =
+                        model.layout_with_basis_points(smaller, 1, 3_800);
+                    assert!(
+                        first_area.height < first || second_area.height < second,
+                        "extent {extent} was not minimal for {first}/{second}"
+                    );
+                }
+            }
+        }
+        assert_eq!(model.required_extent_with_basis_points(1, 3_800, 10, 6), 28);
+
+        let maximized = SplitModel {
+            maximized: Maximized::First,
+            ..model
+        };
+        assert_eq!(
+            maximized.required_extent_with_basis_points(1, 3_800, 10, 6),
+            10
+        );
+    }
+
+    #[test]
+    fn legacy_layout_preserves_raw_public_percent_extremes() {
+        let area = Rect::new(0, 0, 1_001, 10);
+        let mut model = SplitModel::new(SplitAxis::Horizontal, 50, 1, 1);
+        model.percent = 0;
+        assert_eq!(model.layout(area, 1).0.width, 1);
+        model.percent = 100;
+        assert_eq!(model.layout(area, 1).0.width, 999);
+    }
+
+    #[test]
+    fn precise_split_solver_handles_empty_and_minimum_constrained_regions() {
+        let mut model = SplitModel::new(SplitAxis::Horizontal, 38, 4, 6);
+        let mut basis_points = 3_800;
+        assert!(!model.drag_to_with_basis_points(
+            Rect::ZERO,
+            1,
+            Position::new(0, 0),
+            &mut basis_points,
+        ));
+        let area = Rect::new(0, 0, 10, 2);
+        let _ = model.drag_to_with_basis_points(area, 1, Position::new(0, 0), &mut basis_points);
+        let (first, second) = model.layout_with_basis_points(area, 1, basis_points);
+        assert_eq!((first.width, second.width), (10, 0));
+    }
+
+    #[test]
+    fn precise_split_solver_supports_both_axes_large_extents_and_nudges() {
+        for axis in [SplitAxis::Vertical, SplitAxis::Horizontal] {
+            let area = match axis {
+                SplitAxis::Vertical => Rect::new(3, 5, 20, 35),
+                SplitAxis::Horizontal => Rect::new(3, 5, 35, 20),
+            };
+            let mut model = SplitModel::new(axis, 38, 4, 6);
+            let mut basis_points = 3_800;
+            let pos = match axis {
+                SplitAxis::Vertical => Position::new(area.x, area.y + 13),
+                SplitAxis::Horizontal => Position::new(area.x + 13, area.y),
+            };
+            assert!(model.drag_to_with_basis_points(area, 1, pos, &mut basis_points));
+            let first = model.layout_with_basis_points(area, 1, basis_points).0;
+            let extent = match axis {
+                SplitAxis::Vertical => first.height,
+                SplitAxis::Horizontal => first.width,
+            };
+            assert_eq!(extent, 13, "{axis:?}");
+            assert!(model.nudge_with_basis_points(area, 1, 1, &mut basis_points));
+            let nudged = model.layout_with_basis_points(area, 1, basis_points).0;
+            let nudged_extent = match axis {
+                SplitAxis::Vertical => nudged.height,
+                SplitAxis::Horizontal => nudged.width,
+            };
+            assert_eq!(nudged_extent, 14, "{axis:?}");
+
+            let large = match axis {
+                SplitAxis::Vertical => Rect::new(0, 0, 20, 134),
+                SplitAxis::Horizontal => Rect::new(0, 0, 134, 20),
+            };
+            let mut large_model = SplitModel::new(axis, 38, 4, 6);
+            let mut large_ratio = 3_800;
+            let target = match axis {
+                SplitAxis::Vertical => Position::new(0, 51),
+                SplitAxis::Horizontal => Position::new(51, 0),
+            };
+            assert!(large_model.drag_to_with_basis_points(large, 1, target, &mut large_ratio,));
+            let large_first = large_model
+                .layout_with_basis_points(large, 1, large_ratio)
+                .0;
+            let large_extent = match axis {
+                SplitAxis::Vertical => large_first.height,
+                SplitAxis::Horizontal => large_first.width,
+            };
+            assert_eq!(large_extent, 51, "{axis:?}");
+        }
     }
 
     #[test]

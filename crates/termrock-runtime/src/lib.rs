@@ -16,6 +16,7 @@ pub use termrock_layout as layout;
 pub use termrock_layout as measure;
 pub mod author;
 pub mod capture;
+pub mod clock_paste;
 pub mod cursor;
 pub mod decor;
 pub mod empty;
@@ -32,6 +33,9 @@ pub mod ui;
 
 pub use author::*;
 pub use capture::*;
+pub use clock_paste::{
+    TEST_CLOCK_ENV, TEST_CLOCK_PASTE_PREFIX, parse_test_clock_step, test_clock_enabled,
+};
 pub use decor::*;
 pub use empty::*;
 pub use focus::*;

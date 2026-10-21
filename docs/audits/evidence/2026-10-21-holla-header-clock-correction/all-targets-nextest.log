@@ -1,0 +1,75 @@
+HEAD bd616b8da363d21ade3755f68377c65f24bca793
+   Compiling holla-ui v0.1.0 (/Users/donbeave/Projects/termrock-worktrees/pr38-style-delivery-20261020/crates/holla-ui)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 5.54s
+────────────
+ Nextest run ID fa5ec66c-412f-4328-a05c-efdda9ac30a7 with nextest profile: default
+    Starting 144 tests across 3 binaries
+        FAIL [   0.025s] ( 92/144) holla-ui app::tests::menu_bar_pointer_hover_changes_only_the_file_title_and_clears_on_exit
+  stdout ───
+
+    running 1 test
+    test app::tests::menu_bar_pointer_hover_changes_only_the_file_title_and_clears_on_exit ... FAILED
+
+    failures:
+
+    failures:
+        app::tests::menu_bar_pointer_hover_changes_only_the_file_title_and_clears_on_exit
+
+    test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 140 filtered out; finished in 0.01s
+
+  stderr ───
+
+    thread 'app::tests::menu_bar_pointer_hover_changes_only_the_file_title_and_clears_on_exit' (145344320) panicked at crates/holla-ui/src/app.rs:2577:13:
+    assertion `left == right` failed: column 11
+      left: Rgb(138, 138, 138)
+     right: Rgb(255, 255, 255)
+    note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+        FAIL [   0.027s] (141/144) holla-ui::visual holla_visual_baseline
+  stdout ───
+
+    running 1 test
+    test holla_visual_baseline ... FAILED
+
+    failures:
+
+    failures:
+        holla_visual_baseline
+
+    test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+  stderr ───
+
+    thread 'holla_visual_baseline' (145349505) panicked at crates/termrock-test-support/src/digest.rs:284:9:
+    digest of `first-use 80 24 junie truecolor` changed: baseline e30768d9339a0fb9, got 83a32521d5113b5d; classify the change against §20.10, capture it, then BLESS=1
+      holla❯    File   Go   Help                   ~/scratch/empty  devbox · local  
+                                                                                    
+      Here                                                                          
+     ━━━━━━━─────────────────────────────────────────────────────────────────────── 
+     ▎ Search actions and resources…                                scope ‹ here ›  
+                                                                                    
+        Suggested here                                                              
+     ▎ Disk usage · host                      largest-first · progressive analysis  
+     ▎ Monitor this host        btm available on this host · hands off and returns  
+                                                                                    
+                                                                                    
+                                                                                    
+                                                                                    
+                                                                                    
+                                                                                    
+                                                                                    
+                                                                                    
+                                                                                    
+                                                                                    
+                                                                                    
+                                                                                    
+                                                                                    
+                                                                                    
+      EDIT   Type Filter  ↓ Results  Enter Run top match  Ctrl+S Scope  F10 Menu  … 
+    note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+────────────
+     Summary [ 129.896s] 144 tests run: 142 passed (1 slow), 2 failed, 0 skipped
+        FAIL [   0.025s] ( 92/144) holla-ui app::tests::menu_bar_pointer_hover_changes_only_the_file_title_and_clears_on_exit
+        FAIL [   0.027s] (141/144) holla-ui::visual holla_visual_baseline
+error: test run failed

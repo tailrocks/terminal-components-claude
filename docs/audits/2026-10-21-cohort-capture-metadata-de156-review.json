@@ -1,0 +1,126 @@
+{
+  "commit": "de156136f9e8e642809c99a35e7cee4259e0b047",
+  "checks": {
+    "python_unittests": 53,
+    "pycompile": "pass",
+    "diffcheck": "pass"
+  },
+  "artifacts": {
+    "capture_eligibility_decision": {
+      "sha256": "446273ce18d3caaea939263b37687be5aec770cf1ab54c62110f6c945ec9c2f6",
+      "source_copy_exact": true,
+      "size": 9966
+    },
+    "evidence_recheck": {
+      "sha256": "2384180eea4d9e9454a20f028098b31a3ac7524ee3d0213012c9bb66fe10687e",
+      "source_copy_exact": true,
+      "size": 14527
+    },
+    "serial_reproduction_report": {
+      "sha256": "2faab3f822add89fac7545bb3442f08b44d00a3a8e202d5b4ccc86b6f48dadd6",
+      "source_copy_exact": true,
+      "size": 4019
+    },
+    "adapter_review": {
+      "sha256": "06fa2a80e09b15e66c00c60792cf5331ba61438184418e0d724ceae1cd8fb25e",
+      "source_copy_exact": true,
+      "size": 2142
+    },
+    "adapter_source_equivalence": {
+      "sha256": "d75cf46e829a7950cac903987d56ee7a255176f259295ffac6096a66baec193b",
+      "source_copy_exact": true,
+      "size": 987
+    },
+    "resumable_runner_contract": {
+      "sha256": "81df800e4b16a8240acf7c569a9c5c9472fa1678c96aa78947928ca7a082ebfb",
+      "source_copy_exact": true,
+      "size": 8252
+    }
+  },
+  "negative_cases": {
+    "tamper-decision": "fresh capture eligibility decision is unpinned",
+    "missing-evidence": "fresh capture evidence artifact adapter_source_equivalence cannot be safely read: [Errno 2] No such file or directory: '/var/folders/8p/h376l_nn3375kyj72czdq2x80000gn/T/tmpwchwf2ub/docs/audits/2026-10-21-baseline-adapter-source-equivalence.json'",
+    "evidence-symlink": "fresh capture evidence artifact adapter_source_equivalence is missing, symlinked, or non-regular",
+    "index-symlink": "fresh capture evidence index is missing, symlinked, or non-regular",
+    "index-replace-during-read": "fresh capture evidence index changed during read",
+    "index-inplace-during-read": "fresh capture evidence index changed during read",
+    "candidate-true": "fresh baseline capture review cannot approve candidate comparison",
+    "candidate-numeric-false": "cohort review candidate_comparison_eligible claim has an invalid boolean type",
+    "product-true": "fresh baseline capture review cannot approve checkpoint references",
+    "checkpoint-approved": "fresh baseline capture review cannot approve checkpoint references",
+    "replay-numeric-true": "cohort review baseline_replay_eligible claim has an invalid boolean type",
+    "evidence-missing": "capture eligibility evidence differs from the pinned independent decision",
+    "evidence-wrong-report": "capture eligibility evidence differs from the pinned independent decision",
+    "decision-wrong": "cohort review does not bind the pinned decision, evidence index, and reviewed integration commit",
+    "contract-index-wrong": "cohort review does not bind the pinned decision, evidence index, and reviewed integration commit",
+    "source-wrong": "cohort review source identity differs from the pinned cohort",
+    "binary-mixed": "cohort review binary inventory differs from the pinned cohort",
+    "unknown-field": "cohort review fields differ from schema version 1",
+    "duplicate-review-json-field": "duplicate cohort review registry JSON field: schema_version"
+  },
+  "actual_4_sealed_metadata_result": {
+    "cohort_id": "frozen-20261021-serial-nonincr-r1-r2",
+    "cohort_registry_sha256": "96a83bee520e148bbecf7115644d88f8057a74438029c12c4a3a83253fa0b0b4",
+    "review_registry_sha256": "65d1343138d5c817186bbd9486e6149ef554fc0fd4b3a96bf70cb916f0883718",
+    "status": "reviewed-capture-eligible",
+    "decision_sha256": "446273ce18d3caaea939263b37687be5aec770cf1ab54c62110f6c945ec9c2f6",
+    "evidence_index_sha256": "7333d762ddbbc25f7fafbc78fd49fe016358b787123dbfdabce422172121ba2c",
+    "source": {
+      "tag": "visual-baseline",
+      "tag_object": "2718a6b8127a522a3d351d0b4bdb7542fc8da542",
+      "commit": "4169783ae883788186d161af09ba9c481bd84e5c",
+      "tree": "ad0f7cf8899df8c5fea3ced3f60adf0ac9a2d297",
+      "tuiscotti_rev": "a1ea27f757d75d07b05499276cd932e9f8e067ad",
+      "cargo_lock_sha256": "46c1c71d85de829b277feffc959e6e8feab99deb171b1e48521c12d5cf14c2ed",
+      "rust_toolchain_sha256": "007a7e2abbd4afe192a3ef190dfa54914800621e221196747cff9e172735dc00"
+    },
+    "tools": {
+      "recipe_sha256": "849900e9c848d892824bd2b6636a17ba35d57c9be57859abf136c42f7f314bac",
+      "run1_archive_sha256": "ef4b805a35667e0f1c41018dac78564ba6332489024b19638f4c8d114eaaf5a9",
+      "run2_archive_sha256": "89d6d0c03eaa0911b51af32b1cced55b93d405ec43876b55bae1d19055b540e2",
+      "run2_comparison_sha256": "f2bc6d30b2a528432781e12c318d6e0a6684c38caa5e392dca2c251a59c1ecbc",
+      "run1_provenance_sha256": "4eb758b86e148fc0688704ffbd66b3d6589300dd59ffc3ee67b78a26806ad098",
+      "run2_provenance_sha256": "4eb758b86e148fc0688704ffbd66b3d6589300dd59ffc3ee67b78a26806ad098",
+      "run1_live_source_sha256": "ea29844bfb384c3bb995c1d9594ffd9b58a1e7bfdf19b001eb0b45d9d6eec94c",
+      "run2_live_source_sha256": "ea29844bfb384c3bb995c1d9594ffd9b58a1e7bfdf19b001eb0b45d9d6eec94c",
+      "run1_stage1_receipt_sha256": "e62c9f13660211dde530a81d5d840ee97dc32f31d5d3fc31d1303a7f27547ae3",
+      "run1_stage2_receipt_sha256": "0f3bf5677d69e578ec9a93e5eeecb74bc9a7570deb73070a98cec61a61efaaaf",
+      "run2_stage1_receipt_sha256": "684d9bc6c181d087ad023d37b95187d01b1a1897e36a0674f18d0ccc5322b4a5",
+      "run2_stage2_receipt_sha256": "08b573ed200e1c32ff3627cc5845c744fa12d27d5fc00e87fc02e53240a46f16",
+      "run2_sealed_manifest_sha256": "2ca05dc3d79dabbc49e28f97a9cad0b4241925d482eec2e9257024418743e8b2"
+    },
+    "binaries": {
+      "showcase": {
+        "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/controlled-baseline-serial-incremental-off-archive/run-2/sealed-bin/showcase",
+        "sha256": "d54a104c1c3b20eab2aa48cf981c0f163586663a39ab90e54bcd7b8c3527db55"
+      },
+      "tablepro": {
+        "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/controlled-baseline-serial-incremental-off-archive/run-2/sealed-bin/tablepro",
+        "sha256": "212cc16c3a50ea7aca6b474964ad492c4cc3c731812491bb06284abe1b9cc5d0"
+      },
+      "jackin-preview": {
+        "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/controlled-baseline-serial-incremental-off-archive/run-2/sealed-bin/jackin-preview",
+        "sha256": "60b2c311a3d6e75b58e93a6f4c6d507d43a0e331d84ea966938a8eec52fb9cf2"
+      },
+      "holla": {
+        "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/controlled-baseline-serial-incremental-off-archive/run-2/sealed-bin/holla",
+        "sha256": "62d5f4c71a1927a5f9e20d60b9f79ff4a392eb1c7390076dc1eaddee06dfe9bf"
+      }
+    },
+    "fresh_baseline_capture_eligible": true,
+    "baseline_replay_eligible": true,
+    "candidate_comparison_eligible": false,
+    "checkpoint_reference_approval": "none",
+    "product_acceptance_eligible": false,
+    "acceptance_complete": false
+  },
+  "actual_4_sealed_0555_verify": true,
+  "unchanged_registry_sha256": "96a83bee520e148bbecf7115644d88f8057a74438029c12c4a3a83253fa0b0b4",
+  "unchanged_old_v1_sha256": "2a43fb118c268300c8bbd6439ea11bb9a24ffff03dc3c9f4601893eee26a096b",
+  "capture_executed": false,
+  "candidate_comparison_approved": false,
+  "status": "clear-for-bounded-capture-only-metadata-integration",
+  "remaining_separate_work": "Fresh plan/advance/finalize lifecycle is not implemented; old unconditional checkpoint-decision loads remain outside this metadata review.",
+  "frozen_frame_registry_v1_and_helper_changes_since979": [],
+  "note": "de156 includes unrelated integrated application/doc commits; this packet reviews only cohort capture metadata and evidence binding. Current production metadata permits fresh capture/replay only; the copied decision records the earlier historical empty-registry state."
+}

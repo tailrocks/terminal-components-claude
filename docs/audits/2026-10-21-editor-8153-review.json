@@ -1,0 +1,60 @@
+{
+  "revision": "8153f3f85ba1b3c494bfcbfa1c7d8ce95753e847",
+  "decision": "Changes requested",
+  "acceptance_complete": false,
+  "resolved": [
+    "Explicit BOLD label modifiers are preserved.",
+    "Read-only TypeToEdit does not enter editing.",
+    "The obsolete explicit i setup was removed from the Immediate-policy fixture; the xalpha assertion remains unchanged and a separate first-i insertion test was added."
+  ],
+  "unresolved": [
+    {
+      "severity": "P2",
+      "path": "crates/termrock-editors/tests/completing_code_editor.rs:541",
+      "issue": "The former focus-loss regression was changed to expect editor focus and active editing after a deliberate focus transfer to NEXT. The code emits Committed but then restores the old owner and re-enters editing. The new assertion accepts the unresolved behavior.",
+      "evidence": "The external real-runtime workflow observes final (Some(EDITOR), true) versus required (Some(NEXT), false).",
+      "fix": "Do not restore stale owner focus when closing a completion due to owner blur. Preserve final NEXT focus and committed editor state, or supply frozen-reference evidence for an independent reference decision."
+    },
+    {
+      "severity": "P2",
+      "path": "crates/termrock-runtime/src/rowui.rs:346",
+      "issue": "Preserving resolved modifiers fixes explicit overrides, but leaves unmatched graphemes bold under the built-in default ItemRow recipe. The existing newly added Unicode regression now fails at item_row_columns.rs224 for the unmatched \u754c cell.",
+      "fix": "Correct the built-in unmatched label default below authored theme and consumer patches, retaining both explicit BOLD and matched-only emphasis tests."
+    }
+  ],
+  "public_probes": {
+    "run": 3,
+    "passed": 2,
+    "failed": 1,
+    "filtered": 16,
+    "log": "/private/tmp/termrock-editor-8153-probes.log",
+    "log_sha256": "bd8bfe488fadfc405e9a1a78edec5d4e3606b50673d2b53f2b67569c453eb231",
+    "source": "/private/tmp/termrock-editor-f684-probes/tests/completion_focus_loss.rs"
+  },
+  "native_gate": {
+    "run": 393,
+    "passed": 393,
+    "failed": 0,
+    "ignored_driver_fixtures": 3,
+    "log": "/private/tmp/termrock-editor-8153-native-fresh.log",
+    "limitation": "The native focus-loss test now expects the unresolved editor focus restoration and edit re-entry. Its passing result does not resolve the independent focus-loss finding."
+  },
+  "source_edits": false,
+  "expected_artifact_edits": false,
+  "scoped_format": "rustfmt --edition2024 --check on all five changed Rust files passed.",
+  "item_row_gate": {
+    "run": 14,
+    "passed": 12,
+    "failed": 2,
+    "skipped": 0,
+    "log": "/private/tmp/termrock-editor-8153-itemrows.log",
+    "new_failure": "unselected_rows_render_matched_unicode_graphemes_only",
+    "existing_failure": "constructor_defaults_match_the_pre_policy_full_cell_fixture; identical base/candidate fingerprints remain unchanged"
+  },
+  "scoped_clippy": {
+    "result": "passed",
+    "command": "cargo clippy --locked -p termrock-runtime -p termrock-editors --all-targets -- -D warnings",
+    "log": "/private/tmp/termrock-editor-8153-clippy.log"
+  },
+  "tablepro_gate": "The author reports unchanged 183/179/4. This re-review independently ran exact8153 shared and public consumer checks; exactf684 TablePro/base attribution remains the independently verified application evidence."
+}

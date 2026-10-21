@@ -1,0 +1,21 @@
+ ▪ [0m[1mJunie[0m Design system  [0m[1mOverview[0m                  i Inspector   ? Help  [0m
+                                                                        [0m
+ [0m[1mComponents[0m      54  [0m[1mOverview[0m  Tokens and principles behind every comp… [0m
+ ──────────────────                                                     [0m
+ [0m[1m▎› Overview       [0m  [0m[1m Playground  [0m  Options    States                   [0m
+  ▸ App shell        ━━━━━━━━━━━━━──────────────────────────────────────[0m
+  ▸ Inputs & forms                                                      [0m
+  ▸ Tables             Tokens · planes and text                        ┃[0m
+  ▸ Navigation         ─────────────────────────────────────────────── ┆[0m
+  ▸ Overlays               ▏ canvas                                    ┆[0m
+  ▸ Feedback               ▏ surface                                   ┆[0m
+  ▸ Layout                 ▏ surface.elevated                          ┆[0m
+  ▸ Text & code            ▏ surface.overlay                           ┆[0m
+  ▸ Screens                ▏ field                                     ┆[0m
+                           ▏ field.hover                               ┆[0m
+                           ▏ popover                                   ┆[0m
+                           ▏ highlight                                 ┆[0m
+                     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┄┄┄┄┄┄┄┄┄┄ [0m
+                                                                        [0m
+ [0m[1m↑↓[0m Move  [0m[1mEnter[0m Open  [0m[1m/[0m Filter  [0m[1mTab[0m Into page  [0m[1mq[0m Quit                   [0m
+[?25l

@@ -1,0 +1,31 @@
+ ▪ [0m[1mJunie[0m Design system  Navigation › [0m[1mTrees[0m                no color · 100×30   i Inspector   ? Help  [0m
+                                                                                                    [0m
+ [0m[1mComponents[0m      54  [0m[1mTrees[0m  Indent carries hierarchy; the focus bar never moves                     [0m
+ ──────────────────                                                                                 [0m
+    Overview         [0m[1m Playground  [0m  Options    States                               the live widget [0m
+  ▸ App shell        ━━━━━━━━━━━━━──────────────────────────────────────────────────────────────────[0m
+  ▸ Inputs & forms                                                                                  [0m
+  ▸ Tables             Project                                  1–15 of 16      Selection          ┃[0m
+  ▾ Navigation         ───────────────────────────────────────────────────      ────────────────── ┃[0m
+      Lists             ▾ src                                            ┃      Nothing selected   ┃[0m
+ [0m[1m▎  › Trees        [0m       ▸ api                                          ┃      Enter on a file se ┃[0m
+      Sidebars            ▸ db                                           ┃                         ┃[0m
+      Tabs                ▸ workers                                      ┃      cursor  src        ┃[0m
+      Menus                 config.rs                             1.9 KB ┃      visible 16 rows    ┃[0m
+  ▸ Overlays                lib.rs                                 640 B ┃      open    5 folders  ┃[0m
+  ▸ Feedback                main.rs                               1.2 KB ┃                         ┃[0m
+  ▸ Layout              ▾ tests                                          ┃                         ┃[0m
+  ▸ Text & code             checkout.rs                           5.3 KB ┃                         ┃[0m
+  ▸ Screens                 auth_flow.rs                          3.0 KB ┃      Connections   → lo ┃[0m
+                          ▸ fixtures                                     ┃      ────────────────── ┃[0m
+                        ▾ docs                                           ┃       ▾ ◆ production    ┆[0m
+                            architecture.md                       7.7 KB ┃         ▸ orders-db     ┆[0m
+                            webhooks.md                           2.2 KB ┃         ▸ billing-db    ┆[0m
+                       [0m[2m   Cargo.toml                              1.4 KB [0m┆           replica-eu    ┆[0m
+                                                                                 ▾ ◇ staging       ┆[0m
+                                                                                   ▸ orders-db     ┆[0m
+                                                                                 ▾ ○ archive       ┆[0m
+                     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┄┄┄┄┄┄┄┄┄┄┄┄┄┄ [0m
+                                                                                                    [0m
+ [0m[1m↑↓[0m Move  [0m[1mEnter[0m Open  [0m[1m/[0m Filter  [0m[1mTab[0m Into page  [0m[1mq[0m Quit                                               [0m
+[?25l

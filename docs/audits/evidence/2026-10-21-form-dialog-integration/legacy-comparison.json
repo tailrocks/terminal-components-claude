@@ -1,0 +1,10 @@
+{
+  "before_cases": 64,
+  "after_cases": 64,
+  "complete_bytes_identical": true,
+  "different_case_indices": [],
+  "before_sha256": "086d7adb36c4e21237e38c9781cba1a7288ec1186a2002057735b15843c61171",
+  "after_sha256": "086d7adb36c4e21237e38c9781cba1a7288ec1186a2002057735b15843c61171",
+  "bytes": 8577778,
+  "scope": "Complete Ratatui Cell representations, all registry regions, focus entries, cursor and diagnostics; not decoded terminal modes/cleanup"
+}

@@ -354,6 +354,7 @@ pub struct PendingWorkspace {
     pub env: Vec<EnvVar>,
     pub role_env: BTreeMap<RoleName, Vec<EnvVar>>,
     pub accounts: AccountPolicy,
+    pub keep_awake: bool,
 }
 
 impl Default for PendingWorkspace {
@@ -369,6 +370,7 @@ impl Default for PendingWorkspace {
             env: vec![],
             role_env: BTreeMap::new(),
             accounts: AccountPolicy::default(),
+            keep_awake: false,
         }
     }
 }
@@ -383,6 +385,7 @@ impl PendingWorkspace {
             env: workspace.env.clone(),
             role_env: workspace.role_env.clone(),
             accounts: workspace.accounts.clone(),
+            keep_awake: workspace.keep_awake,
         }
     }
 
@@ -394,6 +397,7 @@ impl PendingWorkspace {
         workspace.env = self.env.clone();
         workspace.role_env = self.role_env.clone();
         workspace.accounts = self.accounts.clone();
+        workspace.keep_awake = self.keep_awake;
     }
 
     pub fn into_workspace(self, id: u32) -> Workspace {
@@ -403,6 +407,7 @@ impl PendingWorkspace {
         workspace.env = self.env;
         workspace.role_env = self.role_env;
         workspace.accounts = self.accounts;
+        workspace.keep_awake = self.keep_awake;
         workspace
     }
 

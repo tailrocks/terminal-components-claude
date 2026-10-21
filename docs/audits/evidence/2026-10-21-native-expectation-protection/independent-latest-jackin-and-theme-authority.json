@@ -1,0 +1,330 @@
+{
+  "authority_result": "HOLD / no blanket approval. Fixed baseline commit has no Jackin digest or capability_palettes test artifact paths; however it does contain src/theme.rs (blob recorded) and frozen Jackin CLI ANSI corpus. Direct candidate digest proof is unavailable in this bounded read-only audit; no claims that 22 values are correct/incorrect frozen captures absent paired pinned captures. Theme scalar conflicts and unmapped roles remain explicitly unapproved.",
+  "baseline_commit": "4169783ae883788186d161af09ba9c481bd84e5c",
+  "baseline_tag_object": "2718a6b8127a522a3d351d0b4bdb7542fc8da542",
+  "checkout": "/private/tmp/pr38-test-authority-audit-20261021",
+  "checkout_state": "Detached at exact live branch commit; no source edits; no source/test run or baseline capture/replay. Sparse-worktree materialization was incomplete (no source modifications); all evidence was read by immutable git objects.",
+  "coverage_and_limits": [
+    "Read-only git-object branch comparison, prior per-key authority packet, Theme plan, and parent helper source.",
+    "No test commands run; no operational baseline/candidate capture or replay; no PR/branch/expectation mutation.",
+    "Not a full branch/product review; no independent review of mixed Jackin production changes.",
+    "Source capture authority for Jackin must still be established by paired frozen CLI captures using pinned tuiscotti."
+  ],
+  "evidence_inputs": {
+    "baseline": "4169783ae883788186d161af09ba9c481bd84e5c",
+    "branch_tip": "ad20c7aadaa8c531ea639395a648ec6f624a2a8d",
+    "prior_jackin_packet": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/branch-consolidation/expectation-authority-c487-912-40c-089fa082-20261021/additional-jackin-unreviewed-expectations.json",
+    "prior_jackin_packet_sha256": "e7eef6ebb49e249f1b45a8e844652d7ca3c3b6663e71cb99e11b4092fd16edf5",
+    "snapshot": "089fa082c4941cf8c33ebc98199c1c7de0880c78",
+    "theme_plan": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/branch-consolidation/theme-authored44-restoration-plan-97c9265c-20261021/plan.json",
+    "theme_plan_sha256": "b27d40c85305724d6580b3803efd0ccacbbace06a45c2c1aaa1e4d4fc4f90da2"
+  },
+  "frozen_theme_source_blob": "1002ef512909f64b45ccc5e402572c3224db2ce4",
+  "frozen_tree_presence": {
+    "crates/jackin-preview-app/tests/baselines/jackin.txt": false,
+    "crates/termrock-theme/src/lib.rs": false,
+    "crates/termrock-theme/tests/capability_palettes.rs": false,
+    "src/theme.rs": true
+  },
+  "jackin": {
+    "added_since_089": [],
+    "all_unadmitted_replacement_chains": [
+      {
+        "authority": "UNADMITTED: no matching independently reviewed frozen reference correction supplied",
+        "key": "capsule-multi 100 30 junie mono",
+        "live_ad20": "b41b0773aa27756c",
+        "pre_089": "b5519ff44ddf4f35",
+        "snapshot_089": "b6d374725640d218"
+      },
+      {
+        "authority": "UNADMITTED: no matching independently reviewed frozen reference correction supplied",
+        "key": "capsule-multi 100 30 junie truecolor",
+        "live_ad20": "39d8d0fb4ea19823",
+        "pre_089": "74506c127684005e",
+        "snapshot_089": "33a78b44f2e8d522"
+      },
+      {
+        "authority": "UNADMITTED: no matching independently reviewed frozen reference correction supplied",
+        "key": "capsule-multi 100 30 paper mono",
+        "live_ad20": "e7d5c9d14f238964",
+        "pre_089": "5e26c1b42ab38bf3",
+        "snapshot_089": "1aa5bbe903b4c554"
+      },
+      {
+        "authority": "UNADMITTED: no matching independently reviewed frozen reference correction supplied",
+        "key": "capsule-multi 100 30 paper truecolor",
+        "live_ad20": "eff31fad1b0de9ce",
+        "pre_089": "c9c4a131429bff6a",
+        "snapshot_089": "f83c3780c779d1bd"
+      },
+      {
+        "authority": "UNADMITTED: no matching independently reviewed frozen reference correction supplied",
+        "key": "capsule-multi 120 40 junie mono",
+        "live_ad20": "9b66272a8a433927",
+        "pre_089": "858523b61b8956da",
+        "snapshot_089": "848185a9b59da4c1"
+      },
+      {
+        "authority": "UNADMITTED: no matching independently reviewed frozen reference correction supplied",
+        "key": "capsule-multi 120 40 junie truecolor",
+        "live_ad20": "51ec6cc41c18e93a",
+        "pre_089": "de16e66c68e1e2b2",
+        "snapshot_089": "f1a08c30d5fc9648"
+      },
+      {
+        "authority": "UNADMITTED: no matching independently reviewed frozen reference correction supplied",
+        "key": "capsule-multi 120 40 paper mono",
+        "live_ad20": "b262c3f106995373",
+        "pre_089": "40522e1a790d21d0",
+        "snapshot_089": "17e9dc7545ec8203"
+      },
+      {
+        "authority": "UNADMITTED: no matching independently reviewed frozen reference correction supplied",
+        "key": "capsule-multi 120 40 paper truecolor",
+        "live_ad20": "57d9bd601197fbf1",
+        "pre_089": "02282e8117d750ae",
+        "snapshot_089": "8804c464a9c7a389"
+      },
+      {
+        "authority": "UNADMITTED: no matching independently reviewed frozen reference correction supplied",
+        "key": "hard-cases 120 40 junie mono",
+        "live_ad20": "b88a570365153e91",
+        "pre_089": "ec0d2382edf449ef",
+        "snapshot_089": "b88a570365153e91"
+      },
+      {
+        "authority": "UNADMITTED: no matching independently reviewed frozen reference correction supplied",
+        "key": "hard-cases 120 40 paper mono",
+        "live_ad20": "93cde6f1342da80b",
+        "pre_089": "4cac6d09b116c973",
+        "snapshot_089": "93cde6f1342da80b"
+      },
+      {
+        "authority": "UNADMITTED: no matching independently reviewed frozen reference correction supplied",
+        "key": "hard-cases 120 40 paper truecolor",
+        "live_ad20": "e8344f5dd1c99ae0",
+        "pre_089": "2bd2cb74e6623e1c",
+        "snapshot_089": "e8344f5dd1c99ae0"
+      },
+      {
+        "authority": "UNADMITTED: no matching independently reviewed frozen reference correction supplied",
+        "key": "outro-last 100 30 junie mono",
+        "live_ad20": "b41b0773aa27756c",
+        "pre_089": "9f318a91941658c9",
+        "snapshot_089": "b6d374725640d218"
+      },
+      {
+        "authority": "UNADMITTED: no matching independently reviewed frozen reference correction supplied",
+        "key": "outro-last 100 30 junie truecolor",
+        "live_ad20": "39d8d0fb4ea19823",
+        "pre_089": "4674c1c78a56d9d3",
+        "snapshot_089": "33a78b44f2e8d522"
+      },
+      {
+        "authority": "UNADMITTED: no matching independently reviewed frozen reference correction supplied",
+        "key": "outro-last 100 30 paper mono",
+        "live_ad20": "e7d5c9d14f238964",
+        "pre_089": "76fd660410c6911d",
+        "snapshot_089": "1aa5bbe903b4c554"
+      },
+      {
+        "authority": "UNADMITTED: no matching independently reviewed frozen reference correction supplied",
+        "key": "outro-last 100 30 paper truecolor",
+        "live_ad20": "eff31fad1b0de9ce",
+        "pre_089": "9b04651ff481bae8",
+        "snapshot_089": "f83c3780c779d1bd"
+      },
+      {
+        "authority": "UNADMITTED: no matching independently reviewed frozen reference correction supplied",
+        "key": "outro-last 120 40 junie mono",
+        "live_ad20": "9b66272a8a433927",
+        "pre_089": "ff654d7db699e8c2",
+        "snapshot_089": "848185a9b59da4c1"
+      },
+      {
+        "authority": "UNADMITTED: no matching independently reviewed frozen reference correction supplied",
+        "key": "outro-last 120 40 junie truecolor",
+        "live_ad20": "51ec6cc41c18e93a",
+        "pre_089": "11b7e06fd1c792bd",
+        "snapshot_089": "f1a08c30d5fc9648"
+      },
+      {
+        "authority": "UNADMITTED: no matching independently reviewed frozen reference correction supplied",
+        "key": "outro-last 120 40 paper mono",
+        "live_ad20": "b262c3f106995373",
+        "pre_089": "64f71099c0f7cae6",
+        "snapshot_089": "17e9dc7545ec8203"
+      },
+      {
+        "authority": "UNADMITTED: no matching independently reviewed frozen reference correction supplied",
+        "key": "outro-last 120 40 paper truecolor",
+        "live_ad20": "57d9bd601197fbf1",
+        "pre_089": "a175117492d12275",
+        "snapshot_089": "8804c464a9c7a389"
+      },
+      {
+        "authority": "UNADMITTED: no matching independently reviewed frozen reference correction supplied",
+        "key": "returning 120 40 junie mono",
+        "live_ad20": "61e65d72e68acdd7",
+        "pre_089": "78a2b61980bc2587",
+        "snapshot_089": "61e65d72e68acdd7"
+      },
+      {
+        "authority": "UNADMITTED: no matching independently reviewed frozen reference correction supplied",
+        "key": "returning 120 40 paper mono",
+        "live_ad20": "9767b755cc1a5d65",
+        "pre_089": "88d630b9c82893bd",
+        "snapshot_089": "9767b755cc1a5d65"
+      },
+      {
+        "authority": "UNADMITTED: no matching independently reviewed frozen reference correction supplied",
+        "key": "returning 120 40 paper truecolor",
+        "live_ad20": "1186c0d969af510b",
+        "pre_089": "d0d60d05ee0bfd73",
+        "snapshot_089": "1186c0d969af510b"
+      }
+    ],
+    "changed_since_089": [
+      {
+        "key": "capsule-multi 100 30 junie mono",
+        "live": "b41b0773aa27756c",
+        "snapshot_089": "b6d374725640d218"
+      },
+      {
+        "key": "capsule-multi 100 30 junie truecolor",
+        "live": "39d8d0fb4ea19823",
+        "snapshot_089": "33a78b44f2e8d522"
+      },
+      {
+        "key": "capsule-multi 100 30 paper mono",
+        "live": "e7d5c9d14f238964",
+        "snapshot_089": "1aa5bbe903b4c554"
+      },
+      {
+        "key": "capsule-multi 100 30 paper truecolor",
+        "live": "eff31fad1b0de9ce",
+        "snapshot_089": "f83c3780c779d1bd"
+      },
+      {
+        "key": "capsule-multi 120 40 junie mono",
+        "live": "9b66272a8a433927",
+        "snapshot_089": "848185a9b59da4c1"
+      },
+      {
+        "key": "capsule-multi 120 40 junie truecolor",
+        "live": "51ec6cc41c18e93a",
+        "snapshot_089": "f1a08c30d5fc9648"
+      },
+      {
+        "key": "capsule-multi 120 40 paper mono",
+        "live": "b262c3f106995373",
+        "snapshot_089": "17e9dc7545ec8203"
+      },
+      {
+        "key": "capsule-multi 120 40 paper truecolor",
+        "live": "57d9bd601197fbf1",
+        "snapshot_089": "8804c464a9c7a389"
+      },
+      {
+        "key": "outro-last 100 30 junie mono",
+        "live": "b41b0773aa27756c",
+        "snapshot_089": "b6d374725640d218"
+      },
+      {
+        "key": "outro-last 100 30 junie truecolor",
+        "live": "39d8d0fb4ea19823",
+        "snapshot_089": "33a78b44f2e8d522"
+      },
+      {
+        "key": "outro-last 100 30 paper mono",
+        "live": "e7d5c9d14f238964",
+        "snapshot_089": "1aa5bbe903b4c554"
+      },
+      {
+        "key": "outro-last 100 30 paper truecolor",
+        "live": "eff31fad1b0de9ce",
+        "snapshot_089": "f83c3780c779d1bd"
+      },
+      {
+        "key": "outro-last 120 40 junie mono",
+        "live": "9b66272a8a433927",
+        "snapshot_089": "848185a9b59da4c1"
+      },
+      {
+        "key": "outro-last 120 40 junie truecolor",
+        "live": "51ec6cc41c18e93a",
+        "snapshot_089": "f1a08c30d5fc9648"
+      },
+      {
+        "key": "outro-last 120 40 paper mono",
+        "live": "b262c3f106995373",
+        "snapshot_089": "17e9dc7545ec8203"
+      },
+      {
+        "key": "outro-last 120 40 paper truecolor",
+        "live": "57d9bd601197fbf1",
+        "snapshot_089": "8804c464a9c7a389"
+      }
+    ],
+    "conclusion": "All 22 original existing-key replacements remain unadmitted; 16 are replaced again after 089 (eight capsule-multi values duplicated as outro-last), six remain at 089 value. No key additions/removals since 089. Do not restore whole file on live HEAD: use per-key compare-and-set against the exact synchronized preimage and preserve all other bytes. Candidate digest rows do not themselves prove fixed-baseline truth.",
+    "key_counts": {
+      "live": 64,
+      "pre_089": 64,
+      "snapshot_089": 64
+    },
+    "live_blob": "1d69703e64c35448e957ed46a6e7b6e160d9ada8",
+    "parent_snapshot": "089fa082c4941cf8c33ebc98199c1c7de0880c78",
+    "path": "crates/jackin-preview-app/tests/baselines/jackin.txt",
+    "pre_089_blob": "0e45e5d0caaef4af0706b1dd5db92fd3b2ca40cf",
+    "removed_since_089": [],
+    "snapshot_blob": "e7f08e64cd484afaab883b4fdffb7cd746b83b10"
+  },
+  "kind": "read-only independent expectation authority audit",
+  "next_safe_action": "Narrow per-key restoration only after re-fetch and exact per-key live preimage comparison. Preserve pre_089, 089, and live values plus new/unreviewed bytes. Keep Theme73 test rewrite separately unapproved; correct/split it only after the distinct frozen field provenance/reference decision. Parent helper is guarded against the current branch and should not be broadened.",
+  "reviewed_branch": "parity/termrock-visual-baseline",
+  "reviewed_commit": "ad20c7aadaa8c531ea639395a648ec6f624a2a8d",
+  "root_helper": {
+    "assessment": "Correct fail-closed on current branch: exact Jackin blob precondition requires 089 blob e7f08e64cd484afaab883b4fdffb7cd746b83b10, but live is 1d69703e64c35448e957ed46a6e7b6e160d9ada8. Its whole-file restoration must not run on ad20. It does not guard/restore capability_palettes.rs; thus a successful invocation would not correct the separate pre-089 Theme73 expectation rewrite. Preserve and state this separate unresolved finding. No helper was executed and no lock touched.",
+    "path": "/private/tmp/termrock-parent-native-expectation-protection-20261021.py",
+    "sha256": "361d0628658b2bc67d49ed4ab14868a7c31e443d39ad4edb225a6b8260d22126"
+  },
+  "theme73": {
+    "changed_since_089": false,
+    "conclusion": "The test rewrite is pre-089 and remains in live source. The plan explicitly withholds approval and says generic conversion must be separated from authored palette projections. Do not consider this 73-slot test an authority approval.",
+    "live_blob": "ef6507869052aa6946589166a2b4164c53250c1f",
+    "path": "crates/termrock-theme/tests/capability_palettes.rs",
+    "plan_decision": "IMPLEMENTATION_PLAN_ONLY; no source, expectation or latest-candidate approval",
+    "plan_path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/branch-consolidation/theme-authored44-restoration-plan-97c9265c-20261021/plan.json",
+    "plan_sha256": "b27d40c85305724d6580b3803efd0ccacbbace06a45c2c1aaa1e4d4fc4f90da2",
+    "snapshot_089_blob": "ef6507869052aa6946589166a2b4164c53250c1f",
+    "test_name": "all_73_junie_slots_match_reference_capability_output"
+  },
+  "theme_slot_disposition": {
+    "mapped_conflicts": {
+      "Ansi16 fg[3]": "frozen Gray vs expected DarkGray",
+      "Ansi16 meter.unknown": "frozen Gray vs expected DarkGray",
+      "Ansi256 accent_hover": "frozen 71 vs expected 77",
+      "Ansi256 accent_pressed": "frozen 65 vs expected 238",
+      "Ansi256 fg[2]": "frozen 245 vs expected 244",
+      "Ansi256 fg[3]": "frozen 242 vs expected 238",
+      "Ansi256 meter.unknown": "frozen 242 vs expected 238"
+    },
+    "mapped_matches_include": [
+      "field_hover Ansi256 237",
+      "field_hover Mono Black",
+      "highlight_bg Ansi256 25",
+      "highlight_danger_bg Ansi256 88",
+      "disabled_fg Ansi256 239"
+    ],
+    "scope_note": "These are scalar source-authority comparisons recorded by the separate plan; they do not qualify widget-level output or render-time contexts. Do not blanket bless matching scalars.",
+    "unmapped_unproven": [
+      "accent_tint",
+      "focus_ring",
+      "syntax.match_bg",
+      "syntax.match_current_bg",
+      "meter.stale",
+      "all remaining authored 73-slot values without a field-owner mapping"
+    ]
+  },
+  "tuiscotti_pin": "a1ea27f757d75d07b05499276cd932e9f8e067ad"
+}

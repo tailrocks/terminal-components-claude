@@ -1,0 +1,25 @@
+[0m[2m  jackin❯    File   Go   Help              …  Workspaces  inside the Construct  [0m
+[0m[2m                                                                                [0m
+[0m[2m ╭─ Workspaces ─────────────────────────────────────────────────── 2 running ─╮ [0m
+[0m[2m │ [0m [0m[2m   Current directory                          saved as payments-platform  │ [0m
+[0m[2m │ [0m [0m[2m ▸ payments-platform                                           1 running  │ [0m
+[0m[2m │ [0m [0m[2m ▸ infra-control-plane                                         1 running  │ [0m
+[0m[2m │ [0m [0m[2m ▸ release-automation                                           ! failed  │ [0m
+[0m[2m │╭[0m─[0m[2m─────────────────────────────────────────────────────────────────────────╮│ [0m
+[0m[2m ││[0m [0m[1;2mLaunch · choose Agent[0m[2m                  payments-platform › the-architect ││ [0m
+[0m[2m ││ [0m[1;2;7m [0m[2;7m▪[0m[1;2;7m Claude Code  [0m[2;7maccount Claude · Personal · p…[0m[1;2;7m  [0m[2;7mchoose at start[0m[1;2;7m  [0m[2;7magents[0m[1;2;7m [0m[2m ││ [0m
+[0m[2m ││  ▪ Codex        account Codex · Primary · pro…  ready                    ││ [0m
+[0m[2m ││  ▪ OpenCode     account OpenCode · Go subscri…  ready                    ││ [0m
+[0m[2m ││  ▪ Grok Build   account Grok · Team · provide…  ready                    ││ [0m
+[0m[2m ││                                                                          ││ [0m
+[0m[2m ╰│                                                                          │╯ [0m
+[0m[2m  ╰──────────────────────────────────────────────────────────────────────────╯  [0m
+[0m[2m   Current directory                                              Tab details   [0m
+[0m[2m   ──────────────────────────────────────────────────────────────────────────   [0m
+[0m[2m   /workspace/payments-platform · 2 mounts · 5 vars                             [0m
+[0m[2m   Roles the-architect ★ · 3 allowed · Auth Claude · Personal                   [0m
+[0m[2m   ◉ 7f3a  the-architect · Claude Code · running                                [0m
+[0m[2m                                                                                [0m
+[0m[2m                                                                                [0m
+ [0m[1m↑↓ Mo[0mve  [0m[1mEnter [0mChoose[0m[1m [0m [0m[1mEsc[0m Ca[0m[1mnce[0ml    Claud[0m[1me[0m Code — acc[0m[1mo[0munt Clau[0m[1md[0me · Personal … [0m
+[?25l

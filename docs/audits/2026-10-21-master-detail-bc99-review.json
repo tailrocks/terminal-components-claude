@@ -1,0 +1,55 @@
+{
+  "reviewed_commit": "bc99f0ccf90880ef0088357b0a1eedde020bbdaf",
+  "decision": "Cleared for the bounded MasterDetail/runtime integration, subject to independent integration gates. No remaining source finding in this review scope.",
+  "supersedes": "Resolves the outstanding initial-leaf scope guard finding in master-detail-review-c7c522.json and the earlier scoped fallback and pending diagnostic boundedness findings. Historical reports and failing probe output remain preserved.",
+  "verification": [
+    {
+      "command": "cargo nextest run --locked -p termrock-runtime -p termrock-core --all-targets --features termrock-runtime/testing",
+      "result": "387 passed, three skipped. Skipped fixtures are not counted as passed coverage.",
+      "log": "/tmp/master-detail-independent-bc99-native.log"
+    },
+    {
+      "command": "cargo nextest run --locked -p termrock --features testing --test master_detail_consumer",
+      "result": "Seven passed, zero skipped. The compiled public consumer exercises real editor-first Escape, modal/sibling isolation, repeated drawer lifecycle and narrow/zero layout.",
+      "log": "/tmp/master-detail-independent-bc99-consumer.log"
+    },
+    {
+      "command": "External public consumer, cargo nextest run --all-targets --no-fail-fast",
+      "result": "Ten passed and one failed, zero skipped. All ten meaningful source-contract probes pass. The single preserved failure is the independently diagnosed obsolete summary assertion described below; it is not silently removed or counted as a pass.",
+      "log": "/tmp/master-detail-independent-bc99-final-probes.log"
+    },
+    {
+      "command": "cargo clippy --locked -p termrock-runtime -p termrock-core --all-targets --features termrock-runtime/testing -- -D warnings",
+      "result": "Exit zero.",
+      "log": "/tmp/master-detail-independent-bc99-clippy.log"
+    },
+    {
+      "command": "cargo fmt --check -p termrock-runtime -p termrock-core; git diff --check c7c522ed HEAD",
+      "result": "Both exit zero.",
+      "log": "/tmp/master-detail-independent-bc99-fmt.log"
+    }
+  ],
+  "cleared_contracts": [
+    "Actual nested block bounds, rather than the terminal viewport, decide drawer behavior. Real descendant focus uses the existing FocusRing scope tree, not the configured anchor alone.",
+    "Resize input remains pending until fresh preparation; the next valid key uses newly prepared wide/narrow bounds. The independent resize probe passes.",
+    "The initial event focus/top layer are captured before the leaf callback. Scope change is now detected immediately after that callback, including when there are no scoped candidates. A leaf-opened modal remains open after the same Escape.",
+    "Each scoped candidate is revalidated against actual current focus, top layer, scope membership and descriptor. Opening a modal or moving focus during an inner scope callback prevents stale outer and global dispatch.",
+    "Unchanged same-scope propagation still works: leaf declines, inner declines, outer consumes; or both scopes decline and App::on_esc runs once. Consumed leaf or scope prevents later dispatch.",
+    "An inner-opened ordinary modal remains open; the same physical Escape does not dismiss it. Independent public probes cover both initial-leaf and inner-scope modal persistence.",
+    "Pending draw diagnostics and update diagnostics both use canonical bounded Diagnostics storage. The frame resets its store, append preserves prior diagnostics and counts both source overflow and merge overflow. Native cap64/drop6 and combined-store overflow tests pass.",
+    "Public changes are additive; no mandatory fields, application imports, invisible block controls, replay data or new layout/input engine are introduced. Measurement remains read-only."
+  ],
+  "preserved_probe_defect": {
+    "name": "summary_rows_reserves_requested_clamped_height",
+    "actual": "Registered CodeEditor body height is7; the old test expects8.",
+    "diagnosis": "CodeEditor reserves a one-row footer and registers only its body. An8-row master allocation therefore has a7-row registered body. This is source-proven at crates/termrock-editors/src/code.rs:1265-1284,1319-1328.",
+    "positive_evidence": "The separate summary_layout_reserves_three_rows_plus_gap_and_editor_footer probe passes: summary starts at y9 and body7 plus footer1 equals8. Native summary position tests also pass at multiple heights.",
+    "preservation": "The obsolete assertion and all original red output remain in the external consumer and logs; no expected baseline artifact or repository test was changed."
+  },
+  "limits": [
+    "The default-feature all-target/example cursor compile gap remains separately recorded and unverified here; feature-enabled success does not clear it.",
+    "This clearance covers shared MasterDetail/runtime behavior only. It does not establish frozen CLI parity for TablePro, Holla, Showcase or Jackin, complete CI acceptance, or all branch consolidation.",
+    "The final integrated commit must rerun required repository gates and preserve unrelated writers changes.",
+    "No product source edits, push, or helper agents were used by this reviewer."
+  ]
+}

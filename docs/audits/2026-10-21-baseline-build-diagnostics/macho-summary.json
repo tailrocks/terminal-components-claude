@@ -1,0 +1,178 @@
+{
+  "schema": 1,
+  "diagnostic_only": true,
+  "build_admitted": false,
+  "strict_reproducibility_status": "FAILED; full executable SHA256 mismatches and A2 preparation timeout nonconformance remain unchanged",
+  "scope": "Final post-nextest sealed A2/B2 executables only; stage1 executables were not retained for independent section analysis",
+  "method": "Read-only Mach-O parsing and system-tool observations. No executable bytes normalized, rewritten, re-signed, stripped, or rebuilt.",
+  "findings": [
+    "All 17 named sections for every application have identical raw contents, sizes, addresses and file offsets; __TEXT,__text and data are included.",
+    "All load-command bytes and LC_UUID values are identical.",
+    "Every differing byte outside the code signature lies in N_OSO object-path string-table entries: build-root a2/b2 character and codegen object filename suffixes.",
+    "Every differing signature byte lies in CodeDirectory SHA256 code-page hash arrays. All page hashes were independently recomputed and verified for both raw files.",
+    "Debug-map N_OSO timestamps are zero, not an observed source of differences.",
+    "Ad-hoc linker-signed signatures differ because signed string-table pages differ. This is an observation of signed page hashes, not a new signing policy or admission decision."
+  ],
+  "tools": {
+    "otool": {
+      "path": "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/otool",
+      "sha256": "73273f28415f496f37f597290bf7aadfcfbb9f43748bcec10f90950053a4b9e9"
+    },
+    "nm": {
+      "path": "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/nm",
+      "sha256": "fed78f513b80f445acb9183eb48c6c0e3a93847bd4128ddc12f2143a779ddfec"
+    },
+    "dwarfdump": {
+      "path": "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/dwarfdump",
+      "sha256": "00651778f21f6522d46140947b684425fa02f0f5f21ae6cf6c533404ee8a5a1d"
+    },
+    "llvm-objdump": {
+      "path": "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/llvm-objdump",
+      "sha256": "792a7ab8593499fabb6316aa915de8833d61949d6329f89a0d6416f8ed99f4c8"
+    },
+    "codesign": {
+      "path": "/usr/bin/codesign",
+      "sha256": "d517c9be608ffd266ec106c685e880cda71abc94001450e36d2476016406dd1e"
+    },
+    "dsymutil": {
+      "path": "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/dsymutil",
+      "sha256": "783d72a729a78eddb2f0f755ac0a10c0922f2c4123df1ae7518d24a1ce77cf6d"
+    }
+  },
+  "applications": {
+    "showcase": {
+      "raw_a_sha256": "69c92499d8e1fba72b63e4165f583d88c72d8887b1e977b5db7c5ecdc9811d46",
+      "raw_b_sha256": "ff2555435ab270275aaed26d1313d24aa76825480ec0b8fd6b39edc2227fc427",
+      "named_sections_identical": 17,
+      "load_commands_identical": true,
+      "uuid_identical": true,
+      "n_oso_root_difference_bytes": 585,
+      "n_oso_object_suffix_difference_bytes": 3054,
+      "code_signature_hash_difference_bytes": 1401,
+      "all_byte_differences_classified": true,
+      "code_signatures_verify": true,
+      "debug_maps": {
+        "a": {
+          "argv": [
+            "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/dsymutil",
+            "--dump-debug-map",
+            "/Users/donbeave/Projects/termrock-cli-evidence-20261021/controlled-baseline-a2/sealed-bin/showcase"
+          ],
+          "exit_code": 0,
+          "output_sha256": "14fbf27d5b486c636c4097cc8699b5731370300b9464c7ac5066ad6596a4a4ce"
+        },
+        "b": {
+          "argv": [
+            "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/dsymutil",
+            "--dump-debug-map",
+            "/Users/donbeave/Projects/termrock-cli-evidence-20261021/controlled-baseline-b2/sealed-bin/showcase"
+          ],
+          "exit_code": 0,
+          "output_sha256": "e5737ddfe9d660149bd7435dc70823e2fcf44e74e79debae97d4ee1027a00b29"
+        }
+      }
+    },
+    "tablepro": {
+      "raw_a_sha256": "792cee62054c81841b17b578acc4d665461b8defd249650e98fa8d8298407bf1",
+      "raw_b_sha256": "df68deb19f4142c2b7e0d41de44e29731aed621c8b0fd888b343182eadf138f2",
+      "named_sections_identical": 17,
+      "load_commands_identical": true,
+      "uuid_identical": true,
+      "n_oso_root_difference_bytes": 548,
+      "n_oso_object_suffix_difference_bytes": 3075,
+      "code_signature_hash_difference_bytes": 1311,
+      "all_byte_differences_classified": true,
+      "code_signatures_verify": true,
+      "debug_maps": {
+        "a": {
+          "argv": [
+            "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/dsymutil",
+            "--dump-debug-map",
+            "/Users/donbeave/Projects/termrock-cli-evidence-20261021/controlled-baseline-a2/sealed-bin/tablepro"
+          ],
+          "exit_code": 0,
+          "output_sha256": "89d20cc6a71c910b5494516bc2ddbb22ecdaa4c93b922575b5027e2b94229f3d"
+        },
+        "b": {
+          "argv": [
+            "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/dsymutil",
+            "--dump-debug-map",
+            "/Users/donbeave/Projects/termrock-cli-evidence-20261021/controlled-baseline-b2/sealed-bin/tablepro"
+          ],
+          "exit_code": 0,
+          "output_sha256": "6420cb16a651a741d85552a26c3fe3d046b653e56d2781f842963abf36d57f65"
+        }
+      }
+    },
+    "jackin-preview": {
+      "raw_a_sha256": "afc5df6b307e4d3fb3be91a3e0867354dfa552aefa0c4b8b79e566d0c82e0cd5",
+      "raw_b_sha256": "8efb6ee8ccd38c3885c48429153d7cb0baf67035226b5369e5224933f95f05ad",
+      "named_sections_identical": 17,
+      "load_commands_identical": true,
+      "uuid_identical": true,
+      "n_oso_root_difference_bytes": 565,
+      "n_oso_object_suffix_difference_bytes": 2940,
+      "code_signature_hash_difference_bytes": 1339,
+      "all_byte_differences_classified": true,
+      "code_signatures_verify": true,
+      "debug_maps": {
+        "a": {
+          "argv": [
+            "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/dsymutil",
+            "--dump-debug-map",
+            "/Users/donbeave/Projects/termrock-cli-evidence-20261021/controlled-baseline-a2/sealed-bin/jackin-preview"
+          ],
+          "exit_code": 0,
+          "output_sha256": "c81afbfba0c48d02276c5efbe7b3372af96844ccbd975e438370eb45900bf932"
+        },
+        "b": {
+          "argv": [
+            "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/dsymutil",
+            "--dump-debug-map",
+            "/Users/donbeave/Projects/termrock-cli-evidence-20261021/controlled-baseline-b2/sealed-bin/jackin-preview"
+          ],
+          "exit_code": 0,
+          "output_sha256": "9c6dc50e69a1a8e823b4a1d741473d84a33a1f7bca514b11fe0a6519f8638268"
+        }
+      }
+    },
+    "holla": {
+      "raw_a_sha256": "36455f9ea00a9c9e2bc3ec9c7a541193ee39fae0fe9a992c498e64bf56be29e2",
+      "raw_b_sha256": "c9744b85d55b3b9e724b602d6e770ceb7841502d3361cfa721dc424cebbef0d3",
+      "named_sections_identical": 17,
+      "load_commands_identical": true,
+      "uuid_identical": true,
+      "n_oso_root_difference_bytes": 556,
+      "n_oso_object_suffix_difference_bytes": 2886,
+      "code_signature_hash_difference_bytes": 1305,
+      "all_byte_differences_classified": true,
+      "code_signatures_verify": true,
+      "debug_maps": {
+        "a": {
+          "argv": [
+            "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/dsymutil",
+            "--dump-debug-map",
+            "/Users/donbeave/Projects/termrock-cli-evidence-20261021/controlled-baseline-a2/sealed-bin/holla"
+          ],
+          "exit_code": 0,
+          "output_sha256": "f5fba43fdf7eeeebf23755e07213b24c2d67ebef050347a1eec21b3014b854a1"
+        },
+        "b": {
+          "argv": [
+            "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/dsymutil",
+            "--dump-debug-map",
+            "/Users/donbeave/Projects/termrock-cli-evidence-20261021/controlled-baseline-b2/sealed-bin/holla"
+          ],
+          "exit_code": 0,
+          "output_sha256": "59c5e6125803e7be70b3e044e7833006dcc097057c3b27e0a7808229b7490b91"
+        }
+      }
+    }
+  },
+  "limitations": [
+    "Static byte diagnosis does not establish application visual or functional parity.",
+    "No newly built executable is admitted as a reference; frozen guards and approvals are unchanged.",
+    "The cause of compiler-generated object filename suffix differences is outside this byte-level diagnosis; correlate with the separate Cargo/rustc investigation.",
+    "dwarfdump --debug-map is unsupported by this Xcode tool (exit1, retained); dsymutil --dump-debug-map succeeded and was used instead."
+  ]
+}

@@ -1,0 +1,63 @@
+{
+  "reviewed_commit": "fa85598f34ce4f3dd9bc8b4525af3fc301418260",
+  "reviewed_followups": [
+    "7456fc2ea58d4223b2e241f8ee6c686f671223af",
+    "146434319f7ae3846043ea99c11be0f95ee2be6a"
+  ],
+  "status": "Prior decline fallback is repaired. Two source findings remain before integration.",
+  "verification": [
+    {
+      "command": "cargo nextest run --locked -p termrock-runtime -p termrock-core --all-targets --features termrock-runtime/testing",
+      "result": "382 passed, three skipped. Skipped tests are not counted as successful coverage. This exact feature-enabled inventory differs from the author reported 213-test selection.",
+      "log": "/tmp/master-detail-independent-fa855-native.log"
+    },
+    {
+      "command": "External public consumer, cargo nextest run --all-targets --no-fail-fast",
+      "result": "Six passed and two failed. The true failure is newly stale modal routing; the other is the preserved obsolete summary-body assertion, independently corrected in a separate passing probe.",
+      "log": "/tmp/master-detail-independent-fa855-extended.log"
+    },
+    {
+      "command": "cargo fmt --check -p termrock-runtime -p termrock-core",
+      "result": "Exit zero.",
+      "log": "/tmp/master-detail-independent-fa855-fmt.log"
+    },
+    {
+      "command": "cargo nextest run --locked -p termrock --features testing --test master_detail_consumer",
+      "result": "7 passed, zero skipped. Includes actual editor-first Escape, modal and sibling isolation.",
+      "log": "/tmp/master-detail-independent-fa855-consumer.log"
+    },
+    {
+      "command": "cargo clippy --locked -p termrock-runtime -p termrock-core --all-targets --features termrock-runtime/testing -- -D warnings",
+      "result": "Exit zero.",
+      "log": "/tmp/master-detail-independent-fa855-clippy.log"
+    }
+  ],
+  "cleared_behavior": [
+    "The unchanged prior scoped_decline_preserves_application_escape_fallback test now passes.",
+    "The new nested_scoped_decline_reaches_outer_and_stops test passes: a declined inner scope reaches a consuming outer scope and does not reach App::on_esc.",
+    "Nested block bounds, actual second detail descendant Escape, resize-before-input and precise summary-allocation tests remain green.",
+    "The diagnostic enum extension is additive on a non_exhaustive enum and carries only stable IDs, with no field or secret values. Cx::diagnostic appends to the existing bounded Diagnostics store and cannot clear another component diagnostics. Its native cap64/drop6 test is green."
+  ],
+  "findings": [
+    {
+      "severity": "P1",
+      "path": "crates/termrock-runtime/src/runtime.rs:1712-1721,1763-1803",
+      "problem": "Eligible scoped bindings are collected before any callback runs, then all tuples are dispatched without revalidating current focus and top layer. An inner binding can open a modal and decline, after which an outer page binding still receives the same key under the new modal.",
+      "probe": "/private/tmp/master-detail-review-probes-e4eb/src/lib.rs::inner_scope_opening_a_modal_does_not_dispatch_stale_outer_binding",
+      "observed": "Outer scope callback runs once; expected zero after the modal becomes the active layer.",
+      "required_fix": "Revalidate actual current focused registration, active layer, scope membership and current candidate identity before every fallback dispatch. Stop or skip stale candidates using the existing router; do not trust the initial vector after callback effects. Add equivalent sibling-focus transition coverage and preserve the already green decline/outer/global ordering tests."
+    },
+    {
+      "severity": "P2",
+      "path": "crates/termrock-runtime/src/ui/mod.rs:77,371-377; crates/termrock-runtime/src/runtime.rs:1906-1911",
+      "problem": "Ui::diagnostic is documented as bounded but appends directly to FrameState.diagnostics, which is Vec<Diagnostic>. It can accumulate an unbounded number of author diagnostics before commit. The bounded store is only reached later during frame commit. The new cap/drop test covers Cx only, not Ui.",
+      "required_fix": "Bound pending author diagnostics during draw using the existing Diagnostics store semantics or an equivalent narrow frame-owned cap/drop mechanism, transfer drop counts during frame commit, and reset pending counts each frame. Add a draw-side regression that emits70, verifies only64 retained with6 dropped, and proves other diagnostics are not erased. Do not add an error framework or expose mutable access that clears global diagnostics."
+    }
+  ],
+  "preserved_reference_note": "The old summary_rows_reserves_requested_clamped_height test is preserved and still fails7vs8 because CodeEditor registers its body excluding one footer row. A separate source-based test verifies summary y9 and body7 plus footer1 equals8. See master-detail-review-b460.json; no reference output was silently rewritten.",
+  "limits": [
+    "No product source edits or helpers were used.",
+    "No four-application parity or complete CI acceptance is claimed.",
+    "Merged external application changes are preserved but not independently cleared by this bounded component review."
+  ]
+}

@@ -1,5 +1,34 @@
 use core::fmt;
 
+mod window;
+pub use window::{VerticalWindow, VerticalWindowError};
+
+/// Publish low-priority bindings for a real focus scope. These bindings are
+/// considered only after the focused control has declined the same key.
+pub fn publish_scope_bindings<C: Copy + 'static>(
+    ui: &mut crate::ui::Ui<'_>,
+    scope: crate::focus::ScopeId,
+    owner: crate::id::Id,
+    flags: crate::response::StateFlags,
+    table: &'static [crate::keymap::Binding<C>],
+) {
+    ui.publish_scope_bindings(scope, owner, flags, table);
+}
+
+mod composition;
+pub use composition::{ClosureLeaf, CompositionLeaf, composition_leaf};
+
+/// Apply only explicit style channels to an existing component-author surface.
+/// Symbols, inherited channels, hit regions, and cursor state are preserved.
+pub fn patch_style(
+    ui: &mut crate::ui::Ui<'_>,
+    area: ratatui_core::layout::Rect,
+    style: crate::theme::PaintStyle,
+    explicit: crate::theme::StylePatch,
+) {
+    ui.patch_style(area, style, explicit);
+}
+
 pub type PartPainter<'a> = dyn Fn(&mut Ui<'_>, Rect) + 'a;
 
 #[derive(Clone, Copy)]
@@ -117,12 +146,29 @@ pub use crate::intent::{FocusVia, Intent, IntentIter, Phase};
 pub use crate::response::{Activated, Flow, Invalidate, Response, StateFlags};
 pub use crate::ui::{Cx, FrameRead, LayoutFacts, ReferenceState, ReferenceTarget, Ui};
 
+pub trait LayerSlotAuthor {
+    fn render_component<R>(&mut self, render: impl FnOnce(&mut Ui<'_>, Rect) -> R) -> R;
+}
+
+/// Low-level adapter for a nested component slot clipped to its parent area.
+///
+/// This belongs to the component-author API: ordinary consumers should obtain
+/// slots from [`Ui::layer_slot`](crate::ui::Ui::layer_slot).
+pub trait NestedLayerSlotAuthor {
+    fn with_nested_layer_slot<R>(
+        &mut self,
+        area: Rect,
+        render: impl FnOnce(&mut crate::ui::LayerSlot<'_, '_>) -> R,
+    ) -> R;
+}
+
 pub use crate::capture::Capture;
 pub use crate::focus::{FocusVis, Focusability, ScopeId, ScopeMode};
 pub use crate::hit::{Axes, Headroom, Hit, RegionKind};
 pub use crate::layer::{
-    Anchor, Backdrop, CrossAlign, Dismiss, DismissReason, LayerEvent, LayerId, LayerKind,
-    LayerSize, LayerSpec, ScreenAlign, Side, backdrop_area, resolve_anchor,
+    Anchor, Backdrop, CrossAlign, Dismiss, DismissReason, FocusContinuationOutcome,
+    LayerCompletion, LayerEvent, LayerId, LayerKind, LayerOpening, LayerSize, LayerSpec,
+    ScreenAlign, Side, backdrop_area, resolve_anchor,
 };
 pub use crate::scroll::ScrollState;
 
@@ -150,9 +196,39 @@ pub use termrock_collections::collection::{
 
 pub use crate::action::{Action, ActionKey};
 pub use crate::keymap::{
-    Binding, BindingState, BindingTableId, Bindings, Hint, HintLayer, KeyMap, KeyPhase,
-    binding_conflicts,
+    Binding, BindingExtensionError, BindingState, BindingTableId, Bindings, Hint, HintLayer,
+    KeyMap, KeyPhase, binding_conflicts,
 };
+
+/// Explicitly extends an existing same-owner component binding table for this frame.
+///
+/// Unlike [`Ui::publish_bindings`], this does not replace the prior table. Only bindings
+/// selected by `include` are added. Duplicate actions and ambiguous default chords are
+/// rejected and diagnosed; key-map remapping conflicts remain visible through runtime
+/// binding-conflict diagnostics.
+pub fn extend_bindings<C: Copy + 'static>(
+    ui: &mut Ui<'_>,
+    owner: Id,
+    flags: StateFlags,
+    table: &'static [Binding<C>],
+    include: impl Fn(C) -> bool,
+) -> Result<(), BindingExtensionError> {
+    ui.extend_bindings(owner, flags, table, include)
+}
+
+/// Publishes an explicitly selected subset of a static component binding table.
+///
+/// This keeps the replacement semantics of [`Ui::publish_bindings`]; use
+/// [`extend_bindings`] when multiple controls intentionally share one owner.
+pub fn publish_bindings_filtered<C: Copy + 'static>(
+    ui: &mut Ui<'_>,
+    owner: Id,
+    flags: StateFlags,
+    table: &'static [Binding<C>],
+    include: impl Fn(C) -> bool,
+) {
+    ui.publish_bindings_filtered(owner, flags, table, include);
+}
 
 pub use crate::diagnostics::Diagnostic;
 pub use crate::field_control::FieldControl;

@@ -18,3 +18,7 @@ rustls = { version = "=0.23.46", default-features = false, features = ["ring", "
 
 [dev-dependencies]
 rcgen = { version = "=0.14.10", default-features = false, features = ["ring"] }
+
+# Rust documentation examples are guarded by the workspace doc inventory test.
+[lib]
+doctest = false

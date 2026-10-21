@@ -1,0 +1,42 @@
+{
+  "commit": "979acbe0f3b7125d51f8f5cae2c25e786adbd544",
+  "negative_cases": {
+    "actual_cached_baseline_substitution_fails_before_cargo": true,
+    "actual_cached_substitution_all_files_preserved": true,
+    "empty-directory_rejected_before_cargo": true,
+    "regular-file_rejected_before_cargo": true,
+    "symlink-directory_rejected_before_cargo": true,
+    "dangling-symlink_rejected_before_cargo": true,
+    "raced_target_claim_rejected_before_cargo": true,
+    "raced_other_writer_file_preserved": true
+  },
+  "actual_fresh_cargo_build": {
+    "all4private_files_and_identities_valid": true,
+    "git_identity_mocked_for_isolated_nongit_fixture_only": true,
+    "cargo_rustc_real": true,
+    "candidate_record_sha256": "f2b1fc863894d7455f7c12e7e95e621982954f1df1513a4272a4a24cd4608675"
+  },
+  "real4sealed0555still_valid": true,
+  "production_reviews_empty": true,
+  "tests": {
+    "python_unittest_count": 51,
+    "python_unittest_exit": 0,
+    "py_compile_exit": 0,
+    "diff_check_exit": 0
+  },
+  "prior_alias_mutation_suite_passes": true,
+  "alias_mutation_evidence_sha256": "0ca8eb24002319744992b84ef896812282773fbdfd7caa435368ef48a38c7b7f",
+  "unchanged_pins": {
+    "frozen_cli_build_cohorts.json": "96a83bee520e148bbecf7115644d88f8057a74438029c12c4a3a83253fa0b0b4",
+    "frozen_cli_build_cohort_reviews.json": "18d497515fb2a1b68e85d9672d2236ff4d143b578c3e3e4f428cefcc6e21454d",
+    "frozen_cli_references.json": "2a43fb118c268300c8bbd6439ea11bb9a24ffff03dc3c9f4601893eee26a096b"
+  },
+  "status": "clear-for-bounded-tool-integration",
+  "not_claimed": [
+    "No hermetic compiler-origin proof",
+    "No hash-equality ban; independent equal-byte compiler output remains allowed",
+    "No checkpoint approval, product acceptance or actual capture eligibility",
+    "Prior fresh-capture lifecycle old reference-decision dependency remains separate queued issue"
+  ],
+  "review_probe_initial_attempt": "An initial race probe compared /var and resolved /private/var paths and did not inject its intended race; failed attempt source/log preserved in sibling cohort-review-979acbe-attempt1. Corrected canonical-path probe passed."
+}

@@ -23,7 +23,8 @@ fn default_thumb_uses_full_track_including_endpoints_and_tiny_bounds() {
                 let expected = if (start..start + len).contains(&usize::from(y)) {
                     "┃"
                 } else {
-                    "│"
+                    // Frozen baseline 4169783: src/theme.rs:2429 scroll_track.
+                    "┆"
                 };
                 assert_eq!(
                     scene

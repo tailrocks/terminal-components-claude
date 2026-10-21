@@ -46,7 +46,7 @@ fn capsule_has_a_menu_bar_and_a_status_bar_instead_of_the_identity_line() {
     let status = row(&h, 38);
     assert!(status.contains("PR #482"), "{status}");
     assert!(
-        status.contains('%') && status.contains("━"),
+        status.contains('%') && (status.contains("━") || status.contains("╍")),
         "usage meter missing: {status}"
     );
     assert!(last_row(&h).contains("Ctrl+B"), "{}", last_row(&h));
@@ -122,6 +122,64 @@ fn menu_bar_opens_switches_and_runs_an_action() {
     let (ux, uy) = h.find("Usage").unwrap();
     h.click(ux, uy);
     assert!(h.text().contains("Overview"), "usage dialog: {}", h.text());
+}
+
+#[test]
+fn capsule_prefix_space_paints_the_command_palette_cell() {
+    let closed = H::new(Scenario::CapsuleMulti, Motion::Paused, 40, 120, 40);
+    assert!(
+        !closed.text().contains("Command palette"),
+        "closed capsule must stay off the palette frame"
+    );
+    let mut menu = H::new(Scenario::CapsuleMulti, Motion::Paused, 40, 120, 40);
+    menu.ctrl('b');
+    menu.key(KeyCode::Char('m'));
+    assert!(
+        !menu.text().contains("Command palette"),
+        "tab menu must not paint the command palette"
+    );
+    let mut open = H::new(Scenario::CapsuleMulti, Motion::Paused, 40, 120, 40);
+    open.ctrl('b');
+    open.key(KeyCode::Char(' '));
+    let (x, y) = open.find("Command palette").expect("Command palette");
+    let cell = open.buffer().cell((x, y)).expect("Command palette cell");
+    assert_eq!(cell.symbol(), "C");
+    assert!(open.text().contains("Command palette"), "{}", open.text());
+}
+
+#[test]
+fn capsule_prefix_m_paints_the_change_title_cell() {
+    let closed = H::new(Scenario::CapsuleMulti, Motion::Paused, 40, 120, 40);
+    let before = closed.buffer().cell((4, 5)).expect("closed capsule cell");
+    assert_ne!(
+        (
+            before.symbol(),
+            before.fg,
+            before.bg,
+            before.modifier.contains(termrock::Modifier::BOLD),
+        ),
+        (
+            "C",
+            termrock::Color::from_u32(0x00_ff_ff_ff),
+            termrock::Color::from_u32(0x00_2f_5a_a8),
+            true,
+        ),
+        "closed capsule has no Change title",
+    );
+    assert!(
+        !closed.text().contains("Change title…"),
+        "closed capsule must stay off the menu frame: {}",
+        closed.text()
+    );
+    let mut open = H::new(Scenario::CapsuleMulti, Motion::Paused, 40, 120, 40);
+    open.ctrl('b');
+    open.key(KeyCode::Char('m'));
+    let cell = open.buffer().cell((4, 5)).expect("Change title");
+    assert_eq!(cell.symbol(), "C");
+    assert_eq!(cell.fg, termrock::Color::from_u32(0x00_ff_ff_ff));
+    assert_eq!(cell.bg, termrock::Color::from_u32(0x00_2f_5a_a8));
+    assert!(cell.modifier.contains(termrock::Modifier::BOLD));
+    assert!(open.text().contains("Change title…"), "{}", open.text());
 }
 
 #[test]

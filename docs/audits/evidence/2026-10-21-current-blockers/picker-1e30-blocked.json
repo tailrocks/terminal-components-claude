@@ -1,0 +1,39 @@
+{
+  "commit": "1e30bd458dafc3f493cba207acb135ac964f85ce",
+  "decision": "BLOCKED_SHARED_KEYMAP_CONTRACT",
+  "prior_findings": {
+    "PK1": "RESOLVED unchanged actualBackTabSHIFT test nowPASS; sharedChord::effective_eq stripsredundantSHIFT onlyforBackTab plus existingCharbehavior",
+    "PK2": "RESOLVED unchanged explicitreset defaultPreserve testPASS; ordinary keyreorderpreservation retained"
+  },
+  "findings": [
+    {
+      "id": "PK3",
+      "priority": "P2",
+      "file": "crates/termrock-runtime/src/keymap.rs",
+      "line": 159,
+      "problem": "New logical BackTab equivalence is used for dispatch/conflict checks but global remove/remap still compare rawChord equality. A BackTabNONE binding fires for BackTabSHIFT, yet remove/remap(fromBackTabSHIFT) silently leaves it active.",
+      "evidence": "Two new independent publicKeyMap tests RED: remove leavesSome(back), expectedNone; remaptoUp returnsNone, expectedSome(back). See global_keymap_backtab.rs/log. Beforetyping removal source has same rawcomparison at149; not executed independently.",
+      "required_fix": "Use consistent logical identity for keymap mutation/removal, with explicit tests retaining modifier distinctions and ordinaryexactkeybehavior. Keep structuralChord Eq/Hash internallyconsistent; changing derivedEq alone is not required."
+    }
+  ],
+  "checks": {
+    "unchanged_external19": "19PASS0FAIL0SKIP",
+    "expanded_external30": "30PASS0FAIL0SKIP; includesunchanged19 pluscopied8duplicates and3newprobes",
+    "new_global_keymap2": "0PASS2FAIL0SKIP",
+    "matrix": "216effectiveeq pairs forBackTab/Tab/Left/Enter/UnicodeChar/ASCIIChar andNONE/SHIFT/ALT/CTRL combinationsPASS. BackTab stripsonlySHIFT; unrelatednonchars exact.",
+    "component_routing": "PickerremappedprevscopeALT+BackTabSHIFT works; removedbyActionKey remainsdisabled; defaultSHIFT doesnottriggerALTremap; realMasterDetaildrawer BackTabSHIFT closesandrestoresactualButtonfocus",
+    "native": "923PASS3SKIP acrosscore/runtime/controls/navigation/overlays alltargets; skippedtwo monotonic PTY fixtures andone pointerpublicationexternaldriverfixture, not claimedPASS",
+    "strict_clippy": "PASS core/runtime/navigation/overlays/facade libs -Dwarnings",
+    "fullfmt": "PASS"
+  },
+  "source_review": "Chord effective identity separatefromstructural Eq/Hash was alreadyestablished forCharSHIFT; noHashMap/HashSetChord routingfound. Deterministic/symmetric/transitive relation preserved bystrippingonlyredundantSHIFT. RuntimeKeyMap Vecdispatch/conflicts useeffectiveeq; mutation rawcomparisons are remaining gap. Explicitreset oneowner booleanconsumed atnextreconcile evendefaultPreserve; automaticquerypolicy separate. No newsystem or domaindraw/updateeffects.",
+  "landing": {
+    "remote_ls_remote": "95338e8d78c04fe27a54259fbe4b638a8b330a9c",
+    "retain_current_facade": "AppShell/shell exports in facade lib.rs",
+    "retain_current_picker": "Dismiss literal current ..Default::default() requiredfornewRuntimeDismissfields; do not replaceoldcandidatefilewholesale",
+    "other_touched_sources": "Current remote matches5f82parent forcoreevent,filterlist/navigationexports,publicprojectiontests,showcasepickerconfig,app/picker_contract,quickswitcher,tab_list",
+    "integration_limit": "Exactoldbasecandidate tested; integratedremote withnewDismiss/facade changes notcompiled inthisreview. Parentmustre-run exactlandedcommit."
+  },
+  "gaps": "No realCLIpairedcapture, fullworkspacegate, all4appsparity, comprehensivecolor/Unicodeediting/resizeflows claimed. No fixturesrewritten. Previous authornegativeclaims notindependentlyrerun; unchangedoldREDprobesGREENcorrection confirmsrequiredbehaviorfix.",
+  "ownership": "Authorcopy untouched; separate reviewercheckout exact1e30; externaltests/evidenceonly. Nohelpers, noactivecommands."
+}

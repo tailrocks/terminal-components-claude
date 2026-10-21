@@ -1,0 +1,140 @@
+{
+  "reviewed_commit": "e6a4829a5dcd0f0a1bad03467713c3f5a4858aca",
+  "previous_review_commit": "6b73822c361e3a253709ad71fe6c885693fd1135",
+  "preincrement_source": "7c94b00331413350f37365c7a3a34151dc952e38",
+  "status": "Geometry regression fixed; API compatibility clearance remains withheld.",
+  "method": "Independent source/API review and cargo nextest execution in an isolated source copy with a dedicated target. No product source was changed in the author worktree. The review copy was temporarily restored to exact preincrement source for the unchanged compatibility probe and restored to exact candidate bytes afterward.",
+  "resolved": [
+    {
+      "id": "SHELL-GEOMETRY-1",
+      "decision": "Resolved on the tested correction.",
+      "evidence": "The two unchanged independent gap-minimum and nested BODY-registration probes now pass. The complete shell suite plus those unchanged probes passes 53/53, zero skips. The suite includes the new configured header4/footer2/gap1 minimum9 test, height4 clamp, omitted strips with gap3 minimum1, and inset3 constrained to widths5 and4. Canonical Chrome remains the one draw-time resolver; measurement is pure."
+    }
+  ],
+  "remaining_findings": [
+    {
+      "id": "SHELL-GEOMETRY-2A",
+      "severity": "medium",
+      "location": "crates/termrock-shell/src/shell.rs:96",
+      "title": "Direct AppShell::slots still breaks the previous CompositionSlots public contract.",
+      "detail": "The unchanged facade consumer assigning AppShell::slots directly to CompositionSlots compiles and passes on 7c94b003. Candidate e6a4829 fails E0308: expected CompositionSlots, found ShellSlots. The documented stored-value .composition() migration works for new callers, but does not preserve the old contract.",
+      "decision": "Do not accept a required source migration as technically unavoidable. The existing runtime ContentSlot can be extended narrowly to own one composition leaf; this has the shell as a concrete consumer and requires neither another renderer nor duplicated geometry."
+    },
+    {
+      "id": "SHELL-GEOMETRY-2B",
+      "severity": "high",
+      "location": "crates/termrock-shell/src/shell.rs:299",
+      "title": "Restoring the builder return type did not restore its returned lifetime.",
+      "detail": "AppShellSlots::slots formerly returned CompositionSlots<'a> tied to the supplied component leaves; now it returns CompositionSlots<'_> borrowing the builder itself. The previously valid temporary-builder pattern `let group: CompositionSlots<'_> = AppShell::new().with_slots().body(&leaf).slots(); group.spec(...)` now fails E0716. The same unchanged compatibility probe passes on exact preincrement source. The author interoperability test binds the builder first, so it does not cover this contract. Its function-pointer assertion checks compilation only and never executes its measurement body.",
+      "decision": "Preserve the leaf lifetime by returning a composition group that owns a copy of the canonical shell leaf. ShellSlots contains only copyable Chrome/Composition values and borrowed leaf references, so cloning that view configuration does not clone component state or create a second state owner."
+    }
+  ],
+  "feasible_compatibility_plan": [
+    {
+      "step": 1,
+      "paths": [
+        "crates/termrock-runtime/src/ui/composition.rs:49",
+        "crates/termrock-runtime/src/ui/composition.rs:56"
+      ],
+      "change": "Add an owned-leaf ContentSlot constructor and storage variant containing Box<dyn CompositionLeaf + 'a>, alongside the current borrowed leaf and nested group. Do not add an event loop, renderer, input system, or new component trait. Borrowed leaves retain their allocation behavior."
+    },
+    {
+      "step": 2,
+      "paths": [
+        "crates/termrock-runtime/src/ui/composition.rs:128",
+        "crates/termrock-runtime/src/ui/composition.rs:156",
+        "crates/termrock-runtime/src/ui/composition.rs:229",
+        "crates/termrock-runtime/src/ui/composition.rs:300"
+      ],
+      "change": "Handle owned leaves through the exact same Measure, width remeasurement, resolved bounds, clipping and draw paths as borrowed leaves. Preserve iterative nested-group drop/depth protections and error handling. Test drop exactly once and borrowed non-static data lifetime."
+    },
+    {
+      "step": 3,
+      "paths": [
+        "crates/termrock-shell/src/shell.rs:96",
+        "crates/termrock-shell/src/shell.rs:299"
+      ],
+      "change": "Return CompositionSlots<'a> from both existing slots APIs by owning a canonical ShellSlots view inside the single child ContentSlot. Keep Chrome as the only internal resolver. If consumers need the new leaf form directly, provide a separately named additive leaf adapter instead of changing the old slots signature."
+    },
+    {
+      "step": 4,
+      "paths": [
+        "crates/termrock-shell/tests/composition_interop.rs",
+        "crates/termrock-shell/tests/api_review_measure.rs"
+      ],
+      "change": "Retain the unchanged legacy compatibility test and the two unchanged geometry regression tests. Exercise actual measure/draw, .spec(...), direct ContentSlot::nested(AppShell::slots(...), policy), temporary builders, canonical facade/shell type interchange, and a consumer with borrowed domain labels. Check explicit composition specs affect the same resolved bounds for measurement and drawing."
+    },
+    {
+      "step": 5,
+      "change": "Run focused runtime composition tests, shell/facade consumers, formatting/lint, and independent exact-commit API/runtime review. Document the small owned-view allocation tradeoff; do not use a second engine to avoid it."
+    }
+  ],
+  "test_results": [
+    {
+      "command": "cargo nextest run -p termrock-shell --all-targets --no-fail-fast",
+      "source": "e6a4829a5dcd0f0a1bad03467713c3f5a4858aca",
+      "exit_code": 0,
+      "run": 53,
+      "passed": 53,
+      "failed": 0,
+      "skipped": 0,
+      "log": "geometry-nextest.log",
+      "inventory": "51 committed shell tests plus two byte-for-byte unchanged independent probes from the previous review."
+    },
+    {
+      "command": "cargo nextest run -p termrock-shell --test api_legacy_compat",
+      "source": "e6a4829a5dcd0f0a1bad03467713c3f5a4858aca",
+      "exit_code": 101,
+      "phase": "compilation",
+      "run": 0,
+      "diagnostics": [
+        "E0308 expected CompositionSlots, found ShellSlots",
+        "E0716 temporary value dropped while borrowed"
+      ],
+      "log": "compat-candidate-nextest.log"
+    },
+    {
+      "command": "cargo nextest run -p termrock-shell --test api_legacy_compat",
+      "source": "7c94b00331413350f37365c7a3a34151dc952e38",
+      "exit_code": 0,
+      "run": 2,
+      "passed": 2,
+      "failed": 0,
+      "skipped": 0,
+      "log": "compat-before-nextest.log",
+      "inventory": "The exact same unchanged compatibility source used for the candidate run."
+    }
+  ],
+  "source_identity": {
+    "crates/termrock-shell/src/shell.rs": {
+      "sha256": "c0daebb858ff5ee38c81a0eaddb91ec9a41a8a6e765f6d198338f72b73fdb5fa",
+      "review_copy_matches_exact_commit": true
+    },
+    "crates/termrock-shell/src/chrome.rs": {
+      "sha256": "c40357c5fde61ef90a65431200d9b83de7322988faba11cf0e7ab1872fa43f3f",
+      "review_copy_matches_exact_commit": true
+    },
+    "crates/termrock-shell/src/page.rs": {
+      "sha256": "66d938d3f1bf05bb0eb78dabeb5181ce66af75921e47e8ce3134d7c163172b9a",
+      "review_copy_matches_exact_commit": true
+    },
+    "crates/termrock/src/blocks/shell.rs": {
+      "sha256": "70d7d9a73d553dcc6e7b85ab7319751897ad6a43f90e96d620913ac3088cc9c2",
+      "review_copy_matches_exact_commit": true
+    }
+  },
+  "scope_limits": [
+    "The source correction preserves canonical type ownership and repairs the demonstrated intrinsic minimum defect. No full product, cursor-fidelity, or terminal comparison approval is claimed.",
+    "KeyHost/runtime routing, unconditional production runtime/testing, live application composition and Showcase coverage remain outside this increment and unresolved.",
+    "The external compatibility file is reviewer-owned test evidence, not a committed production test. It is intentionally preserved with its compilation failure.",
+    "No cargo clippy or full workspace gate was rerun in this review; the author's existing hit.rs pedantic warning report is not treated as new independent lint evidence."
+  ],
+  "evidence_sha256": {
+    "compat-candidate-nextest.log": "472f0405181f1404f5cf631d5b6f470c9f7fb7d0026c842d5e43f10abed0ce45",
+    "api_legacy_compat.rs": "c11cc49761931e781396ba1e92e7493beb1e12b011aa66dbcb614e9fec179dc0",
+    "api_review_unchanged.rs": "0c93f58947b2c37b371b968ffcba2644d46c0cbc3ff89ae216d2f3178a71461f",
+    "geometry-nextest.log": "e2005545ca3c776c9d681e8e3eae5ee74e377a4409a539c5b5f7b98999dc2f65",
+    "compat-before-nextest.log": "c4b7d8f55d62de962472c1db9a48c8c049d33e58b3c9fc37d318a9bd445a3264"
+  },
+  "product_parity_claim": false
+}

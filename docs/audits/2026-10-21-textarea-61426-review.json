@@ -1,0 +1,129 @@
+{
+  "reviewer": "Independent Rust reviewer /root/button_theme_contract_review",
+  "reviewed_commit": "61426b83dbf509b2e08a9e93458bc5f068b684d6",
+  "implementation_commit": "19f2c451dd6f87ecda16e3062f442d1f28b2f842",
+  "comparison_commit": "ea553177c2c38995bfebd50085d41a2a963f826c",
+  "status": "Changes required:3 reproduced TextArea regressions. No Form or application acceptance.",
+  "findings": [
+    {
+      "priority": "P2",
+      "path": "crates/termrock-fields/src/textarea.rs",
+      "line": 91,
+      "title": "Keep the ordinary TextArea horizontal viewport unchanged",
+      "problem": "logical_inner_width subtracts2 plus an optional scrollbar, while the preincrement update used inner_width(area.width), subtracting3. With no vertical scrollbar this supplies one extra column to EditorDraft::scroll_into_view, changing existing zero-offset TextArea::draw output and cursor position.",
+      "reproduction": "Public Harness, TextArea5rows in Rect(2,2,14,5), valueabcdefghijklmnopqrstuvwxyz, click(4,2), Ctrl+End. Same probe on exactea553 renders first symbolq and cursor(14,2); exact61426 renderspqrstuvwxyz and cursor(15,2).",
+      "fix": "Use the shared geometry source with an explicitly preserved ordinary/zero-offset horizontal scrolling contract. Add a real consumer regression for no vertical overflow and paired cases with vertical overflow, Unicode and resize."
+    },
+    {
+      "priority": "P2",
+      "path": "crates/termrock-fields/src/textarea.rs",
+      "line": 934,
+      "title": "Do not reject an already captured selection drag outside TEXT",
+      "problem": "The DragStart/Drag branch now calls document_point, which rejects any position outside the visible TEXT rectangle. This is appropriate for an initial hit, but prevents an active captured drag from extending beyond the field boundary; the previous implementation projected/clamped the captured position through the document.",
+      "reproduction": "Same public Harness probe on ea553 and61426: valueabcdef, drag(4,2) to(21,2), typeX, Esc. Base commitsX; candidate commitsXabcdef because no selection was extended.",
+      "fix": "Distinguish initial press hit testing from captured drag coordinate projection. Preserve original outside-boundary selection/scroll behavior, mapping the parent source origin consistently. Add right/left/top/bottom drag tests, including wide and combining text."
+    },
+    {
+      "priority": "P2",
+      "path": "crates/termrock-fields/src/textarea.rs",
+      "line": 1266,
+      "title": "Place the empty placeholder on its original logical source row",
+      "problem": "The empty, nonediting branch always draws the placeholder on first_row(inner), ignoring VerticalWindow.first_source_row. An empty field clipped above logical row0 therefore repeats its placeholder in a row that should be blank. The placeholder slot is affected too.",
+      "reproduction": "VerticalWindow::new(Rect(2,2,14,2),5,2), empty value, placeholdertype here. Physical row2 contains type her; logical placeholder row0 is hidden and the expected visible row is empty.",
+      "fix": "Project the placeholder logical source row through the same geometry used for ordinary document lines, and omit it when hidden. Test both default placeholder and custom placeholder slot, with source0 visible/hidden."
+    }
+  ],
+  "checks": [
+    {
+      "command": "cargo nextest run --manifest-path /private/tmp/termrock-textarea-61426-probes/Cargo.toml --no-fail-fast --status-level fail",
+      "exit": 100,
+      "run_id": "6bc4346a-a3d8-449f-ae9a-c06f53fb5ac1",
+      "result": "8 run:5 passed,3 failed,0 skipped. Author4 public cases and clamped-child-scroll probe pass; placeholder, ordinary horizontal origin/cursor and captured-drag probes fail."
+    },
+    {
+      "command": "cargo nextest run --manifest-path /private/tmp/termrock-textarea-before-19f-probes/Cargo.toml --no-fail-fast --status-level fail",
+      "source": "ea553177c2c38995bfebd50085d41a2a963f826c",
+      "exit": 0,
+      "run_id": "7313dbaf-4c8e-4456-a30a-1267d7ffc7f7",
+      "result": "Same ordinary horizontal-origin and captured-drag tests:2 passed,0 skipped. Zero-test source byte-identical to candidate package."
+    },
+    {
+      "command": "cargo nextest run -p termrock-fields --all-targets --no-fail-fast --status-level fail",
+      "exit": 0,
+      "run_id": "6b9c3311-661a-4666-84f9-077998f444bc",
+      "result": "74 passed,0 skipped."
+    },
+    {
+      "command": "cargo clippy -p termrock-fields --all-targets -- -D warnings",
+      "exit": 0
+    },
+    {
+      "command": "cargo fmt -p termrock-fields --check",
+      "exit": 0
+    }
+  ],
+  "inspection": [
+    "Document and EditorDraft remain the original application-owned value and component-owned state; no sliced document, copied state mutation or parallel input engine introduced.",
+    "Prepared VerticalWindow and TEXT bounds feed draw, pointer, cursor and keyboard-menu mapping; initial hit, captured drag and horizontal width contracts need the fixes above.",
+    "Missing geometry prevents coordinate placement/menu anchor invention without an early return from update, so lifecycle and non-coordinate keyboard handling remain reachable.",
+    "Default draw delegates to a zero-offset full window, but delegation alone did not preserve horizontal behavior; the real probe catches that regression.",
+    "Existing owner/part identities and additive form/secret-form wrappers remain; no application or test-identity rendering selector added."
+  ],
+  "coverage_gaps": [
+    "Actual resize-before-input, partial scrollbar-thumb drag while parent-clipped, and full Unicode captured-selection boundary behavior are not independently cleared in this review. Native/public passing sample cases do not prove these gaps.",
+    "Keyboard-menu anchor for a clipped caret remains explicitly unresolved; no Form edit-menu adoption or application paired run performed.",
+    "No full workspace gate or full four-application product acceptance."
+  ],
+  "probe_corrections": [
+    "Initial ordinary-draw probe used legacy Runtime::draw_buffer without a valid interactive focus lifecycle and observed an idle editor. Replaced it with real Harness click plus Ctrl+End on both revisions; initial failed logs preserved.",
+    "Initial sparse base worktree metadata probe failed before git read-tree populated its selected source files; no source edits performed, failed log preserved."
+  ],
+  "source_clean": true,
+  "source_edits": false,
+  "artifacts": [
+    {
+      "path": "/private/tmp/termrock-textarea-61426-public-final.log",
+      "sha256": "6e185e11d7922f63f6e92233a24f009a42be5a467b7bc9ae3664572f9534cda9"
+    },
+    {
+      "path": "/private/tmp/termrock-textarea-before-19f-public-final.log",
+      "sha256": "6b68acec33b67f79571f2285b6cc20e20dbcfd1786b7b4d24e7efca1e7c5a897"
+    },
+    {
+      "path": "/private/tmp/termrock-textarea-61426-native.log",
+      "sha256": "a3f81b0cd85eb8609ecd840a5acce078c7b79162ef5f96939038e0c73b35267a"
+    },
+    {
+      "path": "/private/tmp/termrock-textarea-61426-clippy.log",
+      "sha256": "03a965bf15d2e56a07bb1bdd8030be19cb29a610cd150235690b24096416028e"
+    },
+    {
+      "path": "/private/tmp/termrock-textarea-61426-fmt.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/private/tmp/termrock-textarea-61426-probes/tests/window.rs",
+      "sha256": "46d56417cc8a5a8e2dc789bddd2ddbe51079aaec646b1b01158e03a99ccd8546"
+    },
+    {
+      "path": "/private/tmp/termrock-textarea-61426-probes/tests/zero.rs",
+      "sha256": "e96cfd993e19fe512968054d1e9f12901c82267e59cb7dfd6fa02604872b6e19"
+    },
+    {
+      "path": "/private/tmp/termrock-textarea-before-19f-probes/tests/zero.rs",
+      "sha256": "e96cfd993e19fe512968054d1e9f12901c82267e59cb7dfd6fa02604872b6e19"
+    },
+    {
+      "path": "/private/tmp/termrock-textarea-61426-zero.log",
+      "sha256": "489b51aed2f5587e342ff0cca8fca60dcb86eb15f98fe77a9afca3dd7e9bc1c0"
+    },
+    {
+      "path": "/private/tmp/termrock-textarea-61426-zero-final.log",
+      "sha256": "44d8441069068bba0c60dee4faf32987b0b6e6d23b4ac99bd86c5a5c18717e87"
+    },
+    {
+      "path": "/private/tmp/termrock-textarea-before-19f-zero.log",
+      "sha256": "9079c57caf72d1940c587ae5caa4ef695d545430285dc8a05b6db28c57a5b782"
+    }
+  ]
+}

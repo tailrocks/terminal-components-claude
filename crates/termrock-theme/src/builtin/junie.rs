@@ -12,7 +12,7 @@ const BLACK: Color = Color::from_u32(0x00_00_00);
 const CHROME: Color = Color::from_u32(0x11_11_11);
 const CARD: Color = Color::from_u32(0x18_18_1b);
 const INPUT: Color = Color::from_u32(0x1e_1e_22);
-const INPUT_HOVER: Color = Color::from_u32(0x23_23_28);
+const INPUT_HOVER: Color = Color::from_u32(0x2f_2f_34);
 const OVERLAY: Color = Color::from_u32(0x27_27_2a);
 const POPOVER: Color = Color::from_u32(0x3f_3f_46);
 const HIGHLIGHT: Color = Color::from_u32(0x2f_5a_a8);
@@ -71,6 +71,8 @@ pub(crate) const fn tokens() -> ColorTokens {
         read_only_fg: WHITE_70,
 
         syntax: SyntaxTokens {
+            // The frozen corpus paints SQL keywords bold white and the
+            // operator glyph in the mid grey; a blue keyword is not in it.
             keyword: WHITE,
             ident: WHITE,
             string: WHITE_70,
@@ -173,6 +175,15 @@ pub(crate) fn recipes() -> crate::theme::Recipes {
     use crate::{Part, StateFlags};
 
     let mut recipes = super::default_recipes();
+    let bar_title = recipes
+        .get_mut(Family::MENU)
+        .variant_mut(crate::Variant::custom("termrock.menu-bar-title"));
+    bar_title.entry(Part::TITLE).when(
+        StateFlags::HOVERED,
+        StylePatch::new()
+            .set_fg(Role::Fg(FgStep::Primary))
+            .set_bg(Role::Custom(Color::from_u32(0x1c_1c_1f))),
+    );
     let row = &mut recipes.get_mut(Family::LIST).parts;
     let container = row.entry(Part::CONTAINER);
     container.states.clear();
@@ -219,7 +230,7 @@ pub(crate) fn recipes() -> crate::theme::Recipes {
         },
     );
 
-    recipes.set_mono_rules(
+    recipes.set_builtin_mono_rules(
         Family::LIST,
         vec![(Part::CONTAINER, StateFlags::DISABLED, disabled)],
     );

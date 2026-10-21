@@ -1,3 +1,6 @@
+#[path = "common/tab_navigation.rs"]
+mod tab_navigation;
+
 use tablepro_ui::{ColType, GridView, ResultGrid, ResultSet, Tab, TableProApp, Value};
 use termrock::{ColumnKey, GridEditor, GridModel, ItemKey, SortDir};
 
@@ -152,7 +155,7 @@ fn real_grid_header_sort_then_keyboard_undo_preserves_identity_and_order() {
     let Some(id) = h.app().result_id() else {
         unreachable!("grid")
     };
-    assert!(h.tab_to(id));
+    assert!(tab_navigation::tab_to(&mut h, id));
     let _ = h.key(KeyCode::Right);
     let _ = h.key(KeyCode::F(2));
     let _ = h.key(KeyCode::End);
@@ -166,7 +169,7 @@ fn real_grid_header_sort_then_keyboard_undo_preserves_identity_and_order() {
         h.app().result().pending().value(0, 0),
         Some(&Value::Int(30))
     );
-    assert!(h.tab_to(id));
+    assert!(tab_navigation::tab_to(&mut h, id));
     let _ = h.key(KeyCode::Char('u'));
     assert_original_identity(h.app().result());
     assert_eq!(
@@ -207,7 +210,7 @@ fn runtime_undo_restores_sorted_insert_delete_and_discard_records() {
         let Some(id) = h.app().result_id() else {
             unreachable!("grid")
         };
-        assert!(h.tab_to(id));
+        assert!(tab_navigation::tab_to(&mut h, id));
         let _ = h.key(KeyCode::Char('u'));
         assert_original_identity(h.app().result());
         assert_eq!(h.app().result().row_count(), 3);

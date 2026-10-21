@@ -1,0 +1,31 @@
+[0m[2m  ▪  TablePro  Production  ◆ production  acme_prod › public  ✓ safe      no color · 100×30  ? help  [0m
+[0m[2m                                                                                                    [0m
+[0m[2m  ≡ Query 1 ×                                                                                   +   [0m
+[0m[2m ━━━━━━━━━╭─[0m[1;2m Keyboard shortcuts [0m[2m──────────────────────────────────────── 1–21 of 36 ─ × ─╮───────── [0m
+[0m[2m › ╭─ Quer│  [0m[1;2mShell and workbench[0m[2m                  [0m[1;2mGrid and editor[0m[2m                       ┃│────────╮ [0m
+[0m[2m   │  [0m [0m[2mRun│ [0m [0m[1;2m] Ctrl+Pg[0m[1mD[0m[1;2mn[0m[2m    Next page             [0m[1;2mEnter F2[0m[2m       Edit a cell · Esc      ┃│        │ [0m
+[0m[2m E │  [0m [0m[2m   │  [0m[1;2m[ Ctrl+PgUp[0m[2m    Previous page                        cancels                ┃│        │ [0m
+[0m[2m x │      │  [0m[1;2mEsc[0m[2m            Cancel the running    [0m[1;2mCtrl+F[0m[2m         Filter (grid) or       ┃│        │ [0m
+[0m[2m p │      │                 query                                find (editor)          ┃│        │ [0m
+[0m[2m l │      │  [0m[1;2mCtrl+R[0m[2m         Run the statement at  [0m[1;2mp[0m[2m              Preview the SQL of     ┃│        │ [0m
+[0m[2m o │      │                 the cursor                           pending changes        ┃│        │ [0m
+[0m[2m r │      │  [0m[1;2mF5[0m[2m             Run, or refresh the   [0m[1;2mz[0m[2m              Zoom the focused       ┃│        │ [0m
+[0m[2m e │  ────│                 table                                pane                   ┃│─────── │ [0m
+[0m[2m r │      │  [0m[1;2mAlt+R Shift+F5[0m[2m Run all statements    [0m[1;2mShift+F10[0m[2m      Menu of the focused    ┃│        │ [0m
+[0m[2m   │      │  [0m[1;2mCtrl+X[0m[2m         EXPLAIN                              row, cell or tab       ┃│        │ [0m
+[0m[2m   │      │  [0m[1;2mAlt+X Shift+F7[0m[2m EXPLAIN ANALYZE       [0m[1;2mRight-click[0m[2m    The same menu at the   ┃│        │ [0m
+[0m[2m   │      │  [0m[1;2mCtrl+T[0m[2m         New query tab                        pointer                ┆│        │ [0m
+[0m[2m   │      │  [0m[1;2mCtrl+W[0m[2m         Close tab                                                   ┆│        │ [0m
+[0m[2m   │      │  [0m[1;2mCtrl+O Ctrl+P[0m[2m  Open Quickly                                                ┆│        │ [0m
+[0m[2m   │      │  [0m[1;2mCtrl+G[0m[2m         Tab list                                                    ┆│        │ [0m
+[0m[2m   │      │  [0m[1;2mCtrl+Y[0m[2m         Query history                                               ┆│        │ [0m
+[0m[2m   │      │  [0m[1;2mCtrl+B[0m[2m         Show or hide the                                            ┆│        │ [0m
+[0m[2m   │      │                 explorer                                                    ┆│        │ [0m
+[0m[2m   │      │  [0m[1;2mCtrl+L[0m[2m         Safe Mode                                                   ┆│        │ [0m
+[0m[2m   │      │  [0m[1;2mCtrl+D[0m[2m         Data / Structure                                            ┆│        │ [0m
+[0m[2m   │      │                                                                      ▎[0m[1;2mDone [0m[2m  │        │ [0m
+[0m[2m   │      ╰──────────────────────────────────────────────────────────────────────────────╯        │ [0m
+[0m[2m   ╰──────────────────────────────────────────────────────────────────────────────────────────────╯ [0m
+[0m[2m                                                                                                    [0m
+ [0m[1m↑↓[0m Scroll  [0m[1mEsc[0m Close                                                     ✓ Connected to Production [0m
+[?25l

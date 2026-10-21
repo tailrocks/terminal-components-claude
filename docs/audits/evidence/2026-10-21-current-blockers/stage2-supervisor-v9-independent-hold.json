@@ -1,0 +1,46 @@
+{
+  "schema": "termrock.stage3d.external-supervisor-v9-stage2.independent-review.v1",
+  "decision": "HOLD stage2 operation pending bounded event/log finalization correction.",
+  "method": "Independent static source and test review; verified SHA-256 bindings; inspected the specified prior V8 P1 review and final synthetic test log. No tests, preflight, prepare-live, app, capture/replay, key access, or other operation was run.",
+  "reviewed_inputs": {
+    "source": {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/fresh-plan-stage3d-atomic-supervisor-v9-stage2-20261021.py",
+      "sha256": "2150d65bf4b55696773c11ebe453bb544333c16e22ed993e124c79033d3614e8"
+    },
+    "tests": {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/test_fresh_plan_stage3d_atomic_supervisor_v9-stage2-20261021.py",
+      "sha256": "532b85a9c304f7dbd7c9bdb7b188dfb15b6e5d9313752c2d8a6bae89229b8fd5"
+    },
+    "prior_v8_review": {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/stage3d-supervisor-v8-stage2-independent-review-20261021.json",
+      "sha256": "abb2f2da8fd14287c480950191146b0ea1b2a4d3bef3315fe2a3646226949704"
+    },
+    "synthetic_log": {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/fresh-plan-stage3d-atomic-supervisor-v9-stage2-synthetic-tests-final-20261021.log",
+      "sha256": "d3a7d215f59810f82a5be1e8afdb02ab2f0dfe82189397f792723c7f9e388e04",
+      "recorded_result": "26 tests passed; log reviewed as evidence only, not rerun"
+    }
+  },
+  "findings": [
+    {
+      "id": "V9-STAGE2-1",
+      "severity": "P1",
+      "location": "_exclusive_json (lines 431-443), called by run_stage (lines 671-675); stdout finalization in main (lines 464-470)",
+      "problem": "Finalization is deadline-checked around ordinary blocking filesystem and serialization calls, but those calls are not themselves interruptible or bounded. In particular, os.open, out.write, flush, and fsync can remain blocked past the inclusive deadline; the post-operation check only detects lateness after returning. log close on leaving run_supervised's context manager has the same limitation. The code therefore cannot guarantee bounded completion or bounded event publication under stalled storage, despite the stated inclusive deadline.",
+      "impact": "A stalled output filesystem can hold the supervisor beyond its 220-second bound. A partial exclusively created event may remain and prevent a later run-id reuse; it fails closed against overwrite, but does not make the operation bounded.",
+      "required_fix": "Make the evidence sink's completion bound enforceable for the supported filesystem/descriptor model, or narrow and document the deadline guarantee to exclude uninterruptible filesystem stalls. Ensure event publication failure remains explicit and cannot be interpreted as an accepted result. Add a focused synthetic sink test for a write/finalization that does not complete within the remaining budget, without invoking the operation.",
+      "status": "required-before-operation"
+    }
+  ],
+  "reviewed_topics": {
+    "exception_cleanup_deadline_arithmetic": "The V8 two-second exceptional reap defect is corrected. TERM wait ends at min(deadline minus five-second finalization reserve, cleanup-start plus 15 seconds). If unreaped, exact-Popen kill is followed by wait through deadline minus 1.5 seconds, leaving time reserved for log hash and event publication. Exceptions from the original supervision observer remain recorded and force success false.",
+    "term_grace": "Bounded by the absolute TERM end; delayed exceptions may shorten it to preserve the finalization reserve, and the code proceeds to KILL when that bound expires.",
+    "direct_pid_kill_and_reap": "Signals and reaping operate through the exact owned Popen object: send_signal(SIGTERM), kill(), poll(), wait(). No process-name scan, ancestry scan, or unrelated process-group signal was found. Reap failure is represented as unverified and cannot produce success.",
+    "base_exception_behavior": "run_supervised records BaseException from supervision and runs cleanup; cleanup observer errors are recorded and do not claim successful reaping. Spawn BaseException is recorded as spawn failure. Interruptions during earlier preflight or after supervision are not translated into a success event; no child exists in the earlier case. Finalization remains the bound gap above.",
+    "events_hashes_finalization": "Log hashing checks the deadline while reading and requires remaining time. Event JSON is exclusive and size-limited and checks remaining time before and after publication, but blocking open/write/flush/fsync are not bounded; this is the P1 finding. Event binds the source identity, pins, argv digest, budget and log path. A partial event cannot be overwritten, which is fail-closed but can strand evidence.",
+    "false_success": "No false-success path found in reviewed control flow: success requires a direct child, confirmed reap, zero exit, no timeout, no supervision/spawn/log-hash exception; operational_stage_result explicitly limits the successful interpretation to CLI return, not product acceptance. Source change after the run clears success.",
+    "disabled_stages": "Stage CLI choices contain only 2; official_argv, run_stage, and validation reject other stages before preflight or launch. Stage 1 and stages 3–8 are recorded disabled.",
+    "scope_no_operation": "Static review only. The supervisor and test source were not executed. No preflight, prepare-live, key read, plan creation, app run, capture, replay, or product comparison occurred."
+  },
+  "disposition": "Do not authorize stage2 operation until V9-STAGE2-1 is resolved and the corrected exact source and tests receive another independent review."
+}

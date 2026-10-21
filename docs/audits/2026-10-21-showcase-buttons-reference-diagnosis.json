@@ -1,0 +1,84 @@
+{
+  "reference_source": "4169783ae883788186d161af09ba9c481bd84e5c",
+  "inspected_candidate_source": "67ebf35cdc2ae6c51169ab7939b51e70d045fadd",
+  "diagnostic_binary_sha256": "d54a104c1c3b20eab2aa48cf981c0f163586663a39ab90e54bcd7b8c3527db55",
+  "input_report": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/showcase-button-baseline-diagnostic/diagnostic-report.json",
+  "disposition": "The States-versus-audit comparison uses different scenario checkpoints. Separately, the stored initial audit artifact conflicts with the frozen source structure and the captured initial screen. Both artifacts must remain preserved; this is not an expected-output approval or a reference revision decision.",
+  "scenario_identity": {
+    "audit_buttons": {
+      "frozen_source": "tests/visual_baseline/scenarios/showcase.rs:374",
+      "argv": [
+        "showcase",
+        "--page",
+        "buttons",
+        "--color",
+        "truecolor"
+      ],
+      "inputs": [],
+      "ready": "Junie Design system",
+      "size": [
+        120,
+        40
+      ]
+    },
+    "sections_buttons_states": {
+      "frozen_source": "tests/visual_baseline/scenarios/showcase.rs:248",
+      "argv": [
+        "showcase",
+        "--page",
+        "buttons",
+        "--motion",
+        "paused",
+        "--color",
+        "truecolor"
+      ],
+      "inputs": [
+        "tab",
+        "3",
+        "wait:focus + hover"
+      ],
+      "status": "Pending in the frozen inventory"
+    },
+    "candidate_inventory": "The same two distinct roots remain at crates/visual-harness/tests/visual_baseline/scenarios/showcase.rs:236 and 362 in 67ebf35c. Candidate focus flow separately sends only Tab at line551.",
+    "diagnostic_states": "The Tab,3 diagnostic matches the named States flow in its navigation and paused mode, not the audit root. Seeing nine rows and six columns there does not by itself invalidate a six-row audit artifact."
+  },
+  "independent_structural_conflict": {
+    "stored_artifact": "snapshots/showcase/audit/buttons/120x40/truecolor.txt",
+    "stored_artifact_sha256": "f0da2ffd75f1549af171927c6325e59395ae87aab7834ae59adb5978f4d0d12f",
+    "observed_artifact": "Flat navigation; Playground and inline State matrix with six rows and four variants; no Playground/Options/States section tabs.",
+    "frozen_source_proof": [
+      "src/bin/showcase/pages/template.rs:191-194 unconditionally renders the three section tabs. Template::new defaults to the first Playground section.",
+      "src/bin/showcase/pages/buttons.rs:281-320 renders Playground using separate action-kind, toolbar, button-row and icon panels. It never draws an inline State matrix.",
+      "src/bin/showcase/pages/buttons.rs:558-560 renders the StateGrid only in Section::States.",
+      "src/bin/showcase/pages/buttons.rs:499-528 explicitly defines nine rows (rest, hover, focused, focus + hover, pressed, disabled, selected, busy, overflow) and six columns (Primary, Secondary, Subtle, Danger, Toggle, Icon)."
+    ],
+    "diagnostic_initial": "output/120-initial.txt has the source-defined section tabs, tree navigation, Playground actions, toolbar and button row. It differs structurally from the stored audit artifact before any Tab or 3 input.",
+    "conclusion": "The source and diagnostic support a stale or otherwise differently produced audit artifact. The exact historical producer revision/configuration is not established, so do not label its provenance more precisely than the evidence allows."
+  },
+  "environment_and_timing_limits": [
+    "Frozen support.rs:583-593 adds JUNIE_TUI_CLIENT_PLATFORM=macos, COLORTERM=truecolor, LANG and LC_ALL=C.UTF-8, PATH, HOLLA_NO_HISTORY; it uses a fresh scenario-specific HOME and sets cwd to that home. The diagnostic uses HOME=/tmp, does not set cwd or those extra variables, and adds TUISCOTTI_FIXED_TIME.",
+    "The audit root does not specify paused motion. The diagnostic does. This can affect time-dependent output and interaction feedback, although the frozen source does not condition section tabs or matrix membership on motion.",
+    "The frozen root waits for the title and its harness settling; the diagnostic waits for Run task and an 80 ms quiet window. These are not identical checkpoint receipt procedures.",
+    "The captured binary is sealed and source-pinned but explicitly not admitted for paired acceptance. No candidate CLI was run by this reviewer."
+  ],
+  "required_reference_decision_evidence": [
+    "Run the exact audit root and exact States root independently with pinned Tuiscotti, the complete frozen harness environment/cwd/inputs/settling, separately built immutable frozen binaries and ordered receipts. Preserve the existing 17 diagnostic frames and all stored artifacts.",
+    "Compare complete decoded frames and terminal state for each named checkpoint. Keep the pending States inventory status visible; do not substitute its frame for audit/buttons.",
+    "If the initial audit discrepancy repeats under the exact conditions, record an independently reviewed reference-artifact defect and an explicit reference decision. Do not silently overwrite snapshots, change fixed source revisions or grant the candidate an exception."
+  ],
+  "shared_button_contract": {
+    "implementation_owner": "termrock-controls::Button and the existing shared runtime style/reference-state machinery; generic specimen layout belongs above controls in reusable composition, not a Showcase painter.",
+    "live_behavior": "Use one real Button configuration for update, measure and draw. Resolve disabled/busy/checked props with runtime hover, held press, focus and focus-visible state. Disabled suppresses hover/press; busy suppresses press. Press is transient and distinct from checked selection. Preserve keyboard Enter/Space, pointer release activation, focus transfer and tooltip behavior through existing runtime contracts.",
+    "geometry": "One measured natural width includes the leading focus gutter, optional toggle/spinner marker and label plus trailing cell. The same clipped geometry owns rendering, hit regions, focus and bindings. Preserve terminal-cell width and overflow behavior; do not add a leading space to Label to compensate for a component gutter.",
+    "style_and_marker": "One canonical state set must style CONTAINER, GUTTER, LABEL, ICON and MARKER consistently, including custom theme overrides. The live focus marker comes from the shared semantic gutter and configured focus-visible policy. Frozen Button.render at lines175-185 supports Always versus KeyboardOnly and suppresses disabled/busy press; lines197-233 own toggle/spinner ink. No application gutter repaint or pressed-cell erasure is acceptable.",
+    "inert_matrix": "Frozen StateGrid uses detached hit/focus registries (specimen.rs:511-516), renders the actual cloned Button with the supplied interaction state (lines707-726), and converts the focus depiction into a distinct specimen marker (lines526-543). Reuse the current inert reference API so samples register no live controls, consume no input, produce no cursor and run no domain actions. Apply state to every component part, not only CONTAINER; render illustrative focus through a shared specimen contract rather than application buffer correction.",
+    "matrix_inventory": "Retain the frozen nine-row/six-column States inventory and explicit unsupported-cell placeholders. Do not hardcode a six-row/four-column matrix from audit text into production. Keep the actual Playground separate and preserve section navigation and Options controls.",
+    "candidate_findings": "At 67ebf35c, showcase-demos/pages/buttons.rs:74-85 repaints legacy_gutter after Button.draw; draw_matrix lines370-413 targets only CONTAINER and erases a pressed cell. The page owns fixed six-row/four-column geometry and composes it into Playground. These are architecture and product differences requiring shared replacement, not evidence that the stored artifact should control production."
+  },
+  "bounded_regression_plan": [
+    "Compile a public consumer with different labels and controlled props. Through the real Button/runtime, verify complete cells and hit/focus/action behavior for rest, hover, held press, release, keyboard focus, keyboard-only pointer focus, disabled, busy, checked, combinations, narrow areas and Unicode.",
+    "Render the same configuration in the inert specimen context for all nine rows/six columns. Assert no controls/bindings/cursor/actions leak and verify all part styles, marker customization and unsupported cells. Include custom recipes on LABEL/GUTTER/MARKER so a CONTAINER-only override cannot pass.",
+    "Run real frozen/candidate CLI checkpoints for Playground initial, hover/held/release and resulting status, Tab focus, Options changes and Tab,3 States at 119/120/121 widths plus supported color profiles. Use exact named-root conditions and retain reference conflicts as incomplete until independently resolved."
+  ],
+  "work_scope": "Read-only Git source, harness and preserved diagnostic frame inspection. No product edits, no expected modification, no fresh PTY capture, no full parity claim."
+}

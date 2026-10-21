@@ -1,0 +1,48 @@
+{
+  "commit": "8ff521660eb9297791264f7858fa3eeb493be4b2",
+  "decision": "BOUNDED_SOURCE_CLEARANCE",
+  "findings_remaining": [],
+  "resolved_findings": {
+    "PS1": "Narrow copy hint clipped to actual component bounds; original external probe PASS.",
+    "PS2": "Wrapped content clipped at component bottom; original external probe PASS.",
+    "PS3": "Hint width row-local; original external probe PASS.",
+    "PS4": "Full labels retained if minimum value room fits; original external probe PASS.",
+    "PS5": "Tone uses lower-priority defaults; separate canonical Set/Clear probe PASS across2themes4profiles. Original rawMono probe defect preserved.",
+    "PS6": "Preserves logical value rectangle and wraps before clipping; unchanged actual Down probe PASS all4profiles. Default480 inside-host cells restored.",
+    "PS7": "Instance,theme,and overlay explicit CONTAINER foreground retained under LABEL Clear. Unchanged public theme probe reaches both family and overlay arms and PASS; independent instance v2 PASS; native authored3source regression PASS."
+  },
+  "source_review": "style_defaults_with_explicit is a read-only existing theme resolver. Its explicit foreground metadata includes theme, scoped overlay and instance sources; component default clear applies only when none speaks. No new routing/rendering stack or domain effects. Existing RowUi constructors unchanged; new author constructor additive, existing lifetime ownership maintained. Measure uses component data, not input handlers. No unsafe/concurrency/error handling changes.",
+  "checks": {
+    "external13": {
+      "passed": 11,
+      "failed": 2,
+      "skipped": 0,
+      "exit": 100,
+      "qualification": "Only original sheet_explicit_set_and_clear_preserve_canonical_value_style and sheet_explicit_clear_preserves_underlying_value_ink fail rawBlue Mono expectation. All other original7 plus separate qualified3 plus theme/overlay1 PASS. Command intentionally retains failures rather than skipping or rewriting them."
+    },
+    "native": "347PASS0FAIL0SKIP Controls/Runtime --lib,props_sheet_regressions,rowui_glyph_contract",
+    "strict_clippy": "PASS Controls/Runtime libs -Dwarnings",
+    "scoped_fmt": "PASS Controls/Runtime",
+    "default480": {
+      "count": 480,
+      "changed_checkpoints": 96,
+      "inside_host_changed_cells": 0,
+      "outside_host_removed_overflow_cells": 584,
+      "changed_focus_cursor_scroll_area_tails": 0,
+      "canonical_hash": "27cfda065951151a7373d88f9f2eaf896c36aeacec613288bc62cb0b3f36868f",
+      "same_as_c1": true
+    }
+  },
+  "reference_decisions_required": {
+    "bounds": "96/480 full buffers differ from e4/pre2a solely because584outside-host cells no longer paint. This is a documented bounds correction, not full byte-identical default compatibility; preserve old/new artifacts and record explicit integration decision. No candidate golden update performed.",
+    "raw_mono_probes": "Old rawColor Blue/Cyan expectations conflict with canonical resolver: downgrade_color(Blue,Mono)=Black; Cyan=>Reset and bind_role returnsNone preserving underlay. Separate qualified v2 follows source, old files/logs immutable. Parent should record this diagnosis in migration evidence."
+  },
+  "acceptance_limits": "No whole-app parity, frozen binary capture, full workspace tests, Showcase demonstration, or final integration acceptance claimed. This packet clears enumerated Props source findings only, contingent on recording reference decisions above.",
+  "ownership": {
+    "author_source_untouched": true,
+    "review_copy_head": "8ff521660eb9297791264f7858fa3eeb493be4b2",
+    "tracked_status_entries": 1301,
+    "nonartifact_changes": [],
+    "active_commands": 0
+  }
+}

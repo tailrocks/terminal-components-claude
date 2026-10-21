@@ -1,0 +1,21 @@
+[0m[2m  holla❯    File   Go   Help         acme · mise monorepo  mbp · local  [0m
+[0m[2m                                                                        [0m
+[0m[2m      Here    frontend dev ⠋ ×    api dev ⠋ ×                    3› +3  [0m
+[0m[2m ────━━━━━━━─────────────────────────────────────────────────────────── [0m
+[0m[2m [0m [0m[2m Search actions and resources…                        scope ‹ here ›  [0m
+[0m[2m  ╭──────────────────────────────────────────────────────────────────╮  [0m
+[0m[2m  │ [0m[1;2mActivities[0m[2m                                                4 live │┃ [0m
+[0m[2m  │ [0m[1;2;7m [0m[2;7m⠋[0m[1;2;7m frontend dev                 [0m[2;7mrunning · child · …[0m[1;2;7m  [0m[2;7mactivities[0m[1;2;7m [0m[2m │┃ [0m
+[0m[2m  │  ⠋ api dev                      running · child · …              │┃ [0m
+[0m[2m  │  ✓ api tests                    succeeded · projec…              │┃ [0m
+[0m[2m  │  ⠋ logs · api worker scheduler  running · here · 3…              │┆ [0m
+[0m[2m  │  ○ btm                          detached · host · …              │┆ [0m
+[0m[2m  │                                                                  │┆ [0m
+[0m[2m  │                                                                  │┆ [0m
+[0m[2m  ╰──────────────────────────────────────────────────────────────────╯┆ [0m
+[0m[2m                                                                        [0m
+[0m[2m    → 'holla disk analyze --artifacts' · here · read-only               [0m
+[0m[2m                                                                        [0m
+[0m[2m ~/work/acme   main   ↑1                ⠋ 4 running    no color · 72×20 [0m
+ [0m[1m↑↓ M[0move  [0m[1mEnter [0mSwitch [0m[1m Esc [0mCancel          api tests finished · exit 0 [0m
+[?25l

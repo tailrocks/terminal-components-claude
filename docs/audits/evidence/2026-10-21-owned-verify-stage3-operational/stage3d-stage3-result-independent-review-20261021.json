@@ -1,0 +1,105 @@
+{
+  "schema": "termrock.stage3d.stage3-operational-result.independent-review.v1",
+  "decision": "ADMIT stage3 read-only live-source verification only. The exact reviewed canonical verifier returned verified=true against the unchanged admitted live manifest, fixed cohort, source/snapshot commitments, tool observations and controlled environment. No plan, key, run, capture, replay, ordinary application check, candidate comparison, product or reusable-library acceptance is admitted.",
+  "findings": [],
+  "evidence": {
+    "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/stage3d-stage3-result-independent-evidence-20261021.json",
+    "sha256": "451c345217a75ea367bb9d4af76df2a2a94f81aa2ddac7059edb43b37f081f3f"
+  },
+  "operation": {
+    "run_id": "parent-v13-stage3-20261021-051425",
+    "reported_parent_wrapper_exit_status": 0,
+    "worker_exit_status": 0,
+    "worker_reaped": true,
+    "timed_out": false,
+    "worker_elapsed_seconds": 12.681,
+    "elapsed_scope": "12.681 seconds is the event worker duration, not an independently observed wrapper total including preflight/finalization.",
+    "work_budget_seconds": 199,
+    "total_inclusive_seconds": 220,
+    "canonical_cleanup_reserve_seconds": 15,
+    "finalization_reserve_seconds": 5,
+    "event_sha256": "9b601b6243bb16e5db47bf8b6e937ccc49fc3cb83fb2031fb076172e38033057",
+    "log_sha256": "089c39dd2855577159a60bd644ff68672413e41eabcdf51b120c2ade960d71f5",
+    "actual_canonical_output_verified": true,
+    "actual_canonical_output_record_equals_immutable_manifest": true,
+    "argv_digest_recomputed": true,
+    "wrapper_observation_scope": "The parent reported completed wrapper tool execution, exit0 and complete event output. This reviewer independently checked persisted complete event/log, exact executable/review identities and receipt fields. The reviewer did not directly observe process exit and makes no cryptographic wrapper-exec attestation."
+  },
+  "implementation_binding": {
+    "supervisor_source_sha256": "49a10dcc5cf82775287459ababbd22012d61c92f802c504dcf1264b92b834808",
+    "supervisor_review_sha256": "e8a00010bb24e66a2f1b64ff965b8316206c73fca3853ac8b49ee7c27aa13618",
+    "canonical_source_commit": "f82b2bf4a3983da8c6e11306bfd9dabbd6c9c9e4",
+    "canonical_runner_sha256": "e486b17728062193fa3af243c93d7e1fd14c70fd73726c1bc4e73a317306e257",
+    "canonical_review_sha256": "21c3aadd4088bcef9696ab6621873bd2f32f6243b5a3fb89f067a0403d6f2f20",
+    "stage2_admission_sha256": "37ec0db680822aa74cfe5c15754d868f6cc3959f8628ad049c8ebb999fd0e994"
+  },
+  "source_admission": {
+    "root": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/fresh-plan-stage3d-atomic-243af5-20261021",
+    "manifest_sha256": "8fc52aa144847276fd9df62b133f7d8815995c50ba9a0cc0001b6b5da46ad75a",
+    "independent_frozen_source_sha256": "f74646a92505bd9baff29c89398af4d31a4812dd7d51acc84d755be61a383850",
+    "independent_live_source_sha256": "74a5ca639350d9e70767576f5283469a8d57db4adf0a9758da8ae14f6aee1430",
+    "source_digests_match_admitted_stage2": true,
+    "manifest_bytes_unchanged_since_stage2": true,
+    "provenance_bytes_unchanged": true,
+    "canonical_api_result": "Persisted log JSON is exactly {live_source: fixed path, verified: true, record: unchanged immutable manifest}. Reviewed verify_source and verify_live_source compute current digests and observations, compare them to admitted records and fail otherwise; the returned record itself is the existing immutable manifest.",
+    "snapshot_scope": "Current independent inspection checked all snapshot file metadata against stage2: 12,625 files and 3,100,617,792 bytes in each tree, no symlink files, live snapshot files all read-only. No independent 3 GB snapshot content rehash was performed. Snapshot content verification is supported by the reviewed successful actual canonical verifier and its matching fixed digest commitments, not metadata alone."
+  },
+  "pins_and_inventory": {
+    "fixed_references_unchanged": {
+      "baseline_commit": "4169783ae883788186d161af09ba9c481bd84e5c",
+      "tag_object": "2718a6b8127a522a3d351d0b4bdb7542fc8da542",
+      "source_tree": "ad0f7cf8899df8c5fea3ced3f60adf0ac9a2d297",
+      "tuiscotti": "a1ea27f757d75d07b05499276cd932e9f8e067ad"
+    },
+    "four_binary_hashes_and_file_identities_rechecked": true,
+    "nine_harness_input_hashes_rechecked": true,
+    "fifteen_tool_hashes_rechecked": true,
+    "complete_tool_observation_equals_fixed_old_plan": true,
+    "old_plan_readiness_and_environment_packet_hashes_unchanged": true,
+    "inventory_scope": "The unchanged stage2 manifest retains exactly 28,895 original plus174 extension visual cases =29,069 visual, and20 ordinary, with the same complete inventory digests. Stage3 verify-live and this reviewer did not rerun Nextest discovery or execute these cases; no new inventory execution or case-pass credit is inferred."
+  },
+  "environment": {
+    "previous_refusal": {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/stage3d-stage3-v13-preflight-environment-refusal-parent-observation-20261021.json",
+      "sha256": "81d39647a6b547328928897b28ca92e94ab1cddfe76efe08078126b7d0703911"
+    },
+    "previous_failure_retained": "Run parent-v13-stage3-20261021-050706 reported exit2 before operation because COLORTERM,LANG,PATH,TERM differed from fixed hashes. This refusal is preserved and is not counted green.",
+    "successful_result": "V13 preflight and canonical verification accepted the fixed controlled environment. Independent recomputation from recorded value hashes matches event466f20b8e6bb2c798e8613c106daa9e468abe042ff2d6290732819c1e94e071c. Recorded environment differs from the old plan only by the approved new CARGO_TARGET_DIR.",
+    "public_scalar_hashes_independently_checked": {
+      "COLORTERM": "truecolor",
+      "LANG": "en_US.UTF-8",
+      "TERM": "xterm-ghostty"
+    },
+    "path_scope": "The parent reports recovering the exact original design-shell PATH after a cwd-dependent mise mismatch. This reviewer verified the immutable old-plan PATH hash remains the recorded successful value; no raw PATH or ambient shell replay is required or claimed.",
+    "reference_or_expected_hash_changed": false
+  },
+  "old_evidence_preservation": {
+    "old_plan_external_hash_unchanged": true,
+    "all_nine_receipt_file_hashes_unchanged": true,
+    "checkpoint_count_from_prior_admission": 288,
+    "preserved_chain_scope": "Each receipt file remains byte-identical to the previously admitted ordered chain. This reviewer compared opaque file hashes without extracting or authenticating HMAC members.",
+    "old_key_read": false,
+    "new_hmac_authentication": false,
+    "old_captured_frame_or_failed_partial_content_rehash": false,
+    "new_capture_credit_transferred": false
+  },
+  "new_outputs": {
+    "root_entries": [
+      "live-source",
+      "live-source.json",
+      "live-target",
+      "provenance.json",
+      "source"
+    ],
+    "new_key_custody_absent": true,
+    "new_plan_absent": true,
+    "new_run_absent": true,
+    "temporary_manifest_absent": true
+  },
+  "limits": [
+    "The monotonic ownership contract excludes kernel-blocked filesystem/output calls while blocked; post-return deadline checks fail closed. No universal hard completion bound is inferred.",
+    "Exact direct-child reap and reviewed canonical broker cleanup support the declared ownership scope. No independent per-descendant or PTY process inventory or universal containment is claimed.",
+    "All reviewer actions were read-only metadata/hash inspection. No operational verifier, tool observation, key access, application, capture, replay, ordinary CLI, or candidate test was run by this reviewer."
+  ],
+  "next_gate": "Stage4 and later remain blocked until remaining canonical plan/init/verify/advance ownership and budget paths are implemented and independently reviewed before any new immutable plan seal. Each later operational step requires its own reviewed exact-source supervisor and independently admitted result."
+}

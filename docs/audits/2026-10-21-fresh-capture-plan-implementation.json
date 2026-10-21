@@ -1,0 +1,101 @@
+{
+  "schema": "termrock.frozen-cli-fresh-capture-plan-implementation",
+  "schema_version": 1,
+  "status": "prepared-plan-only-not-executed",
+  "implementation_base": "de156136f9e8e642809c99a35e7cee4259e0b047",
+  "fixed_references": {
+    "baseline_tag_object": "2718a6b8127a522a3d351d0b4bdb7542fc8da542",
+    "baseline_commit": "4169783ae883788186d161af09ba9c481bd84e5c",
+    "tuiscotti_commit": "a1ea27f757d75d07b05499276cd932e9f8e067ad",
+    "capture_eligibility_decision_sha256": "446273ce18d3caaea939263b37687be5aec770cf1ab54c62110f6c945ec9c2f6",
+    "resumable_runner_contract_sha256": "81df800e4b16a8240acf7c569a9c5c9472fa1678c96aa78947928ca7a082ebfb"
+  },
+  "implementation": {
+    "files": [
+      "tools/frozen_baseline.py",
+      "tools/test_frozen_baseline.py"
+    ],
+    "commands": [
+      "prepare-live --fresh-cohort <id> --baseline-bin-dir <sealed-bin-dir>",
+      "verify-live --fresh-cohort <id> --baseline-bin-dir <sealed-bin-dir>",
+      "fresh-plan --cohort <id> --baseline-bin-dir <sealed-bin-dir>",
+      "verify-fresh-plan --cohort <id> --baseline-bin-dir <sealed-bin-dir> --expected-plan-sha256 <creation-receipt-digest>"
+    ],
+    "plan": {
+      "inventory_visual_original": 28895,
+      "inventory_visual_extensions": 174,
+      "inventory_visual_total": 29069,
+      "inventory_ordinary_checks": 20,
+      "per_step_timeout_seconds": 225,
+      "phases": ["baseline-capture", "baseline-replay", "baseline-ordinary-checks"],
+      "candidate_phase": null,
+      "candidate_comparison_eligible": false,
+      "checkpoint_reference_approval": "none",
+      "product_acceptance": false
+    }
+  },
+  "step2_review_repairs": {
+    "reviewed_commit": "d2e21c58357a97e6ce3b7f9dc53d8bdd044487a6",
+    "review_packet": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/fresh-plan-review-063175d/independent-review.json",
+    "review_packet_sha256": "eaea1bb0b68d53073b1d9cd4d0be7f0865a6dcdc617cb842f56a414e9ef5ed0b",
+    "repairs": [
+      "Fresh plan verification requires the exact raw-file SHA-256 returned by plan creation, retained outside the editable plan; recomputing the plan self-digest cannot replace this creation anchor.",
+      "Fresh plan commands default to the bounded 225-second step limit.",
+      "Fresh-run execution uses and fingerprints the explicit environment allowlist, including absent/default values for locale, timezone, terminal color, temporary paths, and other runtime-affecting keys; unlisted inherited keys are removed.",
+      "The plan binds selected Cargo, rustc, cargo-nextest, Python executable paths, byte hashes, stable file identities, versions, and selected toolchain provenance."
+    ],
+    "verification_scope": "Unit and actual frozen-source prepare/plan/verify only; no application process was launched.",
+    "remaining_review": "Independent exact-commit review required before any phase advancement or application launch."
+  },
+  "actual_fresh_plan_smoke": {
+    "root": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/fresh-plan-step2c-20261021",
+    "cohort_id": "frozen-20261021-serial-nonincr-r1-r2",
+    "baseline_source_commit": "4169783ae883788186d161af09ba9c481bd84e5c",
+    "baseline_tag_object": "2718a6b8127a522a3d351d0b4bdb7542fc8da542",
+    "tuiscotti_commit": "a1ea27f757d75d07b05499276cd932e9f8e067ad",
+    "frozen_source_sha256": "f74646a92505bd9baff29c89398af4d31a4812dd7d51acc84d755be61a383850",
+    "live_source_sha256": "74a5ca639350d9e70767576f5283469a8d57db4adf0a9758da8ae14f6aee1430",
+    "plan_self_sha256": "9544a48a2f338991c6a4c6d08b8f29dcc4299cd8c2bc874428fa074337036a0d",
+    "external_creation_file_sha256": "b35afd9e68d54741afb8b67651aa82ec021e201e9db7ed076a33ac1165666a4f",
+    "provenance_manifest_sha256": "4eb758b86e148fc0688704ffbd66b3d6589300dd59ffc3ee67b78a26806ad098",
+    "live_source_manifest_sha256": "3106ad1136af4b82be01636489c14a34c4db2545c1723d30fedabd876f31871a",
+    "runtime_recipe_path": "docs/audits/2026-10-21-fresh-plan-runtime-recipe.json",
+    "runtime_recipe_sha256": "afd785fd6a37e6e4b54a03a42c11e2e87498a415f259cb53de3cfae3156cea96",
+    "inventory": {"visual_original": 28895, "visual_extensions": 174, "visual_total": 29069, "ordinary": 20},
+    "prepare_exit": 0,
+    "prepare_live_exit": 0,
+    "fresh_plan_exit": 0,
+    "verify_fresh_plan_exit": 0,
+    "verify_used_external_creation_file_sha256": true,
+    "application_launches": 0,
+    "phase_advances": 0,
+    "capture_or_replay": 0
+  },
+  "creation_anchor_race_review": {
+    "reviewed_commit": "d2e21c58357a97e6ce3b7f9dc53d8bdd044487a6",
+    "packet_path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/fresh-plan-review-d2e21c58/independent-review.json",
+    "packet_sha256": "c7d312ec6cb89cb2e3ccbb4f8800e4f99c1c72174216806986ce2c72d8d477bc",
+    "finding": "The old creator reread the published path to obtain its receipt hash after the stable validation read, allowing a coherent rewritten plan to receive a new external anchor.",
+    "repair": "Hash the exact serialized payload before publication, publish those bytes with exclusive creation, then read the path once with that precomputed digest; emit the precomputed digest rather than rehashing the path.",
+    "regression": "test_fresh_plan_creation_digest_is_precomputed_before_publish_race failed against the prior implementation and passes after the repair by rewriting a coherent re-partitioned plan between validation and receipt emission.",
+    "review_status": "independent rereview required"
+  },
+  "preserved_guards": [
+    "Legacy prepare-live and verify-live continue to require the unchanged frozen v1 tuple decision and historical build.json pair.",
+    "Fresh mode requires the exact separately reviewed cohort, frozen source, pinned tool and harness inputs, and all four sealed binary hashes; it does not load historical build.json or transfer the v1 tuple exception.",
+    "The plan is exclusive-create, read-only, self-digested canonical JSON; verification additionally requires the independently retained raw-file creation digest and regenerates all source, cohort, review, harness, environment, inventory, and phase bindings before future execution.",
+    "Plans contain only allowlisted environment value hashes, never secret values or runner receipt key bytes.",
+    "The fresh-capture review grants no candidate comparison, checkpoint reference approval, or product acceptance."
+  ],
+  "validation": {
+    "python_unittest_frozen_baseline": "61 passed",
+    "py_compile": "passed",
+    "cli_help_smokes": "passed",
+    "diff_check": "passed"
+  },
+  "not_executed": [
+    "No baseline application was launched or captured.",
+    "No baseline replay, chunk advancement, finalization, ordinary CLI application execution, or candidate comparison was performed.",
+    "The resumable lifecycle remains unimplemented and requires independent review of this preparation/plan step first."
+  ]
+}

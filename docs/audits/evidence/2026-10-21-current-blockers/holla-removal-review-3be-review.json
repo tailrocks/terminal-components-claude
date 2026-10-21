@@ -1,0 +1,183 @@
+{
+  "reviewer": "/root/button_theme_contract_review",
+  "scope": "Independent read-only review of incoming Holla removal and native fixture update only; broader FieldError/Table incoming work not reviewed.",
+  "candidate": "3be8fb60b100253f7c0e9fd6f075a33563819694",
+  "candidate_parents": [
+    "4f63802470c045db1f7151b8249fb4133335d5f5",
+    "2a0cd21f6ca5dc052a1ac4343398db7bb5084cf9"
+  ],
+  "requested_comparison_parent": "3bb1d1586",
+  "actual_source_change": "2a0cd21f6ca5dc052a1ac4343398db7bb5084cf9",
+  "actual_source_parent": "50c8d9b2204e6e67871a4e0d67fafb6ce7ab105e",
+  "fixed_references": {
+    "baseline": "4169783ae883788186d161af09ba9c481bd84e5c",
+    "tag_object": "2718a6b8127a522a3d351d0b4bdb7542fc8da542",
+    "design": "f4867e9b5f8a08a3bb61ce80d644198a29f51984",
+    "tuiscotti": "a1ea27f757d75d07b05499276cd932e9f8e067ad"
+  },
+  "decision": "Requires changes. Useful deletion of many size-specific branches, but incomplete semantic replacement and unsupported native expected-data update. No Holla product/library acceptance.",
+  "findings": [
+    {
+      "priority": "P1",
+      "path": "crates/holla-ui/src/screens/home.rs:267-310, :700-754; crates/holla-sim/src/catalogue.rs:842-891, :1055",
+      "attribution": "Inherited at120x40 and adjacent82 breakpoint, independently reproduced before50c8 and candidate; replacement fails to remove it.",
+      "problem": "Tick-selected fixed TagRow views still bypass real NavList rendering while update uses separate live rows/state. Static selection/preview does not reflect query/navigation and no real row owner is registered.",
+      "proof": "Unchanged real App probes: initial FirstUse tick40/120x40 shows Analyze disk usage but no home.rows control; type zzzznomatch updates visible input yet unrelated list/preview persists. Adjacent size probe passes80/81 then fails82 where bodywidth80 enables private painter. All3 fail before and after.",
+      "frozen_source_basis": "Exact416 FinderPage rebuild uses query in ranking search and rebuilds rows on query changes; render_rows renders that live state. Extract /private/tmp/holla-frozen416-finder.rs:145-205, :332-348, :1396-1415.",
+      "repair": "Remove remaining exact-time screen projection; feed actual domain actions/state through shared search/master-detail/list components with one resolved layout, hit regions and selection. Do not rename tag helpers or restore deleted plates."
+    },
+    {
+      "priority": "P1",
+      "path": "crates/holla-ui/tests/baselines/app.txt; crates/holla-ui/tests/visual.rs:38",
+      "attribution": "New fixture update in2a; underlying selected output drift already exists at parent50c8.",
+      "problem": "696 native expected digests changed with no frozen capture/reference decision or provenance evidence in four-file commit. Matching current output closes a candidate-only assertion loop. Old fixture is not an established frozen oracle either.",
+      "proof": "Both1088-entry versions preserved, identical keys,696changed hashes. Unchanged real-App digest probe FirstUse120x40TC/frame4000: before AND candidate produce e264927565cb50ab(new expected), fail f64c082be079f6a3(old expected). Exact416 has no crates/holla-ui/tests/baselines/app.txt.",
+      "decision": "Neither bless new output nor call old hashes authoritative. Preserve both artifacts, record stale native fixture/reference conflict, require independent source-qualified reference decision before any expected-data update. A test-integrity restoration may deliberately leave red; never restore production plates.",
+      "provenance_limit": "Source shows BLESS=1 publishes candidate Scene.digest directly. Actual historical generator command/log is not recorded; cannot prove which command generated commit. Reproducibly new selected hash equals current output and predecessor output, not separately frozen output."
+    },
+    {
+      "priority": "P2",
+      "path": "crates/holla-ui/src/screens/home.rs:337-341, :442; crates/holla-ui/src/app.rs:1301-1303",
+      "attribution": "Inherited and retained.",
+      "problem": "Application repaints NavList section headers after draw and repaints MenuBar disk titles after draw. Internal row layout/text wrapping/preview painting remains application-owned.",
+      "repair": "Add necessary header/content slots and styles in shared widgets/blocks; remove corrective painters in same proven increment."
+    },
+    {
+      "priority": "P2",
+      "path": "crates/holla-ui/src/app.rs:435-441, :574-575, :1345-1350; crates/holla-sim/src/catalogue.rs:842-891",
+      "attribution": "Inherited and retained.",
+      "problem": "Exact80x24/100x30 plus scenario/captured80ms still select presentation content/chrome. These are not general layout policies or live-data derivation.",
+      "repair": "Replace with measured generic composition policies; retain legitimate scenario models as application data."
+    },
+    {
+      "priority": "P2",
+      "path": "crates/holla-ui/src/app.rs:1843-1850",
+      "attribution": "Inherited unchanged.",
+      "problem": "Home draw writes cursor-shape ANSI directly to stdout under is_terminal instead of shared cursor ownership/projection. TestBackend native digest cannot observe it.",
+      "repair": "Route visible cursor intent through actual rendered input and shared terminal service; verify realCLI cursor state."
+    },
+    {
+      "priority": "P2",
+      "path": "crates/holla-ui/src/app.rs tests; crates/holla-sim/src/catalogue.rs tests; crates/holla-ui/tests/visual.rs",
+      "attribution": "57 source tests removed in2a; Home existing4 tests unchanged.",
+      "problem": "37 selector tests and20 screen tests removed without replacement behavioral checkpoints. Some selector tests encode invalid implementation and should be replaced, but no coverage carries their meaningful screen/flow contracts. Existing4 Home tests seek frame4000, missing active tick40 bypass. Native inventory checks only startup at four sizes and has no input/resize flows.",
+      "repair": "Replace invalid selector tests with real shared-component/input/resize/frozen CLI checkpoints preserving required behavior; no zero-checkpoint/omitted-case green claims."
+    }
+  ],
+  "useful_changes_to_retain": [
+    "Deletes many exact-size helper branches and their duplicate painters rather than adding another crate copy.",
+    "Removes parity-files manual fixed-position bar-cursor calls and numerous per-scenario fixed chrome branches.",
+    "Retains public shared TextInput and NavList on ordinary non-tag path, stable action IDs and typed domain actions.",
+    "Existing native pure-render and normal query/action tests remain useful bounded regression coverage."
+  ],
+  "fixture_artifacts": {
+    "before": {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/holla-removal-review-3be/before-app.txt",
+      "blob": "23084ed616ffb905531735f5beaf033de26d80c1",
+      "sha256": "930854801dc0e7541088de85769ae2d6dbae70bede9ac88b3038812ed6d04c20"
+    },
+    "candidate": {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/holla-removal-review-3be/candidate-app.txt",
+      "blob": "863944e34816bbe3cb5f2482f413ab48ae10ebc1",
+      "sha256": "80893794601ddd758e18da668c7a772b541d0c971bc5ecf79778fa63c0e506e1"
+    },
+    "delta": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/holla-removal-review-3be/fixture-delta.json",
+    "entries_each": 1088,
+    "changed_hashes": 696,
+    "added_or_removed_keys": 0,
+    "native_test_source_before_after_sha256": "56b36566c6cbae7da234a32143f3fc6420a043060ab0339fc0ce8b49d5674fc7"
+  },
+  "checks": {
+    "candidate_public": "3 live App tests,0pass3fail0skip",
+    "before_public": "5tests1pass4fail0skip: same3 live failures, olddigest failure, newdigest pass. No source-delta attribution for these inherited behaviors.",
+    "candidate_fixture": "2tests1pass1fail0skip: new hashpass, old hashfail. Diagnostic tests intentionally retain both competing expectations; neither approved.",
+    "native_alltargets": "188tests:187pass1SIGTERM0skip; full command deadline215sec killed final production_workload_measurements after80sec running. Not a full pass and not claimed product evidence. holla_visual_baseline itself passed against new native fixture.",
+    "strict_clippy": "holla-ui+holla-sim alltargets -Dwarnings passed",
+    "fmt": "holla-ui+holla-sim passed",
+    "diff_check": "four-file source delta passed"
+  },
+  "test_system_limits": [
+    "Native Scene.digest includes symbols,fg,bg,modifier bits; omits cursor visibility/shape/position, terminal modes and cleanup, underline colors and hyperlink metadata.",
+    "No fresh paired real CLI baseline replay/candidate comparison at exact3be in this bounded review. Existing historical reports are not transferable to new source identity.",
+    "Public probe is real App/TestBackend integration, not a tuiscotti realCLI parity claim.",
+    "Frozen source inspection establishes live filtering contract but does not supply fresh full-frame output; reference-data decision remains required."
+  ],
+  "source_delta_ledger": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/holla-removal-review-3be/source-delta.json",
+  "evidence_logs": [
+    {
+      "path": "/private/tmp/holla-3be-native.log",
+      "sha256": "b9f2efb601f3fa0920a9f5024752c78a1f81d68f1e8513b46e7e6f92a2fd24bd",
+      "run_ids": [
+        "786dd205-ddb1-4457-9114-c828be550384"
+      ],
+      "summaries": [
+        "     Summary [  82.794s] 188 tests run: 187 passed, 1 failed, 0 skipped"
+      ]
+    },
+    {
+      "path": "/private/tmp/holla-3be-public.log",
+      "sha256": "5e9ff454f4811486e232a1a0a22a47094cecd0e457fec3fc9c1dff1265e5f9dc",
+      "run_ids": [
+        "c979ba14-ef34-439a-896d-b0fbd40ecf46"
+      ],
+      "summaries": [
+        "     Summary [   0.204s] 3 tests run: 0 passed, 3 failed, 0 skipped"
+      ]
+    },
+    {
+      "path": "/private/tmp/holla-3be-before-public.log",
+      "sha256": "19c2a5819618ad37469e70fbccdbcc9f50b63f757fafc8cd8fd709734b42a1fc",
+      "run_ids": [
+        "3bb45282-1fbe-40c9-b514-36c4a4368349"
+      ],
+      "summaries": [
+        "     Summary [   0.207s] 5 tests run: 1 passed, 4 failed, 0 skipped"
+      ]
+    },
+    {
+      "path": "/private/tmp/holla-3be-fixture-public.log",
+      "sha256": "7c24ca2e847d2d686a0bc1dc13b59d533e6e61f1691949c2abf0740b1f570f9b",
+      "run_ids": [
+        "b10109f0-f185-40bb-b4bf-18fa04aa0ae5"
+      ],
+      "summaries": [
+        "     Summary [   0.032s] 2 tests run: 1 passed, 1 failed, 0 skipped"
+      ]
+    },
+    {
+      "path": "/private/tmp/holla-3be-fmt.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "run_ids": [],
+      "summaries": []
+    },
+    {
+      "path": "/private/tmp/holla-3be-clippy.log",
+      "sha256": "b51b3fc56477ff275335dc25b05324ee2a819b15048512cd789cb5b1b6f4bca1",
+      "run_ids": [],
+      "summaries": []
+    }
+  ],
+  "public_probes": [
+    {
+      "path": "/private/tmp/holla-3be-independent-probes/tests/fixture_provenance.rs",
+      "before_path": "/private/tmp/holla-3be-before-probes/tests/fixture_provenance.rs",
+      "sha256": "85a733775412fc55c22febf6d1b6e63991653f8548d4868515d41494464d9ef0",
+      "byte_identical_before": true
+    },
+    {
+      "path": "/private/tmp/holla-3be-independent-probes/tests/live_home.rs",
+      "before_path": "/private/tmp/holla-3be-before-probes/tests/live_home.rs",
+      "sha256": "d448c07e9fb051b3613233fab3f1cd92784606a2d36178f4238196ebcfc10bcc",
+      "byte_identical_before": true
+    }
+  ],
+  "custody": {
+    "candidate_copy": "/private/tmp/termrock-button-9cf76-review",
+    "before_copy": "/private/tmp/termrock-textarea-before-19f-review",
+    "copies_readonly_source": true,
+    "source_or_expected_edits": false,
+    "helpers_spawned": false,
+    "known_preexisting_deletions": "1301 tracked target artifacts in both copies, preserved unstaged; no other dirty paths.",
+    "product_tag_design_branch_or_writer_copy_changed": false
+  }
+}

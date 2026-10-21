@@ -1,0 +1,31 @@
+{
+  "source_commit": "67377aad3c3ab9b36acac47cb48f6c594172907a",
+  "integration_commit": "ec654dba8",
+  "nextest": {
+    "passed": 406,
+    "skipped": 3,
+    "scope": "termrock-core and termrock-runtime all targets, runtime/testing"
+  },
+  "clippy": "passed, same packages and feature, -D warnings",
+  "format": "passed, same packages",
+  "whitespace": "passed",
+  "logs": [
+    {
+      "path": "/private/tmp/termrock-parent-scroll-67377-0.log",
+      "sha256": "b7a45a8b05a2b223f329c6f92de6b28584a528b853ed831f737a1def18311b11"
+    },
+    {
+      "path": "/private/tmp/termrock-parent-scroll-67377-1.log",
+      "sha256": "210ef85e1d2d206313be9d0b6b996f4d4deb4f7f7d37aaba2117af98cfc0ee36"
+    },
+    {
+      "path": "/private/tmp/termrock-parent-scroll-67377-2.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/private/tmp/termrock-parent-scroll-67377-3.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "acceptance": "Bounded runtime adapter only. No application parity claim."
+}

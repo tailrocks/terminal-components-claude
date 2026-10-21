@@ -1,0 +1,97 @@
+{
+  "review": "independent read-only remote branch retirement review",
+  "repository": "tailrocks/terminal-components-claude",
+  "reviewed_at": "2026-10-21",
+  "target": {
+    "pr": 38,
+    "branch": "parity/termrock-visual-baseline",
+    "observed_remote_head": "098bb3c94e69f033811de42de12b6dc4a779de78",
+    "requested_checkpoint": "623bb46b82b3e1e021f25a33f42a2522177fda64",
+    "checkpoint_is_ancestor_of_observed_head": true,
+    "pr_state": "open",
+    "default_branch": "main"
+  },
+  "protected_references": {
+    "main": { "sha": "a97e351df736b576904bc450619ca347ea64d65b", "protected": true, "action": "exclude" },
+    "design/interaction-polish": { "sha": "f2f6eb716c4a512be3dc9423742fa06e86879b32", "protected": false, "action": "read-only reference; exclude" },
+    "visual-baseline_tag_object": "2718a6b8127a522a3d351d0b4bdb7542fc8da542",
+    "visual-baseline_commit": "4169783ae883788186d161af09ba9c481bd84e5c",
+    "pr26": 26
+  },
+  "eligible_remote_refs": [
+    {
+      "ref": "refs/heads/wip/menu-underlay-fill-20261021",
+      "expected_oid": "098aacd5035a94eb739ed08ac17cc4fd279d95ff",
+      "ownership": "task-owned delegated component work; recorded in docs/architecture/termrock-migration-matrix.md and this task's prior execution record",
+      "protected": false,
+      "open_or_closed_pr_count_for_head": 0,
+      "compare_to_623bb46b82b3e1e021f25a33f42a2522177fda64": { "status": "ahead", "merge_base": "098aacd5035a94eb739ed08ac17cc4fd279d95ff", "ahead_by": 129, "behind_by": 0 },
+      "unique_commit_changes_integrated": true,
+      "review_disposition": "clear remote deletion only with exact old-OID lease"
+    },
+    {
+      "ref": "refs/heads/wip/menu-cursor-theme-contract-20261021",
+      "expected_oid": "02dde9678d3d2d3a6940659025a6551735bdb8d7",
+      "ownership": "task-owned delegated component work; recorded in docs/architecture/termrock-migration-matrix.md and this task's prior execution record",
+      "protected": false,
+      "open_or_closed_pr_count_for_head": 0,
+      "compare_to_623bb46b82b3e1e021f25a33f42a2522177fda64": { "status": "ahead", "merge_base": "02dde9678d3d2d3a6940659025a6551735bdb8d7", "ahead_by": 78, "behind_by": 0 },
+      "unique_commit_changes_integrated": true,
+      "review_disposition": "clear remote deletion only with exact old-OID lease"
+    },
+    {
+      "ref": "refs/heads/wip/terminal-view-input-owner-20261021",
+      "expected_oid": "eb068f3a53b20ed12ab86d52aee73042948b940e",
+      "ownership": "task-owned delegated component work; recorded in docs/architecture/termrock-migration-matrix.md",
+      "protected": false,
+      "open_or_closed_pr_count_for_head": 0,
+      "compare_to_623bb46b82b3e1e021f25a33f42a2522177fda64": { "status": "ahead", "merge_base": "eb068f3a53b20ed12ab86d52aee73042948b940e", "ahead_by": 129, "behind_by": 0 },
+      "unique_commit_changes_integrated": true,
+      "review_disposition": "clear remote deletion only with exact old-OID lease"
+    },
+    {
+      "ref": "refs/heads/wip/viewport-contract-repair-20261021",
+      "expected_oid": "8a817200815d73fbc7ecc440c7e27011c5d52b10",
+      "ownership": "task-owned delegated component work; recorded in docs/architecture/termrock-migration-matrix.md",
+      "protected": false,
+      "open_or_closed_pr_count_for_head": 0,
+      "compare_to_623bb46b82b3e1e021f25a33f42a2522177fda64": { "status": "ahead", "merge_base": "8a817200815d73fbc7ecc440c7e27011c5d52b10", "ahead_by": 118, "behind_by": 0 },
+      "unique_commit_changes_integrated": true,
+      "review_disposition": "clear remote deletion only with exact old-OID lease"
+    },
+    {
+      "ref": "refs/heads/wip/tree-composition-adapter-20261021",
+      "expected_oid": "92c4ac9b712e2b81214048adacf5472f286ef3ea",
+      "ownership": "task-owned delegated component work; recorded in docs/architecture/termrock-migration-matrix.md",
+      "protected": false,
+      "open_or_closed_pr_count_for_head": 0,
+      "compare_to_623bb46b82b3e1e021f25a33f42a2522177fda64": { "status": "ahead", "merge_base": "92c4ac9b712e2b81214048adacf5472f286ef3ea", "ahead_by": 117, "behind_by": 0 },
+      "unique_commit_changes_integrated": true,
+      "review_disposition": "clear remote deletion only with exact old-OID lease"
+    }
+  ],
+  "local_worktrees": {
+    "state": "all five exact-tip worktrees exist and report clean tracked/untracked status",
+    "paths": [
+      "/private/tmp/menu-underlay-fill-20261021",
+      "/private/tmp/menu-cursor-theme-contract-20261021",
+      "/private/tmp/terminal-view-input-owner-20261021",
+      "/private/tmp/viewport-contract-repair-20261021",
+      "/private/tmp/tree-composition-adapter-20261021"
+    ],
+    "disposition": "not deleted or modified by this read-only review; remote retirement does not remove these local copies"
+  },
+  "excluded": [
+    { "ref": "refs/heads/main", "reason": "protected default branch" },
+    { "ref": "refs/heads/design/interaction-polish", "reason": "PR #26 frozen read-only reference" },
+    { "ref": "refs/tags/visual-baseline", "reason": "frozen reference tag; never change" },
+    { "ref": "refs/heads/wip/shared-design-working-tree-20261020", "reason": "user backup branch; not task-owned" },
+    { "ref": "refs/heads/parity/picker-stack-integration-20261020", "reason": "unknown ownership; no deletion clearance" },
+    { "ref": "all other remote branches", "reason": "outside exact reviewed candidate set" }
+  ],
+  "limitations": [
+    "This packet authorizes no PR closure, local branch deletion, worktree removal, source mutation, or tag/ref mutation.",
+    "At deletion time, refetch or re-query every listed remote ref and delete only when each exact expected_oid still matches; use one atomic push with per-ref old-OID leases.",
+    "PR #38 is still open and acceptance remains incomplete; ancestry containment is branch-retirement evidence, not product acceptance."
+  ]
+}

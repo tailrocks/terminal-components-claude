@@ -1,0 +1,93 @@
+{
+  "schema": 1,
+  "status": "independently-reproduced-diagnostic-not-admitted",
+  "frozen_source": "4169783ae883788186d161af09ba9c481bd84e5c",
+  "frozen_tag_object": "2718a6b8127a522a3d351d0b4bdb7542fc8da542",
+  "tuiscotti": "a1ea27f757d75d07b05499276cd932e9f8e067ad",
+  "raw_evidence": {
+    "recipe": {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/serial-nonincr-fixed-path-proposal.json",
+      "sha256": "849900e9c848d892824bd2b6636a17ba35d57c9be57859abf136c42f7f314bac"
+    },
+    "run_1_manifest": {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/controlled-baseline-serial-incremental-off-archive/run-1/archive-manifest.json",
+      "sha256": "ef4b805a35667e0f1c41018dac78564ba6332489024b19638f4c8d114eaaf5a9"
+    },
+    "run_2_manifest": {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/controlled-baseline-serial-incremental-off-archive/run-2/archive-manifest.json",
+      "sha256": "89d6d0c03eaa0911b51af32b1cced55b93d405ec43876b55bae1d19055b540e2"
+    },
+    "comparison": {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/controlled-baseline-serial-incremental-off/independent-comparison.json",
+      "sha256": "f2bc6d30b2a528432781e12c318d6e0a6684c38caa5e392dca2c251a59c1ecbc"
+    }
+  },
+  "sealed_binary_comparison": {
+    "showcase": {
+      "run1": "d54a104c1c3b20eab2aa48cf981c0f163586663a39ab90e54bcd7b8c3527db55",
+      "run2": "d54a104c1c3b20eab2aa48cf981c0f163586663a39ab90e54bcd7b8c3527db55",
+      "equal": true
+    },
+    "tablepro": {
+      "run1": "212cc16c3a50ea7aca6b474964ad492c4cc3c731812491bb06284abe1b9cc5d0",
+      "run2": "212cc16c3a50ea7aca6b474964ad492c4cc3c731812491bb06284abe1b9cc5d0",
+      "equal": true
+    },
+    "jackin-preview": {
+      "run1": "60b2c311a3d6e75b58e93a6f4c6d507d43a0e331d84ea966938a8eec52fb9cf2",
+      "run2": "60b2c311a3d6e75b58e93a6f4c6d507d43a0e331d84ea966938a8eec52fb9cf2",
+      "equal": true
+    },
+    "holla": {
+      "run1": "62d5f4c71a1927a5f9e20d60b9f79ff4a392eb1c7390076dc1eaddee06dfe9bf",
+      "run2": "62d5f4c71a1927a5f9e20d60b9f79ff4a392eb1c7390076dc1eaddee06dfe9bf",
+      "equal": true
+    }
+  },
+  "stage_inputs": {
+    "prepare": {
+      "argv": true,
+      "cwd": true,
+      "safe_environment": true,
+      "recipe_exact": true,
+      "both_exit_zero": true
+    },
+    "prepare_live": {
+      "argv": true,
+      "cwd": true,
+      "safe_environment": true,
+      "recipe_exact": true,
+      "both_exit_zero": true
+    },
+    "metadata": {
+      "argv": true,
+      "cwd": true,
+      "safe_environment": true,
+      "recipe_exact": true,
+      "both_exit_zero": true
+    },
+    "build_stage_1": {
+      "argv": true,
+      "cwd": true,
+      "safe_environment": true,
+      "recipe_exact": true,
+      "both_exit_zero": true
+    },
+    "build_stage_2": {
+      "argv": true,
+      "cwd": true,
+      "safe_environment": true,
+      "recipe_exact": true,
+      "both_exit_zero": true
+    }
+  },
+  "source_provenance_exact": true,
+  "live_source_exact": true,
+  "metadata_exact": true,
+  "operational_gaps": [
+    "RUN1 first prepare-live invocation failed before source copy or build because historical build.json had not yet been copied; retry preserved and succeeded.",
+    "RUN1 retains source archives, raw logs, fingerprints and sealed binaries but not full compiled targets; no claim of complete target archive."
+  ],
+  "interpretation": "The four complete final executable hashes match across separate serial builds at identical physical paths with incremental compilation disabled. Corresponding stage1 hashes also match. This is not independent path or hermetic reproducibility, checkpoint reference approval, or application parity. The earlier A2/B2 mismatches remain preserved negative evidence.",
+  "next_step": "Independently review additive exact-cohort eligibility before fresh complete baseline capture/replay. Keep old tuple-specific stale-approval exception unchanged; conflicts require separate reference decisions."
+}

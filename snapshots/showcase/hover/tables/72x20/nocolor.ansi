@@ -1,0 +1,20 @@
+ ▪ [0m[1mJunie[0m Design system / Components / Tables      i Inspector   ? Help  [0m
+                                                                        [0m
+   Overview       ┃  [0m[1mTables[0m  Sort by header, hover rows, select with E… [0m
+   Buttons        ┃                                                     [0m
+   Inputs         ┃    Tasks                      unsorted · 1–1 of 24  [0m
+   Text areas     ┃                                                     [0m
+   Forms          ┃       ID     Task                       Owner   …   [0m
+   Lists          ┃       #1040  Add rate limiting to aut…  mira     ┃  [0m
+   Trees          ┃                                                     [0m
+[0m[1m▎› Tables         [0m┃                                                     [0m
+   Editable tabl… ┃    Checks                                           [0m
+   Panels         ┃                                                     [0m
+   Sidebars       ┃       Check                             Result      [0m
+   Dialogs        │                                                     [0m
+   Progress       │                                                     [0m
+   Scrolling      │                No checks have run yet               [0m
+   Terminal       │                                                     [0m
+[0m[2m   Code editor    [0m│                                                     [0m
+                                                                        [0m
+ [0m[1m↑ ↓[0m Move  [0m[1mEnter[0m Open  [0m[1mTab[0m Into page  [0m[1mq[0m Quit                            [0m

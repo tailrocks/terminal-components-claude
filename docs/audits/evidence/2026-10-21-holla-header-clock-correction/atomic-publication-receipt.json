@@ -1,0 +1,119 @@
+{
+  "published_pr38": "67212b6784f77f8157b7f419433fc77e1d50f9fd",
+  "retired": [
+    {
+      "ref": "refs/heads/wip/menu-underlay-fill-20261021",
+      "expected_oid": "098aacd5035a94eb739ed08ac17cc4fd279d95ff",
+      "ownership": "task-owned delegated component work; recorded in docs/architecture/termrock-migration-matrix.md and this task's prior execution record",
+      "protected": false,
+      "open_or_closed_pr_count_for_head": 0,
+      "compare_to_623bb46b82b3e1e021f25a33f42a2522177fda64": {
+        "status": "ahead",
+        "merge_base": "098aacd5035a94eb739ed08ac17cc4fd279d95ff",
+        "ahead_by": 129,
+        "behind_by": 0
+      },
+      "unique_commit_changes_integrated": true,
+      "review_disposition": "clear remote deletion only with exact old-OID lease"
+    },
+    {
+      "ref": "refs/heads/wip/menu-cursor-theme-contract-20261021",
+      "expected_oid": "02dde9678d3d2d3a6940659025a6551735bdb8d7",
+      "ownership": "task-owned delegated component work; recorded in docs/architecture/termrock-migration-matrix.md and this task's prior execution record",
+      "protected": false,
+      "open_or_closed_pr_count_for_head": 0,
+      "compare_to_623bb46b82b3e1e021f25a33f42a2522177fda64": {
+        "status": "ahead",
+        "merge_base": "02dde9678d3d2d3a6940659025a6551735bdb8d7",
+        "ahead_by": 78,
+        "behind_by": 0
+      },
+      "unique_commit_changes_integrated": true,
+      "review_disposition": "clear remote deletion only with exact old-OID lease"
+    },
+    {
+      "ref": "refs/heads/wip/terminal-view-input-owner-20261021",
+      "expected_oid": "eb068f3a53b20ed12ab86d52aee73042948b940e",
+      "ownership": "task-owned delegated component work; recorded in docs/architecture/termrock-migration-matrix.md",
+      "protected": false,
+      "open_or_closed_pr_count_for_head": 0,
+      "compare_to_623bb46b82b3e1e021f25a33f42a2522177fda64": {
+        "status": "ahead",
+        "merge_base": "eb068f3a53b20ed12ab86d52aee73042948b940e",
+        "ahead_by": 129,
+        "behind_by": 0
+      },
+      "unique_commit_changes_integrated": true,
+      "review_disposition": "clear remote deletion only with exact old-OID lease"
+    },
+    {
+      "ref": "refs/heads/wip/viewport-contract-repair-20261021",
+      "expected_oid": "8a817200815d73fbc7ecc440c7e27011c5d52b10",
+      "ownership": "task-owned delegated component work; recorded in docs/architecture/termrock-migration-matrix.md",
+      "protected": false,
+      "open_or_closed_pr_count_for_head": 0,
+      "compare_to_623bb46b82b3e1e021f25a33f42a2522177fda64": {
+        "status": "ahead",
+        "merge_base": "8a817200815d73fbc7ecc440c7e27011c5d52b10",
+        "ahead_by": 118,
+        "behind_by": 0
+      },
+      "unique_commit_changes_integrated": true,
+      "review_disposition": "clear remote deletion only with exact old-OID lease"
+    },
+    {
+      "ref": "refs/heads/wip/tree-composition-adapter-20261021",
+      "expected_oid": "92c4ac9b712e2b81214048adacf5472f286ef3ea",
+      "ownership": "task-owned delegated component work; recorded in docs/architecture/termrock-migration-matrix.md",
+      "protected": false,
+      "open_or_closed_pr_count_for_head": 0,
+      "compare_to_623bb46b82b3e1e021f25a33f42a2522177fda64": {
+        "status": "ahead",
+        "merge_base": "92c4ac9b712e2b81214048adacf5472f286ef3ea",
+        "ahead_by": 117,
+        "behind_by": 0
+      },
+      "unique_commit_changes_integrated": true,
+      "review_disposition": "clear remote deletion only with exact old-OID lease"
+    }
+  ],
+  "preserved_wips": [
+    [
+      "refs/heads/wip/velnor-actions-0136-20261021",
+      "00034e59d5f1f036d1f57576ae2296da8eec27a1",
+      "507c232073b6877c6563b7d24e11450fbc2d56c4"
+    ],
+    [
+      "refs/heads/wip/owned-fresh-plan-lifecycle-20261021",
+      "65796fa5a04ef02d6ee1f9379525fb74fd5c6e2b",
+      "1f0d0ce4f7294ce39173d1cc74f832ebfe60834e"
+    ],
+    [
+      "refs/heads/wip/holla-nav-header-policy-20261021",
+      "",
+      "b7963f5241b584cb239a66724f7a6ac33be9654f"
+    ]
+  ],
+  "before": {
+    "refs/heads/design/interaction-polish": "f2f6eb716c4a512be3dc9423742fa06e86879b32",
+    "refs/heads/main": "a97e351df736b576904bc450619ca347ea64d65b",
+    "refs/heads/wip/menu-cursor-theme-contract-20261021": "02dde9678d3d2d3a6940659025a6551735bdb8d7",
+    "refs/heads/wip/menu-underlay-fill-20261021": "098aacd5035a94eb739ed08ac17cc4fd279d95ff",
+    "refs/heads/wip/owned-fresh-plan-lifecycle-20261021": "65796fa5a04ef02d6ee1f9379525fb74fd5c6e2b",
+    "refs/heads/wip/terminal-view-input-owner-20261021": "eb068f3a53b20ed12ab86d52aee73042948b940e",
+    "refs/heads/wip/tree-composition-adapter-20261021": "92c4ac9b712e2b81214048adacf5472f286ef3ea",
+    "refs/heads/wip/velnor-actions-0136-20261021": "00034e59d5f1f036d1f57576ae2296da8eec27a1",
+    "refs/heads/wip/viewport-contract-repair-20261021": "8a817200815d73fbc7ecc440c7e27011c5d52b10",
+    "refs/tags/visual-baseline": "2718a6b8127a522a3d351d0b4bdb7542fc8da542"
+  },
+  "after": {
+    "refs/heads/design/interaction-polish": "f2f6eb716c4a512be3dc9423742fa06e86879b32",
+    "refs/heads/main": "a97e351df736b576904bc450619ca347ea64d65b",
+    "refs/heads/parity/termrock-visual-baseline": "67212b6784f77f8157b7f419433fc77e1d50f9fd",
+    "refs/heads/wip/holla-nav-header-policy-20261021": "b7963f5241b584cb239a66724f7a6ac33be9654f",
+    "refs/heads/wip/owned-fresh-plan-lifecycle-20261021": "1f0d0ce4f7294ce39173d1cc74f832ebfe60834e",
+    "refs/heads/wip/velnor-actions-0136-20261021": "507c232073b6877c6563b7d24e11450fbc2d56c4",
+    "refs/tags/visual-baseline": "2718a6b8127a522a3d351d0b4bdb7542fc8da542"
+  },
+  "log": "/private/tmp/pr38-atomic-component-publication-7d5afd2d-b004-41e5-8e62-f4ec8516adc7.log"
+}

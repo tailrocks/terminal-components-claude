@@ -4,8 +4,8 @@ use ratatui_core::layout::{Position, Rect};
 use ratatui_core::terminal::Terminal;
 use termrock::{
     App, Axis, ColorLevel, Diagnostic, Family, FocusRing, Id, Input, Invalidate, Key, KeyCode,
-    KeyModifiers, LayerId, Mouse, MouseKind, Part, PartRef, Resolved, Response, Runtime,
-    StateFlags, Theme, Variant,
+    KeyModifiers, LayerId, Mouse, MouseKind, Part, PartRef, PreparedFrameError, Resolved, Response,
+    Runtime, StateFlags, Theme, Variant,
 };
 
 use crate::digest::Scene;
@@ -193,25 +193,31 @@ impl<A: App> Harness<A> {
 
     pub fn draw(&mut self) {
         for _ in 0..16 {
-            if self.rt.needs_settle() {
-                let _ = self.rt.settle();
-            }
-            {
-                let mut painted = None;
+            let area = self.term.get_frame().area();
+            let prepared = self.rt.prepare(area).expect("runtime prepares frame");
+            let mut area_changed = false;
+            let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
                 self.term
-                    .draw(|f| {
-                        painted = Some(self.rt.draw(f));
+                    .draw(|frame| {
+                        if let Err(error) = self.rt.draw_prepared(prepared, frame) {
+                            area_changed = matches!(error, PreparedFrameError::AreaChanged { .. });
+                            panic!("prepared frame projection failed: {error}");
+                        }
                     })
-                    .expect("draw");
-                if let Some(frame) = painted {
-                    frame.commit_presented();
-                }
+                    .expect("TestBackend draw succeeds");
+            }));
+            if result.is_err() && area_changed {
+                continue;
             }
-            if !self.rt.needs_settle() && !self.rt.needs_present() {
-                return;
+            if let Err(payload) = result {
+                std::panic::resume_unwind(payload);
             }
+            self.rt
+                .acknowledge_presented(prepared)
+                .expect("test backend acknowledges frame");
+            return;
         }
-        panic!("harness focus did not settle: {:?}", self.rt.diagnostics());
+        panic!("harness output did not settle: {:?}", self.rt.diagnostics());
     }
 
     pub fn ticks(&mut self, n: usize) {
@@ -368,6 +374,10 @@ impl<A: App> Harness<A> {
         self.rt.cursor()
     }
 
+    pub fn cursor_bar(&self) -> bool {
+        self.rt.cursor_bar()
+    }
+
     pub fn snapshot(&self) -> Scene {
         Scene::from_buffer(
             "harness",
@@ -381,7 +391,7 @@ impl<A: App> Harness<A> {
         self.rt.app()
     }
 
-    pub const fn app_mut(&mut self) -> &mut A {
+    pub fn app_mut(&mut self) -> &mut A {
         self.rt.app_mut()
     }
 

@@ -1,0 +1,50 @@
+ ▪ [0m[1mJunie[0m Design system / Components / Scrolling                                                                       no color · 160×50   i Inspector   ? Help  [0m
+                                                                                                                                                                [0m
+   Foundations            [0m[1mScrolling[0m  Wheel under the pointer, keys on the focused container, thumb shows where you are, edges fade toward hidden rows           [0m
+   Overview                                                                                                                                                     [0m
+                            Wrapped text                 1–41 of 78      Long list                   1–41 of 120      Log        1160–1200 of 1200 · following  [0m
+   Components                                                                                                                                                   [0m
+   Buttons                  Junie works through a task the way a  ┃         Row 001                            ┃      [0m[2m 428.83s  info   test api::auth::test… [0m│  [0m
+   Inputs                   careful engineer would: it reads the  ┃         Row 002                            ┃       429.20s  info   test db::pool::tests… │  [0m
+   Text areas               relevant code, forms a plan, makes    ┃         Row 003                            ┃       429.57s  error  test checkout::place… │  [0m
+   Forms                    focused changes, runs the tests, and  ┃         Row 004                            ┃       429.94s  info   test workers::schedu… │  [0m
+   Lists                    reports back with a summary you can   ┃         Row 005                            ┃       430.31s  info   Linking target/debug… │  [0m
+   Trees                    review before anything is merged.     ┃         Row 006                            ┃       430.68s  info   Resolving workspace … │  [0m
+   Tables                                                         ┃         Row 007                    flagged ┃       431.05s  info   Fetching crates.io i… │  [0m
+   Editable tables          Each step is visible. You can pause,  ┃         Row 008                            ┃       431.42s  info   Compiling proc-macro… │  [0m
+   Panels                   redirect, or take over at any point,  ┃         Row 009                            ┃       431.79s  info   Compiling serde v1.0… │  [0m
+   Sidebars                 and every change lands as an ordinary ┃         Row 010                            ┃       432.16s  warn   unused import: `std:… │  [0m
+   Dialogs                  diff in your working tree.            ┃         Row 011                            ┃       432.53s  info   Compiling tokio v1.4… │  [0m
+   Progress                                                       ┃         Row 012                            ┃       432.90s  info   Running unittests sr… │  [0m
+[0m[1m▎› Scrolling            [0m    The design system in this prototype   ┃         Row 013                            ┃       433.27s  info   test api::auth::test… │  [0m
+   Terminal                 exists so that the terminal version   ┃         Row 014                    flagged ┃       433.64s  info   test db::pool::tests… │  [0m
+   Code editor              of that experience feels as           ┃         Row 015                            │       434.01s  error  test checkout::place… │  [0m
+   Diff                     deliberate as the web version: quiet  ┃         Row 016                            │       434.38s  info   test workers::schedu… │  [0m
+   Data grid                surfaces, one accent, clear focus,    ┃         Row 017                            │       434.75s  info   Linking target/debug… │  [0m
+   Chips & selects          and no decoration that does not carry ┃         Row 018                            │       435.12s  info   Resolving workspace … │  [0m
+   Pickers                  information.                          ┃         Row 019                            │       435.49s  info   Fetching crates.io i… │  [0m
+   Chrome                                                         ┃         Row 020                            │       435.86s  info   Compiling proc-macro… │  [0m
+                            Scroll with the mouse wheel,          ┃         Row 021                    flagged │       436.23s  info   Compiling serde v1.0… │  [0m
+   Screens                  PageUp/PageDown, or the arrow keys    │         Row 022                            │       436.60s  warn   unused import: `std:… │  [0m
+   Settings                 while this panel has focus. The       │         Row 023                            │       436.97s  info   Compiling tokio v1.4… │  [0m
+   Task runner              scrollbar on the right shows where    │         Row 024                            │       437.34s  info   Running unittests sr… │  [0m
+                            you are and how much remains.         │         Row 025                            │       437.71s  info   test api::auth::test… │  [0m
+                                                                  │         Row 026                            │       438.08s  info   test db::pool::tests… │  [0m
+                            Junie works through a task the way a  │         Row 027                            │       438.45s  error  test checkout::place… │  [0m
+                            careful engineer would: it reads the  │         Row 028                    flagged │       438.82s  info   test workers::schedu… │  [0m
+                            relevant code, forms a plan, makes    │         Row 029                            │       439.19s  info   Linking target/debug… │  [0m
+                            focused changes, runs the tests, and  │         Row 030                            │       439.56s  info   Resolving workspace … │  [0m
+                            reports back with a summary you can   │         Row 031                            │       439.93s  info   Fetching crates.io i… │  [0m
+                            review before anything is merged.     │         Row 032                            │       440.30s  info   Compiling proc-macro… │  [0m
+                                                                  │         Row 033                            │       440.67s  info   Compiling serde v1.0… │  [0m
+                            Each step is visible. You can pause,  │         Row 034                            │       441.04s  warn   unused import: `std:… │  [0m
+                            redirect, or take over at any point,  │         Row 035                    flagged │       441.41s  info   Compiling tokio v1.4… │  [0m
+                            and every change lands as an ordinary │         Row 036                            │       441.78s  info   Running unittests sr… │  [0m
+                            diff in your working tree.            │         Row 037                            │       442.15s  info   test api::auth::test… │  [0m
+                                                                  │         Row 038                            │       442.52s  info   test db::pool::tests… │  [0m
+                            The design system in this prototype   │         Row 039                            │       442.89s  error  test checkout::place… │  [0m
+                            exists so that the terminal version   │         Row 040                            │       443.26s  info   test workers::schedu… │  [0m
+                            [0m[2mof that experience feels as           [0m│      [0m[2m   Row 041                            [0m│       443.63s  info   Linking target/debug… ┃  [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+ [0m[1m↑ ↓[0m Move  [0m[1mEnter[0m Open  [0m[1mTab[0m Into page  [0m[1mq[0m Quit                                                                                                                    [0m

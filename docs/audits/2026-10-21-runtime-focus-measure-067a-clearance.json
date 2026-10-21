@@ -1,0 +1,35 @@
+{
+  "commit": "067a253d19714f23559f0907e9b3f48a9bbcd72f",
+  "tree": "6b529fc9244798fa938229a62c13f79ca986f154",
+  "parent": "03c3da6a07b7c482f915c0af46a2e78dc27c6b14",
+  "remote_ref": "origin/wip/runtime-focus-measure-20261021",
+  "scope": "Bounded independent read-only review in a separate complete detached worktree. Only ui/measure.rs test fixture and audit changed; no production source changed. No helper agents or application launches.",
+  "diff_review": [
+    "Keyboard-focused snapshot now sets focus_visible=true and asserts actual FOCUSED|FOCUS_VISIBLE flags.",
+    "The synthetic Gutterful measurement retains theme-derived glyph-width behavior: wide theme width 8, narrow theme width 7.",
+    "Pointer-focus snapshot sets focus with focus_visible=false and asserts FOCUSED only; both custom glyph themes measure width 6 (no visible gutter).",
+    "Diff touches only runtime measure test and audit; no production behavior or expected outputs were changed."
+  ],
+  "independent_commands": [
+    {
+      "argv": "CARGO_TARGET_DIR=/private/tmp/termrock-runtime-target-067a cargo nextest run --locked --offline --manifest-path crates/termrock-runtime/Cargo.toml --package termrock-runtime --lib natural_width_follows_the_themed_glyph --no-tests fail",
+      "result": "exit 0; one focused test passed; 234 other tests excluded by explicit test filter"
+    },
+    {
+      "argv": "CARGO_TARGET_DIR=/private/tmp/termrock-controls-target-067a cargo nextest run --locked --offline --manifest-path crates/termrock-controls/Cargo.toml --package termrock-controls --test button_contract focus_visibility_policies_hold_for_every_button_variant_and_color_level --no-tests fail",
+      "result": "exit 0; one real Button policy integration test passed; 7 other tests excluded by explicit test filter"
+    },
+    {
+      "argv": "git ls-remote origin refs/heads/wip/runtime-focus-measure-20261021",
+      "result": "remote resolves to reviewed SHA (see exact output included in packet creation log / parent verification)"
+    }
+  ],
+  "findings": [],
+  "decision": "The specific failure is an inconsistent synthetic fixture: the old fixture used raw FOCUSED while the theme gutter predicate requires FOCUS_VISIBLE; the real Button policy is separately tested. The focused repair is correct and preserves the meaningful 8/7 keyboard width delta and 6/6 pointer widths. Bounded review clear.",
+  "coverage_gaps": [
+    "No full runtime 357-test suite rerun in this review; author record says 357 passed and 3 skipped.",
+    "No full controls suite rerun; focused real-button control test was rerun independently.",
+    "No broader palette semantic check or full product acceptance is claimed."
+  ],
+  "worktree": "removed after review; working tree clean"
+}

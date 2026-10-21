@@ -1,0 +1,51 @@
+ ▪ [0m[1mJunie[0m Design system  [0m[1mOverview[0m                                                                                      no color · 160×50   i Inspector   ? Help  [0m
+                                                                                                                                                                [0m
+ [0m[1mComponents[0m           54  [0m[1mOverview[0m  Tokens and principles behind every component                                                                                [0m
+ ───────────────────────                                                                                                                                        [0m
+ [0m[1m▎› Overview            [0m  [0m[1m Playground  [0m  Options    States                                                                                      the live widget [0m
+  ▸ App shell             ━━━━━━━━━━━━━─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+  ▸ Inputs & forms                                                                                                                                              [0m
+  ▸ Tables                  Tokens · planes and text                                          Tokens · accent and status                                       ┃[0m
+  ▸ Navigation              ─────────────────────────────────────────────────────────────     ──────────────────────────────────────────────────────────────   ┃[0m
+  ▸ Overlays                    ▏ canvas                                            Black         ▏ accent                                             White   ┃[0m
+  ▸ Feedback                    ▏ surface                                           Black         ▏ accent.hover                                       White   ┃[0m
+  ▸ Layout                      ▏ surface.elevated                                  Black         ▏ accent.pressed                                     White   ┃[0m
+  ▸ Text & code                 ▏ surface.overlay                                DarkGray         ▏ accent.bg                                          Black   ┃[0m
+  ▸ Screens                     ▏ field                                             Black         ▏ accent.bg.subtle                                   Black   ┃[0m
+                                ▏ field.hover                                       Black         ▏ accent.bg.hover                                    Black   ┃[0m
+                                ▏ popover                                        DarkGray         ▏ focus                                              White   ┃[0m
+                                ▏ highlight                                      DarkGray         ▏ link                                                Gray   ┃[0m
+                                ▏ highlight.danger                               DarkGray         ▏ success                                            White   ┃[0m
+                                ▏ selection                                      DarkGray         ▏ success.strong                                     White   ┃[0m
+                                ▏ border.subtle                                  DarkGray         ▏ info                                                Gray   ┃[0m
+                                ▏ border.strong                                      Gray         ▏ warning                                             Gray   ┃[0m
+                                ▏ scroll.track                                   DarkGray         ▏ error                                              White   ┃[0m
+                                ▏ text.primary                                      White         ▏ error.bg                                           Black   ┃[0m
+                                ▏ text.secondary                                     Gray         ▏ error.soft                                         White   ┆[0m
+                                ▏ text.muted                                         Gray         ▏ error.strong                                       White   ┆[0m
+                                ▏ text.faint                                         Gray         ▏ danger                                             White   ┆[0m
+                                ▏ text.ghost                                     DarkGray         ▏ syntax.keyword                                      Gray   ┆[0m
+                                ▏ text.on_accent                                    Black         ▏ syntax.string                                       Gray   ┆[0m
+                                ▏ disabled                                       DarkGray         ▏ syntax.literal                                     White   ┆[0m
+                                                                                                                                                               ┆[0m
+                                                                                                                                                               ┆[0m
+                            Glyphs and strings                                                Ladders · theme.ladders                                          ┆[0m
+                            ─────────────────────────────────────────────────────────────     ──────────────────────────────────────────────────────────────   ┆[0m
+                            Glyphs         UNICODE           ASCII                            Ladder: rest hover pressed · Plane::up                           ┆[0m
+                            checks         [✓] [ ] [–]       [x] [ ] [-]                      Canvas                          → Raised                         ┆[0m
+                            radio, toggle  (●) ( ) ──● ○──   (*) ( ) --* o--                  Surface                         → Raised                         ┆[0m
+                            chevrons       ▴ ▾ ▾ ▸           ^ v v >                          Card                            → Raised                         ┆[0m
+                            status         ✓ ✗ ▲ i           + X ! i                          Field                           → Raised                         ┆[0m
+                            scrollbar      ┆┃┆               :#:                              Raised                          → Popover                        ┆[0m
+                            meter          ━━─               ==-                              Popover                         → Popover                        ┆[0m
+                            more, close    … ▾ ×             ~ v x                            Highlight                       → Highlight                      ┆[0m
+                                                                                              HighlightDanger                 → HighlightDanger                ┆[0m
+                            Strings        DEFAULT           override                         Accent                          → Accent                         ┆[0m
+                            more_cut       … {} more         ... {} more                      Danger                          → Danger                         ┆[0m
+                            search         Type to search…   Type to search...                handle           ┃    ┃    ┃                                     ┆[0m
+                            empty_list     Nothing here yet  Nothing here yet                 seam             │    │    │                                     ┆[0m
+                            loading        Loading rows…     Loading rows...                                                                                   ┆[0m
+                                                                                                                                                               ┆[0m
+                                                                                                                                                                [0m
+ [0m[1m↑↓[0m Move  [0m[1mEnter[0m Open  [0m[1m/[0m Filter  [0m[1mTab[0m Into page  [0m[1mq[0m Quit                                                                                                           [0m
+[?25l

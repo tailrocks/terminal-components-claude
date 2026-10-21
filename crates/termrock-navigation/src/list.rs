@@ -584,7 +584,7 @@ impl<'a, T, K, R> List<'a, T, K, R> {
         sr
     }
 
-    fn table(&self) -> &'static [Binding<ListCmd>] {
+    pub const fn table(&self) -> &'static [Binding<ListCmd>] {
         match self.select_mode {
             SelectMode::Single => &SINGLE,
             SelectMode::Multi | SelectMode::Range => &MULTI,
@@ -777,7 +777,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> List<'_, T, K, R> {
             scroll.scroll_to(aligned);
         }
         acc.fold(&bar);
-        let viewport = self.item_at_line(st.core.scroll().viewport_len()).max(1);
+        let page_rows = self.item_at_line(st.core.scroll().viewport_len()).max(1);
         let table = self.table();
         let mut released = false;
         for it in cx.intents(self.id) {
@@ -816,14 +816,14 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> List<'_, T, K, R> {
                         Some(ListCmd::PageUp) => self.move_cursor(
                             st,
                             items,
-                            cur.saturating_sub(viewport),
+                            cur.saturating_sub(page_rows),
                             false,
                             &mut acc,
                         ),
                         Some(ListCmd::PageDown) => self.move_cursor(
                             st,
                             items,
-                            cur.saturating_add(viewport),
+                            cur.saturating_add(page_rows),
                             false,
                             &mut acc,
                         ),
@@ -935,6 +935,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> List<'_, T, K, R> {
         if released {
             st.click_cursor = None;
         }
+        *st.core.scroll_mut() = self.scroll_view(st, len, viewport);
         acc.finish(self.id)
     }
 
@@ -1135,8 +1136,16 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> List<'_, T, K, R> {
                     }
                 };
                 if !rest.is_empty() {
-                    let mut r =
-                        RowUi::new(ui, id, Family::LIST, Variant::DEFAULT, flags, key, rest);
+                    let mut r = RowUi::new_with_container_width(
+                        ui,
+                        id,
+                        Family::LIST,
+                        Variant::DEFAULT,
+                        flags,
+                        key,
+                        rest,
+                        row.width,
+                    );
                     self.row.row(item, &mut r);
                 }
             });

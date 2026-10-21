@@ -1,0 +1,47 @@
+{
+  "reviewed_commit": "8ac27e4307cf545efdb24ea5db05b831a7b44669",
+  "read_only_worktree": "/private/tmp/termrock-steps-8ac-review",
+  "disposition": "Not cleared: generic custom-row source compatibility is restored, but default Display rows no longer measure their actual labels.",
+  "findings": [
+    {
+      "severity": "P2",
+      "path": "crates/termrock-navigation/src/steps.rs:929",
+      "issue": "measure_with_items uses a fixed 12-cell label width whenever no explicit projection is supplied, including the existing DefaultRow implementation. composition::steps therefore clips ordinary live Display labels despite sufficient available width. The preceding intrinsic fix measured those default labels; the compatibility fix removes that behavior instead of limiting fallback to custom rows.",
+      "reproduction": "An unchanged DefaultRow page with numbered Steps, label Archive historical package objects, metadata copied from storage archive, and a 100-cell root receives preferred/actual width48 and renders only Archive hist. The pure intrinsic size should account for the actual label and metadata rather than requiring a duplicate projection for the built-in renderer.",
+      "test": "/private/tmp/steps-8ac-independent/tests/contract.rs:16",
+      "repair": "Preserve the generic non-Display adapter and optional explicit custom-row width projection. Add source-compatible intrinsic information to the existing RowFn contract, with a default fallback for custom implementations and an actual Display-width implementation for DefaultRow, or an equivalent design agreed with the runtime owner. Do not run painters or application state projections during measurement; do not add Display bounds back to the generic adapter."
+    }
+  ],
+  "checks": [
+    {
+      "command": "cargo nextest run --manifest-path /private/tmp/steps-8ac-independent/Cargo.toml --status-level all --final-status-level all",
+      "result": "Exit100; six public tests: five passed, one failed, zero skipped.",
+      "run_id": "32238f6a-5fca-4b85-a16b-8211f334db2e",
+      "log": "/private/tmp/steps-8ac-public.log"
+    },
+    {
+      "command": "cargo nextest run -p termrock-navigation -E test(steps::tests::) --status-level fail --final-status-level all",
+      "result": "Exit0;19 passed,177 filtered/skipped; this is not a complete navigation gate.",
+      "run_id": "a3697868-e71c-407e-a9af-b74ac05e38f6",
+      "log": "/private/tmp/steps-8ac-native-0.log"
+    },
+    {
+      "command": "cargo nextest run -p termrock --test composition_consumer -E test(steps) --status-level all --final-status-level all",
+      "result": "Exit0;four passed,five filtered/skipped.",
+      "run_id": "5db6c51a-9b00-467c-beda-d242842e78ab",
+      "log": "/private/tmp/steps-8ac-native-1.log"
+    },
+    {
+      "command": "git diff --check c0408f34fe86d03802c59f961c3781aa7215558a 8ac27e4307cf545efdb24ea5db05b831a7b44669",
+      "result": "Exit0."
+    }
+  ],
+  "positive_findings": [
+    "The original non-Display custom-row consumer compiles and renders unchanged, without dummy Display or a mandatory width projection.",
+    "The original four independent probes pass unchanged: live metadata, explicit absent metadata, empty data and widths0 through64 with105 Unicode rows, and exact ordinal/metadata positions across all four color profiles.",
+    "The new native consumer uses non-Display data, an explicit pure label-width projection and a custom row renderer; its long-label,43/44-cell metadata and stable-key data-change cases pass.",
+    "Legacy Steps::measure and draw/update mechanics are unchanged from c040; the new intrinsic method does not invoke RowFn::row, the application StepState projection, input handlers or domain actions. Only explicitly supplied presentation-width and metadata projections run.",
+    "No new unsafe code, concurrency mechanism or application-specific rendering path is added by this increment."
+  ],
+  "limits": "The known navigation ItemRow fingerprint failure is outside the focused filter and remains unresolved, not waived. Full navigation, Clippy, application adoption, reference-state rendering and exact CLI parity are not cleared. No product edits or helpers were used."
+}

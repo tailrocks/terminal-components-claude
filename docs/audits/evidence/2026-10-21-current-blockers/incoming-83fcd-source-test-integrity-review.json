@@ -1,0 +1,53 @@
+{
+  "kind": "read_only_source_test_integrity_review",
+  "reviewed_commit": {
+    "sha": "83fcd0236feb65657ba89bcd81f5c0bd60f70c40",
+    "parent": "168d85a3f71acbaf0cce33efd4fe8a515b08db16",
+    "subject": "fix(architecture): purge snapshot include from tablepro and dynamic include from reach"
+  },
+  "current_snapshot": {
+    "head_sha": "ce624ed2b378ee699d79898fbc2b808147252ffc",
+    "reviewed_commit_is_ancestor": true,
+    "reviewed_files_unchanged_since_commit": true,
+    "evidence": "git merge-base --is-ancestor 83fcd0236... HEAD exit 0; git diff --quiet 83fcd0236...HEAD -- both reviewed files exit 0."
+  },
+  "scope": "Read-only integrity review of the two changes in commit 83fcd0236. No source edits, test runs, application captures, or helpers were used.",
+  "tablepro_change": {
+    "path": "crates/tablepro-ui/src/app/connection_form_focus.rs",
+    "source_context": "The entire file is under #[cfg(test)] and defines a Harness-based unit test. The removed include_str/assertions read an existing ANSI artifact and checked only that the artifact ends in ESC[?25l and did not contain ESC[?25h.",
+    "before_blob": "8aa8d1476",
+    "commit_blob": "dc6097a77fdbb8b9f9f767c0177f2f32d5c60207",
+    "current_blob": "dc6097a77fdbb8b9f9f767c0177f2f32d5c60207",
+    "removed_assertion_effect": "This removes a narrow frozen-fixture integrity assertion about the fixture's cursor-hide terminator. It did not observe the live Harness or application output, so it was not a runtime behavior check and was not production use/replay.",
+    "remaining_behavior_assertions": [
+      "After Ctrl-N, the NAME field owns focus and the empty connection draft is active.",
+      "BackTab then Right focuses the test-connection action, clears focus from NAME, and leaves no visible cursor/cursor bar in the Harness state.",
+      "Typing into a fresh draft changes it from empty."
+    ],
+    "reference_coverage": "The same frozen form_advanced scenario remains registered in crates/visual-harness/tests/visual_baseline/scenarios/tablepro.rs and crates/termrock-conformance/tests/visual_baseline/tablepro.rs, with multiple sizes/color profiles. The tracked ANSI artifact remains present at snapshots/tablepro/connections/form_advanced/120x40/truecolor.ansi (HEAD blob a83e2506c1d1d6b732684de993944105fe6be4a5).",
+    "finding": "The change removes an irrelevant static-fixture assertion without weakening the live focus/cursor assertions in the unit test or deleting the frozen visual scenario. It does remove a guard that would detect changing this fixture's trailing cursor mode; if that integrity property is required, validate it in the reference-artifact integrity gate or with an actual terminal-mode assertion, rather than coupling it to this unrelated focus unit test."
+  },
+  "reach_macro_change": {
+    "path": "crates/termrock-shell/src/reach.rs",
+    "feature_context": "reach is behind the default-off testing feature. termrock-shell enables runtime testing only via dev-dependencies/self dev-dependency for its own tests; the reach harness is absent from default production builds.",
+    "macro_visibility": "reach_tests! is #[macro_export] when the testing feature is enabled; it is a testing utility macro, not an ordinary application consumer API.",
+    "before_blob_prefix": "f63f2d5f3",
+    "commit_blob": "576f48e81273f443fcbed804afb7bfc21c8873de",
+    "current_blob": "576f48e81273f443fcbed804afb7bfc21c8873de",
+    "semantics_before": "Macro expansion loaded the invoking package's tests/reach_allow.txt into REACH_ALLOW and passed it to reach::check.",
+    "semantics_after": "REACH_ALLOW is the empty string. In gate(), any nonempty missing-word set then differs from the allowed empty set, so every missing word fails; the result is stricter, not more permissive.",
+    "consumer_inventory": "Repository-wide search at current HEAD found no reach_tests! invocation and no tests/reach_allow.txt. The only reach-related unit tests in reach.rs exercise Words parsing/comparison; no test expands the macro or verifies per-consumer allowlist behavior.",
+    "finding": "No current repository consumer or executed case is weakened by this change. However, this silently removes the documented per-size, reasoned-allowlist behavior from an exported testing macro. External consumers with known layout deviations now fail rather than being able to record them; external consumers also no longer need the documented tests/reach_allow.txt. This is a testing-API semantic change and currently has no macro-level test.",
+    "required_source_resolution": "Before treating this as an accepted consumer contract, either (a) retain consumer-configurable allow text/path and add an external/macro-expansion test proving an allowed missing-word case passes and an unlisted one fails, or (b) explicitly make the macro strict-only by updating its docs/API and migration record, and add a consumer compile/test proving this is the intended contract. Do not leave an allowlist-oriented macro silently hardwired to empty while its gate still documents reasoned allow rows."
+  },
+  "production_replay_assessment": "Neither removed include_str! was used in production screen rendering. TablePro's use was cfg(test) only. Reach's include_str! was emitted by a macro in a default-off test feature. These are not production replay paths. The removed TablePro assertion is a test-fixture check; the reach include is test harness configuration.",
+  "recommendation": "The TablePro deletion is reasonable as test decoupling, with the narrow fixture-integrity coverage loss recorded. The reach macro change is stricter but changes a documented exported test utility contract; resolve it explicitly or add the missing macro consumer proof. Do not report the reach change as removal of production snapshot replay.",
+  "evidence_commands": [
+    "git show --format=fuller 83fcd0236 -- crates/tablepro-ui/src/app/connection_form_focus.rs crates/termrock-shell/src/reach.rs",
+    "git grep/rg for reach_tests! invocations, reach_allow.txt, and form_advanced references",
+    "git ls-tree -r --name-only HEAD for the tracked ANSI artifact and allowlist inventory",
+    "git merge-base --is-ancestor 83fcd0236... HEAD",
+    "git diff --quiet 83fcd0236...HEAD -- reviewed source paths"
+  ],
+  "status": "Source/test integrity review complete; no files changed."
+}

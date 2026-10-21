@@ -10,3 +10,7 @@ license.workspace = true
 workspace = true
 [dependencies]
 termrock.workspace = true
+
+# Rust documentation examples are guarded by the workspace doc inventory test.
+[lib]
+doctest = false

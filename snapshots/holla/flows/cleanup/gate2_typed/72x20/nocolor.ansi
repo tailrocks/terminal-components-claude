@@ -1,0 +1,21 @@
+[0m[2m  holla❯    File   Go   Help          safe · Rust project  mbp · local  [0m
+[0m[2m  Here › Disk › Usage › Review                                          [0m
+[0m[2m  H╭──────────────────────────────────────────────────────────── × ─╮   [0m
+[0m[2m ━━│                                                                │── [0m
+[0m[2m  R│  [0m[1;2mTrash 1 items · gate 2 of 2[0m[2m                                   │…  [0m
+[0m[2m   │                                                                │   [0m
+[0m[2m  A│  [0mAction        move to Trash 1 item under ~/Projects/safe    [0m[2m ┃│┃  [0m
+[0m[2m  H│  [0mHost          mbp · local                                   [0m[2m ┆│┆  [0m
+[0m[2m  M│  [0mMode          Trash · native macOS Trash · space returns    [0m[2m ┆│┆  [0m
+[0m[2m   │  ↓ 14 more                                                     │   [0m
+[0m[2m ╭─│  [0m[1;2mType TRASH 1 UNDER /Users/alex/Projects/safe ON mbp to[0m[2m        │─╮ [0m
+[0m[2m │ │  [0m[1;2mconfirm[0m[2m                                                       │ │ [0m
+[0m[2m │ │▎ [0m[2;4mTRASH 1 UNDER /Users/alex/Projects/safe ON mbp[0m[2m                │ │ [0m
+[0m[2m │ │                                                                │ │ [0m
+[0m[2m ╰─│                                            Cancel    Execute   │─╯ [0m
+[0m[2m   │                                                                │   [0m
+[0m[2m   ╰─────────────────────────────────────────────[0m─[0m[2m─────────[0m─[0m[2m────────╯   [0m
+[0m[2m                                                                        [0m
+[0m[2m ~/Projects/safe         review · gate 1 of 2          no color · 72×20 [0m
+ [0m[1m EDIT [0m  [0m[1mEsc[0m Cancel  …           1 item selected · 1000.0 MiB estimated [0m
+[?25h[13;53H[6 q

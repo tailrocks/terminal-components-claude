@@ -1,0 +1,41 @@
+ ▪ [0m[1mJunie[0m Design system  App shell › [0m[1mChrome[0m                                    no color · 120×40   i Inspector   ? Help  [0m
+                                                                                                                        [0m
+ [0m[1mComponents[0m           54  [0m[1mChrome[0m  Brand lockup · menu bar with anchored menus · status bar planes and priorities · con… [0m
+ ───────────────────────                                                                                                [0m
+    Overview              [0m[1m Playground  [0m  Options    States                                              the live widget [0m
+  ▾ App shell             ━━━━━━━━━━━━━─────────────────────────────────────────────────────────────────────────────────[0m
+ [0m[1m▎  › Chrome            [0m                                                                                                [0m
+      Status & hints       [0m[1;7m app❯ [0m   File   Edit   View   Session   Help                                                ┃[0m
+      Breadcrumbs & ra…                                                                                                ┃[0m
+      Help & keys           Sessions                                       right-click or Shift+F10 for the tab menu   ┃[0m
+      Quit & leave          ────────────────────────────────────────────────────────────────────────────────────────   ┃[0m
+      Focus & navigati…        1 Claude Code (Work)                 working     The status bar below sits on its own   ┃[0m
+  ▸ Inputs & forms             2 Codex (Primary)                       idle     plane: three groups, no separator      ┃[0m
+  ▸ Tables                     3 Shell                                          glyphs, and items that do not fit      ┃[0m
+  ▸ Navigation                 4 docs                               blocked     collapse into a … that shows them on   ┃[0m
+  ▸ Overlays                                                                    hover, by priority — the 64-column     ┃[0m
+  ▸ Feedback                                                                    row shows the center going first.      ┃[0m
+  ▸ Layout                                                                                                             ┃[0m
+  ▸ Text & code                                                                 Brand: one lockup, accent-filled,      ┃[0m
+  ▸ Screens                                                                     the only accent-filled control.        ┃[0m
+                                                                                                                       ┃[0m
+                                                                                checks 2 ok · [0m[1m1 failed[0m · 1 cancelled   ┃[0m
+                                                                                 [0m[1mCtrl+S[0m Save                ✓ Saved    ┃[0m
+                                                                                                                       ┃[0m
+                                                                                                                       ┃[0m
+                          MenuBar · open_on Press · overflow Hide · hover_switch on · press_drag on · hide_owner_focus ┃[0m
+                          on                                                                                           ┃[0m
+                          wrap on · type_ahead off · nav default · dismiss light · brand lockup                        ┃[0m
+                          last MenuBarAction: —   (Opened(menu) · Chosen(menu, item) · Closed · Brand)                 ┃[0m
+                                                                                                                       ┃[0m
+                          identity strip · segments drop by priority · ◆ opens the app menu                            ┃[0m
+                            [0m[1mpayments-platform[0m  ◆ production  ◇ staging  ⠋ deploying             · 3 pending  main ↑2   ┃[0m
+                                                                                                                       ┃[0m
+                           status bar · StatusBar::layout places 3 of 8 · Left 2, Center 0, Right 1                    ┃[0m
+                           [0m[1mpayments-platform[0m   PR #482 · settlement backoff                          …    Weekly 59%   ┃[0m
+                                                                                                                       ┆[0m
+                           at 64 columns · StatusBar::layout places 2 of 8 · Left 2, Center 0, Right 0                 ┆[0m
+                           [0m[1mpayments-platform[0m   PR #482 · settlement backoff             …                              ┆[0m
+                                                                                                                        [0m
+ [0m[1m↑↓[0m Move  [0m[1mEnter[0m Open  [0m[1m/[0m Filter  [0m[1mTab[0m Into page  [0m[1mq[0m Quit                                                                   [0m
+[?25l

@@ -1,0 +1,21 @@
+[0m[2m  ▪  TablePro  Production  ◆ production  acme_prod › public  ✓ safe  …  [0m
+[0m[2m                                                                        [0m
+[0m[2m  ≡ Query 1 ×                                                       +   [0m
+[0m[2m ━━━━━━━━━━━━━━──────────────────────────────────────────────────────── [0m
+[0m[2m ›╭──────────────────────────────────────────────────────────────────╮╮ [0m
+[0m[2m  │ [0m[1;2mSa[0m[1mf[0m[1;2me Mod[0m[1me[0m[1;2m · this c[0m[1mo[0m[1;2mnnection[0m[2m                                      ││ [0m
+[0m[2m E│   [0m [0m[2mSilent            Writes run without asking. Destr…           ││ [0m
+[0m[2m x│    Alert             Every write asks for confirmatio…           ││ [0m
+[0m[2m p│    Alert (Full)      Every statement, reads included,…           ││ [0m
+[0m[2m l│ [0m[1;2;7m [0m[2;7m›[0m[1;2;7m Safe Mode         [0m[2;7mWrites ask for confirmation and …[0m[1;2;7m [0m[2;7mcurrent[0m[1;2;7m  [0m[2m ││ [0m
+[0m[2m o│    Safe Mode (Full)  Every statement asks for confirm…           ││ [0m
+[0m[2m r│    Read-Only         Writes are refused. Reads and ex…           ││ [0m
+[0m[2m e│                                                                  ││ [0m
+[0m[2m r│ ↑↓ Move · Enter Set level · Esc Keep · levels are saved to the … ││ [0m
+[0m[2m  ╰──────────────────────────────────────────────────────────────────╯│ [0m
+[0m[2m   │                                                                  │ [0m
+[0m[2m   │                                                                  │ [0m
+[0m[2m   ╰──────────────────────────────────────────────────────────────────╯ [0m
+[0m[2m                                                                        [0m
+ [0m[1m↑↓[0m Move  [0m[1mEnter[0m Choose  [0m[1mEsc[0m Cancel            ✓ Connected to Production [0m
+[?25l

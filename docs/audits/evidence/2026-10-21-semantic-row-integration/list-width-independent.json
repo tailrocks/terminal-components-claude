@@ -1,0 +1,109 @@
+{
+  "review_commit": "e1d81b106cf69a947c19870bdc1e72c53eadf417",
+  "parent_commit": "40d1d89b7eb9a0abb1b789bde561ccb7cd6c3931",
+  "reviewer": "/root/menu_reason_independent_review",
+  "findings": [],
+  "scope": "Test-only RowUi container-width follow-up; exact one-file diff. No audit is changed by this commit.",
+  "meaningful_assertions": [
+    "Public real List draw callback observes owner width at adjacent43/44/45 with real scrollbar; local label allocation stays narrower, so replacing owner width with label width would fail.",
+    "Real End key navigation is required to display stable gamma key before reorder, then callback width is checked again after data reorder.",
+    "FilterList public query changes real visible item set from3 to1; scrollbar disappears and observed owner width increases by one. Explicit zeta stable key and row count prevent a vacant filtered callback pass.",
+    "Existing three tests retain Tree prefix/trailing/scrollbar and zero-sized public author-row checks."
+  ],
+  "coverage_qualifications": [
+    {
+      "path": "crates/termrock-navigation/tests/row_container_width.rs:282",
+      "note": "Narrow List widths0..4 assert area<=container only; no-row cases may satisfy vacuously. No exact zero-width value is asserted through List."
+    },
+    {
+      "path": "crates/termrock-navigation/tests/row_container_width.rs:379",
+      "note": "Narrow FilterList widths0..4 assert area<=container only; no-row cases may satisfy vacuously."
+    },
+    {
+      "path": "crates/termrock-navigation/tests/row_container_width.rs:273",
+      "note": "Reordering verifies continued callback width and noninitial key, not persistent chosen-key identity. No stable-selection claim granted."
+    },
+    {
+      "note": "All allocations fit the64x8 root; no partially clipped viewport or horizontal/vertical clip boundary test is present. Bounds assertions concern reserved scrollbar, not a complete clipping contract."
+    }
+  ],
+  "exclusions": [
+    "No production change or expectation refresh. No full navigation inventory rerun, full application/PTY visual gate, global API/architecture acceptance, or direct different-profile coverage.",
+    "Known inherited navigation item_row_columns failures from prior separate review are neither rerun nor treated as fixed.",
+    "No helper agents, original checkout mutations, source edits, commits, pushes or tag changes."
+  ],
+  "setup_notes": [
+    "An initial whole-tree archive was stopped by TERM to its own git-archive process group before any tests; a separate exact selected-source archive excludes tracked target artifacts and is the sole validation source.",
+    "One excessive explicit-file archive invocation failed with E2BIG before child creation; neither setup attempt was counted as validation."
+  ],
+  "source_identities": [
+    {
+      "path": "crates/termrock-navigation/tests/row_container_width.rs",
+      "sha256": "d8e2136ca50ca43e0b51f127503db649ea3e612e69ac3035140fb4b0b34acdcd",
+      "exact_git_bytes": true
+    },
+    {
+      "path": "crates/termrock-navigation/src/list.rs",
+      "sha256": "15ffae8d99a1f167271920ebce0382f2b3c1bb97e7ab611b7d759fd386e8d849",
+      "exact_git_bytes": true
+    },
+    {
+      "path": "crates/termrock-navigation/src/filter_list.rs",
+      "sha256": "3d79aecbf54dffd0460c4676969e63bf16ee3f73be3c2bdd44d9f1e144920bf0",
+      "exact_git_bytes": true
+    },
+    {
+      "path": "crates/termrock-runtime/src/rowui.rs",
+      "sha256": "8b5c5e0c03120f20786d6ece6158241d5822bd435725dbf9ebb2263e86e8e9be",
+      "exact_git_bytes": true
+    },
+    {
+      "path": "Cargo.toml",
+      "sha256": "193a03b13a248aa022fcaa2c72c4b8bbddeb5169523360ec3d7e57b555e78074",
+      "exact_git_bytes": true
+    },
+    {
+      "path": "Cargo.lock",
+      "sha256": "b0c5412c430bb522fea7a865823c11493d89da4b8aeb3816e43ba54f0008b68a",
+      "exact_git_bytes": true
+    }
+  ],
+  "decision": "CLEAR_TEST_ONLY_LIST_FILTERLIST_WIDTH_COVERAGE",
+  "verification": {
+    "command": [
+      "rustup",
+      "run",
+      "1.99.1",
+      "cargo",
+      "nextest",
+      "run",
+      "--locked",
+      "-p",
+      "termrock-navigation",
+      "--test",
+      "row_container_width"
+    ],
+    "cwd": "/private/tmp/row-width-e1d81b10-scoped-independent-20261021",
+    "target": "/private/tmp/row-width-e1d81b10-review-owned-target-20261021",
+    "exit": 0,
+    "timed_out": false,
+    "seconds": 192.49198250001064
+  },
+  "test_result": {
+    "run": 5,
+    "passed": 5,
+    "failed": 0,
+    "skipped": 0
+  },
+  "environment": {
+    "CARGO_BUILD_JOBS": 4,
+    "NEXTEST_TEST_THREADS": 4
+  },
+  "readonly_source_status": "",
+  "artifacts": {
+    "source-diff.patch": "97dca622285ee092f91176ca6f1bcbca32fe2926ff0b6f76feb634dfb1c3be4f",
+    "nextest.log": "cbc7bb7e14d392e84d37e0b560f633ed64b24efad944c996fc75368264b509fc",
+    "source-identities.json": "0ad450549646bc80ad227ceaa38b8def5cf1d7f772f7249327bd8226d37385b7",
+    "receipt.json": "e5c94707325c4fea0e683c6ac593e343c93e19e5d18caff0d47169cfe8ebb07a"
+  }
+}

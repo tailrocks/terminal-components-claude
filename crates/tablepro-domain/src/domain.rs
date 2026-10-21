@@ -339,6 +339,7 @@ pub struct ResultGrid {
     total: usize,
     editable: bool,
     source: Option<String>,
+    duration_ms: u32,
     read_only_reason: Option<String>,
 
     display: Vec<Option<String>>,
@@ -384,6 +385,7 @@ impl ResultGrid {
             total: result.total,
             editable: result.editable,
             source: result.source.clone(),
+            duration_ms: result.duration_ms,
             read_only_reason,
             display: Vec::new(),
             undo: Vec::new(),
@@ -406,6 +408,10 @@ impl ResultGrid {
 
     pub fn source(&self) -> Option<&str> {
         self.source.as_deref()
+    }
+
+    pub const fn duration_ms(&self) -> u32 {
+        self.duration_ms
     }
 
     pub fn pending(&self) -> &PendingEdits {
@@ -459,6 +465,30 @@ impl ResultGrid {
         self.undo.push(before);
         self.rebuild_display();
         Some(row)
+    }
+
+    pub fn duplicate_row(&mut self, row: usize, defaults: &[bool]) -> Option<usize> {
+        if !self.editable || defaults.len() != self.types.len() {
+            return None;
+        }
+        let source = self.pending.rows.get(row)?.current.clone();
+        if source.len() != defaults.len() {
+            return None;
+        }
+        let values = source
+            .into_iter()
+            .zip(defaults)
+            .map(
+                |(value, default)| {
+                    if *default { Value::Default } else { value }
+                },
+            )
+            .collect();
+        let before = self.pending.clone();
+        let inserted = self.pending.insert_values(values)?;
+        self.undo.push(before);
+        self.rebuild_display();
+        Some(inserted)
     }
 
     pub fn toggle_delete(&mut self, row: usize) -> bool {
@@ -798,6 +828,33 @@ mod tests {
             preview_sql(&CatalogTable::orders(), &columns(), grid.pending()),
             vec!["INSERT INTO public.orders DEFAULT VALUES;"]
         );
+    }
+
+    #[test]
+    fn duplicate_row_copies_values_and_defaults_key_columns() {
+        let mut grid = ResultGrid::from_result(&sql::ResultSet {
+            columns: columns(),
+            rows: vec![vec![Value::Int(7), Value::Text("kept".to_owned())]],
+            total: 1,
+            source: Some("public.orders".to_owned()),
+            duration_ms: 0,
+            editable: true,
+        });
+        let Some(row) = grid.duplicate_row(0, &[true, false]) else {
+            unreachable!("duplicate")
+        };
+        assert_eq!(row, 1);
+        assert_eq!(grid.pending().value(row, 0), Some(&Value::Default));
+        assert_eq!(
+            grid.pending().value(row, 1),
+            Some(&Value::Text("kept".to_owned()))
+        );
+        assert_eq!(
+            grid.pending().value(0, 1),
+            Some(&Value::Text("kept".to_owned()))
+        );
+        assert!(grid.undo());
+        assert_eq!(grid.row_count(), 1);
     }
 
     #[test]

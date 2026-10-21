@@ -1,0 +1,147 @@
+{
+  "schema": 1,
+  "diagnostic_only": true,
+  "build_admitted": false,
+  "rust_commit": "58cf8f9c35b355199727627d07ae34a4e2846d67",
+  "source_evidence": {
+    "constructor": {
+      "url": "https://raw.githubusercontent.com/rust-lang/rust/58cf8f9c35b355199727627d07ae34a4e2846d67/compiler/rustc_interface/src/util.rs",
+      "local": "pinned-rust-source/util.rs",
+      "lines": [
+        632,
+        636
+      ],
+      "sha256": "f2b1d1937e728f00f8d62ead507e61b662d1ac8cfba6aa83e8dc3db71a813133",
+      "finding": "When sess.opts.incremental is Some, rand::rng().next_u32() is encoded with fixed-length case-insensitive base-N and stored as invocation_temp."
+    },
+    "naming": {
+      "url": "https://raw.githubusercontent.com/rust-lang/rust/58cf8f9c35b355199727627d07ae34a4e2846d67/compiler/rustc_session/src/config.rs",
+      "local": "pinned-rust-source/config.rs",
+      "lines": [
+        1169,
+        1177,
+        1286,
+        1307
+      ],
+      "sha256": "bae41228cdaa3122b80f9dd90f8d4f5d3bd09c2922d23d1f8ba64a5ea2579f14",
+      "finding": "OutputFilenames documents invocation_temp as random per compiler invocation and appends it after the codegen unit name, before .rcgu.o."
+    }
+  },
+  "observed_retained_objects": [
+    {
+      "application": "showcase",
+      "run": "a",
+      "retained_object_count": 512,
+      "retained_suffix_counts": {
+        "07nhpnx": 256,
+        "034oi22": 256
+      },
+      "incremental_directories": [
+        "showcase-2shf8uymw6t10",
+        "showcase-0w1pmxpxumtg8"
+      ]
+    },
+    {
+      "application": "showcase",
+      "run": "b",
+      "retained_object_count": 512,
+      "retained_suffix_counts": {
+        "1oj86sf": 256,
+        "0cr07r4": 256
+      },
+      "incremental_directories": [
+        "showcase-2shf8uymw6t10",
+        "showcase-0w1pmxpxumtg8"
+      ]
+    },
+    {
+      "application": "tablepro",
+      "run": "a",
+      "retained_object_count": 480,
+      "retained_suffix_counts": {
+        "1y9b9bt": 240,
+        "19rq7q3": 240
+      },
+      "incremental_directories": [
+        "tablepro-261rechsu65t2",
+        "tablepro-1d1ds16bmtouq"
+      ]
+    },
+    {
+      "application": "tablepro",
+      "run": "b",
+      "retained_object_count": 480,
+      "retained_suffix_counts": {
+        "0kg046v": 240,
+        "09r4rxd": 240
+      },
+      "incremental_directories": [
+        "tablepro-261rechsu65t2",
+        "tablepro-1d1ds16bmtouq"
+      ]
+    },
+    {
+      "application": "jackin-preview",
+      "run": "a",
+      "retained_object_count": 512,
+      "retained_suffix_counts": {
+        "0suc5p5": 256,
+        "0vjmgep": 256
+      },
+      "incremental_directories": [
+        "jackin_preview-392fd8on77hxu",
+        "jackin_preview-08bcbde94o3jf"
+      ]
+    },
+    {
+      "application": "jackin-preview",
+      "run": "b",
+      "retained_object_count": 512,
+      "retained_suffix_counts": {
+        "0z3wa2b": 256,
+        "0u57ksf": 256
+      },
+      "incremental_directories": [
+        "jackin_preview-392fd8on77hxu",
+        "jackin_preview-08bcbde94o3jf"
+      ]
+    },
+    {
+      "application": "holla",
+      "run": "a",
+      "retained_object_count": 512,
+      "retained_suffix_counts": {
+        "10kw6qo": 256,
+        "0ayzsrp": 256
+      },
+      "incremental_directories": [
+        "holla-2nrd1rhjnfyij",
+        "holla-3ms6y3osgpd57"
+      ]
+    },
+    {
+      "application": "holla",
+      "run": "b",
+      "retained_object_count": 512,
+      "retained_suffix_counts": {
+        "1pgqa18": 256,
+        "1wqmyra": 256
+      },
+      "incremental_directories": [
+        "holla-2nrd1rhjnfyij",
+        "holla-3ms6y3osgpd57"
+      ]
+    }
+  ],
+  "conclusions": [
+    "The differing trailing seven-character .rcgu.o components match the pinned compiler invocation_temp position and random generation, rather than the stable preceding codegen-unit component.",
+    "The retained .rcgu.o filenames corroborate the N_OSO suffixes; this is not only a symbol-table string observation.",
+    "Fixed physical paths control root prefixes and raw remap arguments but do not control this per-invocation random value.",
+    "No rebuild or flags were changed to test or suppress this source of variance."
+  ],
+  "limits": [
+    "A2/B2 did not retain verbose rustc argv, so incremental compiler options were not directly observed in raw compiler invocations. Retained incremental directories, compiler source condition, and matching filename structure support the diagnosis.",
+    "Static section equality and this compiler naming diagnosis do not authorize baseline admission or prove functional/visual parity.",
+    "Serial fixed-path execution may be useful for narrower path/fingerprint diagnosis, but cannot be presented as guaranteeing whole-executable reproducibility while this randomness remains enabled."
+  ]
+}

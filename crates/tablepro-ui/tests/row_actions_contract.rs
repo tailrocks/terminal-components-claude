@@ -1,3 +1,6 @@
+#[path = "common/tab_navigation.rs"]
+mod tab_navigation;
+
 use tablepro_ui::{Tab, TableProApp, Value};
 use termrock::{ColumnKey, GlyphRole, GridModel, ItemKey, KeyCode, Part, PartRef, Theme};
 use termrock_test_support::Harness;
@@ -10,7 +13,7 @@ fn query_harness(query: &str) -> Harness<TableProApp> {
     let Some(id) = h.app().result_id() else {
         unreachable!("grid")
     };
-    assert!(h.tab_to(id));
+    assert!(tab_navigation::tab_to(&mut h, id));
     h
 }
 #[test]
@@ -108,7 +111,7 @@ fn sorted_insert_delete_and_undo_keep_original_row_identity() {
         })
         .collect();
     let _ = h.click_part(id, PartRef::item(Part::HEADER, ItemKey::num(1)));
-    assert!(h.tab_to(id));
+    assert!(tab_navigation::tab_to(&mut h, id));
     let _ = h.key(KeyCode::Char('+'));
     let Some((_, view)) = h.app().workbench.active_grid() else {
         unreachable!("grid")

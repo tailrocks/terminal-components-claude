@@ -129,7 +129,10 @@ enum Stored {
     },
     FocusIn(FocusVia),
     FocusOut(Option<Id>),
-    Layer(LayerEvent),
+    Layer {
+        event: LayerEvent,
+        claimed: Cell<bool>,
+    },
     Cancel,
 }
 
@@ -322,7 +325,39 @@ impl IntentQueue {
     }
 
     pub fn layer(&mut self, owner: Id, ev: LayerEvent) {
-        self.push(owner, Stored::Layer(ev));
+        self.push(
+            owner,
+            Stored::Layer {
+                event: ev,
+                claimed: Cell::new(false),
+            },
+        );
+    }
+
+    /// Claims only the next unclaimed layer event for this owner when its
+    /// payload matches. Other intents in the owner bucket remain observable.
+    pub fn claim_next_layer_event(&self, owner: Id, expected: LayerEvent) -> bool {
+        let Some(bucket) = self.bucket_index(owner).and_then(|i| self.live().get(i)) else {
+            return false;
+        };
+        let claimed = bucket.items.iter().find_map(|stored| match stored {
+            Stored::Layer { event, claimed } if !claimed.get() => Some((event, claimed)),
+            _ => None,
+        });
+        let Some((event, claimed)) = claimed else {
+            return false;
+        };
+        if *event != expected {
+            return false;
+        }
+        claimed.set(true);
+        if bucket.items.iter().all(|stored| match stored {
+            Stored::Binding { claimed, .. } | Stored::Layer { claimed, .. } => claimed.get(),
+            _ => false,
+        }) {
+            bucket.drained.set(true);
+        }
+        true
     }
 
     pub fn cancel(&mut self, owner: Id) {
@@ -332,7 +367,15 @@ impl IntentQueue {
     pub fn undrained(&self) -> impl Iterator<Item = Id> + '_ {
         self.live()
             .iter()
-            .filter(|b| !b.drained.get() && !b.items.is_empty())
+            .filter(|b| {
+                !b.drained.get()
+                    && b.items.iter().any(|stored| match stored {
+                        Stored::Binding { claimed, .. } | Stored::Layer { claimed, .. } => {
+                            !claimed.get()
+                        }
+                        _ => true,
+                    })
+            })
             .map(|b| b.owner)
     }
 
@@ -341,14 +384,9 @@ impl IntentQueue {
             .and_then(|i| self.live().get(i))
             .is_some_and(|b| {
                 b.items.iter().any(|s| {
-                    matches!(
-                        s,
-                        Stored::Binding { .. }
-                            | Stored::Layer(_)
-                            | Stored::Cancel
-                            | Stored::FocusIn(_)
-                            | Stored::FocusOut(_)
-                    )
+                    matches!(s, Stored::Cancel | Stored::FocusIn(_) | Stored::FocusOut(_))
+                        || matches!(s, Stored::Binding { claimed, .. } if !claimed.get())
+                        || matches!(s, Stored::Layer { claimed, .. } if !claimed.get())
                 })
             })
     }
@@ -430,7 +468,7 @@ impl IntentQueue {
             },
             Stored::FocusIn(via) => Intent::FocusIn { via: *via },
             Stored::FocusOut(to) => Intent::FocusOut { to: *to },
-            Stored::Layer(ev) => Intent::Layer(*ev),
+            Stored::Layer { event, .. } => Intent::Layer(*event),
             Stored::Cancel => Intent::Cancel,
         }
     }
@@ -478,7 +516,8 @@ impl<'f> Iterator for IntentIter<'f> {
         loop {
             let s = b.items.get(self.pos)?;
             self.pos = self.pos.wrapping_add(1);
-            if matches!(s, Stored::Binding { claimed, .. } if claimed.get()) {
+            if matches!(s, Stored::Binding { claimed, .. } | Stored::Layer { claimed, .. } if claimed.get())
+            {
                 continue;
             }
             return Some(self.queue.materialize(s));
@@ -551,6 +590,36 @@ mod tests {
         q.cancel(a);
         assert_eq!(q.undrained().collect::<Vec<_>>(), vec![a]);
         let _ = q.iter(a);
+        assert_eq!(q.undrained().count(), 0);
+    }
+
+    #[test]
+    fn claiming_layer_receipt_preserves_unrelated_intents_and_diagnostics() {
+        let mut q = IntentQueue::new();
+        let owner = Id::root("completion");
+        let event = LayerEvent::Dismissed(crate::layer_types::DismissReason::Programmatic);
+        q.layer(owner, event);
+        q.key(
+            owner,
+            Key {
+                code: KeyCode::Enter,
+                mods: KeyModifiers::NONE,
+            },
+        );
+
+        assert!(!q.claim_next_layer_event(
+            owner,
+            LayerEvent::Dismissed(crate::layer_types::DismissReason::Esc)
+        ));
+        assert!(q.claim_next_layer_event(owner, event));
+        assert_eq!(q.undrained().collect::<Vec<_>>(), vec![owner]);
+        assert_eq!(
+            q.iter(owner).collect::<Vec<_>>(),
+            vec![Intent::Key(Key {
+                code: KeyCode::Enter,
+                mods: KeyModifiers::NONE,
+            })]
+        );
         assert_eq!(q.undrained().count(), 0);
     }
 

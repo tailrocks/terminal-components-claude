@@ -1,0 +1,111 @@
+{
+  "observed_utc": "2026-10-20T17:37:13.659960+00:00",
+  "integration_head": "a3ea90efc14181a22d06a95231a61ad4faee1aec",
+  "deleted": [
+    {
+      "branch": "parity/composition-fallible-20261020",
+      "tip": "8cecb53b26470f7de6edfe6bbc95b25711cf1570",
+      "ancestor_of": "a3ea90efc14181a22d06a95231a61ad4faee1aec",
+      "literal_ancestor": true,
+      "open_pr": false,
+      "protected": false,
+      "ownership": "Task-owned contract branch from committed96-branch review",
+      "review_evidence": "Previously independently reviewed component/runtime stack; current integrated composition/runtime/dialog gates recorded in parent migration records.",
+      "disposition": "eligible-after-final-atomic-recheck",
+      "reason": "Exact tip literal ancestor, reviewed contract, no open PR and branch protection false; main-only ruleset does not apply."
+    },
+    {
+      "branch": "parity/composition-plan-final-20261020",
+      "tip": "6e81c0034989b11321e64cc2da0bb617c37b896c",
+      "ancestor_of": "a3ea90efc14181a22d06a95231a61ad4faee1aec",
+      "literal_ancestor": true,
+      "open_pr": false,
+      "protected": false,
+      "ownership": "Task-owned contract branch from committed96-branch review",
+      "review_evidence": "Previously independently reviewed component/runtime stack; current integrated composition/runtime/dialog gates recorded in parent migration records.",
+      "disposition": "eligible-after-final-atomic-recheck",
+      "reason": "Exact tip literal ancestor, reviewed contract, no open PR and branch protection false; main-only ruleset does not apply."
+    },
+    {
+      "branch": "parity/composition-slots-runtime-20261020",
+      "tip": "10ab21cdb33939ec5ead16b1923c8f91a4bf5cb8",
+      "ancestor_of": "a3ea90efc14181a22d06a95231a61ad4faee1aec",
+      "literal_ancestor": true,
+      "open_pr": false,
+      "protected": false,
+      "ownership": "Task-owned contract branch from committed96-branch review",
+      "review_evidence": "Previously independently reviewed component/runtime stack; current integrated composition/runtime/dialog gates recorded in parent migration records.",
+      "disposition": "eligible-after-final-atomic-recheck",
+      "reason": "Exact tip literal ancestor, reviewed contract, no open PR and branch protection false; main-only ruleset does not apply."
+    },
+    {
+      "branch": "parity/dialog-dismissal-contract-20261020",
+      "tip": "27e1837a79d5035aaa1d2911d16b5921ca8ad643",
+      "ancestor_of": "a3ea90efc14181a22d06a95231a61ad4faee1aec",
+      "literal_ancestor": true,
+      "open_pr": false,
+      "protected": false,
+      "ownership": "Task-owned contract branch from committed96-branch review",
+      "review_evidence": "Previously independently reviewed component/runtime stack; current integrated composition/runtime/dialog gates recorded in parent migration records.",
+      "disposition": "eligible-after-final-atomic-recheck",
+      "reason": "Exact tip literal ancestor, reviewed contract, no open PR and branch protection false; main-only ruleset does not apply.",
+      "registered_worktree": "/private/tmp/termrock-dialog-generation-fix-20261020",
+      "tracked_dirty_count": 1301,
+      "non_build_dirty_paths": []
+    },
+    {
+      "branch": "parity/dialog-layout-contract-20261020",
+      "tip": "86226a2442f37621bbef91dd50b9b7bc3104659b",
+      "ancestor_of": "a3ea90efc14181a22d06a95231a61ad4faee1aec",
+      "literal_ancestor": true,
+      "open_pr": false,
+      "protected": false,
+      "ownership": "Task-owned contract branch from committed96-branch review",
+      "review_evidence": "Previously independently reviewed component/runtime stack; current integrated composition/runtime/dialog gates recorded in parent migration records.",
+      "disposition": "eligible-after-final-atomic-recheck",
+      "reason": "Exact tip literal ancestor, reviewed contract, no open PR and branch protection false; main-only ruleset does not apply."
+    },
+    {
+      "branch": "parity/nested-composition-20261020",
+      "tip": "7195d29782fba5ae5040cc56ac900bb48f517381",
+      "ancestor_of": "a3ea90efc14181a22d06a95231a61ad4faee1aec",
+      "literal_ancestor": true,
+      "open_pr": false,
+      "protected": false,
+      "ownership": "Task-owned contract branch from committed96-branch review",
+      "review_evidence": "Previously independently reviewed component/runtime stack; current integrated composition/runtime/dialog gates recorded in parent migration records.",
+      "disposition": "eligible-after-final-atomic-recheck",
+      "reason": "Exact tip literal ancestor, reviewed contract, no open PR and branch protection false; main-only ruleset does not apply."
+    },
+    {
+      "branch": "parity/runtime-picker-allocation-20261020",
+      "tip": "ce81e0adee987812788effd39d70acd242b0e95b",
+      "ancestor_of": "a3ea90efc14181a22d06a95231a61ad4faee1aec",
+      "literal_ancestor": true,
+      "open_pr": false,
+      "protected": false,
+      "ownership": "Task-owned contract branch from committed96-branch review",
+      "review_evidence": "Previously independently reviewed component/runtime stack; current integrated composition/runtime/dialog gates recorded in parent migration records.",
+      "disposition": "eligible-after-final-atomic-recheck",
+      "reason": "Exact tip literal ancestor, reviewed contract, no open PR and branch protection false; main-only ruleset does not apply.",
+      "registered_worktree": "/Users/donbeave/Projects/termrock-worktrees/runtime-query-consolidate-20261020",
+      "tracked_dirty_count": 1301,
+      "non_build_dirty_paths": []
+    },
+    {
+      "branch": "parity/shared-style-review-20261020",
+      "tip": "4a0ab4983b84b4909d0182a323eb6e1714651691",
+      "ancestor_of": "a3ea90efc14181a22d06a95231a61ad4faee1aec",
+      "literal_ancestor": true,
+      "open_pr": false,
+      "protected": false,
+      "ownership": "Task-owned contract branch from committed96-branch review",
+      "review_evidence": "Previously independently reviewed component/runtime stack; current integrated composition/runtime/dialog gates recorded in parent migration records.",
+      "disposition": "eligible-after-final-atomic-recheck",
+      "reason": "Exact tip literal ancestor, reviewed contract, no open PR and branch protection false; main-only ruleset does not apply."
+    }
+  ],
+  "remaining_remote_heads": 86,
+  "method": "Independent review plus final exact-tip, literal-ancestor, protection and open-PR checks; atomic expected-old-SHA deletion. Local files and branches preserved.",
+  "acceptance_complete": false
+}

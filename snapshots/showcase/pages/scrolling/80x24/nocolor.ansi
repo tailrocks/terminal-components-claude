@@ -1,0 +1,25 @@
+ ▪ [0m[1mJunie[0m Design system  Layout › [0m[1mScrolling[0m                i Inspector   ? Help  [0m
+                                                                                [0m
+ [0m[1mComponents[0m      54  [0m[1mScrolling[0m  Wheel under the pointer, keys on the focused c… [0m
+ ──────────────────                                                             [0m
+    Overview         [0m[1m Playground  [0m  Options    States                           [0m
+  ▸ App shell        ━━━━━━━━━━━━━──────────────────────────────────────────────[0m
+  ▸ Inputs & forms                                                              [0m
+  ▸ Tables            Wrap… 1–7 of 201    Long… 1–7 of 120    Log              ┃[0m
+  ▸ Navigation        ────────────────    ────────────────    ───────────────  ┃[0m
+  ▸ Overlays          Junie works    ┃       Row 001     ┃    [0m[2m 737.78s  in… [0m┆  ┃[0m
+  ▸ Feedback          through a task ┆       Row 002     ┆     738.15s  in… ┆  ┃[0m
+  ▾ Layout            the way a      ┆       Row 003     ┆     738.52s  wa… ┆  ┃[0m
+      Panels          careful        ┆       Row 004     ┆     738.89s  in… ┆  ┆[0m
+ [0m[1m▎  › Scrolling    [0m   engineer       ┆       Row 005     ┆     739.26s  in… ┆  ┆[0m
+      Splits & st…    would: it      ┆       Row 006     ┆     739.63s  in… ┃  ┆[0m
+      Master-deta…    [0m[2mreads the      [0m┆    [0m[2m   Row 007     [0m┆    ━━┄┄┄┄┄┄┄┄┄┄┄┄   ┆[0m
+      Pane tree                                                                ┆[0m
+  ▸ Text & code                                                                ┆[0m
+  ▸ Screens                                                                    ┆[0m
+                                                                               ┆[0m
+                                                                               ┆[0m
+                                                                               ┆[0m
+                                                                                [0m
+ [0m[1m↑↓[0m Move  [0m[1mEnter[0m Open  [0m[1m/[0m Filter  [0m[1mTab[0m Into page  [0m[1mq[0m Quit                           [0m
+[?25l

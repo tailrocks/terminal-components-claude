@@ -15,7 +15,7 @@ pub(crate) use termrock_theme as theme;
 
 pub use termrock_core::action::ActionKey;
 pub use termrock_core::intent::Phase;
-pub use termrock_runtime::{ReferenceState, ReferenceTarget, ScrollRegion};
+pub use termrock_runtime::{ReferenceState, ReferenceTarget, ScrollRegion, ScrollbarGutter};
 pub use termrock_text::{Secret, SecretPolicy};
 
 pub(crate) use termrock_runtime::{
@@ -32,8 +32,12 @@ pub mod tabs;
 pub mod tree;
 
 pub use chip::{ChipBar, ChipBarAction, ChipBarCmd, ChipBarState, LabelChips};
-pub use filter_list::{FilterList, FilterListAction, FilterListCmd, FilterListState, FilterPolicy};
-pub use item::{AsItem, Item, ItemColumns, ItemRow, ItemRowLayout};
+pub use filter_list::{
+    FilterList, FilterListAction, FilterListCmd, FilterListState, FilterPolicy, SelectionPolicy,
+};
+pub use item::{
+    AsItem, Item, ItemColumns, ItemLabelOverflow, ItemRow, ItemRowLayout, SemanticItemRow,
+};
 pub use list::{List, ListAction, ListCmd, ListState};
 pub use nav_list::{BadgeFn, NavList, NavListAction, NavListCmd, NavListState, NavMode};
 pub use steps::{StepState, Steps, StepsAction, StepsCmd, StepsState};

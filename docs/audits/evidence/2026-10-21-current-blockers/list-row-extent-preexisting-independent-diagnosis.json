@@ -1,0 +1,86 @@
+{
+  "kind": "read_only_diagnostic_packet",
+  "created_utc_date": "2026-10-21",
+  "scope": "Compare the three termrock-navigation list_row_extent failures at the exact pre-publication commit 5f656a183 and the Picker-integrated PR38 snapshot 78819009b.",
+  "result": "The three failures reproduce unchanged at both commits; these are pre-existing relative to 5f656a183 and are not evidence of a regression introduced by the intervening Picker integration. This finding is diagnostic only and is not approval of either commit or acceptance of the failing List behavior.",
+  "tested_commits": {
+    "before": {
+      "sha": "5f656a1833e543fb39723498513533e5753b257e",
+      "role": "Exact requested pre-Picker comparison point"
+    },
+    "picker_integrated_snapshot": {
+      "sha": "78819009b2b366a9b58ab52cde82ea1fe1fffeb5",
+      "role": "Exact PR38 snapshot reviewed before Picker publication"
+    },
+    "scope_note": "The shared parent worktree advanced after this diagnostic snapshot; a later HEAD was observed during packet writing. This packet makes no claim about commits after 78819009b2b366a9b58ab52cde82ea1fe1fffeb5."
+  },
+  "command": "cargo nextest run -p termrock-navigation --test list_row_extent",
+  "command_wrapped_for_log_capture": "set -o pipefail; cargo nextest run -p termrock-navigation --test list_row_extent 2>&1 | tee <commit-specific-log>",
+  "environment": {
+    "TERM": "dumb",
+    "NO_COLOR": "1",
+    "CARGO_TARGET_DIR": "unset (Cargo default target directory)",
+    "RUSTFLAGS": "unset",
+    "comparison": "Both commands inherited the same shell environment and used identical command arguments. Only checkout path and git commit differed."
+  },
+  "runs": {
+    "before": {
+      "exit_code": 100,
+      "nextest_run_id": "ac80f45d-0567-406e-92f1-ae1542bc5001",
+      "summary": "10 tests run: 7 passed, 3 failed, 0 skipped",
+      "log_path": "/private/tmp/termrock-list-row-extent-before-5f656a183.log",
+      "log_sha256": "35267fc1aee107f15fe85b8d4746dd0d9b9cb9bd03fb41573a7ad9425f6f0c35"
+    },
+    "picker_integrated_snapshot": {
+      "exit_code": 100,
+      "nextest_run_id": "c4c0ed59-12ad-4155-829e-e1d44b708383",
+      "summary": "10 tests run: 7 passed, 3 failed, 0 skipped",
+      "log_path": "/private/tmp/termrock-list-row-extent-current-78819009b.log",
+      "log_sha256": "166294fca048805f7668fcaef804f1f2ca7745af613af129254ac7ab47fd0b8c"
+    }
+  },
+  "same_failures_both_runs": [
+    {
+      "test": "termrock-navigation::list_row_extent::three_lines_share_key_and_gap_has_no_item_hit",
+      "source": "crates/termrock-navigation/tests/list_row_extent.rs:105",
+      "failure": "chosen item after click at (2, 6): actual Some(Num(10)), expected Some(Num(20))"
+    },
+    {
+      "test": "termrock-navigation::list_row_extent::reveal_wheel_and_resize_preserve_stride_and_reach_last_key",
+      "source": "crates/termrock-navigation/tests/list_row_extent.rs:117",
+      "failure": "scroll offset after wheel: actual 0, expected 12"
+    },
+    {
+      "test": "termrock-navigation::list_row_extent::scrollbar_drag_and_multi_step_wheel_share_row_aligned_extent",
+      "source": "crates/termrock-navigation/tests/list_row_extent.rs:163",
+      "failure": "scroll offset after multi-step wheel: actual 0, expected 12"
+    }
+  ],
+  "source_comparison": {
+    "list_implementation_path": "crates/termrock-navigation/src/list.rs",
+    "before_sha256": "71cf345bb054c745ee19b232714d45ee4ccbdb13a01e6bf82974a9e5cd5903ca",
+    "picker_integrated_sha256": "71cf345bb054c745ee19b232714d45ee4ccbdb13a01e6bf82974a9e5cd5903ca",
+    "git_diff_exit_code_for_list_rs": 0,
+    "test_path": "crates/termrock-navigation/tests/list_row_extent.rs",
+    "before_test_sha256": "a1a20668c7badebf45f109756ea07a9eb0c12bf4fc52f9962b6c1e8b5c6026b8",
+    "picker_integrated_test_sha256": "a1a20668c7badebf45f109756ea07a9eb0c12bf4fc52f9962b6c1e8b5c6026b8",
+    "git_diff_exit_code_for_test": 0,
+    "intervening_navigation_files": [
+      "crates/termrock-navigation/src/filter_list.rs",
+      "crates/termrock-navigation/src/lib.rs"
+    ],
+    "interpretation": "The List implementation and the failing regression-test source are byte-identical across the paired commits. Picker changes do not touch the implementation exercised by these failing List tests."
+  },
+  "handling": {
+    "required": "Keep failures visible; assign the List geometry/input issue to a separate owner and resolve it with the existing tests.",
+    "prohibited": "Do not skip, weaken, delete, or rebaseline these tests to accommodate the Picker change.",
+    "status": "Pre-existing blocker recorded; not fixed in this read-only task."
+  },
+  "worktree_cleanup": {
+    "temporary_worktrees_created": [
+      "/private/tmp/termrock-nav-extent-before-record-5f656a183",
+      "/private/tmp/termrock-nav-extent-current-record-78819009b"
+    ],
+    "cleanup": "Remove both after packet hashes and contents are recorded."
+  }
+}

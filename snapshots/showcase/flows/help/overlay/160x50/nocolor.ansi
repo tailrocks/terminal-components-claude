@@ -1,0 +1,50 @@
+ ▪ Junie Design system / Foundations / Overview                                                                       no color · 160×50   i Inspector   ? Help  [0m
+                                                                                                                                                                [0m
+   Foundations            Overview  Tokens and principles behind every component                                                                                [0m
+ › Overview                                                                                                                                                     [0m
+                            Tokens                                          Principles                                                                          [0m
+   Components                                                                                                                                                   [0m
+   Buttons                      ▏ canvas                      #000000       One hue                                                                             [0m
+   Inputs                       ▏ surface                     #111111       Green means focus, primary action or selection. Everything else is achromatic.      [0m
+   Text areas                   ▏ surface.elevated            #18181b                                                                                           [0m
+   Forms                        ▏ surface.overlay             #27272a       Alpha ladder                                                                        [0m
+   Lists                        ▏ field                       #1e1e22       Text and borders step down in white opacity, never in arbitrary grays.              [0m
+   Trees                        ▏ popover                     #3f3f46                                                                                           [0m
+   Tables                       ▏ border.subtle             white 15%       State is geometry                                                                   [0m
+   Editable tables              ▏ border.strong             white 30%       Hover lifts the surface, focus adds a bar, selection adds a marker, editing shows   [0m
+   Panels                       ▏ text.primary                #ffffff       the cursor.                                                                         [0m
+   Sidebars                     ▏ text.secondary            white 70%                                                                                           [0m
+   Dialogs                      ▏ text.muted ╭────────────────────────────────────────────────────────────────────╮                                             [0m
+   Progress                     ▏ text.faint │                                                                    │from lightness, not borders.                 [0m
+   Scrolling                    ▏ accent     │  [0m[1mKeyboard & mouse[0m                                                  │                                             [0m
+   Terminal                     ▏ accent.hove│                                                                    │                                             [0m
+   Code editor                  ▏ accent.pres│  Tab / Shift+Tab   move keyboard focus                             │l. No box around a thing unless the box      [0m
+   Diff                         ▏ accent.bg  │  ↑ ↓ ← →           move inside the focused control                 │                                             [0m
+   Data grid                    ▏ error      │  Enter / Space     activate · start editing                        │                                             [0m
+   Chips & selects              ▏ warning    │  Esc               cancel editing · back to navigation             │                                             [0m
+   Pickers                      ▏ info       │  [ ]               previous / next page                            │                                             [0m
+   Chrome                                    │  0                 jump to navigation                              │                                             [0m
+                                             │  i                 toggle state inspector                          │                                             [0m
+   Screens                                   │  q                 quit                                            │                                             [0m
+   Settings                                  │                                                                    │                                             [0m
+   Task runner                               │  Mouse: hover to preview, click to focus and activate, wheel to    │                                             [0m
+                                             │  scroll, drag the scrollbar thumb.                                 │                                             [0m
+                                             │                                                                    │                                             [0m
+                                             │                                                           ▎[0m[1mClose [0m  │                                             [0m
+                                             │                                                                    │                                             [0m
+                                             ╰────────────────────────────────────────────────────────────────────╯                                             [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+ [0m[1m← →[0m Choose  [0m[1mEnter[0m Confirm  [0m[1mEsc[0m Cancel                                                                                                                          [0m

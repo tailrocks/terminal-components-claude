@@ -1,0 +1,100 @@
+{
+  "reviewed_commit": "536ac2603663bff241fe4f11ac121a4045a8843e",
+  "source_fix_commit": "aa1d11a19f2bc71b188839bc74bd0e133617086d",
+  "prior_merged_head": "adec59ba6780bfb83a3e9959473dea3d959f3c93",
+  "source_copy": "/private/tmp/termrock-button-2b3e-review",
+  "verdict": "Bounded focus-activation repair cleared. No new finding in this repair; full Button product parity remains incomplete.",
+  "acceptance_complete": false,
+  "exact_source_binding": {
+    "button_blob": "364bb164bbd704f1a09399e35042603687d40d72",
+    "controls_source_equal_to_fix_commit": true,
+    "all_Rust_crates_unchanged_between_prior_merged_head_and_reviewed_tip": true,
+    "CI_docs_tool_pin_changes_not_approved_by_this_Button_review": true
+  },
+  "resolved_finding": {
+    "id": "BUTTON-KEYBOARD-ONLY-FIRST-KEY-LOST",
+    "previous_review_commit": "2b3ef2987690cf9cf1f5ff55cd550c828c42125b",
+    "repair": "Bindings publish actual live runtime focus flags before visibility policy is applied. A separate style_flags copy masks or promotes only shared style resolution. Update/action engine and focus ownership remain unchanged.",
+    "unchanged_original_no_Tab_pointer_then_first_Enter_and_Space_probe": "passes",
+    "new_separate_first_Space_probe": "passes",
+    "custom_FOCUSED_label_recipe": "KeyboardOnly hides pointer focus styling while preserving action ownership; first keyboard activation succeeds and switches to visible keyboard styling.",
+    "real_modal_probe": "Always background button has no focus bar while modal Close button owns focus. Enter closes modal and restores background focus without activating background again."
+  },
+  "verification": {
+    "external_public_contracts": {
+      "passed": 12,
+      "failed": 0,
+      "skipped": 0,
+      "source": "/private/tmp/termrock-button-2b3e-probes/tests/contract.rs",
+      "includes": "Original7 authored cases, unchanged original independent failing no-Tab regression, default Always pointer probe, separate first-Space, custom FOCUSED style recipe, real modal ownership/restoration."
+    },
+    "native_controls": {
+      "command": "cargo nextest run --locked -p termrock-controls --all-targets --no-fail-fast",
+      "passed": 120,
+      "failed": 0,
+      "skipped": 0
+    },
+    "strict_clippy": "cargo clippy --locked -p termrock-controls --all-targets -- -D warnings passed",
+    "scoped_format": "rustfmt --check --edition2024 button.rs/lib.rs/button_contract.rs passed",
+    "git_diff_check": "passed; read-only source checkout clean"
+  },
+  "preserved_contracts": [
+    "Constructors, IDs, typed activation/update path, per-button policy and inherited-disabled forwarding remain intact.",
+    "Busy plus checked still reserves one prefix; no marker extra-width regression reintroduced.",
+    "Owner-wide inert reference resolves actual parts, with zero live control registration/cursor or action dispatch.",
+    "Explicit MARKER Set/Clear and slot priority retained; no captured-frame renderer or new input system."
+  ],
+  "remaining_findings": [
+    {
+      "id": "BUTTON-NARROW-FROZEN-FIT",
+      "priority": "P2",
+      "path": "crates/termrock-controls/src/button.rs:420",
+      "status": "Existing product gap; not introduced by focus repair.",
+      "problem": "Overflowing labels are clipped by paint_str, whereas frozen Button uses shared fit/truncate with an ellipsis.",
+      "actual_probe": "5-cell button labelled\u4e16\u754c: label text atx1 is\u4e16, butx3 isblank. Frozen 3-cell text fit is\u4e16\u2026.",
+      "reference_paths": [
+        "4169783:src/widgets/button.rs:209",
+        "4169783:src/ui/text.rs:92",
+        "4169783:src/ui/text.rs:214"
+      ],
+      "test_source": "/private/tmp/termrock-button-2b3e-probes/tests/narrow_reference.rs",
+      "result": "One intentional diagnostic failure retained. This is separate from the12 passing bounded-contract tests.",
+      "next_owner": "Shared Button/text contract follow-up; do not change approvals or use an app-local correction painter."
+    },
+    {
+      "id": "BUTTON-ONE-CELL-MARKER-ROLE",
+      "status": "Previously recorded unresolved API/product gap.",
+      "problem": "Current checked SwitchKnob fallback and blank unchecked fallback are preserved. Frozen one-cell dots require a generic one-cell semantic role; three-cell RadioOn/Off must not be forced into this lane."
+    }
+  ],
+  "scope_limits": [
+    "No full Button/Showcase acceptance; remaining reference fit and marker gaps are not waived.",
+    "No application binaries, PTY flows, snapshots, expected-data edits, full paired gates or final PR integration acceptance.",
+    "Unrelated merged CI/theme/runtime changes are not independently approved by this bounded Button review."
+  ],
+  "logs": {
+    "public12": {
+      "path": "/private/tmp/termrock-button-536a-public.log",
+      "sha256": "555d686d0e421cbf057d405c1d9366b3c546077affc24126464dc660c97936a7"
+    },
+    "native120": {
+      "path": "/private/tmp/termrock-button-536a-native.log",
+      "sha256": "d594d44efdbc91ca38a4afb9ce48979943930247cf4b04cbce18e314f4704d59"
+    },
+    "clippy": {
+      "path": "/private/tmp/termrock-button-536a-clippy.log",
+      "sha256": "172a09d5419f36c516b6ff2164c687c93e2aafa4ca3b0f9fa34458fcf644a9a6"
+    },
+    "format": {
+      "path": "/private/tmp/termrock-button-536a-format.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "remaining_narrow_reference_failure": {
+      "path": "/private/tmp/termrock-button-536a-narrow-reference.log",
+      "sha256": "b6bc57f2a3df5db697a9dffc7ab8468b5d5d3366423f32966ceb10c4399c7f97"
+    }
+  },
+  "source_edits": false,
+  "helpers_spawned": false,
+  "applications_launched": false
+}

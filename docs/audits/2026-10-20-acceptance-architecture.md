@@ -1,0 +1,48 @@
+# Bounded architecture acceptance gate, 2026-10-20
+
+## Purpose
+
+`tools/acceptance_architecture.py` checks a narrow, source-bound set of architecture facts independently of `termrock-xtask` ownership exceptions. `tools/acceptance_policy.json` fixes the expected 19 production library package names, four application targets, and prohibited library dependency classes. The checker resolves locked Cargo metadata, rejects missing or duplicate roles, traverses normal and target-specific workspace dependency edges (including renamed dependencies), checks each binary's library dependency closure, and scans Cargo target source paths plus conservative package source inputs. Literal includes and `#[path]` modules are followed to a fixed point; cycles and unreadable/out-of-root inputs fail closed. It flags known coordinate-run frame stamps and ANSI snapshot replay in libraries and every workspace package in production dependency closures.
+
+Its report always sets `acceptance_complete` to `false`. A clean bounded architecture result cannot establish thin application composition, complete workflows, exact real-CLI parity, complete generated-input accounting, or independent semantic review. No exception inventory is loaded. Existing ownership exceptions cannot suppress these findings.
+
+## Evidence
+
+The same checker and policy bytes were used against both source revisions. Reports are retained outside the repository at `/Users/donbeave/Projects/termrock-cli-evidence-20261020/architecture-check-module-path-pr.json` and `architecture-check-module-path-design.json`.
+
+| Source | Architecture check | Evidence |
+| --- | --- | --- |
+| PR branch source `eebcbadccb183b43e314e21e6dcca3750e342539` | **Red**: 89 captured-frame/replay findings; 0 dependency violations; 0 source read errors or unaccounted inputs | 542 hashed inputs; 19 expected library roles and 4 binary targets found; every application binary reaches a shared library package. Source manifest SHA-256 `976d5bb450522a402755b989875bec182fe91461e5cf16c87f676b07a771071c`. |
+| Frozen design source `631c8f33a5c97a4b622e855874493a4107ac3c04` | **Red**: 19 production library roles missing; all four application binaries lack a reusable termrock dependency closure; 4 frame/replay findings | 425 hashed inputs; one dynamic include is unaccounted and one symlinked target path is unreadable/out-of-root; all four application closures are missing. Source manifest SHA-256 `ea257932f8f5b638f301b08b98fac8c6e0a934e632d382e8215780b89ea1ff71`. |
+
+The policy SHA-256 was `4b7641d76546448660cba8bb2252d488a1c23c5f8818f379ca7f43d23bc47982`; checker SHA-256 was `1f7a1089e688baaab67b00bb8a7125e4b67e43f8ffa003e29cac47b19868ba98`. Both reports have `acceptance_complete: false`. The PR's 89 findings break down to 10 frame markers, 44 coordinate-run stamp types, and 35 ANSI frame replays. The design source also has one dynamic include input that the checker cannot enumerate.
+
+Commands:
+
+```sh
+python3 tools/acceptance_architecture.py --root . --output /tmp/architecture-report.json
+python3 -m unittest discover -s tools -p test_acceptance_architecture.py
+```
+
+The regression suite covers the monolithic workspace, missing roles, transitive renamed target-specific dependencies (including helper source scanning), out-of-root source symlinks, in-root and out-of-root directory symlinks and cycles, renamed/moved coordinate stamps in a library, ignored exception files, ordinary ANSI controls, dynamic generated includes, build-script unresolved inputs, custom library target paths, explicit and untracked modules beneath `tests`, actual Cargo target-directory pruning, custom build targets, nested include/path traversal, recursive include cycles, and application dependency closure. Result: 21 tests passed. `py_compile` and `git diff --check` also passed.
+
+## Limits and next checks
+
+This is a lexical and Cargo-graph guard, not proof that a screen is composed from reusable widgets. To catch source modules beneath names such as `tests`, `examples`, or `benches`, it conservatively scans Rust files throughout each production package except the resolved Cargo target directory. This can produce findings in non-production test/example code; that is an intentional false-positive risk rather than a claim of semantic module ownership. Literal includes and `#[path]` are followed, while a full Rust module parser is out of scope. Generated inputs cannot be fully derived from static Cargo metadata; build scripts remain explicitly unresolved. Directory symlinks are followed inside the workspace, rejected when they escape, and reported as errors on cycles or unreadable targets. A future aggregator must keep overall acceptance false until full frozen real-CLI workflows, paired frame and functional comparisons, full workspace checks, isolated production-library checks, complete generated-input accounting, and a current independent semantic review all pass. Production stamp detection should expand when review finds new mechanisms; zero lexical findings alone must never be treated as architecture completion.
+
+## Follow-up: fail-closed source accounting
+
+Independent review found source-inventory false greens after the evidence above was recorded. The first repair passed 23 tests, then reviews found custom and nested module layouts. The current suite passes all 39 tests.
+
+- A normal `mod name;` declaration could resolve through a source-directory symlink into Cargo's pruned target directory without entering the scan. The checker now marks such declarations as explicitly unaccounted. It does not traverse the target directory, which may contain large build output. Regression test: `test_declared_module_into_pruned_target_directory_is_unaccounted`.
+- The declaration check must also handle custom Cargo crate roots (including roots outside the package directory), inline module scopes, and raw identifiers without a full Rust parser. The checker now finds directory-symlink names into Cargo's target directory without following those links, rooted at the package and each actual Cargo target source directory. It conservatively marks matching declared module names anywhere under those roots as unaccounted. This can produce false positives when the alias and declaration occupy unrelated module scopes. Literal `#[path]` files resolving inside Cargo's target directory are also explicitly unaccounted. Regression tests: `test_custom_cargo_root_module_alias_into_target_is_unaccounted`, `test_nested_inline_module_alias_into_target_is_unaccounted`, `test_out_of_package_cargo_root_and_raw_identifier_alias_are_unaccounted`, and `test_path_attribute_file_alias_into_target_is_unaccounted`.
+- Missing live include files could be read from Git's index, even though Cargo compiles from the live filesystem. Source reads now require a readable live file; the index is used only for tracked-file inventory. Regression test: `test_missing_live_include_does_not_fall_back_to_git_index`.
+- A Cargo production target can point outside its package while still remaining inside the workspace. Entry files and literal includes are scanned, but the lexical checker cannot prove that every ordinary child module is accounted. Any such target now emits an explicit unresolved package-tree input; known entry hashes and findings remain in the report. Regression test: `test_out_of_package_cargo_root_with_ordinary_module_tree_fails_closed`.
+- The same incomplete-tree risk applies when `include!` or `#[path]` selects Rust source outside the consuming package, including transitive cross-package `include!` chains. Those references now emit the same unresolved module-tree finding while preserving hashes and lexical findings for every known literal input. `include_str!` and `include_bytes!` remain data inputs: literal files are fully read and hashed, and are not parsed for child Rust modules. Dynamic paths remain unaccounted. Regression tests cover outside-package `#[path]`, direct and transitive Rust includes, and external string/byte data.
+- Include macro discovery now recognizes whitespace/comments between macro name, `!`, and delimiter, plus `()`, `{}`, and `[]`. It accepts only a plain, unescaped string literal argument. Dynamic expressions, raw strings, escaped paths, unterminated comments/delimiters, and other forms emit explicit unaccounted inputs. Regression coverage spans all three include macro families and all delimiters.
+- The bounded scanner now distinguishes valid multiline and escaped-newline strings, raw strings, char and byte-char literals, and lifetimes while locating include heads. Malformed literals or comments that prevent safe scanning emit explicit lexical uncertainty rather than suppressing remaining source. The scanner remains lexical and does not claim compiler-complete Rust parsing.
+- `#[path]` discovery now uses the same bounded Rust lexical boundaries, including comment trivia, raw path strings, and nested `cfg_attr(..., path = ...)` metadata. Literal paths are followed and outside-package module trees fail closed; dynamic, malformed, or unsupported path metadata is explicitly unaccounted. Regression tests cover raw literals and commented nested `cfg_attr` paths into an external module tree. This is conservative metadata scanning, not a full Rust attribute parser.
+
+A standalone `rustc --crate-type lib --edition=2024` probe containing each valid literal form above and a following `include!` compiled successfully. The architecture regression verifies that the following included marker remains discovered.
+
+These repairs improve fail-closed lexical accounting. They do not change the checker’s documented limits: it does not parse Rust module semantics fully and never attests overall acceptance.

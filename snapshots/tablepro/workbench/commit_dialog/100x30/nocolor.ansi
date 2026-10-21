@@ -1,0 +1,31 @@
+[0m[2m  ▪  TablePro  Production  ◆ production  acme_prod › public  ✓ safe         …  • 1 pending  ? help  [0m
+[0m[2m                                                                                                    [0m
+[0m[2m  ≡ Query 1 ×    T orders ×                                                                     +   [0m
+[0m[2m ───────────────━━━━━━━━━━━━━────────────────────────────────────────────────────────────────────── [0m
+[0m[2m › ╭─ public › orders ────────────────────────────────────────────────────────────────── 14 cols ─╮ [0m
+[0m[2m   │   Data╭──────────────────────────────────────────────────────────────────────── × ─╮         │ [0m
+[0m[2m E │  ━━━━━│                                                                            │──────── │ [0m
+[0m[2m x │       │  [0m[1;2mSave changes?[0m[2m                                                             │         │ [0m
+[0m[2m p │   ‹3  │                                                                            │    7›   │ [0m
+[0m[2m l │  [0m [0m[2m •  │  [0mAction       Save changes                                               [0m[2m  │       ┃ │ [0m
+[0m[2m o │  [0m [0m[2m    │  [0mTarget       Production · production · acme_prod · public.orders        [0m[2m  │       ┆ │ [0m
+[0m[2m r │  [0m [0m[2m    │  [0mScope        1 update · 0 inserts · 0 deletes                           [0m[2m  │       ┆ │ [0m
+[0m[2m e │  [0m [0m[2m    │  [0mTransaction  All statements run in one transaction; a failure rolls     [0m[2m  │       ┆ │ [0m
+[0m[2m r │  [0m [0m[2m    │  [0m             everything back.                                           [0m[2m  │       ┆ │ [0m
+[0m[2m   │  [0m [0m[2m    │  [0mSafe Mode    Safe Mode · type to confirm                                [0m[2m  │       ┆ │ [0m
+[0m[2m   │  [0m [0m[2m    │  [0m                                                                        [0m[2m  │       ┆ │ [0m
+[0m[2m   │  [0m [0m[2m    │  [0mUPDATE public.orders SET status = 'paid' WHERE id = '1d9f28fc-3e09-4488…[0m[2m  │       ┆ │ [0m
+[0m[2m   │  [0m [0m[2m    │  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄  │       ┆ │ [0m
+[0m[2m   │  [0m [0m[2m   1│                                                                            │       ┆ │ [0m
+[0m[2m   │  [0m [0m[2m   1│  [0m[1;2mType orders to confirm                                                  [0m[2m  │       ┆ │ [0m
+[0m[2m   │  [0m [0m[2m   1│▎                                                                           │       ┆ │ [0m
+[0m[2m   │  [0m [0m[2m   1│                                                                            │       ┆ │ [0m
+[0m[2m   │  [0m [0m[2m   1│                                                           Cancel    Save   │       ┆ │ [0m
+[0m[2m   │       │                                                                            │┄┄┄┄┄┄┄  │ [0m
+[0m[2m   │       ╰────────────────────────────────────────────────────────────────────────────╯         │ [0m
+[0m[2m   │   • 1 pending · 1 update                                     [0m [0m[2mPreview SQL  [0m [0m[2mDiscard  [0m [0m[2mSave   │ [0m
+[0m[2m   │   rows 1–14 of 500 loaded · 1,203,338 total · cols 4–7 of 14                                 │ [0m
+[0m[2m   ╰──────────────────────────────────────────────────────────────────────────────────────────────╯ [0m
+[0m[2m                                                                                                    [0m
+ [0m[1mType[0m "orders" to confirm  [0m[1mEsc[0m Cancel                                     ✓ Connected to Production [0m
+[?25h[21;15H[6 q

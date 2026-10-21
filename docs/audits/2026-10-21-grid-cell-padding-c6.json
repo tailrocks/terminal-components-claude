@@ -1,0 +1,92 @@
+{
+  "status": "focused compatibility repair passed; broader merged package suite blocked by an independently assigned color quantizer conflict",
+  "work_branch": "wip/tablepro-grid-scroll-embedded-input-20261021",
+  "work_commit_before_merge": "c37a3a2d7066c0004d139315b34d892a0769de8b",
+  "merged_pr38_source": "67ebf35cdc2ae6c51169ab7939b51e70d045fadd",
+  "reference": {
+    "baseline_commit": "4169783ae883788186d161af09ba9c481bd84e5c",
+    "design_commit": "f4867e9b5f8a08a3bb61ce80d644198a29f51984"
+  },
+  "change": {
+    "runtime": "CellUi::new keeps the caller's explicit PaintStyle as its default padding/reset style. The additive padding_style builder allows a composing Grid to pass a canonical style without reading painted buffer cells or reconstructing semantic roles.",
+    "grid": "For ordinary active values only (no action affordance), vacated aligned callback cells use ui.surface_style().patch(row_style): missing row channels retain the resolved UI surface while authored row channels win. Action cells keep their existing full active style. Explicit CELL patches still run after callback rendering.",
+    "compatibility": "Explicit caller Danger and Color::Reset padding remain honored; no public PaintStyle fields changed."
+  },
+  "red_before_green_after": {
+    "native_regression": "termrock-grid::grid::tests::identity_cell_callback_preserves_right_aligned_padding_style compares the ordinary renderer and an identity callback at every color level without a focused-row override or post-render dim. Removing the Grid padding-style adapter fails at the first padding cell: the callback leaks active green into padding while the ordinary renderer retains the surface background.",
+    "before_log": "/private/tmp/grid-c6-final-red.log",
+    "after_public_probes": "/private/tmp/grid-c6-final-probes-green.log",
+    "public_probe_command": "CARGO_TARGET_DIR=/private/tmp/termrock-grid-padding-current/target cargo nextest run --manifest-path /private/tmp/termrock-grid-padding-current/Cargo.toml --all-targets",
+    "public_probe_result": "11 passed, 0 skipped"
+  },
+  "focused_verification": {
+    "command": "cargo nextest run -p termrock-runtime -p termrock-grid -p termrock-fields -p termrock-theme --all-targets",
+    "result": "692 passed, 1 failed, 3 skipped",
+    "failure": "termrock-theme downgrade::tests::downgrade_is_deterministic_per_level asserts custom RGB #3a3a3a maps to index 238. The WIP generic nearest implementation maps it to 237; this expectation awaits the independent frozen-quantizer decision and has not been weakened.",
+    "strict_clippy": "cargo clippy -p termrock-runtime -p termrock-grid -p termrock-fields -p termrock-theme --all-targets -- -D warnings: passed",
+    "format": "rustfmt --check --edition 2024 crates/termrock-runtime/src/rowui.rs crates/termrock-grid/src/grid.rs crates/termrock-theme/src/downgrade.rs: passed; git diff --check: passed",
+    "tablepro_all_targets": {
+      "command": "cargo nextest run -p tablepro-ui --all-targets",
+      "result": "170 passed, 13 failed, 0 skipped (183 total) on the merged PR #38 candidate; this cohort has not yet been compared against the exact 67ebf35 base",
+      "log": "/private/tmp/grid-c6-merged-tablepro-alltargets.log",
+      "failed_tests": [
+        "app::query_result_keys::explain_orders_shows_a_plan_cell_the_error_frame_hides",
+        "form_radio::form_radio_enter_submits",
+        "form_radio::form_radio_narrow_frames_clip_the_environment_field",
+        "form_radio::form_radio_focus_bolds_the_painted_row",
+        "form_radio::form_radio_right_card_pins_miss_the_stock_form",
+        "form_radio::form_radio_off_marker_uses_the_hollow_circle",
+        "form_radio::form_radio_commit_changes_draft",
+        "footer_unicode::connection_form_names_preserve_footer_grapheme_boundaries",
+        "perf::frame_tablepro_connection_form_120x40",
+        "perf::frame_tablepro_grid_500x14_120x40",
+        "replacement_contract::save_connect_from_workbench_form_requires_guard_and_cancel_keeps_work",
+        "row_actions_contract::inserting_after_five_hundred_rows_reveals_the_new_owned_record",
+        "visual::tablepro_visual_baseline"
+      ]
+    }
+  },
+  "scope_and_gaps": [
+    "The independent probes and native widget suite do not establish full TablePro application parity.",
+    "The application all-target comparison against the exact merged base is still running; its result will be recorded separately.",
+    "A separate source-backed raw RGB quantizer decision is required; no RGB lookup exception or LegacyMono behavior is accepted by this Grid/CellUi change."
+  ],
+  "raw_rgb_quantization": {
+    "status": "generic frozen-baseline ANSI256 raw RGB rule restored; semantic palette projections remain a separate path",
+    "source": {
+      "baseline_commit": "4169783ae883788186d161af09ba9c481bd84e5c",
+      "design_commit": "f4867e9b5f8a08a3bb61ce80d644198a29f51984",
+      "source_path": "src/theme.rs:3017-3033",
+      "algorithm_sha256": "ac267a2f1a8e04f204d1daa317b87e9af02c656f0a335f923a59ae5e423b9686",
+      "rule": "round RGB cube steps; compute nearest grayscale index from integer channel average; use grayscale only when its squared error is lower and chroma is <=30"
+    },
+    "change": "Removed full-palette Euclidean raw RGB conversion and exact raw-RGB ANSI16 overrides. ANSI256 now uses the frozen generic cube/grayscale rule for all raw RGB values. Semantic Junie palette capabilities remain authored in palettes.rs.",
+    "regression": "The previous #3a3a3a -> 238 assertion failed against both pinned sources; frozen rule returns 237. Updated expectations for #474747 (238), #808080 (244), #171f1c (23), and #48e054 (78), with a multi-category test to prevent selected-color lookup behavior.",
+    "verification": {
+      "raw_quantizer_tests": {
+        "command": "cargo nextest run -p termrock-theme --lib downgrade::tests::downgrade_is_deterministic_per_level downgrade::tests::ansi256_raw_rgb_uses_the_frozen_general_cube_and_gray_rule",
+        "result": "2 passed, 87 filtered out"
+      },
+      "theme_package": {
+        "command": "cargo nextest run -p termrock-theme --all-targets",
+        "result": "132 passed, 1 failed, 0 skipped (133 total)",
+        "failure": "capability_palettes::all_73_junie_slots_match_reference_capability_output",
+        "log": "/private/tmp/grid-theme-quantizer-final.log"
+      },
+      "shared_cohort": {
+        "command": "cargo nextest run -p termrock-runtime -p termrock-grid -p termrock-fields -p termrock-theme --all-targets",
+        "result": "693 passed, 1 failed, 3 skipped (694 total)",
+        "failure": "termrock-theme::capability_palettes all_73_junie_slots_match_reference_capability_output",
+        "log": "/private/tmp/grid-theme-cohort-quantizer-final.log"
+      },
+      "public_probes": {
+        "command": "CARGO_TARGET_DIR=/private/tmp/termrock-grid-padding-current/target cargo nextest run --manifest-path /private/tmp/termrock-grid-padding-current/Cargo.toml --all-targets",
+        "result": "11 passed, 0 skipped",
+        "log": "/private/tmp/grid-c6-final-probes-quantizer.log"
+      },
+      "strict_clippy": "cargo clippy -p termrock-runtime -p termrock-grid -p termrock-fields -p termrock-theme --all-targets -- -D warnings: passed",
+      "format": "rustfmt --check --edition 2024 crates/termrock-theme/src/downgrade.rs crates/termrock-theme/tests/capability_palettes.rs crates/termrock-runtime/src/rowui.rs crates/termrock-grid/src/grid.rs; git diff --check: passed"
+    },
+    "remaining": "The all_73 test has an unresolved semantic-capability expected-output disagreement: production Junie capability slots differ from its fixture; frozen baseline apply_256 source assigns different values (for example accent_pressed=65, focus_ring=78, highlight-danger=88). Preserve the failing fixture and production table; do not copy current production palette into expectations. Requires a separately reviewed semantic-role migration. LegacyMono raw-color pair behavior also remains an unreviewed merged increment."
+  }
+}

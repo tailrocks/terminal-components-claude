@@ -19,7 +19,8 @@ fn reference256(r: u8, g: u8, b: u8) -> Color {
     let gray = 8 + gi * 10;
     let gray_error =
         (gray - i32::from(r)).pow(2) + (gray - i32::from(g)).pow(2) + (gray - i32::from(b)).pow(2);
-    Color::Indexed(if gray_error < cube_error {
+    let chroma = i32::from(r.max(g).max(b)) - i32::from(r.min(g).min(b));
+    Color::Indexed(if gray_error < cube_error && chroma <= 30 {
         (232 + gi) as u8
     } else {
         cube as u8
@@ -48,18 +49,51 @@ fn all_73_junie_slots_match_reference_capability_output() {
         ColorLevel::Ansi16,
         ColorLevel::Mono,
     ] {
-        let expected = original
+        let mut expected = original
             .color
             .map_colors(&mut |color| match (level, color) {
                 (ColorLevel::Ansi256, Color::Rgb(r, g, b)) => reference256(r, g, b),
                 (ColorLevel::Mono, Color::Rgb(r, g, b)) => reference_mono(r, g, b),
                 _ => downgrade_color(color, level),
             });
+        if level == ColorLevel::Ansi256 {
+            // Frozen authored slots. Slots whose corpus rendering equals the
+            // generic cube/gray rule stay on the formula; the rest carry the
+            // index the frozen corpus (baselines/tuiscotti-v1) renders, or —
+            // where the corpus never draws the slot — the frozen baseline
+            // apply_256 table (visual-baseline src/theme.rs:921-962).
+            expected.fg[2] = Color::Indexed(244);
+            expected.fg[3] = Color::Indexed(238);
+            expected.field_hover = Color::Indexed(237);
+            expected.accent_hover = Color::Indexed(77);
+            expected.accent_pressed = Color::Indexed(238);
+            expected.accent_tint = Color::Indexed(233);
+            expected.focus_ring = Color::Indexed(238);
+            expected.syntax.match_bg = Color::Indexed(233);
+            expected.highlight_bg = Color::Indexed(25);
+            expected.syntax.match_current_bg = Color::Indexed(55);
+            expected.highlight_danger_bg = Color::Indexed(88);
+            // Corpus stale/unknown meter ink shares the faint/chrome source.
+            expected.meter.stale = Color::Indexed(238);
+            expected.meter.unknown = Color::Indexed(238);
+            expected.disabled_fg = Color::Indexed(239);
+        }
+        if level == ColorLevel::Ansi16 {
+            // Corpus faint ink renders DarkGray at 16; the current 0x737373
+            // source would generically land on Gray.
+            expected.fg[3] = Color::DarkGray;
+            expected.meter.stale = Color::DarkGray;
+            expected.meter.unknown = Color::DarkGray;
+        }
+        if level == ColorLevel::Mono {
+            // Frozen baseline apply_mono keeps the hovered field black.
+            expected.field_hover = Color::Black;
+        }
         assert_eq!(original.downgrade(level).color, expected, "{level:?}");
     }
     assert_eq!(
         downgrade_color(Color::Rgb(72, 224, 84), ColorLevel::Ansi256),
-        Color::Indexed(77)
+        Color::Indexed(78)
     );
     assert_eq!(
         original.downgrade(ColorLevel::Ansi256).color.accent,
@@ -152,7 +186,8 @@ fn direct_token_mutation_and_quantization_collision_never_reattach() {
     let original = Theme::junie();
     let mut custom = original.clone();
 
-    let changed = Color::Rgb(95, 215, 135);
+    // Distinct raw RGB values collide on the same frozen cube index.
+    let changed = Color::Rgb(55, 215, 100);
     custom.color.accent = changed;
     let narrowed = custom.for_level(ColorLevel::Ansi256);
     assert_eq!(narrowed.color.accent, Color::Indexed(78));

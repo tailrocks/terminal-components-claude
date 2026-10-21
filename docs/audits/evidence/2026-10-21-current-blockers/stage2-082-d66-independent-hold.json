@@ -1,0 +1,102 @@
+{
+  "schema": "termrock.canonical-stage2-owned.independent-review.v1",
+  "reviewer": "/root/runner_atomic_step_architect",
+  "created_at_utc": "2026-10-21T03:27:46.622583+00:00",
+  "decision": "HOLD both exact commits082548 andd66e18. Two new lifecycle/publication defects remain. No operational prepare-live is approved.",
+  "reviewed_sources": [
+    {
+      "commit": "0825481788e62dc91b628abce3d279e46ceddca5",
+      "runner_sha256": "2306f343ecf78592b76e5fc967f803ccdb05c4415cc41566380ee1d49bbf9ab0",
+      "copy": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/canonical-stage2-independent-review-08254817",
+      "unchanged_full_suite": {
+        "tests": 103,
+        "exit_status": 0,
+        "elapsed_seconds": 11.937,
+        "log_sha256": "1369a2a72c4dbb954f5e0376ff87d7031db36dc407054784c8bdb867e6dab523"
+      }
+    },
+    {
+      "commit": "d66e18a7f53d7185397438591983a6b2791b4460",
+      "runner_sha256": "1bd1b942bd5c8ad7f3a985744868d5c22eadc358a6d0da509066701c8e67426a",
+      "copy": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/canonical-stage2-independent-review-d66e18a7",
+      "unchanged_full_suite": {
+        "tests": 103,
+        "exit_status": 0,
+        "elapsed_seconds": 9.807,
+        "log_sha256": "da9c572d54ccea5c869bb8ff49d36c63914443774f323d2baadb2b812a358e12"
+      }
+    }
+  ],
+  "followup_delta": "d66e18 adds the exact fixed-cohort ID guard and adjusts two fixture calls plus documentation. Independent wrong-cohort probe rejects correctly. Optional timeout/error precedence and manifest publication remain unchanged; both defects were independently reproduced againstd66e18, not implicitly transferred.",
+  "required_findings": [
+    {
+      "id": "STAGE2-1",
+      "priority": "P1",
+      "path": "tools/frozen_baseline.py",
+      "function": "PrepareExecution.run",
+      "lines": "919-934 in082548",
+      "title": "Optional local timeout hides a broker internal failure published during cleanup",
+      "evidence": "A real isolated synthetic broker publishes anchor readiness, then command construction waits0.4seconds and raises RuntimeError. The optional0.15second probe deadline expires first. Verified cleanup sees the later schema1 status with returncodeNone and error RuntimeError:synthetic internal broker failure. Parent returnsNone because local_timeout_hit is handled before refreshed/classified command status. This silently converts an ownership/broker failure into ordinary optional absence. Both commits reproduce.",
+      "required_change": "After verified cleanup, read/validate the final status if it became available during cleanup. Give cancellation, global expiry, failed cleanup, malformed status and non-spawn internal errors precedence over optional timeout. Only explicit ordinary spawn_failure/nonzero/cooperative local-timeout outcomes may yieldNone. Add the delayed internal failure regression and retain ordinary optional failure positives.",
+      "probe_sha256": "9fc4491517b46d8606c95150bc9a16162469ffec7a93950dbc17f1140b43f8c7"
+    },
+    {
+      "id": "STAGE2-2",
+      "priority": "P1",
+      "path": "tools/frozen_baseline.py",
+      "function": "prepare_live_source",
+      "lines": "1530-1541 in082548",
+      "title": "Predictable temporary manifest follows dangling symlinks and publishes a symlink as final metadata",
+      "evidence": "A pre-existing dangling .live-source.json.tmp symlink passes exists(). write_text follows it and creates the outside synthetic user path. os.replace then moves the symlink itself to live-source.json. Preparation returns success with final manifest aliased outside the root. Both exact commits reproduce; no actual user file or key was involved.",
+      "required_change": "Reject existing regular files and symlinks, and create temporary output exclusively with no-follow regular-file semantics. Publish final metadata without overwriting an existing entry, including dangling links or concurrent files. Reuse an existing canonical atomic-create helper where compatible, or an equivalent exclusive regular temp plus no-overwrite link/rename protocol. Preserve partial evidence on failure and add symlink/existing-entry negatives.",
+      "probe_sha256": "c6a225c20875937bdd461f2de248c300deb7527380f7469a67cf49cc027af7a3"
+    }
+  ],
+  "independent_d66_negative_results": {
+    "probe_path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/canonical-stage2-independent-review-d66e18a7/independent-negative-probes.json",
+    "probe_sha256": "bc7db85c6ee962cfef605f14ba252363e73cdf4d499fe87f86f34b5ba64eeeb6",
+    "internal_error_swallowed": true,
+    "outside_target_created": true,
+    "final_manifest_symlink": true,
+    "wrong_cohort_rejected": true
+  },
+  "positive_review": [
+    "One execution instance is explicitly passed through owned prepare-live, current source/cohort/binary verification, checked copy/hash/readonly traversal, pinned patch, tool observations and Nextest inventory. No new input or rendering system is introduced.",
+    "Owned prepare-live is opt-in and requires explicit cohort/binary directory;d66e18 pins the exact serialR1R2 cohort. Legacy no-context invocation remains available.",
+    "Tool probes retain a12-second local ceiling capped by global remaining work. Cancellation/global expiry and unverified cleanup are checked before normal optional failures, except for the identified delayed internal-status precedence gap.",
+    "Owned inventory invokes exactly cargo nextest list with locked package/test target and JSON output; VISUAL_TOOL is removed. Synthetic driver discovery checks --list and no trial-body marker. It does not perform actual PTY/App tests.",
+    "The existing seven allowed changed paths, fixed extension inventory and complete inventory validators remain in the successful source path before final manifest publication. Test fixture inventories are deliberately reduced/mocked and are not represented as actual29069-case coverage.",
+    "Partial source/build output is preserved after failure and existing live source is refused; no automatic reset, resume, candidate snapshot approval or expected-data changes were added.",
+    "The prior95 runner tests are retained within the103-test suite, including stage1 broker/default-signal/orphan/metadata/foreign-session regressions.",
+    "No private receipt key is read by these preparation paths or reviewer probes. No actual frozen prepare-live, new plan, custody key, capture, replay or candidate operation was invoked."
+  ],
+  "limits": [
+    "Passing103synthetic tests does not establish actual cold Cargo build/list completion within220seconds. Work remains capped200 plus15cleanup, with5external finalization required. Cold-timeout partials remain incomplete evidence.",
+    "Anchored ownership covers declared same-group tools/children. Arbitrary wrappers that call setsid are not contained by that claim; no broad PTY cleanup approval is inferred.",
+    "Synchronous uninterruptible filesystem/kernel calls retain the previously stated bound limitation.",
+    "Stage3 verify-live and later plan/run/capture stages remain legacy/unreviewed lifecycle paths and must stay disabled in the external wrapper."
+  ],
+  "artifacts": [
+    {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/canonical-stage2-independent-review-08254817/manifest-symlink-probe.json",
+      "sha256": "c6a225c20875937bdd461f2de248c300deb7527380f7469a67cf49cc027af7a3"
+    },
+    {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/canonical-stage2-independent-review-08254817/optional-timeout-broker-error-observed-supplement.json",
+      "sha256": "9fc4491517b46d8606c95150bc9a16162469ffec7a93950dbc17f1140b43f8c7"
+    },
+    {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/canonical-stage2-independent-review-d66e18a7/independent-negative-probes.json",
+      "sha256": "bc7db85c6ee962cfef605f14ba252363e73cdf4d499fe87f86f34b5ba64eeeb6"
+    }
+  ],
+  "preservation": {
+    "author_source_edited": false,
+    "actual_operational_root_touched": false,
+    "actual_key_read": false,
+    "actual_app_or_driver_launched": false,
+    "frozen_baseline_or_expected_changed": false,
+    "helpers_spawned": false
+  },
+  "approved_operational_stages": []
+}

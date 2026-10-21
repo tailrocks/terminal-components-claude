@@ -1,0 +1,21 @@
+ [0m[1;7m jackin❯ [0m   File   Edit   View   Session   Help                     …  [0m
+                                                                        [0m
+ [0m[1m [0m1[0m[1m Mix (3) [0m●[0m[1m  [0m  2 Shell    3 docs ●                                    [0m
+ ━━━━━━━━━━━━━━──────────────────────────────────────────────────────── [0m
+╭─[0m[1m Claude Code (Work) [0m●───────────╮│╭─ Codex (Primary) ○───────────────╮[0m
+│[0m[2m● Bash cargo test -p settlement [0m┆│││○ Done · 38 s · 12.4k tokens     ┆│[0m
+│  running 6 tests … 6 passed (1 ┆│││                                 ┆│[0m
+│                                ┆│││❯                                ┃│[0m
+│● Edit src/settlement/mod.rs    ┆│││━━━━━━━━━━━━━━━━━━┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄ │[0m
+│  +  pub use retry::{MAX_ATTEMP ┆││╰──────────────────────────────────╯[0m
+│                                ┆││────────────────────────────────────[0m
+│● Retries now back off 250 ms → ┆││╭─ Shell ──────────────────────────╮[0m
+│  One more edit: expose the pol ┃│││[0m[2m0001-record-architecture.md  000 [0m┆│[0m
+│                                ┃│││0002-settlement-batches.md   000 ┆│[0m
+│▶ Allow edit to src/settlement/ ┃│││0003-retry-policy.md         000 ┆│[0m
+│❯                               ┃│││payments-platform ❯              ┃│[0m
+│━━━━━━━━━━━━━━━━━┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄ │││━━━━━━━━━━━━━━┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄ │[0m
+╰─────────────────────────────────╯│╰──────────────────────────────────╯[0m
+ [0m[1mPR #482 · Settlement retry backoff[0m       …   Session ╍╍╍╍╍╍╍╍─── [0m[3m76%[0m ▲ [0m
+ …              Attached to payments-platform · tabs and panes restored [0m
+[?25h[16;4H[6 q

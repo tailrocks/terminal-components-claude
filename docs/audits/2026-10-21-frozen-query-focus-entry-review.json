@@ -1,0 +1,36 @@
+{
+  "reviewer": "branches_components_review",
+  "baseline_commit": "4169783ae883788186d161af09ba9c481bd84e5c",
+  "status": "Supersedes the default browse-mode inference in editor-review-d468.json; original review remains historical.",
+  "source_evidence": [
+    {
+      "path": "src/widgets/code.rs:204",
+      "finding": "The constructor initializes editing=false and moves the document cursor to its start."
+    },
+    {
+      "path": "src/theme.rs:731",
+      "finding": "DEFAULT_EDIT_ENTRY is EditEntry::Immediate."
+    },
+    {
+      "path": "src/widgets/code.rs:929",
+      "finding": "Rendering resolves the configured entry policy; a newly focused, non-inert, writable editor begins editing when that policy is Immediate."
+    },
+    {
+      "path": "src/widgets/code.rs:595",
+      "finding": "Before the first focus draw, key handling also begins editing for Immediate entry and then processes the same input."
+    },
+    {
+      "path": "src/bin/tablepro/app.rs:662",
+      "finding": "The NewQuery action creates an empty query and focuses its primary editor."
+    }
+  ],
+  "corrected_contract": "Under the frozen default policy, Ctrl+T followed by primary-editor focus immediately enters editing. Requiring an additional Enter changes the baseline flow. A constructor flag alone does not establish the visible or interactive state.",
+  "required_implementation": "Keep text and editing mechanics in the shared CodeEditor state. Implement the configurable focus-entry transition in update or the existing prepared focus lifecycle, with no domain effects or state mutation during measurement/drawing. Immediate must remain the baseline default; an explicit browse-entry option may remain available. Do not put unconditional begin_edit calls into application constructors as a substitute.",
+  "required_regressions": [
+    "New empty query with default policy accepts the first typed character without an extra Enter.",
+    "New preloaded query enters editing on focus with the frozen cursor placement.",
+    "An explicit browse-entry configuration still requires its documented edit command.",
+    "Blur, refocus, completion popup, modal coverage and resize preserve the documented entry and caret behavior."
+  ],
+  "limits": "This is an independent source diagnosis, not a new paired CLI capture or product-parity acceptance."
+}

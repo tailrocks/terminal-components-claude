@@ -1,0 +1,127 @@
+{
+  "schema": "independent-review-v1",
+  "created_at": "2026-10-21T01:02:55.270684+00:00",
+  "reviewer": "/root/incoming_tablepro_runtime_review",
+  "decision": "changes_required",
+  "candidate": "25777df94dd802869833389b6a11164877350b4d",
+  "last_good": "5f82c4d35d12e0fb77b0f580a8ef200240661602",
+  "regressed_source": "05d63fe9c8a0e9a327489ae657a4ff6dc6571324",
+  "production_scope": "crates/termrock-runtime/src/ui/paint.rs majority_bg only; integration and unrelated TablePro source not approved",
+  "finding": {
+    "id": "R1",
+    "severity": "P2",
+    "path": "crates/termrock-runtime/src/ui/paint.rs",
+    "line": 277,
+    "problem": "The overflow HashMap is allocated and discarded on every draw, regressing the previous reusable runtime scratch cache for areas with more than eight backgrounds.",
+    "evidence": "With the same public Ui::scroll_edges App and 20 warm-up redraws, 200 subsequent frames allocate 0 times for all cases at 5f82. At 25777: eight colors 0 allocations/0 bytes; nine or twelve colors 200 allocations/81600 bytes; forty-eight colors 600 allocations/564800 bytes. Independent unchanged assertion passes last_good and fails candidate.",
+    "required_fix": "Reuse overflow background-count storage owned by UiCore/runtime, clearing it between areas/frames and retaining the eight-entry stack fast path. Preserve first-distinct ordering for ties, exact counts, and no per-frame allocations after warm-up. No second component state or identity-dependent cache."
+  },
+  "behavioral_clearance": {
+    "original_public_ninth_color_probe": "PASS at correction; original unchanged probe previously passed5f82 and failed34f",
+    "author_tests": "All three verbatim author tests pass against both correction and last-good; this independently confirms the asserted last-distinct tie is historical behavior, not a new rule.",
+    "corpus_scenes_each": 480,
+    "cell_checkpoints_each": 47328,
+    "identical": true,
+    "canonical_scene_sha256": "7f02fcec0c1b058df6ea3e71ab4da8799e3d53eb8347e4e85f8d757a1839c346",
+    "visible_cursor_scenes": 144,
+    "coverage": [
+      "Mixed Color::Reset, Indexed, named ANSI, and RGB backgrounds; more than eight distinct colors.",
+      "Equal majorities and order variations; repeated backgrounds after overflow.",
+      "TrueColor, Ansi256, Ansi16, Mono profiles.",
+      "Zero-sized, one-column, 4-row, 12-row and 15-row views.",
+      "Unpainted padding, empty scroll area, reversed cells and full cell metadata.",
+      "Real TextInput with focused visible cursor on an edge; full cell/focus/cursor/bar/input-bound comparison."
+    ],
+    "metadata": "All printed Cell fields, including symbol, foreground, background, underline color, modifiers, diff option and skip, match last-good across the corpus.",
+    "source_inspection": "Overflow max key (count, first-seen order) deterministically selects the same last-distinct maximum as the old ordered vector max_by_key. Empty count returns Reset. No quantizer, fade mutation, cursor protection or geometry code changes in this correction."
+  },
+  "checks": [
+    {
+      "label": "candidate focused",
+      "command": "cargo nextest run --manifest-path candidate/Cargo.toml --test author --test original -E not test(new_connection_starts_with_blank_domain_fields)",
+      "exit": 0,
+      "run": 4,
+      "passed": 4,
+      "skipped": 1,
+      "skip_reason": "The unchanged original probe file also contains the known, unrelated TablePro new-connection regression; deliberately excluded from runtime review, not credited as passing.",
+      "log": "candidate-focused.log"
+    },
+    {
+      "label": "last-good author tie proof",
+      "command": "cargo nextest run --manifest-path before/Cargo.toml --test author",
+      "exit": 0,
+      "run": 3,
+      "passed": 3,
+      "skipped": 0,
+      "log": "before-author.log"
+    },
+    {
+      "label": "candidate corpus and allocation observations",
+      "command": "cargo nextest run --manifest-path candidate/Cargo.toml --test corpus --test allocations --no-capture",
+      "exit": 0,
+      "run": 2,
+      "passed": 2,
+      "skipped": 0,
+      "log": "candidate-corpus-allocations.log"
+    },
+    {
+      "label": "last-good corpus and allocation observations",
+      "command": "cargo nextest run --manifest-path before/Cargo.toml --test corpus --test allocations --no-capture",
+      "exit": 0,
+      "run": 2,
+      "passed": 2,
+      "skipped": 0,
+      "log": "before-corpus-allocations.log"
+    },
+    {
+      "label": "candidate warm-allocation regression",
+      "command": "cargo nextest run --manifest-path candidate/Cargo.toml --test allocation_regression",
+      "exit": 100,
+      "run": 1,
+      "passed": 0,
+      "failed": 1,
+      "skipped": 0,
+      "log": "candidate-allocation-regression.log"
+    },
+    {
+      "label": "last-good warm-allocation regression",
+      "command": "cargo nextest run --manifest-path before/Cargo.toml --test allocation_regression",
+      "exit": 0,
+      "run": 1,
+      "passed": 1,
+      "failed": 0,
+      "skipped": 0,
+      "log": "before-allocation-regression.log"
+    }
+  ],
+  "process_group_deadline_seconds": 210,
+  "dedicated_target": "/private/tmp/runtime-majority-correction-review-target-20261021",
+  "gaps": [
+    "No complete workspace, strict Clippy or formatting rerun by this reviewer; author claims remain separate.",
+    "No elapsed-time performance acceptance asserted; allocation counts are independently observed.",
+    "No real CLI/tuiscotti product acceptance or other four TablePro findings resolved.",
+    "No product source edits, expected snapshot edits, or reference changes."
+  ],
+  "artifacts": {
+    "candidate-focused.log": "8c2fbcdee53b9dc376204852ed31d629c02e661bc002af58ba162d6789c532e1",
+    "before-author.log": "1d5825fea6f96beb15edfe9e9d690fb720cafee07c0f77d4e13f4dcd00fe6652",
+    "candidate-corpus-allocations.log": "6b5b48c0f49891460dfb6cdccafd7058e96e07cb9d6a69066de59a221f30d0c8",
+    "before-corpus-allocations.log": "7b2b900ba3e47effeefe8811551e2070b9bdfb58e03e95907b3c587994621cfa",
+    "candidate-allocation-regression.log": "3f57f4f2aa68c289e70a384d9f1bb255fa442242a41c787051046f16ddd31129",
+    "before-allocation-regression.log": "bc093cfaf8ad765a308e01290d9e92cf5ac11ee98411b441dcbe33258852d465",
+    "candidate/Cargo.toml": "f1bab01e9fffa57553421ff8c72c93873bc4cfe9b17f321200b32e01899c5c3f",
+    "before/Cargo.toml": "c6cdf159f09bb9543c1fa43de7a58609861e0cca613b71ac3e5a7be0d3ae4fd4",
+    "before/tests/author.rs": "22e92f963de8cad512d530d223280fa1f7943a5109d1045c03d1a83c681c5fcb",
+    "before/tests/corpus.rs": "bed4f1db514484115c8dce497e727aa37d22a23a381309728ae58bd8b26b7bc4",
+    "before/tests/allocations.rs": "cb69d857090c90be17e3315d0f6b0a93f77514b25817ed245102e42c75a21c0a",
+    "before/tests/original.rs": "7bd90e6968f7d254266aabfde9e73f1d41fe41749fb02ecbaa0ae8e5b14c1562",
+    "before/tests/allocation_regression.rs": "64ada9ca90d6357d30803e8bc2f3b19fa32e3a8e8bd037df4b5105a48fe7e1da",
+    "before/src/lib.rs": "b5da9d5dbb1d12c812172ea530c4da15830d94cadce210d1bd18ca50d430efe1",
+    "candidate/tests/author.rs": "22e92f963de8cad512d530d223280fa1f7943a5109d1045c03d1a83c681c5fcb",
+    "candidate/tests/corpus.rs": "bed4f1db514484115c8dce497e727aa37d22a23a381309728ae58bd8b26b7bc4",
+    "candidate/tests/allocations.rs": "cb69d857090c90be17e3315d0f6b0a93f77514b25817ed245102e42c75a21c0a",
+    "candidate/tests/original.rs": "7bd90e6968f7d254266aabfde9e73f1d41fe41749fb02ecbaa0ae8e5b14c1562",
+    "candidate/tests/allocation_regression.rs": "64ada9ca90d6357d30803e8bc2f3b19fa32e3a8e8bd037df4b5105a48fe7e1da",
+    "candidate/src/lib.rs": "b5da9d5dbb1d12c812172ea530c4da15830d94cadce210d1bd18ca50d430efe1"
+  }
+}

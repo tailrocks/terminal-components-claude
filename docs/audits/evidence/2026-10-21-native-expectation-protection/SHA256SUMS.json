@@ -1,0 +1,54 @@
+[
+  {
+    "path": "restored/crates/showcase-ui/tests/baselines/showcase.txt",
+    "sha256": "41f705abaabafc3e9630c64b8e41fa1e965d659159b45b026b7934bd3c32346a"
+  },
+  {
+    "path": "rejected/crates/showcase-ui/tests/baselines/showcase.txt",
+    "sha256": "092b372cdac5a765ed0e7e96ae018a58d4f8f05e7473908d730865e2952edc24"
+  },
+  {
+    "path": "restored/crates/holla-ui/tests/baselines/app.txt",
+    "sha256": "80893794601ddd758e18da668c7a772b541d0c971bc5ecf79778fa63c0e506e1"
+  },
+  {
+    "path": "rejected/crates/holla-ui/tests/baselines/app.txt",
+    "sha256": "c6421c70bb156f6af7d468609286d7be8d224638872f9b9fc7f7933d4f0aedff"
+  },
+  {
+    "path": "restored/crates/showcase-ui/tests/fixtures/holla-page-headings.tsv",
+    "sha256": "faa2a62d72736bc6ead7b99135a7d6e3f1ff1193b8bf48dc5f424241e3ccf0c9"
+  },
+  {
+    "path": "rejected/crates/showcase-ui/tests/fixtures/holla-page-headings.tsv",
+    "sha256": "37ad8b3f1941412c79fe297162a2ee0d526cf72f13b6bdf533ee796e605e6be3"
+  },
+  {
+    "path": "restored/crates/showcase-ui/tests/fixtures/holla-shell-headers.tsv",
+    "sha256": "0c049901918b25d610dca3b3d4a693cd2621af2a6d673056159bb16988fc098b"
+  },
+  {
+    "path": "rejected/crates/showcase-ui/tests/fixtures/holla-shell-headers.tsv",
+    "sha256": "c95fdc8bb699f7cae174ecd286559ed90c5e2028feac6f9415070e9a5cfdf7d6"
+  },
+  {
+    "path": "restored/crates/jackin-preview-app/tests/baselines/jackin.txt",
+    "sha256": "326308bbca17a9ed77df2f6b9e3faa9036bead2fdc58c30b2ed624f81be3cedc"
+  },
+  {
+    "path": "rejected/crates/jackin-preview-app/tests/baselines/jackin.txt",
+    "sha256": "b6c22215861420a7db0713762103315c171c38b13f3707807eb6d58da7fe06cd"
+  },
+  {
+    "path": "snapshot089/crates/jackin-preview-app/tests/baselines/jackin.txt",
+    "sha256": "737572f042f15a3180fce5967c48da6af297a790bcf8da6b3e2c2295eedc7bfc"
+  },
+  {
+    "path": "restored/crates/showcase-ui/tests/page_headings.rs",
+    "sha256": "9d1646c9500d7e6cf143e5f9873451308fcf814e8ec41efa7667b4af723f6d16"
+  },
+  {
+    "path": "rejected/crates/showcase-ui/tests/page_headings.rs",
+    "sha256": "e7145fe124fd323f969692ae9781290f5ffd4f417ad34932898b172fcd3ef5dd"
+  }
+]

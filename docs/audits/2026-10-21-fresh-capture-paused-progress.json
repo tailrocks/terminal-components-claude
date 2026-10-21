@@ -1,0 +1,112 @@
+{
+  "blocked_next_step": "Stop: independent review found post-rename failure marker/retry defect in Stage 3B runner. Preserve run and receipts; do not advance until reviewed fix is available.",
+  "completed_capture_chunks": 6,
+  "final_chunk_dirs": [
+    "chunk-00000",
+    "chunk-00001",
+    "chunk-00002",
+    "chunk-00003",
+    "chunk-00004",
+    "chunk-00005"
+  ],
+  "final_chunk_dirs_match_journal": true,
+  "first_attempt_note": "An initial invocation from the design checkout exited 2 because that checkout lacks fresh-run-verify command; no capture was attempted. Corrected invocations used the exact reviewed source worktree.",
+  "journal_ordinals_contiguous": true,
+  "phase": "baseline-capture",
+  "plan_creation_sha256": "5bb3130e0999cb552a6aeb82184fb63071307adfc519134ae8975ca6a5432470",
+  "plan_id": "6e181372dda965ca819a3c593e9f549b",
+  "plan_self_sha256": "23943fc0bf01edd1e2af0a890190bbb7aeff6ed2bcd5057f9d18f3f513f49d2e",
+  "receipt_summaries": [
+    {
+      "artifacts_sha256": "92d9d37cf41830bed1db5ab24ba04e36b50e966b834397e0c1194ca28725012b",
+      "checkpoint_count": 32,
+      "chunk": 0,
+      "committed_chunk_sha256": "2a5507fab7537c876fc50095ad9b5511bc5c327963476825fd8ce300bdf53d09",
+      "expected_chunk_sha256": "5029c75622cd3a8cbadd6ac0ea51406ff67f4cbaa432a660842853e1654d491f",
+      "ordinal": 0,
+      "phase": "baseline-capture",
+      "process_pid_count": 32,
+      "process_receipt_count": 32,
+      "status": "passed"
+    },
+    {
+      "artifacts_sha256": "ae0d8dfb5ee20f0cbacc59724a1d6b8ce5f6ef317d9d562f4355ffce85d3ed45",
+      "checkpoint_count": 32,
+      "chunk": 1,
+      "committed_chunk_sha256": "cbea9e04cbdbe53177a89fbd6bf405dbb44444634d637fe341a9c391ce0785d5",
+      "expected_chunk_sha256": "2d5be8ca4f5cf17b025ab6e65b975ec2a2f505ae2977eb4b4cc1dce0f306427e",
+      "ordinal": 1,
+      "phase": "baseline-capture",
+      "process_pid_count": 32,
+      "process_receipt_count": 32,
+      "status": "passed"
+    },
+    {
+      "artifacts_sha256": "1fef0e46f3c0b73d05719917f9a0929d073ca33ac5764676bc9869652a4413cb",
+      "checkpoint_count": 32,
+      "chunk": 2,
+      "committed_chunk_sha256": "7e3ee9c06cea840e2c77de54084eef7ec94675f2099853cbdeb899282dc40a49",
+      "expected_chunk_sha256": "74df81f7f698eda2e1897a371eb4dcfb350e01194ee3f9fd6c1c8a3620413516",
+      "ordinal": 2,
+      "phase": "baseline-capture",
+      "process_pid_count": 32,
+      "process_receipt_count": 32,
+      "status": "passed"
+    },
+    {
+      "artifacts_sha256": "2f982998cd5f8cb660c3d6d5863dda265ace7f824726d5964efbad150089198e",
+      "checkpoint_count": 32,
+      "chunk": 3,
+      "committed_chunk_sha256": "88cef3148e0c9dec7acd70181ca53e194ce68484d2e30454f9a658dbe1adb511",
+      "expected_chunk_sha256": "9736b911aee3da3fc616c8c0f431fcfb359b8196af7ad8fb4cccd130a3cefd5e",
+      "ordinal": 3,
+      "phase": "baseline-capture",
+      "process_pid_count": 32,
+      "process_receipt_count": 32,
+      "status": "passed"
+    },
+    {
+      "artifacts_sha256": "564eb58e19cbdc767efb6d791679d3b5014e38e954d0cd53c7275398e3e29739",
+      "checkpoint_count": 32,
+      "chunk": 4,
+      "committed_chunk_sha256": "2e64c3906ac7113651e4bbec051df9e6a2e99a1f24848dc21f888999a4027aae",
+      "expected_chunk_sha256": "4704bd6f206ba84d7d2917c22fe43ae5454e1c219188c1265966fe54eba0b530",
+      "ordinal": 4,
+      "phase": "baseline-capture",
+      "process_pid_count": 32,
+      "process_receipt_count": 32,
+      "status": "passed"
+    },
+    {
+      "artifacts_sha256": "c303a9ec70cef303d6f7692e6f4124d69f45eb7fe36320b423b9d1a77e07b6fa",
+      "checkpoint_count": 32,
+      "chunk": 5,
+      "committed_chunk_sha256": "e14d9451bd312b4d41655eb527f7ba9c6dd56c9f0c8cbae508ed12f648910736",
+      "expected_chunk_sha256": "d1e1d1e0a20fb4534751406b600c274ebcd000d36b8ced49eaaf5e3942bd08c0",
+      "ordinal": 5,
+      "phase": "baseline-capture",
+      "process_pid_count": 32,
+      "process_receipt_count": 32,
+      "status": "passed"
+    }
+  ],
+  "retained_prior_plan_sha256": "b35afd9e68d54741afb8b67651aa82ec021e201e9db7ed076a33ac1165666a4f",
+  "run_id": "1f73e7b76f514379ceb2ad49a5653912",
+  "runner_sha256": "5c82dec938343465164cc8660970b0fe2188cbc9c0b2f0ca07e9c6ae5d87d77d",
+  "schema": "termrock.frozen-baseline-capture-progress.v1",
+  "source_commit": "310a56de62e0d2e87a647ffd58b9b5cec9c0a744",
+  "source_tree": "27d8ae0a77f9a313562324c710674fc7e4a7fe8d",
+  "successful_cases": 192,
+  "successful_checkpoints": 192,
+  "successful_process_receipts": 192,
+  "unreceipted_final_chunk_dirs": [],
+  "verification": {
+    "candidate_comparison_eligible": false,
+    "fresh_run_verify": "passed before captures; each advance revalidated plan, source, tools, environment, binaries, journal/artifact hashes before and after execution",
+    "fresh_run_verify_after_capture_batch": "passed; completed_steps=6; plan, ordered HMAC journal, committed chunk trees, expected-frame trees, source, binaries, runtime, tools, and inventory verified",
+    "last_advance": "passed; ordinal 5 / chunk 5; 32 checkpoints and 32 launch/close receipts",
+    "ordinary_checks_started": false,
+    "product_acceptance": false,
+    "replay_started": false
+  }
+}

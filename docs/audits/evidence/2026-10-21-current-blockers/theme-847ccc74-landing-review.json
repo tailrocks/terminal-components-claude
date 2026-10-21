@@ -1,0 +1,123 @@
+{
+  "status": "landing_compatible_with_recorded_existing_gate_failures",
+  "remote_branch": "parity/termrock-visual-baseline",
+  "fetched_remote_commit": "b8f2ae519a122f98addb6832e65557c9e3e43208",
+  "cleared_commit": "847ccc74208e5ed3277bc4f3dd8fa6958e682713",
+  "common_ancestor": "34f73e3066da7a77eac2d4719a697dc085906dda",
+  "recorded_utc": "2026-10-21T01:20:00.774034+00:00",
+  "integration_state": "Ephemeral local source composite only; no Git merge commit created, no production worktree edits, no commit or push.",
+  "comparison": {
+    "recipe_and_resolve": "Remote files are byte-identical to common ancestor. Reviewed profile implementation and two corrections therefore replace no intervening Theme resolver fix.",
+    "lib_overlap": "Remote adds pub mod visual, visual API exports, and backdrop DIM explanatory documentation. The reviewed API addition applies cleanly without deleting any incoming line.",
+    "remote_unique_changes": [
+      "a329d6394: visual.rs with focus/selection ink helpers and focus_gutter_api.rs",
+      "7f8adf0ec: esc_vocabulary.rs scanner tests and ignored strict gate",
+      "7c94b0033: backdrop documentation/audit and backdrop_tiers.rs coverage"
+    ],
+    "retained_files_byte_identical_to_remote": [
+      "src/visual.rs",
+      "tests/backdrop_tiers.rs",
+      "tests/esc_vocabulary.rs",
+      "tests/focus_gutter_api.rs"
+    ],
+    "candidate_unique_changes": "Variant/surface level profiles, semantic-token provenance/cache dependencies, Mono exact-profile ownership corrections, and level_profiles.rs public tests.",
+    "actual_conflicts": [],
+    "preparation_note": "The first patch check saw level_profiles.rs copied from the prior candidate review folder. It was removed only from this task-owned ephemeral copy because the remote has no such file; a subsequent unmodified patch check and application both passed. This was a review-copy preparation issue, not a source merge conflict."
+  },
+  "verification": {
+    "nextest": {
+      "command": "cargo nextest run -p termrock-theme",
+      "executed": 170,
+      "passed": 169,
+      "failed": 1,
+      "skipped": 1,
+      "exit": 100,
+      "failure": "all_73_junie_slots_match_reference_capability_output",
+      "skip": "esc_vocabulary::every_esc_label_starts_with_a_verb",
+      "independent_probes": "All nine unchanged review probes pass. All ten authored level-profile tests pass."
+    },
+    "default_corpus": {
+      "resolutions": 11520,
+      "identical_to_cleared847_and_original_parent34f": true,
+      "sha256": "ef41b890706668aa16b28bce9229e0dfc58d64f02a4d4b1f31e281a0c556cdce"
+    },
+    "strict_consumer_clippy": {
+      "exit": 101,
+      "failure": "crates/termrock-feedback/src/settings_page.rs:509 paint_field_parts has too many arguments (8/7)",
+      "classification": "Pre-existing incoming dependency source; archived byte-for-byte from fetched remote, not modified by the Theme patch."
+    },
+    "theme_only_strict_clippy": {
+      "command": "cargo clippy -p termrock-theme --lib --test level_profiles --test backdrop_tiers --test esc_vocabulary --test focus_gutter_api --no-deps -- -D warnings",
+      "exit": 0,
+      "limit": "This selected-package check does not clear the failing ordinary dependency-inclusive gate."
+    },
+    "format": {
+      "exit": 0,
+      "scope": "Merged lib.rs, recipe.rs, resolve.rs, incoming visual.rs, authored level_profiles.rs; no full-workspace claim."
+    },
+    "ignored_esc_gate": {
+      "command": "cargo nextest run -p termrock-theme --test esc_vocabulary --run-ignored all",
+      "executed": 3,
+      "passed": 2,
+      "failed": 1,
+      "skipped": 0,
+      "exit": 100,
+      "failures": [
+        "test scanner includes its own doc fixture at tests/esc_vocabulary.rs:2: Esc <label>",
+        "test scanner includes its own Outline fixture at tests/esc_vocabulary.rs:57",
+        "two frozen app Keep launching labels at jackin-preview-app/src/app/launch_cockpit.rs:53,81"
+      ]
+    },
+    "timeout_policy": "Every supervised build/test process group had an explicit 215-second timeout; no timeout occurred."
+  },
+  "findings": [
+    {
+      "priority": "P2",
+      "file": "crates/termrock-theme/tests/esc_vocabulary.rs",
+      "line": 108,
+      "classification": "Incoming pre-existing test-system defect",
+      "problem": "Ignored strict gate recursively scans tests/doc fixtures, unlike the active source-only scanner, producing two false positives in addition to the documented frozen app labels.",
+      "action": "Share the same production-source scope between scanners; preserve the genuine app-label/reference policy decision and do not weaken expected product output."
+    },
+    {
+      "priority": "P2",
+      "file": "crates/termrock-feedback/src/settings_page.rs",
+      "line": 509,
+      "classification": "Incoming pre-existing CI lint blocker",
+      "problem": "Strict dependency-inclusive Clippy fails too_many_arguments (8/7).",
+      "action": "Route to the component owner; fix the API/argument grouping or document a narrow justified lint exception, then rerun exact-head checks."
+    }
+  ],
+  "recommended_integration_recipe": [
+    "Fetch current PR38 under the repository publication lock; record its exact SHA.",
+    "Normal-merge reviewed source 847ccc74208e5ed3277bc4f3dd8fa6958e682713 (three-commit Theme series from common ancestor34f). No force push.",
+    "Retain incoming visual.rs API/exports, backdrop documentation, and all three incoming test files; retain reviewed resolver/recipe changes and public profile tests.",
+    "If remote has advanced beyond b8f2ae519, independently compare later Theme/dependency changes; this packet cannot clear unseen commits.",
+    "Rerun public profile probes, corpus, native Theme tests, strict dependency-inclusive checks, and required integration gates on the actual merged commit. Record the all-73/ignored Esc/lint failures honestly.",
+    "Commit the migration record/evidence, push through PR38, and verify the remote SHA."
+  ],
+  "acceptance_limits": [
+    "This is a compatibility review, not approval of every incoming visual helper or application change.",
+    "The new API Showcase/catalog declarations remain outstanding.",
+    "No full workspace tests, product baseline comparisons, all-73 approval, main/design updates, or final parity acceptance."
+  ],
+  "merged_theme_file_sha256": {
+    "src/lib.rs": "4800b60862a59d17cf7beacc2ced47d93b5b070f1ec01e6ff2c6736523009354",
+    "src/recipe.rs": "03f00cc2c30bd25456d976a75aaea8034b8673493c1e284aa7d43040042708fe",
+    "src/resolve.rs": "ababe64e4ba4c6a17358c4239a10dcf66902e0f97dcd275e2df35b7511b84b6c",
+    "src/visual.rs": "4512eaff17756206f48b9d14c0f1d28a6b76164a1d164ec54fc20d048e32890a",
+    "tests/backdrop_tiers.rs": "4009c6b4bcac23e0384c5aff8d400b324f4ec5d3c5215fb65705b6d7cc89dbcc",
+    "tests/esc_vocabulary.rs": "fdc3aeb6f588648745a7f306edd392af65fd8d83b1bcc3b292e41dcf4a32485a",
+    "tests/focus_gutter_api.rs": "91dabc2a285d36d859935c944c582d83ae29530a4b877f417663a4ba1506d5fb",
+    "tests/level_profiles.rs": "1f9d2f46895f339c841ce920fa922e1135672757879888e87aded9c8dfa68746"
+  },
+  "artifacts": {
+    "landing-nextest.log": "100bf19459a6609815ecef8651e57c792bc85f24e8d8ea387b9b69f81a4d1ddb",
+    "strict-consumer-clippy.log": "8a1415c7e254cf6da1afa51e379ce659d712df9d335fc4cc3850b60085e06da8",
+    "theme-only-strict-clippy.log": "68bda0b9949c97f6d9f7d14aba07c9c28af7532130ab1ec1ecacb1290514ec44",
+    "ignored-esc-gate.log": "d3c4072dc5ddcf0a961e91fcc5bfc043c4492b4442a47f47cbb9424c35305608",
+    "landing.patch": "ab3293435a20a61cfb6625a6954d8a2eb98f894e565bf4778cfb9a396cc85368",
+    "landing-corpus.txt": "ef41b890706668aa16b28bce9229e0dfc58d64f02a4d4b1f31e281a0c556cdce",
+    "independent-probes.rs": "d8f405f0faa55a879817743b24ee57c47987d852ec6b77e12c3be8d08a2e5abe"
+  }
+}

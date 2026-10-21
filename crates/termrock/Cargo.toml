@@ -28,6 +28,7 @@ termrock-editors.workspace = true
 termrock-forms.workspace = true
 termrock-terminal.workspace = true
 termrock-session.workspace = true
+termrock-shell.workspace = true
 ratatui.workspace = true
 ratatui-core.workspace = true
 
@@ -40,3 +41,42 @@ required-features = ["testing"]
 [[test]]
 name = "ex02_text_input"
 required-features = ["testing"]
+
+[[test]]
+name = "public_component_contracts"
+required-features = ["testing"]
+
+[[test]]
+name = "slots"
+required-features = ["testing"]
+
+[[test]]
+name = "split_block_consumer"
+required-features = ["testing"]
+
+[[test]]
+name = "master_detail_consumer"
+required-features = ["testing"]
+
+[[test]]
+name = "nav_list_composition_consumer"
+required-features = ["testing"]
+
+[[test]]
+name = "select_composition_consumer"
+required-features = ["testing"]
+
+[[test]]
+name = "tree_composition_consumer"
+required-features = ["testing"]
+
+[[test]]
+name = "manager_composition_consumer"
+required-features = ["testing"]
+
+[[example]]
+name = "master_detail_composition_consumer"
+
+# Rust documentation examples are guarded by the workspace doc inventory test.
+[lib]
+doctest = false

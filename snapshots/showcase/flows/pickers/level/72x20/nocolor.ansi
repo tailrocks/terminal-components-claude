@@ -1,0 +1,20 @@
+ ▪ [0m[1mJunie[0m Design system / Components / Pickers     i Inspector   ? Help  [0m
+                                                                        [0m
+[0m[2m   Forms          [0m│  [0m[1mPickers[0m  One modal list for files, tabs and level… [0m
+   Lists          │                                                     [0m
+   Trees          │    Open a picker                                    [0m
+   Tables         ┃                                                     [0m
+   Editable tabl… ┃     [0m[1mOpen quickly [0m   Switch tab    Choose a level    [0m
+   Panels         ┃                                                     [0m
+   Sidebars       ┃    Quick: fuzzy over files and tasks, Tab cycles …  [0m
+   Dialogs        ┃                                                     [0m
+   Progress       ┃                                                     [0m
+   Scrolling      ┃                                                     [0m
+   Terminal       ┃    Result                                           [0m
+   Code editor    ┃                                                     [0m
+   Diff           ┃    Chosen          Safe Mode (Full)                 [0m
+   Data grid      ┃    Detail          Every statement asks for confi…  [0m
+   Chips & selec… │    Level           Safe Mode (Full)                 [0m
+[0m[2m › Pickers        [0m│                                                     [0m
+                                                                        [0m
+ [0m[1mEnter[0m Open  [0m[1mTab[0m Next                            Chose Safe Mode (Full) [0m
