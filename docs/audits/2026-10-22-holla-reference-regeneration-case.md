@@ -32,8 +32,10 @@ ancestry `8689fe270`):
   (junie, paper) x 4 color levels (truecolor, 256, 16, mono) = 1088 digest
   rows.
 - The harness aborts at the first mismatching row
-  (`crates/termrock-test-support/src/digest.rs:284`), so each run exposes one
-  row; rows after the first mismatch are unverified by that run.
+  (`crates/termrock-test-support/src/digest.rs:275`, the `Lookup::Mismatch`
+  message formatter; the `Lookup::Mismatch` error is constructed at :364), so
+  each run exposes one row; rows after the first mismatch are unverified by
+  that run.
 
 ### Reproduction (exact commands, this lane, worktree
 `/private/tmp/termrock-holla-digest-doc`)
@@ -51,6 +53,16 @@ mise exec -- cargo nextest run --locked -p holla-ui --test visual \
 | `40c2663fe` (last holla bless) | **PASS** (113 s) | — | — | — | `/tmp/hd-digest-40c.log` |
 | `afb602936` (bisect first bad) | FAIL, exit 100 | same | same | `83a32521d5113b5d` | `/tmp/hd-digest-afb6.log` |
 | `5b1b3bf9b` (plate removal) | FAIL, exit 100 | `first-use 80 24 junie 256` | `e9b99f47bf935621` | `5a336a181c655c52` | `/tmp/hd-digest-5b1b.log` |
+
+Historical-observation note: the computed digest values in this table were
+observed against the source as of the `90cd12d47` era, when this evidence
+package was written; they are historical observations, not current
+expectations. The branch tip has since moved (`b4b1a3346` and later), and
+the same row (`first-use 80 24 junie truecolor`) already computes
+`3ab2d1deeb06c594` at `b4b1a3346` (observed by the independent review,
+2026-10-22). Regeneration must therefore re-derive all 1088 values at the
+owner-pinned HEAD; no value in this table is carried forward as an
+expectation.
 
 All observed values are preserved in the table above and in the referenced
 logs; none was blessed. The recorded pair from 2026-10-21
@@ -288,3 +300,46 @@ Option B — reference regeneration, in the scope above, executed only after:
   `/tmp/termrock-mono-preexisting-3600c0e-20261020/crates/holla-ui/tests/baselines/app.txt`.
 - Snapshot decodes: `/tmp/hd-ev/*.ansi` + `/tmp/hd-scripts/decode_ansi.py`.
 - No expected-output file (baseline or snapshot) was modified by this lane.
+
+---
+
+## Independent review 2026-10-22: CASE STANDS
+
+An independent review of this document (verdict on `afb602936`'s evidence
+tip: **CASE STANDS, 0 MAJOR, 3 MINOR — keep as decided**) re-verified the
+core claims:
+
+- **Bisect re-run verified.** The `40c2663fe..8689fe270` bisect and its
+  first-bad outcome (`afb602936`) were re-checked and hold.
+- **Shared recipe verified, blast radius bounded.** The `afb602936`
+  `termrock-theme` `menu` recipe change is real and shared; the affected
+  menu surfaces are jackin (demanded by the frozen capsule-menu frame) and
+  holla (collateral); tablepro has no `MenuBar` surface; showcase's single
+  `MenuBar` demo renders through the same recipe.
+- **Snapshot blobs verified against the frozen tag.** The frozen-oracle
+  `.ansi` snapshots match tag `2718a6b81` content-wise; they encode the
+  pre-tag static home, so Option A stays forbidden as recorded.
+- **Option B endorsed**, with the scope arithmetic confirmed: 1088 in-tree
+  digest rows (34 scenarios x 4 sizes x 2 themes x 4 color levels) plus
+  27 families x 25 snapshot files = 675 `.ansi` snapshots, all captured
+  from one candidate build at one pinned HEAD.
+
+Three MINOR findings, all dispositioned:
+
+1. Computed digest values in this audit are historical observations of the
+   `90cd12d47`-era source; the tip has since moved (`b4b1a3346` computes
+   `3ab2d1deeb06c594` for the same row). Dispositioned by the
+   historical-observation note above the reproduction table; regeneration
+   re-derives all 1088 values at the owner-pinned HEAD.
+2. The abort-site citation read `digest.rs:284`; the actual
+   `Lookup::Mismatch` sites are `digest.rs:275` (formatter) and `:364`
+   (constructor). Corrected in this document.
+3. The `afb602936` shared menu-recipe change needed its own deliberate
+   decision record. Recorded in the companion audit
+   `docs/audits/2026-10-22-theme-menu-recipe-decision.md` (keep, do not
+   revert; holla closure proceeds via Option B from a fresh pinned HEAD
+   after owner scope approval).
+
+Standing next step, unchanged: the owner records the regeneration scope
+approval (store, families, sizes, color levels) at a pinned HEAD before
+anything is regenerated; nothing is blessed by this record.
