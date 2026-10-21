@@ -1,0 +1,21 @@
+# tuiscotti PTY captures against baselines/tuiscotti-v1 (non-acceptance runs, one combo each)
+
+== showcase/terminal/default/120x40/truecolor
+  2704 differing cell(s), first 100:
+  note: txt differs; ansi differs; ascii differs; frame cells differ: 2704 cell(s); ascii.loss.json differs: ascii.loss.json.substitutions: array length differs: expected 243 | actual 224; ascii.loss.json.substitutions[1].original: expected "·" | actual "›"; ascii.loss.json.substitutions[1].replacement: expected "." | actual "?"; ascii.loss.json.substitutions[1].x: expected 87 | actual 36; ascii.loss.json.substitutions[2].original: expected "×" | actual "·"; ascii.loss.json.substitutions[2].replacement: expected "x" | actual "."; ascii.loss.json.substitutions[2].x: expected 92 | actual 87; ascii.loss.json.substitutions[3].original: expected "·" | actual "×"; ascii.loss.json.substitutions[3].replacement: expected "." | actual "x"; ascii.loss.json.substitutions[3].x: expected 81 | actual 92; observations.json differs: observations.frame_digest: expected 14636991921188406761 | actual 6933888721231586242; observations.non_empty_cells: expected 1459 | actual 1168; pixel similarity: 0.587019; html differs; state: dims expected 120x40 vs actual 120x40; digest expected 14636991921188406761 vs actual 6933888721231586242; cursor expected cursor (0,0) visible=false style=Block blink=false vs actual cursor (0,0) visible=false style=Bar blink=false; 2704 differing cell(s)
+  2704 differing cell(s), first 100:
+
+== showcase/taskrunner/default/120x40/truecolor
+  2507 differing cell(s), first 100:
+  note: txt differs; ansi differs; ascii differs; frame cells differ: 2507 cell(s); ascii.loss.json differs: ascii.loss.json.substitutions: array length differs: expected 13 | actual 200; ascii.loss.json.substitutions[1].original: expected "·" | actual "›"; ascii.loss.json.substitutions[1].replacement: expected "." | actual "?"; ascii.loss.json.substitutions[1].x: expected 87 | actual 32; ascii.loss.json.substitutions[2].original: expected "×" | actual "·"; ascii.loss.json.substitutions[2].replacement: expected "x" | actual "."; ascii.loss.json.substitutions[2].x: expected 92 | actual 87; ascii.loss.json.substitutions[3].original: expected "▾" | actual "×"; ascii.loss.json.substitutions[3].replacement: expected "?" | actual "x"; ascii.loss.json.substitutions[3].x: expected 29 | actual 92; observations.json differs: observations.frame_digest: expected 3005785522395349994 | actual 6539035457782785956; observations.non_empty_cells: expected 645 | actual 890; pixel similarity: 0.569639; html differs; state: dims expected 120x40 vs actual 120x40; digest expected 3005785522395349994 vs actual 6539035457782785956; cursor expected cursor (0,0) visible=false style=Block blink=false vs actual cursor (0,0) visible=false style=Bar blink=false; 2507 differing cell(s)
+  2507 differing cell(s), first 100:
+
+== jackin/accounts/{detail,drawer,filter}/120x40/truecolor
+  1211 differing cell(s), first 100:
+  1211 differing cell(s), first 100:
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 679 filtered out; finished in 88.79s
+  1268 differing cell(s), first 100:
+  1268 differing cell(s), first 100:
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 679 filtered out; finished in 2.49s
+  1178 differing cell(s), first 100:
+  1178 differing cell(s), first 100:
