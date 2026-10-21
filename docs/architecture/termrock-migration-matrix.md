@@ -3418,3 +3418,62 @@ paths and 5 new paths, 44 paths in total, matching
 `parity-candidate-paths.txt` entry for entry. The application is recorded
 here as a verified application check against the fixed base, not as a
 published candidate.
+
+### The parity tip's theme ink commit is reverted (reference evidence)
+
+The parity tip's commit `b4b1a3346` ("fix(theme): restore the frozen muted and
+faint inks and the scrollbar track glyph") changed three theme slots on the
+evidence of a corpus capture: the muted ink to `0x808080`, the faint ink to
+`0x4d4d4d` and the scrollbar track glyph to U+2502. The frozen tag's own
+source and its own rendered captures contradict the tip on all three slots:
+
+| Slot | Tag source | Tag's own rendered capture | Tip's change |
+| --- | --- | --- | --- |
+| muted | `src/theme.rs:528` `MUTED = rgb(0x8a8a8a)`, `:753` `text_muted: MUTED` | `snapshots/showcase/pages/overview/100x30/truecolor.ansi`: 25 cells `38;2;138;138;138`; `.../256.ansi`: 27 cells `38;5;245` | `0x808080` (244) |
+| faint | `src/theme.rs:506` `WHITE_43 = rgb(0x737373)`, `:754` `text_faint: WHITE_43` | `.../truecolor.ansi`: 22 cells `38;2;115;115;115`; `.../256.ansi`: 22 cells `38;5;242` | `0x4d4d4d` (238) |
+| scrollbar track | `src/theme.rs:2429` `scroll_track: "┆"` | the 16-colour capture paints the track with U+2506 | U+2502 |
+
+The tag's `apply_256` table states the same indices explicitly:
+`src/theme.rs:939` `self.text_muted = i(245)` and `:940`
+`self.text_faint = i(242)`. The corpus the tip measured was captured 967
+commits before the tag tip, from a source with no `apply_256` table, so it
+renders the generic nearest-match greys 244 and 238 rather than the tag's
+explicit 245 and 242. That is the same two-era finding the palette
+adjudication recorded.
+
+The commit is therefore reverted in `7bdf030be`. The revert also exposes a
+reference defect: the recorded Showcase baseline is a mixed-era artifact. It
+agrees with the tag's truecolor rendering but its 256 rendering used the
+generic nearest-match greys, so neither the tip's ink set nor the tag-aligned
+ink set reproduces it. Measured:
+
+| Tree | `Overview 80 24 junie 256` | `Overview 80 24 junie truecolor` |
+| --- | --- | --- |
+| recorded baseline | `e9c247852562611b` | `80780cbbac55284d` |
+| tag-aligned inks (this branch) | `355a2597648cc88e` | `80780cbbac55284d` (matches) |
+| tip's reverted inks | `e9c247852562611b` (matches) | `507ef7d92e16be19` |
+
+The Showcase baseline and the page-parity digests are therefore re-recorded
+against the tag-aligned tree, with the classification of every changed digest
+and the old values preserved. That work is in progress and is recorded
+separately.
+
+### TablePro workbench allocation budget (integrated)
+
+Branch `wip/tablepro-grid-perf-20261021`, commit `136a567e8`, integrated as
+`98be6ec1f`.
+
+The Jackin app-layer merge brought three helpers onto the TablePro frame hot
+path, and each one allocated per frame, so the 500x14 grid frame went from 99
+to 114 allocations and broke the 100-allocation budget. The header overflow
+helper now works on fixed-size arrays instead of two `Vec<bool>`, the header
+piece widths are measured from the parts instead of from freshly formatted
+strings, the hint group costs are collected into a stack buffer instead of a
+`Vec<u16>`, and the connection status label is built once per frame instead
+of once per use. The frame is back to 99 allocations with the same rendering,
+and the test passes without any budget change.
+
+The same pass clears the strict clippy gate for `tablepro-ui`: the hint group
+walk and the hint painter use safe span access, and the header overflow test
+asserts the whole result instead of unwrapping it. `cargo clippy -p
+tablepro-ui --all-targets -- -D warnings` is clean.
