@@ -3,7 +3,7 @@
 
 #![allow(clippy::indexing_slicing)]
 
-use termrock::author::PaintStyle;
+use termrock::author::{PaintStyle, put_cell_at};
 use termrock::{Buffer, Color, Modifier, Position, Rect, Style, Ui};
 
 use super::App;
@@ -1088,7 +1088,7 @@ fn blit(ui: &mut Ui<'_>, buf: &Buffer, area: Rect) {
             if style.add_modifier.contains(Modifier::DIM) {
                 paint = paint.add_modifier(Modifier::DIM);
             }
-            ui.paint_cell(Position::new(x, y), cell.symbol(), paint);
+            put_cell_at(ui, Position::new(x, y), cell.symbol(), paint);
         }
     }
 }

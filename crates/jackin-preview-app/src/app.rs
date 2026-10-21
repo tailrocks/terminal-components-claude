@@ -5,7 +5,9 @@ use std::{
     mem,
     time::Duration,
 };
-use termrock::author::PaintStyle;
+use termrock::author::{
+    PaintStyle, put_cell_at, put_fill_in, put_frame_in, put_text_in, put_text_w,
+};
 
 use termrock::{
     Action, ActionKey, ActivationKey, App as TuiApp, AsItem, Brand, Button, Chord, ContextMenu, Cx,
@@ -6025,7 +6027,7 @@ impl App {
         } else {
             self.route.title()
         };
-        ui.paint_str(heading, label, style);
+        put_text_in(ui, heading, label, style);
         if area.height < 2 {
             return;
         }
@@ -6060,7 +6062,7 @@ impl App {
                 let Some(cell) = buf.cell(Position::new(x, y)) else {
                     continue;
                 };
-                ui.paint_cell(Position::new(x, y), cell.symbol(), cell.style());
+                put_cell_at(ui, Position::new(x, y), cell.symbol(), cell.style());
             }
         }
     }
@@ -6391,8 +6393,11 @@ impl App {
         );
         Self::manager_list().draw(ui, list_area, &self.manager.list, &self.manager_rows_cache);
         if self.manager.detail_open() {
-            ui.paint_str(
-                Rect::new(area.x, area.y.saturating_add(1), area.width, 1),
+            put_text_w(
+                ui,
+                area.x,
+                area.y.saturating_add(1),
+                area.width,
                 "Live topology · Workspaces › infra-control-plane",
                 ui.surface_style(),
             );
@@ -6674,7 +6679,7 @@ impl App {
             };
             let width = u16::try_from(text.chars().count()).unwrap_or(0);
             if y < area.bottom() && x < area.right() && width > 0 {
-                ui.paint_str(Rect::new(x, y, width, 1), text, style);
+                put_text_w(ui, x, y, width, text, style);
             }
         };
         let rule = 0x3a_3a_3a;
@@ -6747,8 +6752,11 @@ impl App {
         if y < area.y || area.width == 0 {
             return;
         }
-        ui.paint_str(
-            Rect::new(area.x, y, area.width, 1),
+        put_text_w(
+            ui,
+            area.x,
+            y,
+            area.width,
             self.accounts.form_hints(),
             ui.surface_style(),
         );
@@ -6785,8 +6793,11 @@ impl App {
                     Rect::new(area.x, area.y.saturating_add(3), area.width, 1),
                     &self.accounts.name_input,
                 );
-            ui.paint_str(
-                Rect::new(area.x, area.y.saturating_add(4), area.width, 1),
+            put_text_w(
+                ui,
+                area.x,
+                area.y.saturating_add(4),
+                area.width,
                 "Agent · Claude Code",
                 ui.surface_style(),
             );
@@ -6843,8 +6854,11 @@ impl App {
                         );
                     if !self.accounts.masked_input.is_empty() {
                         let tail = tail_of(&self.accounts.masked_input);
-                        ui.paint_str(
-                            Rect::new(area.x, input_y.saturating_add(1), area.width, 1),
+                        put_text_w(
+                            ui,
+                            area.x,
+                            input_y.saturating_add(1),
+                            area.width,
                             &format!("Last four · {tail}"),
                             ui.surface_style(),
                         );
@@ -6853,14 +6867,20 @@ impl App {
                 _ => {
                     if let Some(reference) = self.accounts.selected_op.as_ref() {
                         let display = reference.display_path();
-                        ui.paint_str(
-                            Rect::new(area.x, input_y, area.width, 1),
+                        put_text_w(
+                            ui,
+                            area.x,
+                            input_y,
+                            area.width,
                             &display,
                             ui.surface_style(),
                         );
                     } else {
-                        ui.paint_str(
-                            Rect::new(area.x, input_y, area.width, 1),
+                        put_text_w(
+                            ui,
+                            area.x,
+                            input_y,
+                            area.width,
                             "Choose 1Password reference…",
                             ui.surface_style(),
                         );
@@ -6899,8 +6919,11 @@ impl App {
                 .and_then(|id| self.world.accounts.get(id))
                 .map(Account::title)
                 .unwrap_or_else(|| "no account".to_owned());
-            ui.paint_str(
-                Rect::new(area.x, area.bottom().saturating_sub(2), area.width, 1),
+            put_text_w(
+                ui,
+                area.x,
+                area.bottom().saturating_sub(2),
+                area.width,
                 &format!("Inspector · {title}"),
                 ui.surface_style(),
             );
@@ -7030,7 +7053,8 @@ impl App {
             self.selected_role()
         );
         let style = ui.surface_style();
-        ui.paint_str(
+        put_text_in(
+            ui,
             Rect {
                 height: area.height.min(1),
                 ..area
@@ -7081,7 +7105,7 @@ impl App {
                 account_labels.join(" · ")
             )
         };
-        ui.paint_str(Rect::new(area.x, y, area.width, 1), &accounts, style);
+        put_text_w(ui, area.x, y, area.width, &accounts, style);
         y = y.saturating_add(1);
         for (index, stage) in Stage::ALL.iter().enumerate() {
             if y >= area.bottom().saturating_sub(2) {
@@ -7094,11 +7118,12 @@ impl App {
                 stage.label(),
                 state.label()
             );
-            ui.paint_str(Rect::new(area.x, y, area.width, 1), &line, style);
+            put_text_w(ui, area.x, y, area.width, &line, style);
             y = y.saturating_add(1);
         }
         if let Some(status) = &self.status {
-            ui.paint_str(
+            put_text_in(
+                ui,
                 Rect {
                     y: area.bottom().saturating_sub(2),
                     height: 1,
@@ -7197,7 +7222,7 @@ impl App {
                     .fg(termrock::Color::Rgb(0, 0, 0))
                     .bg(termrock::Color::Reset)
                     .add_modifier(Modifier::BOLD | Modifier::REVERSED);
-                ui.paint_str(Rect::new(1, 0, 9, 1), " jackin❯ ", brand);
+                put_text_w(ui, 1, 0, 9, " jackin❯ ", brand);
             } else if std::env::var_os("NO_COLOR").is_none() {
                 style = PaintStyle::new()
                     .fg(termrock::Color::Gray)
@@ -7205,13 +7230,11 @@ impl App {
                     .add_modifier(Modifier::UNDERLINED);
             }
         }
-        ui.paint_str(
-            Rect::new(
-                screen.width.saturating_sub(columns.saturating_add(1)),
-                screen.height.saturating_sub(4),
-                columns,
-                1,
-            ),
+        put_text_w(
+            ui,
+            screen.width.saturating_sub(columns.saturating_add(1)),
+            screen.height.saturating_sub(4),
+            columns,
             &label,
             style,
         );
@@ -7314,7 +7337,7 @@ impl App {
                 .set_fg(termrock::Role::OnAccent)
                 .set_bg(termrock::Role::Accent),
         );
-        ui.paint_str(Rect::new(1, 0, 9, 1), " jackin❯ ", brand_style);
+        put_text_w(ui, 1, 0, 9, " jackin❯ ", brand_style);
         ui.modal_backdrop(screen);
         let dialog = Self::accounts_add_form_dialog();
         let width = 70u16.min(screen.width);
@@ -7393,50 +7416,63 @@ impl App {
             ui.paint_patch(&termrock::StylePatch::new().set_fg(termrock::Role::Accent));
 
         // Row 0 (y = body.y): Display name *
-        ui.paint_str(
-            Rect::new(body.x.saturating_add(2), body.y, 13, 1),
+        put_text_w(
+            ui,
+            body.x.saturating_add(2),
+            body.y,
+            13,
             "Display name ",
             primary_bold,
         );
-        ui.paint_str(
-            Rect::new(body.x.saturating_add(15), body.y, 1, 1),
+        put_text_w(
+            ui,
+            body.x.saturating_add(15),
+            body.y,
+            1,
             "*",
             secondary_bold,
         );
 
         // Row 1 (y = body.y + 1): Name input field
         let field_width = body.width.saturating_sub(2);
-        ui.fill(
+        put_fill_in(
+            ui,
             Rect::new(body.x, body.y.saturating_add(1), field_width, 1),
             field_fill,
         );
-        ui.paint_str(
-            Rect::new(body.x, body.y.saturating_add(1), 1, 1),
-            "▎",
-            gutter,
-        );
+        put_text_w(ui, body.x, body.y.saturating_add(1), 1, "▎", gutter);
         if !self.add_form_required {
-            ui.paint_str(
-                Rect::new(body.x.saturating_add(2), body.y.saturating_add(1), 21, 1),
+            put_text_w(
+                ui,
+                body.x.saturating_add(2),
+                body.y.saturating_add(1),
+                21,
                 "Personal, Work, Team…",
                 field_text,
             );
         }
 
         // Row 4 (y = body.y + 4): Purpose label optional
-        ui.paint_str(
-            Rect::new(body.x.saturating_add(2), body.y.saturating_add(4), 15, 1),
+        put_text_w(
+            ui,
+            body.x.saturating_add(2),
+            body.y.saturating_add(4),
+            15,
             "Purpose label  ",
             secondary,
         );
-        ui.paint_str(
-            Rect::new(body.x.saturating_add(17), body.y.saturating_add(4), 8, 1),
+        put_text_w(
+            ui,
+            body.x.saturating_add(17),
+            body.y.saturating_add(4),
+            8,
             "optional",
             faint,
         );
 
         // Row 5 (y = body.y + 5): Purpose input field
-        ui.fill(
+        put_fill_in(
+            ui,
             Rect::new(
                 body.x.saturating_add(1),
                 body.y.saturating_add(5),
@@ -7445,21 +7481,28 @@ impl App {
             ),
             field_fill,
         );
-        ui.paint_str(
-            Rect::new(body.x.saturating_add(2), body.y.saturating_add(5), 29, 1),
+        put_text_w(
+            ui,
+            body.x.saturating_add(2),
+            body.y.saturating_add(5),
+            29,
             "personal · work · experiments",
             field_text,
         );
 
         // Row 8 (y = body.y + 8): Provider
-        ui.paint_str(
-            Rect::new(body.x.saturating_add(2), body.y.saturating_add(8), 8, 1),
+        put_text_w(
+            ui,
+            body.x.saturating_add(2),
+            body.y.saturating_add(8),
+            8,
             "Provider",
             secondary,
         );
 
         // Row 9 (y = body.y + 9): Provider dropdown
-        ui.fill(
+        put_fill_in(
+            ui,
             Rect::new(
                 body.x.saturating_add(1),
                 body.y.saturating_add(9),
@@ -7468,78 +7511,109 @@ impl App {
             ),
             field_fill,
         );
-        ui.paint_str(
-            Rect::new(body.x.saturating_add(1), body.y.saturating_add(9), 34, 1),
+        put_text_w(
+            ui,
+            body.x.saturating_add(1),
+            body.y.saturating_add(9),
+            34,
             " Claude Code · Anthropic / Claude",
             field_value,
         );
-        ui.paint_str(
-            Rect::new(body.x.saturating_add(63), body.y.saturating_add(9), 1, 1),
+        put_text_w(
+            ui,
+            body.x.saturating_add(63),
+            body.y.saturating_add(9),
+            1,
             "▾",
             field_text,
         );
 
         // Row 12 (y = body.y + 12): Provider runtime note
-        ui.paint_str(
-            Rect::new(
-                body.x.saturating_add(2),
-                body.y.saturating_add(12),
-                body.width.saturating_sub(4),
-                1,
-            ),
+        put_text_w(
+            ui,
+            body.x.saturating_add(2),
+            body.y.saturating_add(12),
+            body.width.saturating_sub(4),
             "Agent runtime Claude Code · provider Anthropic / Claude · usage surface Construct",
             field_text,
         );
 
         // Row 14 (y = body.y + 14): Credential source
-        ui.paint_str(
-            Rect::new(body.x.saturating_add(2), body.y.saturating_add(14), 17, 1),
+        put_text_w(
+            ui,
+            body.x.saturating_add(2),
+            body.y.saturating_add(14),
+            17,
             "Credential source",
             secondary,
         );
 
         // Rows 15..17 (y = body.y + 15..17): Radios
-        ui.paint_str(
-            Rect::new(body.x.saturating_add(1), body.y.saturating_add(15), 3, 1),
+        put_text_w(
+            ui,
+            body.x.saturating_add(1),
+            body.y.saturating_add(15),
+            3,
             "(●)",
             radio_active,
         );
-        ui.paint_str(
-            Rect::new(body.x.saturating_add(4), body.y.saturating_add(15), 38, 1),
+        put_text_w(
+            ui,
+            body.x.saturating_add(4),
+            body.y.saturating_add(15),
+            38,
             " 1Password item / field  (recommended)",
             primary_plain,
         );
-        ui.paint_str(
-            Rect::new(body.x.saturating_add(1), body.y.saturating_add(16), 3, 1),
+        put_text_w(
+            ui,
+            body.x.saturating_add(1),
+            body.y.saturating_add(16),
+            3,
             "( )",
             field_text,
         );
-        ui.paint_str(
-            Rect::new(body.x.saturating_add(4), body.y.saturating_add(16), 19, 1),
+        put_text_w(
+            ui,
+            body.x.saturating_add(4),
+            body.y.saturating_add(16),
+            19,
             " Local agent folder",
             primary_plain,
         );
-        ui.paint_str(
-            Rect::new(body.x.saturating_add(1), body.y.saturating_add(17), 3, 1),
+        put_text_w(
+            ui,
+            body.x.saturating_add(1),
+            body.y.saturating_add(17),
+            3,
             "( )",
             field_text,
         );
-        ui.paint_str(
-            Rect::new(body.x.saturating_add(4), body.y.saturating_add(17), 19, 1),
+        put_text_w(
+            ui,
+            body.x.saturating_add(4),
+            body.y.saturating_add(17),
+            19,
             " Plain-text API key",
             primary_plain,
         );
 
         // Row 19 (y = body.y + 19): 1Password reference
-        ui.paint_str(
-            Rect::new(body.x.saturating_add(2), body.y.saturating_add(19), 19, 1),
+        put_text_w(
+            ui,
+            body.x.saturating_add(2),
+            body.y.saturating_add(19),
+            19,
             "1Password reference",
             secondary,
         );
 
         // Row 20 (y = body.y + 20): not chosen + Choose button
-        ui.paint_str(
-            Rect::new(body.x.saturating_add(2), body.y.saturating_add(20), 10, 1),
+        put_text_w(
+            ui,
+            body.x.saturating_add(2),
+            body.y.saturating_add(20),
+            10,
             "not chosen",
             primary_plain,
         );
@@ -8280,7 +8354,7 @@ impl App {
         if !self.accounts_boot_needle(ui.theme_ref(), screen) {
             return;
         }
-        ui.paint_str(Rect::new(0, 0, 8, 1), "jackin❯", ui.surface_style());
+        put_text_w(ui, 0, 0, 8, "jackin❯", ui.surface_style());
     }
 
     fn draw_accounts_boot_needle_80(&self, ui: &mut Ui<'_>, screen: Rect) {
@@ -8290,7 +8364,7 @@ impl App {
         if !self.accounts_boot_needle_80(ui.theme_ref(), screen) {
             return;
         }
-        ui.paint_str(Rect::new(0, 0, 8, 1), "jackin❯", ui.surface_style());
+        put_text_w(ui, 0, 0, 8, "jackin❯", ui.surface_style());
     }
 
     fn historical_audit_accounts_80(&self, theme: &termrock::Theme, screen: Rect) -> bool {
@@ -8359,7 +8433,7 @@ impl App {
         if !self.accounts_boot_needle_rest(ui.theme_ref(), screen) {
             return;
         }
-        ui.paint_str(Rect::new(0, 0, 8, 1), "jackin❯", ui.surface_style());
+        put_text_w(ui, 0, 0, 8, "jackin❯", ui.surface_style());
     }
 
     fn accounts_boot_needle_rest(&self, theme: &termrock::Theme, screen: Rect) -> bool {
@@ -8655,7 +8729,7 @@ impl App {
 
     fn draw_capsule_panes(&self, ui: &mut Ui<'_>, area: Rect) {
         let style = ui.surface_style();
-        ui.fill(area, style);
+        put_fill_in(ui, area, style);
         let instance_id = Self::active_running_instance_id_ref(&self.active_instance, &self.world);
         let Some(instance_id) = instance_id else {
             paint_lines(ui, area, &["Capsule is empty"]);
@@ -8709,7 +8783,7 @@ impl App {
                             .remove(Modifier::BOLD),
                     )
                 };
-                let inner = ui.frame(pane_area, border);
+                let inner = put_frame_in(ui, pane_area, border);
                 let Some((_, title)) = frame.titles.get(&pane_id) else {
                     continue;
                 };
@@ -8728,13 +8802,11 @@ impl App {
                             .remove(Modifier::BOLD),
                     )
                 };
-                ui.paint_str(
-                    Rect::new(
-                        pane_area.x.saturating_add(2),
-                        pane_area.y,
-                        pane_area.width.saturating_sub(4),
-                        1,
-                    ),
+                put_text_w(
+                    ui,
+                    pane_area.x.saturating_add(2),
+                    pane_area.y,
+                    pane_area.width.saturating_sub(4),
                     title,
                     title_style,
                 );
@@ -8762,8 +8834,11 @@ impl App {
                                 .set_bg(termrock::Role::Surface(termrock::Surface::Canvas))
                                 .remove(Modifier::BOLD),
                         );
-                        ui.paint_str(
-                            Rect::new(gx, pane_area.y, termrock::width(glyph), 1),
+                        put_text_w(
+                            ui,
+                            gx,
+                            pane_area.y,
+                            termrock::width(glyph),
                             glyph,
                             glyph_style,
                         );
@@ -8779,11 +8854,7 @@ impl App {
                             .set_bg(termrock::Role::Surface(termrock::Surface::Canvas))
                             .remove(Modifier::BOLD),
                     );
-                    ui.paint_str(
-                        Rect::new(badge_x, pane_area.y, badge_w, 1),
-                        badge,
-                        badge_style,
-                    );
+                    put_text_w(ui, badge_x, pane_area.y, badge_w, badge, badge_style);
                 }
                 inner
             } else {
@@ -8874,7 +8945,7 @@ impl App {
             let handle = seam.handle;
             for y in handle.y..handle.bottom() {
                 for x in handle.x..handle.right() {
-                    ui.paint_str(Rect::new(x, y, 1, 1), glyph, style);
+                    put_text_w(ui, x, y, 1, glyph, style);
                 }
             }
         }
@@ -8910,8 +8981,11 @@ impl App {
         };
         self.draw_capsule_panes(ui, pane_area);
         if self.capsule_tab_title_dialog {
-            ui.paint_str(
-                Rect::new(area.x.saturating_add(2), area.y.saturating_add(1), 30, 1),
+            put_text_w(
+                ui,
+                area.x.saturating_add(2),
+                area.y.saturating_add(1),
+                30,
                 "Change tab title",
                 ui.surface_style(),
             );
@@ -8964,8 +9038,11 @@ impl App {
             );
         }
         if self.capsule_prefix {
-            ui.paint_str(
-                Rect::new(area.x, area.bottom().saturating_sub(1), area.width, 1),
+            put_text_w(
+                ui,
+                area.x,
+                area.bottom().saturating_sub(1),
+                area.width,
                 "prefix… New tab · Split right · Copy selection · Detach",
                 ui.surface_style(),
             );
@@ -9011,7 +9088,7 @@ impl App {
     fn draw_capsule_shell(&self, ui: &mut Ui<'_>, area: Rect) {
         ui.register_decor(APP, PartRef::of(Part::CONTAINER), area);
         let style = ui.surface_style();
-        ui.fill(area, style);
+        put_fill_in(ui, area, style);
         let brand = Brand::new(APP.sub("capsule-brand"), "jackin❯")
             .draw(ui, Rect::new(area.x.saturating_add(1), area.y, 9, 1));
         let menu_x = brand.right().saturating_add(1);
@@ -9034,13 +9111,11 @@ impl App {
             .draw(ui, menu_area, &self.capsule_menu_state);
         self.paint_capsule_identity(ui, area, menu_x, style);
         if self.capsule_prefix {
-            ui.paint_str(
-                Rect::new(
-                    area.x.saturating_add(9),
-                    area.y,
-                    area.width.saturating_sub(9),
-                    1,
-                ),
+            put_text_w(
+                ui,
+                area.x.saturating_add(9),
+                area.y,
+                area.width.saturating_sub(9),
                 "prefix… New tab · Split right · Detach",
                 style,
             );
@@ -9151,36 +9226,31 @@ impl App {
                 .saturating_add(inst_gap)
                 .saturating_add(inst_w);
             let mut x = right.saturating_sub(group);
-            ui.paint_str(Rect::new(x, area.y, crumb_w, 1), &crumb, bold);
+            put_text_w(ui, x, area.y, crumb_w, &crumb, bold);
             x = x.saturating_add(crumb_w).saturating_add(sep);
             // Muted padding hugs the container. The other gap cell stays
             // the menubar fill.
-            ui.paint_str(Rect::new(x.saturating_sub(1), area.y, 1, 1), " ", overflow);
-            ui.paint_str(Rect::new(x, area.y, shown_w, 1), &shown, overflow);
+            put_text_w(ui, x.saturating_sub(1), area.y, 1, " ", overflow);
+            put_text_w(ui, x, area.y, shown_w, &shown, overflow);
             if let Some(text) = instances {
-                ui.paint_str(
-                    Rect::new(x.saturating_add(shown_w), area.y, 1, 1),
-                    " ",
-                    overflow,
-                );
+                put_text_w(ui, x.saturating_add(shown_w), area.y, 1, " ", overflow);
                 x = x.saturating_add(shown_w).saturating_add(sep);
-                ui.paint_str(Rect::new(x, area.y, inst_w, 1), &text, overflow);
+                put_text_w(ui, x, area.y, inst_w, &text, overflow);
             }
         } else if crumb_x > used {
-            ui.paint_str(
-                Rect::new(crumb_x.saturating_sub(sep).saturating_sub(1), area.y, 1, 1),
+            put_text_w(
+                ui,
+                crumb_x.saturating_sub(sep).saturating_sub(1),
+                area.y,
+                1,
                 "…",
                 overflow,
             );
-            ui.paint_str(Rect::new(crumb_x, area.y, crumb_w, 1), &crumb, bold);
+            put_text_w(ui, crumb_x, area.y, crumb_w, &crumb, bold);
         } else {
             // The crumb would cover a menu title. Keep the titles and
             // mark the clipped identity with one muted ellipsis.
-            ui.paint_str(
-                Rect::new(right.saturating_sub(1), area.y, 1, 1),
-                "…",
-                overflow,
-            );
+            put_text_w(ui, right.saturating_sub(1), area.y, 1, "…", overflow);
         }
     }
 
@@ -9228,14 +9298,14 @@ impl App {
             termrock::Color::Rgb(0x3a, 0x3a, 0x3a),
         )));
         let label_row = Rect { height: 1, ..area };
-        ui.fill(label_row, canvas);
+        put_fill_in(ui, label_row, canvas);
         let rule_row = Rect {
             y: area.y.saturating_add(1),
             height: 1,
             ..area
         };
         for col in rule_row.columns() {
-            ui.paint_str(Rect { width: 1, ..col }, "─", quiet);
+            put_text_in(ui, Rect { width: 1, ..col }, "─", quiet);
         }
         let mut x = area.x;
         for (index, tab) in daemon.tabs.iter().enumerate() {
@@ -9286,28 +9356,23 @@ impl App {
             }
             let active = index == daemon.active;
             let tab_rect = Rect::new(x, area.y, tab_w, 1);
-            ui.fill(tab_rect, if active { plate } else { idle_label });
+            put_fill_in(ui, tab_rect, if active { plate } else { idle_label });
             let mut cx = x.saturating_add(1);
             if let Some(prefix) = &prefix {
                 let style = if active { beside } else { idle_mark };
-                ui.paint_str(
-                    Rect::new(cx, area.y, termrock::width(prefix), 1),
-                    prefix,
-                    style,
-                );
+                put_text_w(ui, cx, area.y, termrock::width(prefix), prefix, style);
                 cx = cx.saturating_add(termrock::width(prefix)).saturating_add(1);
             }
             let label_style = if active { plate } else { idle_label };
-            ui.paint_str(
-                Rect::new(cx, area.y, termrock::width(&label), 1),
-                &label,
-                label_style,
-            );
+            put_text_w(ui, cx, area.y, termrock::width(&label), &label, label_style);
             cx = cx.saturating_add(termrock::width(&label));
             if !glyph.is_empty() {
                 let style = if active { beside } else { idle_mark };
-                ui.paint_str(
-                    Rect::new(cx.saturating_add(1), area.y, termrock::width(glyph), 1),
+                put_text_w(
+                    ui,
+                    cx.saturating_add(1),
+                    area.y,
+                    termrock::width(glyph),
                     glyph,
                     style,
                 );
@@ -9315,7 +9380,7 @@ impl App {
             if active {
                 let span = Rect::new(x, rule_row.y, tab_w, 1);
                 for col in span.columns() {
-                    ui.paint_str(Rect { width: 1, ..col }, "━", accent);
+                    put_text_in(ui, Rect { width: 1, ..col }, "━", accent);
                 }
             }
             x = x.saturating_add(tab_w).saturating_add(1);
@@ -9346,7 +9411,7 @@ impl App {
                 .set_fg(termrock::Role::Fg(termrock::FgStep::Primary))
                 .set_bg(termrock::Role::Surface(termrock::Surface::Elevated)),
         );
-        ui.fill(area, bg);
+        put_fill_in(ui, area, bg);
         let strong = bg.add_modifier(Modifier::BOLD);
         let warn = ui.paint_patch(
             &termrock::StylePatch::new()
@@ -9454,11 +9519,11 @@ impl App {
         }
         let mut x = area.x.saturating_add(EDGE);
         if keep[0] {
-            ui.paint_str(Rect::new(x, area.y, work_w, 1), &work, strong);
+            put_text_w(ui, x, area.y, work_w, &work, strong);
             x = x.saturating_add(work_w).saturating_add(GAP);
         }
         if keep[1] {
-            ui.paint_str(Rect::new(x, area.y, dirty_w, 1), &dirty, warn);
+            put_text_w(ui, x, area.y, dirty_w, &dirty, warn);
             x = x.saturating_add(dirty_w).saturating_add(GAP);
         }
         let left_end = x.saturating_sub(GAP);
@@ -9499,7 +9564,7 @@ impl App {
             let mark = at
                 .max(left_end.saturating_add(u16::from(keep[0] || keep[1])))
                 .min(area.right().saturating_sub(EDGE + 1));
-            ui.paint_str(Rect::new(mark, area.y, 1, 1), "…", muted);
+            put_text_w(ui, mark, area.y, 1, "…", muted);
         }
         let center_w = u16::from(keep[2]) * agent_w
             + u16::from(keep[3]) * panes
@@ -9511,16 +9576,16 @@ impl App {
             let mut cx = lo.saturating_add(free.saturating_sub(center_w) / 2);
             if keep[2] {
                 let style = if agent_warn { warn } else { muted };
-                ui.paint_str(Rect::new(cx, area.y, agent_w, 1), &agent_line, style);
+                put_text_w(ui, cx, area.y, agent_w, &agent_line, style);
                 cx = cx.saturating_add(agent_w).saturating_add(GAP);
             }
             if keep[3] {
-                ui.paint_str(Rect::new(cx, area.y, panes, 1), &pane_meta, muted);
+                put_text_w(ui, cx, area.y, panes, &pane_meta, muted);
             }
         }
         if keep[4] {
             let label_w = termrock::width(&meter_label);
-            ui.paint_str(Rect::new(meter_x, area.y, label_w, 1), &meter_label, muted);
+            put_text_w(ui, meter_x, area.y, label_w, &meter_label, muted);
             self.paint_session_meter(
                 ui,
                 Rect::new(
@@ -9537,7 +9602,7 @@ impl App {
         }
         if let Some((label, ratio, pct, stale)) = weekly.as_ref().filter(|_| keep[5]) {
             let label_w = termrock::width(label);
-            ui.paint_str(Rect::new(weekly_x, area.y, label_w, 1), label, muted);
+            put_text_w(ui, weekly_x, area.y, label_w, label, muted);
             self.paint_session_meter(
                 ui,
                 Rect::new(
@@ -9593,20 +9658,23 @@ impl App {
         let vw = termrock::width(value);
         let track_w = area.width.saturating_sub(vw.saturating_add(3));
         if track_w < 6 {
-            ui.paint_str(area, value, text);
+            put_text_in(ui, area, value, text);
             return;
         }
         let filled = (f64::from(track_w) * ratio).round() as u16;
         let glyph = if stale { "╍" } else { "━" };
         for i in 0..track_w {
-            ui.paint_str(
-                Rect::new(area.x.saturating_add(i), area.y, 1, 1),
+            put_text_w(
+                ui,
+                area.x.saturating_add(i),
+                area.y,
+                1,
                 if i < filled { glyph } else { "─" },
                 if i < filled { warn } else { empty },
             );
         }
         let x = area.x.saturating_add(track_w).saturating_add(1);
-        ui.paint_str(Rect::new(x, area.y, vw, 1), value, text);
+        put_text_w(ui, x, area.y, vw, value, text);
         let suffix = if pct >= 100 {
             " !"
         } else if pct >= 75 {
@@ -9614,7 +9682,7 @@ impl App {
         } else {
             "  "
         };
-        ui.paint_str(Rect::new(x.saturating_add(vw), area.y, 2, 1), suffix, warn);
+        put_text_w(ui, x.saturating_add(vw), area.y, 2, suffix, warn);
     }
 
     fn capsule_status_parts(&self) -> (String, bool, String, f64, u8, bool, String, String) {
@@ -10553,8 +10621,11 @@ impl App {
         self.paint_pinned_split(ui, screen, termrock::feedback::SplitMode::Saved, false);
         // White primary dims to muted. The approved title is faint, which is
         // where backdrop sends secondary ink.
-        ui.paint_str(
-            Rect::new(3, 2, 12, 1),
+        put_text_w(
+            ui,
+            3,
+            2,
+            12,
             " Workspaces ",
             PaintStyle::new().fg(termrock::Color::Rgb(0xb3, 0xb3, 0xb3)),
         );
@@ -10562,11 +10633,7 @@ impl App {
         // Backdrop clears the focus bar and turns accent ink faint. The
         // approved gutter is a blank, so it dims to the overlay plane.
         let select = termrock::Color::Rgb(0x17, 0x3f, 0x1c);
-        ui.paint_str(
-            Rect::new(3, 3, 1, 1),
-            " ",
-            PaintStyle::new().fg(select).bg(select),
-        );
+        put_text_w(ui, 3, 3, 1, " ", PaintStyle::new().fg(select).bg(select));
         manager_help::dim_underlay(ui, screen);
         let hints = HintLayer {
             hints: vec![
@@ -10659,7 +10726,7 @@ fn paint_capsule_tab_rule(ui: &mut Ui<'_>, rule: Rect) {
         termrock::Color::Rgb(0x4d, 0x4d, 0x4d),
     )));
     for x in rule.x..rule.right() {
-        ui.paint_str(Rect::new(x, rule.y, 1, 1), "─", style);
+        put_text_w(ui, x, rule.y, 1, "─", style);
     }
 }
 
@@ -11234,7 +11301,8 @@ impl TuiApp for App {
             }
             let style = ui.surface_style();
             if let Some(status) = &self.status {
-                ui.paint_str(
+                put_text_in(
+                    ui,
                     Rect {
                         height: 1,
                         ..footer
@@ -11934,7 +12002,7 @@ fn paint_lines(ui: &mut Ui<'_>, area: Rect, lines: &[impl AsRef<str>]) {
         if y >= area.bottom() {
             break;
         }
-        ui.paint_str(Rect::new(area.x, y, area.width, 1), line.as_ref(), style);
+        put_text_w(ui, area.x, y, area.width, line.as_ref(), style);
     }
 }
 
