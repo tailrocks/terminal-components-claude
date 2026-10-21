@@ -1,3 +1,5 @@
+use tablepro_domain::model::SwitchTarget;
+use termrock::ItemKey;
 use termrock::{Color, Modifier, Position, Theme};
 use termrock_test_support::Harness;
 
@@ -128,4 +130,60 @@ fn quick_switcher_keeps_a_bar_caret_and_restores_workbench_focus() {
 
     assert!(!harness.is_open(super::quick_switcher::ID));
     assert_eq!(harness.runtime().focus(), workbench_focus);
+}
+
+#[test]
+fn quick_switcher_query_refresh_selects_first_match_after_surviving_cursor()
+-> Result<(), &'static str> {
+    let mut harness = Harness::new(production(), Theme::junie(), 120, 40);
+    let _ = harness.ctrl('o');
+
+    let candidates = ["a", "e", "i", "o", "r", "s", "t", "u"];
+    let Some((query, first_key, prior_key, prior_index)) = candidates.iter().find_map(|query| {
+        let matches = harness
+            .app()
+            .workbench
+            .switcher()
+            .search(query)
+            .into_iter()
+            .filter(|item| !matches!(&item.target, SwitchTarget::Connection(_)))
+            .collect::<Vec<_>>();
+        let first_key = matches.first()?.key.clone();
+        let prior = matches.iter().skip(1).find_map(|item| {
+            harness
+                .app()
+                .switcher
+                .items
+                .iter()
+                .position(|current| current.key == item.key)
+                .map(|index| (item.key.clone(), index))
+        })?;
+        Some((*query, first_key, prior.0, prior.1))
+    }) else {
+        return Err("fixture must contain an overlapping query result");
+    };
+
+    harness
+        .app_mut()
+        .switcher
+        .state
+        .set_cursor(prior_index, ItemKey::text(&prior_key));
+    assert_eq!(
+        harness.app().switcher.state.cursor(),
+        Some(ItemKey::text(&prior_key))
+    );
+
+    let _ = harness.type_str(query);
+    assert_eq!(
+        harness.app().switcher.state.cursor(),
+        Some(ItemKey::text(&first_key)),
+        "query {query:?} must start at its first enabled result"
+    );
+    assert!(harness.is_open(super::quick_switcher::ID));
+    assert!(
+        harness.diagnostics().is_empty(),
+        "{:?}",
+        harness.diagnostics()
+    );
+    Ok(())
 }
