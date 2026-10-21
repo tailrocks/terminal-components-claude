@@ -103,7 +103,7 @@ const fn junie_256() -> ColorTokens {
         warning_tint: Color::Indexed(234),
         success: Color::Indexed(78),
         info: Color::Indexed(147),
-        disabled_fg: Color::Indexed(238),
+        disabled_fg: Color::Indexed(239),
         disabled_bg: Color::Indexed(235),
         read_only_fg: Color::Indexed(249),
 
@@ -160,6 +160,8 @@ fn junie_16() -> ColorTokens {
     // DarkGray at 16 in every tier frame; the current 0x737373 source would
     // generically land on Gray.
     tokens.fg[3] = Color::DarkGray;
+    tokens.meter.stale = Color::DarkGray;
+    tokens.meter.unknown = Color::DarkGray;
     tokens
 }
 
