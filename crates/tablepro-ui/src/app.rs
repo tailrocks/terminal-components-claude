@@ -955,17 +955,6 @@ impl TableProApp {
                     self.explorer_tree_state
                         .set_cursor(index, explorer_node_key(node));
                 }
-                if surface == Surface::TabListPicker {
-                    for _ in 0..12 {
-                        self.workbench.new_query("SELECT 1");
-                    }
-                    self.sync_tabs_state();
-                }
-                if surface == Surface::SafeModePicker {
-                    self.safe_mode = SafeMode::SafeFull;
-                    self.connection.safe_mode = self.safe_mode;
-                    self.workbench.connection.safe_mode = self.safe_mode;
-                }
                 self.surface = surface;
             }
             Surface::TableGrid
@@ -1972,7 +1961,8 @@ impl TableProApp {
             tab_list::ID,
             tab_list::picker(self.tab_list.rows.len()).layer(cx, &self.tab_list.rows),
         );
-        // Direct assign. `set_surface(TabListPicker)` inserts twelve queries.
+        // Direct assign: `set_surface` never opens layers. Picker rows and the
+        // owner token come from `open` above, the same builder production uses.
         self.surface = Surface::TabListPicker;
         true
     }
@@ -1984,13 +1974,14 @@ impl TableProApp {
         if cx.is_open(crate::safe_mode::ID) {
             return false;
         }
-        self.safe_mode_picker.open(self.safe_mode);
+        self.safe_mode_picker.open(&self.workbench, self.safe_mode);
         cx.open_layer(
             crate::safe_mode::ID,
             crate::safe_mode::picker(self.safe_mode_picker.rows.len())
                 .layer(cx, &self.safe_mode_picker.rows),
         );
-        // Direct assign. set_surface(SafeModePicker) forces SafeFull.
+        // Direct assign: `set_surface` never opens layers. Picker rows and the
+        // owner token come from `open` above, the same builder production uses.
         self.surface = Surface::SafeModePicker;
         true
     }
@@ -2223,11 +2214,22 @@ impl TableProApp {
 
     fn update_safe_mode(&mut self, cx: &mut Cx<'_>) -> Response<()> {
         let was_open = cx.is_open(crate::safe_mode::ID);
+        // Pump the picker first so the focused key is consumed even when the
+        // level turns out to be stale; its action is discarded below.
         let mut response = crate::safe_mode::picker(self.safe_mode_picker.rows.len()).update(
             cx,
             &mut self.safe_mode_picker.state,
             &self.safe_mode_picker.rows,
         );
+        if was_open && !self.workbench.matches_owner(&self.safe_mode_picker.owner) {
+            cx.close_layer(crate::safe_mode::ID, None);
+            self.safe_mode_picker.rows.clear();
+            "Workbench changed; reopen safe mode".clone_into(&mut self.status);
+            if self.surface == Surface::SafeModePicker {
+                self.sync_active_tab();
+            }
+            return Response::changed();
+        }
         if let Some(PickerAction::Chosen(key)) = response.take_action()
             && was_open
             && let Some(mode) = crate::safe_mode::mode_of(key)
