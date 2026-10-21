@@ -20,6 +20,28 @@ fn tab_from_the_manager_paints_the_detail_drawer_hints() {
 }
 
 #[test]
+fn detail_drawer_repaints_from_live_world_data() {
+    let mut h = Harness::new(
+        App::for_scenario_at(Scenario::Returning, Motion::Paused, 40),
+        Theme::junie(),
+        120,
+        40,
+    );
+    let _ = h.key(KeyCode::Tab);
+    let text = h.text();
+    assert!(
+        text.contains("Current directory · payments-platform"),
+        "{text}"
+    );
+    assert!(text.contains("↑↓"), "{text}");
+    // The drawer composes over the live split: shifting the daemon age in
+    // the world must reach the painted frame with no fixed-cell overlay.
+    h.app_mut().world.last_refresh_secs -= 3600;
+    let _ = h.tick();
+    assert_ne!(text, h.text(), "drawer must repaint from live world data");
+}
+
+#[test]
 fn inspect_shortcut_paints_the_container_dialog() {
     let mut h = Harness::new(
         App::for_scenario_at(Scenario::Returning, Motion::Paused, 40),
