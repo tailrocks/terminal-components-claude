@@ -3166,12 +3166,7 @@ impl TableProApp {
             && !query.query.is_empty()
             && !explorer_focused
         {
-            extend_idle_query_edge(
-                ui,
-                area,
-                inner,
-                query.editor_state.editor().is_editing(),
-            );
+            extend_idle_query_edge(ui, area, inner, query.editor_state.editor().is_editing());
         }
         if let Some(Tab::Query(query)) = self.workbench.active()
             && query.error.is_some()
