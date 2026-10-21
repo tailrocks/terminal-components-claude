@@ -82,6 +82,13 @@ fn all_73_junie_slots_match_reference_capability_output() {
             // (visual-baseline src/theme.rs:961), and the frozen TablePro
             // capture paints the SQL keyword at 38;5;111.
             expected.syntax.keyword = Color::Indexed(111);
+            // The syntax operator and punctuation follow the muted ink: the
+            // frozen Holla, Jackin and TablePro captures render the code
+            // surfaces and never paint 244 (the generic conversion of the
+            // source ink), for example
+            // snapshots/holla/audit/rust/80x24/256.ansi.
+            expected.syntax.operator = Color::Indexed(245);
+            expected.syntax.punct = Color::Indexed(245);
             expected.syntax.match_bg = Color::Indexed(233);
             // The menu-row highlight is the generic cube of the Junie
             // highlight ink; the frozen corpus paints the selected chrome
@@ -106,6 +113,10 @@ fn all_73_junie_slots_match_reference_capability_output() {
         if level == ColorLevel::Mono {
             // Frozen baseline apply_mono keeps the hovered field black.
             expected.field_hover = Color::Black;
+            // The frozen `apply_mono` table declares the syntax keyword as
+            // LightBlue (visual-baseline src/theme.rs:1031); the mono tier
+            // renders it on the muted gray ink, not on the bright plain ink.
+            expected.syntax.keyword = Color::Gray;
         }
         assert_eq!(original.downgrade(level).color, expected, "{level:?}");
     }
