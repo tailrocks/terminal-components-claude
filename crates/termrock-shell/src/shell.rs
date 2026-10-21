@@ -98,6 +98,20 @@ impl AppShell {
         header: &'a dyn CompositionLeaf,
         body: &'a dyn CompositionLeaf,
         footer: &'a dyn CompositionLeaf,
+    ) -> CompositionSlots<'a> {
+        CompositionSlots::column([ContentSlot::owned(
+            self.resolved_slots(header, body, footer),
+            ChildPolicy::default().flex(1),
+        )])
+    }
+
+    /// Build the canonical leaf that resolves the named shell regions.
+    /// Use [`Self::slots`] for the established `CompositionSlots` consumer API.
+    pub fn resolved_slots<'a>(
+        &self,
+        header: &'a dyn CompositionLeaf,
+        body: &'a dyn CompositionLeaf,
+        footer: &'a dyn CompositionLeaf,
     ) -> ShellSlots<'a> {
         ShellSlots {
             chrome: self.chrome,
@@ -117,7 +131,7 @@ impl AppShell {
         body: &dyn CompositionLeaf,
         footer: &dyn CompositionLeaf,
     ) -> Result<(), CompositionError> {
-        self.slots(header, body, footer).draw(ui)
+        self.resolved_slots(header, body, footer).draw(ui)
     }
 
     /// Begin configuring slot leaves for this shell.
@@ -155,6 +169,7 @@ impl AppShell {
 }
 
 /// The shell's named leaves, measured and drawn against one resolved geometry.
+#[derive(Clone, Copy)]
 pub struct ShellSlots<'a> {
     chrome: Chrome,
     header: &'a dyn CompositionLeaf,
@@ -297,7 +312,10 @@ impl<'a> AppShellSlots<'a> {
     }
 
     /// Obtain the shell's shared resolved-layout leaf.
-    pub fn slots(&self) -> CompositionSlots<'_> {
-        self.slots.composition()
+    pub fn slots(&self) -> CompositionSlots<'a> {
+        CompositionSlots::column([ContentSlot::owned(
+            self.slots,
+            ChildPolicy::default().flex(1),
+        )])
     }
 }
