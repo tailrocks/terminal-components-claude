@@ -17,7 +17,9 @@ use ratatui_crossterm::crossterm::terminal::{
 use ratatui_crossterm::crossterm::{execute, queue};
 
 use termrock_core::event::Input;
+use termrock_core::keys::keyboard::KeyboardProtocol;
 use termrock_runtime::{App, FeedbackClock, Moment, PreparedFrameError, Runtime};
+use termrock_terminal::KeyboardNegotiation;
 use termrock_theme::Theme;
 
 pub type DefaultTerminal = Terminal<CrosstermBackend<Stdout>>;
@@ -131,6 +133,8 @@ pub struct TerminalSession {
     terminal: DefaultTerminal,
     left: bool,
     reset_cursor_shape: bool,
+    keyboard: KeyboardNegotiation,
+    keyboard_pushed: Arc<AtomicBool>,
 }
 
 impl core::fmt::Debug for TerminalSession {
@@ -141,18 +145,23 @@ impl core::fmt::Debug for TerminalSession {
     }
 }
 
-fn restore_modes(reset_cursor_shape: bool) -> io::Result<()> {
+fn restore_modes(reset_cursor_shape: bool, pop_keyboard: bool) -> io::Result<()> {
     let mut out = stdout();
-    restore_modes_with(&mut out, disable_raw_mode, reset_cursor_shape)
+    restore_modes_with(&mut out, disable_raw_mode, reset_cursor_shape, pop_keyboard)
 }
 
 fn restore_modes_with(
     out: &mut impl Write,
     restore_raw: impl FnOnce() -> io::Result<()>,
     reset_cursor_shape: bool,
+    pop_keyboard: bool,
 ) -> io::Result<()> {
     let mut first = Ok(());
 
+    if pop_keyboard {
+        // Reverse order of entry: a pushed kitty flag set pops first.
+        first = first.and(write_str(out, termrock_terminal::POP));
+    }
     if reset_cursor_shape {
         first = first.and(execute!(out, SetCursorStyle::DefaultUserShape));
     }
@@ -163,6 +172,11 @@ fn restore_modes_with(
     first = first.and(execute!(out, LeaveAlternateScreen));
     first = first.and(restore_raw());
     first.and(out.flush())
+}
+
+fn write_str(out: &mut impl Write, sequence: &str) -> io::Result<()> {
+    out.write_all(sequence.as_bytes())?;
+    out.flush()
 }
 
 fn enter_terminal_modes(
@@ -252,32 +266,85 @@ impl TerminalSession {
         Self::enter_with_cursor_shape_support(cursor_shape, TerminalShapeSupport::current().caret)
     }
 
+    /// Enter with kitty keyboard-protocol negotiation.
+    ///
+    /// Opt-in: the frozen apps never negotiate (the baseline captures
+    /// contain no `CSI >` push), so [`KeyboardProtocol::Off`] — the
+    /// behaviour of [`TerminalSession::enter`] — writes no protocol bytes.
+    /// With `Auto` the `detect` probe decides; with
+    /// [`KeyboardProtocol::On`] the flag set pushes unconditionally.
+    pub fn enter_with_keyboard_protocol(
+        protocol: KeyboardProtocol,
+        detect: impl FnOnce() -> bool,
+    ) -> io::Result<Self> {
+        Self::enter_with_support(
+            SessionCursorShape::default(),
+            TerminalShapeSupport::current().caret,
+            protocol,
+            detect,
+        )
+    }
+
     fn enter_with_cursor_shape_support(
         cursor_shape: SessionCursorShape,
         caret_supported: bool,
     ) -> io::Result<Self> {
+        Self::enter_with_support(cursor_shape, caret_supported, KeyboardProtocol::Off, || {
+            false
+        })
+    }
+
+    fn enter_with_support(
+        cursor_shape: SessionCursorShape,
+        caret_supported: bool,
+        keyboard_protocol: KeyboardProtocol,
+        keyboard_detect: impl FnOnce() -> bool,
+    ) -> io::Result<Self> {
         let cursor_shape_changed = Arc::new(AtomicBool::new(false));
+        let keyboard_pushed = Arc::new(AtomicBool::new(false));
         let panic_shape_changed = Arc::clone(&cursor_shape_changed);
+        let panic_keyboard_pushed = Arc::clone(&keyboard_pushed);
         chain_panic_hook(move || {
-            let _ = restore_modes(panic_shape_changed.load(Ordering::Relaxed));
+            let _ = restore_modes(
+                panic_shape_changed.load(Ordering::Relaxed),
+                panic_keyboard_pushed.load(Ordering::Relaxed),
+            );
         });
         let cleanup_shape_changed = Arc::clone(&cursor_shape_changed);
+        let cleanup_keyboard_pushed = Arc::clone(&keyboard_pushed);
         let enter_shape_changed = Arc::clone(&cursor_shape_changed);
+        let enter_keyboard_pushed = Arc::clone(&keyboard_pushed);
+        let mut keyboard = KeyboardNegotiation::default();
+        let mut keyboard_probe = Some(keyboard_detect);
         let terminal = enter_guarded(
             || {
                 enable_raw_mode()?;
                 let mut out = stdout();
+                let push = keyboard.enter(&mut out, keyboard_protocol, || {
+                    keyboard_probe.take().expect("detect runs once")()
+                });
+                if let Ok(true) = push {
+                    enter_keyboard_pushed.store(true, Ordering::Relaxed);
+                }
+                push?;
                 enter_terminal_modes(&mut out, cursor_shape, caret_supported, || {
                     enter_shape_changed.store(true, Ordering::Relaxed);
                 })?;
                 Terminal::new(CrosstermBackend::new(out))
             },
-            || restore_modes(cleanup_shape_changed.load(Ordering::Relaxed)),
+            || {
+                restore_modes(
+                    cleanup_shape_changed.load(Ordering::Relaxed),
+                    cleanup_keyboard_pushed.load(Ordering::Relaxed),
+                )
+            },
         )?;
         Ok(TerminalSession {
             terminal,
             left: false,
             reset_cursor_shape: cursor_shape_changed.load(Ordering::Relaxed),
+            keyboard,
+            keyboard_pushed,
         })
     }
 
@@ -285,11 +352,36 @@ impl TerminalSession {
         &mut self.terminal
     }
 
+    /// The session's keyboard-protocol negotiation state.
+    pub const fn keyboard(&self) -> &KeyboardNegotiation {
+        &self.keyboard
+    }
+
+    /// Suspend the protocol (pop) while an external program runs. A
+    /// session that never pushed pops nothing and writes no bytes.
+    pub fn suspend_keyboard(&mut self) -> io::Result<bool> {
+        let popped = self.keyboard.leave(&mut stdout())?;
+        self.keyboard_pushed
+            .store(self.keyboard.is_pushed(), Ordering::Relaxed);
+        Ok(popped)
+    }
+
+    /// Continue after [`TerminalSession::suspend_keyboard`] (push again).
+    pub fn resume_keyboard(&mut self) -> io::Result<bool> {
+        let pushed = self.keyboard.resume(&mut stdout())?;
+        self.keyboard_pushed
+            .store(self.keyboard.is_pushed(), Ordering::Relaxed);
+        Ok(pushed)
+    }
+
     pub fn leave(&mut self) -> io::Result<()> {
         leave_with(
             &mut self.left,
             || self.terminal.show_cursor(),
-            || restore_modes(self.reset_cursor_shape),
+            || {
+                let pop = self.keyboard.leave(&mut stdout())?;
+                restore_modes(self.reset_cursor_shape, pop)
+            },
         )
     }
 }
@@ -617,6 +709,7 @@ mod tests {
                 Err(io::Error::from(io::ErrorKind::PermissionDenied))
             },
             false,
+            false,
         );
         assert_eq!(
             result.err().map(|error| error.kind()),
@@ -639,6 +732,7 @@ mod tests {
             &mut out,
             || Err(io::Error::from(io::ErrorKind::PermissionDenied)),
             true,
+            false,
         );
         assert_eq!(
             result.err().map(|error| error.kind()),
@@ -681,7 +775,7 @@ mod tests {
                     shape_changed.set(true);
                 })
             },
-            || restore_modes_with(&mut cleanup, || Ok(()), shape_changed.get()),
+            || restore_modes_with(&mut cleanup, || Ok(()), shape_changed.get(), false),
         );
         assert_eq!(
             result.err().map(|error| error.kind()),
@@ -711,7 +805,7 @@ mod tests {
                     shape_changed.set(true);
                 })
             },
-            || restore_modes_with(&mut cleanup, || Ok(()), shape_changed.get()),
+            || restore_modes_with(&mut cleanup, || Ok(()), shape_changed.get(), false),
         );
         assert_eq!(
             result.err().map(|error| error.kind()),
@@ -748,7 +842,9 @@ mod tests {
             assert_eq!(shape_changed.get(), expected_shape_change);
 
             let mut cleanup = Vec::new();
-            assert!(restore_modes_with(&mut cleanup, || Ok(()), shape_changed.get()).is_ok());
+            assert!(
+                restore_modes_with(&mut cleanup, || Ok(()), shape_changed.get(), false).is_ok()
+            );
             let cleanup = String::from_utf8_lossy(&cleanup);
             assert_eq!(cleanup.contains("\x1b[0 q"), expected_shape_change);
             assert!(cleanup.contains("\x1b[?25h"));
@@ -799,7 +895,7 @@ mod tests {
     #[test]
     fn terminal_cleanup_restores_cursor_style_and_visibility() {
         let mut out = Vec::new();
-        assert!(restore_modes_with(&mut out, || Ok(()), true).is_ok());
+        assert!(restore_modes_with(&mut out, || Ok(()), true, false).is_ok());
         let bytes = String::from_utf8_lossy(&out);
         assert!(bytes.contains("\x1b[0 q"), "cursor style reset");
         assert!(bytes.contains("\x1b[?25h"), "cursor shown");
@@ -837,7 +933,7 @@ mod tests {
         assert!(!String::from_utf8_lossy(&enter).contains("\x1b[6 q"));
 
         let mut cleanup = Vec::new();
-        assert!(restore_modes_with(&mut cleanup, || Ok(()), false).is_ok());
+        assert!(restore_modes_with(&mut cleanup, || Ok(()), false, false).is_ok());
         assert!(!String::from_utf8_lossy(&cleanup).contains("\x1b[0 q"));
         assert!(String::from_utf8_lossy(&cleanup).contains("\x1b[?25h"));
     }
@@ -932,5 +1028,65 @@ mod tests {
         std::panic::set_hook(original);
         let seen = log.lock().map(|l| l.clone()).unwrap_or_default();
         assert_eq!(seen, vec!["restore", "previous"]);
+    }
+}
+
+#[cfg(test)]
+mod keyboard_tests {
+    use super::*;
+
+    /// A plain capturing writer.
+    #[derive(Default)]
+    struct Capture {
+        bytes: Vec<u8>,
+    }
+
+    impl Write for Capture {
+        fn write(&mut self, bytes: &[u8]) -> io::Result<usize> {
+            self.bytes.extend_from_slice(bytes);
+            Ok(bytes.len())
+        }
+        fn flush(&mut self) -> io::Result<()> {
+            Ok(())
+        }
+    }
+
+    fn captured(out: &Capture) -> String {
+        String::from_utf8(out.bytes.clone()).expect("plain CSI bytes")
+    }
+
+    #[test]
+    fn the_default_restore_writes_no_protocol_bytes() {
+        let mut out = Capture::default();
+        restore_modes_with(&mut out, || Ok(()), false, false).unwrap();
+        assert!(
+            !captured(&out).contains("\x1b[<u"),
+            "the frozen cleanup pops nothing: {:?}",
+            captured(&out)
+        );
+    }
+
+    #[test]
+    fn a_pushed_protocol_pops_first_on_restore() {
+        let mut out = Capture::default();
+        restore_modes_with(&mut out, || Ok(()), false, true).unwrap();
+        let text = captured(&out);
+        assert!(text.starts_with(termrock_terminal::POP), "{text:?}");
+        assert!(
+            text.contains("\x1b[?1049l"),
+            "the alternate screen still leaves"
+        );
+    }
+
+    #[test]
+    fn enter_terminal_modes_is_byte_stable_without_a_push() {
+        let mut out = Capture::default();
+        enter_terminal_modes(&mut out, SessionCursorShape::default(), false, || {}).unwrap();
+        let text = captured(&out);
+        assert!(
+            !text.contains("\x1b[>"),
+            "no negotiation on the default path"
+        );
+        assert!(text.starts_with("\x1b[?1049h"), "{text:?}");
     }
 }
