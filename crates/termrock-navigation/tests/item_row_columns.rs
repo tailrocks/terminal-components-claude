@@ -1057,11 +1057,13 @@ fn picker_component_ink_defaults_are_per_channel_and_below_authored_styles() {
             );
         }
 
-        let same_value_theme = base_theme.clone().define_family(Family::PICKER, |family| {
-            family
-                .part(Part::ICON)
-                .base(StylePatch::new().set_fg(Role::Fg(FgStep::Muted)));
-        });
+        let same_value_theme = base_theme
+            .clone()
+            .override_family(Family::PICKER, |family| {
+                family
+                    .part(Part::ICON)
+                    .base(StylePatch::new().set_fg(Role::Fg(FgStep::Muted)));
+            });
         let mut same_value = page_with_theme(
             ItemRowLayout::Columns,
             64,
@@ -1081,11 +1083,13 @@ fn picker_component_ink_defaults_are_per_channel_and_below_authored_styles() {
             "{level:?} same-value authored fg remains authoritative"
         );
 
-        let custom_bg = base_theme.clone().define_family(Family::PICKER, |family| {
-            family
-                .part(Part::META)
-                .base(StylePatch::new().set_bg(Role::Custom(OWNER_BG)));
-        });
+        let custom_bg = base_theme
+            .clone()
+            .override_family(Family::PICKER, |family| {
+                family
+                    .part(Part::META)
+                    .base(StylePatch::new().set_bg(Role::Custom(OWNER_BG)));
+            });
         let mut background_only = page_with_theme(
             ItemRowLayout::Columns,
             64,
@@ -1112,18 +1116,17 @@ fn picker_component_ink_defaults_are_per_channel_and_below_authored_styles() {
             .style
             .bg
             .expect("owner background role resolves");
-        for (text, expected) in [("detail", FgStep::Muted), ("tag", FgStep::Secondary)] {
+        for text in ["detail", "tag"] {
             let (x, y) = background_only.find(text).expect("metadata is rendered");
-            assert_eq!(
-                background_only.cell(x, y).fg,
-                custom_bg.color.fg[expected.index()],
-                "{level:?} {text} keeps independent component fg default"
+            let cell = background_only.cell(x, y);
+            let ratio = |fg| termrock_theme::contrast_ratio(fg, expected_bg).unwrap_or(0.0);
+            assert!(
+                ratio(cell.fg) >= 4.5,
+                "{level:?} {text} fallback must remain readable on authored background: {:?} has {:.2}:1",
+                cell.fg,
+                ratio(cell.fg)
             );
-            assert_eq!(
-                background_only.cell(x, y).bg,
-                expected_bg,
-                "{level:?} {text}"
-            );
+            assert_eq!(cell.bg, expected_bg, "{level:?} {text}");
         }
 
         let mut fill_bg = page_with_theme(
@@ -1145,5 +1148,40 @@ fn picker_component_ink_defaults_are_per_channel_and_below_authored_styles() {
             "{level:?}"
         );
         assert_eq!(fill_bg.cell(x, y).bg, expected_bg, "{level:?}");
+
+        // An explicit foreground is the owner's decision, even when it is
+        // the semantic muted token and its contrast is below 4.5:1.
+        let explicit_muted = base_theme
+            .clone()
+            .override_family(Family::PICKER, |family| {
+                family.part(Part::META).base(
+                    StylePatch::new()
+                        .set_fg(Role::Fg(FgStep::Muted))
+                        .set_bg(Role::Custom(OWNER_BG)),
+                );
+            });
+        let mut authored_muted = page_with_theme(
+            ItemRowLayout::Columns,
+            64,
+            2,
+            false,
+            Some(CursorStyle::Bar),
+            Some(1),
+            items.clone(),
+            explicit_muted.clone(),
+        );
+        authored_muted
+            .app_mut()
+            .state
+            .set_cursor(0, ItemKey::num(20));
+        authored_muted.draw();
+        let (x, y) = authored_muted.find("detail").expect("detail is rendered");
+        let cell = authored_muted.cell(x, y);
+        assert_eq!(
+            cell.fg,
+            explicit_muted.color.fg[FgStep::Muted.index()],
+            "{level:?} explicit muted foreground remains authoritative"
+        );
+        assert_eq!(cell.bg, expected_bg, "{level:?}");
     }
 }
