@@ -7,7 +7,7 @@ This is the sole current summary. All later sections are preserved historical ev
 | Showcase | Incomplete; full paired inventory and repeated comparison missing | Incomplete; Button/theme adoption, capability coverage and remaining application mechanics need proof |
 | TablePro | Incomplete; four independently identified form/footer/reference-data issues remain | Incomplete; Picker/keymap contract integrated; form, tabs and composition contracts remain |
 | Jackin (`jackin-preview`) | Incomplete; full paired inventory, modal/property flows and intermediate states remain | Incomplete; shared Dialog/Props/Button adoption and remaining presentation paths require review |
-| Holla | Incomplete; unchanged real application probes fail and native fixture refresh lacks frozen authority | Incomplete; private list/presentation selectors and application mechanics remain |
+| Holla | Incomplete; unchanged real application probes fail and native fixture refresh lacks frozen authority. Plate removal landed: paused-tick-40 tag frames plus width-band views, 261/261 paired reference cases byte-identical (see [plate-removal audit](../audits/2026-10-21-holla-plate-removal.md)). The 15 no-reference parity families fail the frozen oracle on both the tip-reference and candidate builds (pre-tag home-layout drift, both 0/435; recorded in the audit) | Incomplete; private list/presentation selectors remain for the 15 no-reference parity families; shared list/master-detail adoption still pending |
 
 Delivery remains PR #38, `parity/termrock-visual-baseline`. Main, PR #26/design and the frozen tag are read-only. Baseline source `4169783ae883788186d161af09ba9c481bd84e5c`, tag object `2718a6b8127a522a3d351d0b4bdb7542fc8da542`, fixed design source `f4867e9b5f8a08a3bb61ce80d644198a29f51984` and Tuiscotti `a1ea27f757d75d07b05499276cd932e9f8e067ad` remain unchanged.
 
@@ -15,7 +15,9 @@ Delivery remains PR #38, `parity/termrock-visual-baseline`. Main, PR #26/design 
 
 **Rejected incoming 671923ea2 author report; superseded by the independent Manager holds below:** Jackin `jackin::audit::capsule::120x40::truecolor` is 0 cells from live tab geometry, viewport horizontal bars, and the status plan. Launch-failure and launch-running 120×40 truecolor stayed 0 on the same tree. `jackin::capsule::menu::120x40::truecolor` is 0 cells from the live tab `ContextMenu`. `paint_manager_split` paints the 120-column manager from the pinned payments-platform workspace. `jackin::intro::f400::120x40::truecolor`, `jackin::scenarios::returning::120x40::truecolor`, and `jackin::manager::tree_expanded::120x40::truecolor` are 0 cells. Detail drawer and hard-cases still use `draw_historical_manager`.
 
-**Unadmitted later incoming author report (25d2a361/1e6957cc, the roles page, the env page, the accounts page, settings env, settings agents, and settings trust); independent review pending; earlier Manager holds remain:** Jackin `jackin::audit::capsule::120x40::truecolor` is 0 cells from live tab geometry, viewport horizontal bars, and the status plan. Launch-failure and launch-running 120×40 truecolor stayed 0 on the same tree. `jackin::capsule::menu::120x40::truecolor` is 0 cells from the live tab `ContextMenu`. `paint_manager_split` paints the 120-column manager from the pinned payments-platform workspace. `jackin::intro::f400::120x40::truecolor`, `jackin::scenarios::returning::120x40::truecolor`, `jackin::manager::tree_expanded::120x40::truecolor`, and `jackin::scenarios::hard-cases::120x40::truecolor` are 0 cells. Hard-cases adds the world's discovery error and stale daemon on that same split. `jackin::manager::detail_drawer::120x40::truecolor` and `jackin::manager::help_overlay::120x40::truecolor` are 0 cells from that split. The help card is the shared `HelpOverlay`. `draw_historical_manager` is gone. `jackin::editor::general::120x40::truecolor`, `jackin::editor::mounts::120x40::truecolor`, `jackin::editor::roles::120x40::truecolor`, `jackin::editor::env::120x40::truecolor`, and `jackin::editor::auth::120x40::truecolor` are 0 cells from the editor page fed by the pinned workspace. Enter after `3` confirms Roles and does not set a status. `jackin::settings::env::120x40::truecolor`, `jackin::settings::agents::120x40::truecolor`, and `jackin::settings::trust::120x40::truecolor` are 0 cells. Settings route and mounts 120×40 truecolor stayed 0.
+**Unadmitted later incoming author report (25d2a361/1e6957cc, the roles page, the env page, the accounts page, settings env, settings agents, settings trust, and settings save preview); independent review pending; earlier Manager holds remain:** Jackin `jackin::audit::capsule::120x40::truecolor` is 0 cells from live tab geometry, viewport horizontal bars, and the status plan. Launch-failure and launch-running 120×40 truecolor stayed 0 on the same tree. `jackin::capsule::menu::120x40::truecolor` is 0 cells from the live tab `ContextMenu`. `paint_manager_split` paints the 120-column manager from the pinned payments-platform workspace. `jackin::intro::f400::120x40::truecolor`, `jackin::scenarios::returning::120x40::truecolor`, `jackin::manager::tree_expanded::120x40::truecolor`, and `jackin::scenarios::hard-cases::120x40::truecolor` are 0 cells. Hard-cases adds the world's discovery error and stale daemon on that same split. `jackin::manager::detail_drawer::120x40::truecolor` and `jackin::manager::help_overlay::120x40::truecolor` are 0 cells from that split. The help card is the shared `HelpOverlay`. `draw_historical_manager` is gone. `jackin::editor::general::120x40::truecolor`, `jackin::editor::mounts::120x40::truecolor`, `jackin::editor::roles::120x40::truecolor`, `jackin::editor::env::120x40::truecolor`, `jackin::editor::auth::120x40::truecolor`, `jackin::editor::save_preview::120x40::truecolor`, and `jackin::editor::mounts_dirty::120x40::truecolor` are 0 cells from the editor page fed by the pinned workspace. Tab on General moves to Keep awake, and Space clears that draft. `r` or `i` on Mounts marks the selected mount read-only and cloned. Enter after `3` confirms Roles and does not set a status. `jackin::settings::env::120x40::truecolor`, `jackin::settings::agents::120x40::truecolor`, `jackin::settings::trust::120x40::truecolor`, and `jackin::settings::save_preview::120x40::truecolor` are 0 cells. Settings route and mounts 120×40 truecolor stayed 0. `n` on the first-use manager opens the prelude, and `jackin::manager::new_workspace_prelude::120x40::truecolor` is 0 cells. `ctrl-b` then `"` on the paused capsule opens the agent picker titled `Split ↓ Below`, and `jackin::capsule::split_vertical::120x40::truecolor` is 0 cells. `ctrl-b` then `c` opens the same picker titled `New tab`, and `jackin::capsule::new_tab::120x40::truecolor` is 0 cells. The account list stays closed. Zoom 120×40 truecolor stayed 0. After the theme rebase, `jackin::capsule::menu::120x40::truecolor` is 0 cells again from the live tab menu: inset separator, baseline error rose, horizontal bars on wide panes, and the gap-column fade. Prelude, zoom, split, and new-tab 120×40 truecolor stayed 0 on that tree. `jackin::capsule::palette::120x40::truecolor` is 0 cells. `ctrl-b` then space opens the 60×19 command palette titled `Command palette` with `Type to filter commands…` and `20 of 20`. `jackin::audit::capsule::120x40::truecolor` is 0 cells again: a resting wide pane reserves one row for its horizontal bar. `jackin::audit::capsule::100x30::truecolor` stayed 0. Menu, palette, zoom, split, new-tab, and prelude 120×40 truecolor stayed 0. Audit 72×20 and 80×24 truecolor are 0 cells: a crumb that would cover a menu title becomes one muted ellipsis. Menu 80×24 truecolor stayed 0. `jackin::capsule::palette::80x24::truecolor` is 0 cells: Esc stays pinned when the hint row is cut, and the covered tab-rule pad stays ghost. Palette 120×40 truecolor stayed 0. `jackin::audit::capsule::160x50::truecolor` is 0 cells: the wide identity is crumb, a middle-cut container, then the running count, and the status row adds the Weekly meter after Session. Audit 120×40, 100×30, 80×24, and 72×20 truecolor stayed 0. `jackin::capsule::zoom::80x24::truecolor` is 0 cells from the live zoomed pane: no split seam, a faint `zoomed` badge, the session status bar, and the hint `Zoomed · z restores the layout`. Zoom 120×40 truecolor stayed 0. `jackin::audit::capsule::120x40::truecolor` is 0 cells again: a resting wide pane reserves one row for its horizontal bar. `jackin::audit::capsule::100x30::truecolor` stayed 0. Menu, palette, zoom, split, new-tab, and prelude 120×40 truecolor stayed 0. Audit 72×20 and 80×24 truecolor are 0 cells: a crumb that would cover a menu title becomes one muted ellipsis. Menu 80×24 truecolor stayed 0. `jackin::capsule::palette::80x24::truecolor` is 0 cells: Esc stays pinned when the hint row is cut, and the covered tab-rule pad stays ghost. Palette 120×40 truecolor stayed 0. `jackin::audit::capsule::160x50::truecolor` is 0 cells: the wide identity is crumb, a middle-cut container, then the running count, and the status row adds the Weekly meter after Session. Audit 120×40, 100×30, 80×24, and 72×20 truecolor stayed 0. `jackin::capsule::zoom::80x24::truecolor` is 0 cells from the live zoomed pane: no split seam, a faint `zoomed` badge, the session status bar, and the hint `Zoomed · z restores the layout`. Zoom 120×40 truecolor stayed 0.
+
+Jackin `jackin::usage::overview::80x24::truecolor` is 0 cells from the narrow usage list in termrock-feedback: the menu drops the running count behind an ellipsis, the framed tree shows Overview plus the account rows, and the scrollbar fades the last two rows. `jackin::usage::overview::120x40::truecolor` stayed 0 on the wide stamp. The app test `usage_overview_80_paints_the_narrow_account_tree` drives the same path. `jackin::usage::overview::72x20::truecolor` and `jackin::usage::overview::100x30::truecolor` are 0 cells on that list once the accounts boot brand is visible. `jackin::usage::overview::160x50::truecolor` is 0 cells from the wide split: list plus the overview detail, meters, and comparable rollups. Usage overview 120×40 truecolor stayed 0. `jackin::usage::detail` truecolor is 0 cells at 72×20, 80×24, 100×30, 120×40, and 160×50. Narrow widths replace the list with the open account. 160×50 keeps the list beside that account. The app test `usage_detail_80_paints_back_to_list` drives the same path.
 
 The coordinator's last verified PR #38 push before this component increment is `4f0836ec6cf67fdf72318af6f2433b7f4834c3cd`; its atomic push retired all nine reviewed refs and preserved local worktrees. Terminal/Viewport publication `00a56948212fc3927ae0db3305ca86f64bd9058f` passed 126 native cases without skips, strict scoped Clippy, formatting and diff checks. Shell geometry, multiline List viewport allocation, Esc classification and Feedback context extraction are also published; their scoped records supersede the earlier pending statuses below. Independently cleared Button focusability, Props sheets, Picker/keymap selection and Theme profile contracts are integrated. Theme's exact parent run has 160 passes, one known 73-slot failure and one ignored Esc gate; no palette expectation was changed. The multiline List correction passed all 208 navigation tests at publication; the Theme 73-slot reference conflict remains unresolved. These bounded component results do not establish application adoption or either full acceptance gate.
 
@@ -30,6 +32,22 @@ Frozen run `58b38fb0b1a1007f14230337f8f1a225` retains nine authenticated capture
 Required unresolved checks include the 73-slot reference decision, Feedback private-helper suppression cleanup, Esc scanner/reference defects, Shell integration/routing/consumer findings, executable capability coverage, all-branch consolidation, full independent library consumer validation, full workspace Nextest/Clippy/formatting, hosted required CI and two complete paired application comparisons. Fresh source synchronization is not approval of incoming private painters or candidate-derived fixture refreshes.
 
 Detailed clearances and blocked reviews are preserved under `docs/audits/evidence/2026-10-21-current-blockers/`; later exact integration records must explicitly supersede this summary.
+
+### Protection gate execution and documentation cleanup
+
+All three restored native visual checks and both restored heading/header assertions execute and fail with zero skips under BLESS=0 and UPDATE_BASELINE absent. All five expected files and the restored assertion source remain byte-identical during those checks. This is an intentionally red acceptance gate: the product differences remain work to fix, not output to bless. Formatting passes.
+
+The first protection publication stopped at the staged diff check because incoming ad20 already contains a literal diff3 ancestor marker in this matrix. Remove only that marker line, preserving all surrounding incoming report text without approving its claims. The pending merge is the coordinator's own merge of 91ccd0138 into 7bb; its expected-value preconditions still match independently audited ad20, and its later production changes remain unadmitted; no other merge is aborted or modified. Detailed native output, source review and the corrected post-merge compare-and-set review are preserved with the expectation evidence.
+
+### Restore 1,203 unadmitted native expectations and active heading assertions
+
+The [independent per-key authority decisions](../audits/evidence/2026-10-21-native-expectation-protection/README.md) reject 202 Showcase, 272 Holla, 707 heading/header and 22 Jackin replacements: 1,203 existing keys total, with no inventory additions or removals. Matching fixed-baseline repeat captures and independent reference decisions were not supplied. The Jackin refresh replaces the already rejected Returning Mono result `78a2b61980bc2587` with `61e65d72e68acdd7`; it cannot erase that known regression. Restore prior values only, preserving all rejected bytes, inventories, production changes and detailed decisions.
+
+The latest independent authority audit at ad20 rejects sixteen further replacements in the same twenty-two Jackin keys. Exact synchronized per-key preconditions protect all unrelated or newly added bytes. The Theme73 assertion rewrite remains separately unadmitted; this increment does not change it.
+
+The page-heading test's new any-present-BLESS bypass (including BLESS=0) is removed using exact pre-change source. Verification runs with BLESS=0 and UPDATE_BASELINE absent must execute assertions and leave all expected files byte-identical. Older expectations are not newly approved as frozen data; pending reference conflicts remain red/incomplete. Native digest checks are test-integrity evidence, not paired real-CLI product acceptance. The separate broadened meter assertion and later production palette/painter changes remain unadmitted; no hidden blanket approval is granted by synchronization.
+
+Initial corrective commit `7bb9f2353` restored the first 38 entries but was not published: the wrapper mistakenly expected the plural summary `1 tests run` while Nextest correctly reported `1 test run`. The actual test had failed as intended, with no skips. The corrected gate accepts singular/plural reporting, preserves that log, and continues the same expectation-protection increment. No test was weakened to repair the wrapper.
 
 ### Reject candidate-only expectation approval
 
@@ -653,7 +671,7 @@ Record exact tested source commits in every run. Product refactoring remains sco
 | Showcase | Shell/chrome and page navigation; component catalog pages for buttons, inputs/forms, lists, tables, trees, tabs, menus, dialogs/popups, feedback, text/code, layout; each demonstrated state/configuration and keyboard/pointer route | `termrock` widgets, overlays, runtime, text/layout/theme; Showcase supplies demo data and actions | Native root gate at recorded checkpoint: 1,479 passed, 615 skipped. Current external component checkpoint `e7c4be2e5` reports 1,479 root tests, 48 code-editor checks, clippy/fmt; not full workspace or frozen CLI acceptance. Live table/list state and footer ownership remain open. | INCOMPLETE | INCOMPLETE |
 | Jackin (`jackin-preview`) | Intro/outro and first-use; menu and capsule; manager/cockpit; workspace, split panes, editor and completion; picker, drawer, settings, accounts, usage, launch, help, save/cancel and resize flows | `termrock` menu, picker, editor/completion, drawer, master-detail/layout, shell and shared input/focus; Jackin retains simulation/domain actions and branded intro/outro/fade | Frozen mono test coordinate correction independently verified; no full candidate journeys. Manager/picker consumer still has full-frame failure; generic shell disappears under open picker unless shared owner layering is fixed. | INCOMPLETE | INCOMPLETE |
 | TablePro | Connection/catalogue, create/edit/reconnect; multiple query tabs and tab-list/picker; explorer/workbench; SQL editing/completion; results, error, explain/analyze, history; filter editor, dialogs, help, scroll and resize | `termrock` Picker and tab list, table/grid, editor/completion, dialogs, shell/layout; TablePro owns SQL, connection and query effects | Live Picker/tab-list implementation is missing; a prior SQL editor Tab mismatch remains. Eighteen historical ANSI replay modules remain. The shared sorting component work currently targets Showcase Tasks, not an accepted TablePro conversion. | INCOMPLETE | INCOMPLETE |
-| Holla | Home/catalogue and Finder; first-use, monorepo, activities, Docker/disk cleanup, launch failure; parity discovery/history/files/browser/Git/Cargo/task sources; menus, prompts, help, resize and terminal modes | `termrock` shell, menu, picker/search, list, dialog, status, layout/scroll; Holla owns simulation/domain actions and data | Single Holla menu-hover live case passed three phases. Existing Holla native digest and broad CLI captures remain red. `*_plate` model dispatch and application paint helpers are production render paths pending replacement and proof. | INCOMPLETE | INCOMPLETE |
+| Holla | Home/catalogue and Finder; first-use, monorepo, activities, Docker/disk cleanup, launch failure; parity discovery/history/files/browser/Git/Cargo/task sources; menus, prompts, help, resize and terminal modes | `termrock` shell, menu, picker/search, list, dialog, status, layout/scroll; Holla owns simulation/domain actions and data | Single Holla menu-hover live case passed three phases. Existing Holla native digest and broad CLI captures remain red. All `*_plate` size-keyed dispatch and fixed frame tables are removed at `5b1b3bf9b`: presentation is `*_tag_frame` predicates (paused tick 40) plus width-band views over semantic `ParityDiscovery` data, 261/261 paired reference cases byte-identical ([audit](../audits/2026-10-21-holla-plate-removal.md)). Full-corpus live-compare acceptance remains open; the 15 no-reference parity families fail the frozen oracle on both the tip-reference and candidate builds (pre-tag home-layout drift, both 0/435 — audit has the paired runs). | INCOMPLETE | INCOMPLETE |
 
 A component-level buffer test, migrated digest, or same-source control does not satisfy product acceptance. A screen that paints through a large private UI crate does not satisfy the library gate.
 
@@ -681,7 +699,7 @@ Audit searched production crates for `historical_*`, `*_plate`, `RUNS`, ANSI inc
 | `crates/tablepro-ui/src/app.rs` | Production predicates select fixed scenario/size/state frames; modules parse `RUNS` from `include_str!` ANSI or hold fixed runs; app repaints after normal UI. | Quick-open, tab list, and Safe Mode use `Picker`. Help uses `HelpOverlay`. Delete connection and close-tab confirmation use `Dialog`. The filter editor uses shared overlay chrome plus `TextInput`. A failed query paints the editor, result tab, and error card from the statement error. Explain and explain-analyze paint the editor and the plan strip from the plan tree. Query results paints the editor, chip, and grid from the executed result. Query completion paints the editor line, catalog menu, and EDIT footer from the completion batch. Those replay modules are removed. Scrolled-right orders uses the live grid window. History paints the search row, oldest-first list, and detail card from the seeded log. The new-connection card paints Basic fields from the empty draft. The Advanced page paints the SSL, SSH, and startup placeholders from that same card. Hiding the explorer paints the vertical Explorer rail and the inset query card. Zooming an empty query paints the blank results card, the tab focus mark, and the zoom footer. `tablepro/workbench/maximized/120x40` truecolor matches. No `historical_*.rs` replay module remains. An empty SQL statement keeps the idle editor. The EDIT footer is shown only while that editor is focused. With the explorer focused, the footer is the explorer hint row. `tablepro/audit/production/120x40` truecolor matches. |
 | `crates/showcase-demos/src/pages/chrome.rs` | At source `0b8f4e32`, `MEDIUM_100X30` is explicitly copied from an approved snapshot; `paint_medium_100x30` writes its positioned cell tuples and dispatch selects exact 79×26 page dimensions. Additional narrow/wide render paths need the same purpose audit. | Real shared chrome/menu/workspace components and responsive composition; unresolved. |
 | `crates/showcase-demos/src/pages/selectable/{frames.rs,delete_confirm.ansi,bulk_mixed.ansi}` | Imports two approved ANSI frames, decodes cells, resets and writes raw buffer for selectable demo cases. | Real shared selectable/table/list components with inert reference-state data; unresolved. |
-| `crates/holla-sim/src/catalogue.rs` plus `crates/holla-ui/src/screens/home.rs` | Scenario and exact viewport/time `*_plate` dispatch selects named fixture view; home helpers paint dedicated fixed families, including parity files/browser and tag lists. Some catalogue functions build semantic domain view data, so review each function before removing it; exact dimension/time selection plus direct plate painters are not accepted as final architecture. | Shared Holla screens/components driven by simulation state and domain view data; unresolved. |
+| `crates/holla-sim/src/catalogue.rs` plus `crates/holla-ui/src/screens/home.rs` | Scenario and exact viewport/time `*_plate` dispatch selects named fixture view; home helpers paint dedicated fixed families, including parity files/browser and tag lists. Some catalogue functions build semantic domain view data, so review each function before removing it; exact dimension/time selection plus direct plate painters are not accepted as final architecture. | Resolved at `5b1b3bf9b`: plates and size-keyed dispatch removed; rendering is shared painters over simulation state via `*_tag_frame` predicates and width-band view builders, byte-identical on 261/261 paired reference cases ([audit](../audits/2026-10-21-holla-plate-removal.md)). No `include_str!`/`include_bytes!` frame data or fixed cell tables remain in Holla production code. |
 | `crates/termrock-e2e/src/lib.rs` | Test/evidence frame conversion and fixture-generation helpers. Search hit is test support, not by itself production replay; verify dependency/build reachability before any removal. | Test-only harness ownership, never app render path. Audit reachability remains open. |
 | `tools/parity_replay.py`, `tools/parity_approve.py`, `tools/test-inventory/historical.json`, `crates/termrock-e2e/**`, `crates/visual-harness/**`, `crates/termrock-conformance/tests/visual_baseline/**`, `crates/showcase/tests/tuiscotti_qualification.rs` | Reference frame management, source inventories, and real-CLI/test harness checks. These are verification paths, not app render paths, and reference data belongs here. Verify dependency edges so no app binary links test-only capture code. | Keep reference artifacts and capture in test system; no production dependency permitted. Dependency/build graph proof pending. |
 
@@ -1691,3 +1709,133 @@ Author `f0760cc204afc533e202604d0437f913b72bfd10` was merged locally at `e404a63
 [Independent diagnosis](../audits/evidence/2026-10-21-current-blockers/tablepro-e404-blank-validation-diagnosis.json) distinguishes an actual candidate defect from stale fixtures: PostgreSQL Database is incorrectly required although frozen validates Name/Port; named Unicode save and named dirty-work reconnect fail with `DATABASE`/`required`. The original guard fixture also supplies no Name and correctly fails `NAME`/`required`; supply Name through real UI without weakening the guard or Name validation. A disjoint domain validation writer is assigned; leave footer Unicode assertions unchanged. Existing port-zero acceptance and missing saved-name trimming are separate unresolved source findings.
 
 The [radio contract probes](../audits/evidence/2026-10-21-current-blockers/tablepro-c8-radio-contract-red.json) independently fail three baseline-qualified flows: arrows do not commit environment/safe-mode selection, and Form claims radio Enter and submits. A shared RadioGroup navigation-selection policy plus TablePro's existing Form EnterPolicy override is assigned. Pointer press must remain distinct from committed choice. The [name-prefix helper removal](../audits/evidence/2026-10-21-current-blockers/tablepro-c8-name-prefix-independent-clearance.json) is independently cleared after the blank prerequisite but still awaits parent integration. Its unchanged before tests fail four cases; 48 external flows pass afterward. `mirror_name_edit` remains a separate ownership finding. No frozen CLI comparison or product acceptance is claimed.
+
+## 2026-10-21: controls/navigation theme ink-API adoption audit and PR26 test ports
+
+The PR26 shared ink helpers (`Theme::gutter`, `Theme::gutter_symbol`,
+`Theme::chosen_in`, `Theme::inactive_look`) were evaluated for adoption at every
+gutter and selection-ink paint site in `termrock-controls` (`button.rs`,
+`choice.rs`) and `termrock-navigation` (`list.rs`, `tree.rs`, `steps.rs`,
+`item.rs` row gutters). Measured against the frozen reference across all five
+families, four colour tiers and the reachable state cross-product, no site can
+adopt the helpers byte-identically, so every site keeps its recipe-driven local
+path. Measured deltas, pinned as regression tests in
+`crates/termrock-controls/tests/frozen_ink_pins.rs` and
+`crates/termrock-navigation/tests/frozen_ink_pins.rs`:
+
+- `BUTTON` paints the focus bar only for focused AND focus-visible states;
+  `Theme::gutter_symbol` has no focus-visibility gate and would add a bar under
+  mouse-initiated focus. The widget also blanks the bar while disabled even when
+  the resolver would allow a focus-visible one.
+- Focused rows of `CHOICE`/`TREE`/`STEPS` keep the bar while disabled at the
+  truecolor, 256 and 16 tiers; `LIST` blanks it there, and every family blanks
+  it at the mono tier. The helpers blank it for every family and tier, so no
+  single default reproduces the frozen output.
+- The helpers stamp explicit fg/bg on unfocused gutter fills; the frozen path
+  inherits the container cell, producing byte-different (though visually equal)
+  cells, which fails the byte-identical bar at rest states.
+- Checked marks (`Part::MARKER`, `CHECKED`) keep the accent while focus is
+  elsewhere and under a modal backdrop (owner decision 2026-10-17, Accent);
+  `Theme::chosen_in(Accent, ..)` drops to primary ink under a backdrop, so the
+  recipes stay.
+- Chosen-row fills take the accent tint only while focused; unfocused chosen
+  rows read as the plain container surface. That is the neutral inactive
+  selection the frozen apps show; the PR26 reference default (accent fill kept
+  while unfocused, its test `an_unfocused_selected_row_keeps_its_inactive_selection`)
+  is NOT adopted. Flipping is a deliberate visual change and stays unmade.
+
+Widget-level ports of the PR26 test suite landed alongside:
+`choice_containment.rs` (cells and hit regions clipped to the widget area across
+kinds, widths 0-12, disabled, truecolor and mono; hidden radio registers
+nothing; tall lists clip; disabled choices reject pointer and keyboard; marks
+read without colour from three cells on — the PR26 compact fallback glyphs are
+not in the frozen output and are not adopted), `mouse_targets.rs` (registry
+slice: every control region routes to its owner, outside clicks change
+nothing), and `focus_gutter.rs` sweeps for the eight button variants and for
+list/tree rows. Gaps left open: `Theme::gutter`/`gutter_symbol` need a
+focus-visibility gate and per-family focused-disabled policy before any paint
+site can adopt them; the text-selection reverse-video and menu sweep assertions
+of the reference belong to the editors/overlays owners.
+
+## 2026-10-21: termrock-theme visual-helper upgrade (adoption-ready)
+
+The four audit gaps in the shared ink helpers are closed in
+`crates/termrock-theme/src/visual.rs`; every frozen paint site measured by the
+controls/navigation adoption audit can now adopt the helpers byte-identically:
+
+- Focus-visibility gate and per-family focused-disabled policy are one shared
+  mechanism: `FocusBarPolicy` (`RowBlanked` default = the old baked-in rule,
+  `RowKept` for `CHOICE`/`TREE`/`STEPS` off-mono disabled rows, `FocusVisible`
+  for `BUTTON`, whose focus-visible bar survives disabled). Tier-sensitive
+  rules read the theme capability level; `Theme::focus_bar_symbol(policy,
+  flags)` is the shared glyph entry point, `gutter_symbol` delegates with
+  `RowBlanked` so its reference behavior is unchanged.
+- Unfocused gutter fills: `GutterCell` (`Inherit` default, `Fill` reference)
+  with `Theme::gutter_in(policy, flags, cell, bg, on_accent)`; `Inherit`
+  stamps only the bar's fg ink, never a background, so a no-bar cell is
+  byte-identical to the container surface. The legacy `gutter` delegates with
+  `Fill`.
+- Under-backdrop chosen ink: `BackdropSelection` (`Neutral` default,
+  `Accent` = the frozen checked markers) with `Theme::chosen_in_with` and
+  `Theme::inactive_look_with`; `chosen_in`/`inactive_look` delegate with
+  `Neutral`, so the reference default is unchanged and not flipped.
+- Adoption proof: `crates/termrock-theme/tests/frozen_helper_adoption.rs`
+  renders each frozen gutter cell twice (recipe `Theme::resolve` vs the
+  upgraded helpers into a one-cell buffer) and asserts equal cells for
+  `BUTTON`/`CHOICE`/`TREE`/`STEPS`/`LIST` at all four tiers, plus marker ink
+  via `chosen_in_with(Accent, .., BackdropSelection::Accent)`. All pass.
+- Frozen pins: `crates/termrock-theme/tests/frozen_focus_bar_policy.rs`,
+  `gutter_cell_inherit.rs` and `backdrop_chosen_ink.rs` pin the frozen truth
+  tables per tier; `termrock-controls`/`termrock-navigation`
+  `frozen_ink_pins` stay green.
+- Known pre-existing failure, unrelated to this series:
+  `termrock-theme::empty_style_inheritance
+  standalone_empty_cells_match_pre_inheritance_reference` fails identically
+  on the unmodified branch head.
+
+Controls/navigation can now adopt: `BUTTON` -> `FocusVisible`,
+`CHOICE`/`TREE`/`STEPS` -> `RowKept`, `LIST` -> `RowBlanked`, all with
+`GutterCell::Inherit`; checked markers -> `chosen_in_with(..,
+BackdropSelection::Accent)`. The `InactiveSelection::Accent` under-backdrop
+default flip for chosen-row fills stays unmade (deliberate visual change).
+
+## Backdrop frame regeneration + modifier-aware corpus check — 2026-10-21
+
+Executes the adjudication's owner-gated follow-up. Decision record:
+`docs/audits/2026-10-21-backdrop-frame-regeneration.md` (receipts per tier:
+`docs/audits/2026-10-21-backdrop-frame-regeneration-receipts.json`).
+Re-verified from the frozen binaries (showcase `ca3a3114…`, tablepro
+`9c82d9af…`, provenance-matched) before touching anything: dialogs/open
+80x24 DIM present at 16/none/nocolor, absent at 256/truecolor (the
+adjudication's 920 count is a trim-metric variant, same signature); the
+picker "1847" figure was a Ctrl+P capture — `TpCmd::Switcher`, a different
+overlay — while the ctrl-o picker_open fresh capture is full-screen DIM
+(4660 cells / 59 runs), matching the raw tag snapshot class (4656/156).
+The tag-era `snapshots/` picker frames are byte-identical to fresh frozen
+captures: the snapshots were never defective, only the corpus conversion
+was. Regenerated 33 corpus tiers (dialogs/open 80x24, overlay-picker-open
+and overlay-safemode-picker at all five sizes; tiers 16/none/nocolor)
+through the pinned runner, re-approved the matching snapshots tiers to
+committed `.ansi`-only, refreshed `corpus-index.json` +
+`admission-record.json`, and preserved every replaced artifact under
+`baselines/regen-sidecars/2026-10-21-backdrop-frame-regeneration/`.
+Truecolor/256 corpus tiers were not defective and are untouched; dialogs
+truecolor snapshot drift vs the tag build is page-content drift in the tag
+build itself, recorded not fixed. Hardening: `frozen-baseline corpus-check`
+(`tools/frozen_baseline.py`) decodes per-cell SGR modifier state from each
+`<tier>.ansi` and fails closed against the frame JSON `mods`; because the
+defective conversion was self-consistent, a cross-store pass against the
+conversion-independent snapshot dump (via the manifest `legacy_name`) is
+what detects the class — run store-wide it flags ~1170/1510 scenarios
+(dropped DIM or bold; 5 `showcase/diff/fade-wheel` tiers fail even
+intra-store), a defect surface far larger than the picker families, to be
+regenerated by their owners. Harness/conformance store gates green at the
+worktree base. Tier cases re-measured at base and at the branch tip
+(ff0005a84): 78 still red (`showcase::pages::dialogs`,
+`showcase::flows::dialogs::open::80x24`, `tablepro::overlays` pickers;
+control without the regeneration: 75 — the three extra are the
+previously-skipped dialogs/open tiers now comparing), each failing with
+the candidate missing or differently-mapping the dimmed backdrop. That is
+the app/theme streams' still-open parity gap to close in source; the
+regenerated frames are correct against the frozen oracle and need no
+further edits when it lands.

@@ -428,10 +428,14 @@ impl<'u> RowUi<'u> {
         } else if style == CursorStyle::Fill {
             // Baseline fills every row before the gutter. Unfocused fill is
             // primary ink on the card, so label padding stays white.
-            let defaults = StylePatch::new()
+            // A disabled row keeps the disabled ink on that padding.
+            let mut defaults = StylePatch::new()
                 .set_fg(Role::Fg(FgStep::Primary))
                 .set_bg(Role::CurrentSurface)
                 .remove(Modifier::BOLD);
+            if self.flags.contains(StateFlags::DISABLED) {
+                defaults = defaults.set_fg(Role::DisabledFg);
+            }
             let patch = self.fill_patch();
             let resolved = self.ui.style_defaults(
                 self.family,

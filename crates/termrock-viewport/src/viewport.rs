@@ -108,6 +108,19 @@ impl ProjectedText {
         }
         self.lines.push(start..self.runs.len());
     }
+
+    /// Widest line in terminal columns. Horizontal bars use this, not the
+    /// visible window.
+    pub fn widest_cols(&self) -> usize {
+        (0..self.lines.len())
+            .map(|index| line_cols(LineRef::Projected(self, index)))
+            .max()
+            .unwrap_or(0)
+    }
+
+    pub fn line_count(&self) -> usize {
+        self.lines.len()
+    }
 }
 
 #[derive(Clone, Copy)]
@@ -1277,8 +1290,14 @@ impl<'a> TextViewport<'a> {
         let id = self.id;
         let runtime = ui.state(id).difference(StateFlags::SELECTED);
         let live = PartStyle::flags(runtime, StateFlags::empty());
-        let text_w = Self::text_width(area.width, self.reserve_gutter, self.scroll_gap);
         let rows = area.height;
+        // A vertical bar that is not drawn must not eat a text column.
+        // Capsule panes keep a gap only beside a real bar.
+        let text_w = if self.scroll_gap > 0 && !self.wrap && lines.len() <= usize::from(rows) {
+            area.width.saturating_sub(u16::from(self.reserve_gutter))
+        } else {
+            Self::text_width(area.width, self.reserve_gutter, self.scroll_gap)
+        };
         let key = self.layout_key(st, text_w);
         let (total, indexed) = {
             let lay = ui.cache::<ViewportLayout>(id);
@@ -1362,7 +1381,84 @@ impl<'a> TextViewport<'a> {
             (text_w, view.offset(), caret_line_start),
             live,
         );
+        // Overflowing panes fade the scrolled edge. The frozen capsule keeps
+        // 0.55 on the outer row and 0.8 on the next when the viewport is tall.
+        // The gap column beside the bar fades with the text.
+        let mut faded = text;
+        let extra = self
+            .scroll_gap
+            .min(area.right().saturating_sub(text.right()));
+        faded.width = faded.width.saturating_add(extra);
+        ui.scroll_edges(faded, &view);
         text
+    }
+
+    /// Paint a horizontal scrollbar on a row the caller reserved.
+    ///
+    /// Baseline panes use `━` for the thumb and `┄` for the track, in the
+    /// viewport track and thumb inks. The last column stays empty so the
+    /// vertical bar's corner stays blank. A pane whose lines fit is left
+    /// as the caller filled it.
+    pub fn paint_horizontal_overflow(
+        &self,
+        ui: &mut Ui<'_>,
+        row: Rect,
+        lines: &ProjectedText,
+        viewport_rows: u16,
+    ) {
+        if row.width < 2 || row.height == 0 {
+            return;
+        }
+        let v_bar = !self.wrap && lines.line_count() > usize::from(viewport_rows);
+        let text_w = if v_bar {
+            Self::text_width(row.width, self.reserve_gutter, self.scroll_gap)
+        } else {
+            row.width.saturating_sub(u16::from(self.reserve_gutter))
+        };
+        let widest = lines.widest_cols();
+        if text_w == 0 || widest <= usize::from(text_w) {
+            return;
+        }
+        let track_w = usize::from(if v_bar {
+            row.width.saturating_sub(1)
+        } else {
+            row.width
+        });
+        let mut across = ScrollState::default();
+        across.set_content(widest);
+        across.set_viewport(usize::from(text_w));
+        let (start, len) = across.thumb(track_w);
+        let ov = self.overrides();
+        let live = StateFlags::empty();
+        let thumb = ov
+            .style(
+                ui,
+                self.id,
+                Family::VIEWPORT,
+                Variant::DEFAULT,
+                Part::THUMB,
+                live,
+            )
+            .style;
+        let track = ov
+            .style(
+                ui,
+                self.id,
+                Family::VIEWPORT,
+                Variant::DEFAULT,
+                Part::TRACK,
+                live,
+            )
+            .style;
+        let end = start.saturating_add(len);
+        for i in 0..track_w {
+            let on_thumb = i >= start && i < end;
+            ui.paint_str(
+                Rect::new(row.x.saturating_add(i as u16), row.y, 1, 1),
+                if on_thumb { "━" } else { "┄" },
+                if on_thumb { thumb } else { track },
+            );
+        }
     }
 
     fn rows(

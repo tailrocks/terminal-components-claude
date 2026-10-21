@@ -284,10 +284,6 @@ impl<'a> Button<'a> {
                     tick_ms.saturating_sub(u64::try_from(elapsed).unwrap_or(0)),
                 ));
             }
-        } else if r.activated() {
-            // An activation can synchronously move application data into Busy
-            // state; request one tick so the next update observes that state.
-            cx.request_repaint_after(Duration::from_millis(tick_ms));
         }
         r.for_id(self.id)
     }
@@ -500,11 +496,17 @@ impl<'a> Button<'a> {
             f(ui, text);
         } else {
             let ls = style(ui, Part::LABEL);
-            let label = crate::text::truncate(self.label, text.width);
+            let truncated;
+            let label = if crate::text::width(self.label) <= text.width {
+                self.label
+            } else {
+                truncated = crate::text::truncate(self.label, text.width);
+                &truncated
+            };
             ui.fill(text, ls.style);
             let label_style = ls.over(container.style);
             if matches!(ls.glyph, Slot::Set(GlyphRole::PressLeft)) {
-                ui.paint_str(text, &label, label_style);
+                ui.paint_str(text, label, label_style);
                 if area.width >= 2 {
                     paint_pressed_bracket(
                         ui,
@@ -514,7 +516,7 @@ impl<'a> Button<'a> {
                     );
                 }
             } else {
-                ui.paint_str(text, &label, label_style);
+                ui.paint_str(text, label, label_style);
             }
         }
         area

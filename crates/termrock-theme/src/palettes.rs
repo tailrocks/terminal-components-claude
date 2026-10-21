@@ -66,15 +66,20 @@ const fn junie_256() -> ColorTokens {
         fg: [
             Color::Indexed(231),
             Color::Indexed(249),
-            Color::Indexed(245),
-            Color::Indexed(242),
+            // Frozen corpus muted ink (baselines/tuiscotti-v1): 0x808080 fg
+            // renders 244 in every tier frame (1_011_55+ cells). The generic
+            // cube rule on the current 0x8a8a8a source would give 245.
+            Color::Indexed(244),
+            // Frozen corpus faint/chrome ink: 0x4d4d4d fg renders 238
+            // (cancel-confirm 120x40 borders and every dim shell strip).
+            Color::Indexed(238),
             Color::Indexed(235),
         ],
-        on_accent: Color::Indexed(232),
+        on_accent: Color::Indexed(233),
         on_danger: Color::Indexed(231),
         on_surface_inverse: Color::Indexed(16),
         border_subtle: Color::Indexed(235),
-        border_strong: Color::Indexed(242),
+        border_strong: Color::Indexed(238),
         accent: Color::Indexed(78),
         accent_hover: Color::Indexed(77),
         accent_pressed: Color::Indexed(238),
@@ -83,15 +88,17 @@ const fn junie_256() -> ColorTokens {
         focus_ring: Color::Indexed(238),
         selection_bg: Color::Indexed(237),
         selection_fg: Color::Indexed(231),
-        highlight_bg: Color::Indexed(67),
+        highlight_bg: Color::Indexed(25),
         highlight_fg: Color::Indexed(231),
-        highlight_danger_bg: Color::Indexed(238),
+        // Frozen ladder highlight danger plate (baseline apply_256
+        // `highlight_danger = i(88)`); the corpus never renders this slot.
+        highlight_danger_bg: Color::Indexed(88),
         highlight_danger_fg: Color::Indexed(231),
         backdrop_fg: Color::Indexed(235),
         backdrop_bg: Color::Indexed(16),
         danger: Color::Indexed(167),
         danger_soft: Color::Indexed(181),
-        danger_tint: Color::Indexed(233),
+        danger_tint: Color::Indexed(52),
         warning: Color::Indexed(214),
         warning_tint: Color::Indexed(234),
         success: Color::Indexed(78),
@@ -115,7 +122,7 @@ const fn junie_256() -> ColorTokens {
             invalid: Color::Indexed(167),
             deprecated: Color::Indexed(244),
             match_bg: Color::Indexed(233),
-            match_current_bg: Color::Indexed(67),
+            match_current_bg: Color::Indexed(55),
             bracket_match: Color::Indexed(78),
             diagnostic_error: Color::Indexed(167),
             diagnostic_warning: Color::Indexed(214),
@@ -127,8 +134,8 @@ const fn junie_256() -> ColorTokens {
             high: Color::Indexed(167),
             track: Color::Indexed(235),
             fill_rest: crate::theme::MeterFillRest::ReferenceLift,
-            stale: Color::Indexed(242),
-            unknown: Color::Indexed(242),
+            stale: Color::Indexed(238),
+            unknown: Color::Indexed(238),
             series: [
                 Color::Indexed(78),
                 Color::Indexed(214),
@@ -149,6 +156,12 @@ fn junie_16() -> ColorTokens {
         .downgrade(ColorLevel::Ansi16)
         .color;
     tokens.field_hover = Color::DarkGray;
+    // Frozen corpus faint/chrome ink: the 0x4d4d4d-sourced slots render
+    // DarkGray at 16 in every tier frame; the current 0x737373 source would
+    // generically land on Gray.
+    tokens.fg[3] = Color::DarkGray;
+    tokens.meter.stale = Color::DarkGray;
+    tokens.meter.unknown = Color::DarkGray;
     tokens
 }
 
