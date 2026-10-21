@@ -1488,10 +1488,20 @@ impl<'a> MenuBar<'a> {
                     {
                         defaults = recipe.apply(defaults, flags);
                     }
+                    let variant = ui
+                        .theme_ref()
+                        .recipes
+                        .get(Family::MENU)
+                        .map_or(Variant::DEFAULT, |r| r.default_variant);
+                    let target_variant = if variant == Variant::DEFAULT {
+                        MENU_BAR_TITLE_VARIANT
+                    } else {
+                        Variant::DEFAULT
+                    };
                     let local = self.ov.part_patch(Part::TITLE);
                     let style = ui.style_defaults(
                         Family::MENU,
-                        Variant::DEFAULT,
+                        target_variant,
                         Part::TITLE,
                         flags,
                         crate::theme::StyleDefaults::new(defaults),
