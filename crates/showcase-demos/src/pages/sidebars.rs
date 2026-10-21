@@ -7,6 +7,7 @@ use super::{Page, PageUpdate, frame};
 
 const NAV: Id = termrock::Id::root("showcase_ui::pages::sidebars::sidebars.nav");
 const COLLAPSE: Id = termrock::Id::root("showcase_ui::pages::sidebars::sidebars.collapse");
+const CONTENT: Id = termrock::Id::root("showcase_ui::pages::sidebars::sidebars.content");
 
 const BLURB: &str =
     "Sections, current item, focus cursor, hover, collapsed mode; text first, no icons";
@@ -293,10 +294,24 @@ fn paint_section_strip(ui: &mut Ui<'_>, area: Rect) {
     );
 }
 
-fn paint_side(ui: &mut Ui<'_>, side: Rect, selected: &str) {
+fn paint_side(ui: &mut Ui<'_>, side: Rect, selected: &str, state: &NavListState, collapsed: bool) {
     if side.is_empty() {
         return;
     }
+    let inner = Rect {
+        y: side.y.saturating_add(1),
+        height: side.height.saturating_sub(2),
+        ..side
+    };
+    sidebar(collapsed).draw(
+        ui,
+        Rect {
+            height: inner.height.saturating_sub(2),
+            ..inner
+        },
+        state,
+        ITEMS,
+    );
     ui.fill(side, ink(WHITE, SURFACE));
     if side.width >= 12 {
         let rail_x = side.right().saturating_sub(5);
@@ -352,7 +367,7 @@ fn paint_side(ui: &mut Ui<'_>, side: Rect, selected: &str) {
             );
         }
     }
-    paint_collapse(ui, side);
+    paint_collapse(ui, side, collapsed);
 }
 
 fn paint_nav_item(ui: &mut Ui<'_>, row: Rect, item: &SidebarItem, selected: bool) {
@@ -447,8 +462,8 @@ fn paint_nav_item(ui: &mut Ui<'_>, row: Rect, item: &SidebarItem, selected: bool
     }
 }
 
-fn paint_collapse(ui: &mut Ui<'_>, side: Rect) {
-    let label = "Collapse";
+fn paint_collapse(ui: &mut Ui<'_>, side: Rect, collapsed: bool) {
+    let label = if collapsed { "\u{203a}" } else { "Collapse" };
     let columns = width(label).saturating_add(2);
     if side.height <= 18 || side.width <= 2 {
         return;
@@ -459,6 +474,7 @@ fn paint_collapse(ui: &mut Ui<'_>, side: Rect) {
         columns.min(side.width.saturating_sub(1)),
         1,
     );
+    collapse_button(collapsed).draw(ui, area);
     let text = ink(WHITE, TAB_ACTIVE);
     ui.fill(area, text);
     ui.fill(Rect::new(area.x, area.y, 1, 1), ink(TAB_ACTIVE, TAB_ACTIVE));
@@ -496,6 +512,7 @@ fn paint_content(ui: &mut Ui<'_>, card: Rect, selected: &str, last: &str) {
     if card.width < 4 || card.height == 0 {
         return;
     }
+    ui.register_control(CONTENT, card, termrock::Focusability::Disabled);
     ui.fill(card, ink(WHITE, SURFACE));
     let text_x = card.x.saturating_add(2);
     let text_w = card.width.saturating_sub(4);
@@ -697,12 +714,25 @@ fn paint_page_scrollbars(
     }
 }
 
-fn paint_playground_body(ui: &mut Ui<'_>, area: Rect, selected: &str, last: &str) {
+fn paint_playground_body(
+    ui: &mut Ui<'_>,
+    area: Rect,
+    selected: &str,
+    last: &str,
+    state: &NavListState,
+    collapsed: bool,
+) {
     if area.is_empty() {
         return;
     }
     let side_w = SIDE_W.min(area.width);
-    paint_side(ui, Rect::new(area.x, area.y, side_w, area.height), selected);
+    paint_side(
+        ui,
+        Rect::new(area.x, area.y, side_w, area.height),
+        selected,
+        state,
+        collapsed,
+    );
     let content_x = area.x.saturating_add(side_w).saturating_add(CARD_GAP);
     if content_x >= area.right() {
         return;
@@ -720,7 +750,14 @@ fn paint_playground_body(ui: &mut Ui<'_>, area: Rect, selected: &str, last: &str
     );
 }
 
-fn paint_playground(ui: &mut Ui<'_>, area: Rect, selected: &str, last: &str) {
+fn paint_playground(
+    ui: &mut Ui<'_>,
+    area: Rect,
+    selected: &str,
+    last: &str,
+    state: &NavListState,
+    collapsed: bool,
+) {
     if area.is_empty() {
         return;
     }
@@ -729,7 +766,7 @@ fn paint_playground(ui: &mut Ui<'_>, area: Rect, selected: &str, last: &str) {
     let split = scroll_split(area, content_w, content_h);
     let content = Rect::new(area.x, area.y, content_w, content_h);
     ui.with_area(split.view, |ui| {
-        paint_playground_body(ui, content, selected, last);
+        paint_playground_body(ui, content, selected, last, state, collapsed);
     });
     paint_page_scrollbars(ui, area, &split, content_w, content_h);
 }
@@ -799,6 +836,8 @@ impl Page for SidebarsPage {
                 },
                 self.selected,
                 &self.last,
+                &self.state,
+                self.collapsed,
             );
         });
     }
