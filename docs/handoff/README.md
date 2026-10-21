@@ -169,3 +169,17 @@ Preserve reviewed live Editor source and current records on `wip/parent-showcase
 ## Showcase attribution hold superseded (2026-10-21)
 
 Independent before/after comparison proves the three broad heading/visual failures predate the reviewed Editor merge. Bounded PR38 publication is permitted with that gate explicitly red; no fixture update or full parity approval is granted. The first Buttons panic still masks Editor visual coverage. Preserve the earlier hold log and WIP evidence until publication is remotely verified, then retire the fully integrated parent WIP only after fresh independent checks.
+
+## 2026-10-21 rate-limit protection (coordinator)
+
+Five workstreams stopped on an API rate limit at ~10:03 +0700. In-flight work protected on origin wip branches; agents resume from these after the limit resets (11:03:46 +0700):
+
+- `wip/jackin-rate-limit-20261021` @ `01dcfddde` — Jackin info-dialog wiring mid-edit (app.rs, overlays dialog.rs + info_card.rs). Resume: batch 2 (info dialog cases, then historical_* RUNS removals).
+- `wip/holla-rate-limit-20261021` @ `098fcfcda` — includes 3 unpushed commits (six collapsed plate families, parity-files plates, width-band history plates) + catalogue.rs/holla-ui edits mid-verification. Resume: verify pushed families, continue plate removal.
+- `wip/palette-rate-limit-20261021` @ `73fc468fc` — junie_256 mid-edit toward measured frozen ladder. Resume: finish ladder, conformance palette tests.
+- `wip/controls-adopt-rate-limit-20261021` @ `d90357899` — theme visual-API adoption mid-fix (two pins to measured frozen values). Resume: equality proofs, InactiveSelection decisions, test ports.
+- Backdrop regeneration agent stopped clean (no edits yet); prepared frozen-baseline root intact at /private/tmp/termrock-backdrop-adj-20261021/target/frozen-baseline.
+
+## DCO sign-off debt (coordinator decision 2026-10-21)
+
+`DCO` is the failing required check on PR #38: 195 commits lack `Signed-off-by`. Writers are active concurrently, so a branch-wide rewrite now would be undone by the next unsigned push and would force-push a shared branch (prohibited while shared). Decision: every commit from now on must carry `git commit -s` sign-off (Alexey Zhokhov <alexey@zhokhov.com>) plus the Co-Authored-By line; at the final integration checkpoint — when all workstreams stop pushing — run one sign-off rebase (`git rebase -i --exec "git commit --amend --no-edit -s"`) with a coordinated force-push under the push lock, then re-run CI. Recorded as OPEN until then.

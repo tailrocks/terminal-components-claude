@@ -34,7 +34,9 @@ pub(crate) fn paint(app: &App, ui: &mut Ui<'_>, full: Rect) {
     let general = matches!(app.editor.tab, EditorTab::General);
     let mounts = matches!(app.editor.tab, EditorTab::Mounts);
     let roles = matches!(app.editor.tab, EditorTab::Roles);
-    let chrome = general || mounts || roles;
+    let env = matches!(app.editor.tab, EditorTab::Environments);
+    let accounts = matches!(app.editor.tab, EditorTab::Accounts);
+    let chrome = general || mounts || roles || env || accounts;
     // The live shell is surface ink. These approved pages are canvas.
     if chrome {
         ui.fill(full, canvas());
@@ -159,8 +161,8 @@ pub(crate) fn paint(app: &App, ui: &mut Ui<'_>, full: Rect) {
         EditorTab::General => paint_general_body(app, ui),
         EditorTab::Mounts => paint_mounts_body(app, ui),
         EditorTab::Roles => paint_roles_body(app, ui),
-        EditorTab::Environments => paint_env_body(ui),
-        EditorTab::Accounts => paint_accounts_body(ui),
+        EditorTab::Environments => paint_env_body(app, ui),
+        EditorTab::Accounts => paint_accounts_body(app, ui),
     }
 
     // Footer
@@ -542,24 +544,340 @@ fn role_leaf(role: &str) -> &str {
     role.rsplit('/').next().unwrap_or(role)
 }
 
-fn paint_env_body(ui: &mut Ui<'_>) {
-    paint_str(ui, 8, 6, "Key", MUTED, BLACK, false);
-    paint_str(ui, 28, 6, "Source", MUTED, BLACK, false);
-    paint_str(ui, 58, 6, "Value", MUTED, BLACK, false);
+fn paint_env_body(app: &App, ui: &mut Ui<'_>) {
+    let pending = &app.editor.pending;
+    let mut y = 6u16;
+    paint_str(ui, 6, y, "Workspace", SECONDARY, BLACK, true);
+    paint_right(ui, y, &format!("{} vars", pending.env.len()), DARK_MUTED);
+    y = y.saturating_add(1);
+    for (index, env) in pending.env.iter().enumerate() {
+        paint_env_row(ui, y, &env.key, &env.value, index == 0);
+        y = y.saturating_add(1);
+    }
+    paint_env_gutter(ui, y);
+    paint_str(
+        ui,
+        8,
+        y,
+        "+ Add environment variable",
+        SECONDARY,
+        BLACK,
+        false,
+    );
+    y = y.saturating_add(1);
 
-    paint_str(ui, 8, 7, "DATABASE_URL", WHITE, BADGE_BG, true);
-    paint_str(ui, 28, 7, "Plain value", SECONDARY, BADGE_BG, true);
-    paint_str(ui, 58, 7, "••••••••", MUTED, BADGE_BG, true);
+    let configured = pending
+        .role_env
+        .values()
+        .filter(|vars| !vars.is_empty())
+        .count();
+    paint_str(ui, 6, y, "Role overrides", SECONDARY, BLACK, true);
+    paint_right(
+        ui,
+        y,
+        &format!(
+            "{configured} configured · {} in the registry",
+            app.world.roles.len()
+        ),
+        DARK_MUTED,
+    );
+    y = y.saturating_add(1);
+    for (role, vars) in &pending.role_env {
+        if vars.is_empty() {
+            continue;
+        }
+        let leaf = role_leaf(role);
+        paint_str(ui, 4, y, "▾", SECONDARY, BLACK, false);
+        paint_str(ui, 6, y, &format!("Role: {leaf}"), SECONDARY, BLACK, true);
+        paint_right(ui, y, &format!("{} var", vars.len()), DARK_MUTED);
+        y = y.saturating_add(1);
+        for env in vars {
+            paint_env_row(ui, y, &env.key, &env.value, false);
+            y = y.saturating_add(1);
+        }
+        paint_env_gutter(ui, y);
+        paint_str(
+            ui,
+            8,
+            y,
+            &format!("+ Add {leaf} environment variable"),
+            SECONDARY,
+            BLACK,
+            false,
+        );
+        y = y.saturating_add(1);
+    }
+    paint_env_gutter(ui, y);
+    paint_str(ui, 8, y, "+ Add role override…", SECONDARY, BLACK, false);
+
+    paint_str(ui, 97, 37, " ", BLACK, BLACK, false);
+    paint_str(ui, 98, 37, "Cancel ", SECONDARY, BLACK, false);
+    paint_str(ui, 108, 37, " ", ACTIVE_BG, ACTIVE_BG, false);
+    paint_str(
+        ui,
+        109,
+        37,
+        "Save… ",
+        Color::Rgb(0x4d, 0x4d, 0x4d),
+        ACTIVE_BG,
+        false,
+    );
 }
 
-fn paint_accounts_body(ui: &mut Ui<'_>) {
-    paint_str(ui, 8, 6, "Agent", MUTED, BLACK, false);
-    paint_str(ui, 28, 6, "Mode", MUTED, BLACK, false);
-    paint_str(ui, 58, 6, "Account", MUTED, BLACK, false);
+fn paint_right(ui: &mut Ui<'_>, y: u16, text: &str, fg: Color) {
+    let width = text.chars().count() as u16;
+    paint_str(ui, 117u16.saturating_sub(width), y, text, fg, BLACK, false);
+}
 
-    paint_str(ui, 8, 7, "Claude Code", WHITE, BADGE_BG, true);
-    paint_str(ui, 28, 7, "sync", SECONDARY, BADGE_BG, true);
-    paint_str(ui, 58, 7, "★ Personal", SECONDARY, BADGE_BG, true);
+fn paint_env_gutter(ui: &mut Ui<'_>, y: u16) {
+    paint_str(ui, 2, y, " ", BLACK, BLACK, false);
+    paint_str(ui, 3, y, " ", SECONDARY, BLACK, false);
+}
+
+fn env_shown(value: &crate::domain::workspace::EnvValue) -> (String, String) {
+    match value {
+        crate::domain::workspace::EnvValue::Plain(secret) => (
+            "*".repeat(secret.chars().count().min(16)),
+            "plain".to_owned(),
+        ),
+        crate::domain::workspace::EnvValue::OnePassword(reference) => {
+            ("*".repeat(16), format!("[op] {}", reference.display_path()))
+        }
+        crate::domain::workspace::EnvValue::HostEnv(name) => {
+            (format!("${name}"), "host env".to_owned())
+        }
+    }
+}
+
+fn paint_env_row(
+    ui: &mut Ui<'_>,
+    y: u16,
+    key: &str,
+    value: &crate::domain::workspace::EnvValue,
+    selected: bool,
+) {
+    let (shown, source) = env_shown(value);
+    let key_cell = format!("    {key:<20}");
+    let value_cell = format!("{shown:<24}");
+    if selected {
+        paint_str(ui, 2, y, &" ".repeat(116), WHITE, BADGE_BG, true);
+        paint_str(ui, 2, y, "▎›", ACCENT, BADGE_BG, true);
+        paint_str(ui, 4, y, &key_cell, WHITE, BADGE_BG, true);
+        paint_str(ui, 28, y, &value_cell, SECONDARY, BADGE_BG, true);
+        paint_str(ui, 54, y, &source, SECONDARY, BADGE_BG, true);
+        let tail = 54u16.saturating_add(source.chars().count() as u16);
+        if tail < 117 {
+            paint_str(
+                ui,
+                tail,
+                y,
+                &" ".repeat(usize::from(117 - tail)),
+                MUTED,
+                BADGE_BG,
+                true,
+            );
+        }
+    } else {
+        paint_env_gutter(ui, y);
+        paint_str(ui, 4, y, &key_cell, WHITE, BLACK, false);
+        paint_str(ui, 28, y, &value_cell, SECONDARY, BLACK, false);
+        let source_cell = format!("{source:<63}");
+        paint_str(ui, 54, y, &source_cell, MUTED, BLACK, false);
+    }
+}
+
+fn paint_accounts_body(app: &App, ui: &mut Ui<'_>) {
+    let registry = &app.world.accounts;
+    let effective = app.editor.pending.effective_accounts(registry);
+    let inherited = effective
+        .iter()
+        .filter(|entry| entry.origin == crate::domain::workspace::Effective::InheritedDefault)
+        .count();
+    let enabled_here = effective
+        .iter()
+        .filter(|entry| entry.origin == crate::domain::workspace::Effective::Enabled)
+        .count();
+    paint_str(
+        ui,
+        4,
+        6,
+        &format!(
+            "Active accounts  {} effective · {inherited} inherited · {enabled_here} enabled here",
+            effective.len()
+        ),
+        SECONDARY,
+        BLACK,
+        true,
+    );
+    paint_str(
+        ui,
+        92,
+        6,
+        "registry in Accounts (c)",
+        DARK_MUTED,
+        BLACK,
+        false,
+    );
+
+    let mut groups: std::collections::BTreeMap<
+        crate::domain::agent::Provider,
+        Vec<&crate::domain::account::Account>,
+    > = std::collections::BTreeMap::new();
+    for account in registry.sorted() {
+        groups.entry(account.provider).or_default().push(account);
+    }
+
+    let mut y = 7u16;
+    let mut first = true;
+    for (provider, accounts) in groups {
+        let active = accounts
+            .iter()
+            .filter(|account| effective.iter().any(|entry| entry.id == account.id))
+            .count();
+        paint_str(ui, 4, y, provider.label(), SECONDARY, BLACK, true);
+        let meta = if active > 1 {
+            format!("{active} active · picker at session start")
+        } else if active == 1 {
+            "1 active".to_owned()
+        } else {
+            "none active".to_owned()
+        };
+        paint_right(ui, y, &meta, DARK_MUTED);
+        y = y.saturating_add(1);
+        for account in accounts {
+            let entry = effective.iter().find(|entry| entry.id == account.id);
+            paint_account_row(ui, y, account, entry, first);
+            first = false;
+            y = y.saturating_add(1);
+        }
+    }
+
+    paint_str(ui, 97, 37, " ", BLACK, BLACK, false);
+    paint_str(ui, 98, 37, "Cancel ", SECONDARY, BLACK, false);
+    paint_str(ui, 108, 37, " ", ACTIVE_BG, ACTIVE_BG, false);
+    paint_str(
+        ui,
+        109,
+        37,
+        "Save… ",
+        Color::Rgb(0x4d, 0x4d, 0x4d),
+        ACTIVE_BG,
+        false,
+    );
+}
+
+fn paint_account_row(
+    ui: &mut Ui<'_>,
+    y: u16,
+    account: &crate::domain::account::Account,
+    entry: Option<&crate::domain::workspace::EffectiveAccount>,
+    selected: bool,
+) {
+    let bg = if selected { BADGE_BG } else { BLACK };
+    let checked = entry.is_some();
+    let preferred = entry.is_some_and(|entry| entry.preferred);
+    let raw_name = if account.origin == crate::domain::account::AccountOrigin::Discovered
+        && account.display_name == "discovered"
+    {
+        "host login"
+    } else {
+        account.display_name.as_str()
+    };
+    let name = clip_name(raw_name, if checked { 29 } else { 28 });
+    let scope = account_scope(account, entry);
+    let usable = crate::domain::workspace::usability_of(account);
+    let ready = usable.is_ready();
+    let status = usable.label();
+    if selected {
+        paint_str(ui, 2, y, &" ".repeat(116), WHITE, bg, true);
+        paint_str(ui, 2, y, "▎›", ACCENT, bg, true);
+    } else {
+        paint_env_gutter(ui, y);
+    }
+    paint_str(ui, 5, y, " ", AMBER, bg, selected);
+    if checked {
+        paint_str(ui, 6, y, &format!(" [✓] {name:<29}"), WHITE, bg, selected);
+    } else {
+        paint_str(ui, 7, y, "[ ]", MUTED, bg, selected);
+        let name_ink = if account.enabled { WHITE } else { DARK_MUTED };
+        let name_x = if account.enabled { 10 } else { 11 };
+        let shown = if account.enabled {
+            format!(" {name:<29}")
+        } else {
+            name
+        };
+        paint_str(ui, name_x, y, &shown, name_ink, bg, selected);
+    }
+    let mark = if preferred { "★" } else { " " };
+    let mark_ink = if selected { WHITE } else { SECONDARY };
+    paint_str(ui, 40, y, mark, mark_ink, bg, selected);
+    if selected {
+        paint_split_field(ui, 43, y, &format!("{scope:<22}"), SECONDARY, MUTED, bg);
+    } else {
+        paint_str(ui, 43, y, &format!("{scope:<22}"), MUTED, BLACK, false);
+    }
+    let status_ink = if !ready {
+        AMBER
+    } else if selected {
+        SECONDARY
+    } else {
+        MUTED
+    };
+    paint_str(ui, 67, y, &status, status_ink, bg, selected);
+}
+
+fn account_scope(
+    account: &crate::domain::account::Account,
+    entry: Option<&crate::domain::workspace::EffectiveAccount>,
+) -> String {
+    if let Some(entry) = entry {
+        entry.origin.label().to_owned()
+    } else if account.origin == crate::domain::account::AccountOrigin::Discovered {
+        "discovered on host".to_owned()
+    } else {
+        "available".to_owned()
+    }
+}
+
+fn clip_name(name: &str, max: usize) -> String {
+    if name.chars().count() <= max {
+        name.to_owned()
+    } else {
+        let keep: String = name.chars().take(max.saturating_sub(1)).collect();
+        format!("{keep}…")
+    }
+}
+
+fn paint_split_field(
+    ui: &mut Ui<'_>,
+    x: u16,
+    y: u16,
+    text: &str,
+    word: Color,
+    gap: Color,
+    bg: Color,
+) {
+    let mut column = x;
+    let mut current = String::new();
+    let mut spaces = false;
+    let flush = |ui: &mut Ui<'_>, column: &mut u16, current: &mut String, spaces: bool| {
+        if current.is_empty() {
+            return;
+        }
+        let ink = if spaces { gap } else { word };
+        paint_str(ui, *column, y, current, ink, bg, true);
+        *column = column.saturating_add(current.chars().count() as u16);
+        current.clear();
+    };
+    for ch in text.chars() {
+        let is_space = ch == ' ';
+        if !current.is_empty() && is_space != spaces {
+            flush(ui, &mut column, &mut current, spaces);
+        }
+        spaces = is_space;
+        current.push(ch);
+    }
+    flush(ui, &mut column, &mut current, spaces);
 }
 
 fn paint_save_preview(ui: &mut Ui<'_>, full: Rect) {
