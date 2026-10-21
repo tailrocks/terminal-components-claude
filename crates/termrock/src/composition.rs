@@ -135,18 +135,20 @@ struct MasterDetailLeaf<'a, 'config> {
 
 impl Measure for MasterDetailLeaf<'_, '_> {
     fn measure(&self, ui: &Ui<'_>, constraints: Constraints) -> Size {
+        // A block whose master or detail slot is missing cannot produce a
+        // layout. Measure it as empty instead of aborting the whole frame.
         self.component
             .measure(ui, self.state, constraints)
-            .expect("MasterDetail leaf is validated before composition measurement")
+            .unwrap_or_default()
     }
 }
 
 impl CompositionLeaf for MasterDetailLeaf<'_, '_> {
     fn draw(&self, ui: &mut Ui<'_>, logical: ratatui_core::layout::Rect) {
         ui.with_area(logical, |ui| {
-            self.component
-                .show(ui, self.state)
-                .expect("MasterDetail leaf is validated before composition drawing");
+            // A block that cannot resolve its layout leaves its area untouched
+            // instead of aborting the whole frame.
+            let _ = self.component.show(ui, self.state);
         });
     }
 }
@@ -566,9 +568,9 @@ impl<'a> Group<'a> {
     }
 
     fn draw_at_validated(&self, ui: &mut Ui<'_>, logical: ratatui_core::layout::Rect) {
-        self.slots()
-            .draw_at(ui, logical)
-            .expect("facade composition validates nested depth before drawing");
+        // The nested depth is validated before this pass runs; a composition
+        // that still cannot resolve leaves its area untouched.
+        let _ = self.slots().draw_at(ui, logical);
     }
 
     /// Measure intrinsic size through the shared layout resolver without
@@ -579,9 +581,9 @@ impl<'a> Group<'a> {
     }
 
     fn measure_validated(&self, ui: &Ui<'_>, constraints: Constraints) -> Size {
-        self.slots()
-            .measure(ui, constraints)
-            .expect("facade composition validates nested depth before measuring")
+        // The nested depth is validated before this pass runs; a composition
+        // that still cannot resolve measures as empty.
+        self.slots().measure(ui, constraints).unwrap_or_default()
     }
 
     pub(crate) fn validate_depth(&self) -> Result<(), CompositionError> {
@@ -656,5 +658,48 @@ impl Child<'_> {
             ChildContent::Group(group) => ContentSlot::nested(group.slots(), self.policy),
             ChildContent::Panel(panel) => ContentSlot::new(panel.as_ref(), self.policy),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use ratatui_core::buffer::Buffer;
+    use ratatui_core::layout::Rect;
+
+    use super::*;
+    use crate::runtime::Runtime;
+    use crate::runtime::runtime::stub::Stub;
+    use crate::theme::Theme;
+
+    const AREA: Rect = Rect {
+        x: 0,
+        y: 0,
+        width: 24,
+        height: 4,
+    };
+
+    /// A master/detail block without its master or detail slot cannot resolve a
+    /// layout. Composing it must degrade to an empty measurement and an
+    /// untouched area instead of aborting the frame.
+    #[test]
+    fn master_detail_leaf_without_slots_measures_empty_and_leaves_the_area_untouched() {
+        let block = MasterDetail::new(
+            crate::Id::root("composition.md"),
+            crate::Id::root("composition.md.master"),
+            crate::Id::root("composition.md.detail"),
+        );
+        let state = MasterDetailState::default();
+        let leaf = MasterDetailLeaf {
+            component: &block,
+            state: &state,
+        };
+        let mut runtime = Runtime::new(Stub::default(), Theme::junie());
+        let mut buffer = Buffer::empty(AREA);
+        runtime
+            .draw_scene(AREA, &mut buffer, |ui, area| {
+                assert_eq!(leaf.measure(ui, Constraints::loose(24, 4)), Size::default());
+                leaf.draw(ui, area);
+            })
+            .commit_presented();
     }
 }
