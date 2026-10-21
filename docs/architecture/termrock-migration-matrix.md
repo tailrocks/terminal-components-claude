@@ -1292,3 +1292,10 @@ build through the pinned runner and add a modifier-aware
 (`mods.dim`) parity check to the corpus admission; parity dialog-open
 captures that fail on 16/mono backdrop DIM are correct failures against
 defective data.
+
+
+## 2026-10-21: shared Button focusability integration
+
+Integrate independently reviewed source `6509b91e721057b9d5ec4f5c998ded752f29066c` and `05875f028f27b45805805b0529cd8b66b2dd1051`. ClickOnly remains pointer-activatable without keyboard focus; Disabled cannot retain stale focus or activate through pointer/keyboard. Default focusability remains unchanged. The [independent review](../audits/evidence/2026-10-21-current-blockers/button-05875-independent-clearance.json) checks 19 external public cases, including four-profile live/inert state routing, and the native Controls suite. Its unchanged prior-head probe fails on the repaired cases. This is a shared component contract correction, not application parity or capability coverage acceptance. Application state-matrix adoption and executable public consumer coverage remain open.
+
+The atomic runner increment was pushed and remotely verified at `45760ca43689cbaac6145b99361fc1ebe838e1ee`, with all 79 Python runner tests, formatting and diff checks passing. No new real capture or preparation ran.
