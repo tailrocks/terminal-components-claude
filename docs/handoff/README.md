@@ -132,8 +132,9 @@ Next: finish the independent unchanged-test comparison against PR38 `5f656a1833e
 
 ## Visible terminal caret retention (2026-10-21)
 
-- WIP branch: `wip/visible-terminal-cursor-20261021`; implementation commit `43545341db107948cd857b9c9faf115d9e816a89`, based on PR #38 source `5b9cffdb05fb257f7416dc872e24e75865ad98c2`.
+- WIP branch: `wip/visible-terminal-cursor-20261021`; implementation commit `df88318015e580cae57130693c651b01b7bedc22`, rebased onto PR #38 source `4f40bb294da89bbfcb2a6716c88a3158427aa0b2` (original isolated base was `5b9cffdb05fb257f7416dc872e24e75865ad98c2`).
 - Scope: additive `TextViewport::caret_when_unfocused`, `ContextMenu::retain_cursor`, and `Ui::retain_visible_owner_cursor`; strict existing retention contract unchanged. Includes a real public-API log-console integration flow, runtime owner/layer/typing tests, and [audit](../audits/visible-terminal-cursor-retention-20261021.md).
 - Verification: scoped nextest 563/563 passed with 3 skipped; scoped Clippy, format check, and diff check passed. A deliberate temporary restoration of legacy cursor-owner selection made `real_editable_overlay_typing_suppresses_retained_owner_when_caret_is_absent` fail by selecting the retained terminal cursor; implementation restoration passed. The paired baseline/CLI capture gate was not run.
-- State: commit is local only because the shared push lock was owned by `wip/tablepro-blank-database-validation-20261021` at `2026-10-21T02:40:46Z`. No lock was removed or modified.
+- State: commit is local only because the shared push lock is currently owned by `wip/menu-danger-profile-20261021` at `2026-10-21T02:42:11Z`. No lock was removed or modified.
+- Repository-wide `cargo fmt --check` after the rebase reports one unrelated formatting-only blank line in `crates/jackin-preview-app/src/app.rs:261`; the scoped format check for the three owned packages passes. This WIP did not change that application file.
 - Next: wait for lock release, fetch/rebase normally if the remote WIP exists, rerun focused gates on the exact head, push and verify remote SHA. Obtain independent review before integrating into PR #38. This work does not claim Showcase coverage or four-application parity.
