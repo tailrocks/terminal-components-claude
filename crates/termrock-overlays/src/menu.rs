@@ -1429,11 +1429,10 @@ impl<'a> MenuBar<'a> {
                 ui.fill(rect, style.style);
             }
             let label = shift(rect, 1);
-            let padded = format!(" {} ", menu.label);
             if let Some(slot) = self.ov.slot_for(Part::TITLE) {
                 slot(ui, label);
             } else if matches!(style.glyph, Slot::Set(GlyphRole::PressLeft)) {
-                ui.paint_str(rect, &padded, style.style);
+                ui.paint_str(label, menu.label, style.style);
                 paint_pressed_bracket(
                     ui,
                     cell_at(rect, rect.x),
@@ -1441,7 +1440,7 @@ impl<'a> MenuBar<'a> {
                     style.style,
                 );
             } else {
-                ui.paint_str(rect, &padded, style.style);
+                ui.paint_str(label, menu.label, style.style);
             }
             ui.register_decor(
                 self.menu_id(index),
