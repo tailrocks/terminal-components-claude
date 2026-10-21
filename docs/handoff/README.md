@@ -187,3 +187,9 @@ Five workstreams stopped on an API rate limit at ~10:03 +0700. In-flight work pr
 ## Workspace gate baseline @ 5b5abd707 (coordinator, 2026-10-21 10:40)
 
 `cargo nextest run --all-targets --workspace`: 12 failing — 6 termrock-feedback, 2 visual-harness (determinism sources, overlay_sites), 2 termrock-xtask (doc_inventory, ownership), 1 termrock-theme (`capability_palettes all_73_junie_slots` — palette workstream lane), 1 termrock-test-support perf. fmt clean. clippy: 23 errors in jackin-preview-app (indexing/slicing may panic) — Jackin workstream lane. Previously recorded 35 failures + tablepro-ui expect_used: improved. Fix lanes: jackin clippy + palette tests ride their workstreams; feedback/visual-harness/xtask failures assigned at resume.
+
+### Gate-failure diagnosis (coordinator, 10:50)
+
+- termrock-feedback (6): one class — redraw-allocation contract broken: `derived_hintbar_metadata.rs:185` (1 alloc per redraw), `feedback_clock.rs:466/:557` ((1,8) allocs/copies), plus a distinct sync bug `feedback_clock.rs:313` (sync returns stale `Moment(80ms)` vs `140ms`, equal-time not idempotent) and `:466` freeze path. Also `termrock-test-support::perf frame_showcase_buttons_120x40` — same counter. Fix lane: find the redraw allocation introduced by the landing wave (runtime/Ui/cx suspects), restore zero-alloc redraw; fix the Moment sync atomicity.
+- termrock-xtask (2): doc_inventory unregistered examples + ownership_check — likely new crates/termrock-shell + examples not registered in xtask inventories. Fix lane: register, not weaken.
+- visual-harness (2): determinism::sources_are_deterministic + overlay_sites — inspect after backdrop regen lands.
