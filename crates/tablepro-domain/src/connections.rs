@@ -433,7 +433,7 @@ mod validation_tests {
             ..ConnectionDraft::new()
         };
 
-        assert!(draft.database.is_empty());
+        assert_eq!(draft.database, "");
         assert!(draft.validate_all().is_ok());
     }
 
@@ -443,10 +443,10 @@ mod validation_tests {
             port: "5432".to_owned(),
             ..ConnectionDraft::new()
         };
-        assert_eq!(draft.validate_all().unwrap_err().0, field::NAME);
+        assert!(matches!(draft.validate_all(), Err((id, _)) if id == field::NAME));
 
         draft.name = "Local scratch".to_owned();
         draft.port = "not-a-port".to_owned();
-        assert_eq!(draft.validate_all().unwrap_err().0, field::PORT);
+        assert!(matches!(draft.validate_all(), Err((id, _)) if id == field::PORT));
     }
 }
