@@ -265,10 +265,10 @@ impl<'f> Cx<'f> {
         command: Option<ActionKey>,
         update_cause: UpdateCause,
     ) -> Self {
-        services.callback_serial = services
-            .callback_serial
-            .checked_add(1)
-            .expect("runtime callback token exhausted");
+        // The callback serial identifies one update within a runtime. It
+        // saturates only after 2^64 updates, and saturating keeps the token
+        // monotone instead of aborting the process.
+        services.callback_serial = services.callback_serial.saturating_add(1);
         let update_token = UpdateToken::new(services.runtime_id, services.callback_serial);
         let cache = &mut core.cache;
         let keymap = &core.keymap;

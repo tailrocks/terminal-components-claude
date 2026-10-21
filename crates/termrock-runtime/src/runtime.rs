@@ -78,11 +78,10 @@ fn select_cursor_owner(
 }
 
 fn next_runtime_id() -> u64 {
-    NEXT_RUNTIME_ID
-        .try_update(Ordering::Relaxed, Ordering::Relaxed, |next| {
-            next.checked_add(1)
-        })
-        .expect("runtime identity space exhausted")
+    // Runtime identity is unique per process. The counter wraps only after
+    // 2^64 runtimes, which no process reaches, and wrapping keeps the
+    // identity space usable instead of aborting the process.
+    NEXT_RUNTIME_ID.fetch_add(1, Ordering::Relaxed)
 }
 
 pub trait App {
@@ -1584,7 +1583,9 @@ impl<A: App> Runtime<A> {
                 actual,
             });
         }
-        let output = self.prepared.as_mut().expect("validated prepared frame");
+        let Some(output) = self.prepared.as_mut() else {
+            return Err(PreparedFrameError::Stale);
+        };
         frame.buffer_mut().merge(&output.buffer);
         if let Some(cursor) = output.cursor {
             frame.set_cursor_position(cursor);
@@ -1607,7 +1608,9 @@ impl<A: App> Runtime<A> {
         if !output.projected {
             return Err(PreparedFrameError::Stale);
         }
-        let output = self.prepared.take().expect("validated prepared frame");
+        let Some(output) = self.prepared.take() else {
+            return Err(PreparedFrameError::Stale);
+        };
         self.scratch_buffer = Some(output.buffer);
         self.presented = true;
         self.services.continuation_command_pending_present = None;
