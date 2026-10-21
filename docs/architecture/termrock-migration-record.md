@@ -326,6 +326,28 @@ errors in the theme red) and the public MENU/DEFAULT/TITLE identity of the
 menu bar title, both of which had drifted from the frozen corpus. The theme
 and overlay suites are green: 366 tests run, 366 passed.
 
+### D-007 — Relocating a bypass is not removing it
+
+Commits on the delivery branch that move an approval predicate from the
+application dispatch into a view module, for example "jackin: gate the
+accounts frames in their view modules" (`8a9b28807`) and "holla: fold
+remaining size-keyed plate gates into frame predicates" (`8689fe270`),
+relocate the size, fixture-label and theme-identity guards. They do not
+remove them. The task requires the guard to be gone and the live chrome to
+produce the frame from real state, so a relocated guard is still open work
+and must not be counted as done.
+
+### D-008 — Expected digests are a product signal, not an output to bless
+
+`crates/termrock-conformance/tests/baselines/components.txt` is treated as
+an acceptance signal. The migration matrix records the standing decision
+that "the product differences remain work to fix, not output to bless", and
+that no pinned frozen capture or documented independent reference decision
+authorises replacing an expected digest. So the 231 red component digests
+are a product regression to be fixed in the library, not a baseline to
+re-bless. No stream may set `BLESS=1`, edit that file, or widen, skip or
+weaken an assertion.
+
 ## Coverage gaps
 
 ### False-parity inventory (read-only audit, revision `40bc297e5`)
