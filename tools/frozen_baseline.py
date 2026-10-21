@@ -4925,6 +4925,9 @@ def corpus_modifier_parity(store: Path, cases: list[str] | None = None, snapshot
                         f"corpus ansi SGR {flag}={decoded[index][flag]} vs snapshot "
                         f"{snapshot_path} SGR {flag}={cell[flag]}")
         cross_checks += 1
+    if snapshots is not None and checked and cross_checks == 0:
+        raise RunnerError(
+            f"corpus modifier cross-store check matched no snapshot dumps for {checked} scenarios; refusing a vacuous pass")
     report: dict[str, object] = {"store": str(store), "scenarios_checked": checked, "modifier_flags": len(CORPUS_MODIFIER_FLAGS), "failures": 0}
     if snapshots is not None:
         report["snapshot_cross_checks"] = cross_checks
