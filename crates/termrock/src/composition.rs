@@ -668,7 +668,7 @@ mod tests {
 
     use super::*;
     use crate::runtime::Runtime;
-    use crate::runtime::runtime::stub::Stub;
+    use crate::runtime::stub::Stub;
     use crate::theme::Theme;
 
     const AREA: Rect = Rect {
@@ -698,7 +698,7 @@ mod tests {
         runtime
             .draw_scene(AREA, &mut buffer, |ui, area| {
                 assert_eq!(leaf.measure(ui, Constraints::loose(24, 4)), Size::default());
-                leaf.draw(ui, area);
+                leaf.draw(&mut *ui, area);
             })
             .commit_presented();
     }
