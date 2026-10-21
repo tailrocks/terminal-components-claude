@@ -107,3 +107,10 @@ foreign `git stash` entry (its only visible content, deletions under
 stash disappeared around 07:15+07, check `git fsck --unreachable | grep
 commit`. Do not use the shared stash stack from worktrees.
 
+## Shell geometry contract (2026-10-21)
+
+- Tip: local commit `6b73822c361e3a253709ad71fe6c885693fd1135` on `wip/shell-geometry-contract-20261021` (not yet published; branch is behind current PR #38 and must be rebased).
+- Item: unify `Chrome`/`AppShell` ownership in `termrock-shell`, expose the shell through the facade, and make shell drawing, measurement and registered geometry use one resolved header/body/footer layout. Also bound `PageLeaf` measurement so body minimums do not consume shell footer space.
+- State: scoped implementation and tests committed. `cargo nextest run -p termrock-shell` passed 47/47 (including 2 new tests); `cargo nextest run -p termrock --features testing --test slots` passed 10/10; scoped clippy exited 0 with one existing pedantic warning at `crates/termrock-runtime/src/hit.rs:236`; fmt and `git diff --check` passed. No application parity claim.
+- Next: wait for the active shared push lock to clear; fetch/rebase on `origin/parity/termrock-visual-baseline`, resolve only owned files, rerun the scoped gates, and push only this WIP branch. Obtain independent API/runtime review of the rebased commit before parent integration. Review the `CompositionLeaf` adapter for bypass of component layout/hit clipping and confirm resize invalidation/input dispatch behavior. Do not integrate into PR #38 until that review passes.
+- Evidence: [shell geometry audit](../audits/2026-10-21-shell-geometry-contract.md) and immutable [architect review packet](../audits/evidence/2026-10-21-shell-geometry/shell-api-architecture-review-b5217483.json).
