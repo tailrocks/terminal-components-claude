@@ -25,6 +25,12 @@ Required unresolved checks include the 73-slot reference decision, Feedback priv
 
 Detailed clearances and blocked reviews are preserved under `docs/audits/evidence/2026-10-21-current-blockers/`; later exact integration records must explicitly supersede this summary.
 
+### Live Editor bounded publication after independent attribution
+
+The [independent exact-revision comparison](../audits/evidence/2026-10-21-current-blockers/showcase-editor-broad-failures-independent-attribution.json) establishes that all three broad Showcase failures already exist at161284db9 and reproduce identically at9c99356ab, using separate copies and revision-specific targets. Both three-case runs have zero passes, three failures and zero skips. First heading rows, Buttons expected/actual digest and printed frame match exactly; Buttons, shell, tests and resources are unchanged by the Editor merge. This supersedes the attribution hold below and permits bounded source publication with the broad gate explicitly RED. It does not resolve any of those failures.
+
+The native visual test stops at its first Buttons failure, so Editor visual coverage is masked. Its digest also excludes cursor and terminal modes. Do not use these results as paired CLI or complete-frame acceptance. Full product and library gates remain incomplete; no expected frame/digest is changed. The exact-head publication repeats all 203 native cases without fail-fast, accepts no failure identity beyond these independently attributed three, and runs strict scoped Clippy plus full formatting/diff checks. Stage-two preparation and its independently admitted evidence are included; no capture/replay/candidate credit is added.
+
 ### Stage-two preparation independently admitted
 
 The reviewed V12 supervisor successfully ran the canonical owned `prepare-live` CLI: worker exit zero, 23.301 seconds and direct-child reaping. [Archived evidence](../audits/evidence/2026-10-21-owned-prepare-stage2/README.md) includes exact supervisor/test bytes, actual event/log, manifest, source clearance and independent result admission. V11's actual refusal was caused by a wrapper schema mismatch; immutable source/admission/evidence were correct and unchanged. Its prior clearance is superseded; the unchanged real-evidence regression is red on V11 and green on V12, with 30 independent tests passing.
