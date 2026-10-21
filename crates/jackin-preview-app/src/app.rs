@@ -4945,7 +4945,7 @@ impl App {
                     self.capsule_prefix = false;
                     self.pending_capsule_action = Some(CapsuleAction::NewTab);
                     if self.capsule_split_vertical_host(cx.theme(), cx.viewport()) {
-                        // The approved 120×40 frame is the agent picker titled
+                        // The approved frame is the agent picker titled
                         // "New tab". Leave the session bar in place.
                         self.status = None;
                         cx.focus(CAPSULE_INPUT);
@@ -5153,9 +5153,9 @@ impl App {
             CMD_CAPSULE_SPLIT_BELOW if self.route == Route::Capsule && self.capsule_prefix => {
                 self.capsule_prefix = false;
                 if self.capsule_split_vertical_host(cx.theme(), cx.viewport()) {
-                    // The approved 120×40 frame is the agent picker, not the
-                    // Claude account list. Leave status clear so the session
-                    // bar stays the baseline row. Other sizes keep the account picker.
+                    // The approved frame is the agent picker, not the Claude
+                    // account list. Leave status clear so the session bar
+                    // stays the baseline row.
                     self.pending_capsule_action = Some(CapsuleAction::Split(SplitDir::Vertical));
                     // Do not set picker_mode. The account-picker update clears
                     // that mode when its layer is closed, and this frame is not
@@ -7982,10 +7982,10 @@ impl App {
     }
 
     fn capsule_split_vertical_host(&self, theme: &termrock::Theme, screen: Rect) -> bool {
-        // ctrl-b " on the paused 120×40 capsule-multi frame. Zoom, the tab
-        // menu, and the account picker on other sizes stay off this path.
-        screen.width == 120
-            && screen.height == 40
+        // ctrl-b " and ctrl-b c on the paused capsule open the agent picker.
+        // Zoom, the tab menu, and non-junie themes stay off this path.
+        screen.width >= 72
+            && screen.height >= 20
             && theme.capability.color == termrock::ColorLevel::TrueColor
             && theme.color.accent == termrock::Color::Rgb(0x48, 0xe0, 0x54)
             && self.route == Route::Capsule
@@ -8364,17 +8364,23 @@ impl App {
             let split_frame = self.capsule_agent_picker_frame(ui.theme_ref(), ui.full());
             let menu_frame = self.capsule_menu_120_frame(ui.theme_ref(), ui.full());
             let palette_frame = self.capsule_palette_120_frame(ui.theme_ref(), ui.full());
-            // The approved picker, tab-menu, and command-palette frames
-            // shorten every pane by one row. A resting wide pane keeps
-            // that row for its own horizontal bar. Only the focused pane
-            // reserves the input at rest.
-            let shrink = split_frame || menu_frame || palette_frame;
+            // The 120 picker, the tab menu, and the command palette shorten
+            // every pane by one row. Other picker sizes shorten a pane only
+            // when its lines need the horizontal bar. A resting wide pane
+            // keeps that row too. Only the focused pane reserves the input
+            // at rest.
+            let wide_picker = split_frame && ui.full().width == 120 && ui.full().height == 40;
+            let shrink = menu_frame
+                || palette_frame
+                || wide_picker
+                || (split_frame && Self::resting_capsule_hbar(inner, projected));
             let rest_bar = ui.full().width == 120
                 && self.historical_capsule_frame()
                 && Self::resting_capsule_hbar(inner, projected);
             let reserve_row = shrink
                 || rest_bar
                 || (focused
+                    && !split_frame
                     && !self.historical_capsule_frame()
                     && !self.capsule_tab_menu_open
                     && !self.capsule.zoomed);
@@ -8389,10 +8395,12 @@ impl App {
                 .unwrap_or_default();
             let viewport = Self::capsule_viewport(pane_id, focused);
             viewport.draw_projected(ui, viewport_area, &state, projected);
-            // The menu frame reserves the last row. Wide panes put the
-            // horizontal bar there. Narrow panes stay blank. A resting
-            // wide pane does the same on its own reserved row.
-            if ((menu_frame || palette_frame) && shrink || rest_bar)
+            // The menu, palette, and agent-picker frames reserve the last
+            // row and put the horizontal bar there. The 120 picker keeps
+            // its own underlay repairs. A resting wide pane does the same
+            // on its own reserved row.
+            let picker_bar = split_frame && !(ui.full().width == 120 && ui.full().height == 40);
+            if ((menu_frame || palette_frame || picker_bar) && shrink || rest_bar)
                 && inner.height > viewport_area.height
             {
                 viewport.paint_horizontal_overflow(
@@ -8592,7 +8600,9 @@ impl App {
         } else if self.inspect_files {
             HintBar::new(APP.sub("capsule-hint"), &self.hint_layers.capsule_inspect)
                 .draw(ui, hint_area);
-        } else if self.capsule_palette_open {
+        } else if self.capsule_palette_open
+            || self.capsule_agent_picker_frame(ui.theme_ref(), ui.full())
+        {
             self.paint_capsule_palette_hints(ui, hint_area);
         } else {
             self.paint_capsule_idle_hints(ui, hint_area);
@@ -10707,10 +10717,11 @@ impl TuiApp for App {
                     _ => "Split ↓ Below",
                 };
                 capsule_split_view::paint(ui, title);
+                let cursor = capsule_split_view::search_cursor(full);
                 ui.set_undrawn_top_bar_cursor(
                     CAPSULE_INPUT,
-                    Rect::new(28, 16, 1, 1),
-                    Position::new(28, 16),
+                    Rect::new(cursor.x, cursor.y, 1, 1),
+                    cursor,
                 );
             }
             return;
@@ -11803,10 +11814,19 @@ mod paint_contract_tests {
         );
         let _ = narrow.ctrl('b');
         let _ = narrow.key(KeyCode::Char('"'));
+        assert_eq!(narrow.app().status.as_deref(), None);
+        assert!(narrow.text().contains("Split ↓ Below"), "{}", narrow.text());
         assert!(
-            narrow
+            narrow.text().contains("Type to search…"),
+            "{}",
+            narrow.text()
+        );
+        assert!(
+            !narrow
                 .text()
-                .contains("Split below · Account for Claude Code")
+                .contains("Split below · Account for Claude Code"),
+            "{}",
+            narrow.text()
         );
     }
 
@@ -11894,7 +11914,18 @@ mod paint_contract_tests {
         );
         let _ = narrow.ctrl('b');
         let _ = narrow.key(KeyCode::Char('c'));
-        assert_eq!(narrow.app().status.as_deref(), Some("New tab"));
+        assert_eq!(narrow.app().status.as_deref(), None);
+        assert!(narrow.text().contains("New tab"), "{}", narrow.text());
+        assert!(
+            narrow.text().contains("Type to search…"),
+            "{}",
+            narrow.text()
+        );
+        assert!(
+            !narrow.text().contains("New tab · Account for Claude Code"),
+            "{}",
+            narrow.text()
+        );
     }
 
     #[test]
