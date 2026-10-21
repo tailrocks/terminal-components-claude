@@ -54,6 +54,18 @@ submitted second block to the first before completion, and accepting the first
 alphabetical empty-query result. Provider unit tests also cover stable keys and
 label ordering for tied non-empty fuzzy scores.
 
+The independent follow-up review packet
+`/private/tmp/showcase-binding-independent-f4a4-20261021/review.json` (SHA-256
+`e4a263e6a336f6ee21c5d422f7c8c7430a6d070cb9a02b24c976af8ffe792044`)
+reproduced two additional existing frozen-contract differences. Re-running the
+same unchanged block now appends its warning again, and text edits continue to
+clear the accumulated diagnostics. The state block readout checks exact cursor
+containment so the blank separator says “between blocks”. The shared
+`CodeEditor::current_block` fallback to the preceding block remains unchanged
+for execution; a first review probe that assumed that behavior was a defect
+failed its blank-separator setup and was rejected. The separate readout probe
+isolates and verifies the actual difference.
+
 The existing syntax highlighter and block segmenter stay demo data supplied to
 the shared editor's callback contracts. The editor itself owns text editing,
 cursor movement, block selection, completion UI, focus, and rendering.
@@ -68,7 +80,12 @@ passed 44/44; `cargo nextest run -p showcase-demos --lib --no-capture` passed
 50/50; `cargo nextest run -p termrock-editors --test completing_code_editor
 --no-capture` passed 17/17; `cargo fmt --check` passed; and scoped `cargo clippy
 -p showcase-demos -p showcase-ui --all-targets -- -D warnings` passed. The
-Playground route covers live find/Escape, second-block Ctrl+R diagnostics, and
-Run button/countdown. This increment changed no shared editor or runtime code.
-Options/States and BackTab dedent remain incomplete. Candidate digest files
-were not edited or blessed.
+Validation for this follow-up: `cargo nextest run -p showcase-ui --test
+app_tests --no-capture` passed 46/46; `cargo nextest run -p showcase-demos
+--lib --no-capture` passed 50/50; `cargo nextest run -p termrock-editors --test
+completing_code_editor --no-capture` passed 17/17; `cargo fmt --check` passed;
+and scoped `cargo clippy -p showcase-demos -p showcase-ui --all-targets --
+-D warnings` passed. The Playground route also covers live find/Escape,
+second-block Ctrl+R diagnostics, and Run button/countdown. No shared editor or
+runtime code changed. Options/States and BackTab dedent remain incomplete.
+Candidate digest files were not edited or blessed.
