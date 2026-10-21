@@ -1,0 +1,3000 @@
+0	" "	White	Black	NONE
+1	"▪"	LightGreen	Black	NONE
+2	" "	White	Black	NONE
+3	"J"	White	Black	BOLD
+4	"u"	White	Black	BOLD
+5	"n"	White	Black	BOLD
+6	"i"	White	Black	BOLD
+7	"e"	White	Black	BOLD
+8	" "	White	Black	NONE
+9	"D"	Gray	Black	NONE
+10	"e"	Gray	Black	NONE
+11	"s"	Gray	Black	NONE
+12	"i"	Gray	Black	NONE
+13	"g"	Gray	Black	NONE
+14	"n"	Gray	Black	NONE
+15	" "	Gray	Black	NONE
+16	"s"	Gray	Black	NONE
+17	"y"	Gray	Black	NONE
+18	"s"	Gray	Black	NONE
+19	"t"	Gray	Black	NONE
+20	"e"	Gray	Black	NONE
+21	"m"	Gray	Black	NONE
+22	" "	White	Black	NONE
+23	" "	White	Black	NONE
+24	"O"	White	Black	BOLD
+25	"v"	White	Black	BOLD
+26	"e"	White	Black	BOLD
+27	"r"	White	Black	BOLD
+28	"v"	White	Black	BOLD
+29	"i"	White	Black	BOLD
+30	"e"	White	Black	BOLD
+31	"w"	White	Black	BOLD
+32	" "	White	Black	NONE
+33	" "	White	Black	NONE
+34	" "	White	Black	NONE
+35	" "	White	Black	NONE
+36	" "	White	Black	NONE
+37	" "	White	Black	NONE
+38	" "	White	Black	NONE
+39	" "	White	Black	NONE
+40	" "	White	Black	NONE
+41	" "	White	Black	NONE
+42	" "	White	Black	NONE
+43	" "	White	Black	NONE
+44	" "	White	Black	NONE
+45	" "	White	Black	NONE
+46	" "	White	Black	NONE
+47	" "	White	Black	NONE
+48	" "	White	Black	NONE
+49	" "	White	Black	NONE
+50	" "	White	Black	NONE
+51	" "	White	Black	NONE
+52	" "	White	Black	NONE
+53	" "	White	Black	NONE
+54	" "	White	Black	NONE
+55	" "	White	Black	NONE
+56	" "	White	Black	NONE
+57	"1"	Gray	Black	NONE
+58	"6"	Gray	Black	NONE
+59	" "	Gray	Black	NONE
+60	"c"	Gray	Black	NONE
+61	"o"	Gray	Black	NONE
+62	"l"	Gray	Black	NONE
+63	"o"	Gray	Black	NONE
+64	"r"	Gray	Black	NONE
+65	"s"	Gray	Black	NONE
+66	" "	Gray	Black	NONE
+67	"·"	Gray	Black	NONE
+68	" "	Gray	Black	NONE
+69	"1"	Gray	Black	NONE
+70	"0"	Gray	Black	NONE
+71	"0"	Gray	Black	NONE
+72	"×"	Gray	Black	NONE
+73	"3"	Gray	Black	NONE
+74	"0"	Gray	Black	NONE
+75	" "	White	Black	NONE
+76	" "	White	Black	NONE
+77	" "	Gray	Black	NONE
+78	"i"	Gray	Black	NONE
+79	" "	Gray	Black	NONE
+80	"I"	Gray	Black	NONE
+81	"n"	Gray	Black	NONE
+82	"s"	Gray	Black	NONE
+83	"p"	Gray	Black	NONE
+84	"e"	Gray	Black	NONE
+85	"c"	Gray	Black	NONE
+86	"t"	Gray	Black	NONE
+87	"o"	Gray	Black	NONE
+88	"r"	Gray	Black	NONE
+89	" "	Gray	Black	NONE
+90	" "	White	Black	NONE
+91	" "	Gray	Black	NONE
+92	"?"	Gray	Black	NONE
+93	" "	Gray	Black	NONE
+94	"H"	Gray	Black	NONE
+95	"e"	Gray	Black	NONE
+96	"l"	Gray	Black	NONE
+97	"p"	Gray	Black	NONE
+98	" "	Gray	Black	NONE
+99	" "	White	Black	NONE
+0	" "	White	Black	NONE
+1	" "	White	Black	NONE
+2	" "	White	Black	NONE
+3	" "	White	Black	NONE
+4	" "	White	Black	NONE
+5	" "	White	Black	NONE
+6	" "	White	Black	NONE
+7	" "	White	Black	NONE
+8	" "	White	Black	NONE
+9	" "	White	Black	NONE
+10	" "	White	Black	NONE
+11	" "	White	Black	NONE
+12	" "	White	Black	NONE
+13	" "	White	Black	NONE
+14	" "	White	Black	NONE
+15	" "	White	Black	NONE
+16	" "	White	Black	NONE
+17	" "	White	Black	NONE
+18	" "	White	Black	NONE
+19	" "	White	Black	NONE
+20	" "	White	Black	NONE
+21	" "	White	Black	NONE
+22	" "	White	Black	NONE
+23	" "	White	Black	NONE
+24	" "	White	Black	NONE
+25	" "	White	Black	NONE
+26	" "	White	Black	NONE
+27	" "	White	Black	NONE
+28	" "	White	Black	NONE
+29	" "	White	Black	NONE
+30	" "	White	Black	NONE
+31	" "	White	Black	NONE
+32	" "	White	Black	NONE
+33	" "	White	Black	NONE
+34	" "	White	Black	NONE
+35	" "	White	Black	NONE
+36	" "	White	Black	NONE
+37	" "	White	Black	NONE
+38	" "	White	Black	NONE
+39	" "	White	Black	NONE
+40	" "	White	Black	NONE
+41	" "	White	Black	NONE
+42	" "	White	Black	NONE
+43	" "	White	Black	NONE
+44	" "	White	Black	NONE
+45	" "	White	Black	NONE
+46	" "	White	Black	NONE
+47	" "	White	Black	NONE
+48	" "	White	Black	NONE
+49	" "	White	Black	NONE
+50	" "	White	Black	NONE
+51	" "	White	Black	NONE
+52	" "	White	Black	NONE
+53	" "	White	Black	NONE
+54	" "	White	Black	NONE
+55	" "	White	Black	NONE
+56	" "	White	Black	NONE
+57	" "	White	Black	NONE
+58	" "	White	Black	NONE
+59	" "	White	Black	NONE
+60	" "	White	Black	NONE
+61	" "	White	Black	NONE
+62	" "	White	Black	NONE
+63	" "	White	Black	NONE
+64	" "	White	Black	NONE
+65	" "	White	Black	NONE
+66	" "	White	Black	NONE
+67	" "	White	Black	NONE
+68	" "	White	Black	NONE
+69	" "	White	Black	NONE
+70	" "	White	Black	NONE
+71	" "	White	Black	NONE
+72	" "	White	Black	NONE
+73	" "	White	Black	NONE
+74	" "	White	Black	NONE
+75	" "	White	Black	NONE
+76	" "	White	Black	NONE
+77	" "	White	Black	NONE
+78	" "	White	Black	NONE
+79	" "	White	Black	NONE
+80	" "	White	Black	NONE
+81	" "	White	Black	NONE
+82	" "	White	Black	NONE
+83	" "	White	Black	NONE
+84	" "	White	Black	NONE
+85	" "	White	Black	NONE
+86	" "	White	Black	NONE
+87	" "	White	Black	NONE
+88	" "	White	Black	NONE
+89	" "	White	Black	NONE
+90	" "	White	Black	NONE
+91	" "	White	Black	NONE
+92	" "	White	Black	NONE
+93	" "	White	Black	NONE
+94	" "	White	Black	NONE
+95	" "	White	Black	NONE
+96	" "	White	Black	NONE
+97	" "	White	Black	NONE
+98	" "	White	Black	NONE
+99	" "	White	Black	NONE
+0	" "	White	Black	NONE
+1	"C"	White	Black	BOLD
+2	"o"	White	Black	BOLD
+3	"m"	White	Black	BOLD
+4	"p"	White	Black	BOLD
+5	"o"	White	Black	BOLD
+6	"n"	White	Black	BOLD
+7	"e"	White	Black	BOLD
+8	"n"	White	Black	BOLD
+9	"t"	White	Black	BOLD
+10	"s"	White	Black	BOLD
+11	" "	White	Black	NONE
+12	" "	White	Black	NONE
+13	" "	White	Black	NONE
+14	" "	White	Black	NONE
+15	" "	White	Black	NONE
+16	" "	White	Black	NONE
+17	"5"	Gray	Black	NONE
+18	"4"	Gray	Black	NONE
+19	" "	White	Black	NONE
+20	" "	White	Black	NONE
+21	"O"	White	Black	BOLD
+22	"v"	White	Black	BOLD
+23	"e"	White	Black	BOLD
+24	"r"	White	Black	BOLD
+25	"v"	White	Black	BOLD
+26	"i"	White	Black	BOLD
+27	"e"	White	Black	BOLD
+28	"w"	White	Black	BOLD
+29	" "	White	Black	NONE
+30	" "	White	Black	NONE
+31	"T"	Gray	Black	NONE
+32	"o"	Gray	Black	NONE
+33	"k"	Gray	Black	NONE
+34	"e"	Gray	Black	NONE
+35	"n"	Gray	Black	NONE
+36	"s"	Gray	Black	NONE
+37	" "	Gray	Black	NONE
+38	"a"	Gray	Black	NONE
+39	"n"	Gray	Black	NONE
+40	"d"	Gray	Black	NONE
+41	" "	Gray	Black	NONE
+42	"p"	Gray	Black	NONE
+43	"r"	Gray	Black	NONE
+44	"i"	Gray	Black	NONE
+45	"n"	Gray	Black	NONE
+46	"c"	Gray	Black	NONE
+47	"i"	Gray	Black	NONE
+48	"p"	Gray	Black	NONE
+49	"l"	Gray	Black	NONE
+50	"e"	Gray	Black	NONE
+51	"s"	Gray	Black	NONE
+52	" "	Gray	Black	NONE
+53	"b"	Gray	Black	NONE
+54	"e"	Gray	Black	NONE
+55	"h"	Gray	Black	NONE
+56	"i"	Gray	Black	NONE
+57	"n"	Gray	Black	NONE
+58	"d"	Gray	Black	NONE
+59	" "	Gray	Black	NONE
+60	"e"	Gray	Black	NONE
+61	"v"	Gray	Black	NONE
+62	"e"	Gray	Black	NONE
+63	"r"	Gray	Black	NONE
+64	"y"	Gray	Black	NONE
+65	" "	Gray	Black	NONE
+66	"c"	Gray	Black	NONE
+67	"o"	Gray	Black	NONE
+68	"m"	Gray	Black	NONE
+69	"p"	Gray	Black	NONE
+70	"o"	Gray	Black	NONE
+71	"n"	Gray	Black	NONE
+72	"e"	Gray	Black	NONE
+73	"n"	Gray	Black	NONE
+74	"t"	Gray	Black	NONE
+75	" "	White	Black	NONE
+76	" "	White	Black	NONE
+77	" "	White	Black	NONE
+78	" "	White	Black	NONE
+79	" "	White	Black	NONE
+80	" "	White	Black	NONE
+81	" "	White	Black	NONE
+82	" "	White	Black	NONE
+83	" "	White	Black	NONE
+84	" "	White	Black	NONE
+85	" "	White	Black	NONE
+86	" "	White	Black	NONE
+87	" "	White	Black	NONE
+88	" "	White	Black	NONE
+89	" "	White	Black	NONE
+90	" "	White	Black	NONE
+91	" "	White	Black	NONE
+92	" "	White	Black	NONE
+93	" "	White	Black	NONE
+94	" "	White	Black	NONE
+95	" "	White	Black	NONE
+96	" "	White	Black	NONE
+97	" "	White	Black	NONE
+98	" "	White	Black	NONE
+99	" "	White	Black	NONE
+0	" "	White	Black	NONE
+1	"─"	DarkGray	Black	NONE
+2	"─"	DarkGray	Black	NONE
+3	"─"	DarkGray	Black	NONE
+4	"─"	DarkGray	Black	NONE
+5	"─"	DarkGray	Black	NONE
+6	"─"	DarkGray	Black	NONE
+7	"─"	DarkGray	Black	NONE
+8	"─"	DarkGray	Black	NONE
+9	"─"	DarkGray	Black	NONE
+10	"─"	DarkGray	Black	NONE
+11	"─"	DarkGray	Black	NONE
+12	"─"	DarkGray	Black	NONE
+13	"─"	DarkGray	Black	NONE
+14	"─"	DarkGray	Black	NONE
+15	"─"	DarkGray	Black	NONE
+16	"─"	DarkGray	Black	NONE
+17	"─"	DarkGray	Black	NONE
+18	"─"	DarkGray	Black	NONE
+19	" "	White	Black	NONE
+20	" "	White	Black	NONE
+21	" "	White	Black	NONE
+22	" "	White	Black	NONE
+23	" "	White	Black	NONE
+24	" "	White	Black	NONE
+25	" "	White	Black	NONE
+26	" "	White	Black	NONE
+27	" "	White	Black	NONE
+28	" "	White	Black	NONE
+29	" "	White	Black	NONE
+30	" "	White	Black	NONE
+31	" "	White	Black	NONE
+32	" "	White	Black	NONE
+33	" "	White	Black	NONE
+34	" "	White	Black	NONE
+35	" "	White	Black	NONE
+36	" "	White	Black	NONE
+37	" "	White	Black	NONE
+38	" "	White	Black	NONE
+39	" "	White	Black	NONE
+40	" "	White	Black	NONE
+41	" "	White	Black	NONE
+42	" "	White	Black	NONE
+43	" "	White	Black	NONE
+44	" "	White	Black	NONE
+45	" "	White	Black	NONE
+46	" "	White	Black	NONE
+47	" "	White	Black	NONE
+48	" "	White	Black	NONE
+49	" "	White	Black	NONE
+50	" "	White	Black	NONE
+51	" "	White	Black	NONE
+52	" "	White	Black	NONE
+53	" "	White	Black	NONE
+54	" "	White	Black	NONE
+55	" "	White	Black	NONE
+56	" "	White	Black	NONE
+57	" "	White	Black	NONE
+58	" "	White	Black	NONE
+59	" "	White	Black	NONE
+60	" "	White	Black	NONE
+61	" "	White	Black	NONE
+62	" "	White	Black	NONE
+63	" "	White	Black	NONE
+64	" "	White	Black	NONE
+65	" "	White	Black	NONE
+66	" "	White	Black	NONE
+67	" "	White	Black	NONE
+68	" "	White	Black	NONE
+69	" "	White	Black	NONE
+70	" "	White	Black	NONE
+71	" "	White	Black	NONE
+72	" "	White	Black	NONE
+73	" "	White	Black	NONE
+74	" "	White	Black	NONE
+75	" "	White	Black	NONE
+76	" "	White	Black	NONE
+77	" "	White	Black	NONE
+78	" "	White	Black	NONE
+79	" "	White	Black	NONE
+80	" "	White	Black	NONE
+81	" "	White	Black	NONE
+82	" "	White	Black	NONE
+83	" "	White	Black	NONE
+84	" "	White	Black	NONE
+85	" "	White	Black	NONE
+86	" "	White	Black	NONE
+87	" "	White	Black	NONE
+88	" "	White	Black	NONE
+89	" "	White	Black	NONE
+90	" "	White	Black	NONE
+91	" "	White	Black	NONE
+92	" "	White	Black	NONE
+93	" "	White	Black	NONE
+94	" "	White	Black	NONE
+95	" "	White	Black	NONE
+96	" "	White	Black	NONE
+97	" "	White	Black	NONE
+98	" "	White	Black	NONE
+99	" "	White	Black	NONE
+0	" "	White	Black	NONE
+1	"▎"	LightGreen	DarkGray	BOLD
+2	"›"	LightGreen	DarkGray	BOLD
+3	" "	White	DarkGray	BOLD
+4	"O"	LightGreen	DarkGray	BOLD
+5	"v"	LightGreen	DarkGray	BOLD
+6	"e"	LightGreen	DarkGray	BOLD
+7	"r"	LightGreen	DarkGray	BOLD
+8	"v"	LightGreen	DarkGray	BOLD
+9	"i"	LightGreen	DarkGray	BOLD
+10	"e"	LightGreen	DarkGray	BOLD
+11	"w"	LightGreen	DarkGray	BOLD
+12	" "	LightGreen	DarkGray	BOLD
+13	" "	LightGreen	DarkGray	BOLD
+14	" "	LightGreen	DarkGray	BOLD
+15	" "	LightGreen	DarkGray	BOLD
+16	" "	LightGreen	DarkGray	BOLD
+17	" "	LightGreen	DarkGray	BOLD
+18	" "	White	DarkGray	BOLD
+19	" "	White	Black	NONE
+20	" "	White	Black	NONE
+21	" "	Rgb(255, 255, 255)	Rgb(39, 39, 42)	BOLD
+22	"P"	Rgb(255, 255, 255)	Rgb(39, 39, 42)	BOLD
+23	"l"	Rgb(255, 255, 255)	Rgb(39, 39, 42)	BOLD
+24	"a"	Rgb(255, 255, 255)	Rgb(39, 39, 42)	BOLD
+25	"y"	Rgb(255, 255, 255)	Rgb(39, 39, 42)	BOLD
+26	"g"	Rgb(255, 255, 255)	Rgb(39, 39, 42)	BOLD
+27	"r"	Rgb(255, 255, 255)	Rgb(39, 39, 42)	BOLD
+28	"o"	Rgb(255, 255, 255)	Rgb(39, 39, 42)	BOLD
+29	"u"	Rgb(255, 255, 255)	Rgb(39, 39, 42)	BOLD
+30	"n"	Rgb(255, 255, 255)	Rgb(39, 39, 42)	BOLD
+31	"d"	Rgb(255, 255, 255)	Rgb(39, 39, 42)	BOLD
+32	" "	Rgb(255, 255, 255)	Rgb(39, 39, 42)	BOLD
+33	" "	Rgb(255, 255, 255)	Rgb(39, 39, 42)	BOLD
+34	" "	White	Black	NONE
+35	" "	Rgb(179, 179, 179)	Rgb(0, 0, 0)	NONE
+36	"O"	Rgb(179, 179, 179)	Rgb(0, 0, 0)	NONE
+37	"p"	Rgb(179, 179, 179)	Rgb(0, 0, 0)	NONE
+38	"t"	Rgb(179, 179, 179)	Rgb(0, 0, 0)	NONE
+39	"i"	Rgb(179, 179, 179)	Rgb(0, 0, 0)	NONE
+40	"o"	Rgb(179, 179, 179)	Rgb(0, 0, 0)	NONE
+41	"n"	Rgb(179, 179, 179)	Rgb(0, 0, 0)	NONE
+42	"s"	Rgb(179, 179, 179)	Rgb(0, 0, 0)	NONE
+43	" "	Rgb(179, 179, 179)	Rgb(0, 0, 0)	NONE
+44	" "	Rgb(179, 179, 179)	Rgb(0, 0, 0)	NONE
+45	" "	White	Black	NONE
+46	" "	Rgb(179, 179, 179)	Rgb(0, 0, 0)	NONE
+47	"S"	Rgb(179, 179, 179)	Rgb(0, 0, 0)	NONE
+48	"t"	Rgb(179, 179, 179)	Rgb(0, 0, 0)	NONE
+49	"a"	Rgb(179, 179, 179)	Rgb(0, 0, 0)	NONE
+50	"t"	Rgb(179, 179, 179)	Rgb(0, 0, 0)	NONE
+51	"e"	Rgb(179, 179, 179)	Rgb(0, 0, 0)	NONE
+52	"s"	Rgb(179, 179, 179)	Rgb(0, 0, 0)	NONE
+53	" "	Rgb(179, 179, 179)	Rgb(0, 0, 0)	NONE
+54	" "	Rgb(179, 179, 179)	Rgb(0, 0, 0)	NONE
+55	" "	White	Black	NONE
+56	" "	White	Black	NONE
+57	" "	White	Black	NONE
+58	" "	White	Black	NONE
+59	" "	White	Black	NONE
+60	" "	White	Black	NONE
+61	" "	White	Black	NONE
+62	" "	White	Black	NONE
+63	" "	White	Black	NONE
+64	" "	White	Black	NONE
+65	" "	White	Black	NONE
+66	" "	White	Black	NONE
+67	" "	White	Black	NONE
+68	" "	White	Black	NONE
+69	" "	White	Black	NONE
+70	" "	White	Black	NONE
+71	" "	White	Black	NONE
+72	" "	White	Black	NONE
+73	" "	White	Black	NONE
+74	" "	White	Black	NONE
+75	" "	White	Black	NONE
+76	" "	White	Black	NONE
+77	" "	White	Black	NONE
+78	" "	White	Black	NONE
+79	" "	White	Black	NONE
+80	" "	White	Black	NONE
+81	" "	White	Black	NONE
+82	" "	White	Black	NONE
+83	" "	White	Black	NONE
+84	"t"	Rgb(115, 115, 115)	Rgb(0, 0, 0)	NONE
+85	"h"	Rgb(115, 115, 115)	Rgb(0, 0, 0)	NONE
+86	"e"	Rgb(115, 115, 115)	Rgb(0, 0, 0)	NONE
+87	" "	Rgb(115, 115, 115)	Rgb(0, 0, 0)	NONE
+88	"l"	Rgb(115, 115, 115)	Rgb(0, 0, 0)	NONE
+89	"i"	Rgb(115, 115, 115)	Rgb(0, 0, 0)	NONE
+90	"v"	Rgb(115, 115, 115)	Rgb(0, 0, 0)	NONE
+91	"e"	Rgb(115, 115, 115)	Rgb(0, 0, 0)	NONE
+92	" "	Rgb(115, 115, 115)	Rgb(0, 0, 0)	NONE
+93	"w"	Rgb(115, 115, 115)	Rgb(0, 0, 0)	NONE
+94	"i"	Rgb(115, 115, 115)	Rgb(0, 0, 0)	NONE
+95	"d"	Rgb(115, 115, 115)	Rgb(0, 0, 0)	NONE
+96	"g"	Rgb(115, 115, 115)	Rgb(0, 0, 0)	NONE
+97	"e"	Rgb(115, 115, 115)	Rgb(0, 0, 0)	NONE
+98	"t"	Rgb(115, 115, 115)	Rgb(0, 0, 0)	NONE
+99	" "	White	Black	NONE
+0	" "	White	Black	NONE
+1	" "	Black	Black	NONE
+2	"▸"	Gray	Black	NONE
+3	" "	White	Black	NONE
+4	"A"	White	Black	NONE
+5	"p"	White	Black	NONE
+6	"p"	White	Black	NONE
+7	" "	White	Black	NONE
+8	"s"	White	Black	NONE
+9	"h"	White	Black	NONE
+10	"e"	White	Black	NONE
+11	"l"	White	Black	NONE
+12	"l"	White	Black	NONE
+13	" "	White	Black	NONE
+14	" "	White	Black	NONE
+15	" "	White	Black	NONE
+16	" "	White	Black	NONE
+17	" "	White	Black	NONE
+18	" "	White	Black	NONE
+19	" "	White	Black	NONE
+20	" "	White	Black	NONE
+21	"━"	Rgb(72, 224, 84)	Rgb(0, 0, 0)	NONE
+22	"━"	Rgb(72, 224, 84)	Rgb(0, 0, 0)	NONE
+23	"━"	Rgb(72, 224, 84)	Rgb(0, 0, 0)	NONE
+24	"━"	Rgb(72, 224, 84)	Rgb(0, 0, 0)	NONE
+25	"━"	Rgb(72, 224, 84)	Rgb(0, 0, 0)	NONE
+26	"━"	Rgb(72, 224, 84)	Rgb(0, 0, 0)	NONE
+27	"━"	Rgb(72, 224, 84)	Rgb(0, 0, 0)	NONE
+28	"━"	Rgb(72, 224, 84)	Rgb(0, 0, 0)	NONE
+29	"━"	Rgb(72, 224, 84)	Rgb(0, 0, 0)	NONE
+30	"━"	Rgb(72, 224, 84)	Rgb(0, 0, 0)	NONE
+31	"━"	Rgb(72, 224, 84)	Rgb(0, 0, 0)	NONE
+32	"━"	Rgb(72, 224, 84)	Rgb(0, 0, 0)	NONE
+33	"━"	Rgb(72, 224, 84)	Rgb(0, 0, 0)	NONE
+34	"─"	Rgb(58, 58, 58)	Rgb(0, 0, 0)	NONE
+35	"─"	Rgb(58, 58, 58)	Rgb(0, 0, 0)	NONE
+36	"─"	Rgb(58, 58, 58)	Rgb(0, 0, 0)	NONE
+37	"─"	Rgb(58, 58, 58)	Rgb(0, 0, 0)	NONE
+38	"─"	Rgb(58, 58, 58)	Rgb(0, 0, 0)	NONE
+39	"─"	Rgb(58, 58, 58)	Rgb(0, 0, 0)	NONE
+40	"─"	Rgb(58, 58, 58)	Rgb(0, 0, 0)	NONE
+41	"─"	Rgb(58, 58, 58)	Rgb(0, 0, 0)	NONE
+42	"─"	Rgb(58, 58, 58)	Rgb(0, 0, 0)	NONE
+43	"─"	Rgb(58, 58, 58)	Rgb(0, 0, 0)	NONE
+44	"─"	Rgb(58, 58, 58)	Rgb(0, 0, 0)	NONE
+45	"─"	Rgb(58, 58, 58)	Rgb(0, 0, 0)	NONE
+46	"─"	Rgb(58, 58, 58)	Rgb(0, 0, 0)	NONE
+47	"─"	Rgb(58, 58, 58)	Rgb(0, 0, 0)	NONE
+48	"─"	Rgb(58, 58, 58)	Rgb(0, 0, 0)	NONE
+49	"─"	Rgb(58, 58, 58)	Rgb(0, 0, 0)	NONE
+50	"─"	Rgb(58, 58, 58)	Rgb(0, 0, 0)	NONE
+51	"─"	Rgb(58, 58, 58)	Rgb(0, 0, 0)	NONE
+52	"─"	Rgb(58, 58, 58)	Rgb(0, 0, 0)	NONE
+53	"─"	Rgb(58, 58, 58)	Rgb(0, 0, 0)	NONE
+54	"─"	Rgb(58, 58, 58)	Rgb(0, 0, 0)	NONE
+55	"─"	Rgb(58, 58, 58)	Rgb(0, 0, 0)	NONE
+56	"─"	Rgb(58, 58, 58)	Rgb(0, 0, 0)	NONE
+57	"─"	Rgb(58, 58, 58)	Rgb(0, 0, 0)	NONE
+58	"─"	Rgb(58, 58, 58)	Rgb(0, 0, 0)	NONE
+59	"─"	Rgb(58, 58, 58)	Rgb(0, 0, 0)	NONE
+60	"─"	Rgb(58, 58, 58)	Rgb(0, 0, 0)	NONE
+61	"─"	Rgb(58, 58, 58)	Rgb(0, 0, 0)	NONE
+62	"─"	Rgb(58, 58, 58)	Rgb(0, 0, 0)	NONE
+63	"─"	Rgb(58, 58, 58)	Rgb(0, 0, 0)	NONE
+64	"─"	Rgb(58, 58, 58)	Rgb(0, 0, 0)	NONE
+65	"─"	Rgb(58, 58, 58)	Rgb(0, 0, 0)	NONE
+66	"─"	Rgb(58, 58, 58)	Rgb(0, 0, 0)	NONE
+67	"─"	Rgb(58, 58, 58)	Rgb(0, 0, 0)	NONE
+68	"─"	Rgb(58, 58, 58)	Rgb(0, 0, 0)	NONE
+69	"─"	Rgb(58, 58, 58)	Rgb(0, 0, 0)	NONE
+70	"─"	Rgb(58, 58, 58)	Rgb(0, 0, 0)	NONE
+71	"─"	Rgb(58, 58, 58)	Rgb(0, 0, 0)	NONE
+72	"─"	Rgb(58, 58, 58)	Rgb(0, 0, 0)	NONE
+73	"─"	Rgb(58, 58, 58)	Rgb(0, 0, 0)	NONE
+74	"─"	Rgb(58, 58, 58)	Rgb(0, 0, 0)	NONE
+75	"─"	Rgb(58, 58, 58)	Rgb(0, 0, 0)	NONE
+76	"─"	Rgb(58, 58, 58)	Rgb(0, 0, 0)	NONE
+77	"─"	Rgb(58, 58, 58)	Rgb(0, 0, 0)	NONE
+78	"─"	Rgb(58, 58, 58)	Rgb(0, 0, 0)	NONE
+79	"─"	Rgb(58, 58, 58)	Rgb(0, 0, 0)	NONE
+80	"─"	Rgb(58, 58, 58)	Rgb(0, 0, 0)	NONE
+81	"─"	Rgb(58, 58, 58)	Rgb(0, 0, 0)	NONE
+82	"─"	Rgb(58, 58, 58)	Rgb(0, 0, 0)	NONE
+83	"─"	Rgb(58, 58, 58)	Rgb(0, 0, 0)	NONE
+84	"─"	Rgb(58, 58, 58)	Rgb(0, 0, 0)	NONE
+85	"─"	Rgb(58, 58, 58)	Rgb(0, 0, 0)	NONE
+86	"─"	Rgb(58, 58, 58)	Rgb(0, 0, 0)	NONE
+87	"─"	Rgb(58, 58, 58)	Rgb(0, 0, 0)	NONE
+88	"─"	Rgb(58, 58, 58)	Rgb(0, 0, 0)	NONE
+89	"─"	Rgb(58, 58, 58)	Rgb(0, 0, 0)	NONE
+90	"─"	Rgb(58, 58, 58)	Rgb(0, 0, 0)	NONE
+91	"─"	Rgb(58, 58, 58)	Rgb(0, 0, 0)	NONE
+92	"─"	Rgb(58, 58, 58)	Rgb(0, 0, 0)	NONE
+93	"─"	Rgb(58, 58, 58)	Rgb(0, 0, 0)	NONE
+94	"─"	Rgb(58, 58, 58)	Rgb(0, 0, 0)	NONE
+95	"─"	Rgb(58, 58, 58)	Rgb(0, 0, 0)	NONE
+96	"─"	Rgb(58, 58, 58)	Rgb(0, 0, 0)	NONE
+97	"─"	Rgb(58, 58, 58)	Rgb(0, 0, 0)	NONE
+98	"─"	Rgb(58, 58, 58)	Rgb(0, 0, 0)	NONE
+99	"─"	Rgb(58, 58, 58)	Rgb(0, 0, 0)	NONE
+0	" "	White	Black	NONE
+1	" "	Black	Black	NONE
+2	"▸"	Gray	Black	NONE
+3	" "	White	Black	NONE
+4	"I"	White	Black	NONE
+5	"n"	White	Black	NONE
+6	"p"	White	Black	NONE
+7	"u"	White	Black	NONE
+8	"t"	White	Black	NONE
+9	"s"	White	Black	NONE
+10	" "	White	Black	NONE
+11	"&"	White	Black	NONE
+12	" "	White	Black	NONE
+13	"f"	White	Black	NONE
+14	"o"	White	Black	NONE
+15	"r"	White	Black	NONE
+16	"m"	White	Black	NONE
+17	"s"	White	Black	NONE
+18	" "	White	Black	NONE
+19	" "	White	Black	NONE
+20	" "	White	Black	NONE
+21	" "	White	Black	NONE
+22	" "	White	Black	NONE
+23	" "	White	Black	NONE
+24	" "	White	Black	NONE
+25	" "	White	Black	NONE
+26	" "	White	Black	NONE
+27	" "	White	Black	NONE
+28	" "	White	Black	NONE
+29	" "	White	Black	NONE
+30	" "	White	Black	NONE
+31	" "	White	Black	NONE
+32	" "	White	Black	NONE
+33	" "	White	Black	NONE
+34	" "	White	Black	NONE
+35	" "	White	Black	NONE
+36	" "	White	Black	NONE
+37	" "	White	Black	NONE
+38	" "	White	Black	NONE
+39	" "	White	Black	NONE
+40	" "	White	Black	NONE
+41	" "	White	Black	NONE
+42	" "	White	Black	NONE
+43	" "	White	Black	NONE
+44	" "	White	Black	NONE
+45	" "	White	Black	NONE
+46	" "	White	Black	NONE
+47	" "	White	Black	NONE
+48	" "	White	Black	NONE
+49	" "	White	Black	NONE
+50	" "	White	Black	NONE
+51	" "	White	Black	NONE
+52	" "	White	Black	NONE
+53	" "	White	Black	NONE
+54	" "	White	Black	NONE
+55	" "	White	Black	NONE
+56	" "	White	Black	NONE
+57	" "	White	Black	NONE
+58	" "	White	Black	NONE
+59	" "	White	Black	NONE
+60	" "	White	Black	NONE
+61	" "	White	Black	NONE
+62	" "	White	Black	NONE
+63	" "	White	Black	NONE
+64	" "	White	Black	NONE
+65	" "	White	Black	NONE
+66	" "	White	Black	NONE
+67	" "	White	Black	NONE
+68	" "	White	Black	NONE
+69	" "	White	Black	NONE
+70	" "	White	Black	NONE
+71	" "	White	Black	NONE
+72	" "	White	Black	NONE
+73	" "	White	Black	NONE
+74	" "	White	Black	NONE
+75	" "	White	Black	NONE
+76	" "	White	Black	NONE
+77	" "	White	Black	NONE
+78	" "	White	Black	NONE
+79	" "	White	Black	NONE
+80	" "	White	Black	NONE
+81	" "	White	Black	NONE
+82	" "	White	Black	NONE
+83	" "	White	Black	NONE
+84	" "	White	Black	NONE
+85	" "	White	Black	NONE
+86	" "	White	Black	NONE
+87	" "	White	Black	NONE
+88	" "	White	Black	NONE
+89	" "	White	Black	NONE
+90	" "	White	Black	NONE
+91	" "	White	Black	NONE
+92	" "	White	Black	NONE
+93	" "	White	Black	NONE
+94	" "	White	Black	NONE
+95	" "	White	Black	NONE
+96	" "	White	Black	NONE
+97	" "	White	Black	NONE
+98	" "	White	Black	NONE
+99	" "	White	Black	NONE
+0	" "	White	Black	NONE
+1	" "	Black	Black	NONE
+2	"▸"	Gray	Black	NONE
+3	" "	White	Black	NONE
+4	"T"	White	Black	NONE
+5	"a"	White	Black	NONE
+6	"b"	White	Black	NONE
+7	"l"	White	Black	NONE
+8	"e"	White	Black	NONE
+9	"s"	White	Black	NONE
+10	" "	White	Black	NONE
+11	" "	White	Black	NONE
+12	" "	White	Black	NONE
+13	" "	White	Black	NONE
+14	" "	White	Black	NONE
+15	" "	White	Black	NONE
+16	" "	White	Black	NONE
+17	" "	White	Black	NONE
+18	" "	White	Black	NONE
+19	" "	White	Black	NONE
+20	" "	White	Black	NONE
+21	" "	White	Black	NONE
+22	" "	White	Black	NONE
+23	"T"	Gray	Black	NONE
+24	"o"	Gray	Black	NONE
+25	"k"	Gray	Black	NONE
+26	"e"	Gray	Black	NONE
+27	"n"	Gray	Black	NONE
+28	"s"	Gray	Black	NONE
+29	" "	Gray	Black	NONE
+30	"·"	Gray	Black	NONE
+31	" "	Gray	Black	NONE
+32	"p"	Gray	Black	NONE
+33	"l"	Gray	Black	NONE
+34	"a"	Gray	Black	NONE
+35	"n"	Gray	Black	NONE
+36	"e"	Gray	Black	NONE
+37	"s"	Gray	Black	NONE
+38	" "	Gray	Black	NONE
+39	"a"	Gray	Black	NONE
+40	"n"	Gray	Black	NONE
+41	"d"	Gray	Black	NONE
+42	" "	Gray	Black	NONE
+43	"t"	Gray	Black	NONE
+44	"e"	Gray	Black	NONE
+45	"x"	Gray	Black	NONE
+46	"t"	Gray	Black	NONE
+47	" "	White	Black	NONE
+48	" "	White	Black	NONE
+49	" "	White	Black	NONE
+50	" "	White	Black	NONE
+51	" "	White	Black	NONE
+52	" "	White	Black	NONE
+53	" "	White	Black	NONE
+54	" "	White	Black	NONE
+55	" "	White	Black	NONE
+56	" "	White	Black	NONE
+57	" "	White	Black	NONE
+58	" "	White	Black	NONE
+59	" "	White	Black	NONE
+60	" "	White	Black	NONE
+61	" "	White	Black	NONE
+62	" "	White	Black	NONE
+63	" "	White	Black	NONE
+64	" "	White	Black	NONE
+65	" "	White	Black	NONE
+66	" "	White	Black	NONE
+67	" "	White	Black	NONE
+68	" "	White	Black	NONE
+69	" "	White	Black	NONE
+70	" "	White	Black	NONE
+71	" "	White	Black	NONE
+72	" "	White	Black	NONE
+73	" "	White	Black	NONE
+74	" "	White	Black	NONE
+75	" "	White	Black	NONE
+76	" "	White	Black	NONE
+77	" "	White	Black	NONE
+78	" "	White	Black	NONE
+79	" "	White	Black	NONE
+80	" "	White	Black	NONE
+81	" "	White	Black	NONE
+82	" "	White	Black	NONE
+83	" "	White	Black	NONE
+84	" "	White	Black	NONE
+85	" "	White	Black	NONE
+86	" "	White	Black	NONE
+87	" "	White	Black	NONE
+88	" "	White	Black	NONE
+89	" "	White	Black	NONE
+90	" "	White	Black	NONE
+91	" "	White	Black	NONE
+92	" "	White	Black	NONE
+93	" "	White	Black	NONE
+94	" "	White	Black	NONE
+95	" "	White	Black	NONE
+96	" "	White	Black	NONE
+97	" "	White	Black	NONE
+98	" "	White	Black	NONE
+99	"┃"	Gray	Black	NONE
+0	" "	White	Black	NONE
+1	" "	Black	Black	NONE
+2	"▸"	Gray	Black	NONE
+3	" "	White	Black	NONE
+4	"N"	White	Black	NONE
+5	"a"	White	Black	NONE
+6	"v"	White	Black	NONE
+7	"i"	White	Black	NONE
+8	"g"	White	Black	NONE
+9	"a"	White	Black	NONE
+10	"t"	White	Black	NONE
+11	"i"	White	Black	NONE
+12	"o"	White	Black	NONE
+13	"n"	White	Black	NONE
+14	" "	White	Black	NONE
+15	" "	White	Black	NONE
+16	" "	White	Black	NONE
+17	" "	White	Black	NONE
+18	" "	White	Black	NONE
+19	" "	White	Black	NONE
+20	" "	White	Black	NONE
+21	" "	White	Black	NONE
+22	" "	White	Black	NONE
+23	"─"	DarkGray	Black	NONE
+24	"─"	DarkGray	Black	NONE
+25	"─"	DarkGray	Black	NONE
+26	"─"	DarkGray	Black	NONE
+27	"─"	DarkGray	Black	NONE
+28	"─"	DarkGray	Black	NONE
+29	"─"	DarkGray	Black	NONE
+30	"─"	DarkGray	Black	NONE
+31	"─"	DarkGray	Black	NONE
+32	"─"	DarkGray	Black	NONE
+33	"─"	DarkGray	Black	NONE
+34	"─"	DarkGray	Black	NONE
+35	"─"	DarkGray	Black	NONE
+36	"─"	DarkGray	Black	NONE
+37	"─"	DarkGray	Black	NONE
+38	"─"	DarkGray	Black	NONE
+39	"─"	DarkGray	Black	NONE
+40	"─"	DarkGray	Black	NONE
+41	"─"	DarkGray	Black	NONE
+42	"─"	DarkGray	Black	NONE
+43	"─"	DarkGray	Black	NONE
+44	"─"	DarkGray	Black	NONE
+45	"─"	DarkGray	Black	NONE
+46	"─"	DarkGray	Black	NONE
+47	"─"	DarkGray	Black	NONE
+48	"─"	DarkGray	Black	NONE
+49	"─"	DarkGray	Black	NONE
+50	"─"	DarkGray	Black	NONE
+51	"─"	DarkGray	Black	NONE
+52	"─"	DarkGray	Black	NONE
+53	"─"	DarkGray	Black	NONE
+54	"─"	DarkGray	Black	NONE
+55	"─"	DarkGray	Black	NONE
+56	"─"	DarkGray	Black	NONE
+57	"─"	DarkGray	Black	NONE
+58	"─"	DarkGray	Black	NONE
+59	"─"	DarkGray	Black	NONE
+60	"─"	DarkGray	Black	NONE
+61	"─"	DarkGray	Black	NONE
+62	"─"	DarkGray	Black	NONE
+63	"─"	DarkGray	Black	NONE
+64	"─"	DarkGray	Black	NONE
+65	"─"	DarkGray	Black	NONE
+66	"─"	DarkGray	Black	NONE
+67	"─"	DarkGray	Black	NONE
+68	"─"	DarkGray	Black	NONE
+69	"─"	DarkGray	Black	NONE
+70	"─"	DarkGray	Black	NONE
+71	"─"	DarkGray	Black	NONE
+72	"─"	DarkGray	Black	NONE
+73	"─"	DarkGray	Black	NONE
+74	"─"	DarkGray	Black	NONE
+75	"─"	DarkGray	Black	NONE
+76	"─"	DarkGray	Black	NONE
+77	"─"	DarkGray	Black	NONE
+78	"─"	DarkGray	Black	NONE
+79	"─"	DarkGray	Black	NONE
+80	"─"	DarkGray	Black	NONE
+81	"─"	DarkGray	Black	NONE
+82	"─"	DarkGray	Black	NONE
+83	"─"	DarkGray	Black	NONE
+84	"─"	DarkGray	Black	NONE
+85	"─"	DarkGray	Black	NONE
+86	"─"	DarkGray	Black	NONE
+87	"─"	DarkGray	Black	NONE
+88	"─"	DarkGray	Black	NONE
+89	"─"	DarkGray	Black	NONE
+90	"─"	DarkGray	Black	NONE
+91	"─"	DarkGray	Black	NONE
+92	"─"	DarkGray	Black	NONE
+93	"─"	DarkGray	Black	NONE
+94	"─"	DarkGray	Black	NONE
+95	"─"	DarkGray	Black	NONE
+96	" "	White	Black	NONE
+97	" "	White	Black	NONE
+98	" "	White	Black	NONE
+99	"┃"	Gray	Black	NONE
+0	" "	White	Black	NONE
+1	" "	Black	Black	NONE
+2	"▸"	Gray	Black	NONE
+3	" "	White	Black	NONE
+4	"O"	White	Black	NONE
+5	"v"	White	Black	NONE
+6	"e"	White	Black	NONE
+7	"r"	White	Black	NONE
+8	"l"	White	Black	NONE
+9	"a"	White	Black	NONE
+10	"y"	White	Black	NONE
+11	"s"	White	Black	NONE
+12	" "	White	Black	NONE
+13	" "	White	Black	NONE
+14	" "	White	Black	NONE
+15	" "	White	Black	NONE
+16	" "	White	Black	NONE
+17	" "	White	Black	NONE
+18	" "	White	Black	NONE
+19	" "	White	Black	NONE
+20	" "	White	Black	NONE
+21	" "	White	Black	NONE
+22	" "	White	Black	NONE
+23	" "	White	Black	NONE
+24	" "	White	Black	NONE
+25	" "	White	Black	NONE
+26	" "	White	Black	NONE
+27	"▏"	DarkGray	Black	NONE
+28	" "	White	Black	NONE
+29	"c"	White	Black	NONE
+30	"a"	White	Black	NONE
+31	"n"	White	Black	NONE
+32	"v"	White	Black	NONE
+33	"a"	White	Black	NONE
+34	"s"	White	Black	NONE
+35	" "	White	Black	NONE
+36	" "	White	Black	NONE
+37	" "	White	Black	NONE
+38	" "	White	Black	NONE
+39	" "	White	Black	NONE
+40	" "	White	Black	NONE
+41	" "	White	Black	NONE
+42	" "	White	Black	NONE
+43	" "	White	Black	NONE
+44	" "	White	Black	NONE
+45	" "	White	Black	NONE
+46	" "	White	Black	NONE
+47	" "	White	Black	NONE
+48	" "	White	Black	NONE
+49	" "	White	Black	NONE
+50	" "	White	Black	NONE
+51	" "	White	Black	NONE
+52	" "	White	Black	NONE
+53	" "	White	Black	NONE
+54	" "	White	Black	NONE
+55	" "	White	Black	NONE
+56	" "	White	Black	NONE
+57	" "	White	Black	NONE
+58	" "	White	Black	NONE
+59	" "	White	Black	NONE
+60	" "	White	Black	NONE
+61	" "	White	Black	NONE
+62	" "	White	Black	NONE
+63	" "	White	Black	NONE
+64	" "	White	Black	NONE
+65	" "	White	Black	NONE
+66	" "	White	Black	NONE
+67	" "	White	Black	NONE
+68	" "	White	Black	NONE
+69	" "	White	Black	NONE
+70	" "	White	Black	NONE
+71	" "	White	Black	NONE
+72	" "	White	Black	NONE
+73	" "	White	Black	NONE
+74	" "	White	Black	NONE
+75	" "	White	Black	NONE
+76	" "	White	Black	NONE
+77	" "	White	Black	NONE
+78	" "	White	Black	NONE
+79	" "	White	Black	NONE
+80	" "	White	Black	NONE
+81	" "	White	Black	NONE
+82	" "	White	Black	NONE
+83	" "	White	Black	NONE
+84	" "	White	Black	NONE
+85	" "	White	Black	NONE
+86	" "	White	Black	NONE
+87	" "	White	Black	NONE
+88	" "	White	Black	NONE
+89	" "	White	Black	NONE
+90	" "	White	Black	NONE
+91	"B"	Gray	Black	NONE
+92	"l"	Gray	Black	NONE
+93	"a"	Gray	Black	NONE
+94	"c"	Gray	Black	NONE
+95	"k"	Gray	Black	NONE
+96	" "	White	Black	NONE
+97	" "	White	Black	NONE
+98	" "	White	Black	NONE
+99	"┆"	DarkGray	Black	NONE
+0	" "	White	Black	NONE
+1	" "	Black	Black	NONE
+2	"▸"	Gray	Black	NONE
+3	" "	White	Black	NONE
+4	"F"	White	Black	NONE
+5	"e"	White	Black	NONE
+6	"e"	White	Black	NONE
+7	"d"	White	Black	NONE
+8	"b"	White	Black	NONE
+9	"a"	White	Black	NONE
+10	"c"	White	Black	NONE
+11	"k"	White	Black	NONE
+12	" "	White	Black	NONE
+13	" "	White	Black	NONE
+14	" "	White	Black	NONE
+15	" "	White	Black	NONE
+16	" "	White	Black	NONE
+17	" "	White	Black	NONE
+18	" "	White	Black	NONE
+19	" "	White	Black	NONE
+20	" "	White	Black	NONE
+21	" "	White	Black	NONE
+22	" "	White	Black	NONE
+23	" "	White	Black	NONE
+24	" "	White	Black	NONE
+25	" "	White	Black	NONE
+26	" "	White	Black	NONE
+27	"▏"	DarkGray	Black	NONE
+28	" "	White	Black	NONE
+29	"s"	White	Black	NONE
+30	"u"	White	Black	NONE
+31	"r"	White	Black	NONE
+32	"f"	White	Black	NONE
+33	"a"	White	Black	NONE
+34	"c"	White	Black	NONE
+35	"e"	White	Black	NONE
+36	" "	White	Black	NONE
+37	" "	White	Black	NONE
+38	" "	White	Black	NONE
+39	" "	White	Black	NONE
+40	" "	White	Black	NONE
+41	" "	White	Black	NONE
+42	" "	White	Black	NONE
+43	" "	White	Black	NONE
+44	" "	White	Black	NONE
+45	" "	White	Black	NONE
+46	" "	White	Black	NONE
+47	" "	White	Black	NONE
+48	" "	White	Black	NONE
+49	" "	White	Black	NONE
+50	" "	White	Black	NONE
+51	" "	White	Black	NONE
+52	" "	White	Black	NONE
+53	" "	White	Black	NONE
+54	" "	White	Black	NONE
+55	" "	White	Black	NONE
+56	" "	White	Black	NONE
+57	" "	White	Black	NONE
+58	" "	White	Black	NONE
+59	" "	White	Black	NONE
+60	" "	White	Black	NONE
+61	" "	White	Black	NONE
+62	" "	White	Black	NONE
+63	" "	White	Black	NONE
+64	" "	White	Black	NONE
+65	" "	White	Black	NONE
+66	" "	White	Black	NONE
+67	" "	White	Black	NONE
+68	" "	White	Black	NONE
+69	" "	White	Black	NONE
+70	" "	White	Black	NONE
+71	" "	White	Black	NONE
+72	" "	White	Black	NONE
+73	" "	White	Black	NONE
+74	" "	White	Black	NONE
+75	" "	White	Black	NONE
+76	" "	White	Black	NONE
+77	" "	White	Black	NONE
+78	" "	White	Black	NONE
+79	" "	White	Black	NONE
+80	" "	White	Black	NONE
+81	" "	White	Black	NONE
+82	" "	White	Black	NONE
+83	" "	White	Black	NONE
+84	" "	White	Black	NONE
+85	" "	White	Black	NONE
+86	" "	White	Black	NONE
+87	" "	White	Black	NONE
+88	" "	White	Black	NONE
+89	" "	White	Black	NONE
+90	" "	White	Black	NONE
+91	"B"	Gray	Black	NONE
+92	"l"	Gray	Black	NONE
+93	"a"	Gray	Black	NONE
+94	"c"	Gray	Black	NONE
+95	"k"	Gray	Black	NONE
+96	" "	White	Black	NONE
+97	" "	White	Black	NONE
+98	" "	White	Black	NONE
+99	"┆"	DarkGray	Black	NONE
+0	" "	White	Black	NONE
+1	" "	Black	Black	NONE
+2	"▸"	Gray	Black	NONE
+3	" "	White	Black	NONE
+4	"L"	White	Black	NONE
+5	"a"	White	Black	NONE
+6	"y"	White	Black	NONE
+7	"o"	White	Black	NONE
+8	"u"	White	Black	NONE
+9	"t"	White	Black	NONE
+10	" "	White	Black	NONE
+11	" "	White	Black	NONE
+12	" "	White	Black	NONE
+13	" "	White	Black	NONE
+14	" "	White	Black	NONE
+15	" "	White	Black	NONE
+16	" "	White	Black	NONE
+17	" "	White	Black	NONE
+18	" "	White	Black	NONE
+19	" "	White	Black	NONE
+20	" "	White	Black	NONE
+21	" "	White	Black	NONE
+22	" "	White	Black	NONE
+23	" "	White	Black	NONE
+24	" "	White	Black	NONE
+25	" "	White	Black	NONE
+26	" "	White	Black	NONE
+27	"▏"	DarkGray	Black	NONE
+28	" "	White	Black	NONE
+29	"s"	White	Black	NONE
+30	"u"	White	Black	NONE
+31	"r"	White	Black	NONE
+32	"f"	White	Black	NONE
+33	"a"	White	Black	NONE
+34	"c"	White	Black	NONE
+35	"e"	White	Black	NONE
+36	"."	White	Black	NONE
+37	"e"	White	Black	NONE
+38	"l"	White	Black	NONE
+39	"e"	White	Black	NONE
+40	"v"	White	Black	NONE
+41	"a"	White	Black	NONE
+42	"t"	White	Black	NONE
+43	"e"	White	Black	NONE
+44	"d"	White	Black	NONE
+45	" "	White	Black	NONE
+46	" "	White	Black	NONE
+47	" "	White	Black	NONE
+48	" "	White	Black	NONE
+49	" "	White	Black	NONE
+50	" "	White	Black	NONE
+51	" "	White	Black	NONE
+52	" "	White	Black	NONE
+53	" "	White	Black	NONE
+54	" "	White	Black	NONE
+55	" "	White	Black	NONE
+56	" "	White	Black	NONE
+57	" "	White	Black	NONE
+58	" "	White	Black	NONE
+59	" "	White	Black	NONE
+60	" "	White	Black	NONE
+61	" "	White	Black	NONE
+62	" "	White	Black	NONE
+63	" "	White	Black	NONE
+64	" "	White	Black	NONE
+65	" "	White	Black	NONE
+66	" "	White	Black	NONE
+67	" "	White	Black	NONE
+68	" "	White	Black	NONE
+69	" "	White	Black	NONE
+70	" "	White	Black	NONE
+71	" "	White	Black	NONE
+72	" "	White	Black	NONE
+73	" "	White	Black	NONE
+74	" "	White	Black	NONE
+75	" "	White	Black	NONE
+76	" "	White	Black	NONE
+77	" "	White	Black	NONE
+78	" "	White	Black	NONE
+79	" "	White	Black	NONE
+80	" "	White	Black	NONE
+81	" "	White	Black	NONE
+82	" "	White	Black	NONE
+83	" "	White	Black	NONE
+84	" "	White	Black	NONE
+85	" "	White	Black	NONE
+86	" "	White	Black	NONE
+87	" "	White	Black	NONE
+88	" "	White	Black	NONE
+89	" "	White	Black	NONE
+90	" "	White	Black	NONE
+91	"B"	Gray	Black	NONE
+92	"l"	Gray	Black	NONE
+93	"a"	Gray	Black	NONE
+94	"c"	Gray	Black	NONE
+95	"k"	Gray	Black	NONE
+96	" "	White	Black	NONE
+97	" "	White	Black	NONE
+98	" "	White	Black	NONE
+99	"┆"	DarkGray	Black	NONE
+0	" "	White	Black	NONE
+1	" "	Black	Black	NONE
+2	"▸"	Gray	Black	NONE
+3	" "	White	Black	NONE
+4	"T"	White	Black	NONE
+5	"e"	White	Black	NONE
+6	"x"	White	Black	NONE
+7	"t"	White	Black	NONE
+8	" "	White	Black	NONE
+9	"&"	White	Black	NONE
+10	" "	White	Black	NONE
+11	"c"	White	Black	NONE
+12	"o"	White	Black	NONE
+13	"d"	White	Black	NONE
+14	"e"	White	Black	NONE
+15	" "	White	Black	NONE
+16	" "	White	Black	NONE
+17	" "	White	Black	NONE
+18	" "	White	Black	NONE
+19	" "	White	Black	NONE
+20	" "	White	Black	NONE
+21	" "	White	Black	NONE
+22	" "	White	Black	NONE
+23	" "	White	DarkGray	NONE
+24	" "	White	DarkGray	NONE
+25	" "	White	DarkGray	NONE
+26	" "	White	DarkGray	NONE
+27	"▏"	DarkGray	Black	NONE
+28	" "	White	Black	NONE
+29	"s"	White	Black	NONE
+30	"u"	White	Black	NONE
+31	"r"	White	Black	NONE
+32	"f"	White	Black	NONE
+33	"a"	White	Black	NONE
+34	"c"	White	Black	NONE
+35	"e"	White	Black	NONE
+36	"."	White	Black	NONE
+37	"o"	White	Black	NONE
+38	"v"	White	Black	NONE
+39	"e"	White	Black	NONE
+40	"r"	White	Black	NONE
+41	"l"	White	Black	NONE
+42	"a"	White	Black	NONE
+43	"y"	White	Black	NONE
+44	" "	White	Black	NONE
+45	" "	White	Black	NONE
+46	" "	White	Black	NONE
+47	" "	White	Black	NONE
+48	" "	White	Black	NONE
+49	" "	White	Black	NONE
+50	" "	White	Black	NONE
+51	" "	White	Black	NONE
+52	" "	White	Black	NONE
+53	" "	White	Black	NONE
+54	" "	White	Black	NONE
+55	" "	White	Black	NONE
+56	" "	White	Black	NONE
+57	" "	White	Black	NONE
+58	" "	White	Black	NONE
+59	" "	White	Black	NONE
+60	" "	White	Black	NONE
+61	" "	White	Black	NONE
+62	" "	White	Black	NONE
+63	" "	White	Black	NONE
+64	" "	White	Black	NONE
+65	" "	White	Black	NONE
+66	" "	White	Black	NONE
+67	" "	White	Black	NONE
+68	" "	White	Black	NONE
+69	" "	White	Black	NONE
+70	" "	White	Black	NONE
+71	" "	White	Black	NONE
+72	" "	White	Black	NONE
+73	" "	White	Black	NONE
+74	" "	White	Black	NONE
+75	" "	White	Black	NONE
+76	" "	White	Black	NONE
+77	" "	White	Black	NONE
+78	" "	White	Black	NONE
+79	" "	White	Black	NONE
+80	" "	White	Black	NONE
+81	" "	White	Black	NONE
+82	" "	White	Black	NONE
+83	" "	White	Black	NONE
+84	" "	White	Black	NONE
+85	" "	White	Black	NONE
+86	" "	White	Black	NONE
+87	" "	White	Black	NONE
+88	"D"	Gray	Black	NONE
+89	"a"	Gray	Black	NONE
+90	"r"	Gray	Black	NONE
+91	"k"	Gray	Black	NONE
+92	"G"	Gray	Black	NONE
+93	"r"	Gray	Black	NONE
+94	"a"	Gray	Black	NONE
+95	"y"	Gray	Black	NONE
+96	" "	White	Black	NONE
+97	" "	White	Black	NONE
+98	" "	White	Black	NONE
+99	"┆"	DarkGray	Black	NONE
+0	" "	White	Black	NONE
+1	" "	Black	Black	NONE
+2	"▸"	Gray	Black	NONE
+3	" "	White	Black	NONE
+4	"S"	White	Black	NONE
+5	"c"	White	Black	NONE
+6	"r"	White	Black	NONE
+7	"e"	White	Black	NONE
+8	"e"	White	Black	NONE
+9	"n"	White	Black	NONE
+10	"s"	White	Black	NONE
+11	" "	White	Black	NONE
+12	" "	White	Black	NONE
+13	" "	White	Black	NONE
+14	" "	White	Black	NONE
+15	" "	White	Black	NONE
+16	" "	White	Black	NONE
+17	" "	White	Black	NONE
+18	" "	White	Black	NONE
+19	" "	White	Black	NONE
+20	" "	White	Black	NONE
+21	" "	White	Black	NONE
+22	" "	White	Black	NONE
+23	" "	White	Black	NONE
+24	" "	White	Black	NONE
+25	" "	White	Black	NONE
+26	" "	White	Black	NONE
+27	"▏"	DarkGray	Black	NONE
+28	" "	White	Black	NONE
+29	"f"	White	Black	NONE
+30	"i"	White	Black	NONE
+31	"e"	White	Black	NONE
+32	"l"	White	Black	NONE
+33	"d"	White	Black	NONE
+34	" "	White	Black	NONE
+35	" "	White	Black	NONE
+36	" "	White	Black	NONE
+37	" "	White	Black	NONE
+38	" "	White	Black	NONE
+39	" "	White	Black	NONE
+40	" "	White	Black	NONE
+41	" "	White	Black	NONE
+42	" "	White	Black	NONE
+43	" "	White	Black	NONE
+44	" "	White	Black	NONE
+45	" "	White	Black	NONE
+46	" "	White	Black	NONE
+47	" "	White	Black	NONE
+48	" "	White	Black	NONE
+49	" "	White	Black	NONE
+50	" "	White	Black	NONE
+51	" "	White	Black	NONE
+52	" "	White	Black	NONE
+53	" "	White	Black	NONE
+54	" "	White	Black	NONE
+55	" "	White	Black	NONE
+56	" "	White	Black	NONE
+57	" "	White	Black	NONE
+58	" "	White	Black	NONE
+59	" "	White	Black	NONE
+60	" "	White	Black	NONE
+61	" "	White	Black	NONE
+62	" "	White	Black	NONE
+63	" "	White	Black	NONE
+64	" "	White	Black	NONE
+65	" "	White	Black	NONE
+66	" "	White	Black	NONE
+67	" "	White	Black	NONE
+68	" "	White	Black	NONE
+69	" "	White	Black	NONE
+70	" "	White	Black	NONE
+71	" "	White	Black	NONE
+72	" "	White	Black	NONE
+73	" "	White	Black	NONE
+74	" "	White	Black	NONE
+75	" "	White	Black	NONE
+76	" "	White	Black	NONE
+77	" "	White	Black	NONE
+78	" "	White	Black	NONE
+79	" "	White	Black	NONE
+80	" "	White	Black	NONE
+81	" "	White	Black	NONE
+82	" "	White	Black	NONE
+83	" "	White	Black	NONE
+84	" "	White	Black	NONE
+85	" "	White	Black	NONE
+86	" "	White	Black	NONE
+87	" "	White	Black	NONE
+88	" "	White	Black	NONE
+89	" "	White	Black	NONE
+90	" "	White	Black	NONE
+91	"B"	Gray	Black	NONE
+92	"l"	Gray	Black	NONE
+93	"a"	Gray	Black	NONE
+94	"c"	Gray	Black	NONE
+95	"k"	Gray	Black	NONE
+96	" "	White	Black	NONE
+97	" "	White	Black	NONE
+98	" "	White	Black	NONE
+99	"┆"	DarkGray	Black	NONE
+0	" "	White	Black	NONE
+1	" "	White	Black	NONE
+2	" "	White	Black	NONE
+3	" "	White	Black	NONE
+4	" "	White	Black	NONE
+5	" "	White	Black	NONE
+6	" "	White	Black	NONE
+7	" "	White	Black	NONE
+8	" "	White	Black	NONE
+9	" "	White	Black	NONE
+10	" "	White	Black	NONE
+11	" "	White	Black	NONE
+12	" "	White	Black	NONE
+13	" "	White	Black	NONE
+14	" "	White	Black	NONE
+15	" "	White	Black	NONE
+16	" "	White	Black	NONE
+17	" "	White	Black	NONE
+18	" "	White	Black	NONE
+19	" "	White	Black	NONE
+20	" "	White	Black	NONE
+21	" "	White	Black	NONE
+22	" "	White	Black	NONE
+23	" "	White	DarkGray	NONE
+24	" "	White	DarkGray	NONE
+25	" "	White	DarkGray	NONE
+26	" "	White	DarkGray	NONE
+27	"▏"	DarkGray	Black	NONE
+28	" "	White	Black	NONE
+29	"f"	White	Black	NONE
+30	"i"	White	Black	NONE
+31	"e"	White	Black	NONE
+32	"l"	White	Black	NONE
+33	"d"	White	Black	NONE
+34	"."	White	Black	NONE
+35	"h"	White	Black	NONE
+36	"o"	White	Black	NONE
+37	"v"	White	Black	NONE
+38	"e"	White	Black	NONE
+39	"r"	White	Black	NONE
+40	" "	White	Black	NONE
+41	" "	White	Black	NONE
+42	" "	White	Black	NONE
+43	" "	White	Black	NONE
+44	" "	White	Black	NONE
+45	" "	White	Black	NONE
+46	" "	White	Black	NONE
+47	" "	White	Black	NONE
+48	" "	White	Black	NONE
+49	" "	White	Black	NONE
+50	" "	White	Black	NONE
+51	" "	White	Black	NONE
+52	" "	White	Black	NONE
+53	" "	White	Black	NONE
+54	" "	White	Black	NONE
+55	" "	White	Black	NONE
+56	" "	White	Black	NONE
+57	" "	White	Black	NONE
+58	" "	White	Black	NONE
+59	" "	White	Black	NONE
+60	" "	White	Black	NONE
+61	" "	White	Black	NONE
+62	" "	White	Black	NONE
+63	" "	White	Black	NONE
+64	" "	White	Black	NONE
+65	" "	White	Black	NONE
+66	" "	White	Black	NONE
+67	" "	White	Black	NONE
+68	" "	White	Black	NONE
+69	" "	White	Black	NONE
+70	" "	White	Black	NONE
+71	" "	White	Black	NONE
+72	" "	White	Black	NONE
+73	" "	White	Black	NONE
+74	" "	White	Black	NONE
+75	" "	White	Black	NONE
+76	" "	White	Black	NONE
+77	" "	White	Black	NONE
+78	" "	White	Black	NONE
+79	" "	White	Black	NONE
+80	" "	White	Black	NONE
+81	" "	White	Black	NONE
+82	" "	White	Black	NONE
+83	" "	White	Black	NONE
+84	" "	White	Black	NONE
+85	" "	White	Black	NONE
+86	" "	White	Black	NONE
+87	" "	White	Black	NONE
+88	"D"	Gray	Black	NONE
+89	"a"	Gray	Black	NONE
+90	"r"	Gray	Black	NONE
+91	"k"	Gray	Black	NONE
+92	"G"	Gray	Black	NONE
+93	"r"	Gray	Black	NONE
+94	"a"	Gray	Black	NONE
+95	"y"	Gray	Black	NONE
+96	" "	White	Black	NONE
+97	" "	White	Black	NONE
+98	" "	White	Black	NONE
+99	"┆"	DarkGray	Black	NONE
+0	" "	White	Black	NONE
+1	" "	White	Black	NONE
+2	" "	White	Black	NONE
+3	" "	White	Black	NONE
+4	" "	White	Black	NONE
+5	" "	White	Black	NONE
+6	" "	White	Black	NONE
+7	" "	White	Black	NONE
+8	" "	White	Black	NONE
+9	" "	White	Black	NONE
+10	" "	White	Black	NONE
+11	" "	White	Black	NONE
+12	" "	White	Black	NONE
+13	" "	White	Black	NONE
+14	" "	White	Black	NONE
+15	" "	White	Black	NONE
+16	" "	White	Black	NONE
+17	" "	White	Black	NONE
+18	" "	White	Black	NONE
+19	" "	White	Black	NONE
+20	" "	White	Black	NONE
+21	" "	White	Black	NONE
+22	" "	White	Black	NONE
+23	" "	White	DarkGray	NONE
+24	" "	White	DarkGray	NONE
+25	" "	White	DarkGray	NONE
+26	" "	White	DarkGray	NONE
+27	"▏"	DarkGray	Black	NONE
+28	" "	White	Black	NONE
+29	"p"	White	Black	NONE
+30	"o"	White	Black	NONE
+31	"p"	White	Black	NONE
+32	"o"	White	Black	NONE
+33	"v"	White	Black	NONE
+34	"e"	White	Black	NONE
+35	"r"	White	Black	NONE
+36	" "	White	Black	NONE
+37	" "	White	Black	NONE
+38	" "	White	Black	NONE
+39	" "	White	Black	NONE
+40	" "	White	Black	NONE
+41	" "	White	Black	NONE
+42	" "	White	Black	NONE
+43	" "	White	Black	NONE
+44	" "	White	Black	NONE
+45	" "	White	Black	NONE
+46	" "	White	Black	NONE
+47	" "	White	Black	NONE
+48	" "	White	Black	NONE
+49	" "	White	Black	NONE
+50	" "	White	Black	NONE
+51	" "	White	Black	NONE
+52	" "	White	Black	NONE
+53	" "	White	Black	NONE
+54	" "	White	Black	NONE
+55	" "	White	Black	NONE
+56	" "	White	Black	NONE
+57	" "	White	Black	NONE
+58	" "	White	Black	NONE
+59	" "	White	Black	NONE
+60	" "	White	Black	NONE
+61	" "	White	Black	NONE
+62	" "	White	Black	NONE
+63	" "	White	Black	NONE
+64	" "	White	Black	NONE
+65	" "	White	Black	NONE
+66	" "	White	Black	NONE
+67	" "	White	Black	NONE
+68	" "	White	Black	NONE
+69	" "	White	Black	NONE
+70	" "	White	Black	NONE
+71	" "	White	Black	NONE
+72	" "	White	Black	NONE
+73	" "	White	Black	NONE
+74	" "	White	Black	NONE
+75	" "	White	Black	NONE
+76	" "	White	Black	NONE
+77	" "	White	Black	NONE
+78	" "	White	Black	NONE
+79	" "	White	Black	NONE
+80	" "	White	Black	NONE
+81	" "	White	Black	NONE
+82	" "	White	Black	NONE
+83	" "	White	Black	NONE
+84	" "	White	Black	NONE
+85	" "	White	Black	NONE
+86	" "	White	Black	NONE
+87	" "	White	Black	NONE
+88	"D"	Gray	Black	NONE
+89	"a"	Gray	Black	NONE
+90	"r"	Gray	Black	NONE
+91	"k"	Gray	Black	NONE
+92	"G"	Gray	Black	NONE
+93	"r"	Gray	Black	NONE
+94	"a"	Gray	Black	NONE
+95	"y"	Gray	Black	NONE
+96	" "	White	Black	NONE
+97	" "	White	Black	NONE
+98	" "	White	Black	NONE
+99	"┆"	DarkGray	Black	NONE
+0	" "	White	Black	NONE
+1	" "	White	Black	NONE
+2	" "	White	Black	NONE
+3	" "	White	Black	NONE
+4	" "	White	Black	NONE
+5	" "	White	Black	NONE
+6	" "	White	Black	NONE
+7	" "	White	Black	NONE
+8	" "	White	Black	NONE
+9	" "	White	Black	NONE
+10	" "	White	Black	NONE
+11	" "	White	Black	NONE
+12	" "	White	Black	NONE
+13	" "	White	Black	NONE
+14	" "	White	Black	NONE
+15	" "	White	Black	NONE
+16	" "	White	Black	NONE
+17	" "	White	Black	NONE
+18	" "	White	Black	NONE
+19	" "	White	Black	NONE
+20	" "	White	Black	NONE
+21	" "	White	Black	NONE
+22	" "	White	Black	NONE
+23	" "	White	Blue	NONE
+24	" "	White	Blue	NONE
+25	" "	White	Blue	NONE
+26	" "	White	Blue	NONE
+27	"▏"	DarkGray	Black	NONE
+28	" "	White	Black	NONE
+29	"h"	White	Black	NONE
+30	"i"	White	Black	NONE
+31	"g"	White	Black	NONE
+32	"h"	White	Black	NONE
+33	"l"	White	Black	NONE
+34	"i"	White	Black	NONE
+35	"g"	White	Black	NONE
+36	"h"	White	Black	NONE
+37	"t"	White	Black	NONE
+38	" "	White	Black	NONE
+39	" "	White	Black	NONE
+40	" "	White	Black	NONE
+41	" "	White	Black	NONE
+42	" "	White	Black	NONE
+43	" "	White	Black	NONE
+44	" "	White	Black	NONE
+45	" "	White	Black	NONE
+46	" "	White	Black	NONE
+47	" "	White	Black	NONE
+48	" "	White	Black	NONE
+49	" "	White	Black	NONE
+50	" "	White	Black	NONE
+51	" "	White	Black	NONE
+52	" "	White	Black	NONE
+53	" "	White	Black	NONE
+54	" "	White	Black	NONE
+55	" "	White	Black	NONE
+56	" "	White	Black	NONE
+57	" "	White	Black	NONE
+58	" "	White	Black	NONE
+59	" "	White	Black	NONE
+60	" "	White	Black	NONE
+61	" "	White	Black	NONE
+62	" "	White	Black	NONE
+63	" "	White	Black	NONE
+64	" "	White	Black	NONE
+65	" "	White	Black	NONE
+66	" "	White	Black	NONE
+67	" "	White	Black	NONE
+68	" "	White	Black	NONE
+69	" "	White	Black	NONE
+70	" "	White	Black	NONE
+71	" "	White	Black	NONE
+72	" "	White	Black	NONE
+73	" "	White	Black	NONE
+74	" "	White	Black	NONE
+75	" "	White	Black	NONE
+76	" "	White	Black	NONE
+77	" "	White	Black	NONE
+78	" "	White	Black	NONE
+79	" "	White	Black	NONE
+80	" "	White	Black	NONE
+81	" "	White	Black	NONE
+82	" "	White	Black	NONE
+83	" "	White	Black	NONE
+84	" "	White	Black	NONE
+85	" "	White	Black	NONE
+86	" "	White	Black	NONE
+87	" "	White	Black	NONE
+88	" "	White	Black	NONE
+89	" "	White	Black	NONE
+90	" "	White	Black	NONE
+91	" "	White	Black	NONE
+92	"B"	Gray	Black	NONE
+93	"l"	Gray	Black	NONE
+94	"u"	Gray	Black	NONE
+95	"e"	Gray	Black	NONE
+96	" "	White	Black	NONE
+97	" "	White	Black	NONE
+98	" "	White	Black	NONE
+99	"┆"	DarkGray	Black	NONE
+0	" "	White	Black	NONE
+1	" "	White	Black	NONE
+2	" "	White	Black	NONE
+3	" "	White	Black	NONE
+4	" "	White	Black	NONE
+5	" "	White	Black	NONE
+6	" "	White	Black	NONE
+7	" "	White	Black	NONE
+8	" "	White	Black	NONE
+9	" "	White	Black	NONE
+10	" "	White	Black	NONE
+11	" "	White	Black	NONE
+12	" "	White	Black	NONE
+13	" "	White	Black	NONE
+14	" "	White	Black	NONE
+15	" "	White	Black	NONE
+16	" "	White	Black	NONE
+17	" "	White	Black	NONE
+18	" "	White	Black	NONE
+19	" "	White	Black	NONE
+20	" "	White	Black	NONE
+21	" "	White	Black	NONE
+22	" "	White	Black	NONE
+23	" "	White	Red	NONE
+24	" "	White	Red	NONE
+25	" "	White	Red	NONE
+26	" "	White	Red	NONE
+27	"▏"	DarkGray	Black	NONE
+28	" "	White	Black	NONE
+29	"h"	White	Black	NONE
+30	"i"	White	Black	NONE
+31	"g"	White	Black	NONE
+32	"h"	White	Black	NONE
+33	"l"	White	Black	NONE
+34	"i"	White	Black	NONE
+35	"g"	White	Black	NONE
+36	"h"	White	Black	NONE
+37	"t"	White	Black	NONE
+38	"."	White	Black	NONE
+39	"d"	White	Black	NONE
+40	"a"	White	Black	NONE
+41	"n"	White	Black	NONE
+42	"g"	White	Black	NONE
+43	"e"	White	Black	NONE
+44	"r"	White	Black	NONE
+45	" "	White	Black	NONE
+46	" "	White	Black	NONE
+47	" "	White	Black	NONE
+48	" "	White	Black	NONE
+49	" "	White	Black	NONE
+50	" "	White	Black	NONE
+51	" "	White	Black	NONE
+52	" "	White	Black	NONE
+53	" "	White	Black	NONE
+54	" "	White	Black	NONE
+55	" "	White	Black	NONE
+56	" "	White	Black	NONE
+57	" "	White	Black	NONE
+58	" "	White	Black	NONE
+59	" "	White	Black	NONE
+60	" "	White	Black	NONE
+61	" "	White	Black	NONE
+62	" "	White	Black	NONE
+63	" "	White	Black	NONE
+64	" "	White	Black	NONE
+65	" "	White	Black	NONE
+66	" "	White	Black	NONE
+67	" "	White	Black	NONE
+68	" "	White	Black	NONE
+69	" "	White	Black	NONE
+70	" "	White	Black	NONE
+71	" "	White	Black	NONE
+72	" "	White	Black	NONE
+73	" "	White	Black	NONE
+74	" "	White	Black	NONE
+75	" "	White	Black	NONE
+76	" "	White	Black	NONE
+77	" "	White	Black	NONE
+78	" "	White	Black	NONE
+79	" "	White	Black	NONE
+80	" "	White	Black	NONE
+81	" "	White	Black	NONE
+82	" "	White	Black	NONE
+83	" "	White	Black	NONE
+84	" "	White	Black	NONE
+85	" "	White	Black	NONE
+86	" "	White	Black	NONE
+87	" "	White	Black	NONE
+88	" "	White	Black	NONE
+89	" "	White	Black	NONE
+90	" "	White	Black	NONE
+91	" "	White	Black	NONE
+92	" "	White	Black	NONE
+93	"R"	Gray	Black	NONE
+94	"e"	Gray	Black	NONE
+95	"d"	Gray	Black	NONE
+96	" "	White	Black	NONE
+97	" "	White	Black	NONE
+98	" "	White	Black	NONE
+99	"┆"	DarkGray	Black	NONE
+0	" "	White	Black	NONE
+1	" "	White	Black	NONE
+2	" "	White	Black	NONE
+3	" "	White	Black	NONE
+4	" "	White	Black	NONE
+5	" "	White	Black	NONE
+6	" "	White	Black	NONE
+7	" "	White	Black	NONE
+8	" "	White	Black	NONE
+9	" "	White	Black	NONE
+10	" "	White	Black	NONE
+11	" "	White	Black	NONE
+12	" "	White	Black	NONE
+13	" "	White	Black	NONE
+14	" "	White	Black	NONE
+15	" "	White	Black	NONE
+16	" "	White	Black	NONE
+17	" "	White	Black	NONE
+18	" "	White	Black	NONE
+19	" "	White	Black	NONE
+20	" "	White	Black	NONE
+21	" "	White	Black	NONE
+22	" "	White	Black	NONE
+23	" "	White	Black	NONE
+24	" "	White	Black	NONE
+25	" "	White	Black	NONE
+26	" "	White	Black	NONE
+27	"▏"	DarkGray	Black	NONE
+28	" "	White	Black	NONE
+29	"s"	White	Black	NONE
+30	"e"	White	Black	NONE
+31	"l"	White	Black	NONE
+32	"e"	White	Black	NONE
+33	"c"	White	Black	NONE
+34	"t"	White	Black	NONE
+35	"i"	White	Black	NONE
+36	"o"	White	Black	NONE
+37	"n"	White	Black	NONE
+38	" "	White	Black	NONE
+39	" "	White	Black	NONE
+40	" "	White	Black	NONE
+41	" "	White	Black	NONE
+42	" "	White	Black	NONE
+43	" "	White	Black	NONE
+44	" "	White	Black	NONE
+45	" "	White	Black	NONE
+46	" "	White	Black	NONE
+47	" "	White	Black	NONE
+48	" "	White	Black	NONE
+49	" "	White	Black	NONE
+50	" "	White	Black	NONE
+51	" "	White	Black	NONE
+52	" "	White	Black	NONE
+53	" "	White	Black	NONE
+54	" "	White	Black	NONE
+55	" "	White	Black	NONE
+56	" "	White	Black	NONE
+57	" "	White	Black	NONE
+58	" "	White	Black	NONE
+59	" "	White	Black	NONE
+60	" "	White	Black	NONE
+61	" "	White	Black	NONE
+62	" "	White	Black	NONE
+63	" "	White	Black	NONE
+64	" "	White	Black	NONE
+65	" "	White	Black	NONE
+66	" "	White	Black	NONE
+67	" "	White	Black	NONE
+68	" "	White	Black	NONE
+69	" "	White	Black	NONE
+70	" "	White	Black	NONE
+71	" "	White	Black	NONE
+72	" "	White	Black	NONE
+73	" "	White	Black	NONE
+74	" "	White	Black	NONE
+75	" "	White	Black	NONE
+76	" "	White	Black	NONE
+77	" "	White	Black	NONE
+78	" "	White	Black	NONE
+79	" "	White	Black	NONE
+80	" "	White	Black	NONE
+81	" "	White	Black	NONE
+82	" "	White	Black	NONE
+83	" "	White	Black	NONE
+84	" "	White	Black	NONE
+85	" "	White	Black	NONE
+86	" "	White	Black	NONE
+87	" "	White	Black	NONE
+88	" "	White	Black	NONE
+89	" "	White	Black	NONE
+90	" "	White	Black	NONE
+91	"B"	Gray	Black	NONE
+92	"l"	Gray	Black	NONE
+93	"a"	Gray	Black	NONE
+94	"c"	Gray	Black	NONE
+95	"k"	Gray	Black	NONE
+96	" "	White	Black	NONE
+97	" "	White	Black	NONE
+98	" "	White	Black	NONE
+99	"┆"	DarkGray	Black	NONE
+0	" "	White	Black	NONE
+1	" "	White	Black	NONE
+2	" "	White	Black	NONE
+3	" "	White	Black	NONE
+4	" "	White	Black	NONE
+5	" "	White	Black	NONE
+6	" "	White	Black	NONE
+7	" "	White	Black	NONE
+8	" "	White	Black	NONE
+9	" "	White	Black	NONE
+10	" "	White	Black	NONE
+11	" "	White	Black	NONE
+12	" "	White	Black	NONE
+13	" "	White	Black	NONE
+14	" "	White	Black	NONE
+15	" "	White	Black	NONE
+16	" "	White	Black	NONE
+17	" "	White	Black	NONE
+18	" "	White	Black	NONE
+19	" "	White	Black	NONE
+20	" "	White	Black	NONE
+21	" "	White	Black	NONE
+22	" "	White	Black	NONE
+23	" "	White	DarkGray	NONE
+24	" "	White	DarkGray	NONE
+25	" "	White	DarkGray	NONE
+26	" "	White	DarkGray	NONE
+27	"▏"	DarkGray	Black	NONE
+28	" "	White	Black	NONE
+29	"b"	White	Black	NONE
+30	"o"	White	Black	NONE
+31	"r"	White	Black	NONE
+32	"d"	White	Black	NONE
+33	"e"	White	Black	NONE
+34	"r"	White	Black	NONE
+35	"."	White	Black	NONE
+36	"s"	White	Black	NONE
+37	"u"	White	Black	NONE
+38	"b"	White	Black	NONE
+39	"t"	White	Black	NONE
+40	"l"	White	Black	NONE
+41	"e"	White	Black	NONE
+42	" "	White	Black	NONE
+43	" "	White	Black	NONE
+44	" "	White	Black	NONE
+45	" "	White	Black	NONE
+46	" "	White	Black	NONE
+47	" "	White	Black	NONE
+48	" "	White	Black	NONE
+49	" "	White	Black	NONE
+50	" "	White	Black	NONE
+51	" "	White	Black	NONE
+52	" "	White	Black	NONE
+53	" "	White	Black	NONE
+54	" "	White	Black	NONE
+55	" "	White	Black	NONE
+56	" "	White	Black	NONE
+57	" "	White	Black	NONE
+58	" "	White	Black	NONE
+59	" "	White	Black	NONE
+60	" "	White	Black	NONE
+61	" "	White	Black	NONE
+62	" "	White	Black	NONE
+63	" "	White	Black	NONE
+64	" "	White	Black	NONE
+65	" "	White	Black	NONE
+66	" "	White	Black	NONE
+67	" "	White	Black	NONE
+68	" "	White	Black	NONE
+69	" "	White	Black	NONE
+70	" "	White	Black	NONE
+71	" "	White	Black	NONE
+72	" "	White	Black	NONE
+73	" "	White	Black	NONE
+74	" "	White	Black	NONE
+75	" "	White	Black	NONE
+76	" "	White	Black	NONE
+77	" "	White	Black	NONE
+78	" "	White	Black	NONE
+79	" "	White	Black	NONE
+80	" "	White	Black	NONE
+81	" "	White	Black	NONE
+82	" "	White	Black	NONE
+83	" "	White	Black	NONE
+84	" "	White	Black	NONE
+85	" "	White	Black	NONE
+86	" "	White	Black	NONE
+87	" "	White	Black	NONE
+88	"D"	Gray	Black	NONE
+89	"a"	Gray	Black	NONE
+90	"r"	Gray	Black	NONE
+91	"k"	Gray	Black	NONE
+92	"G"	Gray	Black	NONE
+93	"r"	Gray	Black	NONE
+94	"a"	Gray	Black	NONE
+95	"y"	Gray	Black	NONE
+96	" "	White	Black	NONE
+97	" "	White	Black	NONE
+98	" "	White	Black	NONE
+99	"┆"	DarkGray	Black	NONE
+0	" "	White	Black	NONE
+1	" "	White	Black	NONE
+2	" "	White	Black	NONE
+3	" "	White	Black	NONE
+4	" "	White	Black	NONE
+5	" "	White	Black	NONE
+6	" "	White	Black	NONE
+7	" "	White	Black	NONE
+8	" "	White	Black	NONE
+9	" "	White	Black	NONE
+10	" "	White	Black	NONE
+11	" "	White	Black	NONE
+12	" "	White	Black	NONE
+13	" "	White	Black	NONE
+14	" "	White	Black	NONE
+15	" "	White	Black	NONE
+16	" "	White	Black	NONE
+17	" "	White	Black	NONE
+18	" "	White	Black	NONE
+19	" "	White	Black	NONE
+20	" "	White	Black	NONE
+21	" "	White	Black	NONE
+22	" "	White	Black	NONE
+23	" "	White	Gray	NONE
+24	" "	White	Gray	NONE
+25	" "	White	Gray	NONE
+26	" "	White	Gray	NONE
+27	"▏"	DarkGray	Black	NONE
+28	" "	White	Black	NONE
+29	"b"	White	Black	NONE
+30	"o"	White	Black	NONE
+31	"r"	White	Black	NONE
+32	"d"	White	Black	NONE
+33	"e"	White	Black	NONE
+34	"r"	White	Black	NONE
+35	"."	White	Black	NONE
+36	"s"	White	Black	NONE
+37	"t"	White	Black	NONE
+38	"r"	White	Black	NONE
+39	"o"	White	Black	NONE
+40	"n"	White	Black	NONE
+41	"g"	White	Black	NONE
+42	" "	White	Black	NONE
+43	" "	White	Black	NONE
+44	" "	White	Black	NONE
+45	" "	White	Black	NONE
+46	" "	White	Black	NONE
+47	" "	White	Black	NONE
+48	" "	White	Black	NONE
+49	" "	White	Black	NONE
+50	" "	White	Black	NONE
+51	" "	White	Black	NONE
+52	" "	White	Black	NONE
+53	" "	White	Black	NONE
+54	" "	White	Black	NONE
+55	" "	White	Black	NONE
+56	" "	White	Black	NONE
+57	" "	White	Black	NONE
+58	" "	White	Black	NONE
+59	" "	White	Black	NONE
+60	" "	White	Black	NONE
+61	" "	White	Black	NONE
+62	" "	White	Black	NONE
+63	" "	White	Black	NONE
+64	" "	White	Black	NONE
+65	" "	White	Black	NONE
+66	" "	White	Black	NONE
+67	" "	White	Black	NONE
+68	" "	White	Black	NONE
+69	" "	White	Black	NONE
+70	" "	White	Black	NONE
+71	" "	White	Black	NONE
+72	" "	White	Black	NONE
+73	" "	White	Black	NONE
+74	" "	White	Black	NONE
+75	" "	White	Black	NONE
+76	" "	White	Black	NONE
+77	" "	White	Black	NONE
+78	" "	White	Black	NONE
+79	" "	White	Black	NONE
+80	" "	White	Black	NONE
+81	" "	White	Black	NONE
+82	" "	White	Black	NONE
+83	" "	White	Black	NONE
+84	" "	White	Black	NONE
+85	" "	White	Black	NONE
+86	" "	White	Black	NONE
+87	" "	White	Black	NONE
+88	" "	White	Black	NONE
+89	" "	White	Black	NONE
+90	" "	White	Black	NONE
+91	" "	White	Black	NONE
+92	"G"	Gray	Black	NONE
+93	"r"	Gray	Black	NONE
+94	"a"	Gray	Black	NONE
+95	"y"	Gray	Black	NONE
+96	" "	White	Black	NONE
+97	" "	White	Black	NONE
+98	" "	White	Black	NONE
+99	"┆"	DarkGray	Black	NONE
+0	" "	White	Black	NONE
+1	" "	White	Black	NONE
+2	" "	White	Black	NONE
+3	" "	White	Black	NONE
+4	" "	White	Black	NONE
+5	" "	White	Black	NONE
+6	" "	White	Black	NONE
+7	" "	White	Black	NONE
+8	" "	White	Black	NONE
+9	" "	White	Black	NONE
+10	" "	White	Black	NONE
+11	" "	White	Black	NONE
+12	" "	White	Black	NONE
+13	" "	White	Black	NONE
+14	" "	White	Black	NONE
+15	" "	White	Black	NONE
+16	" "	White	Black	NONE
+17	" "	White	Black	NONE
+18	" "	White	Black	NONE
+19	" "	White	Black	NONE
+20	" "	White	Black	NONE
+21	" "	White	Black	NONE
+22	" "	White	Black	NONE
+23	" "	White	DarkGray	NONE
+24	" "	White	DarkGray	NONE
+25	" "	White	DarkGray	NONE
+26	" "	White	DarkGray	NONE
+27	"▏"	DarkGray	Black	NONE
+28	" "	White	Black	NONE
+29	"s"	White	Black	NONE
+30	"c"	White	Black	NONE
+31	"r"	White	Black	NONE
+32	"o"	White	Black	NONE
+33	"l"	White	Black	NONE
+34	"l"	White	Black	NONE
+35	"."	White	Black	NONE
+36	"t"	White	Black	NONE
+37	"r"	White	Black	NONE
+38	"a"	White	Black	NONE
+39	"c"	White	Black	NONE
+40	"k"	White	Black	NONE
+41	" "	White	Black	NONE
+42	" "	White	Black	NONE
+43	" "	White	Black	NONE
+44	" "	White	Black	NONE
+45	" "	White	Black	NONE
+46	" "	White	Black	NONE
+47	" "	White	Black	NONE
+48	" "	White	Black	NONE
+49	" "	White	Black	NONE
+50	" "	White	Black	NONE
+51	" "	White	Black	NONE
+52	" "	White	Black	NONE
+53	" "	White	Black	NONE
+54	" "	White	Black	NONE
+55	" "	White	Black	NONE
+56	" "	White	Black	NONE
+57	" "	White	Black	NONE
+58	" "	White	Black	NONE
+59	" "	White	Black	NONE
+60	" "	White	Black	NONE
+61	" "	White	Black	NONE
+62	" "	White	Black	NONE
+63	" "	White	Black	NONE
+64	" "	White	Black	NONE
+65	" "	White	Black	NONE
+66	" "	White	Black	NONE
+67	" "	White	Black	NONE
+68	" "	White	Black	NONE
+69	" "	White	Black	NONE
+70	" "	White	Black	NONE
+71	" "	White	Black	NONE
+72	" "	White	Black	NONE
+73	" "	White	Black	NONE
+74	" "	White	Black	NONE
+75	" "	White	Black	NONE
+76	" "	White	Black	NONE
+77	" "	White	Black	NONE
+78	" "	White	Black	NONE
+79	" "	White	Black	NONE
+80	" "	White	Black	NONE
+81	" "	White	Black	NONE
+82	" "	White	Black	NONE
+83	" "	White	Black	NONE
+84	" "	White	Black	NONE
+85	" "	White	Black	NONE
+86	" "	White	Black	NONE
+87	" "	White	Black	NONE
+88	"D"	Gray	Black	NONE
+89	"a"	Gray	Black	NONE
+90	"r"	Gray	Black	NONE
+91	"k"	Gray	Black	NONE
+92	"G"	Gray	Black	NONE
+93	"r"	Gray	Black	NONE
+94	"a"	Gray	Black	NONE
+95	"y"	Gray	Black	NONE
+96	" "	White	Black	NONE
+97	" "	White	Black	NONE
+98	" "	White	Black	NONE
+99	"┆"	DarkGray	Black	NONE
+0	" "	White	Black	NONE
+1	" "	White	Black	NONE
+2	" "	White	Black	NONE
+3	" "	White	Black	NONE
+4	" "	White	Black	NONE
+5	" "	White	Black	NONE
+6	" "	White	Black	NONE
+7	" "	White	Black	NONE
+8	" "	White	Black	NONE
+9	" "	White	Black	NONE
+10	" "	White	Black	NONE
+11	" "	White	Black	NONE
+12	" "	White	Black	NONE
+13	" "	White	Black	NONE
+14	" "	White	Black	NONE
+15	" "	White	Black	NONE
+16	" "	White	Black	NONE
+17	" "	White	Black	NONE
+18	" "	White	Black	NONE
+19	" "	White	Black	NONE
+20	" "	White	Black	NONE
+21	" "	White	Black	NONE
+22	" "	White	Black	NONE
+23	" "	White	White	NONE
+24	" "	White	White	NONE
+25	" "	White	White	NONE
+26	" "	White	White	NONE
+27	"▏"	DarkGray	Black	NONE
+28	" "	White	Black	NONE
+29	"t"	White	Black	NONE
+30	"e"	White	Black	NONE
+31	"x"	White	Black	NONE
+32	"t"	White	Black	NONE
+33	"."	White	Black	NONE
+34	"p"	White	Black	NONE
+35	"r"	White	Black	NONE
+36	"i"	White	Black	NONE
+37	"m"	White	Black	NONE
+38	"a"	White	Black	NONE
+39	"r"	White	Black	NONE
+40	"y"	White	Black	NONE
+41	" "	White	Black	NONE
+42	" "	White	Black	NONE
+43	" "	White	Black	NONE
+44	" "	White	Black	NONE
+45	" "	White	Black	NONE
+46	" "	White	Black	NONE
+47	" "	White	Black	NONE
+48	" "	White	Black	NONE
+49	" "	White	Black	NONE
+50	" "	White	Black	NONE
+51	" "	White	Black	NONE
+52	" "	White	Black	NONE
+53	" "	White	Black	NONE
+54	" "	White	Black	NONE
+55	" "	White	Black	NONE
+56	" "	White	Black	NONE
+57	" "	White	Black	NONE
+58	" "	White	Black	NONE
+59	" "	White	Black	NONE
+60	" "	White	Black	NONE
+61	" "	White	Black	NONE
+62	" "	White	Black	NONE
+63	" "	White	Black	NONE
+64	" "	White	Black	NONE
+65	" "	White	Black	NONE
+66	" "	White	Black	NONE
+67	" "	White	Black	NONE
+68	" "	White	Black	NONE
+69	" "	White	Black	NONE
+70	" "	White	Black	NONE
+71	" "	White	Black	NONE
+72	" "	White	Black	NONE
+73	" "	White	Black	NONE
+74	" "	White	Black	NONE
+75	" "	White	Black	NONE
+76	" "	White	Black	NONE
+77	" "	White	Black	NONE
+78	" "	White	Black	NONE
+79	" "	White	Black	NONE
+80	" "	White	Black	NONE
+81	" "	White	Black	NONE
+82	" "	White	Black	NONE
+83	" "	White	Black	NONE
+84	" "	White	Black	NONE
+85	" "	White	Black	NONE
+86	" "	White	Black	NONE
+87	" "	White	Black	NONE
+88	" "	White	Black	NONE
+89	" "	White	Black	NONE
+90	" "	White	Black	NONE
+91	"W"	Gray	Black	NONE
+92	"h"	Gray	Black	NONE
+93	"i"	Gray	Black	NONE
+94	"t"	Gray	Black	NONE
+95	"e"	Gray	Black	NONE
+96	" "	White	Black	NONE
+97	" "	White	Black	NONE
+98	" "	White	Black	NONE
+99	"┆"	DarkGray	Black	NONE
+0	" "	White	Black	NONE
+1	" "	White	Black	NONE
+2	" "	White	Black	NONE
+3	" "	White	Black	NONE
+4	" "	White	Black	NONE
+5	" "	White	Black	NONE
+6	" "	White	Black	NONE
+7	" "	White	Black	NONE
+8	" "	White	Black	NONE
+9	" "	White	Black	NONE
+10	" "	White	Black	NONE
+11	" "	White	Black	NONE
+12	" "	White	Black	NONE
+13	" "	White	Black	NONE
+14	" "	White	Black	NONE
+15	" "	White	Black	NONE
+16	" "	White	Black	NONE
+17	" "	White	Black	NONE
+18	" "	White	Black	NONE
+19	" "	White	Black	NONE
+20	" "	White	Black	NONE
+21	" "	White	Black	NONE
+22	" "	White	Black	NONE
+23	" "	White	Gray	NONE
+24	" "	White	Gray	NONE
+25	" "	White	Gray	NONE
+26	" "	White	Gray	NONE
+27	"▏"	DarkGray	Black	NONE
+28	" "	White	Black	NONE
+29	"t"	White	Black	NONE
+30	"e"	White	Black	NONE
+31	"x"	White	Black	NONE
+32	"t"	White	Black	NONE
+33	"."	White	Black	NONE
+34	"s"	White	Black	NONE
+35	"e"	White	Black	NONE
+36	"c"	White	Black	NONE
+37	"o"	White	Black	NONE
+38	"n"	White	Black	NONE
+39	"d"	White	Black	NONE
+40	"a"	White	Black	NONE
+41	"r"	White	Black	NONE
+42	"y"	White	Black	NONE
+43	" "	White	Black	NONE
+44	" "	White	Black	NONE
+45	" "	White	Black	NONE
+46	" "	White	Black	NONE
+47	" "	White	Black	NONE
+48	" "	White	Black	NONE
+49	" "	White	Black	NONE
+50	" "	White	Black	NONE
+51	" "	White	Black	NONE
+52	" "	White	Black	NONE
+53	" "	White	Black	NONE
+54	" "	White	Black	NONE
+55	" "	White	Black	NONE
+56	" "	White	Black	NONE
+57	" "	White	Black	NONE
+58	" "	White	Black	NONE
+59	" "	White	Black	NONE
+60	" "	White	Black	NONE
+61	" "	White	Black	NONE
+62	" "	White	Black	NONE
+63	" "	White	Black	NONE
+64	" "	White	Black	NONE
+65	" "	White	Black	NONE
+66	" "	White	Black	NONE
+67	" "	White	Black	NONE
+68	" "	White	Black	NONE
+69	" "	White	Black	NONE
+70	" "	White	Black	NONE
+71	" "	White	Black	NONE
+72	" "	White	Black	NONE
+73	" "	White	Black	NONE
+74	" "	White	Black	NONE
+75	" "	White	Black	NONE
+76	" "	White	Black	NONE
+77	" "	White	Black	NONE
+78	" "	White	Black	NONE
+79	" "	White	Black	NONE
+80	" "	White	Black	NONE
+81	" "	White	Black	NONE
+82	" "	White	Black	NONE
+83	" "	White	Black	NONE
+84	" "	White	Black	NONE
+85	" "	White	Black	NONE
+86	" "	White	Black	NONE
+87	" "	White	Black	NONE
+88	" "	White	Black	NONE
+89	" "	White	Black	NONE
+90	" "	White	Black	NONE
+91	" "	White	Black	NONE
+92	"G"	Gray	Black	NONE
+93	"r"	Gray	Black	NONE
+94	"a"	Gray	Black	NONE
+95	"y"	Gray	Black	NONE
+96	" "	White	Black	NONE
+97	" "	White	Black	NONE
+98	" "	White	Black	NONE
+99	"┆"	DarkGray	Black	NONE
+0	" "	White	Black	NONE
+1	" "	White	Black	NONE
+2	" "	White	Black	NONE
+3	" "	White	Black	NONE
+4	" "	White	Black	NONE
+5	" "	White	Black	NONE
+6	" "	White	Black	NONE
+7	" "	White	Black	NONE
+8	" "	White	Black	NONE
+9	" "	White	Black	NONE
+10	" "	White	Black	NONE
+11	" "	White	Black	NONE
+12	" "	White	Black	NONE
+13	" "	White	Black	NONE
+14	" "	White	Black	NONE
+15	" "	White	Black	NONE
+16	" "	White	Black	NONE
+17	" "	White	Black	NONE
+18	" "	White	Black	NONE
+19	" "	White	Black	NONE
+20	" "	White	Black	NONE
+21	" "	White	Black	NONE
+22	" "	White	Black	NONE
+23	" "	White	Gray	NONE
+24	" "	White	Gray	NONE
+25	" "	White	Gray	NONE
+26	" "	White	Gray	NONE
+27	"▏"	DarkGray	Black	NONE
+28	" "	White	Black	NONE
+29	"t"	White	Black	NONE
+30	"e"	White	Black	NONE
+31	"x"	White	Black	NONE
+32	"t"	White	Black	NONE
+33	"."	White	Black	NONE
+34	"m"	White	Black	NONE
+35	"u"	White	Black	NONE
+36	"t"	White	Black	NONE
+37	"e"	White	Black	NONE
+38	"d"	White	Black	NONE
+39	" "	White	Black	NONE
+40	" "	White	Black	NONE
+41	" "	White	Black	NONE
+42	" "	White	Black	NONE
+43	" "	White	Black	NONE
+44	" "	White	Black	NONE
+45	" "	White	Black	NONE
+46	" "	White	Black	NONE
+47	" "	White	Black	NONE
+48	" "	White	Black	NONE
+49	" "	White	Black	NONE
+50	" "	White	Black	NONE
+51	" "	White	Black	NONE
+52	" "	White	Black	NONE
+53	" "	White	Black	NONE
+54	" "	White	Black	NONE
+55	" "	White	Black	NONE
+56	" "	White	Black	NONE
+57	" "	White	Black	NONE
+58	" "	White	Black	NONE
+59	" "	White	Black	NONE
+60	" "	White	Black	NONE
+61	" "	White	Black	NONE
+62	" "	White	Black	NONE
+63	" "	White	Black	NONE
+64	" "	White	Black	NONE
+65	" "	White	Black	NONE
+66	" "	White	Black	NONE
+67	" "	White	Black	NONE
+68	" "	White	Black	NONE
+69	" "	White	Black	NONE
+70	" "	White	Black	NONE
+71	" "	White	Black	NONE
+72	" "	White	Black	NONE
+73	" "	White	Black	NONE
+74	" "	White	Black	NONE
+75	" "	White	Black	NONE
+76	" "	White	Black	NONE
+77	" "	White	Black	NONE
+78	" "	White	Black	NONE
+79	" "	White	Black	NONE
+80	" "	White	Black	NONE
+81	" "	White	Black	NONE
+82	" "	White	Black	NONE
+83	" "	White	Black	NONE
+84	" "	White	Black	NONE
+85	" "	White	Black	NONE
+86	" "	White	Black	NONE
+87	" "	White	Black	NONE
+88	" "	White	Black	NONE
+89	" "	White	Black	NONE
+90	" "	White	Black	NONE
+91	" "	White	Black	NONE
+92	"G"	Gray	Black	NONE
+93	"r"	Gray	Black	NONE
+94	"a"	Gray	Black	NONE
+95	"y"	Gray	Black	NONE
+96	" "	White	Black	NONE
+97	" "	White	Black	NONE
+98	" "	White	Black	NONE
+99	"┆"	DarkGray	Black	NONE
+0	" "	White	Black	NONE
+1	" "	White	Black	NONE
+2	" "	White	Black	NONE
+3	" "	White	Black	NONE
+4	" "	White	Black	NONE
+5	" "	White	Black	NONE
+6	" "	White	Black	NONE
+7	" "	White	Black	NONE
+8	" "	White	Black	NONE
+9	" "	White	Black	NONE
+10	" "	White	Black	NONE
+11	" "	White	Black	NONE
+12	" "	White	Black	NONE
+13	" "	White	Black	NONE
+14	" "	White	Black	NONE
+15	" "	White	Black	NONE
+16	" "	White	Black	NONE
+17	" "	White	Black	NONE
+18	" "	White	Black	NONE
+19	" "	White	Black	NONE
+20	" "	White	Black	NONE
+21	" "	White	Black	NONE
+22	" "	White	Black	NONE
+23	" "	White	Gray	NONE
+24	" "	White	Gray	NONE
+25	" "	White	Gray	NONE
+26	" "	White	Gray	NONE
+27	"▏"	DarkGray	Black	NONE
+28	" "	White	Black	NONE
+29	"t"	White	Black	NONE
+30	"e"	White	Black	NONE
+31	"x"	White	Black	NONE
+32	"t"	White	Black	NONE
+33	"."	White	Black	NONE
+34	"f"	White	Black	NONE
+35	"a"	White	Black	NONE
+36	"i"	White	Black	NONE
+37	"n"	White	Black	NONE
+38	"t"	White	Black	NONE
+39	" "	White	Black	NONE
+40	" "	White	Black	NONE
+41	" "	White	Black	NONE
+42	" "	White	Black	NONE
+43	" "	White	Black	NONE
+44	" "	White	Black	NONE
+45	" "	White	Black	NONE
+46	" "	White	Black	NONE
+47	" "	White	Black	NONE
+48	" "	White	Black	NONE
+49	" "	White	Black	NONE
+50	" "	White	Black	NONE
+51	" "	White	Black	NONE
+52	" "	White	Black	NONE
+53	" "	White	Black	NONE
+54	" "	White	Black	NONE
+55	" "	White	Black	NONE
+56	" "	White	Black	NONE
+57	" "	White	Black	NONE
+58	" "	White	Black	NONE
+59	" "	White	Black	NONE
+60	" "	White	Black	NONE
+61	" "	White	Black	NONE
+62	" "	White	Black	NONE
+63	" "	White	Black	NONE
+64	" "	White	Black	NONE
+65	" "	White	Black	NONE
+66	" "	White	Black	NONE
+67	" "	White	Black	NONE
+68	" "	White	Black	NONE
+69	" "	White	Black	NONE
+70	" "	White	Black	NONE
+71	" "	White	Black	NONE
+72	" "	White	Black	NONE
+73	" "	White	Black	NONE
+74	" "	White	Black	NONE
+75	" "	White	Black	NONE
+76	" "	White	Black	NONE
+77	" "	White	Black	NONE
+78	" "	White	Black	NONE
+79	" "	White	Black	NONE
+80	" "	White	Black	NONE
+81	" "	White	Black	NONE
+82	" "	White	Black	NONE
+83	" "	White	Black	NONE
+84	" "	White	Black	NONE
+85	" "	White	Black	NONE
+86	" "	White	Black	NONE
+87	" "	White	Black	NONE
+88	" "	White	Black	NONE
+89	" "	White	Black	NONE
+90	" "	White	Black	NONE
+91	" "	White	Black	NONE
+92	"G"	Gray	Black	NONE
+93	"r"	Gray	Black	NONE
+94	"a"	Gray	Black	NONE
+95	"y"	Gray	Black	NONE
+96	" "	White	Black	NONE
+97	" "	White	Black	NONE
+98	" "	White	Black	NONE
+99	"┆"	DarkGray	Black	NONE
+0	" "	White	Black	NONE
+1	" "	White	Black	NONE
+2	" "	White	Black	NONE
+3	" "	White	Black	NONE
+4	" "	White	Black	NONE
+5	" "	White	Black	NONE
+6	" "	White	Black	NONE
+7	" "	White	Black	NONE
+8	" "	White	Black	NONE
+9	" "	White	Black	NONE
+10	" "	White	Black	NONE
+11	" "	White	Black	NONE
+12	" "	White	Black	NONE
+13	" "	White	Black	NONE
+14	" "	White	Black	NONE
+15	" "	White	Black	NONE
+16	" "	White	Black	NONE
+17	" "	White	Black	NONE
+18	" "	White	Black	NONE
+19	" "	White	Black	NONE
+20	" "	White	Black	NONE
+21	" "	White	Black	NONE
+22	" "	White	Black	NONE
+23	" "	White	DarkGray	NONE
+24	" "	White	DarkGray	NONE
+25	" "	White	DarkGray	NONE
+26	" "	White	DarkGray	NONE
+27	"▏"	DarkGray	Black	NONE
+28	" "	White	Black	NONE
+29	"t"	White	Black	NONE
+30	"e"	White	Black	NONE
+31	"x"	White	Black	NONE
+32	"t"	White	Black	NONE
+33	"."	White	Black	NONE
+34	"g"	White	Black	NONE
+35	"h"	White	Black	NONE
+36	"o"	White	Black	NONE
+37	"s"	White	Black	NONE
+38	"t"	White	Black	NONE
+39	" "	White	Black	NONE
+40	" "	White	Black	NONE
+41	" "	White	Black	NONE
+42	" "	White	Black	NONE
+43	" "	White	Black	NONE
+44	" "	White	Black	NONE
+45	" "	White	Black	NONE
+46	" "	White	Black	NONE
+47	" "	White	Black	NONE
+48	" "	White	Black	NONE
+49	" "	White	Black	NONE
+50	" "	White	Black	NONE
+51	" "	White	Black	NONE
+52	" "	White	Black	NONE
+53	" "	White	Black	NONE
+54	" "	White	Black	NONE
+55	" "	White	Black	NONE
+56	" "	White	Black	NONE
+57	" "	White	Black	NONE
+58	" "	White	Black	NONE
+59	" "	White	Black	NONE
+60	" "	White	Black	NONE
+61	" "	White	Black	NONE
+62	" "	White	Black	NONE
+63	" "	White	Black	NONE
+64	" "	White	Black	NONE
+65	" "	White	Black	NONE
+66	" "	White	Black	NONE
+67	" "	White	Black	NONE
+68	" "	White	Black	NONE
+69	" "	White	Black	NONE
+70	" "	White	Black	NONE
+71	" "	White	Black	NONE
+72	" "	White	Black	NONE
+73	" "	White	Black	NONE
+74	" "	White	Black	NONE
+75	" "	White	Black	NONE
+76	" "	White	Black	NONE
+77	" "	White	Black	NONE
+78	" "	White	Black	NONE
+79	" "	White	Black	NONE
+80	" "	White	Black	NONE
+81	" "	White	Black	NONE
+82	" "	White	Black	NONE
+83	" "	White	Black	NONE
+84	" "	White	Black	NONE
+85	" "	White	Black	NONE
+86	" "	White	Black	NONE
+87	" "	White	Black	NONE
+88	"D"	Gray	Black	NONE
+89	"a"	Gray	Black	NONE
+90	"r"	Gray	Black	NONE
+91	"k"	Gray	Black	NONE
+92	"G"	Gray	Black	NONE
+93	"r"	Gray	Black	NONE
+94	"a"	Gray	Black	NONE
+95	"y"	Gray	Black	NONE
+96	" "	White	Black	NONE
+97	" "	White	Black	NONE
+98	" "	White	Black	NONE
+99	"┆"	DarkGray	Black	NONE
+0	" "	White	Black	NONE
+1	" "	White	Black	NONE
+2	" "	White	Black	NONE
+3	" "	White	Black	NONE
+4	" "	White	Black	NONE
+5	" "	White	Black	NONE
+6	" "	White	Black	NONE
+7	" "	White	Black	NONE
+8	" "	White	Black	NONE
+9	" "	White	Black	NONE
+10	" "	White	Black	NONE
+11	" "	White	Black	NONE
+12	" "	White	Black	NONE
+13	" "	White	Black	NONE
+14	" "	White	Black	NONE
+15	" "	White	Black	NONE
+16	" "	White	Black	NONE
+17	" "	White	Black	NONE
+18	" "	White	Black	NONE
+19	" "	White	Black	NONE
+20	" "	White	Black	NONE
+21	" "	White	Black	NONE
+22	" "	White	Black	NONE
+23	" "	White	Black	NONE
+24	" "	White	Black	NONE
+25	" "	White	Black	NONE
+26	" "	White	Black	NONE
+27	"▏"	DarkGray	Black	NONE
+28	" "	White	Black	NONE
+29	"t"	White	Black	NONE
+30	"e"	White	Black	NONE
+31	"x"	White	Black	NONE
+32	"t"	White	Black	NONE
+33	"."	White	Black	NONE
+34	"o"	White	Black	NONE
+35	"n"	White	Black	NONE
+36	"_"	White	Black	NONE
+37	"a"	White	Black	NONE
+38	"c"	White	Black	NONE
+39	"c"	White	Black	NONE
+40	"e"	White	Black	NONE
+41	"n"	White	Black	NONE
+42	"t"	White	Black	NONE
+43	" "	White	Black	NONE
+44	" "	White	Black	NONE
+45	" "	White	Black	NONE
+46	" "	White	Black	NONE
+47	" "	White	Black	NONE
+48	" "	White	Black	NONE
+49	" "	White	Black	NONE
+50	" "	White	Black	NONE
+51	" "	White	Black	NONE
+52	" "	White	Black	NONE
+53	" "	White	Black	NONE
+54	" "	White	Black	NONE
+55	" "	White	Black	NONE
+56	" "	White	Black	NONE
+57	" "	White	Black	NONE
+58	" "	White	Black	NONE
+59	" "	White	Black	NONE
+60	" "	White	Black	NONE
+61	" "	White	Black	NONE
+62	" "	White	Black	NONE
+63	" "	White	Black	NONE
+64	" "	White	Black	NONE
+65	" "	White	Black	NONE
+66	" "	White	Black	NONE
+67	" "	White	Black	NONE
+68	" "	White	Black	NONE
+69	" "	White	Black	NONE
+70	" "	White	Black	NONE
+71	" "	White	Black	NONE
+72	" "	White	Black	NONE
+73	" "	White	Black	NONE
+74	" "	White	Black	NONE
+75	" "	White	Black	NONE
+76	" "	White	Black	NONE
+77	" "	White	Black	NONE
+78	" "	White	Black	NONE
+79	" "	White	Black	NONE
+80	" "	White	Black	NONE
+81	" "	White	Black	NONE
+82	" "	White	Black	NONE
+83	" "	White	Black	NONE
+84	" "	White	Black	NONE
+85	" "	White	Black	NONE
+86	" "	White	Black	NONE
+87	" "	White	Black	NONE
+88	" "	White	Black	NONE
+89	" "	White	Black	NONE
+90	" "	White	Black	NONE
+91	"B"	Gray	Black	NONE
+92	"l"	Gray	Black	NONE
+93	"a"	Gray	Black	NONE
+94	"c"	Gray	Black	NONE
+95	"k"	Gray	Black	NONE
+96	" "	White	Black	NONE
+97	" "	White	Black	NONE
+98	" "	White	Black	NONE
+99	"┆"	DarkGray	Black	NONE
+0	" "	White	Black	NONE
+1	" "	White	Black	NONE
+2	" "	White	Black	NONE
+3	" "	White	Black	NONE
+4	" "	White	Black	NONE
+5	" "	White	Black	NONE
+6	" "	White	Black	NONE
+7	" "	White	Black	NONE
+8	" "	White	Black	NONE
+9	" "	White	Black	NONE
+10	" "	White	Black	NONE
+11	" "	White	Black	NONE
+12	" "	White	Black	NONE
+13	" "	White	Black	NONE
+14	" "	White	Black	NONE
+15	" "	White	Black	NONE
+16	" "	White	Black	NONE
+17	" "	White	Black	NONE
+18	" "	White	Black	NONE
+19	" "	White	Black	NONE
+20	" "	White	Black	NONE
+21	" "	White	Black	NONE
+22	" "	White	Black	NONE
+23	" "	White	Black	NONE
+24	" "	White	Black	NONE
+25	" "	White	Black	NONE
+26	" "	White	Black	NONE
+27	" "	White	Black	NONE
+28	" "	White	Black	NONE
+29	" "	White	Black	NONE
+30	" "	White	Black	NONE
+31	" "	White	Black	NONE
+32	" "	White	Black	NONE
+33	" "	White	Black	NONE
+34	" "	White	Black	NONE
+35	" "	White	Black	NONE
+36	" "	White	Black	NONE
+37	" "	White	Black	NONE
+38	" "	White	Black	NONE
+39	" "	White	Black	NONE
+40	" "	White	Black	NONE
+41	" "	White	Black	NONE
+42	" "	White	Black	NONE
+43	" "	White	Black	NONE
+44	" "	White	Black	NONE
+45	" "	White	Black	NONE
+46	" "	White	Black	NONE
+47	" "	White	Black	NONE
+48	" "	White	Black	NONE
+49	" "	White	Black	NONE
+50	" "	White	Black	NONE
+51	" "	White	Black	NONE
+52	" "	White	Black	NONE
+53	" "	White	Black	NONE
+54	" "	White	Black	NONE
+55	" "	White	Black	NONE
+56	" "	White	Black	NONE
+57	" "	White	Black	NONE
+58	" "	White	Black	NONE
+59	" "	White	Black	NONE
+60	" "	White	Black	NONE
+61	" "	White	Black	NONE
+62	" "	White	Black	NONE
+63	" "	White	Black	NONE
+64	" "	White	Black	NONE
+65	" "	White	Black	NONE
+66	" "	White	Black	NONE
+67	" "	White	Black	NONE
+68	" "	White	Black	NONE
+69	" "	White	Black	NONE
+70	" "	White	Black	NONE
+71	" "	White	Black	NONE
+72	" "	White	Black	NONE
+73	" "	White	Black	NONE
+74	" "	White	Black	NONE
+75	" "	White	Black	NONE
+76	" "	White	Black	NONE
+77	" "	White	Black	NONE
+78	" "	White	Black	NONE
+79	" "	White	Black	NONE
+80	" "	White	Black	NONE
+81	" "	White	Black	NONE
+82	" "	White	Black	NONE
+83	" "	White	Black	NONE
+84	" "	White	Black	NONE
+85	" "	White	Black	NONE
+86	" "	White	Black	NONE
+87	" "	White	Black	NONE
+88	" "	White	Black	NONE
+89	" "	White	Black	NONE
+90	" "	White	Black	NONE
+91	" "	White	Black	NONE
+92	" "	White	Black	NONE
+93	" "	White	Black	NONE
+94	" "	White	Black	NONE
+95	" "	White	Black	NONE
+96	" "	White	Black	NONE
+97	" "	White	Black	NONE
+98	" "	White	Black	NONE
+99	" "	White	Black	NONE
+0	" "	White	Black	NONE
+1	"↑"	White	Black	BOLD
+2	"↓"	White	Black	BOLD
+3	" "	White	Black	NONE
+4	"M"	Gray	Black	NONE
+5	"o"	Gray	Black	NONE
+6	"v"	Gray	Black	NONE
+7	"e"	Gray	Black	NONE
+8	" "	White	Black	NONE
+9	" "	White	Black	NONE
+10	"E"	White	Black	BOLD
+11	"n"	White	Black	BOLD
+12	"t"	White	Black	BOLD
+13	"e"	White	Black	BOLD
+14	"r"	White	Black	BOLD
+15	" "	White	Black	NONE
+16	"O"	Gray	Black	NONE
+17	"p"	Gray	Black	NONE
+18	"e"	Gray	Black	NONE
+19	"n"	Gray	Black	NONE
+20	" "	White	Black	NONE
+21	" "	White	Black	NONE
+22	"/"	White	Black	BOLD
+23	" "	White	Black	NONE
+24	"F"	Gray	Black	NONE
+25	"i"	Gray	Black	NONE
+26	"l"	Gray	Black	NONE
+27	"t"	Gray	Black	NONE
+28	"e"	Gray	Black	NONE
+29	"r"	Gray	Black	NONE
+30	" "	White	Black	NONE
+31	" "	White	Black	NONE
+32	"T"	White	Black	BOLD
+33	"a"	White	Black	BOLD
+34	"b"	White	Black	BOLD
+35	" "	White	Black	NONE
+36	"I"	Gray	Black	NONE
+37	"n"	Gray	Black	NONE
+38	"t"	Gray	Black	NONE
+39	"o"	Gray	Black	NONE
+40	" "	Gray	Black	NONE
+41	"p"	Gray	Black	NONE
+42	"a"	Gray	Black	NONE
+43	"g"	Gray	Black	NONE
+44	"e"	Gray	Black	NONE
+45	" "	White	Black	NONE
+46	" "	White	Black	NONE
+47	"q"	White	Black	BOLD
+48	" "	White	Black	NONE
+49	"Q"	Gray	Black	NONE
+50	"u"	Gray	Black	NONE
+51	"i"	Gray	Black	NONE
+52	"t"	Gray	Black	NONE
+53	" "	White	Black	NONE
+54	" "	White	Black	NONE
+55	" "	White	Black	NONE
+56	" "	White	Black	NONE
+57	" "	White	Black	NONE
+58	" "	White	Black	NONE
+59	" "	White	Black	NONE
+60	" "	White	Black	NONE
+61	" "	White	Black	NONE
+62	" "	White	Black	NONE
+63	" "	White	Black	NONE
+64	" "	White	Black	NONE
+65	" "	White	Black	NONE
+66	" "	White	Black	NONE
+67	" "	White	Black	NONE
+68	" "	White	Black	NONE
+69	" "	White	Black	NONE
+70	" "	White	Black	NONE
+71	" "	White	Black	NONE
+72	" "	White	Black	NONE
+73	" "	White	Black	NONE
+74	" "	White	Black	NONE
+75	" "	White	Black	NONE
+76	" "	White	Black	NONE
+77	" "	White	Black	NONE
+78	" "	White	Black	NONE
+79	" "	White	Black	NONE
+80	" "	White	Black	NONE
+81	" "	White	Black	NONE
+82	" "	White	Black	NONE
+83	" "	White	Black	NONE
+84	" "	White	Black	NONE
+85	" "	White	Black	NONE
+86	" "	White	Black	NONE
+87	" "	White	Black	NONE
+88	" "	White	Black	NONE
+89	" "	White	Black	NONE
+90	" "	White	Black	NONE
+91	" "	White	Black	NONE
+92	" "	White	Black	NONE
+93	" "	White	Black	NONE
+94	" "	White	Black	NONE
+95	" "	White	Black	NONE
+96	" "	White	Black	NONE
+97	" "	White	Black	NONE
+98	" "	White	Black	NONE
+99	" "	White	Black	NONE

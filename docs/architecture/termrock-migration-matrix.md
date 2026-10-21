@@ -2703,3 +2703,61 @@ editor `app_tests`, the two `page_headings` cases owned by the heading
 fixtures workstream, the `showcase_visual_baseline` case owned by the visual
 workstream, and the `shell_chrome` 16-colour Overview pin, which is under
 root-cause analysis and is NOT re-blessed here.
+
+### Root cause of the 16-colour Overview frame (fixed, pin unchanged)
+
+Branch `wip/ansi16-shell-chrome-20261021`, base `9770084a9`. The full
+write-up with the cell-level evidence is in
+[the audit record](../audits/evidence/2026-10-21-ansi16-shell-chrome/README.md).
+
+The `shell_chrome` 16-colour Overview pin was not re-blessed: the candidate
+frame was wrong. The page chrome migration moved the Overview strip from the
+page's own `paint_section_strip()` to the shared `SectionStrip`
+(`crates/termrock-feedback/src/page_chrome.rs`), and the page's level-aware
+ink mapping (`crates/showcase-demos/src/pages/overview.rs`, `token_color`)
+was dropped in favour of the truecolour `chrome_ink()` palette. The shared
+block painted that palette literally, so at 16 colours the strip carried
+`Color::Rgb(255, 255, 255)` on `Color::Rgb(39, 39, 42)` (and the rest of the
+strip's truecolour literals) where the frame has to carry palette entries:
+126 cells of the 100x30 frame changed, all of them in the strip (row 4: 47
+cells, row 5: 79 cells, columns 21 to 99). The truecolour rows never moved,
+because truecolour is the tier the literals were authored for.
+
+The reference is the frozen tag `visual-baseline`: its declared 16-colour
+table (`visual-baseline:src/theme.rs`, `apply_16`, lines 983–1032) and its
+own rendered capture
+(`visual-baseline:snapshots/showcase/pages/overview/100x30/16.ansi`) paint
+the strip with palette entries (`38;5;7`, `38;5;8`, `38;5;10`, `38;5;0`), and
+the candidate's truecolour source inks are the reference's own Junie palette
+values (`visual-baseline:src/theme.rs` lines 493–514).
+
+The fix is in the shared block, not in the page: the chrome reduces the
+page's palette to the frame's colour level before it paints
+(`ChromeInk::pair_at`, using the library's shared `downgrade_color`
+conversion and the frozen `legacy_mono` table for `--color none`). The fix
+therefore reaches every screen and every app that uses the page chrome.
+
+The pinned frame is restored cell for cell: `Overview 100x30` at 16 colours
+digests to `0x4d15739766ef41b7` again, so the pin in
+`crates/showcase-ui/tests/shell_chrome.rs` is unchanged and the test passes.
+The regression cover is `crates/termrock-feedback/tests/page_chrome_colour_level.rs`;
+its four cases fail on the pre-fix code.
+
+Two consequences are recorded for their owners rather than fixed here:
+
+- The shared fix moves the reduced-level digests of every page that uses the
+  page chrome. `crates/showcase-ui/tests/baselines/showcase.txt` is already
+  stale on this branch (86 entries mismatch before the fix, measured with
+  the same harness), and the fix adds 246 reduced-tier entries that the
+  visual workstream has to re-bless: 82 at 256 colours, 82 at 16 colours and
+  82 at mono. No truecolour entry moves. The geometry of those frames does
+  not move either; only the colour values of the chrome cells do.
+- Three ink slots still differ from the reference capture, all of them
+  documented in the audit record: the 16-colour active tab keeps
+  `White` on `DarkGray` where the reference's legibility repair paints
+  `Black` on `DarkGray` (adopting `downgrade_pair` for the strip's pairs
+  would match the capture exactly but moves the pinned digest, so the pin
+  stays and the choice is recorded), the 256-colour rule ink is
+  `Indexed(237)` where the reference declares the `border_subtle` slot
+  `Indexed(238)`, and the mono rule ink is `Black` on `Black` where the
+  reference paints `DarkGray` on `Black`.
