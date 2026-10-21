@@ -506,6 +506,10 @@ fn paint_mounts(ui: &mut Ui<'_>, area: Rect, page: &SettingsPage<'_>, ink: &Ink)
     }
 }
 
+#[expect(
+    clippy::too_many_arguments,
+    reason = "helper function requires painting coordinates and styles"
+)]
 fn paint_field_parts(
     ui: &mut Ui<'_>,
     area: Rect,
