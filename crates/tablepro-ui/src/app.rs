@@ -122,13 +122,19 @@ impl CompletionProvider for SqlCompletionProvider<'_> {
     }
 }
 
-fn query_editor(id: Id, rows: u16, provider: &dyn CompletionProvider) -> CompletingCodeEditor<'_> {
+fn query_editor(
+    id: Id,
+    rows: u16,
+    provider: &dyn CompletionProvider,
+    commit_on_blur: bool,
+) -> CompletingCodeEditor<'_> {
     CodeEditor::new(id, rows)
         .fill_height(true)
         .highlighter(&highlight_sql)
         .segmenter(&segment_sql)
         .placeholder(QUERY_EDITOR_PLACEHOLDER)
         .with_completion(id.sub("completion"), provider)
+        .commit_on_blur(commit_on_blur)
 }
 
 #[derive(Debug)]
@@ -700,7 +706,6 @@ pub struct TableProApp {
     motion: Motion,
     tick: u64,
     explorer_pin: u8,
-    focus_new_query: u8,
     grid_sort: Option<(TabKey, u16, SortDir)>,
     filter_editor: Option<FilterDraft>,
 }
@@ -761,7 +766,6 @@ impl core::fmt::Debug for TableProApp {
             .field("motion", &self.motion)
             .field("tick", &self.tick)
             .field("explorer_pin", &self.explorer_pin)
-            .field("focus_new_query", &self.focus_new_query)
             .field("grid_sort", &self.grid_sort)
             .field("filter_editor", &self.filter_editor.is_some())
             .finish()
@@ -827,7 +831,6 @@ impl TableProApp {
             motion: Motion::Full,
             tick: 0,
             explorer_pin: 0,
-            focus_new_query: 0,
             grid_sort: None,
             filter_editor: None,
         };
@@ -1394,11 +1397,13 @@ impl TableProApp {
         opened
     }
 
-    fn new_query(&mut self, query: impl Into<String>) {
+    fn new_query(&mut self, cx: &mut Cx<'_>, query: impl Into<String>) {
         if self.workbench.new_query(query).is_some() {
             self.sync_tabs_state();
             self.surface = Surface::QueryEditing;
-            self.focus_new_query = 1;
+            if let Some(id) = self.query_id() {
+                cx.focus(id);
+            }
         }
     }
 
@@ -2345,11 +2350,9 @@ impl TableProApp {
         };
         for (key, tab) in self.workbench.payloads_mut() {
             if let Tab::Query(query) = tab {
-                if !query_visible || active_key != Some(key) {
-                    continue;
-                }
                 let id = key.control("query");
-                let editor = query_editor(id, QUERY_EDITOR_ROWS, &provider);
+                let active_editor = query_visible && active_key == Some(key);
+                let editor = query_editor(id, QUERY_EDITOR_ROWS, &provider, active_editor);
                 let editor_response = editor.update(cx, &mut query.editor_state);
                 if matches!(
                     editor_response.action_ref(),
@@ -2358,6 +2361,14 @@ impl TableProApp {
                     query.sync_query_text();
                 }
                 response |= editor_response.erase();
+
+                // Inactive query tabs still receive their addressed focus-out so the shared
+                // component can settle its lifecycle. Their edit session is retained because
+                // the tab is removed from the visible composition; active editors commit on
+                // ordinary blur as before.
+                if !active_editor {
+                    continue;
+                }
             }
             match tab {
                 Tab::Table(table) => {
@@ -2717,7 +2728,7 @@ impl TableProApp {
         shown: usize,
     ) {
         let loaded = grid_view.model.row_count();
-        let origin = GRID_SCROLL.with(|slot| slot.borrow().map_or(0, |(_, _, origin)| origin));
+        let origin = GRID_SCROLL.with(|slot| slot.borrow().map_or(0, |(_, _, origin, _)| origin));
         let last = origin.saturating_add(shown).min(loaded);
         let first = if loaded == 0 {
             1
@@ -3203,8 +3214,8 @@ impl TableProApp {
                 );
             }
         }
-        if let Some((grid_area, rows, origin)) = GRID_SCROLL.with(|slot| *slot.borrow()) {
-            paint_grid_scrollbar(ui, grid_area, rows, origin);
+        if let Some((grid_area, rows, origin, focused)) = GRID_SCROLL.with(|slot| *slot.borrow()) {
+            paint_grid_scrollbar(ui, grid_area, rows, origin, focused);
         }
         let blank_sql = self.blank_sql();
         if blank_sql
@@ -3332,7 +3343,7 @@ impl TableProApp {
         let provider = SqlCompletionProvider {
             catalog: &self.catalog,
         };
-        query_editor(id, QUERY_EDITOR_ROWS, &provider).draw(ui, area, state);
+        query_editor(id, QUERY_EDITOR_ROWS, &provider, true).draw(ui, area, state);
     }
 }
 
@@ -5107,7 +5118,7 @@ const KIND_FOREIGN: u8 = 2;
 thread_local! {
     static COL_BUDGETS: RefCell<Vec<ColBudget>> = const { RefCell::new(Vec::new()) };
     static GRID_CHROME: RefCell<Option<GridChrome>> = const { RefCell::new(None) };
-    static GRID_SCROLL: RefCell<Option<(termrock::Rect, usize, usize)>> =
+    static GRID_SCROLL: RefCell<Option<(termrock::Rect, usize, usize, Option<usize>)>> =
         const { RefCell::new(None) };
     static GRID_SEEN_ROW: RefCell<Option<usize>> = const { RefCell::new(None) };
     static GRID_SORT: RefCell<Option<(usize, SortDir)>> = const { RefCell::new(None) };
@@ -5635,7 +5646,13 @@ fn paint_grid_focus_bar(
     termrock::grid::paint_grid_focus_bar(ui, area, Some(row as u16), &GRID_FOCUS_BAR);
 }
 
-fn paint_grid_scrollbar(ui: &mut Ui<'_>, area: termrock::Rect, rows: usize, origin: usize) {
+fn paint_grid_scrollbar(
+    ui: &mut Ui<'_>,
+    area: termrock::Rect,
+    rows: usize,
+    origin: usize,
+    focused: Option<usize>,
+) {
     let Some(chrome) = GRID_CHROME.with(|chrome| chrome.borrow().clone()) else {
         return;
     };
@@ -5645,6 +5662,7 @@ fn paint_grid_scrollbar(ui: &mut Ui<'_>, area: termrock::Rect, rows: usize, orig
         &chrome.content_chrome(),
         rows,
         origin,
+        focused,
         &GRID_VERTICAL_BAR,
     );
 }
@@ -6369,6 +6387,21 @@ fn paint_row_numbers(
         } else {
             plain
         };
+        let fade = visible.saturating_sub(row);
+        let truecolor = ui.theme().capability.color == termrock::ColorLevel::TrueColor;
+        // These two pads sit in the grid body. The edge fade already ran.
+        // Repainting them in primary ink hides the bottom (and top) fade.
+        let pad = if truecolor && (fade == 1 || (origin > 0 && row == 0)) {
+            gutter.patch(ui.paint_patch(
+                &StylePatch::new().set_fg(Role::Custom(termrock::Color::from_u32(0x008c_8c8c))),
+            ))
+        } else if truecolor && (fade == 2 || (origin > 0 && row == 1)) {
+            gutter.patch(ui.paint_patch(
+                &StylePatch::new().set_fg(Role::Custom(termrock::Color::from_u32(0x00cc_cccc))),
+            ))
+        } else {
+            gutter
+        };
         for dx in 1..3 {
             ui.paint_str(
                 termrock::Rect {
@@ -6378,11 +6411,9 @@ fn paint_row_numbers(
                     height: 1,
                 },
                 " ",
-                gutter,
+                pad,
             );
         }
-        let fade = visible.saturating_sub(row);
-        let truecolor = ui.theme().capability.color == termrock::ColorLevel::TrueColor;
         let role = if !truecolor {
             if cursor == Some(model_row) {
                 TAG_PATH_FG
@@ -6682,7 +6713,8 @@ fn draw_painted_grid(
     let cursor = state.cursor().and_then(|(key, _)| {
         (0..model.row_count()).find(|row| GridModel::row_key(model, *row) == key)
     });
-    GRID_SCROLL.with(|slot| *slot.borrow_mut() = Some((area, model.row_count(), origin)));
+    let focused = cursor.and_then(|row| row.checked_sub(origin));
+    GRID_SCROLL.with(|slot| *slot.borrow_mut() = Some((area, model.row_count(), origin, focused)));
     paint_row_numbers(ui, area, model, cursor, origin);
     paint_grid_header(ui, area, columns, covered, calm_header);
 }
@@ -9765,7 +9797,7 @@ impl App for TableProApp {
                     response |= Response::changed();
                 }
                 c if c == NEW_QUERY => {
-                    self.new_query("");
+                    self.new_query(cx, "");
                     response |= Response::changed();
                 }
                 c if c == CLOSE_TAB
@@ -9984,7 +10016,7 @@ impl App for TableProApp {
                         self.request_close_tab(cx, tab.key());
                     }
                 }
-                TabsAction::New => self.new_query(""),
+                TabsAction::New => self.new_query(cx, ""),
             }
         }
         response |= tabs_response.erase();
@@ -10011,17 +10043,6 @@ impl App for TableProApp {
             && let Some(id) = self.query_id()
         {
             cx.focus(id);
-        }
-        if self.focus_new_query > 0 {
-            self.focus_new_query = 0;
-            let view = cx.viewport();
-            // Only 120×40 has the historical focused editor. Other sizes stay put.
-            if view.width == 120
-                && view.height == 40
-                && let Some(id) = self.query_id()
-            {
-                cx.focus(id);
-            }
         }
         if self.surface == Surface::FilterEditor
             && self
