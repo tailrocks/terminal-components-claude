@@ -104,12 +104,15 @@ fn all_73_junie_slots_match_reference_capability_output() {
             // Corpus stale/unknown meter ink shares the faint/chrome source.
             expected.meter.stale = Color::Indexed(238);
             expected.meter.unknown = Color::Indexed(238);
-            expected.disabled_fg = Color::Indexed(239);
-        }
+            expected.disabled_fg = Color::Indexed(239);        }
         if level == ColorLevel::Ansi16 {
             // Corpus faint ink renders DarkGray at 16; the current 0x737373
             // source would generically land on Gray.
             expected.fg[3] = Color::DarkGray;
+            // Frozen apply_16 (`self.border_strong = Gray`): the dimmed
+            // popup border paints Gray, not the DarkGray the generic rule
+            // derives from the 0x4d4d4d source.
+            expected.border_strong = Color::Gray;
             // Frozen apply_16 (`self.success = Green`): base ladder slot.
             expected.success = Color::Green;
             expected.meter.stale = Color::DarkGray;
