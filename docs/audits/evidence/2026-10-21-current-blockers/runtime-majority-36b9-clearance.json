@@ -1,0 +1,139 @@
+{
+  "schema": "independent-review-v1",
+  "created_at": "2026-10-21T01:14:19.153027+00:00",
+  "reviewer": "/root/incoming_tablepro_runtime_review",
+  "decision": "cleared_bounded_runtime_correction",
+  "candidate": "36b9a06509c991600956679e43295de27a2fd1ca",
+  "reviewed_commits": [
+    "7f2c74d78",
+    "36b9a06509c991600956679e43295de27a2fd1ca"
+  ],
+  "last_good": "5f82c4d35d12e0fb77b0f580a8ef200240661602",
+  "supersedes_runtime_findings": [
+    "The ninth-color majority regression in 05d63fe9c8a0e9a327489ae657a4ff6dc6571324.",
+    "The per-frame overflow-map allocation regression in 25777df94dd802869833389b6a11164877350b4d."
+  ],
+  "findings": [],
+  "scope": "Only runtime majority-background correction and private reusable scratch lifecycle; publication before review was not treated as approval.",
+  "checks": [
+    {
+      "command": "cargo nextest run --manifest-path consumer/Cargo.toml --test author --test allocation_regression --test allocations --test corpus --no-capture",
+      "exit": 0,
+      "run": 6,
+      "passed": 6,
+      "skipped": 0,
+      "log": "correction-checks.log"
+    },
+    {
+      "command": "cargo nextest run --manifest-path consumer/Cargo.toml --test original -E test(ninth_background_majority_receives_scroll_edge_fade)",
+      "exit": 0,
+      "run": 1,
+      "passed": 1,
+      "skipped": 1,
+      "skip_reason": "The byte-identical original probe file retains the unrelated known TablePro new-form test. That test was explicitly outside the runtime-only filter and is not credited as passing.",
+      "log": "correction-original.log"
+    },
+    {
+      "command": "cargo nextest run --manifest-path consumer/Cargo.toml --test sequence --no-capture",
+      "exit": 0,
+      "run": 1,
+      "passed": 1,
+      "skipped": 0,
+      "log": "correction-sequence.log"
+    },
+    {
+      "command": "cargo nextest run --manifest-path ../runtime-majority-correction-review-25777df/before/Cargo.toml --test sequence --no-capture",
+      "exit": 0,
+      "run": 1,
+      "passed": 1,
+      "skipped": 0,
+      "log": "before-sequence.log"
+    },
+    {
+      "command": "cargo clippy --manifest-path /private/tmp/runtime-majority-correction-review-36b9a06-20261021/Cargo.toml -p termrock-runtime --lib -- -D warnings",
+      "exit": 0,
+      "log": "runtime-clippy-lib.log"
+    },
+    {
+      "command": "cargo fmt --manifest-path /private/tmp/runtime-majority-correction-review-36b9a06-20261021/Cargo.toml --all --check",
+      "exit": 0,
+      "log": "fmt-all.log"
+    }
+  ],
+  "allocation_proof": {
+    "unchanged_assertion_sha256": "64ada9ca90d6357d30803e8bc2f3b19fa32e3a8e8bd037df4b5105a48fe7e1da",
+    "matches_requested_sha": true,
+    "warmups": 20,
+    "measured_frames_per_case": 200,
+    "colors": [
+      8,
+      9,
+      12,
+      48
+    ],
+    "allocations_per_case": [
+      0,
+      0,
+      0,
+      0
+    ],
+    "allocated_bytes_per_case": [
+      0,
+      0,
+      0,
+      0
+    ],
+    "previous_correction_red": "Prior independent packet784828023b12b25129630f08f572424799fc7028987308537603cbe8e4cdd9e8 proved this identical assertion fails25777 at9colors with200 allocations. Last-good5f82 passes."
+  },
+  "visual_state_proof": {
+    "independent_scenes": 480,
+    "cell_checkpoints": 47328,
+    "identical_to_last_good": true,
+    "canonical_sha256": "7f02fcec0c1b058df6ea3e71ab4da8799e3d53eb8347e4e85f8d757a1839c346",
+    "visible_cursor_scenes": 144,
+    "reuse_sequence_frames": 25,
+    "reuse_sequence_cell_checkpoints": 2400,
+    "reuse_sequence_identical_to_last_good": true,
+    "reuse_sequence_sha256": "9e59edf36426a9c90fb08c2ceb6d9eaedd17aef5b91378b5835a4d01f10fadb9",
+    "coverage": [
+      "Mixed Reset, Indexed, named ANSI and RGB backgrounds, greater-than-eight colors, tied counts and occurrence order.",
+      "TrueColor, Ansi256, Ansi16, Mono, narrow and zero-sized regions, empty scroll areas, unpainted padding.",
+      "Full Cell debug metadata plus focus, cursor position, bar shape and real TextInput bounds.",
+      "Sequential multiple scroll areas within one draw, empty/short areas between overflow areas, repeated 48/1/8/9/12-color phases over25 redraws."
+    ]
+  },
+  "source_review": [
+    "The HashMap belongs to UiCore and has no global/thread-local identity or domain data; its Default initialization preserves empty-state safety.",
+    "Each overflow scan clears previous counts before populating its eight stack entries plus ninth color. Later inserts retain first-seen order. Fast and empty scans ignore stale retained entries.",
+    "The map capacity survives draws, eliminating per-frame allocation after warm-up, including growth to48 colors. Retaining maximum capacity matches the pre-regression scratch-cache ownership behavior.",
+    "Tie key(count, first-seen order) remains deterministic despite random HashMap iteration and matches last-good last-distinct tie behavior.",
+    "No callbacks execute inside majority_bg; mutable Ui ownership prevents overlapping borrowing/reentrancy. The private HashMap does not introduce global synchronization or alter Send/Sync through non-thread-safe state.",
+    "No changes to raw color quantizers, fade-edge cell mutation, cursor protection, layout, or component state in this bounded correction."
+  ],
+  "gaps": [
+    "No full nextest workspace or all-targets Clippy run by this reviewer; strict Clippy scope is runtime library.",
+    "No real CLI/tuiscotti full application parity comparison.",
+    "The four remaining TablePro source/test-provenance findings from f9f30a36ace1b7aca6639a0a8a0abf3679e6313cc9d1e928a3f889bdb6874963 are not resolved or approved by this runtime review.",
+    "No elapsed-time performance threshold is asserted; exact warmed allocation counts are proven."
+  ],
+  "process_group_deadline_seconds": 210,
+  "dedicated_target": "/private/tmp/runtime-majority-correction-review-target-20261021",
+  "product_edits": false,
+  "expected_artifact_edits": false,
+  "artifacts": {
+    "correction-sequence.log": "f07595fa3e10f43dd36d76d42abe47fecabac93bba19928a2219fea872fae0ef",
+    "correction-original.log": "1b786dab504f4dd4d55c01c0664105476eae567752ff02d8d5611add7d271c5d",
+    "fmt-all.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "correction-checks.log": "654a64faafac4f4c684a07ab2f9fd61f4dc3220f8be8427de8aab448e5cb12cd",
+    "runtime-clippy-lib.log": "acbcd03b53486918d6267ac42e94d9d8df4c7874a0e1afc3abf5866df43e0810",
+    "before-sequence.log": "fe077ab6af0f23755b3b057f6b7579c2a90d0b346a69ea0ea789b41fd3c5a51c",
+    "consumer/Cargo.toml": "1675f6ddc353a6dfb708d4f25810ed07b83aeb64776a3054b724508c6529edf1",
+    "consumer/tests/author.rs": "22e92f963de8cad512d530d223280fa1f7943a5109d1045c03d1a83c681c5fcb",
+    "consumer/tests/sequence.rs": "b1d6acbae969df60745ade45c5cb0c54dea2157e5026e3696ecada674c0654e5",
+    "consumer/tests/corpus.rs": "bed4f1db514484115c8dce497e727aa37d22a23a381309728ae58bd8b26b7bc4",
+    "consumer/tests/allocations.rs": "cb69d857090c90be17e3315d0f6b0a93f77514b25817ed245102e42c75a21c0a",
+    "consumer/tests/original.rs": "7bd90e6968f7d254266aabfde9e73f1d41fe41749fb02ecbaa0ae8e5b14c1562",
+    "consumer/tests/allocation_regression.rs": "64ada9ca90d6357d30803e8bc2f3b19fa32e3a8e8bd037df4b5105a48fe7e1da",
+    "consumer/src/lib.rs": "5d2094c15e8425641cf689ce038c411fd0703ad5debc62b065eacca485bbb4dd"
+  }
+}
