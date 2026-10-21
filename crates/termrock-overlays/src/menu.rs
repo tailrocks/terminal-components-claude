@@ -507,18 +507,17 @@ impl<'a> ContextMenu<'a> {
     fn natural_width(&self, effective: impl Fn(ActionKey, Option<Chord>) -> Option<Chord>) -> u16 {
         let title = self.title.map_or(0, width);
         let rows = self.items.iter().map(|item| {
-            let hint_width = item.hint.map_or_else(
-                || {
-                    effective(item.action, item.chord).map_or(0, |chord| {
-                        width(ChordText::with_case(chord, self.chord_case).as_str())
-                    })
-                },
-                width,
-            );
-            width(item.label)
-                .saturating_add(hint_width)
-                .saturating_add(3)
-                .saturating_add(u16::from(item.submenu.is_some()))
+            let label_width = width(item.label);
+            let row_width = if let Some(hint) = item.hint {
+                label_width.saturating_add(width(hint)).saturating_add(3)
+            } else if let Some(chord) = effective(item.action, item.chord) {
+                label_width
+                    .saturating_add(width(ChordText::with_case(chord, self.chord_case).as_str()))
+                    .saturating_add(2)
+            } else {
+                label_width
+            };
+            row_width.saturating_add(u16::from(item.submenu.is_some()))
         });
         rows.max().unwrap_or(4).max(title).saturating_add(6).max(8)
     }
@@ -740,7 +739,7 @@ impl<'a> ContextMenu<'a> {
             if let Some(title) = self.title {
                 let row = shift(first_row(Rect { y, ..inner }), 2);
                 let row = Rect {
-                    width: row.width.saturating_sub(2),
+                    width: row.width.saturating_sub(1),
                     ..row
                 };
                 let style = self.ov.style(
@@ -858,7 +857,11 @@ impl<'a> ContextMenu<'a> {
         let hint_admitted = hint.is_some() && admits_hint(item.label, hint_width, row.width);
         let reserved_hint = if hint_admitted { hint_width } else { 0 };
         let label = Rect {
-            width: row.width.saturating_sub(reserved_hint.saturating_add(5)),
+            width: if hint_admitted {
+                row.width.saturating_sub(reserved_hint.saturating_add(5))
+            } else {
+                row.width.saturating_sub(3)
+            },
             ..label
         };
         let label_style = self
@@ -874,7 +877,7 @@ impl<'a> ContextMenu<'a> {
         );
         if hint_admitted && let Some(text) = hint {
             let key = Rect {
-                x: row.right().saturating_sub(reserved_hint.saturating_add(2)),
+                x: row.right().saturating_sub(reserved_hint.saturating_add(1)),
                 width: reserved_hint.min(row.width),
                 ..row
             };
@@ -1622,6 +1625,27 @@ mod tests {
                 "row hit at {color:?}"
             );
         }
+    }
+
+    #[test]
+    fn natural_width_does_not_reserve_a_shortcut_gutter_without_a_shortcut() {
+        const PLAIN: [MenuItem<'static>; 1] = [MenuItem::new(OPEN, "0123456789")];
+        const SHORTCUT: [MenuItem<'static>; 1] =
+            [MenuItem::new(OPEN, "0123456789").chord(Chord::key(KeyCode::Char('o')))];
+
+        let plain = ContextMenu::at(
+            Id::root("menu.tests.plain-width"),
+            &PLAIN,
+            Position::new(0, 0),
+        );
+        let shortcut = ContextMenu::at(
+            Id::root("menu.tests.shortcut-width"),
+            &SHORTCUT,
+            Position::new(0, 0),
+        );
+
+        assert_eq!(plain.natural_width(|_, chord| chord), 16);
+        assert!(shortcut.natural_width(|_, chord| chord) > plain.natural_width(|_, chord| chord));
     }
 
     const ANCHOR_OWNER: Id = Id::root("menu.anchor.owner");
