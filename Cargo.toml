@@ -43,6 +43,7 @@ members = [
     "crates/tablepro-demo",
     "crates/tablepro-ui",
     "crates/tablepro",
+    "crates/termrock-consumer-example",
     "crates/termrock-test-support",
     "crates/termrock-conformance",
     "crates/termrock-xtask",
