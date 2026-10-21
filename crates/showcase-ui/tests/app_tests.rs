@@ -14,8 +14,6 @@ const EDITOR: Id = Id::root("showcase_ui::pages::editor::editor.code");
 const EDITOR_FIND: Id = Id::root("showcase_ui::pages::editor::editor.find");
 const EDITOR_RUN: Id = Id::root("showcase_ui::pages::editor::editor.run");
 const EDITOR_STATE_LIST: Id = Id::root("showcase_ui::pages::editor::editor.state.list");
-const DIALOG_FORM: Id = Id::root("showcase_ui::pages::dialog_kinds::dialog_kinds.connection");
-const DIALOG_KEY: Id = DIALOG_FORM.part(Part::BODY).part(Part::FIELD).index(6);
 
 fn harness(page: PageId) -> Harness<App> {
     Harness::new(App::with_page(page), Theme::junie(), 120, 40)
@@ -704,8 +702,24 @@ fn dialog_kinds_add_connection_uses_live_form_and_stacked_picker() {
 
     let tunnel = require(h.find("Connect through an SSH tunnel"), "tunnel checkbox");
     click(&mut h, tunnel.0, tunnel.1);
-    let _chooser = require(h.find("Choose…"), "visible SSH key chooser");
-    let _ = h.click_id(DIALOG_KEY);
+    let chooser = require(h.find("Choose…"), "visible SSH key chooser");
+    let chooser_id = Id::root("showcase_ui::pages::dialog_kinds::dialog_kinds.connection")
+        .part(Part::BODY)
+        .part(Part::FIELD)
+        .index(6);
+    let before = h.area_of(chooser_id);
+    let down = h.mouse(MouseKind::Down, chooser.0.saturating_add(1), chooser.1);
+    let after_down = h.area_of(chooser_id);
+    let pressed_focus = h.focus();
+    let _ = h.tick();
+    let after_tick = h.area_of(chooser_id);
+    let up = h.mouse(MouseKind::Up, chooser.0.saturating_add(1), chooser.1);
+    let after_up = h.area_of(chooser_id);
+    assert!(
+        h.text().contains("Choose SSH key"),
+        "chooser click failed: point={chooser:?}, area={before:?}->{after_down:?}->{after_tick:?}->{after_up:?}, focus={pressed_focus:?}, down={down:?}, up={up:?}\n{}",
+        h.text()
+    );
     assert!(
         h.text().contains("~/keys/staging.pem"),
         "picker did not open\n{}",
@@ -748,8 +762,8 @@ fn dialog_kinds_picker_escape_restores_form_then_cancel_discards_changes() {
     click(&mut h, open.0.saturating_add(1), open.1);
     let tunnel = require(h.find("Connect through an SSH tunnel"), "tunnel checkbox");
     click(&mut h, tunnel.0, tunnel.1);
-    let _chooser = require(h.find("Choose…"), "visible SSH key chooser");
-    let _ = h.click_id(DIALOG_KEY);
+    let chooser = require(h.find("Choose…"), "visible SSH key chooser");
+    click(&mut h, chooser.0.saturating_add(1), chooser.1);
     assert!(
         h.text().contains("~/keys/staging.pem"),
         "picker did not open\n{}",

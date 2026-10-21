@@ -284,3 +284,30 @@ Current additional work: `wip/holla-home-row-composition-20261021` at `ac315e286
 Preservation branch `wip/showcase-dialog-kinds-restoration-20261021` currently contains the incomplete route restoration at `76d5d53f16f3d36b54c2abed4dd04cecf989e381`. The shared Form pointer-reveal prerequisite is integrated on PR #38 at `1b9bd580e5f46dff23630a8c15c85e7f14cf7c4e`; independent CLEAR packets also cover TextInput initial `SelectAll` (`27f65eaef5be18313c6527c5ba5f9e32062d70d4`) and explicit Action variants (`160b1c328fef990cda622d5c7fb9bb370ce50009`). This WIP must normally merge both prerequisite branches plus the current PR #38 tip before app edits.
 
 Next: use `TextInput::focus_select(FocusSelect::SelectAll)` on the populated Name field; preserve frozen Test as Secondary and Save as Primary through the shared `Action::with_variant` API; drive the chooser with a real completed pointer click, direct typed `billing`, Save/close/status, nested Picker cancel/focus restoration, and navigation flow. Keep geometry, input routing and painting in shared components. Run real app tests plus showcase coverage for new public capability, record evidence and unresolved cases, commit/push the WIP under the lock, then obtain independent actual-flow review before PR #38 integration. Current DialogKinds app tests remain incomplete and no application parity claim is made.
+
+### DialogKinds current checkpoint (2026-10-21, supersedes the resume note above)
+
+The restoration WIP is `wip/showcase-dialog-kinds-restoration-20261021` at
+`92f372744ce2b3957ef6f81aa5b5bf5fb398f166` before this checkpoint. It normally
+merged PR #38 `1b9bd580e5f46dff23630a8c15c85e7f14cf7c4e`, public TextInput focus
+selection prerequisite `27f65eaef5be18313c6527c5ba5f9e32062d70d4`, and Action
+variant prerequisite `160b1c328fef990cda622d5c7fb9bb370ce50009`. The actual app
+trace is still RED: on the nine-field live Showcase FormDialog at 120×40, the
+SSH chooser hit rectangle moves from y=27 to y=26 on pointer Down, then remains
+at y=26 through Tick and Up; the picker does not open. This differs from the
+independently reviewed ordinary/lane Form regressions and is not worked around
+in the application. Latest focused command reports Save 1 pass and both
+chooser flows failing; see
+[`2026-10-21-showcase-dialog-kinds-restoration.md`](../audits/2026-10-21-showcase-dialog-kinds-restoration.md)
+for the full command, input trace, and next steps. Preserve the WIP and exact
+reproducer; do not integrate the route into PR #38 until the shared cause is
+fixed and reviewed. Current source/test/audit SHA-256 values at checkpoint:
+`494ae87641e25bd774b39cc0424ceac886d3cfc600f1fe9350b17934472ff19f`
+(`dialog_kinds.rs`),
+`c3a3528dc95b130a86790e66475d44fdbb0018763eb8b6f35bde523f3ddcbbcd`
+(`showcase-demos/Cargo.toml`),
+`7f12034ee7354c82e86fc4b083bdd3d3c13d49238e1ac609d7d7c02f09c0cbaf`
+(`app_tests.rs`), and
+`ec9f0613177e6cd08cfadf0cfbfe1e7a0e2d8d4d61d61b6ef15d99f8c5314cd0`
+(`docs/audits/2026-10-21-showcase-dialog-kinds-restoration.md`). These hashes
+exclude this handoff update and commit metadata.
