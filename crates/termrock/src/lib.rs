@@ -53,6 +53,9 @@ pub mod terminal {
 pub mod session {
     pub use termrock_session::*;
 }
+pub mod shell {
+    pub use termrock_shell::*;
+}
 pub mod blocks;
 pub mod composition;
 pub mod author {
