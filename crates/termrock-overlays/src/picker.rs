@@ -352,6 +352,7 @@ impl<T: AsItem, R: RowFn<T>> Picker<'_, T, R> {
                 esc: false,
                 outside_click: true,
                 focus_out: false,
+                ..Default::default()
             })
             .anchor(Anchor::Screen(
                 self.align.unwrap_or(ScreenAlign::UpperThird),
