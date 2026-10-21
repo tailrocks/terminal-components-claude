@@ -208,6 +208,16 @@ impl<'a> CompletingCodeEditor<'a> {
         Completion::new(self.popup_id)
     }
 
+    /// Configure whether leaving the editor commits its edit session.
+    ///
+    /// The default is to commit. Set to `false` when the owning view temporarily removes the
+    /// editor while preserving its edit session. Completion popups still dismiss on focus loss.
+    #[must_use]
+    pub const fn commit_on_blur(mut self, commit: bool) -> Self {
+        self.editor = self.editor.commit_on_blur(commit);
+        self
+    }
+
     /// Open the editor's find bar, dismissing any active completion popup first.
     pub fn open_find(
         &self,
@@ -261,6 +271,13 @@ impl<'a> CompletingCodeEditor<'a> {
         cx: &mut Cx<'_>,
         state: &mut CompletingCodeEditorState,
     ) -> Response<CodeAction> {
+        let focus_out = cx
+            .intents(self.id)
+            .any(|intent| matches!(intent, Intent::FocusOut { .. }));
+        if focus_out && state.completion.is_open() {
+            CompletionController::new(self.id, self.popup_id).dismiss(cx, &mut state.completion);
+            state.items.clear();
+        }
         let was_open = state.completion.is_open();
         let manual_requested = cx.intents(self.id).any(|intent| {
             matches!(intent, Intent::Binding(action) if action == MANUAL_COMPLETION_ACTION)
