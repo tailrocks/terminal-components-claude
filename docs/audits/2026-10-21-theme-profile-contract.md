@@ -10,13 +10,26 @@ The public consumer tests use a custom family and different data alongside a rea
 
 Focused verification on the author worktree at source base `34f73e3066da7a77eac2d4719a697dc085906dda`:
 
-- `cargo nextest run -p termrock-theme --test level_profiles`: 8 passed.
-- `cargo nextest run -p termrock-theme`: 148 tests, 147 passed, 1 failed (`capability_palettes::all_73_junie_slots_match_reference_capability_output`, the known invalid universal oracle); zero skipped. The separate exploratory run excluding only that exact name passed 147/147, but it is not the package gate.
+- `cargo nextest run -p termrock-theme --test level_profiles`: 9 passed after the independent-review correction; this supersedes the earlier eight-test count below.
+- At the earlier `d5c8e655` revision, `cargo nextest run -p termrock-theme` ran 148 tests: 147 passed and the known invalid universal oracle failed; zero skipped. The separate exploratory filtered run was not a package gate. The later full run supersedes these counts below.
 - The related existing `SPLIT` family-profile tests for capability output, user customization, and cloned-theme cache separation: 3 passed.
 - `cargo clippy -p termrock-theme --all-targets -- -D warnings`: passed.
 - `rustfmt --edition 2024 --check` on the four owned Rust files: passed.
 - `cargo fmt --all --check` could not provide a workspace-wide result in this sparse worktree because unrelated tracked test/example sources are absent (for example `crates/holla/tests/holla_pty.rs` and `crates/termrock/examples/file_catalogue_master_detail.rs`); the four owned Rust files passed direct formatting validation.
 
-The full current unfiltered package run is 148 tests: 147 pass and the single known invalid universal oracle `all_73_junie_slots_match_reference_capability_output` fails. An earlier run before correcting source/projected-token provenance produced three additional existing `SPLIT` failures; those exact compatibility cases now pass. The new Mono precedence test exposed and fixed authored targeted Mono channels being overwritten by profile defaults. The exploratory 147/147 filtered run is evidence only, not a package pass. Do not mark the all-73 product obligation complete or replace its expected data based on this work.
+At `d5c8e655`, the unfiltered package run was 148 tests: 147 pass and the single known invalid universal oracle `all_73_junie_slots_match_reference_capability_output` fails. This is historical and is superseded by the correction results below. An earlier run before correcting source/projected-token provenance produced three additional existing `SPLIT` failures; those exact compatibility cases now pass. The new Mono precedence test exposed and fixed authored targeted Mono channels being overwritten by profile defaults. The exploratory 147/147 filtered run is evidence only, not a package pass. Do not mark the all-73 product obligation complete or replace its expected data based on this work.
 
 This is a first contract increment, not visual acceptance. Remaining checks include wider state-channel compatibility coverage, external consumer compilation on the integrated source head, full Mono-profile interaction verification, integration with the separately owned Button/Dialog changes, and the full four-application paired tuiscotti acceptance gate. The PR38 integration parent must rebase this WIP onto the current branch head and rerun exact-head gates before publication.
+
+## Independent review correction (2026-10-21)
+
+Reviewer `theme-profile-independent-review-d5c8e655/review.json`, SHA-256 `409c36257393d2dc536279725798f2b0560a09e2e7b83ff85898efd7c8db68a7`, reviewed contract commit `d5c8e655158cec48cf0e4ff24d3ac87f7157f048` and found that unconditional `preserve_custom_channels(targeted)` treated arbitrary user-authored Mono custom colors as exact capability-profile output. The reproducible no-profile case supplied `Role::Custom(Color::Indexed(37))` through `StyleDefaults::mono`; the old resolver canonically bound it to Mono `Black`, while the first patch bypassed quantization and returned `Indexed(37)`.
+
+The correction removes that exact-color promotion. Profile channels still outrank generic Mono fallback when the same profile channel is active, while authored Mono rules still override the fallback patch and then pass through ordinary role binding. Two regression paths now verify both `bind_defaults` and `bind_defaults_with_explicit` against `bind_role` with no level profile. The profile-plus-authored-rule consumer test also asserts canonical binding for its custom override. No literal color special case or generic quantizer change was introduced.
+
+Reviewer status was `requires_changes` for this finding; that reviewer did not publish or edit source. The correction’s exact commit and rerun verification are recorded below. Remaining review gaps and the all-73 RED oracle remain as recorded above.
+
+
+## Follow-up verification after the Mono quantization correction
+
+The no-profile regression is covered through both public resolver entry points (`bind_defaults` and `bind_defaults_with_explicit`). The focused consumer suite now has 9 tests and passes 9/9. Strict `cargo clippy -p termrock-theme --all-targets -- -D warnings` passes; file-scoped `rustfmt --edition 2024 --check` passes on the four owned Rust files. The unfiltered Theme package gate is 149 tests: 148 passed, 1 failed (`capability_palettes::all_73_junie_slots_match_reference_capability_output`), zero skipped. The prior review-only Mono failure no longer reproduces. This record supersedes the earlier 148-case package count and 8-case focused count.
