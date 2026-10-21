@@ -32,6 +32,11 @@ termrock-shell.workspace = true
 ratatui.workspace = true
 ratatui-core.workspace = true
 
+[dev-dependencies]
+# The crate's own unit tests drive the runtime harness, which lives behind the
+# runtime's testing feature.
+termrock-runtime = { workspace = true, features = ["testing"] }
+
 # The example journeys drive the runtime through the testing harness surface
 # (Runtime::draw_buffer and friends); they need the facade's testing feature.
 [[test]]
@@ -56,6 +61,10 @@ required-features = ["testing"]
 
 [[test]]
 name = "nav_list_composition_consumer"
+required-features = ["testing"]
+
+[[test]]
+name = "public_component_contracts"
 required-features = ["testing"]
 
 [[test]]
