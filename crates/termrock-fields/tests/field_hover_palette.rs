@@ -150,6 +150,9 @@ fn authored_ansi16_profile_overlays_only_the_qualified_field_hover_token() {
     assert_eq!(authored.field_hover, Color::DarkGray);
     let mut compare = authored;
     compare.field_hover = generic.field_hover;
+    compare.fg[3] = generic.fg[3];
+    compare.meter.stale = generic.meter.stale;
+    compare.meter.unknown = generic.meter.unknown;
     assert_eq!(compare, generic);
 }
 

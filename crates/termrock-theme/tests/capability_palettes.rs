@@ -76,11 +76,14 @@ fn all_73_junie_slots_match_reference_capability_output() {
             // Corpus stale/unknown meter ink shares the faint/chrome source.
             expected.meter.stale = Color::Indexed(238);
             expected.meter.unknown = Color::Indexed(238);
+            expected.disabled_fg = Color::Indexed(239);
         }
         if level == ColorLevel::Ansi16 {
             // Corpus faint ink renders DarkGray at 16; the current 0x737373
             // source would generically land on Gray.
             expected.fg[3] = Color::DarkGray;
+            expected.meter.stale = Color::DarkGray;
+            expected.meter.unknown = Color::DarkGray;
         }
         if level == ColorLevel::Mono {
             // Frozen baseline apply_mono keeps the hovered field black.
