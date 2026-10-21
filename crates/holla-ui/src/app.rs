@@ -405,45 +405,32 @@ fn parity_browser_tag_plate(world: &World, width: u16, _height: u16) -> bool {
 }
 
 /// 80×24 and 100×30 clip the last hint. 120×40 fits every hint, so it keeps the wide parts.
-fn parity_git_current_clipped_plate(world: &World, width: u16, height: u16) -> bool {
-    crate::sim::catalogue::parity_git_current_80x24_plate(world, width, height).is_some()
-        || crate::sim::catalogue::parity_git_current_100x30_plate(world, width, height).is_some()
+fn parity_git_current_clipped_plate(world: &World, width: u16, _height: u16) -> bool {
+    crate::sim::catalogue::parity_git_current_tag_frame(world) && (80..120).contains(&width)
 }
 
-/// 80×24, 100×30, and 120×40 `parity-git-current`. Browser, files, history, discovery, and every other size stay off.
-fn parity_git_current_tag_plate(world: &World, width: u16, height: u16) -> bool {
-    parity_git_current_clipped_plate(world, width, height)
-        || crate::sim::catalogue::parity_git_current_120x40_plate(world, width, height).is_some()
+fn parity_git_current_tag_plate(world: &World, width: u16, _height: u16) -> bool {
+    crate::sim::catalogue::parity_git_current_tag_frame(world) && (80..160).contains(&width)
 }
 
-/// 80×24 and 100×30 clip the last hint. 120×40 fits every hint, so it keeps the wide parts.
-fn parity_cargo_clipped_plate(world: &World, width: u16, height: u16) -> bool {
-    crate::sim::catalogue::parity_cargo_80x24_plate(world, width, height).is_some()
-        || crate::sim::catalogue::parity_cargo_100x30_plate(world, width, height).is_some()
+fn parity_cargo_clipped_plate(world: &World, width: u16, _height: u16) -> bool {
+    crate::sim::catalogue::parity_cargo_tag_frame(world) && (80..120).contains(&width)
 }
 
-/// 80×24, 100×30, and 120×40 `parity-cargo`. Git-current, browser, files, history, discovery, and every other size stay off.
-fn parity_cargo_tag_plate(world: &World, width: u16, height: u16) -> bool {
-    parity_cargo_clipped_plate(world, width, height)
-        || crate::sim::catalogue::parity_cargo_120x40_plate(world, width, height).is_some()
+fn parity_cargo_tag_plate(world: &World, width: u16, _height: u16) -> bool {
+    crate::sim::catalogue::parity_cargo_tag_frame(world) && (80..160).contains(&width)
 }
 
-/// 80×24 and 100×30 `parity-git-batch` clip the last hint. 120×40 keeps every hint and a short status.
-/// Cargo, git-current, and every other size stay off.
-fn parity_git_batch_clipped_plate(world: &World, width: u16, height: u16) -> bool {
-    crate::sim::catalogue::parity_git_batch_80x24_plate(world, width, height).is_some()
-        || crate::sim::catalogue::parity_git_batch_100x30_plate(world, width, height).is_some()
+fn parity_git_batch_clipped_plate(world: &World, width: u16, _height: u16) -> bool {
+    crate::sim::catalogue::parity_git_batch_tag_frame(world) && (80..120).contains(&width)
 }
 
-/// 80×24, 100×30, and 120×40 `parity-git-batch`. Cargo, git-current, browser, files, history, discovery, and every other size stay off.
-fn parity_git_batch_tag_plate(world: &World, width: u16, height: u16) -> bool {
-    parity_git_batch_clipped_plate(world, width, height)
-        || crate::sim::catalogue::parity_git_batch_120x40_plate(world, width, height).is_some()
+fn parity_git_batch_tag_plate(world: &World, width: u16, _height: u16) -> bool {
+    crate::sim::catalogue::parity_git_batch_tag_frame(world) && (80..160).contains(&width)
 }
 
-/// 80×24 `parity-task-sources` only. Other sizes, git-batch, cargo, git-current, browser, files, history, and discovery stay off.
-fn parity_task_sources_tag_plate(world: &World, width: u16, height: u16) -> bool {
-    crate::sim::catalogue::parity_task_sources_80x24_plate(world, width, height).is_some()
+fn parity_task_sources_tag_plate(world: &World, width: u16, _height: u16) -> bool {
+    crate::sim::catalogue::parity_task_sources_tag_frame(world) && (80..120).contains(&width)
 }
 
 /// Tag parity-browser status at 80×24, 100×30, and 120×40: cwd, then the size label. No branch.
@@ -1832,13 +1819,8 @@ impl App {
         } else if parity_cargo_tag_plate(&self.world, ui.full().width, ui.full().height) {
             Some(("Run", None))
         } else if parity_git_batch_tag_plate(&self.world, ui.full().width, ui.full().height) {
-            let wide = crate::sim::catalogue::parity_git_batch_120x40_plate(
-                &self.world,
-                ui.full().width,
-                ui.full().height,
-            )
-            .is_some();
             // The wide card keeps every hint. The title is cut to the ten cells left of the edge.
+            let wide = (120..160).contains(&ui.full().width);
             Some(("Open", wide.then_some("Status ac…")))
         } else if parity_task_sources_tag_plate(&self.world, ui.full().width, ui.full().height) {
             Some(("Run", None))
