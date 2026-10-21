@@ -84,7 +84,8 @@ pub use termrock_core::id;
 pub use termrock_core::id::{Id, ItemKey, Part, PartRef, Revision};
 
 pub use blocks::{
-    MasterDetail, MasterDetailAction, MasterDetailError, MasterDetailPolicy, MasterDetailState,
+    AppShell, AppShellSlots, Chrome, EmptyLeaf, MasterDetail, MasterDetailAction,
+    MasterDetailError, MasterDetailPolicy, MasterDetailState, Regions, SplitBlock, SplitBlockError,
 };
 pub use slots::{DialogSlotExt, PickerSlotExt, PropsSlotExt};
 pub use termrock_runtime::ui::LayerSlot;
