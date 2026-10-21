@@ -205,6 +205,10 @@ fn resolve_row_part_with_defaults(
             ui.style_defaults_with_explicit(family, variant, part, flags, defaults, patch.as_ref());
         if family == Family::PICKER
             && matches!(part, Part::ICON | Part::META)
+            // Contrast repair is only needed when the owner supplied a
+            // concrete background. Theme/profile defaults are intentional
+            // product styling and must remain unchanged (notably in mono).
+            && resolved.explicit.bg != Slot::Inherit
             && resolved.explicit.fg == Slot::Inherit
             && let Some(preferred) = resolved.resolved.style.fg
             && let Some(ink) = readable_picker_ink(preferred, resolved.resolved.style.bg)
