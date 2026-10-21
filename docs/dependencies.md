@@ -2,6 +2,6 @@
 
 ## Velnor Actions
 
-PR #38 pins the latest released generator, `velnor-actions` 0.1.30, in `mise.toml` and `mise.lock`. The release was published 2026-10-20 from `tailrocks/velnor-new` commit `a6b1d7873151dc62711844158490e8687d191943`. Its official `.velnor/release-manifest.json` SHA-256 is `81f24072a16f35f30845fd373b114f7c615e9119ee434fe39dab83de84fc56ea`. The macOS ARM64 generator SHA-256 is `7cb74f0a82edbc9545d5d2170387a21dab33c84e8674610fd1e46dad2ca2ad3c`.
+PR #38 pins Velnor Actions `velnor-actions` 0.1.31 in `mise.toml` and `mise.lock`. GitHub published the release at `2026-10-20T22:37:05Z` from `tailrocks/velnor-new` commit `9102646d80d0aadd05cac536b94ae830c4855e05`. The official `.velnor/release-manifest.json` SHA-256 is `45c8e842730690e6baadd9d9b91a6457b969ca29030242cc7af87653a0bdba4f`; the macOS ARM64 generator SHA-256 is `bb968f6ce3cb67f2e33152410b8f74bc00d01643a9dcf6fa6ad46a533e563a3c`.
 
-The migration and generated-workflow audit is in [the 0.1.30 audit](audits/2026-10-21-velnor-0.1.30-upgrade.md). Other dependency pins were not audited by that change.
+The migration and generated-workflow audit is in [the 0.1.31 audit](audits/2026-10-21-velnor-0.1.31-upgrade.md). Other dependency pins were not audited by that change.
