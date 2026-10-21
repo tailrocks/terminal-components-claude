@@ -19,6 +19,7 @@ pub mod keyhint;
 pub mod meter;
 pub mod progress;
 pub mod section;
+pub mod session_chrome;
 pub mod status;
 
 pub use hintbar::{DerivedHintBar, HintBar};
@@ -26,4 +27,5 @@ pub use keyhint::{ChordText, HintText, KeyHint};
 pub use meter::{Meter, MeterTone, MeterVisual};
 pub use progress::{ProgressBar, Spinner};
 pub use section::TextSection;
+pub use session_chrome::{SessionChrome, SessionHint, SessionMenu, paint_session_chrome};
 pub use status::{Emphasis, Group, MAX_ITEMS, StatusAction, StatusBar, StatusItem};
