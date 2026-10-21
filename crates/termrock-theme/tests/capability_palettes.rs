@@ -87,6 +87,9 @@ fn all_73_junie_slots_match_reference_capability_output() {
             expected.highlight_bg = Color::Indexed(25);
             expected.syntax.match_current_bg = Color::Indexed(55);
             expected.highlight_danger_bg = Color::Indexed(88);
+            // Frozen apply_256 (`self.success = i(71)`): the status green is
+            // its own ladder slot, off the accent cube cell 78.
+            expected.success = Color::Indexed(71);
             // Corpus stale/unknown meter ink shares the faint/chrome source.
             expected.meter.stale = Color::Indexed(238);
             expected.meter.unknown = Color::Indexed(238);
@@ -96,12 +99,17 @@ fn all_73_junie_slots_match_reference_capability_output() {
             // Corpus faint ink renders DarkGray at 16; the current 0x737373
             // source would generically land on Gray.
             expected.fg[3] = Color::DarkGray;
+            // Frozen apply_16 (`self.success = Green`): base ladder slot.
+            expected.success = Color::Green;
             expected.meter.stale = Color::DarkGray;
             expected.meter.unknown = Color::DarkGray;
         }
         if level == ColorLevel::Mono {
             // Frozen baseline apply_mono keeps the hovered field black.
             expected.field_hover = Color::Black;
+            // Frozen apply_mono (`self.success = White`): the status slot
+            // lifts to White on the mono ladder.
+            expected.success = Color::White;
         }
         assert_eq!(original.downgrade(level).color, expected, "{level:?}");
     }
