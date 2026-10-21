@@ -40,6 +40,7 @@ pub struct MenuItem<'a> {
     label: &'a str,
     chord: Option<Chord>,
     hint: Option<&'a str>,
+    reason: Option<&'a str>,
     disabled: bool,
     danger: bool,
     separator_after: bool,
@@ -53,6 +54,7 @@ impl<'a> MenuItem<'a> {
             label,
             chord: None,
             hint: None,
+            reason: None,
             disabled: false,
             danger: false,
             separator_after: false,
@@ -70,6 +72,17 @@ impl<'a> MenuItem<'a> {
     #[must_use]
     pub const fn hint(mut self, hint: &'a str) -> Self {
         self.hint = Some(hint);
+        self
+    }
+
+    /// Associates explanatory text with an unavailable action.
+    ///
+    /// The text is displayed in the menu's bottom border when the item is
+    /// hovered or highlighted. It is not a shortcut or a binding.
+    #[must_use]
+    pub const fn reason(mut self, reason: &'a str) -> Self {
+        self.reason = Some(reason);
+        self.disabled = true;
         self
     }
 
@@ -113,6 +126,10 @@ impl<'a> MenuItem<'a> {
         self.hint
     }
 
+    pub const fn reason_ref(&self) -> Option<&'a str> {
+        self.reason
+    }
+
     pub const fn is_disabled(&self) -> bool {
         self.disabled
     }
@@ -138,6 +155,11 @@ impl<'a> Menu<'a> {
 pub struct MenuState {
     cursor: usize,
     open: Option<usize>,
+    pointed: Option<usize>,
+    last_hovered: Option<PartRef>,
+    hover_suppressed: bool,
+    highlight_hidden: bool,
+    initialized: bool,
 }
 
 impl MenuState {
@@ -369,6 +391,8 @@ pub struct ContextMenu<'a> {
     chord_case: ChordCase,
     bar_navigation: Option<(usize, usize)>,
     retained_cursor: Option<Id>,
+    skip_disabled: bool,
+    clear_on_leave: bool,
 }
 
 impl fmt::Debug for ContextMenu<'_> {
@@ -381,6 +405,8 @@ impl fmt::Debug for ContextMenu<'_> {
             .field("title", &self.title)
             .field("bar_navigation", &self.bar_navigation)
             .field("retained_cursor", &self.retained_cursor)
+            .field("skip_disabled", &self.skip_disabled)
+            .field("clear_on_leave", &self.clear_on_leave)
             .finish_non_exhaustive()
     }
 }
@@ -395,6 +421,7 @@ impl<'a> ContextMenu<'a> {
         Part::KEY,
         Part::MARKER,
         Part::RULE,
+        Part::HELP,
     ];
 
     pub const fn new(id: Id, items: &'a [MenuItem<'a>], anchor: Anchor) -> Self {
@@ -408,6 +435,8 @@ impl<'a> ContextMenu<'a> {
             chord_case: ChordCase::Preserve,
             bar_navigation: None,
             retained_cursor: None,
+            skip_disabled: true,
+            clear_on_leave: false,
         }
     }
 
@@ -439,6 +468,23 @@ impl<'a> ContextMenu<'a> {
     #[must_use]
     pub const fn chord_case(mut self, case: ChordCase) -> Self {
         self.chord_case = case;
+        self
+    }
+
+    /// Controls whether keyboard navigation skips disabled items.
+    /// Defaults to `true` for compatibility with existing menus.
+    #[must_use]
+    pub const fn skip_disabled(mut self, skip: bool) -> Self {
+        self.skip_disabled = skip;
+        self
+    }
+
+    /// Hides the active row highlight after the pointer leaves the menu.
+    /// Keyboard navigation or a subsequent pointer move restores it.
+    /// Defaults to `false` for compatibility with existing menus.
+    #[must_use]
+    pub const fn clear_on_leave(mut self, clear: bool) -> Self {
+        self.clear_on_leave = clear;
         self
     }
 
@@ -539,6 +585,76 @@ impl<'a> ContextMenu<'a> {
         self.items.get(index).is_some_and(|item| !item.disabled)
     }
 
+    fn initial_cursor(&self) -> usize {
+        self.first_enabled().unwrap_or(0)
+    }
+
+    fn navigation_cursor(&self, first: bool) -> Option<usize> {
+        if !self.skip_disabled {
+            (!self.items.is_empty()).then_some(if first {
+                0
+            } else {
+                self.items.len().saturating_sub(1)
+            })
+        } else if first {
+            self.first_enabled()
+        } else {
+            self.last_enabled()
+        }
+    }
+
+    fn observe_hover(&self, st: &mut MenuState, hovered: Option<PartRef>) {
+        if hovered == st.last_hovered {
+            return;
+        }
+        if self.clear_on_leave
+            && let Some(index) = st.last_hovered.and_then(Self::row_index)
+            && self.enabled_at(index)
+        {
+            st.highlight_hidden = true;
+        }
+        st.last_hovered = hovered;
+        st.hover_suppressed = false;
+        match hovered.and_then(Self::row_index) {
+            Some(index) if self.enabled_at(index) => {
+                st.pointed = None;
+                st.cursor = index;
+                st.highlight_hidden = false;
+            }
+            Some(index) => st.pointed = Some(index),
+            None => st.pointed = None,
+        }
+    }
+
+    fn row_index(part: PartRef) -> Option<usize> {
+        match part {
+            PartRef {
+                part: Part::ROW,
+                item: Some(ItemKey::Index(index)),
+            } => Some(index),
+            _ => None,
+        }
+    }
+
+    fn clear_pointer_state(&self, st: &mut MenuState) {
+        st.pointed = None;
+        st.last_hovered = None;
+        st.hover_suppressed = false;
+        st.highlight_hidden = false;
+    }
+
+    fn status_reason(&self, st: &MenuState) -> Option<&'a str> {
+        let pointed = st.pointed.and_then(|index| self.items.get(index));
+        let item = pointed.or_else(|| {
+            (!st.highlight_hidden)
+                .then(|| self.items.get(st.cursor))
+                .flatten()
+        })?;
+        (item.disabled)
+            .then_some(item.reason?)
+            .filter(|reason| !reason.is_empty())
+    }
+
     fn first_enabled(&self) -> Option<usize> {
         self.items.iter().position(|item| !item.disabled)
     }
@@ -558,7 +674,7 @@ impl<'a> ContextMenu<'a> {
                 .wrapping_add_signed(delta)
                 .checked_rem(len)
                 .unwrap_or_default();
-            if self.enabled_at(index) {
+            if !self.skip_disabled || self.enabled_at(index) {
                 let changed = st.cursor != index;
                 st.cursor = index;
                 return changed;
@@ -580,8 +696,8 @@ impl<'a> ContextMenu<'a> {
         match command {
             MenuCmd::Prev => moved(self.step(st, -1)),
             MenuCmd::Next => moved(self.step(st, 1)),
-            MenuCmd::First => set_cursor(st, self.first_enabled()),
-            MenuCmd::Last => set_cursor(st, self.last_enabled()),
+            MenuCmd::First => set_cursor(st, self.navigation_cursor(true)),
+            MenuCmd::Last => set_cursor(st, self.navigation_cursor(false)),
             MenuCmd::Activate => self
                 .activate(st)
                 .map_or_else(Response::consumed, Response::action),
@@ -623,17 +739,51 @@ impl<'a> ContextMenu<'a> {
         )
     }
 
+    fn is_navigation_binding(&self, action: ActionKey) -> bool {
+        let command = if self.bar_navigation.is_some() {
+            Binding::command(BAR_BINDINGS, action)
+                .or_else(|| Binding::command(CONTEXT_BINDINGS, action))
+        } else {
+            Binding::command(CONTEXT_BINDINGS, action)
+        };
+        matches!(
+            command,
+            Some(MenuCmd::Prev | MenuCmd::Next | MenuCmd::First | MenuCmd::Last)
+        )
+    }
+
+    fn after_keyboard_navigation(&self, st: &mut MenuState, cx: &Cx<'_>) {
+        st.pointed = None;
+        st.last_hovered = FrameRead::hovered_part(cx, self.id);
+        st.hover_suppressed = true;
+        st.highlight_hidden = false;
+    }
+
     fn pointer(&self, st: &mut MenuState, index: usize, phase: Phase) -> Response<MenuAction> {
         if !self.enabled_at(index) {
+            if phase == Phase::Move {
+                st.pointed = Some(index);
+                st.last_hovered = Some(PartRef::item(Part::ROW, ItemKey::index(index)));
+                st.hover_suppressed = false;
+            }
             return Response::consumed();
         }
         match phase {
             Phase::Click | Phase::DoubleClick => {
                 st.cursor = index;
+                st.pointed = None;
+                st.highlight_hidden = false;
                 self.activate(st)
                     .map_or_else(Response::consumed, Response::action)
             }
-            Phase::Move if st.cursor != index => {
+            Phase::Move => {
+                st.last_hovered = Some(PartRef::item(Part::ROW, ItemKey::index(index)));
+                st.hover_suppressed = false;
+                st.pointed = None;
+                st.highlight_hidden = false;
+                if st.cursor == index {
+                    return Response::consumed();
+                }
                 st.cursor = index;
                 Response::changed()
             }
@@ -642,11 +792,16 @@ impl<'a> ContextMenu<'a> {
     }
 
     pub fn update(&self, cx: &mut Cx<'_>, st: &mut MenuState) -> Response<MenuAction> {
-        if !self.enabled_at(st.cursor)
+        if !self.skip_disabled && !st.initialized {
+            st.cursor = self.initial_cursor();
+            st.initialized = true;
+        } else if self.skip_disabled
+            && !self.enabled_at(st.cursor)
             && let Some(first) = self.first_enabled()
         {
             st.cursor = first;
         }
+        self.observe_hover(st, FrameRead::hovered_part(cx, self.id));
         if cx.is_open(self.id) {
             let Some(anchor) = self.resolve_anchor(cx) else {
                 cx.close_layer(self.id, None);
@@ -659,14 +814,35 @@ impl<'a> ContextMenu<'a> {
         for intent in cx.intents(self.id) {
             let response = match intent {
                 Intent::Layer(LayerEvent::Dismissed(reason)) => {
+                    self.clear_pointer_state(st);
+                    st.initialized = false;
                     Response::action(MenuAction::Closed(reason))
                 }
-                Intent::Layer(_) => Response::ignored().repaint(),
+                Intent::Layer(LayerEvent::Opened) => {
+                    if !self.skip_disabled {
+                        st.cursor = self.initial_cursor();
+                        st.initialized = true;
+                    }
+                    self.clear_pointer_state(st);
+                    Response::ignored().repaint()
+                }
+                Intent::Layer(LayerEvent::Closed(_)) => {
+                    self.clear_pointer_state(st);
+                    st.initialized = false;
+                    Response::ignored().repaint()
+                }
                 Intent::Cancel => {
                     cx.close_layer(self.id, None);
                     Response::action(MenuAction::Closed(DismissReason::Esc))
                 }
-                Intent::Binding(action) => self.binding_response(st, action),
+                Intent::Binding(action) => {
+                    let navigation = self.is_navigation_binding(action);
+                    let response = self.binding_response(st, action);
+                    if navigation {
+                        self.after_keyboard_navigation(st, cx);
+                    }
+                    response
+                }
                 Intent::Pointer {
                     phase,
                     part:
@@ -782,6 +958,9 @@ impl<'a> ContextMenu<'a> {
                     y = y.saturating_add(1);
                 }
             }
+            if let Some(reason) = self.status_reason(st) {
+                self.draw_reason(ui, area, reason);
+            }
         });
         if let Some(owner) = self.retained_cursor {
             let _ = ui.retain_visible_owner_cursor(owner);
@@ -804,12 +983,13 @@ impl<'a> ContextMenu<'a> {
                 | StateFlags::HOVERED
                 | StateFlags::PRESSED,
         );
-        if FrameRead::hovered_part(ui, self.id)
-            == Some(PartRef::item(Part::ROW, ItemKey::index(index)))
+        if !st.hover_suppressed
+            && FrameRead::hovered_part(ui, self.id)
+                == Some(PartRef::item(Part::ROW, ItemKey::index(index)))
         {
             derived |= StateFlags::HOVERED;
         }
-        if index == st.cursor {
+        if index == st.cursor && !st.highlight_hidden {
             derived |=
                 StateFlags::ACTIVE | parent & (StateFlags::FOCUSED | StateFlags::FOCUS_VISIBLE);
         }
@@ -891,6 +1071,39 @@ impl<'a> ContextMenu<'a> {
             PartRef::item(Part::ROW, ItemKey::index(index)),
             row,
         );
+    }
+
+    fn draw_reason(&self, ui: &mut Ui<'_>, area: Rect, reason: &str) {
+        let available = area.width.saturating_sub(4);
+        if available < 3 || reason.is_empty() {
+            return;
+        }
+        let reason = crate::text::truncate(reason, available.saturating_sub(2));
+        let padded = format!(" {reason} ");
+        let width = width(&padded).min(available);
+        if width == 0 {
+            return;
+        }
+        let row = Rect {
+            x: area.x.saturating_add(2),
+            y: area.y.saturating_add(area.height.saturating_sub(1)),
+            width,
+            height: 1,
+        };
+        let style = self.ov.style(
+            ui,
+            self.id,
+            Family::MENU,
+            Variant::DEFAULT,
+            Part::HELP,
+            StateFlags::empty(),
+        );
+        if let Some(slot) = self.ov.slot_for(Part::HELP) {
+            slot(ui, row);
+        } else {
+            ui.paint_str(row, &padded, style.style);
+        }
+        ui.register_decor(self.id, PartRef::of(Part::HELP), row);
     }
 
     pub fn measure(&self, ui: &Ui<'_>, c: Constraints) -> Size {
@@ -999,6 +1212,8 @@ impl<'a> MenuBar<'a> {
             chord_case: self.chord_case,
             bar_navigation: Some((index, self.menus.len())),
             retained_cursor: None,
+            skip_disabled: true,
+            clear_on_leave: false,
         })
     }
 
@@ -1253,6 +1468,8 @@ impl<'a> MenuBar<'a> {
                 chord_case: self.chord_case,
                 bar_navigation: Some((open, self.menus.len())),
                 retained_cursor: None,
+                skip_disabled: true,
+                clear_on_leave: false,
             };
             let _ = ui.layer(self.id, |ui, layer| dropdown.draw(ui, layer, st));
         }
@@ -1658,6 +1875,385 @@ mod tests {
         assert_eq!(long_shortcut.natural_width(|_, chord| chord), 40);
     }
 
+    #[test]
+    fn disabled_reasons_are_borrowed_and_do_not_change_menu_measurement() {
+        const REASON: &str = "The clipboard is empty";
+        const WITHOUT_REASON: [MenuItem<'static>; 2] = [
+            MenuItem::new(OPEN, "Open"),
+            MenuItem::new(CLOSE, "Paste").chord(Chord::key(KeyCode::Char('p'))),
+        ];
+        const WITH_REASON: [MenuItem<'static>; 2] = [
+            MenuItem::new(OPEN, "Open"),
+            MenuItem::new(CLOSE, "Paste")
+                .chord(Chord::key(KeyCode::Char('p')))
+                .reason(REASON),
+        ];
+
+        assert_eq!(WITH_REASON[1].reason_ref(), Some(REASON));
+        assert!(WITH_REASON[1].is_disabled());
+        assert_eq!(
+            WITH_REASON[1].chord_ref(),
+            Some(Chord::key(KeyCode::Char('p')))
+        );
+        assert_eq!(
+            WITH_REASON[1].disabled(false).reason_ref(),
+            Some(REASON),
+            "explicit enabled override retains the borrowed explanation"
+        );
+        assert!(!WITH_REASON[1].disabled(false).is_disabled());
+
+        let plain = ContextMenu::at(
+            Id::root("menu.tests.reason-width.plain"),
+            &WITHOUT_REASON,
+            Position::new(0, 0),
+        );
+        let described = ContextMenu::at(
+            Id::root("menu.tests.reason-width.described"),
+            &WITH_REASON,
+            Position::new(0, 0),
+        );
+        assert_eq!(plain.natural_width(|_, chord| chord), 15);
+        assert_eq!(
+            described.natural_width(|_, chord| chord),
+            plain.natural_width(|_, chord| chord)
+        );
+
+        let borrowed = String::from("borrowed reason");
+        let item = MenuItem::new(CLOSE, "Paste").reason(&borrowed);
+        assert_eq!(item.reason_ref(), Some(borrowed.as_str()));
+    }
+
+    const REASON_OPEN: ActionKey = ActionKey::custom("menu.reason.open");
+    const REASON_PASTE: ActionKey = ActionKey::custom("menu.reason.paste");
+    const REASON_CLEAR: ActionKey = ActionKey::custom("menu.reason.clear");
+    const REASON_ITEMS: [MenuItem<'static>; 3] = [
+        MenuItem::new(REASON_OPEN, "Open"),
+        MenuItem::new(REASON_PASTE, "Paste")
+            .chord(Chord::key(KeyCode::Char('p')))
+            .reason("The clipboard is empty"),
+        MenuItem::new(REASON_CLEAR, "Clear")
+            .reason("Nothing is selected")
+            .separator(),
+    ];
+    const REASON_MENU: Id = Id::root("menu.disabled-reason.runtime");
+
+    struct ReasonMenuApp {
+        state: MenuState,
+        chosen: Option<ActionKey>,
+    }
+
+    fn reason_menu() -> ContextMenu<'static> {
+        ContextMenu::at(REASON_MENU, &REASON_ITEMS, Position::new(0, 0))
+            .skip_disabled(false)
+            .clear_on_leave(true)
+    }
+
+    impl App for ReasonMenuApp {
+        fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+            let response = reason_menu().update(cx, &mut self.state);
+            if let Some(MenuAction::Chosen(action)) = response.action_ref() {
+                self.chosen = Some(*action);
+            }
+            response.erase()
+        }
+
+        fn draw(&self, ui: &mut Ui<'_>) {
+            reason_menu().draw(ui, Rect::new(0, 0, 40, 8), &self.state);
+        }
+    }
+
+    fn reason_runtime(color: crate::ColorLevel) -> (Runtime<ReasonMenuApp>, Buffer) {
+        let area = Rect::new(0, 0, 40, 8);
+        let mut buffer = Buffer::empty(area);
+        let mut runtime = Runtime::new(
+            ReasonMenuApp {
+                state: MenuState::default(),
+                chosen: None,
+            },
+            Theme::junie().downgrade(color),
+        );
+        let _ = runtime.initialize();
+        runtime.draw_buffer(area, &mut buffer).commit_presented();
+        runtime.draw_buffer(area, &mut buffer).commit_presented();
+        (runtime, buffer)
+    }
+
+    fn row_text(buffer: &Buffer, y: u16) -> String {
+        (0..buffer.area.width)
+            .map(|x| {
+                buffer
+                    .cell(Position::new(x, y))
+                    .map_or(" ", ratatui_core::buffer::Cell::symbol)
+            })
+            .collect()
+    }
+
+    #[test]
+    fn disabled_reason_is_bottom_border_help_across_color_profiles() {
+        for color in [
+            crate::ColorLevel::TrueColor,
+            crate::ColorLevel::Ansi256,
+            crate::ColorLevel::Ansi16,
+            crate::ColorLevel::Mono,
+        ] {
+            let (mut runtime, mut buffer) = reason_runtime(color);
+            assert_eq!(
+                runtime.app().state.cursor(),
+                0,
+                "initial cursor at {color:?}"
+            );
+            let _ = crate::runtime::stub::deliver(
+                &mut runtime,
+                Input::Mouse(Mouse {
+                    kind: MouseKind::Move,
+                    pos: Position::new(4, 2),
+                    mods: KeyModifiers::NONE,
+                }),
+            );
+            assert_eq!(
+                runtime.app().state.cursor(),
+                0,
+                "disabled hover at {color:?}"
+            );
+            assert_eq!(
+                runtime.app().chosen,
+                None,
+                "disabled hover action at {color:?}"
+            );
+            runtime
+                .draw_buffer(Rect::new(0, 0, 40, 8), &mut buffer)
+                .commit_presented();
+            assert!(
+                row_text(&buffer, 7).contains(" The clipboard is empty "),
+                "reason should paint in bottom border at {color:?}: {}",
+                row_text(&buffer, 7)
+            );
+            let help = runtime
+                .area_of_part(REASON_MENU, PartRef::of(Part::HELP))
+                .expect("rendered status decoration");
+            assert_eq!(help.y, 7);
+            assert!(help.x >= 2 && help.right() <= 38);
+
+            let _ = crate::runtime::stub::deliver(
+                &mut runtime,
+                Input::Mouse(Mouse {
+                    kind: MouseKind::Down,
+                    pos: Position::new(4, 2),
+                    mods: KeyModifiers::NONE,
+                }),
+            );
+            let _ = crate::runtime::stub::deliver(
+                &mut runtime,
+                Input::Mouse(Mouse {
+                    kind: MouseKind::Up,
+                    pos: Position::new(4, 2),
+                    mods: KeyModifiers::NONE,
+                }),
+            );
+            assert_eq!(runtime.app().chosen, None, "disabled click at {color:?}");
+        }
+    }
+
+    #[test]
+    fn opted_in_keyboard_navigation_can_highlight_but_never_activate_disabled_reason() {
+        let (mut runtime, mut buffer) = reason_runtime(crate::ColorLevel::TrueColor);
+        let _ = crate::runtime::stub::deliver(&mut runtime, Input::Key(key(KeyCode::Down)));
+        assert_eq!(runtime.app().state.cursor(), 1);
+        let _ = crate::runtime::stub::deliver(&mut runtime, Input::Key(key(KeyCode::Enter)));
+        let _ = crate::runtime::stub::deliver(&mut runtime, Input::Key(key(KeyCode::Char('p'))));
+        assert_eq!(runtime.app().chosen, None);
+        runtime
+            .draw_buffer(Rect::new(0, 0, 40, 8), &mut buffer)
+            .commit_presented();
+        assert!(row_text(&buffer, 7).contains(" The clipboard is empty "));
+    }
+
+    #[test]
+    fn keyboard_navigation_after_disabled_hover_suppresses_stale_pointer_reason() {
+        let (mut runtime, mut buffer) = reason_runtime(crate::ColorLevel::TrueColor);
+        let move_to = |runtime: &mut Runtime<ReasonMenuApp>, x, y| {
+            let _ = crate::runtime::stub::deliver(
+                runtime,
+                Input::Mouse(Mouse {
+                    kind: MouseKind::Move,
+                    pos: Position::new(x, y),
+                    mods: KeyModifiers::NONE,
+                }),
+            );
+        };
+        move_to(&mut runtime, 4, 2);
+        assert_eq!(runtime.app().state.pointed, Some(1));
+        let _ = crate::runtime::stub::deliver(&mut runtime, Input::Key(key(KeyCode::Home)));
+        assert_eq!(runtime.app().state.cursor(), 0);
+        assert_eq!(runtime.app().state.pointed, None);
+        assert!(runtime.app().state.hover_suppressed);
+        runtime
+            .draw_buffer(Rect::new(0, 0, 40, 8), &mut buffer)
+            .commit_presented();
+        assert!(!row_text(&buffer, 7).contains("The clipboard is empty"));
+
+        move_to(&mut runtime, 4, 1);
+        assert_eq!(runtime.app().state.cursor(), 0);
+        assert!(!runtime.app().state.hover_suppressed);
+        move_to(&mut runtime, 4, 3);
+        assert_eq!(runtime.app().state.pointed, Some(2));
+        runtime
+            .draw_buffer(Rect::new(0, 0, 40, 8), &mut buffer)
+            .commit_presented();
+        assert!(row_text(&buffer, 7).contains("Nothing is selected"));
+    }
+
+    #[test]
+    fn clear_on_leave_hides_highlight_until_keyboard_or_pointer_reenters() {
+        let (mut runtime, _) = reason_runtime(crate::ColorLevel::Ansi256);
+        let move_to = |runtime: &mut Runtime<ReasonMenuApp>, x, y| {
+            let _ = crate::runtime::stub::deliver(
+                runtime,
+                Input::Mouse(Mouse {
+                    kind: MouseKind::Move,
+                    pos: Position::new(x, y),
+                    mods: KeyModifiers::NONE,
+                }),
+            );
+        };
+        move_to(&mut runtime, 4, 1);
+        move_to(&mut runtime, 0, 0);
+        assert!(runtime.app().state.highlight_hidden);
+        let _ = crate::runtime::stub::deliver(&mut runtime, Input::Key(key(KeyCode::Down)));
+        assert!(!runtime.app().state.highlight_hidden);
+        assert!(runtime.app().state.hover_suppressed);
+
+        move_to(&mut runtime, 4, 1);
+        assert!(!runtime.app().state.highlight_hidden);
+        assert!(!runtime.app().state.hover_suppressed);
+    }
+
+    #[test]
+    fn disabled_reason_is_a_noninteractive_part_with_style_and_slot_overrides() {
+        const MENU: Id = Id::root("menu.reason.style");
+        const ITEMS: [MenuItem<'static>; 1] =
+            [MenuItem::new(REASON_PASTE, "Paste").reason("The clipboard is empty")];
+        const CUSTOM: ratatui_core::style::Color = ratatui_core::style::Color::Rgb(21, 22, 23);
+        const PATCH: [(Part, StylePatch); 1] = [(
+            Part::HELP,
+            StylePatch::new().set_fg(crate::theme::Role::Custom(CUSTOM)),
+        )];
+        let area = Rect::new(0, 0, 32, 5);
+        let state = MenuState {
+            pointed: Some(0),
+            ..MenuState::default()
+        };
+        let mut runtime = Runtime::new(crate::runtime::stub::Stub::default(), Theme::junie());
+        let mut buffer = Buffer::empty(area);
+        runtime
+            .draw_scene(area, &mut buffer, |ui, area| {
+                ContextMenu::at(MENU, &ITEMS, Position::new(0, 0))
+                    .patch_part(&PATCH)
+                    .draw(ui, area, &state);
+            })
+            .commit_presented();
+        let help = runtime
+            .area_of_part(MENU, PartRef::of(Part::HELP))
+            .expect("help is decoration, not a hit target");
+        assert_eq!(help.y, area.bottom() - 1);
+        assert_eq!(
+            buffer.cell(Position::new(help.x + 1, help.y)).unwrap().fg,
+            CUSTOM
+        );
+        assert_ne!(
+            runtime
+                .projection_registry()
+                .and_then(|registry| registry.hit(Position::new(help.x, help.y)))
+                .map(|hit| hit.part),
+            Some(PartRef::of(Part::HELP)),
+            "help decoration is never registered as a pointer hit region"
+        );
+
+        let calls = std::cell::Cell::new(0);
+        let painter = |ui: &mut Ui<'_>, slot: Rect| {
+            calls.set(calls.get() + 1);
+            ui.paint_str(slot, "?", ratatui_core::style::Style::default());
+        };
+        let mut buffer = Buffer::empty(area);
+        runtime
+            .draw_scene(area, &mut buffer, |ui, area| {
+                ContextMenu::at(MENU, &ITEMS, Position::new(0, 0))
+                    .slot(Part::HELP, &painter)
+                    .draw(ui, area, &state);
+            })
+            .commit_presented();
+        assert_eq!(calls.get(), 1);
+    }
+
+    #[test]
+    fn disabled_reason_handles_empty_enabled_override_unicode_and_narrow_areas() {
+        const MENU: Id = Id::root("menu.reason.narrow");
+        const EMPTY: [MenuItem<'static>; 0] = [];
+        const UNICODE: [MenuItem<'static>; 1] =
+            [MenuItem::new(REASON_PASTE, "Paste").reason("壊れた clipboard e\u{301}")];
+        const ENABLED: [MenuItem<'static>; 1] = [MenuItem::new(REASON_PASTE, "Paste")
+            .reason("This explanation is suppressed")
+            .disabled(false)];
+
+        for width in 0..=10 {
+            let area = Rect::new(0, 0, width, 5);
+            let mut runtime = Runtime::new(crate::runtime::stub::Stub::default(), Theme::junie());
+            let mut buffer = Buffer::empty(area);
+            runtime
+                .draw_scene(area, &mut buffer, |ui, area| {
+                    ContextMenu::at(MENU, &UNICODE, Position::new(0, 0)).draw(
+                        ui,
+                        area,
+                        &MenuState {
+                            pointed: Some(0),
+                            ..MenuState::default()
+                        },
+                    );
+                })
+                .commit_presented();
+            let help = runtime.area_of_part(MENU, PartRef::of(Part::HELP));
+            if width < 7 {
+                assert_eq!(help, None, "no text fits in width {width}");
+            } else {
+                let help = help.expect("padded reason fits at width 7 and above");
+                assert_eq!(help.y, area.bottom() - 1);
+                assert!(help.x >= area.x + 2);
+                assert!(help.right() <= area.right() - 2);
+            }
+
+            let mut buffer = Buffer::empty(area);
+            runtime
+                .draw_scene(area, &mut buffer, |ui, area| {
+                    ContextMenu::at(MENU, &EMPTY, Position::new(0, 0)).draw(
+                        ui,
+                        area,
+                        &MenuState::default(),
+                    );
+                })
+                .commit_presented();
+            assert_eq!(
+                runtime.area_of_part(MENU, PartRef::of(Part::HELP)),
+                None,
+                "empty data has no reason at width {width}"
+            );
+        }
+
+        let area = Rect::new(0, 0, 32, 5);
+        let state = MenuState {
+            pointed: Some(0),
+            ..MenuState::default()
+        };
+        let mut runtime = Runtime::new(crate::runtime::stub::Stub::default(), Theme::junie());
+        let mut buffer = Buffer::empty(area);
+        runtime
+            .draw_scene(area, &mut buffer, |ui, area| {
+                ContextMenu::at(MENU, &ENABLED, Position::new(0, 0)).draw(ui, area, &state);
+            })
+            .commit_presented();
+        assert_eq!(runtime.area_of_part(MENU, PartRef::of(Part::HELP)), None);
+        assert!(!row_text(&buffer, 4).contains("This explanation is suppressed"));
+    }
+
     const ANCHOR_OWNER: Id = Id::root("menu.anchor.owner");
     const ANCHOR_MENU: Id = Id::root("menu.anchor.menu");
     const ANCHOR_MENUS: [Menu<'static>; 1] = [Menu::new("File", &ITEMS)];
@@ -1832,6 +2428,7 @@ mod tests {
         let mut state = MenuState {
             cursor: 3,
             open: None,
+            ..MenuState::default()
         };
         assert_eq!(
             menu.activate(&mut state),
