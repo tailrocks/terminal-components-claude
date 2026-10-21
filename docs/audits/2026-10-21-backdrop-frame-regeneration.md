@@ -100,7 +100,7 @@ At the worktree base (9b0277bc6):
     red in `showcase::pages::dialogs`, `showcase::flows::dialogs::open::80x24`
     and the `tablepro::overlays` picker families.
   - at the origin tip (ff0005a84) with these baselines cherry-picked:
-    212/290 green, 78 red for the same families (control without the
+    212/290 green, 78 red in the same families (control without the
     regeneration: 215/290, 75 red — the three extra reds are the
     previously legacy-class-skipped `flows/dialogs/open` 80x24 tiers,
     which now run and compare).
