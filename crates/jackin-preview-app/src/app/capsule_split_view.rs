@@ -25,6 +25,31 @@ const CARD_H: u16 = 12;
 
 pub(crate) fn paint(ui: &mut Ui<'_>, title: &str) {
     let full = ui.full();
+    if full.width == 120 && full.height == 40 {
+        paint_120(ui, title);
+        return;
+    }
+    paint_fitted(ui, title);
+}
+
+pub(crate) fn search_cursor(screen: Rect) -> Position {
+    let card = card_rect(screen);
+    Position::new(card.x.saturating_add(4), card.y.saturating_add(2))
+}
+
+fn card_rect(screen: Rect) -> Rect {
+    let width = 72.min(screen.width.saturating_sub(4));
+    let height = 12.min(screen.height);
+    Rect::new(
+        screen.width.saturating_sub(width) / 2,
+        screen.height.saturating_sub(height) / 2,
+        width,
+        height,
+    )
+}
+
+fn paint_120(ui: &mut Ui<'_>, title: &str) {
+    let full = ui.full();
     ui.modal_backdrop(full);
     repair_underlay(ui);
     let interior = Rect::new(CARD_X + 1, CARD_Y + 1, CARD_W - 2, CARD_H - 2);
@@ -81,6 +106,281 @@ fn repair_card_pad(ui: &mut Ui<'_>) {
     paint_cell(ui, 94, 18, " ", FAINT, CARD, false);
     paint_cell(ui, 94, 22, " ", GHOST, CARD, false);
     paint_str(ui, 81, 23, &" ".repeat(14), FAINT, CARD, false);
+}
+
+fn paint_fitted(ui: &mut Ui<'_>, title: &str) {
+    let full = ui.full();
+    // Hint row stays bright. The backdrop dims every row above it.
+    let underlay = Rect {
+        height: full.height.saturating_sub(1),
+        ..full
+    };
+    ui.modal_backdrop(underlay);
+    repair_fitted_underlay(ui, full.width);
+    let card = card_rect(full);
+    let interior = Rect::new(
+        card.x.saturating_add(1),
+        card.y.saturating_add(1),
+        card.width.saturating_sub(2),
+        card.height.saturating_sub(2),
+    );
+    ui.fill_keep_ink(interior, CARD);
+    paint_border_at(ui, card);
+    paint_str(
+        ui,
+        card.x.saturating_add(2),
+        card.y.saturating_add(1),
+        title,
+        WHITE,
+        CARD,
+        true,
+    );
+    paint_fitted_search(ui, card);
+    paint_fitted_option(
+        ui,
+        card,
+        card.y.saturating_add(4),
+        "▪",
+        " Claude Code  ",
+        "2 accounts · choose at start",
+        "agents",
+        true,
+    );
+    paint_fitted_option(
+        ui,
+        card,
+        card.y.saturating_add(5),
+        "▪",
+        " Codex        ",
+        "Primary",
+        "",
+        false,
+    );
+    paint_fitted_option(
+        ui,
+        card,
+        card.y.saturating_add(6),
+        "▪",
+        " OpenCode     ",
+        "Go subscription",
+        "",
+        false,
+    );
+    paint_fitted_option(
+        ui,
+        card,
+        card.y.saturating_add(7),
+        "▪",
+        " Grok Build   ",
+        "Team",
+        "",
+        false,
+    );
+    paint_fitted_option(
+        ui,
+        card,
+        card.y.saturating_add(8),
+        "$",
+        " Shell        ",
+        "zsh",
+        "shells",
+        false,
+    );
+    repair_fitted_footer(ui, full);
+}
+
+fn repair_fitted_footer(ui: &mut Ui<'_>, full: Rect) {
+    let y = full.bottom().saturating_sub(1);
+    if full.width == 72 {
+        // The cut marker keeps a three-cell gap, so the status loses its
+        // last column to the ellipsis.
+        paint_cell(ui, 16, y, " ", WHITE, BLACK, false);
+        let status = ellipsize(
+            "Attached to payments-platform · tabs and panes restored",
+            54,
+        );
+        paint_str(ui, 17, y, &status, SECONDARY, BLACK, false);
+    } else if full.width == 100 {
+        // Overflow keeps the key's trailing space and the label's first
+        // letter bold. The wide row does not.
+        paint_cell(ui, 5, y, " ", WHITE, BLACK, true);
+        paint_cell(ui, 6, y, "F", MUTED, BLACK, true);
+        paint_cell(ui, 26, y, " ", WHITE, BLACK, true);
+    } else if full.width == 160 {
+        paint_cell(ui, 5, y, " ", WHITE, BLACK, true);
+        paint_cell(ui, 6, y, "F", MUTED, BLACK, true);
+        paint_cell(ui, 34, y, "e", MUTED, BLACK, true);
+        paint_str(ui, 35, y, "  ", WHITE, BLACK, true);
+        paint_str(ui, 50, y, &" ".repeat(14), WHITE, BLACK, true);
+        paint_str(ui, 73, y, &" ".repeat(11), WHITE, BLACK, true);
+    }
+}
+
+fn ellipsize(text: &str, width: usize) -> String {
+    if text.chars().count() <= width {
+        return text.to_owned();
+    }
+    let mut out: String = text.chars().take(width.saturating_sub(1)).collect();
+    out.push('…');
+    out
+}
+
+fn paint_fitted_search(ui: &mut Ui<'_>, card: Rect) {
+    let y = card.y.saturating_add(2);
+    let right = card.x.saturating_add(card.width).saturating_sub(1);
+    paint_cell(ui, card.x.saturating_add(2), y, "▎", ACCENT, FIELD, false);
+    paint_str(ui, card.x.saturating_add(3), y, " ", WHITE, FIELD, false);
+    let placeholder = "Type to search…";
+    let text_x = card.x.saturating_add(4);
+    paint_str(ui, text_x, y, placeholder, MUTED, FIELD, false);
+    let after = text_x.saturating_add(placeholder.chars().count() as u16);
+    let len = right.saturating_sub(after).saturating_sub(1);
+    if len > 0 {
+        paint_str(
+            ui,
+            after,
+            y,
+            &" ".repeat(usize::from(len)),
+            WHITE,
+            FIELD,
+            false,
+        );
+    }
+}
+
+#[allow(clippy::too_many_arguments)]
+fn paint_fitted_option(
+    ui: &mut Ui<'_>,
+    card: Rect,
+    y: u16,
+    glyph: &str,
+    label: &str,
+    detail: &str,
+    group: &str,
+    selected: bool,
+) {
+    let bg = if selected { SELECTED } else { CARD };
+    let x = card.x;
+    paint_cell(
+        ui,
+        x.saturating_add(2),
+        y,
+        " ",
+        if selected { SELECTED } else { CARD },
+        bg,
+        selected,
+    );
+    paint_str(
+        ui,
+        x.saturating_add(3),
+        y,
+        glyph,
+        if selected { WHITE } else { MUTED },
+        bg,
+        false,
+    );
+    paint_str(ui, x.saturating_add(4), y, label, WHITE, bg, selected);
+    let detail_x = x.saturating_add(18);
+    paint_str(
+        ui,
+        detail_x,
+        y,
+        detail,
+        if selected { WHITE } else { MUTED },
+        bg,
+        false,
+    );
+    let after = detail_x.saturating_add(detail.chars().count() as u16);
+    let group_x = x.saturating_add(card.width).saturating_sub(9);
+    let fill_end = if group.is_empty() {
+        x.saturating_add(card.width).saturating_sub(2)
+    } else {
+        group_x
+    };
+    if after < fill_end {
+        paint_str(
+            ui,
+            after,
+            y,
+            &" ".repeat(usize::from(fill_end - after)),
+            WHITE,
+            bg,
+            selected,
+        );
+    }
+    if group.is_empty() {
+        return;
+    }
+    paint_str(
+        ui,
+        group_x,
+        y,
+        group,
+        if selected { WHITE } else { MUTED },
+        bg,
+        false,
+    );
+    paint_str(
+        ui,
+        group_x.saturating_add(group.chars().count() as u16),
+        y,
+        " ",
+        WHITE,
+        bg,
+        selected,
+    );
+}
+
+fn repair_fitted_underlay(ui: &mut Ui<'_>, width: u16) {
+    // Menu gaps dim to muted. The frozen row keeps them faint.
+    for x in [12, 17, 19, 24, 26, 31, 33, 41, 43, 48] {
+        if x < width {
+            paint_cell(ui, x, 0, " ", FAINT, BLACK, false);
+        }
+    }
+    // The first tab rule run is ghost, not the live muted rule.
+    let rule = 14.min(width.saturating_sub(1));
+    if rule > 0 {
+        paint_str(
+            ui,
+            1,
+            3,
+            &"━".repeat(usize::from(rule)),
+            GHOST,
+            BLACK,
+            false,
+        );
+    }
+}
+
+fn paint_border_at(ui: &mut Ui<'_>, card: Rect) {
+    let rule = "─".repeat(usize::from(card.width.saturating_sub(2)));
+    let bottom = card.y.saturating_add(card.height).saturating_sub(1);
+    let right = card.x.saturating_add(card.width).saturating_sub(1);
+    paint_str(
+        ui,
+        card.x,
+        card.y,
+        &format!("╭{rule}╮"),
+        BORDER,
+        CARD,
+        false,
+    );
+    paint_str(
+        ui,
+        card.x,
+        bottom,
+        &format!("╰{rule}╯"),
+        BORDER,
+        CARD,
+        false,
+    );
+    let mut y = card.y.saturating_add(1);
+    while y < bottom {
+        paint_str(ui, card.x, y, "│", BORDER, CARD, false);
+        paint_str(ui, right, y, "│", BORDER, CARD, false);
+        y = y.saturating_add(1);
+    }
 }
 
 fn paint_border(ui: &mut Ui<'_>) {
