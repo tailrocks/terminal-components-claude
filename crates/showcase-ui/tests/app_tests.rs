@@ -821,8 +821,12 @@ fn keyboard_navigation_between_pages() {
     assert_eq!(h.app().page(), PageId::Overview);
     press(&mut h, KeyCode::Down);
     press(&mut h, KeyCode::Enter);
+    press(&mut h, KeyCode::Down);
+    press(&mut h, KeyCode::Enter);
     assert_eq!(h.app().page(), PageId::Chrome);
     let (x, y) = require(h.find("Tables"), "navigation item");
+    click(&mut h, x, y);
+    let (x, y) = require(h.find("Basic table"), "basic table item");
     click(&mut h, x, y);
     assert_eq!(h.app().page(), PageId::Tables);
 }
