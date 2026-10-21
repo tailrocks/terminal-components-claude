@@ -145,18 +145,28 @@ mod report_parity {
         ]
     }
 
-    fn assert_report_cells(legacy: &Scene, current: &Scene, area: Rect, level: ColorLevel, label: &str) {
+    fn assert_report_cells(
+        legacy: &Scene,
+        current: &Scene,
+        area: Rect,
+        level: ColorLevel,
+        label: &str,
+    ) {
         let mut untouched = Scene::new("report-control", Theme::junie(), level, 80, 24);
         untouched.draw(|_, _| {});
         for y in 0..24 {
             for x in 0..80 {
-                let expected = if x >= area.x && x < area.right() && y >= area.y && y < area.bottom() {
-                    legacy.buffer().cell((x, y))
-                } else {
-                    untouched.buffer().cell((x, y))
-                };
-                assert_eq!(current.buffer().cell((x, y)), expected,
-                    "{label} {area:?} {level:?}, at {x},{y}");
+                let expected =
+                    if x >= area.x && x < area.right() && y >= area.y && y < area.bottom() {
+                        legacy.buffer().cell((x, y))
+                    } else {
+                        untouched.buffer().cell((x, y))
+                    };
+                assert_eq!(
+                    current.buffer().cell((x, y)),
+                    expected,
+                    "{label} {area:?} {level:?}, at {x},{y}"
+                );
             }
         }
     }

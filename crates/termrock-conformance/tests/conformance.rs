@@ -884,9 +884,9 @@ mod activation_probe_guards {
         }
         fn update(cx: &mut Cx<'_>, st: &mut Self::State, f: &Fixture) -> Response<Self::Action> {
             let response = DialogCase::update(cx, st, f);
-            let activated = response.action_ref().is_some_and(|action| {
-                action != &DialogAction::Action(K_OPEN)
-            });
+            let activated = response
+                .action_ref()
+                .is_some_and(|action| action != &DialogAction::Action(K_OPEN));
             if activated && FAULT == 1 {
                 Response::ignored()
             } else if activated && FAULT == 3 {
