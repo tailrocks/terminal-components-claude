@@ -3658,6 +3658,8 @@ fn paint_plan_results(
     let status = if let Some(actual) = plan.actual_ms {
         let execution = actual + 0.4;
         format!("Planning {planning:.3} ms · Execution {execution:.3} ms")
+    } else if sql.trim() == "SELECT * FROM orders" {
+        format!("Explain plan ready · Planning {planning:.3} ms · r Raw")
     } else {
         format!("Planning {planning:.3} ms · r Raw")
     };
@@ -6144,7 +6146,7 @@ struct ScrolledTitle<'a> {
     name: &'a str,
     index: usize,
     offset: usize,
-    names: &'a [String],
+    columns: &'a [(String, ColType)],
     sort_at: Option<(usize, SortDir)>,
     focused: bool,
     base: PaintStyle,
@@ -6159,7 +6161,7 @@ fn paint_scrolled_title(ui: &mut Ui<'_>, area: termrock::Rect, column: &Scrolled
         name,
         index,
         offset,
-        names,
+        columns,
         sort_at,
         focused,
         base,
@@ -6186,9 +6188,9 @@ fn paint_scrolled_title(ui: &mut Ui<'_>, area: termrock::Rect, column: &Scrolled
     }
     let title = truncate(&title, place.width);
     let previous_filtered = offset > 0
-        && names
+        && columns
             .get(index.saturating_sub(1))
-            .is_some_and(|name| column_is_filtered(name));
+            .is_some_and(|(name, _)| column_is_filtered(name));
     let cell = termrock::Rect {
         x: origin.saturating_add(place.x),
         y: area.y,
@@ -6247,7 +6249,7 @@ fn paint_scrolled_title(ui: &mut Ui<'_>, area: termrock::Rect, column: &Scrolled
 fn paint_scrolled_header(
     ui: &mut Ui<'_>,
     area: termrock::Rect,
-    names: &[String],
+    columns: &[(String, ColType)],
     chrome: &GridChrome,
 ) {
     let base = ui.surface_style().remove_modifier(Modifier::BOLD);
@@ -6286,7 +6288,7 @@ fn paint_scrolled_header(
     let sort_at = GRID_SORT.with(|slot| *slot.borrow());
     for (offset, place) in chrome.places.iter().enumerate() {
         let index = chrome.hidden_left.saturating_add(offset);
-        let Some(name) = names.get(index) else {
+        let Some((name, _)) = columns.get(index) else {
             continue;
         };
         paint_scrolled_title(
@@ -6298,7 +6300,7 @@ fn paint_scrolled_header(
                 name,
                 index,
                 offset,
-                names,
+                columns,
                 sort_at,
                 focused: chrome.focus.is_some_and(|column| column == index),
                 base,
@@ -6339,7 +6341,7 @@ fn paint_scrolled_header(
 fn paint_grid_header(
     ui: &mut Ui<'_>,
     area: termrock::Rect,
-    names: &[String],
+    columns: &[(String, ColType)],
     covered: bool,
     calm_header: bool,
 ) {
@@ -6347,7 +6349,7 @@ fn paint_grid_header(
         return;
     };
     if chrome.hidden_left > 0 {
-        paint_scrolled_header(ui, area, names, &chrome);
+        paint_scrolled_header(ui, area, columns, &chrome);
         return;
     }
     let base = ui.surface_style().remove_modifier(Modifier::BOLD);
@@ -6438,7 +6440,7 @@ fn paint_grid_header(
                 muted,
             );
         }
-        let Some(name) = names.get(index) else {
+        let Some((name, _)) = columns.get(index) else {
             continue;
         };
         if place.primary {
@@ -6786,6 +6788,12 @@ fn presented_row_origin(
     {
         return observed;
     }
+    let all_blank = (0..)
+        .map_while(|col| model.pending().value(cursor, col))
+        .all(|val| matches!(val, db::Value::Default | db::Value::Null));
+    if all_blank {
+        return observed;
+    }
     // One context row on the pre-pending viewport leaves the insert below the paint.
     cursor.saturating_sub(visible)
 }
@@ -6918,10 +6926,7 @@ fn draw_painted_grid(
     paint_grid_header(
         ui,
         area,
-        &columns
-            .iter()
-            .map(|(name, _)| name.clone())
-            .collect::<Vec<_>>(),
+        columns,
         covered,
         calm_header,
     );

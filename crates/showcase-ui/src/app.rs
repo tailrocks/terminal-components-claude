@@ -1043,11 +1043,8 @@ fn tag_step(theme: &termrock::Theme, color: termrock::Color) -> termrock::Color 
     }
 }
 
-fn audit_flat_label(label: &str) -> bool {
-    matches!(
-        label,
-        "Buttons" | "Inputs" | "Text areas" | "Forms" | "Diff"
-    )
+fn audit_flat_label(_label: &str) -> bool {
+    false
 }
 
 fn raw_fg(ui: &Ui<'_>, rgb: u32) -> PaintStyle {

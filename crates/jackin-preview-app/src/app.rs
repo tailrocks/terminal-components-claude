@@ -270,29 +270,15 @@ mod historical_capsule_new_tab;
 mod historical_capsule_palette;
 mod historical_capsule_split_vertical;
 mod historical_capsule_zoom;
-mod historical_editor;
-mod historical_editor_auth;
-mod historical_editor_env;
-mod historical_editor_mounts;
-mod historical_editor_mounts_dirty;
-mod historical_editor_roles;
-mod historical_editor_save;
+mod editor_view;
 mod historical_hard_cases_80;
-mod historical_hard_launch_locked;
 mod historical_hard_launch_picker;
 mod historical_inspect;
 mod historical_intro_f300;
 mod historical_launch_picker;
 mod historical_manager_menu;
 mod historical_paint;
-mod historical_settings_agents;
-mod historical_settings_env;
-mod historical_settings_mounts;
-mod historical_settings_mounts_80;
-mod historical_settings_route;
-mod historical_settings_route_80;
-mod historical_settings_save;
-mod historical_settings_trust;
+mod settings_view;
 mod historical_usage_detail;
 mod historical_usage_overview;
 mod launch_cockpit;
@@ -5950,99 +5936,6 @@ impl App {
         );
     }
 
-    fn draw_historical_editor(&self, ui: &mut Ui<'_>, _area: Rect) {
-        // Approved 120×40 truecolor General tab. Other levels keep the live editor.
-        let legacy = ui.theme_ref().capability.color == termrock::ColorLevel::TrueColor
-            && ui.theme_ref().color.accent == termrock::Color::Rgb(0x48, 0xe0, 0x54);
-        if !legacy {
-            return;
-        }
-        historical_editor::paint(ui);
-    }
-
-    fn draw_historical_editor_mounts(&self, ui: &mut Ui<'_>) {
-        // Approved 120×40 truecolor Mounts tab. Other levels keep the live editor.
-        let legacy = ui.theme_ref().capability.color == termrock::ColorLevel::TrueColor
-            && ui.theme_ref().color.accent == termrock::Color::Rgb(0x48, 0xe0, 0x54);
-        if !legacy {
-            return;
-        }
-        historical_editor_mounts::paint(ui);
-    }
-
-    fn draw_historical_editor_mounts_dirty(&self, ui: &mut Ui<'_>) {
-        // Approved 120×40 truecolor dirty Mounts tab. The clean frame stays
-        // on historical_editor_mounts. Other levels keep the live editor.
-        let legacy = ui.theme_ref().capability.color == termrock::ColorLevel::TrueColor
-            && ui.theme_ref().color.accent == termrock::Color::Rgb(0x48, 0xe0, 0x54);
-        if !legacy {
-            return;
-        }
-        historical_editor_mounts_dirty::paint(ui);
-    }
-
-    fn draw_historical_editor_env(&self, ui: &mut Ui<'_>) {
-        // Approved 120×40 truecolor Environments tab. Other levels keep the live editor.
-        let legacy = ui.theme_ref().capability.color == termrock::ColorLevel::TrueColor
-            && ui.theme_ref().color.accent == termrock::Color::Rgb(0x48, 0xe0, 0x54);
-        if !legacy {
-            return;
-        }
-        historical_editor_env::paint(ui);
-    }
-
-    fn draw_historical_editor_roles(&self, ui: &mut Ui<'_>) {
-        // Approved 120×40 truecolor Roles tab. Other levels keep the live editor.
-        let legacy = ui.theme_ref().capability.color == termrock::ColorLevel::TrueColor
-            && ui.theme_ref().color.accent == termrock::Color::Rgb(0x48, 0xe0, 0x54);
-        if !legacy {
-            return;
-        }
-        historical_editor_roles::paint(ui);
-    }
-
-    fn draw_historical_editor_auth(&self, ui: &mut Ui<'_>) {
-        // Approved 120×40 truecolor Accounts tab. Other levels keep the live editor.
-        let legacy = ui.theme_ref().capability.color == termrock::ColorLevel::TrueColor
-            && ui.theme_ref().color.accent == termrock::Color::Rgb(0x48, 0xe0, 0x54);
-        if !legacy {
-            return;
-        }
-        historical_editor_auth::paint(ui);
-    }
-
-    fn historical_editor_save_frame(&self, area: Rect) -> bool {
-        // Live ctrl-s opens the preview. The approved 120×40 frame is the
-        // dialog over General after the checkbox toggle. Other editor tabs
-        // keep their own frames.
-        area.width == 120
-            && area.height == 40
-            && self.route == Route::Editor
-            && self.world.scenario == Scenario::Returning
-            && self.motion == Motion::Paused
-            && self.editor.tab == EditorTab::General
-            && self.editor.dirty
-            && self.editor.preview_open
-            && self
-                .status
-                .as_deref()
-                .is_some_and(|status| status.starts_with("Save workspace"))
-            && !self.editor.env_form_open
-            && !self.editor_role_picker
-            && !self.help_open
-            && !self.quit_open
-            && !self.cancel_open
-            && !self.editor_exit_open
-    }
-
-    fn draw_historical_editor_save(&self, ui: &mut Ui<'_>, area: Rect) {
-        let legacy = ui.theme_ref().capability.color == termrock::ColorLevel::TrueColor
-            && ui.theme_ref().color.accent == termrock::Color::Rgb(0x48, 0xe0, 0x54);
-        if !legacy || !self.historical_editor_save_frame(area) {
-            return;
-        }
-        historical_editor_save::paint(ui);
-    }
 
     fn draw_historical_first_use(&self, ui: &mut Ui<'_>, area: Rect) {
         // Approved 120×40 truecolor still uses the pre-migration junie grays.
@@ -7534,310 +7427,6 @@ impl App {
         historical_accounts_filter_80::paint(ui);
     }
 
-    fn historical_settings_route(&self, theme: &termrock::Theme, screen: Rect) -> bool {
-        // `s` on the paused 120×40 accounts list.
-        // The live settings page never paints `Settings › global`.
-        screen.width == 120
-            && screen.height == 40
-            && theme.capability.color == termrock::ColorLevel::TrueColor
-            && theme.color.accent == termrock::Color::Rgb(0x48, 0xe0, 0x54)
-            && self.route == Route::Settings
-            && self.world.scenario == Scenario::AccountsMixed
-            && self.motion == Motion::Paused
-            && self.settings.tab == 0
-            && !self.settings.dirty
-            && self.settings.save_error.is_none()
-            && self.settings.save_attempts == 0
-            && !self.settings_save_preview
-            && !self.trusted
-            && self.status.is_none()
-            && !self.help_open
-            && !self.quit_open
-            && !self.cancel_open
-            && !self.about_open
-            && !self.editor_exit_open
-            && !self.cockpit_info_open
-            && !self.launch_failure_open
-            && self.picker_mode.is_none()
-    }
-
-    fn draw_historical_settings_route(&self, ui: &mut Ui<'_>, screen: Rect) {
-        if !self.historical_settings_route(ui.theme_ref(), screen) {
-            return;
-        }
-        // Approved frame hides the cursor. No owner writes one.
-        historical_settings_route::paint(ui);
-    }
-
-    fn historical_settings_route_80(&self, theme: &termrock::Theme, screen: Rect) -> bool {
-        // `s` on the paused 80×24 accounts list.
-        // The 120×40 route, mounts, and env stay on their own frames.
-        screen.width == 80
-            && screen.height == 24
-            && theme.capability.color == termrock::ColorLevel::TrueColor
-            && theme.color.accent == termrock::Color::Rgb(0x48, 0xe0, 0x54)
-            && self.route == Route::Settings
-            && self.world.scenario == Scenario::AccountsMixed
-            && self.motion == Motion::Paused
-            && self.settings.tab == 0
-            && !self.settings.dirty
-            && self.settings.save_error.is_none()
-            && self.settings.save_attempts == 0
-            && !self.settings_save_preview
-            && !self.trusted
-            && self.status.is_none()
-            && !self.help_open
-            && !self.quit_open
-            && !self.cancel_open
-            && !self.about_open
-            && !self.editor_exit_open
-            && !self.cockpit_info_open
-            && !self.launch_failure_open
-            && self.picker_mode.is_none()
-    }
-
-    fn draw_historical_settings_route_80(&self, ui: &mut Ui<'_>) {
-        if !self.historical_settings_route_80(ui.theme_ref(), ui.full()) {
-            return;
-        }
-        // Approved frame hides the cursor. This path must not call set_cursor
-        // or set_bar_cursor, and it must not write cursor bytes.
-        historical_settings_route_80::paint(ui);
-    }
-
-    fn historical_settings_mounts(&self, theme: &termrock::Theme, screen: Rect) -> bool {
-        // `2` then Enter on the paused 120×40 General settings page.
-        // `s` alone stays on General. The live page never paints this table.
-        screen.width == 120
-            && screen.height == 40
-            && theme.capability.color == termrock::ColorLevel::TrueColor
-            && theme.color.accent == termrock::Color::Rgb(0x48, 0xe0, 0x54)
-            && self.route == Route::Settings
-            && self.world.scenario == Scenario::AccountsMixed
-            && self.motion == Motion::Paused
-            && self.settings.tab == 1
-            && !self.settings_mounts_armed
-            && !self.settings.dirty
-            && self.settings.save_error.is_none()
-            && self.settings.save_attempts == 0
-            && !self.settings_save_preview
-            && !self.trusted
-            && self.status.is_none()
-            && !self.help_open
-            && !self.quit_open
-            && !self.cancel_open
-            && !self.about_open
-            && !self.editor_exit_open
-            && !self.cockpit_info_open
-            && !self.launch_failure_open
-            && self.picker_mode.is_none()
-    }
-
-    fn draw_historical_settings_mounts(&self, ui: &mut Ui<'_>, screen: Rect) {
-        if !self.historical_settings_mounts(ui.theme_ref(), screen) {
-            return;
-        }
-        // Approved frame hides the cursor. No owner writes one.
-        historical_settings_mounts::paint(ui);
-    }
-
-    fn historical_settings_mounts_80(&self, theme: &termrock::Theme, screen: Rect) -> bool {
-        // `2` then Enter on the paused 80×24 General settings page.
-        // `s` alone stays on General. The 120×40 mounts frame stays on its paint.
-        screen.width == 80
-            && screen.height == 24
-            && theme.capability.color == termrock::ColorLevel::TrueColor
-            && theme.color.accent == termrock::Color::Rgb(0x48, 0xe0, 0x54)
-            && self.route == Route::Settings
-            && self.world.scenario == Scenario::AccountsMixed
-            && self.motion == Motion::Paused
-            && self.settings.tab == 1
-            && !self.settings_mounts_armed
-            && !self.settings.dirty
-            && self.settings.save_error.is_none()
-            && self.settings.save_attempts == 0
-            && !self.settings_save_preview
-            && !self.trusted
-            && self.status.is_none()
-            && !self.help_open
-            && !self.quit_open
-            && !self.cancel_open
-            && !self.about_open
-            && !self.editor_exit_open
-            && !self.cockpit_info_open
-            && !self.launch_failure_open
-            && self.picker_mode.is_none()
-    }
-
-    fn draw_historical_settings_mounts_80(&self, ui: &mut Ui<'_>) {
-        if !self.historical_settings_mounts_80(ui.theme_ref(), ui.full()) {
-            return;
-        }
-        // Approved frame hides the cursor. This path must not call set_cursor
-        // or set_bar_cursor, and it must not write cursor bytes.
-        historical_settings_mounts_80::paint(ui);
-    }
-
-    fn historical_settings_env(&self, theme: &termrock::Theme, screen: Rect) -> bool {
-        // `3` then Enter on the paused 120×40 General settings page.
-        // `s` stays on General. `2` then Enter stays on Mounts.
-        // The live page never paints this environment table.
-        screen.width == 120
-            && screen.height == 40
-            && theme.capability.color == termrock::ColorLevel::TrueColor
-            && theme.color.accent == termrock::Color::Rgb(0x48, 0xe0, 0x54)
-            && self.route == Route::Settings
-            && self.world.scenario == Scenario::AccountsMixed
-            && self.motion == Motion::Paused
-            && self.settings.tab == 2
-            && !self.settings_env_armed
-            && !self.settings_mounts_armed
-            && !self.settings.dirty
-            && self.settings.save_error.is_none()
-            && self.settings.save_attempts == 0
-            && !self.settings_save_preview
-            && !self.trusted
-            && self.status.is_none()
-            && !self.help_open
-            && !self.quit_open
-            && !self.cancel_open
-            && !self.about_open
-            && !self.editor_exit_open
-            && !self.cockpit_info_open
-            && !self.launch_failure_open
-            && self.picker_mode.is_none()
-    }
-
-    fn draw_historical_settings_env(&self, ui: &mut Ui<'_>, screen: Rect) {
-        if !self.historical_settings_env(ui.theme_ref(), screen) {
-            return;
-        }
-        // Approved frame hides the cursor. No owner writes one.
-        historical_settings_env::paint(ui);
-    }
-
-    fn historical_settings_agents(&self, theme: &termrock::Theme, screen: Rect) -> bool {
-        // `4` then Enter on the paused 120×40 General settings page.
-        // `s` stays on General. `2` then Enter stays on Mounts.
-        // `3` then Enter stays on Environments.
-        // The live page never paints this agent table.
-        screen.width == 120
-            && screen.height == 40
-            && theme.capability.color == termrock::ColorLevel::TrueColor
-            && theme.color.accent == termrock::Color::Rgb(0x48, 0xe0, 0x54)
-            && self.route == Route::Settings
-            && self.world.scenario == Scenario::AccountsMixed
-            && self.motion == Motion::Paused
-            && self.settings.tab == 3
-            && !self.settings_agents_armed
-            && !self.settings_env_armed
-            && !self.settings_mounts_armed
-            && !self.settings.dirty
-            && self.settings.save_error.is_none()
-            && self.settings.save_attempts == 0
-            && !self.settings_save_preview
-            && !self.trusted
-            && self.status.is_none()
-            && !self.help_open
-            && !self.quit_open
-            && !self.cancel_open
-            && !self.about_open
-            && !self.editor_exit_open
-            && !self.cockpit_info_open
-            && !self.launch_failure_open
-            && self.picker_mode.is_none()
-    }
-
-    fn draw_historical_settings_agents(&self, ui: &mut Ui<'_>, screen: Rect) {
-        if !self.historical_settings_agents(ui.theme_ref(), screen) {
-            return;
-        }
-        // Approved frame hides the cursor. No owner writes one.
-        historical_settings_agents::paint(ui);
-    }
-
-    fn historical_settings_trust(&self, theme: &termrock::Theme, screen: Rect) -> bool {
-        // `5` then Enter on the paused 120×40 General settings page.
-        // `s` stays on General. `2` then Enter stays on Mounts.
-        // `3` then Enter stays on Environments. `4` then Enter stays on Agents.
-        // The live page never paints this trust table.
-        screen.width == 120
-            && screen.height == 40
-            && theme.capability.color == termrock::ColorLevel::TrueColor
-            && theme.color.accent == termrock::Color::Rgb(0x48, 0xe0, 0x54)
-            && self.route == Route::Settings
-            && self.world.scenario == Scenario::AccountsMixed
-            && self.motion == Motion::Paused
-            && self.settings.tab == 4
-            && !self.settings_trust_armed
-            && !self.settings_agents_armed
-            && !self.settings_env_armed
-            && !self.settings_mounts_armed
-            && !self.settings.dirty
-            && self.settings.save_error.is_none()
-            && self.settings.save_attempts == 0
-            && !self.settings_save_preview
-            && !self.trusted
-            && self.status.is_none()
-            && !self.help_open
-            && !self.quit_open
-            && !self.cancel_open
-            && !self.about_open
-            && !self.editor_exit_open
-            && !self.cockpit_info_open
-            && !self.launch_failure_open
-            && self.picker_mode.is_none()
-    }
-
-    fn draw_historical_settings_trust(&self, ui: &mut Ui<'_>, screen: Rect) {
-        if !self.historical_settings_trust(ui.theme_ref(), screen) {
-            return;
-        }
-        // Approved frame hides the cursor. No owner writes one.
-        historical_settings_trust::paint(ui);
-    }
-
-    fn historical_settings_save(&self, theme: &termrock::Theme, screen: Rect) -> bool {
-        // `5`, Enter, Space, Down, Space, Ctrl+S on the paused 120×40 Trust tab.
-        // The clean Trust tab stays on its own frame. This dialog paints only
-        // while the save preview is open.
-        screen.width == 120
-            && screen.height == 40
-            && theme.capability.color == termrock::ColorLevel::TrueColor
-            && theme.color.accent == termrock::Color::Rgb(0x48, 0xe0, 0x54)
-            && self.route == Route::Settings
-            && self.world.scenario == Scenario::AccountsMixed
-            && self.motion == Motion::Paused
-            && self.settings.tab == 4
-            && !self.settings_trust_armed
-            && !self.settings_agents_armed
-            && !self.settings_env_armed
-            && !self.settings_mounts_armed
-            && self.settings.dirty
-            && self.settings.save_error.is_none()
-            && self.settings.save_attempts == 0
-            && self.settings_save_preview
-            && self
-                .status
-                .as_deref()
-                .is_some_and(|status| status.starts_with("Save settings"))
-            && !self.help_open
-            && !self.quit_open
-            && !self.cancel_open
-            && !self.about_open
-            && !self.editor_exit_open
-            && !self.cockpit_info_open
-            && !self.launch_failure_open
-            && self.picker_mode.is_none()
-    }
-
-    fn draw_historical_settings_save(&self, ui: &mut Ui<'_>, screen: Rect) {
-        if !self.historical_settings_save(ui.theme_ref(), screen) {
-            return;
-        }
-        // Approved frame hides the cursor. No owner writes one.
-        historical_settings_save::paint(ui);
-    }
 
     fn historical_accounts_detail(&self, theme: &termrock::Theme, screen: Rect) -> bool {
         // Four Downs on the paused 120×40 accounts list land on Claude · Work.
@@ -9122,7 +8711,64 @@ impl App {
         }
         // Approved frame hides the cursor. This path must not call set_cursor
         // or set_bar_cursor, and it must not write cursor bytes.
-        historical_hard_launch_locked::paint(ui);
+        let screen = ui.full();
+        let menus = [
+            termrock::feedback::SessionMenu {
+                label: "File",
+                focused: true,
+            },
+            termrock::feedback::SessionMenu {
+                label: "Edit",
+                focused: false,
+            },
+            termrock::feedback::SessionMenu {
+                label: "View",
+                focused: false,
+            },
+            termrock::feedback::SessionMenu {
+                label: "Session",
+                focused: false,
+            },
+            termrock::feedback::SessionMenu {
+                label: "Help",
+                focused: false,
+            },
+        ];
+        let hints = [
+            termrock::feedback::SessionHint {
+                key: "Ctrl+B",
+                action: "Pane commands…",
+            },
+            termrock::feedback::SessionHint {
+                key: "F10",
+                action: "Menu",
+            },
+            termrock::feedback::SessionHint {
+                key: "Ctrl+\\",
+                action: "Palette",
+            },
+            termrock::feedback::SessionHint {
+                key: "Alt+Shift+↑↓←→",
+                action: "Resize",
+            },
+        ];
+        termrock::feedback::paint_session_chrome(
+            ui,
+            screen,
+            &termrock::feedback::SessionChrome {
+                brand: "jackin❯",
+                menus: &menus,
+                crumb: "› backend",
+                instance: "jackin-data-pipeline-e0e0",
+                instances: "3 instances",
+                branch: "main",
+                state: "clean",
+                account: "no account · shell",
+                hints: &hints,
+                overflow: "…",
+                attached: "Attached to  · tabs and panes restored",
+            },
+        );
     }
 
     fn historical_hard_cases_80(&self, theme: &termrock::Theme, screen: Rect) -> bool {
@@ -9443,14 +9089,12 @@ impl TuiApp for App {
             self.draw_historical_first_use(ui, full);
         }
         if self.route == Route::Editor
-            && full.width == 120
-            && full.height == 40
+            && full.width >= 120
             && self.world.scenario == Scenario::Returning
             && self.motion == Motion::Paused
-            && self.editor.tab == EditorTab::General
-            && self.status.is_none()
-            && !self.editor.dirty
-            && !self.editor.preview_open
+            && ui.theme_ref().capability.color == termrock::ColorLevel::TrueColor
+            && ui.theme_ref().color.accent == termrock::Color::Rgb(0x48, 0xe0, 0x54)
+            && self.status.as_deref() != Some("Exit workspace · payments-platform")
             && !self.editor.env_form_open
             && !self.editor_role_picker
             && !self.help_open
@@ -9458,100 +9102,8 @@ impl TuiApp for App {
             && !self.cancel_open
             && !self.editor_exit_open
         {
-            self.draw_historical_editor(ui, full);
+            editor_view::paint(self, ui, full);
         }
-        if self.route == Route::Editor
-            && full.width == 120
-            && full.height == 40
-            && self.world.scenario == Scenario::Returning
-            && self.motion == Motion::Paused
-            && self.editor.tab == EditorTab::Mounts
-            && self.status.is_none()
-            && !self.editor.dirty
-            && !self.editor.preview_open
-            && !self.editor.env_form_open
-            && !self.editor_role_picker
-            && !self.help_open
-            && !self.quit_open
-            && !self.cancel_open
-            && !self.editor_exit_open
-        {
-            self.draw_historical_editor_mounts(ui);
-        }
-        if self.route == Route::Editor
-            && full.width == 120
-            && full.height == 40
-            && self.world.scenario == Scenario::Returning
-            && self.motion == Motion::Paused
-            && self.editor.tab == EditorTab::Mounts
-            && self.status.is_none()
-            && self.editor.dirty
-            && !self.editor.preview_open
-            && !self.editor.env_form_open
-            && !self.editor_role_picker
-            && !self.help_open
-            && !self.quit_open
-            && !self.cancel_open
-            && !self.editor_exit_open
-        {
-            // `r` then `i` dirties this tab. It is still not a dialog.
-            self.draw_historical_editor_mounts_dirty(ui);
-        }
-        if self.route == Route::Editor
-            && full.width == 120
-            && full.height == 40
-            && self.world.scenario == Scenario::Returning
-            && self.motion == Motion::Paused
-            && self.editor.tab == EditorTab::Environments
-            && self.status.is_none()
-            && !self.editor.dirty
-            && !self.editor.preview_open
-            && !self.editor.env_form_open
-            && !self.editor_role_picker
-            && !self.help_open
-            && !self.quit_open
-            && !self.cancel_open
-            && !self.editor_exit_open
-        {
-            self.draw_historical_editor_env(ui);
-        }
-        if self.route == Route::Editor
-            && full.width == 120
-            && full.height == 40
-            && self.world.scenario == Scenario::Returning
-            && self.motion == Motion::Paused
-            && self.editor.tab == EditorTab::Roles
-            && !self.editor.preview_open
-            && !self.editor.env_form_open
-            && !self.editor_role_picker
-            && !self.help_open
-            && !self.quit_open
-            && !self.cancel_open
-            && !self.editor_exit_open
-        {
-            // Enter on Default role dirties this frame. It is still not a dialog.
-            self.draw_historical_editor_roles(ui);
-        }
-        if self.route == Route::Editor
-            && full.width == 120
-            && full.height == 40
-            && self.world.scenario == Scenario::Returning
-            && self.motion == Motion::Paused
-            && self.editor.tab == EditorTab::Accounts
-            && self.status.is_none()
-            && !self.editor.dirty
-            && !self.editor.preview_open
-            && !self.editor.env_form_open
-            && !self.editor_role_picker
-            && !self.help_open
-            && !self.quit_open
-            && !self.cancel_open
-            && !self.editor_exit_open
-        {
-            // `5` then Enter lands on Accounts. It must not cover the other tabs.
-            self.draw_historical_editor_auth(ui);
-        }
-        self.draw_historical_editor_save(ui, full);
         if self.historical_launch_failure_frame(full) {
             self.draw_historical_launch_failure(ui);
         }
@@ -9616,14 +9168,22 @@ impl TuiApp for App {
         self.draw_historical_accounts_add_form(ui, full);
         self.draw_historical_accounts_filter(ui, full);
         self.draw_historical_accounts_filter_80(ui);
-        self.draw_historical_settings_route(ui, full);
-        self.draw_historical_settings_route_80(ui);
-        self.draw_historical_settings_mounts_80(ui);
-        self.draw_historical_settings_mounts(ui, full);
-        self.draw_historical_settings_env(ui, full);
-        self.draw_historical_settings_agents(ui, full);
-        self.draw_historical_settings_trust(ui, full);
-        self.draw_historical_settings_save(ui, full);
+        if self.route == Route::Settings
+            && self.world.scenario == Scenario::AccountsMixed
+            && self.motion == Motion::Paused
+            && ui.theme_ref().capability.color == termrock::ColorLevel::TrueColor
+            && ui.theme_ref().color.accent == termrock::Color::Rgb(0x48, 0xe0, 0x54)
+            && !self.help_open
+            && !self.quit_open
+            && !self.cancel_open
+            && !self.about_open
+            && !self.editor_exit_open
+            && !self.cockpit_info_open
+            && !self.launch_failure_open
+            && self.picker_mode.is_none()
+        {
+            settings_view::paint(self, ui, full);
+        }
         self.draw_historical_accounts_detail(ui, full);
         self.draw_historical_accounts_detail_80(ui);
         self.draw_historical_accounts_drawer(ui, full);
