@@ -386,8 +386,6 @@ impl HomeState {
             nav_list()
                 .render_row(&paint_action)
                 .draw(ui, rows_area, &self.rows, &rows);
-            // `Part::HEADER` fills the row. Tag titles are only the glyphs, so retint after that fill.
-            paint_section_titles(ui, rows_area, &rows, self.rows.scroll().offset());
         }
         let groups = rows
             .iter()
@@ -485,45 +483,8 @@ fn nav_list() -> NavList<'static, HomeRow, impl Fn(&HomeRow) -> ItemKey> {
         .header_indent(SECTION_INDENT)
         .section(&section)
         .patch_part(HEADER_PARTS)
+        .header_text_patch(&HEADER_TEXT)
         .key(row_key)
-}
-
-fn section_header_rows(rows: &[HomeRow]) -> Vec<(usize, &str)> {
-    let mut out = Vec::new();
-    let mut next = 0_usize;
-    let mut previous: Option<&str> = None;
-    for row in rows {
-        let name = row.section;
-        if previous != Some(name) {
-            next = next.saturating_add(usize::from(previous.is_some()));
-            if !name.is_empty() {
-                out.push((next, name));
-                next = next.saturating_add(1);
-            }
-            previous = Some(name);
-        }
-        next = next.saturating_add(1);
-    }
-    out
-}
-
-fn paint_section_titles(ui: &mut Ui<'_>, area: Rect, rows: &[HomeRow], offset: usize) {
-    if area.is_empty() {
-        return;
-    }
-    let style = ui.paint_patch(&HEADER_TEXT);
-    let limit = offset.saturating_add(usize::from(area.height));
-    let x = area.x.saturating_add(SECTION_INDENT);
-    let width = area.width.saturating_sub(SECTION_INDENT);
-    for (row, text) in section_header_rows(rows) {
-        if !(offset..limit).contains(&row) {
-            continue;
-        }
-        let y = area
-            .y
-            .saturating_add(u16::try_from(row.saturating_sub(offset)).unwrap_or(u16::MAX));
-        ui.paint_str(Rect::new(x, y, width, 1), text, style);
-    }
 }
 fn row_key(row: &HomeRow) -> ItemKey {
     ItemKey::text(&row.action.id)
@@ -2617,6 +2578,160 @@ mod tests {
             Some(&selected.id)
         );
     }
+
+    #[test]
+    fn section_headers_use_nav_list_text_policy_across_widths_and_color_levels() {
+        use termrock::ColorLevel::{Ansi16, Ansi256, Mono, TrueColor};
+
+        for width in [79, 80, 81, 99, 100, 101, 119, 120, 121] {
+            for level in [TrueColor, Ansi256, Ansi16, Mono] {
+                let mut harness =
+                    Harness::new(fixture(Scenario::LaunchFailure), Theme::junie(), width, 16)
+                        .with_color(level);
+                let (text_x, header_y) = harness
+                    .find("Suggested here")
+                    .expect("live Home rows include a section header");
+                assert_eq!(text_x, SECTION_INDENT);
+                let rows_bounds = harness.area_of(ROWS).expect("Home NavList is addressable");
+                let selected = harness
+                    .app()
+                    .home
+                    .selected(&harness.app().world)
+                    .expect("live Home rows have an action");
+                let selected_hit = harness
+                    .area_of_part(
+                        ROWS,
+                        termrock::PartRef::item(Part::ROW, ItemKey::text(&selected.id)),
+                    )
+                    .expect("selected Home row has a real hit region");
+
+                let padding = (0..SECTION_INDENT)
+                    .map(|x| {
+                        let cell = harness.cell(x, header_y);
+                        (cell.fg, cell.bg, cell.modifier)
+                    })
+                    .collect::<Vec<_>>();
+                assert!(padding.iter().all(|style| *style == padding[0]));
+
+                let header = harness.cell(text_x, header_y);
+                assert!(!header.modifier.contains(termrock::Modifier::BOLD));
+                let header_style = (header.fg, header.bg, header.modifier);
+                assert_ne!(header.fg, padding[0].0);
+
+                assert!(harness.tab_to(ROWS), "rows focus at {width} columns");
+                assert_eq!(harness.area_of(ROWS), Some(rows_bounds));
+                assert_eq!(
+                    harness.area_of_part(
+                        ROWS,
+                        termrock::PartRef::item(Part::ROW, ItemKey::text(&selected.id)),
+                    ),
+                    Some(selected_hit)
+                );
+                for x in text_x..text_x.saturating_add(13) {
+                    let cell = harness.cell(x, header_y);
+                    assert_eq!((cell.fg, cell.bg, cell.modifier), header_style);
+                }
+                for (x, style) in padding.iter().enumerate() {
+                    let cell = harness.cell(u16::try_from(x).unwrap(), header_y);
+                    assert_eq!((cell.fg, cell.bg, cell.modifier), *style);
+                }
+
+                let _ = harness.key(KeyCode::End);
+                assert_eq!(harness.area_of(ROWS), Some(rows_bounds));
+
+                if width == 121 && level == TrueColor {
+                    let before = harness
+                        .app()
+                        .home
+                        .rows(&harness.app().world)
+                        .into_iter()
+                        .map(|row| row.action.title)
+                        .collect::<Vec<_>>();
+                    let task = harness
+                        .app_mut()
+                        .world
+                        .mise
+                        .as_mut()
+                        .expect("live fixture includes task data")
+                        .tasks
+                        .first_mut()
+                        .expect("live fixture includes a task");
+                    task.id = "task:termrock-header-live-probe".to_owned();
+                    let after = harness
+                        .app()
+                        .home
+                        .rows(&harness.app().world)
+                        .into_iter()
+                        .map(|row| row.action.title)
+                        .collect::<Vec<_>>();
+                    assert_ne!(before, after, "fixture data changes the live labels");
+                    assert!(
+                        after
+                            .iter()
+                            .any(|label| label.contains("termrock-header-live-probe"))
+                    );
+                    let _ = harness.key(KeyCode::Home);
+                    assert!(harness.find("Suggested here").is_some());
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn home_header_text_policy_survives_open_menu_layer() {
+        let app = crate::App::for_scenario(Scenario::RustDirty, crate::Motion::Paused, 2_000);
+        let mut harness = Harness::new(app, Theme::junie(), 121, 40);
+        let (text_x, header_y) = harness
+            .find("Suggested here")
+            .expect("live Home rows include a section header");
+        let rows_bounds = harness.area_of(ROWS).expect("Home NavList is addressable");
+        assert_eq!(text_x, rows_bounds.x.saturating_add(SECTION_INDENT));
+        let home_focus = harness.focus();
+        assert!(home_focus.is_some());
+        let style = |harness: &Harness<crate::App>, x, y| {
+            let cell = harness.cell(x, y);
+            (cell.fg, cell.bg, cell.modifier)
+        };
+        let before_padding = (0..SECTION_INDENT)
+            .map(|offset| style(&harness, rows_bounds.x.saturating_add(offset), header_y))
+            .collect::<Vec<_>>();
+        let before_text = style(&harness, text_x, header_y);
+        assert!(
+            before_padding
+                .iter()
+                .all(|entry| *entry == before_padding[0])
+        );
+        assert_ne!(before_padding[0].0, before_text.0);
+        // The current row renderer already emits duplicate focus gutters (one
+        // per rendered row). This test checks focus ownership and restoration,
+        // not that unrelated pre-existing visual defect.
+
+        let _ = harness.key(KeyCode::F(10));
+        let menu_focus = harness.focus();
+        assert!(menu_focus.is_some());
+        assert_ne!(menu_focus, home_focus);
+        assert!(harness.text().contains("Quit"));
+        let (_, overlay_header_y) = harness
+            .find("Suggested here")
+            .expect("Home header remains rendered beneath the open menu layer");
+        let overlay_padding = (0..SECTION_INDENT)
+            .map(|offset| {
+                style(
+                    &harness,
+                    rows_bounds.x.saturating_add(offset),
+                    overlay_header_y,
+                )
+            })
+            .collect::<Vec<_>>();
+        let overlay_text = style(&harness, text_x, overlay_header_y);
+        assert_eq!(overlay_padding, before_padding);
+        assert_eq!(overlay_text, before_text);
+
+        // The current MenuBar app flow does not dismiss this opened menu on
+        // Escape, so focus restoration cannot be exercised in this bounded
+        // header-policy test. The open-layer header and focus owner are checked.
+    }
+
     #[test]
     fn query_submission_uses_top_match_after_row_navigation() {
         let mut harness = Harness::new(fixture(Scenario::RustDirty), Theme::junie(), 120, 40);
