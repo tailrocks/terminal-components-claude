@@ -3905,7 +3905,7 @@ mod tests {
         assert!(plate.diagnostics().is_empty(), "{:?}", plate.diagnostics());
         let world = &plate.app().world;
         // The width band carries the failure card at every viewport, not only at
-        // the captured frame sizes.
+        // the baseline snapshot sizes.
         assert!(catalogue::launch_failure_activity_frame(world, 160));
         assert!(catalogue::launch_failure_activity_frame(world, 80));
         assert!(catalogue::launch_failure_activity_frame(world, 81));

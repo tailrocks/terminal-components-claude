@@ -10542,11 +10542,7 @@ impl App for TableProApp {
                 .as_ref()
                 .is_some_and(|draft| draft.column == "id" && draft.value.is_empty())
         {
-            let view = cx.viewport();
-            // The approved bar sits on the 120×40 value placeholder.
-            if view.width == 120 && view.height == 40 {
-                cx.focus(FILTER_VALUE);
-            }
+            cx.focus(FILTER_VALUE);
         }
 
         response
