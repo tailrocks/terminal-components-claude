@@ -2678,58 +2678,95 @@ mod tests {
     }
 
     #[test]
-    fn home_header_text_policy_survives_open_menu_layer() {
-        let app = crate::App::for_scenario(Scenario::RustDirty, crate::Motion::Paused, 2_000);
-        let mut harness = Harness::new(app, Theme::junie(), 121, 40);
-        let (text_x, header_y) = harness
-            .find("Suggested here")
-            .expect("live Home rows include a section header");
-        let rows_bounds = harness.area_of(ROWS).expect("Home NavList is addressable");
-        assert_eq!(text_x, rows_bounds.x.saturating_add(SECTION_INDENT));
-        let home_focus = harness.focus();
-        assert!(home_focus.is_some());
-        let style = |harness: &Harness<crate::App>, x, y| {
-            let cell = harness.cell(x, y);
-            (cell.fg, cell.bg, cell.modifier)
-        };
-        let before_padding = (0..SECTION_INDENT)
-            .map(|offset| style(&harness, rows_bounds.x.saturating_add(offset), header_y))
-            .collect::<Vec<_>>();
-        let before_text = style(&harness, text_x, header_y);
-        assert!(
-            before_padding
-                .iter()
-                .all(|entry| *entry == before_padding[0])
-        );
-        assert_ne!(before_padding[0].0, before_text.0);
-        // The current row renderer already emits duplicate focus gutters (one
-        // per rendered row). This test checks focus ownership and restoration,
-        // not that unrelated pre-existing visual defect.
+    fn home_header_text_policy_survives_menu_open_close_and_focus_restoration() {
+        use termrock::ColorLevel::{Ansi16, Ansi256, Mono, TrueColor};
+        use termrock::{FeedbackClock, SimulationMoment};
 
-        let _ = harness.key(KeyCode::F(10));
-        let menu_focus = harness.focus();
-        assert!(menu_focus.is_some());
-        assert_ne!(menu_focus, home_focus);
-        assert!(harness.text().contains("Quit"));
-        let (_, overlay_header_y) = harness
-            .find("Suggested here")
-            .expect("Home header remains rendered beneath the open menu layer");
-        let overlay_padding = (0..SECTION_INDENT)
-            .map(|offset| {
-                style(
-                    &harness,
-                    rows_bounds.x.saturating_add(offset),
-                    overlay_header_y,
+        for width in [119, 120, 121] {
+            for level in [TrueColor, Ansi256, Ansi16, Mono] {
+                let app =
+                    crate::App::for_scenario(Scenario::RustDirty, crate::Motion::Paused, 2_000);
+                let initial = u64::try_from(app.fixture_time_ms())
+                    .expect("simulation fixture time is nonnegative");
+                let mut harness = Harness::new_with_feedback_clock(
+                    app,
+                    Theme::junie(),
+                    width,
+                    40,
+                    FeedbackClock::Simulation {
+                        initial: SimulationMoment::from_millis(initial),
+                    },
                 )
-            })
-            .collect::<Vec<_>>();
-        let overlay_text = style(&harness, text_x, overlay_header_y);
-        assert_eq!(overlay_padding, before_padding);
-        assert_eq!(overlay_text, before_text);
+                .with_color(level);
+                let (text_x, header_y) = harness
+                    .find("Suggested here")
+                    .expect("live Home rows include a section header");
+                let rows_bounds = harness.area_of(ROWS).expect("Home NavList is addressable");
+                assert_eq!(text_x, rows_bounds.x.saturating_add(SECTION_INDENT));
+                let home_focus = Some(QUERY);
+                assert_eq!(harness.focus(), home_focus);
+                let style = |harness: &Harness<crate::App>, x, y| {
+                    let cell = harness.cell(x, y);
+                    (cell.fg, cell.bg, cell.modifier)
+                };
+                let before_padding = (0..SECTION_INDENT)
+                    .map(|offset| style(&harness, rows_bounds.x.saturating_add(offset), header_y))
+                    .collect::<Vec<_>>();
+                let before_text = style(&harness, text_x, header_y);
+                assert!(
+                    before_padding
+                        .iter()
+                        .all(|entry| *entry == before_padding[0])
+                );
+                assert_ne!(before_padding[0].0, before_text.0);
 
-        // The current MenuBar app flow does not dismiss this opened menu on
-        // Escape, so focus restoration cannot be exercised in this bounded
-        // header-policy test. The open-layer header and focus owner are checked.
+                // Home's renderer still emits 15 white row gutters in this
+                // fixture. Keep that independent defect visible in the audit;
+                // this header test checks runtime focus ownership, not glyph count.
+                let _ = harness.key(KeyCode::F(10));
+                assert_eq!(harness.focus(), Some(Id::root("holla.menu")));
+                assert!(harness.text().contains("Quit"));
+                let (_, overlay_header_y) = harness
+                    .find("Suggested here")
+                    .expect("Home header remains rendered beneath the open menu layer");
+                let overlay_padding = (0..SECTION_INDENT)
+                    .map(|offset| {
+                        style(
+                            &harness,
+                            rows_bounds.x.saturating_add(offset),
+                            overlay_header_y,
+                        )
+                    })
+                    .collect::<Vec<_>>();
+                let overlay_text = style(&harness, text_x, overlay_header_y);
+                assert_eq!(overlay_padding, before_padding);
+                assert_eq!(overlay_text, before_text);
+
+                let _ = harness.key(KeyCode::Esc);
+                assert_eq!(harness.focus(), home_focus);
+                assert!(
+                    harness.diagnostics().is_empty(),
+                    "{:?}",
+                    harness.diagnostics()
+                );
+                let (_, closed_header_y) = harness
+                    .find("Suggested here")
+                    .expect("Home header remains rendered after closing the menu");
+                assert_eq!(
+                    (0..SECTION_INDENT)
+                        .map(|offset| {
+                            style(
+                                &harness,
+                                rows_bounds.x.saturating_add(offset),
+                                closed_header_y,
+                            )
+                        })
+                        .collect::<Vec<_>>(),
+                    before_padding
+                );
+                assert_eq!(style(&harness, text_x, closed_header_y), before_text);
+            }
+        }
     }
 
     #[test]
