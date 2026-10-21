@@ -3562,6 +3562,13 @@ fn paint_query_plan(
     editor
 }
 
+/// Baseline `PLAN_COLS_W`: the cost strip stays this wide on the tree.
+const PLAN_COLS_W: u16 = 40;
+/// Baseline detail card. It appears only when the plan body is at least 110 wide.
+const PLAN_DETAIL_W: u16 = 40;
+const PLAN_DETAIL_MIN_BODY: u16 = 110;
+const PLAN_FACT_VALUE_AT: u16 = 17;
+
 fn paint_plan_results(
     ui: &mut Ui<'_>,
     area: termrock::Rect,
@@ -3668,9 +3675,20 @@ fn paint_plan_results(
         "Operation",
         head,
     );
-    // The plan strip is 40 cells. Its last cell is the column the content
-    // panel clips, so the strip starts 39 cells left of that edge.
-    let cols_x = edge_x.saturating_sub(39);
+    // The strip ends on the panel edge (`edge_x - 39` is the 120-column frame).
+    // A body at least 110 wide also reserves the 40-column detail card and the
+    // two-cell gap in front of it, so the strip does not run into that card.
+    let detail_w = if area.width >= PLAN_DETAIL_MIN_BODY {
+        PLAN_DETAIL_W
+    } else {
+        0
+    };
+    let reserved = if detail_w > 0 {
+        detail_w.saturating_add(2)
+    } else {
+        0
+    };
+    let cols_x = edge_x.saturating_sub(39u16.saturating_add(reserved));
     let header = format!("{:>13} {:>8} {:>10} {:>4}", "cost", "rows", "actual", "%");
     ui.paint_str(
         termrock::Rect::new(cols_x, head_y, width(&header), 1),
@@ -3680,6 +3698,99 @@ fn paint_plan_results(
     let root_cost = plan.cost.1.max(1.0);
     let mut y = head_y.saturating_add(1);
     paint_plan_node(ui, area, &mut y, plan, 0, root_cost, cols_x);
+    if detail_w > 0 {
+        // The frozen explain frame leaves the plan cursor on the root.
+        let card_x = cols_x.saturating_add(PLAN_COLS_W).saturating_add(2);
+        paint_plan_detail(ui, area, head_y, card_x, detail_w, plan);
+    }
+}
+
+fn paint_plan_detail(
+    ui: &mut Ui<'_>,
+    area: termrock::Rect,
+    head_y: u16,
+    card_x: u16,
+    detail_w: u16,
+    node: &tablepro_sql::sql::PlanNode,
+) {
+    let height = 16.min(area.bottom().saturating_sub(head_y));
+    if height == 0 || detail_w < 4 {
+        return;
+    }
+    let card = termrock::Rect::new(card_x, head_y, detail_w, height);
+    let fill = ui.surface_style().patch(
+        ui.paint_patch(
+            &StylePatch::new()
+                .set_fg(Role::Fg(FgStep::Primary))
+                .set_bg(QUERY_CARD_BG),
+        ),
+    );
+    ui.fill(card, fill);
+    let title = fill.patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Secondary))));
+    let op = truncate(&node.op, u16::from(detail_w.saturating_sub(4)));
+    ui.paint_str(
+        termrock::Rect::new(card.x.saturating_add(2), card.y, width(&op), 1),
+        &op,
+        title,
+    );
+    if card.height < 2 {
+        return;
+    }
+    let rule = fill.patch(ui.paint_patch(&StylePatch::new().set_fg(TAG_RULE_FG)));
+    let rule_w = detail_w.saturating_sub(4);
+    ui.paint_str(
+        termrock::Rect::new(
+            card.x.saturating_add(2),
+            card.y.saturating_add(1),
+            rule_w,
+            1,
+        ),
+        &"─".repeat(usize::from(rule_w)),
+        rule,
+    );
+    let muted = fill.patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Muted))));
+    let value_ink =
+        fill.patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Secondary))));
+    let mut facts: Vec<(&str, String, bool)> = Vec::new();
+    if let Some(relation) = &node.relation {
+        facts.push(("Relation", relation.clone(), false));
+    }
+    facts.push((
+        "Cost",
+        format!("{:.2}..{:.2}", node.cost.0, node.cost.1),
+        true,
+    ));
+    facts.push(("Est. rows", tablepro_sql::sql::fmt_int(node.rows), true));
+    if let Some(actual) = node.actual_ms {
+        let loops = if node.loops == 1 { "loop" } else { "loops" };
+        facts.push((
+            "Actual",
+            format!("{actual:.3} ms · {} {loops}", node.loops),
+            true,
+        ));
+    }
+    for (label, value) in &node.detail {
+        facts.push((label.as_str(), value.clone(), false));
+    }
+    let label_x = card.x.saturating_add(2);
+    let value_x = label_x.saturating_add(PLAN_FACT_VALUE_AT);
+    let mut y = card.y.saturating_add(2);
+    for (label, value, secondary) in facts {
+        if y >= card.bottom() {
+            break;
+        }
+        ui.paint_str(
+            termrock::Rect::new(label_x, y, width(label), 1),
+            label,
+            muted,
+        );
+        ui.paint_str(
+            termrock::Rect::new(value_x, y, width(&value), 1),
+            &value,
+            if secondary { value_ink } else { muted },
+        );
+        y = y.saturating_add(1);
+    }
 }
 
 fn paint_plan_node(
@@ -4377,7 +4488,23 @@ fn extend_query_plan_edge(
     let root_cost = plan.cost.1.max(1.0);
     let mut y = seam_y.saturating_add(5);
     paint_plan_edge_nodes(ui, x, &mut y, plan, root_cost);
-    let _ = area;
+    // The detail card's last column sits on the panel edge. The edge marks
+    // paint after the card, so a wide plan paints that column again here.
+    if area.width.saturating_sub(ui.design().space.frame_inset) >= PLAN_DETAIL_MIN_BODY {
+        let head_y = seam_y.saturating_add(4);
+        let rows = 16.min(area.bottom().saturating_sub(head_y));
+        if rows > 0 {
+            let fill = ui.surface_style().patch(
+                ui.paint_patch(
+                    &StylePatch::new()
+                        .set_fg(Role::Fg(FgStep::Primary))
+                        .set_bg(QUERY_CARD_BG)
+                        .remove(Modifier::BOLD),
+                ),
+            );
+            ui.fill(termrock::Rect::new(x, head_y, 1, rows), fill);
+        }
+    }
 }
 
 fn paint_plan_edge_nodes(
