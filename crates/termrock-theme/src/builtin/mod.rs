@@ -121,7 +121,9 @@ fn button_variant(m: &mut PartMap<PartRecipe>, v: Variant) {
         .when(StateFlags::FOCUSED, p().add(Modifier::BOLD))
         .when(
             StateFlags::PRESSED,
-            p().set_fg(Role::OnDanger).set_bg(Role::Danger),
+            p().set_fg(Role::OnDanger)
+                .set_bg(Role::Danger)
+                .remove(Modifier::BOLD),
         )
         .when(
             StateFlags::DISABLED,
@@ -147,7 +149,8 @@ fn button_variant(m: &mut PartMap<PartRecipe>, v: Variant) {
         .when(
             StateFlags::PRESSED,
             p().set_fg(Role::Surface(Surface::Canvas))
-                .set_bg(Role::Fg(FgStep::Primary)),
+                .set_bg(Role::Fg(FgStep::Primary))
+                .remove(Modifier::BOLD),
         )
         .when(
             StateFlags::DISABLED,
@@ -167,7 +170,8 @@ fn button_variant(m: &mut PartMap<PartRecipe>, v: Variant) {
         .when(
             StateFlags::PRESSED,
             p().set_fg(Role::Surface(Surface::Canvas))
-                .set_bg(Role::Fg(FgStep::Primary)),
+                .set_bg(Role::Fg(FgStep::Primary))
+                .remove(Modifier::BOLD),
         )
         .when(
             StateFlags::DISABLED,
