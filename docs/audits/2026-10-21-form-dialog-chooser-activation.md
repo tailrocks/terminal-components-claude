@@ -24,3 +24,17 @@ The Showcase Add connection page is a separate, incomplete restoration. The real
 - `cargo clippy -p termrock-forms --all-targets -- -D warnings` — passed.
 - `cargo fmt --all --check` — passed.
 - `cargo nextest run -p termrock-overlays --all-targets` — existing unrelated failure `menu::tests::menu_bar_keeps_public_default_variant_overlay_and_local_patch_precedence` (expected `Rgb(7, 8, 9)`, got `Rgb(28, 28, 31)`); run stopped after 73/174 tests, with 72 passed. This change does not edit overlay code.
+
+## Independent review (exact source commit `9c07189c8f38a4e29bda4060f2dfd5efc8ceda73`)
+
+The separate reviewer cleared only the shared Form/FormDialog chooser activation delta. The review found no API signature changes or rendering/measurement side effects. Its independent public consumer passed 10/10 candidate checks; the same consumer on the parent produced 2 red chooser regressions and 8 passes. Workspace Form/overlay checks completed 251/252 with 0 skips; the sole failure was the known menu overlay color assertion above. Clippy and format passed. This review explicitly does not approve the Showcase flow or claim product parity.
+
+Evidence is committed at [`evidence/form-chooser-20261021/review.json`](evidence/form-chooser-20261021/review.json) (SHA-256 `8ea0eaf7f6d736c95fc3821033377968a995ff299f0e6c79d03b6347a828c906`) and [`evidence/form-chooser-20261021/review-notes.md`](evidence/form-chooser-20261021/review-notes.md).
+
+| Contract | Retain / replace | Evidence and remaining scope |
+|---|---|---|
+| Form idle Enter submit | Retain for ordinary fields; exclude only chooser fields so the chooser receives activation first. | Form matrix regression preserves Save for other idle fields and asserts chooser Enter returns `Chose`. |
+| FormDialog child actions | Replace same-frame dialog submit after a chooser `Chose` with child-first response handling. | Widget test covers Enter, Space, pointer; dialog remains open. |
+| Public API | Retain typed `FormAction::Chose(Id)` / `FormDialogAction::Chose(Id)` and existing FormData ownership. | Independent consumer passed; no signature change. |
+| Showcase nested Picker | Still unverified / failing in the actual Showcase harness. | App test currently observes no chooser action from pointer input; do not claim this route or app parity is complete. |
+| Menu overlay color | Known unrelated failure; unchanged and not waived. | Full reviewer run: 251/252; 0 skips. |
