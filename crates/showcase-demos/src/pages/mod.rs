@@ -1,4 +1,4 @@
-use termrock::{Family, Part, Rect, Response, StateFlags, Ui, Variant, width};
+use termrock::{Family, FrameRead, Part, Rect, Response, StateFlags, Ui, Variant, width};
 
 pub struct PageStatus(pub String);
 
@@ -78,13 +78,8 @@ pub fn frame(
         )
         .style;
     let meta_style = ui
-        .style(
-            Family::LIST,
-            Variant::DEFAULT,
-            Part::META,
-            StateFlags::empty(),
-        )
-        .style;
+        .surface_style()
+        .fg(termrock::theme::baseline_muted(ui.theme().capability.color));
     let title_area = Rect { height: 1, ..area };
     let title_width = width(title).min(area.width);
     ui.paint_str(title_area, title, title_style);
