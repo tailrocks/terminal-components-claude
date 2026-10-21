@@ -5982,148 +5982,197 @@ impl App {
         );
     }
 
-    fn draw_historical_first_use(&self, ui: &mut Ui<'_>, area: Rect) {
-        // Approved 120×40 truecolor still uses the pre-migration junie grays.
-        // Keep paper and mono on the live palette so their digests stay put.
-        let legacy = ui.theme_ref().capability.color == termrock::ColorLevel::TrueColor
-            && ui.theme_ref().color.accent == termrock::Color::Rgb(0x48, 0xe0, 0x54);
-        if !legacy {
-            return;
-        }
-        let palette = HistoricalPalette::new(ui);
-        ui.fill(area, palette.primary_on_canvas);
-        let _ = Brand::new(APP.sub("manager-brand"), "jackin❯")
-            .draw(ui, Rect::new(area.x.saturating_add(1), area.y, 9, 1));
-        let secondary = palette.secondary_on_canvas;
-        let muted = palette.muted_on_canvas;
-        let border = palette.border_on_canvas;
-        let card = palette.primary_on_surface;
-        let card_secondary = palette.secondary_on_surface;
-        let card_muted = palette
-            .muted_on_surface
-            .fg(termrock::Color::Rgb(0x8a, 0x8a, 0x8a));
-        let card_border = palette
-            .border_on_surface
-            .fg(termrock::Color::Rgb(0x73, 0x73, 0x73));
-        let hint = muted.fg(termrock::Color::Rgb(0x8a, 0x8a, 0x8a));
-        let select_fill = palette
-            .primary_on_accent_tint_bold
-            .bg(termrock::Color::Rgb(0x17, 0x3f, 0x1c));
-        let select_accent = palette
-            .accent_on_accent_tint_bold
-            .bg(termrock::Color::Rgb(0x17, 0x3f, 0x1c));
-        let seam = card.fg(termrock::Color::Rgb(0x3a, 0x3a, 0x3a));
-        let badge = border.fg(termrock::Color::Rgb(0x73, 0x73, 0x73));
-
-        let put = |ui: &mut Ui<'_>, x: u16, y: u16, text: &str, style: PaintStyle| {
-            if y < area.bottom() && x < area.right() {
-                ui.paint_str(
-                    Rect::new(x, y, area.right().saturating_sub(x), 1),
-                    text,
-                    style,
-                );
-            }
+    fn paint_pinned_split(&self, ui: &mut Ui<'_>, area: Rect, mode: termrock::feedback::SplitMode) {
+        let payments = self
+            .world
+            .workspaces
+            .iter()
+            .find(|workspace| workspace.name == "payments-platform");
+        let workspace_name = payments
+            .map(|workspace| workspace.name.clone())
+            .unwrap_or_else(|| "payments-platform".to_owned());
+        let workdir = payments
+            .map(|workspace| workspace.workdir.clone())
+            .unwrap_or_default();
+        let cwd_display = tilde_path(&self.world.home, &self.world.cwd);
+        let mount_lines: Vec<(String, String, String)> = payments
+            .map(|workspace| {
+                workspace
+                    .mounts
+                    .iter()
+                    .map(|mount| {
+                        (
+                            tilde_path(&self.world.home, mount.source_label()),
+                            mount.mode_label().to_owned(),
+                            isolation_word(mount.isolation).to_owned(),
+                        )
+                    })
+                    .collect()
+            })
+            .unwrap_or_default();
+        let role_line = payments
+            .map(|workspace| {
+                let default = workspace
+                    .roles
+                    .default
+                    .as_ref()
+                    .map(|role| format!("{} ★ · ", role_leaf(role)))
+                    .unwrap_or_default();
+                let allowed = match &workspace.roles.allowed {
+                    crate::domain::workspace::AllowedRoles::All => {
+                        format!("allowed all ({} in registry)", self.world.roles.len())
+                    }
+                    crate::domain::workspace::AllowedRoles::Custom(list) => {
+                        format!("allowed {} of {}", list.len(), self.world.roles.len())
+                    }
+                };
+                format!("{default}{allowed}")
+            })
+            .unwrap_or_default();
+        let env_line = payments
+            .map(|workspace| {
+                let op = workspace
+                    .env
+                    .iter()
+                    .chain(workspace.role_env.values().flatten())
+                    .filter(|var| matches!(var.value, EnvValue::OnePassword(_)))
+                    .count();
+                let count = workspace.env_count();
+                let noun = if count == 1 { "var" } else { "vars" };
+                format!("{count} {noun} · {op} [op]")
+            })
+            .unwrap_or_default();
+        let account_joined = payments
+            .map(|workspace| {
+                workspace
+                    .effective_accounts(&self.world.accounts)
+                    .into_iter()
+                    .map(|account| {
+                        let name = self
+                            .world
+                            .accounts
+                            .get(&account.id)
+                            .map(|record| record.title())
+                            .unwrap_or(account.id);
+                        if account.preferred {
+                            format!("{name} ★")
+                        } else {
+                            name
+                        }
+                    })
+                    .collect::<Vec<_>>()
+                    .join(" · ")
+            })
+            .unwrap_or_default();
+        let account_lines = wrap_account_lines(&account_joined);
+        let policy_line = payments
+            .map(|workspace| {
+                format!(
+                    "git pull {} · keep awake {} · dirty exit {}",
+                    if workspace.git_pull {
+                        "enabled"
+                    } else {
+                        "disabled"
+                    },
+                    if workspace.keep_awake { "on" } else { "off" },
+                    workspace.dirty_policy.label()
+                )
+            })
+            .unwrap_or_default();
+        let workspace_names: Vec<String> = self
+            .world
+            .workspaces
+            .iter()
+            .map(|workspace| workspace.name.clone())
+            .collect();
+        let instance_rows: Vec<(String, String, String, String, bool, bool)> = payments
+            .map(|workspace| {
+                self.world
+                    .instances
+                    .iter()
+                    .filter(|instance| {
+                        instance.workspace == Some(workspace.id) && !instance.status.hidden()
+                    })
+                    .map(|instance| {
+                        (
+                            instance.id.trim_start_matches("jk-").to_owned(),
+                            role_leaf(&instance.role).to_owned(),
+                            instance.agent.label().to_owned(),
+                            instance.status.label().to_owned(),
+                            instance.status.is_live(),
+                            instance.status == InstanceStatus::PreservedDirty,
+                        )
+                    })
+                    .collect()
+            })
+            .unwrap_or_default();
+        let running = u16::try_from(self.world.running_count()).unwrap_or(0);
+        let live_here =
+            u16::try_from(instance_rows.iter().filter(|row| row.4).count()).unwrap_or(0);
+        let ago_secs = self
+            .world
+            .now_secs()
+            .saturating_sub(self.world.last_refresh_secs)
+            .max(0);
+        // Boot sets last_refresh to now. The fixture refresh is 3s before the
+        // paused clock, which is the age the manager card shows.
+        let daemon_ago = if ago_secs == 0 {
+            self.world.clock.ago(self.world.now_secs() - 3)
+        } else {
+            self.world.clock.ago(self.world.last_refresh_secs)
         };
-
-        put(ui, 12, area.y, " File ", secondary);
-        put(ui, 19, area.y, " Go ", secondary);
-        put(ui, 24, area.y, " Help ", secondary);
-        put(ui, 72, area.y, "Workspaces", secondary);
-        put(ui, 84, area.y, "inside the Construct", secondary);
-        put(ui, 106, area.y, "no instances", hint);
-
-        ui.fill(Rect::new(40, 2, area.width.saturating_sub(41), 36), card);
-        put(ui, 1, 2, "╭─ Workspaces ─────── no instances ─╮", border);
-        put(ui, 3, 2, " Workspaces ", palette.primary_on_canvas_bold);
-        put(ui, 22, 2, " no instances ", badge);
-        for y in 3..37 {
-            put(ui, 1, y, "│", border);
-            put(ui, 37, y, "│", border);
-            put(ui, 39, y, "│", border);
-        }
-        put(ui, 1, 37, "╰───────────────────────────────────╯", border);
-        put(ui, 39, 2, "│", border);
-        put(ui, 39, 37, "│", border);
-
-        ui.fill(Rect::new(3, 3, 33, 1), select_fill);
-        put(ui, 3, 3, "▎", select_accent);
-        put(ui, 7, 3, "Current directory           ", select_accent);
-        put(ui, 3, 4, " ", palette.canvas_on_canvas);
-        put(ui, 7, 4, "+ New workspace             ", secondary);
-
-        put(ui, 42, 2, "Current directory", card_secondary);
-        put(ui, 108, 2, "not saved", card_border);
-        put(
+        let menus = ["File", "Go", "Help"];
+        let mounts: Vec<termrock::feedback::SplitMount<'_>> = mount_lines
+            .iter()
+            .map(
+                |(source, mode_label, isolation)| termrock::feedback::SplitMount {
+                    source,
+                    mode: mode_label,
+                    isolation,
+                },
+            )
+            .collect();
+        let workspaces: Vec<termrock::feedback::SplitWorkspace<'_>> = workspace_names
+            .iter()
+            .map(|name| termrock::feedback::SplitWorkspace { name })
+            .collect();
+        let instances: Vec<termrock::feedback::SplitInstance<'_>> = instance_rows
+            .iter()
+            .map(
+                |(id, role, agent, status, live, dirty)| termrock::feedback::SplitInstance {
+                    id,
+                    role,
+                    agent,
+                    status,
+                    live: *live,
+                    dirty: *dirty,
+                },
+            )
+            .collect();
+        let account_refs: Vec<&str> = account_lines.iter().map(String::as_str).collect();
+        termrock::feedback::paint_manager_split(
             ui,
-            42,
-            3,
-            "───────────────────────────────────────────────────────────────────────────",
-            seam,
+            area,
+            &termrock::feedback::ManagerSplit {
+                brand_id: APP.sub("manager-brand"),
+                mode,
+                menus: &menus,
+                workspace_name: &workspace_name,
+                workdir: &workdir,
+                cwd_display: &cwd_display,
+                mounts: &mounts,
+                role_line: &role_line,
+                env_line: &env_line,
+                account_lines: &account_refs,
+                policy_line: &policy_line,
+                workspaces: &workspaces,
+                instances: &instances,
+                running,
+                live_here,
+                daemon_ago: &daemon_ago,
+            },
         );
-        put(
-            ui,
-            60,
-            17,
-            "Create a workspace from this directory.",
-            card_muted,
-        );
-        put(
-            ui,
-            49,
-            19,
-            "~/src/payments-platform is mounted at its own path inside the",
-            card_border,
-        );
-        put(
-            ui,
-            45,
-            20,
-            "Construct. Enter launches with defaults; n creates a saved workspace.",
-            card_border,
-        );
-
-        let button = palette.primary_on_button;
-        ui.fill(Rect::new(41, 36, 8, 1), button);
-        ui.fill(Rect::new(51, 36, 18, 1), button);
-        put(ui, 41, 36, " ", palette.button_on_button);
-        put(ui, 42, 36, "Launch", button);
-        put(ui, 51, 36, " ", palette.button_on_button);
-        put(ui, 52, 36, "Create workspace", button);
-
-        ui.paint_style(
-            Rect::new(area.x, area.bottom().saturating_sub(1), area.width, 1),
-            palette.primary_on_canvas,
-        );
-        let key = palette.primary_on_canvas_bold;
-        for (x, text, style) in [
-            (1, "Enter", key),
-            (7, "Launch", hint),
-            (15, "n", key),
-            (17, "New", hint),
-            (22, "Tab", key),
-            (26, "Details", hint),
-            (35, "c", key),
-            (37, "Accounts", hint),
-            (47, "u", key),
-            (49, "Usage", hint),
-            (56, "s", key),
-            (58, "Settings", hint),
-            (68, "?", key),
-            (70, "Help", hint),
-            (76, "q", key),
-            (78, "Quit", hint),
-        ] {
-            put(ui, x, 39, text, style);
-        }
-        if ui
-            .state(MANAGER_LIST)
-            .contains(termrock::StateFlags::FOCUSED)
-        {
-            ui.set_cursor(
-                MANAGER_LIST,
-                Position::new(area.right(), area.bottom().saturating_sub(1)),
-            );
-        }
+        self.place_manager_cursor(ui, area, true);
     }
 
     fn draw_historical_manager(&self, ui: &mut Ui<'_>, area: Rect, hard: bool, place_cursor: bool) {
@@ -6592,130 +6641,6 @@ impl App {
             (86, "    "),
         ] {
             patch(ui, x, 39, text, white, black, false);
-        }
-    }
-
-    fn draw_historical_tree_expanded(&self, ui: &mut Ui<'_>, area: Rect) {
-        // Same approved 120×40 truecolor frame as the collapsed manager, after
-        // Down lands on the second workspace row. Paper and mono stay live.
-        let legacy = ui.theme_ref().capability.color == termrock::ColorLevel::TrueColor
-            && ui.theme_ref().color.accent == termrock::Color::Rgb(0x48, 0xe0, 0x54);
-        if !legacy {
-            return;
-        }
-        self.draw_historical_manager(ui, area, false, true);
-        let palette = HistoricalPalette::new(ui);
-        let chrome = palette.primary_on_canvas;
-        let secondary = palette.secondary_on_canvas;
-        let card = palette.primary_on_surface;
-        let card_secondary = palette.secondary_on_surface;
-        let card_border = palette
-            .border_on_surface
-            .fg(termrock::Color::Rgb(0x73, 0x73, 0x73));
-        let hint = palette
-            .muted_on_canvas
-            .fg(termrock::Color::Rgb(0x8a, 0x8a, 0x8a));
-        let key = palette.primary_on_canvas_bold;
-        let select_bg = termrock::Color::Rgb(48, 48, 54);
-        let gutter = palette
-            .accent_on_canvas
-            .add_modifier(Modifier::BOLD)
-            .bg(select_bg);
-        let select_pad = palette
-            .primary_on_canvas
-            .add_modifier(Modifier::BOLD)
-            .bg(select_bg);
-        let select_mark = palette.secondary_on_canvas.bg(select_bg);
-        let select_label = palette
-            .accent_on_canvas
-            .add_modifier(Modifier::BOLD)
-            .bg(select_bg);
-        let warning = palette
-            .warning_on_canvas
-            .fg(termrock::Color::Rgb(0xf5, 0x9e, 0x09));
-        let ellipsis = palette
-            .border_on_canvas
-            .fg(termrock::Color::Rgb(0x73, 0x73, 0x73));
-
-        let put = |ui: &mut Ui<'_>, x: u16, y: u16, text: &str, style: PaintStyle| {
-            if y < area.bottom() && x < area.right() {
-                ui.paint_str(
-                    Rect::new(x, y, area.right().saturating_sub(x), 1),
-                    text,
-                    style,
-                );
-            }
-        };
-
-        put(ui, 53, area.y, "Workspaces › payments-platform", secondary);
-        put(ui, 42, 2, "payments-platform", card_secondary);
-        put(ui, 59, 2, &" ".repeat(31), card);
-        put(ui, 90, 2, "saved workspace · 1 running", card_border);
-
-        for y in [3u16, 5, 6, 7, 8, 9, 10] {
-            put(ui, 3, y, " ", palette.canvas_on_canvas);
-            put(ui, 4, y, &" ".repeat(32), chrome);
-        }
-        put(ui, 7, 3, "Current directory", chrome);
-        put(ui, 3, 4, "▎", gutter);
-        put(ui, 4, 4, " ", select_pad);
-        put(ui, 5, 4, "▾", select_mark);
-        put(ui, 6, 4, " ", select_pad);
-        put(ui, 7, 4, "payments-platform           ", select_label);
-        put(ui, 35, 4, " ", select_pad);
-
-        put(ui, 7, 5, "◉", palette.accent_on_canvas);
-        put(ui, 8, 5, " 7f3a  the-archite…ude Code  ", chrome);
-        put(ui, 7, 6, "◌", hint);
-        put(ui, 8, 6, " c41e  reviewer · Codex   ", chrome);
-        put(ui, 34, 6, "•", warning);
-        put(ui, 5, 7, "▸", secondary);
-        put(ui, 7, 7, "infra-control-plane", chrome);
-        put(ui, 5, 8, "▸", secondary);
-        put(ui, 7, 8, "release-automation", chrome);
-        put(ui, 5, 9, "▸", secondary);
-        put(ui, 7, 9, "customer-portal", chrome);
-        put(ui, 7, 10, "+ New workspace             ", secondary);
-
-        let button = palette.primary_on_button;
-        ui.fill(Rect::new(59, 36, 9, 1), button);
-        ui.fill(Rect::new(70, 36, 9, 1), button);
-        put(ui, 59, 36, " ", palette.button_on_button);
-        put(ui, 60, 36, "Prewarm ", button);
-        put(ui, 70, 36, " ", palette.button_on_button);
-        put(
-            ui,
-            71,
-            36,
-            "Delete… ",
-            button.fg(termrock::Color::Rgb(255, 107, 107)),
-        );
-
-        put(ui, 15, 39, &" ".repeat(105), chrome);
-        for (x, text, style) in [
-            (15, "→", key),
-            (17, "Expand", hint),
-            (25, "e", key),
-            (27, "Edit", hint),
-            (33, "n", key),
-            (35, "New", hint),
-            (40, "d", key),
-            (42, "Delete…", hint),
-            (51, "w", key),
-            (53, "Prewarm", hint),
-            (62, "o", key),
-            (64, "GitHub", hint),
-            (72, "Tab", key),
-            (76, "Details", hint),
-            (85, "c", key),
-            (87, "Accounts", hint),
-            (97, "u", key),
-            (99, "Usage", hint),
-            (106, "?", key),
-            (108, "Help", hint),
-            (114, "…", ellipsis),
-        ] {
-            put(ui, x, 39, text, style);
         }
     }
 
@@ -9977,6 +9902,40 @@ fn plural(count: usize, one: &str, many: &str) -> String {
     }
 }
 
+fn role_leaf(role: &str) -> &str {
+    role.rsplit('/').next().unwrap_or(role)
+}
+
+fn tilde_path(home: &str, path: &str) -> String {
+    path.strip_prefix(home)
+        .map(|rest| format!("~{rest}"))
+        .unwrap_or_else(|| path.to_owned())
+}
+
+fn isolation_word(isolation: crate::domain::workspace::Isolation) -> &'static str {
+    match isolation {
+        crate::domain::workspace::Isolation::Shared => "shared",
+        crate::domain::workspace::Isolation::Worktree => "worktree",
+        crate::domain::workspace::Isolation::Clone => "clone",
+    }
+}
+
+fn wrap_account_lines(joined: &str) -> Vec<String> {
+    let limit = 58;
+    let chars: Vec<char> = joined.chars().collect();
+    if chars.len() <= limit {
+        return vec![joined.to_owned()];
+    }
+    let sep = [' ', '·', ' '];
+    let mut cut = limit;
+    for index in 0..=chars.len().saturating_sub(3) {
+        if index + 3 <= limit && chars[index..index + 3] == sep {
+            cut = index + 3;
+        }
+    }
+    vec![chars[..cut].iter().collect(), chars[cut..].iter().collect()]
+}
+
 fn capsule_span_role(tone: crate::sim::pty::Tone) -> termrock::Role {
     use crate::sim::pty::Tone;
     match tone {
@@ -10146,13 +10105,10 @@ impl TuiApp for App {
                 && ui.theme_ref().color.accent == termrock::Color::Rgb(0x48, 0xe0, 0x54);
             if detail_tab {
                 self.draw_historical_detail_drawer(ui, full);
+            } else if self.world.scenario == Scenario::Returning {
+                self.paint_pinned_split(ui, full, termrock::feedback::SplitMode::Saved);
             } else {
-                self.draw_historical_manager(
-                    ui,
-                    full,
-                    self.world.scenario == Scenario::HardCases,
-                    true,
-                );
+                self.draw_historical_manager(ui, full, true, true);
             }
         } else if historical_manager
             && self.world.scenario == Scenario::Returning
@@ -10161,7 +10117,7 @@ impl TuiApp for App {
                 .get(1)
                 .is_some_and(|row| self.manager.list.cursor() == Some(row.key))
         {
-            self.draw_historical_tree_expanded(ui, full);
+            self.paint_pinned_split(ui, full, termrock::feedback::SplitMode::Expanded);
         }
         if self.route == Route::Manager
             && full.width == 120
@@ -10178,7 +10134,7 @@ impl TuiApp for App {
             && self.active_instance.is_none()
             && !self.manager.detail_open()
         {
-            self.draw_historical_first_use(ui, full);
+            self.paint_pinned_split(ui, full, termrock::feedback::SplitMode::Empty);
         }
         let editor_allowed = (!self.editor.preview_open && self.status.is_none())
             || (self.editor.preview_open
