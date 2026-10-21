@@ -25,12 +25,16 @@ struct Page {
     items: Vec<Item<'static>>,
     policy: FilterPolicy,
     selection_policy: SelectionPolicy,
+    max_rows: Option<u16>,
     chosen: Vec<ItemKey>,
     query_events: usize,
 }
 impl App for Page {
     fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
-        let component = picker(self.policy).selection_policy(self.selection_policy);
+        let mut component = picker(self.policy).selection_policy(self.selection_policy);
+        if let Some(rows) = self.max_rows {
+            component = component.max_rows(rows);
+        }
         if cx.update_cause() == UpdateCause::Bootstrap {
             cx.open_layer(ID, component.layer(cx, &self.items));
         }
@@ -57,9 +61,11 @@ impl App for Page {
     }
     fn draw(&self, ui: &mut Ui<'_>) {
         ui.layer(ID, |ui, area| {
-            picker(self.policy)
-                .selection_policy(self.selection_policy)
-                .draw(ui, area, &self.state, &self.items)
+            let mut component = picker(self.policy).selection_policy(self.selection_policy);
+            if let Some(rows) = self.max_rows {
+                component = component.max_rows(rows);
+            }
+            component.draw(ui, area, &self.state, &self.items)
         });
     }
 }
@@ -73,6 +79,7 @@ fn page_with_selection(policy: FilterPolicy, selection_policy: SelectionPolicy) 
             items: ITEMS.to_vec(),
             policy,
             selection_policy,
+            max_rows: None,
             chosen: vec![],
             query_events: 0,
         },
@@ -206,4 +213,24 @@ fn scope_reorder_and_empty_projection_settle_before_next_activation() {
     let _ = h.key(KeyCode::Esc);
     assert!(h.app().state.cursor().is_some());
     assert!(h.diagnostics().is_empty(), "{:?}", h.diagnostics());
+}
+
+#[test]
+fn max_rows_caps_the_requested_layer_height() {
+    let harness = Harness::new(
+        Page {
+            state: PickerState::default(),
+            items: ITEMS.to_vec(),
+            policy: FilterPolicy::Label,
+            selection_policy: SelectionPolicy::Preserve,
+            max_rows: Some(1),
+            chosen: vec![],
+            query_events: 0,
+        },
+        Theme::junie(),
+        120,
+        20,
+    );
+    let area = harness.layer_area(ID).expect("picker layer is open");
+    assert_eq!(area.height, 6, "one row plus the five card rows");
 }
