@@ -3,7 +3,7 @@ use termrock::{
     ActionKey, Button, Color, ContextMenu, Cx, Family, FilterList, FilterListState, FrameRead,
     GlyphRole, Id, Item, ItemKey, LayerSize, Menu, MenuBar, MenuItem, MenuState, Modifier, Part,
     Picker, PickerAction, PickerChain, PickerChainState, PickerStage, PickerState, Position, Rect,
-    Response, ScreenAlign, ScrollState, StateFlags, Surface, Ui, Variant, width,
+    Response, ScreenAlign, ScrollState, SelectionPolicy, StateFlags, Surface, Ui, Variant, width,
 };
 
 use super::{Page, PageUpdate, frame};
@@ -333,7 +333,9 @@ fn picker(kind: PickerKind, item_count: usize) -> Picker<'static, Item<'static>>
         .size(LayerSize::Fixed(width, height))
         .align(ScreenAlign::Center);
     if matches!(kind, PickerKind::Quick) {
-        picker.scopes(SCOPES)
+        picker
+            .scopes(SCOPES)
+            .selection_policy(SelectionPolicy::FirstEnabledOnFilterChange)
     } else {
         picker
     }

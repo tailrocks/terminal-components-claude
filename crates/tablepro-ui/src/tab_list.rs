@@ -1,7 +1,7 @@
 use tablepro_domain::tabs::{Tab, TabKey, TabRecord};
 use termrock::{
     AsItem, CursorStyle, FilterPolicy, Id, Item, ItemKey, ItemRowLayout, LayerSize, Picker,
-    PickerState, ScreenAlign, Surface,
+    PickerState, ScreenAlign, SelectionPolicy, Surface,
 };
 
 use crate::workbench::Workbench;
@@ -57,6 +57,7 @@ pub(crate) fn picker(visible: usize) -> Picker<'static, TabRow> {
         .placeholder("Filter tabs…")
         .hints("↑↓ Move · Enter Switch · Delete Close tab · Esc Close")
         .filter(FilterPolicy::Label)
+        .selection_policy(SelectionPolicy::FirstEnabledOnFilterChange)
         .item_layout(ItemRowLayout::Columns)
         .cursor_style(CursorStyle::Fill)
         .align(ScreenAlign::GeometricCenter)
