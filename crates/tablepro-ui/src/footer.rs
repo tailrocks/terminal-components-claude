@@ -173,7 +173,8 @@ pub(crate) fn draw(
             ui.paint_patch(
                 &StylePatch::new()
                     .set_fg(BADGE_FG_ROLE)
-                    .set_bg(BADGE_BG_ROLE),
+                    .set_bg(BADGE_BG_ROLE)
+                    .add(termrock::Modifier::BOLD),
             ),
         );
         ui.paint_str(
