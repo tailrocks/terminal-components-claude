@@ -177,6 +177,23 @@ with live scrollback, the demo table data, and the test-only harness code
 under `crates/termrock-e2e`, `crates/termrock-conformance` and
 `crates/visual-harness`.
 
+## Streams
+
+One writer per working copy. Application writers own only their own
+application crates; the library writer owns only `crates/termrock-*/**`. A
+library gap an application writer hits is recorded, not patched locally.
+
+| Stream | Owns | Branch |
+| --- | --- | --- |
+| Jackin | `crates/jackin-preview-app/**` | `wip/jackin-false-parity-20261021` |
+| Holla | `crates/holla-ui/**`, `crates/holla-sim/**` | `wip/holla-false-parity-20261021` |
+| Showcase | `crates/showcase-ui/**`, `crates/showcase-demos/**`, `crates/showcase/**` | `wip/showcase-false-parity-20261021` |
+| TablePro | `crates/tablepro-ui/**`, `crates/tablepro-demo/**` | `wip/tablepro-false-parity-20261021` |
+| Termrock | `crates/termrock-*/**` | `wip/termrock-library-gaps-20261021` |
+
+The coordinator merges each stream into `parity/termrock-visual-baseline`
+under the shared push lock, and owns the final gates.
+
 ## Decisions
 
 See `## Decisions log`.
