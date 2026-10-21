@@ -270,12 +270,12 @@ mod historical_inspect;
 mod historical_launch_picker;
 mod historical_manager_menu;
 mod historical_paint;
-mod historical_usage_detail;
-mod historical_usage_overview;
 mod launch_cockpit;
 mod launch_dialog_plate;
 mod manager_help;
 mod settings_view;
+mod usage_detail_view;
+mod usage_overview_view;
 use historical_paint::HistoricalPalette;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -7545,7 +7545,7 @@ impl App {
             return;
         }
         // Approved frame hides the cursor. No owner writes one.
-        historical_usage_overview::paint(ui);
+        usage_overview_view::paint(ui);
     }
 
     fn historical_usage_detail(&self, theme: &termrock::Theme, screen: Rect) -> bool {
@@ -7595,7 +7595,7 @@ impl App {
             return;
         }
         // Approved frame hides the cursor. No owner writes one.
-        historical_usage_detail::paint(ui);
+        usage_detail_view::paint(ui);
     }
 
     fn draw_accounts_boot_needle(&self, ui: &mut Ui<'_>, screen: Rect) {
