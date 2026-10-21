@@ -60,6 +60,14 @@ const CHROME_FRAMES: &[(PageId, u16, u16, bool, &str, u64)] = &[
     // reference-derived source inks, so it moves whenever a source ink is
     // restored. The previous values (0x297069b2_b57e2db6 and
     // 0xe8d99bc6_c7e1eff2) are preserved in the migration record.
+    // The page chrome migration briefly broke this pin: the shared
+    // `SectionStrip` painted the page's truecolour palette literally at the
+    // 16-colour tier, so the strip carried RGB cells instead of palette
+    // entries and the frame digested 0xf35de25c_a2718b06. The shared block
+    // now reduces the palette to the frame's colour level, which restores
+    // this digest cell for cell; the value is unchanged and the interim
+    // digest and the root cause are recorded in
+    // docs/audits/evidence/2026-10-21-ansi16-shell-chrome/.
     (
         PageId::Overview,
         100,
