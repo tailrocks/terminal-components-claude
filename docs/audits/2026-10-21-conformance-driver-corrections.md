@@ -76,3 +76,15 @@ expectation/assertion files match the bytes at `52e1572caaf7d9effd0265bbfdf6edcd
 their paths and SHA-256 values are retained in the integration work evidence.
 These checks apply only to this merged source and do not clear the broader
 conformance failures, terminal/PTY coverage gaps, or application acceptance.
+
+The branch advanced with the independently integrated Form pointer-reveal
+change. After normal-merging PR #38 tip `1b9bd580e5f46dff23630a8c15c85e7f14cf7c4e`,
+candidate `c29b2f7f547776769cc581e0456746b9e5dbd7c2` again passed the focused
+47-case selection (Nextest run `fca1057f-cdab-4eea-b092-4fcb03f9dfdc`, 47
+passed, 888 unrelated skipped) and the six external negative controls (run
+`7eebfbac-7cce-4912-94c4-f66770c1de57`, 6 passed). Strict scoped Clippy,
+workspace formatting, and whitespace checks passed. All seven held
+expectation/assertion files still match `52e1572caaf7d9effd0265bbfdf6edcd0e57533b`;
+their SHA-256 values are listed in the prior verification paragraph. This
+revalidation supersedes the immediately preceding `b64420f` local candidate
+receipt without changing the bounded review scope.
