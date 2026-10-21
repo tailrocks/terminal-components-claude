@@ -256,13 +256,11 @@ const CAPSULE_COMMANDS: &[Item<'static>] = &[
 ];
 const TICK_MS: u64 = crate::rain::TICK_MS;
 
+mod accounts_add_form_view;
 mod accounts_detail_view;
 mod accounts_drawer_view;
+mod accounts_filter_view;
 mod editor_view;
-mod historical_accounts_add_form;
-
-
-mod historical_accounts_filter;
 
 mod capsule_menu_view;
 mod capsule_zoom_view;
@@ -7244,7 +7242,7 @@ impl App {
         if !self.historical_accounts_add_form(ui.theme_ref(), screen) {
             return;
         }
-        historical_accounts_add_form::paint(ui);
+        accounts_add_form_view::paint(ui);
         if self.add_form_required {
             // Backtab then Enter. The control row includes the focus gutter.
             let message_bg = ui.theme_ref().bg(termrock::Surface::Elevated);
@@ -7300,7 +7298,7 @@ impl App {
         if !self.historical_accounts_filter(ui.theme_ref(), screen) {
             return;
         }
-        historical_accounts_filter::paint(ui);
+        accounts_filter_view::paint(ui);
     }
 
     fn historical_accounts_filter_80(&self, theme: &termrock::Theme, screen: Rect) -> bool {
@@ -7343,143 +7341,7 @@ impl App {
         }
         // Approved frame hides the cursor. This path must not call set_cursor
         // or set_bar_cursor, and it must not write cursor bytes.
-        let screen = ui.full();
-        let menus = ["File", "Go", "Help"];
-        let rows = [
-            termrock::feedback::FilterRow {
-                depth: 0,
-                twist: None,
-                name: "Overview",
-                alert: false,
-                tail: None,
-                tail_tone: termrock::feedback::TailTone::Muted,
-                selected: true,
-            },
-            termrock::feedback::FilterRow {
-                depth: 1,
-                twist: Some("▾"),
-                name: "Claude",
-                alert: true,
-                tail: Some("1"),
-                tail_tone: termrock::feedback::TailTone::Muted,
-                selected: false,
-            },
-            termrock::feedback::FilterRow {
-                depth: 2,
-                twist: None,
-                name: "Work",
-                alert: true,
-                tail: Some("stale 47 min"),
-                tail_tone: termrock::feedback::TailTone::Warning,
-                selected: false,
-            },
-        ];
-        let health = [
-            termrock::feedback::DetailSpan {
-                text: "  Health  ",
-                ink: termrock::feedback::DetailInk::Plain,
-            },
-            termrock::feedback::DetailSpan {
-                text: "degraded",
-                ink: termrock::feedback::DetailInk::DangerBold,
-            },
-            termrock::feedback::DetailSpan {
-                text: " · ",
-                ink: termrock::feedback::DetailInk::Muted,
-            },
-            termrock::feedback::DetailSpan {
-                text: "4 warnings",
-                ink: termrock::feedback::DetailInk::Warning,
-            },
-            termrock::feedback::DetailSpan {
-                text: " · ",
-                ink: termrock::feedback::DetailInk::Muted,
-            },
-            termrock::feedback::DetailSpan {
-                text: "1 exhausted",
-                ink: termrock::feedback::DetailInk::Danger,
-            },
-            termrock::feedback::DetailSpan {
-                text: " · ",
-                ink: termrock::feedback::DetailInk::Muted,
-            },
-            termrock::feedback::DetailSpan {
-                text: "2 stale",
-                ink: termrock::feedback::DetailInk::Warning,
-            },
-            termrock::feedback::DetailSpan {
-                text: " · ",
-                ink: termrock::feedback::DetailInk::Muted,
-            },
-            termrock::feedback::DetailSpan {
-                text: "1 refreshing",
-                ink: termrock::feedback::DetailInk::Info,
-            },
-            termrock::feedback::DetailSpan {
-                text: " · ",
-                ink: termrock::feedback::DetailInk::Muted,
-            },
-            termrock::feedback::DetailSpan {
-                text: "3 …",
-                ink: termrock::feedback::DetailInk::Danger,
-            },
-        ];
-        let registry = [termrock::feedback::DetailSpan {
-            text: "  Registry  12 accounts · 11 enabled · 1 disabled · 8 providers",
-            ink: termrock::feedback::DetailInk::Plain,
-        }];
-        let sources = [termrock::feedback::DetailSpan {
-            text: "  Sources  7 registered · 5 discovered · 1Password available",
-            ink: termrock::feedback::DetailInk::Plain,
-        }];
-        let facts = [
-            termrock::feedback::DetailLine { spans: &health },
-            termrock::feedback::DetailLine { spans: &registry },
-            termrock::feedback::DetailLine { spans: &sources },
-        ];
-        let hints = [
-            termrock::feedback::FilterHint {
-                key: "Enter",
-                action: "Details",
-            },
-            termrock::feedback::FilterHint {
-                key: "r",
-                action: "Refresh all",
-            },
-            termrock::feedback::FilterHint {
-                key: "a",
-                action: "Add…",
-            },
-            termrock::feedback::FilterHint {
-                key: "/",
-                action: "Filter",
-            },
-            termrock::feedback::FilterHint {
-                key: "m",
-                action: "Usage",
-            },
-            termrock::feedback::FilterHint {
-                key: "Esc",
-                action: "Back",
-            },
-        ];
-        termrock::feedback::paint_accounts_filter(
-            ui,
-            screen,
-            &termrock::feedback::AccountsFilter {
-                brand: "jackin❯",
-                menus: &menus,
-                crumb: "Accounts › Overview",
-                status: "⠋ refreshing 1",
-                title: " Accounts · filter work ",
-                summary: " 12 · 4 ▲ · 4 ! ",
-                rows: &rows,
-                heading: "Overview",
-                heading_meta: "12 accounts · 8 providers · Tab details",
-                facts: &facts,
-                hints: &hints,
-            },
-        );
+        accounts_filter_view::paint(ui);
     }
 
     fn historical_accounts_detail(&self, theme: &termrock::Theme, screen: Rect) -> bool {
