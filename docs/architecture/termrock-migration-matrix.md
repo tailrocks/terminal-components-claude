@@ -2409,3 +2409,45 @@ recorded pre-existing reds (`page_headings` ×2 and `showcase_visual_baseline`).
 The Showcase reds remain a reference-owner decision about the pre-tag page
 heading fixtures and the palette quantization, not a regression from this
 work.
+
+### Independent review of this session's work
+
+An independent reviewer (separate worktree, read-only) reviewed this branch
+against the acceptance criteria. Verdicts and what was done with them:
+
+| Criterion | Verdict | Follow-up |
+| --- | --- | --- |
+| Exact product match (Showcase work) | HOLDS — the reviewer re-derived the frame digests on both sides: 704/704 frames identical, zero differing cells, and the same for the hit-region and route assertions | none |
+| Reusable library, thin consumer | HOLDS — the consumer depends only on the public facade, contains no geometry, buffer write or raw input matching; `cargo tree` shows no application, preview or test-only crate | none |
+| Test integrity | HOLDS — no test weakened, deleted or re-pointed at the candidate; the restored dialog clip test still asserts the clip | none |
+| Gate state at `0d87742cc` | DID NOT HOLD — the Holla merge left three checks red | fixed in this branch (see below) |
+| Migration-record claims | MOSTLY HOLD — the numbers were reproducible, but two statements needed correction | corrected below |
+| Theme provenance | HOLDS | none |
+
+The adjudication of the recorded conflict (the reviewer's own reading of the
+tag and the corpus):
+
+- The recorded slot table was stale for the muted, faint, on-accent,
+  border-strong, meter stale/unknown and 16-colour faint roles: the reference
+  values are 245, 242, 232, 242, 242 and Gray. The theme is right; the
+  expectation was wrong.
+- The recorded slot table was right for the danger highlight (88), the danger
+  tint (52) and the current-match plate (55); the theme had drifted away from
+  the reference there, and is restored.
+- The menu-row highlight stays on the generic cube of the Junie highlight ink
+  (67), because the frozen corpus paints the selected chrome menu item at
+  `48;5;67`; the tag's `highlight = i(25)` is the list/tree selection role,
+  a different slot in the refactored token model. The recorded `25` for that
+  slot was a role mis-mapping and is corrected.
+
+Two record statements the reviewer caught and that are now fixed: the wording
+that "the frozen corpus renders 244/238 for the muted and faint roles" (the
+reviewer's corpus check found no `38;5;244` in the Holla 256 snapshots, and the
+slot table's own values for those roles came from the tag's *table*, not from
+a corpus rendering), and the scope of the snapshot evidence, which covers the
+muted, faint, ghost and on-accent inks but not the highlight-family slots.
+
+The reviewer also confirmed the DCO blocker independently: 1228 of the 1268
+commits in `origin/main..origin/parity/termrock-visual-baseline` carry no
+`Signed-off-by` trailer, and the check does not look only at the newest
+commits.
