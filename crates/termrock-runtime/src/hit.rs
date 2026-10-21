@@ -54,6 +54,11 @@ pub struct Hit {
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct Region {
+    /// The region's own control id (ported from PR #26
+    /// `HitRegion::id`, commit f4867e9b5): equal to `owner` except where a
+    /// registration splits the two — a thumb keeps its bar's id and a
+    /// backdrop keeps the id it was hit-tested as.
+    pub id: Id,
     pub owner: Id,
     pub part: PartRef,
     pub area: Rect,
@@ -219,7 +224,8 @@ impl Registry {
         if area.is_empty() {
             return;
         }
-        self.push_kind(owner, part, area, layer, kind, false);
+        self.push_kind(owner, owner, part, area, layer, kind, false);
+        // `push_kind` skips an empty area, so a region is present here.
         if let Some(scroll) = scroll
             && let Some(region) = self.regions.last_mut()
         {
@@ -229,6 +235,7 @@ impl Registry {
 
     fn push_kind(
         &mut self,
+        id: Id,
         owner: Id,
         part: PartRef,
         area: Rect,
@@ -245,6 +252,7 @@ impl Registry {
                 .iter()
                 .any(|region| region.owner == owner && !region.pointer_enabled);
         self.regions.push(Region {
+            id,
             owner,
             part,
             area,
@@ -345,8 +353,10 @@ impl Registry {
             .any(|r| r.owner == id && matches!(r.kind, RegionKind::Control | RegionKind::Part))
     }
 
+    /// Whether `id` owns a region or is a region's control id (a backdrop
+    /// hit-tested under a derived id, as in PR #26).
     pub fn has_owner(&self, id: Id) -> bool {
-        self.regions.iter().any(|r| r.owner == id)
+        self.regions.iter().any(|r| r.owner == id || r.id == id)
     }
 
     /// The topmost region at `pos` of any kind, if any.
@@ -371,17 +381,24 @@ impl Registry {
         self.bars.push(bar);
     }
 
-    /// Register the draggable thumb of an already-registered bar as a part
-    /// of the bar (ported from PR #26 `src/core/hit.rs::register_thumb`,
-    /// commit f4867e9b5). A thumb without its bar is ignored.
+    /// Register the draggable thumb of an already-registered bar (ported
+    /// from PR #26 `src/core/hit.rs::register_thumb`, commit f4867e9b5).
+    /// Hits on the thumb resolve to `owner`, the widget the bar scrolls,
+    /// while the region keeps `bar_id` as its control id — PR #26's
+    /// id/owner split. A thumb without its bar is ignored.
     pub fn register_thumb(&mut self, bar_id: Id, owner: Id, thumb: Rect, layer: LayerId) {
         if self.bar(bar_id).is_none() {
             return;
         }
-        // The thumb belongs to the bar control; `owner` names the widget the
-        // bar scrolls, which `bar(bar_id)` answers.
-        let _ = owner;
-        self.register_part(bar_id, PartRef::of(Part::THUMB), thumb, layer);
+        self.push_kind(
+            bar_id,
+            owner,
+            PartRef::of(Part::THUMB),
+            thumb,
+            layer,
+            RegionKind::Part,
+            false,
+        );
     }
 
     /// The registered bars, oldest first.
@@ -400,7 +417,10 @@ impl Registry {
         self.releases.push((id, from));
     }
 
-    /// Whether `id` accepted a release from `from` this frame.
+    /// Whether `id` accepted a release from `from` this frame. Parity keys
+    /// acceptance by the hit's owner (the id a widget registers), where
+    /// PR #26 keyed it by the hit's control id (commit f4867e9b5) — a
+    /// documented adaptation, not a coarsening.
     pub fn accepts_release(&self, id: Id, from: ReleaseFrom) -> bool {
         self.releases.contains(&(id, from))
     }
@@ -415,16 +435,18 @@ impl Registry {
 
     /// Register a light-dismiss backdrop owned by `owner`, hit-tested as `id`.
     /// The registry answers hits with `owner`; `id` names the backdrop
-    /// control for `has_owner` style queries.
+    /// control for `has_owner` style queries (stored as the region's id, as
+    /// PR #26's `HitRegion::plain(id, area)` does).
     pub fn register_backdrop_of(
         &mut self,
-        _id: Id,
+        id: Id,
         owner: Id,
         area: Rect,
         layer: LayerId,
         pass_through: bool,
     ) {
         self.push_kind(
+            id,
             owner,
             PartRef::of(Part::BACKDROP),
             area,
@@ -619,6 +641,33 @@ mod tests {
         assert_eq!(h.area_of(A), None);
     }
 
+    // Regression for review finding 2 (2026-10-21): a rejected empty-area
+    // registration must never write scroll state onto the previous,
+    // unrelated region.
+    #[test]
+    fn pushing_an_empty_area_never_touches_the_previous_regions_scroll() {
+        let mut h = Registry::new(1);
+        h.register_scroll(
+            A,
+            Rect::new(0, 0, 10, 10),
+            LayerId::PAGE,
+            Axes::V,
+            Headroom::default(),
+        );
+        let scroll = (Axes::V, Headroom::default());
+        h.register_scroll(B, Rect::new(0, 0, 10, 0), LayerId::PAGE, scroll.0, scroll.1);
+        assert_eq!(h.len(), 1, "the empty scroll area registers nothing");
+        let region = h.regions().first().expect("the scrollable region");
+        assert_eq!(
+            (region.owner, region.scroll()),
+            (A, Some(scroll)),
+            "the first region keeps its owner and scroll state"
+        );
+        h.register_part(A, PartRef::of(Part::LABEL), Rect::ZERO, LayerId::PAGE);
+        assert_eq!(h.len(), 1);
+        assert_eq!(h.regions().first().map(|r| r.scroll()), Some(Some(scroll)));
+    }
+
     #[test]
     fn generation_bump_invalidates_stale_regions() {
         let mut h = Registry::new(1);
@@ -662,8 +711,19 @@ mod tests {
         let on_thumb = h.hit(Position::new(19, 2)).expect("the thumb");
         assert_eq!(
             (on_thumb.owner, on_thumb.part),
-            (B, PartRef::of(Part::THUMB)),
-            "the thumb is its own part"
+            (A, PartRef::of(Part::THUMB)),
+            "the thumb resolves to the bar's owner, its own part"
+        );
+        let thumb_region = h
+            .regions()
+            .iter()
+            .rev()
+            .find(|r| r.part == PartRef::of(Part::THUMB))
+            .expect("the thumb region");
+        assert_eq!(
+            (thumb_region.id, thumb_region.owner),
+            (B, A),
+            "the thumb keeps the bar's id and the owner's owner"
         );
         assert_eq!(
             h.hit(Position::new(19, 4)).map(|x| x.part),
@@ -722,6 +782,21 @@ mod tests {
         assert_eq!(
             (on_backdrop.owner, on_backdrop.part),
             (A, PartRef::of(Part::BACKDROP))
+        );
+        assert!(
+            h.has_owner(B),
+            "the backdrop's own control id stays queryable"
+        );
+        assert!(h.has_owner(A), "the owner stays queryable");
+        let backdrop = h
+            .regions()
+            .iter()
+            .find(|r| r.kind == RegionKind::Backdrop)
+            .expect("the backdrop region");
+        assert_eq!(
+            (backdrop.id, backdrop.owner),
+            (B, A),
+            "the region keeps the backdrop id alongside its owner"
         );
         assert!(
             !h.region_at(Position::new(30, 15))
