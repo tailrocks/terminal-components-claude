@@ -222,6 +222,7 @@ pub enum FilterPolicy {
     #[default]
     Label,
     Caller,
+    Substring,
 }
 
 #[derive(Clone, PartialEq, Eq, Debug, Default)]
@@ -597,6 +598,10 @@ fn contains_folded(label: &str, query: &str) -> bool {
     false
 }
 
+fn contains_substring_folded(label: &str, query: &str) -> bool {
+    query.is_empty() || label.to_lowercase().contains(&query.to_lowercase())
+}
+
 impl<T: AsItem, R: RowFn<T>> FilterList<'_, T, R> {
     pub fn semantic_width(items: &[T]) -> u16 {
         items
@@ -637,8 +642,13 @@ impl<T: AsItem, R: RowFn<T>> FilterList<'_, T, R> {
         st.reset_selection = false;
         st.matches
             .extend(items.iter().enumerate().filter_map(|(i, item)| {
-                (self.filter == FilterPolicy::Caller
-                    || contains_folded(item.as_item().label, &query))
+                (match self.filter {
+                    FilterPolicy::Label => contains_folded(item.as_item().label, &query),
+                    FilterPolicy::Caller => true,
+                    FilterPolicy::Substring => {
+                        contains_substring_folded(item.as_item().label, &query)
+                    }
+                })
                 .then_some(i)
             }));
         st.initialized = true;
@@ -1692,5 +1702,203 @@ mod tests {
             page[(AREA.x, AREA.y)].bg,
             ratatui_core::style::Color::Magenta
         );
+    }
+
+
+    #[test]
+    fn reverse_scope_bindings_accept_backend_shift_and_plain_backtab_without_conflict() {
+        use ratatui::crossterm::event as backend;
+        use termrock_runtime::event::{Input, Key, KeyCode, KeyModifiers};
+        use termrock_runtime::keymap::{KeyPhase, binding_conflicts};
+
+        let converted = Input::from_crossterm(backend::Event::Key(backend::KeyEvent::new(
+            backend::KeyCode::BackTab,
+            backend::KeyModifiers::SHIFT,
+        )))
+        .expect("a pressed backend BackTab must produce input");
+        let Input::Key(shifted) = converted else {
+            panic!("the backend key must remain a key input");
+        };
+        assert_eq!(shifted.code, KeyCode::BackTab);
+        assert_eq!(shifted.mods, KeyModifiers::SHIFT);
+        let plain = Key {
+            code: KeyCode::BackTab,
+            mods: KeyModifiers::NONE,
+        };
+        for (key, action) in [
+            (shifted, ActionKey::custom("filter-list.previous-scope")),
+            (plain, ActionKey::custom("filter-list.previous-scope")),
+        ] {
+            let bindings: Vec<_> = super::BINDINGS
+                .iter()
+                .filter(|binding| binding.chord.is_some_and(|chord| chord.matches(&key)))
+                .collect();
+            assert_eq!(bindings.len(), 1);
+            let binding = bindings.first().expect("one reverse-scope binding");
+            assert_eq!(binding.action, action);
+            assert_eq!(binding.cmd, super::FilterListCmd::PrevScope);
+            assert!(!binding.visible);
+        }
+        assert!(binding_conflicts(
+            Id::root("filter-list.reverse-scope"),
+            KeyPhase::Bubble,
+            super::BINDINGS,
+        )
+        .is_empty());
+    }
+
+    #[test]
+    fn substring_policy_is_contiguous_and_distinct_from_label_fuzzy_matching() {
+        let items = [Item::new(ItemKey::num(4), "CommandPalette")];
+        let mut fuzzy = FilterListState::default();
+        fuzzy.set_query("cpa");
+        FilterList::<Item<'_>>::new(Id::root("filter-list.fuzzy"))
+            .filter(super::FilterPolicy::Label)
+            .reconcile(&mut fuzzy, &items);
+        assert_eq!(fuzzy.matched_len(), 1);
+
+        let mut substring = FilterListState::default();
+        substring.set_query("cpa");
+        FilterList::<Item<'_>>::new(Id::root("filter-list.substring"))
+            .filter(super::FilterPolicy::Substring)
+            .reconcile(&mut substring, &items);
+        assert_eq!(substring.matched_len(), 0);
+
+        substring.set_query("palette");
+        FilterList::<Item<'_>>::new(Id::root("filter-list.substring"))
+            .filter(super::FilterPolicy::Substring)
+            .reconcile(&mut substring, &items);
+        assert_eq!(substring.matched_len(), 1);
+    }
+
+    #[test]
+    fn substring_filter_uses_typed_field_caret_and_paste() {
+        use termrock_core::response::Response;
+        use termrock_runtime::event::{Input, Key, KeyCode, KeyModifiers};
+        use termrock_runtime::runtime::{App, Runtime};
+        use termrock_runtime::runtime::stub::key;
+        use termrock_runtime::ui::Cx;
+
+        const ID: Id = Id::root("filter-list.query-editor-contract");
+        const SCREEN: Rect = Rect::new(0, 0, 40, 8);
+
+        struct FilterApp {
+            state: FilterListState,
+            items: [Item<'static>; 3],
+        }
+
+        impl App for FilterApp {
+            fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+                FilterList::<Item<'static>>::new(ID)
+                    .filter(super::FilterPolicy::Substring)
+                    .update(cx, &mut self.state, &self.items)
+                    .erase()
+            }
+
+            fn draw(&self, ui: &mut Ui<'_>) {
+                let list =
+                    FilterList::<Item<'static>>::new(ID).filter(super::FilterPolicy::Substring);
+                list.draw_query(ui, Rect::new(0, 0, SCREEN.width, 1), &self.state);
+                list.draw_results(
+                    ui,
+                    Rect::new(0, 1, SCREEN.width, SCREEN.height.saturating_sub(1)),
+                    &self.state,
+                    &self.items,
+                );
+            }
+        }
+
+        let app = FilterApp {
+            state: FilterListState::default(),
+            items: [
+                Item::new(ItemKey::num(1), "Orders Console"),
+                Item::new(ItemKey::num(2), "Customer Notes"),
+                Item::new(ItemKey::num(3), "CONSOLE Logs"),
+            ],
+        };
+        let mut runtime = Runtime::new(app, Theme::junie());
+        let _ = runtime.initialize();
+        let mut buffer = Buffer::empty(SCREEN);
+        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
+
+        let paste = termrock_runtime::runtime::stub::deliver(&mut runtime, Input::Paste("console".into()));
+        assert!(paste.is_consumed());
+        assert!(paste.is_changed());
+        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
+        assert_eq!(runtime.app().state.query(), "console");
+        assert_eq!(runtime.app().state.matched_len(), 2);
+
+        let _ = termrock_runtime::runtime::stub::deliver(
+            &mut runtime,
+            Input::Key(Key {
+                code: KeyCode::Char('j'),
+                mods: KeyModifiers::CONTROL,
+            }),
+        );
+        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
+        assert_eq!(runtime.app().state.cursor(), Some(ItemKey::num(3)));
+        let _ = termrock_runtime::runtime::stub::deliver(
+            &mut runtime,
+            Input::Key(Key {
+                code: KeyCode::Char('k'),
+                mods: KeyModifiers::CONTROL,
+            }),
+        );
+        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
+        assert_eq!(runtime.app().state.cursor(), Some(ItemKey::num(1)));
+
+        let left = termrock_runtime::runtime::stub::deliver(&mut runtime, key(KeyCode::Left));
+        assert!(left.is_consumed());
+        assert!(left.is_changed(), "caret movement requests a repaint");
+        assert!(runtime.needs_present());
+        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
+        assert_eq!(
+            runtime.app().state.query_input.cursor_offset(),
+            Some(6)
+        );
+        let paste = termrock_runtime::runtime::stub::deliver(&mut runtime, Input::Paste("x".into()));
+        assert!(paste.is_consumed());
+        assert!(paste.is_changed());
+        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
+        assert_eq!(runtime.app().state.query(), "consolxe");
+        assert_eq!(runtime.app().state.matched_len(), 0);
+
+        let select = termrock_runtime::runtime::stub::deliver(
+            &mut runtime,
+            Input::Key(Key {
+                code: KeyCode::Left,
+                mods: KeyModifiers::SHIFT,
+            }),
+        );
+        assert!(select.is_consumed());
+        assert!(select.is_changed());
+        assert_eq!(runtime.app().state.query_input.selection(), Some(6..7));
+        assert!(runtime.needs_present());
+    }
+
+    #[test]
+    fn substring_filter_keeps_unicode_keys_and_reuses_match_capacity() {
+        let items = [
+            Item::new(ItemKey::num(11), "École Console"),
+            Item::new(ItemKey::num(22), "界 Console"),
+            Item::new(ItemKey::num(33), "Disabled Console").disabled(true),
+        ];
+        let list = FilterList::<Item<'_>>::new(Id::root("filter-list.substring-unicode"))
+            .filter(super::FilterPolicy::Substring);
+        let mut state = FilterListState::default();
+        list.reconcile(&mut state, &items);
+        let capacity = state.matches.capacity();
+        state.set_query("éCOLE");
+        list.reconcile(&mut state, &items);
+        assert_eq!(state.matched_len(), 1);
+        assert_eq!(state.cursor(), Some(ItemKey::num(11)));
+        state.set_query("界");
+        list.reconcile(&mut state, &items);
+        assert_eq!(state.matched_len(), 1);
+        assert_eq!(state.cursor(), Some(ItemKey::num(22)));
+        state.set_query("disabled");
+        list.reconcile(&mut state, &items);
+        assert_eq!(state.cursor(), None);
+        assert_eq!(state.matches.capacity(), capacity);
     }
 }

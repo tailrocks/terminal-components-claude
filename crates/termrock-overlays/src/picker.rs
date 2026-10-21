@@ -276,6 +276,7 @@ impl<'a, T, R> Picker<'a, T, R> {
         Part::BORDER,
         Part::TITLE,
         Part::QUERY,
+        Part::PLACEHOLDER,
         Part::GUTTER,
         Part::ICON,
         Part::ROW,
@@ -625,10 +626,13 @@ impl<T: AsItem, R: RowFn<T>> Picker<'_, T, R> {
                     }
                 }
                 FilterListAction::PrevScope if !self.scopes.is_empty() => {
-                    st.active_scope = st
-                        .active_scope
-                        .checked_sub(1)
-                        .unwrap_or(self.scopes.len() - 1);
+                    let count = self.scopes.len();
+                    let current = st.active_scope.checked_rem(count).unwrap_or(0);
+                    st.active_scope = if current == 0 {
+                        count.saturating_sub(1)
+                    } else {
+                        current.saturating_sub(1)
+                    };
                     if let Some(scope) = self.scopes.get(st.active_scope).copied() {
                         if self.selection_policy == SelectionPolicy::FirstEnabledOnFilterChange {
                             st.list.reset_selection_on_next_reconcile();
@@ -1135,5 +1139,188 @@ mod tests {
         assert_eq!(measured_at(requested, 0), LayerSize::Fixed(84, 9));
         assert_eq!(measured_at(requested, 4), LayerSize::Fixed(84, 9));
         assert_eq!(measured_at(LayerSize::Fill, 72), LayerSize::Fill);
+    }
+
+
+    #[test]
+    fn query_field_resolves_picker_family_theme_and_part_patch() {
+        const ID: Id = Id::root("picker.query-presentation");
+        const QUERY_PATCH: &[(Part, StylePatch)] = &[(
+            Part::QUERY,
+            StylePatch::new().set_fg(crate::theme::Role::Danger),
+        )];
+        const GLOBAL_PATCH: StylePatch = StylePatch::new().set_bg(crate::theme::Role::Danger);
+
+        struct PaintApp {
+            state: PickerState,
+            patch_kind: u8,
+        }
+
+        impl termrock_runtime::runtime::App for PaintApp {
+            fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+                let picker = Self::picker(self.patch_kind);
+                if cx.update_cause() == termrock_runtime::runtime::UpdateCause::Bootstrap {
+                    cx.open_layer(ID, picker.layer(cx, &[]));
+                }
+                picker.update(cx, &mut self.state, &[]).erase()
+            }
+
+            fn draw(&self, ui: &mut Ui<'_>) {
+                let picker = Self::picker(self.patch_kind);
+                ui.layer(ID, |ui, area| picker.draw(ui, area, &self.state, &[]));
+            }
+        }
+
+        impl PaintApp {
+            fn picker(patch_kind: u8) -> Picker<'static, Item<'static>> {
+                let picker = Picker::new(ID)
+                    .placeholder("X")
+                    .size(LayerSize::Fixed(20, 7));
+                match patch_kind {
+                    1 => picker.patch(&GLOBAL_PATCH),
+                    2 => picker.patch_part(QUERY_PATCH),
+                    _ => picker,
+                }
+            }
+        }
+
+        let render = |patch_kind: u8, themed, focused_style| {
+            let theme = if themed {
+                Theme::junie().override_family(Family::PICKER, |recipe| {
+                    recipe
+                        .part(Part::QUERY)
+                        .base(StylePatch::new().set_fg(crate::theme::Role::Warning));
+                    if focused_style {
+                        recipe.part(Part::QUERY).when(
+                            StateFlags::FOCUSED,
+                            StylePatch::new().set_fg(crate::theme::Role::Success),
+                        );
+                    }
+                })
+            } else {
+                Theme::junie()
+            };
+            let mut runtime = termrock_runtime::runtime::Runtime::new(
+                PaintApp {
+                    state: PickerState::default(),
+                    patch_kind,
+                },
+                theme,
+            );
+            let _ = runtime.initialize();
+            let area = Rect::new(0, 0, 30, 12);
+            let mut buffer = ratatui_core::buffer::Buffer::empty(area);
+            runtime.draw_buffer(area, &mut buffer).commit_presented();
+            buffer
+        };
+
+        let plain = render(0, false, false);
+        let base_theme = render(0, true, false);
+        let themed = render(0, true, true);
+        let patched = render(2, true, true);
+        let globally_patched = render(1, false, false);
+        let query_cell = plain
+            .content
+            .iter()
+            .position(|cell| cell.symbol() == "X")
+            .expect("query placeholder is visible");
+        let query_x = u16::try_from(query_cell % 30).expect("screen x fits u16");
+        let query_y = u16::try_from(query_cell / 30).expect("screen y fits u16");
+        assert_ne!(
+            plain[(query_x, query_y)].fg,
+            base_theme[(query_x, query_y)].fg
+        );
+        assert_ne!(
+            base_theme[(query_x, query_y)].fg,
+            themed[(query_x, query_y)].fg
+        );
+        assert_ne!(
+            themed[(query_x, query_y)].fg,
+            patched[(query_x, query_y)].fg
+        );
+        assert_ne!(
+            plain[(query_x, query_y)].bg,
+            globally_patched[(query_x, query_y)].bg
+        );
+    }
+
+    #[test]
+    fn scope_navigation_wraps_and_handles_shorter_or_empty_scope_lists() {
+        use ratatui::crossterm::event as backend;
+        use termrock_runtime::event::{Input, KeyCode};
+        use termrock_runtime::runtime::{App, Runtime, UpdateCause};
+        use termrock_runtime::runtime::stub::{deliver, key};
+
+        const ID: Id = Id::root("picker.scope-navigation");
+        const SCOPES: &[ScopeKey] = &[
+            ScopeKey::new(1),
+            ScopeKey::new(2),
+            ScopeKey::new(3),
+        ];
+        struct ScopeApp {
+            state: PickerState,
+            count: usize,
+            searchable: bool,
+        }
+        impl ScopeApp {
+            fn picker(&self) -> Picker<'static, Item<'static>> {
+                Picker::new(ID)
+                    .scopes(SCOPES.get(..self.count).unwrap_or(&[]))
+                    .searchable(self.searchable)
+            }
+        }
+        impl App for ScopeApp {
+            fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+                let picker = self.picker();
+                if cx.update_cause() == UpdateCause::Bootstrap {
+                    cx.open_layer(ID, picker.layer(cx, &[]));
+                }
+                picker.update(cx, &mut self.state, &[]).erase()
+            }
+            fn draw(&self, ui: &mut Ui<'_>) {
+                ui.layer(ID, |ui, area| self.picker().draw(ui, area, &self.state, &[]));
+            }
+        }
+        let shifted_backtab = || {
+            Input::from_crossterm(backend::Event::Key(backend::KeyEvent::new(
+                backend::KeyCode::BackTab,
+                backend::KeyModifiers::SHIFT,
+            )))
+            .expect("a pressed backend BackTab must produce input")
+        };
+        for searchable in [true, false] {
+            let mut runtime = Runtime::new(
+                ScopeApp {
+                    state: PickerState::default(),
+                    count: 3,
+                    searchable,
+                },
+                Theme::junie(),
+            );
+            let _ = runtime.initialize();
+            let area = Rect::new(0, 0, 80, 24);
+            let mut buffer = ratatui_core::buffer::Buffer::empty(area);
+            runtime.draw_buffer(area, &mut buffer).commit_presented();
+            let _ = deliver(&mut runtime, key(KeyCode::Tab));
+            runtime.draw_buffer(area, &mut buffer).commit_presented();
+            assert_eq!(runtime.app().state.scope(SCOPES), Some(ScopeKey::new(2)));
+            let _ = deliver(&mut runtime, shifted_backtab());
+            runtime.draw_buffer(area, &mut buffer).commit_presented();
+            assert_eq!(runtime.app().state.scope(SCOPES), Some(ScopeKey::new(1)));
+            let _ = deliver(&mut runtime, key(KeyCode::BackTab));
+            runtime.draw_buffer(area, &mut buffer).commit_presented();
+            assert_eq!(runtime.app().state.scope(SCOPES), Some(ScopeKey::new(3)));
+            runtime.app_mut().count = 2;
+            let _ = deliver(&mut runtime, shifted_backtab());
+            runtime.draw_buffer(area, &mut buffer).commit_presented();
+            assert_eq!(runtime.app().state.scope(SCOPES), Some(ScopeKey::new(2)));
+            runtime.app_mut().count = 0;
+            let _ = deliver(&mut runtime, shifted_backtab());
+            let _ = deliver(&mut runtime, key(KeyCode::Tab));
+            let _ = deliver(&mut runtime, Input::Tick);
+            runtime.draw_buffer(area, &mut buffer).commit_presented();
+            assert_eq!(runtime.app().state.scope(&[]), None);
+            assert!(runtime.diagnostics().is_empty(), "{:?}", runtime.diagnostics());
+        }
     }
 }

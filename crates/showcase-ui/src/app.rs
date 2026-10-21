@@ -782,6 +782,7 @@ pub struct App {
     selectable: showcase_demos::pages::selectable::Model,
     keymap: KeyMap,
     inspector: bool,
+    shell_layout_cache: std::cell::Cell<Option<CachedShellLayout>>,
     quit: bool,
     status: Option<(PageStatus, Moment)>,
     motion_paused: bool,
@@ -850,6 +851,7 @@ impl App {
             selectable: showcase_demos::pages::selectable::Model::default(),
             keymap: keymap(),
             inspector: false,
+            shell_layout_cache: std::cell::Cell::new(None),
             quit: false,
             status: None,
             motion_paused: paused,
@@ -874,6 +876,22 @@ impl App {
             self.page = entry.id;
         }
         place_nav(&mut self.nav_state, index);
+    }
+
+    fn resolved_shell_layout(&self, area: Rect) -> ShellLayout {
+        if let Some(cached) = self.shell_layout_cache.get()
+            && cached.area == area
+            && cached.inspector == self.inspector
+        {
+            return cached.layout;
+        }
+        let layout = shell_layout(area, self.inspector);
+        self.shell_layout_cache.set(Some(CachedShellLayout {
+            area,
+            inspector: self.inspector,
+            layout,
+        }));
+        layout
     }
 
     fn show_live_page(&self) -> bool {
@@ -953,45 +971,100 @@ struct ShellLayout {
     footer: Rect,
 }
 
+#[derive(Clone, Copy, Debug)]
+struct CachedShellLayout {
+    area: Rect,
+    inspector: bool,
+    layout: ShellLayout,
+}
+
+/// The panes the shell body is split into.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum Pane {
+    Sidebar,
+    Main,
+    Spacer,
+    Inspector,
+}
+
+/// The sidebar rail is wider on roomy terminals.
+const SIDEBAR_WIDE: u16 = 25;
+const SIDEBAR_NARROW: u16 = 20;
+const SIDEBAR_WIDE_FROM: u16 = 110;
+/// The inspector dock needs room to sit beside the main area.
+const INSPECTOR_WIDTH: u16 = 30;
+const INSPECTOR_MIN_WIDTH: u16 = 100;
+/// The clear column between the main area and the inspector dock.
+const SHELL_GAP: u16 = 1;
+
+/// A fixed-width pane policy.
+fn fixed_pane(width: u16) -> termrock::layout::ChildPolicy {
+    termrock::layout::ChildPolicy::new(termrock::layout::Size::exact(width, 1))
+        .min(width, 0)
+        .max(Some(width), None)
+}
+
+/// A pane that takes the space the fixed panes leave.
+fn flexible_pane() -> termrock::layout::ChildPolicy {
+    termrock::layout::ChildPolicy::new(termrock::layout::Size::default()).flex(1)
+}
+
+/// Resolve the shell body from the shared layout plan.
+///
+/// The app states policy only: a fixed sidebar rail, a flexible main area and
+/// an optional fixed inspector dock that keeps one clear column before it. The
+/// shared plan owns the geometry.
 fn shell_layout(area: Rect, inspector: bool) -> ShellLayout {
     let regions = termrock::AppShell::new()
         .header(1)
         .gap(1)
         .footer(1)
         .regions(area);
-    let header = regions.header;
-    let footer = regions.footer;
     let body = regions.body;
-    let sidebar_span: u16 = if area.width >= 110 { 24 } else { 19 };
-    let inspector_width = if inspector && area.width >= 100 {
-        30
+    let sidebar_width = if body.width >= SIDEBAR_WIDE_FROM {
+        SIDEBAR_WIDE
+    } else {
+        SIDEBAR_NARROW
+    };
+    let inspector_width = if inspector && body.width >= INSPECTOR_MIN_WIDTH {
+        INSPECTOR_WIDTH
     } else {
         0
     };
-    let sidebar = Rect::new(body.x, body.y, sidebar_span.saturating_add(1), body.height);
-    let main_x = body.x.saturating_add(sidebar_span).saturating_add(2);
-    let main_width = body.width.saturating_sub(
-        sidebar_span
-            .saturating_add(2)
-            .saturating_add(inspector_width)
-            .saturating_add(u16::from(inspector_width > 0).saturating_mul(2)),
+    let panes = [Pane::Sidebar, Pane::Main, Pane::Spacer, Pane::Inspector];
+    let children = [
+        termrock::layout::Child::new(&Pane::Sidebar, fixed_pane(sidebar_width)),
+        termrock::layout::Child::new(&Pane::Main, flexible_pane()),
+        termrock::layout::Child::new(
+            &Pane::Spacer,
+            termrock::layout::ChildPolicy::new(termrock::layout::Size::default())
+                .max(Some(0), None),
+        ),
+        termrock::layout::Child::new(&Pane::Inspector, fixed_pane(inspector_width)),
+    ];
+    let count = if inspector_width > 0 { 4 } else { 2 };
+    let plan = termrock::layout::row(
+        body,
+        children.get(..count).unwrap_or(&[]),
+        termrock::layout::Composition::new().gap(SHELL_GAP),
+        |_, _| termrock::layout::Size::default(),
     );
-    let main = Rect::new(main_x, body.y, main_width, body.height);
-    let inspector = (inspector_width > 0).then(|| {
-        Rect::new(
-            main.right().saturating_add(2),
-            body.y,
-            inspector_width,
-            body.height,
-        )
-    });
-    ShellLayout {
-        header,
-        sidebar,
-        main,
-        inspector,
-        footer,
+    let mut layout = ShellLayout {
+        header: regions.header,
+        sidebar: Rect::default(),
+        main: Rect::default(),
+        inspector: None,
+        footer: regions.footer,
+    };
+    for child in &plan.children {
+        match panes.get(child.index).copied() {
+            Some(Pane::Sidebar) => layout.sidebar = child.logical,
+            Some(Pane::Main) => layout.main = child.logical,
+            Some(Pane::Inspector) => layout.inspector = Some(child.logical),
+            Some(Pane::Spacer) | None => {}
+        }
     }
+    layout
 }
 
 fn shell_part_style(
@@ -1816,7 +1889,7 @@ impl TuiApp for App {
             too_small_notice().draw(ui, full);
             return;
         }
-        let shell = shell_layout(full, self.inspector);
+        let shell = self.resolved_shell_layout(full);
 
         shell_brand().draw(ui, shell.header);
         shell_status().draw(ui, shell.footer);
@@ -2175,5 +2248,91 @@ mod app_tests {
             .as_ref()
             .map(|(_, since)| since.as_duration().as_millis());
         assert_eq!(since, Some(5_000));
+    }
+}
+
+#[cfg(test)]
+mod shell_layout_contract {
+    use super::*;
+
+    fn legacy_shell_layout(area: Rect, inspector: bool) -> ShellLayout {
+        let regions = termrock::AppShell::new()
+            .header(1)
+            .gap(1)
+            .footer(1)
+            .regions(area);
+        let header = regions.header;
+        let footer = regions.footer;
+        let body = regions.body;
+        let sidebar_span: u16 = if area.width >= 110 { 24 } else { 19 };
+        let inspector_width = if inspector && area.width >= 100 {
+            30
+        } else {
+            0
+        };
+        let sidebar = Rect::new(body.x, body.y, sidebar_span.saturating_add(1), body.height);
+        let main_x = body.x.saturating_add(sidebar_span).saturating_add(2);
+        let main_width = body.width.saturating_sub(
+            sidebar_span
+                .saturating_add(2)
+                .saturating_add(inspector_width)
+                .saturating_add(u16::from(inspector_width > 0).saturating_mul(2)),
+        );
+        let main = Rect::new(main_x, body.y, main_width, body.height);
+        let inspector = (inspector_width > 0).then(|| {
+            Rect::new(
+                main.right().saturating_add(2),
+                body.y,
+                inspector_width,
+                body.height,
+            )
+        });
+        ShellLayout {
+            header,
+            sidebar,
+            main,
+            inspector,
+            footer,
+        }
+    }
+
+    #[test]
+    fn shared_layout_keeps_all_visible_regions_at_width_boundaries() {
+        for (x, y) in [(0, 0), (5, 3)] {
+            for width in [72, 73, 79, 80, 99, 100, 101, 109, 110, 111, 119, 120, 121, 160] {
+                for height in [20, 24, 40] {
+                    for inspector in [false, true] {
+                        let area = Rect::new(x, y, width, height);
+                        let old = legacy_shell_layout(area, inspector);
+                        let new = shell_layout(area, inspector);
+                        assert_eq!(new.header, old.header, "header {area:?} {inspector}");
+                        assert_eq!(new.sidebar, old.sidebar, "sidebar {area:?} {inspector}");
+                        assert_eq!(new.main, old.main, "main {area:?} {inspector}");
+                        assert_eq!(new.inspector, old.inspector, "inspector {area:?} {inspector}");
+                        assert_eq!(new.footer, old.footer, "footer {area:?} {inspector}");
+                    }
+                }
+            }
+        }
+    }
+}
+
+#[cfg(test)]
+mod shell_cache_contract {
+    use super::*;
+
+    #[test]
+    fn layout_cache_tracks_area_and_inspector_changes() {
+        let mut app = App::new();
+        let compact = Rect::new(0, 0, 80, 24);
+        let wide = Rect::new(5, 3, 120, 40);
+        assert!(app.resolved_shell_layout(compact).inspector.is_none());
+        assert_eq!(app.resolved_shell_layout(compact).main, shell_layout(compact, false).main);
+        app.inspector = true;
+        assert_eq!(app.resolved_shell_layout(wide).inspector, shell_layout(wide, true).inspector);
+        assert_eq!(app.resolved_shell_layout(wide).main, shell_layout(wide, true).main);
+        assert!(app.resolved_shell_layout(compact).inspector.is_none());
+        app.inspector = false;
+        assert_eq!(app.resolved_shell_layout(wide).main, shell_layout(wide, false).main);
     }
 }
