@@ -3214,7 +3214,7 @@ impl TableProApp {
             && query.plan.is_none()
             && query.error.is_none()
         {
-            extend_query_results_edge(ui, inner);
+            extend_query_results_edge(ui, area, inner, query.query.as_str());
         }
         paint_content_seam(
             ui,
@@ -4116,8 +4116,11 @@ fn paint_query_error_results(ui: &mut Ui<'_>, area: termrock::Rect, message: &st
         "Error",
         secondary,
     );
-    // The framed card keeps one cell of fill after the rule, inside the clip.
-    let rule_w = card.width.saturating_sub(6);
+    // An uncapped card still contains the frame's two-column tail, so the
+    // rule stops six cells short. The 90-column cap has already dropped that
+    // tail, and the rule then stops four cells short.
+    let rule_tail = if card.width < area.width { 4 } else { 6 };
+    let rule_w = card.width.saturating_sub(rule_tail);
     ui.paint_str(
         termrock::Rect::new(
             card.x.saturating_add(2),
@@ -4383,7 +4386,19 @@ fn paint_plan_edge_nodes(
     }
 }
 
-fn extend_query_results_edge(ui: &mut Ui<'_>, inner: termrock::Rect) {
+pub(crate) fn query_hbar_overflows(query: &str, editor_width: u16) -> bool {
+    // Match `paint_code_hbar`: one line uses a six-cell gutter, and the bar
+    // exists only when the line is wider than the text area.
+    let text_w = usize::from(editor_width.saturating_sub(6));
+    let widest = query
+        .split('\n')
+        .map(|line| usize::from(width(line)))
+        .max()
+        .unwrap_or(0);
+    widest.saturating_add(1) > text_w
+}
+
+fn extend_query_results_edge(ui: &mut Ui<'_>, area: termrock::Rect, inner: termrock::Rect, query: &str) {
     if inner.height < 8 || inner.width == 0 {
         return;
     }
@@ -4399,7 +4414,11 @@ fn extend_query_results_edge(ui: &mut Ui<'_>, inner: termrock::Rect) {
         ),
     );
     ui.fill(termrock::Rect::new(x, editor_y, 1, editor_rows), field);
-    if editor_rows > 2 {
+    let editor_width = area
+        .width
+        .saturating_sub(ui.design().space.frame_inset)
+        .saturating_sub(2);
+    if editor_rows > 2 && query_hbar_overflows(query, editor_width) {
         let thumb = field.patch(ui.paint_patch(&StylePatch::new().set_fg(LEGACY_SCROLL_THUMB)));
         ui.paint_str(
             termrock::Rect::new(
@@ -4466,10 +4485,13 @@ fn extend_query_error_edge(ui: &mut Ui<'_>, area: termrock::Rect, inner: termroc
     );
     let card_y = seam_y.saturating_add(4);
     let card_h = inner.bottom().saturating_sub(card_y).min(8);
-    if card_h > 0 {
+    let body_width = area.width.saturating_sub(ui.design().space.frame_inset);
+    let card_w = body_width.min(90);
+    // The 90-column cap already fills the clip. A wider card still owes the
+    // one cell past the clip.
+    if card_h > 0 && card_w > inner.width {
         ui.fill(termrock::Rect::new(x, card_y, 1, card_h), card);
     }
-    let _ = area;
 }
 
 fn extend_idle_query_edge(
