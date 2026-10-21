@@ -187,32 +187,94 @@ fn without_test_modules(source: &str) -> String {
     let mut search_from = 0;
     while let Some(relative) = code[search_from..].find("#[cfg(test)]") {
         let attribute = search_from + relative;
-        let after = attribute + "#[cfg(test)]".len();
-        let mut item = after;
-        while code
-            .as_bytes()
-            .get(item)
-            .is_some_and(u8::is_ascii_whitespace)
-        {
-            item += 1;
-        }
-        if !code[item..].starts_with("mod ") {
-            search_from = after;
-            continue;
-        }
-        let Some(open_rel) = code[item..].find('{') else {
-            search_from = after;
+        let Some((inline, end)) = test_module_end(&code, attribute) else {
+            search_from = attribute + "#[cfg(test)]".len();
             continue;
         };
-        let open = item + open_rel;
-        let Some(close) = matching_brace(&code, open) else {
-            search_from = after;
-            continue;
-        };
-        blank(&mut out, attribute, close + 1);
-        search_from = close + 1;
+        if inline {
+            let Some(close) = matching_brace(&code, end) else {
+                search_from = end + 1;
+                continue;
+            };
+            blank(&mut out, attribute, close + 1);
+            search_from = close + 1;
+        } else {
+            blank(&mut out, attribute, end + 1);
+            search_from = end + 1;
+        }
     }
     String::from_utf8(out).expect("test module masking preserves valid UTF-8")
+}
+
+/// Return whether the cfg(test) module is inline and the `{` or `;` ending
+/// its declaration header. Only inspect that header; never search into the
+/// next Rust item when an external module ends with `;`.
+fn test_module_end(code: &str, attribute: usize) -> Option<(bool, usize)> {
+    let bytes = code.as_bytes();
+    let mut item = attribute + "#[cfg(test)]".len();
+    loop {
+        while bytes.get(item).is_some_and(u8::is_ascii_whitespace) {
+            item += 1;
+        }
+        if bytes.get(item..item + 2) != Some(b"#[") {
+            break;
+        }
+        item = matching_delimiter(code, item + 1, b'[', b']')? + 1;
+    }
+
+    while bytes.get(item).is_some_and(u8::is_ascii_whitespace) {
+        item += 1;
+    }
+    if code[item..].starts_with("pub")
+        && bytes
+            .get(item + 3)
+            .is_none_or(|byte| byte.is_ascii_whitespace() || *byte == b'(')
+    {
+        item += 3;
+        while bytes.get(item).is_some_and(u8::is_ascii_whitespace) {
+            item += 1;
+        }
+        if bytes.get(item) == Some(&b'(') {
+            item = matching_delimiter(code, item, b'(', b')')? + 1;
+            while bytes.get(item).is_some_and(u8::is_ascii_whitespace) {
+                item += 1;
+            }
+        }
+    }
+    if !code[item..].starts_with("mod") || !bytes.get(item + 3).is_some_and(u8::is_ascii_whitespace)
+    {
+        return None;
+    }
+    let mut cursor = item + 3;
+    while cursor < bytes.len() {
+        match bytes[cursor] {
+            b'{' => return Some((true, cursor)),
+            b';' => return Some((false, cursor)),
+            _ => cursor += 1,
+        }
+    }
+    None
+}
+
+fn matching_delimiter(code: &str, open: usize, left: u8, right: u8) -> Option<usize> {
+    let bytes = code.as_bytes();
+    if bytes.get(open) != Some(&left) {
+        return None;
+    }
+    let mut depth = 0usize;
+    for (index, byte) in bytes.iter().copied().enumerate().skip(open) {
+        match byte {
+            byte if byte == left => depth += 1,
+            byte if byte == right => {
+                depth = depth.checked_sub(1)?;
+                if depth == 0 {
+                    return Some(index);
+                }
+            }
+            _ => {}
+        }
+    }
+    None
 }
 
 /// Return code punctuation with comments and string/character literals blanked.
@@ -330,7 +392,10 @@ fn scan_reads_hint_forms_but_ignores_docs_and_test_fixtures() {
             "Esc",
             "Close"), keys: &["Esc", "?"]
         #[cfg(test)]
-        mod tests {
+        #[allow(dead_code)]
+        pub (crate)
+        mod tests
+        {
             const FIXTURE: &str = r#"("Esc", "Test only")"#;
         }
         fn after_tests() { hint("Esc", "Restore"); }
@@ -340,6 +405,21 @@ fn scan_reads_hint_forms_but_ignores_docs_and_test_fixtures() {
         .map(|hit| hit.label)
         .collect();
     assert_eq!(labels, ["Back to list", "Outline", "Close", "Restore"]);
+}
+
+#[test]
+fn external_test_module_declaration_does_not_hide_following_production_code() {
+    let path = Path::new("demo/src/hints.rs");
+    let source = r#"
+        #[cfg(test)]
+        #[allow(dead_code)]
+        pub (crate) mod tests;
+        fn production() { hint("Esc", "Unexpected label"); }
+    "#;
+    let hits = esc_labels(path, source);
+    assert_eq!(hits.len(), 1);
+    assert_eq!(hits[0].label, "Unexpected label");
+    assert_eq!(invalid_labels(Path::new("demo"), &hits).len(), 1);
 }
 
 #[test]
