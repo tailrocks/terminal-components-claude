@@ -11,6 +11,7 @@ holla-catalog.workspace = true
 holla-plan.workspace = true
 holla-sim.workspace = true
 termrock.workspace = true
+termrock-shell.workspace = true
 ratatui.workspace = true
 clap.workspace = true
 unicode-width.workspace = true
