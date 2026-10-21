@@ -13,6 +13,7 @@ use termrock_editors::{
 };
 use termrock_layout::{ChildPolicy, Composition as LayoutComposition, Constraints, Size};
 use termrock_navigation::{NavList, NavListState, Steps, StepsState, Tabs, TabsState};
+use termrock_overlays::{Select, SelectState};
 pub use termrock_runtime::CompositionError;
 use termrock_runtime::author::CompositionLeaf;
 use termrock_runtime::rowui::RowFn;
@@ -261,6 +262,48 @@ where
             items,
         })),
         policy: ChildPolicy::default(),
+    }
+}
+
+/// Adapt a select field while retaining its caller-owned state and borrowed
+/// option data. The select keeps its own field, popup, focus, and hit regions;
+/// the composition layer only supplies its resolved placement.
+pub fn select<'a, 'config, T, K, R>(
+    component: &'a Select<'config, T, K, R>,
+    state: &'a SelectState,
+    items: &'a [T],
+) -> Child<'a>
+where
+    'config: 'a,
+    T: 'a,
+    K: KeyFn<T> + 'a,
+    R: RowFn<T> + 'a,
+{
+    Child {
+        content: ChildContent::Leaf(Box::new(SelectLeaf {
+            component,
+            state,
+            items,
+        })),
+        policy: ChildPolicy::default(),
+    }
+}
+
+struct SelectLeaf<'a, 'config, T, K, R> {
+    component: &'a Select<'config, T, K, R>,
+    state: &'a SelectState,
+    items: &'a [T],
+}
+
+impl<T, K: KeyFn<T>, R: RowFn<T>> Measure for SelectLeaf<'_, '_, T, K, R> {
+    fn measure(&self, ui: &Ui<'_>, constraints: Constraints) -> Size {
+        self.component.measure(ui, constraints)
+    }
+}
+
+impl<T, K: KeyFn<T>, R: RowFn<T>> CompositionLeaf for SelectLeaf<'_, '_, T, K, R> {
+    fn draw(&self, ui: &mut Ui<'_>, logical: ratatui_core::layout::Rect) {
+        self.component.draw(ui, logical, self.state, self.items);
     }
 }
 
