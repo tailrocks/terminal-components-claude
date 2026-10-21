@@ -225,6 +225,7 @@ fn rest_tag_menu(world: &crate::sim::World) -> bool {
     use crate::sim::catalogue::{
         parity_browser_tag_frame, parity_cargo_tag_frame, parity_files_tag_frame,
         parity_git_batch_tag_frame, parity_git_current_tag_frame, parity_history_tag_frame,
+        parity_task_sources_tag_frame,
     };
     parity_git_current_tag_frame(world)
         || parity_cargo_tag_frame(world)
@@ -232,6 +233,7 @@ fn rest_tag_menu(world: &crate::sim::World) -> bool {
         || parity_files_tag_frame(world)
         || parity_browser_tag_frame(world)
         || parity_history_tag_frame(world)
+        || parity_task_sources_tag_frame(world)
 }
 
 /// Rest menu titles. A focused bar bolds them in muted ink. The tag bar is
@@ -446,10 +448,8 @@ fn parity_git_batch_tag_plate(world: &World, width: u16, _height: u16) -> bool {
 }
 
 fn parity_task_sources_tag_plate(world: &World, width: u16, _height: u16) -> bool {
-    // The task-sources chrome lives in the narrow band; the mid band keeps the
-    // generic adaptive status and hints.
-    crate::sim::catalogue::parity_task_sources_tag_frame(world)
-        && layout::Band::of(width).is_narrow()
+    // Single-column chrome at 80 and 100. The 120-wide card stays off this plate.
+    crate::sim::catalogue::parity_task_sources_tag_frame(world) && (80..120).contains(&width)
 }
 
 /// Tag parity-browser status at 80×24, 100×30, and 120×40: cwd, then the size label. No branch.
@@ -513,7 +513,7 @@ fn paint_parity_cargo_status(ui: &mut Ui<'_>, area: Rect) {
     let _ = paint_size_label(ui, area);
 }
 
-/// Tag parity-task-sources status at 80×24: cwd, then the size label. No branch.
+/// Tag parity-task-sources status at 80×24 and 100×30: cwd, then the size label. No branch.
 fn paint_parity_task_sources_status(ui: &mut Ui<'_>, area: Rect) {
     if area.is_empty() {
         return;

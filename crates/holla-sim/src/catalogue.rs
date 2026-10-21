@@ -2120,14 +2120,13 @@ fn parity_task_sources_rows() -> Option<ParityDiscovery> {
     })
 }
 
-/// Frozen 80-column frame only. The reference never had a 100-column plate for
-/// this family, so the wider single-column widths keep the generic adaptive home
-/// path instead of the frozen narrow body.
+/// Frozen single-column body for the 80–119 band. Width 120 is the wide card,
+/// so it stays off this view.
 pub fn parity_task_sources_view(w: &World, width: u16) -> Option<ParityDiscovery> {
     if !parity_task_sources_tag_frame(w) {
         return None;
     }
-    if width == 80 {
+    if (80..120).contains(&width) {
         return parity_task_sources_rows();
     }
     None
@@ -6143,9 +6142,15 @@ mod tests {
             .find(|line| line.label == "Risk")
             .expect("risk line");
         assert_eq!(risk.value, "mutating");
-        // The reference had no 100-column plate here, so the mid band keeps the
-        // generic adaptive home path.
-        assert!(parity_task_sources_view(&world, 100).is_none());
+        let mid = parity_task_sources_view(&world, 100).expect("mid view");
+        assert!(mid.lines.iter().any(|line| matches!(
+            line,
+            FinderLine::Row(row) if row.selected
+                && row.title == "just build"
+                && row.kind == "recipe"
+                && row.scope_word == "here"
+                && row.reason == ".justfile here"
+        )));
         assert!(parity_task_sources_view(&world, 120).is_none());
         world.seek(4_000);
         world.clock.running = false;
