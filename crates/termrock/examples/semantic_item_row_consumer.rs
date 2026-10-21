@@ -37,12 +37,27 @@ fn draw_documents(ui: &mut Ui<'_>, documents: &[Document], state: &TreeState) {
     let tree = Tree::new(FILES)
         .key(|document: &Document| ItemKey::num(document.id))
         .node(&document_node)
-        .row(SemanticItemRow::new());
+        .row_adapter(SemanticItemRow::new());
     let files = Group::column([composition::tree(&tree, state, documents)]);
     AppShell::new()
         .body_slot(&files)
         .show(ui)
         .expect("document composition resolves");
+}
+
+// Keep the pre-adapter closure API compiling without type annotations. In
+// particular, callers can infer the domain type through `key` and `node`.
+#[allow(dead_code)]
+fn draw_legacy_rows(ui: &mut Ui<'_>, documents: &[Document], state: &TreeState) {
+    let tree = Tree::new(FILES)
+        .key(|document: &Document| ItemKey::num(document.id))
+        .node(&document_node)
+        .row(|document, row| row.label(document.name));
+    let files = Group::column([composition::tree(&tree, state, documents)]);
+    AppShell::new()
+        .body_slot(&files)
+        .show(ui)
+        .expect("legacy tree row composition resolves");
 }
 
 fn main() {}
