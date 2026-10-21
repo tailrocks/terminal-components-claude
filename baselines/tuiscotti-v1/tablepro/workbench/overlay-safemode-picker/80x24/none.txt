@@ -1,24 +1,24 @@
- ▪  TablePro  Production  ◆ production  acme_prod › public  safe         ? help
+  ▪  TablePro  Production  ◆ production  acme_prod › public  ✓ safe  …  ? help
 
   ≡ Query 1 ×                                                               +
  ━━━━━━━━━━━━━━────────────────────────────────────────────────────────────────
- ╭╭──────────────────────────────────────────────────────────────────────────╮╮
- ││ Safe Mode · this connection                                              ││
- ││    Silent            Writes run without asking. Destructive s…           ││
- ││    Alert             Every write asks for confirmation before…           ││
- ││    Alert (Full)      Every statement, reads included, asks fo…           ││
- ││ ▎› Safe Mode         Writes ask for confirmation and a delibe… current   ││
- ││    Safe Mode (Full)  Every statement asks for confirmation an…           ││
- ││    Read-Only         Writes are refused. Reads and exports st…           ││
- ││                                                                          ││
- ││ ↑↓ Move · Enter Set level · Esc Keep · levels are saved to the connecti… ││
- │╰──────────────────────────────────────────────────────────────────────────╯│
- │        ▸ T payments                                                1.2 M ┃ │
- │        ▸ T subscriptions                                           1.1 k ┃ │
- │      ▸ Views                                                           2 ┃ │
- │      ▸ Functions                                                       1 ┃ │
- │      ▸ Sequences                                                       1 ┃ │
- │    ▸ S analytics                                                         │ │
- ╰────────────────────────────────────────────────────────────────────────────╯
+ › ╭─ Query 1 ────────────────────────────────────────────────────────────────╮
+   │   Run   Run all   Explain                                                │
+ E╭──────────────────────────────────────────────────────────────────────────╮│
+ x│ Safe Mode · this connection                                              ││
+ p│    Silent            Writes run without asking. Destructive s…           ││
+ l│    Alert             Every write asks for confirmation before…           ││
+ o│    Alert (Full)      Every statement, reads included, asks fo…           ││
+ r│  › Safe Mode         Writes ask for confirmation and a delibe… current   ││
+ e│    Safe Mode (Full)  Every statement asks for confirmation an…           ││
+ r│    Read-Only         Writes are refused. Reads and exports st…           ││
+  │                                                                          ││
+  │ ↑↓ Move · Enter Set level · Esc Keep · levels are saved to the connecti… ││
+  ╰──────────────────────────────────────────────────────────────────────────╯│
+   │                                                                          │
+   │                                                                          │
+   │                                                                          │
+   │                                                                          │
+   ╰──────────────────────────────────────────────────────────────────────────╯
 
-                                                        Connected to Production
+ ↑↓ Move  Enter Choose  Esc Cancel                    ✓ Connected to Production

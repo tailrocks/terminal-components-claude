@@ -6,10 +6,10 @@
     "x": 0,
     "y": 0
   },
-  "frame_digest": 6619517308825460840,
+  "frame_digest": 5434144019305321468,
   "legacy_name": "showcase/flows/dialogs/open/80x24/16",
   "name": "showcase/dialogs/open/80x24/16",
-  "non_empty_cells": 612,
+  "non_empty_cells": 1920,
   "provenance": {
     "argv": [],
     "created_unix": 0,

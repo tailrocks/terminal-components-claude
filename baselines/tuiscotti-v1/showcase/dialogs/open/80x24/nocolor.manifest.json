@@ -1,40 +1,40 @@
 {
-  "ansi_sha256": "ca3b3180f0779b956cd3f569d09bd1c84c21d73ca401b0769aae60abac859ff2",
+  "ansi_sha256": "ee8ba8b660a4b235030d8640bdd526e3ad8272514d5af9fc34a4f114d26e75d6",
   "artifacts": {
     "ansi": {
-      "bytes": 2408,
+      "bytes": 3215,
       "file": "showcase/dialogs/open/80x24/nocolor.ansi",
-      "sha256": "ca3b3180f0779b956cd3f569d09bd1c84c21d73ca401b0769aae60abac859ff2"
+      "sha256": "ee8ba8b660a4b235030d8640bdd526e3ad8272514d5af9fc34a4f114d26e75d6"
     },
     "ascii": {
-      "bytes": 1235,
+      "bytes": 1582,
       "file": "showcase/dialogs/open/80x24/nocolor.ascii",
-      "sha256": "96f7e431d2aa279a12fb698de2075c7bfd7b1c337ae82f7af9e3660d7aac7160"
+      "sha256": "850838ba094980d75068b652c73bb75cfb21a3d8f16bfbcd6400a96b8c1f02db"
     },
     "ascii_loss_json": {
-      "bytes": 13764,
+      "bytes": 29371,
       "file": "showcase/dialogs/open/80x24/nocolor.ascii.loss.json",
-      "sha256": "65b2055d892a365f5e431aa022167492effd5f4d9347e78c36066620479d97fa"
+      "sha256": "6fbc17b15911f83242e3ed2672f2c5211f377532e976a2cc15798c51a648087f"
     },
     "frame_json": {
-      "bytes": 429540,
+      "bytes": 428123,
       "file": "showcase/dialogs/open/80x24/nocolor.frame.json",
-      "sha256": "b390160f5392a1eea2b0afa8c24bd3bef1ccc38da8b6d5668898b27dd3b1cde1"
+      "sha256": "fbe78b9744d0c8c03574fefa7ba9cdcaa3ca428980f8ffba56c4b5331185a8a9"
     },
     "html": {
-      "bytes": 325740,
+      "bytes": 349435,
       "file": "showcase/dialogs/open/80x24/nocolor.html",
-      "sha256": "2bff77477a95dfff70168e247ff04d5fe713744f9fe5f92eda58be2659666c55"
+      "sha256": "722fb43135ac23b50d34379c346d037546f0353f0efc457ae4f2500d19342cee"
     },
     "observations_json": {
       "bytes": 458,
       "file": "showcase/dialogs/open/80x24/nocolor.observations.json",
-      "sha256": "591aed4baf1f9783bb45b5b0a6c2027d391bd0135ddeb4d6f82e047c28b578ec"
+      "sha256": "646b137005894755271f8ffd56860ebba24f32cac50ad7abc6110464e53a3131"
     },
     "png": {
-      "bytes": 238923,
+      "bytes": 253706,
       "file": "showcase/dialogs/open/80x24/nocolor.png",
-      "sha256": "a4e2906c96a4b636ad0ea61e68091a2a063fc37e8926b14cbbf223b4fccd0151"
+      "sha256": "e16f1449cd6febf6ba2732177b9fd4cb88b52f9b21b9a4c6a2c6e586bde90d05"
     },
     "png_fidelity_json": {
       "bytes": 276,
@@ -42,26 +42,26 @@
       "sha256": "b93b5e43d193775e0ae963bec8da72c25c0030de2ae9b20aff8d75951bf2256f"
     },
     "txt": {
-      "bytes": 1531,
+      "bytes": 2209,
       "file": "showcase/dialogs/open/80x24/nocolor.txt",
-      "sha256": "01c07e4098f9605532a89a9b5acb7c7ed91d86bfdc22df07be4d723421ffddae"
+      "sha256": "a045094a59c5c34c4c856e8a89cf844cd7409fd0b8da5432850ecbf17031f8c2"
     }
   },
-  "ascii_substitutions_count": 148,
+  "ascii_substitutions_count": 317,
   "complete": true,
   "dimensions": {
     "cols": 80,
     "rows": 24
   },
-  "frame_digest": 13808468023967832618,
-  "frame_sha256": "b390160f5392a1eea2b0afa8c24bd3bef1ccc38da8b6d5668898b27dd3b1cde1",
-  "generation": "41d2a5083568e56fc15680e7170ac0594910930c8e808a2030ac9898ba0cd12e",
-  "html_sha256": "2bff77477a95dfff70168e247ff04d5fe713744f9fe5f92eda58be2659666c55",
+  "frame_digest": 6663782811738198393,
+  "frame_sha256": "fbe78b9744d0c8c03574fefa7ba9cdcaa3ca428980f8ffba56c4b5331185a8a9",
+  "generation": "b5174e94ff2b87feb5c57fe089f02e00caf8a448a5ce06c0a3cf3403a808bbd4",
+  "html_sha256": "722fb43135ac23b50d34379c346d037546f0353f0efc457ae4f2500d19342cee",
   "legacy_name": "showcase/flows/dialogs/open/80x24/nocolor",
   "name": "showcase/dialogs/open/80x24/nocolor",
-  "png_sha256": "a4e2906c96a4b636ad0ea61e68091a2a063fc37e8926b14cbbf223b4fccd0151",
+  "png_sha256": "e16f1449cd6febf6ba2732177b9fd4cb88b52f9b21b9a4c6a2c6e586bde90d05",
   "profile": "tuiscotti-default",
   "schema_version": 1,
-  "timestamp_utc": "2026-10-03T22:09:18Z",
-  "txt_sha256": "01c07e4098f9605532a89a9b5acb7c7ed91d86bfdc22df07be4d723421ffddae"
+  "timestamp_utc": "2026-10-21T00:00:00Z",
+  "txt_sha256": "a045094a59c5c34c4c856e8a89cf844cd7409fd0b8da5432850ecbf17031f8c2"
 }
