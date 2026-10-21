@@ -3800,6 +3800,91 @@ class RunnerGuards(unittest.TestCase):
             self.assertTrue((stage / "nextest.stdout.jsonl").is_file())
             self.assertFalse((stage / "nextest.stdout.jsonl").is_symlink())
 
+    def test_owned_ordinary_output_quota_bounds_both_streams_and_reaps_group(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            live = root / "source"
+            live.mkdir()
+            stage = root / "stage"
+            stage.mkdir(mode=0o700)
+            script = root / "flood.py"
+            group_path = root / "group-id"
+            child_path = root / "descendant-pid"
+            script.write_text(
+                "import os, pathlib, subprocess, sys, threading, time\n"
+                f"pathlib.Path({str(group_path)!r}).write_text(str(os.getpgrp()))\n"
+                "descendant = subprocess.Popen([sys.executable, '-c', 'import time; time.sleep(60)'])\n"
+                f"pathlib.Path({str(child_path)!r}).write_text(str(descendant.pid))\n"
+                "payload = b'x' * (64 * 1024 + 1)\n"
+                "def flood(fd):\n"
+                "    offset = 0\n"
+                "    while offset < len(payload):\n"
+                "        offset += os.write(fd, payload[offset:])\n"
+                "threads = [threading.Thread(target=flood, args=(fd,)) for fd in (1, 2)]\n"
+                "[thread.start() for thread in threads]\n"
+                "[thread.join() for thread in threads]\n"
+                "descendant.terminate()\n"
+                "descendant.wait()\n"
+            )
+            executions = []
+            original_execution = runner.PrepareExecution
+
+            def record_execution(*args: object, **kwargs: object) -> object:
+                execution = original_execution(*args, **kwargs)
+                executions.append(execution)
+                return execution
+
+            with patch.object(runner, "PrepareExecution", side_effect=record_execution):
+                with self.assertRaisesRegex(runner.RunnerError, "exceeded its bounded stdout, stderr, or aggregate output quota"):
+                    runner._run_ordinary_nextest(
+                        [sys.executable, str(script)], live=live, env={"PATH": os.defpath},
+                        selected=["source_fixture::unused"], stage=stage, timeout=20,
+                    )
+            self.assertEqual(len(executions), 1)
+            self.assertEqual(executions[0]._children, {})
+            stdout = stage / "nextest.stdout.jsonl"
+            stderr = stage / "nextest.stderr.log"
+            self.assertTrue(stdout.is_file())
+            self.assertTrue(stderr.is_file())
+            self.assertLessEqual(stdout.stat().st_size, runner.OWNED_ORDINARY_STREAM_MAX_BYTES)
+            self.assertLessEqual(stderr.stat().st_size, runner.OWNED_ORDINARY_STREAM_MAX_BYTES)
+            self.assertLessEqual(stdout.stat().st_size + stderr.stat().st_size, runner.OWNED_ORDINARY_TOTAL_MAX_BYTES)
+            self.assertGreater(stdout.stat().st_size, 0)
+            self.assertGreater(stderr.stat().st_size, 0)
+            self.assertEqual(sorted(path.name for path in stage.iterdir()), ["nextest.stderr.log", "nextest.stdout.jsonl"])
+
+            pgid = int(group_path.read_text())
+            deadline = time.monotonic() + 3
+            while time.monotonic() < deadline:
+                try:
+                    os.killpg(pgid, 0)
+                except ProcessLookupError:
+                    break
+                time.sleep(0.02)
+            else:
+                self.fail("ordinary output quota left an owned process group alive")
+
+            zero_exit_stage = root / "zero-exit-stage"
+            zero_exit_stage.mkdir(mode=0o700)
+            zero_exit_script = root / "zero-exit-overflow.py"
+            zero_exit_script.write_text(
+                "import os\n"
+                "payload = b'z' * (64 * 1024 + 1)\n"
+                "offset = 0\n"
+                "while offset < len(payload):\n"
+                "    offset += os.write(1, payload[offset:])\n"
+            )
+            with self.assertRaisesRegex(runner.RunnerError, "exceeded its bounded stdout, stderr, or aggregate output quota"):
+                runner._run_ordinary_nextest(
+                    [sys.executable, str(zero_exit_script)], live=live, env={"PATH": os.defpath},
+                    selected=["source_fixture::unused"], stage=zero_exit_stage, timeout=20,
+                )
+            zero_exit_stdout = zero_exit_stage / "nextest.stdout.jsonl"
+            zero_exit_stderr = zero_exit_stage / "nextest.stderr.log"
+            self.assertLessEqual(zero_exit_stdout.stat().st_size, runner.OWNED_ORDINARY_STREAM_MAX_BYTES)
+            self.assertLessEqual(zero_exit_stderr.stat().st_size, runner.OWNED_ORDINARY_STREAM_MAX_BYTES)
+            self.assertEqual(sorted(path.name for path in zero_exit_stage.iterdir()), ["nextest.stderr.log", "nextest.stdout.jsonl"])
+
     def test_live_source_provenance_rejects_binary_harness_drift(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
@@ -4860,6 +4945,7 @@ class RunnerGuards(unittest.TestCase):
                 "stdout_fd": 1,
                 "stderr_fd": 2,
                 "owned_root_fd": None,
+                "close_output_fds": False,
                 "status_path": str(status_path),
                 "ready_path": str(ready_path),
             }))
@@ -5079,6 +5165,7 @@ class RunnerGuards(unittest.TestCase):
                     "stdout_fd": stdout.fileno(),
                     "stderr_fd": stderr.fileno(),
                     "owned_root_fd": None,
+                    "close_output_fds": False,
                     "status_path": str(status_path),
                     "ready_path": str(ready_path),
                 }))
