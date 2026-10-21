@@ -1,0 +1,24 @@
+# bad: [300a97bf8ef78b079cc79acc948894029dbefc3b] refactor(jackin): replace canned manager menu and inspect views with live components
+# good: [032e9faa3ab12e98fef3b3835757eba5f1feee43] restore: land the termrock crate split with all source work (#24)
+git bisect start '300a97bf8' '032e9faa3'
+# bad: [536ac2603663bff241fe4f11ac121a4045a8843e] Merge remote-tracking branch 'origin/parity/termrock-visual-baseline' into wip/button-shared-contract-20261021
+git bisect bad 536ac2603663bff241fe4f11ac121a4045a8843e
+# bad: [fe0b8ad0ad5cd5db1c342a295f16f9f6745f1d2f] Merge remote-tracking branch 'origin/parity/termrock-visual-baseline' into parity/pr38-palette-final-20261020
+git bisect bad fe0b8ad0ad5cd5db1c342a295f16f9f6745f1d2f
+# good: [b16bb245b7f7a6a7c71156a99473339eddb55e7a] fix(jackin): match the settings trust frame
+git bisect good b16bb245b7f7a6a7c71156a99473339eddb55e7a
+# good: [739fb2b6da489851d2ef63c2655e317bc80b1d36] fix: preserve menu title hover boundaries
+git bisect good 739fb2b6da489851d2ef63c2655e317bc80b1d36
+# bad: [0728959712134229d9f8d23364236baad0e4189c] fix: match tablepro filter editor to the baseline
+git bisect bad 0728959712134229d9f8d23364236baad0e4189c
+# good: [546722e15fb3ccb09367478e4e39f5470898c8e6] docs: track termrock migration acceptance
+git bisect good 546722e15fb3ccb09367478e4e39f5470898c8e6
+# bad: [6cb2541c9a40d6d24145747fc22468fbb257361d] ci: regenerate parity workflows from full inputs
+git bisect bad 6cb2541c9a40d6d24145747fc22468fbb257361d
+# good: [78ccc2cb5737ea7934ca90dca880b5a688bf070f] docs: record paired controls and remaining cursor lifecycle failures
+git bisect good 78ccc2cb5737ea7934ca90dca880b5a688bf070f
+# bad: [a848219fd858ed6352fcb403b2cc5d5953083e6f] fix: match tablepro quick-open and tab list to the baseline
+git bisect bad a848219fd858ed6352fcb403b2cc5d5953083e6f
+# good: [1a947a251ab9b045610b47729bf481419b9fca8d] docs: freeze reference delivery boundaries and record CI evidence
+git bisect good 1a947a251ab9b045610b47729bf481419b9fca8d
+# first 'bad' commit: [a848219fd858ed6352fcb403b2cc5d5953083e6f] fix: match tablepro quick-open and tab list to the baseline
