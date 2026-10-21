@@ -21,7 +21,7 @@ use crate::ui::{Cx, FrameRead, Ui};
 use termrock_controls::button::Button;
 use termrock_feedback::keyhint::ChordText;
 use termrock_fields::field::Field;
-use termrock_fields::input::{TextAction, TextInput, TextInputState, redacted_text};
+use termrock_fields::input::{BlurPolicy, TextAction, TextInput, TextInputState, redacted_text};
 use termrock_runtime::author::NestedLayerSlotAuthor;
 use termrock_runtime::focus::Focusability;
 use termrock_runtime::ui::LayerSlot;
@@ -467,6 +467,8 @@ impl<'a> Dialog<'a> {
     }
 
     #[must_use]
+    /// Marks `k` as a prompt's Enter submission action and styles it as primary.
+    /// When replacing prompt actions, configure a key present in that list.
     pub const fn primary(mut self, k: ActionKey) -> Self {
         self.primary = Some(k);
         self
@@ -511,6 +513,9 @@ impl<'a> Dialog<'a> {
         let input = TextInput::new(self.input_id());
         if self.ack.is_some() {
             input.secret(SecretPolicy::default())
+        } else if self.prompt.is_some() {
+            // Leaving the prompt field must not implicitly submit its primary action.
+            input.blur(BlurPolicy::Keep)
         } else {
             input
         }
@@ -543,12 +548,11 @@ impl<'a> Dialog<'a> {
     }
 
     fn primary_index(&self, st: &DialogState) -> Option<usize> {
+        let primary = self.primary?;
         self.effective_actions()
             .iter()
             .enumerate()
-            .find_map(|(i, a)| {
-                (Some(a.key()) != self.cancel && self.enabled(i, a, st)).then_some(i)
-            })
+            .find_map(|(i, a)| (a.key() == primary && self.enabled(i, a, st)).then_some(i))
     }
 
     fn resolve_dismissal(&self, reason: DismissReason, st: &mut DialogState) -> DialogAction {
