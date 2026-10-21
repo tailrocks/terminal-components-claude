@@ -238,6 +238,42 @@ fn pointer_primary_activation_is_not_preempted_by_prompt_blur() {
 }
 
 #[test]
+fn tab_commits_prompt_value_without_submitting_primary() {
+    let mut h = page(REORDERED, Some(PRIMARY));
+    let value = "東京 e\u{301}";
+    let _ = h.type_str(value);
+    let _ = h.key(KeyCode::Tab);
+    assert!(h.app().selected.is_empty(), "Tab only moves focus");
+    assert_eq!(
+        h.app().state.draft(),
+        value,
+        "blur preserves committed value"
+    );
+    assert_eq!(h.focus(), Some(h.app().dialog().action_id(0)));
+    assert!(h.diagnostics().is_empty(), "{:?}", h.diagnostics());
+}
+
+#[test]
+fn clicking_primary_preserves_typed_prompt_value() {
+    let mut h = page(REORDERED, Some(PRIMARY));
+    let value = "東京 e\u{301}";
+    let _ = h.type_str(value);
+    let primary = h.app().dialog().action_id(2);
+    let area = h.area_of(primary).expect("primary button is rendered");
+    let _ = h.click(
+        area.x.saturating_add(area.width / 2),
+        area.y.saturating_add(area.height / 2),
+    );
+    assert_eq!(
+        h.app().state.draft(),
+        value,
+        "pointer Save exposes typed value"
+    );
+    assert_eq!(h.app().selected, vec![PRIMARY]);
+    assert!(h.diagnostics().is_empty(), "{:?}", h.diagnostics());
+}
+
+#[test]
 fn dismissal_precedes_prompt_commit_and_repeated_open_close_is_stable() {
     let mut h = page(REORDERED, Some(PRIMARY));
     let _ = h.type_str("draft");
