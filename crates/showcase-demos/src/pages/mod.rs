@@ -228,6 +228,7 @@ pub fn lines(ui: &mut Ui<'_>, area: Rect, text: &[&str]) {
 
 pub mod author;
 pub mod buttons;
+pub mod celleditors;
 pub mod chips;
 pub mod chrome;
 pub mod dialogs;
