@@ -183,3 +183,7 @@ Five workstreams stopped on an API rate limit at ~10:03 +0700. In-flight work pr
 ## DCO sign-off debt (coordinator decision 2026-10-21)
 
 `DCO` is the failing required check on PR #38: 195 commits lack `Signed-off-by`. Writers are active concurrently, so a branch-wide rewrite now would be undone by the next unsigned push and would force-push a shared branch (prohibited while shared). Decision: every commit from now on must carry `git commit -s` sign-off (Alexey Zhokhov <alexey@zhokhov.com>) plus the Co-Authored-By line; at the final integration checkpoint — when all workstreams stop pushing — run one sign-off rebase (`git rebase -i --exec "git commit --amend --no-edit -s"`) with a coordinated force-push under the push lock, then re-run CI. Recorded as OPEN until then.
+
+## Workspace gate baseline @ 5b5abd707 (coordinator, 2026-10-21 10:40)
+
+`cargo nextest run --all-targets --workspace`: 12 failing — 6 termrock-feedback, 2 visual-harness (determinism sources, overlay_sites), 2 termrock-xtask (doc_inventory, ownership), 1 termrock-theme (`capability_palettes all_73_junie_slots` — palette workstream lane), 1 termrock-test-support perf. fmt clean. clippy: 23 errors in jackin-preview-app (indexing/slicing may panic) — Jackin workstream lane. Previously recorded 35 failures + tablepro-ui expect_used: improved. Fix lanes: jackin clippy + palette tests ride their workstreams; feedback/visual-harness/xtask failures assigned at resume.
