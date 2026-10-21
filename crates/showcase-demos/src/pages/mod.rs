@@ -1,5 +1,5 @@
 use termrock::author::PaintStyle;
-use termrock::{Family, FrameRead, Part, Rect, Response, StateFlags, Ui, Variant, width};
+use termrock::{Family, Part, Rect, Response, StateFlags, Ui, Variant, width};
 
 pub struct PageStatus(pub String);
 
