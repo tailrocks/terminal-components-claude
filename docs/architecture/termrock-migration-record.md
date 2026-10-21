@@ -348,6 +348,24 @@ are a product regression to be fixed in the library, not a baseline to
 re-bless. No stream may set `BLESS=1`, edit that file, or widen, skip or
 weaken an assertion.
 
+**Jackin — partially landed.** `fc2c3bd4e` replaces the four hard-coded
+accounts view modules with a real `accounts_page.rs` driven by the world
+state, and takes the 256-colour downgrade from the shared theme ladder
+instead of an app-local table. 188 tests run, 187 passed, 1 failed
+(`visual::jackin_visual_baseline`), which was already failing before the
+merge.
+The stream also re-blessed 8 app-local digests in
+`crates/jackin-preview-app/tests/baselines/jackin.txt` for the
+`accounts-mixed` scenario. That file is a candidate-side regression pin, not
+the frozen oracle, but the re-blessing still needs independent evidence
+that the new rendering matches the frozen reference. The test-integrity
+review owns that check.
+The remaining Jackin bypasses are open: the help overlay, the hard-launch
+chrome, the narrow hard-cases manager, the capsule split and zoom views,
+the settings and prelude pages, the editor tab strip, the detail drawer
+correction painter, the harness boot needles and the `historical_*` name
+space.
+
 ## Coverage gaps
 
 ### False-parity inventory (read-only audit, revision `40bc297e5`)
