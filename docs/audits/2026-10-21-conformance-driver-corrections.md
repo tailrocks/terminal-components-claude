@@ -88,3 +88,14 @@ expectation/assertion files still match `52e1572caaf7d9effd0265bbfdf6edcd0e57533
 their SHA-256 values are listed in the prior verification paragraph. This
 revalidation supersedes the immediately preceding `b64420f` local candidate
 receipt without changing the bounded review scope.
+
+Final pre-publication verification on candidate
+`b9970fe1b34653250716f51ea365a5c87e81efdb` reran the same 47 focused cases
+(Nextest run `1cf7e054-9fc9-4710-aa61-a86b8628085a`, 47 passed, 888 unrelated
+skipped) and all six external negative controls (run
+`207e5b69-8ca0-4968-b63f-8bfaa61df0bb`, 6 passed). Strict scoped Clippy,
+workspace formatting, whitespace validation, independent-review packet
+identity, and all seven held-file digests passed. The matrix retains its
+complete 2,357-line record; the seven expected/assertion paths remain exactly
+equal to their immutable `52e1572ca` source. This remains a bounded conformance
+driver correction only, not completion of conformance or application parity.
