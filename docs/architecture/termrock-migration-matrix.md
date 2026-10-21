@@ -2018,3 +2018,24 @@ The independently reviewed FormDialog/chrome source at `7c46c63f0c6e99d26c872758
 The seven held expectation files remain at their `52e1572ca` content. The inherited MenuBar precedence failure remains open. Actual frozen Showcase DialogKinds and Connections flows and Jackin Accounts adoption are still required; library-only composition is not application acceptance. The frozen form footer uses a single right-aligned row; the earlier wrapping prerequisite is superseded by source evidence.
 
 The merged-source gate ran 149 Forms/Overlays library tests: 148 passed, one inherited `menu_bar_keeps_public_default_variant_overlay_and_local_patch_precedence` failure, no skips. Scoped strict Clippy, the facade `form_dialog_consumer` example build, formatting and diff checks passed. [Root logs and the exact seven held blob identities](../audits/evidence/2026-10-21-form-dialog-integration/) preserve these results. This is a scoped integration with an explicitly red existing gate, not full acceptance.
+
+## Typed theme slots: stage 1 (2026-10-21)
+
+`PartEdit::glyph_slot` and `size_slot` expose explicit `Inherit`, `Set`, and
+`Clear` declarations; the existing Set-only builders delegate without API
+change. The two Runtime row-glyph fixtures now use `Theme::define_family` and
+the public edit closure. This removes those fixture-only live `Recipes`
+mutations while leaving public `Recipes::get_mut` and `iter_mut` available
+until the separate stage-2 migration. The [independent review](../audits/evidence/2026-10-21-theme-typed-slots/independent-review.json)
+clears this bounded stage and records the missing public rendered-size test as
+follow-up; it does not clear live mutation retirement or MenuBar precedence.
+
+The normal merge of PR #38 source `bfefea9ce` with stage-1 source `312b8f38a`
+retains all seven protected expected/assertion blobs at the exact IDs pinned
+by [held expectations](../audits/evidence/2026-10-21-form-dialog-integration/held-expectations.json).
+On the synchronized WIP, Theme nextest runs 182 tests: 181 pass and the
+already-recorded `all_73_junie_slots_match_reference_capability_output`
+failure remains red; Runtime glyph-contract nextest passes 2/2. Strict scoped
+Clippy, formatting and diff checks pass. This library API increment does not
+establish the four application parity requirements or full workspace
+acceptance.
