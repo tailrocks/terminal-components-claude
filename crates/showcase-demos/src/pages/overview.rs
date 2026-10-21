@@ -2,8 +2,8 @@ use termrock::author::PaintStyle;
 use termrock::{
     Brand, Chord, Color, ColorLevel, DerivedHintBar, Empty, EmptyState, FgStep, FieldSpec, Form,
     HelpOverlay, HelpOverlayState, HelpSection, Hint, HintBar, HintLayer, Id, ItemKey, KeyCode,
-    KeyHint, Meter, Panel, PanelKind, Part, Props, PropsList, PropsRow, PropsState, Rect,
-    Role, ScrollRegion, SplitAxis, SplitPane, StylePatch, TooSmall, Ui, Wizard, width, wrap,
+    KeyHint, Meter, Panel, PanelKind, Part, Props, PropsList, PropsRow, PropsState, Rect, Role,
+    ScrollRegion, SplitAxis, SplitPane, StylePatch, TooSmall, Ui, Wizard, width, wrap,
 };
 
 use super::{Page, PageUpdate, author::AuthorBadge, chrome_ink};
