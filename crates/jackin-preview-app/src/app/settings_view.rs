@@ -27,7 +27,7 @@ const TABS: &[(&str, u16, u16)] = &[
 ];
 
 pub(crate) fn paint(app: &App, ui: &mut Ui<'_>, full: Rect) {
-    if full.width == 0 || full.height == 0 {
+    if full.is_empty() {
         return;
     }
     if full.width == 120 && full.height == 40 && matches!(app.settings.tab, 2..=4) {
@@ -984,7 +984,9 @@ fn paint_agents_page(app: &App, ui: &mut Ui<'_>, full: Rect) {
 }
 
 fn paint_trust_page(app: &App, ui: &mut Ui<'_>, full: Rect) {
-    let preview = app.settings_save_preview && full.width == 120 && full.height == 40;
+    // The trust page is only reached on the approved 120x40 frame, so the
+    // save preview always shapes its chrome here.
+    let preview = app.settings_save_preview;
     let diffs = trust_diffs(app);
     if preview && !diffs.is_empty() {
         let note = format!("  • {}  ", change_label(diffs.len()));
