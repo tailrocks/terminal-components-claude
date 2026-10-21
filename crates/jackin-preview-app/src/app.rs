@@ -2736,8 +2736,7 @@ impl App {
                 daemon
                     .tabs
                     .iter()
-                    .enumerate()
-                    .map(|(_index, tab)| {
+                    .map(|tab| {
                         let mut label = daemon.tab_label(tab, &|pane| {
                             pane.proc
                                 .account
@@ -7989,22 +7988,21 @@ impl App {
         let priority = [10u8, 6, 8, 2, 9];
         let group = [0u8, 0, 1, 1, 2];
         let needed = |keep: &[bool; 5]| -> u16 {
-            let mut group_w = [0u16; 3];
-            let mut group_n = [0u16; 3];
-            for i in 0..5 {
-                if keep[i] {
-                    group_w[group[i] as usize] =
-                        group_w[group[i] as usize].saturating_add(widths[i]);
-                    group_n[group[i] as usize] = group_n[group[i] as usize].saturating_add(1);
+            // (width, count) per shrink group.
+            let mut groups = [(0u16, 0u16); 3];
+            for ((&on, &g), &w) in keep.iter().zip(group.iter()).zip(widths.iter()) {
+                if on && let Some((group_w, group_n)) = groups.get_mut(g as usize) {
+                    *group_w = group_w.saturating_add(w);
+                    *group_n = group_n.saturating_add(1);
                 }
             }
             let mut total = 0u16;
             let mut present = 0u16;
-            for g in 0..3 {
-                if group_n[g] > 0 {
+            for &(group_w, group_n) in &groups {
+                if group_n > 0 {
                     total = total
-                        .saturating_add(group_w[g])
-                        .saturating_add(group_n[g].saturating_sub(1).saturating_mul(GAP));
+                        .saturating_add(group_w)
+                        .saturating_add(group_n.saturating_sub(1).saturating_mul(GAP));
                     present = present.saturating_add(1);
                 }
             }
@@ -8018,8 +8016,11 @@ impl App {
         while needed(&keep) > area.width {
             let mut victim: Option<(u8, usize)> = None;
             for prefer in [1u8, 2, 0] {
-                let alive: Vec<usize> =
-                    (0..5).filter(|i| keep[*i] && group[*i] == prefer).collect();
+                let alive: Vec<usize> = (0..5)
+                    .filter(|i| {
+                        keep.get(*i).copied().unwrap_or(false) && group.get(*i) == Some(&prefer)
+                    })
+                    .collect();
                 if alive.is_empty() || (prefer == 0 && alive.len() == 1) {
                     continue;
                 }
@@ -8029,15 +8030,21 @@ impl App {
                 let index = alive
                     .iter()
                     .copied()
-                    .min_by_key(|i| (priority[*i], usize::MAX - *i))
+                    .min_by_key(|i| (priority.get(*i).copied().unwrap_or(0), usize::MAX - *i))
                     .unwrap_or(first);
-                let rank = priority[index];
+                let Some(rank) = priority.get(index).copied() else {
+                    continue;
+                };
                 if victim.is_none_or(|(best, _)| rank < best) {
                     victim = Some((rank, index));
                 }
             }
             match victim {
-                Some((_, index)) => keep[index] = false,
+                Some((_, index)) => {
+                    if let Some(on) = keep.get_mut(index) {
+                        *on = false;
+                    }
+                }
                 None => break,
             }
         }
@@ -9588,11 +9595,17 @@ fn wrap_account_lines(joined: &str) -> Vec<String> {
     let sep = [' ', '·', ' '];
     let mut cut = limit;
     for index in 0..=chars.len().saturating_sub(3) {
-        if index + 3 <= limit && chars[index..index + 3] == sep {
+        if index + 3 <= limit
+            && chars
+                .get(index..index + 3)
+                .is_some_and(|window| window == sep.as_slice())
+        {
             cut = index + 3;
         }
     }
-    vec![chars[..cut].iter().collect(), chars[cut..].iter().collect()]
+    let cut = cut.min(chars.len());
+    let (head, tail) = chars.split_at(cut);
+    vec![head.iter().collect(), tail.iter().collect()]
 }
 
 fn capsule_span_role(tone: crate::sim::pty::Tone) -> termrock::Role {

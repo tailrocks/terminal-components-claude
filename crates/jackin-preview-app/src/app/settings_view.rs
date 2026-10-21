@@ -30,7 +30,7 @@ pub(crate) fn paint(app: &App, ui: &mut Ui<'_>, full: Rect) {
     if full.width == 0 || full.height == 0 {
         return;
     }
-    if full.width == 120 && full.height == 40 && matches!(app.settings.tab, 2 | 3 | 4) {
+    if full.width == 120 && full.height == 40 && matches!(app.settings.tab, 2..=4) {
         match app.settings.tab {
             2 => paint_env_page(app, ui, full),
             3 => paint_agents_page(app, ui, full),
@@ -230,11 +230,14 @@ struct SettingsEnvRow {
 
 fn paint_settings_chrome(app: &App, ui: &mut Ui<'_>, full: Rect, active: usize) {
     ui.fill(full, env_canvas());
+    let Some(tab) = TABS.get(active) else {
+        return;
+    };
     env_paint(ui, 1, 0, " jackin❯ ", BRAND_FG, ACCENT, true);
     env_paint(ui, 12, 0, " File ", SECONDARY, BLACK, false);
     env_paint(ui, 19, 0, " Go ", SECONDARY, BLACK, false);
     env_paint(ui, 24, 0, " Help ", SECONDARY, BLACK, false);
-    let crumb = format!("Settings › global › {}", TABS[active].0);
+    let crumb = format!("Settings › global › {}", tab.0);
     let crumb_x = 83u16.saturating_sub(crumb.chars().count() as u16);
     env_paint(ui, crumb_x, 0, &crumb, SECONDARY, BLACK, false);
     env_paint(ui, 85, 0, "inside the Construct", SECONDARY, BLACK, false);
@@ -256,7 +259,7 @@ fn paint_settings_chrome(app: &App, ui: &mut Ui<'_>, full: Rect, active: usize) 
             env_paint(ui, x, 3, &label, SECONDARY, BLACK, false);
         }
     }
-    let (active_x, active_w) = (TABS[active].1, TABS[active].2);
+    let (active_x, active_w) = (tab.1, tab.2);
     let accent_end = active_x.saturating_add(active_w);
     for col in 2..full.width.saturating_sub(2) {
         if col >= active_x && col < accent_end {
