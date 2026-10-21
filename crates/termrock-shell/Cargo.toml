@@ -1,0 +1,22 @@
+[package]
+name = "termrock-shell"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[features]
+default = ["crossterm"]
+crossterm = []
+testing = []
+
+[dependencies]
+termrock-core.workspace = true
+termrock-layout.workspace = true
+termrock-theme.workspace = true
+termrock-runtime = { workspace = true, features = ["testing"] }
+ratatui-core.workspace = true
+
+[dev-dependencies]
+ratatui.workspace = true
+termrock.workspace = true
