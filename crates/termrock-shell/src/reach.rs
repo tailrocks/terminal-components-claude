@@ -607,10 +607,7 @@ pub fn dump<S: Scenario>(cases: &[Case<S>]) {
 #[macro_export]
 macro_rules! reach_tests {
     ($app:literal, $s:ty, $cases:expr; $($test:ident = $name:literal,)*) => {
-        const REACH_ALLOW: &str = include_str!(concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/tests/reach_allow.txt"
-        ));
+        const REACH_ALLOW: &str = "";
 
         $(
             mod $test {
