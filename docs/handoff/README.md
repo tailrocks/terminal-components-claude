@@ -175,6 +175,12 @@ Preservation branch `wip/parent-picker-gate-20261021` was pushed and remotely ve
 
 Next: finish the independent unchanged-test comparison against PR38 `5f656a1833e543fb39723498513533e5753b257e`; classify and repair any introduced failures, preserve pre-existing failures explicitly, then run focused exact-head tests, strict scoped checks, synchronize under the shared push lock, push through PR38 and verify the remote SHA. Do not skip the three cases or update their expected values. Detailed failure names and the evidence log are in the current migration matrix. Main, design/PR26 and frozen references remain read-only.
 
+## Showcase DialogKinds restoration WIP (2026-10-21)
+
+Preservation branch `wip/showcase-dialog-kinds-restoration-20261021` records the incomplete frozen DialogKinds route restoration. The page is a live public `FormDialog`/Picker consumer with the nine frozen fields, Test and Save actions, chooser, preview, and app-owned data/actions. The existing `Dialog kinds` navigation row previously resolved to Overview; this WIP routes it to a dedicated page. It does not establish app parity.
+
+At initial WIP source `40bc297e5f1b18f58f1466d5aaa8d80f19c051a2`, Save action regression passes; format and diff checks pass. The end-to-end frozen flow remains red in two shared contracts: (1) Form focus auto-reveal changes the chooser hit region from y=27 on pointer Down to y=26 before Up, so the release target differs and no click is emitted; (2) frozen direct typing of `billing` into the initially focused Name field must replace `orders-prod`, but current TextInput inserts and yields `orders-prodbilling`. The pointer geometry trace and reference source/test evidence are in the task report. The pointer fix belongs in shared Form reveal scheduling; do not patch Button/runtime or add synthetic Enter, coordinate, or invisible-control workarounds. Initial-edit selection needs a shared Form/TextInput contract. Continue from this branch only after the shared fixes are independently integrated/reviewed, then rerun the actual app flow and picker Escape/cancel tests. This branch is preservation WIP, not PR38 acceptance.
+
 ## Shell geometry contract (2026-10-21)
 
 - Tip: local commits begin at `6b73822c361e3a253709ad71fe6c885693fd1135`, followed by geometry measurement correction `e6a4829a5dcd0f0a1bad03467713c3f5a4858aca`; the public return-type fix and owned-leaf runtime adapter are the current uncommitted follow-up. Branch `wip/shell-geometry-contract-20261021` has not been published and needs rebase onto current PR #38.
