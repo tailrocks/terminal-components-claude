@@ -259,6 +259,10 @@ pub enum ScreenAlign {
 
     GeometricCenter,
 
+    /// Vertically centred with any odd leftover row placed above the layer,
+    /// matching ratatui's `Flex::Center` splitting.
+    Balanced,
+
     UpperThird,
 
     Bottom,
@@ -284,6 +288,22 @@ pub enum CrossAlign {
     End,
 }
 
+/// What a layer shows when a dismissal is refused.
+///
+/// Ported from the PR #26 reference popup vocabulary
+/// (`src/ui/popup.rs` at f4867e9b5f8a08a3bb61ce80d644198a29f51984). Nothing
+/// in the runtime renders the feedback yet; the knob exists so overlays can
+/// adopt it without another type change. [`RefuseFeedback::default`] keeps the
+/// current no-feedback behavior until that adoption lands.
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
+pub enum RefuseFeedback {
+    /// Flash the layer once to mark the refused dismissal.
+    #[default]
+    Flash,
+    /// Stay silent.
+    None,
+}
+
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
 pub struct Dismiss {
     pub esc: bool,
@@ -291,6 +311,20 @@ pub struct Dismiss {
     pub outside_click: bool,
 
     pub focus_out: bool,
+
+    /// Keys and pointer presses inside the layer still reach the page below.
+    ///
+    /// Reference `popup::Dismiss::pass_through`: while the layer is open the
+    /// runtime keeps routing input through it instead of trapping it. The
+    /// runtime does not consult this yet (adoption handoff); it defaults to
+    /// `false`, the current trapping behavior.
+    pub pass_through: bool,
+
+    /// The layer may show a close affordance; see [`Dismiss::shows_close`].
+    pub close_button: bool,
+
+    /// What to show when a dismissal is refused.
+    pub refuse_feedback: RefuseFeedback,
 }
 
 impl Dismiss {
@@ -298,25 +332,73 @@ impl Dismiss {
         esc: false,
         outside_click: false,
         focus_out: false,
+        pass_through: false,
+        close_button: false,
+        refuse_feedback: RefuseFeedback::Flash,
     };
 
     pub const ESC: Dismiss = Dismiss {
         esc: true,
         outside_click: false,
         focus_out: false,
+        pass_through: false,
+        close_button: true,
+        refuse_feedback: RefuseFeedback::Flash,
     };
 
     pub const ESC_AND_OUTSIDE: Dismiss = Dismiss {
         esc: true,
         outside_click: true,
         focus_out: false,
+        pass_through: false,
+        close_button: true,
+        refuse_feedback: RefuseFeedback::Flash,
     };
 
     pub const ALL: Dismiss = Dismiss {
         esc: true,
         outside_click: true,
         focus_out: true,
+        pass_through: false,
+        close_button: true,
+        refuse_feedback: RefuseFeedback::Flash,
     };
+
+    pub const fn pass_through(mut self, on: bool) -> Self {
+        self.pass_through = on;
+        self
+    }
+
+    pub const fn close_button(mut self, on: bool) -> Self {
+        self.close_button = on;
+        self
+    }
+
+    pub const fn refuse_feedback(mut self, feedback: RefuseFeedback) -> Self {
+        self.refuse_feedback = feedback;
+        self
+    }
+
+    /// Whether a dismissal `reason` may close this layer.
+    ///
+    /// Ported from the reference `Dismiss::allows`. Programmatic dismissal is
+    /// never refused: an owner closing its own layer is not a user gesture.
+    pub const fn allows(self, reason: DismissReason) -> bool {
+        match reason {
+            DismissReason::Esc => self.esc,
+            DismissReason::OutsideClick => self.outside_click,
+            DismissReason::FocusOut => self.focus_out,
+            // `DismissReason` is `#[non_exhaustive]`; a reason added later is
+            // owner-initiated until this match learns about it, so it is
+            // allowed — the same verdict as `Programmatic`.
+            _ => true,
+        }
+    }
+
+    /// A close affordance is only honest when Esc actually dismisses.
+    pub const fn shows_close(self) -> bool {
+        self.close_button && self.esc
+    }
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -506,6 +588,7 @@ pub fn resolve_anchor(screen: Rect, anchor: Anchor, size: LayerSize) -> Rect {
             let y = match align {
                 ScreenAlign::Center => screen.y.saturating_add(free / 3),
                 ScreenAlign::GeometricCenter => screen.y.saturating_add(free / 2),
+                ScreenAlign::Balanced => screen.y.saturating_add(free.div_ceil(2)),
                 ScreenAlign::UpperThird => screen.y.saturating_add(free / 6),
                 ScreenAlign::Bottom => screen.y.saturating_add(free),
             };
@@ -999,6 +1082,28 @@ mod tests {
             LayerSize::Fixed(60, 12),
         );
         assert_eq!(r, Rect::new(37, 25, 60, 12));
+    }
+
+    #[test]
+    fn anchor_screen_balanced_centers_with_the_odd_row_above() {
+        // Ratatui `Flex::Center` splitting: free 29 around an 11-row layer
+        // puts 15 rows above and 14 below.
+        for (height, expected_y) in [(20u16, 5u16), (24, 7), (30, 10), (40, 15), (50, 20)] {
+            let screen = Rect::new(0, 0, 120, height);
+            let r = resolve_anchor(
+                screen,
+                Anchor::Screen(ScreenAlign::Balanced),
+                LayerSize::Fixed(54, 11),
+            );
+            assert_eq!(r, Rect::new(33, expected_y, 54, 11), "height {height}");
+        }
+        // An even leftover leaves no rounding bias.
+        let even = resolve_anchor(
+            Rect::new(0, 0, 120, 41),
+            Anchor::Screen(ScreenAlign::Balanced),
+            LayerSize::Fixed(54, 11),
+        );
+        assert_eq!(even.y, 15);
     }
 
     #[test]

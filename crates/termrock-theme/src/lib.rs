@@ -15,6 +15,7 @@ pub mod recipe;
 pub mod resolve;
 pub mod role;
 pub mod tokens;
+pub mod visual;
 
 pub use ratatui_core::style::Modifier;
 use ratatui_core::style::{Color, Style};
@@ -37,6 +38,7 @@ pub use tokens::{
     Capability, ColorLevel, ColorTokens, Density, DesignTokens, MeterFillRest, MeterThresholds,
     MeterTokens, MotionTokens, SizeTokens, SpaceTokens, SyntaxTokens,
 };
+pub use visual::{COLOR_LEVELS, InactiveSelection, contrast_ratio};
 
 /// Rendering policy for the active row in a cursor-based list.
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Default)]
@@ -223,6 +225,14 @@ impl Theme {
 
     /// Map a painted cell to the modal backdrop while replacing its modifiers.
     /// The glyph is preserved by the renderer; only nonblank dim cells receive DIM.
+    ///
+    /// The frozen baseline is split on the DIM modifier (see
+    /// `docs/audits/2026-10-21-modal-backdrop-dim-vs-frozen-baseline.md`):
+    /// the showcase dialog underlays carry zero SGR-2 runs while the frozen
+    /// tablepro picker underlays are DIM-modded at 16/none. One shared
+    /// mapping cannot serve both, so the mapping keeps the DIM behavior the
+    /// currently-green tablepro frozen digests pin, and the dialog-side no-DIM
+    /// divergence is an owner decision, not a silent change.
     #[must_use]
     pub fn backdrop_style(&self, style: Style) -> Style {
         let (mut fg, bg, blank) = self.map_backdrop(style.fg, style.bg, false);

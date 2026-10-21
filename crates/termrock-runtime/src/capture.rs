@@ -185,7 +185,11 @@ impl SecondaryTracker {
     }
 
     /// A secondary release is a click only when the pointer moved since the
-    /// press and the target under it accepts a secondary release.
+    /// press and the target under it accepts a secondary release. Adapted
+    /// from PR #26 (commit f4867e9b5), which keyed acceptance by the hit's
+    /// control id: parity's `Hit` carries the owner, so acceptance is
+    /// checked against `hit.owner` — the exact id a widget passes to
+    /// `Registry::accept_release`, not a coarser class.
     pub fn on_secondary_up(&mut self, hits: &Registry, pos: Position) -> Option<Hit> {
         let from = self.secondary_at.take()?;
         if from == pos {
@@ -418,8 +422,11 @@ mod pointer_tests {
     use super::*;
     use crate::id::Part;
 
+    // Ported from PR #26 `pointer.rs` (commit f4867e9b5), adapted: parity
+    // keys release acceptance by the hit's owner (PR #26 keyed it by the
+    // hit's control id), so acceptance here is exact per widget owner.
     #[test]
-    fn a_secondary_release_on_an_accepting_row_is_a_click() {
+    fn a_secondary_release_on_an_accepting_owner_is_a_click() {
         use termrock_core::id::ItemKey;
         use termrock_core::intent::Phase;
 
@@ -475,6 +482,10 @@ mod pointer_tests {
         h.register_control(page, Rect::new(0, 0, 20, 10), LayerId::PAGE);
         h.register_control(owner, Rect::new(10, 2, 5, 3), LayerId(1));
         h.register_backdrop_of(back, owner, Rect::new(0, 0, 20, 10), LayerId(1), false);
+        assert!(
+            h.has_owner(back),
+            "the backdrop's own id stays queryable after registration"
+        );
 
         let mut t = SecondaryTracker::new();
         assert_eq!(
