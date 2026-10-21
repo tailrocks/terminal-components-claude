@@ -16,7 +16,7 @@ use crate::layer::{
 use crate::measure::{Constraints, Size};
 use crate::response::{Response, StateFlags};
 use crate::text::width;
-use crate::theme::{Family, GlyphRole, Slot, StylePatch, Surface, Variant};
+use crate::theme::{Family, FgStep, GlyphRole, Role, Slot, StylePatch, Surface, Variant};
 use crate::ui::{Cx, FrameRead, Ui};
 use termrock_feedback::keyhint::ChordText;
 
@@ -369,6 +369,8 @@ pub struct ContextMenu<'a> {
     chord_case: ChordCase,
     bar_navigation: Option<(usize, usize)>,
     retained_cursor: Option<Id>,
+    /// Baseline popup fill keeps the page ink under cells it does not restyle.
+    keep_underlay: bool,
 }
 
 impl fmt::Debug for ContextMenu<'_> {
@@ -408,6 +410,7 @@ impl<'a> ContextMenu<'a> {
             chord_case: ChordCase::Preserve,
             bar_navigation: None,
             retained_cursor: None,
+            keep_underlay: false,
         }
     }
 
@@ -433,6 +436,16 @@ impl<'a> ContextMenu<'a> {
     #[must_use]
     pub const fn title(mut self, title: &'a str) -> Self {
         self.title = Some(title);
+        self
+    }
+
+    /// Keep page foreground and modifiers on cells this menu does not restyle.
+    ///
+    /// Matches the baseline context menu, whose fill sets a space and a popover
+    /// background and leaves the ink that was already on the screen.
+    #[must_use]
+    pub const fn keep_underlay(mut self) -> Self {
+        self.keep_underlay = true;
         self
     }
 
@@ -706,16 +719,31 @@ impl<'a> ContextMenu<'a> {
                 Part::CONTAINER,
                 live,
             );
-            ui.fill(area, container.style);
-            let border = self.ov.style(
-                ui,
-                self.id,
-                Family::MENU,
-                Variant::DEFAULT,
-                Part::BORDER,
-                live,
-            );
-            let inner = ui.frame(area, border.style);
+            let border_style = if self.keep_underlay {
+                // Baseline `frame_on(popover)` is border-subtle `#3a3a3a`, and the
+                // block keeps whatever modifier the page cell already had.
+                ui.fill_keep_ink(area, ui.theme_ref().bg(Surface::Popover));
+                ui.paint_patch(
+                    &StylePatch::new()
+                        .set_fg(Role::Custom(ratatui_core::style::Color::Rgb(
+                            0x3a, 0x3a, 0x3a,
+                        )))
+                        .set_bg(Role::Surface(Surface::Popover)),
+                )
+            } else {
+                ui.fill(area, container.style);
+                self.ov
+                    .style(
+                        ui,
+                        self.id,
+                        Family::MENU,
+                        Variant::DEFAULT,
+                        Part::BORDER,
+                        live,
+                    )
+                    .style
+            };
+            let inner = ui.frame(area, border_style);
             if let Some(slot) = self.ov.slot_for(Part::BORDER) {
                 slot(ui, area);
             }
@@ -742,15 +770,25 @@ impl<'a> ContextMenu<'a> {
                     width: row.width.saturating_sub(1),
                     ..row
                 };
-                let style = self.ov.style(
-                    ui,
-                    self.id,
-                    Family::MENU,
-                    Variant::DEFAULT,
-                    Part::TITLE,
-                    live,
-                );
-                paint_or_slot(ui, &self.ov, Part::TITLE, row, title, style.style);
+                let style = if self.keep_underlay {
+                    ui.paint_patch(
+                        &StylePatch::new()
+                            .set_fg(Role::Fg(FgStep::Muted))
+                            .set_bg(Role::Surface(Surface::Popover)),
+                    )
+                } else {
+                    self.ov
+                        .style(
+                            ui,
+                            self.id,
+                            Family::MENU,
+                            Variant::DEFAULT,
+                            Part::TITLE,
+                            live,
+                        )
+                        .style
+                };
+                paint_or_slot(ui, &self.ov, Part::TITLE, row, title, style);
                 ui.register_decor(self.id, PartRef::of(Part::TITLE), row);
                 y = y.saturating_add(1);
             }
@@ -771,7 +809,23 @@ impl<'a> ContextMenu<'a> {
                         Part::RULE,
                         live,
                     );
-                    if let Some(slot) = self.ov.slot_for(Part::RULE) {
+                    if self.keep_underlay {
+                        // The gap line skips the first and last inner cells.
+                        let inset = Rect {
+                            x: rule.x.saturating_add(1),
+                            width: rule.width.saturating_sub(2),
+                            ..rule
+                        };
+                        if inset.width > 0 {
+                            let ink = ui.paint_patch(
+                                &StylePatch::new()
+                                    .set_fg(Role::BorderStrong)
+                                    .set_bg(Role::Surface(Surface::Popover)),
+                            );
+                            let track = "─".repeat(usize::from(inset.width));
+                            ui.paint_str(inset, &track, ink);
+                        }
+                    } else if let Some(slot) = self.ov.slot_for(Part::RULE) {
                         slot(ui, rule);
                     } else {
                         for cell in rule.rows() {
@@ -828,6 +882,11 @@ impl<'a> ContextMenu<'a> {
         } else {
             Variant::DEFAULT
         };
+        let active = index == st.cursor;
+        if self.keep_underlay {
+            self.draw_underlay_row(ui, row, index, item, active);
+            return;
+        }
         let style = self
             .ov
             .style(ui, self.id, Family::MENU, variant, Part::ROW, flags);
@@ -885,6 +944,72 @@ impl<'a> ContextMenu<'a> {
                 .ov
                 .style(ui, self.id, Family::MENU, variant, Part::KEY, flags);
             paint_or_slot(ui, &self.ov, Part::KEY, key, text, key_style.style);
+        }
+        ui.register_part(
+            self.id,
+            PartRef::item(Part::ROW, ItemKey::index(index)),
+            row,
+        );
+    }
+
+    fn draw_underlay_row(
+        &self,
+        ui: &mut Ui<'_>,
+        row: Rect,
+        index: usize,
+        item: &MenuItem<'_>,
+        active: bool,
+    ) {
+        let popover = Role::Surface(Surface::Popover);
+        let body = if active {
+            StylePatch::new()
+                .set_fg(Role::HighlightFg)
+                .set_bg(Role::HighlightBg)
+                .add(ratatui_core::style::Modifier::BOLD)
+        } else if item.danger {
+            StylePatch::new()
+                .set_fg(Role::Custom(ratatui_core::style::Color::Rgb(
+                    0xe8, 0xa0, 0xa0,
+                )))
+                .set_bg(popover)
+        } else {
+            StylePatch::new()
+                .set_fg(Role::Fg(FgStep::Primary))
+                .set_bg(popover)
+        };
+        let body = ui.paint_patch(&body);
+        ui.fill(row, body);
+        let label = shift(row, 2);
+        let hint = item.hint;
+        let hint_width = hint.map_or(0, width);
+        let hint_admitted = hint.is_some() && admits_hint(item.label, hint_width, row.width);
+        let reserved_hint = if hint_admitted { hint_width } else { 0 };
+        let label = Rect {
+            width: if hint_admitted {
+                row.width.saturating_sub(reserved_hint.saturating_add(5))
+            } else {
+                row.width.saturating_sub(3)
+            },
+            ..label
+        };
+        paint_or_slot(ui, &self.ov, Part::LABEL, label, item.label, body);
+        if hint_admitted && let Some(text) = hint {
+            let key = Rect {
+                x: row.right().saturating_sub(reserved_hint.saturating_add(1)),
+                width: reserved_hint.min(row.width),
+                ..row
+            };
+            let key_fg = if active {
+                Role::Fg(FgStep::Primary)
+            } else {
+                Role::Fg(FgStep::Secondary)
+            };
+            let key_style = ui.paint_patch(
+                &StylePatch::new()
+                    .set_fg(key_fg)
+                    .remove(ratatui_core::style::Modifier::BOLD),
+            );
+            paint_or_slot(ui, &self.ov, Part::KEY, key, text, key_style);
         }
         ui.register_part(
             self.id,
@@ -999,6 +1124,7 @@ impl<'a> MenuBar<'a> {
             chord_case: self.chord_case,
             bar_navigation: Some((index, self.menus.len())),
             retained_cursor: None,
+            keep_underlay: false,
         })
     }
 
@@ -1253,6 +1379,7 @@ impl<'a> MenuBar<'a> {
                 chord_case: self.chord_case,
                 bar_navigation: Some((open, self.menus.len())),
                 retained_cursor: None,
+                keep_underlay: false,
             };
             let _ = ui.layer(self.id, |ui, layer| dropdown.draw(ui, layer, st));
         }
