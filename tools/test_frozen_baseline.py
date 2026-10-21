@@ -6,9 +6,12 @@ from __future__ import annotations
 import io
 import json
 import os
+import selectors
 import sys
+import subprocess
 import tarfile
 import tempfile
+import time
 import unittest
 from contextlib import ExitStack
 from pathlib import Path
@@ -731,18 +734,126 @@ class RunnerGuards(unittest.TestCase):
         parsed = runner.parser().parse_args([
             "--timeout", "225", "fresh-run-advance", "--cohort", "frozen-cohort",
             "--baseline-bin-dir", "/sealed", "--expected-plan-sha256", "a" * 64,
-            "--key-path", "/private/key",
+            "--key-path", "/private/key", "--expected-ordinal", "0", "--expected-phase", "baseline-capture",
         ])
         self.assertEqual(parsed.command, "fresh-run-advance")
         self.assertEqual(parsed.timeout, 225)
         self.assertFalse(hasattr(parsed, "phase"))
+        self.assertEqual(parsed.expected_ordinal, 0)
+        self.assertEqual(parsed.expected_phase, "baseline-capture")
         with self.assertRaises(SystemExit):
             runner.parser().parse_args([
                 "fresh-run-advance", "--cohort", "frozen-cohort", "--baseline-bin-dir", "/sealed",
                 "--expected-plan-sha256", "a" * 64, "--key-path", "/private/key", "--phase", "candidate",
             ])
+        with patch.object(runner.sys, "argv", ["frozen_baseline.py",
+                "fresh-run-advance", "--cohort", "frozen-cohort", "--baseline-bin-dir", "/sealed",
+                "--expected-plan-sha256", "a" * 64, "--key-path", "/private/key", "--expected-ordinal", "0",
+            ]), patch.object(runner.sys, "stderr", io.StringIO()), patch.object(runner, "advance_fresh_run") as advance:
+            status = runner.main()
+        self.assertEqual(status, 1)
+        advance.assert_not_called()
 
-    def _fresh_plan_fixture(self, root: Path) -> dict[str, object]:
+    def test_fresh_advance_expected_step_rejects_stale_future_and_wrong_phase_before_output(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            fixture = self._fresh_advance_fixture(Path(temp))
+            live = unittest.mock.Mock(side_effect=self._passing_live_chunk)
+            phase_root = Path(fixture["plan"]["execution"]["artifact_roots"]["baseline_capture"])
+            cases = ((1, "baseline-capture"), (9, "baseline-capture"), (0, "baseline-replay"))
+            for expected_ordinal, expected_phase in cases:
+                with self.subTest(expected_ordinal=expected_ordinal, expected_phase=expected_phase):
+                    with self._advance_fresh_fixture(fixture, live):
+                        with self.assertRaisesRegex(runner.RunnerError, "differs from the expected ordinal and phase"):
+                            runner.advance_fresh_run(
+                                fixture["repo"], fixture["root"], "fixture-cohort", fixture["bins"], 30,
+                                fixture["creation_sha256"], fixture["key_path"],
+                                expected_ordinal=expected_ordinal, expected_phase=expected_phase,
+                            )
+                    self.assertFalse(phase_root.exists())
+            live.assert_not_called()
+
+    def test_fresh_advance_repeated_last_capture_expectation_cannot_start_replay(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            fixture = self._fresh_advance_fixture(Path(temp), chunk_size=2)
+            with self._advance_fresh_fixture(fixture, self._passing_live_chunk):
+                capture = runner.advance_fresh_run(
+                    fixture["repo"], fixture["root"], "fixture-cohort", fixture["bins"], 30,
+                    fixture["creation_sha256"], fixture["key_path"],
+                    expected_ordinal=0, expected_phase="baseline-capture",
+                )
+            self.assertEqual((capture["journal_ordinal"], capture["phase"]), (0, "baseline-capture"))
+            replay_root = Path(fixture["plan"]["execution"]["artifact_roots"]["baseline_replay"])
+            retry = unittest.mock.Mock(side_effect=self._passing_live_chunk)
+            with self._advance_fresh_fixture(fixture, retry):
+                with self.assertRaisesRegex(runner.RunnerError, r"actual \(1, baseline-replay\)"):
+                    runner.advance_fresh_run(
+                        fixture["repo"], fixture["root"], "fixture-cohort", fixture["bins"], 30,
+                        fixture["creation_sha256"], fixture["key_path"],
+                        expected_ordinal=0, expected_phase="baseline-capture",
+                    )
+            retry.assert_not_called()
+            self.assertFalse(replay_root.exists())
+
+    def test_fresh_advance_expected_step_arguments_are_exact_and_paired(self) -> None:
+        for ordinal in (True, -1, 0.0):
+            with self.subTest(ordinal=ordinal), self.assertRaisesRegex(runner.RunnerError, "nonnegative integer"):
+                runner.advance_fresh_run(Path("/unused"), Path("/unused"), "cohort", Path("/unused"), 30, "a" * 64, Path("/unused"), expected_ordinal=ordinal, expected_phase="baseline-capture")
+        for phase in ("candidate-check", [], None):
+            if phase is None:
+                with self.assertRaisesRegex(runner.RunnerError, "supplied together"):
+                    runner.advance_fresh_run(Path("/unused"), Path("/unused"), "cohort", Path("/unused"), 30, "a" * 64, Path("/unused"), expected_ordinal=0, expected_phase=phase)
+            else:
+                with self.subTest(phase=phase), self.assertRaisesRegex(runner.RunnerError, "baseline-capture or baseline-replay"):
+                    runner.advance_fresh_run(Path("/unused"), Path("/unused"), "cohort", Path("/unused"), 30, "a" * 64, Path("/unused"), expected_ordinal=0, expected_phase=phase)
+        with self.assertRaisesRegex(runner.RunnerError, "supplied together"):
+            runner.advance_fresh_run(Path("/unused"), Path("/unused"), "cohort", Path("/unused"), 30, "a" * 64, Path("/unused"), expected_ordinal=0)
+
+    def test_fresh_run_lock_serializes_two_processes_without_timing_sleeps(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            run_root = Path(temp) / "run"
+            run_root.mkdir(mode=0o700)
+            owner_fd = runner._fresh_run_lock(run_root)
+            source_dir = Path(__file__).resolve().parent
+            child_code = (
+                "import sys; from pathlib import Path; "
+                f"sys.path.insert(0, {str(source_dir)!r}); import frozen_baseline as r; "
+                "print('launch-marker', flush=True); "
+                "\ntry:\n fd = r._fresh_run_lock(Path(sys.argv[1]))\n"
+                "except r.RunnerError as error:\n print('blocked:' + str(error), flush=True)\n"
+                "else:\n r.fcntl.flock(fd, r.fcntl.LOCK_UN); r.os.close(fd); print('acquired', flush=True)"
+            )
+            child = subprocess.Popen(
+                [sys.executable, "-c", child_code, str(run_root)],
+                stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, start_new_session=True,
+            )
+
+            def read_line() -> str:
+                assert child.stdout is not None
+                selector = selectors.DefaultSelector()
+                selector.register(child.stdout, selectors.EVENT_READ)
+                try:
+                    ready = selector.select(5)
+                    self.assertTrue(ready, "lock contender did not reach its synchronized launch marker")
+                    return child.stdout.readline().rstrip("\n")
+                finally:
+                    selector.close()
+
+            try:
+                self.assertEqual(read_line(), "launch-marker")
+                self.assertIn("blocked:another fresh run chunk advance is active", read_line())
+                self.assertEqual(child.wait(timeout=5), 0)
+            finally:
+                if child.poll() is None:
+                    child.kill()
+                    child.wait(timeout=5)
+                if child.stdout is not None:
+                    child.stdout.close()
+                if child.stderr is not None:
+                    child.stderr.close()
+                runner.fcntl.flock(owner_fd, runner.fcntl.LOCK_UN)
+                runner.os.close(owner_fd)
+
+    def _fresh_plan_fixture(self, root: Path, *, chunk_size: int = 1) -> dict[str, object]:
         repo = root / "repo"
         source = root / "source"
         live = root / "live-source"
@@ -793,16 +904,16 @@ class RunnerGuards(unittest.TestCase):
         with patch.object(runner, "EXPECTED_SCENARIOS", 1), patch.object(runner, "EXPECTED_ORDINARY_TESTS", 2), patch.object(runner, "validate_extension_inventory", return_value=(original_inventory, [extension])), patch.object(runner, "ordinary_test_groups", return_value=( ["source_only::fixture"], ["modes::showcase_boot_sets_terminal_modes"] )), patch.object(runner, "fresh_clean_env", return_value={"LANG": "C", "TERM": "xterm-256color", "CARGO_TARGET_DIR": str(root / "live-target"), "NEXTEST_EXPERIMENTAL_LIBTEST_JSON": "1"}), patch.object(runner, "fresh_tool_observation", return_value={"cargo": {"path": "/pinned/cargo", "sha256": "1" * 64}}):
             plan = runner.build_fresh_plan_payload(
                 repo=repo, root=root, cohort=cohort, live_record=live_record, inventory=inventory,
-                extension_manifest=manifest, chunk_size=1, term_profile=None, plan_id="1" * 32,
+                extension_manifest=manifest, chunk_size=chunk_size, term_profile=None, plan_id="1" * 32,
                 created_at="2026-10-21T00:00:00+00:00",
             )
         return plan
 
-    def _fresh_advance_fixture(self, base: Path) -> dict[str, object]:
+    def _fresh_advance_fixture(self, base: Path, *, chunk_size: int = 1) -> dict[str, object]:
         base = base.resolve()
         root = base / "runner-root"
         root.mkdir()
-        plan = self._fresh_plan_fixture(root)
+        plan = self._fresh_plan_fixture(root, chunk_size=chunk_size)
         plan_path = root / runner.FRESH_PLAN_FILE
         creation_sha256 = runner._atomic_create_plan(plan_path, plan)
         bins = root / "bins"
