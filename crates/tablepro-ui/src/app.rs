@@ -8,15 +8,15 @@ use termrock::editors::{
 };
 use termrock::{
     Action, ActionKey, Align, Anchor, App, CellAction, CellUi, Chord, CodeAction, CodeEditor,
-    ColumnKey, CompletingCodeEditor, Cx, Dialog, DialogAction, DialogState, FgStep, Focusability,
-    Form, FormAction, FormState, FrameRead, GlyphRole, Grid, GridAction, GridCell, GridColumnFit,
-    GridEditor, GridGutter, GridModel, GridSortIndicator, Id, Intent, ItemKey, KeyCode, KeyMap,
-    KeyModifiers, KeyPhase, LayerId, LayerSize, LayerSpec, Maximized, Modifier, Panel, PanelKind,
-    Part, Phase, PickerAction, PickerSlotExt, Position, Response, Role, RowDecor, RowTotal, RowUi,
-    ScreenAlign, Size, SortDir, Span, SplitAxis, SplitPane, SplitPaneState, StateFlags, StylePatch,
-    Tabs, TabsAction, TabsState, TextAction, TextInput, TextInputState, Theme, Tree, TreeAction,
-    TreeBranchActivation, TreeNode, TreeState, Ui, UpdateCause, truncate, truncate_middle, width,
-    wrap,
+    ColumnKey, CompletingCodeEditor, Cx, Dialog, DialogAction, DialogState, EnterPolicy, FgStep,
+    Focusability, Form, FormAction, FormState, FrameRead, GlyphRole, Grid, GridAction, GridCell,
+    GridColumnFit, GridEditor, GridGutter, GridModel, GridSortIndicator, Id, Intent, ItemKey,
+    KeyCode, KeyMap, KeyModifiers, KeyPhase, LayerId, LayerSize, LayerSpec, Maximized, Modifier,
+    Panel, PanelKind, Part, Phase, PickerAction, PickerSlotExt, Position, Response, Role, RowDecor,
+    RowTotal, RowUi, ScreenAlign, Size, SortDir, Span, SplitAxis, SplitPane, SplitPaneState,
+    StateFlags, StylePatch, Tabs, TabsAction, TabsState, TextAction, TextInput, TextInputState,
+    Theme, Tree, TreeAction, TreeBranchActivation, TreeNode, TreeState, Ui, UpdateCause, truncate,
+    truncate_middle, width, wrap,
 };
 
 use crate::quick_switcher::{self, QuickSwitcher};
@@ -1566,6 +1566,7 @@ impl TableProApp {
         Form::new(connections::FORM, fields)
             .actions(actions)
             .submit(connections::SAVE_CONNECT)
+            .enter(EnterPolicy::Never)
     }
     fn handle_grid(status: &mut String, action: &GridAction) {
         match action {
@@ -9723,24 +9724,6 @@ impl TableProApp {
         }
     }
 
-    fn arm_fresh_name_replacement(&mut self, cx: &Cx<'_>) {
-        let Some(draft) = &self.draft else {
-            return;
-        };
-        if draft.name != self.connection.name {
-            return;
-        }
-        let name = connections::field::NAME;
-        let typing = cx.intents(name).any(|intent| match intent {
-            Intent::Key(key) => key.bare_char().is_some(),
-            Intent::Paste(_) => true,
-            _ => false,
-        });
-        if typing && self.form_state.editing_text(name) == Some(self.connection.name.as_str()) {
-            self.form_state.select_editing_text(name);
-        }
-    }
-
     fn mirror_name_edit(&mut self) {
         let Some(text) = self.form_state.editing_text(connections::field::NAME) else {
             return;
@@ -10017,7 +10000,6 @@ impl App for TableProApp {
                 _ => {}
             }
         }
-        self.arm_fresh_name_replacement(cx);
         let form_was_open = self.form_open;
         if self.draft.is_some() {
             let fields = &self.form_fields;
