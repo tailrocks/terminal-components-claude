@@ -29,6 +29,7 @@ enum Took {
 struct Host {
     keys: ShellKeys<Cmd>,
     layer: Option<bool>,
+    layer_response: Option<Response<()>>,
     menu: bool,
     capture: bool,
     interrupts: bool,
@@ -55,6 +56,7 @@ impl Host {
                     ShellAction::App(Cmd::Delete),
                 ),
             layer: None,
+            layer_response: None,
             menu: false,
             capture: false,
             interrupts: false,
@@ -93,7 +95,7 @@ impl KeyHost for Host {
             self.took.push(Took::Layer);
             return Some(Response::changed());
         }
-        Some(Response::ignored())
+        Some(self.layer_response.clone().unwrap_or_default())
     }
 
     fn menu_key(&mut self, _key: &Key) -> Option<Response<()>> {
@@ -479,6 +481,19 @@ fn a_layer_that_passes_still_consumes_the_key() {
     assert!(
         consumed && !changed,
         "the layer keeps the key from the page"
+    );
+}
+
+#[test]
+fn a_passing_layers_invalidate_payload_survives_the_consumed_fold() {
+    let mut h = Host::new();
+    h.layer = Some(false);
+    h.layer_response = Some(Response::ignored().repaint());
+    let out = KeyRouter::route(&mut h, &ch('x'));
+    assert!(out.is_consumed(), "the layer keeps the key from the page");
+    assert!(
+        out.is_changed(),
+        "the layer's repaint payload is not discarded"
     );
 }
 
