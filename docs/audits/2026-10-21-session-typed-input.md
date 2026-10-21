@@ -8,9 +8,9 @@ This follows frozen commit `4169783ae883788186d161af09ba9c481bd84e5c`: `src/runt
 
 ## Rejected evidence retained
 
-The removed author test at `bfefea9ce` created a synthetic bare Escape `Input`, called the private promotion helper, then created a synthetic bare `x` `Input` and asserted the helper added `ALT`. Its relevant body is retained here as rejected evidence:
+The removed author test at `bfefea9ce` created a synthetic bare Escape `Input`, called the private promotion helper, then created a synthetic bare `x` `Input` and asserted the helper added `ALT`. Its relevant body is retained here as rejected evidence. The helper it called no longer exists, so the excerpt is quoted as text and is not a compiled example:
 
-```rust
+```text
 fn a_bare_character_right_after_esc_becomes_alt() {
     let mut esc_at = None;
     let mut esc = Input::Key(Key {
