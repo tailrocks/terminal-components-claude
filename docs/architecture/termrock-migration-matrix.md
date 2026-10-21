@@ -2095,3 +2095,27 @@ digest file, and the old glyph expectation). This is the "frozen artifact
 conflicts with repeatable reference output" case from the acceptance rules:
 both results are preserved, the conflict is recorded here, and the re-bless
 decision needs independent review before the component digests are rewritten.
+
+### Workstream results integrated so far
+
+| Workstream | Branch | Tip | Result integrated in this session's branch |
+| --- | --- | --- | --- |
+| External public consumer | `wip/external-public-consumer-20261021` | `fd1e65243d1f64ea2a6f54ffb09e072c8c369899` | `crates/termrock-consumer-example` (public facade only, own domain data, 7 tests) plus `crates/termrock/tests/public_component_contracts.rs`; merged as `936267f72` |
+| Showcase app layer | `wip/showcase-app-layer-cleanup-20261021` | `d9968601420e3f8d7d2612a2f3ac7b01cda62431` | Shell region split moved to the shared layout plan, typed `Route` replaces the label-selected screen path, shared-widget repaint and phantom constructions removed; all 704 showcase frames byte-identical; ownership problems 108 → 106; merged as `c8d1d2d1c` |
+
+Showcase diagnosis that still needs a reference-owner decision (not an app-side
+change), recorded by that workstream with evidence:
+
+- `showcase-ui::page_headings` (both cases): the fixtures
+  `crates/showcase-ui/tests/fixtures/holla-page-headings.tsv` and
+  `holla-shell-headers.tsv` encode a pre-tag capture set (flat 23-item nav, `" / "`
+  breadcrumb separator, group "Components"), while the Showcase's own frozen
+  oracle (verified byte-identical to the `visual-baseline` tag) has the grouped
+  nav with the "Components" card, the `"›"` separator and the group
+  "Inputs & forms". The live app matches the tag.
+- `showcase-ui::visual showcase_visual_baseline`: 218 of 704 keys mismatch, all
+  of them present before the work and unchanged by it, concentrated in the lower
+  colour tiers (16/256/mono), i.e. the quantization moved after the digests were
+  blessed. One concrete instance against the frozen oracle: the Overview palette
+  table prints hex notes where the frozen capture prints the tier's colour
+  (`swatch_note()` at the tag's `src/bin/showcase/pages/overview.rs`).
