@@ -1,7 +1,7 @@
 {
   "schema": "termrock.canonical-owned-verify-live-source-audit",
   "version": 1,
-  "status": "stage3-source-cleared-documentation-finding-open",
+  "status": "stage3-source-and-documentation-cleared-no-stage3-operation-admitted",
   "source_base": "31fbae05c4978f8432443d93d1c6ef56b04050f0",
   "branch": "wip/canonical-verify-owned-20261021",
   "scope": [
@@ -62,7 +62,8 @@
     "Owned paths() now runs inside PrepareExecution, with work checks immediately before and after path resolution; legacy path resolution stays outside the owned scope.",
     "Owned success JSON is flushed inside PrepareExecution and followed by a deadline/cancellation check before scope exit.",
     "Added real PrepareExecution CLI regressions for deadline expiry and SIGTERM during path resolution and final output.",
-    "Updated migration and audit status: V12 stage two and its actual prepare-live result are independently admitted; stage-three source and stage-three-only supervisor review remain required."
+    "Updated migration and audit status: V12 stage two and its actual prepare-live result are independently admitted; stage-three source and stage-three-only supervisor review remain required.",
+    "Closed STAGE3-OWNED-DOC-1: current limitations now reflect admitted V12 stage two and the actual remaining stage-three-only supervisor and result reviews."
   ],
   "stage2_admission": {
     "v12_supervisor_source_sha256": "12a3dd78de61bd38a95dfe3b44ed43804380aa8df039b89168f666c7a231e5f9",
@@ -71,16 +72,16 @@
     "actual_result_review_sha256": "37ec0db680822aa74cfe5c15754d868f6cc3959f8628ad049c8ebb999fd0e994",
     "admitted_scope": "stage-two live-source preparation only; no plan, key, capture, replay, candidate comparison, or product acceptance"
   },
-  "required_next_gate": "After the documentation correction closes STAGE3-OWNED-DOC-1, independently review the stage-three-only external supervisor. Any actual stage-three operation needs a separate independently reviewed result. Stage-four sealing waits for remaining owned plan/init/verify/advance lifecycle implementation.",
+  "required_next_gate": "Independently review the stage-three-only external supervisor before any actual stage-three operation. Any actual stage-three operation needs a separate independently reviewed result. Stage-four sealing waits for remaining owned plan/init/verify/advance lifecycle implementation.",
   "corrected_source_commit": "c9adf3c2607efbbd8b36f5a4acdd7ea6d520863b",
   "independent_review_clearance": {
     "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/canonical-stage3-independent-review-5891c872-20261021.json",
     "sha256": "21c3aadd4088bcef9696ab6621873bd2f32f6243b5a3fb89f067a0403d6f2f20",
-    "decision": "Executable source SHA e486b17728062193fa3af243c93d7e1fd14c70fd73726c1bc4e73a317306e257 is CLEAR. Documentation finding STAGE3-OWNED-DOC-1 remains open until this correction lands.",
+    "decision": "Executable source SHA e486b17728062193fa3af243c93d7e1fd14c70fd73726c1bc4e73a317306e257 is CLEAR; the P3 documentation finding from this review is corrected in the current audit and migration record. No actual stage3 operation is admitted.",
     "resolved_findings": [
       "STAGE3-OWNED-1",
-      "STAGE3-OWNED-2"
-    ],
-    "open_finding": "STAGE3-OWNED-DOC-1"
+      "STAGE3-OWNED-2",
+      "STAGE3-OWNED-DOC-1"
+    ]
   }
 }
