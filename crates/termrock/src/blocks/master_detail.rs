@@ -3,7 +3,7 @@
 use ratatui_core::layout::Rect;
 pub use termrock_controls::MasterDetailState;
 use termrock_controls::{
-    MasterDetail as ResponsiveMasterDetail, SplitAction, SplitPane, SplitPaneState,
+    MasterDetail as ResponsiveMasterDetail, ResetPolicy, SplitPane, SplitPaneState,
 };
 use termrock_layout::{ChildPolicy, Composition, Constraints, Size, SplitAxis};
 use termrock_runtime::author::{self, CompositionLeaf};
@@ -25,6 +25,26 @@ const DETAIL_BINDINGS: &[Binding<MasterDetailAction>] = &[Binding {
     priority: 0,
     visible: false,
 }];
+
+fn discard_action<A, B>(response: Response<A>) -> Response<B> {
+    let flow = response.flow();
+    let invalidate = response.invalidate();
+    let id = response.id();
+    let state = response.state();
+    let mut response = match flow {
+        crate::Flow::Ignored => Response::ignored(),
+        crate::Flow::Consumed => Response::consumed(),
+    }
+    .with_state(state);
+    if let Some(id) = id {
+        response = response.for_id(id);
+    }
+    match invalidate {
+        crate::Invalidate::None => response,
+        crate::Invalidate::Paint => response.repaint(),
+        crate::Invalidate::Layout => response.relayout(),
+    }
+}
 
 /// Responsive layout policy for a reusable master/detail block.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -144,8 +164,6 @@ impl MasterDetailPolicy {
 pub enum MasterDetailAction {
     DrawerOpened,
     DrawerClosed,
-    /// The opt-in resizable master pane changed to this share.
-    Resized(u8),
 }
 
 /// Missing content or a composition failure detected before rendering.
@@ -272,9 +290,10 @@ impl<'a> MasterDetail<'a> {
                 })
                 .for_id(self.id);
             }
-            return response.map_action(|action| match action {
-                SplitAction::Resized(percent) => MasterDetailAction::Resized(percent),
-            });
+            // Keep the established public action enum exhaustive/source-compatible.
+            // Split changes remain observable as a consumed, changed response;
+            // consumers inspect their persistent `MasterDetailState` if needed.
+            return discard_action(response);
         }
 
         let scope = self.detail_scope();
@@ -422,7 +441,8 @@ impl<'a> MasterDetail<'a> {
                 .master_share(initial)
                 .min_master(min_master)
                 .min_detail(min_detail)
-                .gap(self.policy.gap),
+                .gap(self.policy.gap)
+                .reset_policy(ResetPolicy::Initial),
             None => engine,
         }
     }
