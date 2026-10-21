@@ -19,6 +19,8 @@ const HIGHLIGHT: Color = Color::from_u32(0x2f_5a_a8);
 const WHITE: Color = Color::from_u32(0xff_ff_ff);
 const WHITE_70: Color = Color::from_u32(0xb3_b3_b3);
 const WHITE_50: Color = Color::from_u32(0x80_80_80);
+const TEXT_MUTED: Color = Color::from_u32(0x8a_8a_8a);
+const TEXT_FAINT: Color = Color::from_u32(0x73_73_73);
 const WHITE_30: Color = Color::from_u32(0x4d_4d_4d);
 const WHITE_15: Color = Color::from_u32(0x26_26_26);
 const GREEN: Color = Color::from_u32(0x48_e0_54);
@@ -39,7 +41,7 @@ pub(crate) const fn tokens() -> ColorTokens {
         surfaces: [BLACK, CHROME, CARD, OVERLAY, POPOVER],
         field: INPUT,
         field_hover: INPUT_HOVER,
-        fg: [WHITE, WHITE_70, WHITE_50, WHITE_30, WHITE_15],
+        fg: [WHITE, WHITE_70, TEXT_MUTED, TEXT_FAINT, WHITE_15],
         on_accent: ON_GREEN,
         on_danger: WHITE,
         on_surface_inverse: BLACK,
@@ -99,8 +101,8 @@ pub(crate) const fn tokens() -> ColorTokens {
             high: RED,
             track: WHITE_15,
             fill_rest: crate::theme::MeterFillRest::ReferenceLift,
-            stale: WHITE_30,
-            unknown: WHITE_30,
+            stale: TEXT_FAINT,
+            unknown: TEXT_FAINT,
             series: [GREEN, AMBER, RED, PURPLE, WHITE_70, WHITE_50],
         },
     }
@@ -115,10 +117,10 @@ pub(crate) const GLYPHS: GlyphSet = GlyphSet::new(
         "+", "[", "]", "•", "▾", "▴",
     ],
     scrollbar::Set {
-        track: "│",
+        track: "┆",
         thumb: "┃",
-        begin: "│",
-        end: "│",
+        begin: "┆",
+        end: "┆",
     },
     line::NORMAL,
     line::THICK,
