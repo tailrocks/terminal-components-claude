@@ -1,0 +1,82 @@
+EXIT=100 TIMEOUT=False
+warning: unused imports: `Family`, `Modifier`, `Part`, `Role`, `StateFlags`, `StylePatch`, `Theme`, and `Variant`
+ --> src/lib.rs:1:31
+  |
+1 | use termrock::author::{Color, Family, Modifier, Part, Role, StateFlags, StylePatch, Theme, Variant};
+  |                               ^^^^^^  ^^^^^^^^  ^^^^  ^^^^  ^^^^^^^^^^  ^^^^^^^^^^  ^^^^^  ^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused import: `termrock_test_support::Harness`
+ --> src/lib.rs:4:5
+  |
+4 | use termrock_test_support::Harness;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: constant `ID` is never used
+ --> src/lib.rs:6:7
+  |
+6 | const ID: Id = Id::root("probe.code");
+  |       ^^
+  |
+  = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: constant `CUSTOM` is never used
+ --> src/lib.rs:7:7
+  |
+7 | const CUSTOM: Color = Color::Rgb(250, 30, 170);
+  |       ^^^^^^
+
+warning: struct `Probe` is never constructed
+ --> src/lib.rs:9:8
+  |
+9 | struct Probe { state: CodeEditorState, read_only: bool }
+  |        ^^^^^
+
+warning: unused import: `Variant`
+ --> src/lib.rs:1:92
+  |
+1 | use termrock::author::{Color, Family, Modifier, Part, Role, StateFlags, StylePatch, Theme, Variant};
+  |                                                                                            ^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: `code-editor-meta-probe` (lib) generated 5 warnings (run `cargo fix --lib -p code-editor-meta-probe` to apply 2 suggestions)
+warning: `code-editor-meta-probe` (lib test) generated 1 warning (run `cargo fix --lib -p code-editor-meta-probe --tests` to apply 1 suggestion)
+   Compiling code-editor-meta-probe v0.1.0 (/Users/donbeave/Projects/termrock-review-worktrees/consumer-e0bf-20261021)
+warning: unused import: `Position`
+ --> tests/matrix.rs:5:33
+  |
+5 | use ratatui_core::layout::{Rect,Position};
+  |                                 ^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: `code-editor-meta-probe` (test "matrix") generated 1 warning (run `cargo fix --test "matrix" -p code-editor-meta-probe` to apply 1 suggestion)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 1.57s
+────────────
+ Nextest run ID 48d7ea84-1130-4977-8dd5-2dcb8522c4d5 with nextest profile: default
+    Starting 1 test across 2 binaries (4 tests skipped)
+        FAIL [   0.048s] (1/1) code-editor-meta-probe::matrix actual_profiles_authored_meta_gutter_scopes_variants_and_same_value_clear
+  stdout ───
+
+    running 1 test
+    test actual_profiles_authored_meta_gutter_scopes_variants_and_same_value_clear ... FAILED
+
+    failures:
+
+    failures:
+        actual_profiles_authored_meta_gutter_scopes_variants_and_same_value_clear
+
+    test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 3 filtered out; finished in 0.03s
+
+  stderr ───
+
+    thread 'actual_profiles_authored_meta_gutter_scopes_variants_and_same_value_clear' (149320711) panicked at tests/matrix.rs:23:940:
+    level=TrueColor ro=true mode=1 checkpoint=0 focus=Some(independent.code.meta) ring=FocusRing { entries: [FocusEntry { id: independent.code.meta, scope: ScopeId(tui.focus.root), disabled: false, area: Rect { x: 0, y: 0, width: 40, height: 5 }, layer: LayerId(0), swallows_typing: true }, FocusEntry { id: independent.code.other, scope: ScopeId(tui.focus.root), disabled: false, area: Rect { x: 0, y: 6, width: 7, height: 1 }, layer: LayerId(0), swallows_typing: false }], scopes: [ScopeRecord { id: ScopeId(tui.focus.root), parent: None, mode: Normal, layer: LayerId(0) }], open: [ScopeId(tui.focus.root)] } cursor=None diag=[CursorRejected { owner: independent.code.meta, layer: LayerId(0) }]
+    note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+────────────
+     Summary [   0.049s] 1 test run: 0 passed, 1 failed, 4 skipped
+        FAIL [   0.048s] (1/1) code-editor-meta-probe::matrix actual_profiles_authored_meta_gutter_scopes_variants_and_same_value_clear
+error: test run failed

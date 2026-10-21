@@ -1,8 +1,10 @@
 # Current migration decision — 2026-10-21
 
+**Current policy override:** Never forge or amend another person’s DCO sign-off, and never force-push or rewrite the shared PR branch. DCO status remains unresolved pending an authorized, reviewable repository process. Preserved historical instructions below do not authorize those actions.
+
 This is the sole current summary. All later sections are preserved historical evidence; their intermediate tips, counts, local status and author-reported green results do not establish current acceptance.
 
-Conformance driver fixture corrections from `wip/conformance-driver-corrections-20261021` are normally merged into PR #38. Independent review of source `22366ab816b95ed71be970b4ea541fc332cb8e86` is CLEAR for its bounded contract. Candidate `74f9fef2b4449d1f4d728dbf690c0c0291723d32`, including the intervening Form pointer-reveal integration, passed the unchanged 47-case focused selection (47 pass, 888 unrelated skipped), six external negative controls, strict scoped Clippy and formatting. The broader binding scan reports five unresolved failures—Dialog F6, HelpOverlay focus, FilterList Ctrl+A, and Form/Field Shift+F10—and stopped after 18/44. No full conformance gate or product acceptance is claimed. Details, receipts and preserved before-fix evidence: [driver correction audit](../audits/2026-10-21-conformance-driver-corrections.md).
+Conformance driver fixture corrections from `wip/conformance-driver-corrections-20261021` are normally merged into PR #38. Independent review of source `22366ab816b95ed71be970b4ea541fc332cb8e86` is CLEAR for its bounded contract. On the latest integration candidate, the unchanged 47-case focused selection passed (47 pass, 888 unrelated skipped), `termrock-test-support --lib` passed 39 with one ignored fixture, strict support Clippy and formatting passed. A separate unfiltered `termrock-conformance --test conformance` run is RED: 935 tests, 911 passed, 24 failed. The complete failures and log are recorded in the [driver correction audit](../audits/2026-10-21-conformance-driver-corrections.md) and its `ad86-revalidation` evidence; they remain unresolved. Follow-on review confirmed the Form test indirectly observes post-Down geometry at Tick, but the dynamic intrinsic-height case is not covered by its fixed-height fixture and no live Showcase flow is cleared; see the Form pointer-reveal audit. No full conformance gate or product acceptance is claimed.
 
 Latest independently checked integration source is `649a158843eab8bb25f042def6c621c8ce279f09`: 812 scoped native tests pass, three inherited ignored; strict scoped all-target Clippy and formatting pass using an exclusive fresh build directory. The earlier shared-target 812 result is withdrawn. Independent public checks pass 47/47 with zero skips, plus the selected unchanged Jackin BOLD case; 96 modifier samples match 48 frozen states. Overlay test repair and RowUi container width have separate independent reviews. These results supersede earlier pending statuses only within their documented scope. [Exact evidence](../audits/evidence/2026-10-21-exclusive-final-verification/) does not establish full application parity, full workspace checks, CI acceptance or palette approval. All six protected expectation/assertion blobs are unchanged.
 
@@ -760,7 +762,7 @@ This is a scoped source inventory from the recorded branch tree, not a proof tha
 | Full workspace | 3,795 tests ran, 3,760 passed, 35 failed; workspace clippy failed at `crates/tablepro-ui/src/app.rs:9284` (`expect_used`) | RED; failures recorded in [independent validation](../audits/2026-10-20-independent-workspace-validation.md) |
 | Code editor completion | 48 focused tests green at `e7c4be2e5` per independent checkpoint | Component only; consumer and outside-click ownership remain open |
 | Master-detail | Shared geometry/state API and 374 tests, 3 skipped at recorded checkpoint; does not include live Manager composition | Component only; app use and full frame evidence absent |
-| External public consumer | Not yet demonstrated for proposed composition API with unrelated domain data and no private app helpers | RED / missing |
+| External public consumer | Standalone non-member `external-consumer-demo/` uses the public facade with unrelated recipe data; 9/9 nextest, strict Clippy, and fmt pass ([receipt](../audits/evidence/2026-10-21-external-consumer/receipt.json)) | GREEN for this API demonstration only; not application adoption or reusable-library acceptance |
 | Ownership/replay audit | Existing exception ratchet and 35-site report; 85/88 prior audit findings are not a complete path inventory | RED / partial |
 
 The new `MasterDetail` owns layout geometry/state. Frozen narrow detail replaces body content; it is not a floating modal. Live Manager composition and actual dialog/picker layering remain separate work. The completion adapter owns editor/popup lifecycle; outside clicks currently dismiss without forwarding to owner. Picker policy/title-style and MenuBar changes with native fixture conflicts are deferred WIP at the cited checkpoints; do not infer parity from tests that only assert a proposed style.
@@ -2160,7 +2162,6 @@ in `docs/audits/2026-10-21-selectable-bypass-removal.md`. Next steps:
 have the shell owners reconcile nav/sidebar/footer painting with the
 frozen captures (then re-approve on purpose), and hand the tier-dependent
 modal-backdrop mapping to the runtime owners.
-||||||| parent of 7201b3497 (docs: record PR #38 landing-queue integration state)
 
 ## Landing-queue integration state (2026-10-21)
 
@@ -2179,9 +2180,7 @@ LANDED 2026-10-21: merged as `70229e698` onto then-origin tip `01ed92ca9` and pu
 - Tip: see `git log origin/wip/termrock-extract-shell-20261021 -1` (13 commits on top of `origin/parity/termrock-visual-baseline`).
 - Item: PR #26 shell layer (commit `f4867e9b5`) ported into the new `crates/termrock-shell` — nav/Router, chrome, status, quit guard, keyboard deliverability, key router, page contract, AppShell slots, footer compose rules, reach harness, esc vocabulary, `shell_consumer` example, additive `termrock::shell` facade re-export, matrix rows.
 - State: complete and gated (nextest 48/48, clippy clean, fmt clean, workspace `cargo check` exit 0, rebased onto `origin/parity/termrock-visual-baseline` at rebase time); no app crate or shared-crate source touched.
-||||||| parent of aa2b1b34b (docs(audit): modal backdrop DIM conflicts inside the frozen baseline)
 
-||||||| parent of e5c615d2a (docs: record theme extraction handoff and adoption list)
 
 ## Theme/visual-state extraction handoff (2026-10-21)
 
@@ -2355,3 +2354,44 @@ Current additional work: `wip/holla-home-row-composition-20261021` at `ac315e286
 Merged the bounded Form-owned pointer-hold/deferred-auto-reveal fix into the current PR #38 source after independent clearance. It suppresses automatic focus and radio reveal scrolling while a child pointer gesture is live, in both ordinary and lane forms, while retaining queued explicit reveal requests. The FormDialog chooser click now retains its hit area across Down/Tick/Up; outside release cancels without activation. This does not prove the full Showcase DialogKinds flow or application parity.
 
 The independent review packet is `/Users/donbeave/Projects/termrock-cli-evidence-20261021/form-pointer-b40dd49-independent/review.json`, SHA-256 `825ac638edc3476ff06a45f59d14b4d209cec5180af4455c84fe1927a2105eb8`; verdict CLEAR for this bounded behavior only. The reviewer also verified an unchanged public consumer, corrected exact-parent red evidence, held/hidden/disabled/removed/resize/drag/modal cases, and recorded limits in the packet. Exact-parent regression evidence in [the focused audit](../audits/2026-10-21-form-pointer-reveal.md) records the y=29→28 failure. At the pre-merge PR38 tip, all seven held expected/assertion blobs matched [the protected manifest](../audits/evidence/2026-10-21-form-dialog-integration/held-expectations.json); post-merge verification is part of this increment's gate.
+## Preserved cb2e editor review and caret integration records (2026-10-21)
+
+These exact-head records from independently reviewed work at `cb2e2a41bb1f4b7f5c1092cfaaa34041cb98e1f6` are retained alongside the recovered matrix. Older source and gate observations remain historical; the focused caret integration below records its later bounded review and current combined package gate.
+
+## CodeEditor authored META integration candidate (2026-10-21)
+
+The footer/gutter provenance source `671443b89133dda618fb661cdf65e2d8edbd0664` was normally merged onto `8e502d7fb` to retain the later current-block marker and horizontal scrolling source. Its standalone branch remains unsuitable as a replacement: independent comparison against `5b3097a` found 60 missing current-block marker cells across 32 scenarios/128 checkpoints. The merged candidate retains the current source and requires a fresh complete-cell comparison before publication to PR #38.
+
+The merged editor gate ran 75 tests: 73 passed and two failed, with no skips. Independent exact-parent reproduction at `5b3097a` confirms both retained-edit-session tests already report `CursorRejected` after focus loss; these are not new merge failures. They remain defects, not passing checks. Scoped strict Clippy and formatting pass. [Merged gate logs](../audits/evidence/2026-10-21-code-editor-integration/) preserve the red result. No application parity or whole-editor approval is claimed.
+
+
+The shared CodeEditor caret now requires current focus even when `commit_on_blur(false)` preserves editing. The two unchanged previously red real-runtime tests pass; the complete editor package passes 75/75 with no skips. Strict package Clippy and formatting pass. [Ownership diagnosis](../audits/2026-10-21-code-editor-focus-owned-caret.md) and [gate logs](../audits/evidence/2026-10-21-code-editor-focused-caret/) record this separate correction. Independent merged-default-cell and cursor review remains pending before PR #38 publication.
+
+## Current branch census and incoming input regression (2026-10-21)
+
+The [authoritative remote-head observation](../audits/evidence/2026-10-21-branch-and-session-review/remote-head-census.json) records 143 heads at integration tip `3196f4ef6a85aaf18b41c429153905deb1a46929`: 26 have integrated ancestry, 114 have unique history and three are designated preserved branches. Ancestry alone does not approve source, artifacts, ownership, protection or retirement. No branches were removed by this observation. The earlier smaller counts are superseded for branch existence only. Full branch consolidation remains incomplete.
+
+The incoming `bfefea9ce4b3ab91f846239d5f315534ccc2ff43` Session input rewrite is independently held. `promote_escaped_alt` upgrades any bare character within 100 ms of a decoded Escape into Alt, including a legitimate cancel followed by typing. Pinned Crossterm source exposes an ambiguity after decoding; the timer has no evidence of a lost Alt prefix. The passing synthetic promotion test establishes the rewrite, not correct input preservation. [Independent review](../audits/evidence/2026-10-21-branch-and-session-review/session-alt-review.json) records 21 passing Session tests, one skip and no real Tuiscotti trace verification. A decoder-boundary architectural review is assigned; the separate TablePro action-arm change has no approval from this finding. Preserve typed events and resolve both genuine Escape-plus-character and Escape-plus-Alt-character without a timing guess, test delay or candidate-derived expectation.
+
+The picker integration's initial tip-to-tip comparison against `3196f4ef6` was misleading: its merge-base is `8e7480415`, and the incoming delta from that merge-base changes only xtask exceptions and documentation. It does not delete the picker additions. A separate integration writer is normally merging the reviewed picker history while retaining the seven held expected blobs. Incoming xtask exception changes remain independently unapproved.
+
+## Focused read-only presentation caret hold (2026-10-21)
+
+Independent exact-source review of editor successor `e0bfbe71cc855f648590bba0c9754410ccd468ce` remains held despite 75 passing native editor tests and unchanged default cell captures. The external public consumer passes four of five tests; a genuinely focused read-only CodeEditor requests its presentation caret, but runtime typing resolution suppresses cursor ownership and rejects that request. The frozen `4169783:src/widgets/code.rs:1224–1227` explicitly renders this caret. Hiding the caret or weakening the diagnostic assertion would violate the reference. [Exact-source hold and preserved logs](../audits/evidence/2026-10-21-readonly-caret-hold/hold.json) bind the source hash independently rechecked by the coordinator. A shared runtime architecture review is assigned to separate legitimate presentation-cursor authorization from editable typing ownership.
+
+Earlier reviewer builds that referenced the coordinator's moving worktree are invalid and superseded. Subsequent missing-source/target errors are setup failures, not passing or failing product tests; the cause of those removals is unknown. The final review was rebound to an immutable detached worktree and a target outside `/tmp`. None of those invalid observations clears this hold.
+
+## Read-only CodeEditor presentation caret integration (2026-10-21)
+
+The shared runtime now admits a focused read-only `CodeEditor` presentation caret without assigning editable typing ownership. Independent exact-source review of `cb2e2a41bb1f4b7f5c1092cfaaa34041cb98e1f6` is CLEAR for this bounded correction. The scoped Runtime/Editors/Fields/Terminal/Session all-target nextest run passed 616 tests and skipped four; strict scoped Clippy and `cargo fmt --all --check` passed. Exact review, logs, and gate limitations are retained under [the integration evidence](../audits/evidence/2026-10-21-readonly-caret-integration/). The prior read-only caret hold above is superseded only for this runtime correction. These scoped checks do not prove application parity or full acceptance.
+
+## DCO policy correction (2026-10-21)
+
+The earlier coordinator note proposing a branch-wide sign-off rewrite and force-push is superseded. Do not forge another person's sign-off or rewrite a shared PR branch. The required repository DCO status remains unresolved until handled through an authorized, reviewable process; no DCO acceptance is claimed here.
+
+
+Matrix recovery note: the normal conflict resolution removed only three orphan `||||||| parent of ...` separator lines from the restored matrix; all adjacent landing-queue, shell, and theme text was retained. The `9399ef27d` appendix remains labeled historical, and its external-consumer row claim is now supported by the exact standalone gate receipt.
+
+## Exact-lease retirement of integrated task branches (2026-10-21)
+
+Two task-owned WIP refs were retired after their reviewed tips became ancestors of PR #38 tip `3a58052db775eadf37504b05705a110590c89fe1`. `wip/conformance-driver-corrections-20261021` was at reviewed tip `22366ab816b95ed71be970b4ea541fc332cb8e86`; `wip/showcase-form-pointer-reveal-20261021` was at reviewed tip `b40dd49bd3e2fbc57a4c647206351f920ca8ea9f`. Both tips are authored and committed by the repository owner, their bounded independent CLEAR packets are retained above, fresh open/all-state PR queries returned no associated PRs, and fresh branch queries matched those exact OIDs. The active branch ruleset targets only `~DEFAULT_BRANCH`; both branch-protection endpoints returned the documented 404 “Branch not protected.” The refs were deleted with exact `--force-with-lease` OIDs, and a post-delete `git ls-remote` confirmed both absent while PR #38 remained at the recorded tip. No other refs were changed; remaining branch inventory and full consolidation remain open work.
