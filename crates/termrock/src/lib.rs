@@ -87,7 +87,7 @@ pub use termrock_core::id;
 pub use termrock_core::id::{Id, ItemKey, Part, PartRef, Revision};
 
 pub use blocks::{
-    AppShell, AppShellSlots, Chrome, EmptyLeaf, MasterDetail, MasterDetailAction,
+    AppShell, AppShellExt, AppShellSlots, Chrome, EmptyLeaf, MasterDetail, MasterDetailAction,
     MasterDetailError, MasterDetailPolicy, MasterDetailState, Regions, SplitBlock, SplitBlockError,
 };
 pub use slots::{DialogSlotExt, PickerSlotExt, PropsSlotExt};

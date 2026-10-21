@@ -376,11 +376,16 @@ impl<'a> Table<'a> {
                 let track_pos = usize::from(pos.x.saturating_sub(area.x.saturating_add(3)));
                 match phase {
                     Phase::Press if part.part == Part::THUMB => {
-                        let _ = cx.capture(bar_id, PartRef::of(Part::THUMB));
-                        state.horizontal_scroll.press_track(
-                            track_pos,
-                            usize::from(area.width.saturating_sub(5 + u16::from(vertical))),
-                        );
+                        // Follows `scroll_region.rs`: a thumb grab is armed
+                        // only when the capture succeeds, so a failed
+                        // capture never leaves a grab the release path
+                        // cannot clear.
+                        if cx.capture(bar_id, PartRef::of(Part::THUMB)) {
+                            state.horizontal_scroll.press_track(
+                                track_pos,
+                                usize::from(area.width.saturating_sub(5 + u16::from(vertical))),
+                            );
+                        }
                     }
                     Phase::Press => {
                         let _ = state.horizontal_scroll.press_track(
@@ -1035,5 +1040,97 @@ mod tests {
         let _ = crate::runtime::stub::deliver(&mut runtime, key(KeyCode::Right));
         assert_eq!(runtime.app().state.grid.col_offset(), 0);
         assert_eq!(runtime.app().state.grid.visible_rows(24).len(), 21);
+    }
+
+    // Regression for review finding 4 (2026-10-21): a thumb press whose
+    // capture fails (here: a second press while the grab is held, so the
+    // capture slot is live) must not arm or re-anchor the grab, and the
+    // grab the first press armed must release cleanly.
+    #[test]
+    fn a_failed_thumb_capture_does_not_reanchor_or_stick_the_grab() {
+        use crate::event::{KeyCode, MouseKind};
+        use crate::runtime::stub::{key, mouse};
+        use crate::runtime::{App, Runtime};
+        use ratatui_core::buffer::Buffer;
+        use termrock_theme::Theme;
+
+        struct TableApp {
+            columns: [TableColumn<'static>; 7],
+            state: TableState,
+            area: Rect,
+        }
+        impl App for TableApp {
+            fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+                self.area = cx.viewport();
+                Table::new(Id::root("table.capture"), &self.columns)
+                    .update(cx, &mut self.state, &Rows)
+                    .erase()
+            }
+            fn draw(&self, ui: &mut Ui<'_>) {
+                Table::new(Id::root("table.capture"), &self.columns).draw(
+                    ui,
+                    self.area,
+                    &self.state,
+                    &Rows,
+                );
+            }
+        }
+
+        let mut runtime = Runtime::new(
+            TableApp {
+                columns: columns(),
+                state: TableState::default(),
+                area: Rect::new(0, 0, 88, 22),
+            },
+            Theme::junie(),
+        );
+        let _ = runtime.initialize();
+        let mut buffer = Buffer::empty(Rect::new(0, 0, 88, 22));
+        for _ in 0..2 {
+            runtime
+                .draw_buffer(Rect::new(0, 0, 88, 22), &mut buffer)
+                .commit_presented();
+        }
+        let bar_id = Id::root("table.capture").sub("horizontal-scrollbar");
+        for _ in 0..5 {
+            let _ = crate::runtime::stub::deliver(&mut runtime, key(KeyCode::Right));
+        }
+        assert_eq!(runtime.app().state.grid.col_offset(), 2);
+        let thumb = runtime
+            .area_of_part(bar_id, PartRef::of(Part::THUMB))
+            .expect("horizontal thumb registered");
+        let track = runtime
+            .area_of_part(bar_id, PartRef::of(Part::TRACK))
+            .expect("horizontal track registered");
+
+        // First press grabs the thumb and takes the capture.
+        let grab_x = thumb.x + thumb.width / 2;
+        let _ =
+            crate::runtime::stub::deliver(&mut runtime, mouse(MouseKind::Down, grab_x, thumb.y));
+        assert_eq!(
+            runtime.capture_owner(),
+            Some(bar_id),
+            "the thumb press captures the bar"
+        );
+
+        // A second press while the capture is live is delivered to the bar
+        // with a failed capture: it must not re-anchor the grab or jump the
+        // scroll, even when it lands on the far end of the track.
+        let far_x = track.x.saturating_add(2);
+        let _ = crate::runtime::stub::deliver(&mut runtime, mouse(MouseKind::Down, far_x, thumb.y));
+        assert_eq!(
+            runtime.app().state.grid.col_offset(),
+            2,
+            "a failed capture must not jump the scroll"
+        );
+
+        // The release clears both the grab and the capture.
+        let _ = crate::runtime::stub::deliver(&mut runtime, mouse(MouseKind::Up, far_x, thumb.y));
+        assert_eq!(runtime.capture_owner(), None, "the capture is released");
+        assert_eq!(
+            runtime.app().state.grid.col_offset(),
+            2,
+            "the grab release leaves the scroll where it was"
+        );
     }
 }

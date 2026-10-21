@@ -14,16 +14,30 @@ pub use termrock_core::action::ActionKey;
 
 pub(crate) use termrock_runtime::{PartStyle, SlotFn, first_row, shift};
 
+pub mod accounts_filter;
 pub mod hintbar;
 pub mod keyhint;
+pub mod manager_frame;
 pub mod meter;
 pub mod progress;
 pub mod section;
+pub mod session_chrome;
+pub mod settings_page;
 pub mod status;
 
+pub use accounts_filter::{
+    AccountsFilter, DetailInk, DetailLine, DetailSpan, FilterHint, FilterRow, TailTone,
+    paint_accounts_filter,
+};
 pub use hintbar::{DerivedHintBar, HintBar};
 pub use keyhint::{ChordText, HintText, KeyHint};
+pub use manager_frame::{ManagerFrame, ManagerLeaf, paint_manager_frame};
 pub use meter::{Meter, MeterTone, MeterVisual};
 pub use progress::{ProgressBar, Spinner};
 pub use section::TextSection;
+pub use session_chrome::{SessionChrome, SessionHint, SessionMenu, paint_session_chrome};
+pub use settings_page::{
+    SettingsCheck, SettingsCluster, SettingsHint, SettingsMount, SettingsPage, SettingsSection,
+    SettingsTab, paint_settings_page,
+};
 pub use status::{Emphasis, Group, MAX_ITEMS, StatusAction, StatusBar, StatusItem};
