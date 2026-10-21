@@ -89,7 +89,8 @@ mod tests {
 
     #[test]
     fn a_fitted_query_line_has_no_horizontal_bar() {
-        let query = "SELECT * FROM orders WHERE status = 'pending' ORDER BY created_at DESC LIMIT 25";
+        let query =
+            "SELECT * FROM orders WHERE status = 'pending' ORDER BY created_at DESC LIMIT 25";
         assert!(super::super::query_hbar_overflows(query, 71));
         assert!(!super::super::query_hbar_overflows(query, 91));
         assert!(super::super::query_hbar_overflows(query, 83));
