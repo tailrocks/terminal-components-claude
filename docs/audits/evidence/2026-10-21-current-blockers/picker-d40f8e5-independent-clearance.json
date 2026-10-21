@@ -1,0 +1,33 @@
+{
+  "commit": "d40f8e5fb7e47dca8c971c718559f840e9ba693d",
+  "decision": "BOUNDED_SOURCE_CLEARANCE",
+  "findings_remaining": [],
+  "resolved": {
+    "PK1": "Actual BackTab+SHIFT nowmatches sharedBackTab binding. UnchangedpreviousRED realPickerprobeGREEN; genericrealMasterDetail actualButtondrawer closesandrestoresfocus.",
+    "PK2": "Explicit first-enabled reset request nowhonored underdefaultPreserve independentlyofautomaticfilterpolicy. UnchangedpreviousRED publicprobeGREEN; ordinarydatareorder continuesstablekey.",
+    "PK3": "Globalremove/remap/remove_before_typing useChord::effective_eq. Two unchangedpreviousRED globalpublicprobesGREEN. Native authored beforetyping removalregressionPASS."
+  },
+  "checks": {
+    "unchanged_previous19": "19PASS aspart34testpublicrun",
+    "expanded_previous30": "30PASS aspart34testpublicrun, includingsomeintentionallyduplicatedcopiedprojectionprobes",
+    "all_external": "34PASS0FAIL0SKIP",
+    "chord_matrix": "216effectiveeq pairs forBackTab/Tab/Left/Enter/UnicodeChar/ASCIIChar andNONE/SHIFT/ALT/CTRL/ALT_SHIFT/CTRL_SHIFT PASS",
+    "global_mutation_matrix": "216pairs bothremove/remap withBubble-vs-Capture phaseisolationPASS; trueALT/CTRL distinctions retained, unrelatednoncharSHIFT retained, existingCharSHIFT relation consistent",
+    "conflicts_precedence": "LogicalBackTabduplicateconflictdetected; existing firstentrydispatchprecedence retained; remappingalllogicalduplicates consistentwithmutationintent",
+    "component_map": "RemappedpreviousscopeALT+BackTabSHIFT works; ActionKeyremovedpreviousscope staysdisabled; ordinaryBackTabSHIFT cannottriggerALTremap",
+    "incoming_appflows": "11currentquick_switcher_contract publictests unchangedPASS againstcandidate",
+    "native": "924PASS3SKIP core/runtime/controls/navigation/overlays --all-targets; 2monotonicPTYentryfixtures+1pointerpublicationexternaldriverfixture areexplicitlyignored, notPASS",
+    "strict_clippy": "PASS core/runtime/navigation/overlays/facade --all-targets -Dwarnings",
+    "full_workspace_fmt": "PASS",
+    "diff_check": "PASS"
+  },
+  "source_review": "Change is confined to established effectivechord identity inmutationAPIs. Chord derivedEq/Hash remainstructuralandconsistent; semantic effective_eq isseparateexistingdesign, nohashbasedChordroutingfound. NormalizationstripsonlyredundantSHIFT forBackTabandpreexistingCharpolicy;CTRL/ALT/SUPERremainindependent. No newinputstack, hiddencontrols, renderingpath, domainlogic, unsafe orconcurrencymechanism. FilterList querypolicy has explicitstate andsharedruntime. Author testmoves coveractualmodifier-bearingevents.",
+  "landing": {
+    "verified_remote_wip": "d40f8e5fb7e47dca8c971c718559f840e9ba693d via gitls-remote origin wip/tablepro-picker-scope-20261021",
+    "verified_PR38_remote": "654eac8bec46765c47d4cb174e98cd79236253e3",
+    "retain": "CurrentfacadeAppShell/shell exportsandcurrentPickerDismissliteral ..Default::default() tail; diff from5f82parent touchesonlythese twoalreadyintegratedpaths amongcandidatechangedfiles",
+    "method": "Selectivecommit/cherrypick integration only; do not replaceoldsourcefileswholesale. Exactlandedcommit stillrequiresparentreverification. No main/design/tag modifications."
+  },
+  "acceptance_limits": "This clearsenumeratedPicker/keysourcefindings only. No pinnedrealCLI pairedcapture, exact4appparity, allworkspacesuite, fullTableProlint, APIcatalog/Showcasegate orremainingtabstriprepaint removalcleared. Previous557native inventorywith12preexistingappfailures remainsauthorreportedseparateevidence; not rerunorclaimedallgreenhere. No expectedfixtureedits.",
+  "ownership": "Separate reviewercheckout exactd40; authorcopy untouched; externalprobes/evidenceonly.1301preexistingtrackedtuiscottiartifactdeletions retained, no productsourcechanges. Nohelpers. Noactivecommands."
+}
