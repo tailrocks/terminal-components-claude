@@ -265,12 +265,12 @@ mod editor_view;
 mod capsule_menu_view;
 mod capsule_zoom_view;
 
-mod historical_hard_launch_picker;
-mod historical_launch_picker;
+mod hard_launch_picker_view;
 mod historical_paint;
 mod inspect_view;
 mod launch_cockpit;
 mod launch_dialog_plate;
+mod launch_picker_view;
 mod manager_help;
 mod manager_menu_view;
 mod settings_view;
@@ -8404,7 +8404,7 @@ impl App {
         }
         // Approved frame hides the cursor. This path must not call set_cursor
         // or set_bar_cursor, and it must not write cursor bytes.
-        historical_launch_picker::paint(ui);
+        launch_picker_view::paint(ui);
     }
 
     fn hard_launch_picker_host(&self, theme: &termrock::Theme, screen: Rect) -> bool {
@@ -8452,7 +8452,7 @@ impl App {
         }
         // Approved frame hides the cursor. This path must not call set_cursor
         // or set_bar_cursor, and it must not write cursor bytes.
-        historical_hard_launch_picker::paint(ui);
+        hard_launch_picker_view::paint(ui);
     }
 
     fn historical_hard_launch_locked(&self, theme: &termrock::Theme, screen: Rect) -> bool {
