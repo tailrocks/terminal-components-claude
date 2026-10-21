@@ -2348,7 +2348,7 @@ Worktree `/private/tmp/termrock-holla-20261021` stays on branch
 `holla-plates-view` (= pushed tip + this docs commit); the protected wip line
 remains on `wip/holla-rate-limit-20261021` @ `098fcfcda` for history.
 
-Current additional work: `wip/holla-home-row-composition-20261021` at `ac315e2867136641e2b4cd71a00b8ca27c9153d3` is published but held pending actual reference layout/content comparison. FormDialog/chrome composition and close-button semantics are being implemented in a separate forms WIP; Showcase adoption remains required. Full workspace verification is running against `52e1572ca`; incoming CodeEditor styling `09aa3a18a` still needs an independent authored-channel review. Read the matrix for exact holds and receipts.
+Current additional work: `wip/holla-home-row-composition-20261021` at `ac315e2867136641e2b4cd71a00b8ca27c9153d3` is published but held pending actual reference layout/content comparison. The RowUi resolved-column adapter is in a separate WIP, with runtime tests for dropped/zero-width columns, insets, clipping, Unicode, and hit bounds; it is not yet adopted by Holla or Showcase and has no independent clearance. See the [RowUi adapter audit](../audits/2026-10-21-rowui-resolved-columns.md). FormDialog/chrome composition and close-button semantics are being implemented in a separate forms WIP; Showcase adoption remains required. Full workspace verification is running against `52e1572ca`; incoming CodeEditor styling `09aa3a18a` still needs an independent authored-channel review. Read the matrix for exact holds and receipts.
 
 ## Form pointer reveal during held gestures (2026-10-21)
 
