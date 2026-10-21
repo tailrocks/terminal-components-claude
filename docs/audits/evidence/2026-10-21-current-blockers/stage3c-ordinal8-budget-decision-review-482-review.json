@@ -1,0 +1,53 @@
+{
+  "schema": "termrock.independent-stage3c-resume-budget-decision.v1",
+  "reviewer": "/root/button_theme_contract_review",
+  "runner_revision": "482cdaf48c42d8355a173e1faeee74e159c46d0b",
+  "runner_sha256": "f2a7583e155c7e85b7c8782c1b163b60bd0bf83038f5e736abe52271724139a8",
+  "plan_creation_sha256": "48ab669c719815a7899c55d8a4b5a4444e514701a947f85c541907fa83550bc7",
+  "diagnosis_packet_sha256": "fe37378328b8c015cbf19aa75409b16106750f2df0e870bfb0a70fb7d7b348a0",
+  "recommendation": "ACCEPT unchanged-plan full-retry policy in principle; HOLD bare205-to220 substitution until the supervisor has an explicit inclusive total-command/cleanup bound. No user permission question required; operational owner executes after coordinator records satisfied conditions.",
+  "non_weakened_policy_assessment": {
+    "full_same_ordinal8_retry_supported": true,
+    "new_random_attempt_required": true,
+    "old_partial_must_be_preserved": true,
+    "old_partial_checkpoint_credit": false,
+    "existing_plan_change_required_for_outer_patience_only": false,
+    "internal_timeout200_below_plan225_ceiling": true,
+    "source_inventory_environment_keys_expectations_hash_checks_unchanged": true,
+    "resource_window_changes_observable_test_conditions": false,
+    "resource_window_scope": "Coordinate absence of heavy competing compile/hash jobs only; do not change pinned environment, terminal/time controls, application data, binary/tool identities or test concurrency configuration."
+  },
+  "required_missing_proof": [
+    {
+      "issue": "Inclusive whole-command deadline",
+      "source": "Original supervisor fresh-plan-stage3c-advance-ordinal6to9-supervisor-20261021.py performs tool/HMAC/full-prefix prechecks before start=time.monotonic(); p.wait starts later.",
+      "arithmetic": "220s payload wait+3s SIGTERM grace+10s SIGKILL reap=233s, excluding supervisor prechecks and output processing. More than7s prechecks can exceed user4minute cap. A220s per-command coordinator cap is stricter still.",
+      "required_resolution": "Use an explicit monotonic inclusive bound with cleanup reserve, or split substantial read-only preflight into a separately bounded command and review exact wrapper total bound. Do not launch when insufficient budget remains. Inspect/hash exact supervisor before execution; preserve original supervisor/log without overwrite. A bare literal replacement is not adequate proof."
+    },
+    {
+      "issue": "Timeout meaning and failure handling",
+      "source": "advance_fresh_run runner3270..3400 sets independent deadline200; remaining() is checked before publication.",
+      "required_resolution": "Keep internal200 unchanged. Outer220 is patience for cleanup/error preservation; it cannot legitimize journal success after inner200. On timeout/nonzero/marker/postpublication ambiguity, stop and independently verify journal before any further step. Do not interpret lower-level passed report as committed ordinal."
+    },
+    {
+      "issue": "Process identity and cleanup evidence",
+      "source": "Original outer process group and runner nextest use separate sessions. Prior app workload had ended; absence of supervisorPID/start identity limited diagnosis.",
+      "required_resolution": "Record nonsecret owned runnerPID/PGID/start identity and termination/reap outcome in the new supervisory evidence. Retain nested-session cleanup limitation explicitly; do not claim entire descendant cleanup from outer killpg alone. Never kill unowned/PID-reused processes."
+    }
+  ],
+  "execution_conditions_after_guard_review": [
+    "Coordinator establishes short quiet resource window; other source reviews/writes may proceed.",
+    "Exact original environment/tool verification and unchanged plan/source/binaries/HMAC prefix validation remain enabled, without cached shortcuts.",
+    "Run exactly all32 planned ordinal8 cases into a fresh random attempt; no case split, skipped cases, partial reuse or convenience recredit.",
+    "Keep prior707-file attempt and existing journal0..7 immutable.",
+    "After exit0, require actual authenticated ordinal8 receipt plus official full verification before considering ordinal9. If none, stop again.",
+    "No capture count or product acceptance is granted by this decision."
+  ],
+  "why_no_new_plan_is_currently_required": [
+    "Outer supervisor is not a source/chunk/inventory/reference modification to the authenticated plan.",
+    "Existing runner explicitly selects completed_steps as nextordinal and ignores abandoned random attempts; no finalchunk8 exists.",
+    "Previous independent diagnosis authenticated prefix0..7, verified all committed artifacts and frozen source, and matched every707partial manifest entry.",
+    "Plan/source/chunk policy changes would require a new reviewed anchor; they are not justified merely because a7second application phase was interrupted during metadata verification."
+  ],
+  "scope": "Decision-only read-only source/plan inspection. No retry, capture, key read in this turn, source/expected/plan/journal/attempt mutation, cleanup, processkill or helper activation."
+}
