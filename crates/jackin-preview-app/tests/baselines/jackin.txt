@@ -11,10 +11,10 @@ capsule-multi 100 30 junie mono b5519ff44ddf4f35
 capsule-multi 100 30 junie truecolor 74506c127684005e
 capsule-multi 100 30 paper mono 5e26c1b42ab38bf3
 capsule-multi 100 30 paper truecolor c9c4a131429bff6a
-capsule-multi 120 40 junie mono ff0e389265cd0e98
-capsule-multi 120 40 junie truecolor ff0e389265cd0e98
-capsule-multi 120 40 paper mono ff0e389265cd0e98
-capsule-multi 120 40 paper truecolor ff0e389265cd0e98
+capsule-multi 120 40 junie mono 858523b61b8956da
+capsule-multi 120 40 junie truecolor de16e66c68e1e2b2
+capsule-multi 120 40 paper mono 40522e1a790d21d0
+capsule-multi 120 40 paper truecolor 02282e8117d750ae
 first-use 100 30 junie mono e564dbe95f5a5226
 first-use 100 30 junie truecolor e354d49cc3046955
 first-use 100 30 paper mono 4a506bea85502822
