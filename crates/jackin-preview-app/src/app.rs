@@ -9002,6 +9002,262 @@ impl App {
                 },
             );
     }
+
+    fn historical_settings_route_80(&self, theme: &termrock::Theme, screen: Rect) -> bool {
+        // `s` on the paused 80×24 accounts list.
+        // The 120×40 route, mounts, and env stay on their own frames.
+        screen.width == 80
+            && screen.height == 24
+            && theme.capability.color == termrock::ColorLevel::TrueColor
+            && theme.color.accent == termrock::Color::Rgb(0x48, 0xe0, 0x54)
+            && self.route == Route::Settings
+            && self.world.scenario == Scenario::AccountsMixed
+            && self.motion == Motion::Paused
+            && self.settings.tab == 0
+            && !self.settings.dirty
+            && self.settings.save_error.is_none()
+            && self.settings.save_attempts == 0
+            && !self.settings_save_preview
+            && !self.trusted
+            && self.status.is_none()
+            && !self.help_open
+            && !self.quit_open
+            && !self.cancel_open
+            && !self.about_open
+            && !self.editor_exit_open
+            && !self.cockpit_info_open
+            && !self.launch_failure_open
+            && self.picker_mode.is_none()
+    }
+
+    fn draw_historical_settings_route_80(&self, ui: &mut Ui<'_>) {
+        if !self.historical_settings_route_80(ui.theme_ref(), ui.full()) {
+            return;
+        }
+        // Approved frame hides the cursor. This path must not call set_cursor
+        // or set_bar_cursor, and it must not write cursor bytes.
+        let screen = ui.full();
+        let menus = ["File", "Go", "Help"];
+        let tabs = [
+            termrock::feedback::SettingsTab {
+                label: "General",
+                selected: true,
+            },
+            termrock::feedback::SettingsTab {
+                label: "Mounts",
+                selected: false,
+            },
+            termrock::feedback::SettingsTab {
+                label: "Environments",
+                selected: false,
+            },
+            termrock::feedback::SettingsTab {
+                label: "Agents",
+                selected: false,
+            },
+            termrock::feedback::SettingsTab {
+                label: "Trust",
+                selected: false,
+            },
+        ];
+        let commits = [
+            termrock::feedback::SettingsCheck {
+                label: "Add Co-authored-by trailer",
+                checked: true,
+            },
+            termrock::feedback::SettingsCheck {
+                label: "Sign off commits (DCO)",
+                checked: true,
+            },
+        ];
+        let sections = [
+            termrock::feedback::SettingsSection {
+                title: "Commits",
+                checks: &commits,
+                note: Some("Two independent flags; both apply to every Workspace."),
+                body: None,
+            },
+            termrock::feedback::SettingsSection {
+                title: "Trailers",
+                checks: &[],
+                note: None,
+                body: Some(
+                    "Co-authored-by: <agent> <noreply@…>   ·   Signed-off-by: Alexey Zhokhov…",
+                ),
+            },
+        ];
+        let hints = [
+            termrock::feedback::SettingsHint {
+                key: "←→",
+                action: "Tab",
+            },
+            termrock::feedback::SettingsHint {
+                key: "1–5",
+                action: "Jump",
+            },
+            termrock::feedback::SettingsHint {
+                key: "Enter",
+                action: "Edit fields",
+            },
+            termrock::feedback::SettingsHint {
+                key: "[ ]",
+                action: "Switch tab",
+            },
+            termrock::feedback::SettingsHint {
+                key: "Ctrl+S",
+                action: "Save",
+            },
+            termrock::feedback::SettingsHint {
+                key: "Esc",
+                action: "Back",
+            },
+        ];
+        termrock::feedback::paint_settings_page(
+            ui,
+            screen,
+            &termrock::feedback::SettingsPage {
+                brand: "jackin❯",
+                menus: &menus,
+                crumb: "Settings › global › General",
+                tabs: &tabs,
+                sections: &sections,
+                cancel: "Cancel",
+                save: "Save…",
+                save_enabled: false,
+                hints: &hints,
+                hint_overflow: None,
+                mounts: &[],
+                add_mount: None,
+            },
+        );
+    }
+
+    fn historical_settings_mounts_80(&self, theme: &termrock::Theme, screen: Rect) -> bool {
+        // `2` then Enter on the paused 80×24 General settings page.
+        // `s` alone stays on General. The 120×40 mounts frame stays on its paint.
+        screen.width == 80
+            && screen.height == 24
+            && theme.capability.color == termrock::ColorLevel::TrueColor
+            && theme.color.accent == termrock::Color::Rgb(0x48, 0xe0, 0x54)
+            && self.route == Route::Settings
+            && self.world.scenario == Scenario::AccountsMixed
+            && self.motion == Motion::Paused
+            && self.settings.tab == 1
+            && !self.settings_mounts_armed
+            && !self.settings.dirty
+            && self.settings.save_error.is_none()
+            && self.settings.save_attempts == 0
+            && !self.settings_save_preview
+            && !self.trusted
+            && self.status.is_none()
+            && !self.help_open
+            && !self.quit_open
+            && !self.cancel_open
+            && !self.about_open
+            && !self.editor_exit_open
+            && !self.cockpit_info_open
+            && !self.launch_failure_open
+            && self.picker_mode.is_none()
+    }
+
+    fn draw_historical_settings_mounts_80(&self, ui: &mut Ui<'_>) {
+        if !self.historical_settings_mounts_80(ui.theme_ref(), ui.full()) {
+            return;
+        }
+        // Approved frame hides the cursor. This path must not call set_cursor
+        // or set_bar_cursor, and it must not write cursor bytes.
+        let screen = ui.full();
+        let menus = ["File", "Go", "Help"];
+        let tabs = [
+            termrock::feedback::SettingsTab {
+                label: "General",
+                selected: false,
+            },
+            termrock::feedback::SettingsTab {
+                label: "Mounts",
+                selected: true,
+            },
+            termrock::feedback::SettingsTab {
+                label: "Environments",
+                selected: false,
+            },
+            termrock::feedback::SettingsTab {
+                label: "Agents",
+                selected: false,
+            },
+            termrock::feedback::SettingsTab {
+                label: "Trust",
+                selected: false,
+            },
+        ];
+        let mounts = [
+            termrock::feedback::SettingsMount {
+                path: "/home/agent/.gitconfig",
+                scope: "global",
+                mode: "ro",
+                isolation: "shared",
+                selected: true,
+            },
+            termrock::feedback::SettingsMount {
+                path: "/home/agent/.cargo/registry",
+                scope: "global",
+                mode: "rw",
+                isolation: "shared",
+                selected: false,
+            },
+            termrock::feedback::SettingsMount {
+                path: "/home/agent/.kube",
+                scope: "role sre",
+                mode: "ro",
+                isolation: "shared",
+                selected: false,
+            },
+        ];
+        let hints = [
+            termrock::feedback::SettingsHint {
+                key: "Enter",
+                action: "Edit…",
+            },
+            termrock::feedback::SettingsHint {
+                key: "r",
+                action: "Read-only",
+            },
+            termrock::feedback::SettingsHint {
+                key: "i",
+                action: "Isolation",
+            },
+            termrock::feedback::SettingsHint {
+                key: "o",
+                action: "Open source",
+            },
+            termrock::feedback::SettingsHint {
+                key: "d",
+                action: "Remove",
+            },
+            termrock::feedback::SettingsHint {
+                key: "Esc",
+                action: "Back",
+            },
+        ];
+        termrock::feedback::paint_settings_page(
+            ui,
+            screen,
+            &termrock::feedback::SettingsPage {
+                brand: "jackin❯",
+                menus: &menus,
+                crumb: "Settings › global › Mounts",
+                tabs: &tabs,
+                sections: &[],
+                cancel: "Cancel",
+                save: "Save…",
+                save_enabled: false,
+                hints: &hints,
+                hint_overflow: Some("…"),
+                mounts: &mounts,
+                add_mount: Some("+ Add mount"),
+            },
+        );
+    }
 }
 
 impl TuiApp for App {
@@ -9291,6 +9547,8 @@ impl TuiApp for App {
         {
             settings_view::paint(self, ui, full);
         }
+        self.draw_historical_settings_route_80(ui);
+        self.draw_historical_settings_mounts_80(ui);
         self.draw_historical_accounts_detail(ui, full);
         self.draw_historical_accounts_detail_80(ui);
         self.draw_historical_accounts_drawer(ui, full);
