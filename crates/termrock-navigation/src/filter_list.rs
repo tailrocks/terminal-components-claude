@@ -1042,7 +1042,7 @@ impl<T: AsItem, R: RowFn<T>> FilterList<'_, T, R> {
                 height: 1,
             };
             let visible = !row.intersection(ui.full()).is_empty();
-            let mut row_ui = RowUi::new(
+            let mut row_ui = RowUi::new_with_container_width(
                 ui,
                 self.id,
                 Family::PICKER,
@@ -1050,6 +1050,7 @@ impl<T: AsItem, R: RowFn<T>> FilterList<'_, T, R> {
                 flags,
                 semantic.key,
                 row,
+                row.width,
             )
             .with_cursor_style(self.cursor_style);
             if let Some(columns) = &columns {

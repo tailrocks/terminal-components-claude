@@ -1136,8 +1136,16 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> List<'_, T, K, R> {
                     }
                 };
                 if !rest.is_empty() {
-                    let mut r =
-                        RowUi::new(ui, id, Family::LIST, Variant::DEFAULT, flags, key, rest);
+                    let mut r = RowUi::new_with_container_width(
+                        ui,
+                        id,
+                        Family::LIST,
+                        Variant::DEFAULT,
+                        flags,
+                        key,
+                        rest,
+                        row.width,
+                    );
                     self.row.row(item, &mut r);
                 }
             });
