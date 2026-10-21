@@ -233,6 +233,10 @@ impl Registry {
         }
     }
 
+    #[expect(
+        clippy::too_many_arguments,
+        reason = "internal helper for region registration with explicit owner and layer dispatch"
+    )]
     fn push_kind(
         &mut self,
         id: Id,
