@@ -46,6 +46,9 @@ OWNED_NEXTTEST_MAX_LINE_BYTES = 1 * 1024 * 1024
 OWNED_NEXTTEST_MAX_FILE_BYTES = 64 * 1024 * 1024
 OWNED_RECEIPT_MAX_BYTES = 1024 * 1024
 OWNED_FRAME_MAX_BYTES = 64 * 1024 * 1024
+OWNED_FS_PAYLOAD_MAX_BYTES = 64 * 1024
+OWNED_FS_REQUEST_MAX_BYTES = 192 * 1024
+OWNED_FS_RESULT_MAX_BYTES = 8 * 1024
 PREPARE_LIVE_OWNED_COHORT = "frozen-20261021-serial-nonincr-r1-r2"
 OWNED_PROCESS_LIST_COMMAND = "/bin/ps"
 EXPECTED_SCENARIOS = 28_895
@@ -646,10 +649,11 @@ def _owned_broker_main(spec_path: Path, control_fd: int) -> int:
     status: dict[str, object]
     try:
         spec = json.loads(spec_path.read_text())
-        if not isinstance(spec, dict) or set(spec) != {"argv", "cwd", "stdout_fd", "stderr_fd", "status_path", "ready_path"}:
+        if not isinstance(spec, dict) or set(spec) != {"argv", "cwd", "stdout_fd", "stderr_fd", "owned_root_fd", "status_path", "ready_path"}:
             raise RunnerError("owned subprocess specification fields were invalid")
         argv, cwd = spec["argv"], spec["cwd"]
         stdout_fd, stderr_fd = spec["stdout_fd"], spec["stderr_fd"]
+        owned_root_fd = spec["owned_root_fd"]
         result_path = Path(spec["status_path"])
         ready_path = Path(spec["ready_path"])
         if (
@@ -661,8 +665,12 @@ def _owned_broker_main(spec_path: Path, control_fd: int) -> int:
             or type(stderr_fd) is not int
             or stdout_fd < 0
             or stderr_fd < 0
+            or (owned_root_fd is not None and (type(owned_root_fd) is not int or owned_root_fd < 3))
+            or (owned_root_fd is not None and owned_root_fd in {stdout_fd, stderr_fd, control_fd})
         ):
             raise RunnerError("owned subprocess specification values were invalid")
+        if owned_root_fd is not None and not stat.S_ISDIR(os.fstat(owned_root_fd).st_mode):
+            raise RunnerError("owned subprocess root descriptor is not a directory")
         _write_owned_status(ready_path, {"schema": 1, "anchor_pid": os.getpid()})
         ready, _, _ = select.select([control_fd], [], [], 0)
         if ready and os.read(control_fd, 1) == b"":
@@ -677,6 +685,7 @@ def _owned_broker_main(spec_path: Path, control_fd: int) -> int:
             stderr=stderr_fd,
             close_fds=True,
             start_new_session=False,
+            pass_fds=() if owned_root_fd is None else (owned_root_fd,),
         )
         command_spawn_pending = False
         # Caught handlers reset to SIG_DFL on exec. Thus the broker can remain
@@ -848,7 +857,7 @@ class PrepareExecution:
         self.check_work()
         return self.work_deadline - time.monotonic()
 
-    def run(self, command: list[str], *, cwd: Path, stdout_file: object | None = None, stderr_file: object | None = None, capture_stdout: bool = True, capture_stderr: bool = True, env: dict[str, str] | None = None, quiet: bool = False, show_command: bool = True, command_timeout: float | None = None, optional_failure: bool = False) -> tuple[str, str] | None:
+    def run(self, command: list[str], *, cwd: Path, stdout_file: object | None = None, stderr_file: object | None = None, capture_stdout: bool = True, capture_stderr: bool = True, env: dict[str, str] | None = None, quiet: bool = False, show_command: bool = True, command_timeout: float | None = None, optional_failure: bool = False, owned_root_fd: int | None = None) -> tuple[str, str] | None:
         self.check_work()
         if command_timeout is not None and (not isinstance(command_timeout, (int, float)) or command_timeout <= 0):
             raise RunnerError("owned command timeout must be positive")
@@ -856,6 +865,21 @@ class PrepareExecution:
             raise RunnerError("owned optional probe timeout exceeds 12 seconds")
         if not command or any(not isinstance(part, str) or "\0" in part for part in command):
             raise RunnerError("owned prepare command argv was invalid")
+        if owned_root_fd is not None:
+            if type(owned_root_fd) is not int or owned_root_fd < 3:
+                raise RunnerError("owned filesystem root descriptor is invalid")
+            try:
+                root_info = os.fstat(owned_root_fd)
+            except OSError as error:
+                raise RunnerError("owned filesystem root descriptor is unavailable") from error
+            if not stat.S_ISDIR(root_info.st_mode):
+                raise RunnerError("owned filesystem root descriptor is not a directory")
+            supplied_stream_fds = {
+                stream.fileno() for stream in (stdout_file, stderr_file)
+                if stream is not None and hasattr(stream, "fileno")
+            }
+            if owned_root_fd in supplied_stream_fds:
+                raise RunnerError("owned filesystem root descriptor aliases a captured output stream")
         status_dir = Path(tempfile.mkdtemp(prefix="termrock-prepare-owned-"))
         stdout_tmp = tempfile.NamedTemporaryFile(mode="w+b", prefix="stdout-", dir=status_dir, delete=False) if stdout_file is None else stdout_file
         stderr_tmp = tempfile.NamedTemporaryFile(mode="w+b", prefix="stderr-", dir=status_dir, delete=False) if stderr_file is None else stderr_file
@@ -871,6 +895,7 @@ class PrepareExecution:
             "cwd": str(cwd),
             "stdout_fd": stdout_tmp.fileno(),
             "stderr_fd": stderr_tmp.fileno(),
+            "owned_root_fd": owned_root_fd,
             "status_path": str(status_path),
             "ready_path": str(ready_path),
         }
@@ -891,7 +916,7 @@ class PrepareExecution:
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL,
                 close_fds=True,
-                pass_fds=(control_read, stdout_tmp.fileno(), stderr_tmp.fileno()),
+                pass_fds=(control_read, stdout_tmp.fileno(), stderr_tmp.fileno()) + (() if owned_root_fd is None else (owned_root_fd,)),
                 start_new_session=True,
                 env=env,
             )
@@ -4104,6 +4129,340 @@ def _check_owned_directory_binding(binding: tuple[Path, str, str], *, check_work
         raise RunnerError("owned run directory path or identity no longer matches its pinned identity")
 
 
+def _owned_worker_check(deadline: float) -> None:
+    if time.monotonic() >= deadline:
+        raise RunnerError("owned filesystem worker deadline expired")
+
+
+def _owned_worker_read_request(path: Path, expected_sha256: str, *, deadline: float) -> tuple[bytes, dict[str, object]]:
+    _owned_worker_check(deadline)
+    payload = _read_bounded_file(path, OWNED_FS_REQUEST_MAX_BYTES, "owned filesystem request", check_work=lambda: _owned_worker_check(deadline))
+    if hashlib.sha256(payload).hexdigest() != expected_sha256:
+        raise RunnerError("owned filesystem request digest changed")
+    try:
+        request = json.loads(payload)
+    except (UnicodeDecodeError, ValueError) as error:
+        raise RunnerError("owned filesystem request JSON is invalid") from error
+    if not isinstance(request, dict):
+        raise RunnerError("owned filesystem request must be an object")
+    return payload, request
+
+
+def _owned_worker_open_parent(root_fd: int, relative: str, *, deadline: float) -> tuple[int, str]:
+    if not isinstance(relative, str) or len(relative) > 1024 or "\\" in relative:
+        raise RunnerError("owned filesystem destination path is invalid")
+    path = PurePosixPath(relative)
+    parts = path.parts
+    if path.is_absolute() or path.as_posix() != relative or not parts or len(parts) > 8 or any(part in {"", ".", ".."} for part in parts):
+        raise RunnerError("owned filesystem destination must be a normalized root-relative path")
+    parent_fd = os.dup(root_fd)
+    try:
+        root_info = os.fstat(parent_fd)
+        if not stat.S_ISDIR(root_info.st_mode) or root_info.st_uid != os.geteuid() or stat.S_IMODE(root_info.st_mode) != 0o700:
+            raise RunnerError("owned filesystem root directory is not private")
+        for component in parts[:-1]:
+            _owned_worker_check(deadline)
+            child_fd = -1
+            try:
+                child_fd = os.open(
+                    component,
+                    os.O_RDONLY | getattr(os, "O_DIRECTORY", 0) | getattr(os, "O_NOFOLLOW", 0),
+                    dir_fd=parent_fd,
+                )
+                info = os.fstat(child_fd)
+                entry = os.stat(component, dir_fd=parent_fd, follow_symlinks=False)
+                _owned_worker_check(deadline)
+                if (
+                    not stat.S_ISDIR(info.st_mode)
+                    or info.st_uid != os.geteuid()
+                    or stat.S_IMODE(info.st_mode) != 0o700
+                    or (info.st_dev, info.st_ino) != (entry.st_dev, entry.st_ino)
+                ):
+                    raise RunnerError("owned filesystem destination parent is unsafe")
+            except BaseException:
+                if child_fd >= 0:
+                    os.close(child_fd)
+                raise
+            os.close(parent_fd)
+            parent_fd = child_fd
+        return parent_fd, parts[-1]
+    except BaseException:
+        os.close(parent_fd)
+        raise
+
+
+def _owned_fs_worker_main(request_path: Path, root_fd: int, request_sha256: str, deadline: float) -> int:
+    """Publish one immutable, bounded payload relative to a pinned root FD."""
+    parent_fd = -1
+    temporary_name: str | None = None
+    temporary_created = False
+    published = False
+    try:
+        if type(root_fd) is not int or root_fd < 3 or type(deadline) not in {int, float}:
+            raise RunnerError("owned filesystem worker arguments are invalid")
+        if not re.fullmatch(r"[0-9a-f]{64}", request_sha256):
+            raise RunnerError("owned filesystem request digest must be lowercase SHA-256")
+        _owned_worker_check(float(deadline))
+        _payload, request = _owned_worker_read_request(request_path, request_sha256, deadline=float(deadline))
+        if set(request) != {"schema", "version", "operation", "root_binding", "relative_path", "payload_hex", "payload_sha256", "payload_size"}:
+            raise RunnerError("owned filesystem request fields are invalid")
+        root_binding = request["root_binding"]
+        if request["schema"] != "termrock.frozen-baseline-owned-fs-request" or type(request["version"]) is not int or request["version"] != 1 or request["operation"] != "publish-immutable":
+            raise RunnerError("owned filesystem request operation is unsupported")
+        if not isinstance(root_binding, dict) or set(root_binding) != {"plan_root_path", "plan_root_canonical_path", "plan_root_device", "plan_root_inode"}:
+            raise RunnerError("owned filesystem root binding is invalid")
+        if any(not isinstance(value, str) for value in root_binding.values()):
+            raise RunnerError("owned filesystem root binding values are invalid")
+        opened_root = os.fstat(root_fd)
+        if (
+            not stat.S_ISDIR(opened_root.st_mode)
+            or str(opened_root.st_dev) != root_binding["plan_root_device"]
+            or str(opened_root.st_ino) != root_binding["plan_root_inode"]
+        ):
+            raise RunnerError("owned filesystem descriptor differs from caller-pinned root identity")
+        _check_owned_root_binding(root_binding, check_work=lambda: _owned_worker_check(float(deadline)))
+        relative_path = request["relative_path"]
+        parent_fd, filename = _owned_worker_open_parent(root_fd, relative_path, deadline=float(deadline))
+        payload_hex = request["payload_hex"]
+        if not isinstance(payload_hex, str) or len(payload_hex) > OWNED_FS_PAYLOAD_MAX_BYTES * 2 or len(payload_hex) % 2:
+            raise RunnerError("owned filesystem payload is malformed or oversized")
+        try:
+            payload = bytes.fromhex(payload_hex)
+        except ValueError as error:
+            raise RunnerError("owned filesystem payload is not hexadecimal") from error
+        if (
+            len(payload) > OWNED_FS_PAYLOAD_MAX_BYTES
+            or type(request["payload_size"]) is not int
+            or request["payload_size"] != len(payload)
+            or not isinstance(request["payload_sha256"], str)
+            or hashlib.sha256(payload).hexdigest() != request["payload_sha256"]
+        ):
+            raise RunnerError("owned filesystem payload identity is invalid")
+        _owned_worker_check(float(deadline))
+        _check_owned_root_binding(root_binding, check_work=lambda: _owned_worker_check(float(deadline)))
+        for _attempt in range(3):
+            temporary_name = f".termrock-{secrets.token_hex(16)}.tmp"
+            try:
+                output_fd = os.open(
+                    temporary_name,
+                    os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, "O_NOFOLLOW", 0),
+                    0o600,
+                    dir_fd=parent_fd,
+                )
+                temporary_created = True
+                break
+            except FileExistsError:
+                temporary_name = None
+            except BaseException:
+                temporary_name = None
+                raise
+        else:
+            raise RunnerError("owned filesystem could not reserve an immutable temporary file")
+        try:
+            view = memoryview(payload)
+            while view:
+                _owned_worker_check(float(deadline))
+                written = os.write(output_fd, view[:OWNED_NEXTTEST_READ_BYTES])
+                if written <= 0:
+                    raise RunnerError("owned filesystem payload write made no progress")
+                view = view[written:]
+            _owned_worker_check(float(deadline))
+            os.fsync(output_fd)
+            _owned_worker_check(float(deadline))
+        finally:
+            os.close(output_fd)
+        _check_owned_root_binding(root_binding, check_work=lambda: _owned_worker_check(float(deadline)))
+        try:
+            os.link(temporary_name, filename, src_dir_fd=parent_fd, dst_dir_fd=parent_fd, follow_symlinks=False)
+        except FileExistsError as error:
+            raise RunnerError("owned filesystem immutable destination already exists") from error
+        published = True
+        _owned_worker_check(float(deadline))
+        os.fsync(parent_fd)
+        _owned_worker_check(float(deadline))
+        os.unlink(temporary_name, dir_fd=parent_fd)
+        temporary_name = None
+        _owned_worker_check(float(deadline))
+        os.fsync(parent_fd)
+        _owned_worker_check(float(deadline))
+        final_info = os.stat(filename, dir_fd=parent_fd, follow_symlinks=False)
+        if (
+            not stat.S_ISREG(final_info.st_mode)
+            or final_info.st_uid != os.geteuid()
+            or stat.S_IMODE(final_info.st_mode) != 0o600
+            or final_info.st_nlink != 1
+            or final_info.st_size != len(payload)
+        ):
+            raise RunnerError("owned filesystem published file identity is invalid")
+        verify_fd = os.open(filename, os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0), dir_fd=parent_fd)
+        try:
+            opened_info = os.fstat(verify_fd)
+            digest = hashlib.sha256()
+            total = 0
+            while True:
+                _owned_worker_check(float(deadline))
+                block = os.read(verify_fd, OWNED_NEXTTEST_READ_BYTES)
+                _owned_worker_check(float(deadline))
+                if not block:
+                    break
+                digest.update(block)
+                total += len(block)
+            read_info = os.fstat(verify_fd)
+        finally:
+            os.close(verify_fd)
+        final_after_read = os.stat(filename, dir_fd=parent_fd, follow_symlinks=False)
+        identity = lambda value: (value.st_dev, value.st_ino, value.st_size, value.st_mtime_ns, value.st_ctime_ns, value.st_nlink)
+        if (
+            total != len(payload)
+            or digest.hexdigest() != request["payload_sha256"]
+            or identity(final_info) != identity(opened_info)
+            or identity(opened_info) != identity(read_info)
+            or identity(read_info) != identity(final_after_read)
+        ):
+            raise RunnerError("owned filesystem published bytes changed during verification")
+        _check_owned_root_binding(root_binding, check_work=lambda: _owned_worker_check(float(deadline)))
+        result = {
+            "schema": "termrock.frozen-baseline-owned-fs-result",
+            "version": 1,
+            "operation": "publish-immutable",
+            "root_device": str(opened_root.st_dev),
+            "root_inode": str(opened_root.st_ino),
+            "relative_path": relative_path,
+            "file_device": final_info.st_dev,
+            "file_inode": final_info.st_ino,
+            "file_size": final_info.st_size,
+            "sha256": request["payload_sha256"],
+        }
+        encoded = _canonical_document_bytes(result)
+        if len(encoded) > OWNED_FS_RESULT_MAX_BYTES:
+            raise RunnerError("owned filesystem result exceeds its size limit")
+        _owned_worker_check(float(deadline))
+        view = memoryview(encoded)
+        while view:
+            _owned_worker_check(float(deadline))
+            written = os.write(1, view)
+            if written <= 0:
+                raise RunnerError("owned filesystem result write made no progress")
+            view = view[written:]
+        return 0
+    except BaseException as error:
+        message = f"owned filesystem worker failed: {type(error).__name__}: {str(error)[:512]}\n".encode(errors="replace")
+        try:
+            os.write(2, message[:1024])
+        except OSError:
+            pass
+        return 2
+    finally:
+        # Preserve a linked destination and any temporary evidence if the
+        # worker failed after publication; the caller must inspect, never retry blindly.
+        if not published and temporary_created and temporary_name is not None and parent_fd >= 0:
+            try:
+                os.unlink(temporary_name, dir_fd=parent_fd)
+            except OSError:
+                pass
+        if parent_fd >= 0:
+            try:
+                os.close(parent_fd)
+            except OSError:
+                pass
+
+
+def _owned_publish_immutable(
+    execution: PrepareExecution,
+    root_binding: dict[str, str],
+    relative_path: str,
+    payload: bytes,
+) -> dict[str, object]:
+    """Run one immutable file publication inside the existing owned broker."""
+    execution.check_work()
+    if not isinstance(payload, bytes) or len(payload) > OWNED_FS_PAYLOAD_MAX_BYTES:
+        raise RunnerError("owned filesystem payload must be bytes within its fixed size limit")
+    if not isinstance(root_binding, dict) or set(root_binding) != {"plan_root_path", "plan_root_canonical_path", "plan_root_device", "plan_root_inode"}:
+        raise RunnerError("owned filesystem caller-pinned root binding is invalid")
+    root_path = _check_owned_root_binding(root_binding, check_work=execution.check_work)
+    root_fd, root_info = _open_directory_chain(root_path)
+    try:
+        if (str(root_info.st_dev), str(root_info.st_ino)) != (root_binding["plan_root_device"], root_binding["plan_root_inode"]):
+            raise RunnerError("owned filesystem root descriptor differs from caller-pinned identity")
+        request = {
+            "schema": "termrock.frozen-baseline-owned-fs-request",
+            "version": 1,
+            "operation": "publish-immutable",
+            "root_binding": root_binding,
+            "relative_path": relative_path,
+            "payload_hex": payload.hex(),
+            "payload_sha256": hashlib.sha256(payload).hexdigest(),
+            "payload_size": len(payload),
+        }
+        encoded_request = _canonical_document_bytes(request)
+        if len(encoded_request) > OWNED_FS_REQUEST_MAX_BYTES:
+            raise RunnerError("owned filesystem request exceeds its fixed size limit")
+        execution.check_work()
+        with tempfile.TemporaryDirectory(prefix="termrock-owned-fs-") as temporary_dir:
+            temporary = Path(temporary_dir)
+            request_path = temporary / "request.json"
+            request_fd = os.open(request_path, os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, "O_NOFOLLOW", 0), 0o600)
+            try:
+                view = memoryview(encoded_request)
+                while view:
+                    execution.check_work()
+                    written = os.write(request_fd, view[:OWNED_NEXTTEST_READ_BYTES])
+                    if written <= 0:
+                        raise RunnerError("owned filesystem request write made no progress")
+                    view = view[written:]
+                request_info = os.fstat(request_fd)
+                if not stat.S_ISREG(request_info.st_mode) or request_info.st_uid != os.geteuid() or stat.S_IMODE(request_info.st_mode) != 0o600 or request_info.st_nlink != 1:
+                    raise RunnerError("owned filesystem request file is unsafe")
+            finally:
+                os.close(request_fd)
+            stdout_path, stderr_path = temporary / "worker.stdout", temporary / "worker.stderr"
+            with stdout_path.open("x+b") as stdout_file, stderr_path.open("x+b") as stderr_file:
+                command = [
+                    sys.executable, "-I", str(Path(__file__).resolve()), "--_owned-fs-worker",
+                    str(request_path), str(root_fd), hashlib.sha256(encoded_request).hexdigest(), repr(execution.work_deadline),
+                ]
+                execution.run(
+                    command,
+                    cwd=Path(__file__).resolve().parent.parent,
+                    stdout_file=stdout_file,
+                    stderr_file=stderr_file,
+                    capture_stdout=False,
+                    capture_stderr=False,
+                    env={"PATH": os.defpath},
+                    quiet=True,
+                    show_command=False,
+                    owned_root_fd=root_fd,
+                )
+            execution.check_work()
+            result_bytes = _read_bounded_file(stdout_path, OWNED_FS_RESULT_MAX_BYTES, "owned filesystem worker result", check_work=execution.check_work)
+        try:
+            result = json.loads(result_bytes)
+        except (UnicodeDecodeError, ValueError) as error:
+            raise RunnerError("owned filesystem worker result JSON is invalid") from error
+        required = {"schema", "version", "operation", "root_device", "root_inode", "relative_path", "file_device", "file_inode", "file_size", "sha256"}
+        if not isinstance(result, dict) or set(result) != required:
+            raise RunnerError("owned filesystem worker result fields are invalid")
+        if (
+            result["schema"] != "termrock.frozen-baseline-owned-fs-result"
+            or type(result["version"]) is not int
+            or result["version"] != 1
+            or result["operation"] != "publish-immutable"
+            or result["root_device"] != root_binding["plan_root_device"]
+            or result["root_inode"] != root_binding["plan_root_inode"]
+            or result["relative_path"] != relative_path
+            or type(result["file_size"]) is not int
+            or result["file_size"] != len(payload)
+            or result["sha256"] != hashlib.sha256(payload).hexdigest()
+            or any(type(result[key]) is not int or result[key] <= 0 for key in ("file_device", "file_inode"))
+        ):
+            raise RunnerError("owned filesystem worker result does not match the requested immutable publication")
+        _check_owned_root_binding(root_binding, check_work=execution.check_work)
+        execution.check_work()
+        return result
+    finally:
+        os.close(root_fd)
+
+
 def _create_owned_run_directory(root_binding: dict[str, str], plan_id: str, *, check_work: Callable[[], None]) -> tuple[Path, tuple[Path, str, str], tuple[Path, str, str], int, tuple[int, int]]:
     """Create fresh-runs/<plan_id> through the pinned plan-root descriptor only."""
     if not plan_id or Path(plan_id).name != plan_id or plan_id in {".", ".."}:
@@ -6395,6 +6754,12 @@ def parser() -> argparse.ArgumentParser:
 
 
 def main() -> int:
+    if len(sys.argv) == 6 and sys.argv[1] == "--_owned-fs-worker":
+        try:
+            return _owned_fs_worker_main(Path(sys.argv[2]), int(sys.argv[3]), sys.argv[4], float(sys.argv[5]))
+        except (RunnerError, OSError, ValueError) as error:
+            print(f"frozen-baseline owned filesystem worker: {type(error).__name__}: {str(error)[:512]}", file=sys.stderr)
+            return 2
     if len(sys.argv) == 4 and sys.argv[1] == "--_owned-prepare-broker":
         try:
             return _owned_broker_main(Path(sys.argv[2]), int(sys.argv[3]))
