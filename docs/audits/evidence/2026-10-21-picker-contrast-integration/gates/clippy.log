@@ -1,2 +1,28 @@
-    Blocking waiting for file lock on package cache
-    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.68s
+   Compiling serde_core v1.0.229
+   Compiling zmij v1.0.23
+   Compiling serde v1.0.229
+   Compiling serde_json v1.0.154
+    Checking memchr v2.8.3
+   Compiling serde_derive v1.0.229
+    Checking termrock-core v0.1.0 (/private/tmp/pr38-picker-contrast-integrate-20261021/crates/termrock-core)
+    Checking termrock-theme v0.1.0 (/private/tmp/pr38-picker-contrast-integrate-20261021/crates/termrock-theme)
+    Checking termrock-layout v0.1.0 (/private/tmp/pr38-picker-contrast-integrate-20261021/crates/termrock-layout)
+    Checking termrock-text v0.1.0 (/private/tmp/pr38-picker-contrast-integrate-20261021/crates/termrock-text)
+    Checking termrock-collections v0.1.0 (/private/tmp/pr38-picker-contrast-integrate-20261021/crates/termrock-collections)
+    Checking termrock-render v0.1.0 (/private/tmp/pr38-picker-contrast-integrate-20261021/crates/termrock-render)
+    Checking termrock-runtime v0.1.0 (/private/tmp/pr38-picker-contrast-integrate-20261021/crates/termrock-runtime)
+    Checking termrock-controls v0.1.0 (/private/tmp/pr38-picker-contrast-integrate-20261021/crates/termrock-controls)
+    Checking termrock-shell v0.1.0 (/private/tmp/pr38-picker-contrast-integrate-20261021/crates/termrock-shell)
+    Checking termrock-viewport v0.1.0 (/private/tmp/pr38-picker-contrast-integrate-20261021/crates/termrock-viewport)
+    Checking termrock-feedback v0.1.0 (/private/tmp/pr38-picker-contrast-integrate-20261021/crates/termrock-feedback)
+    Checking termrock-fields v0.1.0 (/private/tmp/pr38-picker-contrast-integrate-20261021/crates/termrock-fields)
+    Checking termrock-terminal v0.1.0 (/private/tmp/pr38-picker-contrast-integrate-20261021/crates/termrock-terminal)
+    Checking termrock-session v0.1.0 (/private/tmp/pr38-picker-contrast-integrate-20261021/crates/termrock-session)
+    Checking termrock-navigation v0.1.0 (/private/tmp/pr38-picker-contrast-integrate-20261021/crates/termrock-navigation)
+    Checking termrock-overlays v0.1.0 (/private/tmp/pr38-picker-contrast-integrate-20261021/crates/termrock-overlays)
+    Checking termrock-grid v0.1.0 (/private/tmp/pr38-picker-contrast-integrate-20261021/crates/termrock-grid)
+    Checking termrock-editors v0.1.0 (/private/tmp/pr38-picker-contrast-integrate-20261021/crates/termrock-editors)
+    Checking termrock-forms v0.1.0 (/private/tmp/pr38-picker-contrast-integrate-20261021/crates/termrock-forms)
+    Checking termrock v0.1.0 (/private/tmp/pr38-picker-contrast-integrate-20261021/crates/termrock)
+    Checking termrock-test-support v0.1.0 (/private/tmp/pr38-picker-contrast-integrate-20261021/crates/termrock-test-support)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 29.59s
