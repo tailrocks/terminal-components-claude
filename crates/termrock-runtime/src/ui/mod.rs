@@ -93,6 +93,14 @@ pub(crate) struct RetainedCursorRequest {
     pub(crate) parent_layer: LayerId,
     pub(crate) overlay_layer: LayerId,
     pub(crate) cursor_index: usize,
+    pub(crate) mode: CursorRetentionMode,
+    pub(crate) ambiguous: bool,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) enum CursorRetentionMode {
+    FocusedOwner,
+    VisibleOwner,
 }
 
 #[cfg(feature = "testing")]
@@ -1047,17 +1055,48 @@ impl<'f> Ui<'f> {
     /// popovers, modal layers, inert layers, and missing or stale owner requests
     /// do not retain a cursor.
     pub fn retain_owner_cursor(&mut self, owner: Id) -> bool {
+        self.retain_cursor_request(owner, CursorRetentionMode::FocusedOwner)
+    }
+
+    /// Retains a real rendered owner's cursor through the current nonmodal
+    /// popover, even when that popover owns keyboard focus. This is intended
+    /// for visible terminal or editor carets that remain meaningful while a
+    /// menu takes input. It never registers a control or invents a cursor.
+    pub fn retain_visible_owner_cursor(&mut self, owner: Id) -> bool {
+        self.retain_cursor_request(owner, CursorRetentionMode::VisibleOwner)
+    }
+
+    fn retain_cursor_request(&mut self, owner: Id, mode: CursorRetentionMode) -> bool {
         if self.reference.is_some() || self.inert || self.layer != self.frame.top {
             return false;
         }
-        if self.last.snapshot.focus != Some(owner) {
+        if mode == CursorRetentionMode::FocusedOwner && self.last.snapshot.focus != Some(owner) {
             return false;
         }
         let Some((top_index, top)) = self.frame.layers.active().iter().enumerate().next_back()
         else {
             return false;
         };
-        if top.layer != self.layer || top.spec.kind != LayerKind::Popover || top.spec.inert_below {
+        if top.layer != self.layer
+            || !top.drawn
+            || top.spec.kind != LayerKind::Popover
+            || top.spec.inert_below
+        {
+            return false;
+        }
+        if let Some(existing) = self.frame.retained_cursor_request.as_mut() {
+            if existing.owner == owner && existing.mode == mode && !existing.ambiguous {
+                return true;
+            }
+            if !existing.ambiguous {
+                self.frame
+                    .diagnostics
+                    .push(crate::diagnostics::Diagnostic::CursorRejected {
+                        owner,
+                        layer: self.layer,
+                    });
+                existing.ambiguous = true;
+            }
             return false;
         }
         let parent_layer = top_index
@@ -1083,6 +1122,7 @@ impl<'f> Ui<'f> {
                         && cursor.layer == parent_layer
                         && !cursor.inert
                         && !cursor.typing_offer
+                        && self.frame.screen.contains(cursor.pos)
                         && area.contains(cursor.pos)
                 })
         else {
@@ -1094,6 +1134,8 @@ impl<'f> Ui<'f> {
             parent_layer,
             overlay_layer: self.layer,
             cursor_index,
+            mode,
+            ambiguous: false,
         });
         true
     }
@@ -1560,8 +1602,8 @@ mod tests {
 
     use super::cx::LastFrame;
     use super::{
-        CellRoles, FrameRead, FrameState, LayoutFacts, ReferenceState, ReferenceTarget,
-        RetainedCursorRequest, Ui, UiCore,
+        CellRoles, CursorRetentionMode, FrameRead, FrameState, LayoutFacts, ReferenceState,
+        ReferenceTarget, RetainedCursorRequest, Ui, UiCore,
     };
     use crate::action::ActionKey;
     use crate::event::{Chord, KeyCode};
@@ -1917,6 +1959,8 @@ mod tests {
                 parent_layer: LayerId::PAGE,
                 overlay_layer: LayerId(1),
                 cursor_index: 0,
+                mode: CursorRetentionMode::FocusedOwner,
+                ambiguous: false,
             })
         );
         assert_eq!(frame.cursors.len(), 1, "the real cursor request is reused");
@@ -1997,6 +2041,107 @@ mod tests {
             "an owner registered in the popup is not the parent control"
         );
         assert_eq!(frame.retained_cursor_request, None);
+    }
+
+    #[test]
+    fn visible_owner_cursor_can_be_retained_without_keyboard_focus() {
+        use crate::layer::LayerKind;
+
+        let (retained, frame) = with_cursor_popover(
+            LayerKind::Popover,
+            false,
+            false,
+            SCREEN,
+            Some(Position::new(4, 1)),
+            |ui| ui.retain_visible_owner_cursor(OWNER),
+        );
+        assert!(retained);
+        assert_eq!(
+            frame.retained_cursor_request,
+            Some(RetainedCursorRequest {
+                owner: OWNER,
+                parent_layer: LayerId::PAGE,
+                overlay_layer: LayerId(1),
+                cursor_index: 0,
+                mode: CursorRetentionMode::VisibleOwner,
+                ambiguous: false,
+            })
+        );
+        assert_eq!(
+            frame.cursors.len(),
+            1,
+            "the existing cursor request is reused"
+        );
+        assert_eq!(frame.cursors[0].layer, LayerId(1));
+        assert_eq!(frame.cursors[0].pos, Position::new(4, 1));
+
+        for (kind, inert, area, cursor) in [
+            (LayerKind::Modal, false, SCREEN, Some(Position::new(4, 1))),
+            (LayerKind::Popover, true, SCREEN, Some(Position::new(4, 1))),
+            (
+                LayerKind::Popover,
+                false,
+                Rect::ZERO,
+                Some(Position::new(4, 1)),
+            ),
+            (LayerKind::Popover, false, SCREEN, None),
+        ] {
+            let (retained, frame) = with_cursor_popover(kind, inert, false, area, cursor, |ui| {
+                ui.retain_visible_owner_cursor(OWNER)
+            });
+            assert!(!retained);
+            assert_eq!(frame.retained_cursor_request, None);
+            assert!(
+                frame
+                    .cursors
+                    .iter()
+                    .all(|request| request.layer == LayerId::PAGE),
+                "a rejected request must not move the underlying cursor"
+            );
+        }
+    }
+
+    #[test]
+    fn conflicting_visible_cursor_owners_reject_the_retention() {
+        const POPUP: Id = Id::root("ui.cursor-conflict-popup");
+        const OTHER: Id = Id::root("ui.cursor-conflict-other");
+        let theme = Theme::junie();
+        let mut frame = FrameState::default();
+        frame.reset(1, SCREEN);
+        frame.top = LayerId(1);
+        frame.layers.push(
+            POPUP,
+            LayerId(1),
+            LayerSpec::popover(
+                POPUP,
+                crate::layer::Anchor::Screen(crate::layer::ScreenAlign::Center),
+            ),
+            SCREEN,
+            SCREEN,
+        );
+        let mut page = Buffer::empty(SCREEN);
+        let mut core = UiCore::default();
+        let last = LastFrame::default();
+        {
+            let mut ui = Ui::new(&mut frame, &mut page, &mut core, &theme, &last);
+            ui.register_control(OWNER, SCREEN, Focusability::Focusable);
+            ui.set_bar_cursor(OWNER, Position::new(4, 1));
+            ui.register_control(OTHER, SCREEN, Focusability::Focusable);
+            ui.set_bar_cursor(OTHER, Position::new(8, 1));
+            let _ = ui.layer(POPUP, |ui, _| {
+                assert!(ui.retain_visible_owner_cursor(OWNER));
+                assert!(!ui.retain_visible_owner_cursor(OTHER));
+                assert!(!ui.retain_visible_owner_cursor(OWNER));
+            });
+        }
+        let retained = frame
+            .retained_cursor_request
+            .expect("ambiguous attempt recorded");
+        assert!(retained.ambiguous);
+        assert!(frame.diagnostics.items().iter().any(|diagnostic| matches!(
+            diagnostic,
+            crate::diagnostics::Diagnostic::CursorRejected { owner: OTHER, .. }
+        )));
     }
 
     #[test]
