@@ -225,7 +225,8 @@ impl<'a> FormDialog<'a> {
     fn dialog<'d>(&'d self, body_rows: u16) -> Dialog<'d> {
         let mut dialog = Dialog::chrome(self.id)
             .title(self.title)
-            .body_rows(body_rows);
+            .body_rows(body_rows)
+            .close_button(self.cancel);
         if let Some(description) = self.description {
             dialog = dialog.description(description);
         }
@@ -569,6 +570,78 @@ mod tests {
             runtime.app().actions.last(),
             Some(&FormDialogAction::Cancelled)
         );
+    }
+
+    #[test]
+    fn pointer_close_is_hoverable_pressable_and_cancels_once() {
+        let mut runtime = Runtime::new(TestApp::default(), Theme::junie());
+        let _ = runtime.initialize();
+        let mut buffer = Buffer::empty(SCREEN);
+        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
+        let close = runtime
+            .area_of(DIALOG.part(Part::CLOSE))
+            .expect("visible close button hit area");
+        assert_eq!(close.width, 3);
+        assert_eq!(runtime.focus(), Some(NAME));
+        let point = close.x.saturating_add(1);
+        let row = close.y;
+
+        let rest = buffer.clone();
+        let _ = termrock_runtime::stub::deliver(
+            &mut runtime,
+            termrock_runtime::stub::mouse(MouseKind::Move, point, row),
+        );
+        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
+        assert_ne!(buffer[(point, row)], rest[(point, row)]);
+        assert_eq!(runtime.focus(), Some(NAME), "close control is pointer-only");
+
+        let hovered = buffer[(point, row)].clone();
+        let _ = termrock_runtime::stub::deliver(
+            &mut runtime,
+            termrock_runtime::stub::mouse(MouseKind::Down, point, row),
+        );
+        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
+        assert_ne!(buffer[(point, row)], hovered);
+        assert!(runtime.is_open(DIALOG));
+
+        let _ = termrock_runtime::stub::deliver(
+            &mut runtime,
+            termrock_runtime::stub::mouse(MouseKind::Up, point, row),
+        );
+        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
+        assert!(!runtime.is_open(DIALOG));
+        assert_eq!(
+            runtime.app().actions,
+            [FormDialogAction::Cancelled],
+            "pointer close maps to one cancel result"
+        );
+        assert_ne!(runtime.focus(), Some(DIALOG.part(Part::CLOSE)));
+
+        let _ = termrock_runtime::stub::deliver(
+            &mut runtime,
+            termrock_runtime::stub::mouse(MouseKind::Up, point, row),
+        );
+        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
+        assert_eq!(runtime.app().actions.len(), 1);
+    }
+
+    #[test]
+    fn pointer_close_is_hidden_below_frozen_frame_width_threshold() {
+        let mut runtime = Runtime::new(TestApp::default(), Theme::junie());
+        let _ = runtime.initialize();
+        let wide = Rect::new(0, 0, 64, 24);
+        let mut buffer = Buffer::empty(wide);
+        runtime.draw_buffer(wide, &mut buffer).commit_presented();
+        assert!(runtime.area_of(DIALOG.part(Part::CLOSE)).is_some());
+
+        let narrow = Rect::new(0, 0, 15, 24);
+        let _ = termrock_runtime::stub::deliver(&mut runtime, Input::Resize(15, 24));
+        let mut narrow_buffer = Buffer::empty(narrow);
+        runtime
+            .draw_buffer(narrow, &mut narrow_buffer)
+            .commit_presented();
+        assert!(runtime.area_of(DIALOG.part(Part::CLOSE)).is_none());
+        assert!(runtime.is_open(DIALOG));
     }
 
     #[test]
