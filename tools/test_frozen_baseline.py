@@ -2831,7 +2831,7 @@ class RunnerGuards(unittest.TestCase):
                 for context in contexts:
                     stack.enter_context(context)
                 with runner.PrepareExecution(30) as execution, redirect_stdout(io.StringIO()), redirect_stderr(io.StringIO()):
-                    record = runner.prepare_live_source(repo, frozen_root, source, 20, fresh_cohort_id="fixture", baseline_bin_dir=root / "bins", execution=execution)
+                    record = runner.prepare_live_source(repo, frozen_root, source, 20, fresh_cohort_id=runner.PREPARE_LIVE_OWNED_COHORT, baseline_bin_dir=root / "bins", execution=execution)
             self.assertEqual(execution_seen, [execution, execution])
             self.assertEqual(record["changed_files"], sorted({
                 "tests/visual_baseline/main.rs",
@@ -2866,7 +2866,7 @@ class RunnerGuards(unittest.TestCase):
                     stack.enter_context(context)
                 with runner.PrepareExecution(30) as execution, redirect_stdout(io.StringIO()), redirect_stderr(io.StringIO()):
                     with self.assertRaisesRegex(runner.RunnerError, "synthetic inventory failure"):
-                        runner.prepare_live_source(repo, frozen_root, source, 20, fresh_cohort_id="fixture", baseline_bin_dir=root / "bins", execution=execution)
+                        runner.prepare_live_source(repo, frozen_root, source, 20, fresh_cohort_id=runner.PREPARE_LIVE_OWNED_COHORT, baseline_bin_dir=root / "bins", execution=execution)
             self.assertTrue((frozen_root / "live-source").is_dir())
             self.assertFalse((frozen_root / "live-source.json").exists())
 

@@ -41,6 +41,7 @@ PREPARE_OWNED_MAX_BUDGET = 200
 PREPARE_OWNED_CLEANUP_RESERVE = 15
 PREPARE_OWNED_HARD_MAX = 220
 PREPARE_OWNED_TERM_GRACE = 2.0
+PREPARE_LIVE_OWNED_COHORT = "frozen-20261021-serial-nonincr-r1-r2"
 OWNED_PROCESS_LIST_COMMAND = "/bin/ps"
 EXPECTED_SCENARIOS = 28_895
 EXPECTED_ORDINARY_TESTS = 20
@@ -1413,6 +1414,8 @@ def prepare_live_source(
     manifest_path = root / "live-source.json"
     if execution is not None and (fresh_cohort_id is None or baseline_bin_dir is None):
         raise RunnerError("owned prepare-live requires explicit fresh cohort and baseline binaries")
+    if execution is not None and fresh_cohort_id != PREPARE_LIVE_OWNED_COHORT:
+        raise RunnerError("owned prepare-live requires the pinned frozen-20261021-serial-nonincr-r1-r2 cohort")
     if live.exists() or manifest_path.exists():
         raise RunnerError(f"refusing to replace prepared live source: {live}")
     check_work = execution.check_work if execution is not None else None
