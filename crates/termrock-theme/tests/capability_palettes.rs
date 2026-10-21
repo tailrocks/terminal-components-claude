@@ -67,17 +67,28 @@ fn all_73_junie_slots_match_reference_capability_output() {
             // index 242); the approved 256 frames use those indices.
             expected.fg[2] = Color::Indexed(245);
             expected.fg[3] = Color::Indexed(242);
+            // #19191c is gray 233 by the cube rule. apply_256 uses 232.
+            expected.on_accent = Color::Indexed(232);
+            // #4d4d4d is gray 238 by the cube rule. apply_256 border_strong
+            // is 242. Query seams use a custom role that stays 239.
+            expected.border_strong = Color::Indexed(242);
             // The frozen source apply_256 table sets the syntax keyword to
             // i(111), the string to i(116) and the literal to i(183); the
             // approved 256 code editor frame paints 111, 116, 183, 245 and
-            // 242 for those roles.
+            // 242 for those roles. Diagnostics use error 203, not 210.
             expected.syntax.keyword = Color::Indexed(111);
             expected.syntax.string = Color::Indexed(116);
             expected.syntax.number = Color::Indexed(183);
             expected.syntax.operator = Color::Indexed(245);
             expected.syntax.punct = Color::Indexed(245);
             expected.syntax.comment = Color::Indexed(242);
-            expected.syntax.diagnostic_error = Color::Indexed(210);
+            expected.syntax.diagnostic_error = Color::Indexed(203);
+            // Danger, invalid, and the meter high slot follow apply_256
+            // error 203. The cube rule on #f05d5d would pick 210.
+            expected.danger = Color::Indexed(203);
+            expected.syntax.invalid = Color::Indexed(203);
+            expected.meter.high = Color::Indexed(203);
+            expected.meter.series[2] = Color::Indexed(203);
             expected.field_hover = Color::Indexed(237);
             expected.accent_hover = Color::Indexed(77);
             expected.accent_pressed = Color::Indexed(238);
