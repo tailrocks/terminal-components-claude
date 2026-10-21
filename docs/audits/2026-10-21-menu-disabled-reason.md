@@ -31,7 +31,40 @@ also compiles a consumer against public crate/runtime APIs with its own actions
 and data. It verifies disabled-hover reason output, nonactivation from Enter or
 the displayed chord, and reason clearing after keyboard movement.
 
-The unfiltered overlays library suite reports one failure:
+Independent review of `c78e449b5d4f7f41f1f53d94260bde9aff2c068f` found two
+additional menu-state cases. `MENU-REASON-01` was a new reason-selection bug:
+a pointed disabled row without a usable reason hid a reason on the highlighted
+disabled row. The public consumer regression was red before the fix. Reason
+resolution now tests a nonempty disabled reason for the pointed item first,
+then falls back to the visible highlighted item; reasonless and empty-reason
+rows preserve the highlighted explanation.
+
+`MENU-REASON-02` was a pre-existing shared disabled-style gap, present at the
+WIP base and required by the component contract: disabled rows received
+`HOVERED` and `PRESSED` flags, so a held press changed their full-row styling.
+Frozen source evidence at `4169783ae883788186d161af09ba9c481bd84e5c` sets
+`VisualState::disabled` before the shared `RowUi::resolve` path
+(`src/widgets/menu.rs:688-705`, `src/ui/row.rs:95-105`) and withholds release
+activation targets for disabled rows (`src/widgets/menu.rs:744-753`). The shared
+ContextMenu now keeps hover and press styling off disabled rows while still
+recording disabled pointer hover for its reason decoration. This intentional
+shared disabled-state correction may change frames while disabled rows are
+held; it does not change default enabled-row behavior.
+
+Two real-runtime public-consumer tests failed on the pre-fix `c78e449b5` source:
+reason fallback disappeared on hovering a disabled row without a reason, and
+disabled held-press cells changed. The fallback consumer test now passes in
+TrueColor; the held-press/drag/release cell probe passes in all four theme
+profiles, with no activation. Existing reason-rendering profile coverage also
+passes in all four profiles. These tests are source regression probes, not
+baseline artifact approval.
+
+At the final fix tip, `cargo nextest run -p termrock-overlays --all-targets
+--no-fail-fast` passed 134/134, `cargo nextest run -p termrock-theme --lib`
+passed 94/94, scoped all-target Clippy passed with `-D warnings`, and scoped
+formatting plus `git diff --check` passed.
+
+Before the separate padding fix, the unfiltered overlays library suite reported:
 `menu::tests::default_menu_bar_scope_keeps_title_patches_off_the_padding_cells`.
 It reproduces at this WIP's base `6841e67ed4d240d9b39478b2e99f39ff48b8189b`,
 which contains incoming commit `262ac80ed138f14a204f8a1a32d4a48fe0cde111`.
