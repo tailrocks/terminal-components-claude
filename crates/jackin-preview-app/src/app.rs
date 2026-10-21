@@ -128,6 +128,7 @@ const CMD_MANAGER_EXPAND: ActionKey = ActionKey::application("jackin.manager.exp
 const CMD_MANAGER_INSPECT: ActionKey = ActionKey::application("jackin.manager.inspect");
 const CMD_EDITOR_OPEN: ActionKey = ActionKey::application("jackin.editor.open");
 const CMD_EDITOR_ROLES: ActionKey = ActionKey::application("jackin.editor.roles");
+const CMD_EDITOR_ROLES_CONFIRM: ActionKey = ActionKey::application("jackin.editor.roles-confirm");
 const CMD_EDITOR_MOUNTS: ActionKey = ActionKey::application("jackin.editor.mounts");
 const CMD_EDITOR_MOUNTS_CONFIRM: ActionKey = ActionKey::application("jackin.editor.mounts-confirm");
 const CMD_EDITOR_MOUNT_ISOLATION: ActionKey =
@@ -534,6 +535,7 @@ pub struct App {
     editor_exit_state: DialogState,
     editor_leaf_focused: bool,
     editor_mounts_armed: bool,
+    editor_roles_armed: bool,
     settings_mounts_armed: bool,
     settings_env_armed: bool,
     settings_agents_armed: bool,
@@ -737,6 +739,7 @@ impl App {
             editor_exit_state: DialogState::default(),
             editor_leaf_focused: false,
             editor_mounts_armed: false,
+            editor_roles_armed: false,
             settings_mounts_armed: false,
             settings_env_armed: false,
             settings_agents_armed: false,
@@ -882,6 +885,11 @@ impl App {
             // so Enter confirms the tab and does not edit the row.
             self.keymap
                 .add(KeyPhase::Capture, enter, CMD_EDITOR_MOUNTS_CONFIRM);
+        } else if self.route == Route::Editor && self.editor_roles_armed {
+            // `3` then Enter selects Roles. Capture beats the default-role
+            // button, so Enter confirms the tab and does not set a status.
+            self.keymap
+                .add(KeyPhase::Capture, enter, CMD_EDITOR_ROLES_CONFIRM);
         } else if self.route == Route::Settings && self.settings_mounts_armed {
             // `2` then Enter leaves General for Mounts. Capture beats Save.
             self.keymap
@@ -4617,6 +4625,9 @@ impl App {
         if !matches!(command, CMD_EDITOR_MOUNTS | CMD_EDITOR_MOUNTS_CONFIRM) {
             self.editor_mounts_armed = false;
         }
+        if !matches!(command, CMD_EDITOR_ROLES | CMD_EDITOR_ROLES_CONFIRM) {
+            self.editor_roles_armed = false;
+        }
         if !matches!(command, CMD_SETTINGS_MOUNTS | CMD_SETTINGS_MOUNTS_CONFIRM) {
             self.settings_mounts_armed = false;
         }
@@ -5299,9 +5310,17 @@ impl App {
             CMD_EDITOR_ROLES if self.route == Route::Editor => {
                 if cx.update_cause() == UpdateCause::Event {
                     self.editor.select_alias(3);
+                    self.editor_roles_armed = true;
                 }
                 self.editor_leaf_focused = true;
                 cx.focus(EDITOR_ROLE_EDIT);
+                Some(Response::changed())
+            }
+            CMD_EDITOR_ROLES_CONFIRM if self.route == Route::Editor && self.editor_roles_armed => {
+                self.editor_roles_armed = false;
+                if cx.update_cause() == UpdateCause::Event {
+                    self.editor.select_alias(3);
+                }
                 Some(Response::changed())
             }
             CMD_EDITOR_MOUNTS if self.route == Route::Editor => {
