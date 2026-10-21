@@ -146,7 +146,7 @@ pub(crate) fn wait_for_event(timeout: Option<Duration>) -> io::Result<bool> {
                 let left = limit.saturating_sub(start.elapsed());
                 if left.is_zero() {
                     flush_held_esc()?;
-                    return Ok(crossterm_poll(Duration::ZERO)?);
+                    return crossterm_poll(Duration::ZERO);
                 }
                 left.min(Duration::from_millis(50))
             }
