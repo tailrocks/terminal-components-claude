@@ -843,9 +843,12 @@ pub fn first_use_tag_frame(w: &World) -> bool {
     w.scenario == Scenario::FirstUse && w.now_ms() == 80
 }
 
-/// Harness history-on value. `HOLLA_NO_HISTORY=1` and an unset variable keep the no-history plate.
+/// Whether the usage history is on.
+///
+/// History is on by default, the way the frozen reference runs it. The
+/// `HOLLA_NO_HISTORY=1` switch turns it off.
 pub fn history_enabled() -> bool {
-    std::env::var_os("HOLLA_NO_HISTORY").is_some_and(|value| value == "0")
+    !std::env::var_os("HOLLA_NO_HISTORY").is_some_and(|value| value == "1")
 }
 
 /// Tag `monorepo-root` at fixture tick 40. Later seeks keep the concept home.
@@ -886,15 +889,13 @@ pub fn launch_failure_tag_frame(w: &World) -> bool {
     w.scenario == Scenario::LaunchFailure && w.now_ms() == 80
 }
 
-/// Launch-failure activity layout. The frozen reference composes it only at the
-/// three fixture sizes (80×24, 100×30, 120×40); every other viewport keeps the
-/// generic activity page, and later seeks stay off it (frozen-reference quirk,
-/// audit 2026-10-21).
-pub fn launch_failure_activity_frame(w: &World, width: u16, height: u16) -> bool {
-    launch_failure_tag_frame(w)
-        && ((width == 80 && height == 24)
-            || (width == 100 && height == 30)
-            || (width == 120 && height == 40))
+/// Launch-failure activity layout.
+///
+/// The policy is a width band, not a captured frame size: the frozen reference
+/// composes the failure card at every viewport it renders, so every width in
+/// the band gets the card.
+pub fn launch_failure_activity_frame(w: &World, width: u16) -> bool {
+    launch_failure_tag_frame(w) && (80..=160).contains(&width)
 }
 
 /// Tag `hard-cases` at fixture tick 40. Later seeks keep the concept home.
@@ -6165,19 +6166,18 @@ mod tests {
     #[test]
     fn launch_failure_activity_frame_is_only_the_tick_40_fixture_sizes() {
         let mut world = fixtures::world_for(Scenario::LaunchFailure);
-        assert!(!launch_failure_activity_frame(&world, 80, 24));
+        assert!(!launch_failure_activity_frame(&world, 80));
         world.seek(40);
-        assert!(!launch_failure_activity_frame(&world, 160, 50));
-        assert!(!launch_failure_activity_frame(&world, 80, 40));
-        assert!(!launch_failure_activity_frame(&world, 81, 24));
-        assert!(launch_failure_activity_frame(&world, 80, 24));
-        assert!(launch_failure_activity_frame(&world, 100, 30));
-        assert!(launch_failure_activity_frame(&world, 120, 40));
+        assert!(launch_failure_activity_frame(&world, 80));
+        assert!(launch_failure_activity_frame(&world, 100));
+        assert!(launch_failure_activity_frame(&world, 120));
+        assert!(launch_failure_activity_frame(&world, 160));
+        assert!(!launch_failure_activity_frame(&world, 60));
         world.seek(4_000);
-        assert!(!launch_failure_activity_frame(&world, 80, 24));
+        assert!(!launch_failure_activity_frame(&world, 80));
         let mut other = fixtures::world_for(Scenario::HardCases);
         other.seek(40);
-        assert!(!launch_failure_activity_frame(&other, 80, 24));
+        assert!(!launch_failure_activity_frame(&other, 80));
     }
 
     #[test]
