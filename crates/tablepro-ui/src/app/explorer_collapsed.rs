@@ -68,6 +68,18 @@ mod tests {
     }
 
     #[test]
+    fn editing_footer_keeps_esc_and_drops_complete_when_narrow() {
+        let costs = [12u16, 15, 21, 12, 10, 10];
+        let pinned = [false, false, false, false, false, true];
+        let (keep, ellipsis) = super::super::fit_hint_mask(&costs, 45, &pinned);
+        assert!(ellipsis);
+        assert_eq!(keep, vec![true, true, false, false, false, true]);
+        let (wide, ellipsis) = super::super::fit_hint_mask(&costs, 85, &pinned);
+        assert!(!ellipsis);
+        assert!(wide.iter().all(|on| *on));
+    }
+
+    #[test]
     fn footer_keeps_explain_when_the_status_does_not_fit() {
         let costs = [12u16, 12, 15, 16, 8, 10];
         let status = 25u16;
