@@ -23,6 +23,7 @@ ratatui-core.workspace = true
 [dev-dependencies]
 ratatui.workspace = true
 termrock.workspace = true
+termrock-test-support.workspace = true
 # The reach harness drives the runtime over a test buffer; its surface stays
 # out of production builds, so the runtime's testing feature is dev-only here.
 termrock-runtime = { workspace = true, features = ["testing"] }

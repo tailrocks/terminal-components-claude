@@ -672,6 +672,19 @@ class RunnerGuards(unittest.TestCase):
         with self.assertRaisesRegex(runner.RunnerError, "reference decision receipt binding"):
             runner.validate_reference_receipts({key: (reference["ansi_sha256"], reference["semantic_frame_sha256"], None)}, [runner.REFERENCE_CASE], "baseline-capture", decision, runner.REFERENCE_DECISIONS_SHA256)
 
+    def test_reference_receipt_rejects_unrelated_claim_with_selected_pin(self) -> None:
+        decision = runner.validate_reference_decision_document(json.loads((Path(runner.__file__).resolve().parent / "frozen_cli_references.json").read_text()))
+        key = (decision["tuple"]["case_id"], decision["tuple"]["ordinal"], decision["tuple"]["logical_name"])
+        reference = decision["live_frame"]
+        selected = [runner.REFERENCE_CASE]
+        valid = (reference["ansi_sha256"], reference["semantic_frame_sha256"], runner.REFERENCE_DECISIONS_SHA256)
+        unrelated = ("showcase/unrelated", 0, "showcase/unrelated")
+        with self.assertRaisesRegex(runner.RunnerError, "unselected or unrelated checkpoint"):
+            runner.validate_reference_receipts({key: valid, unrelated: valid}, selected, "baseline-capture", decision, runner.REFERENCE_DECISIONS_SHA256)
+        strict = (reference["ansi_sha256"], reference["semantic_frame_sha256"], None)
+        runner.validate_reference_receipts({key: strict}, selected, "baseline-check", decision, runner.REFERENCE_DECISIONS_SHA256)
+        runner.validate_reference_receipts({key: strict}, selected, "candidate-check", decision, runner.REFERENCE_DECISIONS_SHA256)
+
     def test_checkpoint_paths_remain_below_portable_filename_limit(self) -> None:
         case = "holla/activities/activities-multi-with-history/120x40/truecolor"
         logical = "holla/activities/activities-multi-with-history/120x40/truecolor"
@@ -3275,6 +3288,79 @@ class RunnerGuards(unittest.TestCase):
             with patch.object(sys, "argv", argv), redirect_stderr(io.StringIO()) as errors:
                 self.assertEqual(runner.main(), 1)
             self.assertIn("requires explicit --fresh-cohort and --baseline-bin-dir", errors.getvalue())
+
+    def test_prepare_live_owned_deadline_during_path_resolution_prevents_preparation(self) -> None:
+        for cancellation in ("deadline", "signal"):
+            with self.subTest(cancellation=cancellation), tempfile.TemporaryDirectory() as temp:
+                root = Path(temp).resolve()
+                source = root / "source"
+                repo = root / "repo"
+                baseline_bins = root / "bins"
+
+                def slow_paths(_repo: Path, _root: Path):
+                    if cancellation == "signal":
+                        signal.raise_signal(signal.SIGTERM)
+                    else:
+                        time.sleep(1.05)
+                    return repo, root, source
+
+                with patch.object(runner, "paths", side_effect=slow_paths), patch.object(runner, "verify_source") as verify, patch.object(runner, "prepare_live_source") as prepare_live:
+                    argv = [
+                        "frozen_baseline.py", "--repo", str(repo), "--root", str(root), "prepare-live",
+                        "--fresh-cohort", runner.PREPARE_LIVE_OWNED_COHORT, "--baseline-bin-dir", str(baseline_bins),
+                        "--owned-lifecycle", "--owned-budget", "1",
+                    ]
+                    with patch.object(sys, "argv", argv), redirect_stdout(io.StringIO()) as output, redirect_stderr(io.StringIO()) as errors:
+                        self.assertEqual(runner.main(), 1)
+                self.assertEqual(output.getvalue(), "")
+                self.assertIn("cancelled by signal" if cancellation == "signal" else "work deadline expired", errors.getvalue())
+                verify.assert_not_called()
+                prepare_live.assert_not_called()
+
+    def test_prepare_live_owned_final_output_flush_is_postchecked_and_legacy_stays_default(self) -> None:
+        for cancellation in ("deadline", "signal"):
+            with self.subTest(cancellation=cancellation), tempfile.TemporaryDirectory() as temp:
+                root = Path(temp).resolve()
+                repo = root / "repo"
+                source = root / "source"
+                live_record = {"result": "synthetic-live-source-ready"}
+                original_print = print
+
+                def late_print(*args: object, **kwargs: object) -> None:
+                    if args == (json.dumps(live_record, indent=2),):
+                        self.assertTrue(kwargs.get("flush"))
+                        original_print(*args, **kwargs)
+                        if cancellation == "signal":
+                            signal.raise_signal(signal.SIGTERM)
+                        else:
+                            time.sleep(1.05)
+                        return
+                    original_print(*args, **kwargs)
+
+                with (
+                    patch.object(runner, "paths", return_value=(repo, root, source)),
+                    patch.object(runner, "verify_source", return_value="source"),
+                    patch.object(runner, "prepare_live_source", return_value=live_record),
+                    patch("builtins.print", side_effect=late_print),
+                ):
+                    argv = [
+                        "frozen_baseline.py", "--repo", str(repo), "--root", str(root), "prepare-live",
+                        "--fresh-cohort", runner.PREPARE_LIVE_OWNED_COHORT, "--baseline-bin-dir", str(root / "bins"),
+                        "--owned-lifecycle", "--owned-budget", "1",
+                    ]
+                    with patch.object(sys, "argv", argv), redirect_stdout(io.StringIO()) as output, redirect_stderr(io.StringIO()) as errors:
+                        self.assertEqual(runner.main(), 1)
+                self.assertEqual(output.getvalue(), json.dumps(live_record, indent=2) + "\n")
+                self.assertIn("cancelled by signal" if cancellation == "signal" else "work deadline expired", errors.getvalue())
+
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp).resolve()
+            record = {"legacy": True}
+            with patch.object(runner, "paths", return_value=(root, root, root / "source")), patch.object(runner, "verify_source"), patch.object(runner, "prepare_live_source", return_value=record), redirect_stdout(io.StringIO()) as output:
+                argv = ["frozen_baseline.py", "--repo", str(root), "--root", str(root), "prepare-live"]
+                with patch.object(sys, "argv", argv):
+                    self.assertEqual(runner.main(), 0)
+            self.assertEqual(output.getvalue(), json.dumps(record, indent=2) + "\n")
 
 
 class CorpusModifierParity(unittest.TestCase):

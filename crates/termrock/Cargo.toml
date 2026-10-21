@@ -43,6 +43,10 @@ name = "ex02_text_input"
 required-features = ["testing"]
 
 [[test]]
+name = "public_component_contracts"
+required-features = ["testing"]
+
+[[test]]
 name = "slots"
 required-features = ["testing"]
 
