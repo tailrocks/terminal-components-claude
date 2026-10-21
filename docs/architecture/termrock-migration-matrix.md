@@ -6,8 +6,8 @@ Updated: 2026-10-20. Status: **in progress; all four applications incomplete**. 
 
 | Source | Identity recorded before this work | Use |
 | --- | --- | --- |
-| `parity/termrock-visual-baseline` | `0b8f4e32b24a137987307600b10d892bec0619c3` (remote observation 2026-10-20 10:52:50 UTC) | PR #38 candidate branch |
-| `design/interaction-polish` | `f4867e9b5f8a08a3bb61ce80d644198a29f51984` (same observation) | Recover useful contracts; comparison branch |
+| `parity/termrock-visual-baseline` | `0b8f4e32b24a137987307600b10d892bec0619c3` (remote observation 2026-10-20 10:52:50 UTC); current audit tip `106f71c6917461a06e6d74a97ea1ca95eb21ee7b` (2026-10-22) | PR #38 candidate branch |
+| `design/interaction-polish` | `f4867e9b5f8a08a3bb61ce80d644198a29f51984` (same observation); current audit tip `f2f6eb716c4a512be3dc9423742fa06e86879b32` | Recover useful contracts; comparison branch |
 | `visual-baseline` tag object | `2718a6b8127a522a3d351d0b4bdb7542fc8da542` | Frozen oracle; never move |
 | Frozen source commit | `4169783ae883788186d161af09ba9c481bd84e5c`, tree `ad0f7cf8899df8c5fea3ced3f60adf0ac9a2d297` | Isolated baseline archive and CLI binaries |
 | Tuiscotti | `a1ea27f757d75d07b05499276cd932e9f8e067ad` | Fixed PTY and frame-comparison tool |
@@ -105,3 +105,4 @@ The staged contract work above is not all present in the candidate branch. Sourc
 
 - Deliberate candidate defect: isolated frozen source changed only the default caret from `Bar` to `Block`; the runner recorded its dirty source fingerprint and separate candidate binary hashes. Frozen capture/replay passed and candidate comparison failed solely on hidden cursor shape, with zero differing cells. Evidence: `/Users/donbeave/Projects/termrock-live-hidden-cursor-proof-20261020/live-paired/1792496903298882000-d4f64b7e5c12`. The immutable baseline and approvals were unchanged.
 - Shared publication checkpoint: PR `0168ccc15246343e6a1f846a30bf7964991b439c` and design `46ff0ebbf457ed46da301706229d941ee985a102` were pushed and remote IDs verified. Thirteen shared test/helper/manifest/documentation files were byte-identical; the identity manifest is `/Users/donbeave/Projects/termrock-cli-evidence-20261020/shared-semantic-branch-identity.json`. These remain partial test-system checks, not application acceptance.
+- Remote branch cleanup inventory (2026-10-22): 165 remote branches audited against candidate baseline `origin/parity/termrock-visual-baseline` (`106f71c691`). Identified 9 protected branches + `visual-baseline` tag (never delete); 65 branches fully merged or subsumed into baseline (safe for immediate deletion); 51 obsolete past-sprint branches (safe to delete or archive); and 40 active in-flight WIP branches under active consolidation. Full disposition and commands recorded in [branch cleanup inventory](../audits/2026-10-22-branch-cleanup-inventory.md).
