@@ -1,3 +1,6 @@
+#[path = "common/tab_navigation.rs"]
+mod tab_navigation;
+
 use tablepro_ui::{Surface, TableProApp};
 use termrock::{Id, KeyCode, Theme};
 use termrock_test_support::Harness;
@@ -39,6 +42,216 @@ fn choosing_a_query_tab_moves_focus_to_its_editor() {
         "{:?}",
         harness.diagnostics()
     );
+}
+
+#[test]
+fn new_query_focus_belongs_to_the_visible_editor_at_adjacent_viewports() -> Result<(), &'static str>
+{
+    for (width, height) in [(119, 40), (120, 40), (121, 40), (120, 39), (120, 41)] {
+        let mut app = TableProApp::new();
+        assert!(app.connect(0));
+        let mut harness = Harness::new(app, Theme::junie(), width, height);
+
+        let _ = harness.ctrl('t');
+
+        let Some(key) = harness.app().workbench.active_key() else {
+            unreachable!("Ctrl+T creates an active query tab")
+        };
+        assert!(matches!(
+            harness.app().workbench.active(),
+            Some(tablepro_ui::Tab::Query(query)) if query.query.is_empty()
+        ));
+        let editor = key.control("query");
+        assert_eq!(harness.focus(), Some(editor), "viewport {width}×{height}");
+        let Some(entry) = harness.ring().entry(editor) else {
+            return Err("query editor is registered");
+        };
+        assert!(
+            entry.area.width > 0 && entry.area.height > 0,
+            "focused query editor has positive resolved bounds at {width}×{height}: {:?}",
+            entry.area
+        );
+        assert_eq!(harness.area_of(editor), Some(entry.area));
+        assert!(
+            harness.cursor().is_some(),
+            "visible query editor owns its cursor at {width}×{height}"
+        );
+        assert!(
+            harness.diagnostics().is_empty(),
+            "viewport {width}×{height}: {:?}",
+            harness.diagnostics()
+        );
+    }
+    Ok(())
+}
+
+#[test]
+fn inactive_query_editor_receives_focus_out_without_ending_its_edit_session() {
+    for (connection, width, resized_width) in
+        [(0, 119, 121), (0, 121, 119), (4, 119, 121), (4, 121, 119)]
+    {
+        let mut app = TableProApp::new();
+        assert!(app.connect(connection));
+        let mut harness = Harness::new(app, Theme::junie(), width, 40);
+
+        let _ = harness.ctrl('t');
+        let Some(first) = harness.app().workbench.active_key() else {
+            unreachable!("Ctrl+T creates an active query tab")
+        };
+        let first_editor = first.control("query");
+        assert_eq!(harness.focus(), Some(first_editor));
+        assert_eq!(harness.diagnostics(), []);
+        assert!(matches!(
+            harness.app().workbench.active(),
+            Some(tablepro_ui::Tab::Query(query)) if query.editor_state.editor().is_editing()
+        ));
+        let sql = "SELECT '東京 e\u{301}' AS saved_draft";
+        let _ = harness.type_str(sql);
+        let Some(tablepro_ui::Tab::Query(query)) = harness.app().workbench.active() else {
+            unreachable!("first Ctrl+T creates a query tab")
+        };
+        assert_eq!(query.query, sql);
+        assert_eq!(harness.diagnostics(), []);
+
+        let _ = harness.resize(resized_width, 40);
+        assert_eq!(harness.focus(), Some(first_editor));
+        assert!(harness.cursor().is_some());
+        assert_eq!(harness.diagnostics(), []);
+
+        let _ = harness.ctrl('t');
+        let Some(second) = harness.app().workbench.active_key() else {
+            unreachable!("second Ctrl+T creates an active query tab")
+        };
+        let second_editor = second.control("query");
+        assert_ne!(first, second);
+        assert_eq!(harness.focus(), Some(second_editor));
+        assert!(harness.cursor().is_some());
+        assert_eq!(harness.diagnostics(), []);
+        assert!(matches!(
+            harness.app().workbench.tabs().iter().find(|tab| tab.key() == first),
+            Some(record)
+                if matches!(record.payload(), tablepro_ui::Tab::Query(query)
+                    if query.editor_state.editor().is_editing()
+                        && query.editor_state.editor().text() == sql
+                        && query.query == sql)
+        ));
+    }
+}
+
+#[test]
+fn active_query_editor_commits_when_focus_moves_to_its_results() {
+    let mut app = TableProApp::new();
+    assert!(app.connect(0));
+    let outcome = app.run_query("SELECT id, email FROM customers LIMIT 3");
+    assert!(matches!(
+        outcome,
+        tablepro_ui::QueryOutcome::Executed { .. }
+    ));
+    let Some(query_id) = app.query_id() else {
+        unreachable!("running a query creates its editor")
+    };
+    let Some(results_id) = app.result_id() else {
+        unreachable!("running a query creates its result grid")
+    };
+    let mut harness = Harness::new(app, Theme::junie(), 120, 40);
+
+    assert!(tab_navigation::tab_to(&mut harness, query_id));
+    let _ = harness.key(KeyCode::End);
+    let _ = harness.type_str(" -- draft");
+    let Some(tablepro_ui::Tab::Query(query)) = harness.app().workbench.active() else {
+        unreachable!("active tab remains a query")
+    };
+    assert!(query.editor_state.editor().is_editing());
+    assert!(query.query.ends_with(" -- draft"));
+
+    assert!(tab_navigation::tab_to(&mut harness, results_id));
+
+    let Some(tablepro_ui::Tab::Query(query)) = harness.app().workbench.active() else {
+        unreachable!("active tab remains a query")
+    };
+    assert!(!query.editor_state.editor().is_editing());
+    assert!(query.query.ends_with(" -- draft"));
+    assert!(
+        harness.diagnostics().is_empty(),
+        "{:?}",
+        harness.diagnostics()
+    );
+}
+
+#[test]
+fn new_query_focus_follows_the_real_editor_after_resize_and_typing() -> Result<(), &'static str> {
+    let mut app = TableProApp::new();
+    assert!(app.connect(4));
+    assert!(app.workbench.new_query("SELECT 1").is_some());
+    let mut harness = Harness::new(app, Theme::junie(), 119, 40);
+    let tabs_before = harness.app().workbench.tabs().len();
+
+    let _ = harness.ctrl('t');
+    let Some(key) = harness.app().workbench.active_key() else {
+        unreachable!("Ctrl+T creates an active query tab")
+    };
+    let editor = key.control("query");
+    assert_eq!(harness.focus(), Some(editor));
+    assert_eq!(harness.app().workbench.tabs().len(), tabs_before + 1);
+    let Some(editor_area) = harness
+        .area_of(editor)
+        .filter(|area| area.width > 0 && area.height > 0)
+    else {
+        return Err("active query editor has resolved bounds");
+    };
+    assert!(
+        harness
+            .state_of(editor)
+            .contains(termrock::StateFlags::FOCUSED)
+    );
+    let Some(cursor) = harness.cursor() else {
+        return Err("focused editor owns the terminal cursor");
+    };
+    assert!(
+        cursor.x >= editor_area.x
+            && cursor.x < editor_area.right()
+            && cursor.y >= editor_area.y
+            && cursor.y < editor_area.bottom(),
+        "cursor {cursor:?} belongs to resolved editor area {editor_area:?}"
+    );
+    assert!(
+        harness.diagnostics().is_empty(),
+        "after new tab: {:?}",
+        harness.diagnostics()
+    );
+
+    let _ = harness.type_str("SELECT 1");
+    let Some(tablepro_ui::Tab::Query(query)) = harness.app().workbench.active() else {
+        unreachable!("active tab remains a query")
+    };
+    assert_eq!(query.query, "SELECT 1");
+    assert_eq!(harness.focus(), Some(editor));
+    assert!(
+        harness.diagnostics().is_empty(),
+        "after typing: {:?}",
+        harness.diagnostics()
+    );
+
+    let _ = harness.resize(121, 40);
+    assert_eq!(harness.focus(), Some(editor));
+    assert!(
+        harness
+            .area_of(editor)
+            .is_some_and(|area| area.width > 0 && area.height > 0)
+    );
+    assert!(harness.cursor().is_some());
+    assert!(
+        harness.diagnostics().is_empty(),
+        "after resize: {:?}",
+        harness.diagnostics()
+    );
+
+    assert!(
+        harness.diagnostics().is_empty(),
+        "{:?}",
+        harness.diagnostics()
+    );
+    Ok(())
 }
 
 #[test]

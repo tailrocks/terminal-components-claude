@@ -363,6 +363,24 @@ impl LayerDraw {
             .unwrap_or(false)
     }
 
+    /// Write the replayed underlay onto this layer cell and keep its symbol.
+    /// A later raw edit can then change the resolved ink without losing the
+    /// inherited foreground.
+    pub(crate) fn materialize_underlay(
+        &mut self,
+        pos: Position,
+        page_cell: &ratatui_core::buffer::Cell,
+        page_roles: CellRoles,
+    ) {
+        let Some(intent) = self.underlay_at(pos).cloned() else {
+            return;
+        };
+        let Some(dst) = self.buf.cell_mut(pos) else {
+            return;
+        };
+        let _roles = intent.composite(page_cell, page_roles, dst);
+    }
+
     pub(crate) fn composite_onto(&self, page: &mut Buffer, roles: &mut [CellRoles]) {
         let screen = *page.area();
         let area = self.buf.area().intersection(*page.area());
