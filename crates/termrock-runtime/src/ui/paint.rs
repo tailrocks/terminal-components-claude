@@ -426,6 +426,30 @@ impl Ui<'_> {
         self.mark_area(area, Some(s));
     }
 
+    /// Space-fill `bg` while keeping the page cell's foreground and modifiers.
+    ///
+    /// Baseline popup fill calls `set_style` with a background only, so the
+    /// glyph becomes a space and the ink underneath stays. Layer buffers start
+    /// empty, so this copies that ink from the page before later paints patch it.
+    pub fn fill_keep_ink(&mut self, area: Rect, bg: Color) {
+        let area = area.intersection(self.clip);
+        if area.is_empty() {
+            return;
+        }
+        for pos in area.positions() {
+            let ink = self.page.cell(pos).map(|cell| (cell.fg, cell.modifier));
+            if let Some(cell) = self.buffer().cell_mut(pos) {
+                cell.set_symbol(" ");
+                if let Some((fg, modifier)) = ink {
+                    cell.fg = fg;
+                    cell.modifier = modifier;
+                }
+                cell.bg = bg;
+            }
+            self.mark(pos, None);
+        }
+    }
+
     pub fn rule(&mut self, area: Rect) {
         let g = self.theme_ref().design.glyphs.get(GlyphRole::RuleQuiet);
         let s = self.paint_patch(&crate::theme::StylePatch::new().set_fg(Role::BorderSubtle));
