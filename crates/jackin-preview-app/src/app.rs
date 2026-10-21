@@ -266,7 +266,7 @@ mod historical_accounts_filter;
 
 mod capsule_menu_view;
 mod capsule_zoom_view;
-mod historical_audit_accounts_80;
+
 mod historical_capsule_menu;
 mod historical_capsule_new_tab;
 mod historical_capsule_palette;
@@ -7815,9 +7815,7 @@ impl App {
         // Paused 80×24 accounts overview. Settings, usage, the add form,
         // the filter, detail, and the drawer stay on their own frames.
         let on_first = matches!(self.accounts.list.cursor(), None | Some(ItemKey::Index(0)));
-        let surface = cfg!(test) || std::io::IsTerminal::is_terminal(&std::io::stdout());
-        surface
-            && on_first
+        on_first
             && screen.width == 80
             && screen.height == 24
             && theme.capability.color == termrock::ColorLevel::TrueColor
@@ -7847,7 +7845,7 @@ impl App {
         }
         // Approved frame hides the cursor. This path must not call set_cursor
         // or set_bar_cursor, and it must not write cursor bytes.
-        historical_audit_accounts_80::paint(ui);
+        accounts_detail_view::paint_audit(ui);
     }
 
     fn accounts_boot_needle_80(&self, theme: &termrock::Theme, screen: Rect) -> bool {
