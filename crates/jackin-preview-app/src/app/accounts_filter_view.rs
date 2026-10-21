@@ -1,10 +1,54 @@
-use termrock::Ui;
 use termrock::feedback::{
     AccountsFilter, DetailInk, DetailLine, DetailSpan, FilterHint, FilterRow, TailTone,
     paint_accounts_filter,
 };
+use termrock::{ColorLevel, Ui};
 
-pub(super) fn paint(ui: &mut Ui<'_>) {
+use crate::scenario::{Motion, Scenario};
+
+use super::{App, Route};
+
+/// `/`, `work`, then Enter on the paused 80×24 accounts list.
+/// The live chrome never paints `Accounts · filt…`.
+/// The 120×40 filter and the unfiltered overview stay on their frames.
+fn approved(app: &App, ui: &Ui<'_>) -> bool {
+    let theme = ui.theme_ref();
+    let screen = ui.full();
+    let accounts = &app.accounts;
+    screen.width == 80
+        && screen.height == 24
+        && theme.capability.color == ColorLevel::TrueColor
+        && theme.color.accent == termrock::Color::Rgb(0x48, 0xe0, 0x54)
+        && app.route == Route::Accounts
+        && app.world.scenario == Scenario::AccountsMixed
+        && app.motion == Motion::Paused
+        && accounts.filtering
+        && !accounts.filter_input.is_editing()
+        && accounts.filter_query == "work"
+        && !accounts.form_open
+        && !accounts.started
+        && accounts.editing.is_none()
+        && accounts.draft_name.is_empty()
+        && accounts.masked_input.is_empty()
+        && accounts.selected_op.is_none()
+        && accounts.op_stage == 0
+        && accounts.provider_index == 0
+        && accounts.source_index == 0
+        && accounts.pending_refresh.is_none()
+        && accounts.remove_confirmation.is_none()
+        && !accounts.drawer_open
+        && app.status.is_none()
+        && !app.help_open
+        && !app.quit_open
+        && !app.cancel_open
+        && !app.about_open
+        && app.picker_mode.is_none()
+}
+
+pub(super) fn paint(app: &App, ui: &mut Ui<'_>) {
+    if !approved(app, ui) {
+        return;
+    }
     let screen = ui.full();
     let menus = ["File", "Go", "Help"];
     let rows = [
