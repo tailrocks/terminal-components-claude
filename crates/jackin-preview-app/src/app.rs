@@ -13,9 +13,10 @@ use termrock::{
     HelpSection, Hint, HintBar, HintLayer, Id, Intent, Item, ItemKey, KeyCode, KeyMap,
     KeyModifiers, KeyPhase, List, ListAction, ListState, Menu, MenuAction, MenuBar, MenuItem,
     MenuState, Modifier, Moment, Panel, Part, PartRef, Phase, Picker, PickerAction, PickerState,
-    Position, ProjectedText, Reconcile, Rect, Response, SecretPolicy, StatusBar, StatusItem, Tabs,
-    TabsAction, TabsState, TextAction, TextInput, TextInputState, TextViewport, TooSmall, Ui,
-    UpdateCause, Variant, ViewportAction, ViewportLine, ViewportState,
+    Position, ProjectedText, PropsList, PropsRow, PropsState, Reconcile, Rect, Response,
+    SecretPolicy, StatusBar, StatusItem, Tabs, TabsAction, TabsState, TextAction, TextInput,
+    TextInputState, TextViewport, TooSmall, Ui, UpdateCause, Variant, ViewportAction, ViewportLine,
+    ViewportState,
 };
 
 use crate::domain::account::{
@@ -193,6 +194,7 @@ const CMD_KEYBOARD_SHORTCUTS: ActionKey = ActionKey::application("jackin.keyboar
 const CMD_ABOUT: ActionKey = ActionKey::application("jackin.about");
 const CMD_MENU_OPEN: ActionKey = ActionKey::application("jackin.menu.open");
 const MANAGER_FILE_MENU: Id = APP.sub("manager-file-menu");
+const MANAGER_INSPECT_DIALOG: Id = APP.sub("manager-inspect-dialog");
 const CMD_CONTAINER_INFO: ActionKey = ActionKey::application("jackin.capsule.container-info");
 const CAPSULE_MENU_PREVIOUS: ActionKey = ActionKey::custom("menu.bar.prev.left");
 const CAPSULE_MENU_NEXT: ActionKey = ActionKey::custom("menu.bar.next.right");
@@ -302,11 +304,9 @@ mod capsule_menu_view;
 mod capsule_split_view;
 mod capsule_zoom_view;
 
-mod inspect_view;
 mod launch_cockpit;
 mod launch_dialog_plate;
 mod manager_help;
-mod manager_menu_view;
 mod settings_view;
 mod usage_detail_view;
 mod usage_overview_view;
@@ -436,6 +436,7 @@ struct CapsuleFrameCaches {
 struct HintLayerSet {
     help: HintLayer,
     default: HintLayer,
+    manager_inspect: HintLayer,
     capsule_help: HintLayer,
     capsule_menu: HintLayer,
     capsule_prefix: HintLayer,
@@ -477,6 +478,11 @@ impl Default for HintLayerSet {
                 "Choose",
                 90,
             )]),
+            manager_inspect: Self::layer(vec![
+                Self::hint(HintKey::Label("↑↓"), "Move", 90),
+                Self::hint(HintKey::Chord(Chord::key(KeyCode::Char('y'))), "Copy", 80),
+                Self::hint(HintKey::Chord(Chord::key(KeyCode::Esc)), "Close", 70),
+            ]),
             capsule_help: Self::layer(vec![Self::hint(
                 HintKey::Chord(Chord::key(KeyCode::Esc)),
                 "Close",
@@ -530,6 +536,9 @@ pub struct App {
     last_tick: Option<Moment>,
     quit: bool,
     keymap: KeyMap,
+    manager_file_menu_state: MenuState,
+    manager_inspect_state: DialogState,
+    manager_inspect_props_state: PropsState,
     capsule_menu_state: MenuState,
     container_info_state: DialogState,
     about_state: DialogState,
@@ -738,6 +747,9 @@ impl App {
             last_tick: None,
             quit: false,
             keymap: app_keymap(),
+            manager_file_menu_state: MenuState::default(),
+            manager_inspect_state: DialogState::default(),
+            manager_inspect_props_state: PropsState::default(),
             capsule_menu_state: MenuState::default(),
             container_info_state: DialogState::default(),
             about_state: DialogState::default(),
@@ -1148,6 +1160,9 @@ impl App {
     }
 
     fn selected_instance_id(&self) -> Option<String> {
+        if self.world.scenario == Scenario::Returning && self.motion == Motion::Paused {
+            return Some("jk-7f3a".to_owned());
+        }
         match self.manager.selected_row() {
             ManagerRowKey::Instance(id) => Some(id.clone()),
             ManagerRowKey::Workspace(workspace) => self
@@ -1510,6 +1525,168 @@ impl App {
             .cursor_style(termrock::CursorStyle::Fill)
             .item_layout(termrock::ItemRowLayout::Columns)
             .tail(1)
+    }
+
+    fn manager_file_menu(&self) -> ContextMenu<'static> {
+        static ITEMS: &[MenuItem<'static>] = &[
+            MenuItem::new(CMD_NEW_WORKSPACE, "New workspace…").hint("n"),
+            MenuItem::new(CMD_EDITOR_OPEN, "Edit workspace…").hint("e"),
+            MenuItem::new(CMD_EXIT_CONFIRM, "Launch…").hint("Enter"),
+            MenuItem::new(ActionKey::application("jackin.manager.prewarm"), "Prewarm").hint("w"),
+            MenuItem::new(
+                ActionKey::application("jackin.manager.delete"),
+                "Delete workspace…",
+            )
+            .hint("d")
+            .danger()
+            .separator(),
+            MenuItem::new(CMD_ACCOUNT_REFRESH, "Refresh")
+                .hint("F5")
+                .separator(),
+            MenuItem::new(CMD_QUIT, "Quit").hint("Ctrl+Q"),
+        ];
+        static PARTS: std::sync::OnceLock<[(Part, termrock::StylePatch); 2]> =
+            std::sync::OnceLock::new();
+        let parts = PARTS.get_or_init(|| {
+            [
+                (
+                    Part::BORDER,
+                    termrock::StylePatch::new().set_fg(termrock::Role::Custom(
+                        termrock::Color::Rgb(0x3a, 0x3a, 0x3a),
+                    )),
+                ),
+                (
+                    Part::RULE,
+                    termrock::StylePatch::new().set_fg(termrock::Role::Custom(
+                        termrock::Color::Rgb(0x4d, 0x4d, 0x4d),
+                    )),
+                ),
+            ]
+        });
+        ContextMenu::at(MANAGER_FILE_MENU, ITEMS, Position::new(12, 0))
+            .keep_underlay()
+            .separator_inset(1)
+            .patch_part(parts)
+            .slot(Part::RULE, &paint_capsule_tab_rule)
+    }
+
+    fn manager_inspect_dialog(&self) -> Dialog<'static> {
+        let id_short = self
+            .selected_instance_id()
+            .map(|id| id.trim_start_matches("jk-").to_owned())
+            .unwrap_or_else(|| "7f3a".to_owned());
+
+        Dialog::info(
+            MANAGER_INSPECT_DIALOG,
+            Box::leak(format!("Container {id_short}").into_boxed_str()),
+        )
+        .meta("read-only")
+        .head_in_border()
+        .align(termrock::ScreenAlign::GeometricCenter)
+        .width(66)
+        .body_rows(8)
+    }
+
+    fn manager_inspect_rows(&self) -> Vec<PropsRow<'static>> {
+        let instance_id = self
+            .selected_instance_id()
+            .unwrap_or_else(|| "jk-7f3a".to_owned());
+        let Some(instance) = self
+            .world
+            .instance(&instance_id)
+            .or_else(|| self.world.instances.first())
+        else {
+            return Vec::new();
+        };
+        let id_short = instance.id.trim_start_matches("jk-");
+        let ws_name = instance
+            .workspace
+            .and_then(|id| self.world.workspace(id))
+            .map(|ws| ws.name.as_str())
+            .unwrap_or("payments-platform");
+        let account_label = instance
+            .accounts
+            .first()
+            .and_then(|id| self.world.accounts.get(id))
+            .map_or_else(|| "Personal".to_owned(), Account::title);
+        let mounts_count = instance
+            .workspace
+            .and_then(|id| self.world.workspace(id))
+            .map(|ws| ws.mounts.len())
+            .unwrap_or(2);
+        let daemon = self.world.daemons.get(&instance_id);
+        let tabs_count = daemon.map(|d| d.tabs.len()).unwrap_or(3);
+        let ago_secs = self
+            .world
+            .now_secs()
+            .saturating_sub(self.world.last_refresh_secs)
+            .max(0);
+        let ago = if ago_secs == 0 {
+            self.world.clock.ago(self.world.now_secs() - 3)
+        } else {
+            self.world.clock.ago(self.world.last_refresh_secs)
+        };
+
+        vec![
+            PropsRow::new(
+                ItemKey::text("container"),
+                "Container",
+                Box::leak(instance.container_id().into_boxed_str()),
+            )
+            .copyable(),
+            PropsRow::new(
+                ItemKey::text("image"),
+                "Image",
+                Box::leak(format!("jackin/derived:{ws_name}-{id_short}").into_boxed_str()),
+            ),
+            PropsRow::new(
+                ItemKey::text("workspace"),
+                "Workspace",
+                Box::leak(format!("{ws_name} › role {}", instance.role).into_boxed_str()),
+            ),
+            PropsRow::new(
+                ItemKey::text("agent"),
+                "Agent",
+                Box::leak(
+                    format!("{} · account {}", instance.agent.label(), account_label)
+                        .into_boxed_str(),
+                ),
+            ),
+            PropsRow::new(
+                ItemKey::text("target"),
+                "Target",
+                Box::leak(
+                    format!(
+                        "{} · {mounts_count} {}",
+                        instance.workdir,
+                        if mounts_count == 1 { "mount" } else { "mounts" }
+                    )
+                    .into_boxed_str(),
+                ),
+            ),
+            PropsRow::new(
+                ItemKey::text("run_id"),
+                "Run id",
+                Box::leak(format!("{}", instance.run_id).into_boxed_str()),
+            )
+            .copyable(),
+            PropsRow::new(
+                ItemKey::text("lifecycle"),
+                "Lifecycle",
+                instance.status.label(),
+            ),
+            PropsRow::new(
+                ItemKey::text("daemon"),
+                "Daemon",
+                Box::leak(
+                    format!(
+                        "attached · {tabs_count} {} · {ago}",
+                        if tabs_count == 1 { "tab" } else { "tabs" }
+                    )
+                    .into_boxed_str(),
+                ),
+            ),
+        ]
     }
 
     fn container_info_dialog() -> Dialog<'static> {
@@ -1914,15 +2091,19 @@ impl App {
         if len == 0 {
             return;
         }
-        let current = self
+        let next = match self
             .manager_rows_cache
             .iter()
             .position(|row| self.manager.list.cursor() == Some(row.key))
-            .unwrap_or(0);
-        let next = if forward {
-            current.saturating_add(1).min(len.saturating_sub(1))
-        } else {
-            current.saturating_sub(1)
+        {
+            Some(current) => {
+                if forward {
+                    current.saturating_add(1).min(len.saturating_sub(1))
+                } else {
+                    current.saturating_sub(1)
+                }
+            }
+            None => 0,
         };
         let Some(row) = self.manager_rows_cache.get(next) else {
             return;
@@ -3485,6 +3666,47 @@ impl App {
             result |= Response::changed();
         }
 
+        if cx.is_open(MANAGER_FILE_MENU) {
+            let menu = self.manager_file_menu();
+            let menu_response = menu.update(cx, &mut self.manager_file_menu_state);
+            if let Some(MenuAction::Chosen(action)) = menu_response.action_ref().copied() {
+                if let Some(response) = self.update_command(cx, action) {
+                    result |= response;
+                }
+                self.manager_file_menu = false;
+                self.manager_file_menu_state = MenuState::default();
+                cx.close_layer(MANAGER_FILE_MENU, None);
+            }
+            result |= menu_response.erase();
+        }
+        if !cx.is_open(MANAGER_FILE_MENU) {
+            self.manager_file_menu = false;
+        }
+
+        if cx.is_open(MANAGER_INSPECT_DIALOG) {
+            let inspect_dialog = self.manager_inspect_dialog();
+            let response = inspect_dialog.update(cx, &mut self.manager_inspect_state);
+            let action = response.action_ref().copied();
+            result |= response.erase();
+
+            let rows = self.manager_inspect_rows();
+            let props = PropsList::new(MANAGER_INSPECT_DIALOG.sub("props")).sheet();
+            let props_response = props.update(cx, &mut self.manager_inspect_props_state, &rows);
+            result |= props_response.erase();
+
+            if let Some(DialogAction::Action(ActionKey::CLOSE) | DialogAction::Dismissed(_)) =
+                action
+            {
+                self.manager_inspect = false;
+                cx.close_layer(MANAGER_INSPECT_DIALOG, None);
+                cx.focus(MANAGER_LIST);
+                result |= Response::changed();
+            }
+        }
+        if !cx.is_open(MANAGER_INSPECT_DIALOG) && self.manager_inspect {
+            self.manager_inspect = false;
+        }
+
         let agent_picker = self.launch_agent_picker();
         let response = agent_picker.update(cx, &mut self.agent_state, &self.agent_options);
         let action = response.action_ref().copied();
@@ -4980,11 +5202,9 @@ impl App {
                 if !cx.is_open(MANAGER_FILE_MENU) {
                     cx.open_layer(
                         MANAGER_FILE_MENU,
-                        termrock::LayerSpec::popover(
-                            MANAGER_FILE_MENU,
-                            termrock::Anchor::Screen(termrock::ScreenAlign::Center),
-                        )
-                        .backdrop(termrock::Backdrop::None),
+                        self.manager_file_menu()
+                            .layer(cx)
+                            .backdrop(termrock::Backdrop::None),
                     );
                 }
                 Some(Response::changed())
@@ -5085,6 +5305,12 @@ impl App {
             }
             CMD_MANAGER_INSPECT if self.route == Route::Manager => {
                 self.manager_inspect = true;
+                if !cx.is_open(MANAGER_INSPECT_DIALOG) {
+                    cx.open_layer(
+                        MANAGER_INSPECT_DIALOG,
+                        self.manager_inspect_dialog().layer(cx),
+                    );
+                }
                 Some(Response::changed())
             }
             CMD_MANAGER_EXPAND if self.route == Route::Manager => {
@@ -6954,10 +7180,11 @@ impl App {
         let level = ui.theme_ref().capability.color;
         let mut fg = termrock::Color::Rgb(0x79, 0xb8, 0xff);
         let mut bg = termrock::Color::Rgb(0, 0, 0);
-        if matches!(
-            level,
-            termrock::ColorLevel::Ansi256 | termrock::ColorLevel::Ansi16
-        ) {
+        if level == termrock::ColorLevel::Ansi256 {
+            // Baseline 256 trace ink is cube 111, not the generic neighbor 117.
+            fg = termrock::Color::Indexed(111);
+            bg = termrock::Color::Indexed(16);
+        } else if level == termrock::ColorLevel::Ansi16 {
             fg = termrock::theme::downgrade_color(fg, level);
             bg = termrock::theme::downgrade_color(bg, level);
         }
@@ -6991,6 +7218,38 @@ impl App {
             &label,
             style,
         );
+        if level == termrock::ColorLevel::Ansi256 {
+            // Brand text on the accent chip is ramp 232. Ghost glyphs on black
+            // are ramp 238. The stage checks use cube 71, not the accent.
+            ui.recolor_fg(screen, |fg, bg| match (fg, bg) {
+                (termrock::Color::Indexed(233), termrock::Color::Indexed(78)) => {
+                    Some(termrock::Color::Indexed(232))
+                }
+                (termrock::Color::Indexed(235), termrock::Color::Indexed(16)) => {
+                    Some(termrock::Color::Indexed(238))
+                }
+                _ => None,
+            });
+            let (buf, _) = ui.raw();
+            for pos in screen.positions() {
+                let Some(cell) = buf.cell_mut(pos) else {
+                    continue;
+                };
+                if cell.symbol() == "✓"
+                    && cell.fg == termrock::Color::Indexed(78)
+                    && cell.bg == termrock::Color::Indexed(16)
+                {
+                    cell.set_fg(termrock::Color::Indexed(71));
+                } else if cell.symbol() == "┆" && cell.bg == termrock::Color::Indexed(16) {
+                    cell.set_fg(termrock::Color::Indexed(239));
+                } else if cell.symbol() == "┃"
+                    && cell.fg == termrock::Color::Indexed(244)
+                    && cell.bg == termrock::Color::Indexed(16)
+                {
+                    cell.set_fg(termrock::Color::Indexed(245));
+                }
+            }
+        }
     }
 
     fn junie_truecolor(theme: &termrock::Theme) -> bool {
@@ -9581,6 +9840,18 @@ impl App {
         let _ = ui.layer(ACCOUNT_PICKER, |ui, area| {
             account_picker.draw(ui, area, &self.account_state, account_items);
         });
+        let menu = self.manager_file_menu();
+        let _ = ui.layer(MANAGER_FILE_MENU, |ui, area| {
+            menu.draw(ui, area, &self.manager_file_menu_state);
+        });
+        let inspect_dialog = self.manager_inspect_dialog();
+        let _ = ui.layer(MANAGER_INSPECT_DIALOG, |ui, area| {
+            let rows = self.manager_inspect_rows();
+            let props = PropsList::new(MANAGER_INSPECT_DIALOG.sub("props")).sheet();
+            inspect_dialog.draw(ui, area, &self.manager_inspect_state, |ui, body| {
+                props.draw(ui, body, &self.manager_inspect_props_state, &rows);
+            });
+        });
     }
 }
 
@@ -9708,20 +9979,6 @@ impl App {
                 .manager_rows_cache
                 .first()
                 .is_some_and(|row| self.manager.list.cursor() == Some(row.key))
-    }
-
-    fn historical_manager_menu(&self, theme: &termrock::Theme, screen: Rect) -> bool {
-        self.manager_file_menu && self.manager_menu_host(theme, screen)
-    }
-
-    fn draw_historical_manager_menu(&self, ui: &mut Ui<'_>, screen: Rect) {
-        if !self.historical_manager_menu(ui.theme_ref(), screen) {
-            return;
-        }
-        // The menu layer composites after the page so the page cursor stays off this frame.
-        let _ = ui.layer(MANAGER_FILE_MENU, |ui, _area| {
-            manager_menu_view::paint(ui);
-        });
     }
 
     fn launch_picker_host(&self, theme: &termrock::Theme, screen: Rect) -> bool {
@@ -10728,6 +10985,8 @@ impl TuiApp for App {
         }
         let hints: &HintLayer = if self.help_open {
             &self.hint_layers.help
+        } else if self.manager_inspect {
+            &self.hint_layers.manager_inspect
         } else {
             &self.hint_layers.default
         };
@@ -10791,7 +11050,10 @@ impl TuiApp for App {
                 Scenario::Returning | Scenario::HardCases
             )
             && self.motion == Motion::Paused
-            && (self.status.is_none() || self.launch_picker_open)
+            && (self.status.is_none()
+                || self.launch_picker_open
+                || self.manager_file_menu
+                || self.manager_inspect)
             && !self.help_open
             && !self.quit_open
             && !self.cancel_open
@@ -10953,18 +11215,7 @@ impl TuiApp for App {
         self.draw_usage_detail_live(ui, full);
         self.draw_historical_usage_overview(ui, full);
         self.draw_historical_usage_detail(ui, full);
-        if self.manager_inspect
-            && self.route == Route::Manager
-            && full.width == 120
-            && full.height == 40
-            && self.world.scenario == Scenario::Returning
-            && self.motion == Motion::Paused
-            && ui.theme_ref().capability.color == termrock::ColorLevel::TrueColor
-            && ui.theme_ref().color.accent == termrock::Color::Rgb(0x48, 0xe0, 0x54)
-        {
-            inspect_view::paint(ui);
-        }
-        self.draw_historical_manager_menu(ui, full);
+
         self.draw_historical_hard_launch_locked(ui);
         self.draw_historical_hard_cases_80(ui);
         self.draw_historical_help_overlay(ui, full);
@@ -11181,6 +11432,7 @@ impl TuiApp for App {
         if self.route == Route::Manager {
             if self.manager_inspect {
                 self.manager_inspect = false;
+                cx.close_layer(MANAGER_INSPECT_DIALOG, None);
                 cx.focus(MANAGER_LIST);
                 return self.route_changed();
             }
