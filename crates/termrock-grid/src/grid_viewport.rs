@@ -59,6 +59,21 @@ pub struct GridViewport {
     pub status_text: Rect,
 }
 
+impl GridViewport {
+    /// Whether the viewport has a grid body to draw.
+    ///
+    /// A host that draws a grid in a region too short for a body and its bar
+    /// row asks the viewport instead of comparing sizes itself.
+    pub fn has_grid_body(&self) -> bool {
+        self.grid.height > 0
+    }
+
+    /// Whether a text of `text_width` columns fits the status text area.
+    pub fn status_text_fits(&self, text_width: u16) -> bool {
+        text_width <= self.status_text.width
+    }
+}
+
 /// Carve a grid viewport out of `area`.
 ///
 /// The grid body takes the rows that are left once the header band, the
