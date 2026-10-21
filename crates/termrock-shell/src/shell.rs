@@ -181,6 +181,9 @@ pub struct ShellSlots<'a> {
 impl ShellSlots<'_> {
     /// Configure the outer composition adapter while keeping shell geometry
     /// inside this block's single chrome resolver.
+    /// The spec configures the outer one-child composition, not the spacing
+    /// between header, body and footer. Configure internal spacing with
+    /// [`Chrome::gap`] before creating the slots.
     #[must_use]
     pub const fn spec(mut self, spec: termrock_layout::Composition) -> Self {
         self.spec = spec;
