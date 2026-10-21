@@ -9,6 +9,12 @@ existing methods and borrows its existing `MasterDetailState`; it adds no
 interaction handler, state, renderer, or layout policy. Invalid blocks are
 rejected when the adapter is created.
 
+The adapter contributes its contained group depth to the shared composition
+depth accounting. This includes one layer for the block plus its deepest
+master/detail/summary group, so an enclosing `Group` cannot hide an over-depth
+tree. The `Group` already implemented `Measure` and `CompositionLeaf`; only the
+stateful `MasterDetail` bridge was missing.
+
 The external consumer test composes different domain data through public
 Termrock APIs. It compares the adapter with direct placement across offsets,
 widths around the configured breakpoint, narrow/zero widths, a resize, and
@@ -24,6 +30,13 @@ stable-key keyboard activation, and retained component state.
 - `crates/termrock/tests/manager_composition_consumer.rs` is a separately
   compiled integration consumer; it imports only the public `termrock` facade.
 - `crates/termrock/Cargo.toml` registers that test explicitly with `testing`.
+- `crates/termrock/examples/master_detail_composition_consumer.rs` is an
+  additional default-feature facade-only downstream example, registered as an
+  explicit Cargo example target. It uses separate project data and compiles
+  without the runtime testing feature.
+- The consumer test also checks that a mixed hierarchy at depth 128 is
+  accepted while depths 129 and 130 return the shared depth error before
+  recursive measurement.
 
 ## Limits / remaining work
 

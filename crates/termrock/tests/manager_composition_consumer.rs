@@ -1,6 +1,6 @@
 use termrock::author::{CompositionLeaf, Measure};
 use termrock::blocks::{AppShell, MasterDetail, MasterDetailPolicy, MasterDetailState};
-use termrock::composition::{self, Group};
+use termrock::composition::{self, CompositionError, Group};
 use termrock::controls::Button;
 use termrock::navigation::{NavList, NavListAction, NavListState};
 use termrock::{
@@ -153,7 +153,7 @@ impl CompositionLeaf for DirectMasterDetail<'_> {
     }
 }
 
-fn publish(runtime: &mut Runtime<ManagerConsumer>, area: Rect, buffer: &mut Buffer) {
+fn publish<T: App>(runtime: &mut Runtime<T>, area: Rect, buffer: &mut Buffer) {
     for _ in 0..16 {
         if runtime.needs_settle() {
             let _ = runtime.settle();
@@ -185,6 +185,64 @@ fn render(
         buffer,
         runtime.registry().regions().to_vec(),
     )
+}
+
+struct DepthConsumer {
+    wrappers: usize,
+    accepted: bool,
+}
+
+impl App for DepthConsumer {
+    fn update(&mut self, _cx: &mut Cx<'_>) -> Response<()> {
+        Response::ignored()
+    }
+
+    fn draw(&self, ui: &mut Ui<'_>) {
+        let master_button = Button::new(MASTER, "Different project domain");
+        let detail_button = Button::new(DETAIL, "Inspect project");
+        let master = nested_buttons(&master_button, 126);
+        let detail = nested_buttons(&detail_button, 126);
+        let block = manager_block().master(&master).detail(&detail);
+        let state = MasterDetailState::default();
+        let block = composition::master_detail(&block, &state)
+            .expect("master/detail's own nested groups remain below the limit");
+        let mut group = Group::column([block]);
+        for _ in 0..self.wrappers {
+            group = Group::column([group.into_child()]);
+        }
+
+        let result = group.measure(ui, termrock::Constraints::loose(120, 40));
+        if self.accepted {
+            result.expect("depth 128 is accepted");
+            group
+                .show(ui)
+                .expect("depth 128 is drawable through the same composition resolver");
+        } else {
+            assert!(matches!(
+                result,
+                Err(CompositionError::DepthExceeded {
+                    depth,
+                    maximum: 128
+                }) if depth == 129 + self.wrappers - 1
+            ));
+            assert!(matches!(
+                group.show(ui),
+                Err(CompositionError::DepthExceeded {
+                    depth,
+                    maximum: 128
+                }) if depth == 129 + self.wrappers - 1
+            ));
+        }
+    }
+}
+
+fn nested_buttons<'a>(button: &'a Button<'a>, depth: usize) -> Group<'a> {
+    assert!(depth > 0);
+    let mut group = Group::column([composition::button(button)]);
+    for _ in 1..depth {
+        group = Group::column([group.into_child()]);
+    }
+    group
 }
 
 fn key_input(runtime: &mut Runtime<ManagerConsumer>, area: Rect, code: KeyCode) -> Buffer {
@@ -269,6 +327,17 @@ fn external_shell_master_detail_group_consumer_matches_direct_component_geometry
         assert_eq!(direct.focus(), composed.focus());
         assert_eq!(direct.cursor_position(), composed.cursor_position());
         assert_eq!(direct.app().block_state, composed.app().block_state);
+    }
+}
+
+#[test]
+fn mixed_group_and_master_detail_depth_counts_block_and_internal_groups() {
+    for (wrappers, accepted) in [(0, true), (1, false), (2, false)] {
+        let mut runtime = Runtime::new(DepthConsumer { wrappers, accepted }, Theme::junie());
+        let _ = runtime.initialize();
+        let area = Rect::new(0, 0, 120, 40);
+        let mut buffer = Buffer::empty(area);
+        publish(&mut runtime, area, &mut buffer);
     }
 }
 
