@@ -1770,7 +1770,11 @@ impl App {
             paint_launch_failure_footer(ui, footer);
             return;
         }
-        let tag_confirm = if self.world.scenario == Scenario::ParityDiscovery {
+        // The discovery scenario keeps its tag footer in every band, not only
+        // on the frozen mid frame: a later seek keeps the concept home and
+        // the footer that goes with it.
+        let discovery = self.world.scenario == Scenario::ParityDiscovery;
+        let tag_confirm = if discovery {
             Some(("Confirm…", None))
         } else if crate::sim::catalogue::first_use_tag_frame(&self.world) {
             Some(("Open", None))
@@ -1908,8 +1912,7 @@ impl App {
             let monorepo_root_mid =
                 mid && crate::sim::catalogue::monorepo_root_tag_frame(&self.world);
             let hard_cases_mid = mid && crate::sim::catalogue::hard_cases_tag_frame(&self.world);
-            let discovery_mid =
-                mid && crate::sim::catalogue::parity_discovery_tag_frame(&self.world);
+            let discovery_mid = mid && discovery;
             let history_plate =
                 parity_history_clipped_plate(&self.world, ui.full().width, ui.full().height);
             let files_plate =
@@ -1943,7 +1946,7 @@ impl App {
                         || crate::sim::catalogue::monorepo_child_tag_frame(&self.world)
                         || crate::sim::catalogue::remote_host_tag_frame(&self.world)
                         || crate::sim::catalogue::hard_cases_tag_frame(&self.world)
-                        || self.world.scenario == Scenario::ParityDiscovery))
+                        || discovery))
             {
                 ACTIVITIES_HINT_PARTS
             } else {
