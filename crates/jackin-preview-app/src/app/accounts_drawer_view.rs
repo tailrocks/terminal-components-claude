@@ -1,10 +1,18 @@
 use termrock::Ui;
 use termrock::feedback::{
-    AccountRole, AccountsDrawer, DetailAlert, DetailHint, DetailInk, DetailLine, DetailSpan,
-    DrawerButton, DrawerInk, DrawerLine, DrawerMeter, DrawerTone, PaneRow, SettingsCluster,
+    AccountRole, AccountsDrawer, DetailAlert, DetailInk, DetailLine, DetailSpan, DrawerButton,
+    DrawerInk, DrawerLine, DrawerMeter, DrawerTone, FilterHint, PaneRow, SettingsCluster,
 };
 
 pub(super) fn paint(ui: &mut Ui<'_>) {
+    paint_impl(ui, false);
+}
+
+pub(super) fn paint_detail(ui: &mut Ui<'_>) {
+    paint_impl(ui, true);
+}
+
+fn paint_impl(ui: &mut Ui<'_>, detail: bool) {
     let mut rows = vec![
         pane(
             AccountRole::Root,
@@ -218,11 +226,19 @@ pub(super) fn paint(ui: &mut Ui<'_>) {
         },
     ];
     let validation_line = DetailLine { spans: &validation };
-    let lines = [
+    let title_line = if detail {
+        DrawerLine::DetailTitle {
+            title: "Claude · Work",
+            meta: "account · exhausted",
+        }
+    } else {
         DrawerLine::Title {
             title: "Claude · Work",
             meta: "account · exhausted",
-        },
+        }
+    };
+    let lines = [
+        title_line,
         DrawerLine::Rule,
         field("Provider", "Anthropic / Claude", DrawerInk::Plain),
         field("Agent runtime", "Claude Code", DrawerInk::Plain),
@@ -356,20 +372,63 @@ pub(super) fn paint(ui: &mut Ui<'_>) {
         ]),
         DrawerLine::Blank,
     ];
-    let hints = [
-        DetailHint {
+    let drawer_hints = [
+        FilterHint {
             key: "↑↓",
             action: "Scroll",
         },
-        DetailHint {
+        FilterHint {
             key: "Tab",
             action: "Actions",
         },
-        DetailHint {
+        FilterHint {
             key: "Esc",
             action: "Back",
         },
     ];
+    let detail_hints = [
+        FilterHint {
+            key: "Enter",
+            action: "Details",
+        },
+        FilterHint {
+            key: "r",
+            action: "Refresh",
+        },
+        FilterHint {
+            key: "e",
+            action: "Edit…",
+        },
+        FilterHint {
+            key: "Space",
+            action: "Default",
+        },
+        FilterHint {
+            key: "t",
+            action: "Disable",
+        },
+        FilterHint {
+            key: "v",
+            action: "Validate",
+        },
+        FilterHint {
+            key: "d",
+            action: "Remove…",
+        },
+        FilterHint {
+            key: "a",
+            action: "Add…",
+        },
+        FilterHint {
+            key: "/",
+            action: "Filter",
+        },
+        FilterHint {
+            key: "Esc",
+            action: "Back",
+        },
+    ];
+    let hints: &[FilterHint<'_>] = if detail { &detail_hints } else { &drawer_hints };
     termrock::feedback::paint_accounts_drawer(
         ui,
         ui.full(),
@@ -387,7 +446,7 @@ pub(super) fn paint(ui: &mut Ui<'_>) {
             summary: " 12 · 4 ▲ · 4 ! ",
             rows: &rows,
             lines: &lines,
-            hints: &hints,
+            hints,
         },
     );
 }

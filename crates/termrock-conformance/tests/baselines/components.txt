@@ -1,6 +1,6 @@
 # digest baseline: name w h theme color hash — regenerate with BLESS=1, review like source
-overlay::modal_over_page 40 12 junie truecolor 3c8e778916f8d0cd
-overlay::nested_picker_over_dialog 40 12 junie truecolor 3c8e778916f8d0cd
+overlay::modal_over_page 40 12 junie truecolor 37b4593b4bce643d
+overlay::nested_picker_over_dialog 40 12 junie truecolor 37b4593b4bce643d
 render::components::brand::default 120 40 junie mono ef1cd1e975f4611e
 render::components::brand::default 120 40 junie truecolor 9d2d64860f2f8023
 render::components::brand::default 120 40 paper mono 9e50413b3fc34bda

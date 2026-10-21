@@ -62,6 +62,10 @@ pub enum DrawerLine<'a> {
         title: &'a str,
         meta: &'a str,
     },
+    DetailTitle {
+        title: &'a str,
+        meta: &'a str,
+    },
     Rule,
     Field {
         label: &'a str,
@@ -475,6 +479,24 @@ fn paint_line(
                 y,
                 title,
                 bold(ink.primary, ink.chrome),
+            );
+            put(
+                ui,
+                area,
+                align.saturating_sub(width(meta)),
+                y,
+                meta,
+                plain(ink.faint, ink.chrome),
+            );
+        }
+        DrawerLine::DetailTitle { title, meta } => {
+            put(
+                ui,
+                area,
+                content_x.saturating_add(2),
+                y,
+                title,
+                plain(ink.secondary, ink.chrome),
             );
             put(
                 ui,
