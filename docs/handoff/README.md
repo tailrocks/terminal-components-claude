@@ -58,3 +58,14 @@ Resume points:
 - Regression source: `crates/termrock-controls/tests/props_sheet_regressions.rs`. Five probes cover bounds-clipped copy hints, wrapped-value bottom clipping, per-row copy-hint space, measured label width, and explicit part-style Set/Clear precedence. Red evidence is recorded in `docs/audits/2026-10-21-props-sheet-shared-contract.md`.
 - Independent probe: `/private/tmp/termrock-props-sheet-independent-e4b919-20261021/crates/termrock-controls/tests/independent_props_sheet.rs`; immutable packet `/Users/donbeave/Projects/termrock-cli-evidence-20261021/props-sheet-independent-review-e4b919-20261021/review.json`, SHA-256 `2d156d1e8d6dba332d2844869481bc075ad3cec580319fb71e1a96d93c1685e7`. These reviewer files remain read-only.
 - Next: parent publishes/merges the implementation commit when the shared lock is available, then asks the independent reviewer to rerun the immutable probe against the merged exact commit. Independent re-review, application parity, large-list alternate-theme coverage, Dialog chrome/scope, Jackin app migration, and full Tuiscotti gates remain incomplete.
+
+## PropsList wrap/reveal correction (2026-10-21)
+
+- Branch: `wip/props-dialog-contract-stage1-20261021`
+- Exact source tip: `c1ed94e0e445908c27965ec581d2459c491ddc15`
+- Parent PropsList implementation: `386b895597b220d949304e506bd5c629792b8b25` (independent review found a new wrap/scroll regression; do not integrate that commit without this correction).
+- Source/test worktree: `/private/tmp/termrock-props-dialog-stage1-20261021`; clean after this handoff commit.
+- Correction passes logical wrapped geometry to `paint_value` and clips physical painting separately; it also keeps explicit container foregrounds above the default underlay-preserving clear. New regressions cover Down/reveal continuation at all four profiles and explicit container Set inherited through label Clear.
+- Pre-fix independent red evidence: `/private/tmp/termrock-props-386b8955-independent-review/tests/qualified_props_regressions.rs` and `/private/tmp/props-sheet-386b-qualified.log`; immutable compact comparison `/Users/donbeave/Projects/termrock-cli-evidence-20261021/branch-consolidation/props-386b-default480-compact-comparison.json`. Reviewer-prepared corrected probe is `/private/tmp/termrock-props-386b8955-independent-review/tests/qualified_props_regressions_v2.rs`; request independent rerun against `c1ed94e0e445908c27965ec581d2459c491ddc15` before integration. Preserve all reviewer artifacts read-only.
+- Focused nextest `7d30204a-3ec4-4627-82df-7bff4ef18fa1`: 7 passed. Full controls nextest `8f74d936-4fe4-44da-9af4-716811fcc3cc`: 153 passed, zero skipped. Strict scoped Clippy, rustfmt check, and diff check passed before source commit.
+- The author does not own the shared push lock and will not alter it. Parent owns publication; no application parity or Dialog/App completion is claimed.
