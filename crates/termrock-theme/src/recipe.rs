@@ -289,7 +289,7 @@ pub struct GlobalOverride {
     pub parts: PartMap<PartRecipe>,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub struct Recipes {
     by_family: Vec<(Family, Recipe)>,
     overrides: Vec<GlobalOverride>,
@@ -303,6 +303,21 @@ static NEXT_RECIPE_REVISION: AtomicU64 = AtomicU64::new(1);
 
 fn next_recipe_revision() -> u64 {
     NEXT_RECIPE_REVISION.fetch_add(1, Ordering::Relaxed)
+}
+
+impl std::fmt::Debug for Recipes {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        // `revision` is per-construction bookkeeping for cache invalidation.
+        // Two themes with the same recipes must print (and fingerprint) the
+        // same, so the revision is deliberately not part of the representation.
+        f.debug_struct("Recipes")
+            .field("by_family", &self.by_family)
+            .field("overrides", &self.overrides)
+            .field("neutral", &self.neutral)
+            .field("mono", &self.mono)
+            .field("level_families", &self.level_families)
+            .finish_non_exhaustive()
+    }
 }
 
 impl PartialEq for Recipes {
