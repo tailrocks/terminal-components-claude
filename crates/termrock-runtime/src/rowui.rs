@@ -281,6 +281,39 @@ impl<'u> RowUi<'u> {
         )
     }
 
+    /// Create an author row with an additional scoped container patch.
+    ///
+    /// This is for shared components whose row surface has a semantic
+    /// container patch independent of their other named-part overrides.
+    #[expect(
+        clippy::too_many_arguments,
+        reason = "the component-author row contract carries identity, state, geometry, parts, and one container patch"
+    )]
+    pub fn new_with_author_style_and_container_patch<'a: 'u>(
+        ui: &'u mut Ui<'a>,
+        owner: Id,
+        family: Family,
+        variant: Variant,
+        flags: StateFlags,
+        key: ItemKey,
+        row: Rect,
+        author_style: crate::author::PartStyle<'u>,
+        container_patch: StylePatch,
+    ) -> RowUi<'u> {
+        Self::construct(
+            ui,
+            owner,
+            family,
+            variant,
+            flags,
+            key,
+            row,
+            author_style,
+            Some(container_patch),
+            None,
+        )
+    }
+
     #[expect(
         clippy::too_many_arguments,
         reason = "the private constructor centralizes the public and component-author row paths"
