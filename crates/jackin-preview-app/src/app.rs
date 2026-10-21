@@ -307,6 +307,7 @@ mod launch_cockpit;
 mod launch_dialog_plate;
 mod manager_frame_view;
 mod manager_help;
+mod manager_help_overlay_view;
 mod manager_locked_view;
 mod settings_view;
 
@@ -10266,95 +10267,6 @@ impl App {
             && !cx.is_open(crate::screens::manager::AGENT_PICKER)
             && self.hard_launch_picker_host(cx.theme(), cx.viewport())
     }
-
-    fn historical_help_overlay(&self, theme: &termrock::Theme, screen: Rect) -> bool {
-        // `?` on the paused 120×40 returning manager. False for F10, Tab,
-        // the expanded tree, inspect, and every other host.
-        self.help_open
-            && !self.manager_file_menu
-            && !self.manager_inspect
-            && screen.width == 120
-            && screen.height == 40
-            && theme.capability.color == termrock::ColorLevel::TrueColor
-            && theme.color.accent == termrock::Color::Rgb(0x48, 0xe0, 0x54)
-            && self.route == Route::Manager
-            && self.world.scenario == Scenario::Returning
-            && self.motion == Motion::Paused
-            && self.status.as_deref() == Some("Keyboard shortcuts")
-            && !self.quit_open
-            && !self.cancel_open
-            && !self.about_open
-            && self.launch.is_none()
-            && self.picker_mode.is_none()
-            && self.agent_options.is_empty()
-            && self.active_instance.is_none()
-            && !self.manager.detail_open()
-            && self
-                .manager_rows_cache
-                .first()
-                .is_some_and(|row| self.manager.list.cursor() == Some(row.key))
-    }
-    fn draw_historical_help_overlay(&self, ui: &mut Ui<'_>, screen: Rect) {
-        if !self.historical_help_overlay(ui.theme_ref(), screen) {
-            return;
-        }
-        // The approved frame hides the cursor. Paint the manager, the shared
-        // help card, then dim only the underlay. Do not call set_cursor or
-        // set_bar_cursor.
-        self.paint_pinned_split(ui, screen, termrock::feedback::SplitMode::Saved, false);
-        // White primary dims to muted. The approved title is faint, which is
-        // where backdrop sends secondary ink.
-        ui.paint_str(
-            Rect::new(3, 2, 12, 1),
-            " Workspaces ",
-            PaintStyle::new().fg(termrock::Color::Rgb(0xb3, 0xb3, 0xb3)),
-        );
-        manager_help::draw(ui, screen, &HelpOverlayState::default());
-        // Backdrop clears the focus bar and turns accent ink faint. The
-        // approved gutter is a blank, so it dims to the overlay plane.
-        let select = termrock::Color::Rgb(0x17, 0x3f, 0x1c);
-        ui.paint_str(
-            Rect::new(3, 3, 1, 1),
-            " ",
-            PaintStyle::new().fg(select).bg(select),
-        );
-        manager_help::dim_underlay(ui, screen);
-        let hints = HintLayer {
-            hints: vec![
-                Hint {
-                    key: termrock::HintKey::Label("↑↓"),
-                    label: "Scroll",
-                    priority: 90,
-                },
-                Hint {
-                    key: termrock::HintKey::Chord(Chord::key(KeyCode::Esc)),
-                    label: "Close",
-                    priority: 80,
-                },
-            ],
-            badge: None,
-            status: None,
-            centered: false,
-        };
-        let footer = [(
-            Part::CONTAINER,
-            termrock::StylePatch::new()
-                .set_fg(termrock::Role::Custom(termrock::Color::Rgb(
-                    0xff, 0xff, 0xff,
-                )))
-                .set_bg(termrock::Role::Custom(termrock::Color::Rgb(0, 0, 0))),
-        )];
-        HintBar::new(APP.sub("hint"), &hints)
-            .patch_part(&footer)
-            .draw(
-                ui,
-                Rect {
-                    y: screen.bottom().saturating_sub(1),
-                    height: 1,
-                    ..screen
-                },
-            );
-    }
 }
 
 fn plural(count: usize, one: &str, many: &str) -> String {
@@ -11185,7 +11097,7 @@ impl TuiApp for App {
 
         manager_locked_view::paint(self, ui, full);
         manager_frame_view::paint(self, ui, full);
-        self.draw_historical_help_overlay(ui, full);
+        manager_help_overlay_view::paint(self, ui, full);
     }
 
     fn should_quit(&self) -> bool {
