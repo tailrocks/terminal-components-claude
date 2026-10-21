@@ -5134,11 +5134,19 @@ impl App {
                         Some(tab.focused)
                     };
                     self.capsule.zoomed = tab.zoomed.is_some();
-                    self.status = Some(if tab.zoomed.is_some() {
-                        "zoom · focused pane".into()
+                    // The 120-col stamp keys off this status. Other sizes keep
+                    // the session bar and put the zoom note on the hint row.
+                    let zoom_host = cx.viewport().width == 120
+                        && cx.viewport().height == 40
+                        && cx.theme().capability.color == termrock::ColorLevel::TrueColor
+                        && cx.theme().color.accent == termrock::Color::Rgb(0x48, 0xe0, 0x54);
+                    self.status = if tab.zoomed.is_some() && zoom_host {
+                        Some("zoom · focused pane".into())
+                    } else if tab.zoomed.is_some() {
+                        None
                     } else {
-                        "zoom off".into()
-                    });
+                        Some("zoom off".into())
+                    };
                     let snapshot = daemon.snapshot();
                     if let Some(instance) = self.world.instance_mut(&instance_id) {
                         instance.daemon = snapshot;
@@ -7523,11 +7531,21 @@ impl App {
     }
 
     fn draw_capsule_zoom(&self, ui: &mut Ui<'_>, screen: Rect) {
-        if !self.capsule_zoom_frame(ui.theme_ref(), screen) {
+        if self.capsule_zoom_frame(ui.theme_ref(), screen) {
+            capsule_zoom_view::paint(ui);
+            ui.set_undrawn_top_bar_cursor(CAPSULE_INPUT, ui.full(), Position::new(3, 34));
             return;
         }
-        capsule_zoom_view::paint(ui);
-        ui.set_cursor(CAPSULE_INPUT, Position::new(3, 34));
+        // The live 80-col zoom keeps the prompt caret on the last pane row.
+        // The input row is not drawn, so the caret has to be recorded here.
+        if self.capsule.zoomed
+            && screen.width == 80
+            && screen.height == 24
+            && ui.theme_ref().capability.color == termrock::ColorLevel::TrueColor
+            && ui.theme_ref().color.accent == termrock::Color::Rgb(0x48, 0xe0, 0x54)
+        {
+            ui.set_undrawn_top_bar_cursor(CAPSULE_INPUT, ui.full(), Position::new(3, 20));
+        }
     }
 
     fn capsule_menu_80(&self, theme: &termrock::Theme, screen: Rect) -> bool {
@@ -7787,6 +7805,22 @@ impl App {
                         );
                     }
                 }
+                if tab.zoomed == Some(pane_id) {
+                    let badge = " zoomed ";
+                    let badge_w = termrock::width(badge);
+                    let badge_x = pane_area.right().saturating_sub(2).saturating_sub(badge_w);
+                    let badge_style = ui.paint_patch(
+                        &termrock::StylePatch::new()
+                            .set_fg(termrock::Role::Fg(termrock::FgStep::Faint))
+                            .set_bg(termrock::Role::Surface(termrock::Surface::Canvas))
+                            .remove(Modifier::BOLD),
+                    );
+                    ui.paint_str(
+                        Rect::new(badge_x, pane_area.y, badge_w, 1),
+                        badge,
+                        badge_style,
+                    );
+                }
                 inner
             } else {
                 pane_area
@@ -7809,7 +7843,10 @@ impl App {
                 self.historical_capsule_frame() && Self::resting_capsule_hbar(inner, projected);
             let reserve_row = shrink
                 || rest_bar
-                || (focused && !self.historical_capsule_frame() && !self.capsule_tab_menu_open);
+                || (focused
+                    && !self.historical_capsule_frame()
+                    && !self.capsule_tab_menu_open
+                    && !self.capsule.zoomed);
             let viewport_area = Rect {
                 height: inner.height.saturating_sub(u16::from(reserve_row)),
                 ..inner
@@ -7842,7 +7879,9 @@ impl App {
                 );
             }
         }
-        self.paint_capsule_seams(ui, &seams);
+        if !self.capsule.zoomed {
+            self.paint_capsule_seams(ui, &seams);
+        }
     }
 
     fn paint_capsule_seams(&self, ui: &mut Ui<'_>, seams: &[crate::sim::pty::Seam]) {
@@ -8798,7 +8837,13 @@ impl App {
             .workspaces
             .first()
             .map_or("payments-platform", |workspace| workspace.name.as_str());
-        let attached = format!("Attached to {workspace} · tabs and panes restored");
+        let zoom_note = self.capsule.zoomed
+            && ui.theme_ref().color.accent == termrock::Color::Rgb(0x48, 0xe0, 0x54);
+        let attached = if zoom_note {
+            "Zoomed · z restores the layout".to_owned()
+        } else {
+            format!("Attached to {workspace} · tabs and panes restored")
+        };
         let layer = HintLayer {
             hints: vec![
                 Hint {
@@ -11072,7 +11117,13 @@ mod paint_contract_tests {
         );
         let _ = narrow.ctrl('b');
         let _ = narrow.key(KeyCode::Char('z'));
-        assert!(!narrow.text().contains("Zoomed · z restores the layout"));
+        assert_eq!(narrow.app().status, None);
+        assert!(
+            narrow.text().contains("Zoomed · z restores the layout"),
+            "{}",
+            narrow.text()
+        );
+        assert!(narrow.text().contains("zoomed"), "{}", narrow.text());
     }
 
     #[test]
