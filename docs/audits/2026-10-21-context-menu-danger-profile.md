@@ -35,7 +35,7 @@ ink equals that surface, the frozen resolver falls back to muted ink.
 ## Change
 
 `Theme::junie` adds capability profiles for the danger row's active, hover,
-pressed, and active-disabled combinations. The profiles provide exact source
+pressed, disabled, and active-disabled combinations. The profiles provide exact source
 ladder colors and modifier precedence. More-specific hover/press/disabled
 rules preserve their state over the active rest value. The disabled profile
 returns to `CurrentSurface`, uses the frozen disabled-ink fallback, removes
@@ -47,25 +47,34 @@ detach the profile channel; global, overlay-scope, instance, and part-local
 overrides still win. The test also verifies cache invalidation after replacing
 the runtime theme.
 
+An additional resolver check exposed that a disabled danger row could inherit
+generic hover styling. The disabled rule now retains the frozen `DangerSoft`
+ink and clears row fill and hover/press modifiers; the active-disabled rule
+also removes those transient modifiers while restoring the frozen surface and
+disabled ink. This keeps the disabled item inert at every capability level.
+
 ## Evidence
 
 `crates/termrock-overlays/tests/context_menu_danger_profile.rs` drives the
 public `ContextMenu` through a live `Harness`: Tab focus, keyboard Down, pointer
 hover and press, and keyboard activation. It checks committed cells, selected
 row state, and typed `ActionKey`; checks normal and inactive disabled rows;
-checks disabled profile resolution; exercises same-valued custom, different
+checks disabled profile resolution and verifies disabled rows ignore hover and
+press; exercises same-valued custom, different
 custom, and Clear patches at global, scope, instance, and local precedence;
 and checks theme replacement.
 
 Before the profile, the real-widget regression failed on the frozen active
 hover cell (`TrueColor` rest `Rgb(122,42,42)` versus expected hover
-`Rgb(140,48,48)`). After the profile, all six focused cases passed across all
+`Rgb(140,48,48)`). The disabled-hover resolver check also failed before the
+disabled precedence patch because that row resolved to the generic blue
+highlight. After both profile fixes, all six focused cases passed across all
 four capabilities. No frozen artifacts or expected snapshots changed.
 
 Checks on the implementation: `cargo nextest run -p termrock-theme
--p termrock-overlays --no-fail-fast` ran276 tests: 275 passed, the known
+-p termrock-overlays --no-fail-fast` ran280 tests: 279 passed, the known
 `capability_palettes::all_73_junie_slots_match_reference_capability_output`
-failed, and one test was skipped. `cargo clippy -p termrock-theme
+failed, and no tests were skipped. `cargo clippy -p termrock-theme
 -p termrock-overlays --all-targets --no-deps -- -D warnings` passed.
 `cargo fmt --all -- --check` passed. The 73-slot failure remains intentionally
 unblessed; this work did not update its expectations.
