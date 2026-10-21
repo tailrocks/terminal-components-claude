@@ -309,6 +309,87 @@ That delta is the single case already documented in
 `tools/frozen_cli_references.json` as
 `one_exact_stale_approval_live_pair_reference`.
 
+## Branch census (read-only audit, base `384b818b27`)
+
+153 remote refs. Verdicts: 36 contained, 60 superseded, 24 obsolete, 14
+merge candidates, 11 conflicting or duplicate, 5 keep-open, 1 doc-only, 1
+excluded by a recorded rejection, 1 frozen reference.
+
+Method: `git rev-list --count` for containment, `git patch-id --stable`
+against a 2061-entry patch-id map for supersession. `git cherry` was not
+trusted, because it mis-marks commits reachable through merges.
+
+### Merge order
+
+| # | Branch | Tip | Ahead | Delivers | Risk |
+| --- | --- | --- | --- | --- | --- |
+| 1 | `wip/session-consolidation-20261021` | `511f8e127e` | 72 | shared Grid-chrome block, Holla finder-plate and text-report blocks, public component contracts, library `expect()` removal | HIGH: re-blesses conformance digests and edits the Junie palette against the frozen oracle |
+| 2 | `wip/showcase-pages-migration-20261021` | `8997fd295f` | 50 | shared page-chrome block; showcase pages rewritten on shared blocks | HIGH: 39 source files, overlaps 1 |
+| 3 | `wip/showcase-heading-fixtures-20261021b` | `30001296a0` | 65 | heading and shell-header fixtures re-pointed at the tag reference | MED: frozen-oracle fixture rewrite |
+| 4 | `wip/showcase-dialog-kinds-restoration-20261021` | `260a10e361` | 14 | Showcase DialogKinds route, explicit action variants, initial text selection on focus | MED |
+| 5 | `wip/jackin-app-layer-20261021` | `c9e8798ffe` | 3 | component-author canvas primitives; Jackin app layer painted through them | MED |
+| 6 | `parity/edit-menu-overlay-20261020` | `12a24761ff` | 12 | shared field edit-menu overlay; parity has the request side but no overlay | MED-HIGH |
+| 7 | `wip/pr38-completion-verify-20261021` | `8e976098d1` | 3 | conformance overlays-before-input check, theme semantic fingerprint | MED |
+| 8 | `wip/holla-home-row-composition-20261021` | `06b9fe0b88` | 3 | home actions composed with NavList rows | MED: visual digest conflict already recorded |
+| 9 | `wip/tablepro-name-prefix-20261021` | `c8f92ea0c0` | 2 | preserve typed connection-name prefixes | LOW-MED |
+| 10 | `wip/tablepro-picker-scope-20261021` | `d40f8e5fb7` | 6 | avoid default Picker query retention; scope and selection-policy contract | MED |
+| 11 | `wip/velnor-actions-0136-20261021` | `507c232073` | 4 | Velnor Actions 0.1.36; parity pins 0.1.32 and AGENTS requires the latest | LOW-MED: generated files |
+| 12 | `parity/buttons-reference-decision-20261020` | `2289a4f476` | 4 | buttons frozen-reference decision, tool only | LOW: parity's tool has since grown, port selectively |
+
+`wip/action-variant-builder-20261021` and `wip/text-input-focus-select-20261021`
+carry commits that are already inside `wip/showcase-dialog-kinds-restoration-20261021`
+(`160b1c328`, `b1d767972`); merge them once only.
+
+### Cross-branch conflicts to resolve by hand
+
+- `crates/termrock-theme/src/{palettes.rs,builtin/mod.rs}` and
+  `crates/termrock-conformance/tests/baselines/components.txt`: branch 1 and
+  parity both re-bless digests with DIFFERENT adjudications. Exactly one can
+  land; the other is dropped, not merged.
+- `crates/termrock-editors/src/code.rs`: three different intents from
+  branches 4, 7 and an already-merged line.
+- `crates/termrock-overlays/src/picker.rs` and
+  `crates/termrock-navigation/src/filter_list.rs`: branches 6, 7 and 10.
+- `crates/holla-ui/src/screens/home.rs`: branch 1, the holla rate-limit line
+  and branch 8.
+- `crates/showcase-ui/src/app.rs` and `crates/showcase-demos/src/pages/*`:
+  branches 2, 4, this run's showcase stream and branch 1.
+- `crates/termrock-xtask/exceptions/v1.json`: branch 1 duplicates parity.
+- `crates/tablepro-domain/src/connections.rs`: branch 9 duplicates parity's
+  integrated blank-draft half.
+- `.github/**` and `mise.toml`: 0.1.32 against 0.1.35 against 0.1.36, one
+  winner only.
+- `crates/termrock-core/src/action.rs`: the same commit on two branches.
+
+### Never merge, never delete
+
+- `design/interaction-polish` (PR #26), tip `f2f6eb716c`, pinned review
+  commit `f4867e9b`. Reference only.
+- `main` and `origin/HEAD`.
+- The `visual-baseline` tag, object `2718a6b8127a522a3d351d0b4bdb7542fc8da542`.
+
+### Excluded by a recorded rejection
+
+`wip/jackin-live-capsule-menu-20261021` (`de819fb1ca`): the independent
+review rejects the author WIP. 184/184 passes became 170/185 after the
+change, 15 failures introduced, input rendering removed while the routing
+still targets `CAPSULE_INPUT`, and disabled reasons used as shortcut hints.
+Keep this source out of PR #38.
+
+### Keep open, do not delete
+
+`wip/holla-menu-patch-precedence-20261021`,
+`wip/owned-fresh-plan-lifecycle-20261021`,
+`wip/owned-runner-ordinary-phase-20261021`,
+`wip/holla-rate-limit-20261021`,
+`wip/jackin-rate-limit-20261021`.
+
+### Deletion rule
+
+A branch is deleted only when it has no open PR, its content is recorded in
+the migration record first, and its remote tip is still the sha measured
+here. The parity branch moved three times during the census.
+
 ## Coverage gaps
 
 ### False-parity inventory (read-only audit, revision `40bc297e5`)
