@@ -185,6 +185,7 @@ pub struct RowUi<'u> {
     flags: StateFlags,
     key: ItemKey,
     row: Rect,
+    container_width: u16,
     cursor_style: CursorStyle,
     author_style: crate::author::PartStyle<'u>,
     author_parts: Option<&'u [Part]>,
@@ -200,6 +201,7 @@ impl fmt::Debug for RowUi<'_> {
             .field("owner", &self.owner)
             .field("key", &self.key)
             .field("row", &self.row)
+            .field("container_width", &self.container_width)
             .field("left", &self.left)
             .field("right", &self.right)
             .finish_non_exhaustive()
@@ -217,6 +219,39 @@ impl<'u> RowUi<'u> {
         row: Rect,
     ) -> RowUi<'u> {
         Self::new_with_patches(ui, owner, family, variant, flags, key, row, None, None)
+    }
+
+    /// Create a component-author row with a local drawing area and its
+    /// owner's complete row width.
+    ///
+    /// See [`RowUi::container_width`] for the width contract. The ordinary
+    /// [`RowUi::new`] constructor uses `row.width` for both values.
+    #[expect(
+        clippy::too_many_arguments,
+        reason = "shared widgets pass the complete row allocation alongside the local content area"
+    )]
+    pub fn new_with_container_width<'a: 'u>(
+        ui: &'u mut Ui<'a>,
+        owner: Id,
+        family: Family,
+        variant: Variant,
+        flags: StateFlags,
+        key: ItemKey,
+        row: Rect,
+        container_width: u16,
+    ) -> RowUi<'u> {
+        Self::new_with_patches_and_container_width(
+            ui,
+            owner,
+            family,
+            variant,
+            flags,
+            key,
+            row,
+            container_width,
+            None,
+            None,
+        )
     }
 
     #[expect(
@@ -242,6 +277,46 @@ impl<'u> RowUi<'u> {
             flags,
             key,
             row,
+            row.width,
+            crate::author::PartStyle::new(),
+            container_patch,
+            label_patch,
+        )
+    }
+
+    /// Create a component-author row whose drawing area is narrower than its
+    /// owner's complete row allocation.
+    ///
+    /// `container_width` is the width allocated by the owning widget after it
+    /// removes any external scrollbar, but before it reserves internal row
+    /// content such as gutters, tree indentation, disclosure markers, or
+    /// trailing marks. `area()` continues to return the drawing area supplied
+    /// as `row`.
+    #[expect(
+        clippy::too_many_arguments,
+        reason = "shared widgets pass the complete row allocation alongside the local content area"
+    )]
+    pub fn new_with_patches_and_container_width<'a: 'u>(
+        ui: &'u mut Ui<'a>,
+        owner: Id,
+        family: Family,
+        variant: Variant,
+        flags: StateFlags,
+        key: ItemKey,
+        row: Rect,
+        container_width: u16,
+        container_patch: Option<StylePatch>,
+        label_patch: Option<StylePatch>,
+    ) -> RowUi<'u> {
+        Self::construct(
+            ui,
+            owner,
+            family,
+            variant,
+            flags,
+            key,
+            row,
+            container_width,
             crate::author::PartStyle::new(),
             container_patch,
             label_patch,
@@ -275,6 +350,7 @@ impl<'u> RowUi<'u> {
             flags,
             key,
             row,
+            row.width,
             author_style,
             None,
             None,
@@ -308,6 +384,7 @@ impl<'u> RowUi<'u> {
             flags,
             key,
             row,
+            row.width,
             author_style,
             Some(container_patch),
             None,
@@ -326,6 +403,7 @@ impl<'u> RowUi<'u> {
         flags: StateFlags,
         key: ItemKey,
         row: Rect,
+        container_width: u16,
         author_style: crate::author::PartStyle<'u>,
         container_patch: Option<StylePatch>,
         label_patch: Option<StylePatch>,
@@ -349,6 +427,7 @@ impl<'u> RowUi<'u> {
             flags,
             key,
             row,
+            container_width,
             cursor_style: CursorStyle::Bar,
             author_style,
             author_parts: None,
@@ -409,6 +488,15 @@ impl<'u> RowUi<'u> {
 
     pub const fn area(&self) -> Rect {
         self.row
+    }
+
+    /// Return the complete row width allocated by the owning widget.
+    ///
+    /// The width excludes any scrollbar the owner reserves outside the row,
+    /// and includes internal space reserved for gutters, tree structure, and
+    /// trailing marks. It can therefore be larger than `area().width`.
+    pub const fn container_width(&self) -> u16 {
+        self.container_width
     }
 
     /// Apply the active-row cursor policy before painting row contents.
