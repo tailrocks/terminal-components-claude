@@ -7643,6 +7643,34 @@ impl App {
             && !self.cancel_open
     }
 
+    /// Wide resting panes keep one row for the horizontal bar.
+    ///
+    /// The shared viewport no longer paints that bar. The paused capsule
+    /// still does: full width when the lines fit, and one column narrower
+    /// once a vertical bar is showing. A second pass uses the shortened
+    /// height, because that bar can be what makes the pane overflow.
+    fn resting_capsule_hbar(inner: Rect, projected: &ProjectedText) -> bool {
+        if inner.height <= 1 || inner.width < 2 {
+            return false;
+        }
+        let widest = projected.widest_cols();
+        let lines = projected.line_count();
+        let full = inner.width;
+        // Capsule viewports reserve a vertical bar plus one gap column.
+        let narrow = inner.width.saturating_sub(2);
+        let mut rows = inner.height;
+        let mut overflows = lines > usize::from(rows);
+        let mut text_w = if overflows { narrow } else { full };
+        let mut show = text_w > 0 && widest > usize::from(text_w);
+        if show {
+            rows = inner.height.saturating_sub(1);
+            overflows = lines > usize::from(rows);
+            text_w = if overflows { narrow } else { full };
+            show = text_w > 0 && widest > usize::from(text_w);
+        }
+        show
+    }
+
     fn draw_capsule_panes(&self, ui: &mut Ui<'_>, area: Rect) {
         let style = ui.surface_style();
         ui.fill(area, style);
@@ -7773,13 +7801,17 @@ impl App {
             let menu_frame = self.capsule_menu_120_frame(ui.theme_ref(), ui.full());
             let palette_frame = self.capsule_palette_120_frame(ui.theme_ref(), ui.full());
             // The approved picker, tab-menu, and command-palette frames
-            // shorten every pane by one row. Only the focused pane does
-            // this at rest.
+            // shorten every pane by one row. A resting wide pane keeps
+            // that row for its own horizontal bar. Only the focused pane
+            // reserves the input at rest.
             let shrink = split_frame || menu_frame || palette_frame;
-            let reserve_input = shrink
+            let rest_bar =
+                self.historical_capsule_frame() && Self::resting_capsule_hbar(inner, projected);
+            let reserve_row = shrink
+                || rest_bar
                 || (focused && !self.historical_capsule_frame() && !self.capsule_tab_menu_open);
             let viewport_area = Rect {
-                height: inner.height.saturating_sub(u16::from(reserve_input)),
+                height: inner.height.saturating_sub(u16::from(reserve_row)),
                 ..inner
             };
             let state = self
@@ -7790,8 +7822,11 @@ impl App {
             let viewport = Self::capsule_viewport(pane_id, focused);
             viewport.draw_projected(ui, viewport_area, &state, projected);
             // The menu frame reserves the last row. Wide panes put the
-            // horizontal bar there. Narrow panes stay blank.
-            if (menu_frame || palette_frame) && shrink && inner.height > viewport_area.height {
+            // horizontal bar there. Narrow panes stay blank. A resting
+            // wide pane does the same on its own reserved row.
+            if ((menu_frame || palette_frame) && shrink || rest_bar)
+                && inner.height > viewport_area.height
+            {
                 viewport.paint_horizontal_overflow(
                     ui,
                     Rect::new(inner.x, viewport_area.bottom(), inner.width, 1),
@@ -7799,7 +7834,7 @@ impl App {
                     viewport_area.height,
                 );
             }
-            if reserve_input && !shrink && !inner.is_empty() {
+            if reserve_row && !shrink && !rest_bar && !inner.is_empty() {
                 Self::capsule_input().value(&self.capsule_input).draw(
                     ui,
                     Rect::new(inner.x, inner.bottom().saturating_sub(1), inner.width, 1),
