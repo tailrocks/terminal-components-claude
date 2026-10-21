@@ -974,6 +974,156 @@ class RunnerGuards(unittest.TestCase):
         stack.enter_context(patch.object(runner, "nextest_inventory", side_effect=lambda *_args, execution=None, **_kwargs: nextest(execution, inventory)))
         return plan, inventory
 
+    def _publish_recovery_fixture(self, root: Path) -> tuple[Path, Path, str, dict[str, object]]:
+        plan = self._fresh_plan_fixture(root)
+        plan_path = root / runner.FRESH_PLAN_FILE
+        plan_digest = runner._atomic_create_plan(plan_path, plan)
+        commitment_path = root.parent / f"{root.name}-creation.json"
+        commitment = {
+            "schema_version": "termrock-fresh-plan-creation-commitment.v1",
+            "plan_id": plan["plan_id"],
+            "plan_basename": runner.FRESH_PLAN_FILE,
+            "plan_creation_sha256": plan_digest,
+            "plan_self_sha256": plan["plan_sha256"],
+            "cohort_id": plan["cohort"]["cohort_id"],
+            "frozen_source_sha256": plan["source"]["source_sha256"],
+            "inventory_sha256": plan["inventory"]["sha256"],
+        }
+        with runner.PrepareExecution(20) as execution:
+            commitment_digest = runner._atomic_create_creation_commitment(commitment_path, commitment, check_work=execution.check_work)
+        return plan_path, commitment_path, commitment_digest, plan
+
+    def test_recover_creation_anchor_requires_external_hash_and_keeps_full_verify_mandatory(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp).resolve() / "plan-root"
+            root.mkdir()
+            with self.assertRaisesRegex(runner.RunnerError, "outside the plan root"):
+                runner._external_commitment_destination(root / "inside.json", root)
+            plan_path, commitment_path, commitment_digest, plan = self._publish_recovery_fixture(root)
+            stdout = io.StringIO()
+            with (
+                patch.object(runner, "EXPECTED_SCENARIOS", 1),
+                patch.object(runner, "EXPECTED_ORDINARY_TESTS", 2),
+                patch.object(runner.sys, "stdout", stdout),
+                runner.PrepareExecution(20) as execution,
+            ):
+                recovered = runner.recover_fresh_plan_creation_anchor(root, plan["cohort"]["cohort_id"], commitment_path, commitment_digest, execution=execution)
+            self.assertEqual(recovered["status"], "creation-anchor-recovered")
+            self.assertEqual(recovered["creation_file_sha256"], runner.sha256(plan_path))
+            self.assertFalse(recovered["verified"])
+            self.assertTrue(recovered["requires_full_verify_fresh_plan"])
+            self.assertFalse(recovered["candidate_comparison_eligible"])
+            self.assertFalse(recovered["product_acceptance"])
+            with runner.PrepareExecution(20) as execution, self.assertRaisesRegex(runner.RunnerError, "externally pinned digest"):
+                runner.recover_fresh_plan_creation_anchor(root, plan["cohort"]["cohort_id"], commitment_path, "0" * 64, execution=execution)
+
+    def test_recovery_fails_closed_for_missing_symlinked_hardlinked_or_replaced_commitment(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp).resolve() / "plan-root"
+            root.mkdir()
+            plan_path = root / runner.FRESH_PLAN_FILE
+            plan = self._fresh_plan_fixture(root)
+            runner._atomic_create_plan(plan_path, plan)
+            missing = root.parent / "missing-commitment.json"
+            with runner.PrepareExecution(20) as execution, self.assertRaisesRegex(runner.RunnerError, "cannot be safely read"):
+                runner.recover_fresh_plan_creation_anchor(root, plan["cohort"]["cohort_id"], missing, "0" * 64, execution=execution)
+
+            _, commitment, commitment_digest, plan = self._publish_recovery_fixture(root.parent / "valid-plan-root")
+            valid_root = commitment.parent / "valid-plan-root"
+            with patch.object(runner, "EXPECTED_SCENARIOS", 1), patch.object(runner, "EXPECTED_ORDINARY_TESTS", 2), runner.PrepareExecution(20) as execution, self.assertRaisesRegex(runner.RunnerError, "identity or pinned metadata"):
+                runner.recover_fresh_plan_creation_anchor(valid_root, "other-cohort", commitment, commitment_digest, execution=execution)
+
+            symlink = commitment.parent / "symlink-commitment.json"
+            symlink.symlink_to(commitment)
+            with runner.PrepareExecution(20) as execution, self.assertRaisesRegex(runner.RunnerError, "symlinked, linked"):
+                runner.recover_fresh_plan_creation_anchor(valid_root, plan["cohort"]["cohort_id"], symlink, commitment_digest, execution=execution)
+
+            hardlink = commitment.parent / "hardlink-commitment.json"
+            os.link(commitment, hardlink)
+            with runner.PrepareExecution(20) as execution, self.assertRaisesRegex(runner.RunnerError, "symlinked, linked"):
+                runner.recover_fresh_plan_creation_anchor(valid_root, plan["cohort"]["cohort_id"], hardlink, commitment_digest, execution=execution)
+            hardlink.unlink()
+
+            commitment.chmod(0o600)
+            changed = json.loads(commitment.read_text())
+            changed["plan_id"] = "9" * 32
+            commitment.write_bytes(runner._canonical_document_bytes(changed))
+            with runner.PrepareExecution(20) as execution, self.assertRaisesRegex(runner.RunnerError, "externally pinned digest"):
+                runner.recover_fresh_plan_creation_anchor(valid_root, plan["cohort"]["cohort_id"], commitment, commitment_digest, execution=execution)
+            replacement_digest = runner.sha256(commitment)
+            with patch.object(runner, "EXPECTED_SCENARIOS", 1), patch.object(runner, "EXPECTED_ORDINARY_TESTS", 2), runner.PrepareExecution(20) as execution, self.assertRaisesRegex(runner.RunnerError, "identity or pinned metadata"):
+                runner.recover_fresh_plan_creation_anchor(valid_root, plan["cohort"]["cohort_id"], commitment, replacement_digest, execution=execution)
+
+    def test_owned_fresh_plan_commitment_and_plan_collisions_preserve_existing_entries(self) -> None:
+        for collision in ("file", "symlink"):
+            with self.subTest(collision=collision), tempfile.TemporaryDirectory() as temp:
+                root = Path(temp).resolve()
+                repo = root / "repo"
+                commitment_path = root.parent / f"{root.name}-creation.json"
+                target = root.parent / f"{root.name}-target"
+                target.write_bytes(b"keep-target")
+                if collision == "file":
+                    commitment_path.write_bytes(b"keep-commitment")
+                    before = commitment_path.read_bytes()
+                else:
+                    commitment_path.symlink_to(target)
+                    before = target.read_bytes()
+                executions: list[runner.PrepareExecution] = []
+
+                def inventory(execution, expected):
+                    self.assertIsNotNone(execution)
+                    executions.append(execution)
+                    execution.check_work()
+                    return expected
+
+                with ExitStack() as stack:
+                    self._owned_plan_cli_inputs(root, stack, executions, inventory)
+                    argv = [
+                        "frozen_baseline.py", "--repo", str(repo), "--root", str(root), "fresh-plan",
+                        "--cohort", runner.PREPARE_LIVE_OWNED_COHORT, "--baseline-bin-dir", str(root / "bins"),
+                        "--owned-lifecycle", "--owned-budget", "20", "--creation-commitment-path", str(commitment_path),
+                    ]
+                    with patch.object(sys, "argv", argv), redirect_stdout(io.StringIO()) as output, redirect_stderr(io.StringIO()) as errors:
+                        self.assertEqual(runner.main(), 1)
+                self.assertEqual(output.getvalue(), "")
+                self.assertIn("refusing to replace immutable fresh plan creation commitment", errors.getvalue())
+                if collision == "file":
+                    self.assertEqual(commitment_path.read_bytes(), before)
+                else:
+                    self.assertTrue(commitment_path.is_symlink())
+                    self.assertEqual(target.read_bytes(), before)
+                self.assertFalse((root / runner.FRESH_PLAN_FILE).exists())
+
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp).resolve()
+            repo = root / "repo"
+            plan_path = root / runner.FRESH_PLAN_FILE
+            plan_path.write_bytes(b"preserve-existing-plan")
+            commitment_path = root.parent / f"{root.name}-creation.json"
+            executions: list[runner.PrepareExecution] = []
+
+            def inventory(execution, expected):
+                self.assertIsNotNone(execution)
+                executions.append(execution)
+                execution.check_work()
+                return expected
+
+            with ExitStack() as stack:
+                self._owned_plan_cli_inputs(root, stack, executions, inventory)
+                argv = [
+                    "frozen_baseline.py", "--repo", str(repo), "--root", str(root), "fresh-plan",
+                    "--cohort", runner.PREPARE_LIVE_OWNED_COHORT, "--baseline-bin-dir", str(root / "bins"),
+                    "--owned-lifecycle", "--owned-budget", "20", "--creation-commitment-path", str(commitment_path),
+                ]
+                with patch.object(sys, "argv", argv), redirect_stdout(io.StringIO()) as output, redirect_stderr(io.StringIO()) as errors:
+                    self.assertEqual(runner.main(), 1)
+            pending = json.loads(output.getvalue().splitlines()[0])
+            self.assertEqual(pending["status"], "pending-plan-publication")
+            self.assertIn("refusing to replace immutable fresh plan", errors.getvalue())
+            self.assertEqual(plan_path.read_bytes(), b"preserve-existing-plan")
+            with runner.PrepareExecution(20) as execution, self.assertRaisesRegex(runner.RunnerError, "externally retained creation digest"):
+                runner.recover_fresh_plan_creation_anchor(root, runner.PREPARE_LIVE_OWNED_COHORT, commitment_path, pending["creation_commitment_sha256"], execution=execution)
+
     def _fresh_advance_fixture(self, base: Path, *, chunk_size: int = 1) -> dict[str, object]:
         base = base.resolve()
         root = base / "runner-root"
@@ -1322,6 +1472,19 @@ class RunnerGuards(unittest.TestCase):
         self.assertEqual(args.timeout, runner.FRESH_PLAN_MAX_TIMEOUT)
         self.assertFalse(args.owned_lifecycle)
         self.assertIsNone(args.owned_budget)
+        self.assertIsNone(args.creation_commitment_path)
+        owned = runner.parser().parse_args([
+            "fresh-plan", "--cohort", "fixture", "--baseline-bin-dir", "/bins", "--owned-lifecycle",
+            "--creation-commitment-path", "/outside/creation.json",
+        ])
+        self.assertTrue(owned.owned_lifecycle)
+        self.assertEqual(owned.creation_commitment_path, Path("/outside/creation.json"))
+        recovered = runner.parser().parse_args([
+            "recover-fresh-plan", "--cohort", "fixture", "--creation-commitment-path", "/outside/creation.json",
+            "--expected-commitment-sha256", "a" * 64, "--owned-lifecycle",
+        ])
+        self.assertTrue(recovered.owned_lifecycle)
+        self.assertEqual(recovered.expected_commitment_sha256, "a" * 64)
         verify = runner.parser().parse_args(["verify-fresh-plan", "--cohort", "fixture", "--baseline-bin-dir", "/bins", "--expected-plan-sha256", "a" * 64])
         self.assertEqual(verify.expected_plan_sha256, "a" * 64)
         self.assertFalse(verify.owned_lifecycle)
@@ -1361,14 +1524,14 @@ class RunnerGuards(unittest.TestCase):
                         argv = [
                             "frozen_baseline.py", "--repo", str(repo), "--root", str(root), command,
                             "--cohort", runner.PREPARE_LIVE_OWNED_COHORT, "--baseline-bin-dir", str(root / "bins"),
-                            "--owned-lifecycle", "--owned-budget", "20",
+                            "--owned-lifecycle", "--owned-budget", "20", "--creation-commitment-path", str(root.parent / f"{root.name}-creation.json"),
                         ]
                     else:
                         # Creation in this synthetic fixture uses the same CLI path and budget.
                         create_argv = [
                             "frozen_baseline.py", "--repo", str(repo), "--root", str(root), "fresh-plan",
                             "--cohort", runner.PREPARE_LIVE_OWNED_COHORT, "--baseline-bin-dir", str(root / "bins"),
-                            "--owned-lifecycle", "--owned-budget", "20",
+                            "--owned-lifecycle", "--owned-budget", "20", "--creation-commitment-path", str(root.parent / f"{root.name}-creation.json"),
                         ]
                         with patch.object(sys, "argv", create_argv), redirect_stdout(io.StringIO()):
                             self.assertEqual(runner.main(), 0)
@@ -1383,6 +1546,32 @@ class RunnerGuards(unittest.TestCase):
                     with patch.object(sys, "argv", argv), redirect_stdout(io.StringIO()) as output:
                         self.assertEqual(runner.main(), 0)
                     self.assertIn('"status": "prepared-not-executed"' if command == "fresh-plan" else '"verified": true', output.getvalue())
+                    if command == "fresh-plan":
+                        pending = json.loads(output.getvalue().splitlines()[0])
+                        self.assertEqual(pending["status"], "pending-plan-publication")
+                        self.assertFalse(pending["plan_published"])
+                        recover_argv = [
+                            "frozen_baseline.py", "--repo", str(repo), "--root", str(root), "recover-fresh-plan",
+                            "--cohort", runner.PREPARE_LIVE_OWNED_COHORT,
+                            "--creation-commitment-path", str(root.parent / f"{root.name}-creation.json"),
+                            "--expected-commitment-sha256", pending["creation_commitment_sha256"],
+                            "--owned-lifecycle", "--owned-budget", "20",
+                        ]
+                        with patch.object(sys, "argv", recover_argv), redirect_stdout(io.StringIO()) as recovered_output:
+                            self.assertEqual(runner.main(), 0)
+                        recovered = json.loads(recovered_output.getvalue())
+                        self.assertEqual(recovered["status"], "creation-anchor-recovered")
+                        self.assertEqual(recovered["creation_file_sha256"], runner.sha256(root / runner.FRESH_PLAN_FILE))
+                        self.assertFalse(recovered["verified"])
+                        self.assertFalse(recovered["candidate_comparison_eligible"])
+                        verify_argv = [
+                            "frozen_baseline.py", "--repo", str(repo), "--root", str(root), "verify-fresh-plan",
+                            "--cohort", runner.PREPARE_LIVE_OWNED_COHORT, "--baseline-bin-dir", str(root / "bins"),
+                            "--expected-plan-sha256", recovered["creation_file_sha256"], "--owned-lifecycle", "--owned-budget", "20",
+                        ]
+                        with patch.object(sys, "argv", verify_argv), redirect_stdout(io.StringIO()) as verified_output:
+                            self.assertEqual(runner.main(), 0)
+                        self.assertIn('"verified": true', verified_output.getvalue())
                     self.assertTrue(executions)
                     self.assertTrue(all(item.work_budget == 20 for item in executions))
                     self.assertEqual(inventory_holder, expected_inventory)
@@ -1407,7 +1596,7 @@ class RunnerGuards(unittest.TestCase):
                 argv = [
                     "frozen_baseline.py", "--repo", str(repo), "--root", str(root), "fresh-plan",
                     "--cohort", runner.PREPARE_LIVE_OWNED_COHORT, "--baseline-bin-dir", str(root / "bins"),
-                    "--owned-lifecycle", "--owned-budget", "1",
+                    "--owned-lifecycle", "--owned-budget", "1", "--creation-commitment-path", str(root.parent / f"{root.name}-creation.json"),
                 ]
                 with patch.object(sys, "argv", argv), redirect_stdout(io.StringIO()) as output, redirect_stderr(io.StringIO()) as errors:
                     started = time.monotonic()
@@ -1457,7 +1646,7 @@ class RunnerGuards(unittest.TestCase):
                 argv = [
                     "frozen_baseline.py", "--repo", str(repo), "--root", str(root), "fresh-plan",
                     "--cohort", runner.PREPARE_LIVE_OWNED_COHORT, "--baseline-bin-dir", str(root / "bins"),
-                    "--owned-lifecycle", "--owned-budget", "1",
+                    "--owned-lifecycle", "--owned-budget", "1", "--creation-commitment-path", str(root.parent / f"{root.name}-creation.json"),
                 ]
                 with patch.object(sys, "argv", argv), redirect_stdout(io.StringIO()) as output, redirect_stderr(io.StringIO()) as errors:
                     self.assertEqual(runner.main(), 1)
@@ -1491,7 +1680,7 @@ class RunnerGuards(unittest.TestCase):
                 argv = [
                     "frozen_baseline.py", "--repo", str(repo), "--root", str(root), "fresh-plan",
                     "--cohort", runner.PREPARE_LIVE_OWNED_COHORT, "--baseline-bin-dir", str(root / "bins"),
-                    "--owned-lifecycle", "--owned-budget", "1",
+                    "--owned-lifecycle", "--owned-budget", "1", "--creation-commitment-path", str(root.parent / f"{root.name}-creation.json"),
                 ]
                 with patch.object(sys, "argv", argv), redirect_stdout(io.StringIO()) as output, redirect_stderr(io.StringIO()) as errors:
                     self.assertEqual(runner.main(), 1)
@@ -1499,6 +1688,16 @@ class RunnerGuards(unittest.TestCase):
             self.assertNotIn('"status": "prepared-not-executed"', output.getvalue())
             self.assertTrue((root / runner.FRESH_PLAN_FILE).is_file())
             self.assertEqual(list(root.glob(".fresh-capture-plan.json.*")), [])
+            pending = json.loads(output.getvalue().splitlines()[0])
+            self.assertEqual(pending["status"], "pending-plan-publication")
+            self.assertTrue(Path(pending["creation_commitment_path"]).is_file())
+            with patch.object(runner, "EXPECTED_SCENARIOS", 1), patch.object(runner, "EXPECTED_ORDINARY_TESTS", 2), redirect_stdout(io.StringIO()) as recovered_output, runner.PrepareExecution(20) as execution:
+                recovered = runner.recover_fresh_plan_creation_anchor(
+                    root, runner.PREPARE_LIVE_OWNED_COHORT, Path(pending["creation_commitment_path"]),
+                    pending["creation_commitment_sha256"], execution=execution,
+                )
+            self.assertEqual(recovered["creation_file_sha256"], runner.sha256(root / runner.FRESH_PLAN_FILE))
+            self.assertFalse(recovered["verified"])
 
     def test_owned_fresh_plan_chunked_write_stops_before_publication_and_cleans_temp(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
@@ -1544,13 +1743,137 @@ class RunnerGuards(unittest.TestCase):
                 argv = [
                     "frozen_baseline.py", "--repo", str(repo), "--root", str(root), "fresh-plan",
                     "--cohort", runner.PREPARE_LIVE_OWNED_COHORT, "--baseline-bin-dir", str(root / "bins"),
-                    "--owned-lifecycle", "--owned-budget", "20",
+                    "--owned-lifecycle", "--owned-budget", "20", "--creation-commitment-path", str(root.parent / f"{root.name}-creation.json"),
                 ]
                 with patch.object(sys, "argv", argv), redirect_stdout(io.StringIO()) as output, redirect_stderr(io.StringIO()) as errors:
                     self.assertEqual(runner.main(), 1)
             self.assertIn('"status": "prepared-not-executed"', output.getvalue())
             self.assertIn("cancelled by signal", errors.getvalue())
             self.assertTrue((root / runner.FRESH_PLAN_FILE).is_file())
+            pending = json.loads(output.getvalue().splitlines()[0])
+            with patch.object(runner, "EXPECTED_SCENARIOS", 1), patch.object(runner, "EXPECTED_ORDINARY_TESTS", 2), redirect_stdout(io.StringIO()), runner.PrepareExecution(20) as execution:
+                recovered = runner.recover_fresh_plan_creation_anchor(
+                    root, runner.PREPARE_LIVE_OWNED_COHORT, Path(pending["creation_commitment_path"]),
+                    pending["creation_commitment_sha256"], execution=execution,
+                )
+            self.assertEqual(recovered["creation_file_sha256"], runner.sha256(root / runner.FRESH_PLAN_FILE))
+            self.assertFalse(recovered["verified"])
+
+    def test_owned_fresh_plan_sigterm_before_pending_receipt_keeps_unanchored_commitment_only(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp).resolve()
+            repo = root / "repo"
+            commitment_path = root.parent / f"{root.name}-creation.json"
+            executions: list[runner.PrepareExecution] = []
+            original_print = print
+
+            def cancel_before_receipt(*args: object, **kwargs: object) -> None:
+                if args and isinstance(args[0], str) and '"status":"pending-plan-publication"' in args[0]:
+                    signal.raise_signal(signal.SIGTERM)
+                    return
+                original_print(*args, **kwargs)
+
+            def inventory(execution, expected):
+                self.assertIsNotNone(execution)
+                executions.append(execution)
+                execution.check_work()
+                return expected
+
+            with ExitStack() as stack:
+                self._owned_plan_cli_inputs(root, stack, executions, inventory)
+                stack.enter_context(patch("builtins.print", side_effect=cancel_before_receipt))
+                argv = [
+                    "frozen_baseline.py", "--repo", str(repo), "--root", str(root), "fresh-plan",
+                    "--cohort", runner.PREPARE_LIVE_OWNED_COHORT, "--baseline-bin-dir", str(root / "bins"),
+                    "--owned-lifecycle", "--owned-budget", "20", "--creation-commitment-path", str(commitment_path),
+                ]
+                with patch.object(sys, "argv", argv), redirect_stdout(io.StringIO()) as output, redirect_stderr(io.StringIO()) as errors:
+                    self.assertEqual(runner.main(), 1)
+            self.assertEqual(output.getvalue(), "")
+            self.assertIn("cancelled by signal", errors.getvalue())
+            self.assertTrue(commitment_path.is_file())
+            self.assertFalse((root / runner.FRESH_PLAN_FILE).exists())
+            commitment_digest = runner.sha256(commitment_path)
+            with runner.PrepareExecution(20) as execution, self.assertRaisesRegex(runner.RunnerError, "cannot be safely read"):
+                runner.recover_fresh_plan_creation_anchor(
+                    root, runner.PREPARE_LIVE_OWNED_COHORT, commitment_path, commitment_digest, execution=execution,
+                )
+
+    def test_owned_fresh_plan_deadline_after_pending_receipt_before_plan_link_fails_closed(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp).resolve()
+            repo = root / "repo"
+            commitment_path = root.parent / f"{root.name}-creation.json"
+            executions: list[runner.PrepareExecution] = []
+            original_publish = runner._atomic_create_plan
+
+            def expire_before_link(path: Path, document: dict[str, object], *, check_work: Callable[[], None] | None = None) -> str:
+                time.sleep(1.05)
+                assert check_work is not None
+                check_work()
+                return original_publish(path, document, check_work=check_work)
+
+            def inventory(execution, expected):
+                self.assertIsNotNone(execution)
+                executions.append(execution)
+                execution.check_work()
+                return expected
+
+            with ExitStack() as stack:
+                self._owned_plan_cli_inputs(root, stack, executions, inventory)
+                stack.enter_context(patch.object(runner, "_atomic_create_plan", side_effect=expire_before_link))
+                argv = [
+                    "frozen_baseline.py", "--repo", str(repo), "--root", str(root), "fresh-plan",
+                    "--cohort", runner.PREPARE_LIVE_OWNED_COHORT, "--baseline-bin-dir", str(root / "bins"),
+                    "--owned-lifecycle", "--owned-budget", "1", "--creation-commitment-path", str(commitment_path),
+                ]
+                with patch.object(sys, "argv", argv), redirect_stdout(io.StringIO()) as output, redirect_stderr(io.StringIO()) as errors:
+                    self.assertEqual(runner.main(), 1)
+            pending = json.loads(output.getvalue().splitlines()[0])
+            self.assertEqual(pending["status"], "pending-plan-publication")
+            self.assertIn("work deadline expired", errors.getvalue())
+            self.assertTrue(commitment_path.is_file())
+            self.assertFalse((root / runner.FRESH_PLAN_FILE).exists())
+            with runner.PrepareExecution(20) as execution, self.assertRaisesRegex(runner.RunnerError, "cannot be safely read"):
+                runner.recover_fresh_plan_creation_anchor(root, runner.PREPARE_LIVE_OWNED_COHORT, commitment_path, pending["creation_commitment_sha256"], execution=execution)
+
+    def test_owned_fresh_plan_sigterm_after_pending_receipt_before_plan_link_fails_closed(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp).resolve()
+            repo = root / "repo"
+            commitment_path = root.parent / f"{root.name}-creation.json"
+            executions: list[runner.PrepareExecution] = []
+            original_publish = runner._atomic_create_plan
+
+            def cancel_before_link(path: Path, document: dict[str, object], *, check_work: Callable[[], None] | None = None) -> str:
+                signal.raise_signal(signal.SIGTERM)
+                assert check_work is not None
+                check_work()
+                return original_publish(path, document, check_work=check_work)
+
+            def inventory(execution, expected):
+                self.assertIsNotNone(execution)
+                executions.append(execution)
+                execution.check_work()
+                return expected
+
+            with ExitStack() as stack:
+                self._owned_plan_cli_inputs(root, stack, executions, inventory)
+                stack.enter_context(patch.object(runner, "_atomic_create_plan", side_effect=cancel_before_link))
+                argv = [
+                    "frozen_baseline.py", "--repo", str(repo), "--root", str(root), "fresh-plan",
+                    "--cohort", runner.PREPARE_LIVE_OWNED_COHORT, "--baseline-bin-dir", str(root / "bins"),
+                    "--owned-lifecycle", "--owned-budget", "20", "--creation-commitment-path", str(commitment_path),
+                ]
+                with patch.object(sys, "argv", argv), redirect_stdout(io.StringIO()) as output, redirect_stderr(io.StringIO()) as errors:
+                    self.assertEqual(runner.main(), 1)
+            pending = json.loads(output.getvalue().splitlines()[0])
+            self.assertEqual(pending["status"], "pending-plan-publication")
+            self.assertIn("cancelled by signal", errors.getvalue())
+            self.assertTrue(commitment_path.is_file())
+            self.assertFalse((root / runner.FRESH_PLAN_FILE).exists())
+            with runner.PrepareExecution(20) as execution, self.assertRaisesRegex(runner.RunnerError, "cannot be safely read"):
+                runner.recover_fresh_plan_creation_anchor(root, runner.PREPARE_LIVE_OWNED_COHORT, commitment_path, pending["creation_commitment_sha256"], execution=execution)
 
     def test_fresh_plan_creation_digest_is_precomputed_before_publish_race(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
@@ -3557,6 +3880,79 @@ class RunnerGuards(unittest.TestCase):
             with patch.object(sys, "argv", argv), redirect_stderr(io.StringIO()) as errors:
                 self.assertEqual(runner.main(), 1)
             self.assertIn("requires explicit --fresh-cohort and --baseline-bin-dir", errors.getvalue())
+
+    def test_prepare_live_owned_deadline_during_path_resolution_prevents_preparation(self) -> None:
+        for cancellation in ("deadline", "signal"):
+            with self.subTest(cancellation=cancellation), tempfile.TemporaryDirectory() as temp:
+                root = Path(temp).resolve()
+                source = root / "source"
+                repo = root / "repo"
+                baseline_bins = root / "bins"
+
+                def slow_paths(_repo: Path, _root: Path):
+                    if cancellation == "signal":
+                        signal.raise_signal(signal.SIGTERM)
+                    else:
+                        time.sleep(1.05)
+                    return repo, root, source
+
+                with patch.object(runner, "paths", side_effect=slow_paths), patch.object(runner, "verify_source") as verify, patch.object(runner, "prepare_live_source") as prepare_live:
+                    argv = [
+                        "frozen_baseline.py", "--repo", str(repo), "--root", str(root), "prepare-live",
+                        "--fresh-cohort", runner.PREPARE_LIVE_OWNED_COHORT, "--baseline-bin-dir", str(baseline_bins),
+                        "--owned-lifecycle", "--owned-budget", "1",
+                    ]
+                    with patch.object(sys, "argv", argv), redirect_stdout(io.StringIO()) as output, redirect_stderr(io.StringIO()) as errors:
+                        self.assertEqual(runner.main(), 1)
+                self.assertEqual(output.getvalue(), "")
+                self.assertIn("cancelled by signal" if cancellation == "signal" else "work deadline expired", errors.getvalue())
+                verify.assert_not_called()
+                prepare_live.assert_not_called()
+
+    def test_prepare_live_owned_final_output_flush_is_postchecked_and_legacy_stays_default(self) -> None:
+        for cancellation in ("deadline", "signal"):
+            with self.subTest(cancellation=cancellation), tempfile.TemporaryDirectory() as temp:
+                root = Path(temp).resolve()
+                repo = root / "repo"
+                source = root / "source"
+                live_record = {"result": "synthetic-live-source-ready"}
+                original_print = print
+
+                def late_print(*args: object, **kwargs: object) -> None:
+                    if args == (json.dumps(live_record, indent=2),):
+                        self.assertTrue(kwargs.get("flush"))
+                        original_print(*args, **kwargs)
+                        if cancellation == "signal":
+                            signal.raise_signal(signal.SIGTERM)
+                        else:
+                            time.sleep(1.05)
+                        return
+                    original_print(*args, **kwargs)
+
+                with (
+                    patch.object(runner, "paths", return_value=(repo, root, source)),
+                    patch.object(runner, "verify_source", return_value="source"),
+                    patch.object(runner, "prepare_live_source", return_value=live_record),
+                    patch("builtins.print", side_effect=late_print),
+                ):
+                    argv = [
+                        "frozen_baseline.py", "--repo", str(repo), "--root", str(root), "prepare-live",
+                        "--fresh-cohort", runner.PREPARE_LIVE_OWNED_COHORT, "--baseline-bin-dir", str(root / "bins"),
+                        "--owned-lifecycle", "--owned-budget", "1",
+                    ]
+                    with patch.object(sys, "argv", argv), redirect_stdout(io.StringIO()) as output, redirect_stderr(io.StringIO()) as errors:
+                        self.assertEqual(runner.main(), 1)
+                self.assertEqual(output.getvalue(), json.dumps(live_record, indent=2) + "\n")
+                self.assertIn("cancelled by signal" if cancellation == "signal" else "work deadline expired", errors.getvalue())
+
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp).resolve()
+            record = {"legacy": True}
+            with patch.object(runner, "paths", return_value=(root, root, root / "source")), patch.object(runner, "verify_source"), patch.object(runner, "prepare_live_source", return_value=record), redirect_stdout(io.StringIO()) as output:
+                argv = ["frozen_baseline.py", "--repo", str(root), "--root", str(root), "prepare-live"]
+                with patch.object(sys, "argv", argv):
+                    self.assertEqual(runner.main(), 0)
+            self.assertEqual(output.getvalue(), json.dumps(record, indent=2) + "\n")
 
 
 if __name__ == "__main__":

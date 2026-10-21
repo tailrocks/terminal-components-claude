@@ -3585,6 +3585,153 @@ def _atomic_create_plan(path: Path, document: dict[str, object], *, check_work: 
     return digest
 
 
+def _canonical_document_bytes(document: dict[str, object]) -> bytes:
+    return (json.dumps(document, ensure_ascii=False, sort_keys=True, separators=(",", ":")) + "\n").encode()
+
+
+def _external_commitment_destination(path: Path, root: Path) -> Path:
+    # Resolve parent links but preserve the final component so O_EXCL/link and
+    # lstat can reject a caller-supplied symlink instead of following it.
+    destination = path.parent.resolve(strict=False) / path.name
+    if destination.is_relative_to(root.resolve()):
+        raise RunnerError("fresh plan creation commitment must be outside the plan root")
+    return destination
+
+
+def _atomic_create_creation_commitment(path: Path, document: dict[str, object], *, check_work: Callable[[], None]) -> str:
+    """Publish an immutable external creation anchor before the plan."""
+    check_work()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    check_work()
+    payload = _canonical_document_bytes(document)
+    fd, temporary_name = tempfile.mkstemp(prefix=f".{path.name}.", dir=path.parent)
+    temporary = Path(temporary_name)
+    try:
+        check_work()
+        os.fchmod(fd, 0o400)
+        with os.fdopen(fd, "wb") as stream:
+            stream.write(payload)
+            stream.flush()
+            check_work()
+            os.fsync(stream.fileno())
+        check_work()
+        try:
+            os.link(temporary, path, follow_symlinks=False)
+        except FileExistsError as error:
+            raise RunnerError(f"refusing to replace immutable fresh plan creation commitment: {path}") from error
+        published = path.lstat()
+        if not stat.S_ISREG(published.st_mode) or published.st_nlink != 2:
+            raise RunnerError("published fresh plan creation commitment is not the expected regular file")
+        directory_fd = os.open(path.parent, os.O_RDONLY | getattr(os, "O_DIRECTORY", 0))
+        try:
+            os.fsync(directory_fd)
+        finally:
+            os.close(directory_fd)
+        check_work()
+    finally:
+        temporary.unlink(missing_ok=True)
+    check_work()
+    return hashlib.sha256(payload).hexdigest()
+
+
+def _read_creation_commitment(path: Path, expected_sha256: str, *, check_work: Callable[[], None]) -> dict[str, object]:
+    check_work()
+    if not re.fullmatch(r"[0-9a-f]{64}", expected_sha256):
+        raise RunnerError("expected creation commitment SHA-256 is malformed")
+    try:
+        before = path.lstat()
+        if stat.S_ISLNK(before.st_mode) or not stat.S_ISREG(before.st_mode) or before.st_nlink != 1:
+            raise RunnerError("fresh plan creation commitment is symlinked, linked, or non-regular")
+        fd = os.open(path, os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0))
+        try:
+            opened = os.fstat(fd)
+            chunks: list[bytes] = []
+            while chunk := os.read(fd, 1024 * 1024):
+                check_work()
+                chunks.append(chunk)
+            after_fd = os.fstat(fd)
+        finally:
+            os.close(fd)
+        after = path.lstat()
+    except OSError as error:
+        raise RunnerError(f"fresh plan creation commitment cannot be safely read: {error}") from error
+    identity = lambda value: (value.st_dev, value.st_ino, value.st_mode, value.st_size, value.st_mtime_ns, value.st_ctime_ns, value.st_nlink)
+    if identity(before) != identity(opened) or identity(opened) != identity(after_fd) or identity(after_fd) != identity(after):
+        raise RunnerError("fresh plan creation commitment changed during read")
+    raw = b"".join(chunks)
+    check_work()
+    if hashlib.sha256(raw).hexdigest() != expected_sha256:
+        raise RunnerError("fresh plan creation commitment does not match the externally pinned digest")
+    try:
+        document = json.loads(raw)
+    except json.JSONDecodeError as error:
+        raise RunnerError("fresh plan creation commitment is not valid JSON") from error
+    if not isinstance(document, dict) or _canonical_document_bytes(document) != raw:
+        raise RunnerError("fresh plan creation commitment is not canonical JSON")
+    if document.get("schema_version") != "termrock-fresh-plan-creation-commitment.v1":
+        raise RunnerError("fresh plan creation commitment schema is unsupported")
+    required = {
+        "schema_version", "plan_id", "plan_basename", "plan_creation_sha256",
+        "plan_self_sha256", "cohort_id", "frozen_source_sha256", "inventory_sha256",
+    }
+    if set(document) != required or any(not isinstance(document.get(key), str) for key in required):
+        raise RunnerError("fresh plan creation commitment fields are malformed")
+    if not re.fullmatch(r"[0-9a-f]{32}", document["plan_id"]) or any(
+        not re.fullmatch(r"[0-9a-f]{64}", document[key])
+        for key in ("plan_creation_sha256", "plan_self_sha256", "frozen_source_sha256", "inventory_sha256")
+    ):
+        raise RunnerError("fresh plan creation commitment identity or digest is malformed")
+    return document
+
+
+def recover_fresh_plan_creation_anchor(
+    root: Path,
+    cohort_id: str,
+    commitment_path: Path,
+    expected_commitment_sha256: str,
+    *,
+    execution: PrepareExecution,
+) -> dict[str, object]:
+    """Recover only the original plan creation digest; later full verification remains required."""
+    execution.check_work()
+    root = root.resolve()
+    commitment_path = _external_commitment_destination(commitment_path, root)
+    commitment = _read_creation_commitment(commitment_path, expected_commitment_sha256, check_work=execution.check_work)
+    creation_sha256 = commitment.get("plan_creation_sha256")
+    if not isinstance(creation_sha256, str) or not re.fullmatch(r"[0-9a-f]{64}", creation_sha256):
+        raise RunnerError("fresh plan creation commitment plan digest is malformed")
+    plan_path = root / FRESH_PLAN_FILE
+    try:
+        plan_entry = plan_path.lstat()
+    except OSError as error:
+        raise RunnerError(f"fresh plan cannot be safely read: {error}") from error
+    if stat.S_ISLNK(plan_entry.st_mode) or not stat.S_ISREG(plan_entry.st_mode) or plan_entry.st_nlink != 1:
+        raise RunnerError("fresh plan is symlinked, linked, or non-regular")
+    plan = _read_self_sealed_plan(plan_path, creation_sha256, check_work=execution.check_work)
+    expected_fields = {
+        "plan_id": plan["plan_id"],
+        "plan_basename": FRESH_PLAN_FILE,
+        "plan_self_sha256": plan["plan_sha256"],
+        "cohort_id": cohort_id,
+        "frozen_source_sha256": plan["source"]["source_sha256"],
+        "inventory_sha256": plan["inventory"]["sha256"],
+    }
+    if any(commitment.get(key) != value for key, value in expected_fields.items()):
+        raise RunnerError("fresh plan creation commitment does not match the plan identity or pinned metadata")
+    receipt = {
+        "status": "creation-anchor-recovered",
+        "creation_file_sha256": creation_sha256,
+        "verified": False,
+        "requires_full_verify_fresh_plan": True,
+        "candidate_comparison_eligible": False,
+        "product_acceptance": False,
+    }
+    execution.check_work()
+    print(json.dumps(receipt, indent=2), flush=True)
+    execution.check_work()
+    return receipt
+
+
 def create_fresh_plan(
     repo: Path,
     root: Path,
@@ -3595,6 +3742,7 @@ def create_fresh_plan(
     term_profile: str | None,
     *,
     execution: PrepareExecution | None = None,
+    commitment_path: Path | None = None,
 ) -> dict[str, object]:
     check_work = execution.check_work if execution is not None else None
     if check_work is not None:
@@ -3628,11 +3776,44 @@ def create_fresh_plan(
         execution=execution,
     )
     plan_path = root / FRESH_PLAN_FILE
+    commitment_sha256: str | None = None
     if check_work is not None:
+        if commitment_path is None:
+            raise RunnerError("owned fresh-plan creation requires an external --creation-commitment-path")
+        commitment_path = _external_commitment_destination(commitment_path, root)
+        check_work()
+        plan_bytes = _canonical_document_bytes(plan)
+        commitment = {
+            "schema_version": "termrock-fresh-plan-creation-commitment.v1",
+            "plan_id": plan["plan_id"],
+            "plan_basename": FRESH_PLAN_FILE,
+            "plan_creation_sha256": hashlib.sha256(plan_bytes).hexdigest(),
+            "plan_self_sha256": plan["plan_sha256"],
+            "cohort_id": cohort_id,
+            "frozen_source_sha256": plan["source"]["source_sha256"],
+            "inventory_sha256": plan["inventory"]["sha256"],
+        }
+        commitment_sha256 = _atomic_create_creation_commitment(commitment_path, commitment, check_work=check_work)
+        pending = json.dumps({
+            "status": "pending-plan-publication",
+            "creation_commitment_path": str(commitment_path),
+            "creation_commitment_sha256": commitment_sha256,
+            "plan_path": str(plan_path),
+            "plan_published": False,
+            "verified": False,
+            "candidate_comparison_eligible": False,
+            "product_acceptance": False,
+        }, separators=(",", ":"))
+        check_work()
+        print(pending, flush=True)
         check_work()
     creation_file_sha256 = _atomic_create_plan(plan_path, plan, check_work=check_work) if check_work is not None else _atomic_create_plan(plan_path, plan)
     _read_self_sealed_plan(plan_path, creation_file_sha256, check_work=check_work) if check_work is not None else _read_self_sealed_plan(plan_path, creation_file_sha256)
-    success = json.dumps({"plan_path": str(plan_path), "plan_sha256": plan["plan_sha256"], "creation_file_sha256": creation_file_sha256, "status": plan["status"], "visual_cases": plan["inventory"]["visual_count"], "ordinary_checks": plan["inventory"]["ordinary_count"]}, indent=2)
+    success_record = {"plan_path": str(plan_path), "plan_sha256": plan["plan_sha256"], "creation_file_sha256": creation_file_sha256, "status": plan["status"], "visual_cases": plan["inventory"]["visual_count"], "ordinary_checks": plan["inventory"]["ordinary_count"]}
+    if check_work is not None:
+        success_record["creation_commitment_path"] = str(commitment_path)
+        success_record["creation_commitment_sha256"] = commitment_sha256
+    success = json.dumps(success_record, indent=2)
     if check_work is not None:
         check_work()
         print(success, flush=True)
@@ -4933,6 +5114,7 @@ def parser() -> argparse.ArgumentParser:
     plan.add_argument("--term-profile", choices=sorted(TERM_PROFILES), default=None)
     plan.add_argument("--owned-lifecycle", action="store_true", help="use one cancellation-safe deadline and anchored child cleanup for plan creation")
     plan.add_argument("--owned-budget", type=int, help="work seconds for --owned-lifecycle; cleanup reserve is additional and fixed")
+    plan.add_argument("--creation-commitment-path", type=Path, help="external immutable creation anchor; required with --owned-lifecycle")
     verify_plan = sub.add_parser("verify-fresh-plan")
     verify_plan.set_defaults(timeout=min(MAX_TIMEOUT, FRESH_PLAN_MAX_TIMEOUT))
     verify_plan.add_argument("--cohort", required=True)
@@ -4940,6 +5122,13 @@ def parser() -> argparse.ArgumentParser:
     verify_plan.add_argument("--expected-plan-sha256", required=True, help="digest retained from fresh-plan creation; self-digest alone is not an approval anchor")
     verify_plan.add_argument("--owned-lifecycle", action="store_true", help="use one cancellation-safe deadline and anchored child cleanup for plan verification")
     verify_plan.add_argument("--owned-budget", type=int, help="work seconds for --owned-lifecycle; cleanup reserve is additional and fixed")
+    recover_plan = sub.add_parser("recover-fresh-plan", help="recover only a pinned plan-creation digest; full verify-fresh-plan remains mandatory")
+    recover_plan.set_defaults(timeout=min(MAX_TIMEOUT, FRESH_PLAN_MAX_TIMEOUT))
+    recover_plan.add_argument("--cohort", required=True)
+    recover_plan.add_argument("--creation-commitment-path", type=Path, required=True)
+    recover_plan.add_argument("--expected-commitment-sha256", required=True, help="digest pinned by the caller from the prepublication pending receipt")
+    recover_plan.add_argument("--owned-lifecycle", action="store_true", required=True)
+    recover_plan.add_argument("--owned-budget", type=int, default=PREPARE_OWNED_MAX_BUDGET)
     fresh_run_init = sub.add_parser("fresh-run-init", help="create authenticated PREPARED metadata only; launches no application")
     fresh_run_init.add_argument("--cohort", required=True)
     fresh_run_init.add_argument("--baseline-bin-dir", type=Path, required=True)
@@ -4999,23 +5188,32 @@ def main() -> int:
                     raise RunnerError("--owned-budget requires --owned-lifecycle")
                 prepare(args.repo, args.root, args.timeout)
         elif args.command == "prepare-live":
-            repo, root, source = paths(args.repo, args.root)
-            if args.fresh_cohort is None and args.baseline_bin_dir is not None:
-                raise RunnerError("--baseline-bin-dir requires --fresh-cohort")
-            if args.fresh_cohort is not None and args.baseline_bin_dir is None:
-                raise RunnerError("--fresh-cohort requires --baseline-bin-dir")
             if args.owned_lifecycle:
-                if args.fresh_cohort is None or args.baseline_bin_dir is None:
-                    raise RunnerError("--owned-lifecycle requires explicit --fresh-cohort and --baseline-bin-dir")
                 with PrepareExecution(args.owned_budget) as execution:
+                    execution.check_work()
+                    repo, root, source = paths(args.repo, args.root)
+                    execution.check_work()
+                    if args.fresh_cohort is None or args.baseline_bin_dir is None:
+                        raise RunnerError("--owned-lifecycle requires explicit --fresh-cohort and --baseline-bin-dir")
                     verify_source(root, source, check_work=execution.check_work)
+                    execution.check_work()
                     record = prepare_live_source(repo, root, source, args.timeout, fresh_cohort_id=args.fresh_cohort, baseline_bin_dir=args.baseline_bin_dir, execution=execution)
+                    execution.check_work()
+                    success = json.dumps(record, indent=2)
+                    execution.check_work()
+                    print(success, flush=True)
+                    execution.check_work()
             else:
                 if args.owned_budget != PREPARE_OWNED_MAX_BUDGET:
                     raise RunnerError("--owned-budget requires --owned-lifecycle")
+                repo, root, source = paths(args.repo, args.root)
+                if args.fresh_cohort is None and args.baseline_bin_dir is not None:
+                    raise RunnerError("--baseline-bin-dir requires --fresh-cohort")
+                if args.fresh_cohort is not None and args.baseline_bin_dir is None:
+                    raise RunnerError("--fresh-cohort requires --baseline-bin-dir")
                 verify_source(root, source)
                 record = prepare_live_source(repo, root, source, args.timeout, fresh_cohort_id=args.fresh_cohort, baseline_bin_dir=args.baseline_bin_dir)
-            print(json.dumps(record, indent=2))
+                print(json.dumps(record, indent=2))
         elif args.command == "verify-live":
             if args.owned_lifecycle:
                 if args.fresh_cohort != PREPARE_LIVE_OWNED_COHORT:
@@ -5060,10 +5258,14 @@ def main() -> int:
                     raise RunnerError("--owned-lifecycle requires the pinned fresh-capture cohort")
                 owned_budget = PREPARE_OWNED_MAX_BUDGET if args.owned_budget is None else args.owned_budget
                 with PrepareExecution(owned_budget) as execution:
-                    create_fresh_plan(args.repo, args.root, args.cohort, args.baseline_bin_dir, args.timeout, args.chunk_size, args.term_profile, execution=execution)
+                    if args.creation_commitment_path is None:
+                        raise RunnerError("--owned-lifecycle requires --creation-commitment-path")
+                    create_fresh_plan(args.repo, args.root, args.cohort, args.baseline_bin_dir, args.timeout, args.chunk_size, args.term_profile, execution=execution, commitment_path=args.creation_commitment_path)
             else:
                 if args.owned_budget is not None:
                     raise RunnerError("--owned-budget requires --owned-lifecycle")
+                if args.creation_commitment_path is not None:
+                    raise RunnerError("--creation-commitment-path requires --owned-lifecycle")
                 create_fresh_plan(args.repo, args.root, args.cohort, args.baseline_bin_dir, args.timeout, args.chunk_size, args.term_profile)
         elif args.command == "verify-fresh-plan":
             if args.owned_lifecycle:
@@ -5076,6 +5278,12 @@ def main() -> int:
                 if args.owned_budget is not None:
                     raise RunnerError("--owned-budget requires --owned-lifecycle")
                 verify_fresh_plan(args.repo, args.root, args.cohort, args.baseline_bin_dir, args.timeout, args.expected_plan_sha256)
+        elif args.command == "recover-fresh-plan":
+            if args.cohort != PREPARE_LIVE_OWNED_COHORT:
+                raise RunnerError("--owned-lifecycle requires the pinned fresh-capture cohort")
+            with PrepareExecution(args.owned_budget) as execution:
+                execution.check_work()
+                recover_fresh_plan_creation_anchor(args.root, args.cohort, args.creation_commitment_path, args.expected_commitment_sha256, execution=execution)
         elif args.command == "fresh-run-init":
             create_fresh_run(args.repo, args.root, args.cohort, args.baseline_bin_dir, args.timeout, args.expected_plan_sha256, args.key_path)
         elif args.command == "fresh-run-verify":
