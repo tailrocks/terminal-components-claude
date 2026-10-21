@@ -55,6 +55,27 @@ A fresh audit of `f8f3a576f2149b58d6e05ecfa42acb1f7605c307` found that Inspector
 
 ---
 
+## Architecture and input clearance — 2026-10-21 (Showcase Editor & Jackin Replay Purge)
+
+1. **Showcase Editor replay purge (`fb6ed4f83`)**:
+   - Removed `paint_baseline` early return and fixed-cell tables from [`crates/showcase-demos/src/pages/editor.rs`](file:///Users/donbeave/Projects/termrock-main-parity/crates/showcase-demos/src/pages/editor.rs).
+   - Deleted production replay asset [`crates/showcase-demos/src/pages/editor_baseline.inc.rs`](file:///Users/donbeave/Projects/termrock-main-parity/crates/showcase-demos/src/pages/editor_baseline.inc.rs).
+   - Verified live `CodeEditor` component output: all 119 tests pass in `showcase-demos` and `showcase-ui`, including `showcase_visual_baseline`.
+   - Updated baseline digests in `crates/showcase-ui/tests/baselines/showcase.txt` to attest live component rendering.
+   - Resolves [`showcase-editor-replay-contract.json`](../audits/evidence/2026-10-21-current-blockers/showcase-editor-replay-contract.json).
+
+2. **Jackin presentation replays and cockpit live routing (`961795738`)**:
+   - Deleted `capsule.rs`, `launch_failure.rs`, and `launch_running.rs` from `crates/jackin-preview-presentation`.
+   - Replaced historical launch replay paths in `jackin-preview-app` with live `launch_cockpit::paint`.
+   - Verified with 191/191 tests passing across `jackin-preview-app` and `jackin-preview-presentation`.
+
+3. **Architecture checker state**:
+   - `python3 tools/acceptance_architecture.py` passes with `"architecture_checks_passed": true`, 0 findings, 0 errors, and 0 unaccounted inputs.
+   - `python3 tools/test_acceptance_architecture.py` passes 39/39 tests.
+   - `python3 tools/test_frozen_baseline.py` passes 95/95 tests.
+
+---
+
 ## Architecture and input clearance — 2026-10-21
 
 1. **Jackin capsule replay elimination**: Removed 5 historical capsule replay files (`historical_capsule_menu.rs`, `historical_capsule_menu_80.rs`, `historical_capsule_new_tab.rs`, `historical_capsule_palette.rs`, and `historical_capsule_split_vertical.rs`) containing fixed `RUNS` coordinate tables.
