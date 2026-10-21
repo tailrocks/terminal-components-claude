@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use ratatui_core::buffer::{Buffer, CellWidth};
 use ratatui_core::layout::{Position, Rect};
 use ratatui_core::style::{Color, Modifier, Style};
@@ -239,29 +241,55 @@ impl Ui<'_> {
     fn majority_bg(&mut self, area: Rect) -> Color {
         let mut entries: [(Color, usize); 8] = [(Color::Reset, 0); 8];
         let mut count_entries = 0;
+        let mut overflow: Option<HashMap<Color, (usize, usize)>> = None;
         for pos in area.positions() {
             if !self.cell_written(pos) {
                 continue;
             }
             let bg = self.buffer().cell(pos).map_or(Color::Reset, |cell| cell.bg);
-            let mut found = false;
-            for entry in &mut entries[..count_entries] {
-                if entry.0 == bg {
-                    entry.1 = entry.1.saturating_add(1);
-                    found = true;
-                    break;
+
+            if let Some(counts) = &mut overflow {
+                if let Some((count, _)) = counts.get_mut(&bg) {
+                    *count = count.saturating_add(1);
+                } else {
+                    let order = counts.len();
+                    counts.insert(bg, (1usize, order));
                 }
+                continue;
             }
-            if !found && count_entries < entries.len() {
+
+            if let Some(entry) = entries[..count_entries]
+                .iter_mut()
+                .find(|entry| entry.0 == bg)
+            {
+                entry.1 = entry.1.saturating_add(1);
+            } else if count_entries < entries.len() {
                 entries[count_entries] = (bg, 1);
                 count_entries += 1;
+            } else {
+                // Preserve the allocation-free fast path for ordinary areas.
+                // Once more than eight distinct backgrounds appear, count all
+                // remaining colors and resolve ties by their first-seen order.
+                let mut counts = HashMap::with_capacity(count_entries + 1);
+                for (order, (color, count)) in entries[..count_entries].iter().enumerate() {
+                    counts.insert(*color, (*count, order));
+                }
+                counts.insert(bg, (1, count_entries));
+                overflow = Some(counts);
             }
         }
 
-        entries[..count_entries]
-            .iter()
-            .max_by_key(|(_, count)| *count)
-            .map_or(Color::Reset, |(bg, _)| *bg)
+        if let Some(counts) = overflow {
+            counts
+                .into_iter()
+                .max_by_key(|(_, (count, order))| (*count, *order))
+                .map_or(Color::Reset, |(bg, _)| bg)
+        } else {
+            entries[..count_entries]
+                .iter()
+                .max_by_key(|(_, count)| *count)
+                .map_or(Color::Reset, |(bg, _)| *bg)
+        }
     }
 
     fn fade_edge_row(&mut self, area: Rect, y: u16, keep: f32, container: Color) {
