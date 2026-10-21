@@ -1974,3 +1974,33 @@ Re-measured on this session's base commit with a repository-wide source scan:
   `overlays::cancel_card`), so the remaining violation is the app-owned
   geometry and ink remap. It belongs to the Jackin stream that owns that
   crate; this session did not edit it.
+
+### Measured gate state on this session's branch (base `7649ee7ed` + the dialog repair)
+
+- `cargo fmt --all --check`: clean.
+- `cargo clippy --workspace --all-targets -- -D warnings`: clean. The only
+  blocker found at the base was `crates/termrock-overlays/src/dialog.rs`, where a
+  duplicated `#[test]` attribute had displaced the attribute of
+  `body_is_total_and_clipped_when_the_dialog_cannot_draw` (the test silently
+  stopped running) and four `draw_scene` calls left a must-use `PaintedFrame`
+  unbound. Both are repaired in this session's branch
+  (`fix(termrock-overlays): restore the lost dialog clip test and clear clippy`),
+  and the crate's suite now runs 151 tests with 151 passing.
+- `cargo nextest run --workspace --all-targets --no-fail-fast`: 4604 tests run,
+  4280 passed, 324 failed, 29516 skipped. Failure distribution:
+  `termrock-conformance` ≈300 (225 `render_components`, 68 `conformance`, 3
+  `control_states`, 2 `render`, 2 `visual_baseline`), `visual-harness` 11
+  (modes, startup input, startup resize, env isolation, determinism, overlay
+  sites), `termrock-navigation::item_row_columns` 2,
+  `termrock-feedback::derived_hintbar_metadata` 1,
+  `termrock-test-support::perf frame_hintbar_derived` 1,
+  `termrock-xtask::doc_inventory` 1 and `termrock-xtask::ownership` 1, plus the
+  three application visual baselines (`tablepro-ui::visual`,
+  `showcase-ui::visual`, `holla-ui::visual`) and
+  `showcase-ui::page_headings` (2).
+- The dominant red is the component digest suite whose recorded baselines come
+  from the crate split. Nothing in this session re-blessed a digest. The
+  classification of that suite (stale baseline versus candidate regression)
+  is the open question assigned to the independent audit workstream, and it
+  must be settled with paired-runner evidence against the frozen oracle, not by
+  writing new expected values.
