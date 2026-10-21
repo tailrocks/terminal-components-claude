@@ -199,15 +199,69 @@ impl Theme {
     /// channel (including clearing it) without losing unrelated level-specific defaults.
     #[must_use]
     pub fn define_family_for_level(
-        mut self,
+        self,
         level: ColorLevel,
         family: Family,
         edit: impl FnOnce(&mut RecipeEdit),
     ) -> Theme {
+        self.define_profile_for_level(level, family, None, None, edit)
+    }
+
+    /// Define capability-specific defaults for one resolved variant.
+    ///
+    /// These defaults apply after family defaults and before global, scope, and instance
+    /// overrides. A profile only replaces channels whose source recipe and semantic token
+    /// dependencies still match the theme captured when this profile was defined.
+    #[must_use]
+    pub fn define_variant_for_level(
+        self,
+        level: ColorLevel,
+        family: Family,
+        variant: Variant,
+        edit: impl FnOnce(&mut RecipeEdit),
+    ) -> Theme {
+        self.define_profile_for_level(level, family, Some(variant), None, edit)
+    }
+
+    /// Define capability-specific defaults for one resolved variant on one surrounding surface.
+    ///
+    /// Use this for components whose semantic plane follows their container. The surface is a
+    /// rendering context; it is independent of terminal dimensions and application identity.
+    #[must_use]
+    pub fn define_variant_for_level_on_surface(
+        self,
+        level: ColorLevel,
+        family: Family,
+        variant: Variant,
+        surface: Surface,
+        edit: impl FnOnce(&mut RecipeEdit),
+    ) -> Theme {
+        self.define_profile_for_level(level, family, Some(variant), Some(surface), edit)
+    }
+
+    fn define_profile_for_level(
+        mut self,
+        level: ColorLevel,
+        family: Family,
+        variant: Option<Variant>,
+        surface: Option<Surface>,
+        edit: impl FnOnce(&mut RecipeEdit),
+    ) -> Theme {
         let mut e = RecipeEdit::default();
         edit(&mut e);
-        self.recipes
-            .define_level_family(level, family, e.into_parts());
+        let seed_source_tokens = self.color;
+        let seed_level_tokens = self.downgrade(level).color;
+        self.recipes.define_level_family(
+            recipe::LevelProfileKey {
+                level,
+                family,
+                variant,
+                surface,
+            },
+            e.into_parts(),
+            seed_source_tokens,
+            seed_level_tokens,
+        );
         self
     }
 
