@@ -7,5 +7,5 @@ mod split;
 pub use master_detail::{
     MasterDetail, MasterDetailAction, MasterDetailError, MasterDetailPolicy, MasterDetailState,
 };
-pub use shell::{AppShell, AppShellSlots, Chrome, EmptyLeaf, Regions};
+pub use shell::{AppShell, AppShellExt, AppShellSlots, Chrome, EmptyLeaf, Regions};
 pub use split::{SplitBlock, SplitBlockError};
