@@ -1,6 +1,9 @@
 # Tree composition adapter
 
-Source base: `48c5fc33b81626925d67facb278c7656e625b887`.
+Development starting point: `48c5fc33b81626925d67facb278c7656e625b887`.
+Before publication, this work was rebased onto PR #38 commit
+`25d2a36137be15e5aba140e280becbd918427bb9`. Reviewed adapter commit
+`12e011659e1f55a727de85fc6e6cfc17074bd35a` has that commit as its parent.
 
 This increment adds a borrowed public composition leaf for the existing
 `termrock_navigation::Tree`. It delegates measurement to `Tree::measure` and
