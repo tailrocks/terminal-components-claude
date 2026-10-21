@@ -35,9 +35,12 @@ the resolved adapter directly. They verify actual row rendering, hidden versus
 zero-width slots, a wide Unicode grapheme, narrow clipping, and control hit
 bounds derived from the exact returned rectangles.
 
-Validation on this worktree: `cargo nextest run -p termrock-runtime --all-targets`
-passed 418 tests with three existing skips (run
-`cd021ccd-880f-41e9-a503-b1b3f3aa30f4`); strict
+After normally merging PR #38 through `45f8d8ecefc81fcc25f87b7e7aa036363085c21b`,
+the validated candidate was `fb01738e763b3078a6b5677a0a50d449a96ac3cb`.
+`cargo nextest run -p termrock-runtime --all-targets` passed 421 tests with
+three existing skips (run `1255fb72-5802-4540-8338-8eeac96d8148`); the focused
+RowUi suite passed 17/17 (247 unrelated tests skipped; run
+`bc591c55-ddfa-4c79-8a10-dd17ca183797`). Strict
 `cargo clippy -p termrock-runtime --all-targets -- -D warnings`,
 `cargo fmt --all --check`, and `git diff --check` passed. No Holla app source,
 expected output, frozen artifact, or reference revision changed. This API is
