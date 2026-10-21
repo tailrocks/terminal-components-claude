@@ -56,3 +56,7 @@ required-features = ["testing"]
 [[test]]
 name = "nav_list_composition_consumer"
 required-features = ["testing"]
+
+# Rust documentation examples are guarded by the workspace doc inventory test.
+[lib]
+doctest = false
