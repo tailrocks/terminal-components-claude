@@ -88,16 +88,16 @@ mod tests {
     }
 
     #[test]
-    fn footer_keeps_explain_when_the_status_does_not_fit() {
+    fn footer_keeps_the_status_and_cuts_hints_to_fit() {
         let costs = [12u16, 12, 15, 16, 8, 10];
         let status = 25u16;
         assert_eq!(
             super::super::fit_workbench_hints(&costs, 72, status),
-            (5, false, true)
+            (3, true, true)
         );
         assert_eq!(
             super::super::fit_workbench_hints(&costs, 80, status),
-            (6, false, false)
+            (3, true, true)
         );
         assert_eq!(
             super::super::fit_workbench_hints(&costs, 100, status),
@@ -106,6 +106,14 @@ mod tests {
         assert_eq!(
             super::super::fit_workbench_hints(&costs, 120, status),
             (6, true, false)
+        );
+        assert_eq!(
+            super::super::fit_workbench_hints(&costs, 72, 0),
+            (5, false, true)
+        );
+        assert_eq!(
+            super::super::fit_workbench_hints(&costs, 80, 0),
+            (6, false, false)
         );
     }
 
