@@ -224,20 +224,23 @@ impl Theme {
     }
 
     /// Map a painted cell to the modal backdrop while replacing its modifiers.
-    /// The glyph is preserved by the renderer; only nonblank dim cells receive DIM.
+    /// The glyph is preserved by the renderer; the mapped ink carries the dim
+    /// look on its own and no modifier is added.
+    ///
+    /// The frozen visual baseline (tag `visual-baseline`, 4169783ae) shows the
+    /// dialog underlay at the 16/256/none tiers dimmed through ink choice
+    /// alone — no SGR 2 anywhere in the approved captures — so a mapped
+    /// collision keeps the collision ink but never a DIM modifier. The PR #26
+    /// reference tip adds DIM at Ansi16/Mono and on collisions; that branch
+    /// contradicts its own frozen baseline and is recorded as a reference
+    /// defect in docs/audits.
     #[must_use]
     pub fn backdrop_style(&self, style: Style) -> Style {
         let (mut fg, bg, blank) = self.map_backdrop(style.fg, style.bg, false);
-        let dim = !blank
-            && (fg == bg || matches!(self.capability.color, ColorLevel::Ansi16 | ColorLevel::Mono));
-        if dim {
+        if !blank && fg == bg {
             fg = self.backdrop_collision_ink(bg);
         }
-        let mut mapped = Style::new().fg(fg).bg(bg);
-        if dim {
-            mapped = mapped.add_modifier(Modifier::DIM);
-        }
-        mapped
+        Style::new().fg(fg).bg(bg)
     }
 
     fn backdrop_collision_ink(&self, bg: Color) -> Color {

@@ -669,7 +669,11 @@ mod tests {
             assert_eq!(original.symbol(), "x", "{level:?}");
             assert_eq!(original.fg, expected_fg, "{level:?}");
             assert_eq!(original.bg, expected_bg, "{level:?}");
-            assert_eq!(original.modifier, Modifier::DIM, "{level:?}");
+            assert_eq!(
+                original.modifier,
+                Modifier::empty(),
+                "{level:?}: the frozen baseline dims through ink choice, never a modifier"
+            );
             assert_eq!(
                 original.fg, theme.color.fg[0],
                 "muted==background falls back to primary"
