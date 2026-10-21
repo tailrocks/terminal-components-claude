@@ -368,7 +368,9 @@ fn menu(r: &mut Recipe) {
     part(m, Part::ROW, p())
         .when(
             StateFlags::ACTIVE,
-            p().set_bg(Role::HighlightBg).set_fg(Role::HighlightFg),
+            p().set_bg(Role::HighlightBg)
+                .set_fg(Role::HighlightFg)
+                .add(Modifier::BOLD),
         )
         .when(
             StateFlags::HOVERED,
@@ -380,6 +382,12 @@ fn menu(r: &mut Recipe) {
                 .set_bg(Role::Fg(FgStep::Primary))
                 .add(Modifier::BOLD),
         );
+    part(m, Part::LABEL, p()).when(
+        StateFlags::ACTIVE,
+        p().set_bg(Role::HighlightBg)
+            .set_fg(Role::HighlightFg)
+            .add(Modifier::BOLD),
+    );
     part(m, Part::TITLE, p()).when(
         StateFlags::PRESSED,
         p().set_glyph(GlyphRole::PressLeft).add(Modifier::BOLD),
