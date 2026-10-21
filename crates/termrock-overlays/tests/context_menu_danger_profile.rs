@@ -417,7 +417,7 @@ fn disabled_danger_row_matches_frozen_cells_at_rest_hover_and_press() {
 #[test]
 fn disabled_danger_collision_fallback_tracks_the_current_popover_token() {
     for (level, modifier) in [
-        (ColorLevel::Ansi16, Modifier::empty()),
+        (ColorLevel::Ansi16, Modifier::DIM),
         (ColorLevel::Mono, Modifier::DIM),
     ] {
         let mut theme = Theme::junie().downgrade(level);
@@ -466,8 +466,8 @@ fn explicit_disabled_danger_ink_override_wins_over_collision_fallback() {
     assert_eq!(resolved.style.as_style().bg, Some(Color::DarkGray));
     assert_eq!(
         resolved.style.as_style().add_modifier,
-        Modifier::empty(),
-        "explicit ink override does not retain fallback dim"
+        Modifier::DIM,
+        "explicit ink override preserves the frozen disabled-state DIM cue"
     );
 }
 
