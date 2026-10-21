@@ -20,17 +20,14 @@ pub(crate) fn draw(world: &World, ui: &mut Ui<'_>, area: Rect) {
         disk.used_percent(),
         disk.candidates.len()
     );
-    let body = disk
-        .candidates
-        .iter()
-        .map(|candidate| {
-            format!(
-                "{} · {} · {}",
-                candidate.path,
-                candidate.family.label(),
-                candidate.freshness.label()
-            )
-        });
+    let body = disk.candidates.iter().map(|candidate| {
+        format!(
+            "{} · {} · {}",
+            candidate.path,
+            candidate.family.label(),
+            candidate.freshness.label()
+        )
+    });
     TextReport::new().min_details_height(0).draw_rows(
         ui,
         area,
