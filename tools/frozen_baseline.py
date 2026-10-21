@@ -3635,6 +3635,36 @@ def _check_owned_root_binding(root_binding: dict[str, str], *, check_work: Calla
     return Path(root_binding["plan_root_canonical_path"])
 
 
+def _owned_directory_binding(path: Path, *, check_work: Callable[[], None]) -> tuple[Path, str, str]:
+    """Bind one internal owned directory path without accepting symlinked components."""
+    check_work()
+    lexical = Path(os.path.abspath(os.fspath(path)))
+    try:
+        before = lexical.lstat()
+        if stat.S_ISLNK(before.st_mode) or not stat.S_ISDIR(before.st_mode):
+            raise RunnerError("owned run directory is not a real directory")
+        canonical = lexical.resolve(strict=True)
+        fd, opened = _open_directory_chain(canonical)
+        try:
+            after = lexical.lstat()
+            canonical_after = lexical.resolve(strict=True)
+        finally:
+            os.close(fd)
+    except OSError as error:
+        raise RunnerError(f"owned run directory cannot be safely opened: {error}") from error
+    identity = lambda item: (item.st_dev, item.st_ino, stat.S_IFMT(item.st_mode))
+    if canonical != lexical or canonical != canonical_after or identity(before) != identity(opened) or identity(opened) != identity(after):
+        raise RunnerError("owned run directory path or identity changed")
+    check_work()
+    return lexical, str(opened.st_dev), str(opened.st_ino)
+
+
+def _check_owned_directory_binding(binding: tuple[Path, str, str], *, check_work: Callable[[], None]) -> None:
+    current = _owned_directory_binding(binding[0], check_work=check_work)
+    if current != binding:
+        raise RunnerError("owned run directory path or identity no longer matches its pinned identity")
+
+
 def _atomic_create_creation_commitment(path: Path, document: dict[str, object], *, check_work: Callable[[], None]) -> str:
     """Publish an immutable external creation anchor before the plan."""
     check_work()
@@ -4560,8 +4590,28 @@ def _create_fresh_run_owned(
         raise
 
 
-def verify_fresh_run(repo: Path, root: Path, cohort_id: str, baseline_bin_dir: Path, timeout: int, expected_plan_sha256: str, key_path: Path) -> dict[str, object]:
+def verify_fresh_run(
+    repo: Path,
+    root: Path,
+    cohort_id: str,
+    baseline_bin_dir: Path,
+    timeout: int,
+    expected_plan_sha256: str,
+    key_path: Path,
+    *,
+    execution: PrepareExecution | None = None,
+    commitment_path: Path | None = None,
+    expected_commitment_sha256: str | None = None,
+    pending_receipt_path: Path | None = None,
+) -> dict[str, object]:
     """Revalidate current plan/source/tool inputs and authenticate PREPARED metadata."""
+    if execution is not None:
+        return _verify_fresh_run_owned(
+            repo, root, cohort_id, baseline_bin_dir, timeout, expected_plan_sha256, key_path,
+            execution=execution, commitment_path=commitment_path,
+            expected_commitment_sha256=expected_commitment_sha256,
+            pending_receipt_path=pending_receipt_path,
+        )
     plan = verify_fresh_plan(repo, root, cohort_id, baseline_bin_dir, timeout, expected_plan_sha256)
     _repo, root, _source = paths(repo, root)
     run_root = (root / "fresh-runs" / str(plan["plan_id"])).absolute()
@@ -4597,6 +4647,103 @@ def verify_fresh_run(repo: Path, root: Path, cohort_id: str, baseline_bin_dir: P
     progress = validate_fresh_run_journal(envelopes, key, envelope, root / FRESH_PLAN_FILE, expected_plan_sha256)
     _verify_fresh_journal_artifacts(plan, envelopes)
     print(json.dumps({"run_id": manifest["run_id"], "status": manifest["status"], "verified": True, "executed": False, "completed_steps": progress["completed_steps"], "visual_capture_replay_complete": progress["visual_capture_replay_complete"], "complete": False, "candidate_comparison_eligible": False, "product_acceptance": False}, indent=2))
+    return manifest
+
+
+def _verify_fresh_run_owned(
+    repo: Path,
+    root: Path,
+    cohort_id: str,
+    baseline_bin_dir: Path,
+    timeout: int,
+    expected_plan_sha256: str,
+    key_path: Path,
+    *,
+    execution: PrepareExecution,
+    commitment_path: Path | None,
+    expected_commitment_sha256: str | None,
+    pending_receipt_path: Path | None,
+) -> dict[str, object]:
+    execution.check_work()
+    if commitment_path is None or expected_commitment_sha256 is None or pending_receipt_path is None:
+        raise RunnerError("owned fresh-run verification requires the pinned creation commitment and durable pending receipt")
+    root_binding = _owned_root_binding(root, check_work=execution.check_work)
+    root = Path(root_binding["plan_root_canonical_path"])
+    plan = verify_fresh_plan(
+        repo, root, cohort_id, baseline_bin_dir, timeout, expected_plan_sha256,
+        execution=execution, commitment_path=commitment_path,
+        expected_commitment_sha256=expected_commitment_sha256,
+        pending_receipt_path=pending_receipt_path,
+    )
+    execution.check_work()
+    _check_owned_root_binding(root_binding, check_work=execution.check_work)
+    repo, root, _source = paths(repo, root)
+    if root != Path(root_binding["plan_root_canonical_path"]):
+        raise RunnerError("owned fresh-run verification resolved a different plan root")
+    run_root = root / "fresh-runs" / str(plan["plan_id"])
+    runs_root = root / "fresh-runs"
+    runs_binding = _owned_directory_binding(runs_root, check_work=execution.check_work)
+    root_fd, root_info = _open_directory_chain(root)
+    try:
+        if (str(root_info.st_dev), str(root_info.st_ino)) != (root_binding["plan_root_device"], root_binding["plan_root_inode"]):
+            raise RunnerError("fresh run plan root identity changed before run verification")
+    finally:
+        os.close(root_fd)
+    run_binding = _owned_directory_binding(run_root, check_work=execution.check_work)
+    run_info = run_root.lstat()
+    if run_info.st_uid != os.geteuid() or stat.S_IMODE(run_info.st_mode) != 0o700:
+        raise RunnerError("fresh run root must be an owned mode-0700 directory")
+    _check_owned_root_binding(root_binding, check_work=execution.check_work)
+    if (run_root / "init-failure.json").exists() or (run_root / "init-failure.json").is_symlink():
+        raise RunnerError("fresh run initialization has preserved failed-init evidence and cannot be reused")
+    key_path = key_path.absolute()
+    git_paths = _git_metadata_paths(repo, execution=execution)
+    protected = [repo.resolve(), root.resolve(), Path(plan["source"]["source_path"]).resolve(), Path(plan["source"]["live_source_path"]).resolve(), Path(plan["execution"]["artifact_roots"]["run_root"]).resolve(), Path(plan["cohort"]["binaries"][APPS[0]]["path"]).resolve().parent, *git_paths]
+    if any(key_path == item or item in key_path.parents for item in protected):
+        raise RunnerError("fresh run key custody must be outside Git, source, binaries, and artifact roots")
+    key, key_identity, key_path = _stable_secret_key(key_path, check_work=execution.check_work)
+    execution.check_work()
+    _check_owned_root_binding(root_binding, check_work=execution.check_work)
+    _check_owned_directory_binding(runs_binding, check_work=execution.check_work)
+    _check_owned_directory_binding(run_binding, check_work=execution.check_work)
+    if any(key_path == item or item in key_path.parents for item in protected):
+        raise RunnerError("fresh run key custody must be outside Git, source, binaries, and artifact roots")
+    envelope, _raw = _read_stable_json(run_root / FRESH_RUN_MANIFEST_FILE, "fresh run manifest", check_work=execution.check_work)
+    _check_owned_directory_binding(run_binding, check_work=execution.check_work)
+    manifest = _authenticate_fresh_run_manifest(envelope, key)
+    expected_manifest = {
+        "schema": FRESH_RUN_MANIFEST_SCHEMA, "schema_version": FRESH_RUN_MANIFEST_VERSION,
+        "status": "prepared-metadata-only", "plan_id": plan["plan_id"],
+        "plan_creation_sha256": expected_plan_sha256, "plan_self_sha256": plan["plan_sha256"],
+        "cohort_id": plan["cohort"]["cohort_id"], "source": plan["source"], "runner_inputs": plan["runner_inputs"],
+        "binary_hashes": {app: plan["cohort"]["binaries"][app]["sha256"] for app in APPS},
+        "runtime": plan["runtime"], "inventory_sha256": plan["inventory"]["sha256"],
+        "visual_count": plan["inventory"]["visual_count"], "ordinary_count": plan["inventory"]["ordinary_count"],
+        "candidate_comparison_eligible": False, "checkpoint_reference_approval": "none",
+        "product_acceptance": False, "executed": False,
+    }
+    if any(type(manifest.get(field)) is not type(value) or manifest.get(field) != value for field, value in expected_manifest.items()):
+        raise RunnerError("fresh run manifest is stale or grants forbidden privileges")
+    custody = manifest["key_custody"]
+    if custody != {"path": str(key_path.absolute()), "device": key_identity[0], "inode": key_identity[1], "bytes": key_identity[2], "mode": key_identity[3]}:
+        raise RunnerError("fresh run key custody identity changed")
+    envelopes = _fresh_journal_envelopes(run_root, check_work=execution.check_work)
+    progress = validate_fresh_run_journal(envelopes, key, envelope, root / FRESH_PLAN_FILE, expected_plan_sha256, check_work=execution.check_work)
+    _verify_fresh_journal_artifacts(plan, envelopes, check_work=execution.check_work)
+    execution.check_work()
+    _check_owned_root_binding(root_binding, check_work=execution.check_work)
+    _check_owned_directory_binding(runs_binding, check_work=execution.check_work)
+    _check_owned_directory_binding(run_binding, check_work=execution.check_work)
+    success = json.dumps({"run_id": manifest["run_id"], "status": manifest["status"], "verified": True, "executed": False, "completed_steps": progress["completed_steps"], "visual_capture_replay_complete": progress["visual_capture_replay_complete"], "complete": False, "candidate_comparison_eligible": False, "product_acceptance": False}, indent=2)
+    execution.check_work()
+    _check_owned_root_binding(root_binding, check_work=execution.check_work)
+    _check_owned_directory_binding(runs_binding, check_work=execution.check_work)
+    _check_owned_directory_binding(run_binding, check_work=execution.check_work)
+    print(success, flush=True)
+    execution.check_work()
+    _check_owned_root_binding(root_binding, check_work=execution.check_work)
+    _check_owned_directory_binding(runs_binding, check_work=execution.check_work)
+    _check_owned_directory_binding(run_binding, check_work=execution.check_work)
     return manifest
 
 
@@ -4656,10 +4803,12 @@ def _fresh_plan_steps(plan: dict[str, object]) -> list[dict[str, object]]:
     return steps
 
 
-def validate_fresh_run_journal(envelopes: list[object], key: bytes, manifest_envelope: object, plan_path: Path, expected_plan_sha256: str) -> dict[str, object]:
+def validate_fresh_run_journal(envelopes: list[object], key: bytes, manifest_envelope: object, plan_path: Path, expected_plan_sha256: str, *, check_work: Callable[[], None] | None = None) -> dict[str, object]:
     """Validate an authenticated completed prefix against the externally anchored immutable plan."""
+    if check_work is not None:
+        check_work()
     manifest = _authenticate_fresh_run_manifest(manifest_envelope, key)
-    plan = _read_self_sealed_plan(plan_path, expected_plan_sha256)
+    plan = _read_self_sealed_plan(plan_path, expected_plan_sha256, check_work=check_work)
     if plan["plan_id"] != manifest.get("plan_id") or plan["plan_sha256"] != manifest.get("plan_self_sha256") or plan["inventory"]["sha256"] != manifest.get("inventory_sha256"):
         raise RunnerError("fresh run plan or inventory differs from the authenticated manifest")
     planned_steps = _fresh_plan_steps(plan)
@@ -4668,6 +4817,8 @@ def validate_fresh_run_journal(envelopes: list[object], key: bytes, manifest_env
     prior_digest: str | None = None
     captured_chunks: dict[int, str] = {}
     for ordinal, (envelope, expected_step) in enumerate(zip(envelopes, planned_steps, strict=False)):
+        if check_work is not None:
+            check_work()
         receipt = _fresh_run_receipt_body(envelope, key)
         if receipt["ordinal"] != ordinal or expected_step != {"phase": receipt["phase"], "chunk": receipt["chunk"], "selected_cases": receipt["selected_cases"]}:
             raise RunnerError("fresh run receipt order or planned chunk differs")
@@ -4694,6 +4845,8 @@ def validate_fresh_run_journal(envelopes: list[object], key: bytes, manifest_env
         prior_digest = hashlib.sha256(canonical_receipt_json(envelope)).hexdigest()
     visual_steps = sum(step["phase"] in {"baseline-capture", "baseline-replay"} for step in planned_steps)
     visual_complete = len(envelopes) >= visual_steps and all(step["phase"] in {"baseline-capture", "baseline-replay"} for step in planned_steps[:len(envelopes)])
+    if check_work is not None:
+        check_work()
     return {"completed_steps": len(envelopes), "planned_steps": len(planned_steps), "visual_capture_replay_complete": visual_complete, "complete": False, "executed": bool(envelopes), "candidate_comparison_eligible": False, "product_acceptance": False}
 
 
@@ -4729,7 +4882,9 @@ def _fresh_run_lock(run_root: Path):
     return fd
 
 
-def _fresh_journal_envelopes(run_root: Path) -> list[object]:
+def _fresh_journal_envelopes(run_root: Path, *, check_work: Callable[[], None] | None = None) -> list[object]:
+    if check_work is not None:
+        check_work()
     journal = run_root / "journal"
     if not journal.exists() and not journal.is_symlink():
         return []
@@ -4737,20 +4892,35 @@ def _fresh_journal_envelopes(run_root: Path) -> list[object]:
     if stat.S_ISLNK(info.st_mode) or not stat.S_ISDIR(info.st_mode) or info.st_uid != os.geteuid() or stat.S_IMODE(info.st_mode) != 0o700:
         raise RunnerError("fresh run journal directory is unsafe")
     paths = sorted(journal.iterdir(), key=lambda item: item.name)
+    if check_work is not None:
+        check_work()
     expected_names = [f"step-{index:08}.json" for index in range(len(paths))]
     if [path.name for path in paths] != expected_names:
         raise RunnerError("fresh run journal contains a missing, duplicate, reordered, or unrecognized receipt")
-    return [_read_stable_json(path, "fresh run journal receipt")[0] for path in paths]
+    envelopes = []
+    for path in paths:
+        if check_work is not None:
+            check_work()
+        envelopes.append(_read_stable_json(path, "fresh run journal receipt", check_work=check_work)[0])
+    if check_work is not None:
+        check_work()
+    return envelopes
 
 
-def _fresh_expected_tree_sha256(path: Path) -> str:
+def _fresh_expected_tree_sha256(path: Path, *, check_work: Callable[[], None] | None = None) -> str:
     """Hash every expected frame plus type and permission mode; reject aliases and links."""
+    if check_work is not None:
+        check_work()
     if path.is_symlink() or not path.is_dir():
         raise RunnerError(f"expected chunk root is missing or unsafe: {path}")
     digest = hashlib.sha256()
     for current, directories, files in os.walk(path, followlinks=False):
+        if check_work is not None:
+            check_work()
         current_path = Path(current)
         for name in sorted(directories):
+            if check_work is not None:
+                check_work()
             item = current_path / name
             info = item.lstat()
             if stat.S_ISLNK(info.st_mode) or not stat.S_ISDIR(info.st_mode):
@@ -4758,6 +4928,8 @@ def _fresh_expected_tree_sha256(path: Path) -> str:
             relative = item.relative_to(path).as_posix() + "/"
             digest.update(b"directory\0" + relative.encode() + b"\0" + f"{stat.S_IMODE(info.st_mode):04o}".encode() + b"\0")
         for name in sorted(files):
+            if check_work is not None:
+                check_work()
             item = current_path / name
             before = item.lstat()
             if stat.S_ISLNK(before.st_mode) or not stat.S_ISREG(before.st_mode) or before.st_nlink != 1:
@@ -4768,6 +4940,8 @@ def _fresh_expected_tree_sha256(path: Path) -> str:
                 content = b""
                 chunks = []
                 while chunk := os.read(fd, 1024 * 1024):
+                    if check_work is not None:
+                        check_work()
                     chunks.append(chunk)
                 after = os.fstat(fd)
             finally:
@@ -4779,22 +4953,28 @@ def _fresh_expected_tree_sha256(path: Path) -> str:
             content = b"".join(chunks)
             relative = item.relative_to(path).as_posix()
             digest.update(b"file\0" + relative.encode() + b"\0" + f"{stat.S_IMODE(before.st_mode):04o}".encode() + b"\0" + hashlib.sha256(content).digest() + b"\0")
+    if check_work is not None:
+        check_work()
     return digest.hexdigest()
 
 
-def _verify_fresh_journal_artifacts(plan: dict[str, object], envelopes: list[object]) -> None:
+def _verify_fresh_journal_artifacts(plan: dict[str, object], envelopes: list[object], *, check_work: Callable[[], None] | None = None) -> None:
     roots = plan["execution"]["artifact_roots"]
     capture_root = Path(roots["baseline_capture"])
     for envelope in envelopes:
+        if check_work is not None:
+            check_work()
         receipt = envelope["receipt"]
         phase = receipt["phase"]
         chunk = receipt["chunk"]
         committed = Path(roots[phase.replace("-", "_")]) / f"chunk-{chunk:05}"
-        if committed.is_symlink() or not committed.is_dir() or _fresh_expected_tree_sha256(committed) != receipt["committed_chunk_sha256"]:
+        if committed.is_symlink() or not committed.is_dir() or _fresh_expected_tree_sha256(committed, check_work=check_work) != receipt["committed_chunk_sha256"]:
             raise RunnerError("fresh run committed chunk is missing, changed, or not immutable")
         captured_expected = capture_root / f"chunk-{chunk:05}" / "expected"
-        if _fresh_expected_tree_sha256(captured_expected) != receipt["expected_chunk_sha256"]:
+        if _fresh_expected_tree_sha256(captured_expected, check_work=check_work) != receipt["expected_chunk_sha256"]:
             raise RunnerError("fresh run immutable expected frame chunk changed")
+    if check_work is not None:
+        check_work()
 
 
 def _verify_fresh_staged_chunk(plan: dict[str, object], envelope: dict[str, object], stage: Path) -> None:
@@ -5587,6 +5767,11 @@ def parser() -> argparse.ArgumentParser:
     fresh_run_verify.add_argument("--baseline-bin-dir", type=Path, required=True)
     fresh_run_verify.add_argument("--expected-plan-sha256", required=True)
     fresh_run_verify.add_argument("--key-path", type=Path, required=True)
+    fresh_run_verify.add_argument("--owned-lifecycle", action="store_true", help="use one cancellation-safe owned budget for plan and prepared-run verification")
+    fresh_run_verify.add_argument("--owned-budget", type=int, default=PREPARE_OWNED_MAX_BUDGET)
+    fresh_run_verify.add_argument("--creation-commitment-path", type=Path)
+    fresh_run_verify.add_argument("--expected-commitment-sha256")
+    fresh_run_verify.add_argument("--pending-receipt-path", type=Path)
     for command_parser in (fresh_run_init, fresh_run_verify):
         command_parser.set_defaults(timeout=min(MAX_TIMEOUT, FRESH_PLAN_MAX_TIMEOUT))
     fresh_run_advance = sub.add_parser("fresh-run-advance", help="run exactly the next planned baseline capture or replay chunk; no candidate comparison or finalization")
@@ -5768,7 +5953,23 @@ def main() -> int:
                     raise RunnerError("owned fresh-run options require --owned-lifecycle")
                 create_fresh_run(args.repo, args.root, args.cohort, args.baseline_bin_dir, args.timeout, args.expected_plan_sha256, args.key_path)
         elif args.command == "fresh-run-verify":
-            verify_fresh_run(args.repo, args.root, args.cohort, args.baseline_bin_dir, args.timeout, args.expected_plan_sha256, args.key_path)
+            if args.owned_lifecycle:
+                if args.cohort != PREPARE_LIVE_OWNED_COHORT:
+                    raise RunnerError("--owned-lifecycle requires the pinned fresh-capture cohort")
+                if args.creation_commitment_path is None or args.expected_commitment_sha256 is None or args.pending_receipt_path is None:
+                    raise RunnerError("--owned-lifecycle requires the externally pinned creation commitment and durable pending receipt")
+                with PrepareExecution(args.owned_budget) as execution:
+                    verify_fresh_run(
+                        args.repo, args.root, args.cohort, args.baseline_bin_dir, args.timeout,
+                        args.expected_plan_sha256, args.key_path, execution=execution,
+                        commitment_path=args.creation_commitment_path,
+                        expected_commitment_sha256=args.expected_commitment_sha256,
+                        pending_receipt_path=args.pending_receipt_path,
+                    )
+            else:
+                if args.owned_budget != PREPARE_OWNED_MAX_BUDGET or args.creation_commitment_path is not None or args.expected_commitment_sha256 is not None or args.pending_receipt_path is not None:
+                    raise RunnerError("owned fresh-run options require --owned-lifecycle")
+                verify_fresh_run(args.repo, args.root, args.cohort, args.baseline_bin_dir, args.timeout, args.expected_plan_sha256, args.key_path)
         elif args.command == "fresh-run-advance":
             if (args.expected_ordinal is None) != (args.expected_phase is None):
                 raise RunnerError("--expected-ordinal and --expected-phase must be supplied together")
