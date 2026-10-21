@@ -2031,7 +2031,9 @@ follow-up; it does not clear live mutation retirement or MenuBar precedence.
 The normal merge of PR #38 source `bfefea9ce` with stage-1 source `312b8f38a`
 retains all seven protected expected/assertion blobs at the exact IDs pinned
 by [held expectations](../audits/evidence/2026-10-21-form-dialog-integration/held-expectations.json).
-Theme nextest passed 182/182, Runtime glyph-contract nextest 2/2, strict
-scoped Clippy, formatting and diff checks pass on the integration head. This
-library API increment does not establish the four application parity
-requirements or full workspace acceptance.
+On the synchronized WIP, Theme nextest runs 182 tests: 181 pass and the
+already-recorded `all_73_junie_slots_match_reference_capability_output`
+failure remains red; Runtime glyph-contract nextest passes 2/2. Strict scoped
+Clippy, formatting and diff checks pass. This library API increment does not
+establish the four application parity requirements or full workspace
+acceptance.
