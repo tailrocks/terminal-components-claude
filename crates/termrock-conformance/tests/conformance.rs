@@ -717,6 +717,10 @@ impl Conformance for DialogCase {
         DLG.part(Part::ACTIONS).index(0)
     }
 
+    fn activation_id() -> Id {
+        LAUNCH
+    }
+
     fn opener_id() -> Id {
         LAUNCH
     }
@@ -3263,6 +3267,19 @@ impl Conformance for PickerCase {
     fn layer_id() -> Option<Id> {
         Some(PICKER)
     }
+    fn scroll_id() -> Id {
+        PICKER.sub("results")
+    }
+    fn prepare_scroll_fixture(fixture: &mut Fixture) {
+        for value in 5..15 {
+            fixture.rows.push(FixtureRow {
+                key: ItemKey::num(100 + value),
+                label: format!("row {value}"),
+                meta: format!("meta {value}"),
+                disabled: false,
+            });
+        }
+    }
     fn bindings(state: BindingState) -> &'static [Binding<Self::Cmd>] {
         FilterList::<Item<'static>>::new(PICKER).bindings(state)
     }
@@ -3605,6 +3622,7 @@ impl Conformance for HelpOverlayCase {
         Some(HELP_OVERLAY)
     }
     fn prepare_scroll_fixture(fixture: &mut Fixture) {
+        fixture.area.height = 10;
         for value in 5..12 {
             fixture.rows.push(FixtureRow {
                 key: ItemKey::num(100 + value),

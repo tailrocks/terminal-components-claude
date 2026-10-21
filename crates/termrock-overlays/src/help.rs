@@ -13,8 +13,9 @@ use crate::measure::{Constraints, Size};
 use crate::response::{Response, StateFlags};
 use crate::scroll::ScrollState;
 use crate::text::width;
-use crate::theme::{Family, GlyphRole, Modifier, Role, StylePatch, Surface};
+use crate::theme::{Family, GlyphRole, Modifier, Role, StylePatch, Surface, Variant};
 use crate::ui::{Cx, FrameRead, Ui};
+use termrock_core::geometry::{Axes, Headroom};
 use termrock_feedback::keyhint::HintText;
 use termrock_runtime::scroll_region::ScrollRegion;
 
@@ -348,18 +349,24 @@ impl<'a> HelpOverlay<'a> {
     }
 
     pub fn draw(&self, ui: &mut Ui<'_>, area: Rect, st: &HelpOverlayState) -> Rect {
-        if area.is_empty() || area.width < 16 || area.height < 8 {
+        if area.is_empty() {
             return area;
         }
+        let live = ui.state(self.id);
         ui.with_surface(Surface::Elevated, |ui| {
-            self.paint_card(ui, area);
-            let live = PartStyle::flags(StateFlags::empty(), StateFlags::empty());
-            let border = ink(ui, 0x004d_4d4d, 0x0018_181b, false);
-            let _frame_inner = ui.frame(area, border);
+            self.paint_card(ui, area, live);
+            let border_style = self
+                .ov
+                .style(ui, self.id, Family::HELP, Variant::DEFAULT, Part::BORDER, live)
+                .style;
+            let _frame_inner = ui.frame(area, border_style);
             ui.register_control(self.id, area, Focusability::Focusable);
             ui.publish_bindings(self.id, live, BINDINGS);
             ui.register_decor(self.id, PartRef::of(Part::BORDER), area);
-            self.paint_title(ui, area);
+            if area.width < 16 || area.height < 8 {
+                return;
+            }
+            self.paint_title(ui, area, live);
             let inner = Rect {
                 x: area.x.saturating_add(3),
                 y: area.y.saturating_add(1),
@@ -407,12 +414,29 @@ impl<'a> HelpOverlay<'a> {
         scrollbar
     }
 
-    fn paint_card(&self, ui: &mut Ui<'_>, area: Rect) {
-        ui.fill_card_from_page(area, ratatui_core::style::Color::Rgb(0x18, 0x18, 0x1b));
+    fn paint_card(&self, ui: &mut Ui<'_>, area: Rect, live: StateFlags) {
+        let container = self.ov.style(
+            ui,
+            self.id,
+            Family::HELP,
+            Variant::DEFAULT,
+            Part::CONTAINER,
+            live,
+        );
+        ui.fill_card_from_page(
+            area,
+            container
+                .style
+                .bg
+                .unwrap_or(ratatui_core::style::Color::Rgb(0x18, 0x18, 0x1b)),
+        );
     }
 
-    fn paint_title(&self, ui: &mut Ui<'_>, area: Rect) {
-        let style = ink(ui, 0x00ff_ffff, 0x0018_181b, true);
+    fn paint_title(&self, ui: &mut Ui<'_>, area: Rect, live: StateFlags) {
+        let style = self
+            .ov
+            .style(ui, self.id, Family::HELP, Variant::DEFAULT, Part::TITLE, live)
+            .style;
         let title = format!(" {} ", "Keyboard shortcuts");
         ui.paint_str(
             Rect {
@@ -599,6 +623,14 @@ impl<'a> HelpOverlay<'a> {
             let glyph = if row < thumb { "┃" } else { "┆" };
             ui.paint_str(cell_row(x, inner.y.saturating_add(row), 1), glyph, style);
         }
+        let track_rect = Rect {
+            x,
+            y: inner.y,
+            width: 1,
+            height: track_h,
+        };
+        ui.register_part(self.id, PartRef::of(Part::TRACK), track_rect);
+        ui.register_scroll(self.id, area, Axes::V, Headroom::default());
     }
 
     fn paint_done(&self, ui: &mut Ui<'_>, inner: Rect) {
