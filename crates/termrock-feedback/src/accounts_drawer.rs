@@ -290,6 +290,7 @@ fn paint_header(ui: &mut Ui<'_>, area: Rect, page: &AccountsDrawer<'_>, ink: &In
     put(ui, area, value_x, y, cluster.value, secondary);
 }
 
+#[allow(clippy::too_many_arguments)]
 fn paint_list_top(
     ui: &mut Ui<'_>,
     area: Rect,
@@ -359,6 +360,7 @@ fn paint_pane_edges(
     put(ui, area, list_right, y, "│", edge);
 }
 
+#[allow(clippy::too_many_arguments)]
 fn paint_pane_row(
     ui: &mut Ui<'_>,
     area: Rect,
@@ -430,6 +432,7 @@ fn paint_pane_row(
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 fn paint_selected_row(
     ui: &mut Ui<'_>,
     area: Rect,
