@@ -1,0 +1,144 @@
+{
+  "commit": "92a438867abbd23c4c2c78574070a13114b816e5",
+  "status": "Cleared for integration of this bounded public command-scope adapter. No actionable correctness/API findings found.",
+  "accepted_plan_sha256": "9965d08f122c610e14b8901303fc4c26de5c6e44c3e352d6378608d1d9a9eaf6",
+  "scope_review": {
+    "implementation": "One additive 27-line inherent Ui::command_scope method plus one module declaration. Existing focus_scope(Normal) encloses actual render; existing scoped typed publication uses empty flags after callback. Existing return value, Ui clipping/layer/focus and stable owner/table behavior retained.",
+    "runtime_changes": "No runtime dispatch, keymap, focus resolver, global Capture/Bubble, application, geometry or painting implementation changed. No unsafe code or new ownership/concurrency/error-handling concern found.",
+    "input_safety": "Existing top-layer/focused-descendant matching, depth ordering and before/after callback scope/focus revalidation remain authoritative. The method adds no focusable control, hit region, cursor or pixels. Registration suppression already excludes inert/reference publication.",
+    "configuration": "No flags API or new implicit disabled-state system. Static table/empty slice selects available commands, and existing component remap/remove resolves effective keys. Public consumer uses borrowed real components and only public facade API; no author imports or ordinary coordinate calculation.",
+    "measurement": "Wrapper is a draw/publication adapter only; does not call update, measure, or domain handler. Existing FnOnce body executes within shared scope guard."
+  },
+  "verification": {
+    "native_slots": {
+      "command": "cargo nextest run -p termrock --test slots --features termrock/testing --offline",
+      "exit": 0,
+      "passed": 10,
+      "skipped": 0
+    },
+    "native_runtime": {
+      "command": "cargo nextest run -p termrock-runtime --all-targets --features termrock-runtime/testing --offline",
+      "exit": 0,
+      "passed": 377,
+      "skipped": 3,
+      "skipped_reason": "Existing PTY-driver entry fixtures, not executed as ordinary native tests.",
+      "skipped_sources": [
+        "crates/termrock-runtime/tests/pointer_publication.rs:103",
+        "crates/termrock-runtime/tests/monotonic.rs:384",
+        "crates/termrock-runtime/tests/monotonic.rs:391"
+      ],
+      "includes": "All six existing scoped-decline, modal-open stale-scope, leaf-open, and focus-movement fallback regressions pass."
+    },
+    "immutable_actual_widget_counters": {
+      "command": "cargo nextest run --offline --test scope_research --no-fail-fast -E \"test(global_) | test(existing_scoped_)\"",
+      "exit": 100,
+      "selected_passed": 1,
+      "selected_failed": 2,
+      "explicitly_filtered": 7,
+      "interpretation": "Intentional preserved negatives: unchanged global Capture and global Bubble each still execute two background domain actions through Dialog/PropsList, whereas existing scoped primitive executes zero. This confirms legacy global semantics remain unchanged; does not mean application routing was repaired."
+    },
+    "positive_external_suite": {
+      "command": "cargo nextest run --offline --no-fail-fast -E \"not test(global_)\"",
+      "exit": 0,
+      "passed": 62,
+      "explicitly_filtered": 4,
+      "interpretation": "Four duplicated deliberate global-negative tests were explicitly excluded from this positive-only gate, not counted as passed or hidden. Immutable original eleven probes and same public different-data consumer remain included.",
+      "coverage": [
+        "Public command_scope blocks i/x under real PropsList modal and genuine no-focus empty modal in all four profiles.",
+        "Real no-focus24x8 modal receives repeated i/x before resizing back; counters stay zero.",
+        "Per-key remapping checks prove original i never fires, remapped r fires exactly once per event, removed x never fires; four profiles.",
+        "Full cells/colors/modifiers, ALL registered regions, focus/cursor equality versus existing author primitives; native four-profile 60x20/24x8 comparison.",
+        "Existing immutable84 data/profile/resize scenes include empty/large lists, Unicode/combining/long content and0x0/narrow sizes; callback-count probes remain unchanged.",
+        "Real Button pointer/keyboard reopen, three native close/reopen cycles and actual focus restoration; independent four-profile Tab/ShiftTab/Esc/two-cycle flow also passes."
+      ]
+    },
+    "text_input_precedence": {
+      "command": "cargo nextest run --offline --test typing_scope",
+      "exit": 0,
+      "passed": 1,
+      "skipped": 0,
+      "coverage": "Four profiles: actual TextInput consumes i/x into draft ix, domain scope counter remains zero, Enter commits ix and counter remains zero.",
+      "fixture_correction": "Initial reviewer assertion incorrectly expected model text to update before commit. Corrected to assert draft_text first and model value after Enter; existing component draft/commit semantics were preserved, not a product defect."
+    },
+    "strict_checks": [
+      {
+        "command": "cargo clippy -p termrock-runtime -p termrock-overlays -p termrock --all-targets --features termrock/testing --offline -- -D warnings",
+        "exit": 0
+      },
+      {
+        "command": "cargo clippy --lib --offline -- -D warnings (separate geometry-free public consumer)",
+        "exit": 0
+      },
+      {
+        "command": "rustfmt --edition2024 --check changed command_scope.rs and slots.rs; git diff --check exact commit",
+        "exit": 0
+      }
+    ]
+  },
+  "test_integrity": {
+    "meaningful_red_green": "Current global-route counter probes intentionally remain RED and new public-scope counterparts are GREEN. This is alternative scoped-consumer behavior using an additive API, not a claim that runtime global policy changed. Missing command_scope on old source would be an API compile failure, not behavioral proof. Actual Jackin unchanged real-App/CLI RED/GREEN remains required during adoption.",
+    "authored_test_note": "Authored remap test checks final aggregate count; independent added per-physical-key assertions supply stricter old-chord/remapped-chord separation. Author no-focus resize test checks focus loss but sends i/x after growing back; independent nonzero no-focus modal and narrow-modal repeated-key probes cover that omitted intermediate state."
+  },
+  "remaining_scope_limits": [
+    "Three existing PTY driver fixtures unrun; no full terminal-mode/cleanup proof follows.",
+    "No hosted CI execution or full-workspace acceptance run.",
+    "No Jackin domain/global-key migration, real rail focusability contract, InfoCard removal, frozen dialog chrome, clipboard side-effect integration or application parity accepted.",
+    "Scope requires a real focused descendant. Do not add dummy focus controls or no-focus background fallback to adopt it; baseline cockpit RAIL contract remains separate."
+  ],
+  "preservation": {
+    "source_head": "92a438867abbd23c4c2c78574070a13114b816e5",
+    "author_worktree": "Untouched",
+    "review_worktree": "No non-artifact source changes; 1301 pre-existing tracked artifact deletions preserved.",
+    "publication": "No push, branch deletion or tag/reference mutation performed."
+  },
+  "artifacts": [
+    {
+      "path": "/private/tmp/termrock-command-scope-92a4388-native-slots.log",
+      "sha256": "ff06555028528420d94812a51a8a5f13b7bf6e6b28e989eea030e4513903679a"
+    },
+    {
+      "path": "/private/tmp/termrock-command-scope-92a4388-native-runtime.log",
+      "sha256": "892f16794e6cfbd5a20e28b50dfca5eb5f02d143f38e44db5547b3bbc8f780f3"
+    },
+    {
+      "path": "/private/tmp/termrock-command-scope-92a4388-original-counters.log",
+      "sha256": "c8df0d745d6870937c48022bbff7d397ea70312156b3f93a6efa9d7e08834d24"
+    },
+    {
+      "path": "/private/tmp/termrock-command-scope-92a4388-positive.log",
+      "sha256": "14088b5132cee04fb0b4ce2459696617f35b62a9dc2c41d237ceaeeca0a037b3"
+    },
+    {
+      "path": "/private/tmp/termrock-command-scope-92a4388-consumer-clippy.log",
+      "sha256": "033810660f1bcb9ab4282da28596bab765c4cbe0d9d9d26499ec837df7150182"
+    },
+    {
+      "path": "/private/tmp/termrock-command-scope-92a4388-scoped-clippy.log",
+      "sha256": "23a7f7843f71051a745226dfd67ff8e8719ba688b38bdb8f3a4d74438ca70796"
+    },
+    {
+      "path": "/private/tmp/termrock-command-scope-92a4388-typing-final.log",
+      "sha256": "b218062b1ab657aa37a4b894a01ddb099cf78cac45bf9c0d69844cf12f761820"
+    },
+    {
+      "path": "/private/tmp/termrock-command-scope-review-92a4388/src/lib.rs",
+      "sha256": "fbb816cca3039972e3758e56b8fb0fbff1d017302be845cc7988a6ee096b2fc4"
+    },
+    {
+      "path": "/private/tmp/termrock-command-scope-review-92a4388/tests/scope_research.rs",
+      "sha256": "535aeab9724278e159868f325422cac6d75727bfcb8b9c64338042db5c0bb799"
+    },
+    {
+      "path": "/private/tmp/termrock-command-scope-review-92a4388/tests/public_scope.rs",
+      "sha256": "8a8afca6e9a79732936934164bee53f5d75697557d3511110e634bf8ad4b14fb"
+    },
+    {
+      "path": "/private/tmp/termrock-command-scope-review-92a4388/tests/adversarial_scope.rs",
+      "sha256": "58c702bb0c8c25afc68c98bb6296837a0f8bd2b2087073baab9ad12215eae003"
+    },
+    {
+      "path": "/private/tmp/termrock-command-scope-review-92a4388/tests/typing_scope.rs",
+      "sha256": "b4f45ac049385efcfbf752a2f9da9e9da3357922236de732b5f1cc5bc3dfdfc8"
+    }
+  ]
+}
