@@ -1,7 +1,8 @@
 //! Responsive master/detail composition built from existing groups and split layout.
 
 use ratatui_core::layout::Rect;
-use termrock_controls::{SplitPane, SplitPaneState};
+pub use termrock_controls::MasterDetailState;
+use termrock_controls::{MasterDetail as ResponsiveMasterDetail, SplitPane, SplitPaneState};
 use termrock_layout::{ChildPolicy, Composition, Constraints, Size, SplitAxis};
 use termrock_runtime::author::{self, CompositionLeaf};
 use termrock_runtime::focus::{ScopeId, ScopeMode};
@@ -81,19 +82,6 @@ impl MasterDetailPolicy {
 
     pub const fn is_collapsed(self, width: u16) -> bool {
         width < self.collapse_below
-    }
-}
-
-/// State for the narrow detail drawer and its shared focus return target.
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
-pub struct MasterDetailState {
-    drawer_open: bool,
-    focus_return: Option<crate::Id>,
-}
-
-impl MasterDetailState {
-    pub const fn drawer_open(&self) -> bool {
-        self.drawer_open
     }
 }
 
@@ -180,12 +168,10 @@ impl<'a> MasterDetail<'a> {
         cx: &mut Cx<'_>,
         state: &mut MasterDetailState,
     ) -> Response<MasterDetailAction> {
-        if state.drawer_open {
+        if state.drawer_open() {
             return Response::consumed();
         }
-        state.drawer_open = true;
-        state.focus_return = Some(self.master_owner);
-        cx.focus(self.detail_owner);
+        self.responsive_engine().open_drawer(state, cx);
         Response::action(MasterDetailAction::DrawerOpened).for_id(self.id)
     }
 
@@ -195,11 +181,10 @@ impl<'a> MasterDetail<'a> {
         cx: &mut Cx<'_>,
         state: &mut MasterDetailState,
     ) -> Response<MasterDetailAction> {
-        if !state.drawer_open {
+        if !state.drawer_open() {
             return Response::ignored();
         }
-        state.drawer_open = false;
-        cx.focus(state.focus_return.take().unwrap_or(self.master_owner));
+        self.responsive_engine().close_drawer(state, cx);
         Response::action(MasterDetailAction::DrawerClosed).for_id(self.id)
     }
 
@@ -211,12 +196,18 @@ impl<'a> MasterDetail<'a> {
         state: &mut MasterDetailState,
     ) -> Response<MasterDetailAction> {
         let scope = self.detail_scope();
-        let narrow_drawer_is_active = state.drawer_open
+        let responsive = self.responsive_engine();
+        let narrow_drawer_is_active = state.drawer_open()
             && cx
                 .layout(self.id)
                 .and_then(|facts| facts.logical_area)
                 .filter(|area| !area.is_empty())
-                .is_some_and(|area| self.policy.is_collapsed(area.width))
+                .is_some_and(|area| {
+                    responsive
+                        .resolve_responsive_layout(area, state.drawer_open())
+                        .mode
+                        == termrock_controls::MasterDetailMode::Drawer
+                })
             && cx.focused_in_scope(scope).is_some();
         if narrow_drawer_is_active
             && cx.intents(self.id).any(
@@ -244,7 +235,12 @@ impl<'a> MasterDetail<'a> {
             summary.validate_depth()?;
         }
 
-        if constraints.max.0 >= self.policy.collapse_below {
+        let responsive = self.responsive_engine();
+        let resolved = responsive.resolve_responsive_layout(
+            Rect::new(0, 0, constraints.max.0, constraints.max.1),
+            state.drawer_open(),
+        );
+        if resolved.mode == termrock_controls::MasterDetailMode::Split {
             self.wide_split(master, detail)
                 .measure(ui, &SplitPaneState::default(), constraints)
                 .map_err(|error| match error {
@@ -258,10 +254,10 @@ impl<'a> MasterDetail<'a> {
                         MasterDetailError::MissingDetail
                     }
                 })
-        } else if state.drawer_open {
+        } else if resolved.mode == termrock_controls::MasterDetailMode::Drawer {
             detail.measure(ui, constraints).map_err(Into::into)
         } else {
-            self.narrow_slots(master, constraints.max.1)
+            self.narrow_slots(master, resolved.summary.height)
                 .measure(ui, constraints)
                 .map_err(Into::into)
         }
@@ -282,8 +278,11 @@ impl<'a> MasterDetail<'a> {
         }
 
         let area = ui.full();
+        let resolved = self
+            .responsive_engine()
+            .resolve_responsive_layout(area, state.drawer_open());
         ui.report_layout(self.id, LayoutFacts::default().with_logical_area(area));
-        if area.width >= self.policy.collapse_below {
+        if resolved.mode == termrock_controls::MasterDetailMode::Split {
             let mut result: Result<(), CompositionError> = Ok(());
             self.wide_pane()
                 .draw(ui, area, &SplitPaneState::default(), |ui, first, second| {
@@ -297,7 +296,7 @@ impl<'a> MasterDetail<'a> {
                     }
                 });
             result.map_err(Into::into)
-        } else if state.drawer_open {
+        } else if resolved.mode == termrock_controls::MasterDetailMode::Drawer {
             ui.focus_scope(self.detail_scope().id(), ScopeMode::Normal, |ui| {
                 let result = detail.show(ui);
                 if result.is_ok() {
@@ -313,9 +312,15 @@ impl<'a> MasterDetail<'a> {
             })
             .map_err(Into::into)
         } else {
-            ui.compose(&self.narrow_slots(master, ui.full().height))
+            ui.compose(&self.narrow_slots(master, resolved.summary.height))
                 .map_err(Into::into)
         }
+    }
+
+    fn responsive_engine(&self) -> ResponsiveMasterDetail {
+        ResponsiveMasterDetail::new(self.id, self.master_owner, self.detail_owner)
+            .collapse_below(self.policy.collapse_below)
+            .summary_rows(self.policy.summary_rows)
     }
 
     fn wide_split(
@@ -346,8 +351,7 @@ impl<'a> MasterDetail<'a> {
         ScopeId::new(self.id.sub("detail.scope"))
     }
 
-    fn narrow_slots(&self, master: &'a Group<'a>, height: u16) -> CompositionSlots<'a> {
-        let summary_rows = self.policy.summary_rows.min(height / 3);
+    fn narrow_slots(&self, master: &'a Group<'a>, summary_rows: u16) -> CompositionSlots<'a> {
         if let Some(summary) = self.summary.filter(|_| summary_rows > 0) {
             CompositionSlots::column([
                 ContentSlot::new(master, ChildPolicy::default().flex(1)),
@@ -377,5 +381,45 @@ impl Measure for Group<'_> {
 impl CompositionLeaf for Group<'_> {
     fn draw(&self, ui: &mut Ui<'_>, logical: Rect) {
         let _ = ui.with_area(logical, |ui| self.show(ui));
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    const ID: crate::Id = crate::Id::root("master-detail.shared-layout.test");
+    const MASTER: crate::Id = crate::Id::root("master-detail.shared-layout.master");
+    const DETAIL: crate::Id = crate::Id::root("master-detail.shared-layout.detail");
+
+    #[test]
+    fn facade_and_control_share_resolver_but_keep_default_breakpoints_and_rows() {
+        let state = MasterDetailState::default();
+        let facade = MasterDetail::new(ID, MASTER, DETAIL);
+        let controls = ResponsiveMasterDetail::new(ID, MASTER, DETAIL);
+
+        let between_defaults = Rect::new(0, 0, 104, 30);
+        let facade_layout = facade
+            .responsive_engine()
+            .resolve_responsive_layout(between_defaults, state.drawer_open());
+        let controls_layout = controls.layout(between_defaults, &state);
+        assert_eq!(
+            facade_layout.mode,
+            termrock_controls::MasterDetailMode::Master
+        );
+        assert_eq!(facade_layout.summary.height, 1);
+        assert_eq!(
+            controls_layout.mode,
+            termrock_controls::MasterDetailMode::Split
+        );
+
+        let narrow = Rect::new(0, 0, 99, 24);
+        let facade_layout = facade
+            .responsive_engine()
+            .resolve_responsive_layout(narrow, state.drawer_open());
+        let controls_layout = controls.layout(narrow, &state);
+        assert_eq!(facade_layout.mode, controls_layout.mode);
+        assert_eq!(facade_layout.summary.height, 1);
+        assert_eq!(controls_layout.summary.height, 6);
     }
 }
