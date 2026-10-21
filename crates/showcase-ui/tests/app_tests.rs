@@ -360,7 +360,9 @@ fn editor_playground_keeps_live_find_completion_and_run_contracts() {
         h.text()
     );
 
-    assert!(h.tab_to(EDITOR_FIND));
+    assert!(h.tab_to(EDITOR));
+    press(&mut h, KeyCode::F(6));
+    assert_eq!(h.focus(), Some(EDITOR_FIND));
     press(&mut h, KeyCode::Enter);
     assert_eq!(h.focus(), Some(EDITOR));
     type_text(&mut h, "delay");
@@ -413,7 +415,11 @@ fn editor_playground_keeps_live_find_completion_and_run_contracts() {
     );
 
     let mut h = harness(PageId::Editor);
-    assert!(h.tab_to(EDITOR_RUN));
+    assert!(h.tab_to(EDITOR));
+    press(&mut h, KeyCode::F(6));
+    assert_eq!(h.focus(), Some(EDITOR_FIND));
+    press(&mut h, KeyCode::Tab);
+    assert_eq!(h.focus(), Some(EDITOR_RUN));
     press(&mut h, KeyCode::Enter);
     assert!(
         h.text().contains("running"),
@@ -429,6 +435,120 @@ fn editor_playground_keeps_live_find_completion_and_run_contracts() {
         h.text()
     );
     assert!(h.text().contains("Block ran in"), "{}", h.text());
+}
+
+#[test]
+fn editor_shell_tab_indents_without_leaving_editor_focus() {
+    let mut h = harness(PageId::Editor);
+    assert!(h.tab_to(EDITOR));
+    press(&mut h, KeyCode::Char('i'));
+    press(&mut h, KeyCode::Tab);
+
+    assert_eq!(
+        h.focus(),
+        Some(EDITOR),
+        "Tab indentation retains editor focus"
+    );
+    assert!(
+        h.text().contains("Cursor       ln 1 · col 6"),
+        "Tab must add the configured four spaces: {}",
+        h.text()
+    );
+}
+
+#[test]
+fn editor_shell_completion_accepts_enter_then_tab_indents() {
+    let mut h = harness(PageId::Editor);
+    assert!(h.tab_to(EDITOR));
+    press(&mut h, KeyCode::Char('i'));
+    press(&mut h, KeyCode::Backspace);
+    type_text(&mut h, "fe");
+    assert!(
+        h.text().contains("async fn (url: &str)"),
+        "the live completion row must render before acceptance: {}",
+        h.text()
+    );
+
+    press(&mut h, KeyCode::Enter);
+    assert!(
+        h.text().contains("fetch()"),
+        "Enter must accept fetch(): {}",
+        h.text()
+    );
+    assert!(h.text().contains("Completion   closed"), "{}", h.text());
+    assert_eq!(h.focus(), Some(EDITOR));
+
+    press(&mut h, KeyCode::Tab);
+    assert_eq!(
+        h.focus(),
+        Some(EDITOR),
+        "Tab after acceptance indents in place"
+    );
+    assert!(
+        h.text().contains("Cursor       ln 1 · col 12"),
+        "the following Tab must add four spaces after fetch(): {}",
+        h.text()
+    );
+}
+
+#[test]
+fn editor_shell_completion_accepts_tab_then_next_tab_indents() {
+    let mut h = harness(PageId::Editor);
+    assert!(h.tab_to(EDITOR));
+    press(&mut h, KeyCode::Char('i'));
+    press(&mut h, KeyCode::Backspace);
+    type_text(&mut h, "fe");
+    assert!(h.text().contains("async fn (url: &str)"), "{}", h.text());
+
+    press(&mut h, KeyCode::Tab);
+    assert!(
+        h.text().contains("fetch()"),
+        "Tab must accept fetch(): {}",
+        h.text()
+    );
+    assert!(h.text().contains("Completion   closed"), "{}", h.text());
+    assert_eq!(h.focus(), Some(EDITOR));
+
+    press(&mut h, KeyCode::Tab);
+    assert_eq!(
+        h.focus(),
+        Some(EDITOR),
+        "Tab after acceptance indents in place"
+    );
+    assert!(
+        h.text().contains("Cursor       ln 1 · col 12"),
+        "the following Tab must add four spaces after fetch(): {}",
+        h.text()
+    );
+}
+
+#[test]
+fn editor_shell_navigation_tab_moves_to_find_after_commit() {
+    let mut h = harness(PageId::Editor);
+    assert!(h.tab_to(EDITOR));
+    press(&mut h, KeyCode::Esc);
+    assert!(h.text().contains("Mode         navigating"), "{}", h.text());
+
+    press(&mut h, KeyCode::Tab);
+    assert_eq!(h.focus(), Some(EDITOR_FIND));
+}
+
+#[test]
+fn editor_shell_help_layer_blocks_the_page_run_binding() {
+    let mut h = harness(PageId::Editor);
+    assert!(h.tab_to(EDITOR));
+    press(&mut h, KeyCode::Esc);
+    press(&mut h, KeyCode::Char('?'));
+    assert!(h.top_layer().index() > LayerId::PAGE.index());
+
+    control(&mut h, 'r');
+    assert!(
+        !h.text().contains("Running block…"),
+        "the page Ctrl+R binding must not pass through help: {}",
+        h.text()
+    );
+    press(&mut h, KeyCode::Esc);
+    assert_eq!(h.top_layer(), LayerId::PAGE);
 }
 
 #[test]

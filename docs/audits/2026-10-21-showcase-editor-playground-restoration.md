@@ -23,19 +23,19 @@ matrix and inert state specimens remain required follow-up work. This
 increment does not claim either section, full Showcase capability coverage, or
 1:1 visual and functional parity.
 
-The current shared `Button` API has no shortcut-label builder or separate
-shortcut slot. The Playground can activate Find and Run through the shared
-button and editor actions, but the frozen inline shortcut presentation needs a
-separate shared Button contract review before it can be called identical. Keep
-this gap visible; do not draw a page-local shortcut or use a captured frame.
+The frozen Find and Run buttons use plain labels. Their `.shortcut` values are
+tooltip metadata whose empty text suppresses a tooltip; they do not display an
+inline shortcut suffix. The page uses the shared button labels without a
+page-local shortcut painter. Keyboard hints remain in the page footer.
 
-At the real Showcase page route, current shell Tab routing advances focus out
-of the editor before its configured `TabBehavior::Indent` runs, and the open
-completion overlay's Enter is currently delivered as an editor newline. The
-shared editor-completion integration test proves the standalone composite
-contract, but does not prove the page-in-shell path. Those two host integration
-defects need a shared runtime/focus owner and an additional cross-layer fix;
-this page increment does not bypass them or claim the flows complete.
+The first real Showcase route test exposed an application publication bug:
+after the editor and completion overlay published their active bindings, the
+page called `Ui::publish_bindings` for Ctrl+R and replaced those tables. This
+increment uses `Ui::publish_additional_bindings`, preserving the component's
+Tab, Enter, completion, and focus bindings while adding Ctrl+R. No runtime or
+shared keymap semantics changed. Before the fix, the two real-app Tab and
+completion Enter probes both failed; after the fix both pass. The editor still
+has a separate BackTab dedent gap, tracked by its shared editor owner.
 
 The existing syntax highlighter and block segmenter stay demo data supplied to
 the shared editor's callback contracts. The editor itself owns text editing,
@@ -43,13 +43,15 @@ cursor movement, block selection, completion UI, focus, and rendering.
 
 ## Verification
 
-Passed `cargo fmt --check` and focused real-app nextest:
-`cargo nextest run -p showcase-ui --test app_tests
-editor_playground_keeps_live_find_completion_and_run_contracts --no-capture`
-(one test passed). The new app test exercises the real Editor route, actual
-find query/matches, visible live completion popup and Escape dismissal, shortcut
-run of the second code block with diagnostics, and Run button/countdown. Existing
-`termrock-editors` completion integration tests cover standalone Tab acceptance
-and the following configured Tab indentation. This focused app test does not
-resolve the host Tab and Enter findings above. Scoped Clippy remains pending.
-Candidate digest files were not edited or blessed.
+The audit packet `/private/tmp/editor-shell-routing-review-3807-20261021/review.json`
+(SHA-256 `4863bf49cf97da624bc9f98eb660f829eba14fccf2d4bd313f4dbd10000c08f6`)
+contains the unchanged real-app probes failing before this fix. After the fix,
+all 41 `showcase-ui` app tests passed, including the real-route checks for
+configured four-space Tab retaining editor focus, completion accepting both
+Enter and Tab, the following Tab indenting, navigation-mode Tab traversal to
+Find, and a Help overlay blocking page Ctrl+R. The Playground route still
+verifies live find/Escape, second-block Ctrl+R diagnostics, and Run button/
+countdown. All 17 `termrock-editors` completing-editor tests passed. `cargo fmt
+--check` and scoped Clippy passed. This increment changed no shared editor or
+runtime code. Options/States and BackTab dedent remain incomplete. Candidate
+digest files were not edited or blessed.
