@@ -443,7 +443,7 @@ fn focus_theme() -> Theme {
 #[test]
 fn primary_button_pressed_background_matches_frozen_palette_at_each_color_level() {
     let expected = [
-        (ColorLevel::TrueColor, Color::Rgb(46, 154, 56)),
+        (ColorLevel::TrueColor, Color::from_u32(0x002b_8632)),
         (ColorLevel::Ansi256, Color::Indexed(65)),
         (ColorLevel::Ansi16, Color::LightGreen),
         (ColorLevel::Mono, Color::White),
