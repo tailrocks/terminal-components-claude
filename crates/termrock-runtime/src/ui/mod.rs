@@ -1125,7 +1125,11 @@ impl<'f> Ui<'f> {
         typing_offer: bool,
         shape: crate::cursor::CursorShape,
     ) {
-        if self.reference.is_some() || !self.clip.contains(pos) {
+        let in_clip = self.clip.contains(pos)
+            || (self.layer > LayerId::PAGE
+                && self.layer == self.frame.top
+                && self.frame.screen.contains(pos));
+        if self.reference.is_some() || !in_clip {
             return;
         }
         self.frame.cursors.push(CursorRequest {
