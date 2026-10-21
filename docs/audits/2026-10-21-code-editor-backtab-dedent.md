@@ -10,20 +10,34 @@ Nextest run ID: 926f7749-6ca2-464f-ab03-76ffee5e2968
 Exit: 100. Four behavior probes failed; the no-op probe passed.
 ```
 
-The shared editor now removes leading spaces through `TextEditorCore::apply(Paste(""))` in descending ranges, restores cursor and selection direction through byte-offset mapping, and calls `after_edit` once. It preserves the frozen `Changed` result for a BackTab even when no leading spaces are removed. Read-only BackTab is blocked; disabled handling and `TabBehavior::Leave` retain their existing paths. No screen-specific behavior or public API changed.
+The shared editor now removes leading spaces through `TextEditorCore::apply(Paste(""))` in descending grapheme-safe ranges, restores cursor and selection direction through byte-offset mapping using those expanded ranges, and calls `after_edit` once. It preserves the frozen `Changed` result for a BackTab even when no leading spaces are removed. Read-only BackTab is blocked; disabled handling and `TabBehavior::Leave` retain their existing paths. No screen-specific behavior or public API changed.
 
 Runtime probes cover selected and reversed multiline ranges, next-line-start boundary, current-line dedent with wide and combining text, tabs and empty/no-op lines, zero indent, read-only and disabled behavior, and `TabBehavior::Leave`.
+
+Independent review of commit `2505fec7a4041154e8d7ff1c1ccd26c9efcd51dd` found that byte ranges could split an ASCII space from an attached combining mark; `TextEditorCore::select_range` then deleted nothing while the cursor mapping assumed deletion. Review packet: `/Users/donbeave/Projects/termrock-cli-evidence-20261021/branch-consolidation/editor-backtab-independent-review-2505fec-20261021/review.json`, SHA256 `bcb094c2e78610886b87088057b0b25bd614030a8c1e5937c8c9a4b557daec92`. Added current-line and reversed multiline regressions. Both failed on that commit:
+
+```text
+CARGO_TARGET_DIR=/private/tmp/termrock-backtab-g2-before-2505 cargo nextest run -p termrock-editors --lib code::tests::backtab_dedents_attached_combining -- --nocapture
+Nextest run ID: e9025f46-2d44-4460-8e82-177ad7812d8c
+Exit: 100. Both combining-mark probes failed.
+```
+
+Removal ranges now expand using shared grapheme iteration to the same floor/ceiling boundaries as frozen `TextBuffer::remove_range`; offset mapping uses expanded ranges.
 
 ```text
 CARGO_TARGET_DIR=/private/tmp/termrock-backtab-after-6825 cargo nextest run -p termrock-editors --lib code::tests::backtab -- --nocapture
 Nextest run ID: 95abbdbd-8a42-4a88-9b65-119ea665f652
-Exit: 0. Five tests passed, zero failed.
+Exit: 0. Five tests passed, zero failed before the independent grapheme finding.
 
-CARGO_TARGET_DIR=/private/tmp/termrock-backtab-after-6825 cargo nextest run -p termrock-editors --all-targets
-Nextest run ID: 8ef5a023-f2f1-4d07-a50a-c14a5f602088
-Exit: 0. 67 tests passed, zero skipped after the final semantic adjustment.
+CARGO_TARGET_DIR=/private/tmp/termrock-backtab-after2-2505 cargo nextest run -p termrock-editors --lib code::tests::backtab_dedents_attached_combining -- --nocapture
+Nextest run ID: 19c12fa4-a8cc-4905-b02a-d4b1a77d7cd4
+Exit: 0. Both combining-mark probes passed.
 
-CARGO_TARGET_DIR=/private/tmp/termrock-backtab-after-6825 cargo clippy -p termrock-editors --all-targets -- -D warnings
+CARGO_TARGET_DIR=/private/tmp/termrock-backtab-after2-2505 cargo nextest run -p termrock-editors --all-targets
+Nextest run ID: e5526b68-a634-4a36-a004-a8577bcdfd14
+Exit: 0. 69 tests passed, zero skipped after grapheme-boundary correction.
+
+CARGO_TARGET_DIR=/private/tmp/termrock-backtab-after2-2505 cargo clippy -p termrock-editors --all-targets -- -D warnings
 Exit: 0.
 
 cargo fmt --all --check
