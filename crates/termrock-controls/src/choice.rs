@@ -943,10 +943,10 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> RadioGroup<'_, T, K, R> {
         let key = self.key_at(items, to);
         let previous = st.core.cursor();
         st.core.set_cursor(to, key);
-        if previous == Some(key) {
-            acc.consumed();
-        } else if self.navigation == RadioNavigation::Immediate {
+        if self.navigation == RadioNavigation::Immediate && self.value != Some(key) {
             acc.action(RadioGroupAction::Chose(key));
+        } else if previous == Some(key) {
+            acc.consumed();
         } else {
             acc.changed();
         }
@@ -1496,6 +1496,38 @@ mod tests {
         let _ = crate::runtime::stub::deliver(&mut runtime, mouse(MouseKind::Down, 5, 1));
         let _ = crate::runtime::stub::deliver(&mut runtime, mouse(MouseKind::Up, 5, 1));
         assert_eq!(runtime.app().value, ItemKey::index(1));
+    }
+
+    #[test]
+    fn immediate_keyboard_navigation_chooses_cursor_after_cancelled_pointer_press() {
+        for (navigation, key_code, expected_value) in [
+            (RadioNavigation::Immediate, KeyCode::End, ItemKey::index(2)),
+            (RadioNavigation::Immediate, KeyCode::Down, ItemKey::index(2)),
+            (RadioNavigation::Deferred, KeyCode::End, ItemKey::index(0)),
+            (RadioNavigation::Deferred, KeyCode::Down, ItemKey::index(0)),
+        ] {
+            let mut runtime = Runtime::new(
+                ControlledRadioApp {
+                    state: RadioGroupState::default(),
+                    value: ItemKey::index(0),
+                    navigation,
+                },
+                Theme::junie(),
+            );
+            let _ = runtime.initialize();
+            let mut buffer = Buffer::empty(SCREEN);
+            runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
+
+            let _ = crate::runtime::stub::deliver(&mut runtime, mouse(MouseKind::Down, 5, 2));
+            assert_eq!(runtime.app().value, ItemKey::index(0));
+            assert_eq!(runtime.app().state.cursor(), Some(ItemKey::index(2)));
+            let _ = crate::runtime::stub::deliver(&mut runtime, mouse(MouseKind::Up, 5, 5));
+            assert_eq!(runtime.app().value, ItemKey::index(0));
+
+            let _ = crate::runtime::stub::deliver(&mut runtime, key(key_code));
+            assert_eq!(runtime.app().value, expected_value);
+            assert_eq!(runtime.app().state.cursor(), Some(ItemKey::index(2)));
+        }
     }
 
     #[test]
