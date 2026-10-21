@@ -611,6 +611,53 @@ fn editor_manual_empty_completion_keeps_frozen_alphabetic_choice() {
 }
 
 #[test]
+fn editor_repeated_runs_accumulate_diagnostics_until_text_changes() {
+    let mut h = harness(PageId::Editor);
+    assert!(h.tab_to(EDITOR));
+    for _ in 0..17 {
+        press(&mut h, KeyCode::Down);
+    }
+    assert!(h.text().contains("Block        2 of 3"), "{}", h.text());
+
+    control(&mut h, 'r');
+    h.ticks(10);
+    assert!(h.text().contains("Diagnostics  1"), "{}", h.text());
+
+    control(&mut h, 'r');
+    h.ticks(10);
+    assert!(h.text().contains("Runs         2"), "{}", h.text());
+    assert!(
+        h.text().contains("Diagnostics  2"),
+        "repeated unchanged runs retain the frozen accumulated diagnostics: {}",
+        h.text()
+    );
+
+    press(&mut h, KeyCode::Char('i'));
+    press(&mut h, KeyCode::Char('x'));
+    assert!(h.text().contains("Diagnostics  0"), "{}", h.text());
+}
+
+#[test]
+fn editor_blank_separator_readout_has_no_fallback_execution_block() {
+    let mut h = harness(PageId::Editor);
+    assert!(h.tab_to(EDITOR));
+    for _ in 0..16 {
+        press(&mut h, KeyCode::Down);
+    }
+
+    assert!(
+        h.text().contains("Cursor       ln 17 · col 1"),
+        "{}",
+        h.text()
+    );
+    assert!(
+        h.text().contains("between blocks"),
+        "readout uses exact cursor containment, while execution may fall back to the previous block: {}",
+        h.text()
+    );
+}
+
+#[test]
 fn launches_and_renders_shell() {
     let h = harness(PageId::Overview);
     let text = h.text();
