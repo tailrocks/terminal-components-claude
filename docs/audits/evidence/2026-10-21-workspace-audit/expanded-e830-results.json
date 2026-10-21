@@ -1,0 +1,70 @@
+{
+  "source": "e830877cdebe2461466f643f476a2dc1575b6ae8",
+  "results": [
+    {
+      "command": [
+        "cargo",
+        "nextest",
+        "run",
+        "--locked",
+        "-p",
+        "termrock-runtime",
+        "-p",
+        "termrock-navigation",
+        "-p",
+        "termrock-overlays",
+        "-p",
+        "termrock-forms",
+        "-p",
+        "termrock-editors",
+        "-p",
+        "termrock",
+        "--features",
+        "termrock/testing",
+        "--all-targets",
+        "--no-fail-fast",
+        "--status-level",
+        "fail",
+        "--final-status-level",
+        "fail"
+      ],
+      "exit": 100
+    },
+    {
+      "command": [
+        "cargo",
+        "clippy",
+        "--locked",
+        "-p",
+        "termrock-runtime",
+        "-p",
+        "termrock-navigation",
+        "-p",
+        "termrock-overlays",
+        "-p",
+        "termrock-forms",
+        "-p",
+        "termrock-editors",
+        "-p",
+        "termrock",
+        "--features",
+        "termrock/testing",
+        "--all-targets",
+        "--no-deps",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "exit": 0
+    },
+    {
+      "command": [
+        "cargo",
+        "fmt",
+        "--check"
+      ],
+      "exit": 0
+    }
+  ],
+  "log": "/private/tmp/pr38-expanded-current-d5ce16dd-0148-4381-9794-34d9b55548f1.log"
+}
