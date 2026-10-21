@@ -6954,10 +6954,11 @@ impl App {
         let level = ui.theme_ref().capability.color;
         let mut fg = termrock::Color::Rgb(0x79, 0xb8, 0xff);
         let mut bg = termrock::Color::Rgb(0, 0, 0);
-        if matches!(
-            level,
-            termrock::ColorLevel::Ansi256 | termrock::ColorLevel::Ansi16
-        ) {
+        if level == termrock::ColorLevel::Ansi256 {
+            // Baseline 256 trace ink is cube 111, not the generic neighbor 117.
+            fg = termrock::Color::Indexed(111);
+            bg = termrock::Color::Indexed(16);
+        } else if level == termrock::ColorLevel::Ansi16 {
             fg = termrock::theme::downgrade_color(fg, level);
             bg = termrock::theme::downgrade_color(bg, level);
         }
@@ -6991,6 +6992,38 @@ impl App {
             &label,
             style,
         );
+        if level == termrock::ColorLevel::Ansi256 {
+            // Brand text on the accent chip is ramp 232. Ghost glyphs on black
+            // are ramp 238. The stage checks use cube 71, not the accent.
+            ui.recolor_fg(screen, |fg, bg| match (fg, bg) {
+                (termrock::Color::Indexed(233), termrock::Color::Indexed(78)) => {
+                    Some(termrock::Color::Indexed(232))
+                }
+                (termrock::Color::Indexed(235), termrock::Color::Indexed(16)) => {
+                    Some(termrock::Color::Indexed(238))
+                }
+                _ => None,
+            });
+            let (buf, _) = ui.raw();
+            for pos in screen.positions() {
+                let Some(cell) = buf.cell_mut(pos) else {
+                    continue;
+                };
+                if cell.symbol() == "✓"
+                    && cell.fg == termrock::Color::Indexed(78)
+                    && cell.bg == termrock::Color::Indexed(16)
+                {
+                    cell.set_fg(termrock::Color::Indexed(71));
+                } else if cell.symbol() == "┆" && cell.bg == termrock::Color::Indexed(16) {
+                    cell.set_fg(termrock::Color::Indexed(239));
+                } else if cell.symbol() == "┃"
+                    && cell.fg == termrock::Color::Indexed(244)
+                    && cell.bg == termrock::Color::Indexed(16)
+                {
+                    cell.set_fg(termrock::Color::Indexed(245));
+                }
+            }
+        }
     }
 
     fn junie_truecolor(theme: &termrock::Theme) -> bool {
