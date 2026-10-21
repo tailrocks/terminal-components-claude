@@ -3741,10 +3741,10 @@ fn paint_plan_node(
 
 fn fit_plan_label(text: &str, slot: usize) -> String {
     let w = usize::from(width(text));
-    if w >= slot {
-        return text.chars().take(slot).collect();
+    if w > slot {
+        return truncate(text, u16::try_from(slot).unwrap_or(u16::MAX));
     }
-    format!("{text}{}", " ".repeat(slot - w))
+    format!("{text}{}", " ".repeat(slot.saturating_sub(w)))
 }
 
 fn plan_share_style(ui: &Ui<'_>, share: u16) -> PaintStyle {
@@ -8110,14 +8110,20 @@ fn draw_header(ui: &mut Ui<'_>, area: termrock::Rect, app: &TableProApp) {
     if let Some((keep_right, ellipsis)) = overflow {
         let help = "? help";
         if keep_right.last().unwrap_or(false) {
-            let help_x = area.right().saturating_sub(2).saturating_sub(width(help));
+            // Clickable help paints a muted pad on each side of the label.
+            let padded = " ? help ";
+            let help_x = area
+                .right()
+                .saturating_sub(2)
+                .saturating_sub(width(help))
+                .saturating_sub(1);
             ui.paint_str(
                 termrock::Rect {
                     x: help_x,
-                    width: width(help),
+                    width: width(padded),
                     ..area
                 },
-                help,
+                padded,
                 base.patch(ui.paint_patch(&StylePatch::new().set_fg(TAG_CHROME_FG))),
             );
         }
@@ -9069,7 +9075,100 @@ fn paint_completion_footer(ui: &mut Ui<'_>, area: termrock::Rect) {
     );
 }
 
-fn paint_query_editor_footer(ui: &mut Ui<'_>, area: termrock::Rect) {
+pub(crate) fn fit_hint_mask(costs: &[u16], room: u16, pinned: &[bool]) -> (Vec<bool>, bool) {
+    let mut keep = vec![true; costs.len()];
+    let cost = |keep: &[bool]| -> u16 {
+        keep.iter()
+            .zip(costs)
+            .filter(|(on, _)| **on)
+            .fold(0u16, |sum, (_, item)| sum.saturating_add(*item))
+    };
+    if cost(&keep) <= room {
+        return (keep, false);
+    }
+    let mut order: Vec<usize> = (0..costs.len())
+        .rev()
+        .filter(|index| pinned.get(*index).copied() != Some(true))
+        .collect();
+    order.extend(
+        (0..costs.len())
+            .rev()
+            .filter(|index| pinned.get(*index).copied() == Some(true)),
+    );
+    for index in order {
+        if cost(&keep).saturating_add(1) <= room {
+            break;
+        }
+        if let Some(slot) = keep.get_mut(index) {
+            *slot = false;
+        }
+    }
+    let ellipsis = keep.iter().any(|on| !on);
+    (keep, ellipsis)
+}
+
+fn paint_kept_hint_groups(
+    ui: &mut Ui<'_>,
+    area: termrock::Rect,
+    x: u16,
+    spans: &[Span<'_>],
+    keep: &[bool],
+    ellipsis: bool,
+    base: PaintStyle,
+) {
+    let mut index = 0usize;
+    let mut cursor = x;
+    let mut group = 0usize;
+    while index < spans.len() {
+        let on = keep.get(group).copied().unwrap_or(false);
+        let group_start = index;
+        while index < spans.len() && spans.get(index).is_some_and(|span| span.text != "  ") {
+            index = index.saturating_add(1);
+        }
+        let separator = index < spans.len();
+        if separator {
+            index = index.saturating_add(1);
+        }
+        if on {
+            let mut paint_at = group_start;
+            while paint_at < index.saturating_sub(usize::from(separator)) {
+                let Some(span) = spans.get(paint_at) else {
+                    break;
+                };
+                let span_width = width(span.text);
+                ui.paint_str(
+                    termrock::Rect {
+                        x: cursor,
+                        width: span_width,
+                        ..area
+                    },
+                    span.text,
+                    span_paint(ui, base, span),
+                );
+                cursor = cursor.saturating_add(span_width);
+                paint_at = paint_at.saturating_add(1);
+            }
+            let later = keep.iter().skip(group.saturating_add(1)).any(|on| *on);
+            if later || ellipsis {
+                cursor = cursor.saturating_add(2);
+            }
+        }
+        group = group.saturating_add(1);
+    }
+    if ellipsis {
+        ui.paint_str(
+            termrock::Rect {
+                x: cursor,
+                width: 1,
+                ..area
+            },
+            "…",
+            base.patch(ui.paint_patch(&StylePatch::new().set_fg(LEGACY_FAINT))),
+        );
+    }
+}
+
+fn paint_query_editor_footer(ui: &mut Ui<'_>, area: termrock::Rect, status_width: u16) {
     let base = ui.surface_style();
     let badge = ui.surface_style().patch(
         ui.paint_patch(
@@ -9088,39 +9187,41 @@ fn paint_query_editor_footer(ui: &mut Ui<'_>, area: termrock::Rect) {
         " EDIT ",
         badge,
     );
-    ui.paint_spans(
-        termrock::Rect {
-            x: area.x.saturating_add(9),
-            width: area.width.saturating_sub(9),
-            ..area
-        },
-        &[
-            Span::new("Ctrl+R").bold(),
-            Span::new(" "),
-            Span::new("Run").role(TAG_CHROME_FG),
-            Span::new("  "),
-            Span::new("Alt+R").bold(),
-            Span::new(" "),
-            Span::new("Run all").role(TAG_CHROME_FG),
-            Span::new("  "),
-            Span::new("Ctrl+Space").bold(),
-            Span::new(" "),
-            Span::new("Complete").role(TAG_CHROME_FG),
-            Span::new("  "),
-            Span::new("Tab").bold(),
-            Span::new(" "),
-            Span::new("Indent").role(TAG_CHROME_FG),
-            Span::new("  "),
-            Span::new("F6").bold(),
-            Span::new(" "),
-            Span::new("Leave").role(TAG_CHROME_FG),
-            Span::new("  "),
-            Span::new("Esc").bold(),
-            Span::new(" "),
-            Span::new("Done").role(TAG_CHROME_FG),
-        ],
-        base,
-    );
+    let hints = [
+        Span::new("Ctrl+R").bold(),
+        Span::new(" "),
+        Span::new("Run").role(TAG_CHROME_FG),
+        Span::new("  "),
+        Span::new("Alt+R").bold(),
+        Span::new(" "),
+        Span::new("Run all").role(TAG_CHROME_FG),
+        Span::new("  "),
+        Span::new("Ctrl+Space").bold(),
+        Span::new(" "),
+        Span::new("Complete").role(TAG_CHROME_FG),
+        Span::new("  "),
+        Span::new("Tab").bold(),
+        Span::new(" "),
+        Span::new("Indent").role(TAG_CHROME_FG),
+        Span::new("  "),
+        Span::new("F6").bold(),
+        Span::new(" "),
+        Span::new("Leave").role(TAG_CHROME_FG),
+        Span::new("  "),
+        Span::new("Esc").bold(),
+        Span::new(" "),
+        Span::new("Done").role(TAG_CHROME_FG),
+    ];
+    let costs = hint_group_costs(&hints);
+    let hints_x = area.x.saturating_add(9);
+    let status_x = area.right().saturating_sub(status_width).saturating_sub(1);
+    let room = status_x.saturating_sub(hints_x);
+    let mut pinned = vec![false; costs.len()];
+    if let Some(slot) = pinned.last_mut() {
+        *slot = true;
+    }
+    let (keep, ellipsis) = fit_hint_mask(&costs, room, &pinned);
+    paint_kept_hint_groups(ui, area, hints_x, &hints, &keep, ellipsis, base);
 }
 
 fn paint_connection_filter_footer(ui: &mut Ui<'_>, area: termrock::Rect) {
@@ -9713,6 +9814,8 @@ fn draw_footer(ui: &mut Ui<'_>, area: termrock::Rect, app: &TableProApp) {
     let base = ui.surface_style();
     let explorer_focused = ui.state(EXPLORER).contains(StateFlags::FOCUSED);
     let empty_query = app.blank_sql() && query_editor_focused(ui, app);
+    let connection_status_width =
+        width(&connection_status_label(app, explorer_focused, empty_query));
     let mut show_connection_status = true;
     ui.fill(area, base);
     if matches!(app.surface, Surface::QuickSwitcher | Surface::TabListPicker) {
@@ -9724,7 +9827,7 @@ fn draw_footer(ui: &mut Ui<'_>, area: termrock::Rect, app: &TableProApp) {
     } else if app.surface == Surface::FilterEditor {
         paint_filter_footer(ui, area);
     } else if matches!(app.workbench.active(), Some(Tab::Query(query)) if query.plan.is_some()) {
-        paint_query_editor_footer(ui, area);
+        paint_query_editor_footer(ui, area, connection_status_width);
     } else if app.connection_delete == ConnectionDelete::Open || app.destructive_intent.is_some() {
         paint_delete_footer(ui, area);
     } else if app.form_open {
@@ -9737,7 +9840,7 @@ fn draw_footer(ui: &mut Ui<'_>, area: termrock::Rect, app: &TableProApp) {
     } else if query_completion_open(app) {
         paint_completion_footer(ui, area);
     } else if empty_query && !explorer_focused {
-        paint_query_editor_footer(ui, area);
+        paint_query_editor_footer(ui, area, connection_status_width);
     } else if !explorer_focused && grid_is_editing(app) {
         paint_cell_edit_footer(ui, area);
     } else {
