@@ -291,7 +291,7 @@ fn both_detail_buttons_return_consumed_repaint_before_the_next_frame() {
             .area_of(button_id)
             .expect("detail button has bounds");
         let position = Position::new(button.x, button.y);
-        runtime
+        let _ = runtime
             .handle(Input::Mouse(Mouse {
                 kind: MouseKind::Down,
                 pos: position,
@@ -327,7 +327,7 @@ fn narrow_recipe_choice_opens_detail_and_escape_restores_the_list() {
     let narrow = Rect::new(0, 0, 48, 12);
     let (mut runtime, mut terminal) = consumer_with(narrow);
     present_in(&mut runtime, &mut terminal, narrow);
-    runtime
+    let _ = runtime
         .handle(Input::Key(Key {
             code: KeyCode::Enter,
             mods: KeyModifiers::NONE,
@@ -337,7 +337,7 @@ fn narrow_recipe_choice_opens_detail_and_escape_restores_the_list() {
     assert_eq!(runtime.app().last_action(), Some(Action::DetailOpened));
     assert!(runtime.area_of(RECIPE_FACTS).is_some());
     assert_eq!(runtime.focus(), Some(RECIPE_FACTS));
-    runtime
+    let _ = runtime
         .handle(Input::Key(Key {
             code: KeyCode::Esc,
             mods: KeyModifiers::NONE,
