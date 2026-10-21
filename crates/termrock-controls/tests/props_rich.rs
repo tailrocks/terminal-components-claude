@@ -610,3 +610,88 @@ fn sheet_measurement_uses_live_rows_and_handles_unicode_and_zero_width() {
         );
     }
 }
+
+#[test]
+fn sheet_scroll_and_reordered_live_rows_keep_stable_item_identity() {
+    use termrock_controls::{PropsList, PropsState};
+
+    const ID: termrock_runtime::Id = termrock_runtime::Id::root("props.sheet-scroll");
+    const KEYS: [ItemKey; 5] = [
+        ItemKey::num(7201),
+        ItemKey::num(7202),
+        ItemKey::num(7203),
+        ItemKey::num(7204),
+        ItemKey::num(7205),
+    ];
+
+    fn rows(reversed: bool) -> [PropsRow<'static>; 5] {
+        let entries = ["Alpha", "Bravo", "Charlie", "Delta", "Echo"];
+        std::array::from_fn(|index| {
+            let source = if reversed { 4 - index } else { index };
+            PropsRow::new(KEYS[source], entries[source], "value")
+        })
+    }
+
+    #[derive(Default)]
+    struct Model {
+        state: PropsState,
+        reversed: bool,
+    }
+
+    impl App for Model {
+        fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+            if cx.update_cause() == UpdateCause::Bootstrap {
+                cx.focus(ID);
+            }
+            let rows = rows(self.reversed);
+            PropsList::new(ID)
+                .sheet()
+                .update(cx, &mut self.state, &rows)
+                .erase()
+        }
+
+        fn draw(&self, ui: &mut Ui<'_>) {
+            let rows = rows(self.reversed);
+            PropsList::new(ID)
+                .sheet()
+                .draw(ui, Rect::new(0, 0, 32, 3), &self.state, &rows);
+        }
+    }
+
+    let mut harness = Harness::new(Model::default(), Theme::paper(), 32, 3);
+    let _ = harness.key(KeyCode::End);
+    let _ = harness.key(KeyCode::Char('!'));
+    assert_eq!(harness.app().state.cursor(), Some(KEYS[4]));
+    assert!(harness.app().state.scroll().offset() > 0);
+    let last = harness
+        .area_of_part(
+            ID,
+            termrock_runtime::PartRef::item(termrock_runtime::Part::ROW, KEYS[4]),
+        )
+        .expect("scrolling keeps the focused stable key registered");
+    assert!(last.y < 3);
+
+    harness.app_mut().reversed = true;
+    let _ = harness.key(KeyCode::Char('!'));
+    let _ = harness.key(KeyCode::Char('!'));
+    assert_eq!(harness.app().state.cursor(), Some(KEYS[4]));
+    assert_eq!(harness.app().state.cursor_index(), 0);
+    assert!(
+        harness
+            .text()
+            .lines()
+            .next()
+            .unwrap_or_default()
+            .contains("Echo"),
+        "the selected value follows its key after the live rows reorder"
+    );
+    assert!(
+        harness
+            .area_of_part(
+                ID,
+                termrock_runtime::PartRef::item(termrock_runtime::Part::ROW, KEYS[4]),
+            )
+            .is_some(),
+        "the same key still owns its actual rendered row"
+    );
+}

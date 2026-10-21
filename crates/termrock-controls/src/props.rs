@@ -634,11 +634,33 @@ impl<'a> PropsList<'a> {
         st: &mut PropsState,
         rows: &[PropsRow<'_>],
     ) -> Response<PropsAction> {
+        let cursor_before = st.core.cursor();
+        let index_before = st.core.cursor_index();
         let _ = st.core.reconcile_with(
             rows.len(),
             |index| rows.get(index).map_or(ItemKey::index(index), |row| row.key),
             |_| true,
         );
+        // The collection's cheap stamp catches length and endpoint changes.
+        // A live property list can also reorder interior items while retaining
+        // those endpoints, so resolve the stable cursor key against current
+        // rows before routing input or publishing its next layout.
+        if let Some(key) = cursor_before
+            && let Some(index) = rows.iter().position(|row| row.key == key)
+            && index != index_before
+        {
+            st.core.set_cursor(index, key);
+        } else if cursor_before.is_some_and(|key| !rows.iter().any(|row| row.key == key)) {
+            // The current key disappeared without changing the collection's
+            // endpoint stamp; invalidate it so reconciliation selects a live
+            // neighbor rather than leaving an invisible cursor behind.
+            st.core.invalidate();
+            let _ = st.core.reconcile_with(
+                rows.len(),
+                |index| rows.get(index).map_or(ItemKey::index(index), |row| row.key),
+                |_| true,
+            );
+        }
         if st.core.cursor().is_none()
             && let Some(row) = rows.first()
         {
