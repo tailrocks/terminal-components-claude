@@ -310,6 +310,7 @@ fn accumulate_defaults(
         let targeted = authored_mono_override(theme, f, p, live, None);
         profiled.restore_profiled_channels(before_mono, &mut acc, targeted);
         profiled.retain_unchanged(before_mono, acc);
+        profiled.suppress_targeted_exact_channels(targeted);
     }
     (acc, variant, profiled)
 }
@@ -382,6 +383,22 @@ impl ProfiledStyle {
             self.bg = false;
         }
         if before.underline != after.underline {
+            self.underline = false;
+        }
+    }
+
+    fn suppress_targeted_exact_channels(&mut self, targeted: StylePatch) {
+        // Ownership matters even when an authored Mono rule writes the same
+        // role as the active exact profile. In that case retain_unchanged
+        // cannot distinguish the authored value from the profile value, but
+        // the authored channel still belongs to ordinary Mono binding.
+        if targeted.fg.speaks() {
+            self.fg = false;
+        }
+        if targeted.bg.speaks() {
+            self.bg = false;
+        }
+        if targeted.underline.speaks() {
             self.underline = false;
         }
     }
@@ -845,6 +862,7 @@ pub fn bind_defaults(
         let targeted = authored_mono_override(theme, family, part, flags, Some(defaults.mono));
         exact_profile.restore_profiled_channels(before_mono, &mut acc, targeted);
         exact_profile.retain_unchanged(before_mono, acc);
+        exact_profile.suppress_targeted_exact_channels(targeted);
     }
     let explicit = apply_explicit(
         theme,
@@ -899,6 +917,7 @@ pub fn bind_defaults_with_explicit(
         let targeted = authored_mono_override(theme, family, part, flags, Some(defaults.mono));
         exact_profile.restore_profiled_channels(before_mono, &mut acc, targeted);
         exact_profile.retain_unchanged(before_mono, acc);
+        exact_profile.suppress_targeted_exact_channels(targeted);
     }
     let explicit = apply_explicit(
         theme,
