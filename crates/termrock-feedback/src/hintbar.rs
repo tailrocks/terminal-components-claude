@@ -330,7 +330,68 @@ impl<'a> HintBar<'a> {
 
     /// Baseline pins Esc, `?`, and F1. Other hints drop from the right
     /// first. A full row keeps every hint. A cut row pays one gap for `…`.
+    fn fitting_stack(&self, budget: u16, keep_buf: &mut [usize; 32]) -> (usize, u16) {
+        let n = self.layer.hints.len();
+        if n == 0 {
+            return (0, 0);
+        }
+        let mut widths = [0u16; 32];
+        let mut pinned = [false; 32];
+        for i in 0..n {
+            widths[i] = self.hint(i).map(|h| h.width()).unwrap_or(0);
+            pinned[i] = self
+                .layer
+                .hints
+                .get(i)
+                .is_some_and(|hint| pinned_way_out(hint.key));
+            keep_buf[i] = i;
+        }
+        let mut keep_len = n;
+        if hint_cost(&widths[..n], &keep_buf[..keep_len], false) > budget {
+            let mut order = [0usize; 32];
+            let mut order_len = 0;
+            for i in (0..n).rev() {
+                if !pinned[i] {
+                    order[order_len] = i;
+                    order_len += 1;
+                }
+            }
+            for i in (0..n).rev() {
+                if pinned[i] {
+                    order[order_len] = i;
+                    order_len += 1;
+                }
+            }
+            for &gone in &order[..order_len] {
+                if hint_cost(&widths[..n], &keep_buf[..keep_len], true) <= budget {
+                    break;
+                }
+                let mut w = 0;
+                for r in 0..keep_len {
+                    if keep_buf[r] != gone {
+                        keep_buf[w] = keep_buf[r];
+                        w += 1;
+                    }
+                }
+                keep_len = w;
+            }
+        }
+        let cut = keep_len < n;
+        let full = hint_cost(&widths[..n], &keep_buf[..keep_len], cut);
+        let used = if cut {
+            full.saturating_sub(Self::HINT_GAP)
+        } else {
+            full
+        };
+        (keep_len, used)
+    }
+
+    #[cfg(test)]
     fn fitting(&self, budget: u16) -> (Vec<usize>, u16) {
+        self.fitting_heap(budget)
+    }
+
+    fn fitting_heap(&self, budget: u16) -> (Vec<usize>, u16) {
         let n = self.layer.hints.len();
         let widths: Vec<u16> = (0..n)
             .map(|i| self.hint(i).map(|h| h.width()).unwrap_or(0))
@@ -445,13 +506,22 @@ impl<'a> HintBar<'a> {
         }
 
         let budget = right_limit.saturating_sub(x);
-        let (keep, used) = self.fitting(budget);
+        let mut keep_buf = [0usize; 32];
+        let heap_keep: Vec<usize>;
+        let (keep, used): (&[usize], u16) = if self.layer.hints.len() <= 32 {
+            let (len, used) = self.fitting_stack(budget, &mut keep_buf);
+            (&keep_buf[..len], used)
+        } else {
+            let (vec, used) = self.fitting_heap(budget);
+            heap_keep = vec;
+            (&heap_keep[..], used)
+        };
         if self.centered_override.unwrap_or(self.layer.centered) {
             let free = area.width.saturating_sub(used);
             let mid = area.x.saturating_add(free / 2);
             x = mid.max(x).min(right_limit.saturating_sub(used).max(x));
         }
-        for &i in &keep {
+        for &i in keep {
             let Some(h) = self.hint(i) else { break };
             let w = h.width();
             let cell = Rect {
