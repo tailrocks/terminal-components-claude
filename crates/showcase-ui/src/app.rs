@@ -1378,6 +1378,18 @@ fn header_action_style(ui: &mut Ui<'_>, id: Id, muted: PaintStyle) -> PaintStyle
     }
 }
 
+/// The navigation hit region keeps the sidebar rail inside its one-column
+/// inset: the tree list starts two rows down and keeps one clear row below.
+/// Painting still fills the whole rail; the shell-chrome pin owns this area.
+fn nav_list_area(area: Rect) -> Rect {
+    Rect::new(
+        area.x.saturating_add(1),
+        area.y.saturating_add(2),
+        area.width.saturating_sub(2),
+        area.height.saturating_sub(3),
+    )
+}
+
 fn paint_sidebar(ui: &mut Ui<'_>, area: Rect, _state: &TreeState, label: &str, screen_width: u16) {
     if area.is_empty() {
         return;
@@ -1388,7 +1400,7 @@ fn paint_sidebar(ui: &mut Ui<'_>, area: Rect, _state: &TreeState, label: &str, s
     }
     let canvas = shell_compat_style(ui.surface_style());
     ui.fill(area, canvas);
-    ui.register_control(NAV, area, termrock::Focusability::Focusable);
+    ui.register_control(NAV, nav_list_area(area), termrock::Focusability::Focusable);
     let secondary = shell_text_style(ui, termrock::FgStep::Secondary);
     let primary = shell_text_style(ui, termrock::FgStep::Primary);
     let chosen = primary.add_modifier(termrock::Modifier::BOLD);
@@ -1510,7 +1522,7 @@ fn fade_paint(style: PaintStyle, steps: u8) -> PaintStyle {
 fn paint_wide_sidebar(ui: &mut Ui<'_>, area: Rect, label: &str) {
     let canvas = shell_compat_style(ui.surface_style());
     ui.fill(area, canvas);
-    ui.register_control(NAV, area, termrock::Focusability::Focusable);
+    ui.register_control(NAV, nav_list_area(area), termrock::Focusability::Focusable);
     let (shown, _) = legacy_crumb(label);
     let focused = ui.state(NAV).contains(StateFlags::FOCUSED);
     let mut y = area.y;
