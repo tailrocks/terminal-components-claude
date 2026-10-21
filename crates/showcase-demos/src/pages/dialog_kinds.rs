@@ -4,6 +4,7 @@ use termrock::{
     Part, Picker, PickerAction, PickerState, Rect, Response, Role, Secret, SecretPolicy, TextInput,
     Ui, Variant,
 };
+use termrock_fields::FocusSelect;
 
 use super::{Page, PageStatus, PageUpdate, frame};
 
@@ -29,11 +30,16 @@ const KEY_FILES: &[Item<'static>] = &[
     Item::new(ItemKey::index(2), "~/keys/staging.pem").glyph("⚿"),
 ];
 const ACTIONS: &[Action<'static>] = &[
-    Action::new(TEST, "Test connection"),
-    Action::new(ActionKey::SAVE, "Save"),
+    Action::new(TEST, "Test connection").with_variant(Variant::SECONDARY),
+    Action::new(ActionKey::SAVE, "Save").with_variant(Variant::PRIMARY),
 ];
 const FIELDS: &[FieldSpec<'static>] = &[
-    FieldSpec::new(NAME, "Name", FieldKind::Text(TextInput::new(NAME))).required(true),
+    FieldSpec::new(
+        NAME,
+        "Name",
+        FieldKind::Text(TextInput::new(NAME).focus_select(FocusSelect::SelectAll)),
+    )
+    .required(true),
     FieldSpec::new(
         DRIVER,
         "Driver",
@@ -211,7 +217,6 @@ pub struct DialogKindsPage {
     picker_state: PickerState,
     form_open: bool,
     picker_open: bool,
-    select_name_on_open: bool,
     last_result: Option<String>,
 }
 
@@ -223,7 +228,6 @@ impl DialogKindsPage {
             picker_state: PickerState::default(),
             form_open: false,
             picker_open: false,
-            select_name_on_open: false,
             last_result: None,
         }
     }
@@ -293,7 +297,6 @@ impl Page for DialogKindsPage {
             self.last_result = None;
             self.picker_open = false;
             self.form_open = true;
-            self.select_name_on_open = true;
             self.picker_state = PickerState::default();
             cx.open_layer(FORM, Self::form().layer(cx, &self.data));
         }
@@ -320,10 +323,6 @@ impl Page for DialogKindsPage {
                 }
             } else {
                 let form_response = Self::form().update(cx, &mut self.state, &mut self.data);
-                if self.select_name_on_open {
-                    self.state.form_mut().select_editing_text(NAME);
-                    self.select_name_on_open = false;
-                }
                 let action = form_response.action_ref().copied();
                 response |= form_response.erase();
                 match action {

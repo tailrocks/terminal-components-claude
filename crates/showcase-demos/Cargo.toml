@@ -8,6 +8,7 @@ license.workspace = true
 [dependencies]
 showcase-data.workspace = true
 termrock.workspace = true
+termrock-fields.workspace = true
 ratatui.workspace = true
 
 [dev-dependencies]
