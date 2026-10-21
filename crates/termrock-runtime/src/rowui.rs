@@ -831,9 +831,23 @@ impl<'u> RowUi<'u> {
     }
 
     pub fn meta(&mut self, s: &str) {
+        self.meta_with_gap(s, 1);
+    }
+
+    /// Paint right-aligned metadata, leaving `gap` cells before the remaining
+    /// row content. A single content cell must remain available, matching the
+    /// admission rule used by [`RowUi::meta`].
+    pub fn meta_with_gap(&mut self, s: &str, gap: u16) {
         let need = width(s);
         let area = self.remaining();
-        if need == 0 || need.saturating_add(2) > area.width {
+        let Some(metadata_budget) = area
+            .width
+            .checked_sub(gap)
+            .and_then(|width| width.checked_sub(1))
+        else {
+            return;
+        };
+        if need == 0 || need > metadata_budget {
             return;
         }
         let st = self.style_of(Part::META);
@@ -844,7 +858,7 @@ impl<'u> RowUi<'u> {
             height: 1,
         };
         self.ui.paint_str(cell, s, st);
-        self.right = self.right.saturating_add(need).saturating_add(1);
+        self.right = self.right.saturating_add(need).saturating_add(gap);
     }
 
     pub fn trailing(&mut self, s: &str, p: &StylePatch) {

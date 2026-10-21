@@ -666,7 +666,19 @@ impl<'a, T, K, R> Tree<'a, T, K, R> {
         tree
     }
 
+    /// Set a row painter closure.
+    ///
+    /// Keep the `Fn` bound here (rather than only `RowFn`) so the item type
+    /// remains inferable for existing unannotated closure consumers.
     pub fn row<R2: Fn(&T, &mut RowUi<'_>)>(self, r: R2) -> Tree<'a, T, K, R2> {
+        self.row_adapter(r)
+    }
+
+    /// Set a reusable row adapter implementing [`RowFn`].
+    ///
+    /// Use this for semantic row types such as `SemanticItemRow`; closures
+    /// should normally use [`Tree::row`] to preserve their inferred item type.
+    pub fn row_adapter<R2: RowFn<T>>(self, r: R2) -> Tree<'a, T, K, R2> {
         Tree {
             id: self.id,
             key: self.key,
