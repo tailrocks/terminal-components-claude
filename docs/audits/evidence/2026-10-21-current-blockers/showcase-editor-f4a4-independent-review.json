@@ -1,0 +1,127 @@
+{
+  "status": "CLEAR the three requested defect corrections and the additive binding change as a bounded increment. HOLD whole Playground and whole-page parity: two further existing functional differences independently reproduced.",
+  "commit": "f4a4a11cc498740ecdd9930330b830d39ea67de2",
+  "before": "c65631b49da5b60e7022292506a723e8319c99d7",
+  "baseline": "4169783ae883788186d161af09ba9c481bd84e5c",
+  "before_review": {
+    "path": "/private/tmp/showcase-binding-independent-c656-20261021/review-v2.json",
+    "sha256": "e7e5f23927dde1886042c3991d6e64ae9ec62f4369f577d6c610cf6fc4e560ad"
+  },
+  "worktree": "/private/tmp/showcase-binding-review-f4a4-20261021",
+  "target": "/private/tmp/showcase-binding-independent-f4a4-20261021/target-f4a4",
+  "clean_source": true,
+  "source_sha256": {
+    "crates/showcase-demos/src/pages/editor.rs": "bed9b1db29aec1d9775943a1acd80d2394ca5b8fbe5a9b63d1f6963bf47ef271",
+    "crates/showcase-ui/tests/app_tests.rs": "7239bbd793c7a88cc267588f149dc8f38bae6f6f1cd9abb978d73516fb27ba56",
+    "docs/audits/2026-10-21-showcase-editor-playground-restoration.md": "1d6b320f216cf4cff5530f4df57d84bcf1b1f3f9d244206c1fda8dde3fd8f5ae"
+  },
+  "artifacts_sha256": {
+    "Cargo.toml": "a7123f492aa23145402131ee7276ec00ec1a325bd5136baedc03e62fc38790a4",
+    "Cargo.lock": "5ce30bfdb9a1c4f8be96b8a7344e2efab2132ec0202e2fe5594fb1a3a0daf102",
+    "command.json": "873ee93e73249d96490590d23fc2956646b62db9b6274b7c16abe55a2f1b67a9",
+    "verification.log": "3e14f60b54212a95fa9cffeac29dedb4ae901619871368abf3ca7cba504aca48",
+    "run-edges-command.json": "94588386eec158ee7c9aba5f6f8d526310a5e9a7ebe682534c5a9e98dc745588",
+    "run-edges.log": "25f30bbeeaec55dc9948f0442548a6550570d74683bb3f020c1f684fafb96d7a",
+    "run-edges-final-command.json": "4a385a8fcf034fe9ad1fd288abcadcd7e6ac2c89cc39c0f6c7850efbae456736",
+    "run-edges-final.log": "70d795b1dcdeba677eb4888bcdaedd43c4b6a088ebe49ad6a168525e6aad09a0",
+    "tests/behavior.rs": "671872fabec2f088673258e16ff1b7378d41436d97d11bd88c9532d8714cd21c",
+    "tests/native.rs": "7239bbd793c7a88cc267588f149dc8f38bae6f6f1cd9abb978d73516fb27ba56",
+    "tests/ordering.rs": "e3564482d078ab824c77888daf7782dbdce0506ba9155cf9dea214d7b5cb1f8f",
+    "tests/routing.rs": "b65b21d1b800bc8645086453cf973bf74b089e0e14739633bf95ac975730080a",
+    "tests/run_edges.rs": "93c4323cce6110d6f69581fe5cf71bf21905389ee698efa80d89d1c2a7e9a0e8",
+    "tests/run_edges_final.rs": "2d6e5aa10e27371c394e658bbcc2552c1f48c60854e80342390258615db93edd",
+    "tests/semantic.rs": "404a24b48cb13c576459846976410bffaddecd99e67a83c334aedab030dc0b00"
+  },
+  "unchanged_probe_identity": {
+    "behavior.rs": {
+      "before": "671872fabec2f088673258e16ff1b7378d41436d97d11bd88c9532d8714cd21c",
+      "after": "671872fabec2f088673258e16ff1b7378d41436d97d11bd88c9532d8714cd21c",
+      "identical": true
+    },
+    "ordering.rs": {
+      "before": "e3564482d078ab824c77888daf7782dbdce0506ba9155cf9dea214d7b5cb1f8f",
+      "after": "e3564482d078ab824c77888daf7782dbdce0506ba9155cf9dea214d7b5cb1f8f",
+      "identical": true
+    },
+    "semantic.rs": {
+      "before": "404a24b48cb13c576459846976410bffaddecd99e67a83c334aedab030dc0b00",
+      "after": "404a24b48cb13c576459846976410bffaddecd99e67a83c334aedab030dc0b00",
+      "identical": true
+    },
+    "routing.rs": {
+      "before": "b65b21d1b800bc8645086453cf973bf74b089e0e14739633bf95ac975730080a",
+      "after": "b65b21d1b800bc8645086453cf973bf74b089e0e14739633bf95ac975730080a",
+      "identical": true
+    }
+  },
+  "fixed_findings": [
+    {
+      "id": "P1-run-input-clock",
+      "before": "Real pointer updates completed run at identical clock with no Tick; behavior-final.log failed.",
+      "after": "Exact unchanged probe passes. update_cause Tick guard retains ten ticks and no decrement on starting key input."
+    },
+    {
+      "id": "P1-running-block-identity",
+      "before": "Moving from submitted second block to first suppressed submitted-block warning; valid before probe failed.",
+      "after": "Exact unchanged probe passes; application retains submitted range through completion."
+    },
+    {
+      "id": "P1-completion-order",
+      "before": "Empty manual query accepted fetch() instead of alphabetically first Body; ordering.log failed.",
+      "after": "Exact unchanged probe passes; fuzzy penalty then label ordering restored, stable source-index ItemKeys unchanged."
+    },
+    {
+      "id": "P2-evidence-wording",
+      "after": "Audit explicitly states original col5 probe remains invalid and corrected semantic probe expects col6. Original before Tab focus failure is preserved in original packet. Current corrected col6 probe passes."
+    }
+  ],
+  "checks": {
+    "verification": {
+      "exit": 0,
+      "run": 51,
+      "passed": 51,
+      "failed": 0,
+      "skipped": 0,
+      "breakdown": {
+        "copied_native_app_tests": 44,
+        "unchanged_behavior": 3,
+        "unchanged_ordering": 1,
+        "unchanged_corrected_semantic": 3
+      }
+    },
+    "new_run_edges_final": {
+      "exit": 100,
+      "run": 2,
+      "passed": 0,
+      "failed": 2,
+      "skipped": 0
+    }
+  },
+  "new_findings": [
+    {
+      "id": "P1-repeat-run-diagnostics",
+      "path": "crates/showcase-demos/src/pages/editor.rs:450",
+      "problem": "finish_run builds a fresh diagnostics vector and replaces existing diagnostics. Frozen finish_run pushes new warnings onto existing diagnostics until text changes clear them. Running unchanged second block twice yields Runs2/Diagnostics1, whereas frozen yields Diagnostics2.",
+      "evidence": "run-edges-final.log repeated_unchanged_run_retains_frozen_accumulated_diagnostics; first-run count1 and second-run Runs2 assertions pass, final Diagnostics2 assertion fails. Frozen src/bin/showcase/pages/editor.rs:391-408.",
+      "fix": "Preserve existing diagnostics when adding run results, matching frozen accumulation; retain explicit clearing on text changes and test repeated unchanged runs."
+    },
+    {
+      "id": "P2-blank-block-readout",
+      "path": "crates/showcase-demos/src/pages/editor.rs:334",
+      "problem": "State readout uses current_block(), whose execution contract intentionally falls back to preceding block. Frozen state_props instead tests exact containment. Cursor line17 blank separator displays Block1of3 instead of between blocks.",
+      "evidence": "run-edges-final.log blank_separator_readout_matches_frozen_exact_block_containment: line17/col1 setup passes, final between-blocks assertion fails. Frozen editor.rs:416-424.",
+      "fix": "Calculate readout with exact segment containment and current byte cursor; keep shared execution fallback unchanged."
+    }
+  ],
+  "rejected_probe": "run-edges.log between_blocks_run_keeps_frozen_status fails its between-block setup, not the intended status assertion. Both shared and frozen current_block intentionally fall back to previous block. This is not evidence of a run-status regression. The separate final readout-only probe isolates the real display difference.",
+  "scope_notes": [
+    "New findings were already present in c656 source; no evidence that the three reviewed corrections introduce them.",
+    "No new public API break, unsafe, ownership or concurrency defect found in reviewed changes. Application-owned submitted run range is domain state, not component mechanics.",
+    "Find/Run plain labels remain correct; frozen shortcut-only empty Tip metadata produces no inline hint or tooltip.",
+    "Options and States remain absent; no full-page or full-application acceptance.",
+    "No source edits, BLESS, expected snapshot updates, baseline operation, or pinned real-CLI tuiscotti captures.",
+    "Reviewer did not rerun author-only50demos/17editor/fullformat/Clippy or fullworkspace/hostedCI.",
+    "External public consumer crate uses preserved exact Cargo.lock; targets distinct per revision.",
+    "All command budgets200seconds work plus bounded own-process-group cleanup10+4; all completed normally."
+  ]
+}
