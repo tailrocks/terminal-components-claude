@@ -24,6 +24,7 @@ pub mod section;
 pub mod session_chrome;
 pub mod settings_page;
 pub mod status;
+pub mod zoom_pane;
 
 pub use accounts_filter::{
     AccountsFilter, DetailInk, DetailLine, DetailSpan, FilterHint, FilterRow, TailTone,
@@ -41,3 +42,4 @@ pub use settings_page::{
     SettingsTab, paint_settings_page,
 };
 pub use status::{Emphasis, Group, MAX_ITEMS, StatusAction, StatusBar, StatusItem};
+pub use zoom_pane::{ZoomHint, ZoomSpan, ZoomTab, ZoomTone, ZoomedPane, paint_zoomed_pane};
