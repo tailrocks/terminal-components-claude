@@ -1,0 +1,11 @@
+# Owned fresh-plan create and verify lifecycle
+
+This increment adds opt-in `--owned-lifecycle` and `--owned-budget` handling to `fresh-plan` and `verify-fresh-plan`. Each owned command creates one `PrepareExecution` scope and shares it across path resolution, frozen-source checks, reviewed cohort checks, live-source verification, tool observation, Nextest inventory, plan hashing, immutable plan publication, and flushed success output. Existing calls without the new flags retain their legacy behavior.
+
+Owned plans record the configured work budget as `timeout_seconds_per_advance`. The owned default is 200 seconds, with the existing 15-second cleanup reserve, so it no longer seals the former 225-second advance allowance. Legacy plans keep the 225-second value. Owned verification requires the supplied work budget to match the sealed advance budget. `--owned-budget` without `--owned-lifecycle` fails, including when explicitly set to the normal 200-second default.
+
+The plan reader, inventory transforms, source and tool hashes, and plan writer now accept the shared work check. Publication checks both sides of the immutable hard link and directory sync. A failure after publication leaves the immutable plan in place and returns an error without printing success. Final success output is flushed before the last cancellation/deadline check.
+
+Verification on the synthetic runner fixtures: 11 focused fresh-plan tests passed, including real `PrepareExecution` child termination, hash-loop deadline, immutable post-publication deadline, output cancellation, budget matching, and CLI propagation. The complete `python3 -m unittest tools.test_frozen_baseline` suite passed 116 tests. `py_compile` passed. No live cohort plan, run key, capture, replay, ordinary check, or candidate comparison was created or run.
+
+This increment does not complete the fresh-run initialization/verification, owned advance, ordinal guard, ordinary phase, or complete receipt lifecycle. Do not create a live plan yet. The final runner must still receive independent review after all lifecycle source and tests are integrated; stage 3 must then verify the exact final runner before any stage 4 plan can seal its hash.
