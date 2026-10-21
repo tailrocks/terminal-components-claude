@@ -506,30 +506,24 @@ fn paint_mounts(ui: &mut Ui<'_>, area: Rect, page: &SettingsPage<'_>, ink: &Ink)
     }
 }
 
-#[expect(
-    clippy::too_many_arguments,
-    reason = "helper function requires painting coordinates and styles"
-)]
-fn paint_field_parts(
-    ui: &mut Ui<'_>,
+struct FieldRowPaint {
     area: Rect,
-    x: u16,
     y: u16,
-    text: &str,
-    cols: u16,
     word: PaintStyle,
     pad: PaintStyle,
-) {
-    put(ui, area, x, y, text, word);
+}
+
+fn paint_field_parts(ui: &mut Ui<'_>, row: &FieldRowPaint, x: u16, text: &str, cols: u16) {
+    put(ui, row.area, x, row.y, text, row.word);
     let gap = cols.saturating_sub(width(text));
     if gap > 0 {
         put(
             ui,
-            area,
+            row.area,
             x.saturating_add(width(text)),
-            y,
+            row.y,
             &" ".repeat(usize::from(gap)),
-            pad,
+            row.pad,
         );
     }
 }
@@ -547,6 +541,12 @@ fn paint_mount_row(
     let mode = fit(row.mode, cols.mode_w);
     let isolation = fit(row.isolation, cols.iso_w);
     if row.selected {
+        let field_paint = FieldRowPaint {
+            area,
+            y,
+            word: bold(ink.secondary, SELECT_BG),
+            pad: bold(ink.muted, SELECT_BG),
+        };
         ui.fill(
             Rect {
                 x: area.x.saturating_add(2),
@@ -574,13 +574,10 @@ fn paint_mount_row(
         );
         paint_field_parts(
             ui,
-            area,
+            &field_paint,
             area.x.saturating_add(cols.scope_at),
-            y,
             row.scope,
             cols.scope_w,
-            bold(ink.secondary, SELECT_BG),
-            bold(ink.muted, SELECT_BG),
         );
         put(
             ui,
@@ -601,25 +598,19 @@ fn paint_mount_row(
         if let (Some(at), Some(kind)) = (cols.kind_at, row.kind) {
             paint_field_parts(
                 ui,
-                area,
+                &field_paint,
                 area.x.saturating_add(at),
-                y,
                 kind,
                 cols.kind_w,
-                bold(ink.secondary, SELECT_BG),
-                bold(ink.muted, SELECT_BG),
             );
         }
         if let (Some(at), Some(source)) = (cols.source_at, row.source) {
             paint_field_parts(
                 ui,
-                area,
+                &field_paint,
                 area.x.saturating_add(at),
-                y,
                 source,
                 cols.source_w,
-                bold(ink.secondary, SELECT_BG),
-                bold(ink.muted, SELECT_BG),
             );
         }
     } else {
