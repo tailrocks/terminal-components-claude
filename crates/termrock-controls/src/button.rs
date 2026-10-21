@@ -393,9 +393,9 @@ impl<'a> Button<'a> {
         }
         let mut style_flags = live;
         if self.focus_visibility == ButtonFocusVisibility::Always
-            && !ui.is_inert()
             && !disabled
             && !self.busy()
+            && !style_flags.contains(StateFlags::PRESSED)
             && style_flags.contains(StateFlags::FOCUSED)
         {
             style_flags |= StateFlags::FOCUS_VISIBLE;
