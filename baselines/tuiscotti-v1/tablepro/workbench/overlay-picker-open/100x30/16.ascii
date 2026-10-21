@@ -1,30 +1,30 @@
- #  TablePro  Production  ? production  acme_prod ? public  safe         16 colors . 100x30  ? help
+  #  TablePro  Production  ? production  acme_prod ? public  v safe     16 colors . 100x30  ? help
 
   ? Query 1 x                                                                                   +
- ?????+--------------------------------------------------------------------------------------+-----
- +- Ex| Open Quickly                                                         All . Tab scope |ic -+
- |    | ? Search tables, views, schemas, tabs, queries.                                      |    |
- |   F|                                                                                      |    |
- |  ? | ?T change_log                             audit . Production        Tables         ? |    |
- | ?  |  T customers                              public . Production                      ? |    |
- |    |  T daily_revenue                          analytics . Produc.                      ? | 7  |
- |    |  T events                                 analytics . Produc.                      ? | k  |
- |    |  T login_attempts                         audit . Production                       ? | k  |
- |    |  T order_items                            public . Production                      ? |12  |
- |    |  T orders                                 public . Production                      ? | M  |
- |    |  T organizations                          public . Production                      | | M  |
- |    |  T payments                               public . Production                      | | M  |
- |    |  T products                               public . Production                      | | k  |
- |    |  T subscriptions                          public . Production                      | | 2  |
- |    |  V active_customers                       public . Production       Views          | | 1  |
- |    |  V cohort_retention                       analytics . Produc.                      | | 1  |
- |    | ^v Move . Enter Open . Alt+Enter New tab . Tab Scope . Esc Clear / Close             |    |
- |    +--------------------------------------------------------------------------------------+    |
- |                                                                                                |
- |                                                                                                |
- |                                                                                                |
- |                                                                                                |
- |                                                                                                |
- +------------------------------------------------------------------------------------------------+
+ ??????????????------------------------------------------------------------------------------------
+ ? +- Query 1 ------------------------------------------------------------------------------------+
+   |  +--------------------------------------------------------------------------------------+    |
+ E |  | Open Quickly                                                         All . Tab scope |    |
+ x |  | ? Search tables, views, schemas, tabs, queries.                                      |    |
+ p |  |                                                                                      |    |
+ l |  |  T change_log                        audit . Production             Tables         ? |    |
+ o |  |  T customers                         public . Production                           ? |    |
+ r |  |  T daily_revenue                     analytics . Production                        ? |    |
+ e |  |  T events                            analytics . Production                        ? |--- |
+ r |  |  T login_attempts                    audit . Production                            ? |    |
+   |  |  T order_items                       public . Production                           ? |    |
+   |  |  T orders                            public . Production                           ? |    |
+   |  |  T organizations                     public . Production                           ? |    |
+   |  |  T payments                          public . Production                           ? |    |
+   |  |  T products                          public . Production                           ? |    |
+   |  |  T subscriptions                     public . Production                           ? |    |
+   |  |  V active_customers                  public . Production            Views          ? |    |
+   |  |  V cohort_retention                  analytics . Production                        ? |    |
+   |  | ^v Move . Enter Open . Alt+Enter New tab . Tab Scope . Esc Clear / Close             |    |
+   |  +--------------------------------------------------------------------------------------+    |
+   |                                                                                              |
+   |                                                                                              |
+   |                                                                                              |
+   +----------------------------------------------------------------------------------------------+
 
-                                                                            Connected to Production
+ Type Filter  ^v Move  Enter Choose  Esc Cancel                           v Connected to Production
