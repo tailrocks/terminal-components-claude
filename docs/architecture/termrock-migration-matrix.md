@@ -2451,3 +2451,24 @@ The reviewer also confirmed the DCO blocker independently: 1228 of the 1268
 commits in `origin/main..origin/parity/termrock-visual-baseline` carry no
 `Signed-off-by` trailer, and the check does not look only at the newest
 commits.
+
+#### The component digest re-bless, with its scope and its limits
+
+After the adjudication was applied to the theme, the component digest suite was
+re-blessed: `crates/termrock-conformance/tests/baselines/components.txt`
+changed in 164 keys, every one of them a component or overlay render key. The
+previous values are preserved in the branch history; the file before this
+re-bless is at `511256257` and the file after it at `18c8f694c`.
+
+What this re-bless is: the recorded expectation caught up with a change whose
+correctness was settled against the pinned tag and the frozen corpus, with an
+independent review of the conflict.
+
+What it is not: it is not a paired-runner proof that the component suite now
+matches the frozen oracle. That proof is still owed, and the component suite
+still has failures that are not digest pins at all (the readiness digest
+distinctness list, the `bindings_match_handled_keys` family, the
+`registry::declared_parts_are_the_parts_actually_styled` check, the
+`local_override_does_not_mutate_the_theme` checks and the tiny-rect help
+overlay case). Those are semantic checks, and they are recorded as the next
+work item rather than blessed away.
