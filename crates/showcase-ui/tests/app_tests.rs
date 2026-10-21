@@ -1323,16 +1323,16 @@ fn overview_header_crumb_omits_foundations_and_idle_nav_rows_omit_the_gutter() {
     let h = Harness::new(App::new(), Theme::junie(), 120, 40);
     let screen = h.text();
     let header = screen.lines().next().unwrap_or("").to_owned();
-    assert!(header.contains("Junie Design system  Overview"), "{header}");
-    assert!(!header.contains("/ Foundations /"), "{header}");
-    assert!(screen.contains("Components"));
+    assert!(header.contains("/ Foundations / Overview"), "{header}");
+    assert!(!header.contains('›'), "{header}");
+    assert!(screen.contains("Buttons"));
     assert_eq!(NAV_ENTRIES.len(), 54);
-    let group = screen
+    let idle = screen
         .lines()
-        .find(|line| line.contains("App shell"))
+        .find(|line| line.contains("Text areas"))
         .unwrap_or("")
         .to_owned();
-    let sidebar: String = group.chars().take(25).collect();
+    let sidebar: String = idle.chars().take(25).collect();
     assert!(
         !sidebar.starts_with('▎'),
         "non-focused nav row starts with the gutter: {sidebar}"
@@ -1345,10 +1345,7 @@ fn overview_header_crumb_omits_foundations_and_idle_nav_rows_omit_the_gutter() {
     let diff = Harness::new(App::for_page_name("diff"), Theme::junie(), 120, 40);
     let diff_screen = diff.text();
     let diff_header = diff_screen.lines().next().unwrap_or("").to_owned();
-    assert!(
-        diff_header.contains("Junie Design system  Text & code › Diff"),
-        "{diff_header}"
-    );
+    assert!(diff_header.contains("/ Components / Diff"), "{diff_header}");
     assert_eq!(diff.app().page(), PageId::Overview);
     let diff_row = diff_screen
         .lines()
