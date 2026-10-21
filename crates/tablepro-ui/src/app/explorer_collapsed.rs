@@ -57,12 +57,12 @@ mod tests {
         let dropped = |width, badge| {
             super::super::header_overflow(width, &left, &left_pri, &[badge, help], &[1, 4])
         };
-        let (keep, ellipsis) = dropped(72, 17).expect("72 drops the right cluster");
-        assert_eq!(keep, vec![false, false]);
-        assert_eq!(ellipsis, 69);
-        let (keep, ellipsis) = dropped(80, 17).expect("80 drops the badge");
-        assert_eq!(keep, vec![false, true]);
-        assert_eq!(ellipsis, 69);
+        let (keep, ellipsis) = dropped(72, 17).unwrap_or_default();
+        assert_eq!(keep, vec![false, false], "72 drops the right cluster");
+        assert_eq!(ellipsis, 69, "72 drops the right cluster");
+        let (keep, ellipsis) = dropped(80, 17).unwrap_or_default();
+        assert_eq!(keep, vec![false, true], "80 drops the badge");
+        assert_eq!(ellipsis, 69, "80 drops the badge");
         assert!(dropped(100, 18).is_none(), "100 keeps badge and help");
         assert!(dropped(120, 18).is_none(), "120 keeps badge and help");
     }
