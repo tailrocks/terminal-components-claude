@@ -21,7 +21,7 @@ use crate::ui::{Cx, FrameRead, Ui};
 use termrock_controls::button::Button;
 use termrock_feedback::keyhint::ChordText;
 use termrock_fields::field::Field;
-use termrock_fields::input::{TextAction, TextInput, TextInputState, redacted_text};
+use termrock_fields::input::{TextAction, TextCmd, TextInput, TextInputState, redacted_text};
 use termrock_runtime::author::NestedLayerSlotAuthor;
 use termrock_runtime::focus::Focusability;
 use termrock_runtime::ui::LayerSlot;
@@ -477,6 +477,8 @@ impl<'a> Dialog<'a> {
     }
 
     #[must_use]
+    /// Marks `k` as a prompt's Enter submission action and styles it as primary.
+    /// When replacing prompt actions, configure a key present in that list.
     pub const fn primary(mut self, k: ActionKey) -> Self {
         self.primary = Some(k);
         self
@@ -526,6 +528,19 @@ impl<'a> Dialog<'a> {
         }
     }
 
+    fn prompt_commit_requested(&self, cx: &Cx<'_>) -> bool {
+        let input = self.input_control();
+        let bindings = input.bindings(BindingState::default());
+        let commit = cx.intents(self.input_id()).any(|intent| match intent {
+            Intent::Binding(action) => Binding::command(bindings, action) == Some(TextCmd::Commit),
+            _ => false,
+        });
+        let focus_loss = cx
+            .intents(self.input_id())
+            .any(|intent| matches!(intent, Intent::FocusOut { .. }));
+        commit && !focus_loss
+    }
+
     fn armed(&self, st: &DialogState) -> bool {
         self.ack
             .is_none_or(|tok| st.input.visible_text_equals(st.ack_draft.expose(), tok))
@@ -553,12 +568,11 @@ impl<'a> Dialog<'a> {
     }
 
     fn primary_index(&self, st: &DialogState) -> Option<usize> {
+        let primary = self.primary?;
         self.effective_actions()
             .iter()
             .enumerate()
-            .find_map(|(i, a)| {
-                (Some(a.key()) != self.cancel && self.enabled(i, a, st)).then_some(i)
-            })
+            .find_map(|(i, a)| (a.key() == primary && self.enabled(i, a, st)).then_some(i))
     }
 
     fn resolve_dismissal(&self, reason: DismissReason, st: &mut DialogState) -> DialogAction {
@@ -627,6 +641,7 @@ impl<'a> Dialog<'a> {
         let is_ack = self.ack.is_some();
         st.set_secret_mode(is_ack);
         if self.has_input() {
+            let prompt_commit_requested = self.prompt.is_some() && self.prompt_commit_requested(cx);
             let r = if is_ack {
                 self.input_control()
                     .update_in_form(cx, &mut st.input, &mut st.ack_draft, false)
@@ -638,7 +653,7 @@ impl<'a> Dialog<'a> {
             if !suppress_activation {
                 acc.fold(&r.erase());
             }
-            if !suppress_activation && committed && self.prompt.is_some() {
+            if !suppress_activation && committed && prompt_commit_requested {
                 if let Some(i) = self.primary_index(st)
                     && let Some(a) = self.actions.get(i)
                 {
