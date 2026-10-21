@@ -1,6 +1,6 @@
 # Semantic Tabs layout extraction (2026-10-21)
 
-Status: bounded library extraction; independent review and application adoption pending.
+Status: bounded library extraction; independent review found and this increment fixed one left-clipping mismatch; broader review and application adoption remain pending.
 
 Base: `4cc10c3a7158123500fbe38435f2b68874b50561` (`parity/termrock-visual-baseline`). Frozen product source and paired application comparison were not changed by this increment.
 
@@ -22,3 +22,11 @@ The caller must rebuild the plan after state, data, component configuration, vie
 - `cargo fmt --check` and `git diff --check`: passed.
 
 These checks prove this component path only. No runtime publication adapter, shared consumer adoption, full application flow, frozen baseline comparison, or full workspace gate was part of this increment.
+
+## Independent review correction (2026-10-21)
+
+The first review found a real mismatch in left-clipped labels written through multiple `Display::write_str` calls. Preserve the original failing result at `/private/tmp/tabs-review-consumer-d403-20261021/repro.log`: at base `d403804b8831376c775478eb7b7826d6579bec68`, area `Rect(0,0,30,3)`, clip `Rect(5,0,20,3)`, and closable tabs, the external consumer's `left_clipped_segmented` complete-buffer comparison failed. Its legacy row was `     c  next ×                `; planned rendering was `     c×   next ×              `. The other three repro cases passed. The reviewer also ran the unchanged native navigation suite at that base: 106/106 passed, showing why the missing case needed an external consumer.
+
+The cause was measurement treating Display segments as a single clip-local string. Runtime `CellWriter` advances from the logical content origin by the number of cells each clipped write paints; before its logical position reaches the clip's left edge, successive segments can repaint the same visible cells. `semantic_label_extent` now models those bounded visible symbols and per-write overwrites from immutable text/content/clip inputs. It does not use `Ui`, paint into a scratch buffer, or inspect rendered cells. The new `semantic_layout_matches_legacy_for_left_clipped_segmented_labels` regression checks the full buffer, hit regions, and cursor for the exact reviewer case.
+
+Post-fix at the new working revision: `cargo nextest run -p termrock-navigation --lib` passed 107/107, 0 skipped; `cargo clippy -p termrock-navigation --all-targets -- -D warnings` and `cargo fmt --check` are required for this correction and their results are recorded at its commit below. The prior broad output/part/cursor checks remain unchanged; the review case extends the clipped-geometry coverage. This does not constitute application-level or frozen-baseline verification.
