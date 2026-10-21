@@ -105,7 +105,7 @@ impl Chrome {
         let body_y = area.y.saturating_add(top).min(area.bottom());
         let body_h = area.height.saturating_sub(top.saturating_add(bottom));
         let body = Rect::new(
-            area.x + self.inset.min(area.width / 2),
+            area.x.saturating_add(self.inset.min(area.width / 2)),
             body_y,
             area.width.saturating_sub(self.inset.saturating_mul(2)),
             body_h,
