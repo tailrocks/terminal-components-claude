@@ -186,7 +186,11 @@ impl ItemColumns {
             if !icon.authored_modifiers().contains(Modifier::BOLD) {
                 icon.remove_modifier(Modifier::BOLD);
             }
-            icon.text(item.glyph);
+            icon.text(if item.glyph.is_empty() {
+                " "
+            } else {
+                item.glyph
+            });
         }
         {
             let mut label = cells.cell_part(2, Part::LABEL);
