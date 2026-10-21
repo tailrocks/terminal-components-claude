@@ -248,6 +248,7 @@ fn paint_fitted_search(ui: &mut Ui<'_>, card: Rect) {
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 fn paint_fitted_option(
     ui: &mut Ui<'_>,
     card: Rect,
