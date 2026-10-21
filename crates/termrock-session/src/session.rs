@@ -16,7 +16,7 @@ use ratatui_crossterm::crossterm::terminal::{
 };
 use ratatui_crossterm::crossterm::{execute, queue};
 
-use termrock_core::event::{Input, KeyCode, KeyModifiers};
+use termrock_core::event::Input;
 use termrock_core::keys::keyboard::KeyboardProtocol;
 use termrock_runtime::{App, FeedbackClock, Moment, PreparedFrameError, Runtime};
 use termrock_terminal::KeyboardNegotiation;
@@ -454,10 +454,6 @@ fn run_with_cursor_shape_startup<A: App>(
     let _ = rt.initialize();
     let suppress_colors = Colored::ansi_color_disabled_memoized();
     let mut pending = None;
-    // Crossterm parses one byte at a time. Escape then Alt+x is ESC ESC x,
-    // and the second ESC is swallowed, so the x arrives bare. A character
-    // that follows Esc inside one frame is that lost Alt chord.
-    let mut esc_at: Option<Instant> = None;
     loop {
         rt.advance_to(Moment::from_duration(origin.elapsed()))
             .map_err(io::Error::other)?;
@@ -523,31 +519,10 @@ fn run_with_cursor_shape_startup<A: App>(
             None => true,
         };
         if ready {
-            pending = Input::from_crossterm(read()?).map(|mut input| {
-                promote_escaped_alt(&mut input, &mut esc_at);
-                input
-            });
+            pending = Input::from_crossterm(read()?);
         }
     }
     session.leave()
-}
-
-/// A bare character that follows Esc before the next frame's input wait is
-/// the tail of an Alt chord whose ESC prefix was consumed by the byte parser.
-fn promote_escaped_alt(input: &mut Input, esc_at: &mut Option<Instant>) {
-    let Input::Key(key) = input else {
-        *esc_at = None;
-        return;
-    };
-    if key.is(KeyCode::Esc) {
-        *esc_at = Some(Instant::now());
-        return;
-    }
-    let follow = esc_at.is_some_and(|at| at.elapsed() <= Duration::from_millis(100));
-    *esc_at = None;
-    if follow && matches!(key.code, KeyCode::Char(_)) && key.bare_char().is_some() {
-        key.mods |= KeyModifiers::ALT;
-    }
 }
 
 fn prepare_startup_input(
@@ -640,26 +615,118 @@ mod tests {
     }
 
     #[test]
-    fn a_bare_character_right_after_esc_becomes_alt() {
-        use termrock_core::event::{Input, Key, KeyCode, KeyModifiers};
-        let mut esc_at = None;
-        let mut esc = Input::Key(Key {
-            code: KeyCode::Esc,
-            mods: KeyModifiers::NONE,
-        });
-        super::promote_escaped_alt(&mut esc, &mut esc_at);
-        assert!(esc_at.is_some());
-        let mut typed = Input::Key(Key {
-            code: KeyCode::Char('x'),
-            mods: KeyModifiers::NONE,
-        });
-        super::promote_escaped_alt(&mut typed, &mut esc_at);
-        let Input::Key(key) = typed else {
-            panic!("key");
+    fn converted_crossterm_keys_dispatch_with_only_reported_modifiers() {
+        use ratatui::Terminal;
+        use ratatui::backend::TestBackend;
+        use ratatui::layout::Rect;
+        use ratatui_crossterm::crossterm::event::{
+            Event as CrosstermEvent, KeyCode as CrosstermKeyCode, KeyEvent,
+            KeyModifiers as CrosstermModifiers,
         };
-        assert!(key.mods.contains(KeyModifiers::ALT));
-        assert_eq!(key.code, KeyCode::Char('x'));
-        assert!(esc_at.is_none());
+        use std::sync::OnceLock;
+        use termrock_core::action::ActionKey;
+        use termrock_core::event::{Chord, Input, KeyCode, KeyModifiers};
+        use termrock_runtime::keymap::{KeyMap, KeyPhase};
+
+        const X: ActionKey = ActionKey::custom("session.input.x");
+        const UNICODE: ActionKey = ActionKey::custom("session.input.unicode");
+        const UPPER: ActionKey = ActionKey::custom("session.input.upper");
+        const ALT_X: ActionKey = ActionKey::custom("session.input.alt_x");
+
+        struct DispatchProbe(Arc<Mutex<Vec<ActionKey>>>);
+
+        impl App for DispatchProbe {
+            fn update(
+                &mut self,
+                cx: &mut termrock_runtime::Cx<'_>,
+            ) -> termrock_runtime::Response<()> {
+                if let Some(command) = cx.command() {
+                    self.0.lock().expect("command log").push(command);
+                }
+                termrock_runtime::Response::ignored()
+            }
+
+            fn draw(&self, _ui: &mut termrock_runtime::Ui<'_>) {}
+
+            fn keymap(&self) -> &KeyMap {
+                static KEYMAP: OnceLock<KeyMap> = OnceLock::new();
+                KEYMAP.get_or_init(|| {
+                    KeyMap::new()
+                        .bind(KeyPhase::Capture, Chord::key(KeyCode::Char('x')), X)
+                        .bind(KeyPhase::Capture, Chord::key(KeyCode::Char('é')), UNICODE)
+                        .bind(KeyPhase::Capture, Chord::key(KeyCode::Char('X')), UPPER)
+                        .bind(
+                            KeyPhase::Capture,
+                            Chord::with(KeyCode::Char('x'), KeyModifiers::ALT),
+                            ALT_X,
+                        )
+                })
+            }
+        }
+
+        fn present<A: App>(
+            runtime: &mut Runtime<A>,
+            terminal: &mut Terminal<TestBackend>,
+            area: Rect,
+        ) {
+            for _ in 0..16 {
+                if runtime.needs_settle() {
+                    let _ = runtime.settle();
+                }
+                let token = runtime.prepare(area).expect("runtime prepares a frame");
+                terminal
+                    .draw(|frame| {
+                        runtime
+                            .draw_prepared(token, frame)
+                            .expect("runtime draws prepared frame");
+                    })
+                    .expect("test backend presents frame");
+                runtime
+                    .acknowledge_presented(token)
+                    .expect("test backend presentation is acknowledged");
+                if !runtime.needs_settle() && !runtime.needs_present() {
+                    return;
+                }
+            }
+            panic!("runtime did not settle and present");
+        }
+
+        let commands = Arc::new(Mutex::new(Vec::new()));
+        let mut runtime = Runtime::new(DispatchProbe(Arc::clone(&commands)), Theme::junie());
+        let _ = runtime.initialize();
+        let area = Rect::new(0, 0, 40, 12);
+        let mut terminal = Terminal::new(TestBackend::new(area.width, area.height))
+            .expect("test terminal initializes");
+        present(&mut runtime, &mut terminal, area);
+
+        let event = |code, modifiers| CrosstermEvent::Key(KeyEvent::new(code, modifiers));
+        for key_event in [
+            event(CrosstermKeyCode::Esc, CrosstermModifiers::NONE),
+            event(CrosstermKeyCode::Char('x'), CrosstermModifiers::NONE),
+            event(CrosstermKeyCode::Char('é'), CrosstermModifiers::NONE),
+            event(CrosstermKeyCode::Char('X'), CrosstermModifiers::SHIFT),
+            event(CrosstermKeyCode::Char('x'), CrosstermModifiers::ALT),
+        ] {
+            let input = Input::from_crossterm(key_event).expect("key event converts");
+            let _ = runtime
+                .handle(input)
+                .expect("runtime dispatches converted input");
+            present(&mut runtime, &mut terminal, area);
+        }
+
+        assert_eq!(
+            *commands.lock().expect("command log"),
+            vec![X, UNICODE, UPPER, ALT_X]
+        );
+
+        assert!(matches!(
+            Input::from_crossterm(CrosstermEvent::Resize(73, 19)),
+            Some(Input::Resize(73, 19))
+        ));
+        assert!(matches!(
+            Input::from_crossterm(CrosstermEvent::Paste("typed paste".to_owned())),
+            Some(Input::Paste(ref text)) if text == "typed paste"
+        ));
     }
 
     #[test]
