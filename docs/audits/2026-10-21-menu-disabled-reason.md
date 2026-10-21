@@ -88,3 +88,50 @@ and zero/narrow Unicode matrix, independent review, full workspace gates, and
 PR #38 integration are still outstanding. This WIP is only a shared component
 increment. The branch does not claim the full product or library acceptance
 gates.
+
+## Shared underlay renderer follow-up (WIP)
+
+This follow-up implements the approved shared-menu contract in
+`menu-underlay-shared-contract-e4eae58e-20261021/contract.json` (SHA-256
+`e432896194697d05d3f1c63d93716e212ed1958b1707ffcbba6c146399bd9440`). The
+parent's immutable local merge `ed051a90f77a35dc15554c42436c0cad6fe11ee6`
+was merged normally to carry already-reviewed concurrent source work; this
+follow-up's edits remain limited to ContextMenu, its focused consumer test, and
+this audit.
+
+At the four unchanged public probes in
+`incoming-e4eae58e-independent-review-20261021/review.json`, the pre-fix source
+failed `underlay_keeps_chord`, `underlay_keeps_disabled_style`,
+`underlay_honors_border_patch`, and `underlay_keeps_underline_ink` (4/8 passed,
+4 failed). After this menu-only change, 7/8 pass: the three menu behavior
+failures now pass, as does the nested lower-layer foreground probe. The
+unchanged runtime-only `underlay_keeps_underline_ink` still fails because
+`Ui::fill_keep_ink` clears the underline channel; its runtime owner is handling
+that separately. No runtime source was edited here, and this menu change does
+not claim that check is green.
+
+ContextMenu now has one row renderer for default and underlay modes. Both modes
+resolve container, border, title, rule, row, marker, label, key, and help through
+the existing MENU family, `PartStyle`, slots, effective chord and submenu
+paths. `keep_underlay()` only selects background-only base fill; it no longer
+chooses row colors or content. The separate generic `separator_inset(u16)`
+policy defaults to zero and drives the same rectangle for the RULE glyph/slot
+and registered decoration in every fill mode. Frozen source evidence shows a
+one-cell separator inset in the Capsule menu; a real application consumer still
+needs to configure that policy explicitly. No app integration or frozen
+comparison is included in this increment.
+
+The new real-runtime public integration test
+`crates/termrock-overlays/tests/context_menu_underlay_shared.rs` passes 7/7.
+It covers shared chord and submenu output, disabled appearance over all four
+color profiles, global and per-part overrides for container/border/title/row/
+label/key/marker/rule/help, slots in both fill modes, mode-independent RULE
+geometry, explicit inset geometry, the shared keyboard action path, and
+narrow-width resize safety from zero through 40 columns. Package validation is
+`cargo nextest run -p termrock-overlays --all-targets --no-fail-fast` (141/141),
+`cargo clippy -p termrock-overlays --all-targets -- -D warnings`,
+`cargo fmt --check --package termrock-overlays`, and `git diff --check`, all
+green. The unchanged external consumer remains 7/8 solely because the
+runtime-owned underline-color preservation fix is pending. Product parity,
+actual Capsule configuration, and the frozen CLI comparison remain
+outstanding.
