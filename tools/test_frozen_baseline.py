@@ -8,6 +8,7 @@ import json
 import os
 import selectors
 import signal
+import stat
 import sys
 import subprocess
 import tarfile
@@ -2376,6 +2377,147 @@ class RunnerGuards(unittest.TestCase):
             checked_digest = runner.digest_source(checked, check_work=lambda: counted.append(1))
             self.assertEqual(checked_digest, runner.digest_source(checked))
             self.assertGreater(len(counted), 0)
+
+    def test_owned_prepare_extraction_preserves_delayed_directory_metadata(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            archive_path = root / "directory-metadata.tar"
+            old_mtime = 1_234_567_000
+            with tarfile.open(archive_path, "w") as archive:
+                directory = tarfile.TarInfo("restricted")
+                directory.type = tarfile.DIRTYPE
+                directory.mode = 0o000
+                directory.mtime = old_mtime
+                archive.addfile(directory)
+                payload = b"nested synthetic content\n"
+                file_member = tarfile.TarInfo("restricted/payload.txt")
+                file_member.size = len(payload)
+                file_member.mode = 0o400
+                file_member.mtime = old_mtime + 1
+                archive.addfile(file_member, io.BytesIO(payload))
+
+            expected = root / "tarfile-reference"
+            expected.mkdir()
+            with tarfile.open(archive_path, "r:") as archive:
+                archive.extractall(expected)
+            expected_dir = expected / "restricted"
+            expected_metadata = (stat.S_IMODE(expected_dir.stat().st_mode), int(expected_dir.stat().st_mtime))
+
+            destinations = (root / "legacy", root / "owned")
+            check_calls: list[int] = []
+            for destination in destinations:
+                destination.mkdir()
+                with tarfile.open(archive_path, "r:") as archive:
+                    runner.safe_extract(
+                        archive,
+                        destination,
+                        check_work=(lambda: check_calls.append(1)) if destination == destinations[1] else None,
+                    )
+
+            for destination in destinations:
+                extracted_dir = destination / "restricted"
+                self.assertEqual((extracted_dir / "payload.txt").read_bytes(), payload)
+                self.assertEqual(
+                    (stat.S_IMODE(extracted_dir.stat().st_mode), int(extracted_dir.stat().st_mtime)),
+                    expected_metadata,
+                )
+                self.assertEqual(int(extracted_dir.stat().st_mtime), old_mtime)
+            self.assertGreater(len(check_calls), 0)
+
+    def test_owned_group_observer_uses_absolute_system_ps_and_rejects_bad_results(self) -> None:
+        valid = subprocess.CompletedProcess(
+            [runner.OWNED_PROCESS_LIST_COMMAND],
+            0,
+            stdout="123 123 S\n",
+            stderr="",
+        )
+        with patch.object(runner.subprocess, "run", return_value=valid) as run_process:
+            self.assertEqual(runner._owned_group_members(123, 123, 1), {123})
+        self.assertEqual(run_process.call_args.args[0][0], runner.OWNED_PROCESS_LIST_COMMAND)
+        self.assertTrue(Path(runner.OWNED_PROCESS_LIST_COMMAND).is_absolute())
+
+        malformed = subprocess.CompletedProcess(
+            [runner.OWNED_PROCESS_LIST_COMMAND], 0, stdout="not a process row\n", stderr=""
+        )
+        with patch.object(runner.subprocess, "run", return_value=malformed):
+            with self.assertRaisesRegex(runner.RunnerError, "membership output was malformed"):
+                runner._owned_group_members(123, 123, 1)
+
+        timeout = subprocess.TimeoutExpired([runner.OWNED_PROCESS_LIST_COMMAND], timeout=0.1)
+        with patch.object(runner.subprocess, "run", side_effect=timeout):
+            with self.assertRaisesRegex(runner.RunnerError, "could not verify anchored process-group membership"):
+                runner._owned_group_members(123, 123, 1)
+
+    def test_owned_prepare_eof_with_observation_failure_kills_anchored_group(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            stdout_path = root / "stdout"
+            stderr_path = root / "stderr"
+            status_path = root / "status.json"
+            ready_path = root / "anchor-ready.json"
+            spec_path = root / "spec.json"
+            child_pid_path = root / "child.pid"
+            stopped_path = root / "child.stopped"
+            helper = (
+                "import pathlib,signal,sys,time; "
+                "signal.signal(signal.SIGTERM, lambda *_: (pathlib.Path(sys.argv[1]).write_text('stopped'), sys.exit(0))); "
+                "time.sleep(30)"
+            )
+            launch = (
+                "import pathlib,subprocess,sys; "
+                "child=subprocess.Popen([sys.executable,'-c',sys.argv[2],sys.argv[3]]); "
+                "pathlib.Path(sys.argv[1]).write_text(str(child.pid))"
+            )
+            spec_path.write_text(json.dumps({
+                "argv": [sys.executable, "-c", launch, str(child_pid_path), helper, str(stopped_path)],
+                "cwd": str(root),
+                "stdout_fd": 1,
+                "stderr_fd": 2,
+                "status_path": str(status_path),
+                "ready_path": str(ready_path),
+            }))
+            control_read, control_write = os.pipe()
+            os.set_inheritable(control_read, True)
+            import_path = Path(runner.__file__).resolve().parent
+            broker_script = (
+                "import pathlib,sys; sys.path.insert(0,sys.argv[3]); import frozen_baseline as r; "
+                "r.PREPARE_OWNED_TERM_GRACE=0.2; "
+                "r._owned_group_members=lambda *_: (_ for _ in ()).throw(r.RunnerError('injected observer failure')); "
+                "raise SystemExit(r._owned_broker_main(pathlib.Path(sys.argv[1]),int(sys.argv[2])))"
+            )
+            stdout_stream = stdout_path.open("wb")
+            stderr_stream = stderr_path.open("wb")
+            broker = subprocess.Popen(
+                [sys.executable, "-c", broker_script, str(spec_path), str(control_read), str(import_path)],
+                stdin=subprocess.DEVNULL,
+                stdout=stdout_stream,
+                stderr=stderr_stream,
+                close_fds=True,
+                pass_fds=(control_read,),
+                start_new_session=True,
+            )
+            os.close(control_read)
+            try:
+                deadline = time.monotonic() + 5
+                while not status_path.exists() and broker.poll() is None and time.monotonic() < deadline:
+                    time.sleep(0.01)
+                self.assertTrue(status_path.exists(), "broker did not finish its synthetic owned command")
+                self.assertTrue(child_pid_path.is_file())
+                os.close(control_write)
+                control_write = -1
+                self.assertEqual(broker.wait(timeout=5), -signal.SIGKILL)
+                self.assertTrue(stopped_path.exists(), "owned child did not receive TERM before fail-closed KILL")
+                child_pid = int(child_pid_path.read_text())
+                with self.assertRaises(ProcessLookupError):
+                    os.kill(child_pid, 0)
+            finally:
+                if control_write >= 0:
+                    os.close(control_write)
+                if broker.poll() is None:
+                    os.killpg(broker.pid, signal.SIGKILL)
+                    broker.wait(timeout=5)
+                stdout_stream.close()
+                stderr_stream.close()
 
     def test_owned_prepare_removes_cooperative_same_group_helper_before_release(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
