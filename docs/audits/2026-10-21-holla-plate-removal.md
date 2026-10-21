@@ -134,10 +134,57 @@ consumed by `crates/holla-ui/tests/perf.rs`). Production `src/` has no frame
 data, no fixed cell tables (`fit_cells` is a truncation helper; remaining
 "cells" hits are comments and test code).
 
+## Concept families vs the frozen oracle: pre-tag drift, both builds fail
+
+The same frozen-oracle check over the 12 `holla::concept` families (348 cases,
+candidate build at the `40bc297e5` tip) passes 6 and fails 342
+(`/tmp/holla-pair/frozen-concept-cand.log`): only `disk-cleanup` and
+`launch-failure` keep 6 passing cases each. The frozen snapshots show the
+pre-tag home ("Suggested here", "Analyze disk usage", "Recent here") and
+non-bold header ink; the branch renders the redesigned adaptive home and a
+shared-layer bold change. Like the 15 parity families, this drift predates the
+plate removal and cannot be closed without regenerating the reference or
+replaying the old home screens; both results are preserved and no expected
+snapshot was touched.
+
+## Remaining `*_plate` gates folded (2026-10-21, later same day)
+
+The last size-keyed gates are gone:
+
+- `disk_cleanup_100x30_plate` was provably a no-op wrapper over
+  `disk_cleanup_tag_frame` (`is_some()` iff the tag frame holds, at every
+  size), so `Route::Disk` gates on the tag frame directly.
+- `launch_failure_80x24_plate` and `launch_failure_100x30_plate` collapsed
+  into one semantic predicate, `launch_failure_activity_frame`, which keeps
+  the frozen-reference behavior: the activity layout composes only at the
+  three fixture sizes (80×24, 100×30, 120×40), every other viewport keeps the
+  generic activity page. This exact-size restriction is a frozen-reference
+  quirk (72×20 and 160×50 render generically) and is documented on the
+  predicate.
+
+Byte-neutrality is proven against the same shared-layer base: with the holla
+sources reverted, a paired capture of all 348 concept cases (696 compared
+frame/receipt ids) is identical between the unedited and edited builds
+(`/tmp/holla-pair/cv-base-rcpt` vs `/tmp/holla-pair/cv-post-rcpt`, 0 diffs).
+Gate on the commit: 227/227 nextest, clippy clean, fmt clean.
+
+Comparing the edited build against the OLD tip-reference binaries
+(`build-1792537519863156000`) drifts broadly — including families this
+workstream never touched, at truecolor — because the origin tip moved under
+it (gutter/theme re-approvals); the edited families drift less than untouched
+ones (`launch-failure` truecolor differs only at 160×50, `disk-cleanup` only
+at 256). That comparison is base drift, not a regression; the reverted-vs-
+edited capture above is the neutral proof.
+
+`first_use_plate`, `monorepo_root_plate`, `activities_multi_plate` and
+`remote_host_list_plate` remain as semantic dispatchers and helpers (no size
+key), as recorded above.
+
 ## Remaining work
 
 Full frozen-corpus live-compare acceptance for Holla is still open (the
 branch-level candidate corpus remains red; the 15 no-reference parity families
-are the Holla portion of that red, documented above as pre-existing drift; see
-the matrix paired-test section). The pre-existing `holla_visual_baseline`
-digest red (de673f212d89ea84 vs e30768d9339a0fb9) still needs its decision.
+and the 12 concept families are the Holla portion of that red, documented
+above as pre-tag drift; see the matrix paired-test section). The pre-existing
+`holla_visual_baseline` digest red (de673f212d89ea84 vs e30768d9339a0fb9)
+still needs its decision.
