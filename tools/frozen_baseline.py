@@ -694,8 +694,11 @@ def _owned_broker_orphan_cleanup(process: subprocess.Popen[bytes] | None) -> Non
             except ProcessLookupError as error:
                 raise RunnerError("owned broker group disappeared during fail-closed cleanup") from error
             term_deadline = time.monotonic() + PREPARE_OWNED_TERM_GRACE
-            while time.monotonic() < term_deadline:
-                time.sleep(min(0.02, term_deadline - time.monotonic()))
+            while True:
+                grace_remaining = term_deadline - time.monotonic()
+                if grace_remaining <= 0:
+                    break
+                time.sleep(min(0.02, grace_remaining))
             if os.getpgrp() != anchor_pid:
                 raise RunnerError("owned broker lost its process-group anchor before final cleanup")
             try:

@@ -2457,19 +2457,25 @@ class RunnerGuards(unittest.TestCase):
             ready_path = root / "anchor-ready.json"
             spec_path = root / "spec.json"
             child_pid_path = root / "child.pid"
+            child_ready_path = root / "child.ready"
             stopped_path = root / "child.stopped"
             helper = (
                 "import pathlib,signal,sys,time; "
-                "signal.signal(signal.SIGTERM, lambda *_: (pathlib.Path(sys.argv[1]).write_text('stopped'), sys.exit(0))); "
+                "signal.signal(signal.SIGTERM, lambda *_: (pathlib.Path(sys.argv[2]).write_text('stopped'), sys.exit(0))); "
+                "pathlib.Path(sys.argv[1]).write_text('ready'); "
                 "time.sleep(30)"
             )
             launch = (
                 "import pathlib,subprocess,sys; "
-                "child=subprocess.Popen([sys.executable,'-c',sys.argv[2],sys.argv[3]]); "
+                "child=subprocess.Popen([sys.executable,'-c',sys.argv[2],sys.argv[3],sys.argv[4]]); "
+                "ready=pathlib.Path(sys.argv[3]); "
+                "deadline=__import__('time').monotonic()+5; "
+                "exec('while not ready.exists() and __import__(\"time\").monotonic()<deadline: __import__(\"time\").sleep(0.005)'); "
+                "assert ready.exists(), 'child signal handler did not become ready'; "
                 "pathlib.Path(sys.argv[1]).write_text(str(child.pid))"
             )
             spec_path.write_text(json.dumps({
-                "argv": [sys.executable, "-c", launch, str(child_pid_path), helper, str(stopped_path)],
+                "argv": [sys.executable, "-c", launch, str(child_pid_path), helper, str(child_ready_path), str(stopped_path)],
                 "cwd": str(root),
                 "stdout_fd": 1,
                 "stderr_fd": 2,
@@ -2503,6 +2509,7 @@ class RunnerGuards(unittest.TestCase):
                     time.sleep(0.01)
                 self.assertTrue(status_path.exists(), "broker did not finish its synthetic owned command")
                 self.assertTrue(child_pid_path.is_file())
+                self.assertTrue(child_ready_path.is_file(), "helper signal handler was not ready before EOF")
                 os.close(control_write)
                 control_write = -1
                 self.assertEqual(broker.wait(timeout=5), -signal.SIGKILL)
@@ -2719,6 +2726,25 @@ class RunnerGuards(unittest.TestCase):
                     if broker.poll() is None:
                         os.killpg(broker.pid, signal.SIGKILL)
                         broker.wait(timeout=5)
+
+    def test_owned_broker_observer_failure_grace_boundary_still_sends_kill(self) -> None:
+        signals: list[tuple[int, int]] = []
+
+        def record_killpg(pgid: int, signum: int) -> None:
+            signals.append((pgid, signum))
+
+        clock_values = iter([0.0, 0.0, 0.0, 1.99, 2.01])
+        with patch.object(runner.os, "getpid", return_value=1234), \
+             patch.object(runner.os, "getpgrp", return_value=1234), \
+             patch.object(runner.os, "killpg", side_effect=record_killpg), \
+             patch.object(runner, "_owned_group_members", side_effect=runner.RunnerError("observer failure")), \
+             patch.object(runner.time, "monotonic", side_effect=lambda: next(clock_values)), \
+             patch.object(runner.time, "sleep") as sleep:
+            runner._owned_broker_orphan_cleanup(None)
+
+        self.assertEqual(signals, [(1234, signal.SIGTERM), (1234, signal.SIGKILL)])
+        self.assertEqual(len(sleep.call_args_list), 1)
+        self.assertAlmostEqual(sleep.call_args.args[0], 0.01)
 
 
 if __name__ == "__main__":
