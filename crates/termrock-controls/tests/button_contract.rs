@@ -441,6 +441,127 @@ fn focus_theme() -> Theme {
 }
 
 #[test]
+fn primary_button_pressed_background_matches_frozen_palette_at_each_color_level() {
+    let expected = [
+        (ColorLevel::TrueColor, Color::Rgb(46, 154, 56)),
+        (ColorLevel::Ansi256, Color::Indexed(65)),
+        (ColorLevel::Ansi16, Color::LightGreen),
+        (ColorLevel::Mono, Color::White),
+    ];
+
+    for (level, background) in expected {
+        let mut h = Harness::new(
+            FocusPage {
+                policy: ButtonFocusVisibility::Always,
+                variant: Variant::PRIMARY,
+                activations: 0,
+            },
+            Theme::junie().for_level(level),
+            30,
+            1,
+        );
+        let _ = h.mouse(termrock_core::event::MouseKind::Down, 12, 0);
+
+        assert!(
+            h.state_of(BUTTON).contains(StateFlags::PRESSED),
+            "the real button must be pressed at {level:?}"
+        );
+        assert!(
+            h.state_of(BUTTON)
+                .contains(StateFlags::FOCUSED | StateFlags::HOVERED),
+            "pointer press must retain focus and hover state at {level:?}"
+        );
+        assert_eq!(
+            h.cell(10, 0).bg,
+            background,
+            "the real primary button pressed background at {level:?}"
+        );
+    }
+}
+
+#[test]
+fn primary_pressed_profile_keeps_global_and_instance_button_overrides() {
+    let level = ColorLevel::TrueColor;
+    let global_theme =
+        Theme::junie().override_variant(Family::BUTTON, Variant::PRIMARY, |recipe| {
+            recipe
+                .part(Part::CONTAINER)
+                .when(StateFlags::PRESSED, StylePatch::new().set_bg(Role::Warning));
+        });
+    let mut global = Harness::new(
+        FocusPage {
+            policy: ButtonFocusVisibility::Always,
+            variant: Variant::PRIMARY,
+            activations: 0,
+        },
+        global_theme.clone().for_level(level),
+        30,
+        1,
+    );
+    let _ = global.mouse(termrock_core::event::MouseKind::Down, 12, 0);
+    assert_eq!(global.cell(10, 0).bg, global_theme.color.warning);
+
+    struct InstancePatchPage;
+    impl App for InstancePatchPage {
+        fn update(&mut self, _: &mut Cx<'_>) -> Response<()> {
+            Response::ignored()
+        }
+
+        fn draw(&self, ui: &mut Ui<'_>) {
+            let patch = [(Part::CONTAINER, StylePatch::new().set_bg(Role::Info))];
+            Button::new(BUTTON, "Go")
+                .variant(Variant::PRIMARY)
+                .patch_part(&patch)
+                .draw(ui, ui.full());
+        }
+    }
+
+    let mut instance = Harness::new(InstancePatchPage, Theme::junie().for_level(level), 30, 1);
+    let _ = instance.mouse(termrock_core::event::MouseKind::Down, 2, 0);
+    assert_eq!(instance.cell(0, 0).bg, Theme::junie().color.info);
+
+    let custom_color = Color::Rgb(12, 34, 56);
+    let mut custom_theme = Theme::junie();
+    custom_theme.color.accent_pressed = custom_color;
+    let mut token_override = Harness::new(
+        FocusPage {
+            policy: ButtonFocusVisibility::Always,
+            variant: Variant::PRIMARY,
+            activations: 0,
+        },
+        custom_theme,
+        30,
+        1,
+    );
+    let _ = token_override.mouse(termrock_core::event::MouseKind::Down, 12, 0);
+    assert_eq!(token_override.cell(10, 0).bg, custom_color);
+
+    let paper = Theme::paper();
+    let expected_paper = paper
+        .resolve(
+            Family::BUTTON,
+            Variant::PRIMARY,
+            Part::CONTAINER,
+            StateFlags::PRESSED | StateFlags::HOVERED | StateFlags::FOCUSED,
+            termrock_theme::Surface::Canvas,
+        )
+        .style
+        .bg;
+    let mut paper_button = Harness::new(
+        FocusPage {
+            policy: ButtonFocusVisibility::Always,
+            variant: Variant::PRIMARY,
+            activations: 0,
+        },
+        paper,
+        30,
+        1,
+    );
+    let _ = paper_button.mouse(termrock_core::event::MouseKind::Down, 12, 0);
+    assert_eq!(Some(paper_button.cell(10, 0).bg), expected_paper);
+}
+
+#[test]
 fn pointer_focus_visibility_obeys_always_and_keyboard_only_policies() {
     let mut always = Harness::new(
         FocusPage {
