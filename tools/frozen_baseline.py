@@ -26,6 +26,7 @@ import tempfile
 import threading
 import time
 from typing import Any, Callable
+import unicodedata
 
 
 BASELINE_TAG = "visual-baseline"
@@ -4725,6 +4726,211 @@ def compare_live(repo: Path, candidate_repo: Path, root: Path, baseline_bins: Pa
     print(json.dumps(report, indent=2))
 
 
+# --- corpus modifier parity (2026-10-21 backdrop regeneration hardening) ---
+# The admitted corpus replay dropped SGR modifier state (picker_open 16/none/
+# nocolor lost the backdrop DIM: raw stream carried it, converted frame.json
+# cells reported mods.dim=false). Glyph/color-only parity cannot see that
+# defect class, so corpus admission must compare decoded SGR modifier state
+# cell by cell against the canonical frame JSON `mods`. Fail-closed.
+
+CORPUS_MODIFIER_FLAGS = ("hidden", "blink", "bold", "dim", "italic", "underline", "reverse", "strikethrough")
+
+
+def decode_ansi_cell_mods(text: str) -> list[dict[str, bool]]:
+    """Decode per-cell SGR modifier state from a normalized screen dump.
+
+    Returns a row-major list (rows joined by newline). Cursor-trailer and
+    other non-SGR escape sequences are skipped; extended colors (SGR
+    38/48/58;2 or ;5) consume their arguments; 0 resets, 22 clears bold and
+    dim, 23/24/25/27/28/29 clear italic/underline/blinking/reverse/hidden/
+    strikethrough. Wide glyphs occupy two columns with the lead's state.
+    """
+    cells: list[dict[str, bool]] = []
+    state = {flag: False for flag in CORPUS_MODIFIER_FLAGS}
+    i = 0
+    length = len(text)
+    while i < length:
+        char = text[i]
+        if char == "\x1b":
+            match = re.match(r"\x1b\[([0-9;:<=>?]*)([\x20-\x2f]*)([\x40-\x7e])", text[i:])
+            if match is None:
+                if re.match(r"\x1b\][^\x07\x1b]*(\x07|\x1b\\)", text[i:]) or text[i:i + 2] in ("\x1bP", "\x1b^", "\x1b_"):
+                    raise RunnerError(f"unsupported escape sequence at offset {i} in normalized ANSI dump")
+                raise RunnerError(f"malformed escape sequence at offset {i} in normalized ANSI dump")
+            params, intermediates, final = match.group(1), match.group(2), match.group(3)
+            i += match.end()
+            if final != "m" or intermediates:
+                continue
+            numbers: list[int] = []
+            for group in params.split(";"):
+                for part in group.split(":"):
+                    numbers.append(int(part) if part else 0)
+            if not numbers:
+                numbers = [0]
+            k = 0
+            while k < len(numbers):
+                value = numbers[k]
+                if value == 0:
+                    state = {flag: False for flag in CORPUS_MODIFIER_FLAGS}
+                elif value == 1:
+                    state["bold"] = True
+                elif value == 2:
+                    state["dim"] = True
+                elif value == 3:
+                    state["italic"] = True
+                elif value == 4:
+                    state["underline"] = True
+                elif value == 5:
+                    state["blink"] = True
+                elif value == 7:
+                    state["reverse"] = True
+                elif value == 8:
+                    state["hidden"] = True
+                elif value == 9:
+                    state["strikethrough"] = True
+                elif value == 22:
+                    state["bold"] = False
+                    state["dim"] = False
+                elif value == 23:
+                    state["italic"] = False
+                elif value == 24:
+                    state["underline"] = False
+                elif value == 25:
+                    state["blink"] = False
+                elif value == 27:
+                    state["reverse"] = False
+                elif value == 28:
+                    state["hidden"] = False
+                elif value == 29:
+                    state["strikethrough"] = False
+                elif value in (38, 48, 58) and k + 1 < len(numbers) and numbers[k + 1] == 2:
+                    k += 4
+                elif value in (38, 48, 58) and k + 1 < len(numbers) and numbers[k + 1] == 5:
+                    k += 2
+                k += 1
+            continue
+        i += 1
+        if char == "\n":
+            continue
+        # Control/format characters and combining marks join the previous
+        # grapheme cluster instead of occupying a cell (frames store one cell
+        # per cluster, symbol included).
+        if char == "\r" or unicodedata.category(char) in ("Cc", "Cf", "Mn", "Me", "Mc"):
+            continue
+        cells.append(dict(state))
+        if unicodedata.east_asian_width(char) in ("W", "F"):
+            cells.append(dict(state))
+    return cells
+
+
+def corpus_modifier_parity(store: Path, cases: list[str] | None = None, snapshots: Path | None = None) -> dict[str, object]:
+    """Compare decoded SGR modifier state against canonical frame `mods`.
+
+    Every scenario directory in `store` must carry the full per-tier artifact
+    set; each `<tier>.ansi` must decode to exactly `<cols>*<rows>` cells whose
+    modifier state equals the frame JSON `mods` of the cell at the same grid
+    position. Any missing file, short/long dump, or modifier disagreement
+    raises `RunnerError` (fail-closed).
+
+    When `snapshots` points at the visual-harness snapshot store, a second
+    cross-store pass runs for every tier that also has a snapshot dump
+    (`snapshots/<manifest.legacy_name>.ansi`): the snapshot was captured
+    directly and never passed through the corpus conversion, so modifier
+    disagreement between the two stores catches conversion defects even when
+    the corpus ansi and frame.json agree with each other — exactly the
+    2026-10-21 picker backdrop-DIM class, where the conversion dropped the
+    SGR-2 backdrop runs from both artifacts consistently. Snapshots cover
+    only a subset of corpus scenarios; names without a snapshot dump are
+    skipped by that pass, not failed.
+    """
+    if store.is_symlink() or not store.is_dir():
+        raise RunnerError(f"corpus store missing or not a directory: {store}")
+    tiers = ("16", "256", "nocolor", "none", "truecolor")
+    names: list[str] = []
+    if cases:
+        for case in cases:
+            path = store / f"{case}.ansi"
+            if path.is_symlink() or not path.is_file():
+                raise RunnerError(f"corpus case missing ANSI artifact: {path}")
+            names.append(case)
+    else:
+        for path in sorted(store.rglob("*.ansi")):
+            relative = path.relative_to(store).with_name(path.stem)
+            name = relative.as_posix()
+            suffix = name.rsplit("/", 1)[-1]
+            if suffix in tiers:
+                names.append(name)
+    if not names:
+        raise RunnerError(f"corpus store holds no tier artifacts: {store}")
+    checked = 0
+    cross_checks = 0
+    for name in names:
+        ansi_path = store / f"{name}.ansi"
+        frame_path = store / f"{name}.frame.json"
+        for path in (ansi_path, frame_path):
+            if path.is_symlink() or not path.is_file():
+                raise RunnerError(f"corpus case missing artifact: {path}")
+        try:
+            frame = json.loads(frame_path.read_text())
+        except (UnicodeDecodeError, ValueError) as error:
+            raise RunnerError(f"invalid corpus frame JSON: {frame_path}") from error
+        if not isinstance(frame, dict) or set(frame) < {"cols", "rows", "cells"}:
+            raise RunnerError(f"corpus frame missing fields: {frame_path}")
+        cols, rows, grid = frame["cols"], frame["rows"], frame["cells"]
+        if type(cols) is not int or type(rows) is not int or cols < 1 or rows < 1 or not isinstance(grid, list) or len(grid) != cols * rows:
+            raise RunnerError(f"corpus frame inventory mismatch: {frame_path}")
+        decoded = decode_ansi_cell_mods(ansi_path.read_text())
+        if len(decoded) != cols * rows:
+            raise RunnerError(
+                f"corpus ANSI cell count {len(decoded)} != frame grid {cols * rows}: {ansi_path}")
+        for index, cell in enumerate(decoded):
+            mods = grid[index].get("mods") if isinstance(grid[index], dict) else None
+            if not isinstance(mods, dict):
+                raise RunnerError(f"corpus frame cell {index} has no mods: {frame_path}")
+            for flag in CORPUS_MODIFIER_FLAGS:
+                expected = mods.get(flag)
+                if type(expected) is not bool:
+                    raise RunnerError(f"corpus frame cell {index} mods.{flag} is not a boolean: {frame_path}")
+                if expected != cell[flag]:
+                    x, y = index % cols, index // cols
+                    raise RunnerError(
+                        f"corpus modifier parity mismatch in {name} at cell {x},{y}: "
+                        f"ansi SGR {flag}={cell[flag]} vs frame.json mods.{flag}={expected}")
+        checked += 1
+        if snapshots is None:
+            continue
+        manifest_path = store / f"{name}.manifest.json"
+        if manifest_path.is_symlink() or not manifest_path.is_file():
+            raise RunnerError(f"corpus case missing manifest: {manifest_path}")
+        try:
+            manifest = json.loads(manifest_path.read_text())
+        except (UnicodeDecodeError, ValueError) as error:
+            raise RunnerError(f"invalid corpus manifest JSON: {manifest_path}") from error
+        legacy = manifest.get("legacy_name") if isinstance(manifest, dict) else None
+        if type(legacy) is not str or not legacy:
+            raise RunnerError(f"corpus manifest missing legacy_name: {manifest_path}")
+        snapshot_path = snapshots / f"{legacy}.ansi"
+        if snapshot_path.is_symlink() or not snapshot_path.is_file():
+            continue
+        snapshot_decoded = decode_ansi_cell_mods(snapshot_path.read_text())
+        if len(snapshot_decoded) != cols * rows:
+            raise RunnerError(
+                f"snapshot ANSI cell count {len(snapshot_decoded)} != frame grid {cols * rows}: {snapshot_path}")
+        for index, cell in enumerate(snapshot_decoded):
+            for flag in CORPUS_MODIFIER_FLAGS:
+                if cell[flag] != decoded[index][flag]:
+                    x, y = index % cols, index // cols
+                    raise RunnerError(
+                        f"corpus modifier parity mismatch in {name} at cell {x},{y}: "
+                        f"corpus ansi SGR {flag}={decoded[index][flag]} vs snapshot "
+                        f"{snapshot_path} SGR {flag}={cell[flag]}")
+        cross_checks += 1
+    report: dict[str, object] = {"store": str(store), "scenarios_checked": checked, "modifier_flags": len(CORPUS_MODIFIER_FLAGS), "failures": 0}
+    if snapshots is not None:
+        report["snapshot_cross_checks"] = cross_checks
+    return report
+
+
 def parser() -> argparse.ArgumentParser:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--repo", type=Path, default=Path.cwd())
@@ -4792,6 +4998,19 @@ def parser() -> argparse.ArgumentParser:
     live_pair.add_argument("--chunk-size", type=int, default=DEFAULT_CHUNK_SIZE)
     live_pair.add_argument("--term-profile", choices=sorted(TERM_PROFILES), default=None,
                            help="set runner and spawned-child TERM for every phase (default: harness child default; 'unset' removes TERM)")
+    corpus_check = sub.add_parser(
+        "corpus-check",
+        help="verify corpus ANSI SGR modifier state matches frame.json mods (fail-closed)")
+    corpus_check.add_argument("--repo", type=Path, default=Path("."),
+                              help="repository checkout holding the corpus store")
+    corpus_check.add_argument("--store", type=Path, default=Path("baselines/tuiscotti-v1"),
+                              help="corpus store directory, relative to --repo or absolute")
+    corpus_check.add_argument("--case", action="append", dest="cases", metavar="NAME",
+                              help="exact tier name, e.g. tablepro/workbench/overlay-picker-open/120x40/16; "
+                                   "may be repeated (default: every tier artifact in the store)")
+    corpus_check.add_argument("--snapshots", type=Path, default=Path("snapshots"),
+                              help="snapshot store for the cross-store modifier pass, relative to --repo "
+                                   "or absolute; pass 'none' to skip that pass")
     return ap
 
 
@@ -4894,6 +5113,13 @@ def main() -> int:
             root = args.root.resolve()
             baseline_bins = root / "cargo-target" / "debug"
             compare_live(args.repo, args.candidate_repo or args.repo, root, baseline_bins, args.candidate_bin_dir.resolve(), args.case, args.all, args.chunk_size, args.timeout, args.term_profile)
+        elif args.command == "corpus-check":
+            repo = args.repo.resolve()
+            store = args.store if args.store.is_absolute() else repo / args.store
+            snapshots = None
+            if args.snapshots is not None and args.snapshots != Path("none"):
+                snapshots = args.snapshots if args.snapshots.is_absolute() else repo / args.snapshots
+            print(json.dumps(corpus_modifier_parity(store, args.cases, snapshots), indent=2))
         else:
             root = args.root.resolve()
             baseline_bins = root / "cargo-target" / "debug"
