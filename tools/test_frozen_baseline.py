@@ -4379,6 +4379,124 @@ class RunnerGuards(unittest.TestCase):
                 else:
                     self.assertFalse((moved / "report.json").exists())
 
+    def test_owned_rooted_filesystem_worker_rejects_detached_nested_parent_at_each_boundary(self) -> None:
+        payload = b"synthetic nested-parent race payload"
+        for replacement_kind in ("directory", "symlink"):
+            for boundary in ("before-link", "during-link", "after-link", "before-receipt"):
+                with self.subTest(replacement_kind=replacement_kind, boundary=boundary), tempfile.TemporaryDirectory() as temp:
+                    base = Path(temp)
+                    root = base / "root"
+                    attempt = root / "attempt"
+                    moved = base / "moved-attempt"
+                    decoy = base / "decoy"
+                    root.mkdir(mode=0o700)
+                    root.chmod(0o700)
+                    attempt.mkdir(mode=0o700)
+                    attempt.chmod(0o700)
+                    decoy.mkdir(mode=0o700)
+                    decoy.chmod(0o700)
+                    request_path = base / "request.json"
+                    binding = runner._owned_root_binding(root, check_work=lambda: None)
+                    request = {
+                        "schema": "termrock.frozen-baseline-owned-fs-request",
+                        "version": 1,
+                        "operation": "publish-immutable",
+                        "root_binding": binding,
+                        "relative_path": "attempt/report.bin",
+                        "payload_hex": payload.hex(),
+                        "payload_sha256": hashlib.sha256(payload).hexdigest(),
+                        "payload_size": len(payload),
+                    }
+                    request_bytes = runner._canonical_document_bytes(request)
+                    request_path.write_bytes(request_bytes)
+                    root_fd, _root_info = runner._open_directory_chain(root)
+                    stdout = bytearray()
+                    real_write = os.write
+                    real_link = os.link
+                    real_check_chain = runner._owned_worker_check_parent_chain
+                    check_calls = 0
+
+                    def detach_parent() -> None:
+                        os.rename(attempt, moved)
+                        if replacement_kind == "directory":
+                            attempt.mkdir(mode=0o700)
+                            attempt.chmod(0o700)
+                        else:
+                            attempt.symlink_to(decoy, target_is_directory=True)
+
+                    def write_output(fd: int, data: bytes) -> int:
+                        if fd == 1:
+                            stdout.extend(data)
+                            return len(data)
+                        if fd == 2:
+                            return len(data)
+                        return real_write(fd, data)
+
+                    def check_with_boundary(*args: object, **kwargs: object) -> None:
+                        nonlocal check_calls
+                        check_calls += 1
+                        if boundary == "before-link" and check_calls == 1:
+                            detach_parent()
+                        if boundary == "before-receipt" and check_calls == 4:
+                            detach_parent()
+                        real_check_chain(*args, **kwargs)  # type: ignore[arg-type]
+
+                    def link_with_boundary(*args: object, **kwargs: object) -> None:
+                        if boundary == "during-link":
+                            detach_parent()
+                        real_link(*args, **kwargs)  # type: ignore[arg-type]
+                        if boundary == "after-link":
+                            detach_parent()
+
+                    try:
+                        with patch.object(runner.os, "write", side_effect=write_output), \
+                             patch.object(runner.os, "link", side_effect=link_with_boundary), \
+                             patch.object(runner, "_owned_worker_check_parent_chain", side_effect=check_with_boundary):
+                            exit_code = runner._owned_fs_worker_main(
+                                request_path,
+                                root_fd,
+                                hashlib.sha256(request_bytes).hexdigest(),
+                                time.monotonic() + 30,
+                            )
+                    finally:
+                        os.close(root_fd)
+                    self.assertEqual(exit_code, 2)
+                    self.assertEqual(bytes(stdout), b"")
+                    self.assertTrue(moved.is_dir())
+                    self.assertEqual(list(moved.iterdir()), [])
+                    self.assertEqual(list(decoy.iterdir()), [])
+                    if replacement_kind == "directory":
+                        self.assertTrue(attempt.is_dir())
+                        self.assertEqual(list(attempt.iterdir()), [])
+                    else:
+                        self.assertTrue(attempt.is_symlink())
+
+        with tempfile.TemporaryDirectory() as temp:
+            base = Path(temp)
+            root = base / "root"
+            attempt = root / "attempt"
+            moved = base / "moved-attempt"
+            root.mkdir(mode=0o700)
+            root.chmod(0o700)
+            attempt.mkdir(mode=0o700)
+            attempt.chmod(0o700)
+            with runner.PrepareExecution(30) as execution:
+                binding = runner._owned_root_binding(root, check_work=execution.check_work)
+                original_run = execution.run
+
+                def replace_parent_after_worker(*args: object, **kwargs: object) -> object:
+                    result = original_run(*args, **kwargs)  # type: ignore[arg-type]
+                    attempt.rename(moved)
+                    attempt.mkdir(mode=0o700)
+                    attempt.chmod(0o700)
+                    return result
+
+                with patch.object(execution, "run", side_effect=replace_parent_after_worker):
+                    with self.assertRaisesRegex(runner.RunnerError, "destination parent detached"):
+                        runner._owned_publish_immutable(execution, binding, "attempt/report.bin", payload)
+            self.assertEqual((moved / "report.bin").read_bytes(), payload)
+            self.assertFalse((attempt / "report.bin").exists())
+
     def test_owned_rooted_filesystem_worker_rejects_changed_result_attestation(self) -> None:
         payload = b"synthetic immutable report"
         with tempfile.TemporaryDirectory() as temp:

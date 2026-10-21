@@ -4148,7 +4148,7 @@ def _owned_worker_read_request(path: Path, expected_sha256: str, *, deadline: fl
     return payload, request
 
 
-def _owned_worker_open_parent(root_fd: int, relative: str, *, deadline: float) -> tuple[int, str]:
+def _owned_worker_open_parent(root_fd: int, relative: str, *, deadline: float) -> tuple[int, str, tuple[tuple[str, int, int], ...]]:
     if not isinstance(relative, str) or len(relative) > 1024 or "\\" in relative:
         raise RunnerError("owned filesystem destination path is invalid")
     path = PurePosixPath(relative)
@@ -4156,10 +4156,12 @@ def _owned_worker_open_parent(root_fd: int, relative: str, *, deadline: float) -
     if path.is_absolute() or path.as_posix() != relative or not parts or len(parts) > 8 or any(part in {"", ".", ".."} for part in parts):
         raise RunnerError("owned filesystem destination must be a normalized root-relative path")
     parent_fd = os.dup(root_fd)
+    chain: list[tuple[str, int, int]] = []
     try:
         root_info = os.fstat(parent_fd)
         if not stat.S_ISDIR(root_info.st_mode) or root_info.st_uid != os.geteuid() or stat.S_IMODE(root_info.st_mode) != 0o700:
             raise RunnerError("owned filesystem root directory is not private")
+        chain.append(("", root_info.st_dev, root_info.st_ino))
         for component in parts[:-1]:
             _owned_worker_check(deadline)
             child_fd = -1
@@ -4185,10 +4187,63 @@ def _owned_worker_open_parent(root_fd: int, relative: str, *, deadline: float) -
                 raise
             os.close(parent_fd)
             parent_fd = child_fd
-        return parent_fd, parts[-1]
+            chain.append((component, info.st_dev, info.st_ino))
+        return parent_fd, parts[-1], tuple(chain)
     except BaseException:
         os.close(parent_fd)
         raise
+
+
+def _owned_worker_check_parent_chain(
+    root_fd: int,
+    relative: str,
+    expected_chain: tuple[tuple[str, int, int], ...],
+    parent_fd: int,
+    *,
+    deadline: float,
+) -> None:
+    """Check that every held destination ancestor is still the same path under root."""
+    _owned_worker_check(deadline)
+    path = PurePosixPath(relative)
+    components = path.parts[:-1]
+    if len(expected_chain) != len(components) + 1 or expected_chain[0][0] != "":
+        raise RunnerError("owned filesystem destination parent chain is invalid")
+    held_root = os.fstat(root_fd)
+    if (held_root.st_dev, held_root.st_ino) != expected_chain[0][1:]:
+        raise RunnerError("owned filesystem pinned root descriptor changed")
+    current_fd = os.dup(root_fd)
+    try:
+        for index, component in enumerate(components, start=1):
+            _owned_worker_check(deadline)
+            child_fd = os.open(
+                component,
+                os.O_RDONLY | getattr(os, "O_DIRECTORY", 0) | getattr(os, "O_NOFOLLOW", 0),
+                dir_fd=current_fd,
+            )
+            try:
+                child_info = os.fstat(child_fd)
+                entry_info = os.stat(component, dir_fd=current_fd, follow_symlinks=False)
+                if (
+                    not stat.S_ISDIR(child_info.st_mode)
+                    or child_info.st_uid != os.geteuid()
+                    or stat.S_IMODE(child_info.st_mode) != 0o700
+                    or (child_info.st_dev, child_info.st_ino) != (entry_info.st_dev, entry_info.st_ino)
+                    or (child_info.st_dev, child_info.st_ino) != expected_chain[index][1:]
+                    or expected_chain[index][0] != component
+                ):
+                    raise RunnerError("owned filesystem destination parent chain was detached or replaced")
+            except BaseException:
+                os.close(child_fd)
+                raise
+            os.close(current_fd)
+            current_fd = child_fd
+        held_parent = os.fstat(parent_fd)
+        current = os.fstat(current_fd)
+        if (held_parent.st_dev, held_parent.st_ino) != (current.st_dev, current.st_ino):
+            raise RunnerError("owned filesystem held destination parent no longer matches its root-relative path")
+        _owned_worker_check(deadline)
+    finally:
+        os.close(current_fd)
 
 
 def _owned_fs_worker_main(request_path: Path, root_fd: int, request_sha256: str, deadline: float) -> int:
@@ -4197,6 +4252,10 @@ def _owned_fs_worker_main(request_path: Path, root_fd: int, request_sha256: str,
     temporary_name: str | None = None
     temporary_created = False
     published = False
+    completed = False
+    destination_name: str | None = None
+    worker_file_identity: tuple[int, int] | None = None
+    expected_parent_chain: tuple[tuple[str, int, int], ...] = ()
     try:
         if type(root_fd) is not int or root_fd < 3 or type(deadline) not in {int, float}:
             raise RunnerError("owned filesystem worker arguments are invalid")
@@ -4222,7 +4281,8 @@ def _owned_fs_worker_main(request_path: Path, root_fd: int, request_sha256: str,
             raise RunnerError("owned filesystem descriptor differs from caller-pinned root identity")
         _check_owned_root_binding(root_binding, check_work=lambda: _owned_worker_check(float(deadline)))
         relative_path = request["relative_path"]
-        parent_fd, filename = _owned_worker_open_parent(root_fd, relative_path, deadline=float(deadline))
+        parent_fd, filename, expected_parent_chain = _owned_worker_open_parent(root_fd, relative_path, deadline=float(deadline))
+        destination_name = filename
         payload_hex = request["payload_hex"]
         if not isinstance(payload_hex, str) or len(payload_hex) > OWNED_FS_PAYLOAD_MAX_BYTES * 2 or len(payload_hex) % 2:
             raise RunnerError("owned filesystem payload is malformed or oversized")
@@ -4271,13 +4331,19 @@ def _owned_fs_worker_main(request_path: Path, root_fd: int, request_sha256: str,
             _owned_worker_check(float(deadline))
         finally:
             os.close(output_fd)
+        temp_info = os.stat(temporary_name, dir_fd=parent_fd, follow_symlinks=False)
+        if not stat.S_ISREG(temp_info.st_mode) or temp_info.st_uid != os.geteuid() or temp_info.st_nlink != 1:
+            raise RunnerError("owned filesystem temporary file identity is invalid")
+        worker_file_identity = (temp_info.st_dev, temp_info.st_ino)
         _check_owned_root_binding(root_binding, check_work=lambda: _owned_worker_check(float(deadline)))
+        _owned_worker_check_parent_chain(root_fd, relative_path, expected_parent_chain, parent_fd, deadline=float(deadline))
         try:
             os.link(temporary_name, filename, src_dir_fd=parent_fd, dst_dir_fd=parent_fd, follow_symlinks=False)
         except FileExistsError as error:
             raise RunnerError("owned filesystem immutable destination already exists") from error
         published = True
         _owned_worker_check(float(deadline))
+        _owned_worker_check_parent_chain(root_fd, relative_path, expected_parent_chain, parent_fd, deadline=float(deadline))
         os.fsync(parent_fd)
         _owned_worker_check(float(deadline))
         os.unlink(temporary_name, dir_fd=parent_fd)
@@ -4320,6 +4386,7 @@ def _owned_fs_worker_main(request_path: Path, root_fd: int, request_sha256: str,
             or identity(read_info) != identity(final_after_read)
         ):
             raise RunnerError("owned filesystem published bytes changed during verification")
+        _owned_worker_check_parent_chain(root_fd, relative_path, expected_parent_chain, parent_fd, deadline=float(deadline))
         _check_owned_root_binding(root_binding, check_work=lambda: _owned_worker_check(float(deadline)))
         result = {
             "schema": "termrock.frozen-baseline-owned-fs-result",
@@ -4328,6 +4395,8 @@ def _owned_fs_worker_main(request_path: Path, root_fd: int, request_sha256: str,
             "root_device": str(opened_root.st_dev),
             "root_inode": str(opened_root.st_ino),
             "relative_path": relative_path,
+            "parent_device": str(os.fstat(parent_fd).st_dev),
+            "parent_inode": str(os.fstat(parent_fd).st_ino),
             "file_device": final_info.st_dev,
             "file_inode": final_info.st_ino,
             "file_size": final_info.st_size,
@@ -4337,6 +4406,7 @@ def _owned_fs_worker_main(request_path: Path, root_fd: int, request_sha256: str,
         if len(encoded) > OWNED_FS_RESULT_MAX_BYTES:
             raise RunnerError("owned filesystem result exceeds its size limit")
         _owned_worker_check(float(deadline))
+        _owned_worker_check_parent_chain(root_fd, relative_path, expected_parent_chain, parent_fd, deadline=float(deadline))
         view = memoryview(encoded)
         while view:
             _owned_worker_check(float(deadline))
@@ -4344,6 +4414,7 @@ def _owned_fs_worker_main(request_path: Path, root_fd: int, request_sha256: str,
             if written <= 0:
                 raise RunnerError("owned filesystem result write made no progress")
             view = view[written:]
+        completed = True
         return 0
     except BaseException as error:
         message = f"owned filesystem worker failed: {type(error).__name__}: {str(error)[:512]}\n".encode(errors="replace")
@@ -4353,11 +4424,22 @@ def _owned_fs_worker_main(request_path: Path, root_fd: int, request_sha256: str,
             pass
         return 2
     finally:
-        # Preserve a linked destination and any temporary evidence if the
-        # worker failed after publication; the caller must inspect, never retry blindly.
-        if not published and temporary_created and temporary_name is not None and parent_fd >= 0:
+        # On failure, remove only links whose inode is still the exact one this
+        # worker created. Never follow a replacement or unlink a pre-existing file.
+        if not completed and parent_fd >= 0 and published and destination_name is not None and worker_file_identity is not None:
             try:
-                os.unlink(temporary_name, dir_fd=parent_fd)
+                destination_info = os.stat(destination_name, dir_fd=parent_fd, follow_symlinks=False)
+                if (destination_info.st_dev, destination_info.st_ino) == worker_file_identity:
+                    os.unlink(destination_name, dir_fd=parent_fd)
+                    os.fsync(parent_fd)
+            except OSError:
+                pass
+        if not completed and temporary_created and temporary_name is not None and parent_fd >= 0 and worker_file_identity is not None:
+            try:
+                temporary_info = os.stat(temporary_name, dir_fd=parent_fd, follow_symlinks=False)
+                if (temporary_info.st_dev, temporary_info.st_ino) == worker_file_identity:
+                    os.unlink(temporary_name, dir_fd=parent_fd)
+                    os.fsync(parent_fd)
             except OSError:
                 pass
         if parent_fd >= 0:
@@ -4439,7 +4521,7 @@ def _owned_publish_immutable(
             result = json.loads(result_bytes)
         except (UnicodeDecodeError, ValueError) as error:
             raise RunnerError("owned filesystem worker result JSON is invalid") from error
-        required = {"schema", "version", "operation", "root_device", "root_inode", "relative_path", "file_device", "file_inode", "file_size", "sha256"}
+        required = {"schema", "version", "operation", "root_device", "root_inode", "relative_path", "parent_device", "parent_inode", "file_device", "file_inode", "file_size", "sha256"}
         if not isinstance(result, dict) or set(result) != required:
             raise RunnerError("owned filesystem worker result fields are invalid")
         if (
@@ -4454,8 +4536,19 @@ def _owned_publish_immutable(
             or result["file_size"] != len(payload)
             or result["sha256"] != hashlib.sha256(payload).hexdigest()
             or any(type(result[key]) is not int or result[key] <= 0 for key in ("file_device", "file_inode"))
+            or any(not isinstance(result[key], str) or not result[key].isdigit() for key in ("parent_device", "parent_inode"))
         ):
             raise RunnerError("owned filesystem worker result does not match the requested immutable publication")
+        current_parent_fd, _filename, current_chain = _owned_worker_open_parent(root_fd, relative_path, deadline=execution.work_deadline)
+        try:
+            current_parent = os.fstat(current_parent_fd)
+            if (
+                (str(current_parent.st_dev), str(current_parent.st_ino)) != (result["parent_device"], result["parent_inode"])
+                or (str(current_parent.st_dev), str(current_parent.st_ino)) != (str(current_chain[-1][1]), str(current_chain[-1][2]))
+            ):
+                raise RunnerError("owned filesystem destination parent detached before receipt acceptance")
+        finally:
+            os.close(current_parent_fd)
         _check_owned_root_binding(root_binding, check_work=execution.check_work)
         execution.check_work()
         return result
