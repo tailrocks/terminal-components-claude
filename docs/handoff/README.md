@@ -156,3 +156,7 @@ The author checkpoint above is historical. Source `8be128f073c19076a2977e349e873
 ## Seven integrated component WIPs retired (2026-10-21)
 
 The canonical prepare stages one/two, Editor live API, Menu danger profile, Panel composition, visible cursor and master-detail policy remote WIPs are fully integrated and independently retired with exact-tip atomic leases. Preserve their local worktrees and evidence, but do not recreate their obsolete remote refs. See the current migration matrix and seven-ref retirement result for exact identities. Active BackTab, Button profile, Showcase Editor and other unreviewed work remain protected.
+
+## Showcase Editor broad-gate hold (2026-10-21)
+
+Preserve reviewed live Editor source and current records on `wip/parent-showcase-editor-validation-20261021`. The combined all-target suite ran203cases:200passed,threeheading/visualfailures,zeroskips. NoPR38push occurred. Independently compare exact161284db9before versus9c99356abafter in distinct targets, classify allthree and any masked Editor differences, then resolve regressions or record provenexistingfailures before publication. Do not bless candidate digests. See currentmatrix/log.
