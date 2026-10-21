@@ -181,12 +181,23 @@ impl Theme {
                         .add(pressed_modifiers),
                 )
                 .when(
+                    StateFlags::DISABLED,
+                    StylePatch::new()
+                        .set_fg(Role::DangerSoft)
+                        .clear_bg()
+                        .remove(
+                            Modifier::BOLD | active_modifiers | hover_modifiers | pressed_modifiers,
+                        ),
+                )
+                .when(
                     StateFlags::ACTIVE | StateFlags::DISABLED,
                     StylePatch::new()
                         .set_fg(disabled_ink)
                         .set_bg(Role::CurrentSurface)
                         .add(disabled_modifiers)
-                        .remove(Modifier::BOLD | active_modifiers),
+                        .remove(
+                            Modifier::BOLD | active_modifiers | hover_modifiers | pressed_modifiers,
+                        ),
                 );
             })
         })
