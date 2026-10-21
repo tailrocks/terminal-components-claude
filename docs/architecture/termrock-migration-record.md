@@ -766,6 +766,39 @@ A021's four-line Ready-to-Busy scheduling candidate remains held. An independent
 
 All app and library acceptance remains incomplete. No reviewed packet transfer or branch cleanup is authorized by this checkpoint. Continue from the pinned source and target identities, preserve the open reference conflict, and require the outstanding reviews and acceptance gates before integration.
 
+### 2026-10-22 — TablePro expected-output restoration
+
+Restore only `crates/tablepro-ui/tests/baselines/tablepro.txt` to the
+pre-`3baa961531` and published `67212b678` blob
+`e4c7211e95ba021bc88cf4fd039133051dac56ae` (SHA-256
+`eaddd6b3099a1af851641d156f5aa754a5d2a85fb859bbcc92350092eb420ecb`). The
+`3baa961531` rewrite replaced 136 of 168 existing digests without a separate
+exact-key reference adjudication. This restoration keeps all 168 prior keys
+and does not revert the production filter change or the adjacent glyph
+assertions.
+
+The restored digests are retained expectations, not semantic approval of
+their values. The 136 candidate digests remain preserved as observations in
+the live TablePro integrity evidence at
+`/Users/donbeave/Projects/termrock-review-20261021-1536-9plajc9k/source-refresh-census-postfsck-20261022/source-quality-reviews-v10/reviewer-4/live-tablepro-expectation-integrity-b27/`.
+The reference conflict remains open pending independent adjudication of
+those exact keys. Any red comparison after restoration remains evidence to
+review; it does not authorize regeneration, BLESS, skips, or weakened
+assertions.
+
+Independent provenance review: `tablepro-baseline-provenance-independent-20261022.json`, SHA-256
+`63d06bec3e1e846abe3ac72df7f81e814ec53620a34fb99a55e454bdc35d226f`, in the external review root
+above. On isolated commit `e67e7f9defd67a41ee6c8ef3b9a117f54561db01`, locked nextest ran the
+existing visual target and failed its first comparison: `workbench-default 120 40 junie
+truecolor`, expected `691b9e8e2f4422a7`, actual `cb84ccedef019170`. The log SHA-256 is
+`09866027c27438b2c5a380a61f64bf02ba9717e690f3ef3d07b151ecfc7b8e84`. This result predates later
+concurrent production fixes and is not a gate result for the integration commit. The same
+focused check was repeated on live base `de6b004f6ca4697f04b768b7aa6be8d91f47d88d` with only the
+restored baseline changed: one test failed with the same first mismatch; the baseline remained
+unchanged. Rebased log: `tablepro-rebase-nextest-de6.log`, SHA-256
+`e19af003b69740e2a27d76232f97cffa01e1149503d27ff88768459906acf53f`.
+
+
 ## Evidence index
 
 Populated as increments land.
