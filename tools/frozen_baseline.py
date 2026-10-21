@@ -916,16 +916,15 @@ class PrepareExecution:
                 cleanup_error = error
             if cleanup_error is not None:
                 raise cleanup_error
+            # Cleanup may be the point where a delayed broker failure becomes
+            # observable. Classify its final receipt before treating a local
+            # optional-probe timeout as an ordinary missing result.
+            if status_path.exists():
+                result = self._read_status(status_path)
             if self.cancel_signal is not None:
                 raise RunnerError(f"owned prepare cancelled by signal {self.cancel_signal}")
             if time.monotonic() >= self.work_deadline:
                 raise RunnerError("owned prepare work deadline expired")
-            if local_timeout_hit:
-                if optional_failure:
-                    self.check_work()
-                    succeeded = True
-                    return None
-                raise RunnerError("owned command timed out")
             if result is None:
                 raise RunnerError("owned prepare broker exited without a bounded status record")
             if result.get("returncode") is None:
@@ -936,6 +935,15 @@ class PrepareExecution:
                         return None
                     raise RunnerError(f"owned prepare broker failed before command completion: {result.get('error', 'unknown broker error')}")
                 raise RunnerError(f"owned prepare command could not start: {result.get('error', 'unknown broker error')}")
+            returncode = result.get("returncode")
+            if type(returncode) is not int:
+                raise RunnerError("owned prepare broker returned no command status")
+            if local_timeout_hit:
+                if optional_failure:
+                    self.check_work()
+                    succeeded = True
+                    return None
+                raise RunnerError("owned command timed out")
             stdout_tmp.seek(0)
             stderr_tmp.seek(0)
             output = stdout_tmp.read().decode(errors="replace") if capture_stdout else ""
@@ -943,9 +951,6 @@ class PrepareExecution:
             if not quiet:
                 print(errors, end="", file=sys.stderr, flush=True)
                 print(output, end="", flush=True)
-            returncode = result.get("returncode")
-            if type(returncode) is not int:
-                raise RunnerError("owned prepare broker returned no command status")
             if returncode:
                 if optional_failure:
                     self.check_work()
@@ -1400,6 +1405,62 @@ def _fresh_cohort_source_record(repo: Path, cohort_id: str, binary_dir: Path, *,
     }
 
 
+def _path_entry_exists(path: Path) -> bool:
+    try:
+        path.lstat()
+    except FileNotFoundError:
+        return False
+    return True
+
+
+def _publish_live_source_manifest(root: Path, manifest_path: Path, info: dict[str, object], *, check_work: Callable[[], None] | None = None) -> None:
+    temporary = root / ".live-source.json.tmp"
+    if _path_entry_exists(temporary):
+        raise RunnerError("refusing to replace live source manifest temporary entry")
+    if _path_entry_exists(manifest_path):
+        raise RunnerError("refusing to replace live source manifest entry")
+
+    nofollow = getattr(os, "O_NOFOLLOW", None)
+    if nofollow is None:
+        raise RunnerError("platform lacks no-follow support for live source manifest creation")
+    flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL | nofollow
+    try:
+        descriptor = os.open(temporary, flags, 0o644)
+    except FileExistsError as error:
+        raise RunnerError("refusing to replace live source manifest temporary entry") from error
+    try:
+        created = os.fstat(descriptor)
+        if not stat.S_ISREG(created.st_mode):
+            raise RunnerError("live source manifest temporary was not a regular file")
+        with os.fdopen(descriptor, "wb") as stream:
+            descriptor = -1
+            stream.write((json.dumps(info, indent=2) + "\n").encode())
+            stream.flush()
+            os.fsync(stream.fileno())
+        if check_work is not None:
+            check_work()
+        temporary_entry = temporary.lstat()
+        if not stat.S_ISREG(temporary_entry.st_mode) or (temporary_entry.st_dev, temporary_entry.st_ino) != (created.st_dev, created.st_ino):
+            raise RunnerError("live source manifest temporary entry changed during publication")
+        try:
+            # A same-filesystem hard-link publishes atomically and refuses an
+            # existing file or symlink, including a dangling symlink.
+            os.link(temporary, manifest_path, follow_symlinks=False)
+        except FileExistsError as error:
+            raise RunnerError("refusing to replace live source manifest entry") from error
+        published = manifest_path.lstat()
+        if not stat.S_ISREG(published.st_mode) or (published.st_dev, published.st_ino) != (created.st_dev, created.st_ino):
+            raise RunnerError("published live source manifest was not the owned regular file")
+        temporary_after = temporary.lstat()
+        if not stat.S_ISREG(temporary_after.st_mode) or (temporary_after.st_dev, temporary_after.st_ino) != (created.st_dev, created.st_ino):
+            raise RunnerError("live source manifest temporary entry changed before cleanup")
+        temporary.unlink()
+    except BaseException:
+        if descriptor >= 0:
+            os.close(descriptor)
+        raise
+
+
 def prepare_live_source(
     repo: Path,
     root: Path,
@@ -1416,7 +1477,7 @@ def prepare_live_source(
         raise RunnerError("owned prepare-live requires explicit fresh cohort and baseline binaries")
     if execution is not None and fresh_cohort_id != PREPARE_LIVE_OWNED_COHORT:
         raise RunnerError("owned prepare-live requires the pinned frozen-20261021-serial-nonincr-r1-r2 cohort")
-    if live.exists() or manifest_path.exists():
+    if _path_entry_exists(live) or _path_entry_exists(manifest_path):
         raise RunnerError(f"refusing to replace prepared live source: {live}")
     check_work = execution.check_work if execution is not None else None
     if check_work is not None:
@@ -1532,13 +1593,7 @@ def prepare_live_source(
     info["ordinary_checks"] = EXPECTED_ORDINARY_TESTS
     if check_work is not None:
         check_work()
-    manifest_tmp = root / ".live-source.json.tmp"
-    if manifest_tmp.exists():
-        raise RunnerError("refusing to replace partial live source manifest temporary")
-    manifest_tmp.write_text(json.dumps(info, indent=2) + "\n")
-    if check_work is not None:
-        check_work()
-    os.replace(manifest_tmp, manifest_path)
+    _publish_live_source_manifest(root, manifest_path, info, check_work=check_work)
     return info
 
 
