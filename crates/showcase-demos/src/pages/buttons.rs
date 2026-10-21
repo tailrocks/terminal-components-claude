@@ -284,7 +284,27 @@ impl Page for ButtonsPage {
                     |ui, inner| self.draw_playground(ui, inner),
                 );
                 let matrix_area = regions.get(2).copied().unwrap_or(body);
-                if matrix_area.width < 70 && !matrix_area.is_empty() {
+                if area.width < 70 && matrix_area.is_empty() {
+                    let row = Rect {
+                        y: area.bottom(),
+                        height: 1,
+                        ..area
+                    };
+                    let ink = ui
+                        .surface_style()
+                        .fg(termrock::theme::baseline_muted(ui.theme().capability.color))
+                        .bg(termrock::Color::from_u32(0x0011_1111));
+                    for (index, title) in ["Primary", "Secondary"].into_iter().enumerate() {
+                        let x = area
+                            .x
+                            .saturating_add(15)
+                            .saturating_add(15 * u16::try_from(index).unwrap_or(0));
+                        if x.saturating_add(15) > area.right() {
+                            break;
+                        }
+                        ui.paint_str(Rect::new(x, row.y, 15, 1), title, ink);
+                    }
+                } else if matrix_area.width < 70 && !matrix_area.is_empty() {
                     matrix_panel().draw(ui, matrix_area, |_, _| ());
                     Self::draw_matrix(
                         ui,
@@ -378,7 +398,8 @@ impl ButtonsPage {
                 },
                 title,
                 ui.surface_style()
-                    .fg(termrock::theme::baseline_muted(ui.theme().capability.color)),
+                    .fg(termrock::theme::baseline_muted(ui.theme().capability.color))
+                    .bg(termrock::Color::from_u32(0x0011_1111)),
             );
         }
         let row_ink = ui
