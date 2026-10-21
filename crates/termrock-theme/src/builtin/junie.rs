@@ -24,6 +24,9 @@ const TEXT_FAINT: Color = Color::from_u32(0x73_73_73);
 const WHITE_30: Color = Color::from_u32(0x4d_4d_4d);
 const WHITE_15: Color = Color::from_u32(0x26_26_26);
 const GREEN: Color = Color::from_u32(0x48_e0_54);
+/// Frozen `SUCCESS` (tag `src/theme.rs:513`): the status slot's truecolor
+/// ink is the GitHub status green, distinct from the accent `GREEN`.
+const SUCCESS_GREEN: Color = Color::from_u32(0x3f_b9_50);
 const GREEN_80: Color = Color::from_u32(0x3a_b3_43);
 const GREEN_60: Color = Color::from_u32(0x002b_8632);
 const GREEN_20: Color = Color::from_u32(0x0f_2e_13);
@@ -66,7 +69,7 @@ pub(crate) const fn tokens() -> ColorTokens {
         danger_tint: RED_20,
         warning: AMBER,
         warning_tint: AMBER_TINT,
-        success: GREEN,
+        success: SUCCESS_GREEN,
         info: PURPLE,
         disabled_fg: WHITE_30,
         disabled_bg: OVERLAY,
