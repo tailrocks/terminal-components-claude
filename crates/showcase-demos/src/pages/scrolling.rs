@@ -948,10 +948,9 @@ fn paint_collections(ui: &mut Ui<'_>, card: Rect) {
     paint_grid(ui, grid);
 }
 
-// 51×16 is the page rect inside the 72×20 shell.
-const NARROW_PAGE: (u16, u16) = (51, 16);
-// 59×20 is the page rect inside the 80×24 shell.
-const SHELL_80_PAGE: (u16, u16) = (59, 20);
+// Compact shells show the scroller band only; column widths follow breakpoints.
+const FULL_MIN_W: u16 = 60;
+const COLS_80_MIN_W: u16 = 59;
 
 fn content_narrow(card: Rect) -> Rect {
     Rect::new(
@@ -1236,7 +1235,7 @@ impl Page for ScrollingPage {
                 ..body
             };
             let slots = bands(playground);
-            if area.width == NARROW_PAGE.0 && area.height == NARROW_PAGE.1 {
+            if area.width < COLS_80_MIN_W {
                 if slots[0].height > 0 {
                     let list_area = content_narrow(narrow_columns(slots[0])[1]);
                     list_view().draw(ui, list_area, &self.list_state, &self.list);
@@ -1245,7 +1244,7 @@ impl Page for ScrollingPage {
                 paint_page_thumb(ui, playground);
                 return;
             }
-            if area.width == SHELL_80_PAGE.0 && area.height == SHELL_80_PAGE.1 {
+            if area.width < FULL_MIN_W {
                 if slots[0].height > 0 {
                     let list_area = content_narrow(columns_80(slots[0])[1]);
                     list_view().draw(ui, list_area, &self.list_state, &self.list);
