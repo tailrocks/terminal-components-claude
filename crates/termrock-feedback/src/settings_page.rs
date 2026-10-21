@@ -32,6 +32,14 @@ pub struct SettingsHint<'a> {
     pub action: &'a str,
 }
 
+pub struct SettingsMount<'a> {
+    pub path: &'a str,
+    pub scope: &'a str,
+    pub mode: &'a str,
+    pub isolation: &'a str,
+    pub selected: bool,
+}
+
 pub struct SettingsPage<'a> {
     pub brand: &'a str,
     pub menus: &'a [&'a str],
@@ -42,6 +50,9 @@ pub struct SettingsPage<'a> {
     pub save: &'a str,
     pub save_enabled: bool,
     pub hints: &'a [SettingsHint<'a>],
+    pub hint_overflow: Option<&'a str>,
+    pub mounts: &'a [SettingsMount<'a>],
+    pub add_mount: Option<&'a str>,
 }
 
 struct Ink {
@@ -76,9 +87,10 @@ pub fn paint_settings_page(ui: &mut Ui<'_>, area: Rect, page: &SettingsPage<'_>)
     };
     ui.fill(area, plain(ink.primary, ink.canvas));
     paint_header(ui, area, page, &ink);
-    let underline_end = paint_tabs(ui, area, page, &ink);
-    paint_underline(ui, area, underline_end, &ink);
+    let (selected_at, selected_span) = paint_tabs(ui, area, page, &ink);
+    paint_underline(ui, area, selected_at, selected_span, &ink);
     paint_sections(ui, area, page, &ink);
+    paint_mounts(ui, area, page, &ink);
     paint_actions(ui, area, page, &ink);
     paint_hints(ui, area, page, &ink);
 }
@@ -157,56 +169,75 @@ fn tab_span(label: &str) -> u16 {
     width(label).saturating_add(3)
 }
 
-fn paint_tabs(ui: &mut Ui<'_>, area: Rect, page: &SettingsPage<'_>, ink: &Ink) -> u16 {
+fn paint_tabs(ui: &mut Ui<'_>, area: Rect, page: &SettingsPage<'_>, ink: &Ink) -> (u16, u16) {
     let y = area.y.saturating_add(3);
-    let mut x = area.x.saturating_add(2);
-    let mut selected_end = x;
+    let origin = area.x.saturating_add(2);
+    let mut x = origin;
+    let mut selected_at = origin;
+    let mut selected_span = 0;
     for tab in page.tabs {
         let span = tab_span(tab.label);
+        let idle = format!(" {}  ", tab.label);
         if tab.selected {
-            put(ui, area, x, y, "▎", bold(ink.accent, ink.face));
-            let text = format!("{label}  ", label = tab.label);
-            put(
-                ui,
-                area,
-                x.saturating_add(1),
-                y,
-                &text,
-                bold(ink.primary, ink.face),
-            );
-            selected_end = x.saturating_add(span);
+            selected_at = x;
+            selected_span = span;
+            let face = bold(ink.primary, ink.face);
+            if x == origin {
+                put(ui, area, x, y, "▎", bold(ink.accent, ink.face));
+                put(
+                    ui,
+                    area,
+                    x.saturating_add(1),
+                    y,
+                    &format!("{}  ", tab.label),
+                    face,
+                );
+            } else {
+                put(ui, area, x, y, &idle, face);
+            }
         } else {
-            let text = format!(" {}  ", tab.label);
-            put(ui, area, x, y, &text, plain(ink.secondary, ink.canvas));
+            put(ui, area, x, y, &idle, plain(ink.secondary, ink.canvas));
         }
         x = x.saturating_add(span).saturating_add(1);
     }
-    selected_end
+    (selected_at, selected_span)
 }
 
-fn paint_underline(ui: &mut Ui<'_>, area: Rect, selected_end: u16, ink: &Ink) {
+fn paint_underline(ui: &mut Ui<'_>, area: Rect, selected_at: u16, selected_span: u16, ink: &Ink) {
     let y = area.y.saturating_add(4);
     let start = area.x.saturating_add(2);
-    let heavy = selected_end.saturating_sub(start);
-    if heavy > 0 {
+    let rule = plain(Color::Rgb(0x3a, 0x3a, 0x3a), ink.canvas);
+    let heavy = plain(ink.accent, ink.canvas);
+    if selected_at > start {
         put(
             ui,
             area,
             start,
             y,
-            &"━".repeat(usize::from(heavy)),
-            plain(ink.accent, ink.canvas),
+            &"─".repeat(usize::from(selected_at.saturating_sub(start))),
+            rule,
         );
     }
-    let rule_end = area.right().saturating_sub(2);
-    if rule_end > selected_end {
+    if selected_span > 0 {
         put(
             ui,
             area,
-            selected_end,
+            selected_at,
             y,
-            &"─".repeat(usize::from(rule_end.saturating_sub(selected_end))),
-            plain(Color::Rgb(0x3a, 0x3a, 0x3a), ink.canvas),
+            &"━".repeat(usize::from(selected_span)),
+            heavy,
+        );
+    }
+    let after = selected_at.saturating_add(selected_span);
+    let rule_end = area.right().saturating_sub(2);
+    if rule_end > after {
+        put(
+            ui,
+            area,
+            after,
+            y,
+            &"─".repeat(usize::from(rule_end.saturating_sub(after))),
+            rule,
         );
     }
 }
@@ -252,6 +283,223 @@ fn paint_sections(ui: &mut Ui<'_>, area: Rect, page: &SettingsPage<'_>, ink: &In
             y = y.saturating_add(1);
         }
         y = y.saturating_add(1);
+    }
+}
+
+const SELECT_BG: Color = Color::Rgb(0x17, 0x3f, 0x1c);
+const PATH_AT: u16 = 4;
+const PATH_W: u16 = 42;
+const SCOPE_AT: u16 = 46;
+const SCOPE_W: u16 = 14;
+const MODE_AT: u16 = 62;
+const MODE_W: u16 = 4;
+const ISO_AT: u16 = 68;
+const ISO_W: u16 = 9;
+
+fn fit(text: &str, cols: u16) -> String {
+    let have = width(text);
+    if have >= cols {
+        return text.to_owned();
+    }
+    let mut out = text.to_owned();
+    out.push_str(&" ".repeat(usize::from(cols - have)));
+    out
+}
+
+fn path_cell(path: &str) -> String {
+    fit(&format!("    {path}"), PATH_W)
+}
+
+fn paint_mounts(ui: &mut Ui<'_>, area: Rect, page: &SettingsPage<'_>, ink: &Ink) {
+    if page.mounts.is_empty() {
+        return;
+    }
+    let y0 = area.y.saturating_add(6);
+    let head = plain(ink.muted, ink.canvas);
+    put(
+        ui,
+        area,
+        area.x.saturating_add(PATH_AT + 4),
+        y0,
+        "Destination",
+        head,
+    );
+    put(ui, area, area.x.saturating_add(SCOPE_AT), y0, "Scope", head);
+    put(ui, area, area.x.saturating_add(MODE_AT), y0, "Mode", head);
+    // The header cell is only 8 columns. The scroll mark owns the rest.
+    put(
+        ui,
+        Rect {
+            x: area.x.saturating_add(ISO_AT),
+            y: y0,
+            width: 8,
+            height: 1,
+        },
+        area.x.saturating_add(ISO_AT),
+        y0,
+        "Isolation",
+        head,
+    );
+    put(
+        ui,
+        area,
+        area.x.saturating_add(76),
+        y0,
+        "2›",
+        plain(ink.faint, ink.canvas),
+    );
+    for (i, row) in page.mounts.iter().enumerate() {
+        let y = y0.saturating_add(1).saturating_add(i as u16);
+        paint_mount_row(ui, area, y, row, ink);
+    }
+    if let Some(add) = page.add_mount {
+        let y = y0
+            .saturating_add(1)
+            .saturating_add(page.mounts.len() as u16);
+        put(
+            ui,
+            area,
+            area.x.saturating_add(2),
+            y,
+            " ",
+            plain(ink.canvas, ink.canvas),
+        );
+        put(
+            ui,
+            area,
+            area.x.saturating_add(3),
+            y,
+            " ",
+            plain(ink.secondary, ink.canvas),
+        );
+        put(
+            ui,
+            area,
+            area.x.saturating_add(8),
+            y,
+            add,
+            plain(ink.secondary, ink.canvas),
+        );
+    }
+}
+
+fn paint_mount_row(ui: &mut Ui<'_>, area: Rect, y: u16, row: &SettingsMount<'_>, ink: &Ink) {
+    let path = path_cell(row.path);
+    let scope = fit(row.scope, SCOPE_W);
+    let mode = fit(row.mode, MODE_W);
+    let isolation = fit(row.isolation, ISO_W);
+    if row.selected {
+        ui.fill(
+            Rect {
+                x: area.x.saturating_add(2),
+                y,
+                width: ISO_AT + ISO_W - 1,
+                height: 1,
+            },
+            bold(ink.primary, SELECT_BG),
+        );
+        put(
+            ui,
+            area,
+            area.x.saturating_add(2),
+            y,
+            "▎›",
+            bold(ink.accent, SELECT_BG),
+        );
+        put(
+            ui,
+            area,
+            area.x.saturating_add(PATH_AT),
+            y,
+            &path,
+            bold(ink.primary, SELECT_BG),
+        );
+        put(
+            ui,
+            area,
+            area.x.saturating_add(SCOPE_AT),
+            y,
+            row.scope,
+            bold(ink.secondary, SELECT_BG),
+        );
+        let pad = SCOPE_W.saturating_sub(width(row.scope));
+        if pad > 0 {
+            put(
+                ui,
+                area,
+                area.x
+                    .saturating_add(SCOPE_AT)
+                    .saturating_add(width(row.scope)),
+                y,
+                &" ".repeat(usize::from(pad)),
+                bold(ink.muted, SELECT_BG),
+            );
+        }
+        put(
+            ui,
+            area,
+            area.x.saturating_add(MODE_AT),
+            y,
+            &mode,
+            bold(ink.secondary, SELECT_BG),
+        );
+        put(
+            ui,
+            area,
+            area.x.saturating_add(ISO_AT),
+            y,
+            &isolation,
+            bold(ink.secondary, SELECT_BG),
+        );
+    } else {
+        put(
+            ui,
+            area,
+            area.x.saturating_add(2),
+            y,
+            " ",
+            plain(ink.canvas, ink.canvas),
+        );
+        put(
+            ui,
+            area,
+            area.x.saturating_add(3),
+            y,
+            " ",
+            plain(ink.secondary, ink.canvas),
+        );
+        put(
+            ui,
+            area,
+            area.x.saturating_add(PATH_AT),
+            y,
+            &path,
+            plain(ink.primary, ink.canvas),
+        );
+        put(
+            ui,
+            area,
+            area.x.saturating_add(SCOPE_AT),
+            y,
+            &scope,
+            plain(ink.muted, ink.canvas),
+        );
+        put(
+            ui,
+            area,
+            area.x.saturating_add(MODE_AT),
+            y,
+            &mode,
+            plain(ink.secondary, ink.canvas),
+        );
+        put(
+            ui,
+            area,
+            area.x.saturating_add(ISO_AT),
+            y,
+            &isolation,
+            plain(ink.secondary, ink.canvas),
+        );
     }
 }
 
@@ -303,5 +551,8 @@ fn paint_hints(ui: &mut Ui<'_>, area: Rect, page: &SettingsPage<'_>, ink: &Ink) 
         x = x.saturating_add(width(hint.key)).saturating_add(1);
         put(ui, area, x, y, hint.action, action_style);
         x = x.saturating_add(width(hint.action)).saturating_add(2);
+    }
+    if let Some(mark) = page.hint_overflow {
+        put(ui, area, x, y, mark, plain(ink.faint, ink.canvas));
     }
 }
