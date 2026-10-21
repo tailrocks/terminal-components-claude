@@ -66,7 +66,8 @@ three trees that could have produced it, the file is a mixture:
 At the era that recorded the file, the **256 tier was not the tag's 256 tier**.
 `crates/termrock-theme/src/palettes.rs` at `e830877cd` still carried:
 
-```rust
+```text
+// crates/termrock-theme/src/palettes.rs at e830877cd
 // Frozen corpus muted ink (baselines/tuiscotti-v1): 0x808080 fg
 // renders 244 in every tier frame (1_011_55+ cells). The generic
 // cube rule on the current 0x8a8a8a source would give 245.
