@@ -308,7 +308,13 @@ impl<'a> FormDialog<'a> {
         // The form gets first refusal on field-scoped Escape (for example an
         // editor or an open select). The layer then handles remaining dismissals.
         let form_response = self.form().update(cx, &mut state.form, data);
-        let dialog_response = dialog.update(cx, &mut state.dialog);
+        // A chooser is a child control, so its Enter/Space activation must reach
+        // the caller before the surrounding dialog can interpret Enter as Save.
+        let dialog_response = if matches!(form_response.action_ref(), Some(FormAction::Chose(_))) {
+            Response::ignored()
+        } else {
+            dialog.update(cx, &mut state.dialog)
+        };
 
         let mut action = form_response
             .action_ref()
@@ -401,6 +407,7 @@ fn combine_responses(
 mod tests {
     use ratatui_core::buffer::Buffer;
     use ratatui_core::layout::Rect;
+    use termrock_controls::button::Button;
     use termrock_core::action::{Action, ActionKey};
     use termrock_core::event::{Input, Key, KeyCode, KeyModifiers, MouseKind};
     use termrock_core::id::Id;
@@ -416,6 +423,7 @@ mod tests {
     const DIALOG: Id = Id::root("form-dialog.tests");
     const NAME: Id = Id::root("form-dialog.tests.name");
     const NOTE: Id = Id::root("form-dialog.tests.note");
+    const CHOOSER: Id = Id::root("form-dialog.tests.chooser");
     const SAVE: ActionKey = ActionKey::custom("form-dialog.tests.save");
     const CANCEL: ActionKey = ActionKey::custom("form-dialog.tests.cancel");
     const ACTIONS: &[Action<'static>] =
@@ -423,6 +431,11 @@ mod tests {
     const FIELDS: &[FieldSpec<'static>] = &[
         FieldSpec::new(NAME, "Name", FieldKind::Text(TextInput::new(NAME))),
         FieldSpec::new(NOTE, "Details", FieldKind::Note),
+        FieldSpec::new(
+            CHOOSER,
+            "Key",
+            FieldKind::Chooser(Button::new(CHOOSER, "Choose")),
+        ),
     ];
     const SCREEN: Rect = Rect::new(0, 0, 64, 24);
 
@@ -439,6 +452,11 @@ mod tests {
                 FieldRef::Text(&self.name)
             } else if id == NOTE {
                 FieldRef::Note(&self.notes)
+            } else if id == CHOOSER {
+                FieldRef::Display {
+                    value: "~/.ssh/id_ed25519",
+                    detail: None,
+                }
             } else {
                 FieldRef::Text("")
             }
@@ -570,6 +588,39 @@ mod tests {
             runtime.app().actions.last(),
             Some(&FormDialogAction::Cancelled)
         );
+    }
+
+    #[test]
+    fn chooser_enter_and_space_are_returned_before_dialog_submit() {
+        for code in [Some(KeyCode::Enter), Some(KeyCode::Char(' ')), None] {
+            let mut runtime = Runtime::new(TestApp::default(), Theme::junie());
+            let _ = runtime.initialize();
+            let mut buffer = Buffer::empty(SCREEN);
+            runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
+            if let Some(code) = code {
+                runtime.set_focus(Some(CHOOSER));
+                let _ = termrock_runtime::stub::deliver(&mut runtime, press(code));
+            } else {
+                let area = runtime.area_of(CHOOSER).expect("chooser button area");
+                let x = area.x.saturating_add(area.width / 2);
+                let y = area.y.saturating_add(area.height / 2);
+                let _ = termrock_runtime::stub::deliver(
+                    &mut runtime,
+                    termrock_runtime::stub::mouse(MouseKind::Down, x, y),
+                );
+                let _ = termrock_runtime::stub::deliver(
+                    &mut runtime,
+                    termrock_runtime::stub::mouse(MouseKind::Up, x, y),
+                );
+            }
+            runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
+            assert!(runtime.is_open(DIALOG), "{code:?} submitted the dialog");
+            assert_eq!(
+                runtime.app().actions.last(),
+                Some(&FormDialogAction::Chose(CHOOSER)),
+                "{code:?} was not returned as the chooser action"
+            );
+        }
     }
 
     #[test]
