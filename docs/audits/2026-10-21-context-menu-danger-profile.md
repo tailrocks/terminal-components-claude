@@ -54,6 +54,16 @@ muted-ink-plus-DIM collision fallback at ANSI16 and Mono. The profile now
 applies that resolved style to both `ROW` and `LABEL`, and disabled precedence
 suppresses hover and press without changing normal menu rows.
 
+A second independent review found MENU-DANGER-03: disabled fallback ink was
+still selected by color capability rather than collision with the resolved
+host surface. The resolver now checks the final `DisabledFg` and
+`CurrentSurface` roles after profile and local patches are merged. It uses
+muted ink plus DIM only when those resolved colors collide, preserving
+ordinary disabled modifiers and explicit foreground overrides. This keeps the
+frozen default ANSI16 fallback unchanged, removes the fallback when a
+customized popover surface no longer collides, and applies the same semantic
+rule when a surface is customized to collide in another profile.
+
 ## Evidence
 
 `crates/termrock-overlays/tests/context_menu_danger_profile.rs` drives the
@@ -71,24 +81,30 @@ hover cell (`TrueColor` rest `Rgb(122,42,42)` versus expected hover
 disabled precedence patch because that row resolved to the generic blue
 highlight. The independent full-row frozen cell probe then exposed incorrect
 disabled ink on padding and label cells and missing ANSI16 DIM. It now passes
-alongside seven authored focused cases over all four capabilities. The
-independent 28-frame ordinary-menu corpus also passed unchanged. No frozen
-artifacts or expected snapshots changed.
+alongside nine authored focused cases over all four capabilities. Independent
+checks for a custom `Black` popover surface, foreground overrides,
+inactive/read-only overrides, and the 28-frame ordinary-menu corpus passed.
+Its unchanged SHA-256 is
+`e545c01e5151ca35b0ebb773c77e20f34d25cd0a0db81a8626029a8c3d028fdd`. No
+frozen artifacts or expected snapshots changed.
 
 Checks on the implementation: `cargo nextest run -p termrock-theme
--p termrock-overlays --no-fail-fast` ran281 tests: 280 passed, the known
+-p termrock-overlays --no-fail-fast` ran 283 tests: 282 passed, the known
 `capability_palettes::all_73_junie_slots_match_reference_capability_output`
-failed, and no tests were skipped. `cargo clippy -p termrock-theme
+failed, and zero tests were skipped. `cargo clippy -p termrock-theme
 -p termrock-overlays --all-targets --no-deps -- -D warnings` passed.
-`cargo fmt --all -- --check` passed. The 73-slot failure remains intentionally
-unblessed; this work did not update its expectations.
+Scoped `cargo fmt --check --package termrock-theme --package termrock-overlays`
+passed. The full workspace `cargo fmt --all -- --check` fails only on an
+incoming, unowned blank line between module declarations in
+`crates/jackin-preview-app/src/app.rs:261`. The 73-slot failure remains
+intentionally unblessed; this work did not update its expectations.
 
-After rebasing this WIP onto newer PR #38 commits, the changed files still pass
-`rustfmt --edition 2024 --check` and `git diff --check`. The workspace-wide
-`cargo fmt --all -- --check` currently reports only pre-existing formatting in
-the incoming `crates/jackin-preview-app/src/app.rs` blank line between module
+The changed packages pass scoped rustfmt and `git diff --check`. Workspace-wide
+formatting remains red only for the incoming, unowned
+`crates/jackin-preview-app/src/app.rs:261` blank line between module
 declarations; this WIP does not own or modify that file.
 
-This record establishes only the cited Junie menu-row contract. It does not
-clear the global 73-role inventory, prove application adoption, or establish
-any application's complete visual or functional parity.
+This record establishes the cited Junie menu-row contract for frozen defaults,
+customized semantic popover surfaces, and tested overrides. It does not clear
+the global 73-role inventory, prove application adoption, or establish any
+application's complete visual or functional parity.
