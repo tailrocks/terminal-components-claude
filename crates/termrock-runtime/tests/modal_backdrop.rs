@@ -76,6 +76,7 @@ fn reduced_modal_cells_use_muted_ink_and_replace_modifiers() {
         theme.color.accent = Color::Rgb(255, 255, 0);
         theme.color.fg[2] = Color::Rgb(150, 150, 150);
         theme.color.fg[3] = Color::Rgb(0, 255, 255);
+        let reduced = matches!(level, ColorLevel::Ansi16 | ColorLevel::Mono);
         let app = StyledBackdrop {
             style: Style::new()
                 .fg(theme.color.accent)
@@ -91,17 +92,19 @@ fn reduced_modal_cells_use_muted_ink_and_replace_modifiers() {
         };
         let runtime = Harness::new(app, theme.clone(), SCREEN.width, SCREEN.height);
         let cell = runtime.cell(0, 0);
-        // The frozen baseline dims the underlay through ink choice alone; no
-        // tier may add a DIM modifier (see docs/audits reference defect).
-        let expected = theme.backdrop_style(
-            Style::new()
-                .fg(theme.color.accent)
-                .bg(theme.color.surfaces[0])
-                .add_modifier(Modifier::BOLD | Modifier::ITALIC),
-        );
-        assert_eq!(cell.fg, expected.fg.unwrap(), "{level:?}");
-        assert_eq!(cell.modifier, expected.add_modifier, "{level:?}");
-        assert_eq!(cell.modifier, Modifier::empty(), "{level:?}");
+        if reduced {
+            assert_eq!(cell.fg, theme.color.fg[2], "{level:?}");
+            assert_eq!(cell.modifier, Modifier::DIM, "{level:?}");
+        } else {
+            let expected = theme.backdrop_style(
+                Style::new()
+                    .fg(theme.color.accent)
+                    .bg(theme.color.surfaces[0])
+                    .add_modifier(Modifier::BOLD | Modifier::ITALIC),
+            );
+            assert_eq!(cell.fg, expected.fg.unwrap(), "{level:?}");
+            assert_eq!(cell.modifier, expected.add_modifier, "{level:?}");
+        }
         assert_eq!(cell.symbol(), "x", "{level:?}");
         let blank = runtime.cell(1, 0);
         assert_eq!(blank.symbol(), " ", "{level:?}");
@@ -110,7 +113,7 @@ fn reduced_modal_cells_use_muted_ink_and_replace_modifiers() {
 }
 
 #[test]
-fn modal_mapping_collision_retains_readable_ink_without_dim() {
+fn modal_mapping_collision_retains_dim_after_pair_fallback() {
     use termrock_runtime::ColorLevel;
 
     for level in [ColorLevel::TrueColor, ColorLevel::Ansi256] {
@@ -130,11 +133,7 @@ fn modal_mapping_collision_retains_readable_ink_without_dim() {
         let cell = runtime.cell(0, 0);
         assert_eq!(cell.fg, theme.color.fg[2], "{level:?}");
         assert_eq!(cell.bg, theme.color.surfaces[0], "{level:?}");
-        assert_eq!(
-            cell.modifier,
-            Modifier::empty(),
-            "{level:?}: collision rescue keeps the ink, never a DIM modifier"
-        );
+        assert_eq!(cell.modifier, Modifier::DIM, "{level:?}");
         assert_eq!(cell.symbol(), "x", "{level:?}");
     }
 }

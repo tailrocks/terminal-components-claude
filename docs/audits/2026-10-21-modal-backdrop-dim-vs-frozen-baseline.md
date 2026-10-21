@@ -1,68 +1,51 @@
-# Modal backdrop: reference DIM branch contradicts the frozen baseline
+# Modal backdrop DIM: the frozen baseline conflicts with itself
 
 - Date: 2026-10-21
 - Workstream: theme/visual-state extraction (PR #38), branch
   `parity/termrock-visual-baseline`
-- Oracle: tag `visual-baseline` (4169783ae), snapshots
-  `showcase/flows/dialogs/open/*` and every other approved dialog-open
-  capture
+- Oracle: tag `visual-baseline` (4169783ae) snapshots
+- Status: no change landed; owner decision required
 
 ## Finding
 
-The PR #26 reference theme at f4867e9b5f8a08a3bb61ce80d644198a29f51984
-(`Theme::backdrop`, `src/theme.rs:1243`) ends with:
+The frozen baseline disagrees with itself about the DIM modifier under a
+modal backdrop. SGR-2 run counts in the approved captures:
 
-```rust
-if !blank && (fg == bg || matches!(self.level, ColorLevel::Ansi16 | ColorLevel::Mono)) {
-    ... Style::new().fg(ink).bg(bg).add_modifier(Modifier::DIM)
-}
-```
+| frozen capture (120x40 unless noted) | tier | `ESC[2m` runs |
+|---|---|---|
+| `showcase/flows/dialogs/open/80x24` | 256  | 0 |
+| `showcase/flows/dialogs/open/80x24` | 16   | 0 |
+| `showcase/flows/dialogs/open/80x24` | none | 0 |
+| `tablepro/overlays/picker_open`     | 256  | 5 |
+| `tablepro/overlays/picker_open`     | 16   | 150 |
+| `tablepro/overlays/picker_open`     | none | 151 |
 
-The parity port (`Theme::backdrop_style`,
-`crates/termrock-theme/src/lib.rs`) carried the same branch. SGR histograms
-of the frozen captures prove the approved baseline never used it:
+The showcase dialog underlays dim through ink choice alone; the tablepro
+picker underlays are DIM-modded. The PR #26 reference tip
+(`Theme::backdrop`, `src/theme.rs:1243`, DIM at Ansi16/Mono and on
+collisions) matches the tablepro side and contradicts the showcase dialog
+side; the parity port (`Theme::backdrop_style`) inherited that behavior, and
+the currently-green `tablepro_ui::visual tablepro_visual_baseline` mono
+digest pins it.
 
-| tier | frozen snapshot `ESC[2m` runs | parity actual before fix |
-|------|-------------------------------|--------------------------|
-| 256  | 0                             | 12 (`2;38;5;245;48;5;235` ...) |
-| 16   | 0                             | 85 (`2;38;5;7;48;5;0` ...) |
-| none | 0                             | 50 |
-| truecolor | 0                        | 0 |
+## What was tried
 
-(80x24 `showcase/flows/dialogs/open`; the other dialog-open captures show
-the same signature.) At the 256 tier the frozen reference maps the underlay
-to distinct inks instead (`38;5;238;48;5;233` — ghost on overlay) with no
-modifier; the parity collision came from its then-current 256 palette mapping
-`text_ghost` onto `surface_overlay`, and the DIM branch masked the palette
-drift.
+Removing the DIM branch from `backdrop_style` (commit `ee57fe5e3` before
+rewrite) made fresh dialog-open captures emit zero DIM runs at 16/256/none —
+toward the showcase frozen output — but flipped the tablepro mono digest
+(`quick-switcher 120 40 junie mono`, baseline `af463bd8d299cf6b`) red. One
+shared mapping cannot serve both frozen behaviors.
 
 ## Decision
 
-The frozen output wins over the reference tip's code (reference defect:
-the DIM branch is either newer than the approved captures or dead in the
-capture flows). `backdrop_style` now never adds DIM; a mapped collision
-keeps the collision-ink rescue so text stays readable, and blank cells keep
-their `fg == bg` plane. The change is truecolor-neutral (the branch never
-fired there except on collisions, which keep their ink rescue).
+Reverted. `backdrop_style` keeps the DIM behavior the currently-green
+tablepro frozen output pins; the dialog-side no-DIM divergence stays
+recorded here instead of being changed silently. Resolving it needs an owner
+decision on which frozen mechanism is authoritative (per-component backdrop
+kind, or re-approval of one side), plus a shell/dialog owner to move the
+dialog underlay onto the winning path.
 
-## Evidence after the fix
-
-- `cargo nextest run -p termrock-theme -p termrock-runtime`: 531/532 green;
-  the single failure
-  (`termrock-theme::capability_palettes all_73_junie_slots_match_reference_capability_output`)
-  is pre-existing on the clean tip and belongs to the concurrent palette
-  workstream.
-- Fresh PTY captures of `showcase/flows/dialogs/open` at 16/256/none after
-  the fix: `ESC[2m` runs = 0 in all three actuals (was 12–85).
-- `cargo nextest run -p termrock-conformance`: failure set identical to the
-  clean tip (293 names, compared by name), i.e. no new conformance
-  regressions.
-- Updated to the frozen behavior: `modal_backdrop.rs`
-  (`reduced_modal_cells_use_muted_ink_and_replace_modifiers`,
-  `modal_mapping_collision_retains_readable_ink_without_dim`) and the
-  in-crate `modal_backdrop_uses_theme_mapping_and_clears_only_focus_glyph`.
-
-Remaining lower-tier differences in the dialog captures are palette-value
-drift (e.g. muted 245 vs frozen 244 at 256) and app shell drift owned by
-the concurrent style-chain and shell workstreams, not by the backdrop
-mapping.
+Related drift that keeps the dialog-open captures red at every tier:
+palette downgrade values (e.g. muted 245 vs frozen 244 at 256, ghost 235 vs
+238) owned by the concurrent palette workstream, and app shell content drift
+(`docs/audits/2026-10-21-selectable-bypass-removal.md`).
