@@ -14,6 +14,7 @@ pub use termrock_core::action::ActionKey;
 
 pub(crate) use termrock_runtime::{PartStyle, SlotFn, first_row, shift};
 
+pub mod accounts_filter;
 pub mod hintbar;
 pub mod keyhint;
 pub mod manager_frame;
@@ -24,6 +25,10 @@ pub mod session_chrome;
 pub mod settings_page;
 pub mod status;
 
+pub use accounts_filter::{
+    AccountsFilter, DetailInk, DetailLine, DetailSpan, FilterHint, FilterRow, TailTone,
+    paint_accounts_filter,
+};
 pub use hintbar::{DerivedHintBar, HintBar};
 pub use keyhint::{ChordText, HintText, KeyHint};
 pub use manager_frame::{ManagerFrame, ManagerLeaf, paint_manager_frame};
