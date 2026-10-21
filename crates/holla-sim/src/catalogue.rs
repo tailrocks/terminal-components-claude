@@ -886,17 +886,6 @@ pub fn launch_failure_tag_frame(w: &World) -> bool {
     w.scenario == Scenario::LaunchFailure && w.now_ms() == 80
 }
 
-/// Launch-failure activity layout. The frozen reference composes it only at the
-/// three fixture sizes (80×24, 100×30, 120×40); every other viewport keeps the
-/// generic activity page, and later seeks stay off it (frozen-reference quirk,
-/// audit 2026-10-21).
-pub fn launch_failure_activity_frame(w: &World, width: u16, height: u16) -> bool {
-    launch_failure_tag_frame(w)
-        && ((width == 80 && height == 24)
-            || (width == 100 && height == 30)
-            || (width == 120 && height == 40))
-}
-
 /// Tag `hard-cases` at fixture tick 40. Later seeks keep the concept home.
 pub fn hard_cases_tag_frame(w: &World) -> bool {
     w.scenario == Scenario::HardCases && w.now_ms() == 80
@@ -6160,24 +6149,6 @@ mod tests {
             other.clock.running = false;
             assert!(parity_task_sources_view(&other, 80).is_none());
         }
-    }
-
-    #[test]
-    fn launch_failure_activity_frame_is_only_the_tick_40_fixture_sizes() {
-        let mut world = fixtures::world_for(Scenario::LaunchFailure);
-        assert!(!launch_failure_activity_frame(&world, 80, 24));
-        world.seek(40);
-        assert!(!launch_failure_activity_frame(&world, 160, 50));
-        assert!(!launch_failure_activity_frame(&world, 80, 40));
-        assert!(!launch_failure_activity_frame(&world, 81, 24));
-        assert!(launch_failure_activity_frame(&world, 80, 24));
-        assert!(launch_failure_activity_frame(&world, 100, 30));
-        assert!(launch_failure_activity_frame(&world, 120, 40));
-        world.seek(4_000);
-        assert!(!launch_failure_activity_frame(&world, 80, 24));
-        let mut other = fixtures::world_for(Scenario::HardCases);
-        other.seek(40);
-        assert!(!launch_failure_activity_frame(&other, 80, 24));
     }
 
     #[test]
