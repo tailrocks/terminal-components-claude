@@ -709,6 +709,32 @@ legacy chord exemptions. That finding remains open for a separate focused
 component-contract review; this expectation repair does not change its
 conformance implementation or authorize those exceptions.
 
+### D-012 — Consolidation evidence and remaining holds (2026-10-22)
+
+This checkpoint records the current bounded evidence and open holds. It does not select or approve a source packet, transfer source changes, or establish application or library acceptance.
+
+#### Published-tip verification
+
+The independent verification is bound to published source commit `4d7a358d3ced4d5260ced349d26974aae6a9dd12` (tree `320ae4cf28ed282a7ef886d44c211f440fdc3442`). The public parity branch has since advanced to `bb4bbb6eb9c7d4f546283d5db2f978964a335f9b`; these results do not validate that later tip.
+
+At 4d7, the bounded conformance command passed 940/940 in 210.098 seconds under a 215-second limit. This target does not load component digests. The directly affected brand-focused render check failed 1 test with 331 filtered: expected digest `9d2d64860f2f8023`, actual `754d865a10dc13ed`. The baseline file remained unchanged. Full workspace nextest, Clippy, formatting, and visual-baseline checks remain unverified. See the independent receipt at `/Users/donbeave/Projects/termrock-review-20261021-1536-9plajc9k/restored-expectations-independent-gate-receipt-2.md` (SHA-256 `3782326322e58ce0b493056c9481f9ff98cb4acef92079841e7fe607c9f4685a`) for commands, run IDs, logs, and hashes.
+
+#### Export and source-review state
+
+The export ledger currently accounts for 75 of 180 jobs across the five partitions: p0 1, p1 13, p2 13, p3 36, and p4 12. These are export counts only; they are not review or acceptance counts.
+
+- **p0 / A006:** 610 source-diff chunks completed, covering 39,040 of 77,466 paths. The next chunk failed during process cleanup and remains held with its partial evidence; it is not a completed export.
+- **p4 / A068:** 256 chunks completed, covering 16,384 of 141,796 paths; 125,412 paths remain.
+- **p1 / A070:** the 710,474-path scoped union exceeds the current in-memory scope limits; its source status and source-tree inventories also exceed the generic metadata cap. Completion requires a disk-backed streaming exporter change; the proposed v8 work is not approved.
+
+Completed artifacts and preserved export attempts remain under the pinned capture directory at `/Users/donbeave/Projects/termrock-review-20261021-1536-9plajc9k/source-refresh-census-postfsck-20261022/source-exports-v10-lossless-v6/`. Input identities and completed artifact hashes remain immutable. Do not treat partial reports or chunks as a complete packet.
+
+Source review remains incomplete. A009's primary review is a draft with unresolved semantic review of large archive bodies and other listed paths; no packet is selected or approved. Its report is `/Users/donbeave/Projects/termrock-review-20261021-1536-9plajc9k/source-refresh-census-postfsck-20261022/source-quality-reviews-v10/reviewer-4/A009/primary-review.md` (SHA-256 `96fd61de318cf368c63d01fa9a9505baa8a4e7b594528f32ea4f95e19eca0633`).
+
+A021's four-line Ready-to-Busy scheduling candidate remains held. An independently repeated real-Runtime probe reproduces the missing Busy deadline on Enter, Space and pointer activation; the candidate passes those four focused tests. This establishes bounded Busy scheduling behavior only. Fixed-reference source inspection shows application-wide idle Tick intervals of 200/400 ms, while the candidate unconditionally requests a Tick after about 80 ms even for Ready activation. Guard tests are still checking that timing and domain-effect risk. No full-frame comparison or consumer journey establishes parity, and no packet is selected. See the A021 primary review at `/Users/donbeave/Projects/termrock-review-20261021-1536-9plajc9k/source-refresh-census-postfsck-20261022/source-quality-reviews-v10/reviewer-4/A021/primary-review.md` and the independent probe review at `/Users/donbeave/Projects/termrock-review-20261021-1536-9plajc9k/button-ready-busy-independent-review/REVIEW.md` (SHA-256 `e943bccd41e0c4c2f3e835c4c43bb1017ebbab4e555cff75a70294549adf4b30`).
+
+All app and library acceptance remains incomplete. No reviewed packet transfer or branch cleanup is authorized by this checkpoint. Continue from the pinned source and target identities, preserve the open reference conflict, and require the outstanding reviews and acceptance gates before integration.
+
 ## Evidence index
 
 Populated as increments land.
