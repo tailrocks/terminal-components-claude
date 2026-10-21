@@ -10,7 +10,7 @@ use crate::text::width;
 use crate::theme::{CursorStyle, Family, FgStep, Role, StylePatch, Surface, Variant};
 use crate::ui::{Cx, FrameRead, Ui};
 use termrock_navigation::filter_list::{
-    FilterList, FilterListAction, FilterListState, FilterPolicy,
+    FilterList, FilterListAction, FilterListState, FilterPolicy, SelectionPolicy,
 };
 pub use termrock_navigation::item::{AsItem, Item, ItemColumns, ItemRow, ItemRowLayout};
 use termrock_runtime::empty::EmptyState;
@@ -103,6 +103,7 @@ pub struct Picker<'a, T, R = ItemRow> {
     cursor_style: CursorStyle,
     delete_is_secondary: bool,
     metadata_gap: u16,
+    selection_policy: SelectionPolicy,
     patch: Option<&'a StylePatch>,
     parts: &'a [(Part, StylePatch)],
     ov: PartStyle<'a>,
@@ -143,6 +144,7 @@ impl<T> Picker<'_, T, ItemRow> {
             cursor_style: CursorStyle::Bar,
             delete_is_secondary: true,
             metadata_gap: 1,
+            selection_policy: SelectionPolicy::Preserve,
             patch: None,
             parts: &[],
             ov: PartStyle::new(),
@@ -237,6 +239,13 @@ impl<'a, T, R> Picker<'a, T, R> {
         self.scopes = scopes;
         self
     }
+
+    /// Select the first enabled result after a query or scope change.
+    #[must_use]
+    pub const fn selection_policy(mut self, policy: SelectionPolicy) -> Self {
+        self.selection_policy = policy;
+        self
+    }
     #[must_use]
     pub const fn size(mut self, size: LayerSize) -> Self {
         self.requested_size = Some(size);
@@ -272,6 +281,7 @@ impl<'a, T, R> Picker<'a, T, R> {
             cursor_style: self.cursor_style,
             delete_is_secondary: self.delete_is_secondary,
             metadata_gap: self.metadata_gap,
+            selection_policy: self.selection_policy,
             patch: self.patch,
             parts: self.parts,
             ov: self.ov,
@@ -317,6 +327,7 @@ impl<T: AsItem, R: RowFn<T>> Picker<'_, T, R> {
             .with_item_layout(self.item_layout)
             .cursor_style(self.cursor_style)
             .metadata_gap(self.metadata_gap)
+            .selection_policy(self.selection_policy)
             .preserve_surface(true);
         if let Some(empty) = self.empty {
             list = list.empty(empty);
@@ -407,6 +418,11 @@ impl<T: AsItem, R: RowFn<T>> Picker<'_, T, R> {
                 | FilterListAction::Secondary(_)
                     if query_changed => {}
                 FilterListAction::QueryChanged => {
+                    if self.selection_policy == SelectionPolicy::FirstEnabledOnFilterChange {
+                        // The owner may replace the projected items after this
+                        // response. Keep the reset pending for that reconcile.
+                        st.list.reset_selection_on_next_reconcile();
+                    }
                     acc.action(PickerAction::QueryChanged);
                 }
                 FilterListAction::Chose(key) => {
@@ -432,10 +448,27 @@ impl<T: AsItem, R: RowFn<T>> Picker<'_, T, R> {
                         .checked_rem(self.scopes.len())
                         .unwrap_or(0);
                     if let Some(scope) = self.scopes.get(st.active_scope).copied() {
+                        if self.selection_policy == SelectionPolicy::FirstEnabledOnFilterChange {
+                            st.list.reset_selection_on_next_reconcile();
+                        }
                         acc.action(PickerAction::Scope(scope));
                     }
                 }
-                FilterListAction::Moved | FilterListAction::NextScope => {
+                FilterListAction::PrevScope if !self.scopes.is_empty() => {
+                    st.active_scope = st
+                        .active_scope
+                        .checked_sub(1)
+                        .unwrap_or(self.scopes.len() - 1);
+                    if let Some(scope) = self.scopes.get(st.active_scope).copied() {
+                        if self.selection_policy == SelectionPolicy::FirstEnabledOnFilterChange {
+                            st.list.reset_selection_on_next_reconcile();
+                        }
+                        acc.action(PickerAction::Scope(scope));
+                    }
+                }
+                FilterListAction::Moved
+                | FilterListAction::NextScope
+                | FilterListAction::PrevScope => {
                     acc.repaint();
                 }
             }

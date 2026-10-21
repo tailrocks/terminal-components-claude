@@ -31,6 +31,7 @@ pub enum FilterListAction {
     Back,
     Cancel,
     NextScope,
+    PrevScope,
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -46,7 +47,18 @@ pub enum FilterListCmd {
     Secondary,
     Back,
     NextScope,
+    PrevScope,
     Cancel,
+}
+
+/// Controls cursor behavior when a query changes the result set.
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
+pub enum SelectionPolicy {
+    /// Preserve a surviving item key.
+    #[default]
+    Preserve,
+    /// Move to the first enabled result after a query or scope change.
+    FirstEnabledOnFilterChange,
 }
 
 const fn binding(
@@ -158,6 +170,13 @@ const BINDINGS: &[Binding<FilterListCmd>] = &[
         "Next scope",
         false,
     ),
+    binding(
+        ActionKey::custom("filter-list.previous-scope"),
+        Chord::key(KeyCode::BackTab),
+        FilterListCmd::PrevScope,
+        "Previous scope",
+        false,
+    ),
     Binding {
         action: ActionKey::custom("filter-list.back"),
         chord: Some(Chord::key(KeyCode::Backspace)),
@@ -213,6 +232,8 @@ pub struct FilterListState {
     core: CollectionCore,
     matches: Vec<usize>,
     initialized: bool,
+    last_query: Option<String>,
+    reset_selection: bool,
 }
 
 impl FilterListState {
@@ -256,6 +277,11 @@ impl FilterListState {
     pub const fn matched_len(&self) -> usize {
         self.matches.len()
     }
+
+    /// Reset the cursor to the first enabled result on the next reconciliation.
+    pub fn reset_selection_on_next_reconcile(&mut self) {
+        self.reset_selection = true;
+    }
 }
 
 impl Reconcile for FilterListState {
@@ -277,6 +303,7 @@ pub struct FilterList<'a, T, R = crate::item::ItemRow> {
     empty: Option<EmptyState<'a>>,
     status: Status,
     frame: usize,
+    selection_policy: SelectionPolicy,
     searchable: bool,
     placeholder: &'a str,
     delete_is_secondary: bool,
@@ -310,6 +337,7 @@ impl<T> FilterList<'_, T, crate::item::ItemRow> {
             empty: None,
             status: Status::Ready,
             frame: 0,
+            selection_policy: SelectionPolicy::Preserve,
             searchable: true,
             placeholder: "Type to search…",
             delete_is_secondary: true,
@@ -332,6 +360,12 @@ impl<T> FilterList<'_, T, crate::item::ItemRow> {
 }
 
 impl<'a, T, R> FilterList<'a, T, R> {
+    #[must_use]
+    pub const fn selection_policy(mut self, policy: SelectionPolicy) -> Self {
+        self.selection_policy = policy;
+        self
+    }
+
     pub const fn with_item_layout(mut self, layout: crate::item::ItemRowLayout) -> Self {
         self.item_layout = layout;
         self
@@ -381,6 +415,7 @@ impl<'a, T, R> FilterList<'a, T, R> {
             empty: self.empty,
             status: self.status,
             frame: self.frame,
+            selection_policy: self.selection_policy,
             searchable: self.searchable,
             placeholder: self.placeholder,
             delete_is_secondary: self.delete_is_secondary,
@@ -582,6 +617,17 @@ impl<T: AsItem, R: RowFn<T>> FilterList<'_, T, R> {
     pub fn reconcile(&self, st: &mut FilterListState, items: &[T]) {
         st.matches.clear();
         let query = st.query().to_owned();
+        let query_changed = st
+            .last_query
+            .as_deref()
+            .is_some_and(|previous| previous != query);
+        if self.selection_policy == SelectionPolicy::FirstEnabledOnFilterChange
+            && (st.reset_selection || query_changed)
+        {
+            st.core.clear_cursor();
+        }
+        st.reset_selection = false;
+        st.last_query = Some(query.clone());
         st.matches
             .extend(items.iter().enumerate().filter_map(|(i, item)| {
                 (self.filter == FilterPolicy::Caller
@@ -739,6 +785,9 @@ impl<T: AsItem, R: RowFn<T>> FilterList<'_, T, R> {
             FilterListCmd::Back => acc.consumed(),
             FilterListCmd::NextScope => {
                 acc.action(FilterListAction::NextScope);
+            }
+            FilterListCmd::PrevScope => {
+                acc.action(FilterListAction::PrevScope);
             }
             FilterListCmd::Cancel if st.query().is_empty() => {
                 acc.action(FilterListAction::Cancel);
@@ -1312,6 +1361,10 @@ mod tests {
         assert_eq!(
             Binding::command(BINDINGS, ActionKey::custom("filter-list.secondary")),
             Some(super::FilterListCmd::Secondary)
+        );
+        assert_eq!(
+            Binding::command(BINDINGS, ActionKey::custom("filter-list.previous-scope")),
+            Some(super::FilterListCmd::PrevScope)
         );
     }
 
