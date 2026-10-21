@@ -2,7 +2,7 @@ use core::fmt;
 use core::ops::Range;
 
 use ratatui_core::layout::{Position, Rect};
-use ratatui_core::style::Modifier;
+use ratatui_core::style::{Color, Modifier};
 
 use super::{Acc, PartStyle, SlotFn, cell_at, first_row};
 use crate::completion::{
@@ -1174,10 +1174,16 @@ impl<'a> CodeEditor<'a> {
             st.scroll.set_content(st.editor.line_count());
             st.scroll.ensure_visible(cursor.line);
             if let Some(area) = cx.area(self.id) {
-                let text_width = area
-                    .width
-                    .saturating_sub(Self::gutter_width(lines).saturating_add(1));
+                // The painted text column is the editor minus the gutter.
+                // An extra reserved cell scrolls the cursor off the field.
+                let gutter = Self::gutter_width(lines);
+                let text_width = area.width.saturating_sub(gutter);
                 st.editor.scroll_into_view(text_width);
+                // The viewport shows the glyphs. One more column would hide
+                // the last character behind a cursor that the baseline leaves
+                // just outside the field.
+                let widest = st.text().split('\n').map(width).max().unwrap_or(0);
+                st.editor.clamp_hscroll(widest.saturating_sub(text_width));
             }
         }
         acc.finish(self.id)
@@ -1612,8 +1618,29 @@ impl<'a> CodeEditor<'a> {
                     if let Some(slot) = self.ov.slot_for(Part::MARKER) {
                         slot(ui, marker);
                     } else {
-                        ui.paint_str(marker, "!", marker_style);
+                        let ink = marker_style.patch(
+                            ui.paint_patch(
+                                &StylePatch::new()
+                                    .set_fg(Role::Syntax(SyntaxRole::DiagError))
+                                    .add(Modifier::BOLD),
+                            ),
+                        );
+                        ui.paint_str(marker, "!", ink);
                     }
+                } else if block
+                    .as_ref()
+                    .is_some_and(|range| range.start >= global && range.start <= line_end)
+                {
+                    let ink = if live.contains(StateFlags::FOCUSED) {
+                        Role::Fg(FgStep::Primary)
+                    } else {
+                        Role::Fg(FgStep::Secondary)
+                    };
+                    ui.paint_str(
+                        marker,
+                        "›",
+                        marker_style.patch(ui.paint_patch(&StylePatch::new().set_fg(ink))),
+                    );
                 } else if st
                     .running
                     .as_ref()
@@ -1683,10 +1710,22 @@ impl<'a> CodeEditor<'a> {
                 let hs = usize::from(st.editor.hscroll());
                 let mut column = 0usize;
                 let mut x = text_area.x;
+                if hs > 0 && !code_line.is_empty() {
+                    let ellipsis = text_style
+                        .patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Muted))));
+                    ui.paint_str(cell_at(row, x), "…", ellipsis);
+                }
                 for (at, grapheme) in graphemes(code_line) {
                     let cells = usize::from(grapheme_width(grapheme));
                     if column.saturating_add(cells) <= hs {
                         column = column.saturating_add(cells);
+                        continue;
+                    }
+                    // The ellipsis occupies the cell of the grapheme that
+                    // starts on the scroll origin. Later graphemes follow it.
+                    if hs > 0 && column == hs {
+                        column = column.saturating_add(cells);
+                        x = x.saturating_add(cells.min(usize::from(u16::MAX)) as u16);
                         continue;
                     }
                     if x.saturating_add(cells.min(usize::from(u16::MAX)) as u16) > text_area.right()
@@ -1712,6 +1751,11 @@ impl<'a> CodeEditor<'a> {
                     {
                         painted = painted
                             .patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Syntax(role))));
+                        if role == SyntaxRole::Keyword {
+                            painted = painted.add_modifier(Modifier::BOLD);
+                        } else if role == SyntaxRole::Number || role == SyntaxRole::Comment {
+                            painted = painted.add_modifier(Modifier::ITALIC);
+                        }
                     }
                     if selection
                         .as_ref()
@@ -1800,6 +1844,15 @@ impl<'a> CodeEditor<'a> {
                 }
             }
         }
+        paint_code_hbar(
+            ui,
+            text_area,
+            content.bottom().saturating_sub(1),
+            content.height,
+            st.text(),
+            usize::from(st.editor.hscroll()),
+            container.style,
+        );
         *ui.cache::<HighlightCache>(self.id) = cache;
         if st.text().is_empty()
             && let Some(placeholder) = self.placeholder
@@ -1856,10 +1909,14 @@ impl<'a> CodeEditor<'a> {
                 .saturating_sub(pos_width.saturating_add(right_pad))
                 .max(footer.x);
             if let Some(diagnostic) = nearest_diagnostic(&st.diagnostics, st.cursor_offset()) {
-                let detail_style = style(ui, Part::DETAIL, live).style;
-                let message_width = pos_x.saturating_sub(footer.x);
+                let detail_style = style(ui, Part::DETAIL, live)
+                    .style
+                    .patch(ui.paint_patch(&StylePatch::new().set_fg(diagnostic.severity.role())));
+                let message_x = footer.x.saturating_add(1);
+                let message_width = pos_x.saturating_sub(message_x);
                 ui.paint_str(
                     Rect {
+                        x: message_x,
                         width: message_width,
                         ..footer
                     },
@@ -1882,8 +1939,10 @@ impl<'a> CodeEditor<'a> {
                 );
             }
         }
-        if live.contains(StateFlags::FOCUSED)
-            && !self.read_only
+        // A focused editor that is not editing shows the position label and
+        // hides the caret. Read-only focus still shows the caret.
+        let show_caret = st.editing || (self.read_only && live.contains(StateFlags::FOCUSED));
+        if show_caret
             && !st.find.as_ref().is_some_and(|find| find.typing)
             && cursor.line >= view.offset()
             && let Some(position) = visible_cursor(
@@ -1923,6 +1982,45 @@ impl Bindings for CodeEditor<'_> {
         } else {
             NAV_BINDINGS
         }
+    }
+}
+
+fn paint_code_hbar(
+    ui: &mut Ui<'_>,
+    text_area: Rect,
+    y: u16,
+    body_rows: u16,
+    text: &str,
+    offset: usize,
+    field: crate::theme::PaintStyle,
+) {
+    let text_w = usize::from(text_area.width);
+    if body_rows < 2 || text_w == 0 {
+        return;
+    }
+    let widest = usize::from(text.split('\n').map(width).max().unwrap_or(0));
+    if widest.saturating_add(1) <= text_w {
+        return;
+    }
+    let mut across = ScrollState::default();
+    across.set_content(widest.saturating_add(1));
+    across.set_viewport(text_w);
+    across.scroll_to(offset);
+    let (start, len) = across.thumb(text_w);
+    let end = start.saturating_add(len);
+    let track = field.patch(
+        ui.paint_patch(&StylePatch::new().set_fg(Role::Custom(Color::from_u32(0x0047_4747)))),
+    );
+    let thumb = field.patch(
+        ui.paint_patch(&StylePatch::new().set_fg(Role::Custom(Color::from_u32(0x0080_8080)))),
+    );
+    for i in 0..text_w {
+        let on_thumb = i >= start && i < end;
+        ui.paint_str(
+            Rect::new(text_area.x.saturating_add(i as u16), y, 1, 1),
+            if on_thumb { "━" } else { "┄" },
+            if on_thumb { thumb } else { track },
+        );
     }
 }
 
