@@ -1,6 +1,7 @@
+use termrock::author::PaintSurface;
 use termrock::{
-    Buffer, Color, Family, FgStep, Modifier, Part, Rect, Role, StateFlags, Style, StylePatch,
-    Surface, Theme, Variant,
+    Color, Family, FgStep, Modifier, Part, Rect, Role, StateFlags, Style, StylePatch, Surface,
+    Theme, Variant,
 };
 
 use jackin_preview_domain::scenario::Motion;
@@ -98,16 +99,12 @@ pub fn style(theme: &Theme, tone: Tone, dim: u8) -> Option<Style> {
     }
 }
 
-pub(crate) fn put(buf: &mut Buffer, x: u16, y: u16, ch: char, style: Style) {
-    if let Some(cell) = buf.cell_mut(termrock::Position::new(x, y)) {
-        let mut bytes = [0u8; 4];
-        cell.set_symbol(ch.encode_utf8(&mut bytes));
-        cell.set_style(style);
-    }
+fn put(surface: &mut PaintSurface, x: u16, y: u16, ch: char, style: Style) {
+    surface.symbol(termrock::Position::new(x, y), &ch.to_string(), style);
 }
 
-pub fn fill_canvas(buf: &mut Buffer, area: Rect, theme: &Theme) {
-    buf.set_style(
+pub fn fill_canvas(surface: &mut PaintSurface, area: Rect, theme: &Theme) {
+    surface.style_area(
         area,
         role_style(
             theme,
@@ -118,24 +115,19 @@ pub fn fill_canvas(buf: &mut Buffer, area: Rect, theme: &Theme) {
     );
 }
 
-pub fn dim_buffer(buf: &mut Buffer, area: Rect, steps: u8, theme: &Theme) {
-    for row in area.rows() {
-        for column in area.columns() {
-            let x = column.x;
-            let y = row.y;
-            if let Some(cell) = buf.cell_mut((x, y)) {
-                let fg = cell.fg;
-                let level = theme
-                    .color
-                    .fg
-                    .iter()
-                    .position(|candidate| *candidate == fg)
-                    .unwrap_or(4);
-                let next = level.saturating_sub(usize::from(steps)).min(4);
-                cell.set_fg(theme.color.fg.get(next).copied().unwrap_or(Color::Reset));
-            }
-        }
-    }
+pub fn dim_buffer(surface: &mut PaintSurface, area: Rect, steps: u8, theme: &Theme) {
+    surface.restyle(area, |_, cell| {
+        let fg = cell.fg();
+        let level = theme
+            .color
+            .fg
+            .iter()
+            .position(|candidate| *candidate == fg)
+            .unwrap_or(4);
+        let next = level.saturating_sub(usize::from(steps)).min(4);
+        let ink = theme.color.fg.get(next).copied().unwrap_or(Color::Reset);
+        Some(Style::new().fg(ink))
+    });
 }
 
 const fn xorshift(seed: &mut u64) -> u64 {
@@ -288,7 +280,7 @@ impl Starfield {
         (self.cols, self.rows)
     }
 
-    pub fn paint(&self, buf: &mut Buffer, area: Rect, dim: u8, theme: &Theme) {
+    pub fn paint(&self, surface: &mut PaintSurface, area: Rect, dim: u8, theme: &Theme) {
         let cols = self.cols.min(area.width);
         let rows = self.rows.min(area.height);
         for y in 0..rows {
@@ -308,10 +300,10 @@ impl Starfield {
                     Tone::Ladder(cell.level)
                 };
                 if let Some(resolved) = style(theme, tone, dim) {
-                    buf.set_string(
+                    surface.string(
                         area.x.saturating_add(x),
                         area.y.saturating_add(y),
-                        cell.ch.to_string(),
+                        &cell.ch.to_string(),
                         resolved,
                     );
                 }
@@ -526,12 +518,19 @@ fn center(area: Rect) -> (u16, u16) {
     )
 }
 
-fn draw_text(buf: &mut Buffer, area: Rect, text: &str, y: u16, tone: Tone, theme: &Theme) {
+fn draw_text(
+    surface: &mut PaintSurface,
+    area: Rect,
+    text: &str,
+    y: u16,
+    tone: Tone,
+    theme: &Theme,
+) {
     let n = text.chars().count() as u16;
     let x0 = area.x.saturating_add(area.width.saturating_sub(n) / 2);
     if let Some(resolved) = style(theme, tone, 0) {
         for (index, ch) in text.chars().enumerate() {
-            put(buf, x0.saturating_add(index as u16), y, ch, resolved);
+            put(surface, x0.saturating_add(index as u16), y, ch, resolved);
         }
     }
 }
@@ -540,7 +539,7 @@ fn hint_ink(theme: &Theme, level: u8) -> Color {
     ladder_color(theme, level)
 }
 
-fn draw_hint(buf: &mut Buffer, area: Rect, key: &str, action: &str, theme: &Theme) {
+fn draw_hint(surface: &mut PaintSurface, area: Rect, key: &str, action: &str, theme: &Theme) {
     let text_len = key
         .chars()
         .count()
@@ -554,7 +553,7 @@ fn draw_hint(buf: &mut Buffer, area: Rect, key: &str, action: &str, theme: &Them
     let clear = Style::new().bg(canvas(theme));
     let start = x.saturating_sub(1);
     for column in start..area.right() {
-        put(buf, column, y, ' ', clear);
+        put(surface, column, y, ' ', clear);
     }
     let key_style = Style::new()
         .fg(hint_ink(theme, 2))
@@ -562,14 +561,14 @@ fn draw_hint(buf: &mut Buffer, area: Rect, key: &str, action: &str, theme: &Them
         .add_modifier(Modifier::BOLD);
     let action_style = Style::new().fg(hint_ink(theme, 1)).bg(canvas(theme));
     for (index, ch) in key.chars().enumerate() {
-        put(buf, x.saturating_add(index as u16), y, ch, key_style);
+        put(surface, x.saturating_add(index as u16), y, ch, key_style);
     }
     let action_x = x
         .saturating_add(key.chars().count() as u16)
         .saturating_add(1);
     for (index, ch) in action.chars().enumerate() {
         put(
-            buf,
+            surface,
             action_x.saturating_add(index as u16),
             y,
             ch,
@@ -578,7 +577,7 @@ fn draw_hint(buf: &mut Buffer, area: Rect, key: &str, action: &str, theme: &Them
     }
 }
 
-fn draw_lockup(buf: &mut Buffer, area: Rect, text: &str, theme: &Theme) {
+fn draw_lockup(surface: &mut PaintSurface, area: Rect, text: &str, theme: &Theme) {
     let label_width = text.chars().count() as u16;
     let width = label_width.saturating_add(2);
     if area.height < 4 || area.width < width.saturating_add(2) {
@@ -590,10 +589,10 @@ fn draw_lockup(buf: &mut Buffer, area: Rect, text: &str, theme: &Theme) {
         .fg(theme.color.on_accent)
         .bg(theme.color.accent)
         .add_modifier(Modifier::BOLD);
-    put(buf, x, y, ' ', style);
+    put(surface, x, y, ' ', style);
     for (index, ch) in text.chars().enumerate() {
         put(
-            buf,
+            surface,
             x.saturating_add(1).saturating_add(index as u16),
             y,
             ch,
@@ -601,7 +600,7 @@ fn draw_lockup(buf: &mut Buffer, area: Rect, text: &str, theme: &Theme) {
         );
     }
     put(
-        buf,
+        surface,
         x.saturating_add(width).saturating_sub(1),
         y,
         ' ',
@@ -609,18 +608,25 @@ fn draw_lockup(buf: &mut Buffer, area: Rect, text: &str, theme: &Theme) {
     );
 }
 
-fn draw_typed(buf: &mut Buffer, area: Rect, text: &str, y: u16, shown: usize, theme: &Theme) {
+fn draw_typed(
+    surface: &mut PaintSurface,
+    area: Rect,
+    text: &str,
+    y: u16,
+    shown: usize,
+    theme: &Theme,
+) {
     let n = text.chars().count() as u16;
     let x0 = area.x.saturating_add(area.width.saturating_sub(n) / 2);
     if let Some(resolved) = style(theme, Tone::Ladder(4), 0) {
         for (index, ch) in text.chars().take(shown).enumerate() {
-            put(buf, x0.saturating_add(index as u16), y, ch, resolved);
+            put(surface, x0.saturating_add(index as u16), y, ch, resolved);
         }
     }
 }
 
 fn draw_glitched(
-    buf: &mut Buffer,
+    surface: &mut PaintSurface,
     area: Rect,
     text: &str,
     y: u16,
@@ -642,7 +648,7 @@ fn draw_glitched(
             } else {
                 ch
             };
-        put(buf, x, y, shown, resolved);
+        put(surface, x, y, shown, resolved);
     }
 }
 
@@ -686,7 +692,7 @@ fn sync_field(
 const OUTRO_SALT: u64 = 0x5F5F_4F55_5452_4F5F;
 const BRAND_MARK: &str = "jackin❯";
 
-pub fn paint_intro(buf: &mut Buffer, area: Rect, state: &IntroState, theme: &Theme) {
+pub fn paint_intro(surface: &mut PaintSurface, area: Rect, state: &IntroState, theme: &Theme) {
     if area.is_empty() {
         return;
     }
@@ -694,26 +700,26 @@ pub fn paint_intro(buf: &mut Buffer, area: Rect, state: &IntroState, theme: &The
     let cy = cy.saturating_add(1);
     match state.mode {
         Motion::Reduced => {
-            fill_canvas(buf, area, theme);
-            draw_text(buf, area, CAPTION, cy, Tone::Ladder(4), theme);
-            draw_lockup(buf, area, BRAND_MARK, theme);
-            draw_hint(buf, area, "Enter", "Continue", theme);
+            fill_canvas(surface, area, theme);
+            draw_text(surface, area, CAPTION, cy, Tone::Ladder(4), theme);
+            draw_lockup(surface, area, BRAND_MARK, theme);
+            draw_hint(surface, area, "Enter", "Continue", theme);
             return;
         }
         Motion::Full | Motion::Paused => {}
     }
     match IntroPhase::of(state.tick) {
         IntroPhase::Phrases => {
-            fill_canvas(buf, area, theme);
+            fill_canvas(surface, area, theme);
             if state.tick < KNOCK_START {
                 if let Some((index, shown)) = phrase_at(state.tick)
                     && let Some((text, _, _)) = PHRASES.get(index)
                 {
-                    draw_typed(buf, area, text, cy, shown, theme);
+                    draw_typed(surface, area, text, cy, shown, theme);
                 }
             } else {
                 draw_glitched(
-                    buf,
+                    surface,
                     area,
                     CAPTION,
                     cy,
@@ -722,11 +728,11 @@ pub fn paint_intro(buf: &mut Buffer, area: Rect, state: &IntroState, theme: &The
                     theme,
                 );
             }
-            draw_lockup(buf, area, BRAND_MARK, theme);
-            draw_hint(buf, area, "Enter", "Skip", theme);
+            draw_lockup(surface, area, BRAND_MARK, theme);
+            draw_hint(surface, area, "Enter", "Skip", theme);
         }
         IntroPhase::Warp => {
-            fill_canvas(buf, area, theme);
+            fill_canvas(surface, area, theme);
             let mut field = None;
             sync_field(
                 &mut field,
@@ -736,15 +742,15 @@ pub fn paint_intro(buf: &mut Buffer, area: Rect, state: &IntroState, theme: &The
                 state.tick.saturating_sub(WARP_START),
             );
             if let Some(field) = &field {
-                field.paint(buf, area, 0, theme);
+                field.paint(surface, area, 0, theme);
             }
-            draw_hint(buf, area, "Enter", "Skip", theme);
+            draw_hint(surface, area, "Enter", "Skip", theme);
         }
-        IntroPhase::Done => fill_canvas(buf, area, theme),
+        IntroPhase::Done => fill_canvas(surface, area, theme),
     }
 }
 
-pub fn paint_outro(buf: &mut Buffer, area: Rect, state: &OutroState, theme: &Theme) {
+pub fn paint_outro(surface: &mut PaintSurface, area: Rect, state: &OutroState, theme: &Theme) {
     if area.is_empty() {
         return;
     }
@@ -752,7 +758,7 @@ pub fn paint_outro(buf: &mut Buffer, area: Rect, state: &OutroState, theme: &The
     let cy = cy.saturating_add(1);
     match state.phase() {
         OutroPhase::Warp => {
-            fill_canvas(buf, area, theme);
+            fill_canvas(surface, area, theme);
             let mut field = None;
             sync_field(&mut field, area, OUTRO_SALT, false, state.tick);
             if let Some(field) = &field {
@@ -761,19 +767,19 @@ pub fn paint_outro(buf: &mut Buffer, area: Rect, state: &OutroState, theme: &The
                 } else {
                     0
                 };
-                field.paint(buf, area, dim, theme);
+                field.paint(surface, area, dim, theme);
             }
-            draw_hint(buf, area, "Enter", "Skip", theme);
+            draw_hint(surface, area, "Enter", "Skip", theme);
         }
         OutroPhase::Caption => {
-            fill_canvas(buf, area, theme);
+            fill_canvas(surface, area, theme);
             match (state.mode, state.caption()) {
                 (Motion::Reduced, Some(text)) => {
-                    draw_text(buf, area, &text, cy, Tone::Ladder(4), theme)
+                    draw_text(surface, area, &text, cy, Tone::Ladder(4), theme)
                 }
                 (Motion::Reduced, None) => {}
                 (_, Some(text)) => draw_glitched(
-                    buf,
+                    surface,
                     area,
                     &text,
                     cy,
@@ -783,15 +789,15 @@ pub fn paint_outro(buf: &mut Buffer, area: Rect, state: &OutroState, theme: &The
                 ),
                 (_, None) => {}
             }
-            draw_lockup(buf, area, BRAND_MARK, theme);
-            draw_hint(buf, area, "Enter", "Close", theme);
+            draw_lockup(surface, area, BRAND_MARK, theme);
+            draw_hint(surface, area, "Enter", "Close", theme);
         }
-        OutroPhase::Done => fill_canvas(buf, area, theme),
+        OutroPhase::Done => fill_canvas(surface, area, theme),
     }
 }
 
 pub fn paint_atmosphere(
-    buf: &mut Buffer,
+    surface: &mut PaintSurface,
     area: Rect,
     exclude: &[Rect],
     frame: u64,
@@ -837,7 +843,7 @@ pub fn paint_atmosphere(
             let tone = if frame < 15 { Tone::Ladder(0) } else { tone };
             if let Some(resolved) = style(theme, tone, 0) {
                 put(
-                    buf,
+                    surface,
                     x,
                     y,
                     glyph(u64::from(x), u64::from(y), frame >> 3),
@@ -856,35 +862,50 @@ mod tests {
     fn fill_canvas_paints_primary_foreground_on_the_canvas() {
         let theme = Theme::junie();
         let area = Rect::new(0, 0, 2, 1);
-        let mut buf = Buffer::empty(area);
-        fill_canvas(&mut buf, area, &theme);
-        let cell = buf.cell((0, 0)).expect("filled cell");
-        assert_eq!(cell.fg, theme.color.fg[FgStep::Primary.index()]);
-        assert_eq!(cell.bg, theme.bg(Surface::Canvas));
+        let mut surface = PaintSurface::new(area);
+        fill_canvas(&mut surface, area, &theme);
+        let cell = surface
+            .cell(termrock::Position::new(0, 0))
+            .expect("filled cell");
+        assert_eq!(cell.fg(), theme.color.fg[FgStep::Primary.index()]);
+        assert_eq!(cell.bg(), theme.bg(Surface::Canvas));
     }
 
     #[test]
     fn paused_intro_paints_the_padded_accent_lockup_and_tag_hint_ink() {
         let theme = Theme::junie();
         let area = Rect::new(0, 0, 120, 40);
-        let mut buf = Buffer::empty(area);
-        paint_intro(&mut buf, area, &IntroState::new(Motion::Paused, 40), &theme);
-        let pad = buf.cell((55, 38)).expect("lockup pad");
-        let mark = buf.cell((56, 38)).expect("lockup mark");
-        assert_eq!(pad.symbol(), " ");
-        assert_eq!(pad.bg, theme.color.accent);
-        assert_eq!(mark.symbol(), "j");
-        assert_eq!(mark.fg, theme.color.on_accent);
-        assert_eq!(mark.bg, theme.color.accent);
-        assert!(mark.modifier.contains(Modifier::BOLD));
-        let key = buf.cell((108, 39)).expect("hint key");
-        let action = buf.cell((114, 39)).expect("hint action");
-        assert_eq!(key.symbol(), "E");
-        assert_eq!(key.fg, Color::from_u32(0x8a_8a_8a));
-        assert!(key.modifier.contains(Modifier::BOLD));
-        assert_eq!(action.symbol(), "S");
-        assert_eq!(action.fg, Color::from_u32(0x73_73_73));
-        assert!(!action.modifier.contains(Modifier::BOLD));
+        let mut surface = PaintSurface::new(area);
+        paint_intro(
+            &mut surface,
+            area,
+            &IntroState::new(Motion::Paused, 40),
+            &theme,
+        );
+        let pad = surface
+            .cell(termrock::Position::new(55, 38))
+            .expect("lockup pad");
+        let mark = surface
+            .cell(termrock::Position::new(56, 38))
+            .expect("lockup mark");
+        assert_eq!(pad.symbol, " ");
+        assert_eq!(pad.bg(), theme.color.accent);
+        assert_eq!(mark.symbol, "j");
+        assert_eq!(mark.fg(), theme.color.on_accent);
+        assert_eq!(mark.bg(), theme.color.accent);
+        assert!(mark.modifier().contains(Modifier::BOLD));
+        let key = surface
+            .cell(termrock::Position::new(108, 39))
+            .expect("hint key");
+        let action = surface
+            .cell(termrock::Position::new(114, 39))
+            .expect("hint action");
+        assert_eq!(key.symbol, "E");
+        assert_eq!(key.fg(), Color::from_u32(0x8a_8a_8a));
+        assert!(key.modifier().contains(Modifier::BOLD));
+        assert_eq!(action.symbol, "S");
+        assert_eq!(action.fg(), Color::from_u32(0x73_73_73));
+        assert!(!action.modifier().contains(Modifier::BOLD));
     }
 
     #[test]
@@ -918,9 +939,9 @@ mod tests {
     fn paused_outro_warp_uses_tag_muted_and_faint_ink() {
         let theme = Theme::junie();
         let area = Rect::new(0, 0, 120, 40);
-        let mut buf = Buffer::empty(area);
+        let mut surface = PaintSurface::new(area);
         paint_outro(
-            &mut buf,
+            &mut surface,
             area,
             &OutroState::new(Motion::Paused, Some(8_040), 40),
             &theme,
@@ -930,13 +951,13 @@ mod tests {
         let mut legacy = 0usize;
         for y in 0..area.height {
             for x in 0..area.width {
-                let cell = buf.cell((x, y)).expect("cell");
-                if cell.fg == Color::from_u32(0x8a_8a_8a) {
+                let cell = surface.cell(termrock::Position::new(x, y)).expect("cell");
+                if cell.fg() == Color::from_u32(0x8a_8a_8a) {
                     muted += 1;
-                } else if cell.fg == Color::from_u32(0x73_73_73) {
+                } else if cell.fg() == Color::from_u32(0x73_73_73) {
                     faint += 1;
-                } else if cell.fg == Color::from_u32(0x80_80_80)
-                    || cell.fg == Color::from_u32(0x4d_4d_4d)
+                } else if cell.fg() == Color::from_u32(0x80_80_80)
+                    || cell.fg() == Color::from_u32(0x4d_4d_4d)
                 {
                     legacy += 1;
                 }
@@ -951,8 +972,8 @@ mod tests {
     fn starfield_is_deterministic() {
         let theme = Theme::junie();
         let area = Rect::new(0, 0, 80, 24);
-        let mut a = Buffer::empty(area);
-        let mut b = Buffer::empty(area);
+        let mut a = PaintSurface::new(area);
+        let mut b = PaintSurface::new(area);
         let mut sa = Starfield::new(area.width, area.height, 7);
         let mut sb = Starfield::new(area.width, area.height, 7);
         sa.advance(true, 42);
