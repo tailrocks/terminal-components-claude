@@ -777,7 +777,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> List<'_, T, K, R> {
             scroll.scroll_to(aligned);
         }
         acc.fold(&bar);
-        let viewport = self.item_at_line(st.core.scroll().viewport_len()).max(1);
+        let page_rows = self.item_at_line(st.core.scroll().viewport_len()).max(1);
         let table = self.table();
         let mut released = false;
         for it in cx.intents(self.id) {
@@ -816,14 +816,14 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> List<'_, T, K, R> {
                         Some(ListCmd::PageUp) => self.move_cursor(
                             st,
                             items,
-                            cur.saturating_sub(viewport),
+                            cur.saturating_sub(page_rows),
                             false,
                             &mut acc,
                         ),
                         Some(ListCmd::PageDown) => self.move_cursor(
                             st,
                             items,
-                            cur.saturating_add(viewport),
+                            cur.saturating_add(page_rows),
                             false,
                             &mut acc,
                         ),
