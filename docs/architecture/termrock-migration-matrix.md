@@ -2652,3 +2652,23 @@ On isolated source `c6dfab74d6d7f22490ae0195a6b9a0a218331b0a`, navigation/runtim
 
 The isolated source first synced PR #38 remote `a71388ec365b5f6613550594c1acc6a4081f9b14` by a normal merge, then synced `40bc297e5f1b18f58f1466d5aaa8d80f19c051a2` by a second normal merge. The latter carries the independently reviewed Form/FormDialog chooser activation source `9c07189c8f38a4e29bda4060f2dfd5efc8ceda73`; its separate bounded review is preserved at [review.json](../audits/evidence/form-chooser-20261021/review.json). Its `crates/termrock-xtask/exceptions/v1.json` change is preserved as incoming source synchronization and remains pending independent review; synchronization is not approval. The copied [branch census](evidence/2026-10-21-picker-integration/current-branch-census.json), SHA-256 `287464f695a7a524b209f313ccc41e51b259bb85d32fae9530b1ce5e525d977b`, observed 143 heads against integration tip `3196f4ef` (26 integrated-ancestry, 114 unique-history, 3 designated). Ancestry does not establish review; the remaining unique histories and full branch dispositions remain open.
 origin/parity/termrock-visual-baseline
+
+### TablePro grid chrome block (integrated)
+
+Branch `wip/tablepro-app-layer-20261021`, tip
+`6849f9a60122afe04c9902e04343a228f2a2e970`, integrated into this branch.
+
+The table row numbers, column budgets and cell painting move out of
+`crates/tablepro-ui/src/app.rs` into a new shared block
+`crates/termrock-grid/src/grid_chrome.rs` (1154 lines), with the frame
+equality oracle in `crates/termrock-grid/tests/grid_chrome_parity.rs`
+(1493 lines). The application keeps the policy data and calls the block.
+
+The merge with the parity tip kept the tip's newer import list and its query
+error, result and explain work, and kept the shared block's ownership of the
+chrome types. `cargo nextest run -p tablepro-ui -p termrock-grid --all-targets`
+is 375 tests with 371 passing and 4 failing — exactly the four failures the
+parity tip already has (`query_editor_keeps_multiline_unicode_and_cursor_through_resize`,
+`query_headers_results_and_uncommitted_draft_survive_switch`,
+`frame_tablepro_query_editor_2k_lines` and `tablepro_visual_baseline`), so the
+merge introduces no new failure.
