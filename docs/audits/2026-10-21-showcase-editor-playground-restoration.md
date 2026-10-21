@@ -1,6 +1,8 @@
 # Showcase Editor Playground restoration
 
-Status: implementation in progress; page parity remains incomplete.
+Status: implementation in progress; page parity remains incomplete. Frozen
+Options and States contracts have now been mapped; their restoration is blocked
+on shared composition/specimen APIs recorded below.
 
 Review basis: frozen `visual-baseline` source commit
 `4169783ae883788186d161af09ba9c481bd84e5c` and design reference
@@ -22,6 +24,62 @@ The frozen `Options` and `States` sections remain missing. Their editor option
 matrix and inert state specimens remain required follow-up work. This
 increment does not claim either section, full Showcase capability coverage, or
 1:1 visual and functional parity.
+
+## Frozen Options and States contract map
+
+The frozen section order is `Playground`, `Options`, `States`. The tab strip
+supports pointer activation, Left/Right movement, and direct `1–3` selection;
+the section caption is respectively “the live widget”, “one control per
+option”, or “every state, drawn by the widget”. The section container owns a
+scrolling body. Options are live controls grouped under “Page options”; changing
+one updates `PageValues` and rebuilds the actual `CodeEditor` and completion
+configuration while preserving text, cursor, and diagnostics.
+
+The frozen editor Options matrix contains 22 controls, in this order:
+
+| Option | Values | Default |
+| --- | --- | --- |
+| Read-only | off, on | off |
+| Edit entry | theme, immediate, type-to-edit, explicit | theme |
+| Tab leaves the editor | off, on | off |
+| Esc reverts | off, on | off |
+| Field keys | theme, emacs, desktop | theme |
+| Text key map | preset, custom | preset |
+| Reading keys | default, vim, no-page | default |
+| Command keys | default, custom | default |
+| Indent | 4, 2 | 4 |
+| Syntax tones | off, on | on |
+| Blocks | off, on | on |
+| Document | sample, empty | sample |
+| Horizontal scroll | theme, on, off | theme |
+| Scrollbar gap | 1, 0, 2 | 1 |
+| Track click | page, jump | page |
+| Completion rows | 8, 4 | 8 |
+| Completion width | default, wide | default |
+| Completion placement | below, above | below |
+| Completion fit | default, flush | default |
+| Completion cursor | fill, bar | fill |
+| Completion dismiss | light, escape | light |
+| Completion keys | default, vim | default |
+
+The frozen States matrix is an inert `StateGrid` with rows `Rest`, `Focused`,
+`Editing`, `Disabled`, `Busy`, `Error`, `Empty`, `Overflow`; columns `Tones`,
+`Plain`, `Warning`; the warning specimen owns a diagnostic. A “Compare levels”
+toggle switches to a color-level comparison. The focus legend describes the
+specimen focus mark and does not register any specimen as a live control.
+
+The current public composition API can place Tabs, panels, props lists, and
+code editors, but has no Select leaf adapter. Recreating the full Options
+matrix with direct per-row Rect layout would violate the consumer composition
+boundary. The old StateGrid/SpecimenState renderer also has no public Termrock
+equivalent. Repainting a state matrix in Showcase or registering invisible
+controls would violate the widget-ownership boundary. Concrete shared API
+proposals for the required next owner are (1) `composition::select(component,
+state, items)` delegating measure/draw to `Select`, and (2) an inert shared
+specimen grid whose widget adapter delegates the same widget renderer with an
+explicit visual `StateFlags`/specimen state and performs no input/focus
+registration. The parent coordinator has been notified; no shared crate was
+edited by this worktree.
 
 The frozen Find and Run buttons use plain labels. Their `.shortcut` values are
 tooltip metadata whose empty text suppresses a tooltip; they do not display an
