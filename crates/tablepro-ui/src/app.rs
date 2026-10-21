@@ -10506,21 +10506,11 @@ impl TableProApp {
                 .map(|index| (index, direction))
         });
         GRID_SORT.with(|slot| *slot.borrow_mut() = shown_sort);
-        let edit_col = self.workbench.active_grid().and_then(|(_, grid)| {
-            grid.state
-                .edit_cell()
-                .and_then(|(_, column)| usize::from(column.raw()).checked_sub(1))
-        });
         let wide_col = self
             .workbench
             .active_grid()
             .and_then(|(_, grid)| wide_header_column(&grid.columns, &grid.state, &grid.model));
         GRID_EDIT.with(|slot| *slot.borrow_mut() = wide_col);
-        if edit_col.is_some() && std::io::IsTerminal::is_terminal(&std::io::stdout()) {
-            let mut out = std::io::stdout().lock();
-            let _ = std::io::Write::write_all(&mut out, b"\x1b[6 q");
-            let _ = std::io::Write::flush(&mut out);
-        }
     }
 
     fn mirror_name_edit(&mut self) {
