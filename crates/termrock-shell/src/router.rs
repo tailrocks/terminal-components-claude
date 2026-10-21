@@ -5,8 +5,8 @@
 //! adaptation routes on [`termrock_core::event::Key`] chords directly and
 //! reports through [`termrock_core::response::Response`], the runtime's
 //! update contract, instead of the source's `Outcome`; the focus movement
-//! actions fold into [`termrock_core::response::Response::focus_next`] and
-//! `focus_prev`, which the runtime's ring serves. Chord matching mirrors the
+//! actions use the runtime focus ring's `Cx::focus_next` and `Cx::focus_prev`.
+//! Chord matching mirrors the
 //! source's `KeyBinding::deliverable` + `lookup` pair: a binding matches an
 //! exact key, and a printable key binding stays quiet while a text field
 //! owns typing (as do `idle_only` actions). One ordering difference is
