@@ -177,6 +177,21 @@ impl<'a> ScrollRegion<'a> {
         r.for_id(self.id)
     }
 
+    /// Register the region's scroll hit area without painting it.
+    ///
+    /// A component that paints its own scrollbar still needs the runtime to
+    /// route wheel events to the region. [`Self::draw`] registers the area as
+    /// a side effect of painting; this method performs the registration
+    /// alone, for callers that own their scrollbar presentation.
+    pub fn register(&self, ui: &mut Ui<'_>, area: Rect, st: &ScrollState, content_len: usize) {
+        if area.is_empty() {
+            return;
+        }
+        let mut view = *st;
+        view.apply_layout(usize::from(area.height), content_len);
+        ui.register_scroll(self.id, area, Axes::V, view.headroom_v());
+    }
+
     pub fn prepare(&self, cx: &Cx<'_>, st: &mut ScrollState, content_len: usize) -> u16 {
         let layout = cx.layout(self.id);
         let viewport = layout.map_or(st.viewport_len(), |layout| {
