@@ -2307,9 +2307,6 @@ impl TableProApp {
         };
         for (key, tab) in self.workbench.payloads_mut() {
             if let Tab::Query(query) = tab {
-                if !query_visible || active_key != Some(key) {
-                    continue;
-                }
                 let id = key.control("query");
                 let editor = query_editor(id, QUERY_EDITOR_ROWS, &provider);
                 let editor_response = editor.update(cx, &mut query.editor_state);
@@ -2320,6 +2317,15 @@ impl TableProApp {
                     query.sync_query_text();
                 }
                 response |= editor_response.erase();
+
+                // A tab can lose focus in the same update that the application selects its
+                // replacement. Keep delivering addressed editor lifecycle intents to the old
+                // component so it can commit editing before it becomes inactive. The editor
+                // itself owns intent filtering; inactive tabs still do not receive ordinary
+                // input because the runtime addresses intents by stable component ID.
+                if !query_visible || active_key != Some(key) {
+                    continue;
+                }
             }
             match tab {
                 Tab::Table(table) => {
