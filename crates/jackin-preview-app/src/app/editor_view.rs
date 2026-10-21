@@ -28,7 +28,7 @@ const TABS: &[(&str, u16, u16)] = &[
 ];
 
 pub(crate) fn paint(app: &App, ui: &mut Ui<'_>, full: Rect) {
-    if full.width == 0 || full.height == 0 {
+    if full.is_empty() {
         return;
     }
     let general = matches!(app.editor.tab, EditorTab::General);
