@@ -866,9 +866,6 @@ pub fn activities_multi_tag_frame(w: &World) -> bool {
     w.scenario == Scenario::ActivitiesMulti && w.now_ms() == 80
 }
 
-/// Pre-typed finder query on the `docker-cleanup` tag frame.
-pub const DOCKER_CLEANUP_QUERY: &str = "docker clean";
-
 /// Tag `docker-cleanup` at fixture tick 40. Later seeks keep the concept home.
 pub fn docker_cleanup_tag_frame(w: &World) -> bool {
     w.scenario == Scenario::DockerCleanup && w.now_ms() == 80

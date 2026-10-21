@@ -378,24 +378,9 @@ fn parity_history_tag_plate(world: &World, width: u16, _height: u16) -> bool {
     crate::sim::catalogue::parity_history_tag_frame(world) && (80..160).contains(&width)
 }
 
-/// Below 120 the single-column history clips the last hint. 120 and up keep the wide parts.
-fn parity_history_clipped_plate(world: &World, width: u16, _height: u16) -> bool {
-    crate::sim::catalogue::parity_history_tag_frame(world) && (80..120).contains(&width)
-}
-
-/// 80–119 clip the last hint. 120 and up fits every hint, so it keeps the wide parts.
-fn parity_files_clipped_plate(world: &World, width: u16, _height: u16) -> bool {
-    crate::sim::catalogue::parity_files_tag_frame(world) && (80..120).contains(&width)
-}
-
 /// 80–159 `parity-files` tag frames. Other sizes stay off.
 fn parity_files_tag_plate(world: &World, width: u16, _height: u16) -> bool {
     crate::sim::catalogue::parity_files_tag_frame(world) && (80..160).contains(&width)
-}
-
-/// Below 120 the single-column browser clips the last hint. 120 and up keep the wide parts.
-fn parity_browser_clipped_plate(world: &World, width: u16, _height: u16) -> bool {
-    crate::sim::catalogue::parity_browser_tag_frame(world) && (80..120).contains(&width)
 }
 
 /// The `parity-browser` bands with their own body: single-column below 120, the
@@ -404,25 +389,12 @@ fn parity_browser_tag_plate(world: &World, width: u16, _height: u16) -> bool {
     crate::sim::catalogue::parity_browser_tag_frame(world) && (80..160).contains(&width)
 }
 
-/// 80×24 and 100×30 clip the last hint. 120×40 fits every hint, so it keeps the wide parts.
-fn parity_git_current_clipped_plate(world: &World, width: u16, _height: u16) -> bool {
-    crate::sim::catalogue::parity_git_current_tag_frame(world) && (80..120).contains(&width)
-}
-
 fn parity_git_current_tag_plate(world: &World, width: u16, _height: u16) -> bool {
     crate::sim::catalogue::parity_git_current_tag_frame(world) && (80..160).contains(&width)
 }
 
-fn parity_cargo_clipped_plate(world: &World, width: u16, _height: u16) -> bool {
-    crate::sim::catalogue::parity_cargo_tag_frame(world) && (80..120).contains(&width)
-}
-
 fn parity_cargo_tag_plate(world: &World, width: u16, _height: u16) -> bool {
     crate::sim::catalogue::parity_cargo_tag_frame(world) && (80..160).contains(&width)
-}
-
-fn parity_git_batch_clipped_plate(world: &World, width: u16, _height: u16) -> bool {
-    crate::sim::catalogue::parity_git_batch_tag_frame(world) && (80..120).contains(&width)
 }
 
 fn parity_git_batch_tag_plate(world: &World, width: u16, _height: u16) -> bool {
@@ -1220,9 +1192,6 @@ impl App {
         }
         let mut home = HomeState::default();
         home.history = crate::sim::catalogue::history_enabled();
-        if crate::sim::catalogue::docker_cleanup_tag_frame(&world) {
-            home.seed_query(crate::sim::catalogue::DOCKER_CLEANUP_QUERY);
-        }
         Self {
             world,
             motion,
@@ -1903,53 +1872,10 @@ impl App {
             && !self.menu.is_open()
         {
             let layer = tag_hints(confirm, status);
-            // 80×24 first-use, monorepo-root, monorepo-child, remote-host, hard-cases, and parity-discovery clip the last hint to a meta `…`. The 100×30 first-use, monorepo-root, monorepo-child, remote-host, hard-cases, and parity-discovery plates do the same. Wider plates keep the theme overflow.
-            let narrow = layout::Band::of(ui.full().width).is_narrow();
-            let mid = layout::Band::of(ui.full().width).is_mid();
-            let monorepo_child_mid =
-                mid && crate::sim::catalogue::monorepo_child_tag_frame(&self.world);
-            let remote_host_mid = mid && crate::sim::catalogue::remote_host_tag_frame(&self.world);
-            let first_use_mid = mid && crate::sim::catalogue::first_use_tag_frame(&self.world);
-            let monorepo_root_mid =
-                mid && crate::sim::catalogue::monorepo_root_tag_frame(&self.world);
-            let hard_cases_mid = mid && crate::sim::catalogue::hard_cases_tag_frame(&self.world);
-            let discovery_mid =
-                mid && crate::sim::catalogue::parity_discovery_tag_frame(&self.world);
-            let history_plate =
-                parity_history_clipped_plate(&self.world, ui.full().width, ui.full().height);
-            let files_plate =
-                parity_files_clipped_plate(&self.world, ui.full().width, ui.full().height);
-            let browser_plate =
-                parity_browser_clipped_plate(&self.world, ui.full().width, ui.full().height);
-            let git_current_plate =
-                parity_git_current_clipped_plate(&self.world, ui.full().width, ui.full().height);
-            let cargo_plate =
-                parity_cargo_clipped_plate(&self.world, ui.full().width, ui.full().height);
-            let git_batch_plate =
-                parity_git_batch_clipped_plate(&self.world, ui.full().width, ui.full().height);
-            let task_sources_plate =
-                parity_task_sources_tag_plate(&self.world, ui.full().width, ui.full().height);
-            let parts = if monorepo_child_mid
-                || remote_host_mid
-                || first_use_mid
-                || monorepo_root_mid
-                || hard_cases_mid
-                || discovery_mid
-                || history_plate
-                || files_plate
-                || browser_plate
-                || git_current_plate
-                || cargo_plate
-                || git_batch_plate
-                || task_sources_plate
-                || (narrow
-                    && (crate::sim::catalogue::first_use_tag_frame(&self.world)
-                        || crate::sim::catalogue::monorepo_root_tag_frame(&self.world)
-                        || crate::sim::catalogue::monorepo_child_tag_frame(&self.world)
-                        || crate::sim::catalogue::remote_host_tag_frame(&self.world)
-                        || crate::sim::catalogue::hard_cases_tag_frame(&self.world)
-                        || self.world.scenario == Scenario::ParityDiscovery))
-            {
+            // Single-column bands clip the last hint to a meta `…`. The wide
+            // card fits every hint, so it keeps the theme overflow.
+            let band = layout::Band::of(ui.full().width);
+            let parts = if band.is_narrow() || band.is_mid() {
                 ACTIVITIES_HINT_PARTS
             } else {
                 PARITY_HINT_PARTS
@@ -2059,7 +1985,6 @@ impl App {
     /// One sim step of `world.tick`. That call moves `now_ms` only while the clock is running.
     fn advance_world(&mut self, interval_ms: i64) {
         let _ = self.world.tick(interval_ms);
-        self.home.release_tag_query(&self.world);
         if self
             .status_until_ms
             .is_some_and(|until| self.world.now_ms() >= until)
@@ -3095,7 +3020,12 @@ mod tests {
         let lines: Vec<&str> = text.lines().collect();
         assert!(lines[0].contains("no project"), "{}", lines[0]);
         assert!(lines[0].contains("devbox · development"), "{}", lines[0]);
-        assert!(lines[4].contains("docker clean"), "{}", lines[4]);
+        assert!(plate.app().home.query().is_empty());
+        assert!(
+            lines[4].contains("Search actions and resources"),
+            "{}",
+            lines[4]
+        );
         assert!(lines[6].contains("Results · 7"), "{}", lines[6]);
         assert!(
             lines[7].contains("› Clean Docker completely"),
@@ -3112,9 +3042,8 @@ mod tests {
         assert!(lines[39].contains("Enter Review…"), "{}", lines[39]);
         assert!(lines[39].contains("Esc Clear"), "{}", lines[39]);
         assert!(lines[39].contains("Clean Docker c…"), "{}", lines[39]);
-        let query = plate.cell(3, 4);
-        assert_eq!(query.symbol(), "d");
-        assert!(query.modifier.contains(termrock::Modifier::UNDERLINED));
+        // No forced cursor: the caret follows real focus on the query field.
+        assert_eq!(plate.focus(), Some(home::QUERY));
         let thumb = plate.cell(116, 8);
         assert_eq!(thumb.symbol(), "┃");
         assert_eq!(thumb.fg, Color::Rgb(0x80, 0x80, 0x80));
