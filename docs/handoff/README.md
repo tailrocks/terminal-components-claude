@@ -159,4 +159,4 @@ The canonical prepare stages one/two, Editor live API, Menu danger profile, Pane
 
 ## Showcase Editor broad-gate hold (2026-10-21)
 
-Preserve reviewed live Editor source and current records on `wip/parent-showcase-editor-validation-20261021`. The combined all-target suite ran203cases:200passed,threeheading/visualfailures,zeroskips. NoPR38push occurred. Independently compare exact161284db9before versus9c99356abafter in distinct targets, classify allthree and any masked Editor differences, then resolve regressions or record provenexistingfailures before publication. Do not bless candidate digests. See currentmatrix/log.
+Preserve reviewed live Editor source and current records on `wip/parent-showcase-editor-validation-20261021`. The combined all-target suite ran 203 cases: 200 passed, three heading/visual checks failed and zero were skipped. No PR38 push occurred. Independently compare exact revision161284db9 before with9c99356ab after in distinct targets; classify all three failures and any masked Editor differences. Resolve regressions or record proven existing failures before publication. Do not bless candidate digests. See the current matrix and log.
