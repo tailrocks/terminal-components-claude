@@ -1,0 +1,84 @@
+{
+  "reviewed_commit": "d5c8e655158cec48cf0e4ff24d3ac87f7157f048",
+  "parent_commit": "34f73e3066da7a77eac2d4719a697dc085906dda",
+  "status": "requires_changes",
+  "review_role": "independent Rust/API reviewer; no production edits or publication",
+  "source_integrity": {
+    "changed_production_files_match_reviewed_git_blobs": true,
+    "author_worktree_not_modified_by_reviewer": true,
+    "copy": "/private/tmp/termrock-theme-d5c8-independent-review-20261021",
+    "baseline_copy": "/private/tmp/termrock-theme-d5c8-before-review-20261021",
+    "source_copy_note": "Sparse author worktree contains unrelated missing tracked test files and a pre-existing modified PNG. No workspace-wide clean or format claim is made. The three changed production files were byte-compared to the exact commit."
+  },
+  "findings": [
+    {
+      "priority": "P1",
+      "file": "crates/termrock-theme/src/resolve.rs",
+      "lines": [
+        390,
+        855,
+        910
+      ],
+      "title": "Preserve Mono quantization for authored rules when no level profile exists",
+      "evidence": "An unchanged public bind_defaults consumer with no profiles and StyleDefaults::mono bg Role::Custom(Color::Indexed(37)) resolves Black on parent 34f73e3 and Indexed(37) on d5c8e655. The latter is a colored capability value under Mono. preserve_custom_channels marks every authored targeted Custom channel as profile-exact, causing bind_profile_slot to bypass canonical downgrade. Foreground and underline share the same mechanism.",
+      "requested_change": "Retain authored rule precedence without treating its arbitrary raw colors as exact level-profile colors. Preserve canonical downgrade for profile-free consumers and explicit ordinary rules; add the unchanged regression through bind_defaults and bind_defaults_with_explicit."
+    }
+  ],
+  "verification": {
+    "focused_candidate": {
+      "tests": 12,
+      "passed": 11,
+      "failed": 1,
+      "skipped": 0,
+      "exit": 100
+    },
+    "parent_unchanged_probes": {
+      "tests": 2,
+      "passed": 2,
+      "failed": 0,
+      "skipped": 0,
+      "exit": 0
+    },
+    "candidate_package_including_four_review_probes": {
+      "tests": 152,
+      "passed": 150,
+      "failed": 2,
+      "skipped": 0,
+      "exit": 100,
+      "failures": [
+        "all_73_junie_slots_match_reference_capability_output",
+        "mono_authored_defaults_without_profiles_keep_existing_quantization"
+      ]
+    },
+    "native_package_interpretation": "The 148 existing/native cases contribute 147 pass and the known all-73 oracle failure. This is not a green package gate.",
+    "default_corpus": {
+      "resolutions": 11520,
+      "identical": true,
+      "sha256": "ef41b890706668aa16b28bce9229e0dfc58d64f02a4d4b1f31e281a0c556cdce",
+      "coverage": "4 capabilities, 6 families, 5 variants, 4 parts, 8 flag combinations, 3 surfaces; complete Debug Resolved metadata"
+    },
+    "provenance_probes": "AccentPressed dependent token mutation and unrelated Warning mutation pass in all four capabilities, both source-token direct capability selection and converted themes. Conversion through Ansi256 then Ansi16 retains profile. Authored eight public tests including real Runtime/Button and non-Button custom family pass.",
+    "strict_clippy": "cargo clippy -p termrock-theme --lib --test level_profiles -- -D warnings: exit 0",
+    "format": "rustfmt --edition 2024 --check on all four authored Rust files: exit 0",
+    "timeouts": "Every supervised command has an explicit 215-second process-group timeout. No timeout occurred.",
+    "review_harness_errors": "First combined package invocation lacked THEME_REVIEW_CORPUS and had an additional review-only default_corpus failure; retained initial log and reran with the variable, yielding the two failures above. Reusing one target between parent and candidate also caused stale-parent compile API errors; those invalid runs were discarded and candidate rebuilt in a fresh dedicated v2 target with direct rustup rustc and CARGO_INCREMENTAL=0."
+  },
+  "architecture": "Uses existing recipe/resolver/cache pipeline; variant and semantic Surface selectors are generic. No new application/test identity, exact viewport/color selector, raw quantizer change, expected artifact modification, unsafe code, or concurrent mutable state was introduced in this diff. Source inspection found no additional actionable ownership/error-handling issue. No performance acceptance claim is made.",
+  "remaining_gaps": [
+    "Both new public API catalog/Showcase declarations remain outstanding, as already acknowledged by author.",
+    "No Junie Button ladder wiring or four-application parity is accepted.",
+    "No latest-remote integration compatibility or foreign Theme writer changes are covered.",
+    "No full workspace nextest, Clippy, formatting, external standalone consumer package, or paired CLI gate was run."
+  ],
+  "artifacts": {
+    "candidate-nextest.log": "f01f1db688b97a54d547b5207712d1bb10eb7472f0249f74373b2cb2c43129b7",
+    "focused-nextest.log": "2bb79b1ad06ba5f503341008dd96928d1f5042d9253b916d3466bcd394a08e78",
+    "parent-nextest.log": "7dc1f8c8e44999c31488f5c67955f800203444849589874dd3b8f651bf4f216e",
+    "clippy.log": "6d3555ee3b652c7a60ac8831091ae84d2c0eab12123b10623a655d758b4313ec",
+    "initial-review-harness-error.log": "424569fd10f4ae4b2f9808a80d1ade591e9a2615e029cb364d2b6b916086d16a",
+    "candidate-probes.rs": "69e5a3421f26e9112e67df4adf0ea6c922d9d56424414542494d2d969cbc098a",
+    "parent-probes.rs": "26f41bf9ee67e65ee9ad11d030b1c684a5b9c5255f490d4e99a468749aed6c07",
+    "parent-corpus.txt": "ef41b890706668aa16b28bce9229e0dfc58d64f02a4d4b1f31e281a0c556cdce",
+    "candidate-corpus.txt": "ef41b890706668aa16b28bce9229e0dfc58d64f02a4d4b1f31e281a0c556cdce"
+  }
+}
