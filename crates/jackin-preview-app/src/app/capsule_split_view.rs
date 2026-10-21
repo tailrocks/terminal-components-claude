@@ -652,6 +652,24 @@ pub(super) fn finish_reduced(ui: &mut Ui<'_>) {
         }
     }
     ui.add_dim(underlay);
+    // Footer repairs paint truecolor RGB on the undimmed hint row.
+    let hint = Rect {
+        y: full.bottom().saturating_sub(1),
+        height: 1,
+        ..full
+    };
+    ui.recolor_pair(hint, |fg, bg| (hint_ink(fg), hint_ink(bg)));
+}
+
+fn hint_ink(color: Color) -> Color {
+    match color {
+        Color::Rgb(0xff, 0xff, 0xff) => Color::Indexed(15),
+        Color::Rgb(0x00, 0x00, 0x00) => Color::Indexed(0),
+        Color::Rgb(0xb3, 0xb3, 0xb3)
+        | Color::Rgb(0x8a, 0x8a, 0x8a)
+        | Color::Rgb(0x73, 0x73, 0x73) => Color::Gray,
+        other => other,
+    }
 }
 
 fn is_black(color: Color) -> bool {
