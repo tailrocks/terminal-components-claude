@@ -388,12 +388,7 @@ fn menu(r: &mut Recipe) {
             .set_fg(Role::HighlightFg)
             .add(Modifier::BOLD),
     );
-    part(
-        m,
-        Part::TITLE,
-        p().set_fg(Role::Fg(FgStep::Muted)).add(Modifier::BOLD),
-    )
-    .when(
+    part(m, Part::TITLE, p()).when(
         StateFlags::PRESSED,
         p().set_glyph(GlyphRole::PressLeft).add(Modifier::BOLD),
     );

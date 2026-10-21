@@ -3701,6 +3701,7 @@ dependencies = [
  "termrock-layout",
  "termrock-runtime",
  "termrock-shell",
+ "termrock-test-support",
  "termrock-theme",
 ]
 
