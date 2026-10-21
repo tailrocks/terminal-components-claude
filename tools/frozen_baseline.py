@@ -3665,7 +3665,7 @@ def _check_owned_directory_binding(binding: tuple[Path, str, str], *, check_work
         raise RunnerError("owned run directory path or identity no longer matches its pinned identity")
 
 
-def _create_owned_run_directory(root_binding: dict[str, str], plan_id: str, *, check_work: Callable[[], None]) -> tuple[Path, tuple[Path, str, str], int, tuple[int, int]]:
+def _create_owned_run_directory(root_binding: dict[str, str], plan_id: str, *, check_work: Callable[[], None]) -> tuple[Path, tuple[Path, str, str], tuple[Path, str, str], int, tuple[int, int]]:
     """Create fresh-runs/<plan_id> through the pinned plan-root descriptor only."""
     if not plan_id or Path(plan_id).name != plan_id or plan_id in {".", ".."}:
         raise RunnerError("fresh run plan ID must be a single path component")
@@ -3675,6 +3675,7 @@ def _create_owned_run_directory(root_binding: dict[str, str], plan_id: str, *, c
     root_fd, root_info = _open_directory_chain(canonical)
     runs_fd = -1
     run_fd = -1
+    runs_binding: tuple[Path, str, str] | None = None
     try:
         if (str(root_info.st_dev), str(root_info.st_ino)) != (root_binding["plan_root_device"], root_binding["plan_root_inode"]):
             raise RunnerError("owned plan-root descriptor differs from its pinned identity")
@@ -3692,8 +3693,10 @@ def _create_owned_run_directory(root_binding: dict[str, str], plan_id: str, *, c
         runs_named = os.stat("fresh-runs", dir_fd=root_fd, follow_symlinks=False)
         if (runs_info.st_dev, runs_info.st_ino) != (runs_named.st_dev, runs_named.st_ino) or not stat.S_ISDIR(runs_info.st_mode) or runs_info.st_uid != os.geteuid() or stat.S_IMODE(runs_info.st_mode) != 0o700:
             raise RunnerError("fresh-runs directory is unsafe or changed while opening")
+        runs_binding = (canonical / "fresh-runs", str(runs_info.st_dev), str(runs_info.st_ino))
         check_work()
         _check_owned_root_binding(root_binding, check_work=check_work)
+        _check_owned_directory_binding(runs_binding, check_work=check_work)
         try:
             os.mkdir(plan_id, mode=0o700, dir_fd=runs_fd)
         except FileExistsError as error:
@@ -3701,6 +3704,7 @@ def _create_owned_run_directory(root_binding: dict[str, str], plan_id: str, *, c
         os.fsync(runs_fd)
         check_work()
         _check_owned_root_binding(root_binding, check_work=check_work)
+        _check_owned_directory_binding(runs_binding, check_work=check_work)
         run_fd = os.open(plan_id, os.O_RDONLY | getattr(os, "O_DIRECTORY", 0) | getattr(os, "O_NOFOLLOW", 0), dir_fd=runs_fd)
         run_info = os.fstat(run_fd)
         run_named = os.stat(plan_id, dir_fd=runs_fd, follow_symlinks=False)
@@ -3710,8 +3714,10 @@ def _create_owned_run_directory(root_binding: dict[str, str], plan_id: str, *, c
         binding = (run_root, str(run_info.st_dev), str(run_info.st_ino))
         check_work()
         _check_owned_root_binding(root_binding, check_work=check_work)
+        _check_owned_directory_binding(runs_binding, check_work=check_work)
         _check_owned_directory_binding(binding, check_work=check_work)
-        result = run_root, binding, run_fd, (run_info.st_dev, run_info.st_ino)
+        assert runs_binding is not None
+        result = run_root, runs_binding, binding, run_fd, (run_info.st_dev, run_info.st_ino)
         run_fd = -1
         return result
     except OSError as error:
@@ -4615,9 +4621,15 @@ def _create_fresh_run_owned(
     key_path = key_path_parent / key_path.name
     if any(key_path == item or item in key_path.parents for item in protected):
         raise RunnerError("fresh run key custody must be outside Git, source, binaries, and artifact roots")
-    run_root, run_binding, run_fd, run_identity = _create_owned_run_directory(
+    run_root, runs_binding, run_binding, run_fd, run_identity = _create_owned_run_directory(
         root_binding, str(plan["plan_id"]), check_work=execution.check_work,
     )
+
+    def check_run_path_chain() -> None:
+        execution.check_work()
+        _check_owned_root_binding(root_binding, check_work=execution.check_work)
+        _check_owned_directory_binding(runs_binding, check_work=execution.check_work)
+        _check_owned_directory_binding(run_binding, check_work=execution.check_work)
 
     stage = "key-create"
     key_may_exist = False
@@ -4655,21 +4667,22 @@ def _create_fresh_run_owned(
         body = canonical_receipt_json(manifest)
         envelope = {"manifest": manifest, "hmac_sha256": hmac.new(key, body, hashlib.sha256).hexdigest()}
         stage = "manifest-publication"
-        execution.check_work()
-        _check_owned_root_binding(root_binding, check_work=execution.check_work)
+        check_run_path_chain()
         _atomic_create_bytes_at(
             run_fd, FRESH_RUN_MANIFEST_FILE, canonical_receipt_json(envelope),
             expected_identity=run_identity, check_work=execution.check_work,
         )
-        execution.check_work()
-        _check_owned_root_binding(root_binding, check_work=execution.check_work)
+        check_run_path_chain()
         stage = "success-output"
+        check_run_path_chain()
         success = json.dumps({"run_root": str(run_root), "run_id": manifest["run_id"], "status": manifest["status"], "executed": False}, indent=2)
-        execution.check_work()
-        _check_owned_root_binding(root_binding, check_work=execution.check_work)
+        check_run_path_chain()
+        # The output is an external observation. Recheck the complete directory
+        # chain immediately before and after flushing so it cannot knowingly
+        # attest to a run path that now resolves to a replacement directory.
+        check_run_path_chain()
         print(success, flush=True)
-        execution.check_work()
-        _check_owned_root_binding(root_binding, check_work=execution.check_work)
+        check_run_path_chain()
         return manifest
     except Exception as error:
         failure = {
@@ -4684,14 +4697,10 @@ def _create_fresh_run_owned(
         }
         marker = "init-failure.json"
         try:
-            execution.check_work()
-            _check_owned_root_binding(root_binding, check_work=execution.check_work)
+            check_run_path_chain()
             assert run_binding is not None and run_identity is not None and run_fd >= 0
-            _check_owned_directory_binding(run_binding, check_work=execution.check_work)
             _atomic_create_bytes_at(run_fd, marker, canonical_receipt_json(failure), expected_identity=run_identity, check_work=execution.check_work)
-            execution.check_work()
-            _check_owned_root_binding(root_binding, check_work=execution.check_work)
-            _check_owned_directory_binding(run_binding, check_work=execution.check_work)
+            check_run_path_chain()
         except Exception as marker_error:
             raise RunnerError(f"{error}; failure marker publication could not be verified against the owned run directory: {marker_error}") from error
         raise

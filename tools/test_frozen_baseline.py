@@ -2631,6 +2631,81 @@ class RunnerGuards(unittest.TestCase):
             self.assertFalse(key_path.exists())
             self.assertEqual(output.getvalue(), "")
 
+    def test_owned_fresh_run_init_rejects_nested_directory_replacement_before_success(self) -> None:
+        for phase in ("after-manifest-run", "after-manifest-parent", "before-success-serialization"):
+            with self.subTest(phase=phase), tempfile.TemporaryDirectory() as temp:
+                base = Path(temp).resolve()
+                root = base / "runner-root"
+                root.mkdir()
+                _plan_path, commitment_path, commitment_sha256, plan = self._publish_recovery_fixture(root)
+                plan_digest = runner.sha256(_plan_path)
+                pending_path = Path(f"{commitment_path}.pending")
+                key_path = base / "private-custody" / "run.key"
+                run_root = root / "fresh-runs" / str(plan["plan_id"])
+                runs_root = run_root.parent
+                displaced = base / "displaced-owned-directory"
+                replacement_snapshot: dict[str, bytes | None] = {}
+
+                def replace_owned_path() -> None:
+                    target = runs_root if phase == "after-manifest-parent" else run_root
+                    target.rename(displaced)
+                    target.mkdir(mode=0o700)
+                    (target / "sentinel.txt").write_text("replacement must remain untouched\n")
+                    replacement_snapshot.update({
+                        item.relative_to(target).as_posix(): item.read_bytes() if item.is_file() else None
+                        for item in target.rglob("*")
+                    })
+
+                real_atomic_create = runner._atomic_create_bytes_at
+                real_json_dumps = runner.json.dumps
+
+                def replace_after_manifest(directory_fd, name, payload, *args, **kwargs):
+                    result = real_atomic_create(directory_fd, name, payload, *args, **kwargs)
+                    if name == runner.FRESH_RUN_MANIFEST_FILE:
+                        replace_owned_path()
+                    return result
+
+                def replace_before_success_serialization(value, *args, **kwargs):
+                    if (
+                        phase == "before-success-serialization"
+                        and isinstance(value, dict)
+                        and set(value) == {"run_root", "run_id", "status", "executed"}
+                    ):
+                        replace_owned_path()
+                    return real_json_dumps(value, *args, **kwargs)
+
+                fault = (
+                    patch.object(runner.json, "dumps", side_effect=replace_before_success_serialization)
+                    if phase == "before-success-serialization"
+                    else patch.object(runner, "_atomic_create_bytes_at", side_effect=replace_after_manifest)
+                )
+                output = io.StringIO()
+                with (
+                    patch.object(runner, "verify_fresh_plan", return_value=plan),
+                    patch.object(runner, "_git_metadata_paths", return_value=set()),
+                    fault,
+                    patch.object(runner.sys, "stdout", output),
+                    runner.PrepareExecution(20) as execution,
+                    self.assertRaisesRegex(runner.RunnerError, "identity|changed|replacement"),
+                ):
+                    runner.create_fresh_run(
+                        root / "repo", root, "fixture-cohort", root / "bins", 30,
+                        plan_digest, key_path, execution=execution,
+                        commitment_path=commitment_path, expected_commitment_sha256=commitment_sha256,
+                        pending_receipt_path=pending_path,
+                    )
+
+                target = runs_root if phase == "after-manifest-parent" else run_root
+                replacement_after = {
+                    item.relative_to(target).as_posix(): item.read_bytes() if item.is_file() else None
+                    for item in target.rglob("*")
+                }
+                self.assertEqual(replacement_after, replacement_snapshot)
+                original_run = displaced / str(plan["plan_id"]) if phase == "after-manifest-parent" else displaced
+                self.assertTrue((original_run / runner.FRESH_RUN_MANIFEST_FILE).is_file())
+                self.assertFalse((target / "init-failure.json").exists())
+                self.assertEqual(output.getvalue(), "")
+
     def test_owned_fresh_run_init_cancellation_deadline_and_root_swap_fail_before_key(self) -> None:
         for failure in ("deadline", "signal", "root-swap"):
             with self.subTest(failure=failure), tempfile.TemporaryDirectory() as temp:
