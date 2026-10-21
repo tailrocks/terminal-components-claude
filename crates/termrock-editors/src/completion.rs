@@ -208,6 +208,20 @@ impl<'a> CompletingCodeEditor<'a> {
         Completion::new(self.popup_id)
     }
 
+    /// Open the editor's find bar, dismissing any active completion popup first.
+    pub fn open_find(
+        &self,
+        cx: &mut Cx<'_>,
+        state: &mut CompletingCodeEditorState,
+    ) -> Response<CodeAction> {
+        if self.editor.is_disabled() {
+            return Response::ignored();
+        }
+        CompletionController::new(self.id, self.popup_id).dismiss(cx, &mut state.completion);
+        state.items.clear();
+        self.editor.open_find(cx, &mut state.editor)
+    }
+
     /// Measure the editor using its existing intrinsic sizing contract.
     pub fn measure(&self, ui: &Ui<'_>, constraints: Constraints) -> Size {
         self.editor.measure(ui, constraints)
