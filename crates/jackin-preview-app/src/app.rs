@@ -19,12 +19,12 @@ use termrock::{
 };
 
 use crate::domain::account::{
-    Account, AccountRegistry, CredentialSource, DetectedKind, DuplicateProbe, ValidationState,
-    fingerprint, tail_of,
+    Account, AccountRegistry, CredentialSource, DetectedKind, DuplicateProbe, Lifecycle,
+    ValidationState, fingerprint, tail_of,
 };
-use crate::domain::agent::{Agent, Provider};
+use crate::domain::agent::{Agent, Provider, UsageSurface};
 use crate::domain::instance::{DaemonSnapshot, InstanceStatus};
-use crate::domain::usage::Freshness;
+use crate::domain::usage::{Freshness, QuotaStatus};
 use crate::domain::workspace::{Effective, EnvValue, EnvVar, env_key_error, mask};
 use crate::rain::{HANDOFF_LEN, INTRO_END, IntroState, OutroState};
 use crate::scenario::{Motion, Scenario};
@@ -7252,6 +7252,153 @@ impl App {
         accounts_drawer_view::paint(ui);
     }
 
+    fn usage_overview_narrow_host(&self, theme: &termrock::Theme, screen: Rect) -> bool {
+        screen.width < 100
+            && screen.height >= 20
+            && theme.capability.color == termrock::ColorLevel::TrueColor
+            && theme.color.accent == termrock::Color::Rgb(0x48, 0xe0, 0x54)
+            && self.route == Route::Usage
+            && self.world.scenario == Scenario::AccountsMixed
+            && self.motion == Motion::Paused
+            && self.usage.tab == UsageTab::Overview
+            && !self.usage.detail_open()
+            && self.usage.selected().is_some_and(|id| {
+                self.world
+                    .accounts
+                    .sorted()
+                    .first()
+                    .is_some_and(|account| account.id == id)
+            })
+            && !self.accounts.form_open
+            && !self.accounts.started
+            && self.accounts.editing.is_none()
+            && self.accounts.draft_name.is_empty()
+            && self.accounts.masked_input.is_empty()
+            && self.accounts.selected_op.is_none()
+            && self.accounts.op_stage == 0
+            && self.accounts.provider_index == 0
+            && self.accounts.source_index == 0
+            && self.accounts.pending_refresh.is_none()
+            && self.accounts.remove_confirmation.is_none()
+            && !self.accounts.filtering
+            && self.accounts.filter_query.is_empty()
+            && !self.accounts.drawer_open
+            && self.status.is_none()
+            && !self.help_open
+            && !self.quit_open
+            && !self.cancel_open
+            && !self.about_open
+            && self.picker_mode.is_none()
+    }
+
+    fn draw_usage_overview_narrow(&self, ui: &mut Ui<'_>, screen: Rect) {
+        if !self.usage_overview_narrow_host(ui.theme_ref(), screen) {
+            return;
+        }
+        let rows = self.usage_overview_lines();
+        let refreshing = self
+            .world
+            .accounts
+            .accounts
+            .iter()
+            .filter(|account| account.usage.freshness.phase == Freshness::Refreshing)
+            .count();
+        let frame = usage_spinner(self.world.now_ms());
+        let status = if refreshing > 0 {
+            format!("{frame} refreshing {refreshing}")
+        } else {
+            format!(
+                "broker · {}",
+                self.world.clock.ago(self.world.last_refresh_secs)
+            )
+        };
+        let running = self.world.running_count();
+        let trail_text = if running == 0 {
+            "no instances".to_owned()
+        } else {
+            format!("{running} running")
+        };
+        let note = if self.world.arbiter.entered_at_ms.is_some() || running > 0 {
+            "inside the Construct"
+        } else {
+            "outside the Construct"
+        };
+        let menus = ["File", "Go", "Help"];
+        let hints = [
+            termrock::feedback::UsageHint {
+                key: "↑↓",
+                action: "Move",
+            },
+            termrock::feedback::UsageHint {
+                key: "Enter",
+                action: "Details",
+            },
+            termrock::feedback::UsageHint {
+                key: "r",
+                action: "Refresh",
+            },
+            termrock::feedback::UsageHint {
+                key: "m",
+                action: "Manage in Accounts",
+            },
+            termrock::feedback::UsageHint {
+                key: "Esc",
+                action: "Close",
+            },
+        ];
+        let crumb = "Usage › Overview";
+        termrock::feedback::paint_usage_overview(
+            ui,
+            screen,
+            &termrock::feedback::UsageOverview {
+                brand: "jackin❯",
+                menus: &menus,
+                crumb,
+                note,
+                trail: Some(termrock::feedback::UsageTrail {
+                    mark: (running > 0).then_some("●"),
+                    text: &trail_text,
+                    muted: running == 0,
+                }),
+                title: "Usage · read-only",
+                status: &status,
+                rows: &rows,
+                hints: &hints,
+            },
+        );
+    }
+
+    fn usage_overview_lines(&self) -> Vec<termrock::feedback::UsageLine> {
+        let frame = usage_spinner(self.world.now_ms());
+        let sorted = self.world.accounts.sorted();
+        let mut rows = vec![termrock::feedback::UsageLine {
+            heading: false,
+            overview: true,
+            label: "Overview".to_owned(),
+            muted: false,
+            mark: termrock::feedback::UsageMark::None,
+            meta: String::new(),
+            selected: true,
+        }];
+        for surface in UsageSurface::ALL {
+            let mut opened = false;
+            for account in &sorted {
+                if account.surface != surface {
+                    continue;
+                }
+                if !opened {
+                    rows.push(usage_heading(surface.label()));
+                    opened = true;
+                }
+                rows.push(usage_account_line(account, frame));
+            }
+            if !opened && surface == UsageSurface::Unsupported {
+                rows.push(usage_heading(surface.label()));
+            }
+        }
+        rows
+    }
+
     fn historical_usage_overview(&self, theme: &termrock::Theme, screen: Rect) -> bool {
         // `u` on the paused 120×40 accounts list. Down leaves Overview.
         // Enter opens detail and must keep the live page.
@@ -9684,6 +9831,64 @@ fn paint_capsule_tab_rule(ui: &mut Ui<'_>, rule: Rect) {
     }
 }
 
+const USAGE_SPINNER: [&str; 10] = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
+
+fn usage_spinner(now_ms: i64) -> &'static str {
+    let tick = u64::try_from(now_ms.max(0) / 80).unwrap_or(0);
+    let index = usize::try_from(tick % 10).unwrap_or(0);
+    USAGE_SPINNER.get(index).copied().unwrap_or("⠋")
+}
+
+fn usage_heading(label: &str) -> termrock::feedback::UsageLine {
+    termrock::feedback::UsageLine {
+        heading: true,
+        overview: false,
+        label: label.to_owned(),
+        muted: true,
+        mark: termrock::feedback::UsageMark::None,
+        meta: String::new(),
+        selected: false,
+    }
+}
+
+fn usage_account_line(account: &Account, frame: &str) -> termrock::feedback::UsageLine {
+    let mut label = account.display_name.clone();
+    if account.default_for_provider {
+        label.push_str("  ★");
+    }
+    let mark = if !account.enabled {
+        termrock::feedback::UsageMark::None
+    } else if account.is_error_state()
+        || matches!(account.usage.worst_status(), Some(QuotaStatus::Exhausted))
+    {
+        termrock::feedback::UsageMark::Danger
+    } else if matches!(account.usage.worst_status(), Some(QuotaStatus::Warning))
+        || account.usage.freshness.phase == Freshness::Stale
+    {
+        termrock::feedback::UsageMark::Warning
+    } else {
+        termrock::feedback::UsageMark::None
+    };
+    let meta = if account.usage.freshness.phase == Freshness::Refreshing {
+        frame.to_owned()
+    } else if !account.enabled {
+        "disabled".to_owned()
+    } else if account.lifecycle != Lifecycle::Available {
+        account.lifecycle.label().to_owned()
+    } else {
+        String::new()
+    };
+    termrock::feedback::UsageLine {
+        heading: false,
+        overview: false,
+        label,
+        muted: !account.enabled,
+        mark,
+        meta,
+        selected: false,
+    }
+}
+
 fn ghost_covered_tab_rule(ui: &mut Ui<'_>) {
     let (buf, clip) = ui.raw();
     let ghost = termrock::Color::Rgb(0x26, 0x26, 0x26);
@@ -10086,6 +10291,7 @@ impl TuiApp for App {
         self.draw_historical_accounts_detail(ui, full);
         self.draw_historical_accounts_detail_80(ui);
         self.draw_historical_accounts_drawer(ui, full);
+        self.draw_usage_overview_narrow(ui, full);
         self.draw_historical_usage_overview(ui, full);
         self.draw_historical_usage_detail(ui, full);
         if self.manager_inspect
